@@ -1,18 +1,22 @@
 #Don't add tests to Everything
-Everything = dynutil common symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
+Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
 
-SymtabAPI 	= dynutil common symtabAPI
-StackwalkerAPI = dynutil common proccontrol stackwalk
+Dwarf = dynutil common dwarf
+Elf = dynutil common elf
+Symlite = dynutil common elf symlite
+SymtabAPI 	= dynutil common dwarf elf symtabAPI
+StackwalkerAPI = dynutil common dwarf elf symlite proccontrol stackwalk
 DyninstAPI	= dynutil common symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI
 DynC_API = $(DyninstAPI) dynC_API
 Dyner = $(DyninstAPI) dyner
 InstructionAPI	= dynutil common instructionAPI
-ProcControlAPI = dynutil common proccontrol
+ProcControlAPI = dynutil common elf symlite proccontrol
 DepGraphAPI = depGraphAPI
-ParseAPI = dynutil common symtabAPI instructionAPI parseAPI
+ParseAPI = dynutil common elf symlite symtabAPI instructionAPI parseAPI
 ValueAdded = valueAdded/sharedMem
 DataflowAPI = ParseAPI
 PatchAPI = dynutil common parseAPI patchAPI
+
 ifndef WITHOUT_PARSE_API
 StackwalkerAPI += parseAPI instructionAPI
 endif
@@ -31,7 +35,7 @@ instructionAPI = $(InstructionAPI)
 proccontrol = $(ProcControlAPI)
 stackwalk = $(StackwalkerAPI)
 parseAPI = $(ParseAPI)
-dataflowAPI = $(parseAPI)
+dataflowAPI = $(ParseAPI)
 patchAPI = $(PatchAPI)
 dyninstAPI = $(DyninstAPI)
 parseThat = $(DyninstAPI) parseThat

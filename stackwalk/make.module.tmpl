@@ -61,14 +61,12 @@ SRCS	     +=	../src/frame.C \
 		../src/sw_c.C \
 		../src/sw_pcontrol.C
 
-ifdef LIBELF_PLATFORM
-SRCS  +=  ../../common/src/Elf_X.C \
-          ../../common/src/SymLite-elf.C
+ifdef LIBDWARF_PLATFORM
+LDFLAGS += -L../../dwarf/$(PLATFORM) -ldynDwarf
 endif
-ifdef USES_DWARF_DEBUG
-SRCS  +=  ../../common/src/dwarfSW.C \
-          ../../common/src/dwarfExpr.C
 
+ifdef LIBELF_PLATFORM
+LDFLAGS += -L../../elf/$(PLATFORM) -ldynElf
 endif
 
 ifndef WITHOUT_PARSE_API
@@ -80,10 +78,13 @@ else
 	SRCS += ../src/callchecker.C
 endif
 
-ifdef WITHOUT_SYMTAB_API
+ifndef WITHOUT_SYMTAB_API
 	MYFLAGS += -I../../symtabAPI/h
 	LDFLAGS += -L../../symtabAPI/$(PLATFORM) -lsymtabAPI
 endif
+
+LDFLAGS += -L../../symlite/$(PLATFORM) -lsymLite
+
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../proccontrol/h -I../../symtabAPI/h -I../../parseAPI/h -I../../instructionAPI/h
 

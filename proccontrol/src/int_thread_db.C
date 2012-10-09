@@ -444,7 +444,8 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
 {
    td_thrinfo_t info;
    async = false;
-   async_ret_t result = ll_fetchThreadInfo(const_cast<td_thrhandle_t *>(eventMsg->th_p), &info);
+   td_thrhandle_t *handle = const_cast<td_thrhandle_t *>(eventMsg->th_p);
+   async_ret_t result = ll_fetchThreadInfo(handle, &info);
    if (result == aret_error) {
       pthrd_printf("Failed to fetch thread info\n");
       return Event::ptr();
@@ -468,7 +469,7 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
          int_eventNewUserThread *iev = new_ev->getInternalEvent();
 
          new_thread_data_t *thrdata = (new_thread_data_t *) malloc(sizeof(new_thread_data_t));
-         thrdata->thr_handle = new td_thrhandle_t(*(eventMsg->th_p));
+         thrdata->thr_handle = new td_thrhandle_t(*handle);
          thrdata->thr_info = info;
          thrdata->threadHandle_alloced = true;
 
@@ -810,8 +811,11 @@ async_ret_t thread_db_process::initThreadDB() {
          return aret_error;
       }
       pthrd_printf("Post-conversion, using address of 0x%lx\n", addr);
+#if defined(os_freebsd)
+      notifyResult.u.bptaddr = (psaddr_t) addr;
+#else
       notifyResult.u.bptaddr = (void *) addr;
-      
+#endif 
       int_breakpoint *newEventBrkpt = new int_breakpoint(Breakpoint::ptr());
       newEventBrkpt->setProcessStopper(true);
       if( !addBreakpoint(addr, newEventBrkpt))
@@ -1011,11 +1015,11 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
     if (getAddressWidth() == 4) {
        tmp &= 0xffffffff;
     }
-
+    
     *symbolAddr = (psaddr_t) tmp;
 
     pthrd_printf("thread_db getSymbolAddr(%s, %s) = %p\n", objName ? objName : "NULL", 
-                 symName ? symName : "NULL", *symbolAddr);
+                 symName ? symName : "NULL", (void *) *symbolAddr);
     return PS_OK;
 }
 

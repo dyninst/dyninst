@@ -30,7 +30,7 @@
 
 // $Id: ast.C,v 1.209 2008/09/15 18:37:49 jaw Exp $
 
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
@@ -449,6 +449,8 @@ AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Of
     ast_wrappers_(ast_wrappers), ranges_(ranges), index(0)
 {
    vector<AstNodePtr>::iterator i;
+   assert(!ast_wrappers_.empty());
+
    for (i = ast_wrappers.begin(); i != ast_wrappers.end(); i++) {
       (*i)->referenceCount++;
    }
@@ -1847,7 +1849,6 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
 bool AstVariableNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &addr,
                                           Register &retReg) {
-
     return ast_wrappers_[index]->generateCode_phase2(gen, noCost, addr, retReg);
 }
 
@@ -2916,10 +2917,22 @@ void AstVariableNode::setVariableAST(codeGen &gen){
         return;
     }
     Address addr = gen.point()->addr_compat();     //Offset of inst point from function base address
+    bool found = false;
     for(unsigned i=0; i< ranges_->size();i++){
-        if((*ranges_)[i].first<=addr && addr<(*ranges_)[i].second)
-            index = i;
+       if((*ranges_)[i].first<=addr && addr<=(*ranges_)[i].second) {
+          index = i;
+          found = true;
+       }
     }
+    if (!found) {
+       cerr << "Error: unable to find AST representing variable at " << hex << addr << dec << endl;
+       cerr << "Pointer " << hex << this << dec << endl;
+       cerr << "Options are: " << endl;
+       for(unsigned i=0; i< ranges_->size();i++){
+          cerr << "\t" << hex << (*ranges_)[i].first << "-" << (*ranges_)[i].second << dec << endl;
+       }
+    }
+    assert(found);
 }
 
 void AstInsnBranchNode::setVariableAST(codeGen &g){

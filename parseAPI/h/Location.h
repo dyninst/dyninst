@@ -158,9 +158,12 @@ Location(Edge *e) : func(NULL), block(NULL), offset(0), edge(e), untrusted(false
 				for (Function::blocklist::iterator blockIter = blk.begin(); blockIter != blk.end(); ++blockIter){
 					Intraproc epred;
 					const Block::edgelist& target_edges = (*blockIter) -> targets();
-					Block::edgelist::iterator eit = target_edges.begin(&epred);		 
-					for( ; eit != target_edges.end(); ++eit) { 
-						if ((*eit) == edge) return true;
+					if(std::find(boost::make_filter_iterator(epred, target_edges.begin(), target_edges.end()),
+						     boost::make_filter_iterator(epred, target_edges.end(), target_edges.end()),
+						     edge)
+					   != boost::make_filter_iterator(epred, target_edges.end(), target_edges.end()))
+					{
+					  return true;
 					}
 				}
 				return false;

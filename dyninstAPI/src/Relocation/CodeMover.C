@@ -74,6 +74,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
    for (; begin != end; ++begin) {
       func_instance *func = *begin;
       if (!func->isInstrumentable()) {
+	relocation_cerr << "\tFunction " << func->symTabName() << " is non-instrumentable, skipping" << endl;
          continue;
       }
       relocation_cerr << "\tAdding function " << func->symTabName() << endl;
@@ -85,6 +86,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
       // Add the function entry as Required in the priority map
       block_instance *entry = func->entryBlock();
       priorityMap_[std::make_pair(entry, func)] = Required;
+      relocation_cerr << "\t Added required entry for " << func->symTabName() << " / " << hex << entry->start() << dec << endl;
    }
 
    return true;
@@ -105,7 +107,8 @@ bool CodeMover::addRelocBlock(block_instance *bbl, func_instance *f) {
    cfg_->addRelocBlock(block);
    
    if (!bbl->wasUserAdded()) {
-      priorityMap_[std::make_pair(bbl, f)] = Suggested;
+     relocation_cerr << "\t Added suggested entry for " << f->symTabName() << " / " << hex << bbl->start() << dec << endl;
+     priorityMap_[std::make_pair(bbl, f)] = Suggested;
    }
 
    return true;
@@ -212,7 +215,7 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *) {
    // and return a sorted list of where we need 
    // patches (from and to)
 
-   //relocation_cerr << "Creating springboard request map" << endl;
+   relocation_cerr << "Creating springboard request map" << endl;
 
    if (sboardMap_.empty()) {
       for (PriorityMap::const_iterator iter = priorityMap_.begin();
@@ -220,6 +223,10 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *) {
          block_instance *bbl = iter->first.first;
          const Priority &p = iter->second;
          func_instance *func = iter->first.second;
+
+	 relocation_cerr << "Func " << func->symTabName() << " / block " 
+			 << hex << bbl->start() << " /w/ priority " << p 
+			 << dec << endl;
 
          if (bbl->wasUserAdded()) continue;
 
@@ -231,9 +238,6 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *) {
          Address to = buffer_.getLabelAddr(labelID);
          
          sboardMap_.addFromOrigCode(bbl->start(), to, p, func, bbl);
-         //relocation_cerr << "Added map " << hex
-//                            << bbl->firstInsnAddr() << " -> " 
-//                            << to << ", " << p << dec << endl;
       }
       
       // And instrumentation that needs updating

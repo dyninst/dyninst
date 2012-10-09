@@ -36,7 +36,7 @@
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/h/BPatch_function.h"
 #include "dyninstAPI/src/debug.h"
@@ -311,49 +311,23 @@ mapped_object::~mapped_object()
 }
 
 Address mapped_object::codeAbs() const {
-   // RHEL tends to use "negative" codeBase values
-   // (such that codeBase + codeOffset wraps) for 32-bit
-   // processes. Handle the math here. 
-   if (proc()->getAddressWidth() == 8) {
-      return codeBase_ + imageOffset();
-   }
-   else {
-      return ((codeBase_ + imageOffset()) & 0xffffffff);
-   }
+  return codeBase_ + imageOffset();
 }
 
 Address mapped_object::dataAbs() const {
-   // RHEL tends to use "negative" codeBase values
-   // (such that codeBase + codeOffset wraps) for 32-bit
-   // processes. Handle the math here. 
-   if (proc()->getAddressWidth() == 8) {
-      return dataBase_ + dataOffset();
-   }
-   else {
-      return ((dataBase_ + dataOffset()) & 0xffffffff);
-   }
+  return dataBase_ + dataOffset();
 }
 
 bool mapped_object::isCode(Address addr) const {
    Address offset;
-   if (proc()->getAddressWidth() == 8) {
-      offset = addr - codeBase();
-   }
-   else {
-      offset = ((unsigned) addr) - ((unsigned) codeBase());
-   }
+   offset = addr - codeBase();
 
    return parse_img()->getObject()->isCode(offset);
 }
 
 bool mapped_object::isData(Address addr) const {
    Address offset;
-   if (proc()->getAddressWidth() == 8) {
-      offset = addr - codeBase();
-   }
-   else {
-      offset = ((unsigned) addr) - ((unsigned) codeBase());
-   }
+   offset = addr - codeBase();
 
    return parse_img()->getObject()->isData(offset);
 }
@@ -379,8 +353,8 @@ bool mapped_object::analyze()
   // PatchAPI to create function objects, destroying lazy function creation
   // We already have exported ones. Force analysis (if needed) and get
   // the functions we created via analysis.
-  CodeObject::funclist & allFuncs = parse_img()->getAllFunctions();
-  CodeObject::funclist::iterator fit = allFuncs.begin();
+  const CodeObject::funclist & allFuncs = parse_img()->getAllFunctions();
+  CodeObject::funclist::const_iterator fit = allFuncs.begin();
   for( ; fit != allFuncs.end(); ++fit) {
   // For each function, we want to add our base address
       if((*fit)->src() != HINT)
@@ -556,10 +530,11 @@ const pdvector <func_instance *> *mapped_object::findFuncVectorByMangled(const s
         // Okay, we've pulled in some of the functions before (this can happen as a
         // side effect of adding functions). But did we get them all?
         pdvector<func_instance *> *map_funcs = allFunctionsByMangledName[funcname];
-        if (map_funcs->size() == img_funcs->size())
+        if (map_funcs->size() == img_funcs->size()) {
             // We're allocating at the lower level...
             delete img_funcs;
             return map_funcs;
+        }
     }
 
     // Slow path: check each img_func, add those we don't already have, and return.
@@ -742,8 +717,8 @@ const pdvector<mapped_module *> &mapped_object::getModules() {
 bool mapped_object::getAllFunctions(pdvector<func_instance *> &funcs) {
     unsigned start = funcs.size();
 
-    CodeObject::funclist &img_funcs = parse_img()->getAllFunctions();
-    CodeObject::funclist::iterator fit = img_funcs.begin();
+    const CodeObject::funclist &img_funcs = parse_img()->getAllFunctions();
+    CodeObject::funclist::const_iterator fit = img_funcs.begin();
     for( ; fit != img_funcs.end(); ++fit) {
         if(funcs_.find((parse_func*)*fit) == funcs_.end()) {
             findFunction((parse_func*)*fit);

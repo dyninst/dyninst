@@ -265,12 +265,12 @@ bool IA_IAPI::isStackFramePreamble() const
 	if (!savesFP()) return false;
     InstructionDecoder tmp(dec);
     std::vector<Instruction::Ptr> nextTwoInsns;
-	for (unsigned i = 0; i < limit; ++i) {
-		Instruction::Ptr insn = tmp.decode();
-		if (isFrameSetupInsn(insn)) {
-			return true;
-		}
-	}
+    for (int i = 0; i < limit; ++i) {
+       Instruction::Ptr insn = tmp.decode();
+       if (isFrameSetupInsn(insn)) {
+          return true;
+       }
+    }
 	return false;
 }
 

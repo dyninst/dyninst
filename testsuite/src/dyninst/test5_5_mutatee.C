@@ -52,13 +52,13 @@
 static int passed = 0;
 namespace_test test5_5_test5;
 
-static int local_file_var = 3;
+int local_file_var_5_5 = 3;
 
 /* Function definitions follow */
 
 void namespace_test::func_cpp()
 {
-  int local_fn_var = local_file_var;
+  int local_fn_var = local_file_var_5_5;
 
   class_variable = local_fn_var;
 

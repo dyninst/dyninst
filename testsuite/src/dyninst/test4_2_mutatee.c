@@ -108,28 +108,6 @@ int test4_2_mutatee() {
        }
 #endif
 
-#if defined(os_freebsd_test)
-       if( pid > 0 ) {
-           // FreeBSD's debugger interface is broken -- attaching to the child
-           // mucks with the parent relationship so waitpid can mistakenly return
-           // ECHILD when it really shouldn't
-           //
-           // Plus we avoid some OS-level race conditions by waiting for the child
-           // to exit
-
-           pid_t tmpPid = -1;
-           int status;
-           do{
-               tmpPid = waitpid(pid, &status, 0);
-               sleep(1);
-           }while(tmpPid == -1 && errno == ECHILD);
-
-           if( tmpPid == -1 ) {
-               dprintf("Failed to wait for child\n");
-           }
-       }
-#endif
-        
        dprintf("Mutatee %d exiting...\n", getpid());
        exit(getpid());
     } else if (pid < 0) {

@@ -40,7 +40,7 @@
 #include "common/h/Vector.h"
 #include "parse-cfg.h"
 #include "instPoint.h"
-#include "symtab.h"
+#include "image.h"
 #include "parRegion.h"
 #include "debug.h"
 
@@ -577,7 +577,7 @@ void parse_func::calcUsedRegs()
 #include "addressSpace.h"
 #include "function.h"
 #include "baseTramp.h"
-#include "symtab.h"
+#include "image.h"
 
 using namespace Dyninst::SymtabAPI;
 /*

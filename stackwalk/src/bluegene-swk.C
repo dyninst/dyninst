@@ -44,7 +44,6 @@ using namespace DebuggerInterface;
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-#define ELF_X_NAMESPACE Stackwalker
 #include "common/h/SymLite-elf.h"
 
 

@@ -52,7 +52,7 @@ SpringboardBuilder::Ptr SpringboardBuilder::create(BlockIter begin,
   Ptr ret = Ptr(new SpringboardBuilder(as));
   if (!ret) return ret;
 
-  if (!ret->addBlocks(begin, end, NULL, UnallocatedStart)) return Ptr();
+  if (!ret->addBlocks(begin, end, UnallocatedStart)) return Ptr();
   return ret;
 }
 
@@ -66,7 +66,7 @@ SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator b
   for (; begin != end; ++begin) {
      func_instance *func = *begin;
      //if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), func, id++)) {
-     if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), func, id++)) {
+     if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), id++)) {
         return Ptr();
      }
   }
@@ -130,7 +130,7 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
 }
 
 template <typename BlockIter>
-bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance *f, int funcID) {
+bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, int funcID) {
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {

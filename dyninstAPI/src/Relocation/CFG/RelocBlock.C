@@ -260,18 +260,27 @@ bool RelocBlock::determineSpringboards(PriorityMap &p) {
 
    if (func_ &&
        func_->entryBlock() == block_) {
+     relocation_cerr << "determineSpringboards (entry block): " << func_->symTabName()
+		     << " / " << hex << block_->start() << " is required" << dec << endl;
       p[std::make_pair(block_, func_)] = Required;
       return true;
    }
    if (inEdges_.contains(ParseAPI::INDIRECT)) {
+     relocation_cerr << "determineSpringboards (indirect target): " << func_->symTabName()
+		     << " / " << hex << block_->start() << " is required" << dec << endl;
       p[std::make_pair(block_, func_)] = Required;
       return true;
    }
    // Slow crawl
    for (RelocEdges::const_iterator iter = inEdges_.begin();
         iter != inEdges_.end(); ++iter) {
+     if ((*iter)->type == ParseAPI::CALL) continue;
       if ((*iter)->src->type() != TargetInt::RelocBlockTarget) {
-         p[std::make_pair(block_, func_)] = Required;
+	relocation_cerr << "determineSpringboards (non-relocated source): " << func_->symTabName()
+			<< " / " << hex << block_->start() << " is required (type "
+			<< (*iter)->src->type() << ")" << dec << endl;
+	relocation_cerr << "\t" << (*iter)->src->format() << endl;
+	p[std::make_pair(block_, func_)] = Required;
          return true;
       }
    }
@@ -449,8 +458,9 @@ void RelocBlock::determineNecessaryBranches(RelocBlock *successor) {
 bool RelocBlock::generate(const codeGen &templ,
 			  CodeBuffer &buffer) {
    relocation_cerr << "Generating block " << id() << " orig @ " << hex << origAddr() << dec << endl;
-   relocation_cerr << "\t" << elements_.size() << " elements" << endl;
-   
+   relocation_cerr << "\t" << elements_.size() << " elements" << endl; 
+   relocation_cerr << "\t At entry, code buffer has size " << buffer.size() << endl;
+  
    // Register ourselves with the CodeBuffer and get a label
    label_ = buffer.getLabel();
 
@@ -472,6 +482,8 @@ bool RelocBlock::generate(const codeGen &templ,
       }
    }
    
+   relocation_cerr << "\t At exit, code buffer has size " << buffer.size() << endl;   
+
    return true;
 }
 

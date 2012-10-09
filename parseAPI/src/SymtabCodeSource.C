@@ -69,7 +69,6 @@ SymtabCodeRegion::names(Address entry, vector<string> & names)
     //       functions at the same linear address within
     //       two address spaces. That error is reflected
     //       here.
-	cerr << "ParseAPI: looking up name for addr " << hex << entry << dec << endl;
     SymtabAPI::Function * f = NULL;
     bool found = _symtab->findFuncByEntryOffset(f,entry);
     if(found) {
@@ -493,17 +492,18 @@ bool
 SymtabCodeSource::nonReturning(Address addr)
 {
     SymtabAPI::Function * f = NULL;
-    bool ret = false;
    
     _symtab->findFuncByEntryOffset(f,addr); 
 
     if(f) {
-        SymtabAPI::Symbol * s = f->getFirstSymbol();
-        string st_name = s->getMangledName();
-        ret = nonReturning(st_name);
+      const std::vector<std::string> &names = f->getAllMangledNames();
+      for (unsigned i = 0; i < names.size(); ++i) {
+	if (nonReturning(names[i])) {
+	  return true;
+	}
+      }
     }
-
-    return ret;
+    return false;
 }
 
 dyn_hash_map<std::string, bool>
@@ -530,7 +530,8 @@ SymtabCodeSource::non_returning_funcs =
         ("_gfortran_os_error",true)
         ("_gfortran_runtime_error",true)
         ("_gfortran_stop_numeric", true)
-   ("for_stop_core", true);
+   ("for_stop_core", true)
+  ("__sys_exit", true);
 
 bool
 SymtabCodeSource::nonReturning(string name)
@@ -541,6 +542,7 @@ SymtabCodeSource::nonReturning(string name)
 	if ((name.compare(0, strlen("MSVCR"), "MSVCR") == 0) &&
 		(name.find("exit") != name.npos)) return true;
 #endif
+	parsing_printf("Checking non-returning (Symtab) for %s\n", name.c_str());
     return non_returning_funcs.find(name) != non_returning_funcs.end();
 }
 

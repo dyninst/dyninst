@@ -222,7 +222,7 @@ static int instrumentFuncLoopsWithInc(BPatch_addressSpace *appAddrSpace,
 
 	// Look up global variable
 	const BPatch_variableExpr *varexpr = appImage->findVariable(var);
-	if (var == NULL) {
+	if (varexpr == NULL) {
 	  logerror("**FAILED** test #37 (instrument loops)\n");
 	  logerror("      Unable to find global variable\n");
 	  return -1;

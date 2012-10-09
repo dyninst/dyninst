@@ -616,40 +616,56 @@ bool Symtab::buildDemangledName( const std::string &mangled,
 
 bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &raw_syms) 
 {
-    for (SymbolIter symIter(*linkedFile); symIter; symIter++) 
-	{
-        Symbol *sym = symIter.currval();
-		if (!sym) 
-		{
-			fprintf(stderr, "%s[%d]:  range error, stopping now\n", FILE__, __LINE__);
-			return true;
-		}
+   for (SymbolIter symIter(*linkedFile); symIter; symIter++)  {
+      Symbol *sym = symIter.currval();
+      if (!sym)  {
+         fprintf(stderr, "%s[%d]:  range error, stopping now\n", FILE__, __LINE__);
+         return true;
+      }
 
-        // If a symbol starts with "." we want to skip it. These indicate labels in the
-        // code. 
-        
-        // removed 1/09: this should be done in Dyninst, not Symtab
-
-        // check for undefined dynamic symbols. Used when rewriting relocation section.
-        // relocation entries have references to these undefined dynamic symbols.
-        // We also have undefined symbols for the static binary case.
+      // If a symbol starts with "." we want to skip it. These indicate labels in the
+      // code. 
+      
+      // removed 1/09: this should be done in Dyninst, not Symtab
+      
+      // Have to do this before the undef check, below. 
+      fixSymRegion(sym);
+      
+      // check for undefined dynamic symbols. Used when rewriting relocation section.
+      // relocation entries have references to these undefined dynamic symbols.
+      // We also have undefined symbols for the static binary case.
 
 #if !defined(os_vxworks)
-        if (sym->getSec() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
-           undefDynSyms.push_back(sym);
-           continue;
-        }
+      if (sym->getSec() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
+         undefDynSyms.push_back(sym);
+         continue;
+      }
 #endif
+      
+      // Check whether this symbol has a valid offset. If they do not we have a
+      // consistency issue. This should be a null check.
+      
+      // Symbols can have an offset of 0 if they don't refer to things within a file.
+      
+      raw_syms.push_back(sym);
+   }
+   
+   return true;
+}
 
-        // Check whether this symbol has a valid offset. If they do not we have a
-        // consistency issue. This should be a null check.
-
-        // Symbols can have an offset of 0 if they don't refer to things within a file.
-
-        raw_syms.push_back(sym);
-    }
-
-    return true;
+bool Symtab::fixSymRegion(Symbol *sym) {
+   if (!sym->getRegion()) return true;
+   
+   if (sym->getType() != Symbol::ST_FUNCTION &&
+       sym->getType() != Symbol::ST_OBJECT) return true;
+   
+   if (sym->getRegion()->getMemOffset() <= sym->getOffset() &&
+       (sym->getRegion()->getMemOffset() + sym->getRegion()->getMemSize()) > sym->getOffset())
+      return true;
+   
+   sym->setRegion(findEnclosingRegion(sym->getOffset()));
+   
+   return true;
 }
 
 /*

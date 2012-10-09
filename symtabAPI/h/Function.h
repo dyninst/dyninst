@@ -79,7 +79,8 @@ class Function : public Aggregate, public Serializable, public AnnotatableSparse
    SYMTAB_EXPORT Offset getTOCOffset() const;
    
    /***** Frame Pointer Information *****/
-   SYMTAB_EXPORT bool  setFramePtr(std::vector<VariableLocation> *locs);
+   SYMTAB_EXPORT bool setFramePtr(std::vector<VariableLocation> *locs);
+   SYMTAB_EXPORT std::vector<VariableLocation> &getFramePtrRefForInit();
    SYMTAB_EXPORT std::vector<VariableLocation> &getFramePtr();
    
    /***** Local Variable Information *****/
@@ -98,10 +99,14 @@ class Function : public Aggregate, public Serializable, public AnnotatableSparse
    bool addParam(localVar *);
    bool setupParams();
  private:
+   void expandLocation(const VariableLocation &loc,
+                       std::vector<VariableLocation> &ret);
    
+
    Type          *retType_;
    int           framePtrRegNum_;
-   std::vector<VariableLocation> *locs_;
+   std::vector<VariableLocation> frameBase_;
+   bool frameBaseExpanded_;
    unsigned functionSize_;
 };
 

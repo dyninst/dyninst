@@ -60,6 +60,7 @@ FILE *getDebugLog()
    return debug_log;
 }
 
+#if !defined(os_freebsd_test)
 #include <link.h>
 void copy_iolibs()
 {
@@ -80,6 +81,11 @@ void copy_iolibs()
     system(cmd_line);
   }
 }
+#else
+void copy_iolibs()
+{
+}
+#endif
 
 int main(int argc, char *argv[])
 {

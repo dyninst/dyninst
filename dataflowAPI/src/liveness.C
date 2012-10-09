@@ -43,6 +43,7 @@ using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 #include "dataflowAPI/h/liveness.h"
 #include "dataflowAPI/h/ABI.h"
+#include <boost/bind.hpp>
 
 std::string regs1 = " ttttttttddddddddcccccccmxxxxxxxxxxxxxxxxgf                  rrrrrrrrrrrrrrrrr";
 std::string regs2 = " rrrrrrrrrrrrrrrrrrrrrrrm1111110000000000ssoscgfedrnoditszapci11111100dsbsbdca";
@@ -70,6 +71,26 @@ const bitArray& LivenessAnalyzer::getLivenessIn(Block *block) {
     return data.in;
 }
 
+void LivenessAnalyzer::processEdgeLiveness(Edge* e, livenessData& data, Block* block,
+					   const bitArray& allRegsDefined)
+{
+  // covered by Intraproc predicate
+  //if ((*eit)->type() == CALL) continue;
+  // Is this correct?
+  if (e->type() == CATCH) return;
+  if (e->sinkEdge()) {
+    liveness_cerr << "Sink edge from " << hex << block->start() << dec << endl;
+    data.out |= allRegsDefined;
+    return;
+  }
+  
+  // TODO: multiple entry functions and you?
+  data.out |= getLivenessIn(e->trg());
+  liveness_cerr << "Accumulating from block " << hex << (e->trg())->start() << dec << endl;
+  liveness_cerr << data.out << endl;
+}
+
+
 const bitArray& LivenessAnalyzer::getLivenessOut(Block *block, bitArray &allRegsDefined) {
        
 	assert(blockLiveInfo.find(block) != blockLiveInfo.end());
@@ -82,27 +103,18 @@ const bitArray& LivenessAnalyzer::getLivenessOut(Block *block, bitArray &allRegs
 
     // OUT(X) = UNION(IN(Y)) for all successors Y of X
     const Block::edgelist & target_edges = block -> targets();
-    Block::edgelist::iterator eit = target_edges.begin(&epred);
 
     liveness_cerr << "getLivenessOut for block [" << hex << block->start() << "," << block->end() << "]" << dec << endl;
     
-   
-    for( ; eit != target_edges.end(); ++eit) { 
-        // covered by Intraproc predicate
-        //if ((*eit)->type() == CALL) continue;
-        // Is this correct?
-        if ((*eit)->type() == CATCH) continue;
-	if ((*eit)->sinkEdge()) {
-		liveness_cerr << "Sink edge from " << hex << block->start() << dec << endl;
-                data.out |= allRegsDefined;
-		break;
-	}
 
-	// TODO: multiple entry functions and you?
-	data.out |= getLivenessIn((*eit)->trg());
-	liveness_cerr << "Accumulating from block " << hex << ((*eit)->trg())->start() << dec << endl;
-	liveness_cerr << data.out << endl;
-    }
+    std::for_each(boost::make_filter_iterator(epred, target_edges.begin(), target_edges.end()),
+		  boost::make_filter_iterator(epred, target_edges.end(), target_edges.end()),
+		  boost::bind(&LivenessAnalyzer::processEdgeLiveness, 
+			      this, 
+			      _1, 
+			      boost::ref(data), 
+			      block,
+			      boost::ref(allRegsDefined)));
     
     liveness_cerr << " Returning liveness for out " << endl;
     liveness_cerr << "  " << data.out << endl;
@@ -567,7 +579,7 @@ bool LivenessAnalyzer::isExitBlock(Block *block)
 
     bool interprocEdge = false;
     bool intraprocEdge = false;
-    for (Block::edgelist::iterator eit=trgs.begin(); eit != trgs.end(); ++eit){
+    for (Block::edgelist::const_iterator eit=trgs.begin(); eit != trgs.end(); ++eit){
         if ((*eit)->type() == CATCH) continue;
 	if ((*eit)->interproc()) interprocEdge = true; else intraprocEdge = true;
     }

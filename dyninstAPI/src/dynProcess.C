@@ -41,7 +41,7 @@
 #include "baseTramp.h"
 #include "registerSpace.h"
 #include "mapped_object.h"
-#include "symtab.h"
+#include "image.h"
 
 #include "common/h/pathName.h"
 
@@ -772,13 +772,15 @@ void PCProcess::findSignalHandler(mapped_object *obj) {
     startup_printf("%s[%d]: leaving findSignalhandler(%p)\n", FILE__, __LINE__, obj);
 }
 
-// NUMBER_OF_MAIN_POSSIBILITIES is defined in symtab.h
+// NUMBER_OF_MAIN_POSSIBILITIES is defined in image.h
 void PCProcess::setMainFunction() {
     assert(!main_function_);
 
     for (unsigned i = 0; i < NUMBER_OF_MAIN_POSSIBILITIES; i++) {
         main_function_ = findOnlyOneFunction(main_function_names[i]);
-        if (main_function_) break;
+        if (main_function_) {
+           break;
+        }
     }
 }
  
@@ -1049,6 +1051,7 @@ bool PCProcess::insertBreakpointAtMain() {
     if( main_function_ == NULL ) {
         startup_printf("%s[%d]: main function not yet found, cannot insert breakpoint\n",
                 FILE__, __LINE__);
+        return false;
     }
     Address addr = main_function_->addr();
 
@@ -1268,7 +1271,10 @@ void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
 bool PCProcess::writeDataSpace(void *inTracedProcess,
                     u_int amount, const void *inSelf)
 {
-    if( isTerminated() ) return false;
+   if( isTerminated() ) {
+      cerr << "Writing to terminated process!" << endl;
+      return false;
+   }
     bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
 
     if( BPatch_defensiveMode == proc()->getHybridMode() && !result ) {
@@ -1426,7 +1432,7 @@ bool PCProcess::registerThread(PCThread *thread) {
    if (tid == (Address) -1) return true;
    if (index == (Address) -1) return true;
 
-   initializeRegisterThread();
+   if (!initializeRegisterThread()) return false;
 
    // Must match the "hash" algorithm used in the RT lib
    int working = (tid % thread_hash_size);
@@ -1850,6 +1856,7 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
     vector<func_instance *> instrumentedFuncs;
 
     for (unsigned lcv=0; lcv < requests.size(); lcv++) {
+      inst_printf("%s[%d]: handling request %d of %d\n", FILE__, __LINE__, lcv+1, requests.size());
 
         instMapping *req = requests[lcv];
         pdvector<miniTramp *> minis;
@@ -1875,6 +1882,13 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
                           FILE__,__LINE__);
               continue;  // probably should have a flag telling us whether errors
            }
+
+	   inst_printf("%s[%d]: Instrumenting %s at 0x%lx, offset 0x%lx in %s\n",
+		       FILE__, __LINE__, 
+		       func->symTabName().c_str(),
+		       func->addr(),
+		       func->addr() - func->obj()->codeBase(),
+		       func->obj()->fullName().c_str());
             
            // should be silently handled or not
            AstNodePtr ast;
@@ -1913,6 +1927,7 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
                          req->where);
                  break;
            } // switch
+	   inst_printf("%s[%d]: found %d points to instrument\n", FILE__, __LINE__, points.size());
            for (std::vector<Point *>::iterator iter = points.begin();
                 iter != points.end(); ++iter) {
               Dyninst::PatchAPI::Instance::Ptr inst = (req->order == orderFirstAtPoint) ? 
@@ -3273,12 +3288,8 @@ void PCProcess::addTrap(Address from, Address to, codeGen &) {
        installedCtrlBrkpts.find(from);
 
     if( breakIter != installedCtrlBrkpts.end() ) {
-        proccontrol_printf("%s[%d]: there already exists a ctrl transfer breakpoint from "
-                "0x%lx to 0x%lx, replacing with new mapping\n", FILE__, __LINE__, from, breakIter->second->getToAddress());
-
         if( !pcProc_->rmBreakpoint(from, breakIter->second) ) {
-           proccontrol_printf("%s[%d]: failed to replace ctrl transfer breakpoint from "
-                              "0x%lx to 0x%lx\n", FILE__, __LINE__, from, breakIter->second->getToAddress());
+	  // Oops? 
         }
         installedCtrlBrkpts.erase(breakIter);
     }
@@ -3287,14 +3298,10 @@ void PCProcess::addTrap(Address from, Address to, codeGen &) {
     newBreak->setSuppressCallbacks(true);
 
     if( !pcProc_->addBreakpoint(from, newBreak) ) {
-        proccontrol_printf("%s[%d]: failed to add ctrl transfer breakpoint from "
-                "0x%lx to 0x%lx\n", FILE__, __LINE__, from, to);
+      // Oops? 
     }
 
     installedCtrlBrkpts.insert(make_pair(from, newBreak));
-
-    proccontrol_printf("%s[%d]: added ctrl transfer breakpoint from 0x%lx to 0x%lx\n",
-            FILE__, __LINE__, from, to);
 }
 
 void PCProcess::removeTrap(Address from) {

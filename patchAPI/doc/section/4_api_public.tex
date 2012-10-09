@@ -33,7 +33,7 @@ represents an individual binary code object, such as an executable or a library.
 
 \begin{apient}
 static PatchObject* create(ParseAPI::CodeObject* co, Address base,
-                           CFGMakerPtr cm = NULL, PatchCallback *cb = NULL);
+                           CFGMaker* cm = NULL, PatchCallback *cb = NULL);
 \end{apient}
 
 
@@ -136,7 +136,8 @@ Outputs all instances of PatchBlock in this object to the STL inserter
 }
 
 \begin{apient}
-PatchEdge *getEdge(ParseAPI::Edge* edge, PatchBlock* src, PatchBlock* trg, bool create = true);
+PatchEdge *getEdge(ParseAPI::Edge* edge, PatchBlock* src, PatchBlock* trg,
+                   bool create = true);
 \end{apient}
 
 
@@ -221,9 +222,9 @@ Returns the PatchObject associated with this PatchFunction.
 }
 
 \begin{apient}
-typedef std::set<PatchBlock *> PatchFunction::blockset;
+typedef std::set<PatchBlock *> PatchFunction::Blockset;
 
-const blockset &blocks();
+const Blockset &blocks();
 \end{apient}
 
 
@@ -241,7 +242,7 @@ Returns the entry block of this PatchFunction.
 }
 
 \begin{apient}
-const blockset &exits();
+const Blockset &exitBlocks();
 \end{apient}
 
 
@@ -250,7 +251,7 @@ Returns a set of exit blocks of this PatchFunction.
 }
 
 \begin{apient}
-const blockset &calls();
+const Blockset &callBlocks();
 \end{apient}
 
 
@@ -332,6 +333,7 @@ Returns the number of functions that contain this block.
 }
 
 \begin{apient}
+typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns;
 void getInsns(Insns &insns) const;
 \end{apient}
 
@@ -418,7 +420,7 @@ Returns the PatchObject that contains this block.
 \begin{apient}
 typedef std::vector<PatchEdge*> PatchBlock::edgelist;
 
-const edgelist &getSources();
+const edgelist &sources();
 \end{apient}
 
 \apidesc{
@@ -427,7 +429,7 @@ the returned edges.
 }
 
 \begin{apient}
-const edgelist &getTargets();
+const edgelist &targets();
 \end{apient}
 
 \apidesc{
@@ -437,7 +439,7 @@ the returned edges.
 
 \begin{apient}
 template <class OutputIterator>
-void getFunctions(OutputIterator result);
+void getFuncs(OutputIterator result);
 \end{apient}
 
 \apidesc{
@@ -471,7 +473,7 @@ Returns a ParseAPI::Edge associated with this PatchEdge.
 }
 
 \begin{apient}
-PatchBlock *source();
+PatchBlock *src();
 \end{apient}
 
 \apidesc{
@@ -479,7 +481,7 @@ Returns the source PatchBlock.
 }
 
 \begin{apient}
-PatchBlock *target();
+PatchBlock *trg();
 \end{apient}
 
 \apidesc{
@@ -500,7 +502,7 @@ bool sinkEdge() const;
 
 \apidesc{
 Indicates whether this edge targets the special sink block, where a sink block
-is a block to which all unresolvable control ﬂow instructions will be
+is a block to which all unresolvable control flow instructions will be
 linked.
 }
 
@@ -534,7 +536,8 @@ inserting or deleting \textbf{Snippets}, and registering user-provided plugins.
 
 
 \begin{apient}
-static PatchMgrPtr create(AddrSpace* as, Instrumenter* inst = NULL, PointMaker* pm = NULL);
+static PatchMgrPtr create(AddrSpace* as, Instrumenter* inst = NULL,
+                          PointMaker* pm = NULL);
 \end{apient}
 
 
@@ -632,7 +635,8 @@ template <class FilterFunc,
           class FilterArgument,
           class OutputIterator>
 bool findPoints(Location loc, Point::Type types, FilterFunc filter_func,
-                FilterArgument filter_arg, OutputIterator outputIter, bool create = true);
+                FilterArgument filter_arg, OutputIterator outputIter, 
+                bool create = true);
 \end{apient}
 
 \apidesc{
@@ -689,7 +693,8 @@ template <class FilterFunc,
           class FilterArgument,
           class OutputIterator>
 bool findPoints(Scope scope, Point::Type types, FilterFunc filter_func,
-                FilterArgument filter_arg, OutputIterator output_iter, bool create = true);
+                FilterArgument filter_arg, OutputIterator output_iter, 
+                bool create = true);
 \end{apient}
 
 \apidesc{
@@ -856,6 +861,7 @@ enum Point::Type {
   type PreCall, or BlockEntry, or FuncExit.}
 
 \begin{apient}
+typedef std::list<InstancePtr>::iterator instance_iter;
 instance_iter begin();
 instance_iter end();
 \end{apient}

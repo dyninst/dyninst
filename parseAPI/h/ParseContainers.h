@@ -30,6 +30,9 @@
 #ifndef _ITERATORS_H_
 #define _ITERATORS_H_
 
+#include <boost/iterator/filter_iterator.hpp>
+#include <boost/type_traits.hpp>
+#include <boost/function.hpp>
 /*
  * An iterator and a predicate interface, and a 
  * ContainerWrapper that can provide a forward
@@ -40,155 +43,117 @@
 namespace Dyninst {
 namespace ParseAPI {
 
-/*** a simple forward iterator ***/
-template <
-    typename DERIVED,
-    typename VALUE,
-    typename REFERENCE = VALUE &
->
-class iterator_base {
-public:
-    DERIVED&    operator++();
-    DERIVED     operator++(int);
-    bool        operator==(const DERIVED &) const;
-    bool        operator!=(const DERIVED &) const;
-    REFERENCE   operator*() const;
-};
 
 /*** A predicate interface ***/
 template <
-    typename DERIVED,
     typename VALUE,
     typename REFERENCE = VALUE &
 >
 class iterator_predicate {
-public:
-    bool    operator()(REFERENCE) const;
+ public:
+inline bool operator()(const REFERENCE o) const
+{
+    return pred_impl(o);
+}
+ virtual bool pred_impl(const REFERENCE) const 
+ {
+   return true;
+ }
+ virtual ~iterator_predicate() 
+ {
+ }
+ 
+ 
 };
 
- // A default predicate type
-template<typename V, typename R = V&>
-class default_predicate
-    : public iterator_predicate<
-        default_predicate<V,R>,
-        V,
-        R
-      >
-{
- private:
-    bool pred_impl(R) const { return true; }
-    friend class iterator_predicate<default_predicate<V,R>,V,R>;
-};
 
 /*** Container wrapper and iterators for predicate containers ***/
-template <
-    typename CONTAINER,
-    typename VALUE,
-    typename REFERENCE,
-    typename PREDICATE
->
-class ContainerWrapper;
 
+template<typename ARG>
+ struct true_predicate : iterator_predicate<ARG>
+{
+  bool operator()(ARG)
+  {
+    return true;
+  }
+  
+};
+ 
+ 
+#if 0
 template <
-    typename CONTAINER,
+    typename C,
     typename VALUE,
     typename REFERENCE = VALUE &,
-    typename PREDICATE = class default_predicate<VALUE,REFERENCE>
+ class PREDICATE = iterator_predicate<VALUE, REFERENCE>
 >
-class PredicateIterator 
-    : public iterator_base<
-        PredicateIterator<CONTAINER,VALUE,REFERENCE,PREDICATE>,
-        VALUE,
-        REFERENCE
-      >
-{
- public:
-    typedef ContainerWrapper<CONTAINER,VALUE,REFERENCE,PREDICATE> wrapper_t;
-
-    PredicateIterator() : 
-        _m_cont(NULL), 
-        _m_pred(NULL), 
-        _m_init(false) 
-    { }
-    PredicateIterator(const wrapper_t * cw) :
-        _m_cont(cw),
-        _m_pred(NULL),
-        _m_cur(cw->_m_container.begin()),
-        _m_init(true)
-    { }
-    PredicateIterator(const wrapper_t * cw, PREDICATE * p) :
-        _m_cont(cw),
-        _m_pred(p),
-        _m_cur(cw->_m_container.begin()),
-        _m_init(true)
-    { }
-
+ class ContainerWrapper
+ {
  private:
-    void        increment();
-    REFERENCE   dereference() const;
-    bool        equal(PredicateIterator const& o) const;
 
-    bool        uninit() const { return !_m_init; }
-
-    const wrapper_t *                   _m_cont;
-    PREDICATE *                         _m_pred;
-    typename CONTAINER::const_iterator  _m_cur;
-    bool                                _m_init;
-
-    friend class iterator_base<PredicateIterator,VALUE,REFERENCE>;
-};
-
-
-template <
-    typename CONTAINER,
-    typename VALUE,
-    typename REFERENCE = VALUE &,
-    typename PREDICATE = default_predicate<VALUE,REFERENCE>
->
-class ContainerWrapper
-{
  public:
-    typedef PredicateIterator<CONTAINER,VALUE,REFERENCE,PREDICATE> iterator;
+ 
+ typedef boost::filter_iterator<PREDICATE, typename boost::remove_const<C>::type::iterator> iterator;
+ typedef boost::filter_iterator<PREDICATE, typename boost::remove_const<C>::type::const_iterator> const_iterator;
+ 
 
-    PARSER_EXPORT ContainerWrapper(CONTAINER & cont) : _m_container(cont) { }
-    PARSER_EXPORT ~ContainerWrapper() { }
+ PARSER_EXPORT ContainerWrapper(C & cont) : _m_container(cont) { }
+ PARSER_EXPORT ~ContainerWrapper() { }
 
-    iterator        begin() const;
-    iterator        begin(PREDICATE * p) const;
-    iterator const& end() const;
-    size_t          size() const;
-    bool            empty() const;
+ iterator        begin()
+ {
+   return boost::make_filter_iterator<PREDICATE>(_m_container.begin(), _m_container.end());
+ }
+ 
+ template <typename P>
+ boost::filter_iterator<P, typename boost::remove_const<C>::type::iterator> 
+ begin(P * p)
+ {
+   return boost::make_filter_iterator(*p, _m_container.begin(), _m_container.end());
+ }
+ 
+ iterator end()
+ {
+   return boost::make_filter_iterator<PREDICATE>(_m_container.end(), _m_container.end());
+ }
+ template <typename P>
+ boost::filter_iterator<P, typename boost::remove_const<C>::type::iterator> 
+ end(P * p)
+ {
+   return boost::make_filter_iterator<>(*p, _m_container.end(), _m_container.end());
+ }
+ const_iterator        begin() const
+ {
+   return boost::make_filter_iterator<PREDICATE>(_m_container.begin(), _m_container.end());
+ }
+ 
+ template <typename P>
+ boost::filter_iterator<P, typename boost::remove_const<C>::type::const_iterator> 
+ begin(P * p) const
+ {
+   return boost::make_filter_iterator(*p, _m_container.begin(), _m_container.end());
+ }
+ 
+ const_iterator end() const
+ {
+   return boost::make_filter_iterator<PREDICATE>(_m_container.end(), _m_container.end());
+ } 
+ template <typename P>
+ boost::filter_iterator<P, typename boost::remove_const<C>::type::const_iterator> 
+ end(P * p) const
+ {
+   return boost::make_filter_iterator(*p, _m_container.end(), _m_container.end());
+ }
+
+ size_t          size() const;
+ bool            empty() const;
  private:
-    CONTAINER const& _m_container;
-    iterator         _m_end;
+ C & _m_container;
+ };
 
-    friend class PredicateIterator<CONTAINER,VALUE,REFERENCE,PREDICATE>;
-};
 
 /*** implementation details ***/
 
-template<typename C,typename V,typename R,typename P>
-inline PredicateIterator<C,V,R,P>
-ContainerWrapper<C,V,R,P>::begin() const
-{
-    return iterator(this);
-}
-
-template<typename C,typename V,typename R,typename P>
-inline PredicateIterator<C,V,R,P>
-ContainerWrapper<C,V,R,P>::begin(P * p) const
-{
-    iterator ret(this,p);
-    if(ret != _m_end && !(*p)(*ret))
-        ++ret;
-    return ret;
-}
-template<typename C,typename V,typename R,typename P>
-inline PredicateIterator<C,V,R,P> const&
-ContainerWrapper<C,V,R,P>::end() const
-{
-    return _m_end;
-}
 template<typename C,typename V,typename R,typename P>
 inline size_t
 ContainerWrapper<C,V,R,P>::size() const
@@ -201,74 +166,9 @@ ContainerWrapper<C,V,R,P>::empty() const
 {
     return _m_container.empty();
 }
-
-template<typename C,typename V,typename R, typename P>
-inline void PredicateIterator<C,V,R,P>::increment()
-{
-    if(*this == _m_cont->end())
-        return;
-
-    do {
-        (void)++_m_cur;
-    } while(*this != _m_cont->end() && (_m_pred && !(*_m_pred)(*(*this))) );
-}
-
-template<typename C,typename V,typename R, typename P>
-inline R PredicateIterator<C,V,R,P>::dereference() const
-{
-    return *_m_cur;
-}
-
-template<typename C,typename V,typename R, typename P>
-inline bool PredicateIterator<C,V,R,P>::equal(PredicateIterator const& o) const
-{
-    if(o.uninit() && uninit())
-        return true;
-    return (o.uninit() && _m_cur == _m_cont->_m_container.end()) ||
-           (uninit() && o._m_cur == o._m_cont->_m_container.end()) ||
-           (_m_cont == o._m_cont && _m_cur == o._m_cur);
-}
+#endif
 
 /*** static binding implementation ***/
-
-template<typename DERIVED,typename VALUE,typename REFERENCE>
-inline DERIVED& iterator_base<DERIVED,VALUE,REFERENCE>::operator++()
-{
-    static_cast<DERIVED*>(this)->increment();
-    return *static_cast<DERIVED*>(this);
-}
-
-template<typename DERIVED,typename VALUE,typename REFERENCE>
-inline DERIVED iterator_base<DERIVED,VALUE,REFERENCE>::operator++(int)
-{
-    DERIVED copy(*static_cast<DERIVED*>(this));
-    static_cast<DERIVED*>(this)->increment();
-    return copy;
-}
-
-template<typename DERIVED,typename VALUE,typename REFERENCE>
-inline bool iterator_base<DERIVED,VALUE,REFERENCE>::operator==(const DERIVED & o) const
-{
-    return static_cast<const DERIVED*>(this)->equal(o);
-}
-
-template<typename DERIVED,typename VALUE,typename REFERENCE>
-inline bool iterator_base<DERIVED,VALUE,REFERENCE>::operator!=(const DERIVED & o) const
-{
-    return !static_cast<const DERIVED*>(this)->equal(o);
-}
-
-template<typename DERIVED,typename VALUE,typename REFERENCE>
-inline REFERENCE iterator_base<DERIVED,VALUE,REFERENCE>::operator*() const
-{
-    return static_cast<const DERIVED*>(this)->dereference();
-}
-
-template<typename DERIVED,typename VALUE,typename REFERENCE>
-inline bool iterator_predicate<DERIVED,VALUE,REFERENCE>::operator()(REFERENCE o) const
-{
-    return static_cast<const DERIVED*>(this)->pred_impl(o);
-}
 
 }
 }

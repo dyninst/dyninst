@@ -46,9 +46,10 @@ namespace Dyninst {
  */
 
 typedef enum {
-	storageAddr,
-	storageReg,
-	storageRegOffset
+   storageUnset,
+   storageAddr,
+   storageReg,
+   storageRegOffset
 } storageClass;
 
 COMMON_EXPORT const char *storageClass2Str(storageClass sc);
@@ -60,8 +61,9 @@ COMMON_EXPORT const char *storageClass2Str(storageClass sc);
  * storageNoRef      - No reference. Value can be obtained using storageClass.
  */
 typedef enum {
-	storageRef,
-	storageNoRef
+   storageRefUnset,
+   storageRef,
+   storageNoRef
 } storageRefClass;
 
 COMMON_EXPORT const char *storageRefClass2Str(storageRefClass sc);
@@ -69,15 +71,31 @@ COMMON_EXPORT const char *storageRefClass2Str(storageRefClass sc);
 //location for a variable
 //Use mr_reg instead of reg for new code.  reg left in for backwards
 // compatibility.
+
 struct VariableLocation  {
 	storageClass stClass;
 	storageRefClass refClass;
-	int reg;
         MachRegister mr_reg;
 	long frameOffset;
 	Address lowPC;
 	Address hiPC;
-   COMMON_EXPORT bool operator==(const VariableLocation &);
+   
+VariableLocation() :
+   stClass(storageUnset),
+      refClass(storageRefUnset),
+      frameOffset(0),
+      lowPC(0),
+      hiPC(0) {}
+
+   bool operator==(const VariableLocation &rhs) const {
+      return ((stClass == rhs.stClass) &&
+              (refClass == rhs.refClass) &&
+              (mr_reg == rhs.mr_reg) &&
+              (frameOffset == rhs.frameOffset) &&
+              (lowPC == rhs.lowPC) &&
+              (hiPC == rhs.hiPC));
+   }
+
 };
 
 }

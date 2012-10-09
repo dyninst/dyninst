@@ -162,8 +162,16 @@ void uncaught_breakpoint(int sig)
 
 void DYNINSTsafeBreakPoint()
 {
-    if( DYNINSTstaticMode ) return;
+    if(DYNINSTstaticMode) return;
 
+    DYNINST_break_point_event = 1;
+    while( DYNINST_break_point_event ) {
+        tkill(getpid(), dyn_lwp_self(), SIGSTOP);
+    }
+    /* Mutator resets to 0 */
+
+#if 0
+    if( DYNINSTstaticMode ) return;
     DYNINST_break_point_event = 2;
     sigset_t emptyset;
     sigemptyset(&emptyset);
@@ -174,6 +182,7 @@ void DYNINSTsafeBreakPoint()
     while( DYNINST_break_point_event ) {
         sigsuspend(&emptyset);
     }
+#endif
 }
 
 #if !defined(DYNINST_RT_STATIC_LIB)
@@ -308,6 +317,8 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
       unsigned long zero = 0;
       unsigned long one = 1;
       struct trap_mapping_header *hdr = getStaticTrapMap((unsigned long) orig_ip);
+      if (!hdr) return;
+
       assert(hdr);
       trapMapping_t *mapping = &(hdr->traps[0]);
       trap_to = dyninstTrapTranslate(orig_ip, 

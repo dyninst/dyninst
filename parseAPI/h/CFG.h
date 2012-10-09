@@ -34,7 +34,6 @@
 #include <set>
 #include <map>
 #include <string>
-
 #include "dyntypes.h"
 #include "IBSTree.h"
 
@@ -159,8 +158,8 @@ class Edge : public allocatable {
          EdgeTypeEnum type);
      PARSER_EXPORT virtual ~Edge();
 
-    PARSER_EXPORT virtual Block * src() const { return _source; }
-    PARSER_EXPORT virtual Block * trg() const { return _target; }
+    PARSER_EXPORT Block * src() const { return _source; }
+    PARSER_EXPORT Block * trg() const { return _target; }
     PARSER_EXPORT EdgeTypeEnum type() const { 
         return static_cast<EdgeTypeEnum>(_type._type_enum); 
     }
@@ -193,35 +192,30 @@ class Edge : public allocatable {
  * EdgePredicates are composable by AND.
  */
 class EdgePredicate 
-    : public iterator_predicate<
-        EdgePredicate,
-        Edge *,
-        Edge *
-      >
 {
- protected:
-    EdgePredicate * _next; 
  public:
-    PARSER_EXPORT EdgePredicate() : _next(NULL) { }
-    PARSER_EXPORT EdgePredicate(EdgePredicate * next) : _next(next) { }
+  PARSER_EXPORT EdgePredicate() { }
     PARSER_EXPORT virtual ~EdgePredicate() { }
     PARSER_EXPORT virtual bool pred_impl(Edge *) const;
-};
+    PARSER_EXPORT bool operator()(Edge* e) const 
+    {
+      return pred_impl(e);
+    }
+ };
 
 /* may follow branches into the function if there is shared code */
 class Intraproc : public EdgePredicate {
  public:
     PARSER_EXPORT Intraproc() { }
-    PARSER_EXPORT Intraproc(EdgePredicate * next) : EdgePredicate(next) { }
     PARSER_EXPORT ~Intraproc() { }
     PARSER_EXPORT bool pred_impl(Edge *) const;
+
 };
 
 /* follow interprocedural edges */
-class Interproc : public EdgePredicate {
+ class Interproc : public EdgePredicate {
     public:
         PARSER_EXPORT Interproc() {}
-        PARSER_EXPORT Interproc(EdgePredicate * next) : EdgePredicate(next) { }
         PARSER_EXPORT ~Interproc() { }
         PARSER_EXPORT bool pred_impl(Edge *) const;
 };
@@ -230,12 +224,9 @@ class Interproc : public EdgePredicate {
  * For proper ostritch-like denial of 
  * unresolved control flow edges
  */
-class NoSinkPredicate : public ParseAPI::EdgePredicate {
+ class NoSinkPredicate : public ParseAPI::EdgePredicate {
  public:
     NoSinkPredicate() { }
-    NoSinkPredicate(EdgePredicate * next)
-        : EdgePredicate(next) 
-    { } 
 
     bool pred_impl(ParseAPI::Edge * e) const {
         return !e->sinkEdge() && EdgePredicate::pred_impl(e);
@@ -244,7 +235,7 @@ class NoSinkPredicate : public ParseAPI::EdgePredicate {
 
 /* doesn't follow branches into the function if there is shared code */
 class Function;
-class SingleContext : public EdgePredicate {
+ class SingleContext : public EdgePredicate {
  private:
     Function * _context;
     bool _forward;
@@ -260,7 +251,7 @@ class SingleContext : public EdgePredicate {
 
 /* Doesn't follow branches into the function if there is shared code. 
  * Will follow interprocedural call/return edges */
-class SingleContextOrInterproc : public EdgePredicate {
+ class SingleContextOrInterproc : public EdgePredicate {
     private:
         Function * _context;
         bool _forward;
@@ -272,6 +263,10 @@ class SingleContextOrInterproc : public EdgePredicate {
             _backward(backward) { }
         PARSER_EXPORT ~SingleContextOrInterproc() { }
         PARSER_EXPORT bool pred_impl(Edge *) const;
+	PARSER_EXPORT bool operator()(Edge* e) const 
+	{
+	  return pred_impl(e);
+	}
 };
 
 class CodeObject;
@@ -280,12 +275,7 @@ class Block : public Dyninst::interval<Address>,
               public allocatable {
     friend class CFGModifier;
  public:
-    typedef ContainerWrapper<
-        std::vector<Edge*>,
-        Edge*,
-        Edge*,
-        EdgePredicate
-    > edgelist;
+    typedef std::vector<Edge*> edgelist;
 
     PARSER_EXPORT Block(CodeObject * o, CodeRegion * r, Address start);
     PARSER_EXPORT virtual ~Block();
@@ -350,8 +340,6 @@ class Block : public Dyninst::interval<Address>,
     Address _end;
     Address _lastInsn;
 
-    std::vector<Edge *> _sources;
-    std::vector<Edge *> _targets;
 
     edgelist _srclist;
     edgelist _trglist;
@@ -366,30 +354,30 @@ class Block : public Dyninst::interval<Address>,
 
 inline void Block::addSource(Edge * e) 
 {
-    _sources.push_back(e);
+    _srclist.push_back(e);
 }
 
 inline void Block::addTarget(Edge * e)
 {
-    _targets.push_back(e);
+    _trglist.push_back(e);
 }
 
 inline void Block::removeTarget(Edge * e)
 {
-    for(unsigned i=0;i<_targets.size();++i) {
-        if(_targets[i] == e) {
-            _targets[i] = _targets.back();
-            _targets.pop_back();    
+    for(unsigned i=0;i<_trglist.size();++i) {
+        if(_trglist[i] == e) {
+            _trglist[i] = _trglist.back();
+            _trglist.pop_back();    
             break;
         }
     }
 }
 
 inline void Block::removeSource(Edge * e) {
-    for(unsigned i=0;i<_sources.size();++i) {
-        if(_sources[i] == e) {
-            _sources[i] = _sources.back();
-            _sources.pop_back();    
+    for(unsigned i=0;i<_srclist.size();++i) {
+        if(_srclist[i] == e) {
+            _srclist[i] = _srclist.back();
+            _srclist.pop_back();    
             break;
         }
     }
@@ -409,6 +397,7 @@ enum FuncSource {
     GAP,        // gap heuristics
     GAPRT,      // RT from gap-discovered function
     ONDEMAND,   // dynamically discovered
+    MODIFICATION, // Added via user modification
     _funcsource_end_
 };
 
@@ -441,17 +430,9 @@ class Function : public allocatable, public AnnotatableSparse {
  public:
     bool _is_leaf_function;
     Address _ret_addr; // return address of a function stored in stack at function entry
-    typedef ContainerWrapper<
-        std::vector<Block*>,
-        Block*,
-        Block*
-    > blocklist;
-    typedef ContainerWrapper<
-        std::set<Edge*>,
-        Edge*,
-        Edge*
-    > edgelist;
-
+    typedef std::vector<Block*> blocklist;
+    typedef std::set<Edge*> edgelist;
+    
     PARSER_EXPORT Function(Address addr, string name, CodeObject * obj, 
         CodeRegion * region, InstructionSource * isource);
 
@@ -470,10 +451,12 @@ class Function : public allocatable, public AnnotatableSparse {
 
     /* Basic block and CFG access */
     PARSER_EXPORT blocklist & blocks();
+    PARSER_EXPORT const blocklist& blocks() const;
+    
     PARSER_EXPORT bool contains(Block *b);
-    PARSER_EXPORT edgelist & callEdges();
-    PARSER_EXPORT blocklist & returnBlocks();
-    PARSER_EXPORT blocklist & exitBlocks();
+    PARSER_EXPORT const edgelist & callEdges();
+    PARSER_EXPORT const blocklist & returnBlocks();
+    PARSER_EXPORT const blocklist & exitBlocks();
 
     /* Function details */
     PARSER_EXPORT bool hasNoStackFrame() const { return _no_stack_frame; }
@@ -512,7 +495,6 @@ class Function : public allocatable, public AnnotatableSparse {
     bool _parsed;
     bool _cache_valid;
     blocklist _bl;
-    std::vector<Block *> _blocks;
     std::vector<FuncExtent *> _extents;
 
     /* rapid lookup for edge predicate tests */
@@ -521,15 +503,12 @@ class Function : public allocatable, public AnnotatableSparse {
     blockmap _bmap;
 
     /* rapid lookup for interprocedural queries */
-    std::set<Edge *> _call_edges;
     edgelist _call_edge_list;
-    std::vector<Block *> _return_blocks;
     blocklist _retBL;
     // Superset of return blocks; this includes all blocks where
     // execution leaves the function without coming back, including
     // returns, calls to non-returning calls, tail calls, etc.
     // Might want to include exceptions...
-    std::vector<Block *> _exit_blocks;
     blocklist _exitBL;
 
     /* function details */

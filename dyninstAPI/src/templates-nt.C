@@ -40,7 +40,7 @@
 
 #include <string>
 #include "common/src/Dictionary.C"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 
@@ -170,9 +170,4 @@ template class pdvector<dictionary_hash<AstNode *, regTracker_t::commonExpressio
 class Statistic;
 template class dictionary_hash<std::string, Statistic *>;
 
-#include "dyninstAPI/src/block.h"
-template class ParseAPI::ContainerWrapper<
-       std::vector<edge_instance *>,
-       edge_instance *,
-       edge_instance *,
-       EdgePredicateAdapter>;
+

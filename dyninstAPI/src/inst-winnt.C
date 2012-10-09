@@ -32,7 +32,7 @@
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"

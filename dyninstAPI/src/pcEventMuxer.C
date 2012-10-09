@@ -86,7 +86,10 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
       Process::handleEvents(false);
       proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
       if (mailbox_.size() == 0) return NoEvents;
-      if (!handle(NULL)) return Error;
+      if (!handle(NULL)) {
+         proccontrol_printf("[%s:%d] Failed to handle event, returning error\n", FILE__, __LINE__);
+         return Error;
+      }
    }
    else {
       // It's really annoying from a user design POV that ProcControl methods can
@@ -96,6 +99,7 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
 			FILE__, __LINE__, mailbox_.size());
      while (mailbox_.size() == 0) {
        if (!Process::handleEvents(true)) {
+         proccontrol_printf("[%s:%d] Failed to handle event, returning error\n", FILE__, __LINE__);
 	 return Error;
        }
      }
@@ -201,10 +205,7 @@ bool PCEventMuxer::registerCallbacks() {
       proccontrol_printf("%s[%d]: NULL process = default/default\n", FILE__, __LINE__); \
       return ret_default;                                               \
    }                                                                    \
-   Process::cb_ret_t ret = ret_stopped;                                 \
-   if (process->isForcedTerminating()) {                                \
-      ret = ret_continue;                                               \
-   }                                                                    \
+   Process::cb_ret_t ret = ret_stopped;                                 
 
 #define DEFAULT_RETURN \
 	PCEventMuxer &m = PCEventMuxer::muxer(); \
@@ -237,7 +238,6 @@ PCEventMuxer::cb_ret_t PCEventMuxer::exitCallback(EventPtr ev) {
 
 PCEventMuxer::cb_ret_t PCEventMuxer::crashCallback(EventPtr ev) {
 	INITIAL_MUXING;
-
 	if (ev->getEventType().time() != EventType::Pre) {
 		ret = ret_default;
 	}
@@ -251,10 +251,8 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 
 	EventSignal::const_ptr evSignal = ev->getEventSignal();
 
-#if defined(arch_x86) || defined(arch_x86_64)
-        // DEBUG
-    if (evSignal->getSignal() == 11) {
-      cerr << "SEGV IN PROCESS " << process->getPid() << endl;
+#if defined(DEBUG)
+	{
        Address esp = 0;
        Address pc = 0;
        ProcControlAPI::RegisterPool regs;
@@ -298,7 +296,6 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 	 base += insn->size();
 	 insn = deco.decode();
        }
-       while(1) sleep(1);
     }
 #endif
 
@@ -403,8 +400,10 @@ PCEventMuxer::cb_ret_t PCEventMuxer::threadCreateCallback(EventPtr ev) {
 PCEventMuxer::cb_ret_t PCEventMuxer::threadDestroyCallback(EventPtr ev) {
 	INITIAL_MUXING;
 
-        if (ev->getEventType().time() == EventType::Pre)
-           ret = Process::cb_ret_t(Process::cbThreadStop);
+        if (ev->getEventType().time() == EventType::Pre) {
+	  //ret = Process::cb_ret_t(Process::cbThreadStop);
+	  ret = ret_stopped;
+	}
 
 	DEFAULT_RETURN;
 }

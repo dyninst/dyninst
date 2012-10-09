@@ -101,7 +101,9 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidt
         CASE_RETURN_STR(R_PPC_GOT_DTPREL16_LO);
         CASE_RETURN_STR(R_PPC_GOT_DTPREL16_HI);
         CASE_RETURN_STR(R_PPC_GOT_DTPREL16_HA);
+#if defined(R_PPC_NUM)
         CASE_RETURN_STR(R_PPC_NUM);
+#endif
         CASE_RETURN_STR(R_PPC_EMB_NADDR32);
         CASE_RETURN_STR(R_PPC_EMB_NADDR16);
         CASE_RETURN_STR(R_PPC_EMB_NADDR16_LO);

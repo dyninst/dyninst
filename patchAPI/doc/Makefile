@@ -1,4 +1,4 @@
-TEX=/s/texlive-2010/bin/pdflatex
+TEX=/s/texlive-2011/bin/pdflatex
 MAIN=patchapi
 DEP=patchapi.tex \
 	section/1_intro.tex \
@@ -13,7 +13,7 @@ $(MAIN).pdf: $(DEP)
 	$(TEX) $(MAIN)
 
 clean:
-	@rm -f *.dvi $(MAIN).pdf *.log *.aux *.ent *.bak *.bbl *.blg *.out *.toc
+	@rm -f *.dvi *.log *.aux *.ent *.bak *.bbl *.blg *.out *.toc
 
 read:
 	@xpdf patchapi.pdf

@@ -39,11 +39,11 @@
 #include <sys/resource.h>
 #include <math.h> // for floor()
 #include <unistd.h> // for sysconf()
-#include <elf.h>
-#include <libelf.h>
+//#include <elf.h>
+//#include <libelf.h>
 
 #include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "common/h/headers.h"

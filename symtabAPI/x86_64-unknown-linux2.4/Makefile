@@ -16,14 +16,14 @@ include ../../make.config
 SRCS =          ../src/Object-elf.C \
 		../src/Archive.C \
 		../src/Archive-elf.C \
-		../src/parseDwarf.C \
 		../src/parseStab.C \
 		../src/emitElf.C \
 		../src/emitElf-64.C \
 		../src/LinkMap.C \
 		../src/emitElfStatic.C \
 		../src/emitElfStatic-x86.C \
-		../src/relocationEntry-elf-x86.C
+		../src/relocationEntry-elf-x86.C \
+		../src/parseDwarf.C
 
 
 #MYFLAGS	+= -DNO_MDL_PRINT

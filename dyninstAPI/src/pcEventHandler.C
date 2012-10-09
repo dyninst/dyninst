@@ -388,7 +388,7 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
     }
 
     BPatch_process *bpproc = BPatch::bpatch->getProcessByPid(evProc->getPid());
-    if( bpproc == NULL ) {
+    if( bpproc == NULL && evProc->isBootstrapped() ) {
         proccontrol_printf("%s[%d]: failed to locate BPatch_process for process %d\n",
                 FILE__, __LINE__, evProc->getPid());
         return false;
@@ -404,14 +404,17 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
     evProc->addThread(newThr);
 
     if( !evProc->registerThread(newThr) ) return false;
-
-    bpproc->triggerThreadCreate(newThr);
+    
+    if (bpproc)
+       bpproc->triggerThreadCreate(newThr);
 
     return true;
 }
 
 bool PCEventHandler::handleThreadDestroy(EventThreadDestroy::const_ptr ev, PCProcess *evProc) const {
     if( ev->getEventType().time() == EventType::Pre ) {
+      proccontrol_printf("%s[%d]: handling pre thread destroy for %d/%d\n",
+			 FILE__, __LINE__, evProc->getPid(), ev->getThread()->getLWP()); 
         BPatch_process *bpproc = BPatch::bpatch->getProcessByPid(evProc->getPid());
         if( bpproc == NULL ) {
             proccontrol_printf("%s[%d]: failed to locate BPatch_process for process %d\n",
@@ -519,7 +522,7 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         }
     }
 
-    if( shouldForwardSignal ) {
+    if(shouldForwardSignal ) {
         // Now, explicitly set the signal to be delivered to the process
         ev->setThreadSignal(ev->getSignal());
     }

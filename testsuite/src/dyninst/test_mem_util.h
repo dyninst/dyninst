@@ -90,9 +90,10 @@ extern unsigned int bcExp[];
 extern int eaExpOffset[];
 
 extern void* eaExp[]; /* forward */
-extern int divarw;
-extern float dfvars;
-extern double dfvard;
+/* Make sure this is 4 words long... */
+extern int divarw[4];
+extern float dfvars[4];
+extern double dfvard[4];
 
 extern void* gettoc();
 #ifdef rs6000_ibm_aix4_1_test
@@ -142,9 +143,9 @@ extern unsigned int bcExp[];
 extern int ia32features();
 extern int amd_features();
 
-extern int divarw;
-extern float dfvars;
-extern double dfvard;
+extern int divarw[4];
+extern float dfvars[4];
+extern double dfvard[4];
 extern long double dfvart; /* 10 byte hopefully, but it shouldn't matter... */
 extern unsigned char dlarge[512];
 
@@ -172,9 +173,9 @@ extern int eaExpOffset[];
 
 extern unsigned int bcExp[];
 
-extern int divarw;
-extern float dfvars;
-extern double dfvard;
+extern int divarw[4];
+extern float dfvars[4];
+extern double dfvard[4];
 extern long double dfvart;
 extern char dlarge[512];
 

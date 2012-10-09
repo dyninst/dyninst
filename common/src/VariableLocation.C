@@ -37,24 +37,13 @@ using namespace Dyninst;
 #define CASE_RETURN_STR(x) case x: return #x;
 #endif
 
-
-bool VariableLocation::operator==(const VariableLocation &f)
-{
-	if (stClass != f.stClass) return false;
-	if (refClass != f.refClass) return false;
-	if (reg != f.reg) return false;
-	if (frameOffset != f.frameOffset) return false;
-	if (hiPC != f.hiPC) return false;
-	if (lowPC != f.lowPC) return false;
-	return true;
-}
-
 const char *Dyninst::storageClass2Str(Dyninst::storageClass sc) 
 {
 	switch(sc) {
-		CASE_RETURN_STR(storageAddr);
-		CASE_RETURN_STR(storageReg);
-		CASE_RETURN_STR(storageRegOffset);
+           CASE_RETURN_STR(storageUnset);
+           CASE_RETURN_STR(storageAddr);
+           CASE_RETURN_STR(storageReg);
+           CASE_RETURN_STR(storageRegOffset);
 	};
 	return "bad_storage_class";
 }
@@ -62,8 +51,9 @@ const char *Dyninst::storageClass2Str(Dyninst::storageClass sc)
 const char *Dyninst::storageRefClass2Str(Dyninst::storageRefClass sc) 
 {
 	switch(sc) {
-		CASE_RETURN_STR(storageRef);
-		CASE_RETURN_STR(storageNoRef);
+           CASE_RETURN_STR(storageRefUnset);
+           CASE_RETURN_STR(storageRef);
+           CASE_RETURN_STR(storageNoRef);
 	};
 	return "bad_storage_class";
 }

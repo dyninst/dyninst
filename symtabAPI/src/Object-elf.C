@@ -52,6 +52,8 @@
 #include "emitElf-64.h"
 #endif
 
+#include "dwarfWalker.h"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -2092,6 +2094,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
          if (i==0 && sname == "" && soffset == (Offset)0)
             continue;
 
+
          Region *sec;
          if(secNumber >= 1 && secNumber < regions_.size()) {
             sec = regions_[secNumber];
@@ -2109,7 +2112,6 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
          if (stype == Symbol::ST_MODULE) {
             smodule = sname;
          }
-
          Symbol *newsym = new Symbol(sname, 
                                      stype,
                                      slinkage, 
@@ -2255,13 +2257,14 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       // discard "dummy" symbol at beginning of file
       if (i==0 && sname == "" && soffset == (Offset)0)
          continue;
-
+      
       Region *sec;
       if(secNumber >= 1 && secNumber < regions_.size()) {
          sec = regions_[secNumber];
-      } else{
-         sec = NULL;		
+      } else {
+         sec = NULL;
       }
+
       int ind = int (i);
       int strindex = syms.st_name(i);
 
@@ -2309,17 +2312,17 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       // register symbol in dictionary
 
       if (sec && sec->getRegionName() == OPD_NAME && stype == Symbol::ST_FUNCTION ) {
-        newsym = handle_opd_symbol(sec, newsym);
-  	opdsymbols_.push_back(newsym);
-
-        symbols_[sname].push_back(newsym);
-        symsByOffset_[newsym->getOffset()].push_back(newsym);
-        symsToModules_[newsym] = smodule;
+         newsym = handle_opd_symbol(sec, newsym);
+         opdsymbols_.push_back(newsym);
+         
+         symbols_[sname].push_back(newsym);
+         symsByOffset_[newsym->getOffset()].push_back(newsym);
+         symsToModules_[newsym] = smodule;
       } else {
-      symbols_[sname].push_back(newsym);
-      symsByOffset_[newsym->getOffset()].push_back(newsym);
-      symsToModules_[newsym] = smodule; 
-	}
+         symbols_[sname].push_back(newsym);
+         symsByOffset_[newsym->getOffset()].push_back(newsym);
+         symsToModules_[newsym] = smodule; 
+      }
     }
   }
   
@@ -2832,7 +2835,11 @@ bool Object::fix_global_symbol_modules_static_dwarf()
    IntervalTree<Dwarf_Addr, std::string> module_ranges;
 
    /* Iterate over the CU headers. */
-   while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) 
+   while ( dwarf_next_cu_header_c( dbg, 1, 
+				   NULL, NULL, NULL, // len, stamp, abbrev
+				   NULL, NULL, NULL, // address, offset, extension
+				   NULL, NULL, // signature, typeoffset
+				   & hdr, NULL ) == DW_DLV_OK ) 
    {
       /* Obtain the module DIE. */
       Dwarf_Die moduleDIE;
@@ -4842,8 +4849,11 @@ void Object::parseTypeInfo(Symtab *obj)
 #endif	 
 
 	parseStabTypes(obj);
-	parseDwarfTypes(obj);
 
+        DwarfWalker walker(obj, *(dwarf.dbg()));
+        walker.parse();
+        //parseDwarfTypes(obj);
+        
 #if defined(TIMED_PARSE)
 	struct timeval endtime;
 	gettimeofday(&endtime, NULL);
@@ -5348,7 +5358,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 
         for(unsigned j = 0; j < (shdr->sh_size() / shdr->sh_entsize()); ++j) {
             // Relocation entry fields - need to be populated
-	  Offset relStructOff = (shdr->sh_addr() + (j * shdr->sh_entsize()));
+
             Offset relOff, addend = 0;
             std::string name;
             unsigned long relType;
@@ -5466,4 +5476,8 @@ Dyninst::Architecture Object::getArch()
 #else
    return Arch_none;
 #endif
+}
+
+Dwarf_Debug Object::dwarf_dbg() {
+   return dwarf.dbg_data;
 }

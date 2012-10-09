@@ -186,6 +186,10 @@ std::string BPatch_function::getNameStr() {
    return func->prettyName();
 }
 
+std::string BPatch_function::getMangledNameStr() {
+   return func->symTabName();
+}
+
 
 /*
  * BPatch_function::getName

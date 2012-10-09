@@ -89,18 +89,31 @@ class sysv_process : virtual public int_process
    virtual bool plat_getInterpreterBase(Address &addr);
 
    AddressTranslate *constructTranslator(Dyninst::PID pid);
+   AddressTranslate *translator();
 
    static int_breakpoint *lib_trap;
 
    Address breakpoint_addr;
-   AddressTranslate *translator;
    bool lib_initialized;
    PCProcReader *procreader;
   private:
+   
    bool track_libraries;
    int_library *aout;
    LibraryTracking *libtracking;
    static SymbolReaderFactory *symreader_factory;
+
+   void createAddrTranslator();
+   void deleteAddrTranslator();
+   AddressTranslate *translator_;
+
+   typedef enum {
+     NotReady,
+     Ready,
+     Creating,
+     Created } translator_state_t;
+
+   translator_state_t translator_state;
 };
 
 #endif

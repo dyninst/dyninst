@@ -47,6 +47,14 @@ endif
 
 LDFLAGS     += -L../../common/$(PLATFORM) -lcommon
 
+ifdef LIBDWARF_PLATFORM
+LDFLAGS += -L../../dwarf/$(PLATFORM) -ldynDwarf
+endif
+
+ifdef LIBELF_PLATFORM
+LDFLAGS += -L../../elf/$(PLATFORM) -ldynElf
+endif
+
 ifndef NO_LIBDL
 LDFLAGS += -ldl
 endif
@@ -82,16 +90,8 @@ SRCS	     +=	../src/Object.C \
 		../src/AddrLookup.C \
                 ../src/annotations.C \
                 ../src/debug.C \
-      ../src/SymtabReader.C 
-
-ifdef LIBELF_PLATFORM
-SRCS  +=  ../../common/src/Elf_X.C \
-          ../../common/src/SymLite-elf.C
-endif
-ifdef USES_DWARF_DEBUG
-SRCS  +=  ../../common/src/dwarfSW.C \
-          ../../common/src/dwarfExpr.C
-endif
+                ../src/SymtabReader.C \
+                ../src/dwarfWalker.C 
 
 
 TO_INC     = ../h

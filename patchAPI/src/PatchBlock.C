@@ -73,7 +73,7 @@ PatchBlock::getInsns(Insns &insns) const {
 const PatchBlock::edgelist&
 PatchBlock::sources() {
   if (srclist_.empty()) {
-    for (ParseAPI::Block::edgelist::iterator iter = block_->sources().begin();
+    for (ParseAPI::Block::edgelist::const_iterator iter = block_->sources().begin();
          iter != block_->sources().end(); ++iter) 
     {
       // search for edge in object of source block
@@ -88,7 +88,7 @@ PatchBlock::sources() {
 const PatchBlock::edgelist&
 PatchBlock::targets() {
   if (trglist_.empty()) {
-    for (ParseAPI::Block::edgelist::iterator iter = block_->targets().begin();
+    for (ParseAPI::Block::edgelist::const_iterator iter = block_->targets().begin();
          iter != block_->targets().end(); ++iter) {
       PatchEdge *newEdge = obj_->getEdge(*iter, this, NULL);
       assert(newEdge);
@@ -215,7 +215,7 @@ int
 PatchBlock::numRetEdges() const {
   int numRets = 0;
   const ParseAPI::Block::edgelist & out_edges = block_->targets();
-  ParseAPI::Block::edgelist::iterator eit = out_edges.begin();
+  ParseAPI::Block::edgelist::const_iterator eit = out_edges.begin();
   for( ; eit != out_edges.end(); ++eit) {
     if ( ParseAPI::RET == (*eit)->type() ) {
       numRets++;
@@ -229,7 +229,7 @@ int PatchBlock::numCallEdges() const
    using namespace ParseAPI;
    int numCalls = 0;
    const Block::edgelist & trgs = block()->targets();
-   for (Block::edgelist::iterator titer = trgs.begin();
+   for (Block::edgelist::const_iterator titer = trgs.begin();
         titer != trgs.end();
         titer++)
    {
@@ -243,7 +243,7 @@ int PatchBlock::numCallEdges() const
 bool
 PatchBlock::containsDynamicCall() {
   const ParseAPI::Block::edgelist & out_edges = block_->targets();
-  ParseAPI::Block::edgelist::iterator eit = out_edges.begin();
+  ParseAPI::Block::edgelist::const_iterator eit = out_edges.begin();
    for( ; eit != out_edges.end(); ++eit) {
      if ( ParseAPI::CALL == (*eit)->type() ) { 
          // see if it's a static call to a bad address
@@ -488,7 +488,7 @@ void PatchBlock::splitBlock(PatchBlock *succ)
 
    // 2)
    const ParseAPI::Block::edgelist & trgs = succ->block()->targets();
-   ParseAPI::Block::edgelist::iterator titer = trgs.begin();
+   ParseAPI::Block::edgelist::const_iterator titer = trgs.begin();
    for (; titer != trgs.end(); titer++) {
       PatchEdge *cur = obj()->getEdge(*titer, this, NULL, false);
       if (cur != NULL) {

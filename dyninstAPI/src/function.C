@@ -142,8 +142,9 @@ block_instance * func_instance::setNewEntry(block_instance *def,
         if (deadBlocks.find(block) == deadBlocks.end()) {
             ParseAPI::Intraproc epred;
             const Block::edgelist & ib_ins = block->llb()->sources();
-            Block::edgelist::iterator eit = ib_ins.begin(&epred);
-            if (eit == ib_ins.end()) 
+	    
+	    if(std::distance(boost::make_filter_iterator(epred, ib_ins.begin(), ib_ins.end()), 
+			     boost::make_filter_iterator(epred, ib_ins.end(), ib_ins.end())) == 0)
             {
                 if (NULL != newEntry) {
                     fprintf(stderr,"WARNING: multiple blocks in function %lx "
@@ -493,7 +494,7 @@ bool func_instance::consistency() const {
 
    const ParseAPI::Function::blocklist &img_blocks = ifunc()->blocks();
    assert(img_blocks.size() == all_blocks_.size());
-   for (ParseAPI::Function::blocklist::iterator iter = img_blocks.begin();
+   for (ParseAPI::Function::blocklist::const_iterator iter = img_blocks.begin();
         iter != img_blocks.end(); ++iter) {
       parse_block *img_block = SCAST_PB(*iter);
       block_instance *b_inst = obj()->findBlock(img_block);
@@ -512,6 +513,19 @@ unsigned func_instance::get_size() const { assert(0); return 0; }
 
 
 bool func_instance::isInstrumentable() {
+#if defined(os_freebsd)
+  // FreeBSD system call wrappers are using an indirect jump to an error
+  // handling function; this confuses our parsing and we conclude they
+  // are uninstrumentable. They're not. It's fine. 
+  
+  std::string wrapper_prefix = "__sys_";
+  for (unsigned i = 0; i < symTabNameVector().size(); ++i) {
+    if (symTabNameVector()[i].compare(0, 6, wrapper_prefix) == 0) {
+      return true;
+    }
+  }
+#endif
+
   Dyninst::PatchAPI::Instrumenter* inst = proc()->mgr()->instrumenter();
   if (inst) return inst->isInstrumentable(this);
   return false;

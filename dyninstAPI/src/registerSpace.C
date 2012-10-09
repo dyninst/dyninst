@@ -30,7 +30,7 @@
 
 // $Id: registerSpace.C,v 1.25 2008/10/27 17:23:53 mlam Exp $
 
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -726,7 +726,10 @@ bool registerSpace::readProgramRegister(codeGen &gen,
     // about the source register.
     // cap_emitter
 
+    
     registerSlot *src = registers_[source];
+    // If we didn't find src we just corrupted registers_; assert fail.
+    // AND FIX THE STRUCTURE. 
     assert(src);
     registerSlot *dest = registers_[destination];
     assert(dest);

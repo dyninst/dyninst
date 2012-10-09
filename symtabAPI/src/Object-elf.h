@@ -58,7 +58,7 @@
 #include <libelf.h>
 #include <string>
 
-#include "common/h/Elf_X.h"
+#include "elf/h/Elf_X.h"
 
 #include <fcntl.h>
 #include <stdlib.h>
@@ -68,9 +68,14 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
-class DwarfSW;
 
 namespace Dyninst{
+
+namespace Dwarf {
+   class DwarfFrameParser;
+   typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
+}
+
 namespace SymtabAPI{
 /*
  * The standard symbol table in an elf file is the .symtab section. This section does
@@ -289,7 +294,7 @@ class Object;
 class DwarfHandle {
    friend class Object;
  private:
-   DwarfSW *sw;
+   Dwarf::DwarfFrameParserPtr sw;
    Object *obj;
    typedef enum {
       dwarf_status_uninitialized,
@@ -335,6 +340,8 @@ class Object : public AObject {
   std::vector<std::string> &libsRMd();
 
   bool addRelocationEntry(relocationEntry &re);
+
+  Dwarf_Debug dwarf_dbg();
 
   //getLoadAddress may return 0 on shared objects
   Offset getLoadAddress() const { return loadAddress_; }

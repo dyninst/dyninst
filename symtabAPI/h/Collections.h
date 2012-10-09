@@ -42,6 +42,7 @@ namespace SymtabAPI {
 class Module;
 class Symtab;
 class localVar;
+class DwarfWalker;
 
 /*
  * This class contains a collection of local variables.
@@ -76,7 +77,8 @@ class typeCollection : public Serializable//, public AnnotatableSparse
     friend class Symtab;
     friend class Object;
     friend class Module;
-	friend class Type;
+    friend class Type;
+    friend class DwarfWalker;
 
     dyn_hash_map<std::string, Type *> typesByName;
     dyn_hash_map<std::string, Type *> globalVarsByName;

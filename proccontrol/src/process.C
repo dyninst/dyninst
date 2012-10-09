@@ -42,6 +42,7 @@
 #include "proccontrol/h/ProcessSet.h"
 #include "proccontrol/h/PlatFeatures.h"
 
+#include "freebsd.h"
 #if defined(os_windows)
 #include "proccontrol/src/windows_process.h"
 #include "proccontrol/src/windows_thread.h"
@@ -1291,6 +1292,8 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
 
    result->setProcess(this);
    bool bresult;
+
+
    if (!plat_needsAsyncIO()) {
       pthrd_printf("Reading from remote memory %lx to %p, size = %lu on %d/%d\n",
                    remote, result->getBuffer(), (unsigned long) result->getSize(),
@@ -1326,6 +1329,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
    }
    return bresult;
 }
+#include "freebsd.h"
 
 bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr, bp_write_t bp_write)
 {
@@ -1346,7 +1350,6 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
       }
    }
    result->setProcess(this);
-
    bool bresult;
    if (!plat_needsAsyncIO()) {
       pthrd_printf("Writing to remote memory %lx from %p, size = %lu on %d/%d\n",
@@ -2424,13 +2427,24 @@ hybrid_lwp_control_process::hybrid_lwp_control_process(Dyninst::PID p, std::stri
                                                          std::vector<std::string> a, 
                                                          std::vector<std::string> envp, 
                                                          std::map<int,int> f) :
-   int_process(p, e, a, envp, f)
+  int_process(p, e, a, envp, f),
+  debugger_stopped(false)
 {
 }
 
 hybrid_lwp_control_process::hybrid_lwp_control_process(Dyninst::PID pid_, int_process *p) :
-   int_process(pid_, p)
+  int_process(pid_, p),
+  debugger_stopped(false)
 {
+  // Clone debugger_stopped from parent
+  hybrid_lwp_control_process *par = dynamic_cast<hybrid_lwp_control_process *>(p);
+  assert(par); // Otherwise we have a very, very strange system
+  debugger_stopped = par->debugger_stopped;
+  pthrd_printf("Set debugger stopped to %s on %d, matching parent %d\n",
+	       (debugger_stopped ? "true" : "false"),
+	       pid_,
+	       p->getPid());
+	       
 }
 
 hybrid_lwp_control_process::~hybrid_lwp_control_process()
@@ -2471,11 +2485,13 @@ void hybrid_lwp_control_process::noteNewDequeuedEvent(Event::ptr ev)
    if (ev->getSyncType() == Event::sync_process) {
 	   pthrd_printf("Marking %d debugger suspended on event: %s\n", getPid(), ev->name().c_str());
       debugger_stopped = true;
+      pthrd_printf("Setting, debugger stopped: %d (%p) (%d)\n", debugger_stopped, this, getPid());
    }
 }
 
 bool hybrid_lwp_control_process::plat_debuggerSuspended()
 {
+  pthrd_printf("Querying, debugger stopped: %d (%p) (%p) (%d)\n", debugger_stopped, &debugger_stopped, this, getPid());
    return debugger_stopped;
 }
 
@@ -2495,31 +2511,38 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    int_threadPool::iterator i;
    for (i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
-	   pthrd_printf("Checking %d/%d\n", getPid(), thr->getLWP());
-	   if (thr->getDetachState().getState() == int_thread::detached) {
-		   pthrd_printf("%d/%d detached, skipping\n", getPid(), thr->getLWP());
-         continue;
+      pthrd_printf("Checking %d/%d: state %s\n", getPid(), thr->getLWP(), int_thread::stateStr(thr->getUserState().getState()));
+#if defined(os_freebsd) 
+	   if (thr->getUserState().getState() == int_thread::exited) {
+	     // Let it go, man...
+	     continue;
 	   }
-	  if (!RUNNING_STATE(thr->getHandlerState().getState())) {
-		   pthrd_printf("%d/%d not running, any_stopped = true\n", getPid(), thr->getLWP());
-         any_stopped = true;
-	  } else {
-		   pthrd_printf("%d/%d running, any_running = true\n", getPid(), thr->getLWP());
-         any_running = true;
-         if (!a_running_thread) a_running_thread = thr;
-      }
-	  if (RUNNING_STATE(thr->getTargetState())) {
-		   pthrd_printf("%d/%d target running, any_target_running = true\n", getPid(), thr->getLWP());
-         any_target_running = true;
-	  }
-	  if (!RUNNING_STATE(thr->getTargetState())) {
-		   pthrd_printf("%d/%d target stopped, any_target_stopped = true\n", getPid(), thr->getLWP());
-         any_target_stopped = true;
-	  }
+#endif
+	   if (thr->getDetachState().getState() == int_thread::detached) {
+	     pthrd_printf("%d/%d detached, skipping\n", getPid(), thr->getLWP());
+	     continue;
+	   }
+	   if (!RUNNING_STATE(thr->getHandlerState().getState())) {
+	     pthrd_printf("%d/%d not running, any_stopped = true\n", getPid(), thr->getLWP());
+	     any_stopped = true;
+	   } else {
+	     pthrd_printf("%d/%d running, any_running = true\n", getPid(), thr->getLWP());
+	     any_running = true;
+	     if (!a_running_thread) a_running_thread = thr;
+	   }
+	   if (RUNNING_STATE(thr->getTargetState())) {
+	     pthrd_printf("%d/%d target running, any_target_running = true\n", getPid(), thr->getLWP());
+	     any_target_running = true;
+	   }
+	   if (!RUNNING_STATE(thr->getTargetState())) {
+	     pthrd_printf("%d/%d target stopped, any_target_stopped = true\n", getPid(), thr->getLWP());
+	     any_target_stopped = true;
+	   }
    }
-	if(!a_running_thread) {
-	   a_running_thread = tp->initialThread();
+   if(!a_running_thread) {
+     a_running_thread = tp->initialThread();
    }
+
 
    if (!any_target_running && !any_running) {
       pthrd_printf("Target process state %d is stopped and process is stopped, leaving\n", getPid());
@@ -2542,10 +2565,24 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    for (i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
       bool result = true;
-      if (!thr->isUser()) {
-         // Pretend is member of Wu Tang clan -- Bill Williams, 13JUN2012
-         resumeThread(thr);
-         continue;
+	  if (!thr->isUser()) {
+		  // Pretend is member of Wu Tang clan -- Bill Williams, 13JUN2012
+		  resumeThread(thr);
+		  continue;
+	  }
+	  if (thr->getDetachState().getState() == int_thread::detached)
+	    continue;
+
+#if defined(os_freebsd) 
+	   if (thr->getUserState().getState() == int_thread::exited) {
+	     // Let it go, man...
+	     continue;
+	   }
+#endif
+
+      if (thr->isSuspended() && RUNNING_STATE(thr->getTargetState())) {
+         pthrd_printf("Resuming thread %d/%d\n", getPid(), thr->getLWP());
+         result = resumeThread(thr);
       }
       if (thr->getDetachState().getState() == int_thread::detached)
          continue;
@@ -3178,6 +3215,7 @@ int_thread *int_thread::createThread(int_process *proc,
    pthrd_printf("Creating %s thread %d/%d, thr_id = 0x%lx\n", 
                 initial_thrd ? "initial" : "new",
                 proc->getPid(), newthr->getLWP(), thr_id);
+
    proc->threadPool()->addThread(newthr);
    if (initial_thrd) {
       proc->threadPool()->setInitialThread(newthr);
@@ -3193,6 +3231,7 @@ int_thread *int_thread::createThread(int_process *proc,
 	   newthr->getHandlerState().setState(neonatal_intermediate);
 		newthr->getGeneratorState().setState(neonatal_intermediate);
    }
+
    return newthr;
 }
 
@@ -3215,6 +3254,8 @@ void int_thread::changeLWP(Dyninst::LWP new_lwp)
 
 void int_thread::throwEventsBeforeContinue()
 {
+  pthrd_printf("Checking thread %d/%d for events thrown before continue\n",
+	       llproc()->getPid(), getLWP());
    if (llproc()->wasForcedTerminated()) return;
 
    Event::ptr new_ev;
@@ -3287,8 +3328,12 @@ void int_thread::setExitingInGenerator(bool b)
 void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
 {
    ProcPool()->condvar()->lock();
-   
+
+#if !defined(os_freebsd)   
    thrd->getUserState().setState(int_thread::exited);
+#else
+   thrd->setExiting(true);
+#endif
 
    if (should_delete) {
       thrd->getExitingState().setState(int_thread::exited);
@@ -3307,7 +3352,13 @@ void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
       // a pre-mature exit event.  The thread will be exiting soon, but
       // isn't there yet.  We'll run the thread instead to make sure it
       // reaches a proper exit.
+      
+      // If we're freeBSD, they don't give us a thread exit event and
+      // so running only the exiting thread can result in a process
+      // that is "executing" with no continued threads. That is bad. 
+#if !defined(os_freebsd)
       thrd->getExitingState().setState(int_thread::running);
+#endif
    }
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
@@ -3326,7 +3377,7 @@ bool int_thread::getAllRegisters(allreg_response::ptr response)
    pthrd_printf("Reading registers for thread %d\n", getLWP());
 
    regpool_lock.lock();
-   if (cached_regpool.full) {
+   if (cached_regpool.full && 0) {
       *response->getRegPool() = cached_regpool;
       response->getRegPool()->thread = this;
       response->markReady();
@@ -4692,7 +4743,12 @@ bool sw_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read
    assert(buffer_size <= BP_BUFFER_SIZE);   
 
    read_response->setBuffer(buffer, buffer_size);
-   return proc->readMem(addr, read_response);
+   bool ret = proc->readMem(addr, read_response);
+   pthrd_printf("Buffer contents from read breakpoint:\n");
+   for (int i = 0; i < buffer_size; ++i) {
+     pthrd_printf("\t 0x%x\n", (unsigned char)buffer[i]);
+   }
+   return ret;
 }
 
 bool sw_breakpoint::restoreBreakpointData(int_process *proc, result_response::ptr res_resp)

@@ -41,9 +41,11 @@
 #include "common/h/serialize.h"
 
 #include "Type-mem.h"
+#include <iostream>
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
+using namespace std;
 
 //#include "collections.h"
 //#include "debug.h" TODO: We want such behaviour. LATER!
@@ -1203,7 +1205,6 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr)
     	VariableLocation loc;
         loc.stClass = storageAddr;
         loc.refClass = storageNoRef;
-        loc.reg = -1;    
         loc.frameOffset = fieldList[j]->getOffset()+(Offset) baseAddr;
         locVar->addLocation(loc);
 
@@ -1492,6 +1493,7 @@ void fieldListType::fixupComponents()
          for( unsigned int i = 0; i < superClassFields->size(); i++ ) {
             Field * currentSuperField = (*superClassFields)[i];
             // bperr( "Considering superfield '%s'\n", currentSuperField->getName() );
+            
             if( currentSuperField->getVisibility() != visPrivate ) {
                derivedFieldList->push_back( currentSuperField );
             }

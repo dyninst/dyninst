@@ -34,6 +34,7 @@
 
 #include <queue>
 #include <vector>
+#include <boost/bind.hpp>
 
 #include "stackanalysis.h"
 
@@ -165,12 +166,31 @@ void StackAnalysis::summarizeBlocks() {
   }
 }
 
+struct intra_nosink : public ParseAPI::EdgePredicate
+{
+  virtual bool operator()(Edge* e)
+  {
+    static Intraproc i;
+    static NoSinkPredicate n;
+    
+    return i(e) && n(e);
+  }
+  
+};
+
+void add_target(std::queue<Block*>& worklist, Edge* e)
+{
+	worklist.push(e->trg());
+}
 
 void StackAnalysis::fixpoint() {
   std::queue<Block *> worklist;
   
-  Intraproc epred; // ignore calls, returns in edge iteration
-  NoSinkPredicate epred2(&epred); // ignore sink node (unresolvable)
+  //Intraproc epred; // ignore calls, returns in edge iteration
+  //NoSinkPredicate nosink(); // ignore sink node (unresolvable)
+  intra_nosink epred2;
+  
+  
 
   worklist.push(func->entry());
 
@@ -220,13 +240,13 @@ void StackAnalysis::fixpoint() {
     // Step 4: push all children on the worklist.
     
     const Block::edgelist & outEdges = block->targets();
-    Block::edgelist::iterator eit = outEdges.begin(&epred2);
-    for( ; eit != outEdges.end(); ++eit) {
-       if ((*eit)->type() == CALL) continue;
-       worklist.push((Block*)(*eit)->trg());
-    }
+    std::for_each(boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
+		  boost::make_filter_iterator(epred2, outEdges.end(), outEdges.end()),
+		  boost::bind(add_target, boost::ref(worklist), _1));    
   }
 }
+
+
 
 void StackAnalysis::summarize() {
 	// Now that we know the actual inputs to each block,
@@ -361,8 +381,8 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
 
     std::set<Height> returnCleanVals;
 
-    Function::blocklist &returnBlocks = func->returnBlocks();
-    Function::blocklist::iterator rets = returnBlocks.begin();
+    const Function::blocklist &returnBlocks = func->returnBlocks();
+    Function::blocklist::const_iterator rets = returnBlocks.begin();
     for (; rets != returnBlocks.end(); ++rets) {
       Block *ret = *rets;
       cur = (unsigned char *) ret->region()->getPtrToInstruction(ret->lastInsnAddr());
@@ -482,7 +502,17 @@ StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, MachRegister r
   assert(intervals_);
 
   //(*intervals_)[b].find(addr, state);
-  ret = (*intervals_)[b][addr][reg];
+  //  ret = (*intervals_)[b][addr][reg];
+  StateIntervals &sintervals = (*intervals_)[b];
+  //Find the last instruction that is <= addr
+  StateIntervals::iterator i = sintervals.lower_bound(addr);
+  if ((i == sintervals.end() && !sintervals.empty()) || 
+      (i->first != addr && i != sintervals.begin())) {
+      i--;
+  }
+  if (i == sintervals.end()) return Height::bottom;
+
+  ret = i->second[reg];
 
   if (ret.isTop()) {
      return Height::bottom;
@@ -803,7 +833,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block, Offset
    if (off != block->lastInsnAddr()) return false;
    
    const Block::edgelist & outs = block->targets();  
-   Block::edgelist::iterator eit = outs.begin();
+   Block::edgelist::const_iterator eit = outs.begin();
    for( ; eit != outs.end(); ++eit) {
       Edge *cur_edge = (Edge*)*eit;
       
@@ -877,24 +907,28 @@ void StackAnalysis::createEntryInput(RegisterState &input) {
 #endif
 }
 
+StackAnalysis::RegisterState StackAnalysis::getSrcOutputRegs(Edge* e)
+{
+	Block* b = e->src();
+	return blockOutputs[b];
+}
+
 void StackAnalysis::meetInputs(Block *block, RegisterState &input) {
    input.clear();
 
-   Intraproc epred; // ignore calls, returns in edge iteration
-   NoSinkPredicate epred2(&epred); // ignore sink node (unresolvable)
+   //Intraproc epred; // ignore calls, returns in edge iteration
+   //NoSinkPredicate epred2(&epred); // ignore sink node (unresolvable)
+   intra_nosink epred2;
    
    const Block::edgelist & inEdges = block->sources();
-   Block::edgelist::iterator eit = inEdges.begin(&epred2);
-   for( ; eit != inEdges.end(); ++eit) {
-      Edge *edge = (Edge*)*eit;
-      // Intraprocedural only
-      if (edge->type() == CALL || edge->type() == RET) continue;
-	  stackanalysis_printf("\t\t Meet over block 0x%lx/0x%lx with data %s\n",
-		  edge->src()->start(),
-		  edge->src()->end(),
-		  format(blockOutputs[edge->src()]).c_str());
-      meet(blockOutputs[edge->src()], input);
-   }
+   std::for_each(boost::make_filter_iterator(epred2, inEdges.begin(), inEdges.end()),
+		 boost::make_filter_iterator(epred2, inEdges.end(), inEdges.end()),
+		 boost::bind(&StackAnalysis::meet,
+					 this,
+					 boost::bind(&StackAnalysis::getSrcOutputRegs, this, _1),
+					 boost::ref(input)));
+   
+
 }
 
 void StackAnalysis::meet(const RegisterState &input, RegisterState &accum) {

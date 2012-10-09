@@ -36,6 +36,7 @@
 #include "BinaryFunction.h"
 #include "debug_parse.h"
 #include <deque>
+#include <boost/bind.hpp>
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -364,6 +365,36 @@ bool IA_powerDetails::parseRelativeTableIdiom()
   return true;
 }
 
+namespace detail_ppc
+{
+    bool isNonCallEdge(ParseAPI::Edge* e)
+    {
+        return e->type() != CALL;
+    }
+    bool leadsToVisitedBlock(ParseAPI::Edge* e, const std::set<Block*>& visited)
+    {
+        Block* src = e->src();
+        return visited.find(src) != visited.end();
+    }
+  void processPredecessor(Edge* e, std::set<Block*>& visited, std::deque<Block*>& worklist)
+  {
+    parsing_printf("\t\tblock %x, edge type %s\n",
+		   e->src()->start(),
+		   format(e->type()).c_str());
+    
+    // FIXME debugging assert
+    assert(isNonCallEdge(e));
+    
+    // FIXME check this algorithm... O(log n) lookup in visited
+    if(!leadsToVisitedBlock(e, visited))
+    {
+      worklist.push_back(e->src());
+      visited.insert(e->src());
+    }  
+  }
+};
+
+
 // This should only be called on a known indirect branch...
 bool IA_powerDetails::parseJumpTable(Block* currBlk,
 				     std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges)
@@ -479,22 +510,12 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
 	    parsing_printf("\t\tjumpStartAddress 0x%lx \n", jumpStartAddress);
 	    break;
 	  }
-	  Block::edgelist::iterator sit = worklistBlock->sources().begin(&epred);
-	  for( ; sit != worklistBlock->sources().end(); ++sit) {
-	    parsing_printf("\t\t\tIterating \n");
-	    ParseAPI::Edge *e = *sit;
+	  std::for_each(boost::make_filter_iterator(epred, worklistBlock->sources().begin(), worklistBlock->sources().end()),
+			boost::make_filter_iterator(epred, worklistBlock->sources().end(), worklistBlock->sources().end()),
+			boost::bind(detail_ppc::processPredecessor, _1, boost::ref(visited), boost::ref(worklist)));
 
-	    // FIXME debugging assert
-	    assert(e->type() != CALL);
-
-	    // FIXME check this algorithm... O(log n) lookup in visited
-	    if((visited.find(e->src()) == visited.end()))
-	      {
-		worklist.push_back(e->src());
-		visited.insert(e->src());
-	      }
-	  }
         }
+
     }
   else if (tableIsRelative) {
     if(!parseRelativeTableIdiom())

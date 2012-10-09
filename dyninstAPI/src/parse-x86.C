@@ -38,7 +38,7 @@
 #include "parse-cfg.h"
 #include "instPoint.h"
 #include "mapped_object.h"
-#include "symtab.h"
+#include "image.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "debug.h"
 #include <deque>
@@ -66,8 +66,8 @@ bool parse_func::writesFPRs(unsigned level) {
         if (level >= 3) {
             return true; // Arbitrarily decided level 3 iteration.
         }        
-        Function::edgelist & calls = callEdges();
-        Function::edgelist::iterator cit = calls.begin();
+        const Function::edgelist & calls = callEdges();
+        Function::edgelist::const_iterator cit = calls.begin();
         for( ; cit != calls.end(); ++cit) {
             image_edge * ce = static_cast<image_edge*>(*cit);
             parse_func * ct = static_cast<parse_func*>(
@@ -171,7 +171,7 @@ bool parse_func::writesFPRs(unsigned level) {
 #include "addressSpace.h"
 #include "function.h"
 #include "baseTramp.h"
-#include "symtab.h"
+#include "image.h"
 
 using namespace Dyninst::SymtabAPI;
 

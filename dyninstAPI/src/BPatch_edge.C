@@ -32,7 +32,6 @@
 
 #include "util.h"
 #include "function.h"
-
 #include "BPatch_edge.h"
 #include "BPatch_flowGraph.h"
 #include "BPatch_basicBlock.h"
@@ -42,7 +41,7 @@
 
 #include "Parsing.h"
 
-using namespace Dyninst::ParseAPI;
+using namespace Dyninst;
 
 string 
 edge_type_string(BPatch_edgeType t)
@@ -62,14 +61,14 @@ BPatch_edgeType
 BPatch_edge::getTypeInt()
 {
    switch(edge->type()) {
-      case NOEDGE:
+   case ParseAPI::NOEDGE:
          return NonJump;
-      case COND_TAKEN:
+   case ParseAPI::COND_TAKEN:
          return CondJumpTaken;
-      case COND_NOT_TAKEN:
+   case ParseAPI::COND_NOT_TAKEN:
          return CondJumpNottaken;
-      case DIRECT:
-      case INDIRECT:
+   case ParseAPI::DIRECT:
+   case ParseAPI::INDIRECT:
          return UncondJump;
       default:
          return NonJump;

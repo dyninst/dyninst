@@ -34,7 +34,7 @@
 
 #include "binaryEdit.h"
 #include "dynProcess.h"
-#include "symtab.h"
+#include "image.h"
 #include "function.h"
 #include "instPoint.h"
 #include "baseTramp.h"
@@ -43,7 +43,7 @@
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "freebsd.h"
-
+#include "pcEventMuxer.h"
 #include "common/h/headers.h"
 #include "common/h/freebsdKludges.h"
 #include "common/h/pathName.h"
@@ -236,48 +236,37 @@ bool AddressSpace::getDyninstRTLibName() {
 
 /* dynamic instrumentation support */
 
-PCEventHandler::CallbackBreakpointCase
-PCEventHandler::getCallbackBreakpointCase(EventType et) {
-    // This switch statement can be derived from the EventTypes and Events
-    // table in the ProcControlAPI manual -- it states what Events are
-    // available on each platform
+bool PCEventMuxer::useBreakpoint(Dyninst::ProcControlAPI::EventType et) {
+  // This switch statement can be derived from the EventTypes and Events
+  // table in the ProcControlAPI manual -- it states what Events are
+  // available on each platform
 
-    switch(et.code()) {
-        case EventType::Fork:
-            switch(et.time()) {
-                case EventType::Pre:
-                    return BreakpointOnly;
-                case EventType::Post:
-                    return BothCallbackBreakpoint;
-                default:
-                    break;
-            }
-            break;
-        case EventType::Exit:
-            switch(et.time()) {
-                case EventType::Pre:
-                    // Using the RT library breakpoint allows us to determine
-                    // the exit code in a uniform way across Unices
-                    return BreakpointOnly;
-                case EventType::Post:
-                    return CallbackOnly;
-                default:
-                    break;
-            }
-            break;
-       case EventType::Exec:
-            switch(et.time()) {
-                case EventType::Pre:
-                    return BreakpointOnly;
-                case EventType::Post:
-                    return CallbackOnly;
-                default:
-                    break;
-            }
-            break;
-    }
+  // Pre-events are breakpoint
+  // Post-events are callback
+  if (et.time() == EventType::Pre &&
+      ((et.code() == EventType::Exit) ||
+       (et.code() == EventType::Fork) ||
+       (et.code() == EventType::Exec))) return true;
 
-    return NoCallbackOrBreakpoint;
+  // Not sure about this one...
+  if (et.time() == EventType::Post && et.code() == EventType::Fork) return true;
+
+  return false;
+}
+
+bool PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
+{
+  // This switch statement can be derived from the EventTypes and Events
+  // table in the ProcControlAPI manual -- it states what Events are
+  // available on each platform
+
+  // Pre-events are breakpoint
+  // Post-events are callback
+  if (et.time() == EventType::Post &&
+      ((et.code() == EventType::Exit) ||
+       (et.code() == EventType::Fork) ||
+       (et.code() == EventType::Exec))) return true;
+  return false;
 }
 
 void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
@@ -488,4 +477,5 @@ bool OS_disconnect(BPatch_remoteHost &/*remote*/)
     return true;
 }
 
+bool PCProcess::bindPLTEntry(Dyninst::SymtabAPI::relocationEntry const&, Address, func_instance*, Address) { return false; }
 /* END unimplemented functions */

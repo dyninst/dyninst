@@ -1,0 +1,642 @@
+\subsection{Type Interface}
+This section describes the type interface for the SymtabAPI library. Currently this interface has the following capabilities
+\begin{itemize}
+    \item Look up types within an object file.
+    \item Extend the types to create new types and add them to the object file.
+    \item To look up types or to add new types, the object file should already be parsed and should have a Symtab handle to the object file. 
+\end{itemize}
+    
+The rest of the section describes the classes that are part of the type interface.
+
+\subsubsection{Class Type}
+
+The class Type represents the types of variables, parameters, return values, and functions. Instances of this class can represent language predefined types (e.g. int, float), already defined types in the Object File or binary (e.g., structures compiled into the binary), or newly created types (created using the create factory methods of the corresponding type classes described later in the section) that are added to SymtabAPI by the user. 
+
+As described in Section 2.2, this class serves as a base class for all the other classes in this interface. An object of this class is returned from type look up operations performed through the Symtab class described in Section 6. The user can then obtain the specific type object from the generic Type class object. The following example shows how to get the specific object from a given Type object returned as part of a look up operation.
+
+\begin{lstlisting}
+//Example shows how to retrieve a structure type object from a given ``Type'' object
+using namespace Dyninst;
+using namespace SymtabAPI;
+
+//Obj represents a handle to a parsed object file using symtabAPI
+//Find a structure type in the object file
+Type *structType = obj->findType(``structType1'');
+
+// Get the specific typeStruct object
+typeStruct *stType = structType->isStructType();
+\end{lstlisting}
+
+\begin{apient}
+string &getName()
+\end{apient}
+\apidesc{
+This method returns the name associated with this type.
+Each of the types is represented by a symbolic name. This method retrieves the
+name for the type. For example, in the example above structType1
+represents the name for the structType object.
+}
+
+\begin{apient}
+bool setName(string zname)
+\end{apient}
+\apidesc{
+This method sets the name of this type to name. Returns true on success and false on failure.
+}
+
+\begin{apient}
+typedef enum{ 
+    dataEnum,
+    dataPointer,
+    dataFunction,
+    dataSubrange,
+    dataArray,
+    dataStructure,
+    dataUnion,
+    dataCommon,
+    dataScalar,
+    dataTypeDefine,
+    dataReference,
+    dataUnknownType,
+    dataNullType,
+    dataTypeClass
+} dataClass;
+\end{apient}
+
+\begin{apient}
+dataClass getType()
+\end{apient}
+\apidesc{
+This method returns the data class associated with the type. 
+This value should be used to convert this generic type object to a specific type object which offers more functionality by using the corresponding query function described later in this section. For example, if this method returns dataStructure then the isStructureType() should be called to dynamically cast the Type object to the typeStruct object.
+}
+
+\begin{apient}
+typeId_t getID()
+\end{apient}
+\apidesc{
+This method returns the ID associated with this type.
+Each type is assigned a unique ID within the object file. For example an integer scalar built-in type is assigned an Id -1.
+}
+
+\begin{apient}
+unsigned getSize()
+\end{apient}
+\apidesc{
+This method returns the total size in bytes occupied by the type.
+}
+
+\begin{apient}
+typeEnum *getEnumType()
+\end{apient}
+\apidesc{
+If this Type object represents an enum type, then return the object casting the Type object to typeEnum otherwise return NULL.
+}
+
+\begin{apient}
+typePointer *getPointerType()
+\end{apient}
+\apidesc{
+If this Type object represents an pointer type, then return the object casting the Type object to typePointer otherwise return NULL.
+}
+
+\begin{apient}
+typeFunction *getFunctionType()
+\end{apient}
+\apidesc{
+If this Type object represents an Function type, then return the object casting the Type object to typeFunction otherwise return NULL.
+}
+
+\begin{apient}
+typeRange *getSubrangeType()
+\end{apient}
+\apidesc{
+If this Type object represents a Subrange type, then return the object casting the Type object to typeSubrange otherwise return NULL.
+}
+
+\begin{apient}
+typeArray *getArrayType()
+\end{apient}
+\apidesc{
+If this Type object represents an Array type, then return the object casting the Type object to typeArray otherwise return NULL.
+}
+
+\begin{apient}
+typeStruct *getStructType()
+\end{apient}
+\apidesc{
+If this Type object represents a Structure type, then return the object casting the Type object to typeStruct otherwise return NULL.
+}
+
+\begin{apient}
+typeUnion *getUnionType()
+\end{apient}
+\apidesc{
+If this Type object represents a Union type, then return the object casting the Type object to typeUnion otherwise return NULL.
+}
+
+\begin{apient}
+typeScalar *getScalarType()
+\end{apient}
+\apidesc{
+If this Type object represents a Scalar type, then return the object casting the Type object to typeScalar otherwise return NULL.
+}
+
+\begin{apient}
+typeCommon *getCommonType()
+\end{apient}
+\apidesc{
+If this Type object represents a Common type, then return the object casting the Type object to typeCommon otherwise return NULL.
+}
+
+\begin{apient}
+typeTypedef *getTypeDefType()
+\end{apient}
+\apidesc{
+If this Type object represents a TypeDef type, then return the object casting the Type object to typeTypedef otherwise return NULL.
+}
+
+\begin{apient}
+typeRef *getRefType()
+\end{apient}
+\apidesc{
+If this Type object represents a Reference type, then return the object casting the Type object to typeRef otherwise return NULL.
+}
+
+\subsubsection{Class typeEnum}
+This class represents an enumeration type containing a list of constants with values. This class is derived from Type, so all those member functions are applicable. typeEnum inherits from the Type class.
+
+\begin{apient}
+static typeEnum *create(string &name, vector<pair<string, int> *> &consts, 
+                        Symtab *obj = NULL) 
+static typeEnum *create(string &name, vector<string> &constNames, Symtab *obj)
+\end{apient}
+\apidesc{
+These factory methods create a new enumerated type. There are two variations to this function. consts supplies the names and Ids of the constants of the enum. The first variant is used when user-defined identifiers are required; the second variant is used when system-defined identifiers will be used. 
+The newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries.
+}
+
+\begin{apient}
+bool addConstant(const string &constname, int value)
+\end{apient}
+\apidesc{
+This method adds a constant to an enum type with name constName and value value. 
+Returns true on success and false on failure.
+}
+
+\begin{apient}
+std::vector<std::pair<std::string, int> > &getConstants();
+\end{apient}
+\apidesc{
+This method returns the vector containing the enum constants represented by a (name, value) pair of the constant.
+}
+
+\begin{apient}
+bool setName(const char* name)
+\end{apient}
+\apidesc{
+This method sets the new name of the enum type to name. 
+Returns true if it succeeds, else returns false.
+}
+
+\begin{apient}
+bool isCompatible(Type *type)
+\end{apient}
+\apidesc{
+ This method returns true if the enum type is compatible with the given type type or else returns false. For type compatibility rules, see 7
+ }
+
+ \subsubsection{Class typeFunction}
+This class represents a function type, containing a list of parameters and a return type. This class is derived from Type, so all the member functions of class Type are applicable. typeFunction inherits from the Type class.
+
+
+\begin{apient}
+static typeFunction *create(string &name, Type *retType, 
+                            vector<Type *> &paramTypes, Symtab *obj = NULL)
+\end{apient}
+\apidesc{
+This factory method creates a new function type with name name. retType represents the return type of the function and paramTypes is a vector of the types of the parameters in order. 
+The the newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries.
+}
+
+\begin{apient}
+bool isCompatible(Type *type)
+\end{apient}
+\apidesc{
+This method returns true if the function type is compatible with the given type type or else returns false. For type compatibility rules see 7.
+}
+
+\begin{apient}
+bool addParam(Type *type)
+\end{apient}
+\apidesc{
+This method adds a new function parameter with type type to the function type. 
+Returns true if it succeeds, else returns false.
+}
+
+\begin{apient}
+Type *getReturnType() const
+\end{apient}
+\apidesc{
+ This method returns the return type for this function type. Returns NULL if there is no return type associated with this function type.
+}
+
+\begin{apient}
+bool setRetType(Type *rtype)
+\end{apient}
+\apidesc{
+This method sets the return type of the function type to rtype. Returns true if it succeeds, else returns false.
+}
+
+\begin{apient}
+bool setName(string &name)
+\end{apient}
+\apidesc{
+This method sets the new name of the function type to name. Returns true if it succeeds, else returns false.
+}
+
+\begin{apient}
+vector< Type *> &getParams() const
+\end{apient}
+\apidesc{
+This method returns the vector containing the individual parameters represented by their types in order. Returns NULL if there are no parameters to the function type.
+}
+
+\subsubsection{Class typeScalar}
+
+This class represents a scalar type. This class is derived from Type, so all the
+member functions of class Type are applicable. typeScalar inherits from the Type
+class.  
+
+\begin{apient}
+static typeScalar *create(string &name, int size, Symtab *obj = NULL)
+\end{apient}
+\apidesc{
+This factory method creates a new scalar type. The name field is used to specify
+the name of the type, and the size parameter is used to specify the size in
+bytes of each instance of the type.  The newly created type is added to the
+Symtab object obj. If obj is NULL the type is not added to any object file, but
+it will be available for further queries.
+}
+
+\begin{apient}
+bool isSigned()
+\end{apient}
+\apidesc{
+This method returns true if the scalar type is signed or else returns false.
+}
+
+\begin{apient}
+bool isCompatible(Type *type)
+\end{apient}
+\apidesc{
+This method returns true if the scalar type is compatible with the given type type or else returns false. For type compatibility rules see 7.
+}
+
+\subsubsection{Class Field}
+This class represents a field in a container. For e.g. a field in a structure/union type.
+
+
+\begin{apient}
+typedef enum {  
+    visPrivate, 
+    visProtected,
+    visPublic,
+    visUnknown
+} visibility_t;
+\end{apient}
+\apidesc{
+A handle for identifying the visibility of a certain Field in a container type. This can represent private, public, protected or unknown(default) visibility
+}
+
+\begin{apient}
+Field(string &name, Type *type, visibility_t vis = visUnknown)
+\end{apient}
+\apidesc{
+This constructor creates a new field with name name, type type and visibility vis. This newly created Field can be added to a container type.
+}
+
+\begin{apient}
+const string &getName()
+\end{apient}
+\apidesc{
+This method returns the name associated with the field in the container.
+}
+
+\begin{apient}
+Type *getType()
+\end{apient}
+\apidesc{
+ This method returns the type associated with the field in the container.
+}
+
+\begin{apient}
+int getOffset()
+\end{apient}
+\apidesc{
+This method returns the offset associated with the field in the container
+}
+
+\begin{apient}
+visibility_t getVisibility()
+\end{apient}
+\apidesc{
+This method returns the visibility associated with a field in a container.
+This returns visPublic for the variables within a common block.
+}
+
+\subsubsection{Class fieldListType}
+
+This class represents a container type. It is one of the three categories of types as described in Section . The structure and the union types fall under this category. This class is derived from Type, so all the member functions of class Type are applicable. fieldListType inherits from the Type class.
+
+
+\begin{apient}
+vector<Field *> *getComponents()
+\end{apient}
+\apidesc{
+This method returns the list of all fields present in the container. 
+This gives information about the name, type and visibility of each of the fields. Returns NULL of there are no fields.
+}
+
+\begin{apient}
+void addField(std::string fieldname, Type *type, int offsetVal = -1, 
+              visibility_t vis = visUnknown)
+\end{apient}
+\apidesc{
+This method adds a new field at the end to the container type with field name fieldname, type type and type visibility vis.
+}
+
+\begin{apient}
+void addField(unsigned num, std::string fieldname, Type *type, int offsetVal = -1, 
+              visibility_t vis = visUnknown)         
+\end{apient}
+\apidesc{
+This method adds a field after the field with number num with field name fieldname, type type and type visibility vis.
+}
+
+\begin{apient}
+void addField(Field *fld)
+\end{apient}
+\apidesc{
+This method adds a new field fld to the container type.}
+
+\begin{apient}
+void addField(unsigned num, Field *fld)
+\end{apient}
+\apidesc{
+This method adds a field fld after field num to the container type.
+}
+
+\paragraph{Class typeStruct : public fieldListType}
+\mbox{ }\\
+
+This class represents a structure type. The structure type is a special case of
+the container type. The fields of the structure represent the fields in this
+case. As a subclass of class fieldListType, all methods in fieldListType are
+applicable.
+
+
+\begin{apient}
+static typeStruct *create(string &name, vector<pair<string, Type *>*> &flds,
+                        Symtab *obj = NULL)
+\end{apient}
+\apidesc{
+This factory method creates a new struct type. The name of the structure is specified in the name parameter. The flds vector specifies the names and types of the fields of the structure type. 
+The newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries.
+}
+
+\begin{apient}
+static typeStruct *create(string &name, vector<Field *> &fields
+                        Symtab *obj = NULL)
+\end{apient}
+\apidesc{
+This factory method creates a new struct type. The name of the structure is specified in the name parameter. The fields vector specifies the fields of the type. 
+The newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries
+}
+
+\begin{apient}
+bool isCompatible(Type *type)
+\end{apient}
+\apidesc{
+This method returns true if the struct type is compatible with the given type type or else returns false. For type compatibility rules see 7
+}
+
+\paragraph{Class typeUnion}
+\mbox{ }\\
+
+This class represents a union type, a special case of the container type. The fields of the union type represent the fields in this case. As a subclass of class fieldListType, all methods in fieldListType are applicable. typeUnion inherits from the fieldListType class.
+
+
+\begin{apient}
+static typeUnion *create(string &name, vector<pair<string, Type *>*> &flds,
+                         Symtab *obj = NULL)
+\end{apient}
+\apidesc{
+ This factory method creates a new union type. The name of the union is specified in the name parameter. The flds vector specifies the names and types of the fields of the union type. 
+The newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries.
+}
+
+\begin{apient}
+static typeUnion *create(string &name, vector<Field *> &fields, 
+                        Symtab *obj = NULL)
+\end{apient}
+\apidesc{
+This factory method creates a new union type. The name of the structure is specified in the name parameter. The fields vector specifies the fields of the type.
+The newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries.
+}
+
+\begin{apient}
+bool isCompatible(Type *type)
+\end{apient}
+\apidesc{
+This method returns true if the union type is compatible with the given type type or else returns false. For type compatibility rules see 7.
+}
+
+\paragraph{Class typeCommon}
+\mbox{ }\\
+
+This class represents a common block type in fortran, a special case of the container type. The variables of the common block represent the fields in this case. As a subclass of class fieldListType, all methods in fieldListType are applicable. typeCommon inherits from the Type class.
+
+
+\begin{apient}
+vector<CBlocks *> *getCBlocks()
+\end{apient}
+\apidesc{
+This method returns the common block objects for the type. 
+The methods of the CBlock can be used to access information about the members of a common block. The vector returned by this function contains one instance of CBlock for each unique definition of the common block
+}
+
+\paragraph{Class CBlock}
+\mbox{ }\\
+
+This class represents a common block in Fortran. Multiple functions can share a common block.
+
+\begin{apient}
+bool getComponents(vector<Field *> *vars)
+\end{apient}
+\apidesc{
+This method returns the vector containing the individual variables of the common block. 
+Returns true if there is at least one variable, else returns false.
+}
+
+\begin{apient}
+bool getFunctions(vector<Symbol *> *funcs)
+\end{apient}
+\apidesc{
+This method returns the functions that can see this common block with the set of variables described in getComponents method above.
+Returns true if there is at least one function, else returns false.
+}
+
+\subsubsection{Class derivedType}
+This class represents a derived type which is a reference to another type. It is one of the three categories of types as described in Section . The pointer, reference and the typedef types fall under this category. This class is derived from Type, so all the member functions of class Type are applicable.
+
+
+\begin{apient}
+Type *getConstituentType() const
+\end{apient}
+\apidesc{
+ This method returns the type of the base type to which this type refers to.
+}
+
+\paragraph{Class typePointer}
+\mbox{ }\\
+
+This class represents a pointer type, a special case of the derived type. The base type in this case is the type this particular type points to. As a subclass of class derivedType, all methods in derivedType are also applicable. 
+
+
+\begin{apient}
+static typePointer *create(string &name, Type *ptr,
+                        Symtab *obj = NULL)
+static typePointer *create(string &name, Type *ptr, int size, 
+                        Symtab *obj = NULL)
+\end{apient}
+\apidesc{
+These factory methods create a new type, named name, which points to objects of type ptr. The first form creates a pointer whose size is equal to sizeof(void*) on the target platform where the application is running. In the second form, the size of the pointer is the value passed in the size parameter. 
+The newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries.
+}
+
+\begin{apient}
+bool isCompatible(Type *type)
+\end{apient}
+\apidesc{
+This method returns true if the Pointer type is compatible with the given type type or else returns false. For type compatibility rules see 7
+}
+
+\begin{apient}
+bool setPtr(Type *ptr)
+\end{apient}
+\apidesc{
+This method sets the pointer type to point to the type in ptr. Returns true if it succeeds, else returns false.
+}
+
+\paragraph{Class typeTypedef}
+\mbox{ }\\
+
+This class represents a typedef type, a special case of the derived type. The base type in this case is the Type this particular type is typedefed to. As a subclass of class derivedType, all methods in derivedType are also applicable.
+
+
+\begin{apient}
+static typeTypedef *create(string &name, Type *ptr, 
+                            Symtab *obj = NULL) 
+\end{apient}
+\apidesc{
+This factory method creates a new type called name and having the type ptr.
+The newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries.
+}
+
+\begin{apient}
+bool isCompatible(Type *type)
+\end{apient}
+\apidesc{
+This method returns true if the typedef type is compatible with the given type type or else returns false. For type compatibility rules see 7
+}
+
+\paragraph{Class typeRef }
+\mbox{ }\\
+
+This class represents a reference type, a special case of the derived type. The base type in this case is the Type this particular type refers to. As a subclass of class derivedType, all methods in derivedType are also applicable here. 
+
+
+\begin{apient}
+static typeRef *create(string &name, Type *ptr, Symtab * obj = NULL)
+\end{apient}
+\apidesc{
+This factory method creates a new type, named name, which is a reference to objects of type ptr. The newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries.
+}
+
+\begin{apient}
+bool isCompatible(Type *type)
+\end{apient}
+\apidesc{
+This method returns true if the ref type is compatible with the given type type or else returns false. For type compatibility rules see 7
+}
+
+\subsubsection{Class rangedType}
+This class represents a range type with a lower and an upper bound. It is one of the three categories of types as described in Section . The sub-range and the array types fall under this category. This class is derived from Type, so all the member functions of class Type are applicable.
+
+
+\begin{apient}
+unsigned long getLow() const
+\end{apient}
+\apidesc{
+This method returns the lower bound of the range. 
+This can be the lower bound of the range type or the lowest index for an array type.
+}
+
+\begin{apient}
+unsigned long getHigh() const
+\end{apient}
+\apidesc{
+This method returns the higher bound of the range. 
+This can be the higher bound of the range type or the highest index for an array type.
+}
+
+\paragraph{Class typeSubrange}
+\mbox{ }\\
+
+This class represents a sub-range type. As a subclass of class rangedType, all methods in rangedType are applicable here. This type is usually used to represent a sub-range of another type. For example, a typeSubrange can represent a sub-range of the array type or a new integer type can be declared as a sub range of the integer using this type.
+
+
+\begin{apient}
+static typeSubrange *create(string &name, int size, int low, int hi, 
+                            symtab *obj = NULL) 
+\end{apient}
+\apidesc{
+This factory method creates a new sub-range type. The name of the type is name, and the size is size. The lower bound of the type is represented by low, and the upper bound is represented by high. 
+The newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries.
+}
+
+\begin{apient}
+bool isCompatible(Type *type)
+\end{apient}
+\apidesc{
+This method returns true if this sub range type is compatible with the given type type or else returns false. For type compatibility rules see 7
+}
+
+\paragraph{Class typeArray}
+\mbox{ }\\
+
+This class represents an Array type. As a subclass of class rangedType, all methods in rangedType are applicable. 
+
+\begin{apient}
+static typeArray *create(string &name, Type *type, int low, int hi, 
+                        Symtab *obj = NULL) 
+\end{apient}
+\apidesc{
+This factory method creates a new array type. The name of the type is name, and the type of each element is type. The index of the first element of the array is low, and the last is high. 
+The newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries
+}
+
+\begin{apient}
+bool isCompatible(Type *type)
+\end{apient}
+\apidesc{
+This method returns true if the array type is compatible with the given type type or else returns false. For type compatibility rules see 7
+}
+
+\begin{apient}
+Type *getBaseType() const
+\end{apient}
+\apidesc{
+This method returns the base type of this array type.
+}

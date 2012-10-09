@@ -40,7 +40,7 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
-#include "common/h/SymLite-elf.h"
+#include "symlite/h/SymLite-elf.h"
 
 #include <dirent.h>
 #include <limits.h>

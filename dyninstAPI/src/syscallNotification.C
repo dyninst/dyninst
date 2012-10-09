@@ -78,7 +78,9 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
 /////////// Prefork instrumentation 
 
 bool syscallNotification::installPreFork() {
-   if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Fork))) return true;
+  if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Fork))) {
+    return true;
+  }
 
    preForkInst = new instMapping(getForkFuncName(),
                                  "DYNINST_instForkEntry",

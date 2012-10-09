@@ -218,6 +218,7 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
                         BPatch_reportError(BPatchSerious, 109,
                                         "array reference has array reference to non-array type");
                 }
+                assert(0);
                 return AstNodePtr();
         }
 
@@ -258,6 +259,7 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
                                 __FILE__, __LINE__,  indexType->getName());
                 fprintf(stderr, "%s\n", err_buf);
                 BPatch_reportError(BPatchSerious, 109, err_buf);
+                assert(0);
                 return AstNodePtr();
         }
 
@@ -318,6 +320,7 @@ AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
         {
                 BPatch_reportError(BPatchSerious, 109,
                                 "structure reference has no type information, or structure reference to non-structure type");
+                assert(0);
                 return AstNodePtr();
         }
 
@@ -332,6 +335,7 @@ AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
                 // XXX - Should really check if this is a short/long too
                 BPatch_reportError(BPatchSerious, 109,
                                 "field name is not of type char *");
+                assert(0);
                 return AstNodePtr();
         }
 
@@ -355,11 +359,14 @@ AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
         {
                 BPatch_reportError(BPatchSerious, 109,
                                 "field name not found in structure");
+                assert(0);
                 return AstNodePtr();
         }
 
-        if (! field )
-                return AstNodePtr();
+        if (! field ) {
+           assert(0);
+           return AstNodePtr();
+        }
 
         long int offset = (field->getOffset() / 8);
 
@@ -437,7 +444,7 @@ void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
                         break;
                 case BPatch_ref:
          ast_wrapper = generateArrayRef(lOperand, rOperand);
-                        if (ast_wrapper == NULL) {
+                        if (!ast_wrapper) {
             BPatch_reportError(BPatchSerious, 100 /* what # to use? */,
                                                 "could not generate array reference.");
                                 BPatch_reportError(BPatchSerious, 100,
@@ -447,7 +454,7 @@ void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
                         break;
                 case BPatch_fieldref:
                         ast_wrapper = generateFieldRef(lOperand, rOperand);
-                        if (ast_wrapper == NULL) {
+                        if (!ast_wrapper) {
                                 BPatch_reportError(BPatchSerious, 100 /* what # to use? */,
                                                 "could not generate field reference.");
                                 BPatch_reportError(BPatchSerious, 100,
@@ -941,7 +948,6 @@ void BPatch_registerExpr::BPatch_registerExprInt(BPatch_register reg)
 void BPatch_registerExpr::BPatch_registerExprInt(Dyninst::MachRegister mach) {
    bool whocares;
    Register reg = convertRegID(mach, whocares);
-   cerr << "Post conversion, using register " << reg << endl;
    ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::origRegister,
                                                  (void *)reg));
     assert(BPatch::bpatch != NULL);
@@ -1046,6 +1052,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 
   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
   ast_wrapper->setType(type);
+
 }
 
 
@@ -1215,6 +1222,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
    lladdrSpace(in_lladdSpace),
    type(typ)
 {
+
         //Create Ast's for all members in the location list.
         //This will likely be done only for local variables within a function
         if (!type)
@@ -1229,7 +1237,8 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                 AstNodePtr variableAst;
                 BPatch_storageClass in_storage = lv->convertToBPatchStorage(& locs[i]);
                 void *in_address = (void *) locs[i].frameOffset;
-                int in_register = locs[i].reg;
+                bool ignored;
+                int in_register = convertRegID(locs[i].mr_reg, ignored);
                 switch (in_storage) {
                         case BPatch_storageAddr:
                                 variableAst = AstNode::operandNode(AstNode::DataAddr, in_address);
@@ -1262,8 +1271,18 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                 variableAst->setTypeChecking(BPatch::bpatch->isTypeChecked());
                 variableAst->setType(type);
                 variableASTs.push_back(variableAst);
-                ranges->push_back(pair<Offset, Offset>(locs[i].lowPC + baseAddr,
-                                             locs[i].hiPC + baseAddr));
+                   
+				Address low, hi;
+				if (locs[i].lowPC == 0 && locs[i].hiPC == (Address) -1) {
+					low = 0;
+					hi = (Address) -1;
+				}
+				else {
+					low = locs[i].lowPC;
+					hi = locs[i].hiPC;
+				}
+
+                ranges->push_back(pair<Address, Address>(low, hi));
         }
         ast_wrapper = AstNodePtr(AstNode::variableNode(variableASTs, ranges));
         //    ast_wrapper = variableAst;

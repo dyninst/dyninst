@@ -51,7 +51,7 @@ class BPatch_thread;
 class BPatch_field;
 class BPatch_variableExpr;
 
-#include "symtab.h" // supportedLanguages is a typedef; could move.
+#include "image.h" // supportedLanguages is a typedef; could move.
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;

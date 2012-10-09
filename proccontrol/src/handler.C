@@ -779,9 +779,6 @@ void HandleForceTerminate::getEventTypesHandled(std::vector<EventType> &etypes)
     etypes.push_back(EventType(EventType::Post, EventType::ForceTerminate));
 }
 
-#include <sys/ptrace.h>
-#include <errno.h>
-#include "linux.h"
 
 Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    int_process *proc = ev->getProcess()->llproc();

@@ -57,7 +57,7 @@
 #include <elf.h>
 
 // #include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"

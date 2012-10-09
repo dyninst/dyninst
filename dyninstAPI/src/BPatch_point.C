@@ -42,11 +42,12 @@
 #include "BPatch_type.h"
 #include "BPatch_image.h"
 #include "BPatch_function.h"
+#include "BPatch_flowGraph.h"
 #include "BPatch_collections.h"
 #include "BPatch.h"
 #include "BPatch_process.h"
 #include "BPatch_libInfo.h"
-#include "symtab.h"
+#include "image.h"
 #include "instPoint.h"
 #include "instP.h"
 #include "baseTramp.h"
@@ -234,6 +235,21 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
 std::string BPatch_point::getCalledFunctionNameInt() {
 	assert(point->block());
 	return point->block()->obj()->getCalleeName(point->block());
+}
+
+/*
+ * BPatch_point::getBlock
+ *
+ * Returns block to which this BPatch_point belongs
+ */
+
+BPatch_basicBlock *BPatch_point::getBlockInt()
+{
+   if (!point) return NULL;
+   block_instance *llblock = point->block();
+   if (!llblock) return NULL;
+   return func->getCFG()->findBlock(llblock);
+
 }
 
 
