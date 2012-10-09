@@ -33,9 +33,9 @@
 
 #include <stack>
 #include <vector>
-#include "dynutil/h/dyntypes.h"
-#include "dynutil/h/dyn_regs.h"
-#include "dynutil/h/ProcReader.h"
+#include "dyntypes.h"
+#include "dyn_regs.h"
+#include "ProcReader.h"
 #include "libdwarf.h"
 
 namespace Dyninst {
