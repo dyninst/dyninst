@@ -106,9 +106,9 @@ int eaExpOffset[] =    { 0, 17,3,1,2,  0,4,2,0,  2,2,2,2,  0,4,4,4,
   void *toc = gettoc();
   void *sp  = getsp(1,2,3);
 
-  dprintf("&divarw = %p\n", &divarw);
-  dprintf("&dfvars = %p\n", &dfvars);
-  dprintf("&dfvard = %p\n", &dfvard);
+  dprintf("divarw = %p\n", divarw);
+  dprintf("dfvars = %p\n", dfvars);
+  dprintf("dfvard = %p\n", dfvard);
 
   dprintf("toc = %p\n", toc);
   dprintf("sp = %p\n", sp);
@@ -116,31 +116,31 @@ int eaExpOffset[] =    { 0, 17,3,1,2,  0,4,2,0,  2,2,2,2,  0,4,4,4,
   eaExp[0] = toc; /* assuming that TOC entries are not reordered */
 
   for(i=1; i<44; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
 
   for(i=44; i<50; ++i)
     eaExp[i] = (void*)((unsigned long)sp + eaExpOffset[i]);; /* SP */
   
   for(i=50; i<54; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
 
   eaExp[54] = (void*)((unsigned long)toc + sizeof(void*)); /* TOC */
 
   for(i=55; i<59; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
 
   eaExp[59] = (void*)((unsigned long)toc + 2*sizeof(void*)); /* TOC */
 
   for(i=60; i<64; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvard + eaExpOffset[i]);
 
   for(i=64; i<68; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
 
   for(i=68; i<72; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvard + eaExpOffset[i]);
   
-  eaExp[72] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  eaExp[72] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
 
 
   /* Duplicate the stream for cc */
@@ -320,185 +320,185 @@ void init_test_data()
 {
   int caps, i;
 
-  dprintf("&divarw = %p\n", &divarw);
-  dprintf("&dfvars = %p\n", &dfvars);
-  dprintf("&dfvard = %p\n", &dfvard);
+  dprintf("divarw = %p\n", divarw);
+  dprintf("dfvars = %p\n", dfvars);
+  dprintf("dfvard = %p\n", dfvard);
   dprintf("&dfvart = %p\n", &dfvart);
   dprintf("&dlarge = %p\n", &dlarge);
 
 #if defined(i386_unknown_nt4_0_test)
   for(i=4; i<15; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]); /* skip ebp for now */
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]); /* skip ebp for now */
   for(i=16; i<18; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=19; i<26; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   i=26;
-  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=28; i<35; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=36; i<48; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   /* skip call @ i=48 (access 49)*/
   /* skip call @ i=49 (access 50)*/
   for(i=50; i<53; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   /* skip call @ i=53 (access 54) */
   /* skip call @ i=54 (access 55) */
   for(i=55; i<57; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   i=57;
-  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   /* skip call @ i=58 (access 59)*/
   /* skip call @ i=59 (access 60)*/
   for(i=60; i<62; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvard + eaExpOffset[i]);
   /* skip call @ i = 62 (access 63)*/
   /* skip call @ i = 63 (access 64)*/
   for(i=64; i<66; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   i=66;
-  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=67; i<70; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   i=70; /* 2nd of mov */
-  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   for(i=71; i<74; ++i) /* scas, cmps */
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
   i=74;
-  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   i=75;
-  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvard + eaExpOffset[i]);
   i=76;
   eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
   for(i=77; i<80; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   i=80;
-  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   i=81;
-  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvard + eaExpOffset[i]);
   i=82;
   eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
   for(i=83; i<88; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=88; i<90; ++i)
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
   for(i=90; i<93; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
 #elif defined(i386_unknown_freebsd7_0_test)
   for(i=4; i<15; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]); /* skip ebp for now */
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]); /* skip ebp for now */
   for(i=16; i<18; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=19; i<26; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   i=26;
-  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=28; i<35; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=36; i<48; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   /* skip call @ i=48 (access 49)*/
   /* skip saymsg @ i=49-52 (access 50-53) */
   for(i=53; i<56; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   /* skip call @ i=56 (access 57) */
   /* skip saymsg @ i=57-60 (access 58-61) */
   for(i=61; i<63; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   i=63;
-  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   /* skip call @ i=64 (access 65)*/
   /* skip saymsg @ i=65-68 (access 66-69)*/
   for(i=69; i<71; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvard + eaExpOffset[i]);
   /* skip call @ i = 71 (access 72) */
   /* skip saymsg @ i=72-75 (access 73-76) */
   for(i=76; i<78; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   i=78;
-  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=79; i<82; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   i=82; /* 2nd of mov */
-  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   for(i=83; i<86; ++i) /* scas, cmps */
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
   i=86;
-  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   i=87;
-  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvard + eaExpOffset[i]);
   i=88;
   eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
   for(i=89; i<92; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   i=92;
-  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   i=93;
-  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvard + eaExpOffset[i]);
   i=94;
   eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
   for(i=95; i<100; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=100; i<102; ++i)
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
   for(i=102; i<104; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
 #else
   for(i=4; i<15; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]); /* skip ebp for now */
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]); /* skip ebp for now */
   for(i=16; i<18; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=19; i<26; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   i=26;
-  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=28; i<35; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=36; i<48; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   /* skip call @ i=48 (access 49)*/
   for(i=49; i<52; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   /* skip call @ i=52 (access 53)*/
   for(i=53; i<55; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   i=55;
-  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   /* skip call @ i=56 (access 57)*/
   for(i=57; i<59; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvard + eaExpOffset[i]);
   /* skip call @ i = 59 (access 60)*/
   for(i=60; i<62; ++i)
-    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   i=62;
-  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=63; i<66; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   i=66; /* 2nd of mov */
-  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   for(i=67; i<70; ++i) /* scas, cmps */
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
   i=70;
-  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   i=71;
-  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvard + eaExpOffset[i]);
   i=72;
   eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
   for(i=73; i<76; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   i=76;
-  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvars + eaExpOffset[i]);
   i=77;
-  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  eaExp[i] = (void*)((unsigned long)dfvard + eaExpOffset[i]);
   i=78;
   eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
   for(i=79; i<84; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   for(i=84; i<86; ++i)
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
   for(i=86; i<89; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+    eaExp[i] = (void*)((unsigned long)divarw + eaExpOffset[i]);
   /* Duplicate & reduce the stream for cc */
 #endif
   for(i=0; i<accessExp; ++i) {
@@ -580,9 +580,9 @@ unsigned int bcExp[] = { 8,8,8,8,8,8,8,                  /* 7 initial stack push
                          8,8                             /* leave and return */
 };
 
-int divarw;
-float dfvars;
-double dfvard;
+int divarw[4];
+float dfvars[4];
+double dfvard[4];
 long double dfvart;
 char dlarge[512] = "keep the interface small and easy to understand.";
 
@@ -592,9 +592,9 @@ void init_test_data()
     int caps;
     int i;
 
-  dprintf("&divarw = %p\n", &divarw);
-  dprintf("&dfvars = %p\n", &dfvars);
-  dprintf("&dfvard = %p\n", &dfvard);
+  dprintf("divarw = %p\n", divarw);
+  dprintf("dfvars = %p\n", dfvars);
+  dprintf("dfvard = %p\n", dfvard);
   dprintf("&dfvart = %p\n", &dfvart);
   dprintf("&dlarge = %p\n", &dlarge);
 
@@ -605,7 +605,7 @@ void init_test_data()
 
   // ModRM and SIB loads and semantic tests (there are 54, but one has two accesses)
   for (; i < 55; i++)
-      eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
+      eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]);
   
   // the 12th is a load from [RIP + 1]
   eaExp[11] = rip_relative_load_address;
@@ -617,14 +617,14 @@ void init_test_data()
   assert(i == 55);
   i++; // skip the call
   for (; i < 59; i++)
-      eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
+      eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]);
 
   // SSE
   assert(i == 59);
   for (; i < 61; i++)
       eaExp[i] = (void *)((unsigned long)&dfvart + eaExpOffset[i]);
   assert(i == 61);
-  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++; // the prefetch
+  eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]); i++; // the prefetch
 
   assert(i == 62);
   // SSE2
@@ -636,37 +636,37 @@ void init_test_data()
   // 3DNow!
   i++; // skip the call        
   assert(i == 66);
-  eaExp[i] = (void *)((unsigned long)&dfvard + eaExpOffset[i]); i++;
-  eaExp[i] = (void *)((unsigned long)&dfvard + eaExpOffset[i]); i++;
-  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)dfvard + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)dfvard + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]); i++;
 
   // REP prefixes
   assert(i == 69);
   for (; i < 72; i++)
-      eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
+      eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]);
   assert(i == 72);
-  eaExp[i] = (void *)((unsigned long)&dfvars + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)dfvars + eaExpOffset[i]); i++;
   for (; i < 76; i++)
       eaExp[i] = (void *)((unsigned long)&dlarge + eaExpOffset[i]);
 
   // x87
   assert(i == 76);
-  eaExp[i] = (void *)((unsigned long)&dfvars + eaExpOffset[i]); i++;
-  eaExp[i] = (void *)((unsigned long)&dfvard + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)dfvars + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)dfvard + eaExpOffset[i]); i++;
   eaExp[i] = (void *)((unsigned long)&dfvart + eaExpOffset[i]); i++;
-  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
-  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
-  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]); i++;
 
-  eaExp[i] = (void *)((unsigned long)&dfvars + eaExpOffset[i]); i++;
-  eaExp[i] = (void *)((unsigned long)&dfvard + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)dfvars + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)dfvard + eaExpOffset[i]); i++;
   eaExp[i] = (void *)((unsigned long)&dfvart + eaExpOffset[i]); i++;
-  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
-  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
-  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]); i++;
 
-  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
-  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]); i++;
 
   eaExp[i] = (void *)((unsigned long)&dlarge + eaExpOffset[i]); i++;
    eaExp[i] = (void *)((unsigned long)&dlarge + eaExpOffset[i]); i++;
@@ -674,7 +674,7 @@ void init_test_data()
   // conditional moves
   assert(i == 92);
   for (; i < 95; i++)
-      eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
+      eaExp[i] = (void *)((unsigned long)divarw + eaExpOffset[i]);
 
   // duplicate stream for CC (except the second-to-last item)
   for(i=0; i<(int)accessExp; ++i) {

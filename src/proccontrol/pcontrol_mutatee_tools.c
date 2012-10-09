@@ -59,7 +59,9 @@
 #include <mpi.h>
 #endif
 
+#if !defined(os_windows_test)
 #include <poll.h>
+#endif
 
 thread_t threads[MAX_POSSIBLE_THREADS];
 int thread_results[MAX_POSSIBLE_THREADS];
@@ -556,14 +558,14 @@ static int recv_message_socket(unsigned char *msg, size_t msg_size)
       FD_ZERO(&read_set);
       FD_SET(sockfd, &read_set);
       struct timeval s_timeout;
-      s_timeout.tv_sec = 0;
-      s_timeout.tv_usec = 1000000; /* 1 sec, as needed on bruckner */
+      s_timeout.tv_sec = 1; /* 1 sec, as needed on bruckner */
+      s_timeout.tv_usec = 0;
       int sresult = select(sockfd+1, &read_set, NULL, NULL, &s_timeout);
       int error = errno;
       if (sresult == -1)
       {
          if (error == EINVAL || error == EBADF) {
-            fprintf(stderr, "Mutatee unable to receive message during select: %s\n", strerror(error));
+	   fprintf(stderr, "Mutatee unable to receive message during select: %d, %s\n", error, strerror(error));
             return -1;
          }
          else if (error == EINTR) {
@@ -710,9 +712,9 @@ int initMutatorConnection()
 	   fprintf(stderr, "no socket name set, bailing\n");
 	   return 0;
    }
-	sscanf(socket_name, "/tmp/pct%d", &pid);
-
-	sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+   sscanf(socket_name, "/tmp/pct%d", &pid);
+   
+   sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockfd == INVALID_SOCKET) {
 	  fprintf(stderr, "socket() failed: %d\n", WSAGetLastError());
       perror("Failed to create socket");

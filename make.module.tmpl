@@ -13,7 +13,7 @@ DEPENDDIR = ./depends
 VPATH 	= ../src $(DEPENDDIR) ../src/dyninst
 
 IFLAGS = -I../../dyninstAPI/h -I../../symtabAPI/h -I../../dynutil/h -I../../instructionAPI/h -I../../proccontrol/h -I../../patchAPI/h -I../../stackwalk/h -I../../dataflowAPI/h -I../../external
-LFLAGS = -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../parseAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../patchAPI/$(PLATFORM) -L../../stackwalk/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
+LFLAGS = -L../../common/$(PLATFORM) -L../../dwarf/$(PLATFORM) -L../../elf/$(PLATFORM) -L../../symlite/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../parseAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../patchAPI/$(PLATFORM) -L../../stackwalk/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
 
 #######################################################################
 ### We don't want all of the CFLAGS stuff that came from make.config.
@@ -118,6 +118,9 @@ endif
 TESTDRIVER_LDFLAGS += $(DEMANGLER_EXEC_LINK)
 
 ALL_COMP_DIRS = $(TO_CORE)/common/$(PLATFORM)
+ALL_COMP_DIRS += $(TO_CORE)/dwarf/$(PLATFORM)
+ALL_COMP_DIRS += $(TO_CORE)/elf/$(PLATFORM)
+ALL_COMP_DIRS += $(TO_CORE)/symlite/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/testsuite/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/parseAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/stackwalk/$(PLATFORM)
@@ -126,6 +129,7 @@ ALL_COMP_DIRS += $(TO_CORE)/dyninstAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/symtabAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/instructionAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/patchAPI/$(PLATFORM)
+
 
 #######################################################
 # Dyninst infrastructure components
@@ -362,7 +366,7 @@ symlink: all
 
 clean_solo_mutatees: dyninst_clean_solo_mutatees symtab_clean_solo_mutatees instruction_clean_solo_mutatees proccontrol_clean_solo_mutatees
 
-clean: clean_solo_mutatees
+clean:
 	@echo Cleaning testsuite
 	$(HIDE_COMP)$(RM) *.da *.bb. *.bbg 
 	$(HIDE_COMP)$(RM) $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) test_driver runTests libTest12.so testdriver_wrapper
@@ -504,11 +508,11 @@ $(OBJS_LIBTESTLAUNCH): %.o :  ../src/%.C ../src/%.h $(DEPENDDIR)/%.dep
 
 $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lpcontrol -lstackwalk -lpatchAPI -lparseAPI -lsymtabAPI -linstructionAPI -lcommon $(COMPONENT_LDFLAGS)
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lpcontrol -lstackwalk -lpatchAPI -lparseAPI -lsymtabAPI -linstructionAPI -lcommon -ldynDwarf -ldynElf -lsymLite $(COMPONENT_LDFLAGS)
 
 $(LIBSYMTABCOMP) : $(OBJS_SYMTABCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon $(COMPONENT_LDFLAGS)
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon -ldynDwarf -ldynElf -lsymLite $(COMPONENT_LDFLAGS)
 
 $(LIBINSTRUCTIONCOMP) : $(OBJS_INSTRUCTIONCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<
@@ -516,7 +520,7 @@ $(LIBINSTRUCTIONCOMP) : $(OBJS_INSTRUCTIONCOMP_LIB) $(LIBTESTSUITE)
 
 $(LIBPROCCONTROLCOMP) : $(OBJS_PROCCONTROLCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon $(COMPONENT_LDFLAGS)
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon -lsymLite $(COMPONENT_LDFLAGS)
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
 	@echo Linking $<
@@ -630,9 +634,15 @@ test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	@echo Compiling $@
 	$(HIDE_COMP)$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
+ifeq ($(PLATFORM),amd64-unknown-freebsd7.2)
+          DL_LIB = 
+else
+	DL_LIB = -ldl
+endif
+
 test_driver: test_driver.o test_driver_templates.o dynlmon.o testdriver_be.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE) $(LIBTESTLAUNCH)
 	@echo Linking $@ 
-	$(HIDE_COMP)$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o testdriver_be.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_LINK) $(COMPONENT_LDFLAGS) -ldl ; $(TESTDRIVER_EXTRA_LINK_STEP)
+	$(HIDE_COMP)$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o testdriver_be.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_LINK) $(COMPONENT_LDFLAGS) $(DL_LIB) ; $(TESTDRIVER_EXTRA_LINK_STEP)
 
 testdriver_wrapper: connection.o testdriver_wrapper.o
 	@echo Linking $@
