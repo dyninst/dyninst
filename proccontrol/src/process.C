@@ -69,7 +69,7 @@ const vector<string> Process::emptyEnvp;
 Process::thread_mode_t threadingMode = Process::GeneratorThreading;
 bool int_process::in_callback = false;
 std::set<int_thread::continue_cb_t> int_thread::continue_cbs;
-SymbolReaderFactory *int_process::user_set_symbol_reader;
+SymbolReaderFactory *int_process::user_set_symbol_reader = NULL;
 
 static const int ProcControl_major_version = 8;
 static const int ProcControl_minor_version = 0;
@@ -1597,14 +1597,12 @@ SymbolReaderFactory *int_process::getSymReader()
    if (symbol_reader) {
       return symbol_reader;
    }
-   if (user_set_symbol_reader) {
+   else if (user_set_symbol_reader) {
       symbol_reader = user_set_symbol_reader;
       return symbol_reader;
    }
-   else {
-      symbol_reader = plat_defaultSymReader();
-      return symbol_reader;
-   }
+   symbol_reader = plat_defaultSymReader();
+   return symbol_reader;
 }
 
 void int_process::setSymReader(SymbolReaderFactory *fact)

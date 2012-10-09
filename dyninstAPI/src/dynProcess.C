@@ -61,6 +61,8 @@ using std::vector;
 using std::string;
 using std::stringstream;
 
+Dyninst::SymtabAPI::SymtabReaderFactory *PCProcess::symReaderFactory_;
+
 PCProcess *PCProcess::createProcess(const string file, pdvector<string> &argv,
                                     BPatch_hybridMode analysisMode,
                                     pdvector<string> &envp,
@@ -80,6 +82,8 @@ PCProcess *PCProcess::createProcess(const string file, pdvector<string> &argv,
 
     startup_printf("%s[%d]: stdin: %d, stdout: %d, stderr: %d\n", FILE__, __LINE__,
             stdin_fd, stdout_fd, stderr_fd);
+
+    initSymtabReader();
 
     // Create a full path to the executable
     string path = createExecPath(file, dir);
@@ -127,8 +131,9 @@ PCProcess *PCProcess::createProcess(const string file, pdvector<string> &argv,
 PCProcess *PCProcess::attachProcess(const string &progpath, int pid,
                                     BPatch_hybridMode analysisMode)
 {
-    startup_cerr << "Attaching to process " << pid << endl;
+    initSymtabReader();
 
+    startup_cerr << "Attaching to process " << pid << endl;
     Process::ptr tmpPcProc = Process::attachProcess(pid, progpath);
 
     if( !tmpPcProc ) {
@@ -140,9 +145,8 @@ PCProcess *PCProcess::attachProcess(const string &progpath, int pid,
         showErrorCallback(26, msg.str());
         return NULL;
     }
-
     startup_cerr << "Attached to process " << tmpPcProc->getPid() << endl;
-
+        
     PCProcess *ret = new PCProcess(tmpPcProc, analysisMode);
     assert(ret);
 
@@ -279,9 +283,15 @@ PCProcess::~PCProcess() {
     signalHandlerLocations_.clear();
 
     trapMapping.clearTrapMappings();
+}
 
-    if (symReaderFactory_) delete symReaderFactory_;
-    symReaderFactory_ = NULL;
+void PCProcess::initSymtabReader()
+{
+   //Set SymbolReaderFactory in Stackwalker before create/attach
+   if (!symReaderFactory_) {
+      symReaderFactory_ = new Dyninst::SymtabAPI::SymtabReaderFactory();
+      Dyninst::Stackwalker::Walker::setSymbolReader(symReaderFactory_);
+   }
 }
 
 /***************************************************************************
@@ -577,14 +587,6 @@ bool PCProcess::createStackwalker()
   using namespace Stackwalker;
   ProcDebug *procDebug = NULL;
   StackwalkSymLookup *symLookup = NULL;
-
-  //Set SymbolReaderFactory in Stackwalker
-  if (!symReaderFactory_)
-  {
-    symReaderFactory_ = new DynSymReaderFactory(this);
-  }
-
-  Walker::setSymbolReader(symReaderFactory_);
 
   // Create ProcessState
   if (NULL == (procDebug = ProcDebug::newProcDebug(pcProc_)))
@@ -3403,42 +3405,5 @@ DynWandererHelper::DynWandererHelper(PCProcess *p)
 DynWandererHelper::~DynWandererHelper()
 {}
 
-DynSymReaderFactory::DynSymReaderFactory(AddressSpace *as) :
-    as_(as)
-{}
-
-DynSymReaderFactory::~DynSymReaderFactory()
-{}
-
-Dyninst::SymReader* DynSymReaderFactory::openSymbolReader(std::string pathname)
-{
-    mapped_object *mo = NULL;
-    image *img = NULL;
-    Dyninst::SymtabAPI::Symtab *st = NULL;
-    Dyninst::SymtabAPI::SymtabReader *sr = NULL;
-
-    // lookup mapped object
-    mo = as_->findObject(pathname);
-    if (mo)
-    {
-      img = mo->parse_img();
-      if (img)
-      {
-        st = img->getObject();
-        if (st)
-        {
-          sr = new Dyninst::SymtabAPI::SymtabReader(pathname);
-          return sr;
-        }
-      }
-    }
-
-    return Dyninst::SymtabAPI::SymtabReaderFactory::openSymbolReader(pathname);
-}
-
-Dyninst::SymReader* DynSymReaderFactory::openSymbolReader(const char *buffer, unsigned long size)
-{
-  return Dyninst::SymtabAPI::SymtabReaderFactory::openSymbolReader(buffer, size);
-}
 
 
