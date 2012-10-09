@@ -186,12 +186,12 @@ bool sysv_process::initLibraryMechanism()
     if( translator() == NULL ) {
       createAddrTranslator();
       if (!translator() && procreader->isAsync()) {
-	pthrd_printf("Waiting for async read to finish initializing\n");
-	return false;
+         pthrd_printf("Waiting for async read to finish initializing\n");
+         return false;
       }
       if (!translator()) {
-	perr_printf("Error creating address translator object\n");
-	return false;
+         perr_printf("Error creating address translator object\n");
+         return false;
       }
     }
 
