@@ -32,7 +32,7 @@
 #define DWARF_EXPR_H
 
 #include <stack>
-#include "dynutil/h/dyn_regs.h"
+#include "dyn_regs.h"
 #include "libdwarf.h"
 #include "dwarf.h"
 
