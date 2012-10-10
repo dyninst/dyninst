@@ -188,8 +188,10 @@ bool AddressSpace::getDyninstRTLibName() {
         std::string msg = std::string("Runtime library ") + dyninstRT_name
         + std::string(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
+	cerr << msg << endl;
         return false;
     }
+    fprintf(stderr, "Returning true\n");
     return true;
 }
 

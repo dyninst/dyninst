@@ -3024,7 +3024,7 @@ bool EmitterPOWER32Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   if (scratchLR == REG_NULL) {
     if (scratchReg == registerSpace::r0) return false;
     // We can use r0 for this, since it's volatile. 
-    scratchReg = registerSpace::r0;
+    scratchLR = registerSpace::r0;
   }
 
   if (!call) {
@@ -3126,6 +3126,7 @@ bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen
 }
 
 bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
+  cerr << "emitPLTCommon to " << callee->name() << endl;
   // Okay, I'm going to try and describe how this works. 
   //
   // PPC64 uses a TOC, a range of memory pointed to by R2. The TOC is full of 

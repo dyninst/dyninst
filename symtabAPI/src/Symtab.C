@@ -2647,6 +2647,7 @@ SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, 
 
 SYMTAB_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
 {
+  cerr << "Symtab::emit!" << endl;
 	Object *obj = getObject();
 	if (!obj)
 	{
@@ -2840,14 +2841,14 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
    Offset secoffset = 0;
    Offset prevSecoffset = 0;
    Object *linkedFile = getObject();
-	if (!linkedFile)
-	{
+   if (!linkedFile)
+     {
 #if !defined(os_vxworks)
-		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+       fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 #endif
-		return 0;
-	}
-
+       return 0;
+     }
+   
    for (unsigned i = 0; i < regions_.size(); i++) 
    {
       //Offset end = regions_[i]->getRegionAddr() + regions_[i]->getDiskSize();
@@ -3286,7 +3287,8 @@ SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ra, std::string n,
    rtype_(rtype), 
    name_(n), 
    dynref_(dynref), 
-   relType_(relType)
+   relType_(relType),
+   rel_struct_addr_(0)
 {
 }
 

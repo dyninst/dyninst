@@ -37,8 +37,11 @@ ifdef DISABLE_STACK_PROT
 CFLAGS += -fno-stack-protector
 endif
 
-
+ifdef NO_DYNAMIC_LIB
+all: $(STATIC_TARGET)
+else
 all: $(TARGET) $(STATIC_TARGET)
+endif
 
 #OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 #		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \

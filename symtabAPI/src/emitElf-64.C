@@ -221,9 +221,9 @@ emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void 
   isBlueGeneQ = obj_->isBlueGeneQ();
   isStaticBinary = obj_->isStaticBinary();
   if(isBlueGeneQ){
-  movePHdrsFirst = false;
+    movePHdrsFirst = false;
   } else {
-  movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
+    movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
   }
 
   //If we want to try a mode where we add the program headers to a library
@@ -957,7 +957,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
          newSeg.p_paddr = newSeg.p_vaddr;
          newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
          newSeg.p_memsz = (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
-         newSeg.p_flags = PF_R+PF_W+PF_X;
+	 newSeg.p_flags = PF_R+PF_W+PF_X;
          newSeg.p_align = pgSize;
          memcpy(insert_phdr, &newSeg, oldEhdr->e_phentsize);
          added_new_sec = true;
@@ -1056,7 +1056,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
 		  But if we create a LOAD segment after 1MB, the TOC pointer will no longer be able to reach the new segment,
 		  as we have only 4 byte offset from TOC */
 
-     if(isBlueGeneQ && isStaticBinary && last_load_segment) {
+     if(0 && isBlueGeneQ && isStaticBinary && last_load_segment) {
 
 		// add new load to this segment
 		 newPhdr->p_filesz = (newSeg.p_offset - newPhdr->p_offset) + loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);

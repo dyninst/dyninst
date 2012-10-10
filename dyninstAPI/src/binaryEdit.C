@@ -363,8 +363,14 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
          fprintf(stderr, "ERROR:  unable to open/reinstrument previously instrumented binary %s!\n", file.c_str());
          return NULL;
     }
-    newBinaryEdit->highWaterMark_ = linkedFile->getFreeOffset(50*1024*1024);
+    Address base = linkedFile->getFreeOffset(50*1024*1024);
+    base += (1024*1024);
+    base -= (base & (1024*1024-1));
+
+    newBinaryEdit->highWaterMark_ = base;
     newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
+
+    // Testing
 
     newBinaryEdit->makeInitAndFiniIfNeeded();
 

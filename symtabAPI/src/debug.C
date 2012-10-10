@@ -53,7 +53,6 @@ bool init_debug_symtabAPI() {
     static bool initialized = false;
     if (initialized) return true;
     initialized = true;
-
     if (getenv("SYMTAB_DEBUG_PARSING")) {
         sym_debug_parsing = 1;
     }
@@ -71,7 +70,8 @@ bool init_debug_symtabAPI() {
     if (getenv("SYMTAB_DEBUG_TYPES")) {
         sym_debug_types = 1;
     }
-    if (getenv("SYMTAB_DEBUG_REWRITE")) {
+    if (getenv("SYMTAB_DEBUG_REWRITE") ||
+	getenv("SYMTAB_DEBUG_REWRITER")) {
         sym_debug_rewrite = 1;
     }
 
@@ -145,6 +145,7 @@ int types_printf(const char *format, ...)
 
 int rewrite_printf(const char *format, ...)
 {
+  init_debug_symtabAPI();
   if (!sym_debug_rewrite) return 0;
   if (NULL == format) return -1;
 

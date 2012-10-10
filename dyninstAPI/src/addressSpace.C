@@ -123,6 +123,8 @@ Address AddressSpace::getTOCoffsetInfo(mapped_object *mobj) {
 #endif
   assert(mobj);
   Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset();
+  cerr << "Returning " << hex << TOCOffset << " + " << mobj->dataBase() << " = " 
+       << TOCOffset + mobj->dataBase() << endl;
   if (!TOCOffset)
     return 0;
   return TOCOffset + mobj->dataBase();

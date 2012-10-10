@@ -427,6 +427,18 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
         paths.push_back(filename);
     }
 
+    // For cross-rewriting
+    char *dyn_path = getenv("DYNINST_REWRITER_PATHS");
+    if (dyn_path) { 
+       libPathStr = strdup(dyn_path);
+       libPath = strtok(libPathStr, ":");
+       while (libPath != NULL) {
+          libPaths.push_back(string(libPath));
+          libPath = strtok(NULL, ":");
+       }
+       free(libPathStr);
+    }
+
     // search paths from environment variables
     char *ld_path = getenv("LD_LIBRARY_PATH");
     if (ld_path) { 
@@ -442,6 +454,7 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
     //libPaths.push_back(string(getenv("PWD")));
     for (unsigned int i = 0; i < libPaths.size(); i++) {
         string str = libPaths[i] + "/" + filename;
+	cerr << "Checking " << str << endl;
         if (stat(str.c_str(), &dummy) == 0) {
             paths.push_back(str);
         }

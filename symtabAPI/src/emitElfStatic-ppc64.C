@@ -171,8 +171,9 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	Symbol *dynsym = rel.getDynSym();
 	Offset TOCoffset = targetSymtab->getTOCoffset();
 
-	rewrite_printf(" archSpecificRelocation %s dynsym %s address 0x%lx TOC 0x%lx dest %d \n", 
-		 rel.name().c_str(), dynsym->getName().c_str(), relOffset, TOCoffset, dest );
+	rewrite_printf(" archSpecificRelocation %s dynsym %s address 0x%lx TOC 0x%lx (in %s) dest %d \n", 
+		       rel.name().c_str(), dynsym->getName().c_str(), 
+		       relOffset, TOCoffset, targetSymtab->name().c_str(), dest );
 
 	int relocation_length = sizeof(Elf64_Word)*8; // in bits
 	int relocation_pos = 0; // in bits
@@ -231,43 +232,52 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
         stringstream tmp;
 
         switch(rel.getRelType()) {
-/* PowerPC64 relocations defined by the ABIs */
-case R_PPC64_ADDR64:
-case R_PPC64_GLOB_DAT:
-	relocation_length = 64;
-	relocation = symbolOffset + addend;
-	break;
-case R_PPC64_GOT_TPREL16_DS:
-case R_PPC64_REL24:
-	relocation_length = 24;
-      	relocation_pos = 6;
-        //relocation = (symbolOffset + addend - relOffset)>> 2;
-        relocation = symbolOffset + addend - relOffset;
-	rewrite_printf(" R_PPC64_REL24 S = 0x%lx A = %d relOffset = 0x%lx relocation without shift 0x%lx %ld \n", 
-		symbolOffset, addend, relOffset, symbolOffset + addend - relOffset, symbolOffset + addend - relOffset);
-      	break;
-case R_PPC64_REL32:
-	relocation_length = 24;
-      	relocation_pos = 6;
-        relocation = symbolOffset + addend - relOffset;
-      	break;
-case R_PPC64_REL64:
-        relocation = symbolOffset + addend - relOffset;
-      	break;
-case R_PPC64_TLS:
-	break;
-case R_PPC64_TOC16:
-	relocation_length = 16;
-      	relocation_pos = 0;
-        relocation = symbolOffset + addend - TOCoffset;
-      	break;
-case R_PPC64_TOC16_DS:
-	relocation_length = 16;
-      	relocation_pos = 16;
-        relocation = (symbolOffset + addend - TOCoffset) >> 2 ;
-        relocation = relocation << 2;
-	break;
-}
+	  /* PowerPC64 relocations defined by the ABIs */
+	case R_PPC64_ADDR64:
+	case R_PPC64_GLOB_DAT:	
+	  rewrite_printf("ADDR64 or GLOB_DAT\n");
+	  relocation_length = 64;
+	  relocation = symbolOffset + addend;
+	  break;
+	case R_PPC64_GOT_TPREL16_DS:
+	case R_PPC64_REL24:
+	  rewrite_printf("GOT_TPREL16_DS or REL24\n");
+	  relocation_length = 24;
+	  relocation_pos = 6;
+	  //relocation = (symbolOffset + addend - relOffset)>> 2;
+	  relocation = symbolOffset + addend - relOffset;
+	  rewrite_printf(" R_PPC64_REL24 S = 0x%lx A = %d relOffset = 0x%lx relocation without shift 0x%lx %ld \n", 
+			 symbolOffset, addend, relOffset, symbolOffset + addend - relOffset, symbolOffset + addend - relOffset);
+	  break;
+	case R_PPC64_REL32:
+	  rewrite_printf("REL32\n");
+	  relocation_length = 24;
+	  relocation_pos = 6;
+	  relocation = symbolOffset + addend - relOffset;
+	  break;
+	case R_PPC64_REL64:
+	  rewrite_printf("REL64\n");
+	  relocation = symbolOffset + addend - relOffset;
+	  break;
+	case R_PPC64_TLS:
+	  rewrite_printf("TLS - UNIMPLEMENTED\n");
+	  break;
+	case R_PPC64_TOC16:
+	  rewrite_printf("TOC16\n");
+	  relocation_length = 16;
+	  relocation_pos = 0;
+	  relocation = symbolOffset + addend - TOCoffset;
+	  break;
+	case R_PPC64_TOC16_DS:
+	  rewrite_printf("TOC16_DS\n");
+	  relocation_length = 16;
+	  relocation_pos = 16;
+	  relocation = (symbolOffset + addend - TOCoffset) >> 2 ;
+	  relocation = relocation << 2;
+	  break;
+	default:
+	  assert(0);
+	}
         rewrite_printf("before: relocation = 0x%lx @ 0x%lx target data %lx %lx %lx %lx %lx %lx \n", 
 	relocation, relOffset,targetData[dest-2],  targetData[dest-1], targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
 
