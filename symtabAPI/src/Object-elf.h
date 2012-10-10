@@ -308,6 +308,7 @@ class DwarfHandle {
   ~DwarfHandle();
 
   Dwarf_Debug *dbg();
+  Dwarf::DwarfFrameParserPtr frameParser() { return sw; } 
 };
 
 class Object : public AObject {
@@ -372,8 +373,8 @@ class Object : public AObject {
   //   The TOC section contains a conventional ELF GOT, and may optionally
   //   contain a small data area.
   //   The TOC base is typically the first address in the TOC plus 0x8000.
-  // I don't understand why I can find a ".got" within binaries, but I can't
-  // find a ".toc".  ssuen  August 7, 2007
+  // It's found in the OPD at *(<program entry> + 8); *(<program entry>) 
+  // is the entry point. 
   Offset getTOCoffset() const { return got_addr_ + 0x8000; }
 #else
   Offset getTOCoffset() const { return 0; }
@@ -455,6 +456,9 @@ class Object : public AObject {
     
     Elf_X * getElfHandle() { return &elfHdr; }
 
+    unsigned gotSize() const { return got_size_; }
+    Offset gotAddr() const { return got_addr_; }
+
   private:
   static void log_elferror (void (*)(const char *), const char *);
     
@@ -520,7 +524,9 @@ class Object : public AObject {
   bool  isStripped;
   bool usesDebugFile;
 
+  public:
   DwarfHandle dwarf;
+  private:
 
   bool      EEL;                 // true if EEL rewritten
   bool 	    did_open;		// true if the file has been mmapped

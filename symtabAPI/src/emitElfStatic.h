@@ -237,14 +237,14 @@ class emitElfStatic {
      *
      * Constructions a new GOT Region from information in the LinkMap
      */
-    void buildGOT(LinkMap &lmap);
+    void buildGOT(Symtab *target, LinkMap &lmap);
 
     /**
      * Architecture specific
      *
      * Determines the size of the GOT Region from information in the LinkMap
      */
-    Offset getGOTSize(LinkMap &lmap);
+    Offset getGOTSize(Symtab *target, LinkMap &lmap);
 
     /**
      * Architecture specific
