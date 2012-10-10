@@ -165,13 +165,12 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
        Offset dest, Offset relOffset, Offset globalOffset, LinkMap &lmap,
        string &errMsg) 
 {
-
     if( PPC64_WIDTH == addressWidth_ ) {
 
 	Symbol *dynsym = rel.getDynSym();
 	Offset TOCoffset = targetSymtab->getTOCoffset();
 
-	rewrite_printf(" archSpecificRelocation %s dynsym %s address 0x%lx TOC 0x%lx (in %s) dest %d \n", 
+	rewrite_printf(" archSpecificRelocation %s dynsym %s address 0x%lx TOC 0x%lx (in %s) dest 0x%lx \n", 
 		       rel.name().c_str(), dynsym->getName().c_str(), 
 		       relOffset, TOCoffset, targetSymtab->name().c_str(), dest );
 
@@ -214,7 +213,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 		            	if( result != lmap.regionAllocs.end() ) {
 		                	Offset regionOffset = result->second.second;
 					symbolOffset = globalOffset + regionOffset;
-//					printf(" regionOffset 0x%lx symbolOffset 0x%lx \n", regionOffset, symbolOffset);
+					rewrite_printf("\tregionOffset 0x%lx symbolOffset 0x%lx \n", regionOffset, symbolOffset);
 			    	}
 			}
 		}
@@ -235,41 +234,41 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	  /* PowerPC64 relocations defined by the ABIs */
 	case R_PPC64_ADDR64:
 	case R_PPC64_GLOB_DAT:	
-	  rewrite_printf("ADDR64 or GLOB_DAT\n");
+	  //	  rewrite_printf("ADDR64 or GLOB_DAT\n");
 	  relocation_length = 64;
 	  relocation = symbolOffset + addend;
 	  break;
 	case R_PPC64_GOT_TPREL16_DS:
 	case R_PPC64_REL24:
-	  rewrite_printf("GOT_TPREL16_DS or REL24\n");
+	  //rewrite_printf("GOT_TPREL16_DS or REL24\n");
 	  relocation_length = 24;
 	  relocation_pos = 6;
 	  //relocation = (symbolOffset + addend - relOffset)>> 2;
 	  relocation = symbolOffset + addend - relOffset;
-	  rewrite_printf(" R_PPC64_REL24 S = 0x%lx A = %d relOffset = 0x%lx relocation without shift 0x%lx %ld \n", 
-			 symbolOffset, addend, relOffset, symbolOffset + addend - relOffset, symbolOffset + addend - relOffset);
+	  //rewrite_printf(" R_PPC64_REL24 S = 0x%lx A = %d relOffset = 0x%lx relocation without shift 0x%lx %ld \n", 
+	  //symbolOffset, addend, relOffset, symbolOffset + addend - relOffset, symbolOffset + addend - relOffset);
 	  break;
 	case R_PPC64_REL32:
-	  rewrite_printf("REL32\n");
+	  //rewrite_printf("REL32\n");
 	  relocation_length = 24;
 	  relocation_pos = 6;
 	  relocation = symbolOffset + addend - relOffset;
 	  break;
 	case R_PPC64_REL64:
-	  rewrite_printf("REL64\n");
+	  //rewrite_printf("REL64\n");
 	  relocation = symbolOffset + addend - relOffset;
 	  break;
 	case R_PPC64_TLS:
 	  rewrite_printf("TLS - UNIMPLEMENTED\n");
 	  break;
 	case R_PPC64_TOC16:
-	  rewrite_printf("TOC16\n");
+	  //rewrite_printf("TOC16\n");
 	  relocation_length = 16;
 	  relocation_pos = 0;
 	  relocation = symbolOffset + addend - TOCoffset;
 	  break;
 	case R_PPC64_TOC16_DS:
-	  rewrite_printf("TOC16_DS\n");
+	  //rewrite_printf("TOC16_DS\n");
 	  relocation_length = 16;
 	  relocation_pos = 16;
 	  relocation = (symbolOffset + addend - TOCoffset) >> 2 ;
@@ -771,14 +770,14 @@ void emitElfStatic::cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &r
     tlsCleanupVariant2(regionAllocs, dataTLS, bssTLS);
 }
 
-Offset emitElfStatic::getGOTSize(Symtab *target, LinkMap &lmap) {
+Offset emitElfStatic::getGOTSize(Symtab *target, LinkMap &lmap, Offset &layoutStart) {
     Offset size = 0;
 
     unsigned slotSize = 0;
     if( PPC32_WIDTH == addressWidth_ ) {
         slotSize = sizeof(Elf32_Addr);
     }else if( PPC64_WIDTH == addressWidth_ ) {
-        slotSize = sizeof(Elf64_Addr)*2;
+        slotSize = sizeof(Elf64_Addr);
     }else{
         assert(!UNKNOWN_ADDRESS_WIDTH_ASSERT);
     }
@@ -794,7 +793,8 @@ Offset emitElfStatic::getGOTSize(Symtab *target, LinkMap &lmap) {
     // the new GOT from the old. 
     if (PPC64_WIDTH == addressWidth_) {
        rewrite_printf("New GOT size is 0x%lx, adding original GOT size 0x%lx\n", size, target->getObject()->gotSize());
-       size += target->getObject()->gotSize();
+       layoutStart = target->getObject()->gotSize();
+       size += layoutStart;
     }
 
     return size;
@@ -838,8 +838,8 @@ void emitElfStatic::buildGOT(Symtab *target, LinkMap &lmap) {
     // Inefficient lookup, but it's easy to debug :)
     Region *origGOT = NULL; 
     if (target->findRegion(origGOT, ".got")) {
-       memcpy(&targetData[lmap.gotRegionOffset + curOffset], origGOT->getPtrToRawData(), origGot->getDiskSize());
-       curOffset += origGot->getDiskSize();
+       memcpy(&targetData[lmap.gotRegionOffset + curOffset], origGOT->getPtrToRawData(), origGOT->getDiskSize());
+       curOffset += origGOT->getDiskSize();
        rewrite_printf("Copying 0x%lx bytes of original GOT to new\n", origGOT->getDiskSize());
     }
     
@@ -851,6 +851,8 @@ void emitElfStatic::buildGOT(Symtab *target, LinkMap &lmap) {
     curOffset += GOT_RESERVED_SLOTS*slotSize;
 
     vector<pair<Symbol *, Offset> >::iterator sym_it;
+    rewrite_printf("Copying in %d symbol table entries\n", lmap.gotSymbolTable.size());
+
     for(sym_it = lmap.gotSymbolTable.begin(); sym_it != lmap.gotSymbolTable.end(); ++sym_it) {
         Offset value = sym_it->first->getOffset()+sym_it->second;
         memcpy(&targetData[lmap.gotRegionOffset + curOffset], &value, slotSize);
@@ -860,6 +862,7 @@ void emitElfStatic::buildGOT(Symtab *target, LinkMap &lmap) {
 	curOffset, value,  sym_it->first->getPrettyName().c_str(),  sym_it->first->getOffset(), sym_it->second, lmap.gotRegionOffset + curOffset);
         curOffset += slotSize;
     }
+    rewrite_printf("curOffset is 0x%lx, calculated GOT size is 0x%lx\n", curOffset, lmap.gotSize);
     assert(curOffset == lmap.gotSize);
 }
 

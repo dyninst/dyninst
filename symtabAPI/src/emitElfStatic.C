@@ -495,11 +495,10 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                         lmap.dtorRegionAlign = (*reg_it)->getMemAlignment();
                     }
 		} else if( isGOTRegion(*reg_it) ) {
-                    		lmap.gotRegions.push_back(*reg_it);
-                    		if( (*reg_it)->getMemAlignment() > lmap.gotRegionAlign ) {
-                        		lmap.gotRegionAlign = (*reg_it)->getMemAlignment();
-                    		}
-
+		  lmap.gotRegions.push_back(*reg_it);
+		  if( (*reg_it)->getMemAlignment() > lmap.gotRegionAlign ) {
+		    lmap.gotRegionAlign = (*reg_it)->getMemAlignment();
+		  }
                 }else{
                     switch((*reg_it)->getRegionType()) {
                         case Region::RT_TEXT:
@@ -581,13 +580,13 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                 vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
                 vector<relocationEntry>::iterator rel_it;
                 for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
-
-                    if(isGOTRelocation(rel_it->getRelType()) ) {
-                        	lmap.gotSymbolTable.push_back(make_pair(rel_it->getDynSym(), rel_it->addend()));
-									lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), 0));
-			
-		    }
-			
+		  
+		  if(isGOTRelocation(rel_it->getRelType()) ) {
+		    lmap.gotSymbolTable.push_back(make_pair(rel_it->getDynSym(), rel_it->addend()));
+		    lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), 0));
+		    
+		  }
+		  
                 }
             } // isLoadable
            
@@ -631,13 +630,16 @@ bool emitElfStatic::createLinkMap(Symtab *target,
             maxAlign);
 
     // Allocate space for a GOT Region, if necessary
-    lmap.gotSize = getGOTSize(target, lmap);
+    Offset gotLayoutOffset = 0;
+    lmap.gotSize = getGOTSize(target, lmap, gotLayoutOffset);
     if( lmap.gotSize > 0 ) {
+      // We may copy the original GOT over; in this case, we have to be sure we skip it
+      // when we lay out new GOT entries. That's the gotLayoutOffset value. 
 	lmap.gotRegionAlign = getGOTAlign(lmap);
         lmap.gotRegionOffset = currentOffset;
         currentOffset += lmap.gotSize;
         layoutRegions(lmap.gotRegions, lmap.regionAllocs,
-            lmap.gotRegionOffset, globalOffset);
+		      lmap.gotRegionOffset + gotLayoutOffset, globalOffset);
     } 
 
     lmap.codeRegionOffset = currentOffset;
@@ -1123,9 +1125,14 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
                     // Compute destination of relocation
                     Offset dest = regionOffset + rel_it->rel_addr();
                     Offset relOffset = globalOffset + dest;
-			
-                   rewrite_printf("\tComputing relocations to apply to region: %s @ 0x%lx reloffset %d 0x%lx dest %d 0x%lx  \n\n",
-                        (*region_it)->getRegionName().c_str(), regionOffset, relOffset,relOffset, dest,dest);
+
+                   rewrite_printf("\tComputing relocations to apply to region: %s @ 0x%lx reloffset %d/0x%lx dest %d/0x%lx  \n\n",
+                        (*region_it)->getRegionName().c_str(), regionOffset, 
+				  relOffset,relOffset, 
+				  dest, dest);
+		   rewrite_printf("\t RelOffset computed as region 0x%lx + rel_addr 0x%lx + globalOffset 0x%lx\n",
+				  regionOffset, rel_it->rel_addr(), globalOffset);
+
                     char *targetData = lmap.allocatedData;
                     if( !archSpecificRelocation(target, *depObj_it, targetData, *rel_it, dest, 
                                 relOffset, globalOffset, lmap, errMsg) ) 

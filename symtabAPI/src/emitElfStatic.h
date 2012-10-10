@@ -244,7 +244,7 @@ class emitElfStatic {
      *
      * Determines the size of the GOT Region from information in the LinkMap
      */
-    Offset getGOTSize(Symtab *target, LinkMap &lmap);
+    Offset getGOTSize(Symtab *target, LinkMap &lmap, Offset &layoutStart);
 
     /**
      * Architecture specific
