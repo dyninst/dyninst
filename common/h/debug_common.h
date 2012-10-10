@@ -36,13 +36,15 @@
 extern int common_debug_dwarf;
 
 #if defined(__GNUC__)
-#define dwarf_printf(format, args...) do { if (common_debug_dwarf) dwarf_printf_int(format, ## args); } while(0)
+#define dwarf_printf(format, ...)                                       \
+   do {                                                                 \
+      dwarf_printf_int("[%s:%u:%s] " format, __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__); \
+   } while (0)
 #else
 #define dwarf_printf dwarf_printf_int
 #endif
 
 int dwarf_printf_int(const char *format, ...);
-
 
 // And initialization
 bool init_debug_common();

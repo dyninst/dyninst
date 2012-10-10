@@ -541,45 +541,42 @@ bool emitElfStatic::createLinkMap(Symtab *target,
 
 #if defined(arch_power) && defined(arch_64bit)
 		// If statically linked binary, we need to put all the entries in region toc to GOT
-		if(target->isStaticBinary()) {
-			if(regionName.compare(".toc") == 0){
-				// For every symbol in toc
-				// Get data of the region and split it into symbols
-				char *rawRegionData = reinterpret_cast<char *>((*reg_it)->getPtrToRawData());
-				unsigned long numSymbols = (*reg_it)->getMemSize()/8;
-				for (Offset entry = 0; entry < numSymbols; entry++ ) {	
-				// If symbol has relocation, add that 
-					bool relExist = false;
-		                	vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
-                			vector<relocationEntry>::iterator rel_it;
-                			for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
-						if(entry*8 == rel_it->rel_addr()) {
-							lmap.gotSymbolTable.push_back(make_pair(rel_it->getDynSym(), rel_it->addend()));  
-							lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), rel_it->addend()));
-							relExist = true;
-
-							break;
-						}
-					}
-					if(!relExist) {
-						// else create a new symbol 
-						// Offset and name is all we care - offset should be value of the symbol
-					      Offset soffset = *((unsigned long *) (rawRegionData + entry*8));
-					      Symbol *newsym = new Symbol("dyntoc_entry",
-                                  					  Symbol::ST_UNKNOWN,
-                                  					  Symbol::SL_UNKNOWN,
-                                  					  Symbol::SV_UNKNOWN,
-									  soffset);
-
-					    lmap.gotSymbolTable.push_back(make_pair(newsym, 0));  
-					    lmap.gotSymbols.insert(make_pair(newsym, 0));
-						
-					}
-				}
-
-			}
-
-		} 
+		if(target->isStaticBinary() && (regionName.compare(".toc") == 0)) {
+                   // For every symbol in toc
+                   // Get data of the region and split it into symbols
+                   char *rawRegionData = reinterpret_cast<char *>((*reg_it)->getPtrToRawData());
+                   unsigned long numSymbols = (*reg_it)->getMemSize()/8;
+                   for (Offset entry = 0; entry < numSymbols; entry++ ) {	
+                      // If symbol has relocation, add that 
+                      bool relExist = false;
+                      vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
+                      vector<relocationEntry>::iterator rel_it;
+                      for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
+                         if(entry*8 == rel_it->rel_addr()) {
+                            lmap.gotSymbolTable.push_back(make_pair(rel_it->getDynSym(), rel_it->addend()));  
+                            lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), rel_it->addend()));
+                            relExist = true;
+                            
+                            break;
+                         }
+                      }
+                      if(!relExist) {
+                         // else create a new symbol 
+                         // Offset and name is all we care - offset should be value of the symbol
+                         Offset soffset = *((unsigned long *) (rawRegionData + entry*8));
+                         Symbol *newsym = new Symbol("dyntoc_entry",
+                                                     Symbol::ST_UNKNOWN,
+                                                     Symbol::SL_UNKNOWN,
+                                                     Symbol::SV_UNKNOWN,
+                                                     soffset);
+                         
+                         lmap.gotSymbolTable.push_back(make_pair(newsym, 0));  
+                         lmap.gotSymbols.insert(make_pair(newsym, 0));
+                         
+                      }
+                   }
+                   
+                }
 #endif
                 vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
                 vector<relocationEntry>::iterator rel_it;
@@ -634,7 +631,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
             maxAlign);
 
     // Allocate space for a GOT Region, if necessary
-    lmap.gotSize = getGOTSize(lmap);
+    lmap.gotSize = getGOTSize(target, lmap);
     if( lmap.gotSize > 0 ) {
 	lmap.gotRegionAlign = getGOTAlign(lmap);
         lmap.gotRegionOffset = currentOffset;
@@ -981,7 +978,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
  
 #if defined(arch_x86) || defined(arch_x86_64)  || (defined(arch_power) && defined(arch_64bit))
     if( lmap.gotSize > 0 ) {
-        buildGOT(lmap);
+       buildGOT(target, lmap);
         target->addRegion(globalOffset + lmap.gotRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.gotRegionOffset]),
                 static_cast<unsigned int>(lmap.gotSize),

@@ -766,12 +766,12 @@ char emitElfStatic::getPaddingValue(Region::RegionType rtype) {
 }
 
 void emitElfStatic::cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &regionAllocs,
-        Region *dataTLS, Region *bssTLS) 
+                                            Region *dataTLS, Region *bssTLS) 
 {
     tlsCleanupVariant2(regionAllocs, dataTLS, bssTLS);
 }
 
-Offset emitElfStatic::getGOTSize(LinkMap &lmap) {
+Offset emitElfStatic::getGOTSize(Symtab *target, LinkMap &lmap) {
     Offset size = 0;
 
     unsigned slotSize = 0;
@@ -785,7 +785,16 @@ Offset emitElfStatic::getGOTSize(LinkMap &lmap) {
 
     // According to the ELF abi, entries 0, 1, 2 are reserved in a GOT on x86
     if( lmap.gotSymbolTable.size() > 0 ) {
+       rewrite_printf("Determining new GOT size: %d symtab entries, %d reserved slots, %d slot size\n",
+                      lmap.gotSymbolTable.size(), GOT_RESERVED_SLOTS, slotSize);
         size = (lmap.gotSymbolTable.size()+GOT_RESERVED_SLOTS)*slotSize;
+    }
+
+    // On PPC64 we move the original GOT as well, as we can't guarantee that we can reach
+    // the new GOT from the old. 
+    if (PPC64_WIDTH == addressWidth_) {
+       rewrite_printf("New GOT size is 0x%lx, adding original GOT size 0x%lx\n", size, target->getObject()->gotSize());
+       size += target->getObject()->gotSize();
     }
 
     return size;
@@ -807,7 +816,7 @@ Offset emitElfStatic::getGOTAlign(LinkMap &) {
     return 0;
 }
 
-void emitElfStatic::buildGOT(LinkMap &lmap) {
+void emitElfStatic::buildGOT(Symtab *target, LinkMap &lmap) {
 
     if( PPC32_WIDTH == addressWidth_ ) {
 	return;
@@ -823,11 +832,23 @@ void emitElfStatic::buildGOT(LinkMap &lmap) {
         assert(!UNKNOWN_ADDRESS_WIDTH_ASSERT);
     }
 
+    Offset curOffset = 0;
+
+    // Copy over the original GOT
+    // Inefficient lookup, but it's easy to debug :)
+    Region *origGOT = NULL; 
+    if (target->findRegion(origGOT, ".got")) {
+       memcpy(&targetData[lmap.gotRegionOffset + curOffset], origGOT->getPtrToRawData(), origGot->getDiskSize());
+       curOffset += origGot->getDiskSize();
+       rewrite_printf("Copying 0x%lx bytes of original GOT to new\n", origGOT->getDiskSize());
+    }
+    
+
     // For each GOT symbol, allocate an entry and copy the value of the
     // symbol into the table, additionally store the offset in the GOT
     // back into the map
-    Offset curOffset = GOT_RESERVED_SLOTS*slotSize;
     memset(&targetData[lmap.gotRegionOffset], 0, GOT_RESERVED_SLOTS*slotSize);
+    curOffset += GOT_RESERVED_SLOTS*slotSize;
 
     vector<pair<Symbol *, Offset> >::iterator sym_it;
     for(sym_it = lmap.gotSymbolTable.begin(); sym_it != lmap.gotSymbolTable.end(); ++sym_it) {
@@ -839,6 +860,7 @@ void emitElfStatic::buildGOT(LinkMap &lmap) {
 	curOffset, value,  sym_it->first->getPrettyName().c_str(),  sym_it->first->getOffset(), sym_it->second, lmap.gotRegionOffset + curOffset);
         curOffset += slotSize;
     }
+    assert(curOffset == lmap.gotSize);
 }
 
 /*

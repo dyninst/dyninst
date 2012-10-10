@@ -70,6 +70,7 @@ class AuxvParser
    Address getVsyscallText();
    Address getVsyscallEnd();
    Address getProgramBase();
+   Address getPageSize();
 };
 
 

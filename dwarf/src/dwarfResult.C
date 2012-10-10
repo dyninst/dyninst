@@ -5,6 +5,7 @@
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/dyn_regs.h"
 #include "common/h/Types.h"
+#include "common/h/debug_common.h"
 #include <iostream>
 
 using namespace Dyninst;
@@ -93,16 +94,20 @@ void ConcreteDwarfResult::readReg(MachRegister reg) {
    Dyninst::MachRegisterVal v;
    if (!reader->GetReg(reg, v)) error = true;
    push(v);
+   dwarf_printf("readReg %s, got 0x%lx, queue size %d\n",
+                reg.name().c_str(), v, operands.size());
 }
 
 void ConcreteDwarfResult::pushUnsignedVal(MachRegisterVal v) {
    // Someday this will matter...
    push(v);
+   dwarf_printf("pushUnsigned 0x%lx, queue size %d\n", v, operands.size());
 }
 
 void ConcreteDwarfResult::pushSignedVal(MachRegisterVal v) {
    // Someday this will matter...
    push(v);
+   dwarf_printf("pushSigned 0x%lx, queue size %d\n", v, operands.size());
 }
 
 
@@ -115,12 +120,14 @@ void ConcreteDwarfResult::pushOp(Operator op) {
       case Add:
          CHECK_OPER(2);
          v = peek(1) + peek(0);
+         dwarf_printf("AddOp: 0x%lx + 0x%lx = 0x%lx\n", peek(1), peek(0), v);
          popRange(0, 1);
          push(v);
          break;
       case Sub:
          CHECK_OPER(2);
          v = peek(1) - peek(0);
+         dwarf_printf("SubOp: 0x%lx + 0x%lx = 0x%lx\n", peek(1), peek(0), v);
          popRange(0, 1);
          push(v);
          break;
@@ -242,6 +249,7 @@ void ConcreteDwarfResult::pushOp(Operator op) {
          error = true;
          break;
    }
+   dwarf_printf("\t After queue manipulation, size %d\n", operands.size());
 }
 
 void ConcreteDwarfResult::pushOp(Operator op, unsigned ref) {
@@ -276,6 +284,13 @@ void ConcreteDwarfResult::pushOp(Operator op, unsigned ref) {
                uint64_t u;
                if (!reader->ReadMem(peek(0), &u, sizeof(u))) error = true;
                v = u;
+               dwarf_printf("Memory read from 0x%lx: 0x%lx\n", peek(0), u);
+               for (int i = -10; i < 10; ++i) {
+                  uint64_t tmp;
+                  reader->ReadMem(peek(0) + (i * 8), &tmp, sizeof(tmp));
+                  dwarf_printf("\t %d, 0x%lx: 0x%lx\n", 
+                               i, peek(0) + (i * 8), tmp);
+               }
                break;
             }
             default:
@@ -308,23 +323,30 @@ void ConcreteDwarfResult::pushCFA() {
    DwarfFrameParser::Ptr cfaParser = DwarfFrameParser::create(dbg, arch);
    MachRegisterVal cfa;
    FrameErrors_t err;
+   dwarf_printf("Getting CFA value...\n");
    if (!cfaParser->getRegValueAtFrame(pc, 
                                       CFA, 
                                       cfa, 
                                       reader,
                                       err)) error = true;
+   dwarf_printf("Got CFA value 0x%lx\n", cfa);
    pushUnsignedVal(cfa);
 }
 
 MachRegisterVal ConcreteDwarfResult::peek(int index) {
+   dwarf_printf("peek @ %d, returning index %d of size %d\n",
+                index, operands.size() - (index + 1), operands.size());
    return operands[operands.size() - (index + 1)];
 }
 
 void ConcreteDwarfResult::pop(int num) {
+   dwarf_printf("pop @ %d, deleting index %d of size %d\n",
+                num, operands.size() - (num + 1), operands.size());
    operands.erase(operands.begin() + (operands.size() - (num + 1)));
 }
 
 void ConcreteDwarfResult::popRange(int start, int end) {
+   dwarf_printf("popRange %d .. %d of %d\n", start, end, operands.size());
    std::vector<MachRegisterVal>::iterator b, e;
    if (start > end) {
       b = operands.begin() + (operands.size() - (start + 1));
@@ -335,6 +357,7 @@ void ConcreteDwarfResult::popRange(int start, int end) {
       e = operands.begin() + (operands.size() - start);
    }
    operands.erase(b, e);
+   dwarf_printf("\t After popRange, size %d\n", operands.size());
 }
 
 void ConcreteDwarfResult::push(MachRegisterVal v) {
@@ -348,5 +371,7 @@ bool ConcreteDwarfResult::eval(MachRegisterVal &v) {
 }
 
 MachRegisterVal ConcreteDwarfResult::val() {
+   dwarf_printf("Eval: returning top value 0x%lx, stack size %d\n",
+                operands.back(), operands.size());
    return operands.back();
 }

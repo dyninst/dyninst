@@ -462,7 +462,7 @@ bool emitElfStatic::isGOTRelocation(unsigned long relType) {
     return false;
 }
 
-Offset emitElfStatic::getGOTSize(LinkMap &lmap) {
+Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &lmap) {
     Offset size = 0;
 
     unsigned slotSize = 0;
@@ -494,7 +494,7 @@ Offset emitElfStatic::getGOTAlign(LinkMap &) {
     return 0;
 }
 
-void emitElfStatic::buildGOT(LinkMap &lmap) {
+void emitElfStatic::buildGOT(Symtab *, LinkMap &lmap) {
     char *targetData = lmap.allocatedData;
 
     unsigned slotSize = 0;

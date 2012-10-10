@@ -1,5 +1,5 @@
-#include "dynutil/h/dyn_regs.h"
-#include "dynutil/h/dyntypes.h"
+#include "dyn_regs.h"
+#include "dyntypes.h"
 #include <vector>
 #include <stack>
 #include "libdwarf.h"

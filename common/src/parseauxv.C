@@ -126,3 +126,8 @@ Address AuxvParser::getProgramBase()
 {
    return phdr;
 }
+
+Address AuxvParser::getPageSize()
+{
+   return page_size;
+}
