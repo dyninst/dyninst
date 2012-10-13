@@ -48,9 +48,11 @@
 #include "Object.h"
 #include "Region.h"
 #include "debug.h"
+#include "common/h/arch-power.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
+using namespace NS_power;
 
 static const unsigned PPC32_WIDTH = 4;
 static const unsigned PPC64_WIDTH = 8;
@@ -63,7 +65,7 @@ static const Elf64_Xword X86_64_TRAILER = 0x0000000000000000ULL;
 static const Offset GOT_RESERVED_SLOTS = 0;
 
 unsigned int setBits(unsigned int target, unsigned int pos, unsigned int len, unsigned int value) {
-    rewrite_printf("setBits target 0x%lx value 0x%lx pos %d len %d \n", target, value, pos, len);
+  rewrite_printf("setBits target 0x%lx value 0x%lx pos %d len %d \n", target, value, pos, len);
 // There are three parts of the target - 0:pos, pos:len, len:32 
 // We want to create a mask with 0:pos and len:32 set to 1
     unsigned int mask, mask1, mask2;
@@ -79,7 +81,6 @@ unsigned int setBits(unsigned int target, unsigned int pos, unsigned int len, un
 
     value = value & mask;
     rewrite_printf(" mask 0x%lx value 0x%lx \n", mask, value);
-
     target = target | value;
     rewrite_printf( "setBits target 0x%lx value 0x%lx pos %d len %d \n", target, value, pos, len);
 
@@ -161,18 +162,23 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
 }
 
 
-bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymtab, char *targetData, relocationEntry &rel,
-       Offset dest, Offset relOffset, Offset globalOffset, LinkMap &lmap,
-       string &errMsg) 
+bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymtab,
+					   char *targetData, relocationEntry &rel,
+					   Offset dest, Offset relOffset, Offset globalOffset, LinkMap &lmap,
+					   string &errMsg) 
 {
     if( PPC64_WIDTH == addressWidth_ ) {
 
 	Symbol *dynsym = rel.getDynSym();
-	Offset TOCoffset = targetSymtab->getTOCoffset();
+	//	Offset TOCoffset = srcSymtab->getTOCoffset();
+	Offset newTOCoffset = dynsym->getSymtab()->getTOCoffset(dynsym->getOffset());
+	// This is an added file, thus there's only one TOC value, so look up @0. 
+	Offset curTOCoffset = srcSymtab->getTOCoffset((Offset) 0);
 
-	rewrite_printf(" archSpecificRelocation %s dynsym %s address 0x%lx TOC 0x%lx (in %s) dest 0x%lx \n", 
-		       rel.name().c_str(), dynsym->getName().c_str(), 
-		       relOffset, TOCoffset, targetSymtab->name().c_str(), dest );
+	rewrite_printf("archSpecificRelocation %s\n\tdynsym %s, 0x%lx\n\t rel address 0x%lx\n\tTOC 0x%lx (in %s) dest 0x%lx \n", 
+		       rel.name().c_str(), 
+		       dynsym->getName().c_str(), dynsym->getOffset(),
+		       relOffset, newTOCoffset, srcSymtab->name().c_str(), dest );
 
 	int relocation_length = sizeof(Elf64_Word)*8; // in bits
 	int relocation_pos = 0; // in bits
@@ -199,10 +205,23 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	if(!computeCtorDtorAddress(rel, globalOffset, lmap, errMsg, symbolOffset)) {
 		return false;
 	}
-	
+
+	// Handle TOC-changing inter-module calls
+	if (rel.getRelType() == R_PPC64_REL24 &&
+	    newTOCoffset != curTOCoffset) {
+	  return handleInterModuleSpecialCase(targetSymtab, srcSymtab, lmap,
+					      targetData, rel,
+					      newTOCoffset, curTOCoffset, dest, 
+					      relOffset, globalOffset);
+	}
+
+#if 0
+	// I don't think we want this; I haven't even seen a .toc section so it's a noop 
+	// and a bad idea -- bernat
 //	printf("Original symbol offset 0x%lx \n", symbolOffset);
 	// If symbol is .toc, we must return the got offset
     	if(rel.getRelType() == R_PPC64_TOC16_DS || rel.getRelType() == R_PPC64_TOC16) {
+	  // I don't think we want this anymore. 
 		vector<Region *> allRegions;
         	srcSymtab->getAllRegions(allRegions);
 		vector<Region *>::iterator region_it;
@@ -217,10 +236,10 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 			    	}
 			}
 		}
-
     	}
+#endif
 
-        rewrite_printf("relocation for '%s': TYPE = %s(%lu) S = %lx A = %lx P = %lx Total 0x%lx \n",
+        rewrite_printf("\trelocation for '%s': TYPE = %s(%lu) S = %lx A = %lx P = %lx Total 0x%lx \n",
                 rel.name().c_str(), 
                 relocationEntry::relType2Str(rel.getRelType(), addressWidth_),
                 rel.getRelType(), symbolOffset, addend, relOffset, symbolOffset+addend);
@@ -238,8 +257,8 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	  relocation_length = 64;
 	  relocation = symbolOffset + addend;
 	  break;
-	case R_PPC64_GOT_TPREL16_DS:
 	case R_PPC64_REL24:
+	case R_PPC64_GOT_TPREL16_DS:
 	  //rewrite_printf("GOT_TPREL16_DS or REL24\n");
 	  relocation_length = 24;
 	  relocation_pos = 6;
@@ -265,22 +284,27 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	  //rewrite_printf("TOC16\n");
 	  relocation_length = 16;
 	  relocation_pos = 0;
-	  relocation = symbolOffset + addend - TOCoffset;
+	  relocation = symbolOffset + addend - newTOCoffset;
 	  break;
 	case R_PPC64_TOC16_DS:
 	  //rewrite_printf("TOC16_DS\n");
 	  relocation_length = 16;
 	  relocation_pos = 16;
-	  relocation = (symbolOffset + addend - TOCoffset) >> 2 ;
+	  relocation = (symbolOffset + addend - newTOCoffset) >> 2 ;
 	  relocation = relocation << 2;
+	  break;
+	case R_PPC64_TOC:
+	  // I don't know how we never had to deal with these before...
+	  relocation_length = 64;
+	  relocation = newTOCoffset;
 	  break;
 	default:
 	  assert(0);
 	}
-        rewrite_printf("before: relocation = 0x%lx @ 0x%lx target data %lx %lx %lx %lx %lx %lx \n", 
+        rewrite_printf("\tbefore: relocation = 0x%lx @ 0x%lx target data %lx %lx %lx %lx %lx %lx \n", 
 	relocation, relOffset,targetData[dest-2],  targetData[dest-1], targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
 
-	if (rel.getRelType() == R_PPC64_ADDR64 || rel.getRelType() == R_PPC64_GLOB_DAT) {
+	if (relocation_length == 64) {
 		char *td = (targetData + dest - (dest%8));
 	        unsigned long target = *((unsigned long *) td);
 	        target = setBits64(target, relocation_pos, relocation_length, relocation);
@@ -292,7 +316,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
         	memcpy(td, &target, sizeof(Elf64_Word));
 	}
 
-        rewrite_printf("after: relocation = 0x%lx @ 0x%lx target data %lx %lx %lx %lx %lx %lx \n", relocation, relOffset,targetData[dest-2],  targetData[dest-1], targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
+        rewrite_printf("\tafter: relocation = 0x%lx @ 0x%lx target data %lx %lx %lx %lx %lx %lx \n", relocation, relOffset,targetData[dest-2],  targetData[dest-1], targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
 
 /*
     if (branch_pred >= 0) {
@@ -789,6 +813,8 @@ Offset emitElfStatic::getGOTSize(Symtab *target, LinkMap &lmap, Offset &layoutSt
         size = (lmap.gotSymbolTable.size()+GOT_RESERVED_SLOTS)*slotSize;
     }
 
+    // DISABLED
+#if 0
     // On PPC64 we move the original GOT as well, as we can't guarantee that we can reach
     // the new GOT from the old. 
     if (PPC64_WIDTH == addressWidth_) {
@@ -796,6 +822,7 @@ Offset emitElfStatic::getGOTSize(Symtab *target, LinkMap &lmap, Offset &layoutSt
        layoutStart = target->getObject()->gotSize();
        size += layoutStart;
     }
+#endif
 
     return size;
 }
@@ -833,22 +860,27 @@ void emitElfStatic::buildGOT(Symtab *target, LinkMap &lmap) {
     }
 
     Offset curOffset = 0;
-
+#if 0
+    // DISABLED
     // Copy over the original GOT
     // Inefficient lookup, but it's easy to debug :)
     Region *origGOT = NULL; 
     if (target->findRegion(origGOT, ".got")) {
        memcpy(&targetData[lmap.gotRegionOffset + curOffset], origGOT->getPtrToRawData(), origGOT->getDiskSize());
        curOffset += origGOT->getDiskSize();
-       rewrite_printf("Copying 0x%lx bytes of original GOT to new\n", origGOT->getDiskSize());
+       rewrite_printf("Copying 0x%lx bytes of original GOT to new, curOffset is 0x%lx\n",
+		      origGOT->getDiskSize(), curOffset);
     }
-    
+#endif
 
     // For each GOT symbol, allocate an entry and copy the value of the
     // symbol into the table, additionally store the offset in the GOT
     // back into the map
     memset(&targetData[lmap.gotRegionOffset], 0, GOT_RESERVED_SLOTS*slotSize);
     curOffset += GOT_RESERVED_SLOTS*slotSize;
+
+    rewrite_printf("Copied GOT_RESERVED_SLOTS %d, curOffset 0x%lx\n",
+		   GOT_RESERVED_SLOTS, curOffset);
 
     vector<pair<Symbol *, Offset> >::iterator sym_it;
     rewrite_printf("Copying in %d symbol table entries\n", lmap.gotSymbolTable.size());
@@ -859,7 +891,9 @@ void emitElfStatic::buildGOT(Symtab *target, LinkMap &lmap) {
 
         sym_it->second = curOffset;
 	rewrite_printf(" Building GOT at 0x%lx is 0x%lx name %s Offset 0x%lx addend 0x%lx addr 0x%lx \n", 
-	curOffset, value,  sym_it->first->getPrettyName().c_str(),  sym_it->first->getOffset(), sym_it->second, lmap.gotRegionOffset + curOffset);
+		       curOffset, value,  
+		       sym_it->first->getPrettyName().c_str(),  sym_it->first->getOffset(), 
+		       sym_it->second, lmap.gotRegionOffset + curOffset);
         curOffset += slotSize;
     }
     rewrite_printf("curOffset is 0x%lx, calculated GOT size is 0x%lx\n", curOffset, lmap.gotSize);
@@ -1096,3 +1130,196 @@ bool emitElfStatic::isGOTRelocation(unsigned long relType) {
 void emitElfStatic::getExcludedSymbolNames(set<string> &) {
 }
 
+bool emitElfStatic::updateTOC(Symtab *file, LinkMap &lmap, Offset globalOffset) {
+  // I don't think we need this now that we're using multiple TOCs. Instead we'll
+  // split the GOTs. 
+  // DISABLED
+  return true;
+
+
+  rewrite_printf("Updating TOC in %s\n", file->name().c_str());
+
+  Address GOTbase = lmap.gotRegionOffset;
+
+  Address oldTOC = file->getTOCoffset((Offset) 0);
+  Address newTOC = GOTbase + 0x8000 + globalOffset; // Convention is to use +8k to split the 
+  // reachable distance. TODO: calculate this from the original GOT and TOC value.
+  Address deltaTOC = newTOC - oldTOC;
+
+  rewrite_printf("Set TOC to 0x%lx = 0x%lx + 0x%lx + 0x%lx; old 0x%lx\n", newTOC, GOTbase, 0x8000, globalOffset, oldTOC);
+
+  // We're doing this _before_ the emitElf64::driver call, so we can make changes
+  // to original sections. That's good, because we need to update the OPD section
+  // to match our new TOC value. 
+
+  Region *OPD = NULL;
+  if (!file->findRegion(OPD, ".opd")) return true;
+  
+  unsigned long *oldData = (unsigned long *) OPD->getPtrToRawData();
+  unsigned long *newData = (unsigned long *) malloc(OPD->getDiskSize());
+  memcpy(newData, oldData, OPD->getDiskSize());
+  OPD->setPtrToRawData(newData, OPD->getDiskSize());
+
+  // Let's do the thing. 
+  // The OPD data structures are 3-tuples of <func ptr, TOC, misc>. We want
+  // to update the TOC part of that. So... cleverness.
+  for (unsigned i = 1; i < (OPD->getDiskSize() / sizeof(unsigned long)); i += 3) {
+    unsigned long oldVal = newData[i];
+    newData[i] = oldVal + deltaTOC;
+  }
+
+  return true;
+}
+
+Offset emitElfStatic::allocStubRegions(LinkMap &lmap, Offset globalOffset) {
+  // Count the number of external calls in each Region and alloc
+  // 16 (4*insnsize) bytes for each. 
+  //
+  // 16: stub code pattern is:
+  //   std   r2, 40(r1)
+  //   addis r2, r2, <hi(new TOC - old TOC)>
+  //   addi  r2, r2, <lo(new TOC - old TOC)>
+  //   b     <destination>
+
+  // We can get external calls by looking for unique relocation destinations; 
+  // any intra-module call would not have a relocation. 
+  
+  // So. Relocation time. 
+  // We can't just count relocations because there are TOC setting relocs and we'll massively overapproximate. 
+  // Instead, count of type R_PPC64_REL24. Also, unique. 
+
+  Offset relStubOffset = lmap.stubRegionOffset;
+  rewrite_printf("Allocating stub regions for inter-module calls\n");
+
+  for (deque<Region *>::iterator reg_iter = lmap.codeRegions.begin(); reg_iter != lmap.codeRegions.end(); ++reg_iter) {
+    vector<relocationEntry> region_rels = (*reg_iter)->getRelocations();
+    rewrite_printf("\t For region %s in %s, %d relocations, %d unique symbols so far\n",
+		   (*reg_iter)->getRegionName().c_str(), 
+		   (*reg_iter)->symtab()->name().c_str(),
+		   region_rels.size(), 
+		   lmap.stubMap.size());
+    for (vector<relocationEntry>::iterator rel_iter = region_rels.begin(); rel_iter != region_rels.end(); ++rel_iter) {
+      relocationEntry &rel = *rel_iter;
+      if (rel.getRelType() != R_PPC64_REL24) continue;
+      
+      if (lmap.stubMap.find(rel.getDynSym()) == lmap.stubMap.end()) {
+	rewrite_printf("\t\tSetting stub offset for %s to 0x%lx\n", rel.getDynSym()->getMangledName().c_str(), relStubOffset);
+	lmap.stubMap[rel.getDynSym()] = relStubOffset + globalOffset;
+	relStubOffset += 4*sizeof(unsigned);
+      }
+    }
+  }
+  rewrite_printf("\t After regions, returning offset 0x%lx = current 0x%lx + stub area 0x%lx\n",
+		 lmap.stubRegionOffset + (16 * lmap.stubMap.size()), lmap.stubRegionOffset, 16*lmap.stubMap.size());
+  return relStubOffset;
+}
+
+
+bool emitElfStatic::handleInterModuleSpecialCase(Symtab *target,
+						 Symtab *src,
+						 LinkMap &lmap,
+						 char *data,
+						 relocationEntry rel,
+						 Offset newTOC,
+						 Offset oldTOC,
+						 Offset dest,
+						 Offset relOffset,
+						 Offset globalOffset) {
+  // This isn't that bad :)
+  //
+  // We have code of the following type:
+  //
+  // call <target>
+  // nop
+  //
+  // where <target> is encoded in the relocation rel. We also have
+  // varying TOC values. 
+  //
+  // We want:
+  //
+  // call <stub>
+  // ld r2, 40(r1)
+  //
+  // stub code:
+  // 
+  // std    r2, 40(r1)
+  // addis  r2, r2(hi(newTOC - oldTOC))
+  // addi   r2, r2(lo(newTOC - oldTOC))
+  // b <target>
+  //
+  // So this needs to either look up existing stub code and reuse it 
+  // or create it. 
+  //
+
+  Offset stubOffset = findOrCreateStub(rel.getDynSym(), lmap, newTOC, oldTOC, data, globalOffset);
+  Offset branchOffset = stubOffset - relOffset;
+  rewrite_printf("Handling TOC set stub, using stub offset 0x%lx, curr addr 0x%lx so branch is 0x%lx \n", 
+		 stubOffset, relOffset, branchOffset);
+  char *td = data + dest - (dest % 4);
+  unsigned int call = *((unsigned int *)td);
+  rewrite_printf("\t Raw original call is 0x%lx...", call);
+  // 6 bits in, 24 bits long
+  call = setBits(call, 6, 24, (unsigned) (branchOffset >> 2));
+  rewrite_printf("and patched 0x%lx\n", call);
+  memcpy(td, &call, sizeof(Elf64_Word));
+  
+  // And set the TOC restore
+  td += 4;
+  unsigned int &post = *((unsigned int *)td);
+  // Post better be a noop. Assert for now, return false after devel is done. 
+  assert(post == 0x60000000);   
+  // And ld r2, 40(r1). Always the same instruction. 
+  post = 0xe8410028; 
+
+  return true;
+}
+
+Offset emitElfStatic::findOrCreateStub(Symbol *sym, LinkMap &lmap, Offset newTOC, Offset oldTOC, char *data, Offset globalOffset) {
+  // Easy case
+  std::map<Symbol *, TOCstub>::iterator iter = stubMap.find(sym);
+  if (iter != stubMap.end() &&
+      getNewTOC(iter->second) == newTOC &&
+      getOldTOC(iter->second) == oldTOC) {
+    return getStubOffset(iter->second);
+  }
+
+  // Otherwise create one
+  Offset stubOffset = lmap.stubMap[sym];
+  assert(stubOffset);
+
+  unsigned stub[4];
+  createStub(stub, stubOffset, newTOC, oldTOC, sym->getOffset());
+  
+  char *td = data + stubOffset - globalOffset;
+  rewrite_printf("Creating stub at 0x%lx (0x%lx in buffer)\n",
+		 stubOffset, stubOffset - globalOffset);
+  memcpy(td, stub, 4*sizeof(unsigned));
+  
+  stubMap[sym] = TOCstub(stubOffset, newTOC, oldTOC);
+  return stubOffset;
+} 
+
+void emitElfStatic::createStub(unsigned *stub, Offset stubOffset, Offset newTOC, Offset oldTOC, Offset dest) {
+
+  unsigned deltaTOChi = HA((newTOC - oldTOC));
+  unsigned deltaTOClo = LOW((newTOC - oldTOC));
+  unsigned deltaAddr = dest - (stubOffset + 3*sizeof(unsigned));
+
+  rewrite_printf("Calculating stub:\n\thigh TOC bits 0x%x (from 0x%lx - 0x%lx),\n\tlow TOC bits 0x%x (from 0x%lx - 0x%lx),\n\tbranch offset 0x%x (from 0x%lx - 0x%lx)\n",
+		 deltaTOChi, newTOC, oldTOC,
+		 deltaTOClo, newTOC, oldTOC,
+		 deltaAddr, dest, stubOffset);
+
+  stub[0] = 0xf8410028; // std
+  stub[1] = 0x3c420000 | (deltaTOChi & 0xffff);
+  stub[2] = 0x38420000 | (deltaTOClo & 0xffff);
+
+  instruction branch;
+  IFORM_OP_SET(branch, Bop);
+  IFORM_LI_SET(branch, deltaAddr >> 2);
+  IFORM_AA_SET(branch, 0);
+  IFORM_LK_SET(branch, 0);
+
+  stub[3] = branch.asInt();
+  
+}

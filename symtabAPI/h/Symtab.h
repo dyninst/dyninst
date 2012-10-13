@@ -332,7 +332,8 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Offset getLoadOffset() const;
    SYMTAB_EXPORT Offset getEntryOffset() const;
    SYMTAB_EXPORT Offset getBaseOffset() const;
-   SYMTAB_EXPORT Offset getTOCoffset() const;
+   SYMTAB_EXPORT Offset getTOCoffset(Function *func = NULL) const;
+   SYMTAB_EXPORT Offset getTOCoffset(Offset off) const;
    SYMTAB_EXPORT Address getLoadAddress();
    SYMTAB_EXPORT bool isDefensiveBinary() const; 
    SYMTAB_EXPORT Offset fileToDiskOffset(Dyninst::Offset) const;
@@ -437,6 +438,8 @@ class Symtab : public LookupInterface,
    bool addUserRegion(Region *newreg);
    bool addUserType(Type *newtypeg);
 
+   void setTOCOffset(Offset offset);
+
    /***** Private Data Members *****/
    private:
 
@@ -467,7 +470,6 @@ class Symtab : public LookupInterface,
    Offset entry_address_;
    Offset base_address_;
    Offset load_address_;
-   Offset toc_offset_;
    ObjectType object_type_;
    bool is_eel_;
    std::vector<Segment> segments_;
@@ -717,7 +719,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT bool operator==(const relocationEntry &) const;
 
       // Architecture-specific functions
-      SYMTAB_EXPORT static unsigned long getGlobalRelType(unsigned addressWidth);
+      SYMTAB_EXPORT static unsigned long getGlobalRelType(unsigned addressWidth, bool toc = false);
       static const char *relType2Str(unsigned long r, unsigned addressWidth = sizeof(Address));
 
    private:

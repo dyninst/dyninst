@@ -1387,21 +1387,21 @@ Register EmitterPOWER::emitCall(opCode ocode,
     // AIX, 32/64, static/dynamic, inst/replacement;
     // Linux, 64, static/dynamic, inst/repl
     // DYN
-	toc_anchor = gen.addrSpace()->getTOCoffsetInfo(callee);
-	
-	// Instead of saving the TOC (if we can't), just reset it afterwards.
-	if (gen.func()) {
-	   caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
-	}
-	else if (gen.point()) {
-	   caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
-	}
-	else {
-	   // Don't need it, and this might be an iRPC
-    	}
-
-    	inst_printf("Caller TOC 0x%lx; callee 0x%lx\n",
-                    caller_toc, toc_anchor);
+    toc_anchor = gen.addrSpace()->getTOCoffsetInfo(callee);
+    
+    // Instead of saving the TOC (if we can't), just reset it afterwards.
+    if (gen.func()) {
+      caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
+    }
+    else if (gen.point()) {
+      caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
+    }
+    else {
+      // Don't need it, and this might be an iRPC
+    }
+    
+    inst_printf("Caller TOC 0x%lx; callee 0x%lx\n",
+		caller_toc, toc_anchor);
     // ALL
     bool needToSaveLR = false;
     registerSlot *regLR = (*(gen.rs()))[registerSpace::lr];
@@ -1429,7 +1429,6 @@ Register EmitterPOWER::emitCall(opCode ocode,
     }
 
     if (inInstrumentation &&
-        toc_anchor &&
         (toc_anchor != caller_toc)) {
         // Save register 2 (TOC)
         saveRegister(gen, 2, FUNC_CALL_SAVE);
@@ -1554,10 +1553,9 @@ Register EmitterPOWER::emitCall(opCode ocode,
     bool setTOC = false;
 
 	// AIX, 32/64, stat/dyn, inst/repl; Linux, 64, stat/dyn, inst/repl
-    if (toc_anchor &&
-        (toc_anchor != caller_toc))
+    if (toc_anchor != caller_toc) {
         setTOC = true;
-
+    }
     
     emitCallInstruction(gen, callee, setTOC, toc_anchor);
     
@@ -3127,6 +3125,7 @@ bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen
 
 bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
   cerr << "emitPLTCommon to " << callee->name() << endl;
+
   // Okay, I'm going to try and describe how this works. 
   //
   // PPC64 uses a TOC, a range of memory pointed to by R2. The TOC is full of 
@@ -3169,6 +3168,13 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   //
 
   bool isStaticBinary = gen.addrSpace()->edit()->getMappedObject()->parse_img()->getObject()->isStaticBinary();
+  // Even if we're in a static binary we may need to change the TOC. Heck,
+  // we may need to change the TOC in an intra-module call no matter what.
+  // This is caused by a GOT that is larger than 64k (the only addressable
+  // distance from the TOC). 
+  //
+  // TODO: the large model where everything is a 32-bit reference off the TOC. 
+
 
   const unsigned TOCreg = 2;
   const unsigned wordsize = gen.addrSpace()->getAddressWidth();
@@ -3177,8 +3183,6 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   Address func_desc = getInterModuleFuncAddr(callee, gen);
 
   Address caller_toc = 0;
-
-  // Instead of saving the TOC (if we can't), just reset it afterwards.
   if (gen.func()) {
     caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
   }
@@ -3198,18 +3202,22 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   insnCodeGen::generateMoveFromLR(gen, r_tmp);
   insnCodeGen::generateMemAccess64(gen, STDop, STDxop, r_tmp, REG_SP, 4*wordsize);
 
+  // Save R2
+  insnCodeGen::generateMemAccess64(gen, STDop, STDxop, TOCreg, REG_SP, 5*wordsize);
+
   // r_tmp := func_desc
   // We don't load func_desc directly, as it's an offset rather than an address. 
   // What we can do though is load it relative to a different register value. Like, 
   // say, the current TOC. 
   Address func_desc_from_TOC = func_desc - caller_toc;
   insnCodeGen::loadImmIntoReg(gen, r_tmp, func_desc_from_TOC);
-  insnCodeGen::generateAddReg(gen, CAXop, r_tmp, r_tmp, TOCreg);
+  if (caller_toc) {
+    // If we know what the value is in R2 and thus used it...
+    insnCodeGen::generateAddReg(gen, CAXop, r_tmp, r_tmp, TOCreg);
+  }
 
   // r2 := *(r_tmp + 8)
-  if (!isStaticBinary) {
-    insnCodeGen::generateMemAccess64(gen, LDop, LDxop, TOCreg, r_tmp, wordsize);
-  }
+  insnCodeGen::generateMemAccess64(gen, LDop, LDxop, TOCreg, r_tmp, wordsize);
 
   // r_tmp := *(r_tmp)
   insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r_tmp, r_tmp, 0);
@@ -3232,10 +3240,8 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
     insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r_tmp, REG_SP, 3*wordsize);
   }
 
-  // r2 := caller TOC value
-  if (caller_toc) {
-    insnCodeGen::loadImmIntoReg(gen, TOCreg, caller_toc);
-  }
+  // Restore TOC
+  insnCodeGen::generateMemAccess64(gen, LDop, LDxop, TOCreg, REG_SP, 5*wordsize);
 
   if (!call) {
     instruction ret(BRraw);
@@ -3352,8 +3358,11 @@ bool EmitterPOWER64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen 
   const unsigned wordsize = gen.addrSpace()->getAddressWidth();
   assert(wordsize == 8);
   Address dest = block->start();
-  
-  Address callee_toc = gen.addrSpace()->getTOCoffsetInfo(block->start());
+
+  // We need the callee TOC, which we find by function, not by block. 
+  std::vector<func_instance *> funcs;
+  block->getFuncs(std::back_inserter(funcs));
+  Address callee_toc = gen.addrSpace()->getTOCoffsetInfo(funcs[0]);
   
   Address caller_toc = 0;
   if (gen.func()) {
@@ -3703,9 +3712,13 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
     Address relocation_address;
     
     unsigned int jump_slot_size;
+    bool toc = false;
     switch (addrSpace->getAddressWidth()) {
     case 4: jump_slot_size =  4; break;
-    case 8: jump_slot_size = 24; break;
+    case 8: 
+      jump_slot_size = 24;
+      toc = true;
+      break;
     default: assert(0 && "Encountered unknown address width");
     }
 
@@ -3743,7 +3756,10 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
         unsigned char dat[24] = {0};
         binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
         // add write new relocation symbol/entry
-        binEdit->addDependentRelocation(relocation_address, referring);
+        binEdit->addDependentRelocation(relocation_address, referring, false);
+	if (toc) {
+	  binEdit->addDependentRelocation(relocation_address + 8, referring, true);
+	}
     }
     return relocation_address;
 }

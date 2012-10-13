@@ -347,7 +347,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                         Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
                         Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr* &dynamic_scnp, 
                         Elf_X_Shdr*& eh_frame, Elf_X_Shdr*& gcc_except, 
-                        Elf_X_Shdr *& interp_scnp, bool)
+                        Elf_X_Shdr *& interp_scnp, Elf_X_Shdr *& opd_scnp, 
+			bool)
 {
   std::map<std::string, int> secnNameMap;
   dwarf_err_func  = err_func_;
@@ -786,6 +787,11 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       rel_plt_entry_size_ = scnp->sh_entsize();
     }
 #endif
+    else if (strcmp(name, OPD_NAME) == 0) {
+      opd_scnp = scnp;
+      opd_addr_ = scnp->sh_addr();
+      opd_size_ = scnp->sh_size();
+    }
     else if (strcmp(name, PLT_NAME) == 0) {
       plt_scnp = scnp;
       plt_addr_ = scnp->sh_addr();
@@ -1524,6 +1530,7 @@ void Object::load_object(bool alloc_syms)
   Elf_X_Shdr *eh_frame_scnp = 0;
   Elf_X_Shdr *gcc_except = 0;
   Elf_X_Shdr *interp_scnp = 0;
+  Elf_X_Shdr *opd_scnp = NULL;
 
   { // binding contour (for "goto cleanup")
 
@@ -1547,7 +1554,8 @@ void Object::load_object(bool alloc_syms)
     if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
 		    stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 		    rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
-                    dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp, true))
+                    dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp, 
+		    opd_scnp, true))
       {
 	goto cleanup;
       }
@@ -1582,8 +1590,13 @@ void Object::load_object(bool alloc_syms)
 			  txtaddr, dataddr, catch_addrs_);
       }
 #endif
-    if (interp_scnp)
+    if (interp_scnp) {
       interpreter_name_ = (char *) interp_scnp->get_data().d_buf(); 
+    }
+
+    if (opd_scnp) {
+      parse_opd(opd_scnp);
+    }
 
     // global symbols are put in global_symbols. Later we read the
     // stab section to find the module to where they belong.
@@ -1730,6 +1743,7 @@ void Object::load_shared_object(bool alloc_syms)
   Elf_X_Shdr *eh_frame_scnp = 0;
   Elf_X_Shdr *gcc_except = 0;
   Elf_X_Shdr *interp_scnp = 0;
+  Elf_X_Shdr *opd_scnp = NULL;
 
   { // binding contour (for "goto cleanup2")
 
@@ -1742,7 +1756,7 @@ void Object::load_shared_object(bool alloc_syms)
     if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
 		    stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 		    rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
-                    dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp))
+                    dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp, opd_scnp))
       goto cleanup2;
 
     if (interp_scnp)
@@ -1762,6 +1776,11 @@ void Object::load_shared_object(bool alloc_syms)
 			txtaddr, dataddr, catch_addrs_);
     }
 #endif
+
+    if (opd_scnp) {
+      parse_opd(opd_scnp);
+    }
+
 #if defined(TIMED_PARSE)
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
@@ -1933,7 +1952,6 @@ void printSyms( std::vector< Symbol *>& allsymbols )
     } 
 } 
 
-
 // Official Procedure Descriptor handler
 //
 // Some platforms (PPC64 Linux libc v2.1) only produce function
@@ -1951,6 +1969,32 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 // In statically linked binaries, there are relocations against 
 // .opd section. We need to apply the relocations before using
 // opd symbols. 
+
+void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
+  // If the OPD is filled in, parse it and fill in our TOC table
+  assert(opd_hdr);
+
+  Elf_X_Data data = opd_hdr->get_data();
+  assert(data.isValid());
+  
+  // Let's read this puppy
+  unsigned long *buf = (unsigned long *)data.d_buf();
+
+  // In almost all cases, the TOC is the same. So let's store it at the
+  // special location 0 and only record differences. 
+  Offset baseTOC = buf[1];
+  TOC_table_[0] = baseTOC;
+
+  for (unsigned i = 0; i < (data.d_size() / sizeof(unsigned long)); i += 3) {
+    Offset func = buf[i];
+    Offset toc = buf[i+1];
+    // Unused = buf[i+2];
+    if (toc == baseTOC) continue;
+
+    TOC_table_[func] = toc;
+  }
+
+}
 
 void Object::handle_opd_relocations(){
 
@@ -3265,6 +3309,8 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, bool, void (*err_func)(const ch
   hasRelplt_(false),
   hasRelaplt_(false),
   relType_(Region::RT_REL),
+  opd_addr_(0),
+  opd_size_(0),
   dwarf(this),
   EEL(false),
   DbgSectionMapSorted(false)
@@ -5480,4 +5526,22 @@ Dyninst::Architecture Object::getArch()
 
 Dwarf_Debug Object::dwarf_dbg() {
    return dwarf.dbg_data;
+}
+
+Offset Object::getTOCoffset(Offset off) const {
+  if (TOC_table_.empty()) return 0;
+
+  Offset baseTOC = TOC_table_.find(0)->second;
+
+  // We only store exceptions to the base TOC, so if we can't find it
+  // return the base
+
+  std::map<Offset, Offset>::const_iterator iter = TOC_table_.find(off);
+  if (iter == TOC_table_.end()) return baseTOC;
+  return iter->second;
+}
+
+void Object::setTOCoffset(Offset off) {
+  TOC_table_.clear();
+  TOC_table_[0] = off;
 }

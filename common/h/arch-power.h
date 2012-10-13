@@ -722,8 +722,10 @@ typedef unsigned codeBufIndex_t;
 #define SPIN_WAIT_INSN 0x48000000 /* VxWorks Trap - Can't perform a trap there. */
 
 /* high and low half words.  Useful to load addresses as two parts */
-#define LOW(x)  ((x)%65536)
-#define HIGH(x) ((x)/65536)
+#define LOW(x)  ((x)%0xffff)
+#define HIGH(x) (((x) >> 16) & 0xffff)
+// HA: adjusted hi value compensating for LOW(x) being sign extended
+#define HA(x)   ((((x) >> 16) + (((x) & 0x8000) ? 1 : 0)) & 0xffff)
 
 /* high and low half words for top and bottom words.  Useful to load
  * addresses in four parts.

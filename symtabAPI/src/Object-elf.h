@@ -366,19 +366,15 @@ class Object : public AObject {
   const char *interpreter_name() const;
 
 
-//TODO Later - change this #ifdef later.. make getTOCoffset available for all platforms  
+  // On most platforms, the TOC offset doesn't exist and is thus null. 
+  // On PPC64, it varies _by function_ and is used to point into the GOT,
+  // a big data table. We can look it up by parsing the OPD, a function
+  // descriptor table. 
+  Offset getTOCoffset(Offset off) const;
 
-#if defined(os_linux) && defined(arch_power) && defined(arch_64bit)
-  // 64-bit PowerPC ELF ABI Supplement, Version 1.9, 2004-10-23:
-  //   The TOC section contains a conventional ELF GOT, and may optionally
-  //   contain a small data area.
-  //   The TOC base is typically the first address in the TOC plus 0x8000.
-  // It's found in the OPD at *(<program entry> + 8); *(<program entry>) 
-  // is the entry point. 
-  Offset getTOCoffset() const { return got_addr_ + 0x8000; }
-#else
-  Offset getTOCoffset() const { return 0; }
-#endif
+  // This is an override for the whole thing; we could do per-function but 
+  // we're missing a _lot_ of hardware for that. 
+  void setTOCoffset(Offset off);
 
   const std::ostream &dump_state_info(std::ostream &s);
   bool isEEL() { return EEL; }
@@ -507,6 +503,8 @@ class Object : public AObject {
   Offset    rel_addr_;
   unsigned  rel_size_;       // DT_REL/DT_RELA in dynamic section
   unsigned  rel_entry_size_; // DT_REL/DT_RELA in dynamic section
+  Offset   opd_addr_;
+  unsigned opd_size_;
 
   Offset   stab_off_;           // .stab section
   unsigned stab_size_;          // .stab section
@@ -523,6 +521,8 @@ class Object : public AObject {
   char *interpreter_name_;
   bool  isStripped;
   bool usesDebugFile;
+
+  std::map<Offset, Offset> TOC_table_;
 
   public:
   DwarfHandle dwarf;
@@ -563,10 +563,12 @@ class Object : public AObject {
 		    Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
 		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& dynamic_scnp, Elf_X_Shdr*& eh_frame,
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
+		   Elf_X_Shdr *&opd_scnp,
           bool a_out=false);
   
   Symbol *handle_opd_symbol(Region *opd, Symbol *sym);
   void handle_opd_relocations();
+  void parse_opd(Elf_X_Shdr *);
   void parseStabFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &li);
   void parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li);
 

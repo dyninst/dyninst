@@ -467,7 +467,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
   int newfd;
   Region *foundSec = NULL;
   unsigned pgSize = getpagesize();
-
+  rewrite_printf("::driver for emitElf64\n");
   //open ELf File for writing
   if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP)))==-1){ 
     log_elferror(err_func_, "error opening file to write symbols");
@@ -667,6 +667,15 @@ bool emitElf64::driver(Symtab *obj, string fName){
         newName.append(name, 2, strlen(name));
         renameSection((string)name, newName, false);
     }
+
+#if defined(arch_power) && defined(arch_64bit)
+    // DISABLED
+    if (0 && isStaticBinary && strcmp(name, ".got") == 0) {
+      string newName = ".o";
+      newName.append(name, 2, strlen(name));
+      renameSection((string) name, newName, false);
+    }
+#endif
 
     // Change offsets of sections based on the newly added sections
     if(movePHdrsFirst) {
