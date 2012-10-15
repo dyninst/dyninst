@@ -7,6 +7,7 @@
 #include "common/h/Types.h"
 #include "common/h/debug_common.h"
 #include <iostream>
+#include "common/h/debug_common.h"
 
 using namespace Dyninst;
 using namespace Dwarf;
@@ -15,6 +16,8 @@ using namespace std;
 #define CHECK_OPER(n) if (operands.size() < n) { error = true; break; }
 
 void SymbolicDwarfResult::pushReg(MachRegister reg) {
+  dwarf_printf("\t\tPush %s\n", reg.name().c_str());
+  
    if (var.stClass != storageUnset) { error = true; }
    var.stClass = storageReg;
    var.refClass = storageNoRef;
@@ -23,6 +26,8 @@ void SymbolicDwarfResult::pushReg(MachRegister reg) {
 }
 
 void SymbolicDwarfResult::readReg(MachRegister reg) {
+  dwarf_printf("\t\t Read %s\n", reg.name().c_str());
+  
    if (var.stClass != storageUnset) { error = true; }
    var.stClass = storageRegOffset;
    var.refClass = storageNoRef;
@@ -32,6 +37,8 @@ void SymbolicDwarfResult::readReg(MachRegister reg) {
 }
 
 void SymbolicDwarfResult::pushUnsignedVal(MachRegisterVal val) {
+  dwarf_printf("\t\t Push 0x%lx\n", val);
+  
    if (var.stClass == storageUnset) {
       // No register, so default to StorageAddr
       var.stClass = storageAddr;
@@ -40,12 +47,16 @@ void SymbolicDwarfResult::pushUnsignedVal(MachRegisterVal val) {
 }
 
 void SymbolicDwarfResult::pushSignedVal(MachRegisterVal val) {
+  dwarf_printf("\t\t Push 0x%lx\n", val);
+  
    operands.push(val);
 }
 
 void SymbolicDwarfResult::pushOp(Operator op) {
    // This is "fill in as we see examples" code. 
    // Right now, the only use I know of is add. 
+  dwarf_printf("Push op %d\n", op);
+  
    switch (op) {
       case Add:
          CHECK_OPER(1);
@@ -60,6 +71,8 @@ void SymbolicDwarfResult::pushOp(Operator op) {
 
 void SymbolicDwarfResult::pushOp(Operator op, 
                                  unsigned u) {
+  dwarf_printf("Push op pair %d,%u\n", op, u);
+  
    switch(op) {
       case Add:
          var.frameOffset += u;
@@ -70,10 +83,14 @@ void SymbolicDwarfResult::pushOp(Operator op,
 }
 
 void SymbolicDwarfResult::pushFrameBase() {
+  dwarf_printf("Push frame base\n");
+  
    readReg(FrameBase);
 }
 
 void SymbolicDwarfResult::pushCFA() {
+  dwarf_printf("Push CFA\n");
+  
    readReg(CFA);
 }
 

@@ -75,6 +75,10 @@ static const int Symtab_major_version = 7;
 static const int Symtab_minor_version = 0;
 static const int Symtab_maintenance_version = 0;
 
+Dwarf::DwarfFrameParserPtr Symtab::debugDwarf() {
+   return getObject()->dwarf.frameParser();  
+}
+
 void Symtab::version(int& major, int& minor, int& maintenance)
 {
     major = Symtab_major_version;
@@ -3857,4 +3861,5 @@ SYMTAB_EXPORT Offset Symtab::getFiniOffset()
 
 } // namespace SymtabAPI
 } // namespace Dyninst
+
 
