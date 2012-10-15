@@ -7,6 +7,7 @@
 \usetikzlibrary{arrows,positioning,fit,shapes,decorations,decorations.pathmorphing,decorations.pathreplacing,calc,patterns,scopes,matrix}
 \pgfrealjobname{parseapi}
 
+\usepackage[hyperindex,breaklinks]{hyperref}
 \usepackage{helvet}
 \usepackage{enumitem}
 \usepackage[letterpaper]{geometry}
@@ -25,7 +26,11 @@
 }
 
 \newcommand{\definedin}[1]{%
-\textbf{Defined in:} \texttt{#1}
+\textbf{Defined in:} \code{#1}
+}
+
+\newcommand{\code}[1]{
+\small \code{#1}
 }
 
 \begin{document}
@@ -75,9 +80,9 @@
 %    };
 
     \node [anchor=west,font=\sffamily] (rel1) at ($(origin)+(0.75in,-5.0in)$)
-        {\fontsize{24}{32}\selectfont 7. 0 Release};
+        {\fontsize{24}{32}\selectfont 8.0 Release};
     \node [anchor=west,font=\sffamily] (rel2) at ($(rel1.west)+(0in,-32pt)$)
-        {\fontsize{24}{32}\selectfont Mar 2011};
+        {\fontsize{24}{32}\selectfont Nov 2012};
 
     % Contact information
 %    \matrix (UWaddress) [%
@@ -92,7 +97,7 @@
 %    };
 
     \node [anchor=west,font=\sffamily\large] (uw1) at ($(origin)+(0.75in,-7.0in)$)
-        {Computer Science Department};
+        {Computer Sciences Department};
     \node [anchor=west,font=\sffamily\large] (uw2) at ($(uw1.west)+(0in,-20pt)$)
         {University of Wisconsin--Madison};
     \node [anchor=west,font=\sffamily\large] (uw3) at ($(uw2.west)+(0in,-20pt)$)
@@ -126,15 +131,15 @@
 %        anchor=base
 %        ]
 %    {
-%        Email & \texttt{bugs@dyninst.org} \\
-%        Web & \texttt{www.dyninst.org} \\
+%        Email & \code{bugs@dyninst.org} \\
+%        Web & \code{www.dyninst.org} \\
 %    };
 
     \node [anchor=west,font=\sffamily] (email1) at ($(umd3.south west)+(-0.5em,-2.5em)$)
-        %{Email \texttt{bugs@dyninst.org}};
+        %{Email \code{bugs@dyninst.org}};
         {\begin{tabular}{ll}%
-         Email & \texttt{bugs@dyninst.org} \\
-         Web & \texttt{www.dyinst.org} \\
+         Email & \code{bugs@dyninst.org} \\
+         Web & \code{www.dyinst.org} \\
         \end{tabular}};
         
 
@@ -265,7 +270,7 @@ optional object factory and callback handlers. Any parsing hints provided
 by the CodeSource are processed, but the binary is not parsed when this
 constructor returns.
 
-\medskip\noindent The \texttt{defensiveMode}
+\medskip\noindent The \code{defensiveMode}
 parameter optionally trades off coverage for safety; this mode is not
 recommended for most applications as it makes very conservative assumptions
 about control flow transfer instructions (see Section \ref{sec:defmode}.}
@@ -281,15 +286,15 @@ new information about function locations is provided through the CodeSource.}
 \begin{apient}
 void parse(Address target, bool recursive)
 \end{apient}
-\apidesc{Parses the binary starting with the instruction at the provided target address. If \texttt{recursive} is {\scshape true}, recursive traversal parsing is used as in the default \texttt{parse()} method; otherwise only instructions reachable through intraprocedural control flow are visited.}
+\apidesc{Parses the binary starting with the instruction at the provided target address. If \code{recursive} is {\scshape true}, recursive traversal parsing is used as in the default \code{parse()} method; otherwise only instructions reachable through intraprocedural control flow are visited.}
 
 \begin{apient}
 void parse(CodeRegion * cr, Address target, bool recursive)
 \end{apient}
 \apidesc{Parses the specified core region of the binary starting with the 
-instruction at the provided target address. If \texttt{recursive} is 
+instruction at the provided target address. If \code{recursive} is 
 {\scshape true}, recursive traversal parsing is used as in the default 
-\texttt{parse()} method; otherwise only instructions reachable through 
+\code{parse()} method; otherwise only instructions reachable through 
 intraprocedural control flow are visited.
 }
 
@@ -308,17 +313,17 @@ void parseGaps(CodeRegion *cr)
 \begin{apient}
 Function * findFuncByEntry(CodeRegion * cr, Address entry)
 \end{apient}
-\apidesc{Find the function starting at address \texttt{entry} in the indicated CodeRegion. Returns {\scshape null} if no such function exists.}
+\apidesc{Find the function starting at address \code{entry} in the indicated CodeRegion. Returns {\scshape null} if no such function exists.}
 
 \begin{apient}
 int findFuncs(CodeRegion * cr, Address addr, std::set<Function*> & funcs)
 \end{apient}
-\apidesc{Finds all functions spanning \texttt{addr} in the code region, adding each to \texttt{funcs}. The number of results of this stabbing query are returned.}
+\apidesc{Finds all functions spanning \code{addr} in the code region, adding each to \code{funcs}. The number of results of this stabbing query are returned.}
 
 \begin{apient}
 int findFuncs(CodeRegion * cr, Address start, Address end, std::set<Function*> & funcs)
 \end{apient}
-\apidesc{Finds all functions overlapping the range \texttt{[start,end)} in the code region, adding each to \texttt{funcs}. The number of results of this stabbing query are returned.}
+\apidesc{Finds all functions overlapping the range \code{[start,end)} in the code region, adding each to \code{funcs}. The number of results of this stabbing query are returned.}
 
 \begin{apient}
 funclist & funcs()
@@ -328,17 +333,17 @@ funclist & funcs()
 \begin{apient}
 Block * findBlockByEntry(CodeRegion * cr, Address entry)
 \end{apient}
-\apidesc{Find the basic block starting at address \texttt{entry}. Returns {\scshape null} if no such block exists.}
+\apidesc{Find the basic block starting at address \code{entry}. Returns {\scshape null} if no such block exists.}
 
 \begin{apient}
 int findBlocks(CodeRegion * cr, Address addr, std::set<Block*> & blocks)
 \end{apient}
-\apidesc{Finds all blocks spanning \texttt{addr} in the code region, adding each to \texttt{blocks}. Multiple blocks can be returned only on platforms with variable-length instruction sets (such as IA32) for which overlapping instructions are possible; at most one block will be returned on all other platforms.}
+\apidesc{Finds all blocks spanning \code{addr} in the code region, adding each to \code{blocks}. Multiple blocks can be returned only on platforms with variable-length instruction sets (such as IA32) for which overlapping instructions are possible; at most one block will be returned on all other platforms.}
 
 \begin{apient}
 Block * findNextBlock(CodeRegion * cr, Address addr)
 \end{apient}
-\apidesc{Find the next reachable basic block starting at address \texttt{entry}. Returns {\scshape null} if no such block exists.}
+\apidesc{Find the next reachable basic block starting at address \code{entry}. Returns {\scshape null} if no such block exists.}
 
 \begin{apient}
 CodeSource * cs()
@@ -358,7 +363,7 @@ bool defensiveMode()
 \begin{apient}
 bool isIATcall(Address insn, std::string &calleeName)
 \end{apient}
-\apidesc{Returns a boolean specifying if the address at \texttt{addr} is located at the call named in \texttt{calleeName}. }
+\apidesc{Returns a boolean specifying if the address at \code{addr} is located at the call named in \code{calleeName}. }
 
 \begin{apient}
 void startCallbackBatch()
@@ -378,7 +383,7 @@ void registerCallback(ParseCallback * cb)
 \begin{apient}
 void unregisterCallback(ParseCallback * cb)
 \end{apient}
-\apidesc{Removes the callback \texttt{cb} from the callback batch. This callback will no longer be exectued when 
+\apidesc{Removes the callback \code{cb} from the callback batch. This callback will no longer be exectued when 
 startCallbackBatch() is exectued.}
 
 \begin{apient}
@@ -484,7 +489,7 @@ Address high()
 \begin{apient}
 bool contains(Address addr)
 \end{apient}
-\apidesc{Returns {\scshape true} if $\texttt{addr} \in [\texttt{low()},\texttt{high()})$, {\scshape false} otherwise.}
+\apidesc{Returns {\scshape true} if $\code{addr} \in [\code{low()},\code{high()})$, {\scshape false} otherwise.}
 
 \subsection{Class Function}
 
@@ -506,7 +511,7 @@ ONDEMAND & dynamically discovered at runtime \\
 \end{tabular}
 \end{center}
 
-\apidesc{Return type of function \texttt{src()} see description below.}
+\apidesc{Return type of function \code{src()} see description below.}
 
 \begin{center}
 \begin{tabular}{ll}
@@ -521,7 +526,7 @@ RETURN & may return \\
 \end{tabular}
 \end{center}
 
-\apidesc{Return type of function \texttt{retstatus()}, see description below.}
+\apidesc{Return type of function \code{retstatus()}, see description below.}
 
 \begin{apient}
 typedef std::vector<Block*> blocklist
@@ -532,8 +537,8 @@ typedef std::set<Edge*> edgelist
 \begin{apient}
 Function(Address addr, string name, CodeObject * obj, CodeRegion * region, InstructionSource * isource);
 \end{apient}
-\apidesc{Creates a function at \texttt{addr} in the code region specified. 
-Insructions for this function are given in \texttt{isource}.}
+\apidesc{Creates a function at \code{addr} in the code region specified. 
+Insructions for this function are given in \code{isource}.}
 
 \begin{apient}
 const string & name()
@@ -598,12 +603,12 @@ edgelist & callEdges()
 \begin{apient}
 blocklist & returnBlocks()
 \end{apient}
-\apidesc{Returns a list of all blocks ending in a \texttt{return} instruction.}
+\apidesc{Returns a list of all blocks ending in a \code{return} instruction.}
 
 \begin{apient}
 blocklist & exitBlocks()
 \end{apient}
-\apidesc{Returns a list of all blocks ending in a \texttt{call} instruction.}
+\apidesc{Returns a list of all blocks ending in a \code{call} instruction.}
 
 \begin{apient}
 std::vector<FuncExtent *> const& extents()
@@ -630,12 +635,12 @@ bool cleansOwnStack()
 \begin{apient}
 void setEntryBlock(block * new_entry
 \end{apient}
-\apidesc{Set the entry block for this function to \texttt{new_entry}.}
+\apidesc{Set the entry block for this function to \code{new\_entry}.}
 
 \begin{apient}
 void set_retstatus(FuncReturnStatus rs)
 \end{apient}
-\apidesc{Set the return status for the function to \texttt{rs}}
+\apidesc{Set the return status for the function to \code{rs}}
 
 \begin{apient}
 void removeBlock( Block* )
@@ -705,7 +710,7 @@ Address last()
 \begin{apient}
 Address size()
 \end{apient}
-\apidesc{Returns $\texttt{end()} - \texttt{start()}$.}
+\apidesc{Returns $\code{end()} - \code{start()}$.}
 
 \begin{apient}
 bool parsed()
@@ -735,7 +740,7 @@ edgelist & targets()
 \begin{apient}
 bool consistent(Address addr, Address & prev_insn)
 \end{apient}
-\apidesc{Check whether address \texttt{addr} is \emph{consistent} with this basic block. An address is consistent if it is the boundary between two instructions in the block. As long as \texttt{addr} is within the range of the block, \texttt{prev\_insn} will contain the address of the previous instruction boundary before \texttt{addr}, regardless of whether \texttt{addr} is consistent or not.}
+\apidesc{Check whether address \code{addr} is \emph{consistent} with this basic block. An address is consistent if it is the boundary between two instructions in the block. As long as \code{addr} is within the range of the block, \code{prev\_insn} will contain the address of the previous instruction boundary before \code{addr}, regardless of whether \code{addr} is consistent or not.}
 
 \begin{apient}
 int containingFuncs()
@@ -758,7 +763,7 @@ fallthrough} edge that indicates where straight-line control flow is split by
 incoming transfers from another location, such as a branch. While not all
 blocks end in a control transfer instruction, all control transfer instructions
 end basic blocks and have outgoing edges; in the case of unresolvable control
-flow, the edge will target a special ``sink'' block (see \texttt{sinkEdge()},
+flow, the edge will target a special ``sink'' block (see \code{sinkEdge()},
 below.
 
 \begin{center}
@@ -810,11 +815,11 @@ bool interproc()
 \definedin{CFG.h}
 
 Edge predicates control iteration over edges. For example, the provided
-\texttt{Intraproc} edge predicate can be passed to an edge iterator
+\code{Intraproc} edge predicate can be passed to an edge iterator
 constructor, ensuring that only intraprocedural edges are visited during
 iteration. Two other implementations of EdgePredicate are provided: 
-\texttt{SingleContext} only visits edges that stay in a single
-function context, and \texttt{NoSinkPredicate} does not visit edges to 
+\code{SingleContext} only visits edges that stay in a single
+function context, and \code{NoSinkPredicate} does not visit edges to 
 the \emph{sink} block.  The following code traverses 
 all of the basic blocks within a
 function:
@@ -873,7 +878,7 @@ struct default_details {
     bool isbranch;
 }
 \end{apient}
-\apidesc{Details used in the \texttt{unresolved\_cf} and \texttt{abruptEnd\_cf}
+\apidesc{Details used in the \code{unresolved\_cf} and \code{abruptEnd\_cf}
 callbacks.}
 
 \begin{apient}
@@ -912,7 +917,7 @@ struct interproc_details {
     } data;
 }
 \end{apient}
-\apidesc{Details used in the \texttt{interproc\_cf} callback.}
+\apidesc{Details used in the \code{interproc\_cf} callback.}
 
 \begin{apient}
 void overlapping_blocks(Block*,Block*)
@@ -934,7 +939,7 @@ container type (e.g. storage order) unless that property is explicity stated in
 this manual.
 
 \noindent
-ContainerWrapper containers export the following interface (\texttt{iterator} types vary depending on the template parameters of the ContainerWrapper, but are always instantiations of the PredicateIterator described below):
+ContainerWrapper containers export the following interface (\code{iterator} types vary depending on the template parameters of the ContainerWrapper, but are always instantiations of the PredicateIterator described below):
 
 \begin{apient}
 iterator begin()
@@ -958,7 +963,7 @@ bool empty()
 \apidesc{Indicates whether the container is empty or not.}
 
 \noindent
-The elements in ParseAPI containers can be accessed by iteration using an instantiation of the PredicateIterator. These iterators can optionally act as filters, evaluating a boolean predicate for each element and only returning those elements for which the predicate returns {\scshape true}. \emph{Iterators with non-{\scshape null} predicates may return fewer elements during iteration than their \texttt{size()} method indicates.} Currently PredicateIterators only support forward iteration. The operators \texttt{++} (prefix and postfix), \texttt{==}, \texttt{!=}, and \texttt{*} (dereference) are supported.
+The elements in ParseAPI containers can be accessed by iteration using an instantiation of the PredicateIterator. These iterators can optionally act as filters, evaluating a boolean predicate for each element and only returning those elements for which the predicate returns {\scshape true}. \emph{Iterators with non-{\scshape null} predicates may return fewer elements during iteration than their \code{size()} method indicates.} Currently PredicateIterators only support forward iteration. The operators \code{++} (prefix and postfix), \code{==}, \code{!=}, and \code{*} (dereference) are supported.
 
 
 \appendix
@@ -1067,17 +1072,17 @@ virtual Function * mkfunc(Address addr,
     CodeRegion * region,
     Dyninst::InstructionSource * isrc)
 \end{apient}
-\apidesc{Returns an object derived from Function as though the provided parameters had been passed to the Function constructor. The ParseAPI parser will never invoke \texttt{mkfunc()} twice with identical \texttt{addr}, and \texttt{region} parameters---that is, Functions are guaranteed to be unique by address within a region.}
+\apidesc{Returns an object derived from Function as though the provided parameters had been passed to the Function constructor. The ParseAPI parser will never invoke \code{mkfunc()} twice with identical \code{addr}, and \code{region} parameters---that is, Functions are guaranteed to be unique by address within a region.}
 
 \begin{apient}
 virtual Block * mkblock(Function * func, CodeRegion * region, Address addr)
 \end{apient}
-\apidesc{Returns an object derived from Block as though the provided parameters had been passed to the Block constructor. The parser will never invoke \texttt{mkblock()} with identical \texttt{addr} and \texttt{region} parameters.}
+\apidesc{Returns an object derived from Block as though the provided parameters had been passed to the Block constructor. The parser will never invoke \code{mkblock()} with identical \code{addr} and \code{region} parameters.}
 
 \begin{apient}
 virtual Edge * mkedge(Block * src, Block * trg, EdgeTypeEnum type)
 \end{apient}
-\apidesc{Returns an object derived from Edge as though the provided parameters had been passed to the Edge constructor. The parser \emph{may} invoke \texttt{mkedge()} multiple times with identical parameters.}
+\apidesc{Returns an object derived from Edge as though the provided parameters had been passed to the Edge constructor. The parser \emph{may} invoke \code{mkedge()} multiple times with identical parameters.}
 
 \begin{apient}
 virtual Block * mksink(CodeObject *obj, CodeRegion *r)

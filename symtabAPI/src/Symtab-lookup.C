@@ -569,7 +569,7 @@ bool Symtab::findRegion(Region *&ret, const Offset addr, const unsigned long siz
 {
    ret = NULL;
    for(unsigned index=0;index<regions_.size();index++) {
-      if(regions_[index]->getRegionAddr() == addr && regions_[index]->getDiskSize() == size) {
+      if(regions_[index]->getRegionAddr() == addr && regions_[index]->getMemSize() == size) {
          if (ret) {
 #if 0
             cerr << "Error: region inconsistency" << endl;

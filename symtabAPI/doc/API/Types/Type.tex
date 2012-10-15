@@ -1,14 +1,4 @@
-\subsection{Type Interface}
-This section describes the type interface for the SymtabAPI library. Currently this interface has the following capabilities
-\begin{itemize}
-    \item Look up types within an object file.
-    \item Extend the types to create new types and add them to the object file.
-    \item To look up types or to add new types, the object file should already be parsed and should have a Symtab handle to the object file. 
-\end{itemize}
-    
-The rest of the section describes the classes that are part of the type interface.
-
-\subsubsection{Class Type}
+\subsection{Class Type}
 
 The class Type represents the types of variables, parameters, return values, and functions. Instances of this class can represent language predefined types (e.g. int, float), already defined types in the Object File or binary (e.g., structures compiled into the binary), or newly created types (created using the create factory methods of the corresponding type classes described later in the section) that are added to SymtabAPI by the user. 
 
@@ -163,7 +153,7 @@ typeRef *getRefType()
 If this Type object represents a Reference type, then return the object casting the Type object to typeRef otherwise return NULL.
 }
 
-\subsubsection{Class typeEnum}
+\subsection{Class typeEnum}
 This class represents an enumeration type containing a list of constants with values. This class is derived from Type, so all those member functions are applicable. typeEnum inherits from the Type class.
 
 \begin{apient}
@@ -206,7 +196,7 @@ bool isCompatible(Type *type)
  This method returns true if the enum type is compatible with the given type type or else returns false. For type compatibility rules, see 7
  }
 
- \subsubsection{Class typeFunction}
+ \subsection{Class typeFunction}
 This class represents a function type, containing a list of parameters and a return type. This class is derived from Type, so all the member functions of class Type are applicable. typeFunction inherits from the Type class.
 
 
@@ -262,7 +252,7 @@ vector< Type *> &getParams() const
 This method returns the vector containing the individual parameters represented by their types in order. Returns NULL if there are no parameters to the function type.
 }
 
-\subsubsection{Class typeScalar}
+\subsection{Class typeScalar}
 
 This class represents a scalar type. This class is derived from Type, so all the
 member functions of class Type are applicable. typeScalar inherits from the Type
@@ -293,7 +283,7 @@ bool isCompatible(Type *type)
 This method returns true if the scalar type is compatible with the given type type or else returns false. For type compatibility rules see 7.
 }
 
-\subsubsection{Class Field}
+\subsection{Class Field}
 This class represents a field in a container. For e.g. a field in a structure/union type.
 
 
@@ -345,7 +335,7 @@ This method returns the visibility associated with a field in a container.
 This returns visPublic for the variables within a common block.
 }
 
-\subsubsection{Class fieldListType}
+\subsection{Class fieldListType}
 
 This class represents a container type. It is one of the three categories of types as described in Section . The structure and the union types fall under this category. This class is derived from Type, so all the member functions of class Type are applicable. fieldListType inherits from the Type class.
 
@@ -487,7 +477,7 @@ This method returns the functions that can see this common block with the set of
 Returns true if there is at least one function, else returns false.
 }
 
-\subsubsection{Class derivedType}
+\subsection{Class derivedType}
 This class represents a derived type which is a reference to another type. It is one of the three categories of types as described in Section . The pointer, reference and the typedef types fall under this category. This class is derived from Type, so all the member functions of class Type are applicable.
 
 
@@ -571,7 +561,7 @@ bool isCompatible(Type *type)
 This method returns true if the ref type is compatible with the given type type or else returns false. For type compatibility rules see 7
 }
 
-\subsubsection{Class rangedType}
+\subsection{Class rangedType}
 This class represents a range type with a lower and an upper bound. It is one of the three categories of types as described in Section . The sub-range and the array types fall under this category. This class is derived from Type, so all the member functions of class Type are applicable.
 
 

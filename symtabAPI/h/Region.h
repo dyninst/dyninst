@@ -100,9 +100,6 @@ class Region : public AnnotatableSparse {
    SYMTAB_EXPORT bool setRegionNumber(unsigned regnumber);
    SYMTAB_EXPORT std::string getRegionName() const;
 
-   //  getRegionAddr returns diskOffset on unixes, memory offset on windows
-   SYMTAB_EXPORT Offset getRegionAddr() const;
-
    SYMTAB_EXPORT Offset getDiskOffset() const;
    SYMTAB_EXPORT unsigned long getDiskSize() const;
    SYMTAB_EXPORT unsigned long getFileOffset();

@@ -238,11 +238,7 @@ std::string Region::getRegionName() const
 
 Offset Region::getRegionAddr() const
 {
-#if defined(_MSC_VER) || defined(os_vxworks)
         return memOff_;
-#else
-        return diskOff_;
-#endif
 }
 
 Offset Region::getDiskOffset() const

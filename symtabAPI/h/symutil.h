@@ -93,7 +93,7 @@ typedef enum {
    No_Frame_Entry,
    Frame_Read_Error,
    Multiple_Region_Matches,
-	       No_Error
+   No_Error
 } SymtabError;
 
 typedef struct{

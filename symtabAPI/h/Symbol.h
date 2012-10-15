@@ -213,15 +213,6 @@ class Symbol : public Serializable,
    friend
       std::ostream& operator<< (std::ostream &os, const Symbol &s);
 
-   //////////// DEPRECATED
-   SYMTAB_EXPORT Region		   *getSec ()      	   const { return getRegion(); }
-   SYMTAB_EXPORT Offset            getAddr ()              const { return getOffset(); }
-   SYMTAB_EXPORT const std::string&getModuleName ()        const;
-   SYMTAB_EXPORT const std::string &getName() const { return getMangledName(); }
-   SYMTAB_EXPORT bool setAddr (Offset newAddr) { return setOffset(newAddr); }
-   SYMTAB_EXPORT bool	setModuleName(std::string) { return false; }
-
-
    public:
    static std::string emptyString;
    int getInternalType() { return internal_type_; }

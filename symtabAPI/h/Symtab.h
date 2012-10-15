@@ -615,27 +615,6 @@ class Symtab : public LookupInterface,
 
  private:
     unsigned _ref_cnt;
-
- public:
-   /********************************************************************/
-   /**** DEPRECATED ****************************************************/
-   /********************************************************************/
-   dyn_hash_map <std::string, Module *> &getModsByFileName()
-   {
-      return modsByFileName;
-   }
-   dyn_hash_map <std::string, Module *> &getModsByFullName()
-   {
-      return modsByFullName;
-   }
-   
-   SYMTAB_EXPORT bool findFuncByEntryOffset(std::vector<Symbol *>&ret, const Offset offset);
-   SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-                                               const std::string& name,
-                                               Symbol::SymbolType sType, 
-                                               bool isMangled = false,
-                                               bool isRegex = false, 
-                                               bool checkCase = false);
 };
 
 /**
