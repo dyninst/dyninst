@@ -107,13 +107,13 @@ AddressTranslate *sysv_process::constructTranslator(Dyninst::PID pid_)
    bool result = plat_getInterpreterBase(base);
    if (result) {
       return AddressTranslate::createAddressTranslator(pid_, procreader,
-                                                       plat_defaultSymReader(),
+                                                       getSymReader(),
                                                        INVALID_HANDLE_VALUE,
                                                        std::string(""), base);
    }
    else {
       return AddressTranslate::createAddressTranslator(pid_, procreader,
-                                                       plat_defaultSymReader());
+                                                       getSymReader());
    }
 }
 
@@ -186,12 +186,12 @@ bool sysv_process::initLibraryMechanism()
     if( translator() == NULL ) {
       createAddrTranslator();
       if (!translator() && procreader->isAsync()) {
-	pthrd_printf("Waiting for async read to finish initializing\n");
-	return false;
+         pthrd_printf("Waiting for async read to finish initializing\n");
+         return false;
       }
       if (!translator()) {
-	perr_printf("Error creating address translator object\n");
-	return false;
+         perr_printf("Error creating address translator object\n");
+         return false;
       }
     }
 

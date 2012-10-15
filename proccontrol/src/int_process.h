@@ -320,7 +320,10 @@ class int_process
                                              unsigned long &start_offset) = 0;
    virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp) = 0;
    virtual bool plat_threadOpsNeedProcStop();
+
    virtual SymbolReaderFactory *plat_defaultSymReader();
+   virtual SymbolReaderFactory *getSymReader();
+   virtual void setSymReader(SymbolReaderFactory *fact);
 
    virtual Dyninst::Address direct_infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
    virtual bool direct_infFree(Dyninst::Address addr);
@@ -481,6 +484,8 @@ class int_process
    void *user_data;
    err_t last_error;
    const char *last_error_string;
+   SymbolReaderFactory *symbol_reader;
+   static SymbolReaderFactory *user_set_symbol_reader;
 };
 
 struct ProcToIntProc {
