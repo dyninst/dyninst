@@ -1343,7 +1343,7 @@ bool linux_process::plat_detach(result_response::ptr)
    // so that we don't steal events on that process.
    GeneratorLinux* g = dynamic_cast<GeneratorLinux*>(Generator::getDefaultGenerator());
    assert(g);
-   //g->evictFromWaitpid();
+   g->evictFromWaitpid();
    
    return !had_error;
 }
