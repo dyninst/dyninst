@@ -42,14 +42,9 @@ AC_ARG_WITH(boost,
 	[BOOST_DIR="-I${withval}"],
 	[BOOST_DIR=""])
 
-CPPFLAGS_SAVED=$CPPFLAGS
-CPPFLAGS="$CPPFLAGS $BOOST_DIR"
-export CPPFLAGS
-AC_CHECK_HEADER([boost/shared_ptr.hpp],
-	[],
-	[AC_ERROR([Missing shared_ptr.hpp in boost directory])],
-	[])
-CPPFLAGS=$CPPFLAGS_SAVED
+m4_include([boost.m4])
+
+BOOST_REQUIRE([[1.42.0]])
 
 AC_SUBST(BOOST_DIR)
 

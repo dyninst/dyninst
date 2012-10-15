@@ -308,6 +308,7 @@ class DwarfHandle {
   ~DwarfHandle();
 
   Dwarf_Debug *dbg();
+  Dwarf::DwarfFrameParserPtr frameParser() { return sw; } 
 };
 
 class Object : public AObject {
@@ -520,7 +521,9 @@ class Object : public AObject {
   bool  isStripped;
   bool usesDebugFile;
 
+  public:
   DwarfHandle dwarf;
+  private:
 
   bool      EEL;                 // true if EEL rewritten
   bool 	    did_open;		// true if the file has been mmapped

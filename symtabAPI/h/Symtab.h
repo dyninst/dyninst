@@ -51,6 +51,12 @@ class MappedFile;
 #define SYM_BETA  1
  
 namespace Dyninst {
+
+namespace Dwarf {
+   class DwarfFrameParser;
+   typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
+}
+
 namespace SymtabAPI {
 
 class Archive;
@@ -83,6 +89,9 @@ class Symtab : public LookupInterface,
    friend class relocationEntry;
 
  public:
+
+   /**** DEBUG *****/
+   Dwarf::DwarfFrameParserPtr debugDwarf();
 
    /***** Public Member Functions *****/
    public:

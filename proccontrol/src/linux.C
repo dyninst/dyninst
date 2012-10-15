@@ -168,10 +168,8 @@ static void on_sigusr2(int)
    on_sigusr2_hit = 1;
 }
 
-GeneratorLinux::~GeneratorLinux()
+void GeneratorLinux::evictFromWaitpid()
 {
-   setState(exiting);
-   
    if (!generator_lwp)
       return;
    if (generator_pid != P_getpid())
@@ -210,6 +208,13 @@ GeneratorLinux::~GeneratorLinux()
       int error = errno;
       perr_printf("Error signaling generator thread: %s\n", strerror(error));
    }
+}
+
+
+GeneratorLinux::~GeneratorLinux()
+{
+   setState(exiting);
+   evictFromWaitpid();
 }
 
 DecoderLinux::DecoderLinux()
@@ -1334,6 +1339,12 @@ bool linux_process::plat_detach(result_response::ptr)
          setLastError(err_internal, "PTRACE_DETACH operation failed\n");
       }
    }
+   // Before we return from detach, make sure that we've gotten out of waitpid()
+   // so that we don't steal events on that process.
+   GeneratorLinux* g = dynamic_cast<GeneratorLinux*>(Generator::getDefaultGenerator());
+   assert(g);
+   //g->evictFromWaitpid();
+   
    return !had_error;
 }
 
