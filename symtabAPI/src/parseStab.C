@@ -447,7 +447,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
                std::vector<Function *>fpv;
                if (!mod->exec()->findFunctionsByName(fpv, symt_current_mangled_func_name))
-               //if (!mod->findSymbolByType(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true)) 
+               //if (!mod->findSymbol(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true)) 
                {
                   std::string modName = mod->fileName();
 
@@ -621,11 +621,11 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                {
                   Symtab *img = mod->exec();
                   std::vector<Symbol *>syms;
-                  if (img->findSymbolByType(syms, 
+                  if (img->findSymbol(syms, 
                                             nameTrailer,
                                             Symbol::ST_OBJECT,
                                             mangledName) ||
-		      img->findSymbolByType(syms, 
+		      img->findSymbol(syms, 
                                             nameTrailer,
                                             Symbol::ST_OBJECT, 
                                             mangledName,

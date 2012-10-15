@@ -236,11 +236,6 @@ std::string Region::getRegionName() const
     return name_;
 }
 
-Offset Region::getRegionAddr() const
-{
-        return memOff_;
-}
-
 Offset Region::getDiskOffset() const
 {
     return diskOff_;

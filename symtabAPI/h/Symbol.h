@@ -266,12 +266,13 @@ class LookupInterface
       SYMTAB_EXPORT LookupInterface();
       SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret,
             Symbol::SymbolType sType) = 0;
-      SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret,
-            const std::string& name,
-            Symbol::SymbolType sType,
-            bool isMangled = false,
-            bool isRegex = false,
-            bool checkCase = false) = 0;
+      SYMTAB_EXPORT virtual bool findSymbol(std::vector<Symbol *> &ret,
+                                            const std::string& name,
+                                            Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
+                                            NameType nameType = anyName,
+                                            bool isRegex = false,
+                                            bool checkCase = false,
+                                            bool includeUndefined = false) = 0;
       SYMTAB_EXPORT virtual bool findType(Type *&type, std::string name) = 0;
       SYMTAB_EXPORT virtual bool findVariableType(Type *&type, std::string name)= 0;
 

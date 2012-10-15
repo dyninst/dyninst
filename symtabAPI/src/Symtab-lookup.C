@@ -111,7 +111,7 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
 
        for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) {
           if (nameType & mangledName) {
-             if (regexEquiv(name, everyDefinedSymbol[i]->getName(), checkCase))
+             if (regexEquiv(name, everyDefinedSymbol[i]->getMangledName(), checkCase))
                 candidates.push_back(everyDefinedSymbol[i]);
 
           }
@@ -505,41 +505,16 @@ bool Symtab::findRegionByEntry(Region *&ret, const Offset offset)
  */
 Region *Symtab::findEnclosingRegion(const Offset where)
 {
-#if defined (os_aix) // regions overlap so do sequential search
-    // try code regions first, then data, regions_ vector as last resort
-    for (unsigned rIdx=0; rIdx < codeRegions_.size(); rIdx++) {
-        if (where >= codeRegions_[rIdx]->getRegionAddr() &&
-            where < (codeRegions_[rIdx]->getRegionAddr() 
-                     + codeRegions_[rIdx]->getMemSize())) {
-            return codeRegions_[rIdx];
-        }
-    }
-    for (unsigned rIdx=0; rIdx < dataRegions_.size(); rIdx++) {
-        if (where >= dataRegions_[rIdx]->getRegionAddr() &&
-            where < (dataRegions_[rIdx]->getRegionAddr() 
-                     + dataRegions_[rIdx]->getMemSize())) {
-            return dataRegions_[rIdx];
-        }
-    }
-    for (unsigned rIdx=0; rIdx < regions_.size(); rIdx++) {
-        if (where >= regions_[rIdx]->getRegionAddr() &&
-            where < (regions_[rIdx]->getRegionAddr() 
-                     + regions_[rIdx]->getMemSize())) {
-            return regions_[rIdx];
-        }
-    }
-    return NULL;
-#endif
     int first = 0; 
     int last = regions_.size() - 1;
     while (last >= first) {
         Region *curreg = regions_[(first + last) / 2];
-        if (where >= curreg->getRegionAddr()
-            && where < (curreg->getRegionAddr()
+        if (where >= curreg->getMemOffset()
+            && where < (curreg->getMemOffset()
                         + curreg->getMemSize())) {
             return curreg;
         }
-        else if (where < curreg->getRegionAddr()) {
+        else if (where < curreg->getMemOffset()) {
             last = ((first + last) / 2) - 1;
         }
         else {/* where >= (cursec->getSecAddr()
@@ -569,7 +544,7 @@ bool Symtab::findRegion(Region *&ret, const Offset addr, const unsigned long siz
 {
    ret = NULL;
    for(unsigned index=0;index<regions_.size();index++) {
-      if(regions_[index]->getRegionAddr() == addr && regions_[index]->getMemSize() == size) {
+      if(regions_[index]->getMemOffset() == addr && regions_[index]->getMemSize() == size) {
          if (ret) {
 #if 0
             cerr << "Error: region inconsistency" << endl;

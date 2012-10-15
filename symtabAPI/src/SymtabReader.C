@@ -242,7 +242,7 @@ Dyninst::Address SymtabReader::getSectionAddress(Section_t sec)
 {
    Region *region = (Region *) sec.v1;
    assert(region);
-   return region->getRegionAddr();
+   return region->getMemOffset();
 }
 
 std::string SymtabReader::getSectionName(Section_t sec)

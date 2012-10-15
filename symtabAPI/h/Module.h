@@ -132,12 +132,13 @@ class Module : public LookupInterface,
 	SYMTAB_EXPORT ~Module();
 
 	// Symbol output methods
-	SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-			const std::string& name,
-			Symbol::SymbolType sType, 
-			NameType nameType = anyName,
-			bool isRegex = false, 
-			bool checkCase = false);
+	SYMTAB_EXPORT virtual bool findSymbol(std::vector<Symbol *> &ret, 
+                                              const std::string& name,
+                                              Symbol::SymbolType sType = Symbol::ST_UNKNOWN, 
+                                              NameType nameType = anyName,
+                                              bool isRegex = false, 
+                                              bool checkCase = false,
+                                              bool includeUndefined = false);
 	SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
 			Symbol::SymbolType sType);
 	SYMTAB_EXPORT virtual bool getAllSymbols(std::vector<Symbol *> &ret);

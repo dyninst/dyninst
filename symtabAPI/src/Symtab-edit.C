@@ -67,7 +67,7 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
     switch (oldType) {
     case Symbol::ST_FUNCTION: {
         Function *func = NULL;
-        if (findFuncByEntryOffset(func, sym->getAddr())) {
+        if (findFuncByEntryOffset(func, sym->getOffset())) {
             // Remove this symbol from the function
             func->removeSymbol(sym);
             // What if we removed the last symbol from the function?
@@ -78,7 +78,7 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
     case Symbol::ST_TLS:
     case Symbol::ST_OBJECT: {
         Variable *var = NULL;
-        if (findVariableByOffset(var, sym->getAddr())) {
+        if (findVariableByOffset(var, sym->getOffset())) {
             var->removeSymbol(sym);
             // See above
         }

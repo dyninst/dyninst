@@ -56,29 +56,3 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
-
-extern SymtabError serr;
-
-bool Symtab::findFuncByEntryOffset(std::vector<Symbol *>& ret, const Offset entry)
-{
-    Function *func;
-    if (!findFuncByEntryOffset(func, entry)) {
-        serr = No_Such_Function;
-        return false;
-    }
-    func->getSymbols(ret);
-    return true;
-}
-
-bool Symtab::findSymbolByType(std::vector<Symbol *> &ret,
-                              const std::string& name,
-                              Symbol::SymbolType sType,
-                              bool isMangled,
-                              bool isRegex,
-                              bool checkCase) {
-    NameType nameType;
-    if (isMangled) nameType = mangledName;
-    else nameType = prettyName;
-
-    return findSymbol(ret, name, sType, nameType, isRegex, checkCase);
-}

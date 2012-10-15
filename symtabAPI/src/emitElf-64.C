@@ -248,20 +248,20 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
   if (symbol->getPtrOffset()) {
     sym->st_value = symbol->getPtrOffset() + library_adjust;
   }
-  else if (symbol->getAddr()) {
-       sym->st_value = symbol->getAddr() + library_adjust;
+  else if (symbol->getOffset()) {
+       sym->st_value = symbol->getOffset() + library_adjust;
   }
 
   sym->st_size = symbol->getSize();
   sym->st_other = ELF64_ST_VISIBILITY(elfSymVisibility(symbol->getVisibility()));
   sym->st_info = (unsigned char) ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType(symbol));
 
-  if (symbol->getSec())
+  if (symbol->getRegion())
     {
 #if defined(os_freebsd)
-      sym->st_shndx = (Elf64_Half) symbol->getSec()->getRegionNumber();
+      sym->st_shndx = (Elf64_Half) symbol->getRegion()->getRegionNumber();
 #else
-      sym->st_shndx = (Elf64_Section) symbol->getSec()->getRegionNumber();
+      sym->st_shndx = (Elf64_Section) symbol->getRegion()->getRegionNumber();
 #endif
     }
   else if (symbol->isAbsolute())
@@ -277,7 +277,7 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
 
   if (dynSymFlag) 
     {
-      //printf("dynamic symbol: %s\n", symbol->getName().c_str());
+      //printf("dynamic symbol: %s\n", symbol->getMangledName().c_str());
 
       char msg[2048];
       char *mpos = msg;
@@ -306,7 +306,7 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
 	      if (vers->size() > 0)
 		{
 		  // new verdef entry
-		  mpos += sprintf(mpos, "verdef: symbol=%s  version=%s ", symbol->getName().c_str(), (*vers)[0].c_str());
+		  mpos += sprintf(mpos, "verdef: symbol=%s  version=%s ", symbol->getMangledName().c_str(), (*vers)[0].c_str());
 		  if (verdefEntries.find((*vers)[0]) != verdefEntries.end())
 		    {
 		      unsigned short index = verdefEntries[(*vers)[0]];
@@ -346,7 +346,7 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
 	{           
 	  //verneed entry
 	  mpos += sprintf(mpos, "need: symbol=%s    filename=%s\n", 
-			  symbol->getName().c_str(), fileName.c_str());
+			  symbol->getMangledName().c_str(), fileName.c_str());
 
 	  vector<string> *vers;
 
@@ -1760,12 +1760,12 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   for(i=0; i<allSymSymbols.size();i++) {
     //allSymSymbols[i]->setStrIndex(symbolNamesLength);
     createElfSymbol(allSymSymbols[i], symbolNamesLength, symbols);
-    symbolStrs.push_back(allSymSymbols[i]->getName());
-    symbolNamesLength += allSymSymbols[i]->getName().length()+1;
+    symbolStrs.push_back(allSymSymbols[i]->getMangledName());
+    symbolNamesLength += allSymSymbols[i]->getMangledName().length()+1;
   }
   for(i=0; i<allDynSymbols.size();i++) {
     createElfSymbol(allDynSymbols[i], allDynSymbols[i]->getStrIndex(), dynsymbols, true);
-    dynSymNameMapping[allDynSymbols[i]->getName().c_str()] = allDynSymbols[i]->getIndex();
+    dynSymNameMapping[allDynSymbols[i]->getMangledName().c_str()] = allDynSymbols[i]->getIndex();
     dynsymVector.push_back(allDynSymbols[i]);
   }
 
@@ -1965,9 +1965,9 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
           for(newRegIter = newRegs.begin(); newRegIter != newRegs.end();
               ++newRegIter)
           {
-              if( (*newRegIter)->getRegionAddr() > lastRegionAddr ) {
-                  lastRegionAddr = (*newRegIter)->getRegionAddr();
-                  lastRegionSize = (*newRegIter)->getMemSize();
+              if( (*newRegIter)->getDiskOffset() > lastRegionAddr ) {
+                  lastRegionAddr = (*newRegIter)->getDiskOffset();
+                  lastRegionSize = (*newRegIter)->getDiskSize();
               }
           }
 
@@ -2337,13 +2337,13 @@ void emitElf64::createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigne
   hashsecData[1] = (Elf64_Word)nchains;
   i = 0;
   for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++, i++) {
-    if((*iter)->getName().empty()) continue;
+    if((*iter)->getMangledName().empty()) continue;
     unsigned index = (*iter)->getIndex();
     if ((find(originalHashEntries.begin(),originalHashEntries.end(),index) == originalHashEntries.end()) && 
 	(index < obj->getObject()->getDynsymSize())) {
 	continue;
     }
-    key = elfHash((*iter)->getName().c_str()) % nbuckets;
+    key = elfHash((*iter)->getMangledName().c_str()) % nbuckets;
     if (lastHash.find(key) != lastHash.end()) {
       hashsecData[2+nbuckets+lastHash[key]] = i;
     }
