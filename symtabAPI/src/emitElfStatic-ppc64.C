@@ -215,29 +215,23 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 					      relOffset, globalOffset);
 	}
 
-#if 0
-	// I don't think we want this; I haven't even seen a .toc section so it's a noop 
-	// and a bad idea -- bernat
-//	printf("Original symbol offset 0x%lx \n", symbolOffset);
 	// If symbol is .toc, we must return the got offset
     	if(rel.getRelType() == R_PPC64_TOC16_DS || rel.getRelType() == R_PPC64_TOC16) {
-	  // I don't think we want this anymore. 
-		vector<Region *> allRegions;
-        	srcSymtab->getAllRegions(allRegions);
-		vector<Region *>::iterator region_it;
-        	for(region_it = allRegions.begin(); region_it != allRegions.end(); ++region_it) {
-//			printf("srcSymtab %s regions %s \n", srcSymtab->name().c_str(), (*region_it)->getRegionName().c_str());
-			if((*region_it)->getRegionName().compare(".toc") == 0) {
-				map<Region *, LinkMap::AllocPair>::iterator result = lmap.regionAllocs.find(*region_it);
-		            	if( result != lmap.regionAllocs.end() ) {
-		                	Offset regionOffset = result->second.second;
-					symbolOffset = globalOffset + regionOffset;
-					rewrite_printf("\tregionOffset 0x%lx symbolOffset 0x%lx \n", regionOffset, symbolOffset);
-			    	}
-			}
-		}
+	  vector<Region *> allRegions;
+	  srcSymtab->getAllRegions(allRegions);
+	  vector<Region *>::iterator region_it;
+	  for(region_it = allRegions.begin(); region_it != allRegions.end(); ++region_it) {
+	    if((*region_it)->getRegionName().compare(".toc") == 0) {
+	      map<Region *, LinkMap::AllocPair>::iterator result = lmap.regionAllocs.find(*region_it);
+	      if( result != lmap.regionAllocs.end() ) {
+		Offset regionOffset = result->second.second;
+		symbolOffset = globalOffset + regionOffset;
+		rewrite_printf("\tregionOffset 0x%lx symbolOffset 0x%lx \n", regionOffset, symbolOffset);
+		break;
+	      }
+	    }
+	  }
     	}
-#endif
 
         rewrite_printf("\trelocation for '%s': TYPE = %s(%lu) S = %lx A = %lx P = %lx Total 0x%lx \n",
                 rel.name().c_str(), 
@@ -1259,7 +1253,7 @@ bool emitElfStatic::handleInterModuleSpecialCase(Symtab *target,
   unsigned int call = *((unsigned int *)td);
   rewrite_printf("\t Raw original call is 0x%lx...", call);
   // 6 bits in, 24 bits long
-  call = setBits(call, 6, 24, (unsigned) (branchOffset >> 2));
+  call = setBits(call, 6, 24, (unsigned) (branchOffset));
   rewrite_printf("and patched 0x%lx\n", call);
   memcpy(td, &call, sizeof(Elf64_Word));
   
