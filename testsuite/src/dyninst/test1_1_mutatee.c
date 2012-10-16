@@ -57,19 +57,23 @@ static int globalVariable1_1 = 0;
 /* Function definitions follow */
 
 void test1_1_call1_1() {
+  fprintf(stderr, "test1_1_call1_1\n");
   dprintf("call1() called - setting globalVariable1_1 = 11\n");
   globalVariable1_1 = 11;
 }
 
 static void func1_2() {
+  fprintf(stderr, "test1_1_func1_2\n");
   dprintf("func1_2 () called\n");
+
 }
 
 void test1_1_func1_1() {
+  fprintf(stderr, "test1_1_func1_1\n");
   dprintf("Value of globalVariable1_1 is %d.\n", globalVariable1_1);
 
   func1_2();
-
+  fprintf(stderr, "test1_1_func1_1, post\n");
   dprintf("Value of globalVariable1_1 is now %d.\n", globalVariable1_1);
 
   if (globalVariable1_1 == 11) {

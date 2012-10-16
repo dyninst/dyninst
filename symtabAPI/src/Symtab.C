@@ -3284,7 +3284,7 @@ SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, std::string
    dynref_(dynref), 
    relType_(relType)
 {
-}   
+}
 
 SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add, 
       std::string n, Symbol *dynref, unsigned long relType) :

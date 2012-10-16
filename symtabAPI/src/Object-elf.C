@@ -2055,11 +2055,12 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym)
   }
   assert(i < regions_.size());
   retval->setSymbolType(Symbol::ST_FUNCTION);
+#if 0
   retval->tag_ = Symbol::TAG_INTERNAL;  // Not sure if this is an appropriate
                                         // use of the tag field, but we need
                                         // to mark this symbol somehow as a
                                         // fake.
-
+#endif
   ///* DEBUG */ fprintf(stderr, "addr:0x%lx ptr_addr:0x%lx toc:0x%lx section:%s\n", opd_entry[0], soffset, opd_entry[1], regions_[i]->getRegionName().c_str());
   return retval;
 }
@@ -5367,8 +5368,12 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
         std::vector<Symbol *>::iterator sym_it;
         for(sym_it = symVec_it->second.begin(); sym_it != symVec_it->second.end(); ++sym_it) {
             // Skip any symbols pointing to the undefined symbol entry
-            if( (*sym_it)->getIndex() == STN_UNDEF ) continue;
-            if( (*sym_it)->tag() == Symbol::TAG_INTERNAL ) continue;
+	  if( (*sym_it)->getIndex() == STN_UNDEF ) {
+	    continue;
+	  }
+	  if( (*sym_it)->tag() == Symbol::TAG_INTERNAL ) {
+	    continue;
+	  }
 
             std::pair<dyn_hash_map<int, Symbol *>::iterator, bool> result;
             if( (*sym_it)->isInDynSymtab() ) {
@@ -5445,7 +5450,6 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                 }
             }else if( strtab && curSymHdr->sh_offset() == symtab_offset ) {
                 name = string( &strtab[symtab.st_name(symbol_index)] );
-
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
                 sym_it = symtabByIndex.find(symbol_index);
                 if( sym_it != symtabByIndex.end() ) {
@@ -5467,7 +5471,6 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 
             relocationEntry newrel(0, relOff, addend, name, sym, relType, regType);
             region->addRelocationEntry(newrel);
-	    
             // relocations are also stored with their targets
             // Need to find target region
 	    if (sym) {
@@ -5477,7 +5480,6 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 		if( shToReg_it != shToRegion.end() ) {
 		  targetRegion = shToReg_it->second;
 		}
-		
 		assert(targetRegion != NULL);
 		targetRegion->addRelocationEntry(newrel);
 	      }

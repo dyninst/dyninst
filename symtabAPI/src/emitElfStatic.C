@@ -1159,8 +1159,10 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
                     Offset dest = regionOffset + rel_it->rel_addr();
                     Offset relOffset = globalOffset + dest;
 
-		    rewrite_printf("\tComputing relocations to apply to region: %s @ 0x%lx reloffset 0x%lx dest 0x%lx  \n\n",
-				   (*region_it)->getRegionName().c_str(), regionOffset, 
+		    rewrite_printf("Computing relocations to apply to region: %s (%s) @ 0x%lx reloffset 0x%lx dest 0x%lx  \n\n",
+				   (*region_it)->getRegionName().c_str(), 
+				   (*region_it)->symtab()->file().c_str(),
+				   regionOffset, 
 				   relOffset,
 				   dest);
 		    rewrite_printf("\t RelOffset computed as region 0x%lx + rel_addr 0x%lx + globalOffset 0x%lx\n",

@@ -690,6 +690,11 @@ linker_stub_t checkLinkerStub(void *insn_buf, Offset &off)
 
 bool IA_IAPI::isLinkerStub() const
 {
+  // Disabling this code because it ends with an
+  // incorrect CFG. 
+
+  return false;
+
     if (validLinkerStubState)
         return cachedLinkerStubState;
 
