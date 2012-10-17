@@ -1747,11 +1747,12 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
                                                reg)) assert(0);
          assert(reg != REG_NULL);
          emitPushReg64(reg, gen);
+         gen.rs()->freeRegister(reg);
          frame_size++;
       }
       else
       {
-         if (gen.rs()->allocateSpecificRegister(gen, (unsigned) amd64_arg_regs[u], true))
+          if (gen.rs()->allocateSpecificRegister(gen, (unsigned) amd64_arg_regs[u], true))
             reg = amd64_arg_regs[u];
          else {
             cerr << "Error: tried to allocate register " << amd64_arg_regs[u] << " and failed!" << endl;
@@ -1778,7 +1779,10 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
    emitCallInstruction(gen, callee, REG_NULL);
 
    // Now clear whichever registers were "allocated" for a return value
+   // Don't do that for stack-pushed operands; they've already been freed.
    for (unsigned i = 0; i < operands.size(); i++) {
+      if (i == AMD64_ARG_REGS) break;
+
       if (operands[i]->decRefCount())
          gen.rs()->freeRegister(amd64_arg_regs[i]);
    }
