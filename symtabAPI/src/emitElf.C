@@ -272,19 +272,19 @@ bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sy
   Elf32_Sym *sym = new Elf32_Sym();
   sym->st_name = strIndex;
 
-  sym->st_value = symbol->getAddr();
-  if (symbol->getAddr())
-       sym->st_value = symbol->getAddr() + library_adjust;
+  sym->st_value = symbol->getOffset();
+  if (symbol->getOffset())
+       sym->st_value = symbol->getOffset() + library_adjust;
   sym->st_size = symbol->getSize();
   sym->st_other = ELF32_ST_VISIBILITY(elfSymVisibility(symbol->getVisibility()));
   sym->st_info = (unsigned char) ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol));
 
-  if (symbol->getSec())
+  if (symbol->getRegion())
     {
 #if defined(os_freebsd)
-      sym->st_shndx = (Elf32_Half) symbol->getSec()->getRegionNumber();
+      sym->st_shndx = (Elf32_Half) symbol->getRegion()->getRegionNumber();
 #else
-      sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
+      sym->st_shndx = (Elf32_Section) symbol->getRegion()->getRegionNumber();
 #endif
     }
   else if (symbol->isAbsolute())
@@ -329,7 +329,7 @@ bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sy
 	      if (vers->size() > 0)
 		{
 		  // new verdef entry
-		  mpos += sprintf(mpos, "verdef: symbol=%s  version=%s ", symbol->getName().c_str(), (*vers)[0].c_str());
+		  mpos += sprintf(mpos, "verdef: symbol=%s  version=%s ", symbol->getMangledName().c_str(), (*vers)[0].c_str());
 		  if (verdefEntries.find((*vers)[0]) != verdefEntries.end())
 		    {
 		      unsigned short index = verdefEntries[(*vers)[0]];
@@ -369,7 +369,7 @@ bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sy
 	{           
 	  //verneed entry
 	  mpos += sprintf(mpos, "need: symbol=%s    filename=%s\n", 
-			  symbol->getName().c_str(), fileName.c_str());
+			  symbol->getMangledName().c_str(), fileName.c_str());
 
 	  vector<string> *vers;
 
@@ -1905,12 +1905,12 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   for(i=0; i<allSymSymbols.size();i++) {
     //allSymSymbols[i]->setStrIndex(symbolNamesLength);
     createElfSymbol(allSymSymbols[i], symbolNamesLength, symbols);
-    symbolStrs.push_back(allSymSymbols[i]->getName());
-    symbolNamesLength += allSymSymbols[i]->getName().length()+1;
+    symbolStrs.push_back(allSymSymbols[i]->getMangledName());
+    symbolNamesLength += allSymSymbols[i]->getMangledName().length()+1;
   }
   for(i=0; i<allDynSymbols.size();i++) {
     createElfSymbol(allDynSymbols[i], allDynSymbols[i]->getStrIndex(), dynsymbols, true);
-    dynSymNameMapping[allDynSymbols[i]->getName().c_str()] = allDynSymbols[i]->getIndex();
+    dynSymNameMapping[allDynSymbols[i]->getMangledName().c_str()] = allDynSymbols[i]->getIndex();
     dynsymVector.push_back(allDynSymbols[i]);
   }
 
@@ -2116,9 +2116,10 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
           for(newRegIter = newRegs.begin(); newRegIter != newRegs.end();
               ++newRegIter)
           {
-              if( (*newRegIter)->getRegionAddr() > lastRegionAddr ) {
-                  lastRegionAddr = (*newRegIter)->getRegionAddr();
-                  lastRegionSize = (*newRegIter)->getMemSize();
+              if( (*newRegIter)->getDiskOffset() > lastRegionAddr ) {
+                  lastRegionAddr = (*newRegIter)->getDiskOffset();
+                  // FIXME: this was memSize, but seems like it should be diskSize
+                  lastRegionSize = (*newRegIter)->getDiskSize();
               }
           }
 
@@ -2475,13 +2476,13 @@ void emitElf::createHashSection(Symtab *obj, Elf32_Word *&hashsecData, unsigned 
   hashsecData[1] = (Elf32_Word)nchains;
   i = 0;
   for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++, i++) {
-    if((*iter)->getName().empty()) continue;
+    if((*iter)->getMangledName().empty()) continue;
     unsigned index = (*iter)->getIndex();
     if ((find(originalHashEntries.begin(),originalHashEntries.end(),index) == originalHashEntries.end()) && 
 	(index < obj->getObject()->getDynsymSize())) {
 	continue;
     }
-    key = elfHash((*iter)->getName().c_str()) % nbuckets;
+    key = elfHash((*iter)->getMangledName().c_str()) % nbuckets;
     if (lastHash.find(key) != lastHash.end()) {
       hashsecData[2+nbuckets+lastHash[key]] = i;
       //printf("hash entry:  %d: %s  =>  %u (%u)\n", (*iter)->getIndex(), (*iter)->getName().c_str(), key, nbuckets+lastHash[key]);

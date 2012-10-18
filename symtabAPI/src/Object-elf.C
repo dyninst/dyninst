@@ -221,8 +221,8 @@ Elf_X_Shdr *Object::getRegionHdrByIndex(unsigned index)
 bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned segPerms){
   bool present = false;
   for(unsigned i = 0; i < regions_.size() ;i++){
-    if((regions_[i]->getRegionAddr() >= segmentStart) && 
-       ((regions_[i]->getRegionAddr()+regions_[i]->getDiskSize()) <= (segmentStart+segmentSize))){
+    if((regions_[i]->getDiskOffset() >= segmentStart) && 
+       ((regions_[i]->getDiskOffset()+regions_[i]->getDiskSize()) <= (segmentStart+segmentSize))){
       present = true;
       regions_[i]->setRegionPermissions(getSegmentPerms(segPerms));
     }
@@ -957,8 +957,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   sort(allRegionHdrs.begin(), allRegionHdrs.end(), SectionHeaderSortFunction());
 
   for (unsigned j = 0 ; j < regions_.size() ; j++) {
-    if (secAddrTagMapping.find(regions_[j]->getRegionAddr()) != secAddrTagMapping.end()) {
-      secTagRegionMapping[secAddrTagMapping[regions_[j]->getRegionAddr()]] = regions_[j];
+    if (secAddrTagMapping.find(regions_[j]->getDiskOffset()) != secAddrTagMapping.end()) {
+      secTagRegionMapping[secAddrTagMapping[regions_[j]->getDiskOffset()]] = regions_[j];
     }
   }
 
@@ -1919,7 +1919,7 @@ bool lookUpSymbol( std::vector< Symbol *>& allsymbols, Offset& addr )
 {
   for( unsigned i = 0; i < allsymbols.size(); i++ )
     {
-      if( allsymbols[ i ]->getAddr() == addr )
+      if( allsymbols[ i ]->getOffset() == addr )
 	{
 	  return true;
 	}
@@ -2015,7 +2015,7 @@ void Object::handle_opd_relocations(){
       if((*sym_it)->getPtrOffset() == (*rel_it).rel_addr()) {
 	i = 0;
 	while (i < regions_.size()) {
-	  if(regions_[i]->getRegionName().compare((*rel_it).getDynSym()->getName()) == 0){
+	  if(regions_[i]->getRegionName().compare((*rel_it).getDynSym()->getMangledName()) == 0){
 	    Region *targetRegion = regions_[i];
 	    Offset regionOffset = targetRegion->getDiskOffset()+(*rel_it).addend();
 	    (*sym_it)->setRegion(targetRegion);
@@ -2151,7 +2151,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 
     	  if(stype == Symbol::ST_SECTION && sec != NULL) {
 	  	  	sname = sec->getRegionName();
-			soffset = sec->getRegionAddr();
+			soffset = sec->getDiskOffset();
           } 
 
          if (stype == Symbol::ST_MODULE) {
@@ -3116,7 +3116,8 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 		/* If there's only one, apply regardless. */
 		if ( syms.size() == 1 ) 
                   { 
-		    symbols_[SymName][0]->setModuleName(module); 
+                     // TODO: set module
+//		    symbols_[SymName][0]->setModuleName(module); 
                   }
 		else 
                   {
@@ -3124,7 +3125,8 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 		      {
                         if ( syms[i]->getLinkage() == Symbol::SL_GLOBAL ) 
 			  {
-			    symbols_[SymName][i]->setModuleName(module);
+                             // TODO: set module
+//			    symbols_[SymName][i]->setModuleName(module);
 			    count++;
 			  }
 		      }
@@ -5065,16 +5067,16 @@ void Object::parseStabTypes(Symtab *obj)
 	  currentFunctionName = new string(tmp);
 	  // Shouldn't this be a function name lookup?
 	  std::vector<Symbol *>syms;
-	  if(!obj->findSymbolByType(syms, 
+	  if(!obj->findSymbol(syms, 
 				    *currentFunctionName, 
 				    Symbol::ST_FUNCTION,
 				    mangledName)) {
-	    if(!obj->findSymbolByType(syms, 
+	    if(!obj->findSymbol(syms, 
 				      "_"+*currentFunctionName, 
 				      Symbol::ST_FUNCTION,
 				      mangledName)) {
 	      string fortranName = *currentFunctionName + string("_");
-	      if (obj->findSymbolByType(syms, 
+	      if (obj->findSymbol(syms, 
 					fortranName,
 					Symbol::ST_FUNCTION,
 					mangledName)) {
@@ -5104,11 +5106,11 @@ void Object::parseStabTypes(Symtab *obj)
 
 	//TODO? change this. findLocalVar will cause an infinite loop
 	std::vector<Symbol *>vars;
-	if(!obj->findSymbolByType(vars, 
+	if(!obj->findSymbol(vars, 
 				  *commonBlockName, 
 				  Symbol::ST_OBJECT,
 				  mangledName)) {
-	  if(!obj->findSymbolByType(vars, 
+	  if(!obj->findSymbol(vars, 
 				    *commonBlockName, 
 				    Symbol::ST_OBJECT,
 				    mangledName,
@@ -5136,11 +5138,11 @@ void Object::parseStabTypes(Symtab *obj)
       case N_ECOMM: {
 	//copy this set of fields
 	assert(currentFunctionName);
-	if(!obj->findSymbolByType(bpfv, 
+	if(!obj->findSymbol(bpfv, 
 				  *currentFunctionName, 
 				  Symbol::ST_FUNCTION,
 				  mangledName)) {
-	  if(!obj->findSymbolByType(bpfv, 
+	  if(!obj->findSymbol(bpfv, 
 				    *currentFunctionName, 
 				    Symbol::ST_FUNCTION, 
 				    mangledName,
@@ -5149,7 +5151,7 @@ void Object::parseStabTypes(Symtab *obj)
 	  }
 	  else{
 	    Symbol *func = bpfv[0];
-	    commonBlock->endCommonBlock(func, (void *)commonBlockVar->getAddr());
+	    commonBlock->endCommonBlock(func, (void *)commonBlockVar->getOffset());
 	  }    
 	} else {
 	  if (bpfv.size() > 1) {
@@ -5158,7 +5160,7 @@ void Object::parseStabTypes(Symtab *obj)
 	    //                     __FILE__, __LINE__, bpfv.size(), currentFunctionName->c_str());
 	  }
 	  Symbol *func = bpfv[0];
-	  commonBlock->endCommonBlock(func, (void *)commonBlockVar->getAddr());
+	  commonBlock->endCommonBlock(func, (void *)commonBlockVar->getOffset());
 	}
 	//TODO?? size for local variables??
 	//       // update size if needed
@@ -5445,7 +5447,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                 if( sym_it != dynsymByIndex.end() ) {
                     sym = sym_it->second;
    	 	    if(sym->getType() == Symbol::ST_SECTION) {
-			name = sym->getSec()->getRegionName().c_str();
+			name = sym->getRegion()->getRegionName().c_str();
 	            }		 
                 }
             }else if( strtab && curSymHdr->sh_offset() == symtab_offset ) {
@@ -5455,7 +5457,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                 if( sym_it != symtabByIndex.end() ) {
                     sym = sym_it->second;
    	 	    if(sym->getType() == Symbol::ST_SECTION) {
-			name = sym->getSec()->getRegionName().c_str();
+			name = sym->getRegion()->getRegionName().c_str();
 		    }
                 }
             }

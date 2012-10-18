@@ -530,7 +530,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // Now, we need to copy in the memory of the new segments
       for (unsigned i = 0; i < oldSegs.size(); i++) {
          codeRange *segRange = NULL;
-         if (!memoryTracker_->find(oldSegs[i]->getRegionAddr(), segRange)) {
+         if (!memoryTracker_->find(oldSegs[i]->getMemOffset(), segRange)) {
 #if 0
             // Looks like BSS
             if (newSegs[i].name == ".bss")
@@ -544,7 +544,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 	 memoryTracker* mt = dynamic_cast<memoryTracker*>(segRange);
 	 assert(mt);
 	 if(mt->dirty) {
-            oldSegs[i]->setPtrToRawData(segRange->get_local_ptr(), oldSegs[i]->getDiskSize());
+            oldSegs[i]->setPtrToRawData(segRange->get_local_ptr(), oldSegs[i]->getMemSize());
 	 }
 	 
          //newSegs[i].data = segRange->get_local_ptr();
@@ -750,13 +750,13 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
 
    for (unsigned i = 0; i < regs.size(); i++) {
       memoryTracker *newTracker = NULL;
-      if (regs[i]->getRegionType() == Region::RT_BSS || (regs[i]->getDiskSize() == 0))
+      if (regs[i]->getRegionType() == Region::RT_BSS || (regs[i]->getMemSize() == 0))
       {
          continue;
       }
       else {
-         newTracker = new memoryTracker(regs[i]->getRegionAddr(),
-                                        regs[i]->getDiskSize(),
+         newTracker = new memoryTracker(regs[i]->getMemOffset(),
+                                        regs[i]->getMemSize(),
                                         regs[i]->getPtrToRawData());
          
       }

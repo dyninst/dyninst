@@ -111,7 +111,7 @@ SymtabCodeRegion::getPtrToInstruction(const Address addr) const
 
     if(isCode(addr))
         return (void*)((Address)_region->getPtrToRawData() + 
-                       addr - _region->getRegionAddr());
+                       addr - _region->getMemOffset());
     else if(isData(addr))
         return getPtrToData(addr);
     else
@@ -125,7 +125,7 @@ SymtabCodeRegion::getPtrToData(const Address addr) const
 
     if(isData(addr))
         return (void*)((Address)_region->getPtrToRawData() +
-                        addr - _region->getRegionAddr());
+                        addr - _region->getMemOffset());
     else
         return NULL;
 }
@@ -181,7 +181,7 @@ SymtabCodeRegion::isData(const Address addr) const
 Address
 SymtabCodeRegion::offset() const
 {
-    return _region->getRegionAddr();
+    return _region->getMemOffset();
 }
 
 Address
@@ -371,7 +371,7 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
     parsing_printf("[%s:%d] processing %d symtab regions in %s\n",
         FILE__,__LINE__,regs.size(),_symtab->name().c_str());
     for(rit = regs.begin(); rit != regs.end(); ++rit) {
-        parsing_printf("   %lx %s",(*rit)->getRegionAddr(),
+        parsing_printf("   %lx %s",(*rit)->getMemOffset(),
             (*rit)->getRegionName().c_str());
     
         // XXX only TEXT, DATA, TEXTDATA?
@@ -395,7 +395,7 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
 
         if(HASHDEF(rmap,*rit)) {
             parsing_printf("[%s:%d] duplicate region at address %lx\n",
-                FILE__,__LINE__,(*rit)->getRegionAddr());
+                FILE__,__LINE__,(*rit)->getMemOffset());
         }
         CodeRegion * cr = new SymtabCodeRegion(_symtab,*rit);
         rmap[*rit] = cr;
@@ -452,7 +452,7 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
         }
         if(!HASHDEF(rmap,sr)) {
             parsing_printf("[%s:%d] unrecognized Region %lx in function %lx\n",
-                FILE__,__LINE__,sr->getRegionAddr(),(*fsit)->getOffset());
+                FILE__,__LINE__,sr->getMemOffset(),(*fsit)->getOffset());
             continue;
         }
         CodeRegion * cr = rmap[sr];
@@ -460,8 +460,8 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
         {
             parsing_printf("\t<%lx> skipped non-code, region [%lx,%lx)\n",
                 (*fsit)->getOffset(),
-                sr->getRegionAddr(),
-                sr->getRegionAddr()+sr->getDiskSize());
+                sr->getMemOffset(),
+                sr->getMemOffset()+sr->getDiskSize());
         } else {
             _hints.push_back( Hint((*fsit)->getOffset(),
                                cr,
@@ -746,7 +746,7 @@ SymtabCodeSource::resizeRegion(SymtabAPI::Region *sr, Address newDiskSize)
 {
     // find region
     std::set<CodeRegion*> regions;
-    findRegions(sr->getRegionAddr(), regions);
+    findRegions(sr->getMemOffset(), regions);
     bool found_it = false;
     set<CodeRegion*>::iterator rit = regions.begin();
     for (; rit != regions.end(); rit++) {

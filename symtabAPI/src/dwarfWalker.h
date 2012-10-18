@@ -210,10 +210,11 @@ class DwarfWalker {
    bool decodeLocationList(Dwarf_Half attr,
                            Address *initialVal,
                            std::vector<VariableLocation> &locs);
-   bool checkForConstant(Dwarf_Half attr,
-                         Dwarf_Attribute &locationAttribute,
-                         bool &constant,
-                         Dwarf_Half &form);
+   bool checkForConstantOrExpr(Dwarf_Half attr,
+			       Dwarf_Attribute &locationAttribute,
+			       bool &constant,
+			       bool &expr,
+			       Dwarf_Half &form);
    bool findConstant(Dwarf_Half attr, Address &value);
    bool findConstantWithForm(Dwarf_Attribute &attr,
                                Dwarf_Half form,
@@ -225,6 +226,10 @@ class DwarfWalker {
    typeArray *parseMultiDimensionalArray(Dwarf_Die firstRange,
                                          Type *elementType);
    bool decipherBound(Dwarf_Attribute boundAttribute, std::string &name);
+
+   bool decodeExpression(Dwarf_Attribute &attr, Dwarf_Half form, 
+			 std::vector<VariableLocation> &locs);
+
    bool decodeLocationListForStaticOffsetOrAddress(Dwarf_Locdesc **locationList, 
                                                    Dwarf_Signed listLength, 
                                                    std::vector<VariableLocation>& locs, 

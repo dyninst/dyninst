@@ -126,7 +126,7 @@ char *emitElfStatic::linkStatic(Symtab *target,
         // This is true, only if other regions have already been added
         vector<Region *>::iterator newReg_it;
         for(newReg_it = newRegs.begin(); newReg_it != newRegs.end(); ++newReg_it) {
-            Offset newRegEndAddr = (*newReg_it)->getMemSize() + (*newReg_it)->getRegionAddr();
+            Offset newRegEndAddr = (*newReg_it)->getMemSize() + (*newReg_it)->getDiskOffset();
             if( newRegEndAddr > globalOffset ) {
                 globalOffset = newRegEndAddr;
             }
@@ -1224,7 +1224,7 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
 	    if ((rel_it->rel_addr() < (*reg_it)->getMemOffset()) ||
 		(rel_it->rel_addr() >= ((*reg_it)->getMemOffset() + (*reg_it)->getMemSize()))) continue;
             if( !archSpecificRelocation(target, target, regionData, *rel_it,
-                        rel_it->rel_addr() - (*reg_it)->getRegionAddr(),
+                        rel_it->rel_addr() - (*reg_it)->getDiskOffset(),
                         rel_it->rel_addr(), globalOffset, lmap, errMsg) )
             {
                 err = Relocation_Computation_Failure;
@@ -1520,9 +1520,9 @@ bool emitElfUtils::updateHeapVariables(Symtab *obj, unsigned long newSecsEndAddr
     {
         Region *symRegion = (*heapSymsIter)->getRegion();
         Offset symOffset = (*heapSymsIter)->getOffset(); 
-        if( symOffset < symRegion->getRegionAddr() ) continue;
+        if( symOffset < symRegion->getDiskOffset() ) continue;
 
-        Offset regOffset = symOffset - symRegion->getRegionAddr();
+        Offset regOffset = symOffset - symRegion->getDiskOffset();
         unsigned char *regData = reinterpret_cast<unsigned char *>(symRegion->getPtrToRawData());
         Offset heapAddr;
         memcpy(&heapAddr, &regData[regOffset], sizeof(Offset));
@@ -1567,7 +1567,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
                 break;
             case R_X86_64_JUMP_SLOT:
                 if( !adjustValInRegion(targetRegion, 
-                           rel.rel_addr() - targetRegion->getRegionAddr(),
+                           rel.rel_addr() - targetRegion->getDiskOffset(),
                            addressWidth, library_adjust) )
                 {
                     rewrite_printf("Failed to update relocation\n");
@@ -1583,7 +1583,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
             case R_386_RELATIVE:
                 // On x86, addends are stored in their target location
                 if( !adjustValInRegion(targetRegion, 
-                           rel.rel_addr() - targetRegion->getRegionAddr(),
+                           rel.rel_addr() - targetRegion->getDiskOffset(),
                            addressWidth, library_adjust) )
                 {
                     rewrite_printf("Failed to update relocation\n");
@@ -1592,7 +1592,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
                 break;
             case R_386_JMP_SLOT:
                 if( !adjustValInRegion(targetRegion, 
-                           rel.rel_addr() - targetRegion->getRegionAddr(),
+                           rel.rel_addr() - targetRegion->getDiskOffset(),
                            addressWidth, library_adjust) )
                 {
                     rewrite_printf("Failed to update relocation\n");

@@ -1436,7 +1436,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 {
     assert(reg);
     void *mappedPtr = reg->getPtrToRawData();
-    Address regStart = reg->getRegionAddr();
+    Address regStart = reg->getMemOffset();
     ParseAPI::Block *cur = NULL;
     ParseAPI::CodeObject *cObj = parse_img()->codeObject();
     ParseAPI::CodeRegion *parseReg = NULL;
@@ -1547,7 +1547,7 @@ void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges
         Address lastChangeOffset = (*rIter).second -1 -baseAddress;
         Region *curReg = parse_img()->getObject()->findEnclosingRegion
                                                     ( lastChangeOffset );
-        if ( lastChangeOffset - curReg->getRegionAddr() >= curReg->getDiskSize() ) {
+        if ( lastChangeOffset - curReg->getMemOffset() >= curReg->getDiskSize() ) {
             expandRegs.insert(curReg);
         }
     }
@@ -1619,7 +1619,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
     set<ParseAPI::CodeRegion*> parseRegs;
 
     void *mappedPtr = symReg->getPtrToRawData();
-    Address regStart = symReg->getRegionAddr();
+    Address regStart = symReg->getMemOffset();
 
     cObj->cs()->findRegions(regStart, parseRegs);
     ParseAPI::CodeRegion *parseReg = * parseRegs.begin();
@@ -1745,7 +1745,7 @@ bool mapped_object::isUpdateNeeded(Address entry)
         comparison_size = nextBlk->start() - (entry-base);
     } else {
         comparison_size = creg->symRegion()->getDiskSize()
-            - ( (entry - base) - creg->symRegion()->getRegionAddr() );
+            - ( (entry - base) - creg->symRegion()->getMemOffset() );
     }
 
     // read until first difference, then see if the difference is to known
@@ -1770,7 +1770,7 @@ bool mapped_object::isUpdateNeeded(Address entry)
     }
     void *mappedPtr = (void*)
                       ((Address)creg->symRegion()->getPtrToRawData() +
-                        (entry - base - creg->symRegion()->getRegionAddr()) );
+                        (entry - base - creg->symRegion()->getMemOffset()) );
     //compare
     if (0 != memcmp(mappedPtr,regBuf,comparison_size) ) {
         updateNeeded = true;
@@ -1805,7 +1805,7 @@ bool mapped_object::isExpansionNeeded(Address entry)
     // if there is uninitialized space in the region,
     // see if the first few bytes have been updated
     Address compareStart =
-        base + reg->getRegionAddr() + reg->getDiskSize();
+        base + reg->getMemOffset() + reg->getDiskSize();
     if (proc()->isMemoryEmulated()) {
         bool valid = false;
         boost::tie(valid, compareStart) = proc()->getMemEm()->translate(compareStart);
@@ -1878,8 +1878,8 @@ bool mapped_object::updateCodeBytesIfNeeded(Address entry)
         (entry - codeBase());
     mal_printf("%s[%d] updating region [%lx %lx] for entry point %lx\n",
                FILE__,__LINE__,
-               reg->getRegionAddr(),
-               reg->getRegionAddr()+reg->getDiskSize(),
+               reg->getMemOffset(),
+               reg->getMemOffset()+reg->getDiskSize(),
                entry);
 
     if ( expand ) {

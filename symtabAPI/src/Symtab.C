@@ -649,7 +649,7 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
       // We also have undefined symbols for the static binary case.
 
 #if !defined(os_vxworks)
-      if (sym->getSec() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
+      if (sym->getRegion() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
          undefDynSyms.push_back(sym);
          continue;
       }
@@ -806,7 +806,7 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
 
    // This is a bit of a hack; we're trying to demangle undefined symbols which don't necessarily
    // have a ST_FUNCTION type. 
-   if (sym->getSec() == NULL && !sym->isAbsolute() && !sym->isCommonStorage())
+   if (sym->getRegion() == NULL && !sym->isAbsolute() && !sym->isCommonStorage())
       typed_demangle = true;
 
    if (typed_demangle) {
@@ -867,7 +867,7 @@ bool Symtab::addSymbolToIndices(Symbol *&sym, bool undefined)
       symsByTypedName[sym->getTypedName()].push_back(sym);
 #if !defined(os_vxworks)    
       // VxWorks doesn't know symbol addresses until object is loaded.
-      symsByOffset[sym->getAddr()].push_back(sym);
+      symsByOffset[sym->getOffset()].push_back(sym);
 #endif
    }
    else {
@@ -892,7 +892,7 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
         //   Keep module information 
 
         Function *func = NULL;
-        findFuncByEntryOffset(func, sym->getAddr());
+        findFuncByEntryOffset(func, sym->getOffset());
         if (!func) {
             // Create a new function
             // Also, update the symbol to point to this function.
@@ -901,7 +901,7 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
 
             everyFunction.push_back(func);
             sorted_everyFunction = false;
-            funcsByOffset[sym->getAddr()] = func;
+            funcsByOffset[sym->getOffset()] = func;
         }
         else {
             /* XXX 
@@ -928,14 +928,14 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
     case Symbol::ST_OBJECT: {
         // The same as the above, but with variables.
         Variable *var = NULL;
-        findVariableByOffset(var, sym->getAddr());
+        findVariableByOffset(var, sym->getOffset());
         if (!var) {
             // Create a new function
             // Also, update the symbol to point to this function.
             var = new Variable(sym);
             
             everyVariable.push_back(var);
-            varsByOffset[sym->getAddr()] = var;
+            varsByOffset[sym->getOffset()] = var;
         }
         else {
             /* XXX
@@ -1367,9 +1367,9 @@ Symtab::Symtab(char *, size_t, std::string , Offset, bool &, void *)
 
 bool sort_reg_by_addr(const Region* a, const Region* b)
 {
-  if (a->getRegionAddr() == b->getRegionAddr())
+  if (a->getMemOffset() == b->getMemOffset())
     return a->getMemSize() < b->getMemSize();
-  return a->getRegionAddr() < b->getRegionAddr();
+  return a->getMemOffset() < b->getMemOffset();
 }
 
 extern void print_symbols( std::vector< Symbol *>& allsymbols );
@@ -1456,7 +1456,7 @@ bool Symtab::extractInfo(Object *linkedFile)
            }
         }
 
-        regionsByEntryAddr[regions_[index]->getRegionAddr()] = regions_[index];
+        regionsByEntryAddr[regions_[index]->getMemOffset()] = regions_[index];
 
         if (regions_[index]->getRegionType() == Region::RT_REL) 
         {
@@ -1648,7 +1648,7 @@ Symtab::Symtab(const Symtab& obj) :
    }
 
    for (i=0;i<regions_.size();i++)
-      regionsByEntryAddr[regions_[i]->getRegionAddr()] = regions_[i];
+      regionsByEntryAddr[regions_[i]->getMemOffset()] = regions_[i];
 
    // TODO FIXME: copying symbols/Functions/Variables
 
@@ -1706,19 +1706,19 @@ bool Symtab::isCode(const Offset where)  const
    while (last >= first) 
    {
       Region *curreg = codeRegions_[(first + last) / 2];
-      if (where >= curreg->getRegionAddr()
-            && where < (curreg->getRegionAddr()
-               + curreg->getDiskSize())) 
+      if (where >= curreg->getMemOffset()
+            && where < (curreg->getMemOffset()
+               + curreg->getMemSize())) 
       {
          if (curreg->getRegionType() == Region::RT_BSS)
             return false;
          return true;
       }
-      else if (where < curreg->getRegionAddr()) 
+      else if (where < curreg->getMemOffset()) 
       {
          last = ((first + last) / 2) - 1;
       }
-      else if (where >= (curreg->getRegionAddr() + curreg->getMemSize()))
+      else if (where >= (curreg->getMemOffset() + curreg->getMemSize()))
       {
          first = ((first + last) / 2) + 1;
       }
@@ -1751,12 +1751,12 @@ bool Symtab::isData(const Offset where)  const
    {
       Region *curreg = dataRegions_[(first + last) / 2];
 
-      if (     (where >= curreg->getRegionAddr())
-            && (where < (curreg->getRegionAddr() + curreg->getDiskSize())))
+      if (     (where >= curreg->getMemOffset())
+            && (where < (curreg->getMemOffset() + curreg->getMemSize())))
       {
          return true;
       }
-      else if (where < curreg->getRegionAddr()) 
+      else if (where < curreg->getMemOffset()) 
       {
          last = ((first + last) / 2) - 1;
       }
@@ -2770,18 +2770,18 @@ SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, 
     }
 
 #if defined(_MSC_VER)
-    regionsByEntryAddr.erase(sec->getRegionAddr());
+    regionsByEntryAddr.erase(sec->getMemOffset());
 #endif
 
     /* DEBUG
     fprintf(stderr, "Fixing region %s from 0x%x [0x%x] to 0x%x [0x%x]\n",
-            name, sec->getRegionAddr(), sec->getDiskSize(), memOffset,
+            name, sec->getMemOffset(), sec->getMemSize(), memOffset,
             memSize); // */
     sec->setMemOffset(memOffset);
     sec->setMemSize(memSize);
 
 #if defined(_MSC_VER)
-    regionsByEntryAddr[sec->getRegionAddr()] = sec;
+    regionsByEntryAddr[sec->getMemOffset()] = sec;
 #endif
 
     std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
@@ -2870,9 +2870,8 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
    
    for (unsigned i = 0; i < regions_.size(); i++) 
    {
-      //Offset end = regions_[i]->getRegionAddr() + regions_[i]->getDiskSize();
-      Offset end = regions_[i]->getRegionAddr() + regions_[i]->getMemSize();
-      if (regions_[i]->getRegionAddr() == 0) 
+      Offset end = regions_[i]->getMemOffset() + regions_[i]->getMemSize();
+      if (regions_[i]->getMemOffset() == 0) 
          continue;
 
       prevSecoffset = secoffset;
@@ -2891,7 +2890,7 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
       }
 
       /*fprintf(stderr, "%d: secAddr 0x%lx, size %d, end 0x%lx, looking for %d\n",
-        i, regions_[i]->getSecAddr(), regions_[i]->getSecSize(),
+        i, regions_[i]->getRegionAddr(), regions_[i]->getRegionSize(),
         end,size);*/
 
       if (end > highWaterMark) 
@@ -2902,12 +2901,12 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
       }
 
       if (     (i < (regions_.size()-2)) 
-               && ((end + size) < regions_[i+1]->getRegionAddr())) 
+               && ((end + size) < regions_[i+1]->getMemOffset())) 
       {
          /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
                  i, i+1);
                  fprintf(stderr, "End at 0x%lx, next one at 0x%lx\n",
-                 end, regions_[i+1]->getSecAddr());
+                 end, regions_[i+1]->getRegionAddr());
          */   
          newSectionInsertPoint = i+1;
          highWaterMark = end;
@@ -3108,7 +3107,7 @@ void Symtab::rebuild_region_indexes(SerializerBase *sb) THROW_SPEC (SerializerEr
 		//  entry addr might require some special attn on windows, since it
 		//  is not the disk offset but the actual mem addr, which is going to be
 		//  different after deserialize.  Probably have to look it up again.
-		regionsByEntryAddr[r->getRegionAddr()] = r;
+		regionsByEntryAddr[r->getMemOffset()] = r;
 	}
 
 	std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
@@ -3400,7 +3399,7 @@ bool relocationEntry::operator==(const relocationEntry &r) const
 	if (!dynref_ && r.dynref_) return false;
 	if (dynref_)
 	{
-		if (dynref_->getName() != r.dynref_->getName()) return false;
+		if (dynref_->getMangledName() != r.dynref_->getMangledName()) return false;
 		if (dynref_->getOffset() != r.dynref_->getOffset()) return false;
 	}
 
@@ -3487,7 +3486,7 @@ Serializable *relocationEntry::serialize_impl(SerializerBase *, const char *) TH
 ostream & Dyninst::SymtabAPI::operator<< (ostream &os, const relocationEntry &r) 
 {
     if( r.getDynSym() != NULL ) {
-        os << "Name: " << setw(20) << ( "'" + r.getDynSym()->getName() + "'" );
+        os << "Name: " << setw(20) << ( "'" + r.getDynSym()->getMangledName() + "'" );
     }else{
         os << "Name: " << setw(20) << r.name();
     }
@@ -3785,7 +3784,7 @@ SYMTAB_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Regio
     // Bernat, 7SEP2010 - according to Matt, these symbols should have
     // type "undefined", which means a region of NULL. Changing
     // from "localRegion" to NULL. 
-    Symbol *symRef = new Symbol(externalSym->getName(),
+    Symbol *symRef = new Symbol(externalSym->getMangledName(),
                                 externalSym->getType(),
                                 Symbol::SL_GLOBAL,
                                 Symbol::SV_DEFAULT,
