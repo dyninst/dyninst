@@ -54,6 +54,7 @@ namespace Dyninst {
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
                 static bool foundDoubleHummerInsn;
+                static bool foundQuadInsn;
                 using InstructionDecoderImpl::makeRegisterExpression;
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
@@ -65,6 +66,7 @@ namespace Dyninst {
                 Expression::Ptr makeFRAExpr();
                 Expression::Ptr makeFRBExpr();
                 Expression::Ptr makeFRCExpr();
+                Expression::Ptr makeQFRCExpr();
                 Expression::Ptr makeFRTExpr();
                 Expression::Ptr makeIFormBranchTarget();
                 Expression::Ptr makeBFormBranchTarget();
@@ -72,6 +74,8 @@ namespace Dyninst {
                 Expression::Ptr makeDorSIExpr();
                 Expression::Ptr makeBTExpr();
                 Expression::Ptr makeBAExpr();
+                Expression::Ptr makeQRBExpr();
+                Expression::Ptr makeQRTExpr();
                 Expression::Ptr makeBBExpr();
                 Expression::Ptr makeCR0Expr();
                 Expression::Ptr makeBIExpr();
@@ -82,6 +86,7 @@ namespace Dyninst {
                 Expression::Ptr makeSPRExpr();
                 Expression::Ptr makeTOExpr();
                 Expression::Ptr makeDSExpr();
+                Expression::Ptr makeQFRAExpr();
                 template <Result_Type size> void L();
                 template <Result_Type size> void ST();
                 template <Result_Type size> void LX();
@@ -96,6 +101,20 @@ namespace Dyninst {
                 void FRS();
                 void FRT2();
                 void FRS2();
+                void QRT();
+                void QTT();
+                void QVD();
+                void QRB();
+                void QRBS();
+                void QGPC();
+                void QFRTS();
+                void QFRSP();
+                void QFRTP();
+                void QFRS();
+                void QFRSS();
+                void QFRCP();
+                void QFRC();
+                void QFRCS();
                 void RT();
                 void RS();
                 void BD();
@@ -113,6 +132,7 @@ namespace Dyninst {
                 void Rc();
                 void RB();
                 void FRA();
+                void QFRA();
                 void FRB();
                 void FRC();
                 void BI();
@@ -135,6 +155,8 @@ namespace Dyninst {
                 void FRSS();
                 void FRAP();
                 void FRAS();
+                void QFRAP();
+                void QFRAS();
                 void FRBP();
                 void FRBS();
                 void FRCP();

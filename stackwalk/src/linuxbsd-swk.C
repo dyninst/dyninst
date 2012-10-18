@@ -61,11 +61,8 @@ extern int P_gettid();
 
 SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
 {
-   if (NULL == Walker::getSymbolReader()) {
-      static SymElfFactory symelffact;
-      Walker::setSymbolReader(&symelffact);
-   }
-   return Walker::getSymbolReader();
+   static SymElfFactory symelffact;
+   return &symelffact;
 }
 
 static void registerLibSpotterSelf(ProcSelf *pself);

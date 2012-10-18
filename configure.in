@@ -348,7 +348,7 @@ else
 
        test -n "$LIBDWARF_LIB_DIR" &&
        LIBDWARF_LINK_FLAGS="-L$LIBDWARF_LIB_DIR";
-       if test "x$LIBELF_LIB_DIR" = "x"; then
+       if test "x$LIBELF_LIB_DIR" != "x"; then
        	  LIBDWARF_LINK_FLAGS="-L$LIBELF_LIB_DIR $LIBDWARF_LINK_FLAGS";
        fi
        LDFLAGS_HOLD=$LDFLAGS;
