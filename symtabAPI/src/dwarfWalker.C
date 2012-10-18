@@ -1339,7 +1339,7 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
    }
    else if (isExpr) {
      dwarf_printf("(0x%lx) Decoding expression without location list\n", id());
-     if (!decodeExpression(locationAttribute, form, locs)) return false;
+     if (!decodeExpression(locationAttribute, locs)) return false;
    }   
    else {
      dwarf_printf("(0x%lx) Decoding loclist location\n", id());
@@ -1829,7 +1829,7 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, std::string &bou
    return true;
 }
 
-bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr, Dwarf_Half form,
+bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
 				   std::vector<VariableLocation> &locs) {
   Dwarf_Unsigned expr_len;
   Dwarf_Ptr expr_ptr;

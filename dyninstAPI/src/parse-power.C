@@ -837,7 +837,7 @@ func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorH
         return NULL;
     }
 
-    Address callAddress = initRegion->getRegionAddr() + bytesSeen;
+    Address callAddress = initRegion->getMemOffset() + bytesSeen;
 
     RegisterAST thePC = RegisterAST(
         Dyninst::MachRegister::getPC(parse_img()->codeObject()->cs()->getArch()));
@@ -942,7 +942,7 @@ func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHa
         return NULL;
     }
 
-    Address callAddress = finiRegion->getRegionAddr() + bytesSeen;
+    Address callAddress = finiRegion->getMemOffset() + bytesSeen;
 
     RegisterAST thePC = RegisterAST(
         Dyninst::MachRegister::getPC(parse_img()->codeObject()->cs()->getArch()));

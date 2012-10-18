@@ -227,7 +227,7 @@ class DwarfWalker {
                                          Type *elementType);
    bool decipherBound(Dwarf_Attribute boundAttribute, std::string &name);
 
-   bool decodeExpression(Dwarf_Attribute &attr, Dwarf_Half form, 
+   bool decodeExpression(Dwarf_Attribute &attr,
 			 std::vector<VariableLocation> &locs);
 
    bool decodeLocationListForStaticOffsetOrAddress(Dwarf_Locdesc **locationList, 

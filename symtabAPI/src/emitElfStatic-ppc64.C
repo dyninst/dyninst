@@ -139,7 +139,7 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
             symbolOffset = lmap.ctorRegionOffset + globalOffset;
 	    rewrite_printf("new CTOR computeCtorDtorAddress symbolOffset 0x%lx \n", symbolOffset);
         }else if( lmap.originalCtorRegion != NULL ) {
-            symbolOffset = lmap.originalCtorRegion->getRegionAddr();
+            symbolOffset = lmap.originalCtorRegion->getMemOffset();
 	    rewrite_printf("original CTOR computeCtorDtorAddress symbolOffset 0x%lx \n", symbolOffset);
         }else{
             errMsg = "Failed to locate original .ctors Region -- cannot apply relocation";
@@ -151,7 +151,7 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
         if( lmap.newDtorRegions.size() > 0 ) {
             symbolOffset = lmap.dtorRegionOffset + globalOffset;
         }else if( lmap.originalDtorRegion != NULL ) {
-            symbolOffset = lmap.originalDtorRegion->getRegionAddr();
+            symbolOffset = lmap.originalDtorRegion->getMemOffset();
         }else{
             errMsg = "Failed to locate original .dtors Region -- cannot apply relocation";
             rewrite_printf("Failed to locate original .dtors Region -- cannot apply relocation\n");
@@ -175,10 +175,10 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	// This is an added file, thus there's only one TOC value, so look up @0. 
 	Offset curTOCoffset = srcSymtab->getTOCoffset((Offset) 0);
 
-	rewrite_printf("archSpecificRelocation %s\n\tdynsym %s, 0x%lx\n\t rel address 0x%lx\n\tTOC 0x%lx (in %s) dest 0x%lx \n", 
+	rewrite_printf(" archSpecificRelocation %s dynsym %s address 0x%lx TOC 0x%lx dest %d \n", 
 		       rel.name().c_str(), 
-		       dynsym->getName().c_str(), dynsym->getOffset(),
-		       relOffset, newTOCoffset, srcSymtab->name().c_str(), dest );
+		       dynsym->getMangledName().c_str(), 
+		       relOffset, TOCoffset, dest );
 
 	int relocation_length = sizeof(Elf64_Word)*8; // in bits
 	int relocation_pos = 0; // in bits

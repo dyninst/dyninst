@@ -343,7 +343,7 @@ namespace {
                 struct libc_startup_info * si =
                     (struct libc_startup_info *)(
                         ((Address)dreg->getPtrToRawData()) + 
-                        ss_addr - (Address)dreg->getMemOffset())
+                        ss_addr - (Address)dreg->getMemOffset());
                 return (Address)si->main_addr;
             }
         }
