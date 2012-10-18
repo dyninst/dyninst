@@ -2722,6 +2722,9 @@ compiler_format('bg_gfortran', 'staticMutatee').
 compiler_format('bgq_gcc', 'staticMutatee').
 compiler_format('bgq_g++', 'staticMutatee').
 compiler_format('bgq_gfortran', 'staticMutatee').
+% Also XLC for BG, people
+compiler_format('bgxlc', 'staticMutatee').
+compiler_format('bgxlc++', 'staticMutatee').
 
 % format_runmode (Platform, RunMode, Format)
 format_runmode(_, 'binary', 'staticMutatee').
