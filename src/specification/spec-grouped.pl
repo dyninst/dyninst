@@ -3164,6 +3164,8 @@ compiler_dynamic_link('bg_g++', P, '-dynamic -Wl,-export-dynamic') :- platform(_
 compiler_dynamic_link('bg_gcc', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegenep', P).
 compiler_dynamic_link('bgq_g++', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegeneq', P).
 compiler_dynamic_link('bgq_gcc', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegeneq', P).
+compiler_dynamic_link('bgxlc', P, '-qnostaticlink') :- platform(_, _, 'bluegeneq', P).
+compiler_dynamic_link('bgxlc++', P, '-qnostaticlink') :- platform(_, _, 'bluegeneq', P).
 compiler_dynamic_link('g++', _, '-Wl,-export-dynamic').
 compiler_dynamic_link('gcc', _, '-Wl,-export-dynamic').
 compiler_dynamic_link('icc', _, '-Xlinker -export-dynamic').
@@ -3174,8 +3176,8 @@ comp_std_flags_str('gcc', '$(CFLAGS)').
 comp_std_flags_str('g++', '$(CXXFLAGS)').
 comp_std_flags_str('xlc', '$(CFLAGS_NATIVE)').
 comp_std_flags_str('pgcc', '$(CFLAGS_NATIVE)').
-comp_std_flags_str('bgxlc', '-qnostaticlink').
-comp_std_flags_str('bgxlc++', '-qnostaticlink').
+comp_std_flags_str('bgxlc', '$(CFLAGS)').
+comp_std_flags_str('bgxlc++', '$(CXXFLAGS)').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
 comp_std_flags_str('xlC', '$(CXXFLAGS_NATIVE)').
 comp_std_flags_str('pgCC', '$(CXXFLAGS_NATIVE)').
