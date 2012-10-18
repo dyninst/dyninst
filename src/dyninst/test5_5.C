@@ -129,15 +129,11 @@ test_results_t test5_5_Mutator::executeTest() {
       return FAILED;
    }
    
-   /*
-   
    logerror (" fields.size () is %d \n", fields->size());
 
    for(unsigned j = 0; j < fields->size() ; j++) {
       logerror (" field %d name %s \n", j, (*fields)[j]->getName());
    }
-
-   */
 
    unsigned int index = 0;
    while ( index < fields->size() ) {
