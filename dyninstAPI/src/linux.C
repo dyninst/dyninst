@@ -454,7 +454,6 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
     //libPaths.push_back(string(getenv("PWD")));
     for (unsigned int i = 0; i < libPaths.size(); i++) {
         string str = libPaths[i] + "/" + filename;
-	cerr << "Checking " << str << endl;
         if (stat(str.c_str(), &dummy) == 0) {
             paths.push_back(str);
         }

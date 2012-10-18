@@ -337,13 +337,16 @@ bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI:
 
       parsing_printf (" Slicing for Addr 0x%lx startAddr 0x%lx ret addr 0x%lx func %s\n",
 	      getAddr (), currBlk->start (), func->_ret_addr, func->name().c_str());
-      if (sliceReturn(currBlk, func->_ret_addr, func)) {
+      bool ret = sliceReturn(currBlk, func->_ret_addr, func);
+
+      func->invalidateCache();
+      if (ret) {
 	parsing_printf ("\t\t\t **** Slicing - is a return instruction\n");
 	return true;
-	} else {
+      } else {
 	parsing_printf ("\t\t\t **** Slicing - is not a return instruction\n");
-      return false;	
-	}
+	return false;	
+      }
     }
   else
     {

@@ -557,7 +557,6 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
              * some sense, an Archive is a collection of BinaryEdits.
              */
             for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-	      cerr << "Examining path " << *pathIter << endl;
                 Archive *library;
                 Symtab *singleObject;
                 if (Archive::openArchive(library, *pathIter)) {

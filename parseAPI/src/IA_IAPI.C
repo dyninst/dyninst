@@ -571,7 +571,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                            ci->format().c_str(), current);
             parsedJumpTable = true;
             successfullyParsedJumpTable = parseJumpTable(currBlk, outEdges);
-
+	    parsing_printf("Parsed jump table 2\n");
             if(!successfullyParsedJumpTable || outEdges.empty()) {
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
             	parsing_printf("%s[%d]: BCTR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__,
@@ -594,12 +594,14 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             parsing_printf("%s[%d]: BLR jump table candidate %s at 0x%lx\n", FILE__, __LINE__,
                            ci->format().c_str(), current);
             successfullyParsedJumpTable = parseJumpTable(currBlk, outEdges);
-
+	    parsing_printf("Parsed BLR jump table\n");
             if(!successfullyParsedJumpTable || outEdges.empty()) {
-            	parsing_printf("%s[%d]: BLR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__, ci->format().c_str(), current, context->name().c_str());
+            	parsing_printf("%s[%d]: BLR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", 
+			       FILE__, __LINE__, ci->format().c_str(), current, context->name().c_str());
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
             }
 	}
+	parsing_printf("Returning from parse out edges\n");
 	return;
     }
     fprintf(stderr, "Unhandled instruction %s\n", ci->format().c_str());
@@ -806,7 +808,7 @@ bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Block* currBlk,
 {
     IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
     bool ret = jumpTableParser->parseJumpTable(currBlk, outEdges);
-    
+    parsing_printf("Jump table parser returned %d, %d edges\n", ret, outEdges.size());
     // Update statistics 
     currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_COUNT);
     if (!ret) currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_FAIL);

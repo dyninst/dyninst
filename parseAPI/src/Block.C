@@ -105,7 +105,6 @@ Block::getFuncs(vector<Function *> & funcs)
 bool
 EdgePredicate::pred_impl(Edge *) const
 {
-    parsing_printf("Invoking edge predicate\n");
     //        if(_next)
     //  return (*_next)(e);
     //else
