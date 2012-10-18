@@ -138,7 +138,7 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
             symbolOffset = lmap.ctorRegionOffset + globalOffset;
 	    rewrite_printf("new CTOR computeCtorDtorAddress symbolOffset 0x%lx \n", symbolOffset);
         }else if( lmap.originalCtorRegion != NULL ) {
-            symbolOffset = lmap.originalCtorRegion->getRegionAddr();
+            symbolOffset = lmap.originalCtorRegion->getMemOffset();
 	    rewrite_printf("original CTOR computeCtorDtorAddress symbolOffset 0x%lx \n", symbolOffset);
         }else{
             errMsg = "Failed to locate original .ctors Region -- cannot apply relocation";
@@ -150,7 +150,7 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
         if( lmap.newDtorRegions.size() > 0 ) {
             symbolOffset = lmap.dtorRegionOffset + globalOffset;
         }else if( lmap.originalDtorRegion != NULL ) {
-            symbolOffset = lmap.originalDtorRegion->getRegionAddr();
+            symbolOffset = lmap.originalDtorRegion->getMemOffset();
         }else{
             errMsg = "Failed to locate original .dtors Region -- cannot apply relocation";
             rewrite_printf("Failed to locate original .dtors Region -- cannot apply relocation\n");
@@ -172,7 +172,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	Offset TOCoffset = targetSymtab->getTOCoffset();
 
 	rewrite_printf(" archSpecificRelocation %s dynsym %s address 0x%lx TOC 0x%lx dest %d \n", 
-		 rel.name().c_str(), dynsym->getName().c_str(), relOffset, TOCoffset, dest );
+		 rel.name().c_str(), dynsym->getMangledName().c_str(), relOffset, TOCoffset, dest );
 
 	int relocation_length = sizeof(Elf64_Word)*8; // in bits
 	int relocation_pos = 0; // in bits
@@ -828,8 +828,8 @@ void emitElfStatic::buildGOT(Symtab *target, LinkMap &lmap) {
     // Inefficient lookup, but it's easy to debug :)
     Region *origGOT = NULL; 
     if (target->findRegion(origGOT, ".got")) {
-       memcpy(&targetData[lmap.gotRegionOffset + curOffset], origGOT->getPtrToRawData(), origGot->getDiskSize());
-       curOffset += origGot->getDiskSize();
+       memcpy(&targetData[lmap.gotRegionOffset + curOffset], origGOT->getPtrToRawData(), origGOT->getDiskSize());
+       curOffset += origGOT->getDiskSize();
        rewrite_printf("Copying 0x%lx bytes of original GOT to new\n", origGOT->getDiskSize());
     }
     
