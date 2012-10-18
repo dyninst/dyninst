@@ -175,10 +175,10 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	// This is an added file, thus there's only one TOC value, so look up @0. 
 	Offset curTOCoffset = srcSymtab->getTOCoffset((Offset) 0);
 
-	rewrite_printf(" archSpecificRelocation %s dynsym %s address 0x%lx TOC 0x%lx dest %d \n", 
+	rewrite_printf(" archSpecificRelocation %s\ndynsym %s, reloc offset 0x%lx\n new TOC 0x%lx, cur TOC 0x%x\n dest 0x%lx \n", 
 		       rel.name().c_str(), 
-		       dynsym->getMangledName().c_str(), 
-		       relOffset, TOCoffset, dest );
+		       dynsym->getMangledName().c_str(), relOffset,
+		       newTOCoffset, curTOCoffset, dest);
 
 	int relocation_length = sizeof(Elf64_Word)*8; // in bits
 	int relocation_pos = 0; // in bits

@@ -666,6 +666,10 @@ PCThread *codeGen::thread() {
     return thr_;
 }
 
+unsigned codeGen::width() const {
+  return addrSpace()->getAddressWidth();
+}
+
 AddressSpace *codeGen::addrSpace() const {
     if (aSpace_) { return aSpace_; }
     if (f_) { return f_->proc(); }

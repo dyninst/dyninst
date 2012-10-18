@@ -63,8 +63,6 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
     // Can I do in-place replacement? Apparently I can...
     // first insert new (before iter) and then remove iter
 
-    relocation_cerr << "\t"
-		    << std::hex << (*iter)->addr() << std::dec << endl;
     // Cache this so we don't re-decode...
     InsnPtr insn = (*iter)->insn();
 

@@ -191,7 +191,6 @@ bool AddressSpace::getDyninstRTLibName() {
 	cerr << msg << endl;
         return false;
     }
-    fprintf(stderr, "Returning true\n");
     return true;
 }
 

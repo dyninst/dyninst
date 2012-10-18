@@ -86,33 +86,19 @@
 // increment or decrement the stack frame pointer.
 #define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )  //x is positive or unsigned
 
-#define GPRSAVE_32 (14*4)
-#define GPRSAVE_64 (14*8)
-#define FPRSAVE    (14*8)
-#define SPRSAVE_32 (6*4+8)
-#define SPRSAVE_64 (6*8+8)
-#define PDYNSAVE   (8)
-#define FUNCSAVE   (14*4)
-#define FUNCARGS   64
-#define LINKAREA   24
+#define GPRSAVE_32  (32*4)
+#define GPRSAVE_64  (32*8)
+#define FPRSAVE     (14*8)
+#define SPRSAVE_32  (6*4+8)
+#define SPRSAVE_64  (6*8+8)
+#define FUNCSAVE_32 (32*4)
+#define FUNCSAVE_64 (32*8)
+#define FUNCARGS_32 (16*4)
+#define FUNCARGS_64 (16*8)
+#define LINKAREA_32 (6*4)
+#define LINKAREA_64 (6*8)
 
-#if defined(os_aix)
-// The offset values for AIX are pretty fragile, AFAIK.  Things change
-// when there are parameters of different sizes involved (or floats).
-// We should probably do some mapping back to variable, and determine
-// location by debug information.
-#define PARAM_OFFSET(mutatee_address_width)                         \
-        (                                                           \
-            ((mutatee_address_width) == sizeof(uint64_t))           \
-            ? (   /* 64-bit XCOFF AIX */                            \
-                  112                                               \
-              )                                                     \
-            : (   /* 32-bit XCOFF AIX */                            \
-                  56                                                \
-              )                                                     \
-        )
-
-#elif defined(os_linux)
+#if defined(os_linux)
 #define PARAM_OFFSET(mutatee_address_width)                         \
         (                                                           \
             ((mutatee_address_width) == sizeof(uint64_t))           \
@@ -131,26 +117,22 @@
         )
 #elif defined(os_vxworks)
 #define PARAM_OFFSET(bah) (0)
-
 #else
 #error "Unknown operating system in inst-power.h"
 #endif
 
-// The number of registers (general and floating point) that aren't
-// used in the base tramp explicitly 
-#define NUM_LO_REGISTERS 18
-
 
 // Okay, now that we have those defined, let's define the offsets upwards
 #define TRAMP_FRAME_SIZE_32 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_32 + FPRSAVE \
-                                           + SPRSAVE_32 + PDYNSAVE \
-                                           + FUNCSAVE + FUNCARGS + LINKAREA)
+                                           + SPRSAVE_32 \
+                                           + FUNCSAVE_32 + FUNCARGS_32 + LINKAREA_32)
 #define TRAMP_FRAME_SIZE_64 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_64 + FPRSAVE \
-                                           + SPRSAVE_64 + PDYNSAVE \
-                                           + FUNCSAVE + FUNCARGS + LINKAREA)
-#define PDYN_RESERVED (LINKAREA + FUNCARGS + FUNCSAVE)
-#define TRAMP_SPR_OFFSET (PDYN_RESERVED + PDYNSAVE) /* 4 for LR */
-#define STK_GUARD (PDYN_RESERVED)
+                                           + SPRSAVE_64 \
+                                           + FUNCSAVE_64 + FUNCARGS_64 + LINKAREA_64)
+#define PDYN_RESERVED_32 (LINKAREA_32 + FUNCARGS_32 + FUNCSAVE_32)
+#define PDYN_RESERVED_64 (LINKAREA_64 + FUNCARGS_64 + FUNCSAVE_64)
+
+#define TRAMP_SPR_OFFSET_32 (PDYN_RESERVED_32) /* 4 for LR */
 #define STK_LR       (              0)
 #define STK_CR_32    (STK_LR      + 4)
 #define STK_CTR_32   (STK_CR_32   + 4)
@@ -158,20 +140,26 @@
 #define STK_FP_CR_32 (STK_XER_32  + 4)
 #define STK_SPR0_32  (STK_FP_CR_32+ 8)
 
+#define TRAMP_SPR_OFFSET_64 (PDYN_RESERVED_64)
 #define STK_CR_64    (STK_LR      + 8)
 #define STK_CTR_64   (STK_CR_64   + 8)
 #define STK_XER_64   (STK_CTR_64  + 8)
 #define STK_FP_CR_64 (STK_XER_64  + 8)
 #define STK_SPR0_64  (STK_FP_CR_64+ 8)
 
-#define TRAMP_FPR_OFFSET_32 (TRAMP_SPR_OFFSET + SPRSAVE_32)
+#define TRAMP_SPR_OFFSET(x) (((x) == 8) ? TRAMP_SPR_OFFSET_64 : TRAMP_SPR_OFFSET_32)
+
+#define TRAMP_FPR_OFFSET_32 (TRAMP_SPR_OFFSET_32 + SPRSAVE_32)
+#define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET_64 + SPRSAVE_64)
+#define TRAMP_FPR_OFFSET(x) (((x) == 8) ? TRAMP_FPR_OFFSET_64 : TRAMP_FPR_OFFSET_32)
+
 #define TRAMP_GPR_OFFSET_32 (TRAMP_FPR_OFFSET_32 + FPRSAVE)
-
-#define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET + SPRSAVE_64)
 #define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE)
+#define TRAMP_GPR_OFFSET(x) (((x) == 8) ? TRAMP_GPR_OFFSET_64 : TRAMP_GPR_OFFSET_32)
 
-#define FUNC_CALL_SAVE (LINKAREA + FUNCARGS)
-               
+#define FUNC_CALL_SAVE_32 (LINKAREA_32 + FUNCARGS_32)
+#define FUNC_CALL_SAVE_64 (LINKAREA_64 + FUNCARGS_64)
+#define FUNC_CALL_SAVE(x) (((x) == 8) ? FUNC_CALL_SAVE_64 : FUNC_CALL_SAVE_32)
 
 ///////////////////////////// Multi-instruction sequences
 class codeGen;

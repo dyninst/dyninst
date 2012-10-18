@@ -117,10 +117,6 @@ Address AddressSpace::getTOCoffsetInfo(func_instance *func) {
   // func_instance; instead we use its entry address which
   // is what all the TOC data structures are written in terms of
   // anyway
-  fprintf(stderr, "Asking for TOC of %s at 0x%lx, returning 0x%lx\n",
-	  func->name().c_str(),
-	  func->function()->addr(),
-	  func->obj()->parse_img()->getObject()->getTOCoffset(func->function()->addr()));
 
   return func->obj()->parse_img()->getObject()->getTOCoffset(func->function()->addr());
 }

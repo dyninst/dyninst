@@ -117,12 +117,13 @@ int test1_20_mutatee()
 
 int test1_20_func2(int *int_val, double *double_val) {
     int i, ret = 1;
+
     *int_val = tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+
 	       (tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+
 	       (tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+
 	       (tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc
 	       ))))))))))))))))))))))))))))))))))))))));
-
+    
     *double_val = td+(td+(td+(td+(td+(td+(td+(td+(td+(td+
 		  (td+(td+(td+(td+(td+(td+(td+(td+(td+(td+
 		  (td+(td+(td+(td+(td+(td+(td+(td+(td+(td+
@@ -138,7 +139,6 @@ int test1_20_func2(int *int_val, double *double_val) {
 	    ret *= 11;
 	}
     }
-
     return ret;
 }
 

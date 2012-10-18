@@ -473,10 +473,10 @@ void saveSPR(codeGen &gen,     //Instruction storage pointer
     XFORM_XO_SET(insn, MFSPRxop);
     insnCodeGen::generate(gen,insn);
 
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
 	insnCodeGen::generateImm(gen, STop,
                                  scratchReg, REG_SP, stkOffset);
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+    } else /* gen.width() == 8 */ {
 	insnCodeGen::generateMemAccess64(gen, STDop, STDxop,
                                          scratchReg, REG_SP, stkOffset);
     }
@@ -495,10 +495,10 @@ void restoreSPR(codeGen &gen,       //Instruction storage pointer
                 int           sprnum,     //SPR number
                 int           stkOffset)  //Offset from stack pointer
 {
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
         insnCodeGen::generateImm(gen, Lop,
                                  scratchReg, REG_SP, stkOffset);
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+    } else /* gen.width() == 8 */ {
         insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
                                          scratchReg, REG_SP, stkOffset);
     }
@@ -613,10 +613,10 @@ void saveCR(codeGen &gen,       //Instruction storage pointer
     XFXFORM_XO_SET(insn, MFCRxop);
     insnCodeGen::generate(gen,insn);
 
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
         insnCodeGen::generateImm(gen, STop,
                                  scratchReg, REG_SP, stkOffset);
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+    } else /* gen.width() == 8 */ {
         insnCodeGen::generateMemAccess64(gen, STDop, STDxop,
                                          scratchReg, REG_SP, stkOffset);
     }
@@ -635,10 +635,10 @@ void restoreCR(codeGen &gen,       //Instruction storage pointer
 {
     instruction insn;
 
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
         insnCodeGen::generateImm(gen, Lop,
                                  scratchReg, REG_SP, stkOffset);
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+    } else /* gen.width() == 8 */ {
         insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
                                          scratchReg, REG_SP, stkOffset);
     }
@@ -717,10 +717,10 @@ void resetBR(AddressSpace  *p,    //Process to write instruction into
 void saveRegisterAtOffset(codeGen &gen,
                           Register reg,
                           int save_off) {
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
         insnCodeGen::generateImm(gen, STop,
                                  reg, REG_SP, save_off);
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+    } else /* gen.width() == 8 */ {
         insnCodeGen::generateMemAccess64(gen, STDop, STDxop,
                                          reg, REG_SP, save_off);
     }
@@ -732,7 +732,7 @@ void saveRegister(codeGen &gen,
                   Register dest,
                   int save_off)
 {
-    saveRegisterAtOffset(gen, source, save_off + (dest * gen.addrSpace()->getAddressWidth()));
+    saveRegisterAtOffset(gen, source, save_off + (dest * gen.width()));
     //  bperr("Saving reg %d at 0x%x off the stack\n", reg, offset + reg*GPRSIZE);
 }
 
@@ -746,10 +746,10 @@ void saveRegister(codeGen &gen,
 void restoreRegisterAtOffset(codeGen &gen,
                              Register dest,
                              int saved_off) {
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
         insnCodeGen::generateImm(gen, Lop, 
                                  dest, REG_SP, saved_off);
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+    } else /* gen.width() == 8 */ {
         insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
                                          dest, REG_SP, saved_off);
     }
@@ -761,7 +761,7 @@ void restoreRegister(codeGen &gen,
                      Register dest, 
                      int saved_off)
 {
-    return restoreRegisterAtOffset(gen, dest, saved_off + (source * gen.addrSpace()->getAddressWidth()));
+    return restoreRegisterAtOffset(gen, dest, saved_off + (source * gen.width()));
     //bperr( "Loading reg %d (into reg %d) at 0x%x off the stack\n", 
     //  reg, dest, offset + reg*GPRSIZE);
 }
@@ -806,10 +806,10 @@ void restoreFPRegister(codeGen &gen,
  */
 void pushStack(codeGen &gen)
 {
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
 	insnCodeGen::generateImm(gen, STUop,
 				 REG_SP, REG_SP, -TRAMP_FRAME_SIZE_32);
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+    } else /* gen.width() == 8 */ {
 	insnCodeGen::generateMemAccess64(gen, STDop, STDUxop,
                                   REG_SP, REG_SP, -TRAMP_FRAME_SIZE_64);
     }
@@ -817,11 +817,11 @@ void pushStack(codeGen &gen)
 
 void popStack(codeGen &gen)
 {
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
 	insnCodeGen::generateImm(gen, CALop, 
 				 REG_SP, REG_SP, TRAMP_FRAME_SIZE_32);
 
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+    } else /* gen.width() == 8 */ {
 	insnCodeGen::generateImm(gen, CALop,
                                  REG_SP, REG_SP, TRAMP_FRAME_SIZE_64);
     }
@@ -849,7 +849,7 @@ unsigned saveGPRegisters(codeGen &gen,
             
             int actual_save_off = save_off;
 
-            actual_save_off += (reg->encoding() * gen.addrSpace()->getAddressWidth());
+            actual_save_off += (reg->encoding() * gen.width());
 
 	    gen.rs()->markSavedRegister(reg->number, actual_save_off);
 	    numRegs++;
@@ -944,13 +944,13 @@ unsigned saveSPRegisters(codeGen &gen,
     unsigned num_saved = 0;
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
     
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
 	cr_off    = STK_CR_32;
 	ctr_off   = STK_CTR_32;
 	xer_off   = STK_XER_32;
 	fpscr_off = STK_FP_CR_32;
 	spr0_off  = STK_SPR0_32;
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+    } else /* gen.width() == 8 */ {
 	cr_off    = STK_CR_64;
 	ctr_off   = STK_CTR_64;
 	xer_off   = STK_XER_64;
@@ -1020,13 +1020,13 @@ unsigned restoreSPRegisters(codeGen &gen,
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
     unsigned num_restored = 0;
 
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
 	cr_off    = STK_CR_32;
 	ctr_off   = STK_CTR_32;
 	xer_off   = STK_XER_32;
 	fpscr_off = STK_FP_CR_32;
 	spr0_off  = STK_SPR0_32;
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+    } else /* gen.width() == 8 */ {
 	cr_off    = STK_CR_64;
 	ctr_off   = STK_CTR_64;
 	xer_off   = STK_XER_64;
@@ -1070,17 +1070,18 @@ bool baseTramp::generateSaves(codeGen &gen,
                               registerSpace *)
 {
     regalloc_printf("========== baseTramp::generateSaves\n");
-    
-    int gpr_off, fpr_off, ctr_off;
-    if (gen.addrSpace()->getAddressWidth() == 4) {
-        gpr_off = TRAMP_GPR_OFFSET_32;
-        fpr_off = TRAMP_FPR_OFFSET_32;
-        ctr_off = STK_CTR_32;
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
-        gpr_off = TRAMP_GPR_OFFSET_64;
-        fpr_off = TRAMP_FPR_OFFSET_64;
-        ctr_off = STK_CTR_64;
-    }
+    unsigned int width = gen.width();
+
+    cerr << "DEBUG: width = " << width 
+	 << " SPR @ " << hex << TRAMP_SPR_OFFSET(width)
+	 << " FPR @ " << hex << TRAMP_FPR_OFFSET(width)
+	 << " GPR @ " << hex << TRAMP_GPR_OFFSET(width) << dec << endl;
+
+    gen.fill(16, codeGen::cgNOP);
+
+    int gpr_off, fpr_off;
+    gpr_off = TRAMP_GPR_OFFSET(width);
+    fpr_off = TRAMP_FPR_OFFSET(width);
 
     // Make a stack frame.
     pushStack(gen);
@@ -1093,33 +1094,28 @@ bool baseTramp::generateSaves(codeGen &gen,
 	saveFPRegisters(gen, gen.rs(), fpr_off);
 
     // Save LR            
-    saveLR(gen, REG_SCRATCH /* register to use */, TRAMP_SPR_OFFSET + STK_LR);
+    saveLR(gen, REG_SCRATCH /* register to use */, TRAMP_SPR_OFFSET(width) + STK_LR);
 
-    saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET, true); // FIXME get liveness fixed
+    saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), true); // FIXME get liveness fixed
     return true;
 }
 
 bool baseTramp::generateRestores(codeGen &gen,
                                  registerSpace *)
 {
+    unsigned int width = gen.width();
+
     regalloc_printf("========== baseTramp::generateRestores\n");
 
-    int gpr_off, fpr_off, ctr_off;
-    if (gen.addrSpace()->getAddressWidth() == 4) {
-        gpr_off = TRAMP_GPR_OFFSET_32;
-        fpr_off = TRAMP_FPR_OFFSET_32;
-        ctr_off = STK_CTR_32;
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
-        gpr_off = TRAMP_GPR_OFFSET_64;
-        fpr_off = TRAMP_FPR_OFFSET_64;
-        ctr_off = STK_CTR_64;
-    }
+    int gpr_off, fpr_off;
+    gpr_off = TRAMP_GPR_OFFSET(width);
+    fpr_off = TRAMP_FPR_OFFSET(width);
 
     // Restore possible SPR saves
-    restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET, false);
+    restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
 
     // LR
-    restoreLR(gen, REG_SCRATCH, TRAMP_SPR_OFFSET + STK_LR);
+    restoreLR(gen, REG_SCRATCH, TRAMP_SPR_OFFSET(width) + STK_LR);
 
     if (BPatch::bpatch->isSaveFPROn() || // FPRs
         BPatch::bpatch->isForceSaveFPROn() ) 
@@ -1134,6 +1130,9 @@ bool baseTramp::generateRestores(codeGen &gen,
     */
 
     popStack(gen);
+
+    gen.fill(16, codeGen::cgNOP);
+
     return true;
 }
 
@@ -1160,7 +1159,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         break;
         
     case timesOp:
-       if (isPowerOf2(src2imm,result) && (result < (int) (gen.addrSpace()->getAddressWidth() * 8))) {
+       if (isPowerOf2(src2imm,result) && (result < (int) (gen.width() * 8))) {
             insnCodeGen::generateLShift(gen, src1, result, dest);
             return;
         }
@@ -1173,7 +1172,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         break;
         
     case divOp:
-        if (isPowerOf2(src2imm,result) && (result < (int) (gen.addrSpace()->getAddressWidth() * 8))) {
+        if (isPowerOf2(src2imm,result) && (result < (int) (gen.width() * 8))) {
             insnCodeGen::generateRShift(gen, src1, result, dest);
             return;
         }
@@ -1423,7 +1422,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
     if (needToSaveLR) {
         assert(inInstrumentation);
         insnCodeGen::generateMoveFromLR(gen, 0);
-        saveRegister(gen, 0, FUNC_CALL_SAVE);
+        saveRegister(gen, 0, FUNC_CALL_SAVE(gen.width()));
         savedRegs.push_back(0);
         inst_printf("saved LR in 0\n");
     }
@@ -1431,7 +1430,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
     if (inInstrumentation &&
         (toc_anchor != caller_toc)) {
         // Save register 2 (TOC)
-        saveRegister(gen, 2, FUNC_CALL_SAVE);
+      saveRegister(gen, 2, FUNC_CALL_SAVE(gen.width()));
         savedRegs.push_back(2);
     }
 
@@ -1448,7 +1447,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
            ((reg->refCount > 0) || 
             reg->keptValue ||
             (reg->liveState == registerSlot::live))) {
-          saveRegister(gen, reg->number, FUNC_CALL_SAVE);
+	 saveRegister(gen, reg->number, FUNC_CALL_SAVE(gen.width()));
           savedRegs.push_back(reg->number);
        }
     }
@@ -1578,7 +1577,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
  
     if (!inInstrumentation) assert(savedRegs.size() == 0);
     for (u_int ui = 0; ui < savedRegs.size(); ui++) {
-	restoreRegister(gen, savedRegs[ui], FUNC_CALL_SAVE);
+      restoreRegister(gen, savedRegs[ui], FUNC_CALL_SAVE(gen.width()));
     }
   
     // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
@@ -1658,7 +1657,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
     //bperr("emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
     registerSlot *regSlot = NULL;
-    unsigned addrWidth = gen.addrSpace()->getAddressWidth();
+    unsigned addrWidth = gen.width();
 
     switch (op) {
     case getRetValOp: {
@@ -1735,16 +1734,12 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
 
     switch(regSlot->liveState) {
     case registerSlot::spilled: {
-        int offset;
-        if (addrWidth == 4)
-            offset = TRAMP_GPR_OFFSET_32;
-        else /* addrWidth == 8 */
-            offset = TRAMP_GPR_OFFSET_64;
-
-        // its on the stack so load it.
-        if (src2 != REG_NULL) saveRegister(gen, src2, reg, offset);
-        restoreRegister(gen, reg, dest, offset);
-        return(dest);
+      int offset = TRAMP_GPR_OFFSET(addrWidth);
+      
+      // its on the stack so load it.
+      if (src2 != REG_NULL) saveRegister(gen, src2, reg, offset);
+      restoreRegister(gen, reg, dest, offset);
+      return(dest);
     }
     case registerSlot::live: {
         // its still in a register so return the register it is in.
@@ -1780,11 +1775,11 @@ static inline void restoreGPRtoGPR(codeGen &gen,
                                    Register reg, Register dest)
 {
     int frame_size, gpr_size, gpr_off;
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
 	frame_size = TRAMP_FRAME_SIZE_32;
 	gpr_size   = GPRSIZE_32;
 	gpr_off    = TRAMP_GPR_OFFSET_32;
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+    } else /* gen.width() == 8 */ {
 	frame_size = TRAMP_FRAME_SIZE_64;
 	gpr_size   = GPRSIZE_64;
 	gpr_off    = TRAMP_GPR_OFFSET_64;
@@ -1808,12 +1803,12 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 // VG(03/15/02): Restore mutatee value of XER to dest GPR
 static inline void restoreXERtoGPR(codeGen &gen, Register dest)
 {
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
         insnCodeGen::generateImm(gen, Lop, dest, REG_SP,
-                                 TRAMP_SPR_OFFSET + STK_XER_32);
-    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+                                 TRAMP_SPR_OFFSET(4) + STK_XER_32);
+    } else /* gen.width() == 8 */ {
         insnCodeGen::generateMemAccess64(gen, LDop, LDxop, dest, REG_SP,
-                                         TRAMP_SPR_OFFSET + STK_XER_64);
+                                         TRAMP_SPR_OFFSET(8) + STK_XER_64);
     }
 }
 
@@ -1940,9 +1935,9 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
     break;
   case loadFrameRelativeOp: {
 	long offset = (long)src1;
-	if (gen.addrSpace()->getAddressWidth() == 4)
+	if (gen.width() == 4)
 	    offset += TRAMP_FRAME_SIZE_32;
-	else /* gen.addrSpace()->getAddressWidth() == 8 */
+	else /* gen.width() == 8 */
 	    offset += TRAMP_FRAME_SIZE_64;
 
 	// return the value that is FP offset from the original fp
@@ -1962,7 +1957,7 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
   case loadFrameAddr: {
     // offsets are signed!
     long offset = (long)src1;
-    offset += (gen.addrSpace()->getAddressWidth() == 4 ? TRAMP_FRAME_SIZE_32
+    offset += (gen.width() == 4 ? TRAMP_FRAME_SIZE_32
 	       : TRAMP_FRAME_SIZE_64);
     
     if (offset < MIN_IMM16 || MAX_IMM16 < offset) assert(0);
@@ -2021,7 +2016,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 
     } else if (op == storeFrameRelativeOp) {
         long offset = (long)dest;
-        offset += (gen.addrSpace()->getAddressWidth() == 4
+        offset += (gen.width() == 4
 		   ? TRAMP_FRAME_SIZE_32
 		   : TRAMP_FRAME_SIZE_64);
 
@@ -2123,7 +2118,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
                 instOp = DIVSop;   // POWER divide instruction
                                    // Same as DIVWop for PowerPC
 #if defined(os_aix)                // Should use runtime CPU detection ...
-		if (gen.addrSpace()->getAddressWidth() == 8)
+		if (gen.width() == 8)
 		    instXop = DIVWxop; // divs instruction deleted on 64-bit
 		else
 		    instXop = DIVSxop;
@@ -2497,29 +2492,29 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
         // Note: this is only valid for non-function entry/exit instru. 
         // Once we've entered a function, the LR is stomped to point
         // at the exit tramp!
-        offset = TRAMP_SPR_OFFSET + STK_LR; 
+      offset = TRAMP_SPR_OFFSET(gen.width()) + STK_LR; 
 
         // Get address (SP + offset) and stick in register dest.
         emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest,
                 gen, noCost, gen.rs());
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(),
-              gen.addrSpace()->getAddressWidth(), gen.point(), gen.addrSpace());
+              gen.width(), gen.point(), gen.addrSpace());
         break;
 
     case registerSpace::ctr:
         // CTR is saved down the stack
-        if (gen.addrSpace()->getAddressWidth() == 4)
-            offset = TRAMP_SPR_OFFSET + STK_CTR_32;
+        if (gen.width() == 4)
+	  offset = TRAMP_SPR_OFFSET(gen.width()) + STK_CTR_32;
         else
-            offset = TRAMP_SPR_OFFSET + STK_CTR_64;
+	  offset = TRAMP_SPR_OFFSET(gen.width()) + STK_CTR_64;
 
         // Get address (SP + offset) and stick in register dest.
         emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest,
                 gen, noCost, gen.rs());
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(),
-              gen.addrSpace()->getAddressWidth(), gen.point(), gen.addrSpace());
+              gen.width(), gen.point(), gen.addrSpace());
       break;
 
     default:
@@ -2735,7 +2730,7 @@ bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
 bool EmitterPOWER::emitCallRelative(Register dest, Address offset, Register base, codeGen &gen){
     // Loads a saved register from the stack. 
     int imm = offset;
-    if (gen.addrSpace()->getAddressWidth() == 4) {
+    if (gen.width() == 4) {
       if (((signed)MIN_IMM16 <= (signed)imm) && ((signed)imm <= (signed)MAX_IMM16))
         {
           insnCodeGen::generateImm (gen, CALop, dest, base, imm);
@@ -2966,7 +2961,7 @@ bool EmitterPOWER32Stat::emitPIC(codeGen& gen, Address origAddr, Address relocAd
 	      scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
 	      assert(scratchReg != REG_NULL);
 	      // relocaAddr has moved since we added instructions to setup a new stack frame
-	      relocAddr = relocAddr + ((stack_size + 1)*(gen.addrSpace()->getAddressWidth()));
+	      relocAddr = relocAddr + ((stack_size + 1)*(gen.width()));
               //fprintf(stderr, " emitPIC origAddr 0x%lx reloc 0x%lx stack size %d Registers PC %d scratch %d \n", origAddr, relocAddr, stack_size, scratchPCReg, scratchReg);
 
 	} 
@@ -3042,7 +3037,7 @@ bool EmitterPOWER32Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   // We can now use scratchLR
 
   Address varOffset = dest - pcVal;
-  emitLoadRelative(scratchLR, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
+  emitLoadRelative(scratchLR, varOffset, scratchReg, gen.width(), gen);
   
   insnCodeGen::generateMoveToCR(gen, scratchLR);
 
@@ -3107,7 +3102,7 @@ bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen
   // We can now use scratchLR
 
   Address varOffset = dest - pcVal;
-  emitLoadRelative(scratchLR, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
+  emitLoadRelative(scratchLR, varOffset, scratchReg, gen.width(), gen);
   
   insnCodeGen::generateMoveToCR(gen, scratchLR);
 
@@ -3124,8 +3119,6 @@ bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen
 }
 
 bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
-  cerr << "emitPLTCommon to " << callee->name() << endl;
-
   // Okay, I'm going to try and describe how this works. 
   //
   // PPC64 uses a TOC, a range of memory pointed to by R2. The TOC is full of 
@@ -3167,7 +3160,6 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   //  9) (if branch) return
   //
 
-  bool isStaticBinary = gen.addrSpace()->edit()->getMappedObject()->parse_img()->getObject()->isStaticBinary();
   // Even if we're in a static binary we may need to change the TOC. Heck,
   // we may need to change the TOC in an intra-module call no matter what.
   // This is caused by a GOT that is larger than 64k (the only addressable
@@ -3177,7 +3169,7 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
 
 
   const unsigned TOCreg = 2;
-  const unsigned wordsize = gen.addrSpace()->getAddressWidth();
+  const unsigned wordsize = gen.width();
   assert(wordsize == 8);
 
   Address func_desc = getInterModuleFuncAddr(callee, gen);
@@ -3276,7 +3268,7 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   }
   
   const unsigned TOCreg = 2;
-  const unsigned wordsize = gen.addrSpace()->getAddressWidth();
+  const unsigned wordsize = gen.width();
   assert(wordsize == 8);
   Address dest = getInterModuleFuncAddr(callee, gen);
   Address caller_toc = 0;
@@ -3355,7 +3347,7 @@ bool EmitterPOWER64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen 
   //   Return
 
   const unsigned TOCreg = 2;
-  const unsigned wordsize = gen.addrSpace()->getAddressWidth();
+  const unsigned wordsize = gen.width();
   assert(wordsize == 8);
   Address dest = block->start();
 
@@ -3554,7 +3546,7 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
    if (op ==loadOp) {
    	if(!is_local && (var != NULL)){
 
-	  emitLoadRelative(dest, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
+	  emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
 	  // Deference the pointer to get the variable
 	  emitLoadRelative(dest, 0, dest, size, gen);
    	} else {
@@ -3564,7 +3556,7 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
    } else { //loadConstop
      if(!is_local && (var != NULL)){
 
-       emitLoadRelative(dest, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
+       emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
      } else {
 
        // Move address of the variable into the register - load effective address
@@ -3625,7 +3617,7 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
    		inst_printf("emitStoreRelative - after new stack frame- addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n",
    		addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
    	}
-     	emitLoadRelative(scratchReg1, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
+     	emitLoadRelative(scratchReg1, varOffset, scratchReg, gen.width(), gen);
    	emitStoreRelative(source, 0, scratchReg1, size, gen);
    } else {
    	emitStoreRelative(source, varOffset, scratchReg, size, gen);

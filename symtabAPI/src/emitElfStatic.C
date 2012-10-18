@@ -1652,10 +1652,6 @@ bool emitElfStatic::calculateTOCs(Symtab *target, deque<Region *> &regions, Offs
     if ((currentTOC + 0x7ff0) < end) {
       assert(0 && "Need to implement -bbigtoc equivalent to rewrite this binary!");
     }
-    fprintf(stderr, "\tSetting TOC for %s (at 0x%lx in file) to 0x%lx\n",
-	    symtab->name().c_str(),
-	    current,
-	    currentTOC);
     symtab->setTOCOffset(currentTOC);
     current = end;
   }
