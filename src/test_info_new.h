@@ -188,7 +188,8 @@ public:
   TESTLIB_DLL_EXPORT static int getMaxTestNameLength();
   TESTLIB_DLL_EXPORT static void setMaxTestNameLength(int newlen);
   TESTLIB_DLL_EXPORT TestInfo(unsigned int i, const char *iname, const char *mrname,
-	   const char *isoname, bool _serialize_enable, const char *ilabel);
+                              const char *isoname, bool _serialize_enable, const char *ilabel);
+  TESTLIB_DLL_EXPORT TestInfo(unsigned int i, const char *sosuffix, const char *ilabel);
   TESTLIB_DLL_EXPORT ~TestInfo();
 };
 
