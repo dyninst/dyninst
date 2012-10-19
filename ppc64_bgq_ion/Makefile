@@ -124,6 +124,3 @@ CFLAGS   += -D_XOPEN_SOURCE=600
 CXXFLAGS += -D_XOPEN_SOURCE=600
 F77FLAGS += -D_XOPEN_SOURCE=600
 
-.PHONY: dyninst_clean_solo_mutatees
-dyninst_clean_solo_mutatees:
-	@echo No dyninst mutatees to clean
