@@ -287,6 +287,5 @@ Archive::~Archive()
     if (mf) {
       MappedFile::closeMappedFile(mf);
     }
-    delete basePtr;
-    
+    // who allocated basePtr? they should delete it...
 }

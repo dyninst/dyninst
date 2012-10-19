@@ -31,6 +31,25 @@
 #include "test_info_new.h"
 #include "module.h"
 #include <assert.h>
+#include <stdio.h>
+
+static const char *extract_name(const char *tag, const char *label)
+{
+   const char *start = strstr(label, tag);
+   assert(start);
+   start += strlen(tag);
+
+   unsigned int size = 0;
+   while (start[size] != ',' && start[size] != '\0') size++;
+   assert(size);
+   
+   char *result = (char *) malloc(size+1);
+   strncpy(result, start, size);
+   result[size] = '\0';
+
+   return result;
+}
+
 
 // The constructor for TestInfo
 TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
@@ -45,6 +64,31 @@ TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
       results[i] = UNKNOWN;
    }
 }
+
+TestInfo::TestInfo(unsigned int i, const char *libsuffix, const char *ilabel) :
+   index(i),
+   serialize_enable(false),
+   label(ilabel),
+   mutator(NULL),
+   disabled(false),
+   limit_disabled(false),
+   enabled(false),
+   result_reported(false)
+{
+   name = extract_name("test: ", label);
+   mutator_name = extract_name("mutator: ", label);
+
+   char *temp_soname = (char *) malloc(strlen(mutator_name) + strlen(libsuffix) + 1);
+   strcpy(temp_soname, mutator_name);
+   strcat(temp_soname, libsuffix);
+   soname = temp_soname;
+
+   for (unsigned i=0; i<NUM_RUNSTATES; i++)
+   {
+      results[i] = UNKNOWN;
+   }
+}
+           
 
 // Constructor for RunGroup, with an initial test specified
 RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,

@@ -339,17 +339,28 @@ def build_label(test, mutator, rungroup):
 
 def print_initialize_mutatees(out, rungroups, compilers):
 	header = """
+static unsigned int test_count = 0;
+static unsigned int group_count = 0;
+static std::vector<RunGroup *> *tests = NULL;
+
+static void fini_group(RunGroup *rg) {
+  rg->index = group_count++;
+  tests->push_back(rg);
+  test_count = 0;
+}
+
+static void add_test(RunGroup *rg, const char *ts) {
+  rg->tests.push_back(new TestInfo(test_count++, "%s", ts));
+}
+
 // Now we insert the test lists into the run groups
-void initialize_mutatees(std::vector<RunGroup *> &tests) {
-	unsigned int group_count = 0;
-	// Keep track of which element each test is, for later use with the resumelog
-	unsigned int test_count;
+void initialize_mutatees(std::vector<RunGroup *> &t) {
+        tests = &t;
 	RunGroup *rg;
 """
-	out.write(header)
-
 	platform = find_platform(os.environ.get('PLATFORM'))
 	LibSuffix = platform['filename_conventions']['library_suffix']
+	out.write(header % (LibSuffix))
 
 	# TODO Change these to get the string conversions from a tuple output
 	for group in rungroups:
@@ -357,7 +368,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 		if compiler['presencevar'] != 'true':
 			out.write("#ifdef %s\n" % (compiler['presencevar']))
 		mutateename = mutatee_filename(group, compilers)
-		out.write('  test_count = 0;\n')
 		out.write('  rg = new RunGroup("%s", ' % (mutateename))
 		if group['start_state'] == 'stopped':
 			out.write('STOPPED, ')
@@ -431,9 +441,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 				serialize_enable = 'true'
 			else:
 				serialize_enable = 'false'
-			out.write('  rg->tests.push_back(new TestInfo(test_count++, "%s", "%s", "%s%s", %s, "%s"));\n' % (test, mutator, mutator, LibSuffix, serialize_enable, ts))
-		out.write('  rg->index = group_count++;\n')
-		out.write('  tests.push_back(rg);\n')
+			out.write('  add_test(rg, "%s");\n' % (ts))
+		out.write('  fini_group(rg);\n')
 		# Close compiler presence #ifdef
 		if compiler['presencevar'] != 'true':
 			out.write("#endif // defined(%s)\n" % (compiler['presencevar']))

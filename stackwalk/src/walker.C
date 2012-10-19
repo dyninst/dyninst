@@ -36,6 +36,7 @@
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/steppergroup.h"
 #include "stackwalk/src/sw.h"
+#include "stackwalk/src/libstate.h"
 #include <assert.h>
 
 using namespace Dyninst;
@@ -286,12 +287,28 @@ Walker::~Walker() {
 
 SymbolReaderFactory *Walker::getSymbolReader()
 {
-   return symrfact;
+   if (Walker::symrfact) {
+      return Walker::symrfact;
+   }
+
+   SymbolReaderFactory *fact = ProcControlAPI::Process::getDefaultSymbolReader();
+   if (fact) {
+      Walker::symrfact = fact;
+      return fact;
+   }
+
+   fact = Stackwalker::getDefaultSymbolReader();
+   if (fact) {
+      Walker::symrfact = fact;
+      return fact;
+   }
+   return NULL;
 }
 
 void Walker::setSymbolReader(SymbolReaderFactory *srf)
 {
    symrfact = srf;
+   ProcControlAPI::Process::setDefaultSymbolReader(srf);
 }
 
 /**

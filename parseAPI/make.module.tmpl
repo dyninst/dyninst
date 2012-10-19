@@ -7,7 +7,7 @@
 #
 
 SUITE_NAME	= ParseAPI
-RELEASE_MAJOR	= 7
+RELEASE_MAJOR	= 8
 RELEASE_MINOR = 0
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
@@ -66,8 +66,7 @@ PUBLIC_H = \
     InstructionSource.h\
     ParseCallback.h\
     ParseContainers.h\
-    SymLiteCodeSource.h \
-    GraphAdapter.h
+    SymLiteCodeSource.h
 
 SRCS +=	../src/ParserDetails.C \
         ../src/Parser.C \
@@ -85,8 +84,12 @@ SRCS +=	../src/ParserDetails.C \
         ../src/IA_powerDetails.C \
         ../src/IA_platformDetailsFactory.C \
         ../src/CFGModifier.C\
-	../src/SymLiteCodeSource.C \
-	../src/GraphAdapter.C
+	../src/SymLiteCodeSource.C
+
+ifeq (x$(ENABLE_PARSE_API_GRAPHS),xyes)
+SRCS += ../src/GraphAdapter.C
+PUBLIC_H += ../src/GraphAdapter.h
+endif
 
 ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 SRCS +=	../../dataflowAPI/src/ABI.C \

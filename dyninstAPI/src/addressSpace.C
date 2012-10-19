@@ -1646,6 +1646,8 @@ void AddressSpace::wrapFunctionPostPatch(func_instance *func, Dyninst::SymtabAPI
 
 void AddressSpace::removeCall(block_instance *block, func_instance *context) {
   mgr()->instrumenter()->removeCall(block, context);
+  if (context) addModifiedFunction(context);
+  else addModifiedBlock(block);
 }
 
 void AddressSpace::revertCall(block_instance *block, func_instance *context) {
