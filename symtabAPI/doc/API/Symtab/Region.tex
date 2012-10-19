@@ -2,26 +2,46 @@
 
 This class represents a contiguous range of code or data as encoded in the object file. For ELF, regions represent ELF sections. 
 
-\begin{apient}
-enum perm_t{
-	RP_R,    // Read-only
-	RP_RW,   // Read/write
-	RP_RX,   // Read/execute
-	RP_RWX}; // Read/write/execute
-\end{apient}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+perm\_t & Meaning \\
+\midrule
+RP\_R & Read-only data \\
+RP\_RW & Read/write data \\
+RP\_RX & Read-only code \\
+RP\_RWX & Read/write code \\
+\bottomrule
+\end{tabular}
+\end{center}
 
-\begin{apient}
-enum RegionType { 
-    RT_TEXT, RT_DATA, RT_TEXTDATA, RT_SYMTAB, RT_STRTAB, RT_BSS, RT_SYMVERSIONS, 
-    RT_SYMVERDEF, RT_SYMVERNEEDED, RT_REL, RT_RELA, RT_PLTREL, RT_PLTRELA, 
-    RT_DYNAMIC, RT_HASH, RT_GNU_HASH, RT_OTHER, RT_INVALID = -1};
-\end{apient}
-\apidesc{
-	These region types are drawn from the ELF standard and are not platform independent. 
-}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+RegionType & Meaning \\
+\midrule
+RT\_TEXT & Executable code \\
+RT\_DATA & Read/write data \\
+RT\_TEXTDATA & Mix of code and data \\
+RT\_SYMTAB & Static symbol table \\
+RT\_STRTAB & String table used by the symbol table \\
+RT\_BSS & 0-initialized memory \\
+RT\_SYMVERSIONS & Versioning information for symbols \\
+RT\_SYMVERDEF & Versioning information for symbols \\
+RT\_SYMVERNEEDED & Versioning information for symbols \\
+RT\_REL & Relocation section \\
+RT\_RELA & Relocation section \\
+RT\_PLTREL & Relocation section for PLT (inter-library references) entries \\
+RT\_PLTRELA & Relocation section for PLT (inter-library references) entries \\
+RT\_DYNAMIC & Decription of library dependencies \\
+RT\_HASH & Fast symbol lookup section \\
+RT\_GNU\_HASH & GNU-specific fast symbol lookup section \\
+RT\_OTHER & Miscellaneous information \\
+\bottomrule
+\end{tabular}
+\end{center}
 
-\begin{tabular}{|p{1.25in}|p{1in}|p{3.25in}|}
-	\hline
+\begin{tabular}{p{1.25in}p{1in}p{3.25in}}
 	Method name & Return type & Method description \\
 	\hline
 	getRegionNumber & unsigned & Index of the region in the file, starting at 0. \\
@@ -38,7 +58,6 @@ enum RegionType {
 	getRegionType & RegionType & Type of the region as defined above. \\
 	isLoadable & bool & True if the region will be loaded into memory (e.g., code or data), false otherwise (e.g., debug information). \\
 	isDirty & bool & True if the region's raw data buffer has been modified by the user. \\
-	\hline
 \end{tabular}
 
 \begin{apient}

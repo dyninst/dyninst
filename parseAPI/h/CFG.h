@@ -299,6 +299,7 @@ class Block : public Dyninst::interval<Address>,
 
     PARSER_EXPORT int  containingFuncs() const;
     PARSER_EXPORT void getFuncs(std::vector<Function *> & funcs);
+    template<class OutputIterator> void getFuncs(OutputIterator result); 
 
     PARSER_EXPORT bool wasUserAdded() const;
 
@@ -553,6 +554,14 @@ class FuncExtent : public Dyninst::interval<Address> {
     PARSER_EXPORT Address low() const { return _start; }
     PARSER_EXPORT Address high() const { return _end; } 
 };
+
+template <class OutputIterator>
+void Block::getFuncs(OutputIterator result) {
+  set<Function *> stab;
+  _obj->findFuncs(region(), start(), stab);
+  std::copy(stab.begin(), stab.end(), result);
+}
+
 
 
 } //namespace ParseAPI
