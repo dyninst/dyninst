@@ -1216,7 +1216,7 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 			else:
 				serialize_enable = 'false'
 			test_params.append({'test': test, 'mutator': mutator, 'LibSuffix': LibSuffix, 'serialize_enable' : serialize_enable, 'ts': ts, 'endrungroup': 'false'})
-		test_params[-1]['endrungroup'] = 'true'
+		#test_params[-1]['endrungroup'] = 'true'
 		if(group_empty == 'false'):
 			rungroup_params.append({'presencevar': presencevar, 'mutatee_name': mutatee_name, 'state_init': state_init, 
 				'attach_init': attach_init, 'ex': ex, 'compiler': group['compiler'], 'optimization': group['optimization'],
