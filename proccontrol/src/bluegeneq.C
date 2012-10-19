@@ -28,19 +28,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/src/bluegeneq.h"
-#include "proccontrol/src/int_event.h"
-#include "proccontrol/src/irpc.h"
-#include "proccontrol/h/PCProcess.h"
-#include "proccontrol/h/PlatFeatures.h"
-#include "proccontrol/h/PCErrors.h"
-#include "proccontrol/h/Mailbox.h"
-
-using namespace Dyninst;
-using namespace ProcControlAPI;
-using namespace std;
-
-#include "symlite/h/SymLite-elf.h"
+#if !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
 
 #include <dirent.h>
 #include <limits.h>
@@ -51,11 +41,29 @@ using namespace std;
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/syscall.h>
 #include <signal.h>
 #include <ucontext.h>
 #include <elf.h>
 #include <link.h>
 #include <execinfo.h>
+#include <unistd.h>
+
+#include "proccontrol/src/bluegeneq.h"
+#include "proccontrol/src/int_event.h"
+#include "proccontrol/src/irpc.h"
+#include "proccontrol/h/PCProcess.h"
+#include "proccontrol/h/PlatFeatures.h"
+#include "proccontrol/h/PCErrors.h"
+#include "proccontrol/h/Mailbox.h"
+
+#define USE_THREADED_IO
+
+using namespace Dyninst;
+using namespace ProcControlAPI;
+using namespace std;
+
+#include "symlite/h/SymLite-elf.h"
 
 using namespace bgq;
 using namespace std;
@@ -69,34 +77,37 @@ bool bgq_process::do_all_attach = true;
 
 const char *getCommandName(uint16_t cmd_type);
 
-static void printMessage(ToolMessage *msg, const char *str)
+static void printMessage(ToolMessage *msg, const char *str, bool short_msg = false)
 {
    if (!dyninst_debug_proccontrol)
       return;
    MessageHeader *header = &msg->header;
   
-   pthrd_printf("%s MessageHeader:\n"
-                "\tservice = %u\t"
-                "\tversion = %u\t"
-                "\ttype = %u\t"
-                "\trank = %u\n"
-                "\tsequenceId = %u\t"
-                "\treturnCode = %u\t"
-                "\terrCode = %u\t"
-                "\tlength = %u\n"
-                "\tjobID = %lu\t"
-                "\ttoolId = %u\n\t",
-                str,
-                (unsigned) header->service,
-                (unsigned) header->version,
-                (unsigned) header->type,
-                header->rank,
-                header->sequenceId,
-                header->returnCode,
-                header->errorCode,
-                header->length,
-                (unsigned long) header->jobId,
-                (unsigned) msg->toolId);
+   if (!short_msg) 
+      pthrd_printf("%s MessageHeader:\n"
+                   "\tservice = %u\t"
+                   "\tversion = %u\t"
+                   "\ttype = %u\t"
+                   "\trank = %u\n"
+                   "\tsequenceId = %u\t"
+                   "\treturnCode = %u\t"
+                   "\terrCode = %u\t"
+                   "\tlength = %u\n"
+                   "\tjobID = %lu\t"
+                   "\ttoolId = %u\n\t",
+                   str,
+                   (unsigned) header->service,
+                   (unsigned) header->version,
+                   (unsigned) header->type,
+                   header->rank,
+                   header->sequenceId,
+                   header->returnCode,
+                   header->errorCode,
+                   header->length,
+                   (unsigned long) header->jobId,
+                   (unsigned) msg->toolId);
+   else
+      pthrd_printf("%s to %u: ", str, header->rank);
   
    switch (msg->header.type) {
       case ControlAck: {
@@ -126,46 +137,54 @@ static void printMessage(ToolMessage *msg, const char *str)
       case QueryAck: {
          QueryAckMessage *m = static_cast<QueryAckMessage *>(msg);
          pclean_printf("QueryAck: numCommands = %u\n", (unsigned) m->numCommands);
-         for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
-            CommandDescriptor &c = m->cmdList[i];
-            pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
-                          i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
-                          c.length, c.returnCode);
+         if (!short_msg) {
+            for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
+               CommandDescriptor &c = m->cmdList[i];
+               pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
+                             i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
+                             c.length, c.returnCode);
+            }
+            break;
          }
-         break;
       }
       case UpdateAck: {
          UpdateAckMessage *m = static_cast<UpdateAckMessage *>(msg);
          pclean_printf("UpdateAck: numCommands = %u\n", (unsigned) m->numCommands);
-         for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
-            CommandDescriptor &c = m->cmdList[i];
-            pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
-                          i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
-                          c.length, c.returnCode);
+         if (!short_msg) {
+            for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
+               CommandDescriptor &c = m->cmdList[i];
+               pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
+                             i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
+                             c.length, c.returnCode);
+            }
          }
          break;
       }
       case Query: {
          QueryMessage *m = static_cast<QueryMessage *>(msg);
          pclean_printf("Query: numCommands = %u\n", (unsigned) m->numCommands);
-         for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
-            CommandDescriptor &c = m->cmdList[i];
-            pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
-                          i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
-                          c.length, c.returnCode);
+         if (!short_msg) {
+            for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
+               CommandDescriptor &c = m->cmdList[i];
+               pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
+                             i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
+                             c.length, c.returnCode);
+            }
+            break;
          }
-         break;
       }
       case Update: {
          UpdateMessage *m = static_cast<UpdateMessage *>(msg);
          pclean_printf("Update: numCommands = %u\n", (unsigned) m->numCommands);
-         for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
-            CommandDescriptor &c = m->cmdList[i];
-            pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
-                          i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
-                          c.length, c.returnCode);
+         if (!short_msg) {
+            for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
+               CommandDescriptor &c = m->cmdList[i];
+               pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
+                             i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
+                             c.length, c.returnCode);
+            }
+            break;
          }
-         break;
       }
       case Notify: {
          pclean_printf("Notify ");
@@ -287,15 +306,18 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
          set_ids = true;
       }
    }
+   ReaderThread::get();
 
    query_transaction = new QueryTransaction(this, Query);
    update_transaction = new UpdateTransaction(this, Update);
    cn = ComputeNode::getComputeNodeByRank(rank);
    cn->procs.insert(this);
+   WriterThread::get()->addProcess(this);
 }
 
 bgq_process::~bgq_process()
 {
+   WriterThread::get()->rmProcess(this);
    if (initial_thread_list) {
       delete initial_thread_list;
       initial_thread_list = NULL;
@@ -2003,11 +2025,13 @@ ComputeNode::ComputeNode(int cid) :
    }
 
    all_compute_nodes.insert(this);
+   ReaderThread::get()->addComputeNode(this);
    pthrd_printf("Successfully connected to CN %d on FD %d\n", cid, fd);
 }
 
 ComputeNode::~ComputeNode()
 {
+   ReaderThread::get()->rmComputeNode(this);
    if (fd != -1) {
       close(fd);
       fd = -1;
@@ -2050,19 +2074,36 @@ bool ComputeNode::reliableWrite(void *buffer, size_t buffer_size)
 
 bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool heap_alloced)
 {
+#if defined(USE_THREADED_IO)
+   printMessage(msg, "Writing");
+   buffer_t newmsg;
+   newmsg.size = msg->header.length;
+   if (heap_alloced) {
+      newmsg.buffer = msg;
+   }
+   else {
+      newmsg.buffer = malloc(newmsg.size);
+      memcpy(newmsg.buffer, msg, newmsg.size);
+   }
+   newmsg.is_heap_allocated = true;
+
+   WriterThread::get()->writeMessage(newmsg, proc->getComputeNode());
+   return true;
+#else
    ScopeLock lock(send_lock);
 
    if (have_pending_message) {
       pthrd_printf("Enqueuing message while another is pending\n");
-      pair<void *, size_t> newmsg;
-      newmsg.second = msg->header.length;
+      buffer_t newmsg;
+      newmsg.size = msg->header.length;
       if (heap_alloced) {
-         newmsg.first = msg;
+         newmsg.buffer = msg;
       }
       else {
-         newmsg.first = malloc(newmsg.second);
-         memcpy(newmsg.first, msg, newmsg.second);
+         newmsg.buffer = malloc(newmsg.size);
+         memcpy(newmsg.buffer, msg, newmsg.size);
       }
+      newmsg.is_heap_allocated = true;
       queued_pending_msgs.push(newmsg);
       return true;
    }
@@ -2078,9 +2119,10 @@ bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool hea
       pthrd_printf("Failed to write message to %d\n", proc->getPid());
       return false;
    }
-   
+
    have_pending_message = true;
    return true;
+#endif
 }
 
 bool ComputeNode::flushNextMessage()
@@ -2093,16 +2135,15 @@ bool ComputeNode::flushNextMessage()
       return true;
    }
 
-   pair<void *, size_t> buffer = queued_pending_msgs.front();
+   buffer_t buffer = queued_pending_msgs.front();
    queued_pending_msgs.pop();
-
    
-   ToolMessage *msg = (ToolMessage *) buffer.first;
+   ToolMessage *msg = (ToolMessage *) buffer.buffer;
    printMessage(msg, "Writing");
-   bool result = reliableWrite(msg, buffer.second);
+   bool result = reliableWrite(msg, buffer.size);
    pthrd_printf("Flush wrote message of size %u to FD %d, result is %s\n", msg->header.length,
                 fd, result ? "true" : "false");
-   free(buffer.first);
+   free(buffer.buffer);
    if (!result) {
       pthrd_printf("Failed to flush message to compute-node %d\n", cn_id);
       have_pending_message = false;
@@ -2113,7 +2154,11 @@ bool ComputeNode::flushNextMessage()
 
 bool ComputeNode::handleMessageAck()
 {
+#if !defined(USE_THREADED_IO)
    return flushNextMessage();
+#else
+   return true;
+#endif
 }
 
 bool ComputeNode::writeToolAttachMessage(bgq_process *proc, ToolMessage *msg, bool heap_alloced)
@@ -2536,6 +2581,9 @@ ArchEvent *GeneratorBGQ::getEvent(bool)
 
 bool GeneratorBGQ::getMultiEvent(bool block, vector<ArchEvent *> &events)
 {
+#if defined(USE_THREADED_IO)
+   return readMessage(events, block);
+#else
    bool have_fd = false;
    int max_fd = kick_pipe[0];
 
@@ -2609,6 +2657,7 @@ bool GeneratorBGQ::getMultiEvent(bool block, vector<ArchEvent *> &events)
    }
 
    return true;
+#endif
 }
 
 bool GeneratorBGQ::reliableRead(int fd, void *buffer, size_t buffer_size, int timeout_s)
@@ -2650,6 +2699,26 @@ bool GeneratorBGQ::reliableRead(int fd, void *buffer, size_t buffer_size, int ti
       }
    }
    return true;
+}
+
+bool GeneratorBGQ::readMessage(vector<ArchEvent *> &events, bool block)
+{
+   for (;;) {
+      buffer_t buf = ReaderThread::get()->readNextElement(block);
+      if (buf.buffer == NULL && block) {
+         pthrd_printf("Failed to read from ReaderThread\n");
+         return false;
+      }
+      if (buf.buffer == NULL) {
+         return true;
+      }
+      ToolMessage *tm = (ToolMessage *) buf.buffer;
+      printMessage(tm, "Read");
+      ArchEventBGQ *newArchEvent = new ArchEventBGQ(tm);
+      assert(newArchEvent);
+      events.push_back(newArchEvent);
+      block = false;
+   }
 }
 
 bool GeneratorBGQ::readMessage(int fd, vector<ArchEvent *> &events)
@@ -3574,8 +3643,513 @@ bool ProcessPool::LWPIDsAreUnique()
    return false;
 }
 
-DebugThread *DebugThread::me;
+static volatile int on_sigusr2_hit;
+static void on_sigusr2(int)
+{
+   on_sigusr2_hit = 1;
+}
+
+#ifndef SYS_tkill
+#define SYS_tkill 208
+#endif
+
+static pid_t P_gettid()
+{
+  long int result = syscall(SYS_gettid);
+  return (pid_t) result;
+}
+
+
+static bool t_kill(int pid, int sig)
+{
+  long int result = syscall(SYS_tkill, pid, sig);
+  return (result == 0);
+}
+
+static void kick_thread(int pid, int tid)
+{
+   if (!pid || !tid)
+      return;
+   if (pid != getpid())
+      return;
+
+   struct sigaction newact, oldact;
+   memset(&newact, 0, sizeof(struct sigaction));
+   memset(&oldact, 0, sizeof(struct sigaction));
+   newact.sa_handler = on_sigusr2;
+
+   int result = sigaction(SIGUSR2, &newact, &oldact);
+   if (result == -1) {
+      int error = errno;
+      perr_printf("Error signaling generator thread: %s\n", strerror(error));
+      return;
+   }
+   on_sigusr2_hit = 0;
+   bool bresult = t_kill(tid, SIGUSR2);
+   while (bresult && !on_sigusr2_hit) {
+      //Don't use a lock because pthread_mutex_unlock is not signal safe
+      sched_yield();
+   }
+
+   result = sigaction(SIGUSR2, &oldact, NULL);
+   if (result == -1) {
+      int error = errno;
+      perr_printf("Error signaling generator thread: %s\n", strerror(error));
+   }      
+}
+
 extern void setXThread(long t);
+extern void setRThread(long t);
+extern void setWThread(long t);
+
+IOThread::IOThread() :
+   do_exit(false),
+   init_done(false),
+   shutdown_done(false),
+   lwp(0),
+   pid(0)
+{
+}
+
+void IOThread::init()
+{
+   initLock.lock();
+   bool result = thrd.spawn(IOThread::mainWrapper, this);
+   assert(result);
+   
+   while (!init_done)
+      initLock.wait();
+   initLock.unlock();
+}
+
+IOThread::~IOThread()
+{
+   shutdown();
+}
+
+void IOThread::mainWrapper(void *param)
+{
+   IOThread *iothrd = static_cast<IOThread *>(param);
+   iothrd->thrd_main();
+}
+
+void IOThread::thrd_main()
+{
+   lwp = P_gettid();
+   pid = getpid();
+
+   localInit();
+
+   initLock.lock();
+   init_done = true;
+   initLock.signal();
+   initLock.unlock();
+
+   while (!do_exit) {
+      run();
+   }
+
+   shutdownLock.lock();
+   shutdown_done = true;
+   shutdownLock.signal();
+   shutdownLock.unlock();
+}
+
+void IOThread::kick()
+{
+   kick_thread(pid, lwp);
+}
+
+void IOThread::shutdown()
+{
+   if (do_exit || shutdown_done)
+      return;
+
+   shutdownLock.lock();
+   do_exit = true;
+   kick();
+   while (!shutdown_done)
+      shutdownLock.wait();
+   shutdownLock.unlock();
+   thrd.join();
+}
+
+ReaderThread *ReaderThread::me = NULL;
+ReaderThread::ReaderThread() :
+   kick_fd(-1)
+{
+   assert(!me);
+   me = this;
+}
+
+ReaderThread::~ReaderThread()
+{
+   me = NULL;
+}
+
+void ReaderThread::run()
+{
+   static vector<int> cur_fds;
+   fd_set readfds;
+   int nfds = 0;
+   int num_fds = 0;
+   FD_ZERO(&readfds);
+   cur_fds.clear();
+
+   /* Setup the FD list for select.  Block if there's no FDs ready yet */
+   {
+      pthrd_printf("Creating FD list in reader thread\n");
+      bool result = fd_lock.lock();
+      if (!result) {
+         pthrd_printf("Reader thread kicked.\n");
+         return;
+      }
+      while (fds.empty()) {
+         result = fd_lock.wait();
+         if (!result) {
+            pthrd_printf("Reader thread kicked.\n");
+            return;
+         }
+      }
+      for (set<int>::iterator i = fds.begin(); i != fds.end(); i++) {
+         int fd = *i;
+         FD_SET(fd, &readfds);
+         cur_fds.push_back(fd);
+         if (fd > nfds) nfds = fd;
+         num_fds++;
+      }
+      fd_lock.unlock();
+      if (kick_fd != -1) {
+         nfds = (nfds > kick_fd) ? nfds : kick_fd;
+         FD_SET(kick_fd, &readfds);
+         num_fds++;
+      }
+      pthrd_printf("Created FD list with %d elements.  Calling select.\n", num_fds);
+   }
+
+   /* Call select on the FD list */
+   {
+      int result = select(nfds+1, &readfds, NULL, NULL, NULL);
+      pthrd_printf("Select returned %d\n", result);
+      if (result == -1 && errno == EINTR) {
+         pthrd_printf("Reader thread kicked.\n");
+         return;
+      }
+      if (result == -1 && errno == EBADF) {
+         pthrd_printf("Reader thread got EBADF on select return.  Trying again.\n");
+         return;
+      }
+      assert(result != -1 && result != 0);
+   }
+
+   /* Read data from the FDs that have any */
+   bool been_kicked = false;
+   if (kick_fd != -1 && FD_ISSET(kick_fd, &readfds)) {
+      pthrd_printf("Kick FD has data\n");
+      buffer_t buf;
+      queue_lock.lock();
+      msgs.push(buf);
+      queue_lock.signal();
+      queue_lock.unlock();      
+   }
+   for (vector<int>::iterator i = cur_fds.begin(); i != cur_fds.end(); i++) {
+      int fd = *i;
+      if (!FD_ISSET(fd, &readfds))
+         continue;
+      
+      /* Read message header */
+      MessageHeader hdr;
+      size_t bytes_read = 0;
+      pthrd_printf("Reading header from fd %d\n", fd);
+      while (bytes_read < sizeof(MessageHeader)) {
+         int result = read(fd, ((unsigned char *) &hdr) + bytes_read, sizeof(MessageHeader) - bytes_read);
+         if (result == -1 && errno == EINTR) {
+            pthrd_printf("Reader thread was kicked.  Finishing read first.\n");
+            been_kicked = true;
+            continue;
+         }
+         if (result == -1) {
+            int error = errno;
+            perr_printf("Failed to read from FD %d: %s\n", fd, strerror(error));
+            globalSetLastError(err_internal, "Failed to read from CDTI file descriptor");
+            return;
+         }
+         bytes_read += result;
+      }
+      assert(hdr.length <= SmallMessageDataSize);
+      
+      /* Allocate message buffer */
+      unsigned char *message = (unsigned char *) malloc(hdr.length);
+      assert(message);
+      memcpy(message, &hdr, sizeof(MessageHeader));
+      unsigned char *message_body = message + sizeof(MessageHeader);
+      size_t remaining_bytes = hdr.length - sizeof(MessageHeader);
+      
+      /* Read remaining amount of message */
+      bytes_read = 0;
+      pthrd_printf("Reading message from fd %d\n", fd);
+      while (bytes_read < remaining_bytes) {
+         int result = read(fd, message_body + bytes_read, remaining_bytes - bytes_read);
+         if (result == -1 && errno == EINTR) {
+            pthrd_printf("Reader thread was kicked.  Finishing read first.\n");
+            been_kicked = true;
+            continue;
+         }
+         else if (result == -1) {
+            int error = errno;
+            perr_printf("Failed to read from FD %d: %s\n", fd, strerror(error));
+            globalSetLastError(err_internal, "Failed to read from CDTI file descriptor");
+            return;
+         }
+         bytes_read += result;
+      }
+      
+      /* Create buffer_t object and put it into the queue */
+      queue_lock.lock();
+      msgs.push(buffer_t((void *) message, hdr.length, true));
+      queue_lock.signal();
+      queue_lock.unlock();
+      
+      /* If this is an ACK message, then let the writer thread know that it may
+         be free to write now.*/
+      switch (hdr.type) {
+         case ErrorAck:
+         case AttachAck:
+         case DetachAck:
+         case QueryAck:
+         case UpdateAck:
+         case SetupJobAck:
+         case NotifyAck:
+         case ControlAck:
+            pthrd_printf("Notifying writer of Ack\n");
+            WriterThread::get()->notifyAck(hdr.rank);
+            break;
+         default:
+            break;
+      }
+      
+      if (been_kicked) return;
+   }
+}
+
+void ReaderThread::localInit()
+{
+   setRThread(DThread::self());
+}
+
+buffer_t ReaderThread::readNextElement(bool block)
+{
+   queue_lock.lock();
+   while (msgs.empty()) {
+      if (!block) {
+         queue_lock.unlock();
+         return buffer_t(NULL, 0, false);
+      }
+      queue_lock.wait();
+   }
+   buffer_t ret = msgs.front();
+   msgs.pop();
+   queue_lock.unlock();
+   return ret;
+}
+
+void ReaderThread::addComputeNode(ComputeNode *cn)
+{
+   int fd = cn->getFD();
+   fd_lock.lock();
+   fds.insert(fd);
+   fd_lock.signal();
+   fd_lock.unlock();
+   kick();
+}
+
+void ReaderThread::rmComputeNode(ComputeNode *cn)
+{
+   int fd = cn->getFD();
+   fd_lock.lock();
+   set<int>::iterator i = fds.find(fd);
+   assert(i != fds.end());
+   fds.erase(i);
+   fd_lock.signal();
+   fd_lock.unlock();
+}
+
+ReaderThread *ReaderThread::get()
+{
+   if (!me) {
+      me = new ReaderThread();
+      assert(me);
+      me->init();
+   }
+   return me;
+}
+
+WriterThread *WriterThread::me = NULL;
+WriterThread::WriterThread()
+{
+   assert(!me);
+   me = this;
+}
+
+WriterThread::~WriterThread()
+{
+   me = NULL;
+}
+
+WriterThread *WriterThread::get() {
+   if (!me) {
+      me = new WriterThread();
+      assert(me);
+      me->init();
+   }
+   return me;
+}
+
+void WriterThread::run()
+{
+   static vector<int> acks_to_handle;
+   static vector<ComputeNode *> writes_to_handle;
+
+   /* Get the work todo from the global vectors into our local vectors*/
+   if (acks_to_handle.empty() && writes_to_handle.empty())
+   {
+      pthrd_printf("Waiting for acks or writes\n");
+      bool result = msg_lock.lock();
+      if (!result) {
+         pthrd_printf("Kick on writer thread\n");
+         return;
+      }   
+      while (acks.empty() && writes.empty()) {
+         result = msg_lock.wait();
+         if (!result) {
+            pthrd_printf("Kick on writer thread\n");
+            return;
+         }
+      }
+      acks_to_handle = acks;
+      writes_to_handle = writes;
+      acks.clear();
+      writes.clear();
+      msg_lock.unlock();
+      pthrd_printf("Got %lu acks and %lu writes to handle\n", acks_to_handle.size(), writes_to_handle.size());
+   }
+
+   /* Turn all ACKs into potential writes. */
+   if (!acks_to_handle.empty()) {
+      bool result = rank_lock.lock();
+      if (!result) {
+         pthrd_printf("Kick on writer thread\n");
+         return;
+      }
+      for (vector<int>::iterator i = acks_to_handle.begin(); i != acks_to_handle.end(); i++) {
+         int rank = *i;
+         map<int, ComputeNode *>::iterator j = rank_to_cn.find(rank);
+         if (j == rank_to_cn.end())
+            continue;
+         ComputeNode *cn = j->second;
+         cn->have_pending_message = false;
+         pthrd_printf("Ack on CN %d\n", cn->getID());
+         writes_to_handle.push_back(cn);
+      }
+      rank_lock.unlock();
+      acks_to_handle.clear();
+   }
+
+   /* Check the writes for anything that's good to go. */
+   for (vector<ComputeNode *>::iterator i = writes_to_handle.begin(); i != writes_to_handle.end(); i++) {
+      /* Get message for this ComputeNode */
+      ComputeNode *cn = *i;
+      if (cn->have_pending_message) {
+         pthrd_printf("CN %d not ready to write, has pending messages\n", cn->getID());
+         continue;
+      }
+      bool result = cn->pending_queue_lock.lock();
+      if (!result) {
+         pthrd_printf("Kick on writer thread\n");
+         return;
+      }
+      if (cn->queued_pending_msgs.empty()) {
+         pthrd_printf("No queued messages to write to CN %d\n", cn->getID());
+         cn->pending_queue_lock.unlock();
+         continue;
+      }
+      buffer_t buf = cn->queued_pending_msgs.front();
+      cn->queued_pending_msgs.pop();
+      cn->have_pending_message = true;
+      cn->pending_queue_lock.unlock();
+      pthrd_printf("Writing to CN %d, have_pending_message set to true\n", cn->getID());
+      
+      /* Write message on pipe */
+      printMessage((ToolMessage *) buf.buffer, "Flushing", true);
+      bool got_kicked = false;
+      size_t bytes_written = 0;      
+      while (bytes_written < buf.size) {
+         int result = write(cn->getFD(), ((unsigned char *) buf.buffer) + bytes_written,
+                            buf.size - bytes_written);
+         int error = errno;
+         if (result == -1 && error == EINTR) {
+            pthrd_printf("Kick on writer thread\n");
+            got_kicked = true;
+            continue;
+         }
+         else if (result == -1) {
+            perr_printf("Failed to write data to CN %d: %s\n", cn->getID(), strerror(error));
+            globalSetLastError(err_internal, "Failed to write to CDTI file descriptor");
+            break;
+         }
+         bytes_written += result;
+      }
+
+      if (buf.is_heap_allocated) {
+         free(buf.buffer);
+      }
+      if (got_kicked) break;
+   }
+   writes_to_handle.clear();
+}
+
+void WriterThread::localInit()
+{
+   setWThread(DThread::self());
+}
+
+void WriterThread::writeMessage(buffer_t buf, ComputeNode *cn)
+{
+   cn->pending_queue_lock.lock();
+   cn->queued_pending_msgs.push(buf);
+   cn->pending_queue_lock.unlock();
+
+   msg_lock.lock();
+   writes.push_back(cn);
+   msg_lock.signal();
+   msg_lock.unlock();
+}
+
+void WriterThread::notifyAck(int rank)
+{
+   msg_lock.lock();
+   acks.push_back(rank);
+   msg_lock.signal();
+   msg_lock.unlock();
+}
+
+void WriterThread::addProcess(bgq_process *proc) {
+   int rank = proc->getPid();
+   ComputeNode *cn = proc->getComputeNode();
+   rank_lock.lock();
+   rank_to_cn.insert(make_pair(rank, cn));
+   rank_lock.unlock();
+}
+
+void WriterThread::rmProcess(bgq_process *proc) {
+   int rank = proc->getPid();
+   rank_lock.lock();
+   map<int, ComputeNode *>::iterator i = rank_to_cn.find(rank);
+   assert(i != rank_to_cn.end());
+   rank_to_cn.erase(i);
+   rank_lock.unlock();
+}
+DebugThread *DebugThread::me;
 
 DebugThread::DebugThread() :
    shutdown(false),
@@ -3750,7 +4324,13 @@ void ComputeNode::emergencyShutdown()
    GeneratorBGQ *gen = static_cast<GeneratorBGQ *>(Generator::getDefaultGenerator());
    gen->shutdown();
    pthrd_printf("Done shutting down generator\n");
-
+#if defined(USE_THREADED_IO)
+   pthrd_printf("Shutting down Reader thread\n");
+   ReaderThread::get()->shutdown();
+   pthrd_printf("Shutting down Writer thread\n");
+   WriterThread::get()->shutdown();
+   pthrd_printf("Done shutting down IO threads\n");
+#endif
    pthrd_printf("all_compute_nodes.size() = %u\n", (unsigned) all_compute_nodes.size());
    for (set<ComputeNode *>::iterator i = all_compute_nodes.begin(); i != all_compute_nodes.end(); i++) {
       ComputeNode *cn = *i;

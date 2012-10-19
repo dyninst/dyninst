@@ -267,9 +267,30 @@ class bgq_thread : public thread_db_thread, public ppc_thread
    static bool specRegToSystem(MachRegister reg, SpecialRegSelect &result);
 };
 
+struct buffer_t {
+   void *buffer;
+   size_t size;
+   bool is_heap_allocated;
+   buffer_t(void *b, size_t s, bool h) :
+     buffer(b),
+     size(s),
+     is_heap_allocated(h)
+   {
+   }
+   buffer_t() :
+     buffer(NULL),
+     size(0),
+     is_heap_allocated(false)
+   {
+   }
+
+};
+
+
 class ComputeNode
 {
    friend class bgq_process;
+   friend class WriterThread;
   private:
    static std::map<int, ComputeNode *> id_to_cn;
    static std::map<std::string, int> socket_to_id;
@@ -310,8 +331,10 @@ class ComputeNode
    bool issued_all_attach;
    bool all_attach_done;
    bool all_attach_error;
+
    bool have_pending_message;
-   std::queue<std::pair<void *, size_t> > queued_pending_msgs;
+   Mutex pending_queue_lock;
+   std::queue<buffer_t> queued_pending_msgs;
 };
 
 class HandleBGQStartup : public Handler
@@ -355,6 +378,7 @@ class GeneratorBGQ : public GeneratorMT
    static const int kick_val = 0xfeedf00d; //0xdeadbeef is passe
 
    bool readMessage(int fd, vector<ArchEvent *> &events);
+   bool readMessage(vector<ArchEvent *> &events, bool block);
    bool read_multiple_msgs;
    bool reliableRead(int fd, void *buffer, size_t buffer_size, int timeout_s = -1);
 
@@ -421,6 +445,75 @@ class DecoderBlueGeneQ : public Decoder
    virtual bool decode(ArchEvent *ae, std::vector<Event::ptr> &events);
    virtual unsigned getPriority() const;
 };
+
+class IOThread
+{
+  protected:
+   static void mainWrapper(void *);
+
+   IOThread();
+   ~IOThread();
+   void init();
+   void kick();
+   void thrd_main();
+   virtual void run() = 0;
+   virtual void localInit() = 0;
+   CondVar initLock;
+   CondVar shutdownLock;
+   bool do_exit;
+   bool init_done;
+   bool shutdown_done;
+   DThread thrd;
+   int lwp;
+   int pid;
+  public:
+   void shutdown();
+};
+
+class ReaderThread : public IOThread
+{
+  protected:
+   static ReaderThread *me;
+   std::queue<buffer_t> msgs;
+   std::set<int> fds;
+   CondVar queue_lock;
+   CondVar fd_lock;
+
+   ReaderThread();
+   virtual void run();
+   virtual void localInit();
+   int kick_fd;
+  public:
+   ~ReaderThread();
+   static ReaderThread *get();
+   buffer_t readNextElement(bool block);
+   void addComputeNode(ComputeNode *cn);
+   void rmComputeNode(ComputeNode *cn);
+   void setKickPipe(int fd);
+};
+
+class WriterThread : public IOThread
+{
+  private:
+   static WriterThread *me;
+   std::map<int, ComputeNode *> rank_to_cn;
+   Mutex rank_lock;
+   WriterThread();
+   virtual void run();
+   virtual void localInit();
+   
+   std::vector<int> acks;
+   std::vector<ComputeNode *> writes;
+   CondVar msg_lock;
+  public:
+   ~WriterThread();
+   static WriterThread *get();
+   void writeMessage(buffer_t buf, ComputeNode *cn);
+   void notifyAck(int rank);
+   void addProcess(bgq_process *proc);
+   void rmProcess(bgq_process *proc);
+};
+
 
 class DebugThread
 {
