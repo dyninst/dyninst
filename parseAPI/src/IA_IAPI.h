@@ -116,7 +116,9 @@ private:
         virtual bool isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block* currBlk) const;
         bool isFakeCall() const;
         bool isLinkerStub() const;
-
+	bool isSysEnter() const;
+	void parseSysEnter(std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> >& outEdges) const;
+	
 
         Dyninst::InstructionAPI::InstructionDecoder dec;
 

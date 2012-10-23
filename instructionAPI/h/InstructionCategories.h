@@ -45,6 +45,7 @@ namespace Dyninst
       c_BranchInsn,
       c_CompareInsn,
       c_PrefetchInsn,
+      c_SysEnterInsn,
       c_NoCategory
     };
     INSTRUCTION_EXPORT InsnCategory entryToCategory(entryID e);

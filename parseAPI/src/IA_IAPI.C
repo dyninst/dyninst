@@ -274,6 +274,11 @@ bool IA_IAPI::hasCFT() const
         hascftstatus.second = true;
      }
   }
+  else if(c == c_SysEnterInsn) 
+  {
+    hascftstatus.second = true;
+  }
+  
   hascftstatus.first = true;
   return hascftstatus.second;
 }
@@ -462,6 +467,29 @@ bool IA_IAPI::isInterrupt() const
             (ci->getOperation().getID() == e_int3));
 }
 
+bool IA_IAPI::isSysEnter() const
+{
+  Instruction::Ptr ci = curInsn();
+  return (ci->getOperation().getID() == e_sysenter);
+}
+
+void IA_IAPI::parseSysEnter(std::vector<std::pair<Address, EdgeTypeEnum> >& outEdges) const
+{
+  IA_IAPI scratch(*this);
+  
+  do {
+    scratch.advance();
+  } while(scratch.isNop());
+  if(scratch.curInsn()->getCategory() == c_BranchInsn)
+  {
+    outEdges.push_back(std::make_pair(scratch.getAddr(), COND_NOT_TAKEN));
+    scratch.advance();
+    outEdges.push_back(std::make_pair(scratch.getAddr(), CALL_FT));
+  }
+}
+
+
+
 void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
 			  Function* context,
 			  Block* currBlk,
@@ -596,12 +624,19 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             successfullyParsedJumpTable = parseJumpTable(currBlk, outEdges);
 
             if(!successfullyParsedJumpTable || outEdges.empty()) {
-            	parsing_printf("%s[%d]: BLR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__, ci->format().c_str(), current, context->name().c_str());
+            	parsing_printf("%s[%d]: BLR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", 
+			       FILE__, __LINE__, ci->format().c_str(), current, context->name().c_str());
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
             }
 	}
 	return;
     }
+    else if(isSysEnter())
+    {
+      parseSysEnter(outEdges);
+      return;
+    }
+    
     fprintf(stderr, "Unhandled instruction %s\n", ci->format().c_str());
     assert(0);
 }
