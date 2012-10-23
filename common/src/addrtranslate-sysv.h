@@ -149,6 +149,9 @@ private:
 
    bool plat_getTrapAddr();
    Address real_trap_addr;
+
+   Address adjustForAddrSpaceWrap(Address addr, std::string name);
+
 };
 
 }
