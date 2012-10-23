@@ -119,10 +119,11 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned addressWidth)
     }
 }
 
-SYMTAB_EXPORT unsigned long relocationEntry::getGlobalRelType(unsigned addressWidth) {
+SYMTAB_EXPORT unsigned long relocationEntry::getGlobalRelType(unsigned addressWidth, bool) {
     if( X86_64_WIDTH == addressWidth ) {
         return R_X86_64_GLOB_DAT;
     }else{
         return R_386_GLOB_DAT;
     }
 }
+

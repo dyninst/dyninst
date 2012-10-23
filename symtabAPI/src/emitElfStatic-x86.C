@@ -704,3 +704,7 @@ bool emitElfStatic::createNewDtorRegion(LinkMap &lmap) {
 
     return true;
 }
+
+bool emitElfStatic::updateTOC(Symtab *, LinkMap &, Offset) {
+   return true;
+}
