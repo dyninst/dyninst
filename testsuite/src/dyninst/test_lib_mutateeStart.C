@@ -267,6 +267,7 @@ bool runBinaryTest(RunGroup *group, ParameterDict &params, test_results_t &test_
    outfile = binedit_dir + std::string("/") + outfile;
    dprintf("%s[%d]:  starting rewritten process '%s ", FILE__, __LINE__, outfile.c_str());
    mutatee_string = launchMutatee(outfile, group, params);
+   cerr << "Mutatee string is " << mutatee_string << endl;
    if (mutatee_string == string(""))
       goto done;
 
