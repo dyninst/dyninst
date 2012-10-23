@@ -321,7 +321,6 @@ bool parse_block::isEntryBlock(parse_func * f) const
  */
 bool parse_block::isExitBlock()
 {
-  fprintf(stderr, "isExit for 0x%lx\n", start());
     const Block::edgelist & trgs = targets();
     if(trgs.empty()) {
         return false;
@@ -329,7 +328,6 @@ bool parse_block::isExitBlock()
 
     Edge * e = *trgs.begin();
     if (e->type() == RET) {
-      fprintf(stderr, "ret edge, ret exit\n");
         return true;
     }
 
@@ -349,7 +347,6 @@ bool parse_block::isExitBlock()
             }
         }
     }
-    fprintf(stderr, "Fallthrough, ret true\n");
     return true;
 }
 

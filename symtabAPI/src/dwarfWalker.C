@@ -224,17 +224,32 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       if (!findOffset()) return false;
       curName() = std::string();
 
-      dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p, encl %p\n",
+      dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p (%s), encl %p\n",
                    id(),
                    e,
                    (int) contexts_.c.size(), 
-                   curFunc(), curEnclosure());
+                   curFunc(),
+		   (curFunc() ? curFunc()->getAllMangledNames()[0].c_str() : "<null>"),
+		   curEnclosure());
 
       // Insert only inserts the first time; we need that behavior
       enclosureMap.insert(std::make_pair(offset(), curEnclosure()));
       
       bool ret = false;
       
+   // BLUEGENE BUG HACK
+#if defined(os_bg)
+      if (tag() == DW_TAG_base_type ||
+	  tag() == DW_TAG_const_type ||
+	  tag() == DW_TAG_pointer_type) {
+	// XLC compilers nest a bunch of stuff under an invented function; however,
+	// this is broken (they don't close the function properly). If we see a 
+	setFunc(NULL);
+      }
+#endif
+
+
+
       switch(tag()) {
          case DW_TAG_subprogram:
          case DW_TAG_entry_point:
@@ -373,20 +388,22 @@ bool DwarfWalker::parseSubprogram() {
    // We want to skip parsing specification or abstract entries until we have
    // the base entry and can find/create the corresponding function object. 
 
-   if (!curFunc()) {
-      bool foundFunc = false;
-      if (!findFunction(foundFunc)) return false;
-      if (!foundFunc) {
-         // Hopefully abstract or specification; skip for now.
-         setParseChild(false);
-         return true;
-      }
-
-      if (parsedFuncs.find(curFunc()) != parsedFuncs.end()) {
-         setParseChild(false);
-         return true;
-      }
-      parsedFuncs.insert(curFunc());
+   // On the other hand, we can next actual function definitions. So...
+   // Try to find a function, and just don't freak out if we don't find one. 
+   bool foundFunc = false;
+   if (!findFunction(foundFunc)) return false;
+   
+   if (foundFunc) {
+     if (parsedFuncs.find(curFunc()) != parsedFuncs.end()) {
+       setParseChild(false);
+       return true;
+     }
+     parsedFuncs.insert(curFunc());
+   }
+   else if (!curFunc()) {
+     // Hopefully abstract or specification; skip for now.
+     setParseChild(false);
+     return true;
    }
 
    dwarf_printf("(0x%lx) Identified function name as %s\n", id(), curName().c_str());
@@ -574,14 +591,15 @@ bool DwarfWalker::parseVariable() {
       /* We now have the variable name, type, offset, and line number.
          Tell Dyninst about it. */
       if (!nameDefined()) return true;
-      dwarf_printf("(0x%lx) localVariable '%s', currentFunction %p\n", 
-                   id(), curName().c_str(), curFunc());
 
       localVar * newVariable = new localVar(curName(),
                                             type,
                                             fileName, 
                                             (int) variableLineNo, 
                                             curFunc());
+      dwarf_printf("(0x%lx) localVariable '%s' (%p), currentFunction %p\n", 
+                   id(), curName().c_str(), newVariable, curFunc());
+
       for (unsigned int i = 0; i < locs.size(); ++i) {
          dwarf_printf("(0x%lx) (%s) Adding location %d of %d: (0x%lx - 0x%lx): %s, %s, %s, %ld\n",
                       id(), newVariable->getName().c_str(), i+1, (int) locs.size(), locs[i].lowPC, locs[i].hiPC, 
@@ -1999,3 +2017,11 @@ void DwarfWalker::Contexts::pop() {
    c.pop();
 }
 
+void DwarfWalker::Contexts::setFunc(Function *f) {
+  // Bug workaround; if we're setting a function, ignore
+  // any preceding lexical information since we probably 
+  // nested. 
+  c.top().func = f;
+  c.top().low = 0;
+  c.top().high = (Address) ~0;
+}

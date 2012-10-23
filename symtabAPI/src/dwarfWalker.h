@@ -71,7 +71,7 @@ class DwarfWalker {
       Address low() { return c.top().low; }
       Address high() { return c.top().high; }
 
-      void setFunc(Function *f) { c.top().func = f; }
+     void setFunc(Function *f); 
       void setCommon(typeCommon *tc) { c.top().commonBlock = tc; }
       void setEnum(typeEnum *e) { c.top().enumType = e; }
       void setEnclosure(fieldListType *f) { c.top().enclosure = f; }

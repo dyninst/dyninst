@@ -2666,7 +2666,6 @@ SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, 
 
 SYMTAB_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
 {
-  cerr << "Symtab::emit!" << endl;
 	Object *obj = getObject();
 	if (!obj)
 	{

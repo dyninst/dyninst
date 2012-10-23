@@ -1072,11 +1072,6 @@ bool baseTramp::generateSaves(codeGen &gen,
     regalloc_printf("========== baseTramp::generateSaves\n");
     unsigned int width = gen.width();
 
-    cerr << "DEBUG: width = " << width 
-	 << " SPR @ " << hex << TRAMP_SPR_OFFSET(width)
-	 << " FPR @ " << hex << TRAMP_FPR_OFFSET(width)
-	 << " GPR @ " << hex << TRAMP_GPR_OFFSET(width) << dec << endl;
-
     gen.fill(16, codeGen::cgNOP);
 
     int gpr_off, fpr_off;
