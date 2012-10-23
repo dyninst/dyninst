@@ -444,7 +444,7 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
 {
    td_thrinfo_t info;
    async = false;
-   td_thrhandle_t *handle = (td_thrhandle_t *)(eventMsg->th_p);
+   td_thrhandle_t *handle = const_cast<td_thrhandle_t *>(eventMsg->th_p);
    async_ret_t result = ll_fetchThreadInfo(handle, &info);
    if (result == aret_error) {
       pthrd_printf("Failed to fetch thread info\n");
@@ -995,7 +995,7 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
        return PS_ERR;
     }
 
-    objSymReader = plat_defaultSymReader()->openSymbolReader(lib->getName());
+    objSymReader = getSymReader()->openSymbolReader(lib->getName());
     if( NULL == objSymReader ) {
         perr_printf("Failed to open symbol reader for %s\n",
                     lib->getName().c_str());

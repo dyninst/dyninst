@@ -168,6 +168,13 @@ class CodeObject {
     funclist& flist;
 };
 
+// We need CFG.h, which is included by this
+template <class OutputIterator>
+void Block::getFuncs(OutputIterator result) {
+  set<Function *> stab;
+  _obj->findFuncs(region(), start(), stab);
+  std::copy(stab.begin(), stab.end(), result);
+}
 
 
 }//namespace ParseAPI

@@ -1,24 +1,24 @@
 \subsection{Class Module}\label{Module}
 This class represents the concept of a single source file. Currently, Modules are only identified for the executable file; each shared library is made up of a single Module, ignoring any source file information that may be present. We also create a single module, called DEFAULT\_MODULE, for each Symtab that contains any symbols for which module information was unavailable. This may be compiler template code, or files produced without module information. 
 
-\begin{apient}
-typedef enum {
-    lang_Unknown,
-    lang_Assembly,
-    lang_C,
-    lang_CPlusPlus,
-    lang_GnuCPlusPlus,
-    lang_Fortran,
-    lang_Fortran_with_pretty_debug,
-    lang_CMFortran 
-} supportedLanguages;
-\end{apient}
-\apidesc{
-This represents the language of the source file which has been compiled into the object file.
-}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+supportedLanguages & Meaning \\
+\midrule
+lang\_Unknown & Unknown source language \\
+lang\_Assembly & Raw assembly code \\
+lang\_C & C source code \\
+lang\_CPlusPlus & C++ source code \\
+lang\_GnuCPlusPlus & C++ with GNU extensions \\
+lang\_Fortran & Fortran source code \\
+lang\_Fortran\_with\_pretty\_debug & Fortran with debug annotations \\
+lang\_CMFortran & Fortran with CM extensions \\
+\bottomrule
+\end{tabular}
+\end{center}
 
-\begin{tabular}{|p{1.25in}|p{1.25in}|p{3in}|}
-	\hline
+\begin{tabular}{p{1.25in}p{1.25in}p{3in}}
 	Method name & Return type & Method description \\
 	\hline
 	isShared & bool & True if the module is for a shared library, false for an executable. \\
@@ -28,7 +28,6 @@ This represents the language of the source file which has been compiled into the
 	addr & Offset & Offset of the start of the module, as reported by the symbol table, assuming contiguous modules. \\
 	exec & Symtab * & Symtab object that contains the module. \\
 	hasLineInformation & bool & True if the module has line information. \\
-	\hline
 \end{tabular}
 
 

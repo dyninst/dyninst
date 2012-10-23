@@ -53,6 +53,7 @@ class Elf_X_RegInfo;
 class Elf_32_RegInfo;
 class Elf_64_RegInfo;
 class Elf_X_Dyn;
+class Elf_X_Nhdr;
 
 
 // Wrappers to allow word-independant use of libelf routines.
@@ -204,6 +205,8 @@ class Elf_X_Shdr {
     bool isValid() const;
     unsigned wordSize() const;
     Elf_Scn *getScn() const;
+
+    Elf_X_Nhdr get_note() const;
 
   protected:
     Elf_Scn *scn;
@@ -502,6 +505,33 @@ class Elf_X_Dyn {
     Elf32_Dyn *dyn32;
     Elf64_Dyn *dyn64;
     bool is64;
+};
+
+// ------------------------------------------------------------------------
+// Class Elf_X_Nhdr simulates the Elf(32|64)_Shdr structure.
+class Elf_X_Nhdr {
+    friend class Elf_X;
+
+  public:
+    Elf_X_Nhdr();
+    Elf_X_Nhdr(Elf_Data *data_, size_t offset);
+
+    // Read Interface
+    unsigned long n_namesz() const;
+    unsigned long n_descsz() const;
+    unsigned long n_type() const;
+
+    // Meta-Info Interface
+    bool isValid() const;
+
+    const char* get_name() const;
+    const void* get_desc() const;
+
+    Elf_X_Nhdr next() const;
+
+  protected:
+    Elf_Data *data;
+    Elf32_Nhdr *nhdr;
 };
 
 }

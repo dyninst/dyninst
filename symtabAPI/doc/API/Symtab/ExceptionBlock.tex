@@ -1,8 +1,7 @@
 \subsection{Class ExceptionBlock}\label{ExceptionBlock}
 This class represents an exception block present in the object file. This class gives all the information pertaining to that exception block.
 
-\begin{tabular}{|p{1.25in}|p{1in}|p{3.25in}|}
-	\hline
+\begin{tabular}{p{1.25in}p{1in}p{3.25in}}
 	Method name & Return type & Method description \\
 	\hline
 	hasTry & bool & True if the exception block has a try block. \\
@@ -10,7 +9,6 @@ This class represents an exception block present in the object file. This class 
 	tryEnd & Offset & End of the try block if it exists, else 0. \\
 	trySize & Offset & Size of the try block if it exists, else 0. \\
 	catchStart & Offset & Start of the catch block. \\
-	\hline
 \end{tabular} 
 
 

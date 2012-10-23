@@ -2,8 +2,7 @@
 The Function class represents a collection of symbols that have the same address
 and a type of ST\_FUNCTION. When appropriate, use this representation instead of the underlying Symbol objects. 
 
-\begin{tabular}{|p{1.25in}|p{1.125in}|p{3.125in}|}
-	\hline
+\begin{tabular}{p{1.25in}p{1.125in}p{3.125in}}
 	Method name & Return type & Method description \\
 	\hline
 	getModule & const Module * & Module this function belongs to. \\
@@ -14,7 +13,6 @@ and a type of ST\_FUNCTION. When appropriate, use this representation instead of
 	getAllTypedNames & vector<string> \& & As above, but including full type strings. \\
 	getRegion & Region * & Region containing this function. \\
 	getReturnType & Type * & Type representing the return type of the function. \\
-	\hline
 \end{tabular}
 	
 \begin{apient}

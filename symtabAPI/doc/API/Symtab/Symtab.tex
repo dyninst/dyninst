@@ -4,8 +4,7 @@
 
 The Symtab class represents an object file either on-disk or in-memory. This class is responsible for the parsing of the Object file information and holding the data that can be accessed through look up functions.
 
-\begin{tabular}{|p{1.25in}|p{1in}|p{3.25in}|}
-	\hline
+\begin{tabular}{p{1.25in}p{1in}p{3.25in}}
 	Method name & Return type & Method description \\
 	\hline
 	\code{file} & std::string & Full path to the opened file or provided name for the memory image \\
@@ -26,7 +25,6 @@ The Symtab class represents an object file either on-disk or in-memory. This cla
 	\code{getLoadOffset} & Offset & The suggested load offset of the file; typically 0 for shared libraries. \\
 	\code{getEntryOffset} & Offset & The entry point (where execution begins) of the binary. \\
 	\code{getBaseOffset} & Offset & (Windows only) the OS-specified base offset of the file.  \\
-	\hline
 \end{tabular}
 
 \begin{apient}

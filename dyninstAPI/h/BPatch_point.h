@@ -45,6 +45,7 @@ class BPatch_image;
 class BPatch_function;
 class BPatch_memoryAccess;
 class BPatchSnippetHandle;
+class BPatch_basicBlock;
 class BPatch_basicBlockLoop;
 class BPatch_point;
 class BPatch_process;
