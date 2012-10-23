@@ -175,10 +175,12 @@ extern FILE *getErrorLog();
 static std::string launchMutatee_plat(std::string exec_name, const std::vector<std::string> &args, bool needs_grand_fork)
 {   
    pid_t pid;
-   if (needs_grand_fork)
+   if (needs_grand_fork) {
       pid = fork_mutatee();
-   else
+   }
+   else {
       pid = fork();
+   }
 
    if (pid < 0) {
       return std::string("");
@@ -218,6 +220,11 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
       char **argv = getCParams(exec_name, args);
       const char *c_exec_name = exec_name.c_str();
 
+      cerr << "Execing " << exec_name.c_str() << endl;
+      for (unsigned i = 0; i < args.size(); ++i) {
+	cerr << "\t" << args[i] << endl;
+      }
+
       execvp(exec_name.c_str(), (char * const *) argv);
       exec_name = std::string("./") + exec_name;
       execvp(exec_name.c_str(), (char * const *) argv);
@@ -227,6 +234,7 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
    }
    else 
    {
+     cerr << "Parent; child pid is " << pid << endl;
       // parent
       if (fds_set) 
       {
@@ -234,6 +242,7 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
       
          // Wait for the child to write to the pipe
          char ch;
+	 cerr << "Reading from pipe" << endl;
          ssize_t result = read(fds[0], &ch, sizeof(char));
          if (result != sizeof(char)) {
             perror("read");
@@ -257,11 +266,12 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
             fprintf(stderr, "*ERROR*: Shouldn't have read anything here.\n");
             return string("");
          }
-      
+	 cerr << "Closing pipe" << endl;
          close( fds[0] ); // We're done with the pipe
       }
       char ret[32];
       snprintf(ret, 32, "%d", pid);
+      cerr << "Returning child pid " << ret << endl;
       return std::string(ret);
    }
 }
@@ -373,6 +383,27 @@ bool shouldLaunch(RunGroup *group, ParameterDict &params)
 	return true;
 }
 
+#if defined(os_bgq_test)
+void setupBatchRun(std::string &exec_name, std::vector<std::string> &args) {
+  std::vector<std::string> srun_args;
+  srun_args.push_back("-n");
+  srun_args.push_back("1");
+  exec_name = "./" + exec_name;
+  srun_args.push_back(exec_name);
+  args.erase(args.begin(), args.begin());
+  args.insert(args.begin(), srun_args.begin(), srun_args.end());
+
+  exec_name = "srun";
+}
+
+
+#else
+
+void setupBatchRun(std::string &, std::vector<std::string> &) {
+}
+
+#endif
+
 std::string launchMutatee(std::string executable, std::vector<std::string> &args, RunGroup *group, ParameterDict &params)
 {
    char group_num[32];
@@ -405,6 +436,8 @@ std::string launchMutatee(std::string executable, RunGroup *group, ParameterDict
 
    if (executable != string(""))
       exec_name = executable;
+
+   setupBatchRun(exec_name, args);
 
    return launchMutatee(exec_name, args, group, params);
 }
@@ -496,13 +529,16 @@ static std::set<int> spawned_mutatees;
 void registerMutatee(std::string mutatee_string)
 {
    int pid;
+   cerr << "Got mutatee string of " << mutatee_string << endl;
    sscanf(mutatee_string.c_str(), "%d", &pid);
    assert(pid != -1);
+   cerr << "Got mutatee " << pid << endl;
    spawned_mutatees.insert(pid);
 }
 
 Dyninst::PID getMutateePid(RunGroup *)
 {
+  cerr << "We know of " << spawned_mutatees.size() << " pids" << endl;
    std::set<int>::iterator i = spawned_mutatees.begin();
    assert(i != spawned_mutatees.end());
    int pid = *i;
