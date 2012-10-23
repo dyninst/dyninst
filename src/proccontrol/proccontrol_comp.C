@@ -605,7 +605,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       pset = ProcessSet::newProcessSet(a_proc);
    }
    assert(a_proc);
-   factory = a_proc->getDefaultSymbolReader();
+   factory = a_proc->getSymbolReader();
    assert(factory);
 #if defined(USE_PIPES)
    for (ProcessSet::iterator i = pset->begin(); i != pset->end(); i++) {
