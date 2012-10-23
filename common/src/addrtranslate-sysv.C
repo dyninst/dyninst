@@ -607,22 +607,9 @@ LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::strin
       ll = i->second;
    }
    else {
-#if defined(arch_64bit)
-      if (sizeof(long) == 8 &&
-          address_size == 4) {
-         // There is an annoying problem where RHEL6 uses wrapping unsigned math
-         // to load libraries. In these cases, the base address is very large, 
-         // e.g. 0xffff.... and the library is loaded at 0x00.....; the code offset, 
-         // when added to the base, wraps. However, we use 64-bit math and we end up
-         // with a 33-bit number instead. 
-         // To handle this, I'm sign extending 32-bit numbers. 
-         if (addr >= 0x80000000) {
-            addr |= 0xffffffff00000000;
-         }
-      }
-#endif
+      Address wrappedAddr = adjustForAddrSpaceWrap(addr, name);
 
-      ll = new LoadedLib(name, addr);
+      ll = new LoadedLib(name, wrappedAddr);
 
       ll->setFactory(symfactory);
       assert(ll);
@@ -1018,4 +1005,74 @@ Address AddressTranslateSysV::getLibraryTrapAddrSysV() {
 bool AddressTranslateSysV::plat_getTrapAddr() {
   real_trap_addr = trap_addr;
   return true;
+}
+
+Address AddressTranslateSysV::adjustForAddrSpaceWrap(Address base, std::string name) {
+#if !defined(arch_64bit)
+   return base;
+#else
+   if (sizeof(long) != 8) return base;
+   if (address_size != 4) return base;
+
+   // There is an annoying problem where RHEL6 uses wrapping unsigned math
+   // to load libraries. In these cases, the base address is very large, 
+   // e.g. 0xffff.... and the library is loaded at 0x00.....; the code offset, 
+   // when added to the base, wraps. However, we use 64-bit math and we end up
+   // with a 33-bit number instead. 
+
+   // To figure out if this is happening, we read the binary's program header
+   // and see what its code offset is. If that wraps in the address space,
+   // sign-extend the base addr. 
+
+   // THIS IS A HACK. But it's the best solution. 
+   translate_printf("Opening %s with base of 0x%lx\n", name.c_str(), base);
+   int fd = open(name.c_str(), O_RDONLY);
+   if (fd == -1) return base;
+
+   lseek(fd, 0, SEEK_SET);
+   Elf32_Ehdr e_hdr;
+   if (read(fd, &e_hdr, sizeof(e_hdr)) != sizeof(e_hdr)) return base;
+
+   if (e_hdr.e_phoff == 0) return base;
+
+   lseek(fd, e_hdr.e_phoff, SEEK_SET);
+
+   Address codeOffset = 0;
+   while (true) {
+      Elf32_Phdr p_hdr;
+      if (read(fd, &p_hdr, sizeof(p_hdr)) != sizeof(p_hdr)) return base;
+
+      Address p_vaddr = p_hdr.p_vaddr;
+      unsigned type = p_hdr.p_type;
+      if (type == PT_LOAD) {
+         codeOffset = p_vaddr;
+         break;
+      }
+      if (type == PT_PHDR ||
+          type == PT_NULL ||
+          type == PT_DYNAMIC ||
+          type == PT_INTERP ||
+          type == PT_NOTE ||
+          type == PT_SHLIB ||
+          type == PT_TLS) continue;
+      return base;
+   }
+
+   Address aspace32 = 0x00000000ffffffff;
+
+   translate_printf("\t Comparing base + offset of 0x%lx with 32-bit 0x%lx\n",
+                 base+codeOffset + aspace32);
+
+   if ((base + codeOffset) < aspace32) {
+      // No address space wrapping
+      translate_printf("\t No wrapping detected\n");
+      return base;
+   }
+   else {
+      // Address space wrapping
+      translate_printf("\t Address space wrapping detected, returning modified base of 0x%lx\n",
+                    base | 0xffffffff00000000);
+      return base | 0xffffffff00000000;
+   }
+#endif
 }
