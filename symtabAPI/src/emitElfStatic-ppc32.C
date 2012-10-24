@@ -688,3 +688,8 @@ void emitElfStatic::buildGOT(Symtab *, LinkMap &) {
 void emitElfStatic::getExcludedSymbolNames(set<string> &) {
 }
 
+Offset emitElfStatic::allocStubRegions(LinkMap &lmap, Offset) {
+   // Size 0
+   return lmap.stubRegionOffset;
+}
+

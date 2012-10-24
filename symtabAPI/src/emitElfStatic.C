@@ -653,7 +653,6 @@ bool emitElfStatic::createLinkMap(Symtab *target,
 	calculateTOCs(target, lmap.gotRegions, lmap.gotRegionOffset, gotLayoutOffset, globalOffset);
     } 
 
-#if defined(arch_power)
     // Calculate the space necessary for stub code; normally this will be 0,
     // but we may need to add code later on. Make room for it now. 
     // Note we use code region alignment here. 
@@ -669,7 +668,6 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         return false;
     }
     lmap.stubSize = currentOffset - lmap.stubRegionOffset;
-#endif
 
     lmap.codeRegionOffset = currentOffset;
     lmap.codeRegionOffset += computePadding(globalOffset + lmap.codeRegionOffset,

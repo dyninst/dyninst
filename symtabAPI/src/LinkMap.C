@@ -38,6 +38,7 @@ LinkMap::LinkMap() :
     allocatedData(NULL), allocatedSize(0), commonStorage(NULL),
     bssRegionOffset(0), bssSize(0), bssRegionAlign(0),
     dataRegionOffset(0), dataSize(0), dataRegionAlign(0),
+    stubRegionOffset(0), stubSize(0),
     codeRegionOffset(0), codeSize(0), codeRegionAlign(0),
     tlsRegionOffset(0), tlsSize(0), tlsRegionAlign(0),
     gotRegionOffset(0), gotSize(0), gotRegionAlign(0),

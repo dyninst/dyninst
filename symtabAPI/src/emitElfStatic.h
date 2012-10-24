@@ -118,9 +118,7 @@ class emitElfStatic {
                            Offset currentOffset, 
                            Offset globalOffset);
 
-#if defined(arch_power)
     Offset allocStubRegions(LinkMap &lmap, Offset globalOffset);
-#endif
 
     bool addNewRegions(Symtab *target,
                        Offset globalOffset,

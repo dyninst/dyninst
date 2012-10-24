@@ -708,3 +708,8 @@ bool emitElfStatic::createNewDtorRegion(LinkMap &lmap) {
 bool emitElfStatic::updateTOC(Symtab *, LinkMap &, Offset) {
    return true;
 }
+
+Offset emitElfStatic::allocStubRegions(LinkMap &lmap, Offset) {
+   // Size 0
+   return lmap.stubRegionOffset;
+}
