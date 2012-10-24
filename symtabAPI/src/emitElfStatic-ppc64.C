@@ -168,6 +168,32 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 					   string &errMsg) 
 {
     if( PPC64_WIDTH == addressWidth_ ) {
+       if (rel.getRelType() == R_PPC64_JMP_SLOT) {
+          // This is a 24-byte structure with the following form:
+          // bytes 0..8: pointer to a function
+          // bytes 9..15: TOC
+          // bytes 16..23: unused (by us)
+          // Instead of hard-coding it, we treat it as a pair of relocations:
+          // R_PPC64_GLOB_DAT (for the pointer)
+          // R_PPC64_TOC (for the TOC)
+          relocationEntry func = rel;
+          func.setRelType(R_PPC64_GLOB_DAT);
+          if (!archSpecificRelocation(targetSymtab, srcSymtab, targetData, func,
+                                      dest, relOffset, globalOffset, lmap, errMsg)) {
+             return false;
+          }
+          relocationEntry toc = rel;
+          toc.setRelType(R_PPC64_TOC);
+          // Also shift its target address by 8 so it overwrites the second slot
+          toc.setTargetAddr(toc.target_addr() + 8);
+          if (!archSpecificRelocation(targetSymtab, srcSymtab, targetData, toc,
+                                      dest + 8, relOffset + 8, globalOffset, lmap, errMsg)) {
+             return false;
+          }
+       }
+
+
+
 
 	Symbol *dynsym = rel.getDynSym();
 	//	Offset TOCoffset = srcSymtab->getTOCoffset();

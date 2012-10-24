@@ -688,6 +688,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT void setAddend(const Offset);
       SYMTAB_EXPORT void setRegionType(const Region::RegionType);
       SYMTAB_EXPORT void setName(const std::string &newName);
+      SYMTAB_EXPORT void setRelType(unsigned long relType) { relType_ = relType; }
 
       // dump output.  Currently setup as a debugging aid, not really
       //  for object persistance....
