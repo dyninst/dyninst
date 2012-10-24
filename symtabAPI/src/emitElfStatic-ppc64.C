@@ -168,6 +168,17 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 					   string &errMsg) 
 {
     if( PPC64_WIDTH == addressWidth_ ) {
+	Symbol *dynsym = rel.getDynSym();
+	//	Offset TOCoffset = srcSymtab->getTOCoffset();
+	Offset newTOCoffset = dynsym->getSymtab()->getTOCoffset(dynsym->getOffset());
+	// This is an added file, thus there's only one TOC value, so look up @0. 
+	Offset curTOCoffset = srcSymtab->getTOCoffset((Offset) 0);
+
+	rewrite_printf(" archSpecificRelocation %s\ndynsym %s, reloc offset 0x%lx\n new TOC 0x%lx, cur TOC 0x%x\n dest 0x%lx \n", 
+		       rel.name().c_str(), 
+		       dynsym->getMangledName().c_str(), relOffset,
+		       newTOCoffset, curTOCoffset, dest);
+
        if (rel.getRelType() == R_PPC64_JMP_SLOT) {
           // This is a 24-byte structure with the following form:
           // bytes 0..8: pointer to a function
@@ -190,21 +201,8 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
                                       dest + 8, relOffset + 8, globalOffset, lmap, errMsg)) {
              return false;
           }
+          return true;
        }
-
-
-
-
-	Symbol *dynsym = rel.getDynSym();
-	//	Offset TOCoffset = srcSymtab->getTOCoffset();
-	Offset newTOCoffset = dynsym->getSymtab()->getTOCoffset(dynsym->getOffset());
-	// This is an added file, thus there's only one TOC value, so look up @0. 
-	Offset curTOCoffset = srcSymtab->getTOCoffset((Offset) 0);
-
-	rewrite_printf(" archSpecificRelocation %s\ndynsym %s, reloc offset 0x%lx\n new TOC 0x%lx, cur TOC 0x%x\n dest 0x%lx \n", 
-		       rel.name().c_str(), 
-		       dynsym->getMangledName().c_str(), relOffset,
-		       newTOCoffset, curTOCoffset, dest);
 
 	int relocation_length = sizeof(Elf64_Word)*8; // in bits
 	int relocation_pos = 0; // in bits
