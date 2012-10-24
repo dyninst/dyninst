@@ -482,9 +482,17 @@ void IA_IAPI::parseSysEnter(std::vector<std::pair<Address, EdgeTypeEnum> >& outE
   } while(scratch.isNop());
   if(scratch.curInsn()->getCategory() == c_BranchInsn)
   {
+    parsing_printf("[%s:%d] Detected Linux-ish sysenter idiom at 0x%lx\n",
+		   FILE__, __LINE__, getAddr());
     outEdges.push_back(std::make_pair(scratch.getAddr(), COND_NOT_TAKEN));
     scratch.advance();
     outEdges.push_back(std::make_pair(scratch.getAddr(), CALL_FT));
+  }
+  else
+  {
+    parsing_printf("[%s:%d] Treating sysenter as call to kernel w/normal return to next insn at 0x%lx\n",
+		   FILE__, __LINE__, getAddr());
+    outEdges.push_back(std::make_pair(getNextAddr(), CALL_FT));
   }
 }
 
