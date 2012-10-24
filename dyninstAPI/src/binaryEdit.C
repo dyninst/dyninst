@@ -612,7 +612,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
             Symbol *referring = dependentRelocations[i]->getReferring();
-	    bool toc = dependentRelocations[i]->getTOC();
             /*
               if (!symObj->isStaticBinary() && !symObj->hasReldyn() && !symObj->hasReladyn()) {
               Address addr = referring->getOffset();
@@ -624,7 +623,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                
             // Create the relocationEntry
             relocationEntry localRel(to, referring->getMangledName(), referring,
-                                     relocationEntry::getGlobalRelType(getAddressWidth(), toc));
+                                     relocationEntry::getGlobalRelType(getAddressWidth(), referring));
+	    
             /*
               if( mobj->isSharedLib() ) {
               localRel.setRelAddr(to - mobj->imageOffset());
@@ -784,14 +784,14 @@ bool BinaryEdit::initialize() {
     return true;
 }
 
-void BinaryEdit::addDependentRelocation(Address to, Symbol *referring, bool toc /* = false */) {
+void BinaryEdit::addDependentRelocation(Address to, Symbol *referring) {
   // prevent duplicate relocations
   std::vector<depRelocation *>::iterator it;
   for (it = dependentRelocations.begin(); it != dependentRelocations.end(); it++)
     if ((*it)->getAddress() == to && (*it)->getReferring() == referring)
       return;
   // create a new relocation and add it to the collection
-  depRelocation *reloc = new depRelocation(to, referring, toc);
+  depRelocation *reloc = new depRelocation(to, referring);
   dependentRelocations.push_back(reloc);
 }
 

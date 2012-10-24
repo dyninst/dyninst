@@ -157,7 +157,7 @@ class BinaryEdit : public AddressSpace {
     bool openSharedLibrary(const std::string &file, bool openDependencies = true);
 
     // add a shared library relocation
-    void addDependentRelocation(Address to, SymtabAPI::Symbol *referring, bool toc = false);
+    void addDependentRelocation(Address to, SymtabAPI::Symbol *referring);
 
     // search for a shared library relocation
     Address getDependentRelocationAddr(SymtabAPI::Symbol *referring);
@@ -242,15 +242,13 @@ class BinaryEdit : public AddressSpace {
 
 class depRelocation {
 	public:
- depRelocation(Address a, SymtabAPI::Symbol *r, bool t) : to(a), referring(r), toc(t) { }
+ depRelocation(Address a, SymtabAPI::Symbol *r) : to(a), referring(r) { }
   Address getAddress() const { return to; }
   SymtabAPI::Symbol *getReferring() const { return referring; }
-  bool getTOC() const { return toc; }
 
  private:
   Address to;
   SymtabAPI::Symbol *referring;
-  bool toc;
 };
 
 class memoryTracker : public codeRange {

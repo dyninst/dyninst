@@ -698,7 +698,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT bool operator==(const relocationEntry &) const;
 
       // Architecture-specific functions
-      SYMTAB_EXPORT static unsigned long getGlobalRelType(unsigned addressWidth, bool toc = false);
+      SYMTAB_EXPORT static unsigned long getGlobalRelType(unsigned addressWidth, Symbol *sym = NULL);
       static const char *relType2Str(unsigned long r, unsigned addressWidth = sizeof(Address));
 
    private:

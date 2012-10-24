@@ -39,6 +39,6 @@ const char *relocationEntry::relType2Str(unsigned long, unsigned /*addressWidth*
     return "?";
 }
 
-unsigned long relocationEntry::getGlobalRelType(unsigned /*addressWidth*/) {
+unsigned long relocationEntry::getGlobalRelType(unsigned /*addressWidth*/, Symbol *) {
     return relocationEntry::dynrel;
 }

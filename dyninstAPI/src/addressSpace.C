@@ -118,7 +118,8 @@ Address AddressSpace::getTOCoffsetInfo(func_instance *func) {
   // is what all the TOC data structures are written in terms of
   // anyway
 
-  return func->obj()->parse_img()->getObject()->getTOCoffset(func->function()->addr());
+  Offset baseTOC = func->obj()->parse_img()->getObject()->getTOCoffset(func->function()->addr());
+  return baseTOC + func->obj()->dataBase();
 }
 
 // Fork constructor - and so we can assume a parent "process"

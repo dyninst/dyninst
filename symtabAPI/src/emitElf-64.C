@@ -2071,8 +2071,8 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
       }
    }
    for(i=0;i<newRels.size();i++) 
-   {
-      if ((object->getRelType()  == Region::RT_REL) && (newRels[i].regionType() == Region::RT_REL)) {
+   { 
+     if ((object->getRelType()  == Region::RT_REL) && (newRels[i].regionType() == Region::RT_REL)) {
          rels[j].r_offset = newRels[i].rel_addr() + library_adjust;
          if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
 #if defined(arch_x86)

@@ -1072,8 +1072,6 @@ bool baseTramp::generateSaves(codeGen &gen,
     regalloc_printf("========== baseTramp::generateSaves\n");
     unsigned int width = gen.width();
 
-    gen.fill(16, codeGen::cgNOP);
-
     int gpr_off, fpr_off;
     gpr_off = TRAMP_GPR_OFFSET(width);
     fpr_off = TRAMP_FPR_OFFSET(width);
@@ -1125,8 +1123,6 @@ bool baseTramp::generateRestores(codeGen &gen,
     */
 
     popStack(gen);
-
-    gen.fill(16, codeGen::cgNOP);
 
     return true;
 }
@@ -3665,6 +3661,7 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
             break;
         }
     }
+
     // have we added this relocation already?
     relocation_address = binEdit->getDependentRelocationAddr(referring);
 
@@ -3699,12 +3696,10 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
     Address relocation_address;
     
     unsigned int jump_slot_size;
-    bool toc = false;
     switch (addrSpace->getAddressWidth()) {
     case 4: jump_slot_size =  4; break;
     case 8: 
       jump_slot_size = 24;
-      toc = true;
       break;
     default: assert(0 && "Encountered unknown address width");
     }
@@ -3743,10 +3738,7 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
         unsigned char dat[24] = {0};
         binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
         // add write new relocation symbol/entry
-        binEdit->addDependentRelocation(relocation_address, referring, false);
-	if (toc) {
-	  binEdit->addDependentRelocation(relocation_address + 8, referring, true);
-	}
+        binEdit->addDependentRelocation(relocation_address, referring);
     }
     return relocation_address;
 }
