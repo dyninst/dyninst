@@ -24,7 +24,7 @@ M_native_cc = @_CC_@
 M_native_cxx = @_CXX_@
 
 #Boost
-CPPFLAGS += @BOOST_DIR@
+CPPFLAGS += @BOOST_CPPFLAGS@
 
 #TCL/TK is required for all Paradyn builds, but not DyninstAPI
 TCLTK_LIB_DIR = @TCLTK_LIB_DIR@

@@ -686,7 +686,6 @@ TCLTK_LIB_DIR
 TCLTK_INC_DIR
 USE_TCL83
 enableparseAPIgraphs
-BOOST_DIR
 SED
 CXXCPP
 BOOST_CPPFLAGS
@@ -1434,7 +1433,6 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-traditional      Install to traditional (deprecated) locations
-  --with-boost            Boost include directory
   --with-boost=DIR        prefix of Boost [guess]
   --with-boost=DIR        prefix of Boost 1.42.0 [guess]
   --with-package-base     Base directory to look for packages
@@ -2946,15 +2944,6 @@ fi
 
 
 
-
-
-
-# Check whether --with-boost was given.
-if test "${with_boost+set}" = set; then
-  withval=$with_boost; BOOST_DIR="-I${withval}"
-else
-  BOOST_DIR=""
-fi
 
 
 # boost.m4: Locate Boost headers and libraries for autoconf-based projects.
