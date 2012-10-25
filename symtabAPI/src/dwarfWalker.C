@@ -932,6 +932,8 @@ bool DwarfWalker::parseMember() {
 
    int offset_to_use = locs.size() ? locs[0].frameOffset : -1;
 
+   dwarf_printf("(0x%lx) Using offset of 0x%lx\n", id(), offset_to_use);
+
    if (nameDefined()) {
       curEnclosure()->addField( curName(), memberType, offset_to_use);
    }
@@ -1479,7 +1481,8 @@ bool DwarfWalker::constructConstantVariableLocation(Address value,
       loc.hiPC = (Address) -1;
    }
 
-   loc.frameOffset = value + modLow;
+   // removed modlow
+   loc.frameOffset = value ;
 
    locs.push_back(loc);
    
@@ -1857,35 +1860,19 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
   // expr_ptr is a pointer to a bytestream. Try to turn it into a Dwarf_Locdesc so
   // we can use decodeDwarfExpression. 
 
-  Dwarf_Loc loc;
-  Dwarf_Locdesc desc;
-  desc.ld_lopc = 0;
-  desc.ld_hipc = (Dwarf_Addr) ~0;
-  desc.ld_cents = 1;
-  desc.ld_s = &loc;
-  // Other fields are unused for now. 
-  Dwarf_Locdesc *descs[1];
-  descs[0] = &desc;
-  
-  loc.lr_atom = bitstream[0];
-  
-  Dwarf_Unsigned *values = (Dwarf_Unsigned *) (&bitstream[1]);
-  
-  switch(loc.lr_atom) {
-    // I'm handling the cases I've seen. 
-  case DW_OP_addr:
-    loc.lr_number = *values;
-    break;
-  case DW_OP_call_frame_cfa:
-    break;
-  case DW_OP_fbreg:
-    loc.lr_number = bitstream[1] - 0x80;
-    break;
-  default:
-    return false;
+  dwarf_printf("(0x%lx) bitstream for expr has len %d\n", id(), expr_len);
+  for (unsigned i = 0; i < expr_len; ++i) {
+    dwarf_printf("(0x%lx) \t %#hhx\n", id(), bitstream[i]);
   }
-  // I apologize: going from a struct to an array of struct pointers...
-  return decodeLocationListForStaticOffsetOrAddress(descs, 1, locs, NULL);
+
+  Dwarf_Signed cnt;
+  Dwarf_Locdesc *descs;
+
+  DWARF_FAIL_RET(dwarf_loclist_from_expr_a(dbg(), expr_ptr, expr_len, addr_size, 
+					   &descs, &cnt, NULL));
+
+  bool ret = decodeLocationListForStaticOffsetOrAddress(&descs, cnt, locs, NULL);
+  return ret;
 }
 
 bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList, 
