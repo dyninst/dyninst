@@ -73,6 +73,8 @@ LIBIBERTY_LIB = @LIBIBERTY_LIB_DIR@
 
 DEFAULT_COMPONENT = @DEFAULT_COMPONENT@
 
+LIB_DLOPEN = @LIB_DLOPEN@
+
 #nasm is needed for the Linux/x86 dyninst tests
 NASM = @NASM@
 

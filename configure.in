@@ -25,6 +25,9 @@ dnl === configure options ==
 
 AC_SUBST(INSTALL)
 
+AC_SEARCH_LIBS([dlopen], [dl], [LIB_DLOPEN="-ldl"], [AC_MSG_ERROR([unable to find dlopen()])])
+AC_SUBST(LIB_DLOPEN)
+
 AC_ARG_WITH(traditional,
             [AS_HELP_STRING([--with-traditional],[Install to traditional (deprecated) locations])],
             [LIBRARY_DEST_VAR="LIBRARY_DEST=\${TO_CORE}/../\${PLATFORM}/lib";
