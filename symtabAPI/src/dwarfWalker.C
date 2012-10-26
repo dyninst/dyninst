@@ -1482,7 +1482,8 @@ bool DwarfWalker::constructConstantVariableLocation(Address value,
    }
 
    // removed modlow
-   loc.frameOffset = value ;
+
+   loc.frameOffset = value;
 
    locs.push_back(loc);
    
@@ -1872,6 +1873,7 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
 					   &descs, &cnt, NULL));
 
   bool ret = decodeLocationListForStaticOffsetOrAddress(&descs, cnt, locs, NULL);
+  deallocateLocationList(&descs, cnt);
   return ret;
 }
 

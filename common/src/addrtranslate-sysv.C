@@ -600,14 +600,15 @@ bool AddressTranslateSysV::init() {
 
 LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::string name)
 {
-   std::pair<Address, std::string> p(addr, name);
+   Address wrappedAddr = adjustForAddrSpaceWrap(addr, name);
+
+   std::pair<Address, std::string> p(wrappedAddr, name);
    sorted_libs_t::iterator i = sorted_libs.find(p);
    LoadedLib *ll = NULL;
    if (i != sorted_libs.end()) {
       ll = i->second;
    }
    else {
-      Address wrappedAddr = adjustForAddrSpaceWrap(addr, name);
 
       ll = new LoadedLib(name, wrappedAddr);
 
