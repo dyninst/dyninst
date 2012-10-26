@@ -14,6 +14,7 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 using namespace Dwarf;
+using namespace std;
 
 #define DWARF_FAIL_RET(x) {                                                 \
       int status = (x);                                                 \
@@ -244,7 +245,8 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
 	  tag() == DW_TAG_pointer_type) {
 	// XLC compilers nest a bunch of stuff under an invented function; however,
 	// this is broken (they don't close the function properly). If we see a 
-	setFunc(NULL);
+	// tag like this, close off the previous function immediately
+	clearFunc();
       }
 #endif
 
@@ -851,6 +853,7 @@ bool DwarfWalker::parseInheritance() {
       Type::getComponents() will Do the Right Thing. */
    std::string fName = "{superclass}";
    curEnclosure()->addField( fName, superClass, -1, visibility );
+   dwarf_printf("(0x%lx) Added type %p as %s to %p\n", id(), superClass, fName.c_str(), curEnclosure());
    return true;
 }
 
@@ -1873,7 +1876,7 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
 					   &descs, &cnt, NULL));
 
   bool ret = decodeLocationListForStaticOffsetOrAddress(&descs, cnt, locs, NULL);
-  deallocateLocationList(&descs, cnt);
+  //deallocateLocationList(&descs, cnt);
   return ret;
 }
 
@@ -2013,4 +2016,20 @@ void DwarfWalker::Contexts::setFunc(Function *f) {
   c.top().func = f;
   c.top().low = 0;
   c.top().high = (Address) ~0;
+}
+
+void DwarfWalker::Contexts::clearFunc() {
+  // We can't edit in the middle of the stack...
+
+  std::stack<Context> repl;
+  while (!c.empty()) {
+    repl.push(c.top());
+    c.pop();
+  }
+
+  while (!repl.empty()) {
+    c.push(repl.top());
+    c.top().func = NULL;
+    repl.pop();
+  }
 }

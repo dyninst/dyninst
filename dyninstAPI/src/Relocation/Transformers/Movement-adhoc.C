@@ -39,6 +39,7 @@
 #include "dyninstAPI/src/addressSpace.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "../CFG/RelocGraph.h"
+#include "instructionAPI/h/Visitor.h"
 
 
 using namespace std;
@@ -220,6 +221,52 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
   return true;    
 }
 
+class thunkVisitor : public InstructionAPI::Visitor
+{
+public:
+  thunkVisitor() : isThunk(true), foundSP(false), foundDeref(false) {}
+  virtual ~thunkVisitor() {}
+
+  bool isThunk;
+  bool foundSP;
+  bool foundDeref;
+
+  virtual void visit(BinaryFunction*)
+  {
+    relocation_cerr << "\t binfunc, ret false" << endl;
+    isThunk = false;
+  }
+
+  virtual void visit(Immediate*)
+  {
+    relocation_cerr << "\t imm, ret false" << endl;
+    isThunk = false;
+  }
+  virtual void visit(RegisterAST* r)
+  {
+    if (foundSP) {
+      isThunk = false;
+    }
+    else if (!r->getID().isStackPointer()) {
+      isThunk = false;
+    }
+    else {
+      foundSP = true;
+    }
+  }
+  virtual void visit(Dereference* )
+  {
+    if (foundDeref) {
+      isThunk = false;
+    }
+    if (!foundSP) {
+      isThunk = false;
+    }
+    foundDeref = true;
+  }  
+};
+
+
 bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
                                        InsnPtr insn,
 				       Absloc &aloc,
@@ -241,8 +288,6 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
   Architecture fixme = insn->getArch();
   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
 
-  
-  
   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
   Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
@@ -306,6 +351,12 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
        && firstInsn->readsMemory() && !firstInsn->writesMemory()
        && secondInsn && secondInsn->getCategory() == c_ReturnInsn) {
 
+      thunkVisitor visitor;
+      relocation_cerr << "Checking operand " << firstInsn->getOperand(1).format(firstInsn->getArch()) << endl;
+      firstInsn->getOperand(1).getValue()->apply(&visitor);
+      if (!visitor.isThunk) return false;
+
+#if 0
       // Check to be sure we're reading memory
       std::set<RegisterAST::Ptr> reads;
       firstInsn->getReadSet(reads);
@@ -317,8 +368,9 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
 	  break;
 	}
       }
-
       if (!found) return false;
+
+#endif
       
       std::set<RegisterAST::Ptr> writes;
       firstInsn->getWriteSet(writes);
