@@ -1039,12 +1039,12 @@ Region *Object::findEnclosingRegion(const Offset where)
     int last = regions_.size() - 1;
     while (last >= first) {
         Region *curreg = regions_[(first + last) / 2];
-        if (where >= curreg->getRegionAddr()
-            && where < (curreg->getRegionAddr()
+        if (where >= curreg->getMemOffset()
+            && where < (curreg->getMemOffset()
                         + curreg->getMemSize())) {
             return curreg;
         }
-        else if (where < curreg->getRegionAddr()) {
+        else if (where < curreg->getMemOffset()) {
             last = ((first + last) / 2) - 1;
         }
         else {/* where >= (cursec->getSecAddr()
@@ -2100,10 +2100,9 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
       //
       //A module is a collection of functions, but doesn't include global data types.  Global variables
       // will go into the DEFAULT_MODULE
-	  std::vector<Symbol *> syms;
-	  if(obj->findFuncByEntryOffset(syms, (Offset) pSymInfo->Address))
-	  {
-		  Symbol *f = syms[0];
+		Function *f = NULL;
+	   if(obj->findFuncByEntryOffset(f, (Offset) pSymInfo->Address))
+	   {
 	     //No containing module.  Only insert this into DEFAULT_MODULE
           if (strcmp(f->getModule()->fileName().c_str(), "DEFAULT_MODULE"))
               return true;
@@ -2172,7 +2171,7 @@ bool AObject::getSegments(vector<Segment> &segs) const
 		Segment seg;
 		seg.data = regions_[i]->getPtrToRawData();
 		//seg.loadaddr = regions_[i] -> getDiskOffset();
-		seg.loadaddr = regions_[i] -> getRegionAddr();
+		seg.loadaddr = regions_[i] -> getMemOffset();
 		seg.size = regions_[i] -> getDiskSize();
 		seg.name = regions_[i] -> getRegionName();
 		//seg.segFlags = 

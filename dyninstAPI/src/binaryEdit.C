@@ -363,8 +363,14 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
          fprintf(stderr, "ERROR:  unable to open/reinstrument previously instrumented binary %s!\n", file.c_str());
          return NULL;
     }
-    newBinaryEdit->highWaterMark_ = linkedFile->getFreeOffset(50*1024*1024);
+    Address base = linkedFile->getFreeOffset(50*1024*1024);
+    base += (1024*1024);
+    base -= (base & (1024*1024-1));
+
+    newBinaryEdit->highWaterMark_ = base;
     newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
+
+    // Testing
 
     newBinaryEdit->makeInitAndFiniIfNeeded();
 
@@ -524,7 +530,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // Now, we need to copy in the memory of the new segments
       for (unsigned i = 0; i < oldSegs.size(); i++) {
          codeRange *segRange = NULL;
-         if (!memoryTracker_->find(oldSegs[i]->getRegionAddr(), segRange)) {
+         if (!memoryTracker_->find(oldSegs[i]->getMemOffset(), segRange)) {
 #if 0
             // Looks like BSS
             if (newSegs[i].name == ".bss")
@@ -538,7 +544,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 	 memoryTracker* mt = dynamic_cast<memoryTracker*>(segRange);
 	 assert(mt);
 	 if(mt->dirty) {
-            oldSegs[i]->setPtrToRawData(segRange->get_local_ptr(), oldSegs[i]->getDiskSize());
+            oldSegs[i]->setPtrToRawData(segRange->get_local_ptr(), oldSegs[i]->getMemSize());
 	 }
 	 
          //newSegs[i].data = segRange->get_local_ptr();
@@ -606,7 +612,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
             Symbol *referring = dependentRelocations[i]->getReferring();
-            
             /*
               if (!symObj->isStaticBinary() && !symObj->hasReldyn() && !symObj->hasReladyn()) {
               Address addr = referring->getOffset();
@@ -618,8 +623,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                
             // Create the relocationEntry
             relocationEntry localRel(to, referring->getMangledName(), referring,
-                                     relocationEntry::getGlobalRelType(getAddressWidth()));
-            
+                                     relocationEntry::getGlobalRelType(getAddressWidth(), referring));
+	    
             /*
               if( mobj->isSharedLib() ) {
               localRel.setRelAddr(to - mobj->imageOffset());
@@ -745,13 +750,13 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
 
    for (unsigned i = 0; i < regs.size(); i++) {
       memoryTracker *newTracker = NULL;
-      if (regs[i]->getRegionType() == Region::RT_BSS || (regs[i]->getDiskSize() == 0))
+      if (regs[i]->getRegionType() == Region::RT_BSS || (regs[i]->getMemSize() == 0))
       {
          continue;
       }
       else {
-         newTracker = new memoryTracker(regs[i]->getRegionAddr(),
-                                        regs[i]->getDiskSize(),
+         newTracker = new memoryTracker(regs[i]->getMemOffset(),
+                                        regs[i]->getMemSize(),
                                         regs[i]->getPtrToRawData());
          
       }
@@ -780,14 +785,14 @@ bool BinaryEdit::initialize() {
 }
 
 void BinaryEdit::addDependentRelocation(Address to, Symbol *referring) {
-    // prevent duplicate relocations
-    std::vector<depRelocation *>::iterator it;
-    for (it = dependentRelocations.begin(); it != dependentRelocations.end(); it++)
-        if ((*it)->getAddress() == to && (*it)->getReferring() == referring)
-            return;
-    // create a new relocation and add it to the collection
-	depRelocation *reloc = new depRelocation(to, referring);
-	dependentRelocations.push_back(reloc);
+  // prevent duplicate relocations
+  std::vector<depRelocation *>::iterator it;
+  for (it = dependentRelocations.begin(); it != dependentRelocations.end(); it++)
+    if ((*it)->getAddress() == to && (*it)->getReferring() == referring)
+      return;
+  // create a new relocation and add it to the collection
+  depRelocation *reloc = new depRelocation(to, referring);
+  dependentRelocations.push_back(reloc);
 }
 
 Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {

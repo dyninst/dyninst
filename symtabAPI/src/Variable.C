@@ -266,18 +266,19 @@ void localVar::expandLocation(const VariableLocation &loc,
 
    std::vector<VariableLocation> &func_fp = func_->getFramePtr();
 
-//#define DEBUG
+   //#define DEBUG
 
 #ifdef DEBUG
-   cerr << "Expanding location for variable " << name_ << endl;
+   cerr << "Expanding location for variable " << name_ 
+	<< " / " << hex << this << dec << endl;
 #endif
 
-/*
+   /*
    if (func_fp.empty()) {
       cerr << "Error: function " << hex << func_
            << " / " << func_->getAllMangledNames()[0] << " has no frame pointer!" << endl;
    }
-*/
+   */
    assert(!func_fp.empty());
 
    // We need to break loc into a list matching the address
@@ -302,13 +303,11 @@ void localVar::expandLocation(const VariableLocation &loc,
 #endif
       if (fplowPC > varhiPC) {
          // Done, the frame base is after the variable
-//         cerr << "Frame base is after variable end, done" << endl;
          break;
       }
 
       if (fphiPC < varlowPC) {
          // No overlap yet, continue
-//         cerr << "Frame base is before variable, trying next" << endl;
          continue;
       }
 
@@ -405,6 +404,7 @@ std::vector<Dyninst::VariableLocation> &localVar::getLocationLists()
       for (unsigned i = 0; i < orig.size(); ++i) {
          expandLocation(orig[i], locs_);
       }
+
       locsExpanded_ = true;
    }
 

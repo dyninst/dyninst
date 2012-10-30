@@ -41,11 +41,12 @@
 #include "ParseContainers.h"
 #include "Annotatable.h"
 #include <iostream>
+
 namespace Dyninst {
 namespace ParseAPI {
 
-class CFGModifier;
 class CodeObject;
+class CFGModifier;
 
 enum EdgeTypeEnum {
     CALL = 0,
@@ -269,7 +270,6 @@ class Function;
 	}
 };
 
-class CodeObject;
 class CodeRegion;
 class Block : public Dyninst::interval<Address>, 
               public allocatable {
@@ -299,6 +299,7 @@ class Block : public Dyninst::interval<Address>,
 
     PARSER_EXPORT int  containingFuncs() const;
     PARSER_EXPORT void getFuncs(std::vector<Function *> & funcs);
+    template<class OutputIterator> void getFuncs(OutputIterator result); 
 
     PARSER_EXPORT bool wasUserAdded() const;
 

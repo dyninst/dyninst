@@ -282,6 +282,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       if (!lib) {
          pthrd_printf("Creating new library object for %s\n", ll->getName().c_str());
          // Note: we set them all to "I'm a shared library"; the a.out is overridden below.
+
          lib = new int_library(ll->getName(), true, ll->getCodeLoadAddr(), ll->getDynamicAddr());
          assert(lib);
          added_libs.insert(lib);

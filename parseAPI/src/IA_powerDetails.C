@@ -37,6 +37,10 @@
 #include "debug_parse.h"
 #include <deque>
 #include <boost/bind.hpp>
+#include <algorithm>
+#include <iterator>
+#include <boost/iterator/indirect_iterator.hpp>
+
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -394,6 +398,88 @@ namespace detail_ppc
   }
 };
 
+bool IA_powerDetails::scanForAdjustOrBase(IA_IAPI::allInsns_t::const_iterator start,
+					  IA_IAPI::allInsns_t::const_iterator end,
+					  RegisterAST::Ptr &jumpAddrReg) {
+  std::set<RegisterAST::Ptr> scratchRegs;
+  std::set<RegisterAST::Ptr> loadRegs;
+  loadRegs.insert(jumpAddrReg);
+  for (; start != end; --start) {
+    InstructionAPI::Instruction::Ptr insn = start->second;
+    parsing_printf("\t\t Examining 0x%lx / %s\n",
+		   start->first, start->second->format().c_str());
+
+    if ((insn->getOperation().getID() == power_op_ld ||
+	 insn->getOperation().getID() == power_op_ldx) &&
+	insn->isWritten(jumpAddrReg)) {
+      scratchRegs.clear();
+      insn->getReadSet(scratchRegs);
+      loadRegs.insert(scratchRegs.begin(), scratchRegs.end());
+      parsing_printf("Found a load; now have %d load regs\n", loadRegs.size());
+    }
+    else if(insn->getOperation().getID() == power_op_addi &&
+	    !foundAdjustEntry) {
+      parsing_printf("Found add immediate (%d load regs)...\n", loadRegs.size());
+      scratchRegs.clear();
+      insn->getWriteSet(scratchRegs);
+      
+      bool found = false;
+      // This is apparently broken
+      for (std::set<RegisterAST::Ptr>::iterator iter = loadRegs.begin(); iter != loadRegs.end(); ++iter) {
+	RegisterAST *tmp = (*iter).get();
+	RegisterAST *cmp = (*(scratchRegs.begin())).get();
+	if (*tmp == *cmp) {
+	  found = true;
+	  break;
+	}
+      }
+      if (!found) continue;
+
+      parsing_printf("... that adds to a load reg\n");
+      foundAdjustEntry = true;
+      toc_visitor->clear();
+      parsing_printf("... with operand %s\n", insn->getOperand(1).format(insn->getArch(), start->first).c_str());
+      insn->getOperand(1).getValue()->apply(toc_visitor.get());
+      adjustEntry = toc_visitor->result;
+      if (!adjustEntry)
+      insn->getOperand(2).getValue()->apply(toc_visitor.get());
+      adjustEntry = toc_visitor->result;
+    }
+    else if((insn->getOperation().getID() == power_op_lwz ||
+	     insn->getOperation().getID() == power_op_ld) &&
+	    insn->isRead(toc_reg) &&
+	    insn->isWritten(jumpAddrReg))
+      {
+	parsing_printf("\t found TOC load at %s\n", insn->format().c_str());
+	toc_visitor->clear();
+	insn->getOperand(1).getValue()->apply(toc_visitor.get());
+	tableStartAddress = toc_visitor->result;
+	break;
+      }
+  }
+  return true;
+}
+
+// Like the above, but a wider net
+bool IA_powerDetails::findTableBase(IA_IAPI::allInsns_t::const_iterator start,
+				    IA_IAPI::allInsns_t::const_iterator end) {
+  for (; start != end; --start) {
+    parsing_printf("\t\t Examining 0x%lx / %s\n",
+		   start->first, start->second->format().c_str());
+    if((start->second->getOperation().getID() == power_op_lwz ||
+	start->second->getOperation().getID() == power_op_ld) &&
+       start->second->isRead(toc_reg)) {
+      parsing_printf("\t found TOC load at %s\n", start->second->format().c_str());
+      toc_visitor->clear();
+      start->second->getOperand(1).getValue()->apply(toc_visitor.get());
+      tableStartAddress = toc_visitor->result;
+      break;
+    }
+  }
+  return true;
+}
+
+
 
 // This should only be called on a known indirect branch...
 bool IA_powerDetails::parseJumpTable(Block* currBlk,
@@ -470,7 +556,7 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
   adjustTableStartAddress = 0;
   foundAdjustEntry = false;
     
-
+  parsing_printf("\t TOC_address 0x%lx\n", TOC_address);
   if(!TOC_address)
     {
       // Find addi-addis instructions to determine the jump table start address.
@@ -483,7 +569,7 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
       worklist.insert(worklist.begin(), worklistBlock);
       visited.insert(worklistBlock);
       Intraproc epred;
-
+      parsing_printf("Looking for table start address over blocks to function entry\n");
       while(!worklist.empty())
         {
 	  worklistBlock= worklist.front();
@@ -523,33 +609,31 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
 	return false;
       }
   } else {
+    parsing_printf("\t Table is not relative and we know the TOC is 0x%lx, searching for table base\n",
+		   TOC_address);
     foundAdjustEntry = false;
-    while( patternIter != currentBlock->allInsns.begin() )
-      {
-	if(patternIter->second->getOperation().getID() == power_op_addi &&
-	   patternIter->second->isWritten(jumpAddrReg) &&
-	   !foundAdjustEntry)
-	  {
-	    foundAdjustEntry = true;
-	    toc_visitor->clear();
-	    patternIter->second->getOperand(1).getValue()->apply(toc_visitor.get());
-	    adjustEntry = toc_visitor->result;
-	    regs.clear();
-	    patternIter->second->getReadSet(regs);
-	    jumpAddrReg = *(regs.begin());
-	    assert(jumpAddrReg);
-	  }
-	else if(patternIter->second->getOperation().getID() == power_op_lwz &&
-		patternIter->second->isRead(toc_reg) &&
-		patternIter->second->isWritten(jumpAddrReg))
-	  {
-	    toc_visitor->clear();
-	    patternIter->second->getOperand(1).getValue()->apply(toc_visitor.get());
-	    tableStartAddress = toc_visitor->result;
-	    break;
-	  }
-	patternIter--;
+    bool done = false;
+  
+    scanForAdjustOrBase(patternIter, currentBlock->allInsns.begin(), jumpAddrReg);
+
+    if (!tableStartAddress) {
+      // Keep looking in the immediate predecessor - XLC
+      for (Block::edgelist::const_iterator e_iter = currBlk->sources().begin(); 
+	   e_iter != currBlk->sources().end(); ++e_iter) {
+	Address blockStart = (*e_iter)->src()->start();
+	const unsigned char* b = (const unsigned char*)(currentBlock->_isrc->getPtrToInstruction(blockStart));
+	InstructionDecoder dec(b, (*e_iter)->src()->size(), currentBlock->_isrc->getArch());
+	IA_IAPI IABlock(dec, blockStart, currentBlock->_obj, currentBlock->_cr, currentBlock->_isrc, (*e_iter)->src());
+	
+	// Cache instructions
+	while(IABlock.getInstruction() && !IABlock.hasCFT()) {
+	  IABlock.advance();
+	}
+
+	IA_IAPI::allInsns_t::const_iterator localIter = IABlock.curInsnIter;
+	findTableBase(localIter, IABlock.allInsns.begin());
       }
+    }	  
   }
     
   const Block::edgelist & sourceEdges = currBlk->sources();
@@ -783,6 +867,7 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
   // If we have found a jump table, add the targets to outEdges   
   for (std::vector<std::pair<Address, EdgeTypeEnum> >::iterator iter = edges.begin();
        iter != edges.end(); iter++) {
+    parsing_printf("Adding out edge %d/0x%lx\n", iter->second, iter->first);
     outEdges.push_back(*iter);
   }
   return true;

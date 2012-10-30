@@ -39,6 +39,14 @@
 #include "Type.h"
 #include "Variable.h"
 
+class BPatch_type;
+namespace Dyninst { 
+   namespace SymtabAPI {
+      class Type;
+      Type *convert(const BPatch_type *);
+   }
+}
+
 typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
 	      BPatchSymStaticLocalVar, BPatchSymStaticGlobal,
 	      BPatchSymLocalFunc, BPatchSymGlobalFunc, BPatchSymFuncParam,

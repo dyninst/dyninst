@@ -39,7 +39,7 @@ namespace SymtabAPI{
 
 class Symbol;
 class relocationEntry;
-
+class Symtab;
 
 
 class Region : public AnnotatableSparse {
@@ -100,9 +100,6 @@ class Region : public AnnotatableSparse {
    SYMTAB_EXPORT bool setRegionNumber(unsigned regnumber);
    SYMTAB_EXPORT std::string getRegionName() const;
 
-   //  getRegionAddr returns diskOffset on unixes, memory offset on windows
-   SYMTAB_EXPORT Offset getRegionAddr() const;
-
    SYMTAB_EXPORT Offset getDiskOffset() const;
    SYMTAB_EXPORT unsigned long getDiskSize() const;
    SYMTAB_EXPORT unsigned long getFileOffset();
@@ -142,11 +139,13 @@ class Region : public AnnotatableSparse {
    SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
 		   const char *tag = "Region") THROW_SPEC (SerializerError);
 
+   SYMTAB_EXPORT Symtab *symtab() const { return symtab_; }
    protected:                     
    SYMTAB_EXPORT Region(unsigned regnum, std::string name, Offset diskOff,
-         unsigned long diskSize, Offset memOff, unsigned long memSize,
-         char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable = false,
-         bool isTLS = false, unsigned long memAlign = sizeof(unsigned));
+			unsigned long diskSize, Offset memOff, unsigned long memSize,
+			char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable = false,
+			bool isTLS = false, unsigned long memAlign = sizeof(unsigned));
+   void setSymtab(Symtab *sym) { symtab_ = sym; }
    private:
    unsigned regNum_;
    std::string name_;
@@ -164,6 +163,7 @@ class Region : public AnnotatableSparse {
    bool isLoadable_;
    bool isTLS_;
    unsigned long memAlign_;
+   Symtab *symtab_;
 };
 
 }//namespace SymtabAPI

@@ -57,6 +57,13 @@ namespace Dyninst
             private:
                 bool findTableAddrNoTOC(const IA_IAPI* blockToCheck);
                 bool parseRelativeTableIdiom();
+		bool scanForAdjustOrBase(IA_IAPI::allInsns_t::const_iterator start,
+					 IA_IAPI::allInsns_t::const_iterator end,
+					 Dyninst::InstructionAPI::RegisterAST::Ptr &jumpAddrReg);
+
+		bool findTableBase(IA_IAPI::allInsns_t::const_iterator start,
+				   IA_IAPI::allInsns_t::const_iterator end);
+					 
                 
                 boost::shared_ptr<detail::TOCandOffsetExtractor> toc_visitor;
 		std::set<int> dfgregs;

@@ -96,7 +96,8 @@ namespace Dyninst
           case power_op_bcctr:
           case power_op_bclr:
               return c_BranchInsn;        
-              
+      case e_sysenter:
+	return c_SysEnterInsn;
           default:
 	return c_NoCategory;
       }

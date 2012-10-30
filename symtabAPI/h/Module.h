@@ -132,12 +132,13 @@ class Module : public LookupInterface,
 	SYMTAB_EXPORT ~Module();
 
 	// Symbol output methods
-	SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-			const std::string& name,
-			Symbol::SymbolType sType, 
-			NameType nameType = anyName,
-			bool isRegex = false, 
-			bool checkCase = false);
+	SYMTAB_EXPORT virtual bool findSymbol(std::vector<Symbol *> &ret, 
+                                              const std::string& name,
+                                              Symbol::SymbolType sType = Symbol::ST_UNKNOWN, 
+                                              NameType nameType = anyName,
+                                              bool isRegex = false, 
+                                              bool checkCase = false,
+                                              bool includeUndefined = false);
 	SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
 			Symbol::SymbolType sType);
 	SYMTAB_EXPORT virtual bool getAllSymbols(std::vector<Symbol *> &ret);
@@ -184,14 +185,6 @@ class Module : public LookupInterface,
 
    SYMTAB_EXPORT bool hasLineInformation();
    SYMTAB_EXPORT bool setDefaultNamespacePrefix(std::string str);
-
-   // Deprecated methods
-   SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-                                               const std::string& name,
-                                               Symbol::SymbolType sType, 
-                                               bool isMangled = false,
-                                               bool isRegex = false, 
-                                               bool checkCase = false);
 
 
    //  Super secret private methods that aren't really private

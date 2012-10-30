@@ -44,6 +44,8 @@
 #include <set>
 using namespace std;
 
+#include "boost/tuple/tuple.hpp"
+
 namespace Dyninst{
 namespace SymtabAPI{
 
@@ -116,6 +118,8 @@ class emitElfStatic {
                            Offset currentOffset, 
                            Offset globalOffset);
 
+    Offset allocStubRegions(LinkMap &lmap, Offset globalOffset);
+
     bool addNewRegions(Symtab *target,
                        Offset globalOffset,
                        LinkMap &lmap);
@@ -171,6 +175,20 @@ class emitElfStatic {
                                 Offset globalOffset,
                                 LinkMap &lmap,
                                 string &errMsg);
+
+    // PPC64 TOC-changing inter-module calls
+    bool handleInterModuleSpecialCase(Symtab *target,
+				      Symtab *src,
+				      LinkMap &lmap,
+				      char *data,
+				      relocationEntry rel,
+				      Offset newTOC,
+				      Offset oldTOC,
+				      Offset dest,
+				      Offset relOffset,
+				      Offset globalOffset);
+    Offset findOrCreateStub(Symbol *sym, LinkMap &lmap, Offset newTOC, Offset oldTOC, char *data, Offset global);
+    void createStub(unsigned *stub, Offset stubOffset, Offset newTOC, Offset oldTOC, Offset dest);
 
     // Functions for dealing with special sections (GOT, TLS, CTORS, DTORS, etc) //
 
@@ -237,14 +255,14 @@ class emitElfStatic {
      *
      * Constructions a new GOT Region from information in the LinkMap
      */
-    void buildGOT(LinkMap &lmap);
+    void buildGOT(Symtab *target, LinkMap &lmap);
 
     /**
      * Architecture specific
      *
      * Determines the size of the GOT Region from information in the LinkMap
      */
-    Offset getGOTSize(LinkMap &lmap);
+    Offset getGOTSize(Symtab *target, LinkMap &lmap, Offset &layoutStart);
 
     /**
      * Architecture specific
@@ -327,9 +345,26 @@ class emitElfStatic {
      */
     bool checkSpecialCaseSymbols(Symtab *member, Symbol *checkSym);
 
+    /**
+     * More with the architecture specific
+     *
+     * Calculate new TOC values if we care (PPC64)
+     */
+    bool calculateTOCs(Symtab *target, deque<Region *> &regions, Offset GOTbase, Offset newGOToffset, Offset globalOffset);
+
+    // Update the TOC pointer if necessary (PPC, 64-bit)
+    bool updateTOC(Symtab *file, LinkMap &lmap, Offset globalOffset);
+
     unsigned addressWidth_;
     bool isStripped_;
     bool hasRewrittenTLS_;
+
+    typedef boost::tuple<Offset, Offset, Offset> TOCstub;
+    std::map<Symbol *, TOCstub> stubMap;
+    Offset getStubOffset(TOCstub &t) { return boost::get<0>(t); }
+    Offset getNewTOC(TOCstub &t) { return boost::get<1>(t); }
+    Offset getOldTOC(TOCstub &t) { return boost::get<2>(t); }
+
 };
 
 } // Dyninst

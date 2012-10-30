@@ -173,6 +173,10 @@ Type *BPatch_type::getSymtabType() const
     return typ;
 }    
 
+Type *SymtabAPI::convert(const BPatch_type *t) {
+	return t->getSymtabType();
+}
+
 unsigned long BPatch_type::getLow() const 
 {
     rangedInterface *rangetype = dynamic_cast<rangedInterface *>(typ);

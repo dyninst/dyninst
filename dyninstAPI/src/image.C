@@ -343,7 +343,7 @@ namespace {
                 struct libc_startup_info * si =
                     (struct libc_startup_info *)(
                         ((Address)dreg->getPtrToRawData()) + 
-                        ss_addr - (Address)dreg->getRegionAddr());
+                        ss_addr - (Address)dreg->getMemOffset());
                 return (Address)si->main_addr;
             }
         }
@@ -396,9 +396,9 @@ void image::findMain()
 	        SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
             CodeObject tco(&scs,NULL,NULL,false);
 
-            tco.parse(eReg->getRegionAddr(),false);
+            tco.parse(eReg->getMemOffset(),false);
             set<CodeRegion *> regions;
-            scs.findRegions(eReg->getRegionAddr(),regions);
+            scs.findRegions(eReg->getMemOffset(),regions);
             if(regions.empty()) {
                 // express puzzlement
                 return;
@@ -406,7 +406,7 @@ void image::findMain()
             SymtabCodeRegion * reg = 
                 static_cast<SymtabCodeRegion*>(*regions.begin());
             Function * func = 
-                tco.findFuncByEntry(reg,eReg->getRegionAddr());
+                tco.findFuncByEntry(reg,eReg->getMemOffset());
             if(!func) {
                 // again, puzzlement
                 return;
@@ -557,7 +557,7 @@ void image::findMain()
             if( numCalls != 4 ) {
                 logLine("heuristic for finding global constructor function failed\n");
             }else{
-                Address callAddress = eReg->getRegionAddr() + bytesSeen;
+                Address callAddress = eReg->getMemOffset() + bytesSeen;
                 RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(scs.getArch()));
 
                 Expression::Ptr callTarget = curInsn->getControlFlowTarget();
@@ -623,7 +623,7 @@ void image::findMain()
                                            Symbol::ST_FUNCTION,
                                            Symbol::SL_GLOBAL,
                                            Symbol::SV_DEFAULT, 
-                                           eReg->getRegionAddr(),
+                                           eReg->getMemOffset(),
                                            linkedFile->getDefaultModule(),
                                            eReg,
                                            0 );
@@ -639,7 +639,7 @@ void image::findMain()
 					  Symbol::ST_FUNCTION,
 					  Symbol::SL_GLOBAL, 
 					  Symbol::SV_DEFAULT, 
-					  finisec->getRegionAddr(),
+					  finisec->getMemOffset(),
 					  linkedFile->getDefaultModule(),
 					  finisec, 
 					  0 );
@@ -661,7 +661,7 @@ void image::findMain()
 					Symbol::ST_OBJECT, 
                                          Symbol::SL_GLOBAL, 
                                          Symbol::SV_DEFAULT,
-                                         dynamicsec->getRegionAddr(), 
+                                         dynamicsec->getMemOffset(), 
                                          linkedFile->getDefaultModule(),
                                          dynamicsec, 
                                          0 );
@@ -712,7 +712,7 @@ void image::findMain()
            c--;
        }
        
-       Offset currAddr = sec->getRegionAddr() + c * instruction::size();
+       Offset currAddr = sec->getMemOffset() + c * instruction::size();
        Offset mainAddr = 0;
        
        if( ( IFORM_OP(i) == Bop ) || ( BFORM_OP(i) == BCop ) )
@@ -753,7 +753,7 @@ void image::findMain()
                                   Symbol::ST_FUNCTION,
                                   Symbol::SL_GLOBAL, 
                                   Symbol::SV_DEFAULT, 
-                                  sec->getRegionAddr(), 
+                                  sec->getMemOffset(), 
                                   linkedFile->getDefaultModule(),
                                   sec);
        linkedFile->addSymbol(sym1);
@@ -891,7 +891,7 @@ bool image::addSymtabVariables()
 
        parsing_printf("New variable, mangled %s, module %s...\n",
                       symVar->getAllMangledNames()[0].c_str(),
-                      symVar->getFirstSymbol()->getModuleName().c_str());
+                      symVar->getFirstSymbol()->getModule()->fileName().c_str());
        pdmodule *use = getOrCreateModule(symVar->getModule());
 
        assert(use);
@@ -1018,7 +1018,7 @@ void image::findModByAddr (const Symbol *lookUp, vector<Symbol *> &mods,
     return;
   }
 
-  Address symAddr = lookUp->getAddr();
+  Address symAddr = lookUp->getOffset();
   int index;
   int start = 0;
   int end = mods.size() - 1;
@@ -1027,12 +1027,12 @@ void image::findModByAddr (const Symbol *lookUp, vector<Symbol *> &mods,
   while ((start <= end) && !found) {
     index = (start+end)/2;
     if ((index == last) ||
-	((mods[index]->getAddr() <= symAddr) && 
-	 (mods[index+1]->getAddr() > symAddr))) {
-      modName = mods[index]->getName().c_str();
-      modAddr = mods[index]->getAddr();      
+	((mods[index]->getOffset() <= symAddr) && 
+	 (mods[index+1]->getOffset() > symAddr))) {
+      modName = mods[index]->getMangledName().c_str();
+      modAddr = mods[index]->getOffset();      
       found = true;
-    } else if (symAddr < mods[index]->getAddr()) {
+    } else if (symAddr < mods[index]->getOffset()) {
       end = index - 1;
     } else {
       start = index + 1;
@@ -2007,7 +2007,7 @@ void *image::getPtrToDataInText( Address offset ) const {
     Region *reg = linkedFile->findEnclosingRegion(offset);
     if(reg != NULL) {
         return (void*) ((Address)reg->getPtrToRawData() + offset 
-                        - reg->getRegionAddr());
+                        - reg->getMemOffset());
     }
     return NULL;
 } *//* end getPtrToDataInText() */

@@ -221,8 +221,8 @@ Elf_X_Shdr *Object::getRegionHdrByIndex(unsigned index)
 bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned segPerms){
   bool present = false;
   for(unsigned i = 0; i < regions_.size() ;i++){
-    if((regions_[i]->getRegionAddr() >= segmentStart) && 
-       ((regions_[i]->getRegionAddr()+regions_[i]->getDiskSize()) <= (segmentStart+segmentSize))){
+    if((regions_[i]->getDiskOffset() >= segmentStart) && 
+       ((regions_[i]->getDiskOffset()+regions_[i]->getDiskSize()) <= (segmentStart+segmentSize))){
       present = true;
       regions_[i]->setRegionPermissions(getSegmentPerms(segPerms));
     }
@@ -347,7 +347,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                         Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
                         Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr* &dynamic_scnp, 
                         Elf_X_Shdr*& eh_frame, Elf_X_Shdr*& gcc_except, 
-                        Elf_X_Shdr *& interp_scnp, bool)
+                        Elf_X_Shdr *& interp_scnp, Elf_X_Shdr *& opd_scnp, 
+			bool)
 {
   std::map<std::string, int> secnNameMap;
   dwarf_err_func  = err_func_;
@@ -786,6 +787,11 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       rel_plt_entry_size_ = scnp->sh_entsize();
     }
 #endif
+    else if (strcmp(name, OPD_NAME) == 0) {
+      opd_scnp = scnp;
+      opd_addr_ = scnp->sh_addr();
+      opd_size_ = scnp->sh_size();
+    }
     else if (strcmp(name, PLT_NAME) == 0) {
       plt_scnp = scnp;
       plt_addr_ = scnp->sh_addr();
@@ -951,8 +957,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   sort(allRegionHdrs.begin(), allRegionHdrs.end(), SectionHeaderSortFunction());
 
   for (unsigned j = 0 ; j < regions_.size() ; j++) {
-    if (secAddrTagMapping.find(regions_[j]->getRegionAddr()) != secAddrTagMapping.end()) {
-      secTagRegionMapping[secAddrTagMapping[regions_[j]->getRegionAddr()]] = regions_[j];
+    if (secAddrTagMapping.find(regions_[j]->getDiskOffset()) != secAddrTagMapping.end()) {
+      secTagRegionMapping[secAddrTagMapping[regions_[j]->getDiskOffset()]] = regions_[j];
     }
   }
 
@@ -1524,6 +1530,7 @@ void Object::load_object(bool alloc_syms)
   Elf_X_Shdr *eh_frame_scnp = 0;
   Elf_X_Shdr *gcc_except = 0;
   Elf_X_Shdr *interp_scnp = 0;
+  Elf_X_Shdr *opd_scnp = NULL;
 
   { // binding contour (for "goto cleanup")
 
@@ -1547,7 +1554,8 @@ void Object::load_object(bool alloc_syms)
     if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
 		    stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 		    rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
-                    dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp, true))
+                    dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp, 
+		    opd_scnp, true))
       {
 	goto cleanup;
       }
@@ -1582,8 +1590,13 @@ void Object::load_object(bool alloc_syms)
 			  txtaddr, dataddr, catch_addrs_);
       }
 #endif
-    if (interp_scnp)
+    if (interp_scnp) {
       interpreter_name_ = (char *) interp_scnp->get_data().d_buf(); 
+    }
+
+    if (opd_scnp) {
+      parse_opd(opd_scnp);
+    }
 
     // global symbols are put in global_symbols. Later we read the
     // stab section to find the module to where they belong.
@@ -1730,6 +1743,7 @@ void Object::load_shared_object(bool alloc_syms)
   Elf_X_Shdr *eh_frame_scnp = 0;
   Elf_X_Shdr *gcc_except = 0;
   Elf_X_Shdr *interp_scnp = 0;
+  Elf_X_Shdr *opd_scnp = NULL;
 
   { // binding contour (for "goto cleanup2")
 
@@ -1742,7 +1756,7 @@ void Object::load_shared_object(bool alloc_syms)
     if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
 		    stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 		    rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
-                    dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp))
+                    dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp, opd_scnp))
       goto cleanup2;
 
     if (interp_scnp)
@@ -1762,6 +1776,11 @@ void Object::load_shared_object(bool alloc_syms)
 			txtaddr, dataddr, catch_addrs_);
     }
 #endif
+
+    if (opd_scnp) {
+      parse_opd(opd_scnp);
+    }
+
 #if defined(TIMED_PARSE)
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
@@ -1900,7 +1919,7 @@ bool lookUpSymbol( std::vector< Symbol *>& allsymbols, Offset& addr )
 {
   for( unsigned i = 0; i < allsymbols.size(); i++ )
     {
-      if( allsymbols[ i ]->getAddr() == addr )
+      if( allsymbols[ i ]->getOffset() == addr )
 	{
 	  return true;
 	}
@@ -1933,7 +1952,6 @@ void printSyms( std::vector< Symbol *>& allsymbols )
     } 
 } 
 
-
 // Official Procedure Descriptor handler
 //
 // Some platforms (PPC64 Linux libc v2.1) only produce function
@@ -1951,6 +1969,32 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 // In statically linked binaries, there are relocations against 
 // .opd section. We need to apply the relocations before using
 // opd symbols. 
+
+void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
+  // If the OPD is filled in, parse it and fill in our TOC table
+  assert(opd_hdr);
+
+  Elf_X_Data data = opd_hdr->get_data();
+  assert(data.isValid());
+  
+  // Let's read this puppy
+  unsigned long *buf = (unsigned long *)data.d_buf();
+
+  // In almost all cases, the TOC is the same. So let's store it at the
+  // special location 0 and only record differences. 
+  Offset baseTOC = buf[1];
+  TOC_table_[0] = baseTOC;
+
+  for (unsigned i = 0; i < (data.d_size() / sizeof(unsigned long)); i += 3) {
+    Offset func = buf[i];
+    Offset toc = buf[i+1];
+    // Unused = buf[i+2];
+    if (toc == baseTOC) continue;
+
+    TOC_table_[func] = toc;
+  }
+
+}
 
 void Object::handle_opd_relocations(){
 
@@ -1971,7 +2015,7 @@ void Object::handle_opd_relocations(){
       if((*sym_it)->getPtrOffset() == (*rel_it).rel_addr()) {
 	i = 0;
 	while (i < regions_.size()) {
-	  if(regions_[i]->getRegionName().compare((*rel_it).getDynSym()->getName()) == 0){
+	  if(regions_[i]->getRegionName().compare((*rel_it).getDynSym()->getMangledName()) == 0){
 	    Region *targetRegion = regions_[i];
 	    Offset regionOffset = targetRegion->getDiskOffset()+(*rel_it).addend();
 	    (*sym_it)->setRegion(targetRegion);
@@ -2011,11 +2055,12 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym)
   }
   assert(i < regions_.size());
   retval->setSymbolType(Symbol::ST_FUNCTION);
+#if 0
   retval->tag_ = Symbol::TAG_INTERNAL;  // Not sure if this is an appropriate
                                         // use of the tag field, but we need
                                         // to mark this symbol somehow as a
                                         // fake.
-
+#endif
   ///* DEBUG */ fprintf(stderr, "addr:0x%lx ptr_addr:0x%lx toc:0x%lx section:%s\n", opd_entry[0], soffset, opd_entry[1], regions_[i]->getRegionName().c_str());
   return retval;
 }
@@ -2106,7 +2151,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 
     	  if(stype == Symbol::ST_SECTION && sec != NULL) {
 	  	  	sname = sec->getRegionName();
-			soffset = sec->getRegionAddr();
+			soffset = sec->getDiskOffset();
           } 
 
          if (stype == Symbol::ST_MODULE) {
@@ -3071,7 +3116,8 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 		/* If there's only one, apply regardless. */
 		if ( syms.size() == 1 ) 
                   { 
-		    symbols_[SymName][0]->setModuleName(module); 
+                     // TODO: set module
+//		    symbols_[SymName][0]->setModuleName(module); 
                   }
 		else 
                   {
@@ -3079,7 +3125,8 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 		      {
                         if ( syms[i]->getLinkage() == Symbol::SL_GLOBAL ) 
 			  {
-			    symbols_[SymName][i]->setModuleName(module);
+                             // TODO: set module
+//			    symbols_[SymName][i]->setModuleName(module);
 			    count++;
 			  }
 		      }
@@ -3265,6 +3312,8 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, bool, void (*err_func)(const ch
   hasRelplt_(false),
   hasRelaplt_(false),
   relType_(Region::RT_REL),
+  opd_addr_(0),
+  opd_size_(0),
   dwarf(this),
   EEL(false),
   DbgSectionMapSorted(false)
@@ -5018,16 +5067,16 @@ void Object::parseStabTypes(Symtab *obj)
 	  currentFunctionName = new string(tmp);
 	  // Shouldn't this be a function name lookup?
 	  std::vector<Symbol *>syms;
-	  if(!obj->findSymbolByType(syms, 
+	  if(!obj->findSymbol(syms, 
 				    *currentFunctionName, 
 				    Symbol::ST_FUNCTION,
 				    mangledName)) {
-	    if(!obj->findSymbolByType(syms, 
+	    if(!obj->findSymbol(syms, 
 				      "_"+*currentFunctionName, 
 				      Symbol::ST_FUNCTION,
 				      mangledName)) {
 	      string fortranName = *currentFunctionName + string("_");
-	      if (obj->findSymbolByType(syms, 
+	      if (obj->findSymbol(syms, 
 					fortranName,
 					Symbol::ST_FUNCTION,
 					mangledName)) {
@@ -5057,11 +5106,11 @@ void Object::parseStabTypes(Symtab *obj)
 
 	//TODO? change this. findLocalVar will cause an infinite loop
 	std::vector<Symbol *>vars;
-	if(!obj->findSymbolByType(vars, 
+	if(!obj->findSymbol(vars, 
 				  *commonBlockName, 
 				  Symbol::ST_OBJECT,
 				  mangledName)) {
-	  if(!obj->findSymbolByType(vars, 
+	  if(!obj->findSymbol(vars, 
 				    *commonBlockName, 
 				    Symbol::ST_OBJECT,
 				    mangledName,
@@ -5089,11 +5138,11 @@ void Object::parseStabTypes(Symtab *obj)
       case N_ECOMM: {
 	//copy this set of fields
 	assert(currentFunctionName);
-	if(!obj->findSymbolByType(bpfv, 
+	if(!obj->findSymbol(bpfv, 
 				  *currentFunctionName, 
 				  Symbol::ST_FUNCTION,
 				  mangledName)) {
-	  if(!obj->findSymbolByType(bpfv, 
+	  if(!obj->findSymbol(bpfv, 
 				    *currentFunctionName, 
 				    Symbol::ST_FUNCTION, 
 				    mangledName,
@@ -5102,7 +5151,7 @@ void Object::parseStabTypes(Symtab *obj)
 	  }
 	  else{
 	    Symbol *func = bpfv[0];
-	    commonBlock->endCommonBlock(func, (void *)commonBlockVar->getAddr());
+	    commonBlock->endCommonBlock(func, (void *)commonBlockVar->getOffset());
 	  }    
 	} else {
 	  if (bpfv.size() > 1) {
@@ -5111,7 +5160,7 @@ void Object::parseStabTypes(Symtab *obj)
 	    //                     __FILE__, __LINE__, bpfv.size(), currentFunctionName->c_str());
 	  }
 	  Symbol *func = bpfv[0];
-	  commonBlock->endCommonBlock(func, (void *)commonBlockVar->getAddr());
+	  commonBlock->endCommonBlock(func, (void *)commonBlockVar->getOffset());
 	}
 	//TODO?? size for local variables??
 	//       // update size if needed
@@ -5321,8 +5370,12 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
         std::vector<Symbol *>::iterator sym_it;
         for(sym_it = symVec_it->second.begin(); sym_it != symVec_it->second.end(); ++sym_it) {
             // Skip any symbols pointing to the undefined symbol entry
-            if( (*sym_it)->getIndex() == STN_UNDEF ) continue;
-            if( (*sym_it)->tag() == Symbol::TAG_INTERNAL ) continue;
+	  if( (*sym_it)->getIndex() == STN_UNDEF ) {
+	    continue;
+	  }
+	  if( (*sym_it)->tag() == Symbol::TAG_INTERNAL ) {
+	    continue;
+	  }
 
             std::pair<dyn_hash_map<int, Symbol *>::iterator, bool> result;
             if( (*sym_it)->isInDynSymtab() ) {
@@ -5394,18 +5447,17 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                 if( sym_it != dynsymByIndex.end() ) {
                     sym = sym_it->second;
    	 	    if(sym->getType() == Symbol::ST_SECTION) {
-			name = sym->getSec()->getRegionName().c_str();
+			name = sym->getRegion()->getRegionName().c_str();
 	            }		 
                 }
             }else if( strtab && curSymHdr->sh_offset() == symtab_offset ) {
                 name = string( &strtab[symtab.st_name(symbol_index)] );
-
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
                 sym_it = symtabByIndex.find(symbol_index);
                 if( sym_it != symtabByIndex.end() ) {
                     sym = sym_it->second;
    	 	    if(sym->getType() == Symbol::ST_SECTION) {
-			name = sym->getSec()->getRegionName().c_str();
+			name = sym->getRegion()->getRegionName().c_str();
 		    }
                 }
             }
@@ -5421,7 +5473,6 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 
             relocationEntry newrel(0, relOff, addend, name, sym, relType, regType);
             region->addRelocationEntry(newrel);
-	    
             // relocations are also stored with their targets
             // Need to find target region
 	    if (sym) {
@@ -5431,7 +5482,6 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 		if( shToReg_it != shToRegion.end() ) {
 		  targetRegion = shToReg_it->second;
 		}
-		
 		assert(targetRegion != NULL);
 		targetRegion->addRelocationEntry(newrel);
 	      }
@@ -5480,4 +5530,22 @@ Dyninst::Architecture Object::getArch()
 
 Dwarf_Debug Object::dwarf_dbg() {
    return dwarf.dbg_data;
+}
+
+Offset Object::getTOCoffset(Offset off) const {
+  if (TOC_table_.empty()) return 0;
+
+  Offset baseTOC = TOC_table_.find(0)->second;
+
+  // We only store exceptions to the base TOC, so if we can't find it
+  // return the base
+
+  std::map<Offset, Offset>::const_iterator iter = TOC_table_.find(off);
+  if (iter == TOC_table_.end()) return baseTOC;
+  return iter->second;
+}
+
+void Object::setTOCoffset(Offset off) {
+  TOC_table_.clear();
+  TOC_table_[0] = off;
 }

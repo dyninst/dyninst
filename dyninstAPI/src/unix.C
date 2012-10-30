@@ -616,6 +616,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 
     startup_printf("[%s:%u] - Creation error opening %s\n",
                    FILE__, __LINE__, filename.c_str());
+    assert(0);
     return NULL;
 }
 
@@ -821,16 +822,16 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
             lowWaterMark_ += emptyFuncSize;
             linkedFile->findRegion(initsec, ".init.dyninst");
             assert(initsec);
-            linkedFile->addSysVDynamic(DT_INIT, initsec->getRegionAddr());
+            linkedFile->addSysVDynamic(DT_INIT, initsec->getMemOffset());
             startup_printf("%s[%d]: creating .init.dyninst region, region addr 0x%lx\n",
-                           FILE__, __LINE__, initsec->getRegionAddr());
+                           FILE__, __LINE__, initsec->getMemOffset());
         }
-        startup_printf("%s[%d]: ADDING _init at 0x%lx\n", FILE__, __LINE__, initsec->getRegionAddr());
+        startup_printf("%s[%d]: ADDING _init at 0x%lx\n", FILE__, __LINE__, initsec->getMemOffset());
         Symbol *initSym = new Symbol( "_init",
                                       Symbol::ST_FUNCTION,
                                       Symbol::SL_GLOBAL,
                                       Symbol::SV_DEFAULT,
-                                      initsec->getRegionAddr(),
+                                      initsec->getMemOffset(),
                                       linkedFile->getDefaultModule(),
                                       initsec,
                                       UINT_MAX );
@@ -869,17 +870,17 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
             lowWaterMark_ += emptyFuncSize;
             linkedFile->findRegion(finisec, ".fini.dyninst");
             assert(finisec);
-            linkedFile->addSysVDynamic(DT_FINI, finisec->getRegionAddr());
+            linkedFile->addSysVDynamic(DT_FINI, finisec->getMemOffset());
             startup_printf("%s[%d]: creating .fini.dyninst region, region addr 0x%lx\n",
-                           FILE__, __LINE__, finisec->getRegionAddr());
+                           FILE__, __LINE__, finisec->getMemOffset());
 
         }
-        startup_printf("%s[%d]: ADDING _fini at 0x%lx\n", FILE__, __LINE__, finisec->getRegionAddr());
+        startup_printf("%s[%d]: ADDING _fini at 0x%lx\n", FILE__, __LINE__, finisec->getMemOffset());
         Symbol *finiSym = new Symbol( "_fini",
                                       Symbol::ST_FUNCTION,
                                       Symbol::SL_GLOBAL,
                                       Symbol::SV_DEFAULT,
-                                      finisec->getRegionAddr(),
+                                      finisec->getMemOffset(),
                                       linkedFile->getDefaultModule(),
                                       finisec,
                                       UINT_MAX );

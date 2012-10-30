@@ -69,19 +69,19 @@ void print_symbols( std::vector< Symbol *>& allsymbols ) {
     }
     for (unsigned i=0; i<allsymbols.size(); i++) {
         sym = allsymbols[i];
-        modname = sym->getModuleName();
+        modname = (sym->getModule() ? sym->getModule()->fileName() : "");
         //if (sym->getName() == "__gmon_start__") {
         //if (modname == "libspecial.so" || modname == "libprofile.so") {
         //if (sym->getLinkage() == Symbol::SL_WEAK) {
         //if (sym->isInDynSymtab()) {
         if (1) {
             fprintf(fd, "%-20s  %-15s  0x%08x  %5u  %3u", 
-                sym->getName().substr(0,20).c_str(), 
+                    sym->getMangledName().substr(0,20).c_str(), 
                 //modname.size() > 15 ? modname.substr(modname.size()-15,15).c_str() : modname.c_str(),
                 "",
-                (unsigned)sym->getAddr(),
+                (unsigned)sym->getOffset(),
                 (unsigned)sym->getSize(),
-                sym->getSec() ? sym->getSec()->getRegionNumber() : 0
+                    sym->getRegion() ? sym->getRegion()->getRegionNumber() : 0
                 );
             switch (sym->getType()) {
                 case Symbol::ST_FUNCTION: fprintf(fd, "  FUN"); break;
@@ -163,8 +163,8 @@ const char *Dyninst::SymtabAPI::supportedLanguages2Str(supportedLanguages s)
 bool Dyninst::SymtabAPI::symbol_compare(const Symbol *s1, const Symbol *s2) 
 {
     // select the symbol with the lowest address
-    Offset s1_addr = s1->getAddr();
-    Offset s2_addr = s2->getAddr();
+    Offset s1_addr = s1->getOffset();
+    Offset s2_addr = s2->getOffset();
     if (s1_addr > s2_addr)
     	return false;
     if (s1_addr < s2_addr)

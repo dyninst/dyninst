@@ -100,6 +100,7 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid) {
     unsigned retval = DYNINST_NOT_IN_HASHTABLE;
     int index, result;
     unsigned long tid_val = (unsigned long) tid;
+    rtdebug_printf("%s[%d]: getting dyninst index lock\n", __FILE__, __LINE__);
     result = tc_lock_lock(&DYNINST_index_lock);
     if (result == DYNINST_DEAD_LOCK) {
         rtdebug_printf("%s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__,
@@ -111,6 +112,7 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid) {
            the output functions, as we'll infinite recurse and die */
         return DYNINST_max_num_threads;
     }
+    rtdebug_printf("%s[%d]: got dyninst index lock\n", __FILE__, __LINE__);
 
     /**
      * Search the hash table
@@ -224,6 +226,8 @@ int DYNINSTunregisterThread(dyntid_t tid) {
     return retval;
 }
 
+int global = 1;
+
 /**
  * Translate a tid given by pthread_self into an index.  Called by 
  * basetramps everywhere.
@@ -231,17 +235,22 @@ int DYNINSTunregisterThread(dyntid_t tid) {
 int DYNINSTthreadIndex() {
     dyntid_t tid;
     unsigned curr_index;
+    int *ptr = 5;
+    int foo;
 
     rtdebug_printf("%s[%d]:  welcome to DYNINSTthreadIndex()\n", __FILE__, __LINE__);
-    if (!DYNINSThasInitialized) return 0;
+    if (!DYNINSThasInitialized) {
+      rtdebug_printf("%s[%d]: dyninst not initialized, ret false\n", __FILE__, __LINE__);
+      return 0;
+    }
 
     tid = (dyntid_t) ((unsigned long)dyn_pthread_self());
     rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): tid = %lu\n", __FILE__, __LINE__,
                    (unsigned long) tid);
     if (tid == (dyntid_t) DYNINST_SINGLETHREADED) return 0;
-
+    rtdebug_printf("%s[%d]: calling thread index slow (modified)\n", __FILE__, __LINE__);
     curr_index = DYNINSTthreadIndexSLOW(tid);
-
+    rtdebug_printf("%s[%d]: back from thread index slow\n", __FILE__, __LINE__);
     /* While DYNINST_max_num_threads is an error return for
        DYNINSTthreadIndexSLOW(), there's not really anything we
        can do about it at the moment, so just return it

@@ -175,10 +175,12 @@ extern FILE *getErrorLog();
 static std::string launchMutatee_plat(std::string exec_name, const std::vector<std::string> &args, bool needs_grand_fork)
 {   
    pid_t pid;
-   if (needs_grand_fork)
+   if (needs_grand_fork) {
       pid = fork_mutatee();
-   else
+   }
+   else {
       pid = fork();
+   }
 
    if (pid < 0) {
       return std::string("");
@@ -257,7 +259,6 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
             fprintf(stderr, "*ERROR*: Shouldn't have read anything here.\n");
             return string("");
          }
-      
          close( fds[0] ); // We're done with the pipe
       }
       char ret[32];
@@ -373,6 +374,27 @@ bool shouldLaunch(RunGroup *group, ParameterDict &params)
 	return true;
 }
 
+#if defined(os_bgq_test)
+void setupBatchRun(std::string &exec_name, std::vector<std::string> &args) {
+  std::vector<std::string> srun_args;
+  srun_args.push_back("-n");
+  srun_args.push_back("1");
+  exec_name = "./" + exec_name;
+  srun_args.push_back(exec_name);
+  args.erase(args.begin(), args.begin());
+  args.insert(args.begin(), srun_args.begin(), srun_args.end());
+
+  exec_name = "srun";
+}
+
+
+#else
+
+void setupBatchRun(std::string &, std::vector<std::string> &) {
+}
+
+#endif
+
 std::string launchMutatee(std::string executable, std::vector<std::string> &args, RunGroup *group, ParameterDict &params)
 {
    char group_num[32];
@@ -405,6 +427,8 @@ std::string launchMutatee(std::string executable, RunGroup *group, ParameterDict
 
    if (executable != string(""))
       exec_name = executable;
+
+   setupBatchRun(exec_name, args);
 
    return launchMutatee(exec_name, args, group, params);
 }
@@ -489,27 +513,6 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
    return true;
 }
 
-#if defined(os_bg_test)
-#include <set>
-
-static std::set<int> spawned_mutatees;
-void registerMutatee(std::string mutatee_string)
-{
-   int pid;
-   sscanf(mutatee_string.c_str(), "%d", &pid);
-   assert(pid != -1);
-   spawned_mutatees.insert(pid);
-}
-
-Dyninst::PID getMutateePid(RunGroup *)
-{
-   std::set<int>::iterator i = spawned_mutatees.begin();
-   assert(i != spawned_mutatees.end());
-   int pid = *i;
-   spawned_mutatees.erase(i);
-   return pid;
-}
-#else
 static std::map<int, std::string> spawned_mutatees;
 void registerMutatee(std::string mutatee_string)
 {
@@ -540,4 +543,3 @@ Dyninst::PID getMutateePid(RunGroup *group)
 
    return pid;
 }
-#endif

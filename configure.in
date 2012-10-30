@@ -25,6 +25,9 @@ dnl === configure options ==
 
 AC_SUBST(INSTALL)
 
+AC_SEARCH_LIBS([dlopen], [dl], [LIB_DLOPEN="-ldl"], [AC_MSG_ERROR([unable to find dlopen()])])
+AC_SUBST(LIB_DLOPEN)
+
 AC_ARG_WITH(traditional,
             [AS_HELP_STRING([--with-traditional],[Install to traditional (deprecated) locations])],
             [LIBRARY_DEST_VAR="LIBRARY_DEST=\${TO_CORE}/../\${PLATFORM}/lib";
@@ -36,11 +39,6 @@ AC_ARG_WITH(traditional,
 AC_SUBST(LIBRARY_DEST_VAR)
 AC_SUBST(PROGRAM_DEST_VAR)
 AC_SUBST(INCLUDE_DEST_VAR)
-
-AC_ARG_WITH(boost,
-	[AS_HELP_STRING([--with-boost],[Boost include directory])],
-	[BOOST_DIR="-I${withval}"],
-	[BOOST_DIR=""])
 
 m4_include([boost.m4])
 
@@ -57,7 +55,7 @@ AC_ARG_ENABLE(parseAPI-graphs,
 #   BOOST_REQUIRE([1.20.0])
 #fi
 
-AC_SUBST(BOOST_DIR)
+AC_SUBST(BOOST_CPPFLAGS)
 AC_SUBST(enableparseAPIgraphs)
 
 PACKAGE_BASE=""

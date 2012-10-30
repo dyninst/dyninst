@@ -49,31 +49,18 @@ using namespace std;
 
 static SymtabError serr;
 
-bool Module::findSymbolByType(std::vector<Symbol *> &found, 
-      const std::string& name,
-      Symbol::SymbolType sType, 
-      bool isMangled,
-      bool isRegex, 
-      bool checkCase)
-{
-    return findSymbolByType(found,
-                            name,
-                            sType,
-                            isMangled ? mangledName : prettyName,
-                            isRegex,
-                            checkCase);
-}
 
-bool Module::findSymbolByType(std::vector<Symbol *> &found, 
-                              const std::string& name,
-                              Symbol::SymbolType sType, 
-                              NameType nameType,
-                              bool isRegex,
-                              bool checkCase) {
+bool Module::findSymbol(std::vector<Symbol *> &found, 
+                        const std::string& name,
+                        Symbol::SymbolType sType, 
+                        NameType nameType,
+                        bool isRegex,
+                        bool checkCase,
+                        bool includeUndefined) {
     unsigned orig_size = found.size();
     std::vector<Symbol *> obj_syms;
     
-    if (exec()->findSymbolByType(obj_syms, name, sType, nameType == 0, isRegex, checkCase)) {
+    if (exec()->findSymbol(obj_syms, name, sType, nameType, isRegex, checkCase, includeUndefined)) {
         //fprintf(stderr, "%s[%d]:  no symbols matching %s found\n", FILE__, __LINE__, name.c_str());
         return false;
     }

@@ -209,6 +209,7 @@ class codeGen {
     void setBT(baseTramp *i) { bt_ = i; }
     void setInInstrumentation(bool i) { inInstrumentation_ = i; }
 
+    unsigned width() const;
     AddressSpace *addrSpace() const;
     PCThread *thread();
     Address startAddr() const { return addr_; }

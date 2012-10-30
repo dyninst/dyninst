@@ -50,7 +50,7 @@ unsigned int DYNINSThasInitialized = 0;
 unsigned DYNINST_max_num_threads;
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
-int DYNINSTdebugRTlib;
+int DYNINSTdebugRTlib = 0;
 
 int DYNINSTstaticMode = 1;
 

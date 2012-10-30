@@ -43,6 +43,8 @@
 #include "common/h/headers.h"
 #include "elf/h/Elf_X.h"
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 
 using namespace std;
 using boost::crc_32_type;
@@ -699,6 +701,13 @@ unsigned Elf_X_Shdr::wordSize() const
 Elf_Scn *Elf_X_Shdr::getScn() const
 {
     return scn;
+}
+
+Elf_X_Nhdr Elf_X_Shdr::get_note() const
+{
+    if (sh_type() != SHT_NOTE)
+        return Elf_X_Nhdr();
+    return Elf_X_Nhdr(data, 0);
 }
 
 // ------------------------------------------------------------------------
@@ -1538,11 +1547,27 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
         void *crcLocation = ((char *) data.d_buf() + data.d_size() - 4);
         debugFileCrc = *(unsigned *) crcLocation;
      }
-     else if(strcmp(name, BUILD_ID_NAME) == 0) {
-        char *buildId = (char *) scn.get_data().d_buf();
-        string filename = string(buildId + 2) + ".debug";
-        string subdir = string(buildId, 2);
-        debugFileFromBuildID = "/usr/lib/debug/.build-id/" + subdir + "/" + filename;
+     else if (scn.sh_type() == SHT_NOTE) {
+        // Look for a build-id note in this section.  It is usually a note by
+        // itself in section .note.gnu.build-id, but not necessarily so.
+        for (Elf_X_Nhdr note = scn.get_note();
+              note.isValid(); note = note.next()) {
+           if (note.n_type() == 3 // NT_GNU_BUILD_ID
+                 && note.n_namesz() == sizeof("GNU")
+                 && strcmp(note.get_name(), "GNU") == 0
+                 && note.n_descsz() >= 2) {
+              // This is a raw build-id, now convert it to hex
+              const unsigned char *desc = (const unsigned char *)note.get_desc();
+              stringstream buildid_path;
+              buildid_path << "/usr/lib/debug/.build-id/"
+                 << hex << setfill('0') << setw(2) << (unsigned)desc[0] << '/';
+              for (unsigned long j = 1; j < note.n_descsz(); ++j)
+                 buildid_path << (unsigned)desc[j];
+              buildid_path << ".debug";
+              debugFileFromBuildID = buildid_path.str();
+              break;
+           }
+        }
      }
   }
 
@@ -1584,4 +1609,69 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
   }
 
   return false;
+}
+
+// ------------------------------------------------------------------------
+// Class Elf_X_Nhdr simulates the Elf(32|64)_Nhdr structure.
+Elf_X_Nhdr::Elf_X_Nhdr()
+    : data(NULL), nhdr(NULL)
+{ }
+
+Elf_X_Nhdr::Elf_X_Nhdr(Elf_Data *data_, size_t offset)
+    : data(data_), nhdr(NULL)
+{
+    // 32|64 are actually the same, which simplifies things
+    assert(sizeof(Elf32_Nhdr) == sizeof(Elf64_Nhdr));
+
+    if (data && offset < data->d_size) {
+        size_t size = data->d_size - offset;
+        if (sizeof(*nhdr) <= size) {
+            size -= sizeof(*nhdr);
+            nhdr = (Elf32_Nhdr *)((char *)data->d_buf + offset);
+            if (n_namesz() > size || n_descsz() > size - n_namesz())
+                nhdr = NULL;
+        }
+    }
+    if (!nhdr)
+        data = NULL;
+}
+
+// Read Interface
+unsigned long Elf_X_Nhdr::n_namesz() const
+{
+    return isValid() ? nhdr->n_namesz : 0;
+}
+
+unsigned long Elf_X_Nhdr::n_descsz() const
+{
+    return isValid() ? nhdr->n_descsz : 0;
+}
+
+unsigned long Elf_X_Nhdr::n_type() const
+{
+    return isValid() ? nhdr->n_type : 0;
+}
+
+bool Elf_X_Nhdr::isValid() const
+{
+    return (data && nhdr);
+}
+
+const char* Elf_X_Nhdr::get_name() const
+{
+    return isValid() ? (char *)nhdr + sizeof(*nhdr) : NULL;
+}
+
+const void* Elf_X_Nhdr::get_desc() const
+{
+    return isValid() ? get_name() + n_namesz() : NULL;
+}
+
+Elf_X_Nhdr Elf_X_Nhdr::next() const
+{
+    if (!isValid())
+        return Elf_X_Nhdr();
+
+    size_t offset = (char *)get_desc() + n_descsz() - (char *)data->d_buf;
+    return Elf_X_Nhdr(data, offset);
 }

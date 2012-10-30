@@ -199,26 +199,71 @@ LoadedLib *AddressTranslateSysV::getAOut()
    if (exec)
       return exec;
 
+   //
+   // 
+
    // Get the base address
    Address baseAddr = 0;
    if (program_base && reader) {
-      if (address_size == 4) {
-         Elf32_Phdr header;
-         if (reader->ReadMem(program_base, &header, sizeof(Elf32_Phdr))) {
-            baseAddr = program_base - header.p_vaddr;
+      bool done = false;
+      Address phdr_vaddr = (Address) -1;
+      Address load_vaddr = (Address) -1;
+      Address header_addr = program_base;
+
+      while (!done) {
+         Address p_vaddr;
+         unsigned type;
+         if (address_size == 4) {
+            Elf32_Phdr header;
+            if (!reader->ReadMem(header_addr, &header, sizeof(Elf32_Phdr))) {
+               break;
+            }
+            p_vaddr = header.p_vaddr;
+            type = header.p_type;
+            header_addr += sizeof(Elf32_Phdr);
          }
+         else {
+            Elf64_Phdr header;
+            if (!reader->ReadMem(header_addr, &header, sizeof(Elf64_Phdr))) {
+               break;
+            }
+            p_vaddr = header.p_vaddr;
+            type = header.p_type;
+            header_addr += sizeof(Elf64_Phdr);
+         }
+         switch (type) {
+            case PT_PHDR:
+               phdr_vaddr = p_vaddr;
+               break;
+            case PT_LOAD:
+               if (load_vaddr == (Address) -1) {
+                  load_vaddr = p_vaddr;
+               }
+               break;
+            case PT_NULL:
+            case PT_DYNAMIC:
+            case PT_INTERP:
+            case PT_NOTE:
+            case PT_SHLIB:
+            case PT_TLS:
+               break;
+            default:
+               done = true;
+         }
+         if (phdr_vaddr != (Address) -1 &&
+             load_vaddr != (Address) -1) {
+            done = true;
+         }
+      }
+      if (load_vaddr != 0) {
+         baseAddr = 0;
       }
       else {
-         Elf64_Phdr header;
-         if (reader->ReadMem(program_base, &header, sizeof(Elf64_Phdr))) {
-            baseAddr = program_base - header.p_vaddr;
-         }
+         // PIE binary, find it
+         assert(phdr_vaddr != (Address) -1);
+         baseAddr = program_base - phdr_vaddr;
       }
    }         
-
-   if (page_size) {
-      baseAddr -= (baseAddr % page_size);
-   }
 
    LoadedLib *ll = new LoadedLib(getExecName(), baseAddr);
    ll->setFactory(symfactory);

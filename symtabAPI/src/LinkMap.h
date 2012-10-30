@@ -98,6 +98,11 @@ class LinkMap {
         Offset dataRegionAlign;
         deque<Region *> dataRegions;
         
+	// Stub code region
+	Offset stubRegionOffset;
+	Offset stubSize;
+	std::map<Symbol *, Offset> stubMap;
+
         // new code Region info
         Offset codeRegionOffset;
         Offset codeSize;

@@ -428,8 +428,9 @@ void Parser::ProcessCFInsn(
     end_block(cur,ah);
     
     // Instruction adapter provides edge estimates from an instruction
+    parsing_printf("Getting edges\n");
     ah.getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries); 
-
+    parsing_printf("Returned %d edges\n", edges_out.size());
     if (unlikely(_obj.defensiveMode() && !ah.isCall() && edges_out.size())) {
         // only parse branch edges that align with existing blocks
         bool hasUnalignedEdge = false;
@@ -441,6 +442,7 @@ void Parser::ProcessCFInsn(
             ++curEdge)
         {
             if (cur->end() <= curEdge->first) {
+	      parsing_printf("%s[%d] skipping edge\n", FILE__, __LINE__);
                 continue;
             }
             _obj.cs()->findRegions(curEdge->first,tregs);
@@ -453,6 +455,7 @@ void Parser::ProcessCFInsn(
                     if ((*bit)->end() <= cur->start() ||
                         (*bit) == cur) 
                     {
+		      parsing_printf("%s[%d] skipping edge\n", FILE__, __LINE__);
                         continue;
                     }
                     set<Address> insns_tblk;
@@ -476,6 +479,7 @@ void Parser::ProcessCFInsn(
             }
         }
         if (true == hasUnalignedEdge) {
+	  parsing_printf("Has unaligned edge, clearing and treating as abrupt end\n");
             edges_out.clear();
             ParseCallback::default_details det(
                 (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),

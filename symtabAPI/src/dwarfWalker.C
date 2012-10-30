@@ -14,6 +14,7 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 using namespace Dwarf;
+using namespace std;
 
 #define DWARF_FAIL_RET(x) {                                                 \
       int status = (x);                                                 \
@@ -224,17 +225,33 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       if (!findOffset()) return false;
       curName() = std::string();
 
-      dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p, encl %p\n",
+      dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p (%s), encl %p\n",
                    id(),
                    e,
                    (int) contexts_.c.size(), 
-                   curFunc(), curEnclosure());
+                   curFunc(),
+		   (curFunc() ? curFunc()->getAllMangledNames()[0].c_str() : "<null>"),
+		   curEnclosure());
 
       // Insert only inserts the first time; we need that behavior
       enclosureMap.insert(std::make_pair(offset(), curEnclosure()));
       
       bool ret = false;
       
+   // BLUEGENE BUG HACK
+#if defined(os_bg)
+      if (tag() == DW_TAG_base_type ||
+	  tag() == DW_TAG_const_type ||
+	  tag() == DW_TAG_pointer_type) {
+	// XLC compilers nest a bunch of stuff under an invented function; however,
+	// this is broken (they don't close the function properly). If we see a 
+	// tag like this, close off the previous function immediately
+	clearFunc();
+      }
+#endif
+
+
+
       switch(tag()) {
          case DW_TAG_subprogram:
          case DW_TAG_entry_point:
@@ -373,20 +390,22 @@ bool DwarfWalker::parseSubprogram() {
    // We want to skip parsing specification or abstract entries until we have
    // the base entry and can find/create the corresponding function object. 
 
-   if (!curFunc()) {
-      bool foundFunc = false;
-      if (!findFunction(foundFunc)) return false;
-      if (!foundFunc) {
-         // Hopefully abstract or specification; skip for now.
-         setParseChild(false);
-         return true;
-      }
-
-      if (parsedFuncs.find(curFunc()) != parsedFuncs.end()) {
-         setParseChild(false);
-         return true;
-      }
-      parsedFuncs.insert(curFunc());
+   // On the other hand, we can next actual function definitions. So...
+   // Try to find a function, and just don't freak out if we don't find one. 
+   bool foundFunc = false;
+   if (!findFunction(foundFunc)) return false;
+   
+   if (foundFunc) {
+     if (parsedFuncs.find(curFunc()) != parsedFuncs.end()) {
+       setParseChild(false);
+       return true;
+     }
+     parsedFuncs.insert(curFunc());
+   }
+   else if (!curFunc()) {
+     // Hopefully abstract or specification; skip for now.
+     setParseChild(false);
+     return true;
    }
 
    dwarf_printf("(0x%lx) Identified function name as %s\n", id(), curName().c_str());
@@ -574,14 +593,15 @@ bool DwarfWalker::parseVariable() {
       /* We now have the variable name, type, offset, and line number.
          Tell Dyninst about it. */
       if (!nameDefined()) return true;
-      dwarf_printf("(0x%lx) localVariable '%s', currentFunction %p\n", 
-                   id(), curName().c_str(), curFunc());
 
       localVar * newVariable = new localVar(curName(),
                                             type,
                                             fileName, 
                                             (int) variableLineNo, 
                                             curFunc());
+      dwarf_printf("(0x%lx) localVariable '%s' (%p), currentFunction %p\n", 
+                   id(), curName().c_str(), newVariable, curFunc());
+
       for (unsigned int i = 0; i < locs.size(); ++i) {
          dwarf_printf("(0x%lx) (%s) Adding location %d of %d: (0x%lx - 0x%lx): %s, %s, %s, %ld\n",
                       id(), newVariable->getName().c_str(), i+1, (int) locs.size(), locs[i].lowPC, locs[i].hiPC, 
@@ -612,8 +632,11 @@ bool DwarfWalker::parseFormalParam() {
    /* It's probably worth noting that a formal parameter may have a
       default value.  Since, AFAIK, Dyninst does nothing with this information,
       neither will we. */
-   if (!curFunc()) return true;
-   
+   if (!curFunc()) {
+     dwarf_printf("(0x%lx) No function defined, returning\n", id());
+     return true;
+   }
+
    /* We need the formal parameter's name, its type, its line number,
       and its offset from the frame base in order to tell the 
       rest of Dyninst about it.  A single _formal_parameter
@@ -628,7 +651,10 @@ bool DwarfWalker::parseFormalParam() {
    
    std::vector<VariableLocation> locs;
    if (!decodeLocationList(DW_AT_location, NULL, locs)) return false;
-   if (locs.empty()) return true;
+   if (locs.empty()) {
+     dwarf_printf("(0x%lx) No locations associated with formal, returning\n", id());
+     return true;
+   }
 
    /* If the DIE has an _abstract_origin, we'll use that for the
       remainder of our inquiries. */
@@ -641,7 +667,10 @@ bool DwarfWalker::parseFormalParam() {
 
    if (!findName(curName())) return false;
    /* We can't do anything with anonymous parameters. */   
-   if (!nameDefined()) return true; 
+   if (!nameDefined()) {
+     dwarf_printf("(0x%lx) No name associated with formal, returning\n", id());
+     return true; 
+   }
       
    /* Acquire the parameter's type. */
    Type *paramType = NULL;
@@ -824,6 +853,7 @@ bool DwarfWalker::parseInheritance() {
       Type::getComponents() will Do the Right Thing. */
    std::string fName = "{superclass}";
    curEnclosure()->addField( fName, superClass, -1, visibility );
+   dwarf_printf("(0x%lx) Added type %p as %s to %p\n", id(), superClass, fName.c_str(), curEnclosure());
    return true;
 }
 
@@ -904,6 +934,8 @@ bool DwarfWalker::parseMember() {
    if (!fixBitFields(locs, memberSize)) return false;
 
    int offset_to_use = locs.size() ? locs[0].frameOffset : -1;
+
+   dwarf_printf("(0x%lx) Using offset of 0x%lx\n", id(), offset_to_use);
 
    if (nameDefined()) {
       curEnclosure()->addField( curName(), memberType, offset_to_use);
@@ -1318,22 +1350,34 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
    Dwarf_Attribute locationAttribute;
    DWARF_FAIL_RET(dwarf_attr( entry(), attr, & locationAttribute, NULL ));
 
-   bool isConstant;
+   bool isExpr = false;
+   bool isConstant = false;
    Dwarf_Half form;
-   if (!checkForConstant(attr, locationAttribute, isConstant, form))
-      return false;
-   
+   if (!checkForConstantOrExpr(attr, locationAttribute, isConstant, isExpr, form))
+     return false;
+   dwarf_printf("(0x%lx) After checkForConstantOrExpr, form class is 0x%x\n",id(), form);
    if (isConstant) {
+     dwarf_printf("(0x%lx) Decoding constant location\n", id());
       if (!decodeConstantLocation(locationAttribute, form, locs)) return false;
    }
+   else if (isExpr) {
+     dwarf_printf("(0x%lx) Decoding expression without location list\n", id());
+     if (!decodeExpression(locationAttribute, locs)) return false;
+   }   
    else {
+     dwarf_printf("(0x%lx) Decoding loclist location\n", id());
       Dwarf_Locdesc **locationList;
       Dwarf_Signed listLength;
       int status = dwarf_loclist_n( locationAttribute, & locationList, & listLength, NULL );
       
       dwarf_dealloc( dbg(), locationAttribute, DW_DLA_ATTR );
       
-      if (status != DW_DLV_OK) return true;
+      if (status != DW_DLV_OK) {
+	
+
+	dwarf_printf("(0x%lx) Failed loclist decode: %d\n", id(), status);
+	return true;
+      }
       
       dwarf_printf("(0x%lx) location list with %d entries found\n", id(), (int) listLength);
       
@@ -1348,18 +1392,24 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
    return true;
 }
 
-bool DwarfWalker::checkForConstant(Dwarf_Half attr,
-                                   Dwarf_Attribute &locationAttribute,
-                                   bool &constant,
-                                   Dwarf_Half &form) {
+bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half attr,
+					 Dwarf_Attribute &locationAttribute,
+					 bool &constant,
+					 bool &expr,
+					 Dwarf_Half &form) {
    constant = false;
    // Get the form (datatype) for this particular attribute
    DWARF_FAIL_RET(dwarf_whatform(locationAttribute, &form, NULL));
    
    // And see if it's a constant
    Dwarf_Form_Class formtype = dwarf_get_form_class(version, attr, offset_size, form);
+   dwarf_printf("(0x%lx) Checking for constant, formtype is 0x%x looking for 0x%x\n", id(), formtype, DW_FORM_CLASS_CONSTANT);
+
    if (formtype == DW_FORM_CLASS_CONSTANT) {
       constant = true;
+   }
+   else if (formtype == DW_FORM_CLASS_EXPRLOC) {
+     expr = true;
    }
    return true;
 }
@@ -1392,10 +1442,13 @@ bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
          DWARF_FAIL_RET(dwarf_formaddr(locationAttribute, &addr, NULL));
          value = (Address) addr;
          return true;
-      case DW_FORM_sdata:
+   case DW_FORM_data1:
+   case DW_FORM_sdata:
          Dwarf_Signed s_tmp;
          DWARF_FAIL_RET(dwarf_formsdata(locationAttribute, &s_tmp, NULL));
          value = (Address) s_tmp;
+	 dwarf_printf("(0x%lx) Decoded data of form %x to 0x%lx\n", 
+		      id(), form, value);
          return true;
       case DW_FORM_udata:
          Dwarf_Unsigned u_tmp;
@@ -1431,7 +1484,9 @@ bool DwarfWalker::constructConstantVariableLocation(Address value,
       loc.hiPC = (Address) -1;
    }
 
-   loc.frameOffset = value + modLow;
+   // removed modlow
+
+   loc.frameOffset = value;
 
    locs.push_back(loc);
    
@@ -1799,6 +1854,32 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, std::string &bou
    return true;
 }
 
+bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
+				   std::vector<VariableLocation> &locs) {
+  Dwarf_Unsigned expr_len;
+  Dwarf_Ptr expr_ptr;
+  DWARF_FAIL_RET(dwarf_formexprloc(attr, &expr_len, &expr_ptr, NULL));
+  unsigned char *bitstream = (unsigned char *) expr_ptr;
+
+  // expr_ptr is a pointer to a bytestream. Try to turn it into a Dwarf_Locdesc so
+  // we can use decodeDwarfExpression. 
+
+  dwarf_printf("(0x%lx) bitstream for expr has len %d\n", id(), expr_len);
+  for (unsigned i = 0; i < expr_len; ++i) {
+    dwarf_printf("(0x%lx) \t %#hhx\n", id(), bitstream[i]);
+  }
+
+  Dwarf_Signed cnt;
+  Dwarf_Locdesc *descs;
+
+  DWARF_FAIL_RET(dwarf_loclist_from_expr_a(dbg(), expr_ptr, expr_len, addr_size, 
+					   &descs, &cnt, NULL));
+
+  bool ret = decodeLocationListForStaticOffsetOrAddress(&descs, cnt, locs, NULL);
+  //deallocateLocationList(&descs, cnt);
+  return ret;
+}
+
 bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList, 
                                                               Dwarf_Signed listLength, 
                                                               std::vector<VariableLocation>& locs,
@@ -1928,3 +2009,27 @@ void DwarfWalker::Contexts::pop() {
    c.pop();
 }
 
+void DwarfWalker::Contexts::setFunc(Function *f) {
+  // Bug workaround; if we're setting a function, ignore
+  // any preceding lexical information since we probably 
+  // nested. 
+  c.top().func = f;
+  c.top().low = 0;
+  c.top().high = (Address) ~0;
+}
+
+void DwarfWalker::Contexts::clearFunc() {
+  // We can't edit in the middle of the stack...
+
+  std::stack<Context> repl;
+  while (!c.empty()) {
+    repl.push(c.top());
+    c.pop();
+  }
+
+  while (!repl.empty()) {
+    c.push(repl.top());
+    c.top().func = NULL;
+    repl.pop();
+  }
+}

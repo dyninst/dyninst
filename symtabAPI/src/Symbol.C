@@ -191,14 +191,6 @@ SYMTAB_EXPORT const string& Symbol::getTypedName() const
     return typedName_;
 }
 
-SYMTAB_EXPORT const string& Symbol::getModuleName() const 
-{
-    if (module_)
-        return module_->fullName();
-    else
-        return emptyString;
-}
-
 bool Symbol::setOffset(Offset newOffset)
 {
     offset_ = newOffset;

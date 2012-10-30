@@ -213,15 +213,6 @@ class Symbol : public Serializable,
    friend
       std::ostream& operator<< (std::ostream &os, const Symbol &s);
 
-   //////////// DEPRECATED
-   SYMTAB_EXPORT Region		   *getSec ()      	   const { return getRegion(); }
-   SYMTAB_EXPORT Offset            getAddr ()              const { return getOffset(); }
-   SYMTAB_EXPORT const std::string&getModuleName ()        const;
-   SYMTAB_EXPORT const std::string &getName() const { return getMangledName(); }
-   SYMTAB_EXPORT bool setAddr (Offset newAddr) { return setOffset(newAddr); }
-   SYMTAB_EXPORT bool	setModuleName(std::string) { return false; }
-
-
    public:
    static std::string emptyString;
    int getInternalType() { return internal_type_; }
@@ -275,12 +266,13 @@ class LookupInterface
       SYMTAB_EXPORT LookupInterface();
       SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret,
             Symbol::SymbolType sType) = 0;
-      SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret,
-            const std::string& name,
-            Symbol::SymbolType sType,
-            bool isMangled = false,
-            bool isRegex = false,
-            bool checkCase = false) = 0;
+      SYMTAB_EXPORT virtual bool findSymbol(std::vector<Symbol *> &ret,
+                                            const std::string& name,
+                                            Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
+                                            NameType nameType = anyName,
+                                            bool isRegex = false,
+                                            bool checkCase = false,
+                                            bool includeUndefined = false) = 0;
       SYMTAB_EXPORT virtual bool findType(Type *&type, std::string name) = 0;
       SYMTAB_EXPORT virtual bool findVariableType(Type *&type, std::string name)= 0;
 

@@ -59,10 +59,14 @@ endif
 
 ifeq (freebsd, $(findstring freebsd, $(PLATFORM)))
 LIBS	    += -lpthread
-else
-LIBS	+= -ldl
 endif
 
+ifeq (ppc64_linux, $(findstring ppc64_linux, $(PLATFORM)))
+CXXFLAGS	+= -m64
+CFLAGS		+= -m64
+endif
+
+LIBS += @LIB_DLOPEN@
 
 all: ready parseThat
 

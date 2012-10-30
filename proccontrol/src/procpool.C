@@ -57,7 +57,6 @@ int_process *ProcessPool::findProcByPid(Dyninst::PID pid)
       return NULL;
    return (*i).second;
 }
-#include "freebsd.h"
 void ProcessPool::addProcess(int_process *proc)
 {
    pthrd_printf("Adding process %d to pool\n", proc->getPid());

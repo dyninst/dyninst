@@ -139,6 +139,6 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidt
     }
 }
 
-SYMTAB_EXPORT unsigned long relocationEntry::getGlobalRelType(unsigned /*addressWidth*/) {
+SYMTAB_EXPORT unsigned long relocationEntry::getGlobalRelType(unsigned /*addressWidth*/, Symbol *) {
     return R_PPC_GLOB_DAT;
 }

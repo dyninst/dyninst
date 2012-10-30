@@ -242,13 +242,13 @@ class BinaryEdit : public AddressSpace {
 
 class depRelocation {
 	public:
-		depRelocation(Address a, SymtabAPI::Symbol *r) : to(a), referring(r) { }
-		Address getAddress() const { return to; }
-		SymtabAPI::Symbol *getReferring() const { return referring; }
+ depRelocation(Address a, SymtabAPI::Symbol *r) : to(a), referring(r) { }
+  Address getAddress() const { return to; }
+  SymtabAPI::Symbol *getReferring() const { return referring; }
 
-	private:
-		Address to;
-		SymtabAPI::Symbol *referring;
+ private:
+  Address to;
+  SymtabAPI::Symbol *referring;
 };
 
 class memoryTracker : public codeRange {

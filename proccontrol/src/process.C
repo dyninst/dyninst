@@ -42,7 +42,6 @@
 #include "proccontrol/h/ProcessSet.h"
 #include "proccontrol/h/PlatFeatures.h"
 
-#include "freebsd.h"
 #if defined(os_windows)
 #include "proccontrol/src/windows_process.h"
 #include "proccontrol/src/windows_thread.h"

@@ -98,7 +98,7 @@ bool AddressLookup::getAddress(Symtab *tab, Symbol *sym, Address &addr)
 
 bool sort_by_addr(const Symbol* a, const Symbol* b)
 {
-   return a->getAddr() < b->getAddr();
+   return a->getOffset() < b->getOffset();
 }
 
 vector<Symbol *> *AddressLookup::getSymsVector(LoadedLib *lib)
@@ -185,7 +185,7 @@ bool AddressLookup::getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool clo
          break;
       last_mid = mid;
       
-      Offset cur_off = (*symbols)[mid]->getAddr();
+      Offset cur_off = (*symbols)[mid]->getOffset();
       
       if (addr == cur_off) {
          sym = (*symbols)[mid];
