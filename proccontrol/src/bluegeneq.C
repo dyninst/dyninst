@@ -280,6 +280,7 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    hybrid_lwp_control_process(p, e, a, envp, f),
    mmap_alloc_process(p, e, a, envp, f),
    last_ss_thread(NULL),
+   lwp_tracker(NULL),
    hasControlAuthority(false),
    interp_base_set(false),
    page_size_set(false),
@@ -289,7 +290,7 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    rank(pid),
    page_size(0),
    interp_base(0),
-   initial_thread_list(NULL),
+   get_thread_list(NULL),
    stopwait_on_control_authority(NULL),
    priority(0),
    mtool(NULL),
@@ -320,9 +321,9 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
 bgq_process::~bgq_process()
 {
    WriterThread::get()->rmProcess(this);
-   if (initial_thread_list) {
-      delete initial_thread_list;
-      initial_thread_list = NULL;
+   if (get_thread_list) {
+      delete get_thread_list;
+      get_thread_list = NULL;
    }
    if (query_transaction) {
       delete query_transaction;
@@ -360,6 +361,7 @@ bool bgq_process::plat_attach(bool, bool &needsSync)
 bool bgq_process::plat_forked()
 {
    assert(0); //No fork on BG/Q
+   return true;
 }
 
 bool bgq_process::plat_detach(result_response::ptr)
@@ -508,14 +510,14 @@ bool bgq_process::needIndividualThreadAttach()
 
 bool bgq_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
 {
-   if (!initial_thread_list)
+   if (!get_thread_list)
       return true;
 
-   for (uint32_t i = 0; i < initial_thread_list->numthreads; i++) {
-      lwps.push_back(initial_thread_list->threadlist[i].tid);
+   for (uint32_t i = 0; i < get_thread_list->numthreads; i++) {
+      lwps.push_back(get_thread_list->threadlist[i].tid);
    }
-   delete initial_thread_list;
-   initial_thread_list = NULL;
+   delete get_thread_list;
+   get_thread_list = NULL;
    return true;
 }
 
@@ -918,6 +920,27 @@ void bgq_process::plat_threadAttachDone()
    mbox()->enqueue(ev);
 }
 
+LWPTracking *bgq_process::getLWPTracking()
+{
+   if (!lwp_tracker) {
+      lwp_tracker = new LWPTracking(proc());
+   }
+   return lwp_tracker;
+}
+
+bool bgq_process::plat_lwpRefresh(result_response::ptr resp)
+{
+   lwp_tracking_resp = resp;
+   GetThreadListCmd cmd;
+   cmd.threadID = 0;
+   bool result = sendCommand(cmd, GetThreadList, resp);
+   if (!result) {
+      pthrd_printf("Error sending GetThreadList command\n");
+      return false;
+   }
+   return true;
+}
+
 bool bgq_process::handleStartupEvent(void *data)
 {
    ComputeNode *cn = getComputeNode();
@@ -1201,8 +1224,8 @@ bool bgq_process::handleStartupEvent(void *data)
          else if (query_ack->cmdList[i].type == GetAuxVectorsAck)
             get_auxvectors_result = *(GetAuxVectorsAckCmd *) cmd_ptr;
          else if (query_ack->cmdList[i].type == GetThreadListAck) {
-            initial_thread_list = new GetThreadListAckCmd();
-            *initial_thread_list = *(GetThreadListAckCmd *) cmd_ptr;
+            get_thread_list = new GetThreadListAckCmd();
+            *get_thread_list = *(GetThreadListAckCmd *) cmd_ptr;
          }
          else if (query_ack->cmdList[i].type == GetThreadDataAck) {
             BG_Thread_ToolState ts = ((GetThreadDataAckCmd *) cmd_ptr)->toolState;
@@ -1255,8 +1278,8 @@ bool bgq_process::handleStartupEvent(void *data)
       setState(running);
       getStartupTeardownProcs().dec();
 
-      assert(initial_thread_list->numthreads > 0);
-      thrd->changeLWP(initial_thread_list->threadlist[0].tid);
+      assert(get_thread_list->numthreads > 0);
+      thrd->changeLWP(get_thread_list->threadlist[0].tid);
       
       startup_state = startup_done;
       return true;
@@ -2937,6 +2960,14 @@ bool DecoderBlueGeneQ::decodeStartupEvent(ArchEventBGQ *ae, bgq_process *proc, v
    return true;
 }
 
+bool DecoderBlueGeneQ::decodeLWPRefresh(ArchEventBGQ *ae, bgq_process *proc, ToolCommand *cmd)
+{
+   proc->lwp_tracking_resp = result_response::ptr();
+   ae->dontFreeMsg();
+   proc->get_thread_list = static_cast<GetThreadListAckCmd *>(cmd);
+   return true;
+}
+
 Event::ptr DecoderBlueGeneQ::createEventDetach(bgq_process *proc, bool err)
 {
    EventDetach::ptr new_ev = EventDetach::ptr(new EventDetach());
@@ -3143,9 +3174,23 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             break;
          }
          case GetThreadListAck:
-            pthrd_printf("Decoded GetThreadListAck on %d/%d. Dropping\n",
-                         proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
-            break;
+            if (proc->lwp_tracking_resp) {
+               pthrd_printf("Decoded GetThreadListAck on %d/%d. Dropping\n",
+                            proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
+               break;
+            }
+            else {
+               pthrd_printf("Decoded GetThreadList as LWP refresh on %d\n", proc->getPid());
+               decodeLWPRefresh(archevent, proc, base_cmd);
+               result_response::ptr result_resp = cur_resp->getResultResponse();
+               result_resp->postResponse(true);
+               Event::ptr new_ev = decodeCompletedResponse(result_resp, proc, thr, async_ev_map);
+               if (new_ev)
+                  events.push_back(new_ev);
+               resp_lock_held = false;
+               getResponses().signal();
+               getResponses().unlock();
+            }
          case GetAuxVectorsAck:
             pthrd_printf("Decoded GetAuxVectorsAck on %d/%d. Dropping\n", 
                          proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);

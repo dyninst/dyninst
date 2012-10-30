@@ -307,7 +307,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
 
    if (should_sync) {
       ProcPool()->condvar()->broadcast();
-      ProcPool()->condvar()->unlock();      
+      ProcPool()->condvar()->unlock();
       for (;;) {
          bool have_neonatal = false;
          for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
@@ -1211,6 +1211,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
    fork_tracking(FollowFork::getDefaultFollowFork()),
+   lwp_tracking(LWPTracking::getDefaultTrackLWPs()),
    user_data(NULL),
    last_error_string(NULL),
    symbol_reader(NULL)
@@ -1242,6 +1243,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
    fork_tracking(p->fork_tracking),
+   lwp_tracking(p->lwp_tracking),
    user_data(NULL),
    last_error_string(NULL),
    symbol_reader(NULL)
@@ -1338,7 +1340,6 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
    }
    return bresult;
 }
-#include "freebsd.h"
 
 bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr, bp_write_t bp_write)
 {
@@ -2209,6 +2210,120 @@ FollowFork::follow_t int_process::fork_isTracking()
    perr_printf("Unsupported operation\n");
    setLastError(err_unsupported, "Not supported on this platform");
    return FollowFork::None;
+}
+
+LWPTracking *int_process::getLWPTracking()
+{
+   return NULL;
+}
+
+bool int_process::lwp_setTracking(bool b)
+{
+   pthrd_printf("Changing lwp tracking in %d from %s to %s\n", getPid(),
+                lwp_tracking ? "true" : "false", b ? "true" : "false");
+   if (b == lwp_tracking)
+      return true;
+   lwp_tracking = b;
+   return plat_lwpChangeTracking(b);
+}
+
+bool int_process::plat_lwpChangeTracking(bool)
+{
+   return true;
+}
+
+bool int_process::lwp_getTracking()
+{
+   return lwp_tracking;
+}
+
+bool int_process::lwp_refresh()
+{
+   pthrd_printf("Refreshing LWPs in process %d\n", getPid());
+   result_response::ptr resp;
+   bool result = lwp_refreshPost(resp);
+   if (!result) {
+      pthrd_printf("Error from lwp_refreshPost\n");
+      return false;
+   }
+   if (resp) {
+      int_process::waitForAsyncEvent(resp);
+   }
+   return lwp_refreshCheck();
+}
+
+bool int_process::plat_lwpRefresh(result_response::ptr)
+{
+   return false;
+}
+
+bool int_process::lwp_refreshPost(result_response::ptr &resp)
+{
+   if (!plat_needsAsyncIO()) {
+      resp = result_response::ptr();
+      return true;
+   }
+
+   resp = result_response::createResultResponse();
+   resp->markSyncHandled();
+   
+   bool result = plat_lwpRefresh(resp);
+   if (!result) {
+      resp = result_response::ptr();
+      return true;
+   }
+   return true;
+}
+
+bool int_process::lwp_refreshCheck()
+{
+   vector<Dyninst::LWP> lwps;
+   bool result = getThreadLWPs(lwps);
+   if (!result) {
+      pthrd_printf("Error calling getThreadLWPs during refresh\n");
+      return false;
+   }
+
+   //Look for added LWPs
+   int_threadPool *pool = threadPool();
+   int new_lwps_found = 0;
+   for (vector<Dyninst::LWP>::iterator i = lwps.begin(); i != lwps.end(); i++) {
+      Dyninst::LWP lwp = *i;
+      int_thread *thr = pool->findThreadByLWP(*i);
+      if (thr)
+         continue;
+      pthrd_printf("Found new thread %d/%d during refresh\n", getPid(), lwp);
+      new_lwps_found++;
+      EventNewLWP::ptr newev = EventNewLWP::ptr(new EventNewLWP(lwp));
+      newev->setProcess(proc());
+      newev->setThread(pool->initialThread()->thread());
+      newev->setSyncType(Event::async);
+      mbox()->enqueue(newev);
+   }
+
+   //Look for removed LWPs
+   if (lwps.size() - new_lwps_found != pool->size()) {     
+      for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
+         int_thread *thr = *i;
+         bool found = false;
+         for (vector<Dyninst::LWP>::iterator j = lwps.begin(); j != lwps.end(); j++) {
+            if (thr->getLWP() == *j) {
+               found = true;
+               break;
+            }
+         }
+         if (found)
+            continue;
+         pthrd_printf("Found thread %d/%d is dead during refresh\n", getPid(), thr->getLWP());
+         EventLWPDestroy::ptr newev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
+         newev->setProcess(proc());
+         newev->setThread(thr->thread());
+         newev->setSyncType(Event::async);
+         mbox()->enqueue(newev);
+      }
+   }
+
+   return true;
 }
 
 std::string int_process::mtool_getName() 
@@ -6725,6 +6840,17 @@ ThreadTracking *Process::getThreadTracking()
    return llproc_->threaddb_getThreadTracking();
 }
 
+LWPTracking *Process::getLWPTracking()
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return llproc_->getLWPTracking();
+}
+
 CallStackUnwinding *Thread::getCallStackUnwinding()
 {
    MTLock lock_this_func;
@@ -6781,6 +6907,17 @@ const ThreadTracking *Process::getThreadTracking() const
       return NULL;
    }
    return llproc_->threaddb_getThreadTracking();
+}
+
+const LWPTracking *Process::getLWPTracking() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return llproc_->getLWPTracking();
 }
 
 const SignalMask *Process::getSignalMask() const
@@ -7986,6 +8123,7 @@ const char *Counter::getNameForCounter(int counter_type)
       STR_CASE(StartupTeardownProcesses);
       default: assert(0);
    }
+   return NULL;
 }
 
 MTManager::MTManager() :

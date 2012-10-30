@@ -84,6 +84,37 @@ class PC_EXPORT LibraryTrackingSet
    bool refreshLibraries() const;
 };
 
+class PC_EXPORT LWPTracking
+{
+   friend class linux_process;
+   friend class bgq::bgq_process;
+  protected:
+   LWPTracking(Process::ptr proc_);
+   ~LWPTracking();
+   Process::weak_ptr proc;
+   static bool default_track_lwps;
+  public:
+   static void setDefaultTrackLWPs(bool b);
+   static bool getDefaultTrackLWPs();
+
+   void setTrackLWPs(bool b) const;
+   bool getTrackLWPs() const;
+   bool refreshLWPs();
+};
+
+class PC_EXPORT LWPTrackingSet
+{
+   friend class ProcessSet;
+   friend class PSetFeatures;
+  protected:
+   LWPTrackingSet(ProcessSet::ptr ps_);
+   ~LWPTrackingSet();
+   ProcessSet::weak_ptr wps;
+  public:
+   bool setTrackLWPs(bool b) const;
+   bool refreshLWPs() const;
+};
+
 class PC_EXPORT ThreadTracking
 {
    friend class ::thread_db_process;

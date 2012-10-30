@@ -442,6 +442,16 @@ class int_process
    virtual FollowFork *getForkTracking();
    virtual bool fork_setTracking(FollowFork::follow_t b);
    virtual FollowFork::follow_t fork_isTracking();
+
+   virtual LWPTracking *getLWPTracking();
+   bool lwp_setTracking(bool b);
+   virtual bool plat_lwpChangeTracking(bool b);
+   bool lwp_getTracking();
+   bool lwp_refreshPost(result_response::ptr &resp);
+   bool lwp_refreshCheck();
+   bool lwp_refresh();
+   virtual bool plat_lwpRefresh(result_response::ptr resp);
+   
    SignalMask *getSigMask();
 
    virtual std::string mtool_getName();
@@ -480,6 +490,7 @@ class int_process
    ProcStopEventManager proc_stop_manager;
    std::map<int, int> proc_desyncd_states;
    FollowFork::follow_t fork_tracking;
+   bool lwp_tracking;
    SignalMask pcsigmask;
    void *user_data;
    err_t last_error;

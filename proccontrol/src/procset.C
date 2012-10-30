@@ -64,6 +64,7 @@ private:
    ~PSetFeatures();
    LibraryTrackingSet *libset;
    ThreadTrackingSet *thrdset;
+   LWPTrackingSet *lwpset;
    FollowForkSet *forkset;
 };
 
@@ -1014,6 +1015,28 @@ ThreadTrackingSet *ProcessSet::getThreadTracking()
    return NULL;
 }
 
+LWPTrackingSet *ProcessSet::getLWPTracking()
+{
+   if (features && features->lwpset)
+      return features->lwpset;
+
+   MTLock lock_this_func;
+   if (!features) {
+      features = new PSetFeatures();
+   }
+   if (!procset)
+      return NULL;
+   for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
+      Process::ptr p = *i;
+      if (p->getLWPTracking()) {
+         features->lwpset = new LWPTrackingSet(shared_from_this());
+         return features->lwpset;
+      }
+   }
+
+   return NULL;
+}
+
 FollowForkSet *ProcessSet::getFollowFork()
 {
    if (features && features->forkset)
@@ -1044,6 +1067,11 @@ const LibraryTrackingSet *ProcessSet::getLibraryTracking() const
 const ThreadTrackingSet *ProcessSet::getThreadTracking() const
 {
    return const_cast<ProcessSet *>(this)->getThreadTracking();
+}
+
+const LWPTrackingSet *ProcessSet::getLWPTracking() const
+{
+   return const_cast<ProcessSet *>(this)->getLWPTracking();
 }
 
 const FollowForkSet *ProcessSet::getFollowFork() const
@@ -3246,8 +3274,8 @@ bool ThreadTrackingSet::refreshThreads() const
 
    ProcessSet::ptr ps = wps.lock();
    if (!ps) {
-      perr_printf("refreshLibraries on deleted process set\n");
-      globalSetLastError(err_badparam, "refreshLibraries attempted on deleted ProcessSet object");
+      perr_printf("refreshThreads on deleted process set\n");
+      globalSetLastError(err_badparam, "refreshThreads attempted on deleted ProcessSet object");
       return false;
    }
    int_processSet *procset = ps->getIntProcessSet();
@@ -3260,6 +3288,74 @@ bool ThreadTrackingSet::refreshThreads() const
       }
    }
    
+   int_process::waitAndHandleEvents(false);
+   return !had_error;
+}
+
+LWPTrackingSet::LWPTrackingSet(ProcessSet::ptr ps_) :
+   wps(ps_)
+{
+}
+
+LWPTrackingSet::~LWPTrackingSet()
+{
+}
+
+bool LWPTrackingSet::setTrackLWPs(bool b) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+   pthrd_printf("setting LWP tracking in process set to %s\n", b ? "enabled" : "disabled");
+   int_processSet *procset = wps.lock()->getIntProcessSet();
+   procset_iter iter("setTrackLWPs", had_error, ERR_CHCK_ALL);
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      Process::ptr p = *i;
+      LWPTracking *lwpt = p->getLWPTracking();
+      if (!lwpt) {
+         p->setLastError(err_unsupported, "LWP Tracking not supported on this process");
+         had_error = true;
+         continue;
+      }
+
+      lwpt->setTrackLWPs(b);
+   }
+   return !had_error;
+}
+
+bool LWPTrackingSet::refreshLWPs() const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+   pthrd_printf("refreshing LWPs in process set\n");
+
+   int_processSet *procset = wps.lock()->getIntProcessSet();
+   procset_iter iter("setTrackLWPs", had_error, ERR_CHCK_ALL);
+   set<response::ptr> all_resps;
+   set<int_process *> all_procs;
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      int_process *proc = (*i)->llproc();
+      result_response::ptr resp;
+      if (!proc->lwp_refreshPost(resp)) {
+         pthrd_printf("Error refreshing lwps on %d\n", proc->getPid());
+         had_error = true;
+      }
+      if (resp) {
+         all_resps.insert(resp);
+      }
+      all_procs.insert(proc);
+   }
+
+   int_process::waitForAsyncEvent(all_resps);
+
+   for (set<int_process *>::iterator i = all_procs.begin(); i != all_procs.end(); i++) {
+      int_process *proc = *i;
+      bool result = proc->lwp_refreshCheck();
+      if (!result) {
+         pthrd_printf("Error refreshing lwps while creating events on %d\n", proc->getPid());
+         had_error = true;
+      }
+   }
+
    int_process::waitAndHandleEvents(false);
    return !had_error;
 }

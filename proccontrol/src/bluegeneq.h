@@ -149,6 +149,9 @@ class bgq_process :
    virtual bool plat_debuggerSuspended();
    virtual void plat_threadAttachDone();
 
+   virtual LWPTracking *getLWPTracking();
+   virtual bool plat_lwpRefresh(result_response::ptr resp);
+
    bool handleStartupEvent(void *data);
    ComputeNode *getComputeNode();
    uint32_t getRank();
@@ -169,6 +172,8 @@ class bgq_process :
    UpdateTransaction *update_transaction;
    ComputeNode *cn;
    int_thread *last_ss_thread;
+   LWPTracking *lwp_tracker;
+   result_response::ptr lwp_tracking_resp;
 
    bool hasControlAuthority;
    bool interp_base_set;
@@ -186,7 +191,7 @@ class bgq_process :
 
    GetProcessDataAckCmd get_procdata_result;
    GetAuxVectorsAckCmd get_auxvectors_result;
-   GetThreadListAckCmd *initial_thread_list;
+   GetThreadListAckCmd *get_thread_list;
 
    EventControlAuthority::ptr pending_control_authority; //Used for releasing control authority
    int_eventControlAuthority *stopwait_on_control_authority; //Used for gaining control authority
@@ -436,6 +441,7 @@ class DecoderBlueGeneQ : public Decoder
    bool decodeDetachAck(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
    bool decodeReleaseControlAck(ArchEventBGQ *archevent, bgq_process *proc, int err_code, std::vector<Event::ptr> &events);
    bool decodeControlAck(ArchEventBGQ *ev, bgq_process *qproc, vector<Event::ptr> &events);
+   bool decodeLWPRefresh(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd);
 
 
    Event::ptr createEventDetach(bgq_process *proc, bool err);

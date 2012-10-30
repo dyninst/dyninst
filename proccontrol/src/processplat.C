@@ -139,6 +139,68 @@ bool ThreadTracking::refreshThreads()
    return pset->getThreadTracking()->refreshThreads();
 }
 
+bool LWPTracking::default_track_lwps = true;
+LWPTracking::LWPTracking(Process::ptr proc_) :
+   proc(proc_)
+{
+}
+
+LWPTracking::~LWPTracking()
+{
+   proc = Process::weak_ptr();
+}
+
+void LWPTracking::setDefaultTrackLWPs(bool b)
+{
+   MTLock lock_this_func(MTLock::allow_init);
+   default_track_lwps = b;
+}
+
+bool LWPTracking::getDefaultTrackLWPs()
+{
+   MTLock lock_this_func(MTLock::allow_init);
+   return default_track_lwps;
+}
+
+void LWPTracking::setTrackLWPs(bool b) const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   int_process *llproc = p->llproc();
+   if (!llproc) {
+      perr_printf("setTrackLWPs attempted on exited process\n");
+      globalSetLastError(err_exited, "Process is exited\n");
+      return;
+   }
+   llproc->lwp_setTracking(b);
+}
+
+bool LWPTracking::getTrackLWPs() const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   int_process *llproc = p->llproc();
+   if (!llproc) {
+      perr_printf("getTrackLWPs attempted on exited process\n");
+      globalSetLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+   return llproc->lwp_getTracking();
+}
+
+bool LWPTracking::refreshLWPs()
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   int_process *llproc = p->llproc();
+   if (!llproc) {
+      perr_printf("refreshLWPs attempted on exited process\n");
+      globalSetLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+   return llproc->lwp_refresh();
+}
+
 FollowFork::FollowFork(Process::ptr proc_) :
    proc(proc_)
 {

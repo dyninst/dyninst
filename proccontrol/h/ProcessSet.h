@@ -51,6 +51,7 @@ class LibraryTrackingSet;
 class ThreadTrackingSet;
 class CallStackUnwindingSet;
 class FollowForkSet;
+class LWPTrackingSet;
 class PSetFeatures;
 class TSetFeatures;
 
@@ -387,9 +388,11 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
     **/
    LibraryTrackingSet *getLibraryTracking();
    ThreadTrackingSet *getThreadTracking();
+   LWPTrackingSet *getLWPTracking();
    FollowForkSet *getFollowFork();
    const LibraryTrackingSet *getLibraryTracking() const;
    const ThreadTrackingSet *getThreadTracking() const;
+   const LWPTrackingSet *getLWPTracking() const;
    const FollowForkSet *getFollowFork() const;
 };
 

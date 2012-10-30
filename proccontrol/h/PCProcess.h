@@ -84,6 +84,7 @@ class ProcessSet;
 class ThreadSet;
 class LibraryTracking;
 class ThreadTracking;
+class LWPTracking;
 class CallStackUnwinding;
 class FollowFork;
 class SignalMask;
@@ -449,10 +450,12 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
     **/
    LibraryTracking *getLibraryTracking();
    ThreadTracking *getThreadTracking();
+   LWPTracking *getLWPTracking();
    FollowFork *getFollowFork();
    SignalMask *getSignalMask();
    const LibraryTracking *getLibraryTracking() const;
    const ThreadTracking *getThreadTracking() const;
+   const LWPTracking *getLWPTracking() const;
    const FollowFork *getFollowFork() const;
    const SignalMask *getSignalMask() const;
    
