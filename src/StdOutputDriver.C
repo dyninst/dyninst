@@ -83,7 +83,7 @@ void StdOutputDriver::printHeader(FILE *out) {
    if (printed_header)
       return;
    printed_header = true;
-#if defined (os_bg_test)
+#if defined (os_bgp_test)
    fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %s\n", 
            name_len, "TEST", 
            compiler_len, "COMP", 
