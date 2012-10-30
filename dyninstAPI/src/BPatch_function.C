@@ -183,11 +183,42 @@ BPatch_sourceObj *BPatch_function::getObjParent()
 }
 
 std::string BPatch_function::getNameStr() {
-   return func->prettyName();
+   return getDemangledName();
 }
 
 std::string BPatch_function::getMangledNameStr() {
    return func->symTabName();
+}
+
+std::string BPatch_function::getDemangledNameStr() {
+   return func->prettyName();
+}
+
+std::string BPatch_function::getTypedNameStr() {
+   return func->typedName();
+}
+
+bool BPatch_function::getNamesStr(std::vector<std::string> &names) {
+	return getDemangledNamesStr(names);
+}
+
+bool BPatch_function::getDemangledNamesStr(std::vector<std::string> &names) {
+	std::copy(func->prettyNameVector().begin(), 
+			func->prettyNameVector().end(),
+			std::back_inserter(names));
+	return (!func->prettyNameVector().empty());
+}
+bool BPatch_function::getMangledNamesStr(std::vector<std::string> &names) {
+	std::copy(func->symTabNameVector().begin(), 
+			func->symTabNameVector().end(),
+			std::back_inserter(names));
+	return (!func->symTabNameVector().empty());
+}
+bool BPatch_function::getTypedNamesStr(std::vector<std::string> &names) {
+	std::copy(func->typedNameVector().begin(), 
+			func->typedNameVector().end(),
+			std::back_inserter(names));
+	return (!func->typedNameVector().empty());
 }
 
 

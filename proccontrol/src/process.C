@@ -42,7 +42,6 @@
 #include "proccontrol/h/ProcessSet.h"
 #include "proccontrol/h/PlatFeatures.h"
 
-#include "freebsd.h"
 #if defined(os_windows)
 #include "proccontrol/src/windows_process.h"
 #include "proccontrol/src/windows_thread.h"
@@ -1336,7 +1335,6 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
    }
    return bresult;      
 }
-#include "freebsd.h"
 
 bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr, bp_write_t bp_write)
 {

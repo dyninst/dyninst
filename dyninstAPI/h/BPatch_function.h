@@ -185,8 +185,15 @@ public:
     
 
     // For users of the library:
-
     API_EXPORT(Str, (), std::string, getName, ());
+    API_EXPORT(Str, (), std::string, getDemangledName, ());
+    API_EXPORT(Str, (), std::string, getMangledName, ());
+	API_EXPORT(Str, (), std::string, getTypedName, ());
+	API_EXPORT(Str, (names), bool, getNames, (std::vector<std::string> &names));
+	API_EXPORT(Str, (names), bool, getDemangledNames, (std::vector<std::string> &names));
+	API_EXPORT(Str, (names), bool, getMangledNames, (std::vector<std::string> &names));
+	API_EXPORT(Str, (names), bool, getTypedNames, (std::vector<std::string> &names));
+
 
     //  BPatch_function::getName
     //  Returns <demangled> name of function
@@ -195,7 +202,6 @@ public:
     char *,getName,(char *s, int len));
 
     // String interface to mangled name
-    API_EXPORT(Str, (), std::string, getMangledName, ());
 
     //  BPatch_function::getMangledName
     //  Returns mangled name of function, same as getName for non-c++ mutatees

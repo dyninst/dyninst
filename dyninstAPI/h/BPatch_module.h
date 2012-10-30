@@ -61,19 +61,13 @@ class BPatch_module;
 class BPatch_object;
 
 namespace Dyninst { 
-   namespace ParseAPI { 
-      class CodeObject; 
-      CodeObject *convert(const BPatch_module *);
+   namespace SymtabAPI {
+      class Module;
+      SYMTAB_EXPORT Module *convert(const BPatch_module *);
    }
    namespace PatchAPI {
-      class PatchObject;
-      PatchObject *convert(const BPatch_module *);
-      class PatchFunction;
-      class Point;
-   }
-   namespace SymtabAPI {
-      class Symtab;
-      Symtab *convert(const BPatch_module *);
+	   class PatchFunction;
+	   class Point;
    }
 }
 
@@ -95,9 +89,7 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend class BPatch_binaryEdit;
     friend class BPatch_addressSpace;
     friend class BPatch_statement;
-    friend Dyninst::ParseAPI::CodeObject *Dyninst::ParseAPI::convert(const BPatch_module *);
-    friend Dyninst::PatchAPI::PatchObject *Dyninst::PatchAPI::convert(const BPatch_module *);
-    friend Dyninst::SymtabAPI::Symtab *Dyninst::SymtabAPI::convert(const BPatch_module *);
+    friend Dyninst::SymtabAPI::Module *Dyninst::SymtabAPI::convert(const BPatch_module *);
 
 
     typedef std::map<Dyninst::PatchAPI::PatchFunction*, 

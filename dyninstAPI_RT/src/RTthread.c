@@ -100,8 +100,6 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid) {
     unsigned retval = DYNINST_NOT_IN_HASHTABLE;
     int index, result;
     unsigned long tid_val = (unsigned long) tid;
-    int *ptr = 0;
-    int foo = *ptr;
     rtdebug_printf("%s[%d]: getting dyninst index lock\n", __FILE__, __LINE__);
     result = tc_lock_lock(&DYNINST_index_lock);
     if (result == DYNINST_DEAD_LOCK) {

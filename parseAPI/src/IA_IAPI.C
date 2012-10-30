@@ -738,6 +738,7 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
 {
    if(validCFT) return cachedCFT;
     Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
+	if (!callTarget) return make_pair(false, 0);
         // FIXME: templated bind(),dammit!
     callTarget->bind(thePC[_isrc->getArch()].get(), Result(s64, current));
     parsing_printf("%s[%d]: binding PC %s in %s to 0x%x...", FILE__, __LINE__,

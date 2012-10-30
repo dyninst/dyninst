@@ -226,6 +226,7 @@ class Object : public AObject
     std::vector<std::pair<std::string, IMAGE_IMPORT_DESCRIPTOR> > & getImportDescriptorTable();
     std::map<std::string, std::map<std::string, WORD> > & getHintNameTable();
     PIMAGE_NT_HEADERS getPEHdr() { return peHdr; }
+	void setTOCoffset(Offset) {};
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
     SYMTAB_EXPORT void    parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &);
