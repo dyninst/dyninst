@@ -503,7 +503,17 @@ StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, MachRegister r
 
   //(*intervals_)[b].find(addr, state);
   //  ret = (*intervals_)[b][addr][reg];
-  StateIntervals &sintervals = (*intervals_)[b];
+  Intervals::iterator iter = intervals_->find(b);
+  if (iter == intervals_->end()) {
+	  // How do we return "you stupid idiot"?
+
+	  return Height::bottom;
+  }
+
+  StateIntervals &sintervals = iter->second;
+  if (sintervals.empty()) {
+	  return Height::bottom;
+  }
   //Find the last instruction that is <= addr
   StateIntervals::iterator i = sintervals.lower_bound(addr);
   if ((i == sintervals.end() && !sintervals.empty()) || 
