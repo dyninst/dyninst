@@ -2188,6 +2188,7 @@ bool ComputeNode::handleMessageAck()
 
 bool ComputeNode::writeToolAttachMessage(bgq_process *proc, ToolMessage *msg, bool heap_alloced)
 {
+#if !defined(USE_THREADED_IO)
    if (all_attach_done || !do_all_attach) {
       return writeToolMessage(proc, msg, heap_alloced);
    }
@@ -2198,6 +2199,9 @@ bool ComputeNode::writeToolAttachMessage(bgq_process *proc, ToolMessage *msg, bo
       have_pending_message = true;
    }
    return writeToolMessage(proc, msg, heap_alloced);
+#else
+   return writeToolMessage(proc, msg, heap_alloced);
+#endif
 }
 
 void ComputeNode::removeNode(bgq_process *proc) {
@@ -4387,12 +4391,14 @@ void ComputeNode::emergencyShutdown()
       }
       pthrd_printf("cn->procs.size() = %u\n", (unsigned) cn->procs.size());
       for (set<bgq_process *>::iterator j = cn->procs.begin(); j != cn->procs.end(); j++) {
+         bgq_process *proc = *j;
+         if (!proc) {
+            pthrd_printf("Skipping NULL proc\n");
+            continue;
+         }
+         pthrd_printf("Process %d is in startup_state %d on CN %d\n", 
+                      proc->getPid(), (int) proc->startup_state, proc->getComputeNode()->getID());
         again: {
-            bgq_process *proc = *j;
-            if (!proc) {
-               pthrd_printf("Skipping NULL proc\n");
-               continue;
-            }
             int pid = proc->getPid();
             pthrd_printf("Emergency shutdown of %d\n", pid);
 
