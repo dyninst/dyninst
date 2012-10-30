@@ -2193,7 +2193,7 @@ test('test_add_symbols', 'test_add_symbols', 'symtab_group_test').
 test_description('test_add_symbols', 'Use SymtabAPI to add symbols to a file').
 groupable_test('test_add_symbols').
 mutator('test_add_symbols', ['test_add_symbols.C']).
-test_runmode('test_add_symbols', 'createProcess').
+test_runmode('test_add_symbols', 'disk').
 test_start_state('test_add_symbols', 'stopped').
 tests_module('test_add_symbols', 'symtab').
 test_platform('test_add_symbols', Platform) :- rewriteablePlatforms(Platform).
