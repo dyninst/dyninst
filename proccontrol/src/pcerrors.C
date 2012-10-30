@@ -45,6 +45,21 @@ static signed long x_thrd_id;
 
 FILE *pctrl_err_out;
 bool dyninst_debug_proccontrol = false;
+static Mutex print_lock(true);
+
+void pc_print_lock()
+{
+#if defined(PROCCTRL_LOCK_PRINTS)
+   print_lock.lock();
+#endif
+}
+
+void pc_print_unlock()
+{
+#if defined(PROCCTRL_LOCK_PRINTS)
+   print_lock.unlock();
+#endif
+}
 
 const char *thrdName()
 {

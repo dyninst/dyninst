@@ -34,44 +34,71 @@
 // Only works on posix-compliant systems. IE not windows.
 //#define PROCCTRL_PRINT_TIMINGS 1
 
+// Will really change timings
+//#define PROCCTRL_LOCK_PRINTS 1
+
 #include <stdio.h>
 #include "util.h"
 
-#define pclean_printf(format, ...) \
-  do { \
-    if (dyninst_debug_proccontrol) \
-      fprintf(pctrl_err_out, format, ## __VA_ARGS__); \
+extern void pc_print_lock();
+extern void pc_print_unlock();
+#if defined(PROCCTRL_LOCK_PRINTS)
+#define PC_PRINT_LOCK pc_print_lock()
+#define PC_PRINT_UNLOCK pc_print_unlock()
+#else
+#define PC_PRINT_LOCK
+#define PC_PRINT_UNLOCK
+#endif
+
+#define pclean_printf(format, ...)                          \
+   do {                                                     \
+     if (dyninst_debug_proccontrol) {                       \
+        PC_PRINT_LOCK;                                      \
+        fprintf(pctrl_err_out, format, ## __VA_ARGS__);     \
+        PC_PRINT_UNLOCK;                                    \
+     }                                                      \
   } while (0)
 
 #if defined(PROCCTRL_PRINT_TIMINGS)
 
-#define pthrd_printf(format, ...) \
-  do { \
-    if (dyninst_debug_proccontrol) { \
-       fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - " format, __FILE__, __LINE__, thrdName(), gettod(), ## __VA_ARGS__); \
-    } \
-  } while (0)
+#define pthrd_printf(format, ...)                                       \
+   do {                                                                 \
+      if (dyninst_debug_proccontrol) {                                  \
+         PC_PRINT_LOCK;                                                 \
+         fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - " format, __FILE__, __LINE__, \
+                 thrdName(), gettod(), ## __VA_ARGS__);                 \
+         PC_PRINT_UNLOCK;                                               \
+      }                                                                 \
+   } while (0)
 
-#define perr_printf(format, ...) \
-  do { \
-    if (dyninst_debug_proccontrol) \
-       fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - Error: " format, __FILE__, __LINE__, thrdName(), gettod(), ## __VA_ARGS__); \
-  } while (0)
+#define perr_printf(format, ...)                                        \
+   do {                                                                 \
+      if (dyninst_debug_proccontrol) {                                  \
+         PC_PRINT_LOCK;                                                 \
+         fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - Error: " format, __FILE__, __LINE__, thrdName(), gettod(), ## __VA_ARGS__); \
+         PC_PRINT_UNLOCK;                                               \
+      }                                                                 \
+   } while (0)
 
 #else
 
-#define pthrd_printf(format, ...) \
-  do { \
-    if (dyninst_debug_proccontrol) { \
-       fprintf(pctrl_err_out, "[%s:%u-%s] - " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
-    } \
-  } while (0)
+#define pthrd_printf(format, ...)                                       \
+   do {                                                                 \
+      if (dyninst_debug_proccontrol) {                                  \
+         PC_PRINT_LOCK;                                                 \
+         fprintf(pctrl_err_out, "[%s:%u-%s] - " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+         PC_PRINT_UNLOCK;                                               \
+      }                                                                 \
+   } while (0)
 
-#define perr_printf(format, ...) \
-  do { \
-    if (dyninst_debug_proccontrol) \
-       fprintf(pctrl_err_out, "[%s:%u-%s] - Error: " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
-  } while (0)
+#define perr_printf(format, ...)                \
+   do {                                                                 \
+      if (dyninst_debug_proccontrol) {                                  \
+         PC_PRINT_LOCK;                                                 \
+         fprintf(pctrl_err_out, "[%s:%u-%s] - Error: " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+         PC_PRINT_UNLOCK;                                               \
+      }                                                                 \
+   } while (0)
 
 #endif
 

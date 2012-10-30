@@ -74,29 +74,34 @@ static void printMessage(ToolMessage *msg, const char *str)
    if (!dyninst_debug_proccontrol)
       return;
    MessageHeader *header = &msg->header;
-  
-   pthrd_printf("%s MessageHeader:\n"
-                "\tservice = %u\t"
-                "\tversion = %u\t"
-                "\ttype = %u\t"
-                "\trank = %u\n"
-                "\tsequenceId = %u\t"
-                "\treturnCode = %u\t"
-                "\terrCode = %u\t"
-                "\tlength = %u\n"
-                "\tjobID = %lu\t"
-                "\ttoolId = %u\n\t",
-                str,
-                (unsigned) header->service,
-                (unsigned) header->version,
-                (unsigned) header->type,
-                header->rank,
-                header->sequenceId,
-                header->returnCode,
-                header->errorCode,
-                header->length,
-                (unsigned long) header->jobId,
-                (unsigned) msg->toolId);
+
+   pc_print_lock();
+   if (!short_msg) 
+      pthrd_printf("%s MessageHeader:\n"
+                   "\tservice = %u\t"
+                   "\tversion = %u\t"
+                   "\ttype = %u\t"
+                   "\trank = %u\n"
+                   "\tsequenceId = %u\t"
+                   "\treturnCode = %u\t"
+                   "\terrCode = %u\t"
+                   "\tlength = %u\n"
+                   "\tjobID = %lu\t"
+                   "\ttoolId = %u\n\t",
+                   str,
+                   (unsigned) header->service,
+                   (unsigned) header->version,
+                   (unsigned) header->type,
+                   header->rank,
+                   header->sequenceId,
+                   header->returnCode,
+                   header->errorCode,
+                   header->length,
+                   (unsigned long) header->jobId,
+                   (unsigned) msg->toolId);
+   else
+      pthrd_printf("%s to %u: ", str, header->rank);
+
   
    switch (msg->header.type) {
       case ControlAck: {
@@ -148,11 +153,13 @@ static void printMessage(ToolMessage *msg, const char *str)
       case Query: {
          QueryMessage *m = static_cast<QueryMessage *>(msg);
          pclean_printf("Query: numCommands = %u\n", (unsigned) m->numCommands);
-         for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
-            CommandDescriptor &c = m->cmdList[i];
-            pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
-                          i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
-                          c.length, c.returnCode);
+         if (!short_msg) {
+            for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
+               CommandDescriptor &c = m->cmdList[i];
+               pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
+                             i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
+                             c.length, c.returnCode);
+            }
          }
          break;
       }
@@ -220,6 +227,7 @@ static void printMessage(ToolMessage *msg, const char *str)
          pclean_printf("Unknown message\n");
          break;
    }
+   pc_print_unlock();
 }
 
 int_process *int_process::createProcess(Dyninst::PID p, std::string e)
