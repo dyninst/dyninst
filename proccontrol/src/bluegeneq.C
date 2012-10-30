@@ -82,7 +82,8 @@ static void printMessage(ToolMessage *msg, const char *str, bool short_msg = fal
    if (!dyninst_debug_proccontrol)
       return;
    MessageHeader *header = &msg->header;
-  
+
+   pc_print_lock();
    if (!short_msg) 
       pthrd_printf("%s MessageHeader:\n"
                    "\tservice = %u\t"
@@ -170,8 +171,8 @@ static void printMessage(ToolMessage *msg, const char *str, bool short_msg = fal
                              i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
                              c.length, c.returnCode);
             }
-            break;
          }
+         break;
       }
       case Update: {
          UpdateMessage *m = static_cast<UpdateMessage *>(msg);
@@ -242,6 +243,7 @@ static void printMessage(ToolMessage *msg, const char *str, bool short_msg = fal
          pclean_printf("Unknown message\n");
          break;
    }
+   pc_print_unlock();
 }
 
 int_process *int_process::createProcess(Dyninst::PID p, std::string e)

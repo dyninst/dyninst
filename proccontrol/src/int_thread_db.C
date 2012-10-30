@@ -1134,12 +1134,10 @@ void thread_db_process::addThreadDBHandlers(HandlerPool *hpool) {
       dispatchHandler = new ThreadDBDispatchHandler();
       initialized = true;
    }
-   pthrd_printf("Registering threadDB handlers\n");
    hpool->addHandler(libHandler);
    hpool->addHandler(createHandler);
    hpool->addHandler(destroyHandler);
    hpool->addHandler(dispatchHandler);
-   pthrd_printf("Done registering threadDB handlers\n");
 }
 
 bool thread_db_process::plat_getLWPInfo(lwpid_t, void *) 
