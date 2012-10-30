@@ -1754,7 +1754,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
 
    if (!removed_bps) 
    {
-#if defined(os_bluegene)
+#if defined(os_bgq)
      proc->setForceGeneratorBlock(true);
 #endif
       if (!temporary) {
@@ -1837,7 +1837,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
    err = false;
   done:
    int_detach_ev->done = true;
-#if defined(os_bluegene)
+#if defined(os_bgq)
    proc->setForceGeneratorBlock(false);
 #endif
    proc->getStartupTeardownProcs().dec();
