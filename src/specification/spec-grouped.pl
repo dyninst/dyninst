@@ -2193,7 +2193,7 @@ test('test_add_symbols', 'test_add_symbols', 'symtab_group_test').
 test_description('test_add_symbols', 'Use SymtabAPI to add symbols to a file').
 groupable_test('test_add_symbols').
 mutator('test_add_symbols', ['test_add_symbols.C']).
-test_runmode('test_add_symbols', 'createProcess').
+test_runmode('test_add_symbols', 'disk').
 test_start_state('test_add_symbols', 'stopped').
 tests_module('test_add_symbols', 'symtab').
 test_platform('test_add_symbols', Platform) :- rewriteablePlatforms(Platform).
@@ -3504,6 +3504,7 @@ runmode_platform(P, 'useAttach', 'dyninst') :- platform(_, S, _, P),
   S \= 'bluegene'.
 runmode_platform(P, 'createProcess', 'proccontrol') :- platform(_, _, _, P).
 runmode_platform(P, 'useAttach', 'proccontrol') :- platform(_, _, _, P).
+runmode_platform(P, 'createProcess', 'instruction') :- platform(_, _, _, P).
 runmode_platform(P, 'binary', _) :- platform('i386', 'linux', _, P).
 runmode_platform(P, 'binary', _) :- platform('x86_64', 'linux', _, P).
 runmode_platform(P, 'binary', _) :- platform('power32', 'linux', _, P).
