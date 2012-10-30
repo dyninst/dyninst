@@ -1755,7 +1755,10 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
    if (!removed_bps) 
    {
 #if defined(os_bgq)
-     proc->setForceGeneratorBlock(true);
+      proc->setForceGeneratorBlock(true);
+      ProcPool()->condvar()->lock();
+      ProcPool()->condvar()->broadcast();
+      ProcPool()->condvar()->unlock();
 #endif
       if (!temporary) {
          while (!mem->breakpoints.empty())
