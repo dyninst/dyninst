@@ -86,6 +86,7 @@ void arg_test::call_cpp(const int arg1, int & arg2, int arg3)
    const int m = 8;
    int n = 6;
    int & reference = n;
+   int dummystringthatisunique = 42;
 
    dummy(); // place to change the value of arg3 from CPP_DEFLT_ARG to 1 
 

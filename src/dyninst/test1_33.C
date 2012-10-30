@@ -442,6 +442,9 @@ test_results_t test1_33_Mutator::executeTest()
 	{
 		logerror("**Failed** test #33 (control flow graphs)\n");
 		logerror("  Detected %d exit basic blocks in  %s, should have been one.\n", exit3.size(), fn2);
+		for (unsigned i = 0; i < exit3.size(); ++i) {
+		  logerror("\t%d: 0x%lx\n", i, exit3[i]->getStartAddress());
+		}
 		return FAILED;
 	}
 

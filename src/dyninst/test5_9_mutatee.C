@@ -66,6 +66,8 @@ void test5_9_passed() {
 
 int test5_9_mutatee() {
   test5_9_test9.func_cpp();
+  // Call call_cpp to ensure that compilers include it in the dwarf. 
+  test5_9_test9.call_cpp(42);
   if (1 == passed) {
     // Test passed
     test_passes(testname);

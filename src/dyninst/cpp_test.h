@@ -56,10 +56,11 @@ class cpp_test_util : public cpp_test
 
       cpp_test_util(int arg = 0):cpp_test(),CPP_TEST_UTIL_VAR(arg) {};
 
+     void call_cpp(int test);
+
    protected :
 
      int CPP_TEST_UTIL_VAR;  
-     void call_cpp(int test);
 
 };
 

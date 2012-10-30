@@ -969,8 +969,6 @@ int isMutateeCxx(BPatch_image *appImage)
 	// determine whether mutatee is C or C++
 	BPatch_variableExpr *isCxx = appImage->findVariable("mutateeCplusplus");
 	if (isCxx == NULL) {
-		dprintf("  Unable to locate variable \"mutateeCplusplus\""
-				" -- assuming 0!\n");
 		return 0;
 	} else {
 		int mutateeCplusplus;
@@ -984,8 +982,6 @@ int isMutateeFortran(BPatch_image *appImage) {
 	// determine whether mutatee is Fortran
 	BPatch_variableExpr *isF = appImage->findVariable("mutateeFortran");
 	if (isF == NULL) {
-		dprintf("  Unable to locate variable \"mutateeFortran\""
-				" -- assuming 0!\n");
 		return 0;
 	} else {
 		int mutateeFortran;
@@ -1001,8 +997,6 @@ int isMutateeF77(BPatch_image *appImage) {
 	// determine whether mutatee is F77
 	BPatch_variableExpr *isF77 = appImage->findVariable("mutateeF77");
 	if (isF77 == NULL) {
-		dprintf("  Unable to locate variable \"mutateeF77\""
-				" -- assuming 0!\n");
 		return 0;
 	} else {
 		int mutateeF77;

@@ -63,13 +63,13 @@ void test1_1_call1_1() {
 
 static void func1_2() {
   dprintf("func1_2 () called\n");
+
 }
 
 void test1_1_func1_1() {
   dprintf("Value of globalVariable1_1 is %d.\n", globalVariable1_1);
 
   func1_2();
-
   dprintf("Value of globalVariable1_1 is now %d.\n", globalVariable1_1);
 
   if (globalVariable1_1 == 11) {
