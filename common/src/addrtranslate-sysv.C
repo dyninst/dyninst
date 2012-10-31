@@ -54,6 +54,8 @@
 #include "common/h/addrtranslate.h"
 #include "common/src/addrtranslate-sysv.h"
 
+#include "symtabAPI/h/Region.h"
+
 #if defined(os_linux) || defined(os_bg)
 #define R_DEBUG_NAME "_r_debug"
 #else
@@ -159,16 +161,19 @@ template<class r_debug_X>
 r_debug_dyn<r_debug_X>::r_debug_dyn(ProcessReader *proc_, Address addr)
    : proc(proc_) 
 {
+  translate_printf("r_debug_dyn constructor, reading from 0x%lx\n", addr);
    valid = proc->ReadMem(addr, &debug_elm, sizeof(debug_elm));
-   if (!valid)
-      return;
+   if (!valid) {
+     translate_printf("\t Warning: read failed, setting not valid\n");
+     return;
+   }
 
-   translate_printf("[%s:%u] - r_debug_dyn valid = %d\n", __FILE__, __LINE__, valid?1:0);
-   translate_printf("[%s:%u] -     Read rdebug structure.  Values were:\n", __FILE__, __LINE__);
-   translate_printf("[%s:%u] -       r_brk:    %lx\n", __FILE__, __LINE__, (unsigned long)debug_elm.r_brk);
-   translate_printf("[%s:%u] -       r_map:    %lx\n", __FILE__, __LINE__, (unsigned long)debug_elm.r_map);
+   translate_printf("r_debug_dyn valid = %d\n",  valid?1:0);
+   translate_printf("    Read rdebug structure.  Values were:\n", __FILE__, __LINE__);
+   translate_printf("      r_brk:    %lx\n",  (unsigned long)debug_elm.r_brk);
+   translate_printf("      r_map:    %lx\n",  (unsigned long)debug_elm.r_map);
 #if !defined(os_freebsd)
-   translate_printf("[%s:%u] -       r_ldbase: %lx\n", __FILE__, __LINE__, (unsigned long)debug_elm.r_ldbase);
+   translate_printf("      r_ldbase: %lx\n",  (unsigned long)debug_elm.r_ldbase);
 #endif
 }
 
@@ -179,9 +184,15 @@ r_debug_dyn<r_debug_X>::~r_debug_dyn()
 
 template<class r_debug_X> 
 bool r_debug_dyn<r_debug_X>::is_valid() {
-   if (!valid) return false;
-   if (0 == r_map()) return false;
-   else return valid;
+  if (0 == r_map()) {
+    translate_printf("\tr_debug_dyn::is_valid; r_map() == 0, ret false\n");
+    return false;
+  }
+
+  translate_printf("\tr_debug_dyn::is_valid; valid == %s, ret %s\n", 
+		   (valid ? "true" : "false"),
+		   (valid ? "true" : "false"));
+  return valid;
 }
 
 template<class r_debug_X> 
@@ -350,9 +361,9 @@ AddressTranslate *AddressTranslate::createAddressTranslator(int pid_,
                                                             std::string exename,
                                                             Address interp_base)
 {
-   translate_printf("[%s:%u] - Creating AddressTranslateSysV\n", __FILE__, __LINE__);
+   translate_printf("Creating AddressTranslateSysV\n", __FILE__, __LINE__);
    AddressTranslate *at = new AddressTranslateSysV(pid_, reader_, symfactory_, exename, interp_base);
-   translate_printf("[%s:%u] - Created: %lx\n", __FILE__, __LINE__, (long)at);
+   translate_printf("Created: %lx\n",  (long)at);
    
    if (!at) {
       return NULL;
@@ -430,8 +441,9 @@ bool AddressTranslateSysV::parseDTDebug() {
 #if !defined(os_freebsd)
     return false;
 #else
+    translate_printf("Entering parseDTDebug\n");
     if( !setAddressSize() ) {
-        translate_printf("[%s:%u] - Failed to set address size.\n", __FILE__, __LINE__);
+        translate_printf("Failed to set address size.\n", __FILE__, __LINE__);
         return false;
     }
 
@@ -445,13 +457,13 @@ bool AddressTranslateSysV::parseDTDebug() {
 
     getExecName();
     if( exec_name.empty() ) {
-        translate_printf("[%s:%u] - %s\n", __FILE__, __LINE__, l_err);
+        translate_printf("%s\n",  l_err);
         return false;
     }
 
     SymReader *exe = symfactory->openSymbolReader(exec_name);
     if( !exe ) {
-        translate_printf("[%s:%u] - %s\n", __FILE__, __LINE__, l_err);
+        translate_printf("%s\n",  l_err);
         return false;
     }
         
@@ -459,11 +471,13 @@ bool AddressTranslateSysV::parseDTDebug() {
     Address dynAddress = 0;
     size_t dynSize = 0;
     unsigned numRegs = exe->numRegions();
+    translate_printf("Checking %d regions for address/size information\n", numRegs);
     for(unsigned i = 0; i < numRegs; ++i) {
         SymRegion reg;
         exe->getRegion(i, reg);
-
-        if( PT_DYNAMIC == reg.type ) {
+	translate_printf("Found region type %d for 0x%lx - 0x%lx, want %d\n",
+			 reg.type, reg.mem_addr, reg.mem_addr + reg.mem_size, PT_DYNAMIC);
+        if( SymtabAPI::Region::RT_DYNAMIC == reg.type ) {
             dynAddress = reg.mem_addr;
             dynSize = reg.mem_size;
             break;
@@ -473,18 +487,19 @@ bool AddressTranslateSysV::parseDTDebug() {
 
     if( !dynAddress || !dynSize ) {
         // This is okay for static binaries
+      translate_printf("No dyn address or size, assuming static binary\n");
         return false;
     }
 
     if( !reader->start() ) {
-        translate_printf("[%s:%u] - %s\n", __FILE__, __LINE__, l_err);
+        translate_printf("%s\n",  l_err);
         return false;
     }
 
     // Read the DYNAMIC segment from the process
     void *dynData = malloc(dynSize);
     if( !dynData || !reader->ReadMem(dynAddress, dynData, dynSize) ) {
-        translate_printf("[%s:%u] - %s\n", __FILE__, __LINE__, l_err);
+        translate_printf("%s\n",  l_err);
         if( dynData ) free(dynData);
         return false;
     }
@@ -492,6 +507,8 @@ bool AddressTranslateSysV::parseDTDebug() {
     if( address_size == 8 ) {
         Elf64_Dyn *dynDataElf = (Elf64_Dyn *)dynData;
         for(unsigned i = 0; i < (dynSize / sizeof(Elf64_Dyn)); ++i) {
+	  translate_printf("Comparing symbol tag %d to wanted %d\n",
+			   dynDataElf[i].d_tag, DT_DEBUG);
             if( DT_DEBUG == dynDataElf[i].d_tag ) {
                 r_debug_addr = (Address) dynDataElf[i].d_un.d_ptr;
                 break;
@@ -531,19 +548,19 @@ bool AddressTranslateSysV::parseInterpreter() {
 
     result = setInterpreter();
     if (!result) {
-        translate_printf("[%s:%u] - Failed to set interpreter--static binary.\n", __FILE__, __LINE__);
+        translate_printf("Failed to set interpreter--static binary.\n", __FILE__, __LINE__);
         return true;
     }
 
     result = setAddressSize();
     if (!result) {
-        translate_printf("[%s:%u] - Failed to set address size.\n", __FILE__, __LINE__);
+        translate_printf("Failed to set address size.\n", __FILE__, __LINE__);
         return false;
     }
 
     result = setInterpreterBase();
     if (!result) {
-        translate_printf("[%s:%u] - Failed to set interpreter base.\n", __FILE__, __LINE__);
+        translate_printf("Failed to set interpreter base.\n", __FILE__, __LINE__);
         return false;
     }
 
@@ -552,14 +569,14 @@ bool AddressTranslateSysV::parseInterpreter() {
             r_debug_addr = interpreter->get_r_debug() + interpreter_base;
 
             if( !reader->start() ) {
-                translate_printf("[%s:%u] - Failed to initialize process reader\n", __FILE__, __LINE__);
+                translate_printf("Failed to initialize process reader\n", __FILE__, __LINE__);
                 return false;
             }
 
             trap_addr = getTrapAddrFromRdebug();
 
             if( !reader->done() ) {
-                translate_printf("[%s:%u] - Failed to finalize process reader\n", __FILE__, __LINE__);
+                translate_printf("Failed to finalize process reader\n", __FILE__, __LINE__);
                 return false;
             }
 
@@ -581,19 +598,19 @@ bool AddressTranslateSysV::parseInterpreter() {
 }
 
 bool AddressTranslateSysV::init() {
-   translate_printf("[%s:%u] - Initing AddressTranslateSysV\n", __FILE__, __LINE__);
+   translate_printf("Initing AddressTranslateSysV\n", __FILE__, __LINE__);
 
    // Try to use DT_DEBUG first, falling back to parsing the interpreter binary if possible
    if( !parseDTDebug() ) {
        if( !parseInterpreter() ) {
-           translate_printf("[%s:%u] - Failed to determine r_debug address\n", 
+           translate_printf("Failed to determine r_debug address\n", 
                    __FILE__, __LINE__);
            return false;
        }
    }
 
-   translate_printf("[%s:%u] - trap_addr = 0x%lx, r_debug_addr = 0x%lx\n", __FILE__, __LINE__, trap_addr, r_debug_addr);
-   translate_printf("[%s:%u] - Done with AddressTranslateSysV::init()\n", __FILE__, __LINE__);
+   translate_printf("trap_addr = 0x%lx, r_debug_addr = 0x%lx\n",  trap_addr, r_debug_addr);
+   translate_printf("Done with AddressTranslateSysV::init()\n", __FILE__, __LINE__);
 
    return true;
 }
@@ -628,7 +645,7 @@ Address AddressTranslateSysV::getTrapAddrFromRdebug() {
     if( address_size == sizeof(void *) ) {
         r_debug_dyn<r_debug> *r_debug_native = new r_debug_dyn<r_debug>(reader, r_debug_addr);
         if( !r_debug_native ) {
-            translate_printf("[%s:%u] - Failed to parse r_debug struct.\n", __FILE__, __LINE__);
+            translate_printf("Failed to parse r_debug struct.\n", __FILE__, __LINE__);
             return 0;
         }
         if( !r_debug_native->is_valid() ) {
@@ -639,7 +656,7 @@ Address AddressTranslateSysV::getTrapAddrFromRdebug() {
     }else{
         r_debug_dyn<r_debug_dyn32> *r_debug_32 = new r_debug_dyn<r_debug_dyn32>(reader, r_debug_addr);
         if( !r_debug_32 ) {
-            translate_printf("[%s:%u] - Failed to parse r_debug struct.\n", __FILE__, __LINE__);
+            translate_printf("Failed to parse r_debug struct.\n", __FILE__, __LINE__);
             return 0;
         }
         if( !r_debug_32->is_valid() ) {
@@ -661,7 +678,7 @@ bool AddressTranslateSysV::refresh()
    bool result = false;
    size_t loaded_lib_count = 0;
 
-   translate_printf("[%s:%u] - Refreshing Libraries\n", __FILE__, __LINE__);
+   translate_printf("Refreshing Libraries\n");
    if (pid == NULL_PID)
       return true;
 
@@ -669,7 +686,7 @@ bool AddressTranslateSysV::refresh()
        // On systems that use DT_DEBUG to determine r_debug_addr, DT_DEBUG might
        // not be set right away -- read DT_DEBUG now and see if it is set
        if( !parseDTDebug() && !interpreter ) {
-          translate_printf("[%s:%u] - Working with static binary, no libraries to refresh\n",
+          translate_printf("Working with static binary, no libraries to refresh\n",
                   __FILE__, __LINE__);
           libs.clear();
           if (!exec) {
@@ -693,28 +710,31 @@ bool AddressTranslateSysV::refresh()
    getArchLibs(libs);
    
    if( !reader->start() ) {
-       translate_printf("[%s:%u] - Failed to refresh libraries\n", __FILE__, __LINE__);
+       translate_printf("Failed to refresh libraries\n", __FILE__, __LINE__);
        return false;
    }
 
-   translate_printf("[%s:%u] -     Starting refresh.\n", __FILE__, __LINE__);
-   translate_printf("[%s:%u] -       trap_addr:    %lx\n", __FILE__, __LINE__, trap_addr);
-   translate_printf("[%s:%u] -       r_debug_addr: %lx\n", __FILE__, __LINE__, r_debug_addr);
+   translate_printf("    Starting refresh.\n", __FILE__, __LINE__);
+   translate_printf("      trap_addr:    %lx\n",  trap_addr);
+   translate_printf("      r_debug_addr: %lx\n",  r_debug_addr);
 
    if (address_size == sizeof(void*)) {
       r_debug_native = new r_debug_dyn<r_debug>(reader, r_debug_addr);
       if (!r_debug_native)
       {
+	translate_printf("No r_debug_native, done\n");
         result = true;
         goto done;
       }
       else if (!r_debug_native->is_valid() && read_abort)
       {
+	translate_printf("r_debug_native is not valid and aborting read, done\n");
          result = false;
          goto all_done;
       }
       else if (!r_debug_native->is_valid())
       {
+	translate_printf("r_debug_native is not valid, done\n");
          if (interpreter) {
             libs.push_back(getLoadedLibByNameAddr(interpreter_base,
                                                   interpreter->getFilename()));
@@ -803,7 +823,7 @@ bool AddressTranslateSysV::refresh()
       LoadedLib *ll = getLoadedLibByNameAddr(text, s);
       ll->dynamic_addr = (Address) link_elm->l_ld();
       loaded_lib_count++;
-      translate_printf("[%s:%u] -     New Loaded Library: %s(%lx)\n", __FILE__, __LINE__, s.c_str(), text);
+      translate_printf("    New Loaded Library: %s(%lx)\n",  s.c_str(), text);
 
       libs.push_back(ll);
    } while (link_elm->load_next());
@@ -814,7 +834,7 @@ bool AddressTranslateSysV::refresh()
       goto all_done;
    }
 
-   translate_printf("[%s:%u] - Found %d libraries.\n", __FILE__, __LINE__, loaded_lib_count);
+   translate_printf("Found %d libraries.\n",  loaded_lib_count);
 
    result = true;
  done:
@@ -831,7 +851,7 @@ bool AddressTranslateSysV::refresh()
   all_done:
 
    if (read_abort) {
-      translate_printf("[%s:%u] - refresh aborted due to async read\n", __FILE__, __LINE__);
+      translate_printf("refresh aborted due to async read\n", __FILE__, __LINE__);
    }
    if (link_elm)
       delete link_elm;
@@ -916,7 +936,7 @@ void FCNode::parsefile()
    symreader = factory->openSymbolReader(filename);
    if (!symreader) {
       parse_error = true;
-      translate_printf("[%s:%u] - Failed to open %s\n", __FILE__, __LINE__,
+      translate_printf("Failed to open %s\n", 
                        filename.c_str());
       return;
    }
@@ -927,8 +947,8 @@ void FCNode::parsefile()
       // parsing the interpreter link info (which happens below).
       Symbol_t r_debug_sym = symreader->getSymbolByName(R_DEBUG_NAME);
       if (!symreader->isValidSymbol(r_debug_sym)) {
-         translate_printf("[%s:%u] - Failed to find r_debug symbol in %s\n",
-                          __FILE__, __LINE__, filename.c_str());
+         translate_printf("Failed to find r_debug symbol in %s\n",
+                           filename.c_str());
          parse_error = true;
       }
       r_debug_offset = symreader->getSymbolOffset(r_debug_sym);
@@ -943,8 +963,8 @@ void FCNode::parsefile()
       }
 
       if( !r_trap_offset ) {
-          translate_printf("[%s:%u] - Failed to find debugging trap symbol in %s\n",
-                  __FILE__, __LINE__, filename.c_str());
+          translate_printf("Failed to find debugging trap symbol in %s\n",
+                   filename.c_str());
           parse_error = true;
       }
    }
@@ -957,7 +977,7 @@ void FCNode::parsefile()
       SymRegion sr;
       bool result = symreader->getRegion(i, sr);
       if (!result) {
-         translate_printf("[%s:%u] - Failed to get region info\n",
+         translate_printf("Failed to get region info\n",
                           __FILE__, __LINE__);
          parse_error = true;
          break;
