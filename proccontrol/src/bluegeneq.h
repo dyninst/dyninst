@@ -151,6 +151,7 @@ class bgq_process :
 
    virtual LWPTracking *getLWPTracking();
    virtual bool plat_lwpRefresh(result_response::ptr resp);
+   virtual bool plat_lwpRefreshNoteNewThread(int_thread *thr);
 
    bool handleStartupEvent(void *data);
    ComputeNode *getComputeNode();
@@ -211,7 +212,8 @@ class bgq_process :
       waitfor_data_collection,
       waits_done,
       data_collected,
-      startup_done
+      startup_done,
+      startup_donedone
    } startup_state;
 
    enum {
@@ -464,6 +466,7 @@ class IOThread
    void thrd_main();
    virtual void run() = 0;
    virtual void localInit() = 0;
+   virtual void thrd_kick();
    CondVar initLock;
    CondVar shutdownLock;
    bool do_exit;
@@ -511,6 +514,8 @@ class WriterThread : public IOThread
    std::vector<int> acks;
    std::vector<ComputeNode *> writes;
    CondVar msg_lock;
+  protected:
+   virtual void thrd_kick();
   public:
    ~WriterThread();
    static WriterThread *get();

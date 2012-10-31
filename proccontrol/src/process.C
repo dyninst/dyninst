@@ -821,6 +821,7 @@ bool int_process::syncRunState()
       thr->setTargetState(new_state);
    }
    if (dyninst_debug_proccontrol) {
+      pc_print_lock();
       pthrd_printf("Current Threading State for %d:\n", getPid());
       for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
          int_thread *thr = *i;
@@ -843,6 +844,7 @@ bool int_process::syncRunState()
 	  {
 		  pthrd_printf("Threadpool for %d is empty\n", getPid());
 	  }
+     pc_print_unlock();
    }
 
    pthrd_printf("Running plat_syncRunState on %d\n", getPid());
@@ -2285,13 +2287,20 @@ bool int_process::lwp_refreshPost(result_response::ptr &resp)
    }
 
    resp = result_response::createResultResponse();
+   resp->setProcess(this);
    resp->markSyncHandled();
    
+   getResponses().lock();
    bool result = plat_lwpRefresh(resp);
+   if (result) {
+      getResponses().addResponse(resp, this);
+   }
    if (!result) {
       resp = result_response::ptr();
-      return true;
    }
+   getResponses().unlock();
+   getResponses().noteResponse();
+   
    return true;
 }
 
@@ -2317,11 +2326,7 @@ bool int_process::lwp_refreshCheck(bool &change)
       thr = int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
       new_lwps_found++;
       change = true;
-      /*EventNewLWP::ptr newev = EventNewLWP::ptr(new EventNewLWP(lwp, (int) int_thread::as_needs_attach));
-      newev->setProcess(proc());
-      newev->setThread(pool->initialThread()->thread());
-      newev->setSyncType(Event::async);
-      mbox()->enqueue(newev);*/
+      plat_lwpRefreshNoteNewThread(thr);
    }
 
    //Look for removed LWPs
@@ -2347,6 +2352,11 @@ bool int_process::lwp_refreshCheck(bool &change)
       }
    }
 
+   return true;
+}
+
+bool int_process::plat_lwpRefreshNoteNewThread(int_thread *)
+{
    return true;
 }
 

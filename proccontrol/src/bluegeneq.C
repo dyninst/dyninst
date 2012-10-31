@@ -941,6 +941,16 @@ bool bgq_process::plat_lwpRefresh(result_response::ptr resp)
    return true;
 }
 
+bool bgq_process::plat_lwpRefreshNoteNewThread(int_thread *thr)
+{
+   EventBootstrap::ptr newev = EventBootstrap::ptr(new EventBootstrap());
+   newev->setProcess(proc());
+   newev->setThread(thr->thread());
+   newev->setSyncType(Event::async);
+   mbox()->enqueue(newev);   
+   return true;
+}
+
 bool bgq_process::handleStartupEvent(void *data)
 {
    ComputeNode *cn = getComputeNode();
@@ -1302,6 +1312,7 @@ bool bgq_process::handleStartupEvent(void *data)
          }
       }
       pthrd_printf("Startup done on %d\n", getPid());
+      startup_state = startup_donedone;
    }
 
    return true;
@@ -2226,7 +2237,6 @@ HandleBGQStartup::~HandleBGQStartup()
 
 Handler::handler_ret_t HandleBGQStartup::handleEvent(Event::ptr ev)
 {
-   
    bgq_process *proc = dynamic_cast<bgq_process *>(ev->getProcess()->llproc());
    assert(proc);
    pthrd_printf("Handling int bootstrap for %d\n", proc->getPid());
@@ -2964,11 +2974,11 @@ bool DecoderBlueGeneQ::decodeStartupEvent(ArchEventBGQ *ae, bgq_process *proc, v
    return true;
 }
 
-bool DecoderBlueGeneQ::decodeLWPRefresh(ArchEventBGQ *ae, bgq_process *proc, ToolCommand *cmd)
+bool DecoderBlueGeneQ::decodeLWPRefresh(ArchEventBGQ *, bgq_process *proc, ToolCommand *cmd)
 {
    proc->lwp_tracking_resp = result_response::ptr();
-   ae->dontFreeMsg();
-   proc->get_thread_list = static_cast<GetThreadListAckCmd *>(cmd);
+   proc->get_thread_list = new GetThreadListAckCmd();
+   *proc->get_thread_list = *((GetThreadListAckCmd *) cmd);
    return true;
 }
 
@@ -3178,7 +3188,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             break;
          }
          case GetThreadListAck:
-            if (proc->lwp_tracking_resp) {
+            if (!proc->lwp_tracking_resp) {
                pthrd_printf("Decoded GetThreadListAck on %d/%d. Dropping\n",
                             proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
                break;
@@ -3194,6 +3204,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
                resp_lock_held = false;
                getResponses().signal();
                getResponses().unlock();
+               break;
             }
          case GetAuxVectorsAck:
             pthrd_printf("Decoded GetAuxVectorsAck on %d/%d. Dropping\n", 

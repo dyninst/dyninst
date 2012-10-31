@@ -451,6 +451,7 @@ class int_process
    bool lwp_refreshPost(result_response::ptr &resp);
    bool lwp_refreshCheck(bool &change);
    bool lwp_refresh();
+   virtual bool plat_lwpRefreshNoteNewThread(int_thread *thr);
    virtual bool plat_lwpRefresh(result_response::ptr resp);
    
    SignalMask *getSigMask();
