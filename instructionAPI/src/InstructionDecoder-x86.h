@@ -94,6 +94,8 @@ namespace Dyninst
 
             private:
                 void doIA32Decode(InstructionDecoder::buffer& b);
+		bool isDefault64Insn();
+		
       
                 ia32_locations* locs;
                 NS_x86::ia32_instruction* decodedInstruction;
