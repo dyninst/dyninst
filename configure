@@ -695,7 +695,6 @@ GREP
 INCLUDE_DEST_VAR
 PROGRAM_DEST_VAR
 LIBRARY_DEST_VAR
-LIB_DLOPEN
 INSTALL
 _CXX_
 _CC_
@@ -3016,13 +3015,8 @@ $as_echo "$ac_cv_search_dlopen" >&6; }
 ac_res=$ac_cv_search_dlopen
 if test "$ac_res" != no; then
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-  LIB_DLOPEN="-ldl"
-else
-  { { $as_echo "$as_me:$LINENO: error: unable to find dlopen()" >&5
-$as_echo "$as_me: error: unable to find dlopen()" >&2;}
-   { (exit 1); exit 1; }; }
-fi
 
+fi
 
 
 

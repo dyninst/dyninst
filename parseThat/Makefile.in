@@ -66,8 +66,6 @@ CXXFLAGS	+= -m64
 CFLAGS		+= -m64
 endif
 
-LIBS += @LIB_DLOPEN@
-
 all: ready parseThat
 
 install: $(prefix)/parseThat
