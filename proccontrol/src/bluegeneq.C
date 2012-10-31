@@ -3806,9 +3806,14 @@ void IOThread::thrd_main()
    shutdownLock.unlock();
 }
 
+void IOThread::thrd_kick()
+{
+}
+
 void IOThread::kick()
 {
    kick_thread(pid, lwp);
+   thrd_kick();
 }
 
 void IOThread::shutdown()
@@ -4066,13 +4071,13 @@ void WriterThread::run()
    {
       pthrd_printf("Waiting for acks or writes\n");
       bool result = msg_lock.lock();
-      if (!result) {
+      if (!result || do_exit) {
          pthrd_printf("Kick on writer thread\n");
          return;
       }   
       while (acks.empty() && writes.empty()) {
          result = msg_lock.wait();
-         if (!result) {
+         if (!result || do_exit) {
             pthrd_printf("Kick on writer thread\n");
             return;
          }
@@ -4200,6 +4205,13 @@ void WriterThread::rmProcess(bgq_process *proc) {
    rank_to_cn.erase(i);
    rank_lock.unlock();
 }
+
+void WriterThread::thrd_kick() {
+   msg_lock.lock();
+   msg_lock.broadcast();
+   msg_lock.unlock();
+}
+
 DebugThread *DebugThread::me;
 
 DebugThread::DebugThread() :
