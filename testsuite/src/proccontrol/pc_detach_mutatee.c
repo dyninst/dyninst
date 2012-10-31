@@ -45,7 +45,7 @@ static void signal_handler(int sig)
 
 #endif
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) && !defined(os_bg_test)
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
