@@ -460,7 +460,7 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
      std::string lib = depends.front();
      if(deps.find(lib) == deps.end()) {
         std::map<std::string, BinaryEdit*> res;
-        openResolvedLibraryName(lib, res);
+        if(!openResolvedLibraryName(lib, res)) return false;
          std::map<std::string, BinaryEdit*>::iterator bedit_it;
          for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
            if (bedit_it->second) {
