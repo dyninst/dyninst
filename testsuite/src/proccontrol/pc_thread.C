@@ -390,7 +390,7 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
    post_dead_lwps.clear();
    exited_processes.clear();
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) && !defined(os_bg_test)
    has_lwp = true;
    has_thr = true;
    has_stack_info = false;
