@@ -508,29 +508,35 @@ int_eventNewUserThread *EventNewUserThread::getInternalEvent() const
    return iev;
 }
 
-EventNewLWP::EventNewLWP(Dyninst::LWP lwp_) :
+EventNewLWP::EventNewLWP(Dyninst::LWP lwp_, int attach_status) :
    EventNewThread(EventType(EventType::None, EventType::LWPCreate)),
    lwp(lwp_)
 {
+   iev = new int_eventNewLWP();
+   iev->lwp = lwp;
+   iev->attach_status = (int_thread::attach_status_t) attach_status;
 }
 
 EventNewLWP::~EventNewLWP()
 {
+   delete iev;
 }
 
 Dyninst::LWP EventNewLWP::getLWP() const
 {
-   return lwp;
+   return iev->lwp;
 }
 
 Thread::const_ptr EventNewLWP::getNewThread() const
 {
    int_thread *thr = getProcess()->llproc()->threadPool()->findThreadByLWP(lwp);
-   if (!thr) {
-      fprintf(stderr, "ERROR: LWP not found, %d\n", lwp);
-   }
    assert(thr);
    return thr->thread();
+}
+
+int_eventNewLWP *EventNewLWP::getInternalEvent()
+{
+   return iev;
 }
 
 EventThreadDestroy::EventThreadDestroy(EventType et) :
@@ -1068,6 +1074,14 @@ int_eventBreakpointRestore::int_eventBreakpointRestore(bp_instance *breakpoint_)
 }
 
 int_eventBreakpointRestore::~int_eventBreakpointRestore()
+{
+}
+
+int_eventNewLWP::int_eventNewLWP()
+{
+}
+
+int_eventNewLWP::~int_eventNewLWP()
 {
 }
 

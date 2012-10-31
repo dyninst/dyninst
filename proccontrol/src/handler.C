@@ -559,8 +559,15 @@ Handler::handler_ret_t HandleBootstrap::handleEvent(Event::ptr ev)
    assert(proc);
    pthrd_printf("Handling bootstrap for %d\n", proc->getPid());
 
-   if (proc->getState() != int_process::neonatal_intermediate)
+   if (proc->getState() == int_process::running) {
+      if (thrd->getUserState().getState() == int_thread::neonatal_intermediate) {
+         //Bootstrapping a thread on an already running process
+         int_thread *initial_thread = proc->threadPool()->initialThread();
+         int_thread::State it_user_state = initial_thread->getUserState().getState();
+         thrd->getUserState().setState(it_user_state);
+      }
       return ret_success;
+   }
 
    thrd->getUserState().setState(int_thread::stopped);
    
@@ -885,7 +892,7 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    pthrd_printf("Handle thread create for %d/%d with new thread %d\n",
 	   proc->getPid(), thrd ? thrd->getLWP() : (Dyninst::LWP)(-1), threadev->getLWP());
 
-   if ((ev->getEventType().code() == EventType::UserThreadCreate))  {
+   if (ev->getEventType().code() == EventType::UserThreadCreate) {
       //If we support both user and LWP thread creation, and we're doing a user
       // creation, then the Thread object may already exist.  Do nothing.
       int_thread *thr = proc->threadPool()->findThreadByLWP(threadev->getLWP());
@@ -895,7 +902,12 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
       }
    }
    ProcPool()->condvar()->lock();
-   int_thread *newthr = int_thread::createThread(proc, NULL_THR_ID, threadev->getLWP(), false);
+   int_thread::attach_status_t astatus = int_thread::as_unknown;
+   if (ev->getEventType().code() == EventType::LWPCreate) {
+      EventNewLWP::ptr lwp_create = ev->getEventNewLWP();
+      astatus = lwp_create->getInternalEvent()->attach_status;
+   }
+   int_thread *newthr = int_thread::createThread(proc, NULL_THR_ID, threadev->getLWP(), false, astatus);
 
    newthr->getGeneratorState().setState(int_thread::stopped);
    newthr->getHandlerState().setState(int_thread::stopped);

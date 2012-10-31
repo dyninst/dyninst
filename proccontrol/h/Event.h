@@ -396,16 +396,19 @@ class PC_EXPORT EventNewUserThread : public EventNewThread
    virtual Thread::const_ptr getNewThread() const;
 };
 
+class int_eventNewLWP;
 class PC_EXPORT EventNewLWP : public EventNewThread
 {
    friend void boost::checked_delete<EventNewLWP>(EventNewLWP *);
    friend void boost::checked_delete<const EventNewLWP>(const EventNewLWP *);
   private:
+   int_eventNewLWP *iev;
    Dyninst::LWP lwp;
   public:
+   int_eventNewLWP *getInternalEvent();
    typedef boost::shared_ptr<EventNewLWP> ptr;
    typedef boost::shared_ptr<const EventNewLWP> const_ptr;   
-   EventNewLWP(Dyninst::LWP lwp_);
+   EventNewLWP(Dyninst::LWP lwp_, int status = 0);
    virtual ~EventNewLWP();
 
    virtual Dyninst::LWP getLWP() const;

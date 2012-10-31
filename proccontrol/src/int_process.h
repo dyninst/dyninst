@@ -112,7 +112,7 @@ class mem_state
 
 class Counter {
   public:
-   static const int NumCounterTypes = 11;
+   static const int NumCounterTypes = 12;
    enum CounterType {
       HandlerRunningThreads = 0,
       GeneratorRunningThreads = 1,
@@ -124,7 +124,8 @@ class Counter {
       AsyncEvents = 7,
       ForceGeneratorBlock = 8,
       GeneratorNonExitedThreads = 9,
-      StartupTeardownProcesses = 10
+      StartupTeardownProcesses = 10,
+      NeonatalThreads = 11
    };
 
    Counter(CounterType ct_);
@@ -448,7 +449,7 @@ class int_process
    virtual bool plat_lwpChangeTracking(bool b);
    bool lwp_getTracking();
    bool lwp_refreshPost(result_response::ptr &resp);
-   bool lwp_refreshCheck();
+   bool lwp_refreshCheck(bool &change);
    bool lwp_refresh();
    virtual bool plat_lwpRefresh(result_response::ptr resp);
    
@@ -638,10 +639,17 @@ class int_thread
                                        bool initial_thrd);
 
 public:
+   enum attach_status_t {
+      as_unknown = 0,          //Threads found by getThreadLWPs come in as_needs_attach, others
+      as_created_attached,     // come int as_created_attached.  Up to platforms to interpret this
+      as_needs_attach          // however they want.
+   };
+
    static int_thread *createThread(int_process *proc, 
                                    Dyninst::THR_ID thr_id, 
                                    Dyninst::LWP lwp_id,
-   								   bool initial_thrd);
+                                   bool initial_thrd,
+                                   attach_status_t astatus = as_unknown);
    static int_thread *createRPCThread(int_process *p);
    Process::ptr proc() const;
    int_process *llproc() const;
@@ -743,6 +751,7 @@ public:
    Counter &clearingBPCount();
    Counter &procStopRPCCount();
    Counter &getGeneratorNonExitedThreadCount();
+   Counter &neonatalThreadCount();
       
    //Process control
    bool intStop();
@@ -895,6 +904,7 @@ public:
    int_process *proc_;
    Thread::ptr up_thread;
    int continueSig_;
+   attach_status_t attach_status;
 
    Counter handler_running_thrd_count;
    Counter generator_running_thrd_count;
@@ -904,6 +914,7 @@ public:
    Counter clearing_bp_count;
    Counter proc_stop_rpc_count;
    Counter generator_nonexited_thrd_count;
+   Counter neonatal_threads;
 
    StateTracker exiting_state;
    StateTracker startup_state;

@@ -113,6 +113,15 @@ class int_eventNewUserThread {
    bool needs_update;
 };
 
+class int_eventNewLWP {
+  public:
+   int_eventNewLWP();
+   ~int_eventNewLWP();
+
+   Dyninst::LWP lwp;
+   int_thread::attach_status_t attach_status;
+};
+
 class int_eventThreadDB {
   public:
    int_eventThreadDB();

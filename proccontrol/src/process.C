@@ -106,7 +106,7 @@ bool int_process::create(int_processSet *ps) {
       int_process *proc = *i;
 	  // Because yo, windows processes have threads when they're created...
 	  if (proc->threadPool()->empty()) {
-	      int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true);      
+        int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true, int_thread::as_created_attached);
 	  }
 	  ProcPool()->addProcess(proc);
       proc->setState(neonatal_intermediate);
@@ -228,7 +228,7 @@ bool int_process::attachThreads()
             continue;
          }
          pthrd_printf("Creating new thread for %d/%d during attach\n", pid, *i);
-         thr = int_thread::createThread(this, NULL_THR_ID, *i, false);
+         thr = int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
          found_new_threads = true;         
       }
    } while (found_new_threads);
@@ -300,7 +300,8 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
          int_process *proc = *i;
          ProcPool()->addProcess(proc);
-         int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true); //initial thread
+         int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true,
+                                  int_thread::as_created_attached); //initial thread
       }
    }
 
@@ -562,7 +563,8 @@ bool int_process::execed()
    }
    threadpool->clear();
 
-   int_thread *initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP, true);
+   int_thread *initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP,
+                                                         true, int_thread::as_created_attached);
    initial_thread->getUserState().setState(user_initial_thrd_state);
    initial_thread->getGeneratorState().setState(gen_initial_thrd_state);
    initial_thread->getHandlerState().setState(handler_initial_thrd_state);
@@ -594,7 +596,7 @@ bool int_process::forked()
    }
 
    int_thread *initial_thread;
-   initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP, true);
+   initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP, true, int_thread::as_created_attached);
 
    ProcPool()->addProcess(this);
 
@@ -936,6 +938,7 @@ bool int_process::waitAndHandleForProc(bool block, int_process *proc, bool &proc
 #define checkSyncRPCRunningThrd (hasSyncRPCRunningThrd = (int) Counter::global(Counter::SyncRPCRunningThreads))
 #define checkProcStopRPC        (hasProcStopRPC        = (int) Counter::global(Counter::ProcStopRPCs))
 #define checkStartupTeardownProcs (hasStartupTeardownProc = (int) Counter::global(Counter::StartupTeardownProcesses))
+#define checkNeonatalThreads     (hasNeonatalThreads   = (int) Counter::global(Counter::NeonatalThreads))
 #define UNSET_CHECK        -8
 #define printCheck(VAL)    (((int) VAL) == UNSET_CHECK ? '?' : (VAL ? 'T' : 'F'))
 
@@ -966,7 +969,7 @@ bool int_process::waitAndHandleEvents(bool block)
       int hasHandlerThread = UNSET_CHECK, hasAsyncPending = UNSET_CHECK, hasRunningThread = UNSET_CHECK;
       int hasClearingBP = UNSET_CHECK, hasStopPending = UNSET_CHECK, hasSyncRPCRunningThrd = UNSET_CHECK;
       int hasProcStopRPC  = UNSET_CHECK, hasBlock = UNSET_CHECK, hasGotEvent = UNSET_CHECK;
-      int hasStartupTeardownProc = UNSET_CHECK;
+      int hasStartupTeardownProc = UNSET_CHECK, hasNeonatalThreads = UNSET_CHECK;
 
       bool should_block = (!checkHandlerThread && 
                            ((checkBlock && !checkGotEvent && checkRunningThread) ||
@@ -975,11 +978,12 @@ bool int_process::waitAndHandleEvents(bool block)
                             (checkClearingBP) ||
                             (checkProcStopRPC) ||
                             (checkAsyncPending) ||
-                            (checkStartupTeardownProcs)
+                            (checkStartupTeardownProcs) ||
+                            (checkNeonatalThreads)
                            )
                           );
       //Entry for this print match the above tests in order and one-for-one.
-      pthrd_printf("%s for events = !%c && ((%c && !%c && %c) || %c || %c || %c || %c || %c || %c)\n",
+      pthrd_printf("%s for events = !%c && ((%c && !%c && %c) || %c || %c || %c || %c || %c || %c || %c)\n",
                    should_block ? "Blocking" : "Polling",
                    printCheck(hasHandlerThread),
                    printCheck(hasBlock), printCheck(hasGotEvent), printCheck(hasRunningThread), 
@@ -988,7 +992,8 @@ bool int_process::waitAndHandleEvents(bool block)
                    printCheck(hasClearingBP), 
                    printCheck(hasProcStopRPC),
                    printCheck(hasAsyncPending),
-                   printCheck(hasStartupTeardownProc));
+                   printCheck(hasStartupTeardownProc),
+                   printCheck(hasNeonatalThreads));
 
       //TODO: If/When we move to per-process locks, then we'll need a smarter should_block check
       //      We don't want the should_block changing between the above measurement
@@ -2248,7 +2253,23 @@ bool int_process::lwp_refresh()
    if (resp) {
       int_process::waitForAsyncEvent(resp);
    }
-   return lwp_refreshCheck();
+   bool change;
+   result = lwp_refreshCheck(change);
+   if (!result) {
+      pthrd_printf("Failed to check for new LWPs");
+      return false;
+   }
+
+   if (!change)
+      return true;
+
+   setForceGeneratorBlock(true);
+   ProcPool()->condvar()->lock();
+   ProcPool()->condvar()->broadcast();
+   ProcPool()->condvar()->unlock();
+   int_process::waitAndHandleEvents(false);
+   setForceGeneratorBlock(false);
+   return true;
 }
 
 bool int_process::plat_lwpRefresh(result_response::ptr)
@@ -2274,9 +2295,10 @@ bool int_process::lwp_refreshPost(result_response::ptr &resp)
    return true;
 }
 
-bool int_process::lwp_refreshCheck()
+bool int_process::lwp_refreshCheck(bool &change)
 {
    vector<Dyninst::LWP> lwps;
+   change = false;
    bool result = getThreadLWPs(lwps);
    if (!result) {
       pthrd_printf("Error calling getThreadLWPs during refresh\n");
@@ -2292,12 +2314,14 @@ bool int_process::lwp_refreshCheck()
       if (thr)
          continue;
       pthrd_printf("Found new thread %d/%d during refresh\n", getPid(), lwp);
+      thr = int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
       new_lwps_found++;
-      EventNewLWP::ptr newev = EventNewLWP::ptr(new EventNewLWP(lwp));
+      change = true;
+      /*EventNewLWP::ptr newev = EventNewLWP::ptr(new EventNewLWP(lwp, (int) int_thread::as_needs_attach));
       newev->setProcess(proc());
       newev->setThread(pool->initialThread()->thread());
       newev->setSyncType(Event::async);
-      mbox()->enqueue(newev);
+      mbox()->enqueue(newev);*/
    }
 
    //Look for removed LWPs
@@ -2313,6 +2337,7 @@ bool int_process::lwp_refreshCheck()
          }
          if (found)
             continue;
+         change = true;
          pthrd_printf("Found thread %d/%d is dead during refresh\n", getPid(), thr->getLWP());
          EventLWPDestroy::ptr newev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
          newev->setProcess(proc());
@@ -2762,6 +2787,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    lwp(l),
    proc_(p),
    continueSig_(0),
+   attach_status(as_unknown),
    handler_running_thrd_count(Counter::HandlerRunningThreads),
    generator_running_thrd_count(Counter::GeneratorRunningThreads),
    sync_rpc_count(Counter::SyncRPCs),
@@ -2770,6 +2796,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    clearing_bp_count(Counter::ClearingBPs),
    proc_stop_rpc_count(Counter::ProcStopRPCs),
    generator_nonexited_thrd_count(Counter::GeneratorNonExitedThreads),
+   neonatal_threads(Counter::NeonatalThreads),
    exiting_state(this, ExitingStateID, dontcare),
    startup_state(this, StartupStateID, dontcare),
    pending_stop_state(this, PendingStopStateID, dontcare),
@@ -3330,6 +3357,11 @@ Counter &int_thread::getGeneratorNonExitedThreadCount()
    return generator_nonexited_thrd_count;
 }
 
+Counter &int_thread::neonatalThreadCount()
+{
+   return neonatal_threads;
+}
+
 void int_thread::setContSignal(int sig)
 {
    continueSig_ = sig;
@@ -3342,7 +3374,8 @@ int int_thread::getContSignal() {
 int_thread *int_thread::createThread(int_process *proc, 
                                      Dyninst::THR_ID thr_id, 
                                      Dyninst::LWP lwp_id,
-                                     bool initial_thrd)
+                                     bool initial_thrd,
+                                     attach_status_t astatus)
 {
    // See if we already created a skeleton/dummy thread for this thread ID.
    int_thread *newthr = proc->threadPool()->findThreadByLWP(lwp_id);
@@ -3363,6 +3396,8 @@ int_thread *int_thread::createThread(int_process *proc,
       proc->threadPool()->setInitialThread(newthr);
    }
    ProcPool()->addThread(proc, newthr);
+   newthr->attach_status = astatus;
+
    bool result = newthr->attach();
    if (!result) {
       pthrd_printf("Failed to attach to new thread %d/%d\n", proc->getPid(), lwp_id);
@@ -4237,7 +4272,18 @@ bool int_thread::StateTracker::setState(State to)
    if (id == int_thread::GeneratorStateID && to == int_thread::exited) {
       up_thr->getGeneratorNonExitedThreadCount().dec();
    }
-
+   if (id == int_thread::HandlerStateID) {
+      if ((state == int_thread::neonatal || state == int_thread::neonatal_intermediate) &&
+          (to != int_thread::neonatal && to != int_thread::neonatal_intermediate)) {
+         //Moving away from neonatal/neonatal_intermediate
+         up_thr->neonatalThreadCount().dec();
+      }
+      if ((state != int_thread::neonatal && state != neonatal_intermediate) &&
+          (to == int_thread::neonatal || to == int_thread::neonatal_intermediate)) {
+         //Moving into neonatal/neonatal_intermediate
+         up_thr->neonatalThreadCount().inc();
+      }
+   }
    pthrd_printf("Changing %s state for %d/%d from %s to %s\n", s.c_str(), pid, lwp, 
                 stateStr(state), stateStr(to));
    state = to;
@@ -8001,12 +8047,14 @@ Counter::~Counter()
 void Counter::adjust(int val) 
 {
    int index = (int) ct;
+   int orig, after;
    locks[index].lock();
-   pthrd_printf("Adjusting counter %s by %d; before %d\n", getNameForCounter(index), val, global_counts[index]);
+   orig = global_counts[index];
    global_counts[index] += val;
-   pthrd_printf("Adjusting counter %s by %d; after %d\n", getNameForCounter(index), val, global_counts[index]);
+   after = global_counts[index];
    assert(global_counts[index] >= 0);
    locks[index].unlock();
+   pthrd_printf("Adjusting counter %s by %d, before %d, after %d\n", getNameForCounter(index), val, orig, after);
    local_count += val;
 }
 
@@ -8085,6 +8133,9 @@ int Counter::processCount(CounterType ct, int_process* p)
 		case GeneratorNonExitedThreads:
 			sum += (*i)->getGeneratorNonExitedThreadCount().localCount();
 			break;
+      case NeonatalThreads:
+         sum += (*i)->neonatalThreadCount().localCount();
+         break;
 		default:
 			break;
 		}
@@ -8120,6 +8171,7 @@ const char *Counter::getNameForCounter(int counter_type)
       STR_CASE(ForceGeneratorBlock);
       STR_CASE(GeneratorNonExitedThreads);
       STR_CASE(StartupTeardownProcesses);
+      STR_CASE(NeonatalThreads);
       default: assert(0);
    }
    return NULL;

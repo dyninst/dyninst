@@ -82,6 +82,7 @@ private:
 PSetFeatures::PSetFeatures() :
    libset(NULL),
    thrdset(NULL),
+   lwpset(NULL),
    forkset(NULL)
 {
 }
@@ -3332,6 +3333,7 @@ bool LWPTrackingSet::refreshLWPs() const
    procset_iter iter("setTrackLWPs", had_error, ERR_CHCK_ALL);
    set<response::ptr> all_resps;
    set<int_process *> all_procs;
+   set<int_process *> change_procs;
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       int_process *proc = (*i)->llproc();
       result_response::ptr resp;
@@ -3349,14 +3351,32 @@ bool LWPTrackingSet::refreshLWPs() const
 
    for (set<int_process *>::iterator i = all_procs.begin(); i != all_procs.end(); i++) {
       int_process *proc = *i;
-      bool result = proc->lwp_refreshCheck();
+      bool changed;
+      bool result = proc->lwp_refreshCheck(changed);
       if (!result) {
          pthrd_printf("Error refreshing lwps while creating events on %d\n", proc->getPid());
          had_error = true;
       }
+      if (changed) {
+         change_procs.insert(proc);
+         proc->setForceGeneratorBlock(true);
+      }
    }
 
+   if (change_procs.empty())
+      return !had_error;
+
+   pthrd_printf("Found changes to thread in refresh.  Handling events.\n");
+   ProcPool()->condvar()->lock();
+   ProcPool()->condvar()->broadcast();
+   ProcPool()->condvar()->unlock();
+
    int_process::waitAndHandleEvents(false);
+
+   for (set<int_process *>::iterator i = change_procs.begin(); i != change_procs.end(); i++) {
+      int_process *proc = *i;
+      proc->setForceGeneratorBlock(false);      
+   }
    return !had_error;
 }
 

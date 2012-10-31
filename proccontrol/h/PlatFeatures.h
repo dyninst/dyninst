@@ -86,7 +86,7 @@ class PC_EXPORT LibraryTrackingSet
 
 class PC_EXPORT LWPTracking
 {
-   friend class linux_process;
+   friend class ::linux_process;
    friend class bgq::bgq_process;
   protected:
    LWPTracking(Process::ptr proc_);

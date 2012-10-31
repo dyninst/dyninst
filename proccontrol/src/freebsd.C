@@ -1364,7 +1364,8 @@ Handler::handler_ret_t FreeBSDPreForkHandler::handleEvent(Event::ptr ev) {
     ProcPool()->condvar()->lock();
 
     int_thread *initial_thread;
-    initial_thread = int_thread::createThread(child_proc, NULL_THR_ID, NULL_LWP, true);
+    initial_thread = int_thread::createThread(child_proc, NULL_THR_ID, NULL_LWP, true,
+                                              int_thread::as_created_attached);
 
     ProcPool()->addProcess(child_proc);
 
