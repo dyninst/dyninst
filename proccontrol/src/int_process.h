@@ -590,41 +590,6 @@ class proc_exitstate
    void setLastError(err_t e_, const char *m) { last_error = e_; last_error_msg = m; }
 };
 
-/**
- * ON THREADING STATES:
- *
- * Each thread has four different states, which mostly monitor running/stopped
- * status :
- *   GeneratorState - Thread state as seen by the generator object
- *   HandlerState - Thread state as seen by the handler object
- *   InternalState - Target thread state desired by int_* layer
- *   UserState - Target Thread state as desired by the user
- *
- * The GeneratorState and HandlerState represent an event as it moves through the 
- * system.  For example, an event that stops the thread may first appear
- * in the Generator object, and move the GeneratorState to 'stopped'.  It is then
- * seen by the handler, which moves the HandlerState to 'stopped'.  If the thread is 
- * then continued, the HandlerState and GeneratorStates will go back to 'running'.
- * These are primarily seperated to prevent race conditions with the handler and
- * generators modifying the same variable, since they run in seperate threads.
- * 
- * The InternalState and UserState are used to make policy decisions about whether
- * a thread should be running or stopped.  For example, after handling an event
- * we may check the UserState to see if the user wants us to run/stop a thread.
- * The InternalState usually matches the UserState, but may override it for 
- * stop/run decisions in a few scenarios.  For example, if the user posts a iRPC
- * to a running process (UserState = running) we may have to temporarily stop the
- * process to install the iRPC.  We don't want to change the UserState, since the user
- * still wants the process running, so we set the InternalState to stopped while we
- * set up the iRPC, and then return it to the UserState value when the iRPC is ready.
- *
- * There are a couple of important assertions about the relationship between these thread
- * states :
- *  (GeneratorState == running) implies (HandlerState == running)
- *  (HandlerState == running)  implies (InternalState == running)
- *  (InternalState == stopped)  implies (HandlerState == stopped)
- *  (HandlerState == stopped)  implies (GeneratorState == stopped)
- **/
 class int_thread
 {
    friend class Dyninst::ProcControlAPI::Thread;
