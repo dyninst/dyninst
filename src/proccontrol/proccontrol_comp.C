@@ -358,10 +358,14 @@ void ProcControlComponent::setupStatTest(std::string exec_name)
    //changes to testsuite otherwise
    if (strstr(exec_name.c_str(), "pc_stat")) {
       LibraryTracking::setDefaultTrackLibraries(false);
+      ThreadTracking::setDefaultTrackThreads(false);
+      LWPTracking::setDefaultTrackLWPs(false);
       check_threads_on_startup = false;
    }
    else {
       LibraryTracking::setDefaultTrackLibraries(true);
+      ThreadTracking::setDefaultTrackThreads(true);
+      LWPTracking::setDefaultTrackLWPs(true);
    }
 }
 
