@@ -444,7 +444,7 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
 {
    td_thrinfo_t info;
    async = false;
-   td_thrhandle_t *handle = const_cast<td_thrhandle_t *>(eventMsg->th_p);
+   td_thrhandle_t *handle = (td_thrhandle_t *)(eventMsg->th_p);
    async_ret_t result = ll_fetchThreadInfo(handle, &info);
    if (result == aret_error) {
       pthrd_printf("Failed to fetch thread info\n");
