@@ -267,18 +267,25 @@ static char **getLaunchParams(char *executable, char *args[], char *num, char *s
       new_args[3+i] = args[i];
    return new_args;
 }
-#elif defined(os_linux_test)
-static char **getLaunchParams(char *executable, char *args[], const char *num, char *signal_file_name, const char *)
-{
-   
+#elif defined(os_bgq_test)
+static char **getLaunchParams(char *executable, char *args[], const char *num, char *signal_file_name, const char *mode)
+{   
    int count = 0;
+   unsigned i=0, j=0;
    for (char **counter = args; *counter; counter++, count++);
-   char **new_args = (char **) malloc(sizeof(char *) * (count+5));
-   new_args[0] = "orterun";
-   new_args[1] = "-n";
-   new_args[2] = const_cast<char *>(num);
-   for (unsigned i=0; i<=count; i++)
-      new_args[3+i] = args[i];
+   char **new_args = (char **) malloc(sizeof(char *) * (count+14));
+   new_args[i++] = "srun";
+   new_args[i++] = "-n";
+   new_args[i++] = const_cast<char *>(num);
+
+   for (j=0; args[j]; j++)
+      new_args[i++] = args[j];
+   if (signal_file_name) {
+      new_args[i++] = "-signal_file";
+      new_args[i++] = signal_file_name;
+   }
+   new_args[i++] = NULL;
+
    return new_args;
 }
 #elif defined(os_bgp_test)
@@ -311,25 +318,18 @@ static char **getLaunchParams(char *executable, char *args[], const char *num, c
 
    return new_args;
 }
-#elif defined(os_bgq_test)
-static char **getLaunchParams(char *executable, char *args[], const char *num, char *signal_file_name, const char *mode)
-{   
+#elif defined(os_linux_test)
+static char **getLaunchParams(char *executable, char *args[], const char *num, char *signal_file_name, const char *)
+{
+   
    int count = 0;
-   unsigned i=0, j=0;
    for (char **counter = args; *counter; counter++, count++);
-   char **new_args = (char **) malloc(sizeof(char *) * (count+14));
-   new_args[i++] = "srun";
-   new_args[i++] = "-n";
-   new_args[i++] = const_cast<char *>(num);
-
-   for (j=0; args[j]; j++)
-      new_args[i++] = args[j];
-   if (signal_file_name) {
-      new_args[i++] = "-signal_file";
-      new_args[i++] = signal_file_name;
-   }
-   new_args[i++] = NULL;
-
+   char **new_args = (char **) malloc(sizeof(char *) * (count+5));
+   new_args[0] = "orterun";
+   new_args[1] = "-n";
+   new_args[2] = const_cast<char *>(num);
+   for (unsigned i=0; i<=count; i++)
+      new_args[3+i] = args[i];
    return new_args;
 }
 #endif
