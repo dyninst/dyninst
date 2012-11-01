@@ -234,23 +234,24 @@ bool sort_by_func_ptr(const Function *a, const Function *b) {
 bool Symtab::findFunctionsByName(std::vector<Function *> &ret, const std::string name,
                                  NameType nameType, bool isRegex, bool checkCase) {
     std::vector<Symbol *> funcSyms;
-    if (!findSymbol(funcSyms, name, Symbol::ST_FUNCTION, nameType, isRegex, checkCase))
-        return false;
-
+    if (!findSymbol(funcSyms, name, Symbol::ST_FUNCTION, nameType, isRegex, checkCase)) {
+      return false;
+    }
     std::vector<Function *> unsortedFuncs;
     for (unsigned i = 0; i < funcSyms.size(); i++) 
     {
-        if (doNotAggregate(funcSyms[i])) continue;
-        if (!funcSyms[i]->getFunction())
+      if (doNotAggregate(funcSyms[i])) {
+	continue;
+      }
+      if (!funcSyms[i]->getFunction())
         {
-            fprintf(stderr, "%s[%d]:  WARNING:  internal inconsistency\n", FILE__, __LINE__);
-            fprintf(stderr, "%s[%d]:  WARNING:  %s is %s a function\n", FILE__, __LINE__, name.c_str(), funcSyms[i]->isFunction() ? "" : "not");
-            fprintf(stderr, "%s[%d]:  WARNING:  %s is %s a variable\n", FILE__, __LINE__, name.c_str(), funcSyms[i]->isVariable() ? "" : "not");
-            continue;
+	  fprintf(stderr, "%s[%d]:  WARNING:  internal inconsistency\n", FILE__, __LINE__);
+	  fprintf(stderr, "%s[%d]:  WARNING:  %s is %s a function\n", FILE__, __LINE__, name.c_str(), funcSyms[i]->isFunction() ? "" : "not");
+	  fprintf(stderr, "%s[%d]:  WARNING:  %s is %s a variable\n", FILE__, __LINE__, name.c_str(), funcSyms[i]->isVariable() ? "" : "not");
+	  continue;
         }
-        unsortedFuncs.push_back(funcSyms[i]->getFunction());
+      unsortedFuncs.push_back(funcSyms[i]->getFunction());
     }
-
     std::sort(unsortedFuncs.begin(), unsortedFuncs.end(), sort_by_func_ptr);
     std::vector<Function *>::iterator endIter;
     endIter = std::unique(unsortedFuncs.begin(), unsortedFuncs.end());

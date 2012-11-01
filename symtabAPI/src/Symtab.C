@@ -979,12 +979,14 @@ bool Symtab::doNotAggregate(Symbol *&sym) {
     return true;
   }
 
+#if 0
+  // Disabling as a test; this means we find _zero_ Function objects. 
   // PPC64 Linux symbols in the .opd section appear to be functions,
   // but are not.
   if (sym->getRegion() && sym->getRegion()->getRegionName() == ".opd") {
       return true;
   }
-
+#endif
   return false;
 }
 
