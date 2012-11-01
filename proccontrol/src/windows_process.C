@@ -447,7 +447,7 @@ Dyninst::Address windows_process::direct_infMalloc(unsigned long size, bool use_
 		size = (((size + min_specific_size - 1) / min_specific_size) * min_specific_size);
 	}
 
-	Dyninst::Address result = (Dyninst::Address)(::VirtualAllocEx(hproc, (LPVOID)addr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
+	Dyninst::Address result = (Dyninst::Address)(::VirtualAllocEx(hproc, (LPVOID)addr, size, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE));
 	if(result == 0) {
 		pthrd_printf("infMalloc failed to VirtualAllocEx %d bytes, error code %d\n", size, ::GetLastError());
 		fprintf(stderr, "infMalloc failed to VirtualAllocEx %d bytes, error code %d\n", size, ::GetLastError());
