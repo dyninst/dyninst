@@ -1070,21 +1070,56 @@ static void buildPath(const char *path, const char **argv,
    }
 
    // A shell script, so reinterpret path/argv
-   std::string interp = line.substr(2);
-   pathToUse = (char *) malloc(interp.length()+1);
-   strncpy(pathToUse, interp.c_str(), interp.length()+1);
-   // I'd prefer an argc, but hey
-   int count = 0;
-   while(argv[count] != NULL) {
-      count++;
-   }
-   argvToUse = (char **) malloc((count+1) * sizeof(char *));
-   argvToUse[0] = strdup(pathToUse);
 
-   for (int tmp = 0; tmp < count; ++tmp) {
-      argvToUse[tmp+1] = strdup(argv[tmp]);
+   // Modeled after Linux's fs/binfmt_script.c
+   // #! lines have the interpreter and optionally a single argument,
+   // all separated by spaces and/or tabs.
+
+   size_t pos_start = line.find_first_not_of(" \t", 2);
+   if (pos_start == std::string::npos) {
+      file.close();
+      return;
    }
-   argvToUse[count] = NULL;
+   size_t pos_end = line.find_first_of(" \t", pos_start);
+   std::string interp = line.substr(pos_start, pos_end - pos_start);
+   pathToUse = strdup(interp.c_str());
+
+   std::string interp_arg;
+   pos_start = line.find_first_not_of(" \t", pos_end);
+   if (pos_start != std::string::npos) {
+      // The argument goes all the way to the last non-space/tab,
+      // even if there are spaces/tabs in the middle somewhere.
+      pos_end = line.find_last_not_of(" \t") + 1;
+      interp_arg = line.substr(pos_start, pos_end - pos_start);
+   }
+
+   // Count the old and new argc values
+   int argc = 0;
+   while(argv[argc] != NULL) {
+      argc++;
+   }
+   int argcToUse = argc + 1;
+   if (!interp_arg.empty()) {
+      argcToUse++;
+   }
+   argvToUse = (char **) malloc((argcToUse+1) * sizeof(char *));
+
+   // The interpreter takes the new argv[0]
+   int argi = 0;
+   argvToUse[argi++] = strdup(pathToUse);
+
+   // If there's an interpreter argument, that's the new argv[1]
+   if (!interp_arg.empty()) {
+      argvToUse[argi++] = strdup(interp_arg.c_str());
+   }
+
+   // Then comes path, *replacing* the old argv[0],
+   // and the old argv[1..] are filled in for the rest
+   argvToUse[argi++] = strdup(path);
+   for (int tmp = 1; tmp < argc; ++tmp) {
+      argvToUse[argi++] = strdup(argv[tmp]);
+   }
+   argvToUse[argcToUse] = NULL;
    file.close();
 }
 
