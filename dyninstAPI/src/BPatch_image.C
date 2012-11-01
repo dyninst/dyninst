@@ -393,7 +393,7 @@ BPatch_module *BPatch_image::findModuleInt(const char *name, bool substring_matc
    }
 
    free(tmp);
-   if (!mod) return false;
+   if (!mod) return NULL;
 
    target = findOrCreateModule(mod);
    return target;
