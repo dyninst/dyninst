@@ -693,3 +693,6 @@ Offset emitElfStatic::allocStubRegions(LinkMap &lmap, Offset) {
    return lmap.stubRegionOffset;
 }
 
+bool emitElfStatic::updateTOC(Symtab *, LinkMap &, Offset) {
+  return true;
+}
