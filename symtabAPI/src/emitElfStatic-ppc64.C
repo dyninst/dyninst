@@ -170,7 +170,12 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
     if( PPC64_WIDTH == addressWidth_ ) {
 	Symbol *dynsym = rel.getDynSym();
 	//	Offset TOCoffset = srcSymtab->getTOCoffset();
-	Offset newTOCoffset = dynsym->getSymtab()->getTOCoffset(dynsym->getOffset());
+	
+	Offset newTOCoffset = 0;
+	if (dynsym->getModule()) {
+	  newTOCoffset = dynsym->getSymtab()->getTOCoffset(dynsym->getOffset());
+	}
+
 	// This is an added file, thus there's only one TOC value, so look up @0. 
 	Offset curTOCoffset = srcSymtab->getTOCoffset((Offset) 0);
 
@@ -231,12 +236,14 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	}
 
 	// Handle TOC-changing inter-module calls
+	// handleInterModule returns false if it's not its problem. 
 	if (rel.getRelType() == R_PPC64_REL24 &&
-	    newTOCoffset != curTOCoffset) {
-	  return handleInterModuleSpecialCase(targetSymtab, srcSymtab, lmap,
-					      targetData, rel,
-					      newTOCoffset, curTOCoffset, dest, 
-					      relOffset, globalOffset);
+	    newTOCoffset != curTOCoffset && 
+	    handleInterModuleSpecialCase(targetSymtab, srcSymtab, lmap,
+					 targetData, rel,
+					 newTOCoffset, curTOCoffset, dest, 
+					 relOffset, globalOffset)) {
+	  return true;
 	}
 
 	// If symbol is .toc, we must return the got offset
@@ -1269,21 +1276,30 @@ bool emitElfStatic::handleInterModuleSpecialCase(Symtab *target,
   // or create it. 
   //
 
+  unsigned int *td = (unsigned int *)(data + dest - (dest % 4));
+  unsigned int &call = td[0];
+  unsigned int &post = td[1];
+
+  instruction callInsn(call);
+  if (!callInsn.isCall()) {
+    // A branch or other non-call/noop
+    return false;
+  }
+  if (!post != 0x60000000) {
+    // No noop for us to restore the TOC
+    return false;
+  }
+
   Offset stubOffset = findOrCreateStub(rel.getDynSym(), lmap, newTOC, oldTOC, data, globalOffset);
   Offset branchOffset = stubOffset - relOffset;
   rewrite_printf("Handling TOC set stub, using stub offset 0x%lx, curr addr 0x%lx so branch is 0x%lx \n", 
 		 stubOffset, relOffset, branchOffset);
-  char *td = data + dest - (dest % 4);
-  unsigned int call = *((unsigned int *)td);
   rewrite_printf("\t Raw original call is 0x%lx...", call);
   // 6 bits in, 24 bits long
   call = setBits(call, 6, 24, (unsigned) (branchOffset));
   rewrite_printf("and patched 0x%lx\n", call);
-  memcpy(td, &call, sizeof(Elf64_Word));
   
   // And set the TOC restore
-  td += 4;
-  unsigned int &post = *((unsigned int *)td);
   // Post better be a noop. Assert for now, return false after devel is done. 
   assert(post == 0x60000000);   
   // And ld r2, 40(r1). Always the same instruction. 

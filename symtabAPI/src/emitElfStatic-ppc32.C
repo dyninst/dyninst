@@ -674,7 +674,7 @@ bool emitElfStatic::isGOTRelocation(unsigned long relType) {
     return false;
 }
 
-Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &) {
+Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &, Offset &) {
     return 0;
 }
 
