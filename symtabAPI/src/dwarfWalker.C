@@ -912,6 +912,7 @@ bool DwarfWalker::parseEnumEntry() {
 
 bool DwarfWalker::parseMember() {
    dwarf_printf("(0x%lx) parseMember entry\n", id());
+   if (!curEnclosure()) return false;
 
    if (!findName(curName())) return false;
 
