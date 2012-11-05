@@ -38,7 +38,8 @@
 #include <iterator>
 
 #include "BPatch_edge.h"
-
+#include <iostream>
+using namespace std;
 //constructors
 //internal use only
 
@@ -177,13 +178,8 @@ bool BPatch_basicBlockLoop::getLoopBasicBlocksExclusiveInt(BPatch_Vector<BPatch_
 	allBlocks -= contLoops[i]->basicBlocks;
     }
 
-    BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];
-    allBlocks.elements(elements);
+    allBlocks.elements(bbs);
 
-    for (unsigned int j = 0; j < allBlocks.size(); j++)
-	bbs.push_back(elements[j]);
-
-    delete[] elements;
     return true;
 }
 
