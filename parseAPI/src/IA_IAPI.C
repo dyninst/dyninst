@@ -274,6 +274,11 @@ bool IA_IAPI::hasCFT() const
         hascftstatus.second = true;
      }
   }
+  else if(c == c_SysEnterInsn) 
+  {
+    hascftstatus.second = true;
+  }
+  
   hascftstatus.first = true;
   return hascftstatus.second;
 }
@@ -462,6 +467,37 @@ bool IA_IAPI::isInterrupt() const
             (ci->getOperation().getID() == e_int3));
 }
 
+bool IA_IAPI::isSysEnter() const
+{
+  Instruction::Ptr ci = curInsn();
+  return (ci->getOperation().getID() == e_sysenter);
+}
+
+void IA_IAPI::parseSysEnter(std::vector<std::pair<Address, EdgeTypeEnum> >& outEdges) const
+{
+  IA_IAPI scratch(*this);
+  
+  do {
+    scratch.advance();
+  } while(scratch.isNop());
+  if(scratch.curInsn()->getCategory() == c_BranchInsn)
+  {
+    parsing_printf("[%s:%d] Detected Linux-ish sysenter idiom at 0x%lx\n",
+		   FILE__, __LINE__, getAddr());
+    outEdges.push_back(std::make_pair(scratch.getAddr(), COND_NOT_TAKEN));
+    scratch.advance();
+    outEdges.push_back(std::make_pair(scratch.getAddr(), CALL_FT));
+  }
+  else
+  {
+    parsing_printf("[%s:%d] Treating sysenter as call to kernel w/normal return to next insn at 0x%lx\n",
+		   FILE__, __LINE__, getAddr());
+    outEdges.push_back(std::make_pair(getNextAddr(), CALL_FT));
+  }
+}
+
+
+
 void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
 			  Function* context,
 			  Block* currBlk,
@@ -571,7 +607,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                            ci->format().c_str(), current);
             parsedJumpTable = true;
             successfullyParsedJumpTable = parseJumpTable(currBlk, outEdges);
-
+	    parsing_printf("Parsed jump table 2\n");
             if(!successfullyParsedJumpTable || outEdges.empty()) {
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
             	parsing_printf("%s[%d]: BCTR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__,
@@ -594,14 +630,22 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             parsing_printf("%s[%d]: BLR jump table candidate %s at 0x%lx\n", FILE__, __LINE__,
                            ci->format().c_str(), current);
             successfullyParsedJumpTable = parseJumpTable(currBlk, outEdges);
-
+	    parsing_printf("Parsed BLR jump table\n");
             if(!successfullyParsedJumpTable || outEdges.empty()) {
-            	parsing_printf("%s[%d]: BLR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__, ci->format().c_str(), current, context->name().c_str());
+            	parsing_printf("%s[%d]: BLR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", 
+			       FILE__, __LINE__, ci->format().c_str(), current, context->name().c_str());
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
             }
 	}
+	parsing_printf("Returning from parse out edges\n");
 	return;
     }
+    else if(isSysEnter())
+    {
+      parseSysEnter(outEdges);
+      return;
+    }
+    
     fprintf(stderr, "Unhandled instruction %s\n", ci->format().c_str());
     assert(0);
 }
@@ -694,6 +738,7 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
 {
    if(validCFT) return cachedCFT;
     Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
+	if (!callTarget) return make_pair(false, 0);
         // FIXME: templated bind(),dammit!
     callTarget->bind(thePC[_isrc->getArch()].get(), Result(s64, current));
     parsing_printf("%s[%d]: binding PC %s in %s to 0x%x...", FILE__, __LINE__,
@@ -806,7 +851,7 @@ bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Block* currBlk,
 {
     IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
     bool ret = jumpTableParser->parseJumpTable(currBlk, outEdges);
-    
+    parsing_printf("Jump table parser returned %d, %d edges\n", ret, outEdges.size());
     // Update statistics 
     currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_COUNT);
     if (!ret) currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_FAIL);

@@ -88,7 +88,7 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
   if (base)
   {
     // set offset from instrumentation frame pointer to saved return address
-    *stack_height = TRAMP_SPR_OFFSET + STK_LR;
+    *stack_height = TRAMP_SPR_OFFSET(proc_->getAddressWidth()) + STK_LR;
 
     return true;
   }

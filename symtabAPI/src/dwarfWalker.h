@@ -71,7 +71,7 @@ class DwarfWalker {
       Address low() { return c.top().low; }
       Address high() { return c.top().high; }
 
-      void setFunc(Function *f) { c.top().func = f; }
+     void setFunc(Function *f); 
       void setCommon(typeCommon *tc) { c.top().commonBlock = tc; }
       void setEnum(typeEnum *e) { c.top().enumType = e; }
       void setEnclosure(fieldListType *f) { c.top().enclosure = f; }
@@ -85,6 +85,7 @@ class DwarfWalker {
       void setBase(Address a) { c.top().base = a; }
       void setLow(Address a) { c.top().low = a; }
       void setHigh(Address a) { c.top().high = a; }
+     void clearFunc();
    };
 
   public:
@@ -238,6 +239,10 @@ class DwarfWalker {
                                Dwarf_Signed listLength);
    void deallocateLocationList(Dwarf_Locdesc **locationList,
                                Dwarf_Signed listLength);
+
+   // A BG-Q XLC hack; clear any function-level enclosure from the context stack
+   // to handle a bug where they don't finish off functions. 
+   void clearFunc() { contexts_.clearFunc(); }
 
    // Track which enclosure (array, struct, class, etc.) contains the current
    // dwarf parsee

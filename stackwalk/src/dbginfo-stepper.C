@@ -134,7 +134,7 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
 
    SymReader *reader = LibraryWrapper::testLibrary(dbg_name);
    if (!reader) {
-      SymbolReaderFactory *fact = getDefaultSymbolReader();
+      SymbolReaderFactory *fact = Walker::getSymbolReader();
       reader = fact->openSymbolReader(dbg_buffer, dbg_buffer_size);
       if (!reader) {
          sw_printf("[%s:%u] - Error opening symbol reader for buffer associated with %s\n",

@@ -111,42 +111,15 @@ PCProcess *AddressSpace::proc() {
 BinaryEdit *AddressSpace::edit() {
     return dynamic_cast<BinaryEdit *>(this);
 }
-
-Address AddressSpace::getTOCoffsetInfo(mapped_object *mobj) {
-#if !defined(cap_toc_32)
-  if (getAddressWidth() == 4)
-    return 0;
-#endif
-#if !defined(cap_toc_64)
-  if (getAddressWidth() == 8)
-    return 0;
-#endif
-  assert(mobj);
-  Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset();
-  if (!TOCOffset)
-    return 0;
-  return TOCOffset + mobj->dataBase();
-}
-
-Address AddressSpace ::getTOCoffsetInfo(Address dest)
-{
-   // Linux-power-32 bit: return 0 here, as it doesn't use the TOC.
-   // Linux-power-64 does. Lovely. 
-
-  // We have an address, and want to find the module the addr is
-  // contained in. Given the probabilities, we (probably) want
-  // the module dyninst_rt is contained in.
-  // I think this is the right func to use
-  
-  // Find out which object we're in (by addr).
-  mapped_object *mobj = findObject(dest);
-  // Very odd case if this is not defined.
-  
-  return getTOCoffsetInfo(mobj);
-}
-
 Address AddressSpace::getTOCoffsetInfo(func_instance *func) {
-  return getTOCoffsetInfo(func->obj());
+  // Symtab has this information on a per-Function basis. It's
+  // kinda nontrivial to get a Function object out of a 
+  // func_instance; instead we use its entry address which
+  // is what all the TOC data structures are written in terms of
+  // anyway
+
+  Offset baseTOC = func->obj()->parse_img()->getObject()->getTOCoffset(func->function()->addr());
+  return baseTOC + func->obj()->dataBase();
 }
 
 // Fork constructor - and so we can assume a parent "process"
@@ -1646,6 +1619,8 @@ void AddressSpace::wrapFunctionPostPatch(func_instance *func, Dyninst::SymtabAPI
 
 void AddressSpace::removeCall(block_instance *block, func_instance *context) {
   mgr()->instrumenter()->removeCall(block, context);
+  if (context) addModifiedFunction(context);
+  else addModifiedBlock(block);
 }
 
 void AddressSpace::revertCall(block_instance *block, func_instance *context) {

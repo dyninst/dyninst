@@ -105,19 +105,13 @@ Block::getFuncs(vector<Function *> & funcs)
 bool
 EdgePredicate::pred_impl(Edge *) const
 {
-    parsing_printf("Invoking edge predicate\n");
-    //        if(_next)
-    //  return (*_next)(e);
-    //else
-        return true;
+  return true;
 }
 
 bool
 Intraproc::pred_impl(Edge * e) const
 {
     bool base = EdgePredicate::pred_impl(e);
-    parsing_printf("Invoking Intraproc predicate\n");
-    
     return base && (e->type() != CALL) && (e->type() != RET);
 }
 

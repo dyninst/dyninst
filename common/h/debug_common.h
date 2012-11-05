@@ -34,17 +34,29 @@
 #include <string>
 
 extern int common_debug_dwarf;
+extern int common_debug_addrtranslate;
 
 #if defined(__GNUC__)
 #define dwarf_printf(format, ...)                                       \
    do {                                                                 \
-      dwarf_printf_int("[%s:%u:%s] " format, __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__); \
+      dwarf_printf_int("[%s:%u:%s] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
    } while (0)
 #else
 #define dwarf_printf dwarf_printf_int
 #endif
 
 int dwarf_printf_int(const char *format, ...);
+
+#if defined(__GNUC__)
+#define translate_printf(format, ...)                                       \
+   do {                                                                 \
+      translate_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
+   } while (0)
+#else
+#define translate_printf translate_printf_int
+#endif
+
+int translate_printf_int(const char *format, ...);
 
 // And initialization
 bool init_debug_common();

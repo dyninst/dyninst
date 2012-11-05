@@ -45,7 +45,7 @@ endif
 OBJS         = $(SRCS:%.C=%.o)
 
 CXXFLAGS    += -Wall
-LIBS        += -ldyninstAPI -lstackwalk -lpcontrol -lpatchAPI -lparseAPI -linstructionAPI -lsymtabAPI -lsymLite -ldynDwarf -ldynElf -pthread
+LIBS        += -ldyninstAPI -lstackwalk -lpcontrol -lpatchAPI -lparseAPI -linstructionAPI -lsymtabAPI -lsymLite -ldynDwarf -ldynElf -lcommon -pthread
 
 # The echo will remove the quotes
 LIBS += $(shell echo $(DEMANGLER_LINK))
@@ -59,10 +59,12 @@ endif
 
 ifeq (freebsd, $(findstring freebsd, $(PLATFORM)))
 LIBS	    += -lpthread
-else
-LIBS	+= -ldl
 endif
 
+ifeq (ppc64_linux, $(findstring ppc64_linux, $(PLATFORM)))
+CXXFLAGS	+= -m64
+CFLAGS		+= -m64
+endif
 
 all: ready parseThat
 

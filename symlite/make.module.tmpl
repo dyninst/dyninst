@@ -38,6 +38,10 @@ TARGET      = libsymLite.a
 endif
 endif
 
+ifdef LIBELF_PLATFORM
+LDFLAGS += -L../../elf/$(PLATFORM) -ldynElf
+endif
+
 LDFLAGS     += $(LIBDIR)
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
@@ -49,6 +53,5 @@ TFLAGS		+=
 SRCS	     +=	../src/SymLite-elf.C
 
 TO_INC          = ../h
-PUBLIC_H        = SymLite-elf.h
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h 

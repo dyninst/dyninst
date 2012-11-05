@@ -4,6 +4,8 @@ AC_CONFIG_SRCDIR([src/config.C])
 AC_PREFIX_DEFAULT([.])
 AC_CONFIG_AUX_DIR([../autodyninst])
 
+AC_SEARCH_LIBS(dlopen, dl)
+
 AC_ARG_WITH(dyninst,
             [AS_HELP_STRING([--with-dyninst],[Base directory to look for dyninst headers and libraries])],
             [DYNINST_LIB="${withval}/${PLATFORM}/lib"

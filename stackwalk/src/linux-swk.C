@@ -150,7 +150,7 @@ vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
    }
    ret->vsys_mem = buffer;
 
-   fact = getDefaultSymbolReader();
+   fact = Walker::getSymbolReader();
    if (!fact) {
       sw_printf("[%s:%u] - No symbol reading capability\n",
                 __FILE__, __LINE__);
@@ -204,6 +204,7 @@ static const char* vsys_sigreturns[] = {
 
 void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
 {
+  sw_printf("[%s:%u] - Begin SigHandlerStepperImpl::registerStepperGroup\n", __FILE__, __LINE__);
    ProcessState *ps = getProcessState();
    assert(ps);
 
@@ -213,16 +214,18 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
                 " to get libc\n", __FILE__, __LINE__);
       return;
    }
-   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymbolReaderFactory *fact = Walker::getSymbolReader();
    if (!fact) {
       sw_printf("[%s:%u] - Failed to get symbol reader\n", __FILE__, __LINE__);
       return;
    }
+  sw_printf("[%s:%u] - Got lib tracker and sym reader OK, checking for __restore_rt...\n", __FILE__, __LINE__);
 
    if (!init_libc) {
       /**
        * Get __restore_rt out of libc
        **/
+      sw_printf("[%s:%u] - Getting __restore_rt from libc\n", __FILE__, __LINE__);
       LibAddrPair libc_addr;
       Dyninst::SymReader *libc = NULL;
       Symbol_t libc_restore;
@@ -264,6 +267,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
       /**
        * Get __restore_rt out of libpthread
        **/
+      sw_printf("[%s:%u] - Getting __restore_rt out of libpthread\n", __FILE__, __LINE__);
       LibAddrPair libpthread_addr;
       Dyninst::SymReader *libpthread = NULL;
       Symbol_t libpthread_restore;
@@ -301,6 +305,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
    /**
     * Get symbols out of vsyscall page
     **/
+   sw_printf("[%s:%u] - Getting vsyscall page symbols\n", __FILE__, __LINE__);
    vsys_info *vsyscall = getVsysInfo(ps);
    if (!vsyscall)
    {

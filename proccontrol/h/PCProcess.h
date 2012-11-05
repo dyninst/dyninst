@@ -61,6 +61,8 @@ class int_notify;
 class HandlerPool;
 class MTLock;
 
+#define PC_VERSION_8_0_0
+
 #define pc_const_cast boost::const_pointer_cast
 
 namespace Dyninst {
@@ -425,7 +427,10 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    /**
     * Symbol access
     **/
-   SymbolReaderFactory *getDefaultSymbolReader();
+   void setSymbolReader(SymbolReaderFactory *reader) const;
+   SymbolReaderFactory *getSymbolReader() const;
+   static SymbolReaderFactory *getDefaultSymbolReader();
+   static void setDefaultSymbolReader(SymbolReaderFactory *reader);
 
    /**
     * Perform specific operations.  Interface objects will only be returned

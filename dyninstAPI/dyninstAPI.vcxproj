@@ -538,6 +538,7 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="h\BPatch_object.h" />
     <ClInclude Include="src\addLibrary.h" />
     <ClInclude Include="src\addressSpace.h" />
     <ClInclude Include="src\arch-forward-decl.h" />

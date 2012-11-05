@@ -428,6 +428,10 @@ bool DwarfFrameParser::getFDE(Address pc, Dwarf_Fde &fde,
          err_result = FE_Bad_Frame_Data;
          return false;
       }
+      else if (pc < lowpc || pc > hipc) 
+      {
+	continue;
+      }
       else if (result == DW_DLV_OK) {
          dwarf_printf("\t Got range 0x%lx..0x%lx\n", 
                       lowpc, hipc);
@@ -488,9 +492,13 @@ bool DwarfFrameParser::handleExpression(Address pc,
                                DwarfResult &cons,
                                bool &done,
                                FrameErrors_t &err_result) {
+  dwarf_printf("HandleExpression\n");
+  
    done = false;
    switch (registerNum) {
       case DW_FRAME_CFA_COL3:
+	dwarf_printf("\t Getting frame base\n");
+	
          err_result = FE_No_Error;
          if (!getRegAtFrame(pc, Dyninst::FrameBase,
                             cons, err_result)) {
@@ -499,11 +507,15 @@ bool DwarfFrameParser::handleExpression(Address pc,
          }
          break;
       case DW_FRAME_SAME_VAL:
+	dwarf_printf("\t Getting %s\n", origReg.name().c_str());
+	
          cons.readReg(origReg);
          done = true;
          break;
       default: {
          Dyninst::MachRegister dyn_register = MachRegister::DwarfEncToReg(registerNum, arch);
+	 dwarf_printf("\t Getting %s\n", dyn_register.name().c_str());
+	 
          cons.readReg(dyn_register);
          break;
       }

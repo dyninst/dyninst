@@ -42,6 +42,7 @@ namespace Dyninst
       typedef const power_entry&(InstructionDecoder_power::*nextTableFunc)();
       typedef std::map<unsigned int, power_entry> power_table;
       bool InstructionDecoder_power::foundDoubleHummerInsn = false;
+      bool InstructionDecoder_power::foundQuadInsn = false;
       struct power_entry
       {
         power_entry(entryID o, const char* m, nextTableFunc next, operandSpec ops) :
@@ -108,6 +109,19 @@ namespace Dyninst
         isRAWritten = false;
         foundDoubleHummerInsn = true;
     }
+    void InstructionDecoder_power::QFRTP()
+    {
+        QRT();
+        QFRTS();
+    }
+    void InstructionDecoder_power::QFRTS()
+    {
+        isFPInsn = true;
+        MachRegister regID = makePowerRegID(ppc64::fsr0, field<6, 10>(insn));
+        insn_in_progress->appendOperand(makeRegisterExpression(regID), false, true);
+        isRAWritten = false;
+        foundQuadInsn = true;
+    }
     void InstructionDecoder_power::FRSP()
     {
         FRS();
@@ -121,6 +135,19 @@ namespace Dyninst
         isRAWritten = true;
         foundDoubleHummerInsn = true;
     }
+    void InstructionDecoder_power::QFRSP()
+    {
+        QFRS();
+        QFRSS();
+    }
+    void InstructionDecoder_power::QFRSS()
+    {
+        isFPInsn = true;
+        MachRegister regID = makePowerRegID(ppc64::fsr0, field<6, 10>(insn));
+        insn_in_progress->appendOperand(makeRegisterExpression(regID), true, false);
+        isRAWritten = true;
+        foundQuadInsn = true;
+    }
     void InstructionDecoder_power::FRAP()
     {
         FRA();
@@ -133,10 +160,34 @@ namespace Dyninst
         insn_in_progress->appendOperand(makeRegisterExpression(regID), !isRAWritten, isRAWritten);
         foundDoubleHummerInsn = true;
     }
+    void InstructionDecoder_power::QFRAP()
+    {
+        QFRA();
+        QFRAS();
+    }
+    void InstructionDecoder_power::QFRAS()
+    {
+        isFPInsn = true;
+        MachRegister regID = makePowerRegID(ppc64::fsr0, field<11, 15>(insn));
+        insn_in_progress->appendOperand(makeRegisterExpression(regID), !isRAWritten, isRAWritten);
+        foundQuadInsn = true;
+    }
     void InstructionDecoder_power::FRBP()
     {
         FRB();
         FRBS();
+    }
+    void InstructionDecoder_power::QRB()
+    {
+        insn_in_progress->appendOperand(makeQRBExpr(), true, false);
+        QRBS();
+    }
+    void InstructionDecoder_power::QRBS()
+    {
+        isFPInsn = true;
+        MachRegister regID = makePowerRegID(ppc64::fsr0, field<16, 20>(insn));
+        insn_in_progress->appendOperand(makeRegisterExpression(regID), true, false);
+        foundQuadInsn = true;
     }
     void InstructionDecoder_power::FRBS()
     {
@@ -158,6 +209,18 @@ namespace Dyninst
         foundDoubleHummerInsn = true;
     }
 
+    void InstructionDecoder_power::QFRCP()
+    {
+        QFRC();
+        QFRCS();
+    }
+    void InstructionDecoder_power::QFRCS()
+    {
+        isFPInsn = true;
+        MachRegister regID = makePowerRegID(ppc64::fsr0, field<21, 25>(insn));
+        insn_in_progress->appendOperand(makeRegisterExpression(regID), true, false);
+        foundQuadInsn = true;
+    }
 
     Expression::Ptr InstructionDecoder_power::makeFallThroughExpr()
     {
@@ -314,6 +377,11 @@ namespace Dyninst
         isFPInsn = true;
         return makeRegisterExpression(makePowerRegID(ppc32::fpr0, field<11, 15>(insn)));
     }
+    Expression::Ptr InstructionDecoder_power::makeQFRAExpr()
+    {
+        isFPInsn = true;
+        return makeRegisterExpression(makePowerRegID(ppc64::fpr0, field<11, 15>(insn)));
+    }
     Expression::Ptr InstructionDecoder_power::makeFRBExpr()
     {
         isFPInsn = true;
@@ -323,6 +391,25 @@ namespace Dyninst
     {
         isFPInsn = true;
         return makeRegisterExpression(makePowerRegID(ppc32::fpr0, field<21, 25>(insn)));
+    }
+    Expression::Ptr InstructionDecoder_power::makeQFRCExpr()
+    {
+        isFPInsn = true;
+        return makeRegisterExpression(makePowerRegID(ppc64::fpr0, field<21, 25>(insn)));
+    }
+    Expression::Ptr InstructionDecoder_power::makeQRBExpr()
+    {
+        isFPInsn = true;
+        return makeRegisterExpression(makePowerRegID(ppc64::fpr0, field<16, 20>(insn)));
+    }
+    Expression::Ptr InstructionDecoder_power::makeQRTExpr()
+    {
+        isFPInsn = true;
+        return makeRegisterExpression(makePowerRegID(ppc64::fpr0, field<6, 10>(insn)));
+    }
+    void InstructionDecoder_power::QRT()
+    {
+        insn_in_progress->appendOperand(makeQRTExpr(), false, true);
     }
     Expression::Ptr InstructionDecoder_power::makeFRTExpr()
     {
@@ -336,6 +423,10 @@ namespace Dyninst
     void InstructionDecoder_power::FRS()
     {
         insn_in_progress->appendOperand(makeFRTExpr(), true, false);
+    }
+    void InstructionDecoder_power::QFRS()
+    {
+        insn_in_progress->appendOperand(makeQRTExpr(), true, false);
     }
     void InstructionDecoder_power::FRT2()
     {
@@ -613,6 +704,24 @@ using namespace boost::assign;
         insn_in_progress->appendOperand(condReg, false, true);
         return;
     }
+    void InstructionDecoder_power::QTT()
+    {
+        Expression::Ptr imm = Immediate::makeImmediate(Result(u8, field<21, 24>(insn)));
+        insn_in_progress->appendOperand(imm, true, false);
+        return;
+    }
+    void InstructionDecoder_power::QVD()
+    {
+        Expression::Ptr imm = Immediate::makeImmediate(Result(u8, field<21, 22>(insn)));
+        insn_in_progress->appendOperand(imm, true, false);
+        return;
+    }
+    void InstructionDecoder_power::QGPC()
+    {
+        Expression::Ptr imm = Immediate::makeImmediate(Result(u8, field<11, 22>(insn)));
+        insn_in_progress->appendOperand(imm, true, false);
+        return;
+    }
     void InstructionDecoder_power::UI()
     {
         Expression::Ptr imm = Immediate::makeImmediate(Result(u32, field<16, 31>(insn)));
@@ -729,6 +838,11 @@ using namespace boost::assign;
         insn_in_progress->appendOperand(makeFRAExpr(), !isRAWritten, isRAWritten);
         return;
     }
+    void InstructionDecoder_power::QFRA()
+    {
+        insn_in_progress->appendOperand(makeQFRAExpr(), !isRAWritten, isRAWritten);
+        return;
+    }
     void InstructionDecoder_power::FRB()
     {
         insn_in_progress->appendOperand(makeFRBExpr(), true, false);
@@ -737,6 +851,11 @@ using namespace boost::assign;
     void InstructionDecoder_power::FRC()
     {
         insn_in_progress->appendOperand(makeFRCExpr(), true, false);
+        return;
+    }
+    void InstructionDecoder_power::QFRC()
+    {
+        insn_in_progress->appendOperand(makeQFRCExpr(), true, false);
         return;
     }
     void InstructionDecoder_power::BI()

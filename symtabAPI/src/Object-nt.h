@@ -194,7 +194,7 @@ class Object : public AObject
     SYMTAB_EXPORT Offset getLoadAddress() const { return imageBase; }
     SYMTAB_EXPORT Offset getEntryAddress() const { return getEntryPoint(); }
     SYMTAB_EXPORT Offset getBaseAddress() const { return get_base_addr(); }
-    SYMTAB_EXPORT Offset getTOCoffset() const { return 0; }
+    SYMTAB_EXPORT Offset getTOCoffset(Offset /*ignored*/) const { return 0; }
     SYMTAB_EXPORT ObjectType objType() const;
     SYMTAB_EXPORT const char *interpreter_name() const { return NULL; }
     SYMTAB_EXPORT dyn_hash_map <std::string, LineInformation> &getLineInfo();
@@ -226,6 +226,7 @@ class Object : public AObject
     std::vector<std::pair<std::string, IMAGE_IMPORT_DESCRIPTOR> > & getImportDescriptorTable();
     std::map<std::string, std::map<std::string, WORD> > & getHintNameTable();
     PIMAGE_NT_HEADERS getPEHdr() { return peHdr; }
+	void setTOCoffset(Offset) {};
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
     SYMTAB_EXPORT void    parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &);

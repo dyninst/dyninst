@@ -616,6 +616,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 
     startup_printf("[%s:%u] - Creation error opening %s\n",
                    FILE__, __LINE__, filename.c_str());
+    assert(0);
     return NULL;
 }
 

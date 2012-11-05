@@ -40,6 +40,7 @@
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/SymReader.h"
 #include "dynutil/h/ProcReader.h"
+#include "common/h/debug_common.h"
 
 using namespace std;
 
@@ -137,8 +138,6 @@ class AddressTranslate {
 };
 
 }
-
-extern int translate_printf(const char *format, ...);
 
 
 #endif

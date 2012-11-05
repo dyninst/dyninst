@@ -46,7 +46,7 @@
 #include "BPatch_basicBlock.h"
 
 #include "../../../parseAPI/h/CFG.h"
-#if !defined(os_windows_test)
+#if !defined(os_windows_test) && defined(ENABLE_PARSE_API_GRAPHS)
 #include "../../../parseAPI/h/GraphAdapter.h"
 #endif
 
@@ -442,6 +442,9 @@ test_results_t test1_33_Mutator::executeTest()
 	{
 		logerror("**Failed** test #33 (control flow graphs)\n");
 		logerror("  Detected %d exit basic blocks in  %s, should have been one.\n", exit3.size(), fn2);
+		for (unsigned i = 0; i < exit3.size(); ++i) {
+		  logerror("\t%d: 0x%lx\n", i, exit3[i]->getStartAddress());
+		}
 		return FAILED;
 	}
 
@@ -454,8 +457,9 @@ test_results_t test1_33_Mutator::executeTest()
 			return FAILED;
 		}
 	}
-#if !defined(os_windows_test)
-
+#if !defined(os_windows_test) && defined(ENABLE_PARSE_API_GRAPHS)
+	logerror("Testing parseAPI dominators\n");
+	
 	ParseAPI::Function* parse_func = ParseAPI::convert(func3);
 	assert(parse_func);
 	Block* parse_entry = parse_func->entry();

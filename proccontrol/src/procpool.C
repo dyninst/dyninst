@@ -57,7 +57,6 @@ int_process *ProcessPool::findProcByPid(Dyninst::PID pid)
       return NULL;
    return (*i).second;
 }
-#include "freebsd.h"
 void ProcessPool::addProcess(int_process *proc)
 {
    pthrd_printf("Adding process %d to pool\n", proc->getPid());
@@ -111,6 +110,11 @@ void ProcessPool::addThread(int_process * /*proc*/, int_thread *thr)
    std::map<Dyninst::LWP, int_thread *>::iterator i = lwps.find(thr->getLWP());
    assert(i == lwps.end());
    lwps[thr->getLWP()] = thr;
+   // Un-kill if a LWP has been recycled 
+   // (because we've run long enough?)
+   std::set<Dyninst::LWP>::iterator found = deadThreads.find(thr->getLWP());
+   if(found != deadThreads.end()) deadThreads.erase(found);
+   
 }
 
 void ProcessPool::rmThread(int_thread *thr)
@@ -118,6 +122,7 @@ void ProcessPool::rmThread(int_thread *thr)
    if (!LWPIDsAreUnique())
       return;
    std::map<Dyninst::LWP, int_thread *>::iterator i = lwps.find(thr->getLWP());
+   addDeadThread(thr->getLWP());
    assert(i != lwps.end());
    lwps.erase(i);
 }

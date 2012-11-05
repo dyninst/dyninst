@@ -5,8 +5,9 @@ DEP=patchapi.tex \
 	section/2_abs.tex \
 	section/3_example.tex \
 	section/4_api_public.tex \
-	section/5_api_plugin.tex \
-	section/6_dyninst.tex
+	section/5_api_modification.tex \
+	section/6_api_plugin.tex \
+	section/7_dyninst.tex
 
 $(MAIN).pdf: $(DEP)
 	$(TEX) $(MAIN)

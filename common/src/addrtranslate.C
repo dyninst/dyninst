@@ -264,36 +264,6 @@ void LoadedLib::setUpPtr(void *v)
 
 #include <stdarg.h>
 
-int translate_printf(const char *format, ...)
-{
-  static int dyn_debug_translate = 0;
-
-  if (dyn_debug_translate == -1) {
-    return 0;
-  }
-  if (!dyn_debug_translate) {
-    char *p = getenv("DYNINST_DEBUG_TRANSLATE");
-    if (p) {
-      fprintf(stderr, "Enabling address translation debug prints\n");
-      dyn_debug_translate = 1;
-    }
-    else {
-      dyn_debug_translate = -1;
-      return 0;
-    }
-  }
-
-  if (!format)
-    return -1;
-
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  return ret;
-}
-
 //#if !defined(os_linux) && !defined(os_solaris)
 //This definition is for all the non-System V systems
 Address AddressTranslate::getLibraryTrapAddrSysV()

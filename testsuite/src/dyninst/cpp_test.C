@@ -42,6 +42,10 @@ int CPP_DEFLT_ARG = CPP_DEFLT_ARG_VAL;
 
 void cpp_test_util::call_cpp(int test)
 {
+  // Illegally called by test5_9 to trigger inclusion of this
+  // function in the dwarf. 
+  if (test > MAX_TEST_CPP) return;
+
    passedTestCPP[test] = TRUE;
 
    switch (test) {

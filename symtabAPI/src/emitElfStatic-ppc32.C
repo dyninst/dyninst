@@ -112,7 +112,7 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
         if( lmap.newCtorRegions.size() > 0 ) {
             symbolOffset = lmap.ctorRegionOffset + globalOffset;
         }else if( lmap.originalCtorRegion != NULL ) {
-            symbolOffset = lmap.originalCtorRegion->getRegionAddr();
+            symbolOffset = lmap.originalCtorRegion->getMemOffset();
         }else{
             errMsg = "Failed to locate original .ctors Region -- cannot apply relocation";
             rewrite_printf("Failed to locate original .ctors Region -- cannot apply relocation\n");
@@ -123,7 +123,7 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
         if( lmap.newDtorRegions.size() > 0 ) {
             symbolOffset = lmap.dtorRegionOffset + globalOffset;
         }else if( lmap.originalDtorRegion != NULL ) {
-            symbolOffset = lmap.originalDtorRegion->getRegionAddr();
+            symbolOffset = lmap.originalDtorRegion->getMemOffset();
         }else{
             errMsg = "Failed to locate original .dtors Region -- cannot apply relocation";
             rewrite_printf("Failed to locate original .dtors Region -- cannot apply relocation\n");
@@ -674,7 +674,7 @@ bool emitElfStatic::isGOTRelocation(unsigned long relType) {
     return false;
 }
 
-Offset emitElfStatic::getGOTSize(LinkMap &) {
+Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &) {
     return 0;
 }
 
@@ -682,9 +682,14 @@ Offset emitElfStatic::getGOTAlign(LinkMap &) {
     return 0;
 }
 
-void emitElfStatic::buildGOT(LinkMap &) {
+void emitElfStatic::buildGOT(Symtab *, LinkMap &) {
 }
 
 void emitElfStatic::getExcludedSymbolNames(set<string> &) {
+}
+
+Offset emitElfStatic::allocStubRegions(LinkMap &lmap, Offset) {
+   // Size 0
+   return lmap.stubRegionOffset;
 }
 

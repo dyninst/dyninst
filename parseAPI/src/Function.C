@@ -168,6 +168,12 @@ Function::extents()
 void
 Function::finalize()
 {
+  _extents.clear();
+  _exitBL.clear();
+  _bl.clear();
+  _retBL.clear();
+  _call_edge_list.clear();
+
     // The Parser knows how to finalize
     // a Function's parse data
     _obj->parser->finalize(this);
@@ -220,6 +226,7 @@ Function::blocks_int()
         const Block::edgelist & trgs = cur->targets();
         if (trgs.empty()) {
            // Woo hlt!
+	  parsing_printf("No targets, exits func\n");
            exits_func = true;
         }
         for(Block::edgelist::const_iterator tit=trgs.begin();
@@ -240,6 +247,7 @@ Function::blocks_int()
             if(e->type() == RET) {
                 link_return = true;
                 exits_func = true;
+		parsing_printf("Block has return edge\n");
                 if (obj()->defensiveMode()) {
                     if (_tamper != TAMPER_UNSET && _tamper != TAMPER_NONE) 
                        continue;
@@ -253,6 +261,7 @@ Function::blocks_int()
             // and don't add target blocks.
             if (t->obj() != cur->obj()) {
                // This is a jump to a different CodeObject; call it an exit
+	      parsing_printf("Block exits object\n");
                exits_func = true;
                 continue;
             }
@@ -267,9 +276,11 @@ Function::blocks_int()
                 add_block(t);
             }
         } 
-        if (found_call && !found_call_ft && !obj()->defensiveMode())
+        if (found_call && !found_call_ft && !obj()->defensiveMode()) {
+	  parsing_printf("\t exits func\n");
            exits_func = true;
-        
+        }
+
         if (link_return) assert(exits_func);
 
         if(exits_func) {
@@ -277,6 +288,7 @@ Function::blocks_int()
               delayed_link_return(_obj,cur);
            if(visited[cur->start()] <= 1) {
               _exitBL.push_back(cur);
+	      parsing_printf("Adding block 0x%lx as exit\n", cur->start());
               if (link_return) 
 	      {
                  _retBL.push_back(cur);

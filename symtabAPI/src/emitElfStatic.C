@@ -58,9 +58,15 @@ using namespace SymtabAPI;
 
 // Section names
 static const string CODE_NAME(".dyninstCode");
+static const string STUB_NAME(".dyninstStub");
 static const string DATA_NAME(".dyninstData");
 static const string BSS_NAME(".dyninstBss");
+// DISABLED #if defined(arch_power) && defined(arch_64bit)
+// We do GOT replacement...
+//static const string GOT_NAME(".got");
+//#else
 static const string GOT_NAME(".dyninstGot");
+//#endif
 static const string CTOR_NAME(".dyninstCtors");
 static const string DTOR_NAME(".dyninstDtors");
 static const string TLS_DATA_NAME(".dyninstTdata");
@@ -149,6 +155,10 @@ char *emitElfStatic::linkStatic(Symtab *target,
         err = Storage_Allocation_Failure;
         errMsg = "Failed to create new Regions in original binary";
         return NULL;
+    }
+
+    if (!updateTOC(target, lmap, globalOffset)) {
+      return NULL;
     }
 
     // Print out the link map for debugging
@@ -495,11 +505,10 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                         lmap.dtorRegionAlign = (*reg_it)->getMemAlignment();
                     }
 		} else if( isGOTRegion(*reg_it) ) {
-                    		lmap.gotRegions.push_back(*reg_it);
-                    		if( (*reg_it)->getMemAlignment() > lmap.gotRegionAlign ) {
-                        		lmap.gotRegionAlign = (*reg_it)->getMemAlignment();
-                    		}
-
+		  lmap.gotRegions.push_back(*reg_it);
+		  if( (*reg_it)->getMemAlignment() > lmap.gotRegionAlign ) {
+		    lmap.gotRegionAlign = (*reg_it)->getMemAlignment();
+		  }
                 }else{
                     switch((*reg_it)->getRegionType()) {
                         case Region::RT_TEXT:
@@ -581,13 +590,13 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                 vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
                 vector<relocationEntry>::iterator rel_it;
                 for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
-
-                    if(isGOTRelocation(rel_it->getRelType()) ) {
-                        	lmap.gotSymbolTable.push_back(make_pair(rel_it->getDynSym(), rel_it->addend()));
-									lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), 0));
-			
-		    }
-			
+		  
+		  if(isGOTRelocation(rel_it->getRelType()) ) {
+		    lmap.gotSymbolTable.push_back(make_pair(rel_it->getDynSym(), rel_it->addend()));
+		    lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), 0));
+		    
+		  }
+		  
                 }
             } // isLoadable
            
@@ -631,20 +640,40 @@ bool emitElfStatic::createLinkMap(Symtab *target,
             maxAlign);
 
     // Allocate space for a GOT Region, if necessary
-    lmap.gotSize = getGOTSize(target, lmap);
+    Offset gotLayoutOffset = 0;
+    lmap.gotSize = getGOTSize(target, lmap, gotLayoutOffset);
     if( lmap.gotSize > 0 ) {
+      // We may copy the original GOT over; in this case, we have to be sure we skip it
+      // when we lay out new GOT entries. That's the gotLayoutOffset value. 
 	lmap.gotRegionAlign = getGOTAlign(lmap);
         lmap.gotRegionOffset = currentOffset;
         currentOffset += lmap.gotSize;
         layoutRegions(lmap.gotRegions, lmap.regionAllocs,
-            lmap.gotRegionOffset, globalOffset);
+		      lmap.gotRegionOffset + gotLayoutOffset, globalOffset);
+	calculateTOCs(target, lmap.gotRegions, lmap.gotRegionOffset, gotLayoutOffset, globalOffset);
     } 
+
+    // Calculate the space necessary for stub code; normally this will be 0,
+    // but we may need to add code later on. Make room for it now. 
+    // Note we use code region alignment here. 
+    lmap.stubRegionOffset = currentOffset;
+    lmap.stubRegionOffset += computePadding(globalOffset + lmap.stubRegionOffset,
+					    lmap.codeRegionAlign);
+    rewrite_printf("Before allocStubRegions, currentOffset is 0x%lx\n", currentOffset);
+    currentOffset = allocStubRegions(lmap, globalOffset);
+    rewrite_printf("After allocStubRegions, currentOffset is 0x%lx\n", currentOffset);
+    if( currentOffset == ~0UL ) {
+        err = Storage_Allocation_Failure;
+        errMsg = "assumption failed while creating link map";
+        return false;
+    }
+    lmap.stubSize = currentOffset - lmap.stubRegionOffset;
 
     lmap.codeRegionOffset = currentOffset;
     lmap.codeRegionOffset += computePadding(globalOffset + lmap.codeRegionOffset,
-            lmap.codeRegionAlign);
+					    lmap.codeRegionAlign);
     currentOffset = layoutRegions(lmap.codeRegions, lmap.regionAllocs,
-            lmap.codeRegionOffset, globalOffset);
+				  lmap.codeRegionOffset, globalOffset);
     if( currentOffset == ~0UL ) {
         err = Storage_Allocation_Failure;
         errMsg = "assumption failed while creating link map";
@@ -991,6 +1020,12 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 static_cast<unsigned int>(lmap.codeSize),
                 CODE_NAME, Region::RT_TEXTDATA, true, lmap.codeRegionAlign);
     }
+    if (lmap.stubSize > 0) {
+        target->addRegion(globalOffset + lmap.stubRegionOffset,
+			  reinterpret_cast<void *>(&newTargetData[lmap.stubRegionOffset]),
+			  static_cast<unsigned int>(lmap.stubSize),
+			  STUB_NAME, Region::RT_TEXTDATA, true, lmap.codeRegionAlign);
+    }      
 
     if( lmap.dataSize > 0 ) {
         target->addRegion(globalOffset + lmap.dataRegionOffset, 
@@ -1094,8 +1129,8 @@ Offset emitElfStatic::computePadding(Offset candidateOffset, Offset alignment) {
  * lmap                 Contains all the information necessary to apply relocations
  */
 bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatableObjects,
-        Offset globalOffset, LinkMap &lmap,
-        StaticLinkError &err, string &errMsg) 
+				     Offset globalOffset, LinkMap &lmap,
+				     StaticLinkError &err, string &errMsg) 
 {
     // Iterate over all relocations in all relocatable files
     vector<Symtab *>::iterator depObj_it;
@@ -1123,12 +1158,20 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
                     // Compute destination of relocation
                     Offset dest = regionOffset + rel_it->rel_addr();
                     Offset relOffset = globalOffset + dest;
-			
-                   rewrite_printf("\tComputing relocations to apply to region: %s @ 0x%lx reloffset %d 0x%lx dest %d 0x%lx  \n\n",
-                        (*region_it)->getRegionName().c_str(), regionOffset, relOffset,relOffset, dest,dest);
+
+		    rewrite_printf("Computing relocations to apply to region: %s (%s) @ 0x%lx reloffset 0x%lx dest 0x%lx  \n\n",
+				   (*region_it)->getRegionName().c_str(), 
+				   (*region_it)->symtab()->file().c_str(),
+				   regionOffset, 
+				   relOffset,
+				   dest);
+		    rewrite_printf("\t RelOffset computed as region 0x%lx + rel_addr 0x%lx + globalOffset 0x%lx\n",
+				   regionOffset, rel_it->rel_addr(), globalOffset);
+		    
                     char *targetData = lmap.allocatedData;
-                    if( !archSpecificRelocation(target, *depObj_it, targetData, *rel_it, dest, 
-                                relOffset, globalOffset, lmap, errMsg) ) 
+                    if( !archSpecificRelocation(target, *depObj_it, 
+						targetData, *rel_it, dest, 
+						relOffset, globalOffset, lmap, errMsg) ) 
                     {
                         err = Relocation_Computation_Failure;
                         errMsg = "Failed to compute relocation: " + errMsg;
@@ -1580,4 +1623,37 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
 #endif
 
     return true;
+}
+
+bool emitElfStatic::calculateTOCs(Symtab *target, deque<Region *> &regions, Offset GOTstart, Offset newStart, Offset globalOffset) {
+  rewrite_printf("Calculating TOCs for merged GOT sections, base is 0x%lx, new regions at 0x%lx\n", 
+		 GOTstart + globalOffset,
+		 GOTstart + newStart + globalOffset);
+
+  Offset GOTbase = GOTstart + globalOffset;
+  Offset current = GOTbase + newStart;
+  Offset currentTOC = target->getTOCoffset((Offset) 0);
+  rewrite_printf("\tBase TOC is 0x%lx\n", currentTOC);
+
+  for (deque<Region *>::iterator iter = regions.begin(); iter != regions.end(); ++iter) {
+    Region *reg = *iter;
+    Symtab *symtab = reg->symtab();
+    
+    Offset end = current + reg->getDiskSize();
+
+    // We'd like the TOC to be GOTbase + 0x8000, so long as that can address the end of the current
+    // region. 
+    if ((currentTOC + 0x7ff0) < end) {
+      // Crud...
+      // OTOH, we can't reference anything outside the current GOT, so just rebase it
+      currentTOC = current + 0x8000;
+    }
+    // Recheck
+    if ((currentTOC + 0x7ff0) < end) {
+      assert(0 && "Need to implement -bbigtoc equivalent to rewrite this binary!");
+    }
+    symtab->setTOCOffset(currentTOC);
+    current = end;
+  }
+  return true;
 }

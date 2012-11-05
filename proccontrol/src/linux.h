@@ -56,6 +56,7 @@ class GeneratorLinux : public GeneratorMT
   private:
    int generator_lwp;
    int generator_pid;
+   
   public:
    GeneratorLinux();
    virtual ~GeneratorLinux();
@@ -63,6 +64,7 @@ class GeneratorLinux : public GeneratorMT
    virtual bool initialize();
    virtual bool canFastHandle();
    virtual ArchEvent *getEvent(bool block);
+   void evictFromWaitpid();
 };
 
 class ArchEventLinux : public ArchEvent

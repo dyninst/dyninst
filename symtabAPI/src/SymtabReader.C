@@ -34,6 +34,9 @@
 #include "symtabAPI/h/Function.h"
 
 #include "symtabAPI/src/Object.h"
+#include <queue>
+#include <iostream>
+using namespace std;
 
 #include <sstream>
 using std::stringstream;
@@ -294,7 +297,7 @@ SymReader *SymtabReaderFactory::openSymbolReader(std::string pathname)
 {
    std::map<std::string, SymReader *>::iterator i = open_syms.find(pathname);
    if (i != open_syms.end()) {
-      SymtabReader *symtabreader = static_cast<SymtabReader *>(i->second);
+      SymtabReader *symtabreader = dynamic_cast<SymtabReader *>(i->second);
       symtabreader->ref_count++;
       return symtabreader;
    }
@@ -303,6 +306,7 @@ SymReader *SymtabReaderFactory::openSymbolReader(std::string pathname)
       return NULL;
    }
    open_syms[pathname] = symtabreader;
+
    return symtabreader;
 }
 
@@ -320,6 +324,20 @@ bool SymtabReaderFactory::closeSymbolReader(SymReader *sr)
    assert(symreader->ref_count >= 1);
    symreader->ref_count--;
    if (symreader->ref_count == 0) {
+     // We need to remove this from the big map, but we don't 
+     // store the path. So crawl and look. 
+     std::queue<std::string> toDelete;
+     std::map<std::string, SymReader *>::iterator i;
+     for (i = open_syms.begin(); i != open_syms.end(); ++i) {
+       if (i->second == symreader) {
+	 toDelete.push(i->first);
+       }
+     }
+     while (!toDelete.empty()) {
+       open_syms.erase(toDelete.front());
+       toDelete.pop();
+     }
+
       delete symreader;
    }
    return true;

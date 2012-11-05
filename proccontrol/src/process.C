@@ -42,7 +42,6 @@
 #include "proccontrol/h/ProcessSet.h"
 #include "proccontrol/h/PlatFeatures.h"
 
-#include "freebsd.h"
 #if defined(os_windows)
 #include "proccontrol/src/windows_process.h"
 #include "proccontrol/src/windows_thread.h"
@@ -69,9 +68,10 @@ const vector<string> Process::emptyEnvp;
 Process::thread_mode_t threadingMode = Process::GeneratorThreading;
 bool int_process::in_callback = false;
 std::set<int_thread::continue_cb_t> int_thread::continue_cbs;
+SymbolReaderFactory *int_process::user_set_symbol_reader = NULL;
 
-static const int ProcControl_major_version = 0;
-static const int ProcControl_minor_version = 1;
+static const int ProcControl_major_version = 8;
+static const int ProcControl_minor_version = 0;
 static const int ProcControl_maintenance_version = 0;
 
 void Process::version(int& major, int& minor, int& maintenance)
@@ -641,6 +641,10 @@ bool int_process::post_forked()
 async_ret_t int_process::initializeAddressSpace(std::set<response::ptr> &async_responses)
 {
    std::set<int_library*> added, rmd;
+
+   //This call will determine and cache the appropriate symbol reader, or NOP
+   // if that's already been done.
+   getSymReader();
 
    bool have_asyncs = false;
    bool result = refresh_libraries(added, rmd, have_asyncs, async_responses);
@@ -1213,7 +1217,9 @@ int_process::int_process(Dyninst::PID p, std::string e,
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
    fork_tracking(FollowFork::getDefaultFollowFork()),
-   user_data(NULL)
+   user_data(NULL),
+   last_error_string(NULL),
+   symbol_reader(NULL)
 {
    clearLastError();
 	wasCreatedViaAttach(pid == 0);
@@ -1242,7 +1248,9 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
    fork_tracking(p->fork_tracking),
-   user_data(NULL)
+   user_data(NULL),
+   last_error_string(NULL),
+   symbol_reader(NULL)
 {
    Process::ptr hlproc = Process::ptr(new Process());
    clearLastError();
@@ -1327,7 +1335,6 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
    }
    return bresult;      
 }
-#include "freebsd.h"
 
 bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr, bp_write_t bp_write)
 {
@@ -1400,11 +1407,6 @@ void int_process::freeExecMemory(Dyninst::Address addr)
    i = exec_mem_cache.find(addr);
    assert(i != exec_mem_cache.end());
    exec_mem_cache.erase(i);
-}
-
-SymbolReaderFactory *int_process::plat_defaultSymReader()
-{
-  return NULL;
 }
 
 Dyninst::Address int_process::direct_infMalloc(unsigned long, bool, Dyninst::Address) 
@@ -1586,6 +1588,30 @@ bool int_process::infFree(int_addressSet *aset)
    }
 
    return !had_error;
+}
+
+SymbolReaderFactory *int_process::getSymReader()
+{
+   if (symbol_reader) {
+      return symbol_reader;
+   }
+   else if (user_set_symbol_reader) {
+      symbol_reader = user_set_symbol_reader;
+      return symbol_reader;
+   }
+   symbol_reader = plat_defaultSymReader();
+   return symbol_reader;
+}
+
+void int_process::setSymReader(SymbolReaderFactory *fact)
+{
+   symbol_reader = fact;
+}
+
+SymbolReaderFactory *int_process::plat_defaultSymReader()
+{
+   //Default version of function for systems without symbol readers
+   return NULL;
 }
 
 void int_process::setForceGeneratorBlock(bool b)
@@ -2244,6 +2270,8 @@ bool indep_lwp_control_process::plat_syncRunState()
       }
       if (!result && getLastError() == err_exited) {
          pthrd_printf("Suppressing error of continue on exited process\n");
+	 pthrd_printf("TESTING: setting handler to running anyway\n");
+	 thr->getHandlerState().setState(int_thread::running);
       }
       else if (!result) {
          pthrd_printf("Error changing process state from plat_syncRunState\n");
@@ -4670,7 +4698,7 @@ bool sw_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read
    read_response->setBuffer(buffer, buffer_size);
    bool ret = proc->readMem(addr, read_response);
    pthrd_printf("Buffer contents from read breakpoint:\n");
-   for (unsigned i = 0; i < buffer_size; ++i) {
+   for (int i = 0; i < buffer_size; ++i) {
      pthrd_printf("\t 0x%x\n", (unsigned char)buffer[i]);
    }
    return ret;
@@ -6494,16 +6522,36 @@ unsigned Process::numHardwareBreakpointsAvail(unsigned mode)
    return min;
 }
 
+void Process::setDefaultSymbolReader(SymbolReaderFactory *f)
+{
+   int_process::user_set_symbol_reader = f;
+}
+
 SymbolReaderFactory *Process::getDefaultSymbolReader()
+{
+   return int_process::user_set_symbol_reader;
+}
+
+void Process::setSymbolReader(SymbolReaderFactory *f) const
 {
    MTLock lock_this_func;
    if (!llproc_) {
-      perr_printf("getDefaultSymbolReader on deleted process\n");
+      perr_printf("setSymbolReader on exited process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return;
+   }
+   llproc_->setSymReader(f);
+}
+
+SymbolReaderFactory *Process::getSymbolReader() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getSymbolReader on exited process\n");
       setLastError(err_exited, "Process is exited\n");
       return NULL;
    }
-
-   return llproc()->plat_defaultSymReader();
+   return llproc_->getSymReader();
 }
 
 LibraryTracking *Process::getLibraryTracking()

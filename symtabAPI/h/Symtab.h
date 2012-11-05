@@ -52,11 +52,6 @@ class MappedFile;
  
 namespace Dyninst {
 
-namespace Dwarf {
-   class DwarfFrameParser;
-   typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
-}
-
 namespace SymtabAPI {
 
 class Archive;
@@ -90,8 +85,6 @@ class Symtab : public LookupInterface,
 
  public:
 
-   /**** DEBUG *****/
-   Dwarf::DwarfFrameParserPtr debugDwarf();
 
    /***** Public Member Functions *****/
    public:
@@ -332,7 +325,8 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Offset getLoadOffset() const;
    SYMTAB_EXPORT Offset getEntryOffset() const;
    SYMTAB_EXPORT Offset getBaseOffset() const;
-   SYMTAB_EXPORT Offset getTOCoffset() const;
+   SYMTAB_EXPORT Offset getTOCoffset(Function *func = NULL) const;
+   SYMTAB_EXPORT Offset getTOCoffset(Offset off) const;
    SYMTAB_EXPORT Address getLoadAddress();
    SYMTAB_EXPORT bool isDefensiveBinary() const; 
    SYMTAB_EXPORT Offset fileToDiskOffset(Dyninst::Offset) const;
@@ -437,6 +431,8 @@ class Symtab : public LookupInterface,
    bool addUserRegion(Region *newreg);
    bool addUserType(Type *newtypeg);
 
+   void setTOCOffset(Offset offset);
+
    /***** Private Data Members *****/
    private:
 
@@ -467,7 +463,6 @@ class Symtab : public LookupInterface,
    Offset entry_address_;
    Offset base_address_;
    Offset load_address_;
-   Offset toc_offset_;
    ObjectType object_type_;
    bool is_eel_;
    std::vector<Segment> segments_;
@@ -686,6 +681,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT void setAddend(const Offset);
       SYMTAB_EXPORT void setRegionType(const Region::RegionType);
       SYMTAB_EXPORT void setName(const std::string &newName);
+      SYMTAB_EXPORT void setRelType(unsigned long relType) { relType_ = relType; }
 
       // dump output.  Currently setup as a debugging aid, not really
       //  for object persistance....
@@ -696,7 +692,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT bool operator==(const relocationEntry &) const;
 
       // Architecture-specific functions
-      SYMTAB_EXPORT static unsigned long getGlobalRelType(unsigned addressWidth);
+      SYMTAB_EXPORT static unsigned long getGlobalRelType(unsigned addressWidth, Symbol *sym = NULL);
       static const char *relType2Str(unsigned long r, unsigned addressWidth = sizeof(Address));
 
    private:

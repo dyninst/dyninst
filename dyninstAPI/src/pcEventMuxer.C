@@ -90,6 +90,8 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
          proccontrol_printf("[%s:%d] Failed to handle event, returning error\n", FILE__, __LINE__);
          return Error;
       }
+      BPatch::bpatch->signalNotificationFD();
+      return EventsReceived;
    }
    else {
       // It's really annoying from a user design POV that ProcControl methods can
@@ -105,6 +107,7 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
      }
      proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
      if (!handle(NULL)) return Error;
+     BPatch::bpatch->signalNotificationFD();
      return EventsReceived;
    }
    proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning\n", FILE__, __LINE__);
@@ -400,10 +403,7 @@ PCEventMuxer::cb_ret_t PCEventMuxer::threadCreateCallback(EventPtr ev) {
 PCEventMuxer::cb_ret_t PCEventMuxer::threadDestroyCallback(EventPtr ev) {
 	INITIAL_MUXING;
 
-        if (ev->getEventType().time() == EventType::Pre) {
-	  //ret = Process::cb_ret_t(Process::cbThreadStop);
-	  ret = ret_stopped;
-	}
+        ret = Process::cb_ret_t(Process::cbThreadStop);
 
 	DEFAULT_RETURN;
 }

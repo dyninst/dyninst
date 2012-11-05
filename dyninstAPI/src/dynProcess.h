@@ -359,8 +359,7 @@ protected:
           isInDebugSuicide_(false),
           irpcTramp_(NULL),
           inEventHandling_(false),
-          stackwalker_(NULL),
-          symReaderFactory_(NULL)
+          stackwalker_(NULL)
     {
         irpcTramp_ = baseTramp::createForIRPC(this);
     }
@@ -400,8 +399,7 @@ protected:
           isInDebugSuicide_(false),
           irpcTramp_(NULL),
           inEventHandling_(false),
-          stackwalker_(NULL),
-          symReaderFactory_(NULL)
+          stackwalker_(NULL)
     {
         irpcTramp_ = baseTramp::createForIRPC(this);
     }
@@ -445,8 +443,7 @@ protected:
           mt_cache_result_(parent->mt_cache_result_),
           isInDebugSuicide_(parent->isInDebugSuicide_),
           inEventHandling_(false),
-          stackwalker_(NULL),
-          symReaderFactory_(NULL)
+          stackwalker_(NULL)
     {
         irpcTramp_ = baseTramp::createForIRPC(this);
     }
@@ -556,6 +553,7 @@ protected:
             const void *inSelf);
     bool launchDebugger();
     bool startDebugger(); // platform-specific
+    static void initSymtabReader();
 
     // Fields //
 
@@ -624,7 +622,7 @@ protected:
     bool inEventHandling_;
 	std::set<Dyninst::ProcControlAPI::Thread::ptr> syncRPCThreads_;
     Dyninst::Stackwalker::Walker *stackwalker_;
-    DynSymReaderFactory *symReaderFactory_;
+    static Dyninst::SymtabAPI::SymtabReaderFactory *symReaderFactory_;
     std::map<Address, ProcControlAPI::Breakpoint::ptr> installedCtrlBrkpts;
 };
 
@@ -725,17 +723,6 @@ class DynWandererHelper : public Dyninst::Stackwalker::WandererHelper {
     virtual Dyninst::Stackwalker::WandererHelper::pc_state isPCInFunc(Address func_entry, Address pc);
     virtual bool requireExactMatch();
     virtual ~DynWandererHelper();
-};
-
-class DynSymReaderFactory : public Dyninst::SymtabAPI::SymtabReaderFactory
-{
-  private:
-    AddressSpace *as_;
-  public:
-    DynSymReaderFactory(AddressSpace *as);
-    virtual ~DynSymReaderFactory();
-    virtual SymReader *openSymbolReader(std::string pathname);
-    virtual SymReader *openSymbolReader(const char *buffer, unsigned long size);
 };
 
 #endif

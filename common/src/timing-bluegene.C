@@ -35,6 +35,12 @@ double calcCyclesPerSecondOS() {
 }
 #endif // bgp stuff
 
+#ifdef os_bgq
+double calcCyclesPerSecondOS() {
+  return 1.6e9;
+}
+#endif // bgq stuff
+
 #ifdef os_bgl
 double calcCyclesPerSecondOS() {
   return 7e8;  

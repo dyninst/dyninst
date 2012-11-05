@@ -14,6 +14,7 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 using namespace Dwarf;
+using namespace std;
 
 #define DWARF_FAIL_RET(x) {                                                 \
       int status = (x);                                                 \
@@ -224,17 +225,33 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       if (!findOffset()) return false;
       curName() = std::string();
 
-      dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p, encl %p\n",
+      dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p (%s), encl %p\n",
                    id(),
                    e,
                    (int) contexts_.c.size(), 
-                   curFunc(), curEnclosure());
+                   curFunc(),
+		   (curFunc() ? curFunc()->getAllMangledNames()[0].c_str() : "<null>"),
+		   curEnclosure());
 
       // Insert only inserts the first time; we need that behavior
       enclosureMap.insert(std::make_pair(offset(), curEnclosure()));
       
       bool ret = false;
       
+   // BLUEGENE BUG HACK
+#if defined(os_bg)
+      if (tag() == DW_TAG_base_type ||
+	  tag() == DW_TAG_const_type ||
+	  tag() == DW_TAG_pointer_type) {
+	// XLC compilers nest a bunch of stuff under an invented function; however,
+	// this is broken (they don't close the function properly). If we see a 
+	// tag like this, close off the previous function immediately
+	clearFunc();
+      }
+#endif
+
+
+
       switch(tag()) {
          case DW_TAG_subprogram:
          case DW_TAG_entry_point:
@@ -373,20 +390,22 @@ bool DwarfWalker::parseSubprogram() {
    // We want to skip parsing specification or abstract entries until we have
    // the base entry and can find/create the corresponding function object. 
 
-   if (!curFunc()) {
-      bool foundFunc = false;
-      if (!findFunction(foundFunc)) return false;
-      if (!foundFunc) {
-         // Hopefully abstract or specification; skip for now.
-         setParseChild(false);
-         return true;
-      }
-
-      if (parsedFuncs.find(curFunc()) != parsedFuncs.end()) {
-         setParseChild(false);
-         return true;
-      }
-      parsedFuncs.insert(curFunc());
+   // On the other hand, we can next actual function definitions. So...
+   // Try to find a function, and just don't freak out if we don't find one. 
+   bool foundFunc = false;
+   if (!findFunction(foundFunc)) return false;
+   
+   if (foundFunc) {
+     if (parsedFuncs.find(curFunc()) != parsedFuncs.end()) {
+       setParseChild(false);
+       return true;
+     }
+     parsedFuncs.insert(curFunc());
+   }
+   else if (!curFunc()) {
+     // Hopefully abstract or specification; skip for now.
+     setParseChild(false);
+     return true;
    }
 
    dwarf_printf("(0x%lx) Identified function name as %s\n", id(), curName().c_str());
@@ -574,14 +593,15 @@ bool DwarfWalker::parseVariable() {
       /* We now have the variable name, type, offset, and line number.
          Tell Dyninst about it. */
       if (!nameDefined()) return true;
-      dwarf_printf("(0x%lx) localVariable '%s', currentFunction %p\n", 
-                   id(), curName().c_str(), curFunc());
 
       localVar * newVariable = new localVar(curName(),
                                             type,
                                             fileName, 
                                             (int) variableLineNo, 
                                             curFunc());
+      dwarf_printf("(0x%lx) localVariable '%s' (%p), currentFunction %p\n", 
+                   id(), curName().c_str(), newVariable, curFunc());
+
       for (unsigned int i = 0; i < locs.size(); ++i) {
          dwarf_printf("(0x%lx) (%s) Adding location %d of %d: (0x%lx - 0x%lx): %s, %s, %s, %ld\n",
                       id(), newVariable->getName().c_str(), i+1, (int) locs.size(), locs[i].lowPC, locs[i].hiPC, 
@@ -833,6 +853,7 @@ bool DwarfWalker::parseInheritance() {
       Type::getComponents() will Do the Right Thing. */
    std::string fName = "{superclass}";
    curEnclosure()->addField( fName, superClass, -1, visibility );
+   dwarf_printf("(0x%lx) Added type %p as %s to %p\n", id(), superClass, fName.c_str(), curEnclosure());
    return true;
 }
 
@@ -891,6 +912,7 @@ bool DwarfWalker::parseEnumEntry() {
 
 bool DwarfWalker::parseMember() {
    dwarf_printf("(0x%lx) parseMember entry\n", id());
+   if (!curEnclosure()) return false;
 
    if (!findName(curName())) return false;
 
@@ -913,6 +935,8 @@ bool DwarfWalker::parseMember() {
    if (!fixBitFields(locs, memberSize)) return false;
 
    int offset_to_use = locs.size() ? locs[0].frameOffset : -1;
+
+   dwarf_printf("(0x%lx) Using offset of 0x%lx\n", id(), offset_to_use);
 
    if (nameDefined()) {
       curEnclosure()->addField( curName(), memberType, offset_to_use);
@@ -1461,7 +1485,9 @@ bool DwarfWalker::constructConstantVariableLocation(Address value,
       loc.hiPC = (Address) -1;
    }
 
-   loc.frameOffset = value + modLow;
+   // removed modlow
+
+   loc.frameOffset = value;
 
    locs.push_back(loc);
    
@@ -1839,35 +1865,20 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
   // expr_ptr is a pointer to a bytestream. Try to turn it into a Dwarf_Locdesc so
   // we can use decodeDwarfExpression. 
 
-  Dwarf_Loc loc;
-  Dwarf_Locdesc desc;
-  desc.ld_lopc = 0;
-  desc.ld_hipc = (Dwarf_Addr) ~0;
-  desc.ld_cents = 1;
-  desc.ld_s = &loc;
-  // Other fields are unused for now. 
-  Dwarf_Locdesc *descs[1];
-  descs[0] = &desc;
-  
-  loc.lr_atom = bitstream[0];
-  
-  Dwarf_Unsigned *values = (Dwarf_Unsigned *) (&bitstream[1]);
-  
-  switch(loc.lr_atom) {
-    // I'm handling the cases I've seen. 
-  case DW_OP_addr:
-    loc.lr_number = *values;
-    break;
-  case DW_OP_call_frame_cfa:
-    break;
-  case DW_OP_fbreg:
-    loc.lr_number = bitstream[1] - 0x80;
-    break;
-  default:
-    return false;
+  dwarf_printf("(0x%lx) bitstream for expr has len %d\n", id(), expr_len);
+  for (unsigned i = 0; i < expr_len; ++i) {
+    dwarf_printf("(0x%lx) \t %#hhx\n", id(), bitstream[i]);
   }
-  // I apologize: going from a struct to an array of struct pointers...
-  return decodeLocationListForStaticOffsetOrAddress(descs, 1, locs, NULL);
+
+  Dwarf_Signed cnt;
+  Dwarf_Locdesc *descs;
+
+  DWARF_FAIL_RET(dwarf_loclist_from_expr_a(dbg(), expr_ptr, expr_len, addr_size, 
+					   &descs, &cnt, NULL));
+
+  bool ret = decodeLocationListForStaticOffsetOrAddress(&descs, cnt, locs, NULL);
+  //deallocateLocationList(&descs, cnt);
+  return ret;
 }
 
 bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList, 
@@ -1999,3 +2010,27 @@ void DwarfWalker::Contexts::pop() {
    c.pop();
 }
 
+void DwarfWalker::Contexts::setFunc(Function *f) {
+  // Bug workaround; if we're setting a function, ignore
+  // any preceding lexical information since we probably 
+  // nested. 
+  c.top().func = f;
+  c.top().low = 0;
+  c.top().high = (Address) ~0;
+}
+
+void DwarfWalker::Contexts::clearFunc() {
+  // We can't edit in the middle of the stack...
+
+  std::stack<Context> repl;
+  while (!c.empty()) {
+    repl.push(c.top());
+    c.pop();
+  }
+
+  while (!repl.empty()) {
+    c.push(repl.top());
+    c.top().func = NULL;
+    repl.pop();
+  }
+}

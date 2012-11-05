@@ -107,13 +107,13 @@ AddressTranslate *sysv_process::constructTranslator(Dyninst::PID pid_)
    bool result = plat_getInterpreterBase(base);
    if (result) {
       return AddressTranslate::createAddressTranslator(pid_, procreader,
-                                                       plat_defaultSymReader(),
+                                                       getSymReader(),
                                                        INVALID_HANDLE_VALUE,
                                                        std::string(""), base);
    }
    else {
       return AddressTranslate::createAddressTranslator(pid_, procreader,
-                                                       plat_defaultSymReader());
+                                                       getSymReader());
    }
 }
 
@@ -186,12 +186,12 @@ bool sysv_process::initLibraryMechanism()
     if( translator() == NULL ) {
       createAddrTranslator();
       if (!translator() && procreader->isAsync()) {
-	pthrd_printf("Waiting for async read to finish initializing\n");
-	return false;
+         pthrd_printf("Waiting for async read to finish initializing\n");
+         return false;
       }
       if (!translator()) {
-	perr_printf("Error creating address translator object\n");
-	return false;
+         perr_printf("Error creating address translator object\n");
+         return false;
       }
     }
 
@@ -282,6 +282,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       if (!lib) {
          pthrd_printf("Creating new library object for %s\n", ll->getName().c_str());
          // Note: we set them all to "I'm a shared library"; the a.out is overridden below.
+
          lib = new int_library(ll->getName(), true, ll->getCodeLoadAddr(), ll->getDynamicAddr());
          assert(lib);
          added_libs.insert(lib);

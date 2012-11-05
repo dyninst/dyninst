@@ -82,9 +82,9 @@ RelocBlock *RelocBlock::createReloc(block_instance *block, func_instance *func) 
 
   for (block_instance::Insns::iterator iter = insns.begin();
        iter != insns.end(); ++iter) {
-    relocation_cerr << "  Adding instruction " 
+    relocation_cerr << "  Adding instruction @" 
 		    << std::hex << iter->first << std::dec
-		    << " " << iter->second->format() << endl;
+		    << ": " << iter->second->format(iter->first) << endl;
     Widget::Ptr ptr = InsnWidget::create(iter->second, iter->first);
 
     if (!ptr) {

@@ -24,7 +24,7 @@ M_native_cc = @_CC_@
 M_native_cxx = @_CXX_@
 
 #Boost
-CPPFLAGS += @BOOST_DIR@
+CPPFLAGS += @BOOST_CPPFLAGS@
 
 #TCL/TK is required for all Paradyn builds, but not DyninstAPI
 TCLTK_LIB_DIR = @TCLTK_LIB_DIR@
@@ -73,6 +73,8 @@ LIBIBERTY_LIB = @LIBIBERTY_LIB_DIR@
 
 DEFAULT_COMPONENT = @DEFAULT_COMPONENT@
 
+EXTRA_LIBS = @LIBS@
+
 #nasm is needed for the Linux/x86 dyninst tests
 NASM = @NASM@
 
@@ -112,3 +114,5 @@ INSTALL = @INSTALL@
 
 WITHOUT_PARSE_API = @WITHOUT_PARSEAPI@
 WITHOUT_SYMTAB_API = @WITHOUT_SYMTABAPI@
+
+ENABLE_PARSE_API_GRAPHS = @enableparseAPIgraphs@

@@ -995,7 +995,7 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
        return PS_ERR;
     }
 
-    objSymReader = plat_defaultSymReader()->openSymbolReader(lib->getName());
+    objSymReader = getSymReader()->openSymbolReader(lib->getName());
     if( NULL == objSymReader ) {
         perr_printf("Failed to open symbol reader for %s\n",
                     lib->getName().c_str());

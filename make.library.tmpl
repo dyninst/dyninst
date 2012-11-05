@@ -71,7 +71,7 @@ $(TARGET): $(TARGET).$(RELEASE_NUM)
 $(TARGET).$(RELEASE_NUM): $(OBJS) $(VOUCHER).o
 	$(HIDE_COMP)$(RM) $(TARGET) $(TARGET).$(RELEASE_NUM)
 	@echo Linking $@
-	$(HIDE_COMP)$(LD) $(LIBDIR) $(SONAME_FLAGS) $(LDFLAGS) -o $(TARGET).$(RELEASE_NUM) $(VOUCHER).o $(OBJS) $(LIBS)
+	$(HIDE_COMP)$(LD) $(LIBDIR) $(SONAME_FLAGS) -o $(TARGET).$(RELEASE_NUM) $(VOUCHER).o $(OBJS) $(LDFLAGS) $(LIBS) 
 
 else # build a static lib
 $(TARGET): $(OBJS) $(VOUCHER).o
@@ -268,9 +268,6 @@ ifdef USES_LIBELF
 ifneq (x,x$(strip $(LIBELF_LIB)))
 LIBELF_LINK_FLAGS += -L$(LIBELF_LIB)
 # If we're dynamic (that is, not static) add an rpath
-ifneq (xtrue,x$(LIBELF_STATIC))
-LIBELF_LINK_FLAGS += -Wl,-rpath,$(LIBELF_LIB)
-endif # LIBELF_STATIC != true
 endif # LIBELF_LIB
 ifneq (xtrue,x$(LIBELF_STATIC))
 LIBELF_LINK_FLAGS += -lelf
@@ -288,9 +285,6 @@ ifdef LIBDWARF_PLATFORM
 ifdef USES_DWARF_DEBUG
 ifneq (x,x$(strip $(LIBDWARF_LIB)))
 LIBDWARF_LINK_FLAGS += -L$(LIBDWARF_LIB)
-ifneq (xtrue,x$(LIBDWARF_STATIC))
-LIBDWARF_LINK_FLAGS += -Wl,-rpath,$(LIBDWARF_LIB)
-endif
 endif
 ifneq (xtrue,x$(LIBDWARF_STATIC))
 LIBDWARF_LINK_FLAGS += -ldwarf
