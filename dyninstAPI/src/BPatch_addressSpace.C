@@ -1051,7 +1051,7 @@ bool BPatch_addressSpace::createRegister_NPInt(std::string,
 }
 #endif
 
-BPatch_module *BPatch_addressSpace::loadLibraryInt(const char * /*libname*/, bool /*reload*/)
+BPatch_object *BPatch_addressSpace::loadLibraryInt(const char * /*libname*/, bool /*reload*/)
 {
         return NULL;
 }
