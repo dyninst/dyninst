@@ -1,0 +1,52 @@
+\subsection{Class EdgePredicate}
+\label{sec:pred}
+
+\definedin{CFG.h}
+
+Edge predicates control iteration over edges. For example, the provided
+\code{Intraproc} edge predicate can be passed to an edge iterator
+constructor, ensuring that only intraprocedural edges are visited during
+iteration. Two other implementations of EdgePredicate are provided: 
+\code{SingleContext} only visits edges that stay in a single
+function context, and \code{NoSinkPredicate} does not visit edges to 
+the \emph{sink} block.  The following code traverses 
+all of the basic blocks within a
+function:
+
+\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
+\lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
+\begin{lstlisting}
+    vector<Block*> work;
+    std::map<Block*,bool> seen; // avoid loops
+    Intraproc epred; // ignore calls, returns
+   
+    work.push_back(func->entry()); // assuming `func' is a Function*
+    seen[func->entry()] = true;
+    while(!work.empty()) {
+        Block * b = work.back();
+        work.pop_back();
+
+        // do some stuff with b...
+   
+        Block::edgelist & targets = block->targets();
+        Block::edgelist::iterator eit = targets.begin(&epred);
+        for( ; eit != targets.end(); ++eit) {
+            Edge * e = (*eit);
+            if(seen.find(e->trg()) == seen.end())
+                work.push_back(e->trg());
+        }
+    } 
+\end{lstlisting}
+
+New edge predicates can be created by implementing the following simple interface:
+
+\begin{apient}
+EdgePredicate()
+EdgePredicate(EdgePredicate * next)
+\end{apient}
+\apidesc{Constructs a predicate, either with or without a previously existing predicate to chain it to. Chained predicates return the logical AND over all predicates in the chain.}
+
+\begin{apient}
+virtual bool pred_impl(Edge *)
+\end{apient}
+\apidesc{Evaluates the predicate on the provided edge.}

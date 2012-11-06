@@ -1076,6 +1076,8 @@ Address AddressTranslateSysV::adjustForAddrSpaceWrap(Address base, std::string n
           type == PT_NOTE ||
           type == PT_SHLIB ||
           type == PT_TLS) continue;
+
+      close(fd);
       return base;
    }
 
@@ -1083,6 +1085,8 @@ Address AddressTranslateSysV::adjustForAddrSpaceWrap(Address base, std::string n
 
    translate_printf("\t Comparing base + offset of 0x%lx with 32-bit 0x%lx\n",
                  base+codeOffset + aspace32);
+
+   close(fd);
 
    if ((base + codeOffset) < aspace32) {
       // No address space wrapping
