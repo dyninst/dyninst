@@ -994,7 +994,7 @@ bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
  *
  * libname      The name of the library to load.
  */
-BPatch_module *BPatch_process::loadLibraryInt(const char *libname, bool)
+BPatch_object *BPatch_process::loadLibraryInt(const char *libname, bool)
 {
    if (!libname) {
       fprintf(stderr, "[%s:%u] - loadLibrary called with NULL library name\n",
@@ -1067,7 +1067,7 @@ BPatch_module *BPatch_process::loadLibraryInt(const char *libname, bool)
    }
 
    dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
-   return getImage()->findOrCreateModule(plib->getDefaultModule());
+   return getImage()->findOrCreateObject(plib);
 }
 
 
