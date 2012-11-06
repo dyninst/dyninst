@@ -346,10 +346,10 @@ else
        test -n "$LIBDWARF_LIB_DIR" &&
        LIBDWARF_LINK_FLAGS="-L$LIBDWARF_LIB_DIR";
        if test "x$LIBELF_LIB_DIR" != "x"; then
-       	  LIBDWARF_LINK_FLAGS="-L$LIBELF_LIB_DIR $LIBDWARF_LINK_FLAGS";
+       	  LIBDWARF_LINK_FLAGS="$LIBDWARF_LINK_FLAGS -L$LIBELF_LIB_DIR";
        fi
        LDFLAGS_HOLD=$LDFLAGS;
-       LDFLAGS="$LDFLAGS $LIBDWARF_LINK_FLAGS";
+       LDFLAGS="$LIBDWARF_LINK_FLAGS $LDFLAGS";
        AC_CHECK_LIB([dwarf], [dwarf_next_cu_header_c], [AC_MSG_NOTICE(DWARF library directory: $LIBDWARF_LIB_DIR)],
        [AC_ERROR(couldn't find sufficiently recent libdwarf (> 2011-12) with dwarf_next_cu_header_c)], [-lelf])
        LDFLAGS=$LDFLAGS_HOLD;

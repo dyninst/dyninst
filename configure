@@ -6045,10 +6045,10 @@ fi
        test -n "$LIBDWARF_LIB_DIR" &&
        LIBDWARF_LINK_FLAGS="-L$LIBDWARF_LIB_DIR";
        if test "x$LIBELF_LIB_DIR" != "x"; then
-       	  LIBDWARF_LINK_FLAGS="-L$LIBELF_LIB_DIR $LIBDWARF_LINK_FLAGS";
+       	  LIBDWARF_LINK_FLAGS="$LIBDWARF_LINK_FLAGS -L$LIBELF_LIB_DIR";
        fi
        LDFLAGS_HOLD=$LDFLAGS;
-       LDFLAGS="$LDFLAGS $LIBDWARF_LINK_FLAGS";
+       LDFLAGS="$LIBDWARF_LINK_FLAGS $LDFLAGS";
        { $as_echo "$as_me:$LINENO: checking for dwarf_next_cu_header_c in -ldwarf" >&5
 $as_echo_n "checking for dwarf_next_cu_header_c in -ldwarf... " >&6; }
 if test "${ac_cv_lib_dwarf_dwarf_next_cu_header_c+set}" = set; then
