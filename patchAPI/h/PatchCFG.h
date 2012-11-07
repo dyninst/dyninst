@@ -177,6 +177,7 @@ class PatchFunction {
    friend class PatchBlock;
    friend class PatchObject;
    friend class PatchParseCallback;
+   friend class PatchModifier;
 
    public:
      struct compare {
@@ -241,6 +242,7 @@ class PatchFunction {
      void splitBlock(PatchBlock *first, PatchBlock *second);
      void destroyPoints();
      void destroyBlockPoints(PatchBlock *block);
+     void invalidateBlocks();
 
      ParseAPI::Function *func_;
      PatchObject* obj_;

@@ -262,6 +262,23 @@ include $(TO_CORE)/make.platform.tmpl
 	@echo Compiling $<
 	$(HIDE_COMP) $(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $< -o $@
 
+ifdef LIBDWARF_PLATFORM
+ifdef USES_DWARF_DEBUG
+ifneq (x,x$(strip $(LIBDWARF_LIB)))
+LIBDWARF_LINK_FLAGS += -L$(LIBDWARF_LIB)
+endif
+ifneq (xtrue,x$(LIBDWARF_STATIC))
+LIBDWARF_LINK_FLAGS += -ldwarf
+endif
+ifneq (x,x$(strip $(LIBDWARF_INC)))
+LIBDWARF_INC_FLAGS += -I$(LIBDWARF_INC)
+endif
+LIBS += $(LIBDWARF_LINK_FLAGS)
+MYFLAGS += $(LIBDWARF_INC_FLAGS)
+endif
+endif
+
+
 ifdef LIBELF_PLATFORM
 ifdef USES_LIBELF
 
@@ -278,22 +295,6 @@ endif
 LIBS += $(LIBELF_LINK_FLAGS)
 MYFLAGS += $(LIBELF_INC_FLAGS) -DLIBELF_PLATFORM
 
-endif
-endif
-
-ifdef LIBDWARF_PLATFORM
-ifdef USES_DWARF_DEBUG
-ifneq (x,x$(strip $(LIBDWARF_LIB)))
-LIBDWARF_LINK_FLAGS += -L$(LIBDWARF_LIB)
-endif
-ifneq (xtrue,x$(LIBDWARF_STATIC))
-LIBDWARF_LINK_FLAGS += -ldwarf
-endif
-ifneq (x,x$(strip $(LIBDWARF_INC)))
-LIBDWARF_INC_FLAGS += -I$(LIBDWARF_INC)
-endif
-LIBS += $(LIBDWARF_LINK_FLAGS)
-MYFLAGS += $(LIBDWARF_INC_FLAGS)
 endif
 endif
 
