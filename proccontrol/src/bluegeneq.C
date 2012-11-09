@@ -339,6 +339,7 @@ bgq_process::~bgq_process()
       delete mtool;
       mtool = NULL;
    }
+   cn->removeNode(this);
 }
 
 bool bgq_process::plat_create()
@@ -2219,8 +2220,13 @@ bool ComputeNode::writeToolAttachMessage(bgq_process *proc, ToolMessage *msg, bo
 
 void ComputeNode::removeNode(bgq_process *proc) {
    set<bgq_process *>::iterator i = procs.find(proc);
-   assert(i != procs.end());
+   if (i == procs.end())
+      return;
+
    procs.erase(i);
+   issued_all_attach = false;
+   all_attach_done = false;
+   all_attach_error = false;
 }
 
 const std::set<ComputeNode *> &ComputeNode::allNodes()
@@ -3497,6 +3503,11 @@ bool DecoderBlueGeneQ::decodeExit(ArchEventBGQ *archevent, bgq_process *proc, ve
    else {
       pthrd_printf("Decoded to exit with code %d\n", exitcode);
       new_ev = EventExit::ptr(new EventExit(EventType::Post, exitcode));
+   }
+
+   int_threadPool::iterator i = proc->threadPool()->begin();
+   for (; i != proc->threadPool()->end(); i++) {
+      (*i)->getGeneratorState().setState(int_thread::exited);
    }
 
    int_thread *initial_thread = proc->threadPool()->initialThread();
