@@ -266,7 +266,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    }
    Address pc = in.getRA() - lib.second;
    sw_printf("[%s:%u] Dwarf-based stackwalking, using local address 0x%lx from 0x%lx - 0x%lx\n",
-             pc, in.getRA(), lib.second);
+             __FILE__, __LINE__, pc, in.getRA(), lib.second);
    if (in.getRALocation().location != loc_register && !in.nonCall()) {
       /**
        * If we're here, then our in.getRA() should be pointed at the
