@@ -428,7 +428,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     //  function by redefining a function  
 
     API_EXPORT_VIRT(Int, (libname, reload),
-    BPatch_module *, loadLibrary,(const char *libname, bool reload = false));
+    BPatch_object *, loadLibrary,(const char *libname, bool reload = false));
 
     // BPatch_addressSpace::isStaticExecutable
     //

@@ -2452,6 +2452,8 @@ bool indep_lwp_control_process::plat_syncRunState()
       }
       if (!result && getLastError() == err_exited) {
          pthrd_printf("Suppressing error of continue on exited process\n");
+	 pthrd_printf("TESTING: setting handler to running anyway\n");
+	 thr->getHandlerState().setState(int_thread::running);
       }
       else if (!result) {
          pthrd_printf("Error changing process state from plat_syncRunState\n");

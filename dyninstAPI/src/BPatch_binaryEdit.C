@@ -285,7 +285,7 @@ bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modifi
     return true;
 }
 
-BPatch_module *BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
+BPatch_object *BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
 {
    std::map<std::string, BinaryEdit*> libs;
    mapped_object *obj = origBinEdit->openResolvedLibraryName(libname, libs);
@@ -327,7 +327,7 @@ BPatch_module *BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
 
    }
    origBinEdit->addLibraryPrereq(libname);
-   return getImage()->findOrCreateModule(obj->getDefaultModule());
+   return getImage()->findOrCreateObject(obj);
 }
 
 // Here's the story. We may need to install a trap handler for instrumentation

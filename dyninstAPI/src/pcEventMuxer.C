@@ -90,6 +90,8 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
          proccontrol_printf("[%s:%d] Failed to handle event, returning error\n", FILE__, __LINE__);
          return Error;
       }
+      BPatch::bpatch->signalNotificationFD();
+      return EventsReceived;
    }
    else {
       // It's really annoying from a user design POV that ProcControl methods can
@@ -105,6 +107,7 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
      }
      proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
      if (!handle(NULL)) return Error;
+     BPatch::bpatch->signalNotificationFD();
      return EventsReceived;
    }
    proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning\n", FILE__, __LINE__);
@@ -259,12 +262,10 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
        evSignal->getThread()->getAllRegisters(regs);
        for (ProcControlAPI::RegisterPool::iterator iter = regs.begin(); iter != regs.end(); ++iter) {
 	 cerr << "\t Reg " << (*iter).first.name() << ": " << hex << (*iter).second << dec << endl;
-	 if (((*iter).first == x86::esp) ||
-	     ((*iter).first == x86_64::rsp)) {
+	 if ((*iter).first.isStackPointer()) {
 	   esp = (*iter).second;
 	 }
-	 if (((*iter).first == x86::eip) ||
-	     ((*iter).first == x86_64::rip)) {
+	 if (((*iter).first.isPC())) {
 	   pc = (*iter).second;
 	 }
        }
@@ -287,9 +288,10 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
        }
        
        unsigned disass[1024];
-       process->readDataSpace((void *) pc, 512, disass, false);
-       Address base = pc;
-       InstructionDecoder deco(disass,512,process->getArch());
+       Address base = pc - 128;
+       unsigned size = 640;
+       process->readDataSpace((void *) base, size, disass, false);
+       InstructionDecoder deco(disass,size,process->getArch());
        Instruction::Ptr insn = deco.decode();
        while(insn) {
 	 cerr << "\t" << hex << base << ": " << insn->format(base) << dec << endl;
@@ -400,10 +402,7 @@ PCEventMuxer::cb_ret_t PCEventMuxer::threadCreateCallback(EventPtr ev) {
 PCEventMuxer::cb_ret_t PCEventMuxer::threadDestroyCallback(EventPtr ev) {
 	INITIAL_MUXING;
 
-        if (ev->getEventType().time() == EventType::Pre) {
-	  //ret = Process::cb_ret_t(Process::cbThreadStop);
-	  ret = ret_stopped;
-	}
+        ret = Process::cb_ret_t(Process::cbThreadStop);
 
 	DEFAULT_RETURN;
 }

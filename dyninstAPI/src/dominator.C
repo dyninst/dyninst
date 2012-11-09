@@ -32,6 +32,8 @@
 #include "dyninstAPI/src/dominator.h"
 #include "dyninstAPI/h/BPatch_basicBlock.h"
 #include "dyninstAPI/h/BPatch_flowGraph.h"
+#include <iostream>
+using namespace std;
 
 dominatorBB::dominatorBB(BPatch_basicBlock *bb, dominatorCFG *dc) :
      dfs_no(-1),
@@ -162,7 +164,7 @@ dominatorCFG::dominatorCFG(BPatch_flowGraph *flowgraph) :
    entryBlock = new dominatorBB(NULL, this);
    all_blocks.push_back(entryBlock);
 
-   BPatch_Set<BPatch_basicBlock *, BPatch_basicBlock::compare>::iterator iter;
+   BPatch_Set<BPatch_basicBlock *>::iterator iter;
    for (iter = fg->allBlocks.begin(); iter != fg->allBlocks.end(); iter++)
    {
       dominatorBB *newbb = new dominatorBB(*iter, this);
@@ -241,6 +243,7 @@ void dominatorCFG::performComputation() {
    depthFirstSearch(entryBlock);
    for (i = sorted_blocks.size()-1; i > 0; i--)
    {
+
       dominatorBB *block = sorted_blocks[i];
       dominatorBB *parent = block->parent;
       if (block->dfs_no == -1)
@@ -261,6 +264,7 @@ void dominatorCFG::performComputation() {
       {
          dominatorBB *u, *v;
          parent->bucket.extract(v);
+
          u = v->eval();
          if (u->sdno() < v->sdno())
             v->immDom = u;

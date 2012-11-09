@@ -1,0 +1,20 @@
+\section{Introduction}
+\label{sec:intro}
+
+A binary code parser converts the machine code representation of a program,
+library, or code snippet to abstractions such as the instructions, basic
+blocks, and functions that the binary code represents. The ParseAPI is a
+multi-platform library for creating such abstractions from binary code sources.
+The current incarnation uses the Dyninst SymtabAPI as the default binary code
+source; all platforms and architectures handled by the SymtabAPI are supported.
+The ParseAPI is designed to be easily extensible to other binary code sources.
+Support for parsing binary code in memory dumps or other formats requires only
+implementation of a small interface as described in this document.
+
+This API provides the user with a control flow-oriented view of a binary code
+source. Each code object such as a program binary or library is represented as
+a top-level collection containing the functions, basic blocks, and edges that
+represent the control flow graph. A simple query interface is provided for
+retrieving lower level objects like functions and basic blocks through address
+or other attribute lookups. These objects can be used to navigate the program
+structure as described below.

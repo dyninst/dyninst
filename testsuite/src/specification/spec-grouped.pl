@@ -2703,11 +2703,8 @@ mutatee_abi(64).
 % platform_format (Platform, Format)
 platform_format(P, 'dynamicMutatee') :- platform(_, _, S, P),
    S \= 'bluegenel'.
-platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
-platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
-platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
-platform_format(P, 'staticMutatee') :- platform('x86_64', 'freebsd', _, P).
-platform_format(P, 'staticMutatee') :- platform(_, 'bluegene', _, P).
+platform_format(P, 'staticMutatee') :- platform(_, O, _, P),
+   O \= 'windows'.
 
 % compiler_format (Compiler, Format)
 compiler_format(_, 'dynamicMutatee').
@@ -3449,22 +3446,22 @@ test_processmode(Test, 'None') :- tests_module(Test, Module),
 
 bg_vn_exclude('VN', 'MultiThreaded').
 
-% platform_mode is currently only used by BG to specify the modes
+% platform_mode is currently only used by BG/P to specify the modes
 % the system can run in: Virtual, Dual, or SMP
 platform_mode(P, M, RM, TM) :-
    current_platform(P),
-   platform(_, 'bluegene', _, P),
+   platform(_, 'bluegene', 'bluegenep', P),
    member(M, ['DUAL', 'VN', 'SMP']),
    member(RM, ['createProcess', 'useAttach', 'binary']),
    \+ bg_vn_exclude(M, TM).
 
 platform_mode(P, 'NONE', 'disk', _) :-
    current_platform(P),
-   platform(_, 'bluegene', _, P).
+   platform(_, 'bluegene', 'bluegenep', P).
 
 platform_mode(P, 'NONE', _, _) :- 
    current_platform(P),
-   \+ platform(_, 'bluegene', _, P).   
+   \+ platform(_, 'bluegene', 'bluegenep', P).   
 
 % runmode/1
 % runmode(+RunMode)

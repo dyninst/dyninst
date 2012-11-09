@@ -189,7 +189,7 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
 
    if (needs_header)
       printHeader(out);
-#if defined(os_bg_test)
+#if defined(os_bgp_test)
    fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s ",
            name_len, name_align_buffer, 
            compiler_len, last_group->compiler,

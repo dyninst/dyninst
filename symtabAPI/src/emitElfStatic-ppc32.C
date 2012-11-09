@@ -674,7 +674,7 @@ bool emitElfStatic::isGOTRelocation(unsigned long relType) {
     return false;
 }
 
-Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &) {
+Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &, Offset &) {
     return 0;
 }
 
@@ -693,3 +693,6 @@ Offset emitElfStatic::allocStubRegions(LinkMap &lmap, Offset) {
    return lmap.stubRegionOffset;
 }
 
+bool emitElfStatic::updateTOC(Symtab *, LinkMap &, Offset) {
+  return true;
+}
