@@ -68,6 +68,8 @@ using namespace std;
 using namespace bgq;
 using namespace std;
 
+static bool emergency = false;
+
 static void registerSignalHandlers(bool enable);
 
 uint64_t bgq_process::jobid = 0;
@@ -3823,7 +3825,8 @@ void IOThread::thrd_kick()
 
 void IOThread::kick()
 {
-   kick_thread(pid, lwp);
+   if (emergency)
+      kick_thread(pid, lwp);
    thrd_kick();
 }
 
@@ -3843,15 +3846,27 @@ void IOThread::shutdown()
 
 ReaderThread *ReaderThread::me = NULL;
 ReaderThread::ReaderThread() :
-   kick_fd(-1)
+   kick_fd(-1),
+   kick_fd_write(-1)
 {
    assert(!me);
    me = this;
+   
+   int pipe_fds[2];
+   int result = pipe(pipe_fds);
+   if (result != -1) {
+      kick_fd = pipe_fds[0];
+      kick_fd_write = pipe_fds[1];
+   }
 }
 
 ReaderThread::~ReaderThread()
 {
    me = NULL;
+   if (kick_fd != -1)
+      close(kick_fd);
+   if (kick_fd_write != -1)
+      close(kick_fd_write);
 }
 
 void ReaderThread::run()
@@ -3912,12 +3927,10 @@ void ReaderThread::run()
    /* Read data from the FDs that have any */
    bool been_kicked = false;
    if (kick_fd != -1 && FD_ISSET(kick_fd, &readfds)) {
-      pthrd_printf("Kick FD has data\n");
-      buffer_t buf;
-      queue_lock.lock();
-      msgs.push(buf);
-      queue_lock.signal();
-      queue_lock.unlock();      
+      pthrd_printf("Reader thread kicked\n");
+      char c;
+      read(kick_fd, &c, 1);
+      return;
    }
    for (vector<int>::iterator i = cur_fds.begin(); i != cur_fds.end(); i++) {
       int fd = *i;
@@ -4049,6 +4062,12 @@ ReaderThread *ReaderThread::get()
       me->init();
    }
    return me;
+}
+
+void ReaderThread::thrd_kick()
+{
+   char c = 'k';
+   write(kick_fd_write, &c, 1);
 }
 
 WriterThread *WriterThread::me = NULL;
@@ -4394,6 +4413,7 @@ void ComputeNode::emergencyShutdown()
 {
    char message[8192];
 
+   emergency = true;
    pthrd_printf("Shutting down generator\n");
    GeneratorBGQ *gen = static_cast<GeneratorBGQ *>(Generator::getDefaultGenerator());
    gen->shutdown();

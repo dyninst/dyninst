@@ -492,6 +492,9 @@ class ReaderThread : public IOThread
    virtual void run();
    virtual void localInit();
    int kick_fd;
+   int kick_fd_write;
+  protected:
+   virtual void thrd_kick();
   public:
    ~ReaderThread();
    static ReaderThread *get();
