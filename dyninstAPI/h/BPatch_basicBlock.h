@@ -333,31 +333,13 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 
    int blockNo() const;
 
-   struct compare {
-      int operator()(CONST_EXPORT BPatch_basicBlock *b1, 
-                     CONST_EXPORT BPatch_basicBlock *b2) CONST_EXPORT
-      {
-         if (b1->getStartAddress() < b2->getStartAddress())
-            return -1;
-         if (b1->getStartAddress() > b2->getStartAddress())
-            return 1;
-         return 0;
-         //if (b1->blockNo() < b2->blockNo())
-         //   return -1;
-         //if (b1->blockNo() > b2->blockNo())
-         //   return 1;
-         //return 0;
-      }
-   };
 };
 
 template <>
 struct comparison <BPatch_basicBlock *> {
-   int operator()(const BPatch_basicBlock * const &x, 
+   bool operator()(const BPatch_basicBlock * const &x, 
                   const BPatch_basicBlock * const &y) const {
-      if (x->getStartAddress() < y->getStartAddress()) return -1;
-      if (x->getStartAddress() > y->getStartAddress()) return 1;
-      return 0;
+      return (x->getStartAddress() < y->getStartAddress());
    };
 };
 

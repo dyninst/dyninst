@@ -11,6 +11,7 @@ NO_IMPLICIT_TEMPLATES = true
 
 # For debugging.
 #NO_OPT_FLAG = true
+USES_LIBELF = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.

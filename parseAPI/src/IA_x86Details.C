@@ -175,15 +175,17 @@ bool IA_x86Details::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum >
 
 bool IA_x86Details::isTableInsn(Instruction::Ptr i) 
 {
-    if(i->getOperation().getID() == e_mov && i->readsMemory() && !i->writesMemory())
-    {
-        return true;
-    }
-    if(i->getOperation().getID() == e_lea)
-    {
-        return true;
-    }
-    return false;
+  Expression::Ptr jumpExpr = currentBlock->curInsn()->getControlFlowTarget();
+  parsing_printf("jumpExpr for table insn is %s\n", jumpExpr->format().c_str());
+  if(i->getOperation().getID() == e_mov && i->readsMemory() && i->isWritten(jumpExpr))
+  {
+    return true;
+  }
+  if(i->getOperation().getID() == e_lea && i->isWritten(jumpExpr))
+  {
+    return true;
+  }
+  return false;
 }
         
 IA_IAPI::allInsns_t::const_iterator IA_x86Details::findTableInsn() 

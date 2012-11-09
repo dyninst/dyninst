@@ -547,10 +547,27 @@ namespace Dyninst
   };
   static IntelRegTable_access IntelRegTable;
 
+      bool InstructionDecoder_x86::isDefault64Insn()
+      {
+	switch(m_Operation->getID())
+	{
+	case e_jmp:
+	case e_pop:
+	case e_push:
+	case e_call:
+	  return true;
+	default:
+	  return false;
+	}
+	
+      }
+      
+
     MachRegister InstructionDecoder_x86::makeRegisterID(unsigned int intelReg, unsigned int opType,
                                         bool isExtendedReg)
     {
         MachRegister retVal;
+	
 
         if(isExtendedReg)
         {
@@ -603,7 +620,7 @@ namespace Dyninst
             switch(opType)
             {
                 case op_v:
-                    if(locs->rex_w)
+		  if(locs->rex_w || isDefault64Insn())
                         retVal = IntelRegTable(m_Arch,b_64bit,intelReg);
                     else
                         retVal = IntelRegTable(m_Arch,b_32bit,intelReg);

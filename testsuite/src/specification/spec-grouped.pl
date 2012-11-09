@@ -2703,11 +2703,8 @@ mutatee_abi(64).
 % platform_format (Platform, Format)
 platform_format(P, 'dynamicMutatee') :- platform(_, _, S, P),
    S \= 'bluegenel'.
-platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
-platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
-platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
-platform_format(P, 'staticMutatee') :- platform('x86_64', 'freebsd', _, P).
-platform_format(P, 'staticMutatee') :- platform(_, 'bluegene', _, P).
+platform_format(P, 'staticMutatee') :- platform(_, O, _, P),
+   O \= 'windows'.
 
 % compiler_format (Compiler, Format)
 compiler_format(_, 'dynamicMutatee').

@@ -184,11 +184,11 @@ inline unsigned long int P_strtoul(const char *P_STRING, char **TAILPTR, int BAS
 
 /* BSD */
 inline int P_accept (int SOCK, struct sockaddr *ADDR, socklen_t *LENGTH_PTR) {
-  return (accept(SOCK, ADDR, LENGTH_PTR));}
+   return (::accept(SOCK, ADDR, LENGTH_PTR));}
 inline int P_bind(int socket, struct sockaddr *addr, socklen_t len) {
-  return (bind(socket, addr, len));}
+   return (::bind(socket, addr, len));}
 inline int P_connect(int socket, struct sockaddr *addr, socklen_t len) {
-  return (connect(socket, addr, len));}
+   return (::connect(socket, addr, len));}
 inline struct hostent * P_gethostbyname (const char *NAME) {
   return (gethostbyname(NAME));}
 /* inline int P_gethostname(char *name, size_t size) {

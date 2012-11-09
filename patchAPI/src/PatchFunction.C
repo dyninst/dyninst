@@ -791,3 +791,10 @@ bool FuncPoints::consistency(const PatchFunction *func) const {
    }
    return true;
 }
+
+void PatchFunction::invalidateBlocks() {
+   all_blocks_.clear();
+   call_blocks_.clear();
+   return_blocks_.clear();
+   exit_blocks_.clear();
+}
