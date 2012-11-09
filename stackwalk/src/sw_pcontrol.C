@@ -711,10 +711,10 @@ void StackCallback::endStackWalk(Thread::ptr thr) {
    cur_walker = NULL;
 }
 
-bool int_walkerSet::walkStacksProcSet(CallTree &tree, bool &bad_plat)
+bool int_walkerSet::walkStacksProcSet(CallTree &tree, bool &bad_plat, bool walk_initial_only)
 {
    ProcessSet::ptr &pset = *((ProcessSet::ptr *) procset);
-   ThreadSet::ptr all_threads = ThreadSet::newThreadSet(pset);
+   ThreadSet::ptr all_threads = ThreadSet::newThreadSet(pset, walk_initial_only);
    StackCallback cbs(tree);
 
    if (!all_threads->getCallStackUnwinding()) {

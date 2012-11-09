@@ -184,7 +184,7 @@ class WalkerSet {
    bool empty() const;
    size_t size() const;
 
-   bool walkStacks(CallTree &tree) const;
+   bool walkStacks(CallTree &tree, bool walk_initial_only = false) const;
 };
 
 }

@@ -2240,7 +2240,7 @@ ThreadSet::ptr ThreadSet::newThreadSet(Thread::ptr thr) {
    return newts;
 }
 
-ThreadSet::ptr ThreadSet::newThreadSet(ProcessSet::ptr ps)
+ThreadSet::ptr ThreadSet::newThreadSet(ProcessSet::ptr ps, bool initial_only)
 {
    MTLock lock_this_func;
    bool had_error = false;
@@ -2255,9 +2255,14 @@ ThreadSet::ptr ThreadSet::newThreadSet(ProcessSet::ptr ps)
          return ThreadSet::ptr();
       }
       Process::ptr proc = *i;
-      ThreadPool &pool = proc->threads();
-      for (ThreadPool::iterator j = pool.begin(); j != pool.end(); j++) {
-         newset->insert(*j);
+      if (initial_only) {
+         newset->insert(proc->threads().getInitialThread());
+      }
+      else {
+         ThreadPool &pool = proc->threads();
+         for (ThreadPool::iterator j = pool.begin(); j != pool.end(); j++) {
+            newset->insert(*j);
+         }
       }
    }
    return newts;
