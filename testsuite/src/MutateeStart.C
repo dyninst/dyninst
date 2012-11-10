@@ -34,6 +34,7 @@
 #include "test_lib.h"
 #include <assert.h>
 #include <stdio.h>
+#include <set>
 
 using namespace std;
 
@@ -513,18 +514,35 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
    return true;
 }
 
+static std::set<int> attach_mutatees;
 static std::map<int, std::string> spawned_mutatees;
 void registerMutatee(std::string mutatee_string)
 {
    int group_id;
    int pid;
-   sscanf(mutatee_string.c_str(), "%d:%d", &group_id, &pid);
-   if (pid != -1)
-      spawned_mutatees[group_id] = mutatee_string;
+
+   if (strchr(mutatee_string.c_str(), ':')) {
+      sscanf(mutatee_string.c_str(), "%d:%d", &group_id, &pid);
+      if (pid != -1)
+         spawned_mutatees[group_id] = mutatee_string;
+   }
+   else {
+      int pid;
+      sscanf(mutatee_string.c_str(), "%d", &pid);
+      assert(pid != -1);
+      attach_mutatees.insert(pid);      
+   }
 }
 
 Dyninst::PID getMutateePid(RunGroup *group)
 {
+   if (!attach_mutatees.empty()) {
+      std::set<int>::iterator i = attach_mutatees.begin();
+      assert(i != attach_mutatees.end());
+      int pid = *i;
+      attach_mutatees.erase(i);
+      return pid;
+   }
    std::map<int, std::string>::iterator i = spawned_mutatees.find(group->index);
    if (i == spawned_mutatees.end()) {
       i = spawned_mutatees.find(-1);
@@ -543,3 +561,4 @@ Dyninst::PID getMutateePid(RunGroup *group)
 
    return pid;
 }
+

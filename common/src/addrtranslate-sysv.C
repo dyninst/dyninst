@@ -921,8 +921,9 @@ void FCNode::markInterpreter() {
    is_interpreter = true;
 }
 
-#define NUM_DBG_BREAK_NAMES 3
-const char *dbg_break_names[] = { "_dl_debug_state",
+#define NUM_DBG_BREAK_NAMES 4
+const char *dbg_break_names[] = { "_dl_debug_fast_state",
+                                  "_dl_debug_state",
                                   "r_debug_state",
                                   "_r_debug_state" };
 

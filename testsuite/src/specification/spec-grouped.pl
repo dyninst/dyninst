@@ -3446,22 +3446,22 @@ test_processmode(Test, 'None') :- tests_module(Test, Module),
 
 bg_vn_exclude('VN', 'MultiThreaded').
 
-% platform_mode is currently only used by BG to specify the modes
+% platform_mode is currently only used by BG/P to specify the modes
 % the system can run in: Virtual, Dual, or SMP
 platform_mode(P, M, RM, TM) :-
    current_platform(P),
-   platform(_, 'bluegene', _, P),
+   platform(_, 'bluegene', 'bluegenep', P),
    member(M, ['DUAL', 'VN', 'SMP']),
    member(RM, ['createProcess', 'useAttach', 'binary']),
    \+ bg_vn_exclude(M, TM).
 
 platform_mode(P, 'NONE', 'disk', _) :-
    current_platform(P),
-   platform(_, 'bluegene', _, P).
+   platform(_, 'bluegene', 'bluegenep', P).
 
 platform_mode(P, 'NONE', _, _) :- 
    current_platform(P),
-   \+ platform(_, 'bluegene', _, P).   
+   \+ platform(_, 'bluegene', 'bluegenep', P).   
 
 % runmode/1
 % runmode(+RunMode)

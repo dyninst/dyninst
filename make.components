@@ -1,44 +1,57 @@
 #Don't add tests to Everything
 Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
 
-#List of tests
-Everything_tests = testsuite parseThat
-#List dependencies for components here, followed by the component directory
-dynutil = 
-common = dynutil common
-dwarf = dynutil common dwarf
-elf = dynutil common elf
-symlite = dynutil common elf symlite
-symtabAPI = dynutil common dwarf symtabAPI elf
-instructionAPI = dynutil common instructionAPI
-parseAPI = dynutil common elf symlite symtabAPI instructionAPI parseAPI
-dataflowAPI = $(parseAPI)
-patchAPI = dynutil common parseAPI patchAPI
-proccontrol = dynutil common elf proccontrol symlite
+Dwarf = dynutil common dwarf
+Elf = dynutil common elf
+Symlite = dynutil common elf symlite
+SymtabAPI 	= dynutil common dwarf elf symtabAPI
+StackwalkerAPI = dynutil common dwarf elf symlite proccontrol stackwalk
+DyninstAPI	= dynutil common symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI
+DynC_API = $(DyninstAPI) dynC_API
+Dyner = $(DyninstAPI) dyner
+InstructionAPI	= dynutil common instructionAPI
+ProcControlAPI = dynutil common elf symlite proccontrol
+DepGraphAPI = depGraphAPI
+ParseAPI = dynutil common elf symlite symtabAPI instructionAPI parseAPI
+ValueAdded = valueAdded/sharedMem
+DataflowAPI = ParseAPI
+PatchAPI = dynutil common parseAPI patchAPI
 
-stackwalk = dynutil common dwarf elf proccontrol stackwalk
 ifndef WITHOUT_PARSE_API
-stackwalk += parseAPI instructionAPI
+StackwalkerAPI += parseAPI instructionAPI
 endif
 ifndef WITHOUT_SYMTAB_API
-stackwalk += symtabAPI
+StackwalkerAPI += symtabAPI
 endif
 
-dyninstAPI = dynutil common symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI
+#List of tests
+Everything_tests = testsuite parseThat
 
-parseThat = $(dyninstAPI) parseThat
-dynC_API = $(dyninstAPI) dynC_API
-dyner = $(dyninstAPI) dyner
-testsuite = testsuite
-valueAdded = $(dyninstAPI) valueAdded/sharedMem
+#Map of target names to directories
+dynutil = 
+common = dynutil common
+symtabAPI = $(SymtabAPI)
+instructionAPI = $(InstructionAPI)
+proccontrol = $(ProcControlAPI)
+stackwalk = $(StackwalkerAPI)
+parseAPI = $(ParseAPI)
+dataflowAPI = $(ParseAPI)
+patchAPI = $(PatchAPI)
+dyninstAPI = $(DyninstAPI)
+parseThat = $(DyninstAPI) parseThat
+dynC_API = $(DynC_API)
+dyner = $(Dyner)
+valueAdded = $(DyninstAPI) valueAdded/sharedMem
 
 #List all components with tests here
+testsuite = testsuite
 test_comps = symtabAPI instructionAPI patchAPI proccontrol dyninstAPI all
 
 DEFAULT_COMPONENT ?= default
+PLATFORM_DEFAULT_COMPONENT ?= $(Everything)
+
 ifeq ($(DEFAULT_COMPONENT),default)
-fullSystem	= $(Everything)
-BUILD_PARSETHAT = true
+fullSystem= $(PLATFORM_DEFAULT_COMPONENT)
 else
 ifeq ($(DEFAULT_COMPONENT),SymtabAPI)
 fullSystem = $(symtabAPI)
@@ -48,7 +61,6 @@ fullSystem = $(stackwalk)
 else
 ifeq ($(DEFAULT_COMPONENT),DyninstAPI)
 fullSystem	= $(dyninstAPI)
-BUILD_PARSETHAT = true
 else
 ifeq ($(DEFAULT_COMPONENT),InstructionAPI)
 fullSystem = $(instructionAPI)
@@ -77,10 +89,14 @@ endif # StackwalkerAPI
 endif # SymtabAPI
 endif # default
 
+ifeq (findstring(dyninstAPI,$(fullSystem)),dyninstAPI)
+BUILD_PARSETHAT ?= true
+endif
+
 ifndef DONT_BUILD_NEWTESTSUITE
 testsuites += testsuite
 fullSystem += testsuite
-ifdef BUILD_PARSETHAT
+ifeq (x$(BUILD_PARSETHAT),xtrue)
 testsuites += parseThat
 fullSystem += parseThat
 testsuite: parseThat
