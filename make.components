@@ -26,6 +26,7 @@ Everything_tests = testsuite parseThat
 #Map of target names to directories
 dynutil = 
 common = dynutil common
+symlite = elf
 symtabAPI = $(SymtabAPI)
 instructionAPI = $(InstructionAPI)
 proccontrol = $(ProcControlAPI)
