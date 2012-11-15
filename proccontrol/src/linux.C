@@ -809,7 +809,7 @@ static void warn_user_ptrace_restrictions() {
       cerr << "Warning: your Linux system provides limited ptrace functionality as a security" << endl
 	   << "measure. This measure prevents ProcControl and Dyninst from attaching to binaries." << endl
 	   << "To temporarily disable this measure (until a reboot), execute the following command:" << endl
-	   << "\techo 1 > /proc/sys/kernel/yama/ptrace_scope" << endl;
+	   << "\techo 0 > /proc/sys/kernel/yama/ptrace_scope" << endl;
       struct stat statbuf;
       if (!stat("/etc/sysctl.d/10-ptrace.conf", &statbuf)) {
 	cerr << "To permanently disable this measure, edit the file \"/etc/sysctl.d/10-ptrace.conf\"" << endl
