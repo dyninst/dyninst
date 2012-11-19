@@ -1,5 +1,5 @@
 \subsection{Class Module}\label{Module}
-This class represents the concept of a single source file. Currently, Modules are only identified for the executable file; each shared library is made up of a single Module, ignoring any source file information that may be present. We also create a single module, called DEFAULT\_MODULE, for each Symtab that contains any symbols for which module information was unavailable. This may be compiler template code, or files produced without module information. 
+This class represents the concept of a single source file. Currently,Modules are only identified for the executable file; each shared library is made up of a single Module, ignoring any source file information that may be present. We also create a single module, called \code{DEFAULT\_MODULE}, for each Symtab that contains any symbols for which module information was unavailable. This may be compiler template code, or files produced without module information. 
 
 \begin{center}
 \begin{tabular}{ll}
@@ -37,9 +37,9 @@ lang\_CMFortran & Fortran with CM extensions \\
 bool findFunctionByEntryOffset(Function *&ret, const Offset offset)
 \end{apient}
 \apidesc{
-This method returns the Function object that begins at offset. Returns true on
-success and false if there is no matching function. The error value is set to
-No\_Such\_Function.
+This method returns the \code{Function} object that begins at \code{offset}. Returns \code{true} on
+success and \code{false} if there is no matching function. The error value is set to
+\code{No\_Such\_Function}.
 }
 
 \begin{apient}
@@ -57,25 +57,25 @@ bool findFunctionsByName(vector<Function> &ret, const string name,
                          bool isRegex = false, bool checkCase = true)
 \end{apient}
 \apidesc{
-This method finds and returns a vector of Functions whose names match the given pattern. The nameType parameter determines which names are searched: mangled, pretty, typed, or any. If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matching Functions, if any.
-Returns true if it finds functions that match the given name, otherwise returns
-false. The error value is set to No\_Such\_Function.
+This method finds and returns a vector of \code{Functions} whose names match the given pattern. The \code{nameType} parameter determines which names are searched: mangled, pretty, typed, or any. If the \code{isRegex} flag is set a regular expression match is performed with the symbol names. \code{checkCase} is applicable only if \code{isRegex} has been set. This indicates if the case be considered while performing regular expression matching. \code{ret} contains the list of matching \code{Function}s, if any.
+Returns \code{true} if it finds functions that match the given name, otherwise returns
+\code{false}. The error value is set to \code{No\_Such\_Function}.
 }
 
 \begin{apient}
 bool getAllFunctions(vector<Function *> &ret)
 \end{apient}
 \apidesc{
-This method returns all functions in the object file. Returns true on success
-and false if there are no modules. The error value is set to No\_Such\_Function.
+This method returns all functions in the object file. Returns \code{true} on success
+and \code{false} if there are no modules. The error value is set to \code{No\_Such\_Function}.
 }
 
 \begin{apient}
 bool findVariableByOffset(Variable *&ret, const Offset offset)
 \end{apient}
 \apidesc{
-This method returns the Variable object at offset. Returns true on success and
-false if there is no matching variable. The error value is set to No\_Such\_Variable.
+This method returns the \code{Variable} object at \code{offset}. Returns \code{true} on success and
+\code{false} if there is no matching variable. The error value is set to \code{No\_Such\_Variable}.
 }
 
 \begin{apient}
@@ -84,17 +84,17 @@ bool findVariablesByName(vector<Function> &ret, const string &name,
                         bool isRegex = false, bool checkCase = true)
 \end{apient}
 \apidesc{
-This method finds and returns a vector of Variables whose names match the given pattern. The nameType parameter determines which names are searched: mangled, pretty, typed, or any (note: a Variable may not have a typed name). If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matching Variables, if any.
-Returns true if it finds variables that match the given name, otherwise returns
-false. The error value is set to No\_Such\_Variable.
+This method finds and returns a vector of \code{Variable}s whose names match the given pattern. The \code{nameType} parameter determines which names are searched: mangled, pretty, typed, or any (note: a \code{Variable} may not have a typed name). If the \code{isRegex} flag is set a regular expression match is performed with the symbol names. \code{checkCase} is applicable only if \code{isRegex} has been set. This indicates if the case be considered while performing regular expression matching. \code{ret} contains the list of matching \code{Variables}, if any.
+Returns \code{true} if it finds variables that match the given name, otherwise returns
+\code{false}. The error value is set to \code{No\_Such\_Variable}.
 }
 
 \begin{apient}
 bool getAllVariables(vector<Variable *> &ret)
 \end{apient}
 \apidesc{
-This method returns all variables in the object file. Returns true on success
-and false if there are no modules. The error value is set to No\_Such\_Variable.
+This method returns all variables in the object file. Returns \code{true} on success
+and \code{false} if there are no modules. The error value is set to \code{No\_Such\_Variable}.
 }
 
 \begin{apient}
@@ -102,8 +102,8 @@ bool getAllSymbols(vector<Symbol *> &ret)
 \end{apient}
 \apidesc{
 This method returns all symbols.
-Returns true on success and false if there are no symbols. The error value is
-set to No\_Such\_Symbol.
+Returns \code{true} on success and \code{false} if there are no symbols. The error value is
+set to \code{No\_Such\_Symbol}.
 }
 
 \begin{apient}
@@ -111,35 +111,35 @@ bool getAllSymbolsByType(vector<Symbol *> &ret,
  Symbol::SymbolType sType)
 \end{apient}
 \apidesc{
-This method returns all symbols whose type matches the given type sType.
-Returns true on success and false if there are no symbols with the given type.
-The error value is set to No\_Such\_Symbol.}
+This method returns all symbols whose type matches the given type \code{sType}.
+Returns \code{true} on success and \code{false} if there are no symbols with the given type.
+The error value is set to \code{No\_Such\_Symbol}.}
 
 \paragraph{Line number information}
 
 
 \begin{apient}
 bool getAddressRanges(vector< pair<unsigned long, unsigned long> > & ranges, 
-                    string lineSource, unsigned int LineNo)
+                    string lineSource, unsigned int lineNo)
 \end{apient}
 \apidesc{
-This method returns the address ranges in ranges corresponding to the line with line number lineNo in the source file lineSource. Searches only this module for the given source.
-Return true if at least one address range corresponding to the line number was found and returns false if none found.
+This method returns the address ranges in \code{ranges} corresponding to the line with line number \code{lineNo} in the source file \code{lineSource}. Searches only this module for the given source.
+Return \code{true} if at least one address range corresponding to the line number was found and returns false if none found.
 }
 
 \begin{apient}
 bool getSourceLines(vector<Statement *> &lines, Offset addressInRange)
 \end{apient}
 \apidesc{
-This method returns the source file names and line numbers corresponding to the given address addressInRange. Searches only this module for the given source. 
-Return true if at least one tuple corresponding to the offset was found and returns false if none found. The \code{Statement} class used to be named \code{LineNoTuple}; backwards compatibility is provided via typedef. 
+This method returns the source file names and line numbers corresponding to the given address \code{addressInRange}. Searches only this module for the given source. 
+Return \code{true} if at least one tuple corresponding to the offset was found and returns \code{false} if none found. The \code{Statement} class used to be named \code{LineNoTuple}; backwards compatibility is provided via typedef. 
 }
 
 \begin{apient}
 LineInformation *getLineInformation() const
 \end{apient}
 \apidesc{
-This method returns the line map (section \ref{LineInformation}) corresponding to the module. Returns NULL if
+This method returns the line map (section \ref{LineInformation}) corresponding to the module. Returns \code{NULL} if
 there is no line information existing for the module.}
 
 \begin{apient}
@@ -155,21 +155,21 @@ Returns all line information  (section \ref{Statement}) available for the module
 bool findType(Type *&type, string name)
 \end{apient}
 \apidesc{
-This method performs a look up and returns a handle to the named type. 
-This method searches all the built-in types, standard types and user-defined types within the module. Returns true if a type is found with type containing the handle to the type, else return false.
+This method performs a look up and returns a handle to the named \code{type}. 
+This method searches all the built-in types, standard types and user-defined types within the module. Returns \code{true} if a type is found with type containing the handle to the type, else return \code{false}.
 }
 
 \begin{apient}
 bool findLocalVariable(vector<localVar *> &vars, string name)
 \end{apient}
 \apidesc{
-The method returns a list of local variables within the module with name name. 
-Returns true with vars containing a list of localVar objects corresponding to the local variables if found or else returns false.
+The method returns a list of local variables within the module with name \code{name}. 
+Returns \code{true} with vars containing a list of \code{localVar} objects corresponding to the local variables if found or else returns \code{false}.
 }
 
 \begin{apient}
 bool findVariableType(Type *&type, std::string name)
 \end{apient}
 \apidesc{
-This method looks up a global variable with name name and returns its type attribute.
-Returns true if a variable is found or returns false with type set to NULL.}
+This method looks up a global variable with name \code{name} and returns its type attribute.
+Returns \code{true} if a variable is found or returns \code{false} with \code{type} set to \code{NULL}.}
