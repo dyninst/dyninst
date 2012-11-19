@@ -3318,7 +3318,8 @@ SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add,
     name_(n),
     dynref_(dynref),
     relType_(relType)
-{}
+{
+}
 
 SYMTAB_EXPORT Offset relocationEntry::target_addr() const 
 {
