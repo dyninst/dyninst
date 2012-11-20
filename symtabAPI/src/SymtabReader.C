@@ -47,7 +47,6 @@ using namespace SymtabAPI;
 SymtabReader::SymtabReader(std::string file_) :
    symtab(NULL),
    ref_count(1),
-   mapped_regions(NULL),
    dwarf_handle(NULL),
    ownsSymtab(true)
 {
@@ -58,7 +57,6 @@ SymtabReader::SymtabReader(std::string file_) :
 SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
    symtab(NULL),
    ref_count(1),
-   mapped_regions(NULL),
    dwarf_handle(NULL),
    ownsSymtab(true)
 {
@@ -71,19 +69,15 @@ SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
 SymtabReader::SymtabReader(Symtab *s) :
     symtab(s),
     ref_count(1),
-    mapped_regions(NULL),
     dwarf_handle(NULL),
     ownsSymtab(false)
 {}
 
 SymtabReader::~SymtabReader()
 {
-   if (mapped_regions)
-      delete mapped_regions;
    if (symtab && ownsSymtab)
       Symtab::closeSymtab(symtab);
    symtab = NULL;
-   mapped_regions = NULL;
 #if !defined(os_windows)
    if (dwarf_handle)
      delete dwarf_handle;
@@ -143,40 +137,29 @@ unsigned SymtabReader::getAddressWidth()
    return symtab->getAddressWidth();
 }
    
-unsigned SymtabReader::numRegions()
+unsigned SymtabReader::numSegments()
 {
-   assert(symtab);
-   if (!mapped_regions) {
-      mapped_regions = new std::vector<Region *>();
-      bool result = symtab->getMappedRegions(*mapped_regions);
-      if (!result) {
-         return 0;
-      }
-   }
-   return mapped_regions->size();
+   buildSegments();
+   return segments.size();
 }
 
-bool SymtabReader::getRegion(unsigned num, SymRegion &reg)
+bool SymtabReader::getSegment(unsigned num, SymSegment &seg)
 {
-   assert(symtab);
-   if (!mapped_regions) {
-      mapped_regions = new std::vector<Region *>();
-      bool result = symtab->getMappedRegions(*mapped_regions);
-      if (!result) {
-         return false;
-      }
-   }
+   buildSegments();
+   if (num >= segments.size()) return false;
+   seg = segments[num];
 
-   if (num >= mapped_regions->size())
-      return false;
-   Region *region = (*mapped_regions)[num];
-   reg.file_offset = region->getDiskOffset();
-   reg.mem_addr = region->getMemOffset();
-   reg.file_size = region->getDiskSize();
-   reg.mem_size = region->getMemSize();
-   reg.type = (int) region->getRegionType();
    return true;
 }
+
+void SymtabReader::buildSegments() {
+   if (!segments.empty()) return;
+
+   // We want ELF segments; contiguous areas of the 
+   // binary loaded into memory. 
+   symtab->getSegmentsSymReader(segments);
+}
+
 
 Dyninst::Offset SymtabReader::getSymbolOffset(const Symbol_t &sym)
 {

@@ -54,8 +54,6 @@
 #include "common/h/addrtranslate.h"
 #include "common/src/addrtranslate-sysv.h"
 
-#include "symtabAPI/h/Region.h"
-
 #if defined(os_linux) || defined(os_bg)
 #define R_DEBUG_NAME "_r_debug"
 #else
@@ -342,12 +340,12 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
    if (!fc)
       return false;
 
-   vector<SymRegion> regs;
-   fc->getRegions(regs);
+   vector<SymSegment> segs;
+   fc->getSegments(segs);
    
-   for (unsigned i=0; i<regs.size(); i++) {
-      pair<Address, unsigned long> p(load_addr + regs[i].mem_addr, 
-                                     regs[i].mem_size);
+   for (unsigned i=0; i<segs.size(); i++) {
+      pair<Address, unsigned long> p(load_addr + segs[i].mem_addr, 
+                                     segs[i].mem_size);
       mapped_regions.push_back(p);
    }
    
@@ -470,16 +468,16 @@ bool AddressTranslateSysV::parseDTDebug() {
     // Need to get the address of the DYNAMIC segment
     Address dynAddress = 0;
     size_t dynSize = 0;
-    unsigned numRegs = exe->numRegions();
+    unsigned numRegs = exe->numSegments();
     translate_printf("Checking %d regions for address/size information\n", numRegs);
     for(unsigned i = 0; i < numRegs; ++i) {
-        SymRegion reg;
-        exe->getRegion(i, reg);
-	translate_printf("Found region type %d for 0x%lx - 0x%lx, want %d\n",
-			 reg.type, reg.mem_addr, reg.mem_addr + reg.mem_size, PT_DYNAMIC);
-        if( SymtabAPI::Region::RT_DYNAMIC == reg.type ) {
-            dynAddress = reg.mem_addr;
-            dynSize = reg.mem_size;
+        SymSegment seg;
+        exe->getSegment(i, seg);
+	translate_printf("Found segment type %d for 0x%lx - 0x%lx, want %d\n",
+			 seg.type, seg.mem_addr, seg.mem_addr + seg.mem_size, PT_DYNAMIC);
+        if( PT_DYNAMIC == seg.type ) {
+            dynAddress = seg.mem_addr;
+            dynSize = seg.mem_size;
             break;
         }
     }
@@ -889,10 +887,10 @@ string FCNode::getInterpreter() {
    return interpreter_name;
 }
 
-void FCNode::getRegions(vector<SymRegion> &regs) {
+void FCNode::getSegments(vector<SymSegment> &segs) {
    parsefile();
 
-   regs = regions;
+   segs = segments;
 }
 
 unsigned FCNode::getAddrSize() {
@@ -972,10 +970,10 @@ void FCNode::parsefile()
    addr_size = symreader->getAddressWidth();   
    interpreter_name = symreader->getInterpreterName();
    
-   unsigned num_regions = symreader->numRegions();
-   for (unsigned i=0; i<num_regions; i++) {
-      SymRegion sr;
-      bool result = symreader->getRegion(i, sr);
+   unsigned num_s = symreader->numSegments();
+   for (unsigned i=0; i<num_s; i++) {
+      SymSegment sr;
+      bool result = symreader->getSegment(i, sr);
       if (!result) {
          translate_printf("Failed to get region info\n",
                           __FILE__, __LINE__);
@@ -983,7 +981,7 @@ void FCNode::parsefile()
          break;
       }
       
-      regions.push_back(sr);
+      segments.push_back(sr);
    }
    /*factory->closeSymbolReader(symreader);
      symreader = NULL;*/

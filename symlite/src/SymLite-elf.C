@@ -263,23 +263,23 @@ std::string SymElf::getInterpreterName()
    return std::string();
 }
 
-unsigned SymElf::numRegions()
+unsigned SymElf::numSegments()
 {
    return elf.e_phnum();
 }
 
-bool SymElf::getRegion(unsigned num, SymRegion &reg)
+bool SymElf::getSegment(unsigned num, SymSegment &seg)
 {
    if (num >= elf.e_phnum())
       return false;
 
    Elf_X_Phdr phdr = elf.get_phdr(num);
-   reg.file_offset = phdr.p_offset();
-   reg.mem_addr = phdr.p_vaddr();
-   reg.file_size = phdr.p_filesz();
-   reg.mem_size = phdr.p_memsz();
-   reg.type = phdr.p_type();
-   reg.perms = phdr.p_flags() & 0x7;
+   seg.file_offset = phdr.p_offset();
+   seg.mem_addr = phdr.p_vaddr();
+   seg.file_size = phdr.p_filesz();
+   seg.mem_size = phdr.p_memsz();
+   seg.type = phdr.p_type();
+   seg.perms = phdr.p_flags() & 0x7;
    return true;
 }
 

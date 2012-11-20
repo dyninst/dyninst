@@ -3635,9 +3635,6 @@ bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
 
 #endif
 
-namespace Dyninst {
-	namespace SymtabAPI {
-
 
 #if !defined(SERIALIZATION_DISABLED)
 SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)
@@ -3874,7 +3871,8 @@ SYMTAB_EXPORT Offset Symtab::getFiniOffset()
 
 }
 
-} // namespace SymtabAPI
-} // namespace Dyninst
+void Symtab::getSegmentsSymReader(std::vector<SymSegment> &segs) {
+   obj_private->getSegmentsSymReader(segs);
+}
 
 

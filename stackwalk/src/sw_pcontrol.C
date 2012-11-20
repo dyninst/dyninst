@@ -415,10 +415,10 @@ bool PCLibraryState::checkLibraryContains(Address addr, Library::ptr lib)
       return false;
    }
 
-   int num_regions = reader->numRegions();
+   int num_regions = reader->numSegments();
    for (int i=0; i<num_regions; i++) {
-      SymRegion region;
-      reader->getRegion(i, region);
+      SymSegment region;
+      reader->getSegment(i, region);
       Address region_start = region.mem_addr + base;
       Address region_end = region_start + region.mem_size;
       if (region_start <= addr && region_end > addr) 
