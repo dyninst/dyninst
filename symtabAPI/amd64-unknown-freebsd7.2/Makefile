@@ -53,8 +53,6 @@ TFLAGS          += $(MYFLAGS)
 
 SYSLIBS		=
 
-LIBS	  += -lpthread
-
 AS		= /usr/bin/as
 
 # no support for elf64_XXX() functions
@@ -63,8 +61,6 @@ CFLAGS		+= -DUSES_ELF32_ONLY
 TFLAGS		+= -DUSES_ELF32_ONLY
 
 # Add preprocessor and special link information for G++
-G_PTHREAD	= -pthread
-G_PTHREAD_LD	= -pthread
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

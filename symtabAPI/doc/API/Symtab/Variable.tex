@@ -1,6 +1,6 @@
 \subsection{Class Variable}
 
-The Variable class represents a collection of symbols that have the same address and represent data. 
+The \code{Variable} class represents a collection of symbols that have the same address and represent data. 
 
 \begin{tabular}{p{1.25in}p{1.125in}p{3.125in}}
 	Method name & Return type & Method description \\
@@ -17,52 +17,52 @@ The Variable class represents a collection of symbols that have the same address
 bool getSymbols(vector<Symbol *> &syms) const
 \end{apient}
 \apidesc{
-This method returns the vector of Symbols that refer to the variable.
+This method returns the vector of \code{Symbol}s that refer to the variable.
 }
 
 \begin{apient}
 bool setModule (Module *module)
 \end{apient}
 \apidesc{
-This method changes the module to which the variable belongs. Returns true if it succeeds.
+This method changes the module to which the variable belongs. Returns \code{true} if it succeeds.
 }
 
 \begin{apient}
 bool setSize (unsigned size)
 \end{apient}
 \apidesc{
-This method changes the size of the variable to size. Returns true if it succeeds.
+This method changes the size of the variable to \code{size}. Returns \code{true} if it succeeds.
 }
 
 \begin{apient}
 bool setOffset (Offset offset)
 \end{apient}
 \apidesc{
-The method changes the offset of the variable. Returns true if it succeeds.
+The method changes the offset of the variable. Returns \code{true} if it succeeds.
 }
 
 \begin{apient}
 bool addMangledName(string name, bool isPrimary)
 \end{apient}
 \apidesc{
-This method adds a mangled name name to the variable. If isPrimary is true then it becomes the default name for the variable.
-This method returns true on success and false on failure.
+This method adds a mangled name \code{name} to the variable. If \code{isPrimary} is \code{true} then it becomes the default name for the variable.
+This method returns \code{true} on success and \code{false} on failure.
 }
 
 \begin{apient}
 bool addPrettyName(string name, bool isPrimary)
 \end{apient}
 \apidesc{
-This method adds a pretty name name to the variable. If isPrimary is true then it becomes the default name for the variable. 
-This method returns true on success and false on failure.
+This method adds a pretty name \code{name} to the variable. If \code{isPrimary} is \code{true} then it becomes the default name for the variable. 
+This method returns \code{true} on success and \code{false} on failure.
 }
 
 \begin{apient}
 bool addTypedName(string name, bool isPrimary)
 \end{apient}
 \apidesc{
-This method adds a typed name name to the variable. If isPrimary is true then it becomes the default name for the variable. 
-This method returns true on success and false on failure.
+This method adds a typed name \code{name} to the variable. If \code{isPrimary} is \code{true} then it becomes the default name for the variable. 
+This method returns \code{true} on success and \code{false} on failure.
 }
 
 
@@ -70,5 +70,5 @@ This method returns true on success and false on failure.
 bool setType(Type *type)
 \end{apient}
 \apidesc{
-Sets the type of the variable to type.
+Sets the type of the variable to \code{type}.
 }

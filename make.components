@@ -1,18 +1,17 @@
 #Don't add tests to Everything
 Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
-
 Dwarf = dynutil common dwarf
 Elf = dynutil common elf
 Symlite = dynutil common elf symlite
-SymtabAPI 	= dynutil common dwarf elf symtabAPI
-StackwalkerAPI = dynutil common dwarf elf symlite proccontrol stackwalk
-DyninstAPI	= dynutil common symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI
+SymtabAPI 	= dynutil common elf dwarf symtabAPI
+StackwalkerAPI = dynutil common elf dwarf symlite proccontrol stackwalk
+DyninstAPI	= dynutil common elf dwarf symtabAPI instructionAPI parseAPI patchAPI symlite proccontrol stackwalk dyninstAPI_RT dyninstAPI
 DynC_API = $(DyninstAPI) dynC_API
 Dyner = $(DyninstAPI) dyner
 InstructionAPI	= dynutil common instructionAPI
-ProcControlAPI = dynutil common elf symlite proccontrol
+ProcControlAPI = dynutil common symlite proccontrol
 DepGraphAPI = depGraphAPI
-ParseAPI = dynutil common elf symlite symtabAPI instructionAPI parseAPI
+ParseAPI = dynutil common elf symtabAPI instructionAPI parseAPI symlite
 ValueAdded = valueAdded/sharedMem
 DataflowAPI = ParseAPI
 PatchAPI = dynutil common parseAPI patchAPI
@@ -30,6 +29,9 @@ Everything_tests = testsuite parseThat
 #Map of target names to directories
 dynutil = 
 common = dynutil common
+symlite = $(Symlite)
+elf = $(Elf)
+dwarf = $(Dwarf)
 symtabAPI = $(SymtabAPI)
 instructionAPI = $(InstructionAPI)
 proccontrol = $(ProcControlAPI)

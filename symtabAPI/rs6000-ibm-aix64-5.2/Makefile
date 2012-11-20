@@ -42,10 +42,6 @@ SRCS =		../src/Object-xcoff.C \
 		../src/relocationEntry-stub.C
 
 # Add preprocessor and special link information for G++
-G_PTHREAD       = -pthread
-# Commented out for daily wisc builds
-#G_PTHREAD_LD	= -pthread
-
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

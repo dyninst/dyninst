@@ -394,6 +394,8 @@ bool Region::updateRelocations(Address start,
       // If the relocation entry matches, update the symbol. We
       // have an address range and an old symbol...
       relocationEntry &e = rels_[i];
+      if (!e.getDynSym()) continue;
+
       if (e.getDynSym()->getMangledName() != oldsym->getMangledName()) {
          continue;
       }
