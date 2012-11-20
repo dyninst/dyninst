@@ -51,11 +51,11 @@ class CFGModifier;
 class SymReaderCodeRegion : public CodeRegion {
  private:
     SymReader * _symtab;
-    SymRegion * _region;
+    SymSegment * _region;
     void* rawData;
     
  public:
-    PARSER_EXPORT SymReaderCodeRegion(SymReader *, SymRegion *);
+    PARSER_EXPORT SymReaderCodeRegion(SymReader *, SymSegment *);
     PARSER_EXPORT ~SymReaderCodeRegion();
 
     PARSER_EXPORT void names(Address, vector<std::string> &);
@@ -76,7 +76,7 @@ class SymReaderCodeRegion : public CodeRegion {
     PARSER_EXPORT Address low() const { return offset(); }
     PARSER_EXPORT Address high() const { return offset() + length(); }
 
-    PARSER_EXPORT SymRegion * symRegion() const { return _region; }
+    PARSER_EXPORT SymSegment * symRegion() const { return _region; }
 };
 
 class SymReaderCodeSource : public CodeSource {
@@ -100,7 +100,7 @@ class SymReaderCodeSource : public CodeSource {
     PARSER_EXPORT bool nonReturning(Address func_entry);
     PARSER_EXPORT bool nonReturning(std::string func_name);
 
-    PARSER_EXPORT bool resizeRegion(SymRegion *, Address newDiskSize);
+    PARSER_EXPORT bool resizeRegion(SymSegment *, Address newDiskSize);
 
     PARSER_EXPORT SymReader * getSymReaderObject() {return _symtab;} 
 

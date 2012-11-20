@@ -86,6 +86,8 @@ using namespace std;
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
 
+#include "dynutil/h/SymReader.h"
+
 using namespace boost::assign;
 
 #include <libgen.h>
@@ -5548,4 +5550,20 @@ Offset Object::getTOCoffset(Offset off) const {
 void Object::setTOCoffset(Offset off) {
   TOC_table_.clear();
   TOC_table_[0] = off;
+}
+
+void Object::getSegmentsSymReader(vector<SymSegment> &segs) {
+   for (unsigned i = 0; i < elfHdr.e_phnum(); ++i) {
+      Elf_X_Phdr phdr = elfHdr.get_phdr(i);
+      
+      SymSegment seg;
+      seg.file_offset = phdr.p_offset();
+      seg.mem_addr = phdr.p_vaddr();
+      seg.file_size = phdr.p_filesz();
+      seg.mem_size = phdr.p_memsz();
+      seg.type = phdr.p_type();
+      seg.perms = phdr.p_flags() & 0x7;
+
+      segs.push_back(seg);
+   }
 }

@@ -46,28 +46,28 @@ class SymbolReaderFactory;
  * of the void pointers as a handle to a heap object, if it's comfortable
  * doing so.
  **/
-typedef struct {
+struct Symbol_t {
    void *v1;
    void *v2;
    int i1;
    int i2;
-} Symbol_t;
+};
 
-typedef struct {
+struct Section_t {
    void *v1;
    void *v2;
    int i1;
    int i2;
-} Section_t;
+};
 
-typedef struct {
+struct SymSegment {
    Dyninst::Offset file_offset;
    Dyninst::Address mem_addr;
    size_t file_size;
    size_t mem_size;
    int type;
    int perms;
-} SymRegion;
+};
 
 /**
  * This may seem like a clunky interface in places, but it was designed such 
@@ -85,8 +85,8 @@ class COMMON_EXPORT SymReader
    virtual std::string getInterpreterName() = 0;
    virtual unsigned getAddressWidth() = 0;
    
-   virtual unsigned numRegions() = 0;
-   virtual bool getRegion(unsigned num, SymRegion &reg) = 0; 
+   virtual unsigned numSegments() = 0;
+   virtual bool getSegment(unsigned num, SymSegment &reg) = 0; 
 
    virtual Dyninst::Offset getSymbolOffset(const Symbol_t &sym) = 0;
    virtual std::string getSymbolName(const Symbol_t &sym) = 0;
