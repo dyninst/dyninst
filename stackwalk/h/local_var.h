@@ -150,9 +150,15 @@ static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
    void *symtab_v;
    std::string lib_name;
    bool result = f.getLibOffset(lib_name, offset, symtab_v);
-   if (!result || !symtab_v)
+   if (!result)
       return NULL;
-   Symtab *symtab = getSymtabForName(lib_name);
+   Symtab *symtab = NULL;
+   if (symtab_v) {
+      symtab = (Symtab *) symtab_v;
+   }
+   else {
+      symtab = getSymtabForName(lib_name);
+   }
    Function *func;
    result = symtab->getContainingFunction(offset, func);
    if (!result)
