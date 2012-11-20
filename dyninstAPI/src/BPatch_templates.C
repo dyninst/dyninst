@@ -112,14 +112,7 @@ template class BPatch_Vector<BPatch_field *>;
 template class BPatch_Vector<int>;
 template class BPatch_Vector<unsigned long>;
 
-template struct comparison<unsigned short>;
-template class BPatch_Set<unsigned short>;
-template struct comparison<Address>;
-template class BPatch_Set<Address>;
 template class BPatch_Vector<unsigned short>;
-template struct comparison<int>;
-template class BPatch_Set<int>;
-template class BPatch_Set<BPatch_opCode>;
 template class BPatch_Vector<BPatch_opCode>;
 
 class BPatch_basicBlock;
@@ -132,10 +125,6 @@ class BPatch_cblock;
 
 template class BPatch_Vector<BPatch_cblock*>;
 
-template class BPatch_Set<BPatch_basicBlock*>;
-template class BPatch_Set<BPatch_basicBlock*, BPatch_basicBlock::compare>; 
-template struct comparison<BPatch_basicBlockLoop*>;
-template class BPatch_Set<BPatch_basicBlockLoop*>;
 
 class BPatch_sourceBlock;
 
@@ -151,8 +140,6 @@ template pdpair<unsigned short, unsigned short> min_max_pdpair<unsigned short>(c
 
 class BPatch_edge;
 template class BPatch_Vector<BPatch_edge*>;
-template struct comparison<BPatch_edge*>;
-template class BPatch_Set<BPatch_edge*>;
 
 struct batchInsertionRecord;
 template class BPatch_Vector<batchInsertionRecord *>;
