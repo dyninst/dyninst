@@ -105,7 +105,7 @@ typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;
 #define patchapi_debug(PSTR, ...) do {        \
   if (getenv("DYNINST_DEBUG_PATCHAPI")) {   \
   const char* nodir = strrchr(__FILE__, '/'); \
-  nodir = nodir ? nodir+1 : __FILE__;
+  nodir = nodir ? nodir+1 : __FILE__; \
   fprintf(stderr, "%s [%d]: " PSTR "\n", nodir, __LINE__, ## __VA_ARGS__); \
   fflush(stderr); \
   } \
