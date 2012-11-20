@@ -230,7 +230,7 @@ static int getLocalVariableValue(localVar *var,
       case storageRegOffset: {
          MachRegisterVal reg_value;
          MachRegister reg = loc.mr_reg;
-         if (loc.stClass == storageRegOffset && loc.reg == -1) {
+         if (loc.stClass == storageRegOffset && reg == -1) {
             reg = MachRegister::getFramePointer(proc->getAddressWidth() == 4 ? Arch_x86 : Arch_x86_64);
          }
          
