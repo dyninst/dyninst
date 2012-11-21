@@ -1818,6 +1818,13 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     dynsymbolNamesLength = olddynStrSize+1;
   }
 
+  // Copy over the previous library dependencies
+  vector<string> &elibs = obj->getObject()->deps_;
+  for (std::vector<std::string>::iterator iter = elibs.begin();
+       iter != elibs.end(); ++iter) {
+     addDTNeeded(*iter);
+  }
+
   //Initialize the list of new prereq libraries
   set<string> &plibs = obj->getObject()->prereq_libs;
   for (set<string>::iterator i = plibs.begin(); i != plibs.end(); i++) {

@@ -1,24 +1,27 @@
 #Don't add tests to Everything
-Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
+Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API parseThat
 
-SymtabAPI 	= dynutil common elf dwarf symtabAPI
-StackwalkerAPI = dynutil common elf dwarf symlite proccontrol stackwalk
-DyninstAPI	= dynutil common elf dwarf symtabAPI instructionAPI parseAPI patchAPI symlite proccontrol stackwalk dyninstAPI_RT dyninstAPI
-DynC_API = $(DyninstAPI) dynC_API
-Dyner = $(DyninstAPI) dyner
-InstructionAPI	= dynutil common instructionAPI
-ProcControlAPI = dynutil common symlite proccontrol
-DepGraphAPI = depGraphAPI
-ParseAPI = dynutil common elf symtabAPI instructionAPI parseAPI symlite
-ValueAdded = valueAdded/sharedMem
-DataflowAPI = ParseAPI
-PatchAPI = dynutil common parseAPI patchAPI
+Common          = dynutil common
+SymLite         = ${Common} elf symlite
+SymtabAPI 	= ${Common} elf dwarf symtabAPI
+InstructionAPI  = ${Common} instructionAPI
+ParseAPI        = ${Common} ${SymtabAPI} ${SymLite} ${InstructionAPI} parseAPI
+PatchAPI        = ${ParseAPI} patchAPI
+ProcControlAPI  = ${SymLite} proccontrol
+
+StackwalkerAPI  = ${ProcControlAPI}
 ifndef WITHOUT_PARSE_API
-StackwalkerAPI += parseAPI instructionAPI
+StackwalkerAPI += ${ParseAPI} ${InstructionAPI}
 endif
 ifndef WITHOUT_SYMTAB_API
-StackwalkerAPI += symtabAPI
+StackwalkerAPI += ${SymtabAPI}
 endif
+StackwalkerAPI += stackwalk
+
+DyninstAPI     = ${PatchAPI} ${StackwalkerAPI}
+
+ValueAdded = valueAdded/sharedMem
+DataflowAPI = ParseAPI
 
 #List of tests
 Everything_tests = testsuite parseThat

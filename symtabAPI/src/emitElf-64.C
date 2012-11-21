@@ -1681,6 +1681,13 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     dynsymbolNamesLength = olddynStrSize+1;
   }
 
+  // Copy over the previous library dependencies
+  vector<string> &elibs = obj->getObject()->deps_;
+  for (std::vector<std::string>::iterator iter = elibs.begin();
+       iter != elibs.end(); ++iter) {
+     addDTNeeded(*iter);
+  }
+
   //Initialize the list of new prereq libraries
   set<string> &plibs = obj->getObject()->prereq_libs;
   for (set<string>::iterator i = plibs.begin(); i != plibs.end(); i++) {
@@ -2518,6 +2525,7 @@ void emitElf64::log_elferror(void (*err_func)(const char *), const char* msg) {
 
 void emitElf64::addDTNeeded(string s)
 {
+   cerr << "Adding necessary lib: " << s << endl;
    if (find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), s) != DT_NEEDEDEntries.end())
       return;
    vector<string> &libs_rmd = object->libsRMd();

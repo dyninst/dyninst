@@ -311,8 +311,15 @@ class DwarfHandle {
   Dwarf::DwarfFrameParserPtr frameParser() { return sw; } 
 };
 
+class emitElf;
+class emitElf64;
+
 class Object : public AObject {
   friend class DwarfHandle;
+  friend class emitElf;
+  friend class emitElf64;
+
+
  public:
   Object() : dwarf(this) {}
   Object(MappedFile *, MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true);
