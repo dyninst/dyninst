@@ -446,24 +446,53 @@ bool DwarfWalker::parseLexicalBlock() {
    
    dwarf_printf("(0x%lx) Parsing lexical block\n", id());
 
+   clearRanges();
    Dwarf_Bool hasLow = false;
    DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_low_pc, &hasLow, NULL));
 
    Dwarf_Bool hasHigh = false;
    DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_high_pc, &hasHigh, NULL));
 
-   if (!hasLow || !hasHigh) {
-      dwarf_printf("(0x%lx) Unable to parse lexical block, unknown format\n", id());
-      return false;
+   if (hasLow && hasHigh) {
+      Address low, high;
+      if (!findConstant(DW_AT_low_pc, low)) return false;
+      if (!findConstant(DW_AT_high_pc, high)) return false;
+      dwarf_printf("(0x%lx) Lexical block from 0x%lx to 0x%lx\n", id(), low, high);
+      setRange(make_pair(low, high));
    }
 
-   Address low, high;
-   if (!findConstant(DW_AT_low_pc, low)) return false;
-   if (!findConstant(DW_AT_high_pc, high)) return false;
-   
-   dwarf_printf("(0x%lx) Lexical block from 0x%lx to 0x%lx\n", id(), low, high);
-   setLow(low);
-   setHigh(high);
+   Dwarf_Bool hasRanges = false;
+   DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_ranges, &hasRanges, NULL));
+   if (hasRanges) {
+      Address range_offset;
+      if (!findConstant(DW_AT_ranges, range_offset)) return false;
+      
+      Dwarf_Ranges *ranges = NULL;
+      Dwarf_Signed ranges_length = 0;
+      DWARF_FAIL_RET(dwarf_get_ranges_a(dbg(), (Dwarf_Off) range_offset, entry(),
+                                        &ranges, &ranges_length, NULL, NULL));
+
+      bool done = false;
+      for (unsigned i = 0; i < ranges_length && !done; i++) {
+         Dwarf_Ranges *cur = ranges + i;
+         Address cur_base = 0;
+         switch (cur->dwr_type) {
+            case DW_RANGES_ENTRY: {
+               Address low = cur->dwr_addr1 + cur_base;
+               Address high = cur->dwr_addr2 + cur_base;
+               dwarf_printf("(0x%lx) Lexical block from 0x%lx to 0x%lx\n", id(), low, high);
+               setRange(make_pair(low, high));
+               break;
+            }
+            case DW_RANGES_ADDRESS_SELECTION:
+               cur_base = cur->dwr_addr2;
+               break;
+            case DW_RANGES_END:
+               done = true;
+               break;
+         }
+      }
+   }
    
    return true;
 }
@@ -1443,14 +1472,17 @@ bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
          DWARF_FAIL_RET(dwarf_formaddr(locationAttribute, &addr, NULL));
          value = (Address) addr;
          return true;
-   case DW_FORM_data1:
-   case DW_FORM_sdata:
+      case DW_FORM_sdata:
          Dwarf_Signed s_tmp;
          DWARF_FAIL_RET(dwarf_formsdata(locationAttribute, &s_tmp, NULL));
          value = (Address) s_tmp;
-	 dwarf_printf("(0x%lx) Decoded data of form %x to 0x%lx\n", 
-		      id(), form, value);
+         dwarf_printf("(0x%lx) Decoded data of form %x to 0x%lx\n", 
+                      id(), form, value);
          return true;
+      case DW_FORM_data1:
+      case DW_FORM_data2:
+      case DW_FORM_data4:
+      case DW_FORM_data8:
       case DW_FORM_udata:
          Dwarf_Unsigned u_tmp;
          DWARF_FAIL_RET(dwarf_formudata(locationAttribute, &u_tmp, NULL));
@@ -1476,20 +1508,22 @@ bool DwarfWalker::constructConstantVariableLocation(Address value,
    VariableLocation loc;
    loc.stClass = storageAddr;
    loc.refClass = storageNoRef;
-   if (lowAddr() != highAddr()) {
-      loc.lowPC = lowAddr();
-      loc.hiPC = highAddr();
+   loc.frameOffset = value;
+
+
+   if (hasRanges()) {
+      for (range_set_t::iterator i = ranges_begin(); i != ranges_end(); i++) {
+         pair<Address, Address> range = *i;
+         loc.lowPC = range.first;
+         loc.hiPC = range.second;
+         locs.push_back(loc);
+      }
    }
    else {
       loc.lowPC = (Address) 0;
       loc.hiPC = (Address) -1;
+      locs.push_back(loc);
    }
-
-   // removed modlow
-
-   loc.frameOffset = value;
-
-   locs.push_back(loc);
    
    return true;
 }
@@ -1926,37 +1960,12 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **lo
       // If location == 0..-1, it's "unset" and we keep the big range unless
       // we're in a lexical block construct. 
       // 
-      dwarf_printf("(0x%lx) Decoding entry %d of %d over range 0x%lx - 0x%lx, lexical 0x%lx - 0x%lx, mod 0x%lx - 0x%lx\n", 
+      dwarf_printf("(0x%lx) Decoding entry %d of %d over range 0x%lx - 0x%lx, mod 0x%lx - 0x%lx\n", 
                    id(), locIndex+1, (int) listLength,
                    (long) location->ld_lopc,
                    (long) location->ld_hipc,
-                   lowAddr(), highAddr(), modLow, modHigh);
+                   modLow, modHigh);
 
-
-      if (location->ld_lopc == 0 &&
-          location->ld_hipc == (Dwarf_Addr) ~0) {
-         // Unset low and high. Use the lexical block info if present, otherwise
-         // pass through. 
-         if (lowAddr() != highAddr()) {
-            dwarf_printf("(0x%lx) Using lexical range\n", id());
-            loc.lowPC = lowAddr();
-            loc.hiPC = highAddr();
-         }
-         else {
-            dwarf_printf("(0x%lx) Using open location range\n", id());            
-            loc.lowPC = location->ld_lopc;
-            loc.hiPC = location->ld_hipc;
-         }
-      }
-      else {
-         dwarf_printf("(0x%lx) Using lexical range, shifted by module low\n", id());
-         loc.lowPC = location->ld_lopc + modLow;
-         loc.hiPC = location->ld_hipc + modLow;
-      }
-
-      dwarf_printf("(0x%lx) Variable valid over range 0x%lx to 0x%lx\n", 
-                   id(), loc.lowPC, loc.hiPC);
-      
       long int *tmp = (long int *)initialStackValue;
       bool result = decodeDwarfExpression(location, tmp, loc,
                                           symtab()->getArchitecture());
@@ -1965,7 +1974,41 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **lo
          return false;
       }
 
-      locs.push_back(loc);
+      if (location->ld_lopc == 0 &&
+          location->ld_hipc == (Dwarf_Addr) ~0) {
+         // Unset low and high. Use the lexical block info if present, otherwise
+         // pass through. 
+         if (hasRanges()) {
+            dwarf_printf("(0x%lx) Using lexical range\n", id());
+            for (range_set_t::iterator i = ranges_begin(); i != ranges_end(); i++) {
+               pair<Address, Address> range = *i;
+               loc.lowPC = range.first;
+               loc.hiPC = range.second;
+
+               dwarf_printf("(0x%lx) Variable valid over range 0x%lx to 0x%lx\n", 
+                            id(), loc.lowPC, loc.hiPC);
+               locs.push_back(loc);
+            }
+         }
+         else {
+            dwarf_printf("(0x%lx) Using open location range\n", id());            
+            loc.lowPC = location->ld_lopc;
+            loc.hiPC = location->ld_hipc;
+
+            dwarf_printf("(0x%lx) Variable valid over range 0x%lx to 0x%lx\n", 
+                         id(), loc.lowPC, loc.hiPC);
+            locs.push_back(loc);
+         }
+      }
+      else {
+         dwarf_printf("(0x%lx) Using lexical range, shifted by module low\n", id());
+         loc.lowPC = location->ld_lopc + modLow;
+         loc.hiPC = location->ld_hipc + modLow;
+
+         dwarf_printf("(0x%lx) Variable valid over range 0x%lx to 0x%lx\n", 
+                      id(), loc.lowPC, loc.hiPC);
+         locs.push_back(loc);
+      }
    }
    
    /* decode successful */
@@ -2015,8 +2058,7 @@ void DwarfWalker::Contexts::setFunc(Function *f) {
   // any preceding lexical information since we probably 
   // nested. 
   c.top().func = f;
-  c.top().low = 0;
-  c.top().high = (Address) ~0;
+  clearRanges();
 }
 
 void DwarfWalker::Contexts::clearFunc() {
