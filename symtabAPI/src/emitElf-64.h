@@ -40,7 +40,7 @@ namespace SymtabAPI{
 
 class emitElf64{
   public:
-    emitElf64(Elf_X &oldElfHandle_, bool isStripped_ = false, Object *obj_ = NULL, void (*)(const char *) = log_msg);
+    emitElf64(Elf_X *oldElfHandle_, bool isStripped_ = false, Object *obj_ = NULL, void (*)(const char *) = log_msg);
     ~emitElf64() {
         if( linkedStaticData ) delete linkedStaticData;
     }
@@ -48,7 +48,7 @@ class emitElf64{
     bool driver(Symtab *obj, std::string fName);
  
   private:
-    Elf_X oldElfHandle;
+    Elf_X *oldElfHandle;
     Elf *newElf;
     Elf *oldElf;
     

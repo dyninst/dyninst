@@ -28,37 +28,63 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef COMMON_DEBUG_H
-#define COMMON_DEBUG_H
+#if !defined(DWARF_HANDLE_H_)
+#define DWARF_HANDLE_H_
 
+#include "libdwarf.h"
+#include "dyntypes.h"
+#include <map>
 #include <string>
 
-extern int common_debug_dwarf;
-extern int common_debug_addrtranslate;
+namespace Dyninst {
+class Elf_X;
 
-#if defined(__GNUC__)
-#define dwarf_printf(format, ...)                                       \
-   do {                                                                 \
-      dwarf_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
-   } while (0)
-#else
-#define dwarf_printf dwarf_printf_int
+namespace Dwarf {
+class DwarfFrameParser;
+
+typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
+
+class DwarfHandle {
+  public:
+   typedef DwarfHandle* ptr;
+  private:
+   DwarfFrameParserPtr sw;
+   typedef enum {
+      dwarf_status_uninitialized,
+      dwarf_status_error,
+      dwarf_status_ok
+   } dwarf_status_t;
+   dwarf_status_t init_dwarf_status;
+
+   Dwarf_Debug dbg_file_data;
+   Dwarf_Debug file_data;
+   Dwarf_Debug *line_data;
+   Dwarf_Debug *type_data;
+   Dwarf_Debug *frame_data;
+
+   Elf_X *file;
+   Elf_X *dbg_file;
+   void *err_func;
+   bool init_dbg();
+   void locate_dbg_file();
+   DwarfHandle(std::string filename_, Elf_X *file_, void *err_func_);
+   std::string filename;
+   std::string debug_filename;
+   static std::map<std::string, DwarfHandle::ptr> all_dwarf_handles;
+  public:
+   ~DwarfHandle();
+
+   static DwarfHandle::ptr createDwarfHandle(std::string filename_, Elf_X *file_, void *err_func_ = NULL);
+
+   Elf_X *origFile();
+   Elf_X *debugLinkFile();
+   Dwarf_Debug *line_dbg();
+   Dwarf_Debug *type_dbg();
+   Dwarf_Debug *frame_dbg();
+   DwarfFrameParserPtr frameParser();
+};
+
+}
+}
+
 #endif
-
-int dwarf_printf_int(const char *format, ...);
-
-#if defined(__GNUC__)
-#define translate_printf(format, ...)                                       \
-   do {                                                                 \
-      translate_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
-   } while (0)
-#else
-#define translate_printf translate_printf_int
-#endif
-
-int translate_printf_int(const char *format, ...);
-
-// And initialization
-bool init_debug_common();
-
-#endif /* COMMON_DEBUG_H */

@@ -46,7 +46,6 @@ namespace SymtabAPI {
 class Symtab;
 class Region;
 class FastParser;
-class DwarfHandle;
 
 class SYMTAB_EXPORT SymtabReaderFactory : public SymbolReaderFactory
 {
@@ -66,7 +65,6 @@ class SYMTAB_EXPORT SymtabReader : public SymReader {
    Symtab *symtab;
    int ref_count;
    std::vector<Region *> *mapped_regions;
-   DwarfHandle *dwarf_handle;
    bool ownsSymtab;
   public:
    SymtabReader(std::string file_);
@@ -98,8 +96,6 @@ class SYMTAB_EXPORT SymtabReader : public SymReader {
    virtual Dyninst::Offset dataOffset();  
 
    virtual void *getElfHandle();
-
-   void *getDebugInfo();
 };
 
 extern "C" {

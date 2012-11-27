@@ -172,7 +172,7 @@ class Object : public AObject
     Module* curModule;
 
  public:
-    SYMTAB_EXPORT Object(MappedFile *, MappedFile *, bool defensive, 
+    SYMTAB_EXPORT Object(MappedFile *, bool defensive, 
                          void (*)(const char *) = log_msg, bool alloc_syms = true);
     SYMTAB_EXPORT Object(){};
   

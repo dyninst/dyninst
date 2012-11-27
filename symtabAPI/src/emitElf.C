@@ -56,7 +56,7 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-extern const char *pdelf_get_shnames(Elf_X &elf);
+extern const char *pdelf_get_shnames(Elf_X *elf);
 extern const char *STRTAB_NAME;
 extern const char *SYMTAB_NAME;
 extern const char *INTERP_NAME;
@@ -193,7 +193,7 @@ static int elfSymVisibility(Symbol::SymbolVisibility sVisibility)
   }
 }
 
-emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *)) :
+emitElf::emitElf(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *)) :
    oldElfHandle(oldElfHandle_), 
    phdrs_scn(NULL),
    isStripped(isStripped_), 
@@ -214,7 +214,7 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   TLSExists = false;
   newTLSData = NULL;
    
-  oldElf = oldElfHandle.e_elfp();
+  oldElf = oldElfHandle->e_elfp();
   curVersionNum = 2;
   setVersion();
  

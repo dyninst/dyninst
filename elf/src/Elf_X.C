@@ -55,87 +55,148 @@ using namespace Dyninst;
 #define DEBUGLINK_NAME ".gnu_debuglink"
 #define BUILD_ID_NAME ".note.gnu.build-id"
 
+map<string, Elf_X *> Elf_X::all_elf_x;
+
+Elf_X *Elf_X::newElf_X(int input, Elf_Cmd cmd, Elf_X *ref, string name)
+{
+   if (name.empty()) {
+      return new Elf_X(input, cmd, ref);
+   }
+   map<string, Elf_X *>::iterator i = all_elf_x.find(name);
+   if (i != all_elf_x.end()) {
+      Elf_X *ret = i->second;
+      ret->ref_count++;
+      return ret;
+   }
+   Elf_X *ret = new Elf_X(input, cmd, ref);
+   all_elf_x.insert(make_pair(name, ret));
+   return ret;
+}
+
+Elf_X *Elf_X::newElf_X(char *mem_image, size_t mem_size, string name)
+{
+   if (name.empty()) {
+      return new Elf_X(mem_image, mem_size);
+   }
+   map<string, Elf_X *>::iterator i = all_elf_x.find(name);
+   if (i != all_elf_x.end()) {
+      Elf_X *ret = i->second;
+      ret->ref_count++;
+      return ret;
+   }
+   Elf_X *ret = new Elf_X(mem_image, mem_size);
+   all_elf_x.insert(make_pair(name, ret));
+   return ret;
+}
+
 // ------------------------------------------------------------------------
 // Class Elf_X simulates the Elf(32|64)_Ehdr structure.
 // Also works for ELF archives. 
 Elf_X::Elf_X()
     : elf(NULL), ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL),
-      filedes(-1), is64(false), isArchive(false)
+      filedes(-1), is64(false), isArchive(false), ref_count(1),
+      cached_debug_buffer(NULL), cached_debug_size(0), cached_debug(false)
 { }
 
 Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
     : ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL),
-      filedes(input), is64(false), isArchive(false)
+      filedes(input), is64(false), isArchive(false), ref_count(1),
+      cached_debug_buffer(NULL), cached_debug_size(0), cached_debug(false)
 {
-    if (elf_version(EV_CURRENT) != EV_NONE) {
-        elf_errno(); // Reset elf_errno to zero.
-        if (ref)
-            elf = elf_begin(input, cmd, ref->e_elfp());
-        else
-            elf = elf_begin(input, cmd, NULL);
-        int errnum;
-        if ((errnum = elf_errno()) != 0) {
-            //const char *msg = elf_errmsg(errnum);
-            //fprintf(stderr, "Elf error: %s\n", msg);
-        }
-        if (elf) {
-            if (elf_kind(elf) == ELF_K_ELF) {
-                char *identp = elf_getident(elf, NULL);
-                is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-            }
-            else if(elf_kind(elf) == ELF_K_AR) {
-                char *identp = elf_getident(elf, NULL);
-                is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-                isArchive = true;
-            }
-
-            if (!is64) ehdr32 = elf32_getehdr(elf);
-            else       ehdr64 = elf64_getehdr(elf);
-
-            if (!is64) phdr32 = elf32_getphdr(elf);
-            else       phdr64 = elf64_getphdr(elf);
-        }
+    if (elf_version(EV_CURRENT) == EV_NONE) {
+       return;
     }
+    elf_errno(); // Reset elf_errno to zero.
+    if (ref)
+       elf = elf_begin(input, cmd, ref->e_elfp());
+    else
+       elf = elf_begin(input, cmd, NULL);
+    int errnum;
+    if ((errnum = elf_errno()) != 0) {
+       //const char *msg = elf_errmsg(errnum);
+       //fprintf(stderr, "Elf error: %s\n", msg);
+    }
+    if (elf) {
+       if (elf_kind(elf) == ELF_K_ELF) {
+          char *identp = elf_getident(elf, NULL);
+          is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+       }
+       else if(elf_kind(elf) == ELF_K_AR) {
+          char *identp = elf_getident(elf, NULL);
+          is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+          isArchive = true;
+       }
+       
+       if (!is64)  ehdr32 = elf32_getehdr(elf);
+       else       ehdr64 = elf64_getehdr(elf);
+       
+       if (!is64) phdr32 = elf32_getphdr(elf);
+       else       phdr64 = elf64_getphdr(elf);
+    }
+
+    size_t phdrnum, shdrnum;
+    elf_getphdrnum(elf, &phdrnum);
+    elf_getshdrnum(elf, &shdrnum);
+    shdrs.resize(shdrnum);
+    phdrs.resize(phdrnum);
 }
 
 Elf_X::Elf_X(char *mem_image, size_t mem_size)
     : ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL),
-      is64(false), isArchive(false)
+      is64(false), isArchive(false), ref_count(1),
+      cached_debug_buffer(NULL), cached_debug_size(0), cached_debug(false)
 {
-    if (elf_version(EV_CURRENT) != EV_NONE) {
-        elf_errno(); // Reset elf_errno to zero.
-        elf = elf_memory(mem_image, mem_size);
-
-        int err;
-        if ( (err = elf_errno()) != 0) {
-            //const char *msg = elf_errmsg(err);
-        }
-
-        if (elf) {
-            if (elf_kind(elf) == ELF_K_ELF) {
-                char *identp = elf_getident(elf, NULL);
-                is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-            }
-
-            if (!is64) ehdr32 = elf32_getehdr(elf);
-            else       ehdr64 = elf64_getehdr(elf);
-
-            if (!is64) phdr32 = elf32_getphdr(elf);
-            else       phdr64 = elf64_getphdr(elf);
-        }
+    if (elf_version(EV_CURRENT) == EV_NONE) {
+       return;
     }
+
+    elf_errno(); // Reset elf_errno to zero.
+    elf = elf_memory(mem_image, mem_size);
+    
+    int err;
+    if ( (err = elf_errno()) != 0) {
+       //const char *msg = elf_errmsg(err);
+    }
+    
+    if (elf) {
+       if (elf_kind(elf) == ELF_K_ELF) {
+          char *identp = elf_getident(elf, NULL);
+          is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+       }
+       
+       if (!is64) ehdr32 = elf32_getehdr(elf);
+       else       ehdr64 = elf64_getehdr(elf);
+       
+       if (!is64) phdr32 = elf32_getphdr(elf);
+       else       phdr64 = elf64_getphdr(elf);
+    }
+
+    size_t phdrnum, shdrnum;
+    elf_getphdrnum(elf, &phdrnum);
+    elf_getshdrnum(elf, &shdrnum);
+    shdrs.resize(shdrnum);
+    phdrs.resize(phdrnum);
 }
 
 void Elf_X::end()
 {
-    if (elf) {
-        elf_end(elf);
-        elf = NULL;
-        ehdr32 = NULL;
-        ehdr64 = NULL;
-        phdr32 = NULL;
-        phdr64 = NULL;
-    }
+   if (ref_count > 1) {
+      ref_count--;
+      return;
+   }
+   if (elf) {
+      elf_end(elf);
+      elf = NULL;
+      ehdr32 = NULL;
+      ehdr64 = NULL;
+      phdr32 = NULL;
+      phdr64 = NULL;
+   }
+   delete this;
+}
+
+Elf_X::~Elf_X()
+{
 }
 
 // Read Interface
@@ -251,7 +312,7 @@ Elf_X *Elf_X::e_next(Elf_X *ref)
     if (!isArchive)
         return NULL;
     Elf_Cmd cmd = elf_next(ref->e_elfp());
-    return new Elf_X(filedes, cmd, this);
+    return Elf_X::newElf_X(filedes, cmd, this);
 }
 
 Elf_X *Elf_X::e_rand(unsigned offset)
@@ -259,7 +320,7 @@ Elf_X *Elf_X::e_rand(unsigned offset)
     if (!isArchive)
         return NULL;
     elf_rand(elf, offset);
-    return new Elf_X(filedes, ELF_C_READ, this);
+    return Elf_X::newElf_X(filedes, ELF_C_READ, this);
 }
 
 // Write Interface
@@ -358,18 +419,25 @@ int Elf_X::wordSize() const
     return (!is64 ? 4 : 8);
 }
 
-Elf_X_Phdr Elf_X::get_phdr(unsigned int i) const
+Elf_X_Phdr &Elf_X::get_phdr(unsigned int i)
 {
-    if (!is64) return Elf_X_Phdr(is64, phdr32 + i);
-    else       return Elf_X_Phdr(is64, phdr64 + i);
+   if (is64 && !phdrs[i].phdr64) {
+      phdrs[i] = Elf_X_Phdr(is64, phdr64 + i);
+   }
+   else if (!is64 && !phdrs[i].phdr32) {
+      phdrs[i] = Elf_X_Phdr(is64, phdr32 + i);
+   }
+   return phdrs[i];
 }
 
-Elf_X_Shdr Elf_X::get_shdr(unsigned int i) const
+Elf_X_Shdr &Elf_X::get_shdr(unsigned int i)
 {
-    Elf_Scn *scn = elf_getscn(elf, i);
-    Elf_X_Shdr result(is64, scn);
-    result._elf = this;
-    return result;
+   if (!shdrs[i]._elf) {
+      Elf_Scn *scn = elf_getscn(elf, i);
+      shdrs[i] = Elf_X_Shdr(is64, scn);
+      shdrs[i]._elf = this;
+   }
+   return shdrs[i];
 }
 
 // ------------------------------------------------------------------------
@@ -1525,6 +1593,14 @@ static bool loadDebugFileFromDisk(string name, char* &output_buffer, unsigned lo
 // Reference: http://sourceware.org/gdb/current/onlinedocs/gdb_16.html#SEC157
 bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &output_buffer, unsigned long &output_buffer_size)
 {
+   if (cached_debug) {
+      output_buffer = cached_debug_buffer;
+      output_buffer_size = cached_debug_size;
+      output_name = cached_debug_name;
+      return (output_buffer != NULL);
+   }
+   cached_debug = true;
+
    uint16_t shnames_idx = e_shstrndx();
    Elf_X_Shdr shnames_hdr = get_shdr(shnames_idx);
    if (!shnames_hdr.isValid())
@@ -1575,6 +1651,9 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
      bool result = loadDebugFileFromDisk(debugFileFromBuildID, output_buffer, output_buffer_size);
      if (result) {
         output_name = debugFileFromBuildID;
+        cached_debug_buffer = output_buffer;
+        cached_debug_size = output_buffer_size;
+        cached_debug_name = output_name;
         return true;
      }
   }
@@ -1605,6 +1684,9 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
     }
 
     output_name = fnames[i];
+    cached_debug_buffer = output_buffer;
+    cached_debug_size = output_buffer_size;
+    cached_debug_name = output_name;
     return true;
   }
 
