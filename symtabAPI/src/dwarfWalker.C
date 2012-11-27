@@ -151,12 +151,14 @@ bool DwarfWalker::parseModule(Module *&fixUnknownMod) {
    // Set low and high ranges; this can fail, so don't check return addr.
    setEntry(moduleDIE);
 
-   // These may not be set. 
-   if (!findConstant(DW_AT_low_pc, modLow)) {
-      modLow = 0;
+   // These may not be set.
+   Address tempModLow, tempModHigh;
+   modLow = modHigh = 0;
+   if (findConstant(DW_AT_low_pc, tempModLow)) {
+      obj()->convertDebugOffset(tempModLow, modLow);
    }
-   if (!findConstant(DW_AT_high_pc, modHigh)) {
-      modHigh = 0;
+   if (findConstant(DW_AT_high_pc, tempModHigh)) {
+      obj()->convertDebugOffset(tempModHigh, modHigh);
    }
 
    if (!symtab()->findModuleByName(mod_, moduleName))
@@ -455,8 +457,11 @@ bool DwarfWalker::parseLexicalBlock() {
 
    if (hasLow && hasHigh) {
       Address low, high;
-      if (!findConstant(DW_AT_low_pc, low)) return false;
-      if (!findConstant(DW_AT_high_pc, high)) return false;
+      Address tempLow, tempHigh;
+      if (!findConstant(DW_AT_low_pc, tempLow)) return false;
+      if (!findConstant(DW_AT_high_pc, tempHigh)) return false;
+      obj()->convertDebugOffset(tempLow, low);
+      obj()->convertDebugOffset(tempHigh, high);
       dwarf_printf("(0x%lx) Lexical block from 0x%lx to 0x%lx\n", id(), low, high);
       setRange(make_pair(low, high));
    }

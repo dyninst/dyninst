@@ -33,6 +33,7 @@
 #include "dwarf/h/dwarfHandle.h"
 #include "dwarf/h/dwarfFrameParser.h"
 #include "common/h/debug_common.h"
+#include <cstring>
 
 using namespace Dyninst;
 using namespace Dwarf;
@@ -96,10 +97,13 @@ bool DwarfHandle::init_dbg()
       }
 
       //Have a debug file, choose which file to use for different lookups.
-#warning FIXME
       line_data = &dbg_file_data;
       type_data = &dbg_file_data;
-      frame_data = &file_data;
+
+      if (hasFrameData(dbg_file))
+         frame_data = &dbg_file_data;
+      else
+         frame_data = &file_data;
    }
    else {
       //No debug file, take everything from file
@@ -129,6 +133,35 @@ bool DwarfHandle::init_dbg()
 
    init_dwarf_status = dwarf_status_ok;
    return true;
+}
+
+const char* frame_section_names[] = { ".debug_frame", ".eh_frame", NULL };
+bool DwarfHandle::hasFrameData(Elf_X *e)
+{
+   unsigned short shstrtab_idx = e->e_shstrndx();
+   Elf_X_Shdr &shstrtab = e->get_shdr(shstrtab_idx);
+   if (!shstrtab.isValid())
+      return false;
+   Elf_X_Data data = shstrtab.get_data();
+   if (!data.isValid())
+      return false;
+   const char *shnames = data.get_string();
+
+   unsigned short num_sections = e->e_shnum();
+   for (unsigned i = 0; i < num_sections; i++) {
+      Elf_X_Shdr &shdr = e->get_shdr(i);
+      if (!shdr.isValid())
+         continue;
+      if (shdr.sh_type() == SHT_NOBITS)
+         continue;
+      unsigned long name_idx = shdr.sh_name();
+      for (const char **s = frame_section_names; *s; s++) {
+         if (strcmp(*s, shnames + name_idx) == 0) {
+            return true;
+         }
+      }
+   }
+   return false;
 }
 
 Elf_X *DwarfHandle::origFile()

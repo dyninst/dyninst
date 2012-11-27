@@ -576,7 +576,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
    unsigned int elfHdr_numSections = elfHdr->e_shnum();
    Elf_X *elfHdrDbg = dwarf->debugLinkFile();
    if (elfHdrDbg) {
-      const char *shnamesForDebugInfo = pdelf_get_shnames(elfHdrDbg);
+      shnamesForDebugInfo = pdelf_get_shnames(elfHdrDbg);
       if (shnamesForDebugInfo == NULL) {
          log_elferror(err_func_, ".shstrtab section");
       }

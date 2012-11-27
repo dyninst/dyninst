@@ -63,7 +63,7 @@ Archive::Archive(std::string& filename, bool& err)
     }
 
     basePtr = (void *) arf;
-    Elf_X *newelf = Elf_X::newElf_X(mf->getFD(), cmd, arf, filename);
+    Elf_X *newelf = Elf_X::newElf_X(mf->getFD(), cmd, arf);
 
     while( newelf->e_elfp() ) {
 	archdr = elf_getarhdr(newelf->e_elfp());

@@ -67,10 +67,12 @@ class DwarfHandle {
    void *err_func;
    bool init_dbg();
    void locate_dbg_file();
-   DwarfHandle(std::string filename_, Elf_X *file_, void *err_func_);
+   bool hasFrameData(Elf_X *elfx);
    std::string filename;
    std::string debug_filename;
    static std::map<std::string, DwarfHandle::ptr> all_dwarf_handles;
+
+   DwarfHandle(std::string filename_, Elf_X *file_, void *err_func_);
   public:
    ~DwarfHandle();
 

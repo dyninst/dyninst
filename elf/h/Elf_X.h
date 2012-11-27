@@ -127,6 +127,7 @@ class Elf_X {
     std::vector<Elf_X_Shdr> shdrs;
     std::vector<Elf_X_Phdr> phdrs;
     unsigned int ref_count;
+    std::string filename;
 
     char *cached_debug_buffer;
     unsigned long cached_debug_size;

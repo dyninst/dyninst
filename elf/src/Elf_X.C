@@ -59,6 +59,12 @@ map<string, Elf_X *> Elf_X::all_elf_x;
 
 Elf_X *Elf_X::newElf_X(int input, Elf_Cmd cmd, Elf_X *ref, string name)
 {
+#if (_LIBELF_H == 1)
+   //If using libelf via elfutils from RedHat
+   if (cmd == ELF_C_READ) {
+      cmd = ELF_C_READ_MMAP;
+   }
+#endif
    if (name.empty()) {
       return new Elf_X(input, cmd, ref);
    }
@@ -69,6 +75,7 @@ Elf_X *Elf_X::newElf_X(int input, Elf_Cmd cmd, Elf_X *ref, string name)
       return ret;
    }
    Elf_X *ret = new Elf_X(input, cmd, ref);
+   ret->filename = name;
    all_elf_x.insert(make_pair(name, ret));
    return ret;
 }
@@ -85,6 +92,7 @@ Elf_X *Elf_X::newElf_X(char *mem_image, size_t mem_size, string name)
       return ret;
    }
    Elf_X *ret = new Elf_X(mem_image, mem_size);
+   ret->filename = name;
    all_elf_x.insert(make_pair(name, ret));
    return ret;
 }
@@ -134,7 +142,7 @@ Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
        else       phdr64 = elf64_getphdr(elf);
     }
 
-    size_t phdrnum, shdrnum;
+    size_t phdrnum = 0, shdrnum = 0;
     elf_getphdrnum(elf, &phdrnum);
     elf_getshdrnum(elf, &shdrnum);
     shdrs.resize(shdrnum);
@@ -184,6 +192,8 @@ void Elf_X::end()
       ref_count--;
       return;
    }
+   /*
+     Stop cleaning Elf_X.  Leads to constant remapping of file.
    if (elf) {
       elf_end(elf);
       elf = NULL;
@@ -192,11 +202,14 @@ void Elf_X::end()
       phdr32 = NULL;
       phdr64 = NULL;
    }
-   delete this;
+   delete this;*/
 }
 
 Elf_X::~Elf_X()
 {
+   map<string, Elf_X*>::iterator i = all_elf_x.find(filename);
+   if (i != all_elf_x.end())
+      all_elf_x.erase(i);
 }
 
 // Read Interface
