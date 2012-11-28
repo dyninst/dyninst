@@ -58,16 +58,20 @@ with equivalent code using filter iterators as follows:
 
 \begin{lstlisting}
   // OLD
-  for(Block::edgelist::iterator i = targets.begin(epred); i != targets.end(epred); i++)
+  for(Block::edgelist::iterator i = targets.begin(epred); 
+      i != targets.end(epred); 
+      i++)
   {
     // ...
   }
   // NEW
-  for_each(make_filter_iterator(targets.begin(), epred),
-           make_filter_iterator(targets.end(), epred),
+  for_each(make_filter_iterator(epred, targets.begin(), targets.end()),
+           make_filter_iterator(epred, targets.end(), targets,end()),
            loop_body_as_function);
   // NEW (C++11)
-  for(auto  i = make_filter_iterator(targets.begin(), epred); i != make_filter_iterator(targets.end(), epred); i++)
+  for(auto i = make_filter_iterator(epred, targets.begin(), targets.end()); 
+      i != make_filter_iterator(epred, targets.end(), targets.end()); 
+      i++)
   {
     // ...
   }
