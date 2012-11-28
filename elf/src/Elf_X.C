@@ -57,14 +57,22 @@ using namespace Dyninst;
 
 map<string, Elf_X *> Elf_X::all_elf_x;
 
+#define APPEND(X) X ## 1
+#define APPEND2(X) APPEND(X)
+#define LIBELF_TEST APPEND2(_LIBELF_H)
+#if (LIBELF_TEST == 11)
+#define USES_ELFUTILS
+#endif
+
 Elf_X *Elf_X::newElf_X(int input, Elf_Cmd cmd, Elf_X *ref, string name)
 {
-#if (_LIBELF_H == 1)
+#if defined(USES_ELFUTILS)
    //If using libelf via elfutils from RedHat
    if (cmd == ELF_C_READ) {
       cmd = ELF_C_READ_MMAP;
    }
 #endif
+
    if (name.empty()) {
       return new Elf_X(input, cmd, ref);
    }
@@ -142,11 +150,12 @@ Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
        else       phdr64 = elf64_getphdr(elf);
     }
 
-    size_t phdrnum = 0, shdrnum = 0;
-    elf_getphdrnum(elf, &phdrnum);
-    elf_getshdrnum(elf, &shdrnum);
-    shdrs.resize(shdrnum);
-    phdrs.resize(phdrnum);
+    if (elf_kind(elf) != ELF_K_AR) {
+       size_t phdrnum = e_phnum();
+       size_t shdrnum = e_shnum();
+       shdrs.resize(shdrnum);
+       phdrs.resize(phdrnum);
+    }
 }
 
 Elf_X::Elf_X(char *mem_image, size_t mem_size)
@@ -179,11 +188,12 @@ Elf_X::Elf_X(char *mem_image, size_t mem_size)
        else       phdr64 = elf64_getphdr(elf);
     }
 
-    size_t phdrnum, shdrnum;
-    elf_getphdrnum(elf, &phdrnum);
-    elf_getshdrnum(elf, &shdrnum);
-    shdrs.resize(shdrnum);
-    phdrs.resize(phdrnum);
+    if (elf_kind(elf) != ELF_K_AR) {
+       size_t phdrnum = e_phnum();
+       size_t shdrnum = e_shnum();
+       shdrs.resize(shdrnum);
+       phdrs.resize(phdrnum);
+    }
 }
 
 void Elf_X::end()
