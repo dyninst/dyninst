@@ -51,7 +51,7 @@ Archive::Archive(std::string& filename, bool& err)
 
     Elf_Cmd cmd = ELF_C_READ;
     Elf_Arhdr *archdr;
-    Elf_X *arf = new Elf_X(mf->getFD(), cmd);
+    Elf_X *arf = Elf_X::newElf_X(mf->getFD(), cmd, NULL, filename);
     if (elf_kind(arf->e_elfp()) != ELF_K_AR) {
         /* Don't close mf, because this file will most
          * likely be opened again as a normal Symtab
@@ -63,7 +63,7 @@ Archive::Archive(std::string& filename, bool& err)
     }
 
     basePtr = (void *) arf;
-    Elf_X *newelf = new Elf_X(mf->getFD(), cmd, arf);
+    Elf_X *newelf = Elf_X::newElf_X(mf->getFD(), cmd, arf);
 
     while( newelf->e_elfp() ) {
 	archdr = elf_getarhdr(newelf->e_elfp());
@@ -86,11 +86,11 @@ Archive::Archive(std::string& filename, bool& err)
 	}
 
 	Elf_X *elfhandle = arf->e_next(newelf);
-	delete newelf;
+	newelf->end();
 	newelf = elfhandle;
     }
 
-    delete newelf;
+    newelf->end();
     err = true;
 }
 
@@ -144,7 +144,7 @@ bool Archive::parseMember(Symtab *&img, ArchiveMember *member)
     img->parentArchive_ = this;
     member->setSymtab(img);
 
-    delete elfX_Hdr;
+    elfX_Hdr->end();
 
     return true;
 }

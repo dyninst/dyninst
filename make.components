@@ -1,13 +1,18 @@
-#Don't add tests to Everything
-Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API parseThat
+#Don't add tests or parseThat to Everything
+Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
 
 Common          = dynutil common
-SymLite         = ${Common} elf symlite
-SymtabAPI 	= ${Common} elf dwarf symtabAPI
+Dwarf           = ${Common} dwarf
+Elf             = ${Common} elf
+SymLite         = ${Elf} symlite
+SymtabAPI       = ${Common} ${Elf} ${Dwarf} symtabAPI
 InstructionAPI  = ${Common} instructionAPI
 ParseAPI        = ${Common} ${SymtabAPI} ${SymLite} ${InstructionAPI} parseAPI
+DataflowAPI     = ${ParseAPI}
 PatchAPI        = ${ParseAPI} patchAPI
 ProcControlAPI  = ${SymLite} proccontrol
+DynC_API        = ${DyninstAPI} dynC_API
+Dyner           = ${DyninstAPI} dyner
 
 StackwalkerAPI  = ${ProcControlAPI}
 ifndef WITHOUT_PARSE_API
@@ -18,30 +23,31 @@ StackwalkerAPI += ${SymtabAPI}
 endif
 StackwalkerAPI += stackwalk
 
-DyninstAPI     = ${PatchAPI} ${StackwalkerAPI}
+DyninstAPI      = ${Common} ${SymtabAPI} ${InstructionAPI} ${PatchAPI} ${ProcControlAPI} ${SymLite} ${StackwalkerAPI}  dyninstAPI_RT dyninstAPI
 
 ValueAdded = valueAdded/sharedMem
-DataflowAPI = ParseAPI
 
 #List of tests
 Everything_tests = testsuite parseThat
 
-#Map of target names to directories
+#Map of directories to dependencies.  Use sort to remove duplicates
 dynutil = 
-common = dynutil common
-symlite = elf
-symtabAPI = $(SymtabAPI)
-instructionAPI = $(InstructionAPI)
-proccontrol = $(ProcControlAPI)
-stackwalk = $(StackwalkerAPI)
-parseAPI = $(ParseAPI)
-dataflowAPI = $(parseAPI)
-patchAPI = $(PatchAPI)
-dyninstAPI = $(DyninstAPI)
-parseThat = $(DyninstAPI) parseThat
-dynC_API = $(DynC_API)
-dyner = $(Dyner)
-valueAdded = $(DyninstAPI) valueAdded/sharedMem
+common = $(sort $(Common))
+symlite = $(sort $(SymLite))
+elf = $(sort $(Elf))
+dwarf = $(sort $(Dwarf))
+symtabAPI = $(sort $(SymtabAPI))
+instructionAPI = $(sort $(InstructionAPI))
+proccontrol = $(sort $(ProcControlAPI))
+stackwalk = $(sort $(StackwalkerAPI))
+parseAPI = $(sort $(ParseAPI))
+dataflowAPI = $(sort $(ParseAPI))
+patchAPI = $(sort $(PatchAPI))
+dyninstAPI = $(sort $(DyninstAPI))
+parseThat = $(sort $(DyninstAPI) parseThat)
+dynC_API = $(sort $(DynC_API))
+dyner = $(sort $(Dyner))
+valueAdded = $(sort $(DyninstAPI) valueAdded/sharedMem)
 
 #List all components with tests here
 testsuite = testsuite

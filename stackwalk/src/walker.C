@@ -771,14 +771,14 @@ size_t WalkerSet::size() const {
    return iwalkerset->walkers.size();
 }
 
-bool WalkerSet::walkStacks(CallTree &tree) const {
+bool WalkerSet::walkStacks(CallTree &tree, bool walk_initial_only) const {
    if (empty()) {
       sw_printf("[%s:%u] - Attempt to walk stacks of empty process set\n", __FILE__, __LINE__);
       return false;
    }
    if (!iwalkerset->non_pd_walkers) {
       bool bad_plat = false;
-      bool result = iwalkerset->walkStacksProcSet(tree, bad_plat);
+      bool result = iwalkerset->walkStacksProcSet(tree, bad_plat, walk_initial_only);
       if (result) {
          //Success
          return true;
@@ -814,6 +814,8 @@ bool WalkerSet::walkStacks(CallTree &tree) const {
             continue;
          }
          tree.addCallStack(swalk, thr, walker, !result);
+
+         if (walk_initial_only) break;
       }
    }
    return !had_error;

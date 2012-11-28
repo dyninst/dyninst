@@ -41,6 +41,7 @@
 #include "dynutil/h/VariableLocation.h"
 #include "common/h/Types.h"
 #include "dwarf/h/dwarfFrameParser.h"
+#include "dwarf/h/dwarfHandle.h"
 
 #include "symtabAPI/h/Symtab.h"
 
@@ -54,50 +55,6 @@ static std::map<std::string, DwarfFrameParser::Ptr> dwarf_info;
 #include "dwarf.h"
 #include "libdwarf.h"
 #include "elf/h/Elf_X.h"
-
-static DwarfFrameParser::Ptr ll_getDwarfInfo(Elf_X *elfx)
-{
-   Elf *elf = elfx->e_elfp();
-   Dwarf_Debug dbg;
-   Dwarf_Error err;
-   int status = dwarf_elf_init(elf, DW_DLC_READ, NULL, NULL, &dbg, &err);
-   if (status != DW_DLV_OK) {
-      sw_printf("Error opening dwarf information %u (0x%x): %s\n",
-                (unsigned) dwarf_errno(err), (unsigned) dwarf_errno(err),
-                dwarf_errmsg(err));
-      return DwarfFrameParser::Ptr();
-   }
-   
-   // FIXME for ppc
-   Architecture arch;
-   if (elfx->wordSize() == 4)
-      arch = Dyninst::Arch_x86;
-   else
-      arch = Dyninst::Arch_x86_64;
-
-
-   return DwarfFrameParser::create(dbg, arch);
-}
-
-static DwarfFrameParser::Ptr getDwarfInfo(std::string s)
-{
-   static std::map<std::string, DwarfFrameParser::Ptr > dwarf_info;
-   
-   std::map<std::string, DwarfFrameParser::Ptr >::iterator i = dwarf_info.find(s);
-   if (i != dwarf_info.end())
-      return i->second;
-   
-   SymReader *reader = LibraryWrapper::getLibrary(s);
-   if (!reader) {
-      sw_printf("[%s:%u] - Error opening default symbol reader %s\n",
-                __FILE__, __LINE__, s.c_str());
-      return DwarfFrameParser::Ptr();
-   }
-   Elf_X *elfx = (Elf_X *) reader->getElfHandle();
-   DwarfFrameParser::Ptr result = ll_getDwarfInfo(elfx);
-   dwarf_info[s] = result;
-   return result;
-}
 
 static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
 {
@@ -120,33 +77,18 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
       dwarf_aux_info[s] = DwarfFrameParser::Ptr();
       return DwarfFrameParser::Ptr();
    }
-   
-   string dbg_name;
-   char *dbg_buffer;
-   unsigned long dbg_buffer_size;
-   bool result = orig_elf->findDebugFile(s, dbg_name, dbg_buffer, dbg_buffer_size);
-   if (!result) {
-      sw_printf("[%s:%u] - No separate debug file associated with %s\n",
-                __FILE__, __LINE__, s.c_str());
-      dwarf_aux_info[s] = DwarfFrameParser::Ptr();
-      return DwarfFrameParser::Ptr();
-   }
 
-   SymReader *reader = LibraryWrapper::testLibrary(dbg_name);
-   if (!reader) {
-      SymbolReaderFactory *fact = Walker::getSymbolReader();
-      reader = fact->openSymbolReader(dbg_buffer, dbg_buffer_size);
-      if (!reader) {
-         sw_printf("[%s:%u] - Error opening symbol reader for buffer associated with %s\n",
-                   __FILE__, __LINE__, dbg_name.c_str());
-         dwarf_aux_info[s] = DwarfFrameParser::Ptr();
-         return DwarfFrameParser::Ptr();
-      }
-      LibraryWrapper::registerLibrary(reader, dbg_name);
-   }
+   DwarfHandle::ptr dwarf = DwarfHandle::createDwarfHandle(s, orig_elf);
+   assert(dwarf);
    
-   Elf_X *elfx = (Elf_X *) reader->getElfHandle();
-   DwarfFrameParser::Ptr dresult = ll_getDwarfInfo(elfx);
+   // FIXME for ppc, if we ever support debug walking on ppc
+   Architecture arch;
+   if (orig_elf->wordSize() == 4)
+      arch = Dyninst::Arch_x86;
+   else
+      arch = Dyninst::Arch_x86_64;
+
+   DwarfFrameParser::Ptr dresult = DwarfFrameParser::create(*dwarf->frame_dbg(), arch);
    dwarf_aux_info[s] = dresult;
    return dresult;
 }
@@ -286,53 +228,28 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
       pc = pc - 1;
    }
 
-   bool isVsyscallPage = false;
-#if defined(os_linux)
-   isVsyscallPage = (strstr(lib.first.c_str(), "[vsyscall-") != NULL);
-#endif
-
-   if (!isVsyscallPage)
-   {
-      /**
-       * Some system libraries on some systems have their debug info split
-       * into separate files, usually in /usr/lib/debug/.  Check these 
-       * for DWARF debug info
-       **/
-      DwarfFrameParser::Ptr dauxinfo = getAuxDwarfInfo(lib.first);
-      if (dauxinfo && dauxinfo->hasFrameDebugInfo()) {
-         sw_printf("[%s:%u] - Using separate DWARF debug file for %s", 
-                   __FILE__, __LINE__, lib.first.c_str());
-         cur_frame = &in;
-         gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo, false);
-         cur_frame = NULL;
-         if (gcresult == gcf_success) {
-            sw_printf("[%s:%u] - Success walking with DWARF aux file\n",
-                      __FILE__, __LINE__);
-            return gcf_success;
-         }
-      }
-   }
-   
    /**
-    * Check the actual file for DWARF stackwalking data
+    * Some system libraries on some systems have their debug info split
+    * into separate files, usually in /usr/lib/debug/.  Check these 
+    * for DWARF debug info
     **/
-   DwarfFrameParser::Ptr dinfo = getDwarfInfo(lib.first);
-   if (!dinfo) {
-      sw_printf("[%s:%u] - Could not open file %s for DWARF info\n",
-                __FILE__, __LINE__, lib.first.c_str());
-      setLastError(err_nofile, "Could not open file for Debugging stackwalker\n");
-      return gcf_error;
-   }
-   if (!dinfo->hasFrameDebugInfo())
-   {
+   DwarfFrameParser::Ptr dauxinfo = getAuxDwarfInfo(lib.first);
+   if (!dauxinfo || !dauxinfo->hasFrameDebugInfo()) {
       sw_printf("[%s:%u] - Library %s does not have stackwalking debug info\n",
                  __FILE__, __LINE__, lib.first.c_str());
       return gcf_not_me;
    }
 
+   sw_printf("[%s:%u] - Using DWARF debug file info for %s", 
+                   __FILE__, __LINE__, lib.first.c_str());
    cur_frame = &in;
-   gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dinfo, isVsyscallPage);
+   gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo, false);
    cur_frame = NULL;
+   if (gcresult == gcf_success) {
+      sw_printf("[%s:%u] - Success walking with DWARF aux file\n",
+                __FILE__, __LINE__);
+      return gcf_success;
+   }
    return gcresult;
 }
 

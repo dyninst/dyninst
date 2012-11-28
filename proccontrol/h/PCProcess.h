@@ -84,8 +84,10 @@ class ProcessSet;
 class ThreadSet;
 class LibraryTracking;
 class ThreadTracking;
+class LWPTracking;
 class CallStackUnwinding;
 class FollowFork;
+class SignalMask;
 
 class ExecFileInfo;
 
@@ -110,6 +112,7 @@ class PC_EXPORT Breakpoint
 
    static Breakpoint::ptr newBreakpoint();
    static Breakpoint::ptr newTransferBreakpoint(Dyninst::Address to);
+   static Breakpoint::ptr newTransferOffsetBreakpoint(signed long shift);
    static Breakpoint::ptr newHardwareBreakpoint(unsigned int mode, unsigned int size);
 
    void *getData() const;
@@ -354,6 +357,15 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    bool allThreadsRunningWhenAttached() const;
 
    /**
+    * What capabilities do we have on this process
+    **/
+   static const unsigned int pc_read      = (1<<0);
+   static const unsigned int pc_write     = (1<<1);
+   static const unsigned int pc_irpc      = (1<<2);   
+   static const unsigned int pc_control   = (1<<3);
+   unsigned int getCapabilities() const;
+   
+   /**
     * Queries for machine info
     **/
    Dyninst::Architecture getArchitecture() const;
@@ -391,7 +403,7 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
 
    /** 
     * Currently Windows-only, needed for the test infrastructure but possibly useful elsewhere 
-	*/
+    **/
    Dyninst::Address findFreeMemory(size_t size);
 
    /**
@@ -438,10 +450,14 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
     **/
    LibraryTracking *getLibraryTracking();
    ThreadTracking *getThreadTracking();
+   LWPTracking *getLWPTracking();
    FollowFork *getFollowFork();
+   SignalMask *getSignalMask();
    const LibraryTracking *getLibraryTracking() const;
    const ThreadTracking *getThreadTracking() const;
+   const LWPTracking *getLWPTracking() const;
    const FollowFork *getFollowFork() const;
+   const SignalMask *getSignalMask() const;
    
    /**
     * Errors that occured on this process
@@ -500,6 +516,8 @@ class PC_EXPORT Thread
    bool getAllRegisters(RegisterPool &pool) const;
    bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const;
    bool setAllRegisters(RegisterPool &pool) const;
+   bool getAllRegistersAsync(RegisterPool &pool, void *opaque_val = NULL) const;
+   bool setAllRegistersAsync(RegisterPool &pool, void *opaque_val = NULL) const;
 
    /**
     * User level thread info.  Only available after a UserThreadCreate event
@@ -673,7 +691,7 @@ PC_EXPORT EventNotify *evNotify();
 
 class PC_EXPORT ExecFileInfo
 {
-public:
+  public:
 	void* fileHandle;
 	void* processHandle;
 	Address fileBase;

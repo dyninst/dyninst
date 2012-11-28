@@ -113,6 +113,15 @@ class int_eventNewUserThread {
    bool needs_update;
 };
 
+class int_eventNewLWP {
+  public:
+   int_eventNewLWP();
+   ~int_eventNewLWP();
+
+   Dyninst::LWP lwp;
+   int_thread::attach_status_t attach_status;
+};
+
 class int_eventThreadDB {
   public:
    int_eventThreadDB();
@@ -133,6 +142,47 @@ class int_eventDetach {
    bool removed_bps;
    bool done;
    bool had_error;
+};
+
+class int_eventControlAuthority {
+  public:
+   int_eventControlAuthority(std::string toolname_, unsigned int toolid_, int priority_, EventControlAuthority::Trigger trigger_);
+   int_eventControlAuthority();
+   ~int_eventControlAuthority();
+   std::string toolname;
+   unsigned int toolid;
+   int priority;
+   EventControlAuthority::Trigger trigger;
+   bool control_lost;
+   bool handled_bps;
+   bool took_ca;
+   bool did_desync;
+   bool unset_desync;
+   bool dont_delete;
+   bool waiting_on_stop;
+   std::set<response::ptr> async_responses;
+   data_response::ptr dresp;
+};
+
+class int_eventAsyncIO {
+  public:
+   enum asyncio_type {
+      memread,
+      memwrite,
+      regallread,
+      regallwrite
+   };
+
+   int_eventAsyncIO(response::ptr resp_, asyncio_type);
+   ~int_eventAsyncIO();
+
+   response::ptr resp;
+   void *local_memory;
+   Address remote_addr;
+   size_t size;
+   void *opaque_value;
+   asyncio_type iot;
+   RegisterPool *rpool;
 };
 
 }

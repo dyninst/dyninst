@@ -559,8 +559,15 @@ Handler::handler_ret_t HandleBootstrap::handleEvent(Event::ptr ev)
    assert(proc);
    pthrd_printf("Handling bootstrap for %d\n", proc->getPid());
 
-   if (proc->getState() != int_process::neonatal_intermediate)
+   if (proc->getState() == int_process::running) {
+      if (thrd->getUserState().getState() == int_thread::neonatal_intermediate) {
+         //Bootstrapping a thread on an already running process
+         int_thread *initial_thread = proc->threadPool()->initialThread();
+         int_thread::State it_user_state = initial_thread->getUserState().getState();
+         thrd->getUserState().setState(it_user_state);
+      }
       return ret_success;
+   }
 
    thrd->getUserState().setState(int_thread::stopped);
    
@@ -600,9 +607,20 @@ void HandleSignal::getEventTypesHandled(std::vector<EventType> &etypes)
 Handler::handler_ret_t HandleSignal::handleEvent(Event::ptr ev)
 {
    int_thread *thrd = ev->getThread()->llthrd();
+   int_process *proc = ev->getProcess()->llproc();
    
    EventSignal *sigev = static_cast<EventSignal *>(ev.get());
-   thrd->setContSignal(sigev->getSignal());
+   int signal_no = sigev->getSignal();
+   thrd->setContSignal(signal_no);
+
+   SignalMask *smask = proc->getSigMask();
+   if (smask) {
+      dyn_sigset_t mask = smask->getSigMask();
+      if (!sigismember(&mask, signal_no)) {
+         pthrd_printf("Not giving callback on signal because its not in the SignalMask\n");
+         ev->setSuppressCB(true);
+      }
+   }
 
    return ret_success;
 }
@@ -874,7 +892,7 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    pthrd_printf("Handle thread create for %d/%d with new thread %d\n",
 	   proc->getPid(), thrd ? thrd->getLWP() : (Dyninst::LWP)(-1), threadev->getLWP());
 
-   if ((ev->getEventType().code() == EventType::UserThreadCreate))  {
+   if (ev->getEventType().code() == EventType::UserThreadCreate) {
       //If we support both user and LWP thread creation, and we're doing a user
       // creation, then the Thread object may already exist.  Do nothing.
       int_thread *thr = proc->threadPool()->findThreadByLWP(threadev->getLWP());
@@ -884,7 +902,12 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
       }
    }
    ProcPool()->condvar()->lock();
-   int_thread *newthr = int_thread::createThread(proc, NULL_THR_ID, threadev->getLWP(), false);
+   int_thread::attach_status_t astatus = int_thread::as_unknown;
+   if (ev->getEventType().code() == EventType::LWPCreate) {
+      EventNewLWP::ptr lwp_create = ev->getEventNewLWP();
+      astatus = lwp_create->getInternalEvent()->attach_status;
+   }
+   int_thread *newthr = int_thread::createThread(proc, NULL_THR_ID, threadev->getLWP(), false, astatus);
 
    newthr->getGeneratorState().setState(int_thread::stopped);
    newthr->getHandlerState().setState(int_thread::stopped);
@@ -1270,10 +1293,19 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
     **/
    bool changePC = false;
    Address changePCTo = 0x0;
+   MachRegister pcreg = MachRegister::getPC(proc->getTargetArch());
    int_breakpoint *transferbp = breakpoint->getCtrlTransferBP(thrd);
+
    if (transferbp) {
       changePC = true;
-      changePCTo = transferbp->toAddr();
+      if (transferbp->isOffsetTransfer()) {
+         Address cur_addr = breakpoint->getAddr();
+         signed long offset = (signed long) transferbp->toAddr();
+         changePCTo = cur_addr + offset;
+      }
+      else {
+         changePCTo = transferbp->toAddr();
+      }
       pthrd_printf("Breakpoint has control transfer.  Moving PC to %lx\n", changePCTo);
    }
    else if (swbp && proc->plat_breakpointAdvancesPC()) {
@@ -1284,13 +1316,12 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
 
    if (changePC && !int_ebp->pc_regset) {
       int_ebp->pc_regset = result_response::createResultResponse();
-      MachRegister pcreg = MachRegister::getPC(proc->getTargetArch());
       bool ok = thrd->setRegister(pcreg, changePCTo, int_ebp->pc_regset);
       if(!ok)
       {
-	pthrd_printf("Error setting pc register on breakpoint\n");
-	ev->setLastError(err_internal, "Could not set pc register upon breakpoint\n");
-	return ret_error;
+         pthrd_printf("Error setting pc register on breakpoint\n");
+         ev->setLastError(err_internal, "Could not set pc register upon breakpoint\n");
+         return ret_error;
       }
    }
    if (int_ebp->pc_regset && int_ebp->pc_regset->hasError()) {
@@ -1886,6 +1917,36 @@ void HandleAsync::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::Async));
 }
 
+HandleAsyncIO::HandleAsyncIO() :
+   Handler("AsyncIO Handler")
+{
+}
+
+HandleAsyncIO::~HandleAsyncIO()
+{
+}
+   
+Handler::handler_ret_t HandleAsyncIO::handleEvent(Event::ptr ev)
+{
+   pthrd_printf("In AsyncIO Handler for %d\n", ev->getProcess()->getPid());
+   EventAsyncIO::ptr evio = ev->getEventAsyncIO();
+   assert(evio);
+   int_eventAsyncIO *iev = evio->getInternalEvent();
+   pthrd_printf("Dealing with int_eventAsyncIO %p\n", iev);
+   assert(iev);
+   assert(iev->resp);
+   (void)iev->resp->isReady();
+   return ret_success;
+}
+
+void HandleAsyncIO::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::AsyncRead));
+   etypes.push_back(EventType(EventType::None, EventType::AsyncWrite));
+   etypes.push_back(EventType(EventType::None, EventType::AsyncReadAllRegs));
+   etypes.push_back(EventType(EventType::None, EventType::AsyncSetAllRegs));
+}
+
 HandleNop::HandleNop() :
    Handler("Nop Handler")
 {
@@ -2379,6 +2440,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandlePostForkCont *hpostforkcont = NULL;
    static HandlePostExec *hpostexec = NULL;
    static HandleAsync *hasync = NULL;
+   static HandleAsyncIO *hasyncio = NULL;
    static HandleForceTerminate *hforceterm = NULL;
    static HandleNop *hnop = NULL;
    static HandleDetach *hdetach = NULL;
@@ -2411,6 +2473,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hpostforkcont = new HandlePostForkCont();
       hpostexec = new HandlePostExec();
       hasync = new HandleAsync();
+      hasyncio = new HandleAsyncIO();
       hforceterm = new HandleForceTerminate();
       hprebootstrap = new HandlePreBootstrap();
       hnop = new HandleNop();
@@ -2442,6 +2505,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hpostexec);
    hpool->addHandler(hrpclaunch);
    hpool->addHandler(hasync);
+   hpool->addHandler(hasyncio);
    hpool->addHandler(hforceterm);
    hpool->addHandler(hprebootstrap);
    hpool->addHandler(hnop);

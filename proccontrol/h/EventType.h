@@ -58,8 +58,11 @@ class PC_EXPORT EventType
    static const int SingleStep          = 16;
    static const int Library             = 17;
    static const int ForceTerminate      = 18;
-   static const int PreBootstrap		= 19;
-   static const int Continue		    = 20;
+   static const int ControlAuthority    = 20;
+   static const int AsyncRead           = 21;
+   static const int AsyncWrite          = 22;
+   static const int AsyncReadAllRegs    = 23;
+   static const int AsyncSetAllRegs     = 24;
 
    //These aren't completely real events.  They can have callbacks registered, but won't be delivered.
    // Instead, a real event will be delivered to their callback.  E.g, a callback registered for 
@@ -67,6 +70,7 @@ class PC_EXPORT EventType
    static const int Terminate           = 400;
    static const int ThreadCreate        = 401;
    static const int ThreadDestroy       = 402;
+   static const int AsyncIO             = 403;
 
    //Users do not recieve CBs for the below event types--ProcControlAPI internal
    static const int InternalEvents      = 500;
@@ -80,8 +84,10 @@ class PC_EXPORT EventType
    static const int Nop                 = 507;
    static const int ThreadDB            = 508;
    static const int RPCLaunch           = 509;
-   static const int ThreadInfo			= 510;
+   static const int ThreadInfo          = 510;
    static const int WinStopThreadDestroy = 511;
+   static const int PreBootstrap        = 512;
+   static const int Continue            = 513;
 
    //Users should define their own events at this value or higher.
    static const int MaxProcCtrlEvent    = 1000;

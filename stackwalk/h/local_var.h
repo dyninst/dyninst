@@ -150,9 +150,15 @@ static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
    void *symtab_v;
    std::string lib_name;
    bool result = f.getLibOffset(lib_name, offset, symtab_v);
-   if (!result || !symtab_v)
+   if (!result)
       return NULL;
-   Symtab *symtab = getSymtabForName(lib_name);
+   Symtab *symtab = NULL;
+   if (symtab_v) {
+      symtab = (Symtab *) symtab_v;
+   }
+   else {
+      symtab = getSymtabForName(lib_name);
+   }
    Function *func;
    result = symtab->getContainingFunction(offset, func);
    if (!result)
@@ -230,7 +236,7 @@ static int getLocalVariableValue(localVar *var,
       case storageRegOffset: {
          MachRegisterVal reg_value;
          MachRegister reg = loc.mr_reg;
-         if (loc.stClass == storageRegOffset && loc.reg == -1) {
+         if (loc.stClass == storageRegOffset && reg == -1) {
             reg = MachRegister::getFramePointer(proc->getAddressWidth() == 4 ? Arch_x86 : Arch_x86_64);
          }
          

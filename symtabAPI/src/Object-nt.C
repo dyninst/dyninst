@@ -1102,10 +1102,9 @@ void fixup_filename(std::string &filename)
 }
 
 Object::Object(MappedFile *mf_,
-               MappedFile *mfd,
                bool defensive, 
                void (*err_func)(const char *), bool alloc_syms) :
-    AObject(mf_, mfd, err_func),
+    AObject(mf_, err_func),
     curModule( NULL ),
     peHdr( NULL ),
     trapHeaderPtr_( 0 )

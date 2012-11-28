@@ -240,9 +240,9 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
                                      bool &waiting_for_async,
                                      set<response::ptr> &async_responses)
 {
-   pthrd_printf("Refreshing list of loaded libraries\n");
    waiting_for_async = false;
-
+   pthrd_printf("Refreshing list of loaded libraries\n");
+   
    bool result = initLibraryMechanism();
    if (!result && procreader && procreader->hasPendingAsync()) {
       procreader->getNewAsyncs(async_responses);

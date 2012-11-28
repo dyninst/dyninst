@@ -612,7 +612,6 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
     parsing_printf("\t Table is not relative and we know the TOC is 0x%lx, searching for table base\n",
 		   TOC_address);
     foundAdjustEntry = false;
-    bool done = false;
   
     scanForAdjustOrBase(patternIter, currentBlock->allInsns.begin(), jumpAddrReg);
 

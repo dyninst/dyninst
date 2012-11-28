@@ -44,6 +44,7 @@ class result_response;
 class reg_response;
 class allreg_response;
 class stack_response;
+class data_response;
 class HandlerPool;
 
 class response : public boost::enable_shared_from_this<response> {
@@ -68,6 +69,7 @@ class response : public boost::enable_shared_from_this<response> {
    bool error;
    int errorcode;
    int_process *proc;
+   int_eventAsyncIO *aio;
 
   protected:
    response();
@@ -77,6 +79,7 @@ class response : public boost::enable_shared_from_this<response> {
       rt_allreg,
       rt_mem,
       rt_stack,
+      rt_data,
       rt_set
    } resp_type_t;
    resp_type_t resp_type;
@@ -99,6 +102,7 @@ class response : public boost::enable_shared_from_this<response> {
    boost::shared_ptr<reg_response> getRegResponse();
    boost::shared_ptr<allreg_response> getAllRegResponse();
    boost::shared_ptr<stack_response> getStackResponse();
+   boost::shared_ptr<data_response> getDataResponse();
    
    bool isReady() const;
    bool isPosted() const;
@@ -123,6 +127,9 @@ class response : public boost::enable_shared_from_this<response> {
 
    void setProcess(int_process *p);
    int_process *getProcess() const;
+
+   int_eventAsyncIO *getAsyncIOEvent();
+   void setAsyncIOEvent(int_eventAsyncIO *aoi_);
 
    std::string name() const;
 };
@@ -282,6 +289,25 @@ class stack_response : public response
 
    void *getData();
    int_thread *getThread();
+   void postResponse(void *d);
+};
+
+class data_response : public response
+{
+   friend void boost::checked_delete<data_response>(data_response *);
+   friend void boost::checked_delete<const data_response>(const data_response *);
+  private:
+   void *data;
+   data_response();
+  public:
+   typedef boost::shared_ptr<data_response> ptr;
+   typedef boost::shared_ptr<const data_response> const_ptr;
+
+   static data_response::ptr createDataResponse();
+
+   virtual ~data_response();
+
+   void *getData();
    void postResponse(void *d);
 };
 

@@ -387,8 +387,8 @@ SYMTAB_EXPORT AObject::~AObject()
 }
 
 // explicitly protected
-SYMTAB_EXPORT AObject::AObject(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *)) 
-: mf(mf_), mfForDebugInfo(mfd), code_ptr_(0), code_off_(0),
+SYMTAB_EXPORT AObject::AObject(MappedFile *mf_, void (*err_func)(const char *)) 
+: mf(mf_), code_ptr_(0), code_off_(0),
    code_len_(0), data_ptr_(0), data_off_(0), data_len_(0),loader_off_(0),
   loader_len_(0), is_dynamic_(false), has_error(false), is_static_binary_(false), deferredParse(false), err_func_(err_func),
    addressWidth_nbytes(4) 
@@ -396,7 +396,7 @@ SYMTAB_EXPORT AObject::AObject(MappedFile *mf_, MappedFile *mfd, void (*err_func
 }
 
 SYMTAB_EXPORT AObject::AObject(const AObject &obj)
-: mf(obj.mf), mfForDebugInfo(obj.mfForDebugInfo), symbols_(obj.symbols_), 
+: mf(obj.mf), symbols_(obj.symbols_), 
    code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
    code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
    data_off_(obj.data_off_), data_len_(obj.data_len_), 
