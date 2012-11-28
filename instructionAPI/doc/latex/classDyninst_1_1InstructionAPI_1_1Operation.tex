@@ -1,0 +1,57 @@
+\subsection{Operation Class}
+\label{classDyninst_1_1InstructionAPI_1_1Operation}\index{Dyninst::InstructionAPI::Operation@{Dyninst::InstructionAPI::Operation}}
+\subsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+ std::string {\textbf format} () const 
+\item 
+ entryID {\textbf getID} () const 
+\item 
+ prefixEntryID {\textbf getPrefixID} () const 
+\end{DoxyCompactItemize}
+
+
+
+An Operation object represents a family of opcodes (operation encodings) that perform the same task (e.g. the {\ttfamily MOV} family). It includes information about the number of operands, their read/write semantics, the implicit register reads and writes, and the control flow behavior of a particular assembly language operation. It additionally provides access to the assembly mnemonic, which allows any semantic details that are not encoded in the Instruction representation to be added by higher layers of analysis.
+
+As an example, the {\ttfamily CMP} operation on IA32/AMD64 processors has the following properties:
+\begin{DoxyItemize}
+\item Operand 1 is read, but not written
+\item Operand 2 is read, but not written
+\item The following flags are written:
+\begin{DoxyItemize}
+\item Overflow
+\item Sign
+\item Zero
+\item Parity
+\item Carry
+\item Auxiliary
+\end{DoxyItemize}
+\item No other registers are read, and no implicit memory operations are performed
+\end{DoxyItemize}
+
+Operations are constructed by the InstructionDecoder as part of the process of constructing an Instruction. 
+
+\subsubsection{Member Functions}
+\index{Dyninst::InstructionAPI::Operation@{Dyninst::InstructionAPI::Operation}!format@{format}}
+\index{format@{format}!Dyninst::InstructionAPI::Operation@{Dyninst::InstructionAPI::Operation}}
+\paragraph[{format}]{\setlength{\rightskip}{0pt plus 5cm}std::string format (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Operation_a204c75f752ee13cb64ccc2b7af3f687c}
+Returns the mnemonic for the operation. Like {\ttfamily instruction::format}, this is exposed for debugging and will be replaced with stream operators in the public interface. \index{Dyninst::InstructionAPI::Operation@{Dyninst::InstructionAPI::Operation}!getID@{getID}}
+\index{getID@{getID}!Dyninst::InstructionAPI::Operation@{Dyninst::InstructionAPI::Operation}}
+\paragraph[{getID}]{\setlength{\rightskip}{0pt plus 5cm}entryID getID (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Operation_a36f4818569bf4881244ab4a4c7f2ba06}
+Returns the entry ID corresponding to this operation. Entry IDs are enumerated values that correspond to assembly mnemonics. \index{Dyninst::InstructionAPI::Operation@{Dyninst::InstructionAPI::Operation}!getPrefixID@{getPrefixID}}
+\index{getPrefixID@{getPrefixID}!Dyninst::InstructionAPI::Operation@{Dyninst::InstructionAPI::Operation}}
+\paragraph[{getPrefixID}]{\setlength{\rightskip}{0pt plus 5cm}prefixEntryID getPrefixID (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Operation_a8ae500d97f21b771c252a6814fcf5c4a}
+Returns the prefix entry ID corresponding to this operation, if any. Prefix IDs are enumerated values that correspond to assembly prefix mnemonics. 
