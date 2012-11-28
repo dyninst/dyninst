@@ -184,7 +184,7 @@ A function tracer is much easier to build in DynC API, especially if reading dyn
 // build entryString
 std::stringstream entryString;
 entryString << "static int intCounter;" << endl;
-entryString << "printf(\"Entering %s, which has been called %d times.\\n\"";
+entryString << "inf`printf(\"Entering %s, which has been called %d times.\\n\"";
 entryString << ",dyninst`function_name, intCounter);";
 
 // call to DynC API
@@ -193,7 +193,7 @@ BPatch_snippet *entrySnippet =
 
 // build exitString
 std::stringstream exitString;
-exitString << "printf(\"Exiting %s.\\n\", dyninst`function_name);";
+exitString << "inf`printf(\"Exiting %s.\\n\", dyninst`function_name);";
 
 // call to DynC API
 BPatch_snippet *exitSnippet = 
