@@ -47,7 +47,7 @@ anyway).
 }
 
 \begin{apient}
-    std::string format() const
+std::string format() const
 \end{apient}
 \apidesc{
     Returns the mnemonic for the operation. Like \code{instruction::format}, this is
@@ -56,44 +56,47 @@ ging and will be replaced with stream operators in the public interface.
 }
 
 \begin{apient}
-
+entryID getID() const
 \end{apient}
 \apidesc{
-
+    Returns the entry ID corresponding to this operation. Entry IDs are
+    enumerated values that correspond to assembly mnemonics.
 }
 
 \begin{apient}
-
+prefixEntryID getPrefixID() const
 \end{apient}
 \apidesc{
-
+Returns the prefix entry ID corresponding to this operation, if any. Prefix IDs
+are enumerated values that correspond to assembly prefix mnemonics.
 }
 
 \begin{apient}
-
+bool isRead(Expression::Ptr candidate) const
 \end{apient}
 \apidesc{
-
+    Returns \code{true} if the expression represented by \code{candidate} is
+    read implicitly.
 }
 
 \begin{apient}
-
+bool isWritten(Expression::Ptr candidate) const
 \end{apient}
 \apidesc{
-
+    Returns \code{true} if the expression represented by \code{candidate} is
+    written implicitly.
 }
 
 \begin{apient}
-
+const Operation::VCSet & getImplicitMemReads() const
 \end{apient}
 \apidesc{
-
+Returns the set of memory locations implicitly read.
 }
 
 \begin{apient}
-
+const Operation::VCSet & getImplicitMemWrites() const
 \end{apient}
 \apidesc{
-
+Returns the set of memory locations implicitly write.
 }
-

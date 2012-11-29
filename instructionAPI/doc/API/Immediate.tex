@@ -13,21 +13,21 @@ virtual bool isUsed(InstructionAST::Ptr findMe) const
 \end{apient}
 
 \begin{apient}
-    void getChildre(vector<InstructionAST::Ptr> &) const [virtual]
+void getChildre(vector<InstructionAST::Ptr> &) const [virtual]
 \end{apient}
 \apidesc{
 By definition, an \code{Immediate} has no children.
 }
 
 \begin{apient}
-    void getUses(set<InstructionAST::Ptr> &) [virtual]
+void getUses(set<InstructionAST::Ptr> &) [virtual]
 \end{apient}
 \apidesc{
 By definition, an \code{Immediate} uses no registers.
 }
 
 \begin{apient}
-    bool isUsed(InstructionAPI::Ptr findMe) const [virtual]
+bool isUsed(InstructionAPI::Ptr findMe) const [virtual]
 \end{apient}
 \apidesc{
 \code{isUsed}, when called on an Immediate, will return true if \code{findMe}

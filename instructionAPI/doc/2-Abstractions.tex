@@ -27,7 +27,8 @@ the value of the operand. Figure~\ref{fig:ownership-graph} depicts these
 ownership relationships within an Instruction. 
 
 \begin{figure}
-\includegraphics{fig/ownership_graph}
+\centering
+    \includegraphics{fig/ownership_graph}
 \caption{An Instruction and the objects it owns}
 \label{fig:ownership-graph}
 \end{figure}
@@ -58,7 +59,8 @@ Operation object, uses that Operation to determine how to decode the
 instruction's Operands, and produces a decoded Instruction.
 
 \begin{figure}
-\includegraphics{fig/decoder_use}
+    \centering
+    \includegraphics[scale=.8]{fig/decoder_use}
 \caption{The InstructionDecoder's inputs and outputs}
 \label{fig:decoder-use}
 \end{figure}
@@ -85,6 +87,7 @@ instruction.
 The inheritance hierarchy of the AST classes is shown in
 Figure~\ref{fig:inheritance}. 
 \begin{figure}
+    \centering
 \includegraphics{fig/full_inheritance_graph}
 \caption{The InstructionAST inheritance hierarchy}
 \label{fig:inheritance}
@@ -99,12 +102,14 @@ relationships within a given tree, and Figure~\ref{fig:representation} shows how
 instruction is represented using these objects. 
 
 \begin{figure}
+    \centering
 \includegraphics{fig/ast_ownership}
 \caption{InstructionAST intermediate node types and the objects they own}
 \label{fig:ownership}
 \end{figure}
  
 \begin{figure}
+    \centering
 \includegraphics{fig/instruction_representation}
 \caption{The decomposition of \code{mov} \code{\%eax}, (\code{\%esi})}
 \label{fig:representation}
@@ -120,4 +125,4 @@ it in the node. The tree structure, combined with the evaluation mechanism,
 allows the substitution of known register and memory values into an operand,
 regardless of whether those values are known at the time an instruction is
 decoded. More details on this mechanism may be found in
-Section~\ref{subsec:expression}.
+Section~\ref{sec:expression}.
