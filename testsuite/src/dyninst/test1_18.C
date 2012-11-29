@@ -115,6 +115,7 @@ test_results_t test1_18_Mutator::executeTest()
 	}
 
 	n = 17;
+
 	if (!expr18_1->writeValue(&n,true))
 	{
 		logerror("%s[%]:  failed to writeValue()\n", FILE__, __LINE__);
