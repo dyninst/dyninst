@@ -52,7 +52,6 @@
 	SUBROUTINE test1_18f_init_globals
 #include "test1_18F_common.h"
 
-	test1_18_globalVariable1 = 42
 	kludge = 1
 	END
 
