@@ -216,9 +216,10 @@ public:
     bool setBeingDebuggedFlag(bool debuggerPresent);
 #endif
 
-    // platform-specific
-    bool setMemoryAccessRights(Address start, Address size, int rights);
-    bool getMemoryAccessRights(Address start, Address size, int rights);
+    // FIXME platform-specific
+    bool getMemoryAccessRights(Address start, size_t size, int& rights) const;
+    int changeMemoryProtections(Address addr, size_t size, unsigned rights, bool setShadow);
+    bool setMemoryAccessRights(Address start, size_t size, int rights);
 
     // code overwrites
     bool getOverwrittenBlocks

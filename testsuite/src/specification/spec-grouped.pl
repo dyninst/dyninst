@@ -2632,6 +2632,19 @@ mutatee('pc_terminate_stopped', ['pc_terminate_stopped_mutatee.c'], ['pcontrol_m
 mutatee_requires_libs('pc_terminate_stopped', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_terminate_stopped', _, Opt) :- member(Opt, ['none']).
 
+test('pc_mem_perm', 'pc_mem_perm', 'pc_mem_perm').
+test_description('pc_mem_perm', 'test operations on memory permission').
+test_platform('pc_mem_perm', Platform) :- platform(_, 'windows', _, Platform).
+mutator('pc_mem_perm', ['pc_mem_perm.C']).
+test_runmode('pc_mem_perm', 'dynamic').
+test_threadmode('pc_mem_perm', 'Threading').
+test_processmode('pc_mem_perm', 'Processes').
+%test_start_state('pc_mem_perm', 'selfattach').
+tests_module('pc_mem_perm', 'proccontrol').
+mutatee('pc_mem_perm', ['pc_mem_perm_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_mem_perm', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_mem_perm', _, Opt) :- member(Opt, ['none']).
+
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
 % mutatee in state State, with State in {stopped, running, selfstart, selfattach, delayedattach}
