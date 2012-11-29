@@ -680,7 +680,7 @@ def print_mutatee_rules(out, mutatees, compiler, module, platform):
 					  % (aux_c, m['abi'], ObjSuffix))
 		# Print the actions used to link the mutatee executable
 		out.write("\t@echo Linking $@\n");
-		out.write("\t$(HIDE_COMP)%s %s -o $@ $(filter %%%s,$^) %s %s "
+		out.write("\t$(HIDE_COMP)-%s %s -o $@ $(filter %%%s,$^) %s %s "
 				  % (platform['linker'] or "$(M_%s)" % compiler['abiflags'][platform['name']][m['abi']]['command'],
 				    compiler['flags']['std'],
 					 ObjSuffix,
@@ -728,7 +728,7 @@ def print_special_object_rules(compiler, out):
 			out.write("%s " % (d))
 		out.write("\n")
 		out.write("\t@echo Compiling $@\n")
-		out.write("\t$(HIDE_COMP)$(M_%s) $(SOLO_MUTATEE_DEFS) " % (info['compilers'][compiler]['defstring']))
+		out.write("\t$(HIDE_COMP)-$(M_%s) $(SOLO_MUTATEE_DEFS) " % (info['compilers'][compiler]['defstring']))
 		for f in o['flags']:
 			out.write("%s " % (f))
 		out.write("-o $@ %s " % info['compilers'][compiler]['parameters']['partial_compile'])
@@ -769,7 +769,7 @@ def print_patterns_wildcards(c, out, module):
                         out.write("%%%s%s: ../src/%s/%%%s\n"
                                     % (cto, ObjSuffix, module, e))
                     out.write("\t@echo Compiling $@\n");
-                    out.write("\t$(HIDE_COMP)$(M_%s) $(SOLO_MUTATEE_DEFS) %s -o $@ $<\n"
+                    out.write("\t$(HIDE_COMP)-$(M_%s) $(SOLO_MUTATEE_DEFS) %s -o $@ $<\n"
                                 % (compiler['abiflags'][platform['name']][abi]['command'],
                                     object_flag_string(platform, compiler,
                                                     abi, o, p)))
@@ -830,7 +830,7 @@ def print_patterns(c, out, module):
 				out.write("%s_mutatee_solo%s%s: ../src/%s ../src/%s/%s\n"
 						% (basename, cto, ObjSuffix, boilerplate, module, sourcefile))
 				out.write("\t@echo Compiling $@\n")
-				out.write("\t$(HIDE_COMP)$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=0 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
+				out.write("\t$(HIDE_COMP)-$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=0 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
 						% (compiler_command(compiler, platform, abi), module,
 						   object_flag_string(platform, compiler, abi, o, p),
 						   module,
@@ -843,7 +843,7 @@ def print_patterns(c, out, module):
 				out.write("%s_mutatee_solo%s%s: ../src/%s ../src/%s/%s\n"
 						% (basename, cto, ObjSuffix, boilerplate, module, sourcefile))
 				out.write("\t@echo Compiling $@\n")
-				out.write("\t$(HIDE_COMP)$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=1 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
+				out.write("\t$(HIDE_COMP)-$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=1 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
 						% (compiler_command(compiler, platform, abi), module,
 						   object_flag_string(platform, compiler, abi, o, p),
 
@@ -862,7 +862,7 @@ def print_patterns(c, out, module):
                                     basename = sourcefile[0:-len(ext)]
                                     out.write("%s%s%s: %s\n" % (basename, cto, ObjSuffix, sourcefile))
                                     out.write("\t@echo Compling $@\n")
-                                    out.write("\t$(HIDE_COMP)$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -DGROUPABLE=1 -o $@ $<\n"
+                                    out.write("\t$(HIDE_COMP)-$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -DGROUPABLE=1 -o $@ $<\n"
                                                             % (compiler_command(compiler, platform, abi), module,
                                                                     object_flag_string(platform, compiler, abi, o, p)))
 
@@ -893,7 +893,7 @@ def print_aux_patterns(out, platform, comps, module):
 					# FIXME Make this read the parameter flags from the
 					# compiler tuple (output file parameter flag)
 					out.write("\t@echo Compiling $@\n")
-					out.write("\t$(HIDE_COMP)$(M_%s) %s -o $@ $<\n\n"
+					out.write("\t$(HIDE_COMP)-$(M_%s) %s -o $@ $<\n\n"
 							  % (compiler_command(comp, platform, abi),
 								 object_flag_string(platform, comp, abi, o, p)))
 
@@ -908,7 +908,7 @@ def print_aux_patterns(out, platform, comps, module):
 					# FIXME Make this read the parameter flags from the
 					# compiler tuple (output file parameter flag)
 					out.write("\t@echo Compiling $@\n")
-					out.write("\t$(HIDE_COMP)$(M_%s) %s -o $@ $<\n\n"
+					out.write("\t$(HIDE_COMP)-$(M_%s) %s -o $@ $<\n\n"
 							  % (compiler_command(comp, platform, abi),
 								 object_flag_string(platform, comp, abi, o, p)))
 
@@ -1022,7 +1022,7 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 			for abi in platform['abis']:
 				out.write("mutatee_driver_solo_%s_%s%s: ../src/mutatee_driver.c\n" % (info['compilers'][c]['executable'], abi, ObjSuffix))
 				out.write("\t@echo Compiling $@\n")
-				out.write("\t$(HIDE_COMP)$(M_%s) %s %s %s -o $@ -c $<\n"
+				out.write("\t$(HIDE_COMP)-$(M_%s) %s %s %s -o $@ -c $<\n"
 						  % (compiler_command(compilers[c], platform, abi),
 							 compilers[c]['flags']['std'],
 							 compilers[c]['flags']['mutatee'],
@@ -1031,7 +1031,7 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 						  % (info['compilers'][c]['executable'],
 							 abi, ObjSuffix))
 				out.write("\t@echo Compiling $@\n")
-				out.write("\t$(HIDE_COMP)$(M_%s) %s %s %s -o $@ -c $<\n\n"
+				out.write("\t$(HIDE_COMP)-$(M_%s) %s %s %s -o $@ -c $<\n\n"
 						  % (compiler_command(compilers[c], platform, abi),
 							 compilers[c]['flags']['std'],
 							 compilers[c]['flags']['mutatee'],
