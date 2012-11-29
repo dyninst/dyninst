@@ -1,0 +1,78 @@
+\subsection{InstructionAST Class}
+\label{classDyninst_1_1InstructionAPI_1_1InstructionAST}\index{Dyninst::InstructionAPI::InstructionAST@{Dyninst::InstructionAPI::InstructionAST}}
+\subsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+bool {\textbf operator==} (const {\textbf InstructionAST} \&rhs) const 
+\item 
+virtual void {\textbf getUses} (set$<$ InstructionAST::Ptr $>$ \&uses)=0
+\item 
+virtual bool {\textbf isUsed} (InstructionAST::Ptr findMe) const =0
+\item 
+virtual std::string {\textbf format} (formatStyle how=defaultStyle) const =0
+\end{DoxyCompactItemize}
+
+
+
+The InstructionAST class is the base class for all nodes in the ASTs used by the Operand class. It defines the necessary interfaces for traversing and searching an abstract syntax tree representing an operand. For the purposes of searching an InstructionAST, we provide two related interfaces. The first, {\ttfamily getUses}, will return the registers that appear in a given tree. The second, {\ttfamily isUsed}, will take as input another tree and return true if that tree is a (not necessarily proper) subtree of this one. {\ttfamily isUsed} requires us to define an equality relation on these abstract syntax trees, and the equality operator is provided by the InstructionAST, with the details implemented by the classes derived from InstructionAST. Two AST nodes are equal if the following conditions hold:
+\begin{DoxyItemize}
+\item They are of the same type
+\item If leaf nodes, they represent the same immediate value or the same register
+\item If non-\/leaf nodes, they represent the same operation and their corresponding children are equal 
+\end{DoxyItemize}
+
+\subsubsection{Member Functions}
+\index{Dyninst::InstructionAPI::InstructionAST@{Dyninst::InstructionAPI::InstructionAST}!operator==@{operator==}}
+\index{operator==@{operator==}!Dyninst::InstructionAPI::InstructionAST@{Dyninst::InstructionAPI::InstructionAST}}
+\paragraph[{operator==}]{\setlength{\rightskip}{0pt plus 5cm}bool operator== (
+\begin{DoxyParamCaption}
+\item[{const {\textbf InstructionAST} \&}]{ rhs}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1InstructionAST_a1ab63f8949f2b386539d99512e0c0df4}
+Compare two AST nodes for equality.
+
+Non-\/leaf nodes are equal if they are of the same type and their children are equal. RegisterASTs are equal if they represent the same register. Immediates are equal if they represent the same value. \index{Dyninst::InstructionAPI::InstructionAST@{Dyninst::InstructionAPI::InstructionAST}!getUses@{getUses}}
+\index{getUses@{getUses}!Dyninst::InstructionAPI::InstructionAST@{Dyninst::InstructionAPI::InstructionAST}}
+\paragraph[{getUses}]{\setlength{\rightskip}{0pt plus 5cm}virtual void getUses (
+\begin{DoxyParamCaption}
+\item[{set$<$ InstructionAST::Ptr $>$ \&}]{ uses}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily  [pure virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1InstructionAST_ada04317a5cc7ccd076da203622193d24}
+
+\begin{DoxyParams}{Parameters}
+\item[{\em uses}]The use set of this node is appended to the vector {\ttfamily uses} \end{DoxyParams}
+The use set of an InstructionAST is defined as follows:
+\begin{DoxyItemize}
+\item A RegisterAST uses itself
+\item A BinaryFunction uses the use sets of its children
+\item An Immediate uses nothing
+\item A Dereference uses the use set of its child 
+\end{DoxyItemize}
+
+
+\index{Dyninst::InstructionAPI::InstructionAST@{Dyninst::InstructionAPI::InstructionAST}!isUsed@{isUsed}}
+\index{isUsed@{isUsed}!Dyninst::InstructionAPI::InstructionAST@{Dyninst::InstructionAPI::InstructionAST}}
+\paragraph[{isUsed}]{\setlength{\rightskip}{0pt plus 5cm}virtual bool isUsed (
+\begin{DoxyParamCaption}
+\item[{InstructionAST::Ptr}]{ findMe}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily  [pure virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1InstructionAST_aef4487c2b00fc3a0e6e6e19e135c5b0e}
+\begin{DoxyReturn}{Returns}
+True if {\ttfamily findMe} is used by this AST node. 
+\end{DoxyReturn}
+
+\begin{DoxyParams}{Parameters}
+\item[{\em findMe}]AST node to find in the use set of this node\end{DoxyParams}
+Unlike {\ttfamily getUses}, {\ttfamily isUsed} looks for {\ttfamily findMe} as a subtree of the current tree. {\ttfamily getUses} is designed to return a minimal set of registers used in this tree, whereas {\ttfamily isUsed} is designed to allow searches for arbitrary subexpressions 
+
+
+\index{Dyninst::InstructionAPI::InstructionAST@{Dyninst::InstructionAPI::InstructionAST}!format@{format}}
+\index{format@{format}!Dyninst::InstructionAPI::InstructionAST@{Dyninst::InstructionAPI::InstructionAST}}
+\paragraph[{format}]{\setlength{\rightskip}{0pt plus 5cm}virtual std::string format (
+\begin{DoxyParamCaption}
+\item[{formatStyle}]{ how = {\ttfamily defaultStyle}}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily  [pure virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1InstructionAST_a19a491830d63df46ef88ca28167891a0}
+The {\ttfamily format} interface returns the contents of an InstructionAST object as a string. By default, {\ttfamily \doxyref{format()}{p.}{classDyninst_1_1InstructionAPI_1_1InstructionAST_a19a491830d63df46ef88ca28167891a0}} produces assembly language. 
+
+

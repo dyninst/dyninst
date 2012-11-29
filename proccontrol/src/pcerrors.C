@@ -42,9 +42,26 @@ static const char *last_error_msg;
 static signed long gen_thrd_id;
 static signed long handler_thrd_id;
 static signed long x_thrd_id;
+static signed long r_thrd_id;
+static signed long w_thrd_id;
 
 FILE *pctrl_err_out;
 bool dyninst_debug_proccontrol = false;
+static Mutex print_lock(true);
+
+void pc_print_lock()
+{
+#if defined(PROCCTRL_LOCK_PRINTS)
+   print_lock.lock();
+#endif
+}
+
+void pc_print_unlock()
+{
+#if defined(PROCCTRL_LOCK_PRINTS)
+   print_lock.unlock();
+#endif
+}
 
 const char *thrdName()
 {
@@ -55,6 +72,10 @@ const char *thrdName()
       return "H";
    else if (self == x_thrd_id)
       return "X";
+   else if (self == w_thrd_id)
+      return "W";
+   else if (self == r_thrd_id)
+      return "R";
    else
       return "U";
 }
@@ -91,6 +112,16 @@ void setHandlerThread(long t)
 void setXThread(long t)
 {
    x_thrd_id = t;
+}
+
+void setRThread(long t)
+{
+   r_thrd_id = t;
+}
+
+void setWThread(long t)
+{
+   w_thrd_id = t;
 }
 
 bool isGeneratorThread() {

@@ -1,6 +1,6 @@
 \subsection{Class Symbol}
 
-The Symbol class represents a symbol in the object file. This class holds the symbol information such as the mangled, pretty and typed names, the module in which it is present, type, linkage, offset and size.
+The \code{Symbol} class represents a symbol in the object file. This class holds the symbol information such as the mangled, pretty and typed names, the module in which it is present, type, linkage, offset and size.
 
 
 \begin{center}
@@ -122,26 +122,26 @@ Symbol creation interface:
 bool getVersionFileName(std::string &fileName)
 \end{apient}
 \apidesc{
-This method retrieves the file name in which this symbol is present. Returns false if this symbol does not have any version information present otherwise returns true.
+This method retrieves the file name in which this symbol is present. Returns \code{false} if this symbol does not have any version information present otherwise returns \code{true}.
 }
 
 \begin{apient}
 bool getVersions(std::vector<std::string> *&vers)
 \end{apient}
 \apidesc{
-This method retrieves all the version names for this symbol. Returns false if the symbol does not have any version information present.
+This method retrieves all the version names for this symbol. Returns \code{false} if the symbol does not have any version information present.
 }
 
 \begin{apient}
 bool getVersionNum(unsigned &verNum)
 \end{apient}
 \apidesc{
-This method retrieves the version number of the symbol. Returns false if the symbol does not have any version information present.
+This method retrieves the version number of the symbol. Returns \code{false} if the symbol does not have any version information present.
 }
 
 \paragraph{Symbol modification}
 
-Most elements of a Symbol can be modified using the functions below. Each returns true on success and false otherwise. 
+Most elements of a \code{Symbol} can be modified using the functions below. Each returns \code{true} on success and \code{false} otherwise. 
 
 \begin{apient}
 bool setSize (unsigned size)

@@ -56,6 +56,8 @@ class bgq_process;
 class bgq_thread;
 class ComputeNode;
 class ArchEventBGQ;
+class HandlePreControlAuthority;
+class HandlePostControlAuthority;
 
 template <class CmdType, class AckType> class Transaction;
 
@@ -68,6 +70,8 @@ class bgq_process :
 {
    friend class ComputeNode;
    friend class HandlerBGQStartup;
+   friend class HandlePreControlAuthority;
+   friend class HandlePostControlAuthority;
    friend class DecoderBlueGeneQ;
    friend class bgq_thread;
   private:
@@ -109,6 +113,8 @@ class bgq_process :
    virtual bool plat_supportLWPPostDestroy();
    virtual SymbolReaderFactory *plat_defaultSymReader();
    virtual void noteNewDequeuedEvent(Event::ptr ev);
+   virtual unsigned int plat_getCapabilities();
+   virtual Event::ptr plat_throwEventsBeforeContinue(int_thread *thr);
 
    void getStackInfo(bgq_thread *thr, CallStackCallback *cbs);
    virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp);
@@ -126,6 +132,7 @@ class bgq_process :
                          mem_response::ptr resp, int_thread *thr);
    bool internal_writeMem(int_thread *stop_thr, const void *local, Dyninst::Address addr,
                           size_t size, result_response::ptr result, int_thread *thr, bp_write_t bp_write);
+   virtual bool plat_needsThreadForMemOps() const;
 
    virtual bool plat_preHandleEvent();
    virtual bool plat_postHandleEvent();
@@ -141,6 +148,10 @@ class bgq_process :
    virtual bool plat_resumeThread(int_thread *thrd);
    virtual bool plat_debuggerSuspended();
    virtual void plat_threadAttachDone();
+
+   virtual LWPTracking *getLWPTracking();
+   virtual bool plat_lwpRefresh(result_response::ptr resp);
+   virtual bool plat_lwpRefreshNoteNewThread(int_thread *thr);
 
    bool handleStartupEvent(void *data);
    ComputeNode *getComputeNode();
@@ -162,6 +173,8 @@ class bgq_process :
    UpdateTransaction *update_transaction;
    ComputeNode *cn;
    int_thread *last_ss_thread;
+   LWPTracking *lwp_tracker;
+   result_response::ptr lwp_tracking_resp;
 
    bool hasControlAuthority;
    bool interp_base_set;
@@ -169,6 +182,8 @@ class bgq_process :
    bool debugger_suspended;
    bool decoder_pending_stop;
    bool is_doing_temp_detach;
+   bool stopped_on_startup;
+   bool held_on_startup;
 
    uint32_t rank;
 
@@ -177,9 +192,11 @@ class bgq_process :
 
    GetProcessDataAckCmd get_procdata_result;
    GetAuxVectorsAckCmd get_auxvectors_result;
-   GetThreadListAckCmd *initial_thread_list;
+   GetThreadListAckCmd *get_thread_list;
 
-   string tooltag;
+   EventControlAuthority::ptr pending_control_authority; //Used for releasing control authority
+   int_eventControlAuthority *stopwait_on_control_authority; //Used for gaining control authority
+   std::string tooltag;
    uint8_t priority;
    MultiToolControl *mtool;
    enum {
@@ -188,12 +205,15 @@ class bgq_process :
       issue_control_request,
       waitfor_control_request_ack,
       waitfor_control_request_notice,
+      issue_data_collection,
+      waitfor_data_or_stop,
       skip_control_request_signal,
       waitfor_control_request_signal,
-      issue_data_collection,
       waitfor_data_collection,
+      waits_done,
       data_collected,
-      startup_done
+      startup_done,
+      startup_donedone
    } startup_state;
 
    enum {
@@ -217,7 +237,7 @@ class bgq_process :
    static unsigned int num_pending_stackwalks;
 };
 
-class bgq_thread : public thread_db_thread, ppc_thread
+class bgq_thread : public thread_db_thread, public ppc_thread
 {
    friend class bgq_process;
   private:
@@ -254,9 +274,30 @@ class bgq_thread : public thread_db_thread, ppc_thread
    static bool specRegToSystem(MachRegister reg, SpecialRegSelect &result);
 };
 
+struct buffer_t {
+   void *buffer;
+   size_t size;
+   bool is_heap_allocated;
+   buffer_t(void *b, size_t s, bool h) :
+     buffer(b),
+     size(s),
+     is_heap_allocated(h)
+   {
+   }
+   buffer_t() :
+     buffer(NULL),
+     size(0),
+     is_heap_allocated(false)
+   {
+   }
+
+};
+
+
 class ComputeNode
 {
    friend class bgq_process;
+   friend class WriterThread;
   private:
    static std::map<int, ComputeNode *> id_to_cn;
    static std::map<std::string, int> socket_to_id;
@@ -297,8 +338,10 @@ class ComputeNode
    bool issued_all_attach;
    bool all_attach_done;
    bool all_attach_error;
+
    bool have_pending_message;
-   std::queue<std::pair<void *, size_t> > queued_pending_msgs;
+   Mutex pending_queue_lock;
+   std::queue<buffer_t> queued_pending_msgs;
 };
 
 class HandleBGQStartup : public Handler
@@ -312,6 +355,28 @@ class HandleBGQStartup : public Handler
    virtual int getPriority() const;
 };
 
+//Handles the notice event, while we still have CA.  Removes BPs, etc
+class HandlePreControlAuthority : public Handler
+{
+  public:
+   HandlePreControlAuthority();
+   ~HandlePreControlAuthority();
+
+   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
+//Handles the releasing of CA, triggers on the continue after a HandlePreControlAuthority event
+class HandlePostControlAuthority : public Handler
+{
+  public:
+   HandlePostControlAuthority();
+   ~HandlePostControlAuthority();
+
+   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
 class GeneratorBGQ : public GeneratorMT
 {
   friend class ComputeNode;
@@ -320,6 +385,7 @@ class GeneratorBGQ : public GeneratorMT
    static const int kick_val = 0xfeedf00d; //0xdeadbeef is passe
 
    bool readMessage(int fd, vector<ArchEvent *> &events);
+   bool readMessage(vector<ArchEvent *> &events, bool block);
    bool read_multiple_msgs;
    bool reliableRead(int fd, void *buffer, size_t buffer_size, int timeout_s = -1);
 
@@ -352,7 +418,7 @@ class ArchEventBGQ : public ArchEvent
 class DecoderBlueGeneQ : public Decoder
 {
   private:
-   Event::ptr decodeCompletedResponse(response::ptr resp,
+   Event::ptr decodeCompletedResponse(response::ptr resp, int_process *proc, int_thread *thrd,
                                       map<Event::ptr, EventAsync::ptr> &async_evs);
 
    bool decodeStartupEvent(ArchEventBGQ *ae, bgq_process *proc, 
@@ -376,6 +442,9 @@ class DecoderBlueGeneQ : public Decoder
    bool decodeControlNotify(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
    bool decodeDetachAck(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
    bool decodeReleaseControlAck(ArchEventBGQ *archevent, bgq_process *proc, int err_code, std::vector<Event::ptr> &events);
+   bool decodeControlAck(ArchEventBGQ *ev, bgq_process *qproc, vector<Event::ptr> &events);
+   bool decodeLWPRefresh(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd);
+
 
    Event::ptr createEventDetach(bgq_process *proc, bool err);
  public:
@@ -384,6 +453,81 @@ class DecoderBlueGeneQ : public Decoder
    virtual bool decode(ArchEvent *ae, std::vector<Event::ptr> &events);
    virtual unsigned getPriority() const;
 };
+
+class IOThread
+{
+  protected:
+   static void mainWrapper(void *);
+
+   IOThread();
+   ~IOThread();
+   void init();
+   void kick();
+   void thrd_main();
+   virtual void run() = 0;
+   virtual void localInit() = 0;
+   virtual void thrd_kick();
+   CondVar initLock;
+   CondVar shutdownLock;
+   bool do_exit;
+   bool init_done;
+   bool shutdown_done;
+   DThread thrd;
+   int lwp;
+   int pid;
+  public:
+   void shutdown();
+};
+
+class ReaderThread : public IOThread
+{
+  protected:
+   static ReaderThread *me;
+   std::queue<buffer_t> msgs;
+   std::set<int> fds;
+   CondVar queue_lock;
+   CondVar fd_lock;
+
+   ReaderThread();
+   virtual void run();
+   virtual void localInit();
+   int kick_fd;
+   int kick_fd_write;
+  protected:
+   virtual void thrd_kick();
+  public:
+   ~ReaderThread();
+   static ReaderThread *get();
+   buffer_t readNextElement(bool block);
+   void addComputeNode(ComputeNode *cn);
+   void rmComputeNode(ComputeNode *cn);
+   void setKickPipe(int fd);
+};
+
+class WriterThread : public IOThread
+{
+  private:
+   static WriterThread *me;
+   std::map<int, ComputeNode *> rank_to_cn;
+   Mutex rank_lock;
+   WriterThread();
+   virtual void run();
+   virtual void localInit();
+   
+   std::vector<int> acks;
+   std::vector<ComputeNode *> writes;
+   CondVar msg_lock;
+  protected:
+   virtual void thrd_kick();
+  public:
+   ~WriterThread();
+   static WriterThread *get();
+   void writeMessage(buffer_t buf, ComputeNode *cn);
+   void notifyAck(int rank);
+   void addProcess(bgq_process *proc);
+   void rmProcess(bgq_process *proc);
+};
+
 
 class DebugThread
 {

@@ -203,12 +203,21 @@ bool pc_statMutator::takeSample()
 
 
    if (pset->getLibraryTracking()) {
-      pset->getLibraryTracking()->refreshLibraries();
+      result = pset->getLibraryTracking()->refreshLibraries();
       if (!result) {
          logerror("Failure refreshing libraries\n");
          return false;
       }
    }
+
+   if (pset->getLWPTracking()) {
+      result = pset->getLWPTracking()->refreshLWPs();
+      if (!result) {
+         logerror("Failure refreshing LWPs\n");
+         return false;
+      }
+   }
+      
    
    all_threads = ThreadSet::newThreadSet(pset);
    CallStackUnwindingSet *stkset = all_threads->getCallStackUnwinding();

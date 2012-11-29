@@ -187,7 +187,7 @@ public:
   BPatch_Set<BPatch_basicBlockLoop*> *loops;
   
   /** set of all basic blocks that control flow graph has */
-  BPatch_Set<BPatch_basicBlock*, BPatch_basicBlock::compare> allBlocks;
+  BPatch_Set<BPatch_basicBlock*> allBlocks;
 
   /** root of the tree of loops */
   BPatch_loopTreeNode *loopRoot;

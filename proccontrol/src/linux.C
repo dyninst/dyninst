@@ -295,6 +295,15 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                event = Event::ptr(new EventStop());
                break;
             }
+            if (lthread->getGeneratorState().getState() == int_thread::neonatal ||
+                lthread->getGeneratorState().getState() == int_thread::neonatal_intermediate)
+            {
+               //Discovered thread from refresh
+               pthrd_printf("Decoded event to thread bootstrap on %d/%d\n",
+                            proc->getPid(), thread->getLWP());
+               event = Event::ptr(new EventBootstrap());
+               break;
+            }
          case SIGTRAP: {
 #if 0
             {
@@ -556,7 +565,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       if (parent->event_ext == PTRACE_EVENT_FORK)
          event = Event::ptr(new EventFork(EventType::Post, child->pid));
       else if (parent->event_ext == PTRACE_EVENT_CLONE)
-         event = Event::ptr(new EventNewLWP(child->pid));
+         event = Event::ptr(new EventNewLWP(child->pid, (int) int_thread::as_created_attached));
       else 
          assert(0);
       event->setSyncType(Event::sync_thread);
@@ -683,7 +692,8 @@ linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::str
    thread_db_process(p, e, a, envp, f),
    indep_lwp_control_process(p, e, a, envp, f),
    mmap_alloc_process(p, e, a, envp, f),
-   fork_tracker(NULL)
+   fork_tracker(NULL),
+   lwp_tracker(NULL)
 {
 }
 
@@ -694,7 +704,8 @@ linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    thread_db_process(pid_, p),
    indep_lwp_control_process(pid_, p),
    mmap_alloc_process(pid_, p),
-   fork_tracker(NULL)
+   fork_tracker(NULL),
+   lwp_tracker(NULL)
 {
 }
 
@@ -809,7 +820,7 @@ static void warn_user_ptrace_restrictions() {
       cerr << "Warning: your Linux system provides limited ptrace functionality as a security" << endl
 	   << "measure. This measure prevents ProcControl and Dyninst from attaching to binaries." << endl
 	   << "To temporarily disable this measure (until a reboot), execute the following command:" << endl
-	   << "\techo 1 > /proc/sys/kernel/yama/ptrace_scope" << endl;
+	   << "\techo 0 > /proc/sys/kernel/yama/ptrace_scope" << endl;
       struct stat statbuf;
       if (!stat("/etc/sysctl.d/10-ptrace.conf", &statbuf)) {
 	cerr << "To permanently disable this measure, edit the file \"/etc/sysctl.d/10-ptrace.conf\"" << endl
@@ -1292,9 +1303,10 @@ bool linux_thread::plat_stop()
 void linux_thread::setOptions()
 {
    long options = 0;
-   options |= PTRACE_O_TRACECLONE;
    options |= PTRACE_O_TRACEEXIT;
    options |= PTRACE_O_TRACEEXEC;
+   if (llproc()->lwp_getTracking())
+      options |= PTRACE_O_TRACECLONE;
    if (llproc()->fork_isTracking() != FollowFork::ImmediateDetach)
       options |= PTRACE_O_TRACEFORK;
 
@@ -1507,6 +1519,29 @@ FollowFork::follow_t linux_process::fork_isTracking() {
    return fork_tracking;
 }
 
+LWPTracking *linux_process::getLWPTracking() {
+   if (!lwp_tracker) {
+      lwp_tracker = new LWPTracking(proc());
+   }
+   return lwp_tracker;
+}
+
+bool linux_process::plat_lwpChangeTracking(bool) {
+   int_threadPool *pool = threadPool();
+   if (!pool->allStopped(int_thread::UserStateID)) {
+      perr_printf("Attempted to change lwpTracking, but not all threads stopped in %d", getPid());
+      setLastError(err_notstopped, "Process not stopped before changing LWP tracking state");
+      return false;
+   }
+
+   for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
+      int_thread *thrd = *i;
+      linux_thread *lthrd = dynamic_cast<linux_thread *>(thrd);
+      assert(lthrd);
+      lthrd->setOptions();
+   }
+   return true;
+}
 
 #if !defined(OFFSETOF)
 #define OFFSETOF(STR, FLD) (unsigned long) (&(((STR *) 0x0)->FLD))
@@ -2220,8 +2255,7 @@ bool linux_thread::attach()
       return true;
    }
 
-   if (llproc()->getState() != int_process::neonatal &&
-       llproc()->getState() != int_process::neonatal_intermediate)
+   if (attach_status != as_needs_attach)
    {
       pthrd_printf("thread::attach called on running thread %d/%d, should " 
                    "be auto-attached.\n", llproc()->getPid(), lwp);

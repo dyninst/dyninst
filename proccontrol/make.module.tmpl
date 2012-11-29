@@ -87,3 +87,5 @@ LDFLAGS += -L../../symlite/$(PLATFORM) -lsymLite
 ifdef LIBELF_PLATFORM
 LDFLAGS	+= -L../../elf/$(PLATFORM) -ldynElf
 endif
+
+LDFLAGS += ${EXTRA_LIBS}

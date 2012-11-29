@@ -56,6 +56,7 @@
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
+using namespace Dyninst::Dwarf;
 using namespace std;
 
 #if !defined(_Object_elf_h_)
@@ -85,6 +86,8 @@ using namespace std;
 
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
+
+#include "dynutil/h/SymReader.h"
 
 using namespace boost::assign;
 
@@ -120,12 +123,12 @@ static bool pdelf_check_ehdr(Elf_X &elf)
          );
 }
 
-const char *pdelf_get_shnames(Elf_X &elf)
+const char *pdelf_get_shnames(Elf_X *elf)
 {
   const char *result = NULL;
-  size_t shstrndx = elf.e_shstrndx();
+  size_t shstrndx = elf->e_shstrndx();
 
-  Elf_X_Shdr shstrscn = elf.get_shdr(shstrndx);
+  Elf_X_Shdr &shstrscn = elf->get_shdr(shstrndx);
   if (shstrscn.isValid()) {
     Elf_X_Data shstrdata = shstrscn.get_data();
     if (shstrdata.isValid())
@@ -339,7 +342,7 @@ set<string> debugInfoSections = list_of(string(SYMTAB_NAME))
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
 bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
-			Elf_X_Shdr* &bssscnp,
+                        Elf_X_Shdr* &bssscnp,
                         Elf_X_Shdr*& symscnp, Elf_X_Shdr*& strscnp, 
                         Elf_X_Shdr*& stabscnp, Elf_X_Shdr*& stabstrscnp, 
                         Elf_X_Shdr*& stabs_indxcnp, Elf_X_Shdr*& stabstrs_indxcnp, 
@@ -348,635 +351,615 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                         Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr* &dynamic_scnp, 
                         Elf_X_Shdr*& eh_frame, Elf_X_Shdr*& gcc_except, 
                         Elf_X_Shdr *& interp_scnp, Elf_X_Shdr *& opd_scnp, 
-			bool)
+                        bool)
 {
-  std::map<std::string, int> secnNameMap;
-  dwarf_err_func  = err_func_;
-  entryAddress_ = elfHdr.e_entry();
+   std::map<std::string, int> secnNameMap;
+   dwarf_err_func  = err_func_;
+   entryAddress_ = elfHdr->e_entry();
 
-  no_of_sections_ = elfHdr.e_shnum();
+   no_of_sections_ = elfHdr->e_shnum();
 
-  // ".shstrtab" section: string table for section header names
-  const char *shnames = pdelf_get_shnames(elfHdr);
-  if (shnames == NULL) {
-     //fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
-    log_elferror(err_func_, ".shstrtab section");
-    //return false;
-  }
+   // ".shstrtab" section: string table for section header names
+   const char *shnames = pdelf_get_shnames(elfHdr);
+   if (shnames == NULL) {
+      //fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
+      log_elferror(err_func_, ".shstrtab section");
+      //return false;
+   }
 
-  // initialize Object members
+   // initialize Object members
 
-  text_addr_ = 0; //ccw 23 jan 2002
-  text_size_ = 0; //for determining if a mutation
-  //falls within the text section 
-  //of a shared library
+   text_addr_ = 0; //ccw 23 jan 2002
+   text_size_ = 0; //for determining if a mutation
+   //falls within the text section 
+   //of a shared library
 
-  elf_hash_addr_ = 0;
-  gnu_hash_addr_ = 0;
+   elf_hash_addr_ = 0;
+   gnu_hash_addr_ = 0;
 
-  dynamic_offset_ = 0;
-  dynamic_addr_ = 0;
-  dynsym_addr_ = 0;
-  dynsym_size_ = 0;
-  dynstr_addr_ = 0;
-  init_addr_ = 0;
-  fini_addr_ = 0;
-  got_addr_ = 0;
-  got_size_ = 0;
-  plt_addr_ = 0;
-  plt_size_ = 0;
-  symtab_addr_ = 0;
-  strtab_addr_ = 0;
+   dynamic_offset_ = 0;
+   dynamic_addr_ = 0;
+   dynsym_addr_ = 0;
+   dynsym_size_ = 0;
+   dynstr_addr_ = 0;
+   init_addr_ = 0;
+   fini_addr_ = 0;
+   got_addr_ = 0;
+   got_size_ = 0;
+   plt_addr_ = 0;
+   plt_size_ = 0;
+   symtab_addr_ = 0;
+   strtab_addr_ = 0;
 #if defined (ppc32_linux) || defined(ppc32_bgp)
-  plt_entry_size_ = 8;
-  rel_plt_entry_size_ = 8;
+   plt_entry_size_ = 8;
+   rel_plt_entry_size_ = 8;
 #else
-  plt_entry_size_ = 0;
-  rel_plt_entry_size_ = 0;
+   plt_entry_size_ = 0;
+   rel_plt_entry_size_ = 0;
 #endif
-  rel_plt_addr_ = 0;
-  rel_plt_size_ = 0;
-  rel_addr_ = 0;
-  rel_size_ = 0;
-  rel_entry_size_ = 0;
-  stab_off_ = 0;
-  stab_size_ = 0;
-  stabstr_off_ = 0;
-  stab_indx_off_ = 0;
-  stab_indx_size_ = 0;
-  stabstr_indx_off_ = 0;
+   rel_plt_addr_ = 0;
+   rel_plt_size_ = 0;
+   rel_addr_ = 0;
+   rel_size_ = 0;
+   rel_entry_size_ = 0;
+   stab_off_ = 0;
+   stab_size_ = 0;
+   stabstr_off_ = 0;
+   stab_indx_off_ = 0;
+   stab_indx_size_ = 0;
+   stabstr_indx_off_ = 0;
 #if defined(os_irix)
-  MIPS_stubs_addr_ = 0;
-  MIPS_stubs_off_ = 0;
-  MIPS_stubs_size_ = 0;
-  got_zero_index_ = -1;
-  dynsym_zero_index_ = -1;
+   MIPS_stubs_addr_ = 0;
+   MIPS_stubs_off_ = 0;
+   MIPS_stubs_size_ = 0;
+   got_zero_index_ = -1;
+   dynsym_zero_index_ = -1;
 #endif
-  dwarvenDebugInfo = false;
+   dwarvenDebugInfo = false;
 
-  txtaddr = 0;
+   txtaddr = 0;
 
-  set<string> sectionsInOriginalBinary;
-
-  if(mfForDebugInfo->getFD() != -1)
-    elfHdrForDebugInfo = Elf_X(mfForDebugInfo->getFD(), ELF_C_READ);
-  else 
-    elfHdrForDebugInfo = Elf_X((char *)mfForDebugInfo->base_addr(), mfForDebugInfo->size());
-  usesDebugFile = (mfForDebugInfo != mf);
-
-  if(!elfHdrForDebugInfo.isValid()) {
-    log_elferror(err_func_, "Elf header");
-    fprintf(stderr, "%s[%d]:  failing to parse line info due to elf prob\n", FILE__, __LINE__);
-  }
-  else if(!pdelf_check_ehdr(elfHdrForDebugInfo)) {
-    fprintf(stderr, "%s[%d]:  Warning: Elf ehdr failed integrity check\n", FILE__, __LINE__);
-    log_elferror(err_func_, "ELF header failed integrity check");
-  }
-
-
-  const char *shnamesForDebugInfo = pdelf_get_shnames(elfHdrForDebugInfo);
-  if (shnamesForDebugInfo == NULL) {
-     //fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
-    log_elferror(err_func_, ".shstrtab section");
-    //return false;
-  }
+   set<string> sectionsInOriginalBinary;
 
 #if defined(TIMED_PARSE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
 
-  // Find pointer to dynamic section and interpreter section
-  bool foundInterp = false;
-  unsigned phdr_max_count = elfHdr.e_phnum();
+   // Find pointer to dynamic section and interpreter section
+   bool foundInterp = false;
+   unsigned phdr_max_count = elfHdr->e_phnum();
 
-  for (unsigned i = 0; i < phdr_max_count; i++) {
-  	Elf_X_Phdr elfPhdr = elfHdr.get_phdr(i);
-	if(elfPhdr.p_type() == PT_DYNAMIC){
+   for (unsigned i = 0; i < phdr_max_count; i++) {
+      Elf_X_Phdr &elfPhdr = elfHdr->get_phdr(i);
+      if(elfPhdr.p_type() == PT_DYNAMIC){
 	      dynamic_offset_ = elfPhdr.p_offset();
 	      dynamic_size_ = elfPhdr.p_memsz();
     	} else if (elfPhdr.p_type() == PT_INTERP) {
 	      foundInterp = true;
-	}
-  }
-
-  if (elfHdr.e_type() == ET_DYN || foundInterp || elfHdr.e_type() == ET_REL) {
-	is_static_binary_ = false;	
-  } else {
-	is_static_binary_ = true;	
-  }
-
-  Elf_X_Shdr *scnp;
-   
-  bool foundDynamicSection = false;
-  int dynamic_section_index = -1;
-  unsigned int dynamic_section_type = 0;
-  size_t dynamic_section_size = 0;
-  for (int i = 0; i < elfHdr.e_shnum();++i) {
-    scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
-    if (! scnp->isValid()) {  // section is malformed
-      delete scnp;
-      continue; 
-    }
-    if ((dynamic_offset_ !=0) && (scnp->sh_offset() == dynamic_offset_)) {
-      if (!foundDynamicSection) {
-	dynamic_section_index = i;
-	dynamic_section_size = scnp->sh_size();
-	dynamic_section_type = scnp->sh_type();
-	foundDynamicSection = true;
-      } else {	
-	// If there are two or more sections with the same offset as the dynamic_offset,
-	// use other fields to chose which one the the dynamic section	
-	if (dynamic_section_size == dynamic_size_ && dynamic_section_type == SHT_DYNAMIC) {
-	  // We already have the right section
-	} else if ((scnp->sh_size() == dynamic_size_ && scnp->sh_type() == SHT_DYNAMIC) ||
-		   (scnp->sh_size() == dynamic_size_)) {
-	  // This section is a better match to be the dynamic section
-	  // than the previous one!
-	  dynamic_section_index = i;
-	  dynamic_section_size = scnp->sh_size();
-	  dynamic_section_type = scnp->sh_type();
-	}
-      } 
-    }	
-    delete scnp;
-  }
-
-  if (dynamic_section_index != -1) {
-    scnp = new Elf_X_Shdr( elfHdr.get_shdr(dynamic_section_index) );
-    Elf_X_Data data = scnp->get_data();
-    Elf_X_Dyn dynsecData = data.get_dyn();
-    // Ubuntu 12.04 - we have debug files with NOBITS dynamic sections. 
-    if (dynsecData.isValid()) {
-      for (unsigned j = 0; j < dynsecData.count(); ++j) {
-	switch (dynsecData.d_tag(j)) {
-	case DT_REL:
-	  hasReldyn_ = true;
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	  break;
-	case DT_RELA:
-	  hasReladyn_ = true;
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	  break;
-	case DT_JMPREL:
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	  break;
-	case DT_SYMTAB:
-	case DT_STRTAB:
-	case DT_VERSYM:
-	case DT_VERNEED:
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	  break;
-	case DT_HASH:
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	  elf_hash_addr_ = dynsecData.d_ptr(j);
-	  break;
-	case  0x6ffffef5: //DT_GNU_HASH (not defined on all platforms)
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	  gnu_hash_addr_ = dynsecData.d_ptr(j);
-	  break;
-	case DT_PLTGOT:
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	  break;
-	case DT_RELSZ:
-	  secTagSizeMapping[DT_REL] = dynsecData.d_val(j);
-	  break;
-	case DT_RELASZ:
-	  secTagSizeMapping[DT_RELA] = dynsecData.d_val(j);
-	  break;
-	case DT_PLTRELSZ:
-	  secTagSizeMapping[DT_JMPREL] = dynsecData.d_val(j);
-	  break;
-	case DT_STRSZ:
-	  secTagSizeMapping[DT_STRTAB] = dynsecData.d_val(j);
-	  break;
-	case DT_PLTREL: 
-	  if (dynsecData.d_val(j) == DT_REL)
-	    hasRelplt_ = true;
-	  else if (dynsecData.d_val(j) == DT_RELA)
-	    hasRelaplt_ = true;
-	  break;
-	  
-	}
       }
-    }
-    dyn_hash_map<Offset, int>::iterator it = secAddrTagMapping.begin();
-    while (it != secAddrTagMapping.end()) {
-      int tag = it->second;
-      switch (tag) {
-	// Only sections with these tags are moved in the new rewritten binary 
-      case DT_REL:
-      case DT_RELA:
-      case DT_JMPREL:
-      case DT_SYMTAB:
-      case DT_STRTAB:
-      case DT_VERSYM:
-      case DT_VERNEED:
-      case DT_HASH:
-      case  0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
-	  
-	if (secTagSizeMapping.find(tag) != secTagSizeMapping.end()) {
-	  vector<Offset> row;
-	  row.push_back(it->first);
-	  row.push_back(it->first+ secTagSizeMapping[tag]);
-	  moveSecAddrRange.push_back(row);
-	} else {
-	  vector<Offset> row;
-	  row.push_back(it->first);
-	  row.push_back(it->first);
-	  moveSecAddrRange.push_back(row);
-	}
-	break;
+   }
+
+   if (elfHdr->e_type() == ET_DYN || foundInterp || elfHdr->e_type() == ET_REL) {
+      is_static_binary_ = false;	
+   } else {
+      is_static_binary_ = true;	
+   }
+
+   bool foundDynamicSection = false;
+   int dynamic_section_index = -1;
+   unsigned int dynamic_section_type = 0;
+   size_t dynamic_section_size = 0;
+   for (int i = 0; i < elfHdr->e_shnum();++i) {
+      Elf_X_Shdr &scn = elfHdr->get_shdr(i);
+      if (! scn.isValid()) {  // section is malformed
+         continue; 
       }
-      it++;
-    }
-    delete scnp;
-  }
-   
-  isBlueGeneP_ = false;
-  isBlueGeneQ_ = false;
-
-  hasNoteSection_ = false;
- 
-  for (int i = 0; i < elfHdr.e_shnum() + elfHdrForDebugInfo.e_shnum(); ++i) {
-    const char *name;
-
-    if(i < elfHdr.e_shnum()) {
-      scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
-      if (! scnp->isValid()) { // section is malformed
-        delete scnp;
-	    continue; 
-      } 
-      name = &shnames[scnp->sh_name()];
-      sectionsInOriginalBinary.insert(string(name));
-         
-      if(scnp->sh_flags() & SHF_ALLOC) {
-	DbgAddrConversion_t orig;
-	orig.name = std::string(name);
-	orig.orig_offset = scnp->sh_addr();
-	secnNameMap[orig.name] = DebugSectionMap.size();
-	DebugSectionMap.push_back(orig);
-      }
-    }
-    else {
-      if(mfForDebugInfo == mf)
-	break;
-      scnp = new Elf_X_Shdr(elfHdrForDebugInfo.get_shdr(i - elfHdr.e_shnum()));
-      if(! scnp->isValid()) {
-        delete scnp;
-        continue;
-      }
-      name = &shnamesForDebugInfo[scnp->sh_name()];
-
-      std::string sname(name);
-      std::map<std::string, int>::iterator s = secnNameMap.find(sname);
-      if (s != secnNameMap.end()) {
-	int i = (*s).second;
-	DebugSectionMap[i].dbg_offset = scnp->sh_addr();
-	DebugSectionMap[i].dbg_size = scnp->sh_size();
-      }
-      scnp->setDebugFile(true);
-
-      if (scnp->sh_type() == SHT_NOBITS) {
-	delete scnp;
-	continue;
-      }
-    }
-
-    if(scnp->sh_type() == SHT_NOTE) {
-	    hasNoteSection_ = true;
-    }
-
-
-    //If the section appears in the memory image of a process address is given by 
-    // sh_addr()
-    //otherwise this is zero and sh_offset() gives the offset to the first byte 
-    // in section.
-    if (!scnp->isFromDebugFile()) {
-       allRegionHdrs.push_back( scnp );
-       if(scnp->sh_flags() & SHF_ALLOC) {
-          // .bss, etc. have a disk size of 0
-//          unsigned long diskSize  = (false) ? 0 : scnp->sh_size();
-          unsigned long diskSize  = (scnp->sh_type() == SHT_NOBITS) ? 0 : scnp->sh_size();
-          Region *reg = new Region(i, name, scnp->sh_addr(), diskSize, 
-                                   scnp->sh_addr(), scnp->sh_size(), 
-                                   (mem_image()+scnp->sh_offset()), 
-                                   getRegionPerms(scnp->sh_flags()), 
-                                   getRegionType(scnp->sh_type(), 
-                                                 scnp->sh_flags(),
-                                                 name), 
-                                   true, ((scnp->sh_flags() & SHF_TLS) != 0),
-                                   scnp->sh_addralign());
-	  reg->setFileOffset(scnp->sh_offset());
-          regions_.push_back(reg);
-       }
-       else {
-          Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 0, 0, 
-                                   (mem_image()+scnp->sh_offset()), 
-                                   getRegionPerms(scnp->sh_flags()), 
-                                   getRegionType(scnp->sh_type(), 
-                                                 scnp->sh_flags(),
-                                                 name), 
-                                   false, ((scnp->sh_flags() & SHF_TLS) != 0),
-                                   scnp->sh_addralign());
-
-	  reg->setFileOffset(scnp->sh_offset());
-          regions_.push_back(reg);
-       }
-    }
-
-    // section-specific processing
-    if (P_strcmp(name, EDITED_TEXT_NAME) == 0) {
-      // EEL rewritten executable
-      EEL = true;
-      if (txtaddr == 0)
-	txtaddr = scnp->sh_addr();
-      char *file_ptr = (char *)mf->base_addr();
-      code_ptr_ = (char *)(void*)&file_ptr[scnp->sh_offset() - EXTRA_SPACE];
-      code_off_ = scnp->sh_addr() - EXTRA_SPACE;
-      code_len_ = scnp->sh_size() + EXTRA_SPACE;
-    }
-
-    if (strcmp(name, TEXT_NAME) == 0) {
-      text_addr_ = scnp->sh_addr();
-      text_size_ = scnp->sh_size();
-
-      if (txtaddr == 0)
-	txtaddr = scnp->sh_addr();
-      
-      // .o's don't have program headers, so these members need
-      // to be populated here
-      if( !elfHdr.e_phnum() && !code_len_) {
-          // Populate code members
-          code_ptr_ = reinterpret_cast<char *>(scnp->get_data().d_buf());
-          code_off_ = scnp->sh_offset();
-          code_len_ = scnp->sh_size();
-      }
-    }
-    /* The following sections help us find the PH entry that
-       encompasses the data region. */
-    else if (strcmp(name, DATA_NAME) == 0) {
-      dataddr = scnp->sh_addr();
-
-      // .o's don't have program headers, so these members need
-      // to be populated here
-      if( !elfHdr.e_phnum() && !data_len_) {
-          // Populate data members
-          data_ptr_ = reinterpret_cast<char *>(scnp->get_data().d_buf());
-          data_off_ = scnp->sh_offset();
-          data_len_ = scnp->sh_size();
-      }
-    }
-    else if (strcmp(name, RO_DATA_NAME) == 0) {
-      if (!dataddr) dataddr = scnp->sh_addr();
-    }
-    else if (strcmp(name, GOT_NAME) == 0) {
-      got_scnp = scnp;
-      got_addr_ = scnp->sh_addr();
-      got_size_ = scnp->sh_size();
-      if (!dataddr) dataddr = scnp->sh_addr();
-    }
-    else if (strcmp(name, BSS_NAME) == 0) {
-      bssscnp = scnp;
-      if (!dataddr) dataddr = scnp->sh_addr();
-    }
-    /* End data region search */
-    /*else if (strcmp( name, FINI_NAME) == 0) {
-      fini_addr_ = scnp->sh_addr();
-  }*/
-    else if (strcmp(name, SYMTAB_NAME) == 0) {
-      if (!symscnp) {
-	symscnp = scnp;
-	symtab_addr_ = scnp->sh_addr();
-      }
-    }
-    else if (strcmp(name, STRTAB_NAME) == 0) {
-      if (!strscnp) {
-	strscnp = scnp;
-	strtab_addr_ = scnp->sh_addr();
+      if ((dynamic_offset_ !=0) && (scn.sh_offset() == dynamic_offset_)) {
+         if (!foundDynamicSection) {
+            dynamic_section_index = i;
+            dynamic_section_size = scn.sh_size();
+            dynamic_section_type = scn.sh_type();
+            foundDynamicSection = true;
+         } else {	
+            // If there are two or more sections with the same offset as the dynamic_offset,
+            // use other fields to chose which one the the dynamic section	
+            if (dynamic_section_size == dynamic_size_ && dynamic_section_type == SHT_DYNAMIC) {
+               // We already have the right section
+            } else if ((scn.sh_size() == dynamic_size_ && scn.sh_type() == SHT_DYNAMIC) ||
+                       (scn.sh_size() == dynamic_size_)) {
+               // This section is a better match to be the dynamic section
+               // than the previous one!
+               dynamic_section_index = i;
+               dynamic_section_size = scn.sh_size();
+               dynamic_section_type = scn.sh_type();
+            }
+         } 
       }	
-    } else if (strcmp(name, STAB_INDX_NAME) == 0) {
-      stabs_indxcnp = scnp;
-      stab_indx_off_ = scnp->sh_offset();
-      stab_indx_size_ = scnp->sh_size();
-    } else if (strcmp(name, STABSTR_INDX_NAME) == 0) {
-      stabstrs_indxcnp = scnp;
-      stabstr_indx_off_ = scnp->sh_offset();
-    } else if (strcmp(name, STAB_NAME) == 0) {
-      stabscnp = scnp;
-      stab_off_ = scnp->sh_offset();
-      stab_size_ = scnp->sh_size();
-    } else if (strcmp(name, STABSTR_NAME) == 0) {
-      stabstrscnp = scnp;
-      stabstr_off_ = scnp->sh_offset();
-    } 
-#if defined(os_vxworks)
-    else if ((strcmp(name, REL_PLT_NAME) == 0) || 
-             (strcmp(name, REL_PLT_NAME2) == 0)) {
-      rel_plt_scnp = scnp;
-      rel_plt_addr_ = scnp->sh_addr();
-      rel_plt_size_ = scnp->sh_size();
-      rel_plt_entry_size_ = scnp->sh_entsize();
-    }
-#else
-    else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
-	     secAddrTagMapping[scnp->sh_addr()] == DT_JMPREL ) {
-      rel_plt_scnp = scnp;
-      rel_plt_addr_ = scnp->sh_addr();
-      rel_plt_size_ = scnp->sh_size();
-      rel_plt_entry_size_ = scnp->sh_entsize();
-    }
-#endif
-    else if (strcmp(name, OPD_NAME) == 0) {
-      opd_scnp = scnp;
-      opd_addr_ = scnp->sh_addr();
-      opd_size_ = scnp->sh_size();
-    }
-    else if (strcmp(name, PLT_NAME) == 0) {
-      plt_scnp = scnp;
-      plt_addr_ = scnp->sh_addr();
-      plt_size_ = scnp->sh_size();
-#if defined(arch_x86) || defined(arch_x86_64)
-      //
-      // On x86, the GNU linker purposefully sets the PLT
-      // table entry size to an incorrect value to be
-      // compatible with the UnixWare linker.  (See the comment
-      // in the elf_i386_finish_dynamic_sections function of
-      // the BFD library.)  The GNU linker sets this value to 4,
-      // when it should be 16.
-      //
-      // I see no good way to determine this value from the
-      // ELF section header information.  We can either (a) hard-code
-      // the value that is used in the BFD library, or (b) compute
-      // it by dividing the size of the PLT by the number of entries
-      // we think should be in the PLT.  I'm not certain, but I
-      // believe the PLT and the .rel.plt section should have the
-      // same number of "real" entries (the x86 PLT has one extra entry
-      // at the beginning).
-      // 
-      // This code is applicable to any x86 system that uses the
-      // GNU linker.  We currently only support Linux on x86 - if
-      // we start supporting some other x86 OS that uses the GNU
-      // linker in the future, it should be enabled for that platform as well.
-      // Note that this problem does not affect the non-x86 platforms
-      // that might use the GNU linker.  For example, programs linked
-      // with gld on SPARC Solaris have the correct PLT entry size.
-      //
-      // Another potential headache in the future is if we support
-      // some other x86 platform that has both the GNU linker and
-      // some other linker.  (Does BSD fall into this category?)
-      // If the two linkers set the entry size differently, we may
-      // need to re-evaluate this code.
-      //
-      //plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
-      plt_entry_size_ = 16;
-      assert( plt_entry_size_ == 16 );
-#else
-      plt_entry_size_ = scnp->sh_entsize();
-      
-      // X86-64: if we're on a 32-bit binary then set the PLT entry size to 16
-      // as above
-#if defined(arch_x86_64)
-      if (addressWidth_nbytes == 4) {
-	plt_entry_size_ = 16;
-	assert( plt_entry_size_ == 16 );
+   }
+
+   if (dynamic_section_index != -1) {
+      Elf_X_Shdr &scn = elfHdr->get_shdr(dynamic_section_index);
+      Elf_X_Data data = scn.get_data();
+      Elf_X_Dyn dynsecData = data.get_dyn();
+      // Ubuntu 12.04 - we have debug files with NOBITS dynamic sections. 
+      if (dynsecData.isValid()) {
+         for (unsigned j = 0; j < dynsecData.count(); ++j) {
+            switch (dynsecData.d_tag(j)) {
+               case DT_REL:
+                  hasReldyn_ = true;
+                  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+                  break;
+               case DT_RELA:
+                  hasReladyn_ = true;
+                  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+                  break;
+               case DT_JMPREL:
+                  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+                  break;
+               case DT_SYMTAB:
+               case DT_STRTAB:
+               case DT_VERSYM:
+               case DT_VERNEED:
+                  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+                  break;
+               case DT_HASH:
+                  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+                  elf_hash_addr_ = dynsecData.d_ptr(j);
+                  break;
+               case  0x6ffffef5: //DT_GNU_HASH (not defined on all platforms)
+                  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+                  gnu_hash_addr_ = dynsecData.d_ptr(j);
+                  break;
+               case DT_PLTGOT:
+                  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+                  break;
+               case DT_RELSZ:
+                  secTagSizeMapping[DT_REL] = dynsecData.d_val(j);
+                  break;
+               case DT_RELASZ:
+                  secTagSizeMapping[DT_RELA] = dynsecData.d_val(j);
+                  break;
+               case DT_PLTRELSZ:
+                  secTagSizeMapping[DT_JMPREL] = dynsecData.d_val(j);
+                  break;
+               case DT_STRSZ:
+                  secTagSizeMapping[DT_STRTAB] = dynsecData.d_val(j);
+                  break;
+               case DT_PLTREL: 
+                  if (dynsecData.d_val(j) == DT_REL)
+                     hasRelplt_ = true;
+                  else if (dynsecData.d_val(j) == DT_RELA)
+                     hasRelaplt_ = true;
+                  break;
+	  
+            }
+         }
+      }
+      dyn_hash_map<Offset, int>::iterator it = secAddrTagMapping.begin();
+      while (it != secAddrTagMapping.end()) {
+         int tag = it->second;
+         switch (tag) {
+            // Only sections with these tags are moved in the new rewritten binary 
+            case DT_REL:
+            case DT_RELA:
+            case DT_JMPREL:
+            case DT_SYMTAB:
+            case DT_STRTAB:
+            case DT_VERSYM:
+            case DT_VERNEED:
+            case DT_HASH:
+            case  0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
+	  
+               if (secTagSizeMapping.find(tag) != secTagSizeMapping.end()) {
+                  vector<Offset> row;
+                  row.push_back(it->first);
+                  row.push_back(it->first+ secTagSizeMapping[tag]);
+                  moveSecAddrRange.push_back(row);
+               } else {
+                  vector<Offset> row;
+                  row.push_back(it->first);
+                  row.push_back(it->first);
+                  moveSecAddrRange.push_back(row);
+               }
+               break;
+         }
+         it++;
+      }
+   }
+   
+   isBlueGeneP_ = false;
+   isBlueGeneQ_ = false;
+
+   hasNoteSection_ = false;
+ 
+   const char *shnamesForDebugInfo = NULL;
+   unsigned int elfHdrDbg_numSections = 0;
+   unsigned int elfHdr_numSections = elfHdr->e_shnum();
+   Elf_X *elfHdrDbg = dwarf->debugLinkFile();
+   if (elfHdrDbg) {
+      shnamesForDebugInfo = pdelf_get_shnames(elfHdrDbg);
+      if (shnamesForDebugInfo == NULL) {
+         log_elferror(err_func_, ".shstrtab section");
+      }
+      elfHdrDbg_numSections = elfHdrDbg->e_shnum();
+   }
+
+   for (unsigned int i = 0; i < elfHdr_numSections + elfHdrDbg_numSections; i++) {
+      const char *name;
+
+      bool isFromDebugFile = (i >= elfHdr_numSections);
+      Elf_X_Shdr &scn = (!isFromDebugFile) ? elfHdr->get_shdr(i) :
+                                             elfHdrDbg->get_shdr(i - elfHdr_numSections);
+      if (! scn.isValid()) { // section is malformed
+         continue; 
+      } 
+      Elf_X_Shdr *scnp = &scn;
+
+      if (!isFromDebugFile) {
+         name = &shnames[scn.sh_name()];
+         sectionsInOriginalBinary.insert(string(name));
+         
+         if(scn.sh_flags() & SHF_ALLOC) {
+            DbgAddrConversion_t orig;
+            orig.name = std::string(name);
+            orig.orig_offset = scn.sh_addr();
+            secnNameMap[orig.name] = DebugSectionMap.size();
+            DebugSectionMap.push_back(orig);
+         }
       }
       else {
-	assert(addressWidth_nbytes == 8);
+         if (!shnamesForDebugInfo) 
+            break;
+         name = &shnamesForDebugInfo[scn.sh_name()];
+
+         std::string sname(name);
+         std::map<std::string, int>::iterator s = secnNameMap.find(sname);
+         if (s != secnNameMap.end()) {
+            int i = (*s).second;
+            DebugSectionMap[i].dbg_offset = scn.sh_addr();
+            DebugSectionMap[i].dbg_size = scn.sh_size();
+         }
+         scn.setDebugFile(true);
+
+         if (scn.sh_type() == SHT_NOBITS) {
+            continue;
+         }
       }
+
+      if(scn.sh_type() == SHT_NOTE) {
+         hasNoteSection_ = true;
+      }
+
+
+      //If the section appears in the memory image of a process address is given by 
+      // sh_addr()
+      //otherwise this is zero and sh_offset() gives the offset to the first byte 
+      // in section.
+      if (!scn.isFromDebugFile()) {
+         allRegionHdrs.push_back(&scn);
+         if(scn.sh_flags() & SHF_ALLOC) {
+            // .bss, etc. have a disk size of 0
+            unsigned long diskSize  = (scn.sh_type() == SHT_NOBITS) ? 0 : scn.sh_size();
+            Region *reg = new Region(i, name, scn.sh_addr(), diskSize, 
+                                     scn.sh_addr(), scn.sh_size(), 
+                                     (mem_image()+scn.sh_offset()), 
+                                     getRegionPerms(scn.sh_flags()), 
+                                     getRegionType(scn.sh_type(), 
+                                                   scn.sh_flags(),
+                                                   name), 
+                                     true, ((scn.sh_flags() & SHF_TLS) != 0),
+                                     scn.sh_addralign());
+            reg->setFileOffset(scn.sh_offset());
+            regions_.push_back(reg);
+         }
+         else {
+            Region *reg = new Region(i, name, scn.sh_addr(), scn.sh_size(), 0, 0, 
+                                     (mem_image()+scn.sh_offset()), 
+                                     getRegionPerms(scn.sh_flags()), 
+                                     getRegionType(scn.sh_type(), 
+                                                   scn.sh_flags(),
+                                                   name), 
+                                     false, ((scn.sh_flags() & SHF_TLS) != 0),
+                                     scn.sh_addralign());
+
+            reg->setFileOffset(scn.sh_offset());
+            regions_.push_back(reg);
+         }
+      }
+
+      // section-specific processing
+      if (P_strcmp(name, EDITED_TEXT_NAME) == 0) {
+         // EEL rewritten executable
+         EEL = true;
+         if (txtaddr == 0)
+            txtaddr = scn.sh_addr();
+         char *file_ptr = (char *)mf->base_addr();
+         code_ptr_ = (char *)(void*)&file_ptr[scn.sh_offset() - EXTRA_SPACE];
+         code_off_ = scn.sh_addr() - EXTRA_SPACE;
+         code_len_ = scn.sh_size() + EXTRA_SPACE;
+      }
+
+      if (strcmp(name, TEXT_NAME) == 0) {
+         text_addr_ = scn.sh_addr();
+         text_size_ = scn.sh_size();
+
+         if (txtaddr == 0)
+            txtaddr = scn.sh_addr();
+      
+         // .o's don't have program headers, so these members need
+         // to be populated here
+         if( !elfHdr->e_phnum() && !code_len_) {
+            // Populate code members
+            code_ptr_ = reinterpret_cast<char *>(scn.get_data().d_buf());
+            code_off_ = scn.sh_offset();
+            code_len_ = scn.sh_size();
+         }
+      }
+      /* The following sections help us find the PH entry that
+         encompasses the data region. */
+      else if (strcmp(name, DATA_NAME) == 0) {
+         dataddr = scn.sh_addr();
+
+         // .o's don't have program headers, so these members need
+         // to be populated here
+         if( !elfHdr->e_phnum() && !data_len_) {
+            // Populate data members
+            data_ptr_ = reinterpret_cast<char *>(scn.get_data().d_buf());
+            data_off_ = scn.sh_offset();
+            data_len_ = scn.sh_size();
+         }
+      }
+      else if (strcmp(name, RO_DATA_NAME) == 0) {
+         if (!dataddr) dataddr = scn.sh_addr();
+      }
+      else if (strcmp(name, GOT_NAME) == 0) {
+         got_scnp = scnp;
+         got_addr_ = scn.sh_addr();
+         got_size_ = scn.sh_size();
+         if (!dataddr) dataddr = scn.sh_addr();
+      }
+      else if (strcmp(name, BSS_NAME) == 0) {
+         bssscnp = scnp;
+         if (!dataddr) dataddr = scn.sh_addr();
+      }
+      /* End data region search */
+      /*else if (strcmp( name, FINI_NAME) == 0) {
+        fini_addr_ = scn.sh_addr();
+        }*/
+      else if (strcmp(name, SYMTAB_NAME) == 0) {
+         if (!symscnp) {
+            symscnp = scnp;
+            symtab_addr_ = scn.sh_addr();
+         }
+      }
+      else if (strcmp(name, STRTAB_NAME) == 0) {
+         if (!strscnp) {
+            strscnp = scnp;
+            strtab_addr_ = scn.sh_addr();
+         }	
+      } else if (strcmp(name, STAB_INDX_NAME) == 0) {
+         stabs_indxcnp = scnp;
+         stab_indx_off_ = scn.sh_offset();
+         stab_indx_size_ = scn.sh_size();
+      } else if (strcmp(name, STABSTR_INDX_NAME) == 0) {
+         stabstrs_indxcnp = scnp;
+         stabstr_indx_off_ = scn.sh_offset();
+      } else if (strcmp(name, STAB_NAME) == 0) {
+         stabscnp = scnp;
+         stab_off_ = scn.sh_offset();
+         stab_size_ = scn.sh_size();
+      } else if (strcmp(name, STABSTR_NAME) == 0) {
+         stabstrscnp = scnp;
+         stabstr_off_ = scn.sh_offset();
+      } 
+#if defined(os_vxworks)
+      else if ((strcmp(name, REL_PLT_NAME) == 0) || 
+               (strcmp(name, REL_PLT_NAME2) == 0)) {
+         rel_plt_scnp = scnp;
+         rel_plt_addr_ = scn.sh_addr();
+         rel_plt_size_ = scn.sh_size();
+         rel_plt_entry_size_ = scn.sh_entsize();
+      }
+#else
+      else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end() ) && 
+               secAddrTagMapping[scn.sh_addr()] == DT_JMPREL ) {
+         rel_plt_scnp = scnp;
+         rel_plt_addr_ = scn.sh_addr();
+         rel_plt_size_ = scn.sh_size();
+         rel_plt_entry_size_ = scn.sh_entsize();
+      }
+#endif
+      else if (strcmp(name, OPD_NAME) == 0) {
+         opd_scnp = scnp;
+         opd_addr_ = scn.sh_addr();
+         opd_size_ = scn.sh_size();
+      }
+      else if (strcmp(name, PLT_NAME) == 0) {
+         plt_scnp = scnp;
+         plt_addr_ = scn.sh_addr();
+         plt_size_ = scn.sh_size();
+#if defined(arch_x86) || defined(arch_x86_64)
+         //
+         // On x86, the GNU linker purposefully sets the PLT
+         // table entry size to an incorrect value to be
+         // compatible with the UnixWare linker.  (See the comment
+         // in the elf_i386_finish_dynamic_sections function of
+         // the BFD library.)  The GNU linker sets this value to 4,
+         // when it should be 16.
+         //
+         // I see no good way to determine this value from the
+         // ELF section header information.  We can either (a) hard-code
+         // the value that is used in the BFD library, or (b) compute
+         // it by dividing the size of the PLT by the number of entries
+         // we think should be in the PLT.  I'm not certain, but I
+         // believe the PLT and the .rel.plt section should have the
+         // same number of "real" entries (the x86 PLT has one extra entry
+         // at the beginning).
+         // 
+         // This code is applicable to any x86 system that uses the
+         // GNU linker.  We currently only support Linux on x86 - if
+         // we start supporting some other x86 OS that uses the GNU
+         // linker in the future, it should be enabled for that platform as well.
+         // Note that this problem does not affect the non-x86 platforms
+         // that might use the GNU linker.  For example, programs linked
+         // with gld on SPARC Solaris have the correct PLT entry size.
+         //
+         // Another potential headache in the future is if we support
+         // some other x86 platform that has both the GNU linker and
+         // some other linker.  (Does BSD fall into this category?)
+         // If the two linkers set the entry size differently, we may
+         // need to re-evaluate this code.
+         //
+         //plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
+         plt_entry_size_ = 16;
+         assert( plt_entry_size_ == 16 );
+#else
+         plt_entry_size_ = scn.sh_entsize();
+      
+         // X86-64: if we're on a 32-bit binary then set the PLT entry size to 16
+         // as above
+#if defined(arch_x86_64)
+         if (addressWidth_nbytes == 4) {
+            plt_entry_size_ = 16;
+            assert( plt_entry_size_ == 16 );
+         }
+         else {
+            assert(addressWidth_nbytes == 8);
+         }
 #endif
 
 
 #if defined (ppc32_linux) || defined(ppc32_bgp)
-      if (scnp->sh_flags() & SHF_EXECINSTR) {
-          // Old style executable PLT
-      if (!plt_entry_size_)
-	plt_entry_size_ = 8;
-      else {
-	if (plt_entry_size_ != 8) 
-	  fprintf(stderr, "%s[%d]:  weird plt_entry_size_ is %d, not 8\n", 
-		  FILE__, __LINE__, plt_entry_size_);
-      }
+         if (scn.sh_flags() & SHF_EXECINSTR) {
+            // Old style executable PLT
+            if (!plt_entry_size_)
+               plt_entry_size_ = 8;
+            else {
+               if (plt_entry_size_ != 8) 
+                  fprintf(stderr, "%s[%d]:  weird plt_entry_size_ is %d, not 8\n", 
+                          FILE__, __LINE__, plt_entry_size_);
+            }
 
-      } else {
-          // New style secure PLT
-          plt_entry_size_ = 16;
-      }
+         } else {
+            // New style secure PLT
+            plt_entry_size_ = 16;
+         }
 #endif
 #endif
-    } else if (strcmp(name, COMMENT_NAME) == 0) {
-       /* comment section is a sequence of NULL-terminated strings.
-          We want to concatenate them and search for BGP to determine
-          if the binary is built for BGP compute nodes */
+      } else if (strcmp(name, COMMENT_NAME) == 0) {
+         /* comment section is a sequence of NULL-terminated strings.
+            We want to concatenate them and search for BGP to determine
+            if the binary is built for BGP compute nodes */
 
-       Elf_X_Data data = scnp->get_data();
+         Elf_X_Data data = scn.get_data();
         
-       unsigned int index = 0;
-       size_t size = data.d_size();
-       char *buf = (char *) data.d_buf();
-       while (buf && (index < size))
-       {
-          string comment = buf+index;
-          size_t pos_p = comment.find("BGP");
-          size_t pos_q = comment.find("BGQ");
-          if (pos_p !=string::npos) {
-             isBlueGeneP_ = true;
-             break;
-          } else if (pos_q !=string::npos) {
-             isBlueGeneQ_ = true;
-             break;
-          }
-          index += comment.size();
-          if (comment.size() == 0) { // Skip NULL characters in the comment section
-             index ++;
-          }
-       }
-    }
+         unsigned int index = 0;
+         size_t size = data.d_size();
+         char *buf = (char *) data.d_buf();
+         while (buf && (index < size))
+         {
+            string comment = buf+index;
+            size_t pos_p = comment.find("BGP");
+            size_t pos_q = comment.find("BGQ");
+            if (pos_p !=string::npos) {
+               isBlueGeneP_ = true;
+               break;
+            } else if (pos_q !=string::npos) {
+               isBlueGeneQ_ = true;
+               break;
+            }
+            index += comment.size();
+            if (comment.size() == 0) { // Skip NULL characters in the comment section
+               index ++;
+            }
+         }
+      }
 
-    else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) &&
-	     secAddrTagMapping[scnp->sh_addr()] == DT_SYMTAB ) {
-      is_dynamic_ = true;
-      dynsym_scnp = scnp;
-      dynsym_addr_ = scnp->sh_addr();
-      dynsym_size_ = scnp->sh_size()/scnp->sh_entsize();
-    }
-    else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
-	     secAddrTagMapping[scnp->sh_addr()] == DT_STRTAB ) {
-      dynstr_scnp = scnp;
-      dynstr_addr_ = scnp->sh_addr();
-    }
-    else if (strcmp(name, ".debug_info") == 0) {
-      dwarvenDebugInfo = true;
-    }
-    else if (strcmp(name, EH_FRAME_NAME) == 0) {
-      eh_frame = scnp;
-    }
-    else if ((strcmp(name, EXCEPT_NAME) == 0) || 
-	     (strcmp(name, EXCEPT_NAME_ALT) == 0)) {
-      gcc_except = scnp;
-    }
-    else if (strcmp(name, INTERP_NAME) == 0) {
-      interp_scnp = scnp;
-    }
-    else if (i == dynamic_section_index) {
-      dynamic_scnp = scnp;
-      dynamic_addr_ = scnp->sh_addr();
-    }
-  }
+      else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end() ) &&
+               secAddrTagMapping[scn.sh_addr()] == DT_SYMTAB ) {
+         is_dynamic_ = true;
+         dynsym_scnp = scnp;
+         dynsym_addr_ = scn.sh_addr();
+         dynsym_size_ = scn.sh_size()/scn.sh_entsize();
+      }
+      else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end() ) && 
+               secAddrTagMapping[scn.sh_addr()] == DT_STRTAB ) {
+         dynstr_scnp = scnp;
+         dynstr_addr_ = scn.sh_addr();
+      }
+      else if (strcmp(name, ".debug_info") == 0) {
+         dwarvenDebugInfo = true;
+      }
+      else if (strcmp(name, EH_FRAME_NAME) == 0) {
+         eh_frame = scnp;
+      }
+      else if ((strcmp(name, EXCEPT_NAME) == 0) || 
+               (strcmp(name, EXCEPT_NAME_ALT) == 0)) {
+         gcc_except = scnp;
+      }
+      else if (strcmp(name, INTERP_NAME) == 0) {
+         interp_scnp = scnp;
+      }
+      else if ((int) i == dynamic_section_index) {
+         dynamic_scnp = scnp;
+         dynamic_addr_ = scn.sh_addr();
+      }
+   }
 
-  if(!symscnp || !strscnp) {
-    isStripped = true;
-    if(dynsym_scnp && dynstr_scnp){
-      symscnp = dynsym_scnp;
-      strscnp = dynstr_scnp;
-    }
-  }
+   if(!symscnp || !strscnp) {
+      isStripped = true;
+      if(dynsym_scnp && dynstr_scnp){
+         symscnp = dynsym_scnp;
+         strscnp = dynstr_scnp;
+      }
+   }
 
-  loadAddress_ = 0x0;
+   loadAddress_ = 0x0;
 #if defined(os_linux) || defined(os_freebsd)
-  /**
-   * If the virtual address of the first PT_LOAD element in the
-   * program table is 0, Linux loads the shared object into any
-   * free spot into the address space.  If the virtual address is
-   * non-zero, it gets loaded only at that address.
-   **/
-  for (unsigned i = 0; i < elfHdr.e_phnum() && !loadAddress_; ++i) {
-    Elf_X_Phdr phdr = elfHdr.get_phdr(i);
+   /**
+    * If the virtual address of the first PT_LOAD element in the
+    * program table is 0, Linux loads the shared object into any
+    * free spot into the address space.  If the virtual address is
+    * non-zero, it gets loaded only at that address.
+    **/
+   for (unsigned i = 0; i < elfHdr->e_phnum() && !loadAddress_; ++i) {
+      Elf_X_Phdr &phdr = elfHdr->get_phdr(i);
 
-    if (phdr.p_type() == PT_LOAD) {
-      loadAddress_ = phdr.p_vaddr();
-      break;
-    }
-  }
+      if (phdr.p_type() == PT_LOAD) {
+         loadAddress_ = phdr.p_vaddr();
+         break;
+      }
+   }
 #endif  
   
-  // save a copy of region headers, maintaining order in section header table
-  allRegionHdrsByShndx = allRegionHdrs;
+   // save a copy of region headers, maintaining order in section header table
+   allRegionHdrsByShndx = allRegionHdrs;
 
-  // sort the section headers by base address
-  sort(allRegionHdrs.begin(), allRegionHdrs.end(), SectionHeaderSortFunction());
+   // sort the section headers by base address
+   sort(allRegionHdrs.begin(), allRegionHdrs.end(), SectionHeaderSortFunction());
 
-  for (unsigned j = 0 ; j < regions_.size() ; j++) {
-    if (secAddrTagMapping.find(regions_[j]->getDiskOffset()) != secAddrTagMapping.end()) {
-      secTagRegionMapping[secAddrTagMapping[regions_[j]->getDiskOffset()]] = regions_[j];
-    }
-  }
+   for (unsigned j = 0 ; j < regions_.size() ; j++) {
+      if (secAddrTagMapping.find(regions_[j]->getDiskOffset()) != secAddrTagMapping.end()) {
+         secTagRegionMapping[secAddrTagMapping[regions_[j]->getDiskOffset()]] = regions_[j];
+      }
+   }
 
 #if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 );
-  cout << "main loop of loaded elf took "<<dursecs <<" msecs" << endl;
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << "main loop of loaded elf took "<<dursecs <<" msecs" << endl;
 #endif
 
-if (!dataddr || !symscnp || !strscnp) {
-    //log_elferror(err_func_, "no text/bss/symbol/string section");
-}
-  //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit loaded_elf() successful\n");
-  return true;
+   if (!dataddr || !symscnp || !strscnp) {
+      //log_elferror(err_func_, "no text/bss/symbol/string section");
+   }
+   //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit loaded_elf() successful\n");
+   return true;
 }
 
 bool Object::is_offset_in_plt(Offset offset) const
@@ -1560,12 +1543,12 @@ void Object::load_object(bool alloc_syms)
 	goto cleanup;
       }
 
-    addressWidth_nbytes = elfHdr.wordSize();
+    addressWidth_nbytes = elfHdr->wordSize();
 
     // find code and data segments....
-    find_code_and_data(elfHdr, txtaddr, dataddr);
+    find_code_and_data(*elfHdr, txtaddr, dataddr);
 
-    if (elfHdr.e_type() != ET_REL) 
+    if (elfHdr->e_type() != ET_REL) 
       {
 	if (!code_ptr_ || !code_len_) 
 	  {
@@ -1579,7 +1562,7 @@ void Object::load_object(bool alloc_syms)
             goto cleanup;
 	  }
       }
-    get_valid_memory_areas(elfHdr);
+    get_valid_memory_areas(*elfHdr);
 
     //fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
 
@@ -1691,14 +1674,14 @@ void Object::load_object(bool alloc_syms)
 		goto cleanup;
 	      }
 	  }
-        parse_all_relocations(elfHdr, dynsym_scnp, dynstr_scnp,
+        parse_all_relocations(*elfHdr, dynsym_scnp, dynstr_scnp,
                 symscnp, strscnp);
 
  	handle_opd_relocations();	 
       }
 
     //Set object type
-    int e_type = elfHdr.e_type();
+    int e_type = elfHdr->e_type();
 
     if (e_type == ET_DYN) {
 	obj_type_ = obj_SharedLib;
@@ -1709,7 +1692,7 @@ void Object::load_object(bool alloc_syms)
     }
 
     // Set rel type based on the ELF machine type
-    relType_ = getRelTypeByElfMachine(&elfHdr);
+    relType_ = getRelTypeByElfMachine(elfHdr);
 
     return;
   } // end binding contour (for "goto cleanup2")
@@ -1762,12 +1745,12 @@ void Object::load_shared_object(bool alloc_syms)
     if (interp_scnp)
       interpreter_name_ = (char *) interp_scnp->get_data().d_buf(); 
 
-    addressWidth_nbytes = elfHdr.wordSize();
+    addressWidth_nbytes = elfHdr->wordSize();
 
     // find code and data segments....
-    find_code_and_data(elfHdr, txtaddr, dataddr);
+    find_code_and_data(*elfHdr, txtaddr, dataddr);
 
-    get_valid_memory_areas(elfHdr);
+    get_valid_memory_areas(*elfHdr);
 
 #if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
     //fprintf(stderr, "[%s:%u] - Mod Name is %s\n", __FILE__, __LINE__, name.c_str());
@@ -1840,19 +1823,19 @@ void Object::load_shared_object(bool alloc_syms)
 #endif
 
       if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
-	if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 
-	  goto cleanup2;
-	}
+         if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 
+            goto cleanup2;
+         }
       }
 
-      parse_all_relocations(elfHdr, dynsym_scnp, dynstr_scnp,
+      parse_all_relocations(*elfHdr, dynsym_scnp, dynstr_scnp,
                 symscnp, strscnp);
 	// Apply relocations to opd
  	handle_opd_relocations();	 
     }
 
     //Set object type
-    int e_type = elfHdr.e_type();
+    int e_type = elfHdr->e_type();
     if (e_type == ET_DYN) {
       obj_type_ = obj_SharedLib;
     }
@@ -1863,7 +1846,7 @@ void Object::load_shared_object(bool alloc_syms)
     }
 
     // Set rel type based on the ELF machine type
-    relType_ = getRelTypeByElfMachine(&elfHdr);
+    relType_ = getRelTypeByElfMachine(elfHdr);
 
   } // end binding contour (for "goto cleanup2")
 
@@ -2870,7 +2853,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
 {
    int status;
    /* Initialize libdwarf. */
-   Dwarf_Debug *dbg_ptr = dwarf.dbg();
+   Dwarf_Debug *dbg_ptr = dwarf->type_dbg();
    if (!dbg_ptr)
       return false;
    Dwarf_Debug &dbg = *dbg_ptr;
@@ -3227,7 +3210,7 @@ void Object::find_code_and_data(Elf_X &elf,
      */
 
     for (int i = 0; i < elf.e_phnum(); ++i) {
-        Elf_X_Phdr phdr = elf.get_phdr(i);
+        Elf_X_Phdr &phdr = elf.get_phdr(i);
 
         char *file_ptr = (char *)mf->base_addr();
 
@@ -3304,9 +3287,9 @@ stab_entry *Object::get_stab_info() const
   return new stab_entry_64();
 }
 
-Object::Object(MappedFile *mf_, MappedFile *mfd, bool, void (*err_func)(const char *), 
+Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *), 
 	       bool alloc_syms) :
-  AObject(mf_, mfd, err_func), 
+  AObject(mf_, err_func), 
   hasReldyn_(false),
   hasReladyn_(false),
   hasRelplt_(false),
@@ -3314,7 +3297,7 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, bool, void (*err_func)(const ch
   relType_(Region::RT_REL),
   opd_addr_(0),
   opd_size_(0),
-  dwarf(this),
+  dwarf(NULL),
   EEL(false),
   DbgSectionMapSorted(false)
 {
@@ -3327,30 +3310,31 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, bool, void (*err_func)(const ch
   did_open = false;
   interpreter_name_ = NULL;
   isStripped = false;
+  
   if(mf->getFD() != -1)
-    elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
+     elfHdr = Elf_X::newElf_X(mf->getFD(), ELF_C_READ, NULL, mf_->pathname());
   else
-    elfHdr = Elf_X((char *)mf->base_addr(), mf->size());
+     elfHdr = Elf_X::newElf_X((char *)mf->base_addr(), mf->size(), mf_->pathname());
 
   // ELF header: sanity check
-  //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
-  if (!elfHdr.isValid())  {
+  //if (!elfHdr->isValid()|| !pdelf_check_ehdr(elfHdr)) 
+  if (!elfHdr->isValid())  {
     log_elferror(err_func_, "ELF header");
     has_error = true;
     return;
   }
-  else if (!pdelf_check_ehdr(elfHdr)) {
+  else if (!pdelf_check_ehdr(*elfHdr)) {
     log_elferror(err_func_, "ELF header failed integrity check");
     has_error = true;
     return;
   }
-  mfForDebugInfo = findMappedFileForDebugInfo();
 
-  if( elfHdr.e_type() == ET_DYN )
+  dwarf = DwarfHandle::createDwarfHandle(mf_->pathname(), elfHdr, getErrFunc());
+  if( elfHdr->e_type() == ET_DYN )
     load_shared_object(alloc_syms);
-  else if( elfHdr.e_type() == ET_REL || elfHdr.e_type() == ET_EXEC ) {
+  else if( elfHdr->e_type() == ET_REL || elfHdr->e_type() == ET_EXEC ) {
     // Differentiate between an executable and an object file
-    if( elfHdr.e_phnum() ) is_aout_ = true;
+    if( elfHdr->e_phnum() ) is_aout_ = true;
     else is_aout_ = false;
 
     load_object(alloc_syms);
@@ -3377,7 +3361,7 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, bool, void (*err_func)(const ch
 
 Object::Object(const Object& obj)
   : AObject(obj), 
-    dwarf(this),
+    dwarf(NULL),
     EEL(false)
 {
   interpreter_name_ = obj.interpreter_name_;
@@ -3403,10 +3387,6 @@ Object::~Object()
   versionMapping.clear();
   versionFileNameMapping.clear();
   deps_.clear();
-
-  // This is necessary to free resources held internally by libelf
-  elfHdr.end();
-  elfHdrForDebugInfo.end();
 }
 
 void Object::log_elferror(void (*err_func)(const char *), const char* msg) 
@@ -3505,7 +3485,7 @@ Offset Object::getPltSlot(string funcName) const
 void Object::get_valid_memory_areas(Elf_X &elf)
 {
   for (unsigned i = 0; i < elf.e_shnum(); ++i) {
-    Elf_X_Shdr shdr = elf.get_shdr(i);
+    Elf_X_Shdr &shdr = elf.get_shdr(i);
     if ( !shdr.isValid()) { 
       break; 
     }
@@ -4066,7 +4046,7 @@ bool Object::find_catch_blocks(Elf_X_Shdr *eh_frame,
     return true;
   }
 
-  Dwarf_Debug *dbg_ptr = dwarf.dbg();
+  Dwarf_Debug *dbg_ptr = dwarf->frame_dbg();
   if (!dbg_ptr) {
     pd_dwarf_handler(err, NULL);
     return false;
@@ -4323,7 +4303,7 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
   if (hasDwarfInfo())
     {
       int status;
-      Dwarf_Debug *dbg_ptr = dwarf.dbg();
+      Dwarf_Debug *dbg_ptr = dwarf->type_dbg();
       if (!dbg_ptr)
 	return;
       Dwarf_Debug &dbg = *dbg_ptr;
@@ -4443,7 +4423,7 @@ bool Object::emitDriver(Symtab *obj, string fName,
   print_symbols(allSymbols);
   printf("%d total symbol(s)\n", allSymbols.size());
 #endif
-  if (elfHdr.e_ident()[EI_CLASS] == ELFCLASS32)
+  if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS32)
     {
       emitElf *em = new emitElf(elfHdr, isStripped, this, err_func_);
       if( !em->createSymbolTables(obj, allSymbols) ) return false;
@@ -4452,7 +4432,7 @@ bool Object::emitDriver(Symtab *obj, string fName,
 #if defined(x86_64_unknown_linux2_4) || \
     defined(ppc64_linux) || \
     (defined(os_freebsd) && defined(arch_x86_64))
-  else if (elfHdr.e_ident()[EI_CLASS] == ELFCLASS64) 
+  else if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS64) 
     {
       emitElf64 *em = new emitElf64(elfHdr, isStripped, this, err_func_);
       if( !em->createSymbolTables(obj, allSymbols) ) return false;
@@ -4711,7 +4691,7 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
 // Dwarf Debug Format parsing
 void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li) 
 {
-	Dwarf_Debug *dbg_ptr = dwarf.dbg();
+	Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
 	if (!dbg_ptr)
 		return; 
 	Dwarf_Debug &dbg = *dbg_ptr;
@@ -4797,7 +4777,7 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
 
 			lineAddr += baseAddr;
 
-			if (usesDebugFile) {
+			if (dwarf->debugLinkFile()) {
 				Offset new_lineAddr;
 				bool result = convertDebugOffset(lineAddr, new_lineAddr);
 				if (result)
@@ -4899,9 +4879,9 @@ void Object::parseTypeInfo(Symtab *obj)
 
 	parseStabTypes(obj);
 
-        DwarfWalker walker(obj, *(dwarf.dbg()));
-        walker.parse();
-        //parseDwarfTypes(obj);
+   DwarfWalker walker(obj, *(dwarf->type_dbg()));
+   walker.parse();
+   //parseDwarfTypes(obj);
         
 #if defined(TIMED_PARSE)
 	struct timeval endtime;
@@ -5238,22 +5218,6 @@ void Object::parseStabTypes(Symtab *obj)
 #endif
 } 
 
-MappedFile *Object::findMappedFileForDebugInfo() {
-   string debug_filename;
-   char *buffer;
-   unsigned long buffer_size;
-
-   bool result = elfHdr.findDebugFile(mf->pathname(), debug_filename, buffer, buffer_size);
-   if (!result)
-      return mf;
-
-   MappedFile *debug_mf = MappedFile::createMappedFile(buffer, buffer_size, debug_filename);
-   if (!debug_mf)
-      return mf;
-   dwarvenDebugInfo = true;
-   return debug_mf;
-}
-
 bool sort_dbg_map(const Object::DbgAddrConversion_t &a, 
                   const Object::DbgAddrConversion_t &b)
 {
@@ -5324,7 +5288,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
         Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
         Elf_X_Shdr *strtab_scnp) {
 
-   //const char *shnames = pdelf_get_shnames(elfHdr);
+   //const char *shnames = pdelf_get_shnames(*elfHdr);
     // Setup symbol table access
     Offset dynsym_offset = 0;
     Elf_X_Data dynsym_data, dynstr_data;    
@@ -5528,10 +5492,6 @@ Dyninst::Architecture Object::getArch()
 #endif
 }
 
-Dwarf_Debug Object::dwarf_dbg() {
-   return dwarf.dbg_data;
-}
-
 Offset Object::getTOCoffset(Offset off) const {
   if (TOC_table_.empty()) return 0;
 
@@ -5548,4 +5508,20 @@ Offset Object::getTOCoffset(Offset off) const {
 void Object::setTOCoffset(Offset off) {
   TOC_table_.clear();
   TOC_table_[0] = off;
+}
+
+void Object::getSegmentsSymReader(vector<SymSegment> &segs) {
+   for (unsigned i = 0; i < elfHdr->e_phnum(); ++i) {
+      Elf_X_Phdr &phdr = elfHdr->get_phdr(i);
+      
+      SymSegment seg;
+      seg.file_offset = phdr.p_offset();
+      seg.mem_addr = phdr.p_vaddr();
+      seg.file_size = phdr.p_filesz();
+      seg.mem_size = phdr.p_memsz();
+      seg.type = phdr.p_type();
+      seg.perms = phdr.p_flags() & 0x7;
+
+      segs.push_back(seg);
+   }
 }

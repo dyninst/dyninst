@@ -46,6 +46,7 @@ instructionAPI/doc/latex/doxygen.sty
 instructionAPI/doc/latex/hierarchy.tex
 instructionAPI/doc/latex/index.tex
 instructionAPI/doc/latex/modules.tex
+instructionAPI/doc/html
 patchAPI/doc/patchapi.aux
 patchAPI/doc/patchapi.log
 patchAPI/doc/patchapi.out
@@ -60,3 +61,7 @@ _UpgradeReport_Files/*
 *.cache
 *.log
 *_manifest.rc
+*.orig
+\#*\#
+callgrind.out.*
+

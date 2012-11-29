@@ -92,7 +92,6 @@ class PatchModifier {
 
   private:
    static InsertedCode::Ptr insert(PatchObject *, void *start, unsigned size, Address base);
-
 };
 
 };

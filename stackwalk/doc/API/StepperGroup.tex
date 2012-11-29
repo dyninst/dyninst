@@ -1,0 +1,127 @@
+\subsubsection{Class StepperGroup}
+\label{subsec:steppergroup}
+\definedin{steppergroup.h}
+
+The \code{StepperGroup} class contains a collection of \code{FrameStepper} objects. The
+\code{StepperGroup}'s primary job is to decide which \code{FrameStepper} should be used to
+walk through a stack frame given a return address. The default \code{StepperGroup}
+keeps a set of address ranges for each \code{FrameStepper}. If multiple \code{FrameStepper}
+objects overlap an address, then the default \code{StepperGroup} will use a priority
+system to decide.
+
+\code{StepperGroup} provides both an interface and a default implementation of that
+interface. Users who want to customize the \code{StepperGroup} should inherit from this
+class and re-implement any of the below virtual functions.
+
+\begin{apient}
+virtual StepperGroup(Walker *walker)
+\end{apient}
+\apidesc{
+    This factory constructor creates a new \code{StepperGroup} object associated
+with \code{walker}. 
+}
+
+\begin{apient}
+virtual bool addStepper(FrameStepper *stepper)
+\end{apient}
+\apidesc{
+    This method adds a new \code{FrameStepper} to this \code{StepperGroup}. The
+    newly added stepper will be tracked by this \code{StepperGroup}, and it will
+    be considered for use when walking through stack frames. 
+
+    This method returns \code{\code{true}} if it successfully added the
+    \code{FrameStepper}, and \code{\code{false}} on error.
+}
+
+\begin{apient}
+virtual bool addAddressRanges(
+    const std::vector<std::pair<Address, Address> >&ranges,
+    const FrameStepper *stepper) = 0
+\end{apient}
+\apidesc{
+    This method associates a set of address ranges, \code{ranges}, with a \code{FrameStepper},
+    stepper. These address ranges contain objects in the process' code space
+    that create stack frames that \code{stepper} can walk through.
+
+    The default \code{StepperGroup} will use \code{stepper} to walk through a Frame object (by
+    returning it from findStepperForAddr) if the Frame object's RA falls within
+    a range registered by this method. A Frame object, frame, falls within a
+    range, range[i], if . If multiple \code{FrameStepper} objects have overlapping
+    ranges, then the default \code{StepperGroup} will use the one with the highest
+    priority first (see \code{FrameStepper}::getPriority in Section~
+    \ref{subsec:framestepper}).
+
+    For example, suppose this \code{FrameStepper} was designed to walk through a signal
+    handler frame on Linux/x86. During initialization the \code{FrameStepper} inspects
+    the target process' vsyscall page and finds that signal handlers will appear
+    on the call stack with a RA between \code{0xffffe000} and \code{0xffffe400}. It then
+    registers this range with its \code{StepperGroup} using addAddressRanges. If the
+    \code{StepperGroup} encounters an RA in this range, it then uses the signal handler
+    \code{FrameStepper} to walk through it.
+
+    Suppose another \code{FrameStepper} was designed to walk through regular stack
+    frames created by ABI-compliant functions. This \code{FrameStepper} will be used as
+    a general catch-all if no other \code{FrameStepper} can walk through a Frame
+    object. The \code{FrameStepper} can register itself with an address range that
+    spans the whole address space, and a lower priority than the signal handler
+    \code{FrameStepper}. The \code{StepperGroup} will then use the signal handler \code{FrameStepper}
+    to step through signal handlers, and this \code{FrameStepper} to step through any
+    other Frame object.
+
+    This method returns \code{true} on success and \code{false} if there is an
+    error.
+}
+
+\begin{apient}
+virtual bool removeAddressRanges(
+    const std::vector<std::pair<Address, Address > > &ranges, 
+    const FrameStepper *stepper) = 0
+\end{apient}
+\apidesc{
+    This method removes a FrameStepper's address range from a StepperGroup. See
+    addAddressRange for more details on how StepperGroup and FrameStepper
+    objects use address ranges. The address ranges specified by ranges will be
+    deleted from stepper's address ranges. For example, if the address range
+    \code{0x1000} to \code{0x2000} was registered to a FrameStepper named \code{foo}, and then
+    removeAddressRanges was used to remove the address range \code{0x1500} to
+    \code{0x1600}
+    out of \code{foo}, then \code{foo} would have two address ranges associated with it:
+    \code{0x1000} to \code{0x1500} and \code{0x1600} to \code{0x2000}.
+
+	This function returns \code{true} on success and \code{false} on error.
+}
+
+\begin{apient}
+virtual bool findStepperForAddr(Address addr, FrameStepper* &out, 
+                                const FrameStepper *last_tried = NULL)
+\end{apient}
+\apidesc{
+    Given an address that points into a function (or function-like object),
+    addr, this method decides which \code{FrameStepper} should be used to walk through
+    the stack frame created by the function at that address. A pointer to the
+    \code{FrameStepper} will be returned in parameter \code{out}. 
+
+    It may be possible that the \code{FrameStepper} this method decides on is unable to
+    walk through the stack frame (it returns \code{gcf\_not\_me} from
+    \code{FrameStepper::getCallerFrame}). In this case StackwalkerAPI will call
+    findStepperForAddr again with the last\_tried parameter set to the failed
+    \code{FrameStepper}. findStepperForAddr should then find another \code{FrameStepper} to
+    use. Parameter \code{last\_tried} will be set to NULL the first time getStepperToUse
+    is called for a stack frame.
+
+    The default version of this method uses address ranges to decide which
+    \code{FrameStepper} to use. The address ranges are contained within the process'
+    code space, and map a piece of the code space to a \code{FrameStepper} that can
+    walk through stack frames created in that code range. If multiple
+    \code{FrameStepper} objects share the same range, then the one with the highest
+    priority will be tried first.
+	
+    This method returns \code{true} on success and \code{false} on failure.  
+}
+
+\begin{apient}
+Walker *getWalker() const
+\end{apient}
+\apidesc{
+	This method returns the Walker object that associated with this StepperGroup.
+}

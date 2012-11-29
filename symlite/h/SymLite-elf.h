@@ -46,10 +46,10 @@ class SymElf : public Dyninst::SymReader
 {
    friend class SymElfFactory;
  private:
-   Elf_X elf;
+   Elf_X *elf;
    int fd;
    bool need_odp;
-   Elf_X_Shdr odp_section;
+   Elf_X_Shdr *odp_section;
 
    std::string file;
    const char *buffer;
@@ -75,8 +75,8 @@ class SymElf : public Dyninst::SymReader
    virtual Symbol_t getContainingSymbol(Dyninst::Offset offset);
    virtual std::string getInterpreterName();
 
-   virtual unsigned numRegions();
-   virtual bool getRegion(unsigned num, SymRegion &reg); 
+   virtual unsigned numSegments();
+   virtual bool getSegment(unsigned num, SymSegment &reg); 
 
    virtual Dyninst::Offset getSymbolOffset(const Symbol_t &sym);
    virtual std::string getSymbolName(const Symbol_t &sym);

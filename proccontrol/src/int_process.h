@@ -112,7 +112,7 @@ class mem_state
 
 class Counter {
   public:
-   static const int NumCounterTypes = 11;
+   static const int NumCounterTypes = 12;
    enum CounterType {
       HandlerRunningThreads = 0,
       GeneratorRunningThreads = 1,
@@ -124,7 +124,8 @@ class Counter {
       AsyncEvents = 7,
       ForceGeneratorBlock = 8,
       GeneratorNonExitedThreads = 9,
-      StartupTeardownProcesses = 10
+      StartupTeardownProcesses = 10,
+      NeonatalThreads = 11
    };
 
    Counter(CounterType ct_);
@@ -393,7 +394,9 @@ class int_process
    virtual bool plat_convertToBreakpointAddress(Address &, int_thread *) { return true; }
    virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
    virtual bool plat_needsThreadForMemOps() const { return true; }
-
+   virtual unsigned int plat_getCapabilities();
+   virtual Event::ptr plat_throwEventsBeforeContinue(int_thread *thr);
+   
    int_library *getLibraryByName(std::string s) const;
    size_t numLibs() const;
    virtual bool refresh_libraries(std::set<int_library *> &added_libs,
@@ -440,7 +443,19 @@ class int_process
    virtual FollowFork *getForkTracking();
    virtual bool fork_setTracking(FollowFork::follow_t b);
    virtual FollowFork::follow_t fork_isTracking();
+
+   virtual LWPTracking *getLWPTracking();
+   bool lwp_setTracking(bool b);
+   virtual bool plat_lwpChangeTracking(bool b);
+   bool lwp_getTracking();
+   bool lwp_refreshPost(result_response::ptr &resp);
+   bool lwp_refreshCheck(bool &change);
+   bool lwp_refresh();
+   virtual bool plat_lwpRefreshNoteNewThread(int_thread *thr);
+   virtual bool plat_lwpRefresh(result_response::ptr resp);
    
+   SignalMask *getSigMask();
+
    virtual std::string mtool_getName();
    virtual MultiToolControl::priority_t mtool_getPriority();
    virtual MultiToolControl *mtool_getMultiToolControl();
@@ -477,6 +492,8 @@ class int_process
    ProcStopEventManager proc_stop_manager;
    std::map<int, int> proc_desyncd_states;
    FollowFork::follow_t fork_tracking;
+   bool lwp_tracking;
+   SignalMask pcsigmask;
    void *user_data;
    err_t last_error;
    const char *last_error_string;
@@ -574,41 +591,6 @@ class proc_exitstate
    void setLastError(err_t e_, const char *m) { last_error = e_; last_error_msg = m; }
 };
 
-/**
- * ON THREADING STATES:
- *
- * Each thread has four different states, which mostly monitor running/stopped
- * status :
- *   GeneratorState - Thread state as seen by the generator object
- *   HandlerState - Thread state as seen by the handler object
- *   InternalState - Target thread state desired by int_* layer
- *   UserState - Target Thread state as desired by the user
- *
- * The GeneratorState and HandlerState represent an event as it moves through the 
- * system.  For example, an event that stops the thread may first appear
- * in the Generator object, and move the GeneratorState to 'stopped'.  It is then
- * seen by the handler, which moves the HandlerState to 'stopped'.  If the thread is 
- * then continued, the HandlerState and GeneratorStates will go back to 'running'.
- * These are primarily seperated to prevent race conditions with the handler and
- * generators modifying the same variable, since they run in seperate threads.
- * 
- * The InternalState and UserState are used to make policy decisions about whether
- * a thread should be running or stopped.  For example, after handling an event
- * we may check the UserState to see if the user wants us to run/stop a thread.
- * The InternalState usually matches the UserState, but may override it for 
- * stop/run decisions in a few scenarios.  For example, if the user posts a iRPC
- * to a running process (UserState = running) we may have to temporarily stop the
- * process to install the iRPC.  We don't want to change the UserState, since the user
- * still wants the process running, so we set the InternalState to stopped while we
- * set up the iRPC, and then return it to the UserState value when the iRPC is ready.
- *
- * There are a couple of important assertions about the relationship between these thread
- * states :
- *  (GeneratorState == running) implies (HandlerState == running)
- *  (HandlerState == running)  implies (InternalState == running)
- *  (InternalState == stopped)  implies (HandlerState == stopped)
- *  (HandlerState == stopped)  implies (GeneratorState == stopped)
- **/
 class int_thread
 {
    friend class Dyninst::ProcControlAPI::Thread;
@@ -623,10 +605,17 @@ class int_thread
                                        bool initial_thrd);
 
 public:
+   enum attach_status_t {
+      as_unknown = 0,          //Threads found by getThreadLWPs come in as_needs_attach, others
+      as_created_attached,     // come int as_created_attached.  Up to platforms to interpret this
+      as_needs_attach          // however they want.
+   };
+
    static int_thread *createThread(int_process *proc, 
                                    Dyninst::THR_ID thr_id, 
                                    Dyninst::LWP lwp_id,
-   								   bool initial_thrd);
+                                   bool initial_thrd,
+                                   attach_status_t astatus = as_unknown);
    static int_thread *createRPCThread(int_process *p);
    Process::ptr proc() const;
    int_process *llproc() const;
@@ -649,7 +638,7 @@ public:
    } State;
    //The order of these is very important.  Lower numbered
    // states take precedence over higher numbered states.
-   static const int NumStateIDs = 16;
+   static const int NumStateIDs = 17;
    static const int NumTargetStateIDs = (NumStateIDs-2); //Handler and Generator states aren't target states
 
    static const int AsyncStateID            = 0;
@@ -665,9 +654,10 @@ public:
    static const int StartupStateID          = 10;
    static const int DetachStateID           = 11;
    static const int UserRPCStateID          = 12;
-   static const int UserStateID             = 13;
-   static const int HandlerStateID          = 14;
-   static const int GeneratorStateID        = 15;
+   static const int ControlAuthorityStateID = 13;
+   static const int UserStateID             = 14;
+   static const int HandlerStateID          = 15;
+   static const int GeneratorStateID        = 16;
    static std::string stateIDToName(int id);
 
    class StateTracker {
@@ -708,6 +698,7 @@ public:
    StateTracker &getAsyncState();
    StateTracker &getInternalState();
    StateTracker &getDetachState();
+   StateTracker &getControlAuthorityState();
    StateTracker &getUserRPCState();
    StateTracker &getUserState();
    StateTracker &getHandlerState();
@@ -726,6 +717,7 @@ public:
    Counter &clearingBPCount();
    Counter &procStopRPCCount();
    Counter &getGeneratorNonExitedThreadCount();
+   Counter &neonatalThreadCount();
       
    //Process control
    bool intStop();
@@ -878,6 +870,7 @@ public:
    int_process *proc_;
    Thread::ptr up_thread;
    int continueSig_;
+   attach_status_t attach_status;
 
    Counter handler_running_thrd_count;
    Counter generator_running_thrd_count;
@@ -887,6 +880,7 @@ public:
    Counter clearing_bp_count;
    Counter proc_stop_rpc_count;
    Counter generator_nonexited_thrd_count;
+   Counter neonatal_threads;
 
    StateTracker exiting_state;
    StateTracker startup_state;
@@ -901,6 +895,7 @@ public:
    StateTracker internal_state;
    StateTracker detach_state;
    StateTracker user_irpc_state;
+   StateTracker control_authority_state;
    StateTracker user_state;
    StateTracker handler_state;
    StateTracker generator_state;
@@ -1038,10 +1033,11 @@ class int_breakpoint
    bool onetime_bp_hit;
    bool procstopper;
    bool suppress_callbacks;
+   bool offset_transfer;
    std::set<Thread::const_ptr> thread_specific;
  public:
    int_breakpoint(Breakpoint::ptr up);
-   int_breakpoint(Dyninst::Address to, Breakpoint::ptr up);
+   int_breakpoint(Dyninst::Address to, Breakpoint::ptr up, bool off);
    int_breakpoint(unsigned int hw_prems_, unsigned int hw_size_, Breakpoint::ptr up);
    ~int_breakpoint();
 
@@ -1050,7 +1046,6 @@ class int_breakpoint
    Dyninst::Address getAddress(int_process *p) const;
    void *getData() const;
    void setData(void *v);
-   
    void setOneTimeBreakpoint(bool b);
    void markOneTimeHit();
    bool isOneTimeBreakpoint() const;
@@ -1070,6 +1065,7 @@ class int_breakpoint
    unsigned getHWSize() const;
    unsigned getHWPerms() const;
    
+   bool isOffsetTransfer() const;
    Breakpoint::weak_ptr upBreakpoint() const;
 };
 

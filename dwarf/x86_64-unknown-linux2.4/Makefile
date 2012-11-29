@@ -28,10 +28,6 @@ TFLAGS          += $(MYFLAGS)
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS		+= -g
 
-# Add preprocessor and special link information for G++
-G_PTHREAD	= -pthread
-G_PTHREAD_LD	= -pthread
-
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 

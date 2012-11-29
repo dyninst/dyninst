@@ -67,7 +67,7 @@ SymReaderCodeRegion::~SymReaderCodeRegion()
 
 SymReaderCodeRegion::SymReaderCodeRegion(
         SymReader * st,
-        SymRegion * reg) :
+        SymSegment * reg) :
     _symtab(st),
     _region(reg),
     rawData(NULL)
@@ -166,8 +166,8 @@ SymReaderCodeRegion::isCode(const Address addr) const
     // XXX this is the predicate from SymReader::isCode(a) +
     //     the condition by which SymReader::codeRegions_ is filled
     return !_region->isBSS() && 
-           (_region->type == SymRegion::RT_TEXT ||
-            _region->type == SymRegion::RT_TEXTDATA);
+           (_region->type == SymSegment::RT_TEXT ||
+            _region->type == SymSegment::RT_TEXTDATA);
     */
 }
 
@@ -182,7 +182,7 @@ SymReaderCodeRegion::isData(const Address addr) const
     // XXX SymReader::isData(a) tests both RT_DATA (Region::isData(a))
     //     and RT_TEXTDATA. Mimicking that behavior
     return _region->isData() || 
-           _region->type==SymRegion::RT_TEXTDATA;
+           _region->type==SymSegment::RT_TEXTDATA;
     */
 }
 
@@ -221,7 +221,7 @@ SymReaderCodeSource::SymReaderCodeSource(SymReader * st) :
   init_stats();
 }
 
-bool shouldAddRegion(SymRegion* sr)
+bool shouldAddRegion(SymSegment* sr)
 {
   // First: text, data, or textdata only
   switch(sr->type)
@@ -236,13 +236,13 @@ bool shouldAddRegion(SymRegion* sr)
 
 void SymReaderCodeSource::init_regions()
 {
-  for(unsigned i = 0; i < _symtab->numRegions(); i++)
+  for(unsigned i = 0; i < _symtab->numSegments(); i++)
   {
-    SymRegion reg;
+    SymSegment reg;
     
-    if(_symtab->getRegion(i, reg))
+    if(_symtab->getSegment(i, reg))
     {
-      SymRegion* tmp = new SymRegion(reg);
+      SymSegment* tmp = new SymSegment(reg);
       
       CodeRegion* cr = new SymReaderCodeRegion(_symtab, tmp);
       if(shouldAddRegion(tmp)) 
@@ -563,7 +563,7 @@ SymReaderCodeSource::removeRegion(CodeRegion &cr)
 // has to remove the region before modifying the region's size, 
 // otherwise the region can't be found
 bool
-SymReaderCodeSource::resizeRegion(SymRegion *sr, Address newDiskSize)
+SymReaderCodeSource::resizeRegion(SymSegment *sr, Address newDiskSize)
 {
     // find region
     std::set<CodeRegion*> regions;

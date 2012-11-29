@@ -99,9 +99,9 @@ void Object::parseDwarfTypes( Symtab *)
 
 bool Object::hasFrameDebugInfo()
 {
-   dwarf.dbg();
-   assert(dwarf.sw);
-   return dwarf.sw->hasFrameDebugInfo();
+   dwarf->frame_dbg();
+   assert(dwarf->frameParser());
+   return dwarf->frameParser()->hasFrameDebugInfo();
 }
 
 bool Object::getRegValueAtFrame(Address pc, 
@@ -112,49 +112,9 @@ bool Object::getRegValueAtFrame(Address pc,
    Dwarf::FrameErrors_t frame_error = Dwarf::FE_No_Error;
    bool result;
 
-   dwarf.dbg();
-   result = dwarf.sw->getRegValueAtFrame(pc, reg, reg_result, reader, frame_error);
+   dwarf->frame_dbg();
+   result = dwarf->frameParser()->getRegValueAtFrame(pc, reg, reg_result, reader, frame_error);
    setSymtabError((SymtabError) frame_error);
    return result;
 }
 
-DwarfHandle::DwarfHandle(Object *obj_) :
-   obj(obj_),
-   init_dwarf_status(dwarf_status_uninitialized)
-{
-   assert(obj);
-}
-
-Dwarf_Debug *DwarfHandle::dbg()
-{
-   int status;
-   Dwarf_Error err;
-   if (init_dwarf_status == dwarf_status_ok) {
-      return &dbg_data;
-   }
-
-   if (init_dwarf_status == dwarf_status_error) {
-      return NULL;
-   }
-   
-   status = dwarf_elf_init(obj->elfHdrForDebugInfo.e_elfp(), DW_DLC_READ, 
-                           &pd_dwarf_handler, obj->getErrFunc(), &dbg_data, &err);
-   if (status != DW_DLV_OK) {
-      init_dwarf_status = dwarf_status_error;
-      return NULL;
-   }
-   
-   sw = Dwarf::DwarfFrameParser::create(dbg_data, obj->getArch());
-
-   init_dwarf_status = dwarf_status_ok;
-   return &dbg_data;
-}
-
-DwarfHandle::~DwarfHandle()
-{
-   if (init_dwarf_status != dwarf_status_ok) 
-      return;
-
-   Dwarf_Error err;
-   dwarf_finish(dbg_data, &err);
-}

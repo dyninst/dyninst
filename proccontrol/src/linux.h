@@ -142,9 +142,12 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool fork_setTracking(FollowFork::follow_t b);
    virtual FollowFork *getForkTracking();
    virtual FollowFork::follow_t fork_isTracking();
+   virtual LWPTracking *getLWPTracking();
+   virtual bool plat_lwpChangeTracking(bool b);
   protected:
    int computeAddrWidth(Dyninst::Architecture me);
    FollowFork *fork_tracker;
+   LWPTracking *lwp_tracker;
 };
 
 class linux_x86_process : virtual public linux_process, virtual public x86_process

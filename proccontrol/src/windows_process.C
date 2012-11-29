@@ -177,7 +177,8 @@ bool windows_process::plat_create_int()
 		pthrd_printf("Created mutatee process: pid %d\n", pid);
 		hproc = procInfo.hProcess;
 		int_thread* initialThread = int_thread::createThread(this, (Dyninst::THR_ID)(procInfo.dwThreadId), 
-			(Dyninst::LWP)procInfo.dwThreadId, true);
+                                                           (Dyninst::LWP)procInfo.dwThreadId, true,
+                                                           int_thread::as_created_attached);
 		windows_thread* wThread = dynamic_cast<windows_thread*>(initialThread);
 		wThread->setHandle(procInfo.hThread);
 	}

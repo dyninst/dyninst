@@ -29,6 +29,8 @@ namespace SymtabAPI {
    class Type;
 
 class DwarfWalker {
+   typedef std::vector<std::pair<Address, Address> > range_set_t;
+   typedef boost::shared_ptr<std::vector<std::pair<Address, Address> > > range_set_ptr;
 
    struct Contexts {
       struct Context {
@@ -44,13 +46,12 @@ class DwarfWalker {
          Dwarf_Off offset;
          Dwarf_Half tag;
          Address base;
-         Address low;
-         Address high;
-      Context() :
-         func(NULL), commonBlock(NULL),
+         range_set_ptr ranges;
+         Context() :
+            func(NULL), commonBlock(NULL),
             enumType(NULL), enclosure(NULL),
             parseSibling(true), parseChild(true), 
-            base(0), low(0), high(0) {};
+            base(0) {};
       };
       
       std::stack<Context> c;
@@ -68,10 +69,9 @@ class DwarfWalker {
       Dwarf_Off offset() { return c.top().offset; }
       Dwarf_Half tag() { return c.top().tag; }
       Address base() { return c.top().base; }
-      Address low() { return c.top().low; }
-      Address high() { return c.top().high; }
+      range_set_ptr ranges() { return c.top().ranges; }
 
-     void setFunc(Function *f); 
+      void setFunc(Function *f); 
       void setCommon(typeCommon *tc) { c.top().commonBlock = tc; }
       void setEnum(typeEnum *e) { c.top().enumType = e; }
       void setEnclosure(fieldListType *f) { c.top().enclosure = f; }
@@ -83,9 +83,15 @@ class DwarfWalker {
       void setOffset(Dwarf_Off o) { c.top().offset = o; }
       void setTag(Dwarf_Tag t) { c.top().tag = t; }
       void setBase(Address a) { c.top().base = a; }
-      void setLow(Address a) { c.top().low = a; }
-      void setHigh(Address a) { c.top().high = a; }
-     void clearFunc();
+      void setRange(std::pair<Address, Address> range) { 
+         if (!c.top().ranges)
+            c.top().ranges = range_set_ptr(new std::vector<std::pair<Address, Address> >);
+         c.top().ranges->push_back(range);
+      }
+      void clearRanges() {
+         c.top().ranges = range_set_ptr();
+      }
+      void clearFunc();
    };
 
   public:
@@ -167,8 +173,10 @@ class DwarfWalker {
    // We might be able to fold this into specEntry and call it
    // "authoritativeEntry" or something. 
    Dwarf_Die abstractEntry() { return contexts_.abstractEntry(); }
-   Address lowAddr() { return contexts_.low(); }
-   Address highAddr() { return contexts_.high(); }
+   void clearRanges() { contexts_.clearRanges(); }
+   bool hasRanges() { return contexts_.ranges() != NULL; }
+   range_set_t::iterator ranges_begin() { return contexts_.ranges()->begin(); }
+   range_set_t::iterator ranges_end() { return contexts_.ranges()->end(); }
 
    // A printable ID for a particular entry
    unsigned long id() { return (unsigned long) (offset() - compile_offset); }
@@ -178,8 +186,7 @@ class DwarfWalker {
    void setAbstractEntry(Dwarf_Die se) { contexts_.setAbstractEntry(se); }
    void setTag(Dwarf_Half tag) { contexts_.setTag(tag); }
    void setOffset(Dwarf_Off offset) { contexts_.setOffset(offset); }
-   void setLow(Address low) { contexts_.setLow(low); }
-   void setHigh(Address high) { contexts_.setHigh(high); }
+   void setRange(std::pair<Address, Address> range) { contexts_.setRange(range); }
 
    bool buildSrcFiles(Dwarf_Die entry);
    bool hasDeclaration(bool &decl);

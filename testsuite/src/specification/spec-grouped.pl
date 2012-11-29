@@ -40,7 +40,7 @@
                   test_exclude_compiler/2, remote_platform/1, remote_runmode_mutator/2,
                   remote_runmode_mutatee/2, mutatee_launchtime/2, runmode_launch_params/5,
                   platform_module/2, mutatee_compiler_platform_exclude/2,
-                  platform_mode/4]).
+                  platform_mode/4, runmode_platform/3]).
 
 %%%%%%%%%%
 %
@@ -2193,7 +2193,7 @@ test('test_add_symbols', 'test_add_symbols', 'symtab_group_test').
 test_description('test_add_symbols', 'Use SymtabAPI to add symbols to a file').
 groupable_test('test_add_symbols').
 mutator('test_add_symbols', ['test_add_symbols.C']).
-test_runmode('test_add_symbols', 'createProcess').
+test_runmode('test_add_symbols', 'disk').
 test_start_state('test_add_symbols', 'stopped').
 tests_module('test_add_symbols', 'symtab').
 test_platform('test_add_symbols', Platform) :- rewriteablePlatforms(Platform).
@@ -2703,11 +2703,8 @@ mutatee_abi(64).
 % platform_format (Platform, Format)
 platform_format(P, 'dynamicMutatee') :- platform(_, _, S, P),
    S \= 'bluegenel'.
-platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
-platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
-platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
-platform_format(P, 'staticMutatee') :- platform('x86_64', 'freebsd', _, P).
-platform_format(P, 'staticMutatee') :- platform(_, 'bluegene', _, P).
+platform_format(P, 'staticMutatee') :- platform(_, O, _, P),
+   O \= 'windows'.
 
 % compiler_format (Compiler, Format)
 compiler_format(_, 'dynamicMutatee').
@@ -3449,22 +3446,22 @@ test_processmode(Test, 'None') :- tests_module(Test, Module),
 
 bg_vn_exclude('VN', 'MultiThreaded').
 
-% platform_mode is currently only used by BG to specify the modes
+% platform_mode is currently only used by BG/P to specify the modes
 % the system can run in: Virtual, Dual, or SMP
 platform_mode(P, M, RM, TM) :-
    current_platform(P),
-   platform(_, 'bluegene', _, P),
+   platform(_, 'bluegene', 'bluegenep', P),
    member(M, ['DUAL', 'VN', 'SMP']),
    member(RM, ['createProcess', 'useAttach', 'binary']),
    \+ bg_vn_exclude(M, TM).
 
 platform_mode(P, 'NONE', 'disk', _) :-
    current_platform(P),
-   platform(_, 'bluegene', _, P).
+   platform(_, 'bluegene', 'bluegenep', P).
 
 platform_mode(P, 'NONE', _, _) :- 
    current_platform(P),
-   \+ platform(_, 'bluegene', _, P).   
+   \+ platform(_, 'bluegene', 'bluegenep', P).   
 
 % runmode/1
 % runmode(+RunMode)
@@ -3494,24 +3491,27 @@ test_runmode(Test, 'binary') :- test_runmode(Test, 'static').
 
 % test_runmode(Test, 'deserialize') :- test_serializable(Test).
 
-% runmode_platform/2
-% runmode_platform(?Platform, ?Runmode)
+% runmode_platform/3
+% runmode_platform(?Platform, ?Runmode, ?Module)
 % This specifies what platforms support which runmodes, essentially
 % specify binary rewriter support for Dyninst
-runmode_platform(P, 'createProcess') :- platform(_, S, _, P),
+runmode_platform(P, 'createProcess', 'dyninst') :- platform(_, S, _, P),
   S \= 'bluegene'.
-runmode_platform(P, 'useAttach') :- platform(_, S, _, P),
+runmode_platform(P, 'useAttach', 'dyninst') :- platform(_, S, _, P),
   S \= 'bluegene'.
-runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
-runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
-runmode_platform(P, 'binary') :- platform('power32', 'linux', _, P).
-runmode_platform(P, 'binary') :- platform('power64', 'linux', _, P).
-runmode_platform(P, 'binary') :- platform('power32', 'bluegene', _, P).
-runmode_platform(P, 'binary') :- platform('power64', 'bluegene', _, P).
-runmode_platform(P, 'binary') :- platform('i386', 'freebsd', _, P).
-runmode_platform(P, 'binary') :- platform('x86_64', 'freebsd', _,P).
-runmode_platform(P, 'disk') :- platform(_, _, _, P).
-% runmode_platform(P, 'deserialize') :- platform(_, _, _, P).
+runmode_platform(P, 'createProcess', 'proccontrol') :- platform(_, _, _, P).
+runmode_platform(P, 'useAttach', 'proccontrol') :- platform(_, _, _, P).
+runmode_platform(P, 'createProcess', 'instruction') :- platform(_, _, _, P).
+runmode_platform(P, 'binary', _) :- platform('i386', 'linux', _, P).
+runmode_platform(P, 'binary', _) :- platform('x86_64', 'linux', _, P).
+runmode_platform(P, 'binary', _) :- platform('power32', 'linux', _, P).
+runmode_platform(P, 'binary', _) :- platform('power64', 'linux', _, P).
+runmode_platform(P, 'binary', _) :- platform('power32', 'bluegene', _, P).
+runmode_platform(P, 'binary', _) :- platform('power64', 'bluegene', _, P).
+runmode_platform(P, 'binary', _) :- platform('i386', 'freebsd', _, P).
+runmode_platform(P, 'binary', _) :- platform('x86_64', 'freebsd', _,P).
+runmode_platform(P, 'disk', _) :- platform(_, _, _, P).
+% runmode_platform(P, 'deserialize', _) :- platform(_, _, _, P).
 
 % mutatee_peers/2
 mutatee_peers(M, P) :-

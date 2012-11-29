@@ -54,7 +54,7 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-extern const char *pdelf_get_shnames(Elf_X &elf);
+extern const char *pdelf_get_shnames(Elf_X *elf);
 extern const char *STRTAB_NAME;
 extern const char *SYMTAB_NAME;
 extern const char *INTERP_NAME;
@@ -172,7 +172,7 @@ static int elfSymVisibility(Symbol::SymbolVisibility sVisibility)
   }
 }
 
-emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *)) :
+emitElf64::emitElf64(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *)) :
    oldElfHandle(oldElfHandle_),
    phdrs_scn(NULL),
    isStripped(isStripped_),
@@ -193,7 +193,7 @@ emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void 
   TLSExists = false;
   newTLSData = NULL;
    
-  oldElf = oldElfHandle.e_elfp();
+  oldElf = oldElfHandle->e_elfp();
   curVersionNum = 2;
   setVersion();
  
@@ -1679,6 +1679,13 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     olddynStrData = (char *)(sec->getPtrToRawData());
     olddynStrSize = sec->getMemSize();
     dynsymbolNamesLength = olddynStrSize+1;
+  }
+
+  // Copy over the previous library dependencies
+  vector<string> &elibs = obj->getObject()->deps_;
+  for (std::vector<std::string>::iterator iter = elibs.begin();
+       iter != elibs.end(); ++iter) {
+     addDTNeeded(*iter);
   }
 
   //Initialize the list of new prereq libraries

@@ -74,7 +74,7 @@ This factory method creates a new region with the provided arguments. The \code{
 bool isOffsetInRegion(const Offset &offset) const
 \end{apient}
 \apidesc{
-Return true if the offset falls within the region data.
+Return \code{true} if the offset falls within the region data.
 }
 
 \begin{apient}
@@ -88,15 +88,15 @@ Sets the region index; the value must not overlap with any other regions and is 
 bool setPtrToRawData(void *newPtr, unsigned long rawsize)
 \end{apient}
 \apidesc{
-Set the raw data pointer of the region to newPtr. rawsize represents the size of the raw data buffer. 
-Returns true if success or false when unable to set/change the raw data of the region. Implicitly changes the disk and memory sizes of the region.
+Set the raw data pointer of the region to \code{newPtr}. \code{rawsize} represents the size of the raw data buffer. 
+Returns \code{true} if success or \code{false} when unable to set/change the raw data of the region. Implicitly changes the disk and memory sizes of the region.
 }
 
 \begin{apient}
 bool setRegionPermissions(perm_t newPerms)
 \end{apient}
 \apidesc{
-This sets the regions permissions to newPerms. Returns true on success.
+This sets the regions permissions to \code{newPerms}. Returns \code{true} on success.
 }
 
 
@@ -104,7 +104,7 @@ This sets the regions permissions to newPerms. Returns true on success.
 bool setLoadable(bool isLoadable)
 \end{apient}
 \apidesc{
-This method sets the region to be loadable into memory at load time. Returns true on success.
+This method sets whether the region is loaded into memory at load time. Returns \code{true} on success.
 }
 
 \begin{apient}
@@ -129,7 +129,7 @@ bool addRelocationEntry(const relocationEntry& rel)
 bool patchData(Offset off, void *buf, unsigned size);
 \end{apient}
 \apidesc{
-Patch the raw data for this region. buf represents the buffer to be patched at offset off and size size.
+Patch the raw data for this region. \code{buf} represents the buffer to be patched at offset \code{off} and size \code{size}.
 }
 
 \paragraph{REMOVED}

@@ -13,7 +13,6 @@ RELEASE_MINOR = 0
 
 DEFINES		     +=  
 
-USES_DWARF_DEBUG = true
 USES_LIBELF = true
 
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
@@ -36,6 +35,10 @@ TARGET		= libsymLite.so
 else
 TARGET      = libsymLite.a
 endif
+endif
+
+ifdef LIBELF_PLATFORM
+LDFLAGS += -L../../elf/$(PLATFORM) -ldynElf
 endif
 
 LDFLAGS     += $(LIBDIR)

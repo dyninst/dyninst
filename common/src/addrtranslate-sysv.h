@@ -49,7 +49,7 @@ protected:
    bool is_interpreter;
 
    string interpreter_name;
-   vector<SymRegion> regions;
+   vector<SymSegment> segments;
    unsigned addr_size;
    Offset r_debug_offset;
    Offset r_trap_offset;
@@ -65,7 +65,7 @@ public:
 
    string getInterpreter();
    void markInterpreter();
-   void getRegions(vector<SymRegion> &regs);
+   void getSegments(vector<SymSegment> &segs);
    unsigned getAddrSize();
    Offset get_r_debug();
    Offset get_r_trap();

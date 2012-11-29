@@ -42,6 +42,7 @@
 #include <vector>
 #include <deque>
 #include "proccontrol/src/int_handler.h"
+#include "proccontrol/src/int_event.h"
 
 
 using namespace Dyninst;
@@ -68,8 +69,9 @@ class PC_EXPORT WinEventNewThread : public EventNewLWP
  public:
    typedef boost::shared_ptr<WinEventNewThread> ptr;
    typedef boost::shared_ptr<const WinEventNewThread> const_ptr;
-	WinEventNewThread(Dyninst::LWP l, HANDLE ht, LPTHREAD_START_ROUTINE ts,
-		LPVOID base) : EventNewLWP(l), hthread(ht), thread_start(ts), tls_base(base)
+   WinEventNewThread(Dyninst::LWP l, HANDLE ht, LPTHREAD_START_ROUTINE ts, LPVOID base) :
+      EventNewLWP(l, (int) int_thread::as_created_attached),
+      hthread(ht), thread_start(ts), tls_base(base)
 	{}
 	virtual ~WinEventNewThread() {}
 

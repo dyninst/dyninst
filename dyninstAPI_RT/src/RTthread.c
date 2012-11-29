@@ -235,8 +235,6 @@ int global = 1;
 int DYNINSTthreadIndex() {
     dyntid_t tid;
     unsigned curr_index;
-    int *ptr = 5;
-    int foo;
 
     rtdebug_printf("%s[%d]:  welcome to DYNINSTthreadIndex()\n", __FILE__, __LINE__);
     if (!DYNINSThasInitialized) {

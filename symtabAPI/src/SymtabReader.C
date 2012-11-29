@@ -34,6 +34,9 @@
 #include "symtabAPI/h/Function.h"
 
 #include "symtabAPI/src/Object.h"
+#include <queue>
+#include <iostream>
+using namespace std;
 
 #include <sstream>
 using std::stringstream;
@@ -44,8 +47,6 @@ using namespace SymtabAPI;
 SymtabReader::SymtabReader(std::string file_) :
    symtab(NULL),
    ref_count(1),
-   mapped_regions(NULL),
-   dwarf_handle(NULL),
    ownsSymtab(true)
 {
   // We'd throw, but...
@@ -55,8 +56,6 @@ SymtabReader::SymtabReader(std::string file_) :
 SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
    symtab(NULL),
    ref_count(1),
-   mapped_regions(NULL),
-   dwarf_handle(NULL),
    ownsSymtab(true)
 {
    stringstream memName;
@@ -68,24 +67,14 @@ SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
 SymtabReader::SymtabReader(Symtab *s) :
     symtab(s),
     ref_count(1),
-    mapped_regions(NULL),
-    dwarf_handle(NULL),
     ownsSymtab(false)
 {}
 
 SymtabReader::~SymtabReader()
 {
-   if (mapped_regions)
-      delete mapped_regions;
    if (symtab && ownsSymtab)
       Symtab::closeSymtab(symtab);
    symtab = NULL;
-   mapped_regions = NULL;
-#if !defined(os_windows)
-   if (dwarf_handle)
-     delete dwarf_handle;
-#endif
-   dwarf_handle = NULL;
 }
 
 
@@ -140,40 +129,29 @@ unsigned SymtabReader::getAddressWidth()
    return symtab->getAddressWidth();
 }
    
-unsigned SymtabReader::numRegions()
+unsigned SymtabReader::numSegments()
 {
-   assert(symtab);
-   if (!mapped_regions) {
-      mapped_regions = new std::vector<Region *>();
-      bool result = symtab->getMappedRegions(*mapped_regions);
-      if (!result) {
-         return 0;
-      }
-   }
-   return mapped_regions->size();
+   buildSegments();
+   return segments.size();
 }
 
-bool SymtabReader::getRegion(unsigned num, SymRegion &reg)
+bool SymtabReader::getSegment(unsigned num, SymSegment &seg)
 {
-   assert(symtab);
-   if (!mapped_regions) {
-      mapped_regions = new std::vector<Region *>();
-      bool result = symtab->getMappedRegions(*mapped_regions);
-      if (!result) {
-         return false;
-      }
-   }
+   buildSegments();
+   if (num >= segments.size()) return false;
+   seg = segments[num];
 
-   if (num >= mapped_regions->size())
-      return false;
-   Region *region = (*mapped_regions)[num];
-   reg.file_offset = region->getDiskOffset();
-   reg.mem_addr = region->getMemOffset();
-   reg.file_size = region->getDiskSize();
-   reg.mem_size = region->getMemSize();
-   reg.type = (int) region->getRegionType();
    return true;
 }
+
+void SymtabReader::buildSegments() {
+   if (!segments.empty()) return;
+
+   // We want ELF segments; contiguous areas of the 
+   // binary loaded into memory. 
+   symtab->getSegmentsSymReader(segments);
+}
+
 
 Dyninst::Offset SymtabReader::getSymbolOffset(const Symbol_t &sym)
 {
@@ -257,24 +235,9 @@ bool SymtabReader::isValidSection(Section_t sec)
    return (sec.v1 != NULL);
 }
 
-void *SymtabReader::getDebugInfo()
-{
-#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion) || defined(os_freebsd) || defined(os_vxworks)
-  if (!dwarf_handle)
-  {
-    Object *obj = symtab->getObject();
-    dwarf_handle = new DwarfHandle(obj);
-  }
-  Dwarf_Debug dbg = *(dwarf_handle->dbg());
-  return (void *) dbg;
-#else
-  return NULL;
-#endif
-}
-
 void *SymtabReader::getElfHandle()
 {
-#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion) || defined(os_freebsd) || defined(os_vxworks)
+#if defined(os_solaris) || defined(os_linux) || defined(os_bg) || defined(os_freebsd) || defined(os_vxworks)
    Object *obj = symtab->getObject();
    return obj->getElfHandle();
 #else
@@ -294,7 +257,7 @@ SymReader *SymtabReaderFactory::openSymbolReader(std::string pathname)
 {
    std::map<std::string, SymReader *>::iterator i = open_syms.find(pathname);
    if (i != open_syms.end()) {
-      SymtabReader *symtabreader = static_cast<SymtabReader *>(i->second);
+      SymtabReader *symtabreader = dynamic_cast<SymtabReader *>(i->second);
       symtabreader->ref_count++;
       return symtabreader;
    }
@@ -303,6 +266,7 @@ SymReader *SymtabReaderFactory::openSymbolReader(std::string pathname)
       return NULL;
    }
    open_syms[pathname] = symtabreader;
+
    return symtabreader;
 }
 
@@ -320,6 +284,20 @@ bool SymtabReaderFactory::closeSymbolReader(SymReader *sr)
    assert(symreader->ref_count >= 1);
    symreader->ref_count--;
    if (symreader->ref_count == 0) {
+     // We need to remove this from the big map, but we don't 
+     // store the path. So crawl and look. 
+     std::queue<std::string> toDelete;
+     std::map<std::string, SymReader *>::iterator i;
+     for (i = open_syms.begin(); i != open_syms.end(); ++i) {
+       if (i->second == symreader) {
+	 toDelete.push(i->first);
+       }
+     }
+     while (!toDelete.empty()) {
+       open_syms.erase(toDelete.front());
+       toDelete.pop();
+     }
+
       delete symreader;
    }
    return true;

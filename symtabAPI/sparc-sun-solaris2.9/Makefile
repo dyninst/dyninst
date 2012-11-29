@@ -34,8 +34,6 @@ TFLAGS		+= -DUSES_ELF32_ONLY
 SYSLIBS = -lsocket -lnsl -ldl -lrt
 
 # Add preprocessor and special link information for G++
-G_PTHREAD       = -pthreads
-G_PTHREAD_LD	= -pthreads
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

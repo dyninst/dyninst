@@ -1,0 +1,113 @@
+\subsection{Operand Class}
+\label{classDyninst_1_1InstructionAPI_1_1Operand}\index{Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}}
+\subsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\textbf Operand} ({\textbf Expression::Ptr} val, bool read, bool written)
+\item 
+ void {\textbf getReadSet} (std::set$<$ {\textbf RegisterAST::Ptr} $>$ \&regsRead) const 
+\item 
+ void {\textbf getWriteSet} (std::set$<$ {\textbf RegisterAST::Ptr} $>$ \&regsWritten) const 
+\item 
+ void {\textbf addEffectiveReadAddresses} (std::set$<$ {\textbf Expression::Ptr} $>$ \&memAccessors) const 
+\item 
+ void {\textbf addEffectiveWriteAddresses} (std::set$<$ {\textbf Expression::Ptr} $>$ \&memAccessors) const 
+\item 
+ std::string {\textbf format} (Architecture arch, Address addr=0) const 
+\end{DoxyCompactItemize}
+
+
+
+An Operand object contains an AST built from RegisterAST and Immediate leaves, and information about whether the Operand is read, written, or both. This allows us to determine which of the registers that appear in the Operand are read and which are written, as well as whether any memory accesses are reads, writes, or both. An Operand, given full knowledge of the values of the leaves of the AST, and knowledge of the logic associated with the tree's internal nodes, can determine the result of any computations that are encoded in it. It will rarely be the case that an Instruction is built with its Operands' state fully specified. This mechanism is instead intended to allow a user to fill in knowledge about the state of the processor at the time the Instruction is executed. 
+
+\subsubsection{Constructors \& Destructors}
+\index{Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}!Operand@{Operand}}
+\index{Operand@{Operand}!Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}}
+\paragraph[{Operand}]{\setlength{\rightskip}{0pt plus 5cm}{\textbf Operand} (
+\begin{DoxyParamCaption}
+\item[{{\textbf Expression::Ptr}}]{ val, }
+\item[{bool}]{ read, }
+\item[{bool}]{ written}
+\end{DoxyParamCaption}
+)}\hfill\label{classDyninst_1_1InstructionAPI_1_1Operand_a2e9e7385ab9ad68c0af145540186e7cf}
+
+
+Create an operand from a Expression and flags describing whether the ValueComputation is read, written or both. 
+
+
+\begin{DoxyParams}{Parameters}
+\item[{\em val}]Reference-\/counted pointer to the Expression that will be contained in the Operand being constructed \item[{\em read}]True if this operand is read \item[{\em written}]True if this operand is written \end{DoxyParams}
+
+
+\subsubsection{Member Functions}
+\index{Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}!getReadSet@{getReadSet}}
+\index{getReadSet@{getReadSet}!Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}}
+\paragraph[{getReadSet}]{\setlength{\rightskip}{0pt plus 5cm} void getReadSet (
+\begin{DoxyParamCaption}
+\item[{std::set$<$ {\textbf RegisterAST::Ptr} $>$ \&}]{ regsRead}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Operand_af6d94aa7ad62e7d980a3bbf2b850c4fa}
+
+
+Get the registers read by this operand. 
+
+
+\begin{DoxyParams}{Parameters}
+\item[{\em regsRead}]Has the registers read inserted into it \end{DoxyParams}
+\index{Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}!getWriteSet@{getWriteSet}}
+\index{getWriteSet@{getWriteSet}!Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}}
+\paragraph[{getWriteSet}]{\setlength{\rightskip}{0pt plus 5cm} void getWriteSet (
+\begin{DoxyParamCaption}
+\item[{std::set$<$ {\textbf RegisterAST::Ptr} $>$ \&}]{ regsWritten}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Operand_aabb2d82e550db2a060fd490b6a554527}
+
+
+Get the registers written by this operand. 
+
+
+\begin{DoxyParams}{Parameters}
+\item[{\em regsWritten}]Has the registers written inserted into it \end{DoxyParams}
+\index{Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}!addEffectiveReadAddresses@{addEffectiveReadAddresses}}
+\index{addEffectiveReadAddresses@{addEffectiveReadAddresses}!Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}}
+\paragraph[{addEffectiveReadAddresses}]{\setlength{\rightskip}{0pt plus 5cm} void addEffectiveReadAddresses (
+\begin{DoxyParamCaption}
+\item[{std::set$<$ {\textbf Expression::Ptr} $>$ \&}]{ memAccessors}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Operand_a91c0c0397fa59fb0f53f9ad12526280a}
+
+
+Inserts the effective addresses read by this operand into memAccessors. 
+
+
+\begin{DoxyParams}{Parameters}
+\item[{\em memAccessors}]If this is a memory read operand, insert the {\ttfamily ExpressionPtr} representing the address being read into {\ttfamily memAccessors}. \end{DoxyParams}
+\index{Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}!addEffectiveWriteAddresses@{addEffectiveWriteAddresses}}
+\index{addEffectiveWriteAddresses@{addEffectiveWriteAddresses}!Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}}
+\paragraph[{addEffectiveWriteAddresses}]{\setlength{\rightskip}{0pt plus 5cm} void addEffectiveWriteAddresses (
+\begin{DoxyParamCaption}
+\item[{std::set$<$ {\textbf Expression::Ptr} $>$ \&}]{ memAccessors}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Operand_a8a766dfcc9aa94c08f0943ca5828dc8b}
+
+
+Inserts the effective addresses written by this operand into memAccessors. 
+
+
+\begin{DoxyParams}{Parameters}
+\item[{\em memAccessors}]If this is a memory write operand, insert the {\ttfamily ExpressionPtr} representing the address being written into {\ttfamily memAccessors}. \end{DoxyParams}
+\index{Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}!format@{format}}
+\index{format@{format}!Dyninst::InstructionAPI::Operand@{Dyninst::InstructionAPI::Operand}}
+\paragraph[{format}]{\setlength{\rightskip}{0pt plus 5cm} std::string format (
+\begin{DoxyParamCaption}
+\item[{Architecture}]{ arch, }
+\item[{Address}]{ addr = {\ttfamily 0}}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Operand_a5e653615a522cf09bda1857a326d4e5f}
+
+
+Return a printable string representation of the operand. 
+
+\begin{DoxyReturn}{Returns}
+The operand in a disassembly format 
+\end{DoxyReturn}

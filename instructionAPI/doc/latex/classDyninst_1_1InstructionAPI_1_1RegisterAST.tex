@@ -1,0 +1,86 @@
+\subsection{RegisterAST Class}
+\label{classDyninst_1_1InstructionAPI_1_1RegisterAST}\index{Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}}
+\subsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual void {\textbf getChildren} (vector$<$ InstructionAST::Ptr $>$ \&children) const 
+\item 
+virtual void {\textbf getUses} (set$<$ InstructionAST::Ptr $>$ \&uses)
+\item 
+virtual bool {\textbf isUsed} (InstructionAST::Ptr findMe) const 
+\item 
+bool {\textbf operator$<$} (const {\textbf RegisterAST} \&rhs) const 
+\end{DoxyCompactItemize}
+\subsubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static {\textbf RegisterAST} {\textbf makePC} (Dyninst::Architecture arch)
+\item 
+static {\textbf RegisterAST::Ptr} {\textbf promote} (const InstructionAST::Ptr reg)
+\end{DoxyCompactItemize}
+
+
+
+A RegisterAST object represents a register contained in an operand. As a RegisterAST is a Expression, it may contain the physical register's contents if they are known. 
+
+\subsubsection{Member Functions}
+\index{Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}!getChildren@{getChildren}}
+\index{getChildren@{getChildren}!Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}}
+\paragraph[{getChildren}]{\setlength{\rightskip}{0pt plus 5cm}void getChildren (
+\begin{DoxyParamCaption}
+\item[{vector$<$ InstructionAST::Ptr $>$ \&}]{ children}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1RegisterAST_abd80c13b7e8fa7952220858b72b15c14}
+By definition, a RegisterAST object has no children. 
+\begin{DoxyParams}{Parameters}
+\item[{\em children}]Since a RegisterAST has no children, the {\ttfamily children} parameter is unchanged by this method. \end{DoxyParams}
+
+
+
+\index{Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}!getUses@{getUses}}
+\index{getUses@{getUses}!Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}}
+\paragraph[{getUses}]{\setlength{\rightskip}{0pt plus 5cm}void getUses (
+\begin{DoxyParamCaption}
+\item[{set$<$ InstructionAST::Ptr $>$ \&}]{ uses}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1RegisterAST_a82c5ae077a4ab1bd306104ae784c73ee}
+By definition, the use set of a RegisterAST object is itself. 
+\begin{DoxyParams}{Parameters}
+\item[{\em uses}]This RegisterAST will be inserted into {\ttfamily uses}. \end{DoxyParams}
+
+
+
+\index{Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}!isUsed@{isUsed}}
+\index{isUsed@{isUsed}!Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}}
+\paragraph[{isUsed}]{\setlength{\rightskip}{0pt plus 5cm}bool isUsed (
+\begin{DoxyParamCaption}
+\item[{InstructionAST::Ptr}]{ findMe}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1RegisterAST_a71169e7bb9813302ddc3486c3d9eb65d}
+{\ttfamily isUsed} returns true if {\ttfamily findMe} is a RegisterAST that represents the same register as this RegisterAST, and false otherwise. 
+
+
+\index{Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}!makePC@{makePC}}
+\index{makePC@{makePC}!Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}}
+\paragraph[{makePC}]{\setlength{\rightskip}{0pt plus 5cm}{\textbf RegisterAST} makePC (
+\begin{DoxyParamCaption}
+\item[{Dyninst::Architecture}]{ arch}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily  [static]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1RegisterAST_aafa5d5b65d94a4555ac944fa5f695007}
+Utility function to get a Register object that represents the program counter.
+
+{\ttfamily makePC} is provided to support platform-\/independent control flow analysis. \index{Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}!operator$<$@{operator$<$}}
+\index{operator$<$@{operator$<$}!Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}}
+\paragraph[{operator$<$}]{\setlength{\rightskip}{0pt plus 5cm}bool operator$<$ (
+\begin{DoxyParamCaption}
+\item[{const {\textbf RegisterAST} \&}]{ rhs}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1RegisterAST_ad043f2b4d3c8bee6ea00995f4ad5fb33}
+We define a partial ordering on registers by their register number so that they may be placed into sets or other sorted containers. \index{Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}!promote@{promote}}
+\index{promote@{promote}!Dyninst::InstructionAPI::RegisterAST@{Dyninst::InstructionAPI::RegisterAST}}
+\paragraph[{promote}]{\setlength{\rightskip}{0pt plus 5cm}{\textbf RegisterAST::Ptr} promote (
+\begin{DoxyParamCaption}
+\item[{const InstructionAST::Ptr}]{ reg}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily  [static]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1RegisterAST_a012fdc0ebb54d7d552b0d3a87f4107ca}
+Utility function to hide aliasing complexity on platforms (IA-\/32) that allow addressing part or all of a register 

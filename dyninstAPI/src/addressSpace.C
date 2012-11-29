@@ -118,6 +118,17 @@ Address AddressSpace::getTOCoffsetInfo(func_instance *func) {
   // is what all the TOC data structures are written in terms of
   // anyway
 
+  bool toc64 = false;
+  bool toc32 = false;
+#if defined(cap_toc_64)
+  toc64 = true;
+#endif
+#if defined(cap_toc_32)
+  toc32 = true;
+#endif
+  if (getAddressWidth() == 8 && !toc64) return 0;
+  if (getAddressWidth() == 4 && !toc32) return 0;
+
   Offset baseTOC = func->obj()->parse_img()->getObject()->getTOCoffset(func->function()->addr());
   return baseTOC + func->obj()->dataBase();
 }

@@ -1,0 +1,79 @@
+\subsection{Result Class}
+\label{classDyninst_1_1InstructionAPI_1_1Result}\index{Dyninst::InstructionAPI::Result@{Dyninst::InstructionAPI::Result}}
+\subsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\textbf Result} (Result\_\-Type t)
+\item 
+{\footnotesize template$<$typename T $>$ }\\{\textbf Result} (Result\_\-Type t, T v)
+\item 
+bool {\textbf operator==} (const {\textbf Result} \&o) const 
+\item 
+std::string {\textbf format} () const 
+\end{DoxyCompactItemize}
+
+
+
+A Result object represents a value computed by a Expression AST.
+
+The Result class is a tagged-\/union representation of the results that Expressions can produce. It includes 8, 16, 32, 48, and 64 bit integers (signed and unsigned), bit values, and single and double precision floating point values. For each of these types, the value of a Result may be undefined, or it may be a value within the range of the type.
+
+The {\ttfamily type} field is an enum that may contain any of the following values:
+\begin{DoxyItemize}
+\item {\ttfamily u8:} an unsigned 8-\/bit integer
+\item {\ttfamily s8:} a signed 8-\/bit integer
+\item {\ttfamily u16:} an unsigned 16-\/bit integer
+\item {\ttfamily s16:} a signed 16-\/bit integer
+\item {\ttfamily u32:} an unsigned 32-\/bit integer
+\item {\ttfamily s32:} a signed 32-\/bit integer
+\item {\ttfamily u48:} an unsigned 48-\/bit integer (IA32 pointers)
+\item {\ttfamily s48:} a signed 48-\/bit integer (IA32 pointers)
+\item {\ttfamily u64:} an unsigned 64-\/bit integer
+\item {\ttfamily s64:} a signed 64-\/bit integer
+\item {\ttfamily sp\_\-float:} a single-\/precision float
+\item {\ttfamily dp\_\-float:} a double-\/precision float
+\item {\ttfamily bit\_\-flag:} a single bit (individual flags)
+\item {\ttfamily m512:} a 512-\/bit memory value
+\item {\ttfamily dbl128:} a 128-\/bit integer, which often contains packed floating point values -\/ {\ttfamily m14:} a 14 byte memory value 
+\end{DoxyItemize}
+
+\subsubsection{Constructors \& Destructors}
+\index{Dyninst::InstructionAPI::Result@{Dyninst::InstructionAPI::Result}!Result@{Result}}
+\index{Result@{Result}!Dyninst::InstructionAPI::Result@{Dyninst::InstructionAPI::Result}}
+\paragraph[{Result}]{\setlength{\rightskip}{0pt plus 5cm}{\textbf Result} (
+\begin{DoxyParamCaption}
+\item[{Result\_\-Type}]{ t}
+\end{DoxyParamCaption}
+)}\hfill\label{classDyninst_1_1InstructionAPI_1_1Result_a4236c02982253270277fa8053f52f0ea}
+A Result may be constructed from a type without providing a value. This constructor creates a Result of type {\ttfamily t} with undefined contents. \index{Dyninst::InstructionAPI::Result@{Dyninst::InstructionAPI::Result}!Result@{Result}}
+\index{Result@{Result}!Dyninst::InstructionAPI::Result@{Dyninst::InstructionAPI::Result}}
+\paragraph[{Result}]{\setlength{\rightskip}{0pt plus 5cm}{\textbf Result} (
+\begin{DoxyParamCaption}
+\item[{Result\_\-Type}]{ t, }
+\item[{T}]{ v}
+\end{DoxyParamCaption}
+)}\hfill\label{classDyninst_1_1InstructionAPI_1_1Result_a809c07cef0910505b40d9285f8c1af75}
+A Result may be constructed from a type and any value convertible to the type that the tag represents. This constructor creates a Result of type {\ttfamily t} and contents {\ttfamily v} for any {\ttfamily v} that is implicitly convertible to type {\ttfamily t}. Attempting to construct a Result with a value that is incompatible with its type will result in a compile-\/time error. 
+
+\subsubsection{Member Functions}
+\index{Dyninst::InstructionAPI::Result@{Dyninst::InstructionAPI::Result}!operator==@{operator==}}
+\index{operator==@{operator==}!Dyninst::InstructionAPI::Result@{Dyninst::InstructionAPI::Result}}
+\paragraph[{operator==}]{\setlength{\rightskip}{0pt plus 5cm}bool operator== (
+\begin{DoxyParamCaption}
+\item[{const {\textbf Result} \&}]{ o}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Result_ac0d0c7ccdb0d1fa503b550460682ed5f}
+Two Results are equal if any of the following hold:
+\begin{DoxyItemize}
+\item Both Results are of the same type and undefined
+\item Both Results are of the same type, defined, and have the same value
+\end{DoxyItemize}
+
+Otherwise, they are unequal (due to having different types, an undefined Result compared to a defined Result, or different values). \index{Dyninst::InstructionAPI::Result@{Dyninst::InstructionAPI::Result}!format@{format}}
+\index{format@{format}!Dyninst::InstructionAPI::Result@{Dyninst::InstructionAPI::Result}}
+\paragraph[{format}]{\setlength{\rightskip}{0pt plus 5cm}std::string format (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Result_a204c75f752ee13cb64ccc2b7af3f687c}
+Results are formatted as strings containing their contents, represented as hexadecimal. The type of the Result is not included in the output. 

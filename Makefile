@@ -9,12 +9,10 @@ TO_CORE = .
 # Include the make configuration specification (site configuration options)
 include ./make.config
 
-# Note that the first rule listed ("all") is what gets made by default,
-# i.e., if make is given no arguments.  Don't add other targets before all!
-all: world
-
 # Include component dependency information
 include ./make.components
+
+all: world
 
 .PHONY: $(Everything) $(Everything_install) $(Everything_tests) $(Everything_tests_install) install world intro comp_intro ready clean distclean depend all
 .PHONY: DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI DynC_API DataflowAPI ProcControlAPI PatchAPI
@@ -104,20 +102,20 @@ ins_testsuite = instructionAPI_testsuite
 pc_testsuite = proccontrol_testsuite
 endif
 
-DyninstAPI: comp_intro dyninstAPI parseThat $(dyn_testsuite)
-SymtabAPI: comp_intro symtabAPI $(sym_testsuite)
-StackwalkerAPI: comp_intro stackwalk
-basicComps: comp_intro dyninstAPI
-subSystems: comp_intro dyninstAPI
-testsuites: comp_intro testsuite
-InstructionAPI: comp_intro instructionAPI $(ins_testsuite)
-ValueAdded: comp_intro valueAdded/sharedMem
-DepGraphAPI: comp_intro depGraphAPI
-ParseAPI: comp_intro parseAPI
-DynC_API: comp_intro dynC_API
-DataflowAPI: comp_intro parseAPI
-ProcControlAPI: comp_intro proccontrol $(pc_testsuite)
-PatchAPI: comp_intro parseAPI
+
+DyninstAPI: dyninstAPI parseThat $(dyn_testsuite)
+SymtabAPI: symtabAPI $(sym_testsuite)
+StackwalkerAPI: stackwalk
+basicComps:  dyninstAPI
+subSystems:  dyninstAPI
+testsuites:  testsuite
+InstructionAPI:  instructionAPI $(ins_testsuite)
+ValueAdded: valueAdded/sharedMem
+DynC_API: dynC_API
+ParseAPI: parseAPI
+DataflowAPI: parseAPI
+ProcControlAPI: proccontrol $(pc_testsuite)
+PatchAPI: patchAPI
 
 # Testsuite dependencies
 parseThat: $(filter-out parseThat,$(parseThat))

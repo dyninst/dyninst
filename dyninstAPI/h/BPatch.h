@@ -59,8 +59,9 @@ class func_instance;
 #define DYNINST_6_0
 #define DYNINST_6_1
 #define DYNINST_7_0
+#define DYNINST_8_0
 
-#define DYNINST_MAJOR 7
+#define DYNINST_MAJOR 8
 #define DYNINST_MINOR 0
 #define DYNINST_SUBMINOR 0
 

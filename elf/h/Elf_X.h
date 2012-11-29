@@ -32,6 +32,9 @@
 #define __ELF_X_H__
 
 #include "libelf.h"
+#include <string>
+#include <map>
+#include <vector>
 
 namespace Dyninst {
 
@@ -63,10 +66,8 @@ class Elf_X_Nhdr;
 // Also works for ELF archives. 
 class Elf_X {
   public:
-    Elf_X();
-    Elf_X(int input, Elf_Cmd cmd, Elf_X *ref = NULL);
-    Elf_X(char *mem_image, size_t mem_size);
-
+    static Elf_X *newElf_X(int input, Elf_Cmd cmd, Elf_X *ref = NULL, std::string name = std::string());
+    static Elf_X *newElf_X(char *mem_image, size_t mem_size, std::string name = std::string());
     void end();
 
     // Read Interface
@@ -109,8 +110,8 @@ class Elf_X {
     // Data Interface
     bool isValid() const;
     int wordSize() const;
-    Elf_X_Phdr get_phdr(unsigned int i = 0) const;
-    Elf_X_Shdr get_shdr(unsigned int i) const;
+    Elf_X_Phdr &get_phdr(unsigned int i = 0);
+    Elf_X_Shdr &get_shdr(unsigned int i);
 
     bool findDebugFile(std::string origfilename, std::string &output_name, char* &output_buffer, unsigned long &output_buffer_size);
 
@@ -123,11 +124,28 @@ class Elf_X {
     int filedes;
     bool is64;
     bool isArchive;
+    std::vector<Elf_X_Shdr> shdrs;
+    std::vector<Elf_X_Phdr> phdrs;
+    unsigned int ref_count;
+    std::string filename;
+
+    char *cached_debug_buffer;
+    unsigned long cached_debug_size;
+    std::string cached_debug_name;
+    bool cached_debug;
+
+    Elf_X();
+    Elf_X(int input, Elf_Cmd cmd, Elf_X *ref = NULL);
+    Elf_X(char *mem_image, size_t mem_size);
+    ~Elf_X();
+    static std::map<std::string, Elf_X *> all_elf_x;
+
 };
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Phdr simulates the Elf(32|64)_Phdr structure.
 class Elf_X_Phdr {
+   friend class Elf_X;
   public:
     Elf_X_Phdr();
     Elf_X_Phdr(bool is64_, void *input);

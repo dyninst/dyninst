@@ -122,7 +122,6 @@ public:
 
     SYMTAB_EXPORT void * getErrFunc() const;
     SYMTAB_EXPORT dyn_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
-    SYMTAB_EXPORT MappedFile *getMappedFileForDebugInfo() { return mfForDebugInfo; }
     
     SYMTAB_EXPORT virtual bool hasFrameDebugInfo() {return false;}
     SYMTAB_EXPORT virtual bool getRegValueAtFrame(Address /*pc*/,
@@ -139,17 +138,19 @@ public:
     virtual bool getTruncateLinePaths();
     virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
 
+    // Only implemented for ELF right now
+    virtual void getSegmentsSymReader(std::vector<SymSegment> &) {};
+
 protected:
     SYMTAB_EXPORT virtual ~AObject();
     // explicitly protected
-    SYMTAB_EXPORT AObject(MappedFile * , MappedFile *, void (*err_func)(const char *));
-    SYMTAB_EXPORT AObject(MappedFile * , MappedFile *, 
+    SYMTAB_EXPORT AObject(MappedFile *, void (*err_func)(const char *));
+    SYMTAB_EXPORT AObject(MappedFile *, 
                       dyn_hash_map<std::string, LineInformation> &, 
                       void (*)(const char *)) { assert(0); }
     SYMTAB_EXPORT AObject(const AObject &obj);
 
     MappedFile *mf;
-    MappedFile *mfForDebugInfo;
 
     std::vector< Region *> regions_;
 

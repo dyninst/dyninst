@@ -1,44 +1,63 @@
-#Don't add tests to Everything
+#Don't add tests or parseThat to Everything
 Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
+
+Common          = dynutil common
+Dwarf           = ${Common} dwarf
+Elf             = ${Common} elf
+SymLite         = ${Elf} symlite
+SymtabAPI       = ${Common} ${Elf} ${Dwarf} symtabAPI
+InstructionAPI  = ${Common} instructionAPI
+ParseAPI        = ${Common} ${SymtabAPI} ${SymLite} ${InstructionAPI} parseAPI
+DataflowAPI     = ${ParseAPI}
+PatchAPI        = ${ParseAPI} patchAPI
+ProcControlAPI  = ${SymLite} proccontrol
+DynC_API        = ${DyninstAPI} dynC_API
+Dyner           = ${DyninstAPI} dyner
+
+StackwalkerAPI  = ${ProcControlAPI}
+ifndef WITHOUT_PARSE_API
+StackwalkerAPI += ${ParseAPI} ${InstructionAPI}
+endif
+ifndef WITHOUT_SYMTAB_API
+StackwalkerAPI += ${SymtabAPI}
+endif
+StackwalkerAPI += stackwalk
+
+DyninstAPI      = ${Common} ${SymtabAPI} ${InstructionAPI} ${PatchAPI} ${ProcControlAPI} ${SymLite} ${StackwalkerAPI}  dyninstAPI_RT dyninstAPI
+
+ValueAdded = valueAdded/sharedMem
 
 #List of tests
 Everything_tests = testsuite parseThat
-#List dependencies for components here, followed by the component directory
+
+#Map of directories to dependencies.  Use sort to remove duplicates
 dynutil = 
-common = dynutil common
-dwarf = dynutil common dwarf
-elf = dynutil common elf
-symlite = dynutil common elf symlite
-symtabAPI = dynutil common dwarf symtabAPI elf
-instructionAPI = dynutil common instructionAPI
-parseAPI = dynutil common elf symlite symtabAPI instructionAPI parseAPI
-dataflowAPI = $(parseAPI)
-patchAPI = dynutil common parseAPI patchAPI
-proccontrol = dynutil common elf proccontrol symlite
-
-stackwalk = dynutil common dwarf elf proccontrol stackwalk
-ifndef WITHOUT_PARSE_API
-stackwalk += parseAPI instructionAPI
-endif
-ifndef WITHOUT_SYMTAB_API
-stackwalk += symtabAPI
-endif
-
-dyninstAPI = dynutil common symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI
-
-parseThat = $(dyninstAPI) parseThat
-dynC_API = $(dyninstAPI) dynC_API
-dyner = $(dyninstAPI) dyner
-testsuite = testsuite
-valueAdded = $(dyninstAPI) valueAdded/sharedMem
+common = $(sort $(Common))
+symlite = $(sort $(SymLite))
+elf = $(sort $(Elf))
+dwarf = $(sort $(Dwarf))
+symtabAPI = $(sort $(SymtabAPI))
+instructionAPI = $(sort $(InstructionAPI))
+proccontrol = $(sort $(ProcControlAPI))
+stackwalk = $(sort $(StackwalkerAPI))
+parseAPI = $(sort $(ParseAPI))
+dataflowAPI = $(sort $(ParseAPI))
+patchAPI = $(sort $(PatchAPI))
+dyninstAPI = $(sort $(DyninstAPI))
+parseThat = $(sort $(DyninstAPI) parseThat)
+dynC_API = $(sort $(DynC_API))
+dyner = $(sort $(Dyner))
+valueAdded = $(sort $(DyninstAPI) valueAdded/sharedMem)
 
 #List all components with tests here
+testsuite = testsuite
 test_comps = symtabAPI instructionAPI patchAPI proccontrol dyninstAPI all
 
 DEFAULT_COMPONENT ?= default
+PLATFORM_DEFAULT_COMPONENT ?= $(Everything)
+
 ifeq ($(DEFAULT_COMPONENT),default)
-fullSystem	= $(Everything)
-BUILD_PARSETHAT = true
+fullSystem= $(PLATFORM_DEFAULT_COMPONENT)
 else
 ifeq ($(DEFAULT_COMPONENT),SymtabAPI)
 fullSystem = $(symtabAPI)
@@ -48,7 +67,6 @@ fullSystem = $(stackwalk)
 else
 ifeq ($(DEFAULT_COMPONENT),DyninstAPI)
 fullSystem	= $(dyninstAPI)
-BUILD_PARSETHAT = true
 else
 ifeq ($(DEFAULT_COMPONENT),InstructionAPI)
 fullSystem = $(instructionAPI)
@@ -77,10 +95,14 @@ endif # StackwalkerAPI
 endif # SymtabAPI
 endif # default
 
+ifeq (findstring(dyninstAPI,$(fullSystem)),dyninstAPI)
+BUILD_PARSETHAT ?= true
+endif
+
 ifndef DONT_BUILD_NEWTESTSUITE
 testsuites += testsuite
 fullSystem += testsuite
-ifdef BUILD_PARSETHAT
+ifeq (x$(BUILD_PARSETHAT),xtrue)
 testsuites += parseThat
 fullSystem += parseThat
 testsuite: parseThat

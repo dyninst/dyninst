@@ -47,7 +47,7 @@
 
 #include "annotations.h"
 #include <iterator>
-
+#include <algorithm>
 
 #include <iostream>
 
@@ -163,7 +163,7 @@ void Function::expandLocation(const VariableLocation &loc,
    }
 
    Dyninst::Dwarf::DwarfFrameParser::Ptr frameParser =
-      Dyninst::Dwarf::DwarfFrameParser::create(module_->exec()->getObject()->dwarf_dbg(),
+      Dyninst::Dwarf::DwarfFrameParser::create(*module_->exec()->getObject()->dwarf->frame_dbg(),
                                                module_->exec()->getObject()->getArch());
    
    std::vector<VariableLocation> FDEs;
@@ -274,24 +274,15 @@ bool Function::getLocalVariables(std::vector<localVar *> &vars)
    }
    if (!lvs)
    {
-      fprintf(stderr, "%s[%d]:  FIXME:  NULL ptr for annotation\n", FILE__, __LINE__);
       return false;
    }
 
-#if 0 
-   fprintf(stderr, "%s[%d]:  FIXME here: localVarCollection = %p\n", FILE__, __LINE__, lvs);
-   std::vector<localVar *> * v  = new std::vector<localVar *>();
-   vars = *v;
+   std::vector<localVar *> &p = *lvs->getAllVars();
+   std::copy(p.begin(), p.end(), back_inserter(vars));
+   
+   if (p.empty())
+      return false;
    return true;
-#else
-   vars = *(lvs->getAllVars());
-
-   if (vars.size())
-      return true;
-#endif
-
-   fprintf(stderr, "%s[%d]:  NO LOCAL VARS\n", FILE__, __LINE__);
-   return false;
 }
 
 bool Function::getParams(std::vector<localVar *> &params)
@@ -313,13 +304,13 @@ bool Function::getParams(std::vector<localVar *> &params)
    }
 
    if (!lvs)
-   {
-      fprintf(stderr, "%s[%d]:  FIXME:  NULL ptr for annotation\n", FILE__, __LINE__);
       return false;
-   }
 
-   params = *(lvs->getAllVars());
-   
+   std::vector<localVar *> &p = *lvs->getAllVars();
+   std::copy(p.begin(), p.end(), back_inserter(params));
+
+   if (p.empty())
+      return false;
    return true;
 }
 

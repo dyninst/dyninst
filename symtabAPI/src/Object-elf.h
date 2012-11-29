@@ -40,6 +40,7 @@
 #if defined(USES_DWARF_DEBUG)
 //#include "dwarf.h"
 #include "libdwarf.h"
+#include "dwarf/h/dwarfHandle.h"
 #endif
 
 #include<vector>
@@ -290,34 +291,17 @@ class pdElfShdr;
 class Symtab;
 class Region;
 class Object;
-
-class DwarfHandle {
-   friend class Object;
- private:
-   Dwarf::DwarfFrameParserPtr sw;
-   Object *obj;
-   typedef enum {
-      dwarf_status_uninitialized,
-      dwarf_status_error,
-      dwarf_status_ok
-   } dwarf_status_t;
-   dwarf_status_t init_dwarf_status;
-   Dwarf_Debug dbg_data;
- public:
-  DwarfHandle(Object *obj_);
-  ~DwarfHandle();
-
-  Dwarf_Debug *dbg();
-  Dwarf::DwarfFrameParserPtr frameParser() { return sw; } 
-};
+class emitElf;
+class emitElf64;
 
 class Object : public AObject {
-  friend class DwarfHandle;
+  friend class emitElf;
+  friend class emitElf64;
  public:
-  Object() : dwarf(this) {}
-  Object(MappedFile *, MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true);
-  Object(MappedFile *, MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
-  Object(MappedFile *, MappedFile *, std::string &member_name, Offset offset,	
+  Object() {}
+  Object(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true);
+  Object(MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
+  Object(MappedFile *, std::string &member_name, Offset offset,	
           void (*)(const char *) = log_msg, void *base = NULL, bool alloc_syms = true);
   Object(const Object &);
   virtual ~Object();
@@ -341,8 +325,6 @@ class Object : public AObject {
   std::vector<std::string> &libsRMd();
 
   bool addRelocationEntry(relocationEntry &re);
-
-  Dwarf_Debug dwarf_dbg();
 
   //getLoadAddress may return 0 on shared objects
   Offset getLoadAddress() const { return loadAddress_; }
@@ -450,17 +432,17 @@ class Object : public AObject {
     virtual void setTruncateLinePaths(bool value);
     virtual bool getTruncateLinePaths();
     
-    Elf_X * getElfHandle() { return &elfHdr; }
+    Elf_X * getElfHandle() { return elfHdr; }
 
     unsigned gotSize() const { return got_size_; }
     Offset gotAddr() const { return got_addr_; }
 
+    virtual void getSegmentsSymReader(std::vector<SymSegment> &segs); 
+
   private:
   static void log_elferror (void (*)(const char *), const char *);
     
-  Elf_X    elfHdr;
-
-  Elf_X    elfHdrForDebugInfo;
+  Elf_X *elfHdr;
  
   std::vector< std::vector<Offset> > moveSecAddrRange;
   dyn_hash_map<Offset, int> secAddrTagMapping;
@@ -520,12 +502,11 @@ class Object : public AObject {
   Offset entryAddress_;
   char *interpreter_name_;
   bool  isStripped;
-  bool usesDebugFile;
 
   std::map<Offset, Offset> TOC_table_;
 
   public:
-  DwarfHandle dwarf;
+  Dyninst::Dwarf::DwarfHandle::ptr dwarf;
   private:
 
   bool      EEL;                 // true if EEL rewritten
@@ -614,7 +595,6 @@ class Object : public AObject {
 
   void get_valid_memory_areas(Elf_X &elf);
 
-  MappedFile *findMappedFileForDebugInfo();
   bool find_catch_blocks(Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
                          Address textaddr, Address dataaddr,
                          std::vector<ExceptionBlock> &catch_addrs);

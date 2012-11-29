@@ -58,7 +58,21 @@ bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
    PatchBlock *oldTrg = edge->trg();
    ParseAPI::Block *llTrg = (target == NULL) ? NULL : target->block();
    if (!ParseAPI::CFGModifier::redirect(edge->edge(), llTrg)) return false;
-   
+
+   std::vector<PatchFunction *> funcs;
+   src->getFuncs(std::back_inserter(funcs));
+   // Someday...
+   /*
+   for (auto f_iter = funcs.begin();
+        f_iter != funcs.end(); ++f_iter) {
+      (*f_iter)->invalidateBlocks();
+   }
+   */
+   for (std::vector<PatchFunction *>::iterator f_iter = funcs.begin();
+        f_iter != funcs.end(); ++f_iter) {
+      (*f_iter)->invalidateBlocks();
+   }
+
    assert(src->consistency());
    assert(oldTrg->start() == numeric_limits<Address>::max() || // don't check sink block's consistency
           oldTrg->consistency());
@@ -110,9 +124,6 @@ PatchBlock *PatchModifier::split(PatchBlock *block, Address addr, bool trust, Ad
 
    return split;
 }
-
-
-
 
 InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, void *start, unsigned size, Address base) {
    ParseAPI::CodeObject *co = obj->co();

@@ -8,7 +8,7 @@ DEFINES      = @DEFS@
 LDFLAGS      = @LDFLAGS@
 DWARFFLAGS      = @DWARFFLAGS@
 ELFFLAGS      = @ELFFLAGS@
-LIBS         = @LIBS@
+EXTRA_LIBS         = @LIBS@
 DEMANGLER_LINK = @LIBERTYFLAGS@
 prefix       = @prefix@
 PLATFORM    ?= @build@
@@ -66,7 +66,7 @@ CXXFLAGS	+= -m64
 CFLAGS		+= -m64
 endif
 
-LIBS += @LIB_DLOPEN@
+LIBS += ${EXTRA_LIBS}
 
 all: ready parseThat
 
