@@ -51,6 +51,7 @@ class LibraryTrackingSet;
 class ThreadTrackingSet;
 class CallStackUnwindingSet;
 class FollowForkSet;
+class LWPTrackingSet;
 class PSetFeatures;
 class TSetFeatures;
 
@@ -387,9 +388,11 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
     **/
    LibraryTrackingSet *getLibraryTracking();
    ThreadTrackingSet *getThreadTracking();
+   LWPTrackingSet *getLWPTracking();
    FollowForkSet *getFollowFork();
    const LibraryTrackingSet *getLibraryTracking() const;
    const ThreadTrackingSet *getThreadTracking() const;
+   const LWPTrackingSet *getLWPTracking() const;
    const FollowForkSet *getFollowFork() const;
 };
 
@@ -423,7 +426,7 @@ class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
    static ThreadSet::ptr newThreadSet(Thread::ptr thr);
    static ThreadSet::ptr newThreadSet(const ThreadPool &threadp);
    static ThreadSet::ptr newThreadSet(const std::set<Thread::const_ptr> &threads);
-   static ThreadSet::ptr newThreadSet(ProcessSet::ptr ps);
+   static ThreadSet::ptr newThreadSet(ProcessSet::ptr ps, bool initial_only = false);
 
    /**
     * Modify current set by performing these set operations with another set.

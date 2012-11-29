@@ -603,7 +603,7 @@ int wtxConnectCommand(ClientData, Tcl_Interp *,
     }
 
     info->target = const_cast<char *>(argv[1]);
-    info->tool   = "Dyner Tool";
+    info->tool   = const_cast<char *>("Dyner Tool");
     info->host   = const_cast<char *>(argc == 3 ? argv[2] : NULL);
 
     remote.type = BPATCH_REMOTE_DEBUG_WTX;
@@ -927,7 +927,7 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    BPatch_callWhen when;
    
    std::vector<BPatch_point *> *points;
-   char *ptr = strchr(argv[1],':');
+   char *ptr = strchr((char*)argv[1],':');
    if (ptr) {
       printf("Usage: break <function> [entry|exit|preCall|postCall] [<condition>]\n");
       return TCL_ERROR;
@@ -1381,7 +1381,7 @@ int whereMove(bool up){
 	char funcName [1024];
 	int index=0;
       
-	appThread->getCallStack(callStack);
+	currThr->getCallStack(callStack);
    
    if (up ? (unsigned) whereAmINow < (callStack.size()-1) : whereAmINow > 1 ){
 		whereAmINow = (up ? whereAmINow + 1 : whereAmINow - 1);
@@ -1440,7 +1440,7 @@ int where(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
       return TCL_ERROR;
    }
    
-	appThread->getCallStack(callStack);
+	currThr->getCallStack(callStack);
 	index = 1; 
 	while(index < callStack.size() -1){
       
@@ -2489,7 +2489,7 @@ int repCall(const char *func1, const char *func2) {
    
    // Replace function calls
    int n = 0;
-   char *ptr = strchr(func1,':');
+   char *ptr = strchr((char*)func1,':');
    if (ptr) {
       *ptr = '\0';
       n = atoi(ptr+1) - 1;
@@ -2751,6 +2751,8 @@ int untraceCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    return TCL_ERROR;
 }
 
+#if 0
+/* Removed for Dyninst 8.0 */
 /*
  * Enable or disable the execution of snippets
  */
@@ -2776,6 +2778,7 @@ int mutationsCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    printf("Invalid option!\n"); 
    return TCL_ERROR;
 }
+#endif
 
 /*
  * Remove all or n'th function call in the input function
@@ -2790,7 +2793,7 @@ int removeCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    if (!haveApp()) return TCL_ERROR;
    
    int n = -1;
-   char *ptr = strchr(argv[1],':');
+   char *ptr = strchr((char*)argv[1],':');
    if (ptr) {
       *ptr = '\0';
       n = atoi(ptr+1) - 1;
@@ -3015,8 +3018,11 @@ int Tcl_AppInit(Tcl_Interp *interp)
    Tcl_CreateCommand(interp, "untrace", (Tcl_CmdProc*)untraceCommand, NULL, NULL);
    Tcl_Eval(interp, "trace add execution untrace enter report");
 
+#if 0
+   /* Removed for Dyninst 8.0 */
    Tcl_CreateCommand(interp, "mutations", (Tcl_CmdProc*)mutationsCommand, NULL, NULL);
    Tcl_Eval(interp, "trace add execution mutations enter report");
+#endif
 
    Tcl_CreateCommand(interp, "removecall", (Tcl_CmdProc*)removeCommand, NULL, NULL);
    Tcl_Eval(interp, "trace add execution removecall enter report");

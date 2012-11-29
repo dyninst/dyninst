@@ -1,0 +1,77 @@
+\subsection{Dereference Class}
+\label{classDyninst_1_1InstructionAPI_1_1Dereference}\index{Dyninst::InstructionAPI::Dereference@{Dyninst::InstructionAPI::Dereference}}
+\subsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\textbf Dereference} ({\textbf Expression::Ptr} addr, Result\_\-Type result\_\-type)
+\item 
+virtual void {\textbf getChildren} (vector$<$ InstructionAST::Ptr $>$ \&children) const 
+\item 
+virtual void {\textbf getUses} (set$<$ InstructionAST::Ptr $>$ \&uses)
+\item 
+virtual bool {\textbf isUsed} (InstructionAST::Ptr findMe) const 
+\end{DoxyCompactItemize}
+
+
+
+A Dereference object is a Expression that dereferences another ValueComputation.
+
+A Dereference contains an Expression representing an effective address computation. Its use set is the same as the use set of the Expression being dereferenced.
+
+It is not possible, given the information in a single instruction, to evaluate the result of a dereference. {\ttfamily eval} may still be called on a Expression that includes dereferences, but the expected use case is as follows:
+\begin{DoxyItemize}
+\item Determine the address being used in a dereference via the {\ttfamily eval} mechanism
+\item Perform analysis to determine the contents of that address
+\item If necessary, fill in the Dereference node with the contents of that addresss, using {\ttfamily setValue} 
+\end{DoxyItemize}
+
+The type associated with a Dereference node will be the type of the value {\itshape read\/} {\itshape from\/} {\itshape memory\/}, not the type used for the address computation. Two Dereferences that access the same address but interpret the contents of that memory as different types will produce different values. The children of a Dereference at a given address are identical, regardless of the type of dereference being performed at that address. For example, the Expression shown in Figure 6 could have its root Dereference, which interprets the memory being dereferenced as a unsigned 16-\/bit integer, replaced with a Dereference that interprets the memory being dereferenced as any other type. The remainder of the Expression tree would, however, remain unchanged. 
+
+\subsubsection{Constructors \& Destructors}
+\index{Dyninst::InstructionAPI::Dereference@{Dyninst::InstructionAPI::Dereference}!Dereference@{Dereference}}
+\index{Dereference@{Dereference}!Dyninst::InstructionAPI::Dereference@{Dyninst::InstructionAPI::Dereference}}
+\paragraph[{Dereference}]{\setlength{\rightskip}{0pt plus 5cm}{\textbf Dereference} (
+\begin{DoxyParamCaption}
+\item[{{\textbf Expression::Ptr}}]{ addr, }
+\item[{Result\_\-Type}]{ result\_\-type}
+\end{DoxyParamCaption}
+)}\hfill\label{classDyninst_1_1InstructionAPI_1_1Dereference_a39fee3d3fdcb936e63f9e64f250cd889}
+A Dereference is constructed from a Expression pointer (raw or shared) representing the address to be dereferenced and a type indicating how the memory at the address in question is to be interpreted. 
+
+\subsubsection{Member Functions}
+\index{Dyninst::InstructionAPI::Dereference@{Dyninst::InstructionAPI::Dereference}!getChildren@{getChildren}}
+\index{getChildren@{getChildren}!Dyninst::InstructionAPI::Dereference@{Dyninst::InstructionAPI::Dereference}}
+\paragraph[{getChildren}]{\setlength{\rightskip}{0pt plus 5cm}virtual void getChildren (
+\begin{DoxyParamCaption}
+\item[{vector$<$ InstructionAST::Ptr $>$ \&}]{ children}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1Dereference_adabe6006766a7aaa6fa099f5f0ca5c0c}
+A Dereference has one child, which represents the address being dereferenced. 
+\begin{DoxyParams}{Parameters}
+\item[{\em children}]Appends the child of this Dereference to {\ttfamily children}. \end{DoxyParams}
+
+
+
+\index{Dyninst::InstructionAPI::Dereference@{Dyninst::InstructionAPI::Dereference}!getUses@{getUses}}
+\index{getUses@{getUses}!Dyninst::InstructionAPI::Dereference@{Dyninst::InstructionAPI::Dereference}}
+\paragraph[{getUses}]{\setlength{\rightskip}{0pt plus 5cm}virtual void getUses (
+\begin{DoxyParamCaption}
+\item[{set$<$ InstructionAST::Ptr $>$ \&}]{ uses}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1Dereference_a3793407f71d4fba12ae0af46e78da4b4}
+The use set of a Dereference is the same as the use set of its children. 
+\begin{DoxyParams}{Parameters}
+\item[{\em uses}]The use set of this Dereference is inserted into {\ttfamily uses}. \end{DoxyParams}
+
+
+
+\index{Dyninst::InstructionAPI::Dereference@{Dyninst::InstructionAPI::Dereference}!isUsed@{isUsed}}
+\index{isUsed@{isUsed}!Dyninst::InstructionAPI::Dereference@{Dyninst::InstructionAPI::Dereference}}
+\paragraph[{isUsed}]{\setlength{\rightskip}{0pt plus 5cm}virtual bool isUsed (
+\begin{DoxyParamCaption}
+\item[{InstructionAST::Ptr}]{ findMe}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1Dereference_af5b1db3ca39797ac0f619e04dd8bf9fc}
+An InstructionAST is used by a Dereference if it is equivalent to the Dereference or it is used by the lone child of the Dereference 
+
+

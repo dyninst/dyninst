@@ -1,0 +1,263 @@
+\subsection{Instruction Class}
+\label{classDyninst_1_1InstructionAPI_1_1Instruction}\index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\subsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+ {\textbf Instruction} (Operation::Ptr what, size\_\-t size, const unsigned char $\ast$raw, Dyninst::Architecture arch)
+\item 
+ const {\textbf Operation} \& {\textbf getOperation} () const 
+\item 
+ void {\textbf getOperands} (std::vector$<$ {\textbf Operand} $>$ \&operands) const 
+\item 
+ {\textbf Operand} {\textbf getOperand} (int index) const 
+\item 
+ unsigned char {\textbf rawByte} (unsigned int index) const 
+\item 
+ const void $\ast$ {\textbf ptr} () const 
+\item 
+ void {\textbf getWriteSet} (std::set$<$ {\textbf RegisterAST::Ptr} $>$ \&regsWritten) const 
+\item 
+ void {\textbf getReadSet} (std::set$<$ {\textbf RegisterAST::Ptr} $>$ \&regsRead) const 
+\item 
+ bool {\textbf isRead} ({\textbf Expression::Ptr} candidate) const 
+\item 
+ bool {\textbf isWritten} ({\textbf Expression::Ptr} candidate) const 
+\item 
+ bool {\textbf readsMemory} () const 
+\item 
+ bool {\textbf writesMemory} () const 
+\item 
+ void {\textbf getMemoryReadOperands} (std::set$<$ {\textbf Expression::Ptr} $>$ \&memAccessors) const 
+\item 
+ void {\textbf getMemoryWriteOperands} (std::set$<$ {\textbf Expression::Ptr} $>$ \&memAccessors) const 
+\item 
+ {\textbf Expression::Ptr} {\textbf getControlFlowTarget} () const 
+\item 
+ bool {\textbf allowsFallThrough} () const 
+\item 
+ std::string {\textbf format} (Address addr=0) const 
+\item 
+ bool {\textbf isValid} () const 
+\item 
+ bool {\textbf isLegalInsn} () const 
+\item 
+ InsnCategory {\textbf getCategory} () const 
+\end{DoxyCompactItemize}
+
+
+
+The Instruction class is a generic instruction representation that contains operands, read/write semantic information about those operands, and information about what other registers and memory locations are affected by the operation the instruction performs.
+
+The purpose of an Instruction object is to join an Operation with a sequence of Operands, and provide an interface for some common summary analyses (namely, the read/write sets, memory access information, and control flow information).
+
+The Operation contains knowledge about its mnemonic and sufficient semantic details to answer the following questions:
+\begin{DoxyItemize}
+\item What Operands are read/written?
+\item What registers are implicitly read/written?
+\item What memory locations are implicitly read/written?
+\item What are the possible control flow successors of this instruction?
+\end{DoxyItemize}
+
+Each Operand is an AST built from RegisterAST and Immediate leaves. For each Operand, you may determine:
+\begin{DoxyItemize}
+\item Registers read
+\item Registers written
+\item Whether memory is read or written
+\item Which memory addresses are read or written, given the state of all relevant registers
+\end{DoxyItemize}
+
+Instructions should be constructed from an {\ttfamily unsigned} {\ttfamily char$\ast$} pointing to machine language, using the InstructionDecoder class. See InstructionDecoder for more details. 
+
+\subsubsection{Constructors \& Destructors}
+\index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!Instruction@{Instruction}}
+\index{Instruction@{Instruction}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{Instruction}]{\setlength{\rightskip}{0pt plus 5cm} {\textbf Instruction} (
+\begin{DoxyParamCaption}
+\item[{Operation::Ptr}]{ what, }
+\item[{size\_\-t}]{ size, }
+\item[{const unsigned char $\ast$}]{ raw, }
+\item[{Dyninst::Architecture}]{ arch}
+\end{DoxyParamCaption}
+)}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_ab02bfda322f85f88b9552681e0286362}
+
+\begin{DoxyParams}{Parameters}
+\item[{\em what}]Opcode of the instruction \item[{\em operandSource}]Contains the Expressions to be transformed into Operands \item[{\em size}]Contains the number of bytes occupied by the corresponding machine instruction \item[{\em raw}]Contains a pointer to the buffer from which this instruction object was decoded.\end{DoxyParams}
+Construct an Instruction from an Operation and a collection of Expressions. This method is not intended to be used except by the InstructionDecoder class, which serves as a factory class for producing Instruction objects. While an Instruction object may be built \char`\"{}by hand\char`\"{} if desired, using the decoding interface ensures that the operation and operands are a sensible combination, and that the size reported is based on the actual size of a legal encoding of the machine instruction represented. In the course of constructing an Instruction, the Expressions in {\ttfamily operandSource} will be transformed to Operand objects. This transformation will map the semantic information about which operands are read and written in the Operation object {\ttfamily what} to the value computations in {\ttfamily operandSource}. 
+
+\subsubsection{Member Functions}
+\index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!getOperation@{getOperation}}
+\index{getOperation@{getOperation}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{getOperation}]{\setlength{\rightskip}{0pt plus 5cm} const {\textbf Operation} \& getOperation (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a1f88b414cacba47b4b66405add6ff83f}
+\begin{DoxyReturn}{Returns}
+The Operation used by the Instruction
+\end{DoxyReturn}
+See \doxyref{Operation}{p.}{classDyninst_1_1InstructionAPI_1_1Operation} for details of the Operation interface. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!getOperands@{getOperands}}
+\index{getOperands@{getOperands}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{getOperands}]{\setlength{\rightskip}{0pt plus 5cm} void getOperands (
+\begin{DoxyParamCaption}
+\item[{std::vector$<$ {\textbf Operand} $>$ \&}]{ operands}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a6c32c683dbd7490f18c071a648cad65b}
+The vector {\ttfamily operands} has the instruction's operands appended to it in the same order that they were decoded. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!getOperand@{getOperand}}
+\index{getOperand@{getOperand}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{getOperand}]{\setlength{\rightskip}{0pt plus 5cm} {\textbf Operand} getOperand (
+\begin{DoxyParamCaption}
+\item[{int}]{ index}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a547bf131b520ffdc559726d27d2ced9d}
+The {\ttfamily getOperand} method returns the operand at position {\ttfamily index}, or an empty operand if {\ttfamily index} does not correspond to a valid operand in this instruction. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!rawByte@{rawByte}}
+\index{rawByte@{rawByte}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{rawByte}]{\setlength{\rightskip}{0pt plus 5cm} unsigned char rawByte (
+\begin{DoxyParamCaption}
+\item[{unsigned int}]{ index}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a4346d867f708c491bc4218025cceb343}
+Returns a pointer to the buffer from which this instruction was decoded. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!ptr@{ptr}}
+\index{ptr@{ptr}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{ptr}]{\setlength{\rightskip}{0pt plus 5cm} const void $\ast$ ptr (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a86f16baf5d6a6e3c0fbe392961d9a59b}
+Returns a pointer to the raw byte representation of the corresponding machine instruction. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!getWriteSet@{getWriteSet}}
+\index{getWriteSet@{getWriteSet}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{getWriteSet}]{\setlength{\rightskip}{0pt plus 5cm} void getWriteSet (
+\begin{DoxyParamCaption}
+\item[{std::set$<$ {\textbf RegisterAST::Ptr} $>$ \&}]{ regsWritten}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_aabb2d82e550db2a060fd490b6a554527}
+
+\begin{DoxyParams}{Parameters}
+\item[{\em regsWritten}]Insert the set of registers written by the instruction into {\ttfamily regsWritten}.\end{DoxyParams}
+The list of registers returned in {\ttfamily regsWritten} includes registers that are explicitly written as destination operands (like the destination of a move). It also includes registers that are implicitly written (like the stack pointer in a push or pop instruction). It does not include any registers used only in computing the effective address of a write. {\ttfamily pop} {\ttfamily $\ast$eax}, for example, writes to {\ttfamily esp}, reads {\ttfamily esp}, and reads {\ttfamily eax}, but despite the fact that {\ttfamily $\ast$eax} is the destination operand, {\ttfamily eax} is not itself written.
+
+For both the write set and the read set (below), it is possible to determine whether a register is accessed implicitly or explicitly by examining the Operands. An explicitly accessed register appears as an operand that is written or read; also, any registers used in any address calculations are explicitly read. Any element of the write set or read set that is not explicitly written or read is implicitly written or read. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!getReadSet@{getReadSet}}
+\index{getReadSet@{getReadSet}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{getReadSet}]{\setlength{\rightskip}{0pt plus 5cm} void getReadSet (
+\begin{DoxyParamCaption}
+\item[{std::set$<$ {\textbf RegisterAST::Ptr} $>$ \&}]{ regsRead}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_af6d94aa7ad62e7d980a3bbf2b850c4fa}
+
+\begin{DoxyParams}{Parameters}
+\item[{\em regsRead}]Insert the set of registers read by the instruction into {\ttfamily regsRead}.\end{DoxyParams}
+If an operand is used to compute an effective address, the registers involved are read but not written, regardless of the effect on the operand. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!isRead@{isRead}}
+\index{isRead@{isRead}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{isRead}]{\setlength{\rightskip}{0pt plus 5cm} bool isRead (
+\begin{DoxyParamCaption}
+\item[{{\textbf Expression::Ptr}}]{ candidate}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a2ddfb452ef7992b8698b4173a52d2d46}
+
+\begin{DoxyParams}{Parameters}
+\item[{\em candidate}]Subexpression to search for among the values read by this Instruction object.\end{DoxyParams}
+Returns true if {\ttfamily candidate} is read by this Instruction. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!isWritten@{isWritten}}
+\index{isWritten@{isWritten}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{isWritten}]{\setlength{\rightskip}{0pt plus 5cm} bool isWritten (
+\begin{DoxyParamCaption}
+\item[{{\textbf Expression::Ptr}}]{ candidate}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_ac7703dd7bef37d76420e74e2811ebef6}
+
+\begin{DoxyParams}{Parameters}
+\item[{\em candidate}]Subexpression to search for among the values written by this Instruction object.\end{DoxyParams}
+Returns true if {\ttfamily candidate} is written by this Instruction. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!readsMemory@{readsMemory}}
+\index{readsMemory@{readsMemory}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{readsMemory}]{\setlength{\rightskip}{0pt plus 5cm} bool readsMemory (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a093a3808c1e3569807dfc42de72d15de}
+\begin{DoxyReturn}{Returns}
+Returns true if the instruction reads at least one memory address as data.
+\end{DoxyReturn}
+If any operand containing a Dereference object is read, the instruction reads the memory at that address. Also, on platforms where a stack pop is guaranteed to read memory, {\ttfamily readsMemory} will return true for a pop operation. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!writesMemory@{writesMemory}}
+\index{writesMemory@{writesMemory}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{writesMemory}]{\setlength{\rightskip}{0pt plus 5cm} bool writesMemory (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a66f951a83dd868bac2d0b69625da6f8a}
+\begin{DoxyReturn}{Returns}
+Returns true if the instruction writes at least one memory address.
+\end{DoxyReturn}
+If any operand containing a Dereference object is written, the instruction writes the memory at that address. Also, on platforms where a stack push is guaranteed to write memory, {\ttfamily writesMemory} will return true for a push operation. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!getMemoryReadOperands@{getMemoryReadOperands}}
+\index{getMemoryReadOperands@{getMemoryReadOperands}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{getMemoryReadOperands}]{\setlength{\rightskip}{0pt plus 5cm} void getMemoryReadOperands (
+\begin{DoxyParamCaption}
+\item[{std::set$<$ {\textbf Expression::Ptr} $>$ \&}]{ memAccessors}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a01b2e0d9786ff3e44ac6fec4f9d098fa}
+
+\begin{DoxyParams}{Parameters}
+\item[{\em memAccessors}]Addresses read by this instruction are inserted into {\ttfamily memAccessors} \end{DoxyParams}
+The addresses read are in the form of Expressions, which may be evaluated once all of the registers that they use have had their values set. Note that this method returns ASTs representing address computations, and not address accesses. For instance, an instruction accessing memory through a register dereference would return a Expression tree containing just the register that determines the address being accessed, not a tree representing a dereference of that register. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!getMemoryWriteOperands@{getMemoryWriteOperands}}
+\index{getMemoryWriteOperands@{getMemoryWriteOperands}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{getMemoryWriteOperands}]{\setlength{\rightskip}{0pt plus 5cm} void getMemoryWriteOperands (
+\begin{DoxyParamCaption}
+\item[{std::set$<$ {\textbf Expression::Ptr} $>$ \&}]{ memAccessors}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_ac86abff921a298797619ed078b75f6fd}
+
+\begin{DoxyParams}{Parameters}
+\item[{\em memAccessors}]Addresses written by this instruction are inserted into {\ttfamily memAccessors} \end{DoxyParams}
+The addresses written are in the same form as those returned by {\ttfamily getMemoryReadOperands} above. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!getControlFlowTarget@{getControlFlowTarget}}
+\index{getControlFlowTarget@{getControlFlowTarget}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{getControlFlowTarget}]{\setlength{\rightskip}{0pt plus 5cm} {\textbf Expression::Ptr} getControlFlowTarget (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a767e00b187b1a5287e82d26b816d6efe}
+\begin{DoxyReturn}{Returns}
+An expression evaluating to the non-\/fallthrough control flow targets, if any, of this instruction.
+\end{DoxyReturn}
+When called on an explicitly control-\/flow altering instruction, returns the non-\/fallthrough control flow destination. When called on any other instruction, returns {\ttfamily NULL}.
+
+For direct absolute branch instructions, {\ttfamily getControlFlowTarget} will return an immediate value. For direct relative branch instructions, {\ttfamily getControlFlowTarget} will return the expression {\ttfamily PC} + offset. In the case of indirect branches and calls, it returns a dereference of a register (or possibly a dereference of a more complicated expression). In this case, data flow analysis will often allow the determination of the possible targets of the instruction. We do not do analysis beyond the single-\/instruction level in the Instruction API; if other code performs this type of analysis, it may update the information in the Dereference object using the setValue method in the Expression interface. More details about this may be found in \doxyref{Expression}{p.}{classDyninst_1_1InstructionAPI_1_1Expression} and \doxyref{Dereference}{p.}{classDyninst_1_1InstructionAPI_1_1Dereference}. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!allowsFallThrough@{allowsFallThrough}}
+\index{allowsFallThrough@{allowsFallThrough}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{allowsFallThrough}]{\setlength{\rightskip}{0pt plus 5cm} bool allowsFallThrough (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_ab67a3a8783e0f74532c46ac0026e5659}
+\begin{DoxyReturn}{Returns}
+False if control flow will unconditionally go to the result of {\ttfamily getControlFlowTarget} after executing this instruction. 
+\end{DoxyReturn}
+\index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!format@{format}}
+\index{format@{format}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{format}]{\setlength{\rightskip}{0pt plus 5cm} std::string format (
+\begin{DoxyParamCaption}
+\item[{Address}]{ addr = {\ttfamily 0}}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a9e3720c9fc28a4ef520ac6e2a106b6fa}
+\begin{DoxyReturn}{Returns}
+The instruction as a string of assembly language
+\end{DoxyReturn}
+{\ttfamily format} is principally a helper function; Instructions are meant to be written to output streams via {\ttfamily operator$<$$<$}. {\ttfamily format} is included in the public interface for diagnostic purposes. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!isValid@{isValid}}
+\index{isValid@{isValid}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{isValid}]{\setlength{\rightskip}{0pt plus 5cm} bool isValid (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a99a5165ae8b791c61ef8be354f2e8b78}
+Returns true if this Instruction object is valid. Invalid instructions indicate that an InstructionDecoder has reached the end of its assigned range, and that decoding should terminate. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!isLegalInsn@{isLegalInsn}}
+\index{isLegalInsn@{isLegalInsn}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{isLegalInsn}]{\setlength{\rightskip}{0pt plus 5cm} bool isLegalInsn (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a3ad6500b0772392139a156898a236ea0}
+Returns true if this Instruction object represents a legal instruction, as specified by the architecture used to decode this instruction. \index{Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}!getCategory@{getCategory}}
+\index{getCategory@{getCategory}!Dyninst::InstructionAPI::Instruction@{Dyninst::InstructionAPI::Instruction}}
+\paragraph[{getCategory}]{\setlength{\rightskip}{0pt plus 5cm} InsnCategory getCategory (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const}\hfill\label{classDyninst_1_1InstructionAPI_1_1Instruction_a1bf11a5bf394b394f3e89cdc7bf8f616}
+ALPHA: Returns the category that an instruction falls into. This feature is presently incomplete, and we welcome feedback on ways to extend it usefully.
+
+Currently, the valid categories are c\_\-CallInsn, c\_\-ReturnInsn, c\_\-BranchInsn, c\_\-CompareInsn, and c\_\-NoCategory, as defined in InstructionCategories.h. 

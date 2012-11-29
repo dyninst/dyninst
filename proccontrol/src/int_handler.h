@@ -348,6 +348,16 @@ class HandleAsync : public Handler
    virtual void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
+class HandleAsyncIO : public Handler
+{
+  public:
+   HandleAsyncIO();
+   virtual ~HandleAsyncIO();
+   
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
 class HandleNop : public Handler
 {
   public:

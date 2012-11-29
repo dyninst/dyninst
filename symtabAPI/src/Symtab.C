@@ -357,7 +357,6 @@ SYMTAB_EXPORT bool Symtab::isNativeCompiler() const
 SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    AnnotatableSparse(),
    mf(mf_), 
-   mfForDebugInfo(mf_),
    imageOffset_(0),   
    address_width_(sizeof(int)),
    object_type_(obj_Unknown),
@@ -374,7 +373,6 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
     // This is how we initialize objects from WTX information alone.
     // Basically replaces extractInfo().
     object_type_ = obj_RelocatableFile;
-    mfForDebugInfo = NULL;
     imageOffset_ = 0;
     dataOffset_ = 0;
     imageLen_ = 0;
@@ -1235,7 +1233,7 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
       return;
    }
 
-   obj_private = new Object(mf, mfForDebugInfo, defensive_bin, 
+   obj_private = new Object(mf, defensive_bin, 
                             symtab_log_perror, true);
    if (obj_private->hasError()) {
      err = true;
@@ -1282,7 +1280,7 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
       return;
    }
 
-   obj_private = new Object(mf, mfForDebugInfo, defensive_bin, 
+   obj_private = new Object(mf, defensive_bin, 
                             symtab_log_perror, true);
    if (obj_private->hasError()) {
      err = true;
@@ -1317,7 +1315,7 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
 {
    mf = MappedFile::createMappedFile(filename);
    assert(mf);
-   obj_private = new Object(mf, mfForDebugInfo, member_name, offset, symtab_log_perror, base);
+   obj_private = new Object(mf, member_name, offset, symtab_log_perror, base);
    if (obj_private->hasError()) {
      err = true;
      return;
@@ -1380,7 +1378,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
 #endif
-    mfForDebugInfo = linkedFile->getMappedFileForDebugInfo();
 
     /* FIXME 
      *
@@ -1887,7 +1884,6 @@ Symtab::~Symtab()
 
    //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
    if (mf) MappedFile::closeMappedFile(mf);
-   //if (mfForDebugInfo) MappedFile::closeMappedFile(mfForDebugInfo);
 #endif
 }	
 

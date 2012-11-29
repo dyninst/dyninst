@@ -358,10 +358,14 @@ void ProcControlComponent::setupStatTest(std::string exec_name)
    //changes to testsuite otherwise
    if (strstr(exec_name.c_str(), "pc_stat")) {
       LibraryTracking::setDefaultTrackLibraries(false);
+      ThreadTracking::setDefaultTrackThreads(false);
+      LWPTracking::setDefaultTrackLWPs(false);
       check_threads_on_startup = false;
    }
    else {
       LibraryTracking::setDefaultTrackLibraries(true);
+      ThreadTracking::setDefaultTrackThreads(true);
+      LWPTracking::setDefaultTrackLWPs(true);
    }
 }
 
@@ -728,15 +732,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       }
    }
 
-#if defined(USE_SOCKETS)
-#if 0
-   result = cleanSocket();
-   if (!result) {
-      logerror("Failed to clean up socket\n");
-      error = true;
-   }
-#endif
-#endif
    handshake shake;
    shake.code = HANDSHAKE_CODE;
    result = send_broadcast((unsigned char *) &shake, sizeof(handshake));
@@ -1363,8 +1358,6 @@ bool readAvail(int fd, char *buffer, size_t buffer_size, size_t *rsize_out)
 
 bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
 {
-   logerror("Mutator: Read of size %u on %d\n", msg_size, p->getPid());
-
    static map<Process::ptr, pair<char *, size_t> > cached_reads;
    int timeout_count = 300; //30 sec
    for (;;) {
@@ -1385,7 +1378,6 @@ bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_si
                }
                buffer.second = buffer.second - msg_size;
             }
-            logerror("Mutator: Read success\n", msg_size, p->getPid());
             return true;
          }
       }
@@ -1448,8 +1440,6 @@ bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_si
 
 bool ProcControlComponent::send_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
 {
-   logerror("Mutator: Write of size %u on %d\n", msg_size, p->getPid());
-
    map<Process::ptr, int>::iterator i = w_pipe.find(p);
    assert(i != w_pipe.end());
    int fd = i->second;
@@ -1459,7 +1449,6 @@ bool ProcControlComponent::send_message_pipe(unsigned char *msg, unsigned msg_si
       perror("Failed to write message from mutator");
       return false;
    }
-   logerror("Mutator: Write success\n", msg_size, p->getPid());
    return true;
 }
 
@@ -1477,7 +1466,6 @@ bool ProcControlComponent::open_pipe(Process::ptr p, bool open_read)
 
    int fd;
    int timeout = 300;
-   logerror("Mutator: Open of %s for %s\n", j->second.c_str(), open_read ? "reading" : "writing");
    for (;;) {
       fd = open(j->second.c_str(), O_NONBLOCK | o_options);
       if (fd >= 0)
@@ -1506,7 +1494,6 @@ bool ProcControlComponent::open_pipe(Process::ptr p, bool open_read)
 
    pipe_map.insert(make_pair(p, fd));
    
-   logerror("Mutator: Open of %s success\n", j->second.c_str());
    return true;
 }
 

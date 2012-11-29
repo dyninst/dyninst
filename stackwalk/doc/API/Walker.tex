@@ -1,0 +1,181 @@
+\subsubsection{Class Walker}
+\label{subsec:walker}
+\definedin{walker.h}
+
+The \code{Walker} class allows users to walk call stacks and query basic information
+about threads in a target process. The user should create a \code{Walker} object for
+each process from which they are walking call stacks. Each \code{Walker} object is
+associated with one process, but may walk call stacks on multiple threads within
+that process. The \code{Walker} class allows users to query for the threads available
+for walking, and it allows you to specify a particular thread whose call stack
+should be walked. Stackwalks are returned as a vector of Frame objects. 
+
+Each Walker object contains three objects: 
+\begin{itemize}
+    \item ProcessState
+    \item StepperGroup
+    \item SymbolLookup
+\end{itemize}
+
+These objects are part of the Callback Interface and can be used to customize
+StackwalkerAPI. The \code{ProcessState} object tells \code{Walker} how to access data in the
+target process, and it determines whether this \code{Walker} collects first party or
+third party stackwalks. \code{Walker} will pick an appropriate default \code{ProcessState}
+object based on which factory method the users calls. The \code{StepperGroup} object is
+used to customize how the \code{Walker} steps through stack frames. The
+\code{SymbolLookup}
+object is used to customize how StackwalkerAPI looks up symbolic names of the
+function or object that created a stack frame.
+
+\begin{apient}
+static Walker *newWalker()
+\end{apient}
+\apidesc{
+	This factory method creates a new \code{Walker} object that performs first party stackwalks.
+
+    The new \code{Walker} object uses the default \code{StepperGroup} and
+    \code{SymbolLookup} callbacks for the current platform, and it uses the
+    \code{ProcSelf} callback for its \code{ProcessState} object. See
+    Section~\ref{subsec:defaults} for more information about defaults in the
+    Callback Interface. 
+
+    This method returns \code{NULL} if it was unable to create a new \code{Walker}
+    object. The new \code{Walker} object was created with the \code{new} operator, and
+    should be deallocated with the \code{delete} operator when it is no longer needed.
+}
+ 
+\begin{apient}
+static Walker *newWalker(Dyninst::PID pid)
+\end{apient}
+\apidesc{
+    This factory method creates a new \code{Walker} object that performs third
+    party stackwalks, on the process identified by \code{pid}. 
+
+    The new \code{Walker} object uses the default \code{StepperGroup} and
+    \code{SymbolLookup}
+    callbacks for the current platform, and it uses the \code{ProcSelf} callback for
+    its \code{ProcessState} object. See Section~\ref{subsec:defaults} for more information about
+    defaults in the Callback Interface. 
+
+    This method returns \code{NULL} if it is unable to create a new
+    \code{Walker} object. The
+    new \code{Walker} object is created with the \code{new} operator, and should be
+    deallocated with the \code{delete} operator when it is no longer needed.
+}
+ 
+\begin{apient}
+static Walker *newWalker(ProcessState *proc, 			
+                         StepperGroup *steppergroup = NULL		,
+                         SymbolLookup *lookup = NULL)
+\end{apient}
+\apidesc{
+    This factory method creates a new \code{Walker} object that walks call stacks on
+    the given \code{proc} object. Custom \code{StepperGroup} and
+    \code{SymbolLookup} can be given
+    with the steppergroup and lookup parameters. If the steppergroup or lookup
+    parameters are \code{NULL}, then StackwalkerAPI will create a \code{Walker} object that
+    uses a default callbacks for the \code{NULL} parameter, as described in
+    Section~\ref{sec:defaults}. 
+
+    It is an error to pass \code{NULL} in the \code{proc} parameter. \code{proc} is used to determine
+    whether to collect first party or third party stackwalks and, in the case of
+    third party stackwalks, identify the target process.
+
+    This method returns \code{NULL} if there was an error creating the new \code{Walker}
+    object. The new \code{Walker} object is created with the \code{new} operator, and
+    should be deallocated with the \code{delete} operator when it is no longer needed.
+}
+ 
+\begin{apient}
+bool walkStack(std::vector<Frame> &stackwalk,	 
+               Dyninst::THR_ID thread = NULL_THR_ID)
+\end{apient}
+\apidesc{
+    This method walks a call stack in the process associated with this \code{Walker}.
+    The call stack is returned as a vector of \code{Frame} objects in stackwalk. The
+    top of the stack is returned in index 0 of stackwalk, and the bottom of the
+    stack is returned in index \code{stackwalk.size()-1}.
+
+    A stackwalk can be taken on a specific thread by passing a value in the
+    thread parameter. If \code{thread} has the value \code{NULL\_THR\_ID}, then a default thread
+    will be chosen. When doing a third party stackwalk, the default thread will
+    be the process' initial thread. When doing a first party stackwalk, the
+    default thread will be the thread that called \code{walkStack}. 
+
+    This method returns \code{true} on success and \code{false} on failure.
+}
+ 
+\begin{apient}
+bool walkStackFromFrame(std::vector<Frame> &stackwalk, const Frame &frame)
+\end{apient}
+\apidesc{
+    This method walks a call stack starting from the given stack frame,
+    \code{frame}.
+    The call stack will be output in the \code{stackwalk} vector, with frame stored in
+    index 0 of \code{stackwalk} and the bottom of the stack stored in index
+    \code{stackwalk.size()-1}.
+
+    This method returns \code{true} on success and \code{false} on failure.
+}
+ 
+\begin{apient}
+bool walkSingleFrame(const Frame &in, Frame &out)
+\end{apient}
+\apidesc{
+    This methods walks through single frame, \code{in}. Parameter \code{out}
+    will be set to \code{in}'s caller frame.
+
+    This method returns \code{true} on success and \code{false} on failure.
+}
+ 
+\begin{apient}
+bool getInitialFrame(Frame &frame, Dyninst::THR_ID thread = NULL_THR_ID)
+\end{apient}
+\apidesc{
+    This method returns the \code{Frame} object on the top of the stack in parameter
+    frame. Under \code{walkStack}, \code{frame} would be the one returned in index 0 of the
+    \code{stackwalk} vector.  A stack frame can be found on a specific thread by
+    passing a value in the thread parameter. If \code{thread} has the value
+    \code{NULL\_THR\_ID}, then a default thread will be chosen. When doing a third party
+    stackwalk, the default thread will be the process' initial thread. When
+    doing a first party stackwalk, the default thread will be the thread that
+    called \code{getInitialFrame}. 
+
+    This method returns \code{true} on success and \code{false} on failure.
+}
+ 
+\begin{apient}
+bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads)
+\end{apient}
+\apidesc{
+    This method returns a vector of threads in the target process upon which
+    StackwalkerAPI can walk call stacks. The threads are returned in output
+    parameter \code{threads}. Note that this method may return a subset of the actual
+    threads in the process. For example, when walking call stacks on the current
+    process, it is only legal to walk the call stack on the currently running
+    thread. In this case, \code{getAvailableThreads} returns a vector containing only
+    the current thread.
+
+    This method returns \code{true} on success and \code{false} on failure.
+}
+ 
+\begin{apient}
+ProcessState *getProcessState() const
+\end{apient}
+\apidesc{
+    This method returns the \code{ProcessState} object associated with this \code{Walker}.
+}
+ 
+\begin{apient}
+StepperGroup *getStepperGroup() const
+\end{apient}
+\apidesc{
+    This method returns the \code{StepperGroup} object associated with this \code{Walker}.
+}
+ 
+\begin{apient}
+SymbolLookup *getSymbolLookup() const
+\end{apient}
+\apidesc{
+    This method returns the \code{SymbolLookup} object associated with this \code{Walker}.
+}

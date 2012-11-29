@@ -94,7 +94,7 @@ const char * CONCAT(kill_compiler_warnings_, TEST_NAME) ()
  * macro directly.
  */
 mutatee_call_info_t mutatee_funcs[] = {
-  {QUOTE(TEST_NAME), CONCAT(TEST_NAME, _mutatee), SOLO, "@<label>@"}
+   {(char *) QUOTE(TEST_NAME), CONCAT(TEST_NAME, _mutatee), SOLO, (char *) "@<label>@"}
 };
 int runTest[1];
 int passedTest[1];

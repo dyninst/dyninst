@@ -47,7 +47,6 @@ using namespace SymtabAPI;
 SymtabReader::SymtabReader(std::string file_) :
    symtab(NULL),
    ref_count(1),
-   dwarf_handle(NULL),
    ownsSymtab(true)
 {
   // We'd throw, but...
@@ -57,7 +56,6 @@ SymtabReader::SymtabReader(std::string file_) :
 SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
    symtab(NULL),
    ref_count(1),
-   dwarf_handle(NULL),
    ownsSymtab(true)
 {
    stringstream memName;
@@ -69,7 +67,6 @@ SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
 SymtabReader::SymtabReader(Symtab *s) :
     symtab(s),
     ref_count(1),
-    dwarf_handle(NULL),
     ownsSymtab(false)
 {}
 
@@ -78,11 +75,6 @@ SymtabReader::~SymtabReader()
    if (symtab && ownsSymtab)
       Symtab::closeSymtab(symtab);
    symtab = NULL;
-#if !defined(os_windows)
-   if (dwarf_handle)
-     delete dwarf_handle;
-#endif
-   dwarf_handle = NULL;
 }
 
 
@@ -243,24 +235,9 @@ bool SymtabReader::isValidSection(Section_t sec)
    return (sec.v1 != NULL);
 }
 
-void *SymtabReader::getDebugInfo()
-{
-#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion) || defined(os_freebsd) || defined(os_vxworks)
-  if (!dwarf_handle)
-  {
-    Object *obj = symtab->getObject();
-    dwarf_handle = new DwarfHandle(obj);
-  }
-  Dwarf_Debug dbg = *(dwarf_handle->dbg());
-  return (void *) dbg;
-#else
-  return NULL;
-#endif
-}
-
 void *SymtabReader::getElfHandle()
 {
-#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion) || defined(os_freebsd) || defined(os_vxworks)
+#if defined(os_solaris) || defined(os_linux) || defined(os_bg) || defined(os_freebsd) || defined(os_vxworks)
    Object *obj = symtab->getObject();
    return obj->getElfHandle();
 #else

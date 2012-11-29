@@ -43,8 +43,8 @@ namespace Dyninst
      * machine instructions in a platform-independent manner. The
      * %Instruction API includes methods for decoding machine language,
      * convenient abstractions for its analysis, and methods to produce disassembly from those
-     * abstractions. The current implementation supports the IA32, IA-64,
-     * AMD-64, SPARC, POWER, and PowerPC instruction sets.  The %Instruction API
+     * abstractions. The current implementation supports the IA32,
+     * AMD-64, POWER, and PowerPC instruction sets.  The %Instruction API
      * has the following basic capabilities:
      * - Decoding: interpreting a sequence of bytes as a machine instruction in a given machine language.
      * - Abstract representation: representing the behavior of that instruction as an abstract syntax tree.

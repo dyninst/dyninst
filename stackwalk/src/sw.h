@@ -142,12 +142,12 @@ class DyninstDynamicStepperImpl : public FrameStepper {
 };
 
 class CallChecker {
-    private:
-       ProcessState * proc;
-    public:
-      CallChecker(ProcessState * proc_);
-      ~CallChecker();
-      bool isPrevInstrACall(Address addr, Address & target); 
+  private:
+   ProcessState * proc;
+  public:
+   CallChecker(ProcessState * proc_);
+   ~CallChecker();
+   bool isPrevInstrACall(Address addr, Address & target); 
 };
 
 class int_walkerSet {
@@ -163,7 +163,7 @@ private:
    void eraseFromProcSet(ProcDebug *);
    void clearProcSet();
    void initProcSet();
-   bool walkStacksProcSet(CallTree &tree, bool &bad_plat);
+   bool walkStacksProcSet(CallTree &tree, bool &bad_plat, bool walk_iniital_only);
 
    unsigned non_pd_walkers;
    set<Walker *> walkers;

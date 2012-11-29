@@ -41,14 +41,14 @@ namespace SymtabAPI{
 
 class emitElf{
   public:
-   emitElf(Elf_X &oldElfHandle_, bool isStripped_ = false, Object *obj_ = NULL, void (*)(const char *) = log_msg);
+   emitElf(Elf_X *oldElfHandle_, bool isStripped_ = false, Object *obj_ = NULL, void (*)(const char *) = log_msg);
     ~emitElf() {
         if( linkedStaticData ) delete linkedStaticData;
     }
     bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols);
     bool driver(Symtab *obj, std::string fName);
   private:
-    Elf_X oldElfHandle;
+    Elf_X *oldElfHandle;
     Elf *newElf;
     Elf *oldElf;
     

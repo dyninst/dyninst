@@ -1,0 +1,80 @@
+\subsection{Expression Class}
+\label{classDyninst_1_1InstructionAPI_1_1Expression}\index{Dyninst::InstructionAPI::Expression@{Dyninst::InstructionAPI::Expression}}
+\subsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void {\textbf setValue} (const {\textbf Result} \&knownValue)
+\item 
+void {\textbf clearValue} ()
+\item 
+virtual bool {\textbf bind} ({\textbf Expression} $\ast$expr, const {\textbf Result} \&value)
+\item 
+virtual void {\textbf apply} (Visitor $\ast$)
+\item 
+virtual void {\textbf getChildren} (std::vector$<$ {\textbf Expression::Ptr} $>$ \&children) const =0
+\end{DoxyCompactItemize}
+
+
+
+An Expression is an AST representation of how the value of an operand is computed.
+
+The Expression class extends the InstructionAST class by adding the concept of evaluation to the nodes of an InstructionAST. Evaluation attempts to determine the \doxyref{Result}{p.}{classDyninst_1_1InstructionAPI_1_1Result} of the computation that the AST being evaluated represents. It will fill in results of as many of the nodes in the tree as possible, and if full evaluation is possible, it will return the result of the computation performed by the tree.
+
+Permissible leaf nodes of a Expression tree are RegisterAST and Immediate objects. Permissible internal nodes are BinaryFunction and Dereference objects. An Expression may represent an immediate value, the contents of a register, or the contents of memory at a given address, interpreted as a particular type.
+
+The Results in an Expression tree contain a type and a value. Their values may be an undefined value or an instance of their associated type. When two Results are combined using a BinaryFunction, the BinaryFunction specifies the output type. Sign extension, type promotion, truncation, and all other necessary conversions are handled automatically based on the input types and the output type. If both of the Results that are combined have defined values, the combination will also have a defined value; otherwise, the combination's value will be undefined. For more information, see \doxyref{Result}{p.}{classDyninst_1_1InstructionAPI_1_1Result}, \doxyref{BinaryFunction}{p.}{classDyninst_1_1InstructionAPI_1_1BinaryFunction}, and \doxyref{Dereference}{p.}{classDyninst_1_1InstructionAPI_1_1Dereference}.
+
+A user may specify the result of evaluating a given Expression. This mechanism is designed to allow the user to provide a Dereference or RegisterAST with information about the state of memory or registers. It may additionally be used to change the value of an Immediate or to specify the result of a BinaryFunction. This mechanism may be used to support other advanced analyses.
+
+In order to make it more convenient to specify the results of particular subexpressions, the {\ttfamily bind} method is provided. {\ttfamily bind} allows the user to specify that a given subexpression has a particular value everywhere that it appears in an expression. For example, if the state of certain registers is known at the time an instruction is executed, a user can {\ttfamily bind} those registers to their known values throughout an Expression.
+
+The evaluation mechanism, as mentioned above, will evaluate as many sub-\/expressions of an expression as possible. Any operand that is more complicated than a single immediate value, however, will depend on register or memory values. The Results of evaluating each subexpression are cached automatically using the {\ttfamily setValue} mechanism. The Expression then attempts to determine its Result based on the Results of its children. If this Result can be determined (most likely because register contents have been filled in via {\ttfamily setValue} or {\ttfamily bind}), it will be returned from {\ttfamily eval}; if it can not be determined, a Result with an undefined value will be returned. See Figure 6 for an illustration of this concept; the operand represented is [ {\ttfamily EBX} + {\ttfamily 4} $\ast$ {\ttfamily EAX} ]. The contents of {\ttfamily EBX} and {\ttfamily EAX} have been determined through some outside mechanism, and have been defined with {\ttfamily setValue}. The {\ttfamily eval} mechanism proceeds to determine the address being read by the Dereference, since this information can be determined given the contents of the registers. This address is available from the Dereference through its child in the tree, even though calling {\ttfamily eval} on the Dereference returns a Result with an undefined value. 
+\begin{DoxyImage}
+\includegraphics{deref-eval}
+\caption{Applying {\ttfamily eval} to a Dereference tree with}
+\end{DoxyImage}
+ the state of the registers known and the state of memory unknown" 
+
+\subsubsection{Member Functions}
+\index{Dyninst::InstructionAPI::Expression@{Dyninst::InstructionAPI::Expression}!setValue@{setValue}}
+\index{setValue@{setValue}!Dyninst::InstructionAPI::Expression@{Dyninst::InstructionAPI::Expression}}
+\paragraph[{setValue}]{\setlength{\rightskip}{0pt plus 5cm}void setValue (
+\begin{DoxyParamCaption}
+\item[{const {\textbf Result} \&}]{ knownValue}
+\end{DoxyParamCaption}
+)}\hfill\label{classDyninst_1_1InstructionAPI_1_1Expression_a380c0c16c0c7ae2b83d1e7e603793cf2}
+
+\begin{DoxyParams}{Parameters}
+\item[{\em knownValue}]Sets the result of {\ttfamily eval} for this Expression to {\ttfamily knownValue} \end{DoxyParams}
+\index{Dyninst::InstructionAPI::Expression@{Dyninst::InstructionAPI::Expression}!clearValue@{clearValue}}
+\index{clearValue@{clearValue}!Dyninst::InstructionAPI::Expression@{Dyninst::InstructionAPI::Expression}}
+\paragraph[{clearValue}]{\setlength{\rightskip}{0pt plus 5cm}void clearValue (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\hfill\label{classDyninst_1_1InstructionAPI_1_1Expression_a6b25a6f5cc0bd509a99eac0ee53f60b5}
+{\ttfamily clearValue} sets the contents of this Expression to undefined. The next time {\ttfamily eval} is called, it will recalculate the value of the Expression. \index{Dyninst::InstructionAPI::Expression@{Dyninst::InstructionAPI::Expression}!bind@{bind}}
+\index{bind@{bind}!Dyninst::InstructionAPI::Expression@{Dyninst::InstructionAPI::Expression}}
+\paragraph[{bind}]{\setlength{\rightskip}{0pt plus 5cm}bool bind (
+\begin{DoxyParamCaption}
+\item[{{\textbf Expression} $\ast$}]{ expr, }
+\item[{const {\textbf Result} \&}]{ value}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1Expression_ad7949968db774d3d3539ecc5796772b8}
+{\ttfamily bind} searches for all instances of the Expression {\ttfamily expr} within this Expression, and sets the result of {\ttfamily eval} for those subexpressions to {\ttfamily value}. {\ttfamily bind} returns true if at least one instance of {\ttfamily expr} was found in this Expression.
+
+{\ttfamily bind} does not operate on subexpressions that happen to evaluate to the same value. For example, if a dereference of 0xDEADBEEF is bound to 0, and a register is bound to 0xDEADBEEF, a dereference of that register is not bound to 0. \index{Dyninst::InstructionAPI::Expression@{Dyninst::InstructionAPI::Expression}!apply@{apply}}
+\index{apply@{apply}!Dyninst::InstructionAPI::Expression@{Dyninst::InstructionAPI::Expression}}
+\paragraph[{apply}]{\setlength{\rightskip}{0pt plus 5cm}virtual void apply (
+\begin{DoxyParamCaption}
+\item[{Visitor $\ast$}]{}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1Expression_aaef3bea3ba2584161f83b2ced7ef505b}
+{\ttfamily apply} applies a Visitor to this expression. Visitors perform postfix-\/order traversal of the ASTs represented by an Expression, with user-\/defined actions performed at each node of the tree. \index{Dyninst::InstructionAPI::Expression@{Dyninst::InstructionAPI::Expression}!getChildren@{getChildren}}
+\index{getChildren@{getChildren}!Dyninst::InstructionAPI::Expression@{Dyninst::InstructionAPI::Expression}}
+\paragraph[{getChildren}]{\setlength{\rightskip}{0pt plus 5cm}virtual void getChildren (
+\begin{DoxyParamCaption}
+\item[{std::vector$<$ {\textbf Expression::Ptr} $>$ \&}]{ children}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily  [pure virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1Expression_a6a1e1e53d272ca536170f3bdc95d9bdb}
+{\ttfamily getChildren} may be called on an Expression taking a vector of ExpressionPtrs, rather than InstructionASTPtrs. All children which are Expressions will be appended to {\ttfamily children}. 

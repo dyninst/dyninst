@@ -1,0 +1,25 @@
+\subsection{Immediate Class}
+\label{classDyninst_1_1InstructionAPI_1_1Immediate}\index{Dyninst::InstructionAPI::Immediate@{Dyninst::InstructionAPI::Immediate}}
+\subsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual bool {\textbf isUsed} (InstructionAST::Ptr findMe) const 
+\end{DoxyCompactItemize}
+
+
+
+The Immediate class represents an immediate value in an operand
+
+Since an Immediate represents a constant value, the {\ttfamily setValue} and {\ttfamily clearValue} interface are disabled on Immediate objects. If an immediate value is being modified, a new Immediate object should be created to represent the new value. 
+
+\subsubsection{Member Functions}
+\index{Dyninst::InstructionAPI::Immediate@{Dyninst::InstructionAPI::Immediate}!isUsed@{isUsed}}
+\index{isUsed@{isUsed}!Dyninst::InstructionAPI::Immediate@{Dyninst::InstructionAPI::Immediate}}
+\paragraph[{isUsed}]{\setlength{\rightskip}{0pt plus 5cm}bool isUsed (
+\begin{DoxyParamCaption}
+\item[{InstructionAST::Ptr}]{ findMe}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1Immediate_a71169e7bb9813302ddc3486c3d9eb65d}
+{\ttfamily isUsed}, when called on an Immediate, will return true if {\ttfamily findMe} represents an Immediate with the same value. While this convention may seem arbitrary, it allows {\ttfamily isUsed} to follow a natural rule: an InstructionAST is used by another InstructionAST if and only if the first InstructionAST is a subtree of the second one. 
+
+

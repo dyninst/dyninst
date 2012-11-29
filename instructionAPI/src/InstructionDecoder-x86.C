@@ -1032,8 +1032,8 @@ namespace Dyninst
                     case am_reg:
                     {
                         MachRegister r(optype);
-                        r = MachRegister(r.val() & ~r.getArchitecture() | m_Arch);
-			entryID entryid = decodedInstruction->getEntry()->getID(locs);
+                        r = MachRegister((r.val() & ~r.getArchitecture()) | m_Arch);
+                        entryID entryid = decodedInstruction->getEntry()->getID(locs);
                         if(locs->rex_b && insn_to_complete->m_Operands.empty() && 
 			    (entryid == e_push || entryid == e_pop || entryid == e_xchg || ((*(b.start + locs->opcode_position) & 0xf0) == 0xb0) ) )
                         {

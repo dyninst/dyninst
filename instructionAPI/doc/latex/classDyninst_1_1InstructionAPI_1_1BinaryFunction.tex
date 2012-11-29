@@ -1,0 +1,87 @@
+\subsection{BinaryFunction Class}
+\label{classDyninst_1_1InstructionAPI_1_1BinaryFunction}\index{Dyninst::InstructionAPI::BinaryFunction@{Dyninst::InstructionAPI::BinaryFunction}}
+\subsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\textbf BinaryFunction} ({\textbf Expression::Ptr} arg1, {\textbf Expression::Ptr} arg2, Result\_\-Type result\_\-type, funcT::Ptr func)
+\item 
+virtual const {\textbf Result} \& {\textbf eval} () const 
+\item 
+virtual void {\textbf getChildren} (vector$<$ InstructionAST::Ptr $>$ \&children) const 
+\item 
+virtual void {\textbf getUses} (set$<$ InstructionAST::Ptr $>$ \&uses)
+\item 
+virtual bool {\textbf isUsed} (InstructionAST::Ptr findMe) const 
+\end{DoxyCompactItemize}
+
+
+
+A BinaryFunction object represents a function that can combine two Expressions and produce another ValueComputation.
+
+For the purposes of representing a single operand of an instruction, the BinaryFunctions of interest are addition and multiplication of integer values; this allows a Expression to represent all addressing modes on the architectures currently supported by the Instruction API. 
+
+\subsubsection{Constructors \& Destructors}
+\index{Dyninst::InstructionAPI::BinaryFunction@{Dyninst::InstructionAPI::BinaryFunction}!BinaryFunction@{BinaryFunction}}
+\index{BinaryFunction@{BinaryFunction}!Dyninst::InstructionAPI::BinaryFunction@{Dyninst::InstructionAPI::BinaryFunction}}
+\paragraph[{BinaryFunction}]{\setlength{\rightskip}{0pt plus 5cm}{\textbf BinaryFunction} (
+\begin{DoxyParamCaption}
+\item[{{\textbf Expression::Ptr}}]{ arg1, }
+\item[{{\textbf Expression::Ptr}}]{ arg2, }
+\item[{Result\_\-Type}]{ result\_\-type, }
+\item[{funcT::Ptr}]{ func}
+\end{DoxyParamCaption}
+)}\hfill\label{classDyninst_1_1InstructionAPI_1_1BinaryFunction_ac1d9ee9e075b29690d4f1f17949d94d0}
+
+\begin{DoxyParams}{Parameters}
+\item[{\em arg1}]first input to function \item[{\em arg2}]second input to function \item[{\em result\_\-type}]type of the function's result \item[{\em func}]implementation of the function\end{DoxyParams}
+The constructor for a BinaryFunction may take a reference-\/counted pointer or a plain C++ pointer to each of the child Expressions that represent its arguments. Since the reference-\/counted implementation requires explicit construction, we provide overloads for all four combinations of plain and reference-\/counted pointers. Note that regardless of which constructor is used, the pointers {\ttfamily arg1} and {\ttfamily arg2} become owned by the BinaryFunction being constructed, and should not be deleted. They will be cleaned up when the BinaryFunction object is destroyed.
+
+The {\ttfamily func} parameter is a binary functor on two Results. It should be derived from {\ttfamily funcT}. {\ttfamily addResult} and {\ttfamily multResult}, which respectively add and multiply two Results, are provided as part of the InstructionAPI, as they are necessary for representing address calculations. Other {\ttfamily funcTs} may be implemented by the user if desired. funcTs have names associated with them for output and debugging purposes. The addition and multiplication functors provided with the Instruction API are named \char`\"{}+\char`\"{} and \char`\"{}$\ast$\char`\"{}, respectively. 
+
+\subsubsection{Member Functions}
+\index{Dyninst::InstructionAPI::BinaryFunction@{Dyninst::InstructionAPI::BinaryFunction}!eval@{eval}}
+\index{eval@{eval}!Dyninst::InstructionAPI::BinaryFunction@{Dyninst::InstructionAPI::BinaryFunction}}
+\paragraph[{eval}]{\setlength{\rightskip}{0pt plus 5cm}const {\textbf Result} \& eval (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1BinaryFunction_a9d6e92c2e65bf1162faa3734911ebff3}
+The BinaryFunction version of {\ttfamily eval} allows the {\ttfamily eval} mechanism to handle complex addressing modes. Like all of the ValueComputation implementations, a BinaryFunction's {\ttfamily eval} will return the result of evaluating the expression it represents if possible, or an empty Result otherwise. A BinaryFunction may have arguments that can be evaluated, or arguments that cannot. Additionally, it may have a real function pointer, or it may have a null function pointer. If the arguments can be evaluated and the function pointer is real, a result other than an empty Result is guaranteed to be returned. This result is cached after its initial calculation; the caching mechanism also allows outside information to override the results of the BinaryFunction's internal computation. If the cached result exists, it is guaranteed to be returned even if the arguments or the function are not evaluable. 
+
+
+\index{Dyninst::InstructionAPI::BinaryFunction@{Dyninst::InstructionAPI::BinaryFunction}!getChildren@{getChildren}}
+\index{getChildren@{getChildren}!Dyninst::InstructionAPI::BinaryFunction@{Dyninst::InstructionAPI::BinaryFunction}}
+\paragraph[{getChildren}]{\setlength{\rightskip}{0pt plus 5cm}virtual void getChildren (
+\begin{DoxyParamCaption}
+\item[{vector$<$ InstructionAST::Ptr $>$ \&}]{ children}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1BinaryFunction_adabe6006766a7aaa6fa099f5f0ca5c0c}
+The children of a BinaryFunction are its two arguments. 
+\begin{DoxyParams}{Parameters}
+\item[{\em children}]Appends the children of this BinaryFunction to {\ttfamily children}. \end{DoxyParams}
+
+
+
+\index{Dyninst::InstructionAPI::BinaryFunction@{Dyninst::InstructionAPI::BinaryFunction}!getUses@{getUses}}
+\index{getUses@{getUses}!Dyninst::InstructionAPI::BinaryFunction@{Dyninst::InstructionAPI::BinaryFunction}}
+\paragraph[{getUses}]{\setlength{\rightskip}{0pt plus 5cm}virtual void getUses (
+\begin{DoxyParamCaption}
+\item[{set$<$ InstructionAST::Ptr $>$ \&}]{ uses}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1BinaryFunction_a3793407f71d4fba12ae0af46e78da4b4}
+The use set of a BinaryFunction is the union of the use sets of its children. 
+\begin{DoxyParams}{Parameters}
+\item[{\em uses}]Appends the use set of this BinaryFunction to {\ttfamily uses}. \end{DoxyParams}
+
+
+
+\index{Dyninst::InstructionAPI::BinaryFunction@{Dyninst::InstructionAPI::BinaryFunction}!isUsed@{isUsed}}
+\index{isUsed@{isUsed}!Dyninst::InstructionAPI::BinaryFunction@{Dyninst::InstructionAPI::BinaryFunction}}
+\paragraph[{isUsed}]{\setlength{\rightskip}{0pt plus 5cm}virtual bool isUsed (
+\begin{DoxyParamCaption}
+\item[{InstructionAST::Ptr}]{ findMe}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily  [virtual]}}\hfill\label{classDyninst_1_1InstructionAPI_1_1BinaryFunction_af5b1db3ca39797ac0f619e04dd8bf9fc}
+{\ttfamily isUsed} returns true if {\ttfamily findMe} is an argument of this BinaryFunction, or if it is in the use set of either argument. 
+
+

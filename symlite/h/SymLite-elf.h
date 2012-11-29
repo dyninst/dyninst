@@ -46,10 +46,10 @@ class SymElf : public Dyninst::SymReader
 {
    friend class SymElfFactory;
  private:
-   Elf_X elf;
+   Elf_X *elf;
    int fd;
    bool need_odp;
-   Elf_X_Shdr odp_section;
+   Elf_X_Shdr *odp_section;
 
    std::string file;
    const char *buffer;

@@ -358,8 +358,8 @@ async_ret_t memCache::lookupAsync(memEntry *me, int_thread *op_thread)
       }
 
       if (**matching_entry == *me) {
-         pthrd_printf("Memcache: Found existing operation: %s of %lx, size %lu\n",
-                      me->is_read ? "read" : "write", me->getAddress(), me->getSize());
+         /*pthrd_printf("Memcache: Found existing operation: %s of %lx, size %lu\n",
+           me->is_read ? "read" : "write", me->getAddress(), me->getSize());*/
          return getExistingOperation(matching_entry, me);
       }
       matching_entry++;

@@ -1,0 +1,18 @@
+\subsection{Instruction Interface}
+\label{group__instruction}\index{Instruction Interface@{Instruction Interface}}
+The Instruction API represents a machine language instruction as an Instruction object, which contains an Operation and a collection of Operands. The Operation contains the following items:
+\begin{DoxyItemize}
+\item The mnemonic for the machine language instruction represented by its associated Instruction
+\item The number of operands accepted by the Operation
+\item Which Operands are read and/or written by the associated machine operation
+\item What other registers (if any) are affected by the underlying machine operation
+\end{DoxyItemize}
+
+Each Operand contains flags to indicate whether it is read, written, or both by the machine instruction represented by its parent Instruction, and contains a Expression abstract syntax tree representing the operations required to compute the value of the operand. Figure 1 depicts these ownership relationships within an Instruction. 
+\begin{DoxyImage}
+\includegraphics{ownership_graph}
+\caption{An Instruction and the objects it owns}
+\end{DoxyImage}
+ Instruction objects provide two types of interfaces: direct read access to their components, and common summary operations on those components. The first interface allows access to the Operation and Operand data members, and each Operand object in turn allows traversal of its abstract syntax tree. More details about how to work with this abstract syntax tree can be found in \doxyref{InstructionAST Hierarchy}{p.}{group__instruction__ast__module}. This interface would be used, for example, in a data flow analysis where a user wants to evaluate the results of an effective address computation given a known register state.
+
+The second interface allows a user to get the sets of registers read and written by the instruction, information about how the instruction accesses memory, and information about how the instruction affects control flow, without having to manipulate the Operands directly. For instance, a user could implement a register liveness analysis algorithm using just this second interface (namely the {\ttfamily getReadSet} and {\ttfamily getWriteSet} functions). 

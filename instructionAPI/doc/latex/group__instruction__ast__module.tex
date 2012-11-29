@@ -1,0 +1,22 @@
+\subsection{InstructionAST Hierarchy}
+\label{group__instruction__ast__module}\index{InstructionAST Hierarchy@{InstructionAST Hierarchy}}
+The AST representation of an operand encapsulates the operations performed on registers and immediates to produce an operand for the machine language instruction.
+
+The inheritance hierarchy of the AST classes is shown in Figure 3. 
+\begin{DoxyImage}
+\includegraphics{full_inheritance_graph}
+\caption{The InstructionAST inheritance hierarchy}
+\end{DoxyImage}
+ The grammar for these AST representations is simple: all leaves must be RegisterAST or Immediate nodes. These nodes may be combined using a BinaryFunction node, which may be constructed as either an addition or a multiplication. Also, a single node may descend from a Dereference node, which treats its child as a memory address. Figure 4 shows the allowable parent/child relationships within a given tree, and Figure 5 shows how an example IA32 instruction is represented using these objects. 
+\begin{DoxyImage}
+\includegraphics{ast_ownership}
+\caption{InstructionAST intermediate node types and the objects they own}
+\end{DoxyImage}
+ 
+\begin{DoxyImage}
+\includegraphics{instruction_representation}
+\caption{The decomposition of {\ttfamily mov} {\ttfamily \%eax}, ({\ttfamily \%esi})}
+\end{DoxyImage}
+ These ASTs may be searched for leaf elements or subtrees (via {\ttfamily getUses} and {\ttfamily isUsed}) and traversed breadth-\/first or depth-\/first (via {\ttfamily getChildren}).
+
+Any node in these ASTs may be evaluated. Evaluation attempts to determine the value represented by a node. If successful, it will return that value and cache it in the node. The tree structure, combined with the evaluation mechanism, allows the substitution of known register and memory values into an operand, regardless of whether those values are known at the time an instruction is decoded. More details on this mechanism may be found in \doxyref{Dyninst::InstructionAPI::Expression}{p.}{classDyninst_1_1InstructionAPI_1_1Expression}. 
