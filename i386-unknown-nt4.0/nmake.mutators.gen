@@ -6,11 +6,11 @@
 # A list of all the mutators to be compiled
 ######################################################################
 
-proccontrol_MUTATORS = pc_launch pc_thread_cont pc_breakpoint pc_library pc_singlestep pc_thread pc_groups pc_stat pc_irpc pc_detach pc_temp_detach pc_terminate pc_terminate_stopped 
+proccontrol_MUTATORS = pc_launch pc_thread_cont pc_breakpoint pc_library pc_singlestep pc_thread pc_groups pc_stat pc_irpc pc_detach pc_temp_detach pc_terminate pc_terminate_stopped pc_mem_perm 
 
-proccontrol_MUTATORS_SO = pc_launch.dll pc_thread_cont.dll pc_breakpoint.dll pc_library.dll pc_singlestep.dll pc_thread.dll pc_groups.dll pc_stat.dll pc_irpc.dll pc_detach.dll pc_temp_detach.dll pc_terminate.dll pc_terminate_stopped.dll 
+proccontrol_MUTATORS_SO = pc_launch.dll pc_thread_cont.dll pc_breakpoint.dll pc_library.dll pc_singlestep.dll pc_thread.dll pc_groups.dll pc_stat.dll pc_irpc.dll pc_detach.dll pc_temp_detach.dll pc_terminate.dll pc_terminate_stopped.dll pc_mem_perm.dll 
 
-proccontrol_OBJS_ALL_MUTATORS = pc_launch.obj pc_thread_cont.obj pc_breakpoint.obj pc_library.obj pc_singlestep.obj pc_thread.obj pc_groups.obj pc_stat.obj pc_irpc.obj pc_detach.obj pc_temp_detach.obj pc_terminate.obj pc_terminate_stopped.obj 
+proccontrol_OBJS_ALL_MUTATORS = pc_launch.obj pc_thread_cont.obj pc_breakpoint.obj pc_library.obj pc_singlestep.obj pc_thread.obj pc_groups.obj pc_stat.obj pc_irpc.obj pc_detach.obj pc_temp_detach.obj pc_terminate.obj pc_terminate_stopped.obj pc_mem_perm.obj 
 
 dyninst_MUTATORS = test1_1 test1_2 test1_3 test1_4 test1_5 test1_6 test1_7 test1_8 test1_9 test1_10 test1_11 test1_12 test1_13 test1_14 test1_16 test1_17 test1_18 test1_19 test1_20 test1_21 test1_22 snip_ref_shlib_var snip_change_shlib_var test_snip_remove test1_23 test1_24 test1_25 test1_26 test1_27 test1_28 test1_29 test1_30 test1_31 test1_32 test1_33 test1_34 test1_36 test1_37 test1_38 test_write_param test2_1 test2_2 test2_3 test2_4 test2_5 test2_7 test2_8 test2_11 test2_12 test2_13 test2_14 test3_1 test3_2 test3_3 test3_4 test3_7 test4_1 test5_1 test5_2 test5_3 test5_4 test5_5 test5_7 test5_8 test5_9 test_mem_1 test_mem_2 test_mem_3 test_mem_4 test_mem_5 test_mem_6 test_mem_7 test_mem_8 test_stack_1 test_stack_3 test_thread_6 test_thread_7 test_thread_8 test1_1 test1_2 test1_3 test1_4 test1_5 test1_6 test1_7 test1_8 test1_9 test1_10 test1_11 test1_12 test1_13 test1_14 test1_16 test1_17 test1_18 test1_19 test1_20 test1_25 test1_29 test1_31 test1_32 test1_34 test1_36 
 
@@ -66,6 +66,12 @@ pc_library.dll: pc_library.obj $(LIBTESTSUITE)
 	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_library.obj $(MUTATOR_LIBS)
 
 pc_library.obj: ../src/proccontrol/pc_library.C
+	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
+
+pc_mem_perm.dll: pc_mem_perm.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_mem_perm.obj $(MUTATOR_LIBS)
+
+pc_mem_perm.obj: ../src/proccontrol/pc_mem_perm.C
 	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
 
 pc_singlestep.dll: pc_singlestep.obj $(LIBTESTSUITE)
