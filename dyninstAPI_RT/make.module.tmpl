@@ -11,7 +11,12 @@ RELEASE_MINOR = 0
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 ifndef TARGET
-TARGET	      = libdyninstAPI_RT.so
+ifdef STATIC_COMPS
+STATIC_LIBRARY = true
+TARGET = libdyninstAPI_RT.a
+else
+TARGET = libdyninstAPI_RT.so
+endif
 endif
 
 MODCC         = $(CC)
