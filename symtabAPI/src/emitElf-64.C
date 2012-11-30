@@ -468,14 +468,34 @@ bool emitElf64::driver(Symtab *obj, string fName){
   Region *foundSec = NULL;
   unsigned pgSize = getpagesize();
   rewrite_printf("::driver for emitElf64\n");
-  //open ELf File for writing
+
+  string strtmpl = fName + "XXXXXX";
+  char buf[strtmpl.length() + 1];
+  strcpy(buf, strtmpl.c_str());
+
+  newfd = mkostemp(buf, O_WRONLY|O_CREAT|O_TRUNC);
+
+  if (newfd == -1) {
+    log_elferror(err_func_, "error opening file to write symbols");
+    return false;
+  }
+  strtmpl = buf;
+
+  fchmod(newfd, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP);
+  rewrite_printf("Emitting to temporary file %s\n", buf);
+
+#if 0
+  //open ELF File for writing
   if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP)))==-1){ 
     log_elferror(err_func_, "error opening file to write symbols");
     return false;
   }
+#endif
+
   if((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL){
     log_elferror(err_func_, "NEWELF_BEGIN_FAIL");
     fflush(stdout);
+    cerr << "Failed to elf_begin" << endl;
     return false;
   }
 
@@ -830,6 +850,10 @@ bool emitElf64::driver(Symtab *obj, string fName){
      write(newfd, &offset, sizeof(Elf64_Off));
   }
   close(newfd);
+
+  if (::rename(strtmpl.c_str(), fName.c_str())) {
+     return false;
+  }
 
   return true;
 }
