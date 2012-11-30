@@ -575,25 +575,6 @@ int mutex_printf_int(const char *format, ...)
   return ret;
 }
 
-
-int dwarf_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_dwarf ) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->_Lock(FILE__, __LINE__);
-  
-  fprintf(stderr, "(dwarf) [thread %s]: ", getThreadStr(getExecThreadID()));
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->_Unlock(FILE__, __LINE__);
-
-  return ret;
-}
-
 int catchup_printf_int(const char *format, ...)
 {
 
