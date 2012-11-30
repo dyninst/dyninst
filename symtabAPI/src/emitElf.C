@@ -495,7 +495,7 @@ bool emitElf::driver(Symtab *obj, string fName){
   char buf[strtmpl.length() + 1];
   strncpy(buf, strtmpl.c_str(), strtmpl.length());
 
-  newfd = mkostemp(buf, O_WRONLY|O_CREAT|O_TRUNC);
+  newfd = mkstemp(buf);
 
   if (newfd == -1) {
     log_elferror(err_func_, "error opening file to write symbols");
