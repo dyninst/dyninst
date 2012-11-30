@@ -31,30 +31,26 @@ pointing to machine language, using the InstructionDecoder class.  See
 InstructionDecoder for more details. 
 
 \begin{apient}
-    Instruction (Operation::Ptr what, 
-    size_t size,
-    const unsigned char * raw,
-    Dyninst::Architecture arch)
+Instruction (Operation::Ptr what, 
+             size_t size,
+             const unsigned char * raw,
+             Dyninst::Architecture arch)
 \end{apient}
-\apidesc{
-    \code{what} is the opcode of the instruction; \code{operandSource}
-    contains the \code{Expressions} to be transformed into Operands.
-    \code{size} contains the number of bytes occupied by the corresponding
-    machine instruction; \code{raw} contains a pointer to the buffer from
-    which this \code{Instruction} object was decoded.
+\apidesc{ \code{what} is the opcode of the instruction, \code{size}
+  contains the number of bytes occupied by the corresponding machine
+  instruction, and \code{raw} contains a pointer to the buffer from which
+  this \code{Instruction} object was decoded. The architecture is
+  specified by \code{arch}, and may be an element from the following
+  set: \code{\{Arch\_x86, Arch\_x86\_64, Arch\_ppc32, Arch\_ppc64\}}
+  (as defined in \code{dyn\_regs.h}).
 
     Construct an Instruction from an Operation and a collection of Expressions.
     This method is not intended to be used except by the InstructionDecoder
     class, which serves as a factory class for producing Instruction objects.
-    While an Instruction object may be built \char`\"{}by hand\char`\"{} if
+    While an Instruction object may be built ``by hand'' if
     desired, using the decoding interface ensures that the operation and
     operands are a sensible combination, and that the size reported is based on
     the actual size of a legal encoding of the machine instruction represented.
-    In the course of constructing an Instruction, the Expressions in
-    \code{operandSource} will be transformed to Operand objects. This
-    transformation will map the semantic information about which operands are
-    read and written in the Operation object \code{what} to the value
-    computations in \code{operandSource}. 
 }
 
 \begin{apient}
@@ -87,7 +83,7 @@ Operand getOperand(int index) const
 unsigned char rawByte(unsigned int index) const
 \end{apient}
 \apidesc{
-Returns a pointer to the buffer from which this instruction was decoded.
+  Returns the index$^{th}$ byte in the instruction. 
 }
 
 \begin{apient}
@@ -241,14 +237,12 @@ bool allowsFallThrough() const
 }
 
 \begin{apient}
-std::string format()
+std::string format(Address addr = 0)
 \end{apient}
 \apidesc{
-    \code{format} is principally a helper function. Instructions are meant to be
-    written to output streams via \code{operator<<}. \code{format} is included
-    in the public interface for diagnostic purposes.
-
-    Returns the instruction as a string of assembly language.
+    Returns the instruction as a string of assembly language. If
+    \code{addr} is specified, the value of the program counter as used
+    by the instruction (e.g., a branch) is set to \code{addr}. 
 }
 
 \begin{apient}
@@ -270,6 +264,13 @@ bool isLegalInsn() const
 }
 
 \begin{apient}
+Architecture getArch() const
+\end{apient}
+\apidesc{Returns the architecture containing the instruction. As
+  above, this will be an element from the set \code{\{Arch\_x86,
+    Arch\_x86\_64, Arch\_ppc32, Arch\_ppc64\}}.}
+
+\begin{apient}
 InsnCategory getCategory() const
 \end{apient}
 \apidesc{
@@ -280,4 +281,27 @@ InsnCategory getCategory() const
     Currently, the valid categories are \code{c\_CallInsn},
     \code{c\_ReturnInsn}, \code{c\_BranchInsn}, \code{c\_CompareInsn}, and
     \code{c\_NoCategory}, as defined in \code{InstructionCategories.h}.
+}
+
+\begin{apient}
+struct CFT {
+  Expression::Ptr target;
+  bool isCall;
+  bool isIndirect;
+  bool isConditional;
+  bool isFallthrough;
+}
+
+typedef ... cftConstIter;
+cftConstIter cft_begin() const;
+cftConstIter cft_end() const;
+\end{apient}
+\apidesc{
+  On certain platforms (e.g., PowerPC with conditional call/return
+  instructions) the \code{getControlFlowTarget} function is
+  insufficient to represent the successors of an instruction. The
+  \code{cft\_begin} and \code{cft\_end} functions return iterators
+  into a list of all control flow target expressions as represented by
+  a list of \code{CFT} structures. In most cases,
+  \code{getControlFlowTarget} suffices. 
 }

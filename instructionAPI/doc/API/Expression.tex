@@ -62,7 +62,8 @@ undefined value.
 \begin{figure}
     \centering
 \includegraphics{fig/deref-eval}
-\caption{Applying \code{eval} to a Dereference tree with}
+\caption{Applying \code{eval} to a Dereference tree with two registers
+having user-provided values.}
 \label{fig:deref-eval}
 \end{figure}
 
@@ -128,7 +129,8 @@ virtual void apply(Visitor *)
     \code{apply} applies a \code{Visitor} to this \code{Expression}. Visitors
     perform postfix-order traversal of the ASTs represented by an
     \code{Expression}, with user-defined actions performed at each node of the
-    tree.
+    tree. We present a thorough discussion with examples in Section
+    \ref{sec:visitor}. 
 }
 
 \begin{apient}

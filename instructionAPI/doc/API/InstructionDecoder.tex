@@ -1,0 +1,28 @@
+\subsection{InstructionDecoder Class}
+\label{sec:instructionDecoder}
+
+The \code{InstructionDecoder} class decodes instructions, given a buffer of bytes and a
+length, and constructs an Instruction. 
+
+\begin{apient}
+  InstructionDecoder(const unsigned char *buffer, size_t size,
+                     Architecture arch)
+  InstructionDecoder(const void *buffer, size_t size,
+                     Architecture arch)
+\end{apient}
+
+\apidesc{Construct an \code{InstructionDecoder} over the provided
+\code{buffer} and \code{size}. We consider the buffer to contain
+instructions from the provided \code{arch}, which must be from the set
+\code{\{Arch\_x86, Arch\_x86\_64, Arch\_ppc32, Arch\_ppc64\}}. }
+
+\begin{apient}
+Instruction::Ptr decode();
+\end{apient}
+
+\apidesc{Decode the next address in the buffer provided at
+construction time, returning either an instruction pointer or
+\code{NULL} if the buffer contains no undecoded instructions.}
+
+
+
