@@ -32,15 +32,14 @@ are equal if they represent the same value.
 }
 
 \begin{apient}
-virtual void getChildren(vector<InstructionAPI::Ptr> & children) const [pure
-virtual]
+virtual void getChildren(vector<InstructionAPI::Ptr> & children) const
 \end{apient}
 \apidesc{
     Children of this node are appended to the vector \code{children}.
 }
 
 \begin{apient}
-virtual void getUses(set<InstructionAPI::Ptr> & uses) [pure virtual]
+virtual void getUses(set<InstructionAPI::Ptr> & uses)
 \end{apient}
 \apidesc{
     The use set of an \code{InstructionAST} is defined as follows:
@@ -55,7 +54,7 @@ virtual void getUses(set<InstructionAPI::Ptr> & uses) [pure virtual]
 }
 
 \begin{apient}
-virtual bool isUsed(InstructionAPI::Ptr findMe) const [pure virtual]
+virtual bool isUsed(InstructionAPI::Ptr findMe) const
 \end{apient}
 \apidesc{
     Unlike \code{getUses}, \code{isUsed} looks for \code{findMe} as a subtree of
@@ -68,7 +67,7 @@ virtual bool isUsed(InstructionAPI::Ptr findMe) const [pure virtual]
 }
 
 \begin{apient}
-virtual std::string foramt(formatStyle how == defaultStyle) const [pure virtual] 
+virtual std::string foramt(formatStyle how == defaultStyle) const
 \end{apient}
 \apidesc{
     The \code{format} interface returns the contents of an \code{InstructionAPI}
