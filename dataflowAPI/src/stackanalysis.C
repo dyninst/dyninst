@@ -662,7 +662,7 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
    insn->getOperand(1).getReadSet(readSet); //assert(readSet.size() == 1);
 
    // conservative...
-   if (readSet.size() > 1) {
+   if (readSet.size() != 1) {
     return handleDefault(insn, xferFuncs); 
    }
 
