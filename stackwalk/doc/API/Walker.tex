@@ -29,63 +29,53 @@ function or object that created a stack frame.
 
 \begin{apient}
 static Walker *newWalker()
-\end{apient}
-\apidesc{
-	This factory method creates a new \code{Walker} object that performs first party stackwalks.
-
-    The new \code{Walker} object uses the default \code{StepperGroup} and
-    \code{SymbolLookup} callbacks for the current platform, and it uses the
-    \code{ProcSelf} callback for its \code{ProcessState} object. See
-    Section~\ref{subsec:defaults} for more information about defaults in the
-    Callback Interface. 
-
-    This method returns \code{NULL} if it was unable to create a new \code{Walker}
-    object. The new \code{Walker} object was created with the \code{new} operator, and
-    should be deallocated with the \code{delete} operator when it is no longer needed.
-}
- 
-\begin{apient}
 static Walker *newWalker(Dyninst::PID pid)
-\end{apient}
-\apidesc{
-    This factory method creates a new \code{Walker} object that performs third
-    party stackwalks, on the process identified by \code{pid}. 
-
-    The new \code{Walker} object uses the default \code{StepperGroup} and
-    \code{SymbolLookup}
-    callbacks for the current platform, and it uses the \code{ProcSelf} callback for
-    its \code{ProcessState} object. See Section~\ref{subsec:defaults} for more information about
-    defaults in the Callback Interface. 
-
-    This method returns \code{NULL} if it is unable to create a new
-    \code{Walker} object. The
-    new \code{Walker} object is created with the \code{new} operator, and should be
-    deallocated with the \code{delete} operator when it is no longer needed.
-}
- 
-\begin{apient}
-static Walker *newWalker(ProcessState *proc, 			
-                         StepperGroup *steppergroup = NULL		,
+static Walker *newWalker(Dyninst::PID pid, std::string executable)
+static Walker *newWalker(Dyninst::ProcControlAPI::Process::ptr proc);
+static Walker *newWalker(std::string executable,
+                         const std::vector<std::string> &argv)
+static Walker *newWalker(ProcessState *proc,
+                         StepperGroup *steppergroup = NULL ,
                          SymbolLookup *lookup = NULL)
 \end{apient}
 \apidesc{
-    This factory method creates a new \code{Walker} object that walks call stacks on
-    the given \code{proc} object. Custom \code{StepperGroup} and
-    \code{SymbolLookup} can be given
-    with the steppergroup and lookup parameters. If the steppergroup or lookup
-    parameters are \code{NULL}, then StackwalkerAPI will create a \code{Walker} object that
-    uses a default callbacks for the \code{NULL} parameter, as described in
-    Section~\ref{sec:defaults}. 
+These factory methods return new Walker objects:
+\begin{itemize}
+\item The first takes no arguments and returns a first-party stackwalker.
+\item The second takes a PID representing a running process and returns a third-party stackwalker on that
+process.
+\item The third takes the name of the executing binary in addition to the PID and also returns a third-party
+stackwalker on that process.
+\item The fourth takes a ProcControlAPI process object and returns a third-party stackwalker.
+\item The fifty takes the name of an executable and its arguments, creates the process, and returns a
+third-party stackwalker.
+\item The sixth takes a ProcessState pointer representing a running process as well as user-defined
+StepperGroup and SymbolLookup pointers. It can return both first-party and third-party Walkers,
+depending on the ProcessState parameter.
+\end{itemize}
 
-    It is an error to pass \code{NULL} in the \code{proc} parameter. \code{proc} is used to determine
-    whether to collect first party or third party stackwalks and, in the case of
-    third party stackwalks, identify the target process.
+Unless overriden with the sixth variant, the new Walker object uses the default StepperGroup and
+SymbolLookup callbacks for the current platform. First-party walkers use the ProcSelf callback
+for its ProcessState object. Third-party walkers use ProcDebug instead. See Section 3.5.1 for
+more information about defaults in the Callback Interface.
 
-    This method returns \code{NULL} if there was an error creating the new \code{Walker}
-    object. The new \code{Walker} object is created with the \code{new} operator, and
-    should be deallocated with the \code{delete} operator when it is no longer needed.
+This method returns NULL if it was unable to create a new Walker object. The new Walker object
+was created with the new operator, and should be deallocated with the delete operator when it
+is no longer needed.
 }
  
+\begin{apient}
+static bool newWalker(const std::vector<Dyninst::PID> &pids,
+                      std::vector<Walker *> &walkers_out)
+static bool newWalker(const std::vector<Dyninst::PID> &pids,
+                      std::vector<Walker *> &walkers_out,
+                      std::string executable)
+\end{apient}
+\apidesc{
+ This method attaches to a group of processes and returns a vector of Walker objects that perform
+third-party stackwalks. As above, the first variant takes a list of PIDs and attaches to those
+processes; the second variant also specifies the executable binary.}
+
 \begin{apient}
 bool walkStack(std::vector<Frame> &stackwalk,	 
                Dyninst::THR_ID thread = NULL_THR_ID)
@@ -179,3 +169,23 @@ SymbolLookup *getSymbolLookup() const
 \apidesc{
     This method returns the \code{SymbolLookup} object associated with this \code{Walker}.
 }
+
+\begin{apient}
+bool addStepper(FrameStepper *stepper)
+\end{apient}
+\apidesc{
+This method adds a provided FrameStepper to those used by the Walker.
+}
+
+\begin{apient}
+static SymbolReaderFactory *getSymbolReader()
+\end{apient}
+\apidesc{This method returns a factory for creating process-specific symbol readers. Unlike the above
+methods it is global across all Walkers and is thus defined static.}
+
+\begin{apient}
+void version(int &major, int &minor, int &maintenance)
+\end{apient}
+
+\apidesc{This method returns version information (e.g., 8, 0, 0 for
+  the 8.0 release).}

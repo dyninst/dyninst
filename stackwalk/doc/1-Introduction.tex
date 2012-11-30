@@ -7,7 +7,7 @@ record of an executing function (or function-like object such as a signal
 handler or system call). StackwalkerAPI provides an API that allows users to
 collect a call stack (known as walking the call stack) and access information
 about its stack frames. The current implementation supports Linux/x86,
-Linux/AMD-64, Linux/Power, Linux/Power-64, BlueGene/L, and BlueGene/P.
+Linux/x86-64, Linux/Power, Linux/Power-64, Windows/x86, BlueGene/L, and BlueGene/P.
 
 StackwalkerAPI is designed to be both easy-to-use and easy-to-extend. Users can
 easily use StackwalkerAPI to walk a call stack without needing to understand how
@@ -20,8 +20,8 @@ interface that allows users to access detailed information about the call stack.
 For example, the following C++ code-snippet is all that is needed to walk and
 print the call stack of the currently running thread.
 
-\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
-\lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
+\lstset{language=[GNU]C++,basicstyle=\ttfamily\selectfont\small}
+\lstset{numbers=none}
 \begin{lstlisting}
 std::vector<Frame> stackwalk; 
 string s;
