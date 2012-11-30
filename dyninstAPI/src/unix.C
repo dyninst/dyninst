@@ -274,7 +274,6 @@ mapped_object *PCProcess::createObjectNoFile(Address) {
     return NULL;
 }
 
-/*
 bool PCProcess::setMemoryAccessRights(Address start, size_t size, int rights) {
     mal_printf("setMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
     assert(!"Not implemented yet");
@@ -286,7 +285,6 @@ bool PCProcess::getMemoryAccessRights(Address start, size_t size, int& rights) c
     assert(!"Not implemented yet");
     return false;
 }
-*/
 
 void PCProcess::redirectFds(int stdin_fd, int stdout_fd, int stderr_fd,
         std::map<int, int> &fds)
