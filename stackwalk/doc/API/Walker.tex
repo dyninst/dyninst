@@ -47,7 +47,7 @@ process.
 \item The third takes the name of the executing binary in addition to the PID and also returns a third-party
 stackwalker on that process.
 \item The fourth takes a ProcControlAPI process object and returns a third-party stackwalker.
-\item The fifty takes the name of an executable and its arguments, creates the process, and returns a
+\item The fifth takes the name of an executable and its arguments, creates the process, and returns a
 third-party stackwalker.
 \item The sixth takes a ProcessState pointer representing a running process as well as user-defined
 StepperGroup and SymbolLookup pointers. It can return both first-party and third-party Walkers,
@@ -184,7 +184,7 @@ static SymbolReaderFactory *getSymbolReader()
 methods it is global across all Walkers and is thus defined static.}
 
 \begin{apient}
-void version(int &major, int &minor, int &maintenance)
+static void version(int &major, int &minor, int &maintenance)
 \end{apient}
 
 \apidesc{This method returns version information (e.g., 8, 0, 0 for

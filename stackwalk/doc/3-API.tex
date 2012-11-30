@@ -185,26 +185,26 @@ local variables contained in that function and the types of those local
 variables. See the SymtabAPI Programmer's Guide for more information.
 
 \begin{apient}
-Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
+static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
 \end{apient}
 \apidesc{
 This method returns a SymtabAPI function handle for the function that created the call stack frame, f. 
 }
 
 \begin{apient}
-const int glvv_Success = 0;
-const int glvv_EParam = -1;
-const int glvv_EOutOfScope = -2;
-const int glvv_EBufferSize = -3;
-const int glvv_EUnknown = -4;
+static int glvv_Success = 0;
+static int glvv_EParam = -1;
+static int glvv_EOutOfScope = -2;
+static int glvv_EBufferSize = -3;
+static int glvv_EUnknown = -4;
 \end{apient}
 
 \begin{apient}
-int getLocalVariableValue(Dyninst::SymtabAPI::localVar *var,
-                          std::vector<Frame> &swalk,
-                          unsigned frame,
-                          void *out_buffer,
-                          unsigned out_buffer_size)
+static int getLocalVariableValue(Dyninst::SymtabAPI::localVar *var,
+                                 std::vector<Frame> &swalk,
+                                 unsigned frame,
+                                 void *out_buffer,
+                                 unsigned out_buffer_size)
 \end{apient}
 \apidesc{
     Given a local variable and a stack frame from a call stack, this function

@@ -14,7 +14,7 @@ interface. Users who want to customize the \code{StepperGroup} should inherit fr
 class and re-implement any of the below virtual functions.
 
 \begin{apient}
-virtual StepperGroup(Walker *walker)
+StepperGroup(Walker *walker)
 \end{apient}
 \apidesc{
     This factory constructor creates a new \code{StepperGroup} object associated
@@ -93,7 +93,7 @@ virtual bool removeAddressRanges(
 
 \begin{apient}
 virtual bool findStepperForAddr(Address addr, FrameStepper* &out, 
-                                const FrameStepper *last_tried = NULL)
+                                const FrameStepper *last_tried = NULL) = 0
 \end{apient}
 \apidesc{
     Given an address that points into a function (or function-like object),

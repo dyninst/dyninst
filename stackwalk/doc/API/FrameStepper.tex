@@ -90,7 +90,7 @@ and the stack walk should be aborted.
 }
 
 \begin{apient}
-virtual void registerStepperGroup(StepperGroup &steppergroup)
+virtual void registerStepperGroup(StepperGroup *steppergroup)
 \end{apient}
 \apidesc{
 This method is used to notify a \code{FrameStepper} when StackwalkerAPI adds it to a
@@ -100,7 +100,7 @@ passed in parameter steppergroup. This method can be used to initialize the
 }
 
 \begin{apient}
-virtual unsigned getPriority() = 0
+virtual unsigned getPriority() const = 0
 \end{apient}
 \apidesc{
 This method is used by the \code{StepperGroup} to decide which \code{FrameStepper} to use if
