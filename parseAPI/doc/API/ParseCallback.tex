@@ -18,7 +18,7 @@ struct default_details {
 callbacks.}
 
 \begin{apient}
-virtual void instruction_cb(Function*,Address,insn_details*)
+virtual void instruction_cb(Function*,Block*,Address,insn_details*)
 \end{apient}
 \apidesc{Invoked for each instruction decoded during parsing. Implementing this callback may incur significant overhead.}
 
