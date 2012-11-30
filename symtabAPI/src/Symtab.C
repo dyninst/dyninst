@@ -2645,6 +2645,26 @@ bool Symtab::setDefaultNamespacePrefix(string &str)
 
 SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
+   bool invalid = false;
+   bool equal = false;
+
+   // Check whether we're writing the same object as us
+   struct stat orig_buf, new_buf;
+   if (::stat(filename.c_str(), &new_buf) == 0) {
+      // We can open that file, so check against ours
+      if (::stat(file().c_str(), &orig_buf) == 0) {
+         if (orig_buf.st_dev == new_buf.st_dev &&
+             orig_buf.st_ino == new_buf.st_ino) {
+            equal = true;
+         }
+      }
+   }
+   else {
+      if (errno == EACCES) invalid = true;
+   }
+
+   if (invalid || equal) return false;
+
     // Start with all the defined symbols
     std::vector<Symbol *> allSyms;
     allSyms.insert(allSyms.end(), everyDefinedSymbol.begin(), everyDefinedSymbol.end());
