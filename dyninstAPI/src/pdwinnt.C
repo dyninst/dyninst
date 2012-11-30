@@ -444,7 +444,7 @@ int PCProcess::changeMemoryProtections
 
 // FIXED
 #if 0
-bool PCProcess::setMemoryAccessRights(Address start, Address size, int rights)
+bool PCProcess::setMemoryAccessRights(Address start, size_t size, int rights)
 {
     //mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
     // get lwp from which we can call changeMemoryProtections
