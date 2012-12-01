@@ -35,6 +35,12 @@ static Frame *newFrame(Dyninst::MachRegisterVal ra,
 }
 
 \begin{apient}
+bool operator==(const Frame &)
+\end{apient}
+\apidesc{\code{Frame} objects have a defined equality operator.}
+
+
+\begin{apient}
 Dyninst::MachRegisterVal getRA() const
 \end{apient}
 \apidesc{
@@ -75,6 +81,14 @@ void setFP(Dyninst::MachRegisterVal val)
 \apidesc{
     This method sets this \code{Frame} object's frame pointer to \code{val}.
 }
+
+\begin{apient}
+  bool isTopFrame() const;                                                      
+  bool isBottomFrame() const;                                                   
+\end{apient}
+\apidesc{
+  These methods return whether a \code{Frame} object is the top (e.g.,
+  most recently executing) or bottom of the stack walk. }
 
 \begin{apient}
 typedef enum { 
@@ -181,6 +195,19 @@ SymtabAPI, the \code{void*} points to a Symbol object or NULL if no symbol is fo
 
 This method returns \code{true} on success and \code{false} on error.  
 }
+
+\begin{apient}
+  Walker *getWalker() const; 
+\end{apient}
+
+\apidesc{This method returns the \code{Walker} object that constructed
+  this stack frame. }
+
+\begin{apient}
+  THR_ID getThread() const;                                                     
+\end{apient}
+\apidesc{This method returns the execution thread that the current
+  \code{Frame} represents. }
 
 \begin{apient}
 FrameStepper* getStepper() const

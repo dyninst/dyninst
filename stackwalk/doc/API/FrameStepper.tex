@@ -22,7 +22,9 @@ overlapping address ranges, then a priority value is used to determine which
 
 \code{FrameStepper} is an interface class; it cannot be instantiated. Users who want to
 develop new \code{FrameStepper} objects should inherit from this class and implement
-the below virtual functions.
+the the desired virtual functions. The \code{getCallerFrame,
+  getPriority}, and \code{getName} functions must be implemented; all
+others may be overridden if desired. 
 
 \begin{apient}
 typedef enum { 
@@ -114,3 +116,40 @@ priorities between \code{0x1000} and \code{0x2000}. If two \code{FrameStepper} o
 overlapping address range, and they have the same priority, then the order in
 which they are used is undefined.
 }
+
+\begin{apient}
+FrameStepper(Walker *w);
+\end{apient}
+\apidesc{Constructor definition for all \code{FrameStepper}
+  instances.}
+
+\begin{apient}
+virtual ProcessState *getProcessState();
+\end{apient}
+\apidesc{Return the \code{ProcessState} used by the
+  \code{FrameStepper}. Can be overridden if the user desires.}
+
+\begin{apient}
+virtual Walker *getWalker();
+\end{apient}
+
+\apidesc{Return the \code{Walker} associated with the
+  \code{FrameStepper}. Can be overridden if the user desires.}
+
+\begin{apient}
+typedef std::pair<std::string, Address> LibAddrPair;
+typedef enum { library_load, library_unload } lib_change_t;
+virtual void newLibraryNotification(LibAddrPair *libAddr, 
+                                    lib_change_t change);
+\end{apient}
+
+\apidesc{This function is called when a new library is loaded by the
+process; it should be implemented if the \code{FrameStepper} requires
+such information.}
+
+\begin{apient}
+virtual const char *getName() const = 0;
+\end{apient}
+
+\apidesc{Returns a name for the \code{FrameStepper}; must be
+  implemented by the user.}

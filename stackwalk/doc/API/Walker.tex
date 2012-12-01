@@ -184,6 +184,12 @@ static SymbolReaderFactory *getSymbolReader()
 methods it is global across all Walkers and is thus defined static.}
 
 \begin{apient}
+static void setSymbolReader(SymbolReaderFactory *);                       
+\end{apient}
+\apidesc{Set the symbol reader factory used when creating
+  \code{Walker} objects.}
+
+\begin{apient}
 static void version(int &major, int &minor, int &maintenance)
 \end{apient}
 
