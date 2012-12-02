@@ -493,7 +493,7 @@ bool emitElf::driver(Symtab *obj, string fName){
   
   string strtmpl = fName + "XXXXXX";
   char buf[strtmpl.length() + 1];
-  strncpy(buf, strtmpl.c_str(), strtmpl.length());
+  strncpy(buf, strtmpl.c_str(), strtmpl.length()+1);
 
   newfd = mkstemp(buf);
 
