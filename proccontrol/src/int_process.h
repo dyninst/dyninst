@@ -358,6 +358,12 @@ class int_process
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result, bp_write_t bp_write);
 
+   bool getMemoryAccessRights(Dyninst::Address addr, size_t size, int& rights) const;
+   bool setMemoryAccessRights(Dyninst::Address addr, size_t size, int rights, int& oldRights);
+   // FIXME pure virtual function
+   virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, Dyninst::Address size, int& rights) const;
+   virtual bool plat_setMemoryAccessRights(Dyninst::Address addr, Dyninst::Address size, int rights, int& oldRights);
+
    memCache *getMemCache();
 
    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates) = 0;

@@ -1610,6 +1610,43 @@ bool int_process::infFree(int_addressSet *aset)
    return !had_error;
 }
 
+bool int_process::getMemoryAccessRights(Dyninst::Address addr, size_t size, int& rights) const {
+   int result = plat_getMemoryAccessRights(addr, size, rights);
+   if (!result) {
+      pthrd_printf("Error get rights from memory %lx on target process %d\n",
+                   addr, getPid());
+      return false;
+   }
+   return true;
+}
+
+bool int_process::plat_getMemoryAccessRights(Dyninst::Address addr, size_t size, int& rights) const {
+    (void)addr;
+    (void)size;
+    (void)rights;
+	assert(!"Not implemented");
+	return false;
+}
+
+bool int_process::setMemoryAccessRights(Dyninst::Address addr, size_t size, int rights, int& oldRights) {
+   int result = plat_setMemoryAccessRights(addr, size, rights, oldRights);
+   if (!result) {
+      pthrd_printf("Error set rights to %x from memory %lx on target process %d\n",
+                   rights, addr, getPid());
+      return false;
+   }
+   return true;
+}
+
+bool int_process::plat_setMemoryAccessRights(Dyninst::Address addr, size_t size, int rights, int& oldRights) {
+    (void)addr;
+    (void)size;
+    (void)rights;
+    (void)oldRights;
+	assert(!"Not implemented");
+	return false;
+}
+
 SymbolReaderFactory *int_process::getSymReader()
 {
    if (symbol_reader) {
@@ -6747,6 +6784,56 @@ bool Process::readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, 
       return false;
    }
    llproc_->plat_preAsyncWait();
+
+   return true;
+}
+
+bool Process::getMemoryAccessRights(Dyninst::Address addr, size_t size, int& rights) const {
+   if (!llproc_) {
+      perr_printf("getMemoryAccessRights on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+
+   if( llproc_->getState() == int_process::detached ) {
+       perr_printf("getMemoryAccessRights on detached process\n");
+       setLastError(err_detached, "Process is detached\n");
+       return false;
+   }
+
+   pthrd_printf("User wants to getMemoryAccessRights [%lx %lx]\n", addr, addr+size);
+   bool result = llproc_->getMemoryAccessRights(addr, size, rights);
+   if (!result) {
+      pthrd_printf("Error get rights from memory %lx on target process %d\n",
+                   addr, llproc_->getPid());
+      return false;
+   }
+
+   return true;
+}
+
+bool Process::setMemoryAccessRights(Dyninst::Address addr, size_t size, int rights, int& oldrights)
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("setMemoryAccessRights on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+
+   if( llproc_->getState() == int_process::detached ) {
+       perr_printf("setMemoryAccessRights on detached process\n");
+       setLastError(err_detached, "Process is detached\n");
+       return false;
+   }
+
+   pthrd_printf("User wants to setMemoryAccessRights to %x [%lx %lx]\n", rights, addr, addr+size);
+   bool result = llproc_->setMemoryAccessRights(addr, size, rights, oldrights);
+   if (!result) {
+      pthrd_printf("Error set rights to %x from memory %lx on target process %d\n",
+                   rights, addr, llproc_->getPid());
+      return false;
+   }
 
    return true;
 }
