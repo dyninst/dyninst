@@ -1273,16 +1273,17 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].pic, rungroup_params[i].compiler,
 			rungroup_params[i].optimization, rungroup_params[i].abi, "NONE");
     
-  for (; tp_index < %d; tp_index++) {
-    if (test_params[tp_index].endrungroup == true) break;
-    rg->tests.push_back(new TestInfo(test_count++, 
-                                     test_params[tp_index].iname, 
-                                     test_params[tp_index].mrname, 
-                                     test_params[tp_index].isoname, 
-                                     test_params[tp_index].serialize_enable, 
-                                     test_params[tp_index].ilabel));
-  } 
-
+    for (; tp_index < %d; tp_index++) {
+      rg->tests.push_back(new TestInfo(test_count++, 
+                                       test_params[tp_index].iname, 
+                                       test_params[tp_index].mrname, 
+                                       test_params[tp_index].isoname, 
+                                       test_params[tp_index].serialize_enable, 
+                                       test_params[tp_index].ilabel));
+      if (test_params[tp_index].endrungroup == true) break;
+    } 
+    // Increment the test_params index (tp_index) past the endgroup. 
+    tp_index++;
     rg->index = group_count++;
     tests.push_back(rg);
   }
