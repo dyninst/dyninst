@@ -406,6 +406,9 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
     **/
    Dyninst::Address findFreeMemory(size_t size);
 
+   bool getMemoryAccessRights(Dyninst::Address addr, size_t size, int &rights) const;
+   bool setMemoryAccessRights(Dyninst::Address addr, size_t size, int rights, int& oldRights);
+
    /**
     * Libraries
     **/

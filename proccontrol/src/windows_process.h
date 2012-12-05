@@ -55,6 +55,11 @@ public:
 	virtual bool plat_detach(result_response::ptr resp);
 	virtual bool plat_terminate(bool &needs_sync);
 
+    virtual bool plat_getMemoryAccessRights(Dyninst::Address addr,
+                                            size_t size, int& rights) const;
+    virtual bool plat_setMemoryAccessRights(Dyninst::Address addr,
+                                            size_t size, int rights, int& oldRights);
+
 	virtual bool plat_readMem(int_thread *thr, void *local, 
 		Dyninst::Address remote, size_t size);
 	virtual bool plat_writeMem(int_thread *thr, const void *local, 

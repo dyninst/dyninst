@@ -274,13 +274,13 @@ mapped_object *PCProcess::createObjectNoFile(Address) {
     return NULL;
 }
 
-bool PCProcess::setMemoryAccessRights(Address start, Address size, int rights) {
+bool PCProcess::setMemoryAccessRights(Address start, size_t size, int rights) {
     mal_printf("setMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
     assert(!"Not implemented yet");
     return false;
 }
 
-bool PCProcess::getMemoryAccessRights(Address start, Address size, int rights) {
+bool PCProcess::getMemoryAccessRights(Address start, size_t size, int& rights) const {
     mal_printf("getMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
     assert(!"Not implemented yet");
     return false;

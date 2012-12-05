@@ -153,6 +153,8 @@ bool CALLBACK printMods(PCSTR name, DWORD64 addr, PVOID unused) {
     fprintf(stderr, " %s @ %llx\n", name, addr);
     return true;
 }
+
+// FIXME
 #if 0
 static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_active)
 {
@@ -241,7 +243,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             wait_until_active = false;
             ret = true;
             ev.type = evtIgnore;
-            ev.lwp->changeMemoryProtections(
+            PCProcess::changeMemoryProtections(
                 violationAddr - (violationAddr % ev.proc->getMemoryPageSize()), 
                 ev.proc->getMemoryPageSize(), 
                 PAGE_EXECUTE_READWRITE, 
@@ -335,30 +337,16 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
 void OS::osDisconnect(void) {
 }
 
-#if 0
-bool PCProcess::setMemoryAccessRights (Address start, Address size, int rights)
+bool PCProcess::getMemoryAccessRights(Address start, size_t size, int& rights)
 {
-    //mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
-    // get lwp from which we can call changeMemoryProtections
-    dyn_lwp *stoppedlwp = query_for_stopped_lwp();
-    assert( stoppedlwp );
-    if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
-        mapped_object *obj = findObject(start);
-        int page_size = getMemoryPageSize();
-        for (Address cur = start; cur < (start + size); cur += page_size) {
-            obj->removeProtectedPage(start -(start % page_size));
-        }
+    if(!pcProc_->getMemoryAccessRights(shadowAddr, pageSize, rights)) {
+	    mal_printf("ERROR: failed to get access rights for page %lx, %s[%d]\n", addr, FILE__, __LINE__);
+        return false;
     }
-    stoppedlwp->changeMemoryProtections(start, size, rights, true);
     return true;
 }
-#endif
-bool PCProcess::getMemoryAccessRights(Address start, Address size, int rights)
-{
-   assert(0 && "Unimplemented!");
-   return 0;
-}
 
+// FIXED
 #if 0
 int dyn_lwp::changeMemoryProtections
 (Address addr, Offset size, unsigned rights, bool setShadow)
@@ -413,9 +401,81 @@ int dyn_lwp::changeMemoryProtections
 }
 #endif
 
+int PCProcess::changeMemoryProtections
+(Address addr, size_t size, unsigned rights, bool setShadow)
+{
+    unsigned oldRights=0;
+    unsigned pageSize = proc()->getMemoryPageSize();
+
+	Address pageBase = addr - (addr % pageSize);
+	size += (addr % pageSize);
+
+	// Temporary: set on a page-by-page basis to work around problems
+	// with memory deallocation
+	for (Address idx = pageBase, idx_e = pageBase + size; idx < idx_e; idx += pageSize) {
+        mal_printf("setting rights to %lx for [%lx %lx)\n", rights, idx , idx + pageSize);
+        if (!pcProc_->setMemoryAccessRights(idx, pageSize, rights, oldRights)) {
+			mal_printf("ERROR: failed to set access rights for page %lx, %s[%d]\n", addr, FILE__, __LINE__);
+		}
+		else if (proc()->isMemoryEmulated() && setShadow) {
+			Address shadowAddr = 0;
+			unsigned shadowRights=0;
+			bool valid = false;
+			boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(idx);
+			if (!valid) {
+				mal_printf("WARNING: set access rights on page %lx that has "
+				        "no shadow %s[%d]\n",addr,FILE__,__LINE__);
+			}
+			else 
+			{
+                if(!pcProc_->setMemoryAccessRights(shadowAddr, pageSize, rights, shadowRights)) {
+                    mal_printf("ERROR: failed to set access rights for page %lx, %s[%d]\n", shadowAddr, FILE__, __LINE__);
+                }
+
+				if (shadowRights != oldRights) {
+					mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
+					           "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
+				}
+			}
+		}
+	}
+	return oldRights;
+}
+
+// FIXED
+#if 0
+bool PCProcess::setMemoryAccessRights(Address start, size_t size, int rights)
+{
+    //mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
+    // get lwp from which we can call changeMemoryProtections
+    dyn_lwp *stoppedlwp = query_for_stopped_lwp();
+    assert( stoppedlwp );
+    if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
+        mapped_object *obj = findObject(start);
+        int page_size = getMemoryPageSize();
+        for (Address cur = start; cur < (start + size); cur += page_size) {
+            obj->removeProtectedPage(start -(start % page_size));
+        }
+    }
+    stoppedlwp->changeMemoryProtections(start, size, rights, true);
+    return true;
+}
+#endif
+
+bool PCProcess::setMemoryAccessRights(Address start, size_t size, int rights)
+{
+    if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
+        mapped_object *obj = findObject(start);
+        int page_size = getMemoryPageSize();
+        for (Address cur = start; cur < (start + size); cur += page_size) {
+            obj->removeProtectedPage(start -(start % page_size));
+        }
+    }
+    changeMemoryProtections(start, size, rights, true);
+	return true;
+}
 
 #if 0
-
 // sets PC for stack frames other than the active stack frame
 bool Frame::setPC(Address newpc) {
 
@@ -563,6 +623,9 @@ bool getLWPIDs(pdvector <unsigned> &LWPids)
 //     we read the entire image name string.  If not, we have to adjust
 //     the amount we read and try again.
 //
+
+// Bernat, SEP12 - I don't think we need this... 
+
 std::string GetLoadedDllImageName( PCProcess* p, const DEBUG_EVENT& ev )
 {
     char *msgText = NULL;
@@ -1299,6 +1362,7 @@ static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves)
 
 
 
+// FIXME (maybe?)
 #if 0
 mapped_object *PCProcess::createObjectNoFile(Address addr)
 {
@@ -1402,7 +1466,7 @@ mapped_object *PCProcess::createObjectNoFile(Address addr)
         if (obj != NULL) {
             obj->setMemoryImg();
             //mapped_objects.push_back(obj);
-	    addMappedObject(obj);
+	        addMappedObject(obj);
 
             obj->parse_img()->getOrCreateModule(
                 obj->parse_img()->getObject()->getDefaultModule());
@@ -1574,12 +1638,6 @@ bool PCProcess::dumpCore(std::string coreFile)
 }
 
 bool PCProcess::hideDebugger()
-{
-	assert(0);
-	return false;
-}
-
-bool PCProcess::setMemoryAccessRights(Dyninst::Address start, Dyninst::Address size, int rights)
 {
 	assert(0);
 	return false;

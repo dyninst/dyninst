@@ -246,6 +246,36 @@ bool windows_process::plat_forked()
 	return false;
 }
 
+bool windows_process::
+plat_getMemoryAccessRights(Dyninst::Address addr, size_t size, int& rights) const
+{
+   MEMORY_BASIC_INFORMATION meminfo;
+   SIZE_T size = ::VirtualQueryEx(hproc, (LPCVOID)addr, &meminfo, sizeof(MEMORY_BASIC_INFORMATION));
+   if (!size) {
+       pthrd_printf("ERROR: failed to get access rights for page %lx, error code %d\n", addr, ::GetLastError());
+       return false;
+   }
+
+   rights = meminfo.Protect;
+   return true;
+}
+
+bool windows_process::
+plat_setMemoryAccessRights(Dyninst::Address addr, size_t size, int rights, int& oldRights)
+{
+    if (!::VirtualProtectEx(hproc, (LPVOID)(addr), (SIZE_T)size, (DWORD)rights, (PDWORD)&oldRights)) 
+    {
+        pthrd_printf("ERROR: failed to set access rights for page %lx, error code %d\n", addr, ::GetLastError());
+        MEMORY_BASIC_INFORMATION meminfo;
+        SIZE_T size = ::VirtualQueryEx(hproc, (LPCVOID) (addr), &meminfo, sizeof(MEMORY_BASIC_INFORMATION));
+        pthrd_printf("ERROR DUMP: baseAddr 0x%lx, AllocationBase 0x%lx, AllocationProtect 0x%lx, RegionSize 0x%lx, State 0x%lx, Protect 0x%lx, Type 0x%lx\n",
+            meminfo.BaseAddress, meminfo.AllocationBase, meminfo.AllocationProtect, meminfo.RegionSize, meminfo.State, meminfo.Protect, meminfo.Type);
+        return false;
+    }
+
+	return true;
+}
+
 bool windows_process::plat_readMem(int_thread *thr, void *local, 
 								   Dyninst::Address remote, size_t size)
 {

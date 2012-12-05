@@ -1283,11 +1283,18 @@ bool PCProcess::writeDataSpace(void *inTracedProcess,
         // the write may have failed because we've removed write permissions
         // from the page, remove them and try again
 
-        int oldRights = setMemoryAccessRights((Address)inTracedProcess,
+        int oldRights;
+        pcProc_->setMemoryAccessRights((Address)inTracedProcess, amount,
+                                       PAGE_EXECUTE_READWRITE, oldRights);
+        /* int oldRights = pcProc_->setMemoryAccessRights((Address)inTracedProcess,
                 amount, PAGE_EXECUTE_READWRITE);
+                */
         if( oldRights == PAGE_EXECUTE_READ || oldRights == PAGE_READONLY ) {
             result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
-            if( setMemoryAccessRights((Address)inTracedProcess, amount, oldRights) == false ) {
+            int newRights;
+            if( pcProc_->setMemoryAccessRights((Address)inTracedProcess, amount,
+                                               oldRights, newRights) == false ) {
+            // if( pcProc_->setMemoryAccessRights((Address)inTracedProcess, amount, oldRights) == false ) {
                 result = false;
             }
         }else{
