@@ -88,15 +88,15 @@ class BPATCH_DLL_EXPORT BPatch_Set {
    typedef typename int_t::reverse_iterator reverse_iterator;
    typedef typename int_t::const_reverse_iterator const_reverse_iterator;
  
-   iterator begin() { return int_set.begin(); }
-   const_iterator begin() const { return int_set.begin(); }
-   iterator end() { return int_set.end(); }
-   const_iterator end() const { return int_set.end(); }
+   DO_INLINE_F iterator begin() { return int_set.begin(); }
+   DO_INLINE_F const_iterator begin() const { return int_set.begin(); }
+   DO_INLINE_F iterator end() { return int_set.end(); }
+   DO_INLINE_F const_iterator end() const { return int_set.end(); }
 
-   reverse_iterator rbegin() { return int_set.rbegin(); }
-   const_reverse_iterator rbegin() const { return int_set.rbegin(); }
-   reverse_iterator rend() { return int_set.rend(); }
-   const_reverse_iterator rend() const { return int_set.rend(); }
+   DO_INLINE_F reverse_iterator rbegin() { return int_set.rbegin(); }
+   DO_INLINE_F const_reverse_iterator rbegin() const { return int_set.rbegin(); }
+   DO_INLINE_F reverse_iterator rend() { return int_set.rend(); }
+   DO_INLINE_F const_reverse_iterator rend() const { return int_set.rend(); }
 
    DO_INLINE_F BPatch_Set() {};
 

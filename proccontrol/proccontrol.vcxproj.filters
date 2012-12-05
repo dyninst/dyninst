@@ -134,5 +134,8 @@
     <ClInclude Include="src\x86_process.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="h\PlatFeatures.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -28,6 +28,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#if !defined(__INT__EVENT__H__)
+#define __INT__EVENT__H__
+
 #include "response.h"
 #include <set>
 
@@ -187,3 +190,5 @@ class int_eventAsyncIO {
 
 }
 }
+
+#endif

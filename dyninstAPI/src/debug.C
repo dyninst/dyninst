@@ -311,10 +311,6 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI mutex debug\n");
     dyn_debug_mutex = 1;
     }
-  if ( (p=getenv("DYNINST_DEBUG_DWARF"))) {
-    fprintf(stderr, "Enabling DyninstAPI dwarf debug\n");
-    dyn_debug_dwarf= 1;
-    }
   if ( (p=getenv("DYNINST_DEBUG_RTLIB"))) {
       fprintf(stderr, "Enabling DyninstAPI RTlib debug\n");
       dyn_debug_rtlib = 1;

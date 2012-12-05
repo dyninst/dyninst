@@ -52,7 +52,7 @@ class MappedFile;
  
 namespace Dyninst {
 
-   class SymSegment;
+   struct SymSegment;
 
 namespace SymtabAPI {
 
@@ -412,7 +412,7 @@ class Symtab : public LookupInterface,
    //Only valid on ELF formats
    SYMTAB_EXPORT Offset getElfDynamicOffset();
    // SymReader interface
-   void getSegmentsSymReader(std::vector<SymSegment> &segs);
+   SYMTAB_EXPORT void getSegmentsSymReader(std::vector<SymSegment> &segs);
 
  private:
    void createDefaultModule();
