@@ -1216,7 +1216,7 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 			else:
 				serialize_enable = 'false'
 			test_params.append({'test': test, 'mutator': mutator, 'LibSuffix': LibSuffix, 'serialize_enable' : serialize_enable, 'ts': ts, 'endrungroup': 'false'})
-		#test_params[-1]['endrungroup'] = 'true'
+		test_params[-1]['endrungroup'] = 'true'
 		if(group_empty == 'false'):
 			rungroup_params.append({'presencevar': presencevar, 'mutatee_name': mutatee_name, 'state_init': state_init, 
 				'attach_init': attach_init, 'ex': ex, 'compiler': group['compiler'], 'optimization': group['optimization'],
@@ -1266,17 +1266,22 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 #TODO presencevar
 	body = """ };
 
-  int tp_index = -1;
+  int tp_index = 0;
   for (int i = 0; i < %d; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].pic, rungroup_params[i].compiler,
 			rungroup_params[i].optimization, rungroup_params[i].abi, "NONE");
     
-    do {
-      tp_index++;
-      rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
-    } while (tp_index < %d && test_params[tp_index].endrungroup == false);
+  for (; tp_index < %d; tp_index++) {
+    if (test_params[tp_index].endrungroup == true) break;
+    rg->tests.push_back(new TestInfo(test_count++, 
+                                     test_params[tp_index].iname, 
+                                     test_params[tp_index].mrname, 
+                                     test_params[tp_index].isoname, 
+                                     test_params[tp_index].serialize_enable, 
+                                     test_params[tp_index].ilabel));
+  } 
 
     rg->index = group_count++;
     tests.push_back(rg);
