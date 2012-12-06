@@ -39,7 +39,14 @@ using namespace Dyninst;
 using namespace Dwarf;
 using namespace std;
 
-DwarfHandle::DwarfHandle(string filename_, Elf_X *file_, void *err_func_) :
+void DwarfHandle::defaultDwarfError(Dwarf_Error , Dwarf_Ptr) {
+
+}
+
+Dwarf_Handler DwarfHandle::defaultErrFunc = DwarfHandle::defaultDwarfError;
+
+DwarfHandle::DwarfHandle(string filename_, Elf_X *file_,
+                         Dwarf_Handler err_func_, Dwarf_Ptr err_data_) :
    init_dwarf_status(dwarf_status_uninitialized),
    dbg_file_data(NULL),
    file_data(NULL),
@@ -49,8 +56,10 @@ DwarfHandle::DwarfHandle(string filename_, Elf_X *file_, void *err_func_) :
    file(file_),
    dbg_file(NULL),
    err_func(err_func_),
+   err_data(err_data_),
    filename(filename_)
 {
+
    locate_dbg_file();
 }
 
@@ -82,7 +91,7 @@ bool DwarfHandle::init_dbg()
    }
 
    status = dwarf_elf_init(file->e_elfp(), DW_DLC_READ, 
-                           NULL, err_func, &file_data, &err);
+                           err_func, err_data, &file_data, &err);
    if (status != DW_DLV_OK) {
       init_dwarf_status = dwarf_status_error;
       return false;
@@ -90,7 +99,7 @@ bool DwarfHandle::init_dbg()
 
    if (dbg_file) {
       status = dwarf_elf_init(dbg_file->e_elfp(), DW_DLC_READ, 
-                              NULL, err_func, &dbg_file_data, &err);
+                              err_func, err_data, &dbg_file_data, &err);
       if (status != DW_DLV_OK) {
          init_dwarf_status = dwarf_status_error;
          return false;
@@ -209,7 +218,8 @@ DwarfHandle::~DwarfHandle()
 }
 
 map<std::string, DwarfHandle::ptr> DwarfHandle::all_dwarf_handles;
-DwarfHandle::ptr DwarfHandle::createDwarfHandle(string filename_, Elf_X *file_, void *err_func_)
+DwarfHandle::ptr DwarfHandle::createDwarfHandle(string filename_, Elf_X *file_, 
+                                                Dwarf_Handler err_func_, Dwarf_Ptr err_data_)
 {   
    map<string, DwarfHandle::ptr>::iterator i;
    i = all_dwarf_handles.find(filename_);
@@ -217,7 +227,7 @@ DwarfHandle::ptr DwarfHandle::createDwarfHandle(string filename_, Elf_X *file_, 
       return i->second;
    }
    
-   DwarfHandle::ptr ret = DwarfHandle::ptr(new DwarfHandle(filename_, file_, err_func_));
+   DwarfHandle::ptr ret = DwarfHandle::ptr(new DwarfHandle(filename_, file_, err_func_, err_data_));
    all_dwarf_handles.insert(make_pair(filename_, ret));
    return ret;
 }
