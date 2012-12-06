@@ -39,6 +39,7 @@
 #include "dataflowAPI/h/slicing.h"
 #include "dataflowAPI/h/SymEval.h"
 //#include "StackTamperVisitor.h"
+#include "instructionAPI/h/Visitor.h"
 
 #include <deque>
 
@@ -75,31 +76,74 @@ bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
     return false;
 }
 
-bool IA_IAPI::isNop() const
+class nopVisitor : public InstructionAPI::Visitor
 {
-    Instruction::Ptr ci = curInsn();
+    public:
+        nopVisitor() : foundReg(false), foundImm(false), foundBin(false), isNop(true) {}
+        virtual ~nopVisitor() {}
 
+        bool foundReg;
+        bool foundImm;
+        bool foundBin;
+        bool isNop;
+
+        virtual void visit(BinaryFunction*)
+        {
+            if (foundBin) isNop = false;
+            if (!foundImm) isNop = false;
+            if (!foundReg) isNop = false;
+            foundBin = true;
+        }
+        virtual void visit(Immediate *imm)
+        {
+            if (imm != 0) isNop = false;
+            foundImm = true;
+        }
+        virtual void visit(RegisterAST *)
+        {
+            foundReg = true;
+        }
+        virtual void visit(Dereference *)
+        {
+            isNop = false;
+        }
+};
+
+bool isNopInsn(Instruction::Ptr insn) 
+{
     // TODO: add LEA no-ops
-    assert(ci);
-    if(ci->getOperation().getID() == e_nop)
+    if(insn->getOperation().getID() == e_nop)
         return true;
-    if(ci->getOperation().getID() == e_lea)
+    if(insn->getOperation().getID() == e_lea)
     {
         std::set<Expression::Ptr> memReadAddr;
-        ci->getMemoryReadOperands(memReadAddr);
+        insn->getMemoryReadOperands(memReadAddr);
         std::set<RegisterAST::Ptr> writtenRegs;
-        ci->getWriteSet(writtenRegs);
-        
+        insn->getWriteSet(writtenRegs);
+
         if(memReadAddr.size() == 1 && writtenRegs.size() == 1)
         {
             if(**(memReadAddr.begin()) == **(writtenRegs.begin()))
             {
                 return true;
             }
-            // TODO: check for zero displacement--do we want to bind here?
         }
+        // Check for zero displacement
+        nopVisitor visitor;
+        insn->getOperand(0).getValue()->apply(&visitor);
+        if (visitor.isNop) return true; 
     }
     return false;
+}
+
+bool IA_IAPI::isNop() const
+{
+    Instruction::Ptr ci = curInsn();
+
+    assert(ci);
+    
+    return isNopInsn(ci);
+
 }
 
 /*
@@ -207,9 +251,19 @@ bool IA_IAPI::isTailCall(Function * context,unsigned int) const
     {
         //std::map<Address, Instruction::Ptr>::const_iterator prevIter =
                 //allInsns.find(current);
+        
+        // Updated: there may be zero or more nops between leave->jmp
+       
         allInsns_t::const_iterator prevIter = curInsnIter;
         --prevIter;
         Instruction::Ptr prevInsn = prevIter->second;
+    
+        while ( isNopInsn(prevInsn) && (prevIter != allInsns.begin()) ) {
+            --prevIter;
+            prevInsn = prevIter->second;
+        }
+
+
         if(prevInsn->getOperation().getID() == e_leave)
         {
             parsing_printf("\tprev insn was leave, TAIL CALL\n");
@@ -227,6 +281,7 @@ bool IA_IAPI::isTailCall(Function * context,unsigned int) const
             parsing_printf("\tprev insn was %s, not tail call\n", prevInsn->format().c_str());
         }
     }
+
     tailCall.second = false;
     context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
     return tailCall.second;
