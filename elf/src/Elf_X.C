@@ -150,7 +150,7 @@ Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
        else       phdr64 = elf64_getphdr(elf);
     }
 
-    if (elf_kind(elf) != ELF_K_AR) {
+    if (elf_kind(elf) == ELF_K_ELF) {
        size_t phdrnum = e_phnum();
        size_t shdrnum = e_shnum();
        shdrs.resize(shdrnum);
@@ -188,7 +188,7 @@ Elf_X::Elf_X(char *mem_image, size_t mem_size)
        else       phdr64 = elf64_getphdr(elf);
     }
 
-    if (elf_kind(elf) != ELF_K_AR) {
+    if (elf_kind(elf) == ELF_K_ELF) {
        size_t phdrnum = e_phnum();
        size_t shdrnum = e_shnum();
        shdrs.resize(shdrnum);
