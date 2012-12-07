@@ -2898,8 +2898,6 @@ bool Object::fix_global_symbol_modules_static_dwarf()
          moduleName = extract_pathname_tail( string(dwarfModuleName) );
       }
 
-      cerr << "Getting addr info for module " << moduleName << endl;
-
       Dwarf_Addr modLowPC = 0;
       Dwarf_Addr modHighPC = (Dwarf_Addr)(-1);
       Dwarf_Bool hasLowPC = false;
