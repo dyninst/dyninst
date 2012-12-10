@@ -43,7 +43,7 @@
 
 #include "stackwalk/src/libstate.h"
 #include "stackwalk/src/sw.h"
-
+#include "common/h/IntervalTree.h"
 #include <vector>
 
 using namespace Dyninst;
@@ -54,6 +54,9 @@ using namespace std;
 class PCLibraryState : public LibraryState {
 private:
    ProcDebug *pdebug;
+  
+  IntervalTree<Address, LibAddrPair> loadedLibs;
+
 public:
    PCLibraryState(ProcessState *pd);
    ~PCLibraryState();
@@ -64,6 +67,9 @@ public:
    virtual void notifyOfUpdate();
    virtual Address getLibTrapAddress();
    virtual bool getAOut(LibAddrPair &ao);
+  
+  bool updateLibraries();
+  bool cacheLibraryRanges(Library::ptr lib);
 
    void checkForNewLib(Library::ptr lib);
 };
@@ -402,6 +408,32 @@ PCLibraryState::~PCLibraryState()
 {
 }
  
+bool PCLibraryState::cacheLibraryRanges(Library::ptr lib)
+{
+   std::string filename = lib->getName();
+   Address base = lib->getLoadAddress();
+
+   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymReader *reader = fact->openSymbolReader(filename);
+   if (!reader) {
+      sw_printf("[%s:%u] - Error could not open expected file %s\n", 
+                __FILE__, __LINE__, filename.c_str());
+      return false;
+   }
+
+   int num_segments = reader->numSegments();
+   for (int i=0; i<num_segments; i++) {
+      SymSegment segment;
+      reader->getSegment(i, segment);
+      if (segment.type != 1) continue;
+      Address segment_start = segment.mem_addr + base;
+      Address segment_end = segment_start + segment.mem_size;
+
+    loadedLibs.insert(segment_start, segment_end, LibAddrPair(lib->getName(), lib->getLoadAddress()));
+   }
+   return true;
+}
+
 bool PCLibraryState::checkLibraryContains(Address addr, Library::ptr lib)
 {
    std::string filename = lib->getName();
@@ -436,8 +468,12 @@ void PCLibraryState::checkForNewLib(Library::ptr lib)
              __FILE__, __LINE__, lib->getName().c_str(), lib->getLoadAddress());
    
    lib->setData((void *) 0x1);
+
    StepperGroup *group = pdebug->getWalker()->getStepperGroup();
    LibAddrPair la(lib->getName(), lib->getLoadAddress());
+
+   cacheLibraryRanges(lib);
+
    group->newLibraryNotification(&la, library_load);
 }
 /*
@@ -468,12 +504,6 @@ bool PCLibraryState::getLibraryAtAddr(Address addr, LibAddrPair &lib)
 {
    Process::ptr proc = pdebug->getProc();
    CHECK_PROC_LIVE;
-   
-   LibraryPool::iterator i;
-   Library::ptr nearest_predecessor = Library::ptr();
-   signed int pred_distance = 0;
-   Library::ptr nearest_successor = Library::ptr();
-   signed int succ_distance = 0;
 
    vector<pair<LibAddrPair, unsigned int> > arch_libs;
    updateLibsArch(arch_libs);
@@ -489,81 +519,17 @@ bool PCLibraryState::getLibraryAtAddr(Address addr, LibAddrPair &lib)
       }
    }
 
-   std::vector<Library::ptr> zero_dynamic_libs;
-   for (i = proc->libraries().begin(); i != proc->libraries().end(); i++)
-   {
-      Library::ptr slib = *i;
-      checkForNewLib(slib);
-
-      Address dyn_addr = slib->getDynamicAddress();
-      if (!dyn_addr) {
-         zero_dynamic_libs.push_back(slib);
-         continue;
-      }
-
-      signed int distance = addr - dyn_addr;
-      if (distance == 0) {
-         lib.first = slib->getName();
-         lib.second = slib->getLoadAddress();
-         sw_printf("[%s:%u] - Found library %s contains address %lx\n",
-                   __FILE__, __LINE__, lib.first.c_str(), addr);
-         return true;
-      }
-      else if (distance < 0) {
-         if (!pred_distance || pred_distance < distance) {
-            nearest_predecessor = slib;
-            pred_distance = distance;
-         }
-      }
-      else if (distance > 0) {
-         if (!succ_distance || succ_distance > distance) {
-            nearest_successor = slib;
-            succ_distance = distance;
-         }
-      }
-   }
-
-   if (!nearest_predecessor && !nearest_successor) {
-      //Likely a static binary, set nearest_predecessor so that
-      // the following check will test it.
-      nearest_predecessor = proc->libraries().getExecutable();
-   }
-
-   if (nearest_predecessor && checkLibraryContains(addr, nearest_predecessor)) {
-      lib.first = nearest_predecessor->getName();
-      lib.second = nearest_predecessor->getLoadAddress();
-      sw_printf("[%s:%u] - Found library %s contains address %lx\n",
-                __FILE__, __LINE__, lib.first.c_str(), addr);
-      return true;
-   }
-   if (nearest_successor && checkLibraryContains(addr, nearest_successor)) {
-      lib.first = nearest_successor->getName();
-      lib.second = nearest_successor->getLoadAddress();
-      sw_printf("[%s:%u] - Found library %s contains address %lx\n",
-                __FILE__, __LINE__, lib.first.c_str(), addr);
-      return true;
-   }
-
-   std::vector<Library::ptr>::iterator k = zero_dynamic_libs.begin();
-   for (; k != zero_dynamic_libs.end(); k++) {
-      if (checkLibraryContains(addr, *k)) {
-         lib.first = (*k)->getName();
-         lib.second = (*k)->getLoadAddress();
-         return true;
-      }
-   }
-   if(checkLibraryContains(addr, proc->libraries().getExecutable()))
-   {
-     
-     lib.first = proc->libraries().getExecutable()->getName();
-     lib.second = proc->libraries().getExecutable()->getLoadAddress();
-     sw_printf("[%s:%u] - Found executable %s contains address %lx\n", __FILE__,
-	       __LINE__, lib.first.c_str(), addr);
+   bool ret = loadedLibs.find(addr, lib);
+   if (ret) {
      return true;
    }
-   
-   sw_printf("[%s:%u] - Could not find library for addr %lx\n", 
-             __FILE__, __LINE__, addr);
+   // Refresh cache
+   updateLibraries();
+   ret = loadedLibs.find(addr, lib);
+   if (ret) {
+     return true;
+   }
+
    return false;
 }
 
@@ -585,6 +551,33 @@ bool PCLibraryState::getLibraries(std::vector<LibAddrPair> &libs)
    for (j = arch_libs.begin(); j != arch_libs.end(); j++) {
       libs.push_back(j->first);
    }
+
+   return true;
+}
+
+bool PCLibraryState::updateLibraries()
+{
+   Process::ptr proc = pdebug->getProc();
+   CHECK_PROC_LIVE;
+
+
+   static bool exec = false;
+
+   if (!exec) {
+     cacheLibraryRanges(proc->libraries().getExecutable());
+     exec = true;
+   }
+
+
+   LibraryPool::iterator i;   
+   for (i = proc->libraries().begin(); i != proc->libraries().end(); i++)
+   {
+      checkForNewLib(*i);
+   }
+
+   vector<pair<LibAddrPair, unsigned int> > arch_libs;
+   vector<pair<LibAddrPair, unsigned int> >::iterator j;
+   updateLibsArch(arch_libs);
 
    return true;
 }

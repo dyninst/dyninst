@@ -195,6 +195,15 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 {
    LibAddrPair lib;
    bool result;
+
+   if (lookupInCache(in, out)) {
+       result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(out.getRA(), lib);
+       if (result) {
+           // Hit, and valid RA found
+           return gcf_success;
+       }
+   }
+
    // This error check is duplicated in BottomOfStackStepper.
    // We should always call BOSStepper first; however, we need the
    // library for the debug stepper as well. If this becomes
@@ -245,11 +254,16 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    cur_frame = &in;
    gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo, false);
    cur_frame = NULL;
+   
+   result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(out.getRA(), lib);
+   if (!result) return gcf_not_me;
+   
    if (gcresult == gcf_success) {
       sw_printf("[%s:%u] - Success walking with DWARF aux file\n",
                 __FILE__, __LINE__);
       return gcf_success;
    }
+   
    return gcresult;
 }
 
@@ -345,7 +359,21 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
          sp_loc.location = loc_unknown;
       }
    }
-      
+    
+   Address MAX_ADDR;
+   if (addr_width == 4) {
+       MAX_ADDR = 0xffffffff;
+   } 
+#if defined(arch_64bit)
+   else if (addr_width == 8){
+       MAX_ADDR = 0xffffffffffffffff;
+   }
+#endif 
+   else {
+       assert(0 && "Unknown architecture word size");
+   }
+
+   if(ra_loc.val.addr > MAX_ADDR || fp_loc.val.addr > MAX_ADDR || sp_loc.val.addr > MAX_ADDR) return gcf_not_me;
 
    out.setRA(ret_value);
    out.setFP(frame_value);
@@ -354,7 +382,86 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    out.setFPLocation(fp_loc);
    out.setSPLocation(sp_loc);
 
+   addToCache(in, out);
+
    return gcf_success;
 }
+
+void DebugStepperImpl::addToCache(const Frame &cur, const Frame &caller) {
+  const location_t &calRA = caller.getRALocation();
+
+  const location_t &calFP = caller.getFPLocation();
+
+  unsigned raDelta = (unsigned) -1;
+  unsigned fpDelta = (unsigned) -1;  
+  unsigned spDelta = (unsigned) -1;
+
+  if (calRA.location == loc_address) {
+    raDelta = calRA.val.addr - cur.getSP();
+  }
+
+  if (calFP.location == loc_address) {
+    fpDelta = calFP.val.addr - cur.getSP();
+  }
+
+  spDelta = caller.getSP() - cur.getSP();
+  
+  cache_[cur.getRA()] = cache_t(raDelta, fpDelta, spDelta);
+}
+
+bool DebugStepperImpl::lookupInCache(const Frame &cur, Frame &caller) {
+  dyn_hash_map<Address,cache_t>::iterator iter = cache_.find(cur.getRA());
+  if (iter == cache_.end()) {
+      return false;
+  }
+
+  addr_width = getProcessState()->getAddressWidth();
+
+  if (iter->second.ra_delta == (unsigned) -1) {
+      return false;
+  }
+  if (iter->second.fp_delta == (unsigned) -1) {
+    return false;
+  }
+  assert(iter->second.sp_delta != (unsigned) -1);
+  
+  Address MAX_ADDR;
+   if (addr_width == 4) {
+       MAX_ADDR = 0xffffffff;
+   } 
+#if defined(arch_64bit)
+   else if (addr_width == 8){
+       MAX_ADDR = 0xffffffffffffffff;
+   }
+#endif 
+   else {
+       assert(0 && "Unknown architecture word size");
+   }
+
+  location_t RA;
+  RA.location = loc_address;
+  RA.val.addr = cur.getSP() + iter->second.ra_delta;
+  RA.val.addr %= MAX_ADDR;
+
+  location_t FP;
+  FP.location = loc_address;
+  FP.val.addr = cur.getSP() + iter->second.fp_delta;
+
+  FP.val.addr %= MAX_ADDR;
+  int buffer[10];
+
+  caller.setRALocation(RA);
+  ReadMem(RA.val.addr, buffer, addr_width);
+  caller.setRA(last_val_read);
+
+  caller.setFPLocation(FP);  
+  ReadMem(FP.val.addr, buffer, addr_width);
+  caller.setFP(last_val_read);
+
+  caller.setSP(cur.getSP() + iter->second.sp_delta);
+
+  return true;
+}
+
 #endif
 
