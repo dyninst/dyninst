@@ -688,6 +688,9 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
    case 4:
      delta =  (long) res.convert<int>();
      break;
+   case 8:
+     delta =  (long) res.convert<long>();
+     break;
    default:
      assert(0);
    }
