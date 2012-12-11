@@ -36,8 +36,8 @@ static int error = 0;
 
 static int threadFunc(int myid, void *data)
 {
-   testLock(&init_lock);
-   testUnlock(&init_lock);
+   // testLock(&init_lock);
+   // testUnlock(&init_lock);
 
    return 0;
 }
@@ -45,10 +45,7 @@ static int threadFunc(int myid, void *data)
 //Basic test for create/attach and exit.
 int pc_mem_perm_mutatee()
 {
-#if !defined(i386_unknown_nt4_0_test)
-  return 0;
-
-#else
+#if defined(os_windows_test)
    int result;
 
    error = 0;
@@ -60,6 +57,19 @@ int pc_mem_perm_mutatee()
       output->log(STDERR, "Initialization failed\n");
       return -1;
    }
+
+   /*
+   send_addr addr_msg;
+   addr_msg.code = (uint32_t) SENDADDR_CODE;
+   addr_msg.addr = getFunctionPtr((Dyninst::Address*));
+   result = send_message((unsigned char *) &addr_msg, sizeof(send_addr));
+
+   if (result != 0) {
+     output->log(STDERR, "Failed to send memory address\n");
+     testUnlock(&init_lock);
+     return -1;
+   }
+   */
 
    testUnlock(&init_lock);
 
@@ -75,6 +85,9 @@ int pc_mem_perm_mutatee()
    }
 
    return -1;
+#else
+
+  return 0;
 
 #endif
 }

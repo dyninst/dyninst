@@ -216,10 +216,11 @@ public:
     bool setBeingDebuggedFlag(bool debuggerPresent);
 #endif
 
-    // FIXME platform-specific
-    bool getMemoryAccessRights(Address start, size_t size, int& rights) const;
-    int changeMemoryProtections(Address addr, size_t size, unsigned rights, bool setShadow);
-    bool setMemoryAccessRights(Address start, size_t size, int rights);
+    typedef ProcControlAPI::Process::mem_perm PCMemPerm;
+    bool getMemoryAccessRights(Address start,  size_t size, PCMemPerm& rights);
+    bool setMemoryAccessRights(Address start,  size_t size, PCMemPerm  rights);
+    void changeMemoryProtections(Address addr, size_t size, PCMemPerm  rights,
+                                 bool setShadow);
 
     // code overwrites
     bool getOverwrittenBlocks

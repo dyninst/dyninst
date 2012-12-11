@@ -1094,9 +1094,11 @@ bool HybridAnalysis::analyzeNewFunction( BPatch_point *source,
               pit != loops[lidx]->shadowMap.end(); 
               pit++) 
            {
+
+              Dyninst::ProcControlAPI::Process::mem_perm rights(true, true, true);
               proc()->setMemoryAccessRights(pit->first, 
                     proc()->lowlevel_process()->getMemoryPageSize(),
-                    PAGE_EXECUTE_READWRITE);
+                    rights /* PAGE_EXECUTE_READWRITE */ );
            }
         }
     }
@@ -1343,9 +1345,10 @@ HybridAnalysis::synchMap_post()
 }
 
 #if defined (os_windows)
-int
+Dyninst::ProcControlAPI::Process::mem_perm 
 HybridAnalysis::getOrigPageRights(Address addr)
 {
+    /*
     int origPerms=0;
     using namespace SymtabAPI;
     mapped_object *obj = proc()->lowlevel_process()->findObject(addr);
@@ -1369,9 +1372,38 @@ HybridAnalysis::getOrigPageRights(Address addr)
         assert(0);
     }
     return origPerms;
+    */
+
+    using namespace SymtabAPI;
+    mapped_object *obj = proc()->lowlevel_process()->findObject(addr);
+    Region * reg = obj->parse_img()->getObject()->
+        findEnclosingRegion(addr - obj->codeBase());
+    Region::perm_t perms = reg->getRegionPermissions();
+    Dyninst::ProcControlAPI::Process::mem_perm origPerms;
+    switch (perms) {
+    case (Region::RP_R):
+        origPerms.setR();
+        break;
+    case (Region::RP_RW):
+        origPerms.setR().setW();
+        break;
+    case (Region::RP_RX):
+        origPerms.setR().setX();
+        break;
+    case (Region::RP_RWX):
+        origPerms.setR().setW().setX();
+        break;
+    default:
+        assert(0);
+    }
+    return origPerms;
 }
-#else 
-int HybridAnalysis::getOrigPageRights(Address) { assert(0); return 0; }
+#else
+Dyninst::ProcControlAPI::Process::mem_perm
+HybridAnalysis::getOrigPageRights(Address) {
+  assert(0);
+  Dyninst::ProcControlAPI::Process::mem_perm tmp;
+  return tmp; }
 #endif
 
 void HybridAnalysis::addReplacedFuncs

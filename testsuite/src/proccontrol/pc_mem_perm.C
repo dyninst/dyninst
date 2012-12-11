@@ -29,6 +29,53 @@
  */
 #include "proccontrol_comp.h"
 
+typedef enum {
+  NONE = 0,
+  R    = 1,
+  X    = 2,
+  RW   = 3,
+  RX   = 4,
+  RWX  = 5
+} PERM;
+#define PERM_TOTAL (RWX + 1)
+
+#if defined(os_windows_test)
+// #include <winNT.h>
+
+bool encodeMemPerm(PERM perm, Process::mem_perm& rights) {
+  switch (perm) {
+    default:   return false;
+    case NONE: rights.clrR().clrW().clrX();
+    case R:    rights.setR().clrW().clrX();
+    case X:    rights.clrR().clrW().setX();
+    case RW:   rights.setR().setW().clrX();
+    case RX:   rights.setR().clrW().setX();
+    case RWX:  rights.setR().setW().setX();
+  }
+  return true;
+}
+
+bool decodeMemPerm(Process::mem_perm rights, PERM& perm) {
+  if (rights.isNone()) {
+    perm = NONE;
+  } else if (rights.isR()) {
+    perm = R;
+  } else if (rights.isX()) {
+    perm = X;
+  } else if (rights.isRW()) {
+    perm = RW;
+  } else if (rights.is(RX)) {
+    perm = RX;
+  } else if (rights.isRWX()) {
+    perm = RWX;
+  } else {
+    return false;
+  }
+
+  return true;
+}
+#endif
+
 class pc_mem_permMutator : public ProcControlMutator {
 public:
   virtual test_results_t executeTest();
@@ -41,25 +88,75 @@ extern "C" DLLEXPORT TestMutator* pc_mem_perm_factory()
 
 test_results_t pc_mem_permMutator::executeTest()
 {
-// #if !defined(os_windows_test)
-#if !defined(i386_unknown_nt4_0_test)
+#if !defined(os_windows_test)
   //skiptest(testnum, testdesc);
   return SKIPPED;
 
 #else
    std::vector<Process::ptr>::iterator i;
-   bool error = false;
-
+   bool result;
    for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
       Process::ptr proc = *i;
-      bool result = proc->continueProc();
-      if (!result) {
+      if (!proc->continueProc()) {
          logerror("Failed to continue process\n");
-         error = true;
+         return FAILED;
       }
    }
 
-   return error ? FAILED : PASSED;
+   PERM perm;
+   int perm_offset = 1;
+   Dyninst::Address addr;
+   SYSTEM_INFO sysInfo;
+   GetSystemInfo(&sysInfo);
+   DWORD pageSize = sysInfo.dwPageSize;
+   Process::mem_perm oldRights, rights, tmpRights;
+
+   for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
+      Process::ptr proc = *i;
+      addr = proc->mallocMemory(pageSize);
+      
+      if (!proc->getMemoryAccessRights(addr, pageSize, oldRights)) {
+         logerror("Failed to get memory permission\n");
+         return FAILED;
+      }
+
+      if (!decodeMemPerm(oldRights, perm)) {
+         logerror("Unsupported memory permission\n");
+         return FAILED;
+      }
+
+      while (perm_offset < PERM_TOTAL) {
+        if (!encodeMemPerm((perm_offset + perm) % PERM_TOTAL, rights)) {
+           logerror("Unsupported memory permission\n");
+           return FAILED;
+        }
+
+        if (!proc->setMemoryAccessRights(addr, pageSize, rights, tmpRights)) {
+           logerror("Failed to set memory permission\n");
+           return FAILED;
+        }
+
+        if (!proc->getMemoryAccessRights(addr, pageSize, tmpRights)) {
+           logerror("Failed to get memory permission after set\n");
+           return FAILED;
+        }
+
+        if (rights != tmpRights) {
+           logerror("Failed to change memory permission\n");
+           return FAILED;
+        }
+
+        perm_offset++;
+      }
+
+      if(!proc->freeMemory(addr)) {
+           logerror("Failed to free memory\n");
+           return FAILED;
+      }
+
+   }
+
+   return PASSED;
 #endif
 }
 

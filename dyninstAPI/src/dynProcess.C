@@ -1270,34 +1270,49 @@ void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
     write_printf("\n};\n");
 }
 
-bool PCProcess::writeDataSpace(void *inTracedProcess,
-                    u_int amount, const void *inSelf)
-{
-   if( isTerminated() ) {
-      cerr << "Writing to terminated process!" << endl;
-      return false;
-   }
-    bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
+bool PCProcess::writeDataSpace(void *inTracedProcess, u_int amount,
+                               const void *inSelf) {
+    if( isTerminated() ) {
+       cerr << "Writing to terminated process!" << endl;
+       return false;
+    }
+    bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf,
+                                       amount);
 
     if( BPatch_defensiveMode == proc()->getHybridMode() && !result ) {
         // the write may have failed because we've removed write permissions
         // from the page, remove them and try again
 
-        int oldRights;
-        pcProc_->setMemoryAccessRights((Address)inTracedProcess, amount,
-                                       PAGE_EXECUTE_READWRITE, oldRights);
-        /* int oldRights = pcProc_->setMemoryAccessRights((Address)inTracedProcess,
-                amount, PAGE_EXECUTE_READWRITE);
-                */
+        PCMemPerm origRights, rights(true, true, true);
+        if (!pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+                                            amount, rights, origRights)) {
+            cerr << "Fail to set memory permissions!" << endl;
+            return false;
+        }
+
+        /*
+        int oldRights = pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+                                                       amount,
+                                                       PAGE_EXECUTE_READWRITE);
+
         if( oldRights == PAGE_EXECUTE_READ || oldRights == PAGE_READONLY ) {
-            result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
-            int newRights;
-            if( pcProc_->setMemoryAccessRights((Address)inTracedProcess, amount,
-                                               oldRights, newRights) == false ) {
-            // if( pcProc_->setMemoryAccessRights((Address)inTracedProcess, amount, oldRights) == false ) {
+        */
+
+        if( origRights.isRX() || origRights.isR() ) {
+            result = pcProc_->writeMemory((Address)inTracedProcess, inSelf,
+                                          amount);
+
+            /*
+            if( pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+                                               amount, oldRights) == false ) {
+            */
+
+            PCMemPerm tmpRights;
+            if( !pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+                                                amount, origRights, tmpRights)) {
                 result = false;
             }
-        }else{
+        } else {
             result = false;
         }
     }

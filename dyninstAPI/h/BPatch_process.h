@@ -34,17 +34,19 @@
 #include "BPatch_snippet.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
-//#include "BPatch_image.h"
+// #include "BPatch_image.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_addressSpace.h"
 #include "BPatch_enums.h"
 
 #include "BPatch_callbacks.h"
+#include "proccontrol/h/PCProcess.h"
 
 #include <vector>
 
-#include <stdio.h>
-#include <signal.h>
+#include <cstdio>
+#include <csignal>
+
 
 class PCProcess;
 class AddressSpace;
@@ -235,8 +237,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
                                BPatch_Vector<Dyninst::Address> *handlers); 
     bool triggerCodeOverwriteCB(instPoint * faultPoint,
                                 Dyninst::Address faultTarget); 
-    bool setMemoryAccessRights(Dyninst::Address start, Dyninst::Address size, 
-                               int rights);
+    bool setMemoryAccessRights(Dyninst::Address start, size_t size, 
+                               Dyninst::ProcControlAPI::Process::mem_perm rights);
     unsigned char *makeShadowPage(Dyninst::Address pageAddress);
     void overwriteAnalysisUpdate
         ( std::map<Dyninst::Address,unsigned char*>& owPages, //input

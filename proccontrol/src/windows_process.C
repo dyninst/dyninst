@@ -37,6 +37,7 @@
 #include "proccontrol/h/Mailbox.h"
 #include <iostream>
 #include <psapi.h>
+#include <winNT.h>
 #include "symtabAPI/h/SymtabReader.h"
 
 using namespace std;
@@ -246,34 +247,97 @@ bool windows_process::plat_forked()
 	return false;
 }
 
-bool windows_process::
-plat_getMemoryAccessRights(Dyninst::Address addr, size_t size, int& rights) const
-{
-   MEMORY_BASIC_INFORMATION meminfo;
-   SIZE_T size = ::VirtualQueryEx(hproc, (LPCVOID)addr, &meminfo, sizeof(MEMORY_BASIC_INFORMATION));
-   if (!size) {
-       pthrd_printf("ERROR: failed to get access rights for page %lx, error code %d\n", addr, ::GetLastError());
-       return false;
-   }
+bool windows_process::plat_decodeMemoryRights(Process::mem_perm& perm,
+                                              unsigned long rights) {
+    switch (rights) {
+      default:                     return false;
+      case PAGE_NOACCESS:          perm.clrR().clrW().clrX();
+      case PAGE_READONLY:          perm.setR().clrW().clrX();
+      case PAGE_EXECUTE:           perm.clrR().clrW().setX();
+      case PAGE_READWRITE:         perm.setR().setW().clrX();
+      case PAGE_EXECUTE_READ:      perm.setR().clrW().setX();
+      case PAGE_EXECUTE_READWRITE: perm.setR().setW().setX();
+    }
 
-   rights = meminfo.Protect;
-   return true;
+    return true;
 }
 
-bool windows_process::
-plat_setMemoryAccessRights(Dyninst::Address addr, size_t size, int rights, int& oldRights)
-{
-    if (!::VirtualProtectEx(hproc, (LPVOID)(addr), (SIZE_T)size, (DWORD)rights, (PDWORD)&oldRights)) 
-    {
-        pthrd_printf("ERROR: failed to set access rights for page %lx, error code %d\n", addr, ::GetLastError());
-        MEMORY_BASIC_INFORMATION meminfo;
-        SIZE_T size = ::VirtualQueryEx(hproc, (LPCVOID) (addr), &meminfo, sizeof(MEMORY_BASIC_INFORMATION));
-        pthrd_printf("ERROR DUMP: baseAddr 0x%lx, AllocationBase 0x%lx, AllocationProtect 0x%lx, RegionSize 0x%lx, State 0x%lx, Protect 0x%lx, Type 0x%lx\n",
-            meminfo.BaseAddress, meminfo.AllocationBase, meminfo.AllocationProtect, meminfo.RegionSize, meminfo.State, meminfo.Protect, meminfo.Type);
+bool windows_process::plat_encodeMemoryRights(Process::mem_perm perm,
+                                              unsigned long& rights) {
+    if (!perm.read & !perm.write & !perm.execute) { 
+        rights = PAGE_NOACCESS;
+    } else if (perm.read & !perm.write & !perm.execute) {
+        rights = PAGE_READONLY;
+    } else if (!perm.read & !perm.write & perm.execute) {
+        rights = PAGE_EXECUTE;
+    } else if (perm.read & perm.write & !perm.execute) {
+        rights = PAGE_READWRITE;
+    } else if (perm.read & !perm.write & perm.execute) {
+        rights = PAGE_EXECUTE_READ;
+    } else if (perm.read & perm.write & perm.execute) {
+        rights = PAGE_EXECUTE_READWRITE;
+    } else {
         return false;
     }
 
-	return true;
+    return true;
+}
+
+bool windows_process::plat_getMemoryAccessRights(Dyninst::Address addr,
+                                                 size_t size,
+                                                 Process::mem_perm& perm) {
+    MEMORY_BASIC_INFORMATION meminfo;
+    SIZE_T size = ::VirtualQueryEx(hproc, (LPCVOID)addr, &meminfo,
+                                   sizeof(MEMORY_BASIC_INFORMATION));
+    if (!size) {
+        pthrd_printf("ERROR: failed to get access rights for page %lx, "
+                     "error code %d\n",
+                     addr, ::GetLastError());
+        return false;
+    }
+
+    Process::mem_perm perm;
+    if (plat_decodeMemoryRights(perm, meminfo.Protect))
+        return true;
+
+    pthrd_printf("ERROR: unsupported rights for page %lx\n", addr);
+    return false;
+}
+
+bool windows_process::plat_setMemoryAccessRights(Dyninst::Address addr,
+                                                 size_t size,
+                                                 Process::mem_perm perm,
+                                                 Process::mem_perm& oldPerm) {
+    DWORD rights;
+    if (!plat_encodeMemoryRights(perm, rights)) {
+        pthrd_printf("ERROR: failed to set access rights for page %lx\n", addr);
+        return false;
+    }
+
+    PDWORD oldRights;
+
+    if (!::VirtualProtectEx(hproc, (LPVOID)(addr), (SIZE_T)size,
+                            (DWORD)rights, (PDWORD)&oldRights)) {
+        pthrd_printf("ERROR: failed to set access rights for page %lx, "
+                     "error code %d\n",
+                     addr, ::GetLastError());
+        MEMORY_BASIC_INFORMATION meminfo;
+        SIZE_T size = ::VirtualQueryEx(hproc, (LPCVOID)(addr), &meminfo,
+                                       sizeof(MEMORY_BASIC_INFORMATION));
+        pthrd_printf("ERROR DUMP: baseAddr 0x%lx, AllocationBase 0x%lx, "
+                     "AllocationProtect 0x%lx, RegionSize 0x%lx, State 0x%lx, "
+                     "Protect 0x%lx, Type 0x%lx\n",
+                     meminfo.BaseAddress, meminfo.AllocationBase,
+                     meminfo.AllocationProtect, meminfo.RegionSize,
+                     meminfo.State, meminfo.Protect, meminfo.Type);
+        return false;
+    }
+
+   if (plat_decodeMemoryRights(oldPerm, oldRights))
+       return true;
+
+   pthrd_printf("ERROR: unsupported rights for page %lx\n", addr);
+   return false;
 }
 
 bool windows_process::plat_readMem(int_thread *thr, void *local, 

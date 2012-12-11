@@ -337,12 +337,14 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
 void OS::osDisconnect(void) {
 }
 
-bool PCProcess::getMemoryAccessRights(Address start, size_t size, int& rights)
-{
+bool PCProcess::getMemoryAccessRights(Address start, size_t size,
+                                      PCMemPerm& rights) {
     if(!pcProc_->getMemoryAccessRights(shadowAddr, pageSize, rights)) {
-	    mal_printf("ERROR: failed to get access rights for page %lx, %s[%d]\n", addr, FILE__, __LINE__);
+	    mal_printf("ERROR: failed to get access rights for page %lx, %s[%d]\n",
+                   addr, FILE__, __LINE__);
         return false;
     }
+
     return true;
 }
 
@@ -401,10 +403,9 @@ int dyn_lwp::changeMemoryProtections
 }
 #endif
 
-int PCProcess::changeMemoryProtections
-(Address addr, size_t size, unsigned rights, bool setShadow)
-{
-    unsigned oldRights=0;
+void PCProcess::changeMemoryProtections(Address addr, size_t size,
+                                        PCMemPerm rights, bool setShadow) {
+    PCMemPerm oldRights;
     unsigned pageSize = proc()->getMemoryPageSize();
 
 	Address pageBase = addr - (addr % pageSize);
@@ -412,34 +413,39 @@ int PCProcess::changeMemoryProtections
 
 	// Temporary: set on a page-by-page basis to work around problems
 	// with memory deallocation
-	for (Address idx = pageBase, idx_e = pageBase + size; idx < idx_e; idx += pageSize) {
-        mal_printf("setting rights to %lx for [%lx %lx)\n", rights, idx , idx + pageSize);
-        if (!pcProc_->setMemoryAccessRights(idx, pageSize, rights, oldRights)) {
-			mal_printf("ERROR: failed to set access rights for page %lx, %s[%d]\n", addr, FILE__, __LINE__);
-		}
-		else if (proc()->isMemoryEmulated() && setShadow) {
+	for (Address idx = pageBase, idx_e = pageBase + size;
+         idx < idx_e; idx += pageSize) {
+        mal_printf("setting rights to %s for [%lx %lx)\n",
+                   rights.print().c_str(), idx , idx + pageSize);
+        if (!pcProc_->setMemoryAccessRights(idx, pageSize,
+                                            rights, oldRights)) {
+			mal_printf("ERROR: failed to set access rights "
+                       "for page %lx, %s[%d]\n", addr, FILE__, __LINE__);
+		} else if (proc()->isMemoryEmulated() && setShadow) {
 			Address shadowAddr = 0;
-			unsigned shadowRights=0;
+			PCMemPerm shadowRights;
 			bool valid = false;
 			boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(idx);
 			if (!valid) {
 				mal_printf("WARNING: set access rights on page %lx that has "
-				        "no shadow %s[%d]\n",addr,FILE__,__LINE__);
-			}
-			else 
-			{
-                if(!pcProc_->setMemoryAccessRights(shadowAddr, pageSize, rights, shadowRights)) {
-                    mal_printf("ERROR: failed to set access rights for page %lx, %s[%d]\n", shadowAddr, FILE__, __LINE__);
+				           "no shadow %s[%d]\n",addr,FILE__,__LINE__);
+			} else {
+                if(!pcProc_->setMemoryAccessRights(shadowAddr, pageSize,
+                                                   rights, shadowRights)) {
+                    mal_printf("ERROR: failed to set access rights "
+                               "for page %lx, %s[%d]\n",
+                                shadowAddr, FILE__, __LINE__);
                 }
 
 				if (shadowRights != oldRights) {
-					mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
-					           "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
+					mal_printf("WARNING: shadow page[%lx] rights %s did not "
+                               "match orig-page [%lx] rights %s\n",
+                               shadowAddr, shadowRights.print().c_str(),
+                               addr, oldRights.print().c_str());
 				}
 			}
 		}
 	}
-	return oldRights;
 }
 
 // FIXED
@@ -462,9 +468,10 @@ bool PCProcess::setMemoryAccessRights(Address start, size_t size, int rights)
 }
 #endif
 
-bool PCProcess::setMemoryAccessRights(Address start, size_t size, int rights)
-{
-    if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
+bool PCProcess::setMemoryAccessRights(Address start, size_t size,
+                                      PCMemPerm rights) {
+    // if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
+    if (rights.isRWX() || rights.isRW() ) {
         mapped_object *obj = findObject(start);
         int page_size = getMemoryPageSize();
         for (Address cur = start; cur < (start + size); cur += page_size) {

@@ -1444,7 +1444,7 @@ bool BPatch_process::hideDebuggerInt()
     return retval;
 }
 
-bool BPatch_process::setMemoryAccessRights(Address start, Address size, int rights) {
+bool BPatch_process::setMemoryAccessRights(Address start, size_t size, Dyninst::ProcControlAPI::Process::mem_perm rights) {
     bool wasStopped = isStoppedInt();
     if( !wasStopped ) {
         if (!stopExecutionInt()) {

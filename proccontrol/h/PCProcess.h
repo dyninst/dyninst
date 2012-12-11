@@ -392,6 +392,76 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    /**
     * Memory management
     **/
+   class mem_perm {
+       bool read;
+       bool write;
+       bool execute;
+       std::string perm_str;
+
+   public:
+       mem_perm() : read(false), write(false), execute(false),
+                    perm_str("Unknown Permission") {} 
+       mem_perm(const mem_perm& p) : read(p.read), write(p.write),
+                                     execute(p.execute),
+                                     perm_str(p.perm_str) {}
+       mem_perm(bool r, bool w, bool x) : read(r), write(w), execute(x),
+                                          perm_str(NULL) {} 
+
+       bool getR() const { return read;    }
+       bool getW() const { return write;   }
+       bool getX() const { return execute; }
+
+       bool isNone() const { return !read && !write && !execute; }
+       bool isR()    const { return  read && !write && !execute; }
+       bool isX()    const { return !read && !write &&  execute; }
+       bool isRW()   const { return  read &&  write && !execute; }
+       bool isRX()   const { return  read && !write &&  execute; }
+       bool isRWX()  const { return  read &&  write &&  execute; }
+
+       mem_perm& setR() { read    = true;  return *this; }
+       mem_perm& setW() { write   = true;  return *this; }
+       mem_perm& setX() { execute = true;  return *this; }
+
+       mem_perm& clrR() { read    = false; return *this; }
+       mem_perm& clrW() { write   = false; return *this; }
+       mem_perm& clrX() { execute = false; return *this; }
+
+       mem_perm& operator=(const mem_perm& p) {
+           read     = p.read;
+           write    = p.write;
+           execute  = p.execute;
+           perm_str = p.perm_str;
+           return *this;
+       }
+       bool operator==(const mem_perm& p) const {
+           return (read    == p.getR()) &&
+                  (write   == p.getW()) &&
+                  (execute == p.getX());
+       }
+       bool operator!=(const mem_perm& p) const {
+         return !(*this == p);
+       }
+
+       std::string print() {
+         if (isNone()) {
+            perm_str = "NONE";
+         } else if (isR()) {
+            perm_str = "R";
+         } else if (isX()) {
+            perm_str = "X";
+         } else if (isRW()) {
+            perm_str = "RW";
+         } else if (isRX()) {
+            perm_str = "RX";
+         } else if (isRWX()) {
+            perm_str = "RWX";
+         } else {
+            perm_str = "Unknown Permission";
+         }
+         return perm_str;
+       }
+   };
+
    Dyninst::Address mallocMemory(size_t size);
    Dyninst::Address mallocMemory(size_t size, Dyninst::Address addr);
    bool freeMemory(Dyninst::Address addr);
@@ -406,8 +476,8 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
     **/
    Dyninst::Address findFreeMemory(size_t size);
 
-   bool getMemoryAccessRights(Dyninst::Address addr, size_t size, int &rights) const;
-   bool setMemoryAccessRights(Dyninst::Address addr, size_t size, int rights, int& oldRights);
+   bool getMemoryAccessRights(Dyninst::Address addr, size_t size, mem_perm& rights);
+   bool setMemoryAccessRights(Dyninst::Address addr, size_t size, mem_perm rights, mem_perm& oldRights);
 
    /**
     * Libraries

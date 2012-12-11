@@ -1610,7 +1610,8 @@ bool int_process::infFree(int_addressSet *aset)
    return !had_error;
 }
 
-bool int_process::getMemoryAccessRights(Dyninst::Address addr, size_t size, int& rights) const {
+bool int_process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
+                                        Process::mem_perm& rights) {
    int result = plat_getMemoryAccessRights(addr, size, rights);
    if (!result) {
       pthrd_printf("Error get rights from memory %lx on target process %d\n",
@@ -1620,7 +1621,8 @@ bool int_process::getMemoryAccessRights(Dyninst::Address addr, size_t size, int&
    return true;
 }
 
-bool int_process::plat_getMemoryAccessRights(Dyninst::Address addr, size_t size, int& rights) const {
+bool int_process::plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
+                                             Process::mem_perm& rights) {
     (void)addr;
     (void)size;
     (void)rights;
@@ -1628,17 +1630,19 @@ bool int_process::plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
 	return false;
 }
 
-bool int_process::setMemoryAccessRights(Dyninst::Address addr, size_t size, int rights, int& oldRights) {
+bool int_process::setMemoryAccessRights(Dyninst::Address addr, size_t size,
+                                        Process::mem_perm rights,
+                                        Process::mem_perm& oldRights) {
    int result = plat_setMemoryAccessRights(addr, size, rights, oldRights);
    if (!result) {
-      pthrd_printf("Error set rights to %x from memory %lx on target process %d\n",
-                   rights, addr, getPid());
+      pthrd_printf("ERROR: set rights to %s from memory %lx on target process %d\n",
+                   rights.print().c_str(), addr, getPid());
       return false;
    }
    return true;
 }
 
-bool int_process::plat_setMemoryAccessRights(Dyninst::Address addr, size_t size, int rights, int& oldRights) {
+bool int_process::plat_setMemoryAccessRights(Dyninst::Address addr, size_t size, Process::mem_perm rights, Process::mem_perm& oldRights) {
     (void)addr;
     (void)size;
     (void)rights;
@@ -6788,7 +6792,8 @@ bool Process::readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, 
    return true;
 }
 
-bool Process::getMemoryAccessRights(Dyninst::Address addr, size_t size, int& rights) const {
+bool Process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
+                                    mem_perm& rights) {
    if (!llproc_) {
       perr_printf("getMemoryAccessRights on deleted process\n");
       setLastError(err_exited, "Process is exited\n");
@@ -6801,9 +6806,10 @@ bool Process::getMemoryAccessRights(Dyninst::Address addr, size_t size, int& rig
        return false;
    }
 
-   pthrd_printf("User wants to getMemoryAccessRights [%lx %lx]\n", addr, addr+size);
-   bool result = llproc_->getMemoryAccessRights(addr, size, rights);
-   if (!result) {
+   pthrd_printf("User wants to get Memory Rights from [%lx %lx]\n",
+                addr, addr+size);
+   
+   if (!llproc_->getMemoryAccessRights(addr, size, rights)) {
       pthrd_printf("Error get rights from memory %lx on target process %d\n",
                    addr, llproc_->getPid());
       return false;
@@ -6812,8 +6818,8 @@ bool Process::getMemoryAccessRights(Dyninst::Address addr, size_t size, int& rig
    return true;
 }
 
-bool Process::setMemoryAccessRights(Dyninst::Address addr, size_t size, int rights, int& oldrights)
-{
+bool Process::setMemoryAccessRights(Dyninst::Address addr, size_t size,
+                                    mem_perm rights, mem_perm& oldrights) {
    MTLock lock_this_func;
    if (!llproc_) {
       perr_printf("setMemoryAccessRights on deleted process\n");
@@ -6827,11 +6833,12 @@ bool Process::setMemoryAccessRights(Dyninst::Address addr, size_t size, int righ
        return false;
    }
 
-   pthrd_printf("User wants to setMemoryAccessRights to %x [%lx %lx]\n", rights, addr, addr+size);
-   bool result = llproc_->setMemoryAccessRights(addr, size, rights, oldrights);
-   if (!result) {
-      pthrd_printf("Error set rights to %x from memory %lx on target process %d\n",
-                   rights, addr, llproc_->getPid());
+   pthrd_printf("User wants to set Memory Rights to %s from [%lx %lx]\n",
+                rights.print().c_str(), addr, addr+size);
+   
+   if (!llproc_->setMemoryAccessRights(addr, size, rights, oldrights)) {
+      pthrd_printf("ERROR: set rights to %s from memory %lx on target process %d\n",
+                   rights.print().c_str(), addr, llproc_->getPid());
       return false;
    }
 

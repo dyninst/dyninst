@@ -274,14 +274,27 @@ mapped_object *PCProcess::createObjectNoFile(Address) {
     return NULL;
 }
 
-bool PCProcess::setMemoryAccessRights(Address start, size_t size, int rights) {
-    mal_printf("setMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
+void PCProcess::changeMemoryProtections(Address addr, size_t size,
+                                        PCMemPerm rights, bool setShadow) {
+    (void)addr;
+    (void)size;
+    (void)rights;
+    (void)setShadow;
+    assert(!"Not implemented yet");
+}
+
+bool PCProcess::setMemoryAccessRights(Address start, size_t size,
+                                      PCMemPerm rights) {
+    mal_printf("setMemoryAccessRights to %s [%lx %lx]\n",
+               rights.print().c_str(), start, start+size);
     assert(!"Not implemented yet");
     return false;
 }
 
-bool PCProcess::getMemoryAccessRights(Address start, size_t size, int& rights) const {
-    mal_printf("getMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
+bool PCProcess::getMemoryAccessRights(Address start, size_t size,
+                                      PCMemPerm& rights) {
+    mal_printf("getMemoryAccessRights to %s [%lx %lx]\n",
+               rights.print().c_str(), start, start+size);
     assert(!"Not implemented yet");
     return false;
 }
