@@ -2639,7 +2639,7 @@ mutator('pc_mem_perm', ['pc_mem_perm.C']).
 test_runmode('pc_mem_perm', 'dynamic').
 test_threadmode('pc_mem_perm', 'Threading').
 test_processmode('pc_mem_perm', 'Processes').
-%test_start_state('pc_mem_perm', 'selfattach').
+test_start_state('pc_mem_perm', 'selfattach').
 tests_module('pc_mem_perm', 'proccontrol').
 mutatee('pc_mem_perm', ['pc_mem_perm_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_mem_perm', Libs) :- pcMutateeLibs(Libs).
