@@ -216,7 +216,7 @@ class int_process
 
   public:
    bool execed();
-   virtual bool plat_detach(result_response::ptr resp) = 0;
+   virtual bool plat_detach(result_response::ptr resp, bool leave_stopped) = 0;
    virtual bool plat_detachDone();
   protected:
    virtual bool plat_execed();
@@ -256,7 +256,7 @@ class int_process
    void clearLastError();
    void setLastError(err_t err, const char *err_str);
 
-   void throwDetachEvent(bool temporary);
+   void throwDetachEvent(bool temporary, bool leaveStopped);
 
    virtual bool preTerminate();
    bool terminate(bool &needs_sync);

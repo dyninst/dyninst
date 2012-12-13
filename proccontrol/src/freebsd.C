@@ -968,7 +968,7 @@ bool freebsd_process::plat_execed() {
     return true;
 }
 
-bool freebsd_process::plat_detach(result_response::ptr) {
+bool freebsd_process::plat_detach(result_response::ptr, bool) {
     pthrd_printf("PT_DETACH on %d\n", getPid());
     if( 0 != ptrace(PT_DETACH, getPid(), (caddr_t)1, 0) ) {
         perr_printf("Failed to PT_DETACH on %d\n", getPid());

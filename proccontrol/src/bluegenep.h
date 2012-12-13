@@ -101,7 +101,7 @@ class bgp_process : public sysv_process, public thread_db_process, public ppc_pr
    virtual bool plat_attach(bool all_stopped);
    virtual bool plat_forked();
    virtual bool post_forked();
-   virtual bool plat_detach(result_response::ptr resp);
+   virtual bool plat_detach(result_response::ptr resp, bool leave_stopped);
    virtual bool plat_terminate(bool &needs_sync);
 
    virtual bool plat_needsAsyncIO() const;

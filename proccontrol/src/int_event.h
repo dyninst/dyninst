@@ -142,6 +142,7 @@ class int_eventDetach {
    std::set<response::ptr> async_responses;
    result_response::ptr detach_response;
    bool temporary_detach;
+   bool leave_stopped;
    bool removed_bps;
    bool done;
    bool had_error;

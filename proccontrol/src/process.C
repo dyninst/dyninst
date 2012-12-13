@@ -1125,11 +1125,12 @@ bool int_process::waitAndHandleEvents(bool block)
    return !error;
 }
 
-void int_process::throwDetachEvent(bool temporary)
+void int_process::throwDetachEvent(bool temporary, bool leaveStopped)
 {
    pthrd_printf("%s detaching from process %d\n", temporary ? "Temporary" : "Permanent", getPid());
    EventDetach::ptr detach_ev = EventDetach::ptr(new EventDetach());
    detach_ev->getInternal()->temporary_detach = temporary;
+   detach_ev->getInternal()->leave_stopped = leaveStopped;
    detach_ev->setProcess(proc());
    detach_ev->setThread(threadPool()->initialThread()->thread());
    detach_ev->setSyncType(Event::async);
@@ -6251,10 +6252,10 @@ bool Process::stopProc()
    return ps->stopProcs();
 }
 
-bool Process::detach()
+bool Process::detach(bool leaveStopped)
 {
    ProcessSet::ptr ps = ProcessSet::newProcessSet(shared_from_this());
-   return ps->detach();
+   return ps->detach(leaveStopped);
 }
 
 bool Process::temporaryDetach()

@@ -341,7 +341,7 @@ SymbolReaderFactory *windows_process::plat_defaultSymReader()
 	return getPEReader();
 }
 
-bool windows_process::plat_detach(result_response::ptr did_detach)
+bool windows_process::plat_detach(result_response::ptr did_detach, bool)
 {
 /*	pendingDetach = true;
 	if(pendingDebugBreak()) {
