@@ -348,10 +348,10 @@ bool ProcDebug::isTerminated()
    return (!proc || proc->isTerminated());
 }
 
-bool ProcDebug::detach(bool)
+bool ProcDebug::detach(bool leave_stopped)
 {
    CHECK_PROC_LIVE;   
-   bool result = proc->detach();
+   bool result = proc->detach(leave_stopped);
    if (!result) {
       sw_printf("[%s:%u] - Error detaching from process %d\n", __FILE__, __LINE__, 
                 proc->getPid());
