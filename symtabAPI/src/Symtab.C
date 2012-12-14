@@ -3867,7 +3867,7 @@ SYMTAB_EXPORT Offset Symtab::getFiniOffset()
 
 }
 
-void Symtab::getSegmentsSymReader(std::vector<SymSegment> &segs) {
+SYMTAB_EXPORT void Symtab::getSegmentsSymReader(std::vector<SymSegment> &segs) {
    obj_private->getSegmentsSymReader(segs);
 }
 

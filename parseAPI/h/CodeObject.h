@@ -33,7 +33,7 @@
 
 #include <map>
 
-#include <Symtab.h>
+#include "symtabAPI/h/Symtab.h"
 #include "IBSTree.h"
 
 #include "CodeSource.h"
