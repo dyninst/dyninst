@@ -264,17 +264,17 @@ bool windows_process::plat_decodeMemoryRights(Process::mem_perm& perm,
 
 bool windows_process::plat_encodeMemoryRights(Process::mem_perm perm,
                                               unsigned long& rights) {
-    if (!perm.read & !perm.write & !perm.execute) { 
+    if (perm.isNone()) { 
         rights = PAGE_NOACCESS;
-    } else if (perm.read & !perm.write & !perm.execute) {
+    } else if (perm.isR()) {
         rights = PAGE_READONLY;
-    } else if (!perm.read & !perm.write & perm.execute) {
+    } else if (perm.isX()) {
         rights = PAGE_EXECUTE;
-    } else if (perm.read & perm.write & !perm.execute) {
+    } else if (perm.isRW()) {
         rights = PAGE_READWRITE;
-    } else if (perm.read & !perm.write & perm.execute) {
+    } else if (perm.isRX()) {
         rights = PAGE_EXECUTE_READ;
-    } else if (perm.read & perm.write & perm.execute) {
+    } else if (perm.isRWX()) {
         rights = PAGE_EXECUTE_READWRITE;
     } else {
         return false;
@@ -314,7 +314,7 @@ bool windows_process::plat_setMemoryAccessRights(Dyninst::Address addr,
         return false;
     }
 
-    PDWORD oldRights;
+    DWORD oldRights;
 
     if (!::VirtualProtectEx(hproc, (LPVOID)(addr), (SIZE_T)size,
                             (DWORD)rights, (PDWORD)&oldRights)) {

@@ -1095,11 +1095,12 @@ bool HybridAnalysisOW::removeOverlappingLoops(owLoop *loop,
         }
         // restore write permissions to pages that are currently shadowed
         if (!loop->shadowMap.empty()) {
+            Dyninst::ProcControlAPI::Process::mem_perm rights(true, true, true);
             std::map<Address,unsigned char*>::iterator siter = loop->shadowMap.begin();
             for (; siter != loop->shadowMap.end(); siter++) {
     	        proc()->setMemoryAccessRights(siter->first, 
                     proc()->lowlevel_process()->getMemoryPageSize(), 
-                    PAGE_EXECUTE_READWRITE);
+                    rights /*PAGE_EXECUTE_READWRITE*/);
                 mal_printf("revbug restoring write to %lx %s[%d]\n",(*siter).first, 
                         FILE__,__LINE__);
             }
@@ -1133,8 +1134,10 @@ void HybridAnalysisOW::makeShadow_setRights
     // . Make a shadow copy of the block that is about to be overwritten
     loop->shadowMap[pageAddr] = proc()->makeShadowPage(pageAddr);
 
+    Dyninst::ProcControlAPI::Process::mem_perm rights(true, true, true);
 	// Restore write permissions to the written page
-    proc()->setMemoryAccessRights(pageAddr, pageSize, PAGE_EXECUTE_READWRITE);
+    proc()->setMemoryAccessRights(pageAddr, pageSize,
+                                  rights /* PAGE_EXECUTE_READWRITE */);
 }
 
 

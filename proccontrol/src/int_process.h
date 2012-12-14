@@ -362,9 +362,9 @@ class int_process
    bool setMemoryAccessRights(Dyninst::Address addr, size_t size, Process::mem_perm rights,
                               Process::mem_perm& oldRights);
    // FIXME pure virtual function
-   virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, Dyninst::Address size,
+   virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
                                            Process::mem_perm& rights);
-   virtual bool plat_setMemoryAccessRights(Dyninst::Address addr, Dyninst::Address size,
+   virtual bool plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
                                            Process::mem_perm rights, Process::mem_perm& oldRights);
    virtual bool plat_decodeMemoryRights(Process::mem_perm& rights_internal, unsigned long  rights);
    virtual bool plat_encodeMemoryRights(Process::mem_perm  rights_internal, unsigned long& rights);
