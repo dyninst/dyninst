@@ -29,46 +29,39 @@
  */
 #include "proccontrol_comp.h"
 
-typedef enum {
-  NONE = 0,
-  R    = 1,
-  X    = 2,
-  RW   = 3,
-  RX   = 4,
-  RWX  = 5
-} PERM;
-#define PERM_TOTAL (RWX + 1)
+#define PERM_TOTAL (6)
 
 #if defined(os_windows_test)
 // #include <winNT.h>
 
-bool encodeMemPerm(PERM perm, Process::mem_perm& rights) {
+bool encodeMemPerm(int perm, Process::mem_perm& rights) {
   switch (perm) {
     default:   return false;
-    case NONE: rights.clrR().clrW().clrX();
-    case R:    rights.setR().clrW().clrX();
-    case X:    rights.clrR().clrW().setX();
-    case RW:   rights.setR().setW().clrX();
-    case RX:   rights.setR().clrW().setX();
-    case RWX:  rights.setR().setW().setX();
+    case 0: rights.clrR().clrW().clrX();
+    case 1: rights.setR().clrW().clrX();
+    case 2: rights.clrR().clrW().setX();
+    case 3: rights.setR().setW().clrX();
+    case 4: rights.setR().clrW().setX();
+    case 5: rights.setR().setW().setX();
   }
   return true;
 }
 
-bool decodeMemPerm(Process::mem_perm rights, PERM& perm) {
+bool decodeMemPerm(Process::mem_perm rights, int& perm) {
   if (rights.isNone()) {
-    perm = NONE;
+    perm = 0;
   } else if (rights.isR()) {
-    perm = R;
+    perm = 1;
   } else if (rights.isX()) {
-    perm = X;
+    perm = 2;
   } else if (rights.isRW()) {
-    perm = RW;
+    perm = 3;
   } else if (rights.isRX()) {
-    perm = RX;
+    perm = 4;
   } else if (rights.isRWX()) {
-    perm = RWX;
+    perm = 5;
   } else {
+	perm = -1;
     return false;
   }
 
@@ -103,7 +96,7 @@ test_results_t pc_mem_permMutator::executeTest()
       }
    }
 
-   PERM perm;
+   int perm;
    int perm_offset = 1;
    Dyninst::Address addr;
    SYSTEM_INFO sysInfo;

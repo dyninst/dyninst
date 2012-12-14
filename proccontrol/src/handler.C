@@ -1497,7 +1497,7 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
    if (!int_bpc->started_bp_suspends) {
       pthrd_printf("Removing breakpoint from memory under HandleBreakpointClear\n");
       int_bpc->started_bp_suspends = true;
-      bool result = ibp->suspend(proc, int_bpc->bp_suspend);
+      bool result = (bool)ibp->suspend(proc, int_bpc->bp_suspend);
       if (!result) {
          pthrd_printf("Error suspending breakpoint in HandleBreakpointClear\n");
          return Handler::ret_error;

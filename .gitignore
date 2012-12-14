@@ -67,4 +67,9 @@ callgrind.out.*
 cscope.*
 luftags
 tags
+*.sdf
+*.opensdf
+*.suo
+*.vcxproj.user
+ipch/*
 

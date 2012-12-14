@@ -52,7 +52,7 @@ class MappedFile;
  
 namespace Dyninst {
 
-   class SymSegment;
+   struct SymSegment;
 
 namespace SymtabAPI {
 

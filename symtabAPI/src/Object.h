@@ -139,7 +139,7 @@ public:
     virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
 
     // Only implemented for ELF right now
-    virtual void getSegmentsSymReader(std::vector<SymSegment> &) {};
+    SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &) {};
 
 protected:
     SYMTAB_EXPORT virtual ~AObject();

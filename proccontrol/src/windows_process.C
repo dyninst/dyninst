@@ -288,7 +288,7 @@ bool windows_process::plat_getMemoryAccessRights(Dyninst::Address addr,
                                                  Process::mem_perm& perm) {
     MEMORY_BASIC_INFORMATION meminfo;
     if (!::VirtualQueryEx(hproc, (LPCVOID)addr, &meminfo,
-                          sizeof(MEMORY_BASIC_INFORMATION))) {
+                                   sizeof(MEMORY_BASIC_INFORMATION))) {
         pthrd_printf("ERROR: failed to get access rights for page %lx, "
                      "error code %d\n",
                      addr, ::GetLastError());

@@ -1610,6 +1610,20 @@ bool int_process::infFree(int_addressSet *aset)
    return !had_error;
 }
 
+bool int_process::plat_decodeMemoryRights(Process::mem_perm& rights_internal, unsigned long  rights) {
+    (void)rights_internal;
+    (void)rights;
+	assert(!"Not implemented");
+	return false;
+}
+
+bool int_process::plat_encodeMemoryRights(Process::mem_perm  rights_internal, unsigned long& rights) {
+    (void)rights_internal;
+    (void)rights;
+	assert(!"Not implemented");
+	return false;
+}
+
 bool int_process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
                                         Process::mem_perm& rights) {
    int result = plat_getMemoryAccessRights(addr, size, rights);
