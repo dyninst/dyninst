@@ -613,6 +613,7 @@ Handler::handler_ret_t HandleSignal::handleEvent(Event::ptr ev)
    int signal_no = sigev->getSignal();
    thrd->setContSignal(signal_no);
 
+#if !defined(os_windows)
    SignalMask *smask = proc->getSigMask();
    if (smask) {
       dyn_sigset_t mask = smask->getSigMask();
@@ -621,6 +622,7 @@ Handler::handler_ret_t HandleSignal::handleEvent(Event::ptr ev)
          ev->setSuppressCB(true);
       }
    }
+#endif
 
    return ret_success;
 }
