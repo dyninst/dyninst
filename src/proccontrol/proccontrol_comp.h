@@ -34,9 +34,9 @@
 #include "test_lib.h"
 #include "TestMutator.h"
 
-#include "PCProcess.h"
-#include "Event.h"
-#include "ProcessSet.h"
+#include "proccontrol/h/PCProcess.h"
+#include "proccontrol/h/Event.h"
+#include "proccontrol/h/ProcessSet.h"
 
 #include <vector>
 
