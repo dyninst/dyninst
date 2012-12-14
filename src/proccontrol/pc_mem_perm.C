@@ -64,7 +64,7 @@ bool decodeMemPerm(Process::mem_perm rights, PERM& perm) {
     perm = X;
   } else if (rights.isRW()) {
     perm = RW;
-  } else if (rights.is(RX)) {
+  } else if (rights.isRX()) {
     perm = RX;
   } else if (rights.isRWX()) {
     perm = RWX;
