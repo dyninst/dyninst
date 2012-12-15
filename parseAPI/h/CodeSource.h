@@ -35,7 +35,7 @@
 #include <utility>
 #include <string>
 
-#include "symtabAPI/h/Symtab.h"
+#include "Symtab.h"
 #include "IBSTree.h"
 #include "dyntypes.h"
 

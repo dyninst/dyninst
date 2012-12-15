@@ -40,7 +40,7 @@
 #include "BPatch_enums.h"
 
 #include "BPatch_callbacks.h"
-#include "proccontrol/h/PCProcess.h"
+#include "PCProcess.h"
 
 #include <vector>
 

@@ -1613,14 +1613,16 @@ bool int_process::infFree(int_addressSet *aset)
 bool int_process::plat_decodeMemoryRights(Process::mem_perm& rights_internal, unsigned long  rights) {
     (void)rights_internal;
     (void)rights;
-	assert(!"Not implemented");
+    perr_printf("Called decodeMemoryRights on unspported platform\n");
+    setLastError(err_unsupported, "Decode Memory Permission not supported on this platform\n");
 	return false;
 }
 
 bool int_process::plat_encodeMemoryRights(Process::mem_perm  rights_internal, unsigned long& rights) {
     (void)rights_internal;
     (void)rights;
-	assert(!"Not implemented");
+    perr_printf("Called encodeMemoryRights on unspported platform\n");
+    setLastError(err_unsupported, "Encode Memory Permission not supported on this platform\n");
 	return false;
 }
 
@@ -1640,7 +1642,8 @@ bool int_process::plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
     (void)addr;
     (void)size;
     (void)rights;
-	assert(!"Not implemented");
+    perr_printf("Called getMemoryAccessRights on unspported platform\n");
+    setLastError(err_unsupported, "Get Memory Permission not supported on this platform\n");
 	return false;
 }
 
@@ -1661,7 +1664,8 @@ bool int_process::plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
     (void)size;
     (void)rights;
     (void)oldRights;
-	assert(!"Not implemented");
+    perr_printf("Called setMemoryAccessRights on unspported platform\n");
+    setLastError(err_unsupported, "Set Memory Permission not supported on this platform\n");
 	return false;
 }
 
