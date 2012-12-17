@@ -323,7 +323,7 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
     **/
    bool continueProcs() const;
    bool stopProcs() const;
-   bool detach() const;
+   bool detach(bool leaveStopped = false) const;
    bool terminate() const;
    bool temporaryDetach() const;
    bool reAttach() const;

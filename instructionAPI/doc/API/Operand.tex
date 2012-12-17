@@ -42,17 +42,32 @@ Get the registers written by this operand. The registers written are inserted in
 }
 
 \begin{apient}
-bool isRead(Expression::Ptr candidate) const
+
+bool isRead() const
 \end{apient}
 \apidesc{
     Returns \code{true} if this operand is read.
 }
 
 \begin{apient}
+bool isWritten() const
+\end{apient}
+\apidesc{
+Returns \code{true} if this operand is written.
+}
+
+\begin{apient}
+bool isRead(Expression::Ptr candidate) const
+\end{apient}
+\apidesc{
+    Returns \code{true} if \code{candidate} is read by this operand.
+}
+
+\begin{apient}
 bool isWritten(Expression::Ptr candidate) const
 \end{apient}
 \apidesc{
-Returns true if this operand is written.
+Returns \code{true} if \code{candidate} is written to by this operand.
 }
 
 \begin{apient}
@@ -86,10 +101,13 @@ void addEffectiveWriteAddresses(std::set<Expression::Ptr> & memAccessors) const
 }
 
 \begin{apient}
-std::string format() const
+std::string format(Architecture arch, Address addr = 0) const
 \end{apient}
 \apidesc{
-    Return a printable string representation of the operand.
+    Return a printable string representation of the operand. The
+    \code{arch} parameter must be supplied, as operands do not record
+    their architectures. The optional \code{addr} parameter specifies
+    the value of the program counter. 
 }
 
 \begin{apient}

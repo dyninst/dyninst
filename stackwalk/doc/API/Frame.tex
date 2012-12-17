@@ -35,6 +35,12 @@ static Frame *newFrame(Dyninst::MachRegisterVal ra,
 }
 
 \begin{apient}
+bool operator==(const Frame &)
+\end{apient}
+\apidesc{\code{Frame} objects have a defined equality operator.}
+
+
+\begin{apient}
 Dyninst::MachRegisterVal getRA() const
 \end{apient}
 \apidesc{
@@ -77,6 +83,14 @@ void setFP(Dyninst::MachRegisterVal val)
 }
 
 \begin{apient}
+  bool isTopFrame() const;                                                      
+  bool isBottomFrame() const;                                                   
+\end{apient}
+\apidesc{
+  These methods return whether a \code{Frame} object is the top (e.g.,
+  most recently executing) or bottom of the stack walk. }
+
+\begin{apient}
 typedef enum { 
     loc_address, 
     loc_register, 
@@ -87,7 +101,7 @@ typedef enum {
 \begin{apient}
 typedef struct {
     union {
-        address addr;
+        Dyninst::Address addr;
         Dyninst::MachRegister reg;
     } val;
     storage_t location;
@@ -150,7 +164,7 @@ void setFPLocation(location_t newval)
 }
 
 \begin{apient}
-bool getName(std::string &str)
+bool getName(std::string &str) const
 \end{apient}
 \apidesc{
 This method returns a stack frame's symbolic name. Most stack frames are created
@@ -170,7 +184,7 @@ This method returns \code{true} on success and \code{false} on error.
 }
 
 \begin{apient}
-bool getObject(void* &obj)
+bool getObject(void* &obj) const
 \end{apient}
 \apidesc{
     In addition to returning a symbolic name (see \code{getName}) the \code{SymbolLookup}
@@ -183,7 +197,20 @@ This method returns \code{true} on success and \code{false} on error.
 }
 
 \begin{apient}
-bool getStepper(FrameStepper* &stepper) const
+  Walker *getWalker() const; 
+\end{apient}
+
+\apidesc{This method returns the \code{Walker} object that constructed
+  this stack frame. }
+
+\begin{apient}
+  THR_ID getThread() const;                                                     
+\end{apient}
+\apidesc{This method returns the execution thread that the current
+  \code{Frame} represents. }
+
+\begin{apient}
+FrameStepper* getStepper() const
 \end{apient}
 \apidesc{
     This method returns the \code{FrameStepper} object that was used to
@@ -193,7 +220,7 @@ bool getStepper(FrameStepper* &stepper) const
 }
 
 \begin{apient}
-bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab)
+bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab) const
 \end{apient}
 \apidesc{
 This method returns the DSO (a library or executable) and an offset into that

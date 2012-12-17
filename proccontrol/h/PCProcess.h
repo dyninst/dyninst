@@ -384,7 +384,7 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
     **/
    bool continueProc();
    bool stopProc();
-   bool detach();
+   bool detach(bool leaveStopped = false);
    bool terminate();
    bool temporaryDetach();
    bool reAttach();

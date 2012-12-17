@@ -44,6 +44,7 @@
 #include "BPatch_snippet.h"
 #include "BPatch_flowGraph.h"
 #include "BPatch_basicBlock.h"
+#include "BPatch_Set.h"
 
 #include "../../../parseAPI/h/CFG.h"
 #if !defined(os_windows_test) && defined(ENABLE_PARSE_API_GRAPHS)
@@ -66,9 +67,9 @@ extern "C" DLLEXPORT  TestMutator *test1_33_factory()
 // Start Test Case #33 - (control flow graphs)
 //
 
-static bool hasBackEdge(BPatch_basicBlock *bb, BPatch_Set<int> visited)
+static bool hasBackEdge(BPatch_basicBlock *bb, std::set<int> visited)
 {
-	if (visited.contains(bb->getBlockNumber()))
+	if (visited.find(bb->getBlockNumber()) != visited.end())
 		return true;
 
 	visited.insert(bb->getBlockNumber());
@@ -322,7 +323,7 @@ test_results_t test1_33_Mutator::executeTest()
 	 * Check for loops (there aren't any in the function we're looking at).
 	 */
 
-	BPatch_Set<int> empty;
+	std::set<int> empty;
 
 	if (hasBackEdge(entry_blocks[0], empty)) 
 	{

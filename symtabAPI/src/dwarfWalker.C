@@ -20,7 +20,6 @@ using namespace std;
       int status = (x);                                                 \
       if (status != DW_DLV_OK) {                                        \
          fprintf(stderr, "[%s:%d]: libdwarf returned %d, ret false\n", FILE__, __LINE__, status); \
-         assert(0);                                                     \
          return false;                                                  \
       }                                                                 \
    }
@@ -29,7 +28,6 @@ using namespace std;
       int status = (x);                                                 \
       if (status == DW_DLV_ERROR) {                                     \
          fprintf(stderr, "[%s:%d]: parsing failure, ret false\n", FILE__, __LINE__); \
-         assert(0);                                                     \
          return false;                                                  \
       }                                                                 \
    }
@@ -37,7 +35,6 @@ using namespace std;
 #define DWARF_CHECK_RET(x) {                                            \
       if (x) {                                     \
          fprintf(stderr, "[%s:%d]: parsing failure, ret false\n", FILE__, __LINE__); \
-         assert(0);                                                     \
          return false;                                                  \
       }                                                                 \
    }

@@ -45,6 +45,21 @@ namespace Stackwalker {
 
 class DebugStepperImpl : public FrameStepper, public Dyninst::ProcessReader {
  private:
+    struct cache_t {
+      unsigned ra_delta;
+      unsigned fp_delta;
+      unsigned sp_delta;
+      // Note: ra and fp are differences in address, sp is difference in value. 
+
+    cache_t() : ra_delta((unsigned) -1), fp_delta((unsigned) -1), sp_delta((unsigned) -1) {};
+    cache_t(unsigned a, unsigned b, unsigned c) : ra_delta(a), fp_delta(b), sp_delta(c) {};
+    };
+
+    dyn_hash_map<Address, cache_t> cache_;
+
+    void addToCache(const Frame &cur, const Frame &caller);
+    bool lookupInCache(const Frame &cur, Frame &caller);
+
    Dyninst::Address last_addr_read;
    unsigned long last_val_read;
    unsigned addr_width;

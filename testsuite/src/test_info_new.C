@@ -59,7 +59,12 @@ TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
 	label(ilabel), mutator(NULL), disabled(false), limit_disabled(false),
 	enabled(false), result_reported(false)
 {
-   for (unsigned i=0; i<NUM_RUNSTATES; i++)
+   assert(name);
+   assert(mutator_name);
+   assert(label);
+   assert(soname);
+
+	for (unsigned i=0; i<NUM_RUNSTATES; i++)
    {
       results[i] = UNKNOWN;
    }
@@ -82,6 +87,10 @@ TestInfo::TestInfo(unsigned int i, const char *libsuffix, const char *ilabel) :
    strcpy(temp_soname, mutator_name);
    strcat(temp_soname, libsuffix);
    soname = temp_soname;
+   assert(name);
+   assert(mutator_name);
+   assert(label);
+   assert(soname);
 
    for (unsigned i=0; i<NUM_RUNSTATES; i++)
    {

@@ -8,7 +8,7 @@ threads. The Callback Interface is used to provide custom mechanisms for walking
 a call stack. Users who operate in one of StackwalkerAPI's standard
 configurations do not need to use the Callback Interface. 
     
-Figure~\ref{fig:object-ownership} 1 shows the ownership hierarchy for
+Figure~\ref{fig:object-ownership} shows the ownership hierarchy for
 StackwalkerAPI's classes. Ownership is a "contains" relationship; if one class
 owns another, then instances of the owner class maintain an exclusive instance
 of the other. For example, in Figure~\ref{fig:object-ownership} the each Walker
@@ -18,7 +18,7 @@ instance of Walker uses that instance of ProcessState.
 This remainder of this
 section briefly describes the six classes that make up StackwalkerAPI's two
 interfaces. For more details, see the class descriptions in
-Section~\ref{sec:API}.
+Section~\ref{sec:api}.
 
 \input{fig/object-ownership}
 

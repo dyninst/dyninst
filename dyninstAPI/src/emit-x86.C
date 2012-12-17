@@ -934,9 +934,8 @@ static int const amd64_register_map[] =
 int Register_DWARFtoMachineEnc32(int n)
 {
     if(n > IA32_MAX_MAP) {
-        dwarf_printf("%s[%d]: unexpected map lookup for DWARF register %d\n",
-                FILE__,__LINE__,n);
-    }
+		assert(0);
+	}
     
     return n;
 }
@@ -2617,9 +2616,9 @@ int Register_DWARFtoMachineEnc64(int n)
     if(n <= AMD64_MAX_MAP)
         return amd64_register_map[n];
     else {
-        dwarf_printf("%s[%d]: unexpected map lookup for DWARF register %d\n",
-                FILE__,__LINE__,n);
-        return n;
+		assert(0);
+		return n;
+
     }
 }
 

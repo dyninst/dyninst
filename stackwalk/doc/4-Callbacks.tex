@@ -225,7 +225,7 @@ static bool handleDebugEvent(bool block = false)
     This method returns \code{true} if successful and \code{false} on error.
 }
     
-\subsection{FrameSteppers}
+\subsection{FrameSteppers}\label{sec:framesteppers} 
 \definedin{framestepper.h}
 
 StackwalkerAPI ships with numerous default implementations of the
@@ -248,7 +248,7 @@ providing their own implementation of these helper classes.
 This class implements stack walking through a call frame that is setup with the
 architectures standard stack frame. For example, on x86 this \code{FrameStepper} will
 be used to walk through stack frames that are setup with a \code{push \%ebp/mov
-\%esp,\%ebp} prolog. 
+\%esp,\%ebp} prologue. 
 
 \paragraph{Class FrameFuncHelper}
 
@@ -321,6 +321,13 @@ virtual alloc_frame_t allocatesFrame(Address addr) = 0;
     \code{alloc\_frame\_t(unknown\_t, unknown\_s)}.  
 }
 
+\subsubsection{Class SigHandlerStepper}
+
+The \code{SigHandlerStepper} is used to walk through UNIX signal handlers as found on
+the call stack. On some systems a signal handler generates a special kind of
+stack frame that cannot be walked through using normal stack walking techniques.
+
+
 \subsubsection{Class DebugStepper}
 
 This class uses debug information found in a binary to walk through a stack
@@ -330,14 +337,25 @@ uses that debug information to walk through a call frame.
 Most binaries must be built with debug information (\code{-g} with \code{gcc}) in order to
 include debug information that this \code{FrameStepper} uses. Some languages, such as
 C++, automatically include stackwalking debug information for use by exceptions.
-The \code{DebugStepper} class will also make use of this kind of exception stacking
+The \code{DebugStepper} class will also make use of this kind of exception
 information if it is available.
 
-\subsubsection{Class SigHandlerStepper}
+\subsubsection{AnalysisStepper}
 
-The \code{SigHandlerStepper} is used to walk through UNIX signal handlers as found on
-the call stack. On some systems a signal handler generates a special kind of
-stack frame that cannot be walked through using normal stack walking techniques.
+This class uses dataflow analysis to determine possible stack sizes at
+all locations in a function as well as the location of the frame
+pointer. It is able to handle optimized code with omitted frame
+pointers and overlapping code sequences. 
+
+\subsubsection{StepperWanderer}
+
+This class uses a heuristic approach to find possible return addresses
+in the stack frame. If a return address is found that matches a valid
+caller of the current function, we conclude it is the actual return
+address and construct a matching stack frame. Since this approach is
+heuristic it can make mistakes leading to incorrect stack
+information. It has primarily been replaced by the
+\code{AnalysisStepper} described above. 
 
 \subsubsection{Class BottomOfStackStepper}
 

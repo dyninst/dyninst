@@ -14,7 +14,7 @@ interface. Users who want to customize the \code{StepperGroup} should inherit fr
 class and re-implement any of the below virtual functions.
 
 \begin{apient}
-virtual StepperGroup(Walker *walker)
+StepperGroup(Walker *walker)
 \end{apient}
 \apidesc{
     This factory constructor creates a new \code{StepperGroup} object associated
@@ -34,66 +34,23 @@ virtual bool addStepper(FrameStepper *stepper)
 }
 
 \begin{apient}
-virtual bool addAddressRanges(
-    const std::vector<std::pair<Address, Address> >&ranges,
-    const FrameStepper *stepper) = 0
+virtual bool addStepper(FrameStepper *stepper, Address start, Address
+end) = 0;
 \end{apient}
-\apidesc{
-    This method associates a set of address ranges, \code{ranges}, with a \code{FrameStepper},
-    stepper. These address ranges contain objects in the process' code space
-    that create stack frames that \code{stepper} can walk through.
-
-    The default \code{StepperGroup} will use \code{stepper} to walk through a Frame object (by
-    returning it from findStepperForAddr) if the Frame object's RA falls within
-    a range registered by this method. A Frame object, frame, falls within a
-    range, range[i], if . If multiple \code{FrameStepper} objects have overlapping
-    ranges, then the default \code{StepperGroup} will use the one with the highest
-    priority first (see \code{FrameStepper}::getPriority in Section~
-    \ref{subsec:framestepper}).
-
-    For example, suppose this \code{FrameStepper} was designed to walk through a signal
-    handler frame on Linux/x86. During initialization the \code{FrameStepper} inspects
-    the target process' vsyscall page and finds that signal handlers will appear
-    on the call stack with a RA between \code{0xffffe000} and \code{0xffffe400}. It then
-    registers this range with its \code{StepperGroup} using addAddressRanges. If the
-    \code{StepperGroup} encounters an RA in this range, it then uses the signal handler
-    \code{FrameStepper} to walk through it.
-
-    Suppose another \code{FrameStepper} was designed to walk through regular stack
-    frames created by ABI-compliant functions. This \code{FrameStepper} will be used as
-    a general catch-all if no other \code{FrameStepper} can walk through a Frame
-    object. The \code{FrameStepper} can register itself with an address range that
-    spans the whole address space, and a lower priority than the signal handler
-    \code{FrameStepper}. The \code{StepperGroup} will then use the signal handler \code{FrameStepper}
-    to step through signal handlers, and this \code{FrameStepper} to step through any
-    other Frame object.
-
-    This method returns \code{true} on success and \code{false} if there is an
-    error.
-}
+\apidesc{Add the specified \code{FrameStepper} to the list of known
+  steppers, and register it to handle frames in the range
+  [\code{start}, \code{end}).}
 
 \begin{apient}
-virtual bool removeAddressRanges(
-    const std::vector<std::pair<Address, Address > > &ranges, 
-    const FrameStepper *stepper) = 0
+virtual void registerStepper(FrameStepper *stepper);
 \end{apient}
-\apidesc{
-    This method removes a FrameStepper's address range from a StepperGroup. See
-    addAddressRange for more details on how StepperGroup and FrameStepper
-    objects use address ranges. The address ranges specified by ranges will be
-    deleted from stepper's address ranges. For example, if the address range
-    \code{0x1000} to \code{0x2000} was registered to a FrameStepper named \code{foo}, and then
-    removeAddressRanges was used to remove the address range \code{0x1500} to
-    \code{0x1600}
-    out of \code{foo}, then \code{foo} would have two address ranges associated with it:
-    \code{0x1000} to \code{0x1500} and \code{0x1600} to \code{0x2000}.
 
-	This function returns \code{true} on success and \code{false} on error.
-}
+\apidesc{Add the specified \code{FrameStepper} to the list of known
+  steppers and use it over the entire address space.}
 
 \begin{apient}
 virtual bool findStepperForAddr(Address addr, FrameStepper* &out, 
-                                const FrameStepper *last_tried = NULL)
+                                const FrameStepper *last_tried = NULL) = 0
 \end{apient}
 \apidesc{
     Given an address that points into a function (or function-like object),
@@ -120,8 +77,23 @@ virtual bool findStepperForAddr(Address addr, FrameStepper* &out,
 }
 
 \begin{apient}
+typedef std::pair<std::string, Address> LibAddrPair;
+typedef enum { library_load, library_unload } lib_change_t;    
+virtual void newLibraryNotification(LibAddrPair *libaddr, lib_change_t
+change);
+\end{apient}
+\apidesc{Called by the StackwalkerAPI when a new library is loaded.}
+
+\begin{apient}
 Walker *getWalker() const
 \end{apient}
 \apidesc{
 	This method returns the Walker object that associated with this StepperGroup.
 }
+
+\begin{apient}
+void getSteppers(std::set<FrameStepper *> &);
+\end{apient}
+\apidesc{Fill in the provided set with all \code{FrameSteppers}
+  registered in the \code{StepperGroup}. }
+

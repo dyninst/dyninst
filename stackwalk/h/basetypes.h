@@ -34,6 +34,8 @@
 #include "dyntypes.h"
 #include "dyn_regs.h"
 #include "SymReader.h"
+#include <sstream>
+#include <iostream>
 
 namespace Dyninst {
 namespace Stackwalker {
@@ -51,6 +53,23 @@ struct location_t {
     Dyninst::MachRegister reg;
   } val;
   storage_t location;
+
+  std::string format() const {
+      std::stringstream ret;
+    switch (location) {
+    case loc_unknown:
+      ret << "<loc: unknown>";
+      break;
+    case loc_register:
+      ret << "<loc: reg " << val.reg.name() << ">";
+      break;
+    case loc_address:
+      ret << "<loc: addr " << std::hex << val.addr << ">" << std::dec;
+      break;
+    }
+    return ret.str();
+  }
+
 };
  
 }

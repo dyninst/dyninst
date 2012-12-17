@@ -922,7 +922,6 @@ bool BPatch_image::getAddressRangesInt( const char * lineSource,
       return true; 
    }
 
-   dwarf_printf("%s[%d]:  getAddressRanges failing\n", FILE__, __LINE__);
    return false;
 } 
 

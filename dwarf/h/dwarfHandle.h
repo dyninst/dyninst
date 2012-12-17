@@ -64,19 +64,23 @@ class DwarfHandle {
 
    Elf_X *file;
    Elf_X *dbg_file;
-   void *err_func;
+   Dwarf_Handler err_func;
+   Dwarf_Ptr err_data;
    bool init_dbg();
    void locate_dbg_file();
    bool hasFrameData(Elf_X *elfx);
    std::string filename;
    std::string debug_filename;
    static std::map<std::string, DwarfHandle::ptr> all_dwarf_handles;
+   static Dwarf_Handler defaultErrFunc;
+   static void defaultDwarfError(Dwarf_Error err, Dwarf_Ptr arg);
 
-   DwarfHandle(std::string filename_, Elf_X *file_, void *err_func_);
+   DwarfHandle(std::string filename_, Elf_X *file_, Dwarf_Handler err_func_, Dwarf_Ptr err_data_);
   public:
    ~DwarfHandle();
 
-   static DwarfHandle::ptr createDwarfHandle(std::string filename_, Elf_X *file_, void *err_func_ = NULL);
+   static DwarfHandle::ptr createDwarfHandle(std::string filename_, Elf_X *file_, 
+                                             Dwarf_Handler err_func_ = defaultErrFunc, Dwarf_Ptr err_data_ = NULL);
 
    Elf_X *origFile();
    Elf_X *debugLinkFile();

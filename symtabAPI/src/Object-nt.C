@@ -2302,8 +2302,6 @@ Dyninst::Architecture Object::getArch()
    return Dyninst::Arch_x86;
 }
 
-
-
 /*
 	for(it=ref.begin(); it!=ref.end(); it++){
 		IMAGE_IMPORT_DESCRIPTOR newID;

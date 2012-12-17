@@ -1337,12 +1337,19 @@ bool linux_process::plat_individualRegAccess()
    return true;
 }
 
-bool linux_process::plat_detach(result_response::ptr)
+bool linux_process::plat_detach(result_response::ptr, bool leave_stopped)
 {
    int_threadPool *tp = threadPool();
    bool had_error = false;
+   bool first_thread_signaled = false;
+
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
+      if (leave_stopped && !first_thread_signaled) {
+         pthrd_printf("Signaling %d/%d with SIGSTOP during detach to leave stopped\n", getPid(), thr->getLWP());
+         t_kill(thr->getLWP(), SIGSTOP);
+         first_thread_signaled = true;
+      }
       pthrd_printf("PTRACE_DETACH on %d\n", thr->getLWP());
       long result = do_ptrace((pt_req) PTRACE_DETACH, thr->getLWP(), NULL, (void *) 0);
       if (result == -1) {

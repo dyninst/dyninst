@@ -537,10 +537,16 @@ void Parser::ProcessCFInsn(
 
             tailcall = !dynamic_call && 
                 ah.isTailCall(frame.func,frame.num_insns);
-            if(resolvable_edge)
-                newedge = link_tempsink(cur,CALL);
-            else {
-                newedge = link(cur,_sink,CALL,true);
+            if(resolvable_edge) {
+                if (tailcall) {
+                    newedge = link_tempsink(cur,DIRECT);
+                } else newedge = link_tempsink(cur,CALL);
+            }
+            else { 
+                if (tailcall) {
+                    newedge = link(cur,_sink,INDIRECT,true);
+                }
+                else newedge = link(cur,_sink,CALL,true);
             }
             if(!ah.isCall())
                 newedge->_type._interproc = true;
@@ -555,6 +561,10 @@ void Parser::ProcessCFInsn(
             }
             else
                 newedge = link(cur,_sink,curEdge->second,true);
+        }
+
+        if (ah.isTailCall(frame.func,frame.num_insns)) {
+            newedge->_type._interproc = true;
         }
 
         if(!bundle) {

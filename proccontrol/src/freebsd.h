@@ -101,7 +101,7 @@ public:
     virtual bool plat_attach(bool allStopped, bool &);
     virtual bool plat_forked();
     virtual bool plat_execed();
-    virtual bool plat_detach(result_response::ptr resp);
+    virtual bool plat_detach(result_response::ptr resp, bool leave_stopped);
     virtual bool plat_terminate(bool &needs_sync);
 
     virtual bool plat_readMem(int_thread *thr, void *local,

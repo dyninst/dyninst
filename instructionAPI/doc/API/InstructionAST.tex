@@ -20,6 +20,14 @@ conditions hold:
 \end{itemize}
 
 \begin{apient}
+
+typedef boost::shared_ptr<InstructionAST> Ptr
+\end{apient}
+\apidesc{
+    A type definition for a reference-counted pointer to an \code{InstructionAST}.
+}
+
+\begin{apient}
 bool operator==(const InstructionAST &rhs) const  
 \end{apient}
 \apidesc{
@@ -28,7 +36,9 @@ Compare two AST nodes for equality.
 Non-leaf nodes are equal if they are of the same type and their children are
 equal. \code{RegisterAST}s are equal if they represent the same register.
 \code{Immediate}s
-are equal if they represent the same value.
+are equal if they represent the same value. Note that it is not safe to compare two \code{InstructionAST::Ptr}
+variables, as those are pointers. Instead, test the underlying
+\code{InstructionAST} objects.
 }
 
 \begin{apient}
@@ -67,7 +77,7 @@ virtual bool isUsed(InstructionAPI::Ptr findMe) const
 }
 
 \begin{apient}
-virtual std::string foramt(formatStyle how == defaultStyle) const
+virtual std::string format(formatStyle how == defaultStyle) const
 \end{apient}
 \apidesc{
     The \code{format} interface returns the contents of an \code{InstructionAPI}
