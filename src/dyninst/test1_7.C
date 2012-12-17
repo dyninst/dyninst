@@ -58,7 +58,7 @@ static int genRelTest(BPatch_image *appImage,
 		BPatch_Vector<BPatch_snippet*> &vect7_1,
 		BPatch_relOp op, int r1, int r2, const char *var1) 
 {
-	const char *funcName = "test1_7_func1";
+	const char *funcName = "test1_7_func2";
 	BPatch_Vector<BPatch_function *> found_funcs;
 	if ((NULL == appImage->findFunction(funcName, found_funcs))
 			|| !found_funcs.size()) 
@@ -103,7 +103,7 @@ static int genVRelTest(BPatch_image *appImage,
 		BPatch_relOp op, BPatch_variableExpr *r1, 
 		BPatch_variableExpr *r2, const char *var1)
 {
-	const char *funcName = "test1_7_func1";
+	const char *funcName = "test1_7_func2";
 	BPatch_Vector<BPatch_function *> found_funcs;
 
 	if ((NULL == appImage->findFunction(funcName, found_funcs)) || !found_funcs.size()) 
@@ -225,7 +225,7 @@ test_results_t test1_7_Mutator::executeTest()
 				"test1_7_globalVariable16") < 0 )
 		return FAILED;
 
-	const char *funcName2 = "test1_7_func1";
+	const char *funcName2 = "test1_7_func2";
 	BPatch_Vector<BPatch_function *> found_funcs2;
 
 	if ((NULL == appImage->findFunction(funcName2, found_funcs2))
@@ -241,11 +241,11 @@ test_results_t test1_7_Mutator::executeTest()
 				__FILE__, __LINE__, found_funcs2.size(), funcName2);
 	}
 
-	BPatch_Vector<BPatch_point *> *func7_1 = found_funcs2[0]->findPoint(BPatch_subroutine);
+	BPatch_Vector<BPatch_point *> *func7_1 = found_funcs2[0]->findPoint(BPatch_entry);
 
 	if (!func7_1 || ((*func7_1).size() == 0)) 
 	{
-		logerror("Unable to find subroutine points in \"%s\".\n", funcName2);
+		logerror("Unable to find entry points in \"%s\".\n", funcName2);
 		return FAILED;
 	}
 

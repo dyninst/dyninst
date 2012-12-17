@@ -84,7 +84,7 @@ test_results_t test1_6_Mutator::executeTest()
 		return FAILED;
 	}
 
-	const char *funcName2 = "test1_6_func1";
+	const char *funcName2 = "test1_6_func2";
 	BPatch_Vector<BPatch_function *> found_funcs2;
 
 	if ((NULL == appImage->findFunction(funcName2, found_funcs2)) 
@@ -100,11 +100,11 @@ test_results_t test1_6_Mutator::executeTest()
 				__FILE__, __LINE__, found_funcs2.size(), funcName2);
 	}
 
-	BPatch_Vector<BPatch_point *> *point6_2 = found_funcs2[0]->findPoint(BPatch_subroutine);  
+	BPatch_Vector<BPatch_point *> *point6_2 = found_funcs2[0]->findPoint(BPatch_entry);  
 
 	if (!point6_2 || ((*point6_2).size() == 0)) 
 	{
-		logerror("Unable to find subroutine points in \"%s\".\n", funcName2);
+		logerror("Unable to find entry points in \"%s\".\n", funcName2);
 		return FAILED;
 	}
 

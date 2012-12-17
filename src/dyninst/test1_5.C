@@ -112,8 +112,8 @@ test_results_t test1_5_Mutator::executeTest()
 
 	const char *globalVar1 = "test1_5_globalVariable5_1";
 	const char *globalVar2 = "test1_5_globalVariable5_2";
-	BPatch_variableExpr *expr5_1 = findVariable (appImage, globalVar1, point5_2);
-	BPatch_variableExpr *expr5_2 = findVariable (appImage, globalVar2, point5_2);
+	BPatch_variableExpr *expr5_1 = findVariable (appImage, globalVar1, point5_1);
+	BPatch_variableExpr *expr5_2 = findVariable (appImage, globalVar2, point5_1);
 
 	if (!expr5_1 || !expr5_2) 
 	{
