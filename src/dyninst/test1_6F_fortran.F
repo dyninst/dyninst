@@ -150,8 +150,6 @@
 
 	SUBROUTINE test1_6_func2
 #include "test1_6F_common.h"
-	INTEGER foo
-	foo = 0
 
 
 	END
