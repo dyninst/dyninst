@@ -111,7 +111,7 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_attachWillTriggerStop();
    virtual bool plat_forked();
    virtual bool plat_execed();
-   virtual bool plat_detach(result_response::ptr resp);
+   virtual bool plat_detach(result_response::ptr resp, bool leave_stopped);
    virtual bool plat_terminate(bool &needs_sync);
    virtual bool preTerminate();
    virtual OSType getOS() const;

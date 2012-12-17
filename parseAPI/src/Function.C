@@ -182,7 +182,7 @@ Function::finalize()
 vector<Block *> const&
 Function::blocks_int()
 {
-    if(_cache_valid)
+    if(_cache_valid || !_entry)
         return _bl;
 
     // overloaded map warning:

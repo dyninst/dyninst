@@ -311,10 +311,6 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI mutex debug\n");
     dyn_debug_mutex = 1;
     }
-  if ( (p=getenv("DYNINST_DEBUG_DWARF"))) {
-    fprintf(stderr, "Enabling DyninstAPI dwarf debug\n");
-    dyn_debug_dwarf= 1;
-    }
   if ( (p=getenv("DYNINST_DEBUG_RTLIB"))) {
       fprintf(stderr, "Enabling DyninstAPI RTlib debug\n");
       dyn_debug_rtlib = 1;
@@ -565,25 +561,6 @@ int mutex_printf_int(const char *format, ...)
   debugPrintLock->_Lock(FILE__, __LINE__);
   
   fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->_Unlock(FILE__, __LINE__);
-
-  return ret;
-}
-
-
-int dwarf_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_dwarf ) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->_Lock(FILE__, __LINE__);
-  
-  fprintf(stderr, "(dwarf) [thread %s]: ", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);

@@ -157,6 +157,7 @@ copy $(ProjectDir)h\*.h $(TargetDir)..\..\include
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="h\Decoder.h" />
+    <ClInclude Include="h\PlatFeatures.h" />
     <ClInclude Include="src\DecoderWindows.h" />
     <ClInclude Include="h\Event.h" />
     <ClInclude Include="h\EventType.h" />

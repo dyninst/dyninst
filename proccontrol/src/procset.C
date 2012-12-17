@@ -1436,7 +1436,7 @@ bool ProcessSet::stopProcs() const
    return !had_error;
 }
 
-static bool do_detach(int_processSet *procset, bool temporary)
+static bool do_detach(int_processSet *procset, bool temporary, bool leaveStopped)
 {
    MTLock lock_this_func(MTLock::deliver_callbacks);
    bool had_error = false;
@@ -1476,7 +1476,7 @@ static bool do_detach(int_processSet *procset, bool temporary)
          continue;
       }
       
-      proc->throwDetachEvent(temporary);
+      proc->throwDetachEvent(temporary, leaveStopped);
       had_success = true;
    }
 
@@ -1505,14 +1505,14 @@ static bool do_detach(int_processSet *procset, bool temporary)
    return !had_error;
 }
 
-bool ProcessSet::detach() const
+bool ProcessSet::detach(bool leaveStopped) const
 {
-   return do_detach(procset, false);
+   return do_detach(procset, false, leaveStopped);
 }
 
 bool ProcessSet::temporaryDetach() const
 {
-   return do_detach(procset, true);
+   return do_detach(procset, true, false);
 }
 
 bool ProcessSet::reAttach() const

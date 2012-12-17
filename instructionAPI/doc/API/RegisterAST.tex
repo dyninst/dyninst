@@ -14,7 +14,9 @@ A type definition for a reference-counted pointer to a \code{RegisterAST}.
 RegisterAST (MachRegister r)
 \end{apient}
 \apidesc{
-Construct a register, assigning it the ID \code{id}.
+Construct a register using the provided register object \code{r}. The
+\code{MachRegister} datatype is Dyninst's register representation and
+should not be constructed manually. 
 }
 
 \begin{apient}
@@ -67,7 +69,8 @@ We define a partial ordering on registers by their register number so that they 
 MachRegister getID () const
 \end{apient}
 \apidesc{
-The \code{getID} function returns the ID number of a register.
+The \code{getID} function returns underlying register represented by
+this AST. 
 }
 
 \begin{apient}

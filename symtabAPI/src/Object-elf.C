@@ -46,6 +46,8 @@
 
 #include "debug.h"
 
+#include "dwarf/h/dwarfHandle.h"
+
 #if defined(x86_64_unknown_linux2_4) || \
     defined(ppc64_linux) || \
     (defined(os_freebsd) && defined(arch_x86_64))
@@ -2850,7 +2852,7 @@ unsigned Object::fixSymbolsInModuleByRange(IntervalTree<Dwarf_Addr, std::string>
 }
 
 bool Object::fix_global_symbol_modules_static_dwarf()
-{
+{ 
    int status;
    /* Initialize libdwarf. */
    Dwarf_Debug *dbg_ptr = dwarf->type_dbg();
@@ -2898,14 +2900,16 @@ bool Object::fix_global_symbol_modules_static_dwarf()
 
       Dwarf_Addr modLowPC = 0;
       Dwarf_Addr modHighPC = (Dwarf_Addr)(-1);
-      Dwarf_Bool hasLowPC;
-      Dwarf_Bool hasHighPC;
+      Dwarf_Bool hasLowPC = false;
+      Dwarf_Bool hasHighPC = false;
 
-      if ( (status = dwarf_hasattr(moduleDIE, DW_AT_low_pc, &hasLowPC, NULL)) == DW_DLV_OK &&
-           hasLowPC &&
-           (status = dwarf_hasattr(moduleDIE, DW_AT_high_pc, &hasHighPC, NULL)) == DW_DLV_OK && 
-           hasHighPC ) 
-      {
+      if (dwarf_hasattr(moduleDIE, DW_AT_low_pc, &hasLowPC, NULL) != DW_DLV_OK) {
+         hasLowPC = false;
+      }
+      if (dwarf_hasattr(moduleDIE, DW_AT_high_pc, &hasHighPC, NULL) != DW_DLV_OK) {
+         hasHighPC = false;
+      }
+      if (hasLowPC && hasHighPC) {
          // Get PC boundaries for the module, if present
          status = dwarf_lowpc(moduleDIE, &modLowPC, NULL);
          if (status != DW_DLV_OK) goto error;
@@ -3329,7 +3333,7 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
     return;
   }
 
-  dwarf = DwarfHandle::createDwarfHandle(mf_->pathname(), elfHdr, getErrFunc());
+  dwarf = DwarfHandle::createDwarfHandle(mf_->pathname(), elfHdr);
   if( elfHdr->e_type() == ET_DYN )
     load_shared_object(alloc_syms);
   else if( elfHdr->e_type() == ET_REL || elfHdr->e_type() == ET_EXEC ) {

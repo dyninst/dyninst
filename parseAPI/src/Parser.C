@@ -892,6 +892,19 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             Edge * ce = NULL;
 
             if(!work->callproc()) {
+	      // If we're not doing recursive traversal, skip *all* of the call edge processing.
+	      // We don't want to create a stub. We'll handle the assumption of a fallthrough
+	      // target for the fallthrough work element, not the call work element. Catch blocks
+	      // will get excluded but that's okay; our heuristic is not reliable enough that I'm willing to deploy
+	      // it when we'd only be detecting a non-returning callee by name anyway.
+	      // --BW 12/2012
+	      if(!recursive) 
+	      {
+		parsing_printf("[%s] non-recursive parse skipping call %lx->%lx\n",
+			       FILE__, work->edge()->src()->lastInsnAddr(), work->target());
+		continue;
+	      }
+	      
                 parsing_printf("[%s] binding call %lx->%lx\n",
                     FILE__,work->edge()->src()->lastInsnAddr(),work->target());
             

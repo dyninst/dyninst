@@ -662,7 +662,7 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
    insn->getOperand(1).getReadSet(readSet); //assert(readSet.size() == 1);
 
    // conservative...
-   if (readSet.size() > 1) {
+   if (readSet.size() != 1) {
     return handleDefault(insn, xferFuncs); 
    }
 
@@ -687,6 +687,9 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
      break;
    case 4:
      delta =  (long) res.convert<int>();
+     break;
+   case 8:
+     delta =  (long) res.convert<long>();
      break;
    default:
      assert(0);

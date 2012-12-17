@@ -367,7 +367,7 @@ bool bgq_process::plat_forked()
    return true;
 }
 
-bool bgq_process::plat_detach(result_response::ptr)
+bool bgq_process::plat_detach(result_response::ptr, bool)
 {
    if (detach_state == no_detach_issued) {
       pthrd_printf("plat_detach for %d is resuming all threads\n", getPid());

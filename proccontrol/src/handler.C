@@ -1186,7 +1186,7 @@ Handler::handler_ret_t HandlePostForkCont::handleEvent(Event::ptr ev)
    assert(child_proc);
 
    if (parent_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
-      child_proc->throwDetachEvent(false);
+      child_proc->throwDetachEvent(false, false);
    }
    else {
       //We need syncRunState to run for the new process to continue it.
@@ -1779,6 +1779,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
    EventDetach::ptr detach_ev = ev->getEventDetach();
    int_eventDetach *int_detach_ev = detach_ev->getInternal();
    bool temporary = int_detach_ev->temporary_detach;
+   bool leaveStopped = int_detach_ev->leave_stopped;
    bool &removed_bps = int_detach_ev->removed_bps;
    result_response::ptr &detach_response = int_detach_ev->detach_response;
    std::set<response::ptr> &async_responses = int_detach_ev->async_responses;
@@ -1836,7 +1837,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
    if (!detach_response) {
       pthrd_printf("Detach handler is triggering platform detach\n");
       detach_response = result_response::createResultResponse();
-      bool result = proc->plat_detach(detach_response);
+      bool result = proc->plat_detach(detach_response, leaveStopped);
       if (!result) {
          pthrd_printf("Error performing platform detach on %d\n", proc->getPid());
          goto done;

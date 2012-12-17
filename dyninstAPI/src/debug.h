@@ -66,7 +66,6 @@ extern int dyn_debug_springboard;
 extern int dyn_debug_sensitivity;
 extern int dyn_debug_dyn_unw;
 extern int dyn_debug_mutex;
-extern int dyn_debug_dwarf;
 extern int dyn_debug_catchup;
 extern int dyn_debug_regalloc;
 extern int dyn_debug_ast;
@@ -139,7 +138,6 @@ extern int inst_printf_int(const char *format, ...);
 extern int reloc_printf_int(const char *format, ...);
 extern int dyn_unw_printf_int(const char *format, ...);
 extern int mutex_printf_int(const char *format, ...);
-extern int dwarf_printf_int(const char *format, ...);
 extern int thread_printf_int(const char *format, ...);
 extern int catchup_printf_int(const char *format, ...);
 extern int regalloc_printf_int(const char *format, ...);
@@ -158,7 +156,6 @@ extern int crash_printf_int(const char *format, ...);
 #define reloc_printf(format, args...) do {if (dyn_debug_reloc) reloc_printf_int(format, ## args); } while(0)
 #define dyn_unw_printf(format, args...) do {if (dyn_debug_dyn_unw) dyn_unw_printf_int(format, ## args); } while(0)
 #define mutex_printf(format, args...) do {if (dyn_debug_mutex) mutex_printf_int(format, ## args); } while(0)
-#define dwarf_printf(format, args...) do {if (dyn_debug_dwarf) dwarf_printf_int(format, ## args); } while(0)
 #define thread_printf(format, args...) do {if (dyn_debug_thread) thread_printf_int(format, ## args); } while(0)
 #define catchup_printf(format, args...) do {if (dyn_debug_catchup) catchup_printf_int(format, ## args); } while(0)
 #define regalloc_printf(format, args...) do {if (dyn_debug_regalloc) regalloc_printf_int(format, ## args); } while(0)
@@ -177,7 +174,6 @@ extern int crash_printf_int(const char *format, ...);
 #define reloc_printf reloc_printf_int
 #define dyn_unw_printf dyn_unw_printf_int
 #define mutex_printf mutex_printf_int
-#define dwarf_printf dwarf_printf_int
 #define thread_printf thread_printf_int
 #define catchup_printf catchup_printf_int
 #define regalloc_printf regalloc_printf_int

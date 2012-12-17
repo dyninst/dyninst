@@ -1120,7 +1120,7 @@ bool bgp_process::post_forked()
    return false;
 }
 
-bool bgp_process::plat_detach(result_response::ptr resp)
+bool bgp_process::plat_detach(result_response::ptr resp, bool)
 {
    if (threadPool()->initialThread()->getHandlerState().getState() == int_thread::stopped) {
       pthrd_printf("Continuing process %d for plat detach\n", getPid());

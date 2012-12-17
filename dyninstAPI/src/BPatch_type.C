@@ -560,7 +560,7 @@ long BPatch_localVar::getFrameOffset() {
 
    vector<Dyninst::VariableLocation> &locs = lVar->getLocationLists();
 
-   if (locs.size())
+   if (locs.empty())
       return -1;
 
    return locs[0].frameOffset;

@@ -10,7 +10,29 @@ objects: \code{ProcSelf} does a first party stackwalk, and \code{ProcDebug} does
 stackwalk.
 
 A new \code{ProcessState} class can be created by inheriting from this class and
-implementing the following functions.
+implementing the necessary methods. 
+
+\begin{apient}
+static ProcessState *getProcessStateByPid(Dyninst::PID pid)
+\end{apient}
+\apidesc{Given a \code{PID}, return the corresponding
+  \code{ProcessState} object.}
+
+
+\begin{apient}
+virtual unsigned getAddressWidth() = 0;
+\end{apient}
+\apidesc{Return the number of bytes in a pointer for the target
+  process. This value is 4 for 32-bit platforms (x86, PowerPC-32) and
+  8 for 64-bit platforms (x86-64, PowerPC-64).}
+
+\begin{apient}
+ typedef enum { Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 }
+ Architecture;
+ virtual Dyninst::Architecture getArchitecture() = 0;
+\end{apient}
+\apidesc{Return the appropriate architecture for the target
+process.}
 
 \begin{apient}
 virtual bool getRegValue(Dyninst::MachRegister reg, 
@@ -64,13 +86,19 @@ virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0
 }
 
 \begin{apient}
-virtual Dyninst::PID getProcessID() = 0
+virtual Dyninst::PID getProcessId()
 \end{apient}
 \apidesc{
     This method returns a process ID for the target process. The default
     \code{ProcessState} implementations (\code{ProcDebug} and \code{ProcSelf}) will return a PID on
     UNIX systems and a HANDLE object on Windows.
 }
+
+\begin{apient}
+Walker *getWalker() const;
+\end{apient}
+\apidesc{Return the \code{Walker} associated with the current process
+  state. }
     
 \paragraph{Class LibraryState}
 

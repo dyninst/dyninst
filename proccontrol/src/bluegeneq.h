@@ -98,7 +98,7 @@ class bgq_process :
    virtual bool plat_create();
    virtual bool plat_attach(bool all_stopped, bool &needsSync);
    virtual bool plat_forked();
-   virtual bool plat_detach(result_response::ptr resp);
+   virtual bool plat_detach(result_response::ptr resp, bool leave_stopped);
    virtual bool plat_detachDone();
    virtual bool plat_terminate(bool &needs_sync);
    virtual bool needIndividualThreadAttach();
