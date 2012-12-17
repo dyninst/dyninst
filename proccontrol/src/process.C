@@ -1653,7 +1653,7 @@ bool int_process::setMemoryAccessRights(Dyninst::Address addr, size_t size,
    int result = plat_setMemoryAccessRights(addr, size, rights, oldRights);
    if (!result) {
       pthrd_printf("ERROR: set rights to %s from memory %lx on target process %d\n",
-                   rights.print().c_str(), addr, getPid());
+                   rights.getPermName().c_str(), addr, getPid());
       return false;
    }
    return true;
@@ -6852,11 +6852,11 @@ bool Process::setMemoryAccessRights(Dyninst::Address addr, size_t size,
    }
 
    pthrd_printf("User wants to set Memory Rights to %s from [%lx %lx]\n",
-                rights.print().c_str(), addr, addr+size);
+                rights.getPermName().c_str(), addr, addr+size);
    
    if (!llproc_->setMemoryAccessRights(addr, size, rights, oldrights)) {
       pthrd_printf("ERROR: set rights to %s from memory %lx on target process %d\n",
-                   rights.print().c_str(), addr, llproc_->getPid());
+                   rights.getPermName().c_str(), addr, llproc_->getPid());
       return false;
    }
 

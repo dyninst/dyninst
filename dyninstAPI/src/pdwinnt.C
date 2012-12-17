@@ -416,7 +416,7 @@ void PCProcess::changeMemoryProtections(Address addr, size_t size,
 	for (Address idx = pageBase, idx_e = pageBase + size;
          idx < idx_e; idx += pageSize) {
         mal_printf("setting rights to %s for [%lx %lx)\n",
-                   rights.print().c_str(), idx , idx + pageSize);
+                   rights.getPermName().c_str(), idx , idx + pageSize);
         if (!pcProc_->setMemoryAccessRights(idx, pageSize,
                                             rights, oldRights)) {
 			mal_printf("ERROR: failed to set access rights "
@@ -440,8 +440,8 @@ void PCProcess::changeMemoryProtections(Address addr, size_t size,
 				if (shadowRights != oldRights) {
 					mal_printf("WARNING: shadow page[%lx] rights %s did not "
                                "match orig-page [%lx] rights %s\n",
-                               shadowAddr, shadowRights.print().c_str(),
-                               addr, oldRights.print().c_str());
+                               shadowAddr, shadowRights.getPermName().c_str(),
+                               addr, oldRights.getPermName().c_str());
 				}
 			}
 		}

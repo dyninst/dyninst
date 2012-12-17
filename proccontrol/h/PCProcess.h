@@ -396,16 +396,12 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
        bool read;
        bool write;
        bool execute;
-       std::string perm_str;
 
    public:
-       mem_perm() : read(false), write(false), execute(false),
-                    perm_str("Unknown Permission") {} 
+       mem_perm() : read(false), write(false), execute(false) {} 
        mem_perm(const mem_perm& p) : read(p.read), write(p.write),
-                                     execute(p.execute),
-                                     perm_str(p.perm_str) {}
-       mem_perm(bool r, bool w, bool x) : read(r), write(w), execute(x),
-                                          perm_str(NULL) {} 
+                                     execute(p.execute) {}
+       mem_perm(bool r, bool w, bool x) : read(r), write(w), execute(x) {} 
 
        bool getR() const { return read;    }
        bool getW() const { return write;   }
@@ -427,10 +423,9 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
        mem_perm& clrX() { execute = false; return *this; }
 
        mem_perm& operator=(const mem_perm& p) {
-           read     = p.read;
-           write    = p.write;
-           execute  = p.execute;
-           perm_str = p.perm_str;
+           read    = p.getR();
+           write   = p.getW();
+           execute = p.getX();
            return *this;
        }
        bool operator==(const mem_perm& p) const {
@@ -442,23 +437,22 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
          return !(*this == p);
        }
 
-       std::string print() {
+       std::string getPermName() const {
          if (isNone()) {
-            perm_str = "NONE";
+            return "NONE";
          } else if (isR()) {
-            perm_str = "R";
+            return "R";
          } else if (isX()) {
-            perm_str = "X";
+            return "X";
          } else if (isRW()) {
-            perm_str = "RW";
+            return "RW";
          } else if (isRX()) {
-            perm_str = "RX";
+            return "RX";
          } else if (isRWX()) {
-            perm_str = "RWX";
+            return "RWX";
          } else {
-            perm_str = "Unknown Permission";
+            return "Unsupported Permission";
          }
-         return perm_str;
        }
    };
 

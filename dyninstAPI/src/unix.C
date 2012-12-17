@@ -286,7 +286,7 @@ void PCProcess::changeMemoryProtections(Address addr, size_t size,
 bool PCProcess::setMemoryAccessRights(Address start, size_t size,
                                       PCMemPerm rights) {
     mal_printf("setMemoryAccessRights to %s [%lx %lx]\n",
-               rights.print().c_str(), start, start+size);
+               rights.getPermName().c_str(), start, start+size);
     assert(!"Not implemented yet");
     return false;
 }
@@ -294,7 +294,7 @@ bool PCProcess::setMemoryAccessRights(Address start, size_t size,
 bool PCProcess::getMemoryAccessRights(Address start, size_t size,
                                       PCMemPerm& rights) {
     mal_printf("getMemoryAccessRights to %s [%lx %lx]\n",
-               rights.print().c_str(), start, start+size);
+               rights.getPermName().c_str(), start, start+size);
     assert(!"Not implemented yet");
     return false;
 }
