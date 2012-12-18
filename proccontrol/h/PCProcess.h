@@ -392,7 +392,7 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    /**
     * Memory management
     **/
-   class mem_perm {
+   class PC_EXPORT mem_perm {
        bool read;
        bool write;
        bool execute;
