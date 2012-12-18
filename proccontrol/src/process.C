@@ -5850,6 +5850,18 @@ Library::const_ptr LibraryPool::getExecutable() const
    return proc->plat_getExecutable()->up_lib;
 }
 
+LibraryPool::iterator LibraryPool::find(Library::ptr lib) {
+   LibraryPool::iterator i;
+   i.int_iter = proc->memory()->libs.find(lib->debug());
+   return i;
+}
+
+LibraryPool::const_iterator LibraryPool::find(Library::ptr lib) const {
+   LibraryPool::const_iterator i;
+   i.int_iter = proc->memory()->libs.find(lib->debug());
+   return i;
+}
+
 LibraryPool::iterator::iterator()
 {
 }

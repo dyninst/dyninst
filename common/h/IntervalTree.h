@@ -46,9 +46,17 @@ class IntervalTree {
  public:
   typedef typename std::pair<K, K> Range;
   typedef typename std::pair<Range, V> Entry;
+  typedef typename Tree::iterator iterator;
+  typedef typename Tree::const_iterator const_iterator;
 
   IntervalTree() {};
   ~IntervalTree() {};
+
+  iterator begin() { return tree_.begin(); }
+  iterator end() { return tree_.end(); }
+  const_iterator begin() const { return tree_.begin(); }
+  const_iterator end() const { return tree_.end(); }
+
   int size() const { return tree_.size(); }
   bool empty() const { return tree_.empty(); }
   void insert(K lb, K ub, V v) {
@@ -56,7 +64,11 @@ class IntervalTree {
   }
 
   void remove(K lb) {
-    tree_.erase(lb);
+     erase(lb);
+  }
+
+  void erase(K lb) {
+     tree_.erase(lb);
   }
 
   bool find(K key, V &value) const {

@@ -199,6 +199,10 @@ class PC_EXPORT LibraryPool
 
   Library::ptr getLibraryByName(std::string s);
   Library::const_ptr getLibraryByName(std::string s) const;
+
+  iterator find(Library::ptr lib);
+  const_iterator find(Library::ptr lib) const;
+
 };
 
 class PC_EXPORT IRPC
