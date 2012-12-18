@@ -587,7 +587,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             {
                 parsing_printf("%s[%d]: tail call to %x\n", 
                     FILE__, __LINE__, target);
-                outEdges.push_back(std::make_pair(target, DIRECT));
+                outEdges.push_back(std::make_pair(target, NOEDGE));
             }
             return;
         }
@@ -601,8 +601,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             if(isTailCall(context,num_insns)) {
                 parsing_printf("%s[%d]: indirect tail call %s at 0x%lx\n", FILE__, __LINE__,
                                ci->format().c_str(), current);
-                outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
-                tailCall.second = true;
                 return;
             }
             parsing_printf("%s[%d]: jump table candidate %s at 0x%lx\n", FILE__, __LINE__,
