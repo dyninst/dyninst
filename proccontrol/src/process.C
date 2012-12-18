@@ -6632,6 +6632,52 @@ bool Process::supportsExec() const
    return llproc_->plat_supportExec();
 }
 
+int Process::mem_perm::permVal() const {
+   int tmp = 0;
+
+   if (read)
+      tmp += 4;
+
+   if (write)
+      tmp += 2;
+
+   if (execute)
+      tmp += 1;
+
+   return tmp;
+}
+
+bool Process::mem_perm::operator<(const mem_perm& p) const {
+   return permVal() < p.permVal();
+}
+
+bool Process::mem_perm::operator==(const mem_perm& p) const {
+     return (read    == p.read) &&
+            (write   == p.write) &&
+            (execute == p.execute);
+}
+
+bool Process::mem_perm::operator!=(const mem_perm& p) const {
+     return !(*this == p);
+}
+
+std::string Process::mem_perm::getPermName() const {
+    if (isNone()) {
+       return "NONE";
+    } else if (isR()) {
+       return "R";
+    } else if (isX()) {
+       return "X";
+    } else if (isRW()) {
+       return "RW";
+    } else if (isRX()) {
+       return "RX";
+    } else if (isRWX()) {
+       return "RWX";
+    } else {
+       return "Unsupported Permission";
+    }
+}
 
 Dyninst::Address Process::mallocMemory(size_t size, Dyninst::Address addr)
 {

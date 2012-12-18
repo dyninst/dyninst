@@ -397,6 +397,8 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
        bool write;
        bool execute;
 
+       int permVal() const;
+
    public:
        mem_perm() : read(false), write(false), execute(false) {} 
        mem_perm(const mem_perm& p) : read(p.read), write(p.write),
@@ -422,38 +424,11 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
        mem_perm& clrW() { write   = false; return *this; }
        mem_perm& clrX() { execute = false; return *this; }
 
-       mem_perm& operator=(const mem_perm& p) {
-           read    = p.getR();
-           write   = p.getW();
-           execute = p.getX();
-           return *this;
-       }
-       bool operator==(const mem_perm& p) const {
-           return (read    == p.getR()) &&
-                  (write   == p.getW()) &&
-                  (execute == p.getX());
-       }
-       bool operator!=(const mem_perm& p) const {
-         return !(*this == p);
-       }
+       bool operator< (const mem_perm& p) const;
+       bool operator==(const mem_perm& p) const;
+       bool operator!=(const mem_perm& p) const;
 
-       std::string getPermName() const {
-         if (isNone()) {
-            return "NONE";
-         } else if (isR()) {
-            return "R";
-         } else if (isX()) {
-            return "X";
-         } else if (isRW()) {
-            return "RW";
-         } else if (isRX()) {
-            return "RX";
-         } else if (isRWX()) {
-            return "RWX";
-         } else {
-            return "Unsupported Permission";
-         }
-       }
+       std::string getPermName() const;
    };
 
    Dyninst::Address mallocMemory(size_t size);
