@@ -41,8 +41,6 @@
 
 namespace Dyninst
 {
-   struct x86OperandParser;
-   struct ppcOperandParser;
    typedef unsigned long MachRegisterVal;
 
    typedef enum
@@ -58,9 +56,7 @@ namespace Dyninst
    COMMON_EXPORT bool isSegmentRegister(int regClass);
    COMMON_EXPORT unsigned getArchAddressWidth(Dyninst::Architecture arch);
    class COMMON_EXPORT MachRegister {
-      friend struct ::Dyninst::x86OperandParser;
-      friend struct ::Dyninst::ppcOperandParser;
-     private:
+   private:
       signed int reg;
 
       typedef std::map<signed int, std::string> NameMap;
