@@ -166,11 +166,11 @@ bool BPatch_binaryEdit::isMultiThreadCapable() const
   return origBinEdit->isMultiThreadCapable();
 }
 
-BPatch_image * BPatch_binaryEdit::getImageInt() {
+BPatch_image * BPatch_binaryEdit::getImage() {
 	return image;
 }
 
-void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
+BPatch_binaryEdit::~BPatch_binaryEdit()
 {
    if (image)
       delete image;
@@ -195,7 +195,7 @@ void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
   assert(BPatch::bpatch != NULL);
 }
 
-bool BPatch_binaryEdit::writeFileInt(const char * outFile)
+bool BPatch_binaryEdit::writeFile(const char * outFile)
 {
     assert(pendingInsertions);
 
@@ -274,18 +274,18 @@ void BPatch_binaryEdit::getAS(std::vector<AddressSpace *> &as)
  *
  */
 
-void BPatch_binaryEdit::beginInsertionSetInt()
+void BPatch_binaryEdit::beginInsertionSet()
 {
     return;
 }
 
 
-bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modified*/)
+bool BPatch_binaryEdit::finalizeInsertionSet(bool /*atomic*/, bool * /*modified*/)
 {
     return true;
 }
 
-BPatch_object *BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
+BPatch_object *BPatch_binaryEdit::loadLibrary(const char *libname, bool deps)
 {
    std::map<std::string, BinaryEdit*> libs;
    mapped_object *obj = origBinEdit->openResolvedLibraryName(libname, libs);

@@ -32,7 +32,6 @@
 #define _BPatch_instruction_h_
 
 #include "BPatch_dll.h"
-#include "BPatch_eventLock.h"
 
 #include <string>
 
@@ -47,7 +46,7 @@ class internal_instruction;
 #endif
 #define DYNINST_CLASS_NAME BPatch_instruction
 
-class BPATCH_DLL_EXPORT BPatch_instruction : public BPatch_eventLock{
+class BPATCH_DLL_EXPORT BPatch_instruction {
   friend class BPatch_basicBlock;
 
  public:
@@ -80,13 +79,10 @@ class BPATCH_DLL_EXPORT BPatch_instruction : public BPatch_eventLock{
   // Not yet implemented
   char *getMnemonic() const { return NULL; }
 
-  API_EXPORT(Int, (),
-  BPatch_point *,getInstPoint,());
+  BPatch_point * getInstPoint();
 
-  API_EXPORT(Int, (),
-  BPatch_basicBlock *,getParent,());
-  API_EXPORT(Int, (),
-  void *,getAddress,());
+  BPatch_basicBlock * getParent();
+  void * getAddress();
  public:
 
   bool equals(const BPatch_instruction* mp) const { return mp ? equals(*mp) : false; }
@@ -139,23 +135,18 @@ class BPATCH_DLL_EXPORT BPatch_branchInstruction : public BPatch_instruction{
 };
 
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_register
-
 class BPatch_registerExpr;
 class BPatch_addressSpace;
 class BPatch_point;
 
-class BPATCH_DLL_EXPORT BPatch_register : public BPatch_eventLock {
+class BPATCH_DLL_EXPORT BPatch_register {
     friend class BPatch_registerExpr;
     friend class BPatch_addressSpace;
     friend class BPatch_point;
 
  public:
-    API_EXPORT(Int, (), std::string, name, ());
-
+    std::string name() const;
+    
  private:
     BPatch_register(std::string n,
                     int e) :

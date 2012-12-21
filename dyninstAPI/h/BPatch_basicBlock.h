@@ -36,7 +36,6 @@
 #include "BPatch_Set.h"
 #include "BPatch_sourceBlock.h" 
 #include "BPatch_instruction.h"
-#include "BPatch_eventLock.h"
 #include "Instruction.h"
 #include "BPatch_enums.h"
 //#include "BPatch_edge.h"
@@ -55,292 +54,258 @@ class BPatch_basicBlock;
    but could be extended as we do liveness stuff for other platforms */
 
 namespace Dyninst {
-   namespace ParseAPI {
-      class Block;
-      Block *convert(const BPatch_basicBlock *);
-   };
-   namespace PatchAPI {
-      class PatchBlock;
-      PatchBlock *convert(const BPatch_basicBlock *);
-   };
+  namespace ParseAPI {
+    class Block;
+    Block *convert(const BPatch_basicBlock *);
+  };
+  namespace PatchAPI {
+    class PatchBlock;
+    PatchBlock *convert(const BPatch_basicBlock *);
+  };
 };
 
 
 /** class for machine code basic blocks. We assume the user can not 
-  * create basic blocks using its constructor. It is not safe. 
-  * basic blocks are used for reading purposes not for inserting
-  * a new code to the machine executable other than instrumentation code
-  *
-  * @see BPatch_flowGraph
-  * @see BPatch_sourceBlock
-  * @see BPatch_basicBlockLoop
-  */
+ * create basic blocks using its constructor. It is not safe. 
+ * basic blocks are used for reading purposes not for inserting
+ * a new code to the machine executable other than instrumentation code
+ *
+ * @see BPatch_flowGraph
+ * @see BPatch_sourceBlock
+ * @see BPatch_basicBlockLoop
+ */
 class BPatch_flowGraph;
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_basicBlock
+
 struct insnPredicate : public std::unary_function<Dyninst::InstructionAPI::Instruction::Ptr, bool>
 {
-    virtual result_type operator()(argument_type arg) = 0;
-    virtual ~insnPredicate() {}
+  virtual result_type operator()(argument_type arg) = 0;
+  virtual ~insnPredicate() {}
     
 };
 
-class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
-	friend class BPatch_flowGraph;
-	friend class TarjanDominator;
-	friend class dominatorCFG;
-	friend class InstrucIter;
-	friend class func_instance;
-        friend class BPatch_instruction;
-	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
-        friend Dyninst::ParseAPI::Block *Dyninst::ParseAPI::convert(const BPatch_basicBlock *);
-        friend Dyninst::PatchAPI::PatchBlock *Dyninst::PatchAPI::convert(const BPatch_basicBlock *);
+class BPATCH_DLL_EXPORT BPatch_basicBlock {
+  friend class BPatch_flowGraph;
+  friend class TarjanDominator;
+  friend class dominatorCFG;
+  friend class InstrucIter;
+  friend class func_instance;
+  friend class BPatch_instruction;
+  friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
+  friend Dyninst::ParseAPI::Block *Dyninst::ParseAPI::convert(const BPatch_basicBlock *);
+  friend Dyninst::PatchAPI::PatchBlock *Dyninst::PatchAPI::convert(const BPatch_basicBlock *);
 
 
  private:
-   /** the internal basic block structure **/
-   block_instance *iblock;
+  /** the internal basic block structure **/
+  block_instance *iblock;
 
-   /** the flow graph that contains this basic block */
-   BPatch_flowGraph *flowGraph;
+  /** the flow graph that contains this basic block */
+  BPatch_flowGraph *flowGraph;
    
-   /** set of basic blocks that this basicblock dominates immediately*/
-   BPatch_Set<BPatch_basicBlock*>* immediateDominates;
+  /** set of basic blocks that this basicblock dominates immediately*/
+  BPatch_Set<BPatch_basicBlock*>* immediateDominates;
    
-   /** basic block which is the immediate dominator of the basic block */
-   BPatch_basicBlock *immediateDominator;
+  /** basic block which is the immediate dominator of the basic block */
+  BPatch_basicBlock *immediateDominator;
    
-   /** same as previous two fields, but for postdominator tree */
-   BPatch_Set<BPatch_basicBlock*> *immediatePostDominates;
-   BPatch_basicBlock *immediatePostDominator;
+  /** same as previous two fields, but for postdominator tree */
+  BPatch_Set<BPatch_basicBlock*> *immediatePostDominates;
+  BPatch_basicBlock *immediatePostDominator;
    
-   /** the source block(source lines) that basic block corresponds*/
-   BPatch_Vector<BPatch_sourceBlock*> *sourceBlocks;
+  /** the source block(source lines) that basic block corresponds*/
+  BPatch_Vector<BPatch_sourceBlock*> *sourceBlocks;
    
-   /** the instructions within this block */
-   BPatch_Vector<BPatch_instruction*> *instructions;
+  /** the instructions within this block */
+  BPatch_Vector<BPatch_instruction*> *instructions;
    
-   /** the incoming edges */
-   BPatch_Set<BPatch_edge*> incomingEdges;
+  /** the incoming edges */
+  BPatch_Set<BPatch_edge*> incomingEdges;
  
-   /** the outgoing edges */
-   BPatch_Set<BPatch_edge*> outgoingEdges;
+  /** the outgoing edges */
+  BPatch_Set<BPatch_edge*> outgoingEdges;
 
-  public:
-   BPatch_flowGraph *fg() const { return flowGraph; }
-   block_instance *block() const { return iblock; }
-   BPatch_function *func() const;
-   func_instance *ifunc() const;
+ public:
+  BPatch_flowGraph *fg() const { return flowGraph; }
+  block_instance *block() const { return iblock; }
+  BPatch_function *func() const;
+  func_instance *ifunc() const;
 
  protected:
 
-   /** constructor of class */
-   BPatch_basicBlock(block_instance *ib, BPatch_flowGraph *fg);
+  /** constructor of class */
+  BPatch_basicBlock(block_instance *ib, BPatch_flowGraph *fg);
 
 
    
-   BPatch_Vector<BPatch_point*>*
-           findPointByPredicate(insnPredicate& f);
+  BPatch_Vector<BPatch_point*>*
+  findPointByPredicate(insnPredicate& f);
 
  public:
    
-   // Internal functions. Don't use these unless you know what you're
-   // doing.
-   block_instance *lowlevel_block()  { return iblock; }
+  // Internal functions. Don't use these unless you know what you're
+  // doing.
+  block_instance *lowlevel_block()  { return iblock; }
 
-   void setlowlevel_block(block_instance *b)  { iblock = b; }
-   void  getAllPoints(std::vector<BPatch_point*>& allPoints);
-   BPatch_point *convertPoint(instPoint *pt);
-   BPatch_function *getCallTarget();
-   // end internal functions
+  void setlowlevel_block(block_instance *b)  { iblock = b; }
+  void  getAllPoints(std::vector<BPatch_point*>& allPoints);
+  BPatch_point *convertPoint(instPoint *pt);
+  BPatch_function *getCallTarget();
+  // end internal functions
 
-   API_EXPORT(Int, (),
-	      BPatch_flowGraph *, getFlowGraph, () CONST_EXPORT);
+  BPatch_flowGraph * getFlowGraph() const;
 
-	/** BPatch_basicBlock::getSources   */
-	/** method that returns the predecessors of the basic block */
+  /** BPatch_basicBlock::getSources   */
+  /** method that returns the predecessors of the basic block */
 
-   API_EXPORT_V(Int, (srcs),
-                void,getSources,(BPatch_Vector<BPatch_basicBlock*> &srcs));
+  void getSources(BPatch_Vector<BPatch_basicBlock*> &srcs);
 
-	/** BPatch_basicBlock::getTargets   */
-	/** method that returns the successors  of the basic block */
+  /** BPatch_basicBlock::getTargets   */
+  /** method that returns the successors  of the basic block */
 
-   API_EXPORT_V(Int, (targets),
-                void,getTargets,(BPatch_Vector<BPatch_basicBlock*> &targets));
+  void getTargets(BPatch_Vector<BPatch_basicBlock*> &targets);
 
-	/** BPatch_basicBlock::dominates   */
-	/** returns true if argument is dominated by this basic block */
+  /** BPatch_basicBlock::dominates   */
+  /** returns true if argument is dominated by this basic block */
+  
+  bool dominates(BPatch_basicBlock *block);
 
-   API_EXPORT(Int, (block),
-              bool,dominates,(BPatch_basicBlock *block));
+  /** BPatch_basicBlock::getImmediateDominiator   */
+  /** return the immediate dominator of a basic block */
 
-   /** BPatch_basicBlock::getImmediateDominiator   */
-   /** return the immediate dominator of a basic block */
+  BPatch_basicBlock* getImmediateDominator();
 
-   API_EXPORT(Int, (),
-              BPatch_basicBlock*,getImmediateDominator,());
+  /** BPatch_basicBlock::getImmediateDominates   */
+  /** method that returns the basic blocks immediately dominated by   */
+  /** the basic block */
 
-	/** BPatch_basicBlock::getImmediateDominates   */
-	/** method that returns the basic blocks immediately dominated by   */
-	/** the basic block */
+  void getImmediateDominates(BPatch_Vector<BPatch_basicBlock*> &blocks);
 
-   API_EXPORT_V(Int, (blocks),
-                void,getImmediateDominates,(BPatch_Vector<BPatch_basicBlock*> &blocks));
+  /** BPatch_basicBlock::getAllDominates   */
+  /** method that returns all basic blocks dominated by the basic block */
 
-	/** BPatch_basicBlock::getAllDominates   */
-	/** method that returns all basic blocks dominated by the basic block */
+  void getAllDominates(BPatch_Set<BPatch_basicBlock*> &blocks);
 
-   API_EXPORT_V(Int, (blocks),
-                void,getAllDominates,(BPatch_Set<BPatch_basicBlock*> &blocks));
+  /** the previous four methods, but for postdominators */
 
-	/** the previous four methods, but for postdominators */
+  /** BPatch_basicBlock::postdominates   */
 
-	/** BPatch_basicBlock::postdominates   */
+  bool postdominates(BPatch_basicBlock *block);
 
-   API_EXPORT(Int, (block),
-              bool,postdominates,(BPatch_basicBlock *block));
+  /** BPatch_basicBlock::getImmediatePostDominator   */
 
-	/** BPatch_basicBlock::getImmediatePostDominator   */
+  BPatch_basicBlock* getImmediatePostDominator();
 
-   API_EXPORT(Int, (),
-              BPatch_basicBlock*,getImmediatePostDominator,());
+  /** BPatch_basicBlock::getImmediatePostDominates   */
 
-	/** BPatch_basicBlock::getImmediatePostDominates   */
+  void getImmediatePostDominates(BPatch_Vector<BPatch_basicBlock*> &blocks);
 
-   API_EXPORT_V(Int, (blocks),
-                void,getImmediatePostDominates,(BPatch_Vector<BPatch_basicBlock*> &blocks));
+  /** BPatch_basicBlock::getAllPostDominates   */
 
-	/** BPatch_basicBlock::getAllPostDominates   */
-
-   API_EXPORT_V(Int, (blocks),
-                void,getAllPostDominates,(BPatch_Set<BPatch_basicBlock*> &blocks));
+  void getAllPostDominates(BPatch_Set<BPatch_basicBlock*> &blocks);
 	
-	/** BPatch_basicBlock::getSourceBlocks   */
-	/** returns the source block corresponding to the basic block */
+  /** BPatch_basicBlock::getSourceBlocks   */
+  /** returns the source block corresponding to the basic block */
 
-   API_EXPORT(Int, (blocks),
-              bool,getSourceBlocks,(BPatch_Vector<BPatch_sourceBlock*> &blocks));
+  bool getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*> &blocks);
 
-	/** BPatch_basicBlock::getBlockNumber   */
-	/** returns the block id */
+  /** BPatch_basicBlock::getBlockNumber   */
+  /** returns the block id */
 
-   API_EXPORT(Int, (),
-              int,getBlockNumber,());
+  int getBlockNumber();
 
-   /** BPatch_basicBlock::setEmtryBlock   */
-   /** sets whether this block is an entry block (or not) */
+  /** BPatch_basicBlock::setEmtryBlock   */
+  /** sets whether this block is an entry block (or not) */
 
-   /** BPatch_basicBlock::isEntryBlock   */
+  /** BPatch_basicBlock::isEntryBlock   */
 
-   API_EXPORT(Int, (),
-              bool,isEntryBlock,() CONST_EXPORT);
+  bool isEntryBlock() const;
 
-	/** BPatch_basicBlock::isExitBlock   */
+  /** BPatch_basicBlock::isExitBlock   */
 
-   API_EXPORT(Int, (),
-              bool,isExitBlock,() CONST_EXPORT);
+  bool isExitBlock() const;
 
-	/** BPatch_basicBlock::size   */
+  /** BPatch_basicBlock::size   */
 
-   API_EXPORT(Int, (),
-              unsigned,size,() CONST_EXPORT);
+  unsigned size() const;
 
-	/** BPatch_basicBlock::getStartAddress   */
-   //these always return absolute address
+  /** BPatch_basicBlock::getStartAddress   */
+  //these always return absolute address
 
-   API_EXPORT(Int, (),
-              unsigned long,getStartAddress,() CONST_EXPORT);
+  unsigned long getStartAddress() const;
 
-	/** BPatch_basicBlock::getLastInsnAddress   */
+  /** BPatch_basicBlock::getLastInsnAddress   */
 
-   API_EXPORT(Int, (),
-              unsigned long,getLastInsnAddress,() CONST_EXPORT);
+  unsigned long getLastInsnAddress() const;
        
-   /** BPatch_basicBlock::getEndAddress    */
+  /** BPatch_basicBlock::getEndAddress    */
         
-   API_EXPORT(Int, (),
-              unsigned long, getEndAddress, () CONST_EXPORT);
+  unsigned long  getEndAddress() const;
 
-	/** BPatch_basicBlock::~BPatch_basicBlock   */
-	/** destructor of class */
+  /** BPatch_basicBlock::~BPatch_basicBlock   */
+  /** destructor of class */
 
-   API_EXPORT_DTOR(_dtor, (),
-                   ~,BPatch_basicBlock,());
+  ~BPatch_basicBlock();
         
-	/** BPatch_basicBlock::getAddressRange   */
-	/** return the start and end addresses of the basic block */
+  /** BPatch_basicBlock::getAddressRange   */
+  /** return the start and end addresses of the basic block */
 
-   API_EXPORT(Int, (_startAddress, _endAddress),
-              bool,getAddressRange,(void*& _startAddress, void*& _endAddress));
+  bool getAddressRange(void*& _startAddress, void*& _endAddress);
 
 #ifdef IBM_BPATCH_COMPAT
-   //  dummy placeholder.  I think this is only used by dpcl in a debug routine
-   API_EXPORT(Int, (_startLine, _endLine),
-              bool,getLineNumbers,(unsigned int &_startLine, unsigned int  &_endLine));       
+  //  dummy placeholder.  I think this is only used by dpcl in a debug routine
+  bool getLineNumbers(unsigned int &_startLine, unsigned int  &_endLine);       
 #endif
-        /** BPatch_basicBlock::findEntryPoint   */
-        /** return point at the start of the basic block */
+  /** BPatch_basicBlock::findEntryPoint   */
+  /** return point at the start of the basic block */
 
-   API_EXPORT(Int, (),
-              BPatch_point*, findEntryPoint,());
+  BPatch_point*  findEntryPoint();
 
-        /** BPatch_basicBlock::findExitPoint   */
-        /** return point at the start of the basic block */
+  /** BPatch_basicBlock::findExitPoint   */
+  /** return point at the start of the basic block */
    
-    API_EXPORT(Int, (),
-              BPatch_point*, findExitPoint,());
+  BPatch_point*  findExitPoint();
 
-   /** BPatch_basicBlock::findPoint   */
-	/** return a set of points within the basic block */
+  /** BPatch_basicBlock::findPoint   */
+  /** return a set of points within the basic block */
 
-   API_EXPORT(Int, (ops),
-              BPatch_Vector<BPatch_point*> *,findPoint,(const BPatch_Set<BPatch_opCode>& ops));
+  BPatch_Vector<BPatch_point*> * findPoint(const BPatch_Set<BPatch_opCode>& ops);
 
-   API_EXPORT(Int, (filter),
-              BPatch_Vector<BPatch_point*> *,findPoint,(bool(*filter)(Dyninst::InstructionAPI::Instruction::Ptr)));
+  BPatch_Vector<BPatch_point*> * findPoint(bool(*filter)(Dyninst::InstructionAPI::Instruction::Ptr));
    
-   API_EXPORT(Int, (addr),
-              BPatch_point *, findPoint, (Dyninst::Address addr));
+  BPatch_point *  findPoint(Dyninst::Address addr);
 
-   /** BPatch_basicBlock::getInstructions   */
-	/** return the instructions that belong to the block */
+  /** BPatch_basicBlock::getInstructions   */
+  /** return the instructions that belong to the block */
 
-   API_EXPORT(Int, (insns),
-	      bool, getInstructions, (std::vector<Dyninst::InstructionAPI::Instruction::Ptr>& insns));
-   API_EXPORT(Addrs, (insnInstances),
-	      bool, getInstructions, (std::vector<std::pair<Dyninst::InstructionAPI::Instruction::Ptr, Dyninst::Address> >& insnInstances));
+  bool  getInstructions(std::vector<Dyninst::InstructionAPI::Instruction::Ptr>& insns);
+  bool  getInstructions(std::vector<std::pair<Dyninst::InstructionAPI::Instruction::Ptr, Dyninst::Address> >& insnInstances);
 
 
-	/** BPatch_basicBlock::getIncomingEdges   */
- 	/** returns the incoming edges */
+  /** BPatch_basicBlock::getIncomingEdges   */
+  /** returns the incoming edges */
 
-   API_EXPORT_V(Int, (inc),
-                void,getIncomingEdges,(BPatch_Vector<BPatch_edge*> &inc));
+  void getIncomingEdges(BPatch_Vector<BPatch_edge*> &inc);
         
-	/** BPatch_basicBlock::getOutgoingEdges   */
- 	/** returns the outgoming edges */
+  /** BPatch_basicBlock::getOutgoingEdges   */
+  /** returns the outgoming edges */
 
 
-   API_EXPORT_V(Int, (out),
-                void,getOutgoingEdges,(BPatch_Vector<BPatch_edge*> &out));
+  void getOutgoingEdges(BPatch_Vector<BPatch_edge*> &out);
 
 
-   operator Dyninst::ParseAPI::Block *() const;
-   operator Dyninst::PatchAPI::PatchBlock *() const;
+  operator Dyninst::ParseAPI::Block *() const;
+  operator Dyninst::PatchAPI::PatchBlock *() const;
 
-   int blockNo() const;
+  int blockNo() const;
 
 };
 
 template <>
 struct comparison <BPatch_basicBlock *> {
-   bool operator()(const BPatch_basicBlock * const &x, 
+  bool operator()(const BPatch_basicBlock * const &x, 
                   const BPatch_basicBlock * const &y) const {
-      return (x->getStartAddress() < y->getStartAddress());
-   };
+    return (x->getStartAddress() < y->getStartAddress());
+  };
 };
 
 #endif /* _BPatch_basicBlock_h_ */

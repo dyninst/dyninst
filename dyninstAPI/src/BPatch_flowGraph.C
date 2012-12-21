@@ -112,7 +112,7 @@ BPatch_flowGraph::findLoopExitInstPoints(BPatch_loop *loop,
 }
 
 BPatch_Vector<BPatch_point*> *
-BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
+BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
                                         BPatch_loop *loop)
 {
   /*
@@ -252,7 +252,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
   return points;
 }
 
-void BPatch_flowGraph::BPatch_flowGraph_dtor()
+BPatch_flowGraph::~BPatch_flowGraph()
 {
   unsigned int i;
 
@@ -282,7 +282,7 @@ void BPatch_flowGraph::BPatch_flowGraph_dtor()
 }
 
 bool
-BPatch_flowGraph::getAllBasicBlocksInt(BPatch_Set<BPatch_basicBlock*>& abb)
+BPatch_flowGraph::getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>& abb)
 {
   BPatch_basicBlock** belements =
     new BPatch_basicBlock* [allBlocks.size()];
@@ -297,7 +297,7 @@ BPatch_flowGraph::getAllBasicBlocksInt(BPatch_Set<BPatch_basicBlock*>& abb)
 }
 
 bool
-BPatch_flowGraph::getAllBasicBlocksSTL(std::set<BPatch_basicBlock*>& abb)
+BPatch_flowGraph::getAllBasicBlocks(std::set<BPatch_basicBlock*>& abb)
 {
   BPatch_basicBlock** belements =
     new BPatch_basicBlock* [allBlocks.size()];
@@ -316,7 +316,7 @@ BPatch_flowGraph::getAllBasicBlocksSTL(std::set<BPatch_basicBlock*>& abb)
 // only one entry point to each control flow graph but the definition
 // given API specifications say there might be more.
 bool
-BPatch_flowGraph::getEntryBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& ebb)
+BPatch_flowGraph::getEntryBasicBlock(BPatch_Vector<BPatch_basicBlock*>& ebb)
 {
   ebb.push_back(findBlock(ll_func()->entryBlock()));
 
@@ -328,7 +328,7 @@ BPatch_flowGraph::getEntryBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& ebb)
 // are the basic blocks that contains the instruction for
 // returning from the function
 bool
-BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
+BPatch_flowGraph::getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*>& nbb)
 {
   /*   for (func_instance::BlockSet::const_iterator iter = ll_func()->exitBlocks().begin();
        iter != ll_func()->exitBlocks().end(); ++iter) { */
@@ -499,7 +499,7 @@ void BPatch_flowGraph::getLoopsByNestingLevel(BPatch_Vector<BPatch_loop*>& lbb,
 
 // get all the loops in this flow graph
 bool
-BPatch_flowGraph::getLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
+BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 {
   getLoopsByNestingLevel(lbb, false);
   return true;
@@ -507,7 +507,7 @@ BPatch_flowGraph::getLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 
 // get the outermost loops in this flow graph
 bool
-BPatch_flowGraph::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
+BPatch_flowGraph::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 {
   getLoopsByNestingLevel(lbb, true);
   return true;
@@ -579,7 +579,7 @@ bool BPatch_flowGraph::createBasicBlocks()
 // basic block. For now, a source block is represented by the starting
 // and ending line numbers in the source block for the basic block.
 
-bool BPatch_flowGraph::createSourceBlocksInt() {
+bool BPatch_flowGraph::createSourceBlocks() {
   if( isSourceBlockInfoReady ) { return true; }
 
   /* Iterate over every basic block, looking for the lines corresponding to the
@@ -653,7 +653,7 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
 //Before calling this method all the dominator information
 //is going to give incorrect results. So first this function must
 //be called to process dominator related fields and methods.
-void BPatch_flowGraph::fillDominatorInfoInt()
+void BPatch_flowGraph::fillDominatorInfo()
 {
   if(isDominatorInfoReady)
     return;
@@ -663,7 +663,7 @@ void BPatch_flowGraph::fillDominatorInfoInt()
   domcfg.calcDominators();
 }
 
-void BPatch_flowGraph::fillPostDominatorInfoInt()
+void BPatch_flowGraph::fillPostDominatorInfo()
 {
   if(isPostDominatorInfoReady)
     return;
@@ -960,7 +960,7 @@ void BPatch_flowGraph::insertCalleeIntoLoopHierarchy(func_instance *callee,
 }
 
 
-BPatch_loopTreeNode *BPatch_flowGraph::getLoopTreeInt()
+BPatch_loopTreeNode *BPatch_flowGraph::getLoopTree()
 {
   if (loopRoot == NULL)
     createLoopHierarchy();
@@ -968,7 +968,7 @@ BPatch_loopTreeNode *BPatch_flowGraph::getLoopTreeInt()
 }
 
 
-BPatch_loop *BPatch_flowGraph::findLoopInt(const char *name)
+BPatch_loop *BPatch_flowGraph::findLoop(const char *name)
 {
   return getLoopTree()->findLoop(name);
 }
@@ -989,7 +989,7 @@ void BPatch_flowGraph::dfsPrintLoops(BPatch_loopTreeNode *n)
 }
 
 
-void BPatch_flowGraph::printLoopsInt()
+void BPatch_flowGraph::printLoops()
 {
   dfsPrintLoops(getLoopTree());
 }
@@ -1009,7 +1009,7 @@ void BPatch_flowGraph::dump()
 
 }
 
-bool BPatch_flowGraph::containsDynamicCallsitesInt()
+bool BPatch_flowGraph::containsDynamicCallsites()
 {
   return (ll_func()->getNumDynamicCalls() > 0);
 }
@@ -1028,7 +1028,7 @@ void BPatch_flowGraph::invalidate()
   isValid_ = false;
 }
 
-bool BPatch_flowGraph::isValidInt() { return isValid_; }
+bool BPatch_flowGraph::isValid() { return isValid_; }
 
 BPatch_basicBlock *BPatch_flowGraph::findBlock(block_instance *inst) {
   std::map<const block_instance *, BPatch_basicBlock *>::const_iterator iter = blockMap_.find(inst);

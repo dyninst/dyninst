@@ -46,7 +46,6 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_collections.h"
 #include "BPatch_thread.h"
-#include "BPatch_eventLock.h"
 #include "common/h/timing.h"
 #include "debug.h"
 #include "mapped_module.h"
@@ -185,7 +184,7 @@ BPatch::BPatch()
  *
  * Destructor for BPatch.  Free allocated memory.
  */
-void BPatch::BPatch_dtor()
+BPatch::~BPatch()
 {
     for(dictionary_hash<int, BPatch_process *>::iterator i =
             info->procsByPid.begin(); i != info->procsByPid.end();
@@ -217,11 +216,11 @@ BPatch *BPatch::getBPatch() {
 	return bpatch;
 }
 
-char * BPatch::getPrelinkCommandInt(){
+char * BPatch::getPrelinkCommand(){
 	return systemPrelinkCommand;
 }
 
-void BPatch::setPrelinkCommandInt(char *command){
+void BPatch::setPrelinkCommand(char *command){
 
 	if(systemPrelinkCommand){
 		delete [] systemPrelinkCommand;
@@ -230,106 +229,106 @@ void BPatch::setPrelinkCommandInt(char *command){
 	memcpy(systemPrelinkCommand, command, strlen(command)+1);
 }
 
-bool BPatch::isTypeCheckedInt()
+bool BPatch::isTypeChecked()
 {
   return typeCheckOn;
 }
-void BPatch::setTypeCheckingInt(bool x)
+void BPatch::setTypeChecking(bool x)
 {
   typeCheckOn = x;
 }
-bool BPatch::parseDebugInfoInt()
+bool BPatch::parseDebugInfo()
 {
   return debugParseOn;
 }
-bool BPatch::delayedParsingOnInt()
+bool BPatch::delayedParsingOn()
 {
   return delayedParsing_;
 }
-void BPatch::setDebugParsingInt(bool x)
+void BPatch::setDebugParsing(bool x)
 {
   debugParseOn = x;
 }
-bool BPatch::baseTrampDeletionInt()
+bool BPatch::baseTrampDeletion()
 {
   return baseTrampDeletionOn;
 }
-void BPatch::setBaseTrampDeletionInt(bool x)
+void BPatch::setBaseTrampDeletion(bool x)
 {
   baseTrampDeletionOn = x;
 }
-bool BPatch::isTrampRecursiveInt()
+bool BPatch::isTrampRecursive()
 {
   return trampRecursiveOn;
 }
-void BPatch::setTrampRecursiveInt(bool x)
+void BPatch::setTrampRecursive(bool x)
 {
   trampRecursiveOn = x;
 }
-void BPatch::setLivenessAnalysisInt(bool x)
+void BPatch::setLivenessAnalysis(bool x)
 {
     livenessAnalysisOn_ = x;
 }
-bool BPatch::livenessAnalysisOnInt() {
+bool BPatch::livenessAnalysisOn() {
     return livenessAnalysisOn_;
 }
 
-void BPatch::setLivenessAnalysisDepthInt(int x)
+void BPatch::setLivenessAnalysisDepth(int x)
 {
     livenessAnalysisDepth_ = x;
 }
-int BPatch::livenessAnalysisDepthInt() {
+int BPatch::livenessAnalysisDepth() {
     return livenessAnalysisDepth_;
 }
 
-bool BPatch::hasForcedRelocation_NPInt()
+bool BPatch::hasForcedRelocation_NP()
 {
   return forceRelocation_NP;
 }
-void BPatch::setForcedRelocation_NPInt(bool x)
+void BPatch::setForcedRelocation_NP(bool x)
 {
   forceRelocation_NP = x;
 }
-bool BPatch::autoRelocationOnInt()
+bool BPatch::autoRelocationOn()
 {
   return autoRelocation_NP;
 }
-void BPatch::setAutoRelocation_NPInt(bool x)
+void BPatch::setAutoRelocation_NP(bool x)
 {
   autoRelocation_NP = x;
 }
-void BPatch::setDelayedParsingInt(bool x)
+void BPatch::setDelayedParsing(bool x)
 {
   delayedParsing_ = x;
 }
-bool BPatch::isMergeTrampInt()
+bool BPatch::isMergeTramp()
 {
   return true;
 }
-void BPatch::setMergeTrampInt(bool)
+void BPatch::setMergeTramp(bool)
 {
 }
 
-bool BPatch::isSaveFPROnInt()
+bool BPatch::isSaveFPROn()
 {
   return saveFloatingPointsOn;
 }
-void BPatch::setSaveFPRInt(bool x)
+void BPatch::setSaveFPR(bool x)
 {
   saveFloatingPointsOn = x;
 }
 
-bool BPatch::isForceSaveFPROnInt()
+bool BPatch::isForceSaveFPROn()
 {
   return forceSaveFloatingPointsOn;
 }
-void BPatch::forceSaveFPRInt(bool x)
+void BPatch::forceSaveFPR(bool x)
 {
   forceSaveFloatingPointsOn = x;
 }
 
 /*
- * BPatch::registerErrorCallbackInt
+ * BPatch::registerErrorCallback
  *
  * Registers a function that is to be called by the library when an error
  * occurs or when there is status to report.  Returns the address of the
@@ -339,7 +338,7 @@ void BPatch::forceSaveFPRInt(bool x)
  */
 
 
-BPatchErrorCallback BPatch::registerErrorCallbackInt(BPatchErrorCallback function)
+BPatchErrorCallback BPatch::registerErrorCallback(BPatchErrorCallback function)
 {
     BPatchErrorCallback previous = errorCallback;
     errorCallback = function;
@@ -354,7 +353,7 @@ BPatchErrorCallback BPatch::registerErrorCallbackInt(BPatchErrorCallback functio
  *
  * function	The function to be called.
  */
-BPatchForkCallback BPatch::registerPostForkCallbackInt(BPatchForkCallback func)
+BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
 {
 #if defined(i386_unknown_nt4_0) 
   reportError(BPatchWarning, 0,
@@ -375,7 +374,7 @@ BPatchForkCallback BPatch::registerPostForkCallbackInt(BPatchForkCallback func)
  *
  * function	The function to be called.
  */
-BPatchForkCallback BPatch::registerPreForkCallbackInt(BPatchForkCallback func)
+BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
 {
 #if defined(i386_unknown_nt4_0)
     reportError(BPatchWarning, 0,
@@ -396,7 +395,7 @@ BPatchForkCallback BPatch::registerPreForkCallbackInt(BPatchForkCallback func)
  *
  * func	The function to be called.
  */
-BPatchExecCallback BPatch::registerExecCallbackInt(BPatchExecCallback func)
+BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
 {
 
 #if defined(i386_unknown_nt4_0) 
@@ -418,7 +417,7 @@ BPatchExecCallback BPatch::registerExecCallbackInt(BPatchExecCallback func)
  *
  * func	The function to be called.
  */
-BPatchExitCallback BPatch::registerExitCallbackInt(BPatchExitCallback func)
+BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
 {
     BPatchExitCallback previous = exitCallback;
     exitCallback = func;
@@ -433,7 +432,7 @@ BPatchExitCallback BPatch::registerExitCallbackInt(BPatchExitCallback func)
  *
  * func	The function to be called.
  */
-BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallbackInt(BPatchOneTimeCodeCallback func)
+BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallback(BPatchOneTimeCodeCallback func)
 {
     BPatchOneTimeCodeCallback previous = oneTimeCodeCallback;
     oneTimeCodeCallback = func;
@@ -450,7 +449,7 @@ BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallbackInt(BPatchOneTimeCo
  * function	The function to be called.
  */
 BPatchDynLibraryCallback
-BPatch::registerDynLibraryCallbackInt(BPatchDynLibraryCallback function)
+BPatch::registerDynLibraryCallback(BPatchDynLibraryCallback function)
 {
     BPatchDynLibraryCallback previous = dynLibraryCallback;
     dynLibraryCallback = function;
@@ -629,7 +628,7 @@ BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
  * or Windows NT spawn system calls.  The caller is responsible for deleting
  * the vector when it is no longer needed.
  */
-BPatch_Vector<BPatch_process *> *BPatch::getProcessesInt()
+BPatch_Vector<BPatch_process *> *BPatch::getProcesses()
 {
    BPatch_Vector<BPatch_process *> *result = new BPatch_Vector<BPatch_process *>;
    dictionary_hash_iter<int, BPatch_process *> ti(info->procsByPid);
@@ -1124,7 +1123,7 @@ static void buildPath(const char *path, const char **argv,
 }
 
 /*
- * BPatch::processCreateInt
+ * BPatch::processCreate
  *
  * Create a process and return a BPatch_process representing it.
  * Returns NULL upon failure.
@@ -1140,7 +1139,7 @@ static void buildPath(const char *path, const char **argv,
  * stderr_fd	file descriptor to use for stderr for the application
 
  */
-BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[], 
+BPatch_process *BPatch::processCreate(const char *path, const char *argv[], 
                                          const char **envp, int stdin_fd, 
                                          int stdout_fd, int stderr_fd,
                                          BPatch_hybridMode mode)
@@ -1239,7 +1238,7 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
  * path		The pathname of the executable for the process.
  * pid		The id of the process to attach to.
  */
-BPatch_process *BPatch::processAttachInt
+BPatch_process *BPatch::processAttach
 (const char *path, int pid, BPatch_hybridMode mode)
 {
    clearError();
@@ -1290,7 +1289,7 @@ static bool recursiveEventHandling = false;
  * This function is declared as a friend of BPatch_thread so that it can use
  * the BPatch_thread::getThreadEvent call to check for status changes.
  */
-bool BPatch::pollForStatusChangeInt()
+bool BPatch::pollForStatusChange()
 {
     // Sanity check: don't allow waiting for events in the callbacks
     if( recursiveEventHandling ) {
@@ -1330,7 +1329,7 @@ bool BPatch::pollForStatusChangeInt()
  * Blocks waiting for a change to occur in the running status of a child
  * process.  Returns true upon success, false upon failure.
  */
-bool BPatch::waitForStatusChangeInt() {
+bool BPatch::waitForStatusChange() {
     // Sanity check: don't allow waiting for events in the callbacks
     if( recursiveEventHandling ) {
         BPatch_reportError(BPatchWarning, 0,
@@ -1394,7 +1393,7 @@ bool BPatch::waitForStatusChangeInt() {
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createEnumInt( const char * name, 
+BPatch_type * BPatch::createEnum( const char * name, 
 				     BPatch_Vector<char *> &elementNames,
 				     BPatch_Vector<int> &elementIds)
 {
@@ -1427,7 +1426,7 @@ BPatch_type * BPatch::createEnumInt( const char * name,
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createEnumAutoId( const char * name, 
+BPatch_type * BPatch::createEnum( const char * name, 
 				        BPatch_Vector<char *> &elementNames)
 {
     string typeName = name;
@@ -1456,7 +1455,7 @@ BPatch_type * BPatch::createEnumAutoId( const char * name,
  * collection.
  */
 
-BPatch_type * BPatch::createStructInt( const char * name,
+BPatch_type * BPatch::createStruct( const char * name,
 				       BPatch_Vector<char *> &fieldNames,
 				       BPatch_Vector<BPatch_type *> &fieldTypes)
 {
@@ -1496,7 +1495,7 @@ BPatch_type * BPatch::createStructInt( const char * name,
  * collection.
  */
 
-BPatch_type * BPatch::createUnionInt( const char * name, 
+BPatch_type * BPatch::createUnion( const char * name, 
 				      BPatch_Vector<char *> &fieldNames,
 				      BPatch_Vector<BPatch_type *> &fieldTypes)
 {
@@ -1535,7 +1534,7 @@ BPatch_type * BPatch::createUnionInt( const char * name,
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createArrayInt( const char * name, BPatch_type * ptr,
+BPatch_type * BPatch::createArray( const char * name, BPatch_type * ptr,
 				      unsigned int low, unsigned int hi)
 {
 
@@ -1563,7 +1562,7 @@ BPatch_type * BPatch::createArrayInt( const char * name, BPatch_type * ptr,
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createPointerInt(const char * name, BPatch_type * ptr,
+BPatch_type * BPatch::createPointer(const char * name, BPatch_type * ptr,
                                        int /*size*/)
 {
     BPatch_type * newType;
@@ -1591,7 +1590,7 @@ BPatch_type * BPatch::createPointerInt(const char * name, BPatch_type * ptr,
  * collection.
  */
 
-BPatch_type * BPatch::createScalarInt( const char * name, int size)
+BPatch_type * BPatch::createScalar( const char * name, int size)
 {
     BPatch_type * newType;
     
@@ -1615,7 +1614,7 @@ BPatch_type * BPatch::createScalarInt( const char * name, int size)
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createTypedefInt( const char * name, BPatch_type * ptr)
+BPatch_type * BPatch::createTypedef( const char * name, BPatch_type * ptr)
 {
     BPatch_type * newType;
     if(!ptr)
@@ -1632,23 +1631,18 @@ BPatch_type * BPatch::createTypedefInt( const char * name, BPatch_type * ptr)
     return newType;
 }
 
-bool BPatch::waitUntilStoppedInt(BPatch_thread *appThread){
+bool BPatch::waitUntilStopped(BPatch_thread *appThread){
 
    bool ret = false;
 
    while (1) {
-     __LOCK;
      if (!appThread->getProcess()->isStopped() && !appThread->getProcess()->isTerminated()) {
-       __UNLOCK;
        this->waitForStatusChange();
      }
      else {
-       __UNLOCK;
        break;
      }
    }
-
-   __LOCK;
 
    if (!appThread->getProcess()->isStopped())
 	{
@@ -1681,12 +1675,10 @@ bool BPatch::waitUntilStoppedInt(BPatch_thread *appThread){
 #endif
 
   done:
-   __UNLOCK;
-
   return ret;
 }
 
-BPatch_stats &BPatch::getBPatchStatisticsInt()
+BPatch_stats &BPatch::getBPatchStatistics()
 {
   updateStats();
   return stats;
@@ -1706,7 +1698,7 @@ void BPatch::updateStats()
   stats.insnGenerated = insnGenerated.value();
 }
 
-bool BPatch::registerThreadEventCallbackInt(BPatch_asyncEventType type,
+bool BPatch::registerThreadEventCallback(BPatch_asyncEventType type,
                                             BPatchAsyncThreadEventCallback func)
 {
     switch(type) {
@@ -1725,7 +1717,7 @@ bool BPatch::registerThreadEventCallbackInt(BPatch_asyncEventType type,
     return true;
 }
 
-bool BPatch::removeThreadEventCallbackInt(BPatch_asyncEventType type,
+bool BPatch::removeThreadEventCallback(BPatch_asyncEventType type,
                                           BPatchAsyncThreadEventCallback cb)
 {
     bool result = false;
@@ -1751,13 +1743,13 @@ bool BPatch::removeThreadEventCallbackInt(BPatch_asyncEventType type,
     return result;
 }
 
-bool BPatch::registerDynamicCallCallbackInt(BPatchDynamicCallSiteCallback func)
+bool BPatch::registerDynamicCallCallback(BPatchDynamicCallSiteCallback func)
 {
     dynamicCallSiteCallback = func;
     return true;
 }
 
-bool BPatch::removeDynamicCallCallbackInt(BPatchDynamicCallSiteCallback func)
+bool BPatch::removeDynamicCallCallback(BPatchDynamicCallSiteCallback func)
 {
     if( dynamicCallSiteCallback == func ) {
         dynamicCallSiteCallback = func;
@@ -1767,13 +1759,13 @@ bool BPatch::removeDynamicCallCallbackInt(BPatchDynamicCallSiteCallback func)
     return false;
 }
 
-bool BPatch::registerUserEventCallbackInt(BPatchUserEventCallback func)
+bool BPatch::registerUserEventCallback(BPatchUserEventCallback func)
 {
     userEventCallbacks.push_back(func);
     return true;
 }
 
-bool BPatch::removeUserEventCallbackInt(BPatchUserEventCallback cb)
+bool BPatch::removeUserEventCallback(BPatchUserEventCallback cb)
 {
     bool result = false;
     BPatch_Vector<BPatchUserEventCallback> userCallbacks;
@@ -1790,7 +1782,7 @@ bool BPatch::removeUserEventCallbackInt(BPatchUserEventCallback cb)
     return result;
 }
 
-bool BPatch::registerCodeDiscoveryCallbackInt(BPatchCodeDiscoveryCallback cb)
+bool BPatch::registerCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb)
 {
     std::vector<BPatch_process*> *procs = getProcesses();
     for(unsigned i =0; i < procs->size(); i++) {
@@ -1800,7 +1792,7 @@ bool BPatch::registerCodeDiscoveryCallbackInt(BPatchCodeDiscoveryCallback cb)
     return true;
 }
 
-bool BPatch::removeCodeDiscoveryCallbackInt(BPatchCodeDiscoveryCallback)
+bool BPatch::removeCodeDiscoveryCallback(BPatchCodeDiscoveryCallback)
 {
     std::vector<BPatch_process*> *procs = getProcesses();
     for(unsigned i =0; i < procs->size(); i++) {
@@ -1810,7 +1802,7 @@ bool BPatch::removeCodeDiscoveryCallbackInt(BPatchCodeDiscoveryCallback)
     return true;
 }
 
-bool BPatch::registerSignalHandlerCallbackInt
+bool BPatch::registerSignalHandlerCallback
     (BPatchSignalHandlerCallback bpatchCB, BPatch_Set<long> *signums)
 {
     signalHandlerCallback = HybridAnalysis::getSignalHandlerCB();
@@ -1824,7 +1816,7 @@ bool BPatch::registerSignalHandlerCallbackInt
     return true;
 }
 
-bool BPatch::removeSignalHandlerCallbackInt(BPatchSignalHandlerCallback)
+bool BPatch::removeSignalHandlerCallback(BPatchSignalHandlerCallback)
 {
     signalHandlerCallback = NULL;
     callbackSignals = NULL;
@@ -1837,7 +1829,7 @@ bool BPatch::removeSignalHandlerCallbackInt(BPatchSignalHandlerCallback)
     return true;
 }
 
-bool BPatch::registerCodeOverwriteCallbacksInt
+bool BPatch::registerCodeOverwriteCallbacks
     (BPatchCodeOverwriteBeginCallback cbBegin,
      BPatchCodeOverwriteEndCallback cbEnd)
 {
@@ -1908,7 +1900,7 @@ void BPatch::createNotificationFD() {
 #endif
 }
 
-int BPatch::getNotificationFDInt() {
+int BPatch::getNotificationFD() {
 #if !defined(os_windows)
     createNotificationFD();
     return notificationFDOutput_;
@@ -1919,18 +1911,18 @@ int BPatch::getNotificationFDInt() {
 
 /* If true, we return just filenames when the user asks for line info
    otherwise, we return filename plus path information. */
-void BPatch::truncateLineInfoFilenamesInt(bool newval) {
+void BPatch::truncateLineInfoFilenames(bool newval) {
    mapped_module::truncateLineFilenames = newval;
 }
 
-void BPatch::getBPatchVersionInt(int &major, int &minor, int &subminor) 
+void BPatch::getBPatchVersion(int &major, int &minor, int &subminor) 
 {
    major = DYNINST_MAJOR;
    minor = DYNINST_MINOR;
    subminor = DYNINST_SUBMINOR;
 }
 
-BPatch_binaryEdit *BPatch::openBinaryInt(const char *path, bool openDependencies /* = false */) {
+BPatch_binaryEdit *BPatch::openBinary(const char *path, bool openDependencies /* = false */) {
    BPatch_binaryEdit *editor = new BPatch_binaryEdit(path, openDependencies);
    if (!editor)
       return NULL;
@@ -1941,17 +1933,17 @@ BPatch_binaryEdit *BPatch::openBinaryInt(const char *path, bool openDependencies
    return editor;
 }
 
-void BPatch::setInstrStackFramesInt(bool r)
+void BPatch::setInstrStackFrames(bool r)
 {
    instrFrames = r;
 }
 
-bool BPatch::getInstrStackFramesInt()
+bool BPatch::getInstrStackFrames()
 {
    return instrFrames;
 }
 
-bool BPatch::isConnectedInt()
+bool BPatch::isConnected()
 {
     return OS_isConnected();
 }
@@ -1959,7 +1951,7 @@ bool BPatch::isConnectedInt()
 // -----------------------------------------------------------
 // Undocumented public remote debugging interface.
 // See comments in BPatch.h about the future of these methods.
-bool BPatch::remoteConnectInt(BPatch_remoteHost &remote)
+bool BPatch::remoteConnect(BPatch_remoteHost &remote)
 {
     if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
         fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
@@ -1969,7 +1961,7 @@ bool BPatch::remoteConnectInt(BPatch_remoteHost &remote)
     return OS_connect(remote);
 }
 
-bool BPatch::getPidListInt(BPatch_remoteHost &remote, BPatch_Vector<unsigned int> &pidlist)
+bool BPatch::getPidList(BPatch_remoteHost &remote, BPatch_Vector<unsigned int> &pidlist)
 {
     if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
         fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
@@ -1979,7 +1971,7 @@ bool BPatch::getPidListInt(BPatch_remoteHost &remote, BPatch_Vector<unsigned int
     return OS_getPidList(remote, pidlist);
 }
 
-bool BPatch::getPidInfoInt(BPatch_remoteHost &remote, unsigned int pid,
+bool BPatch::getPidInfo(BPatch_remoteHost &remote, unsigned int pid,
                            std::string &pidInfo)
 {
     if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
@@ -1990,7 +1982,7 @@ bool BPatch::getPidInfoInt(BPatch_remoteHost &remote, unsigned int pid,
     return OS_getPidInfo(remote, pid, pidInfo);
 }
 
-bool BPatch::remoteDisconnectInt(BPatch_remoteHost &remote)
+bool BPatch::remoteDisconnect(BPatch_remoteHost &remote)
 {
     if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
         fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
@@ -2001,7 +1993,7 @@ bool BPatch::remoteDisconnectInt(BPatch_remoteHost &remote)
 }
 // -----------------------------------------------------------
 
-void BPatch::addNonReturningFuncInt(std::string name)
+void BPatch::addNonReturningFunc(std::string name)
 {
   Dyninst::ParseAPI::SymtabCodeSource::addNonReturning(name);
 }
