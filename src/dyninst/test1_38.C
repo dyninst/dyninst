@@ -60,6 +60,8 @@ extern "C" DLLEXPORT TestMutator *test1_38_factory()
 // Start Test Case #38 - (CFG loop/callee tree)
 //
 
+using namespace std;
+
 test_results_t test1_38_Mutator::executeTest() 
 {
 	if (isMutateeFortran(appImage)) 
@@ -150,12 +152,14 @@ test_results_t test1_38_Mutator::executeTest()
 		return FAILED;
 	}
 
+
 	// the first for loop should have 3 children and 2 functions
 	if (3 != firstForLoop->numCallees()) 
 	{
 		logerror("**Failed** test #38 (CFG loop/callee tree)\n");
 		logerror("    first for loop found %d funcs not 3.\n", 
 				firstForLoop->numCallees());
+                
 		return FAILED;
 	}
 

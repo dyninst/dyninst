@@ -407,7 +407,7 @@ test_results_t test_mem_1_Mutator::executeTest() {
   dprintf("test_mem_1 is running\n");
   init_test_data();
   
-  BPatch_Set<BPatch_opCode> loads;
+  std::set<BPatch_opCode> loads;
   loads.insert(BPatch_opLoad);
 
   BPatch_Vector<BPatch_function *> found_funcs;
