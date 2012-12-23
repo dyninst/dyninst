@@ -39,7 +39,6 @@
 #include "BPatch_Set.h"
 #include "BPatch_basicBlock.h"
 #include "BPatch_basicBlockLoop.h"
-#include "BPatch_eventLock.h"
 #include "BPatch_loopTreeNode.h"
 #include "BPatch_edge.h"
 
@@ -56,13 +55,8 @@ typedef BPatch_basicBlockLoop BPatch_loop;
   * @see BPatch_basicBlock
   * @see BPatch_basicBlockLoop
   */
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_flowGraph
 
 class BPATCH_DLL_EXPORT BPatch_flowGraph : 
-      public BPatch_eventLock, 
       public Dyninst::AnnotatableSparse 
 {
   friend class BPatch_basicBlock;
@@ -99,82 +93,63 @@ public:
 
   //  Functions for use by Dyninst users
 
-  API_EXPORT_DTOR(_dtor, (),
-  ~,BPatch_flowGraph,());
+  ~BPatch_flowGraph();
 
   /** returns the set of all basic blocks in the CFG */
-  API_EXPORT(Int, (blocks),
-  bool,getAllBasicBlocks,(BPatch_Set<BPatch_basicBlock*> &blocks)); 
-
-  API_EXPORT(Int, (blocks),
-  bool, getAllBasicBlocks,(std::set<BPatch_basicBlock *> &blocks));
+  bool getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*> &blocks); 
+  bool getAllBasicBlocks(std::set<BPatch_basicBlock *> &blocks);
   
   /** returns the vector of entry basic blocks to CFG */
-  API_EXPORT(Int, (blocks),
-  bool,getEntryBasicBlock,(BPatch_Vector<BPatch_basicBlock*> &blocks));
+  bool getEntryBasicBlock(BPatch_Vector<BPatch_basicBlock*> &blocks);
   
   /** returns the vector of exit basic blocks to CFG */
-  API_EXPORT(Int, (blocks),
-  bool,getExitBasicBlock,(BPatch_Vector<BPatch_basicBlock*> &blocks));
+  bool getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*> &blocks);
   
   /** returns the vector of loops in CFG */
-  API_EXPORT(Int, (loops),
-  bool,getLoops,(BPatch_Vector<BPatch_basicBlockLoop*> &loops));
+  bool getLoops(BPatch_Vector<BPatch_basicBlockLoop*> &loops);
 
   /** returns a vector of outer loops in the CFG */
-  API_EXPORT(Int, (loops),
-  bool,getOuterLoops,(BPatch_Vector<BPatch_basicBlockLoop*> &loops));
+  bool getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*> &loops);
 
   /** creates the source line blocks of all blocks in CFG.
    * without calling this method line info is not available
    */
-  API_EXPORT(Int, (),
-  bool,createSourceBlocks,());
+  bool createSourceBlocks();
   
   /** fills the dominator and immediate-dom information of basic blocks.
    * without calling this method dominator info is not available
    */
-  API_EXPORT_V(Int, (),
-  void,fillDominatorInfo,());
+  void fillDominatorInfo();
 
   /** same as above, but for postdominator/immediate-postdom info 
    */
-  API_EXPORT_V(Int, (),
-  void,fillPostDominatorInfo,());
+  void fillPostDominatorInfo();
 
   /** return root of loop hierarchy  */
-  API_EXPORT(Int, (),
-  BPatch_loopTreeNode *,getLoopTree,());
+  BPatch_loopTreeNode * getLoopTree();
 
   /** returns true if the cfg contains dynamic callsites */
-  API_EXPORT(Int, (),
-  bool,containsDynamicCallsites,());
+  bool containsDynamicCallsites();
 
   // for debugging, print loops with line numbers to stderr
-  API_EXPORT_V(Int, (),
-  void,printLoops,());
+  void printLoops();
 
-  API_EXPORT(Int, (name),
-  BPatch_basicBlockLoop *,findLoop,(const char *name));
+  BPatch_basicBlockLoop * findLoop(const char *name);
 
   // Deprecated - this should not be an API method
-  //API_EXPORT_V(Int, (),
-  //void, initLivenessInfo,());
+  //void, initLivenessInfo();
 
-  API_EXPORT(Int, (),
-  bool,isValid,()); 
+  bool isValid(); 
 
   /*
-  API_EXPORT(Int, (edge),
-  BPatch_point *,createInstPointAtEdge,(BPatch_edge *edge));
+  BPatch_point * createInstPointAtEdge(BPatch_edge *edge);
   */
   // Deprecated... use BPatch_edge->point() instead
   
   /** find instrumentation points specified by loc, add to points*/
-  API_EXPORT(Int, (loc, loop),
-  BPatch_Vector<BPatch_point*> *,
-      findLoopInstPoints,(CONST_EXPORT BPatch_procedureLocation loc, 
-                          BPatch_basicBlockLoop *loop));
+  BPatch_Vector<BPatch_point*> * 
+      findLoopInstPoints(const BPatch_procedureLocation loc, 
+                          BPatch_basicBlockLoop *loop);
 
  private:
 

@@ -34,7 +34,6 @@
 #include "boost/shared_ptr.hpp"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
-#include "BPatch_eventLock.h"
 #include "BPatch_enums.h"
 #include "BPatch_instruction.h" // for register type
 #include "BPatch_callbacks.h"
@@ -50,21 +49,21 @@
 class BPatch_addressSpace;
 
 namespace Dyninst {
-namespace PatchAPI { 
-   class PatchMgr;
-   class DynAddrSpace;
-   class Patcher;
-   class Instance;
-   class PatchFunction;
-   class Point;
-   typedef boost::shared_ptr<PatchMgr> PatchMgrPtr;
-   typedef boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
-   typedef boost::shared_ptr<Instance> InstancePtr;
-   PatchMgrPtr convert(const BPatch_addressSpace *);
-};
-namespace SymtabAPI {
-   class Symbol;
-};
+  namespace PatchAPI { 
+    class PatchMgr;
+    class DynAddrSpace;
+    class Patcher;
+    class Instance;
+    class PatchFunction;
+    class Point;
+    typedef boost::shared_ptr<PatchMgr> PatchMgrPtr;
+    typedef boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
+    typedef boost::shared_ptr<Instance> InstancePtr;
+    PatchMgrPtr convert(const BPatch_addressSpace *);
+  };
+  namespace SymtabAPI {
+    class Symbol;
+  };
 }
 
 
@@ -88,80 +87,67 @@ typedef enum{
 } processType;
 
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatchSnippetHandle
-class BPATCH_DLL_EXPORT BPatchSnippetHandle : public BPatch_eventLock {
-    friend class BPatch_point;
-    friend class BPatch_image;
-    friend class BPatch_process;
-    friend class BPatch_binaryEdit;
-    friend class BPatch_addressSpace;
-    friend class BPatch_thread;
+class BPATCH_DLL_EXPORT BPatchSnippetHandle {
+  friend class BPatch_point;
+  friend class BPatch_image;
+  friend class BPatch_process;
+  friend class BPatch_binaryEdit;
+  friend class BPatch_addressSpace;
+  friend class BPatch_thread;
 
-private:    
-    // Address Space snippet belogns to
-    BPatch_addressSpace *addSpace_;
+ private:    
+  // Address Space snippet belogns to
+  BPatch_addressSpace *addSpace_;
 
-    // low-level mappings for removal
-    std::vector<Dyninst::PatchAPI::InstancePtr> instances_;
+  // low-level mappings for removal
+  std::vector<Dyninst::PatchAPI::InstancePtr> instances_;
 
-    //  a flag for catchup
-    bool catchupNeeded;
-    //  and a list of threads to apply catchup to
-    BPatch_Vector<BPatch_thread *> catchup_threads;
+  //  a flag for catchup
+  bool catchupNeeded;
+  //  and a list of threads to apply catchup to
+  BPatch_Vector<BPatch_thread *> catchup_threads;
     
-    BPatchSnippetHandle(BPatch_addressSpace * addSpace);
+  BPatchSnippetHandle(BPatch_addressSpace * addSpace);
 
-    void addInstance(Dyninst::PatchAPI::InstancePtr p) { instances_.push_back(p); }
+  void addInstance(Dyninst::PatchAPI::InstancePtr p) { instances_.push_back(p); }
     
-public:
+ public:
  
-    API_EXPORT_DTOR(_dtor, (),
-    ~,BPatchSnippetHandle,());
+  ~BPatchSnippetHandle();
 
-    // Returns whether the installed miniTramps use traps.
-    // Not 100% accurate due to internal Dyninst design; we can
-    // have multiple instances of instrumentation due to function
-    // relocation.
-    API_EXPORT(Int, (), bool, usesTrap, ());
+  // Returns whether the installed miniTramps use traps.
+  // Not 100% accurate due to internal Dyninst design; we can
+  // have multiple instances of instrumentation due to function
+  // relocation.
+  bool usesTrap();
+  
 
-    // mtHandles_ is not empty, , returns the function that the 
-    // instrumentation was added to 
-    API_EXPORT(Int, (),
-    BPatch_function *, getFunc, ());
+  // mtHandles_ is not empty, , returns the function that the 
+  // instrumentation was added to 
+  BPatch_function * getFunc ();
 
-    API_EXPORT(Int, (),
-    BPatch_addressSpace *, getAddressSpace, ());
+  BPatch_addressSpace * getAddressSpace();
 
-    API_EXPORT(Int, (),
-    BPatch_process *, getProcess, ());
+  BPatch_process * getProcess();
     
-    API_EXPORT(Int, (),
-    BPatch_Vector<BPatch_thread *> &, getCatchupThreads, ());
+  BPatch_Vector<BPatch_thread *> & getCatchupThreads();
 
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_addressSpace
-
-class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
-    friend class BPatch;
-    friend class BPatch_image;
-    friend class BPatch_function;
-    friend class BPatch_frame;
-    friend class BPatch_module;
-    friend class BPatch_basicBlock;
-    friend class BPatch_flowGraph;
-    friend class BPatch_loopTreeNode;
-    friend class BPatch_point;
-    friend class BPatch_funcCallExpr;
-    friend class BPatch_eventMailbox;
-    friend class BPatch_instruction;
-    friend Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSpace *);
+class BPATCH_DLL_EXPORT BPatch_addressSpace {
+  friend class BPatch;
+  friend class BPatch_image;
+  friend class BPatch_function;
+  friend class BPatch_frame;
+  friend class BPatch_module;
+  friend class BPatch_basicBlock;
+  friend class BPatch_flowGraph;
+  friend class BPatch_loopTreeNode;
+  friend class BPatch_point;
+  friend class BPatch_funcCallExpr;
+  friend class BPatch_eventMailbox;
+  friend class BPatch_instruction;
+  friend Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSpace *);
   
  public:
     
@@ -224,39 +210,35 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   //  BPatch_addressSpace::insertSnippet
   //  
   //  Insert new code into the mutatee
-  API_EXPORT_VIRT(Int, (expr, point, order),
-                  BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr, 
-                                                       BPatch_point &point,
-                                                       BPatch_snippetOrder order = BPatch_firstSnippet));
+  virtual BPatchSnippetHandle * insertSnippet(const BPatch_snippet &expr, 
+					      BPatch_point &point,
+					      BPatch_snippetOrder order = BPatch_firstSnippet);
   
-    //BPatch_addressSpace::insertSnippet
+  //BPatch_addressSpace::insertSnippet
       
-    //Insert new code into the mutatee, specifying "when" (before/after point)
+  //Insert new code into the mutatee, specifying "when" (before/after point)
 
-    API_EXPORT_VIRT(When, (expr, point, when, order),
-                    BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr, 
-                                                         BPatch_point &point,
-                                                         BPatch_callWhen when,
-                                                         BPatch_snippetOrder order = BPatch_firstSnippet));
+  virtual BPatchSnippetHandle* insertSnippet(const BPatch_snippet &expr, 
+					     BPatch_point &point,
+					     BPatch_callWhen when,
+					     BPatch_snippetOrder order = BPatch_firstSnippet);
     
-    //BPatch_addressSpace::insertSnippet
+  //BPatch_addressSpace::insertSnippet
       
-    //Insert new code into the mutatee at multiple points
+  //Insert new code into the mutatee at multiple points
 
-    API_EXPORT_VIRT(AtPoints, (expr, points, order),
-                    BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr,
-                                                         const BPatch_Vector<BPatch_point *> &points,
-                                                         BPatch_snippetOrder order = BPatch_firstSnippet));
+  virtual BPatchSnippetHandle * insertSnippet(const BPatch_snippet &expr,
+					      const BPatch_Vector<BPatch_point *> &points,
+					      BPatch_snippetOrder order = BPatch_firstSnippet);
     
-      // BPatch_addressSpace::insertSnippet
+  // BPatch_addressSpace::insertSnippet
       
-      //Insert new code into the mutatee at multiple points, specifying "when"
+  //Insert new code into the mutatee at multiple points, specifying "when"
 
-    API_EXPORT_VIRT(AtPointsWhen, (expr, points, when, order),
-                    BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr,
-                                                         const BPatch_Vector<BPatch_point *> &points,
-                                                         BPatch_callWhen when,
-                                                         BPatch_snippetOrder order = BPatch_firstSnippet));
+  virtual BPatchSnippetHandle * insertSnippet(const BPatch_snippet &expr,
+					      const BPatch_Vector<BPatch_point *> &points,
+					      BPatch_callWhen when,
+					      BPatch_snippetOrder order = BPatch_firstSnippet);
 
 
 
@@ -270,172 +252,147 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   //  
   //  Remove instrumentation from the mutatee process
 
-  API_EXPORT(Int, (handle),
-	     bool,deleteSnippet,(BPatchSnippetHandle *handle));
+  bool deleteSnippet(BPatchSnippetHandle *handle);
 
   //  BPatch_addressSpace::replaceCode
   //
   //  Replace a point (must be an instruction...) with a given BPatch_snippet
 
-    API_EXPORT(Int, (point, snippet), 
-    bool, replaceCode, (BPatch_point *point, BPatch_snippet *snippet));
+  bool  replaceCode(BPatch_point *point, BPatch_snippet *snippet);
 
-    //  BPatch_addressSpace::replaceFunctionCall
-    //  
-    //  Replace function call at one point with another
+  //  BPatch_addressSpace::replaceFunctionCall
+  //  
+  //  Replace function call at one point with another
 
-    API_EXPORT(Int, (point, newFunc),
-    bool,replaceFunctionCall,(BPatch_point &point, BPatch_function &newFunc));
+  bool replaceFunctionCall(BPatch_point &point, BPatch_function &newFunc);
 
-    //  BPatch_addressSpace::removeFunctionCall
-    //  
-    //  Remove function call at one point 
+  //  BPatch_addressSpace::removeFunctionCall
+  //  
+  //  Remove function call at one point 
 
-    API_EXPORT(Int, (point),
-    bool,removeFunctionCall,(BPatch_point &point));
+  bool removeFunctionCall(BPatch_point &point);
 
-    //  BPatch_addressSpace::replaceFunction
-    //  
-    //  Replace all calls to a function with calls to another
+  //  BPatch_addressSpace::replaceFunction
+  //  
+  //  Replace all calls to a function with calls to another
 
-    API_EXPORT(Int, (oldFunc, newFunc),
-    bool,replaceFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
+  bool replaceFunction(BPatch_function &oldFunc, BPatch_function &newFunc);
 
-    // BPatch_addressSpace::revertReplaceFunction
-    //
-    // Undo the operation of a replace function
-    API_EXPORT(Int, (oldFunc),
-               bool, revertReplaceFunction, (BPatch_function &oldFunc));
+  // BPatch_addressSpace::revertReplaceFunction
+  //
+  // Undo the operation of a replace function
+  bool  revertReplaceFunction(BPatch_function &oldFunc);
 
-    // BPatch_addressSpace::wrapFunction
-    //
-    // Replace oldFunc with newFunc as above; however, also rename oldFunc
-    // to the provided name so it can still be reached. 
+  // BPatch_addressSpace::wrapFunction
+  //
+  // Replace oldFunc with newFunc as above; however, also rename oldFunc
+  // to the provided name so it can still be reached. 
 
-    API_EXPORT(Int, (oldFunc, newFunc, clone),
-               bool,wrapFunction,(BPatch_function *oldFunc, BPatch_function *newFunc, Dyninst::SymtabAPI::Symbol *clone));
+  bool wrapFunction(BPatch_function *oldFunc, BPatch_function *newFunc, Dyninst::SymtabAPI::Symbol *clone);
 
-    // BPatch_addressSpace::revertWrapFunction
-    //
-    // Undo the operations of a wrapFunction, restoring the original
-    // functionality
+  // BPatch_addressSpace::revertWrapFunction
+  //
+  // Undo the operations of a wrapFunction, restoring the original
+  // functionality
 
-    API_EXPORT(Int, (wrappedFunc),
-               bool,revertWrapFunction,(BPatch_function *wrappedFunc));
+  bool revertWrapFunction(BPatch_function *wrappedFunc);
 
-    //  BPatch_addressSpace::getSourceLines
-    //  
-    //  Method that retrieves the line number and file name corresponding 
-    //  to an address
+  //  BPatch_addressSpace::getSourceLines
+  //  
+  //  Method that retrieves the line number and file name corresponding 
+  //  to an address
 
-    API_EXPORT(Int, (addr, lines),
-    bool,getSourceLines,(unsigned long addr, BPatch_Vector< BPatch_statement > & lines ));
+  bool getSourceLines(unsigned long addr, BPatch_Vector< BPatch_statement > & lines );
     
-    // BPatch_addressSpace::getAddressRanges
-    //
-    // Method that retrieves address range(s) for a given filename and line number.
+  // BPatch_addressSpace::getAddressRanges
+  //
+  // Method that retrieves address range(s) for a given filename and line number.
     
-    API_EXPORT(Int, (fileName, lineNo, ranges),
-    bool,getAddressRanges,(const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
+  bool getAddressRanges(const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges );
 
-    //  DEPRECATED:
-    //  BPatch_addressSpace::findFunctionByAddr
-    //  
-    //  Returns the function containing an address
+  //  DEPRECATED:
+  //  BPatch_addressSpace::findFunctionByAddr
+  //  
+  //  Returns the function containing an address
 
-    API_EXPORT(Int, (addr),
-    BPatch_function *,findFunctionByAddr,(void *addr));
+  BPatch_function * findFunctionByAddr(void *addr);
 
-    //  BPatch_addressSpace::findFunctionByEntry
-    //  
-    //  Returns the function starting at the given address
+  //  BPatch_addressSpace::findFunctionByEntry
+  //  
+  //  Returns the function starting at the given address
 
-    API_EXPORT(Int, (entry),
-    BPatch_function *,findFunctionByEntry,(Dyninst::Address entry));
+  BPatch_function * findFunctionByEntry(Dyninst::Address entry);
 
-    //  BPatch_addressSpace::findFunctionsByAddr
-    //  
-    //  Returns the functions containing an address 
-    //  (multiple functions are returned when code is shared)
+  //  BPatch_addressSpace::findFunctionsByAddr
+  //  
+  //  Returns the functions containing an address 
+  //  (multiple functions are returned when code is shared)
 
-    API_EXPORT(Int, (addr,funcs),
-    bool, findFunctionsByAddr,(Dyninst::Address addr, 
-                               std::vector<BPatch_function*> &funcs));
+  bool  findFunctionsByAddr(Dyninst::Address addr, 
+			    std::vector<BPatch_function*> &funcs);
 
-     //  BPatch_addressSpace::getImage
-    //
-    //  Obtain BPatch_image associated with this BPatch_addressSpace
+  //  BPatch_addressSpace::getImage
+  //
+  //  Obtain BPatch_image associated with this BPatch_addressSpace
 
-    API_EXPORT(Int, (),
-    BPatch_image *,getImage,());
+  BPatch_image * getImage();
 
 
-    //  BPatch_addressSpace::malloc
-    //  
-    //  Allocate memory for a new variable in the mutatee process
+  //  BPatch_addressSpace::malloc
+  //  
+  //  Allocate memory for a new variable in the mutatee process
 
-    API_EXPORT(Int, (n, name),
-               BPatch_variableExpr *,malloc,(int n, std::string name = std::string("")));
+  BPatch_variableExpr * malloc(int n, std::string name = std::string(""));
 
-    //  BPatch_addressSpace::malloc
-    //  
-    //  Allocate memory for a new variable in the mutatee process
+  //  BPatch_addressSpace::malloc
+  //  
+  //  Allocate memory for a new variable in the mutatee process
+  
+  BPatch_variableExpr * malloc(const BPatch_type &type, std::string name = std::string(""));
+  
+  BPatch_variableExpr * createVariable(Dyninst::Address at_addr, 
+				       BPatch_type *type,
+				       std::string var_name = std::string(""),
+				       BPatch_module *in_module = NULL);
 
-    API_EXPORT(ByType, (type, name),
-               BPatch_variableExpr *,malloc,(const BPatch_type &type, std::string name = std::string("")));
+  //  BPatch_addressSpace::free
+  //  
+  //  Free memory allocated by Dyninst in the mutatee process
+  
+  bool free(BPatch_variableExpr &ptr);
 
-    API_EXPORT(Int, (at_addr, type, var_name, in_module),
-    BPatch_variableExpr *, createVariable,(Dyninst::Address at_addr, 
-                                           BPatch_type *type,
-                                           std::string var_name = std::string(""),
-                                           BPatch_module *in_module = NULL));
+  // BPatch_addressSpace::createVariable
+  // 
+  // Wrap an existing piece of allocated memory with a BPatch_variableExpr.
+  // Used (for instance) by the shared memory library to wrap its externally
+  // allocated memory for use by BPatch.
+  BPatch_variableExpr * createVariable(std::string name, 
+				       Dyninst::Address addr, 
+				       BPatch_type *type = NULL);
+  bool  getRegisters(std::vector<BPatch_register> &regs);
 
-    //  BPatch_addressSpace::free
-    //  
-    //  Free memory allocated by Dyninst in the mutatee process
+  bool  createRegister_NP(std::string regName, BPatch_register &reg); 
 
-    API_EXPORT(Int, (ptr),
-    bool,free,(BPatch_variableExpr &ptr));
+  void allowTraps(bool allowtraps);
 
-    // BPatch_addressSpace::createVariable
-    // 
-    // Wrap an existing piece of allocated memory with a BPatch_variableExpr.
-    // Used (for instance) by the shared memory library to wrap its externally
-    // allocated memory for use by BPatch.
-    
-    API_EXPORT(Int, (name, addr, type),
-               BPatch_variableExpr *, createVariable, 
-               (std::string name, Dyninst::Address addr, BPatch_type *type = NULL));
+  //  BPatch_addressSpace::loadLibrary
+  //  
+  //  Load a shared library into the mutatee's address space
+  //  Returns true if successful
+  //
+  //  the reload argument is used by save the world to determine
+  //  if this library should be reloaded by the mutated binary
+  //  when it starts up. this is up to the user because loading
+  //  an extra shared library could hide access to the 'correct'
+  //  function by redefining a function  
 
-    API_EXPORT(Int, (regs),
-               bool, getRegisters, (std::vector<BPatch_register> &regs));
+  virtual BPatch_object * loadLibrary(const char *libname, bool reload = false);
 
-    API_EXPORT(Int, (regName, reg),
-    bool, createRegister_NP, (std::string regName, BPatch_register &reg)); 
-
-    API_EXPORT_V(Int, (allowtraps),
-               void, allowTraps, (bool allowtraps));
-
-    //  BPatch_addressSpace::loadLibrary
-    //  
-    //  Load a shared library into the mutatee's address space
-    //  Returns true if successful
-    //
-    //  the reload argument is used by save the world to determine
-    //  if this library should be reloaded by the mutated binary
-    //  when it starts up. this is up to the user because loading
-    //  an extra shared library could hide access to the 'correct'
-    //  function by redefining a function  
-
-    API_EXPORT_VIRT(Int, (libname, reload),
-    BPatch_object *, loadLibrary,(const char *libname, bool reload = false));
-
-    // BPatch_addressSpace::isStaticExecutable
-    //
-    // Returns true if the underlying image represents a 
-    // statically-linked executable, false otherwise
-    API_EXPORT(Int, (),
-            bool, isStaticExecutable,());
+  // BPatch_addressSpace::isStaticExecutable
+  //
+  // Returns true if the underlying image represents a 
+  // statically-linked executable, false otherwise
+  bool  isStaticExecutable();
 };
 
 

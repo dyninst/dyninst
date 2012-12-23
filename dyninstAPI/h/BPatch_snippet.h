@@ -38,7 +38,6 @@
 #include "BPatch_module.h"
 //#include "BPatch_addressSpace.h"
 //#include "BPatch_function.h"
-#include "BPatch_eventLock.h"
 #include "BPatch_callbacks.h"
 #include "BPatch_instruction.h" // for register type
 #include "BPatch_enums.h"
@@ -114,12 +113,7 @@ typedef enum {
 #endif
 } BPatch_unOp;
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_snippet
-
-class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
+class BPATCH_DLL_EXPORT BPatch_snippet {
 
     friend class BPatch_process;
     friend class BPatch_binaryEdit;
@@ -152,56 +146,47 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     //  Default constructor
 
     BPatch_snippet();
-    BPatch_snippet(AstNodePtr ast) {BPatch_snippet(); ast_wrapper = ast;}
+    BPatch_snippet(const AstNodePtr& ast);
 
     //  BPatch_snippet::BPatch_snippet
     //  Copy constructor
 
-    public:  BPatch_snippet(const BPatch_snippet &src) : BPatch_eventLock(src)
-             { LOCK_FUNCTION_V(BPatch_snippetInt,(src)); }
+ public:  BPatch_snippet(const BPatch_snippet &src);
 
 
   public:
     //DynC internal use only
     //  BPatch_snippet::getType
     //  Returns the type of the underlying AST
-    API_EXPORT(Int, (),
-    BPatch_type *,getType,());
+    BPatch_type * getType();
 
-  private: 
+  public: 
 
-    void BPatch_snippetInt(const BPatch_snippet &src);
-    void BPatch_snippetInt(const AstNodePtr &node);
     //  BPatch_snippet:operator=
     //  Assign one BPatch_snippet to another
-    API_EXPORT_OPER(_equals, (src),
 
-    BPatch_snippet &,operator=,(const BPatch_snippet &src));
+    BPatch_snippet & operator=(const BPatch_snippet &src);
 
     //  BPatch_snippet::~BPatch_snippet
     //  Destructor, decrements reference count to snippet, deleting when none are left
-    API_EXPORT_DTOR(_dtor, (),
     
-    ~,BPatch_snippet,());
+    virtual ~BPatch_snippet();
 
     //  BPatch_snippet::getCost
     //  Returns an estimated cost of executing the snippet, in seconds.
-    API_EXPORT(Int, (),
 
-    float,getCost,());
+    float getCost();
 
     //  BPatch_snippet::getCostAtPoint
     //  Returns an estimated cost of executing the snippet at a specified point, in seconds.
-    API_EXPORT(Int, (pt),
 
-    float,getCostAtPoint,(BPatch_point *pt));
+    float getCostAtPoint(BPatch_point *pt);
 
     //  BPatch_snippet::is_trivial
     //  allows users to check to see if
     //  a snippet operation failed (leaving ast NULL)
-    API_EXPORT(Int, (),
 
-    bool,is_trivial,());
+    bool is_trivial();
 
     //    protected:
     //AstNodePtr *ast_wrapper; 
@@ -210,84 +195,58 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
 
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_arithExpr
-
 class BPATCH_DLL_EXPORT BPatch_arithExpr: public BPatch_snippet {
-
+ public:
     //  BPatch_arithExpr::BPatch_arithExpr (Binary Arithmetic Operation)
     //  
-    API_EXPORT_CTOR(Bin, (op, lOperand, rOperand),
-    BPatch_arithExpr,(BPatch_binOp op,
+    BPatch_arithExpr(BPatch_binOp op,
                       const BPatch_snippet &lOperand,
-                      const BPatch_snippet &rOperand));
+                      const BPatch_snippet &rOperand);
 
     //  BPatch_arithExpr::BPatch_arithExpr (Unary Arithmetic Operation)
     //  
-    API_EXPORT_CTOR(Un, (op, lOperand),
-    BPatch_arithExpr,(BPatch_unOp op, const BPatch_snippet &lOperand));
+    BPatch_arithExpr(BPatch_unOp op, const BPatch_snippet &lOperand);
 };
-
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_boolExpr
 
 class BPATCH_DLL_EXPORT BPatch_boolExpr : public BPatch_snippet {
-
+ public:
     //  BPatch_boolExpr::BPatch_boolExpr
     //  Creates a representation of boolean operation
-    API_EXPORT_CTOR(Int, (op, lOperand, rOperand),
-    BPatch_boolExpr,(BPatch_relOp op, const BPatch_snippet &lOperand,
-                     const BPatch_snippet &rOperand));
+    BPatch_boolExpr(BPatch_relOp op, const BPatch_snippet &lOperand,
+                     const BPatch_snippet &rOperand);
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_constExpr
-
 class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
-
+ public:
     //  BPatch_constExpr::BPatch_constExpr
     //  Creates a representation of a (signed int) value
-    API_EXPORT_CTOR(SignedInt, (value),
-    BPatch_constExpr,(signed int value));
+    BPatch_constExpr(signed int value);
 
     //  Creates a representation of an (unsigned int) value
-    API_EXPORT_CTOR(UnsignedInt, (value),
-    BPatch_constExpr,(unsigned int value));
+    BPatch_constExpr(unsigned int value);
     
     //  Creates a representation of a (signed long) value
-    API_EXPORT_CTOR(SignedLong, (value),
-    BPatch_constExpr,(signed long value));
+    BPatch_constExpr(signed long value);
     
     //  Creates a representation of an (unsigned long) value
-    API_EXPORT_CTOR(UnsignedLong, (value),
-    BPatch_constExpr,(unsigned long value));
+    BPatch_constExpr(unsigned long value);
 
     //  BPatch_constExpr::BPatch_constExpr
     //  Creates a representation of a (char *) value
-    API_EXPORT_CTOR(CharStar, (value),
-    BPatch_constExpr,(const char *value));
+    BPatch_constExpr(const char *value);
 
     //  BPatch_constExpr::BPatch_constExpr
     //  Creates a representation of a (void *) value
-    API_EXPORT_CTOR(VoidStar, (value),
-    BPatch_constExpr,(const void *value));
+    BPatch_constExpr(const void *value);
 
     //  BPatch_constExpr::BPatch_constExpr
     //  Creates a representation of a (long long) value
-    API_EXPORT_CTOR(LongLong, (value),
-    BPatch_constExpr,(long long value));
+    BPatch_constExpr(long long value);
 
 #ifdef IBM_BPATCH_COMPAT
     //  BPatch_constExpr::BPatch_constExpr
     //  Creates a representation of a (float) value
-    API_EXPORT_CTOR(Float, (value),
-    BPatch_constExpr,(float value));
+    BPatch_constExpr(float value);
 #endif
 
     // Should _always_ have a default constructor. This
@@ -296,150 +255,91 @@ class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
 
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_regExpr
-
 class BPATCH_DLL_EXPORT BPatch_regExpr : public BPatch_snippet {
-
+ public:
     // DEPRECATED!!!
 
     //  BPatch_regExpr::BPatch_regExpr
     //  Creates a representation of the contents of a particular register
     //  specified by <value>
-    API_EXPORT_CTOR(Int, (value),
-    BPatch_regExpr,(unsigned int value));
+    BPatch_regExpr(unsigned int value);
 };
-
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_funcCallExpr
 
 class BPATCH_DLL_EXPORT BPatch_funcCallExpr : public BPatch_snippet {
-
+ public:
     //  BPatch_funcCallExpr::BPatch_funcCallExpr
     //  Creates a representation of a function call
-    API_EXPORT_CTOR(Int, (func, args),
-    BPatch_funcCallExpr,(const BPatch_function& func,
-                         const BPatch_Vector<BPatch_snippet *> &args));
+    BPatch_funcCallExpr(const BPatch_function& func,
+                         const BPatch_Vector<BPatch_snippet *> &args);
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_ifExpr
-
 class BPATCH_DLL_EXPORT BPatch_ifExpr : public BPatch_snippet {
-
+ public:
     //  BPatch_ifExpr::BPatch_ifExpr
     //  Creates a conditional expression "if <conditional> tClause;"
-    API_EXPORT_CTOR(Int, (conditional, tClause),
-    BPatch_ifExpr,(const BPatch_boolExpr &conditional,
-                   const BPatch_snippet &tClause));
+    BPatch_ifExpr(const BPatch_boolExpr &conditional,
+                   const BPatch_snippet &tClause);
 
     //  BPatch_ifExpr::BPatch_ifExpr
     //  Creates a conditional expression 
     //  "if <conditional> tClause; else fClause;"
-    API_EXPORT_CTOR(WithElse, (conditional, tClause, fClause),
-    BPatch_ifExpr,(const BPatch_boolExpr &conditional,
+    BPatch_ifExpr(const BPatch_boolExpr &conditional,
                    const BPatch_snippet &tClause,
-                   const BPatch_snippet &fClause));
+                   const BPatch_snippet &fClause);
 };
-
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_nullExpr
 
 class BPATCH_DLL_EXPORT BPatch_nullExpr : public BPatch_snippet {
-
+ public:
     //  BPatch_nullExpr::BPatch_nullExpr
     //  Creates a null snippet that can be used as a placeholder.
-    API_EXPORT_CTOR(Int, (),
-    BPatch_nullExpr,());
+    BPatch_nullExpr();
 
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_paramExpr
-
 class BPATCH_DLL_EXPORT BPatch_paramExpr : public BPatch_snippet {
+ public:
     //  BPatch_paramExpr::BPatch_paramExpr
     //  Represents a parameter of a function (used in creating funcCallExpr)
     //  n    is the index of the parameter that should be retrieved
     //  loc  indicates whether the parameter lookup will be added at the call,
     //       at the function's entry point, or whether Dyninst should guess
     //       based on the instPoint type, which is error-prone and deprecated
-    API_EXPORT_CTOR(Int, (n,loc),
-    BPatch_paramExpr,(int n, BPatch_ploc loc=BPatch_ploc_guess));
+    BPatch_paramExpr(int n, BPatch_ploc loc=BPatch_ploc_guess);
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_retExpr
-
 class BPATCH_DLL_EXPORT BPatch_retExpr : public BPatch_snippet {
-
+ public:
     //  BPatch_retExpr::BPatch_retExpr
     //  Represents the return value from the function in which the 
     //  snippet is inserted
-    API_EXPORT_CTOR(Int, (),
-    BPatch_retExpr,());
+    BPatch_retExpr();
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_retAddrExpr
-
 class BPATCH_DLL_EXPORT BPatch_retAddrExpr : public BPatch_snippet {
-
+ public:
     //  BPatch_retAddrExpr::BPatch_retAddrExpr
     //  Represents the return address from the function in which the
     //  snippet is inserted
-    API_EXPORT_CTOR(Int, (),
-    BPatch_retAddrExpr,());
+    BPatch_retAddrExpr();
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_registerExpr
-
 class BPATCH_DLL_EXPORT BPatch_registerExpr : public BPatch_snippet {
+ public:
     friend class BPatch_addressSpace;
     //  BPatch_registerExpr::BPatch_registerExpr
     //  Represents the return value from the function in which the 
     //  snippet is inserted
 
-    API_EXPORT_CTOR(Int, (reg),
-                    BPatch_registerExpr, (BPatch_register reg));
-    API_EXPORT_CTOR(Int, (reg),
-                    BPatch_registerExpr, (Dyninst::MachRegister reg));
+                    BPatch_registerExpr(BPatch_register reg);
+                    BPatch_registerExpr(Dyninst::MachRegister reg);
 };
-
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_sequence
 
 class BPATCH_DLL_EXPORT BPatch_sequence : public BPatch_snippet {
-
+ public:
     //  BPatch_sequence::BPatch_sequence
     //  Represents a sequence of statements
-    API_EXPORT_CTOR(Int, (items),
-    BPatch_sequence,(const BPatch_Vector<BPatch_snippet *> &items));
+    BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items);
 };
-
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_variableExpr
 
 class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet 
 {
@@ -461,7 +361,6 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     
 
     AddressSpace *getAS();
- private:
     // Used to get expressions for the components of a structure
     // Used to get function pointers
     BPatch_variableExpr(char *in_name, 
@@ -490,7 +389,7 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 			AddressSpace *ll_addSpace, int_variable *iv,
 			BPatch_type *type);
-
+ public:
     static BPatch_variableExpr* makeVariableExpr(BPatch_addressSpace* in_addSpace,
 						 int_variable* v,
 						 BPatch_type* type);
@@ -508,89 +407,70 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
 
     //  BPatch_variableExpr::getSize
     //  Returns the size (in bytes) of this variable
-    API_EXPORT(Int, (),
-    unsigned int,getSize,() CONST_EXPORT);
+    unsigned int getSize() const;
 
     //  BPatch_variableExpr::getType
     //  Returns the type of this variable
-    API_EXPORT(Int, (),
-    const BPatch_type *,getType,());
+    const BPatch_type * getType();
 
     //  BPatch_variableExpr::setType
     //  Sets the type of this variable
     //  XXX -- should this really be public?
-    API_EXPORT(Int, (t),
-    bool,setType,(BPatch_type *t));
+    bool setType(BPatch_type *t);
 
     //  BPatch_variableExpr::setSize
     //  Sets the size of this variable
     //  XXX -- should this really be public?
-    API_EXPORT(Int, (sz),
-    bool,setSize,(int sz));
+    bool setSize(int sz);
 
     //  BPatch_variableExpr::readValue
     //  Read the value of a variable in a thread's address space.
     //  <dst> is assumed to be the same size as the variable.
-    API_EXPORT(Int, (dst),
-    bool,readValue,(void *dst));
+    bool readValue(void *dst);
 
     //  BPatch_variableExpr::readValue
     //  Read the value of a variable in a thread's address space.
     //  Will read <len> bytes into <dst>
-    API_EXPORT(WithLength, (dst, len),
-    bool,readValue,(void *dst, int len));
+    bool readValue(void *dst, int len);
 
     //  BPatch_variableExpr::writeValue
     //  Write a value into a variable in a thread's address space.
     //  variable is assumed to be the same size as the <dst>.
     //  returns false if the type info isn't available (i.e. we don't know the size)
-    API_EXPORT(Int, (src, saveWorld),
-    bool,writeValue,(const void *src, bool saveWorld=false));
+    bool writeValue(const void *src, bool saveWorld=false);
 
     //  BPatch_variableExpr::writeValue
     //  Write a value into a variable in a thread's address space.
     //  Will write <len> bytes from <src> into variable
-    API_EXPORT(WithLength, (src, len, saveWorld),
-    bool,writeValue,(const void *src, int len,bool saveWorld=false));
+    bool writeValue(const void *src, int len,bool saveWorld=false);
 
     //  BPatch_variableExpr::getName
     //  Returns the symbol table name for this variable
-    API_EXPORT(Int, (),
-    const char *,getName,());
+    const char * getName();
 
     //  BPatch_variableExpr::getBaseAddr
     //  Returns base address of this variable in the target's address space
-    API_EXPORT(Int, (),
-    void *,getBaseAddr,());
+    void * getBaseAddr();
 
     //  BPatch_variableExpr::getComponents
     //  return variable expressions for all of the fields in a struct/union
-    API_EXPORT(Int, (),
-    BPatch_Vector<BPatch_variableExpr *> *,getComponents,());
+    BPatch_Vector<BPatch_variableExpr *> * getComponents();
 
 #ifdef IBM_BPATCH_COMPAT
-    API_EXPORT(WithLength, (buffer, max),
-    char *,getName,(char *buffer, int max));
+    char * getName(char *buffer, int max);
 
-    API_EXPORT(Int, (),
-    void *,getAddress,());
+    void * getAddress();
 
 #endif
 
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_breakPointExpr
-
 class BPATCH_DLL_EXPORT BPatch_breakPointExpr : public BPatch_snippet {
-
+ public:
     //  BPatch_breakPointExpr::BPatch_breakPointExpr
     //  Creates a representation of a break point in the target process
 
-    API_EXPORT_CTOR(Int, (),
-    BPatch_breakPointExpr,());
+    BPatch_breakPointExpr();
 };
 
 // VG(11/05/01): This nullary snippet will return the effective
@@ -609,35 +489,25 @@ class BPATCH_DLL_EXPORT BPatch_breakPointExpr : public BPatch_snippet {
 
 // VG(8/14/02): added conditional parameter
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_effectiveAddressExpr
 
 class BPATCH_DLL_EXPORT BPatch_effectiveAddressExpr : public BPatch_snippet
 {
-
+ public:
   //  BPatch_effectiveAddressExpr:: BPatch_effectiveAddressExpr
   //  Construct a snippet representing an effective address.
 
-  API_EXPORT_CTOR(Int, (_which),
-  BPatch_effectiveAddressExpr,(int _which = 0));
+  BPatch_effectiveAddressExpr(int _which = 0);
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_bytesAccessedExpr
 
 // Number of bytes moved
 class BPATCH_DLL_EXPORT BPatch_bytesAccessedExpr : public BPatch_snippet
 {
-
+ public:
   //  BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr
   //  Construct a snippet representing the number of bytes accessed.
 
-  API_EXPORT_CTOR(Int, (_which),
-  BPatch_bytesAccessedExpr,(int _which = 0));
+  BPatch_bytesAccessedExpr(int _which = 0);
 };
 
 // VG(8/11/2): It is possible to have a more general expression, say 
@@ -646,64 +516,43 @@ class BPATCH_DLL_EXPORT BPatch_bytesAccessedExpr : public BPatch_snippet
 // AST that supports this class. Memory instrumentation has no need for a standalone
 // machineConditionExpr, so that remains TBD...
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_ifMachineConditionExpr
 
 class BPATCH_DLL_EXPORT BPatch_ifMachineConditionExpr : public BPatch_snippet {
-
+ public:
   //  BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExpr
   //  
 
-  API_EXPORT_CTOR(Int, (tClause),
-  BPatch_ifMachineConditionExpr,(const BPatch_snippet &tClause));
+  BPatch_ifMachineConditionExpr(const BPatch_snippet &tClause);
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_threadIndexExpr
 
 class BPATCH_DLL_EXPORT BPatch_threadIndexExpr : public BPatch_snippet {
+ public:
   //
   // BPatch_threadIndexExpr::BPatch_threadIndexExpr
-  API_EXPORT_CTOR(Int, (),
-  BPatch_threadIndexExpr,());
+  BPatch_threadIndexExpr();
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_tidExpr
-
 class BPATCH_DLL_EXPORT BPatch_tidExpr : public BPatch_snippet {
+ public:
   //
   // BPatch_tidExpr::BPatch_tidExpr
-  API_EXPORT_CTOR(Int, (proc),
-  BPatch_tidExpr,(BPatch_process *proc));
+  BPatch_tidExpr(BPatch_process *proc);
 };
 
 class BPatch_instruction;
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_insnExpr
-
 class BPATCH_DLL_EXPORT BPatch_insnExpr : public BPatch_snippet {
+ public:
     //
     // BPatch_insnExpr::BPatch_insnExpr
-    API_EXPORT_CTOR(Int, (insn),
-                    BPatch_insnExpr,(BPatch_instruction *insn));
+  BPatch_insnExpr(BPatch_instruction *insn);
     
     // Replace the effective address of a load with the provided snippet
-    API_EXPORT(Int, (l), 
-    bool, overrideLoadAddress, (BPatch_snippet &l));
-
+    bool  overrideLoadAddress(BPatch_snippet &l);
+    
     // Replace the effective address of a store with the provided snippet
-    API_EXPORT(Int, (s), 
-    bool, overrideStoreAddress, (BPatch_snippet &s));
+    bool  overrideStoreAddress(BPatch_snippet &s);
 
 };
 
@@ -713,45 +562,31 @@ typedef enum {
     BPatch_interpAsReturnAddr,
 } BPatch_stInterpret;
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_shadowExpr
-
 class BPATCH_DLL_EXPORT BPatch_shadowExpr : public BPatch_snippet {
-
+ public:
   // BPatch_stopThreadExpr 
   //  This snippet type stops the thread that executes it.  It
   //  evaluates a calculation snippet and triggers a callback to the
   //  user program with the result of the calculation and a pointer to
   //  the BPatch_point at which the snippet was inserted
-  API_EXPORT_CTOR(Int, (entry, cb, calculation, useCache, interp),
-  BPatch_shadowExpr, 
-  (bool entry, 
-  const BPatchStopThreadCallback &cb,
-   const BPatch_snippet &calculation,
-   bool useCache = false,
-   BPatch_stInterpret interp = BPatch_noInterp));
+  BPatch_shadowExpr(bool entry, 
+		    const BPatchStopThreadCallback &cb,
+		    const BPatch_snippet &calculation,
+		    bool useCache = false,
+		    BPatch_stInterpret interp = BPatch_noInterp);
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_stopThreadExpr
-
 class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
-
+ public:
   // BPatch_stopThreadExpr 
   //  This snippet type stops the thread that executes it.  It
   //  evaluates a calculation snippet and triggers a callback to the
   //  user program with the result of the calculation and a pointer to
   //  the BPatch_point at which the snippet was inserted
-  API_EXPORT_CTOR(Int, (cb, calculation, useCache, interp),
-  BPatch_stopThreadExpr, 
-  (const BPatchStopThreadCallback &cb,
-   const BPatch_snippet &calculation,
-   bool useCache = false,
-   BPatch_stInterpret interp = BPatch_noInterp));
+  BPatch_stopThreadExpr(const BPatchStopThreadCallback &cb,
+			const BPatch_snippet &calculation,
+			bool useCache = false,
+			BPatch_stInterpret interp = BPatch_noInterp);
 
   // for internal use in conjunction with memory emulation and defensive 
   // mode analysis
@@ -763,59 +598,35 @@ class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
    BPatch_stInterpret interp = BPatch_noInterp);
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_originalAddressExpr
-
 class BPATCH_DLL_EXPORT BPatch_originalAddressExpr : public BPatch_snippet
 {
-
+ public:
   //  BPatch_originalAddressExpr
   //  Construct a snippet representing the original address of an 
   //  instruction
 
-  API_EXPORT_CTOR(Int, (),
-  BPatch_originalAddressExpr, ());
+  BPatch_originalAddressExpr();
 };
-
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_actualAddressExpr
 
 class BPATCH_DLL_EXPORT BPatch_actualAddressExpr : public BPatch_snippet
 {
-
+ public:
   //  BPatch_actualAddressExpr
   //  Construct a snippet representing the actual (relocated) address
   //  where the snippet was executed.
 
-  API_EXPORT_CTOR(Int, (),
-  BPatch_actualAddressExpr, ());
+  BPatch_actualAddressExpr();
 };
-
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_dynamicTargetExpr
 
 class BPATCH_DLL_EXPORT BPatch_dynamicTargetExpr : public BPatch_snippet
 {
-
+ public:
   //  BPatch_dynamicTargetExpr
   //  Construct a snippet to calculate the target of a 
   //  dynamic control transfer instruction
 
-  API_EXPORT_CTOR(Int, (),
-  BPatch_dynamicTargetExpr, ());
+  BPatch_dynamicTargetExpr();
 };
-
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_scrambleRegistersExpr
-
 
 class BPATCH_DLL_EXPORT BPatch_scrambleRegistersExpr : public BPatch_snippet
 {
@@ -823,8 +634,7 @@ class BPATCH_DLL_EXPORT BPatch_scrambleRegistersExpr : public BPatch_snippet
   // BPatch_scrambleRegistersExpr
   // Set all GPR to flag value.
 
-  API_EXPORT_CTOR(Int, (),
-  BPatch_scrambleRegistersExpr, ());
+  BPatch_scrambleRegistersExpr();
 };
 
 #endif /* _BPatch_snippet_h_ */

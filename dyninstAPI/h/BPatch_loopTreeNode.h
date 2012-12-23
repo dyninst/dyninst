@@ -33,7 +33,6 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
-#include "BPatch_eventLock.h"
 #include "BPatch_function.h"
 
 class BPatch_basicBlockLoop;
@@ -44,12 +43,8 @@ class func_instance;
  *  @see BPatch_basicBlockLoop
  *  @see BPatch_flowGraph
  */
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_loopTreeNode
 
-class BPATCH_DLL_EXPORT BPatch_loopTreeNode : public BPatch_eventLock {
+class BPATCH_DLL_EXPORT BPatch_loopTreeNode {
     friend class BPatch_flowGraph;
 
  public:
@@ -61,43 +56,31 @@ class BPATCH_DLL_EXPORT BPatch_loopTreeNode : public BPatch_eventLock {
 
     //  BPatch_loopTreeNode::BPatch_loopTreeNode
     //  Create a loop tree node for BPatch_basicBlockLoop with name n 
-    API_EXPORT_CTOR(Ctor, (l,n),
-
-    BPatch_loopTreeNode,(BPatch_basicBlockLoop *l, const char *n));
+    BPatch_loopTreeNode(BPatch_basicBlockLoop *l, const char *n);
 
     //  BPatch_loopTreeNode::~BPatch_loopTreeNode
     //  Destructor
-    API_EXPORT_DTOR(_dtor, (),
-
-    ~,BPatch_loopTreeNode,());
+    ~BPatch_loopTreeNode();
 
     //  BPatch_loopTreeNode::name
     //  Return the name of this loop. 
-    API_EXPORT(Int, (),
-
-    const char *,name,()); 
+    const char * name(); 
 
     //  BPatch_loopTreeNode::getCalleeName
     //  Return the function name of the ith callee. 
-    API_EXPORT(Int, (i),
-
-    const char *,getCalleeName,(unsigned int i));
+    const char * getCalleeName(unsigned int i);
 
     //  BPatch_loopTreeNode::numCallees
     //  Return the number of callees contained in this loop's body. 
-    API_EXPORT(Int, (),
-
-    unsigned int,numCallees,());
+    unsigned int numCallees();
 
     //Returns a vector of the functions called by this loop.
-    API_EXPORT(Int, (v, p),
-    bool, getCallees, (BPatch_Vector<BPatch_function *> &v, BPatch_addressSpace *p))
+    bool getCallees(BPatch_Vector<BPatch_function *> &v, BPatch_addressSpace *p);
+    
 
     //  BPatch_loopTreeNode::findLoop
     //  find loop by hierarchical name
-    API_EXPORT(Int, (name),
-
-    BPatch_basicBlockLoop *,findLoop,(const char *name));
+    BPatch_basicBlockLoop * findLoop(const char *name);
 
  private:
 

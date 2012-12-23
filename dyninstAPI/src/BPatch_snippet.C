@@ -95,12 +95,12 @@ BPatch_snippet::BPatch_snippet() {
  *
  * Copy constructor for BPatch_snippet.
  */
-void BPatch_snippet::BPatch_snippetInt(const BPatch_snippet &src)
+BPatch_snippet::BPatch_snippet(const BPatch_snippet &src)
 {
     ast_wrapper = src.ast_wrapper;
 }
 
-void BPatch_snippet::BPatch_snippetInt(const AstNodePtr &node)
+BPatch_snippet::BPatch_snippet(const AstNodePtr &node)
 {
    ast_wrapper = node;
 }
@@ -111,7 +111,7 @@ void BPatch_snippet::BPatch_snippetInt(const AstNodePtr &node)
  * Assignment operator for BPatch_snippet.  Needed to ensure that the
  * reference counts for the asts contained in the snippets is correct.
  */
-BPatch_snippet &BPatch_snippet::operator_equals(const BPatch_snippet &src)
+BPatch_snippet &BPatch_snippet::operator=(const BPatch_snippet &src)
 {
     // Check for x = x
     if (&src == this)
@@ -127,7 +127,7 @@ BPatch_snippet &BPatch_snippet::operator_equals(const BPatch_snippet &src)
  * BPatch_snippet::getType
  */
 
-BPatch_type *BPatch_snippet::getTypeInt(){
+BPatch_type *BPatch_snippet::getType(){
    return ast_wrapper->getType();
 }
 
@@ -136,7 +136,7 @@ BPatch_type *BPatch_snippet::getTypeInt(){
  *
  * Deprecated.
  */
-float BPatch_snippet::getCostInt()
+float BPatch_snippet::getCost()
 {
     return 0.0;
 }
@@ -145,12 +145,12 @@ float BPatch_snippet::getCostInt()
  *
  * Deprecated.
  */
-float BPatch_snippet::getCostAtPointInt(BPatch_point *)
+float BPatch_snippet::getCostAtPoint(BPatch_point *)
 {
     return 0.0;
 }
 
-bool BPatch_snippet::is_trivialInt()
+bool BPatch_snippet::is_trivial()
 {
   return (ast_wrapper == NULL);
 }
@@ -161,7 +161,7 @@ bool BPatch_snippet::is_trivialInt()
  * Destructor for BPatch_snippet.  Deallocates memory allocated by the
  * snippet.  Well, decrements a reference count.
  */
-void BPatch_snippet::BPatch_snippet_dtor()
+BPatch_snippet::~BPatch_snippet()
 {
     //if (ast_wrapper) delete ast_wrapper;
 }
@@ -414,7 +414,7 @@ AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
  * lOperand     The left operand for the operation.
  * rOperand     The right operand.
  */
-void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
+BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
                 const BPatch_snippet &lOperand, const BPatch_snippet &rOperand)
 {
         assert(BPatch::bpatch != NULL);
@@ -493,8 +493,8 @@ void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
  * op           The desired operation.
  * lOperand     The left operand for the operation.
  */
-void BPatch_arithExpr::BPatch_arithExprUn(BPatch_unOp op,
-                const BPatch_snippet &lOperand)
+BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op,
+				   const BPatch_snippet &lOperand)
 {
         assert(BPatch::bpatch != NULL);
 
@@ -562,7 +562,7 @@ void BPatch_arithExpr::BPatch_arithExprUn(BPatch_unOp op,
  * lOperand     The left operand.
  * rOperand     The right operand.
  */
-void BPatch_boolExpr::BPatch_boolExprInt(BPatch_relOp op,
+BPatch_boolExpr::BPatch_boolExpr(BPatch_relOp op,
                                          const BPatch_snippet &lOperand,
                                          const BPatch_snippet &rOperand)
 {
@@ -611,7 +611,7 @@ void BPatch_boolExpr::BPatch_boolExprInt(BPatch_relOp op,
  * value        The desired value.
  */
 
-void BPatch_constExpr::BPatch_constExprSignedInt( signed int value ) {
+BPatch_constExpr::BPatch_constExpr( signed int value ) {
         assert( BPatch::bpatch != NULL );
 
         ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant,
@@ -623,7 +623,7 @@ void BPatch_constExpr::BPatch_constExprSignedInt( signed int value ) {
         ast_wrapper->setType( type );
 }
 
-void BPatch_constExpr::BPatch_constExprUnsignedInt( unsigned int value ) {
+BPatch_constExpr::BPatch_constExpr( unsigned int value ) {
         assert( BPatch::bpatch != NULL );
 
         ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant,
@@ -635,7 +635,7 @@ void BPatch_constExpr::BPatch_constExprUnsignedInt( unsigned int value ) {
         ast_wrapper->setType( type );
         }
 
-void BPatch_constExpr::BPatch_constExprSignedLong( signed long value ) {
+BPatch_constExpr::BPatch_constExpr( signed long value ) {
         assert( BPatch::bpatch != NULL );
 
         ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant,
@@ -647,7 +647,7 @@ void BPatch_constExpr::BPatch_constExprSignedLong( signed long value ) {
         ast_wrapper->setType( type );
         }
 
-void BPatch_constExpr::BPatch_constExprUnsignedLong( unsigned long value ) {
+BPatch_constExpr::BPatch_constExpr( unsigned long value ) {
         assert( BPatch::bpatch != NULL );
 
         ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant,
@@ -666,7 +666,7 @@ void BPatch_constExpr::BPatch_constExprUnsignedLong( unsigned long value ) {
  *
  * value        The desired constant string.
  */
-void BPatch_constExpr::BPatch_constExprCharStar(const char *value)
+BPatch_constExpr::BPatch_constExpr(const char *value)
 {
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::ConstantString, (void *)const_cast<char *>(value)));
 
@@ -687,7 +687,7 @@ void BPatch_constExpr::BPatch_constExprCharStar(const char *value)
  *
  * value        The desired constant pointer.
  */
-void BPatch_constExpr::BPatch_constExprVoidStar(const void *value)
+BPatch_constExpr::BPatch_constExpr(const void *value)
 {
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *)const_cast<void *>(value)));
 
@@ -700,7 +700,7 @@ void BPatch_constExpr::BPatch_constExprVoidStar(const void *value)
     ast_wrapper->setType(type);
 }
 
-void BPatch_constExpr::BPatch_constExprLongLong(long long value)
+BPatch_constExpr::BPatch_constExpr(long long value)
 {
    ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *)(long)value));
 
@@ -726,7 +726,7 @@ char *BPatch_variableExpr::getNameWithLength(char *buffer, int max)
   return NULL;
 }
 
-void *BPatch_variableExpr::getAddressInt()
+void *BPatch_variableExpr::getAddress()
 {
   //  for AIX this may be broken, in the case where the mutator is 32b
   //  and the mutatee is 64b.
@@ -734,7 +734,7 @@ void *BPatch_variableExpr::getAddressInt()
 }
 
 
-void BPatch_constExpr::BPatch_constExprFloat(float value)
+BPatch_constExpr::BPatch_constExprFloat(float value)
 {
         // XXX fix me, puting value into int register.
         int ivalue = (int) value;
@@ -759,7 +759,7 @@ void BPatch_constExpr::BPatch_constExprFloat(float value)
  *        temporary -- avoid using it.
  */
 
-void BPatch_regExpr::BPatch_regExprInt(unsigned int value)
+BPatch_regExpr::BPatch_regExpr(unsigned int value)
 {
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::DataReg, (void *)(unsigned long int) value));
 
@@ -780,7 +780,7 @@ void BPatch_regExpr::BPatch_regExprInt(unsigned int value)
  * func         Identifies the function to call.
  * args         A vector of the arguments to be passed to the function.
  */
-void BPatch_funcCallExpr::BPatch_funcCallExprInt(
+BPatch_funcCallExpr::BPatch_funcCallExpr(
     const BPatch_function &func,
     const BPatch_Vector<BPatch_snippet *> &args)
 {
@@ -813,7 +813,7 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
  * conditional          The conditional.
  * tClause              A snippet to execute if the conditional is true.
  */
-void BPatch_ifExpr::BPatch_ifExprInt(const BPatch_boolExpr &conditional,
+BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
                                      const BPatch_snippet &tClause)
 {
     ast_wrapper = AstNodePtr(AstNode::operatorNode(ifOp, conditional.ast_wrapper, tClause.ast_wrapper));
@@ -832,7 +832,7 @@ void BPatch_ifExpr::BPatch_ifExprInt(const BPatch_boolExpr &conditional,
  * conditional          The conditional.
  * tClause              A snippet to execute if the conditional is true.
  */
-void BPatch_ifExpr::BPatch_ifExprWithElse(const BPatch_boolExpr &conditional,
+ BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
                                           const BPatch_snippet &tClause,
                                           const BPatch_snippet &fClause)
 {
@@ -851,7 +851,7 @@ void BPatch_ifExpr::BPatch_ifExprWithElse(const BPatch_boolExpr &conditional,
  *
  * Construct a null snippet that can be used as a placeholder.
  */
-void BPatch_nullExpr::BPatch_nullExprInt()
+BPatch_nullExpr::BPatch_nullExpr()
 {
     ast_wrapper = AstNodePtr(AstNode::nullNode());
 
@@ -869,7 +869,7 @@ void BPatch_nullExpr::BPatch_nullExprInt()
  * n    The position of the parameter (0 is the first parameter, 1 the second,
  *      and so on).
  */
-void BPatch_paramExpr::BPatch_paramExprInt(int n, BPatch_ploc loc)
+BPatch_paramExpr::BPatch_paramExpr(int n, BPatch_ploc loc)
 {
     AstNode::operandType opType;
     switch(loc) {
@@ -902,7 +902,7 @@ void BPatch_paramExpr::BPatch_paramExprInt(int n, BPatch_ploc loc)
  * the snippet is inserted.
  *
  */
-void BPatch_retExpr::BPatch_retExprInt()
+BPatch_retExpr::BPatch_retExpr()
 {
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::ReturnVal, (void *)0));
 
@@ -918,7 +918,7 @@ void BPatch_retExpr::BPatch_retExprInt()
  * the snippet is inserted.
  *
  */
-void BPatch_retAddrExpr::BPatch_retAddrExprInt()
+BPatch_retAddrExpr::BPatch_retAddrExpr()
 {
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::ReturnAddr, (void *)0));
     assert(BPatch::bpatch != NULL);
@@ -933,7 +933,7 @@ void BPatch_retAddrExpr::BPatch_retAddrExprInt()
  * or written.
  *
  */
-void BPatch_registerExpr::BPatch_registerExprInt(BPatch_register reg)
+BPatch_registerExpr::BPatch_registerExpr(BPatch_register reg)
 {
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::origRegister,
                                                       (void *)(long)reg.number_));
@@ -945,7 +945,7 @@ void BPatch_registerExpr::BPatch_registerExprInt(BPatch_register reg)
     //ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
-void BPatch_registerExpr::BPatch_registerExprInt(Dyninst::MachRegister mach) {
+BPatch_registerExpr::BPatch_registerExpr(Dyninst::MachRegister mach) {
    bool whocares;
    Register reg = convertRegID(mach, whocares);
    ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::origRegister,
@@ -964,7 +964,7 @@ void BPatch_registerExpr::BPatch_registerExprInt(Dyninst::MachRegister mach) {
  *
  * items        The snippets that are to make up the sequence.
  */
-void BPatch_sequence::BPatch_sequenceInt(const BPatch_Vector<BPatch_snippet *> &items)
+BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
 {
     if (items.size() == 0) {
         // XXX do something to indicate an error
@@ -1078,7 +1078,7 @@ BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* 
 }
 
 
-unsigned int BPatch_variableExpr::getSizeInt() CONST_EXPORT
+unsigned int BPatch_variableExpr::getSize() const
 {
   return size;
 }
@@ -1089,19 +1089,13 @@ unsigned int BPatch_variableExpr::getSizeInt() CONST_EXPORT
  *    Return the variable's type
  *
 */
-const BPatch_type *BPatch_variableExpr::getTypeInt()
+const BPatch_type *BPatch_variableExpr::getType()
 {
   if (!type){
      return BPatch::bpatch->type_Untyped;
   }
   return type;
 }
-#ifdef NOTDEF
-const BPatch_type *BPatch_variableExpr::getTypeConst() CONST_EXPORT
-{
-    return ast_wrapper->getType();
-}
-#endif
 
 /*
  * BPatch_variableExpr::setType
@@ -1109,7 +1103,7 @@ const BPatch_type *BPatch_variableExpr::getTypeConst() CONST_EXPORT
  *    Set the variable's type
  *
 */
-bool BPatch_variableExpr::setTypeInt(BPatch_type *newType)
+bool BPatch_variableExpr::setType(BPatch_type *newType)
 {
     size = newType->getSize();
     type = newType;
@@ -1122,7 +1116,7 @@ bool BPatch_variableExpr::setTypeInt(BPatch_type *newType)
  *    Set the variable's size
  *
 */
-bool BPatch_variableExpr::setSizeInt(int sz)
+bool BPatch_variableExpr::setSize(int sz)
 {
     size = sz;
     return true;
@@ -1306,7 +1300,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
  * dst          A pointer to a buffer in which to place the value of the
  *              variable.  It is assumed to be the same size as the variable.
  */
-bool BPatch_variableExpr::readValueInt(void *dst)
+bool BPatch_variableExpr::readValue(void *dst)
 {
 	if (isLocal) {
 		char msg[2048];
@@ -1338,7 +1332,7 @@ bool BPatch_variableExpr::readValueInt(void *dst)
  *              variable.  It is assumed to be the same size as the variable.
  * len          Number of bytes to read.
  */
-bool BPatch_variableExpr::readValueWithLength(void *dst, int len)
+bool BPatch_variableExpr::readValue(void *dst, int len)
 {
         if (isLocal) {
                 char msg[2048];
@@ -1362,7 +1356,7 @@ bool BPatch_variableExpr::readValueWithLength(void *dst, int len)
  * returns false if the type info isn't available (i.e. we don't know the size)
  */
 
-bool BPatch_variableExpr::writeValueInt(const void *src, bool /* saveWorld */)
+bool BPatch_variableExpr::writeValue(const void *src, bool /* saveWorld */)
 {
   if (isLocal) {
     char msg[2048];
@@ -1402,7 +1396,7 @@ bool BPatch_variableExpr::writeValueInt(const void *src, bool /* saveWorld */)
  * dst          A pointer to a buffer in which to place the value of the
  *              variable.  It is assumed to be the same size as the variable.
  */
-bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool /*saveWorld*/)
+bool BPatch_variableExpr::writeValue(const void *src, int len, bool /*saveWorld*/)
 {
   if (isLocal) {
     char msg[2048];
@@ -1425,12 +1419,12 @@ AddressSpace *BPatch_variableExpr::getAS()
    return lladdrSpace;
 }
 
-const char *BPatch_variableExpr::getNameInt()
+const char *BPatch_variableExpr::getName()
 {
   return name;
 }
 
-void *BPatch_variableExpr::getBaseAddrInt()
+void *BPatch_variableExpr::getBaseAddr()
 {
   return address;
 }
@@ -1438,7 +1432,7 @@ void *BPatch_variableExpr::getBaseAddrInt()
  * getComponents() - return variable expressions for all of the fields
  *     in the passed structure/union.
  */
-BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponentsInt()
+BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
 {
     const BPatch_Vector<BPatch_field *> *fields;
     BPatch_Vector<BPatch_variableExpr *> *retList = new BPatch_Vector<BPatch_variableExpr *>;
@@ -1476,7 +1470,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponentsInt()
  * Construct a snippet representing a breakpoint.
  *
  */
-void BPatch_breakPointExpr::BPatch_breakPointExprInt()
+BPatch_breakPointExpr::BPatch_breakPointExpr()
 {
     pdvector<AstNodePtr > null_args;
 
@@ -1494,7 +1488,7 @@ void BPatch_breakPointExpr::BPatch_breakPointExprInt()
  *
  * Construct a snippet representing an effective address.
  */
-void BPatch_effectiveAddressExpr::BPatch_effectiveAddressExprInt(int _which)
+BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which)
 {
 #if defined(i386_unknown_nt4_0)
   assert(_which >= 0 && _which <= 2);
@@ -1512,7 +1506,7 @@ void BPatch_effectiveAddressExpr::BPatch_effectiveAddressExprInt(int _which)
  *
  * Construct a snippet representing the number of bytes accessed.
  */
-void BPatch_bytesAccessedExpr::BPatch_bytesAccessedExprInt(int _which)
+BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
 {
 #if defined(i386_unknown_nt4_0)
   assert(_which >= 0 && _which <= 2);
@@ -1525,7 +1519,7 @@ void BPatch_bytesAccessedExpr::BPatch_bytesAccessedExprInt(int _which)
 };
 
 
-void BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExprInt(const BPatch_snippet &tClause)
+BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExpr(const BPatch_snippet &tClause)
 {
     ast_wrapper = AstNodePtr(AstNode::operatorNode(ifMCOp, tClause.ast_wrapper));
 
@@ -1533,7 +1527,7 @@ void BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExprInt(const BPatc
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 };
 
-void BPatch_threadIndexExpr::BPatch_threadIndexExprInt()
+BPatch_threadIndexExpr::BPatch_threadIndexExpr()
 {
     ast_wrapper = AstNodePtr(AstNode::threadIndexNode());
 
@@ -1545,7 +1539,7 @@ void BPatch_threadIndexExpr::BPatch_threadIndexExprInt()
 
 }
 
-void BPatch_tidExpr::BPatch_tidExprInt(BPatch_process *proc)
+BPatch_tidExpr::BPatch_tidExpr(BPatch_process *proc)
 {
   BPatch_Vector<BPatch_function *> thread_funcs;
   proc->getImage()->findFunction("dyn_pthread_self", thread_funcs);
@@ -1570,11 +1564,11 @@ void BPatch_tidExpr::BPatch_tidExprInt(BPatch_process *proc)
 
 // BPATCH INSN EXPR
 
-void BPatch_insnExpr::BPatch_insnExprInt(BPatch_instruction *insn) {
+BPatch_insnExpr::BPatch_insnExpr(BPatch_instruction *insn) {
     ast_wrapper = AstNodePtr(AstNode::insnNode(insn));
 }
 
-bool BPatch_insnExpr::overrideLoadAddressInt(BPatch_snippet &l) {
+bool BPatch_insnExpr::overrideLoadAddress(BPatch_snippet &l) {
     // We can assert our AST is an insn type...
     // Don't hand back insnAst to anyone else
     AstInsnNode *insnAst = dynamic_cast<AstInsnNode *>(ast_wrapper.get());
@@ -1583,7 +1577,7 @@ bool BPatch_insnExpr::overrideLoadAddressInt(BPatch_snippet &l) {
     return insnAst->overrideLoadAddr(l.ast_wrapper);
 }
 
-bool BPatch_insnExpr::overrideStoreAddressInt(BPatch_snippet &s) {
+bool BPatch_insnExpr::overrideStoreAddress(BPatch_snippet &s) {
     // We can assert our AST is an insn type...
     AstInsnNode *insnAst = dynamic_cast<AstInsnNode *>(ast_wrapper.get());
     assert(insnAst);
@@ -1643,7 +1637,7 @@ static void constructorHelper(
  *  user program with the result of the calculation and a pointer to
  *  the BPatch_point at which the snippet was inserted
  */
-void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
+BPatch_stopThreadExpr::BPatch_stopThreadExpr
       (const BPatchStopThreadCallback &bp_cb,
        const BPatch_snippet &calculation,
        bool useCache,
@@ -1706,7 +1700,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr(
 }
 
 
-void BPatch_shadowExpr::BPatch_shadowExprInt
+BPatch_shadowExpr::BPatch_shadowExpr
       (bool entry,
       const BPatchStopThreadCallback &bp_cb,
        const BPatch_snippet &calculation,
@@ -1738,7 +1732,7 @@ void BPatch_shadowExpr::BPatch_shadowExprInt
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
-void BPatch_originalAddressExpr::BPatch_originalAddressExprInt() {
+BPatch_originalAddressExpr::BPatch_originalAddressExpr() {
     ast_wrapper = AstNodePtr(AstNode::originalAddrNode());
 
     assert(BPatch::bpatch != NULL);
@@ -1748,7 +1742,7 @@ void BPatch_originalAddressExpr::BPatch_originalAddressExprInt() {
     ast_wrapper->setType(type);
 }
 
-void BPatch_actualAddressExpr::BPatch_actualAddressExprInt() {
+BPatch_actualAddressExpr::BPatch_actualAddressExpr() {
     ast_wrapper = AstNodePtr(AstNode::actualAddrNode());
 
     assert(BPatch::bpatch != NULL);
@@ -1758,7 +1752,7 @@ void BPatch_actualAddressExpr::BPatch_actualAddressExprInt() {
     ast_wrapper->setType(type);
 }
 
-void BPatch_dynamicTargetExpr::BPatch_dynamicTargetExprInt() {
+BPatch_dynamicTargetExpr::BPatch_dynamicTargetExpr() {
     ast_wrapper = AstNodePtr(AstNode::dynamicTargetNode());
 
     assert(BPatch::bpatch != NULL);
@@ -1768,7 +1762,7 @@ void BPatch_dynamicTargetExpr::BPatch_dynamicTargetExprInt() {
     ast_wrapper->setType(type);
 }
 
-void BPatch_scrambleRegistersExpr::BPatch_scrambleRegistersExprInt(){
+BPatch_scrambleRegistersExpr::BPatch_scrambleRegistersExpr(){
 
 
     ast_wrapper = AstNodePtr(AstNode::scrambleRegistersNode());

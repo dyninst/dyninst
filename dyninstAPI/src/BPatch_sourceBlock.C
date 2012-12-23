@@ -48,25 +48,24 @@ BPatch_sourceBlock::BPatch_sourceBlock( const char *filePtr,
 }
 
 const char*
-BPatch_sourceBlock::getSourceFileInt(){
+BPatch_sourceBlock::getSourceFile(){
 	return sourceFile;
 }
 
 void
-BPatch_sourceBlock::getSourceLinesInt(BPatch_Vector<unsigned short>& lines){
-   if (sourceLines.empty()) return;
+BPatch_sourceBlock::getSourceLines(BPatch_Vector<unsigned short>& lines){
 
    std::copy(sourceLines.begin(), sourceLines.end(),
              std::back_inserter(lines));
 }
 
 #ifdef IBM_BPATCH_COMPAT
-bool BPatch_sourceBlock::getAddressRangeInt(void*& _startAddress, void*& _endAddress)
+bool BPatch_sourceBlock::getAddressRange(void*& _startAddress, void*& _endAddress)
 {
   return false;
 }
 
-bool BPatch_sourceBlock::getLineNumbersInt(unsigned int &_startLine,
+bool BPatch_sourceBlock::getLineNumbers(unsigned int &_startLine,
                                         unsigned int  &_endLine)
 {
    if (sourceLines.empty()) return false;
@@ -103,18 +102,18 @@ ostream& operator<<(ostream& os,BPatch_sourceBlock& sb){
 #endif
 
 #ifdef IBM_BPATCH_COMPAT
-void BPatch_sourceBlock::getIncPointsInt(BPatch_Vector<BPatch_point *> &vect)
+void BPatch_sourceBlock::getIncPoints(BPatch_Vector<BPatch_point *> &vect)
 {
 //  nothing here for now...  might need to implement, might not.
 }
 
-void BPatch_sourceBlock::getExcPointsInt(BPatch_Vector<BPatch_point *> &vect)
+void BPatch_sourceBlock::getExcPoints(BPatch_Vector<BPatch_point *> &vect)
 {
  //  for now, they are the same
  getIncPoints(vect);
 }
 
-char *BPatch_sourceBlock::getNameInt(char *buf, int buflen)
+char *BPatch_sourceBlock::getName(char *buf, int buflen)
 {
   if (buflen > strlen("sourceBlock")) {
     strcpy(buf, "sourceBlock")[strlen("sourceBlock")]='\0';

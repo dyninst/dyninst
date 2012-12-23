@@ -62,15 +62,15 @@ AddressSpace *BPatch_object::ll_as() { return obj->proc(); }
 
 BPatch_addressSpace *BPatch_object::as() { return img->getAddressSpace(); }
 
-std::string BPatch_object::nameInt() {
+std::string BPatch_object::name() {
    return obj->fileName();
 }
 
-std::string BPatch_object::pathNameInt() {
+std::string BPatch_object::pathName() {
    return obj->fullName();
 }
 
-Dyninst::Address BPatch_object::fileOffsetToAddrInt(const Dyninst::Offset fileOffset) {
+Dyninst::Address BPatch_object::fileOffsetToAddr(const Dyninst::Offset fileOffset) {
    // File offset, so duck into SymtabAPI to turn it into a "mem offset" 
    // (aka ELF shifted) address
 
@@ -92,12 +92,12 @@ Dyninst::Address BPatch_object::fileOffsetToAddrInt(const Dyninst::Offset fileOf
    return E_OUT_OF_BOUNDS;
 }
 
-void BPatch_object::regionsInt(std::vector<BPatch_object::Region> &regions) {
+void BPatch_object::regions(std::vector<BPatch_object::Region> &regions) {
    regions.push_back(Region(obj->codeAbs(), obj->imageSize(), Region::CODE));
    regions.push_back(Region(obj->dataAbs(), obj->dataSize(), Region::DATA));
 }
 
-void BPatch_object::modulesInt(std::vector<BPatch_module *> &modules) {
+void BPatch_object::modules(std::vector<BPatch_module *> &modules) {
    std::copy(mods.begin(), mods.end(), std::back_inserter(modules));
 }
 
@@ -122,7 +122,7 @@ struct findFunc {
    bool dont_use_regex;
 };
       
-std::vector<BPatch_function *> *BPatch_object::findFunctionInt(std::string name,
+std::vector<BPatch_function *> *BPatch_object::findFunction(std::string name,
                                                                std::vector<BPatch_function *> &funcs,
                                                                bool notify_on_failure,
                                                                bool regex_case_sensitive,
@@ -135,7 +135,7 @@ std::vector<BPatch_function *> *BPatch_object::findFunctionInt(std::string name,
 }
 
 
-bool BPatch_object::findPointsInt(Dyninst::Address addr,
+bool BPatch_object::findPoints(Dyninst::Address addr,
                                   std::vector<BPatch_point *> &points) {
    block_instance *blk = obj->findOneBlockByAddr(addr);
    if (!blk) return false;

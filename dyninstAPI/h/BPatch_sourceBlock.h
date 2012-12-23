@@ -33,7 +33,6 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
-#include "BPatch_eventLock.h"
 #include <set>
 
 #ifdef IBM_BPATCH_COMPAT
@@ -50,12 +49,8 @@ class BPatch_point;
   * @see BPatch_flowGraph
   * @see BPatch_basicBlock
   */
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_sourceBlock
 
-class BPATCH_DLL_EXPORT BPatch_sourceBlock : public BPatch_eventLock {
+class BPATCH_DLL_EXPORT BPatch_sourceBlock {
 	friend class BPatch_flowGraph;
 	friend std::ostream& operator<<(std::ostream&,BPatch_sourceBlock&);
 
@@ -67,34 +62,27 @@ public:
 
 	/** method to return source file name 
 	  * @param i the number of source file requested */
-        API_EXPORT(Int, (),
-        const char *,getSourceFile,());
+        const char* getSourceFile();
 
 	/** method to return source lines in the
 	  * corresponding source file 
 	  * @param i the number of source file requested */
-        API_EXPORT_V(Int, (lines),
-        void,getSourceLines,(BPatch_Vector<unsigned short> &lines));
+        void getSourceLines(BPatch_Vector<unsigned short> &lines);
 
 	/** destructor for the sourceBlock class */
 
 	virtual ~BPatch_sourceBlock() {}
 
 #ifdef IBM_BPATCH_COMPAT
-        API_EXPORT(Int, (_startAddress, _endAddress),
-        bool,getAddressRange,(void*& _startAddress, void*& _endAddress));
+        bool getAddressRange(void*& _startAddress, void*& _endAddress);
 
-        API_EXPORT(Int, (_startLine, _endLine),
-        bool,getLineNumbers,(unsigned int &_startLine, unsigned int  &_endLine));
+        bool getLineNumbers(unsigned int &_startLine, unsigned int  &_endLine);
 
-        API_EXPORT_V(Int, (vect),
-        void,getExcPoints,(BPatch_Vector<BPatch_point *> &vect));
+        void getExcPoints(BPatch_Vector<BPatch_point *> &vect);
 
-        API_EXPORT_V(Int, (vect),
-        void,getIncPoints,(BPatch_Vector<BPatch_point *> &vect));
+        void getIncPoints(BPatch_Vector<BPatch_point *> &vect);
 
-        API_EXPORT(Int, (buf, buflen),
-        char *,getName,(char *buf, int buflen));
+        char * getName(char *buf, int buflen);
 #endif
 
 private:
