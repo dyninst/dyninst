@@ -1,8 +1,9 @@
 dnl == process this file with autoconf to produce a configure script ==
 
 
-AC_PREREQ(2.59)
+AC_PREREQ(2.63)
 AC_INIT([Dyninst], [8.0], [bugs@dyninst.org], [dyninst])
+AC_LANG(C++)
 
 AC_PREFIX_DEFAULT(/usr)
 
@@ -12,6 +13,11 @@ AC_CONFIG_MACRO_DIR([autodyninst])
 AC_PROG_INSTALL
 
 AC_PROG_CXX(g++)
+
+m4_include([c++11x.m4])
+AX_CXX_COMPILE_STDCXX_11([noext])
+AC_SUBST(CXXFLAGS)
+
 AC_PATH_PROG(_ICC_, icc)
 AC_PATH_PROG(_ICPC_, icpc)
 AC_PATH_PROG(_PGC_, pgcc)
@@ -502,8 +508,6 @@ if test "x$PLATFORM" = "x"; then
   SYSPLAT=`./scripts/sysname`
   PLATFORM=`./scripts/dynsysname ${SYSPLAT}`
 fi
-
-
 
 AC_CONFIG_FILES([${PLATFORM}/make.config.local:autodyninst/make.config.local.in])
 AC_OUTPUT

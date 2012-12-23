@@ -648,8 +648,7 @@ struct compareByEntryAddr
     }
 };
  
-BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
-        const BPatch_Set<BPatch_opCode>& ops)
+BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(const std::set<BPatch_opCode>& ops)
 {
    // function does not exist!
    if (func == NULL) return NULL;
@@ -675,6 +674,12 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
       
    }
    return ret;
+}
+
+BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(const BPatch_Set<BPatch_opCode>& ops) {
+   std::set<BPatch_opCode> tmp;
+   std::copy(ops.int_set.begin(), ops.int_set.end(), std::inserter(tmp, tmp.end()));
+   return findPointByOp(tmp);
 }
 
 /*

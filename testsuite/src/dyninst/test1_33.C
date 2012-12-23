@@ -44,7 +44,6 @@
 #include "BPatch_snippet.h"
 #include "BPatch_flowGraph.h"
 #include "BPatch_basicBlock.h"
-#include "BPatch_Set.h"
 
 #include "../../../parseAPI/h/CFG.h"
 #if !defined(os_windows_test) && defined(ENABLE_PARSE_API_GRAPHS)
@@ -195,7 +194,7 @@ test_results_t test1_33_Mutator::executeTest()
 	 * Check structure of control flow graph.
 	 */
 
-	BPatch_Set<BPatch_basicBlock*> blocks;
+        std::set<BPatch_basicBlock*> blocks;
 	cfg->getAllBasicBlocks(blocks);
 
 	if (blocks.size() < 4) 
@@ -205,99 +204,94 @@ test_results_t test1_33_Mutator::executeTest()
 		return FAILED;
 	}
 
-	BPatch_basicBlock **block_elements = new BPatch_basicBlock*[blocks.size()];
-	blocks.elements(block_elements);
-
 	bool foundOutDegreeTwo = false;
 	bool foundInDegreeTwo = false;
 	int blocksNoIn = 0, blocksNoOut = 0;
 
-	for (i = 0; i < (unsigned int) blocks.size(); i++) 
-	{
-		BPatch_Vector<BPatch_basicBlock*> in;
-		BPatch_Vector<BPatch_basicBlock*> out;
-
-		block_elements[i]->getSources(in);
-		block_elements[i]->getTargets(out);
-
-		if (in.size() == 0)
-			blocksNoIn++;
-
-		if (out.size() == 0)
-			blocksNoOut++;
-
-		if (in.size() > 2 || out.size() > 2) 
-		{
-			logerror("**Failed** test #33 (control flow graphs)\n");
-			logerror("  Detected a basic block in %s with %d incoming edges and %d\n", fn, in.size(), out.size());
-			logerror("  outgoing edges - neither should be greater than two.\n");
-			return FAILED;
-		} 
-		else if (in.size() > 1 && out.size() > 1) 
-		{
-			logerror("**Failed** test #33 (control flow graphs)\n");
-			logerror("  Detected a basic block in %s with %d incoming edges and %d\n", fn, in.size(), out.size());
-			logerror("  outgoing edges - only one should be greater than one.\n");
-			return FAILED;
-		} 
-		else if (in.size() == 0 && out.size() == 0) 
-		{
-			logerror("**Failed** test #33 (control flow graphs)\n");
-			logerror("  Detected a basic block in %s with no incoming or outgoing edges.\n", fn);
-			return FAILED;
-		} 
-		else if (in.size() == 2) 
-		{
-			assert(out.size() <= 1);
-
-			if (foundInDegreeTwo) 
-			{
-				logerror("**Failed** test #33 (control flow graphs)\n");
-				logerror("  Detected two basic blocks in %s with in degree two, there should only\n", fn);
-				logerror("  be one.\n");
-				return FAILED;
-			}
-			foundInDegreeTwo = true;
-
-			if (in[0]->getBlockNumber() == in[1]->getBlockNumber()) 
-			{
-				logerror("**Failed** test #33 (control flow graphs)\n");
-				logerror("  Two edges go to the same block (number %d).\n", in[0]->getBlockNumber());
-				return FAILED;
-			}
-		} 
-		else if (out.size() == 2) 
-		{
-			assert(in.size() <= 1);
-
-			if (foundOutDegreeTwo) 
-			{
-				logerror("**Failed** test #33 (control flow graphs)\n");
-				logerror("  Detected two basic blocks in %s with out degree two, there should only\n", fn);
-				logerror("  be one.\n");
-				return FAILED;
-			}
-			foundOutDegreeTwo = true;
-
-			if (out[0]->getBlockNumber() == out[1]->getBlockNumber()) 
-			{
-				logerror("**Failed** test #33 (control flow graphs)\n");
-				logerror("  Two edges go to the same block (number %d).\n", out[0]->getBlockNumber());
-				return FAILED;
-			}
-		} 
-		else if (in.size() > 1 || out.size() > 1) 
-		{
-			/* Shouldn't be able to get here. */
-			logerror("**Failed** test #33 (control flow graphs)\n");
-			logerror("  Detected a basic block in %s with %d incoming edges and %d\n", fn, in.size(), out.size());
-			logerror("  outgoing edges.\n");
-			return FAILED;
-		}
+        for (std::set<BPatch_basicBlock *>::iterator iter = blocks.begin();
+             iter != blocks.end(); ++iter) {
+           BPatch_Vector<BPatch_basicBlock*> in;
+           BPatch_Vector<BPatch_basicBlock*> out;
+           
+           (*iter)->getSources(in);
+           (*iter)->getTargets(out);
+           
+           if (in.size() == 0)
+              blocksNoIn++;
+           
+           if (out.size() == 0)
+              blocksNoOut++;
+           
+           if (in.size() > 2 || out.size() > 2) 
+           {
+              logerror("**Failed** test #33 (control flow graphs)\n");
+              logerror("  Detected a basic block in %s with %d incoming edges and %d\n", fn, in.size(), out.size());
+              logerror("  outgoing edges - neither should be greater than two.\n");
+              return FAILED;
+           } 
+           else if (in.size() > 1 && out.size() > 1) 
+           {
+              logerror("**Failed** test #33 (control flow graphs)\n");
+              logerror("  Detected a basic block in %s with %d incoming edges and %d\n", fn, in.size(), out.size());
+              logerror("  outgoing edges - only one should be greater than one.\n");
+              return FAILED;
+           } 
+           else if (in.size() == 0 && out.size() == 0) 
+           {
+              logerror("**Failed** test #33 (control flow graphs)\n");
+              logerror("  Detected a basic block in %s with no incoming or outgoing edges.\n", fn);
+              return FAILED;
+           } 
+           else if (in.size() == 2) 
+           {
+              assert(out.size() <= 1);
+              
+              if (foundInDegreeTwo) 
+              {
+                 logerror("**Failed** test #33 (control flow graphs)\n");
+                 logerror("  Detected two basic blocks in %s with in degree two, there should only\n", fn);
+                 logerror("  be one.\n");
+                 return FAILED;
+              }
+              foundInDegreeTwo = true;
+              
+              if (in[0]->getBlockNumber() == in[1]->getBlockNumber()) 
+              {
+                 logerror("**Failed** test #33 (control flow graphs)\n");
+                 logerror("  Two edges go to the same block (number %d).\n", in[0]->getBlockNumber());
+                 return FAILED;
+              }
+           } 
+           else if (out.size() == 2) 
+           {
+              assert(in.size() <= 1);
+              
+              if (foundOutDegreeTwo) 
+              {
+                 logerror("**Failed** test #33 (control flow graphs)\n");
+                 logerror("  Detected two basic blocks in %s with out degree two, there should only\n", fn);
+                 logerror("  be one.\n");
+                 return FAILED;
+              }
+              foundOutDegreeTwo = true;
+              
+              if (out[0]->getBlockNumber() == out[1]->getBlockNumber()) 
+              {
+                 logerror("**Failed** test #33 (control flow graphs)\n");
+                 logerror("  Two edges go to the same block (number %d).\n", out[0]->getBlockNumber());
+                 return FAILED;
+              }
+           } 
+           else if (in.size() > 1 || out.size() > 1) 
+           {
+              /* Shouldn't be able to get here. */
+              logerror("**Failed** test #33 (control flow graphs)\n");
+              logerror("  Detected a basic block in %s with %d incoming edges and %d\n", fn, in.size(), out.size());
+              logerror("  outgoing edges.\n");
+              return FAILED;
+           }
 	}
-
-	delete [] block_elements;
-
+        
 	if (blocksNoIn > 1) 
 	{
 		logerror("**Failed** test #33 (control flow graphs)\n");
@@ -358,7 +352,7 @@ test_results_t test1_33_Mutator::executeTest()
 		return FAILED;
 	}
 
-	BPatch_Set<BPatch_basicBlock*> blocks3;
+        std::set<BPatch_basicBlock*> blocks3;
 	cfg3->getAllBasicBlocks(blocks3);
 
 	if (blocks3.size() < 10) 
@@ -368,41 +362,40 @@ test_results_t test1_33_Mutator::executeTest()
 		return FAILED;
 	}
 
-	block_elements = new BPatch_basicBlock*[blocks3.size()];
-	blocks3.elements(block_elements);
-
 	bool foundSwitchIn = false;
 	bool foundSwitchOut = false;
 	bool foundRangeCheck = false;
 
-	for (i = 0; i < (unsigned int)blocks3.size(); i++) 
-	{
-		BPatch_Vector<BPatch_basicBlock*> in;
-		BPatch_Vector<BPatch_basicBlock*> out;
+        for (std::set<BPatch_basicBlock *>::iterator iter = blocks3.begin();
+             iter != blocks3.end(); ++iter) {
+           BPatch_basicBlock *block = *iter;
 
-		block_elements[i]->getSources(in);
-		block_elements[i]->getTargets(out);
+           BPatch_Vector<BPatch_basicBlock*> in;
+           BPatch_Vector<BPatch_basicBlock*> out;
+           
+           block->getSources(in);
+           block->getTargets(out);
 
-		if (!foundSwitchOut && out.size() >= 10 && in.size() <= 1) 
-		{
-			foundSwitchOut = true;
-		} 
-		else if (!foundSwitchIn && in.size() >= 10 && out.size() <= 1) 
-		{
-			foundSwitchIn = true;
-		} 
-		else if (!foundRangeCheck && out.size() == 2 && in.size() <= 1) 
-		{
-			foundRangeCheck = true;
-		} 
-		else if (in.size() > 1 && out.size() > 1) 
-		{
-			logerror("**Failed** test #33 (control flow graphs)\n");
-			logerror("  Found basic block in %s with unexpected number of edges.\n", fn2);
-			logerror("  %d incoming edges, %d outgoing edges.\n",
-					in.size(), out.size());
-			return FAILED;
-		}
+           if (!foundSwitchOut && out.size() >= 10 && in.size() <= 1) 
+           {
+              foundSwitchOut = true;
+           } 
+           else if (!foundSwitchIn && in.size() >= 10 && out.size() <= 1) 
+           {
+              foundSwitchIn = true;
+           } 
+           else if (!foundRangeCheck && out.size() == 2 && in.size() <= 1) 
+           {
+              foundRangeCheck = true;
+           } 
+           else if (in.size() > 1 && out.size() > 1) 
+           {
+              logerror("**Failed** test #33 (control flow graphs)\n");
+              logerror("  Found basic block in %s with unexpected number of edges.\n", fn2);
+              logerror("  %d incoming edges, %d outgoing edges.\n",
+                       in.size(), out.size());
+              return FAILED;
+           }
 	}
 
 	if (!foundSwitchIn || !foundSwitchOut) 
@@ -426,14 +419,13 @@ test_results_t test1_33_Mutator::executeTest()
 		return FAILED;
 	}
 
-	for (i = 0; i < (unsigned int) blocks3.size(); i++) 
-	{
-		if (!entry3[0]->dominates(block_elements[i])) 
-		{
-			logerror("**Failed** test #33 (control flow graphs)\n");
-			logerror("  Entry block does not dominate all blocks in %s\n", fn2);
-			return FAILED;
-		}
+        for (std::set<BPatch_basicBlock *>::iterator iter2 = blocks3.begin();
+             iter2 != blocks3.end(); ++iter2) {
+           if (!entry3[0]->dominates(*iter2))  {
+              logerror("**Failed** test #33 (control flow graphs)\n");
+              logerror("  Entry block does not dominate all blocks in %s\n", fn2);
+              return FAILED;
+           }
 	}
 
 	BPatch_Vector<BPatch_basicBlock*> exit3;
@@ -495,8 +487,6 @@ test_results_t test1_33_Mutator::executeTest()
 
 	pvalue = 1;
 	expr33_1->writeValue(&pvalue);
-
-	delete [] block_elements;
 
 	return PASSED;
 }

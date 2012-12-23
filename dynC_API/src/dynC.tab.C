@@ -1,53 +1,23 @@
-/*
- * See the dyninst/COPYRIGHT file for copyright information.
- * 
- * We provide the Paradyn Tools (below described as "Paradyn")
- * on an AS IS basis, and do not warrant its validity or performance.
- * We reserve the right to update, modify, or discontinue this
- * software at any time.  We shall have no obligation to supply such
- * updates or modifications or any other form of support to you.
- * 
- * By your use of Paradyn, you understand and agree that we (or any
- * other person or entity with proprietary rights in Paradyn) are
- * under no obligation to provide either maintenance services,
- * update services, notices of latent defects, or correction of
- * defects for Paradyn.
- * 
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
-/* A Bison parser, made by GNU Bison 2.3.  */
+
+/* A Bison parser, made by GNU Bison 2.4.1.  */
 
 /* Skeleton implementation for Bison's Yacc-like parsers in C
-
-   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   
+      Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
    Free Software Foundation, Inc.
-
-   This program is free software; you can redistribute it and/or modify
+   
+   This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
-
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+   
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-
+   
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -58,7 +28,7 @@
    special exception, which will cause the skeleton and the resulting
    Bison output files to be licensed under the GNU General Public
    License without this special exception.
-
+   
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
@@ -76,7 +46,7 @@
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "2.3"
+#define YYBISON_VERSION "2.4.1"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -84,18 +54,114 @@
 /* Pure parsers.  */
 #define YYPURE 0
 
+/* Push parsers.  */
+#define YYPUSH 0
+
+/* Pull parsers.  */
+#define YYPULL 1
+
 /* Using locations.  */
 #define YYLSP_NEEDED 1
 
 /* Substitute the variable and function names.  */
-#define yyparse dynCparse
-#define yylex   dynClex
-#define yyerror dynCerror
-#define yylval  dynClval
-#define yychar  dynCchar
-#define yydebug dynCdebug
-#define yynerrs dynCnerrs
-#define yylloc dynClloc
+#define yyparse         dynCparse
+#define yylex           dynClex
+#define yyerror         dynCerror
+#define yylval          dynClval
+#define yychar          dynCchar
+#define yydebug         dynCdebug
+#define yynerrs         dynCnerrs
+#define yylloc          dynClloc
+
+/* Copy the first part of user declarations.  */
+
+/* Line 189 of yacc.c  */
+#line 1 "../src/C.y"
+
+/*                                                                                 
+ * Yacc will define token IF, conflicting with dyn_regs.h                          
+ * This undef is safe b/c yacc also creates an enum IF                             
+ * which serves the same purpose.                                                  
+ */
+#undef IF
+#undef RETURN
+
+
+#include <stdio.h>
+#include <vector>
+#include <string>
+#include "BPatch_image.h"
+#include "BPatch_type.h"
+#include "BPatch_snippet.h"
+#include "dynC.h"
+#include "snippetGen.h"
+#include <sstream>
+
+extern "C" {
+//   std::string lineStr;
+   void yyerror(char *s); 
+   void yyerrorNonUni(char *s);
+   void yyerrorNoTok(char *s);
+   void yyerrorNoTokNonUni(char *s);
+   void yywarn(char *s);
+   int yyparse();
+   void makeOneTimeStatement(BPatch_snippet &statement);
+   void makeOneTimeStatementGbl(BPatch_snippet &statement);
+   void getErrorBase(char *errbase, int length);
+//   char *yytext;
+//   char *dynCSnippetName;
+}
+
+extern std::string lineStr;
+
+#define YYDEBUG 0 //set to 1 for debug mode
+
+//name of current snippet for error reporting
+char *dynCSnippetName = "";
+
+SnippetGenerator *snippetGen;
+BPatch_point *snippetPoint = NULL;
+
+std::set<std::string> *universalErrors = new std::set<std::string>();
+
+int oneTimeCount = 0;
+int oneTimeGblCount = 0;
+int yylex();
+
+BPatch_snippet *parse_result;
+
+bool fatalError = false;
+bool actionTaken = false;
+
+extern bool interactive;
+bool verbose = false;
+
+extern int line_num;
+
+std::vector<BPatch_snippet *> endSnippets;
+
+
+/* Line 189 of yacc.c  */
+#line 146 "dynC.tab.c"
+
+/* Enabling traces.  */
+#ifndef YYDEBUG
+# define YYDEBUG 0
+#endif
+
+/* Enabling verbose error messages.  */
+#ifdef YYERROR_VERBOSE
+# undef YYERROR_VERBOSE
+# define YYERROR_VERBOSE 1
+#else
+# define YYERROR_VERBOSE 0
+#endif
+
+/* Enabling the token table.  */
+#ifndef YYTOKEN_TABLE
+# define YYTOKEN_TABLE 0
+#endif
+
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -189,183 +255,16 @@
      LOWER_THAN_DEREF = 341
    };
 #endif
-/* Tokens.  */
-#define KNOWN_ERROR_TOK 258
-#define IDENTIFIER 259
-#define CONSTANT 260
-#define STRING 261
-#define TYPE 262
-#define NUMBER 263
-#define ERROR 264
-#define EOL 265
-#define SIZEOF 266
-#define D_TRUE 267
-#define D_FALSE 268
-#define PTR_OP 269
-#define INC_OP 270
-#define DEC_OP 271
-#define LEFT_OP 272
-#define RIGHT_OP 273
-#define LEFT_ASSIGN 274
-#define RIGHT_ASSIGN 275
-#define AND_ASSIGN 276
-#define XOR_ASSIGN 277
-#define OR_ASSIGN 278
-#define TYPE_NAME 279
-#define TYPEDEF 280
-#define EXTERN 281
-#define STATIC 282
-#define CHAR 283
-#define SHORT 284
-#define INT 285
-#define LONG 286
-#define SIGNED 287
-#define UNSIGNED 288
-#define FLOAT 289
-#define DOUBLE 290
-#define CONST 291
-#define VOID 292
-#define STRUCT 293
-#define UNION 294
-#define ENUM 295
-#define ELLIPSIS 296
-#define IF 297
-#define LOCAL 298
-#define PARAM 299
-#define GLOBAL 300
-#define FUNC 301
-#define DYNINST 302
-#define INST 303
-#define REGISTER 304
-#define NEWLINE 305
-#define CASE 306
-#define DEFAULT 307
-#define SWITCH 308
-#define RETURN 309
-#define NILL 310
-#define EOF_TOK 311
-#define COMMA 312
-#define AMPERSAND 313
-#define ASTERISK 314
-#define DOT 315
-#define NOT 316
-#define OR 317
-#define AND 318
-#define NOT_EQ 319
-#define EQ 320
-#define GREATER_EQ 321
-#define LESS_EQ 322
-#define COLON 323
-#define SEMI 324
-#define END_BLOCK 325
-#define START_BLOCK 326
-#define DOLLAR 327
-#define BACKTICK 328
-#define ASSIGN 329
-#define SUB_ASSIGN 330
-#define ADD_ASSIGN 331
-#define MOD_ASSIGN 332
-#define DIV_ASSIGN 333
-#define MUL_ASSIGN 334
-#define OR_OP 335
-#define AND_OP 336
-#define NCLOSE 337
-#define NOPEN 338
-#define LOWER_THAN_ELSE 339
-#define ELSE 340
-#define LOWER_THAN_DEREF 341
 
 
-
-
-/* Copy the first part of user declarations.  */
-#line 1 "../src/C.y"
-
-/*                                                                                 
- * Yacc will define token IF, conflicting with dyn_regs.h                          
- * This undef is safe b/c yacc also creates an enum IF                             
- * which serves the same purpose.                                                  
- */
-#undef IF
-#undef RETURN
-
-
-#include <stdio.h>
-#include <vector>
-#include <string>
-#include "BPatch_image.h"
-#include "BPatch_type.h"
-#include "BPatch_snippet.h"
-#include "dynC.h"
-#include "snippetGen.h"
-#include <sstream>
-
-extern "C" {
-//   std::string lineStr;
-   void yyerror(char *s); 
-   void yyerrorNonUni(char *s);
-   void yyerrorNoTok(char *s);
-   void yyerrorNoTokNonUni(char *s);
-   void yywarn(char *s);
-   int yyparse();
-   void makeOneTimeStatement(BPatch_snippet &statement);
-   void makeOneTimeStatementGbl(BPatch_snippet &statement);
-   void getErrorBase(char *errbase, int length);
-//   char *yytext;
-//   char *dynCSnippetName;
-}
-
-extern std::string lineStr;
-
-#define YYDEBUG 0 //set to 1 for debug mode
-
-//name of current snippet for error reporting
-char *dynCSnippetName = "";
-
-SnippetGenerator *snippetGen;
-BPatch_point *snippetPoint = NULL;
-
-std::set<std::string> *universalErrors = new std::set<std::string>();
-
-int oneTimeCount = 0;
-int oneTimeGblCount = 0;
-int yylex();
-
-BPatch_snippet *parse_result;
-
-bool fatalError = false;
-bool actionTaken = false;
-
-extern bool interactive;
-bool verbose = false;
-
-extern int line_num;
-
-std::vector<BPatch_snippet *> endSnippets;
-
-
-/* Enabling traces.  */
-#ifndef YYDEBUG
-# define YYDEBUG 0
-#endif
-
-/* Enabling verbose error messages.  */
-#ifdef YYERROR_VERBOSE
-# undef YYERROR_VERBOSE
-# define YYERROR_VERBOSE 1
-#else
-# define YYERROR_VERBOSE 0
-#endif
-
-/* Enabling the token table.  */
-#ifndef YYTOKEN_TABLE
-# define YYTOKEN_TABLE 0
-#endif
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 66 "../src/C.y"
 {
+
+/* Line 214 of yacc.c  */
+#line 66 "../src/C.y"
+
    int   ival;
    long  lval;
    double dval;
@@ -391,15 +290,17 @@ typedef union YYSTYPE
    BPatch_funcCallExpr *funcCall;
    BPatch_variableExpr *varExpr;
    std::vector<BPatch_snippet *> *snippetList;
-   std::vector<std::pair<BPatch_snippet *, char *> > *snippetStringListPair;
-   std::pair<BPatch_snippet *, char *> *snippetStringPair;   
-}
-/* Line 193 of yacc.c.  */
-#line 370 "dynC.tab.c"
-	YYSTYPE;
+   std::vector<std::pair<BPatch_snippet *, const char *> > *snippetStringListPair;
+   std::pair<BPatch_snippet *, const char *> *snippetStringPair;   
+
+
+
+/* Line 214 of yacc.c  */
+#line 300 "dynC.tab.c"
+} YYSTYPE;
+# define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
-# define YYSTYPE_IS_TRIVIAL 1
 #endif
 
 #if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
@@ -419,8 +320,8 @@ typedef struct YYLTYPE
 /* Copy the second part of user declarations.  */
 
 
-/* Line 216 of yacc.c.  */
-#line 395 "dynC.tab.c"
+/* Line 264 of yacc.c  */
+#line 325 "dynC.tab.c"
 
 #ifdef short
 # undef short
@@ -495,14 +396,14 @@ typedef short int yytype_int16;
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static int
-YYID (int i)
+YYID (int yyi)
 #else
 static int
-YYID (i)
-    int i;
+YYID (yyi)
+    int yyi;
 #endif
 {
-  return i;
+  return yyi;
 }
 #endif
 
@@ -584,9 +485,9 @@ void free (void *); /* INFRINGES ON USER NAME SPACE */
 /* A type that is properly aligned for any stack member.  */
 union yyalloc
 {
-  yytype_int16 yyss;
-  YYSTYPE yyvs;
-    YYLTYPE yyls;
+  yytype_int16 yyss_alloc;
+  YYSTYPE yyvs_alloc;
+  YYLTYPE yyls_alloc;
 };
 
 /* The size of the maximum gap between one aligned stack and the next.  */
@@ -621,12 +522,12 @@ union yyalloc
    elements in the stack, and YYPTR gives the new location of the
    stack.  Advance YYPTR to a properly aligned location for the next
    stack.  */
-# define YYSTACK_RELOCATE(Stack)					\
+# define YYSTACK_RELOCATE(Stack_alloc, Stack)				\
     do									\
       {									\
 	YYSIZE_T yynewbytes;						\
-	YYCOPY (&yyptr->Stack, Stack, yysize);				\
-	Stack = &yyptr->Stack;						\
+	YYCOPY (&yyptr->Stack_alloc, Stack, yysize);			\
+	Stack = &yyptr->Stack_alloc;					\
 	yynewbytes = yystacksize * sizeof (*Stack) + YYSTACK_GAP_MAXIMUM; \
 	yyptr += yynewbytes / sizeof (*yyptr);				\
       }									\
@@ -1211,17 +1112,20 @@ yy_symbol_print (yyoutput, yytype, yyvaluep, yylocationp)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_stack_print (yytype_int16 *bottom, yytype_int16 *top)
+yy_stack_print (yytype_int16 *yybottom, yytype_int16 *yytop)
 #else
 static void
-yy_stack_print (bottom, top)
-    yytype_int16 *bottom;
-    yytype_int16 *top;
+yy_stack_print (yybottom, yytop)
+    yytype_int16 *yybottom;
+    yytype_int16 *yytop;
 #endif
 {
   YYFPRINTF (stderr, "Stack now");
-  for (; bottom <= top; ++bottom)
-    YYFPRINTF (stderr, " %d", *bottom);
+  for (; yybottom <= yytop; yybottom++)
+    {
+      int yybot = *yybottom;
+      YYFPRINTF (stderr, " %d", yybot);
+    }
   YYFPRINTF (stderr, "\n");
 }
 
@@ -1256,11 +1160,11 @@ yy_reduce_print (yyvsp, yylsp, yyrule)
   /* The symbols being reduced.  */
   for (yyi = 0; yyi < yynrhs; yyi++)
     {
-      fprintf (stderr, "   $%d = ", yyi + 1);
+      YYFPRINTF (stderr, "   $%d = ", yyi + 1);
       yy_symbol_print (stderr, yyrhs[yyprhs[yyrule] + yyi],
 		       &(yyvsp[(yyi + 1) - (yynrhs)])
 		       , &(yylsp[(yyi + 1) - (yynrhs)])		       );
-      fprintf (stderr, "\n");
+      YYFPRINTF (stderr, "\n");
     }
 }
 
@@ -1542,10 +1446,8 @@ yydestruct (yymsg, yytype, yyvaluep, yylocationp)
 	break;
     }
 }
-
 
 /* Prevent warnings from -Wmissing-prototypes.  */
-
 #ifdef YYPARSE_PARAM
 #if defined __STDC__ || defined __cplusplus
 int yyparse (void *YYPARSE_PARAM);
@@ -1561,23 +1463,23 @@ int yyparse ();
 #endif /* ! YYPARSE_PARAM */
 
 
-
-/* The look-ahead symbol.  */
+/* The lookahead symbol.  */
 int yychar;
 
-/* The semantic value of the look-ahead symbol.  */
+/* The semantic value of the lookahead symbol.  */
 YYSTYPE yylval;
+
+/* Location data for the lookahead symbol.  */
+YYLTYPE yylloc;
 
 /* Number of syntax errors so far.  */
 int yynerrs;
-/* Location data for the look-ahead symbol.  */
-YYLTYPE yylloc;
 
 
 
-/*----------.
-| yyparse.  |
-`----------*/
+/*-------------------------.
+| yyparse or yypush_parse.  |
+`-------------------------*/
 
 #ifdef YYPARSE_PARAM
 #if (defined __STDC__ || defined __C99__FUNC__ \
@@ -1601,14 +1503,49 @@ yyparse ()
 #endif
 #endif
 {
-  
-  int yystate;
+
+
+    int yystate;
+    /* Number of tokens to shift before error messages enabled.  */
+    int yyerrstatus;
+
+    /* The stacks and their tools:
+       `yyss': related to states.
+       `yyvs': related to semantic values.
+       `yyls': related to locations.
+
+       Refer to the stacks thru separate pointers, to allow yyoverflow
+       to reallocate them elsewhere.  */
+
+    /* The state stack.  */
+    yytype_int16 yyssa[YYINITDEPTH];
+    yytype_int16 *yyss;
+    yytype_int16 *yyssp;
+
+    /* The semantic value stack.  */
+    YYSTYPE yyvsa[YYINITDEPTH];
+    YYSTYPE *yyvs;
+    YYSTYPE *yyvsp;
+
+    /* The location stack.  */
+    YYLTYPE yylsa[YYINITDEPTH];
+    YYLTYPE *yyls;
+    YYLTYPE *yylsp;
+
+    /* The locations where the error started and ended.  */
+    YYLTYPE yyerror_range[2];
+
+    YYSIZE_T yystacksize;
+
   int yyn;
   int yyresult;
-  /* Number of tokens to shift before error messages enabled.  */
-  int yyerrstatus;
-  /* Look-ahead token as an internal (translated) token number.  */
-  int yytoken = 0;
+  /* Lookahead token as an internal (translated) token number.  */
+  int yytoken;
+  /* The variables used to return semantic value and location from the
+     action routines.  */
+  YYSTYPE yyval;
+  YYLTYPE yyloc;
+
 #if YYERROR_VERBOSE
   /* Buffer for error messages, and its allocated size.  */
   char yymsgbuf[128];
@@ -1616,67 +1553,42 @@ yyparse ()
   YYSIZE_T yymsg_alloc = sizeof yymsgbuf;
 #endif
 
-  /* Three stacks and their tools:
-     `yyss': related to states,
-     `yyvs': related to semantic values,
-     `yyls': related to locations.
-
-     Refer to the stacks thru separate pointers, to allow yyoverflow
-     to reallocate them elsewhere.  */
-
-  /* The state stack.  */
-  yytype_int16 yyssa[YYINITDEPTH];
-  yytype_int16 *yyss = yyssa;
-  yytype_int16 *yyssp;
-
-  /* The semantic value stack.  */
-  YYSTYPE yyvsa[YYINITDEPTH];
-  YYSTYPE *yyvs = yyvsa;
-  YYSTYPE *yyvsp;
-
-  /* The location stack.  */
-  YYLTYPE yylsa[YYINITDEPTH];
-  YYLTYPE *yyls = yylsa;
-  YYLTYPE *yylsp;
-  /* The locations where the error started and ended.  */
-  YYLTYPE yyerror_range[2];
-
 #define YYPOPSTACK(N)   (yyvsp -= (N), yyssp -= (N), yylsp -= (N))
-
-  YYSIZE_T yystacksize = YYINITDEPTH;
-
-  /* The variables used to return semantic value and location from the
-     action routines.  */
-  YYSTYPE yyval;
-  YYLTYPE yyloc;
 
   /* The number of symbols on the RHS of the reduced rule.
      Keep to zero when no symbol should be popped.  */
   int yylen = 0;
+
+  yytoken = 0;
+  yyss = yyssa;
+  yyvs = yyvsa;
+  yyls = yylsa;
+  yystacksize = YYINITDEPTH;
 
   YYDPRINTF ((stderr, "Starting parse\n"));
 
   yystate = 0;
   yyerrstatus = 0;
   yynerrs = 0;
-  yychar = YYEMPTY;		/* Cause a token to be read.  */
+  yychar = YYEMPTY; /* Cause a token to be read.  */
 
   /* Initialize stack pointers.
      Waste one element of value and location stack
      so that they stay on the same level as the state stack.
      The wasted elements are never initialized.  */
-
   yyssp = yyss;
   yyvsp = yyvs;
   yylsp = yyls;
+
 #if YYLTYPE_IS_TRIVIAL
   /* Initialize the default location before parsing starts.  */
   yylloc.first_line   = yylloc.last_line   = 1;
-  yylloc.first_column = yylloc.last_column = 0;
+  yylloc.first_column = yylloc.last_column = 1;
 #endif
 
+/* User initialization code.  */
 
-  /* User initialization code.  */
+/* Line 1242 of yacc.c  */
 #line 96 "../src/C.y"
 {
 #ifdef YYDEBUG
@@ -1685,8 +1597,10 @@ yyparse ()
 #endif
 #endif
  }
-/* Line 1078 of yacc.c.  */
-#line 1661 "dynC.tab.c"
+
+/* Line 1242 of yacc.c  */
+#line 1603 "dynC.tab.c"
+
   goto yysetstate;
 
 /*------------------------------------------------------------.
@@ -1723,6 +1637,7 @@ yyparse ()
 		    &yyvs1, yysize * sizeof (*yyvsp),
 		    &yyls1, yysize * sizeof (*yylsp),
 		    &yystacksize);
+
 	yyls = yyls1;
 	yyss = yyss1;
 	yyvs = yyvs1;
@@ -1744,9 +1659,9 @@ yyparse ()
 	  (union yyalloc *) YYSTACK_ALLOC (YYSTACK_BYTES (yystacksize));
 	if (! yyptr)
 	  goto yyexhaustedlab;
-	YYSTACK_RELOCATE (yyss);
-	YYSTACK_RELOCATE (yyvs);
-	YYSTACK_RELOCATE (yyls);
+	YYSTACK_RELOCATE (yyss_alloc, yyss);
+	YYSTACK_RELOCATE (yyvs_alloc, yyvs);
+	YYSTACK_RELOCATE (yyls_alloc, yyls);
 #  undef YYSTACK_RELOCATE
 	if (yyss1 != yyssa)
 	  YYSTACK_FREE (yyss1);
@@ -1767,6 +1682,9 @@ yyparse ()
 
   YYDPRINTF ((stderr, "Entering state %d\n", yystate));
 
+  if (yystate == YYFINAL)
+    YYACCEPT;
+
   goto yybackup;
 
 /*-----------.
@@ -1775,16 +1693,16 @@ yyparse ()
 yybackup:
 
   /* Do appropriate processing given the current state.  Read a
-     look-ahead token if we need one and don't already have one.  */
+     lookahead token if we need one and don't already have one.  */
 
-  /* First try to decide what to do without reference to look-ahead token.  */
+  /* First try to decide what to do without reference to lookahead token.  */
   yyn = yypact[yystate];
   if (yyn == YYPACT_NINF)
     goto yydefault;
 
-  /* Not known => get a look-ahead token if don't already have one.  */
+  /* Not known => get a lookahead token if don't already have one.  */
 
-  /* YYCHAR is either YYEMPTY or YYEOF or a valid look-ahead symbol.  */
+  /* YYCHAR is either YYEMPTY or YYEOF or a valid lookahead symbol.  */
   if (yychar == YYEMPTY)
     {
       YYDPRINTF ((stderr, "Reading a token: "));
@@ -1816,20 +1734,16 @@ yybackup:
       goto yyreduce;
     }
 
-  if (yyn == YYFINAL)
-    YYACCEPT;
-
   /* Count tokens shifted since error; after three, turn off error
      status.  */
   if (yyerrstatus)
     yyerrstatus--;
 
-  /* Shift the look-ahead token.  */
+  /* Shift the lookahead token.  */
   YY_SYMBOL_PRINT ("Shifting", yytoken, &yylval, &yylloc);
 
-  /* Discard the shifted token unless it is eof.  */
-  if (yychar != YYEOF)
-    yychar = YYEMPTY;
+  /* Discard the shifted token.  */
+  yychar = YYEMPTY;
 
   yystate = yyn;
   *++yyvsp = yylval;
@@ -1870,6 +1784,8 @@ yyreduce:
   switch (yyn)
     {
         case 2:
+
+/* Line 1455 of yacc.c  */
 #line 165 "../src/C.y"
     { 
        oneTimeCount = 0;
@@ -1894,6 +1810,8 @@ yyreduce:
     break;
 
   case 3:
+
+/* Line 1455 of yacc.c  */
 #line 188 "../src/C.y"
     {
        std::string mangledName;
@@ -1919,6 +1837,8 @@ yyreduce:
     break;
 
   case 4:
+
+/* Line 1455 of yacc.c  */
 #line 210 "../src/C.y"
     {   
       
@@ -1942,6 +1862,8 @@ yyreduce:
     break;
 
   case 5:
+
+/* Line 1455 of yacc.c  */
 #line 230 "../src/C.y"
     {
        //IDENTIFIER leaks, but how to fix b/c use of $0?
@@ -1980,6 +1902,8 @@ yyreduce:
     break;
 
   case 6:
+
+/* Line 1455 of yacc.c  */
 #line 265 "../src/C.y"
     {
        std::stringstream type;
@@ -2020,6 +1944,8 @@ yyreduce:
     break;
 
   case 7:
+
+/* Line 1455 of yacc.c  */
 #line 302 "../src/C.y"
     {
        std::vector<BPatch_snippet *> argVect;
@@ -2075,6 +2001,8 @@ yyreduce:
     break;
 
   case 8:
+
+/* Line 1455 of yacc.c  */
 #line 356 "../src/C.y"
     {
       YYSTYPE::VariableSpec rSpec = {false,false,false,false,false,false,false,false,(yyvsp[(1) - (1)].sval)};
@@ -2083,6 +2011,8 @@ yyreduce:
     break;
 
   case 9:
+
+/* Line 1455 of yacc.c  */
 #line 361 "../src/C.y"
     {
       if ((yyvsp[(2) - (2)].varSpec).isStatic){
@@ -2096,6 +2026,8 @@ yyreduce:
     break;
 
   case 10:
+
+/* Line 1455 of yacc.c  */
 #line 374 "../src/C.y"
     { 
        if(verbose) printf("\n");
@@ -2105,6 +2037,8 @@ yyreduce:
     break;
 
   case 11:
+
+/* Line 1455 of yacc.c  */
 #line 380 "../src/C.y"
     {
        (yyvsp[(1) - (2)].snippetList)->push_back((yyvsp[(2) - (2)].snippet));
@@ -2113,6 +2047,8 @@ yyreduce:
     break;
 
   case 12:
+
+/* Line 1455 of yacc.c  */
 #line 385 "../src/C.y"
     {
        BPatch_sequence *seq = new BPatch_sequence(*(yyvsp[(2) - (3)].snippetList));
@@ -2124,6 +2060,8 @@ yyreduce:
     break;
 
   case 13:
+
+/* Line 1455 of yacc.c  */
 #line 393 "../src/C.y"
     {
        BPatch_sequence seq = BPatch_sequence(*(yyvsp[(3) - (4)].snippetList));
@@ -2134,6 +2072,8 @@ yyreduce:
     break;
 
   case 14:
+
+/* Line 1455 of yacc.c  */
 #line 403 "../src/C.y"
     {
        (yyval.snippet) = new BPatch_nullExpr();
@@ -2142,6 +2082,8 @@ yyreduce:
     break;
 
   case 15:
+
+/* Line 1455 of yacc.c  */
 #line 408 "../src/C.y"
     {
        yyerrorNoTok((yyvsp[(1) - (1)].context));
@@ -2151,6 +2093,8 @@ yyreduce:
     break;
 
   case 16:
+
+/* Line 1455 of yacc.c  */
 #line 414 "../src/C.y"
     {
        (yyval.snippet) = (yyvsp[(1) - (2)].snippet);
@@ -2158,6 +2102,8 @@ yyreduce:
     break;
 
   case 17:
+
+/* Line 1455 of yacc.c  */
 #line 419 "../src/C.y"
     {
        if(!actionTaken){
@@ -2171,6 +2117,8 @@ yyreduce:
     break;
 
   case 18:
+
+/* Line 1455 of yacc.c  */
 #line 430 "../src/C.y"
     {
        if(verbose) printf(" if () ");
@@ -2181,6 +2129,8 @@ yyreduce:
     break;
 
   case 19:
+
+/* Line 1455 of yacc.c  */
 #line 438 "../src/C.y"
     {
        if(verbose) printf(" if () else ");
@@ -2192,6 +2142,8 @@ yyreduce:
     break;
 
   case 21:
+
+/* Line 1455 of yacc.c  */
 #line 451 "../src/C.y"
     {
         (yyval.snippet) = new BPatch_sequence(*(yyvsp[(2) - (3)].snippetList));
@@ -2200,6 +2152,8 @@ yyreduce:
     break;
 
   case 22:
+
+/* Line 1455 of yacc.c  */
 #line 458 "../src/C.y"
     {
        if(strcmp((yyvsp[(3) - (6)].sval), "break") == 0){
@@ -2217,6 +2171,8 @@ yyreduce:
     break;
 
   case 23:
+
+/* Line 1455 of yacc.c  */
 #line 474 "../src/C.y"
     { 
        BPatch_function *func = snippetGen->findFunction((yyvsp[(3) - (6)].sval), *(yyvsp[(5) - (6)].snippetList));
@@ -2232,6 +2188,8 @@ yyreduce:
     break;
 
   case 24:
+
+/* Line 1455 of yacc.c  */
 #line 489 "../src/C.y"
     {
        //No parameters, return an empty vector
@@ -2240,6 +2198,8 @@ yyreduce:
     break;
 
   case 25:
+
+/* Line 1455 of yacc.c  */
 #line 495 "../src/C.y"
     { 
        (yyval.snippetList) = new BPatch_Vector<BPatch_snippet *>; 
@@ -2248,6 +2208,8 @@ yyreduce:
     break;
 
   case 26:
+
+/* Line 1455 of yacc.c  */
 #line 501 "../src/C.y"
     { 
        if(verbose) printf(" , ");
@@ -2257,6 +2219,8 @@ yyreduce:
     break;
 
   case 27:
+
+/* Line 1455 of yacc.c  */
 #line 510 "../src/C.y"
     { 
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0), BPatch_constExpr(0));
@@ -2264,6 +2228,8 @@ yyreduce:
     break;
 
   case 28:
+
+/* Line 1455 of yacc.c  */
 #line 514 "../src/C.y"
     {
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_ne, BPatch_constExpr(0), BPatch_constExpr(0));
@@ -2271,6 +2237,8 @@ yyreduce:
     break;
 
   case 30:
+
+/* Line 1455 of yacc.c  */
 #line 522 "../src/C.y"
     {
        if(verbose) printf(" < ");
@@ -2279,6 +2247,8 @@ yyreduce:
     break;
 
   case 31:
+
+/* Line 1455 of yacc.c  */
 #line 527 "../src/C.y"
     {
        if(verbose) printf(" > ");
@@ -2287,6 +2257,8 @@ yyreduce:
     break;
 
   case 32:
+
+/* Line 1455 of yacc.c  */
 #line 532 "../src/C.y"
     {
        if(verbose) printf(" == ");
@@ -2295,6 +2267,8 @@ yyreduce:
     break;
 
   case 33:
+
+/* Line 1455 of yacc.c  */
 #line 537 "../src/C.y"
     {
        if(verbose) printf(" <= ");
@@ -2303,6 +2277,8 @@ yyreduce:
     break;
 
   case 34:
+
+/* Line 1455 of yacc.c  */
 #line 542 "../src/C.y"
     {
        if(verbose) printf(" >= ");
@@ -2311,6 +2287,8 @@ yyreduce:
     break;
 
   case 35:
+
+/* Line 1455 of yacc.c  */
 #line 547 "../src/C.y"
     {
        if(verbose) printf(" != ");
@@ -2319,6 +2297,8 @@ yyreduce:
     break;
 
   case 36:
+
+/* Line 1455 of yacc.c  */
 #line 552 "../src/C.y"
     {
        if(verbose) printf(" AND ");
@@ -2327,6 +2307,8 @@ yyreduce:
     break;
 
   case 37:
+
+/* Line 1455 of yacc.c  */
 #line 557 "../src/C.y"
     {       if(verbose) printf(" OR ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_or, *(yyvsp[(1) - (3)].boolExpr), *(yyvsp[(3) - (3)].boolExpr));
@@ -2334,6 +2316,8 @@ yyreduce:
     break;
 
   case 38:
+
+/* Line 1455 of yacc.c  */
 #line 565 "../src/C.y"
     {
       YYSTYPE::VariableSpec vSpec = {false,false,false,false,false,false,false,false,""};
@@ -2343,6 +2327,8 @@ yyreduce:
     break;
 
   case 39:
+
+/* Line 1455 of yacc.c  */
 #line 571 "../src/C.y"
     {
       YYSTYPE::VariableSpec vSpec = {false,false,false,false,false,false,false,false,""};
@@ -2352,6 +2338,8 @@ yyreduce:
     break;
 
   case 40:
+
+/* Line 1455 of yacc.c  */
 #line 577 "../src/C.y"
     {
       YYSTYPE::VariableSpec vSpec = {false,false,false,false,false,false,false,false,""};
@@ -2361,6 +2349,8 @@ yyreduce:
     break;
 
   case 41:
+
+/* Line 1455 of yacc.c  */
 #line 586 "../src/C.y"
     {
        (yyval.snippet) = snippetGen->findInstVariable(dynC_API::getMangledStub((yyvsp[(1) - (1)].sval), dynCSnippetName).c_str(), (yyvsp[(1) - (1)].sval));
@@ -2375,6 +2365,8 @@ yyreduce:
     break;
 
   case 42:
+
+/* Line 1455 of yacc.c  */
 #line 597 "../src/C.y"
     {
        (yyval.snippet) = snippetGen->findAppVariable((yyvsp[(3) - (3)].sval));
@@ -2389,6 +2381,8 @@ yyreduce:
     break;
 
   case 43:
+
+/* Line 1455 of yacc.c  */
 #line 609 "../src/C.y"
     {
        //disallowed if there is no point specifier
@@ -2421,6 +2415,8 @@ yyreduce:
     break;
 
   case 44:
+
+/* Line 1455 of yacc.c  */
 #line 639 "../src/C.y"
     {
        //special case for indexed parameters
@@ -2445,6 +2441,8 @@ yyreduce:
     break;
 
   case 45:
+
+/* Line 1455 of yacc.c  */
 #line 661 "../src/C.y"
     {
        //array referance
@@ -2461,6 +2459,8 @@ yyreduce:
     break;
 
   case 46:
+
+/* Line 1455 of yacc.c  */
 #line 674 "../src/C.y"
     {
        (yyval.snippet) = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *(yyvsp[(2) - (2)].snippet)));
@@ -2468,6 +2468,8 @@ yyreduce:
     break;
 
   case 47:
+
+/* Line 1455 of yacc.c  */
 #line 678 "../src/C.y"
     {
        (yyval.snippet) = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *(yyvsp[(2) - (2)].snippet)));
@@ -2475,33 +2477,41 @@ yyreduce:
     break;
 
   case 48:
+
+/* Line 1455 of yacc.c  */
 #line 685 "../src/C.y"
     { 
       if(verbose) printf(" %d ", (yyvsp[(1) - (1)].ival));
       BPatch_snippet * c = new BPatch_constExpr((yyvsp[(1) - (1)].ival));
-      (yyval.snippetStringPair) = new std::pair<BPatch_snippet *, char *>(c, "int");
+      (yyval.snippetStringPair) = new std::pair<BPatch_snippet *, const char *>(c, "int");
    ;}
     break;
 
   case 49:
+
+/* Line 1455 of yacc.c  */
 #line 691 "../src/C.y"
     { 
        if(verbose) printf(" %s ", (yyvsp[(1) - (1)].sval));
        BPatch_snippet * c = new BPatch_constExpr((yyvsp[(1) - (1)].sval));
-       (yyval.snippetStringPair) = new std::pair<BPatch_snippet *, char *>(c, "char *");
+       (yyval.snippetStringPair) = new std::pair<BPatch_snippet *, const char *>(c, "char *");
     ;}
     break;
 
   case 50:
+
+/* Line 1455 of yacc.c  */
 #line 700 "../src/C.y"
     {
-        std::vector<std::pair<BPatch_snippet *, char *> > *cnlist = new std::vector<std::pair<BPatch_snippet *, char *> >();
+        std::vector<std::pair<BPatch_snippet *, const char *> > *cnlist = new std::vector<std::pair<BPatch_snippet *, const char *> >();
         cnlist->push_back(*(yyvsp[(1) - (1)].snippetStringPair));
         (yyval.snippetStringListPair) = cnlist;
      ;}
     break;
 
   case 51:
+
+/* Line 1455 of yacc.c  */
 #line 706 "../src/C.y"
     {
         (yyvsp[(1) - (3)].snippetStringListPair)->push_back(*(yyvsp[(3) - (3)].snippetStringPair));
@@ -2510,16 +2520,22 @@ yyreduce:
     break;
 
   case 53:
+
+/* Line 1455 of yacc.c  */
 #line 712 "../src/C.y"
     {(yyval.snippet) = (yyvsp[(1) - (1)].snippetStringPair)->first;}
     break;
 
   case 54:
+
+/* Line 1455 of yacc.c  */
 #line 713 "../src/C.y"
     {(yyval.snippet) = new BPatch_nullExpr();;}
     break;
 
   case 55:
+
+/* Line 1455 of yacc.c  */
 #line 715 "../src/C.y"
     {
    (yyval.snippet) = snippetGen->findRegister((yyvsp[(3) - (3)].sval));
@@ -2533,6 +2549,8 @@ yyreduce:
     break;
 
   case 56:
+
+/* Line 1455 of yacc.c  */
 #line 726 "../src/C.y"
     {
        if(verbose) printf("dyninst`%s ", (yyvsp[(3) - (3)].sval));
@@ -2610,6 +2628,8 @@ yyreduce:
     break;
 
   case 57:
+
+/* Line 1455 of yacc.c  */
 #line 800 "../src/C.y"
     {
        if(verbose) printf(" * ");
@@ -2619,6 +2639,8 @@ yyreduce:
     break;
 
   case 58:
+
+/* Line 1455 of yacc.c  */
 #line 806 "../src/C.y"
     {
        (yyval.snippet) = (yyvsp[(1) - (1)].snippet);
@@ -2627,6 +2649,8 @@ yyreduce:
     break;
 
   case 59:
+
+/* Line 1455 of yacc.c  */
 #line 811 "../src/C.y"
     {
        if(verbose) printf(" = ");
@@ -2636,6 +2660,8 @@ yyreduce:
     break;
 
   case 60:
+
+/* Line 1455 of yacc.c  */
 #line 817 "../src/C.y"
     {
        if(verbose) printf(" += ");
@@ -2645,6 +2671,8 @@ yyreduce:
     break;
 
   case 61:
+
+/* Line 1455 of yacc.c  */
 #line 823 "../src/C.y"
     {
        if(verbose) printf(" -= ");
@@ -2654,6 +2682,8 @@ yyreduce:
     break;
 
   case 62:
+
+/* Line 1455 of yacc.c  */
 #line 829 "../src/C.y"
     {
        if(verbose) printf(" *= ");
@@ -2663,6 +2693,8 @@ yyreduce:
     break;
 
   case 63:
+
+/* Line 1455 of yacc.c  */
 #line 835 "../src/C.y"
     {
        if(verbose) printf(" /= ");
@@ -2672,6 +2704,8 @@ yyreduce:
     break;
 
   case 64:
+
+/* Line 1455 of yacc.c  */
 #line 841 "../src/C.y"
     {
        if(verbose) printf(" %%= ");
@@ -2681,6 +2715,8 @@ yyreduce:
     break;
 
   case 65:
+
+/* Line 1455 of yacc.c  */
 #line 847 "../src/C.y"
     {
        if(verbose) printf(" / ");
@@ -2690,6 +2726,8 @@ yyreduce:
     break;
 
   case 66:
+
+/* Line 1455 of yacc.c  */
 #line 853 "../src/C.y"
     {
        if(verbose) printf(" %% ");
@@ -2699,6 +2737,8 @@ yyreduce:
     break;
 
   case 67:
+
+/* Line 1455 of yacc.c  */
 #line 859 "../src/C.y"
     {
        if(verbose) printf(" + ");
@@ -2708,6 +2748,8 @@ yyreduce:
     break;
 
   case 68:
+
+/* Line 1455 of yacc.c  */
 #line 865 "../src/C.y"
     {
        if(verbose) printf(" - ");
@@ -2717,6 +2759,8 @@ yyreduce:
     break;
 
   case 69:
+
+/* Line 1455 of yacc.c  */
 #line 871 "../src/C.y"
     {
        if(dynamic_cast<BPatch_nullExpr *>((yyvsp[(1) - (3)].snippet))){
@@ -2729,11 +2773,15 @@ yyreduce:
     break;
 
   case 70:
+
+/* Line 1455 of yacc.c  */
 #line 879 "../src/C.y"
     {(yyval.snippet) = (yyvsp[(2) - (3)].snippet);;}
     break;
 
   case 71:
+
+/* Line 1455 of yacc.c  */
 #line 881 "../src/C.y"
     {
        (yyval.snippet) = (yyvsp[(1) - (1)].snippet);
@@ -2742,6 +2790,8 @@ yyreduce:
     break;
 
   case 72:
+
+/* Line 1455 of yacc.c  */
 #line 890 "../src/C.y"
     {
        if(verbose) printf(" ++ ");
@@ -2751,6 +2801,8 @@ yyreduce:
     break;
 
   case 73:
+
+/* Line 1455 of yacc.c  */
 #line 896 "../src/C.y"
     {
        if(verbose) printf(" ++ ");
@@ -2760,6 +2812,8 @@ yyreduce:
     break;
 
   case 74:
+
+/* Line 1455 of yacc.c  */
 #line 902 "../src/C.y"
     {
        if(verbose) printf(" -- ");
@@ -2769,6 +2823,8 @@ yyreduce:
     break;
 
   case 75:
+
+/* Line 1455 of yacc.c  */
 #line 908 "../src/C.y"
     {
        if(verbose) printf(" -- ");
@@ -2778,8 +2834,9 @@ yyreduce:
     break;
 
 
-/* Line 1267 of yacc.c.  */
-#line 2754 "dynC.tab.c"
+
+/* Line 1455 of yacc.c  */
+#line 2840 "dynC.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -2855,7 +2912,7 @@ yyerrlab:
 
   if (yyerrstatus == 3)
     {
-      /* If just tried and failed to reuse look-ahead token after an
+      /* If just tried and failed to reuse lookahead token after an
 	 error, discard it.  */
 
       if (yychar <= YYEOF)
@@ -2872,7 +2929,7 @@ yyerrlab:
 	}
     }
 
-  /* Else will try to reuse look-ahead token after shifting the error
+  /* Else will try to reuse lookahead token after shifting the error
      token.  */
   goto yyerrlab1;
 
@@ -2930,14 +2987,11 @@ yyerrlab1:
       YY_STACK_PRINT (yyss, yyssp);
     }
 
-  if (yyn == YYFINAL)
-    YYACCEPT;
-
   *++yyvsp = yylval;
 
   yyerror_range[1] = yylloc;
   /* Using YYLLOC is tempting, but would change the location of
-     the look-ahead.  YYLOC is available though.  */
+     the lookahead.  YYLOC is available though.  */
   YYLLOC_DEFAULT (yyloc, (yyerror_range - 1), 2);
   *++yylsp = yyloc;
 
@@ -2962,7 +3016,7 @@ yyabortlab:
   yyresult = 1;
   goto yyreturn;
 
-#ifndef yyoverflow
+#if !defined(yyoverflow) || YYERROR_VERBOSE
 /*-------------------------------------------------.
 | yyexhaustedlab -- memory exhaustion comes here.  |
 `-------------------------------------------------*/
@@ -2973,7 +3027,7 @@ yyexhaustedlab:
 #endif
 
 yyreturn:
-  if (yychar != YYEOF && yychar != YYEMPTY)
+  if (yychar != YYEMPTY)
      yydestruct ("Cleanup: discarding lookahead",
 		 yytoken, &yylval, &yylloc);
   /* Do not reclaim the symbols of the rule which action triggered
@@ -2999,6 +3053,8 @@ yyreturn:
 }
 
 
+
+/* Line 1675 of yacc.c  */
 #line 915 "../src/C.y"
 
 

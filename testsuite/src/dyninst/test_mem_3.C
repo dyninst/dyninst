@@ -136,7 +136,7 @@ test_results_t test_mem_3_Mutator::executeTest() {
 #endif
   init_test_data();
   
-  BPatch_Set<BPatch_opCode> prefes;
+  std::set<BPatch_opCode> prefes;
   prefes.insert(BPatch_opPrefetch);
 
   BPatch_Vector<BPatch_function *> found_funcs;

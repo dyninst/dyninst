@@ -66,6 +66,19 @@ namespace Dyninst {
 };
 
 
+namespace std {
+template <>
+   struct less<BPatch_basicBlock *> {
+   bool operator()(const BPatch_basicBlock * const &l, const BPatch_basicBlock * const &r) const;
+};
+};
+
+template <>
+struct comparison <BPatch_basicBlock *> {
+   bool operator()(const BPatch_basicBlock * const &x, 
+                   const BPatch_basicBlock * const &y) const;
+};
+
 /** class for machine code basic blocks. We assume the user can not 
   * create basic blocks using its constructor. It is not safe. 
   * basic blocks are used for reading purposes not for inserting
@@ -107,13 +120,13 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    BPatch_flowGraph *flowGraph;
    
    /** set of basic blocks that this basicblock dominates immediately*/
-   BPatch_Set<BPatch_basicBlock*>* immediateDominates;
+   std::set<BPatch_basicBlock*>* immediateDominates;
    
    /** basic block which is the immediate dominator of the basic block */
    BPatch_basicBlock *immediateDominator;
    
    /** same as previous two fields, but for postdominator tree */
-   BPatch_Set<BPatch_basicBlock*> *immediatePostDominates;
+   std::set<BPatch_basicBlock*> *immediatePostDominates;
    BPatch_basicBlock *immediatePostDominator;
    
    /** the source block(source lines) that basic block corresponds*/
@@ -123,10 +136,10 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    BPatch_Vector<BPatch_instruction*> *instructions;
    
    /** the incoming edges */
-   BPatch_Set<BPatch_edge*> incomingEdges;
+   std::set<BPatch_edge*> incomingEdges;
  
    /** the outgoing edges */
-   BPatch_Set<BPatch_edge*> outgoingEdges;
+   std::set<BPatch_edge*> outgoingEdges;
 
   public:
    BPatch_flowGraph *fg() const { return flowGraph; }
@@ -194,7 +207,11 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 	/** method that returns all basic blocks dominated by the basic block */
 
    API_EXPORT_V(Int, (blocks),
+                void,getAllDominates,(std::set<BPatch_basicBlock*> &blocks));
+
+   API_EXPORT_V(Int, (blocks),
                 void,getAllDominates,(BPatch_Set<BPatch_basicBlock*> &blocks));
+
 
 	/** the previous four methods, but for postdominators */
 
@@ -214,6 +231,9 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
                 void,getImmediatePostDominates,(BPatch_Vector<BPatch_basicBlock*> &blocks));
 
 	/** BPatch_basicBlock::getAllPostDominates   */
+
+   API_EXPORT_V(Int, (blocks),
+                void,getAllPostDominates,(std::set<BPatch_basicBlock*> &blocks));
 
    API_EXPORT_V(Int, (blocks),
                 void,getAllPostDominates,(BPatch_Set<BPatch_basicBlock*> &blocks));
@@ -297,6 +317,9 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 	/** return a set of points within the basic block */
 
    API_EXPORT(Int, (ops),
+              BPatch_Vector<BPatch_point*> *,findPoint,(const std::set<BPatch_opCode>& ops));
+
+   API_EXPORT(Int, (ops),
               BPatch_Vector<BPatch_point*> *,findPoint,(const BPatch_Set<BPatch_opCode>& ops));
 
    API_EXPORT(Int, (filter),
@@ -335,12 +358,5 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 
 };
 
-template <>
-struct comparison <BPatch_basicBlock *> {
-   bool operator()(const BPatch_basicBlock * const &x, 
-                  const BPatch_basicBlock * const &y) const {
-      return (x->getStartAddress() < y->getStartAddress());
-   };
-};
 
 #endif /* _BPatch_basicBlock_h_ */

@@ -33,9 +33,9 @@ class BPatch_flowGraph;
 class dominatorCFG;
 class dominatorBB;
 
-#include "dyninstAPI/h/BPatch_Set.h"
 #include "dyninstAPI/h/BPatch_Vector.h"
 #include "common/h/Dictionary.h"
+#include <set>
 
 class dominatorBB {
    friend class dominatorCFG;
@@ -52,7 +52,7 @@ protected:
    BPatch_basicBlock *bpatchBlock;
    dominatorCFG *dom_cfg;
 
-   BPatch_Set<dominatorBB *> bucket;
+   std::set<dominatorBB *> bucket;
    BPatch_Vector<dominatorBB *> pred;
    BPatch_Vector<dominatorBB *> succ;   
  public:

@@ -276,7 +276,9 @@ public:
     //  Returns a vector of inst points, corresponding to the given set of op codes
 
     API_EXPORT(ByOp, (ops),
+               BPatch_Vector<BPatch_point *> *,findPoint,(const std::set<BPatch_opCode>& ops));
 
+    API_EXPORT(ByOp, (ops),
     BPatch_Vector<BPatch_point *> *,findPoint,(const BPatch_Set<BPatch_opCode>& ops));
 
     //  BPatch_function::findPoint

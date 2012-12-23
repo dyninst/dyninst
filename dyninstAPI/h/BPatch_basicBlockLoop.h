@@ -73,10 +73,10 @@ private:
         BPatch_flowGraph *flowGraph;
 
 	/** set of loops that are contained (nested) in this loop. */
-	BPatch_Set<BPatch_basicBlockLoop*> containedLoops;
+        std::set<BPatch_basicBlockLoop*> containedLoops;
 
 	/** the basic blocks in the loop */
-	BPatch_Set<BPatch_basicBlock*> basicBlocks;
+        std::set<BPatch_basicBlock*> basicBlocks;
 
         /** this func is only invoked by BPatch_flowGraph::createLoops */
         void addBackEdges(std::vector<BPatch_edge*> &edges);
@@ -167,13 +167,14 @@ public:
 	/** method that returns the variables used as iterator */
 	/** not implemented yet */
         API_EXPORT(Int, (),
-
-        BPatch_Set<BPatch_variableExpr*> *,getLoopIterators,());
+                   std::set<BPatch_variableExpr*> *,getLoopIterators,());
 
 	/** BPatch_basicBlockLoop::~BPatch_basicBlockLoop    */
 	/** destructor for the class */
 
-	public:  ~BPatch_basicBlockLoop() { }
+        ~BPatch_basicBlockLoop() { }
+
+        std::string format() const;
 
 private:
 // internal use only

@@ -299,7 +299,7 @@ test_results_t test_mem_2_Mutator::executeTest() {
 #endif
   init_test_data();
 
-  BPatch_Set<BPatch_opCode> stores;
+  std::set<BPatch_opCode> stores;
   stores.insert(BPatch_opStore);
 
   BPatch_Vector<BPatch_function *> found_funcs;

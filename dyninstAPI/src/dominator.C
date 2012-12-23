@@ -33,6 +33,7 @@
 #include "dyninstAPI/h/BPatch_basicBlock.h"
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 #include <iostream>
+#include <set>
 using namespace std;
 
 dominatorBB::dominatorBB(BPatch_basicBlock *bb, dominatorCFG *dc) :
@@ -164,7 +165,7 @@ dominatorCFG::dominatorCFG(BPatch_flowGraph *flowgraph) :
    entryBlock = new dominatorBB(NULL, this);
    all_blocks.push_back(entryBlock);
 
-   BPatch_Set<BPatch_basicBlock *>::iterator iter;
+   std::set<BPatch_basicBlock *>::iterator iter;
    for (iter = fg->allBlocks.begin(); iter != fg->allBlocks.end(); iter++)
    {
       dominatorBB *newbb = new dominatorBB(*iter, this);
@@ -200,7 +201,7 @@ void dominatorCFG::calcDominators() {
 
       block->immediateDominator = immDom;
       if (!immDom->immediateDominates)
-         immDom->immediateDominates = new BPatch_Set<BPatch_basicBlock *>;
+         immDom->immediateDominates = new std::set<BPatch_basicBlock *>;
       immDom->immediateDominates->insert(block);
    }   
 }
@@ -233,7 +234,7 @@ void dominatorCFG::calcPostDominators() {
 
       block->immediatePostDominator = immDom;
       if (!immDom->immediatePostDominates)
-         immDom->immediatePostDominates = new BPatch_Set<BPatch_basicBlock *>;
+         immDom->immediatePostDominates = new std::set<BPatch_basicBlock *>;
       immDom->immediatePostDominates->insert(block);
    }   
 }
@@ -256,14 +257,24 @@ void dominatorCFG::performComputation() {
          if (pred->sdno() < block->sdno())
             block->semiDom = pred->semiDom;
       }
+      
+      block->semiDom->bucket.insert(block);
 
-      block->semiDom->bucket += block;
       link(parent, block);
       
       while (!parent->bucket.empty())
       {
          dominatorBB *u, *v;
-         parent->bucket.extract(v);
+
+         //parent->bucket.extract(v);
+#if 0
+         std::set<dominatorBB *>::iterator iter = parent->bucket.begin();
+         std::advance(iter, parent->bucket.size() / 2);
+         v = *iter;
+         parent->bucket.erase(iter);
+#endif
+         v = *(parent->bucket.begin());
+         parent->bucket.erase(parent->bucket.begin());
 
          u = v->eval();
          if (u->sdno() < v->sdno())

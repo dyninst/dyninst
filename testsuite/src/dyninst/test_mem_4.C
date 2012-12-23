@@ -68,7 +68,7 @@ test_results_t test_mem_4_Mutator::executeTest() {
   //skiptest(testnum, testdesc);
   return SKIPPED;
 #else
-  BPatch_Set<BPatch_opCode> axs;
+  std::set<BPatch_opCode> axs;
   axs.insert(BPatch_opLoad);
   axs.insert(BPatch_opStore);
   axs.insert(BPatch_opPrefetch);

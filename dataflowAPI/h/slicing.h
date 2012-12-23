@@ -201,7 +201,7 @@ class Slicer {
     // map corresponding abstract regions. 
     // In particular, we need to know the depth of the 
     // stack in the caller.
-    long stackDepth;
+     int stackDepth;
 
   ContextElement(ParseAPI::Function *f) : 
     func(f), block(NULL), stackDepth(-1) {};

@@ -94,6 +94,7 @@ static void* openSO(const char *soname, bool local)
    void *handle = dlopen(fullSoPath, dl_options);
    if (!handle) {
       std::string str = std::string("./") + std::string(soname);
+      fprintf(stderr, "Error loading library: %s\n", dlerror());
       handle = dlopen(str.c_str(), dl_options);
    }
    ::free(fullSoPath);
@@ -162,8 +163,10 @@ ComponentTester *Module::loadModuleLibrary()
    snprintf(libname, 256, "libtest%s.so", name.c_str());
 #endif
    libhandle = openSO(libname, false);
-   if (!libhandle)
+   if (!libhandle) {
+      fprintf(stderr, "Error loading library: %s\n", dlerror());
       return NULL;
+   }
 
    comptester_factory_t factory;
    factory = (comptester_factory_t) dlsym(libhandle, "componentTesterFactory");

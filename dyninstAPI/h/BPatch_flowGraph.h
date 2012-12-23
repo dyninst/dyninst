@@ -91,7 +91,7 @@ public:
   AddressSpace *getllAddSpace() const;
   BPatch_function *getFunction() const { return func_; }
   BPatch_module *getModule() const { return mod; }
-  BPatch_basicBlock *findBlockByAddr(Dyninst::Address addr);
+
   BPatch_basicBlock *findBlock(block_instance *b);
   BPatch_edge *findEdge(edge_instance *e);
   void invalidate(); // invoked when additional parsing takes place
@@ -106,7 +106,7 @@ public:
   API_EXPORT(Int, (blocks),
   bool,getAllBasicBlocks,(BPatch_Set<BPatch_basicBlock*> &blocks)); 
 
-  API_EXPORT(STL, (blocks),
+  API_EXPORT(Int, (blocks),
   bool, getAllBasicBlocks,(std::set<BPatch_basicBlock *> &blocks));
   
   /** returns the vector of entry basic blocks to CFG */
@@ -184,16 +184,16 @@ public:
   BPatch_module *mod;
 
   /** set of loops contained in control flow graph */
-  BPatch_Set<BPatch_basicBlockLoop*> *loops;
+  std::set<BPatch_basicBlockLoop*> *loops;
   
   /** set of all basic blocks that control flow graph has */
-  BPatch_Set<BPatch_basicBlock*> allBlocks;
+  std::set<BPatch_basicBlock*> allBlocks;
 
   /** root of the tree of loops */
   BPatch_loopTreeNode *loopRoot;
 
   /** set of back edges */
-  BPatch_Set<BPatch_edge*> backEdges;
+  std::set<BPatch_edge*> backEdges;
   
   /** flag that keeps whether dominator info is initialized*/
   bool isDominatorInfoReady;
@@ -216,7 +216,7 @@ public:
   void findAndDeleteUnreachable();
   
   static void findBBForBackEdge(BPatch_edge*,
-				BPatch_Set<BPatch_basicBlock*>&);
+				std::set<BPatch_basicBlock*>&);
 
 
   void getLoopsByNestingLevel(BPatch_Vector<BPatch_basicBlockLoop*>&, 

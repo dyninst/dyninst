@@ -254,61 +254,37 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
 
 void BPatch_flowGraph::BPatch_flowGraph_dtor()
 {
-  unsigned int i;
-
   if (loops) {
-    BPatch_loop **lelements = new BPatch_loop *[loops->size()];
-
-    loops->elements(lelements);
-
-    for (i=0; i < loops->size(); i++)
-      delete lelements [i];
-
-    delete[] lelements;
-    delete loops;
+     for (std::set<BPatch_loop *>::iterator iter = loops->begin();
+          iter != loops->end(); ++iter) {
+        delete *iter;
+     }
+     delete loops;
   }
 
-  BPatch_basicBlock **belements = new BPatch_basicBlock *[allBlocks.size()];
+  for (std::set<BPatch_basicBlock *>::iterator iter = allBlocks.begin();
+       iter != allBlocks.end(); ++iter) {
+     delete *iter;
+  }
+  
+  if (loopRoot) {
+     delete loopRoot;
+  }
 
-  allBlocks.elements (belements);
-
-  for (i=0; i < allBlocks.size(); i++)
-    delete belements [i];
-
-  delete[] belements;
-
-  delete loopRoot;
   func_->cfg = NULL;
 }
 
 bool
-BPatch_flowGraph::getAllBasicBlocksInt(BPatch_Set<BPatch_basicBlock*>& abb)
+BPatch_flowGraph::getAllBasicBlocksInt(std::set<BPatch_basicBlock*>& abb)
 {
-  BPatch_basicBlock** belements =
-    new BPatch_basicBlock* [allBlocks.size()];
-
-  allBlocks.elements(belements);
-
-  for (unsigned int i=0;i<allBlocks.size(); i++)
-    abb += belements[i];
-
-  delete[] belements;
-  return true;
+   std::copy(allBlocks.begin(), allBlocks.end(), std::inserter(abb, abb.end()));
+   return true;
 }
 
 bool
-BPatch_flowGraph::getAllBasicBlocksSTL(std::set<BPatch_basicBlock*>& abb)
-{
-  BPatch_basicBlock** belements =
-    new BPatch_basicBlock* [allBlocks.size()];
-
-  allBlocks.elements(belements);
-
-  for (unsigned int i=0;i<allBlocks.size(); i++)
-    abb.insert(belements[i]);
-
-  delete[] belements;
-  return true;
+BPatch_flowGraph::getAllBasicBlocksInt(BPatch_Set<BPatch_basicBlock*>& abb) {
+   std::copy(allBlocks.begin(), allBlocks.end(), std::inserter(abb.int_set, abb.int_set.end()));
+   return true;
 }
 
 // this is the method that returns the set of entry points
@@ -339,128 +315,101 @@ BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
   return true;
 }
 
-/** returns the basic block that contains the address */
-BPatch_basicBlock* BPatch_flowGraph::findBlockByAddr(Address where)
-{
-  if (allBlocks.size() == 0) {
-    return NULL;
-  }
-  BPatch_basicBlock *ret =NULL;
-  BPatch_basicBlock** blocks = new BPatch_basicBlock* [allBlocks.size()];
-  // traverses the tree in order & loads all set elements into blocks array
-  allBlocks.elements(blocks);
-  // if these are ints instead of unsigned, the loop crashes if the address
-  // precedes the function
-  int first = 0;
-  int last = (int) allBlocks.size()-1;
-  int idx = (first+last)/2;
-  do  { // binary search
-    if (where < blocks[idx]->getStartAddress()) {
-      last = idx - 1;
-      idx = (first+last)/2;
-    } else if (where >= blocks[idx]->getEndAddress()) {
-      first = idx + 1;
-      idx = (first+last)/2;
-    } else {
-      break;
-    }
-  } while(first <= last);
-  if (first <= last) {
-    ret = blocks[idx];
-  }
-  delete[] blocks;
-  return ret;
-}
-
-
 void
 BPatch_flowGraph::createLoops()
 {
-  loops = new BPatch_Set<BPatch_loop*>;
+   loops = new std::set<BPatch_loop*>;
 
-  BPatch_edge **allBackEdges = new BPatch_edge*[backEdges.size()];
-  backEdges.elements(allBackEdges);
+   for (std::set<BPatch_edge *>::iterator iter = backEdges.begin();
+        iter != backEdges.end(); ++iter) {
+      assert((*iter) != NULL);
+      BPatch_loop *loop = new BPatch_loop(*iter, this);
 
-  // for each back edge
-  unsigned i;
-  for (i = 0; i < backEdges.size(); i++) {
-    assert(allBackEdges[i] != NULL);
-    BPatch_loop *loop = new BPatch_loop(allBackEdges[i], this);
+      // find all basic blocks in the loop and keep a map used
+      // to find the nest structure
+      findBBForBackEdge(*iter, loop->basicBlocks);
 
-    // find all basic blocks in the loop and keep a map used
-    // to find the nest structure
-    findBBForBackEdge(allBackEdges[i], loop->basicBlocks);
-
-    (*loops) += loop;
+      loops->insert(loop);
   }
 
-  delete[] allBackEdges;
-
-  BPatch_loop **allLoops = new BPatch_loop*[loops->size()];
-  loops->elements(allLoops);
   std::vector<BPatch_loop*> dupLoops;
 
-  // for each pair of loops l1,l2
-  for (i = 0; i < loops->size(); i++) {
-    for (unsigned j=0; j < loops->size(); j++) {
-      if (i==j) continue;
+  for (std::set<BPatch_loop *>::iterator iter_1 = loops->begin();
+       iter_1 != loops->end(); ++iter_1) {
+     for (std::set<BPatch_loop *>::iterator iter_2 = loops->begin(); 
+          iter_2 != loops->end(); ++iter_2) {
+        // Skip the first one, of course
+        if (iter_1 == iter_2) continue;
 
-      BPatch_loop *l1 = allLoops[i];
-      BPatch_loop *l2 = allLoops[j];
+        // We can't do this as a triangle (e.g, begin <= iter_1 < end, 
+        // iter_1 <= iter_2 < end) because we are checking
+        // whether l1 contains l2, not the reverse as well. 
+        // Also, the set is pointer-sorted, so there's no 
+        // structure at all. 
 
-      // Note that address ranges (as were previously used here)
-      // between the target of the back edge and the last instruction
-      // of the source of the back edge are insufficient to determine
-      // whether a block lies within a loop, given all possible
-      // layouts of loops in the address space. Instead, check
-      // for set membership.
-      //
-      // If loop A contains both the head block and the source
-      // of the back edge of loop B, it contains loop B (for
-      // nested natural loops)
-      if(l1->hasBlock(l2->getLoopHead()) &&
-         l1->hasBlock(l2->getBackEdge()->getSource()))
+        BPatch_loop *l1 = *iter_1;
+        BPatch_loop *l2 = *iter_2;
+
+
+        // Note that address ranges (as were previously used here)
+        // between the target of the back edge and the last instruction
+        // of the source of the back edge are insufficient to determine
+        // whether a block lies within a loop, given all possible
+        // layouts of loops in the address space. Instead, check
+        // for set membership.
+        //
+        // If loop A contains both the head block and the source
+        // of the back edge of loop B, it contains loop B (for
+        // nested natural loops)
+        if(l1->hasBlock(l2->getLoopHead()) &&
+           l1->hasBlock(l2->getBackEdge()->getSource()))
         {
-          // l1 contains l2
-          l1->containedLoops += l2;
-
-          if( l2->hasBlock(l1->getLoopHead()) &&
-              l2->hasBlock(l1->getBackEdge()->getSource()) )
-            {
-              if (i < j) { // merge l2 into l1 if i < j
-                dupLoops.push_back(l2);
-                std::vector<BPatch_edge*> l2edges;
-                l2->getBackEdges(l2edges);
-                l1->addBackEdges(l2edges);
+           // l1 contains l2
+           l1->containedLoops.insert(l2);
+           if( l2->hasBlock(l1->getLoopHead()) &&
+               l2->hasBlock(l1->getBackEdge()->getSource()) )
+           {
+              if (l1 < l2) { // merge l2 into l1 if i < j
+                 dupLoops.push_back(l2);
+                 std::vector<BPatch_edge*> l2edges;
+                 l2->getBackEdges(l2edges);
+                 l1->addBackEdges(l2edges);
               }
-            }
-          else
-            {
+              // Otherwise we'll catch this coming the other way. 
+              // For future readers: there _has_ to be a better way
+              // of doing this, and I wish you good luck. -- bernat
+
+           }
+           else
+           {
               // l2 has no parent, l1 is best so far
               if(!l2->parent)
-                {
-                  l2->parent = l1;
-                }
+              {
+                 l2->parent = l1;
+              }
               else
-                {
-                  // if l1 is closer to l2 than l2's existing parent
-                  if(l2->parent->hasBlock(l1->getLoopHead()) &&
-                     l2->parent->hasBlock(l1->getBackEdge()->getSource()))
-                    {
-                      l2->parent = l1;
-                    }
-                }
+              {
+                 // if l1 is closer to l2 than l2's existing parent
+                 if(l2->parent->hasBlock(l1->getLoopHead()) &&
+                    l2->parent->hasBlock(l1->getBackEdge()->getSource()))
+                 {
+                    l2->parent = l1;
+                 }
+              }
             }
         }
-    }
+     }
   }
 
   // remove duplicate loops
   for (unsigned idx=0; idx < dupLoops.size(); idx++) {
-    loops->remove(dupLoops[idx]);
+     // Erase on a key element returns number removed;
+     // if this is 1 we removed it from the set and thus need
+     // to free the memory.
+     if (loops->erase(dupLoops[idx]) != 0) {
+        delete dupLoops[idx];
+     }
   }
-
-  delete[] allLoops;
 }
 
 // this methods returns the loop objects that exist in the control flow
@@ -475,24 +424,14 @@ void BPatch_flowGraph::getLoopsByNestingLevel(BPatch_Vector<BPatch_loop*>& lbb,
     createLoops();
   }
 
-  BPatch_loop **lelements = new BPatch_loop* [loops->size()];
+  for (std::set<BPatch_loop *>::iterator iter = loops->begin();
+       iter != loops->end(); ++iter) {
+     // if we are only getting the outermost loops
+     if (outerMostOnly && 
+         (*iter)->parent != NULL) continue;
 
-  loops->elements(lelements);
-
-  for (unsigned i=0; i < loops->size(); i++)
-    {
-      // if we are only getting the outermost loops
-      if (outerMostOnly) {
-        // if this loop has no parent then it is outermost
-        if (NULL == lelements[i]->parent) {
-          lbb.push_back(lelements[i]);
-        }
-      }
-      else {
-        lbb.push_back(lelements[i]);
-      }
-    }
-  delete[] lelements;
+     lbb.push_back(*iter);
+  }
   return;
 }
 
@@ -584,11 +523,10 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
 
   /* Iterate over every basic block, looking for the lines corresponding to the
      addresses it contains. */
-  BPatch_basicBlock ** elements = new BPatch_basicBlock * [ allBlocks.size() ];
-  allBlocks.elements( elements );
 
-  for( unsigned int i = 0; i < allBlocks.size(); i++ ) {
-    BPatch_basicBlock * currentBlock = elements[i];
+  for (std::set<BPatch_basicBlock *>::iterator iter = allBlocks.begin();
+       iter != allBlocks.end(); ++iter) {
+     BPatch_basicBlock * currentBlock = *iter;
 
     BPatch_Vector<BPatch_statement> lines;
     using namespace Dyninst::InstructionAPI;
@@ -607,7 +545,7 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
         currentBlock->sourceBlocks = new BPatch_Vector< BPatch_sourceBlock * >();
       }
 
-      BPatch_Set< unsigned short > lineNos;
+      std::set< unsigned short > lineNos;
       const char * currentSourceFile = lines[0].fileName();
       for( unsigned int j = 0; j < lines.size(); j++ ) {
         if( strcmp( currentSourceFile, lines[j].fileName() ) == 0 ) {
@@ -616,21 +554,19 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
         }
 
         // /* DEBUG */ fprintf( stderr, "%s[%d]: Inserting %s:", __FILE__, __LINE__, currentSourceFile );
-        // /* DEBUG */ BPatch_Set< unsigned short >::iterator iter = lineNos.begin();
+        // /* DEBUG */ std::set< unsigned short >::iterator iter = lineNos.begin();
         // /* DEBUG */ for( ; iter != lineNos.end(); iter++ ) { fprintf( stderr, " %d", * iter ); }
         // /* DEBUG */ fprintf( stderr, "\n" );
         BPatch_sourceBlock * sourceBlock = new BPatch_sourceBlock( currentSourceFile, lineNos );
         currentBlock->sourceBlocks->push_back( sourceBlock );
 
-        /* Wonder why there isn't a clear().  (For that matter, why there isn't a const_iterator
-           or a prefix increment operator for the iterator.) */
-        lineNos = BPatch_Set< unsigned short >();
+        lineNos.clear();
         currentSourceFile = lines[j].fileName();
         lineNos.insert( (unsigned short)lines[j].lineNumber() );
       }
-      if( lineNos.size() != 0 ) {
+      if( !lineNos.empty()) {
         // /* DEBUG */ fprintf( stderr, "%s[%d]: Inserting %s:", __FILE__, __LINE__, currentSourceFile );
-        // /* DEBUG */ BPatch_Set< unsigned short >::iterator iter = lineNos.begin();
+        // /* DEBUG */ std::set< unsigned short >::iterator iter = lineNos.begin();
         // /* DEBUG */ for( ; iter != lineNos.end(); iter++ ) { fprintf( stderr, " %d", * iter ); }
         // /* DEBUG */ fprintf( stderr, "\n" );
 
@@ -642,7 +578,6 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
   } /* end iteration over all basic blocks */
 
   isSourceBlockInfoReady = true;
-  delete [] elements;
   return true;
 } /* end createSourceBlocks() */
 
@@ -681,15 +616,12 @@ void BPatch_flowGraph::createBackEdges()
    * Indirect jumps are NOT currently handled correctly
    */
 
-  BPatch_basicBlock **blks = new BPatch_basicBlock*[allBlocks.size()];
-  allBlocks.elements(blks);
-
-  // for each block in the graph
-  for (unsigned i = 0; i < allBlocks.size(); i++) {
-    BPatch_basicBlock *source = blks[i];
+   for (std::set<BPatch_basicBlock *>::iterator iter = allBlocks.begin();
+        iter != allBlocks.end(); ++iter) {
+      BPatch_basicBlock *source = *iter;
 
     BPatch_Vector<BPatch_edge *> outEdges;
-    blks[i]->getOutgoingEdges(outEdges);
+    (*iter)->getOutgoingEdges(outEdges);
     unsigned numTargs = outEdges.size();
 
     // create edges
@@ -710,7 +642,7 @@ void BPatch_flowGraph::createBackEdges()
       //             fprintf(stderr, "t1 %2d %2d\n",source->blockNo(),
       //                     targs[0]->blockNo());
       if (outEdges[0]->getTarget()->dominates(source))
-        backEdges += outEdges[0];
+         backEdges.insert(outEdges[0]);
     }
     else if (numTargs == 2) {
       //XXX could be an indirect jump with two targets
@@ -734,10 +666,10 @@ void BPatch_flowGraph::createBackEdges()
       //         targs[1]->incomingEdges += edge1;
 
       if (outEdges[0]->getTarget()->dominates(source))
-        backEdges += outEdges[0];
+         backEdges.insert(outEdges[0]);
 
       if (outEdges[1]->getTarget()->dominates(source))
-        backEdges += outEdges[1];
+         backEdges.insert(outEdges[1]);
 
       // taken and fall-through edge should not both be back edges
       //            if (targs[0]->dominates(source) && targs[1]->dominates(source)) {
@@ -764,11 +696,10 @@ void BPatch_flowGraph::createBackEdges()
 
         // update backEdges if target already dominates source
         if (outEdges[j]->getTarget()->dominates(source))
-          backEdges += outEdges[j];
+           backEdges.insert(outEdges[j]);
       }
     }
   }
-  delete[] blks;
 }
 
 // this method is used to find the basic blocks contained by the loop
@@ -778,58 +709,35 @@ void BPatch_flowGraph::createBackEdges()
 // until the head of the backedge is in the set(reached).
 
 void BPatch_flowGraph::findBBForBackEdge(BPatch_edge* backEdge,
-                                         BPatch_Set<BPatch_basicBlock*>& bbSet)
+                                         std::set<BPatch_basicBlock*>& bbSet)
 {
-  typedef struct STACK {
-    unsigned size;
-    int top;
-    BPatch_basicBlock** data;
+  std::stack<BPatch_basicBlock *> work;
 
-    STACK() : size(0),top(-1),data(NULL) {}
-    ~STACK() { free(data); }
-    bool empty() { return (top < 0); }
-    void push(BPatch_basicBlock* b) {
-      if (!size)
-        data = (BPatch_basicBlock**) malloc( sizeof(BPatch_basicBlock*)*(++size));
-      else if(top == ((int)size-1))
-        data = (BPatch_basicBlock**)realloc( data,sizeof(BPatch_basicBlock*)*(++size));
-      top++;
-      data[top] = b;
-    }
-    BPatch_basicBlock* pop() {
-      if(empty()) return NULL;
-      return data[top--];
-    }
-  } STACK;
-
-  STACK* stack = new STACK;
   pdvector<block_instance *> blocks;
   BPatch_basicBlock *pred;
 
-  bbSet += backEdge->getTarget();
+  bbSet.insert(backEdge->getTarget());
 
-  if (!bbSet.contains(backEdge->getSource())) {
-    bbSet += backEdge->getSource();
-    stack->push(backEdge->getSource());
+  if (bbSet.find(backEdge->getSource()) == bbSet.end()) {
+     bbSet.insert(backEdge->getSource());
+     work.push(backEdge->getSource());
   }
 
-  while (!stack->empty()) {
-    BPatch_basicBlock* bb = stack->pop();
-
+  while (!work.empty()) {
+    BPatch_basicBlock* bb = work.top();
+    work.pop();
 
     std::vector<BPatch_basicBlock *> srcs;
     bb->getSources(srcs);
 
-    for (unsigned i=0; i < srcs.size(); i++)
-      {
-        pred = srcs[i];
-        if (!bbSet.contains(pred)) {
-          bbSet += pred;
-          stack->push(pred);
-        }
-      }
+    for (unsigned i=0; i < srcs.size(); i++) {
+       pred = srcs[i];
+       if (bbSet.find(pred) == bbSet.end()) {
+          bbSet.insert(pred);
+          work.push(pred);
+       }
+    }
   }
-  delete stack;
 }
 
 
@@ -875,6 +783,12 @@ void bsort_loops_addr_asc(BPatch_Vector<BPatch_loop*> &v)
 }
 
 
+struct loop_sort {
+   bool operator()(BPatch_loop *l, BPatch_loop *r) const {
+      return l->getLoopHead()->getStartAddress() < r->getLoopHead()->getStartAddress(); 
+   }
+};
+
 void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
                             BPatch_Vector<BPatch_loop *> &loops,
                             std::string level)
@@ -895,7 +809,8 @@ void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
     // recurse with this child's outer loops
     BPatch_Vector<BPatch_loop*> outerLoops;
     loops[i]->getOuterLoops(outerLoops);
-    bsort_loops_addr_asc(outerLoops);
+    loop_sort l;
+    std::sort(outerLoops.begin(), outerLoops.end(), l);
 
     dfsCreateLoopHierarchy(child, outerLoops, clevel);
   }
@@ -909,7 +824,8 @@ void BPatch_flowGraph::createLoopHierarchy()
   BPatch_Vector<BPatch_loop *> outerLoops;
   getOuterLoops(outerLoops);
 
-  bsort_loops_addr_asc(outerLoops);
+  loop_sort l;
+  std::sort(outerLoops.begin(), outerLoops.end(), l);
 
   dfsCreateLoopHierarchy(loopRoot, outerLoops, "");
 
@@ -939,9 +855,9 @@ bool BPatch_flowGraph::dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *nod
   // otherwise recur with each of node's children
   bool success = false;
 
-  for (unsigned int i = 0; i < node->children.size(); i++)
-    success = success ||
-      dfsInsertCalleeIntoLoopHierarchy(node->children[i], callee, addr);
+  for (unsigned int i = 0; i < node->children.size(); i++) {
+     success |= dfsInsertCalleeIntoLoopHierarchy(node->children[i], callee, addr);
+  }
 
   return success;
 }
@@ -997,16 +913,14 @@ void BPatch_flowGraph::printLoopsInt()
 
 void BPatch_flowGraph::dump()
 {
-  BPatch_basicBlock **blocks = new BPatch_basicBlock *[allBlocks.size()];
-  allBlocks.elements(blocks);
-  for (unsigned i=0; i < allBlocks.size(); i++) {
-    fprintf(stderr,"[%u 0x%p 0x%p]\n",
-            blocks[i]->blockNo(),
-            (void *)blocks[i]->getStartAddress(),
-            (void *)blocks[i]->getEndAddress());
-
-  }
-
+   for (std::set<BPatch_basicBlock *>::iterator iter = allBlocks.begin();
+        iter != allBlocks.end(); ++iter) {
+      fprintf(stderr,"[%u 0x%p 0x%p]\n",
+              (*iter)->blockNo(),
+              (void *)((*iter)->getStartAddress()),
+              (void *)((*iter)->getEndAddress()));
+      
+   }
 }
 
 bool BPatch_flowGraph::containsDynamicCallsitesInt()

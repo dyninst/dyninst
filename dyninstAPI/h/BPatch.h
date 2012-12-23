@@ -193,7 +193,7 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
    BPatchAsyncThreadEventCallback threadDestroyCallback;
    BPatchDynamicCallSiteCallback dynamicCallSiteCallback;
    InternalSignalHandlerCallback signalHandlerCallback;
-   BPatch_Set<long> *callbackSignals;
+   std::set<long> callbackSignals;
    InternalCodeOverwriteCallback codeOverwriteCallback;
    
    BPatch_Vector<BPatchUserEventCallback> userEventCallbacks;
@@ -447,7 +447,11 @@ public:
      API_EXPORT(Int, (cb,signal_numbers), 
                 bool,registerSignalHandlerCallback,
                 (BPatchSignalHandlerCallback cb, 
-                 BPatch_Set<long> *signal_numbers)); 
+                 std::set<long> &signal_numbers)); 
+     API_EXPORT(Int, (cb,signal_numbers), 
+                bool,registerSignalHandlerCallback,
+                (BPatchSignalHandlerCallback cb, 
+                BPatch_Set<long> *signal_numbers)); 
 
      API_EXPORT(Int, (cb), 
      bool,removeSignalHandlerCallback,(BPatchSignalHandlerCallback cb)); 

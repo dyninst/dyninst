@@ -42,7 +42,6 @@
 //begin from templates05
 //end from templates05
 
-#include "dyninstAPI/h/BPatch_Set.h"
 #include "dyninstAPI/h/BPatch_type.h"
 #include "dyninstAPI/h/BPatch_Vector.h"
 #include "dyninstAPI/h/BPatch_thread.h"
@@ -156,16 +155,13 @@ template class dictionary_hash<Address, relocatedCode *>;
 template class pdvector<dictionary_hash<Address, relocatedCode *>::entry>;
 
 class int_basicBlock;
-template class BPatch_Set<int_basicBlock *>;
 
 class dominatorBB;
 template class  dictionary_hash <unsigned, dominatorBB *>;
 template class  pdvector<dictionary_hash<unsigned, dominatorBB *>::entry >;
 template class  BPatch_Vector<dominatorBB *>;
-template class  BPatch_Set<dominatorBB *>;
 
 class parse_block;
-template class  BPatch_Set<parse_block *>;
 
 class image_edge;
 template class  pdvector<image_edge*>;

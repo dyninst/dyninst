@@ -1810,8 +1810,8 @@ bool BPatch::removeCodeDiscoveryCallbackInt(BPatchCodeDiscoveryCallback)
     return true;
 }
 
-bool BPatch::registerSignalHandlerCallbackInt
-    (BPatchSignalHandlerCallback bpatchCB, BPatch_Set<long> *signums)
+bool BPatch::registerSignalHandlerCallbackInt(BPatchSignalHandlerCallback bpatchCB, 
+                                              std::set<long> &signums)
 {
     signalHandlerCallback = HybridAnalysis::getSignalHandlerCB();
     callbackSignals = signums;
@@ -1824,10 +1824,23 @@ bool BPatch::registerSignalHandlerCallbackInt
     return true;
 }
 
+bool BPatch::registerSignalHandlerCallbackInt(BPatchSignalHandlerCallback bpatchCB, 
+                                              BPatch_Set<long> *signums) {
+   // This is unfortunate, but our method above takes a std::set<long>,
+   // not a std::set<long, comparison<long>>
+  
+
+   std::set<long> tmp;
+   std::copy(signums->begin(), signums->end(), std::inserter(tmp, tmp.end()));
+
+   return registerSignalHandlerCallbackInt(bpatchCB, tmp);
+}
+
+
 bool BPatch::removeSignalHandlerCallbackInt(BPatchSignalHandlerCallback)
 {
     signalHandlerCallback = NULL;
-    callbackSignals = NULL;
+    callbackSignals.clear();
 
     std::vector<BPatch_process*> *procs = getProcesses();
     for(unsigned i=0; i < procs->size(); i++) {

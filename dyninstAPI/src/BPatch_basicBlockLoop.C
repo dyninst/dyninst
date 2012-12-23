@@ -36,7 +36,7 @@
 #include "common/h/std_namesp.h"
 #include "BPatch_basicBlockLoop.h"
 #include <iterator>
-
+#include <algorithm>
 #include "BPatch_edge.h"
 #include <iostream>
 using namespace std;
@@ -108,7 +108,7 @@ void BPatch_basicBlockLoop::addBackEdges
 
 bool 
 BPatch_basicBlockLoop::hasAncestorInt(BPatch_basicBlockLoop* l) {
-    return l->containedLoops.contains(this); 
+   return (l->containedLoops.find(this) != l->containedLoops.end());
 }
 
 
@@ -116,25 +116,14 @@ bool
 BPatch_basicBlockLoop::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls, 
 				bool outerMostOnly) const
 {
-    BPatch_basicBlockLoop** elements = 
-	new BPatch_basicBlockLoop* [containedLoops.size()];
-
-    containedLoops.elements(elements);
-
-    for(unsigned i=0; i < containedLoops.size(); i++) {
-	// only return a contained loop if this loop is its parent
-	if (outerMostOnly) {
-	    if (this == elements[i]->parent) {
-		nls.push_back(elements[i]);
-	    }
-	}
-	else {
-	    nls.push_back(elements[i]);
-	}
-    }
-
-    delete[] elements;
-    return true;
+   for (std::set<BPatch_basicBlockLoop *>::iterator iter = containedLoops.begin();
+        iter != containedLoops.end(); ++iter) {
+      // only return a contained loop if this loop is its parent
+      if (outerMostOnly && (this != (*iter)->parent)) continue;
+      nls.push_back(*iter);
+   }
+   
+   return true;
 }
 
 //method that returns the nested loops inside the loop. It returns a set
@@ -155,12 +144,8 @@ BPatch_basicBlockLoop::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& n
 
 //returns the basic blocks in the loop
 bool BPatch_basicBlockLoop::getLoopBasicBlocksInt(BPatch_Vector<BPatch_basicBlock*>& bbs) {
-  BPatch_basicBlock** elements = 
-    new BPatch_basicBlock*[basicBlocks.size()];
-  basicBlocks.elements(elements);
-  for(unsigned i=0;i<basicBlocks.size();i++)
-    bbs.push_back(elements[i]);
-  delete[] elements;
+
+   std::copy(basicBlocks.begin(), basicBlocks.end(), std::back_inserter(bbs));
   return true;
 }
 
@@ -168,19 +153,28 @@ bool BPatch_basicBlockLoop::getLoopBasicBlocksInt(BPatch_Vector<BPatch_basicBloc
 // returns the basic blocks in this loop, not those of its inner loops
 bool BPatch_basicBlockLoop::getLoopBasicBlocksExclusiveInt(BPatch_Vector<BPatch_basicBlock*>& bbs) {
     // start with a copy of all this loops basic blocks
-    BPatch_Set<BPatch_basicBlock*> allBlocks(basicBlocks);
+   std::set<BPatch_basicBlock*> allBlocks(basicBlocks);
 
-    // remove the blocks in each contained loop
-    BPatch_Vector<BPatch_basicBlockLoop*> contLoops;
-    getContainedLoops(contLoops);
 
-    for (unsigned int i = 0; i < contLoops.size(); i++) {
-	allBlocks -= contLoops[i]->basicBlocks;
-    }
+   // remove the blocks in each contained loop
+   BPatch_Vector<BPatch_basicBlockLoop*> contLoops;
+   getContainedLoops(contLoops);
 
-    allBlocks.elements(bbs);
 
-    return true;
+   std::set<BPatch_basicBlock *> toRemove;
+
+   for (unsigned int i = 0; i < contLoops.size(); i++) {
+      std::copy(contLoops[i]->basicBlocks.begin(),
+                contLoops[i]->basicBlocks.end(),
+                std::inserter(toRemove, toRemove.end()));
+   }
+   
+   std::set_difference(allBlocks.begin(), allBlocks.end(),
+                       toRemove.begin(), toRemove.end(),
+                       std::back_inserter(bbs),
+                       std::less<BPatch_basicBlock *>());
+
+   return true;
 }
 
 
@@ -232,9 +226,22 @@ BPatch_flowGraph* BPatch_basicBlockLoop::getFlowGraphInt()
 //machine independent and needs more inner level machine dependent
 //functions and we do not need at this moment for our project we did not 
 //implement the function. It returns NULL for now.
-BPatch_Set<BPatch_variableExpr*>* BPatch_basicBlockLoop::getLoopIteratorsInt(){
+
+std::set<BPatch_variableExpr*>* BPatch_basicBlockLoop::getLoopIteratorsInt(){
 	cerr<<"WARNING : BPatch_basicBlockLoop::getLoopIterators is not";
 	cerr<<" implemented yet\n";
 	return NULL;
 }
 
+std::string BPatch_basicBlockLoop::format() const {
+   std::stringstream ret;
+   
+   ret << hex << "(Loop " << this << ": ";
+   for (std::set<BPatch_basicBlock *>::iterator iter = basicBlocks.begin();
+        iter != basicBlocks.end(); ++iter) {
+      ret << (*iter)->getStartAddress() << ", ";
+   }
+   ret << ")" << dec << endl;
+
+   return ret.str();
+}

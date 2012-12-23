@@ -56,20 +56,16 @@
 #define DO_INLINE_F
 #endif
 
+
+
+class BPatch_basicBlock;
+class BPatch_function;
+class BPatch_flowGraph;
+class BPatch;
+
 /** template struct that will be used for default compare 
   * class for BPatch_Set operations.
   */
-
-
-/** template class for BPatch_Set. The implementation is based on red black
-  * tree implementation for efficiency concerns and for getting sorted
-  * elements easier. The template depends on two types. The first one is the
-  * the type of the elements in the BPatch_Set and the second one is the template
-  * structure that is used to compare the elements of the BPatch_Set. The template
-  * structure has to overload () for comparison of two elements as explained above
-  */
-
-typedef enum { RED, BLACK } bpatch_entry_color_type;
 
 template <class T>
 struct comparison {
@@ -78,6 +74,11 @@ struct comparison {
 
 template<class Key, class Compare = comparison<Key> >
 class BPATCH_DLL_EXPORT BPatch_Set {
+   friend class BPatch_basicBlock;
+   friend class BPatch_function;
+   friend class BPatch_flowGraph;
+   friend class BPatch;
+
    typedef std::set<Key, Compare> int_t;
    int_t int_set;
 
@@ -99,6 +100,8 @@ class BPATCH_DLL_EXPORT BPatch_Set {
    DO_INLINE_F const_reverse_iterator rend() const { return int_set.rend(); }
 
    DO_INLINE_F BPatch_Set() {};
+
+   DO_INLINE_F BPatch_Set(int_t s) : int_set(s) {};
 
    /** copy constructor.
     * @param newBPatch_Set the BPatch_Set which will be copied

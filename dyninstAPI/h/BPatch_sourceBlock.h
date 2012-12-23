@@ -33,8 +33,8 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
-#include "BPatch_Set.h"
 #include "BPatch_eventLock.h"
+#include <set>
 
 #ifdef IBM_BPATCH_COMPAT
 class BPatch_point;
@@ -61,7 +61,7 @@ class BPATCH_DLL_EXPORT BPatch_sourceBlock : public BPatch_eventLock {
 
 private:
 	const char* sourceFile;
-	BPatch_Set<unsigned short>* sourceLines;
+        std::set<unsigned short> sourceLines;
 
 public:
 
@@ -100,7 +100,7 @@ public:
 private:
 	/** constructor of the class */
 	BPatch_sourceBlock();
-	BPatch_sourceBlock(const char*,BPatch_Set<unsigned short>&);
+	BPatch_sourceBlock(const char*,std::set<unsigned short>&);
        
 };
 

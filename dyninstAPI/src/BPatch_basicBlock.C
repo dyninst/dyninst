@@ -83,7 +83,7 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
   if (instructions)
     delete instructions;
 
-  BPatch_Set<BPatch_edge *>::iterator eIter;
+  std::set<BPatch_edge *>::iterator eIter;
   eIter = incomingEdges.begin();
   while (eIter != incomingEdges.end()) {
     delete (*eIter);
@@ -165,12 +165,9 @@ void BPatch_basicBlock::getImmediateDominatesInt(BPatch_Vector<BPatch_basicBlock
 
   if(!immediateDominates)
     return;
-  BPatch_basicBlock** elements =
-    new BPatch_basicBlock*[immediateDominates->size()];
-  immediateDominates->elements(elements);
-  for(unsigned i=0;i<immediateDominates->size();i++)
-    imds.push_back(elements[i]);
-  delete[] elements;
+
+  std::copy(immediateDominates->begin(), immediateDominates->end(), std::back_inserter(imds));
+
   return;
 }
 
@@ -180,47 +177,55 @@ void BPatch_basicBlock::getImmediatePostDominatesInt(BPatch_Vector<BPatch_basicB
 
   if(!immediatePostDominates)
     return;
-  BPatch_basicBlock** elements =
-    new BPatch_basicBlock*[immediatePostDominates->size()];
-  immediatePostDominates->elements(elements);
-  for(unsigned i=0;i<immediatePostDominates->size();i++)
-    imds.push_back(elements[i]);
-  delete[] elements;
+
+  std::copy(immediatePostDominates->begin(), immediatePostDominates->end(), std::back_inserter(imds));
+
   return;
 }
 
 //returns the dominates of the basic block in a set
 void
-BPatch_basicBlock::getAllDominatesInt(BPatch_Set<BPatch_basicBlock*>& buffer){
+BPatch_basicBlock::getAllDominatesInt(std::set<BPatch_basicBlock*>& buffer){
   flowGraph->fillDominatorInfo();
 
-  buffer += (BPatch_basicBlock*)this;
+  buffer.insert(this);
   if(immediateDominates){
-    BPatch_basicBlock** elements =
-      new BPatch_basicBlock*[immediateDominates->size()];
-    immediateDominates->elements(elements);
-    for(unsigned i=0;i<immediateDominates->size();i++)
-      elements[i]->getAllDominates(buffer);
-    delete[] elements;
+     for (std::set<BPatch_basicBlock *>::iterator iter = immediateDominates->begin();
+          iter != immediateDominates->end(); ++iter) {
+        (*iter)->getAllDominates(buffer);
+     }
+  }
+
+  return;
+}
+
+void BPatch_basicBlock::getAllDominatesInt(BPatch_Set<BPatch_basicBlock *> &buffer) {
+   std::set<BPatch_basicBlock *> tmp;
+   getAllDominatesInt(tmp);
+   std::copy(tmp.begin(), tmp.end(), std::inserter(buffer.int_set, buffer.begin()));
+}
+
+void
+BPatch_basicBlock::getAllPostDominatesInt(std::set<BPatch_basicBlock*>& buffer){
+  flowGraph->fillPostDominatorInfo();
+
+  buffer.insert(this);
+  if(immediatePostDominates){
+     for (std::set<BPatch_basicBlock *>::iterator iter = immediatePostDominates->begin();
+          iter != immediatePostDominates->end(); ++iter) {
+        (*iter)->getAllPostDominates(buffer);
+     }
   }
   return;
 }
 
 void
 BPatch_basicBlock::getAllPostDominatesInt(BPatch_Set<BPatch_basicBlock*>& buffer){
-  flowGraph->fillPostDominatorInfo();
-
-  buffer += (BPatch_basicBlock*)this;
-  if(immediatePostDominates){
-    BPatch_basicBlock** elements =
-      new BPatch_basicBlock*[immediatePostDominates->size()];
-    immediatePostDominates->elements(elements);
-    for(unsigned i=0;i<immediatePostDominates->size();i++)
-      elements[i]->getAllPostDominates(buffer);
-    delete[] elements;
-  }
-  return;
+   std::set<BPatch_basicBlock *> tmp;
+   getAllPostDominatesInt(tmp);
+   std::copy(tmp.begin(), tmp.end(), std::inserter(buffer.int_set, buffer.begin()));
 }
+
 
 //returns the immediate dominator of the basic block
 BPatch_basicBlock* BPatch_basicBlock::getImmediateDominatorInt(){
@@ -248,14 +253,11 @@ bool BPatch_basicBlock::dominatesInt(BPatch_basicBlock* bb){
   if(!immediateDominates)
     return false;
 
-  bool done = false;
-  BPatch_basicBlock** elements =
-    new BPatch_basicBlock*[immediateDominates->size()];
-  immediateDominates->elements(elements);
-  for(unsigned i=0;!done && (i<immediateDominates->size());i++)
-    done = done || elements[i]->dominates(bb);
-  delete[] elements;
-  return done;
+  for (std::set<BPatch_basicBlock *>::iterator iter = immediateDominates->begin();
+       iter != immediateDominates->end(); ++iter) {
+     if ((*iter)->dominates(bb)) return true;
+  }
+  return false;
 }
 
 bool BPatch_basicBlock::postdominatesInt(BPatch_basicBlock* bb){
@@ -270,14 +272,11 @@ bool BPatch_basicBlock::postdominatesInt(BPatch_basicBlock* bb){
   if(!immediatePostDominates)
     return false;
 
-  bool done = false;
-  BPatch_basicBlock** elements =
-    new BPatch_basicBlock*[immediatePostDominates->size()];
-  immediatePostDominates->elements(elements);
-  for(unsigned i=0;!done && (i<immediatePostDominates->size());i++)
-    done = done || elements[i]->postdominates(bb);
-  delete[] elements;
-  return done;
+  for (std::set<BPatch_basicBlock *>::iterator iter = immediatePostDominates->begin();
+       iter != immediatePostDominates->end(); ++iter) {
+     if ((*iter)->postdominates(bb)) return true;
+  }
+  return false;
 }
 
 //returns the source block corresponding to the basic block
@@ -360,14 +359,12 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
   for (i=0; i<elements.size(); i++)
     os << "\t-> " << elements[i]->blockNo() << "\n";
 
-  BPatch_basicBlock **belements;
   os << "Immediate Dominates: ";
   if(bb.immediateDominates){
-    belements = new BPatch_basicBlock*[bb.immediateDominates->size()];
-    bb.immediateDominates->elements(belements);
-    for(i=0; i<bb.immediateDominates->size(); i++)
-      os << belements[i]->blockNo() << " ";
-    delete[] belements;
+     for (std::set<BPatch_basicBlock *>::iterator iter = bb.immediateDominates->begin();
+          iter != bb.immediateDominates->end(); ++iter) {
+        os << (*iter)->blockNo() << " ";
+     }
   }
   os << "\n";
 
@@ -434,6 +431,19 @@ struct findInsns : public insnPredicate
     }
     delete[] opa;
   }
+
+   findInsns(const std::set<BPatch_opCode>& ops)
+      : findLoads(false), findStores(false), findPrefetch(false) {
+      for (std::set<BPatch_opCode>::iterator iter = ops.begin();
+           iter != ops.end(); ++iter) {
+         switch(*iter) {
+            case BPatch_opLoad: findLoads = true; break;
+            case BPatch_opStore: findStores = true; break;
+            case BPatch_opPrefetch: findPrefetch = true; break;
+         }            
+      }
+   }
+
   result_type operator()(argument_type i)
   {
     //static int counter = 0;
@@ -514,6 +524,17 @@ BPatch_basicBlock::findPointByPredicate(insnPredicate& f)
     }
   }
   return ret;
+}
+
+BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const std::set<BPatch_opCode>& ops)
+{
+
+  // function is generally uninstrumentable (with current technology)
+  if (!flowGraph->getFunction()->func->isInstrumentable())
+    return NULL;
+
+  findInsns filter(ops);
+  return findPointByPredicate(filter);
 }
 
 BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<BPatch_opCode>& ops)
@@ -633,7 +654,7 @@ unsigned BPatch_basicBlock::sizeInt() CONST_EXPORT
 
 void BPatch_basicBlock::getIncomingEdgesInt(BPatch_Vector<BPatch_edge*>& inc)
 {
-  BPatch_Set<BPatch_edge*>::iterator incIter = incomingEdges.begin();
+  std::set<BPatch_edge*>::iterator incIter = incomingEdges.begin();
   while (incIter != incomingEdges.end()) {
     inc.push_back(*incIter);
     incIter++;
@@ -642,7 +663,7 @@ void BPatch_basicBlock::getIncomingEdgesInt(BPatch_Vector<BPatch_edge*>& inc)
 
 void BPatch_basicBlock::getOutgoingEdgesInt(BPatch_Vector<BPatch_edge*>& out)
 {
-  BPatch_Set<BPatch_edge*>::iterator outIter = outgoingEdges.begin();
+  std::set<BPatch_edge*>::iterator outIter = outgoingEdges.begin();
   while (outIter != outgoingEdges.end()) {
     out.push_back(*outIter);
     outIter++;
@@ -677,3 +698,15 @@ Dyninst::ParseAPI::Block *Dyninst::ParseAPI::convert(const BPatch_basicBlock *b)
 Dyninst::PatchAPI::PatchBlock *Dyninst::PatchAPI::convert(const BPatch_basicBlock *b) {
    return b->iblock;
 }
+
+bool comparison<BPatch_basicBlock *>::operator()(const BPatch_basicBlock * const &x, 
+                                                 const BPatch_basicBlock * const &y) const {
+   return (x->getStartAddress() < y->getStartAddress());
+};
+
+bool std::less<BPatch_basicBlock *>::operator()(const BPatch_basicBlock * const &l,
+                                                const BPatch_basicBlock * const &r) const {
+   return (l->getStartAddress() < r->getStartAddress());
+};
+
+

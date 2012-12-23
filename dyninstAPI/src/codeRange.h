@@ -52,10 +52,6 @@
   * There are two template types, K (key) and V (value).
   */
 
-/* Note: this is a near copy of BPatch_Set. That class didn't do what I needed,
-   so... -- bernat, 10OCT03 */
-
-typedef enum { TREE_RED, TREE_BLACK } color_t;
 
 class func_instance;
 class block_instance;
@@ -113,6 +109,8 @@ class codeRange : public patchTarget {
 };
 
 class codeRangeTree {
+
+   typedef enum {TREE_BLACK, TREE_RED} color_t;
 
     /** tree implementation structure. Used to implement the RB tree */
     typedef struct entry {

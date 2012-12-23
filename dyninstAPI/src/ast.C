@@ -1647,7 +1647,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         if(!ma) {
             bpfatal( "Memory access information not available at this point.\n");
             bpfatal( "Make sure you create the point in a way that generates it.\n");
-            bpfatal( "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
+            bpfatal( "E.g.: findPoint(const std::set<BPatch_opCode>& ops).\n");
             assert(0);
         }
         if(which_ >= ma->getNumberOfAccesses()) {
@@ -1669,7 +1669,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         if(!ma) {
             bpfatal( "Memory access information not available at this point.\n");
             bpfatal("Make sure you create the point in a way that generates it.\n");
-            bpfatal( "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
+            bpfatal( "E.g.: findPoint(const std::set<BPatch_opCode>& ops).\n");
             assert(0);
         }
         if(which_ >= ma->getNumberOfAccesses()) {

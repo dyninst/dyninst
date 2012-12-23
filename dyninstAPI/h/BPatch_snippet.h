@@ -600,7 +600,7 @@ class BPATCH_DLL_EXPORT BPatch_breakPointExpr : public BPatch_snippet {
 // for.  Furthermore, there must be memory access information about
 // the inst. point; this basically means that the point must have been
 // created using a method that attaches that info to the point -
-// e.g. using findPoint(const BPatch_Set<BPatch_opCode>& ops) from
+// e.g. using findPoint(const std::set<BPatch_opCode>& ops) from
 // BPatch_function.
 
 // VG(7/31/02): Since x86 can have 2 addresses per instruction, there is
