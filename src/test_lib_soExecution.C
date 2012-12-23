@@ -93,6 +93,9 @@ static void* openSO(const char *soname, bool local)
    unsigned int dl_options = RTLD_NOW | (local ? RTLD_LOCAL : RTLD_GLOBAL);
    void *handle = dlopen(fullSoPath, dl_options);
    if (!handle) {
+      fprintf(stderr, "Error opening lib: %s\n", soname);
+      const char *errmsg = dlerror();
+      fprintf(stderr, "%s\n", errmsg);
       std::string str = std::string("./") + std::string(soname);
       fprintf(stderr, "Error loading library: %s\n", dlerror());
       handle = dlopen(str.c_str(), dl_options);
