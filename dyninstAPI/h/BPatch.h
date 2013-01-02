@@ -40,6 +40,7 @@
 #include "BPatch_process.h"
 #include "BPatch_enums.h"
 #include "BPatch_callbacks.h"
+#include <set>
 
 class BPatch_typeCollection;
 class BPatch_libInfo;
@@ -421,9 +422,9 @@ public:
     // handler, in which case we return an empty vector.
      
     bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, 
-                                       std::set<long> &signal_numbers)); 
+                                       std::set<long> &signal_numbers); 
     bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, 
-                                       BPatch_Set<long> *signal_numbers)); 
+                                       BPatch_Set<long> *signal_numbers); 
      
      bool removeSignalHandlerCallback(BPatchSignalHandlerCallback cb); 
 

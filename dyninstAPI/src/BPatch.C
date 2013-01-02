@@ -51,7 +51,6 @@
 #include "mapped_module.h"
 #include "instPoint.h"
 #include "hybridAnalysis.h"
-#include "eventLock.h"
 
 // ProcControlAPI interface
 #include "dynProcess.h"
@@ -1802,7 +1801,8 @@ bool BPatch::removeCodeDiscoveryCallback(BPatchCodeDiscoveryCallback)
     return true;
 }
 
-bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB, std::set<long> *signums)
+bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB, 
+                                           std::set<long> &signums)
 {
     signalHandlerCallback = HybridAnalysis::getSignalHandlerCB();
     callbackSignals = signums;
@@ -1824,7 +1824,7 @@ bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB,
    std::set<long> tmp;
    std::copy(signums->begin(), signums->end(), std::inserter(tmp, tmp.end()));
 
-   return registerSignalHandlerCallbackInt(bpatchCB, tmp);
+   return registerSignalHandlerCallback(bpatchCB, tmp);
 }
 
 

@@ -30,7 +30,6 @@
 #include "pcEventHandler.h"
 #include "BPatch.h"
 #include "debug.h"
-#include "eventLock.h"
 #include "os.h"
 #include "dynProcess.h"
 #include "mapped_object.h"

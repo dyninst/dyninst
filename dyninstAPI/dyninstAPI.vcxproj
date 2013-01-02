@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -177,11 +177,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
       <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</PreprocessToFile>
     </ClCompile>
-    <ClCompile Include="src\BPatch_eventLock.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
     <ClCompile Include="src\BPatch_flowGraph.C">
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
       <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
@@ -349,9 +344,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
       <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\eventLock.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="src\frame.C">
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
@@ -560,7 +552,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
     <ClInclude Include="h\BPatch_dll.h" />
     <ClInclude Include="h\BPatch_edge.h" />
     <ClInclude Include="h\BPatch_enums.h" />
-    <ClInclude Include="h\BPatch_eventLock.h" />
     <ClInclude Include="h\BPatch_flowGraph.h" />
     <ClInclude Include="h\BPatch_frame.h" />
     <ClInclude Include="h\BPatch_function.h" />

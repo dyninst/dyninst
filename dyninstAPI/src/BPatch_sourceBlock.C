@@ -42,9 +42,10 @@ BPatch_sourceBlock::BPatch_sourceBlock()
 
 //constructor
 BPatch_sourceBlock::BPatch_sourceBlock( const char *filePtr,
-                                        std::set<unsigned short>& lines)
+                                        std::set<unsigned short>& lines) :
+   sourceFile(filePtr),
+   sourceLines(lines)
 {
-	sourceFile = filePtr;
 }
 
 const char*

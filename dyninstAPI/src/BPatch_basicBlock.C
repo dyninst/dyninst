@@ -201,7 +201,7 @@ BPatch_basicBlock::getAllDominates(std::set<BPatch_basicBlock*>& buffer){
 
 void BPatch_basicBlock::getAllDominates(BPatch_Set<BPatch_basicBlock *> &buffer) {
    std::set<BPatch_basicBlock *> tmp;
-   getAllDominatesInt(tmp);
+   getAllDominates(tmp);
    std::copy(tmp.begin(), tmp.end(), std::inserter(buffer.int_set, buffer.begin()));
 }
 
@@ -222,7 +222,7 @@ BPatch_basicBlock::getAllPostDominates(std::set<BPatch_basicBlock*>& buffer){
 void
 BPatch_basicBlock::getAllPostDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
    std::set<BPatch_basicBlock *> tmp;
-   getAllPostDominatesInt(tmp);
+   getAllPostDominates(tmp);
    std::copy(tmp.begin(), tmp.end(), std::inserter(buffer.int_set, buffer.begin()));
 }
 

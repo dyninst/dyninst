@@ -282,8 +282,10 @@ BPatch_flowGraph::getAllBasicBlocks(std::set<BPatch_basicBlock*>& abb)
 }
 
 bool
-BPatch_flowGraph::getAllBasicBlocks(std::set<BPatch_basicBlock*>& abb) {
-   std::copy(allBlocks.begin(), allBlocks.end(), std::inserter(abb.int_set, abb.int_set.end()));
+BPatch_flowGraph::getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>& abb) {
+   std::set<BPatch_basicBlock *> tmp;
+   getAllBasicBlocks(tmp);
+   std::copy(tmp.begin(), tmp.end(), std::inserter(abb.int_set, abb.int_set.end()));
    return true;
 }
 

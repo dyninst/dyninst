@@ -57,7 +57,6 @@
 #include "parseAPI/h/CFG.h"
 #include "ast.h"
 #include "debug.h"
-#include "eventLock.h"
 #include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 
