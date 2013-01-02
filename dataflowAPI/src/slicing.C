@@ -828,9 +828,7 @@ Slicer::followCall(
         calls != cur.con.rend(); ++calls)
     {
         if(NULL != calls->func) {
-            callStack.push( 
-                make_pair<ParseAPI::Function*, int>(
-                    calls->func,calls->stackDepth));
+            callStack.push(make_pair(calls->func,calls->stackDepth));
         }
     } 
     // Quote:

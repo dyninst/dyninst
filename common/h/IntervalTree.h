@@ -52,7 +52,7 @@ class IntervalTree {
   int size() const { return tree_.size(); }
   bool empty() const { return tree_.empty(); }
   void insert(K lb, K ub, V v) {
-    tree_[lb] = std::make_pair<K, V>(ub, v);
+    tree_[lb] = std::make_pair(ub, v);
   }
 
   void remove(K lb) {

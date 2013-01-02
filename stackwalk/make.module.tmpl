@@ -25,7 +25,7 @@ TARGET = libstackwalk.so
 endif
 endif
 
-LDFLAGS += -L$(TO_CORE)/common/$(PLATFORM) -L$(LIBRARY_DEST)
+LDFLAGS += -L$(TO_CORE)/common/$(PLATFORM)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared
