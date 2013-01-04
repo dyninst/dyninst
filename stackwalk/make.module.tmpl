@@ -83,7 +83,7 @@ ifndef WITHOUT_SYMTAB_API
 	LDFLAGS += -L../../symtabAPI/$(PLATFORM) -lsymtabAPI
 endif
 
-LDFLAGS += -L../../symlite/$(PLATFORM) -lsymLite
+LDFLAGS += -L../../symlite/$(PLATFORM) -lsymLite -L../../proccontrol/$(PLATFORM) -lpcontrol
 
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../proccontrol/h -I../../symtabAPI/h -I../../parseAPI/h -I../../instructionAPI/h
