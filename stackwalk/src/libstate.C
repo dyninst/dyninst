@@ -175,14 +175,17 @@ bool TrackLibState::getLibraryAtAddr(Address addr, LibAddrPair &olib)
    return true;
 }
 
-bool TrackLibState::getLibraries(std::vector<LibAddrPair> &olibs)
+bool TrackLibState::getLibraries(std::vector<LibAddrPair> &olibs, bool allow_refresh)
 {
-   bool result = refresh();
-   if (!result) {
-      setLastError(err_symtab, "Failed to refresh library list");
-      return false;
+   bool result;
+   if (allow_refresh) {
+      result = refresh();
+      if (!result) {
+         setLastError(err_symtab, "Failed to refresh library list");
+         return false;
+      }
    }
-   
+
    vector<LoadedLib *> libs;
    result = translate->getLibs(libs);
    if (!result) {
@@ -257,7 +260,7 @@ static bool libNameMatch(const char *s, const char *libname)
 bool LibraryState::getLibc(LibAddrPair &addr_pair)
 {
    std::vector<LibAddrPair> libs;
-   getLibraries(libs);
+   getLibraries(libs, false);
    if (libs.size() == 1) {
       //Static binary.
       addr_pair = libs[0];
@@ -276,7 +279,7 @@ bool LibraryState::getLibc(LibAddrPair &addr_pair)
 bool LibraryState::getLibthread(LibAddrPair &addr_pair)
 {
    std::vector<LibAddrPair> libs;
-   getLibraries(libs);
+   getLibraries(libs, false);
    if (libs.size() == 1) {
       //Static binary.
       addr_pair = libs[0];
@@ -378,7 +381,7 @@ bool StaticBinaryLibState::getLibraryAtAddr(Address /*addr*/, LibAddrPair &olib)
    return true;
 }
 
-bool StaticBinaryLibState::getLibraries(std::vector<LibAddrPair> &olibs)
+bool StaticBinaryLibState::getLibraries(std::vector<LibAddrPair> &olibs, bool /*allow_refresh*/)
 {
    olibs.push_back(the_exe);
    return true;

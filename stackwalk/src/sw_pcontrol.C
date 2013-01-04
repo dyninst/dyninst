@@ -69,7 +69,7 @@ public:
 
    bool checkLibraryContains(Address addr, Library::ptr lib);
    virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib);
-   virtual bool getLibraries(std::vector<LibAddrPair> &libs);
+   virtual bool getLibraries(std::vector<LibAddrPair> &libs, bool allow_refresh);
    virtual void notifyOfUpdate();
    virtual Address getLibTrapAddress();
    virtual bool getAOut(LibAddrPair &ao);
@@ -504,8 +504,6 @@ void PCLibraryState::checkForNewLib(Library::ptr lib)
    StepperGroup *group = pdebug->getWalker()->getStepperGroup();
    LibAddrPair la(lib->getName(), lib->getLoadAddress());
 
-   cacheLibraryRanges(lib);
-
    group->newLibraryNotification(&la, library_load);
 }
 
@@ -693,7 +691,7 @@ bool PCLibraryState::memoryScan(Process::ptr proc, Address addr, LibAddrPair &li
    return false;
 }
 
-bool PCLibraryState::getLibraries(std::vector<LibAddrPair> &libs)
+bool PCLibraryState::getLibraries(std::vector<LibAddrPair> &libs, bool allow_refresh)
 {
    Process::ptr proc = pdebug->getProc();
    CHECK_PROC_LIVE;
@@ -701,7 +699,8 @@ bool PCLibraryState::getLibraries(std::vector<LibAddrPair> &libs)
    LibraryPool::iterator i;   
    for (i = proc->libraries().begin(); i != proc->libraries().end(); i++)
    {
-      checkForNewLib(*i);
+      if (allow_refresh)
+         checkForNewLib(*i);
       libs.push_back(LibAddrPair((*i)->getName(), (*i)->getLoadAddress()));
    }
 
@@ -720,24 +719,11 @@ bool PCLibraryState::updateLibraries()
    Process::ptr proc = pdebug->getProc();
    CHECK_PROC_LIVE;
 
-
-   static bool exec = false;
-
-   if (!exec) {
-     cacheLibraryRanges(proc->libraries().getExecutable());
-     exec = true;
-   }
-
-
    LibraryPool::iterator i;   
    for (i = proc->libraries().begin(); i != proc->libraries().end(); i++)
    {
       checkForNewLib(*i);
    }
-
-   vector<pair<LibAddrPair, unsigned int> > arch_libs;
-   vector<pair<LibAddrPair, unsigned int> >::iterator j;
-   updateLibsArch(arch_libs);
 
    return true;
 }

@@ -52,7 +52,7 @@ public:
       return false;
    }
 
-   virtual bool getLibraries(std::vector<LibAddrPair> &) {
+   virtual bool getLibraries(std::vector<LibAddrPair> &, bool) {
       return false;
    }
 
