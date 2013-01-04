@@ -98,7 +98,7 @@ void BPatch_object::regions(std::vector<BPatch_object::Region> &regions) {
 }
 
 void BPatch_object::modules(std::vector<BPatch_module *> &modules) {
-   std::copy(mods.begin(), mods.end(), std::back_inserter(modules));
+   modules.insert(modules.end(), mods.begin(), mods.end());
 }
 
 struct findFunc {

@@ -88,7 +88,7 @@ BPatch_edge *BPatch_basicBlockLoop::getBackEdge()
 }
 int BPatch_basicBlockLoop::getBackEdges(BPatch_Vector<BPatch_edge*> &edges)
 {
-   std::copy(backEdges.begin(), backEdges.end(), std::back_inserter(edges));
+   edges.insert(edges.end(), backEdges.begin(), backEdges.end());
    return edges.size();
 
 #if 0
@@ -144,7 +144,7 @@ BPatch_basicBlockLoop::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls)
 
 //returns the basic blocks in the loop
 bool BPatch_basicBlockLoop::getLoopBasicBlocks(BPatch_Vector<BPatch_basicBlock*>& bbs) {
-   std::copy(basicBlocks.begin(), basicBlocks.end(), std::back_inserter(bbs));
+   bbs.insert(bbs.end(), basicBlocks.begin(), basicBlocks.end());
   return true;
 }
 

@@ -1640,7 +1640,7 @@ void BPatch_process::overwriteAnalysisUpdate
     {
         const PatchBlock::edgelist & srcs = (*fit)->entry()->sources();
         vector<PatchEdge*> srcVec; // can't operate off edgelist, since we'll be deleting edges
-        std::copy(srcs.begin(), srcs.end(), back_inserter(srcVec));
+        srcVec.insert(srcVec.end(), srcs.begin(), srcs.end());
         for (vector<PatchEdge*>::const_iterator sit = srcVec.begin();
              sit != srcVec.end();
              sit++)

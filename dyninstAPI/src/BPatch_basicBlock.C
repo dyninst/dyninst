@@ -166,7 +166,7 @@ void BPatch_basicBlock::getImmediateDominates(BPatch_Vector<BPatch_basicBlock*>&
   if(!immediateDominates)
     return;
 
-  std::copy(immediateDominates->begin(), immediateDominates->end(), std::back_inserter(imds));
+  imds.insert(imds.end(), immediateDominates->begin(), immediateDominates->end());
 
   return;
 }
@@ -178,7 +178,7 @@ void BPatch_basicBlock::getImmediatePostDominates(BPatch_Vector<BPatch_basicBloc
   if(!immediatePostDominates)
     return;
 
-  std::copy(immediatePostDominates->begin(), immediatePostDominates->end(), std::back_inserter(imds));
+  imds.insert(imds.end(), immediatePostDominates->begin(), immediatePostDominates->end());
 
   return;
 }
@@ -202,6 +202,7 @@ BPatch_basicBlock::getAllDominates(std::set<BPatch_basicBlock*>& buffer){
 void BPatch_basicBlock::getAllDominates(BPatch_Set<BPatch_basicBlock *> &buffer) {
    std::set<BPatch_basicBlock *> tmp;
    getAllDominates(tmp);
+
    std::copy(tmp.begin(), tmp.end(), std::inserter(buffer.int_set, buffer.begin()));
 }
 
