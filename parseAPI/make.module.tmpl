@@ -35,6 +35,9 @@ LDFLAGS += -L../../common/$(PLATFORM) -lcommon -L../../symlite/$(PLATFORM) -lsym
 ifneq (x$(WITHOUT_SYMTAB_API),xtrue)
 LDFLAGS += -L../../symtabAPI/$(PLATFORM) -lsymtabAPI
 SRCS += ../src/SymtabCodeSource.C
+MYFLAGS += -DWITH_SYMTAB_API -DWITHOUT_SYMLITE
+else
+MYFLAGS += -DWITHOUT_SYMTAB_API -DWITH_SYMLITE
 endif
 
 ifdef USES_LIBELF
