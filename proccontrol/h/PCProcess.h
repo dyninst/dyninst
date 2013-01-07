@@ -431,6 +431,8 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
        std::string getPermName() const;
    };
 
+   unsigned getMemoryPageSize() const;
+
    Dyninst::Address mallocMemory(size_t size);
    Dyninst::Address mallocMemory(size_t size, Dyninst::Address addr);
    bool freeMemory(Dyninst::Address addr);

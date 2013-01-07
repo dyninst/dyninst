@@ -1576,7 +1576,8 @@ bool PCProcess::wasCreatedViaFork() const {
 }
 
 unsigned PCProcess::getMemoryPageSize() const {
-    return memoryPageSize_;
+   assert(pcProc_);
+   return pcProc_->getMemoryPageSize();
 }
 
 int PCProcess::getPid() const {

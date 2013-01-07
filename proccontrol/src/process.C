@@ -6679,6 +6679,23 @@ std::string Process::mem_perm::getPermName() const {
     }
 }
 
+unsigned Process::getMemoryPageSize() const
+{
+   if (!llproc_) {
+      perr_printf("getMemoryPageSize on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+
+   if( llproc_->getState() == int_process::detached ) {
+       perr_printf("getMemoryPageSize on detached process\n");
+       setLastError(err_detached, "Process is detached\n");
+       return false;
+   }
+
+   return llproc_->getTargetPageSize();
+}
+
 Dyninst::Address Process::mallocMemory(size_t size, Dyninst::Address addr)
 {
    ProcessSet::ptr pset = ProcessSet::newProcessSet(shared_from_this());
