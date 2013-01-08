@@ -42,7 +42,7 @@ using namespace boost::assign;
 namespace Dyninst {
 namespace DataflowAPI {
 
-#if !defined(BOOST_NO_CXX11_HDR_INITIALIZER_LIST)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows)
    // This fails on VS2010; revisit when we move to VS2012. 
    // Also on gcc 4.3.
 
