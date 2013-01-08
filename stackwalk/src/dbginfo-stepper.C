@@ -249,10 +249,15 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
       return gcf_not_me;
    }
 
+   bool isVsyscallPage = false;
+#if defined(os_linux)
+   isVsyscallPage = (strstr(lib.first.c_str(), "[vsyscall-") != NULL);
+#endif
+
    sw_printf("[%s:%u] - Using DWARF debug file info for %s", 
                    __FILE__, __LINE__, lib.first.c_str());
    cur_frame = &in;
-   gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo, false);
+   gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo, isVsyscallPage);
    cur_frame = NULL;
    
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(out.getRA(), lib);
