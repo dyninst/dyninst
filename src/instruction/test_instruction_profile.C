@@ -66,6 +66,10 @@ test_results_t test_instruction_profile_Mutator::executeTest()
     libc_paths.push_back("/lib64/libc.so.6");
     libc_paths.push_back("/lib/x86_64-linux-gnu/libc.so.6");
   }
+  else {
+     libc_paths.push_back("/lib/i386-linux-gnu/libc.so.6");
+  }
+
   libc_paths.push_back("/lib/libc.so.6");
 #endif
 
