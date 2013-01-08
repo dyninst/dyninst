@@ -40,12 +40,14 @@
 
 #include "instructionAPI/h/InstructionDecoder.h"
 
-#ifdef LIBELF_PLATFORM
+#if defined(WITH_SYMLITE)
 #include "symlite/h/SymLite-elf.h"
-#else
+#elif defined(WITH_SYMTAB_API)
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/SymtabReader.h"
 using namespace SymtabAPI;
+#else
+#error "No defined symbol reader"
 #endif
 
 using namespace Dyninst;
@@ -71,7 +73,7 @@ AnalysisStepperImpl::~AnalysisStepperImpl()
 }
 
 
-#if defined(LIBELF_PLATFORM)
+#if defined(WITH_SYMLITE)
 CodeSource *AnalysisStepperImpl::getCodeSource(std::string name)
 {
   map<string, CodeSource*>::iterator found = srcs.find(name);
@@ -89,7 +91,7 @@ CodeSource *AnalysisStepperImpl::getCodeSource(std::string name)
   
   return static_cast<CodeSource *>(cs);
 }
-#else
+#elif defined(WITH_SYMTAB_API)
 CodeSource* AnalysisStepperImpl::getCodeSource(std::string name)
 {
   map<string, CodeSource*>::iterator found = srcs.find(name);
@@ -103,6 +105,8 @@ CodeSource* AnalysisStepperImpl::getCodeSource(std::string name)
   
   return static_cast<CodeSource *>(cs);  
 }
+#else
+#error "Do symbol reader implementation"
 
 #endif
 

@@ -782,7 +782,10 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
                 }
             }
         }
+
+
       if (jumpStart == 0) {
+#if defined(WITH_SYMTAB_API)
 	// If jump table address is a relocation entry, this will be filled by the loader
 	// This case is common in shared library where the table address is in the GOT section which is filled by the loader
 	// Find the relocation entry for this address and look up its value
@@ -813,8 +816,10 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
 	    break;
 	  }
 	}
-	
-	
+#else
+        // Can't parse relocation entries without Symtab
+        return false;
+#endif
       }
       if (tableStart == 0) tableStart = jumpStart;
 

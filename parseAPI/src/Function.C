@@ -257,6 +257,12 @@ Function::blocks_int()
                 continue;
             }
 
+            /* Handle tailcall edges */
+            if(e->interproc()) {
+                _call_edge_list.insert(e);
+                found_call = true;
+                continue;
+            }
             // If we are heading to a different CodeObject, call it a return
             // and don't add target blocks.
             if (t->obj() != cur->obj()) {

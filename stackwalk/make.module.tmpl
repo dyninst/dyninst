@@ -11,7 +11,7 @@ RELEASE_MAJOR	= 8
 RELEASE_MINOR = 0
 
 USES_DWARF_DEBUG = true
-#USES_LIBELF = true
+USES_LIBELF = true
 
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
@@ -79,11 +79,12 @@ else
 endif
 
 ifndef WITHOUT_SYMTAB_API
-	MYFLAGS += -I../../symtabAPI/h
+	MYFLAGS += -I../../symtabAPI/h -DWITH_SYMTAB_API -DWITHOUT_SYMLITE
 	LDFLAGS += -L../../symtabAPI/$(PLATFORM) -lsymtabAPI
+else
+	MYFLAGS += -I../../symlite/h -DWITHOUT_SYMTAB_API -DWITH_SYMLITE
+	LDFLAGS += -L../../symlite/$(PLATFORM) -lsymLite
 endif
-
-LDFLAGS += -L../../symlite/$(PLATFORM) -lsymLite
 
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../proccontrol/h -I../../symtabAPI/h -I../../parseAPI/h -I../../instructionAPI/h
