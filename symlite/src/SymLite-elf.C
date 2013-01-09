@@ -40,6 +40,7 @@ using namespace std;
 using namespace Dyninst;
 
 SymElf::SymElf(std::string file_) :
+   elf(NULL),
    fd(-1),
    need_odp(false),
    file(file_),
@@ -68,6 +69,7 @@ SymElf::SymElf(std::string file_) :
 }
 
 SymElf::SymElf(const char *buffer_, unsigned long buffer_size_) :
+   elf(NULL),
    fd(-1),
    need_odp(false),
    file(),
@@ -90,6 +92,7 @@ SymElf::SymElf(const char *buffer_, unsigned long buffer_size_) :
 
 SymElf::~SymElf()
 {
+   if (!elf) return;
    if (elf->isValid())
       elf->end();
    if (fd != -1) {
