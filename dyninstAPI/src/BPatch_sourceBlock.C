@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include "common/h/std_namesp.h"
 #include "BPatch_sourceBlock.h"
+#include <iterator>
 
 //constructor
 BPatch_sourceBlock::BPatch_sourceBlock()

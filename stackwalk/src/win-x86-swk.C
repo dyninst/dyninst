@@ -128,6 +128,9 @@ void BottomOfStackStepperImpl::initialize()
 {
 	// For now, we stop when we get a return address of 0
 	ra_stack_tops.push_back(std::pair<Address, Address>(0, 0));
+	// By examination, this is an _start equivalent
+	ra_stack_tops.push_back(std::pair<Address, Address>(0x77959ECB, 0x77959F01));
+	ra_stack_tops.push_back(std::pair<Address, Address>(0x77959EAA, 0x77959EC6));
 }
 void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_t)
 {
