@@ -152,6 +152,85 @@ unsigned unix_process::getTargetPageSize() {
     if( !pgSize ) pgSize = getpagesize();
     return pgSize;
 }
+ 
+bool unix_process::plat_decodeMemoryRights(Process::mem_perm& perm,
+                                           unsigned long rights) {
+    switch (rights) {
+      default:                                 return false;
+      case PROT_NONE:                          perm.clrR().clrW().clrX();
+      case PROT_READ:                          perm.setR().clrW().clrX();
+      case PROT_EXEC:                          perm.clrR().clrW().setX();
+      case PROT_READ | PROT_WRITE:             perm.setR().setW().clrX();
+      case PROT_READ | PROT_EXEC:              perm.setR().clrW().setX();
+      case PROT_READ | PROT_WRITE | PROT_EXEC: perm.setR().setW().setX();
+    }
+
+    return true;
+}
+
+bool unix_process::plat_encodeMemoryRights(Process::mem_perm perm,
+                                           unsigned long& rights) {
+    if (perm.isNone()) { 
+        rights = PROT_NONE;
+    } else if (perm.isR()) {
+        rights = PROT_READ;
+    } else if (perm.isX()) {
+        rights = PROT_EXEC;
+    } else if (perm.isRW()) {
+        rights = PROT_READ | PROT_WRITE;
+    } else if (perm.isRX()) {
+        rights = PROT_READ | PROT_EXEC;
+    } else if (perm.isRWX()) {
+        rights = PROT_READ | PROT_WRITE | PROT_EXEC;
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
+bool unix_process::plat_getMemoryAccessRights(Dyninst::Address addr,
+                                              size_t size,
+                                              Process::mem_perm& perm) {
+    (void)addr;
+    (void)size;
+    perm = NULL;
+    assert("Unimplemented");
+    // ZUYU TODO
+    // parse /proc/self/maps manually for permission of given address
+    return false;
+}
+
+bool unix_process::plat_setMemoryAccessRights(Dyninst::Address addr,
+                                              size_t size,
+                                              Process::mem_perm perm,
+                                              Process::mem_perm& oldPerm) {
+    unsigned long rights;
+    if (!plat_encodeMemoryRights(perm, rights)) {
+        pthrd_printf("ERROR: unsupported rights for page %lx\n", addr);
+        return false;
+    }
+
+    if (!mprotect((void*)addr, size, (int)rights)) {
+        pthrd_printf("ERROR: failed to set access rights for page %lx\n", addr);
+        switch (errno) {
+          case EACCES: setLastError(err_prem, "Permission denied");
+          case EINVAL: setLastError(err_badparam,
+                          "Given page address is invalid or not page-aligned");
+          case ENOMEM: setLastError(err_badparam, "Insufficient memory,"
+                          "or the given memory region contains invalid address space");
+          default:     setLastError(err_unsupported, "Unknown error code");
+        }
+        return false;
+    }
+
+    if (!plat_getMemoryAccessRights(addr, size, oldPerm)) {
+        pthrd_printf("ERROR: failed to get access rights for page %lx\n", addr);
+        return false;
+    }
+
+    return true;
+}
 
 //I'm not sure that unix_process is the proper place for this--it's really based on whether
 // /proc/PID/maps exists.  Currently, that matches our platforms that use unix_process, so

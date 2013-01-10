@@ -140,12 +140,27 @@ class fileDescriptor {
         data_(data),
 		dynamic_(dynamic),
         shared_(isShared),
-        pid_(0)
-#if defined (os_windows)
-        ,length_(0)
-        ,rawPtr_(0)
+        pid_(0),
+        length_(0),
+        rawPtr_(NULL) {}
+
+    // ctor for non-files
+    fileDescriptor(string file, Address code, Address data, 
+                   Address length, void* rawPtr,
+                   bool isShared=false, Address dynamic=0) :
+#if defined(os_windows)
+		procHandle_(INVALID_HANDLE_VALUE),
+		fileHandle_(INVALID_HANDLE_VALUE),
 #endif
-        {}
+		file_(file),
+        member_(emptyString),
+        code_(code),
+        data_(data),
+		dynamic_(dynamic),
+        shared_(isShared),
+        pid_(0),
+        length_(length),
+        rawPtr_(rawPtr) {}
 
      ~fileDescriptor() {}
 
@@ -182,7 +197,8 @@ class fileDescriptor {
      void setMember(string member) { member_ = member; }
      void setPid(int pid) { pid_ = pid; }
      void setIsShared(bool shared) { shared_ = shared; }
-     unsigned char* rawPtr();                   //only for non-files
+     Address length() const { return length_; } //only for non-files
+     void* rawPtr();                            //only for non-files
 
 #if defined(os_windows)
 	 void setHandles(HANDLE proc, HANDLE file) {
@@ -193,15 +209,13 @@ class fileDescriptor {
 	 HANDLE procHandle() const { return procHandle_; }
      HANDLE fileHandle() const { return fileHandle_; }
 
-     Address length() const { return length_; }  //only for non-files
- private:
-     HANDLE procHandle_;
-     HANDLE fileHandle_;
- public:
 #endif
 
-
- private:
+private:
+#if defined(os_windows)
+     HANDLE procHandle_;
+     HANDLE fileHandle_;
+#endif
      string file_;
      // AIX: two strings define an object.
      string member_;
@@ -211,7 +225,7 @@ class fileDescriptor {
      bool shared_;      // TODO: Why is this here? We should probably use the image version instead...
      int pid_;
      Address length_;        // set only if this is not really a file
-     unsigned char* rawPtr_; // set only if this is not really a file
+     void* rawPtr_; // set only if this is not really a file
 
      bool IsEqual( const fileDescriptor &fd ) const;
 };

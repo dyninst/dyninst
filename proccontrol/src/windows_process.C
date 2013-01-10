@@ -286,12 +286,14 @@ bool windows_process::plat_encodeMemoryRights(Process::mem_perm perm,
 bool windows_process::plat_getMemoryAccessRights(Dyninst::Address addr,
                                                  size_t size,
                                                  Process::mem_perm& perm) {
+    (void) size;
     MEMORY_BASIC_INFORMATION meminfo;
-    if (!::VirtualQueryEx(hproc, (LPCVOID)addr, &meminfo,
-                                   sizeof(MEMORY_BASIC_INFORMATION))) {
+    memset(&meminfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
+    if (!VirtualQueryEx(hproc, (LPCVOID)addr, &meminfo,
+                        sizeof(MEMORY_BASIC_INFORMATION))) {
         pthrd_printf("ERROR: failed to get access rights for page %lx, "
                      "error code %d\n",
-                     addr, ::GetLastError());
+                     addr, GetLastError());
         return false;
     }
 
@@ -308,20 +310,21 @@ bool windows_process::plat_setMemoryAccessRights(Dyninst::Address addr,
                                                  Process::mem_perm& oldPerm) {
     DWORD rights;
     if (!plat_encodeMemoryRights(perm, rights)) {
-        pthrd_printf("ERROR: failed to set access rights for page %lx\n", addr);
+        pthrd_printf("ERROR: unsupported rights for page %lx\n", addr);
         return false;
     }
 
     DWORD oldRights;
 
-    if (!::VirtualProtectEx(hproc, (LPVOID)(addr), (SIZE_T)size,
-                            (DWORD)rights, (PDWORD)&oldRights)) {
+    if (!VirtualProtectEx(hproc, (LPVOID)(addr), (SIZE_T)size,
+                          (DWORD)rights, (PDWORD)&oldRights)) {
         pthrd_printf("ERROR: failed to set access rights for page %lx, "
                      "error code %d\n",
-                     addr, ::GetLastError());
+                     addr, GetLastError());
         MEMORY_BASIC_INFORMATION meminfo;
-        SIZE_T size = ::VirtualQueryEx(hproc, (LPCVOID)(addr), &meminfo,
-                                       sizeof(MEMORY_BASIC_INFORMATION));
+        memset(&meminfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
+        VirtualQueryEx(hproc, (LPCVOID)(addr), &meminfo,
+                       sizeof(MEMORY_BASIC_INFORMATION));
         pthrd_printf("ERROR DUMP: baseAddr 0x%lx, AllocationBase 0x%lx, "
                      "AllocationProtect 0x%lx, RegionSize 0x%lx, State 0x%lx, "
                      "Protect 0x%lx, Type 0x%lx\n",
@@ -336,6 +339,46 @@ bool windows_process::plat_setMemoryAccessRights(Dyninst::Address addr,
 
    pthrd_printf("ERROR: unsupported rights for page %lx\n", addr);
    return false;
+}
+
+bool windows_process::plat_findAllocatedRegionAround(Dyninst::Address addr,
+                                                     Process::RegionAddrPair& regionAddr) {
+    MEMORY_BASIC_INFORMATION meminfo;
+    memset(&meminfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
+    if (!VirtualQueryEx(hproc, (LPCVOID)addr, &meminfo, 
+                        sizeof(MEMORY_BASIC_INFORMATION))) {
+        pthrd_printf("ERROR: failed to get access rights for page %lx, "
+                     "error code %d\n",
+                     addr, GetLastError());
+        return false;
+    }
+
+    assert(meminfo.State == MEM_COMMIT);
+    pthrd_printf("VirtualQuery reports baseAddr 0x%lx, allocBase 0x%lx, "
+                 "RegionSize 0x%lx, State 0x%lx\n", meminfo.BaseAddress,
+                 meminfo.AllocationBase, meminfo.RegionSize, meminfo.State);
+
+    regionAddr.first = (Address) meminfo.AllocationBase;
+    Address probeAddr = (Address) meminfo.BaseAddress + (Address) meminfo.RegionSize;
+    Address endAddr;
+
+    MEMORY_BASIC_INFORMATION probe;
+    memset(&probe, 0, sizeof(MEMORY_BASIC_INFORMATION));
+    do {
+        endAddr = probeAddr;
+        VirtualQueryEx(hproc, (LPCVOID)probeAddr, &probe,
+                       sizeof(MEMORY_BASIC_INFORMATION));
+        pthrd_printf("VirtualQuery reports baseAddr 0x%lx, allocBase 0x%lx, "
+                     "RegionSize 0x%lx, State 0x%lx\n", probe.BaseAddress,
+                     probe.AllocationBase, probe.RegionSize, probe.State);
+
+        probeAddr = (Address) probe.BaseAddress + (Address) probe.RegionSize;
+    } while ((probe.AllocationBase == meminfo.AllocationBase) &&
+             // we're in the same allocation unit...
+             (endAddr != probeAddr)); // we're making forward progress
+    regionAddr.second = endAddr;
+
+    return true;
 }
 
 bool windows_process::plat_readMem(int_thread *thr, void *local, 

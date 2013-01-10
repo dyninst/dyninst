@@ -358,16 +358,26 @@ class int_process
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result, bp_write_t bp_write);
 
-   bool getMemoryAccessRights(Dyninst::Address addr, size_t size, Process::mem_perm& rights);
-   bool setMemoryAccessRights(Dyninst::Address addr, size_t size, Process::mem_perm rights,
+   bool getMemoryAccessRights(Dyninst::Address addr, size_t size,
+                              Process::mem_perm& rights);
+   bool setMemoryAccessRights(Dyninst::Address addr, size_t size,
+                              Process::mem_perm rights,
                               Process::mem_perm& oldRights);
    // FIXME pure virtual function
    virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
                                            Process::mem_perm& rights);
    virtual bool plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
-                                           Process::mem_perm rights, Process::mem_perm& oldRights);
-   virtual bool plat_decodeMemoryRights(Process::mem_perm& rights_internal, unsigned long  rights);
-   virtual bool plat_encodeMemoryRights(Process::mem_perm  rights_internal, unsigned long& rights);
+                                           Process::mem_perm rights,
+                                           Process::mem_perm& oldRights);
+   virtual bool plat_decodeMemoryRights(Process::mem_perm& rights_internal,
+                                        unsigned long rights);
+   virtual bool plat_encodeMemoryRights(Process::mem_perm rights_internal,
+                                        unsigned long& rights);
+
+   virtual bool findAllocatedRegionAround(Dyninst::Address addr,
+                                          Process::RegionAddrPair& regionAddr);
+   virtual bool plat_findAllocatedRegionAround(Dyninst::Address addr,
+                                               Process::RegionAddrPair& regionAddr);
 
    memCache *getMemCache();
 

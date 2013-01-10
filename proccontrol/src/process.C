@@ -1611,15 +1611,17 @@ bool int_process::infFree(int_addressSet *aset)
    return !had_error;
 }
 
-bool int_process::plat_decodeMemoryRights(Process::mem_perm& rights_internal, unsigned long  rights) {
+bool int_process::plat_decodeMemoryRights(Process::mem_perm& rights_internal,
+                                          unsigned long rights) {
     (void)rights_internal;
     (void)rights;
     perr_printf("Called decodeMemoryRights on unspported platform\n");
-    setLastError(err_unsupported, "Decode Memory Permission not supported on this platform\n");
+    setLastError(err_unsupported, "Decode Mem Permission not supported on this platform\n");
 	return false;
 }
 
-bool int_process::plat_encodeMemoryRights(Process::mem_perm  rights_internal, unsigned long& rights) {
+bool int_process::plat_encodeMemoryRights(Process::mem_perm rights_internal,
+                                          unsigned long& rights) {
     (void)rights_internal;
     (void)rights;
     perr_printf("Called encodeMemoryRights on unspported platform\n");
@@ -1629,13 +1631,13 @@ bool int_process::plat_encodeMemoryRights(Process::mem_perm  rights_internal, un
 
 bool int_process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
                                         Process::mem_perm& rights) {
-   int result = plat_getMemoryAccessRights(addr, size, rights);
-   if (!result) {
-      pthrd_printf("Error get rights from memory %lx on target process %d\n",
-                   addr, getPid());
-      return false;
-   }
-   return true;
+    if (!plat_getMemoryAccessRights(addr, size, rights)) {
+        pthrd_printf("Error get rights from memory %lx on target process %d\n",
+                     addr, getPid());
+        return false;
+    }
+
+    return true;
 }
 
 bool int_process::plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
@@ -1651,22 +1653,46 @@ bool int_process::plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
 bool int_process::setMemoryAccessRights(Dyninst::Address addr, size_t size,
                                         Process::mem_perm rights,
                                         Process::mem_perm& oldRights) {
-   int result = plat_setMemoryAccessRights(addr, size, rights, oldRights);
-   if (!result) {
-      pthrd_printf("ERROR: set rights to %s from memory %lx on target process %d\n",
-                   rights.getPermName().c_str(), addr, getPid());
-      return false;
-   }
-   return true;
+    if (!plat_setMemoryAccessRights(addr, size, rights, oldRights)) {
+        pthrd_printf("ERROR: set rights to %s from memory %lx on target process %d\n",
+                     rights.getPermName().c_str(), addr, getPid());
+        return false;
+    }
+    
+    return true;
 }
 
-bool int_process::plat_setMemoryAccessRights(Dyninst::Address addr, size_t size, Process::mem_perm rights, Process::mem_perm& oldRights) {
+bool int_process::plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
+                                             Process::mem_perm rights,
+                                             Process::mem_perm& oldRights) {
     (void)addr;
     (void)size;
     (void)rights;
-    (void)oldRights;
+    oldRights = NULL;
     perr_printf("Called setMemoryAccessRights on unspported platform\n");
     setLastError(err_unsupported, "Set Memory Permission not supported on this platform\n");
+	return false;
+}
+
+bool int_process::findAllocatedRegionAround(Dyninst::Address addr,
+                                            Process::RegionAddrPair& regionAddr) {
+    if (!plat_findAllocatedRegionAround(addr, regionAddr)) {
+        pthrd_printf("Error when find allocated memory region"
+                     " for %lx on target process %d\n", addr, getPid());
+        return false;
+    }
+
+    return true;
+}
+
+bool int_process::plat_findAllocatedRegionAround(Dyninst::Address addr,
+                                                 Process::RegionAddrPair& regionAddr) {
+    (void)addr;
+    regionAddr.first  = NULL;
+    regionAddr.second = NULL;
+    perr_printf("Called findAllocatedRegionAround on unspported platform\n");
+    setLastError(err_unsupported,
+                 "Find Allocated Region Addr not supported on this platform\n");
 	return false;
 }
 
@@ -6679,21 +6705,20 @@ std::string Process::mem_perm::getPermName() const {
     }
 }
 
-unsigned Process::getMemoryPageSize() const
-{
-   if (!llproc_) {
-      perr_printf("getMemoryPageSize on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+unsigned Process::getMemoryPageSize() const {
+    if (!llproc_) {
+        perr_printf("getMemoryPageSize on deleted process\n");
+        setLastError(err_exited, "Process is exited\n");
+        return false;
+    }
 
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("getMemoryPageSize on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
+    if (llproc_->getState() == int_process::detached) {
+        perr_printf("getMemoryPageSize on detached process\n");
+        setLastError(err_detached, "Process is detached\n");
+        return false;
+    }
 
-   return llproc_->getTargetPageSize();
+    return llproc_->getTargetPageSize();
 }
 
 Dyninst::Address Process::mallocMemory(size_t size, Dyninst::Address addr)
@@ -6876,55 +6901,80 @@ bool Process::readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, 
 
 bool Process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
                                     mem_perm& rights) {
-   if (!llproc_) {
-      perr_printf("getMemoryAccessRights on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+    if (!llproc_) {
+        perr_printf("getMemoryAccessRights on deleted process\n");
+        setLastError(err_exited, "Process is exited\n");
+        return false;
+    }
 
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("getMemoryAccessRights on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
+    if (llproc_->getState() == int_process::detached) {
+        perr_printf("getMemoryAccessRights on detached process\n");
+        setLastError(err_detached, "Process is detached\n");
+        return false;
+    }
 
-   pthrd_printf("User wants to get Memory Rights from [%lx %lx]\n",
-                addr, addr+size);
+    pthrd_printf("User wants to get Memory Rights from [%lx %lx]\n",
+                 addr, addr+size);
    
-   if (!llproc_->getMemoryAccessRights(addr, size, rights)) {
-      pthrd_printf("Error get rights from memory %lx on target process %d\n",
-                   addr, llproc_->getPid());
-      return false;
-   }
+    if (!llproc_->getMemoryAccessRights(addr, size, rights)) {
+        pthrd_printf("Error get rights from memory %lx on target process %d\n",
+                     addr, llproc_->getPid());
+       return false;
+    }
 
-   return true;
+    return true;
 }
 
 bool Process::setMemoryAccessRights(Dyninst::Address addr, size_t size,
                                     mem_perm rights, mem_perm& oldrights) {
-   MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("setMemoryAccessRights on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+    MTLock lock_this_func;
+    if (!llproc_) {
+        perr_printf("setMemoryAccessRights on deleted process\n");
+        setLastError(err_exited, "Process is exited\n");
+        return false;
+    }
 
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("setMemoryAccessRights on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
+    if (llproc_->getState() == int_process::detached) {
+        perr_printf("setMemoryAccessRights on detached process\n");
+        setLastError(err_detached, "Process is detached\n");
+        return false;
+    }
 
-   pthrd_printf("User wants to set Memory Rights to %s from [%lx %lx]\n",
-                rights.getPermName().c_str(), addr, addr+size);
+    pthrd_printf("User wants to set Memory Rights to %s from [%lx %lx]\n",
+                 rights.getPermName().c_str(), addr, addr+size);
    
-   if (!llproc_->setMemoryAccessRights(addr, size, rights, oldrights)) {
-      pthrd_printf("ERROR: set rights to %s from memory %lx on target process %d\n",
-                   rights.getPermName().c_str(), addr, llproc_->getPid());
-      return false;
-   }
+    if (!llproc_->setMemoryAccessRights(addr, size, rights, oldrights)) {
+        pthrd_printf("ERROR: set rights to %s from memory %lx on target process %d\n",
+                     rights.getPermName().c_str(), addr, llproc_->getPid());
+        return false;
+    }
 
-   return true;
+    return true;
+}
+
+bool Process::findAllocatedRegionAround(Dyninst::Address addr,
+                                        RegionAddrPair& regionAddr) {
+    if (!llproc_) {
+        perr_printf("findAllocatedRegionAround on deleted process\n");
+        setLastError(err_exited, "Process is exited\n");
+        return false;
+    }
+
+    if (llproc_->getState() == int_process::detached) {
+        perr_printf("findAllocatedRegionAround on detached process\n");
+        setLastError(err_detached, "Process is detached\n");
+        return false;
+    }
+
+    pthrd_printf("User wants to find Allocated Region contains %lx\n", addr);
+   
+    if (!llproc_->findAllocatedRegionAround(addr, regionAddr)) {
+        pthrd_printf("Error to find Allocated Region contains %lx on target process %d\n",
+                     addr, llproc_->getPid());
+        return false;
+    }
+
+    return true;
 }
 
 bool Process::addBreakpoint(Address addr, Breakpoint::ptr bp) const
