@@ -194,8 +194,9 @@ bool unix_process::plat_getMemoryAccessRights(Dyninst::Address addr,
                                               Process::mem_perm& perm) {
     (void)addr;
     (void)size;
-    perm = NULL;
-    assert("Unimplemented");
+    (void)perm;
+    perr_printf("Called getMemoryAccessRights on unspported platform\n");
+    setLastError(err_unsupported, "Get Memory Permission not supported on this platform\n");
     // ZUYU TODO
     // parse /proc/self/maps manually for permission of given address
     return false;
@@ -232,6 +233,15 @@ bool unix_process::plat_setMemoryAccessRights(Dyninst::Address addr,
     return true;
 }
 
+bool unix_process::plat_findAllocatedRegionAround(Dyninst::Address addr,
+                                                  Process::MemoryRegion& memRegion) {
+    (void)addr;
+    memRegion.first  = NULL;
+    memRegion.second = NULL;
+    perr_printf("Called findAllocatedRegionAround on unspported platform\n");
+    setLastError(err_unsupported, "Find Allocated Memory Region not supported on this platform\n");
+    return false;
+}
 //I'm not sure that unix_process is the proper place for this--it's really based on whether
 // /proc/PID/maps exists.  Currently, that matches our platforms that use unix_process, so
 // I'll leave it be for now.

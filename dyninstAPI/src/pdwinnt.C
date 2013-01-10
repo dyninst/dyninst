@@ -891,8 +891,8 @@ mapped_object *PCProcess::createObjectNoFile(Address addr)
     if (proc()->proc() && readDataSpace((void*)addr, proc()->getAddressWidth(),
                                         &testRead, false)) {
 		// create a module for the region enclosing this address
-        ProcControlAPI::Process::RegionAddrPair regionAddr;
-        if (!pcProc_->findAllocatedRegionAround(addr, regionAddr)) {
+        ProcControlAPI::Process::MemoryRegion memRegion;
+        if (!pcProc_->findAllocatedRegionAround(addr, memRegion)) {
             mal_printf("ERROR: failed to find allocated region for page %lx, %s[%d]\n",
                        addr, FILE__, __LINE__);
 			assert(0);
@@ -901,19 +901,19 @@ mapped_object *PCProcess::createObjectNoFile(Address addr)
 
         mal_printf("[%lx %lx] is valid region containing %lx and corresponding "
                    "to no object, closest is object ending at %lx %s[%d]\n", 
-                   regionAddr.first, regionAddr.second, addr, closestObjEnd, FILE__,__LINE__);
+                   memRegion.first, memRegion.second, addr, closestObjEnd, FILE__,__LINE__);
 
         // The size of the region returned by VirtualQueryEx is from BaseAddress
         // to the end, NOT from meminfo.AllocationBase, which is what we want.
         // BaseAddress is the start address of the page of the address parameter
         // that is sent to VirtualQueryEx as a parameter
-        Address regionSize = regionAddr.second - regionAddr.first;
+        Address regionSize = memRegion.second - memRegion.first;
 
         // read region into this PCProcess
         void* rawRegion = malloc(regionSize);
-		if (!proc()->readDataSpace((void *)regionAddr.first, regionSize, rawRegion, true)) {
+		if (!proc()->readDataSpace((void *)memRegion.first, regionSize, rawRegion, true)) {
             mal_printf("Error: failed to read memory region [%lx, %lx]\n",
-                       regionAddr.first, regionAddr.second);
+                       memRegion.first, memRegion.second);
 			printSysError(GetLastError());
 			assert(0);
             return NULL;
@@ -921,10 +921,10 @@ mapped_object *PCProcess::createObjectNoFile(Address addr)
 
 		// set up file descriptor
         char regname[64];
-        snprintf(regname, 63, "mmap_buffer_%lx_%lx", regionAddr.first, regionAddr.second);
+        snprintf(regname, 63, "mmap_buffer_%lx_%lx", memRegion.first, memRegion.second);
         fileDescriptor desc(string(regname),
-                            regionAddr.first, /*  code  */
-                            regionAddr.first, /*  data  */
+                            memRegion.first, /*  code  */
+                            memRegion.first, /*  data  */
                             regionSize,       /* length */
                             rawRegion,        /* rawPtr */
                             true);            /* shared */

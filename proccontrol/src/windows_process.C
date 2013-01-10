@@ -342,7 +342,7 @@ bool windows_process::plat_setMemoryAccessRights(Dyninst::Address addr,
 }
 
 bool windows_process::plat_findAllocatedRegionAround(Dyninst::Address addr,
-                                                     Process::RegionAddrPair& regionAddr) {
+                                                     Process::MemoryRegion& memRegion) {
     MEMORY_BASIC_INFORMATION meminfo;
     memset(&meminfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
     if (!VirtualQueryEx(hproc, (LPCVOID)addr, &meminfo, 
@@ -358,7 +358,7 @@ bool windows_process::plat_findAllocatedRegionAround(Dyninst::Address addr,
                  "RegionSize 0x%lx, State 0x%lx\n", meminfo.BaseAddress,
                  meminfo.AllocationBase, meminfo.RegionSize, meminfo.State);
 
-    regionAddr.first = (Address) meminfo.AllocationBase;
+    memRegion.first = (Address) meminfo.AllocationBase;
     Address probeAddr = (Address) meminfo.BaseAddress + (Address) meminfo.RegionSize;
     Address endAddr;
 
@@ -376,7 +376,7 @@ bool windows_process::plat_findAllocatedRegionAround(Dyninst::Address addr,
     } while ((probe.AllocationBase == meminfo.AllocationBase) &&
              // we're in the same allocation unit...
              (endAddr != probeAddr)); // we're making forward progress
-    regionAddr.second = endAddr;
+    memRegion.second = endAddr;
 
     return true;
 }

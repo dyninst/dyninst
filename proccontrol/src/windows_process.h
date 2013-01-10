@@ -66,7 +66,7 @@ public:
                                             Process::mem_perm& oldRights);
 
     virtual bool plat_findAllocatedRegionAround(Dyninst::Address addr,
-                                                Process::RegionAddrPair& regionAddr);
+                                                Process::MemoryRegion& memRegion);
 
 	virtual bool plat_readMem(int_thread *thr, void *local, 
 		Dyninst::Address remote, size_t size);

@@ -375,9 +375,9 @@ class int_process
                                         unsigned long& rights);
 
    virtual bool findAllocatedRegionAround(Dyninst::Address addr,
-                                          Process::RegionAddrPair& regionAddr);
+                                          Process::MemoryRegion& memRegion);
    virtual bool plat_findAllocatedRegionAround(Dyninst::Address addr,
-                                               Process::RegionAddrPair& regionAddr);
+                                               Process::MemoryRegion& memRegion);
 
    memCache *getMemCache();
 

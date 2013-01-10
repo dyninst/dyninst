@@ -59,6 +59,10 @@ class unix_process : virtual public int_process
    virtual bool plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
                                            Process::mem_perm rights,
                                            Process::mem_perm& oldRights);
+
+   virtual bool plat_findAllocatedRegionAround(Dyninst::Address addr,
+                                               Process::MemoryRegion& memRegion);
+
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
 
    virtual bool plat_supportFork();

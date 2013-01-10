@@ -1668,15 +1668,15 @@ bool int_process::plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
     (void)addr;
     (void)size;
     (void)rights;
-    oldRights = NULL;
+    (void)oldRights;
     perr_printf("Called setMemoryAccessRights on unspported platform\n");
     setLastError(err_unsupported, "Set Memory Permission not supported on this platform\n");
 	return false;
 }
 
 bool int_process::findAllocatedRegionAround(Dyninst::Address addr,
-                                            Process::RegionAddrPair& regionAddr) {
-    if (!plat_findAllocatedRegionAround(addr, regionAddr)) {
+                                            Process::MemoryRegion& memRegion) {
+    if (!plat_findAllocatedRegionAround(addr, memRegion)) {
         pthrd_printf("Error when find allocated memory region"
                      " for %lx on target process %d\n", addr, getPid());
         return false;
@@ -1686,10 +1686,10 @@ bool int_process::findAllocatedRegionAround(Dyninst::Address addr,
 }
 
 bool int_process::plat_findAllocatedRegionAround(Dyninst::Address addr,
-                                                 Process::RegionAddrPair& regionAddr) {
+                                                 Process::MemoryRegion& memRegion) {
     (void)addr;
-    regionAddr.first  = NULL;
-    regionAddr.second = NULL;
+    memRegion.first  = NULL;
+    memRegion.second = NULL;
     perr_printf("Called findAllocatedRegionAround on unspported platform\n");
     setLastError(err_unsupported,
                  "Find Allocated Region Addr not supported on this platform\n");
@@ -6953,7 +6953,7 @@ bool Process::setMemoryAccessRights(Dyninst::Address addr, size_t size,
 }
 
 bool Process::findAllocatedRegionAround(Dyninst::Address addr,
-                                        RegionAddrPair& regionAddr) {
+                                        MemoryRegion& memRegion) {
     if (!llproc_) {
         perr_printf("findAllocatedRegionAround on deleted process\n");
         setLastError(err_exited, "Process is exited\n");
@@ -6968,7 +6968,7 @@ bool Process::findAllocatedRegionAround(Dyninst::Address addr,
 
     pthrd_printf("User wants to find Allocated Region contains %lx\n", addr);
    
-    if (!llproc_->findAllocatedRegionAround(addr, regionAddr)) {
+    if (!llproc_->findAllocatedRegionAround(addr, memRegion)) {
         pthrd_printf("Error to find Allocated Region contains %lx on target process %d\n",
                      addr, llproc_->getPid());
         return false;

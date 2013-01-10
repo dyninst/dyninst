@@ -452,9 +452,9 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    bool setMemoryAccessRights(Dyninst::Address addr, size_t size,
                               mem_perm rights, mem_perm& oldRights);
 
-   // RegionAddrPair.first = startAddr, RegionAddrPair.second = endAddr
-   typedef std::pair<Dyninst::Address, Dyninst::Address> RegionAddrPair;
-   bool findAllocatedRegionAround(Dyninst::Address addr, RegionAddrPair& regionAddr);
+   // MemoryRegion.first = startAddr, MemoryRegion.second = endAddr
+   typedef std::pair<Dyninst::Address, Dyninst::Address> MemoryRegion;
+   bool findAllocatedRegionAround(Dyninst::Address addr, MemoryRegion& memRegion);
 
    /**
     * Libraries
