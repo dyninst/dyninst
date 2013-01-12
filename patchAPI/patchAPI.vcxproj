@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -118,9 +118,6 @@ copy $(ProjectDir)h\*.h $(TargetDir)..\..\include
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="src\Buffer.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
     <ClCompile Include="src\CFGMaker.C">
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
@@ -176,7 +173,6 @@ copy $(ProjectDir)h\*.h $(TargetDir)..\..\include
     <ClInclude Include="h\PatchCommon.h" />
     <ClInclude Include="src\ParseCallback.h" />
     <ClInclude Include="h\AddrSpace.h" />
-    <ClInclude Include="h\Buffer.h" />
     <ClInclude Include="h\CFGMaker.h" />
     <ClInclude Include="h\Command.h" />
     <ClInclude Include="h\common.h" />

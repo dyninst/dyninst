@@ -1,5 +1,5 @@
 #Don't add tests or parseThat to Everything
-Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API parseThat
+Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI injectorAPI dynC_API parseThat
 
 Common          = dynutil common
 Dwarf           = ${Common} dwarf
@@ -11,6 +11,7 @@ ParseAPI        = ${Common} ${SymtabAPI} ${SymLite} ${InstructionAPI} parseAPI
 DataflowAPI     = ${ParseAPI}
 PatchAPI        = ${ParseAPI} patchAPI
 ProcControlAPI  = ${SymLite} proccontrol
+InjectorAPI     = ${Common} ${ProcControlAPI} ${SymtabAPI}
 DynC_API        = ${DyninstAPI} dynC_API
 Dyner           = ${DyninstAPI} dyner
 
@@ -43,6 +44,7 @@ stackwalk = $(sort $(StackwalkerAPI))
 parseAPI = $(sort $(ParseAPI))
 dataflowAPI = $(sort $(ParseAPI))
 patchAPI = $(sort $(PatchAPI))
+injectorAPI = $(sort $(InjectorAPI))
 dyninstAPI = $(sort $(DyninstAPI))
 parseThat = $(sort $(DyninstAPI) parseThat)
 dynC_API = $(sort $(DynC_API))

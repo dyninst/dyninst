@@ -75,10 +75,10 @@ extern int tramp_pre_frame_size_64;
 
 #include "legacy-instruction.h"
 #include "mapped_object.h"
+#include "Buffer.h"
 
 using namespace Dyninst;
 using PatchAPI::Point;
-using PatchAPI::Buffer;
 
 extern bool doNotOverflow(int value);
 
