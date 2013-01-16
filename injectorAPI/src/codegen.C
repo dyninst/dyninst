@@ -14,7 +14,7 @@ using namespace std;
 
 
 Codegen::Codegen(Process::ptr proc, std::string libname) 
-   : proc_(proc), libname_(libname), codeStart_(0) {}
+   : proc_(proc), libname_(libname), codeStart_(0), toc_(0) {}
 
 Codegen::~Codegen() {
    if (codeStart_) {
@@ -64,7 +64,7 @@ unsigned Codegen::estimateSize() {
    return 256 + libname_.length();
 }
 
-Address Codegen::findSymbolAddr(const std::string name, bool func) {
+Address Codegen::findSymbolAddr(const std::string name, bool func, bool saveTOC) {
    LibraryPool& libs = proc_->libraries();
 
    for (auto li = libs.begin(); li != libs.end(); li++) {
@@ -81,6 +81,12 @@ Address Codegen::findSymbolAddr(const std::string name, bool func) {
       //Symtab::closeSymtab(obj);
 
       if (syms.empty()) continue;
+
+      // UGLY HACK!
+      if (saveTOC) {
+         findTOC(syms[0], (*li));
+      }
+
       return syms[0]->getOffset() + (*li)->getLoadAddress();
    }
    return 0;
@@ -144,15 +150,6 @@ bool Codegen::generateCall(Address addr, const std::vector<Address> &args) {
    }
 }
 
-
-bool Codegen::generateCallPPC32(Address addr, const std::vector<Address> &args) {
-   return false;
-}
-
-bool Codegen::generateCallPPC64(Address addr, const std::vector<Address> &args) {
-   return false;
-}
-
 bool Codegen::generateNoops() {
    // Linux has an annoying habit of rewinding the PC before executing code
    // if you're in a system call; so 8-byte pad no matter what. 
@@ -190,3 +187,4 @@ bool Codegen::generateTrap() {
    }
    return true;
 }
+

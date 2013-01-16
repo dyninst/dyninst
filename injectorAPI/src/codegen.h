@@ -10,6 +10,11 @@
 #include "Buffer.h"
 
 namespace Dyninst {
+
+   namespace SymtabAPI {
+      class Symbol;
+   };
+
 namespace InjectorAPI {
 
 class Codegen {
@@ -29,7 +34,7 @@ class Codegen {
    unsigned estimateSize();
    bool generateLinux();
    bool generateWindows();
-   Address findSymbolAddr(const std::string name, bool func);
+   Address findSymbolAddr(const std::string name, bool func, bool saveTOC);
    Address copyString(std::string);
    Address copyBuf(void *buf, unsigned size);
    Address copyByte(unsigned char);
@@ -43,6 +48,11 @@ class Codegen {
    bool generateCallAMD64(Address addr, const std::vector<Address> &args);
    bool generateCallPPC32(Address addr, const std::vector<Address> &args);
    bool generateCallPPC64(Address addr, const std::vector<Address> &args);
+
+   void generatePPC32(Address val, unsigned reg);
+   void generatePPC64(Address val, unsigned reg);
+   bool findTOC(SymtabAPI::Symbol *sym, ProcControlAPI::Library::ptr lib);
+
    bool generateTrap();
    bool generateNoops();
 
@@ -51,6 +61,9 @@ class Codegen {
 
    Address codeStart_;
    Buffer buffer_;   
+
+   // PPC64 only, but it's handy to stash it here
+   Address toc_;
 };
 
 };
