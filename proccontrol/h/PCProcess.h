@@ -477,13 +477,13 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
 
    /**
-    * Post and run an IRPC; user must wait for completion. Standard 
+    * Post, run, and wait for an IRPC to complete
     **/
 	bool runIRPCSync(IRPC::ptr irpc);
 
    /**
-    * Post, run, and wait for an IRPC to complete
-	**/
+    * Post and run an IRPC; user must wait for completion. 
+    **/
 	bool runIRPCAsync(IRPC::ptr irpc);
 
    /**

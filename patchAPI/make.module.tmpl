@@ -27,7 +27,6 @@ endif #USES_NATIVE
 TO_INC   = ../h
 
 PUBLIC_H = AddrSpace.h \
-           Buffer.h \
            CFGMaker.h \
            Command.h \
            Instrumenter.h \
@@ -53,9 +52,7 @@ SRCS +=	../src/AddrSpace.C \
         ../src/Command.C \
         ../src/PatchCallback.C \
         ../src/ParseCallback.C \
-        ../src/PatchModifier.C \
-        ../src/Buffer.C
-
+        ../src/PatchModifier.C 
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../../parseAPI/h -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h -I../h
 
