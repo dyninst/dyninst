@@ -31,18 +31,27 @@
 #include <stdlib.h>
 
 using namespace Dyninst;
-using namespace PatchAPI;
 
 const int Buffer::ALLOCATION_UNIT = 256;
 
+Buffer::Buffer() : buffer_(NULL), size_(0), max_(0), start_(0) {}
 
-Buffer::Buffer(Address addr, unsigned initial_size) : size_(0), max_(initial_size + ALLOCATION_UNIT), start_(addr) {
-   buffer_ = (unsigned char *)::malloc(max_);
+Buffer::Buffer(Address addr, unsigned initial_size) : buffer_(NULL), size_(0), max_(0), start_(0) {
+   initialize(addr, initial_size);
 };
+
 Buffer::~Buffer() {
    assert(buffer_);
    free(buffer_);
 };
+
+void Buffer::initialize(Address a, unsigned s) {
+   assert(buffer_ == NULL);
+   start_ = a;
+   increase_allocation(s);
+}
+   
+
 unsigned Buffer::size() const {
    return size_;
 };
@@ -75,14 +84,20 @@ Buffer::byte_iterator Buffer::end() const {
 }
 
 namespace Dyninst {
-   namespace PatchAPI {
-      
-      template<>
-      void Buffer::copy(unsigned char *begin, unsigned char *end) {
-         unsigned added_size = (long)end - (long)begin;
-         if ((size_ + added_size) > max_) 
-            increase_allocation(added_size);
-         memcpy(cur_ptr(), begin, added_size);
-      }
+   template<>
+   void Buffer::copy(unsigned char *begin, unsigned char *end) {
+      unsigned added_size = (long)end - (long)begin;
+      if ((size_ + added_size) > max_) 
+         increase_allocation(added_size);
+      memcpy(cur_ptr(), begin, added_size);
+      size_ += added_size;
    }
 }   
+
+void Buffer::copy(void *buf, unsigned size) {
+   unsigned char *begin = (unsigned char *) buf;
+   unsigned char *end = begin + size;
+
+   copy(begin, end);
+}
+   

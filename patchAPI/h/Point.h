@@ -38,6 +38,7 @@
 namespace Dyninst {
 namespace PatchAPI {
 
+
    class PatchCallback;
 
 struct EntrySite_t {
@@ -409,4 +410,6 @@ FuncPoints() : entry(NULL), during(NULL) {};
 
 }
 }
+
+
 #endif  // PATCHAPI_H_POINT_H_
