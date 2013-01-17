@@ -858,7 +858,7 @@ static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves)
     saves.clear();
 }
 
-mapped_object *PCProcess::createObjectNoFile(Address addr)
+mapped_object* PCProcess::createObjectNoFile(Address addr)
 {
     Address closestObjEnd = 0;
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
@@ -939,7 +939,7 @@ mapped_object *PCProcess::createObjectNoFile(Address addr)
                 obj->parse_img()->getObject()->getDefaultModule());
             return obj;
         } else {
-            fprintf(stderr,"Failed to create object (that was not backed by a file) at %lx\n", objStart);
+            fprintf(stderr,"Failed to create object (that was not backed by a file) at %lx\n", memRegion.first);
             return NULL;
         }
 
@@ -1251,12 +1251,6 @@ AstNodePtr PCProcess::createLoadRTAST()
 inferiorHeapType PCProcess::getDynamicHeapType() const
 {
 	return anyHeap;
-}
-
-mapped_object* PCProcess::createObjectNoFile(Dyninst::Address addr)
-{
-	assert(0);
-	return false;
 }
 
 
