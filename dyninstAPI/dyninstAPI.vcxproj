@@ -685,6 +685,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
       <Project>{2ab5fa1e-cf56-4e8a-93b7-6a8940dcb602}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+    <ProjectReference Include="..\injectorAPI\injectorAPI.vcxproj">
+      <Project>{6b47cbb4-03c4-41e4-99bc-e64c09d0af00}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\instructionAPI\instructionAPI.vcxproj">
       <Project>{56f83fe4-e104-4d97-a4b9-89f41b034529}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

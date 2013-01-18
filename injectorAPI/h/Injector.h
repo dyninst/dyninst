@@ -8,7 +8,7 @@
 namespace Dyninst {
 namespace InjectorAPI {
 
-class Injector {
+class INJECTOR_EXPORT Injector {
   public:
    Injector(ProcControlAPI::Process::ptr proc);
    ~Injector();

@@ -1,12 +1,14 @@
 // x86-specific routines
 
 #include "codegen.h"
+#include <iostream>
 
 using namespace Dyninst;
 using namespace InjectorAPI;
+using namespace std;
 
 bool Codegen::generateCallIA32(Address addr, const std::vector<Address> &args) {
-   for (auto iter = args.begin(); iter != args.end(); ++iter) {
+   for (auto iter = args.rbegin(); iter != args.rend(); ++iter) {
       copyByte(0x68);
       copyInt(*iter);
    }
@@ -40,14 +42,31 @@ bool Codegen::generateCallAMD64(Address addr, const std::vector<Address> &args) 
    }
    if (args.size() >= 5) return false;
 
-   // mov addr, rax
+   // Zero rax
    copyByte(0x48);
-   copyByte(0xb8);
+   copyByte(0x31);
+   copyByte(0xc0);
+
+   // mov addr, rbx
+   copyByte(0x48);
+   copyByte(0xbb);
    copyLong(addr);
 
    copyByte(0xff);
-   copyByte(0xd0);
+   copyByte(0xd3);
    return true;
 }
 
+bool Codegen::generatePreambleIA32() {
+   return true;
+}
 
+bool Codegen::generatePreambleAMD64() {
+   // Round the stack to word alignment
+   // I copied this from _start
+   copyByte(0x48); // rex 
+   copyByte(0x83);
+   copyByte(0xe4); // opcode: and %rsp
+   copyByte(0xf0); // operand
+   return true;
+}

@@ -25,6 +25,7 @@ bool Codegen::generateWindows() {
 
    // No noops needed on a real OS
    codeStart_ = buffer_.curAddr();
+   generatePreamble();
    if (!generateCall(loadLibraryA, arguments)) return false;
    
    return true;

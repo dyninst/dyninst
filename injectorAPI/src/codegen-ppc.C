@@ -88,3 +88,11 @@ void Codegen::generatePPC64(Address val, unsigned reg) {
 
    generatePPC32(val, reg);
 }
+
+bool Codegen::generatePreamblePPC32() {
+   return true;
+}
+
+bool Codegen::generatePreamblePPC64() {
+   return true;
+}
