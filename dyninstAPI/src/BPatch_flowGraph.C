@@ -946,6 +946,12 @@ void BPatch_flowGraph::invalidate()
 
 bool BPatch_flowGraph::isValid() { return isValid_; }
 
+BPatch_basicBlock *BPatch_flowGraph::findBlockByAddr(Dyninst::Address addr) {
+   block_instance *blk = ll_func()->getBlock(addr);
+   if (!blk) return NULL;
+   return findBlock(blk);
+}
+
 BPatch_basicBlock *BPatch_flowGraph::findBlock(block_instance *inst) {
   std::map<const block_instance *, BPatch_basicBlock *>::const_iterator iter = blockMap_.find(inst);
   if (iter != blockMap_.end()) return iter->second;
