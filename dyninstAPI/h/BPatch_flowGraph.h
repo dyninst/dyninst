@@ -104,6 +104,10 @@ public:
   
   /** returns the vector of exit basic blocks to CFG */
   bool getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*> &blocks);
+
+  /** Finds the block containing a specific instruction. Warning:
+      this method is slow! **/
+  BPatch_basicBlock *findBlockByAddr(Dyninst::Address addr);
   
   /** returns the vector of loops in CFG */
   bool getLoops(BPatch_Vector<BPatch_basicBlockLoop*> &loops);
