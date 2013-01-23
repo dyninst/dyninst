@@ -257,8 +257,12 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
     
     if(!obj || !region) return err_heights_pair;
     
-
     Symbol_t sym = readers[name]->getContainingSymbol(callSite);
+    if (!readers[name]->isValidSymbol(sym)) {
+       sw_printf("[%s:%u] - Could not find symbol at offset %lx\n", __FILE__,
+                 __LINE__, callSite);
+       return err_heights_pair;
+    }
     Address entry_addr = readers[name]->getSymbolOffset(sym);
     
     
