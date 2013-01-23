@@ -1453,4 +1453,74 @@ class int_cleanup {
         ~int_cleanup();
 };
 
+#define PROC_EXIT_TEST(STR, RET)                      \
+   if (!llproc_) {                                    \
+     perr_printf(STR " on exited process\n");         \
+     setLastError(err_exited, "Process is exited");   \
+     return RET;                                      \
+   }
+
+#define PROC_DETACH_TEST(STR, RET)                       \
+   if (llproc_->getState() == int_process::detached) {   \
+     perr_printf(STR " on detached process\n");          \
+     setLastError(err_detached, "Process is detached");  \
+     return RET;                                         \
+   }
+
+#define PROC_CB_TEST(STR, RET)                                          \
+   if (int_process::isInCB()) {                                         \
+     perr_printf(STR " while in callback\n");                           \
+     setLastError(err_incallback, "Cannot do operation from callback"); \
+     return RET;                                                        \
+   }
+
+#define PROC_EXIT_DETACH_TEST(STR, RET)         \
+   PROC_EXIT_TEST(STR, RET)                     \
+   PROC_DETACH_TEST(STR, RET)
+
+#define PROC_EXIT_DETACH_CB_TEST(STR, RET)      \
+   PROC_EXIT_TEST(STR, RET)                     \
+   PROC_DETACH_TEST(STR, RET)                   \
+   PROC_CB_TEST(STR, RET)
+
+#define THREAD_EXIT_TEST(STR, RET)                    \
+   if (!llthread_) {                                  \
+     perr_printf(STR " on exited thread\n");          \
+     setLastError(err_exited, "Thread is exited");    \
+     return RET;                                      \
+   }                                                  \
+   if (!llthread_->llproc()) {                        \
+     perr_printf(STR " on exited process\n");         \
+     setLastError(err_exited, "Process is exited");   \
+     return RET;                                      \
+   }
+
+#define THREAD_DETACH_TEST(STR, RET)                                    \
+   if (llthread_->llproc()->getState() == int_process::detached) {      \
+     perr_printf(STR " on detached process\n");                         \
+     setLastError(err_detached, "Process is detached");                 \
+     return RET;                                                        \
+   }                                                                    \
+
+#define THREAD_STOP_TEST(STR, RET)                                     \
+   if (llthread_->getUserState().getState() != int_thread::stopped) {  \
+      setLastError(err_notstopped, "Thread not stopped");              \
+      perr_printf(STR " on running thread %d\n", llthread_->getLWP()); \
+      return RET;                                                      \
+   }
+
+#define THREAD_EXIT_DETACH_TEST(STR, RET)         \
+   THREAD_EXIT_TEST(STR, RET)                     \
+   THREAD_DETACH_TEST(STR, RET)
+
+#define THREAD_EXIT_DETACH_CB_TEST(STR, RET)      \
+   THREAD_EXIT_TEST(STR, RET)                     \
+   THREAD_DETACH_TEST(STR, RET)                   \
+   PROC_CB_TEST(STR, RET)
+
+#define THREAD_EXIT_DETACH_STOP_TEST(STR, RET)    \
+   THREAD_EXIT_TEST(STR, RET)                     \
+   THREAD_DETACH_TEST(STR, RET)                   \
+   THREAD_STOP_TEST(STR, RET)
+
 #endif

@@ -513,7 +513,7 @@ class PC_EXPORT Thread
    bool stopThread();
    bool continueThread();
 
-   void setSingleStepMode(bool s) const;
+   bool setSingleStepMode(bool s) const;
    bool getSingleStepMode() const;
 
    bool getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const;

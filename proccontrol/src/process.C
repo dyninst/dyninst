@@ -6251,11 +6251,7 @@ int Process::getExitCode() const
 bool Process::isDetached() const
 {
     MTLock lock_this_func;
-    if (!llproc_) {
-        perr_printf("isDetached called on deleted process\n");
-        setLastError(err_exited, "Process is exited\n");
-        return false;
-    }
+    PROC_EXIT_TEST("isDetached", false);
 
     return llproc_->getState() == int_process::detached;
 }
@@ -6304,11 +6300,7 @@ bool Process::isTerminated() const
 bool Process::hasStoppedThread() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("hasStoppedThread on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+   PROC_EXIT_TEST("hasStoppedThread", false);
 
    int_threadPool::iterator i;
    for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); i++) {
@@ -6321,11 +6313,7 @@ bool Process::hasStoppedThread() const
 bool Process::hasRunningThread() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("hasRunningThread on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+   PROC_EXIT_TEST("hasRunningThread", false);
 
    int_threadPool::iterator i;
    for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); ++i) {
@@ -6340,11 +6328,7 @@ bool Process::hasRunningThread() const
 bool Process::allThreadsStopped() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("allThreadsStopped on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+   PROC_EXIT_TEST("allThreadsStopped", false);
 
    int_threadPool::iterator i;
    for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); i++) {
@@ -6357,11 +6341,7 @@ bool Process::allThreadsStopped() const
 bool Process::allThreadsRunning() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("allThreadsRunning on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+   PROC_EXIT_TEST("allThreadsRunning", false);
 
    int_threadPool::iterator i;
    for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); i++) {
@@ -6374,11 +6354,7 @@ bool Process::allThreadsRunning() const
 bool Process::allThreadsRunningWhenAttached() const 
 {
     MTLock lock_this_func;
-    if(!llproc_) {
-        perr_printf("allThreadsRunningWhenAttached on deleted process\n");
-        setLastError(err_exited, "Process is exited\n");
-        return false;
-    }
+    PROC_EXIT_TEST("allThreadsRunningWhenAttached", false);
 
     for(int_threadPool::iterator i = llproc_->threadPool()->begin(); 
             i != llproc_->threadPool()->end(); ++i)
@@ -6392,21 +6368,7 @@ bool Process::allThreadsRunningWhenAttached() const
 bool Process::runIRPCAsync(IRPC::ptr irpc)
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("postIRPC on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-   if (llproc_->getState() == int_process::detached) {
-       perr_printf("postIRPC on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-   if (int_process::isInCB()) {
-      perr_printf("User attempted continue call on thread while in CB, erroring.");
-      setLastError(err_incallback, "Cannot postSyncIRPC from callback\n");
-      return false;
-   }
+   PROC_EXIT_DETACH_TEST("runIRPCAsync", false);
 
    int_process *proc = llproc();
    int_iRPC::ptr rpc = irpc->llrpc()->rpc;
@@ -6442,6 +6404,7 @@ bool Process::runIRPCAsync(IRPC::ptr irpc)
 bool Process::runIRPCSync(IRPC::ptr irpc)
 {
    MTLock lock_this_func;
+   PROC_EXIT_DETACH_CB_TEST("runIRPCSync", false);
    pthrd_printf("Running SYNC RPC\n");
    bool result = runIRPCAsync(irpc);
    if (!result) return false;
@@ -6477,17 +6440,7 @@ bool Thread::runIRPCSync(IRPC::ptr irpc)
 bool Process::postIRPC(IRPC::ptr irpc) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("postIRPC on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if (llproc_->getState() == int_process::detached) {
-       perr_printf("postIRPC on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
+   PROC_EXIT_DETACH_TEST("postIRPC", false);
 
    int_process *proc = llproc();
    int_iRPC::ptr rpc = irpc->llrpc()->rpc;
@@ -6503,11 +6456,7 @@ bool Process::postIRPC(IRPC::ptr irpc) const
 bool Process::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("postIRPC on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+   PROC_EXIT_DETACH_TEST("getPostedIRPCs", false);
    int_threadPool *tp = llproc()->threadPool();
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i)
    {
@@ -6526,22 +6475,14 @@ bool Process::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 Dyninst::Architecture Process::getArchitecture() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getArchitecture on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return Dyninst::Arch_none;
-   }
+   PROC_EXIT_TEST("getArchitecture", Dyninst::Arch_none);
    return llproc_->getTargetArch();
 }
 
 Dyninst::OSType Process::getOS() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getOS on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return Dyninst::OSNone;
-   }
+   PROC_EXIT_TEST("getOS", Dyninst::OSNone);
 
    return llproc_->getOS();
 }
@@ -6549,10 +6490,7 @@ Dyninst::OSType Process::getOS() const
 bool Process::supportsLWPEvents() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("Support query on deleted process\n");
-      return false;
-   }
+   PROC_EXIT_TEST("supportsLWPEvents", false);
    //Intentionally not testing plat_supportLWP*Destroy, which is complicated on BG
    return llproc_->plat_supportLWPCreate(); 
 }
@@ -6560,36 +6498,28 @@ bool Process::supportsLWPEvents() const
 bool Process::supportsUserThreadEvents() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("Support query on deleted process\n");
-      return false;
-   }
+   PROC_EXIT_TEST("supportsUserThreadEvents", false);
    return llproc_->plat_supportThreadEvents();
 }
 
 bool Process::supportsFork() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("Support query on deleted process\n");
-      return false;
-   }
+   PROC_EXIT_TEST("supportsFork", false);
    return llproc_->plat_supportFork();
 }
 
 bool Process::supportsExec() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("Support query on deleted process\n");
-      return false;
-   }
+   PROC_EXIT_TEST("supportsExec", false);
    return llproc_->plat_supportExec();
 }
 
 
 Dyninst::Address Process::mallocMemory(size_t size, Dyninst::Address addr)
 {
+   PROC_EXIT_DETACH_CB_TEST("mallocMemory", 0);
    ProcessSet::ptr pset = ProcessSet::newProcessSet(shared_from_this());
    AddressSet::ptr addrset = AddressSet::newAddressSet(pset, addr);
    bool result = pset->mallocMemory(size, addrset);
@@ -6602,6 +6532,7 @@ Dyninst::Address Process::mallocMemory(size_t size, Dyninst::Address addr)
 
 Dyninst::Address Process::mallocMemory(size_t size)
 {
+   PROC_EXIT_DETACH_CB_TEST("mallocMemory", 0);
    ProcessSet::ptr pset = ProcessSet::newProcessSet(shared_from_this());
    AddressSet::ptr addr_result = pset->mallocMemory(size);
    if (addr_result->empty()) {
@@ -6612,11 +6543,13 @@ Dyninst::Address Process::mallocMemory(size_t size)
 
 Dyninst::Address Process::findFreeMemory(size_t size)
 {
+   PROC_EXIT_DETACH_TEST("findFreeMemory", 0);
 	return llproc()->plat_findFreeMemory(size);
 }
 
 bool Process::freeMemory(Dyninst::Address addr)
 {
+   PROC_EXIT_DETACH_CB_TEST("freeMemory", 0);
    Process::ptr this_ptr = shared_from_this();
    ProcessSet::ptr pset = ProcessSet::newProcessSet(this_ptr);
    AddressSet::ptr addrs = AddressSet::newAddressSet(pset, addr);
@@ -6626,17 +6559,7 @@ bool Process::freeMemory(Dyninst::Address addr)
 bool Process::writeMemory(Dyninst::Address addr, const void *buffer, size_t size) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("writeMemory on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("writeMemory on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
+   PROC_EXIT_DETACH_TEST("writeMemory", false);
 
    pthrd_printf("User wants to write memory to remote addr 0x%lx from buffer 0x%p of size %lu\n", 
                 addr, buffer, (unsigned long) size);
@@ -6659,17 +6582,7 @@ bool Process::writeMemory(Dyninst::Address addr, const void *buffer, size_t size
 bool Process::readMemory(void *buffer, Dyninst::Address addr, size_t size) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("readMemory on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("readMemory on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
+   PROC_EXIT_DETACH_TEST("readMemory", false);
 
    pthrd_printf("User wants to read memory from 0x%lx to 0x%p of size %lu\n", 
                 addr, buffer, (unsigned long) size);
@@ -6695,18 +6608,7 @@ bool Process::readMemory(void *buffer, Dyninst::Address addr, size_t size) const
 bool Process::writeMemoryAsync(Dyninst::Address addr, const void *buffer, size_t size, void *opaque_val) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("writeMemoryAsync on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("writeMemoryAsync on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-
+   PROC_EXIT_DETACH_TEST("writeMemoryAsync", false);
    pthrd_printf("User wants to async write memory to remote addr 0x%lx from buffer 0x%p of size %lu\n", 
                 addr, buffer, (unsigned long) size);
    result_response::ptr resp = result_response::createResultResponse();
@@ -6731,17 +6633,7 @@ bool Process::writeMemoryAsync(Dyninst::Address addr, const void *buffer, size_t
 bool Process::readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, void *opaque_val) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("readMemoryAsync on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("readMemoryAsync on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
+   PROC_EXIT_DETACH_TEST("readMemoryAsync", false);
 
    pthrd_printf("User wants to async read memory from 0x%lx to 0x%p of size %lu\n", 
                 addr, buffer, (unsigned long) size);
@@ -6769,17 +6661,7 @@ bool Process::readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, 
 bool Process::addBreakpoint(Address addr, Breakpoint::ptr bp) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("addBreakpoint on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if (bp->llbp()->isHW() && !llproc_->plat_supportHWBreakpoint()) {
-      perr_printf("User attempted to insert hardware breakpoint into unsupported process\n");
-      setLastError(err_unsupported, "Hardware breakpoints not supported on this platform\n");
-      return false;
-   }
+   PROC_EXIT_DETACH_TEST("addBreakpoint", false);
 
    if (hasRunningThread()) {
       perr_printf("User attempted to add breakpoint to running process\n");
@@ -6799,22 +6681,12 @@ bool Process::addBreakpoint(Address addr, Breakpoint::ptr bp) const
 bool Process::rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("rmBreakpoint on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+   PROC_EXIT_DETACH_TEST("rmBreakpoint", false);
 
    if (hasRunningThread()) {
       perr_printf("User attempted to remove breakpoint on running process\n");
       setLastError(err_notstopped, "Attempted to remove breakpoint on running process\n");
       return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("User attempted to remove breakpoint from detached process\n");
-       setLastError(err_detached, "Attempted to remove breakpoint from detached process\n");
-       return false;
    }
 
    set<response::ptr> resps;
@@ -6841,11 +6713,7 @@ bool Process::rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
 unsigned Process::numHardwareBreakpointsAvail(unsigned mode)
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("numHardwareBreakpointsAvail on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return 0;
-   }
+   PROC_EXIT_DETACH_TEST("numHardwareBreakpointAvail", 0);
 
    unsigned min = INT_MAX;
    int_threadPool *tp = llproc_->threadPool();
@@ -6882,55 +6750,36 @@ void Process::setSymbolReader(SymbolReaderFactory *f) const
 SymbolReaderFactory *Process::getSymbolReader() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getSymbolReader on exited process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getSymbolReader", NULL);
    return llproc_->getSymReader();
 }
 
 LibraryTracking *Process::getLibraryTracking()
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getLibraryTracking", NULL);
    return llproc_->sysv_getLibraryTracking();
 }
 
 ThreadTracking *Process::getThreadTracking()
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getThreadTracking", NULL);
    return llproc_->threaddb_getThreadTracking();
 }
 
 LWPTracking *Process::getLWPTracking()
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getLWPTracking", NULL);
    return llproc_->getLWPTracking();
 }
 
 CallStackUnwinding *Thread::getCallStackUnwinding()
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getCallStackUnwinding on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return NULL;
-   }
+   THREAD_EXIT_TEST("getCallStackUnwinding", NULL);
+
    int_process *proc = llthread_->llproc();
    assert(proc);
    
@@ -6940,66 +6789,42 @@ CallStackUnwinding *Thread::getCallStackUnwinding()
 FollowFork *Process::getFollowFork()
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getFollowFork", NULL);
    return llproc_->getForkTracking();
 }
 
 SignalMask *Process::getSignalMask()
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getSignalMask on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getSignalMask", NULL);
    return llproc_->getSigMask();
 }
 
 const LibraryTracking *Process::getLibraryTracking() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getLibraryTracking", NULL);
    return llproc_->sysv_getLibraryTracking();
 }
 
 const ThreadTracking *Process::getThreadTracking() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getThreadTracking", NULL);
    return llproc_->threaddb_getThreadTracking();
 }
 
 const LWPTracking *Process::getLWPTracking() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getLWPTracking", NULL);
    return llproc_->getLWPTracking();
 }
 
 const SignalMask *Process::getSignalMask() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getSignalMask on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getSignalMask", NULL);
    return llproc_->getSigMask();
 }
 
@@ -7045,11 +6870,7 @@ void Process::clearLastError() const {
 ExecFileInfo* Process::getExecutableInfo() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getExecutableInfo on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getExecutableInfo", NULL);
 
    return llproc()->plat_getExecutableInfo();
 }
@@ -7057,11 +6878,7 @@ ExecFileInfo* Process::getExecutableInfo() const
 unsigned int Process::getCapabilities() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getCapabilities on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }   
+   PROC_EXIT_TEST("getCapabilities", 0);
    return llproc()->plat_getCapabilities();
 }
 
@@ -7124,22 +6941,14 @@ int_thread *Thread::llthrd() const
 bool Thread::isStopped() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("isStopped called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_TEST("isStopped", false);
    return llthread_->getUserState().getState() == int_thread::stopped;
 }
 
 bool Thread::isRunning() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("isRunning called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_TEST("isRunning", false);
    return llthread_->getUserState().getState() == int_thread::running;
 }
 
@@ -7156,34 +6965,14 @@ bool Thread::isLive() const
 bool Thread::isDetached() const
 {
     MTLock lock_this_func;
-    if (!llthread_) {
-        perr_printf("isDetached called on exited thread\n");
-        setLastError(err_exited, "Thread is exited\n");
-        return false;
-    }
+    THREAD_EXIT_TEST("isDetached", false);
     return llthread_->getUserState().getState() == int_thread::detached;
 }
 
 bool Thread::stopThread()
 {
    MTLock lock_this_func(MTLock::deliver_callbacks);
-   if (!llthread_) {
-      perr_printf("stopThread called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-
-   if( llthread_->getUserState().getState() == int_thread::detached ) {
-       perr_printf("stopThread on detached thread\n");
-       setLastError(err_detached, "Thread is detached\n");
-       return false;
-   }
-
-   if (int_process::isInCB()) {
-      perr_printf("User attempted continue call on thread while in CB, erroring.");
-      setLastError(err_incallback, "Cannot continueThread from callback\n");
-      return false;
-   }
+   THREAD_EXIT_DETACH_CB_TEST("stopThread", false);
 
    int_thread *thrd = llthrd();
    int_process *proc = thrd->llproc();
@@ -7216,23 +7005,7 @@ bool Thread::stopThread()
 bool Thread::continueThread()
 {
    MTLock lock_this_func(MTLock::deliver_callbacks);
-   if (!llthread_) {
-      perr_printf("continueThread called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-
-   if( llthread_->getUserState().getState() == int_thread::detached ) {
-       perr_printf("continueThread on detached thread\n");
-       setLastError(err_detached, "Thread is detached\n");
-       return false;
-   }
-
-   if (int_process::isInCB()) {
-      perr_printf("User attempted continue call on thread while in CB, erroring.");
-      setLastError(err_incallback, "Cannot continueThread from callback\n");
-      return false;
-   }
+   THREAD_EXIT_DETACH_CB_TEST("continueThread", false);
 
    int_thread *thrd = llthrd();
    int_process *proc = thrd->llproc();
@@ -7252,17 +7025,7 @@ bool Thread::continueThread()
 bool Thread::getAllRegisters(RegisterPool &pool) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getAllRegisters called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      setLastError(err_notstopped, "Thread must be stopped before getting registers");
-      perr_printf("User called getAllRegisters on running thread %d\n", llthread_->getLWP());
-      return false;
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("getAllRegisters", false);
    
    allreg_response::ptr response = allreg_response::createAllRegResponse(pool.llregpool);   
    bool result = llthread_->getAllRegisters(response);
@@ -7287,16 +7050,7 @@ bool Thread::getAllRegisters(RegisterPool &pool) const
 bool Thread::setAllRegisters(RegisterPool &pool) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("setAllRegisters called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      setLastError(err_notstopped, "Thread must be stopped before setting registers");
-      perr_printf("User called setAllRegisters on running thread %d\n", llthread_->getLWP());
-      return false;
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("setAllRegisters", false);
    
    result_response::ptr response = result_response::createResultResponse();
    bool result = llthread_->setAllRegisters(*pool.llregpool, response);
@@ -7321,16 +7075,7 @@ bool Thread::setAllRegisters(RegisterPool &pool) const
 bool Thread::getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getRegister called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      setLastError(err_notstopped, "Thread must be stopped before getting registers");
-      perr_printf("User called getRegister on running thread %d\n", llthread_->getLWP());
-      return false;
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("getRegister", false);
 
    reg_response::ptr response = reg_response::createRegResponse();
    bool result = llthread_->getRegister(reg, response);
@@ -7355,16 +7100,8 @@ bool Thread::getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &va
 bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("setRegister called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      setLastError(err_notstopped, "Thread must be stopped before setting registers");
-      perr_printf("User called setRegister on running thread %d\n", llthread_->getLWP());
-      return false;
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("setRegister", false);
+
    result_response::ptr response = result_response::createResultResponse();
    bool result = llthread_->setRegister(reg, val, response);
    if (!result) {
@@ -7387,23 +7124,10 @@ bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val
 bool Thread::getAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getAllRegistersAsync on deleted thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("getAllRegistersAsync", false);
+
    pthrd_printf("User wants to async read registers on %d/%d\n",
                 llthread_->proc()->getPid(), llthread_->getLWP());
-   if( llthread_->getUserState().getState() == int_thread::detached ) {
-       perr_printf("getAllRegistersAsync on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      setLastError(err_notstopped, "Thread must be stopped before getting registers");
-      perr_printf("User called getAllRegistersAsync on running thread %d\n", llthread_->getLWP());
-      return false;
-   }
 
    allreg_response::ptr response = allreg_response::createAllRegResponse(pool.llregpool);   
    int_eventAsyncIO *iev = new int_eventAsyncIO(response, int_eventAsyncIO::regallread);
@@ -7422,23 +7146,9 @@ bool Thread::getAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 bool Thread::setAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("setAllRegistersAsync on deleted thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("getAllRegistersAsync", false);
    pthrd_printf("User wants to async set registers on %d/%d\n",
                 llthread_->proc()->getPid(), llthread_->getLWP());
-   if( llthread_->proc()->llproc()->getState() == int_process::detached ) {
-       perr_printf("setAllRegistersAsync on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      setLastError(err_notstopped, "Thread must be stopped before setting registers");
-      perr_printf("User called setAllRegistersAsync on running thread %d\n", llthread_->getLWP());
-      return false;
-   }
 
    result_response::ptr response = result_response::createResultResponse();
    int_eventAsyncIO *iev = new int_eventAsyncIO(response, int_eventAsyncIO::regallwrite);
@@ -7456,49 +7166,29 @@ bool Thread::setAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 bool Thread::isInitialThread() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("isInitialThread called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_TEST("isInitialThread", false);
    return llthread_->llproc()->threadPool()->initialThread() == llthread_;
 }
 
 bool Thread::isUser() const 
 {
 	MTLock lock_this_func;
-	if (!llthread_) {
-		perr_printf("isUser called on exited thread\n");
-		setLastError(err_exited, "Thread is exited\n");
-		return false;
-	}
+   THREAD_EXIT_TEST("isUser", false);
 	return llthread_->isUser();
 }
 
-void Thread::setSingleStepMode(bool s) const
+bool Thread::setSingleStepMode(bool s) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("setSingleStepMode called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return;
-   }
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      perr_printf("setSingleStepMode called on running thread %d/%d\n",
-                  llthread_->llproc()->getPid(), llthread_->getLWP());
-      setLastError(err_notstopped, "Error, user tried to put non-stopped thread into single step");
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("setSingleStepMode", false);
    llthread_->setSingleStepUserMode(s);
+   return true;
 }
 
 bool Thread::getSingleStepMode() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getSingleStepMode called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_TEST("getSingleStepMode", false);
    return llthread_->singleStepUserMode();
 }
 
@@ -7515,17 +7205,7 @@ Dyninst::LWP Thread::getLWP() const
 bool Thread::postIRPC(IRPC::ptr irpc) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-	   perr_printf("postIRPC on deleted thread %d\n", getLWP());
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-
-   if( llthread_->getUserState().getState() == int_thread::detached ) {
-       perr_printf("postIRPC on detached thread\n");
-       setLastError(err_detached, "Thread is detached\n");
-       return false;
-   }
+   THREAD_EXIT_DETACH_TEST("postIRPC", false);
 
    int_thread *thr = llthread_;
    int_process *proc = thr->llproc();
@@ -7542,11 +7222,8 @@ bool Thread::postIRPC(IRPC::ptr irpc) const
 bool Thread::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("postIRPC on deleted thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_TEST("getPostedIRPCs", false);
+
    rpc_list_t *rpc_list = llthread_->getPostedRPCs();
    for (rpc_list_t::iterator j = rpc_list->begin(); j != rpc_list->end(); ++j) {
       IRPC::ptr up_rpc = (*j)->getIRPC().lock();
@@ -7560,12 +7237,7 @@ bool Thread::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 bool Thread::haveUserThreadInfo() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("haveUserThreadInfo on deleted thread\n");
-      setLastError(err_exited, "Thread is exited");
-      return false;
-   }
-
+   THREAD_EXIT_TEST("haveUserThreadInfo", false);
    return llthread_->haveUserThreadInfo();
 }
 
@@ -7593,11 +7265,7 @@ Dyninst::THR_ID Thread::getTID() const
 Dyninst::Address Thread::getStartFunction() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getStartFunction on deleted thread\n");
-      setLastError(err_exited, "Thread is exited");
-      return false;
-   }
+   THREAD_EXIT_TEST("getStartFunction", 0);
 
    Dyninst::Address addr;
    bool result = llthread_->getStartFuncAddress(addr);
@@ -7610,11 +7278,7 @@ Dyninst::Address Thread::getStartFunction() const
 Dyninst::Address Thread::getStackBase() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getStartFunction on deleted thread\n");
-      setLastError(err_exited, "Thread is exited");
-      return false;
-   }
+   THREAD_EXIT_TEST("getStackBase", 0);
 
    Dyninst::Address addr;
    bool result = llthread_->getStackBase(addr);
@@ -7627,11 +7291,7 @@ Dyninst::Address Thread::getStackBase() const
 unsigned long Thread::getStackSize() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getStartFunction on deleted thread\n");
-      setLastError(err_exited, "Thread is exited");
-      return false;
-   }
+   THREAD_EXIT_TEST("getStackSize", 0);
 
    unsigned long size;
    bool result = llthread_->getStackSize(size);
@@ -7644,11 +7304,7 @@ unsigned long Thread::getStackSize() const
 Dyninst::Address Thread::getTLS() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getStartFunction on deleted thread\n");
-      setLastError(err_exited, "Thread is exited");
-      return false;
-   }
+   THREAD_EXIT_TEST("getTLS", 0);
 
    Dyninst::Address addr;
    bool result = llthread_->getTLSPtr(addr);
@@ -7661,11 +7317,8 @@ Dyninst::Address Thread::getTLS() const
 IRPC::const_ptr Thread::getRunningIRPC() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getRunningIRPC on deleted thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return IRPC::const_ptr();
-   }
+   THREAD_EXIT_DETACH_TEST("getRunningIRPC", IRPC::const_ptr());
+
    int_iRPC::ptr running = llthread_->runningRPC();
    if (running == int_iRPC::ptr())
       return IRPC::const_ptr();
