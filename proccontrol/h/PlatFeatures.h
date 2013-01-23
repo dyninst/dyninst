@@ -291,40 +291,67 @@ class PC_EXPORT BGQData
 #if 0
 //TO BE IMPLEMENTED
 
-#if defined(_MSC_VER)
-typedef void* stat_ret_t;
-#else
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-typedef struct stat stat_ret_t;
-#endif
+/**
+ * This struct is copied from the GLIBC sources for 'struct stat64'.  It is 
+ * recreated here because this header is supposed to compile without defines 
+ * across several platforms that may not have stat64
+ **/
+struct stat64_ret_t {
+	unsigned long long st_dev;		/* Device.  */
+	unsigned long long st_ino;		/* File serial number.  */
+	unsigned int	st_mode;	/* File mode.  */
+	unsigned int	st_nlink;	/* Link count.  */
+	unsigned int	st_uid;		/* User ID of the file's owner.  */
+	unsigned int	st_gid;		/* Group ID of the file's group. */
+	unsigned long long st_rdev;	/* Device number, if device.  */
+	unsigned short	__pad2;
+	long long	st_size;	/* Size of file, in bytes.  */
+	int		st_blksize;	/* Optimal block size for I/O.  */
+	long long	st_blocks;	/* Number 512-byte blocks allocated. */
+	int		st_atime;	/* Time of last access.  */
+	unsigned int	st_atime_nsec;
+	int		st_mtime;	/* Time of last modification.  */
+	unsigned int	st_mtime_nsec;
+	int		st_ctime;	/* Time of last status change.  */
+	unsigned int	st_ctime_nsec;
+	unsigned int	__unused4;
+	unsigned int	__unused5;
+};
+
+struct FileInfo {
+   FileInfo(std::string f) : filename(f), stat_results(NULL) {}
+   FileInfo() : stat_results(NULL) {}
+   ~FileInfo() { if (stat_results) free(stat_results); stat_results = NULL; }
+
+   std::string filename;
+   stat64_ret_t *stat_results; //Filled in by getFileStatData
+};
+typedef std::multimap<Process::const_ptr, FileInfo> FileSet;
 
 class PC_EXPORT RemoteIO : virtual public PlatformFeatures
 {
-  public:
-
-   bool getFileNames(std::vector<std::string> &filenames);
-   static bool getFileNames(ProcessSet::ptr pset, std::map<Process::ptr, std::vector<std::string> > &all_filenames);
-
-   bool getFileStatData(std::string filename, stat_ret_t &stat_results);
-   static bool getFileStatData(ProcessSet::ptr pset, std::string filename, 
-                               std::map<Process::ptr, stat_ret_t> &stat_results);
-
-   //Results of these two calls should be 'free()'d by the user
-   bool readFileContents(std::string filename, size_t offset, size_t numbytes, unsigned char* &result);
-   
-   struct ReadT {
-      Process::ptr proc;
-      std::string filename;
-      size_t offset;
-      size_t numbytes;
-      void *result; //Output parameter
-   };
-   static bool readFileContents(std::vector<ReadT> &targets);
-
+  protected:
    RemoteIO();
    virtual ~RemoteIO();
+  public:
+
+   //Fetches filenames from BGQ's persisent memory ramdisk
+   bool getFileNames(std::vector<std::string> &filenames) const;
+   static bool getFileNames(ProcessSet::const_ptr pset, FileSet &result);
+
+   //Get data as per a stat system call, fill in the FileInfo objects
+   bool getFileStatData(FileInfo &fi) const;
+   static bool getFileStatData(FileSet &fset);
+
+   //These are whole file reads and produce EventAsyncFileRead callbacks
+   bool readFileContents(const FileInfo &fi) const;
+   static bool readFileConents(const FileSet &fset);
+
+   //Partial file reads, also produce EventAsyncFileRead callbacks
+   bool readFileContents(const FileInfo &fi, Dyninst::Offset offset, size_t read_size);
+   static bool readFileConents(const FileSet &fset, Dyninst::Offset offset, size_t read_size);
+     
+   bool readFileContents(std::string filename, size_t offset, size_t numbytes, unsigned char* &result);
 };
 #endif
 

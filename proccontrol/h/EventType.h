@@ -63,6 +63,7 @@ class PC_EXPORT EventType
    static const int AsyncWrite          = 22;
    static const int AsyncReadAllRegs    = 23;
    static const int AsyncSetAllRegs     = 24;
+   static const int AsyncFileRead       = 25;
 
    //These aren't completely real events.  They can have callbacks registered, but won't be delivered.
    // Instead, a real event will be delivered to their callback.  E.g, a callback registered for 
