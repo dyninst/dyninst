@@ -2391,6 +2391,88 @@ SignalMask *int_process::getSigMask()
 #endif
 }
 
+unsigned int BGQData::startup_timeout_sec = BGQData::startup_timeout_sec_default;
+bool BGQData::block_for_ca = BGQData::block_for_ca_default;
+
+void BGQData::setStartupTimeout(unsigned int seconds)
+{
+   startup_timeout_sec = seconds;
+}
+
+void BGQData::setBlockForControlAuthority(bool block)
+{
+   block_for_ca = block;
+}
+   
+bool BGQData::getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   int_process *llproc = p->llproc();
+   if (!llproc) {
+      perr_printf("Operation attempted on exited process\n");
+      p->setLastError(err_exited, "Operatation on exited process");
+      return false;
+   }
+   llproc->bgq_getProcCoordinates(a, b, c, d, e, t);
+   return true;
+}
+
+unsigned int BGQData::getComputeNodeID() const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   int_process *llproc = p->llproc();
+   if (!llproc) {
+      perr_printf("Operation attempted on exited process\n");
+      p->setLastError(err_exited, "Operatation on exited process");
+      return 0;
+   }
+   return llproc->bgq_getComputeNodeID();
+}
+
+bool BGQData::getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   int_process *llproc = p->llproc();
+   if (!llproc) {
+      perr_printf("Operation attempted on exited process\n");
+      p->setLastError(err_exited, "Operatation on exited process");
+      return false;
+   }
+   llproc->bgq_getSharedMemRange(start, end);
+   return true;
+}
+
+bool BGQData::getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   int_process *llproc = p->llproc();
+   if (!llproc) {
+      perr_printf("Operation attempted on exited process\n");
+      p->setLastError(err_exited, "Operatation on exited process");
+      return false;
+   }
+   llproc->bgq_getPersistantMemRange(start, end);
+   return true;
+}
+
+bool BGQData::getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   int_process *llproc = p->llproc();
+   if (!llproc) {
+      perr_printf("Operation attempted on exited process\n");
+      p->setLastError(err_exited, "Operatation on exited process");
+      return false;
+   }
+   llproc->bgq_getHeapMemRange(start, end);
+   return true;
+}
+
 int_process::~int_process()
 {
    pthrd_printf("Deleting int_process at %p\n", this);

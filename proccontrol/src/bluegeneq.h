@@ -165,6 +165,13 @@ class bgq_process :
    virtual MultiToolControl::priority_t mtool_getPriority();
    virtual MultiToolControl *mtool_getMultiToolControl();
 
+   virtual BGQData *getBGQData() const;
+   virtual void bgq_getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t);
+   virtual unsigned int bgq_getComputeNodeID() const;
+   virtual void bgq_getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
+   virtual void bgq_getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
+   virtual void bgq_getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
+
   private:
    typedef Transaction<QueryMessage, QueryAckMessage> QueryTransaction;
    typedef Transaction<UpdateMessage, UpdateAckMessage> UpdateTransaction;
@@ -189,6 +196,7 @@ class bgq_process :
 
    unsigned int page_size;
    Address interp_base;
+   BGQData *bgqdata;
 
    GetProcessDataAckCmd get_procdata_result;
    GetAuxVectorsAckCmd get_auxvectors_result;

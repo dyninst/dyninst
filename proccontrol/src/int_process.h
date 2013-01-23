@@ -461,6 +461,15 @@ class int_process
    virtual MultiToolControl *mtool_getMultiToolControl();
 
    virtual ExecFileInfo* plat_getExecutableInfo() const { return NULL; }
+
+   //Interface into BGQ-specific process data.
+   virtual BGQData *getBGQData() const { return NULL; }
+   virtual void bgq_getProcCoordinates(unsigned &, unsigned &, unsigned &, unsigned &, unsigned &, unsigned &) const {assert(0);};
+   virtual unsigned int bgq_getComputeNodeID() const { assert(0); }
+   virtual void bgq_getSharedMemRange(Dyninst::Address &, Dyninst::Address &) const { assert(0); }
+   virtual void bgq_getPersistantMemRange(Dyninst::Address &, Dyninst::Address &) const { assert(0); }
+   virtual void bgq_getHeapMemRange(Dyninst::Address &, Dyninst::Address &) const { assert(0); }
+
  protected:
    State state;
    Dyninst::PID pid;

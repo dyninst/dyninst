@@ -292,6 +292,7 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    rank(pid),
    page_size(0),
    interp_base(0),
+   bgqdata(NULL),
    get_thread_list(NULL),
    stopwait_on_control_authority(NULL),
    priority(0),
@@ -338,6 +339,10 @@ bgq_process::~bgq_process()
    if (mtool) {
       delete mtool;
       mtool = NULL;
+   }
+   if (bgqdata) {
+      delete bgqdata;
+      bgqdata = NULL;
    }
    cn->removeNode(this);
 }
@@ -1388,6 +1393,48 @@ MultiToolControl *bgq_process::mtool_getMultiToolControl()
       mtool = new MultiToolControl(proc());
    }
    return mtool;
+}
+
+BGQData *bgq_process::getBGQData() const
+{
+   if (!bgqdata) {
+      bgqdata = new BGQData;
+      bgqdata->proc = proc();
+   }
+   return bgqdata;
+}
+
+void bgq_process::bgq_getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t)
+{
+   a = get_procdata_result.aCoord;
+   b = get_procdata_result.bCoord;
+   c = get_procdata_result.cCoord;
+   d = get_procdata_result.dCoord;
+   e = get_procdata_result.eCoord;
+   t = get_procdata_result.tCoord;
+}
+
+unsigned int bgq_process::bgq_getComputeNodeID() const
+{
+   return getComputeNode()->getID();
+}
+
+void bgq_process::bgq_getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const
+{
+   start = get_procdata_result.sharedMemoryStartAddr;
+   end = get_procdata_result.sharedMemoryEndAddr;
+}
+
+void bgq_process::bgq_getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const
+{
+   start = get_procdata_result.persistMemoryStartAddr;
+   end = get_procdata_result.persistMemoryEndAddr;
+}
+
+void bgq_process::bgq_getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const
+{
+   start = get_procdata_result.heapStartAddr;
+   end = get_procdata_result.heapEndAddr;
 }
 
 bool bgq_process::plat_waitAndHandleForProc()

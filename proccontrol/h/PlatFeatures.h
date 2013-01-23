@@ -263,6 +263,31 @@ class PC_EXPORT SignalMask
    void setSigMask(dyn_sigset_t s);
 };
 
+class PC_EXPORT BGQData
+{
+   friend class ::int_process;
+   friend class bgq::bgq_process;
+  protected:
+   static const unsigned int startup_timeout_sec_default = 45;
+   static const bool block_for_ca_default = true;
+   static unsigned int startup_timeout_sec;
+   static bool block_for_ca;
+   Process::weak_ptr proc;
+  public:
+   static void setStartupTimeout(unsigned int seconds);
+   static void setBlockForControlAuthority(bool block);
+   
+   //Five coordinates on torus (a, b, c, d, e), one on CN (t)
+   bool getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const;
+
+   //All processes that share a CN will shared a compute node ID
+   unsigned int getComputeNodeID() const;
+
+   bool getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
+   bool getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
+   bool getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
+};
+
 #if 0
 //TO BE IMPLEMENTED
 

@@ -88,6 +88,7 @@ class LWPTracking;
 class CallStackUnwinding;
 class FollowFork;
 class SignalMask;
+class BGQData;
 
 class ExecFileInfo;
 
@@ -457,12 +458,14 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    LWPTracking *getLWPTracking();
    FollowFork *getFollowFork();
    SignalMask *getSignalMask();
+   BGQData *getBGQ();
    const LibraryTracking *getLibraryTracking() const;
    const ThreadTracking *getThreadTracking() const;
    const LWPTracking *getLWPTracking() const;
    const FollowFork *getFollowFork() const;
    const SignalMask *getSignalMask() const;
-   
+   const BGQData *getBGQ() const;
+
    /**
     * Errors that occured on this process
     **/
