@@ -278,16 +278,19 @@ struct buffer_t {
    void *buffer;
    size_t size;
    bool is_heap_allocated;
+   bool is_timeout;
    buffer_t(void *b, size_t s, bool h) :
      buffer(b),
      size(s),
-     is_heap_allocated(h)
+     is_heap_allocated(h),
+     is_timeout(false)
    {
    }
    buffer_t() :
      buffer(NULL),
      size(0),
-     is_heap_allocated(false)
+     is_heap_allocated(false),
+     is_timeout(false)
    {
    }
 
@@ -407,11 +410,14 @@ class ArchEventBGQ : public ArchEvent
   private:
    ToolMessage *msg;
    bool free_msg;
+   bool timeout_msg;
   public:
    ArchEventBGQ(ToolMessage *msg);
+   ArchEventBGQ();
    virtual ~ArchEventBGQ();
 
    ToolMessage *getMsg() const;
+   bool isTimeout() const;
    void dontFreeMsg();
 };
 
@@ -444,6 +450,7 @@ class DecoderBlueGeneQ : public Decoder
    bool decodeReleaseControlAck(ArchEventBGQ *archevent, bgq_process *proc, int err_code, std::vector<Event::ptr> &events);
    bool decodeControlAck(ArchEventBGQ *ev, bgq_process *qproc, vector<Event::ptr> &events);
    bool decodeLWPRefresh(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd);
+   bool decodeTimeout(vector<Event::ptr> &events);
 
 
    Event::ptr createEventDetach(bgq_process *proc, bool err);
@@ -493,6 +500,9 @@ class ReaderThread : public IOThread
    virtual void localInit();
    int kick_fd;
    int kick_fd_write;
+   unsigned timeout_set;
+   struct timeval timeout;
+   Mutex timeout_lock;
   protected:
    virtual void thrd_kick();
   public:
@@ -502,6 +512,8 @@ class ReaderThread : public IOThread
    void addComputeNode(ComputeNode *cn);
    void rmComputeNode(ComputeNode *cn);
    void setKickPipe(int fd);
+   void setTimeout(const struct timeval &tv);
+   void clearTimeout();
 };
 
 class WriterThread : public IOThread
