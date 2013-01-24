@@ -443,14 +443,9 @@ class int_process
    int_multiToolControl *getMultiToolControl();
    int_signalMask *getSignalMask();
    int_callStackUnwinding *getCallStackUnwinding();
+   int_BGQData *getBGQData();
 
    //Interface into BGQ-specific process data.
-   virtual BGQData *getBGQData() const { return NULL; }
-   virtual void bgq_getProcCoordinates(unsigned &, unsigned &, unsigned &, unsigned &, unsigned &, unsigned &) const {assert(0);};
-   virtual unsigned int bgq_getComputeNodeID() const { assert(0); }
-   virtual void bgq_getSharedMemRange(Dyninst::Address &, Dyninst::Address &) const { assert(0); }
-   virtual void bgq_getPersistantMemRange(Dyninst::Address &, Dyninst::Address &) const { assert(0); }
-   virtual void bgq_getHeapMemRange(Dyninst::Address &, Dyninst::Address &) const { assert(0); }
  protected:
    State state;
    Dyninst::PID pid;
@@ -496,6 +491,7 @@ class int_process
    int_multiToolControl *pMultiToolControl;
    int_signalMask *pSignalMask;
    int_callStackUnwinding *pCallStackUnwinding;
+   int_BGQData *pBGQData;
    bool LibraryTracking_set;
    bool LWPTracking_set;
    bool ThreadTracking_set;
@@ -503,6 +499,7 @@ class int_process
    bool MultiToolControl_set;
    bool SignalMask_set;
    bool CallStackUnwinding_set;
+   bool BGQData_set;
 };
 
 struct ProcToIntProc {
@@ -1311,6 +1308,25 @@ class int_signalMask : virtual public int_process
    virtual bool allowSignal(int signal_no) = 0;
    dyn_sigset_t getSigMask() { return sigset; }
    void setSigMask(dyn_sigset_t msk) { sigset = msk; }
+};
+
+class int_BGQData : virtual public int_process
+{
+   friend class Dyninst::ProcControlAPI::BGQData;
+  protected:
+   static unsigned int startup_timeout_sec;
+   static bool block_for_ca;
+  public:
+   BGQData *up_ptr;
+   int_BGQData(Dyninst::PID p, std::string e, std::vector<std::string> a,
+               std::vector<std::string> envp, std::map<int,int> f);
+   int_BGQData(Dyninst::PID pid_, int_process *p);
+   virtual ~int_BGQData();
+   virtual void bgq_getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const = 0;
+   virtual unsigned int bgq_getComputeNodeID() const = 0;
+   virtual void bgq_getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const = 0;
+   virtual void bgq_getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const = 0;
+   virtual void bgq_getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const = 0;
 };
 
 struct clearError {

@@ -66,7 +66,11 @@ class bgq_process :
    public thread_db_process,
    public ppc_process,
    public hybrid_lwp_control_process,
-   public mmap_alloc_process
+   public mmap_alloc_process,
+   public int_multiToolControl,
+   public int_signalMask,
+   public int_callStackUnwinding,
+   public int_BGQData
 {
    friend class ComputeNode;
    friend class HandlerBGQStartup;

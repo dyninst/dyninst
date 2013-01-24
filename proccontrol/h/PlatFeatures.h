@@ -49,7 +49,7 @@ class int_followFork;
 class int_multiToolControl;
 class int_signalMask;
 class int_callStackUnwinding;
-
+class int_BGQData;
 namespace bgq {
    class bgq_process;
 };
@@ -291,11 +291,12 @@ class PC_EXPORT BGQData
 {
    friend class ::int_process;
    friend class bgq::bgq_process;
+   friend class ::int_BGQData;
   protected:
    static const unsigned int startup_timeout_sec_default = 45;
    static const bool block_for_ca_default = true;
-   static unsigned int startup_timeout_sec;
-   static bool block_for_ca;
+   BGQData(Process::ptr proc_);
+   ~BGQData();
    Process::weak_ptr proc;
   public:
    static void setStartupTimeout(unsigned int seconds);
@@ -304,7 +305,7 @@ class PC_EXPORT BGQData
    //Five coordinates on torus (a, b, c, d, e), one on CN (t)
    bool getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const;
 
-   //All processes that share a CN will shared a compute node ID
+   //All processes that share a CN will shared a ComputeNode ID
    unsigned int getComputeNodeID() const;
 
    bool getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
@@ -312,34 +313,31 @@ class PC_EXPORT BGQData
    bool getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
 };
 
-#if 0
-//TO BE IMPLEMENTED
-
 /**
  * This struct is copied from the GLIBC sources for 'struct stat64'.  It is 
- * recreated here because this header is supposed to compile without defines 
- * across several platforms that may not have stat64
+ * recreated here because this header is supposed to compile without ifdefs 
+ * across platforms that may not have 'struct stat64'
  **/
 struct stat64_ret_t {
-	unsigned long long st_dev;		/* Device.  */
-	unsigned long long st_ino;		/* File serial number.  */
-	unsigned int	st_mode;	/* File mode.  */
-	unsigned int	st_nlink;	/* Link count.  */
-	unsigned int	st_uid;		/* User ID of the file's owner.  */
-	unsigned int	st_gid;		/* Group ID of the file's group. */
-	unsigned long long st_rdev;	/* Device number, if device.  */
-	unsigned short	__pad2;
-	long long	st_size;	/* Size of file, in bytes.  */
-	int		st_blksize;	/* Optimal block size for I/O.  */
-	long long	st_blocks;	/* Number 512-byte blocks allocated. */
-	int		st_atime;	/* Time of last access.  */
-	unsigned int	st_atime_nsec;
-	int		st_mtime;	/* Time of last modification.  */
-	unsigned int	st_mtime_nsec;
-	int		st_ctime;	/* Time of last status change.  */
-	unsigned int	st_ctime_nsec;
-	unsigned int	__unused4;
-	unsigned int	__unused5;
+   unsigned long long st_dev;
+   unsigned long long st_ino;
+   unsigned int st_mode;
+   unsigned int st_nlink;
+   unsigned int st_uid;
+   unsigned int st_gid;
+   unsigned long long st_rdev;
+   unsigned short __pad2;
+   long long st_size;
+   int st_blksize;
+   long long st_blocks;
+   int st_atime_;
+   unsigned int st_atime_nsec;
+   int st_mtime_;
+   unsigned int st_mtime_nsec;
+   int st_ctime_;
+   unsigned int st_ctime_nsec;
+   unsigned int __unused4;
+   unsigned int __unused5;
 };
 
 struct FileInfo {
@@ -352,7 +350,7 @@ struct FileInfo {
 };
 typedef std::multimap<Process::const_ptr, FileInfo> FileSet;
 
-class PC_EXPORT RemoteIO : virtual public PlatformFeatures
+class PC_EXPORT RemoteIO
 {
   protected:
    RemoteIO();
@@ -377,7 +375,6 @@ class PC_EXPORT RemoteIO : virtual public PlatformFeatures
      
    bool readFileContents(std::string filename, size_t offset, size_t numbytes, unsigned char* &result);
 };
-#endif
 
 }
 }

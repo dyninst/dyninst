@@ -1276,6 +1276,18 @@ int_signalMask *int_process::getSignalMask()
    return pSignalMask;
 }
 
+int_BGQData *int_process::getBGQData() 
+{
+   if (BGQData_set)
+      return pBGQData;
+   BGQData_set = true;
+   pBGQData = dynamic_cast<int_BGQData *>(this);
+   if (!pBGQData)
+      return NULL;
+   if (!pBGQData->up_ptr)
+      pBGQData->up_ptr = new BGQData(proc());
+   return pBGQData;
+}
 int_process::int_process(Dyninst::PID p, std::string e,
                          std::vector<std::string> a,
                          std::vector<std::string> envp,
@@ -1313,14 +1325,16 @@ int_process::int_process(Dyninst::PID p, std::string e,
    pFollowFork(NULL),
    pMultiToolControl(NULL),
    pSignalMask(NULL),
-   pCallStackUnwinding(NULL),                      
+   pCallStackUnwinding(NULL),
+   pBGQData(NULL),
    LibraryTracking_set(false),
    LWPTracking_set(false),
    ThreadTracking_set(false),
    FollowFork_set(false),
    MultiToolControl_set(false),
    SignalMask_set(false),
-   CallStackUnwinding_set(false)
+   CallStackUnwinding_set(false),
+   BGQData_set(false)
 {
    pthrd_printf("New int_process at %p\n", this);
    clearLastError();
@@ -1359,13 +1373,15 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    pMultiToolControl(NULL),
    pSignalMask(NULL),
    pCallStackUnwinding(NULL),
+   pBGQData(NULL),
    LibraryTracking_set(false),
    LWPTracking_set(false),
    ThreadTracking_set(false),
    FollowFork_set(false),
    MultiToolControl_set(false),
    SignalMask_set(false),
-   CallStackUnwinding_set(false)
+   CallStackUnwinding_set(false),
+   BGQData_set(false)
 {
    pthrd_printf("New int_process at %p\n", this);
    Process::ptr hlproc = Process::ptr(new Process());
@@ -2254,88 +2270,6 @@ bool int_process::plat_postHandleEvent()
 bool int_process::plat_preAsyncWait()
 {
   return true;
-}
-
-unsigned int BGQData::startup_timeout_sec = BGQData::startup_timeout_sec_default;
-bool BGQData::block_for_ca = BGQData::block_for_ca_default;
-
-void BGQData::setStartupTimeout(unsigned int seconds)
-{
-   startup_timeout_sec = seconds;
-}
-
-void BGQData::setBlockForControlAuthority(bool block)
-{
-   block_for_ca = block;
-}
-   
-bool BGQData::getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const
-{
-   MTLock lock_this_func;
-   Process::ptr p = proc.lock();
-   int_process *llproc = p->llproc();
-   if (!llproc) {
-      perr_printf("Operation attempted on exited process\n");
-      p->setLastError(err_exited, "Operatation on exited process");
-      return false;
-   }
-   llproc->bgq_getProcCoordinates(a, b, c, d, e, t);
-   return true;
-}
-
-unsigned int BGQData::getComputeNodeID() const
-{
-   MTLock lock_this_func;
-   Process::ptr p = proc.lock();
-   int_process *llproc = p->llproc();
-   if (!llproc) {
-      perr_printf("Operation attempted on exited process\n");
-      p->setLastError(err_exited, "Operatation on exited process");
-      return 0;
-   }
-   return llproc->bgq_getComputeNodeID();
-}
-
-bool BGQData::getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const
-{
-   MTLock lock_this_func;
-   Process::ptr p = proc.lock();
-   int_process *llproc = p->llproc();
-   if (!llproc) {
-      perr_printf("Operation attempted on exited process\n");
-      p->setLastError(err_exited, "Operatation on exited process");
-      return false;
-   }
-   llproc->bgq_getSharedMemRange(start, end);
-   return true;
-}
-
-bool BGQData::getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const
-{
-   MTLock lock_this_func;
-   Process::ptr p = proc.lock();
-   int_process *llproc = p->llproc();
-   if (!llproc) {
-      perr_printf("Operation attempted on exited process\n");
-      p->setLastError(err_exited, "Operatation on exited process");
-      return false;
-   }
-   llproc->bgq_getPersistantMemRange(start, end);
-   return true;
-}
-
-bool BGQData::getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const
-{
-   MTLock lock_this_func;
-   Process::ptr p = proc.lock();
-   int_process *llproc = p->llproc();
-   if (!llproc) {
-      perr_printf("Operation attempted on exited process\n");
-      p->setLastError(err_exited, "Operatation on exited process");
-      return false;
-   }
-   llproc->bgq_getHeapMemRange(start, end);
-   return true;
 }
 
 int_process::~int_process()

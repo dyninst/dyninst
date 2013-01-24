@@ -135,7 +135,7 @@ const err_t err_attached       = 0x10011;
 const err_t err_pendingirpcs   = 0x10012;
 const err_t err_bpfull         = 0x10013;
 const err_t err_notfound       = 0x10014;
-const err_t err_eof            = 0x10016;
+const err_t err_eof            = 0x10015;
 
 PC_EXPORT err_t getLastError();
 PC_EXPORT void clearLastError();
