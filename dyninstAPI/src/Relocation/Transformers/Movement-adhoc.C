@@ -190,10 +190,9 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
       }
       assert(res.defined);
       target = res.convert<Address>();
-      break;
+      return true;
     }
   }
-  if (target) return true;
 
   // Didn't use the PC to read memory; thus we have to grind through
   // all the operands. We didn't do this directly because the 
@@ -211,7 +210,7 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
       Result res = exp->eval();
       assert(res.defined);
       target = res.convert<Address>();
-      break;
+      return true;
     }
   }
   if (target == 0) {
