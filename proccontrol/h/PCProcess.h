@@ -478,7 +478,7 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
 	ExecFileInfo* getExecutableInfo() const;
 };
 
-class PC_EXPORT Thread
+class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
 {
  protected:
    friend class ::int_thread;
@@ -516,7 +516,7 @@ class PC_EXPORT Thread
    bool stopThread();
    bool continueThread();
 
-   void setSingleStepMode(bool s) const;
+   bool setSingleStepMode(bool s) const;
    bool getSingleStepMode() const;
 
    bool getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const;

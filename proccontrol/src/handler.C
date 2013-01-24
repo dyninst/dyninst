@@ -613,16 +613,13 @@ Handler::handler_ret_t HandleSignal::handleEvent(Event::ptr ev)
    int signal_no = sigev->getSignal();
    thrd->setContSignal(signal_no);
 
-#if !defined(os_windows)
-   SignalMask *smask = proc->getSigMask();
-   if (smask) {
-      dyn_sigset_t mask = smask->getSigMask();
-      if (!sigismember(&mask, signal_no)) {
+   int_signalMask *sigproc = proc->getSignalMask();
+   if (sigproc) {
+      if (!sigproc->allowSignal(signal_no)) {
          pthrd_printf("Not giving callback on signal because its not in the SignalMask\n");
          ev->setSuppressCB(true);
       }
    }
-#endif
 
    return ret_success;
 }
@@ -1153,7 +1150,8 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
        child_proc = int_process::createProcess(child_pid, parent_proc);
    }
 
-   if (parent_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
+   int_followFork *fork_proc = parent_proc->getFollowFork();
+   if (fork_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
       //Silence this event.  Child will be detached.
       ev->setSuppressCB(true);
    }
@@ -1185,7 +1183,8 @@ Handler::handler_ret_t HandlePostForkCont::handleEvent(Event::ptr ev)
    pthrd_printf("Handling post-fork continue for child %d\n", child_pid);
    assert(child_proc);
 
-   if (parent_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
+   int_followFork *fork_proc = parent_proc->getFollowFork();
+   if (fork_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
       child_proc->throwDetachEvent(false, false);
    }
    else {

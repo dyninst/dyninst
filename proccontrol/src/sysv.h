@@ -60,7 +60,7 @@ public:
    bool getNewAsyncs(std::set<response::ptr> &resps);
 };
 
-class sysv_process : virtual public int_process
+class sysv_process : public int_libraryTracking
 {
    friend class PCProcReader;
  public:
@@ -79,9 +79,8 @@ class sysv_process : virtual public int_process
    bool isLibraryTrap(Dyninst::Address trap_addr);
    static bool addSysVHandlers(HandlerPool *hpool);
 
-   virtual bool sysv_setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp);
-   virtual bool sysv_isTrackingLibraries();
-   virtual LibraryTracking *sysv_getLibraryTracking();
+   virtual bool setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp);
+   virtual bool isTrackingLibraries();
  protected:
    virtual bool plat_execed();
    virtual bool plat_isStaticBinary();
@@ -100,7 +99,6 @@ class sysv_process : virtual public int_process
    
    bool track_libraries;
    int_library *aout;
-   LibraryTracking *libtracking;
    static SymbolReaderFactory *symreader_factory;
 
    void createAddrTranslator();
