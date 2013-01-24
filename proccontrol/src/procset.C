@@ -3074,14 +3074,14 @@ bool LibraryTrackingSet::setTrackLibraries(bool b) const
    procset_iter iter("setTrackLibraries", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
-      int_process *proc = p->llproc();
-
-      if (!p->getLibraryTracking()) {
+      int_libraryTracking *proc = p->llproc()->getLibraryTracking();
+      if (!proc) {
          perr_printf("Library tracking not supported on process %d\n", p->getPid());
          p->setLastError(err_unsupported, "No library tracking on this platform\n");
          had_error = true;
          continue;
       }
+      
       pthrd_printf("Changing sysv track libraries to %s for %d\n",
                    b ? "true" : "false", proc->getPid());
 
@@ -3089,7 +3089,7 @@ bool LibraryTrackingSet::setTrackLibraries(bool b) const
       int_breakpoint *bp;
       Address addr;
 
-      bool result = proc->sysv_setTrackLibraries(b, bp, addr, add_bp);
+      bool result = proc->setTrackLibraries(b, bp, addr, add_bp);
       if (!result) {
          had_error = true;
          continue;
@@ -3222,9 +3222,8 @@ bool ThreadTrackingSet::setTrackThreads(bool b) const
    procset_iter iter("setTrackThreads", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
-      int_process *proc = p->llproc();
-
-      if (!p->getThreadTracking()) {
+      int_threadTracking *proc = p->llproc()->getThreadTracking();
+      if (!proc) {
          perr_printf("Thread tracking not supported on process %d\n", p->getPid());
          p->setLastError(err_unsupported, "No thread tracking on this platform\n");
          had_error = true;
@@ -3236,7 +3235,7 @@ bool ThreadTrackingSet::setTrackThreads(bool b) const
 
       bool add_bp;
       set<pair<int_breakpoint *, Address> > bps;
-      bool result = proc->threaddb_setTrackThreads(b, bps, add_bp);
+      bool result = proc->setTrackThreads(b, bps, add_bp);
       if (!result) {
          had_error = true;
          continue;
@@ -3287,8 +3286,14 @@ bool ThreadTrackingSet::refreshThreads() const
    int_processSet *procset = ps->getIntProcessSet();
    procset_iter iter("refreshThreads", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_process *proc = (*i)->llproc();
-      if (!proc->threaddb_refreshThreads()) {
+      int_threadTracking *proc = (*i)->llproc()->getThreadTracking();
+      if (!proc) {
+         perr_printf("Thread tracking not supported on process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "No thread tracking on this platform\n");
+         had_error = true;
+         continue;
+      }
+      if (!proc->refreshThreads()) {
          had_error = true;
          continue;
       }
@@ -3340,7 +3345,13 @@ bool LWPTrackingSet::refreshLWPs() const
    set<int_process *> all_procs;
    set<int_process *> change_procs;
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_process *proc = (*i)->llproc();
+      int_LWPTracking *proc = (*i)->llproc()->getLWPTracking();
+      if (!proc) {
+         perr_printf("LWP tracking not supported on process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "No LWP tracking on this platform\n");
+         had_error = true;
+         continue;
+      }
       result_response::ptr resp;
       if (!proc->lwp_refreshPost(resp)) {
          pthrd_printf("Error refreshing lwps on %d\n", proc->getPid());
@@ -3355,7 +3366,9 @@ bool LWPTrackingSet::refreshLWPs() const
    int_process::waitForAsyncEvent(all_resps);
 
    for (set<int_process *>::iterator i = all_procs.begin(); i != all_procs.end(); i++) {
-      int_process *proc = *i;
+      int_LWPTracking *proc = (*i)->getLWPTracking();
+      if (!proc)
+         continue;
       bool changed;
       bool result = proc->lwp_refreshCheck(changed);
       if (!result) {
@@ -3409,23 +3422,14 @@ bool FollowForkSet::setFollowFork(FollowFork::follow_t f) const
    int_processSet *procset = ps->getIntProcessSet();
    procset_iter iter("setFollowFork", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      Process::ptr proc = *i;
-      if (!proc->getFollowFork()) {
-         perr_printf("Fork control not supported on process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "No fork control on this platform\n");
+      int_followFork *proc = (*i)->llproc()->getFollowFork();
+      if (!proc) {
+         perr_printf("Follow Fork not supported on process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "No follow fork control on this platform\n");
          had_error = true;
          continue;
       }
-
-      int_process *llproc = proc->llproc();
-      if (!llproc) {
-         perr_printf("setFollowFork attempted on deleted process %d\n", proc->getPid());
-         proc->setLastError(err_exited, "Process was exited");
-         had_error = true;
-         continue;
-      }
-
-      llproc->fork_setTracking(f);
+      proc->fork_setTracking(f);
    }
 
    return !had_error;
@@ -3462,14 +3466,14 @@ bool CallStackUnwindingSet::walkStack(CallStackCallback *stk_cb)
    getResponses().lock();
    for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
       Thread::ptr t = *i;
-      if (!t->getCallStackUnwinding()) {
+      int_thread *thr = t->llthrd();
+      int_callStackUnwinding *proc = thr->llproc()->getCallStackUnwinding();
+      if (!proc) {
          perr_printf("Stack unwinding not supported on process %d\n", t->getProcess()->getPid());
          t->setLastError(err_unsupported, "No stack unwinding on this platform\n");
          had_error = true;
          continue;
       }
-      int_thread *thr = t->llthrd();
-      int_process *proc = thr->llproc();
       stack_response::ptr stk_resp = stack_response::createStackResponse(thr);
       stk_resp->markSyncHandled();
 
@@ -3502,7 +3506,7 @@ bool CallStackUnwindingSet::walkStack(CallStackCallback *stk_cb)
          stack_response::ptr stk_resp = (*i)->getStackResponse();
          if (stk_resp->hasError() || stk_resp->isReady()) {
             int_thread *thr = stk_resp->getThread();
-            int_process *proc = thr->llproc();
+            int_callStackUnwinding *proc = thr->llproc()->getCallStackUnwinding();
             pthrd_printf("Handling completed stackwalk for %d/%d\n", proc->getPid(), thr->getLWP());
             bool result = proc->plat_handleStackInfo(stk_resp, stk_cb);
             if (!result) {

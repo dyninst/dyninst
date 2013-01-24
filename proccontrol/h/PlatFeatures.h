@@ -42,12 +42,20 @@ class int_process;
 class sysv_process;
 class thread_db_process;
 class linux_process;
+class int_libraryTracking;
+class int_LWPTracking;
+class int_threadTracking;
+class int_followFork;
+class int_multiToolControl;
+class int_signalMask;
+class int_callStackUnwinding;
+
 namespace bgq {
    class bgq_process;
 };
 
-#if !defined(_MSC_VER)
 //For sigset_t
+#if !defined(_MSC_VER)
 #include <signal.h>
 #endif
 
@@ -56,12 +64,12 @@ namespace ProcControlAPI {
 
 class PC_EXPORT LibraryTracking
 {
-   friend class ::sysv_process;
+   friend class ::int_libraryTracking;
+   friend class ::int_process;
   protected:
    LibraryTracking(Process::ptr proc_);
    ~LibraryTracking();
    Process::weak_ptr proc;
-   static bool default_track_libs;
   public:
    static void setDefaultTrackLibraries(bool b);
    static bool getDefaultTrackLibraries();
@@ -75,6 +83,7 @@ class PC_EXPORT LibraryTrackingSet
 {
    friend class ProcessSet;
    friend class PSetFeatures;
+   friend class ::int_process;
   protected:
    LibraryTrackingSet(ProcessSet::ptr ps_);
    ~LibraryTrackingSet();
@@ -87,7 +96,9 @@ class PC_EXPORT LibraryTrackingSet
 class PC_EXPORT LWPTracking
 {
    friend class ::linux_process;
+   friend class ::int_process;
    friend class bgq::bgq_process;
+   friend class ::int_LWPTracking;
   protected:
    LWPTracking(Process::ptr proc_);
    ~LWPTracking();
@@ -106,6 +117,7 @@ class PC_EXPORT LWPTrackingSet
 {
    friend class ProcessSet;
    friend class PSetFeatures;
+   friend class ::int_process;
   protected:
    LWPTrackingSet(ProcessSet::ptr ps_);
    ~LWPTrackingSet();
@@ -117,7 +129,9 @@ class PC_EXPORT LWPTrackingSet
 
 class PC_EXPORT ThreadTracking
 {
+   friend class ::int_process;
    friend class ::thread_db_process;
+   friend class ::int_threadTracking;
   protected:
    ThreadTracking(Process::ptr proc_);
    ~ThreadTracking();
@@ -136,6 +150,7 @@ class PC_EXPORT ThreadTrackingSet
 {
    friend class ProcessSet;
    friend class PSetFeatures;
+   friend class ::int_process;
   protected:
    ThreadTrackingSet(ProcessSet::ptr ps_);
    ~ThreadTrackingSet();
@@ -148,6 +163,8 @@ class PC_EXPORT ThreadTrackingSet
 class PC_EXPORT FollowFork
 {
    friend class ::linux_process;
+   friend class ::int_process;
+   friend class ::int_followFork;
   protected:
    FollowFork(Process::ptr proc_);
    ~FollowFork();
@@ -197,6 +214,9 @@ class PC_EXPORT CallStackCallback
 
 class PC_EXPORT CallStackUnwinding
 {
+   friend class ::int_process;
+   friend class ::int_thread;
+   friend class ::int_callStackUnwinding;
   private:
    Thread::weak_ptr wt;
   public:
@@ -218,6 +238,8 @@ class PC_EXPORT CallStackUnwindingSet
 class PC_EXPORT MultiToolControl
 {
    friend class bgq::bgq_process;
+   friend class ::int_process;
+   friend class ::int_multiToolControl;
   public:
    typedef unsigned int priority_t;
   private:
@@ -250,17 +272,19 @@ typedef sigset_t dyn_sigset_t;
 class PC_EXPORT SignalMask
 {
    friend class ::int_process;
+   friend class ::int_signalMask;
   protected:
-   dyn_sigset_t the_sigset;
    static dyn_sigset_t default_sigset;
    static bool sigset_initialized;
-   SignalMask();
+  private:
+   Process::weak_ptr proc;
+   SignalMask(Process::ptr proc_);
    ~SignalMask();
   public:
    static dyn_sigset_t getDefaultSigMask();
    static void setDefaultSigMask(dyn_sigset_t s);
    dyn_sigset_t getSigMask() const;
-   void setSigMask(dyn_sigset_t s);
+   bool setSigMask(dyn_sigset_t s);
 };
 
 #if 0

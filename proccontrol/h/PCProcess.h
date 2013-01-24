@@ -475,7 +475,7 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
 	ExecFileInfo* getExecutableInfo() const;
 };
 
-class PC_EXPORT Thread
+class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
 {
  protected:
    friend class ::int_thread;

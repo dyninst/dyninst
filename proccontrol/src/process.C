@@ -1189,6 +1189,93 @@ bool int_process::preTerminate() {
     return true;
 }
 
+int_libraryTracking *int_process::getLibraryTracking()
+{
+   if (LibraryTracking_set)
+      return pLibraryTracking;
+   LibraryTracking_set = true;
+   pLibraryTracking = dynamic_cast<int_libraryTracking *>(this);
+   if (!pLibraryTracking)
+      return NULL;
+   if (!pLibraryTracking->up_ptr)
+      pLibraryTracking->up_ptr = new LibraryTracking(proc());
+   return pLibraryTracking;
+}
+
+int_LWPTracking *int_process::getLWPTracking()
+{
+   if (LWPTracking_set)
+      return pLWPTracking;
+   LWPTracking_set = true;
+   pLWPTracking = dynamic_cast<int_LWPTracking *>(this);
+   if (!pLWPTracking)
+      return NULL;
+   if (!pLWPTracking->up_ptr)
+      pLWPTracking->up_ptr = new LWPTracking(proc());
+   return pLWPTracking;
+}
+
+int_threadTracking *int_process::getThreadTracking()
+{
+   if (ThreadTracking_set)
+      return pThreadTracking;
+   ThreadTracking_set = true;
+   pThreadTracking = dynamic_cast<int_threadTracking *>(this);
+   if (!pThreadTracking)
+      return NULL;
+   if (!pThreadTracking->up_ptr)
+      pThreadTracking->up_ptr = new ThreadTracking(proc());
+   return pThreadTracking;
+}
+
+int_followFork *int_process::getFollowFork()
+{
+   if (FollowFork_set)
+      return pFollowFork;
+   FollowFork_set = true;
+   pFollowFork = dynamic_cast<int_followFork *>(this);
+   if (!pFollowFork)
+      return NULL;
+   if (!pFollowFork->up_ptr)
+      pFollowFork->up_ptr = new FollowFork(proc());
+   return pFollowFork;
+}
+
+int_callStackUnwinding *int_process::getCallStackUnwinding()
+{
+   if (CallStackUnwinding_set)
+      return pCallStackUnwinding;
+   CallStackUnwinding_set = true;
+   pCallStackUnwinding = dynamic_cast<int_callStackUnwinding *>(this);
+   return pCallStackUnwinding;
+}
+
+int_multiToolControl *int_process::getMultiToolControl()
+{
+   if (MultiToolControl_set)
+      return pMultiToolControl;
+   MultiToolControl_set = true;
+   pMultiToolControl = dynamic_cast<int_multiToolControl *>(this);
+   if (!pMultiToolControl)
+      return NULL;
+   if (!pMultiToolControl->up_ptr)
+      pMultiToolControl->up_ptr = new MultiToolControl(proc());
+   return pMultiToolControl;
+}
+
+int_signalMask *int_process::getSignalMask()
+{
+   if (SignalMask_set)
+      return pSignalMask;
+   SignalMask_set = true;
+   pSignalMask = dynamic_cast<int_signalMask *>(this);
+   if (!pSignalMask)
+      return NULL;
+   if (!pSignalMask->up_ptr)
+      pSignalMask->up_ptr = new SignalMask(proc());
+   return pSignalMask;
+}
+
 int_process::int_process(Dyninst::PID p, std::string e,
                          std::vector<std::string> a,
                          std::vector<std::string> envp,
@@ -1217,12 +1304,25 @@ int_process::int_process(Dyninst::PID p, std::string e,
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
-   fork_tracking(FollowFork::getDefaultFollowFork()),
-   lwp_tracking(LWPTracking::getDefaultTrackLWPs()),
    user_data(NULL),
    last_error_string(NULL),
-   symbol_reader(NULL)
+   symbol_reader(NULL),
+   pLibraryTracking(NULL),
+   pLWPTracking(NULL),
+   pThreadTracking(NULL),
+   pFollowFork(NULL),
+   pMultiToolControl(NULL),
+   pSignalMask(NULL),
+   pCallStackUnwinding(NULL),                      
+   LibraryTracking_set(false),
+   LWPTracking_set(false),
+   ThreadTracking_set(false),
+   FollowFork_set(false),
+   MultiToolControl_set(false),
+   SignalMask_set(false),
+   CallStackUnwinding_set(false)
 {
+   pthrd_printf("New int_process at %p\n", this);
    clearLastError();
 	wasCreatedViaAttach(pid == 0);
    //Put any object initialization in 'initializeProcess', below.
@@ -1249,12 +1349,25 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
-   fork_tracking(p->fork_tracking),
-   lwp_tracking(p->lwp_tracking),
    user_data(NULL),
    last_error_string(NULL),
-   symbol_reader(NULL)
+   symbol_reader(NULL),
+   pLibraryTracking(NULL),
+   pLWPTracking(NULL),
+   pThreadTracking(NULL),
+   pFollowFork(NULL),
+   pMultiToolControl(NULL),
+   pSignalMask(NULL),
+   pCallStackUnwinding(NULL),
+   LibraryTracking_set(false),
+   LWPTracking_set(false),
+   ThreadTracking_set(false),
+   FollowFork_set(false),
+   MultiToolControl_set(false),
+   SignalMask_set(false),
+   CallStackUnwinding_set(false)
 {
+   pthrd_printf("New int_process at %p\n", this);
    Process::ptr hlproc = Process::ptr(new Process());
    clearLastError();
    mem = new mem_state(*p->mem, this);
@@ -1276,7 +1389,6 @@ void int_process::initializeProcess(Process::ptr p)
 
 int_thread *int_process::findStoppedThread()
 {
-
    int_thread *result = NULL;
    for (int_threadPool::iterator i = threadpool->begin(); i != threadpool->end(); ++i)
    {
@@ -2008,7 +2120,7 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
    switch (ev->getSyncType()) {
 	  case Event::async: {
          break;
-	 }
+     }
       case Event::sync_thread: {
          int_thread *thrd = ev->getThread()->llthrd();
          int_thread::StateTracker &st = gen ? thrd->getGeneratorState() : thrd->getHandlerState();
@@ -2144,253 +2256,6 @@ bool int_process::plat_preAsyncWait()
   return true;
 }
 
-bool int_process::plat_getStackInfo(int_thread *, stack_response::ptr)
-{
-   setLastError(err_unsupported, "Collecting call stacks not supported\n");
-   perr_printf("Called plat_getStackInfo on unsupported platform\n");
-   return false;
-}
-
-bool int_process::plat_handleStackInfo(stack_response::ptr, CallStackCallback *)
-{
-   assert(0);
-   return false;
-}
-
-bool int_process::sysv_setTrackLibraries(bool, int_breakpoint* &, Address &, bool &)
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return false;
-}
-
-bool int_process::sysv_isTrackingLibraries()
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return false;
-}
-
-LibraryTracking *int_process::sysv_getLibraryTracking()
-{
-   return NULL;
-}
-
-bool int_process::threaddb_setTrackThreads(bool, std::set<std::pair<int_breakpoint *, Address> > &, bool &)
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return false;
-}
-
-bool int_process::threaddb_isTrackingThreads()
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return false;
-}
-
-bool int_process::threaddb_refreshThreads()
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return false;
-}
-
-ThreadTracking *int_process::threaddb_getThreadTracking()
-{
-   return NULL;
-}
-
-FollowFork *int_process::getForkTracking()
-{
-   return NULL;
-}
-
-bool int_process::fork_setTracking(FollowFork::follow_t)
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return false;
-}
-
-FollowFork::follow_t int_process::fork_isTracking() 
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return FollowFork::None;
-}
-
-LWPTracking *int_process::getLWPTracking()
-{
-   return NULL;
-}
-
-bool int_process::lwp_setTracking(bool b)
-{
-   pthrd_printf("Changing lwp tracking in %d from %s to %s\n", getPid(),
-                lwp_tracking ? "true" : "false", b ? "true" : "false");
-   if (b == lwp_tracking)
-      return true;
-   lwp_tracking = b;
-   return plat_lwpChangeTracking(b);
-}
-
-bool int_process::plat_lwpChangeTracking(bool)
-{
-   return true;
-}
-
-bool int_process::lwp_getTracking()
-{
-   return lwp_tracking;
-}
-
-bool int_process::lwp_refresh()
-{
-   pthrd_printf("Refreshing LWPs in process %d\n", getPid());
-   result_response::ptr resp;
-   bool result = lwp_refreshPost(resp);
-   if (!result) {
-      pthrd_printf("Error from lwp_refreshPost\n");
-      return false;
-   }
-   if (resp) {
-      int_process::waitForAsyncEvent(resp);
-   }
-   bool change;
-   result = lwp_refreshCheck(change);
-   if (!result) {
-      pthrd_printf("Failed to check for new LWPs");
-      return false;
-   }
-
-   if (!change)
-      return true;
-
-   setForceGeneratorBlock(true);
-   ProcPool()->condvar()->lock();
-   ProcPool()->condvar()->broadcast();
-   ProcPool()->condvar()->unlock();
-   int_process::waitAndHandleEvents(false);
-   setForceGeneratorBlock(false);
-   return true;
-}
-
-bool int_process::plat_lwpRefresh(result_response::ptr)
-{
-   return false;
-}
-
-bool int_process::lwp_refreshPost(result_response::ptr &resp)
-{
-   if (!plat_needsAsyncIO()) {
-      resp = result_response::ptr();
-      return true;
-   }
-
-   resp = result_response::createResultResponse();
-   resp->setProcess(this);
-   resp->markSyncHandled();
-   
-   getResponses().lock();
-   bool result = plat_lwpRefresh(resp);
-   if (result) {
-      getResponses().addResponse(resp, this);
-   }
-   if (!result) {
-      resp = result_response::ptr();
-   }
-   getResponses().unlock();
-   getResponses().noteResponse();
-   
-   return true;
-}
-
-bool int_process::lwp_refreshCheck(bool &change)
-{
-   vector<Dyninst::LWP> lwps;
-   change = false;
-   bool result = getThreadLWPs(lwps);
-   if (!result) {
-      pthrd_printf("Error calling getThreadLWPs during refresh\n");
-      return false;
-   }
-
-   //Look for added LWPs
-   int_threadPool *pool = threadPool();
-   int new_lwps_found = 0;
-   for (vector<Dyninst::LWP>::iterator i = lwps.begin(); i != lwps.end(); i++) {
-      Dyninst::LWP lwp = *i;
-      int_thread *thr = pool->findThreadByLWP(*i);
-      if (thr)
-         continue;
-      pthrd_printf("Found new thread %d/%d during refresh\n", getPid(), lwp);
-      thr = int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
-      new_lwps_found++;
-      change = true;
-      plat_lwpRefreshNoteNewThread(thr);
-   }
-
-   //Look for removed LWPs
-   if (lwps.size() - new_lwps_found != pool->size()) {     
-      for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
-         int_thread *thr = *i;
-         bool found = false;
-         for (vector<Dyninst::LWP>::iterator j = lwps.begin(); j != lwps.end(); j++) {
-            if (thr->getLWP() == *j) {
-               found = true;
-               break;
-            }
-         }
-         if (found)
-            continue;
-         change = true;
-         pthrd_printf("Found thread %d/%d is dead during refresh\n", getPid(), thr->getLWP());
-         EventLWPDestroy::ptr newev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
-         newev->setProcess(proc());
-         newev->setThread(thr->thread());
-         newev->setSyncType(Event::async);
-         mbox()->enqueue(newev);
-      }
-   }
-
-   return true;
-}
-
-bool int_process::plat_lwpRefreshNoteNewThread(int_thread *)
-{
-   return true;
-}
-
-std::string int_process::mtool_getName() 
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return string();
-}
-
-MultiToolControl::priority_t int_process::mtool_getPriority()
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return 0;
-}
-
-MultiToolControl *int_process::mtool_getMultiToolControl()
-{
-   return NULL;
-}
-
-SignalMask *int_process::getSigMask()
-{
-#if defined(os_windows)
-   return NULL;
-#else
-   return &pcsigmask;
-#endif
-}
-
 int_process::~int_process()
 {
    pthrd_printf("Deleting int_process at %p\n", this);
@@ -2412,6 +2277,7 @@ int_process::~int_process()
       delete threadpool;
       threadpool = NULL;
    }
+   
    //Do not delete handlerpool yet, we're currently under
    // an event handler.  We do want to delete this if called
    // from detach.
@@ -2842,7 +2708,8 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    postponed_stopped_on_breakpoint_addr(0x0),
    clearing_breakpoint(NULL),
    em_singlestep(NULL),
-   user_data(NULL)
+   user_data(NULL),
+   unwinder(NULL)
 {
    Thread::ptr new_thr(new Thread());
 
@@ -4355,11 +4222,6 @@ hw_breakpoint *int_thread::getHWBreakpoint(Address a)
       if ((*i)->getAddr() == a)
          return *i;
    }
-   return NULL;
-}
-
-CallStackUnwinding *int_thread::getStackUnwinder()
-{
    return NULL;
 }
 
@@ -6758,74 +6620,94 @@ LibraryTracking *Process::getLibraryTracking()
 {
    MTLock lock_this_func;
    PROC_EXIT_TEST("getLibraryTracking", NULL);
-   return llproc_->sysv_getLibraryTracking();
+   int_libraryTracking *proc = llproc_->getLibraryTracking();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 ThreadTracking *Process::getThreadTracking()
 {
    MTLock lock_this_func;
    PROC_EXIT_TEST("getThreadTracking", NULL);
-   return llproc_->threaddb_getThreadTracking();
+   int_threadTracking *proc = llproc_->getThreadTracking();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 LWPTracking *Process::getLWPTracking()
 {
    MTLock lock_this_func;
    PROC_EXIT_TEST("getLWPTracking", NULL);
-   return llproc_->getLWPTracking();
+   int_LWPTracking *proc = llproc_->getLWPTracking();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 CallStackUnwinding *Thread::getCallStackUnwinding()
 {
    MTLock lock_this_func;
    THREAD_EXIT_TEST("getCallStackUnwinding", NULL);
-
-   int_process *proc = llthread_->llproc();
-   assert(proc);
-   
-   return llthread_->getStackUnwinder();
+   int_callStackUnwinding *uwproc = llthread_->llproc()->getCallStackUnwinding();
+   if (!uwproc) 
+      return NULL;
+   if (!llthread_->unwinder) {
+      llthread_->unwinder = new CallStackUnwinding(shared_from_this());
+   }
+   return llthread_->unwinder;
 }
 
 FollowFork *Process::getFollowFork()
 {
    MTLock lock_this_func;
    PROC_EXIT_TEST("getFollowFork", NULL);
-   return llproc_->getForkTracking();
+   int_followFork *proc = llproc_->getFollowFork();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 SignalMask *Process::getSignalMask()
 {
    MTLock lock_this_func;
    PROC_EXIT_TEST("getSignalMask", NULL);
-   return llproc_->getSigMask();
+   int_signalMask *proc = llproc_->getSignalMask();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 const LibraryTracking *Process::getLibraryTracking() const
 {
    MTLock lock_this_func;
    PROC_EXIT_TEST("getLibraryTracking", NULL);
-   return llproc_->sysv_getLibraryTracking();
+   int_libraryTracking *proc = llproc_->getLibraryTracking();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 const ThreadTracking *Process::getThreadTracking() const
 {
    MTLock lock_this_func;
    PROC_EXIT_TEST("getThreadTracking", NULL);
-   return llproc_->threaddb_getThreadTracking();
+   int_threadTracking *proc = llproc_->getThreadTracking();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 const LWPTracking *Process::getLWPTracking() const
 {
    MTLock lock_this_func;
    PROC_EXIT_TEST("getLWPTracking", NULL);
-   return llproc_->getLWPTracking();
+   int_LWPTracking *proc = llproc_->getLWPTracking();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 const SignalMask *Process::getSignalMask() const
 {
    MTLock lock_this_func;
    PROC_EXIT_TEST("getSignalMask", NULL);
-   return llproc_->getSigMask();
+   int_signalMask *proc = llproc_->getSignalMask();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 err_t Process::getLastError() const {

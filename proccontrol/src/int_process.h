@@ -84,6 +84,14 @@ class int_library;
 class int_process;
 class emulated_singlestep;
 
+class int_libraryTracking;
+class int_LWPTracking;
+class int_threadTracking;
+class int_followFork;
+class int_callStackUnwinding;
+class int_multiToolControl;
+class int_signalMask;
+
 struct bp_install_state {
    Dyninst::Address addr;
    int_breakpoint *bp;
@@ -372,9 +380,6 @@ class int_process
    void throwNopEvent();
    void throwRPCPostEvent();
    
-   virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp);
-   virtual bool plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs);
-
    virtual bool plat_supportFork();
    virtual bool plat_supportExec();
    virtual bool plat_supportDOTF();
@@ -429,38 +434,17 @@ class int_process
    bool isRunningSilent(); //No callbacks
    void setRunningSilent(bool b);
 
-   //Interfaces used by the PlatformSpecific classes
-   virtual LibraryTracking *sysv_getLibraryTracking();
-   virtual bool sysv_setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp);
-   virtual bool sysv_isTrackingLibraries();
-
-   virtual ThreadTracking *threaddb_getThreadTracking();
-   virtual bool threaddb_setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
-                                         bool &add_bp);
-   virtual bool threaddb_isTrackingThreads();
-   virtual bool threaddb_refreshThreads();
-
-   virtual FollowFork *getForkTracking();
-   virtual bool fork_setTracking(FollowFork::follow_t b);
-   virtual FollowFork::follow_t fork_isTracking();
-
-   virtual LWPTracking *getLWPTracking();
-   bool lwp_setTracking(bool b);
-   virtual bool plat_lwpChangeTracking(bool b);
-   bool lwp_getTracking();
-   bool lwp_refreshPost(result_response::ptr &resp);
-   bool lwp_refreshCheck(bool &change);
-   bool lwp_refresh();
-   virtual bool plat_lwpRefreshNoteNewThread(int_thread *thr);
-   virtual bool plat_lwpRefresh(result_response::ptr resp);
-   
-   SignalMask *getSigMask();
-
-   virtual std::string mtool_getName();
-   virtual MultiToolControl::priority_t mtool_getPriority();
-   virtual MultiToolControl *mtool_getMultiToolControl();
-
    virtual ExecFileInfo* plat_getExecutableInfo() const { return NULL; }
+
+   int_libraryTracking *getLibraryTracking();
+   int_LWPTracking *getLWPTracking();
+   int_threadTracking *getThreadTracking();
+   int_followFork *getFollowFork();
+   int_multiToolControl *getMultiToolControl();
+   int_signalMask *getSignalMask();
+   int_callStackUnwinding *getCallStackUnwinding();
+
+
  protected:
    State state;
    Dyninst::PID pid;
@@ -491,14 +475,28 @@ class int_process
    Counter startupteardown_procs;
    ProcStopEventManager proc_stop_manager;
    std::map<int, int> proc_desyncd_states;
-   FollowFork::follow_t fork_tracking;
-   bool lwp_tracking;
-   SignalMask pcsigmask;
    void *user_data;
    err_t last_error;
    const char *last_error_string;
    SymbolReaderFactory *symbol_reader;
    static SymbolReaderFactory *user_set_symbol_reader;
+
+   //Cached PlatFeature pointers, which are used to avoid slow dynamic casts
+   // (they're used frequently in tight loops on BG/Q)
+   int_libraryTracking *pLibraryTracking;
+   int_LWPTracking *pLWPTracking;
+   int_threadTracking *pThreadTracking;
+   int_followFork *pFollowFork;
+   int_multiToolControl *pMultiToolControl;
+   int_signalMask *pSignalMask;
+   int_callStackUnwinding *pCallStackUnwinding;
+   bool LibraryTracking_set;
+   bool LWPTracking_set;
+   bool ThreadTracking_set;
+   bool FollowFork_set;
+   bool MultiToolControl_set;
+   bool SignalMask_set;
+   bool CallStackUnwinding_set;
 };
 
 struct ProcToIntProc {
@@ -863,7 +861,6 @@ public:
 
    hw_breakpoint *getHWBreakpoint(Address addr);
 
-   virtual CallStackUnwinding *getStackUnwinder();
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
@@ -927,6 +924,7 @@ public:
 
    std::set<hw_breakpoint *> hw_breakpoints;
    static std::set<continue_cb_t> continue_cbs;
+   CallStackUnwinding *unwinder;
 };
 
 class int_threadPool {
@@ -1206,6 +1204,107 @@ class emulated_singlestep {
    void restoreSSMode();
 
    std::set<response::ptr> clear_resps;
+};
+
+class int_libraryTracking : virtual public int_process
+{
+  public:
+   static bool default_track_libs;
+   LibraryTracking *up_ptr;
+   int_libraryTracking(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                              std::vector<std::string> envp, std::map<int,int> f);
+   int_libraryTracking(Dyninst::PID pid_, int_process *p);
+   virtual ~int_libraryTracking();
+   virtual bool setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp) = 0;
+   virtual bool isTrackingLibraries() = 0;
+};
+
+class int_LWPTracking : virtual public int_process
+{
+  public:
+   bool lwp_tracking;
+   LWPTracking *up_ptr;
+   int_LWPTracking(Dyninst::PID p, std::string e, std::vector<std::string> a,
+                   std::vector<std::string> envp, std::map<int,int> f);
+   int_LWPTracking(Dyninst::PID pid_, int_process *p);
+   virtual ~int_LWPTracking();
+   virtual bool lwp_setTracking(bool b);
+   virtual bool plat_lwpChangeTracking(bool b);
+   virtual bool lwp_getTracking();
+   virtual bool lwp_refreshPost(result_response::ptr &resp);
+   virtual bool lwp_refreshCheck(bool &change);
+   virtual bool lwp_refresh();
+   virtual bool plat_lwpRefreshNoteNewThread(int_thread *thr);
+   virtual bool plat_lwpRefresh(result_response::ptr resp);
+};
+
+class int_threadTracking : virtual public int_process
+{
+  protected:
+  public:
+   ThreadTracking *up_ptr;
+   int_threadTracking(Dyninst::PID p, std::string e, std::vector<std::string> a,
+                                          std::vector<std::string> envp, std::map<int,int> f);
+   int_threadTracking(Dyninst::PID pid_, int_process *p);
+   virtual ~int_threadTracking();
+   virtual bool setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
+                                         bool &add_bp) = 0;
+   virtual bool isTrackingThreads() = 0;
+   virtual bool refreshThreads() = 0;
+};
+
+class int_followFork : virtual public int_process
+{
+  protected:
+   FollowFork::follow_t fork_tracking;
+  public:
+   FollowFork *up_ptr;
+   int_followFork(Dyninst::PID p, std::string e, std::vector<std::string> a,
+                                  std::vector<std::string> envp, std::map<int,int> f);
+   int_followFork(Dyninst::PID pid_, int_process *p);
+   virtual ~int_followFork();
+   virtual bool fork_setTracking(FollowFork::follow_t b) = 0;
+   virtual FollowFork::follow_t fork_isTracking() = 0;
+};
+
+class int_callStackUnwinding : virtual public int_process
+{
+  public:
+   int_callStackUnwinding(Dyninst::PID p, std::string e, std::vector<std::string> a,
+                                                  std::vector<std::string> envp, std::map<int,int> f);
+   int_callStackUnwinding(Dyninst::PID pid_, int_process *p);
+   virtual ~int_callStackUnwinding();
+   virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp) = 0;
+   virtual bool plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs) = 0;
+};
+
+class int_multiToolControl : virtual public int_process
+{
+  protected:
+  public:
+   MultiToolControl *up_ptr;
+   int_multiToolControl(Dyninst::PID p, std::string e, std::vector<std::string> a,
+                        std::vector<std::string> envp, std::map<int,int> f);
+   int_multiToolControl(Dyninst::PID pid_, int_process *p);
+   virtual ~int_multiToolControl();
+   virtual std::string mtool_getName() = 0;
+   virtual MultiToolControl::priority_t mtool_getPriority() = 0;
+   virtual MultiToolControl *mtool_getMultiToolControl() = 0;
+};
+
+class int_signalMask : virtual public int_process
+{
+  protected:
+   dyn_sigset_t sigset;
+  public:
+   SignalMask *up_ptr;
+   int_signalMask(Dyninst::PID p, std::string e, std::vector<std::string> a,
+                  std::vector<std::string> envp, std::map<int,int> f);
+   int_signalMask(Dyninst::PID pid_, int_process *p);
+   virtual ~int_signalMask();
+   virtual bool allowSignal(int signal_no) = 0;
+   dyn_sigset_t getSigMask() { return sigset; }
+   void setSigMask(dyn_sigset_t msk) { sigset = msk; }
 };
 
 struct clearError {
@@ -1522,5 +1621,12 @@ class int_cleanup {
    THREAD_EXIT_TEST(STR, RET)                     \
    THREAD_DETACH_TEST(STR, RET)                   \
    THREAD_STOP_TEST(STR, RET)
+
+#define PTR_EXIT_TEST(P, STR, RET)                       \
+   if (!P || !P->llproc()) {                             \
+      perr_printf(STR " on exited process\n");           \
+      P->setLastError(err_exited, "Process is exited");  \
+      return RET;                                        \
+   }
 
 #endif

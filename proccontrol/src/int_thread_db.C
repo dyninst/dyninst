@@ -509,12 +509,12 @@ Mutex thread_db_process::thread_db_init_lock;
 
 thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> envp, std::vector<std::string> a, std::map<int, int> f) :
   int_process(p, e, a, envp, f),
+  int_threadTracking(p, e, a, envp, f),
   thread_db_proc_initialized(false),
   threadAgent(NULL),
   createdThreadAgent(false),
   self(NULL),
   trigger_thread(NULL),
-  threadtracking(NULL),
   hasAsyncPending(false),
   initialThreadEventCreated(false),
   setEventSet(false),
@@ -529,13 +529,13 @@ thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<
 }
 
 thread_db_process::thread_db_process(Dyninst::PID pid_, int_process *p) :
-  int_process(pid_, p), 
+  int_process(pid_, p),
+  int_threadTracking(pid_, p), 
   thread_db_proc_initialized(false),
   threadAgent(NULL),
   createdThreadAgent(false),
   self(NULL),
   trigger_thread(NULL),
-  threadtracking(NULL),
   hasAsyncPending(false),
   initialThreadEventCreated(false),
   setEventSet(false),
@@ -557,12 +557,8 @@ thread_db_process::~thread_db_process()
         delete brkptIter->second.first;
     }
 
-    if (threadtracking) {
-       delete threadtracking;
-       threadtracking = NULL;
-    }
-
-    delete self;
+    if (self)
+       delete self;
 }
 
 async_ret_t thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info, LWP lwp)
@@ -1535,7 +1531,7 @@ async_ret_t thread_db_process::getEventForThread(set<Event::ptr> &new_ev_set) {
    return aret_success;
 }
 
-bool thread_db_process::threaddb_setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
+bool thread_db_process::setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
                                                  bool &add_bp)
 {
    if (b == track_threads) {
@@ -1556,20 +1552,12 @@ bool thread_db_process::threaddb_setTrackThreads(bool b, std::set<std::pair<int_
    return true;
 }
 
-bool thread_db_process::threaddb_isTrackingThreads()
+bool thread_db_process::isTrackingThreads()
 {
    return track_threads;
 }
 
-ThreadTracking *thread_db_process::threaddb_getThreadTracking() 
-{
-   if (!threadtracking) {
-      threadtracking = new ThreadTracking(proc());
-   }
-   return threadtracking;
-}
-
-bool thread_db_process::threaddb_refreshThreads()
+bool thread_db_process::refreshThreads()
 {
    EventThreadDB::ptr ev = EventThreadDB::ptr(new EventThreadDB());
    ev->setSyncType(Event::async);
@@ -1713,13 +1701,13 @@ bool thread_db_thread::getTLSPtr(Dyninst::Address &addr)
 //Empty place holder functions in-case we're built on a machine without libthread_db.so
 
 thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int, int> f) : 
-   int_process(p, e, a, envp, f)
+   int_threadTracking(p, e, a, envp, f)
 {
   cerr << "Thread DB process constructor" << endl;
 }
 
 thread_db_process::thread_db_process(Dyninst::PID pid_, int_process *p) :
-   int_process(pid_, p)
+   int_threadTracking(pid_, p)
 {
 }
 
@@ -1835,7 +1823,7 @@ bool thread_db_process::plat_supportThreadEvents() {
    return false;
 }
 
-bool thread_db_process::threaddb_setTrackThreads(bool, std::set<std::pair<int_breakpoint *, Address> > &,
+bool thread_db_process::setTrackThreads(bool, std::set<std::pair<int_breakpoint *, Address> > &,
                                                  bool &)
 {
    perr_printf("Error. thread_db not installed on this platform.\n");
@@ -1843,7 +1831,7 @@ bool thread_db_process::threaddb_setTrackThreads(bool, std::set<std::pair<int_br
    return false;
 }
 
-bool thread_db_process::threaddb_isTrackingThreads()
+bool thread_db_process::isTrackingThreads()
 {
    perr_printf("Error. thread_db not installed on this platform.\n");
    setLastError(err_unsupported, "Cannot perform thread operations without thread_db\n");
