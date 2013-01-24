@@ -180,17 +180,17 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
   for (set<Expression::Ptr>::const_iterator iter = mems.begin();
        iter != mems.end(); ++iter) {
     Expression::Ptr exp = *iter;
-
     if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size())) ||
 	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       if (!res.defined) {
+	cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;
         continue;
       }
       assert(res.defined);
       target = res.convert<Address>();
-      return 0;
+      break;
     }
   }
   if (target) return true;
@@ -209,8 +209,7 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
 	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
-      if (!res.defined) continue;
-
+      assert(res.defined);
       target = res.convert<Address>();
       break;
     }
