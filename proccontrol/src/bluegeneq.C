@@ -294,6 +294,7 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    interp_base(0),
    bgqdata(NULL),
    get_thread_list(NULL),
+   cur_file_read(NULL),
    stopwait_on_control_authority(NULL),
    priority(0),
    mtool(NULL),
@@ -1548,6 +1549,28 @@ bool bgq_process::plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCa
    }
    return !had_error;
 }
+
+bool bgq_process::plat_getFileDataAsync(std::string file, Dyninst::Offset offset)
+{
+   assert(!cur_file_read);
+
+   cur_file_read = new int_eventAsyncFileRead();
+   cur_file_read->orig_size = MaxPersistPathnameSize;
+   cur_file_read->filename = file;
+   cur_file_read->offset = offset;
+
+   GetFileContentsCmd getfile;
+   getfile.threadID = 0;
+   strncpy(getfile.pathname, file.c_str(), MaxPersistPathnameSize);
+   getfile.offset = offset;
+   getfile.numbytes = MaxMemorySize;
+
+   pthrd_printf("Sending GetFileContents for %s on %d from %lu to %lu\n", 
+                getfile.pathname, getPid(), offset, offset + MaxMemorySize);
+   bool result = sendCommand(getfile, GetFileContents);
+   return result;
+}
+
 
 set<void *> bgq_process::held_msgs;
 unsigned int bgq_process::num_pending_stackwalks = 0;
@@ -3037,6 +3060,30 @@ bool DecoderBlueGeneQ::decodeLWPRefresh(ArchEventBGQ *, bgq_process *proc, ToolC
    return true;
 }
 
+bool DecoderBlueGeneQ::decodeFileContents(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, int rc, std::vector<Event::ptr> &events)
+{
+   GetFileContentsAckCmd *file_cmd = static_cast<GetFileContentsAckCmd *>(cmd);
+
+   ev->dontFreeMsg();
+
+   assert(proc->cur_file_read);
+   int_eventAsyncIO *iev = proc->cur_file_read;
+   proc->cur_file_read = NULL;
+
+   iev->data = file_cmd->data;
+   iev->size = file_cmd->numbytes;
+   iev->to_free = cmd;
+   iev->errorcode = rc;
+
+   EventAsyncFileRead::ptr newev = EventAsyncFileRead::ptr(new EventAsyncFileRead(iev));
+   newev->setProcess(proc->proc());
+   newev->setThread(proc->threadpool()->getInitialThread()->thread());
+   newev->setSyncType(Event::async);
+   events.push_back(newev);
+   return true;
+}
+
+
 Event::ptr DecoderBlueGeneQ::createEventDetach(bgq_process *proc, bool err)
 {
    EventDetach::ptr new_ev = EventDetach::ptr(new EventDetach());
@@ -3273,8 +3320,11 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
          case GetPreferencesAck:
          case GetFilenamesAck:
          case GetFileStatDataAck:
-         case GetFileContentsAck:
             assert(0); //Currently unused
+            break;
+         case GetFileContentsAck:
+            pthrd_printf("Decoding GetFileContentsAck on %d\n", proc->getPid());
+            decodeFileContents(archevent, proc, msg, desc->returnCode, events);
             break;
          case SetBreakpointAck:
             pthrd_printf("Decoding SetBreakpointAck on %d\n", proc->getPid());

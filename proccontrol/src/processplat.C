@@ -438,6 +438,36 @@ bool BGQData::getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) co
    return true;
 }
 
+FileInfo::FileInfo(std::string f) :
+   filename(f),
+   stat_results(NULL)
+{
+}
+
+FileInfo::FileInfo() :
+   stat_results(NULL)
+{
+}
+
+FileInfo::~FileInfo() :
+{
+   if (stat_results) {
+      free(stat_results);
+      stat_results = NULL;
+   }
+}
+
+RemoteIO::RemoteIO(Process::ptr proc_) :
+   proc(proc_)
+{
+}
+
+RemoteIO::~RemoteIO()
+{
+}
+
+#error Fill in remoteIO interface
+
 int_libraryTracking::int_libraryTracking(Dyninst::PID p, std::string e, std::vector<std::string> a, 
                                          std::vector<std::string> envp, std::map<int,int> f) :
    int_process(p, e, a, envp, f),
@@ -742,56 +772,4 @@ int_BGQData::~int_BGQData()
 unsigned int int_BGQData::startup_timeout_sec = BGQData::startup_timeout_sec_default;
 bool int_BGQData::block_for_ca = BGQData::block_for_ca_default;
 
-#if 0
-//TO BE IMPLEMENTED
-bool RemoteIO::getFileNames(std::vector<std::string> &/*filenames*/)
-{
-   assert(0);
-   return false;
-}
-
-bool RemoteIO::getFileNames(ProcessSet::ptr /*pset*/, std::map<Process::ptr, std::vector<std::string> > &/*all_filenames*/)
-{
-   assert(0);
-   return false;
-}
-
-bool RemoteIO::getFileStatData(std::string /*filename*/, stat_ret_t &/*stat_results*/)
-{
-   assert(0);
-   return false;
-}
-
-bool RemoteIO::getFileStatData(ProcessSet::ptr /*pset*/, std::string /*filename*/, 
-                               std::map<Process::ptr, stat_ret_t> &/*stat_results*/)
-{
-   assert(0);
-   return false;
-}
-
-//Results of these two calls should be 'free()'d by the user
-bool RemoteIO::readFileContents(std::string /*filename*/, size_t /*offset*/,
-                                size_t /*numbytes*/, unsigned char* &/*result*/)
-{
-   assert(0);
-   return false;
-}
-   
-bool RemoteIO::readFileContents(std::vector<ReadT>& /*targets*/)
-{
-   assert(0);
-   return false;
-}
-
-RemoteIO::RemoteIO()
-{
-   assert(0);
-   return false;
-}
-
-RemoteIO::~RemoteIO()
-{
-   assert(0);
-   return false;
-}
-#endif
+#error Fill in int_remoteIO interface

@@ -70,7 +70,9 @@ class bgq_process :
    public int_multiToolControl,
    public int_signalMask,
    public int_callStackUnwinding,
-   public int_BGQData
+   public int_BGQData,
+   public int_remoteIO
+
 {
    friend class ComputeNode;
    friend class HandlerBGQStartup;
@@ -176,6 +178,10 @@ class bgq_process :
    virtual void bgq_getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
    virtual void bgq_getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
 
+   virtual bool plat_getFileNames(FileSet &result, std::set<response::ptr> &resps);
+   virtual bool plat_getFileStatData(std::string filename, std::set<response::ptr> &resps);
+   virtual bool plat_getFileDataAsync(std::string file, Dyninst::Offset offset);
+   
   private:
    typedef Transaction<QueryMessage, QueryAckMessage> QueryTransaction;
    typedef Transaction<UpdateMessage, UpdateAckMessage> UpdateTransaction;
@@ -200,11 +206,12 @@ class bgq_process :
 
    unsigned int page_size;
    Address interp_base;
-   BGQData *bgqdata;
 
    GetProcessDataAckCmd get_procdata_result;
    GetAuxVectorsAckCmd get_auxvectors_result;
    GetThreadListAckCmd *get_thread_list;
+
+   int_eventAsyncFileRead *cur_file_read;
 
    EventControlAuthority::ptr pending_control_authority; //Used for releasing control authority
    int_eventControlAuthority *stopwait_on_control_authority; //Used for gaining control authority
@@ -304,7 +311,6 @@ struct buffer_t {
    }
 
 };
-
 
 class ComputeNode
 {
@@ -456,6 +462,8 @@ class DecoderBlueGeneQ : public Decoder
    bool decodeReleaseControlAck(ArchEventBGQ *archevent, bgq_process *proc, int err_code, std::vector<Event::ptr> &events);
    bool decodeControlAck(ArchEventBGQ *ev, bgq_process *qproc, vector<Event::ptr> &events);
    bool decodeLWPRefresh(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd);
+   bool decodeFileContents(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, unsigned int rc, 
+                           std::vector<Event::ptr> &events);
 
 
    Event::ptr createEventDetach(bgq_process *proc, bool err);

@@ -1329,6 +1329,18 @@ class int_BGQData : virtual public int_process
    virtual void bgq_getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const = 0;
 };
 
+class int_RemoteIO : virtual public int_process
+{
+   virtual bool plat_getFileNames(FileSet &result, std::set<response::ptr> &resps) = 0;
+   bool getFileNames(FileSet &result);
+   
+   virtual bool plat_getFileStatData(std::string filename, std::set<response::ptr> &resps) = 0;
+   bool getFileStatData(FileSet &files);
+
+   bool getFileDataAsync(FileSet &files);
+   virtual bool plat_getFileDataAsync(std::string file, Dyninst::Offset offset) = 0;
+};
+
 struct clearError {
    void operator()(Process::ptr p) {
       p->clearLastError();

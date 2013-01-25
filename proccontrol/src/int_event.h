@@ -168,13 +168,28 @@ class int_eventControlAuthority {
    data_response::ptr dresp;
 };
 
+class int_eventAsyncFileRead {
+  public:
+   int_eventAsyncFileRead();
+   ~int_eventAsyncFileRead();
+
+   void *data;
+   size_t size;
+   size_t orig_size;
+   void *to_free;
+   std::string filename;
+   size_t offset;
+   int errorcode;
+};
+
 class int_eventAsyncIO {
   public:
    enum asyncio_type {
       memread,
       memwrite,
       regallread,
-      regallwrite
+      regallwrite,
+      fileread;
    };
 
    int_eventAsyncIO(response::ptr resp_, asyncio_type);

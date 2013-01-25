@@ -822,6 +822,27 @@ class PC_EXPORT EventAsyncSetAllRegs : public EventAsyncIO {
    ~EventAsyncSetAllRegs();
 };
 
+class PC_EXPORT EventAsyncFileRead : public Event {
+   friend void boost::checked_delete<EventAsyncSetAllRegs>(EventAsyncSetAllRegs *);
+   friend void boost::checked_delete<const EventAsyncSetAllRegs>(const EventAsyncSetAllRegs *);
+   int_eventAsyncFileRead *iev;
+  public:
+   typedef boost::shared_ptr<EventAsyncFileRead> ptr;
+   typedef boost::shared_ptr<const EventAsyncFileRead> const_ptr;
+   
+   EventAsyncFileRead(int_eventAsyncFileRead *iev_);
+   ~EventAsyncFileRead();
+   
+   std::string getFilename() const;
+   size_t getReadSize() const;
+   Dyninst::Offset getReadOffset() const;
+
+   void *getBuffer() const;
+   size_t getBufferSize() const;
+   
+
+};
+
 }
 }
 

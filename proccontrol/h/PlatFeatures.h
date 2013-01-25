@@ -341,39 +341,54 @@ struct stat64_ret_t {
 };
 
 struct FileInfo {
-   FileInfo(std::string f) : filename(f), stat_results(NULL) {}
-   FileInfo() : stat_results(NULL) {}
-   ~FileInfo() { if (stat_results) free(stat_results); stat_results = NULL; }
+   FileInfo(std::string f);
+   FileInfo();
+   ~FileInfo();
 
    std::string filename;
    stat64_ret_t *stat_results; //Filled in by getFileStatData
 };
+
 typedef std::multimap<Process::const_ptr, FileInfo> FileSet;
 
 class PC_EXPORT RemoteIO
 {
   protected:
-   RemoteIO();
-   virtual ~RemoteIO();
+   Process::weak_ptr proc;
   public:
+   RemoteIO(Process::ptr proc);
+   virtual ~RemoteIO();
 
+   //Construct filesets based on filenames, without doing a getFileNames
+   FileSet &getFileSet(std::string filename);
+   FileSet &getFileSet(std::set<std::string> filenames);
+   void addToFileSet(std::string filename, FileSet &fs);
+  
    //Fetches filenames from BGQ's persisent memory ramdisk
-   bool getFileNames(std::vector<std::string> &filenames) const;
-   static bool getFileNames(ProcessSet::const_ptr pset, FileSet &result);
+   bool getFileNames(FileSet &result);
 
    //Get data as per a stat system call, fill in the FileInfo objects
-   bool getFileStatData(FileInfo &fi) const;
-   static bool getFileStatData(FileSet &fset);
+   bool getFileStatData(FileSet &fset);
 
    //These are whole file reads and produce EventAsyncFileRead callbacks
-   bool readFileContents(const FileInfo &fi) const;
-   static bool readFileConents(const FileSet &fset);
+   bool readFileContents(const FileSet &fset); 
+};
 
-   //Partial file reads, also produce EventAsyncFileRead callbacks
-   bool readFileContents(const FileInfo &fi, Dyninst::Offset offset, size_t read_size);
-   static bool readFileConents(const FileSet &fset, Dyninst::Offset offset, size_t read_size);
-     
-   bool readFileContents(std::string filename, size_t offset, size_t numbytes, unsigned char* &result);
+class PC_EXPORT RemoteIOSet
+{
+  protected:
+   ProcessSet::weak_ptr procs;
+  public:
+   RemoteIOSet(ProcessSet::ptr procs_);
+   virtual ~RemoteIO();
+
+   FileSet &getFileSet(std::string filename);
+   FileSet &getFileSet(std::set<std::string> filenames);
+   void addToFileSet(std::string filename, FileSet &fs);
+
+   bool getFileNames(FileSet &result);
+   bool getFileStatData(FileSet &fset);
+   bool readFileContents(const FileSet &fset);
 };
 
 }

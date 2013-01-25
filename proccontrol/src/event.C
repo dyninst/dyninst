@@ -1025,7 +1025,6 @@ int_eventControlAuthority *EventControlAuthority::getInternalEvent() const
    return iev;
 }
 
-
 int_eventBreakpoint::int_eventBreakpoint(Address a, sw_breakpoint *, int_thread *thr) :
    addr(a),
    hwbp(NULL),
