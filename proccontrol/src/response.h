@@ -51,6 +51,8 @@ class response : public boost::enable_shared_from_this<response> {
    friend void boost::checked_delete<response>(response *);
    friend void boost::checked_delete<const response>(const response *);
    friend class responses_pending;
+   friend unsigned newResponseID();
+   friend unsigned newResponseID(unsigned);   
   protected:
    Dyninst::ProcControlAPI::Event::ptr event;
 
@@ -325,5 +327,8 @@ class ResponseSet {
   unsigned getIDByIndex(unsigned int index, bool &found) const;
   static ResponseSet *getResponseSetByID(unsigned);
 };
+
+unsigned newResponseID();
+unsigned newResponseID(unsigned size);
 
 #endif
