@@ -45,7 +45,7 @@ endif
 OBJS         = $(SRCS:%.C=%.o)
 
 CXXFLAGS    += -Wall
-LIBS        += -ldyninstAPI -lstackwalk -lpcontrol -lpatchAPI -lparseAPI -linstructionAPI -lsymtabAPI -lsymLite -ldynDwarf -ldynElf -lcommon -pthread
+LIBS        += -ldyninstAPI -lstackwalk -linjectorAPI -lpcontrol -lpatchAPI -lparseAPI -linstructionAPI -lsymtabAPI -lsymLite -ldynDwarf -ldynElf -lcommon -pthread
 
 # The echo will remove the quotes
 LIBS += $(shell echo $(DEMANGLER_LINK))
