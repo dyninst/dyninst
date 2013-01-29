@@ -109,7 +109,7 @@ HybridAnalysis::HybridAnalysis(BPatch_hybridMode mode, BPatch_process* proc)
     bpatchCodeDiscoveryCB = NULL;
     bpatchSignalHandlerCB = NULL;
     sharedlib_runtime = 
-        proc_->getImage()->findModule("libdyninstAPI_RT", true);
+        proc_->getImage()->findModule("dyninstAPI_RT", true);
     assert(sharedlib_runtime);
 	virtualFreeAddr_ = 0;
 

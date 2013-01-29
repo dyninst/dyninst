@@ -363,7 +363,7 @@ class int_process
    bool setMemoryAccessRights(Dyninst::Address addr, size_t size,
                               Process::mem_perm rights,
                               Process::mem_perm& oldRights);
-   // FIXME pure virtual function
+   // Zuyu FIXME pure virtual function
    virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
                                            Process::mem_perm& rights);
    virtual bool plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
@@ -854,6 +854,7 @@ public:
    virtual bool getStackBase(Dyninst::Address &addr);
    virtual bool getStackSize(unsigned long &size);
    virtual bool getTLSPtr(Dyninst::Address &addr);
+   virtual Dyninst::Address getThreadInfoBlockAddr();
       
    // Windows-only; default implementation is "yes, we're a user thread"
    virtual bool isUser() const { return true; }
