@@ -7,6 +7,7 @@
 #include "Symbol.h"
 #include "Symtab.h"
 #include "PCProcess.h"
+#include <sys/mman.h>
 
 using namespace Dyninst;
 using namespace InjectorAPI;
@@ -33,20 +34,23 @@ bool Codegen::generateLinux() {
    Address dlopen_addr = 0;
 
     int mode = DLOPEN_MODE;
-
     bool useHiddenFunction = false;
     bool needsStackUnprotect = false;
     
     do {
        dlopen_addr = findSymbolAddr(DL_OPEN_FUNC_EXPORTED, true, true); 
-       if (dlopen_addr) break;
+       if (dlopen_addr) {
+          break;
+       }
        
        // This approach will work if libc and the loader have symbols
        // Note: this is more robust than the next approach
        useHiddenFunction = true;
        needsStackUnprotect = true;
        dlopen_addr = findSymbolAddr(DL_OPEN_FUNC_NAME, true, true);
-       if (dlopen_addr) break;
+       if (dlopen_addr) {
+          break;
+       }
        
        // If libc and the loader don't have symbols, we need to take a
        // different approach. We still need to the stack protection turned
@@ -56,8 +60,10 @@ bool Codegen::generateLinux() {
        needsStackUnprotect = false;
        mode |= __RTLD_DLOPEN;
        dlopen_addr = findSymbolAddr(DL_OPEN_LIBC_FUNC_EXPORTED, true, true);
-       if (dlopen_addr) break;
-       
+       if (dlopen_addr) {
+          break;
+       }
+
        // We can't go farther without parsing
        return false;
     } while(0);
@@ -78,9 +84,12 @@ bool Codegen::generateLinux() {
        arguments.push_back(libbase);
        arguments.push_back(mode);
     }
+
     generateNoops();
     codeStart_ = buffer_.curAddr();
-
+    
+    generatePreamble();
+    
     if (needsStackUnprotect) {
        if (!generateStackUnprotect()) return false;
     }
@@ -150,15 +159,16 @@ bool Codegen::generateStackUnprotect() {
    if (!var_addr || !mprotect_addr) return false;
 
    Address page_start;
-   unsigned size;
-   unsigned pagesize = getpagesize();
+   Address pagesize = getpagesize();
 
    page_start = var_addr & ~(pagesize - 1);
-   size = var_addr - page_start + sizeof(int);
+
 
    std::vector<Address> args;
    args.push_back(page_start);
-   args.push_back(size);
+   args.push_back(pagesize);
+   args.push_back(PROT_READ | PROT_WRITE | PROT_EXEC); // read | write | execute
+
    return generateCall(mprotect_addr, args);
 }
 

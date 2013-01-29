@@ -30,7 +30,6 @@ bool Codegen::generate() {
       return false;
    }
 
-
    buffer_.initialize(codeStart_, size);
 
    bool ret = false;
@@ -94,18 +93,13 @@ Address Codegen::findSymbolAddr(const std::string name, bool func, bool saveTOC)
  
 Address Codegen::copyString(std::string name) {
    Address ret = buffer_.curAddr();
-
    unsigned strsize = name.length() + 1;
-   
    // Round to multiple of 4
    strsize += 3; strsize -= (strsize % 4);
-
    buffer_.copy(name.begin(), name.end());
-
    for (unsigned i = 0; i < (strsize - name.length()); ++i) {
       buffer_.push_back((unsigned char) 0x0);
    }
-
    return ret;
 }
 
@@ -188,3 +182,18 @@ bool Codegen::generateTrap() {
    return true;
 }
 
+
+bool Codegen::generatePreamble() {
+   switch (proc_->getArchitecture()) {
+      case Arch_x86:
+         return generatePreambleIA32();
+      case Arch_x86_64:
+         return generatePreambleAMD64();
+      case Arch_ppc32:
+         return generatePreamblePPC32();
+      case Arch_ppc64:
+         return generatePreamblePPC64();
+      default:
+         return false;
+   }
+}

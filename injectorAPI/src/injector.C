@@ -4,6 +4,7 @@
 #include "codegen.h"
 #include "Symtab.h"
 #include <iostream>
+#include "InstructionDecoder.h"
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -29,7 +30,65 @@ bool Injector::inject(std::string libname) {
    // Don't try to execute a library name...
    irpc->setStartOffset(codegen.startOffset());
 
-   proc_->runIRPCSync(irpc);
+   // DEBUG
+
+#if 0
+   unsigned char *tmp = (unsigned char *)codegen.buffer().start_ptr();
+   tmp += codegen.startOffset();
+
+   InstructionAPI::InstructionDecoder d(tmp, codegen.buffer().size(), proc_->getArchitecture());
+   Address foo = codegen.buffer().startAddr() + codegen.startOffset();
+   InstructionAPI::Instruction::Ptr insn = d.decode();
+   while(insn) {
+      cerr << "\t" << hex << foo << ": " << insn->format(foo) << dec << endl;
+      foo += insn->size();
+      insn = d.decode();
+   }
+
+   foo = codegen.buffer().startAddr();
+   tmp = (unsigned char *)codegen.buffer().start_ptr();
+   for (unsigned i = 0; i < codegen.buffer().size(); ++i) {
+
+      cerr << hex << foo + i << ": " << (unsigned int)(tmp[i]) << " " << tmp[i] << endl;
+   }
+
+   unsigned long *bar = (unsigned long *)tmp;
+   for (unsigned i = 0; i < (codegen.buffer().size() / sizeof(unsigned long)); ++i) {
+      cerr << hex << foo + i*sizeof(long) << ": " << bar[i] << dec << endl;
+   }
+#endif
+
+   bool res = proc_->runIRPCSync(irpc);
+   
+   if (!res) {
+      // ProcControl has an annoying case where an event handler wanted a process
+      // to stay paused in the middle of an IRPC, which means ... we'll never finish
+      // that IRPC in sync mode. So we continue the poor thing by hand. 
+      bool done = false;
+      while (!done) {
+
+         if (proc_->isTerminated()) {
+            fprintf(stderr, "IRPC on terminated process, ret false!\n");
+            return false;
+         }
+         
+         if (ProcControlAPI::getLastError() != ProcControlAPI::err_notrunning) {
+            // Something went wrong
+            return false;
+         }
+         else {
+            irpc->continueStoppedIRPC();
+            
+            res = proc_->handleEvents(true);
+            
+            if (irpc->state() == ProcControlAPI::IRPC::Done) {
+               done = true;
+            }
+         }
+      }
+   }
+
+   
 
    // We used to check if the library was loaded, but it's too risky with
    // symlinks etc. 

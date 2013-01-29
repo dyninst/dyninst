@@ -13,7 +13,7 @@ DEPENDDIR = ./depends
 VPATH 	= ../src $(DEPENDDIR) ../src/dyninst
 
 IFLAGS = -I../../dyninstAPI/h -I../../symtabAPI/h -I../../dynutil/h -I../../instructionAPI/h -I../../proccontrol/h -I../../patchAPI/h -I../../stackwalk/h -I../../dataflowAPI/h -I../../external
-LFLAGS = -L../../common/$(PLATFORM) -L../../dwarf/$(PLATFORM) -L../../elf/$(PLATFORM) -L../../symlite/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../parseAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../patchAPI/$(PLATFORM) -L../../stackwalk/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
+LFLAGS = -L../../common/$(PLATFORM) -L../../dwarf/$(PLATFORM) -L../../elf/$(PLATFORM) -L../../symlite/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../parseAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../patchAPI/$(PLATFORM) -L../../stackwalk/$(PLATFORM) -L../../injectorAPI/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
 
 #######################################################################
 ### We don't want all of the CFLAGS stuff that came from make.config.
@@ -128,6 +128,7 @@ ALL_COMP_DIRS += $(TO_CORE)/proccontrol/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/dyninstAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/symtabAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/instructionAPI/$(PLATFORM)
+ALL_COMP_DIRS += $(TO_CORE)/injectorAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/patchAPI/$(PLATFORM)
 
 
@@ -509,7 +510,7 @@ $(OBJS_LIBTESTLAUNCH): %.o :  ../src/%.C ../src/%.h $(DEPENDDIR)/%.dep
 
 $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lpcontrol -lstackwalk -lpatchAPI -lparseAPI -lsymtabAPI -linstructionAPI -lcommon -ldynDwarf -ldynElf -lsymLite $(COMPONENT_LDFLAGS)
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lpcontrol -lstackwalk -linjectorAPI -lpatchAPI -lparseAPI -lsymtabAPI -linstructionAPI -lcommon -ldynDwarf -ldynElf -lsymLite $(COMPONENT_LDFLAGS)
 
 $(LIBSYMTABCOMP) : $(OBJS_SYMTABCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<

@@ -1,5 +1,5 @@
 #Don't add tests or parseThat to Everything
-Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI injectorAPI dynC_API parseThat
+Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk injectorAPI dyninstAPI_RT dyninstAPI dynC_API parseThat
 
 Common          = dynutil common
 Dwarf           = ${Common} dwarf
