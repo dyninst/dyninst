@@ -149,7 +149,6 @@ class PC_EXPORT Library
    void setData(void *p) const;
 };
 
-
 class PC_EXPORT LibraryPool
 {
    friend class ::int_process;
@@ -578,6 +577,7 @@ class PC_EXPORT Thread
    Dyninst::Address getStackBase() const;
    unsigned long getStackSize() const;
    Dyninst::Address getTLS() const;
+   Dyninst::Address getThreadInfoBlockAddr() const;
 
    /**
     * IRPC

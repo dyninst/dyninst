@@ -582,7 +582,6 @@ bool int_process::plat_execed()
    return true;
 }
 
-
 bool int_process::forked()
 {
    ProcPool()->condvar()->lock();
@@ -742,6 +741,7 @@ int_process::creationMode_t int_process::getCreationMode() const
 {
    return creation_mode;
 }
+
 void int_process::setContSignal(int sig) {
     continueSig = sig;
 }
@@ -905,6 +905,7 @@ bool int_process::plat_waitAndHandleForProc()
 }
 
 int_process *int_process::in_waitHandleProc = NULL;
+
 bool int_process::waitAndHandleForProc(bool block, int_process *proc, bool &proc_exited)
 {
    assert(in_waitHandleProc == NULL);
@@ -4176,6 +4177,14 @@ bool int_thread::getTLSPtr(Dyninst::Address &)
    perr_printf("Unsupported attempt to get TLS on %d/%d\n", llproc()->getPid(), getLWP());
    setLastError(err_unsupported, "getTLSPtr not supported on this platform\n");
    return false;
+}
+
+Dyninst::Address int_thread::getThreadInfoBlockAddr()
+{
+   perr_printf("Unsupported attempt to get ThreadInfoBlock Address on %d/%d\n",
+	           llproc()->getPid(), getLWP());
+   setLastError(err_unsupported, "getThreadInfoBlockAddr not supported on this platform\n");
+   return 0;
 }
 
 unsigned int_thread::hwBPAvail(unsigned) {
@@ -7867,6 +7876,18 @@ Dyninst::Address Thread::getTLS() const
       return 0;
    }
    return addr;
+}
+
+Dyninst::Address Thread::getThreadInfoBlockAddr() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("getThreadInfoBlockAddr on deleted thread\n");
+      setLastError(err_exited, "Thread is exited");
+      return 0;
+   }
+
+   return llthread_->getThreadInfoBlockAddr();
 }
 
 IRPC::const_ptr Thread::getRunningIRPC() const

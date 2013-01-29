@@ -337,7 +337,7 @@ bool PCProcess::getMemoryAccessRights(Address addr, size_t size,
 void PCProcess::changeMemoryProtections(Address addr, size_t size,
                                         PCMemPerm rights, bool setShadow) {
     PCMemPerm oldRights;
-    unsigned pageSize = proc()->getMemoryPageSize();
+    unsigned pageSize = getMemoryPageSize();
 
 	Address pageBase = addr - (addr % pageSize);
 	size += (addr % pageSize);
@@ -352,11 +352,11 @@ void PCProcess::changeMemoryProtections(Address addr, size_t size,
                                             rights, oldRights)) {
 			mal_printf("ERROR: failed to set access rights "
                        "for page %lx, %s[%d]\n", addr, FILE__, __LINE__);
-		} else if (proc()->isMemoryEmulated() && setShadow) {
+		} else if (isMemoryEmulated() && setShadow) {
 			Address shadowAddr = 0;
 			PCMemPerm shadowRights;
 			bool valid = false;
-			boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(idx);
+			boost::tie(valid, shadowAddr) = getMemEm()->translate(idx);
 			if (!valid) {
 				mal_printf("WARNING: set access rights on page %lx that has "
 				           "no shadow %s[%d]\n",addr,FILE__,__LINE__);
@@ -883,13 +883,11 @@ mapped_object* PCProcess::createObjectNoFile(Address addr)
 
     // WindowsAPI VirtualQueryEx rounds down to pages size,
     // so we need to round up first.
-    Address ObjOffset = closestObjEnd % proc()->proc()->getMemoryPageSize();
-    if (proc()->proc() && ObjOffset) {
-        closestObjEnd = closestObjEnd - ObjOffset +
-            proc()->proc()->getMemoryPageSize();
+    Address ObjOffset = closestObjEnd % getMemoryPageSize();
+    if (ObjOffset) {
+        closestObjEnd = closestObjEnd - ObjOffset + getMemoryPageSize();
     }
-    if (proc()->proc() && readDataSpace((void*)addr, proc()->getAddressWidth(),
-                                        &testRead, false)) {
+    if (readDataSpace((void*)addr, getAddressWidth(), &testRead, false)) {
 		// create a module for the region enclosing this address
         ProcControlAPI::Process::MemoryRegion memRegion;
         if (!pcProc_->findAllocatedRegionAround(addr, memRegion)) {
@@ -911,7 +909,7 @@ mapped_object* PCProcess::createObjectNoFile(Address addr)
 
         // read region into this PCProcess
         void* rawRegion = malloc(regionSize);
-		if (!proc()->readDataSpace((void *)memRegion.first, regionSize, rawRegion, true)) {
+		if (!readDataSpace((void *)memRegion.first, regionSize, rawRegion, true)) {
             mal_printf("Error: failed to read memory region [%lx, %lx]\n",
                        memRegion.first, memRegion.second);
 			printSysError(GetLastError());
@@ -929,7 +927,7 @@ mapped_object* PCProcess::createObjectNoFile(Address addr)
                             rawRegion,        /* rawPtr */
                             true);            /* shared */
         mapped_object *obj = mapped_object::createMappedObject
-            (desc, this, proc()->getHybridMode(), false);
+            (desc, this, getHybridMode(), false);
         if (obj != NULL) {
             obj->setMemoryImg();
             //mapped_objects.push_back(obj);
@@ -1006,8 +1004,60 @@ bool PCProcess::dumpCore(std::string coreFile)
 
 bool PCProcess::hideDebugger()
 {
-	assert(0);
-	return false;
+	Dyninst::ProcControlAPI::Thread::const_ptr threadPtr_ = pcProc_->threads().getInitialThread();
+	if (!threadPtr_)
+		return false;
+	Address tibPtr = threadPtr_->getThreadInfoBlockAddr();
+    if (!tibPtr) {
+        return false;
+    }
+
+    // read in address of PEB
+    unsigned int pebPtr;
+    if (!readDataSpace((void*)(tibPtr+48), getAddressWidth(), (void*)&pebPtr, false)) {
+        fprintf(stderr, "%s[%d] Failed to read address of Process Environment "
+                "Block at 0x%x, which is TIB + 0x30\n", FILE__,__LINE__,tibPtr+48);
+        return false;
+    }
+
+    // patch up the processBeingDebugged flag in the PEB
+    unsigned char flag;
+    if (!readDataSpace((void*)(pebPtr+2), 1, (void*)&flag, true)) 
+        return false;
+    if (flag) {
+        flag = 0;
+        if (!writeDataSpace((void*)(pebPtr+2), 1, (void*)&flag)) 
+            return false;
+    }
+
+    //while we're at it, clear the NtGlobalFlag
+    if (!readDataSpace((void*)(pebPtr+0x68), 1, (void*)&flag, true)) 
+        return false;
+    if (flag) {
+        flag = flag & 0x8f;
+        if (!writeDataSpace((void*)(pebPtr+0x68), 1, (void*)&flag)) 
+            return false;
+    }
+
+    // clear the heap flags in the PEB
+    unsigned int heapBase;
+    unsigned int flagWord;
+    if (!readDataSpace((void*)(pebPtr+0x18), 4, (void*)&heapBase, true)) 
+        return false;
+
+    // clear the flags in the heap itself
+    if (!readDataSpace((void*)(heapBase+0x0c), 4, (void*)&flagWord, true)) 
+        return false;
+    flagWord = flagWord & (~0x50000062);
+    if (!writeDataSpace((void*)(heapBase+0x0c), 4, (void*)&flagWord)) 
+        return false;
+    if (!readDataSpace((void*)(heapBase+0x10), 4, (void*)&flagWord, true)) 
+        return false;
+    flagWord = flagWord & (~0x40000060);
+    if (!writeDataSpace((void*)(heapBase+0x10), 4, (void*)&flagWord)) 
+        return false;
+
+    return true;
 }
 
 unsigned long PCProcess::setAOutLoadAddress(fileDescriptor &desc)
