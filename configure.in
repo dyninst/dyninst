@@ -12,6 +12,7 @@ AC_CONFIG_MACRO_DIR([autodyninst])
 
 AC_PROG_INSTALL
 
+AC_PROG_CC(gcc)
 AC_PROG_CXX(g++)
 
 m4_include([c++11x.m4])
