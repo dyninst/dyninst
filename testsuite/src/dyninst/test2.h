@@ -31,7 +31,7 @@
 #ifndef _test2_h_
 #define _test2_h_
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) || defined(os_freebsd_test)
 #define	TEST_DYNAMIC_LIB	"libm.so.6"
 #define TEST_DYNAMIC_LIB2	"libresolv.so"
 #elif defined(os_windows_test)
@@ -39,8 +39,6 @@
 #define TEST_DYNAMIC_LIB_NOPATH  "libtesta.dll"
 #define TEST_DYNAMIC_LIB2        "libtestb.dll"
 #define TEST_DYNAMIC_LIB2_NOPATH "libtestb.dll"
-#define	TEST_DYNAMIC_LIB	"libX11.so.4"
-#define TEST_DYNAMIC_LIB2	"libXt.so.4"
 #endif
 
 #endif /* _test2_h_ */

@@ -471,31 +471,31 @@ endif
 
 $(OBJS_TEMPLATES): %.o : ../src/%.C
 	@echo Compiling $@
-	$(HIDE_COMP)$(M_GXX) -c -o $@ $(CXXTFLAGS) -I../src/ ../src/$*.C
+	$(HIDE_COMP)$(CXX) -c -o $@ $(CXXTFLAGS) -I../src/ ../src/$*.C
 
 test_lib_templates.o : ../src/test_lib_templates.C
 	@echo Compiling $@
-	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXTFLAGS) -I../src/ ../src/$*.C
+	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXTFLAGS) -I../src/ ../src/$*.C
 
 $(OBJS_DYNINSTCOMP_LIB): %.o : ../src/dyninst/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $@
-	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/dyninst/$*.C
+	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/dyninst/$*.C
 
 $(OBJS_SYMTABCOMP_LIB): %.o : ../src/symtab/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $@
-	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/symtab/$*.C
+	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/symtab/$*.C
 
 $(OBJS_INSTRUCTIONCOMP_LIB): %.o : ../src/instruction/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $@
-	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/instruction/$*.C
+	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/instruction/$*.C
 
 $(OBJS_PROCCONTROLCOMP_LIB): %.o : ../src/proccontrol/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $@
-	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/proccontrol/$*.C
+	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/proccontrol/$*.C
 
 $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $@
-	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
+	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 # test_info_new.gen.o is special-cased because it makes use of the
 # COMPILER_CONTROL_DEFS to determine which mutatees to enable for compilers
@@ -506,7 +506,7 @@ test_info_new.gen.o: test_info_new.gen.C
 
 $(OBJS_LIBTESTLAUNCH): %.o :  ../src/%.C ../src/%.h $(DEPENDDIR)/%.dep
 	@echo Compiling $@
-	$(HIDE_COMP)$(M_GXX) -c -fPIC -o $@ $(CXXFLAGS) -I../src/ ../src/$*.C
+	$(HIDE_COMP)$(CXX) -c -fPIC -o $@ $(CXXFLAGS) -I../src/ ../src/$*.C
 
 $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<
@@ -652,7 +652,7 @@ OUTPUT_DRIVERS = DatabaseOutputDriver.so
 
 DatabaseOutputDriver.o : ../src/DatabaseOutputDriver.C # $(DEPENDDIR)/DatabaseOutputDriver.dep
 	@echo Compiling $@
-	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
+	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 DatabaseOutputDriver.so: DatabaseOutputDriver.o $(LIBTESTSUITE) # $(DEPENDDIR)/DatabaseOutputDriver.dep
 	@echo Linking $@
