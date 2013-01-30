@@ -37,8 +37,9 @@ bool Injector::inject(std::string libname) {
    proc_->llproc()->setRunningSilent(true);
 
    std::set<Library::ptr> oldLibs;
-   std::copy(proc_->libraries().begin(), proc_->libraries().end(),
-             std::inserter(oldLibs, oldLibs.end()));
+   for (auto iter = proc_->libraries().begin(); iter != proc_->libraries().end(); ++iter) {
+	   oldLibs.insert((*iter));
+   }
 
    bool res = proc_->runIRPCSync(irpc);
    
@@ -75,9 +76,11 @@ bool Injector::inject(std::string libname) {
    std::set<Library::ptr> addedLibs;
    std::set<Library::ptr> removedLibs;
    
-   std::set_difference(proc_->libraries().begin(), proc_->libraries().end(),
-                       oldLibs.begin(), oldLibs.end(), 
-                       std::inserter(addedLibs, addedLibs.end()));
+   for (auto iter = proc_->libraries().begin(); iter != proc_->libraries().end(); ++iter) {
+	   if (oldLibs.find(*iter) == oldLibs.end()) {
+		   addedLibs.insert(*iter);
+	   }
+   }
 
    EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary(addedLibs, removedLibs));
    lib_event->setThread(irpc->llrpc()->rpc->thread()->thread());

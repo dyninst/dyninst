@@ -1,6 +1,7 @@
 #include "loadLibrary/codegen.h"
 
 using namespace Dyninst;
+using namespace ProcControlAPI;
 using namespace std;
 
 bool Codegen::generateInt() {
