@@ -1,6 +1,6 @@
 // A simple library injector
 
-#include "loadLibrary/loadLibrary.h"
+#include "loadLibrary/injector.h"
 #include "loadLibrary/codegen.h"
 #include <iostream>
 #include "int_process.h"
