@@ -1050,11 +1050,6 @@ bool BPatch_addressSpace::createRegister_NP(std::string,
 }
 #endif
 
-BPatch_object *BPatch_addressSpace::loadLibrary(const char * /*libname*/, bool /*reload*/)
-{
-        return NULL;
-}
-
 void BPatch_addressSpace::allowTraps(bool allowtraps)
 {
    std::vector<AddressSpace *> as;

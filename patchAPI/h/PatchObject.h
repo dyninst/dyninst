@@ -118,12 +118,17 @@ class PatchObject {
     PATCHAPI_EXPORT void copyCFG(PatchObject* par_obj);
     PATCHAPI_EXPORT bool splitBlock(PatchBlock *first, ParseAPI::Block *second);
 
+    void createFuncs();
+    void createBlocks();
+    void createEdges();
+
     PatchCallback *cb_;
     PatchParseCallback *pcb_;
 };
 
 template <class Iter>
    void PatchObject::funcs(Iter iter) {
+   createFuncs();
    for (FuncMap::iterator tmp = funcs_.begin(); tmp != funcs_.end(); ++tmp) {
       *iter = tmp->second;
       ++iter;
@@ -132,6 +137,7 @@ template <class Iter>
 
 template <class Iter>
    void PatchObject::blocks(Iter iter) {
+   createBlocks();
    for (BlockMap::iterator tmp = blocks_.begin(); tmp != blocks_.end(); ++tmp) {
       *iter = tmp->second;
       ++iter;
@@ -140,6 +146,7 @@ template <class Iter>
 
 template <class Iter>
    void PatchObject::edges(Iter iter) {
+   createEdges();
    for (EdgeMap::iterator tmp = edges_.begin(); tmp != edges_.end(); ++tmp) {
       *iter = tmp->second;
       ++iter;
