@@ -86,6 +86,7 @@ else
 	LDFLAGS += -L../../symlite/$(PLATFORM) -lsymLite
 endif
 
+LDFLAGS += -L../../proccontrol/$(PLATFORM) -lpcontrol
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../proccontrol/h -I../../symtabAPI/h -I../../parseAPI/h -I../../instructionAPI/h
 
