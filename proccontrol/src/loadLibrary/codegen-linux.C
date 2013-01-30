@@ -1,19 +1,15 @@
 // Linux-specific routines to generate a code sequence to load a library
 // into a target process.
 
-#include "codegen.h"
+#include "loadLibrary/codegen.h"
 #include <dlfcn.h>
 #include <iostream>
-#include "Symbol.h"
-#include "Symtab.h"
 #include "PCProcess.h"
 #include <sys/mman.h>
 
 using namespace Dyninst;
-using namespace InjectorAPI;
 using namespace std;
 using namespace ProcControlAPI;
-using namespace SymtabAPI;
 
 static const int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
 
@@ -30,7 +26,7 @@ const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 
 
-bool Codegen::generateLinux() {
+bool Codegen::generateInt() {
    Address dlopen_addr = 0;
 
     int mode = DLOPEN_MODE;
@@ -172,7 +168,10 @@ bool Codegen::generateStackUnprotect() {
    return generateCall(mprotect_addr, args);
 }
 
+#if 0
+
 bool Codegen::findTOC(Symbol *sym, Library::ptr lib) {
+   return false;
    if (proc_->getArchitecture() != Arch_ppc64) return true;
 
 
@@ -181,3 +180,4 @@ bool Codegen::findTOC(Symbol *sym, Library::ptr lib) {
    toc_ = baseTOC;
    return toc_ != 0;
 }
+#endif

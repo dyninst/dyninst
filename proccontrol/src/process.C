@@ -47,6 +47,8 @@
 #include "proccontrol/src/windows_thread.h"
 #endif
 
+#include "proccontrol/src/loadLibrary/injector.h"
+
 #include <climits>
 #include <cstring>
 #include <cassert>
@@ -6271,6 +6273,18 @@ LibraryPool &Process::libraries()
    return llproc_->libpool;
 }
 
+bool Process::addLibrary(std::string library) {
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("addLibrary on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+
+   Injector inj(this);
+   return inj.inject(library);
+}
+
 bool Process::continueProc()
 {
    Process::ptr me = shared_from_this();
@@ -8745,3 +8759,4 @@ void int_thread::terminate() {
 void int_thread::plat_terminate() {
 	assert(0 && "Unimplemented!");
 }
+

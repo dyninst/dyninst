@@ -132,6 +132,8 @@ public:
     void setStopThread(DWORD stopthr) { assert(stopthr_ == 0); stopthr_ = stopthr; }
     void clearStopThread() { stopthr_ = 0; }
     DWORD getStopThread() { return stopthr_; }
+
+
 private:
 	HANDLE hproc;
 	HANDLE hfile;

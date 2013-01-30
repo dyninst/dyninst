@@ -144,6 +144,8 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual FollowFork::follow_t fork_isTracking();
    virtual LWPTracking *getLWPTracking();
    virtual bool plat_lwpChangeTracking(bool b);
+
+
   protected:
    int computeAddrWidth(Dyninst::Architecture me);
    FollowFork *fork_tracker;

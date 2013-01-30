@@ -35,6 +35,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <iterator>
 
 #include "dyntypes.h"
 #include "dyn_regs.h"
@@ -158,7 +159,7 @@ class PC_EXPORT LibraryPool
    LibraryPool();
    ~LibraryPool();
  public:
-  class PC_EXPORT iterator {
+   class PC_EXPORT iterator  {
       friend class Dyninst::ProcControlAPI::LibraryPool;
    private:
       std::set<int_library *>::iterator int_iter;
@@ -170,9 +171,15 @@ class PC_EXPORT LibraryPool
       bool operator!=(const iterator &i) const;
       LibraryPool::iterator operator++();
       LibraryPool::iterator operator++(int);
+
+      typedef Library::ptr value_type;
+      typedef int difference_type;
+      typedef Library::ptr *pointer;
+      typedef Library::ptr &reference;
+      typedef std::forward_iterator_tag iterator_category;
   };
 
-  class PC_EXPORT const_iterator {
+   class PC_EXPORT const_iterator  {
      friend class Dyninst::ProcControlAPI::LibraryPool;
   private:
      std::set<int_library *>::iterator int_iter;
@@ -184,6 +191,12 @@ class PC_EXPORT LibraryPool
      bool operator!=(const const_iterator &i);
      LibraryPool::const_iterator operator++();
      LibraryPool::const_iterator operator++(int);
+
+      typedef Library::const_ptr value_type;
+      typedef int difference_type;
+      typedef Library::const_ptr *pointer;
+      typedef Library::const_ptr &reference;
+      typedef std::forward_iterator_tag iterator_category;
   };
 
   iterator begin();
@@ -460,6 +473,9 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
     **/
    const LibraryPool &libraries() const;
    LibraryPool &libraries();
+
+   // Cause a library to be loaded into the process (via black magic)
+   bool addLibrary(std::string libname);
 
    /**
     * Breakpoints

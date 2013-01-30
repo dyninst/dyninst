@@ -1,10 +1,10 @@
 // x86-specific routines
 
-#include "codegen.h"
+#include "loadLibrary/codegen.h"
 #include <iostream>
 
 using namespace Dyninst;
-using namespace InjectorAPI;
+using namespace ProcControlAPI;
 using namespace std;
 
 bool Codegen::generateCallIA32(Address addr, const std::vector<Address> &args) {

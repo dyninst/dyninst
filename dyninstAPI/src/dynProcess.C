@@ -52,7 +52,6 @@
 #include "symtabAPI/h/SymtabReader.h"
 #include "patchAPI/h/PatchMgr.h"
 #include "patchAPI/h/Point.h"
-#include "Injector.h"
 
 
 #include <sstream>
@@ -846,8 +845,7 @@ bool PCProcess::loadRTLib() {
       return true;
    }
    
-   InjectorAPI::Injector injector(pcProc_);
-   if (!injector.inject(dyninstRT_name)) return false;
+   if (!pcProc_->addLibrary(dyninstRT_name)) return false;
 
 #if 0
    if(!postRTLoadRPC())

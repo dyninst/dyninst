@@ -11,15 +11,11 @@
 
 namespace Dyninst {
 
-   namespace SymtabAPI {
-      class Symbol;
-   };
-
-namespace InjectorAPI {
+namespace ProcControlAPI {
 
 class Codegen {
   public:
-   Codegen(ProcControlAPI::Process::ptr proc, 
+   Codegen(ProcControlAPI::Process *proc, 
            std::string libname);
    ~Codegen();
 
@@ -32,16 +28,20 @@ class Codegen {
   private:
    
    unsigned estimateSize();
-   bool generateLinux();
-   bool generateWindows();
+   bool generateInt();
    Address findSymbolAddr(const std::string name, bool func, bool saveTOC);
    Address copyString(std::string);
    Address copyBuf(void *buf, unsigned size);
    Address copyByte(unsigned char);
    Address copyInt(unsigned int);
    Address copyLong(unsigned long);
+
+#if defined(os_linux)
    Address buildLinuxArgStruct(Address libbase, unsigned mode);
    bool generateStackUnprotect();
+//   bool findTOC(SymtabAPI::Symbol *sym, ProcControlAPI::Library::ptr lib);
+#endif
+
    bool generateCall(Address addr, const std::vector<Address> &args);
 
    bool generateCallIA32(Address addr, const std::vector<Address> &args);
@@ -57,12 +57,11 @@ class Codegen {
 
    void generatePPC32(Address val, unsigned reg);
    void generatePPC64(Address val, unsigned reg);
-   bool findTOC(SymtabAPI::Symbol *sym, ProcControlAPI::Library::ptr lib);
 
    bool generateTrap();
    bool generateNoops();
 
-   ProcControlAPI::Process::ptr proc_;
+   ProcControlAPI::Process *proc_;
    std::string libname_;
 
    Address codeStart_;
