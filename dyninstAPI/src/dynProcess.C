@@ -2411,23 +2411,31 @@ static void otherFuncBlocks(func_instance *func,
  * variables
  * f:  the overwritten function
  * ow: the set of overwritten blocks
- * ex: the set of blocks that are executing on the call stack
+ * ex: the set of blocks that are executing on the call stack that were not overwritten
  * 
  * primitives
  * R(b,s): yields set of reachable blocks for collection of blocks b, starting
  *         at seed blocks s.
  * B(f):   the blocks pertaining to function f
  * EP(f):  the entry point of function f
+ * F(b):   functions containing block b
  * 
  * calculations
  * Elim(f): the set of blocks to eliminate from function f.
  *          Elim(f) = B(f) - R( B(f)-ow , EP(f) )
  * New(f):  new function entry candidates for f's surviving blocks.
  *          If EB(f) not in ow(f), empty set
- *          Else, all blocks e such that ( e in ex AND e in Elim(f) )
+ *          Else, all blocks b such that ( b in ex AND e in Elim(f) )
  *          Eliminate New(f) elements that have ancestors in New(f)
- * Del(f):  Blocks that can be deleted altogether
- *          F - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) )
+ * Del(f):  A block can be deleted altogether if
+ *          forall f in F(b): B(F) - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) ),
+ *          b is not in the resulting set. In other words, b is not
+ *          reachable from non-overwritten blocks in the functions in
+ *          which it appears, seeded at new entry points and original
+ *          non-overwritten entry points to the function, and at f's
+ *          executing blocks if these will be deleted from the
+ *          function (they constitute an entry point into the function 
+ *          even if they've been overwritten). 
  * DeadF:   the set of functions that have no executing blocks 
  *          and were overwritten in their entry blocks
  *          EP(f) in ow(f) AND ex(f) is empty
