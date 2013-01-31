@@ -14,7 +14,7 @@ AC_PROG_INSTALL
 
 AC_PROG_CXX(g++)
 
-m4_include([c++11x.m4])
+m4_include([autodyninst/c++11x.m4])
 AX_CXX_COMPILE_STDCXX_11([noext])
 AC_SUBST(CXXFLAGS)
 
@@ -45,8 +45,8 @@ AC_SUBST(LIBRARY_DEST_VAR)
 AC_SUBST(PROGRAM_DEST_VAR)
 AC_SUBST(INCLUDE_DEST_VAR)
 
-m4_include([ax_compare_version.m4])
-m4_include([boost.m4])
+m4_include([autodyninst/ax_compare_version.m4])
+m4_include([autodyninst/boost.m4])
 
 BOOST_REQUIRE
 

@@ -4470,7 +4470,7 @@ if test "${enable_parseAPI_graphs+set}" = set; then
                      -e 's/[^0-9]//g'`
 
 
-  ax_compare_version_B=`echo "1.41" | sed -e 's/\([0-9]*\)/Z\1Z/g' \
+  ax_compare_version_B=`echo "1.42" | sed -e 's/\([0-9]*\)/Z\1Z/g' \
                      -e 's/Z\([0-9]\)Z/Z0\1Z/g' \
                      -e 's/Z\([0-9][0-9]\)Z/Z0\1Z/g' \
                      -e 's/Z\([0-9][0-9][0-9]\)Z/Z0\1Z/g' \
