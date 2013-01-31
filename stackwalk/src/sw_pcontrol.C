@@ -54,8 +54,14 @@ using namespace std;
 class PCLibraryState : public LibraryState {
 private:
    ProcDebug *pdebug;
-  
-  IntervalTree<Address, LibAddrPair> loadedLibs;
+
+   typedef std::pair<LibAddrPair, Library::ptr> cache_t;
+
+   IntervalTree<Address, cache_t> loadedLibs;
+
+   cache_t makeCache(LibAddrPair a, Library::ptr b) { return std::make_pair(a, b); }
+   bool findInCache(Process::ptr proc, Address addr, LibAddrPair &lib);
+   void removeLibFromCache(cache_t element);
 
 public:
    PCLibraryState(ProcessState *pd);
@@ -63,13 +69,14 @@ public:
 
    bool checkLibraryContains(Address addr, Library::ptr lib);
    virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib);
-   virtual bool getLibraries(std::vector<LibAddrPair> &libs);
+   virtual bool getLibraries(std::vector<LibAddrPair> &libs, bool allow_refresh);
    virtual void notifyOfUpdate();
    virtual Address getLibTrapAddress();
    virtual bool getAOut(LibAddrPair &ao);
   
-  bool updateLibraries();
-  bool cacheLibraryRanges(Library::ptr lib);
+   bool updateLibraries();
+   bool cacheLibraryRanges(Library::ptr lib);
+   bool memoryScan(Process::ptr proc, Address addr, LibAddrPair &lib);
 
    void checkForNewLib(Library::ptr lib);
 };
@@ -429,33 +436,58 @@ bool PCLibraryState::cacheLibraryRanges(Library::ptr lib)
       Address segment_start = segment.mem_addr + base;
       Address segment_end = segment_start + segment.mem_size;
 
-    loadedLibs.insert(segment_start, segment_end, LibAddrPair(lib->getName(), lib->getLoadAddress()));
+      loadedLibs.insert(segment_start, segment_end, 
+                        makeCache(LibAddrPair(lib->getName(), 
+                                              lib->getLoadAddress()), 
+                                  lib));
    }
    return true;
 }
 
+bool PCLibraryState::findInCache(Process::ptr proc, Address addr, LibAddrPair &lib) {
+   cache_t tmp;
+
+   if (!loadedLibs.find(addr, tmp)) { 
+      return false;
+   }   
+
+   Library::ptr lib_ptr = tmp.second;
+   if (proc->libraries().find(lib_ptr) != proc->libraries().end()) {
+      lib = tmp.first;
+      return true;
+   }
+   removeLibFromCache(tmp);
+   
+   return false;
+}
+
+void PCLibraryState::removeLibFromCache(cache_t element) {
+   IntervalTree<Address, cache_t>::iterator iter = loadedLibs.begin();
+
+   while(iter != loadedLibs.end()) {
+      // Can't use a for loop because I need to fiddle with
+      // increments manually.
+      cache_t found = iter->second.second;
+      if (found == element) {
+         IntervalTree<Address, cache_t>::iterator toDelete = iter;
+         ++iter;
+         loadedLibs.erase(toDelete->first);
+      }
+      else {
+         ++iter;
+      }
+   }
+}
+
 bool PCLibraryState::checkLibraryContains(Address addr, Library::ptr lib)
 {
-   std::string filename = lib->getName();
-   Address base = lib->getLoadAddress();
+   cacheLibraryRanges(lib);
 
-   SymbolReaderFactory *fact = Walker::getSymbolReader();
-   SymReader *reader = fact->openSymbolReader(filename);
-   if (!reader) {
-      sw_printf("[%s:%u] - Error could not open expected file %s\n", 
-                __FILE__, __LINE__, filename.c_str());
-      return false;
-   }
+   cache_t tmp;
 
-   int num_regions = reader->numSegments();
-   for (int i=0; i<num_regions; i++) {
-      SymSegment region;
-      reader->getSegment(i, region);
-      Address region_start = region.mem_addr + base;
-      Address region_end = region_start + region.mem_size;
-      if (region_start <= addr && region_end > addr) 
-         return true;
-   }
+   bool ret = loadedLibs.find(addr, tmp);
+   if (ret && tmp.second == lib)
+      return true;
    return false;
 }
 
@@ -472,10 +504,9 @@ void PCLibraryState::checkForNewLib(Library::ptr lib)
    StepperGroup *group = pdebug->getWalker()->getStepperGroup();
    LibAddrPair la(lib->getName(), lib->getLoadAddress());
 
-   cacheLibraryRanges(lib);
-
    group->newLibraryNotification(&la, library_load);
 }
+
 /*
 For a given address, 'addr', PCLibraryState::getLibraryAtAddr returns
 the name and load address of the library/executable that loaded over
@@ -500,10 +531,18 @@ addr.
 If, for some reason, we fail to get a DYNAMIC section then we'll stash
 that library away in 'zero_dynamic_libs' and check it when done.
 */ 
+
 bool PCLibraryState::getLibraryAtAddr(Address addr, LibAddrPair &lib)
 {
    Process::ptr proc = pdebug->getProc();
    CHECK_PROC_LIVE;
+
+   /**
+    * An OS can have a list of platform-special libs (currently only the
+    * vsyscall DSO on Linux).  Those don't appear in the normal link_map
+    * and thus won't have dynamic addresses.  Check their library range 
+    * manually.
+    **/
 
    vector<pair<LibAddrPair, unsigned int> > arch_libs;
    updateLibsArch(arch_libs);
@@ -519,21 +558,140 @@ bool PCLibraryState::getLibraryAtAddr(Address addr, LibAddrPair &lib)
       }
    }
 
-   bool ret = loadedLibs.find(addr, lib);
+   /**
+    * Look up the address in our cache of libraries
+    **/
+
+   bool ret = findInCache(proc, addr, lib);
    if (ret) {
-     return true;
+      return true;
    }
-   // Refresh cache
-   updateLibraries();
-   ret = loadedLibs.find(addr, lib);
+
+   /**
+    * Cache lookup failed. Instead of iterating over every library,
+    * look at the link map in memory. This allows us to avoid opening
+    * files.
+    **/
+
+   // Do a fast in-memory scan
+   ret = memoryScan(proc, addr, lib);
    if (ret) {
-     return true;
+      return true;
    }
 
    return false;
 }
 
-bool PCLibraryState::getLibraries(std::vector<LibAddrPair> &libs)
+bool PCLibraryState::memoryScan(Process::ptr proc, Address addr, LibAddrPair &lib) {
+   
+   LibraryPool::iterator i;
+   Library::ptr nearest_predecessor = Library::ptr();
+   signed int pred_distance = 0;
+   Library::ptr nearest_successor = Library::ptr();
+   signed int succ_distance = 0;
+
+
+   /**
+    * Search the entire library list for the dynamic sections that come
+    * directly before and after our target address (nearest_predecessor
+    * and nearest_successor).
+    *
+    * They dynamic linker (and who-knows-what on future systems) can have a 
+    * dynamic address of zero.  Remember any library with a zero dynamic
+    * address with zero_dynamic_libs, and manually check those if the
+    * nearest_successor and nearest_predecessor.
+    **/
+   std::vector<Library::ptr> zero_dynamic_libs;
+   for (i = proc->libraries().begin(); i != proc->libraries().end(); i++)
+   {
+      Library::ptr slib = *i;
+      checkForNewLib(slib);
+
+      Address dyn_addr = slib->getDynamicAddress();
+      if (!dyn_addr) {
+         zero_dynamic_libs.push_back(slib);
+         continue;
+      }
+
+      signed int distance = addr - dyn_addr;
+      if (distance == 0) {
+         lib.first = slib->getName();
+         lib.second = slib->getLoadAddress();
+         sw_printf("[%s:%u] - Found library %s contains address %lx\n",
+                   __FILE__, __LINE__, lib.first.c_str(), addr);
+         return true;
+      }
+      else if (distance < 0) {
+         if (!pred_distance || pred_distance < distance) {
+            nearest_predecessor = slib;
+            pred_distance = distance;
+         }
+      }
+      else if (distance > 0) {
+         if (!succ_distance || succ_distance > distance) {
+            nearest_successor = slib;
+            succ_distance = distance;
+         }
+      }
+   }
+
+   /**
+    * Likely a static binary, set nearest_predecessor so that
+    * the following check will test it.
+    **/
+   if (!nearest_predecessor && !nearest_successor) {
+      nearest_predecessor = proc->libraries().getExecutable();
+   }
+
+   /**
+    * Check if predessor contains our address first--this should be the typical case 
+    **/
+   if (nearest_predecessor && checkLibraryContains(addr, nearest_predecessor)) {
+      lib.first = nearest_predecessor->getName();
+      lib.second = nearest_predecessor->getLoadAddress();
+      sw_printf("[%s:%u] - Found library %s contains address %lx\n",
+                __FILE__, __LINE__, lib.first.c_str(), addr);
+      return true;
+   }
+   /**
+    * Check successor
+    **/
+   if (nearest_successor && checkLibraryContains(addr, nearest_successor)) {
+      lib.first = nearest_successor->getName();
+      lib.second = nearest_successor->getLoadAddress();
+      sw_printf("[%s:%u] - Found library %s contains address %lx\n",
+                __FILE__, __LINE__, lib.first.c_str(), addr);
+      return true;
+   }
+
+   /**
+    * The address wasn't located by the dynamic section tests.  Check
+    * any libraries without dynamic pointers, plus the executable.
+    **/
+   std::vector<Library::ptr>::iterator k = zero_dynamic_libs.begin();
+   for (; k != zero_dynamic_libs.end(); k++) {
+      if (checkLibraryContains(addr, *k)) {
+         lib.first = (*k)->getName();
+         lib.second = (*k)->getLoadAddress();
+         return true;
+      }
+   }
+   if(checkLibraryContains(addr, proc->libraries().getExecutable()))
+   {
+     
+     lib.first = proc->libraries().getExecutable()->getName();
+     lib.second = proc->libraries().getExecutable()->getLoadAddress();
+     sw_printf("[%s:%u] - Found executable %s contains address %lx\n", __FILE__,
+	       __LINE__, lib.first.c_str(), addr);
+     return true;
+   }
+   
+   sw_printf("[%s:%u] - Could not find library for addr %lx\n", 
+             __FILE__, __LINE__, addr);
+   return false;
+}
+
+bool PCLibraryState::getLibraries(std::vector<LibAddrPair> &libs, bool allow_refresh)
 {
    Process::ptr proc = pdebug->getProc();
    CHECK_PROC_LIVE;
@@ -541,7 +699,8 @@ bool PCLibraryState::getLibraries(std::vector<LibAddrPair> &libs)
    LibraryPool::iterator i;   
    for (i = proc->libraries().begin(); i != proc->libraries().end(); i++)
    {
-      checkForNewLib(*i);
+      if (allow_refresh)
+         checkForNewLib(*i);
       libs.push_back(LibAddrPair((*i)->getName(), (*i)->getLoadAddress()));
    }
 
@@ -560,24 +719,11 @@ bool PCLibraryState::updateLibraries()
    Process::ptr proc = pdebug->getProc();
    CHECK_PROC_LIVE;
 
-
-   static bool exec = false;
-
-   if (!exec) {
-     cacheLibraryRanges(proc->libraries().getExecutable());
-     exec = true;
-   }
-
-
    LibraryPool::iterator i;   
    for (i = proc->libraries().begin(); i != proc->libraries().end(); i++)
    {
       checkForNewLib(*i);
    }
-
-   vector<pair<LibAddrPair, unsigned int> > arch_libs;
-   vector<pair<LibAddrPair, unsigned int> >::iterator j;
-   updateLibsArch(arch_libs);
 
    return true;
 }

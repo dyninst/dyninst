@@ -27,15 +27,14 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#if !defined(PATCHAPI_H_BUFFER_H_)
-#define PATCHAPI_H_BUFFER_H_
+#if !defined(_BUFFER_H_)
+#define _BUFFER_H_
 
 #include <assert.h>
 #include <string.h>
 #include "dyntypes.h"
 
 namespace Dyninst {
-namespace PatchAPI {
 
 // A class to support multiple forms of code generation. The design of this class is as 
 // a tiered model:
@@ -48,15 +47,18 @@ namespace PatchAPI {
 // Dyninst internal codeGen structure that aims to be more user-friendly. Tiers 2 and 3 
 // are TODO. 
 
-class PATCHAPI_EXPORT Buffer {
+class COMMON_EXPORT Buffer {
   public:
    Buffer(Address addr, unsigned initial_size);
+   Buffer();
+   void initialize(Address addr, unsigned initial_size);
    ~Buffer();
 
    static const int ALLOCATION_UNIT;
 
    template <class InputIterator>
       void copy(InputIterator begin, InputIterator end);
+   void copy(void *buffer, unsigned size);
 
    unsigned size() const;
    unsigned max_size() const;
@@ -117,6 +119,7 @@ class PATCHAPI_EXPORT Buffer {
 
    unsigned char *start_ptr() const { return buffer_; }
 
+   Address startAddr() const { return start_; }
    Address curAddr() const { return start_ + size_; }
 
   private:
@@ -151,7 +154,6 @@ template <class Input>
    size_ += sizeof(i);
 };
 
-}
 }
 
 #endif

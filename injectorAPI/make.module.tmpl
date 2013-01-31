@@ -1,0 +1,43 @@
+# -*- makefile -*-
+# Common makefile template for the dyninstAPI library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.1 2008/06/30 19:40:26 legendre Exp $
+#
+
+SUITE_NAME	= InjectorAPI
+RELEASE_MAJOR	= 8
+RELEASE_MINOR = 0
+
+USES_LIBELF = true
+
+CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
+CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
+
+ifdef STATIC_COMPS
+STATIC_LIBRARY = true
+TARGET = libinjectorAPI.a
+else
+TARGET = libinjectorAPI.so
+endif
+
+LDFLAGS += -L../../common/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../symtabAPI/$(PLATFORM)
+
+LD		= $(GXX)
+LDFLAGS		+= -shared
+CFLAGS		+= 
+CXXFLAGS	+= 
+
+TO_INC     = ../h
+PUBLIC_H   = Injector.h
+
+SRCS	     += ../src/injector.C \
+		../src/codegen.C \
+		../src/codegen-linux.C \
+		../src/codegen-x86.C \
+		../src/codegen-ppc.C \
+		../src/codegen-win.C
+
+
+IFLAGS       += -I../src -I../h -I../../proccontrol/h -I../../symtabAPI/h -I../../dynutil/h -I../../instructionAPI/h

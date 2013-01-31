@@ -17,7 +17,8 @@ LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS =  ../src/bluegenep.C \
         ../src/notify_pipe.C \
-        ../../common/src/dthread-unix.C
+        ../../common/src/dthread-unix.C \
+	../src/loadLibrary/codegen-stub.C
 
 MYFLAGS    += -I/bgsys/drivers/ppcfloor/arch/include
 

@@ -140,6 +140,7 @@ public:
     virtual bool plat_resumeThread(int_thread *thr);
     //virtual bool plat_debuggerSuspended();
     //virtual void noteNewDequeuedEvent(Event::ptr ev);
+
 protected:
     string libThreadName;
     bool forking;

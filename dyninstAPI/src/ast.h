@@ -404,7 +404,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
         // PatchAPI compatibility
         virtual bool generate(Dyninst::PatchAPI::Point *, 
-                              Dyninst::PatchAPI::Buffer &);
+                              Dyninst::Buffer &);
 
  private:
    static AstNodePtr originalAddrNode_;

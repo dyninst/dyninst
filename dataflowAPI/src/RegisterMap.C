@@ -31,6 +31,7 @@
 #include "dataflowAPI/src/RegisterMap.h"
 #include <boost/assign/list_of.hpp>
 #include <map>
+#include <boost/config.hpp>
 
 using namespace boost::assign;
 
@@ -41,8 +42,9 @@ using namespace boost::assign;
 namespace Dyninst {
 namespace DataflowAPI {
 
-#if !defined(os_windows)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows)
    // This fails on VS2010; revisit when we move to VS2012. 
+   // Also on gcc 4.3.
 
 RegisterMap &machRegIndex_x86() {
    static RegisterMap mrmap;

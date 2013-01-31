@@ -358,16 +358,26 @@ class int_process
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result, bp_write_t bp_write);
 
-   bool getMemoryAccessRights(Dyninst::Address addr, size_t size, Process::mem_perm& rights);
-   bool setMemoryAccessRights(Dyninst::Address addr, size_t size, Process::mem_perm rights,
+   bool getMemoryAccessRights(Dyninst::Address addr, size_t size,
+                              Process::mem_perm& rights);
+   bool setMemoryAccessRights(Dyninst::Address addr, size_t size,
+                              Process::mem_perm rights,
                               Process::mem_perm& oldRights);
-   // FIXME pure virtual function
+   // Zuyu FIXME pure virtual function
    virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
                                            Process::mem_perm& rights);
    virtual bool plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
-                                           Process::mem_perm rights, Process::mem_perm& oldRights);
-   virtual bool plat_decodeMemoryRights(Process::mem_perm& rights_internal, unsigned long  rights);
-   virtual bool plat_encodeMemoryRights(Process::mem_perm  rights_internal, unsigned long& rights);
+                                           Process::mem_perm rights,
+                                           Process::mem_perm& oldRights);
+   virtual bool plat_decodeMemoryRights(Process::mem_perm& rights_internal,
+                                        unsigned long rights);
+   virtual bool plat_encodeMemoryRights(Process::mem_perm rights_internal,
+                                        unsigned long& rights);
+
+   virtual bool findAllocatedRegionAround(Dyninst::Address addr,
+                                          Process::MemoryRegion& memRegion);
+   virtual bool plat_findAllocatedRegionAround(Dyninst::Address addr,
+                                               Process::MemoryRegion& memRegion);
 
    memCache *getMemCache();
 
@@ -844,6 +854,7 @@ public:
    virtual bool getStackBase(Dyninst::Address &addr);
    virtual bool getStackSize(unsigned long &size);
    virtual bool getTLSPtr(Dyninst::Address &addr);
+   virtual Dyninst::Address getThreadInfoBlockAddr();
       
    // Windows-only; default implementation is "yes, we're a user thread"
    virtual bool isUser() const { return true; }

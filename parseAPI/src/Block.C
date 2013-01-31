@@ -112,14 +112,14 @@ bool
 Intraproc::pred_impl(Edge * e) const
 {
     bool base = EdgePredicate::pred_impl(e);
-    return base && (e->type() != CALL) && (e->type() != RET);
+    return base && (e->type() != CALL) && (e->type() != RET) && (!e->interproc());
 }
 
 bool Interproc::pred_impl(Edge *e) const 
 {
     bool base = EdgePredicate::pred_impl(e);
 
-    return !base || ((e->type() == CALL) || (e->type() == RET));
+    return !base || ((e->type() == CALL) || (e->type() == RET)) || (e->interproc());
 }
 
 bool
@@ -227,4 +227,25 @@ std::string format(EdgeTypeEnum e) {
 
 bool ParseAPI::Block::wasUserAdded() const {
    return region()->wasUserAdded(); 
+}
+
+void
+Block::getInsns(Insns &insns) const {
+ Offset off = start();
+  const unsigned char *ptr =
+    (const unsigned char *)region()->getPtrToInstruction(off);
+  if (ptr == NULL) return;
+  InstructionDecoder d(ptr, size(), obj()->cs()->getArch());
+  while (off < end()) {
+    Instruction::Ptr insn = d.decode();
+    insns[off] = insn;
+    off += insn->size();
+  }
+}
+
+InstructionAPI::Instruction::Ptr
+Block::getInsn(Offset a) const {
+   Insns insns;
+   getInsns(insns);
+   return insns[a];
 }

@@ -43,9 +43,14 @@ ifneq ($(findstring cap_mem_emulation,$(CAP_DEF)),)
 		../src/MemoryEmulator/memEmulatorAtom.C 
 endif
 
-LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI -lpcontrol -lstackwalk -lpatchAPI
+USES_DWARF_DEBUG = true
+USES_LIBELF = true
+
+LDFLAGS += -lpthread -lstackwalk -lpcontrol -lpatchAPI -lparseAPI -linstructionAPI -lsymtabAPI -ldynElf -ldynDwarf 
 
 LDFLAGS     += -L../../common/$(PLATFORM) 
+LDFLAGS     += -L../../elf/$(PLATFORM) 
+LDFLAGS     += -L../../dwarf/$(PLATFORM) 
 LDFLAGS     += -L../../symtabAPI/$(PLATFORM) 
 LDFLAGS     += -L../../instructionAPI/$(PLATFORM)
 LDFLAGS     += -L../../parseAPI/$(PLATFORM)

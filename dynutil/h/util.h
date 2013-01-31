@@ -138,6 +138,18 @@
 #endif
 #endif
 
+#if !defined(INJECTOR_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined(INJECTOR_EXPORTS)
+      #define INJECTOR_EXPORT __declspec(dllexport)
+    #else
+      #define INJECTOR_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define INJECTOR_EXPORT
+#endif
+#endif
+
 #if !defined(SYMEVAL_EXPORT)
   #if defined(_MSC_VER)
     #if defined(SYMEVAL_LIB)

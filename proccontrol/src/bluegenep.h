@@ -135,6 +135,8 @@ class bgp_process : public sysv_process, public thread_db_process, public ppc_pr
    bool BGSend(const DebuggerInterface::BG_Debugger_Msg &msg);
    static void getVersionInfo(int &protocol, int &phys, int &virt);
    static int numAttachedProcsAdd(int i);
+
+
 };
 
 class bgp_thread : public thread_db_thread

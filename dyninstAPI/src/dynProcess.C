@@ -53,6 +53,7 @@
 #include "patchAPI/h/PatchMgr.h"
 #include "patchAPI/h/Point.h"
 
+
 #include <sstream>
 
 using namespace Dyninst::ProcControlAPI;
@@ -844,20 +845,27 @@ bool PCProcess::loadRTLib() {
       return true;
    }
    
-   // If not, load it using a iRPC
-   
+   if (!pcProc_->addLibrary(dyninstRT_name)) return false;
+
+#if 0
    if(!postRTLoadRPC())
    {
       return false;
    }
+#endif
 
    bootstrapState_ = bs_loadedRTLib;
+
+   // Process the library load (we hope)
+   PCEventMuxer::handle();
 
    if( runtime_lib.size() == 0 ) {
       startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
                      __LINE__);
       return false;
    }
+
+   bootstrapState_ = bs_loadedRTLib;
 
    startup_printf("%s[%d]: finished running RPC to load RT library\n", FILE__, __LINE__);
    
@@ -1576,7 +1584,8 @@ bool PCProcess::wasCreatedViaFork() const {
 }
 
 unsigned PCProcess::getMemoryPageSize() const {
-    return memoryPageSize_;
+   assert(pcProc_);
+   return pcProc_->getMemoryPageSize();
 }
 
 int PCProcess::getPid() const {
