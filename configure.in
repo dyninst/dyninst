@@ -379,6 +379,15 @@ else
        AC_ARG_WITH(libdwarf-static,
 			[AS_HELP_STRING([--with-libdwarf-static],[Use static LIBDWARF only])],
 			[LIBDWARF_STATIC=true],)
+       AC_MSG_NOTICE([Checking for libc versions that dwarf may crash on...])
+       AC_CHECK_FILE(/lib64/libc-2.16.so,
+                        [AC_MSG_WARN(Warning: versions of libdwarf prior to 2013-01-26 may crash when parsing glibc debugging information)]
+                        [])
+       AC_CHECK_FILE(/lib/libc-2.16.so,
+                        [AC_MSG_WARN(Warning: versions of libdwarf prior to 2013-01-26 may crash when parsing glibc debugging information)]
+                        [])
+
+
    fi
 
    AC_SUBST(LIBDWARF_INC_DIR)
