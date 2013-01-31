@@ -2807,3 +2807,5 @@ void linux_process::plat_adjustSyncType(Event::ptr ev, bool gen)
    ev->setSyncType(Event::async);
    //thrd->getHandlerState().setState(int_thread::exited);
 }
+
+

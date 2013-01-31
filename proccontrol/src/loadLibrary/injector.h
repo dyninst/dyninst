@@ -6,11 +6,11 @@
 #include "PCProcess.h"
 
 namespace Dyninst {
-namespace InjectorAPI {
+namespace ProcControlAPI {
 
-class INJECTOR_EXPORT Injector {
+class Injector {
   public:
-   Injector(ProcControlAPI::Process::ptr proc);
+   Injector(ProcControlAPI::Process *proc);
    ~Injector();
 
    bool inject(std::string libname);
@@ -19,7 +19,7 @@ class INJECTOR_EXPORT Injector {
    bool libraryLoaded(std::string libname);
    bool checkIfExists(std::string libname);
 
-   ProcControlAPI::Process::ptr proc_;
+   ProcControlAPI::Process *proc_;
 };
 
 };

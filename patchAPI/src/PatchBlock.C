@@ -57,17 +57,11 @@ PatchBlock::PatchBlock(const PatchBlock *parent, PatchObject *child)
 
 void
 PatchBlock::getInsns(Insns &insns) const {
-  // Pass through to ParseAPI. They don't have a native interface, so add one.
-  Offset off = block_->start();
-  const unsigned char *ptr =
-    (const unsigned char *)block_->region()->getPtrToInstruction(off);
-  if (ptr == NULL) return;
-  InstructionDecoder d(ptr, size(), block_->obj()->cs()->getArch());
-  while (off < block_->end()) {
-    Instruction::Ptr insn = d.decode();
-    insns[obj_->codeOffsetToAddr(off)] = insn;
-    off += insn->size();
-  }
+   Insns tmp;
+   block_->getInsns(tmp);
+   for (auto iter = tmp.begin(); iter != tmp.end(); ++iter) {
+      insns[obj_->codeOffsetToAddr(iter->first)] = iter->second;
+   }
 }
 
 const PatchBlock::edgelist&

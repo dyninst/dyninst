@@ -1,18 +1,20 @@
 // A simple library injector
 
-#include "Injector.h"
-#include "codegen.h"
-#include "Symtab.h"
+#include "loadLibrary/injector.h"
+#include "loadLibrary/codegen.h"
 #include <iostream>
-#include "InstructionDecoder.h"
+#include "int_process.h"
+#include "int_handler.h"
+#include "Event.h"
+#include <algorithm>
+#include <vector>
+#include "irpc.h"
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
-using namespace InjectorAPI;
-using namespace SymtabAPI;
 using namespace std;
 
-Injector::Injector(ProcControlAPI::Process::ptr proc) :
+Injector::Injector(ProcControlAPI::Process *proc) :
    proc_(proc) {}
 
 Injector::~Injector() {}
@@ -30,33 +32,14 @@ bool Injector::inject(std::string libname) {
    // Don't try to execute a library name...
    irpc->setStartOffset(codegen.startOffset());
 
-   // DEBUG
 
-#if 0
-   unsigned char *tmp = (unsigned char *)codegen.buffer().start_ptr();
-   tmp += codegen.startOffset();
+   bool oldSilent = proc_->llproc()->isRunningSilent();
+   proc_->llproc()->setRunningSilent(true);
 
-   InstructionAPI::InstructionDecoder d(tmp, codegen.buffer().size(), proc_->getArchitecture());
-   Address foo = codegen.buffer().startAddr() + codegen.startOffset();
-   InstructionAPI::Instruction::Ptr insn = d.decode();
-   while(insn) {
-      cerr << "\t" << hex << foo << ": " << insn->format(foo) << dec << endl;
-      foo += insn->size();
-      insn = d.decode();
+   std::set<Library::ptr> oldLibs;
+   for (auto iter = proc_->libraries().begin(); iter != proc_->libraries().end(); ++iter) {
+	   oldLibs.insert((*iter));
    }
-
-   foo = codegen.buffer().startAddr();
-   tmp = (unsigned char *)codegen.buffer().start_ptr();
-   for (unsigned i = 0; i < codegen.buffer().size(); ++i) {
-
-      cerr << hex << foo + i << ": " << (unsigned int)(tmp[i]) << " " << tmp[i] << endl;
-   }
-
-   unsigned long *bar = (unsigned long *)tmp;
-   for (unsigned i = 0; i < (codegen.buffer().size() / sizeof(unsigned long)); ++i) {
-      cerr << hex << foo + i*sizeof(long) << ": " << bar[i] << dec << endl;
-   }
-#endif
 
    bool res = proc_->runIRPCSync(irpc);
    
@@ -88,7 +71,24 @@ bool Injector::inject(std::string libname) {
       }
    }
 
+   proc_->llproc()->setRunningSilent(oldSilent);
+
+   std::set<Library::ptr> addedLibs;
+   std::set<Library::ptr> removedLibs;
    
+   for (auto iter = proc_->libraries().begin(); iter != proc_->libraries().end(); ++iter) {
+	   if (oldLibs.find(*iter) == oldLibs.end()) {
+		   addedLibs.insert(*iter);
+	   }
+   }
+
+   EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary(addedLibs, removedLibs));
+   lib_event->setThread(irpc->llrpc()->rpc->thread()->thread());
+   lib_event->setProcess(proc_->llproc()->proc());
+   lib_event->setSyncType(Event::sync_thread);
+   
+   HandleCallbacks *cbhandler = HandleCallbacks::getCB();
+   cbhandler->handleEvent(lib_event);
 
    // We used to check if the library was loaded, but it's too risky with
    // symlinks etc. 
@@ -96,13 +96,8 @@ bool Injector::inject(std::string libname) {
 }
 
 bool Injector::checkIfExists(std::string name) {
-   // Let's use Symtab
-   Symtab *obj = NULL;
-   bool ret = Symtab::openFile(obj, name);
-   if (!ret || !obj) return false;
-   // This would be nice but causes faults..
-   //Symtab::closeSymtab(obj);
-   return true;
+   SymReader *objSymReader = proc_->llproc()->getSymReader()->openSymbolReader(name);
+   return (objSymReader != NULL);
 }
 
 bool Injector::libraryLoaded(std::string name) {

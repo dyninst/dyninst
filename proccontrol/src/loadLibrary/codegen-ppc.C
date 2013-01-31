@@ -1,12 +1,12 @@
 // PPC code generation routines for library injection
 
-#include "codegen.h"
+#include "loadLibrary/codegen.h"
 #include "common/h/arch-power.h"
 
 
 using namespace Dyninst;
-using namespace InjectorAPI;
 using namespace NS_power;
+using namespace ProcControlAPI;
 
 bool Codegen::generateCallPPC32(Address addr, const std::vector<Address> &args) {
    // PPC32 on Linux is basically the same thing as x86; we do indirect because

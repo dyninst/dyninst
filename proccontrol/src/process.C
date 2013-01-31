@@ -47,6 +47,8 @@
 #include "proccontrol/src/windows_thread.h"
 #endif
 
+#include "proccontrol/src/loadLibrary/injector.h"
+
 #include <climits>
 #include <cstring>
 #include <cassert>
@@ -1329,6 +1331,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
          pthrd_printf("Enqueueing new EventAsyncRead into mailbox on synchronous platform\n");
          EventAsyncRead::ptr ev = EventAsyncRead::ptr(new EventAsyncRead(iev));
          ev->setProcess(proc());
+         ev->setThread(threadPool()->initialThread()->thread());
          ev->setSyncType(Event::async);
          mbox()->enqueue(ev);
       }
@@ -1384,6 +1387,7 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
          pthrd_printf("Enqueueing new EventAsyncWrite into mailbox on synchronous platform\n");
          EventAsyncWrite::ptr ev = EventAsyncWrite::ptr(new EventAsyncWrite(iev));
          ev->setProcess(proc());
+         ev->setThread(threadPool()->initialThread()->thread());
          ev->setSyncType(Event::async);
          mbox()->enqueue(ev);
       }
@@ -5944,6 +5948,18 @@ Library::const_ptr LibraryPool::getExecutable() const
    return proc->plat_getExecutable()->up_lib;
 }
 
+LibraryPool::iterator LibraryPool::find(Library::ptr lib) {
+   LibraryPool::iterator i;
+   i.int_iter = proc->memory()->libs.find(lib->debug());
+   return i;
+}
+
+LibraryPool::const_iterator LibraryPool::find(Library::ptr lib) const {
+   LibraryPool::const_iterator i;
+   i.int_iter = proc->memory()->libs.find(lib->debug());
+   return i;
+}
+
 LibraryPool::iterator::iterator()
 {
 }
@@ -6269,6 +6285,18 @@ LibraryPool &Process::libraries()
    }
 
    return llproc_->libpool;
+}
+
+bool Process::addLibrary(std::string library) {
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("addLibrary on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+
+   Injector inj(this);
+   return inj.inject(library);
 }
 
 bool Process::continueProc()
@@ -8745,3 +8773,4 @@ void int_thread::terminate() {
 void int_thread::plat_terminate() {
 	assert(0 && "Unimplemented!");
 }
+

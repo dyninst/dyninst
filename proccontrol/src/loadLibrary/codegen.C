@@ -1,19 +1,16 @@
 // Platform-independent code generation methods; mainly function
 // lookup
 
-#include "codegen.h"
-#include "Symtab.h"
-#include "Symbol.h"
+#include "loadLibrary/codegen.h"
 #include <iostream>
+#include "int_process.h"
 
 using namespace Dyninst;
-using namespace InjectorAPI;
 using namespace ProcControlAPI;
-using namespace SymtabAPI;
 using namespace std;
 
 
-Codegen::Codegen(Process::ptr proc, std::string libname) 
+Codegen::Codegen(Process *proc, std::string libname) 
    : proc_(proc), libname_(libname), codeStart_(0), toc_(0) {}
 
 Codegen::~Codegen() {
@@ -32,20 +29,8 @@ bool Codegen::generate() {
 
    buffer_.initialize(codeStart_, size);
 
-   bool ret = false;
-   switch(proc_->getOS()) {
-      case Windows:
-         ret = generateWindows();
-         break;
-      case Linux:
-         ret = generateLinux();
-         break;
-      default:
-         break;
-   }
-   if (!ret) {
-      return false;
-   }
+   if (!generateInt()) return false;
+
    generateTrap();
    generateTrap();
 
@@ -68,25 +53,14 @@ Address Codegen::findSymbolAddr(const std::string name, bool func, bool saveTOC)
 
    for (auto li = libs.begin(); li != libs.end(); li++) {
       if ((*li)->getName().empty()) continue;
-      Symtab *obj = NULL;
-      bool ret = Symtab::openFile(obj, (*li)->getName());
-      if (!ret || !obj) continue;
- 
-      std::vector<Symbol *> syms;
-      obj->findSymbol(syms, name, 
-                      func ? Symbol::ST_FUNCTION : Symbol::ST_OBJECT,
-                      mangledName);
-      // This would be nice but causes faults
-      //Symtab::closeSymtab(obj);
 
-      if (syms.empty()) continue;
+      SymReader *objSymReader = proc_->llproc()->getSymReader()->openSymbolReader((*li)->getName());
+      if (!objSymReader) continue;
+      
+      Symbol_t lookupSym = objSymReader->getSymbolByName(name);
+      if (!objSymReader->isValidSymbol(lookupSym)) continue;
 
-      // UGLY HACK!
-      if (saveTOC) {
-         findTOC(syms[0], (*li));
-      }
-
-      return syms[0]->getOffset() + (*li)->getLoadAddress();
+      return (*li)->getLoadAddress() + objSymReader->getSymbolOffset(lookupSym);
    }
    return 0;
 }

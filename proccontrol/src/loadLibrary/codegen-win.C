@@ -1,10 +1,10 @@
-#include "codegen.h"
+#include "loadLibrary/codegen.h"
 
 using namespace Dyninst;
-using namespace InjectorAPI;
+using namespace ProcControlAPI;
 using namespace std;
 
-bool Codegen::generateWindows() {
+bool Codegen::generateInt() {
    // Windows is utterly unlike Linux. 
 
    // Well, mostly. 

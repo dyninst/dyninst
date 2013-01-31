@@ -46,7 +46,7 @@ endif
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
 
-LDFLAGS += -lpthread -linjectorAPI -lstackwalk -lpcontrol -lpatchAPI -lparseAPI -linstructionAPI -lsymtabAPI -ldynElf -ldynDwarf 
+LDFLAGS += -lpthread -lstackwalk -lpcontrol -lpatchAPI -lparseAPI -linstructionAPI -lsymtabAPI -ldynElf -ldynDwarf 
 
 LDFLAGS     += -L../../common/$(PLATFORM) 
 LDFLAGS     += -L../../elf/$(PLATFORM) 
@@ -57,7 +57,6 @@ LDFLAGS     += -L../../parseAPI/$(PLATFORM)
 LDFLAGS     += -L../../proccontrol/$(PLATFORM)
 LDFLAGS     += -L../../stackwalk/$(PLATFORM)
 LDFLAGS     += -L../../patchAPI/$(PLATFORM)
-LDFLAGS     += -L../../injectorAPI/$(PLATFORM)
 
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
@@ -227,7 +226,6 @@ IFLAGS      += -I../../symtabAPI/h -I../../instructionAPI/h
 IFLAGS      += -I../../proccontrol/h
 IFLAGS      += -I../../parseAPI/h -I../../dataflowAPI/h
 IFLAGS      += -I../../patchAPI/h
-IFLAGS      += -I../../injectorAPI/h
 
 # I couldn't figure out how to explicitly instantiate a templated
 # function whose template arguments are protected members of
