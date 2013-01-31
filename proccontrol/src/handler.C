@@ -38,6 +38,7 @@
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/int_event.h"
+#include "proccontrol/src/processplat.h"
 #include "dynutil/h/dyn_regs.h"
 
 #if defined(os_windows)
@@ -1947,6 +1948,44 @@ void HandleAsyncIO::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::AsyncWrite));
    etypes.push_back(EventType(EventType::None, EventType::AsyncReadAllRegs));
    etypes.push_back(EventType(EventType::None, EventType::AsyncSetAllRegs));
+}
+
+HandleAsyncFileRead::HandleAsyncFileRead() :
+   Handler("HandleAsyncFileRead")
+{
+}
+
+HandleAsyncFileRead::~HandleAsyncFileRead()
+{
+}
+
+Handler::handler_ret_t HandleAsyncFileRead::handleEvent(Event::ptr ev)
+{
+   EventAsyncFileRead::ptr fileev = ev->getEventAsyncFileRead();
+   assert(fileev);
+   int_eventAsyncFileRead *iev = fileev->getInternal();
+   int_process *proc = ev->getProcess()->llproc();
+
+   if (iev->isComplete())
+      return ret_success;
+
+   //Setup a read on the next part of the file, starting at the offset
+   // after this read ends.
+   int_eventAsyncFileRead *new_iev = new int_eventAsyncFileRead();
+   new_iev->filename = iev->filename;
+   new_iev->offset = iev->offset + iev->size;
+   new_iev->whole_file = iev->whole_file;
+   bool result = proc->getRemoteIO()->plat_getFileDataAsync(new_iev);
+   if (!result) {
+      pthrd_printf("Error requesting file data on %d from callback\n", proc->getPid());
+      return ret_error;
+   }
+   return ret_success;
+}
+
+void HandleAsyncFileRead::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::AsyncFileRead));
 }
 
 HandleNop::HandleNop() :

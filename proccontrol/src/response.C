@@ -744,6 +744,7 @@ unsigned ResponseSet::getIDByIndex(unsigned int index, bool &found) const
   found = true;
   return i->second;
 }
+
 unsigned int ResponseSet::getID() const {
   return myid;
 }

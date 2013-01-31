@@ -32,11 +32,13 @@
 #include "proccontrol/h/Decoder.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/src/int_process.h"
+#include "proccontrol/src/processplat.h"
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/ppc_process.h"
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/int_thread_db.h"
 #include "proccontrol/src/mmapalloc.h"
+#include "proccontrol/src/resp.h"
 
 #include "ramdisk/include/services/MessageHeader.h"
 #include "ramdisk/include/services/ToolctlMessages.h"
@@ -72,7 +74,6 @@ class bgq_process :
    public int_callStackUnwinding,
    public int_BGQData,
    public int_remoteIO
-
 {
    friend class ComputeNode;
    friend class HandlerBGQStartup;
@@ -85,6 +86,7 @@ class bgq_process :
                            response::ptr resp);
 
    bool sendCommand(const ToolCommand &cmd, uint16_t cmd_type, response::ptr resp = response::ptr(), unsigned int resp_mod = 0);
+   bool sendCommand(const ToolCommand &cmd, uint16_t cmd_type, Resp::ptr resp);
 
   public:
    static uint32_t getCommandLength(uint16_t cmd_type, const ToolCommand &cmd);
@@ -160,7 +162,7 @@ class bgq_process :
    virtual bool plat_lwpRefreshNoteNewThread(int_thread *thr);
 
    bool handleStartupEvent(void *data);
-   ComputeNode *getComputeNode();
+   ComputeNode *getComputeNode() const;
    uint32_t getRank();
    void fillInToolMessage(ToolMessage &toolmsg, uint16_t msg_type, response::ptr resp = response::ptr());
 
@@ -172,7 +174,7 @@ class bgq_process :
    virtual MultiToolControl *mtool_getMultiToolControl();
 
    virtual BGQData *getBGQData() const;
-   virtual void bgq_getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t);
+   virtual void bgq_getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const;
    virtual unsigned int bgq_getComputeNodeID() const;
    virtual void bgq_getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
    virtual void bgq_getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
@@ -180,7 +182,9 @@ class bgq_process :
 
    virtual bool plat_getFileNames(FileSet &result, std::set<response::ptr> &resps);
    virtual bool plat_getFileStatData(std::string filename, std::set<response::ptr> &resps);
-   virtual bool plat_getFileDataAsync(std::string file, Dyninst::Offset offset);
+   virtual bool plat_getFileDataAsync(int_eventAsyncFileRead *fileread);
+
+   virtual bool allowSignal(int signal_no);
    
   private:
    typedef Transaction<QueryMessage, QueryAckMessage> QueryTransaction;
@@ -210,8 +214,6 @@ class bgq_process :
    GetProcessDataAckCmd get_procdata_result;
    GetAuxVectorsAckCmd get_auxvectors_result;
    GetThreadListAckCmd *get_thread_list;
-
-   int_eventAsyncFileRead *cur_file_read;
 
    EventControlAuthority::ptr pending_control_authority; //Used for releasing control authority
    int_eventControlAuthority *stopwait_on_control_authority; //Used for gaining control authority
@@ -462,9 +464,11 @@ class DecoderBlueGeneQ : public Decoder
    bool decodeReleaseControlAck(ArchEventBGQ *archevent, bgq_process *proc, int err_code, std::vector<Event::ptr> &events);
    bool decodeControlAck(ArchEventBGQ *ev, bgq_process *qproc, vector<Event::ptr> &events);
    bool decodeLWPRefresh(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd);
-   bool decodeFileContents(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, unsigned int rc, 
+   bool decodeFileContents(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, 
+                           int rc, unsigned int resp_id, bool owns_msg,
                            std::vector<Event::ptr> &events);
 
+   bool usesResp(uint16_t cmdtype) { return (cmdtype == GetFileContentsAck); }
 
    Event::ptr createEventDetach(bgq_process *proc, bool err);
  public:

@@ -187,6 +187,16 @@ Resp::Resp(unsigned int multi_size, resp_process *proc_) :
    init();
 }
 
+unsigned int Resp::getID()
+{
+   return id_start;
+}
+
+unsigned int Resp::getIDEnd()
+{
+   return id_end;
+}
+
 Resp::~Resp()
 {
    proc->rmResponse(this);

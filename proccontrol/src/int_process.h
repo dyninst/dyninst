@@ -91,6 +91,7 @@ class int_followFork;
 class int_callStackUnwinding;
 class int_multiToolControl;
 class int_signalMask;
+class int_remoteIO;
 
 struct bp_install_state {
    Dyninst::Address addr;
@@ -444,6 +445,7 @@ class int_process
    int_signalMask *getSignalMask();
    int_callStackUnwinding *getCallStackUnwinding();
    int_BGQData *getBGQData();
+   int_remoteIO *getRemoteIO();
 
    //Interface into BGQ-specific process data.
  protected:
@@ -492,6 +494,7 @@ class int_process
    int_signalMask *pSignalMask;
    int_callStackUnwinding *pCallStackUnwinding;
    int_BGQData *pBGQData;
+   int_remoteIO *pRemoteIO;
    bool LibraryTracking_set;
    bool LWPTracking_set;
    bool ThreadTracking_set;
@@ -500,6 +503,7 @@ class int_process
    bool SignalMask_set;
    bool CallStackUnwinding_set;
    bool BGQData_set;
+   bool remoteIO_set;
 };
 
 struct ProcToIntProc {
@@ -1207,138 +1211,6 @@ class emulated_singlestep {
    void restoreSSMode();
 
    std::set<response::ptr> clear_resps;
-};
-
-class int_libraryTracking : virtual public int_process
-{
-  public:
-   static bool default_track_libs;
-   LibraryTracking *up_ptr;
-   int_libraryTracking(Dyninst::PID p, std::string e, std::vector<std::string> a, 
-                              std::vector<std::string> envp, std::map<int,int> f);
-   int_libraryTracking(Dyninst::PID pid_, int_process *p);
-   virtual ~int_libraryTracking();
-   virtual bool setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp) = 0;
-   virtual bool isTrackingLibraries() = 0;
-};
-
-class int_LWPTracking : virtual public int_process
-{
-  public:
-   bool lwp_tracking;
-   LWPTracking *up_ptr;
-   int_LWPTracking(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                   std::vector<std::string> envp, std::map<int,int> f);
-   int_LWPTracking(Dyninst::PID pid_, int_process *p);
-   virtual ~int_LWPTracking();
-   virtual bool lwp_setTracking(bool b);
-   virtual bool plat_lwpChangeTracking(bool b);
-   virtual bool lwp_getTracking();
-   virtual bool lwp_refreshPost(result_response::ptr &resp);
-   virtual bool lwp_refreshCheck(bool &change);
-   virtual bool lwp_refresh();
-   virtual bool plat_lwpRefreshNoteNewThread(int_thread *thr);
-   virtual bool plat_lwpRefresh(result_response::ptr resp);
-};
-
-class int_threadTracking : virtual public int_process
-{
-  protected:
-  public:
-   ThreadTracking *up_ptr;
-   int_threadTracking(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                                          std::vector<std::string> envp, std::map<int,int> f);
-   int_threadTracking(Dyninst::PID pid_, int_process *p);
-   virtual ~int_threadTracking();
-   virtual bool setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
-                                         bool &add_bp) = 0;
-   virtual bool isTrackingThreads() = 0;
-   virtual bool refreshThreads() = 0;
-};
-
-class int_followFork : virtual public int_process
-{
-  protected:
-   FollowFork::follow_t fork_tracking;
-  public:
-   FollowFork *up_ptr;
-   int_followFork(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                                  std::vector<std::string> envp, std::map<int,int> f);
-   int_followFork(Dyninst::PID pid_, int_process *p);
-   virtual ~int_followFork();
-   virtual bool fork_setTracking(FollowFork::follow_t b) = 0;
-   virtual FollowFork::follow_t fork_isTracking() = 0;
-};
-
-class int_callStackUnwinding : virtual public int_process
-{
-  public:
-   int_callStackUnwinding(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                                                  std::vector<std::string> envp, std::map<int,int> f);
-   int_callStackUnwinding(Dyninst::PID pid_, int_process *p);
-   virtual ~int_callStackUnwinding();
-   virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp) = 0;
-   virtual bool plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs) = 0;
-};
-
-class int_multiToolControl : virtual public int_process
-{
-  protected:
-  public:
-   MultiToolControl *up_ptr;
-   int_multiToolControl(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                        std::vector<std::string> envp, std::map<int,int> f);
-   int_multiToolControl(Dyninst::PID pid_, int_process *p);
-   virtual ~int_multiToolControl();
-   virtual std::string mtool_getName() = 0;
-   virtual MultiToolControl::priority_t mtool_getPriority() = 0;
-   virtual MultiToolControl *mtool_getMultiToolControl() = 0;
-};
-
-class int_signalMask : virtual public int_process
-{
-  protected:
-   dyn_sigset_t sigset;
-  public:
-   SignalMask *up_ptr;
-   int_signalMask(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                  std::vector<std::string> envp, std::map<int,int> f);
-   int_signalMask(Dyninst::PID pid_, int_process *p);
-   virtual ~int_signalMask();
-   virtual bool allowSignal(int signal_no) = 0;
-   dyn_sigset_t getSigMask() { return sigset; }
-   void setSigMask(dyn_sigset_t msk) { sigset = msk; }
-};
-
-class int_BGQData : virtual public int_process
-{
-   friend class Dyninst::ProcControlAPI::BGQData;
-  protected:
-   static unsigned int startup_timeout_sec;
-   static bool block_for_ca;
-  public:
-   BGQData *up_ptr;
-   int_BGQData(Dyninst::PID p, std::string e, std::vector<std::string> a,
-               std::vector<std::string> envp, std::map<int,int> f);
-   int_BGQData(Dyninst::PID pid_, int_process *p);
-   virtual ~int_BGQData();
-   virtual void bgq_getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const = 0;
-   virtual unsigned int bgq_getComputeNodeID() const = 0;
-   virtual void bgq_getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const = 0;
-   virtual void bgq_getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const = 0;
-   virtual void bgq_getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const = 0;
-};
-
-class int_RemoteIO : virtual public int_process
-{
-   virtual bool plat_getFileNames(FileSet &result, std::set<response::ptr> &resps) = 0;
-   bool getFileNames(FileSet &result);
-   
-   virtual bool plat_getFileStatData(std::string filename, std::set<response::ptr> &resps) = 0;
-   bool getFileStatData(FileSet &files);
-
-   bool getFileDataAsync(FileSet &files);
-   virtual bool plat_getFileDataAsync(std::string file, Dyninst::Offset offset) = 0;
 };
 
 struct clearError {

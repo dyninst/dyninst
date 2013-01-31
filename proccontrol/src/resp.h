@@ -33,6 +33,7 @@
 
 #include "response.h"
 #include "int_process.h"
+#include "int_event.h"
 #include <map>
 #include <string>
 
@@ -54,9 +55,13 @@
  * response with Resp, but for the moment Resp will just be used
  * for new code.
  **/
+
+#include "proccontrol/src/int_process.h"
+
 class Resp;
 typedef Resp* Resp_ptr;
 #define Resp_ptr_NULL NULL; 
+
 
 class resp_process : virtual public int_process {
    friend class Resp;
@@ -95,11 +100,12 @@ protected:
    bool isCleaned;
    resp_process *proc;
    Dyninst::ProcControlAPI::Event::ptr event;
+   void init();
 public:
    typedef Resp_ptr ptr;
 
-   void init();
-
+   unsigned int getID();
+   unsigned int getIDEnd();
    Resp(resp_process *proc_);
    Resp(unsigned int multi_size, resp_process *proc);
    virtual ~Resp();
@@ -126,14 +132,14 @@ public:
 
    virtual ~RespItem()
    {
-      bool should_delete = obj->shouldCleanup();
-      if (should_delete)
-         delete obj;
    }
 
    T *get() {
       return obj;
    }
 };
+
+typedef RespItem<int_eventAsyncFileRead> FileReadResp_t;
+
 
 #endif

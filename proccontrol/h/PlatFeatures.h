@@ -35,8 +35,8 @@
 #include <vector>
 #include <string>
 
-#if !defined(PROCESSPLAT_H_)
-#define PROCESSPLAT_H_
+#if !defined(PLATFEATURES_H_)
+#define PLATFEATURES_H_
 
 class int_process;
 class sysv_process;
@@ -50,6 +50,8 @@ class int_multiToolControl;
 class int_signalMask;
 class int_callStackUnwinding;
 class int_BGQData;
+class int_remoteIO;
+
 namespace bgq {
    class bgq_process;
 };
@@ -360,18 +362,19 @@ class PC_EXPORT RemoteIO
    virtual ~RemoteIO();
 
    //Construct filesets based on filenames, without doing a getFileNames
-   FileSet &getFileSet(std::string filename);
-   FileSet &getFileSet(std::set<std::string> filenames);
-   void addToFileSet(std::string filename, FileSet &fs);
+   // User is responsible for 'delete'ing the FileSet when done.
+   FileSet *getFileSet(std::string filename) const;
+   FileSet *getFileSet(const std::set<std::string> &filenames) const;
+   bool addToFileSet(std::string filename, FileSet *fs) const;
   
    //Fetches filenames from BGQ's persisent memory ramdisk
-   bool getFileNames(FileSet &result);
+   bool getFileNames(FileSet *result) const;
 
    //Get data as per a stat system call, fill in the FileInfo objects
-   bool getFileStatData(FileSet &fset);
+   bool getFileStatData(FileSet *fset) const;
 
    //These are whole file reads and produce EventAsyncFileRead callbacks
-   bool readFileContents(const FileSet &fset); 
+   bool readFileContents(const FileSet *fset);
 };
 
 class PC_EXPORT RemoteIOSet
@@ -380,7 +383,7 @@ class PC_EXPORT RemoteIOSet
    ProcessSet::weak_ptr procs;
   public:
    RemoteIOSet(ProcessSet::ptr procs_);
-   virtual ~RemoteIO();
+   virtual ~RemoteIOSet();
 
    FileSet &getFileSet(std::string filename);
    FileSet &getFileSet(std::set<std::string> filenames);

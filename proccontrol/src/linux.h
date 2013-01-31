@@ -44,6 +44,7 @@
 #include "proccontrol/src/x86_process.h"
 #include "proccontrol/src/ppc_process.h"
 #include "proccontrol/src/mmapalloc.h"
+#include "proccontrol/src/processplat.h"
 #include "common/h/dthread.h"
 #include <sys/types.h>
 #include <sys/ptrace.h>

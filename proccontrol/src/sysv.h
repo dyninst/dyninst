@@ -33,6 +33,7 @@
 
 #include "dynutil/h/ProcReader.h"
 #include "proccontrol/src/int_process.h"
+#include "proccontrol/src/processplat.h"
 #include "proccontrol/h/Handler.h"
 #include "common/h/addrtranslate.h"
 

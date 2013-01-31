@@ -172,6 +172,7 @@ class int_eventAsyncFileRead {
   public:
    int_eventAsyncFileRead();
    ~int_eventAsyncFileRead();
+   bool isComplete();
 
    void *data;
    size_t size;
@@ -180,6 +181,7 @@ class int_eventAsyncFileRead {
    std::string filename;
    size_t offset;
    int errorcode;
+   bool whole_file;
 };
 
 class int_eventAsyncIO {
@@ -188,8 +190,7 @@ class int_eventAsyncIO {
       memread,
       memwrite,
       regallread,
-      regallwrite,
-      fileread;
+      regallwrite
    };
 
    int_eventAsyncIO(response::ptr resp_, asyncio_type);

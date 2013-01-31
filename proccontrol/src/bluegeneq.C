@@ -281,6 +281,11 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    ppc_process(p, e, a, envp, f),
    hybrid_lwp_control_process(p, e, a, envp, f),
    mmap_alloc_process(p, e, a, envp, f),
+   int_multiToolControl(p, e, a, envp, f),
+   int_signalMask(p, e, a, envp, f),
+   int_callStackUnwinding(p, e, a, envp, f),
+   int_BGQData(p, e, a, envp, f),
+   int_remoteIO(p, e, a, envp, f),
    last_ss_thread(NULL),
    lwp_tracker(NULL),
    hasControlAuthority(false),
@@ -292,9 +297,7 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    rank(pid),
    page_size(0),
    interp_base(0),
-   bgqdata(NULL),
    get_thread_list(NULL),
-   cur_file_read(NULL),
    stopwait_on_control_authority(NULL),
    priority(0),
    mtool(NULL),
@@ -340,10 +343,6 @@ bgq_process::~bgq_process()
    if (mtool) {
       delete mtool;
       mtool = NULL;
-   }
-   if (bgqdata) {
-      delete bgqdata;
-      bgqdata = NULL;
    }
    cn->removeNode(this);
 }
@@ -508,7 +507,6 @@ bool bgq_process::plat_detachDone()
 
 bool bgq_process::plat_terminate(bool & /*needs_sync*/)
 {
-#warning TODO implement terminate
    return false;
 }
 
@@ -1088,7 +1086,7 @@ bool bgq_process::handleStartupEvent(void *data)
    if (startup_state == issue_control_request) {
       pthrd_printf("Issuing ControlMessage in startup handler\n");
       ControlMessage *ctrl_msg = (ControlMessage *) malloc(sizeof(ControlMessage));
-      sigset_t sigs = getSigMask()->getSigMask();;
+      sigset_t sigs = getSigMask();;
       sigaddset(&sigs, SIGTRAP);
       sigaddset(&sigs, SIGSTOP);
       ctrl_msg->notifySignalSet(&sigs);
@@ -1348,7 +1346,7 @@ void bgq_process::fillInToolMessage(ToolMessage &msg, uint16_t msg_type, respons
    msg.toolId = bgq_process::getToolID();
 }
 
-ComputeNode *bgq_process::getComputeNode()
+ComputeNode *bgq_process::getComputeNode() const
 {
    return cn;
 }
@@ -1396,16 +1394,7 @@ MultiToolControl *bgq_process::mtool_getMultiToolControl()
    return mtool;
 }
 
-BGQData *bgq_process::getBGQData() const
-{
-   if (!bgqdata) {
-      bgqdata = new BGQData;
-      bgqdata->proc = proc();
-   }
-   return bgqdata;
-}
-
-void bgq_process::bgq_getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t)
+void bgq_process::bgq_getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const
 {
    a = get_procdata_result.aCoord;
    b = get_procdata_result.bCoord;
@@ -1448,11 +1437,32 @@ bool bgq_process::plat_waitAndHandleForProc()
 bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, response::ptr resp, unsigned int resp_mod)
 {
    uint16_t msg_type = getCommandMsgType(cmd_type);
+   unsigned int resp_id = 0;
+   bool use_respid = false;
+   if (resp) {
+      resp_id = resp->getID() + resp_mod;
+      use_respid = true;
+   }
    if (msg_type == Query) {
-      return query_transaction->writeCommand(&cmd, cmd_type, resp, resp_mod);
+      return query_transaction->writeCommand(&cmd, cmd_type, resp_id, use_respid);
    }
    else if (msg_type == Update) {
-      return update_transaction->writeCommand(&cmd, cmd_type, resp, resp_mod);
+      return update_transaction->writeCommand(&cmd, cmd_type, resp_id, use_respid);
+   }
+   else {
+      assert(0); //Are we trying to send an Ack?
+   }
+   return false;
+}
+
+bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, Resp::ptr resp)
+{
+   uint16_t msg_type = getCommandMsgType(cmd_type);
+   if (msg_type == Query) {
+      return query_transaction->writeCommand(&cmd, cmd_type, resp->getID(), true);
+   }
+   else if (msg_type == Update) {
+      return update_transaction->writeCommand(&cmd, cmd_type, resp->getID(), true);
    }
    else {
       assert(0); //Are we trying to send an Ack?
@@ -1550,27 +1560,32 @@ bool bgq_process::plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCa
    return !had_error;
 }
 
-bool bgq_process::plat_getFileDataAsync(std::string file, Dyninst::Offset offset)
+bool bgq_process::plat_getFileDataAsync(int_eventAsyncFileRead *fileread)
 {
-   assert(!cur_file_read);
+   if (!fileread->orig_size)
+      fileread->orig_size = MaxMemorySize;
 
-   cur_file_read = new int_eventAsyncFileRead();
-   cur_file_read->orig_size = MaxPersistPathnameSize;
-   cur_file_read->filename = file;
-   cur_file_read->offset = offset;
+   FileReadResp_t *readresp = new FileReadResp_t(fileread, this);
+   readresp->post();
 
    GetFileContentsCmd getfile;
    getfile.threadID = 0;
-   strncpy(getfile.pathname, file.c_str(), MaxPersistPathnameSize);
-   getfile.offset = offset;
-   getfile.numbytes = MaxMemorySize;
-
+   strncpy(getfile.pathname, fileread->filename.c_str(), MaxPersistPathnameSize);
+   getfile.offset = fileread->offset;
+   getfile.numbytes = fileread->orig_size;
+   
    pthrd_printf("Sending GetFileContents for %s on %d from %lu to %lu\n", 
-                getfile.pathname, getPid(), offset, offset + MaxMemorySize);
-   bool result = sendCommand(getfile, GetFileContents);
+                getfile.pathname, getPid(), fileread->offset, fileread->offset + fileread->orig_size);
+   bool result = sendCommand(getfile, GetFileContents, readresp);
+
    return result;
 }
 
+bool bgq_process::allowSignal(int signal_no)
+{
+   dyn_sigset_t mask = getSigMask();
+   return sigismember(&mask, signal_no);   
+}
 
 set<void *> bgq_process::held_msgs;
 unsigned int bgq_process::num_pending_stackwalks = 0;
@@ -2382,7 +2397,7 @@ Handler::handler_ret_t HandlePreControlAuthority::handleEvent(Event::ptr ev)
       if (!iev->dresp) {
          pthrd_printf("Constructing ControlMessage in HandlePreControlAuthority handler\n");
          ControlMessage *ctrl_msg = (ControlMessage *) malloc(sizeof(ControlMessage));
-         sigset_t sigs = bgproc->getSigMask()->getSigMask();;
+         sigset_t sigs = bgproc->getSigMask();
          sigaddset(&sigs, SIGTRAP);
          sigaddset(&sigs, SIGSTOP);
          ctrl_msg->notifySignalSet(&sigs);
@@ -3060,29 +3075,37 @@ bool DecoderBlueGeneQ::decodeLWPRefresh(ArchEventBGQ *, bgq_process *proc, ToolC
    return true;
 }
 
-bool DecoderBlueGeneQ::decodeFileContents(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, int rc, std::vector<Event::ptr> &events)
+bool DecoderBlueGeneQ::decodeFileContents(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, 
+                                          int rc, unsigned int resp_id, bool owns_msg,
+                                          std::vector<Event::ptr> &events)
 {
-   GetFileContentsAckCmd *file_cmd = static_cast<GetFileContentsAckCmd *>(cmd);
+   bool is_complete;
+   Resp_ptr r = proc->recvResp(resp_id, is_complete);
+   assert(is_complete);
+   
+   FileReadResp_t *resp = static_cast<FileReadResp_t *>(r);
+   int_eventAsyncFileRead *iev = resp->get();
+   delete resp;
 
-   ev->dontFreeMsg();
+   GetFileContentsAckCmd *file_cmd_ack = static_cast<GetFileContentsAckCmd *>(cmd);
+   iev->data = file_cmd_ack->data;
+   iev->size = file_cmd_ack->numbytes;
 
-   assert(proc->cur_file_read);
-   int_eventAsyncIO *iev = proc->cur_file_read;
-   proc->cur_file_read = NULL;
+   if (owns_msg) {
+      ev->dontFreeMsg();
+      iev->to_free = ev->getMsg();
+   }
 
-   iev->data = file_cmd->data;
-   iev->size = file_cmd->numbytes;
-   iev->to_free = cmd;
-   iev->errorcode = rc;
+#warning Fill in iev->errorcode with rc
 
    EventAsyncFileRead::ptr newev = EventAsyncFileRead::ptr(new EventAsyncFileRead(iev));
    newev->setProcess(proc->proc());
-   newev->setThread(proc->threadpool()->getInitialThread()->thread());
+   newev->setThread(proc->threadPool()->initialThread()->thread());
    newev->setSyncType(Event::async);
    events.push_back(newev);
+
    return true;
 }
-
 
 Event::ptr DecoderBlueGeneQ::createEventDetach(bgq_process *proc, bool err)
 {
@@ -3155,6 +3178,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
    ToolMessage *msg = archevent->getMsg();
    uint32_t seq_id = msg->header.sequenceId;
    bool resp_lock_held = false;
+   bool owns_message = true;
 
    ResponseSet *resp_set = NULL;
    if (seq_id) {
@@ -3172,19 +3196,30 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
       int_thread *thr = proc->threadPool()->findThreadByLWP(threadID);
 
       response::ptr cur_resp = response::ptr();
+      unsigned int id = 0;
       if (resp_set) {
-         getResponses().lock();
-         resp_lock_held = true;
-         bool found = false;
-         unsigned int id = resp_set->getIDByIndex(i, found);
-         pthrd_printf("Associated ACK %u and index %u with internal id %u\n", seq_id, i, id);
-         if (found)
-            cur_resp = getResponses().rmResponse(id);
-         if (!cur_resp) {
-            resp_lock_held = false;
-            getResponses().unlock();
+         if (!usesResp(desc->type)) {
+            getResponses().lock();
+            resp_lock_held = true;
+            bool found = false;
+            id = resp_set->getIDByIndex(i, found);
+            if (found) {
+               pthrd_printf("Old resp, associated ACK %u and index %u with internal id %u\n", seq_id, i, id);
+               cur_resp = getResponses().rmResponse(id);
+            }
+            if (!cur_resp) {
+               resp_lock_held = false;
+               getResponses().unlock();
+            }
          }
-         pthrd_printf("%s response in message\n", cur_resp ? "Found" : "Did not find");
+         else
+         {
+            bool found = false;
+            id = resp_set->getIDByIndex(i, found);
+            if (found) {
+               pthrd_printf("New resp, associated ACK %u and index %u with internal id %u\n", seq_id, i, id);
+            }
+         }
       }
   
       switch (desc->type) {
@@ -3324,7 +3359,8 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             break;
          case GetFileContentsAck:
             pthrd_printf("Decoding GetFileContentsAck on %d\n", proc->getPid());
-            decodeFileContents(archevent, proc, msg, desc->returnCode, events);
+            decodeFileContents(archevent, proc, base_cmd, desc->returnCode, id, owns_message, events);
+            owns_message = false;
             break;
          case SetBreakpointAck:
             pthrd_printf("Decoding SetBreakpointAck on %d\n", proc->getPid());

@@ -202,6 +202,7 @@ std::string EventType::name() const
       STR_CASE(AsyncWrite);
       STR_CASE(AsyncReadAllRegs);
       STR_CASE(AsyncSetAllRegs);
+      STR_CASE(AsyncFileRead);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -1020,6 +1021,42 @@ EventControlAuthority::Trigger EventControlAuthority::eventTrigger() const
    return iev->trigger;
 }
 
+EventAsyncFileRead::EventAsyncFileRead(int_eventAsyncFileRead *iev_) :
+   Event(EventType(EventType::None, EventType::AsyncFileRead)),
+   iev(iev_)
+{
+}
+
+EventAsyncFileRead::~EventAsyncFileRead()
+{
+   delete iev;
+}
+
+std::string EventAsyncFileRead::getFilename() const
+{
+   return iev->filename;
+}
+
+size_t EventAsyncFileRead::getReadSize() const
+{
+   return iev->orig_size;
+}
+
+Dyninst::Offset EventAsyncFileRead::getReadOffset() const
+{
+   return iev->offset;
+}
+
+void *EventAsyncFileRead::getBuffer() const
+{
+   return iev->data;
+}
+
+size_t EventAsyncFileRead::getBufferSize() const
+{
+   return iev->size;
+}
+
 int_eventControlAuthority *EventControlAuthority::getInternalEvent() const 
 {
    return iev;
@@ -1196,6 +1233,30 @@ int_eventAsyncIO::~int_eventAsyncIO()
    pthrd_printf("Deleting int_eventAsyncIO at %p\n", this);
 }
 
+int_eventAsyncFileRead::int_eventAsyncFileRead() :
+   data(NULL),
+   size(0),
+   orig_size(0),
+   to_free(NULL),
+   offset(0),
+   errorcode(0),
+   whole_file(false)
+{
+}
+
+int_eventAsyncFileRead::~int_eventAsyncFileRead()
+{
+   if (to_free)
+      free(to_free);
+}
+
+bool int_eventAsyncFileRead::isComplete()
+{
+   if (!whole_file)
+      return true;
+   return (size != orig_size);
+}
+
 #define DEFN_EVENT_CAST(NAME, TYPE) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE) return NAME::ptr();  \
@@ -1273,3 +1334,4 @@ DEFN_EVENT_CAST(EventAsyncRead, AsyncRead)
 DEFN_EVENT_CAST(EventAsyncWrite, AsyncWrite)
 DEFN_EVENT_CAST(EventAsyncReadAllRegs, AsyncReadAllRegs)
 DEFN_EVENT_CAST(EventAsyncSetAllRegs, AsyncSetAllRegs)
+DEFN_EVENT_CAST(EventAsyncFileRead, AsyncFileRead)

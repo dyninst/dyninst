@@ -32,6 +32,7 @@
 #include "proccontrol/h/Mailbox.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/procpool.h"
+#include "proccontrol/src/processplat.h"
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -449,7 +450,7 @@ FileInfo::FileInfo() :
 {
 }
 
-FileInfo::~FileInfo() :
+FileInfo::~FileInfo()
 {
    if (stat_results) {
       free(stat_results);
@@ -466,10 +467,67 @@ RemoteIO::~RemoteIO()
 {
 }
 
-#error Fill in remoteIO interface
+FileSet *RemoteIO::getFileSet(string filename) const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   PTR_EXIT_TEST(p, "getFileSet", NULL);
+   FileSet *new_fs = new FileSet();
+   new_fs->insert(make_pair(static_cast<Process::const_ptr>(p), FileInfo(filename)));
+   return new_fs;
+}
 
-int_libraryTracking::int_libraryTracking(Dyninst::PID p, std::string e, std::vector<std::string> a, 
-                                         std::vector<std::string> envp, std::map<int,int> f) :
+FileSet *RemoteIO::getFileSet(const set<string> &filenames) const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   PTR_EXIT_TEST(p, "getFielSet", NULL);
+   FileSet *new_fs = new FileSet();
+   
+   for (set<string>::const_iterator i = filenames.begin(); i != filenames.end(); i++) {
+      new_fs->insert(make_pair(static_cast<Process::const_ptr>(p), FileInfo(*i)));
+   }
+   return new_fs;
+}
+
+bool RemoteIO::addToFileSet(std::string filename, FileSet *fs) const
+{
+   MTLock lock_this_func;
+   Process::const_ptr p = proc.lock();
+   PTR_EXIT_TEST(p, "addToFileSet", NULL);
+   fs->insert(make_pair(p, FileInfo(filename)));
+   return true;
+}
+
+bool RemoteIO::getFileNames(FileSet *fset) const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   PTR_EXIT_TEST(p, "getFileNames", false);
+   int_remoteIO *proc = p->llproc()->getRemoteIO();
+   return proc->getFileNames(*fset);
+}
+
+bool RemoteIO::getFileStatData(FileSet *fset) const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   PTR_EXIT_TEST(p, "getStatData", false);
+   int_remoteIO *proc = p->llproc()->getRemoteIO();
+   return proc->getFileStatData(*fset);
+}
+
+bool RemoteIO::readFileContents(const FileSet *fset)
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   PTR_EXIT_TEST(p, "getStatData", false);
+   int_remoteIO *proc = p->llproc()->getRemoteIO();
+   return proc->getFileDataAsync(*fset);
+}
+
+int_libraryTracking::int_libraryTracking(Dyninst::PID p, string e, vector<string> a, 
+                                         vector<string> envp, map<int,int> f) :
    int_process(p, e, a, envp, f),
    up_ptr(NULL)
 {
@@ -489,8 +547,8 @@ int_libraryTracking::~int_libraryTracking()
    }
 }
 
-int_LWPTracking::int_LWPTracking(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                                 std::vector<std::string> envp, std::map<int,int> f) :
+int_LWPTracking::int_LWPTracking(Dyninst::PID p, string e, vector<string> a,
+                                 vector<string> envp, map<int,int> f) :
    int_process(p, e, a, envp, f),
    lwp_tracking(LWPTracking::default_track_lwps),
    up_ptr(NULL)
@@ -649,8 +707,8 @@ bool int_LWPTracking::plat_lwpRefreshNoteNewThread(int_thread *)
    return true;
 }
 
-int_threadTracking::int_threadTracking(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                                       std::vector<std::string> envp, std::map<int,int> f) :
+int_threadTracking::int_threadTracking(Dyninst::PID p, string e, vector<string> a,
+                                       vector<string> envp, map<int,int> f) :
    int_process(p, e, a, envp, f),
    up_ptr(NULL)
 {
@@ -670,8 +728,8 @@ int_threadTracking::~int_threadTracking()
    }
 }
 
-int_followFork::int_followFork(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                               std::vector<std::string> envp, std::map<int,int> f) :
+int_followFork::int_followFork(Dyninst::PID p, string e, vector<string> a,
+                               vector<string> envp, map<int,int> f) :
    int_process(p, e, a, envp, f),
    fork_tracking(FollowFork::default_should_follow_fork),
    up_ptr(NULL)
@@ -693,8 +751,8 @@ int_followFork::~int_followFork()
    }
 }
 
-int_multiToolControl::int_multiToolControl(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                                           std::vector<std::string> envp, std::map<int,int> f) :
+int_multiToolControl::int_multiToolControl(Dyninst::PID p, string e, vector<string> a,
+                                           vector<string> envp, map<int,int> f) :
    int_process(p, e, a, envp, f),
    up_ptr(NULL)
 {
@@ -714,8 +772,8 @@ int_multiToolControl::~int_multiToolControl()
    }
 }
 
-int_signalMask::int_signalMask(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                               std::vector<std::string> envp, std::map<int,int> f) :
+int_signalMask::int_signalMask(Dyninst::PID p, string e, vector<string> a,
+                               vector<string> envp, map<int,int> f) :
    int_process(p, e, a, envp, f),
    up_ptr(NULL)
 {
@@ -735,8 +793,8 @@ int_signalMask::~int_signalMask()
    }
 }
 
-int_callStackUnwinding::int_callStackUnwinding(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                                               std::vector<std::string> envp, std::map<int,int> f) :
+int_callStackUnwinding::int_callStackUnwinding(Dyninst::PID p, string e, vector<string> a,
+                                               vector<string> envp, map<int,int> f) :
    int_process(p, e, a, envp, f)
 {
 }
@@ -750,8 +808,8 @@ int_callStackUnwinding::~int_callStackUnwinding()
 {
 }
 
-int_BGQData::int_BGQData(Dyninst::PID p, std::string e, std::vector<std::string> a,
-                         std::vector<std::string> envp, std::map<int,int> f) :
+int_BGQData::int_BGQData(Dyninst::PID p, string e, vector<string> a,
+                         vector<string> envp, map<int,int> f) :
    int_process(p, e, a, envp, f)
 {
 }
@@ -772,4 +830,66 @@ int_BGQData::~int_BGQData()
 unsigned int int_BGQData::startup_timeout_sec = BGQData::startup_timeout_sec_default;
 bool int_BGQData::block_for_ca = BGQData::block_for_ca_default;
 
-#error Fill in int_remoteIO interface
+
+
+int_remoteIO::int_remoteIO(Dyninst::PID p, std::string e, std::vector<std::string> a,
+                           std::vector<std::string> envp, std::map<int,int> f) :
+   int_process(p, e, a, envp, f),
+   resp_process(p, e, a, envp, f)
+{
+}
+
+int_remoteIO::int_remoteIO(Dyninst::PID pid_, int_process *p) :
+   int_process(pid_, p),
+   resp_process(pid_, p)
+{
+}
+
+int_remoteIO::~int_remoteIO()
+{
+}
+
+bool int_remoteIO::getFileNames(FileSet &result)
+{
+}
+
+bool int_remoteIO::getFileStatData(FileSet &files)
+{
+}
+
+bool int_remoteIO::getFileDataAsync(const FileSet &files)
+{
+   set<FileReadResp_t *> resps;
+   bool had_error = false;
+
+   for (FileSet::const_iterator i = files.begin(); i != files.end(); i++) {
+      if (static_cast<int_process *>(this) != i->first->llproc()) {
+         perr_printf("Non-local process in fileset, %d specified for %d\n",
+                     i->first->llproc()->getPid(), getPid());
+         setLastError(err_badparam, "Non-local process specified in FileSet\n");
+         had_error = true;
+         continue;
+      }
+
+      int_eventAsyncFileRead *fileread = new int_eventAsyncFileRead();
+      fileread->offset = 0;
+      fileread->whole_file = true;
+      fileread->filename = i->second.filename;
+      bool result = plat_getFileDataAsync(fileread);
+      if (!result) {
+         pthrd_printf("Error while requesting file data on %d\n", getPid());
+         had_error = true;
+         continue;
+      }
+   }
+
+   bool proc_exited = false;
+   waitAndHandleForProc(false, this, proc_exited);
+   if (proc_exited) {
+      perr_printf("Process exited while waiting for IO\n");
+      
+   }
+   return true;
+}
+
+

@@ -34,6 +34,7 @@
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/int_event.h"
+#include "proccontrol/src/processplat.h"
 #include "proccontrol/h/Mailbox.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
@@ -1288,6 +1289,20 @@ int_BGQData *int_process::getBGQData()
       pBGQData->up_ptr = new BGQData(proc());
    return pBGQData;
 }
+
+int_remoteIO *int_process::getRemoteIO()
+{
+   if (remoteIO_set)
+      return pRemoteIO;
+   remoteIO_set = true;
+   pRemoteIO = dynamic_cast<int_remoteIO *>(this);
+   if (!pRemoteIO)
+      return NULL;
+   if (!pRemoteIO->up_ptr)
+      pRemoteIO->up_ptr = new RemoteIO(proc());
+   return pRemoteIO;
+}
+
 int_process::int_process(Dyninst::PID p, std::string e,
                          std::vector<std::string> a,
                          std::vector<std::string> envp,
@@ -1334,7 +1349,8 @@ int_process::int_process(Dyninst::PID p, std::string e,
    MultiToolControl_set(false),
    SignalMask_set(false),
    CallStackUnwinding_set(false),
-   BGQData_set(false)
+   BGQData_set(false),
+   remoteIO_set(false)
 {
    pthrd_printf("New int_process at %p\n", this);
    clearLastError();
@@ -1374,6 +1390,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    pSignalMask(NULL),
    pCallStackUnwinding(NULL),
    pBGQData(NULL),
+   pRemoteIO(NULL),
    LibraryTracking_set(false),
    LWPTracking_set(false),
    ThreadTracking_set(false),
@@ -1381,7 +1398,8 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    MultiToolControl_set(false),
    SignalMask_set(false),
    CallStackUnwinding_set(false),
-   BGQData_set(false)
+   BGQData_set(false),
+   remoteIO_set(false)
 {
    pthrd_printf("New int_process at %p\n", this);
    Process::ptr hlproc = Process::ptr(new Process());

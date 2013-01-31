@@ -39,6 +39,7 @@
 #include "proccontrol/h/Decoder.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/src/int_handler.h"
+#include "proccontrol/src/processplat.h"
 
 extern "C" {
 

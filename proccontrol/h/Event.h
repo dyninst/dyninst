@@ -90,6 +90,7 @@ class EventAsyncRead;
 class EventAsyncWrite;
 class EventAsyncReadAllRegs;
 class EventAsyncSetAllRegs;
+class EventAsyncFileRead;
 
 class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
 {
@@ -241,6 +242,9 @@ class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
 
    boost::shared_ptr<EventAsyncSetAllRegs> getEventAsyncSetAllRegs();
    boost::shared_ptr<const EventAsyncSetAllRegs> getEventAsyncSetAllRegs() const;
+
+   boost::shared_ptr<EventAsyncFileRead> getEventAsyncFileRead();
+   boost::shared_ptr<const EventAsyncFileRead> getEventAsyncFileRead() const;
 
    //Not meant for public consumption
    void setLastError(err_t ec, const char *es);
@@ -822,13 +826,15 @@ class PC_EXPORT EventAsyncSetAllRegs : public EventAsyncIO {
    ~EventAsyncSetAllRegs();
 };
 
+class int_eventAsyncFileRead;
 class PC_EXPORT EventAsyncFileRead : public Event {
-   friend void boost::checked_delete<EventAsyncSetAllRegs>(EventAsyncSetAllRegs *);
-   friend void boost::checked_delete<const EventAsyncSetAllRegs>(const EventAsyncSetAllRegs *);
+   friend void boost::checked_delete<EventAsyncFileRead>(EventAsyncFileRead *);
+   friend void boost::checked_delete<const EventAsyncFileRead>(const EventAsyncFileRead *);
    int_eventAsyncFileRead *iev;
   public:
    typedef boost::shared_ptr<EventAsyncFileRead> ptr;
    typedef boost::shared_ptr<const EventAsyncFileRead> const_ptr;
+   int_eventAsyncFileRead *getInternal();
    
    EventAsyncFileRead(int_eventAsyncFileRead *iev_);
    ~EventAsyncFileRead();
@@ -839,8 +845,6 @@ class PC_EXPORT EventAsyncFileRead : public Event {
 
    void *getBuffer() const;
    size_t getBufferSize() const;
-   
-
 };
 
 }
