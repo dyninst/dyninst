@@ -34,7 +34,7 @@ bool Codegen::generateInt() {
     bool needsStackUnprotect = false;
     
     do {
-       dlopen_addr = findSymbolAddr(DL_OPEN_FUNC_EXPORTED, true, true); 
+       dlopen_addr = findSymbolAddr(DL_OPEN_FUNC_EXPORTED, true); 
        if (dlopen_addr) {
           break;
        }
@@ -43,7 +43,7 @@ bool Codegen::generateInt() {
        // Note: this is more robust than the next approach
        useHiddenFunction = true;
        needsStackUnprotect = true;
-       dlopen_addr = findSymbolAddr(DL_OPEN_FUNC_NAME, true, true);
+       dlopen_addr = findSymbolAddr(DL_OPEN_FUNC_NAME, true);
        if (dlopen_addr) {
           break;
        }
@@ -55,7 +55,7 @@ bool Codegen::generateInt() {
        useHiddenFunction = false;
        needsStackUnprotect = false;
        mode |= __RTLD_DLOPEN;
-       dlopen_addr = findSymbolAddr(DL_OPEN_LIBC_FUNC_EXPORTED, true, true);
+       dlopen_addr = findSymbolAddr(DL_OPEN_LIBC_FUNC_EXPORTED, true);
        if (dlopen_addr) {
           break;
        }
@@ -149,8 +149,8 @@ bool Codegen::generateStackUnprotect() {
    // Instead of chasing the value of the undocumented flag, we will
    // unprotect the __stack_prot variable ourselves (if we can find it).
 
-   Address var_addr = findSymbolAddr("__stack_prot", false, false);
-   Address mprotect_addr = findSymbolAddr("mprotect", true, false);
+   Address var_addr = findSymbolAddr("__stack_prot");
+   Address mprotect_addr = findSymbolAddr("mprotect", true);
 
    if (!var_addr || !mprotect_addr) return false;
 
@@ -171,6 +171,8 @@ bool Codegen::generateStackUnprotect() {
 #if 0
 
 bool Codegen::findTOC(Symbol *sym, Library::ptr lib) {
+   Address baseTOC = 
+
    return false;
    if (proc_->getArchitecture() != Arch_ppc64) return true;
 

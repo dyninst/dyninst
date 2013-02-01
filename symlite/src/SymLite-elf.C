@@ -312,6 +312,13 @@ Dyninst::Offset SymElf::getSymbolOffset(const Symbol_t &sym)
    return getSymOffset(symbols, idx);
 }
 
+Dyninst::Offset SymElf::getSymbolTOC(const Symbol_t &sym)
+{
+   GET_SYMBOL(sym, shdr, symbols, name, idx);
+   name = NULL; //Silence warnings
+   return getSymTOC(symbols, idx);
+}
+
 std::string SymElf::getSymbolName(const Symbol_t &sym)
 {
    GET_SYMBOL(sym, shdr, symbols, name, idx);
@@ -372,6 +379,24 @@ unsigned long SymElf::getSymOffset(const Elf_X_Sym &symbol, unsigned idx)
    }
 
    return symbol.st_value(idx);
+}
+
+unsigned long SymElf::getSymTOC(const Elf_X_Sym &symbol, unsigned idx)
+{
+   if (need_odp && symbol.ST_TYPE(idx) == STT_FUNC) {
+      unsigned long odp_addr = odp_section->sh_addr();
+      unsigned long odp_size = odp_section->sh_size();
+      const char *odp_data = (const char *) odp_section->get_data().d_buf();
+      unsigned long sym_offset = symbol.st_value(idx);
+
+      if (sym_offset < odp_addr || (sym_offset >= odp_addr + odp_size)) 
+         return 0;
+
+      unsigned long toc = *((unsigned long *) (odp_data + (sym_offset - odp_addr + sizeof(long))));
+      return toc;
+   }
+
+   return 0;
 }
 
 void SymElf::createSymCache()

@@ -52,7 +52,7 @@ unsigned Codegen::estimateSize() {
    return 256 + libname_.length();
 }
 
-Address Codegen::findSymbolAddr(const std::string name, bool /*func*/, bool /*saveTOC*/) {
+Address Codegen::findSymbolAddr(const std::string name, bool saveTOC) {
    LibraryPool& libs = proc_->libraries();
 
    for (auto li = libs.begin(); li != libs.end(); li++) {
@@ -63,6 +63,10 @@ Address Codegen::findSymbolAddr(const std::string name, bool /*func*/, bool /*sa
       
       Symbol_t lookupSym = objSymReader->getSymbolByName(name);
       if (!objSymReader->isValidSymbol(lookupSym)) continue;
+
+      if (saveTOC) {
+         toc_ = (*li)->getLoadAddress() + objSymReader->getSymbolTOC(lookupSym);
+      }
 
       return (*li)->getLoadAddress() + objSymReader->getSymbolOffset(lookupSym);
    }
