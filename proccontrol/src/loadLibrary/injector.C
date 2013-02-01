@@ -20,80 +20,53 @@ Injector::Injector(ProcControlAPI::Process *proc) :
 Injector::~Injector() {}
 
 bool Injector::inject(std::string libname) {
-   if (!checkIfExists(libname)) return false;
+   int_process *proc = proc_->llproc();
+   pthrd_printf("Injecting %s into process %d\n", libname.c_str(), proc->getPid());
+   if (!checkIfExists(libname)) {
+      perr_printf("Library %s doesn't exist\n", libname.c_str());
+      proc->setLastError(err_nofile, "File doesn't exist\n");
+      return false;
+   }
 
    Codegen codegen(proc_, libname);
-   if (!codegen.generate()) return false;
+   if (!codegen.generate()) {
+      perr_printf("Could not generate code\n");
+      proc->setLastError(err_internal, "Error in code generation");
+      return false;
+   }
 
-   IRPC::ptr irpc = IRPC::createIRPC(codegen.buffer().start_ptr(),
-                                     codegen.buffer().size(),
-                                     codegen.buffer().startAddr());
-   
+   int_iRPC::ptr irpc = int_iRPC::ptr(new int_iRPC(codegen.buffer().start_ptr(),
+                                                   codegen.buffer().size(),
+                                                   false,
+                                                   true,
+                                                   codegen.buffer().startAddr()));
    // Don't try to execute a library name...
    irpc->setStartOffset(codegen.startOffset());
 
-
-   bool oldSilent = proc_->llproc()->isRunningSilent();
-   proc_->llproc()->setRunningSilent(true);
-
-   std::set<Library::ptr> oldLibs;
-   for (auto iter = proc_->libraries().begin(); iter != proc_->libraries().end(); ++iter) {
-	   oldLibs.insert((*iter));
+   //Post, but doesn't start running yet.
+   bool result = rpcMgr()->postRPCToProc(proc, irpc);
+   if (!result) {
+      pthrd_printf("Error posting RPC to process %d\n", proc->getPid());
+      return false;
    }
 
-   bool res = proc_->runIRPCSync(irpc);
+   //Set the internal state so that this iRPC runs.
+   int_thread *thr = irpc->thread();
+   thr->getInternalState().desyncState(int_thread::running);
+   irpc->setRestoreInternal(true);
    
-   if (!res) {
-      // ProcControl has an annoying case where an event handler wanted a process
-      // to stay paused in the middle of an IRPC, which means ... we'll never finish
-      // that IRPC in sync mode. So we continue the poor thing by hand. 
-      bool done = false;
-      while (!done) {
-
-         if (proc_->isTerminated()) {
-            fprintf(stderr, "IRPC on terminated process, ret false!\n");
-            return false;
-         }
-         
-         if (ProcControlAPI::getLastError() != ProcControlAPI::err_notrunning) {
-            // Something went wrong
-            return false;
-         }
-         else {
-            irpc->continueStoppedIRPC();
-            
-            res = proc_->handleEvents(true);
-            
-            if (irpc->state() == ProcControlAPI::IRPC::Done) {
-               done = true;
-            }
-         }
-      }
+   //Run the IRPC and wait for completion.
+   proc->throwNopEvent();
+   result = int_process::waitAndHandleEvents(false);
+   if (!result) {
+      perr_printf("Error waiting for and handling events\n");
+      return false;
    }
 
-   proc_->llproc()->setRunningSilent(oldSilent);
-
-   std::set<Library::ptr> addedLibs;
-   std::set<Library::ptr> removedLibs;
+   //TODO: Any mechanism for error checks?
    
-   for (auto iter = proc_->libraries().begin(); iter != proc_->libraries().end(); ++iter) {
-	   if (oldLibs.find(*iter) == oldLibs.end()) {
-		   addedLibs.insert(*iter);
-	   }
-   }
-
-   EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary(addedLibs, removedLibs));
-   lib_event->setThread(irpc->llrpc()->rpc->thread()->thread());
-   lib_event->setProcess(proc_->llproc()->proc());
-   lib_event->setSyncType(Event::sync_thread);
-   
-   HandleCallbacks *cbhandler = HandleCallbacks::getCB();
-   cbhandler->handleEvent(lib_event);
-
-   // We used to check if the library was loaded, but it's too risky with
-   // symlinks etc. 
    return true;
-}
+}                                                   
 
 bool Injector::checkIfExists(std::string name) {
    SymReader *objSymReader = proc_->llproc()->getSymReader()->openSymbolReader(name);

@@ -329,6 +329,8 @@ class int_process
    virtual Dyninst::Address direct_infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
    virtual bool direct_infFree(Dyninst::Address addr);
 
+   Address infMalloc(unsigned long size, bool use_addr, Address addr);
+   bool infFree(Address addr);
    static bool infMalloc(unsigned long size, int_addressSet *aset, bool use_addr);
    static bool infFree(int_addressSet *aset);
 
@@ -659,7 +661,7 @@ public:
    } State;
    //The order of these is very important.  Lower numbered
    // states take precedence over higher numbered states.
-   static const int NumStateIDs = 17;
+   static const int NumStateIDs = 18;
    static const int NumTargetStateIDs = (NumStateIDs-2); //Handler and Generator states aren't target states
 
    static const int AsyncStateID            = 0;
@@ -669,16 +671,17 @@ public:
    static const int IRPCSetupStateID        = 4;
    static const int IRPCWaitStateID         = 5;
    static const int BreakpointStateID       = 6;
-   static const int InternalStateID         = 7;
+   static const int BreakpointHoldStateID   = 7;
    static const int BreakpointResumeStateID = 8;
    static const int ExitingStateID          = 9;
-   static const int StartupStateID          = 10;
-   static const int DetachStateID           = 11;
-   static const int UserRPCStateID          = 12;
-   static const int ControlAuthorityStateID = 13;
-   static const int UserStateID             = 14;
-   static const int HandlerStateID          = 15;
-   static const int GeneratorStateID        = 16;
+   static const int InternalStateID         = 10;
+   static const int StartupStateID          = 11;
+   static const int DetachStateID           = 12;
+   static const int UserRPCStateID          = 13;
+   static const int ControlAuthorityStateID = 14;
+   static const int UserStateID             = 15;
+   static const int HandlerStateID          = 16;
+   static const int GeneratorStateID        = 17;
    static std::string stateIDToName(int id);
 
    class StateTracker {
@@ -712,6 +715,7 @@ public:
    StateTracker &getStartupState();
    StateTracker &getBreakpointState();
    StateTracker &getBreakpointResumeState();
+   StateTracker &getBreakpointHoldState();
    StateTracker &getCallbackState();
    StateTracker &getIRPCState();
    StateTracker &getIRPCSetupState();
@@ -909,6 +913,7 @@ public:
    StateTracker pending_stop_state;
    StateTracker callback_state;
    StateTracker breakpoint_state;
+   StateTracker breakpoint_hold_state;
    StateTracker breakpoint_resume_state;
    StateTracker irpc_setup_state;
    StateTracker irpc_wait_state;
