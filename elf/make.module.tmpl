@@ -49,6 +49,10 @@ TFLAGS		+=
 
 SRCS	     +=	../src/Elf_X.C
 
+ifeq ($(SYSTAP_PARSE),yes)
+SRCS       +=  ../src/SystemTap.C
+endif
+
 TO_INC          = ../h
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h 
