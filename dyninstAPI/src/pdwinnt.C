@@ -389,6 +389,7 @@ bool PCProcess::setMemoryAccessRights(Address start, size_t size,
             obj->removeProtectedPage(start -(start % page_size));
         }
     }
+    stopProcess();
     changeMemoryProtections(start, size, rights, true);
 	return true;
 }
