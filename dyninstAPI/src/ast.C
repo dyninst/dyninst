@@ -2263,6 +2263,7 @@ BPatch_type *AstOperatorNode::checkType() {
     
     switch (op) {
     case ifOp:
+    case whileOp:
         // XXX No checking for now.  Should check that loperand
         // is boolean.
         ret = BPatch::bpatch->type_Untyped;

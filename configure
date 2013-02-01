@@ -6874,6 +6874,56 @@ if test "${with_libdwarf_static+set}" = set; then
   withval=$with_libdwarf_static; LIBDWARF_STATIC=true
 fi
 
+       { $as_echo "$as_me:$LINENO: Checking for libc versions that dwarf may crash on..." >&5
+$as_echo "$as_me: Checking for libc versions that dwarf may crash on..." >&6;}
+       { $as_echo "$as_me:$LINENO: checking for /lib64/libc-2.16.so" >&5
+$as_echo_n "checking for /lib64/libc-2.16.so... " >&6; }
+if test "${ac_cv_file__lib64_libc_2_16_so+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "/lib64/libc-2.16.so"; then
+  ac_cv_file__lib64_libc_2_16_so=yes
+else
+  ac_cv_file__lib64_libc_2_16_so=no
+fi
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_file__lib64_libc_2_16_so" >&5
+$as_echo "$ac_cv_file__lib64_libc_2_16_so" >&6; }
+if test "x$ac_cv_file__lib64_libc_2_16_so" = x""yes; then
+  { $as_echo "$as_me:$LINENO: WARNING: Warning: versions of libdwarf prior to 2013-01-26 may crash when parsing glibc debugging information" >&5
+$as_echo "$as_me: WARNING: Warning: versions of libdwarf prior to 2013-01-26 may crash when parsing glibc debugging information" >&2;}
+
+fi
+
+       { $as_echo "$as_me:$LINENO: checking for /lib/libc-2.16.so" >&5
+$as_echo_n "checking for /lib/libc-2.16.so... " >&6; }
+if test "${ac_cv_file__lib_libc_2_16_so+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "/lib/libc-2.16.so"; then
+  ac_cv_file__lib_libc_2_16_so=yes
+else
+  ac_cv_file__lib_libc_2_16_so=no
+fi
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_file__lib_libc_2_16_so" >&5
+$as_echo "$ac_cv_file__lib_libc_2_16_so" >&6; }
+if test "x$ac_cv_file__lib_libc_2_16_so" = x""yes; then
+  { $as_echo "$as_me:$LINENO: WARNING: Warning: versions of libdwarf prior to 2013-01-26 may crash when parsing glibc debugging information" >&5
+$as_echo "$as_me: WARNING: Warning: versions of libdwarf prior to 2013-01-26 may crash when parsing glibc debugging information" >&2;}
+
+fi
+
+
+
    fi
 
 
