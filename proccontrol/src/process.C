@@ -1447,6 +1447,22 @@ bool int_process::direct_infFree(Dyninst::Address)
    return false;
 }
 
+Address int_process::infMalloc(unsigned long size, bool use_addr, Address addr)
+{
+   int_addressSet as;
+   as.insert(make_pair(addr, proc()));
+   bool result = int_process::infMalloc(size, &as, use_addr);
+   if (!result)
+      return 0;
+   return as.begin()->first;
+}
+
+bool int_process::infFree(Address addr) {
+   int_addressSet as;
+   as.insert(make_pair(addr, proc()));
+   return int_process::infFree(&as);
+}
+
 bool int_process::infMalloc(unsigned long size, int_addressSet *aset, bool use_addr)
 {
    bool had_error = false;

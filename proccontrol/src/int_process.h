@@ -329,6 +329,8 @@ class int_process
    virtual Dyninst::Address direct_infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
    virtual bool direct_infFree(Dyninst::Address addr);
 
+   Address infMalloc(unsigned long size, bool use_addr, Address addr);
+   bool infFree(Address addr);
    static bool infMalloc(unsigned long size, int_addressSet *aset, bool use_addr);
    static bool infFree(int_addressSet *aset);
 
