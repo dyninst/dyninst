@@ -272,7 +272,7 @@ class memoryTracker : public codeRange {
     void realloc(unsigned newsize) {
       b_ = ::realloc(b_, newsize);
       s_ = newsize;
-      if (!b_) {
+      if (!b_ && newsize) {
 	cerr << "Odd: failed to realloc " << newsize << endl;
 	assert(b_);
       }

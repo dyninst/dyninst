@@ -358,8 +358,9 @@ bool BPatch_module::getProcedures(BPatch_Vector<BPatch_function*> &funcs,
    BPatch_funcMap::iterator i = func_map.begin();
    for (; i != func_map.end(); i++) {
       func_instance *fi = static_cast<func_instance *>(i->first);
-      if (incUninstrumentable || fi->isInstrumentable())
+      if (incUninstrumentable || fi->isInstrumentable()) {
          funcs.push_back((*i).second);
+      }
    }
    return true;
 }

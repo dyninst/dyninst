@@ -75,42 +75,62 @@ bool IA_IAPI::isThunk() const {
     return false;
 }
 
-bool IA_IAPI::isTailCall(Function* context,unsigned int) const
+bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum edge, unsigned int) const
 {
+   // Collapse down to "branch" or "fallthrough"
+    switch(type) {
+       case CALL:
+       case COND_TAKEN:
+       case DIRECT:
+       case INDIRECT:
+       case RET:
+          type = DIRECT;
+          break;
+       case COND_NOT_TAKEN:
+       case FALLTHROUGH:
+       case CALL_FT:
+          type = FALLTHROUGH;
+          break;
+       default:
+          return false;
+    }
+
     parsing_printf("Checking for Tail Call \n");
     context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT); 
 
-    if(tailCall.first) {
+    if (tailCalls.find(edge) != tailCalls.end()) {
         parsing_printf("\tReturning cached tail call check result: %d\n", tailCall.second);
-        if (tailCall.second) {
+        if (tailCalls[type].second) {
             context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
+            return true;
         }
-        return tailCall.second;
+        return false;
     }
-    tailCall.first = true;
     
     bool valid; Address addr;
-    boost::tie(valid, addr) = getCFT();
+    if (type == DIRECT)
+       boost::tie(valid, addr) = getCFT();
+    else 
+       boost::tie(valid, addr) = getFallthrough();
 
     if(curInsn()->getCategory() == c_BranchInsn &&
        valid &&
        _obj->findFuncByEntry(_cr,addr))
     {
       parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
-      tailCall.second = true;
-      return tailCall.second;
+      tailCalls[type] = true;
+      return true;
     }
 
     if(allInsns.size() < 2) {
-        tailCall.second = false;
         parsing_printf("\ttoo few insns to detect tail call\n");
         context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
-        return tailCall.second;
+        tailCalls[type] = false;
+        return false;
     }
-    tailCall.second = false;
+    tailCalls[type] = false;
     context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
-    return tailCall.second;
-
+    return false;
 }
 
 bool IA_IAPI::savesFP() const

@@ -528,6 +528,7 @@ bool func_instance::isInstrumentable() {
 
   Dyninst::PatchAPI::Instrumenter* inst = proc()->mgr()->instrumenter();
   if (inst) return inst->isInstrumentable(this);
+  cerr << "Error: no instrumenter for " << symTabName() << endl;
   return false;
 }
 
