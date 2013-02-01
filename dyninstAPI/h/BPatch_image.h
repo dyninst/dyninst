@@ -62,6 +62,7 @@ typedef enum BPatch_LpModel {
 
 class BPatch_statement;
 class BPatch_image;
+class BPatch_object_getMod;
 
 namespace Dyninst {
   namespace PatchAPI {
@@ -75,11 +76,12 @@ namespace Dyninst {
 class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
   friend class BPatch; // registerLoaded... callbacks
   friend class BPatch_module; // access to findOrCreate...
+  friend class BPatch_object; // Also access to findOrCreate
+  friend class BPatch_object_getMod;
   friend class BPatch_process;
   friend class BPatch_addressSpace;
   friend class BPatch_binaryEdit;
   friend Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_image *);
-  friend class BPatch_object;
 
   BPatch_variableExpr *findOrCreateVariable(int_variable *);
  public:

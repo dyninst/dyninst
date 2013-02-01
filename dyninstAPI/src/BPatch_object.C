@@ -40,12 +40,12 @@
 
 const Dyninst::Address BPatch_object::E_OUT_OF_BOUNDS((Dyninst::Address) -1);
 
-struct getMod {
+struct BPatch_object_getMod {
    void operator()(mapped_module *m) { 
-      BPatch_module *mod = img->findModule(m);
+      BPatch_module *mod = img->findOrCreateModule(m);
       if (mod) mods.push_back(mod);
    }
-   getMod(BPatch_image *i, std::vector<BPatch_module *> &m) : img(i), mods(m) {};
+   BPatch_object_getMod(BPatch_image *i, std::vector<BPatch_module *> &m) : img(i), mods(m) {};
    BPatch_image *img;
    std::vector<BPatch_module *> &mods;
 };
@@ -54,7 +54,7 @@ BPatch_object::BPatch_object(mapped_object *o, BPatch_image *i) :
    img(i), obj(o) {
    // Fill in module list
    const pdvector<mapped_module *> &ll_mods = obj->getModules();
-   getMod gm(img, mods);
+   BPatch_object_getMod gm(img, mods);
    std::for_each(ll_mods.begin(), ll_mods.end(), gm);
 }
 
