@@ -1742,6 +1742,7 @@ Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
    }
    if (ll_added.empty() && ll_rmd.empty()) {
       pthrd_printf("Could not find actual changes in lib state\n");
+      ev->setSuppressCB(true);
       return ret_success;
    }
 
