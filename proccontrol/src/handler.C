@@ -1449,7 +1449,7 @@ Handler::handler_ret_t HandleBreakpointContinue::handleEvent(Event::ptr ev)
    int_eventBreakpoint *int_bp = ebp->getInternal();
    
    if (int_bp->stopped_proc) {
-      ebp->getThread()->llthrd()->getInternalState().restoreStateProc();
+      ebp->getThread()->llthrd()->getBreakpointHoldState().restoreStateProc();
    }
    return Handler::ret_success;
 }

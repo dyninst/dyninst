@@ -2905,6 +2905,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    pending_stop_state(this, PendingStopStateID, dontcare),
    callback_state(this, CallbackStateID, dontcare),
    breakpoint_state(this, BreakpointStateID, dontcare),
+   breakpoint_hold_state(this, BreakpointHoldStateID, dontcare),
    breakpoint_resume_state(this, BreakpointResumeStateID, dontcare),
    irpc_setup_state(this, IRPCSetupStateID, dontcare),
    irpc_wait_state(this, IRPCWaitStateID, dontcare),
@@ -3231,6 +3232,11 @@ int_thread::StateTracker &int_thread::getBreakpointState()
    return breakpoint_state;
 }
 
+int_thread::StateTracker &int_thread::getBreakpointHoldState()
+{
+   return breakpoint_hold_state;
+}
+
 int_thread::StateTracker &int_thread::getBreakpointResumeState()
 {
    return breakpoint_resume_state;
@@ -3345,6 +3351,7 @@ int_thread::StateTracker &int_thread::getStateByID(int id)
       case IRPCSetupStateID: return irpc_setup_state;
       case IRPCWaitStateID: return irpc_wait_state;
       case BreakpointStateID: return breakpoint_state;
+      case BreakpointHoldStateID: return breakpoint_hold_state;
       case BreakpointResumeStateID: return breakpoint_resume_state;
       case InternalStateID: return internal_state;
       case DetachStateID: return detach_state;
@@ -3370,6 +3377,7 @@ std::string int_thread::stateIDToName(int id)
       case IRPCSetupStateID: return "irpc setup";
       case IRPCWaitStateID: return "irpc wait";
       case BreakpointStateID: return "breakpoint";
+      case BreakpointHoldStateID: return "bp hold";
       case BreakpointResumeStateID: return "breakpoint resume";
       case InternalStateID: return "internal";
       case UserRPCStateID: return "irpc user";

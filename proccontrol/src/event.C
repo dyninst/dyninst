@@ -407,13 +407,13 @@ bool EventBreakpoint::procStopper() const
    int_process *proc = getProcess()->llproc();
    int_thread *thrd = getThread()->llthrd();
    if (!int_bp->stopped_proc) {
-      //Move the internal state of the process to be stopped.
-      thrd->getInternalState().desyncStateProc(int_thread::stopped);
+      //Move the BreakpointHold state of the process to be stopped.
+      thrd->getBreakpointHoldState().desyncStateProc(int_thread::stopped);
       int_bp->stopped_proc = true;
    }
    
    //We return true if the event isn't ready
-   return !proc->getProcStopManager().processStoppedTo(int_thread::InternalStateID);
+   return !proc->getProcStopManager().processStoppedTo(int_thread::BreakpointHoldStateID);
 }
 
 EventSignal::EventSignal(int sig_) :
