@@ -1123,7 +1123,7 @@ bool int_process::waitAndHandleEvents(bool block)
       }
    }
   done:
-   pthrd_printf("Leaving WaitAndHandleEvents 'cause we're done\n");
+   pthrd_printf("Leaving WaitAndHandleEvents with return %s, 'cause we're done\n", !error ? "true" : "false");
    recurse = false;
    return !error;
 }

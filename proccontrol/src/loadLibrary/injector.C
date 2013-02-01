@@ -22,10 +22,18 @@ Injector::~Injector() {}
 bool Injector::inject(std::string libname) {
    int_process *proc = proc_->llproc();
    pthrd_printf("Injecting %s into process %d\n", libname.c_str(), proc->getPid());
-   if (!checkIfExists(libname)) return false;
+   if (!checkIfExists(libname)) {
+      perr_printf("Library %s doesn't exist\n", libname.c_str());
+      proc->setLastError(err_nofile, "File doesn't exist\n");
+      return false;
+   }
 
    Codegen codegen(proc_, libname);
-   if (!codegen.generate()) return false;
+   if (!codegen.generate()) {
+      perr_printf("Could not generate code\n");
+      proc->setLastError(err_internal, "Error in code generation");
+      return false;
+   }
 
    int_iRPC::ptr irpc = int_iRPC::ptr(new int_iRPC(codegen.buffer().start_ptr(),
                                                    codegen.buffer().size(),
