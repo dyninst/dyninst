@@ -6318,6 +6318,21 @@ bool Process::addLibrary(std::string library) {
       setLastError(err_exited, "Process is exited\n");
       return false;
    }
+   if (llproc_->getState() == int_process::detached) {
+       perr_printf("addLibrary on detached process\n");
+       setLastError(err_detached, "Process is detached\n");
+       return false;
+   }
+   if (int_process::isInCB()) {
+      perr_printf("User attempted addLibrary while in CB, erroring.");
+      setLastError(err_incallback, "Cannot addLibrary from callback\n");
+      return false;
+   }
+   if (hasRunningThread()) {
+      perr_printf("User attempted to addLibrary on running process\n");
+      setLastError(err_notstopped, "Attempted to addLibrary on running process\n");
+      return false;
+   }
 
    Injector inj(this);
    return inj.inject(library);
@@ -6539,6 +6554,7 @@ bool Process::runIRPCAsync(IRPC::ptr irpc)
       setLastError(err_incallback, "Cannot postSyncIRPC from callback\n");
       return false;
    }
+
 
    int_process *proc = llproc();
    int_iRPC::ptr rpc = irpc->llrpc()->rpc;
