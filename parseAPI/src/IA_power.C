@@ -75,7 +75,7 @@ bool IA_IAPI::isThunk() const {
     return false;
 }
 
-bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum edge, unsigned int) const
+bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum type, unsigned int) const
 {
    // Collapse down to "branch" or "fallthrough"
     switch(type) {
@@ -98,9 +98,9 @@ bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum edge, unsigned int) con
     parsing_printf("Checking for Tail Call \n");
     context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT); 
 
-    if (tailCalls.find(edge) != tailCalls.end()) {
-        parsing_printf("\tReturning cached tail call check result: %d\n", tailCall.second);
-        if (tailCalls[type].second) {
+    if (tailCalls.find(type) != tailCalls.end()) {
+        parsing_printf("\tReturning cached tail call check result: %d\n", tailCalls[type]);
+        if (tailCalls[type]) {
             context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
             return true;
         }
