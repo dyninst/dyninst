@@ -660,6 +660,8 @@ unsigned pcRelData::apply(Address addr)
    unsigned nOpcodeBytes = 1;
    if (*(origInsn + nPrefixes) == 0x0F)
       nOpcodeBytes = 2;
+   if ((*(origInsn + nPrefixes) == 0x0F) && (*(origInsn + nPrefixes + 1) == 0x38 || *(origInsn + nPrefixes + 1) == 0x3A))
+   	  nOpcodeBytes = 3;
    
    Register pointer_reg = (Register)-1;
      
@@ -682,6 +684,10 @@ unsigned pcRelData::apply(Address addr)
 
    if (*origInsn == 0x0F) {
       *newInsn++ = *origInsn++;
+   }
+   // 3-byte opcode support
+   if (*origInsn == 0x38 || *origInsn == 0x3A) {
+	   *newInsn++ = *origInsn++;
    }
      
    // And the normal opcode
@@ -1159,6 +1165,9 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
    unsigned nOpcodeBytes = 1;
    if (*(origInsn + nPrefixes) == 0x0F)
       nOpcodeBytes = 2;
+   // 3-byte opcode support
+   if ((*(origInsn + nPrefixes) == 0x0F) && (*(origInsn + nPrefixes + 1) == 0x38 || *(origInsn + nPrefixes + 1) == 0x3A))
+	  nOpcodeBytes = 3;  
    
    Register pointer_reg = (Register)-1;
      
@@ -1183,6 +1192,10 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
 
    if (*origInsn == 0x0F) {
       *newInsn++ = *origInsn++;
+   }
+   // 3-byte opcode support
+   if (*origInsn == 0x38 || *origInsn == 0x3A) {
+	   *newInsn++ = *origInsn++;
    }
      
    // And the normal opcode

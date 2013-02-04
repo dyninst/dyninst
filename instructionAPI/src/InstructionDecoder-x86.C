@@ -690,6 +690,12 @@ namespace Dyninst
                     return u16;
                 }
                 break;
+            case op_y:
+            	if(ia32_is_mode_64())
+            		return u64;
+            	else
+            		return u32;
+            	break;
             case op_p:
                 // book says operand size; arch-x86 says word + word * operand size
                 if(!ia32_is_mode_64() ^ sizePrefixPresent)
@@ -751,6 +757,12 @@ namespace Dyninst
 	   (optype == op_z))) {
 	optype = op_w;
       }
+      if(optype == op_y) {
+    	  if(ia32_is_mode_64() && locs->rex_w)
+    		  optype = op_q;
+    	  else
+    		  optype = op_d;
+      }
                 switch(operand.admet)
                 {
                     case 0:
@@ -789,6 +801,8 @@ namespace Dyninst
                     case am_M:
                     // am_R is the inverse of am_M; it should only have a mod of 3
                     case am_R:
+                    // can be am_R or am_M	
+                    case am_RM:	
                         if(isCFT)
                         {
 			  insn_to_complete->addSuccessor(makeModRMExpression(b, optype), isCall, true, false, false);
@@ -910,6 +924,29 @@ namespace Dyninst
                         insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,b_tr,locs->modrm_reg)),
                                                        isRead, isWritten);
                         break;
+                    case am_UM:
+                    	switch(locs->modrm_mod)
+                    	{
+                    	// direct dereference
+                    	case 0x00:
+                    	case 0x01:
+                    	case 0x02:
+                    		insn_to_complete->appendOperand(makeModRMExpression(b, makeSizeType(optype)),
+                    				isRead, isWritten);
+                    		break;
+                    	case 0x03:
+                    		// use of actual register
+                    		{
+                    			insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
+                    					(locs->rex_b == 1) ? b_xmmhigh : b_xmm, locs->modrm_rm)),
+                    					isRead, isWritten);
+                    			break;
+                    		}
+                    	default:
+                    		assert(!"2-bit value modrm_mod out of range");
+                    		break;
+                    	};
+                    	break;
                     case am_V:
                        
                         insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
