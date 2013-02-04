@@ -14,6 +14,12 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
+#if defined(DEBUG_DISASSEMBLE)
+#include "instructionAPI/h/Instruction.h"
+#include "instructionAPI/h/InstructionDecoder.h"
+using namespace InstructionAPI;
+#endif
+
 Injector::Injector(ProcControlAPI::Process *proc) :
    proc_(proc) {}
 
@@ -42,6 +48,24 @@ bool Injector::inject(std::string libname) {
                                                    codegen.buffer().startAddr()));
    // Don't try to execute a library name...
    irpc->setStartOffset(codegen.startOffset());
+
+#if defined(DEBUG_DISASSEMBLE)
+   cerr << "Setting starting offset to " << hex << codegen.startOffset() << endl;
+   cerr << "And starting address is " << codegen.buffer().startAddr() << dec << endl;
+
+   unsigned char *ptr = codegen.buffer().start_ptr();
+   ptr += codegen.startOffset();
+   Offset size = codegen.buffer().size() - codegen.startOffset();
+
+   InstructionDecoder d(ptr, size, proc_->getArchitecture());
+
+   Offset off = 0;
+   while (off < size) {
+     Instruction::Ptr insn = d.decode();
+     cerr << hex << off + codegen.startOffset() + codegen.buffer().startAddr() << " : " << insn->format() << endl;
+     off += insn->size();
+   }
+#endif
 
    //Post, but doesn't start running yet.
    bool result = rpcMgr()->postRPCToProc(proc, irpc);

@@ -3746,6 +3746,7 @@ bool int_thread::setAllRegisters(int_registerPool &pool, result_response::ptr re
    response->setProcess(llproc());
 
    if (!llproc()->plat_needsAsyncIO()) {
+
       pthrd_printf("Setting registers for thread %d\n", getLWP());
       bool result = plat_setAllRegisters(pool);
       response->setResponse(result);
