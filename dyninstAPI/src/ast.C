@@ -2354,7 +2354,7 @@ BPatch_type *AstOperandNode::checkType()
         ret = BPatch::bpatch->type_Untyped; 
     }
     else if ((oType == origRegister)) {
-        ret = BPatch::bpatch->stdTypes->findType("int");
+        ret = BPatch::bpatch->type_Untyped;
     }
     else {
         ret = const_cast<BPatch_type *>(getType());
