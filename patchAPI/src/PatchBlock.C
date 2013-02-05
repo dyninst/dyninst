@@ -545,16 +545,6 @@ bool PatchBlock::consistency() const {
       }
       set<PatchBlock*> srcs;
       for (unsigned i = 0; i < srclist_.size(); ++i) {
-         // shouldn't have multiple edges to the same block unless one
-         // is a conditional taken and the other a conditional not-taken
-         // (even this is weird, but it happens in obfuscated code)
-         if (srcs.find(srclist_[i]->src()) != srcs.end() &&
-             srclist_[i]->type() != ParseAPI::COND_TAKEN && 
-             srclist_[i]->type() != ParseAPI::COND_NOT_TAKEN) 
-         {
-            cerr << "Error: multiple source edges to same block" << endl;
-            CONSIST_FAIL;
-         }
          srcs.insert(srclist_[i]->src());
          if (!srclist_[i]->consistency()) {
             cerr << "Error: source edge inconsistent" << endl;
