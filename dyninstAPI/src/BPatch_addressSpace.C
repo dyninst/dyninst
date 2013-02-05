@@ -1016,6 +1016,17 @@ bool BPatch_addressSpace::getRegisters(std::vector<BPatch_register> &regs) {
        registerSlot *regslot = rs->realRegs()[i];
        registers_.push_back(BPatch_register(regslot->name, regslot->number));
    }
+
+// Temporary override: also return EFLAGS though it's certainly not a 
+#if defined(arch_x86) || defined(arch_x86_64)
+   for (unsigned i = 0; i < rs->SPRs().size(); ++i) {
+      if (rs->SPRs()[i]->name == "eflags") {
+         registers_.push_back(BPatch_register(rs->SPRs()[i]->name, 
+                                              rs->SPRs()[i]->number));
+      }
+   }
+#endif
+
    regs = registers_;
    return true;
 }

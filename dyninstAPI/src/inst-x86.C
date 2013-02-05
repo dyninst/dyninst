@@ -307,6 +307,11 @@ void registerSpace::initialize64() {
     registers.push_back(rsi);
     registers.push_back(rdi);
 
+    registers.push_back(new registerSlot(REGNUM_EFLAGS,
+                                         "eflags",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
 
     registers.push_back(new registerSlot(REGNUM_OF,
                                          "of",
