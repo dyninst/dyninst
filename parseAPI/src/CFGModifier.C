@@ -350,7 +350,7 @@ bool CFGModifier::remove(Function *f) {
 InsertedRegion *CFGModifier::insert(CodeObject *obj, 
                                     Address base, void *data, 
                                     unsigned size) {
-   cerr << "Inserting new code: " << hex << (unsigned) (*((unsigned *)data)) << dec << endl;
+   parsing_cerr << "Inserting new code: " << hex << (unsigned) (*((unsigned *)data)) << dec << endl;
 
    // As per Nate's suggestion, we're going to add this data as a new
    // Region in the CodeObject. 
