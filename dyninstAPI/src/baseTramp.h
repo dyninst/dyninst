@@ -128,6 +128,7 @@ class baseTramp {
     bool doOptimizations();
     bool makesCall();
     bool needsFrame() { return needsStackFrame_; }
+    bool madeFrame() { return createdFrame; }
 
     bool saveFPRs();
     void setNeedsFrame(bool);

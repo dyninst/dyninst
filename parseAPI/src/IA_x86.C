@@ -291,9 +291,18 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
            tailCalls[type] = true;
            return true;
         }
-        if(prevInsn->getOperation().getID() == e_pop)
+        else if(prevInsn->getOperation().getID() == e_pop)
         {
             if(prevInsn->isWritten(framePtr[_isrc->getArch()]))
+            {
+                parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
+                tailCalls[type] = true;
+                return true;
+            }
+        }
+        else if(prevInsn->getOperation().getID() == e_add)
+        {
+            if(prevInsn->isWritten(stackPtr[_isrc->getArch()]))
             {
                 parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
                 tailCalls[type] = true;

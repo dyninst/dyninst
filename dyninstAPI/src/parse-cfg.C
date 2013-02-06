@@ -554,8 +554,10 @@ bool parse_func::hasUnresolvedCF() {
               iter2 != (*iter)->targets().end(); ++iter2) {
             if ((*iter2)->sinkEdge() &&
                 (((*iter2)->type() == ParseAPI::INDIRECT) ||
-                 ((*iter2)->type() == ParseAPI::DIRECT))) {
+                 ((*iter2)->type() == ParseAPI::DIRECT)) &&
+                (!((*iter2)->interproc()))) {
                unresolvedCF_ = HAS_UNRESOLVED_CF;
+               cerr << "Block at " << hex << (*iter)->start() << " has sink edge, marking function uninstrumentable" << dec << endl;
                break;
             }
          }
