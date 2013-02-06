@@ -72,4 +72,7 @@ tags
 *.suo
 *.vcxproj.user
 ipch/*
+*.swp
+*.patch
+*.diff
 
