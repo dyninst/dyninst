@@ -185,6 +185,7 @@ class bgq_process :
    bool is_doing_temp_detach;
    bool stopped_on_startup;
    bool held_on_startup;
+   bool got_startup_stop;
 
    uint32_t rank;
 
@@ -212,7 +213,8 @@ class bgq_process :
       waitfor_control_request_signal,
       waitfor_data_collection,
       waits_done,
-      data_collected,
+      step_insn,
+      reissue_data_collection,
       startup_done,
       startup_donedone
    } startup_state;
@@ -444,7 +446,7 @@ class DecoderBlueGeneQ : public Decoder
    bool decodeDetachAck(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
    bool decodeReleaseControlAck(ArchEventBGQ *archevent, bgq_process *proc, int err_code, std::vector<Event::ptr> &events);
    bool decodeControlAck(ArchEventBGQ *ev, bgq_process *qproc, vector<Event::ptr> &events);
-   bool decodeLWPRefresh(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd);
+   bool decodeLWPRefresh(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, std::vector<Event::ptr> &events);
 
 
    Event::ptr createEventDetach(bgq_process *proc, bool err);
