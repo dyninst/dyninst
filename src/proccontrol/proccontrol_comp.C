@@ -1477,6 +1477,7 @@ bool ProcControlComponent::open_pipe(Process::ptr p, bool open_read)
             logerror("Mutator timeout opening %s: %s\n", j->second.c_str(), strerror(error));
             return false;
          }
+         Process::handleEvents(false);
          usleep(100000); //.1 seconds
          continue;
       }
