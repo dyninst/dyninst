@@ -129,7 +129,7 @@ bool Event::triggersCB() const
 
 void Event::setSuppressCB(bool b)
 {
-  pthrd_printf("Setting override event suppress for %s\n", name().c_str());
+  pthrd_printf("Setting callback suppress for %s\n", name().c_str());
    suppress_cb = b;
 }
 

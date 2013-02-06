@@ -186,8 +186,8 @@ static void printMessage(ToolMessage *msg, const char *str, bool short_msg = fal
                              i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
                              c.length, c.returnCode);
             }
-            break;
          }
+         break;
       }
       case Notify: {
          pclean_printf("Notify ");
@@ -208,6 +208,9 @@ static void printMessage(ToolMessage *msg, const char *str, bool short_msg = fal
                pclean_printf("Control: toolid = %u, toolTag = %.8s, priority = %u, reason = %u\n",
                              no->type.control.toolid, no->type.control.toolTag, (unsigned) no->type.control.priority,
                              (unsigned) no->type.control.reason);
+               break;
+            default:
+               pclean_printf("Unknown: %u\n", (unsigned int) no->notifyMessageType);
                break;
          }
          break;
@@ -3157,11 +3160,16 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             assert(0); //Currently unused, but eventually needed
             break;
          case GetMemoryAck: {
-            pthrd_printf("Decoding GetMemoryAck on %d\n", proc->getPid());
             mem_response::ptr memresp = cur_resp->getMemResponse();
             GetMemoryAckCmd *cmd = static_cast<GetMemoryAckCmd *>(base_cmd);
             assert(memresp);
             assert(cmd);
+            pthrd_printf("Decoding GetMemoryAck of length %u on %d. Contents: %u %u %u %u...\n",
+                         cmd->length, proc->getPid(),
+                         cmd->length > 0 ? (unsigned int) cmd->data[0] : 0, 
+                         cmd->length > 1 ? (unsigned int) cmd->data[1] : 0, 
+                         cmd->length > 2 ? (unsigned int) cmd->data[2] : 0, 
+                         cmd->length > 3 ? (unsigned int) cmd->data[3] : 0);
             memresp->postResponse((char *) cmd->data, cmd->length, cmd->addr);
             if (desc->returnCode)
                memresp->markError(desc->returnCode);
@@ -3292,7 +3300,8 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             pthrd_printf("Decoded ContinueProcessAck on %d/%d. Dropping\n", proc->getPid(), thr->getLWP());
             break;
          case StepThreadAck:
-            pthrd_printf("Decoded StepThreadAck on %d/%d. Dropping\n", proc->getPid(), thr->getLWP());
+            pthrd_printf("Decoded StepThreadAck on %d/%d. Dropping\n",
+                         proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
             break;
          case SetWatchpointAck:
          case ResetWatchpointAck:

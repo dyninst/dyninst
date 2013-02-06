@@ -5030,9 +5030,11 @@ bool sw_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read
 
    read_response->setBuffer(buffer, buffer_size);
    bool ret = proc->readMem(addr, read_response);
-   pthrd_printf("Buffer contents from read breakpoint:\n");
-   for (int i = 0; i < buffer_size; ++i) {
-     pthrd_printf("\t 0x%x\n", (unsigned char)buffer[i]);
+   if (read_response->isReady()) {
+      pthrd_printf("Buffer contents from read breakpoint:\n");
+      for (int i = 0; i < buffer_size; ++i) {
+         pthrd_printf("\t 0x%x\n", (unsigned char)buffer[i]);
+      }
    }
    return ret;
 }
