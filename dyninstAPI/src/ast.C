@@ -1149,6 +1149,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       }
       case whileOp: {
          codeBufIndex_t top = gen.getIndex();
+
          if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
          REGISTER_CHECK(src1);
          codeBufIndex_t startIndex = gen.getIndex();
@@ -1165,7 +1166,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             gen.tracker()->decreaseAndClean(gen);
          }
          //jump back
-         (void) emitA(branchOp, 0, 0, codeGen::getDisplacement(top, gen.getIndex()),
+         (void) emitA(branchOp, 0, 0, codeGen::getDisplacement(gen.getIndex(), top),
                       gen, rc_no_control, noCost);
         
          // Rewind and replace the skip jump
