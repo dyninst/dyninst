@@ -954,6 +954,11 @@ bool bgq_process::plat_lwpRefreshNoteNewThread(int_thread *thr)
    return true;
 }
 
+int bgq_process::threaddb_getPid()
+{
+   return get_procdata_result.tgid;
+}
+
 bool bgq_process::handleStartupEvent(void *data)
 {
    ComputeNode *cn = getComputeNode();

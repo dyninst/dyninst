@@ -225,10 +225,13 @@ ps_err_e ps_lgetregs(struct ps_prochandle *handle, lwpid_t lwp, prgregset_t regs
 
 pid_t ps_getpid (struct ps_prochandle *ph)
 {
-   return ph->thread_db_proc->getPid();
+   int pid = ph->thread_db_proc->threaddb_getPid();
+   pthrd_printf("thread_db called ps_getpid.  Returning %d\n", pid);
+   return pid;
 }
 
 void ps_plog(const char *format, ...) {
+   pthrd_printf("thread_db called ps_plog\n");
     if( !dyninst_debug_proccontrol ) return;
     if( NULL == format ) return;
 
@@ -1577,6 +1580,11 @@ bool thread_db_process::threaddb_refreshThreads()
    ev->setThread(threadPool()->initialThread()->thread());
    mbox()->enqueue(ev);
    return true;
+}
+
+int thread_db_process::threaddb_getPid()
+{
+   return getPid();
 }
 
 async_ret_t thread_db_thread::setEventReporting(bool on) {
