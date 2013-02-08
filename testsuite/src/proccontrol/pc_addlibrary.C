@@ -108,15 +108,13 @@ static Process::cb_ret_t on_library(Event::const_ptr ev)
 
 #if !defined(os_windows_test)
 
-#if defined(arch_x86_64_test)
-#define LIBTESTA (sizeof(void*) == 8) ? "./libtestA.so" : "./libtestA_m32.so"
-#else
 #define LIBTESTA "./libtestA.so"
-#endif
+#define LIBTESTA_32 "./libtestA_m32.so"
 
 #else
 
 #define LIBTESTA "./libtestA.dll"
+#define LIBTESTA_32 "./libtestA_m32.dll"
 
 #endif
 
@@ -134,7 +132,22 @@ test_results_t pc_addlibraryMutator::executeTest()
    /* Force load libraries */
    for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
       Process::ptr proc = *i;
-      bool result = proc->addLibrary(LIBTESTA);
+
+      std::string libname;
+      if (sizeof(void *) == 8) {
+         // 64-bit platform...
+         if (Dyninst::getArchAddressWidth(proc->getArchitecture()) == 8) {
+            libname = LIBTESTA;
+         }
+         else {
+            libname = LIBTESTA_32;
+         }
+      }
+      else {
+         libname = LIBTESTA;
+      }
+
+      bool result = proc->addLibrary(libname);
       if (!result) {
          logerror("Error returned from addLibrary call\n");
          had_error = true;
