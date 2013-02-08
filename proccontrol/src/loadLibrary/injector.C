@@ -14,6 +14,7 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
+
 #if defined(DEBUG_DISASSEMBLE)
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
@@ -65,6 +66,13 @@ bool Injector::inject(std::string libname) {
      cerr << hex << off + codegen.startOffset() + codegen.buffer().startAddr() << " : " << insn->format() << endl;
      off += insn->size();
    }
+
+   off = 0;
+   while (off < size) {
+     cerr << hex <<  off + codegen.startOffset() + codegen.buffer().startAddr() << ": " << (int) ptr[off] << dec << endl;
+     off++;
+   }
+
 #endif
 
    //Post, but doesn't start running yet.
