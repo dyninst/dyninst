@@ -182,6 +182,10 @@ Symbol_t SymElf::getSymbolByName(std::string symname)
          unsigned str_loc = symbol.st_name(idx);
          if (strcmp(str_buffer+str_loc, symname.c_str()) != 0)
             continue;
+	 if (symbol.st_shndx(idx) == 0) {
+	   continue;
+	 }
+
          MAKE_SYMBOL(str_buffer+str_loc, idx, shdr, ret);
          return ret;
       }
