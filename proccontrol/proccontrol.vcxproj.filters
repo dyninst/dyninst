@@ -152,5 +152,8 @@
     <ClInclude Include="h\PlatFeatures.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\loadLibrary\codegen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
