@@ -117,7 +117,7 @@ DLLEXPORT void *DYNINSTos_malloc(size_t, void *, void *);
  * And variables
  **/
 
-DLLEXPORT extern dyntid_t DYNINST_pthread_self;
+DLLEXPORT extern dyntid_t (*DYNINST_pthread_self)(void);
 DLLEXPORT extern unsigned int DYNINSTobsCostLow;
 DLLEXPORT extern int libdyninstAPI_RT_init_maxthreads;
 DLLEXPORT extern int libdyninstAPI_RT_init_localCause;
