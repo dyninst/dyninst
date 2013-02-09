@@ -437,7 +437,7 @@ class Object : public AObject {
     unsigned gotSize() const { return got_size_; }
     Offset gotAddr() const { return got_addr_; }
 
-    virtual void getSegmentsSymReader(std::vector<SymSegment> &segs); 
+    SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &segs); 
 
   private:
   static void log_elferror (void (*)(const char *), const char *);

@@ -37,10 +37,10 @@
 #include "BPatch_Set.h"
 #include "BPatch_thread.h"
 #include "BPatch_type.h"
-#include "BPatch_eventLock.h"
 #include "BPatch_process.h"
 #include "BPatch_enums.h"
 #include "BPatch_callbacks.h"
+#include <set>
 
 class BPatch_typeCollection;
 class BPatch_libInfo;
@@ -113,11 +113,7 @@ typedef struct {
 } BPatch_remoteHost;
 // --------------------------------------------------------------------
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch
-class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
+class BPATCH_DLL_EXPORT BPatch {
     friend class BPatch_thread;
     friend class BPatch_process;
     friend class BPatch_point;
@@ -136,7 +132,7 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     bool        trampRecursiveOn;
 
     bool        forceRelocation_NP;
-    /* If true, allows automatic relocation of functions if dyninst
+    /* If true,allows automatic relocation of functions if dyninst
        deems it necessary.  Defaults to true */
     bool        autoRelocation_NP;
 
@@ -193,7 +189,7 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
    BPatchAsyncThreadEventCallback threadDestroyCallback;
    BPatchDynamicCallSiteCallback dynamicCallSiteCallback;
    InternalSignalHandlerCallback signalHandlerCallback;
-   BPatch_Set<long> *callbackSignals;
+   std::set<long> callbackSignals;
    InternalCodeOverwriteCallback codeOverwriteCallback;
    
    BPatch_Vector<BPatchUserEventCallback> userEventCallbacks;
@@ -262,9 +258,7 @@ public:
 
     //  BPatch::~BPatch
     //  destructor
-    API_EXPORT_DTOR(_dtor, (),
-
-    ~,BPatch,());
+    ~BPatch();
 
     static const char *getEnglishErrorString(int number);
     static void formatErrorString(char *dst, int size,
@@ -272,149 +266,131 @@ public:
 
     // BPatch::isTypeChecked:
     // returns whether type checking is on.
-    API_EXPORT(Int, (),
-
-    bool,isTypeChecked,());
+    bool isTypeChecked();
 
     // BPatch::parseDebugInfo:
     // returns whether debugging information is set to be parsed
-    API_EXPORT(Int, (),
-
-    bool,parseDebugInfo,());
+    bool parseDebugInfo();
 
     // BPatch::baseTrampDeletion:
     // returns whether base trampolines are set to be deleted
-    API_EXPORT(Int, (),
-
-    bool,baseTrampDeletion,());
+    bool baseTrampDeletion();
 
     // BPatch::setPrelinkCommand
     // sets the fully qualified path name of the prelink command
-    API_EXPORT_V(Int, (command),
-
- 	void,setPrelinkCommand,(char *command));
+    void setPrelinkCommand(char *command);
 
     // BPatch::getPrelinkCommand
     // gets the fully qualified path name of the prelink command
-    API_EXPORT(Int, (),
-
- 	char*,getPrelinkCommand,());
+    char* getPrelinkCommand();
 
     // BPatch::isTrampRecursive:
     // returns whether trampolines are set to handle recursive instrumentation
-    API_EXPORT(Int, (),
-
-    bool,isTrampRecursive,());
+    bool isTrampRecursive();
 
     // BPatch::isMergeTramp:
     // returns whether base tramp and mini-tramp is merged
-    API_EXPORT(Int, (),
-
-    bool,isMergeTramp,());        
+    bool isMergeTramp();        
 
     // BPatch::saveFPROn:
     // returns whether base tramp and mini-tramp is merged
-    API_EXPORT(Int, (),
-
-    bool,isSaveFPROn,());        
+    bool isSaveFPROn();        
 
     // BPatch::forceSaveFPROn:
     // returns whether base tramp and mini-tramp is merged
-    API_EXPORT(Int, (),
-
-    bool,isForceSaveFPROn,());        
+    bool isForceSaveFPROn();        
 
 
     // BPatch::hasForcedRelocation_NP:
     // returns whether all instrumented functions will be relocated
-    API_EXPORT(Int, (),
+    
 
-    bool,hasForcedRelocation_NP,());
+    bool hasForcedRelocation_NP();
 
     // BPatch::autoRelocationsOn:
     // returns whether functions will be relocated when appropriate
-    API_EXPORT(Int, (),
+    
 
-    bool,autoRelocationOn,());
+    bool autoRelocationOn();
 
 
     // BPatch::delayedParsingOn:
     // returns whether inst info is parsed a priori, or on demand
-    API_EXPORT(Int, (),
+    
 
-    bool,delayedParsingOn,());
+    bool delayedParsingOn();
 
     // Liveness...
-    API_EXPORT(Int, (),
-    bool, livenessAnalysisOn, ());
+    
+    bool  livenessAnalysisOn();
 
-    API_EXPORT(Int, (),
-               int, livenessAnalysisDepth, ());
+    
+               int livenessAnalysisDepth();
 
 
     //  User-specified callback functions...
 
     //  BPatch::registerErrorCallback:
     //  Register error handling/reporting callback
-    API_EXPORT(Int, (function),
+    
 
-    BPatchErrorCallback, registerErrorCallback,(BPatchErrorCallback function));
+    BPatchErrorCallback registerErrorCallback(BPatchErrorCallback function);
 
     //  BPatch::registerDynLibraryCallback:
     //  Register callback for new library events (eg. load)
-    API_EXPORT(Int, (func),
+    
 
-    BPatchDynLibraryCallback, registerDynLibraryCallback,(BPatchDynLibraryCallback func));
+    BPatchDynLibraryCallback registerDynLibraryCallback(BPatchDynLibraryCallback func);
 
     //  BPatch::registerPostForkCallback:
     //  Register callback to handle mutatee fork events (before fork)
-    API_EXPORT(Int, (func),
+    
 
-    BPatchForkCallback, registerPostForkCallback,(BPatchForkCallback func));
+    BPatchForkCallback registerPostForkCallback(BPatchForkCallback func);
 
     //  BPatch::registerPreForkCallback:
     //  Register callback to handle mutatee fork events (before fork)
-    API_EXPORT(Int, (func),
+    
 
-    BPatchForkCallback, registerPreForkCallback,(BPatchForkCallback func));
+    BPatchForkCallback registerPreForkCallback(BPatchForkCallback func);
 
     //  BPatch::registerExecCallback:
     //  Register callback to handle mutatee exec events 
-    API_EXPORT(Int, (func),
-    BPatchExecCallback, registerExecCallback,(BPatchExecCallback func));
+    
+    BPatchExecCallback registerExecCallback(BPatchExecCallback func);
 
     //  BPatch::registerExitCallback:
     //  Register callback to handle mutatee exit events 
-    API_EXPORT(Int, (func),
+    
 
-    BPatchExitCallback, registerExitCallback,(BPatchExitCallback func));
+    BPatchExitCallback registerExitCallback(BPatchExitCallback func);
 
     //  BPatch::registerOneTimeCodeCallback:
     //  Register callback to run at completion of oneTimeCode 
-    API_EXPORT(Int, (func),
-    BPatchOneTimeCodeCallback, registerOneTimeCodeCallback,(BPatchOneTimeCodeCallback func));
+    
+    BPatchOneTimeCodeCallback registerOneTimeCodeCallback(BPatchOneTimeCodeCallback func);
 
     //  BPatch::registerThreadEventCallback
     //  Registers a callback to run when a thread is created
-    API_EXPORT(Int, (type,cb),
-    bool,registerThreadEventCallback,(BPatch_asyncEventType type, 
-                                      BPatchAsyncThreadEventCallback cb));
+    
+    bool registerThreadEventCallback(BPatch_asyncEventType type, 
+                                      BPatchAsyncThreadEventCallback cb);
 
     //  BPatch::removeThreadEventCallback
     //  Registers a callback to run when a thread is destroyed
-    API_EXPORT(Int, (type,cb),
-    bool,removeThreadEventCallback,(BPatch_asyncEventType type,
-                                    BPatchAsyncThreadEventCallback cb));
+    
+    bool removeThreadEventCallback(BPatch_asyncEventType type,
+                                    BPatchAsyncThreadEventCallback cb);
 
     //  BPatch::registerDynamicCallCallback
     //  Specifies a user-supplied function to be called when a dynamic call is
     //  executed.
 
-    API_EXPORT(Int, (cb),
-    bool,registerDynamicCallCallback,(BPatchDynamicCallSiteCallback cb));
+    
+    bool registerDynamicCallCallback(BPatchDynamicCallSiteCallback cb);
 
-    API_EXPORT(Int, (cb),
-    bool,removeDynamicCallCallback,(BPatchDynamicCallSiteCallback cb));
+    
+    bool removeDynamicCallCallback(BPatchDynamicCallSiteCallback cb);
 
 
     //  BPatch::registerUserEventCallback
@@ -426,11 +402,11 @@ public:
     //  BPatchUserEventCallback is:
     //  void (*BPatchUserEventCallback)(void *msg, unsigned int msg_size);
 
-    API_EXPORT(Int, (cb),
-    bool,registerUserEventCallback,(BPatchUserEventCallback cb)); 
+    
+    bool registerUserEventCallback(BPatchUserEventCallback cb); 
 
-    API_EXPORT(Int, (cb),
-    bool,removeUserEventCallback,(BPatchUserEventCallback cb));
+    
+    bool removeUserEventCallback(BPatchUserEventCallback cb);
 
     // BPatch::registerSignalHandlerCallback 
     // 
@@ -444,32 +420,32 @@ public:
     // handler for the signal number, the handler registered with
     // syscalls signal() or sigaction(), or the default system
     // handler, in which case we return an empty vector.
-     API_EXPORT(Int, (cb,signal_numbers), 
-                bool,registerSignalHandlerCallback,
-                (BPatchSignalHandlerCallback cb, 
-                 BPatch_Set<long> *signal_numbers)); 
+     
+    bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, 
+                                       std::set<long> &signal_numbers); 
+    bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, 
+                                       BPatch_Set<long> *signal_numbers); 
+     
+     bool removeSignalHandlerCallback(BPatchSignalHandlerCallback cb); 
 
-     API_EXPORT(Int, (cb), 
-     bool,removeSignalHandlerCallback,(BPatchSignalHandlerCallback cb)); 
-
-    API_EXPORT(Int, (cb), 
-    bool,registerCodeDiscoveryCallback,(BPatchCodeDiscoveryCallback cb));
-    API_EXPORT(Int, (cb), 
-    bool,removeCodeDiscoveryCallback,(BPatchCodeDiscoveryCallback cb));
+    
+    bool registerCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb);
+    
+    bool removeCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb);
 
     // BPatch::registerCodeOverwriteCallbacks
     // 
     // Registers a callback at the beginning and end of overwrite events
-    API_EXPORT(Int, (cbBegin, cbEnd), 
-    bool,registerCodeOverwriteCallbacks,
+    
+    bool registerCodeOverwriteCallbacks
         (BPatchCodeOverwriteBeginCallback cbBegin,
-         BPatchCodeOverwriteEndCallback cbEnd));
+         BPatchCodeOverwriteEndCallback cbEnd);
 
 
     //  BPatch::getProcesses:
     //  Get a vector of all processes 
-    API_EXPORT(Int, (),
-    BPatch_Vector<BPatch_process*> *,getProcesses,());
+    
+    BPatch_Vector<BPatch_process*> * getProcesses();
 
     //
     //  General BPatch parameter settings:
@@ -477,101 +453,101 @@ public:
     
     //  BPatch::setDebugParsing:
     //  Turn on/off parsing of debug section(s)
-    API_EXPORT_V(Int, (x),
+    
 
-    void,setDebugParsing,(bool x));
+    void setDebugParsing(bool x);
 
     //  BPatch::setBaseTrampDeletion:
     //  Turn on/off deletion of base tramp
-    API_EXPORT_V(Int, (x),
+    
 
-    void,setBaseTrampDeletion,(bool x));
+    void setBaseTrampDeletion(bool x);
 
     //  BPatch::setTypeChecking:
     //  Turn on/off type checking
-    API_EXPORT_V(Int, (x),
+    
 
-    void,setTypeChecking,(bool x));
+    void setTypeChecking(bool x);
 
-    API_EXPORT_V(Int, (b),
-    void,setInstrStackFrames,(bool b));
+    
+    void setInstrStackFrames(bool b);
 
-    API_EXPORT(Int, (),
-    bool,getInstrStackFrames,());
+    
+    bool getInstrStackFrames();
 
     //  BPatch::setTypeChecking:
     //  Turn on/off line info truncating
-    API_EXPORT_V(Int, (x),
+    
 
-    void,truncateLineInfoFilenames,(bool x));
+    void truncateLineInfoFilenames(bool x);
 
     //  BPatch::setTrampRecursive:
     //  Turn on/off recursive trampolines
-    API_EXPORT_V(Int, (x),
+    
 
-    void,setTrampRecursive,(bool x));
+    void setTrampRecursive(bool x);
 
     //  BPatch::setMergeTramp:
     //  Turn on/off merged base & mini-tramps
-    API_EXPORT_V(Int, (x),
+    
 
-    void,setMergeTramp,(bool x));
+    void setMergeTramp(bool x);
 
     //  BPatch::setSaveFPR:
     //  Turn on/off merged base & mini-tramps
-    API_EXPORT_V(Int, (x),
+    
 
-    void,setSaveFPR,(bool x));
+    void setSaveFPR(bool x);
 
     //  BPatch::forceSaveFPR:
     //  Force Turn on/off merged base & mini-tramps - ignores isConservative
-    API_EXPORT_V(Int, (x),
+    
 
-    void,forceSaveFPR,(bool x));
+    void forceSaveFPR(bool x);
 
 
     //  BPatch::setForcedRelocation_NP:
     //  Turn on/off forced relocation of instrumted functions
-    API_EXPORT_V(Int, (x),
+    
 
-    void,setForcedRelocation_NP,(bool x));
+    void setForcedRelocation_NP(bool x);
 
     //  BPatch::setAutoRelocation_NP:
     //  Turn on/off function relocations, performed when necessary
-    API_EXPORT_V(Int, (x),
+    
 
-    void,setAutoRelocation_NP,(bool x));
+    void setAutoRelocation_NP(bool x);
 
     //  BPatch::setDelayedParsing:
     //  Turn on/off delayed parsing
-    API_EXPORT_V(Int, (x),
+    
 
-    void,setDelayedParsing,(bool x));
+    void setDelayedParsing(bool x);
 
     // Liveness...
-    API_EXPORT_V(Int, (x),
-    void, setLivenessAnalysis, (bool x));
+    
+    void  setLivenessAnalysis(bool x);
 
-    API_EXPORT_V(Int, (x),
-                 void, setLivenessAnalysisDepth, (int x));
+    
+                 void  setLivenessAnalysisDepth(int x);
 
     // BPatch::processCreate:
     // Create a new mutatee process
-    API_EXPORT(Int, (path, argv, envp, stdin_fd, stdout_fd, stderr_fd, mode),
-    BPatch_process *,processCreate,(const char *path,
-                                    const char *argv[],
-                                    const char **envp = NULL,
-                                    int stdin_fd=0,
-                                    int stdout_fd=1,
-                                    int stderr_fd=2,
-                                    BPatch_hybridMode mode=BPatch_normalMode));
+    
+    BPatch_process * processCreate(const char *path,
+				   const char *argv[],
+				   const char **envp = NULL,
+				   int stdin_fd=0,
+				   int stdout_fd=1,
+				   int stderr_fd=2,
+				   BPatch_hybridMode mode=BPatch_normalMode);
 
 
     // BPatch::processAttach
     // Attach to mutatee process
-    API_EXPORT(Int, (path, pid, mode),
-    BPatch_process *,processAttach,(const char *path, int pid, 
-                                    BPatch_hybridMode mode=BPatch_normalMode));
+    
+    BPatch_process *processAttach(const char *path, int pid, 
+                                    BPatch_hybridMode mode=BPatch_normalMode);
 
 
     // BPatch::openBinary
@@ -581,62 +557,62 @@ public:
     // gets reset between the openBinary and openBinaryInt calls--is
     // this a gcc bug???
     // 
-    API_EXPORT(Int, (path, openDependencies), 
-               BPatch_binaryEdit *, openBinary, (const char *path, bool openDependencies = false));
+    
+               BPatch_binaryEdit * openBinary(const char *path, bool openDependencies = false);
 
     // BPatch::createEnum:
     // Create Enum types. 
-    API_EXPORT(Int, (name, elementNames, elementIds),
+    
 
-    BPatch_type *,createEnum,(const char * name, BPatch_Vector<char *> &elementNames,
-                              BPatch_Vector<int> &elementIds));
+    BPatch_type *createEnum(const char * name, BPatch_Vector<char *> &elementNames,
+                              BPatch_Vector<int> &elementIds);
 
     // BPatch::createEnum:
     // API selects elementIds
-    API_EXPORT(AutoId, (name, elementNames),
+    
 
-    BPatch_type *,createEnum,(const char * name, BPatch_Vector<char *> &elementNames));
+    BPatch_type *createEnum(const char * name, BPatch_Vector<char *> &elementNames);
 
     // BPatch::createStruct:
     // Create Struct types. 
-    API_EXPORT(Int, (name, fieldNames, fieldTypes),
+    
 
-    BPatch_type *,createStruct,(const char * name, BPatch_Vector<char *> &fieldNames,
-                                BPatch_Vector<BPatch_type *> &fieldTypes));
+    BPatch_type *createStruct(const char * name, BPatch_Vector<char *> &fieldNames,
+                                BPatch_Vector<BPatch_type *> &fieldTypes);
 
     // BPatch::createUnion:
     // Create Union types. 
-    API_EXPORT(Int, (name, fieldNames, fieldTypes),
+    
 
-    BPatch_type *,createUnion,(const char * name, BPatch_Vector<char *> &fieldNames,
-                               BPatch_Vector<BPatch_type *> &fieldTypes));
+    BPatch_type *createUnion(const char * name, BPatch_Vector<char *> &fieldNames,
+                               BPatch_Vector<BPatch_type *> &fieldTypes);
 
     // BPatch::createArray:
     // Creates BPatch_array type or symtyperanges ( scalars with upper and
     //lower bound).
-    API_EXPORT(Int, (name, ptr, low, hi),
+    
 
-    BPatch_type *,createArray,(const char * name, BPatch_type * ptr,
-                               unsigned int low, unsigned int hi));
+    BPatch_type *createArray(const char * name, BPatch_type * ptr,
+                               unsigned int low, unsigned int hi);
 
     // BPatch::createPointer:
     // Creates BPatch_pointer types	 
-    API_EXPORT(Int, (name, ptr, size),
+    
 
-    BPatch_type *,createPointer,(const char * name, BPatch_type * ptr,
-                                 int size = sizeof(void *)));
+    BPatch_type *createPointer(const char * name, BPatch_type * ptr,
+                                 int size = sizeof(void *));
 
     // BPatch::createScalar:
     // Creates BPatch_scalar types
-    API_EXPORT(Int, (name, size),
+    
 
-    BPatch_type *,createScalar,(const char * name, int size));
+    BPatch_type *createScalar(const char * name, int size);
     
     // BPatch::createTypedef:
     // Creates typedefs.
-    API_EXPORT(Int, (name, ptr),
+    
 
-    BPatch_type *,createTypedef,(const char * name, BPatch_type * ptr));
+    BPatch_type *createTypedef(const char * name, BPatch_type * ptr);
 	 
     // User programs are required to call pollForStatusChange or
     // waitForStatusChange before user-level callback functions
@@ -644,12 +620,12 @@ public:
 
     // Non-blocking form; returns immediately if no callback is
     // ready, or executes callback(s) then returns.
-    API_EXPORT(Int, (),
-    bool,pollForStatusChange,());
+    
+    bool pollForStatusChange();
 
     // Blocks until a callback is ready.
-    API_EXPORT(Int, (),
-    bool,waitForStatusChange,());
+    
+    bool waitForStatusChange();
 
     // For user programs that block on other things as well,
     // we provide a (simulated) file descriptor that can be added
@@ -658,46 +634,46 @@ public:
     // program should then call pollForStatusChange. The BPatch layer
     // will handle clearing the file descriptor; all the program must do 
     // is call pollForStatusChange or waitForStatusChange.
-    API_EXPORT(Int, (),
-    int, getNotificationFD, ());
+    
+    int getNotificationFD();
 
     //  BPatch:: waitUntilStopped:
     //  Block until specified process has stopped.
-    API_EXPORT(Int, (appThread),
+    
 
-    bool,waitUntilStopped,(BPatch_thread *appThread));
+    bool waitUntilStopped(BPatch_thread *appThread);
 
     //  BPatch::getBPatchStatistics:
     //  Get Instrumentation statistics
-    API_EXPORT(Int, (),
+    
 
-    BPatch_stats &,getBPatchStatistics,());
+    BPatch_stats & getBPatchStatistics();
 
 
-    API_EXPORT_V(Int, (major, minor, subminor),
-    void ,getBPatchVersion,(int &major, int &minor, int &subminor));
+    
+    void getBPatchVersion(int &major, int &minor, int &subminor);
 
     // These three should probably be moved into their own BPatch_* class.
     // Perhaps BPatch_remoteDebug?
-    API_EXPORT(Int, (),
-    bool, isConnected, ());
+    
+    bool  isConnected();
 
-    API_EXPORT(Int, (remote),
-    bool, remoteConnect, (BPatch_remoteHost &remote));
+    
+    bool  remoteConnect(BPatch_remoteHost &remote);
 
-    API_EXPORT(Int, (remote, pidlist),
-    bool,getPidList,(BPatch_remoteHost &remote, BPatch_Vector<unsigned int> &pidlist));
+    
+    bool getPidList(BPatch_remoteHost &remote, BPatch_Vector<unsigned int> &pidlist);
 
-    API_EXPORT(Int, (remote, pid, pidStr),
-    bool,getPidInfo,(BPatch_remoteHost &remote, unsigned int pid, std::string &pidStr));
+    
+    bool getPidInfo(BPatch_remoteHost &remote, unsigned int pid, std::string &pidStr);
 
-    API_EXPORT(Int, (remote),
-    bool, remoteDisconnect, (BPatch_remoteHost &remote));
+    
+    bool  remoteDisconnect(BPatch_remoteHost &remote);
 
     //  BPatch::addNonReturningFunc:
     //  Globally specify that any function with a given name will not return
-    API_EXPORT_V(Int, (name),
-    void, addNonReturningFunc, (std::string name));
+    
+    void  addNonReturningFunc(std::string name);
 };
 
 #ifdef _MSC_VER

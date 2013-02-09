@@ -135,6 +135,17 @@ public:
     bool readTextWord(const void *inTracedProcess, u_int amount,
                       void *inSelf);
 
+    unsigned getMemoryPageSize() const;
+
+    typedef ProcControlAPI::Process::mem_perm PCMemPerm;
+    bool getMemoryAccessRights(Address start,  size_t size, PCMemPerm& rights);
+    bool setMemoryAccessRights(Address start,  size_t size, PCMemPerm  rights);
+protected:
+    void changeMemoryProtections(Address addr, size_t size, PCMemPerm  rights,
+                                 bool setShadow);
+
+public:
+
     // Process properties and fields
     PCThread *getInitialThread() const;
     PCThread *getThread(dynthread_t tid) const;
@@ -216,10 +227,6 @@ public:
     bool setBeingDebuggedFlag(bool debuggerPresent);
 #endif
 
-    // platform-specific
-    bool setMemoryAccessRights(Address start, Address size, int rights);
-    bool getMemoryAccessRights(Address start, Address size, int rights);
-
     // code overwrites
     bool getOverwrittenBlocks
       ( std::map<Address, unsigned char *>& overwrittenPages,//input
@@ -232,7 +239,6 @@ public:
       std::map<func_instance*,set<block_instance*> > &elimMap, //output: elimF
       std::list<func_instance*> &deadFuncs, //output: DeadF
       std::map<func_instance*,block_instance*> &newFuncEntries); //output: newF
-    unsigned getMemoryPageSize() const;
 
     // synch modified mapped objects with current memory contents
     mapped_object *createObjectNoFile(Address addr);
@@ -343,7 +349,6 @@ protected:
           savedPid_(pcProc->getPid()),
           savedArch_(pcProc->getArchitecture()),
           analysisMode_(analysisMode), 
-          memoryPageSize_(0),
           sync_event_id_addr_(0),
           sync_event_arg1_addr_(0),
           sync_event_arg2_addr_(0),
@@ -383,7 +388,6 @@ protected:
           savedPid_(pcProc->getPid()),
           savedArch_(pcProc->getArchitecture()),
           analysisMode_(analysisMode), 
-          memoryPageSize_(0),
           sync_event_id_addr_(0),
           sync_event_arg1_addr_(0),
           sync_event_arg2_addr_(0),
@@ -426,7 +430,6 @@ protected:
           savedPid_(pcProc->getPid()),
           savedArch_(pcProc->getArchitecture()),
           analysisMode_(parent->analysisMode_), 
-          memoryPageSize_(parent->memoryPageSize_),
           RT_address_cache_addr_(parent->RT_address_cache_addr_),
           sync_event_id_addr_(parent->sync_event_id_addr_),
           sync_event_arg1_addr_(parent->sync_event_arg1_addr_),
@@ -586,7 +589,6 @@ protected:
 
     // Hybrid Analysis
     BPatch_hybridMode analysisMode_;
-    int memoryPageSize_;
 
     // Active instrumentation tracking
     codeRangeTree signalHandlerLocations_;

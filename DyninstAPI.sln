@@ -7,6 +7,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "common", "common\common.vcxproj", "{197E213A-6900-4D09-B280-109A0D02DF36}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dyninstAPI", "dyninstAPI\dyninstAPI.vcxproj", "{33F95814-6383-4480-A3F5-B9DC73B1DA1A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6B47CBB4-03C4-41E4-99BC-E64C09D0AF00} = {6B47CBB4-03C4-41E4-99BC-E64C09D0AF00}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "instructionAPI", "instructionAPI\instructionAPI.vcxproj", "{56F83FE4-E104-4D97-A4B9-89F41B034529}"
 EndProject
@@ -23,7 +26,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "stackwalk", "stackwalk\stac
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "proccontrol", "proccontrol\proccontrol.vcxproj", "{E2356DA6-9C35-45F6-B9D2-21C1CAD3A6EF}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup1", "Setup1\Setup1.vdproj", "{E3DA1B51-400A-4803-8FE4-470CBC9C5A63}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "injectorAPI", "injectorAPI\injectorAPI.vcxproj", "{6B47CBB4-03C4-41E4-99BC-E64C09D0AF00}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E2356DA6-9C35-45F6-B9D2-21C1CAD3A6EF} = {E2356DA6-9C35-45F6-B9D2-21C1CAD3A6EF}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -71,8 +77,10 @@ Global
 		{E2356DA6-9C35-45F6-B9D2-21C1CAD3A6EF}.Debug|Win32.Build.0 = Debug|Win32
 		{E2356DA6-9C35-45F6-B9D2-21C1CAD3A6EF}.Release|Win32.ActiveCfg = Release|Win32
 		{E2356DA6-9C35-45F6-B9D2-21C1CAD3A6EF}.Release|Win32.Build.0 = Release|Win32
-		{E3DA1B51-400A-4803-8FE4-470CBC9C5A63}.Debug|Win32.ActiveCfg = Debug
-		{E3DA1B51-400A-4803-8FE4-470CBC9C5A63}.Release|Win32.ActiveCfg = Release
+		{6B47CBB4-03C4-41E4-99BC-E64C09D0AF00}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6B47CBB4-03C4-41E4-99BC-E64C09D0AF00}.Debug|Win32.Build.0 = Debug|Win32
+		{6B47CBB4-03C4-41E4-99BC-E64C09D0AF00}.Release|Win32.ActiveCfg = Release|Win32
+		{6B47CBB4-03C4-41E4-99BC-E64C09D0AF00}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

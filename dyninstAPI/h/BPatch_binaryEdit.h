@@ -36,7 +36,6 @@
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_image.h"
-#include "BPatch_eventLock.h"
 #include "BPatch_addressSpace.h"
 
 #include "BPatch_callbacks.h"
@@ -103,18 +102,15 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     bool getMutationsActive() {return true;}
 
     // BPatch_binaryEdit::writeFile
-    API_EXPORT(Int, (outFile),
-	       bool,writeFile,(const char * outFile));
+    bool writeFile(const char * outFile);
 
   
     //  BPatch_binaryEdit::~BPatch_binaryEdit
     //
     //  Destructor
-    API_EXPORT_DTOR(_dtor, (),
-    ~,BPatch_binaryEdit,());
+    ~BPatch_binaryEdit();
 
-    API_EXPORT(Int, (),
-    BPatch_image *,getImage,());
+    BPatch_image * getImage();
 
     //  BPatch_binaryEdit::beginInsertionSet()
     //
@@ -122,8 +118,7 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     //  after this call will not actually instrument until finalizeInsertionSet is
     //  called
 
-    API_EXPORT_V(Int, (),
-                 void, beginInsertionSet, ());
+    void beginInsertionSet();
 
     //  BPatch_binaryEdit::finalizeInsertionSet()
     //
@@ -138,16 +133,14 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     //            process state.  Note that such steps will be taken whether or not
     //            a variable is provided.
 
-    API_EXPORT(Int, (atomic, modified),
-               bool, finalizeInsertionSet, (bool atomic, bool *modified = NULL));
+    bool finalizeInsertionSet(bool atomic, bool *modified = NULL);
                                        
     // BPatch_binaryEdit::loadLibrary
     //
     //  Load a shared library into the mutatee's address space
     //  Returns true if successful
 
-    API_EXPORT_VIRT(Int, (libname, reload),
-                    BPatch_object *, loadLibrary,(const char *libname, bool reload = false));
+    virtual BPatch_object * loadLibrary(const char *libname, bool reload = false);
 };    
 
 #endif /* BPatch_binaryEdit_h_ */

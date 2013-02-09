@@ -22,7 +22,8 @@ PUBLIC_H = Annotatable.h \
 		ProcReader.h \
 	   IBSTree.h \
       entryIDs.h \
-		VariableLocation.h
+		VariableLocation.h \
+		Buffer.h
 
 #INSTALL_TARGETS = $(pathsubst %, $(INCLUDE_DEST)/%,$(PUBLIC_H))
 INSTALL_TARGETS = $(addprefix $(LOCAL_INCLUDE_DEST)/, $(PUBLIC_H))

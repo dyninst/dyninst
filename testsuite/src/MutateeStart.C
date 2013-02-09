@@ -303,7 +303,7 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
 	}
    char arg_str[1024];
    strcpy(arg_str, args[0].c_str());
-   for (int i = 1; i < args.size(); i++) {
+   for (unsigned int i = 1; i < args.size(); i++) {
 	   strcat(arg_str, " ");
 	   strcat(arg_str, args[i].c_str());
    }

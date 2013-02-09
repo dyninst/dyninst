@@ -37,6 +37,7 @@
 #include "proccontrol/h/Mailbox.h"
 #include <iostream>
 #include <psapi.h>
+#include <winNT.h>
 #include "symtabAPI/h/SymtabReader.h"
 
 using namespace std;
@@ -246,6 +247,140 @@ bool windows_process::plat_forked()
 	return false;
 }
 
+bool windows_process::plat_decodeMemoryRights(Process::mem_perm& perm,
+                                              unsigned long rights) {
+    switch (rights) {
+      default:                     return false;
+      case PAGE_NOACCESS:          perm.clrR().clrW().clrX();
+      case PAGE_READONLY:          perm.setR().clrW().clrX();
+      case PAGE_EXECUTE:           perm.clrR().clrW().setX();
+      case PAGE_READWRITE:         perm.setR().setW().clrX();
+      case PAGE_EXECUTE_READ:      perm.setR().clrW().setX();
+      case PAGE_EXECUTE_READWRITE: perm.setR().setW().setX();
+    }
+
+    return true;
+}
+
+bool windows_process::plat_encodeMemoryRights(Process::mem_perm perm,
+                                              unsigned long& rights) {
+    if (perm.isNone()) { 
+        rights = PAGE_NOACCESS;
+    } else if (perm.isR()) {
+        rights = PAGE_READONLY;
+    } else if (perm.isX()) {
+        rights = PAGE_EXECUTE;
+    } else if (perm.isRW()) {
+        rights = PAGE_READWRITE;
+    } else if (perm.isRX()) {
+        rights = PAGE_EXECUTE_READ;
+    } else if (perm.isRWX()) {
+        rights = PAGE_EXECUTE_READWRITE;
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
+bool windows_process::plat_getMemoryAccessRights(Dyninst::Address addr,
+                                                 size_t size,
+                                                 Process::mem_perm& perm) {
+    (void) size;
+    MEMORY_BASIC_INFORMATION meminfo;
+    memset(&meminfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
+    if (!VirtualQueryEx(hproc, (LPCVOID)addr, &meminfo,
+                        sizeof(MEMORY_BASIC_INFORMATION))) {
+        pthrd_printf("ERROR: failed to get access rights for page %lx, "
+                     "error code %d\n",
+                     addr, GetLastError());
+        return false;
+    }
+
+    if (plat_decodeMemoryRights(perm, meminfo.Protect))
+        return true;
+
+    pthrd_printf("ERROR: unsupported rights for page %lx\n", addr);
+    return false;
+}
+
+bool windows_process::plat_setMemoryAccessRights(Dyninst::Address addr,
+                                                 size_t size,
+                                                 Process::mem_perm perm,
+                                                 Process::mem_perm& oldPerm) {
+    DWORD rights;
+    if (!plat_encodeMemoryRights(perm, rights)) {
+        pthrd_printf("ERROR: unsupported rights for page %lx\n", addr);
+        return false;
+    }
+
+    DWORD oldRights;
+
+    if (!VirtualProtectEx(hproc, (LPVOID)(addr), (SIZE_T)size,
+                          (DWORD)rights, (PDWORD)&oldRights)) {
+        pthrd_printf("ERROR: failed to set access rights for page %lx, "
+                     "error code %d\n",
+                     addr, GetLastError());
+        MEMORY_BASIC_INFORMATION meminfo;
+        memset(&meminfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
+        VirtualQueryEx(hproc, (LPCVOID)(addr), &meminfo,
+                       sizeof(MEMORY_BASIC_INFORMATION));
+        pthrd_printf("ERROR DUMP: baseAddr 0x%lx, AllocationBase 0x%lx, "
+                     "AllocationProtect 0x%lx, RegionSize 0x%lx, State 0x%lx, "
+                     "Protect 0x%lx, Type 0x%lx\n",
+                     meminfo.BaseAddress, meminfo.AllocationBase,
+                     meminfo.AllocationProtect, meminfo.RegionSize,
+                     meminfo.State, meminfo.Protect, meminfo.Type);
+        return false;
+    }
+
+   if (plat_decodeMemoryRights(oldPerm, oldRights))
+       return true;
+
+   pthrd_printf("ERROR: unsupported rights for page %lx\n", addr);
+   return false;
+}
+
+bool windows_process::plat_findAllocatedRegionAround(Dyninst::Address addr,
+                                                     Process::MemoryRegion& memRegion) {
+    MEMORY_BASIC_INFORMATION meminfo;
+    memset(&meminfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
+    if (!VirtualQueryEx(hproc, (LPCVOID)addr, &meminfo, 
+                        sizeof(MEMORY_BASIC_INFORMATION))) {
+        pthrd_printf("ERROR: failed to get access rights for page %lx, "
+                     "error code %d\n",
+                     addr, GetLastError());
+        return false;
+    }
+
+    assert(meminfo.State == MEM_COMMIT);
+    pthrd_printf("VirtualQuery reports baseAddr 0x%lx, allocBase 0x%lx, "
+                 "RegionSize 0x%lx, State 0x%lx\n", meminfo.BaseAddress,
+                 meminfo.AllocationBase, meminfo.RegionSize, meminfo.State);
+
+    memRegion.first = (Address) meminfo.AllocationBase;
+    Address probeAddr = (Address) meminfo.BaseAddress + (Address) meminfo.RegionSize;
+    Address endAddr;
+
+    MEMORY_BASIC_INFORMATION probe;
+    memset(&probe, 0, sizeof(MEMORY_BASIC_INFORMATION));
+    do {
+        endAddr = probeAddr;
+        VirtualQueryEx(hproc, (LPCVOID)probeAddr, &probe,
+                       sizeof(MEMORY_BASIC_INFORMATION));
+        pthrd_printf("VirtualQuery reports baseAddr 0x%lx, allocBase 0x%lx, "
+                     "RegionSize 0x%lx, State 0x%lx\n", probe.BaseAddress,
+                     probe.AllocationBase, probe.RegionSize, probe.State);
+
+        probeAddr = (Address) probe.BaseAddress + (Address) probe.RegionSize;
+    } while ((probe.AllocationBase == meminfo.AllocationBase) &&
+             // we're in the same allocation unit...
+             (endAddr != probeAddr)); // we're making forward progress
+    memRegion.second = endAddr;
+
+    return true;
+}
+
 bool windows_process::plat_readMem(int_thread *thr, void *local, 
 								   Dyninst::Address remote, size_t size)
 {
@@ -448,7 +583,7 @@ Dyninst::Address windows_process::direct_infMalloc(unsigned long size, bool use_
 		size = (((size + min_specific_size - 1) / min_specific_size) * min_specific_size);
 	}
 
-	Dyninst::Address result = (Dyninst::Address)(::VirtualAllocEx(hproc, (LPVOID)addr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
+	Dyninst::Address result = (Dyninst::Address)(::VirtualAllocEx(hproc, (LPVOID)addr, size, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE));
 	if(result == 0) {
 		pthrd_printf("infMalloc failed to VirtualAllocEx %d bytes, error code %d\n", size, ::GetLastError());
 		fprintf(stderr, "infMalloc failed to VirtualAllocEx %d bytes, error code %d\n", size, ::GetLastError());

@@ -55,20 +55,33 @@ public:
 	virtual bool plat_detach(result_response::ptr resp, bool leave_stopped);
 	virtual bool plat_terminate(bool &needs_sync);
 
+    virtual bool plat_decodeMemoryRights(Process::mem_perm& perm,
+                                         unsigned long rights);
+    virtual bool plat_encodeMemoryRights(Process::mem_perm perm,
+                                         unsigned long& rights);
+    virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
+                                            Process::mem_perm& rights);
+    virtual bool plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
+                                            Process::mem_perm rights,
+                                            Process::mem_perm& oldRights);
+
+    virtual bool plat_findAllocatedRegionAround(Dyninst::Address addr,
+                                                Process::MemoryRegion& memRegion);
+
 	virtual bool plat_readMem(int_thread *thr, void *local, 
 		Dyninst::Address remote, size_t size);
 	virtual bool plat_writeMem(int_thread *thr, const void *local, 
-                              Dyninst::Address remote, size_t size, bp_write_t bp_write);
+        Dyninst::Address remote, size_t size, bp_write_t bp_write);
 	virtual Address plat_findFreeMemory(size_t size);
 	virtual SymbolReaderFactory *plat_defaultSymReader();
 	virtual bool needIndividualThreadAttach();
 	virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
 	virtual Dyninst::Architecture getTargetArch();
 	virtual bool plat_individualRegAccess();
-   virtual bool plat_supportLWPCreate() const;
-   virtual bool plat_supportLWPPreDestroy() const;
-   virtual bool plat_supportLWPPostDestroy() const;
-   virtual bool plat_supportThreadEvents() { return true; }
+    virtual bool plat_supportLWPCreate() const;
+    virtual bool plat_supportLWPPreDestroy() const;
+    virtual bool plat_supportLWPPostDestroy() const;
+    virtual bool plat_supportThreadEvents() { return true; }
 	virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
 	virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
 	virtual bool plat_convertToBreakpointAddress(psaddr_t &);
@@ -105,20 +118,20 @@ public:
 	virtual bool addrInSystemLib(Address addr);
 
 	// Hacky system thread RPC idea
-   virtual int_thread *RPCThread();
-   virtual int_thread *createRPCThread(int_thread* best_candidate);
-   void destroyRPCThread();
+    virtual int_thread *RPCThread();
+    virtual int_thread *createRPCThread(int_thread* best_candidate);
+    void destroyRPCThread();
 
-   virtual void* plat_getDummyThreadHandle() const;
+    virtual void* plat_getDummyThreadHandle() const;
 
-   virtual void instantiateRPCThread();
-   virtual bool plat_supportDirectAllocation() const { return true; }
-   virtual Dyninst::OSType getOS() const { return Dyninst::Windows; }
-   virtual ExecFileInfo* plat_getExecutableInfo() const;
+    virtual void instantiateRPCThread();
+    virtual bool plat_supportDirectAllocation() const { return true; }
+    virtual Dyninst::OSType getOS() const { return Dyninst::Windows; }
+    virtual ExecFileInfo* plat_getExecutableInfo() const;
 
-   void setStopThread(DWORD stopthr) { assert(stopthr_ == 0); stopthr_ = stopthr; }
-   void clearStopThread() { stopthr_ = 0; }
-   DWORD getStopThread() { return stopthr_; }
+    void setStopThread(DWORD stopthr) { assert(stopthr_ == 0); stopthr_ = stopthr; }
+    void clearStopThread() { stopthr_ = 0; }
+    DWORD getStopThread() { return stopthr_; }
 private:
 	HANDLE hproc;
 	HANDLE hfile;

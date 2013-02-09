@@ -37,7 +37,6 @@
 #include "instPoint.h"
 #include "function.h"
 #include "dynProcess.h"
-#include "eventLock.h"
 #include "MemoryEmulator/memEmulator.h"
 #include "PatchModifier.h"
 

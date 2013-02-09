@@ -1296,7 +1296,7 @@ int instEffAddr(BPatch_addressSpace* as, const char* fname,
 	const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
 
         if(!conditional) {
-            for(int i = 0; i < (*res2).size(); i++)
+            for(unsigned int i = 0; i < (*res2).size(); i++)
             {
                 BPatch_Vector<BPatch_snippet*> listArgs2;
                 BPatch_constExpr insn_str2((*res2)[i]->getInsnAtPoint()->format().c_str());

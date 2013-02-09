@@ -182,39 +182,39 @@ BPatch_sourceObj *BPatch_function::getObjParent()
     return (BPatch_sourceObj *) mod;
 }
 
-std::string BPatch_function::getNameStr() {
+std::string BPatch_function::getName() {
    return getDemangledName();
 }
 
-std::string BPatch_function::getMangledNameStr() {
+std::string BPatch_function::getMangledName() {
    return func->symTabName();
 }
 
-std::string BPatch_function::getDemangledNameStr() {
+std::string BPatch_function::getDemangledName() {
    return func->prettyName();
 }
 
-std::string BPatch_function::getTypedNameStr() {
+std::string BPatch_function::getTypedName() {
    return func->typedName();
 }
 
-bool BPatch_function::getNamesStr(std::vector<std::string> &names) {
-	return getDemangledNamesStr(names);
+bool BPatch_function::getNames(std::vector<std::string> &names) {
+	return getDemangledNames(names);
 }
 
-bool BPatch_function::getDemangledNamesStr(std::vector<std::string> &names) {
+bool BPatch_function::getDemangledNames(std::vector<std::string> &names) {
 	std::copy(func->prettyNameVector().begin(), 
 			func->prettyNameVector().end(),
 			std::back_inserter(names));
 	return (!func->prettyNameVector().empty());
 }
-bool BPatch_function::getMangledNamesStr(std::vector<std::string> &names) {
+bool BPatch_function::getMangledNames(std::vector<std::string> &names) {
 	std::copy(func->symTabNameVector().begin(), 
 			func->symTabNameVector().end(),
 			std::back_inserter(names));
 	return (!func->symTabNameVector().empty());
 }
-bool BPatch_function::getTypedNamesStr(std::vector<std::string> &names) {
+bool BPatch_function::getTypedNames(std::vector<std::string> &names) {
 	std::copy(func->typedNameVector().begin(), 
 			func->typedNameVector().end(),
 			std::back_inserter(names));
@@ -232,7 +232,7 @@ bool BPatch_function::getTypedNamesStr(std::vector<std::string> &names) {
  * s            The buffer into which the name will be copied.
  * len          The size of the buffer.
  */
-char *BPatch_function::getNameBuffer(char *s, int len)
+char *BPatch_function::getName(char *s, int len)
 {
     assert(func);
     string name = func->prettyName();
@@ -258,7 +258,7 @@ const char *BPatch_function::getNameDPCL()
  * s            The buffer into which the name will be copied.
  * len          The size of the buffer.
  */
-char *BPatch_function::getMangledNameInt(char *s, int len)
+char *BPatch_function::getMangledName(char *s, int len)
 {
   assert(func);
   string mangledname = func->symTabName();
@@ -276,7 +276,7 @@ char *BPatch_function::getMangledNameInt(char *s, int len)
  * s            The buffer into which the name will be copied.
  * len          The size of the buffer.
  */
-char *BPatch_function::getTypedNameInt(char *s, int len)
+char *BPatch_function::getTypedName(char *s, int len)
 {
   assert(func);
   string typedname = func->typedName();
@@ -295,7 +295,7 @@ char *BPatch_function::getTypedNameInt(char *s, int len)
  * names           BPatch_Vector reference
  */
 
-bool BPatch_function::getNamesInt(BPatch_Vector<const char *> &names)
+bool BPatch_function::getNames(BPatch_Vector<const char *> &names)
 {
     assert(func);
     unsigned pre_size = names.size();
@@ -317,7 +317,7 @@ bool BPatch_function::getNamesInt(BPatch_Vector<const char *> &names)
  * names           BPatch_Vector reference
  */
 
-bool BPatch_function::getMangledNamesInt(BPatch_Vector<const char *> &names)
+bool BPatch_function::getMangledNames(BPatch_Vector<const char *> &names)
 {
     assert(func);
     unsigned pre_size = names.size();
@@ -336,7 +336,7 @@ bool BPatch_function::getMangledNamesInt(BPatch_Vector<const char *> &names)
  *
  * Returns the starting address of the function.
  */
-void *BPatch_function::getBaseAddrInt()
+void *BPatch_function::getBaseAddr()
 {
   return (void *)func->addr();
 }
@@ -346,7 +346,7 @@ void *BPatch_function::getBaseAddrInt()
  *
  * Returns the return type of the function.
  */
-BPatch_type *BPatch_function::getReturnTypeInt()
+BPatch_type *BPatch_function::getReturnType()
 {
     constructVarsAndParams();
     return retType;
@@ -395,7 +395,7 @@ bool BPatch_function::removeInstrumentation(bool useInsertionSet)
     getAllPoints(points);
     for (unsigned pidx=0; pidx < points.size(); pidx++) {
         vector<BPatchSnippetHandle*> allSnippets = 
-            points[pidx]->getCurrentSnippetsInt();
+            points[pidx]->getCurrentSnippets();
         for (unsigned all = 0; all < allSnippets.size(); all++) 
         {
             if (dynamic_cast<BPatch_process*>(addSpace)->getHybridAnalysis()->hybridOW()->
@@ -405,7 +405,7 @@ bool BPatch_function::removeInstrumentation(bool useInsertionSet)
                 removedAll = false;
                 assert(0);
             }
-            else if ( ! addSpace->deleteSnippetInt(allSnippets[all]) ) {
+            else if ( ! addSpace->deleteSnippet(allSnippets[all]) ) {
                 removedAll = false;
             }
         } 
@@ -557,7 +557,7 @@ bool BPatch_function::setHandlerFaultAddrAddr
  *
  * Returns the BPatch_module to which this function belongs.
  */
-BPatch_module *BPatch_function::getModuleInt()
+BPatch_module *BPatch_function::getModule()
 {
   return mod;
 }
@@ -565,7 +565,7 @@ BPatch_module *BPatch_function::getModuleInt()
 //  BPatch_function::getParams
 //  Returns a vector of BPatch_localVar, representing this function's parameters
 
-BPatch_Vector<BPatch_localVar *> * BPatch_function::getParamsInt()
+BPatch_Vector<BPatch_localVar *> * BPatch_function::getParams()
 {
     if (!mod->isValid()) return NULL;
     constructVarsAndParams();
@@ -589,7 +589,7 @@ BPatch_Vector<BPatch_localVar *> * BPatch_function::getParamsInt()
  *                                     long jump calls.
  *                BPatch_allLocations  All of the points described above.
  */
-BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
+BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         const BPatch_procedureLocation loc)
 {
     // function does not exist!
@@ -648,8 +648,7 @@ struct compareByEntryAddr
     }
 };
  
-BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
-        const BPatch_Set<BPatch_opCode>& ops)
+BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(const std::set<BPatch_opCode>& ops)
 {
    // function does not exist!
    if (func == NULL) return NULL;
@@ -677,13 +676,19 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
    return ret;
 }
 
+BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(const BPatch_Set<BPatch_opCode>& ops) {
+   std::set<BPatch_opCode> tmp;
+   std::copy(ops.int_set.begin(), ops.int_set.end(), std::inserter(tmp, tmp.end()));
+   return findPoint(tmp);
+}
+
 /*
  * BPatch_function::findPoint
  *
  * Create a BPatch_point corresponding with the provided address.
  */
 
-BPatch_point *BPatch_function::findPointInt(Dyninst::Address addr) {
+BPatch_point *BPatch_function::findPoint(Dyninst::Address addr) {
    // Find the matching block and feed this into
 
    block_instance *llb = lowlevel_func()->getBlock(addr);
@@ -724,12 +729,12 @@ void BPatch_function::addParam(const char * _name, BPatch_type *_type,
 #endif
 
 /*
- * BPatch_function::findLocalVarInt()
+ * BPatch_function::findLocalVar()
  *
  * This function searchs for a local variable in the BPatch_function's
  * local variable collection.
  */
-BPatch_localVar * BPatch_function::findLocalVarInt(const char * name)
+BPatch_localVar * BPatch_function::findLocalVar(const char * name)
 {
     if (!mod->isValid()) 
 		return NULL;
@@ -744,7 +749,7 @@ BPatch_localVar * BPatch_function::findLocalVarInt(const char * name)
  * This function searchs for a function parameter in the BPatch_function's
  * parameter collection.
  */
-BPatch_localVar * BPatch_function::findLocalParamInt(const char * name)
+BPatch_localVar * BPatch_function::findLocalParam(const char * name)
 {
     if (!mod->isValid()) return NULL;
     constructVarsAndParams();
@@ -752,7 +757,7 @@ BPatch_localVar * BPatch_function::findLocalParamInt(const char * name)
     return (var);
 }
 
-BPatch_flowGraph* BPatch_function::getCFGInt()
+BPatch_flowGraph* BPatch_function::getCFG()
 {
     assert(mod);
     if (!mod->isValid()) return NULL;
@@ -836,14 +841,14 @@ void BPatch_function::constructVarsAndParams()
     varsAndParamsValid = true;
 }
 
-BPatch_Vector<BPatch_localVar *> *BPatch_function::getVarsInt() 
+BPatch_Vector<BPatch_localVar *> *BPatch_function::getVars() 
 {
     if (!mod->isValid()) return NULL;
     constructVarsAndParams();
     return localVariables->getAllVars(); 
 }
 
-bool BPatch_function::findVariableInt(const char *name, 
+bool BPatch_function::findVariable(const char *name, 
                                       BPatch_Vector<BPatch_variableExpr *> &vars) 
 {
    if (!mod->isValid()) 
@@ -896,10 +901,10 @@ bool BPatch_function::findVariableInt(const char *name,
 }
 
 
-BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(const char *name)
+BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariable(const char *name)
 {
    BPatch_Vector<BPatch_variableExpr *> *vars = new BPatch_Vector<BPatch_variableExpr*>;
-   bool result = findVariableInt(name, *vars);
+   bool result = findVariable(name, *vars);
    if (!result) {
       delete vars;
       return NULL;
@@ -907,18 +912,18 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(const cha
    return vars;
 }
 
-bool BPatch_function::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &/*vect*/)
+bool BPatch_function::getVariables(BPatch_Vector<BPatch_variableExpr *> &/*vect*/)
 {
     	return false;
 }
 
-char *BPatch_function::getModuleNameInt(char *name, int maxLen) {
+char *BPatch_function::getModuleName(char *name, int maxLen) {
     return getModule()->getName(name, maxLen);
 }
 
-BPatch_variableExpr *BPatch_function::getFunctionRefInt() 
+BPatch_variableExpr *BPatch_function::getFunctionRef() 
 {
-  Address remoteAddress = (Address)getBaseAddrInt();
+  Address remoteAddress = (Address)getBaseAddr();
   char *fname = const_cast<char *>(func->prettyName().c_str());
 
   //  Need to figure out the type for this effective function pointer,
@@ -929,7 +934,7 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
   char typestr[1024];
   sprintf(typestr, "%s (*)(", retType->getName());
   
-  BPatch_Vector<BPatch_localVar *> *params = getParamsInt();
+  BPatch_Vector<BPatch_localVar *> *params = getParams();
   assert(params);
   
   for (unsigned int i = 0; i < params->size(); ++i) {
@@ -963,7 +968,7 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
 
 } /* end getFunctionRef() */
 
-bool BPatch_function::getAddressRangeInt(void * &start, void * &end) {
+bool BPatch_function::getAddressRange(void * &start, void * &end) {
    Address s, e;
    bool ret = getAddressRange(s, e);
    start = (void *)s;
@@ -971,7 +976,7 @@ bool BPatch_function::getAddressRangeInt(void * &start, void * &end) {
    return ret;
 }
 
-bool BPatch_function::getAddressRangeInt(Dyninst::Address &start, Dyninst::Address &end) {
+bool BPatch_function::getAddressRange(Dyninst::Address &start, Dyninst::Address &end) {
    start = func->addr();
    
    // end is a little tougher
@@ -989,14 +994,14 @@ bool BPatch_function::getAddressRangeInt(Dyninst::Address &start, Dyninst::Addre
  *
  * Returns true if the function is instrumentable, false otherwise.
  */
-bool BPatch_function::isInstrumentableInt()
+bool BPatch_function::isInstrumentable()
 {
      return ((func_instance *)func)->isInstrumentable();
 }
 
 // Return TRUE if the function resides in a shared lib, FALSE otherwise
 
-bool BPatch_function::isSharedLibInt(){
+bool BPatch_function::isSharedLib(){
   return mod->isSharedLib();
 } 
 
@@ -1020,7 +1025,7 @@ bool BPatch_function::containsSharedBlocks() {
 
 // isPrimary: function will now use this name as a primary output name
 // isMangled: this is the "mangled" name rather than demangled (pretty)
-const char *BPatch_function::addNameInt(const char *name,
+const char *BPatch_function::addName(const char *name,
                                         bool isPrimary, /* = true */
                                         bool isMangled) { /* = false */
     // Add to the internal function object
@@ -1039,7 +1044,7 @@ const char *BPatch_function::addNameInt(const char *name,
     return name;
 }
 
-bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs) {
+bool BPatch_function::findOverlapping(BPatch_Vector<BPatch_function *> &funcs) {
     assert(func);
     assert(addSpace);
 
@@ -1089,7 +1094,7 @@ bool BPatch_function::getSharedFuncs(set<BPatch_function*> &sharedFuncs)
    return true;
 }
 
-unsigned int BPatch_function::getFootprintInt()
+unsigned int BPatch_function::getFootprint()
 {
     return func->footprint();
 }

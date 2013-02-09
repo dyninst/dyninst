@@ -53,27 +53,34 @@ bool resolve_libc_name(char *buf)
 	DIR *dirp;
 	struct dirent *dp;
 
-	if (NULL == (dirp = opendir("/lib"))) 
-	{
-		fprintf(stderr, "%s[%d]: couldn’t open /lib: %s", FILE__, __LINE__, strerror(errno));
-		return false;
-	}
+        std::vector<std::string> libc_dirs;
+        libc_dirs.push_back("/lib");
+        // 32-bit ubuntu
+        libc_dirs.push_back("/lib/i386-linux-gnu");
+        // 64-bit ubuntu
+        libc_dirs.push_back("/lib/x86_64-linux-gnu");
 
-	do {
-		errno = 0;
-		if ((dp = readdir(dirp)) != NULL) {
-			int nelem = strlen("libc.so");
-			if ( 0 != strncmp(dp->d_name, "libc.so", nelem))
-				continue;
-
-			dprintf("found %s\n", dp->d_name);
-			sprintf(buf, "/lib/%s", dp->d_name);
-			closedir(dirp);
-			return true;
-
-		}
-	} while (dp != NULL);
-
+        for (unsigned i = 0; i < libc_dirs.size(); ++i) {
+           if (NULL == (dirp = opendir(libc_dirs[i].c_str()))) 
+           {
+              continue;
+           }
+           
+           do {
+              errno = 0;
+              if ((dp = readdir(dirp)) != NULL) {
+                 int nelem = strlen("libc.so");
+                 if ( 0 != strncmp(dp->d_name, "libc.so", nelem))
+                    continue;
+                 
+                 dprintf("found %s\n", dp->d_name);
+                 sprintf(buf, "%s/%s", libc_dirs[i].c_str(), dp->d_name);
+                 closedir(dirp);
+                 return true;
+                 
+              }
+           } while (dp != NULL);
+        }
 	return false;
 #endif
 }

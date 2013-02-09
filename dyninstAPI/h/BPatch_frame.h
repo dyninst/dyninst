@@ -45,12 +45,7 @@ typedef enum {
 class BPatch_function;
 class BPatch_thread;
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_frame
-
-class BPATCH_DLL_EXPORT BPatch_frame : public BPatch_eventLock{
+class BPATCH_DLL_EXPORT BPatch_frame {
     friend class BPatch_thread;
     friend class BPatch_Vector<BPatch_frame>;
     BPatch_thread *thread;
@@ -83,50 +78,41 @@ public:
     //  function, BPatch_frameSignal for the stack frame created when a signal 
     //  is delivered, or BPatch_frameTrampoline for a stack frame created by 
     //  internal Dyninst instrumentation.
-    API_EXPORT(Int, (),
-
-    BPatch_frameType,getFrameType,());
+    BPatch_frameType getFrameType();
 
     //  Only call if you know what you are doing; per-frame method for determining
     //  how the frame was created.
-    API_EXPORT(Int, (),
-    bool, isSynthesized, ());
+    bool isSynthesized();
 
     //  BPatch_frame::getThread
     //  Returns:  value of program counter
-    API_EXPORT(Int, (),
 
-    BPatch_thread *,getThread,()); 
+    BPatch_thread * getThread(); 
 
     //  BPatch_frame::getThread
     //  Returns:  value of program counter
-    API_EXPORT(Int, (),
 
-    BPatch_point *,getPoint,()); 
+    BPatch_point * getPoint(); 
 
     //  BPatch_frame::getPC
     //  Returns:  value of program counter
-    API_EXPORT(Int, (),
 
-    void *,getPC,()); 
+    void * getPC(); 
 
     //  BPatch_frame::getFP
-    API_EXPORT(Int, (),
 
-    void *,getFP,()); 
+    void * getFP(); 
 
     //  BPatch_frame::findFunction
     //  Returns:  the function corresponding to this stack frame, NULL 
     //   if there is none
-    API_EXPORT(Int, (),
 
-    BPatch_function *,findFunction,());
+    BPatch_function * findFunction();
    
     // The following are planned but no yet implemented:
     // int getSignalNumber();
 
-    API_EXPORT(Int, (), 
-    BPatch_point *,findPoint,());
+    BPatch_point * findPoint();
 
     friend std::ostream & operator << ( std::ostream & s, BPatch_frame & m );
 

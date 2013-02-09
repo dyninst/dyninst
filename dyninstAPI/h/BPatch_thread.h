@@ -37,7 +37,6 @@
 #include "BPatch_Vector.h"
 #include "BPatch_image.h"
 #include "BPatch_snippet.h"
-#include "BPatch_eventLock.h"
 #include "BPatch_addressSpace.h"
 #include "BPatch_process.h"
 #include "BPatch_frame.h"
@@ -54,12 +53,8 @@ typedef Dyninst::THR_ID dynthread_t;
 /*
  * Represents a thread of execution.
  */
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_thread
 
-class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
+class BPATCH_DLL_EXPORT BPatch_thread {
     friend class BPatch_frame;
     friend class BPatch_process;
     friend class BPatch_addressSpace;
@@ -88,47 +83,35 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
 
     //  BPatch_thread::getCallStack
     //  Returns a vector of BPatch_frame, representing the current call stack
-    API_EXPORT(Int, (stack),
-    bool,getCallStack,(BPatch_Vector<BPatch_frame>& stack));
+    bool getCallStack(BPatch_Vector<BPatch_frame>& stack);
 
     //  BPatch_thread::getProcess
     //  Returns a pointer to the process that owns this thread
-    API_EXPORT(Int, (),
-    BPatch_process *, getProcess, ());
+    BPatch_process *  getProcess();
 
-    API_EXPORT(Int, (),
-    dynthread_t, getTid, ());
+    dynthread_t getTid();
 
-    API_EXPORT(Int, (),
-		Dyninst::LWP, getLWP, ());
+    Dyninst::LWP getLWP();
 
-    API_EXPORT(Int, (),
-    unsigned, getBPatchID, ());
+    unsigned getBPatchID();
 
-    API_EXPORT(Int, (),
-    BPatch_function *, getInitialFunc, ());
+    BPatch_function *  getInitialFunc();
     
-    API_EXPORT(Int, (),
-    unsigned long, getStackTopAddr, ());
+    unsigned long getStackTopAddr();
 
-    API_EXPORT(Int, (),
-    bool, isDeadOnArrival, ());
+    bool isDeadOnArrival();
 
-    API_EXPORT_DTOR(_dtor, (),
-    ~,BPatch_thread,());
+    ~BPatch_thread();
 
-    API_EXPORT(Int, (),
-    unsigned long, os_handle, ());
+    unsigned long os_handle();
 
     //  BPatch_thread::oneTimeCode
     //  Have mutatee execute specified code expr once.  Wait until done.
-    API_EXPORT(Int, (expr, err),
-    void *,oneTimeCode,(const BPatch_snippet &expr, bool *err = NULL));
+    void * oneTimeCode(const BPatch_snippet &expr, bool *err = NULL);
 
     //  BPatch_thread::oneTimeCodeAsync
     //  Have mutatee execute specified code expr once.  Dont wait until done.
-    API_EXPORT(Int, (expr, userData, cb),
-    bool,oneTimeCodeAsync,(const BPatch_snippet &expr, void *userData = NULL, BPatchOneTimeCodeCallback cb = NULL));
+    bool oneTimeCodeAsync(const BPatch_snippet &expr, void *userData = NULL, BPatchOneTimeCodeCallback cb = NULL);
 };
 
 #endif /* BPatch_thread_h_ */

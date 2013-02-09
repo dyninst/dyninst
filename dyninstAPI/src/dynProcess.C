@@ -52,6 +52,8 @@
 #include "symtabAPI/h/SymtabReader.h"
 #include "patchAPI/h/PatchMgr.h"
 #include "patchAPI/h/Point.h"
+#include "Injector.h"
+
 
 #include <sstream>
 
@@ -844,20 +846,28 @@ bool PCProcess::loadRTLib() {
       return true;
    }
    
-   // If not, load it using a iRPC
-   
+   InjectorAPI::Injector injector(pcProc_);
+   if (!injector.inject(dyninstRT_name)) return false;
+
+#if 0
    if(!postRTLoadRPC())
    {
       return false;
    }
+#endif
 
    bootstrapState_ = bs_loadedRTLib;
+
+   // Process the library load (we hope)
+   PCEventMuxer::handle();
 
    if( runtime_lib.size() == 0 ) {
       startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
                      __LINE__);
       return false;
    }
+
+   bootstrapState_ = bs_loadedRTLib;
 
    startup_printf("%s[%d]: finished running RPC to load RT library\n", FILE__, __LINE__);
    
@@ -1270,27 +1280,49 @@ void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
     write_printf("\n};\n");
 }
 
-bool PCProcess::writeDataSpace(void *inTracedProcess,
-                    u_int amount, const void *inSelf)
-{
-   if( isTerminated() ) {
-      cerr << "Writing to terminated process!" << endl;
-      return false;
-   }
-    bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
+bool PCProcess::writeDataSpace(void *inTracedProcess, u_int amount,
+                               const void *inSelf) {
+    if( isTerminated() ) {
+       cerr << "Writing to terminated process!" << endl;
+       return false;
+    }
+    bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf,
+                                       amount);
 
     if( BPatch_defensiveMode == proc()->getHybridMode() && !result ) {
         // the write may have failed because we've removed write permissions
         // from the page, remove them and try again
 
-        int oldRights = setMemoryAccessRights((Address)inTracedProcess,
-                amount, PAGE_EXECUTE_READWRITE);
+        PCMemPerm origRights, rights(true, true, true);
+        if (!pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+                                            amount, rights, origRights)) {
+            cerr << "Fail to set memory permissions!" << endl;
+            return false;
+        }
+
+        /*
+        int oldRights = pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+                                                       amount,
+                                                       PAGE_EXECUTE_READWRITE);
+
         if( oldRights == PAGE_EXECUTE_READ || oldRights == PAGE_READONLY ) {
-            result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
-            if( setMemoryAccessRights((Address)inTracedProcess, amount, oldRights) == false ) {
+        */
+
+        if( origRights.isRX() || origRights.isR() ) {
+            result = pcProc_->writeMemory((Address)inTracedProcess, inSelf,
+                                          amount);
+
+            /*
+            if( pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+                                               amount, oldRights) == false ) {
+            */
+
+            PCMemPerm tmpRights;
+            if( !pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+                                                amount, origRights, tmpRights)) {
                 result = false;
             }
-        }else{
+        } else {
             result = false;
         }
     }
@@ -1554,7 +1586,8 @@ bool PCProcess::wasCreatedViaFork() const {
 }
 
 unsigned PCProcess::getMemoryPageSize() const {
-    return memoryPageSize_;
+   assert(pcProc_);
+   return pcProc_->getMemoryPageSize();
 }
 
 int PCProcess::getPid() const {

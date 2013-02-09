@@ -113,6 +113,7 @@ public:
                                           bool &add_bp);
     virtual bool isTrackingThreads();
     virtual bool refreshThreads();
+    virtual int threaddb_getPid();
     
     //The types for thread_db functions we will call
     typedef td_err_e (*td_init_t)(void);

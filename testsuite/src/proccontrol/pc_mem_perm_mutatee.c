@@ -27,72 +27,67 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef __EVENT_LOCK_H__
-#define __EVENT_LOCK_H__
-#include "os.h"
-#include "common/h/Vector.h"
-#include "common/h/Dictionary.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include "pcontrol_mutatee_tools.h"
 
-class BPatch_eventLock;
+static testlock_t init_lock;
+static int error = 0;
 
-unsigned long getExecThreadID();
-const char *getThreadStr(unsigned long tid);
-void setCallbackThreadID(unsigned long tid);
+static int threadFunc(int myid, void *data)
+{
+   // testLock(&init_lock);
+   // testUnlock(&init_lock);
 
-class eventLock {
-  friend class BPatch_eventLock;
+   return 0;
+}
 
-  public:
+//Basic test for create/attach and exit.
+int pc_mem_perm_mutatee()
+{
+#if defined(os_windows_test)
+   int result;
 
-  eventLock();
-  virtual ~eventLock();
+   error = 0;
+   initLock(&init_lock);
+   testLock(&init_lock);
 
-  public:
-  unsigned int depth() {return lock_depth;}
-  int _Lock(const char *__file__, unsigned int __line__);
-  int _Trylock(const char *__file__, unsigned int __line__);
-  int _Unlock(const char *__file__, unsigned int __line__);
-  int _Broadcast(const char *__file__, unsigned int __line__);
-  int _WaitForSignal(const char *__file__, unsigned int __line__);
+   result = initProcControlTest(threadFunc, NULL);
+   if (result != 0) {
+      output->log(STDERR, "Initialization failed\n");
+      return -1;
+   }
 
-  void printLockStack();
+   /*
+   send_addr addr_msg;
+   addr_msg.code = (uint32_t) SENDADDR_CODE;
+   addr_msg.addr = getFunctionPtr((Dyninst::Address*));
+   result = send_message((unsigned char *) &addr_msg, sizeof(send_addr));
 
-  private:
+   if (result != 0) {
+     output->log(STDERR, "Failed to send memory address\n");
+     testUnlock(&init_lock);
+     return -1;
+   }
+   */
 
-  EventLock_t mutex;
-  EventCond_t cond;
+   testUnlock(&init_lock);
 
-  unsigned int lock_depth;
+   result = finiProcControlTest(0);
+   if (result != 0) {
+      output->log(STDERR, "Finalization failed\n");
+      return -1;
+   }
 
-  typedef struct {
-    const char *file;
-    unsigned int line;
-  } lock_stack_elem;
+   if (!error) {
+      test_passes(testname);
+      return 0;
+   }
 
-  inline lock_stack_elem popLockStack() {
-    lock_stack_elem el = lock_stack[lock_stack.size() -1];
-    lock_stack.pop_back();
-    lock_depth--;
-    return el;
-  }
+   return -1;
+#else
 
-  inline void pushLockStack(lock_stack_elem elm) {
-    lock_stack.push_back(elm);
-    lock_depth++;
-  }
-
-  pdvector<lock_stack_elem> lock_stack;
-  unsigned long owner_id;
-
-#if defined (os_windows)
-  EventLock_t waiter_lock;
-  int num_waiters;
-
-  int generation_num;
-  int release_num;
-#endif
-};
-
-extern eventLock *global_mutex;
+  return 0;
 
 #endif
+}

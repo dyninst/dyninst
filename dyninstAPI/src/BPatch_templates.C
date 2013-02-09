@@ -35,29 +35,17 @@
 #define BPATCH_FILE
 
 #if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-#if defined(__XLC__) || defined(__xlC__)
-#pragma implementation("BPatch_Vector.h")
-#else
 #pragma implementation "BPatch_Vector.h"
-#endif
 #endif
 #include "BPatch_Vector.h"
 
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-#if defined(__XLC__) || defined(__xlC__)
-#pragma implementation("BPatch_Set.h")
-#else
 #pragma implementation "BPatch_Set.h"
-#endif
 #endif
 #include "BPatch_Set.h"
 
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-#if defined(__XLC__) || defined(__xlC__)
-#pragma implementation("refCounter.h")
-#else
 #pragma implementation "refCounter.h"
-#endif
 #endif
 #include <string>
 #include "common/h/refCounter.h"

@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(__INT__EVENT__H__)
-#define __INT__EVENT__H__
+#if !defined(INT_EVENT_H_)
+#define INT_EVENT_H_
 
 #include "response.h"
 #include "resp.h"

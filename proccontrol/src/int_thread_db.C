@@ -133,10 +133,12 @@ ps_err_e ps_ptwrite(struct ps_prochandle *handle, psaddr_t remote, const void *l
 }
 
 ps_err_e ps_linfo(struct ps_prochandle *handle, lwpid_t lwp, void *lwpInfo) {
-    if( !handle->thread_db_proc->plat_getLWPInfo(lwp, lwpInfo) )
-        return PS_ERR;
-
-    return PS_OK;
+   if( !handle->thread_db_proc->plat_getLWPInfo(lwp, lwpInfo) ) {
+      pthrd_printf("thread_db called ps_linfo, returning error\n");
+      return PS_ERR;
+   }
+   pthrd_printf("thread_db called ps_linfo, returning info\n");
+   return PS_OK;
 }
 
 ps_err_e ps_lstop(struct ps_prochandle *handle, lwpid_t lwp) {
@@ -225,10 +227,13 @@ ps_err_e ps_lgetregs(struct ps_prochandle *handle, lwpid_t lwp, prgregset_t regs
 
 pid_t ps_getpid (struct ps_prochandle *ph)
 {
-   return ph->thread_db_proc->getPid();
+   int pid = ph->thread_db_proc->threaddb_getPid();
+   pthrd_printf("thread_db called ps_getpid.  Returning %d\n", pid);
+   return pid;
 }
 
 void ps_plog(const char *format, ...) {
+   pthrd_printf("thread_db called ps_plog\n");
     if( !dyninst_debug_proccontrol ) return;
     if( NULL == format ) return;
 
@@ -290,6 +295,7 @@ ps_err_e ps_get_thread_area(const struct ps_prochandle *phandle, lwpid_t lwp, in
    if (addr && result)
       *addr = (psaddr_t) daddr;
       
+   pthrd_printf("thread_db called ps_get_thread_area.  Returning %s\n", result ? "PS_OK" : "PS_ERR");
    return result ? PS_OK : PS_ERR;
 }
 
@@ -445,6 +451,7 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
    td_thrinfo_t info;
    async = false;
    td_thrhandle_t *handle = const_cast<td_thrhandle_t *>(eventMsg->th_p);
+   pthrd_printf("Decoding thread event on %u\n", getPid());
    async_ret_t result = ll_fetchThreadInfo(handle, &info);
    if (result == aret_error) {
       pthrd_printf("Failed to fetch thread info\n");
@@ -1172,6 +1179,7 @@ async_ret_t thread_db_process::ll_fetchThreadInfo(td_thrhandle_t *th, td_thrinfo
       perr_printf("Error calling td_thr_get_info: %s (%d)\n", tdErr2Str(result), (int) result);
       return aret_error;
    }
+   pthrd_printf("Successful ll_fetchThreadInfo for handle %p - tid = %lu, lid = %lu\n", th, (unsigned long) info->ti_tid, (unsigned long) info->ti_lid);
    return aret_success;
 }
 
@@ -1565,6 +1573,11 @@ bool thread_db_process::refreshThreads()
    ev->setThread(threadPool()->initialThread()->thread());
    mbox()->enqueue(ev);
    return true;
+}
+
+int thread_db_process::threaddb_getPid()
+{
+   return getPid();
 }
 
 async_ret_t thread_db_thread::setEventReporting(bool on) {

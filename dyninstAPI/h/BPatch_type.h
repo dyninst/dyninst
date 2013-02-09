@@ -33,7 +33,6 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
-#include "BPatch_eventLock.h"
 #include <string.h>	
 
 #include "Type.h"
@@ -161,16 +160,12 @@ class BPatch_module;
 
 /*
  * A BPatch_field is equivalent to a field in a enum, struct, or union.
- * A field can be an atomic type, i.e, int, char, or more complex like a
+ * A field can be an atomic type, i.e, int  char, or more complex like a
  * union or struct.
  */
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_field
 
-class BPATCH_DLL_EXPORT BPatch_field : public BPatch_eventLock{
+class BPATCH_DLL_EXPORT BPatch_field {
   friend class BPatch_variableExpr;
   friend class BPatch_cblock;
   
@@ -189,60 +184,31 @@ class BPATCH_DLL_EXPORT BPatch_field : public BPatch_eventLock{
   void fixupUnknown(BPatch_module *);
 
   public:
-/*  
-  // Enum constructor
-  API_EXPORT_CTOR(Enum, (fName, _typeDes, eValue),
-  BPatch_field,(const char * fName,  BPatch_dataClass _typeDes, int eValue));
-  // C++ version for Enum constructor
-  API_EXPORT_CTOR(EnumCpp, (fName, _typeDes, eValue, _vis),
-  BPatch_field, (const char * fName,  BPatch_dataClass _typeDes, int eValue,
-	       BPatch_visibility _vis));	    
-  // Struct or Union construct
-  API_EXPORT_CTOR(SU, (fName, _typeDes, suType, suOffset, suSize),
-  BPatch_field,(const char * fName,  BPatch_dataClass _typeDes, 
-	       BPatch_type *suType, int suOffset, int suSize));
-  // C++ version for Struct or Union construct
-  API_EXPORT_CTOR(SUCpp, (fName, _typeDes, suType, suOffset, suSize, _vis),
-  BPatch_field,(const char * fName,  BPatch_dataClass _typeDes, 
-	       BPatch_type *suType, int suOffset, int suSize,
-	       BPatch_visibility _vis));
-*/
 
   // Copy constructor
   BPatch_field(BPatch_field &f);
-  BPatch_field(Dyninst::SymtabAPI::Field *fld_ = NULL, BPatch_dataClass typeDescriptor = BPatch_dataUnknownType, int value_ = 0, int size_ = 0);
+  BPatch_field(Dyninst::SymtabAPI::Field *fld_ = NULL, 
+	       BPatch_dataClass typeDescriptor = BPatch_dataUnknownType, 
+	       int value_ = 0, 
+	       int size_ = 0);
 
-  API_EXPORT_DTOR(_dtor,(),
-  ~,BPatch_field,());
+  ~BPatch_field();
   
-  API_EXPORT_OPER(_equals, (src),
-  BPatch_field &,operator=,(BPatch_field &src));
+  BPatch_field & operator=(BPatch_field &src);
 
-#ifdef NOTDEF
-  API_EXPORT_OPER(_equals_equals, (src),
-  bool ,operator==,(const BPatch_field &src));
-#endif
-			      
-  API_EXPORT(Int, (),
-  const char *,getName,()); 
+  const char * getName(); 
 
-  API_EXPORT(Int, (),
-  BPatch_type *,getType,());
+  BPatch_type * getType();
 
-  API_EXPORT(Int, (),
-  int,getValue,());
+  int getValue();
 
-  API_EXPORT(Int, (),
-  BPatch_visibility,getVisibility,());
+  BPatch_visibility getVisibility();
 
-  API_EXPORT(Int, (),
-  BPatch_dataClass,getTypeDesc,());
+  BPatch_dataClass getTypeDesc();
 
-  API_EXPORT(Int, (),
-  int,getSize,());
+  int getSize();
 
-  API_EXPORT(Int, (),
-  int,getOffset,());
+  int getOffset();
 }; 
 
 //
@@ -253,7 +219,7 @@ class BPATCH_DLL_EXPORT BPatch_field : public BPatch_eventLock{
 #undef DYNINST_CLASS_NAME
 #endif
 #define DYNINST_CLASS_NAME BPatch_cblock
-class BPATCH_DLL_EXPORT BPatch_cblock : public BPatch_eventLock{
+class BPATCH_DLL_EXPORT BPatch_cblock {
 private:
   // the list of fields
   BPatch_Vector<BPatch_field *> fieldList;
@@ -268,17 +234,11 @@ public:
   BPatch_cblock(Dyninst::SymtabAPI::CBlock *cBlk_);
   BPatch_cblock() {}
   
-  API_EXPORT(Int, (),
-  BPatch_Vector<BPatch_field *> *,getComponents,());
-  API_EXPORT(Int, (),
-  BPatch_Vector<BPatch_function *> *,getFunctions,());
+  BPatch_Vector<BPatch_field *> * getComponents();
+  BPatch_Vector<BPatch_function *> * getFunctions();
 };
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_type
-class BPATCH_DLL_EXPORT BPatch_type : public BPatch_eventLock{
+class BPATCH_DLL_EXPORT BPatch_type{
     friend class BPatch;
     friend class BPatch_module;
     friend class BPatch_function;
@@ -289,7 +249,7 @@ class BPATCH_DLL_EXPORT BPatch_type : public BPatch_eventLock{
     
 protected:
   int           ID;                /* unique ID of type */
-  static std::map<Dyninst::SymtabAPI::Type*, BPatch_type *> type_map;
+  static std::map<Dyninst::SymtabAPI::Type*,  BPatch_type *> type_map;
   BPatch_dataClass   type_;
 
   //Symtab type
@@ -324,8 +284,7 @@ public:
 
   int  getID() const { return ID;}
 
-  API_EXPORT(Int, (),
-  unsigned int,getSize,());
+  unsigned int getSize();
 
   Dyninst::SymtabAPI::Type *getSymtabType() const;
 
@@ -341,8 +300,7 @@ public:
   unsigned long getLow() const;
   unsigned long getHigh() const;
   BPatch_Vector<BPatch_field *> * getComponents() const;
-  API_EXPORT(Int, (otype),
-	bool, isCompatible, (BPatch_type * otype));
+  bool isCompatible(BPatch_type * otype);
   BPatch_type *getConstituentType() const;
   BPatch_Vector<BPatch_cblock *> *getCblocks() const;
 
@@ -358,11 +316,7 @@ public:
 // It is desgined store information about a variable in a function.
 // Scope needs to be addressed in this class.
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_localVar
-class BPATCH_DLL_EXPORT BPatch_localVar : public BPatch_eventLock{
+class BPATCH_DLL_EXPORT BPatch_localVar{
     friend class BPatch;
     friend class BPatch_function;
 

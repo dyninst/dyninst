@@ -296,7 +296,7 @@ bool HybridAnalysisOW::hasLoopInstrumentation
     bool foundLoop = false;
 
     // get function's blocks
-    BPatch_Set<BPatch_basicBlock*> blocks;
+    std::set<BPatch_basicBlock*> blocks;
     BPatch_flowGraph *cfg = func.getCFG();
     if (!cfg) {
         assert(0);
@@ -305,7 +305,7 @@ bool HybridAnalysisOW::hasLoopInstrumentation
     cfg->getAllBasicBlocks(blocks);
 
     // find loops matching the function's blocks
-    BPatch_Set<BPatch_basicBlock*>::iterator bIter = blocks.begin();
+    std::set<BPatch_basicBlock*>::iterator bIter = blocks.begin();
     for (; bIter != blocks.end(); bIter++) 
     {
         owLoop *loop = findLoop((*bIter)->getStartAddress());
@@ -368,7 +368,11 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop(Address writeInsn)
                       if (funcs[fidx] != src->getFlowGraph()->getFunction()->lowlevel_func()) {
                          BPatch_function *bpf = hybridow_->proc()->
                             findOrCreateBPFunc(funcs[fidx],src->getFlowGraph()->getModule());
-                         BPatch_basicBlock *shared = bpf->getCFG()->findBlockByAddr(src->getStartAddress());
+                         // TODO FIXME: this function was removed and a better one needs to 
+                         // be implemented
+                         //BPatch_basicBlock *shared = bpf->getCFG()->findBlockByAddr(src->getStartAddress());
+                         BPatch_basicBlock *shared = NULL;
+                         assert(0 && "FIXME");
                          vector<BPatch_edge*> sharedOutEdges;
                          shared->getOutgoingEdges(sharedOutEdges);
                          for (unsigned sIdx=0; sIdx < sharedOutEdges.size(); sIdx++) {
@@ -500,7 +504,7 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
     assert(!blocks.empty());
 
     // build the set that describes the type of accesses we're looking for
-    BPatch_Set<BPatch_opCode> insnTypes;
+    std::set<BPatch_opCode> insnTypes;
     insnTypes.insert(BPatch_opStore);
 
     // 2. create bounds array for all blocks in the loop
@@ -844,9 +848,9 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
          fIter++) 
     {
         // for each of its blocks
-        BPatch_Set<BPatch_basicBlock*> fBlocks;
+        std::set<BPatch_basicBlock*> fBlocks;
         (*fIter)->getCFG()->getAllBasicBlocks(fBlocks);
-        for (BPatch_Set<BPatch_basicBlock*>::iterator bIter= fBlocks.begin(); 
+        for (std::set<BPatch_basicBlock*>::iterator bIter= fBlocks.begin(); 
             bIter != fBlocks.end(); 
             bIter++) 
         {
@@ -1095,11 +1099,12 @@ bool HybridAnalysisOW::removeOverlappingLoops(owLoop *loop,
         }
         // restore write permissions to pages that are currently shadowed
         if (!loop->shadowMap.empty()) {
+            Dyninst::ProcControlAPI::Process::mem_perm rights(true, true, true);
             std::map<Address,unsigned char*>::iterator siter = loop->shadowMap.begin();
             for (; siter != loop->shadowMap.end(); siter++) {
     	        proc()->setMemoryAccessRights(siter->first, 
                     proc()->lowlevel_process()->getMemoryPageSize(), 
-                    PAGE_EXECUTE_READWRITE);
+                    rights /*PAGE_EXECUTE_READWRITE*/);
                 mal_printf("revbug restoring write to %lx %s[%d]\n",(*siter).first, 
                         FILE__,__LINE__);
             }
@@ -1133,8 +1138,10 @@ void HybridAnalysisOW::makeShadow_setRights
     // . Make a shadow copy of the block that is about to be overwritten
     loop->shadowMap[pageAddr] = proc()->makeShadowPage(pageAddr);
 
+    Dyninst::ProcControlAPI::Process::mem_perm rights(true, true, true);
 	// Restore write permissions to the written page
-    proc()->setMemoryAccessRights(pageAddr, pageSize, PAGE_EXECUTE_READWRITE);
+    proc()->setMemoryAccessRights(pageAddr, pageSize,
+                                  rights /* PAGE_EXECUTE_READWRITE */);
 }
 
 
@@ -1376,7 +1383,11 @@ void HybridAnalysisOW::overwriteSignalCB
     assert(!faultFuncs.empty());
     vector<BPatch_basicBlock*> faultBlocks;
     for (unsigned fidx=0; fidx < faultFuncs.size(); fidx++) {
-        faultBlocks.push_back(faultFuncs[fidx]->getCFG()->findBlockByAddr(faultInsnAddr));
+
+       // TODO FIXME: this function was removed and a better one needs to 
+       // be implemented
+       //faultBlocks.push_back(faultFuncs[fidx]->getCFG()->findBlockByAddr(faultInsnAddr));
+       assert(0 && "FIXME");
     }
     assert(faultBlocks.size() == faultFuncs.size());
     const unsigned int pageSize = proc()->lowlevel_process()->getMemoryPageSize();

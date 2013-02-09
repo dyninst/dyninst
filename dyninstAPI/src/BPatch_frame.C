@@ -49,27 +49,27 @@
  * function, BPatch_frameSignal for the stack frame created when a signal is
  * delivered, or BPatch_frameTrampoline for a stack frame for a trampoline.
  */
-BPatch_frameType BPatch_frame::getFrameTypeInt()
+BPatch_frameType BPatch_frame::getFrameType()
 {
 	if( isSignalFrame ) { return BPatch_frameSignal; }
 	else if( isTrampFrame ) { return BPatch_frameTrampoline; }
 	else { return BPatch_frameNormal; } 
 }
 
-BPatch_thread *BPatch_frame::getThreadInt() 
+BPatch_thread *BPatch_frame::getThread() 
 {
   return thread;
 }
 
-BPatch_point *BPatch_frame::getPointInt() 
+BPatch_point *BPatch_frame::getPoint() 
 {
   return point_;
 }
-void *BPatch_frame::getPCInt() 
+void *BPatch_frame::getPC() 
 {
   return pc;
 }
-void *BPatch_frame::getFPInt()
+void *BPatch_frame::getFP()
 {
   return fp;
 }
@@ -80,7 +80,7 @@ void *BPatch_frame::getFPInt()
  * Returns the function associated with the stack frame, or NULL if there is
  * none.
  */
-BPatch_function *BPatch_frame::findFunctionInt()
+BPatch_function *BPatch_frame::findFunction()
 {
   if (!getPC()) {
     return NULL;
@@ -121,11 +121,11 @@ BPatch_frame::BPatch_frame(BPatch_thread *_thread, void *_pc, void *_fp,
     if (isTrampFrame) assert(point_);
 };
 
-bool BPatch_frame::isSynthesizedInt() {
+bool BPatch_frame::isSynthesized() {
     return isSynthFrame;
 }
 
-BPatch_point *BPatch_frame::findPointInt() {
+BPatch_point *BPatch_frame::findPoint() {
     // If we're not in instrumentation, then return false
     if (!isTrampFrame)
         return NULL;

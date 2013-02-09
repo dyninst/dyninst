@@ -57,7 +57,6 @@
 #include "parseAPI/h/CFG.h"
 #include "ast.h"
 #include "debug.h"
-#include "eventLock.h"
 #include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 
@@ -77,7 +76,7 @@ using PatchAPI::DynAddrSpace;
 using PatchAPI::PatchMgr;
 using PatchAPI::Patcher;
 
-int BPatch_process::getAddressWidthInt(){
+int BPatch_process::getAddressWidth(){
         return llproc->getAddressWidth();
 }
 
@@ -86,7 +85,7 @@ int BPatch_process::getAddressWidthInt(){
  *
  * Return the process ID of the thread associated with this object.
  */
-int BPatch_process::getPidInt()
+int BPatch_process::getPid()
 {
    return llproc ? llproc->getPid() : -1;
 }
@@ -405,7 +404,7 @@ BPatch_process::BPatch_process(PCProcess *nProc)
  *
  * Destructor for BPatch_process.
  */
-void BPatch_process::BPatch_process_dtor()
+BPatch_process::~BPatch_process()
 {
    if( llproc ) {
        //  unRegister process before doing detach
@@ -423,7 +422,7 @@ void BPatch_process::BPatch_process_dtor()
        else  
        {
            if (llproc->isAttached()) {
-               terminateExecutionInt();
+               terminateExecution();
            }
        }
        delete llproc;
@@ -478,7 +477,7 @@ void BPatch_process::triggerInitialThreadEvents() {
  *
  * Puts the thread into the stopped state.
  */
-bool BPatch_process::stopExecutionInt() 
+bool BPatch_process::stopExecution() 
 {
     if( NULL == llproc ) return false;
 
@@ -494,7 +493,7 @@ bool BPatch_process::stopExecutionInt()
  *
  * Puts the thread into the running state.
  */
-bool BPatch_process::continueExecutionInt() 
+bool BPatch_process::continueExecution() 
 {
     if( NULL == llproc ) return false;
     if( !llproc->isBootstrapped() ) return false;
@@ -512,7 +511,7 @@ bool BPatch_process::continueExecutionInt()
  *
  * Kill the thread.
  */
-bool BPatch_process::terminateExecutionInt() 
+bool BPatch_process::terminateExecution() 
 {
     if( NULL == llproc ) return false;
 
@@ -527,7 +526,7 @@ bool BPatch_process::terminateExecutionInt()
  *
  * Returns true if the thread has stopped, and false if it has not.  
  */
-bool BPatch_process::isStoppedInt()
+bool BPatch_process::isStopped()
 {
     if( llproc == NULL ) return true;
 
@@ -551,9 +550,9 @@ bool BPatch_process::isStoppedInt()
  *
  * Returns the number of the signal which caused the thread to stop.
  */
-int BPatch_process::stopSignalInt()
+int BPatch_process::stopSignal()
 {
-    if (!isStoppedInt()) {
+    if (!isStopped()) {
         BPatch::reportError(BPatchWarning, 0, 
                 "Request for stopSignal when process is not stopped");
         return -1;
@@ -579,7 +578,7 @@ bool BPatch_process::statusIsTerminated()
  * may involve checking for thread events that may have recently changed this
  * thread's status.  
  */
-bool BPatch_process::isTerminatedInt()
+bool BPatch_process::isTerminated()
 {
     if( NULL == llproc ) return true;
 
@@ -595,7 +594,7 @@ bool BPatch_process::isTerminatedInt()
  * or ExitedViaSignal.
  *
  */
-BPatch_exitType BPatch_process::terminationStatusInt() {
+BPatch_exitType BPatch_process::terminationStatus() {
    if(exitedNormally)
       return ExitedNormally;
    else if(exitedViaSignal)
@@ -609,7 +608,7 @@ BPatch_exitType BPatch_process::terminationStatusInt() {
  * Returns exit code of applications
  *
  */
-int BPatch_process::getExitCodeInt()
+int BPatch_process::getExitCode()
 {
    return exitCode;
 }
@@ -620,12 +619,12 @@ int BPatch_process::getExitCodeInt()
  * Returns signal number that caused application to exit.
  *
  */
-int BPatch_process::getExitSignalInt()
+int BPatch_process::getExitSignal()
 {
    return lastSignal;
 }
 
-bool BPatch_process::wasRunningWhenAttachedInt()
+bool BPatch_process::wasRunningWhenAttached()
 {
   if (!llproc) return false;
   return llproc->wasRunningWhenAttached();
@@ -639,7 +638,7 @@ bool BPatch_process::wasRunningWhenAttachedInt()
  * cont         True if the thread should be continued as the result of the
  *              detach, false if it should not.
  */
-bool BPatch_process::detachInt(bool cont)
+bool BPatch_process::detach(bool cont)
 {
    if (image)
       image->removeAllModules();
@@ -654,7 +653,7 @@ bool BPatch_process::detachInt(bool cont)
  * Returns whether dyninstAPI is detached from this mutatee
  *
  */
-bool BPatch_process::isDetachedInt()
+bool BPatch_process::isDetached()
 {
    return detached;
 }
@@ -670,17 +669,17 @@ bool BPatch_process::isDetachedInt()
  *              dumping core.  True indicates that it should, false that is
  *              should not.
  */
-bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
+bool BPatch_process::dumpCore(const char *file, bool terminate)
 {
-   bool was_stopped = isStoppedInt();
+   bool was_stopped = isStopped();
 
    stopExecution();
 
    bool ret = llproc->dumpCore(file);
    if (ret && terminate) {
-      terminateExecutionInt();
+      terminateExecution();
    } else if (!was_stopped) {
-      continueExecutionInt();
+      continueExecution();
    }
 
    return ret;
@@ -694,17 +693,17 @@ bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
  *
  * file         The name of the file to which the image should be written.
  */
-bool BPatch_process::dumpImageInt(const char *file)
+bool BPatch_process::dumpImage(const char *file)
 {
 #if defined(os_windows) 
    return false;
 #else
-   bool was_stopped = isStoppedInt();
+   bool was_stopped = isStopped();
 
-   stopExecutionInt();
+   stopExecution();
 
    bool ret = llproc->dumpImage(file);
-   if (!was_stopped) continueExecutionInt();
+   if (!was_stopped) continueExecution();
 
    return ret;
 #endif
@@ -724,7 +723,7 @@ bool BPatch_process::dumpImageInt(const char *file)
  *             or NULL if the variable argument hasn't been malloced
  *             in a parent process.
  */
-BPatch_variableExpr *BPatch_process::getInheritedVariableInt(
+BPatch_variableExpr *BPatch_process::getInheritedVariable(
                                                              BPatch_variableExpr &parentVar)
 {
    if(! llproc->isInferiorAllocated((Address)parentVar.getBaseAddr())) {
@@ -757,7 +756,7 @@ BPatch_variableExpr *BPatch_process::getInheritedVariableInt(
  *
  */
 
-BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(BPatchSnippetHandle &parentSnippet)
+BPatchSnippetHandle *BPatch_process::getInheritedSnippet(BPatchSnippetHandle &parentSnippet)
 {
     // a BPatchSnippetHandle has an miniTramp for each point that
     // the instrumentation is inserted at
@@ -779,7 +778,7 @@ BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(BPatchSnippetHandle 
  *
  */
 
-void BPatch_process::beginInsertionSetInt()
+void BPatch_process::beginInsertionSet()
 {
     if (pendingInsertions == NULL)
         pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
@@ -798,7 +797,7 @@ void BPatch_process::beginInsertionSetInt()
  * we go thru the trouble to modify the process state to make everything work
  * then the function really should work.
  */
-bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
+bool BPatch_process::finalizeInsertionSet(bool, bool *)
 {
 
    if (statusIsTerminated()) return false;
@@ -810,9 +809,9 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
     return false;
   }
   
-  if ( ! isStoppedInt() ) {
+  if ( ! isStopped() ) {
     shouldContinue = true;
-    stopExecutionInt();
+    stopExecution();
   }
 
   /* PatchAPI stuffs */
@@ -822,7 +821,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
   llproc->trapMapping.flush();
 
   if (shouldContinue)
-    continueExecutionInt();
+    continueExecution();
 
   if (pendingInsertions) {
     delete pendingInsertions;
@@ -833,7 +832,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
 }
 
 
-bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool, bool *,
+bool BPatch_process::finalizeInsertionSetWithCatchup(bool, bool *,
                                                         BPatch_Vector<BPatch_catchupInfo> &)
 {
    return false;
@@ -845,9 +844,9 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool, bool *,
  * execute argument <expr> once.
  *
  */
-void *BPatch_process::oneTimeCodeInt(const BPatch_snippet &expr, bool *err)
+void *BPatch_process::oneTimeCode(const BPatch_snippet &expr, bool *err)
 {
-    if( !isStoppedInt() ) {
+    if( !isStopped() ) {
         BPatch_reportError(BPatchWarning, 0,
                 "oneTimeCode failing because process is not stopped");
         if( err ) *err = true;
@@ -942,11 +941,11 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
     proccontrol_printf("%s[%d]: UI top of oneTimeCode...\n", FILE__, __LINE__);
 
     OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData, cb,
-            (thread) ? thread->getBPatchIDInt() : 0);
+            (thread) ? thread->getBPatchID() : 0);
 
     if( !llproc->postIRPC(expr.ast_wrapper, 
             (void *)info,
-            !isStoppedInt(), 
+            !isStopped(), 
             (thread ? thread->llthread : NULL),
             synchronous,
             NULL, // the result will be passed to the callback 
@@ -966,7 +965,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
     void *ret = info->getReturnValue();
 
     proccontrol_printf("%s[%d]: RPC completed, process status %s\n",
-                       FILE__, __LINE__, isStoppedInt() ? "stopped" : "running");
+                       FILE__, __LINE__, isStopped() ? "stopped" : "running");
 
     if (err) *err = false;
     delete info;
@@ -977,7 +976,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
 //
 //  Have the specified code be executed by the mutatee once.  Don't wait
 //  until done.
-bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
+bool BPatch_process::oneTimeCodeAsync(const BPatch_snippet &expr,
                                          void *userData, BPatchOneTimeCodeCallback cb)
 {
    bool err = false;
@@ -994,7 +993,7 @@ bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
  *
  * libname      The name of the library to load.
  */
-BPatch_object *BPatch_process::loadLibraryInt(const char *libname, bool)
+BPatch_object *BPatch_process::loadLibrary(const char *libname, bool)
 {
    if (!libname) {
       fprintf(stderr, "[%s:%u] - loadLibrary called with NULL library name\n",
@@ -1002,9 +1001,9 @@ BPatch_object *BPatch_process::loadLibraryInt(const char *libname, bool)
       return NULL;
    }
 
-   bool wasStopped = isStoppedInt();
+   bool wasStopped = isStopped();
    if( !wasStopped ) {
-       if (!stopExecutionInt()) {
+       if (!stopExecution()) {
           BPatch_reportError(BPatchWarning, 0, 
                   "Failed to stop process for loadLibrary");
           return false;
@@ -1071,7 +1070,7 @@ BPatch_object *BPatch_process::loadLibraryInt(const char *libname, bool)
 }
 
 
-void BPatch_process::enableDumpPatchedImageInt(){
+void BPatch_process::enableDumpPatchedImage(){
     // deprecated; saveTheWorld is dead. Do nothing for now; kill later.
 }
 
@@ -1086,24 +1085,24 @@ void BPatch_process::setExitedNormally()
    exitedNormally = true;
 }
 
-void BPatch_process::getThreadsInt(BPatch_Vector<BPatch_thread *> &thrds)
+void BPatch_process::getThreads(BPatch_Vector<BPatch_thread *> &thrds)
 {
    for (unsigned i=0; i<threads.size(); i++)
       thrds.push_back(threads[i]);
 }
 
-bool BPatch_process::isMultithreadedInt()
+bool BPatch_process::isMultithreaded()
 {
    return (threads.size() > 1);
 }
 
-bool BPatch_process::isMultithreadCapableInt()
+bool BPatch_process::isMultithreadCapable()
 {
    if (!llproc) return false;
    return llproc->multithread_capable();
 }
 
-BPatch_thread *BPatch_process::getThreadInt(dynthread_t tid)
+BPatch_thread *BPatch_process::getThread(dynthread_t tid)
 {
    for (unsigned i=0; i<threads.size(); i++)
       if (threads[i]->getTid() == tid)
@@ -1111,7 +1110,7 @@ BPatch_thread *BPatch_process::getThreadInt(dynthread_t tid)
    return NULL;
 }
 
-BPatch_thread *BPatch_process::getThreadByIndexInt(unsigned index)
+BPatch_thread *BPatch_process::getThreadByIndex(unsigned index)
 {
    for (unsigned i=0; i<threads.size(); i++)
       if (threads[i]->getBPatchID() == index)
@@ -1171,10 +1170,10 @@ void BPatch_process::deleteBPThread(BPatch_thread *thrd)
  * which is in turn a wrapper for creating a new
  * ibmBpatchElf32Teader(name, addr)
  **/
-bool BPatch_process::addSharedObjectInt(const char *name,
+bool BPatch_process::addSharedObject(const char *name,
                                         const unsigned long loadaddr)
 {
-   return loadLibraryInt(name);
+   return loadLibrary(name);
 }
 #endif
 
@@ -1183,7 +1182,7 @@ bool BPatch_process::addSharedObjectInt(const char *name,
  * and printing the current instruction as it executes.
  **/
 
-void BPatch_process::debugSuicideInt()
+void BPatch_process::debugSuicide()
 {
     llproc->debugSuicide();
 }
@@ -1311,7 +1310,7 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
  * will say that it is not because they merely return the value of the
  * user-space beingDebugged flag.
  */
-bool BPatch_process::hideDebuggerInt()
+bool BPatch_process::hideDebugger()
 {
     // do non-instrumentation related hiding
     bool retval = llproc->hideDebugger();
@@ -1444,10 +1443,10 @@ bool BPatch_process::hideDebuggerInt()
     return retval;
 }
 
-bool BPatch_process::setMemoryAccessRights(Address start, Address size, int rights) {
-    bool wasStopped = isStoppedInt();
+bool BPatch_process::setMemoryAccessRights(Address start, size_t size, Dyninst::ProcControlAPI::Process::mem_perm rights) {
+    bool wasStopped = isStopped();
     if( !wasStopped ) {
-        if (!stopExecutionInt()) {
+        if (!stopExecution()) {
             BPatch_reportError(BPatchWarning, 0,
                                "Failed to stop process for setMemoryAccessRights");
             return false;
@@ -1457,7 +1456,7 @@ bool BPatch_process::setMemoryAccessRights(Address start, Address size, int righ
     int result = llproc->setMemoryAccessRights(start, size, rights);
 
     if( !wasStopped ) {
-        if( !continueExecutionInt() ) {
+        if( !continueExecution() ) {
             BPatch_reportError(BPatchWarning, 0,
                     "Failed to continue process for setMemoryAccessRights");
             return false;
@@ -1641,7 +1640,7 @@ void BPatch_process::overwriteAnalysisUpdate
     {
         const PatchBlock::edgelist & srcs = (*fit)->entry()->sources();
         vector<PatchEdge*> srcVec; // can't operate off edgelist, since we'll be deleting edges
-        std::copy(srcs.begin(), srcs.end(), back_inserter(srcVec));
+        srcVec.insert(srcVec.end(), srcs.begin(), srcs.end());
         for (vector<PatchEdge*>::const_iterator sit = srcVec.begin();
              sit != srcVec.end();
              sit++)

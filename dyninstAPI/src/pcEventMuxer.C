@@ -31,7 +31,6 @@
 #include "pcEventHandler.h"
 #include "BPatch.h"
 #include "debug.h"
-#include "eventLock.h"
 #include "os.h"
 #include "dynProcess.h"
 #include "mapped_object.h"
@@ -364,6 +363,10 @@ PCEventMuxer::cb_ret_t PCEventMuxer::RPCCallback(EventPtr ev) {
 	INITIAL_MUXING;
     EventRPC::const_ptr evRPC = ev->getEventRPC();
     inferiorRPCinProgress *rpcInProg = static_cast<inferiorRPCinProgress *>(evRPC->getIRPC()->getData());
+    if (!rpcInProg) {
+       // Not us!
+       return ret;
+    }
 
     if( rpcInProg->resultRegister == REG_NULL ) {
         // If the resultRegister isn't set, the returnValue shouldn't matter

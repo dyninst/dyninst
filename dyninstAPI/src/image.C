@@ -156,9 +156,8 @@ bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
 }
 
 // only for non-files
-unsigned char* fileDescriptor::rawPtr()
+void* fileDescriptor::rawPtr()
 {
-
 #if defined(os_windows)
 
     return rawPtr_;
@@ -168,7 +167,6 @@ unsigned char* fileDescriptor::rawPtr()
     return NULL;
 
 #endif
-
 }
 
 

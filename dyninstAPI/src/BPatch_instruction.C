@@ -88,16 +88,16 @@ BPatch_instruction::~BPatch_instruction() {
     delete insn_;
 }
 
-BPatch_basicBlock *BPatch_instruction::getParentInt()
+BPatch_basicBlock *BPatch_instruction::getParent()
 {
   return parent;
 }
 
-void *BPatch_instruction::getAddressInt()
+void *BPatch_instruction::getAddress()
 {
   return (void *)addr;
 }
-BPatch_point *BPatch_instruction::getInstPointInt()
+BPatch_point *BPatch_instruction::getInstPoint()
 {
    func_instance *ifunc = parent->ifunc();
    AddressSpace *proc = ifunc->proc();
@@ -114,7 +114,7 @@ BPatch_point *BPatch_instruction::getInstPointInt()
    return ret;
 }
 
-std::string BPatch_register::nameInt() {
+std::string BPatch_register::name() const{
     return name_;
 }
 

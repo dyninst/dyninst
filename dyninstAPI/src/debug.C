@@ -39,11 +39,20 @@
 #include "util.h"
 #include "BPatch.h"
 #include "dyninstAPI/src/debug.h"
-#include "eventLock.h"
+#include "common/h/dthread.h"
+#include "os.h"
+
+unsigned long getExecThreadID() {
+#if defined(os_windows)
+    return (unsigned long) _threadid;
+#else
+    return (unsigned long) pthread_self();
+#endif
+}
 
 // Make a lock.
 
-eventLock *debugPrintLock = NULL;
+Mutex *debugPrintLock = NULL;
 
 void BPatch_reportError(int errLevel, int num, const char *str) {
     BPatch::reportError((BPatchErrorLevel) errLevel, num, str);
@@ -111,7 +120,7 @@ int bpfatal_lf(const char *__file__, unsigned int __line__, const char *format, 
   char errbuf[ERR_BUF_SIZE];
 
   fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
-  int header_len = sprintf(errbuf, "[%s]%s[%d]: ", getThreadStr(getExecThreadID()), __file__, __line__);
+  int header_len = sprintf(errbuf, "[%ld]%s[%d]: ", getExecThreadID(), __file__, __line__);
 
   fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
   va_list va;
@@ -350,7 +359,7 @@ bool init_debug() {
       fprintf(stderr, "Enabling DyninstAPI instrumentation disassembly debugging\n");
       dyn_debug_disassemble = 1;
   }
-  debugPrintLock = new eventLock();
+  debugPrintLock = new Mutex();
 
   return true;
 }
@@ -360,14 +369,14 @@ int mal_printf(const char *format, ...)
   if (!dyn_debug_malware) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
 
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -377,14 +386,14 @@ int trap_printf(const char *format, ...)
   if (!dyn_debug_trap) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
 
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -394,15 +403,15 @@ int signal_printf_int(const char *format, ...)
   if (!dyn_debug_signal) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
 
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -412,15 +421,15 @@ int inferiorrpc_printf_int(const char *format, ...)
   if (!dyn_debug_infrpc) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
 
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -430,15 +439,15 @@ int startup_printf_int(const char *format, ...)
   if (!dyn_debug_startup) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
 
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -448,9 +457,9 @@ int parsing_printf_int(const char *format, ...)
   if (!dyn_debug_parsing) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
 
-  //fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  //fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
 
@@ -458,7 +467,7 @@ int parsing_printf_int(const char *format, ...)
 
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -468,15 +477,15 @@ int proccontrol_printf_int(const char *format, ...)
   if (!dyn_debug_proccontrol) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
 
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -486,15 +495,15 @@ int stackwalk_printf_int(const char *format, ...)
   if (!dyn_debug_stackwalk) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
 
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -504,15 +513,15 @@ int inst_printf_int(const char *format, ...)
   if (!dyn_debug_inst) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
 
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -522,15 +531,15 @@ int reloc_printf_int(const char *format, ...)
   if (!dyn_debug_reloc) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
   
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -540,15 +549,15 @@ int dyn_unw_printf_int(const char *format, ...)
   if (!dyn_debug_dyn_unw ) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
   
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -558,15 +567,15 @@ int mutex_printf_int(const char *format, ...)
   if (!dyn_debug_mutex ) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
   
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -577,15 +586,15 @@ int catchup_printf_int(const char *format, ...)
     if (!dyn_debug_catchup) return 0;
     if (NULL == format) return -1;
     
-    debugPrintLock->_Lock(FILE__, __LINE__);
+    debugPrintLock->lock();
     
-    fprintf(stderr, "[%s]: ", getThreadStr(getExecThreadID()));
+    fprintf(stderr, "[%ld]", getExecThreadID());
     va_list va;
     va_start(va, format);
     int ret = vfprintf(stderr, format, va);
     va_end(va);
     
-    debugPrintLock->_Unlock(FILE__, __LINE__);
+    debugPrintLock->unlock();
     
     return ret;
 }
@@ -595,15 +604,15 @@ int bpatch_printf(const char *format, ...)
   if (!dyn_debug_bpatch) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
   
-  fprintf(stderr, "[%s]: ", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -613,15 +622,15 @@ int regalloc_printf_int(const char *format, ...)
   if (!dyn_debug_regalloc) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
   
-  fprintf(stderr, "[%s]: ", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -631,15 +640,15 @@ int ast_printf_int(const char *format, ...)
   if (!dyn_debug_ast) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
   
-  fprintf(stderr, "[%s]: ", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -649,7 +658,7 @@ int write_printf_int(const char *format, ...)
   if (!dyn_debug_write) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
   
   if (!dyn_debug_write_file) {
     if (dyn_debug_write_filename && strlen(dyn_debug_write_filename)) {
@@ -666,7 +675,7 @@ int write_printf_int(const char *format, ...)
   va_end(va);
   fflush(dyn_debug_write_file);
   
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }
@@ -677,15 +686,15 @@ int infmalloc_printf_int(const char *format, ...)
   if (!dyn_debug_infmalloc) return 0;
   if (NULL == format) return -1;
 
-  debugPrintLock->_Lock(FILE__, __LINE__);
+  debugPrintLock->lock();
   
-  fprintf(stderr, "[%s]: ", getThreadStr(getExecThreadID()));
+  fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
   va_end(va);
 
-  debugPrintLock->_Unlock(FILE__, __LINE__);
+  debugPrintLock->unlock();
 
   return ret;
 }

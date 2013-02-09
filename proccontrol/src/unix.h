@@ -50,10 +50,26 @@ class unix_process : virtual public int_process
    virtual bool post_forked();
    virtual unsigned getTargetPageSize();
 
+   virtual bool plat_decodeMemoryRights(Process::mem_perm& perm,
+                                        unsigned long rights);
+   virtual bool plat_encodeMemoryRights(Process::mem_perm perm,
+                                        unsigned long& rights);
+   virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
+                                           Process::mem_perm& rights);
+   virtual bool plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
+                                           Process::mem_perm rights,
+                                           Process::mem_perm& oldRights);
+
+   virtual bool plat_findAllocatedRegionAround(Dyninst::Address addr,
+                                               Process::MemoryRegion& memRegion);
+
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
 
    virtual bool plat_supportFork();
    virtual bool plat_supportExec();
+
+  private:
+
 };
 
 #endif

@@ -30,6 +30,7 @@
 #include <set>
 #include <vector>
 #include <map>
+#include <utility>
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/AbslocInterface.h"
 #include "Instruction.h"
@@ -827,9 +828,7 @@ Slicer::followCall(
         calls != cur.con.rend(); ++calls)
     {
         if(NULL != calls->func) {
-            callStack.push( 
-                make_pair<ParseAPI::Function*, int>(
-                    calls->func,calls->stackDepth));
+            callStack.push(make_pair(calls->func,calls->stackDepth));
         }
     } 
     // Quote:
@@ -1087,8 +1086,7 @@ Slicer::followCallBackward(
     {
         if(calls->func) {
             callStack.push(
-                make_pair<ParseAPI::Function*,int>(
-                    calls->func, calls->stackDepth));
+               std::make_pair(calls->func, calls->stackDepth));
         }
     }
     return p.followCallBackward(caller_block, callStack, reg);
@@ -1198,8 +1196,7 @@ Slicer::followReturn(
     {
         if(calls->func) {
             callStack.push(
-                make_pair<ParseAPI::Function*,int>(
-                    calls->func, calls->stackDepth));
+               std::make_pair(calls->func, calls->stackDepth));
         }
     }
 

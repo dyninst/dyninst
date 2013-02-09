@@ -64,4 +64,12 @@ _UpgradeReport_Files/*
 *.orig
 \#*\#
 callgrind.out.*
+cscope.*
+luftags
+tags
+*.sdf
+*.opensdf
+*.suo
+*.vcxproj.user
+ipch/*
 

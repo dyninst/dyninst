@@ -40,7 +40,7 @@
 
 class BPatch_basicBlockLoop;
 
-void BPatch_loopTreeNode::BPatch_loopTreeNodeCtor(BPatch_basicBlockLoop *l, 
+BPatch_loopTreeNode::BPatch_loopTreeNode(BPatch_basicBlockLoop *l, 
                                                   const char *n)
 {
     loop = l;
@@ -52,7 +52,7 @@ void BPatch_loopTreeNode::BPatch_loopTreeNodeCtor(BPatch_basicBlockLoop *l,
  
 
 const char * 
-BPatch_loopTreeNode::getCalleeNameInt(unsigned int i) 
+BPatch_loopTreeNode::getCalleeName(unsigned int i) 
 {
     assert(i < callees.size());
     assert(callees[i] != NULL);
@@ -60,19 +60,19 @@ BPatch_loopTreeNode::getCalleeNameInt(unsigned int i)
 }
 
 const char * 
-BPatch_loopTreeNode::nameInt()
+BPatch_loopTreeNode::name()
 {
     assert(loop != NULL);
     return hierarchicalName; 
 }
 
 unsigned int
-BPatch_loopTreeNode::numCalleesInt() { 
+BPatch_loopTreeNode::numCallees() { 
     return callees.size(); 
 }
 
 
-void BPatch_loopTreeNode::BPatch_loopTreeNode_dtor() {
+BPatch_loopTreeNode::~BPatch_loopTreeNode() {
     // Loops are deleted by BPatch_flowGraph...
     for (unsigned i = 0; i < children.size(); i++)
 	delete children[i];
@@ -83,7 +83,7 @@ void BPatch_loopTreeNode::BPatch_loopTreeNode_dtor() {
 
 
 BPatch_basicBlockLoop *
-BPatch_loopTreeNode::findLoopInt(const char *name) 
+BPatch_loopTreeNode::findLoop(const char *name) 
 { 
     if (loop) {
         if (0==strcmp(name,hierarchicalName)) 
@@ -96,7 +96,7 @@ BPatch_loopTreeNode::findLoopInt(const char *name)
     return NULL;
 }
 
-bool BPatch_loopTreeNode::getCalleesInt(BPatch_Vector<BPatch_function *> &v,
+bool BPatch_loopTreeNode::getCallees(BPatch_Vector<BPatch_function *> &v,
                                         BPatch_addressSpace *p)
 {
    for (unsigned i=0; i<callees.size(); i++) {
