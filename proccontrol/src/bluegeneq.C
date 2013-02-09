@@ -1174,7 +1174,7 @@ bool bgq_process::handleStartupEvent(void *data)
     *  - GetThreadData
     *  - ThreadList
     **/
-   if (startup_state == issue_data_collection) {
+   if (startup_state == issue_data_collection || startup_state == skip_control_request_signal) {
       pthrd_printf("Issuing data request\n");
 
       GetProcessDataCmd procdata_cmd;
@@ -1193,7 +1193,7 @@ bool bgq_process::handleStartupEvent(void *data)
       thread_list.threadID = 0;
       sendCommand(thread_list, GetThreadList);
 
-      if (expecting_stop)
+      if (expecting_stop && startup_state != skip_control_request_signal)
          startup_state = waitfor_data_or_stop;
       else
          startup_state = waitfor_data_collection;
@@ -1579,6 +1579,46 @@ bool bgq_process::plat_getFileDataAsync(int_eventAsyncFileRead *fileread)
    bool result = sendCommand(getfile, GetFileContents, readresp);
 
    return result;
+}
+
+bool bgq_process::plat_getFileStatData(std::string filename, Dyninst::ProcControlAPI::stat64_ptr *stat_results,
+                                       std::set<StatResp_t *> &resps)
+{
+   GetFileStatDataCmd filestat;
+   filestat.threadID = 0;
+   strncpy(filestat.pathname, filename.c_str(), MaxPersistPathnameSize);
+   
+   StatResp_t *statresp = new StatResp_t(stat_results, this);
+   assert(statresp);
+   statresp->post();
+
+   pthrd_printf("Sending GetFileStatDataCmd for %s to %d\n", filename.c_str(), getPid());
+   bool result = sendCommand(filestat, GetFileStatData, statresp);
+   if (!result) {
+      perr_printf("Failed to send STAT command\n");
+      delete statresp;
+      return false;
+   }
+   
+   resps.insert(statresp);
+   return true;
+}
+
+bool bgq_process::plat_getFileNames(FileSetResp_t *resp)
+{
+   GetFilenamesCmd fnames;
+   fnames.threadID = 0;
+
+   resp->post();
+
+   pthrd_printf("Sending getfilenames to %d\n", getPid());
+   bool result = sendCommand(fnames, GetFilenames, resp);
+   if (!result) {
+      perr_printf("Failed to send GetFilenames command\n");
+      return false;
+   }
+
+   return true;
 }
 
 bool bgq_process::allowSignal(int signal_no)
@@ -3081,11 +3121,11 @@ bool DecoderBlueGeneQ::decodeFileContents(ArchEventBGQ *ev, bgq_process *proc, T
 {
    bool is_complete;
    Resp_ptr r = proc->recvResp(resp_id, is_complete);
-   assert(is_complete);
+   assert(r && is_complete);
    
    FileReadResp_t *resp = static_cast<FileReadResp_t *>(r);
    int_eventAsyncFileRead *iev = resp->get();
-   delete resp;
+   iev->resp = resp;
 
    GetFileContentsAckCmd *file_cmd_ack = static_cast<GetFileContentsAckCmd *>(cmd);
    iev->data = file_cmd_ack->data;
@@ -3103,6 +3143,52 @@ bool DecoderBlueGeneQ::decodeFileContents(ArchEventBGQ *ev, bgq_process *proc, T
    newev->setThread(proc->threadPool()->initialThread()->thread());
    newev->setSyncType(Event::async);
    events.push_back(newev);
+
+   resp->done();
+
+   return true;
+}
+
+bool DecoderBlueGeneQ::decodeGetFilenames(ArchEventBGQ *, bgq_process *proc, ToolCommand *cmd, int rc, int id)
+{
+   bool is_complete;
+   Resp_ptr r = proc->recvResp(id, is_complete);
+   assert(r && is_complete);
+   FileSetResp_t *fset_resp = static_cast<FileSetResp_t *>(r);
+   FileSet *fset = fset_resp->get();
+   
+   GetFilenamesAckCmd *filelist = static_cast<GetFilenamesAckCmd *>(cmd);
+   Process::ptr ui_proc = proc->proc();
+
+#warning TODO: Set errors based on rc
+   
+   for (uint32_t i = 0; i < filelist->numFiles; i++) {
+      fset->insert(make_pair(ui_proc, FileInfo(string(filelist->pathname[i]))));
+   }
+
+   fset_resp->done();
+   return true;
+}
+
+bool DecoderBlueGeneQ::decodeFileStat(ToolCommand *cmd, bgq_process *proc, unsigned int resp_id, int rc)
+{
+   bool is_complete;
+   Resp_ptr r = proc->recvResp(resp_id, is_complete);
+   assert(r && is_complete);
+   StatResp_t *resp = static_cast<StatResp_t *>(r);
+   GetFileStatDataAckCmd *statack = static_cast<GetFileStatDataAckCmd *>(cmd);
+      
+   stat64_ptr *statp = resp->get();
+   if (rc != 0) {
+      *statp = stat64_ptr();
+#warning TODO: Set errors based on rc
+   }
+   else {
+      *statp = stat64_ptr(new stat64_ret_t);
+      memcpy(statp->get(), &statack->stat, sizeof(stat64_ret_t));
+   }
+
+   resp->done();
 
    return true;
 }
@@ -3347,15 +3433,19 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             pthrd_printf("Decoded GetAuxVectorsAck on %d/%d. Dropping\n", 
                          proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
             break;
-         case GetProcessDataAck: {
+         case GetProcessDataAck:
             pthrd_printf("Decoded new event on %d to GetProcessData message\n", proc->getPid());
             decodeStartupEvent(archevent, proc, msg, Event::async, events);
             break;
-         }
-         case GetPreferencesAck:
          case GetFilenamesAck:
-         case GetFileStatDataAck:
+            pthrd_printf("Decoded event on %d to GetFilenamesAck\n", proc->getPid());
+            decodeGetFilenames(archevent, proc, base_cmd, desc->returnCode, id);
+         case GetPreferencesAck:
             assert(0); //Currently unused
+            break;
+         case GetFileStatDataAck:
+            pthrd_printf("Decoded new event on %d to GetFileStatDataAck message\n", proc->getPid());
+            decodeFileStat(base_cmd, proc, id, desc->returnCode);
             break;
          case GetFileContentsAck:
             pthrd_printf("Decoding GetFileContentsAck on %d\n", proc->getPid());

@@ -33,6 +33,7 @@
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/processplat.h"
+#include "proccontrol/src/int_event.h"
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -439,23 +440,44 @@ bool BGQData::getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) co
    return true;
 }
 
-FileInfo::FileInfo(std::string f) :
-   filename(f),
-   stat_results(NULL)
+FileInfo::FileInfo(std::string f)
 {
+   info = new int_fileInfo();
+   info->filename = f;
 }
 
 FileInfo::FileInfo() :
-   stat_results(NULL)
-{
+   info(NULL)
+{   
 }
 
-FileInfo::~FileInfo()
+FileInfo::~FileInfo() 
 {
-   if (stat_results) {
-      free(stat_results);
-      stat_results = NULL;
+   if (info) {
+      delete info;
+      info = NULL;
    }
+}
+
+std::string FileInfo::getFilename() const
+{
+   if (!info)
+      return std::string();
+   return info->filename;
+}
+
+stat64_ptr FileInfo::getStatResults() const
+{
+   if (!info)
+      return stat64_ptr();
+   return info->stat_results;
+}
+
+int_fileInfo *FileInfo::getInfo()
+{
+   if (!info)
+      info = new int_fileInfo();
+   return info;
 }
 
 RemoteIO::RemoteIO(Process::ptr proc_) :
@@ -505,7 +527,7 @@ bool RemoteIO::getFileNames(FileSet *fset) const
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getFileNames", false);
    int_remoteIO *proc = p->llproc()->getRemoteIO();
-   return proc->getFileNames(*fset);
+   return proc->getFileNames(fset);
 }
 
 bool RemoteIO::getFileStatData(FileSet *fset) const
@@ -524,6 +546,68 @@ bool RemoteIO::readFileContents(const FileSet *fset)
    PTR_EXIT_TEST(p, "getStatData", false);
    int_remoteIO *proc = p->llproc()->getRemoteIO();
    return proc->getFileDataAsync(*fset);
+}
+
+RemoteIOSet::RemoteIOSet(ProcessSet::ptr procs_) 
+{
+   pset = procs_;
+}
+
+RemoteIOSet::~RemoteIOSet()
+{
+}
+
+FileSet *RemoteIOSet::getFileSet(string filename)
+{
+   ProcessSet::ptr procs = pset.lock();
+   if (!procs || procs->empty()) {
+      globalSetLastError(err_badparam, "Cannot create fileset from empty process set");
+      return NULL;
+   }
+
+   FileSet *new_fs = new FileSet();
+   for (ProcessSet::iterator i = procs->begin(); i != procs->end(); i++) {
+      new_fs->insert(make_pair(*i, FileInfo(filename)));
+   }
+   return new_fs;
+}
+
+FileSet *RemoteIOSet::getFileSet(const set<string> &filenames)
+{
+   ProcessSet::ptr procs = pset.lock();
+   if (!procs || procs->empty()) {
+      globalSetLastError(err_badparam, "Cannot create fileset from empty process set");
+      return NULL;
+   }
+   if (filenames.empty()) {
+      globalSetLastError(err_badparam, "Cannot create a fileset from empty list of names");
+      return NULL;
+   }
+
+   FileSet *new_fs = new FileSet();
+   for (ProcessSet::iterator i = procs->begin(); i != procs->end(); i++) {
+      for (set<string>::iterator j = filenames.begin(); j != filenames.end(); j++) {
+         new_fs->insert(make_pair(*i, *j));
+      }
+   }
+   return new_fs;
+}
+
+bool RemoteIOSet::addToFileSet(string filename, FileSet *fs)
+{
+   ProcessSet::ptr procs = pset.lock();
+   if (!procs || procs->empty()) {
+      globalSetLastError(err_badparam, "Cannot add empty process et to fileset");
+      return false;
+   }
+   if (!fs) {
+      globalSetLastError(err_badparam, "NULL FileSet parameter\n");
+      return false;
+   }
+   for (ProcessSet::iterator i = procs->begin(); i != procs->end(); i++) {
+      fs->insert(make_pair(*i, filename));
+   }
+   return true;
 }
 
 int_libraryTracking::int_libraryTracking(Dyninst::PID p, string e, vector<string> a, 
@@ -849,12 +933,63 @@ int_remoteIO::~int_remoteIO()
 {
 }
 
-bool int_remoteIO::getFileNames(FileSet &result)
+bool int_remoteIO::getFileNames(FileSet *fset)
 {
+   if (!fset) {
+      perr_printf("Null FileSet passed to getFileNames\n");
+      setLastError(err_badparam, "Unexpected NULL parameter");
+      return false;
+   }
+   
+   FileSetResp_t resp(fset, this);
+   
+   bool result = plat_getFileNames(&resp);
+   if (!result) {
+      perr_printf("Error requesting filenames");
+      return false;
+   }
+
+   waitForEvent(&resp);
+   return true;
 }
 
 bool int_remoteIO::getFileStatData(FileSet &files)
 {
+   set<StatResp_t *> resps;
+   bool had_error = false;
+
+   for (FileSet::iterator i = files.begin(); i != files.end(); i++) {
+      if (static_cast<int_process *>(this) != i->first->llproc()) {
+         perr_printf("Non-local process in fileset, %d specified for %d\n",
+                     i->first->llproc()->getPid(), getPid());
+         setLastError(err_badparam, "Non-local process specified in FileSet");
+         had_error = true;
+         continue;
+      }
+
+      FileInfo &fi = i->second;
+      int_fileInfo *info = fi.getInfo();
+      if (info->filename.empty()) {
+         perr_printf("Empty filename in stat operation on %d\n", getPid());
+         setLastError(err_badparam, "Empty filename specified in stat operation");
+         had_error = true;
+         continue;
+      }
+      
+      bool result = plat_getFileStatData(info->filename, &info->stat_results, resps);
+      if (!result) {
+         pthrd_printf("Error while requesting file data stat on %d\n", getPid());
+         had_error = true;
+         continue;
+      }
+   }
+
+   for (set<StatResp_t *>::iterator i = resps.begin(); i != resps.end(); i++) {
+      waitForEvent(*i);
+      delete *i;
+   }
+
+   return true;      
 }
 
 bool int_remoteIO::getFileDataAsync(const FileSet &files)
@@ -874,22 +1009,17 @@ bool int_remoteIO::getFileDataAsync(const FileSet &files)
       int_eventAsyncFileRead *fileread = new int_eventAsyncFileRead();
       fileread->offset = 0;
       fileread->whole_file = true;
-      fileread->filename = i->second.filename;
+      fileread->filename = i->second.getFilename();
       bool result = plat_getFileDataAsync(fileread);
       if (!result) {
          pthrd_printf("Error while requesting file data on %d\n", getPid());
          had_error = true;
+         delete fileread;
          continue;
       }
    }
 
-   bool proc_exited = false;
-   waitAndHandleForProc(false, this, proc_exited);
-   if (proc_exited) {
-      perr_printf("Process exited while waiting for IO\n");
-      
-   }
-   return true;
+   return !had_error;
 }
 
 

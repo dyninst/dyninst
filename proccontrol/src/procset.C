@@ -39,6 +39,7 @@
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/processplat.h"
+#include "proccontrol/src/int_event.h"
 #include "common/h/Types.h"
 #include <stdlib.h>
 #include <map>
@@ -67,6 +68,7 @@ private:
    ThreadTrackingSet *thrdset;
    LWPTrackingSet *lwpset;
    FollowForkSet *forkset;
+   RemoteIOSet *ioset;
 };
 
 class TSetFeatures {
@@ -84,7 +86,8 @@ PSetFeatures::PSetFeatures() :
    libset(NULL),
    thrdset(NULL),
    lwpset(NULL),
-   forkset(NULL)
+   forkset(NULL),
+   ioset(NULL)
 {
 }
 
@@ -101,6 +104,10 @@ PSetFeatures::~PSetFeatures()
    if (forkset) {
       delete forkset;
       forkset = NULL;
+   }
+   if (ioset) {
+      delete ioset;
+      ioset = NULL;
    }
 }
 
@@ -979,11 +986,11 @@ LibraryTrackingSet *ProcessSet::getLibraryTracking()
       return features->libset;
 
    MTLock lock_this_func;
+   if (!procset)
+      return NULL;
    if (!features) {
       features = new PSetFeatures();
    }
-   if (!procset)
-      return NULL;
    for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
       Process::ptr p = *i;
       if (p->getLibraryTracking()) {
@@ -1001,11 +1008,11 @@ ThreadTrackingSet *ProcessSet::getThreadTracking()
       return features->thrdset;
 
    MTLock lock_this_func;
+   if (!procset)
+      return NULL;
    if (!features) {
       features = new PSetFeatures();
    }
-   if (!procset)
-      return NULL;
    for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
       Process::ptr p = *i;
       if (p->getThreadTracking()) {
@@ -1023,11 +1030,11 @@ LWPTrackingSet *ProcessSet::getLWPTracking()
       return features->lwpset;
 
    MTLock lock_this_func;
+   if (!procset)
+      return NULL;
    if (!features) {
       features = new PSetFeatures();
    }
-   if (!procset)
-      return NULL;
    for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
       Process::ptr p = *i;
       if (p->getLWPTracking()) {
@@ -1045,16 +1052,38 @@ FollowForkSet *ProcessSet::getFollowFork()
       return features->forkset;
 
    MTLock lock_this_func;
+   if (!procset)
+      return NULL;
    if (!features) {
       features = new PSetFeatures();
    }
-   if (!procset)
-      return NULL;
    for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
       Process::ptr p = *i;
       if (p->getFollowFork()) {
          features->forkset = new FollowForkSet(shared_from_this());
          return features->forkset;
+      }
+   }
+
+   return NULL;
+}
+
+RemoteIOSet *ProcessSet::getRemoteIO()
+{
+   if (features && features->ioset)
+      return features->ioset;
+
+   MTLock lock_this_func;
+   if (!procset)
+      return NULL;
+   if (!features) {
+      features = new PSetFeatures();
+   }
+   for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
+      Process::ptr p = *i;
+      if (p->getRemoteIO()) {
+         features->ioset = new RemoteIOSet(shared_from_this());
+         return features->ioset;
       }
    }
 
@@ -1081,6 +1110,10 @@ const FollowForkSet *ProcessSet::getFollowFork() const
    return const_cast<ProcessSet *>(this)->getFollowFork();
 }
 
+const RemoteIOSet *ProcessSet::getRemoteIO() const
+{
+   return const_cast<ProcessSet *>(this)->getRemoteIO();
+}
 
 ProcessSet::ptr ProcessSet::getErrorSubset() const
 {
@@ -3524,6 +3557,152 @@ bool CallStackUnwindingSet::walkStack(CallStackCallback *stk_cb)
       }
       if (!did_something) 
          int_process::waitForAsyncEvent(a_resp);
+   }
+
+   return !had_error;
+}
+
+bool RemoteIOSet::getFileNames(FileSet *fset)
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   if (!fset) {
+      perr_printf("NULL FileSet passed to getFileNames\n");
+      globalSetLastError(err_badparam, "Unexpected NULL parameter");
+      return false;
+   }
+   ProcessSet::ptr procs = pset.lock();
+   if (!procs || procs->empty()) {
+      perr_printf("getFileNames attempted on empty proces set\n");
+      globalSetLastError(err_badparam, "getFileNames on empty process set");
+      return false;
+   }
+
+   pthrd_printf("RemoteIOSet::getFileNames called on %lu processes\n", procs->size());
+
+   set<FileSetResp_t *> all_resps;
+   int_processSet *procset = procs->getIntProcessSet();
+   procset_iter iter("getFileNames", had_error, ERR_CHCK_NORM);   
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      int_remoteIO *proc = (*i)->llproc()->getRemoteIO();
+      if (!proc) {
+         perr_printf("getFileNames attempted on non RemoteIO process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "getFileNames not supported on this platform");
+         had_error = true;
+         continue;
+      }
+
+      FileSetResp_t *new_resp = new FileSetResp_t(fset, proc);
+      bool result = proc->plat_getFileNames(new_resp);
+      if (!result) {
+         pthrd_printf("Error running plat_getFileNames on %d\n", proc->getPid());
+         proc->setLastError(err_internal, "Internal error getting filenames");
+         had_error = true;
+         delete new_resp;
+         continue;
+      }
+
+      all_resps.insert(new_resp);
+   }
+
+   for (set<FileSetResp_t *>::iterator i = all_resps.begin(); i != all_resps.end(); i++) {
+      FileSetResp_t *resp = *i;
+      resp->getProc()->waitForEvent(resp);
+      delete resp;
+   }
+
+   return !had_error;
+}
+
+bool RemoteIOSet::getFileStatData(FileSet *fset)
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   if (!fset) {
+      perr_printf("NULL FileSet passed to getFileStatData\n");
+      globalSetLastError(err_badparam, "Unexpected NULL parameter");
+      return false;
+   }
+   ProcessSet::ptr procs = pset.lock();
+   if (!procs || procs->empty()) {
+      perr_printf("getFileStatData attempted on empty proces set\n");
+      globalSetLastError(err_badparam, "getFileStatData on empty process set");
+      return false;
+   }
+
+   pthrd_printf("RemoteIOSet::getFileStatData called on %lu processes\n", procs->size());
+
+   set<StatResp_t *> all_resps;
+
+   for (FileSet::iterator i = fset->begin(); i != fset->end(); i++) {
+      int_remoteIO *proc = i->first->llproc()->getRemoteIO();
+      if (!proc) {
+         perr_printf("getFileStatData attempted on non RemoteIO process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "getFileStatData not supported on this platform");
+         had_error = true;
+         continue;
+      }
+      FileInfo &fi = i->second;
+      int_fileInfo *info = fi.getInfo();
+      if (info->filename.empty()) {
+         perr_printf("Empty filename in stat operation on %d\n", proc->getPid());
+         proc->setLastError(err_badparam, "Empty filename specified in stat operation");
+         had_error = true;
+         continue;
+      }
+      
+      bool result = proc->plat_getFileStatData(info->filename, &info->stat_results, all_resps);
+      if (!result) {
+         pthrd_printf("Error while requesting file stat data on %d\n", proc->getPid());
+         had_error = true;
+         continue;
+      }
+   }
+
+   for (set<StatResp_t *>::iterator i = all_resps.begin(); i != all_resps.end(); i++) {
+      StatResp_t *resp = *i;
+      resp->getProc()->waitForEvent(resp);
+      delete resp;
+   }
+
+   return !had_error;
+}
+
+bool RemoteIOSet::readFileContents(const FileSet *fset)
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   if (!fset) {
+      perr_printf("NULL FileSet passed to getFileStatData\n");
+      globalSetLastError(err_badparam, "Unexpected NULL parameter");
+      return false;
+   }
+
+   set<FileReadResp_t *> resps;
+
+   for (FileSet::const_iterator i = fset->begin(); i != fset->end(); i++) {
+      int_remoteIO *proc = i->first->llproc()->getRemoteIO();
+      if (!proc) {
+         perr_printf("getFileStatData attempted on non RemoteIO process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "getFileStatData not supported on this platform");
+         had_error = true;
+         continue;
+      }
+
+      int_eventAsyncFileRead *fileread = new int_eventAsyncFileRead();
+      fileread->offset = 0;
+      fileread->whole_file = true;
+      fileread->filename = i->second.getFilename();
+      bool result = proc->plat_getFileDataAsync(fileread);
+      if (!result) {
+         pthrd_printf("Error while requesting file data on %d\n", proc->getPid());
+         had_error = true;
+         delete fileread;
+         continue;
+      }
    }
 
    return !had_error;

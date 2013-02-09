@@ -173,15 +173,15 @@ class bgq_process :
    virtual MultiToolControl::priority_t mtool_getPriority();
    virtual MultiToolControl *mtool_getMultiToolControl();
 
-   virtual BGQData *getBGQData() const;
    virtual void bgq_getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const;
    virtual unsigned int bgq_getComputeNodeID() const;
    virtual void bgq_getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
    virtual void bgq_getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
    virtual void bgq_getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
 
-   virtual bool plat_getFileNames(FileSet &result, std::set<response::ptr> &resps);
-   virtual bool plat_getFileStatData(std::string filename, std::set<response::ptr> &resps);
+   virtual bool plat_getFileNames(FileSetResp_t *resp);
+   virtual bool plat_getFileStatData(std::string filename, Dyninst::ProcControlAPI::stat64_ptr *stat_results,
+                                     std::set<StatResp_t *> &resps);
    virtual bool plat_getFileDataAsync(int_eventAsyncFileRead *fileread);
 
    virtual bool allowSignal(int signal_no);
@@ -464,9 +464,11 @@ class DecoderBlueGeneQ : public Decoder
    bool decodeReleaseControlAck(ArchEventBGQ *archevent, bgq_process *proc, int err_code, std::vector<Event::ptr> &events);
    bool decodeControlAck(ArchEventBGQ *ev, bgq_process *qproc, vector<Event::ptr> &events);
    bool decodeLWPRefresh(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd);
+   bool decodeFileStat(ToolCommand *cmd, bgq_process *proc, unsigned int resp_id, int rc);
    bool decodeFileContents(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, 
                            int rc, unsigned int resp_id, bool owns_msg,
                            std::vector<Event::ptr> &events);
+   bool decodeGetFilenames(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, int rc, int id);
 
    bool usesResp(uint16_t cmdtype) { return (cmdtype == GetFileContentsAck); }
 

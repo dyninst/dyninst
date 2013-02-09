@@ -6708,6 +6708,24 @@ SignalMask *Process::getSignalMask()
    return proc->up_ptr;
 }
 
+RemoteIO *Process::getRemoteIO()
+{
+   MTLock lock_this_func;
+   PROC_EXIT_TEST("getRemoteIO", NULL);
+   int_remoteIO *proc = llproc_->getRemoteIO();
+   if (!proc) return NULL;
+   return proc->up_ptr;
+}
+
+BGQData *Process::getBGQ()
+{
+   MTLock lock_this_func;
+   PROC_EXIT_TEST("getBGQ", NULL);
+   int_BGQData *proc = llproc_->getBGQData();
+   if (!proc) return NULL;
+   return proc->up_ptr;
+}
+
 const LibraryTracking *Process::getLibraryTracking() const
 {
    MTLock lock_this_func;
@@ -6740,6 +6758,24 @@ const SignalMask *Process::getSignalMask() const
    MTLock lock_this_func;
    PROC_EXIT_TEST("getSignalMask", NULL);
    int_signalMask *proc = llproc_->getSignalMask();
+   if (!proc) return NULL;
+   return proc->up_ptr;
+}
+
+const RemoteIO *Process::getRemoteIO() const
+{
+   MTLock lock_this_func;
+   PROC_EXIT_TEST("getRemoteIO", NULL);
+   int_remoteIO *proc = llproc_->getRemoteIO();
+   if (!proc) return NULL;
+   return proc->up_ptr;
+}
+
+const BGQData *Process::getBGQ() const
+{
+   MTLock lock_this_func;
+   PROC_EXIT_TEST("getBGQ", NULL);
+   int_BGQData *proc = llproc_->getBGQData();
    if (!proc) return NULL;
    return proc->up_ptr;
 }

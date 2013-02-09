@@ -32,6 +32,7 @@
 #define __INT__EVENT__H__
 
 #include "response.h"
+#include "resp.h"
 #include <set>
 
 namespace Dyninst {
@@ -182,6 +183,7 @@ class int_eventAsyncFileRead {
    size_t offset;
    int errorcode;
    bool whole_file;
+   Resp::ptr resp;
 };
 
 class int_eventAsyncIO {

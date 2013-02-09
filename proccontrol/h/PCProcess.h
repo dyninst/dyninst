@@ -89,6 +89,7 @@ class CallStackUnwinding;
 class FollowFork;
 class SignalMask;
 class BGQData;
+class RemoteIO;
 
 class ExecFileInfo;
 
@@ -459,12 +460,14 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    FollowFork *getFollowFork();
    SignalMask *getSignalMask();
    BGQData *getBGQ();
+   RemoteIO *getRemoteIO();
    const LibraryTracking *getLibraryTracking() const;
    const ThreadTracking *getThreadTracking() const;
    const LWPTracking *getLWPTracking() const;
    const FollowFork *getFollowFork() const;
    const SignalMask *getSignalMask() const;
    const BGQData *getBGQ() const;
+   const RemoteIO *getRemoteIO() const;
 
    /**
     * Errors that occured on this process

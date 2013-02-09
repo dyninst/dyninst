@@ -33,7 +33,6 @@
 
 #include "response.h"
 #include "int_process.h"
-#include "int_event.h"
 #include <map>
 #include <string>
 
@@ -69,12 +68,11 @@ class resp_process : virtual public int_process {
 
    void addResp(Resp_ptr resp, unsigned id_start, unsigned id_end); 
    void markRespPosted(Resp_ptr resp);
-   void waitForEvent(Resp_ptr resp);
    void rmResponse(Resp_ptr resp, bool lock_held = false);
+   void markRespDone(Resp_ptr resp);
 
    std::map<int, Resp_ptr> active_resps;
    CondVar active_resps_lock;
-   bool waitingForPost;
 public:
    Resp_ptr recvResp(unsigned int id, bool &is_complete);
 
@@ -82,6 +80,8 @@ public:
                 std::vector<std::string> envp, std::map<int,int> f);
    resp_process(Dyninst::PID pid_, int_process *p);
    ~resp_process();
+
+   void waitForEvent(Resp_ptr resp);
 };
 
 class Resp {
@@ -91,6 +91,7 @@ protected:
       Setup,
       Posted,
       Received,
+      Done,
       Error
    } state;
    unsigned int id_start;
@@ -104,12 +105,16 @@ protected:
 public:
    typedef Resp_ptr ptr;
 
-   unsigned int getID();
-   unsigned int getIDEnd();
    Resp(resp_process *proc_);
    Resp(unsigned int multi_size, resp_process *proc);
    virtual ~Resp();
+
+   resp_process *getProc();
+   unsigned int getID();
+   unsigned int getIDEnd();
    void post();
+   void done();
+
 };
 
 template<class T>
@@ -139,7 +144,14 @@ public:
    }
 };
 
-typedef RespItem<int_eventAsyncFileRead> FileReadResp_t;
+namespace Dyninst {
+namespace ProcControlAPI {
+class int_eventAsyncFileRead;
+}
+}
 
+typedef RespItem<Dyninst::ProcControlAPI::stat64_ptr> StatResp_t;
+typedef RespItem<Dyninst::ProcControlAPI::int_eventAsyncFileRead> FileReadResp_t;
+typedef RespItem<Dyninst::ProcControlAPI::FileSet> FileSetResp_t;
 
 #endif

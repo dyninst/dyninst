@@ -55,6 +55,7 @@ class int_remoteIO;
 namespace bgq {
    class bgq_process;
 };
+class int_fileInfo;
 
 //For sigset_t
 #if !defined(_MSC_VER)
@@ -320,7 +321,7 @@ class PC_EXPORT BGQData
  * recreated here because this header is supposed to compile without ifdefs 
  * across platforms that may not have 'struct stat64'
  **/
-struct stat64_ret_t {
+extern "C" struct stat64_ret_t {
    unsigned long long st_dev;
    unsigned long long st_ino;
    unsigned int st_mode;
@@ -342,13 +343,24 @@ struct stat64_ret_t {
    unsigned int __unused5;
 };
 
-struct FileInfo {
-   FileInfo(std::string f);
+typedef boost::shared_ptr<stat64_ret_t> stat64_ptr;
+class RemoteIO;
+class RemoteIOSet;
+
+class FileInfo {
+   friend class ::int_remoteIO;
+   friend class RemoteIO;
+   friend class RemoteIOSet;
+  private:
+   int_fileInfo *info;
+   int_fileInfo *getInfo();
+  public:
+   FileInfo(std::string fname);
    FileInfo();
    ~FileInfo();
-
-   std::string filename;
-   stat64_ret_t *stat_results; //Filled in by getFileStatData
+   
+   std::string getFilename() const;
+   stat64_ptr getStatResults() const; //Filled in by getFileStatData
 };
 
 typedef std::multimap<Process::const_ptr, FileInfo> FileSet;
@@ -380,18 +392,18 @@ class PC_EXPORT RemoteIO
 class PC_EXPORT RemoteIOSet
 {
   protected:
-   ProcessSet::weak_ptr procs;
+   ProcessSet::weak_ptr pset;
   public:
    RemoteIOSet(ProcessSet::ptr procs_);
    virtual ~RemoteIOSet();
 
-   FileSet &getFileSet(std::string filename);
-   FileSet &getFileSet(std::set<std::string> filenames);
-   void addToFileSet(std::string filename, FileSet &fs);
+   FileSet *getFileSet(std::string filename);
+   FileSet *getFileSet(const std::set<std::string> &filenames);
+   bool addToFileSet(std::string filename, FileSet *fs);
 
-   bool getFileNames(FileSet &result);
-   bool getFileStatData(FileSet &fset);
-   bool readFileContents(const FileSet &fset);
+   bool getFileNames(FileSet *result);
+   bool getFileStatData(FileSet *fset);
+   bool readFileContents(const FileSet *fset);
 };
 
 }

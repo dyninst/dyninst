@@ -1965,6 +1965,9 @@ Handler::handler_ret_t HandleAsyncFileRead::handleEvent(Event::ptr ev)
    assert(fileev);
    int_eventAsyncFileRead *iev = fileev->getInternal();
    int_process *proc = ev->getProcess()->llproc();
+   
+   if (iev->resp)
+      delete iev->resp;
 
    if (iev->isComplete())
       return ret_success;
@@ -2490,6 +2493,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static iRPCPreCallbackHandler *hprerpc = NULL;
    static HandlePreBootstrap* hprebootstrap = NULL;
    static iRPCLaunchHandler *hrpclaunch = NULL;
+   static HandleAsyncFileRead *hasyncfileread = NULL;
    if (!initialized) {
       hbootstrap = new HandleBootstrap();
       hsignal = new HandleSignal();
@@ -2520,6 +2524,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hnop = new HandleNop();
       hdetach = new HandleDetach();
       hemulatedsinglestep = new HandleEmulatedSingleStep();
+      hasyncfileread = new HandleAsyncFileRead();
       initialized = true;
    }
    HandlerPool *hpool = new HandlerPool(p);
@@ -2552,6 +2557,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hnop);
    hpool->addHandler(hdetach);
    hpool->addHandler(hemulatedsinglestep);
+   hpool->addHandler(hasyncfileread);
    plat_createDefaultHandlerPool(hpool);
 
    print_add_handler = false;

@@ -41,14 +41,12 @@ using namespace ProcControlAPI;
 
 resp_process::resp_process(Dyninst::PID p, string e, vector<string> a, 
                            vector<string> envp, map<int,int> f) :
-   int_process(p, e, a, envp, f),
-   waitingForPost(false)
+   int_process(p, e, a, envp, f)
 {
 }
 
 resp_process::resp_process(Dyninst::PID pid_, int_process *p) :
-   int_process(pid_, p),
-   waitingForPost(false)
+   int_process(pid_, p)
 {
 }
 
@@ -73,56 +71,42 @@ Resp::ptr resp_process::recvResp(unsigned int id, bool &is_complete) {
    assert(i != active_resps.end());
    resp = i->second;
 
-   if (resp->state == Resp::Setup) {
-      //Race.  We received the event before marking as posted.
-      // wait for the post, which should come soon.  Recollect
-      // the Resp each time in-case it's been removed.
-      waitingForPost = true;
-      while (resp->state != Resp::Setup) {
-         active_resps_lock.wait();
-         i = active_resps.find(id);
-         if (i == active_resps.end()) {
-            active_resps_lock.unlock();
-            return Resp_ptr_NULL;
-         }
-         resp = i->second;
-      }
-      waitingForPost = false;
-   }
-
    //Normal case.  Check whether we've received everything in a multi-response.
    // If so, mark it as received and clean it out of the pending list.
    resp->num_recvd++;
    is_complete = (resp->num_recvd == resp->id_end - resp->id_start);
    
    if (is_complete) {
-      rmResponse(resp, true);
       resp->state = Resp::Received;
-      if (resp->isWaitedOn)
-         active_resps_lock.broadcast();
+      rmResponse(resp, true);
    }
    active_resps_lock.unlock();
    
    return resp;
 }
 
-void resp_process::markRespPosted(Resp::ptr resp)
+void resp_process::markRespDone(Resp::ptr resp)
 {
    active_resps_lock.lock();
-   resp->state = Resp::Posted;
-   if (waitingForPost) {
+   resp->state = Resp::Done;
+   if (resp->isWaitedOn) {
       active_resps_lock.broadcast();
    }
    active_resps_lock.unlock();
 }
 
+void resp_process::markRespPosted(Resp::ptr resp)
+{
+   resp->state = Resp::Posted;
+}
+
 void resp_process::waitForEvent(Resp::ptr resp)
 {
-   if (resp->state == Resp::Posted)
+   if (resp->state == Resp::Posted || resp->state == Resp::Received)
    {
       active_resps_lock.lock();
       resp->isWaitedOn = true;
-      while (resp->state == Resp::Posted) {
+      while (resp->state == Resp::Posted || resp->state == Resp::Received) {
          active_resps_lock.wait();
       }
       resp->isWaitedOn = false;
@@ -151,10 +135,8 @@ void resp_process::rmResponse(Resp::ptr resp, bool lock_held)
       active_resps.erase(start, end);
    }
    
-   if (resp->state != Resp::Received) {
+   if (resp->state != Resp::Received && resp->state != Resp::Done) {
       resp->state = Resp::Error;
-      if (waitingForPost)
-         active_resps_lock.broadcast();
    }
    
    if (!lock_held) 
@@ -169,6 +151,7 @@ void Resp::init()
    isWaitedOn = false;
    isCleaned = false;
    event = proc->handlerPool()->curEvent();
+   proc->asyncEventCount().inc();
 }
 
 Resp::Resp(resp_process *proc_) :
@@ -187,6 +170,12 @@ Resp::Resp(unsigned int multi_size, resp_process *proc_) :
    init();
 }
 
+Resp::~Resp()
+{
+   proc->rmResponse(this);
+   proc->asyncEventCount().dec();
+}
+
 unsigned int Resp::getID()
 {
    return id_start;
@@ -197,9 +186,14 @@ unsigned int Resp::getIDEnd()
    return id_end;
 }
 
-Resp::~Resp()
+resp_process *Resp::getProc()
 {
-   proc->rmResponse(this);
+   return proc;
+}
+
+void Resp::done()
+{
+   proc->markRespDone(this);
 }
 
 void Resp::post()

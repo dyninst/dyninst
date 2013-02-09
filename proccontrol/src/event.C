@@ -1057,6 +1057,11 @@ size_t EventAsyncFileRead::getBufferSize() const
    return iev->size;
 }
 
+int_eventAsyncFileRead *EventAsyncFileRead::getInternal()
+{
+   return iev;
+}
+
 int_eventControlAuthority *EventControlAuthority::getInternalEvent() const 
 {
    return iev;
@@ -1240,7 +1245,8 @@ int_eventAsyncFileRead::int_eventAsyncFileRead() :
    to_free(NULL),
    offset(0),
    errorcode(0),
-   whole_file(false)
+   whole_file(false),
+   resp(NULL)
 {
 }
 

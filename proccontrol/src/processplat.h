@@ -163,14 +163,22 @@ class int_remoteIO : public resp_process
    int_remoteIO(Dyninst::PID pid_, int_process *p);
    virtual ~int_remoteIO();
 
-   bool getFileNames(FileSet &result);
-   virtual bool plat_getFileNames(FileSet &result, std::set<response::ptr> &resps) = 0;
+   bool getFileNames(FileSet *fset);
+   virtual bool plat_getFileNames(FileSetResp_t *resp) = 0;
    
    bool getFileStatData(FileSet &files);
-   virtual bool plat_getFileStatData(std::string filename, std::set<response::ptr> &resps) = 0;
+   virtual bool plat_getFileStatData(std::string filename, Dyninst::ProcControlAPI::stat64_ptr *stat_results,
+                                     std::set<StatResp_t *> &resps) = 0;
 
    bool getFileDataAsync(const FileSet &files);
-   virtual bool plat_getFileDataAsync(int_eventAsyncFileRead *fileread);
+   virtual bool plat_getFileDataAsync(int_eventAsyncFileRead *fileread) = 0;
+};
+
+class int_fileInfo
+{
+  public:
+   std::string filename;
+   stat64_ptr stat_results;
 };
 
 #endif
