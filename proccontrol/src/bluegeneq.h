@@ -183,6 +183,7 @@ class bgq_process :
    virtual bool plat_getFileStatData(std::string filename, Dyninst::ProcControlAPI::stat64_ptr *stat_results,
                                      std::set<StatResp_t *> &resps);
    virtual bool plat_getFileDataAsync(int_eventAsyncFileRead *fileread);
+   virtual int getMaxFileReadSize();
 
    virtual bool allowSignal(int signal_no);
    
@@ -474,7 +475,7 @@ class DecoderBlueGeneQ : public Decoder
                            std::vector<Event::ptr> &events);
    bool decodeGetFilenames(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, int rc, int id);
 
-   bool usesResp(uint16_t cmdtype) { return (cmdtype == GetFileContentsAck); }
+   bool usesResp(uint16_t cmdtype);
 
    Event::ptr createEventDetach(bgq_process *proc, bool err);
  public:

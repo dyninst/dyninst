@@ -343,7 +343,9 @@ extern "C" struct stat64_ret_t {
    unsigned int __unused5;
 };
 
-typedef boost::shared_ptr<stat64_ret_t> stat64_ptr;
+typedef stat64_ret_t *stat64_ptr;
+typedef boost::shared_ptr<int_fileInfo> int_fileInfo_ptr;
+
 class RemoteIO;
 class RemoteIOSet;
 
@@ -352,11 +354,12 @@ class FileInfo {
    friend class RemoteIO;
    friend class RemoteIOSet;
   private:
-   int_fileInfo *info;
-   int_fileInfo *getInfo();
+   mutable int_fileInfo_ptr info;
+   int_fileInfo_ptr getInfo() const;
   public:
    FileInfo(std::string fname);
    FileInfo();
+   FileInfo(const FileInfo &fi);
    ~FileInfo();
    
    std::string getFilename() const;

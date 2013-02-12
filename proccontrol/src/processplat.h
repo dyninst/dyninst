@@ -172,13 +172,19 @@ class int_remoteIO : public resp_process
 
    bool getFileDataAsync(const FileSet &files);
    virtual bool plat_getFileDataAsync(int_eventAsyncFileRead *fileread) = 0;
+
+   virtual int getMaxFileReadSize() = 0;
 };
 
 class int_fileInfo
 {
   public:
+   int_fileInfo();
+   ~int_fileInfo();
+
    std::string filename;
    stat64_ptr stat_results;
+   size_t cur_pos;
 };
 
 #endif

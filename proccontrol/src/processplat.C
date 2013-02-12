@@ -442,21 +442,21 @@ bool BGQData::getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) co
 
 FileInfo::FileInfo(std::string f)
 {
-   info = new int_fileInfo();
+   info = int_fileInfo_ptr(new int_fileInfo());
    info->filename = f;
 }
 
-FileInfo::FileInfo() :
-   info(NULL)
+FileInfo::FileInfo()
 {   
+}
+
+FileInfo::FileInfo(const FileInfo &fi)
+{
+   info = fi.info;
 }
 
 FileInfo::~FileInfo() 
 {
-   if (info) {
-      delete info;
-      info = NULL;
-   }
 }
 
 std::string FileInfo::getFilename() const
@@ -469,14 +469,14 @@ std::string FileInfo::getFilename() const
 stat64_ptr FileInfo::getStatResults() const
 {
    if (!info)
-      return stat64_ptr();
+      return NULL;
    return info->stat_results;
 }
 
-int_fileInfo *FileInfo::getInfo()
+int_fileInfo_ptr FileInfo::getInfo() const
 {
    if (!info)
-      info = new int_fileInfo();
+      info = int_fileInfo_ptr(new int_fileInfo());
    return info;
 }
 
@@ -914,7 +914,19 @@ int_BGQData::~int_BGQData()
 unsigned int int_BGQData::startup_timeout_sec = BGQData::startup_timeout_sec_default;
 bool int_BGQData::block_for_ca = BGQData::block_for_ca_default;
 
+int_fileInfo::int_fileInfo() :
+   stat_results(NULL),
+   cur_pos(0)
+{
+}
 
+int_fileInfo::~int_fileInfo()
+{
+   if (stat_results) {
+      delete stat_results;
+      stat_results = NULL;
+   }
+}
 
 int_remoteIO::int_remoteIO(Dyninst::PID p, std::string e, std::vector<std::string> a,
                            std::vector<std::string> envp, std::map<int,int> f) :
@@ -968,7 +980,7 @@ bool int_remoteIO::getFileStatData(FileSet &files)
       }
 
       FileInfo &fi = i->second;
-      int_fileInfo *info = fi.getInfo();
+      int_fileInfo_ptr info = fi.getInfo();
       if (info->filename.empty()) {
          perr_printf("Empty filename in stat operation on %d\n", getPid());
          setLastError(err_badparam, "Empty filename specified in stat operation");
@@ -998,6 +1010,7 @@ bool int_remoteIO::getFileDataAsync(const FileSet &files)
    bool had_error = false;
 
    for (FileSet::const_iterator i = files.begin(); i != files.end(); i++) {
+      int_fileInfo_ptr fi = i->second.getInfo();
       if (static_cast<int_process *>(this) != i->first->llproc()) {
          perr_printf("Non-local process in fileset, %d specified for %d\n",
                      i->first->llproc()->getPid(), getPid());
@@ -1009,7 +1022,8 @@ bool int_remoteIO::getFileDataAsync(const FileSet &files)
       int_eventAsyncFileRead *fileread = new int_eventAsyncFileRead();
       fileread->offset = 0;
       fileread->whole_file = true;
-      fileread->filename = i->second.getFilename();
+      fileread->filename = fi->filename;
+      fi->cur_pos = 0;
       bool result = plat_getFileDataAsync(fileread);
       if (!result) {
          pthrd_printf("Error while requesting file data on %d\n", getPid());

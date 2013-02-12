@@ -942,6 +942,7 @@ bool int_process::waitAndHandleForProc(bool block, int_process *proc, bool &proc
 #define checkProcStopRPC        (hasProcStopRPC        = (int) Counter::global(Counter::ProcStopRPCs))
 #define checkStartupTeardownProcs (hasStartupTeardownProc = (int) Counter::global(Counter::StartupTeardownProcesses))
 #define checkNeonatalThreads     (hasNeonatalThreads   = (int) Counter::global(Counter::NeonatalThreads))
+#define checkAsyncEvents        (hasAsyncEvents        = (int) Counter::global(Counter::AsyncEvents))
 #define UNSET_CHECK        -8
 #define printCheck(VAL)    (((int) VAL) == UNSET_CHECK ? '?' : (VAL ? 'T' : 'F'))
 
@@ -972,7 +973,7 @@ bool int_process::waitAndHandleEvents(bool block)
       int hasHandlerThread = UNSET_CHECK, hasAsyncPending = UNSET_CHECK, hasRunningThread = UNSET_CHECK;
       int hasClearingBP = UNSET_CHECK, hasStopPending = UNSET_CHECK, hasSyncRPCRunningThrd = UNSET_CHECK;
       int hasProcStopRPC  = UNSET_CHECK, hasBlock = UNSET_CHECK, hasGotEvent = UNSET_CHECK;
-      int hasStartupTeardownProc = UNSET_CHECK, hasNeonatalThreads = UNSET_CHECK;
+      int hasStartupTeardownProc = UNSET_CHECK, hasNeonatalThreads = UNSET_CHECK, hasAsyncEvents = UNSET_CHECK;
 
       bool should_block = (!checkHandlerThread && 
                            ((checkBlock && !checkGotEvent && checkRunningThread) ||
@@ -982,11 +983,12 @@ bool int_process::waitAndHandleEvents(bool block)
                             (checkProcStopRPC) ||
                             (checkAsyncPending) ||
                             (checkStartupTeardownProcs) ||
-                            (checkNeonatalThreads)
+                            (checkNeonatalThreads) ||
+                            (checkAsyncEvents)
                            )
                           );
       //Entry for this print match the above tests in order and one-for-one.
-      pthrd_printf("%s for events = !%c && ((%c && !%c && %c) || %c || %c || %c || %c || %c || %c || %c)\n",
+      pthrd_printf("%s for events = !%c && ((%c && !%c && %c) || %c || %c || %c || %c || %c || %c || %c || %c)\n",
                    should_block ? "Blocking" : "Polling",
                    printCheck(hasHandlerThread),
                    printCheck(hasBlock), printCheck(hasGotEvent), printCheck(hasRunningThread), 
@@ -996,7 +998,8 @@ bool int_process::waitAndHandleEvents(bool block)
                    printCheck(hasProcStopRPC),
                    printCheck(hasAsyncPending),
                    printCheck(hasStartupTeardownProc),
-                   printCheck(hasNeonatalThreads));
+                   printCheck(hasNeonatalThreads),
+                   printCheck(hasAsyncEvents));
 
       //TODO: If/When we move to per-process locks, then we'll need a smarter should_block check
       //      We don't want the should_block changing between the above measurement

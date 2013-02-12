@@ -1643,7 +1643,7 @@ bool bgq_process::plat_getFileDataAsync(int_eventAsyncFileRead *fileread)
    pthrd_printf("Sending GetFileContents for %s on %d from %lu to %lu\n", 
                 getfile.pathname, getPid(), fileread->offset, fileread->offset + fileread->orig_size);
    bool result = sendCommand(getfile, GetFileContents, readresp);
-
+   rotateTransaction();
    return result;
 }
 
@@ -1665,7 +1665,7 @@ bool bgq_process::plat_getFileStatData(std::string filename, Dyninst::ProcContro
       delete statresp;
       return false;
    }
-   
+   rotateTransaction();   
    resps.insert(statresp);
    return true;
 }
@@ -1683,8 +1683,13 @@ bool bgq_process::plat_getFileNames(FileSetResp_t *resp)
       perr_printf("Failed to send GetFilenames command\n");
       return false;
    }
-
+   rotateTransaction();
    return true;
+}
+
+int bgq_process::getMaxFileReadSize()
+{
+   return MaxMemorySize;
 }
 
 bool bgq_process::allowSignal(int signal_no)
@@ -3251,12 +3256,15 @@ bool DecoderBlueGeneQ::decodeFileStat(ToolCommand *cmd, bgq_process *proc, unsig
       
    stat64_ptr *statp = resp->get();
    if (rc != 0) {
-      *statp = stat64_ptr();
+      if (*statp)
+         delete *statp;
+      *statp = NULL;
 #warning TODO: Set errors based on rc
    }
    else {
-      *statp = stat64_ptr(new stat64_ret_t);
-      memcpy(statp->get(), &statack->stat, sizeof(stat64_ret_t));
+      if (!*statp)
+         *statp = new stat64_ret_t;
+      memcpy(*statp, &statack->stat, sizeof(stat64_ret_t));
    }
 
    resp->done();
@@ -3327,6 +3335,18 @@ bool DecoderBlueGeneQ::decodeReleaseControlAck(ArchEventBGQ *, bgq_process *proc
    return false;
 }
 
+bool DecoderBlueGeneQ::usesResp(uint16_t cmdtype) 
+{ 
+   switch (cmdtype) {
+      case GetFilenamesAck:
+      case GetFileStatDataAck:
+      case GetFileContentsAck:
+         return true;
+      default:
+         return false;
+   }
+}
+ 
 bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_process *proc,
                                               int num_commands, CommandDescriptor *cmd_list, 
                                               vector<Event::ptr> &events)
@@ -3520,6 +3540,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
          case GetFilenamesAck:
             pthrd_printf("Decoded event on %d to GetFilenamesAck\n", proc->getPid());
             decodeGetFilenames(archevent, proc, base_cmd, desc->returnCode, id);
+            break;
          case GetPreferencesAck:
             assert(0); //Currently unused
             break;

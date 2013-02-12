@@ -3632,11 +3632,14 @@ bool RemoteIOSet::getFileStatData(FileSet *fset)
       return false;
    }
 
+
    pthrd_printf("RemoteIOSet::getFileStatData called on %lu processes\n", procs->size());
 
    set<StatResp_t *> all_resps;
 
    for (FileSet::iterator i = fset->begin(); i != fset->end(); i++) {
+      pthrd_printf("About to access proc %p\n", i->first->llproc());
+      fflush(stderr);
       int_remoteIO *proc = i->first->llproc()->getRemoteIO();
       if (!proc) {
          perr_printf("getFileStatData attempted on non RemoteIO process %d\n", proc->getPid());
@@ -3645,7 +3648,7 @@ bool RemoteIOSet::getFileStatData(FileSet *fset)
          continue;
       }
       FileInfo &fi = i->second;
-      int_fileInfo *info = fi.getInfo();
+      int_fileInfo_ptr info = fi.getInfo();
       if (info->filename.empty()) {
          perr_printf("Empty filename in stat operation on %d\n", proc->getPid());
          proc->setLastError(err_badparam, "Empty filename specified in stat operation");
