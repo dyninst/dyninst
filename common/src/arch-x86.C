@@ -1372,9 +1372,9 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, 
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
   /* 38 */
-  { e_No_Entry, t_threeB, 0, true, { Zz, Zz, Zz }, 0, 0 }, //3-Byte escape (Book Table A-4)
+  { e_No_Entry, t_threeB, 0, 0, { Zz, Zz, Zz }, 0, 0 }, //3-Byte escape (Book Table A-4)
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
-  { e_No_Entry, t_threeB2, 0, true, { Zz, Zz, Zz }, 0, 0 }, //3-Byte escape (Book Table A-5)
+  { e_No_Entry, t_threeB2, 0, 0, { Zz, Zz, Zz }, 0, 0 }, //3-Byte escape (Book Table A-5)
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
@@ -5148,9 +5148,8 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
     switch(addr[0]) {
     case PREFIX_REPNZ:
     case PREFIX_REP:
-       if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4]))
-       {
-	 ++pref.count;
+       if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4])) {
+          ++pref.count;
           pref.opcode_prefix = addr[0];
           break;
        }
@@ -5175,13 +5174,11 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
        break;
     case PREFIX_SZOPER:
        if(is_sse_opcode(addr[1],addr[2],addr[3])) {
-    	  ++pref.count;
           pref.opcode_prefix = addr[0];
           break;
        }
-       if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4])) 
-       {
-	 ++pref.count;
+       if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4])) {
+          ++pref.count;
           pref.opcode_prefix = addr[0];
           break;
        }
@@ -5337,9 +5334,11 @@ int displacement(const unsigned char *instr, unsigned type) {
       if (*instr == 0xf2) instr++;
       else if (*instr == 0xf3) instr++;
     // And the "0x0f is a 2-byte opcode" skip
-    if (*instr == 0x0F) instr++;
-    // And the "0x38 or 0x3A is a 3-byte opcode" skip
-    if(*instr == 0x38 || *instr == 0x3A)  instr++;
+    if (*instr == 0x0F) {
+        instr++;
+        // And the "0x38 or 0x3A is a 3-byte opcode" skip
+        if(*instr == 0x38 || *instr == 0x3A)  instr++;
+    }
     // Skip the instr opcode and the MOD/RM byte
     disp = *(const int *)(instr+2);
   } else if (type & IS_JUMP) {
