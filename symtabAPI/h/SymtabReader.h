@@ -83,6 +83,7 @@ class SYMTAB_EXPORT SymtabReader : public SymReader {
    virtual bool getSegment(unsigned num, SymSegment &seg); 
 
    virtual Dyninst::Offset getSymbolOffset(const Symbol_t &sym);
+   virtual Dyninst::Offset getSymbolTOC(const Symbol_t &sym);
    virtual std::string getSymbolName(const Symbol_t &sym);
    virtual std::string getDemangledName(const Symbol_t &sym);
    virtual bool isValidSymbol(const Symbol_t &sym);

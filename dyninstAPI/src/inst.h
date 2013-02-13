@@ -168,7 +168,7 @@ typedef enum gnenum {
 
 // The return value is a magic "hand this in when we update" black box;
 // emitA handles emission of things like ifs that need to be updated later.
-codeBufIndex_t emitA(opCode op, Register src1, Register src2, Register dst, 
+codeBufIndex_t emitA(opCode op, Register src1, Register src2, long dst, 
                      codeGen &gen, RegControl rc, bool noCost);
 
 // for operations requiring a Register to be returned

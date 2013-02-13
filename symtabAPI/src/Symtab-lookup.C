@@ -550,12 +550,22 @@ bool Symtab::findRegion(Region *&ret, const Offset addr, const unsigned long siz
 #if 0
             cerr << "Error: region inconsistency" << endl;
             cerr << "\t" << ret->getRegionName() << " @ "
-                 << hex << ret->getRegionAddr() << "/" << ret->getDiskSize() << endl;
+                 << hex << ret->getMemOffset() << "/" << ret->getMemSize() 
+		 << ", type " << Region::regionType2Str(ret->getRegionType()) << endl;
             cerr << "\t" << regions_[index]->getRegionName() << " @ "
-                 << regions_[index]->getRegionAddr() << "/" << regions_[index]->getDiskSize() << dec << endl;
+                 << regions_[index]->getMemOffset() << "/" << regions_[index]->getMemSize() 
+		 << ", type " << Region::regionType2Str(regions_[index]->getRegionType()) << endl;
 #endif
-            assert(addr == 0); // Two regions with the same address and size, with non-zero address,
-            // is incorrect parsing of symbol table. 
+	   assert((addr == 0) ||
+		  (ret->getRegionType() == Region::RT_BSS) ||
+		  (regions_[index]->getRegionType() == Region::RT_BSS));
+
+	    // Probably don't want bss
+	    if (ret->getRegionType() == Region::RT_BSS) {
+	      ret = regions_[index];
+	    }
+
+
             serr = Multiple_Region_Matches;
             return false;
          }

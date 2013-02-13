@@ -255,6 +255,13 @@ class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
 
 };
 
+class BPATCH_DLL_EXPORT BPatch_whileExpr : public BPatch_snippet {
+  public:
+   // BPatch_whileExpr::BPatch_whileExpr (while loop)
+   BPatch_whileExpr(const BPatch_snippet &condition,
+                    const BPatch_snippet &body);
+};
+
 class BPATCH_DLL_EXPORT BPatch_regExpr : public BPatch_snippet {
  public:
     // DEPRECATED!!!

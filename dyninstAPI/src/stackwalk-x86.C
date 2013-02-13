@@ -164,7 +164,7 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
       *stack_height = base->stackHeight;
       *aligned = base->alignedStack;
 
-      if (!base->needsFrame())
+      if (!base->madeFrame())
       {
         *orig_ra = orig;
       }

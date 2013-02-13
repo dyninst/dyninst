@@ -743,7 +743,22 @@ BPatch_constExpr::BPatch_constExprFloat(float value)
 
 #endif
 
+/*
+ * BPatch_whileExpr::BPatch_whileExpr
+ *
+ * Creates a while loop; the first parameter is the
+ * conditional (true indicates executing the body of the loop)
+ * and the second is the body of the loop.
+ */
 
+BPatch_whileExpr::BPatch_whileExpr(const BPatch_snippet &conditional,
+                                    const BPatch_snippet &body) {
+   ast_wrapper = AstNodePtr(AstNode::operatorNode(whileOp, 
+                                                  conditional.ast_wrapper, 
+                                                  body.ast_wrapper));
+   assert(BPatch::bpatch != NULL);
+   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
 
 /*
  * BPatch_regExpr::BPatch_regExpr

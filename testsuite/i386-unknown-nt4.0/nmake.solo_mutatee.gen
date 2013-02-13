@@ -297,10 +297,12 @@ instruction_SOLO_MUTATEES_native_cxx =
 # Mutatees compiled with VC++ for proccontrol
 ######################################################################
 
-proccontrol_SOLO_MUTATEES_native_cxx = pc_breakpoint_mutatee_solo_VC++_32_none.exe pc_detach_mutatee_solo_VC++_32_none.exe pc_groups_mutatee_solo_VC++_32_none.exe pc_irpc_mutatee_solo_VC++_32_none.exe pc_launch_mutatee_solo_VC++_32_none.exe pc_library_mutatee_solo_VC++_32_none.exe pc_mem_perm_mutatee_solo_VC++_32_none.exe pc_singlestep_mutatee_solo_VC++_32_none.exe pc_stat_mutatee_solo_VC++_32_none.exe pc_temp_detach_mutatee_solo_VC++_32_none.exe pc_terminate_mutatee_solo_VC++_32_none.exe pc_terminate_stopped_mutatee_solo_VC++_32_none.exe pc_thread_mutatee_solo_VC++_32_none.exe pc_thread_cont_mutatee_solo_VC++_32_none.exe 
+proccontrol_SOLO_MUTATEES_native_cxx = pc_addlibrary_mutatee_solo_VC++_32_none.exe pc_breakpoint_mutatee_solo_VC++_32_none.exe pc_detach_mutatee_solo_VC++_32_none.exe pc_groups_mutatee_solo_VC++_32_none.exe pc_irpc_mutatee_solo_VC++_32_none.exe pc_launch_mutatee_solo_VC++_32_none.exe pc_library_mutatee_solo_VC++_32_none.exe pc_mem_perm_mutatee_solo_VC++_32_none.exe pc_singlestep_mutatee_solo_VC++_32_none.exe pc_stat_mutatee_solo_VC++_32_none.exe pc_temp_detach_mutatee_solo_VC++_32_none.exe pc_terminate_mutatee_solo_VC++_32_none.exe pc_terminate_stopped_mutatee_solo_VC++_32_none.exe pc_thread_mutatee_solo_VC++_32_none.exe pc_thread_cont_mutatee_solo_VC++_32_none.exe 
 
 # Now a list of rules for compiling the mutatees with VC++
 
+pc_addlibrary_mutatee_solo_VC++_32_none.exe: pc_addlibrary_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_util_mt_VC++_32_none.obj pcontrol_mutatee_tools_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 pc_breakpoint_mutatee_solo_VC++_32_none.exe: pc_breakpoint_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_util_mt_VC++_32_none.obj pcontrol_mutatee_tools_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 pc_detach_mutatee_solo_VC++_32_none.exe: pc_detach_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_util_mt_VC++_32_none.obj pcontrol_mutatee_tools_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
@@ -1116,8 +1118,8 @@ pc_singlestep_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -Fo$@ $**
 pc_groups_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -Fo$@ $**
-pc_launch_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
+pc_detach_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
 pc_library_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -Fo$@ $**
 pc_terminate_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
@@ -1134,10 +1136,12 @@ pc_thread_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -Fo$@ $**
 pc_terminate_stopped_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -Fo$@ $**
-pc_detach_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
+pc_launch_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
 pc_stat_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=pc_stat -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_stat_mutatee.c -Fo$@ $**
+pc_addlibrary_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=pc_addlibrary -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_addlibrary_mutatee.c -Fo$@ $**
 %_VC++_32_high.obj: {../src/proccontrol/}%.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -Fo$@ $**
 %_VC++_32_high.obj: {../src/proccontrol/}%.C
@@ -1148,8 +1152,8 @@ pc_singlestep_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -Fo$@ $**
 pc_groups_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -Fo$@ $**
-pc_launch_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
+pc_detach_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
 pc_library_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -Fo$@ $**
 pc_terminate_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
@@ -1166,10 +1170,12 @@ pc_thread_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -Fo$@ $**
 pc_terminate_stopped_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -Fo$@ $**
-pc_detach_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
+pc_launch_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
 pc_stat_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=pc_stat -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_stat_mutatee.c -Fo$@ $**
+pc_addlibrary_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=pc_addlibrary -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_addlibrary_mutatee.c -Fo$@ $**
 %_VC++_32_max.obj: {../src/proccontrol/}%.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -Fo$@ $**
 %_VC++_32_max.obj: {../src/proccontrol/}%.C
@@ -1180,8 +1186,8 @@ pc_singlestep_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -Fo$@ $**
 pc_groups_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -Fo$@ $**
-pc_launch_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
+pc_detach_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
 pc_library_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -Fo$@ $**
 pc_terminate_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
@@ -1198,10 +1204,12 @@ pc_thread_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -Fo$@ $**
 pc_terminate_stopped_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -Fo$@ $**
-pc_detach_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
+pc_launch_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
 pc_stat_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=pc_stat -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_stat_mutatee.c -Fo$@ $**
+pc_addlibrary_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=pc_addlibrary -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_addlibrary_mutatee.c -Fo$@ $**
 %_VC++_32_none.obj: {../src/proccontrol/}%.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -Fo$@ $**
 %_VC++_32_none.obj: {../src/proccontrol/}%.C
@@ -1212,8 +1220,8 @@ pc_singlestep_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -Fo$@ $**
 pc_groups_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -Fo$@ $**
-pc_launch_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
+pc_detach_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
 pc_library_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -Fo$@ $**
 pc_terminate_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
@@ -1230,10 +1238,12 @@ pc_thread_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -Fo$@ $**
 pc_terminate_stopped_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -Fo$@ $**
-pc_detach_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
+pc_launch_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
 pc_stat_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=pc_stat -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_stat_mutatee.c -Fo$@ $**
+pc_addlibrary_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=pc_addlibrary -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_addlibrary_mutatee.c -Fo$@ $**
 %_VC++_32_low.obj: {../src/proccontrol/}%.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -Fo$@ $**
 %_VC++_32_low.obj: {../src/proccontrol/}%.C
@@ -1524,10 +1534,12 @@ instruction_SOLO_MUTATEES_native_cc =
 # Mutatees compiled with VC for proccontrol
 ######################################################################
 
-proccontrol_SOLO_MUTATEES_native_cc = pc_breakpoint_mutatee_solo_VC_32_none.exe pc_detach_mutatee_solo_VC_32_none.exe pc_groups_mutatee_solo_VC_32_none.exe pc_irpc_mutatee_solo_VC_32_none.exe pc_launch_mutatee_solo_VC_32_none.exe pc_library_mutatee_solo_VC_32_none.exe pc_mem_perm_mutatee_solo_VC_32_none.exe pc_singlestep_mutatee_solo_VC_32_none.exe pc_stat_mutatee_solo_VC_32_none.exe pc_temp_detach_mutatee_solo_VC_32_none.exe pc_terminate_mutatee_solo_VC_32_none.exe pc_terminate_stopped_mutatee_solo_VC_32_none.exe pc_thread_mutatee_solo_VC_32_none.exe pc_thread_cont_mutatee_solo_VC_32_none.exe 
+proccontrol_SOLO_MUTATEES_native_cc = pc_addlibrary_mutatee_solo_VC_32_none.exe pc_breakpoint_mutatee_solo_VC_32_none.exe pc_detach_mutatee_solo_VC_32_none.exe pc_groups_mutatee_solo_VC_32_none.exe pc_irpc_mutatee_solo_VC_32_none.exe pc_launch_mutatee_solo_VC_32_none.exe pc_library_mutatee_solo_VC_32_none.exe pc_mem_perm_mutatee_solo_VC_32_none.exe pc_singlestep_mutatee_solo_VC_32_none.exe pc_stat_mutatee_solo_VC_32_none.exe pc_temp_detach_mutatee_solo_VC_32_none.exe pc_terminate_mutatee_solo_VC_32_none.exe pc_terminate_stopped_mutatee_solo_VC_32_none.exe pc_thread_mutatee_solo_VC_32_none.exe pc_thread_cont_mutatee_solo_VC_32_none.exe 
 
 # Now a list of rules for compiling the mutatees with VC
 
+pc_addlibrary_mutatee_solo_VC_32_none.exe: pc_addlibrary_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_util_mt_VC_32_none.obj pcontrol_mutatee_tools_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 pc_breakpoint_mutatee_solo_VC_32_none.exe: pc_breakpoint_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_util_mt_VC_32_none.obj pcontrol_mutatee_tools_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 pc_detach_mutatee_solo_VC_32_none.exe: pc_detach_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_util_mt_VC_32_none.obj pcontrol_mutatee_tools_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
@@ -2319,8 +2331,8 @@ pc_singlestep_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -Fo$@ $**
 pc_groups_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -Fo$@ $**
-pc_launch_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
+pc_detach_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
 pc_library_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -Fo$@ $**
 pc_terminate_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
@@ -2337,10 +2349,12 @@ pc_thread_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -Fo$@ $**
 pc_terminate_stopped_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -Fo$@ $**
-pc_detach_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
+pc_launch_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
 pc_stat_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=pc_stat -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_stat_mutatee.c -Fo$@ $**
+pc_addlibrary_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=pc_addlibrary -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_addlibrary_mutatee.c -Fo$@ $**
 %_VC_32_high.obj: {../src/proccontrol/}%.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -Fo$@ $**
 pc_mem_perm_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
@@ -2349,8 +2363,8 @@ pc_singlestep_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -Fo$@ $**
 pc_groups_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -Fo$@ $**
-pc_launch_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
+pc_detach_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
 pc_library_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -Fo$@ $**
 pc_terminate_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
@@ -2367,10 +2381,12 @@ pc_thread_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -Fo$@ $**
 pc_terminate_stopped_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -Fo$@ $**
-pc_detach_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
+pc_launch_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
 pc_stat_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=pc_stat -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_stat_mutatee.c -Fo$@ $**
+pc_addlibrary_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=pc_addlibrary -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_addlibrary_mutatee.c -Fo$@ $**
 %_VC_32_max.obj: {../src/proccontrol/}%.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -Fo$@ $**
 pc_mem_perm_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
@@ -2379,8 +2395,8 @@ pc_singlestep_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -Fo$@ $**
 pc_groups_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -Fo$@ $**
-pc_launch_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
+pc_detach_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
 pc_library_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -Fo$@ $**
 pc_terminate_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
@@ -2397,10 +2413,12 @@ pc_thread_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -Fo$@ $**
 pc_terminate_stopped_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -Fo$@ $**
-pc_detach_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
+pc_launch_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
 pc_stat_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=pc_stat -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_stat_mutatee.c -Fo$@ $**
+pc_addlibrary_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=pc_addlibrary -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_addlibrary_mutatee.c -Fo$@ $**
 %_VC_32_none.obj: {../src/proccontrol/}%.c
 	$(M_native_cc) -TC $(CFLAGS) -c    -Fo$@ $**
 pc_mem_perm_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
@@ -2409,8 +2427,8 @@ pc_singlestep_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -Fo$@ $**
 pc_groups_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -Fo$@ $**
-pc_launch_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
+pc_detach_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
 pc_library_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -Fo$@ $**
 pc_terminate_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
@@ -2427,10 +2445,12 @@ pc_thread_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -Fo$@ $**
 pc_terminate_stopped_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -Fo$@ $**
-pc_detach_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -Fo$@ $**
+pc_launch_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -Fo$@ $**
 pc_stat_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=pc_stat -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_stat_mutatee.c -Fo$@ $**
+pc_addlibrary_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=pc_addlibrary -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_addlibrary_mutatee.c -Fo$@ $**
 %_VC_32_low.obj: {../src/proccontrol/}%.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -Fo$@ $**
 

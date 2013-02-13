@@ -160,6 +160,13 @@ Dyninst::Offset SymtabReader::getSymbolOffset(const Symbol_t &sym)
    return symbol->getOffset();
 }
 
+Dyninst::Offset SymtabReader::getSymbolTOC(const Symbol_t &sym)
+{
+   assert(sym.v2);
+   Symbol *symbol = (Symbol *) sym.v2;
+   return symbol->getSymtab()->getTOCoffset(symbol->getOffset());
+}
+
 std::string SymtabReader::getSymbolName(const Symbol_t &sym)
 {
    assert(sym.v2);

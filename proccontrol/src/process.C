@@ -1123,7 +1123,7 @@ bool int_process::waitAndHandleEvents(bool block)
       }
    }
   done:
-   pthrd_printf("Leaving WaitAndHandleEvents 'cause we're done\n");
+   pthrd_printf("Leaving WaitAndHandleEvents with return %s, 'cause we're done\n", !error ? "true" : "false");
    recurse = false;
    return !error;
 }
@@ -1445,6 +1445,22 @@ bool int_process::direct_infFree(Dyninst::Address)
 {
    assert(0);
    return false;
+}
+
+Address int_process::infMalloc(unsigned long size, bool use_addr, Address addr)
+{
+   int_addressSet as;
+   as.insert(make_pair(addr, proc()));
+   bool result = int_process::infMalloc(size, &as, use_addr);
+   if (!result)
+      return 0;
+   return as.begin()->first;
+}
+
+bool int_process::infFree(Address addr) {
+   int_addressSet as;
+   as.insert(make_pair(addr, proc()));
+   return int_process::infFree(&as);
 }
 
 bool int_process::infMalloc(unsigned long size, int_addressSet *aset, bool use_addr)
@@ -2905,6 +2921,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    pending_stop_state(this, PendingStopStateID, dontcare),
    callback_state(this, CallbackStateID, dontcare),
    breakpoint_state(this, BreakpointStateID, dontcare),
+   breakpoint_hold_state(this, BreakpointHoldStateID, dontcare),
    breakpoint_resume_state(this, BreakpointResumeStateID, dontcare),
    irpc_setup_state(this, IRPCSetupStateID, dontcare),
    irpc_wait_state(this, IRPCWaitStateID, dontcare),
@@ -3231,6 +3248,11 @@ int_thread::StateTracker &int_thread::getBreakpointState()
    return breakpoint_state;
 }
 
+int_thread::StateTracker &int_thread::getBreakpointHoldState()
+{
+   return breakpoint_hold_state;
+}
+
 int_thread::StateTracker &int_thread::getBreakpointResumeState()
 {
    return breakpoint_resume_state;
@@ -3345,6 +3367,7 @@ int_thread::StateTracker &int_thread::getStateByID(int id)
       case IRPCSetupStateID: return irpc_setup_state;
       case IRPCWaitStateID: return irpc_wait_state;
       case BreakpointStateID: return breakpoint_state;
+      case BreakpointHoldStateID: return breakpoint_hold_state;
       case BreakpointResumeStateID: return breakpoint_resume_state;
       case InternalStateID: return internal_state;
       case DetachStateID: return detach_state;
@@ -3370,6 +3393,7 @@ std::string int_thread::stateIDToName(int id)
       case IRPCSetupStateID: return "irpc setup";
       case IRPCWaitStateID: return "irpc wait";
       case BreakpointStateID: return "breakpoint";
+      case BreakpointHoldStateID: return "bp hold";
       case BreakpointResumeStateID: return "breakpoint resume";
       case InternalStateID: return "internal";
       case UserRPCStateID: return "irpc user";
@@ -3722,6 +3746,7 @@ bool int_thread::setAllRegisters(int_registerPool &pool, result_response::ptr re
    response->setProcess(llproc());
 
    if (!llproc()->plat_needsAsyncIO()) {
+
       pthrd_printf("Setting registers for thread %d\n", getLWP());
       bool result = plat_setAllRegisters(pool);
       response->setResponse(result);
@@ -6294,6 +6319,21 @@ bool Process::addLibrary(std::string library) {
       setLastError(err_exited, "Process is exited\n");
       return false;
    }
+   if (llproc_->getState() == int_process::detached) {
+       perr_printf("addLibrary on detached process\n");
+       setLastError(err_detached, "Process is detached\n");
+       return false;
+   }
+   if (int_process::isInCB()) {
+      perr_printf("User attempted addLibrary while in CB, erroring.");
+      setLastError(err_incallback, "Cannot addLibrary from callback\n");
+      return false;
+   }
+   if (hasRunningThread()) {
+      perr_printf("User attempted to addLibrary on running process\n");
+      setLastError(err_notstopped, "Attempted to addLibrary on running process\n");
+      return false;
+   }
 
    Injector inj(this);
    return inj.inject(library);
@@ -6515,6 +6555,7 @@ bool Process::runIRPCAsync(IRPC::ptr irpc)
       setLastError(err_incallback, "Cannot postSyncIRPC from callback\n");
       return false;
    }
+
 
    int_process *proc = llproc();
    int_iRPC::ptr rpc = irpc->llrpc()->rpc;

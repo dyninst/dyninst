@@ -68,5 +68,21 @@ bool Codegen::generatePreambleAMD64() {
    copyByte(0x83);
    copyByte(0xe4); // opcode: and %rsp
    copyByte(0xf0); // operand
+
+   // Also, push it down to ensure we don't overwrite anything 
+   // live on the stack
+   // We need -128 (-0x80), but that's a signed byte so we do
+   // it in halves. 
+
+   copyByte(0x48); // rex
+   copyByte(0x83); // sub
+   copyByte(0xec); // register
+   copyByte(0x40); // -0x80 
+
+   copyByte(0x48); // rex
+   copyByte(0x83); // sub
+   copyByte(0xec); // register
+   copyByte(0x40); // -0x80 
+
    return true;
 }

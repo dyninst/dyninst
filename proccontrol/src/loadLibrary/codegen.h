@@ -29,7 +29,7 @@ class Codegen {
    
    unsigned estimateSize();
    bool generateInt();
-   Address findSymbolAddr(const std::string name, bool func, bool saveTOC);
+   Address findSymbolAddr(const std::string name, bool saveTOC = false);
    Address copyString(std::string);
    Address copyBuf(void *buf, unsigned size);
    Address copyByte(unsigned char);
@@ -39,7 +39,6 @@ class Codegen {
 #if defined(os_linux)
    Address buildLinuxArgStruct(Address libbase, unsigned mode);
    bool generateStackUnprotect();
-//   bool findTOC(SymtabAPI::Symbol *sym, ProcControlAPI::Library::ptr lib);
 #endif
 
    bool generateCall(Address addr, const std::vector<Address> &args);

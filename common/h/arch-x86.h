@@ -405,20 +405,21 @@ COMMON_EXPORT bool ia32_is_mode_64();
 // the stack byte/word/dword and the (E)SP register itself - but is better than naught]
 // added: am_reg, am_stack, am_allgprs
 // ADDED: am_ImplImm for implicit immediates
-
+// ADDED: am_RM, am_UM,
 enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O, // 10
-       am_P, am_Q, am_R, am_S, am_T, am_V, am_W, am_X, am_Y, am_reg, // 20
-       am_stackH, am_stackP, am_allgprs, am_VR, am_tworeghack, am_ImplImm }; // pusH and poP produce different addresses
+       am_P, am_Q, am_R, am_S, am_T, am_U, am_UM, am_V, am_W, am_X, am_Y, am_reg, // 20
+       am_stackH, am_stackP, am_allgprs, am_VR, am_tworeghack, am_ImplImm, am_RM }; // pusH and poP produce different addresses
 
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
+// ADDED: op_y
 enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9 
-       op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_z, op_lea, op_allgprs, op_512,
+       op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_y, op_z, op_lea, op_allgprs, op_512,
        op_f, op_dbl, op_14, op_28, op_edxeax, op_ecxebx};
 
 
 // tables and pseudotables
 enum {
-  t_ill=0, t_oneB, t_twoB, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, t_grpsse, t_3dnow, t_done=99
+  t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, t_sse_bis, t_sse_ter, t_grpsse, t_3dnow, t_done=99
 };
 
 // registers used for memory access

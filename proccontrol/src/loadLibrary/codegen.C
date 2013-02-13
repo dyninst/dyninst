@@ -14,15 +14,19 @@ Codegen::Codegen(Process *proc, std::string libname)
    : proc_(proc), libname_(libname), codeStart_(0), toc_(0) {}
 
 Codegen::~Codegen() {
-   if (codeStart_) {
-      proc_->freeMemory(buffer_.startAddr());
+   int_process *llproc = proc_->llproc();
+   if (codeStart_ && llproc) {
+      llproc->infFree(buffer_.startAddr());
    }
 }
 
 bool Codegen::generate() {
    unsigned size = estimateSize();
+   int_process *proc = proc_->llproc();
+   if (!proc)
+      return false;
    
-   codeStart_ = proc_->mallocMemory(size);
+   codeStart_ = proc->infMalloc(size, false, (unsigned int) 0);
    if (!codeStart_) {
       return false;
    }
@@ -48,7 +52,7 @@ unsigned Codegen::estimateSize() {
    return 256 + libname_.length();
 }
 
-Address Codegen::findSymbolAddr(const std::string name, bool func, bool saveTOC) {
+Address Codegen::findSymbolAddr(const std::string name, bool saveTOC) {
    LibraryPool& libs = proc_->libraries();
 
    for (auto li = libs.begin(); li != libs.end(); li++) {
@@ -59,6 +63,10 @@ Address Codegen::findSymbolAddr(const std::string name, bool func, bool saveTOC)
       
       Symbol_t lookupSym = objSymReader->getSymbolByName(name);
       if (!objSymReader->isValidSymbol(lookupSym)) continue;
+
+      if (saveTOC) {
+         toc_ = (*li)->getLoadAddress() + objSymReader->getSymbolTOC(lookupSym);
+      }
 
       return (*li)->getLoadAddress() + objSymReader->getSymbolOffset(lookupSym);
    }
