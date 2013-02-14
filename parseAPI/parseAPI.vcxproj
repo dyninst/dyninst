@@ -41,7 +41,7 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\lib\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">i386-unknown-nt4.0\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">i386-unknown-nt4.0\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\lib\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">i386-unknown-nt4.0\</IntDir>
     <IgnoreImportLibrary Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</IgnoreImportLibrary>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</LinkIncremental>
@@ -86,8 +86,8 @@
       <TargetMachine>NotSet</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir $(TargetDir)..\..\include
-copy $(ProjectDir)h\*.h $(TargetDir)..\..\include
+      <Command>mkdir $(TargetDir)..\include
+copy $(ProjectDir)h\*.h $(TargetDir)..\include
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>

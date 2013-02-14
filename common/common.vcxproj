@@ -53,6 +53,7 @@
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
     <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;c:\Program Files (x86)\boost\boost_1_51;$(FrameworkSDKDir)\include;c:\boost</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -85,8 +86,8 @@
       </DataExecutionPrevention>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir $(TargetDir)..\..\include
-copy $(ProjectDir)..\dynutil\h\*.h $(TargetDir)..\..\include
+      <Command>mkdir $(TargetDir)..\include
+copy $(ProjectDir)..\dynutil\h\*.h $(TargetDir)..\include
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
