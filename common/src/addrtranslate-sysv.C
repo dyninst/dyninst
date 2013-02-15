@@ -182,6 +182,10 @@ r_debug_dyn<r_debug_X>::~r_debug_dyn()
 
 template<class r_debug_X> 
 bool r_debug_dyn<r_debug_X>::is_valid() {
+  if (!valid) {
+    translate_printf("\tr_debug_dyn::is_valid ret false\n");
+    return false;
+  }
   if (0 == r_map()) {
     translate_printf("\tr_debug_dyn::is_valid; r_map() == 0, ret false\n");
     return false;
