@@ -2321,7 +2321,7 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
             perr_printf("Bad value (%d) passed to thrdb_getThreadArea\n", val);
             return false;
          }
-         uint64_t addrv;
+         uint64_t addrv = 0;
          int result = do_ptrace((pt_req) PTRACE_ARCH_PRCTL, lwp, &addrv, (void *) op);
          if (result != 0) {
             int error = errno;

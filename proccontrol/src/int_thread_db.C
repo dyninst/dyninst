@@ -1250,6 +1250,7 @@ Handler::handler_ret_t ThreadDBDispatchHandler::handleEvent(Event::ptr ev)
 
       if (!main_thread->threadHandle) {
          main_thread->threadHandle = new td_thrhandle_t;
+         bzero(&main_thread->threadHandle, sizeof(td_thrhandle_t));
          main_thread->threadHandle_alloced = true;
       }
 
