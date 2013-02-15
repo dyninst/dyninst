@@ -12,6 +12,9 @@ AC_CONFIG_MACRO_DIR([autodyninst])
 
 AC_PROG_INSTALL
 
+#This line tells AC_PROG_CXX not leave CXXFLAGS blank by default.  Othwerise
+# we get CXXFLAGS='-g -O2'      
+: ${CXXFLAGS=""}
 AC_PROG_CXX(g++)
 
 m4_include([c++11x.m4])

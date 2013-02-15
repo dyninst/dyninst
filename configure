@@ -2064,6 +2064,9 @@ test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL}'
 test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 
+#This line tells AC_PROG_CXX not leave CXXFLAGS blank by default.  Othwerise
+# we get CXXFLAGS='-g -O2'
+: ${CXXFLAGS=""}
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
