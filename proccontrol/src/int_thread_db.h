@@ -85,7 +85,7 @@ public:
     async_ret_t initThreadDB();
 
     virtual void freeThreadDBAgent();
-    virtual async_ret_t getEventForThread(std::set<Event::ptr> &new_ev_set);
+    virtual async_ret_t getEventForThread(int_eventThreadDB *iev);
     static void addThreadDBHandlers(HandlerPool *hpool);
 
     /*

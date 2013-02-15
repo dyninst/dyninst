@@ -1140,7 +1140,8 @@ int_eventNewUserThread::~int_eventNewUserThread()
 }
 
 int_eventThreadDB::int_eventThreadDB() :
-   completed_new_evs(false)
+   completed_new_evs(false),
+   completed_getmsgs(false)
 {
 }
 
