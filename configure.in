@@ -485,9 +485,12 @@ fi
 AC_MSG_CHECKING([for 32-bit build environment])
 SAVED_CXXFLAGS=$CXXFLAGS
 CXXFLAGS=$M32FLAG
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <signal.h>]], [[]])], 
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <signal.h>]], [[]])], 
                                 [AC_MSG_RESULT([yes]); BUILD32=""],
                                 [AC_MSG_RESULT([no]); BUILD32="SKIP_BUILD_RTLIB_32=1"])
+AC_ARG_ENABLE(m32, AS_HELP_STRING([--disable-m32],[Disable bulding the 32-bit runtime library]),
+			       [],[enable_m32="yes"])
+AS_IF([test "x$enable_m32" != "xyes"], [BUILD32="SKIP_BUILD_RTLIB_32=1"],[])
 AC_SUBST(BUILD32)
 CXXFLAGS=$SAVED_CXXFLAGS
 
@@ -505,7 +508,7 @@ AC_SUBST([STATIC_COMPS])
 AC_SUBST([DEFS])
 
 AC_ARG_ENABLE(testsuite, AS_HELP_STRING([--disable-testsuite], [Disable the Dyninst test suite (default is no)]),
-			 [], [enable_testsuite=yes])
+			 [], [enable_testsuite="yes"])
 
 AS_IF([test "x$enable_testsuite" != xyes], [TESTSUITE="DONT_BUILD_NEWTESTSUITE=1"], [TESTSUITE=""])
 AC_SUBST([TESTSUITE])

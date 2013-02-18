@@ -357,7 +357,7 @@ class StackAnalysis {
     void meet(const RegisterState &source, RegisterState &accum);
     RegisterState getSrcOutputRegs(ParseAPI::Edge* e);
     void computeInsnEffects(ParseAPI::Block *block,
-                            const InstructionPtr &insn,
+                            InstructionPtr insn,
                             const Offset off,
                             TransferFuncs &xferFunc);
 
