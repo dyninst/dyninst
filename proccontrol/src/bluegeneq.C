@@ -1601,7 +1601,8 @@ bgq_thread::bgq_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    thread_db_thread(p, t, l),
    ppc_thread(p, t, l),
    last_signaled(false),
-   unwinder(NULL)
+   unwinder(NULL),
+   last_ss_addr(0)
 {
 }
 
@@ -1643,6 +1644,9 @@ bool bgq_thread::plat_cont()
       }
       if (t->singleStep()) {
          ss_threads.insert(t);
+      }
+      else {
+         t->last_ss_addr = 0;
       }
    }
 
@@ -3429,7 +3433,7 @@ bool DecoderBlueGeneQ::decodeGenericSignal(ArchEventBGQ *, bgq_process *proc, in
 }
 
 bool DecoderBlueGeneQ::decodeBreakpoint(ArchEventBGQ *archevent, bgq_process *proc, int_thread *thr,
-                                        Address addr, vector<Event::ptr> &events)
+                                        Address addr, vector<Event::ptr> &events, bool allow_signal_decode)
 {
    if (rpcMgr()->isRPCTrap(thr, addr)) {
       pthrd_printf("Decoded event to rpc completion on %d/%d at %lx\n", proc->getPid(), thr->getLWP(), addr);
@@ -3475,6 +3479,9 @@ bool DecoderBlueGeneQ::decodeBreakpoint(ArchEventBGQ *archevent, bgq_process *pr
       return true;
    }
 
+   if (!allow_signal_decode)
+      return false;
+
    pthrd_printf("Decoded to SIGTRAP signal (Warning - this is frequently a bug).\n");
    return decodeGenericSignal(archevent, proc, thr, SIGTRAP, events);
 }
@@ -3517,9 +3524,23 @@ bool DecoderBlueGeneQ::decodeStop(ArchEventBGQ *archevent, bgq_process *proc, in
 }
 
 bool DecoderBlueGeneQ::decodeStep(ArchEventBGQ *ae, bgq_process *proc,
-                                  int_thread *thr, vector<Event::ptr> &events)
+                                  int_thread *t, Address addr,
+                                  vector<Event::ptr> &events)
 {
+   bgq_thread *thr = dynamic_cast<bgq_thread *>(t);
    assert(thr->singleStep());
+
+   if (thr->last_ss_addr == addr) {
+      //We did a SS that didn't move.  Perhaps we've hit a BP.
+      pthrd_printf("Single step did not move thread %d/%d.  Checking for BP\n",
+                   proc->getPid(), thr->getLWP());
+      bool result = decodeBreakpoint(ae, proc, thr, addr, events, false);
+      if (result) {
+         pthrd_printf("Decoded spinning single-step to a breakpoint\n");
+         return true;
+      }
+   }
+   thr->last_ss_addr = addr;
    
    bp_instance *ibp = thr->isClearingBreakpoint();
    if (ibp) {
@@ -3588,7 +3609,7 @@ bool DecoderBlueGeneQ::decodeSignal(ArchEventBGQ *archevent, bgq_process *proc,
          return false;
       case NotifySignal_StepComplete:
          pthrd_printf("Decoded single step\n");
-         return decodeStep(archevent, proc, thr, events);
+         return decodeStep(archevent, proc, thr, insn_addr, events);
    }
    assert(0);
    return false;
