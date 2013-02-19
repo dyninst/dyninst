@@ -577,8 +577,14 @@ static int recv_message_socket(unsigned char *msg, size_t msg_size)
          }
          else {
             /* Seen as kernels with broken system call restarting during IRPC test. */
+            if (error == 514) {
+               // No idea what a 514 error is; it shows up on RHEL5 all the time so I'm
+               // preventing the error printout. 
+               continue;
+            }
+
             if (!warned_syscall_restart) {
-               fprintf(stderr, "WARNING: Unknown error out of select--broken syscall restarting in kernel?\n");
+               fprintf(stderr, "WARNING: Unknown error %d out of select--broken syscall restarting in kernel?\n", error);
                warned_syscall_restart = 1;
             }
             continue;
