@@ -688,9 +688,13 @@ bool bgq_process::rotateTransaction()
    return true;
 }
 
-bool bgq_process::plat_individualRegRead()
+bool bgq_process::plat_individualRegRead(Dyninst::MachRegister reg, int_thread *thr)
 {
-   return false;
+   if (!reg.isPC())
+      return false;
+   bgq_thread *bgqthr = dynamic_cast<bgq_thread *>(thr);
+   Address addr;
+   return bgqthr->haveCachedPC(addr);
 }
 
 bool bgq_process::plat_individualRegSet()
@@ -1618,6 +1622,7 @@ bool bgq_thread::plat_cont()
 
    proc->debugger_suspended = false;
 
+   vector<bgq_thread *> resuming_threads;
    int_threadPool *tp = proc->threadPool();
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
       bgq_thread *t = dynamic_cast<bgq_thread *>(*i);
@@ -1628,6 +1633,9 @@ bool bgq_thread::plat_cont()
       }
       if (!is_suspended && !resumed_thread) {
          resumed_thread = t;
+      }
+      if (!is_suspended) {
+         resuming_threads.push_back(t);
       }
       if (t->continueSig_) {
          cont_signal = t->continueSig_;
@@ -1660,6 +1668,8 @@ bool bgq_thread::plat_cont()
 
    if (ss_threads.empty()) {
       pthrd_printf("Sending ContinueProcess command to %d\n", proc->getPid());
+      for (vector<bgq_thread *>::iterator i = resuming_threads.begin(); i != resuming_threads.end(); i++)
+         (*i)->clearCachedPC();
       proc->last_ss_thread = NULL;
       ContinueProcessCmd cont_process;
       cont_process.threadID = 0;
@@ -1673,7 +1683,7 @@ bool bgq_thread::plat_cont()
 
    pthrd_printf("%lu threads of process %d are in single step, selecting thread for single step\n",
                 (unsigned long) ss_threads.size(), proc->getPid());
-   int_thread *ss_thread = NULL;
+   bgq_thread *ss_thread = NULL;
    if (ss_threads.size() > 1 && proc->last_ss_thread) {
       /**
        * Multiple threads are single-stepping at once, but the BG/Q debug interface only allows us to 
@@ -1681,22 +1691,23 @@ bool bgq_thread::plat_cont()
        * that gets stepped with each call.
        **/
       for (set<int_thread *>::iterator i = ss_threads.begin(); i != ss_threads.end(); i++) {
-         if (*i != proc->last_ss_thread)
+         if (*i != static_cast<int_thread *>(proc->last_ss_thread))
             continue;
          i++;
          if (i == ss_threads.end())
             i = ss_threads.begin();
-         ss_thread = proc->last_ss_thread = *i;
+         ss_thread = proc->last_ss_thread = dynamic_cast<bgq_thread *>(*i);
          break;
       }
    }
    if (!ss_thread) {
-      ss_thread = proc->last_ss_thread = *ss_threads.begin();
+      ss_thread = proc->last_ss_thread = dynamic_cast<bgq_thread *>(*ss_threads.begin());
    }
    assert(ss_thread);
 
    StepThreadCmd step_thrd;
    pthrd_printf("Single stepping thread %d/%d\n", proc->getPid(), ss_thread->getLWP());
+   ss_thread->clearCachedPC();
    if (ss_thread->getLWP() != -1)
       step_thrd.threadID = ss_thread->getLWP();
    else
@@ -1906,11 +1917,17 @@ bool bgq_thread::plat_getAllRegistersAsync(allreg_response::ptr resp)
    return true;
 }
 
-bool bgq_thread::plat_getRegisterAsync(Dyninst::MachRegister,
-                                       reg_response::ptr)
+bool bgq_thread::plat_getRegisterAsync(Dyninst::MachRegister reg, reg_response::ptr resp)
 {
-   assert(0); //No individual reg access on this platform.
-   return false;
+   Address addr;
+   bool result = haveCachedPC(addr);
+   //This only works (and should only trigger) if we can return a cached PC.
+   assert(reg.isPC());
+   assert(result);
+
+   resp->setResponse((Dyninst::MachRegisterVal) addr);
+   
+   return true;
 }
 
 bool bgq_thread::plat_setAllRegistersAsync(int_registerPool &pool,
@@ -3537,12 +3554,16 @@ bool DecoderBlueGeneQ::decodeSignal(ArchEventBGQ *archevent, bgq_process *proc,
    BG_Addr_t insn_addr = msg->type.signal.instAddress;
    BG_ThreadID_t threadID = msg->type.signal.threadID;
 
-   int_thread *thr = proc->threadPool()->findThreadByLWP(threadID);   
+   bgq_thread *thr = dynamic_cast<bgq_thread *>(proc->threadPool()->findThreadByLWP(threadID));
    if (!thr && proc->startup_state != bgq_process::startup_done) {
-      thr = proc->threadPool()->initialThread();
+      thr = dynamic_cast<bgq_thread *>(proc->threadPool()->initialThread());
    }
    assert(thr);
-   
+
+   Address instAddress = msg->type.signal.instAddress;
+   if (instAddress) 
+      thr->setCachedPC(instAddress);
+
    pthrd_printf("Decoding signal on %d/%d at 0x%lx\n", proc->getPid(), thr->getLWP(), insn_addr);
    switch (msg->type.signal.reason) {
       case NotifySignal_Generic:

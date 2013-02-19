@@ -139,7 +139,7 @@ class bgq_process :
    virtual bool plat_preAsyncWait();
    bool rotateTransaction();
 
-   virtual bool plat_individualRegRead();
+   virtual bool plat_individualRegRead(Dyninst::MachRegister reg, int_thread *thr);
    virtual bool plat_individualRegSet();
 
    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
@@ -173,7 +173,7 @@ class bgq_process :
    QueryTransaction *query_transaction;
    UpdateTransaction *update_transaction;
    ComputeNode *cn;
-   int_thread *last_ss_thread;
+   bgq_thread *last_ss_thread;
    LWPTracking *lwp_tracker;
    result_response::ptr lwp_tracking_resp;
 
