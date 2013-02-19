@@ -47,6 +47,8 @@
 #include "proccontrol/src/windows_thread.h"
 #endif
 
+#include "proccontrol/src/loadLibrary/injector.h"
+
 #include <climits>
 #include <cstring>
 #include <cassert>
@@ -582,7 +584,6 @@ bool int_process::plat_execed()
    return true;
 }
 
-
 bool int_process::forked()
 {
    ProcPool()->condvar()->lock();
@@ -742,6 +743,7 @@ int_process::creationMode_t int_process::getCreationMode() const
 {
    return creation_mode;
 }
+
 void int_process::setContSignal(int sig) {
     continueSig = sig;
 }
@@ -905,6 +907,7 @@ bool int_process::plat_waitAndHandleForProc()
 }
 
 int_process *int_process::in_waitHandleProc = NULL;
+
 bool int_process::waitAndHandleForProc(bool block, int_process *proc, bool &proc_exited)
 {
    assert(in_waitHandleProc == NULL);
@@ -1120,7 +1123,7 @@ bool int_process::waitAndHandleEvents(bool block)
       }
    }
   done:
-   pthrd_printf("Leaving WaitAndHandleEvents 'cause we're done\n");
+   pthrd_printf("Leaving WaitAndHandleEvents with return %s, 'cause we're done\n", !error ? "true" : "false");
    recurse = false;
    return !error;
 }
@@ -1328,6 +1331,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
          pthrd_printf("Enqueueing new EventAsyncRead into mailbox on synchronous platform\n");
          EventAsyncRead::ptr ev = EventAsyncRead::ptr(new EventAsyncRead(iev));
          ev->setProcess(proc());
+         ev->setThread(threadPool()->initialThread()->thread());
          ev->setSyncType(Event::async);
          mbox()->enqueue(ev);
       }
@@ -1383,6 +1387,7 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
          pthrd_printf("Enqueueing new EventAsyncWrite into mailbox on synchronous platform\n");
          EventAsyncWrite::ptr ev = EventAsyncWrite::ptr(new EventAsyncWrite(iev));
          ev->setProcess(proc());
+         ev->setThread(threadPool()->initialThread()->thread());
          ev->setSyncType(Event::async);
          mbox()->enqueue(ev);
       }
@@ -1440,6 +1445,22 @@ bool int_process::direct_infFree(Dyninst::Address)
 {
    assert(0);
    return false;
+}
+
+Address int_process::infMalloc(unsigned long size, bool use_addr, Address addr)
+{
+   int_addressSet as;
+   as.insert(make_pair(addr, proc()));
+   bool result = int_process::infMalloc(size, &as, use_addr);
+   if (!result)
+      return 0;
+   return as.begin()->first;
+}
+
+bool int_process::infFree(Address addr) {
+   int_addressSet as;
+   as.insert(make_pair(addr, proc()));
+   return int_process::infFree(&as);
 }
 
 bool int_process::infMalloc(unsigned long size, int_addressSet *aset, bool use_addr)
@@ -2900,6 +2921,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    pending_stop_state(this, PendingStopStateID, dontcare),
    callback_state(this, CallbackStateID, dontcare),
    breakpoint_state(this, BreakpointStateID, dontcare),
+   breakpoint_hold_state(this, BreakpointHoldStateID, dontcare),
    breakpoint_resume_state(this, BreakpointResumeStateID, dontcare),
    irpc_setup_state(this, IRPCSetupStateID, dontcare),
    irpc_wait_state(this, IRPCWaitStateID, dontcare),
@@ -3226,6 +3248,11 @@ int_thread::StateTracker &int_thread::getBreakpointState()
    return breakpoint_state;
 }
 
+int_thread::StateTracker &int_thread::getBreakpointHoldState()
+{
+   return breakpoint_hold_state;
+}
+
 int_thread::StateTracker &int_thread::getBreakpointResumeState()
 {
    return breakpoint_resume_state;
@@ -3340,6 +3367,7 @@ int_thread::StateTracker &int_thread::getStateByID(int id)
       case IRPCSetupStateID: return irpc_setup_state;
       case IRPCWaitStateID: return irpc_wait_state;
       case BreakpointStateID: return breakpoint_state;
+      case BreakpointHoldStateID: return breakpoint_hold_state;
       case BreakpointResumeStateID: return breakpoint_resume_state;
       case InternalStateID: return internal_state;
       case DetachStateID: return detach_state;
@@ -3365,6 +3393,7 @@ std::string int_thread::stateIDToName(int id)
       case IRPCSetupStateID: return "irpc setup";
       case IRPCWaitStateID: return "irpc wait";
       case BreakpointStateID: return "breakpoint";
+      case BreakpointHoldStateID: return "bp hold";
       case BreakpointResumeStateID: return "breakpoint resume";
       case InternalStateID: return "internal";
       case UserRPCStateID: return "irpc user";
@@ -3717,6 +3746,7 @@ bool int_thread::setAllRegisters(int_registerPool &pool, result_response::ptr re
    response->setProcess(llproc());
 
    if (!llproc()->plat_needsAsyncIO()) {
+
       pthrd_printf("Setting registers for thread %d\n", getLWP());
       bool result = plat_setAllRegisters(pool);
       response->setResponse(result);
@@ -4176,6 +4206,14 @@ bool int_thread::getTLSPtr(Dyninst::Address &)
    perr_printf("Unsupported attempt to get TLS on %d/%d\n", llproc()->getPid(), getLWP());
    setLastError(err_unsupported, "getTLSPtr not supported on this platform\n");
    return false;
+}
+
+Dyninst::Address int_thread::getThreadInfoBlockAddr()
+{
+   perr_printf("Unsupported attempt to get ThreadInfoBlock Address on %d/%d\n",
+	           llproc()->getPid(), getLWP());
+   setLastError(err_unsupported, "getThreadInfoBlockAddr not supported on this platform\n");
+   return 0;
 }
 
 unsigned int_thread::hwBPAvail(unsigned) {
@@ -5937,6 +5975,18 @@ Library::const_ptr LibraryPool::getExecutable() const
    return proc->plat_getExecutable()->up_lib;
 }
 
+LibraryPool::iterator LibraryPool::find(Library::ptr lib) {
+   LibraryPool::iterator i;
+   i.int_iter = proc->memory()->libs.find(lib->debug());
+   return i;
+}
+
+LibraryPool::const_iterator LibraryPool::find(Library::ptr lib) const {
+   LibraryPool::const_iterator i;
+   i.int_iter = proc->memory()->libs.find(lib->debug());
+   return i;
+}
+
 LibraryPool::iterator::iterator()
 {
 }
@@ -6264,6 +6314,33 @@ LibraryPool &Process::libraries()
    return llproc_->libpool;
 }
 
+bool Process::addLibrary(std::string library) {
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("addLibrary on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+   if (llproc_->getState() == int_process::detached) {
+       perr_printf("addLibrary on detached process\n");
+       setLastError(err_detached, "Process is detached\n");
+       return false;
+   }
+   if (int_process::isInCB()) {
+      perr_printf("User attempted addLibrary while in CB, erroring.");
+      setLastError(err_incallback, "Cannot addLibrary from callback\n");
+      return false;
+   }
+   if (hasRunningThread()) {
+      perr_printf("User attempted to addLibrary on running process\n");
+      setLastError(err_notstopped, "Attempted to addLibrary on running process\n");
+      return false;
+   }
+
+   Injector inj(this);
+   return inj.inject(library);
+}
+
 bool Process::continueProc()
 {
    Process::ptr me = shared_from_this();
@@ -6480,6 +6557,7 @@ bool Process::runIRPCAsync(IRPC::ptr irpc)
       setLastError(err_incallback, "Cannot postSyncIRPC from callback\n");
       return false;
    }
+
 
    int_process *proc = llproc();
    int_iRPC::ptr rpc = irpc->llrpc()->rpc;
@@ -7871,6 +7949,18 @@ Dyninst::Address Thread::getTLS() const
    return addr;
 }
 
+Dyninst::Address Thread::getThreadInfoBlockAddr() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("getThreadInfoBlockAddr on deleted thread\n");
+      setLastError(err_exited, "Thread is exited");
+      return 0;
+   }
+
+   return llthread_->getThreadInfoBlockAddr();
+}
+
 IRPC::const_ptr Thread::getRunningIRPC() const
 {
    MTLock lock_this_func;
@@ -8726,3 +8816,4 @@ void int_thread::terminate() {
 void int_thread::plat_terminate() {
 	assert(0 && "Unimplemented!");
 }
+

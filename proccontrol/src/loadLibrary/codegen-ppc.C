@@ -1,12 +1,18 @@
 // PPC code generation routines for library injection
 
-#include "codegen.h"
+#include "loadLibrary/codegen.h"
 #include "common/h/arch-power.h"
+#include <iostream>
 
 
 using namespace Dyninst;
-using namespace InjectorAPI;
 using namespace NS_power;
+using namespace ProcControlAPI;
+using namespace std;
+
+// User code can use up to 228 bytes under the stack pointer;
+// we skip past this so that we don't mess things up. 
+#define STACKSKIP 228
 
 bool Codegen::generateCallPPC32(Address addr, const std::vector<Address> &args) {
    // PPC32 on Linux is basically the same thing as x86; we do indirect because
@@ -37,7 +43,7 @@ bool Codegen::generateCallPPC64(Address addr, const std::vector<Address> &args) 
    // First, arguments
    unsigned reg = 3;
    for (auto iter = args.begin(); iter != args.end(); ++iter) {
-      generatePPC32(*iter, reg);
+      generatePPC64(*iter, reg);
       reg++;      
    }
 
@@ -55,6 +61,7 @@ bool Codegen::generateCallPPC64(Address addr, const std::vector<Address> &args) 
 }
 
 void Codegen::generatePPC32(Address val, unsigned reg) {
+
       instruction insn;
       insn.clear();
       DFORM_OP_SET(insn, CAUop);
@@ -76,23 +83,50 @@ void Codegen::generatePPC64(Address val, unsigned reg) {
 
    instruction insn;
    insn.clear();
+   int shift = 32;
+   MDFORM_OP_SET( insn, RLDop);
    MDFORM_RS_SET( insn, reg);
    MDFORM_RA_SET( insn, reg);
-   MDFORM_SH_SET( insn, 0);
-   MDFORM_MB_SET( insn, 31);
-   MDFORM_MB2_SET(insn, 0);
+   MDFORM_SH_SET( insn, shift % 32);
+   MDFORM_MB_SET( insn, (63-shift) % 32);
+   MDFORM_MB2_SET(insn, (63-shift) / 32);
    MDFORM_XO_SET( insn, ICRxop);
-   MDFORM_SH2_SET(insn, 1);
+   MDFORM_SH2_SET(insn, shift / 32);
    MDFORM_RC_SET( insn, 0);
    copyInt(insn.asInt());
 
-   generatePPC32(val, reg);
+   // Can't just reuse the 32-bit generate, since CAUop zeroes the high bits...
+   // Instead, use ORIU/ORIL
+
+   insn.clear();
+   DFORM_OP_SET(insn, ORIUop);
+   DFORM_RT_SET(insn, reg);
+   DFORM_RA_SET(insn, reg);
+   DFORM_SI_SET(insn, BOT_HI(val));
+   copyInt(insn.asInt());
+   
+   insn.clear();
+   DFORM_OP_SET(insn, ORILop);
+   DFORM_RT_SET(insn, reg);
+   DFORM_RA_SET(insn, reg);
+   DFORM_SI_SET(insn, BOT_LO(val));
+   copyInt(insn.asInt());
+
 }
 
 bool Codegen::generatePreamblePPC32() {
-   return true;
+  instruction insn;
+  insn.clear();
+
+  DFORM_OP_SET(insn, CALop);
+  DFORM_RT_SET(insn, 1);
+  DFORM_RA_SET(insn, 1);
+  DFORM_SI_SET(insn, -STACKSKIP);
+  copyInt(insn.asInt());
+
+  return true;
 }
 
 bool Codegen::generatePreamblePPC64() {
-   return true;
+  return generatePreamblePPC32();
 }

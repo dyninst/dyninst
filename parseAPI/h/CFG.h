@@ -43,6 +43,12 @@
 #include <iostream>
 
 namespace Dyninst {
+
+   namespace InstructionAPI {
+      class Instruction;
+      typedef boost::shared_ptr<Instruction> InstructionPtr;
+   }
+
 namespace ParseAPI {
 
 class CodeObject;
@@ -275,6 +281,7 @@ class Block : public Dyninst::interval<Address>,
               public allocatable {
     friend class CFGModifier;
  public:
+    typedef std::map<Offset, InstructionAPI::InstructionPtr> Insns;
     typedef std::vector<Edge*> edgelist;
 
     PARSER_EXPORT Block(CodeObject * o, CodeRegion * r, Address start);
@@ -300,6 +307,9 @@ class Block : public Dyninst::interval<Address>,
     PARSER_EXPORT int  containingFuncs() const;
     PARSER_EXPORT void getFuncs(std::vector<Function *> & funcs);
     template<class OutputIterator> void getFuncs(OutputIterator result); 
+
+    PARSER_EXPORT void getInsns(Insns &insns) const;
+    PARSER_EXPORT InstructionAPI::InstructionPtr getInsn(Offset o) const;
 
     PARSER_EXPORT bool wasUserAdded() const;
 

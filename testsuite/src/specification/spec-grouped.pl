@@ -2478,6 +2478,19 @@ mutatee('pc_library', ['pc_library_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mu
 mutatee_requires_libs('pc_library', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_library', _, Opt) :- member(Opt, ['none']).
 
+test('pc_addlibrary', 'pc_addlibrary', 'pc_addlibrary').
+test_description('pc_addlibrary', 'Add Library').
+test_platform('pc_addlibrary', Platform) :- pcPlatforms(Platform).
+mutator('pc_addlibrary', ['pc_addlibrary.C']).
+test_runmode('pc_addlibrary', 'dynamic').
+test_threadmode('pc_addlibrary', 'Threading').
+test_processmode('pc_addlibrary', 'Processes').
+test_start_state('pc_addlibrary', 'selfattach').
+tests_module('pc_addlibrary', 'proccontrol').
+mutatee('pc_addlibrary', ['pc_addlibrary_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_addlibrary', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_addlibrary', _, Opt) :- member(Opt, ['none']).
+
 test('pc_singlestep', 'pc_singlestep', 'pc_singlestep').
 test_description('pc_singlestep', 'Single step').
 test_platform('pc_singlestep', Platform) :- pcPlatforms(Platform).

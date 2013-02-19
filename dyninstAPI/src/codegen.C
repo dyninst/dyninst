@@ -416,8 +416,10 @@ void codeGen::moveIndex(int disp) {
     setIndex(cur / CODE_GEN_OFFSET_SIZE);
 }
 
-int codeGen::getDisplacement(codeBufIndex_t from, codeBufIndex_t to) {
-    return ((to - from) * CODE_GEN_OFFSET_SIZE);
+long codeGen::getDisplacement(codeBufIndex_t from, codeBufIndex_t to) {
+   long from_l = (long) from;
+   long to_l = (long) to;
+   return ((to_l - from_l) * CODE_GEN_OFFSET_SIZE);
 }
 
 Address codeGen::currAddr() const {

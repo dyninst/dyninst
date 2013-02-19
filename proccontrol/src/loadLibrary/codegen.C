@@ -1,51 +1,40 @@
 // Platform-independent code generation methods; mainly function
 // lookup
 
-#include "codegen.h"
-#include "Symtab.h"
-#include "Symbol.h"
+#include "loadLibrary/codegen.h"
 #include <iostream>
+#include "int_process.h"
 
 using namespace Dyninst;
-using namespace InjectorAPI;
 using namespace ProcControlAPI;
-using namespace SymtabAPI;
 using namespace std;
 
 
-Codegen::Codegen(Process::ptr proc, std::string libname) 
+Codegen::Codegen(Process *proc, std::string libname) 
    : proc_(proc), libname_(libname), codeStart_(0), toc_(0) {}
 
 Codegen::~Codegen() {
-   if (codeStart_) {
-      proc_->freeMemory(buffer_.startAddr());
+   int_process *llproc = proc_->llproc();
+   if (codeStart_ && llproc) {
+      llproc->infFree(buffer_.startAddr());
    }
 }
 
 bool Codegen::generate() {
    unsigned size = estimateSize();
+   int_process *proc = proc_->llproc();
+   if (!proc)
+      return false;
    
-   codeStart_ = proc_->mallocMemory(size);
+   codeStart_ = proc->infMalloc(size, false, (unsigned int) 0);
    if (!codeStart_) {
       return false;
    }
 
    buffer_.initialize(codeStart_, size);
 
-   bool ret = false;
-   switch(proc_->getOS()) {
-      case Windows:
-         ret = generateWindows();
-         break;
-      case Linux:
-         ret = generateLinux();
-         break;
-      default:
-         break;
-   }
-   if (!ret) {
-      return false;
-   }
+   if (!generateInt()) return false;
+
    generateTrap();
    generateTrap();
 
@@ -63,30 +52,23 @@ unsigned Codegen::estimateSize() {
    return 256 + libname_.length();
 }
 
-Address Codegen::findSymbolAddr(const std::string name, bool func, bool saveTOC) {
+Address Codegen::findSymbolAddr(const std::string name, bool saveTOC) {
    LibraryPool& libs = proc_->libraries();
 
    for (auto li = libs.begin(); li != libs.end(); li++) {
       if ((*li)->getName().empty()) continue;
-      Symtab *obj = NULL;
-      bool ret = Symtab::openFile(obj, (*li)->getName());
-      if (!ret || !obj) continue;
- 
-      std::vector<Symbol *> syms;
-      obj->findSymbol(syms, name, 
-                      func ? Symbol::ST_FUNCTION : Symbol::ST_OBJECT,
-                      mangledName);
-      // This would be nice but causes faults
-      //Symtab::closeSymtab(obj);
 
-      if (syms.empty()) continue;
+      SymReader *objSymReader = proc_->llproc()->getSymReader()->openSymbolReader((*li)->getName());
+      if (!objSymReader) continue;
+      
+      Symbol_t lookupSym = objSymReader->getSymbolByName(name);
+      if (!objSymReader->isValidSymbol(lookupSym)) continue;
 
-      // UGLY HACK!
       if (saveTOC) {
-         findTOC(syms[0], (*li));
+         toc_ = (*li)->getLoadAddress() + objSymReader->getSymbolTOC(lookupSym);
       }
 
-      return syms[0]->getOffset() + (*li)->getLoadAddress();
+      return (*li)->getLoadAddress() + objSymReader->getSymbolOffset(lookupSym);
    }
    return 0;
 }

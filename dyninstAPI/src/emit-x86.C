@@ -1536,8 +1536,10 @@ void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destinati
                    destination, true, gen);
       return;
    }
+
    if (src->spilledState == registerSlot::unspilled)
    {
+      assert(register_num != REGNUM_EFLAGS);
       emitMoveRegToReg((Register) register_num, destination, gen);
       return;
    }
@@ -2378,6 +2380,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
       instFrameSize += AMD64_RED_ZONE;
    }
 
+   
 
    // Save the live ones
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
@@ -2399,7 +2402,9 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    if (saveFlags) {
       gen.rs()->saveVolatileRegisters(gen);
       emitPushReg64(REGNUM_RAX, gen); 
+
       num_saved++;
+      gen.rs()->markSavedRegister(REGNUM_EFLAGS, num_to_save-num_saved);
       // Need a "defined, but not by us silly"
       gen.markRegDefined(REGNUM_RAX);
    }

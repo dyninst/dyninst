@@ -242,6 +242,7 @@ bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
 
   memoryTracker *mem_track = dynamic_cast<memoryTracker *>(obj);
   assert(mem_track);
+
   mem_track->realloc(newsize);
 
   memoryTracker_->insert(obj);

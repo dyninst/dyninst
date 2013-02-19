@@ -493,8 +493,6 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     tc_lock_lock(&DYNINST_trace_lock);
     rtdebug_printf("RT_st: pt[%lx] flags[%lx] calc[%lx] ", 
                    (long)pointAddr, (long)flags, (long)calculation);
-    fprintf(stOut,"RT_st: pt[%lx] flags[%lx] calc[%lx]\n", 
-                   (long)pointAddr, (long)flags, (long)calculation);
 
 #if 0 && defined STACKDUMP
     //if (0 && ((unsigned long)calculation == 0x9746a3 || 
@@ -524,12 +522,6 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
         // the address of real code, so that we add the address to the cache 
         // even if we will stop the thread if there's a cache hit
         isInCache = cacheLookup(calculation);
-        if ((unsigned long)calculation == 0xacb838) {
-           fprintf(stOut,"RT_st: pt[%lx] flags[%lx] calc[%lx]\n", 
-                   (long)pointAddr, (long)flags, (long)calculation);
-           fprintf(stderr,"RT_st: pt[%lx] flags[%lx] calc[%lx]\n", 
-                   (long)pointAddr, (long)flags, (long)calculation);
-        }
     }
 
     // if the cache flag bit is not set, or if we get a cache miss, 

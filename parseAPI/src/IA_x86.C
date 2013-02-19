@@ -213,41 +213,62 @@ bool IA_IAPI::isThunk() const {
     return false;
 }
 
-bool IA_IAPI::isTailCall(Function * context,unsigned int) const
+bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) const
 {
-    
+   // Collapse down to "branch" or "fallthrough"
+    switch(type) {
+       case CALL:
+       case COND_TAKEN:
+       case DIRECT:
+       case INDIRECT:
+       case RET:
+          type = DIRECT;
+          break;
+       case COND_NOT_TAKEN:
+       case FALLTHROUGH:
+       case CALL_FT:
+          type = FALLTHROUGH;
+          break;
+       default:
+          return false;
+    }
+
     parsing_printf("Checking for Tail Call \n");
     context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT); 
-
-    if(tailCall.first) {
-        parsing_printf("\tReturning cached tail call check result: %d\n", tailCall.second);
-        if (tailCall.second) {
+    if (tailCalls.find(type) != tailCalls.end()) {
+        parsing_printf("\tReturning cached tail call check result: %d\n", tailCalls[type]);
+        if (tailCalls[type]) {
             context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
+            return true;
         }
-        return tailCall.second;
+        return false;
     }
-    tailCall.first = true;
-
+    
     bool valid; Address addr;
-    boost::tie(valid, addr) = getCFT();
+    if (type == DIRECT)
+       boost::tie(valid, addr) = getCFT();
+    else 
+       boost::tie(valid, addr) = getFallthrough();
+
     if(curInsn()->getCategory() == c_BranchInsn &&
        valid &&
        _obj->findFuncByEntry(_cr,addr))
     {
-       parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
-        tailCall.second = true;
-        return tailCall.second;
+      parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
+      tailCalls[type] = true;
+      return true;
     }
 
     if(allInsns.size() < 2) {
-        tailCall.second = false;
         parsing_printf("\ttoo few insns to detect tail call\n");
         context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
-        return tailCall.second;
+        tailCalls[type] = false;
+        return false;
     }
 
-    if(curInsn()->getCategory() == c_BranchInsn ||
-       curInsn()->getCategory() == c_CallInsn)
+    if ((curInsn()->getCategory() == c_BranchInsn ||
+         curInsn()->getCategory() == c_CallInsn) &&
+        (type != COND_NOT_TAKEN && type != CALL_FT))
     {
         //std::map<Address, Instruction::Ptr>::const_iterator prevIter =
                 //allInsns.find(current);
@@ -259,32 +280,41 @@ bool IA_IAPI::isTailCall(Function * context,unsigned int) const
         Instruction::Ptr prevInsn = prevIter->second;
     
         while ( isNopInsn(prevInsn) && (prevIter != allInsns.begin()) ) {
-            --prevIter;
-            prevInsn = prevIter->second;
+           --prevIter;
+           prevInsn = prevIter->second;
         }
 
 
         if(prevInsn->getOperation().getID() == e_leave)
         {
-            parsing_printf("\tprev insn was leave, TAIL CALL\n");
-            tailCall.second = true;
-            return tailCall.second;
+           parsing_printf("\tprev insn was leave, TAIL CALL\n");
+           tailCalls[type] = true;
+           return true;
         }
-        if(prevInsn->getOperation().getID() == e_pop)
+        else if(prevInsn->getOperation().getID() == e_pop)
         {
             if(prevInsn->isWritten(framePtr[_isrc->getArch()]))
             {
                 parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
-                tailCall.second = true;
-                return tailCall.second;
+                tailCalls[type] = true;
+                return true;
+            }
+        }
+        else if(prevInsn->getOperation().getID() == e_add)
+        {
+            if(prevInsn->isWritten(stackPtr[_isrc->getArch()]))
+            {
+                parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
+                tailCalls[type] = true;
+                return true;
             }
             parsing_printf("\tprev insn was %s, not tail call\n", prevInsn->format().c_str());
         }
     }
 
-    tailCall.second = false;
+    tailCalls[type] = false;
     context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
-    return tailCall.second;
+    return false;
 }
 
 bool IA_IAPI::savesFP() const

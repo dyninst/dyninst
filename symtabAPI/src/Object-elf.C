@@ -2858,6 +2858,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
    Dwarf_Debug *dbg_ptr = dwarf->type_dbg();
    if (!dbg_ptr)
       return false;
+
    Dwarf_Debug &dbg = *dbg_ptr;
 
    Dwarf_Unsigned hdr;
@@ -3314,11 +3315,13 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
   did_open = false;
   interpreter_name_ = NULL;
   isStripped = false;
-  
-  if(mf->getFD() != -1)
+
+  if(mf->getFD() != -1) {
      elfHdr = Elf_X::newElf_X(mf->getFD(), ELF_C_READ, NULL, mf_->pathname());
-  else
+  }
+  else {
      elfHdr = Elf_X::newElf_X((char *)mf->base_addr(), mf->size(), mf_->pathname());
+  }
 
   // ELF header: sanity check
   //if (!elfHdr->isValid()|| !pdelf_check_ehdr(elfHdr)) 
@@ -3385,8 +3388,12 @@ Object::~Object()
   unsigned i;
   relocation_table_.clear();
   fbt_.clear();
-  for(i=0; i<allRegionHdrs.size();i++)
+  for(i=0; i<allRegionHdrs.size();i++) {
+#if !defined(os_freebsd)
+    // This claims a double-delete on FreeBSD
     delete allRegionHdrs[i];
+#endif
+  }
   allRegionHdrs.clear();
   versionMapping.clear();
   versionFileNameMapping.clear();

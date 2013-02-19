@@ -174,7 +174,7 @@ class LibraryState {
  public:
    LibraryState(ProcessState *parent);
    virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0;
-   virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0;
+   virtual bool getLibraries(std::vector<LibAddrPair> &libs, bool allow_refresh = true) = 0;
    virtual void notifyOfUpdate() = 0;
    virtual Address getLibTrapAddress() = 0;
    virtual bool getLibc(LibAddrPair &lc);

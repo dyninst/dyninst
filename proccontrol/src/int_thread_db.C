@@ -450,7 +450,11 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
 {
    td_thrinfo_t info;
    async = false;
+#if !defined(os_freebsd)
    td_thrhandle_t *handle = const_cast<td_thrhandle_t *>(eventMsg->th_p);
+#else
+   td_thrhandle_t *handle = (td_thrhandle_t *)(eventMsg->th_p);
+#endif
    pthrd_printf("Decoding thread event on %u\n", getPid());
    async_ret_t result = ll_fetchThreadInfo(handle, &info);
    if (result == aret_error) {

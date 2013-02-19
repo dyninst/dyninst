@@ -63,8 +63,6 @@ class MappedFile {
       MappedFile(void *loc, unsigned long size_, const std::string & name, bool &ok);
       ~MappedFile();
       bool clean_up();
-      std::string fullpath;
-      void *map_addr;
 
       bool check_path(std::string &);
       bool open_file();
@@ -72,6 +70,10 @@ class MappedFile {
       bool map_file();
       bool unmap_file();
       bool close_file();
+
+	  std::string fullpath;
+      void *map_addr;
+
 #if defined (os_windows)
       HANDLE hMap; 
       HANDLE hFile; 

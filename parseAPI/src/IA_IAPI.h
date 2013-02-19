@@ -72,7 +72,8 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool hasCFT() const;
         virtual size_t getSize() const;
         virtual bool isFrameSetupInsn() const;
-        virtual bool isAbortOrInvalidInsn() const;
+        virtual bool isAbort() const;
+        virtual bool isInvalidInsn() const;
         virtual bool isGarbageInsn() const; //true for insns indicative of bad parse, for defensive mode
         virtual void
                 getNewEdges(std::vector<std::pair< Address, 
@@ -91,7 +92,7 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool isLeave() const;
         virtual bool isDelaySlot() const;
         virtual bool isRelocatable(InstrumentableLevel lvl) const;
-        virtual bool isTailCall(Dyninst::ParseAPI::Function *,unsigned int) const;
+        virtual bool isTailCall(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::EdgeTypeEnum, unsigned int) const;
         virtual std::pair<bool, Address> getCFT() const;
         virtual bool isStackFramePreamble() const;
         virtual bool savesFP() const;
@@ -118,7 +119,7 @@ private:
         bool isLinkerStub() const;
 	bool isSysEnter() const;
 	void parseSysEnter(std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> >& outEdges) const;
-	
+        std::pair<bool, Address> getFallthrough() const;
 
         Dyninst::InstructionAPI::InstructionDecoder dec;
 
@@ -145,7 +146,9 @@ private:
         mutable bool validLinkerStubState;
         mutable bool cachedLinkerStubState;
         mutable std::pair<bool, bool> hascftstatus;
-        mutable std::pair<bool, bool> tailCall;
+
+        mutable std::map<ParseAPI::EdgeTypeEnum, bool> tailCalls;
+
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> framePtr;
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> stackPtr;
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> thePC;

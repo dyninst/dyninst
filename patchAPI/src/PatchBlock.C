@@ -57,17 +57,11 @@ PatchBlock::PatchBlock(const PatchBlock *parent, PatchObject *child)
 
 void
 PatchBlock::getInsns(Insns &insns) const {
-  // Pass through to ParseAPI. They don't have a native interface, so add one.
-  Offset off = block_->start();
-  const unsigned char *ptr =
-    (const unsigned char *)block_->region()->getPtrToInstruction(off);
-  if (ptr == NULL) return;
-  InstructionDecoder d(ptr, size(), block_->obj()->cs()->getArch());
-  while (off < block_->end()) {
-    Instruction::Ptr insn = d.decode();
-    insns[obj_->codeOffsetToAddr(off)] = insn;
-    off += insn->size();
-  }
+   Insns tmp;
+   block_->getInsns(tmp);
+   for (auto iter = tmp.begin(); iter != tmp.end(); ++iter) {
+      insns[obj_->codeOffsetToAddr(iter->first)] = iter->second;
+   }
 }
 
 const PatchBlock::edgelist&
@@ -551,16 +545,6 @@ bool PatchBlock::consistency() const {
       }
       set<PatchBlock*> srcs;
       for (unsigned i = 0; i < srclist_.size(); ++i) {
-         // shouldn't have multiple edges to the same block unless one
-         // is a conditional taken and the other a conditional not-taken
-         // (even this is weird, but it happens in obfuscated code)
-         if (srcs.find(srclist_[i]->src()) != srcs.end() &&
-             srclist_[i]->type() != ParseAPI::COND_TAKEN && 
-             srclist_[i]->type() != ParseAPI::COND_NOT_TAKEN) 
-         {
-            cerr << "Error: multiple source edges to same block" << endl;
-            CONSIST_FAIL;
-         }
          srcs.insert(srclist_[i]->src());
          if (!srclist_[i]->consistency()) {
             cerr << "Error: source edge inconsistent" << endl;

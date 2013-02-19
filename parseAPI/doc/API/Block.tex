@@ -47,3 +47,17 @@ std::set<Function *> funcs;
 block->getFuncs(std::inserter(funcs, funcs.begin()));
 \end{apient}
 
+\begin{apient}
+typedef std::map<Offset, InstructionAPI::Instruction::Ptr> Insns;
+void getInsns(Insns &insns) const;
+\end{apient}
+\apidesc{Disassembles the block and stores the result in
+  \code{Insns}.}
+
+\begin{apient}
+InstructionAPI::Instruction::Ptr getInsn(Offset o) const;
+\end{apient}
+\apidesc{Returns the instruction starting at offset \code{o} within
+  the block. Returns \code{InstructionAPI::Instruction::Ptr()} if
+  \code{o} is outside the block, or if an instruction does not begin
+  at \code{o}.}

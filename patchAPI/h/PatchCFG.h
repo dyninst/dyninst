@@ -97,7 +97,7 @@ class PatchBlock {
    friend class PatchParseCallback;
 
   public:
-    typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns;
+   typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns;
     typedef std::vector<PatchEdge*> edgelist;
 
     PATCHAPI_EXPORT static PatchBlock *create(ParseAPI::Block *, PatchFunction *);

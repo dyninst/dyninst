@@ -69,6 +69,21 @@
     <ClCompile Include="src\x86_process.C">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\loadLibrary\codegen.C">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\loadLibrary\codegen-ppc.C">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\loadLibrary\codegen-win.C">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\loadLibrary\codegen-x86.C">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\loadLibrary\injector.C">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="h\Decoder.h">
@@ -135,6 +150,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="h\PlatFeatures.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\loadLibrary\codegen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

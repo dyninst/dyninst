@@ -34,7 +34,7 @@ int main(int argc, char * argv[])
         else 
             printf("\t\"%lx\" [shape=box]\n",f->addr()); 
     
-        Function::blocklist::iterator bit = f->blocks().begin();
+        Function::blocklist::const_iterator bit = f->blocks().begin();
         for( ; bit != f->blocks().end(); ++bit) {
             Block * b = *bit;
 

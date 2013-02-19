@@ -183,33 +183,30 @@ void MemoryEmulator::addRegion(Region *reg, Address base, Address, Address) {
        reg->getMemSize(),
        (void *)buffer);
    if (aS_->proc() && BPatch_defensiveMode == aS_->proc()->getHybridMode()) {
-#if defined (os_windows)
        using namespace SymtabAPI;
-       unsigned winrights = 0;
+	   PCProcess::PCMemPerm memPerm_;
        Region::perm_t reg_rights = reg->getRegionPermissions();
        switch (reg_rights) {
        case Region::RP_R:
-           winrights = PAGE_READONLY;
+           memPerm_.setR();  // PAGE_READONLY;
            break;
        case Region::RP_RW: 
-           winrights = PAGE_READWRITE;
+           memPerm_.setR().setW();  // PAGE_READWRITE;
            break;
        case Region::RP_RX:
-           winrights = PAGE_EXECUTE_READ;
+           memPerm_.setR().setX();  // PAGE_EXECUTE_READ;
            break;
        case Region::RP_RWX:
-           winrights = PAGE_EXECUTE_READWRITE;
+           memPerm_.setR().setW().setX();  // PAGE_EXECUTE_READWRITE;
            break;
        default:
            assert(0);
        }
-	   assert(0 && "Not ported to ProcControl");
-#if 0
-	   PCThread *stoppedlwp = aS_->proc()->query_for_stopped_lwp();
-       assert(stoppedlwp);
-       stoppedlwp->changeMemoryProtections(mutateeBase, reg->getMemSize(), winrights, false);
-#endif
-#endif
+
+	   PCProcess *proc = aS_->proc();
+       assert(proc);
+	   proc->stopProcess();
+       proc->changeMemoryProtections(mutateeBase, reg->getMemSize(), memPerm_, false);
    }
    
     Address regionBase = base + reg->getMemOffset();
