@@ -117,6 +117,11 @@ void ppc_process::registerSSClearCB()
 
 async_ret_t ppc_process::readPCForSS(int_thread *thr, Address &pc)
 {
+   ppc_thread *ppc_thr = dynamic_cast<ppc_thread *>(thr);
+   assert(ppc_thr);
+   if (ppc_thr->haveCachedPC(pc))
+      return aret_success;
+
    if (!plat_needsAsyncIO())
    {
       //Fast-track for linu/ppc
@@ -361,4 +366,23 @@ EventBreakpoint::ptr ppc_thread::decodeHWBreakpoint(response::ptr &,
 bool ppc_thread::bpNeedsClear(hw_breakpoint *)
 {
    return false;
+}
+
+void ppc_thread::setCachedPC(Address pc)
+{
+   cached_pc = pc;
+   have_cached_pc = true;
+}
+
+void ppc_thread::clearCachedPC()
+{
+   have_cached_pc = false;
+}
+
+bool ppc_thread::haveCachedPC(Address &pc)
+{
+   if (!have_cached_pc)
+      return false;
+   pc = cached_pc;
+   return true;
 }

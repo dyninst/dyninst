@@ -1598,7 +1598,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
 }
 
  
-codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
+codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
 	      codeGen &gen, RegControl, bool /*noCost*/)
 {
     //bperr("emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);

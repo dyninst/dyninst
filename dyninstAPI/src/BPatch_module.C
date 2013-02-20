@@ -358,8 +358,9 @@ bool BPatch_module::getProcedures(BPatch_Vector<BPatch_function*> &funcs,
    BPatch_funcMap::iterator i = func_map.begin();
    for (; i != func_map.end(); i++) {
       func_instance *fi = static_cast<func_instance *>(i->first);
-      if (incUninstrumentable || fi->isInstrumentable())
+      if (incUninstrumentable || fi->isInstrumentable()) {
          funcs.push_back((*i).second);
+      }
    }
    return true;
 }
@@ -852,19 +853,15 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
 
     // build up list of memory pages that contain analyzed code
     std::set<Address> pageAddrs;
-#if defined (os_windows) && defined(working_windows_proccontrol)
     lowlevel_mod()->getAnalyzedCodePages(pageAddrs);
-    // get lwp from which we can call changeMemoryProtections
-    process *proc = ((BPatch_process*)addSpace)->lowlevel_process();
-    dyn_lwp *stoppedlwp = proc->query_for_stopped_lwp();
-    if ( ! stoppedlwp ) {
-        bool wasRunning = true;
-        stoppedlwp = proc->stop_an_lwp(&wasRunning);
-        if ( ! stoppedlwp ) {
+
+    // get proc from which we can call changeMemoryProtections
+    PCProcess *proc = ((BPatch_process*)addSpace)->lowlevel_process();
+    assert(proc);
+    if (!proc->isStopped()) {
+        if (!proc->stopProcess())
             return false;
-        }
     }
-#endif
 
     // add protected pages to the mapped_object's hash table, and
     // aggregate adjacent pages into regions and apply protection
@@ -897,16 +894,11 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
             end += pageSize;
         } 
 
-#if defined(os_windows) && defined(working_windows_proccontrol)
-        int newRights = PAGE_EXECUTE_READ;
-        if (writeable) {
-            newRights = PAGE_EXECUTE_READWRITE;
-        }
-        stoppedlwp->changeMemoryProtections(start, end - start, newRights, true);
-#else
-        assert(0 && "unimplemented!");
-#endif
-
+        PCProcess::PCMemPerm newRights(true, false, true);  // PAGE_EXECUTE_READ;
+        if (writeable)
+            newRights.setW();  // PAGE_EXECUTE_READWRITE;
+        
+        proc->changeMemoryProtections(start, end - start, newRights, true);
     }
     return true;
 }

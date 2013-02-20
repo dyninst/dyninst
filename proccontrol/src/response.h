@@ -107,6 +107,7 @@ class response : public boost::enable_shared_from_this<response> {
    boost::shared_ptr<data_response> getDataResponse();
    
    bool isReady() const;
+   bool testReady() const;
    bool isPosted() const;
    bool hasError() const;
    int errorCode() const;

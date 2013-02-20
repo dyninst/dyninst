@@ -386,7 +386,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
   //  an extra shared library could hide access to the 'correct'
   //  function by redefining a function  
 
-  virtual BPatch_object * loadLibrary(const char *libname, bool reload = false);
+  virtual BPatch_object * loadLibrary(const char *libname, bool reload = false) = 0;
 
   // BPatch_addressSpace::isStaticExecutable
   //

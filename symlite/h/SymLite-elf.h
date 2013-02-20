@@ -70,6 +70,7 @@ class SymElf : public Dyninst::SymReader
    
    void init();
    unsigned long getSymOffset(const Elf_X_Sym &symbol, unsigned idx);   
+   unsigned long getSymTOC(const Elf_X_Sym &symbol, unsigned idx);   
  public:
    virtual Symbol_t getSymbolByName(std::string symname);
    virtual Symbol_t getContainingSymbol(Dyninst::Offset offset);
@@ -79,6 +80,7 @@ class SymElf : public Dyninst::SymReader
    virtual bool getSegment(unsigned num, SymSegment &reg); 
 
    virtual Dyninst::Offset getSymbolOffset(const Symbol_t &sym);
+   virtual Dyninst::Offset getSymbolTOC(const Symbol_t &sym);
    virtual std::string getSymbolName(const Symbol_t &sym);
    virtual std::string getDemangledName(const Symbol_t &sym);
 

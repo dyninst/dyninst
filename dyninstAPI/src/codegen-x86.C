@@ -239,7 +239,7 @@ void insnCodeGen::generateBranch(codeGen &gen,
      return;
   }
   */
-  disp = toAddr - (fromAddr + 5);
+  disp = toAddr - fromAddr;
   if (is_disp32(disp) || gen.addrSpace()->getAddressWidth() == 4) {
      generateBranch(gen, disp);
      return;
@@ -259,13 +259,18 @@ void insnCodeGen::generateBranch(codeGen &gen,
 void insnCodeGen::generateBranch(codeGen &gen,
                                  int disp32)
 {
+   // Branches have sizes...
+
    if (disp32 >= 0)
       assert ((unsigned)disp32 < unsigned(1<<31));
    else
       assert ((unsigned)(-disp32) < unsigned(1<<31));
+
    GET_PTR(insn, gen);
    *insn++ = 0xE9;
-   *((int *)insn) = disp32;
+
+   // 5 for a 5-byte branch.
+   *((int *)insn) = disp32 - 5;
    insn += sizeof(int);
   
    SET_PTR(insn, gen);
@@ -660,6 +665,8 @@ unsigned pcRelData::apply(Address addr)
    unsigned nOpcodeBytes = 1;
    if (*(origInsn + nPrefixes) == 0x0F)
       nOpcodeBytes = 2;
+   if ((*(origInsn + nPrefixes) == 0x0F) && (*(origInsn + nPrefixes + 1) == 0x38 || *(origInsn + nPrefixes + 1) == 0x3A))
+   	  nOpcodeBytes = 3;
    
    Register pointer_reg = (Register)-1;
      
@@ -682,6 +689,10 @@ unsigned pcRelData::apply(Address addr)
 
    if (*origInsn == 0x0F) {
       *newInsn++ = *origInsn++;
+       // 3-byte opcode support
+       if (*origInsn == 0x38 || *origInsn == 0x3A) {
+           *newInsn++ = *origInsn++;
+       }
    }
      
    // And the normal opcode
@@ -1157,8 +1168,13 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
 
    // count opcode bytes (1 or 2)
    unsigned nOpcodeBytes = 1;
-   if (*(origInsn + nPrefixes) == 0x0F)
+   if (*(origInsn + nPrefixes) == 0x0F) {
       nOpcodeBytes = 2;
+       // 3-byte opcode support
+       if ((*(origInsn + nPrefixes) == 0x0F) && (*(origInsn + nPrefixes + 1) == 0x38 || *(origInsn + nPrefixes + 1) == 0x3A)) {
+          nOpcodeBytes = 3;  
+       }
+   }
    
    Register pointer_reg = (Register)-1;
      
@@ -1183,6 +1199,10 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
 
    if (*origInsn == 0x0F) {
       *newInsn++ = *origInsn++;
+       // 3-byte opcode support
+       if (*origInsn == 0x38 || *origInsn == 0x3A) {
+           *newInsn++ = *origInsn++;
+       }
    }
      
    // And the normal opcode

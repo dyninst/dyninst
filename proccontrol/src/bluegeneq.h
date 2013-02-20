@@ -147,7 +147,7 @@ class bgq_process :
    virtual bool plat_preAsyncWait();
    bool rotateTransaction();
 
-   virtual bool plat_individualRegRead();
+   virtual bool plat_individualRegRead(Dyninst::MachRegister reg, int_thread *thr);
    virtual bool plat_individualRegSet();
 
    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
@@ -195,7 +195,7 @@ class bgq_process :
    QueryTransaction *query_transaction;
    UpdateTransaction *update_transaction;
    ComputeNode *cn;
-   int_thread *last_ss_thread;
+   bgq_thread *last_ss_thread;
    LWPTracking *lwp_tracker;
    result_response::ptr lwp_tracking_resp;
 
@@ -265,9 +265,11 @@ class bgq_process :
 class bgq_thread : public thread_db_thread, public ppc_thread
 {
    friend class bgq_process;
+   friend class DecoderBlueGeneQ;
   private:
    bool last_signaled;
    CallStackUnwinding *unwinder;
+   Address last_ss_addr;
   public:
    bgq_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~bgq_thread();
@@ -455,13 +457,13 @@ class DecoderBlueGeneQ : public Decoder
    bool decodeSignal(ArchEventBGQ *archevent, bgq_process *proc,
                      vector<Event::ptr> &events);
    bool decodeBreakpoint(ArchEventBGQ *archevent, bgq_process *proc, int_thread *thr,
-                         Address addr, vector<Event::ptr> &events);
+                         Address addr, vector<Event::ptr> &events, bool allow_signal_decode = true);
    bool decodeGenericSignal(ArchEventBGQ *archevent, bgq_process *proc, int_thread *thr,
                             int signum, vector<Event::ptr> &events);
    bool decodeStop(ArchEventBGQ *archevent, bgq_process *proc, int_thread *thr,
                    std::vector<Event::ptr> &events);
    bool decodeStep(ArchEventBGQ *archevent, bgq_process *proc, int_thread *thr,
-                   std::vector<Event::ptr> &events);
+                   Address addr, std::vector<Event::ptr> &events);
    bool decodeExit(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
    bool decodeControlNotify(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
    bool decodeDetachAck(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);

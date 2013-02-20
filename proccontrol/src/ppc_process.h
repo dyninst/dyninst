@@ -64,6 +64,9 @@ class ppc_process : virtual public int_process
 
 class ppc_thread : virtual public int_thread
 {
+  protected:
+   bool have_cached_pc;
+   Address cached_pc;
   public:
    ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~ppc_thread();
@@ -82,6 +85,10 @@ class ppc_thread : virtual public int_thread
                                                    bool have_reg = false,
                                                    Dyninst::MachRegisterVal regval = 0);
    virtual bool bpNeedsClear(hw_breakpoint *hwbp);
+
+   void setCachedPC(Address pc);
+   void clearCachedPC();
+   bool haveCachedPC(Address &pc);
 };
 
 #endif

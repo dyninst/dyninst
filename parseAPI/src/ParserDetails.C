@@ -536,7 +536,7 @@ void Parser::ProcessCFInsn(
                 absolute_call,resolvable_edge,curEdge->first);
 
             tailcall = !dynamic_call && 
-                ah.isTailCall(frame.func,frame.num_insns);
+               ah.isTailCall(frame.func, CALL, frame.num_insns);
             if(resolvable_edge) {
                 if (tailcall) {
                     newedge = link_tempsink(cur,DIRECT);
@@ -548,8 +548,13 @@ void Parser::ProcessCFInsn(
                 }
                 else newedge = link(cur,_sink,CALL,true);
             }
-            if(!ah.isCall())
+            if(!ah.isCall()) {
+               parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc\n",
+                              newedge,
+                              newedge->src()->start(), 
+                              newedge->trg()->start());
                 newedge->_type._interproc = true;
+            }
         }
         /*
          * All other edge types are handled identically
@@ -563,8 +568,12 @@ void Parser::ProcessCFInsn(
                 newedge = link(cur,_sink,curEdge->second,true);
         }
 
-        if (ah.isTailCall(frame.func,frame.num_insns)) {
-            newedge->_type._interproc = true;
+        if (ah.isTailCall(frame.func, curEdge->second, frame.num_insns)) {
+           parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc (tail call)\n",
+                          newedge,
+                          newedge->src()->start(),
+                          newedge->trg()->start());
+           newedge->_type._interproc = true;
         }
 
         if(!bundle) {

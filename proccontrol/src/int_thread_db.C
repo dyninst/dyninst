@@ -450,7 +450,11 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
 {
    td_thrinfo_t info;
    async = false;
+#if !defined(os_freebsd)
    td_thrhandle_t *handle = const_cast<td_thrhandle_t *>(eventMsg->th_p);
+#else
+   td_thrhandle_t *handle = (td_thrhandle_t *)(eventMsg->th_p);
+#endif
    pthrd_printf("Decoding thread event on %u\n", getPid());
    async_ret_t result = ll_fetchThreadInfo(handle, &info);
    if (result == aret_error) {
@@ -1224,7 +1228,7 @@ Handler::handler_ret_t ThreadDBDispatchHandler::handleEvent(Event::ptr ev)
    proc->dispatch_event = etdb;
 
    if (!int_ev->completed_new_evs) {
-      async_ret_t result = proc->getEventForThread(int_ev->new_evs);
+      async_ret_t result = proc->getEventForThread(int_ev);
       if (result == aret_async) {
          pthrd_printf("getEventForThread returned async\n");
          return ret_async;
@@ -1246,6 +1250,7 @@ Handler::handler_ret_t ThreadDBDispatchHandler::handleEvent(Event::ptr ev)
 
       if (!main_thread->threadHandle) {
          main_thread->threadHandle = new td_thrhandle_t;
+         bzero(&main_thread->threadHandle, sizeof(td_thrhandle_t));
          main_thread->threadHandle_alloced = true;
       }
 
@@ -1492,7 +1497,7 @@ bool thread_db_thread::initThreadHandle() {
     return true;
 }
 
-async_ret_t thread_db_process::getEventForThread(set<Event::ptr> &new_ev_set) {
+async_ret_t thread_db_process::getEventForThread(int_eventThreadDB *iev) {
    // These specific calls into thread_db can modify the memory of the process
    // and can introduce some race conditions if the platform allows memory reads
    // while some threads are running
@@ -1503,37 +1508,58 @@ async_ret_t thread_db_process::getEventForThread(set<Event::ptr> &new_ev_set) {
    // least on some platforms).
 
    bool local_async = false;
-   td_event_msg_t evMsg;
    td_err_e msgErr = TD_OK;
-   for (;;) {
+
+   if (!iev->completed_getmsgs) {
       getMemCache()->markToken(token_getmsg);
-      msgErr = p_td_ta_event_getmsg(threadAgent, &evMsg);
-      if (msgErr != TD_OK) {
-         if (getMemCache()->hasPendingAsync()) {
-            pthrd_printf("Async return in getEventForThread from td_ta_event_getmsg\n");
-            return aret_async;
+      vector<td_event_msg_t> msgs;
+      vector<td_thrhandle_t> handles;
+
+      td_event_msg_t evMsg;
+
+      for (;;) {
+         msgErr = p_td_ta_event_getmsg(threadAgent, &evMsg);
+         if (msgErr != TD_OK) {
+            if (getMemCache()->hasPendingAsync()) {
+               pthrd_printf("Async return in getEventForThread from td_ta_event_getmsg\n");
+               return aret_async;
+            }
+            else if (msgErr == TD_NOMSG) {
+               pthrd_printf("No more messages ready in thread_db\n");
+               break;
+            }
+            else {
+               perr_printf("Error reading messages from thread_db\n");
+               return aret_error;
+            }
          }
-         else if (msgErr == TD_DBERR) {
-            pthrd_printf("No more messages ready in thread_db\n");
-            return aret_success;
-         }
-         else
-            break;
+         msgs.push_back(evMsg);
+         //GLIBC's thread_db returns a pointer to a static variable inside
+         // evMsg.  Thus subsequent calls will override the data from prior
+         // calls.  Annoying.  Make a copy of the th_p in handles to avoid
+         // this problem.
+         handles.push_back(*evMsg.th_p);
       }
+      pthrd_printf("Received %lu messages from thread_db on %d\n", msgs.size(), getPid());
+      iev->msgs = msgs;
+      iev->handles = handles;
+      iev->completed_getmsgs = true;
+   }
+
+   getMemCache()->condense();
+
+   for (int i=iev->msgs.size()-1; i>=0; i--) {
+      td_event_msg_t &evMsg = iev->msgs[i];
+      evMsg.th_p = & iev->handles[i];
       Event::ptr newEvent = decodeThreadEvent(&evMsg, local_async);
       if (local_async) {
          pthrd_printf("Async return from decodeThreadEvent\n");
          return aret_async;
       }
       if (newEvent)
-         new_ev_set.insert(newEvent);
-      getMemCache()->condense();
-   }
-  
-   if( msgErr != TD_NOMSG ) {
-      perr_printf("Failed to retrieve thread event: %s(%d)\n",
-                  tdErr2Str(msgErr), msgErr);
-      return aret_error;
+         iev->new_evs.insert(newEvent);
+      iev->msgs.pop_back();
+      iev->handles.pop_back();
    }
   
    return aret_success;
@@ -1823,7 +1849,7 @@ const char *thread_db_process::getThreadLibName(const char *)
 void thread_db_process::freeThreadDBAgent() {
 }
 
-async_ret_t thread_db_process::getEventForThread(set<Event::ptr> &) 
+async_ret_t thread_db_process::getEventForThread(int_eventThreadDB *) 
 {
    return aret_error;
 }

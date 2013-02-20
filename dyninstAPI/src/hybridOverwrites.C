@@ -368,11 +368,8 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop(Address writeInsn)
                       if (funcs[fidx] != src->getFlowGraph()->getFunction()->lowlevel_func()) {
                          BPatch_function *bpf = hybridow_->proc()->
                             findOrCreateBPFunc(funcs[fidx],src->getFlowGraph()->getModule());
-                         // TODO FIXME: this function was removed and a better one needs to 
-                         // be implemented
-                         //BPatch_basicBlock *shared = bpf->getCFG()->findBlockByAddr(src->getStartAddress());
-                         BPatch_basicBlock *shared = NULL;
-                         assert(0 && "FIXME");
+
+                         BPatch_basicBlock *shared = bpf->getCFG()->findBlockByAddr(src->getStartAddress());
                          vector<BPatch_edge*> sharedOutEdges;
                          shared->getOutgoingEdges(sharedOutEdges);
                          for (unsigned sIdx=0; sIdx < sharedOutEdges.size(); sIdx++) {
@@ -1383,11 +1380,7 @@ void HybridAnalysisOW::overwriteSignalCB
     assert(!faultFuncs.empty());
     vector<BPatch_basicBlock*> faultBlocks;
     for (unsigned fidx=0; fidx < faultFuncs.size(); fidx++) {
-
-       // TODO FIXME: this function was removed and a better one needs to 
-       // be implemented
-       //faultBlocks.push_back(faultFuncs[fidx]->getCFG()->findBlockByAddr(faultInsnAddr));
-       assert(0 && "FIXME");
+	    faultBlocks.push_back(faultFuncs[fidx]->getCFG()->findBlockByAddr(faultInsnAddr));
     }
     assert(faultBlocks.size() == faultFuncs.size());
     const unsigned int pageSize = proc()->lowlevel_process()->getMemoryPageSize();

@@ -130,6 +130,12 @@ Address PatchObject::codeOffsetToAddr(Address offset) const {
    return ((codeBase() + offset) & addrMask());
 }
 
+void PatchObject::createFuncs() {
+   for (auto iter = co()->funcs().begin(); iter != co()->funcs().end(); ++iter) {
+      getFunc(*iter, true);
+   }
+}   
+
 PatchFunction*
 PatchObject::getFunc(ParseAPI::Function *f, bool create) {
   if (!f) return NULL;
@@ -165,6 +171,14 @@ PatchObject::removeFunc(ParseAPI::Function* f) {
    FuncMap::iterator iter = funcs_.find(f);
    if (iter == funcs_.end()) return;
    funcs_.erase(iter);
+}
+
+// SLOW AS HECK
+void PatchObject::createBlocks() {
+   createFuncs();
+   for (auto iter = funcs_.begin(); iter != funcs_.end(); ++iter) {
+      iter->second->blocks();
+   }
 }
 
 PatchBlock*
@@ -219,6 +233,16 @@ PatchObject::getEdge(ParseAPI::Edge* e, PatchBlock* src, PatchBlock* trg, bool c
    }
    cb()->create(ret);
    return ret;
+}
+
+void PatchObject::createEdges() {
+   createFuncs();
+   for (auto iter = funcs_.begin(); iter != funcs_.end(); ++iter) {
+      for (auto b_iter = iter->second->blocks().begin(); b_iter != iter->second->blocks().end(); ++b_iter) {
+         (*b_iter)->sources();
+         (*b_iter)->targets();
+      }
+   }   
 }
 
 void

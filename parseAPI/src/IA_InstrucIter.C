@@ -96,9 +96,14 @@ bool IA_InstrucIter::hasCFT() const
     return false;
 }
 
-bool IA_InstrucIter::isAbortOrInvalidInsn() const
+bool IA_InstrucIter::isAbort() const
 {
     return ii.isAnAbortInstruction();
+}
+
+bool IA_InstrucIter::isInvalidInsn() const
+{
+   return false;
 }
 
 bool IA_InstrucIter::isFrameSetupInsn() const
@@ -351,7 +356,7 @@ bool IA_InstrucIter::isRelocatable(InstrumentableLevel lvl) const
     return true;
 }
 
-bool IA_InstrucIter::isTailCall(Function * context,unsigned int/* num_insns */) const
+bool IA_InstrucIter::isTailCall(Function * context, EdgeTypeEnum /*ignored*/, unsigned int/* num_insns */) const
 {
     if(ii.isACondBranchInstruction()) return false;
     if(ii.isAIndirectJumpInstruction() && ii.isIndirectTailCall(context))

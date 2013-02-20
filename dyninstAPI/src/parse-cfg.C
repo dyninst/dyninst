@@ -553,7 +553,9 @@ bool parse_func::hasUnresolvedCF() {
          for (Block::edgelist::const_iterator iter2 = (*iter)->targets().begin();
               iter2 != (*iter)->targets().end(); ++iter2) {
             if ((*iter2)->sinkEdge() &&
-                (*iter2)->type() == ParseAPI::INDIRECT) {
+                (((*iter2)->type() == ParseAPI::INDIRECT) ||
+                 ((*iter2)->type() == ParseAPI::DIRECT)) &&
+                (!((*iter2)->interproc()))) {
                unresolvedCF_ = HAS_UNRESOLVED_CF;
                break;
             }
@@ -563,7 +565,6 @@ bool parse_func::hasUnresolvedCF() {
       if (unresolvedCF_ == UNSET_CF)
          unresolvedCF_ = NO_UNRESOLVED_CF;
    }
-
    return (unresolvedCF_ == HAS_UNRESOLVED_CF);
 }
 

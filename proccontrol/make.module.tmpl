@@ -77,8 +77,14 @@ SRCS	     +=	../src/event.C \
 		../src/mmapalloc.C \
 		../src/procset.C \
 		../src/processplat.C \
-		../src/resp.C
+		../src/resp.C \
+		../src/loadLibrary/injector.C \
+		../src/loadLibrary/codegen.C \
+		../src/loadLibrary/codegen-ppc.C \
+		../src/loadLibrary/codegen-x86.C
 
+
+VPATH += ../src/loadLibrary
 
 IFLAGS       += -I../src -I../h
 LDFLAGS += -L../../common/$(PLATFORM)

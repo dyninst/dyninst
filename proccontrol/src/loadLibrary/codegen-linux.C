@@ -1,19 +1,15 @@
 // Linux-specific routines to generate a code sequence to load a library
 // into a target process.
 
-#include "codegen.h"
+#include "loadLibrary/codegen.h"
 #include <dlfcn.h>
 #include <iostream>
-#include "Symbol.h"
-#include "Symtab.h"
 #include "PCProcess.h"
 #include <sys/mman.h>
 
 using namespace Dyninst;
-using namespace InjectorAPI;
 using namespace std;
 using namespace ProcControlAPI;
-using namespace SymtabAPI;
 
 static const int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
 
@@ -30,7 +26,7 @@ const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 
 
-bool Codegen::generateLinux() {
+bool Codegen::generateInt() {
    Address dlopen_addr = 0;
 
     int mode = DLOPEN_MODE;
@@ -38,7 +34,7 @@ bool Codegen::generateLinux() {
     bool needsStackUnprotect = false;
     
     do {
-       dlopen_addr = findSymbolAddr(DL_OPEN_FUNC_EXPORTED, true, true); 
+       dlopen_addr = findSymbolAddr(DL_OPEN_FUNC_EXPORTED, true); 
        if (dlopen_addr) {
           break;
        }
@@ -47,7 +43,7 @@ bool Codegen::generateLinux() {
        // Note: this is more robust than the next approach
        useHiddenFunction = true;
        needsStackUnprotect = true;
-       dlopen_addr = findSymbolAddr(DL_OPEN_FUNC_NAME, true, true);
+       dlopen_addr = findSymbolAddr(DL_OPEN_FUNC_NAME, true);
        if (dlopen_addr) {
           break;
        }
@@ -59,7 +55,7 @@ bool Codegen::generateLinux() {
        useHiddenFunction = false;
        needsStackUnprotect = false;
        mode |= __RTLD_DLOPEN;
-       dlopen_addr = findSymbolAddr(DL_OPEN_LIBC_FUNC_EXPORTED, true, true);
+       dlopen_addr = findSymbolAddr(DL_OPEN_LIBC_FUNC_EXPORTED, true);
        if (dlopen_addr) {
           break;
        }
@@ -153,8 +149,8 @@ bool Codegen::generateStackUnprotect() {
    // Instead of chasing the value of the undocumented flag, we will
    // unprotect the __stack_prot variable ourselves (if we can find it).
 
-   Address var_addr = findSymbolAddr("__stack_prot", false, false);
-   Address mprotect_addr = findSymbolAddr("mprotect", true, false);
+   Address var_addr = findSymbolAddr("__stack_prot");
+   Address mprotect_addr = findSymbolAddr("mprotect", true);
 
    if (!var_addr || !mprotect_addr) return false;
 
@@ -172,7 +168,12 @@ bool Codegen::generateStackUnprotect() {
    return generateCall(mprotect_addr, args);
 }
 
+#if 0
+
 bool Codegen::findTOC(Symbol *sym, Library::ptr lib) {
+   Address baseTOC = 
+
+   return false;
    if (proc_->getArchitecture() != Arch_ppc64) return true;
 
 
@@ -181,3 +182,4 @@ bool Codegen::findTOC(Symbol *sym, Library::ptr lib) {
    toc_ = baseTOC;
    return toc_ != 0;
 }
+#endif

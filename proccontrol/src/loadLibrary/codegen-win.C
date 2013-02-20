@@ -1,20 +1,20 @@
-#include "codegen.h"
+#include "loadLibrary/codegen.h"
 
 using namespace Dyninst;
-using namespace InjectorAPI;
+using namespace ProcControlAPI;
 using namespace std;
 
-bool Codegen::generateWindows() {
+bool Codegen::generateInt() {
    // Windows is utterly unlike Linux. 
 
    // Well, mostly. 
 
-   Address loadLibraryA = findSymbolAddr("_LoadLibraryA@4", true, false);
+   Address loadLibraryA = findSymbolAddr("_LoadLibraryA@4");
    if (!loadLibraryA) {
-      loadLibraryA = findSymbolAddr("_LoadLibraryA", true, false);
+      loadLibraryA = findSymbolAddr("_LoadLibraryA");
    }
    if (!loadLibraryA) {
-      loadLibraryA = findSymbolAddr("LoadLibraryA", true, false);
+      loadLibraryA = findSymbolAddr("LoadLibraryA");
    }
    if (!loadLibraryA) return false;
 

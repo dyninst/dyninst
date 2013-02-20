@@ -39,8 +39,10 @@
 #define TEST_DYNAMIC_LIB_NOPATH  "libtesta.dll"
 #define TEST_DYNAMIC_LIB2        "libtestb.dll"
 #define TEST_DYNAMIC_LIB2_NOPATH "libtestb.dll"
-#define	TEST_DYNAMIC_LIB	"libX11.so.4"
-#define TEST_DYNAMIC_LIB2	"libXt.so.4"
+#elif defined(os_freebsd_test)
+#define TEST_DYNAMIC_LIB         "libncurses.so.8"
+#define TEST_DYNAMIC_LIB2        "libpcap.so.8"
 #endif
+
 
 #endif /* _test2_h_ */

@@ -140,7 +140,6 @@ public:
     typedef ProcControlAPI::Process::mem_perm PCMemPerm;
     bool getMemoryAccessRights(Address start,  size_t size, PCMemPerm& rights);
     bool setMemoryAccessRights(Address start,  size_t size, PCMemPerm  rights);
-protected:
     void changeMemoryProtections(Address addr, size_t size, PCMemPerm  rights,
                                  bool setShadow);
 

@@ -52,7 +52,9 @@ class IA_InstrucIter : public InstructionAdapter
         virtual bool hasCFT() const;
         virtual size_t getSize() const;
         virtual bool isFrameSetupInsn() const;
-        virtual bool isAbortOrInvalidInsn() const;
+        virtual bool isAbort() const;
+        virtual bool isInvalidInsn() const;
+
         virtual void
                 getNewEdges(std::vector<std::pair< Address, 
                 Dyninst::ParseAPI::EdgeTypeEnum> >&
@@ -70,7 +72,7 @@ class IA_InstrucIter : public InstructionAdapter
         virtual bool isNop() const;
         virtual bool isLeave() const;
         virtual bool isDelaySlot() const;
-        virtual bool isTailCall(Dyninst::ParseAPI::Function*,unsigned int num_insns) const;
+        virtual bool isTailCall(Dyninst::ParseAPI::Function*, Dyninst::ParseAPI::EdgeTypeEnum, unsigned int num_insns) const;
         virtual Address getCFT() const;
         virtual bool isStackFramePreamble() const;
         virtual bool savesFP() const;

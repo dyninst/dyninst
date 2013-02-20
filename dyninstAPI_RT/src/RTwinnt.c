@@ -482,7 +482,7 @@ BOOL __stdcall DYNINST_FakeBlockInput(BOOL blockit)
 DWORD __stdcall DYNINST_FakeSuspendThread(HANDLE hThread)
 {
     DWORD suspendCnt = 0;
-    fprintf(stOut,"%d = DYNINST_FakeBlockInput(%d)\n",suspendCnt,hThread);
+    fprintf(stOut,"%d = DYNINST_FakeSuspendThread(%d)\n",suspendCnt,hThread);
     return suspendCnt;
 }
 
