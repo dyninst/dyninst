@@ -3233,7 +3233,10 @@ bool DecoderBlueGeneQ::decodeFileContents(ArchEventBGQ *ev, bgq_process *proc, T
       iev->to_free = ev->getMsg();
    }
 
-#warning Fill in iev->errorcode with rc
+   if (rc != 0) {
+      iev->errorcode = rc;
+      proc->setLastError(err_internal, "Error from CDTI while reading file");
+   }
 
    EventAsyncFileRead::ptr newev = EventAsyncFileRead::ptr(new EventAsyncFileRead(iev));
    newev->setProcess(proc->proc());
@@ -3257,8 +3260,12 @@ bool DecoderBlueGeneQ::decodeGetFilenames(ArchEventBGQ *, bgq_process *proc, Too
    GetFilenamesAckCmd *filelist = static_cast<GetFilenamesAckCmd *>(cmd);
    Process::ptr ui_proc = proc->proc();
 
-#warning TODO: Set errors based on rc
-   
+   if (rc != 0) {
+      proc->setLastError(err_internal, "Error from CDTI while getting filelist");
+      fset_resp->done();
+      return true;
+   }
+
    for (uint32_t i = 0; i < filelist->numFiles; i++) {
       fset->insert(make_pair(ui_proc, FileInfo(string(filelist->pathname[i]))));
    }
@@ -3280,7 +3287,7 @@ bool DecoderBlueGeneQ::decodeFileStat(ToolCommand *cmd, bgq_process *proc, unsig
       if (*statp)
          delete *statp;
       *statp = NULL;
-#warning TODO: Set errors based on rc
+      proc->setLastError(err_notfound, "Error stat'ing file from CDTI");
    }
    else {
       if (!*statp)

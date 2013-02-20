@@ -1057,6 +1057,16 @@ size_t EventAsyncFileRead::getBufferSize() const
    return iev->size;
 }
 
+bool EventAsyncFileRead::isEOF() const
+{
+   return (iev->size != iev->orig_size);
+}
+
+int EventAsyncFileRead::errorCode() const 
+{
+   return iev->errorcode;
+}
+
 int_eventAsyncFileRead *EventAsyncFileRead::getInternal()
 {
    return iev;

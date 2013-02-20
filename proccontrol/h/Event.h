@@ -845,6 +845,9 @@ class PC_EXPORT EventAsyncFileRead : public Event {
 
    void *getBuffer() const;
    size_t getBufferSize() const;
+
+   bool isEOF() const;
+   int errorCode() const;
 };
 
 }
