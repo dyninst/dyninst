@@ -2774,7 +2774,13 @@ bool EmitterPOWER::emitLoadRelative(Register dest, Address offset, Register base
     // We're about to stomp dest to get a number in it... make sure that
     // it's not also the base register
     assert(dest != base); 
-    insnCodeGen::loadImmIntoReg(gen, dest, offset);
+    Register scratch = dest;
+    if (dest == base) {
+      // Can't use it because base holds a value we need
+      scratch = gen.rs()->getScratchRegister(gen, true);
+    }
+
+    insnCodeGen::loadImmIntoReg(gen, scratch, offset);
 
     int ocode = LXop;
     int xcode = 0;
@@ -2800,7 +2806,7 @@ bool EmitterPOWER::emitLoadRelative(Register dest, Address offset, Register base
     instruction insn; insn.clear();
     XFORM_OP_SET(insn, ocode);
     XFORM_RT_SET(insn, dest);
-    XFORM_RA_SET(insn, dest);
+    XFORM_RA_SET(insn, scratch);
     XFORM_RB_SET(insn, base);
     XFORM_XO_SET(insn, xcode);
     XFORM_RC_SET(insn, 0);
