@@ -61,7 +61,14 @@ ifeq (0,0)
 YACCFLAGS += -v
 endif
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h -I../../dyninstAPI/src -I. 
+IFLAGS      += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h 
+IFLAGS      += -I../../symtabAPI/h -I../../instructionAPI/h
+IFLAGS      += -I../../proccontrol/h
+IFLAGS      += -I../../parseAPI/h -I../../dataflowAPI/h
+IFLAGS      += -I../../patchAPI/h
+# We include ast.h for debugging purposes; if this is ever a problem it can be removed
+IFLAGS      += -I../../dyninstAPI/src
+
 
 # We use a separate target for regenerating Lex and Yacc source files because of 
 # inconsistent Lex and Yacc availability across platforms.

@@ -74,6 +74,11 @@ bool response::isReady() const
    return (state == ready);
 }
 
+bool response::testReady() const
+{
+   return (state == ready);
+}
+
 Event::ptr response::getEvent() const
 {
    return event;

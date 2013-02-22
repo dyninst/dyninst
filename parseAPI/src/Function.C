@@ -234,11 +234,14 @@ Function::blocks_int()
             Edge * e = *tit;
             Block * t = e->trg();
 
+            parsing_printf("\t Considering target block 0x%lx from edge %p\n", t->start(), e); 
+
             if (e->type() == CALL_FT) {
                found_call_ft = true;
             }
 
             if(e->type() == CALL) {
+               parsing_printf("\t Call typed\n");
                 _call_edge_list.insert(e);
                 found_call = true;
                 continue;
@@ -257,6 +260,13 @@ Function::blocks_int()
                 continue;
             }
 
+            /* Handle tailcall edges */
+            if(e->interproc()) {
+               parsing_printf("\t Interprocedural\n");
+                _call_edge_list.insert(e);
+                found_call = true;
+                continue;
+            }
             // If we are heading to a different CodeObject, call it a return
             // and don't add target blocks.
             if (t->obj() != cur->obj()) {
@@ -267,15 +277,18 @@ Function::blocks_int()
             }
 
             /* sink edges receive no further processing */
-            if(e->sinkEdge())
+            if(e->sinkEdge()) {
+               parsing_printf("\t Sink edge, skipping\n");
                 continue;
+            }
 
             if(!HASHDEF(visited,t->start())) {
+               parsing_printf("\t Adding target block to worklist\n");
                 worklist.push_back(t);
                 visited[t->start()] = true;
                 add_block(t);
             }
-        } 
+        }
         if (found_call && !found_call_ft && !obj()->defensiveMode()) {
 	  parsing_printf("\t exits func\n");
            exits_func = true;

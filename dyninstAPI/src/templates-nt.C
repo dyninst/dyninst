@@ -42,7 +42,6 @@
 #include "common/src/Dictionary.C"
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/h/BPatch_Set.h"
 
 template class dictionary_hash<unsigned int, unsigned int>;
 template class dictionary_hash<unsigned int, heapItem *>;
@@ -83,7 +82,6 @@ template class dictionary_hash<const instPoint *, BPatch_point *>;
 
 class parse_block;
 template class dictionary_hash<Address, parse_block *>;
-template class  BPatch_Set<parse_block *>;
 
 class fileDescriptor;
 template class pdvector<fileDescriptor>;
@@ -148,7 +146,6 @@ class dominatorBB;
 template class  dictionary_hash <unsigned, dominatorBB *>;
 template class  pdvector<dictionary_hash<unsigned, dominatorBB *>::entry >;
 template class  BPatch_Vector<dominatorBB *>;
-template class  BPatch_Set<dominatorBB *>;
 
 
 class EventGate;

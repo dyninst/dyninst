@@ -48,11 +48,7 @@ void bp_func()
    do_nothing++;
 }
 
-#if defined(os_bgq_test)
-static void *findUnallocatedMemory() {
-   return (void *) 0x4000;
-}
-#elif !defined(os_windows_test)
+#if !defined(os_windows_test)
 /* Need this for MAP_ANONYMOUS on ppc32-linux */
 
 #if !defined(__USE_MISC)

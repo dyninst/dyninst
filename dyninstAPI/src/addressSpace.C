@@ -2073,7 +2073,8 @@ bool AddressSpace::getAddrInfo(Address relocAddr,
    std::set<func_instance *> tmpFuncs;
    if (findFuncsByAddr(relocAddr, tmpFuncs)) {
       origAddr = relocAddr;
-      std::copy(tmpFuncs.begin(), tmpFuncs.end(), std::back_inserter(origFuncs));
+      origFuncs.insert(origFuncs.end(), tmpFuncs.begin(), tmpFuncs.end());
+
       baseT = NULL;
       return true;
    }

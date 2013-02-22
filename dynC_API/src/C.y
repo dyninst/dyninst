@@ -89,8 +89,8 @@ std::vector<BPatch_snippet *> endSnippets;
    BPatch_funcCallExpr *funcCall;
    BPatch_variableExpr *varExpr;
    std::vector<BPatch_snippet *> *snippetList;
-   std::vector<std::pair<BPatch_snippet *, char *> > *snippetStringListPair;
-   std::pair<BPatch_snippet *, char *> *snippetStringPair;   
+   std::vector<std::pair<BPatch_snippet *, const char *> > *snippetStringListPair;
+   std::pair<BPatch_snippet *, const char *> *snippetStringPair;   
 };
 
 %initial-action{
@@ -685,20 +685,20 @@ constant:
    { 
       if(verbose) printf(" %d ", $1);
       BPatch_snippet * c = new BPatch_constExpr($1);
-      $$ = new std::pair<BPatch_snippet *, char *>(c, "int");
+      $$ = new std::pair<BPatch_snippet *, const char *>(c, "int");
    }
     | STRING     
     { 
        if(verbose) printf(" %s ", $1);
        BPatch_snippet * c = new BPatch_constExpr($1);
-       $$ = new std::pair<BPatch_snippet *, char *>(c, "char *");
+       $$ = new std::pair<BPatch_snippet *, const char *>(c, "char *");
     }
 ;
 
 const_list: 
      constant
      {
-        std::vector<std::pair<BPatch_snippet *, char *> > *cnlist = new std::vector<std::pair<BPatch_snippet *, char *> >();
+        std::vector<std::pair<BPatch_snippet *, const char *> > *cnlist = new std::vector<std::pair<BPatch_snippet *, const char *> >();
         cnlist->push_back(*$1);
         $$ = cnlist;
      }

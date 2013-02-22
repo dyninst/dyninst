@@ -32,7 +32,6 @@
 #define _BPatch_edge_h_
 
 #include "BPatch_dll.h"
-#include "BPatch_eventLock.h"
 
 class BPatch_flowGraph;
 class BPatch_basicBlock;
@@ -57,14 +56,10 @@ namespace Dyninst {
 };
 
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_edge
 
 /** An edge between two blocks
  */
-class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
+class BPATCH_DLL_EXPORT BPatch_edge {
    friend Dyninst::ParseAPI::Edge *Dyninst::ParseAPI::convert(const BPatch_edge *);
    friend Dyninst::PatchAPI::PatchEdge *Dyninst::PatchAPI::convert(const BPatch_edge *);
 
@@ -73,28 +68,23 @@ class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
     // BPatch_edge::BPatch_edge
     //
     // constructor
-   API_EXPORT_CTOR(Int, (e, fg),
-                   
-                   BPatch_edge,(edge_instance *e, BPatch_flowGraph *fg));
+   BPatch_edge(edge_instance *e, BPatch_flowGraph *fg);
 
     // BPatch_edge::~BPatch_edge
     //
     // destructor
-    API_EXPORT_DTOR(_dtor, (),
-
-    ~,BPatch_edge,());
+    ~BPatch_edge();
 
     // BPatch_edge::dump
     //
     // print internal data
-    API_EXPORT_V(Int, (),
-    void,dump,());
+    void dump();
 
-    API_EXPORT(Int, (), BPatch_basicBlock *, getSource, ());
-    API_EXPORT(Int, (), BPatch_basicBlock *, getTarget, ());
-    API_EXPORT(Int, (), BPatch_point *, getPoint, ());
-    API_EXPORT(Int, (), BPatch_edgeType, getType, ());
-    API_EXPORT(Int, (), BPatch_flowGraph *, getFlowGraph, ());
+    BPatch_basicBlock * getSource();
+    BPatch_basicBlock * getTarget();
+    BPatch_point * getPoint();
+    BPatch_edgeType getType();
+    BPatch_flowGraph * getFlowGraph();
 
  private:
 

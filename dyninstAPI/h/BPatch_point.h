@@ -33,7 +33,6 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
-#include "BPatch_eventLock.h"
 #include "BPatch_Set.h"
 #include "BPatch_enums.h"
 
@@ -90,12 +89,7 @@ namespace Dyninst {
    needs to link instPoint back pointer (and we don't want to include
    that here) */
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_point
-
-class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
+class BPATCH_DLL_EXPORT BPatch_point {
     friend class BPatch_process;
     friend class BPatch_binaryEdit;
     friend class BPatch_addressSpace;
@@ -127,7 +121,7 @@ private:
     BPatch_memoryAccess *memacc;
     // Instruction constructor...
     BPatch_point(BPatch_addressSpace *_addSpace, BPatch_function *_func, 
-                 instPoint *_point, instPoint *_secondary,
+                 instPoint *_point,  instPoint *_secondary,
                  BPatch_procedureLocation _pointType,
                  AddressSpace *as);
 
@@ -188,90 +182,75 @@ public:
     // End internal functions
 
     //Added for DynC...
-    API_EXPORT(Int, (),
 	       
-    BPatch_addressSpace *, getAddressSpace, ());
+    BPatch_addressSpace * getAddressSpace();
     
 
     // Get the loop ID
-    API_EXPORT(Int, (),
 	       
-    BPatch_basicBlockLoop *, getLoop, ());
+    BPatch_basicBlockLoop * getLoop();
 
     //  BPatch_point::getPointType
     //  
-    API_EXPORT(Int, (),
-    BPatch_procedureLocation,getPointType,());
+    BPatch_procedureLocation getPointType();
 
     //  BPatch_point::getFunction
     //  Returns function to which this point belongs
 
-    API_EXPORT(Int, (),
 
-    BPatch_function *,getFunction,());
+    BPatch_function * getFunction();
 
     //  BPatch_point::getCalledFunction
     //  Returns a BPatch_function representing the function being called at this point.
     //  If this point is not a call site, returns NULL. 
 
-    API_EXPORT(Int, (),
 
-    BPatch_function *,getCalledFunction,());
+    BPatch_function * getCalledFunction();
 
-    API_EXPORT(Int, (),
-    std::string,getCalledFunctionName,());
+    std::string getCalledFunctionName();
 
     //  BPatch_point::getBlock
     //  Returns block to which this point belongs if such a block exists
     //  For example, function entry points do not have blocks associated with them.
 
-    API_EXPORT(Int, (),
 
-    BPatch_basicBlock *,getBlock,());
+    BPatch_basicBlock * getBlock();
 
 
     //  BPatch_point::getAddress
     //  Returns the address of this point in the mutatee
 
-    API_EXPORT(Int, (),
 
-    void *,getAddress,());
+    void * getAddress();
 
     //  BPatch_point::getMemoryAccess
     //  
 
-    API_EXPORT(Int, (),
 
-    const BPatch_memoryAccess *,getMemoryAccess,());
+    const BPatch_memoryAccess * getMemoryAccess();
 
-    API_EXPORT(Int, (),
-	       Dyninst::InstructionAPI::Instruction::Ptr, getInsnAtPoint, ());
+    Dyninst::InstructionAPI::Instruction::Ptr getInsnAtPoint();
 
 
     //  BPatch_point::getCurrentSnippets
     //  
     // to get all current snippets at this point
 
-    API_EXPORT(Int, (),
 
-    const BPatch_Vector<BPatchSnippetHandle *>,getCurrentSnippets,());
+    const BPatch_Vector<BPatchSnippetHandle *> getCurrentSnippets();
 
     //  BPatch_point::getCurrentSnippets
     //  
     // to get all current snippets as defined by when at this point
 
-    API_EXPORT(ByWhen, (when),
-
-    const BPatch_Vector<BPatchSnippetHandle *>,getCurrentSnippets,(BPatch_callWhen when));
-
+    const BPatch_Vector<BPatchSnippetHandle *> getCurrentSnippets(BPatch_callWhen when);
 
     //  BPatch_point::getLiveRegisters
     //  
     //  Get Live registers at this point
 
-    API_EXPORT(Int, (liveRegs),
 
-    bool, getLiveRegisters, (std::vector<BPatch_register> &liveRegs));
+    bool getLiveRegisters(std::vector<BPatch_register> &liveRegs);
 
   
     //  BPatch_point::isDynamic
@@ -279,9 +258,8 @@ public:
     //  isDynamic() returns true if this is a dynamic call site
     //  (eg a call site where a func call is made via func ptr)
 
-    API_EXPORT(Int, (),
 
-    bool,isDynamic,());
+    bool isDynamic();
 
     //  BPatch_point::monitorCalls
     //  
@@ -294,34 +272,30 @@ public:
     //
     // Returns handle on success, NULL on failure
 
-    API_EXPORT(Int, (f),
 
-    void *,monitorCalls,(BPatch_function *f = NULL));
+    void * monitorCalls(BPatch_function *f = NULL);
 
     //  BPatch_point::stopMonitoring
-    //  If this point, as a dynamic call site, was being monitored, turns off monitoring
+    //  If this point  as a dynamic call site, was being monitored, turns off monitoring
     //  <handle> is the handle returned my monitorCalls()
 
-    API_EXPORT(Int, (),
 
-    bool,stopMonitoring,());
+    bool stopMonitoring();
 
     //  BPatch_point::getDisplacedInstructions
     //  Returns the instructions to be relocated when instrumentation is inserted
     //  at this point.  Returns the number of bytes taken up by these instructions.
 
-    API_EXPORT(Int, (maxSize, insns),
 
-    int,getDisplacedInstructions,(int maxSize, void *insns));
+    int getDisplacedInstructions(int maxSize, void *insns);
 
     //  BPatch_point::usesTrap_NP
     //  Returns true if this point is or would be instrumented with a trap, rather
     //  than a jump to the base tramp, false otherwise.  On platforms that do not
     //   use traps (everything other than x86), it always returns false;
 
-    API_EXPORT(Int, (),
 
-    bool,usesTrap_NP,());
+    bool usesTrap_NP();
 
 #ifdef IBM_BPATCH_COMPAT
     void *getPointAddress() { return getAddress(); }

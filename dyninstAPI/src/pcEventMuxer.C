@@ -31,7 +31,6 @@
 #include "pcEventHandler.h"
 #include "BPatch.h"
 #include "debug.h"
-#include "eventLock.h"
 #include "os.h"
 #include "dynProcess.h"
 #include "mapped_object.h"
@@ -241,6 +240,9 @@ PCEventMuxer::cb_ret_t PCEventMuxer::exitCallback(EventPtr ev) {
 
 PCEventMuxer::cb_ret_t PCEventMuxer::crashCallback(EventPtr ev) {
 	INITIAL_MUXING;
+
+	cerr << "Crash callback" << endl;
+
 	if (ev->getEventType().time() != EventType::Pre) {
 		ret = ret_default;
 	}
@@ -250,61 +252,61 @@ PCEventMuxer::cb_ret_t PCEventMuxer::crashCallback(EventPtr ev) {
 using namespace InstructionAPI;
 
 PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
-	INITIAL_MUXING;
-
-	EventSignal::const_ptr evSignal = ev->getEventSignal();
-
+  INITIAL_MUXING;
+  
+  EventSignal::const_ptr evSignal = ev->getEventSignal();
+  
 #if defined(DEBUG)
-	{
-       Address esp = 0;
-       Address pc = 0;
-       ProcControlAPI::RegisterPool regs;
-       evSignal->getThread()->getAllRegisters(regs);
-       for (ProcControlAPI::RegisterPool::iterator iter = regs.begin(); iter != regs.end(); ++iter) {
-	 cerr << "\t Reg " << (*iter).first.name() << ": " << hex << (*iter).second << dec << endl;
-	 if ((*iter).first.isStackPointer()) {
-	   esp = (*iter).second;
-	 }
-	 if (((*iter).first.isPC())) {
-	   pc = (*iter).second;
-	 }
-       }
-       
-       std::vector<std::vector<Frame> > stacks;
-       process->walkStacks(stacks);
-       for (unsigned i = 0; i < stacks.size(); ++i) {
-	 for (unsigned j = 0; j < stacks[i].size(); ++j) {
-	   cerr << "Frame " << i << "/" << j << ": " << stacks[i][j] << endl;
-	 }
-	 cerr << endl << endl;
-       }
-       for (unsigned i = 0; i < 20; ++i) {
-	 unsigned tmp = 0;
-	 process->readDataSpace((void *) (esp + (i * 4)),
-				4, 
-				&tmp,
-				false);
-	 cerr << "Stack " << hex << esp + (i*4) << ": " << tmp << dec << endl;
-       }
-       
-       unsigned disass[1024];
-       Address base = pc - 128;
-       unsigned size = 640;
-       process->readDataSpace((void *) base, size, disass, false);
-       InstructionDecoder deco(disass,size,process->getArch());
-       Instruction::Ptr insn = deco.decode();
-       while(insn) {
-	 cerr << "\t" << hex << base << ": " << insn->format(base) << dec << endl;
-	 base += insn->size();
-	 insn = deco.decode();
-       }
+  if (evSignal->getSignal() == 11) {
+    Address esp = 0;
+    Address pc = 0;
+    ProcControlAPI::RegisterPool regs;
+    evSignal->getThread()->getAllRegisters(regs);
+    for (ProcControlAPI::RegisterPool::iterator iter = regs.begin(); iter != regs.end(); ++iter) {
+      cerr << "\t Reg " << (*iter).first.name() << ": " << hex << (*iter).second << dec << endl;
+      if ((*iter).first.isStackPointer()) {
+	esp = (*iter).second;
+      }
+      if (((*iter).first.isPC())) {
+	pc = (*iter).second;
+      }
     }
+    
+    std::vector<std::vector<Frame> > stacks;
+    process->walkStacks(stacks);
+    for (unsigned i = 0; i < stacks.size(); ++i) {
+      for (unsigned j = 0; j < stacks[i].size(); ++j) {
+	cerr << "Frame " << i << "/" << j << ": " << stacks[i][j] << endl;
+      }
+      cerr << endl << endl;
+    }
+    for (unsigned i = 0; i < 20; ++i) {
+      unsigned tmp = 0;
+      process->readDataSpace((void *) (esp + (i * 4)),
+			     4, 
+			     &tmp,
+			     false);
+      cerr << "Stack " << hex << esp + (i*4) << ": " << tmp << dec << endl;
+    }
+    
+    unsigned disass[1024];
+    Address base = pc - 128;
+    unsigned size = 640;
+    process->readDataSpace((void *) base, size, disass, false);
+    InstructionDecoder deco(disass,size,process->getArch());
+    Instruction::Ptr insn = deco.decode();
+    while(insn) {
+      cerr << "\t" << hex << base << ": " << insn->format(base) << dec << endl;
+      base += insn->size();
+      insn = deco.decode();
+    }
+  }
 #endif
 
-    if (!PCEventHandler::isKillSignal(evSignal->getSignal())) {
-      evSignal->clearThreadSignal();
-    }
-    DEFAULT_RETURN;
+  if (!PCEventHandler::isKillSignal(evSignal->getSignal())) {
+    evSignal->clearThreadSignal();
+  }
+  DEFAULT_RETURN;
 }
 
 PCEventMuxer::cb_ret_t PCEventMuxer::breakpointCallback(EventPtr ev) {
@@ -364,6 +366,10 @@ PCEventMuxer::cb_ret_t PCEventMuxer::RPCCallback(EventPtr ev) {
 	INITIAL_MUXING;
     EventRPC::const_ptr evRPC = ev->getEventRPC();
     inferiorRPCinProgress *rpcInProg = static_cast<inferiorRPCinProgress *>(evRPC->getIRPC()->getData());
+    if (!rpcInProg) {
+       // Not us!
+       return ret;
+    }
 
     if( rpcInProg->resultRegister == REG_NULL ) {
         // If the resultRegister isn't set, the returnValue shouldn't matter

@@ -89,6 +89,7 @@ class COMMON_EXPORT SymReader
    virtual bool getSegment(unsigned num, SymSegment &reg) = 0; 
 
    virtual Dyninst::Offset getSymbolOffset(const Symbol_t &sym) = 0;
+   virtual Dyninst::Offset getSymbolTOC(const Symbol_t &sym) = 0;
    virtual std::string getSymbolName(const Symbol_t &sym) = 0;
    virtual std::string getDemangledName(const Symbol_t &sym) = 0;
    virtual unsigned long getSymbolSize(const Symbol_t &sym) = 0;

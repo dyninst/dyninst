@@ -32,10 +32,13 @@
 #ifndef PATCHAPI_H_PATCHMGR_H_
 #define PATCHAPI_H_PATCHMGR_H_
 
+
+
 #include "PatchCommon.h"
 #include "Point.h"
 #include "Instrumenter.h"
 #include "PatchCFG.h"
+#include "Buffer.h"
 
 namespace Dyninst {
 namespace PatchAPI {

@@ -191,8 +191,8 @@ static void printMessage(ToolMessage *msg, const char *str, bool short_msg = fal
                              i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
                              c.length, c.returnCode);
             }
-            break;
          }
+         break;
       }
       case Notify: {
          pclean_printf("Notify ");
@@ -213,6 +213,9 @@ static void printMessage(ToolMessage *msg, const char *str, bool short_msg = fal
                pclean_printf("Control: toolid = %u, toolTag = %.8s, priority = %u, reason = %u\n",
                              no->type.control.toolid, no->type.control.toolTag, (unsigned) no->type.control.priority,
                              (unsigned) no->type.control.reason);
+               break;
+            default:
+               pclean_printf("Unknown: %u\n", (unsigned int) no->notifyMessageType);
                break;
          }
          break;
@@ -294,6 +297,9 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    debugger_suspended(false),
    decoder_pending_stop(false),
    is_doing_temp_detach(false),
+   stopped_on_startup(false),
+   held_on_startup(false),
+   got_startup_stop(false),
    rank(pid),
    page_size(0),
    interp_base(0),
@@ -692,9 +698,13 @@ bool bgq_process::rotateTransaction()
    return true;
 }
 
-bool bgq_process::plat_individualRegRead()
+bool bgq_process::plat_individualRegRead(Dyninst::MachRegister reg, int_thread *thr)
 {
-   return false;
+   if (!reg.isPC())
+      return false;
+   bgq_thread *bgqthr = dynamic_cast<bgq_thread *>(thr);
+   Address addr;
+   return bgqthr->haveCachedPC(addr);
 }
 
 bool bgq_process::plat_individualRegSet()
@@ -962,6 +972,11 @@ bool bgq_process::plat_lwpRefreshNoteNewThread(int_thread *thr)
    newev->setSyncType(Event::async);
    mbox()->enqueue(newev);   
    return true;
+}
+
+int bgq_process::threaddb_getPid()
+{
+   return get_procdata_result.tgid;
 }
 
 bool bgq_process::handleStartupEvent(void *data)
@@ -1250,6 +1265,7 @@ bool bgq_process::handleStartupEvent(void *data)
       thrd->getUserState().setStateProc(int_thread::stopped);      
       assert(notify_msg->type.signal.reason == NotifySignal_Generic);
       assert(notify_msg->type.signal.signum == SIGSTOP);
+      got_startup_stop = true;
       free(notify_msg);
       if (stop_on_either) {
          startup_state = waitfor_data_collection;
@@ -1266,6 +1282,7 @@ bool bgq_process::handleStartupEvent(void *data)
       pthrd_printf("Handling getProcessDataAck for %d\n", getPid());
       QueryAckMessage *query_ack = static_cast<QueryAckMessage *>(data);
       assert(query_ack->numCommands == 4);
+      GetThreadDataAckCmd *tdata = NULL;
 
       for (unsigned i = 0; i < (unsigned) query_ack->numCommands; i++) {
          char *cmd_ptr = ((char *) data) + query_ack->cmdList[i].offset;
@@ -1274,16 +1291,20 @@ bool bgq_process::handleStartupEvent(void *data)
          else if (query_ack->cmdList[i].type == GetAuxVectorsAck)
             get_auxvectors_result = *(GetAuxVectorsAckCmd *) cmd_ptr;
          else if (query_ack->cmdList[i].type == GetThreadListAck) {
-            get_thread_list = new GetThreadListAckCmd();
+            if (!get_thread_list) 
+               get_thread_list = new GetThreadListAckCmd();
             *get_thread_list = *(GetThreadListAckCmd *) cmd_ptr;
          }
          else if (query_ack->cmdList[i].type == GetThreadDataAck) {
-            BG_Thread_ToolState ts = ((GetThreadDataAckCmd *) cmd_ptr)->toolState;
+            tdata = (GetThreadDataAckCmd *) cmd_ptr;
+            BG_Thread_ToolState ts = tdata->toolState;
             stopped_on_startup = ((ts == Suspend) || (ts == HoldSuspend));
             held_on_startup = ((ts == Hold) || (ts == HoldSuspend));
             pthrd_printf("On startup, found stopped: %s, held: %s\n",
                          stopped_on_startup ? "true" : "false",
                          held_on_startup ? "true" : "false");
+
+
          }
       }
 
@@ -1315,25 +1336,74 @@ bool bgq_process::handleStartupEvent(void *data)
 
       if (hasControlAuthority) {
          thrd->getStartupState().desyncStateProc(int_thread::stopped);
-         if (stopped_on_startup || held_on_startup) {
+         if (stopped_on_startup || held_on_startup || got_startup_stop) {
             thrd->getGeneratorState().setStateProc(int_thread::stopped);
             thrd->getHandlerState().setStateProc(int_thread::stopped);
+            thrd->getUserState().setStateProc(int_thread::stopped);
          }
       }
       else {
          thrd->getStartupState().desyncStateProc(int_thread::running);
          thrd->getHandlerState().setStateProc(int_thread::running);
       }
+    
+      if (get_thread_list->numthreads > 0) {
+         setState(running);
+         getStartupTeardownProcs().dec();
+         startup_state = startup_done;
+         thrd->changeLWP(get_thread_list->threadlist[0].tid);
+      }
+      else {
+         //BG/Q didn't give us the thread info we need on attach.
+         // single-step one instruction and try again.
+         pthrd_printf("Got 0 threads in thread list.  Single stepping process %d\n", getPid());
+         startup_state = step_insn;
+         thrd->getStartupState().setState(int_thread::running);
+         thrd->setSingleStepMode(true);
+         if (held_on_startup) {
+            thrd->setSuspended(true);
+            held_on_startup = false;
+         }
+      }
+      
+      return true;
+   }
+
+   /**
+    * If we didn't get the GetThreadList cmd accurately right off, then
+    * step the app one instruction and try again.
+    **/
+   if (startup_state == step_insn) {
+      pthrd_printf("In startup state step_insn for %d\n", getPid());
+      int_thread *thrd = threadPool()->initialThread();
+      if (hasControlAuthority)
+         thrd->getStartupState().setState(int_thread::stopped);
+      thrd->setSingleStepMode(false);
+
+      GetThreadListCmd thread_list;
+      thread_list.threadID = 0;
+      sendCommand(thread_list, GetThreadList);
+
+      startup_state = reissue_data_collection;
+      return true;
+   }
+
+   if (startup_state == reissue_data_collection) {
+      QueryAckMessage *query_ack = static_cast<QueryAckMessage *>(data);
+      assert(query_ack->cmdList[0].type = GetThreadListAck);
+      *get_thread_list = *(GetThreadListAckCmd *) (((char *) data) + query_ack->cmdList[0].offset);
+      
+      assert(get_thread_list->numthreads > 0);
+      int_thread *thrd = threadPool()->initialThread();
+      thrd->changeLWP(get_thread_list->threadlist[0].tid);
       
       setState(running);
       getStartupTeardownProcs().dec();
 
-      assert(get_thread_list->numthreads > 0);
-      thrd->changeLWP(get_thread_list->threadlist[0].tid);
-      
       startup_state = startup_done;
       return true;
    }
+   
 
    if (startup_state == startup_done) {
       pthrd_printf("Handling state startup_done for %d\n", getPid());
@@ -1569,7 +1639,8 @@ bgq_thread::bgq_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    thread_db_thread(p, t, l),
    ppc_thread(p, t, l),
    last_signaled(false),
-   unwinder(NULL)
+   unwinder(NULL),
+   last_ss_addr(0)
 {
 }
 
@@ -1590,6 +1661,7 @@ bool bgq_thread::plat_cont()
 
    proc->debugger_suspended = false;
 
+   vector<bgq_thread *> resuming_threads;
    int_threadPool *tp = proc->threadPool();
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
       bgq_thread *t = dynamic_cast<bgq_thread *>(*i);
@@ -1601,12 +1673,18 @@ bool bgq_thread::plat_cont()
       if (!is_suspended && !resumed_thread) {
          resumed_thread = t;
       }
+      if (!is_suspended) {
+         resuming_threads.push_back(t);
+      }
       if (t->continueSig_) {
          cont_signal = t->continueSig_;
          t->continueSig_ = 0;
       }
       if (t->singleStep()) {
          ss_threads.insert(t);
+      }
+      else {
+         t->last_ss_addr = 0;
       }
    }
 
@@ -1632,6 +1710,8 @@ bool bgq_thread::plat_cont()
 
    if (ss_threads.empty()) {
       pthrd_printf("Sending ContinueProcess command to %d\n", proc->getPid());
+      for (vector<bgq_thread *>::iterator i = resuming_threads.begin(); i != resuming_threads.end(); i++)
+         (*i)->clearCachedPC();
       proc->last_ss_thread = NULL;
       ContinueProcessCmd cont_process;
       cont_process.threadID = 0;
@@ -1645,7 +1725,7 @@ bool bgq_thread::plat_cont()
 
    pthrd_printf("%lu threads of process %d are in single step, selecting thread for single step\n",
                 (unsigned long) ss_threads.size(), proc->getPid());
-   int_thread *ss_thread = NULL;
+   bgq_thread *ss_thread = NULL;
    if (ss_threads.size() > 1 && proc->last_ss_thread) {
       /**
        * Multiple threads are single-stepping at once, but the BG/Q debug interface only allows us to 
@@ -1653,23 +1733,27 @@ bool bgq_thread::plat_cont()
        * that gets stepped with each call.
        **/
       for (set<int_thread *>::iterator i = ss_threads.begin(); i != ss_threads.end(); i++) {
-         if (*i != proc->last_ss_thread)
+         if (*i != static_cast<int_thread *>(proc->last_ss_thread))
             continue;
          i++;
          if (i == ss_threads.end())
             i = ss_threads.begin();
-         ss_thread = proc->last_ss_thread = *i;
+         ss_thread = proc->last_ss_thread = dynamic_cast<bgq_thread *>(*i);
          break;
       }
    }
    if (!ss_thread) {
-      ss_thread = proc->last_ss_thread = *ss_threads.begin();
+      ss_thread = proc->last_ss_thread = dynamic_cast<bgq_thread *>(*ss_threads.begin());
    }
    assert(ss_thread);
 
    StepThreadCmd step_thrd;
    pthrd_printf("Single stepping thread %d/%d\n", proc->getPid(), ss_thread->getLWP());
-   step_thrd.threadID = ss_thread->getLWP();
+   ss_thread->clearCachedPC();
+   if (ss_thread->getLWP() != -1)
+      step_thrd.threadID = ss_thread->getLWP();
+   else
+      step_thrd.threadID = 0;
    bool result = proc->sendCommand(step_thrd, StepThread);
    if (!result) {
       pthrd_printf("Error doing sendCommand of StepThread\n");
@@ -1875,11 +1959,17 @@ bool bgq_thread::plat_getAllRegistersAsync(allreg_response::ptr resp)
    return true;
 }
 
-bool bgq_thread::plat_getRegisterAsync(Dyninst::MachRegister,
-                                       reg_response::ptr)
+bool bgq_thread::plat_getRegisterAsync(Dyninst::MachRegister reg, reg_response::ptr resp)
 {
-   assert(0); //No individual reg access on this platform.
-   return false;
+   Address addr;
+   bool result = haveCachedPC(addr);
+   //This only works (and should only trigger) if we can return a cached PC.
+   assert(reg.isPC());
+   assert(result);
+
+   resp->setResponse((Dyninst::MachRegisterVal) addr);
+   
+   return true;
 }
 
 bool bgq_thread::plat_setAllRegistersAsync(int_registerPool &pool,
@@ -3082,10 +3172,12 @@ bool DecoderBlueGeneQ::decodeStartupEvent(ArchEventBGQ *ae, bgq_process *proc, v
    return true;
 }
 
-bool DecoderBlueGeneQ::decodeLWPRefresh(ArchEventBGQ *, bgq_process *proc, ToolCommand *cmd)
+bool DecoderBlueGeneQ::decodeLWPRefresh(ArchEventBGQ *, bgq_process *proc, ToolCommand *cmd, 
+                                        vector<Event::ptr> &)
 {
    proc->lwp_tracking_resp = result_response::ptr();
-   proc->get_thread_list = new GetThreadListAckCmd();
+   if (!proc->get_thread_list)
+      proc->get_thread_list = new GetThreadListAckCmd();
    *proc->get_thread_list = *((GetThreadListAckCmd *) cmd);
    return true;
 }
@@ -3252,11 +3344,16 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             assert(0); //Currently unused, but eventually needed
             break;
          case GetMemoryAck: {
-            pthrd_printf("Decoding GetMemoryAck on %d\n", proc->getPid());
             mem_response::ptr memresp = cur_resp->getMemResponse();
             GetMemoryAckCmd *cmd = static_cast<GetMemoryAckCmd *>(base_cmd);
             assert(memresp);
             assert(cmd);
+            pthrd_printf("Decoding GetMemoryAck of length %u on %d. Contents: %u %u %u %u...\n",
+                         cmd->length, proc->getPid(),
+                         cmd->length > 0 ? (unsigned int) cmd->data[0] : 0, 
+                         cmd->length > 1 ? (unsigned int) cmd->data[1] : 0, 
+                         cmd->length > 2 ? (unsigned int) cmd->data[2] : 0, 
+                         cmd->length > 3 ? (unsigned int) cmd->data[3] : 0);
             memresp->postResponse((char *) cmd->data, cmd->length, cmd->addr);
             if (desc->returnCode)
                memresp->markError(desc->returnCode);
@@ -3296,14 +3393,9 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             break;
          }
          case GetThreadListAck:
-            if (!proc->lwp_tracking_resp) {
-               pthrd_printf("Decoded GetThreadListAck on %d/%d. Dropping\n",
-                            proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
-               break;
-            }
-            else {
+            if (proc->lwp_tracking_resp) {
                pthrd_printf("Decoded GetThreadList as LWP refresh on %d\n", proc->getPid());
-               decodeLWPRefresh(archevent, proc, base_cmd);
+               decodeLWPRefresh(archevent, proc, base_cmd, events);
                result_response::ptr result_resp = cur_resp->getResultResponse();
                result_resp->postResponse(true);
                Event::ptr new_ev = decodeCompletedResponse(result_resp, proc, thr, async_ev_map);
@@ -3314,6 +3406,15 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
                getResponses().unlock();
                break;
             }
+            else if (proc->startup_state == bgq_process::reissue_data_collection) {
+               pthrd_printf("Decoded to lwp refresh during startup on %d\n", proc->getPid());
+               return decodeStartupEvent(archevent, proc, archevent->getMsg(), Event::async, events);
+            }
+            else {
+               pthrd_printf("Decoded GetThreadListAck on %d/%d. Dropping\n",
+                            proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
+            }
+            break;
          case GetAuxVectorsAck:
             pthrd_printf("Decoded GetAuxVectorsAck on %d/%d. Dropping\n", 
                          proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
@@ -3387,7 +3488,8 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             pthrd_printf("Decoded ContinueProcessAck on %d/%d. Dropping\n", proc->getPid(), thr->getLWP());
             break;
          case StepThreadAck:
-            pthrd_printf("Decoded StepThreadAck on %d/%d. Dropping\n", proc->getPid(), thr->getLWP());
+            pthrd_printf("Decoded StepThreadAck on %d/%d. Dropping\n",
+                         proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
             break;
          case SetWatchpointAck:
          case ResetWatchpointAck:
@@ -3429,7 +3531,7 @@ bool DecoderBlueGeneQ::decodeGenericSignal(ArchEventBGQ *, bgq_process *proc, in
 }
 
 bool DecoderBlueGeneQ::decodeBreakpoint(ArchEventBGQ *archevent, bgq_process *proc, int_thread *thr,
-                                        Address addr, vector<Event::ptr> &events)
+                                        Address addr, vector<Event::ptr> &events, bool allow_signal_decode)
 {
    if (rpcMgr()->isRPCTrap(thr, addr)) {
       pthrd_printf("Decoded event to rpc completion on %d/%d at %lx\n", proc->getPid(), thr->getLWP(), addr);
@@ -3475,6 +3577,9 @@ bool DecoderBlueGeneQ::decodeBreakpoint(ArchEventBGQ *archevent, bgq_process *pr
       return true;
    }
 
+   if (!allow_signal_decode)
+      return false;
+
    pthrd_printf("Decoded to SIGTRAP signal (Warning - this is frequently a bug).\n");
    return decodeGenericSignal(archevent, proc, thr, SIGTRAP, events);
 }
@@ -3516,10 +3621,24 @@ bool DecoderBlueGeneQ::decodeStop(ArchEventBGQ *archevent, bgq_process *proc, in
    return decodeGenericSignal(archevent, proc, thr, SIGSTOP, events);
 }
 
-bool DecoderBlueGeneQ::decodeStep(ArchEventBGQ *, bgq_process *proc,
-                                  int_thread *thr, vector<Event::ptr> &events)
+bool DecoderBlueGeneQ::decodeStep(ArchEventBGQ *ae, bgq_process *proc,
+                                  int_thread *t, Address addr,
+                                  vector<Event::ptr> &events)
 {
+   bgq_thread *thr = dynamic_cast<bgq_thread *>(t);
    assert(thr->singleStep());
+
+   if (thr->last_ss_addr == addr) {
+      //We did a SS that didn't move.  Perhaps we've hit a BP.
+      pthrd_printf("Single step did not move thread %d/%d.  Checking for BP\n",
+                   proc->getPid(), thr->getLWP());
+      bool result = decodeBreakpoint(ae, proc, thr, addr, events, false);
+      if (result) {
+         pthrd_printf("Decoded spinning single-step to a breakpoint\n");
+         return true;
+      }
+   }
+   thr->last_ss_addr = addr;
    
    bp_instance *ibp = thr->isClearingBreakpoint();
    if (ibp) {
@@ -3530,6 +3649,10 @@ bool DecoderBlueGeneQ::decodeStep(ArchEventBGQ *, bgq_process *proc,
       new_ev->setSyncType(Event::sync_process);
       events.push_back(new_ev);
       return true;
+   }
+   else if (proc->startup_state == bgq_process::step_insn) {
+      pthrd_printf("Decoded to single step during startup on %d\n", proc->getPid());
+      return decodeStartupEvent(ae, proc, ae->getMsg(), Event::sync_process, events);
    }
    else {
       pthrd_printf("Decoded to single step\n");
@@ -3550,12 +3673,16 @@ bool DecoderBlueGeneQ::decodeSignal(ArchEventBGQ *archevent, bgq_process *proc,
    BG_Addr_t insn_addr = msg->type.signal.instAddress;
    BG_ThreadID_t threadID = msg->type.signal.threadID;
 
-   int_thread *thr = proc->threadPool()->findThreadByLWP(threadID);   
+   bgq_thread *thr = dynamic_cast<bgq_thread *>(proc->threadPool()->findThreadByLWP(threadID));
    if (!thr && proc->startup_state != bgq_process::startup_done) {
-      thr = proc->threadPool()->initialThread();
+      thr = dynamic_cast<bgq_thread *>(proc->threadPool()->initialThread());
    }
    assert(thr);
-   
+
+   Address instAddress = msg->type.signal.instAddress;
+   if (instAddress) 
+      thr->setCachedPC(instAddress);
+
    pthrd_printf("Decoding signal on %d/%d at 0x%lx\n", proc->getPid(), thr->getLWP(), insn_addr);
    switch (msg->type.signal.reason) {
       case NotifySignal_Generic:
@@ -3580,7 +3707,7 @@ bool DecoderBlueGeneQ::decodeSignal(ArchEventBGQ *archevent, bgq_process *proc,
          return false;
       case NotifySignal_StepComplete:
          pthrd_printf("Decoded single step\n");
-         return decodeStep(archevent, proc, thr, events);
+         return decodeStep(archevent, proc, thr, insn_addr, events);
    }
    assert(0);
    return false;

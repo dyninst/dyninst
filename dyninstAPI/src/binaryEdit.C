@@ -242,6 +242,7 @@ bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
 
   memoryTracker *mem_track = dynamic_cast<memoryTracker *>(obj);
   assert(mem_track);
+
   mem_track->realloc(newsize);
 
   memoryTracker_->insert(obj);
@@ -454,7 +455,7 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
 {
    Symtab *symtab = mobj->parse_img()->getObject();
    std::deque<std::string> depends;
-   std::copy(symtab->getDependencies().begin(), symtab->getDependencies().end(), std::back_inserter(depends));
+   depends.insert(depends.end(), symtab->getDependencies().begin(), symtab->getDependencies().end());
    while(!depends.empty())
    {
      std::string lib = depends.front();

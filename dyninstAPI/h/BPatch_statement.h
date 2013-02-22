@@ -32,7 +32,6 @@
 #define _BPATCH_STATEMENT_H_
 
 #include "BPatch_dll.h"
-#include "BPatch_eventLock.h"
 
 class BPatch_module;
 
@@ -42,7 +41,7 @@ namespace SymtabAPI {
 }
 }
 
-class BPATCH_DLL_EXPORT BPatch_statement : public BPatch_eventLock
+class BPATCH_DLL_EXPORT BPatch_statement
 {
   friend class BPatch_module;
   friend class BPatch_image;

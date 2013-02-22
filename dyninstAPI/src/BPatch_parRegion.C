@@ -59,12 +59,12 @@ void BPatch_parRegion::printDetails()
 {
   parReg->printDetails();
 }
-BPatch_Vector<BPatch_instruction*> *BPatch_parRegion::getInstructionsInt(void) {
+BPatch_Vector<BPatch_instruction*> *BPatch_parRegion::getInstructions(void) {
 
 	return NULL;
 }
 
-bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
+bool BPatch_parRegion::getInstructions(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
   using namespace InstructionAPI;
   const unsigned char* buffer = 
   (const unsigned char*)(lowlevel_region()->intFunc()->proc()->getPtrToInstruction(getStartAddress()));
@@ -81,28 +81,28 @@ bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instructio
   
 }
 
-unsigned long BPatch_parRegion::getStartAddressInt() CONST_EXPORT 
+unsigned long BPatch_parRegion::getStartAddress() const 
 {
    return parReg->firstInsnAddr();
 }
 
-unsigned long BPatch_parRegion::getEndAddressInt() CONST_EXPORT
+unsigned long BPatch_parRegion::getEndAddress() const
 {
    return parReg->endAddr();
 }
 
-unsigned BPatch_parRegion::sizeInt() CONST_EXPORT
+unsigned BPatch_parRegion::size() const
 {
    return getEndAddress() - getStartAddress();
 }
 
-int BPatch_parRegion::getClauseInt(const char * key) 
+int BPatch_parRegion::getClause(const char * key) 
 {  
   return  parReg->getClause(key); 
 
 }
 
-int BPatch_parRegion::replaceOMPParameterInt(const char * key, int value)
+int BPatch_parRegion::replaceOMPParameter(const char * key, int value)
 {
   return parReg->replaceOMPParameter(key,value);
 }

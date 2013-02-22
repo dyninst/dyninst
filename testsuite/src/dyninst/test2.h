@@ -31,38 +31,18 @@
 #ifndef _test2_h_
 #define _test2_h_
 
-#if defined(i386_unknown_linux2_0_test)
-#define	TEST_DYNAMIC_LIB	"libX11.so"
-#define TEST_DYNAMIC_LIB2	"libXt.so"
-
-#elif defined(x86_64_unknown_linux2_4_test)
+#if defined(os_linux_test)
 #define	TEST_DYNAMIC_LIB	"libm.so.6"
 #define TEST_DYNAMIC_LIB2	"libresolv.so"
-
-#elif defined(mips_sgi_irix6_4_test) || defined(alpha_dec_osf4_0_test)
-#define	TEST_DYNAMIC_LIB	"libXaw.so"
-#define TEST_DYNAMIC_LIB2	"libXt.so"
-
-#elif defined(arch_power_test) && defined(os_linux_test)
-#define TEST_DYNAMIC_LIB        "libutil.so"
-#define TEST_DYNAMIC_LIB2       "libm.so"
-
-#elif defined(rs6000_ibm_aix4_1_test)
-#define TEST_DYNAMIC_LIB        "./libtestA.so"
-#define TEST_DYNAMIC_LIB_NOPATH "libtestA.so"
-#define TEST_DYNAMIC_LIB2       "./libtestB.so"
-#define TEST_DYNAMIC_LIB2_NOPATH "libtestB.so"
 #elif defined(os_windows_test)
 #define TEST_DYNAMIC_LIB         "libtesta.dll"
 #define TEST_DYNAMIC_LIB_NOPATH  "libtesta.dll"
 #define TEST_DYNAMIC_LIB2        "libtestb.dll"
 #define TEST_DYNAMIC_LIB2_NOPATH "libtestb.dll"
 #elif defined(os_freebsd_test)
-#define TEST_DYNAMIC_LIB        "libutil.so"
-#define TEST_DYNAMIC_LIB2       "libm.so"
-#else
-#define	TEST_DYNAMIC_LIB	"libX11.so.4"
-#define TEST_DYNAMIC_LIB2	"libXt.so.4"
+#define TEST_DYNAMIC_LIB         "libncurses.so.8"
+#define TEST_DYNAMIC_LIB2        "libpcap.so.8"
 #endif
+
 
 #endif /* _test2_h_ */

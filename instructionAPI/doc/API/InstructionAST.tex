@@ -20,11 +20,13 @@ conditions hold:
 \end{itemize}
 
 \begin{apient}
+
 typedef boost::shared_ptr<InstructionAST> Ptr
 \end{apient}
 \apidesc{
     A type definition for a reference-counted pointer to an \code{InstructionAST}.
 }
+
 \begin{apient}
 bool operator==(const InstructionAST &rhs) const  
 \end{apient}
@@ -34,9 +36,7 @@ Compare two AST nodes for equality.
 Non-leaf nodes are equal if they are of the same type and their children are
 equal. \code{RegisterAST}s are equal if they represent the same register.
 \code{Immediate}s
-are equal if they represent the same value.
-
-Note that it is not safe to compare two \code{InstructionAST::Ptr}
+are equal if they represent the same value. Note that it is not safe to compare two \code{InstructionAST::Ptr}
 variables, as those are pointers. Instead, test the underlying
 \code{InstructionAST} objects.
 }

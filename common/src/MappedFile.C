@@ -29,6 +29,8 @@
  */
 #include "common/h/MappedFile.h"
 #include "common/h/pathName.h"
+#include <iostream>
+using namespace std;
 
 dyn_hash_map<std::string, MappedFile *> MappedFile::mapped_files;
 
@@ -51,6 +53,7 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
    }
 
    if (!ok) {
+
 #if defined(os_vxworks)
       // vxWorks may request to open files that exist only on the remote
       // target.  Return a placeholder mapped file to hold filename only.
@@ -81,6 +84,10 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
           free(buf);
           return MappedFile::createMappedFile(fullpath_);
       }
+	  else {
+		  delete mf;
+		  return NULL;
+	  }
 #else
       delete mf;
       return NULL;
@@ -95,6 +102,11 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 
 MappedFile::MappedFile(std::string fullpath_, bool &ok) :
    fullpath(fullpath_),
+	   map_addr(NULL),
+#if defined(os_windows)
+	   hMap(NULL),
+	   hFile(NULL),
+#endif
    remote_file(false),
    did_mmap(false),
    did_open(false),
@@ -102,7 +114,9 @@ MappedFile::MappedFile(std::string fullpath_, bool &ok) :
    refCount(1)
 {
   ok = check_path(fullpath);
-  if (!ok) return;
+  if (!ok) {
+	  return;
+  }
   ok = open_file();
   if (!ok) return;
   ok = map_file();
@@ -126,7 +140,12 @@ MappedFile *MappedFile::createMappedFile(void *loc, unsigned long size_, const s
 
 MappedFile::MappedFile(void *loc, unsigned long size_, const std::string &name, bool &ok) :
    fullpath(name),
-   remote_file(false),
+	map_addr(NULL),
+#if defined(os_windows)
+	hMap(NULL),
+	hFile(NULL),
+#endif
+	   remote_file(false),
    did_mmap(false),
    did_open(false),
    can_share(true),
@@ -134,7 +153,9 @@ MappedFile::MappedFile(void *loc, unsigned long size_, const std::string &name, 
 {
   ok = open_file(loc, size_);
 #if defined(os_windows)  
-  if (!ok) return;
+  if (!ok) {
+	  return;
+  }
   //ok = map_file();
   map_addr = loc;
   this->file_size = size_;
@@ -305,7 +326,7 @@ bool MappedFile::map_file()
          NULL );         // mapping name - not used
 
    if (!hMap) {
-      LPVOID lpMsgBuf;
+	   LPVOID lpMsgBuf;
       FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
             |     FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
             GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)
@@ -324,9 +345,8 @@ bool MappedFile::map_file()
          0,              // loc to map - lo DWORD
          0,              // #bytes to map - 0=all
          NULL );         // suggested map addr
-
    if (!map_addr) {
-      LPVOID lpMsgBuf;
+	    LPVOID lpMsgBuf;
       FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
             |     FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
             GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)

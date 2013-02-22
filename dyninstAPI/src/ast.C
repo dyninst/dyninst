@@ -75,10 +75,10 @@ extern int tramp_pre_frame_size_64;
 
 #include "legacy-instruction.h"
 #include "mapped_object.h"
+#include "Buffer.h"
 
 using namespace Dyninst;
 using PatchAPI::Point;
-using PatchAPI::Buffer;
 
 extern bool doNotOverflow(int value);
 
@@ -1149,6 +1149,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       }
       case whileOp: {
          codeBufIndex_t top = gen.getIndex();
+
          if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
          REGISTER_CHECK(src1);
          codeBufIndex_t startIndex = gen.getIndex();
@@ -1165,7 +1166,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             gen.tracker()->decreaseAndClean(gen);
          }
          //jump back
-         (void) emitA(branchOp, 0, 0, codeGen::getDisplacement(top, gen.getIndex()),
+         (void) emitA(branchOp, 0, 0, codeGen::getDisplacement(gen.getIndex(), top),
                       gen, rc_no_control, noCost);
         
          // Rewind and replace the skip jump
@@ -1647,7 +1648,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         if(!ma) {
             bpfatal( "Memory access information not available at this point.\n");
             bpfatal( "Make sure you create the point in a way that generates it.\n");
-            bpfatal( "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
+            bpfatal( "E.g.: findPoint(const std::set<BPatch_opCode>& ops).\n");
             assert(0);
         }
         if(which_ >= ma->getNumberOfAccesses()) {
@@ -1669,7 +1670,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         if(!ma) {
             bpfatal( "Memory access information not available at this point.\n");
             bpfatal("Make sure you create the point in a way that generates it.\n");
-            bpfatal( "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
+            bpfatal( "E.g.: findPoint(const std::set<BPatch_opCode>& ops).\n");
             assert(0);
         }
         if(which_ >= ma->getNumberOfAccesses()) {
@@ -2263,6 +2264,7 @@ BPatch_type *AstOperatorNode::checkType() {
     
     switch (op) {
     case ifOp:
+    case whileOp:
         // XXX No checking for now.  Should check that loperand
         // is boolean.
         ret = BPatch::bpatch->type_Untyped;
@@ -2353,7 +2355,7 @@ BPatch_type *AstOperandNode::checkType()
         ret = BPatch::bpatch->type_Untyped; 
     }
     else if ((oType == origRegister)) {
-        ret = BPatch::bpatch->stdTypes->findType("int");
+        ret = BPatch::bpatch->type_Untyped;
     }
     else {
         ret = const_cast<BPatch_type *>(getType());

@@ -44,7 +44,6 @@
 #include "parRegion.h"
 #include "debug.h"
 
-#include "dyninstAPI/h/BPatch_Set.h"
 #include "debug.h"
 #include <deque>
 #include <set>

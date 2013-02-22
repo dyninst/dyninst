@@ -157,7 +157,7 @@ class codeGen {
     void moveIndex(int disp);
 
     // To calculate a jump between the "from" and where we are
-    static int getDisplacement(codeBufIndex_t from, codeBufIndex_t to);
+    static  long getDisplacement(codeBufIndex_t from, codeBufIndex_t to);
 
     // For code generation -- given the current state of 
     // generation and a base address in the mutatee, 

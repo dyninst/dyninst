@@ -38,7 +38,6 @@
 #include "BPatch_enums.h"
 #include "BPatch_type.h"
 #include "BPatch_module.h"
-#include "BPatch_eventLock.h"
 #include "BPatch_memoryAccess_NP.h"
 //#include "BPatch_dependenceGraphNode.h"
 // class BPatch_dependenceGraphNode;
@@ -69,14 +68,9 @@ namespace Dyninst {
 
 
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_function
 
 class BPATCH_DLL_EXPORT BPatch_function : 
    public BPatch_sourceObj, 
-   public BPatch_eventLock,
    public Dyninst::AnnotatableSparse
 {
     friend class BPatch_flowGraph;
@@ -185,182 +179,157 @@ public:
     
 
     // For users of the library:
-    API_EXPORT(Str, (), std::string, getName, ());
-    API_EXPORT(Str, (), std::string, getDemangledName, ());
-    API_EXPORT(Str, (), std::string, getMangledName, ());
-	API_EXPORT(Str, (), std::string, getTypedName, ());
-	API_EXPORT(Str, (names), bool, getNames, (std::vector<std::string> &names));
-	API_EXPORT(Str, (names), bool, getDemangledNames, (std::vector<std::string> &names));
-	API_EXPORT(Str, (names), bool, getMangledNames, (std::vector<std::string> &names));
-	API_EXPORT(Str, (names), bool, getTypedNames, (std::vector<std::string> &names));
 
 
     //  BPatch_function::getName
     //  Returns <demangled> name of function
-    API_EXPORT(Buffer, (s, len),     
 
-    char *,getName,(char *s, int len));
+    char * getName(char *s, int len);
 
     // String interface to mangled name
-
+    std::string getName();
+    std::string getMangledName();
+    std::string getDemangledName();
+    std::string getTypedName();
+    bool getNames(std::vector<std::string> &names);
+    bool getDemangledNames(std::vector<std::string> &names);
+    bool getMangledNames(std::vector<std::string> &names);
+    bool getTypedNames(std::vector<std::string> &names);
+    
     //  BPatch_function::getMangledName
     //  Returns mangled name of function, same as getName for non-c++ mutatees
-    API_EXPORT(Int, (s, len),
 
-    char *,getMangledName,(char *s, int len));
+    char * getMangledName(char *s, int len);
 
     //  BPatch_function::getTypedName
     //  Returns demanged name of function (with type string), may be empty
-    API_EXPORT(Int, (s, len),
 
-    char *,getTypedName,(char *s, int len));
+    char * getTypedName(char *s, int len);
 
     // BPatch_function::getNames
     // Adds all names of the function (inc. weak symbols) to the
     // provided vector. Names are represented as const char *s,
     // and do not require cleanup by the user.
 
-    API_EXPORT(Int, (names),
-    bool, getNames, (BPatch_Vector<const char *> &names));
+    bool  getNames(BPatch_Vector<const char *> &names);
 
     // BPatch_function::getMangledNames
     // Adds all mangled names of the function (inc. weak symbols) to
     // the provided vector. Names are represented as const char *s,
     // and do not require cleanup by the user.
 
-    API_EXPORT(Int, (names),
-    bool, getMangledNames, (BPatch_Vector<const char *> &names));
+    bool  getMangledNames(BPatch_Vector<const char *> &names);
 
     //  BPatch_function::getBaseAddr
     //  Returns base address of function
-    API_EXPORT(Int, (),
 
-    void *,getBaseAddr,(void));
+    void * getBaseAddr(void);
 
     //  BPatch_function::getReturnType
     //  Returns the <BPatch_type> return type of this function
 
-    API_EXPORT(Int, (),
 
-    BPatch_type *,getReturnType,());
+    BPatch_type * getReturnType();
 
     //  BPatch_function::getModule
     //  Returns the BPatch_module to which this function belongs
 
-    API_EXPORT(Int, (),
 
-    BPatch_module *,getModule,());
+    BPatch_module * getModule();
     
     //  BPatch_function::getParams
     //  Returns a vector of BPatch_localVar, representing this function's parameters
 
-    API_EXPORT(Int, (),
 
-    BPatch_Vector<BPatch_localVar *> *,getParams,());
+    BPatch_Vector<BPatch_localVar *> * getParams();
 
     //  BPatch_function::getVars
     //  Returns a vector of local variables in this functions
 
-    API_EXPORT(Int, (),
 
-    BPatch_Vector<BPatch_localVar *> *,getVars,());
+    BPatch_Vector<BPatch_localVar *> * getVars();
 
     //  BPatch_function::findPoint
     //  Returns a vector of inst points, corresponding to the given BPatch_procedureLocation
 
-    API_EXPORT(Int, (loc),
 
-    BPatch_Vector<BPatch_point *> *,findPoint,(CONST_EXPORT BPatch_procedureLocation loc));
+    BPatch_Vector<BPatch_point *> * findPoint(const BPatch_procedureLocation loc);
 
     //  BPatch_function::findPoint
     //  Returns a vector of inst points, corresponding to the given set of op codes
 
-    API_EXPORT(ByOp, (ops),
-
-    BPatch_Vector<BPatch_point *> *,findPoint,(const BPatch_Set<BPatch_opCode>& ops));
+    BPatch_Vector<BPatch_point *> * findPoint(const BPatch_Set<BPatch_opCode>& ops);
+    BPatch_Vector<BPatch_point *> * findPoint(const std::set<BPatch_opCode>& ops);
 
     //  BPatch_function::findPoint
     //
     //  Returns a BPatch_point that corresponds with the provided address. Returns NULL
     //  if the address does not correspond with an instruction. 
-    API_EXPORT(Int, (addr), 
-    BPatch_point *, findPoint, (Dyninst::Address addr));
+    BPatch_point *  findPoint(Dyninst::Address addr);
 
 
     //  BPatch_function::findLocalVar
     //  Returns a BPatch_localVar, if a match for <name> is found
 
-    API_EXPORT(Int, (name),
 
-    BPatch_localVar *,findLocalVar,(const char * name));
+    BPatch_localVar * findLocalVar(const char * name);
 
     //  BPatch_function::findLocalParam
     //  Returns a BPatch_localVar, if a match for <name> is found
 
-    API_EXPORT(Int, (name),
 
-    BPatch_localVar *,findLocalParam,(const char * name));
+    BPatch_localVar * findLocalParam(const char * name);
 
     //  BPatch_function::findVariable
     //  Returns a set of variables matching <name> at the scope of this function
     //  -- or global scope, if nothing found in this scope 
 
-    API_EXPORT(Int, (name),
-    BPatch_Vector<BPatch_variableExpr *> *,findVariable,(const char *name));
+    BPatch_Vector<BPatch_variableExpr *> * findVariable(const char *name);
 
-    API_EXPORT(Int, (name, vars),
-    bool, findVariable,(const char *name, BPatch_Vector<BPatch_variableExpr*> &vars));
+    bool  findVariable(const char *name, BPatch_Vector<BPatch_variableExpr*> &vars);
 
     //  BPatch_function::getVariables
     //  This returns false, and should probably not exist.  See getVars.
     //  is this defined, what variables should be returned??
     //  FIXME (delete me)
 
-    API_EXPORT(Int, (vect),
 
-    bool,getVariables,(BPatch_Vector<BPatch_variableExpr *> &vect));
+    bool getVariables(BPatch_Vector<BPatch_variableExpr *> &vect);
 
     //  BPatch_function::getModuleName
     //  Returns name of module this function belongs to
 
-    API_EXPORT(Int, (name, maxLen),
 
-    char *,getModuleName,(char *name, int maxLen));
+    char * getModuleName(char *name, int maxLen);
 
     //  BPatch_function::isInstrumentable
     //  
     // Returns true if the function is instrumentable.
 
 
-    API_EXPORT(Int, (),
 
-    bool,isInstrumentable,());
+    bool isInstrumentable();
 
     //  BPatch_function::isSharedLib
     //  Returns true if this function lives in a shared library
 
-    API_EXPORT(Int, (),
 
-    bool,isSharedLib,());
+    bool isSharedLib();
 
     //  BPatch_function::getCFG
     //  
     //  method to create the control flow graph for the function
 
-    API_EXPORT(Int, (),
 
-    BPatch_flowGraph*,getCFG,());
+    BPatch_flowGraph* getCFG();
 
-    API_EXPORT(Int, (name, isPrimary, isMangled),
-    const char *, addName, (const char *name, bool isPrimary = true, bool isMangled = false));           
+    const char *  addName(const char *name, bool isPrimary = true, bool isMangled = false);           
 
     //  Return native pointer to the function. 
     //  Allocates and returns a special type of BPatch_variableExpr.
-    API_EXPORT( Int, (), BPatch_variableExpr *, getFunctionRef, () );
 
     // Get all functions that share a block (or any code, but it will
     // always be a block) with this function.
-    API_EXPORT( Int, (funcs), bool, findOverlapping, (BPatch_Vector<BPatch_function *> &funcs));
 
     //  Get the underlying ParseAPI Function
     operator Dyninst::ParseAPI::Function *() const;
@@ -368,14 +337,13 @@ public:
     // Get the underlying PatchAPI Function
     operator Dyninst::PatchAPI::PatchFunction *() const;
 
-    API_EXPORT(Int, (start, end),
-    bool,getAddressRange,(void * &start, void * &end));
+    bool getAddressRange(void * &start, void * &end);
 
-    API_EXPORT(Int, (start, end),
-               bool,getAddressRange,(Dyninst::Address &start, Dyninst::Address &end));
+               bool getAddressRange(Dyninst::Address &start, Dyninst::Address &end);
 
-    API_EXPORT(Int, (),
-    unsigned int,getFootprint,());
+    unsigned int getFootprint();
+    BPatch_variableExpr *getFunctionRef();
+    bool findOverlapping(BPatch_Vector<BPatch_function *> &funcs);
 
 };
 

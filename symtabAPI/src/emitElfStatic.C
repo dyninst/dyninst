@@ -1142,10 +1142,16 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
         // As an ELF example, .rel.text relocations are stored with the Region .text
         vector<Region *>::iterator region_it;
         for(region_it = allRegions.begin(); region_it != allRegions.end(); ++region_it) {
-            // Only compute relocations for the new Regions
-			if ((*region_it)->getRegionName().compare(".text") && (*region_it)->getRegionName().compare(".toc") ) {
-				continue;
-	}
+           // Only compute relocations for the new Regions
+           bool isText = ((*region_it)->getRegionType() == Region::RT_TEXT);
+           bool isTOC = false;
+
+           string regionName = (*region_it)->getRegionName();           
+           if (regionName.compare(0, 4, ".toc") == 0) isTOC = true;
+
+           if (!isText && !isTOC) {
+              continue;
+           }
         map<Region *, LinkMap::AllocPair>::iterator result;
         result = lmap.regionAllocs.find(*region_it);
 	if( result != lmap.regionAllocs.end() ) { 

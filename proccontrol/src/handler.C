@@ -1449,7 +1449,7 @@ Handler::handler_ret_t HandleBreakpointContinue::handleEvent(Event::ptr ev)
    int_eventBreakpoint *int_bp = ebp->getInternal();
    
    if (int_bp->stopped_proc) {
-      ebp->getThread()->llthrd()->getInternalState().restoreStateProc();
+      ebp->getThread()->llthrd()->getBreakpointHoldState().restoreStateProc();
    }
    return Handler::ret_success;
 }
@@ -1497,7 +1497,7 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
    if (!int_bpc->started_bp_suspends) {
       pthrd_printf("Removing breakpoint from memory under HandleBreakpointClear\n");
       int_bpc->started_bp_suspends = true;
-      bool result = ibp->suspend(proc, int_bpc->bp_suspend);
+      bool result = (bool)ibp->suspend(proc, int_bpc->bp_suspend);
       if (!result) {
          pthrd_printf("Error suspending breakpoint in HandleBreakpointClear\n");
          return Handler::ret_error;
@@ -1742,6 +1742,7 @@ Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
    }
    if (ll_added.empty() && ll_rmd.empty()) {
       pthrd_printf("Could not find actual changes in lib state\n");
+      ev->setSuppressCB(true);
       return ret_success;
    }
 

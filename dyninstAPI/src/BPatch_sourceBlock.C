@@ -33,54 +33,46 @@
 #include <stdio.h>
 #include "common/h/std_namesp.h"
 #include "BPatch_sourceBlock.h"
+#include <iterator>
 
 //constructor
 BPatch_sourceBlock::BPatch_sourceBlock()
-	: sourceFile(NULL),sourceLines(NULL)
+	: sourceFile(NULL)
 {
 }
 
 //constructor
 BPatch_sourceBlock::BPatch_sourceBlock( const char *filePtr,
-                                        BPatch_Set<unsigned short>& lines)
+                                        std::set<unsigned short>& lines) :
+   sourceFile(filePtr),
+   sourceLines(lines)
 {
-	sourceFile = filePtr;
-	sourceLines = new BPatch_Set<unsigned short>(lines);
 }
 
 const char*
-BPatch_sourceBlock::getSourceFileInt(){
+BPatch_sourceBlock::getSourceFile(){
 	return sourceFile;
 }
 
 void
-BPatch_sourceBlock::getSourceLinesInt(BPatch_Vector<unsigned short>& lines){
+BPatch_sourceBlock::getSourceLines(BPatch_Vector<unsigned short>& lines){
 
-	if(!sourceLines)
-		return;
-
-	unsigned short* elements = new unsigned short[sourceLines->size()];
-	sourceLines->elements(elements);
-
-	for(unsigned j=0;j<sourceLines->size();j++)
-		lines.push_back(elements[j]);
-		
-	delete[] elements;
+   std::copy(sourceLines.begin(), sourceLines.end(),
+             std::back_inserter(lines));
 }
 
 #ifdef IBM_BPATCH_COMPAT
-bool BPatch_sourceBlock::getAddressRangeInt(void*& _startAddress, void*& _endAddress)
+bool BPatch_sourceBlock::getAddressRange(void*& _startAddress, void*& _endAddress)
 {
   return false;
 }
 
-bool BPatch_sourceBlock::getLineNumbersInt(unsigned int &_startLine,
+bool BPatch_sourceBlock::getLineNumbers(unsigned int &_startLine,
                                         unsigned int  &_endLine)
 {
-  if (!sourceLines) return false;
-  if (!sourceLines->size()) return false;
-  _startLine = (unsigned int) sourceLines->minimum();
-  _endLine = (unsigned int) sourceLines->maximum();
+   if (sourceLines.empty()) return false;
+   _startLine = (unsigned int) *(sourceLines->begin());
+   _endLine = (unsigned int) *(sourceLines->rbegin());
 
   return true;
 }
@@ -96,35 +88,34 @@ ostream& operator<<(ostream& os,BPatch_sourceBlock& sb){
 		os << sb.sourceFile << " (";
 	else
 		os << "<NO_FILE_NAME>" << " (";
-		
-	if(sb.sourceLines){
-		unsigned short* elements = new unsigned short[sb.sourceLines->size()];
-		sb.sourceLines->elements(elements);
-		for(int j=0;j<sb.sourceLines->size();j++)
-			os << " " << elements[j];
-		delete[] elements;
-	}
-	else
-		os << "<NO_LINE_NUMBERS>";
 
+        if (sb.sourceLines.empty()) {
+           os << "<NO_LINE_NUMBERS>";
+        }
+        else {
+           for (std::set<unsigned short>::iterator iter = sb.sourceLines.begin();
+                iter != sb.sourceLines.end(); ++iter) {
+              os << " " << *iter;
+           }
+        }
 	os << ")}" << endl;
 	return os;
 }
 #endif
 
 #ifdef IBM_BPATCH_COMPAT
-void BPatch_sourceBlock::getIncPointsInt(BPatch_Vector<BPatch_point *> &vect)
+void BPatch_sourceBlock::getIncPoints(BPatch_Vector<BPatch_point *> &vect)
 {
 //  nothing here for now...  might need to implement, might not.
 }
 
-void BPatch_sourceBlock::getExcPointsInt(BPatch_Vector<BPatch_point *> &vect)
+void BPatch_sourceBlock::getExcPoints(BPatch_Vector<BPatch_point *> &vect)
 {
  //  for now, they are the same
  getIncPoints(vect);
 }
 
-char *BPatch_sourceBlock::getNameInt(char *buf, int buflen)
+char *BPatch_sourceBlock::getName(char *buf, int buflen)
 {
   if (buflen > strlen("sourceBlock")) {
     strcpy(buf, "sourceBlock")[strlen("sourceBlock")]='\0';

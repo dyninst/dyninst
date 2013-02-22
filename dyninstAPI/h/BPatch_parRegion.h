@@ -33,7 +33,6 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
-#include "BPatch_eventLock.h"
 
 class int_parRegion;
 class InstrucIter;
@@ -43,16 +42,11 @@ class BPatch_instruction;
 
 typedef enum{
   OMP_NONE, OMP_PARALLEL, OMP_DO_FOR,OMP_DO_FOR_LOOP_BODY, OMP_SECTIONS, OMP_SINGLE, 
-    OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
-    OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED, OMP_ANY
-    } parRegType;
+  OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
+  OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED, OMP_ANY
+} parRegType;
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_parRegion
-
-class BPATCH_DLL_EXPORT BPatch_parRegion: public BPatch_eventLock{
+class BPATCH_DLL_EXPORT BPatch_parRegion {
   BPatch_function * func;
   int_parRegion * parReg;
   
@@ -65,48 +59,41 @@ class BPATCH_DLL_EXPORT BPatch_parRegion: public BPatch_eventLock{
   void printDetails();
 
 
-   /** BPatch_basicBlock::getClause    */
+  /** BPatch_basicBlock::getClause    */
         
-   API_EXPORT(Int, (key),
-              int, getClause, (const char * key));
+  int  getClause(const char * key);
 
 
-   /** BPatch_basicBlock::replaceOMPParameter    */
+  /** BPatch_basicBlock::replaceOMPParameter    */
         
-   API_EXPORT(Int, (key, value),
-              int, replaceOMPParameter, (const char * key, int value));
+  int  replaceOMPParameter(const char * key, int value);
 
 
   /** BPatch_parRegion::getInstructions   */
   /** return the instructions that belong to the block */
 
-  API_EXPORT(Int, (),
-             BPatch_Vector<BPatch_instruction *> *,getInstructions,());
+  BPatch_Vector<BPatch_instruction *> * getInstructions();
 
-  API_EXPORT(Int, (insns),
-	     bool, getInstructions, (std::vector<Dyninst::InstructionAPI::Instruction::Ptr>& insns));
+  bool  getInstructions(std::vector<Dyninst::InstructionAPI::Instruction::Ptr>& insns);
 
 
   /** BPatch_parRegion::size   */
 
-   API_EXPORT(Int, (),
-              unsigned,size,() CONST_EXPORT);
+  unsigned size() const;
 
-   /** BPatch_parRegion::getStartAddress   */
-   //these always return absolute address
+  /** BPatch_parRegion::getStartAddress   */
+  //these always return absolute address
 
-   API_EXPORT(Int, (),
-              unsigned long,getStartAddress,() CONST_EXPORT);
+  unsigned long getStartAddress() const;
 
-   /** BPatch_basicBlock::getEndAddress    */
+  /** BPatch_basicBlock::getEndAddress    */
         
-   API_EXPORT(Int, (),
-              unsigned long, getEndAddress, () CONST_EXPORT);
+  unsigned long  getEndAddress() const;
 
    
  private:
-   /** the instructions within this region */
-   BPatch_Vector<BPatch_instruction*> *instructions;
+  /** the instructions within this region */
+  BPatch_Vector<BPatch_instruction*> *instructions;
 
 };
 

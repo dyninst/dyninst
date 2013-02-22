@@ -157,7 +157,7 @@ void BPatch_point::setLoop(BPatch_basicBlockLoop *l) {
  * Returns type of BPatch_point
  */
 
-BPatch_procedureLocation BPatch_point::getPointTypeInt()
+BPatch_procedureLocation BPatch_point::getPointType()
 {
    return pointType;
 }
@@ -168,7 +168,7 @@ BPatch_procedureLocation BPatch_point::getPointTypeInt()
  * Returns loop if of appropriate type
  */
 
-BPatch_basicBlockLoop *BPatch_point::getLoopInt()
+BPatch_basicBlockLoop *BPatch_point::getLoop()
 {
    return loop;
 }
@@ -179,7 +179,7 @@ BPatch_basicBlockLoop *BPatch_point::getLoopInt()
  * Returns the point's address space
  */
 
-BPatch_addressSpace *BPatch_point::getAddressSpaceInt()
+BPatch_addressSpace *BPatch_point::getAddressSpace()
 {
    return addSpace;
 }
@@ -190,7 +190,7 @@ BPatch_addressSpace *BPatch_point::getAddressSpaceInt()
  * Returns function to which this BPatch_point belongs
  */
 
-BPatch_function *BPatch_point::getFunctionInt()
+BPatch_function *BPatch_point::getFunction()
 {
    return func;
 }
@@ -202,7 +202,7 @@ BPatch_function *BPatch_point::getFunctionInt()
  * BPatch_function that represents the function being called.  If the point
  * isn't a call site, returns NULL.
  */
-BPatch_function *BPatch_point::getCalledFunctionInt()
+BPatch_function *BPatch_point::getCalledFunction()
 {
    assert(point);
 
@@ -232,7 +232,7 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    return addSpace->findOrCreateBPFunc(_func, NULL);
 }
 
-std::string BPatch_point::getCalledFunctionNameInt() {
+std::string BPatch_point::getCalledFunctionName() {
 	assert(point->block());
 	return point->block()->obj()->getCalleeName(point->block());
 }
@@ -243,7 +243,7 @@ std::string BPatch_point::getCalledFunctionNameInt() {
  * Returns block to which this BPatch_point belongs
  */
 
-BPatch_basicBlock *BPatch_point::getBlockInt()
+BPatch_basicBlock *BPatch_point::getBlock()
 {
    if (!point) return NULL;
    block_instance *llblock = point->block();
@@ -272,7 +272,7 @@ void BPatch_point::attachMemAcc(BPatch_memoryAccess *newMemAcc) {
         memacc = newMemAcc;
 }
 
-const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
+const BPatch_memoryAccess *BPatch_point::getMemoryAccess()
 {
     if (!func->getModule()->isValid()) return NULL;
 
@@ -283,7 +283,7 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
     //      point->addr());
     assert(point);
     // Try to find it... we do so through an InstrucIter
-    Dyninst::InstructionAPI::Instruction::Ptr i = getInsnAtPointInt();
+    Dyninst::InstructionAPI::Instruction::Ptr i = getInsnAtPoint();
     if (!i) return NULL;
     BPatch_memoryAccessAdapter converter;
 
@@ -291,13 +291,13 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
     return memacc;
 }
 
-InstructionAPI::Instruction::Ptr BPatch_point::getInsnAtPointInt()
+InstructionAPI::Instruction::Ptr BPatch_point::getInsnAtPoint()
 {
     return point->insn();
 }
 
 
-const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippetsInt()
+const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets()
 {
     allSnippets.clear();
 
@@ -313,7 +313,7 @@ const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippetsInt()
 }
 
 const BPatch_Vector<BPatchSnippetHandle *>
-BPatch_point::getCurrentSnippetsByWhen(BPatch_callWhen when)
+BPatch_point::getCurrentSnippets(BPatch_callWhen when)
 {
     if (when == BPatch_callBefore)
         return preSnippets;
@@ -326,7 +326,7 @@ BPatch_point::getCurrentSnippetsByWhen(BPatch_callWhen when)
 #include "registerSpace.h"
 
 #if defined(cap_liveness)
-bool BPatch_point::getLiveRegistersInt(std::vector<BPatch_register> &liveRegs)
+bool BPatch_point::getLiveRegisters(std::vector<BPatch_register> &liveRegs)
 {
     // Good question: pre- or post-instruction? I'm going to assume pre-instruction.
 
@@ -343,7 +343,7 @@ bool BPatch_point::getLiveRegistersInt(std::vector<BPatch_register> &liveRegs)
 
 }
 #else
-bool BPatch_point::getLiveRegistersInt(std::vector<BPatch_register> &)
+bool BPatch_point::getLiveRegisters(std::vector<BPatch_register> &)
 {
     // Oops
     return false;
@@ -356,7 +356,7 @@ bool BPatch_point::getLiveRegistersInt(std::vector<BPatch_register> &)
  *
  * Returns the original address of the first instruction at this point.
  */
-void *BPatch_point::getAddressInt()
+void *BPatch_point::getAddress()
 {
     return (void *)point->addr_compat();
 }
@@ -370,7 +370,7 @@ void *BPatch_point::getAddressInt()
  * use traps (everything other than x86), it always returns false;
  *
  */
-bool BPatch_point::usesTrap_NPInt()
+bool BPatch_point::usesTrap_NP()
 {
    assert(point);
    return false;
@@ -383,7 +383,7 @@ bool BPatch_point::usesTrap_NPInt()
  * Returns true if this point is a dynamic control transfer site.
  *
  */
-bool BPatch_point::isDynamicInt()
+bool BPatch_point::isDynamic()
 {
    if (!point) return false;
 
@@ -433,7 +433,7 @@ bool BPatch_point::isDynamicInt()
  * Returns false if BPatch_point is not a dynamic call site.
  *
  */
-void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
+void *BPatch_point::monitorCalls( BPatch_function * user_cb )
 {
   BPatch_function *func_to_use = user_cb;
 
@@ -506,7 +506,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   return (void*) res.get();
 } /* end monitorCalls() */
 
-bool BPatch_point::stopMonitoringInt()
+bool BPatch_point::stopMonitoring()
 {
   if (!dynamic_point_monitor_func) {
     bperr("%s[%d]:  call site not currently monitored", __FILE__, __LINE__);
@@ -529,7 +529,7 @@ bool BPatch_point::stopMonitoringInt()
  * insns        A pointer to a buffer in which to return the instructions.
  */
 
-int BPatch_point::getDisplacedInstructionsInt(int /*maxSize*/, void* /*insns*/)
+int BPatch_point::getDisplacedInstructions(int /*maxSize*/, void* /*insns*/)
 {
    return 0;
 }

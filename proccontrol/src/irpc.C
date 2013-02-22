@@ -254,6 +254,7 @@ bool int_iRPC::fillInAllocation()
    }
    cur_allocation->size = binary_size;
    cur_allocation->addr = thrd->llproc()->mallocExecMemory(binary_size);
+   setShouldSaveData(true);
 
    return true;
 }
@@ -649,7 +650,6 @@ int_iRPC::ptr int_iRPC::newAllocationRPC()
    newrpc->setTargetAllocation(cur_allocation);
    newrpc->thrd = thrd;
    cur_allocation->creation_irpc = newrpc;
-   setShouldSaveData(false); //The memory will just be deallocated
    return newrpc;
 }
 
@@ -961,6 +961,7 @@ int_iRPC::ptr iRPCMgr::createInfMallocRPC(int_process *proc, unsigned long size,
    if (!result)
       return int_iRPC::ptr();
    irpc->allocation()->addr = proc->mallocExecMemory(binary_size);
+   irpc->setShouldSaveData(true);
    return irpc;
 }
 
@@ -983,6 +984,7 @@ int_iRPC::ptr iRPCMgr::createInfFreeRPC(int_process *proc, unsigned long size,
    if (!result)
       return int_iRPC::ptr();
    irpc->allocation()->addr = proc->mallocExecMemory(binary_size);
+   irpc->setShouldSaveData(true);
    return irpc;
 }
 

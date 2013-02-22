@@ -38,7 +38,6 @@
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_basicBlock.h"
-#include "BPatch_eventLock.h"
 #include "BPatch_flowGraph.h" 
 
 /** class to represent the loops composed of machine code basic 
@@ -51,13 +50,7 @@
 class BPatch_variableExpr;
 class BPatch_loopTreeNode;
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_basicBlockLoop
-
 class BPATCH_DLL_EXPORT BPatch_basicBlockLoop : 
-   public BPatch_eventLock, 
    public Dyninst::AnnotatableSparse 
 {
 	friend class BPatch_flowGraph;
@@ -73,10 +66,10 @@ private:
         BPatch_flowGraph *flowGraph;
 
 	/** set of loops that are contained (nested) in this loop. */
-	BPatch_Set<BPatch_basicBlockLoop*> containedLoops;
+        std::set<BPatch_basicBlockLoop*> containedLoops;
 
 	/** the basic blocks in the loop */
-	BPatch_Set<BPatch_basicBlock*> basicBlocks;
+        std::set<BPatch_basicBlock*> basicBlocks;
 
         /** this func is only invoked by BPatch_flowGraph::createLoops */
         void addBackEdges(std::vector<BPatch_edge*> &edges);
@@ -88,92 +81,80 @@ public:
 	/** BPatch_basicBlockLoop::containsAddress    */
 	/** Return true if the given address is within the range of
 	    this loop's basicBlocks */
-        API_EXPORT(Int, (addr),
 
-        bool,containsAddress,(unsigned long addr));
+        bool containsAddress(unsigned long addr);
 	  
 	/** Return true if the given address is within the range of
 	    this loop's basicBlocks or its children */
-	API_EXPORT(Int, (addr),
 		   
-	bool,containsAddressInclusive,(unsigned long addr));
+	bool containsAddressInclusive(unsigned long addr);
 
 
 	/** BPatch_basicBlockLoop::getBackEdge    */
         /** return a back edge that defines this loop */
-        API_EXPORT(Int, (),
 
-        BPatch_edge *,getBackEdge,());
+        BPatch_edge * getBackEdge();
 
 	/** BPatch_basicBlockLoop::getBackEdges */
         /** Sets edges to the set of back edges that define this loop,
             returns the number of back edges that define this loop */
-        API_EXPORT(Int, (edges),
-        int,getBackEdges,(BPatch_Vector<BPatch_edge*> &edges));
+        int getBackEdges(BPatch_Vector<BPatch_edge*> &edges);
 
 	/** BPatch_basicBlockLoop::getContainedLoops    */
 	/** returns vector of contained loops */
-        API_EXPORT(Int, (loops),
 
-        bool,getContainedLoops,(BPatch_Vector<BPatch_basicBlockLoop*> &loops));
+        bool getContainedLoops(BPatch_Vector<BPatch_basicBlockLoop*> &loops);
 
 	/** BPatch_basicBlockLoop::getOuterLoops    */
 	/** returns vector of outer contained loops */
-        API_EXPORT(Int, (loops),
 
-	bool,getOuterLoops,(BPatch_Vector<BPatch_basicBlockLoop*> &loops) );
+	bool getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*> &loops);
 
 	/** BPatch_basicBlockLoop::getLoopBasicBlocks    */
 	/** returns all basic blocks in the loop */
-        API_EXPORT(Int, (blocks),
 
-        bool,getLoopBasicBlocks,(BPatch_Vector<BPatch_basicBlock*> &blocks));
+        bool getLoopBasicBlocks(BPatch_Vector<BPatch_basicBlock*> &blocks);
 
 	/** BPatch_basicBlockLoop::getLoopBasicBlocksExclusive    */
 	/** returns all basic blocks in this loop, exluding the blocks
 	    of its sub loops. */
-        API_EXPORT(Int, (blocks),
 
-        bool,getLoopBasicBlocksExclusive,(BPatch_Vector<BPatch_basicBlock*> &blocks));
+        bool getLoopBasicBlocksExclusive(BPatch_Vector<BPatch_basicBlock*> &blocks);
 
         /** does this loop or its subloops contain the given block? */
-        API_EXPORT(Int, (b),
 
-        bool,hasBlock,(BPatch_basicBlock *b));
+        bool hasBlock(BPatch_basicBlock *b);
 
         /** does this loop contain the given block? */
-        API_EXPORT(Int, (b),
 
-        bool,hasBlockExclusive,(BPatch_basicBlock *b));
+        bool hasBlockExclusive(BPatch_basicBlock *b);
 
 	/** BPatch_basicBlockLoop::hasAncestor    */
 	/** returns true if this loop is a descendant of the given loop */
-        API_EXPORT(Int, (loop),
 
-        bool,hasAncestor,(BPatch_basicBlockLoop *loop));
+        bool hasAncestor(BPatch_basicBlockLoop *loop);
 
 	/** returns the flow graph this loop is in */
-        API_EXPORT(Int, (),
 
-        BPatch_flowGraph *,getFlowGraph,());
+        BPatch_flowGraph * getFlowGraph();
 
 	/** BPatch_basicBlockLoop::getLoopHead    */
 	/** returns the head basic block of the loop */
-        API_EXPORT(Int, (),
 
-        BPatch_basicBlock *,getLoopHead,());
+        BPatch_basicBlock * getLoopHead();
 
 	/** BPatch_basicBlockLoop::getLoopIterators    */
 	/** method that returns the variables used as iterator */
 	/** not implemented yet */
-        API_EXPORT(Int, (),
 
-        BPatch_Set<BPatch_variableExpr*> *,getLoopIterators,());
+        std::set<BPatch_variableExpr*> * getLoopIterators();
 
 	/** BPatch_basicBlockLoop::~BPatch_basicBlockLoop    */
 	/** destructor for the class */
 
-	public:  ~BPatch_basicBlockLoop() { }
+        ~BPatch_basicBlockLoop() { }
+
+        std::string format() const;
 
 private:
 // internal use only

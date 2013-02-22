@@ -30,7 +30,6 @@
 #include "pcEventHandler.h"
 #include "BPatch.h"
 #include "debug.h"
-#include "eventLock.h"
 #include "os.h"
 #include "dynProcess.h"
 #include "mapped_object.h"
@@ -945,6 +944,7 @@ bool PCEventHandler::handleBreakpoint(EventBreakpoint::const_ptr ev, PCProcess *
 
 bool PCEventHandler::handleRPC(EventRPC::const_ptr ev, PCProcess *evProc) const {
     inferiorRPCinProgress *rpcInProg = (inferiorRPCinProgress *) ev->getIRPC()->getData();
+
 
     if( rpcInProg == NULL ) {
         proccontrol_printf("%s[%d]: ERROR: handle to Dyninst rpc container is invalid\n",

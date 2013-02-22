@@ -35,6 +35,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <iterator>
 
 #include "dyntypes.h"
 #include "dyn_regs.h"
@@ -149,7 +150,6 @@ class PC_EXPORT Library
    void setData(void *p) const;
 };
 
-
 class PC_EXPORT LibraryPool
 {
    friend class ::int_process;
@@ -159,7 +159,7 @@ class PC_EXPORT LibraryPool
    LibraryPool();
    ~LibraryPool();
  public:
-  class PC_EXPORT iterator {
+   class PC_EXPORT iterator  {
       friend class Dyninst::ProcControlAPI::LibraryPool;
    private:
       std::set<int_library *>::iterator int_iter;
@@ -171,9 +171,15 @@ class PC_EXPORT LibraryPool
       bool operator!=(const iterator &i) const;
       LibraryPool::iterator operator++();
       LibraryPool::iterator operator++(int);
+
+      typedef Library::ptr value_type;
+      typedef int difference_type;
+      typedef Library::ptr *pointer;
+      typedef Library::ptr &reference;
+      typedef std::forward_iterator_tag iterator_category;
   };
 
-  class PC_EXPORT const_iterator {
+   class PC_EXPORT const_iterator  {
      friend class Dyninst::ProcControlAPI::LibraryPool;
   private:
      std::set<int_library *>::iterator int_iter;
@@ -185,6 +191,12 @@ class PC_EXPORT LibraryPool
      bool operator!=(const const_iterator &i);
      LibraryPool::const_iterator operator++();
      LibraryPool::const_iterator operator++(int);
+
+      typedef Library::const_ptr value_type;
+      typedef int difference_type;
+      typedef Library::const_ptr *pointer;
+      typedef Library::const_ptr &reference;
+      typedef std::forward_iterator_tag iterator_category;
   };
 
   iterator begin();
@@ -396,6 +408,47 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    /**
     * Memory management
     **/
+   class PC_EXPORT mem_perm {
+       bool read;
+       bool write;
+       bool execute;
+
+       int permVal() const;
+
+   public:
+       mem_perm() : read(false), write(false), execute(false) {} 
+       mem_perm(const mem_perm& p) : read(p.read), write(p.write),
+                                     execute(p.execute) {}
+       mem_perm(bool r, bool w, bool x) : read(r), write(w), execute(x) {} 
+
+       bool getR() const { return read;    }
+       bool getW() const { return write;   }
+       bool getX() const { return execute; }
+
+       bool isNone() const { return !read && !write && !execute; }
+       bool isR()    const { return  read && !write && !execute; }
+       bool isX()    const { return !read && !write &&  execute; }
+       bool isRW()   const { return  read &&  write && !execute; }
+       bool isRX()   const { return  read && !write &&  execute; }
+       bool isRWX()  const { return  read &&  write &&  execute; }
+
+       mem_perm& setR() { read    = true;  return *this; }
+       mem_perm& setW() { write   = true;  return *this; }
+       mem_perm& setX() { execute = true;  return *this; }
+
+       mem_perm& clrR() { read    = false; return *this; }
+       mem_perm& clrW() { write   = false; return *this; }
+       mem_perm& clrX() { execute = false; return *this; }
+
+       bool operator< (const mem_perm& p) const;
+       bool operator==(const mem_perm& p) const;
+       bool operator!=(const mem_perm& p) const;
+
+       std::string getPermName() const;
+   };
+
+   unsigned getMemoryPageSize() const;
+
    Dyninst::Address mallocMemory(size_t size);
    Dyninst::Address mallocMemory(size_t size, Dyninst::Address addr);
    bool freeMemory(Dyninst::Address addr);
@@ -410,11 +463,23 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
     **/
    Dyninst::Address findFreeMemory(size_t size);
 
+   bool getMemoryAccessRights(Dyninst::Address addr, size_t size,
+                              mem_perm& rights);
+   bool setMemoryAccessRights(Dyninst::Address addr, size_t size,
+                              mem_perm rights, mem_perm& oldRights);
+
+   // MemoryRegion.first = startAddr, MemoryRegion.second = endAddr
+   typedef std::pair<Dyninst::Address, Dyninst::Address> MemoryRegion;
+   bool findAllocatedRegionAround(Dyninst::Address addr, MemoryRegion& memRegion);
+
    /**
     * Libraries
     **/
    const LibraryPool &libraries() const;
    LibraryPool &libraries();
+
+   // Cause a library to be loaded into the process (via black magic)
+   bool addLibrary(std::string libname);
 
    /**
     * Breakpoints
@@ -431,13 +496,13 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
 
    /**
-    * Post and run an IRPC; user must wait for completion. Standard 
+    * Post, run, and wait for an IRPC to complete
     **/
 	bool runIRPCSync(IRPC::ptr irpc);
 
    /**
-    * Post, run, and wait for an IRPC to complete
-	**/
+    * Post and run an IRPC; user must wait for completion. 
+    **/
 	bool runIRPCAsync(IRPC::ptr irpc);
 
    /**
@@ -532,6 +597,7 @@ class PC_EXPORT Thread
    Dyninst::Address getStackBase() const;
    unsigned long getStackSize() const;
    Dyninst::Address getTLS() const;
+   Dyninst::Address getThreadInfoBlockAddr() const;
 
    /**
     * IRPC

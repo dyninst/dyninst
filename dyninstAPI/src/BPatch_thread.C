@@ -53,7 +53,7 @@
  *
  * stack	The vector to fill with the stack trace information.
  */
-bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
+bool BPatch_thread::getCallStack(BPatch_Vector<BPatch_frame>& stack)
 {
    pdvector<Frame> stackWalk;   
 
@@ -110,37 +110,37 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, PCThread *thr) : madeExitCa
    llthread = thr;
 }
 
-unsigned BPatch_thread::getBPatchIDInt()
+unsigned BPatch_thread::getBPatchID()
 {
     return (unsigned)llthread->getIndex();
 }
 
-BPatch_process *BPatch_thread::getProcessInt() 
+BPatch_process *BPatch_thread::getProcess() 
 {
    return proc;
 }
 
-dynthread_t BPatch_thread::getTidInt()
+dynthread_t BPatch_thread::getTid()
 {
    return llthread->getTid();
 }
 
-Dyninst::LWP BPatch_thread::getLWPInt()
+Dyninst::LWP BPatch_thread::getLWP()
 {
    return llthread->getLWP();
 }
 
-BPatch_function *BPatch_thread::getInitialFuncInt() {
+BPatch_function *BPatch_thread::getInitialFunc() {
    func_instance *ifunc = llthread->getStartFunc();
    if (!ifunc) return NULL;
    return proc->findOrCreateBPFunc(ifunc, NULL);
 }
 
-unsigned long BPatch_thread::getStackTopAddrInt() {
+unsigned long BPatch_thread::getStackTopAddr() {
    return llthread->getStackAddr();
 }
 
-void BPatch_thread::BPatch_thread_dtor()
+BPatch_thread::~BPatch_thread()
 {
     if( llthread ) {
         delete llthread;
@@ -153,7 +153,7 @@ void BPatch_thread::BPatch_thread_dtor()
  * information.  Not sure if this should become a part of the public, 
  * supported interface.
  **/
-unsigned long BPatch_thread::os_handleInt()
+unsigned long BPatch_thread::os_handle()
 {
     return (unsigned long)-1;
 }
@@ -164,13 +164,13 @@ unsigned long BPatch_thread::os_handleInt()
  * Have the mutatee execute specified code expr once.  Wait until done.
  *
  */
-void *BPatch_thread::oneTimeCodeInt(const BPatch_snippet &expr, bool *err) {
+void *BPatch_thread::oneTimeCode(const BPatch_snippet &expr, bool *err) {
     if( !llthread->isLive() ) {
         if ( err ) *err = true;
         return NULL;
     }
 
-    if( !proc->isStoppedInt() ) {
+    if( !proc->isStopped() ) {
         BPatch_reportError(BPatchWarning, 0,
                            "oneTimeCode failing because process is not stopped");
         if( err ) *err = true;
@@ -186,7 +186,7 @@ void *BPatch_thread::oneTimeCodeInt(const BPatch_snippet &expr, bool *err) {
  * Have the mutatee execute specified code expr once.  Don't wait until done.
  *
  */
-bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
+bool BPatch_thread::oneTimeCodeAsync(const BPatch_snippet &expr, 
                                         void *userData,
                                         BPatchOneTimeCodeCallback cb)
 {
@@ -200,7 +200,7 @@ bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
    return true;
 }
 
-bool BPatch_thread::isDeadOnArrivalInt() 
+bool BPatch_thread::isDeadOnArrival() 
 {
    return false;
 }

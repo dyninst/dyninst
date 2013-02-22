@@ -58,7 +58,7 @@ edge_type_string(BPatch_edgeType t)
 
 
 BPatch_edgeType 
-BPatch_edge::getTypeInt()
+BPatch_edge::getType()
 {
    switch(edge->type()) {
    case ParseAPI::NOEDGE:
@@ -76,7 +76,7 @@ BPatch_edge::getTypeInt()
 }
 
 
-void BPatch_edge::BPatch_edgeInt(edge_instance *e, 
+BPatch_edge::BPatch_edge(edge_instance *e, 
    BPatch_flowGraph *FG)
 {
    assert(e);
@@ -89,29 +89,29 @@ void BPatch_edge::BPatch_edgeInt(edge_instance *e,
 }
 
  
-void BPatch_edge::BPatch_edge_dtor()
+BPatch_edge::~BPatch_edge()
 {
     //fprintf(stderr,"~BPatch_edge\n");
 }
 
 
-void BPatch_edge::dumpInt()
+void BPatch_edge::dump()
 {
 }
 
-BPatch_basicBlock *BPatch_edge::getSourceInt() {
+BPatch_basicBlock *BPatch_edge::getSource() {
    return fg->findBlock(edge->src());
 }
 
-BPatch_basicBlock *BPatch_edge::getTargetInt() {
+BPatch_basicBlock *BPatch_edge::getTarget() {
    return fg->findBlock(edge->trg());
 }
 
-BPatch_flowGraph *BPatch_edge::getFlowGraphInt() {
+BPatch_flowGraph *BPatch_edge::getFlowGraph() {
    return fg;
 }
 
-BPatch_point *BPatch_edge::getPointInt()
+BPatch_point *BPatch_edge::getPoint()
 {
    if (!point) {
       BPatch_flowGraph *cfg = getFlowGraph();

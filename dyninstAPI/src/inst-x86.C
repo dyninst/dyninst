@@ -307,6 +307,11 @@ void registerSpace::initialize64() {
     registers.push_back(rsi);
     registers.push_back(rdi);
 
+    registers.push_back(new registerSlot(REGNUM_EFLAGS,
+                                         "eflags",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
 
     registers.push_back(new registerSlot(REGNUM_OF,
                                          "of",
@@ -1356,7 +1361,7 @@ Register EmitterIA32::emitCall(opCode op,
  * base is the next free position on ibuf where code is to be generated
  */
 
-codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
+codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
                      codeGen &gen, RegControl rc, bool /*noCost*/)
 {
    //bperr("emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);

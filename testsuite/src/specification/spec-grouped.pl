@@ -2478,6 +2478,19 @@ mutatee('pc_library', ['pc_library_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mu
 mutatee_requires_libs('pc_library', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_library', _, Opt) :- member(Opt, ['none']).
 
+test('pc_addlibrary', 'pc_addlibrary', 'pc_addlibrary').
+test_description('pc_addlibrary', 'Add Library').
+test_platform('pc_addlibrary', Platform) :- pcPlatforms(Platform).
+mutator('pc_addlibrary', ['pc_addlibrary.C']).
+test_runmode('pc_addlibrary', 'dynamic').
+test_threadmode('pc_addlibrary', 'Threading').
+test_processmode('pc_addlibrary', 'Processes').
+test_start_state('pc_addlibrary', 'selfattach').
+tests_module('pc_addlibrary', 'proccontrol').
+mutatee('pc_addlibrary', ['pc_addlibrary_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_addlibrary', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_addlibrary', _, Opt) :- member(Opt, ['none']).
+
 test('pc_singlestep', 'pc_singlestep', 'pc_singlestep').
 test_description('pc_singlestep', 'Single step').
 test_platform('pc_singlestep', Platform) :- pcPlatforms(Platform).
@@ -2631,6 +2644,19 @@ tests_module('pc_terminate_stopped', 'proccontrol').
 mutatee('pc_terminate_stopped', ['pc_terminate_stopped_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_terminate_stopped', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_terminate_stopped', _, Opt) :- member(Opt, ['none']).
+
+test('pc_mem_perm', 'pc_mem_perm', 'pc_mem_perm').
+test_description('pc_mem_perm', 'test operations on memory permission').
+test_platform('pc_mem_perm', Platform) :- platform(_, 'windows', _, Platform).
+mutator('pc_mem_perm', ['pc_mem_perm.C']).
+test_runmode('pc_mem_perm', 'dynamic').
+test_threadmode('pc_mem_perm', 'Threading').
+test_processmode('pc_mem_perm', 'Processes').
+test_start_state('pc_mem_perm', 'selfattach').
+tests_module('pc_mem_perm', 'proccontrol').
+mutatee('pc_mem_perm', ['pc_mem_perm_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_mem_perm', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_mem_perm', _, Opt) :- member(Opt, ['none']).
 
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its

@@ -38,7 +38,6 @@
 #include "common/h/Pair.h"
 #include "codeRange.h"
 #include "common/h/arch.h" // instruction
-#include "dyninstAPI/h/BPatch_Set.h"
 #include "dyninstAPI/h/BPatch_parRegion.h"
 #include "common/h/Dictionary.h"
 #include <map>

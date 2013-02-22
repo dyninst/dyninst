@@ -43,7 +43,6 @@
 #include "BPatch_point.h"
 #include "BPatch_flowGraph.h"
 #include "BPatch_function.h"
-#include "BPatch_Set.h"
 
 #include "test_lib.h"
 #include "Callbacks.h"
@@ -115,7 +114,7 @@ test_results_t test1_20_Mutator::executeTest()
 	BPatchErrorCallback oldError =
 		BPatch::bpatch->registerErrorCallback(createInstPointError);
 
-	BPatch_Set<BPatch_basicBlock *> blocks;
+        std::set<BPatch_basicBlock *> blocks;
 
 	if (!cfg->getAllBasicBlocks(blocks))
 		assert(0); // This can't return false :)
@@ -131,7 +130,7 @@ test_results_t test1_20_Mutator::executeTest()
 
 	dprintf("%s[%d]:  about to instrument %d basic blocks\n", __FILE__, __LINE__, blocks.size());
 
-	BPatch_Set<BPatch_basicBlock *>::iterator blockIter = blocks.begin();
+        std::set<BPatch_basicBlock *>::iterator blockIter = blocks.begin();
 
 	for (; blockIter != blocks.end(); blockIter++) 
 	{

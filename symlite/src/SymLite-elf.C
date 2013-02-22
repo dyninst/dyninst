@@ -40,6 +40,7 @@ using namespace std;
 using namespace Dyninst;
 
 SymElf::SymElf(std::string file_) :
+   elf(NULL),
    fd(-1),
    need_odp(false),
    file(file_),
@@ -68,6 +69,7 @@ SymElf::SymElf(std::string file_) :
 }
 
 SymElf::SymElf(const char *buffer_, unsigned long buffer_size_) :
+   elf(NULL),
    fd(-1),
    need_odp(false),
    file(),
@@ -90,6 +92,7 @@ SymElf::SymElf(const char *buffer_, unsigned long buffer_size_) :
 
 SymElf::~SymElf()
 {
+   if (!elf) return;
    if (elf->isValid())
       elf->end();
    if (fd != -1) {
@@ -179,6 +182,10 @@ Symbol_t SymElf::getSymbolByName(std::string symname)
          unsigned str_loc = symbol.st_name(idx);
          if (strcmp(str_buffer+str_loc, symname.c_str()) != 0)
             continue;
+	 if (symbol.st_shndx(idx) == 0) {
+	   continue;
+	 }
+
          MAKE_SYMBOL(str_buffer+str_loc, idx, shdr, ret);
          return ret;
       }
@@ -309,6 +316,13 @@ Dyninst::Offset SymElf::getSymbolOffset(const Symbol_t &sym)
    return getSymOffset(symbols, idx);
 }
 
+Dyninst::Offset SymElf::getSymbolTOC(const Symbol_t &sym)
+{
+   GET_SYMBOL(sym, shdr, symbols, name, idx);
+   name = NULL; //Silence warnings
+   return getSymTOC(symbols, idx);
+}
+
 std::string SymElf::getSymbolName(const Symbol_t &sym)
 {
    GET_SYMBOL(sym, shdr, symbols, name, idx);
@@ -369,6 +383,24 @@ unsigned long SymElf::getSymOffset(const Elf_X_Sym &symbol, unsigned idx)
    }
 
    return symbol.st_value(idx);
+}
+
+unsigned long SymElf::getSymTOC(const Elf_X_Sym &symbol, unsigned idx)
+{
+   if (need_odp && symbol.ST_TYPE(idx) == STT_FUNC) {
+      unsigned long odp_addr = odp_section->sh_addr();
+      unsigned long odp_size = odp_section->sh_size();
+      const char *odp_data = (const char *) odp_section->get_data().d_buf();
+      unsigned long sym_offset = symbol.st_value(idx);
+
+      if (sym_offset < odp_addr || (sym_offset >= odp_addr + odp_size)) 
+         return 0;
+
+      unsigned long toc = *((unsigned long *) (odp_data + (sym_offset - odp_addr + sizeof(long))));
+      return toc;
+   }
+
+   return 0;
 }
 
 void SymElf::createSymCache()

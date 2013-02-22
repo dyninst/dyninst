@@ -23,8 +23,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "stackwalk", "stackwalk\stac
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "proccontrol", "proccontrol\proccontrol.vcxproj", "{E2356DA6-9C35-45F6-B9D2-21C1CAD3A6EF}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup1", "Setup1\Setup1.vdproj", "{E3DA1B51-400A-4803-8FE4-470CBC9C5A63}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -71,8 +69,6 @@ Global
 		{E2356DA6-9C35-45F6-B9D2-21C1CAD3A6EF}.Debug|Win32.Build.0 = Debug|Win32
 		{E2356DA6-9C35-45F6-B9D2-21C1CAD3A6EF}.Release|Win32.ActiveCfg = Release|Win32
 		{E2356DA6-9C35-45F6-B9D2-21C1CAD3A6EF}.Release|Win32.Build.0 = Release|Win32
-		{E3DA1B51-400A-4803-8FE4-470CBC9C5A63}.Debug|Win32.ActiveCfg = Debug
-		{E3DA1B51-400A-4803-8FE4-470CBC9C5A63}.Release|Win32.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

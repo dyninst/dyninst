@@ -90,12 +90,12 @@ BPatch_sourceObj *BPatch_module::getObjParent()
    return (BPatch_sourceObj *) img;
 }
 
-BPatch_object *BPatch_module::getObjectInt() {
+BPatch_object *BPatch_module::getObject() {
    if (!isValid()) return NULL;
    return img->findOrCreateObject(mod->obj());
 }
 
-char *BPatch_module::getNameInt(char *buffer, int length)
+char *BPatch_module::getName(char *buffer, int length)
 {
    if (!mod)
       return NULL;
@@ -107,7 +107,7 @@ char *BPatch_module::getNameInt(char *buffer, int length)
    return buffer;
 }
 
-const char *BPatch_module::libraryNameInt()
+const char *BPatch_module::libraryName()
 {
    if (!mod)
       return NULL;
@@ -118,7 +118,7 @@ const char *BPatch_module::libraryNameInt()
    return NULL;
 }
 
-char *BPatch_module::getFullNameInt(char *buffer, int length)
+char *BPatch_module::getFullName(char *buffer, int length)
 {
    if (!mod)
       return NULL;
@@ -187,7 +187,7 @@ void BPatch_module::handleUnload()
    mod = NULL;
 }
 
-bool BPatch_module::isValidInt() 
+bool BPatch_module::isValid() 
 {
    return mod != NULL;
 }
@@ -309,7 +309,7 @@ bool BPatch_module::parseTypesIfNecessary()
 	return true; 
 }
 
-BPatch_typeCollection *BPatch_module::getModuleTypesInt() 
+BPatch_typeCollection *BPatch_module::getModuleTypes() 
 {
 	parseTypesIfNecessary();
 	return moduleTypes;
@@ -322,12 +322,12 @@ BPatch_typeCollection *BPatch_module::getModuleTypesInt()
  * upon failure.
  */
 BPatch_Vector<BPatch_function *> *
-	BPatch_module::getProceduresInt(bool incUninstrumentable) {
+	BPatch_module::getProcedures(bool incUninstrumentable) {
 		if (!isValid())
 			return NULL;
 
    BPatch_Vector<BPatch_function*> *funcs = new BPatch_Vector<BPatch_function*>();
-   bool result = getProceduresInt(*funcs, incUninstrumentable);
+   bool result = getProcedures(*funcs, incUninstrumentable);
    if (!result) {
       delete funcs;
       return NULL;
@@ -336,7 +336,7 @@ BPatch_Vector<BPatch_function *> *
    return funcs;
 }
 
-bool BPatch_module::getProceduresInt(BPatch_Vector<BPatch_function*> &funcs,
+bool BPatch_module::getProcedures(BPatch_Vector<BPatch_function*> &funcs,
                                      bool incUninstrumentable)
 {
    if (!isValid())
@@ -358,8 +358,9 @@ bool BPatch_module::getProceduresInt(BPatch_Vector<BPatch_function*> &funcs,
    BPatch_funcMap::iterator i = func_map.begin();
    for (; i != func_map.end(); i++) {
       func_instance *fi = static_cast<func_instance *>(i->first);
-      if (incUninstrumentable || fi->isInstrumentable())
+      if (incUninstrumentable || fi->isInstrumentable()) {
          funcs.push_back((*i).second);
+      }
    }
    return true;
 }
@@ -377,7 +378,7 @@ bool BPatch_module::getProceduresInt(BPatch_Vector<BPatch_function*> &funcs,
  */
 
    BPatch_Vector<BPatch_function *> *
-BPatch_module::findFunctionInt(const char *name, 
+BPatch_module::findFunction(const char *name, 
       BPatch_Vector<BPatch_function *> & funcs,
       bool notify_on_failure, bool regex_case_sensitive,
       bool incUninstrumentable, bool dont_use_regex)
@@ -517,7 +518,7 @@ BPatch_module::findFunctionInt(const char *name,
 }
 
    BPatch_Vector<BPatch_function *> *
-BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_function *> &funcs,
+BPatch_module::findFunctionByAddress(void *addr, BPatch_Vector<BPatch_function *> &funcs,
       bool notify_on_failure, 
       bool incUninstrumentable)
 {
@@ -553,7 +554,7 @@ BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_functio
    return &funcs;
 }
 
-BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_name,
+BPatch_function * BPatch_module::findFunctionByMangled(const char *mangled_name,
       bool incUninstrumentable)
 {
    if (!isValid()) return NULL;
@@ -581,7 +582,7 @@ BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_na
    return bpfunc;
 }
 
-bool BPatch_module::dumpMangledInt(char * prefix)
+bool BPatch_module::dumpMangled(char * prefix)
 {
    mod->dumpMangled(prefix);
    return true;
@@ -623,7 +624,7 @@ void BPatch_module::parseTypes()
 // This is done by analogy with BPatch_module::getVariables,
 // not BPatch_image::findVariable.  This should result in consistent
 // behavior at the module level.
-BPatch_variableExpr* BPatch_module::findVariableInt(const char* name)
+BPatch_variableExpr* BPatch_module::findVariable(const char* name)
 {
    parseTypesIfNecessary();
    const pdvector<int_variable *> &allVars = mod->getAllVariables();
@@ -638,7 +639,7 @@ BPatch_variableExpr* BPatch_module::findVariableInt(const char* name)
    return NULL;
 }
 
-bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
+bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
    if (!isValid())
       return false;
@@ -661,7 +662,7 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 }
 
 
-bool BPatch_module::getSourceLinesInt(unsigned long addr, 
+bool BPatch_module::getSourceLines(unsigned long addr, 
       BPatch_Vector< BPatch_statement> &lines) 
 {
    if (!isValid()) 
@@ -690,7 +691,7 @@ bool BPatch_module::getSourceLinesInt(unsigned long addr,
    return (lines.size() != originalSize);
 } /* end getSourceLines() */
 
-bool BPatch_module::getStatementsInt(BPatch_Vector<BPatch_statement> &statements)
+bool BPatch_module::getStatements(BPatch_Vector<BPatch_statement> &statements)
 {
 	// Iterate over each address range in the line information
 	SymtabAPI::Module *stmod = mod->pmod()->mod();
@@ -718,7 +719,7 @@ bool BPatch_module::getStatementsInt(BPatch_Vector<BPatch_statement> &statements
 
 }
 
-bool BPatch_module::getAddressRangesInt( const char * fileName, 
+bool BPatch_module::getAddressRanges( const char * fileName, 
 		unsigned int lineNo, std::vector< std::pair< Address, Address > > & ranges ) 
 {
 	unsigned int starting_size = ranges.size();
@@ -751,7 +752,7 @@ bool BPatch_module::getAddressRangesInt( const char * fileName,
 
 } /* end getAddressRanges() */
 
-bool BPatch_module::isSharedLibInt() 
+bool BPatch_module::isSharedLib() 
 {
 	return mod->obj()->isSharedLib();
 }
@@ -761,7 +762,7 @@ bool BPatch_module::isSharedLibInt()
  *
  * Returns the starting address of the module.
  */
-void *BPatch_module::getBaseAddrInt()
+void *BPatch_module::getBaseAddr()
 {
    return (void *)mod->obj()->codeAbs();
 }
@@ -771,7 +772,7 @@ void *BPatch_module::getBaseAddrInt()
  *
  * Returns the size of the module in bytes.
  */
-unsigned long BPatch_module::getSizeInt() 
+unsigned long BPatch_module::getSize() 
 {
    if (!mod) return 0;
    return (unsigned long) mod->obj()->imageSize();
@@ -783,13 +784,13 @@ Dyninst::SymtabAPI::Module *Dyninst::SymtabAPI::convert(const BPatch_module *m) 
    return m->mod->pmod()->mod();
 }
 
-bool BPatch_module::isNativeCompilerInt()
+bool BPatch_module::isNativeCompiler()
 {
    if (!mod) return false;
    return mod->obj()->parse_img()->isNativeCompiler();
 }
 
-size_t BPatch_module::getAddressWidthInt()
+size_t BPatch_module::getAddressWidth()
 {
    if (!mod) return 0;
    return mod->obj()->parse_img()->getObject()->getAddressWidth();
@@ -810,7 +811,7 @@ AddressSpace *BPatch_module::getAS()
    return lladdSpace;
 }
 
-BPatch_hybridMode BPatch_module::getHybridModeInt()
+BPatch_hybridMode BPatch_module::getHybridMode()
 {
     if (!mod || !getAS()->proc()) {
         return BPatch_normalMode;
@@ -852,19 +853,15 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
 
     // build up list of memory pages that contain analyzed code
     std::set<Address> pageAddrs;
-#if defined (os_windows) && defined(working_windows_proccontrol)
     lowlevel_mod()->getAnalyzedCodePages(pageAddrs);
-    // get lwp from which we can call changeMemoryProtections
-    process *proc = ((BPatch_process*)addSpace)->lowlevel_process();
-    dyn_lwp *stoppedlwp = proc->query_for_stopped_lwp();
-    if ( ! stoppedlwp ) {
-        bool wasRunning = true;
-        stoppedlwp = proc->stop_an_lwp(&wasRunning);
-        if ( ! stoppedlwp ) {
+
+    // get proc from which we can call changeMemoryProtections
+    PCProcess *proc = ((BPatch_process*)addSpace)->lowlevel_process();
+    assert(proc);
+    if (!proc->isStopped()) {
+        if (!proc->stopProcess())
             return false;
-        }
     }
-#endif
 
     // add protected pages to the mapped_object's hash table, and
     // aggregate adjacent pages into regions and apply protection
@@ -897,26 +894,21 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
             end += pageSize;
         } 
 
-#if defined(os_windows) && defined(working_windows_proccontrol)
-        int newRights = PAGE_EXECUTE_READ;
-        if (writeable) {
-            newRights = PAGE_EXECUTE_READWRITE;
-        }
-        stoppedlwp->changeMemoryProtections(start, end - start, newRights, true);
-#else
-        assert(0 && "unimplemented!");
-#endif
-
+        PCProcess::PCMemPerm newRights(true, false, true);  // PAGE_EXECUTE_READ;
+        if (writeable)
+            newRights.setW();  // PAGE_EXECUTE_READWRITE;
+        
+        proc->changeMemoryProtections(start, end - start, newRights, true);
     }
     return true;
 }
 
-Address BPatch_module::getLoadAddrInt()
+Address BPatch_module::getLoadAddr()
 {
    return mod->obj()->codeBase();
 }
 
-BPatchSnippetHandle* BPatch_module::insertInitCallbackInt(BPatch_snippet& callback)
+BPatchSnippetHandle* BPatch_module::insertInitCallback(BPatch_snippet& callback)
 {
     BPatch_Vector<BPatch_function*> init_funcs;
     findFunction("_init", init_funcs);    
@@ -934,7 +926,7 @@ BPatchSnippetHandle* BPatch_module::insertInitCallbackInt(BPatch_snippet& callba
     return NULL;
 }
 
-BPatchSnippetHandle* BPatch_module::insertFiniCallbackInt(BPatch_snippet& callback)
+BPatchSnippetHandle* BPatch_module::insertFiniCallback(BPatch_snippet& callback)
 {
     BPatch_Vector<BPatch_function*> fini_funcs;
     findFunction("_fini", fini_funcs);
@@ -951,7 +943,7 @@ BPatchSnippetHandle* BPatch_module::insertFiniCallbackInt(BPatch_snippet& callba
     return NULL;
 }
 
-BPatch_function *BPatch_module::findFunctionByEntryInt(Dyninst::Address entry)
+BPatch_function *BPatch_module::findFunctionByEntry(Dyninst::Address entry)
 {
     BPatch_function* func = addSpace->findFunctionByEntry(entry);
     if (func && func->getModule() == this) {
@@ -964,14 +956,14 @@ BPatch_function *BPatch_module::findFunctionByEntryInt(Dyninst::Address entry)
 
 #ifdef IBM_BPATCH_COMPAT
 
-bool BPatch_module::getLineNumbersInt( unsigned int & startLine, unsigned int & endLine )
+bool BPatch_module::getLineNumbers( unsigned int & startLine, unsigned int & endLine )
 {
    /* I don't think this function has ever returned nonzeroes.  Approximate a better 
       result by with the line numbers for the first and last addresses in the module. */
    if (!mod) return false;
 
    void * startAddr, * endAddr;
-   if( ! getAddressRangeInt( startAddr, endAddr ) ) {
+   if( ! getAddressRange( startAddr, endAddr ) ) {
       return false;
    }
 
@@ -993,7 +985,7 @@ bool BPatch_module::getLineNumbersInt( unsigned int & startLine, unsigned int & 
    return setAValue;
 }
 
-bool BPatch_module::getAddressRangeInt(void * &start, void * &end)
+bool BPatch_module::getAddressRange(void * &start, void * &end)
 {
    // Code? Data? We'll do code for now...
    if (!mod) return false;
@@ -1001,7 +993,7 @@ bool BPatch_module::getAddressRangeInt(void * &start, void * &end)
    end = (void *)(mod->obj()->codeAbs() + mod->obj()->imageSize());
    return true;
 }
-char *BPatch_module::getUniqueStringInt(char *buffer, int length)
+char *BPatch_module::getUniqueString(char *buffer, int length)
 {
    // Use "<program_name>|<module_name>" as the unique name if this module is
    // part of the executable and "<module_name>" if it is not.
@@ -1018,17 +1010,17 @@ char *BPatch_module::getUniqueStringInt(char *buffer, int length)
    return buffer;
 }
 
-int BPatch_module::getSharedLibTypeInt()	
+int BPatch_module::getSharedLibType()	
 {
    return 0;
 }
 
-int BPatch_module::getBindingTypeInt()
+int BPatch_module::getBindingType()
 {
    return 0;
 }
 
-std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
+std::vector<struct BPatch_module::Statement> BPatch_module::getStatements()
 {
    std::vector<struct BPatch_module::Statement> statements;
    if (!mod) return statements;
@@ -1060,7 +1052,7 @@ std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
 }
 #endif
 
-bool BPatch_module::findPointsInt(Dyninst::Address addr,
+bool BPatch_module::findPoints(Dyninst::Address addr,
                                           std::vector<BPatch_point *> &points) {
    mapped_object *obj = mod->obj();
    block_instance *blk = obj->findOneBlockByAddr(addr);

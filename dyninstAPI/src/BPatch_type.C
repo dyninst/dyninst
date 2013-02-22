@@ -158,7 +158,7 @@ bool BPatch_type::operator==(const BPatch_type &otype) const
    return (ID==otype.ID && type_ == otype.type_ && typ == otype.typ);
 }
 
-unsigned int BPatch_type::getSizeInt()
+unsigned int BPatch_type::getSize()
 {
   return typ->getSize();
 }
@@ -187,7 +187,7 @@ unsigned long BPatch_type::getLow() const
     return rangetype->getLow();
 }
 
-bool BPatch_type::isCompatibleInt(BPatch_type *otype) 
+bool BPatch_type::isCompatible(BPatch_type *otype) 
 {
     return typ->isCompatible(otype->typ);
 }
@@ -412,29 +412,27 @@ void BPatch_field::copy(BPatch_field &oField)
    value = oField.value;
 }
 
-BPatch_field::BPatch_field(BPatch_field &oField) : BPatch_eventLock()
+BPatch_field::BPatch_field(BPatch_field &oField)
 {
-   __LOCK;
    copy(oField);
-   __UNLOCK;
 }
 
-BPatch_field &BPatch_field::operator_equals(BPatch_field &oField) 
+BPatch_field &BPatch_field::operator=(BPatch_field &oField) 
 {
    copy(oField);
    return *this;
 }
 
-void BPatch_field::BPatch_field_dtor() 
+BPatch_field::~BPatch_field() 
 {
 }
 
-const char *BPatch_field::getNameInt()
+const char *BPatch_field::getName()
 {
   return fld->getName().c_str();
 }
 
-BPatch_type *BPatch_field::getTypeInt()
+BPatch_type *BPatch_field::getType()
 {
 	BPatch_type *bpt= NULL;
 	assert(fld);
@@ -451,27 +449,27 @@ BPatch_type *BPatch_field::getTypeInt()
 	return bpt;
 }
 
-int BPatch_field::getValueInt()
+int BPatch_field::getValue()
 {
   return value;
 }
 
-BPatch_visibility BPatch_field::getVisibilityInt()
+BPatch_visibility BPatch_field::getVisibility()
 {
   return (BPatch_visibility)fld->getVisibility();
 }
 
-BPatch_dataClass BPatch_field::getTypeDescInt()
+BPatch_dataClass BPatch_field::getTypeDesc()
 {
   return typeDes;
 }
 
-int BPatch_field::getSizeInt()
+int BPatch_field::getSize()
 {
   return size;
 }
 
-int BPatch_field::getOffsetInt()
+int BPatch_field::getOffset()
 {
   return fld->getOffset();
 }
@@ -613,7 +611,7 @@ void BPatch_cblock::fixupUnknowns(BPatch_module *module) {
    cBlk->fixupUnknowns(module->lowlevel_mod()->pmod()->mod());
 }
 
-BPatch_Vector<BPatch_field *> *BPatch_cblock::getComponentsInt()
+BPatch_Vector<BPatch_field *> *BPatch_cblock::getComponents()
 {
 	BPatch_Vector<BPatch_field *> *components = new BPatch_Vector<BPatch_field *>;
 	std::vector<Field *> *vars = cBlk->getComponents();
@@ -641,7 +639,7 @@ BPatch_Vector<BPatch_field *> *BPatch_cblock::getComponentsInt()
 	return components;
 }
 
-BPatch_Vector<BPatch_function *> *BPatch_cblock::getFunctionsInt()
+BPatch_Vector<BPatch_function *> *BPatch_cblock::getFunctions()
 {
   std::vector<Symbol *> *funcs = cBlk->getFunctions();
   if(!funcs)

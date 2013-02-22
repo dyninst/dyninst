@@ -1257,7 +1257,14 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             {
                 func->_no_stack_frame = false;
             }
-            else if( ah.isAbortOrInvalidInsn() )
+            else if( ah.isAbort() )
+            {
+                // 4. `abort-causing' instructions
+                end_block(cur,ah);
+                //link(cur, _sink, DIRECT, true);
+                break; 
+            }
+            else if( ah.isInvalidInsn() )
             {
                 // 4. Invalid or `abort-causing' instructions
                 end_block(cur,ah);

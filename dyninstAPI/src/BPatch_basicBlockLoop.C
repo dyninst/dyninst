@@ -36,7 +36,7 @@
 #include "common/h/std_namesp.h"
 #include "BPatch_basicBlockLoop.h"
 #include <iterator>
-
+#include <algorithm>
 #include "BPatch_edge.h"
 #include <iostream>
 using namespace std;
@@ -54,7 +54,7 @@ BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_edge *be,
     backEdges.insert(be);
 }
 
-bool BPatch_basicBlockLoop::containsAddressInt(unsigned long addr)
+bool BPatch_basicBlockLoop::containsAddress(unsigned long addr)
 {
     BPatch_Vector<BPatch_basicBlock*> blks;
     getLoopBasicBlocksExclusive(blks);
@@ -68,7 +68,7 @@ bool BPatch_basicBlockLoop::containsAddressInt(unsigned long addr)
     return false;
 }
 
-bool BPatch_basicBlockLoop::containsAddressInclusiveInt(unsigned long addr)
+bool BPatch_basicBlockLoop::containsAddressInclusive(unsigned long addr)
 {
     BPatch_Vector<BPatch_basicBlock*> blks;
     getLoopBasicBlocks(blks);
@@ -82,13 +82,13 @@ bool BPatch_basicBlockLoop::containsAddressInclusiveInt(unsigned long addr)
     return false;
 }
 
-BPatch_edge *BPatch_basicBlockLoop::getBackEdgeInt()
+BPatch_edge *BPatch_basicBlockLoop::getBackEdge()
 {
   return  * backEdges.begin();
 }
-int BPatch_basicBlockLoop::getBackEdgesInt(BPatch_Vector<BPatch_edge*> &edges)
+int BPatch_basicBlockLoop::getBackEdges(BPatch_Vector<BPatch_edge*> &edges)
 {
-   std::copy(backEdges.begin(), backEdges.end(), std::back_inserter(edges));
+   edges.insert(edges.end(), backEdges.begin(), backEdges.end());
    return edges.size();
 
 #if 0
@@ -107,8 +107,8 @@ void BPatch_basicBlockLoop::addBackEdges
 }
 
 bool 
-BPatch_basicBlockLoop::hasAncestorInt(BPatch_basicBlockLoop* l) {
-    return l->containedLoops.contains(this); 
+BPatch_basicBlockLoop::hasAncestor(BPatch_basicBlockLoop* l) {
+   return (l->containedLoops.find(this) != l->containedLoops.end());
 }
 
 
@@ -116,76 +116,69 @@ bool
 BPatch_basicBlockLoop::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls, 
 				bool outerMostOnly) const
 {
-    BPatch_basicBlockLoop** elements = 
-	new BPatch_basicBlockLoop* [containedLoops.size()];
-
-    containedLoops.elements(elements);
-
-    for(unsigned i=0; i < containedLoops.size(); i++) {
-	// only return a contained loop if this loop is its parent
-	if (outerMostOnly) {
-	    if (this == elements[i]->parent) {
-		nls.push_back(elements[i]);
-	    }
-	}
-	else {
-	    nls.push_back(elements[i]);
-	}
-    }
-
-    delete[] elements;
-    return true;
+   for (std::set<BPatch_basicBlockLoop *>::iterator iter = containedLoops.begin();
+        iter != containedLoops.end(); ++iter) {
+      // only return a contained loop if this loop is its parent
+      if (outerMostOnly && (this != (*iter)->parent)) continue;
+      nls.push_back(*iter);
+   }
+   
+   return true;
 }
 
 //method that returns the nested loops inside the loop. It returns a set
 //of basicBlockLoop that are contained. It might be useful to add nest 
 //as a field of this class but it seems it is not necessary at this point
 bool
-BPatch_basicBlockLoop::getContainedLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& nls)
+BPatch_basicBlockLoop::getContainedLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls)
 {
   return getLoops(nls, false);
 }
 
 // get the outermost loops nested under this loop
 bool 
-BPatch_basicBlockLoop::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& nls)
+BPatch_basicBlockLoop::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls)
 {
   return getLoops(nls, true);
 }
 
 //returns the basic blocks in the loop
-bool BPatch_basicBlockLoop::getLoopBasicBlocksInt(BPatch_Vector<BPatch_basicBlock*>& bbs) {
-  BPatch_basicBlock** elements = 
-    new BPatch_basicBlock*[basicBlocks.size()];
-  basicBlocks.elements(elements);
-  for(unsigned i=0;i<basicBlocks.size();i++)
-    bbs.push_back(elements[i]);
-  delete[] elements;
+bool BPatch_basicBlockLoop::getLoopBasicBlocks(BPatch_Vector<BPatch_basicBlock*>& bbs) {
+   bbs.insert(bbs.end(), basicBlocks.begin(), basicBlocks.end());
   return true;
 }
 
 
 // returns the basic blocks in this loop, not those of its inner loops
-bool BPatch_basicBlockLoop::getLoopBasicBlocksExclusiveInt(BPatch_Vector<BPatch_basicBlock*>& bbs) {
+bool BPatch_basicBlockLoop::getLoopBasicBlocksExclusive(BPatch_Vector<BPatch_basicBlock*>& bbs) {
     // start with a copy of all this loops basic blocks
-    BPatch_Set<BPatch_basicBlock*> allBlocks(basicBlocks);
+   std::set<BPatch_basicBlock*> allBlocks(basicBlocks);
 
-    // remove the blocks in each contained loop
-    BPatch_Vector<BPatch_basicBlockLoop*> contLoops;
-    getContainedLoops(contLoops);
 
-    for (unsigned int i = 0; i < contLoops.size(); i++) {
-	allBlocks -= contLoops[i]->basicBlocks;
-    }
+   // remove the blocks in each contained loop
+   BPatch_Vector<BPatch_basicBlockLoop*> contLoops;
+   getContainedLoops(contLoops);
 
-    allBlocks.elements(bbs);
 
-    return true;
+   std::set<BPatch_basicBlock *> toRemove;
+
+   for (unsigned int i = 0; i < contLoops.size(); i++) {
+      std::copy(contLoops[i]->basicBlocks.begin(),
+                contLoops[i]->basicBlocks.end(),
+                std::inserter(toRemove, toRemove.end()));
+   }
+   
+   std::set_difference(allBlocks.begin(), allBlocks.end(),
+                       toRemove.begin(), toRemove.end(),
+                       std::back_inserter(bbs),
+                       std::less<BPatch_basicBlock *>());
+
+   return true;
 }
 
 
 
-bool BPatch_basicBlockLoop::hasBlockInt(BPatch_basicBlock*block) 
+bool BPatch_basicBlockLoop::hasBlock(BPatch_basicBlock*block) 
 {
     BPatch_Vector<BPatch_basicBlock*> blks;
     getLoopBasicBlocks(blks);
@@ -197,7 +190,7 @@ bool BPatch_basicBlockLoop::hasBlockInt(BPatch_basicBlock*block)
 }
 
 
-bool BPatch_basicBlockLoop::hasBlockExclusiveInt(BPatch_basicBlock*block) 
+bool BPatch_basicBlockLoop::hasBlockExclusive(BPatch_basicBlock*block) 
 {
     BPatch_Vector<BPatch_basicBlock*> blks;
     getLoopBasicBlocksExclusive(blks);
@@ -211,14 +204,14 @@ bool BPatch_basicBlockLoop::hasBlockExclusiveInt(BPatch_basicBlock*block)
 
 //method that returns the head of the loop. Which is also
 //head of the back edge which defines the natural loop
-BPatch_basicBlock* BPatch_basicBlockLoop::getLoopHeadInt()
+BPatch_basicBlock* BPatch_basicBlockLoop::getLoopHead()
 {
     assert(backEdges.size());
     return (* backEdges.begin())->getTarget();
 }
 
 
-BPatch_flowGraph* BPatch_basicBlockLoop::getFlowGraphInt() 
+BPatch_flowGraph* BPatch_basicBlockLoop::getFlowGraph() 
 {
     return flowGraph;
 }
@@ -232,9 +225,21 @@ BPatch_flowGraph* BPatch_basicBlockLoop::getFlowGraphInt()
 //machine independent and needs more inner level machine dependent
 //functions and we do not need at this moment for our project we did not 
 //implement the function. It returns NULL for now.
-BPatch_Set<BPatch_variableExpr*>* BPatch_basicBlockLoop::getLoopIteratorsInt(){
+std::set<BPatch_variableExpr*>* BPatch_basicBlockLoop::getLoopIterators(){
 	cerr<<"WARNING : BPatch_basicBlockLoop::getLoopIterators is not";
 	cerr<<" implemented yet\n";
 	return NULL;
 }
 
+std::string BPatch_basicBlockLoop::format() const {
+   std::stringstream ret;
+   
+   ret << hex << "(Loop " << this << ": ";
+   for (std::set<BPatch_basicBlock *>::iterator iter = basicBlocks.begin();
+        iter != basicBlocks.end(); ++iter) {
+      ret << (*iter)->getStartAddress() << ", ";
+   }
+   ret << ")" << dec << endl;
+
+   return ret.str();
+}

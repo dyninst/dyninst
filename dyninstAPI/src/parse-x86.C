@@ -39,7 +39,6 @@
 #include "instPoint.h"
 #include "mapped_object.h"
 #include "image.h"
-#include "dyninstAPI/h/BPatch_Set.h"
 #include "debug.h"
 #include <deque>
 #include <set>

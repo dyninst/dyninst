@@ -53,6 +53,7 @@
 #include "patchAPI/h/PatchMgr.h"
 #include "patchAPI/h/Point.h"
 
+
 #include <sstream>
 
 using namespace Dyninst::ProcControlAPI;
@@ -844,20 +845,27 @@ bool PCProcess::loadRTLib() {
       return true;
    }
    
-   // If not, load it using a iRPC
-   
+   if (!pcProc_->addLibrary(dyninstRT_name)) return false;
+
+#if 0
    if(!postRTLoadRPC())
    {
       return false;
    }
+#endif
 
    bootstrapState_ = bs_loadedRTLib;
+
+   // Process the library load (we hope)
+   PCEventMuxer::handle();
 
    if( runtime_lib.size() == 0 ) {
       startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
                      __LINE__);
       return false;
    }
+
+   bootstrapState_ = bs_loadedRTLib;
 
    startup_printf("%s[%d]: finished running RPC to load RT library\n", FILE__, __LINE__);
    
@@ -1270,27 +1278,49 @@ void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
     write_printf("\n};\n");
 }
 
-bool PCProcess::writeDataSpace(void *inTracedProcess,
-                    u_int amount, const void *inSelf)
-{
-   if( isTerminated() ) {
-      cerr << "Writing to terminated process!" << endl;
-      return false;
-   }
-    bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
+bool PCProcess::writeDataSpace(void *inTracedProcess, u_int amount,
+                               const void *inSelf) {
+    if( isTerminated() ) {
+       cerr << "Writing to terminated process!" << endl;
+       return false;
+    }
+    bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf,
+                                       amount);
 
     if( BPatch_defensiveMode == proc()->getHybridMode() && !result ) {
         // the write may have failed because we've removed write permissions
         // from the page, remove them and try again
 
-        int oldRights = setMemoryAccessRights((Address)inTracedProcess,
-                amount, PAGE_EXECUTE_READWRITE);
+        PCMemPerm origRights, rights(true, true, true);
+        if (!pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+                                            amount, rights, origRights)) {
+            cerr << "Fail to set memory permissions!" << endl;
+            return false;
+        }
+
+        /*
+        int oldRights = pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+                                                       amount,
+                                                       PAGE_EXECUTE_READWRITE);
+
         if( oldRights == PAGE_EXECUTE_READ || oldRights == PAGE_READONLY ) {
-            result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
-            if( setMemoryAccessRights((Address)inTracedProcess, amount, oldRights) == false ) {
+        */
+
+        if( origRights.isRX() || origRights.isR() ) {
+            result = pcProc_->writeMemory((Address)inTracedProcess, inSelf,
+                                          amount);
+
+            /*
+            if( pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+                                               amount, oldRights) == false ) {
+            */
+
+            PCMemPerm tmpRights;
+            if( !pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+                                                amount, origRights, tmpRights)) {
                 result = false;
             }
-        }else{
+        } else {
             result = false;
         }
     }
@@ -1554,7 +1584,8 @@ bool PCProcess::wasCreatedViaFork() const {
 }
 
 unsigned PCProcess::getMemoryPageSize() const {
-    return memoryPageSize_;
+   assert(pcProc_);
+   return pcProc_->getMemoryPageSize();
 }
 
 int PCProcess::getPid() const {
@@ -2378,23 +2409,31 @@ static void otherFuncBlocks(func_instance *func,
  * variables
  * f:  the overwritten function
  * ow: the set of overwritten blocks
- * ex: the set of blocks that are executing on the call stack
+ * ex: the set of blocks that are executing on the call stack that were not overwritten
  * 
  * primitives
  * R(b,s): yields set of reachable blocks for collection of blocks b, starting
  *         at seed blocks s.
  * B(f):   the blocks pertaining to function f
  * EP(f):  the entry point of function f
+ * F(b):   functions containing block b
  * 
  * calculations
  * Elim(f): the set of blocks to eliminate from function f.
  *          Elim(f) = B(f) - R( B(f)-ow , EP(f) )
  * New(f):  new function entry candidates for f's surviving blocks.
  *          If EB(f) not in ow(f), empty set
- *          Else, all blocks e such that ( e in ex AND e in Elim(f) )
+ *          Else, all blocks b such that ( b in ex AND e in Elim(f) )
  *          Eliminate New(f) elements that have ancestors in New(f)
- * Del(f):  Blocks that can be deleted altogether
- *          F - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) )
+ * Del(f):  A block can be deleted altogether if
+ *          forall f in F(b): B(F) - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) ),
+ *          b is not in the resulting set. In other words, b is not
+ *          reachable from non-overwritten blocks in the functions in
+ *          which it appears, seeded at new entry points and original
+ *          non-overwritten entry points to the function, and at f's
+ *          executing blocks if these will be deleted from the
+ *          function (they constitute an entry point into the function 
+ *          even if they've been overwritten). 
  * DeadF:   the set of functions that have no executing blocks 
  *          and were overwritten in their entry blocks
  *          EP(f) in ow(f) AND ex(f) is empty

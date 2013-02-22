@@ -85,7 +85,7 @@ public:
     async_ret_t initThreadDB();
 
     virtual void freeThreadDBAgent();
-    virtual async_ret_t getEventForThread(std::set<Event::ptr> &new_ev_set);
+    virtual async_ret_t getEventForThread(int_eventThreadDB *iev);
     static void addThreadDBHandlers(HandlerPool *hpool);
 
     /*
@@ -113,6 +113,8 @@ public:
                                           bool &add_bp);
     virtual bool threaddb_isTrackingThreads();
     virtual bool threaddb_refreshThreads();
+
+    virtual int threaddb_getPid();
     
     //The types for thread_db functions we will call
     typedef td_err_e (*td_init_t)(void);

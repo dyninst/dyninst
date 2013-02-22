@@ -67,7 +67,7 @@ IA_IAPI::IA_IAPI(const IA_IAPI &rhs)
      validLinkerStubState(rhs.validLinkerStubState),
      cachedLinkerStubState(rhs.cachedLinkerStubState),
      hascftstatus(rhs.hascftstatus),
-     tailCall(rhs.tailCall) {
+     tailCalls(rhs.tailCalls) {
    //curInsnIter = allInsns.find(rhs.curInsnIter->first);
     curInsnIter = allInsns.end()-1;
 }
@@ -82,7 +82,7 @@ IA_IAPI &IA_IAPI::operator=(const IA_IAPI &rhs) {
    validLinkerStubState = rhs.validLinkerStubState;
    cachedLinkerStubState = rhs.cachedLinkerStubState;
    hascftstatus = rhs.hascftstatus;
-   tailCall = rhs.tailCall;
+   tailCalls = rhs.tailCalls;
 
    // InstructionAdapter members
    current = rhs.current;
@@ -139,7 +139,7 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_,
     validLinkerStubState(false)
 {
     hascftstatus.first = false;
-    tailCall.first = false;
+    tailCalls.clear();
 
     //boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
     curInsnIter =
@@ -167,7 +167,7 @@ IA_IAPI::reset(
     cachedCFT = make_pair(false, 0);
     validLinkerStubState = false; 
     hascftstatus.first = false;
-    tailCall.first = false;
+    tailCalls.clear();
 
     allInsns.clear();
 
@@ -202,7 +202,7 @@ void IA_IAPI::advance()
     validCFT = false;
     validLinkerStubState = false;
     hascftstatus.first = false;
-    tailCall.first = false;
+    tailCalls.clear();
 }
 
 bool IA_IAPI::retreat()
@@ -234,7 +234,7 @@ bool IA_IAPI::retreat()
     validCFT = false;
     validLinkerStubState = false;
     hascftstatus.first = false;
-    tailCall.first = false;
+    tailCalls.clear();
     return true;
 } 
     
@@ -283,16 +283,22 @@ bool IA_IAPI::hasCFT() const
   return hascftstatus.second;
 }
 
-bool IA_IAPI::isAbortOrInvalidInsn() const
+bool IA_IAPI::isAbort() const
+{
+    entryID e = curInsn()->getOperation().getID();
+    return e == e_int3 ||
+       e == e_hlt;
+}
+
+bool IA_IAPI::isInvalidInsn() const
 {
     entryID e = curInsn()->getOperation().getID();
     if(e == e_No_Entry)
     {
-        parsing_printf("...WARNING: un-decoded instruction at 0x%x\n", current);
-	}
-	return e == e_No_Entry ||
-            e == e_int3 ||
-            e == e_hlt;
+       parsing_printf("...WARNING: un-decoded instruction at 0x%x\n", current);
+       return true;
+    }
+    return false;
 }
 
 /* This function determines if a given instruction is weird enough that we've
@@ -568,7 +574,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 outEdges.push_back(std::make_pair(catchStart, CATCH));
             }
 
-            if(!isTailCall(context,num_insns))
+            if(!isTailCall(context, DIRECT, num_insns))
             {
                 if(plt_entries->find(target) == plt_entries->end())
                 {
@@ -580,14 +586,14 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                         FILE__, __LINE__, target,
                         (*plt_entries)[target].c_str());
                     outEdges.push_back(std::make_pair(target, NOEDGE));
-                    tailCall.second = true;
+                    tailCalls[DIRECT] = true;
                 }
             }
             else
             {
                 parsing_printf("%s[%d]: tail call to %x\n", 
                     FILE__, __LINE__, target);
-                outEdges.push_back(std::make_pair(target, NOEDGE));
+                outEdges.push_back(std::make_pair(target, DIRECT));
             }
             return;
         }
@@ -598,9 +604,11 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 parsing_printf("... uninstrumentable due to 0 size\n");
                 return;
             }
-            if(isTailCall(context,num_insns)) {
+            if(isTailCall(context, INDIRECT, num_insns)) {
                 parsing_printf("%s[%d]: indirect tail call %s at 0x%lx\n", FILE__, __LINE__,
                                ci->format().c_str(), current);
+                outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
+                tailCalls[INDIRECT] = true;
                 return;
             }
             parsing_printf("%s[%d]: jump table candidate %s at 0x%lx\n", FILE__, __LINE__,
@@ -734,12 +742,17 @@ bool IA_IAPI::simulateJump() const
     return false;
 }
 
+std::pair<bool, Address> IA_IAPI::getFallthrough() const 
+{
+   return make_pair(true, curInsnIter->first + curInsnIter->second->size());
+}
+
 std::pair<bool, Address> IA_IAPI::getCFT() const
 {
    if(validCFT) return cachedCFT;
     Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
 	if (!callTarget) return make_pair(false, 0);
-        // FIXME: templated bind(),dammit!
+       // FIXME: templated bind(),dammit!
     callTarget->bind(thePC[_isrc->getArch()].get(), Result(s64, current));
     parsing_printf("%s[%d]: binding PC %s in %s to 0x%x...", FILE__, __LINE__,
                    thePC[_isrc->getArch()]->format().c_str(), curInsn()->format().c_str(), current);

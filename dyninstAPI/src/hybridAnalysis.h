@@ -116,7 +116,7 @@ public:
     static InternalSignalHandlerCallback getSignalHandlerCB();
     BPatch_module *getRuntimeLib() { return sharedlib_runtime; }
     void deleteSynchSnippet(SynchHandle *handle);
-    int getOrigPageRights(Dyninst::Address addr);
+    Dyninst::ProcControlAPI::Process::mem_perm getOrigPageRights(Dyninst::Address addr);
     void addReplacedFuncs(std::vector<std::pair<BPatch_function*,BPatch_function*> > &repFs);
 
     void getCallBlocks(Dyninst::Address retAddr, 

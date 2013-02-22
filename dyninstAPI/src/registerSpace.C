@@ -506,16 +506,20 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 bool registerSpace::checkVolatileRegisters(codeGen & /*gen*/,
                                            registerSlot::livenessState_t state)
 {
-	if (addr_width == 8) {
-        for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
-            if (registers_[i]->liveState == state)
-                return true;
-        }
-        return false;
-    }
-
-    assert(addr_width == 4);
-    return (registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState == state);
+   if (addr_width == 8) {
+      if (registers_[REGNUM_EFLAGS]->liveState == state) {
+         // Must have been an override from somewhere...
+         return true;
+      }
+      for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
+         if (registers_[i]->liveState == state)
+            return true;
+      }
+      return false;
+   }
+   
+   assert(addr_width == 4);
+   return (registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState == state);
 }
 #else
 bool registerSpace::checkVolatileRegisters(codeGen &,
@@ -537,19 +541,27 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen)
     if (addr_width == 8) {
         // save flags (PUSHFQ)
        //emitSimpleInsn(0x9C, gen);
+       bool override = false;
+       if (registers_[REGNUM_EFLAGS]->liveState == registerSlot::live) {
+          override = true;
+          registers_[REGNUM_EFLAGS]->liveState == registerSlot::spilled;
+       }
        if (registers_[REGNUM_SF]->liveState == registerSlot::live ||
            registers_[REGNUM_ZF]->liveState == registerSlot::live ||
            registers_[REGNUM_AF]->liveState == registerSlot::live ||
            registers_[REGNUM_PF]->liveState == registerSlot::live ||
-           registers_[REGNUM_CF]->liveState == registerSlot::live) {
+           registers_[REGNUM_CF]->liveState == registerSlot::live ||
+           override) {
           emitSimpleInsn(0x9f, gen);
           registers_[REGNUM_SF]->liveState = registerSlot::spilled;
           registers_[REGNUM_ZF]->liveState = registerSlot::spilled;
           registers_[REGNUM_AF]->liveState = registerSlot::spilled;
           registers_[REGNUM_PF]->liveState = registerSlot::spilled;
           registers_[REGNUM_CF]->liveState = registerSlot::spilled;
+          registers_[REGNUM_CF]->liveState = registerSlot::spilled;
        }
-       if (registers_[REGNUM_OF]->liveState == registerSlot::live) {
+       if (registers_[REGNUM_OF]->liveState == registerSlot::live ||
+           override) {
           emitSaveO(gen);
           registers_[REGNUM_OF]->liveState = registerSlot::spilled;
        }

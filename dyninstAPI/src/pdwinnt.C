@@ -115,21 +115,6 @@ static bool kludge_isKernel32Dll(HANDLE fileHandle, std::string &kernel32Name) {
     return false;
 }
 
-/* 
-   Loading libDyninstRT.dll
-
-   We load libDyninstRT.dll dynamically, by inserting code into the
-   application to call LoadLibraryA. We don't use the inferior RPC
-   mechanism from class PCProcess because it already assumes that
-   libdyninst is loaded (it uses the inferior heap).
-   Instead, we use a simple inferior call mechanism defined below
-   to insert the code to call LoadLibraryA("libdyninstRT.dll").
- */
-#if 0
-Address loadDyninstDll(PCProcess *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
-    return 0;
-}
-#endif
 // osTraceMe is not needed in Windows NT
 void OS::osTraceMe(void) {}
 
@@ -153,6 +138,8 @@ bool CALLBACK printMods(PCSTR name, DWORD64 addr, PVOID unused) {
     fprintf(stderr, " %s @ %llx\n", name, addr);
     return true;
 }
+
+// FIXME
 #if 0
 static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_active)
 {
@@ -241,10 +228,11 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             wait_until_active = false;
             ret = true;
             ev.type = evtIgnore;
-            ev.lwp->changeMemoryProtections(
+            PCProcess::PCMemPerm rights(true, true, true);
+            PCProcess::changeMemoryProtections(
                 violationAddr - (violationAddr % ev.proc->getMemoryPageSize()), 
                 ev.proc->getMemoryPageSize(), 
-                PAGE_EXECUTE_READWRITE, 
+                rights /* PAGE_EXECUTE_READWRITE */ , 
                 false);
             break;
         }
@@ -335,110 +323,77 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
 void OS::osDisconnect(void) {
 }
 
-#if 0
-bool PCProcess::setMemoryAccessRights (Address start, Address size, int rights)
-{
-    //mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
-    // get lwp from which we can call changeMemoryProtections
-    dyn_lwp *stoppedlwp = query_for_stopped_lwp();
-    assert( stoppedlwp );
-    if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
-        mapped_object *obj = findObject(start);
-        int page_size = getMemoryPageSize();
-        for (Address cur = start; cur < (start + size); cur += page_size) {
-            obj->removeProtectedPage(start -(start % page_size));
-        }
+bool PCProcess::getMemoryAccessRights(Address addr, size_t size,
+                                      PCMemPerm& rights) {
+    if(!pcProc_->getMemoryAccessRights(addr, size, rights)) {
+	    mal_printf("ERROR: failed to get access rights for page %lx, %s[%d]\n",
+                   addr, FILE__, __LINE__);
+        return false;
     }
-    stoppedlwp->changeMemoryProtections(start, size, rights, true);
+
     return true;
 }
-#endif
-bool PCProcess::getMemoryAccessRights(Address start, Address size, int rights)
-{
-   assert(0 && "Unimplemented!");
-   return 0;
-}
 
-#if 0
-int dyn_lwp::changeMemoryProtections
-(Address addr, Offset size, unsigned rights, bool setShadow)
-{
-    unsigned oldRights=0;
-    unsigned pageSize = proc()->getMemoryPageSize();
+void PCProcess::changeMemoryProtections(Address addr, size_t size,
+                                        PCMemPerm rights, bool setShadow) {
+    PCMemPerm oldRights;
+    unsigned pageSize = getMemoryPageSize();
 
 	Address pageBase = addr - (addr % pageSize);
 	size += (addr % pageSize);
 
 	// Temporary: set on a page-by-page basis to work around problems
 	// with memory deallocation
-	for (Address idx = pageBase; idx < pageBase + size; idx += pageSize) {
-      //mal_printf("setting rights to %lx for [%lx %lx)\n", rights, idx , idx + pageSize);
-		if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(idx), 
-			(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&oldRights)) 
-		{
-			fprintf(stderr, "ERROR: failed to set access rights for page %lx, error code %d "
-				"%s[%d]\n", addr, GetLastError(), FILE__, __LINE__);
-			MEMORY_BASIC_INFORMATION meminfo;
-			SIZE_T size = VirtualQueryEx(getPCProcessHandle(), (LPCVOID) (addr), &meminfo, sizeof(MEMORY_BASIC_INFORMATION));
-			fprintf(stderr, "ERROR DUMP: baseAddr 0x%lx, AllocationBase 0x%lx, AllocationProtect 0x%lx, RegionSize 0x%lx, State 0x%lx, Protect 0x%lx, Type 0x%lx\n",
-				meminfo.BaseAddress, meminfo.AllocationBase, meminfo.AllocationProtect, meminfo.RegionSize, meminfo.State, meminfo.Protect, meminfo.Type);
-		}
-		else if (proc()->isMemoryEmulated() && setShadow) {
+	for (Address idx = pageBase, idx_e = pageBase + size;
+         idx < idx_e; idx += pageSize) {
+        mal_printf("setting rights to %s for [%lx %lx)\n",
+                   rights.getPermName().c_str(), idx , idx + pageSize);
+        if (!pcProc_->setMemoryAccessRights(idx, pageSize,
+                                            rights, oldRights)) {
+			mal_printf("ERROR: failed to set access rights "
+                       "for page %lx, %s[%d]\n", addr, FILE__, __LINE__);
+		} else if (isMemoryEmulated() && setShadow) {
 			Address shadowAddr = 0;
-			unsigned shadowRights=0;
+			PCMemPerm shadowRights;
 			bool valid = false;
-			boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(idx);
+			boost::tie(valid, shadowAddr) = getMemEm()->translate(idx);
 			if (!valid) {
-				//fprintf(stderr, "WARNING: set access rights on page %lx that has "
-				//	"no shadow %s[%d]\n",addr,FILE__,__LINE__);
-			}
-			else 
-			{
-				if (!VirtualProtectEx((HANDLE)getPCProcessHandle(), (LPVOID)(shadowAddr), 
-					(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&shadowRights)) 
-				{
-					fprintf(stderr, "ERROR: set access rights found shadow page %lx "
-						"for page %lx but failed to set its rights %s[%d]\n",
-						shadowAddr, addr, FILE__, __LINE__);
-				}
+				mal_printf("WARNING: set access rights on page %lx that has "
+				           "no shadow %s[%d]\n",addr,FILE__,__LINE__);
+			} else {
+                if(!pcProc_->setMemoryAccessRights(shadowAddr, pageSize,
+                                                   rights, shadowRights)) {
+                    mal_printf("ERROR: failed to set access rights "
+                               "for page %lx, %s[%d]\n",
+                                shadowAddr, FILE__, __LINE__);
+                }
 
 				if (shadowRights != oldRights) {
-					//mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
-					//           "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
+					mal_printf("WARNING: shadow page[%lx] rights %s did not "
+                               "match orig-page [%lx] rights %s\n",
+                               shadowAddr, shadowRights.getPermName().c_str(),
+                               addr, oldRights.getPermName().c_str());
 				}
 			}
 		}
 	}
-	return oldRights;
 }
-#endif
 
-
-#if 0
-
-// sets PC for stack frames other than the active stack frame
-bool Frame::setPC(Address newpc) {
-
-	if (!pcAddr_) {
-		// if pcAddr isn't set it's because the stackwalk isn't getting the 
-		// frames right
-		fprintf(stderr,"WARNING: unable to change stack frame PC from %lx to %lx "
-			"because we don't know where the PC is on the stack %s[%d]\n",
-			pc_,newpc,FILE__,__LINE__);
-		return false;
-	}
-
-	if (getProc()->writeDataSpace( (void*)pcAddr_, 
-		getProc()->getAddressWidth(), 
-		&newpc) ) 
-	{
-		this->pc_ = newpc;
-		return true;
-	}
-
-	return false;
+bool PCProcess::setMemoryAccessRights(Address start, size_t size,
+                                      PCMemPerm rights) {
+    // if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
+    if (rights.isRWX() || rights.isRW() ) {
+        mapped_object *obj = findObject(start);
+        int page_size = getMemoryPageSize();
+        for (Address cur = start; cur < (start + size); cur += page_size) {
+            obj->removeProtectedPage(start -(start % page_size));
+        }
+    }
+    stopProcess();
+    changeMemoryProtections(start, size, rights, true);
+	return true;
 }
-#endif
+
 
 void InitSymbolHandler( HANDLE hPCProcess )
 {
@@ -533,289 +488,6 @@ bool getLWPIDs(pdvector <unsigned> &LWPids)
   return false;
 }
 
-#if 0
-//
-// This function retrieves the name of a DLL that has been
-// loaded in an inferior PCProcess.  On the desktop flavors
-// of Windows, the debug event that we get for loaded DLLs
-// includes the location of a pointer to the DLL's image name.
-// (Note the indirection.)  On Windows CE, the event contains
-// the location of the image name string, with no indirection.
-//
-// There are several complications to overcome when reading this string:
-//
-// 1.  There is no guarantee that the image name is available.
-//     In this case, the location in the debug event may be NULL,
-//     or the pointer in the inferior PCProcess' address space may be NULL.
-// 2.  The image name string may be either ASCII or Unicode.  Most of
-//     the Windows system DLLs have Unicode strings, but many user-built
-//     DLLs use single-byte strings.  If the string is Unicode, we need
-//     to copy it to our address space and convert it to a single-byte
-//     string because the rest of Paradyn/Dyninst has no clue what to
-//     do with Unicode strings.
-// 3.  We don't know how long the string is.  We have a loose upper
-//     bound in that we know it is not more than MAX_PATH characters.
-//     Unfortunately, the call we use to read from the inferior
-//     PCProcess' address space will return failure if we ask for more
-//     bytes than it can actually read (so we can't just issue a read
-//     for MAX_PATH characters).  Given this limitation, we have to
-//     try a read and check whether the read succeeded *and* whether
-//     we read the entire image name string.  If not, we have to adjust
-//     the amount we read and try again.
-//
-std::string GetLoadedDllImageName( PCProcess* p, const DEBUG_EVENT& ev )
-{
-    char *msgText = NULL;
-	std::string ret;
-	void* pImageName = NULL;
-
-	if( ev.u.LoadDll.lpImageName != NULL )
-	{
-        msgText = new char[1024];	// buffer for error messages
-	    // On non-CE flavors of Windows, the address given in the debug
-        // event struct is the address of a pointer to the DLL name string.
-
-        if( !p->readDataSpace( ev.u.LoadDll.lpImageName, 4, &pImageName, false ) )
-        {
-            sprintf( msgText, "Failed to read DLL image name pointer: %d\n",
-            GetLastError() );
-            logLine( msgText );
-	    }
-    }
-	if( pImageName != NULL )
-	{
-		// we have the pointer to the DLL image name -
-		// now read the name
-
-		// allocate a conservatively-sized buffer
-		char* buf = new char[(MAX_PATH + 1) * sizeof(WCHAR)];
-		WCHAR* wbuf = (WCHAR*)buf;
-
-		// We don't know how long the image name actually is, but
-		// we do know that they tend not to be very long.
-		// Therefore, we use a scheme to try to minimize the number
-		// of reads needed to get the image name.
-		// We do reads within ranges, starting with [1,128] bytes,
-		// then [129,256] bytes, etc. up to MAX_PATH if necessary.
-		// Within each range, we do reads following a binary search
-		// algorithm.  For example, for the [1,128] range, we start
-		// by trying to read 128 bytes.  If that read fails, we
-		// try to half the number of bytes (i.e., 64).  If that
-		// read also fails, we continue to halve the read requests 
-		// until we find one that succeeds.
-		//
-		// When a read succeeds, we still may not have gotten the
-		// entire string.  So when reads start succeeding, we have to
-		// check the data we got for a null-terimated string.  If we didn't
-		// get the full string, we change the byte count to either
-		// move into the next higher range (if we were already reading
-		// the max within the current range) or we set it to a factor
-		// of 1.5 of the current byte count to try a value between the
-		// current succeeding read and one that had failed.
-		unsigned int loRead = 1;		// range boundaries
-		unsigned int hiRead = 128;
-		unsigned int cbRead = 128;		// number of bytes to read
-		unsigned int chunkRead = 64;	// amount to change cbRead if we fail
-										// we will not halve this before we read
-		bool gotString = false;
-		bool doneReading = false;
-		while( !doneReading )
-		{
-			// try the read with the current byte count
-			if( p->readDataSpace( pImageName, cbRead, buf, false ) )
-			{
-				// the read succeeded - 
-				// did we get the full string?
-				if( ev.u.LoadDll.fUnicode )
-				{
-					unsigned int cbReadIdx = cbRead / sizeof(WCHAR);
-					wbuf[cbReadIdx] = L'\0';
-					WCHAR* nulp = wcschr( wbuf, L'\0' );
-					assert( nulp != NULL );			// because we just NULL-terminated the string
-					gotString = (nulp != &(wbuf[cbReadIdx]));
-				}
-				else
-				{
-					buf[cbRead] = '\0';
-					char* nulp = strchr( buf, '\0' );
-					assert( nulp != NULL );			// because we just NULL-terminated the string
-					gotString = (nulp != &(buf[cbRead]));
-				}
-
-				if( gotString )
-				{
-					doneReading = true;
-				}
-				else
-				{
-					// we didn't get the full string
-					// we need to try a larger read
-					if( cbRead == hiRead )
-					{
-						// we were at the high end of the current range -
-						// move to the next range
-						loRead = hiRead + 1;
-						hiRead = loRead + 128 - 1;
-						chunkRead = 128;				// we will halve this before we read again
-						if( loRead > (MAX_PATH * sizeof(WCHAR)) )
-						{
-							// we've tried every range but still failed
-							doneReading = true;
-						}
-						else
-						{
-							cbRead = hiRead;
-						}
-					}
-					else
-					{
-						// we were within the current range -
-						// try something higher but still within the range
-						cbRead = cbRead + chunkRead;
-					}
-				}
-			}
-			else
-			{
-				// the read failed -
-				// we need to try a smaller read
-				if( cbRead > loRead )
-				{
-					unsigned int nextRead = cbRead - chunkRead;
-					if( nextRead == cbRead )
-					{
-						// we can't subdivide any further
-						doneReading = true;
-					}
-					else
-					{
-						cbRead = nextRead;
-					}
-				}
-				else
-				{
-					// there are no smaller reads to try in this range,
-					// and by induction, in any range.
-					doneReading = true;
-				}
-			}
-
-			// update the amount that we use to change the read request
-			chunkRead /= 2;
-		}
-
-		if( !gotString )
-		{
-			// this is a serious problem because some read 
-			// should've succeeded
-			sprintf( msgText, "Failed to read DLL image name - no read succeeded\n" );
-			logLine( msgText );
-		}
-		else
-		{
-			if( ev.u.LoadDll.fUnicode )
-			{
-				// the DLL path is a Unicode string
-				// we have to convert it to single-byte characters
-				char* tmpbuf = new char[MAX_PATH];
-
-				WideCharToMultiByte(CP_ACP,		// code page to use (ANSI)
-									0,			// flags
-									wbuf,		// Unicode string
-									-1,			// length of Unicode string (-1 => null-terminated)
-									tmpbuf,		// destination buffer
-									MAX_PATH,	// size of destionation buffer
-									NULL,		// default for unmappable chars
-									NULL);		// var to set when defaulting a char
-
-				// swap buffers so that buf points to the single-byte string
-				// when we're out of this code block
-				delete[] buf;
-				buf = tmpbuf;
-			}
-			ret = buf;
-		}
-
-		delete[] buf;
-	}
-	else
-	{
-		// we were given an image name pointer, but it was NULL
-		// this happens for some system DLLs, and if we attach to
-		// the PCProcess instead of creating it ourselves.
-		// However, it is very important for us to know about kernel32.dll,
-		// so we check for it specially.
-		//
-		// This call only changes the string parameter if the indicated file is
-		// actually kernel32.dll.
-		if (kludge_isKernel32Dll(ev.u.LoadDll.hFile, ret))
-            return ret;
-
-        //I'm embarassed to be writing this.  We didn't get a name for the image, 
-        // but we did get a file handle.  According to MSDN, the best way to turn
-        // a file handle into a file name is to map the file into the address space
-        // (using the handle), then ask the OS what file we have mapped at that location.
-        // I'm sad now.
-        
-        void *pmap = NULL;
-        HANDLE fmap = CreateFileMapping(ev.u.LoadDll.hFile, NULL, 
-                                        PAGE_READONLY, 0, 1, NULL);
-        if (fmap) {
-            pmap = MapViewOfFile(fmap, FILE_MAP_READ, 0, 0, 1);
-            if (pmap) {   
-                char filename[MAX_PATH+1];
-                int result = GetMappedFileName(GetCurrentProcess(), pmap, filename, MAX_PATH);
-                if (result)
-                    ret = std::string(filename);
-                UnmapViewOfFile(pmap);
-            }
-            CloseHandle(fmap);
-        }
-	}
-
-	if (ret.substr(0,7) == "\\Device") {
-      HANDLE currentProcess = p->ProcessHandle_;
-      DWORD num_modules_needed;
-      int errorCheck = EnumProcessModules(currentProcess,
-                                          NULL,
-                                          0,
-                                          &num_modules_needed);
-	  num_modules_needed /= sizeof(HMODULE);
-      HMODULE* loadedModules = new HMODULE[num_modules_needed];
-      errorCheck = EnumProcessModules(currentProcess,
-                                          loadedModules,
-                                          sizeof(HMODULE)*num_modules_needed,
-                                          &num_modules_needed);
-      HMODULE* candidateModule = loadedModules; 
-      while(candidateModule < loadedModules + num_modules_needed)
-      {
-         MODULEINFO candidateInfo;
-         GetModuleInformation(currentProcess, *candidateModule, &candidateInfo,
-                              sizeof(candidateInfo));
-         if(ev.u.LoadDll.lpBaseOfDll == candidateInfo.lpBaseOfDll)
-            break;
-         candidateModule++;
-      }
-      if(candidateModule != loadedModules + num_modules_needed) 
-      {
-         TCHAR filename[MAX_PATH];
-         if(GetModuleFileNameEx(currentProcess, *candidateModule, filename, MAX_PATH))
-         {
-            ret = filename;
-         }
-      }
-      delete[] loadedModules;
-
-	}
-	// cleanup
-    if (msgText)
-        delete[] msgText;
-
-	return ret;
-}
-#endif
-
-
 
 bool AddressSpace::getDyninstRTLibName() {
     // Set the name of the dyninst RT lib
@@ -849,116 +521,6 @@ bool AddressSpace::getDyninstRTLibName() {
     return true;
 }
 
-#if 0
-// Load the dyninst library
-bool PCProcess::loadDYNINSTlib()
-{
-    loadDyninstLibAddr = getAOut()->parse_img()->getObject()->getEntryOffset() + getAOut()->getBaseAddress();
-    Address LoadLibAddr;
-    int_symbol sym;
-    
-    dyn_lwp *lwp;
-    lwp = getInitialLwp();
- /*   if (lwp->status() == running) {
-       lwp->pauseLWP();
-    }*/
-
-    if (!getSymbolInfo("_LoadLibraryA@4", sym) &&
-        !getSymbolInfo("_LoadLibraryA", sym) &&
-        !getSymbolInfo("LoadLibraryA", sym))
-        {
-            printf("unable to find function LoadLibrary\n");
-            assert(0);
-        }
-    LoadLibAddr = sym.getAddr();
-    assert(LoadLibAddr);
-
-    char ibuf[BYTES_TO_SAVE];
-    memset(ibuf, '\0', BYTES_TO_SAVE);//ccw 25 aug 2000
-    char *iptr = ibuf;
-    strcpy(iptr, dyninstRT_name.c_str());
-    
-    // Code overview:
-    // Dynininst library name
-    //    Executable code begins here:
-    // Push (address of dyninst lib name)
-    // Call LoadLibrary
-    // Pop (cancel push)
-    // Trap
-    
-    // 4: give us plenty of room after the string to start instructions
-    int instructionOffset = strlen(iptr) + 4;
-    // Regenerate the pointer
-    iptr = &(ibuf[instructionOffset]);
-    
-    // At this point, the buffer contains the name of the dyninst
-    // RT lib. We now generate code to load this string into memory
-    // via a call to LoadLibrary
-    
-    // push nameAddr ; 5 bytes
-    *iptr++ = (char)0x68; 
-    // Argument for push
-    *(int *)iptr = loadDyninstLibAddr; // string at codeBase
-    iptr += sizeof(int);
-    
-    int offsetFromBufferStart = (int)iptr - (int)ibuf;
-    offsetFromBufferStart += 5; // Skip next instruction as well.
-    // call LoadLibrary ; 5 bytes
-    *iptr++ = (char)0xe8;
-    
-    // Jump offset is relative
-    *(int *)iptr = LoadLibAddr - (loadDyninstLibAddr + 
-                                  offsetFromBufferStart); // End of next instruction
-    iptr += sizeof(int);
-    
-    
-    // add sp, 4 (Pop)
-    *iptr++ = (char)0x83; *iptr++ = (char)0xc4; *iptr++ = (char)0x04;
-    
-    // int3
-    *iptr = (char)0xcc;
-    
-    int offsetToTrap = (int) iptr - (int) ibuf;
-
-    readDataSpace((void *)loadDyninstLibAddr, BYTES_TO_SAVE, savedCodeBuffer, false);
-    writeDataSpace((void *)loadDyninstLibAddr, BYTES_TO_SAVE, ibuf);
-    
-    flushInstructionCache_((void *)loadDyninstLibAddr, BYTES_TO_SAVE);
-    
-    dyninstlib_brk_addr = loadDyninstLibAddr + offsetToTrap;
-    
-    savedRegs = new dyn_saved_regs;
-
-    bool status = lwp->getRegisters(savedRegs);
-    assert(status == true);    
-
-	lwp->changePC(loadDyninstLibAddr + instructionOffset, NULL);
-    
-    setBootstrapState(loadingRT_bs);
-    return true;
-}
-#endif
-// Cleanup after dyninst lib loaded
-#if 0
-bool PCProcess::loadDYNINSTlibCleanup(dyn_lwp *)
-{
-    // First things first: 
-    assert(savedRegs != NULL);
-    getInitialLwp()->restoreRegisters(*savedRegs);
-    delete savedRegs;
-    savedRegs = NULL;
-
-    writeDataSpace((void *) loadDyninstLibAddr,
-                   BYTES_TO_SAVE,
-                   (void *)savedCodeBuffer);
-
-    flushInstructionCache_((void *)getAOut()->codeAbs(), BYTES_TO_SAVE);
-
-    dyninstlib_brk_addr = 0;
-
-    return true;
-}
-#endif
 void loadNativeDemangler() 
 {
     // ensure we load line number information when we load
@@ -1297,29 +859,22 @@ static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves)
     saves.clear();
 }
 
-
-
-#if 0
-mapped_object *PCProcess::createObjectNoFile(Address addr)
+mapped_object* PCProcess::createObjectNoFile(Address addr)
 {
-	cerr << "createObjectNoFile " << hex << addr << dec << endl;
     Address closestObjEnd = 0;
-    for (unsigned i=0; i<mapped_objects.size(); i++)
-    {
+    for (unsigned i = 0; i < mapped_objects.size(); i++) {
         if (addr >= mapped_objects[i]->codeAbs() &&
-            addr <   mapped_objects[i]->codeAbs() 
-                   + mapped_objects[i]->imageSize())
-        {
+            addr < (mapped_objects[i]->codeAbs() +
+                    mapped_objects[i]->imageSize())) {
             fprintf(stderr,"createObjectNoFile called for addr %lx, "
                     "matching existing mapped_object %s %s[%d]\n", addr,
                     mapped_objects[i]->fullName().c_str(), FILE__,__LINE__);
             return mapped_objects[i];
         }
-        if (  addr >= ( mapped_objects[i]->codeAbs() + 
-                        mapped_objects[i]->imageSize() ) &&  
-            closestObjEnd < ( mapped_objects[i]->codeAbs() + 
-                               mapped_objects[i]->imageSize() ) ) 
-        {
+        if (addr >= (mapped_objects[i]->codeAbs() + 
+                     mapped_objects[i]->imageSize()) &&  
+            closestObjEnd < (mapped_objects[i]->codeAbs() + 
+                             mapped_objects[i]->imageSize())) {
             closestObjEnd = mapped_objects[i]->codeAbs() + 
                             mapped_objects[i]->imageSize();
         }
@@ -1327,95 +882,70 @@ mapped_object *PCProcess::createObjectNoFile(Address addr)
 
     Address testRead = 0;
 
-    // VirtualQueryEx rounds down to pages size, so we need to round up first.
-    if (proc()->proc() && closestObjEnd % proc()->proc()->getMemoryPageSize())
-    {
-        closestObjEnd = closestObjEnd 
-            - (closestObjEnd % proc()->proc()->getMemoryPageSize()) 
-            + proc()->proc()->getMemoryPageSize();
+    // WindowsAPI VirtualQueryEx rounds down to pages size,
+    // so we need to round up first.
+    Address ObjOffset = closestObjEnd % getMemoryPageSize();
+    if (ObjOffset) {
+        closestObjEnd = closestObjEnd - ObjOffset + getMemoryPageSize();
     }
-    if (proc()->proc() && readDataSpace((void*)addr, proc()->getAddressWidth(),
-                                        &testRead, false)) 
-    {
+    if (readDataSpace((void*)addr, getAddressWidth(), &testRead, false)) {
 		// create a module for the region enclosing this address
-        MEMORY_BASIC_INFORMATION meminfo;
-        memset(&meminfo,0, sizeof(MEMORY_BASIC_INFORMATION) );
-        SIZE_T size = VirtualQueryEx(proc()->ProcessHandle_,
-                                     (LPCVOID)addr, &meminfo, 
-                                     sizeof(MEMORY_BASIC_INFORMATION));
-        assert(meminfo.State == MEM_COMMIT);
-		cerr << "VirtualQuery reports baseAddr " << hex << meminfo.BaseAddress << ", allocBase " << meminfo.AllocationBase << ", size " << meminfo.RegionSize << ", state " << meminfo.State << dec << endl;
+        ProcControlAPI::Process::MemoryRegion memRegion;
+        if (!pcProc_->findAllocatedRegionAround(addr, memRegion)) {
+            mal_printf("ERROR: failed to find allocated region for page %lx, %s[%d]\n",
+                       addr, FILE__, __LINE__);
+			assert(0);
+            return NULL;
+        }
 
-        Address objStart = (Address) meminfo.AllocationBase;
-        Address probeAddr = (Address) meminfo.BaseAddress +  (Address) meminfo.RegionSize;
-        Address objEnd = probeAddr;
-        MEMORY_BASIC_INFORMATION probe;
-        memset(&probe, 0, sizeof(MEMORY_BASIC_INFORMATION));
-        do {
-            objEnd = probeAddr;
-            SIZE_T size2 = VirtualQueryEx(proc()->ProcessHandle_,
-                                          (LPCVOID) ((Address)meminfo.BaseAddress + meminfo.RegionSize),
-                                          &probe,
-                                          sizeof(MEMORY_BASIC_INFORMATION));
-			cerr << "VirtualQuery reports baseAddr " << hex << probe.BaseAddress << ", allocBase " << probe.AllocationBase << ", size " << probe.RegionSize << ", state " << probe.State << dec << endl;
-
-			probeAddr = (Address) probe.BaseAddress + (Address) probe.RegionSize;
-        } while ((probe.AllocationBase == meminfo.AllocationBase) && // we're in the same allocation unit...
-			(objEnd != probeAddr)); // we're making forward progress
-
+        mal_printf("[%lx %lx] is valid region containing %lx and corresponding "
+                   "to no object, closest is object ending at %lx %s[%d]\n", 
+                   memRegion.first, memRegion.second, addr, closestObjEnd, FILE__,__LINE__);
 
         // The size of the region returned by VirtualQueryEx is from BaseAddress
         // to the end, NOT from meminfo.AllocationBase, which is what we want.
         // BaseAddress is the start address of the page of the address parameter
         // that is sent to VirtualQueryEx as a parameter
-        Address regionSize = objEnd - objStart;
-        mal_printf("[%lx %lx] is valid region containing %lx and corresponding "
-               "to no object, closest is object ending at %lx %s[%d]\n", 
-               objStart, 
-               objEnd,
-               addr, closestObjEnd, FILE__,__LINE__);
+        Address regionSize = memRegion.second - memRegion.first;
+
         // read region into this PCProcess
-        unsigned char* rawRegion = (unsigned char*) 
-            ::LocalAlloc(LMEM_FIXED, regionSize);
-		if (!proc()->readDataSpace((void *)objStart,
-								   regionSize,
-								   rawRegion, true))
-		{
-			cerr << "Error: failed to read memory region [" << hex << objStart << "," << objStart + regionSize << "]" << dec << endl;
+        void* rawRegion = malloc(regionSize);
+		if (!readDataSpace((void *)memRegion.first, regionSize, rawRegion, true)) {
+            mal_printf("Error: failed to read memory region [%lx, %lx]\n",
+                       memRegion.first, memRegion.second);
 			printSysError(GetLastError());
 			assert(0);
+            return NULL;
 		}
+
 		// set up file descriptor
         char regname[64];
-        snprintf(regname,63,"mmap_buffer_%lx_%lx",
-                    objStart, objEnd);
-        fileDescriptor desc(string(regname), 
-                            0, 
-                            (HANDLE)0, 
-                            (HANDLE)0, 
-                            true, 
-                            (Address)objStart,
-                            (Address)regionSize,
-                            rawRegion);
+        snprintf(regname, 63, "mmap_buffer_%lx_%lx", memRegion.first, memRegion.second);
+        fileDescriptor desc(string(regname),
+                            memRegion.first, /*  code  */
+                            memRegion.first, /*  data  */
+                            regionSize,       /* length */
+                            rawRegion,        /* rawPtr */
+                            true);            /* shared */
         mapped_object *obj = mapped_object::createMappedObject
-            (desc,this,proc()->getHybridMode(),false);
+            (desc, this, getHybridMode(), false);
         if (obj != NULL) {
             obj->setMemoryImg();
             //mapped_objects.push_back(obj);
-	    addMappedObject(obj);
+	        addMappedObject(obj);
 
             obj->parse_img()->getOrCreateModule(
                 obj->parse_img()->getObject()->getDefaultModule());
             return obj;
         } else {
-           fprintf(stderr,"Failed to create object (that was not backed by a file) at %lx\n", objStart);
+            fprintf(stderr,"Failed to create object (that was not backed by a file) at %lx\n", memRegion.first);
+            return NULL;
         }
+
     }
+
     return NULL;
 }
-#endif
-
-
 
 bool OS::executableExists(const std::string &file) {
    struct stat file_stat;
@@ -1426,20 +956,6 @@ bool OS::executableExists(const std::string &file) {
        stat_result = stat((file + std::string(".exe")).c_str(), &file_stat);
    return (stat_result != -1);
 }
-
-#if 0
-func_instance *dyn_thread::map_initial_func(func_instance *ifunc) {
-    if (!ifunc || strcmp(ifunc->prettyName().c_str(), "mainCRTStartup"))
-        return ifunc;
-
-    //mainCRTStartup is not a real initial function.  Use main, if it exists.
-    const pdvector<func_instance *> *mains = proc->getAOut()->findFuncVectorByPretty("main");
-    if (!mains || !mains->size())
-        return ifunc;
-    return (*mains)[0];
-}
-#endif
-
 
 bool PCProcess::hasPassedMain() 
 {
@@ -1480,92 +996,6 @@ bool OS_disconnect(BPatch_remoteHost &remote)
 {
     return true;
 }
-#if 0
-mapped_object *PCProcess::createObjectNoFile(Address addr)
-{
-    Address closestObjEnd = 0;
-    for (unsigned i=0; i<mapped_objects.size(); i++)
-    {
-        if (addr >= mapped_objects[i]->codeAbs() &&
-            addr <   mapped_objects[i]->codeAbs()
-                   + mapped_objects[i]->imageSize())
-        {
-            fprintf(stderr,"createObjectNoFile called for addr %lx, "
-                    "matching existing mapped_object %s %s[%d]\n",
-                    mapped_objects[i]->fullName().c_str(), FILE__,__LINE__);
-            return mapped_objects[i];
-        }
-        if (  addr >= ( mapped_objects[i]->codeAbs() +
-                        mapped_objects[i]->imageSize() ) &&
-            closestObjEnd < ( mapped_objects[i]->codeAbs() +
-                               mapped_objects[i]->imageSize() ) )
-        {
-            closestObjEnd = mapped_objects[i]->codeAbs() +
-                            mapped_objects[i]->imageSize();
-        }
-    }
-
-    Address testRead = 0;
-
-    // VirtualQueryEx rounds down to pages size, so we need to round up first.
-    if (proc()->proc() && closestObjEnd % proc()->proc()->getMemoryPageSize())
-    {
-        closestObjEnd = closestObjEnd
-            - (closestObjEnd % proc()->proc()->getMemoryPageSize())
-            + proc()->proc()->getMemoryPageSize();
-    }
-    if (proc()->proc() && readDataSpace((void*)addr, proc()->getAddressWidth(),
-                                        &testRead, false))
-    {
-        // create a module for the region enclosing this address
-        MEMORY_BASIC_INFORMATION meminfo;
-        memset(&meminfo,0, sizeof(MEMORY_BASIC_INFORMATION) );
-        SIZE_T size = VirtualQueryEx(proc()->ProcessHandle_,
-                                     (LPCVOID)addr, &meminfo,
-                                     sizeof(MEMORY_BASIC_INFORMATION));
-        assert(meminfo.State == MEM_COMMIT);
-        // The size of the region returned by VirtualQueryEx is from BaseAddress
-        // to the end, NOT from meminfo.AllocationBase, which is what we want.
-        // BaseAddress is the start address of the page of the address parameter
-        // that is sent to VirtualQueryEx as a parameter
-        Address regionSize = (Address)meminfo.BaseAddress
-            - (Address)meminfo.AllocationBase
-            + (Address)meminfo.RegionSize;
-        mal_printf("[%lx %lx] is valid region containing %lx and corresponding "
-               "to no object, closest is object ending at %lx %s[%d]\n",
-               meminfo.AllocationBase,
-               ((Address)meminfo.AllocationBase) + regionSize,
-               addr, closestObjEnd, FILE__,__LINE__);
-        // read region into this PCProcess
-        unsigned char* rawRegion = (unsigned char*)
-            ::LocalAlloc(LMEM_FIXED, meminfo.RegionSize);
-        assert( proc()->readDataSpace(meminfo.AllocationBase,
-                                    regionSize, rawRegion, true) );
-        // set up file descriptor
-        char regname[64];
-        snprintf(regname,63,"mmap_buffer_%lx_%lx",
-                 ((Address)meminfo.AllocationBase),
-                 ((Address)meminfo.AllocationBase) + regionSize);
-
-        fileDescriptor desc(string(regname),
-                            0,
-                            (HANDLE)0,
-                            (HANDLE)0,
-                            true,
-                            (Address)meminfo.AllocationBase,
-                            (Address)meminfo.RegionSize,
-                            rawRegion);
-        mapped_object *obj = mapped_object::createMappedObject
-            (desc,this,proc()->getHybridMode(),false);
-        if (obj != NULL) {
-            mapped_objects.push_back(obj);
-            addOrigRange(obj);
-            return obj;
-        }
-    }
-    return NULL;
-}
-#endif
 
 bool PCProcess::dumpCore(std::string coreFile)
 {
@@ -1575,14 +1005,60 @@ bool PCProcess::dumpCore(std::string coreFile)
 
 bool PCProcess::hideDebugger()
 {
-	assert(0);
-	return false;
-}
+	Dyninst::ProcControlAPI::Thread::const_ptr threadPtr_ = pcProc_->threads().getInitialThread();
+	if (!threadPtr_)
+		return false;
+	Address tibPtr = threadPtr_->getThreadInfoBlockAddr();
+    if (!tibPtr) {
+        return false;
+    }
 
-bool PCProcess::setMemoryAccessRights(Dyninst::Address start, Dyninst::Address size, int rights)
-{
-	assert(0);
-	return false;
+    // read in address of PEB
+    unsigned int pebPtr;
+    if (!readDataSpace((void*)(tibPtr+48), getAddressWidth(), (void*)&pebPtr, false)) {
+        fprintf(stderr, "%s[%d] Failed to read address of Process Environment "
+                "Block at 0x%x, which is TIB + 0x30\n", FILE__,__LINE__,tibPtr+48);
+        return false;
+    }
+
+    // patch up the processBeingDebugged flag in the PEB
+    unsigned char flag;
+    if (!readDataSpace((void*)(pebPtr+2), 1, (void*)&flag, true)) 
+        return false;
+    if (flag) {
+        flag = 0;
+        if (!writeDataSpace((void*)(pebPtr+2), 1, (void*)&flag)) 
+            return false;
+    }
+
+    //while we're at it, clear the NtGlobalFlag
+    if (!readDataSpace((void*)(pebPtr+0x68), 1, (void*)&flag, true)) 
+        return false;
+    if (flag) {
+        flag = flag & 0x8f;
+        if (!writeDataSpace((void*)(pebPtr+0x68), 1, (void*)&flag)) 
+            return false;
+    }
+
+    // clear the heap flags in the PEB
+    unsigned int heapBase;
+    unsigned int flagWord;
+    if (!readDataSpace((void*)(pebPtr+0x18), 4, (void*)&heapBase, true)) 
+        return false;
+
+    // clear the flags in the heap itself
+    if (!readDataSpace((void*)(heapBase+0x0c), 4, (void*)&flagWord, true)) 
+        return false;
+    flagWord = flagWord & (~0x50000062);
+    if (!writeDataSpace((void*)(heapBase+0x0c), 4, (void*)&flagWord)) 
+        return false;
+    if (!readDataSpace((void*)(heapBase+0x10), 4, (void*)&flagWord, true)) 
+        return false;
+    flagWord = flagWord & (~0x40000060);
+    if (!writeDataSpace((void*)(heapBase+0x10), 4, (void*)&flagWord)) 
+        return false;
+
+    return true;
 }
 
 unsigned long PCProcess::setAOutLoadAddress(fileDescriptor &desc)
@@ -1826,12 +1302,6 @@ AstNodePtr PCProcess::createLoadRTAST()
 inferiorHeapType PCProcess::getDynamicHeapType() const
 {
 	return anyHeap;
-}
-
-mapped_object* PCProcess::createObjectNoFile(Dyninst::Address addr)
-{
-	assert(0);
-	return false;
 }
 
 

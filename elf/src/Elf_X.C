@@ -72,7 +72,6 @@ Elf_X *Elf_X::newElf_X(int input, Elf_Cmd cmd, Elf_X *ref, string name)
       cmd = ELF_C_READ_MMAP;
    }
 #endif
-
    if (name.empty()) {
       return new Elf_X(input, cmd, ref);
    }
@@ -125,12 +124,13 @@ Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
     elf_errno(); // Reset elf_errno to zero.
     if (ref)
        elf = elf_begin(input, cmd, ref->e_elfp());
-    else
+    else {
        elf = elf_begin(input, cmd, NULL);
+    }
     int errnum;
     if ((errnum = elf_errno()) != 0) {
-       //const char *msg = elf_errmsg(errnum);
-       //fprintf(stderr, "Elf error: %s\n", msg);
+       const char *msg = elf_errmsg(errnum);
+       fprintf(stderr, "Elf error: %s\n", msg);
     }
     if (elf) {
        if (elf_kind(elf) == ELF_K_ELF) {
