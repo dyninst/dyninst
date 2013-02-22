@@ -1826,24 +1826,6 @@ func_instance *instPoint::findCallee()
 #endif
 }
 
-const unsigned int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 4;
-const char DYNINST_LOAD_HIJACK_FUNCTIONS[][20] = {
-  "__libc_start_main",
-  "_init",
-  "_start",
-  "main"
-};
-
-/**
- * Returns an address that we can use to write the code that executes
- * dlopen on the runtime library.
- *
- * Inserting the code into libc is a good thing, since _dl_open
- * will sometimes check it's caller and return with a 'invalid caller'
- * error if it's called from the application.
- **/
-Address findFunctionToHijack(process * /*p*/) { assert(0); return 0; }
-
 /**
  * Searches for function in order, with preference given first 
  * to libpthread, then to libc, then to the process.
@@ -1901,12 +1883,6 @@ int WaitpidMux::enqueueWaitpidValue(waitpid_ret_pair /*ev*/, SignalGenerator * /
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/registerSpace.h"
-
-#define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
-
-const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
-const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
-const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 

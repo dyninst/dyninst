@@ -19,11 +19,11 @@ static const int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
 #define __RTLD_DLOPEN 0x80000000
 #endif
 
-const char *DL_OPEN_FUNC_USER = NULL;
-const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
-const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
-const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
-const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
+static const char *DL_OPEN_FUNC_USER = NULL;
+static const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
+static const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
+static const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
+static const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 
 
 bool Codegen::generateInt() {
