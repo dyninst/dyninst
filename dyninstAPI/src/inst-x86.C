@@ -1383,8 +1383,8 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
          // dest is the displacement from the current value of insn
          // this will need to work for both 32-bits and 64-bits
          // (since there is no JMP rel64)
-         insnCodeGen::generateBranch(gen, dest);
          retval = gen.getIndex();
+         insnCodeGen::generateBranch(gen, dest);
          break;
       }
       case trampPreamble: {
