@@ -279,7 +279,7 @@ void StackAnalysis::summarize() {
 }
 
 void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
-                                       const Instruction::Ptr &insn,
+                                       Instruction::Ptr insn,
                                        const Offset off,
                                        TransferFuncs &xferFuncs) {
    stackanalysis_printf("\t\tInsn at 0x%lx\n", off);

@@ -294,7 +294,7 @@ class int_process
    bool wasForcedTerminated() const;
 
    virtual bool plat_individualRegAccess() = 0;
-   virtual bool plat_individualRegRead();
+   virtual bool plat_individualRegRead(Dyninst::MachRegister reg, int_thread *thr);
    virtual bool plat_individualRegSet();
 
    int getAddressWidth();

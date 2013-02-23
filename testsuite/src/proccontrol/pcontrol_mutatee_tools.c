@@ -266,6 +266,9 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
 	   return -1;
    }
 #endif
+   pingSignalFD(signal_fd);
+   getSocketInfo();
+
    if (init_func) {
       result = MultiThreadInit(init_func, thread_data);
    }
@@ -273,8 +276,6 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
       fprintf(stderr, "Error initializing threads\n");
       return -1;
    }
-   pingSignalFD(signal_fd);
-   getSocketInfo();
 
    result = initMutatorConnection();
    if (result != 0) {

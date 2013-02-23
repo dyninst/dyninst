@@ -275,6 +275,40 @@ test_results_t ProcControlMutator::pre_init(ParameterDict &param)
    return PASSED;
 }
 
+#if defined(os_bgq_test) 
+#include <unistd.h>
+#include <signal.h>
+#include <stdlib.h>
+
+static void onalarm(int)
+{
+   abort();
+}
+
+static void onterm(int)
+{
+   //On BGQ SIGTERM is thrown to debuggers after the debugee exits.  
+   // We may be doing cleanup still, so only exit after a timeout.
+   static bool hit_sigterm = false;
+   if (hit_sigterm)
+      abort();
+   hit_sigterm = true;
+
+   signal(SIGALRM, onalarm);
+   alarm(10);
+}
+
+void setupSigtermHandler()
+{
+   signal(SIGTERM, onterm);
+}
+#else
+void setupSigtermHandler()
+{
+}
+#endif
+
+
 ProcControlComponent::ProcControlComponent() :
    sockfd(0),
    sockname(NULL),
@@ -289,6 +323,7 @@ ProcControlComponent::ProcControlComponent() :
    ::WSAStartup(wsVer, &ignored);
    winsock_event = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
+   setupSigtermHandler();
 }
 
 static ProcControlComponent *pccomp = NULL;
@@ -1477,6 +1512,7 @@ bool ProcControlComponent::open_pipe(Process::ptr p, bool open_read)
             logerror("Mutator timeout opening %s: %s\n", j->second.c_str(), strerror(error));
             return false;
          }
+         Process::handleEvents(false);
          usleep(100000); //.1 seconds
          continue;
       }

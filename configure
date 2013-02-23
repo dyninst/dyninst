@@ -789,6 +789,7 @@ with_launchmon
 with_launchmon_incdir
 with_launchmon_libdir
 with_libflex_libdir
+enable_m32
 enable_static
 enable_testsuite
 '
@@ -1433,6 +1434,7 @@ Optional Features:
   --enable-parseAPI-graphs
                           Enable Boost Graph wrappers for parseAPI Functions
   --enable-gnu-demangler  Use g++'s built in demangler
+  --disable-m32           Disable bulding the 32-bit runtime library
   --enable-static         Build all components as static libraries rather than
                           dynamic (default is dynamic)
   --disable-testsuite     Disable the Dyninst test suite (default is no)
@@ -2072,6 +2074,9 @@ test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL}'
 test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 
+#This line tells AC_PROG_CXX not leave CXXFLAGS blank by default.  Othwerise
+# we get CXXFLAGS='-g -O2'
+: ${CXXFLAGS=""}
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -7777,15 +7782,15 @@ main ()
   return 0;
 }
 _ACEOF
-rm -f conftest.$ac_objext
-if { (ac_try="$ac_compile"
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
 case "(($ac_try" in
   *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
   *) ac_try_echo=$ac_try;;
 esac
 eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
 $as_echo "$ac_try_echo") >&5
-  (eval "$ac_compile") 2>conftest.er1
+  (eval "$ac_link") 2>conftest.er1
   ac_status=$?
   grep -v '^ *+' conftest.er1 >conftest.err
   rm -f conftest.er1
@@ -7794,7 +7799,10 @@ $as_echo "$ac_try_echo") >&5
   (exit $ac_status); } && {
 	 test -z "$ac_cxx_werror_flag" ||
 	 test ! -s conftest.err
-       } && test -s conftest.$ac_objext; then
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
   { $as_echo "$as_me:$LINENO: result: yes" >&5
 $as_echo "yes" >&6; }; BUILD32=""
 else
@@ -7805,7 +7813,20 @@ sed 's/^/| /' conftest.$ac_ext >&5
 $as_echo "no" >&6; }; BUILD32="SKIP_BUILD_RTLIB_32=1"
 fi
 
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+# Check whether --enable-m32 was given.
+if test "${enable_m32+set}" = set; then
+  enableval=$enable_m32;
+else
+  enable_m32="yes"
+fi
+
+if test "x$enable_m32" != "xyes"; then
+  BUILD32="SKIP_BUILD_RTLIB_32=1"
+fi
+
 
 CXXFLAGS=$SAVED_CXXFLAGS
 
@@ -7833,7 +7854,7 @@ fi
 if test "${enable_testsuite+set}" = set; then
   enableval=$enable_testsuite;
 else
-  enable_testsuite=yes
+  enable_testsuite="yes"
 fi
 
 

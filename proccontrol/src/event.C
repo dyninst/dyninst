@@ -129,7 +129,7 @@ bool Event::triggersCB() const
 
 void Event::setSuppressCB(bool b)
 {
-  pthrd_printf("Setting override event suppress for %s\n", name().c_str());
+  pthrd_printf("Setting callback suppress for %s\n", name().c_str());
    suppress_cb = b;
 }
 
@@ -1140,7 +1140,8 @@ int_eventNewUserThread::~int_eventNewUserThread()
 }
 
 int_eventThreadDB::int_eventThreadDB() :
-   completed_new_evs(false)
+   completed_new_evs(false),
+   completed_getmsgs(false)
 {
 }
 

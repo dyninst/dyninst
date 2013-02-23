@@ -2048,7 +2048,7 @@ bool int_process::wasForcedTerminated() const
    return forcedTermination;
 }
 
-bool int_process::plat_individualRegRead()
+bool int_process::plat_individualRegRead(Dyninst::MachRegister, int_thread *)
 {
    return plat_individualRegAccess();
 }
@@ -3796,7 +3796,7 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr respon
    response->setRegThread(reg, this);
    response->setProcess(llproc());
 
-   if (!llproc()->plat_individualRegRead())
+   if (!llproc()->plat_individualRegRead(reg, this))
    {
       //Convert the single get register access into a get all registers
       pthrd_printf("Platform does not support individual register access, " 
@@ -3850,7 +3850,7 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr respon
       pthrd_printf("Async getting register for thread %d\n", getLWP());
       getResponses().lock();
       bool result = plat_getRegisterAsync(reg, response);
-      if (result) {
+      if (result && !response->testReady()) {
          getResponses().addResponse(response, llproc());
       }
       getResponses().unlock();
@@ -5068,9 +5068,11 @@ bool sw_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read
 
    read_response->setBuffer(buffer, buffer_size);
    bool ret = proc->readMem(addr, read_response);
-   pthrd_printf("Buffer contents from read breakpoint:\n");
-   for (int i = 0; i < buffer_size; ++i) {
-     pthrd_printf("\t 0x%x\n", (unsigned char)buffer[i]);
+   if (read_response->isReady()) {
+      pthrd_printf("Buffer contents from read breakpoint:\n");
+      for (int i = 0; i < buffer_size; ++i) {
+         pthrd_printf("\t 0x%x\n", (unsigned char)buffer[i]);
+      }
    }
    return ret;
 }
