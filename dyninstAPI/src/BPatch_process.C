@@ -1364,15 +1364,16 @@ bool BPatch_process::hideDebugger()
         kern->findFunction(
             "GetTickCount",
             funcs, false, false, false, true);
-        assert (!funcs.empty());
-        BPatch_module *rtlib = this->image->findOrCreateModule(
-            (*llproc->runtime_lib.begin())->getModules().front());
-        vector<BPatch_function*> repfuncs;
-        rtlib->findFunction("DYNINST_FakeTickCount", repfuncs, false);
-        assert(!repfuncs.empty());
-        replaceFunction(*funcs[0],*repfuncs[0]);
-        disabledFuncs.push_back(pair<BPatch_function*,BPatch_function*>(
-                                funcs[0],repfuncs[0]));
+        if (!funcs.empty()) {
+			BPatch_module *rtlib = this->image->findOrCreateModule(
+				(*llproc->runtime_lib.begin())->getModules().front());
+			vector<BPatch_function*> repfuncs;
+			rtlib->findFunction("DYNINST_FakeTickCount", repfuncs, false);
+			assert(!repfuncs.empty());
+			replaceFunction(*funcs[0],*repfuncs[0]);
+			disabledFuncs.push_back(pair<BPatch_function*,BPatch_function*>(
+									funcs[0],repfuncs[0]));
+		}
     }
 
     if (kern) {
