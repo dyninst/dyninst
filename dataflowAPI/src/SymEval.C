@@ -302,8 +302,8 @@ bool vectorSort(SliceNode::Ptr ptr1, SliceNode::Ptr ptr2) {
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
 SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res) {
-   bool failedTranslation = false;
-   bool skippedInput = false;
+    bool failedTranslation = false;
+    bool skippedInput = false;
 
     //cout << "Calling expand" << endl;
     // Other than the substitution this is pretty similar to the first example.
@@ -315,6 +315,7 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
     std::vector<SliceNode::Ptr> sortVector;
     for ( ; gbegin != gend; ++gbegin) {
         Node::Ptr ptr = *gbegin;
+		expand_cerr << "pushing " << (*gbegin)->format() << " to sortVector" << endl;
         SliceNode::Ptr cur = boost::static_pointer_cast<SliceNode>(ptr);
         sortVector.push_back(cur);
     }
@@ -335,8 +336,8 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
      * if so, mark them so we don't do infinite substitution */
     std::map<Node::Ptr, int> state;
     while (!dfs_worklist.empty()) {
-       Node::Ptr ptr = dfs_worklist.front(); dfs_worklist.pop();
-       dfs(ptr, state, worklist.skipEdges());
+        Node::Ptr ptr = dfs_worklist.front(); dfs_worklist.pop();
+        dfs(ptr, state, worklist.skipEdges());
     }
 
     slice->allNodes(gbegin, gend);
@@ -358,8 +359,8 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
       int order;
 
       boost::tie(aNode,order) = worklist.pop_next();
-      if(order == -1) // empty
-        break;
+      if (order == -1) // empty
+          break;
 
       if (!aNode->assign()) {
           worklist.mark_done(aNode);
@@ -367,10 +368,10 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
       }
 
       expand_cerr << "Visiting node " << aNode->assign()->format() 
-        << " order " << order << endl;
+                  << " order " << order << endl;
 
       if (order != 0) {
-	cerr << "ERROR: order is non zero: " << order << endl;
+	      cerr << "ERROR: order is non zero: " << order << endl;
       }
       assert(order == 0); // there are no loops
 
@@ -477,23 +478,23 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
     ptr->ins(begin, end);
 
     for (; begin != end; ++begin) {
-       SliceEdge::Ptr edge = boost::static_pointer_cast<SliceEdge>(*begin);
-       SliceNode::Ptr source = boost::static_pointer_cast<SliceNode>(edge->source());
+         SliceEdge::Ptr edge = boost::static_pointer_cast<SliceEdge>(*begin);
+         SliceNode::Ptr source = boost::static_pointer_cast<SliceNode>(edge->source());
 
-       // Skip this one to break a cycle.
-       if (skipEdges.find(edge) != skipEdges.end()) {
-	 expand_cerr << "In process, skipping edge from " 
-		     << source->format() << endl;
-         skippedEdge = true;
-	 continue;
-       }
+         // Skip this one to break a cycle.
+         if (skipEdges.find(edge) != skipEdges.end()) {
+		     expand_cerr << "In process, skipping edge from "
+		                 << source->format() << endl;
+             skippedEdge = true;
+	         continue;
+         }
        
-       Assignment::Ptr assign = source->assign();
-       if (!assign) continue; // widen node
+		 Assignment::Ptr assign = source->assign();
+		 if (!assign) continue; // widen node
        
-       expand_cerr << "Assigning input " << edge->data().format() 
-                   << " from assignment " << assign->format() << endl;
-       inputMap[&edge->data()].insert(assign);
+		 expand_cerr << "Assigning input " << edge->data().format()
+                     << " from assignment " << assign->format() << endl;
+		 inputMap[&edge->data()].insert(assign);
     }
     
     expand_cerr << "\t Input map has size " << inputMap.size() << endl;
@@ -503,62 +504,60 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
     
     AST::Ptr ast;
     boost::tie(ast, failedTranslation) = SymEval::expand(ptr->assign());
-    //expand_cerr << "\t ... resulting in " << dbase.format() << endl;
+    // expand_cerr << "\t ... resulting in " << dbase.format() << endl;
 
     // We have an AST. Now substitute in all of its predecessors.
     for (std::map<const AbsRegion*, std::set<Assignment::Ptr> >::iterator iter = inputMap.begin();
          iter != inputMap.end(); ++iter) {
-      // If we have multiple secondary definitions, we:
-      //   if all definitions are equal, use the first
-      //   otherwise, use nothing
-      AST::Ptr definition;
+		 // If we have multiple secondary definitions, we:
+		 //   if all definitions are equal, use the first
+		 //   otherwise, use nothing
+		 AST::Ptr definition;
 
-      for (std::set<Assignment::Ptr>::iterator iter2 = iter->second.begin(); 
-	   iter2 != iter->second.end(); ++iter2) {
-	AST::Ptr newDef = dbase[*iter2];
-	if (!definition) {
-	  definition = newDef;
-	  continue;
-	}
-	else if (definition->equals(newDef)) {
-	  continue;
-	}
-	else {
-	  // Not equal
-	  definition = AST::Ptr(); 
-          skippedInput = true;
-	  break;
-	}
-      }
+		 for (std::set<Assignment::Ptr>::iterator iter2 = iter->second.begin(); 
+			  iter2 != iter->second.end(); ++iter2) {
+			  AST::Ptr newDef = dbase[*iter2];
+			  if (!definition) {
+				  definition = newDef;
+				  continue;
+			  } else if (definition->equals(newDef)) {
+				  continue;
+			  } else {
+				  // Not equal
+				  definition = AST::Ptr();
+				  skippedInput = true;
+				  break;
+			  }
+		  }
 
+		  // The region used by the current assignment...
+		  const AbsRegion &reg = *iter->first;
       
-      // The region used by the current assignment...
-      const AbsRegion &reg = *iter->first;
+		  // Create an AST around this one
+		  VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
       
-      // Create an AST around this one
-      VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
-      
-      if (!definition) {
-	// Can happen if we're expanding out of order, and is generally harmless.
-	continue;
-      }
-      
-      expand_cerr << "Before substitution: " << (ast ? ast->format() : "<NULL AST>") << endl;
-      
-      if (!ast) {
-	expand_cerr << "Skipping substitution because of null AST" << endl;
-      } else {
-	ast = AST::substitute(ast, use, definition);
-        success = true;
-      }	
-      //expand_cerr << "\t result is " << res->format() << endl;
+		  if (!definition) {
+			  // Can happen if we're expanding out of order, and is generally harmless.
+			  continue;
+		  }
+
+		  expand_cerr << "Before substitution: " << (ast ? ast->format() : "<NULL AST>") << endl;
+
+		  if (!ast) {
+			  expand_cerr << "Skipping substitution because of null AST" << endl;
+		  } else {
+			  ast = AST::substitute(ast, use, definition);
+			  success = true;
+		  }
+		  expand_cerr << "\t result is " << ast->format() << endl;
     }
-    expand_cerr << "Result of substitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
+    expand_cerr << "Result of substitution: " << ptr->assign()->format() << " == " 
+		        << (ast ? ast->format() : "<NULL AST>") << endl;
     
     // And attempt simplification again
     ast = simplifyStack(ast, ptr->addr(), ptr->func(), ptr->block());
     expand_cerr << "Result of post-substitution simplification: " << ptr->assign()->format() << " == " 
-		<< (ast ? ast->format() : "<NULL AST>") << endl;
+                << (ast ? ast->format() : "<NULL AST>") << endl;
     
     dbase[ptr->assign()] = ast;
     if (failedTranslation) return FAILED_TRANSLATION;
