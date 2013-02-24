@@ -549,7 +549,7 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
 			  ast = AST::substitute(ast, use, definition);
 			  success = true;
 		  }
-		  expand_cerr << "\t result is " << ast->format() << endl;
+		  expand_cerr << "\t result is " << (ast ? ast->format() : "<NULL AST>") << endl;
     }
     expand_cerr << "Result of substitution: " << ptr->assign()->format() << " == " 
 		        << (ast ? ast->format() : "<NULL AST>") << endl;
