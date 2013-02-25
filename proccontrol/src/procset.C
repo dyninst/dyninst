@@ -846,6 +846,8 @@ ProcessSet::ptr ProcessSet::attachProcessSet(vector<AttachInfo> &ainfo)
          i++;
          continue;
       }
+      pthrd_printf("Erasing process %d from attach return set because err = %d\n",
+                   proc->getPid(), last_error);
       ai.error_ret = last_error;
       ai.proc = Process::ptr();
       newps->erase(i++);
@@ -1209,12 +1211,16 @@ struct test_exited {
 bool ProcessSet::anyExited() const
 {
    MTLock lock_this_func;
+   if (procset->empty())
+      return true;
    return any_match(procset->begin(), procset->end(), test_exited());
 }
 
 bool ProcessSet::allExited() const
 {
    MTLock lock_this_func;
+   if (procset->empty())
+      return true;
    return all_match(procset->begin(), procset->end(), test_exited());
 }
 

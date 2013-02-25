@@ -315,6 +315,7 @@ class ComputeNode
    ComputeNode(int cid);
 
    std::set<bgq_process *> procs;
+   std::vector<int> former_procs;
   public:
    static ComputeNode *getComputeNodeByID(int cn_id);
    static ComputeNode *getComputeNodeByRank(uint32_t rank);
@@ -505,6 +506,7 @@ class ReaderThread : public IOThread
    virtual void localInit();
    int kick_fd;
    int kick_fd_write;
+   bool is_gen_kicked;
    unsigned timeout_set;
    struct timeval timeout;
    Mutex timeout_lock;
@@ -519,6 +521,7 @@ class ReaderThread : public IOThread
    void setKickPipe(int fd);
    void setTimeout(const struct timeval &tv);
    void clearTimeout();
+   void kick_generator();
 };
 
 class WriterThread : public IOThread
@@ -543,6 +546,7 @@ class WriterThread : public IOThread
    void notifyAck(int rank);
    void addProcess(bgq_process *proc);
    void rmProcess(bgq_process *proc);
+   void forcePastAck(ComputeNode *cn);
 };
 
 

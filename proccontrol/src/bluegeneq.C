@@ -75,7 +75,7 @@ static void registerSignalHandlers(bool enable);
 static long timeout_val = 0;
 static long no_control_authority_val = 0;
 
-static const long startup_timeout_sec = 45;
+static const long startup_timeout_sec = 30;
 
 uint64_t bgq_process::jobid = 0;
 uint32_t bgq_process::toolid = 0;
@@ -518,7 +518,6 @@ bool bgq_process::plat_detachDone()
 
 bool bgq_process::plat_terminate(bool & /*needs_sync*/)
 {
-#warning TODO implement terminate
    return false;
 }
 
@@ -996,9 +995,33 @@ bool bgq_process::handleStartupEvent(void *data)
     **/
    if (data == &timeout_val) {
       pthrd_printf("Timeout waiting for startup event on %d\n", getPid());
-      setLastError(err_internal, "Process timed out while waiting for startup events");
+      switch (startup_state) {
+         case waitfor_attach:
+            setLastError(err_dattachack, "Process timed out while waiting for attach ack");
+            break;
+         case waitfor_control_request_ack:
+            setLastError(err_dcaack, "Process timed out while waiting for CA ack");
+            break;
+         case waitfor_data_or_stop:
+            setLastError(err_dthrdstop, "Process timed out while waiting for stop/query");
+            break;
+         case waitfor_control_request_signal:
+            setLastError(err_dsigstop, "Process timed out while waiting for stop");
+            break;
+         case reissue_data_collection: 
+         case waitfor_data_collection:
+            setLastError(err_dthrdquery, "Process timed out while waiting for query");
+            break;
+         case step_insn:
+            setLastError(err_dstep, "Process timed out while waiting for step");
+            break;
+         default:
+            setLastError(err_internal, "Process timed out during unexpected state");
+      }
       setState(errorstate);
       ReaderThread::get()->clearTimeout();
+      getStartupTeardownProcs().dec();
+
       return false;
    }
    else if (data == &no_control_authority_val) {
@@ -1303,8 +1326,6 @@ bool bgq_process::handleStartupEvent(void *data)
             pthrd_printf("On startup, found stopped: %s, held: %s\n",
                          stopped_on_startup ? "true" : "false",
                          held_on_startup ? "true" : "false");
-
-
          }
       }
 
@@ -2352,6 +2373,7 @@ void ComputeNode::removeNode(bgq_process *proc) {
       return;
 
    procs.erase(i);
+   former_procs.push_back(proc->getPid());
    issued_all_attach = false;
    all_attach_done = false;
    all_attach_error = false;
@@ -2895,7 +2917,7 @@ bool GeneratorBGQ::readMessage(vector<ArchEvent *> &events, bool block)
       else {
          ToolMessage *tm = (ToolMessage *) buf.buffer;
          printMessage(tm, "Read");
-         ArchEventBGQ *newArchEvent = new ArchEventBGQ(tm);
+         newArchEvent = new ArchEventBGQ(tm);
       }
       assert(newArchEvent);
       events.push_back(newArchEvent);
@@ -2977,6 +2999,7 @@ void GeneratorBGQ::kick()
    do {
       result = write(kick_pipe[1], &kval, sizeof(int));
    } while (result == -1 && errno == EINTR);
+   ReaderThread::get()->kick_generator();
 }
 
 extern void GeneratorInternalJoin(GeneratorMTInternals *);
@@ -3057,7 +3080,8 @@ unsigned DecoderBlueGeneQ::getPriority() const
 bool DecoderBlueGeneQ::decodeTimeout(vector<Event::ptr> &events) 
 {
    //Check for timeouts during startup.  Timeouts aren't process specific, so
-   // we need to decode the single timeout archevent into 
+   // we need to decode the single timeout archevent into any process doing an
+   // op that could timeout.
    pthrd_printf("Checking for processes affected by read timeout\n");
    const set<ComputeNode *> cns = ComputeNode::allNodes();
    for (set<ComputeNode *>::const_iterator i = cns.begin(); i != cns.end(); i++) {
@@ -3065,10 +3089,14 @@ bool DecoderBlueGeneQ::decodeTimeout(vector<Event::ptr> &events)
       for (set<bgq_process *>::const_iterator j = procs.begin(); j != procs.end(); j++) {
          bgq_process *proc = *j;
          switch (proc->startup_state) {
-            case waitfor_attach:
-            case waitfor_data_or_stop:
-            case waitfor_control_request_signal:
-            case waitfor_data_collection:
+            case bgq_process::waitfor_attach:
+            case bgq_process::waitfor_control_request_ack:
+            case bgq_process::waitfor_data_or_stop:
+            case bgq_process::waitfor_control_request_signal:
+            case bgq_process::waitfor_data_collection: 
+            case bgq_process::step_insn:
+            case bgq_process::reissue_data_collection:
+            {
                pthrd_printf("Process %d timed out during startup state (%d)\n",
                             proc->getPid(), (int) proc->startup_state);
                Event::ptr new_ev = EventIntBootstrap::ptr(new EventIntBootstrap(&timeout_val));
@@ -3077,8 +3105,8 @@ bool DecoderBlueGeneQ::decodeTimeout(vector<Event::ptr> &events)
                new_ev->setSyncType(Event::async);
                events.push_back(new_ev);
                break;
-            case waitfor_control_request_ack:
-            case waitfor_control_request_notice:
+            }
+            case bgq_process::waitfor_control_request_notice: {
                pthrd_printf("Process %d timed out waiting for control authority (%d)\n",
                             proc->getPid(), (int) proc->startup_state);
                Event::ptr new_ev = EventIntBootstrap::ptr(new EventIntBootstrap(&no_control_authority_val));
@@ -3087,10 +3115,12 @@ bool DecoderBlueGeneQ::decodeTimeout(vector<Event::ptr> &events)
                new_ev->setSyncType(Event::async);
                events.push_back(new_ev);
                break;
+            }
             default:
                break;
          }
       }
+      WriterThread::get()->forcePastAck(*i);
    }
 
    return true;
@@ -3890,28 +3920,34 @@ bool DecoderBlueGeneQ::decode(ArchEvent *ae, vector<Event::ptr> &events)
       case ControlAck:
          pthrd_printf("Decoding ControlAck on %d\n", proc->getPid());
          ret_result = decodeControlAck(archevent, qproc, events);
+         break;
       case AttachAck:
          pthrd_printf("Decoding AttachAck on %d\n", proc->getPid());
          ret_result = decodeStartupEvent(archevent, qproc, msg, Event::async, events);
+         break;
       case DetachAck:
          pthrd_printf("Decoding DetachAck on %d\n", proc->getPid());
          ret_result = decodeDetachAck(archevent, qproc, events);
+         break;
       case QueryAck: {
          QueryAckMessage *qack = static_cast<QueryAckMessage *>(msg);
          uint16_t num_commands = qack->numCommands;
          CommandDescriptor *cmd_list = qack->cmdList;
          pthrd_printf("Decoding QueryAck from %d with %d commands\n", proc->getPid(), num_commands);
          ret_result = decodeUpdateOrQueryAck(archevent, qproc, num_commands, cmd_list, events);
+         break;
       }
       case UpdateAck: {
          uint16_t num_commands = static_cast<UpdateAckMessage *>(msg)->numCommands;
          CommandDescriptor *cmd_list = static_cast<UpdateAckMessage *>(msg)->cmdList;
          pthrd_printf("Decoding UpdateAck from %d with %d commands\n", proc->getPid(), num_commands);
          ret_result = decodeUpdateOrQueryAck(archevent, qproc, num_commands, cmd_list, events);
+         break;
       }
       case Notify:
          pthrd_printf("Decoding Notify on %d\n", proc->getPid());
          ret_result = decodeNotifyMessage(archevent, qproc, events);
+         break;
       case SetupJobAck:
       case NotifyAck:
       case Attach:
@@ -3925,7 +3961,8 @@ bool DecoderBlueGeneQ::decode(ArchEvent *ae, vector<Event::ptr> &events)
          assert(0);
    }
 
-   delete archevent;
+#warning Investigate whether this delete is safe
+//   delete archevent;
    return ret_result;
 }
 
@@ -4095,6 +4132,7 @@ ReaderThread *ReaderThread::me = NULL;
 ReaderThread::ReaderThread() :
    kick_fd(-1),
    kick_fd_write(-1),
+   is_gen_kicked(false),
    timeout_set(0)
 {
    assert(!me);
@@ -4251,7 +4289,7 @@ void ReaderThread::run()
          }
          bytes_read += result;
       }
-      
+
       /* Create buffer_t object and put it into the queue */
       queue_lock.lock();
       msgs.push(buffer_t((void *) message, hdr.length, true));
@@ -4288,12 +4326,18 @@ void ReaderThread::localInit()
 buffer_t ReaderThread::readNextElement(bool block)
 {
    queue_lock.lock();
-   while (msgs.empty()) {
+   while (msgs.empty() && !is_gen_kicked) {
       if (!block) {
          queue_lock.unlock();
          return buffer_t(NULL, 0, false);
       }
       queue_lock.wait();
+   }
+   
+   if (is_gen_kicked) {
+      is_gen_kicked = false;
+      buffer_t ret;
+      return ret;
    }
    buffer_t ret = msgs.front();
    msgs.pop();
@@ -4338,6 +4382,14 @@ void ReaderThread::thrd_kick()
    write(kick_fd_write, &c, 1);
 }
 
+void ReaderThread::kick_generator()
+{
+   queue_lock.lock();
+   is_gen_kicked = true;
+   queue_lock.broadcast();
+   queue_lock.unlock();
+}
+
 void ReaderThread::setTimeout(const struct timeval &tv)
 {
    bool was_timeout_set;
@@ -4354,6 +4406,7 @@ void ReaderThread::setTimeout(const struct timeval &tv)
 void ReaderThread::clearTimeout()
 {
    timeout_lock.lock();
+   assert(timeout_set != 0);
    timeout_set--;
    timeout_lock.unlock();
 }
@@ -4377,6 +4430,28 @@ WriterThread *WriterThread::get() {
       me->init();
    }
    return me;
+}
+
+void WriterThread::forcePastAck(ComputeNode *cn)
+{
+   if (!cn->have_pending_message) {
+      return;
+   }
+
+   msg_lock.lock();
+   //A timeout occured and we want to move the CN past its missing ACK.
+   // We'll grab a process from this CN (any process, doesn't matter)
+   // and pretend we got an ack for it.  That'll move the CN onto the next
+   // message.
+   rank_lock.lock();
+   set<bgq_process *>::iterator i = cn->procs.begin();
+   if (i != cn->procs.end()) {
+      bgq_process *proc = *i;
+      acks.push_back(proc->getPid());
+   }
+   rank_lock.unlock();
+   msg_lock.signal();
+   msg_lock.unlock();
 }
 
 void WriterThread::run()
@@ -4714,6 +4789,10 @@ void ComputeNode::emergencyShutdown()
    pthrd_printf("Done shutting down IO threads\n");
 #endif
    pthrd_printf("all_compute_nodes.size() = %u\n", (unsigned) all_compute_nodes.size());
+
+   vector<int> pids;
+   pids.reserve(64); //At most 64 procs per CN--system limit
+
    for (set<ComputeNode *>::iterator i = all_compute_nodes.begin(); i != all_compute_nodes.end(); i++) {
       ComputeNode *cn = *i;
       if (!cn) {
@@ -4721,6 +4800,7 @@ void ComputeNode::emergencyShutdown()
          continue;
       }
       pthrd_printf("cn->procs.size() = %u\n", (unsigned) cn->procs.size());
+      pids.clear();
       for (set<bgq_process *>::iterator j = cn->procs.begin(); j != cn->procs.end(); j++) {
          bgq_process *proc = *j;
          if (!proc) {
@@ -4729,14 +4809,21 @@ void ComputeNode::emergencyShutdown()
          }
          pthrd_printf("Process %d is in startup_state %d on CN %d\n", 
                       proc->getPid(), (int) proc->startup_state, proc->getComputeNode()->getID());
+         pids.push_back(proc->getPid());
+      }
+      for (vector<int>::iterator j = cn->former_procs.begin(); j != cn->former_procs.end(); j++) {
+         pthrd_printf("Process %d is former process on CN %d\n", *j, cn->getID());
+         pids.push_back(*j);
+      }
+      for (vector<int>::iterator j = pids.begin(); j != pids.end(); j++) {
         again: {
-            int pid = proc->getPid();
+            int pid = *j;
             pthrd_printf("Emergency shutdown of %d\n", pid);
-
+            
             UpdateMessage *update = (UpdateMessage *) message;
             MessageHeader *header = &update->header;
             CommandDescriptor *command = update->cmdList;
-
+            
             SendSignalCmd *send = (SendSignalCmd *) (update + 1);
             SetContinuationSignalCmd *cont_sig = (SetContinuationSignalCmd *) (send + 1);
             ReleaseThreadCmd *release = (ReleaseThreadCmd *) (cont_sig + 1);

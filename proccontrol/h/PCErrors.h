@@ -135,7 +135,15 @@ const err_t err_attached       = 0x10011;
 const err_t err_pendingirpcs   = 0x10012;
 const err_t err_bpfull         = 0x10013;
 const err_t err_notfound       = 0x10014;
+//Next seven are BGQ errors.  They usually indicates a problem
+// on the system, not with user programs
 const err_t err_cauthority     = 0x10015;
+const err_t err_dsigstop       = 0x10016;
+const err_t err_dthrdquery     = 0x10017;
+const err_t err_dthrdstop      = 0x10018;
+const err_t err_dattachack     = 0x10019;
+const err_t err_dcaack         = 0x1001a;
+const err_t err_dstep          = 0x1001b;
 
 PC_EXPORT err_t getLastError();
 PC_EXPORT void clearLastError();

@@ -4367,18 +4367,12 @@ bool int_thread::StateTracker::setState(State to)
       pthrd_printf("Leaving %s state for %d/%d in state %s\n", s.c_str(), pid, lwp, stateStr(to));
       return true;
    }
-   if (to == errorstate) {
-      perr_printf("Setting %s state for %d/%d from %s to errorstate\n", 
-                  s.c_str(), pid, lwp, stateStr(state));
-      state = to;
-      return true;
-   }
    if (state == errorstate) {
       perr_printf("Attempted %s state reversion for %d/%d from errorstate to %s\n", 
                   s.c_str(), pid, lwp, stateStr(to));
       return false;
    }
-   if (state == exited) {
+   if (state == exited && to != errorstate) {
       perr_printf("Attempted %s state reversion for %d/%d from exited to %s\n", 
                   s.c_str(), pid, lwp, stateStr(to));
       return false;
