@@ -852,7 +852,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     Address nextBlockAddr;
     Block * nextBlock;
 
-    if(frame.status() == ParseFrame::UNPARSED) {
+    if (frame.status() == ParseFrame::UNPARSED) {
         parsing_printf("[%s] ==== starting to parse frame %lx ====\n",
             FILE__,frame.func->addr());
         // prevents recursion of parsing
@@ -887,26 +887,25 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         Block * cur = NULL;
         ParseWorkElem * work = frame.popWork();
 
-        if(work->order() == ParseWorkElem::call) {
+        if (work->order() == ParseWorkElem::call) {
             Function * ct = NULL;
             Edge * ce = NULL;
 
-            if(!work->callproc()) {
+            if (!work->callproc()) {
 	      // If we're not doing recursive traversal, skip *all* of the call edge processing.
 	      // We don't want to create a stub. We'll handle the assumption of a fallthrough
 	      // target for the fallthrough work element, not the call work element. Catch blocks
 	      // will get excluded but that's okay; our heuristic is not reliable enough that I'm willing to deploy
 	      // it when we'd only be detecting a non-returning callee by name anyway.
 	      // --BW 12/2012
-	      if(!recursive) 
-	      {
-		parsing_printf("[%s] non-recursive parse skipping call %lx->%lx\n",
-			       FILE__, work->edge()->src()->lastInsnAddr(), work->target());
-		continue;
-	      }
+				if (!recursive) {
+				    parsing_printf("[%s] non-recursive parse skipping call %lx->%lx\n",
+								   FILE__, work->edge()->src()->lastInsnAddr(), work->target());
+					continue;
+				}
 	      
                 parsing_printf("[%s] binding call %lx->%lx\n",
-                    FILE__,work->edge()->src()->lastInsnAddr(),work->target());
+                               FILE__,work->edge()->src()->lastInsnAddr(),work->target());
             
                 pair<Function*,Edge*> ctp =
                     bind_call(frame,
@@ -922,10 +921,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 ce = work->edge();
             }
 
-            if(recursive && ct &&
+            if (recursive && ct &&
                (frame_status(ct->region(),ct->addr())==ParseFrame::UNPARSED || 
-                frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP))
-            {
+                frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP)) {
                 // suspend this frame and parse the next
                 parsing_printf("    [suspend frame %lx]\n", func->addr()); 
                 frame.call_target = ct;
@@ -933,25 +931,24 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 // need to re-visit this edge
                 frame.pushWork(work);
                 return;
-            }
-            else if(ct && work->tailcall()) {
+            } else if (ct && work->tailcall()) {
                 // XXX The target has been or is currently being parsed (else
                 //     the previous conditional would have been taken),
                 //     so if its return status is unset then this
                 //     function has to take UNKNOWN
-                if(func->_rs != RETURN) {
-                    if(ct->_rs > NORETURN)
+                if (func->_rs != RETURN) {
+                    if (ct->_rs > NORETURN)
                       func->set_retstatus(ct->_rs);
-                    else if(ct->_rs == UNSET)
+                    else if (ct->_rs == UNSET)
                       func->set_retstatus(UNKNOWN);
                 }
             }
 
             // check for catch blocks after non-returning calls
-            if(ct && ct->_rs == NORETURN) {
+            if (ct && ct->_rs == NORETURN) {
                 Address catchStart;
                 Block * caller = ce->src();
-                if(frame.codereg->findCatchBlock(caller->end(),catchStart)) {
+                if (frame.codereg->findCatchBlock(caller->end(),catchStart)) {
                     parsing_printf("[%s] found post-return catch block %lx\n",
                         FILE__,catchStart);
 
@@ -970,16 +967,14 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             }
     
             continue;
-        } else if(work->order() == ParseWorkElem::call_fallthrough) {
-            
+        } else if (work->order() == ParseWorkElem::call_fallthrough) {
             // check associated call edge's return status
             Edge * ce = bundle_call_edge(work->bundle());
-            if(!ce) {
+            if (!ce) {
                 // odd; no call edge in this bundle
                 parsing_printf("[%s] unexpected missing call edge at %lx\n",
                     FILE__,work->edge()->src()->lastInsnAddr());
-            }
-            else {
+            } else {
                 Address target = ce->trg()->start();
                 Function * ct = _parse_data->findFunc(frame.codereg,target);
                 bool is_plt = false;
@@ -1007,14 +1002,14 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 if (is_nonret) {
                   parsing_printf("\t Disallowing FT edge: CodeSource reports nonreturning\n");
                 }
-                if(!is_nonret && is_plt) {
+                if (!is_nonret && is_plt) {
                     is_nonret |= obj().cs()->nonReturning(plt_entries[target]);
 		            if (is_nonret) {
 		              parsing_printf("\t Disallowing FT edge: CodeSource reports PLT nonreturning\n");
 		            }
                 }
                 // Parsed return status tests
-                if(!is_nonret && !is_plt && ct) {
+                if (!is_nonret && !is_plt && ct) {
                     is_nonret |= (ct->retstatus() == NORETURN);
 		            if (is_nonret) {
 		              parsing_printf("\t Disallowing FT edge: function is non-returning\n");
@@ -1040,7 +1035,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         }
                     }
                 }
-                if(is_nonret) {
+                if (is_nonret) {
                     parsing_printf("[%s] no fallthrough for non-returning call "
                                    "to %lx at %lx\n",FILE__,target,
                                    work->edge()->src()->lastInsnAddr());
@@ -1055,11 +1050,11 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 // Invalidate cache_valid for all sharing functions
                 invalidateContainingFuncs(func, ce->src());                
             }
-        } else if(work->order() == ParseWorkElem::seed_addr) {
-            cur = leadersToBlock[work->target()]; 
+        } else if (work->order() == ParseWorkElem::seed_addr) {
+            cur = leadersToBlock[work->target()];
         }
                        
-        if(NULL == cur) { 
+        if (NULL == cur) {
             pair<Block*,Edge*> newedge =
                 add_edge(frame,
                          frame.func,
@@ -1070,7 +1065,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             cur = newedge.first;
         }
 
-        if(HASHDEF(visited,cur->start()))
+        if (HASHDEF(visited,cur->start()))
         {
             parsing_printf("[%s] skipping locally parsed target at %lx\n",
                 FILE__,work->target());
@@ -1079,7 +1074,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         visited[cur->start()] = true;
         leadersToBlock[cur->start()] = cur;
 
-        if(!cur->_parsed)
+        if (!cur->_parsed)
         {
             parsing_printf("[%s] parsing block %lx\n",
                 FILE__,cur->start());
@@ -1099,8 +1094,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     func->region(), cur->start());
                 if (other_func && other_func->retstatus() > UNKNOWN) {
                   func->set_retstatus(other_func->retstatus());
-                }
-                else {
+                } else {
                   func->set_retstatus(UNKNOWN);
                 }
             }
@@ -1120,15 +1114,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         unsigned size = 
             cur->region()->offset() + cur->region()->length() - curAddr;
         const unsigned char* bufferBegin =
-         (const unsigned char *)(func->isrc()->getPtrToInstruction(curAddr));
+          (const unsigned char *)(func->isrc()->getPtrToInstruction(curAddr));
         InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
 
-        if(!ahPtr)
+        if (!ahPtr)
             ahPtr.reset(new InstructionAdapter_t(dec, curAddr, func->obj(), 
-                                cur->region(), func->isrc(), cur));
+                        cur->region(), func->isrc(), cur));
         else
             ahPtr->reset(dec,curAddr,func->obj(),
-                                cur->region(), func->isrc(), cur);
+                         cur->region(), func->isrc(), cur);
        
         InstructionAdapter_t & ah = *ahPtr; 
 
@@ -1138,11 +1132,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
         bool isNopBlock = ah.isNop();
 
-        while(true) 
-        {
+        while(true) {
             curAddr = ah.getAddr();
             /** Check for straight-line fallthrough **/
-            if(curAddr == nextBlockAddr) {
+            if (curAddr == nextBlockAddr) {
                 parsing_printf("[%s] straight-line parse into block at %lx\n",
                     FILE__,curAddr);
                 if (frame.func->obj()->defensiveMode()) {
@@ -1156,10 +1149,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     add_edge(frame,frame.func,cur,
                              nextBlockAddr,FALLTHROUGH,NULL);
         
-                if(!HASHDEF(visited,nextBlockAddr) && 
-                   !HASHDEF(leadersToBlock,nextBlockAddr)) { 
+                if (!HASHDEF(visited,nextBlockAddr) &&
+                   !HASHDEF(leadersToBlock,nextBlockAddr)) {
                     parsing_printf("[%s:%d] pushing %lx onto worklist\n",
-                        FILE__,__LINE__,nextBlockAddr);
+                                   FILE__,__LINE__,nextBlockAddr);
 
                     frame.pushWork(
                         frame.mkWork(
@@ -1182,7 +1175,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     leadersToBlock[nextBlockAddr] = nextBlock;
                 }
                 break;
-            } else if(curAddr > nextBlockAddr) {
+            } else if (curAddr > nextBlockAddr) {
                 parsing_printf("[%s:%d] inconsistent instruction stream: "
                                "%lx is within [%lx,%lx)\n",
                     FILE__,__LINE__,curAddr,
@@ -1204,7 +1197,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     FILE__,__LINE__,curAddr);
 
             if (func->_is_leaf_function) {
-            Address ret_addr;
+                Address ret_addr;
     	        func->_is_leaf_function = !(insn_det.insn->isReturnAddrSave(ret_addr));
                     parsing_printf("[%s:%d] leaf %d funcname %s \n",
                         FILE__,__LINE__,func->_is_leaf_function, func->name().c_str());
@@ -1213,7 +1206,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 		
             _pcb.instruction_cb(func,cur,curAddr,&insn_det);
 
-            if(isNopBlock && !ah.isNop()) {
+            if (isNopBlock && !ah.isNop()) {
                 ah.retreat();
 
                 end_block(cur,ah);
@@ -1223,7 +1216,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
   
                 parsing_printf("[%s:%d] nop-block ended at %lx\n",
                     FILE__,__LINE__,curAddr); 
-                if(targ && !HASHDEF(visited,targ->start())) {
+                if (targ && !HASHDEF(visited,targ->start())) {
                     parsing_printf("[%s:%d] pushing %lx onto worklist\n",
                         FILE__,__LINE__,targ->start());
 
@@ -1246,33 +1239,23 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             if(ah.hasCFT()) {
                ProcessCFInsn(frame,cur,ah);
                break;
-            }
-            else if(func->_saves_fp && 
-                    func->_no_stack_frame &&  
-                    ah.isFrameSetupInsn()) // isframeSetup is expensive
-            {
+            } else if (func->_saves_fp &&
+                       func->_no_stack_frame &&
+                       ah.isFrameSetupInsn()) { // isframeSetup is expensive
+               func->_no_stack_frame = false;
+            } else if (ah.isLeave()) {
                 func->_no_stack_frame = false;
-            }
-            else if(ah.isLeave())
-            {
-                func->_no_stack_frame = false;
-            }
-            else if( ah.isAbort() )
-            {
+            } else if ( ah.isAbort() ) {
                 // 4. `abort-causing' instructions
                 end_block(cur,ah);
                 //link(cur, _sink, DIRECT, true);
                 break; 
-            }
-            else if( ah.isInvalidInsn() )
-            {
+            } else if ( ah.isInvalidInsn() ) {
                 // 4. Invalid or `abort-causing' instructions
                 end_block(cur,ah);
                 link(cur, _sink, DIRECT, true);
                 break; 
-            }
-            else if( ah.isInterruptOrSyscall() )
-            {
+            } else if ( ah.isInterruptOrSyscall() ) {
                 // 5. Raising instructions
                 end_block(cur,ah);
     
@@ -1280,10 +1263,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     add_edge(frame,frame.func,cur,ah.getNextAddr(),FALLTHROUGH,NULL);
                 Block * targ = newedge.first;
    
-                if(targ && !HASHDEF(visited,targ->start()) &&
-                           !HASHDEF(leadersToBlock,targ->start())) {
+                if (targ && !HASHDEF(visited,targ->start()) &&
+                            !HASHDEF(leadersToBlock,targ->start())) {
                     parsing_printf("[%s:%d] pushing %lx onto worklist\n",
-                        FILE__,__LINE__,targ->start());
+                                   FILE__,__LINE__,targ->start());
 
                     frame.pushWork(
                         frame.mkWork(
@@ -1300,11 +1283,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                             "in defensive mode at %lx\n",curAddr);
                 }
                 break;
-            }
-            else if(unlikely(func->obj()->defensiveMode())) 
-            {
-                if (!_pcb.hasWeirdInsns(func) && ah.isGarbageInsn())
-                {
+            } else if (unlikely(func->obj()->defensiveMode())) {
+                if (!_pcb.hasWeirdInsns(func) && ah.isGarbageInsn()) {
                     // add instrumentation at this addr so we can
                     // extend the function if this really executes
                     ParseCallback::default_details det(
@@ -1315,9 +1295,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     _pcb.foundWeirdInsns(func);
                     end_block(cur,ah);
                     break;
-                }
-                else if (ah.isNopJump()) 
-                {
+                } else if (ah.isNopJump()) {
                     // patch the jump to make it a nop, and re-set the 
                     // instruction adapter so we parse the instruction
                     // as a no-op this time, allowing the subsequent
@@ -1332,8 +1310,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         (bufferBegin, bufsize, frame.codereg->getArch());
                     ah = InstructionAdapter_t(dec, curAddr, func->obj(), 
                                               func->region(), func->isrc(), cur);
-                }
-                else {
+                } else {
                     entryID id = ah.getInstruction()->getOperation().getID();
                     switch (id) {
                         case e_rdtsc:
@@ -1346,24 +1323,20 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                             break;
                     }
                 }
-            }
-            else {
+            } else {
                 // default
             }
 
             /** Check for overruns of valid address space **/
-            if(!is_code(func,ah.getNextAddr()))
-            {
+            if (!is_code(func,ah.getNextAddr())) {
                 parsing_printf("[%s] next insn %lx is invalid\n",
-                    FILE__,ah.getNextAddr());
+                               FILE__,ah.getNextAddr());
 
                 end_block(cur,ah);
                 // We need to tag the block with a sink edge
                 link(cur, _sink, DIRECT, true);
                 break;
-            }
-            else if(!cur->region()->contains(ah.getNextAddr()))
-            {
+            } else if (!cur->region()->contains(ah.getNextAddr())) {
                 parsing_printf("[%s] next address %lx is outside [%lx,%lx)\n",
                     FILE__,ah.getNextAddr(),
                     cur->region()->offset(),
@@ -1384,18 +1357,16 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     }
 
     /** parsing complete **/
-    if(HASHDEF(plt_entries,frame.func->addr())) {
-       if(obj().cs()->nonReturning(frame.func->addr())) {
-          frame.func->set_retstatus(NORETURN);
-       }
-       else {
-          frame.func->set_retstatus(UNKNOWN); 
-       }
+    if (HASHDEF(plt_entries,frame.func->addr())) {
+        if (obj().cs()->nonReturning(frame.func->addr())) {
+            frame.func->set_retstatus(NORETURN);
+        } else {
+            frame.func->set_retstatus(UNKNOWN);
+        }
 
-       // Convenience -- adopt PLT name
-       frame.func->_name = plt_entries[frame.func->addr()];
-    }
-    else if(frame.func->_rs == UNSET) {
+        // Convenience -- adopt PLT name
+        frame.func->_name = plt_entries[frame.func->addr()];
+    } else if (frame.func->_rs == UNSET) {
         frame.func->set_retstatus(NORETURN);
     }
 
@@ -1406,7 +1377,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
        // we finalize the function we'll actually save the results and won't 
        // re-finalize it
        func->tampersStack(); 
-       _pcb.newfunction_retstatus( func ); 
+       _pcb.newfunction_retstatus( func );
     }
 }
 

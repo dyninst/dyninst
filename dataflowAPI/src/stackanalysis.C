@@ -121,7 +121,7 @@ static void getInsnInstances(Block *block,
 }
 
 void StackAnalysis::summarizeBlocks() {
-  Function::blocklist & bs = func->blocks();
+  Function::blocklist bs(func->blocks());
   Function::blocklist::iterator bit = bs.begin();
   for( ; bit != bs.end(); ++bit) {
     Block *block = *bit;
@@ -159,8 +159,7 @@ void StackAnalysis::summarizeBlocks() {
       bFunc.add(xferFuncs);
 
       stackanalysis_printf("\t\t\t At 0x%lx:  %s\n",
-			   off,
-			   bFunc.format().c_str());
+			               off, bFunc.format().c_str());
     }
     stackanalysis_printf("\t Block summary for 0x%lx: %s\n", block->start(), bFunc.format().c_str());
   }
@@ -384,30 +383,36 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
     const Function::blocklist &returnBlocks = func->returnBlocks();
     Function::blocklist::const_iterator rets = returnBlocks.begin();
     for (; rets != returnBlocks.end(); ++rets) {
-      Block *ret = *rets;
-      cur = (unsigned char *) ret->region()->getPtrToInstruction(ret->lastInsnAddr());
-      Instruction::Ptr insn = decoder.decode(cur);
-        
-      entryID what = insn->getOperation().getID();
-      if (what != e_ret_near)
-	continue;
-      
-      int val;
-      std::vector<Operand> ops;
-      insn->getOperands(ops);
-      if (ops.size() == 1) {
-	val = 0;
-      }
-      else {      
-	Result imm = ops[1].getValue()->eval();
-	assert(imm.defined);
-	val = (int) imm.val.s16val;
-      }
-      returnCleanVals.insert(Height(val));
-    }
-    funcCleanAmounts[func] = Height::meet(returnCleanVals);
+         Block *ret = *rets;
+         cur = (unsigned char *) ret->region()->getPtrToInstruction(ret->lastInsnAddr());
+         Instruction::Ptr insn = decoder.decode(cur);
 
-    return funcCleanAmounts[func];
+         entryID what = insn->getOperation().getID();
+         if (what != e_ret_near)
+             continue;
+      
+         int val;
+         std::vector<Operand> ops;
+         insn->getOperands(ops);
+         if (ops.size() == 1) {
+             val = 0;
+         } else {
+             Result imm = ops[1].getValue()->eval();
+             assert(imm.defined);
+             val = (int) imm.val.s16val;
+         }
+         returnCleanVals.insert(Height(val));
+    }
+
+	Height clean = Height::meet(returnCleanVals);
+	if (clean == Height::top) {
+		// Non-returning or tail-call exits?
+		clean = Height::bottom;
+	}
+
+    funcCleanAmounts[func] = clean;
+
+    return clean;
 }
 
 StackAnalysis::StackAnalysis() :

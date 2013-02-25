@@ -155,7 +155,7 @@ Slicer::sliceInternal(
     map<Address,DefCache> cache;
     
     ret = Graph::createGraph();
-   
+
     // set up a slicing frame describing with the
     // relevant context
     constructInitialFrame(dir,initFrame);
@@ -174,7 +174,7 @@ Slicer::sliceInternal(
 
     // add to graph
     insertInitialNode(ret, dir, aP);
-    
+
     slicing_printf("Starting recursive slicing\n");
     sliceInternalAux(ret,dir,p,initFrame,true,visited,cache);
     slicing_printf("Finished recursive slicing\n");
@@ -204,37 +204,37 @@ Slicer::sliceInternalAux(
     // the active set. Returns `true' if any changes are made,
     // `false' otherwise.
 
-    if(!skip)
-       updateAndLink(g,dir,cand,mydefs,p);
+    if (!skip) {
+        updateAndLink(g,dir,cand,mydefs,p);
+	    slicing_printf("\t\tfinished udpateAndLink, active.size: %ld\n",
+                       cand.active.size());
+	}
 
-    slicing_printf("\t\tfinished udpateAndLink, active.size: %ld\n",
-        cand.active.size());
-
-    if(cand.active.empty())
+    if (cand.active.empty())
         return;
 
     // Find the next search candidates along the control
     // flow (for appropriate direction)
     bool success = getNextCandidates(dir,p,cand,nextCands);
-    if(!success) {
+    if (!success) {
         widenAll(g,dir,cand);
     }
 
     slicing_printf("\t\tgetNextCandidates returned %ld, success: %d\n",
-        nextCands.size(),success);
+                   nextCands.size(),success);
 
-    for(unsigned i=0;i<nextCands.size();++i) {
+    for (unsigned i=0; i < nextCands.size(); ++i) {
         SliceFrame & f = nextCands[i];
-        if(!f.valid) {
+        if (!f.valid) {
             widenAll(g,dir,cand);
             continue;
         }
         CacheEdge e(cand.addr(),f.addr());
 
         slicing_printf("\t\t candidate %d is at %lx, %ld active\n",
-            i,f.addr(),f.active.size());
+                       i,f.addr(),f.active.size());
 
-        if(visited.find(e) != visited.end()) {
+        if (visited.find(e) != visited.end()) {
             // attempt to resolve the current active set
             // via cached values from down-slice, eliminating
             // those elements of the active set that can be
@@ -245,7 +245,7 @@ Slicer::sliceInternalAux(
 
             // the only way this is not true is if the current
             // search path has introduced new AbsRegions of interest
-            if(f.active.empty()) {
+            if (f.active.empty()) {
                 continue;
             }
         }
@@ -1545,39 +1545,38 @@ void Slicer::cleanGraph(Graph::Ptr ret) {
   std::list<Node::Ptr> toDelete;
   unsigned numNodes = 0;
   for (; nbegin != nend; ++nbegin) {
-     numNodes++;
-    SliceNode::Ptr foozle =
-      boost::dynamic_pointer_cast<SliceNode>(*nbegin);
-    //cerr << "Checking " << foozle << "/" << foozle->format() << endl;
-    if ((*nbegin)->hasOutEdges()) {
-      slicing_cerr << "\t has out edges, leaving in" << endl;
+	  expand_cerr << "NodeIterator in cleanGraph: " << (*nbegin)->format() << endl;
+      numNodes++;
+      SliceNode::Ptr foozle =
+          boost::dynamic_pointer_cast<SliceNode>(*nbegin);
+      //cerr << "Checking " << foozle << "/" << foozle->format() << endl;
+      if ((*nbegin)->hasOutEdges()) {
+          slicing_cerr << "\t has out edges, leaving in" << endl;
       
-      // This cleans up case where we ended a backward slice
-      // but never got to mark the node as an entry node
-      if (!(*nbegin)->hasInEdges()) {
-	ret->markAsEntryNode(foozle);
+          // This cleans up case where we ended a backward slice
+          // but never got to mark the node as an entry node
+          if (!(*nbegin)->hasInEdges()) {
+	          ret->markAsEntryNode(foozle);
+          }
+          continue;
       }
-      continue;
-    }
-    if (ret->isExitNode(*nbegin)) {
-
-      slicing_cerr << "\t is exit node, leaving in" << endl;
-      // A very odd case - a graph of 1 node. Yay!
-      if (!(*nbegin)->hasInEdges()) {
-	ret->markAsEntryNode(foozle);
+      if (ret->isExitNode(*nbegin)) {
+          slicing_cerr << "\t is exit node, leaving in" << endl;
+          // A very odd case - a graph of 1 node. Yay!
+          if (!(*nbegin)->hasInEdges()) {
+	          ret->markAsEntryNode(foozle);
+          }
+          continue;
       }
-      continue;
-    }
-    slicing_cerr << "\t deleting" << endl;
-    toDelete.push_back(*nbegin);
+      slicing_cerr << "\t deleting" << endl;
+      toDelete.push_back(*nbegin);
   }
 
   for (std::list<Node::Ptr>::iterator tmp =
-	 toDelete.begin(); tmp != toDelete.end(); ++tmp) {
-    ret->deleteNode(*tmp);
+	   toDelete.begin(); tmp != toDelete.end(); ++tmp) {
+      ret->deleteNode(*tmp);
   }
   slicing_cerr << "\t Slice has " << numNodes << " nodes" << endl;
-
 }
 
 ParseAPI::Block *Slicer::getBlock(ParseAPI::Edge *e,

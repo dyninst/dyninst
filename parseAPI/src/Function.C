@@ -503,7 +503,7 @@ Function::tampersStack(bool recalculate)
 
     // this is above the cond'n below b/c it finalizes the function, 
     // which could in turn call this function
-    const Function::blocklist & retblks = returnBlocks();
+    const Function::blocklist retblks(returnBlocks());
     if ( retblks.begin() == retblks.end() ) {
         _tamper = TAMPER_NONE;
         return _tamper;
