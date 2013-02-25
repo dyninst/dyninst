@@ -55,6 +55,7 @@ bool resolve_libc_name(char *buf)
 
         std::vector<std::string> libc_dirs;
         libc_dirs.push_back("/lib");
+        libc_dirs.push_back("/lib64");
         // 32-bit ubuntu
         libc_dirs.push_back("/lib/i386-linux-gnu");
         // 64-bit ubuntu
