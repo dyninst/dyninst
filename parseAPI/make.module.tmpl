@@ -91,7 +91,7 @@ SRCS +=	../src/ParserDetails.C \
 
 ifeq (x$(ENABLE_PARSE_API_GRAPHS),xyes)
 SRCS += ../src/GraphAdapter.C
-PUBLIC_H += ../src/GraphAdapter.h
+PUBLIC_H += ../h/GraphAdapter.h
 endif
 
 ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
