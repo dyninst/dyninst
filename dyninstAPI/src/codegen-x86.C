@@ -260,7 +260,6 @@ void insnCodeGen::generateBranch(codeGen &gen,
                                  int disp32)
 {
    // Branches have sizes...
-
    if (disp32 >= 0)
       assert ((unsigned)disp32 < unsigned(1<<31));
    else
@@ -828,11 +827,9 @@ bool insnCodeGen::generateMem(codeGen &gen,
    struct ia32_condition cond;
    class ia32_locations loc;
 
-   ia32_entry *entry;
    ia32_instruction orig_instr(memacc, &cond, &loc);
    ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION,
                insn_ptr, orig_instr);
-   entry = orig_instr.getEntry();
 
    if (orig_instr.getPrefix()->getPrefix(1) != 0) {
 	   //The instruction accesses memory via segment registers.  Disallow.
@@ -1008,10 +1005,8 @@ bool insnCodeGen::modifyJump(Address targetAddr, NS_x86::instruction &insn, code
 
    const unsigned char *origInsn = insn.ptr();
    unsigned insnType = insn.type();
-   unsigned char *orig_loc;
   
    GET_PTR(newInsn, gen);
-   orig_loc = newInsn;
 
    from += copy_prefixes(origInsn, newInsn, insnType);
    // Otherwise we will fail to account for them and
@@ -1120,13 +1115,11 @@ bool insnCodeGen::modifyCall(Address targetAddr, NS_x86::instruction &insn, code
 
    const unsigned char *origInsn = insn.ptr();
    unsigned insnType = insn.type();
-   unsigned char *orig_loc;
    codeBufIndex_t cur = gen.getIndex();
 
    // Let's try copying prefixes
 
    GET_PTR(newInsn, gen);
-   orig_loc = newInsn;
    copy_prefixes_nosize(origInsn, newInsn, insnType);
    SET_PTR(newInsn, gen);
 
@@ -1162,9 +1155,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
    bool is_data_abs64 = false;
    unsigned nPrefixes = count_prefixes(insnType);
    signed long newDisp = targetAddr - from;
-   unsigned char *orig_loc;
    GET_PTR(newInsn, gen);
-   orig_loc = newInsn;
 
    // count opcode bytes (1 or 2)
    unsigned nOpcodeBytes = 1;

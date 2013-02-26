@@ -79,9 +79,9 @@ test_results_t power_decode_Mutator::executeTest()
       0x7c, 0x01, 0x10, 0x6e, // lwzux r0, r2(r1)
       0x78, 0x01, 0x44, 0x0c, // rlimi r0, r1
       0x00, 0x01, 0x00, 0x90, // fpmul fpr0, fpr1
-      0x00, 0x01, 0x00, 0x92, // fxmul fpr0, fpr1
+      0x00, 0x01, 0x00, 0x92, // fxmul fpr0, fpr1, or qvfxmadds 
       0x00, 0x01, 0x00, 0x94, // fxcpmul fpr0, fpr1
-      0x00, 0x01, 0x00, 0x96, // fxcsmul fpr0, fpr1
+      0x00, 0x01, 0x00, 0x96, // fxcsmul fpr0, fpr1, or qvfxxnpmadds
       0x40, 0x01, 0x01, 0x01, // bdnzl cr0, +0x100
       0x40, 0x01, 0x01, 0x00, // bdnz cr0, +0x100
       0x7c, 0xa7, 0x4a, 0x6e, // lhzux r9, r7, r5
@@ -279,6 +279,15 @@ test_results_t power_decode_Mutator::executeTest()
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
+#if defined(os_bgq_test)
+  // qvfxmadds
+  tmpRead = list_of(fpr0)(fpr1)(fpr2)(fsr0)(fsr2);
+  tmpWritten = list_of(fpr0)(fsr0);
+  expectedRead.push_back(tmpRead);
+  expectedWritten.push_back(tmpWritten);
+  tmpRead.clear();
+  tmpWritten.clear();
+#else
   // fxmul fpr0, fpr1
   tmpRead = list_of(fpr1)(fpr2)(fsr1)(fsr2);
   tmpWritten = list_of(fpr0)(fsr0);
@@ -286,6 +295,7 @@ test_results_t power_decode_Mutator::executeTest()
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
+#endif
   // fxcpmul fpr0, fpr1
   tmpRead = list_of(fpr1)(fpr2)(fsr2);
   tmpWritten = list_of(fpr0)(fsr0);
@@ -293,6 +303,15 @@ test_results_t power_decode_Mutator::executeTest()
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
+#if defined(os_bgq_test)
+  // qvfxxnpmadds
+  tmpRead = list_of(fpr0)(fpr1)(fpr2)(fsr0)(fsr2);
+  tmpWritten = list_of(fpr0)(fsr0);
+  expectedRead.push_back(tmpRead);
+  expectedWritten.push_back(tmpWritten);
+  tmpRead.clear();
+  tmpWritten.clear();
+#else
   // fxcsmul fpr0, fpr1
   tmpRead = list_of(fpr2)(fsr1)(fsr2);
   tmpWritten = list_of(fpr0)(fsr0);
@@ -300,6 +319,7 @@ test_results_t power_decode_Mutator::executeTest()
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
+#endif
   // bdnzl cr0, +0x100
   tmpRead = list_of(pc)(cr0)(ctr);
   tmpWritten = list_of(pc)(ctr)(lr);
