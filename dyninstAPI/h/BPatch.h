@@ -423,6 +423,8 @@ public:
      
     bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, 
                                        std::set<long> &signal_numbers); 
+    bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, 
+                                       BPatch_Set<long> *signal_numbers); 
      
      bool removeSignalHandlerCallback(BPatchSignalHandlerCallback cb); 
 
