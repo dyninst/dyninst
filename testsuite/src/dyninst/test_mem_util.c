@@ -685,7 +685,6 @@ void init_test_data()
   reduceCC(ccRed);
   caps = amd_features();
   if(!(caps & CAP_3DNOW)) {
-     fprintf(stderr, "Reducing CAP_3DNOW\n");
       reduce(amdRed);
   }
   caps = ia32features();
@@ -836,7 +835,6 @@ void listByteCnt(const char* insn, unsigned int count)
 
 void listEffAddrCC(const char* insn, void* addr)
 {
-   fprintf(stderr, "listEffAddrCC %s, addr %p; currently at %d, expecting %d\n", insn, addr, accessCntEAcc, accessExpCC);
   if(accessCntEAcc < accessExpCC)
     eaListCC[accessCntEAcc] = addr;
   else
