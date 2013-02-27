@@ -47,11 +47,11 @@ typedef enum {
 namespace Dyninst {
    namespace ParseAPI {
       class Edge;
-      Edge *convert(const BPatch_edge *);
+      BPATCH_DLL_EXPORT Edge *convert(const BPatch_edge *);
    };
    namespace PatchAPI {
       class PatchEdge;
-      PatchEdge *convert(const BPatch_edge *);
+      BPATCH_DLL_EXPORT PatchEdge *convert(const BPatch_edge *);
    };
 };
 

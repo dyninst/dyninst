@@ -62,7 +62,7 @@ class BPatch_object;
 namespace Dyninst { 
    namespace SymtabAPI {
       class Module;
-      SYMTAB_EXPORT Module *convert(const BPatch_module *);
+      BPATCH_DLL_EXPORT Module *convert(const BPatch_module *);
    }
    namespace PatchAPI {
 	   class PatchFunction;
