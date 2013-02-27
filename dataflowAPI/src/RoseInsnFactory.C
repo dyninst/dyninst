@@ -197,6 +197,13 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
   case e_loopn:
       operands.resize(1);
       break;
+  case e_ret_far:
+  case e_ret_near:
+	  if (operands.size() == 2) {
+		  operands[0]=operands[1];
+	  }
+	  operands.resize(1);
+	  break;
   default:
     break;
   }
