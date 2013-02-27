@@ -1821,7 +1821,10 @@ bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB,
    // not a std::set<long, comparison<long>>
    
    std::set<long> tmp;
-   std::copy(signums->begin(), signums->end(), std::inserter(tmp, tmp.end()));
+   if (NULL == signums || signums->empty())
+	   tmp = std::set<long>();
+   else
+       std::copy(signums->begin(), signums->end(), std::inserter(tmp, tmp.end()));
    
    return registerSignalHandlerCallback(bpatchCB, tmp);
 }
