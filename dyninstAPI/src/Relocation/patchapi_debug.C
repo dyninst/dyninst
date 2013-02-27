@@ -44,15 +44,14 @@ bool init_debug_patchapi() {
   if (init) return true;
   init = true;
 
-  char *p;
-  if ( (p=getenv("DYNINST_DEBUG_RELOCATION")) ||
-       (p=getenv("PATCHAPI_DEBUG_RELOCATION"))) {
+  if ( getenv("DYNINST_DEBUG_RELOCATION") ||
+       getenv("PATCHAPI_DEBUG_RELOCATION")) {
      fprintf(stderr, "Enabling DyninstAPI relocation debug\n");
      patch_debug_relocation = 1;
   }
 
-  if ( (p=getenv("DYNINST_DEBUG_SPRINGBOARD")) ||
-       (p=getenv("PATCHAPI_DEBUG_SPRINGBOARD"))) {
+  if ( getenv("DYNINST_DEBUG_SPRINGBOARD") ||
+       getenv("PATCHAPI_DEBUG_SPRINGBOARD")) {
      fprintf(stderr, "Enabling DyninstAPI springboard debug\n");
      patch_debug_relocation = 1;
   }
