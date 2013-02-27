@@ -116,8 +116,11 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   RegisterAST::Ptr r_carry(new RegisterAST(cf));
 
   expectedRead.insert(expectedRead.begin(), r_eax);
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  expectedWritten = { r_eax, r_adjust, r_zero, r_overflow, r_parity, r_sign, r_carry };
+#else
   expectedWritten = list_of(r_eax)(r_adjust)(r_zero)(r_overflow)(r_parity)(r_sign)(r_carry);
-  
+#endif
   
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
   decodedInsns.pop_front();
@@ -125,8 +128,13 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   RegisterAST::Ptr r_esp(new RegisterAST(esp));
   expectedRead.clear();
   expectedWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  expectedRead = { r_esp, r_eax };
+  expectedWritten = { r_esp };
+#else
   expectedRead = list_of(r_esp)(r_eax);
   expectedWritten = list_of(r_esp);
+#endif
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
   decodedInsns.pop_front();
   
@@ -135,16 +143,26 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   RegisterAST::Ptr ip(new RegisterAST(MachRegister::getPC(curArch)));
   // Jccs are all documented as "may read zero, sign, carry, parity, overflow", so a JZ comes back as reading all
   // of these flags
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  expectedRead = { r_zero, r_sign, r_carry, r_parity, r_overflow, ip };
+  expectedWritten = { ip };
+#else
   expectedRead = list_of(r_zero)(r_sign)(r_carry)(r_parity)(r_overflow)(ip);
   expectedWritten = list_of(ip);
+#endif
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
   							      expectedRead, expectedWritten));
   decodedInsns.pop_front();
   
   expectedRead.clear();
   expectedWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  expectedRead = { r_esp, ip };
+  expectedWritten = { r_esp, ip };
+#else
   expectedRead = list_of(r_esp)(ip);
   expectedWritten = list_of(r_esp)(ip);
+#endif
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
 							      expectedRead, expectedWritten));
   callInsn = decodedInsns.front();
@@ -152,7 +170,11 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
 
   expectedRead.clear();
   expectedWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  expectedWritten = { r_carry };
+#else
   expectedWritten = list_of(r_carry);
+#endif
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
 							      expectedRead, expectedWritten));
   decodedInsns.pop_front();
@@ -160,8 +182,13 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   expectedRead.clear();
   expectedWritten.clear();
   RegisterAST::Ptr r_al(new RegisterAST(al));
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  expectedRead = { r_al };
+  expectedWritten = { r_al, r_zero, r_carry, r_sign, r_overflow, r_parity, r_adjust };
+#else
   expectedRead = list_of(r_al);
   expectedWritten = list_of(r_al)(r_zero)(r_carry)(r_sign)(r_overflow)(r_parity)(r_adjust);
+#endif
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
 							      expectedRead, expectedWritten));
   decodedInsns.pop_front();
@@ -170,7 +197,11 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   
   expectedRead.clear();
   expectedWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  expectedRead = { r_bp };
+#else
   expectedRead = list_of(r_bp);
+#endif
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
 							      expectedRead, expectedWritten));
   decodedInsns.pop_front();
@@ -179,7 +210,11 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   RegisterAST::Ptr r_dl(new RegisterAST(dl));
   expectedRead.clear();
   expectedWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  expectedRead = { r_bp, r_dl };
+#else
   expectedRead = list_of(r_bp)(r_dl);
+#endif
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
 							      expectedRead, expectedWritten));
   decodedInsns.pop_front();
@@ -189,8 +224,13 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   RegisterAST::Ptr r_xmm1(new RegisterAST(xmm1));
   expectedRead.clear();
   expectedWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  expectedRead = { r_xmm0 };
+  expectedWritten = { r_xmm0 };
+#else
   expectedRead = list_of(r_xmm0);
   expectedWritten = list_of(r_xmm0);
+#endif
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
 							      expectedRead, expectedWritten));
   if(decodedInsns.front()->size() != 4) {
@@ -201,8 +241,13 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
 
   expectedRead.clear();
   expectedWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  expectedRead = { r_xmm1 };
+  expectedWritten = { r_xmm1 };
+#else
   expectedRead = list_of(r_xmm1);
   expectedWritten = list_of(r_xmm1);
+#endif
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
   if(decodedInsns.front()->size() != 4) {
     logerror("FAILURE: haddpd expected size 4, decoded to %s, had size %d\n", decodedInsns.front()->format().c_str(), decodedInsns.front()->size());
@@ -212,8 +257,13 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   
   expectedRead.clear();
   expectedWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  expectedRead = { r_ebx };
+  expectedWritten = { r_eax };
+#else
   expectedRead = list_of(r_ebx);
   expectedWritten = list_of(r_eax);
+#endif
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
   decodedInsns.pop_front();    
   }
@@ -247,7 +297,11 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   RegisterAST::Ptr r_r8(new RegisterAST(r8));
   RegisterAST::Ptr r_rbp(new RegisterAST(rbp));
   
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  expectedRead = { r_rbp, r_r8 };
+#else
   expectedRead = list_of(r_rbp)(r_r8);
+#endif
   expectedWritten.clear();
   
   retVal = failure_accumulator(retVal, verify_read_write_sets(amd64Insns.front(), expectedRead, expectedWritten));

@@ -150,193 +150,332 @@ test_results_t power_decode_Mutator::executeTest()
   // add.
   test_results_t retVal = PASSED;
   
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { r0, r8 };
+  tmpWritten = { r9, cr0 };
+#else
   tmpRead = list_of(r0)(r8);
-  expectedRead.push_back(tmpRead);
   tmpWritten = list_of(r9)(cr0);
+#endif
+  expectedRead.push_back(tmpRead);
+
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // add
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { r0, r8 };
+  tmpWritten = { r9 };
+#else
   tmpRead = list_of(r0)(r8);
-  expectedRead.push_back(tmpRead);
   tmpWritten = list_of(r9);
+#endif
+  expectedRead.push_back(tmpRead);
+
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // addo
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { r0, r8 };
+  tmpWritten = { r9, xer };
+#else
   tmpRead = list_of(r0)(r8);
-  expectedRead.push_back(tmpRead);
   tmpWritten = list_of(r9)(xer);
+#endif
+  expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
+
   // fadd
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { fpr1, fpr2 };
+  tmpWritten = { fpr0 };
+#else
   tmpRead = list_of(fpr1)(fpr2);
-  expectedRead.push_back(tmpRead);
   tmpWritten = list_of(fpr0);
+#endif
+  expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // fadd.
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { fpr1, fpr2 };
+  tmpWritten = { fpr0, fpscr };
+#else
   tmpRead = list_of(fpr1)(fpr2);
-  expectedRead.push_back(tmpRead);
   tmpWritten = list_of(fpr0)(fpscr);
+#endif
+
+  expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // addi, r0
-  expectedRead.push_back(tmpRead);
+
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpWritten = { r1 };
+#else
   tmpWritten = list_of(r1);
+#endif
+
+  expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // addi, r1
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { r1 };
+  tmpWritten = { r1 };
+#else
   tmpRead = list_of(r1);
-  expectedRead.push_back(tmpRead);
   tmpWritten = list_of(r1);
+#endif
+  expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // stfq fpr0/fpr1, -1(0)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { fpr0, fpr1 };
+#else
   tmpRead = list_of(fpr0)(fpr1);
+#endif
+
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // stfq fpr0/fpr1, 1(r1)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { fpr0, fpr1, r1 };
+#else
   tmpRead = list_of(fpr0)(fpr1)(r1);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // fcmpu fpscr7, fpr0, fpr1
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { fpr0, fpr1 };
+  tmpWritten = {fpscr7 };
+#else
   tmpRead = list_of(fpr0)(fpr1);
   tmpWritten = list_of(fpscr7);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // cmp cr7, r0, r1
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { r0, r1 };
+  tmpWritten = { cr7 };
+#else
   tmpRead = list_of(r0)(r1);
   tmpWritten = list_of(cr7);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // mtcrf cr0, cr2, cr4, cr6, r0
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { r0 };
+  tmpWritten = { cr0, cr2, cr4, cr6 };
+#else
   tmpRead = list_of(r0);
   tmpWritten = list_of(cr0)(cr2)(cr4)(cr6);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // mtfsf fpscr0, fpscr2, fpscr4, fpscr6, fpr0
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { fpr0 };
+  tmpWritten = { fpscr0, fpscr2, fpscr4, fpscr6 };
+#else
   tmpRead = list_of(fpr0);
   tmpWritten = list_of(fpscr0)(fpscr2)(fpscr4)(fpscr6);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // lwz r0, 0(r1)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { r1 };
+  tmpWritten = { r0 };
+#else
   tmpRead = list_of(r1);
   tmpWritten = list_of(r0);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // lwzu r0, 0(r1)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { r1 };
+  tmpWritten = { r0, r1 };
+#else
   tmpRead = list_of(r1);
   tmpWritten = list_of(r0)(r1);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // lwzx r0, r2(r1)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { r1, r2 };
+  tmpWritten = { r0 };
+#else
   tmpRead = list_of(r1)(r2);
   tmpWritten = list_of(r0);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // lwzux r0, r2(r1)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { r1, r2 };
+  tmpWritten = { r0, r1 };
+#else
   tmpRead = list_of(r1)(r2);
   tmpWritten = list_of(r0)(r1);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // rlimi r0, r1
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { r0 };
+  tmpWritten = { r1 };
+#else
   tmpRead = list_of(r0);
   tmpWritten = list_of(r1);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // fpmul fpr0, fpr1, fpr2
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { fpr1, fpr2, fsr1, fsr2 };
+  tmpWritten = { fpr0, fsr0 };
+#else
   tmpRead = list_of(fpr1)(fpr2)(fsr1)(fsr2);
   tmpWritten = list_of(fpr0)(fsr0);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
 #if defined(os_bgq_test)
   // qvfxmadds
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { fpr0, fpr1, fpr2, fsr0, fsr2 };
+  tmpWritten = { fpr0, fsr0 };
+#else
   tmpRead = list_of(fpr0)(fpr1)(fpr2)(fsr0)(fsr2);
   tmpWritten = list_of(fpr0)(fsr0);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
 #else
   // fxmul fpr0, fpr1
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { fpr1, fpr2, fsr1, fsr2 };
+  tmpWritten = { fpr0, fsr0 };
+#else
   tmpRead = list_of(fpr1)(fpr2)(fsr1)(fsr2);
   tmpWritten = list_of(fpr0)(fsr0);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
 #endif
   // fxcpmul fpr0, fpr1
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { fpr1, fpr2, fsr2 };
+  tmpWritten = { fpr0, fsr0 };
+#else
   tmpRead = list_of(fpr1)(fpr2)(fsr2);
   tmpWritten = list_of(fpr0)(fsr0);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
 #if defined(os_bgq_test)
   // qvfxxnpmadds
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { fpr0, fpr1, fpr2, fsr0, fsr2 };
+  tmpWritten = { fpr0, fsr0 };
+#else
   tmpRead = list_of(fpr0)(fpr1)(fpr2)(fsr0)(fsr2);
   tmpWritten = list_of(fpr0)(fsr0);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
 #else
   // fxcsmul fpr0, fpr1
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { fpr2, fsr1, fsr2 };
+  tmpWritten = { fpr0, fsr0 };
+#else
   tmpRead = list_of(fpr2)(fsr1)(fsr2);
   tmpWritten = list_of(fpr0)(fsr0);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
 #endif
   // bdnzl cr0, +0x100
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { pc, cr0, ctr };
+  tmpWritten = {pc, ctr, lr };
+#else
   tmpRead = list_of(pc)(cr0)(ctr);
   tmpWritten = list_of(pc)(ctr)(lr);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // bdnz cr0, +0x100
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { pc, cr0, ctr };
+  tmpWritten = { pc, ctr };
+#else
   tmpRead = list_of(pc)(cr0)(ctr);
   tmpWritten = list_of(pc)(ctr);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
   // lhzux r5, r7, r9
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+  tmpRead = { r7, r9 };
+  tmpWritten = { r5, r7 };
+#else
   tmpRead = list_of(r7)(r9);
   tmpWritten = list_of(r5)(r7);
+#endif
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
