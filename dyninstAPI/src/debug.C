@@ -288,6 +288,7 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI process control debug\n");
     dyn_debug_proccontrol = 1;
   }
+
   if ( (getenv("DYNINST_DEBUG_STACKWALK"))) {
     fprintf(stderr, "Enabling DyninstAPI stack walking debug\n");
     dyn_debug_stackwalk = 1;
