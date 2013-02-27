@@ -249,9 +249,7 @@ SymtabCodeSource::SymtabCodeSource(char * file) :
 
 bool
 SymtabCodeSource::init_stats() {
-    char *p;
-
-    if ((p = getenv("DYNINST_STATS_PARSING"))) {
+    if ((getenv("DYNINST_STATS_PARSING"))) {
         parsing_printf("[%s] Enabling ParseAPI parsing statistics\n", FILE__);
         // General counts
         stats_parse->add(PARSE_BLOCK_COUNT, CountStat);

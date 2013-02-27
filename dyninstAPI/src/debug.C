@@ -251,19 +251,19 @@ bool init_debug() {
   init = true;
 
   char *p;
-  if ( (p=getenv("DYNINST_DEBUG_MALWARE"))) {
+  if (getenv("DYNINST_DEBUG_MALWARE")) {
     fprintf(stderr, "Enabling DyninstAPI malware debug\n");
     dyn_debug_malware = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_TRAP"))) {
+  if (getenv("DYNINST_DEBUG_TRAP")) {
     fprintf(stderr, "Enabling DyninstAPI debugging using traps\n");
     dyn_debug_trap = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_SPRINGBOARD"))) {
+  if (getenv("DYNINST_DEBUG_SPRINGBOARD")) {
     fprintf(stderr, "Enabling DyninstAPI springboard debug\n");
     dyn_debug_springboard = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_STARTUP"))) {
+  if (getenv("DYNINST_DEBUG_STARTUP")) {
     fprintf(stderr, "Enabling DyninstAPI startup debug\n");
     dyn_debug_startup = 1;
   }
@@ -279,64 +279,64 @@ bool init_debug() {
 	    dyn_debug_parsing = 1;
 	  }
   }
-  if (    (p=getenv("DYNINST_DEBUG_DYNPC")) 
-       || (p=getenv("DYNINST_DEBUG_FORKEXEC")) 
-       || (p=getenv("DYNINST_DEBUG_INFRPC"))
-       || (p=getenv("DYNINST_DEBUG_SIGNAL"))
-       || (p=getenv("DYNINST_DEBUG_INFERIORRPC"))
-       || (p=getenv("DYNINST_DEBUG_THREAD"))
-       || (p=getenv("DYNINST_DEBUG_MAILBOX"))
-       || (p=getenv("DYNINST_DEBUG_DBI"))
+  if (    getenv("DYNINST_DEBUG_DYNPC")
+       || getenv("DYNINST_DEBUG_FORKEXEC")
+       || getenv("DYNINST_DEBUG_INFRPC")
+       || getenv("DYNINST_DEBUG_SIGNAL")
+       || getenv("DYNINST_DEBUG_INFERIORRPC")
+       || getenv("DYNINST_DEBUG_THREAD")
+       || getenv("DYNINST_DEBUG_MAILBOX")
+       || getenv("DYNINST_DEBUG_DBI")
      ) 
   {
     fprintf(stderr, "Enabling DyninstAPI process control debug\n");
     dyn_debug_proccontrol = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_STACKWALK"))) {
+  if (getenv("DYNINST_DEBUG_STACKWALK")) {
     fprintf(stderr, "Enabling DyninstAPI stack walking debug\n");
     dyn_debug_stackwalk = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_INST"))) {
+  if (getenv("DYNINST_DEBUG_INST")) {
     fprintf(stderr, "Enabling DyninstAPI inst debug\n");
     dyn_debug_inst = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_RELOC"))) {
+  if (getenv("DYNINST_DEBUG_RELOC")) {
     fprintf(stderr, "Enabling DyninstAPI relocation debug\n");
     dyn_debug_reloc = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_RELOCATION"))) {
+  if (getenv("DYNINST_DEBUG_RELOCATION")) {
     fprintf(stderr, "Enabling DyninstAPI relocation debug\n");
     dyn_debug_reloc = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_SENSITIVITY"))) {
+  if (getenv("DYNINST_DEBUG_SENSITIVITY")) {
     fprintf(stderr, "Enabling DyninstAPI sensitivity debug\n");
     dyn_debug_sensitivity = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_DYN_UNW"))) {
+  if (getenv("DYNINST_DEBUG_DYN_UNW")) {
     fprintf(stderr, "Enabling DyninstAPI dynamic unwind debug\n");
     dyn_debug_dyn_unw = 1;
     }
-  if ( (p=getenv("DYNINST_DEBUG_MUTEX"))) {
+  if (getenv("DYNINST_DEBUG_MUTEX")) {
     fprintf(stderr, "Enabling DyninstAPI mutex debug\n");
     dyn_debug_mutex = 1;
     }
-  if ( (p=getenv("DYNINST_DEBUG_RTLIB"))) {
+  if (getenv("DYNINST_DEBUG_RTLIB")) {
       fprintf(stderr, "Enabling DyninstAPI RTlib debug\n");
       dyn_debug_rtlib = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_CATCHUP"))) {
+  if (getenv("DYNINST_DEBUG_CATCHUP")) {
       fprintf(stderr, "Enabling DyninstAPI catchup debug\n");
       dyn_debug_catchup = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_BPATCH"))) {
+  if (getenv("DYNINST_DEBUG_BPATCH")) {
       fprintf(stderr, "Enabling DyninstAPI bpatch debug\n");
       dyn_debug_bpatch = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_REGALLOC"))) {
+  if (getenv("DYNINST_DEBUG_REGALLOC")) {
       fprintf(stderr, "Enabling DyninstAPI register allocation debug\n");
       dyn_debug_regalloc = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_AST"))) {
+  if (getenv("DYNINST_DEBUG_AST")) {
       fprintf(stderr, "Enabling DyninstAPI ast debug\n");
       dyn_debug_ast = 1;
   }
@@ -355,7 +355,7 @@ bool init_debug() {
      dyn_debug_crash = 1;
      dyn_debug_crash_debugger = p;
   }
-  if ((p=getenv("DYNINST_DEBUG_DISASS"))) {
+  if (getenv("DYNINST_DEBUG_DISASS")) {
       fprintf(stderr, "Enabling DyninstAPI instrumentation disassembly debugging\n");
       dyn_debug_disassemble = 1;
   }
