@@ -20,7 +20,8 @@ AC_PROG_CXX(g++)
 
 m4_include([autodyninst/c++11x.m4])
 AX_CXX_COMPILE_STDCXX_11([noext])
-AC_SUBST(CXXFLAGS)
+CXX_REQ_FLAGS=$CXXFLAGS
+AC_SUBST(CXX_REQ_FLAGS)
 
 AC_MSG_CHECKING([for initializer list support])
 AC_COMPILE_IFELSE(

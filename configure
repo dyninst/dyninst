@@ -705,6 +705,7 @@ _PGC_
 _ICPC_
 _ICC_
 INITIALIZER_LIST_SUPPORT
+CXX_REQ_FLAGS
 ac_ct_CXX
 CXXFLAGS
 CXX
@@ -3371,6 +3372,7 @@ $as_echo "$as_me: error: *** A compiler with support for C++11 language features
    { (exit 1); exit 1; }; }
   fi
 
+CXX_REQ_FLAGS=$CXXFLAGS
 
 
 { $as_echo "$as_me:$LINENO: checking for initializer list support" >&5
