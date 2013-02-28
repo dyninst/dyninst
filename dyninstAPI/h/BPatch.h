@@ -196,12 +196,7 @@ class BPATCH_DLL_EXPORT BPatch {
    BPatch_Vector<BPatchStopThreadCallback> stopThreadCallbacks;
 
    public:  
-      
-   /* And auxiliary functions for the above */
-   /* These are NOT part of the API, do not use externally */
-   void signalNotificationFD(); // Called when an event happens
-   void clearNotificationFD(); // Called during poll/waitForStatusChange
-   void createNotificationFD(); // Creates the FD
+     
    
 public:
     static BPatch		 *bpatch;
