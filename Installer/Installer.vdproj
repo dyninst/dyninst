@@ -57,7 +57,19 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_07CBE0BB8DE848C291A264F6D88E8AC3"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_07DB8DCD003B409C9335DCBE61451288"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_0E6ED357D2E44466A0A1E64650B38E48"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -189,6 +201,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_2E34EF00C0944B728D92FE439E826159"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_32CC814550FF4DBFA955FA59991530F8"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -256,6 +274,12 @@
         "Entry"
         {
         "MsmKey" = "8:_4F2919544E604B0A91E3ADC10F1767E1"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_4F66D98040D7471389BD4279573F0BF2"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -369,7 +393,19 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_6FFA0E971C104F7CB7C941437EA2B5D7"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_70493EC115BF4F1CA11A6FC71F5C5623"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_7159A602F087403489CC6D8B2F9826A9"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -561,6 +597,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_97837246FE7B41CC87763DD0DB432247"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_9A87A4DA40984CCD961CBF0D33130986"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -670,6 +712,12 @@
         "Entry"
         {
         "MsmKey" = "8:_BBBD98DC09E94D97A3E4EA1E366B5C5E"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_BE10A31EE47B46549B4AB68A5590077F"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -838,6 +886,12 @@
         "Entry"
         {
         "MsmKey" = "8:_F5370A9EA7D447CC91977F0DC8FBB684"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_F8098DC20D624D229E9148424248C1E4"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -1040,12 +1094,52 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_07CBE0BB8DE848C291A264F6D88E8AC3"
+            {
+            "SourcePath" = "8:..\\..\\lib\\DyninstAPI_RT.lib"
+            "TargetName" = "8:DyninstAPI_RT.lib"
+            "Tag" = "8:"
+            "Folder" = "8:_AD05F8C17F434D02AC28A001C2442989"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_07DB8DCD003B409C9335DCBE61451288"
             {
             "SourcePath" = "8:..\\..\\include\\Location.h"
             "TargetName" = "8:Location.h"
             "Tag" = "8:"
             "Folder" = "8:_1ED63196D22E418FA9EDC4DB85220565"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_0E6ED357D2E44466A0A1E64650B38E48"
+            {
+            "SourcePath" = "8:..\\..\\lib\\proccontrol.lib"
+            "TargetName" = "8:proccontrol.lib"
+            "Tag" = "8:"
+            "Folder" = "8:_AD05F8C17F434D02AC28A001C2442989"
             "Condition" = "8:"
             "Transitive" = "11:FALSE"
             "Vital" = "11:TRUE"
@@ -1400,6 +1494,26 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_2E34EF00C0944B728D92FE439E826159"
+            {
+            "SourcePath" = "8:..\\..\\lib\\parseAPI.lib"
+            "TargetName" = "8:parseAPI.lib"
+            "Tag" = "8:"
+            "Folder" = "8:_AD05F8C17F434D02AC28A001C2442989"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_32CC814550FF4DBFA955FA59991530F8"
             {
             "SourcePath" = "8:..\\..\\include\\BPatch.h"
@@ -1626,6 +1740,26 @@
             "TargetName" = "8:BPatch_addressSpace.h"
             "Tag" = "8:"
             "Folder" = "8:_1ED63196D22E418FA9EDC4DB85220565"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_4F66D98040D7471389BD4279573F0BF2"
+            {
+            "SourcePath" = "8:..\\..\\lib\\common.lib"
+            "TargetName" = "8:common.lib"
+            "Tag" = "8:"
+            "Folder" = "8:_AD05F8C17F434D02AC28A001C2442989"
             "Condition" = "8:"
             "Transitive" = "11:FALSE"
             "Vital" = "11:TRUE"
@@ -1960,12 +2094,52 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_6FFA0E971C104F7CB7C941437EA2B5D7"
+            {
+            "SourcePath" = "8:..\\..\\lib\\instructionAPI.lib"
+            "TargetName" = "8:instructionAPI.lib"
+            "Tag" = "8:"
+            "Folder" = "8:_AD05F8C17F434D02AC28A001C2442989"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_70493EC115BF4F1CA11A6FC71F5C5623"
             {
             "SourcePath" = "8:..\\..\\include\\swk_errors.h"
             "TargetName" = "8:swk_errors.h"
             "Tag" = "8:"
             "Folder" = "8:_1ED63196D22E418FA9EDC4DB85220565"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_7159A602F087403489CC6D8B2F9826A9"
+            {
+            "SourcePath" = "8:..\\..\\lib\\libpatchAPI.lib"
+            "TargetName" = "8:libpatchAPI.lib"
+            "Tag" = "8:"
+            "Folder" = "8:_AD05F8C17F434D02AC28A001C2442989"
             "Condition" = "8:"
             "Transitive" = "11:FALSE"
             "Vital" = "11:TRUE"
@@ -2420,6 +2594,26 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_97837246FE7B41CC87763DD0DB432247"
+            {
+            "SourcePath" = "8:..\\..\\lib\\symtabAPI.lib"
+            "TargetName" = "8:symtabAPI.lib"
+            "Tag" = "8:"
+            "Folder" = "8:_AD05F8C17F434D02AC28A001C2442989"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_9A87A4DA40984CCD961CBF0D33130986"
             {
             "SourcePath" = "8:..\\..\\include\\BPatch_type.h"
@@ -2786,6 +2980,26 @@
             "TargetName" = "8:AddrSpace.h"
             "Tag" = "8:"
             "Folder" = "8:_1ED63196D22E418FA9EDC4DB85220565"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_BE10A31EE47B46549B4AB68A5590077F"
+            {
+            "SourcePath" = "8:..\\..\\lib\\stackwalk.lib"
+            "TargetName" = "8:stackwalk.lib"
+            "Tag" = "8:"
+            "Folder" = "8:_AD05F8C17F434D02AC28A001C2442989"
             "Condition" = "8:"
             "Transitive" = "11:FALSE"
             "Vital" = "11:TRUE"
@@ -3320,6 +3534,26 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_F8098DC20D624D229E9148424248C1E4"
+            {
+            "SourcePath" = "8:..\\..\\lib\\dyninstAPI.lib"
+            "TargetName" = "8:dyninstAPI.lib"
+            "Tag" = "8:"
+            "Folder" = "8:_AD05F8C17F434D02AC28A001C2442989"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_FB5C80075DB542298AF9C39E8A189C5C"
             {
             "SourcePath" = "8:..\\..\\include\\ParseContainers.h"
@@ -3459,7 +3693,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Dyninst"
         "ProductCode" = "8:{01E679C4-2D9B-4AAF-A378-B0BF8E1FB2AB}"
-        "PackageCode" = "8:{E16146C1-5BEB-4F5B-9007-98C4E6A52418}"
+        "PackageCode" = "8:{762987EF-0A07-4A7F-910B-0EA8C0959566}"
         "UpgradeCode" = "8:{4B9CF1D5-B5E8-4C91-8464-ACA23B6A8B61}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
@@ -3469,7 +3703,7 @@
         "ProductVersion" = "8:8.1"
         "Manufacturer" = "8:Paradyn"
         "ARPHELPTELEPHONE" = "8:"
-        "ARPHELPLINK" = "8:www.dyninst.org"
+        "ARPHELPLINK" = "8:http://www.dyninst.org"
         "Title" = "8:Dyninst"
         "Subject" = "8:"
         "ARPCONTACT" = "8:Paradyn Project"
