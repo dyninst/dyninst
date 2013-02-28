@@ -59,8 +59,8 @@ namespace Dyninst
   namespace InstructionAPI
   {
 
-      static const int IAPI_major_version = 2;
-      static const int IAPI_minor_version = 0;
+      static const int IAPI_major_version = 8;
+      static const int IAPI_minor_version = 1;
       static const int IAPI_maintenance_version = 0;
 
       void Instruction::version(int& major, int& minor, int& maintenance)
