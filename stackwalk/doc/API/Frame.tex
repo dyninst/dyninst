@@ -83,8 +83,8 @@ void setFP(Dyninst::MachRegisterVal val)
 }
 
 \begin{apient}
-  bool isTopFrame() const;                                                      
-  bool isBottomFrame() const;                                                   
+bool isTopFrame() const;                                                      
+bool isBottomFrame() const;                                                   
 \end{apient}
 \apidesc{
   These methods return whether a \code{Frame} object is the top (e.g.,
@@ -230,4 +230,13 @@ that library. The return value of the \code{symtab} parameter is dependent on th
 SymbolLookup implementation-by default it will contain a pointer to a
 Dyninst::Symtab object for this DSO. See the SymtabAPI Programmer's Guide for
 more information on using Dyninst::Symtab objects.
+}
+
+\begin{apient}
+bool nonCall() const
+\end{apient}
+\apidesc{
+    This method returns whether a \code{Frame} object represents a function
+    call; if \code{false}, the \code{Frame} may represent instrumentation, a
+    signal handler, or something else.
 }
