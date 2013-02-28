@@ -64,7 +64,7 @@ fill=white, draw=white]
     \path [line] (StackPointer.west) [bend left=40] to (d.west);
 
     % Right labels
-    \node [code, right=3cm of dots,anchor=south] (mainFO) {main's\\ Frame Object};
+    \node [code, right=3cm of dots,anchor=south] (mainFO) {main\textnormal{'s}\\ Frame Object};
     \node [code, below=.25em of mainFO] (mainFPlabel) {FP};
     \path [line] (mainFPlabel) -- (a.east);
     \node [code, below=.25em of mainFPlabel] (mainRAlabel) {RA};
@@ -72,7 +72,7 @@ fill=white, draw=white]
     \node [code, below=.25em of mainRAlabel] (mainSPlabel) {SP};
     \path [line] (mainSPlabel) -- (mainFP.east);
 
-    \node [code, below=2.5cm of mainFO] (fooFO) {foo's\\ Frame Object};
+    \node [code, below=2.5cm of mainFO] (fooFO) {foo\textnormal{'s}\\ Frame Object};
     \node [code, below=.25em of fooFO] (fooFPlabel) {FP};
     \path [line] (fooFPlabel) -- (c.east);
     \node [code, below=.25em of fooFPlabel] (fooRAlabel) {RA};
@@ -80,7 +80,7 @@ fill=white, draw=white]
     \node [code, below=.25em of fooRAlabel] (fooSPlabel) {SP};
     \path [line] (fooSPlabel) -- (fooFP.east);
 
-    \node [code, below=2.5cm of fooFO] (barFO) {bar's\\ Frame Object};
+    \node [code, below=2.5cm of fooFO] (barFO) {bar\textnormal{'s}\\ Frame Object};
     \node [code, below=.25em of barFO] (barFPlabel) {FP};
     \path [line, dashed] (barFPlabel) -- (FramePointer.east);
     \node [code, below=.25em of barFPlabel] (barRAlabel) {RA};
