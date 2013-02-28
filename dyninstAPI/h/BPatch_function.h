@@ -58,11 +58,11 @@ class BPatch_function;
 namespace Dyninst {
   namespace ParseAPI {
     class Function;
-     PARSER_EXPORT Function *convert(const BPatch_function *);
+     BPATCH_DLL_EXPORT Function *convert(const BPatch_function *);
   };
   namespace PatchAPI {
      class PatchFunction;
-      PARSER_EXPORT PatchFunction *convert(const BPatch_function *);
+     BPATCH_DLL_EXPORT PatchFunction *convert(const BPatch_function *);
   };
 };
 

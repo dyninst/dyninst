@@ -48,15 +48,15 @@ class BPatch_point;
 namespace Dyninst { 
    namespace ParseAPI { 
       class CodeObject; 
-      CodeObject *convert(const BPatch_object *);
+      BPATCH_DLL_EXPORT CodeObject *convert(const BPatch_object *);
    }
    namespace PatchAPI {
       class PatchObject;
-      PatchObject *convert(const BPatch_object *);
+      BPATCH_DLL_EXPORT PatchObject *convert(const BPatch_object *);
    }
    namespace SymtabAPI {
       class Symtab;
-      Symtab *convert(const BPatch_object *);
+      BPATCH_DLL_EXPORT Symtab *convert(const BPatch_object *);
    }
 };
 
