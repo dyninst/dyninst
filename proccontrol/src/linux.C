@@ -1133,6 +1133,25 @@ bool linux_thread::plat_cont()
 {
    pthrd_printf("Continuing thread %d\n", lwp);
 
+   switch (getHandlerState().getState()) {
+      case neonatal:
+      case running:
+      case exited:
+      case errorstate:
+      case detached:
+         perr_printf("Continue attempted on thread in invalid state %s\n", 
+                     int_thread::stateStr(handler_state.getState()));
+         return false;
+      case neonatal_intermediate:
+      case stopped:
+         //OK
+         break;
+      case none:
+      case dontcare:
+      case ditto:
+         assert(0);
+   }
+
    // The following case poses a problem:
    // 1) This thread has received a signal, but the event hasn't been handled yet
    // 2) An event that precedes the signal event triggers a callback where

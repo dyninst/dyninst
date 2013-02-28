@@ -3024,51 +3024,9 @@ bool int_thread::intCont()
       return false;
    }
 
-   switch (getHandlerState().getState()) {
-      case neonatal:
-      case running:
-      case exited:
-      case errorstate:
-      case detached:
-         perr_printf("Continue attempted on thread in invalid state %s\n", 
-                     int_thread::stateStr(handler_state.getState()));
-         return false;
-      case neonatal_intermediate:
-      case stopped:
-         //OK
-         break;
-      case none:
-      case dontcare:
-      case ditto:
-         assert(0);
-   }
-
-
    ProcPool()->condvar()->lock();
-
-   // The structure we must have is:
-   // Set states to running
-   // Continue thread
-   // If the continue failed, reset states to old values
-   //
-   // If we don't do this, we can have the following event race with
-   // the generator:
-   //
-   // U: continue thread
-   // G: return from waitpid
-   // G: set genstate to stopped
-   // U: set genstate to running
-   // G: crash when we handle a sync event since the genstate is running
-
-   // INCORRECT FOR processGroupContinues FIXME
-   int_thread::State oldGenerator = getGeneratorState().getState();
-   int_thread::State oldHandler = getHandlerState().getState();
-   getHandlerState().setState(int_thread::running);
-   getGeneratorState().setState(int_thread::running);
-   // END FIXME
    
    bool result = plat_cont();
-
    if (result) {
       if (llproc()->plat_processGroupContinues()) {
          int_threadPool *pool = llproc()->threadPool();
@@ -3079,12 +3037,13 @@ bool int_thread::intCont()
             (*i)->getGeneratorState().setState(int_thread::running);
          }
       }
+      else {
+         getHandlerState().setState(int_thread::running);
+         getGeneratorState().setState(int_thread::running);
+      }
       triggerContinueCBs();
    }
-   else {
-      getGeneratorState().setState(oldGenerator);
-      getHandlerState().setState(oldHandler);
-   }
+   
 
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
