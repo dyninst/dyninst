@@ -7,7 +7,9 @@ DEP=patchapi.tex \
 	section/4_api_public.tex \
 	section/5_api_modification.tex \
 	section/6_api_plugin.tex \
-	section/7_dyninst.tex
+	section/7_dyninst.tex \
+	../../common/doc/manual_frontpage.tex \
+	../../common/doc/manual_commands.tex
 
 $(MAIN).pdf: $(DEP)
 	$(TEX) $(MAIN)

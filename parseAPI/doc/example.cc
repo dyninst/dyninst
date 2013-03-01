@@ -1,5 +1,6 @@
 #include <stdio.h>
-
+#include <vector>
+#include <unordered_map>
 #include "CodeObject.h"
 #include "CFG.h"
 
@@ -9,7 +10,7 @@ using namespace ParseAPI;
 
 int main(int argc, char * argv[])
 {
-    hash_map<Address, bool> seen;
+    unordered_map<Address, bool> seen;
     vector<Function *> funcs;
     SymtabCodeSource *sts;
     CodeObject *co;
@@ -24,8 +25,8 @@ int main(int argc, char * argv[])
     printf("digraph G {\n");
 
     // Print the control flow graph
-    CodeObject::funclist & all = co->funcs();
-    CodeObject::funclist::iterator fit = all.begin();
+    const CodeObject::funclist & all = co->funcs();
+    auto fit = all.begin();
     for( ; fit != all.end(); ++fit) {
         Function * f = *fit;
 
@@ -43,15 +44,15 @@ int main(int argc, char * argv[])
                 continue;
             seen[b->start()] = true;
 
-            Block::edgelist::iterator it = b->targets().begin();
+            auto it = b->targets().begin();
             for( ; it != b->targets().end(); ++it) {
-               char * s = "";
+               std::string s = "";
                if((*it)->type() == CALL)
                 s = " [color=blue]";
                else if((*it)->type() == RET)
                 s = " [color=green]";
                printf("\t\t\"%lx\" -> \"%lx\"%s\n",(*it)->src()->start(),
-                (*it)->trg()->start(),s); 
+                      (*it)->trg()->start(),s.c_str()); 
             }
         }
     }
