@@ -60,9 +60,10 @@ class func_instance;
 #define DYNINST_6_1
 #define DYNINST_7_0
 #define DYNINST_8_0
+#define DYNINST_8_1
 
 #define DYNINST_MAJOR 8
-#define DYNINST_MINOR 0
+#define DYNINST_MINOR 1
 #define DYNINST_SUBMINOR 0
 
 #ifdef IBM_BPATCH_COMPAT
@@ -196,12 +197,7 @@ class BPATCH_DLL_EXPORT BPatch {
    BPatch_Vector<BPatchStopThreadCallback> stopThreadCallbacks;
 
    public:  
-      
-   /* And auxiliary functions for the above */
-   /* These are NOT part of the API, do not use externally */
-   void signalNotificationFD(); // Called when an event happens
-   void clearNotificationFD(); // Called during poll/waitForStatusChange
-   void createNotificationFD(); // Creates the FD
+     
    
 public:
     static BPatch		 *bpatch;

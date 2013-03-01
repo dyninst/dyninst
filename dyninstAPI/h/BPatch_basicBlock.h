@@ -56,11 +56,11 @@ class BPatch_basicBlock;
 namespace Dyninst {
   namespace ParseAPI {
     class Block;
-    Block *convert(const BPatch_basicBlock *);
+    BPATCH_DLL_EXPORT Block *convert(const BPatch_basicBlock *);
   };
   namespace PatchAPI {
     class PatchBlock;
-    PatchBlock *convert(const BPatch_basicBlock *);
+    BPATCH_DLL_EXPORT PatchBlock *convert(const BPatch_basicBlock *);
   };
 };
 
@@ -68,13 +68,13 @@ namespace Dyninst {
 namespace std {
 template <>
    struct less<BPatch_basicBlock *> {
-   bool operator()(const BPatch_basicBlock * const &l, const BPatch_basicBlock * const &r) const;
+   BPATCH_DLL_EXPORT bool operator()(const BPatch_basicBlock * const &l, const BPatch_basicBlock * const &r) const;
 };
 };
 
 template <>
 struct comparison <BPatch_basicBlock *> {
-   bool operator()(const BPatch_basicBlock * const &x, 
+   BPATCH_DLL_EXPORT bool operator()(const BPatch_basicBlock * const &x, 
                    const BPatch_basicBlock * const &y) const;
 };
 
@@ -89,7 +89,7 @@ struct comparison <BPatch_basicBlock *> {
  */
 class BPatch_flowGraph;
 
-struct insnPredicate : public std::unary_function<Dyninst::InstructionAPI::Instruction::Ptr, bool>
+struct BPATCH_DLL_EXPORT insnPredicate : public std::unary_function<Dyninst::InstructionAPI::Instruction::Ptr, bool>
 {
   virtual result_type operator()(argument_type arg) = 0;
   virtual ~insnPredicate() {}

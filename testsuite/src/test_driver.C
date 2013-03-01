@@ -755,7 +755,7 @@ void updateSearchPaths(const char *filename) {
       // Add current directory to the search path
       const char *pathenv = getenv("PATH");
       char *newpath = (char *) malloc (strlen(pathenv)+3);
-      strcat(newpath, pathenv);
+      strcpy(newpath, pathenv);
       strcat(newpath, ":.");
       execpath = searchPath(newpath, filename);
       if(execpath == NULL) {

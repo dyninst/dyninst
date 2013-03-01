@@ -73,7 +73,7 @@ std::set<int_thread::continue_cb_t> int_thread::continue_cbs;
 SymbolReaderFactory *int_process::user_set_symbol_reader = NULL;
 
 static const int ProcControl_major_version = 8;
-static const int ProcControl_minor_version = 0;
+static const int ProcControl_minor_version = 1;
 static const int ProcControl_maintenance_version = 0;
 
 void Process::version(int& major, int& minor, int& maintenance)
@@ -3027,7 +3027,6 @@ bool int_thread::intCont()
    ProcPool()->condvar()->lock();
    
    bool result = plat_cont();
-
    if (result) {
       if (llproc()->plat_processGroupContinues()) {
          int_threadPool *pool = llproc()->threadPool();
@@ -3044,6 +3043,7 @@ bool int_thread::intCont()
       }
       triggerContinueCBs();
    }
+   
 
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();

@@ -42,7 +42,7 @@ class BPatch_type;
 namespace Dyninst { 
    namespace SymtabAPI {
       class Type;
-      Type *convert(const BPatch_type *);
+      BPATCH_DLL_EXPORT Type *convert(const BPatch_type *);
    }
 }
 
