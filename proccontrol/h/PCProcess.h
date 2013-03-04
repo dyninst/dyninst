@@ -463,8 +463,7 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
     **/
    Dyninst::Address findFreeMemory(size_t size);
 
-   bool getMemoryAccessRights(Dyninst::Address addr, size_t size,
-                              mem_perm& rights);
+   bool getMemoryAccessRights(Dyninst::Address addr, mem_perm& rights);
    bool setMemoryAccessRights(Dyninst::Address addr, size_t size,
                               mem_perm rights, mem_perm& oldRights);
 

@@ -284,9 +284,7 @@ bool windows_process::plat_encodeMemoryRights(Process::mem_perm perm,
 }
 
 bool windows_process::plat_getMemoryAccessRights(Dyninst::Address addr,
-                                                 size_t size,
                                                  Process::mem_perm& perm) {
-    (void) size;
     MEMORY_BASIC_INFORMATION meminfo;
     memset(&meminfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
     if (!VirtualQueryEx(hproc, (LPCVOID)addr, &meminfo,
