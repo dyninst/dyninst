@@ -177,6 +177,20 @@
 
 #include <string>
 #include "dyntypes.h"
+
+#if defined(_MSC_VER)
+#if(_MSC_VER < 1600)
+#error "Dyninst requires VS2010 or greater!"
+#endif
+#else
+/* Non-Microsoft (ie GNU or untested compiler): trust that __cplusplus is
+ * not a lie.
+ */
+#if !((__cplusplus >= 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X__))
+#error "Dyninst requires C++11!"
+#endif
+#endif
+
 namespace Dyninst {
 
 COMMON_EXPORT unsigned addrHashCommon(const Address &addr);
