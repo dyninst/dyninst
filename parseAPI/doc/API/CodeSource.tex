@@ -44,7 +44,8 @@ std::vector<CodeRegion *> const& regions()
 \apidesc{Returns a read-only vector of code regions within the binary represented by this code source.}
 
 \begin{apient}
-int findRegions(Address addr, set<CodeRegion *> & ret)
+int findRegions(Address addr,
+                set<CodeRegion *> & ret)
 \end{apient}
 \apidesc{Finds all CodeRegion objects that overlap the provided address. Some code sources (e.g. archive files) may have several regions with overlapping address ranges; others (e.g. ELF binaries) do not.}
 
