@@ -37,8 +37,6 @@
 using namespace Dyninst;
 class ABI{
 
-#if defined(cap_liveness)
-
     static ABI* globalABI_; 
     static ABI* globalABI64_;
     std::map<MachRegister,int> *index;
@@ -88,10 +86,6 @@ class ABI{
     }
 
     ABI() {}
-#endif
-
-
-
 };
 
 

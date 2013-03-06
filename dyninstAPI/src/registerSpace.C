@@ -155,7 +155,6 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP)
     if (BPatch_defensiveMode == iP->func()->obj()->hybridMode()) {
         return conservativeRegSpace(iP->proc());
     }
-#if defined(cap_liveness)
    if (BPatch::bpatch->livenessAnalysisOn()) {
       assert(iP);
       registerSpace *ret = NULL;
@@ -167,7 +166,6 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP)
       ret->initRealRegSpace();
       return ret;
    }
-#endif
     // Use one of the other registerSpaces...
     // If we're entry/exit/call site, return the optimistic version
     /*    if (iP->getPointType() == functionEntry)
@@ -1428,7 +1426,6 @@ int registerSpace::getStackHeight()
 #endif
 
 
-#if defined(cap_liveness)
 void registerSpace::specializeSpace(const bitArray &liveRegs) {
     // Liveness info is stored as a single bitarray for all registers.
 
@@ -1490,5 +1487,3 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 	
 	return false;
 }
-
-#endif

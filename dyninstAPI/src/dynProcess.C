@@ -1705,14 +1705,14 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
     Address lo = ADDRESS_LO; // Should get reset to a more reasonable value
     Address hi = ADDRESS_HI; // Should get reset to a more reasonable value
 
-#if defined(cap_dynamic_heap)
+    //#if defined(cap_dynamic_heap)
     inferiorMallocAlign(size); // align size
     // Set the lo/hi constraints (if necessary)
     inferiorMallocConstraints(near_, lo, hi, type);
-#else
+    //#else
     /* align to cache line size (32 bytes on SPARC) */
-    size = (size + 0x1f) & ~0x1f;
-#endif
+    //size = (size + 0x1f) & ~0x1f;
+    //#endif
 
     infmalloc_printf("%s[%d]: inferiorMalloc entered; size %d, type %d, near 0x%lx (0x%lx to 0x%lx)\n",
                      FILE__, __LINE__, size, type, near_, lo, hi);
@@ -1724,7 +1724,7 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
         switch(ntry) {
         case AsIs: 
             break;
-#if defined(cap_dynamic_heap)
+	    //#if defined(cap_dynamic_heap)
         case DeferredFree: 
             infmalloc_printf("%s[%d]: garbage collecting and compacting\n",
                              FILE__, __LINE__);
@@ -1764,11 +1764,11 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
             infmalloc_printf("%s[%d]: inferiorMalloc: recompacting\n", FILE__, __LINE__);
             inferiorFreeCompact();
             break;
-#else /* !(cap_dynamic_heap) */
-        case DeferredFree: // deferred free, compact free blocks
-            inferiorFreeCompact();
-            break;
-#endif /* cap_dynamic_heap */
+	    //#else /* !(cap_dynamic_heap) */
+	    //case DeferredFree: // deferred free, compact free blocks
+            //inferiorFreeCompact();
+            //break;
+	    //#endif /* cap_dynamic_heap */
 
         default: // error - out of memory
             infmalloc_printf("%s[%d]: failed to allocate memory\n", FILE__, __LINE__);

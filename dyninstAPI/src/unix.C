@@ -106,10 +106,6 @@ std::string PCProcess::createExecPath(const std::string &file, const std::string
 // whether the app is multi-threaded, but it can't be determined yet but it
 // also isn't necessary to know.
 bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
-#if !defined(cap_threads)
-    return false;
-#endif
-
     if( mt_cache_result_ != not_cached ) {
         if( mt_cache_result_ == cached_mt_true) return true;
         else return false;
@@ -158,10 +154,6 @@ static void findThreadFuncs(PCProcess *p, std::string func,
 
 bool PCProcess::instrumentMTFuncs() {
     bool res;
-
-#if !defined(cap_threads)
-    return true;
-#endif
 
     /**
      * Have dyn_pthread_self call the actual pthread_self
