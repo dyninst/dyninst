@@ -138,7 +138,13 @@ class Elf_X {
     Elf_X(int input, Elf_Cmd cmd, Elf_X *ref = NULL);
     Elf_X(char *mem_image, size_t mem_size);
     ~Elf_X();
-    static std::map<std::string, Elf_X *> all_elf_x;
+
+    // Two maps:
+    // One name/FD for Elf_Xs created that way
+    // One name/baseaddr
+
+    static std::map<std::pair<std::string, int >, Elf_X *> elf_x_by_fd;
+    static std::map<std::pair<std::string, char *>, Elf_X *> elf_x_by_ptr;
 
 };
 

@@ -55,7 +55,8 @@ using namespace Dyninst;
 #define DEBUGLINK_NAME ".gnu_debuglink"
 #define BUILD_ID_NAME ".note.gnu.build-id"
 
-map<string, Elf_X *> Elf_X::all_elf_x;
+map<pair<string, int>, Elf_X *> Elf_X::elf_x_by_fd;
+map<pair<string, char *>, Elf_X *> Elf_X::elf_x_by_ptr;
 
 #define APPEND(X) X ## 1
 #define APPEND2(X) APPEND(X)
@@ -75,15 +76,15 @@ Elf_X *Elf_X::newElf_X(int input, Elf_Cmd cmd, Elf_X *ref, string name)
    if (name.empty()) {
       return new Elf_X(input, cmd, ref);
    }
-   map<string, Elf_X *>::iterator i = all_elf_x.find(name);
-   if (i != all_elf_x.end()) {
-      Elf_X *ret = i->second;
-      ret->ref_count++;
-      return ret;
+   auto i = elf_x_by_fd.find(make_pair(name, input));
+   if (i != elf_x_by_fd.end()) {
+     Elf_X *ret = i->second;
+     ret->ref_count++;
+     return ret;
    }
    Elf_X *ret = new Elf_X(input, cmd, ref);
    ret->filename = name;
-   all_elf_x.insert(make_pair(name, ret));
+   elf_x_by_fd.insert(make_pair(make_pair(name, input), ret));
    return ret;
 }
 
@@ -92,15 +93,16 @@ Elf_X *Elf_X::newElf_X(char *mem_image, size_t mem_size, string name)
    if (name.empty()) {
       return new Elf_X(mem_image, mem_size);
    }
-   map<string, Elf_X *>::iterator i = all_elf_x.find(name);
-   if (i != all_elf_x.end()) {
-      Elf_X *ret = i->second;
-      ret->ref_count++;
-      return ret;
+   auto i = elf_x_by_ptr.find(make_pair(name, mem_image));
+   if (i != elf_x_by_ptr.end()) {
+     Elf_X *ret = i->second;
+     
+     ret->ref_count++;
+     return ret;
    }
    Elf_X *ret = new Elf_X(mem_image, mem_size);
    ret->filename = name;
-   all_elf_x.insert(make_pair(name, ret));
+   elf_x_by_ptr.insert(make_pair(make_pair(name, mem_image), ret));
    return ret;
 }
 
@@ -217,9 +219,19 @@ void Elf_X::end()
 
 Elf_X::~Elf_X()
 {
-   map<string, Elf_X*>::iterator i = all_elf_x.find(filename);
-   if (i != all_elf_x.end())
-      all_elf_x.erase(i);
+  // Unfortunately, we have to be slow here
+  for (auto iter = elf_x_by_fd.begin(); iter != elf_x_by_fd.end(); ++iter) {
+    if (iter->second == this) {
+      elf_x_by_fd.erase(iter);
+      return;
+    }
+  }
+
+  for (auto iter = elf_x_by_ptr.begin(); iter != elf_x_by_ptr.end(); ++iter) {
+    if (iter->second == this) {
+      elf_x_by_ptr.erase(iter);
+    }
+  }
 }
 
 // Read Interface
