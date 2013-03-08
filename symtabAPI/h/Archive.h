@@ -87,6 +87,8 @@ class Archive : public AnnotatableSparse {
       bool findMemberWithDefinition(Symtab *&obj, string& name);
       std::string name();
 
+      bool getMembersBySymbol(string name, std::vector<Symtab *> &matches);
+
    private:
       Archive(string &filename, bool &err);
       Archive(char *mem_image, size_t image_size, bool &err);

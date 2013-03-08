@@ -218,6 +218,28 @@ bool Archive::getMemberByGlobalSymbol(Symtab *&img, string& symbol_name)
     return true;
 }
 
+bool Archive::getMembersBySymbol(std::string name,
+                                 std::vector<Symtab *> &matches) {
+   if (!symbolTableParsed && !parseSymbolTable())
+      return false;
+   
+   std::pair<std::multimap<string, ArchiveMember *>::iterator,
+      std::multimap<string, ArchiveMember *>::iterator> range_it;
+   
+   range_it = membersBySymbol.equal_range(name);
+   auto begin = range_it.first;
+   auto end = range_it.second;
+
+   for (; begin != end; ++begin) {
+      ArchiveMember *member = begin->second;
+      Symtab *img = member->getSymtab();
+      if (!img && !parseMember(img, member)) return false;
+      matches.push_back(img);
+   }
+         
+   return true;
+}
+
 bool Archive::getAllMembers(vector<Symtab *> &members) 
 {
     dyn_hash_map<string, ArchiveMember *>::iterator mem_it;

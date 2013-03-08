@@ -316,95 +316,84 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
 
             if( extSymbol == NULL ) {
                 // search loaded libraries and add any new reloctable files
-                vector<Archive *>::iterator lib_it;
-                Symtab *containingSymtab = NULL;
-                for(lib_it = libraries.begin(); lib_it != libraries.end(); ++lib_it) {
-                    Symtab *tmpSymtab;
-                    if( (*lib_it)->getMemberByGlobalSymbol(tmpSymtab, 
-                                const_cast<string&>(curUndefSym->getMangledName())) ) 
-                    {
-                        /** 
-                         * The GNU approach is to use the symbol that is defined first
-                         * in the list of libraries (in the order specified to the linker)
-                         *
-                         * I am choosing to use that same behavior here.
-                         */
-                        containingSymtab = tmpSymtab;
-                        break;
-                    }else{
-                        /* Regarding duplicate symbols in Archives:
-                         *
-                         * gcc/ld appear to ignore the case where an Archive
-                         * contains the same symbol in different members and
-                         * chooses the symbol that occurs first in the
-                         * Archive's symbol table. This could produce
-                         * unexpected results so it is better to alert the user
-                         * of this error
-                         */
-                        if( Archive::getLastError() == Duplicate_Symbol ) {
-                            err = Symbol_Resolution_Failure;
-                            errMsg = Archive::printError(Duplicate_Symbol);
-                            return false;
-                        }
-                    }
+                vector<Symtab *> possibleSymtabs;
+
+                for(auto lib_it = libraries.begin(); lib_it != libraries.end(); ++lib_it) {
+                   (*lib_it)->getMembersBySymbol(curUndefSym->getMangledName(), possibleSymtabs);
                 }
 
-                if( containingSymtab != NULL ) {
-                    vector<Symbol *> foundSyms;
-                    if( containingSymtab->findSymbol(foundSyms, curUndefSym->getMangledName(),
-                        curUndefSym->getType()) )
-                    {
-                        if( foundSyms.size() > 1 ) {
-                            err = Symbol_Resolution_Failure;
-                            errMsg = "ambiguous symbol definition: " + 
-                                curUndefSym->getMangledName();
-                            return false;
-                        }
+                // Look through the possibleSymtabs for symbol hits
+                // Options are:
+                // 1) A lot of weak symbols; pick one
+                // 2) A lot of weak symbols and a strong symbol: pick strong
+                // 3) Multiple strong symbols: fail
+                // 4) ... no symbols. Also fail.
 
-                        extSymbol = foundSyms[0];
-                        if( !linkedSet.count(containingSymtab) ) {
-                            // Consistency check 
-                            if( containingSymtab->getAddressWidth() != addressWidth_ ) {
-                                err = Symbol_Resolution_Failure;
-                                errMsg = "symbol (" + curUndefSym->getMangledName() +
-                                    ") found in relocatable file that is not compatible"
-                                    + " with the target binary";
-                                return false;
-                            }
+                for (auto iter = possibleSymtabs.begin(); iter != possibleSymtabs.end(); ++iter) {                   
+                   std::vector<Symbol *> syms;
+                   (*iter)->findSymbol(syms, curUndefSym->getMangledName(), curUndefSym->getType());
+                   if (syms.empty()) {
+                      // Problem: mismatch between the Archive table and Symtab
+                      err = Symbol_Resolution_Failure;
+                      errMsg = "inconsistency found between archive's symbol table and member's symbol table";
+                      return false;
+                   }
 
-                            relocatableObjects.push_back(containingSymtab);
-
-                            // Resolve all symbols for this new Symtab, if it hasn't already
-                            // been done
-
-                            workSet.insert(containingSymtab);
-                            linkedSet.insert(containingSymtab);
-                        }
-
-                        rewrite_printf("Found external symbol %s in object %s(%s)\n",
-                                extSymbol->getPrettyName().c_str(),
-                                containingSymtab->getParentArchive()->name().c_str(),
-                                containingSymtab->memberName().c_str());
-                    }else{
-                        err = Symbol_Resolution_Failure;
-                        errMsg = "inconsistency found between archive's symbol table and member's symbol table";
-                        return false;   
-                    }
+                   for (auto iter2 = syms.begin(); iter2 != syms.end(); ++iter2) {
+                      if (extSymbol == NULL || extSymbol->getLinkage() == Symbol::SL_WEAK) {
+                         extSymbol = *iter2;
+                      }
+                      else if ((*iter2)->getLinkage() == Symbol::SL_WEAK) {
+                         continue;
+                      }
+                      else {
+                         // Two strong symbols: bad
+                         err = Symbol_Resolution_Failure;
+                         errMsg = "ambiguous symbol definition: " + 
+                            curUndefSym->getMangledName();
+                         return false;
+                      }
+                   }
                 }
-            }
-
-            if( extSymbol == NULL ) {
-                // If it is a weak symbol, it isn't an error that the symbol wasn't resolved
-                if( curUndefSym->getLinkage() == Symbol::SL_WEAK ) {
-                    continue;
+                
+                if( extSymbol == NULL ) {
+                   // If it is a weak symbol, it isn't an error that the symbol wasn't resolved
+                   if( curUndefSym->getLinkage() == Symbol::SL_WEAK ) {
+                      continue;
+                   }
+                   
+                   err = Symbol_Resolution_Failure;
+                   errMsg = "failed to locate symbol '" + curUndefSym->getMangledName()
+                      + "' for object '" + curObjFile->memberName() + "'";
+                   rewrite_printf(" failed to locate symbol %s for %s  \n" , curUndefSym->getMangledName().c_str(), curObjFile->memberName().c_str());
+                   continue;
+                   //return false;
                 }
+                Symtab *containingSymtab = extSymbol->getSymtab();
 
-                err = Symbol_Resolution_Failure;
-                errMsg = "failed to locate symbol '" + curUndefSym->getMangledName()
-                    + "' for object '" + curObjFile->memberName() + "'";
-rewrite_printf(" failed to locate symbol %s for %s  \n" , curUndefSym->getMangledName().c_str(), curObjFile->memberName().c_str());
-		continue;
-                //return false;
+                if( !linkedSet.count(containingSymtab) ) {
+                   // Consistency check                                                                                            
+                   if( containingSymtab->getAddressWidth() != addressWidth_ ) {
+                      err = Symbol_Resolution_Failure;
+                      errMsg = "symbol (" + curUndefSym->getMangledName() +
+                         ") found in relocatable file that is not compatible"
+                         + " with the target binary";
+                      return false;
+                   }
+                   
+                   relocatableObjects.push_back(containingSymtab);
+                   
+                   // Resolve all symbols for this new Symtab, if it hasn't already                                                
+                   // been done                                                                                                    
+                   
+                   workSet.insert(containingSymtab);
+                   linkedSet.insert(containingSymtab);
+                }
+                
+                rewrite_printf("Found external symbol %s in object %s(%s)\n",
+                               extSymbol->getPrettyName().c_str(),
+                               containingSymtab->getParentArchive()->name().c_str(),
+                               containingSymtab->memberName().c_str());
             }
 
             // Store the found symbol with the related relocations
