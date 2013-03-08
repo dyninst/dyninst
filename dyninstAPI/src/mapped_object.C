@@ -1811,11 +1811,8 @@ bool mapped_object::isExpansionNeeded(Address entry)
         boost::tie(valid, compareStart) = proc()->getMemEm()->translate(compareStart);
         assert(valid);
     }
-#if defined(cap_instruction_api)
     unsigned compareSize = InstructionAPI::InstructionDecoder::maxInstructionLength;
-#else
-    unsigned compareSize = 2 * proc()->getAddressWidth();
-#endif
+
     Address uninitSize = reg->getMemSize() - reg->getDiskSize();
     if (compareSize > uninitSize) {
         compareSize = uninitSize;

@@ -54,10 +54,6 @@
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 
-#if !defined(cap_instruction_api)
-#include "parseAPI/h/InstrucIter.h"
-#endif
-
 #include "mapped_object.h"
 #include "binaryEdit.h"
 #include "addressSpace.h"

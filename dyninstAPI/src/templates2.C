@@ -92,7 +92,7 @@ class BPatch_basicBlock;
 template class  dictionary_hash<Address,BPatch_basicBlock*>;
 template class  pdvector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
 
-#if defined( USES_DWARF_DEBUG )
+#if defined( cap_dwarf )
 #include <stack>
 template class std::deque< long int >;
 template class std::stack< long int >;

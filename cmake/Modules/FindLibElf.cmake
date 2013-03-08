@@ -13,19 +13,20 @@
 #  For details see the accompanying COPYING-CMAKE-SCRIPTS file.
 #
 
-
 if (LIBELF_LIBRARIES AND LIBELF_INCLUDE_DIRS)
   set (LibElf_FIND_QUIETLY TRUE)
 endif (LIBELF_LIBRARIES AND LIBELF_INCLUDE_DIRS)
 
-find_path (LIBELF_INCLUDE_DIRS
+find_path (LIBELF_INCLUDE_DIR
     NAMES
       libelf.h
+    HINTS
+      ${LIBELF_INCLUDE_DIRS}
     PATHS
       /usr/include
       /usr/include/libelf
       /usr/local/include
-      /usr/local/include/libelf
+      /usr/local/include/libelfls 
       /opt/local/include
       /opt/local/include/libelf
       /sw/include
@@ -35,6 +36,8 @@ find_path (LIBELF_INCLUDE_DIRS
 find_library (LIBELF_LIBRARIES
     NAMES
       elf
+    HINTS
+      ${LIBELF_LIBRARIES}
     PATHS
       /usr/lib
       /usr/local/lib
@@ -49,7 +52,7 @@ include (FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set LIBELF_FOUND to TRUE if all listed variables are TRUE
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(LibElf DEFAULT_MSG
     LIBELF_LIBRARIES
-    LIBELF_INCLUDE_DIRS)
+    LIBELF_INCLUDE_DIR)
 
 
-mark_as_advanced(LIBELF_INCLUDE_DIRS LIBELF_LIBRARIES)
+# mark_as_advanced(LIBELF_INCLUDE_DIRS LIBELF_LIBRARIES)

@@ -27,7 +27,10 @@ set (SRC_LIST
                 src/dwarfWalker.C
   )
 
-if (PLATFORM MATCHES freebsd OR OS_DEF MATCHES linux)
+if (PLATFORM MATCHES freebsd OR 
+    PLATFORM MATCHES linux OR 
+    PLATFORM MATCHES bgq OR
+    PLATFORM MATCHES cnl)
 
 set (SRC_LIST ${SRC_LIST}
     src/Object-elf.C 
@@ -65,8 +68,15 @@ set (SRC_LIST ${SRC_LIST}
 endif()
 
 endif()
+  
 
 add_library (symtabAPI ${SRC_LIST})
+target_link_libraries (symtabAPI common)
 
-FILE (GLOB includes "${CMAKE_CURRENT_SOURCE_DIR}/h")
-INSTALL (FILES ${includes} DESTINATION include)
+if (UNIX)
+  target_link_libraries (symtabAPI ${LIBELF_LIBRARIES})
+  target_link_libraries (symtabAPI ${LIBDWARF_LIBRARIES})
+endif()
+
+INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+

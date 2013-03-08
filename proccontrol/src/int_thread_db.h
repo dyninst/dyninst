@@ -282,7 +282,13 @@ typedef struct new_thread_data {
 
 #else
 
-class thread_db_thread : public int_thread
+#include <string>
+
+#if defined(os_linux)
+#include <sys/procfs.h> // lwpid_t
+#endif
+
+class thread_db_thread : virtual public int_thread
 {
   public:
     thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
@@ -295,6 +301,9 @@ class thread_db_thread : public int_thread
     virtual bool getStackBase(Dyninst::Address &addr);
     virtual bool getStackSize(unsigned long &size);
     virtual bool getTLSPtr(Dyninst::Address &addr);
+
+    virtual bool plat_convertToSystemRegs(const int_registerPool &, unsigned char *, bool);
+
 };
 
 
@@ -310,8 +319,20 @@ class thread_db_process : virtual public int_process
 
     bool decodeThreadBP(EventBreakpoint::ptr bp);
     static void addThreadDBHandlers(HandlerPool *hpool);
-};
 
+    virtual async_ret_t post_attach(bool wasDetached, std::set<response::ptr> &);
+    virtual async_ret_t post_create(std::set<response::ptr> &);
+    virtual bool plat_getLWPInfo(lwpid_t, void *);
+    const char *getThreadLibName(const char *);
+    void freeThreadDBAgent();
+    async_ret_t getEventForThread(int_eventThreadDB *);
+    bool isSupportedThreadLib(std::string);
+    bool plat_supportThreadEvents();
+    bool threaddb_setTrackThreads(bool, std::set<std::pair<int_breakpoint *, Address> > &,
+                                  bool &);
+    bool threaddb_isTrackingThreads();
+    ThreadTracking *threaddb_getThreadTracking() ;
+};
 #endif
 
 #endif

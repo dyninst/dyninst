@@ -62,7 +62,7 @@
 #include <sys/time.h>
 #endif
 
-#if defined( USES_DWARF_DEBUG )
+#if defined( cap_dwarf )
 #include "dwarf.h"
 #include "libdwarf.h"
 #endif

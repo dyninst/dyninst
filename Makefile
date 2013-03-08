@@ -57,6 +57,47 @@ edit_cache:
 edit_cache/fast: edit_cache
 .PHONY : edit_cache/fast
 
+# Special rule for the target install
+install: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
+	/afs/cs.wisc.edu/s/cmake-2.8.7/@sys/bin/cmake -P cmake_install.cmake
+.PHONY : install
+
+# Special rule for the target install
+install/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
+	/afs/cs.wisc.edu/s/cmake-2.8.7/@sys/bin/cmake -P cmake_install.cmake
+.PHONY : install/fast
+
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
+	/afs/cs.wisc.edu/s/cmake-2.8.7/@sys/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
+
+# Special rule for the target install/local
+install/local/fast: install/local
+.PHONY : install/local/fast
+
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
+	/afs/cs.wisc.edu/s/cmake-2.8.7/@sys/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: install/strip
+.PHONY : install/strip/fast
+
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
+.PHONY : list_install_components
+
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+.PHONY : list_install_components/fast
+
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
@@ -111,6 +152,110 @@ common/fast:
 	$(MAKE) -f common/CMakeFiles/common.dir/build.make common/CMakeFiles/common.dir/build
 .PHONY : common/fast
 
+#=============================================================================
+# Target rules for targets named dynElf
+
+# Build rule for target.
+dynElf: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dynElf
+.PHONY : dynElf
+
+# fast build rule for target.
+dynElf/fast:
+	$(MAKE) -f elf/CMakeFiles/dynElf.dir/build.make elf/CMakeFiles/dynElf.dir/build
+.PHONY : dynElf/fast
+
+#=============================================================================
+# Target rules for targets named dynDwarf
+
+# Build rule for target.
+dynDwarf: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dynDwarf
+.PHONY : dynDwarf
+
+# fast build rule for target.
+dynDwarf/fast:
+	$(MAKE) -f dwarf/CMakeFiles/dynDwarf.dir/build.make dwarf/CMakeFiles/dynDwarf.dir/build
+.PHONY : dynDwarf/fast
+
+#=============================================================================
+# Target rules for targets named instructionAPI
+
+# Build rule for target.
+instructionAPI: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 instructionAPI
+.PHONY : instructionAPI
+
+# fast build rule for target.
+instructionAPI/fast:
+	$(MAKE) -f instructionAPI/CMakeFiles/instructionAPI.dir/build.make instructionAPI/CMakeFiles/instructionAPI.dir/build
+.PHONY : instructionAPI/fast
+
+#=============================================================================
+# Target rules for targets named symtabAPI
+
+# Build rule for target.
+symtabAPI: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 symtabAPI
+.PHONY : symtabAPI
+
+# fast build rule for target.
+symtabAPI/fast:
+	$(MAKE) -f symtabAPI/CMakeFiles/symtabAPI.dir/build.make symtabAPI/CMakeFiles/symtabAPI.dir/build
+.PHONY : symtabAPI/fast
+
+#=============================================================================
+# Target rules for targets named symLite
+
+# Build rule for target.
+symLite: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 symLite
+.PHONY : symLite
+
+# fast build rule for target.
+symLite/fast:
+	$(MAKE) -f symlite/CMakeFiles/symLite.dir/build.make symlite/CMakeFiles/symLite.dir/build
+.PHONY : symLite/fast
+
+#=============================================================================
+# Target rules for targets named parseAPI
+
+# Build rule for target.
+parseAPI: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 parseAPI
+.PHONY : parseAPI
+
+# fast build rule for target.
+parseAPI/fast:
+	$(MAKE) -f parseAPI/CMakeFiles/parseAPI.dir/build.make parseAPI/CMakeFiles/parseAPI.dir/build
+.PHONY : parseAPI/fast
+
+#=============================================================================
+# Target rules for targets named patchAPI
+
+# Build rule for target.
+patchAPI: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 patchAPI
+.PHONY : patchAPI
+
+# fast build rule for target.
+patchAPI/fast:
+	$(MAKE) -f patchAPI/CMakeFiles/patchAPI.dir/build.make patchAPI/CMakeFiles/patchAPI.dir/build
+.PHONY : patchAPI/fast
+
+#=============================================================================
+# Target rules for targets named pcontrol
+
+# Build rule for target.
+pcontrol: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 pcontrol
+.PHONY : pcontrol
+
+# fast build rule for target.
+pcontrol/fast:
+	$(MAKE) -f proccontrol/CMakeFiles/pcontrol.dir/build.make proccontrol/CMakeFiles/pcontrol.dir/build
+.PHONY : pcontrol/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -118,8 +263,20 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
+	@echo "... install"
+	@echo "... install/local"
+	@echo "... install/strip"
+	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... common"
+	@echo "... dynElf"
+	@echo "... dynDwarf"
+	@echo "... instructionAPI"
+	@echo "... symtabAPI"
+	@echo "... symLite"
+	@echo "... parseAPI"
+	@echo "... patchAPI"
+	@echo "... pcontrol"
 .PHONY : help
 
 

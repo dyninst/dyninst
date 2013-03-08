@@ -16,9 +16,11 @@ if (LIBDWARF_LIBRARIES AND LIBDWARF_INCLUDE_DIRS)
   set (LibDwarf_FIND_QUIETLY TRUE)
 endif (LIBDWARF_LIBRARIES AND LIBDWARF_INCLUDE_DIRS)
 
-find_path (DWARF_INCLUDE_DIR
+find_path (LIBDWARF_INCLUDE_DIR
     NAMES
-      dwarf.h
+      libdwarf.h
+    HINTS
+      ${LIBDWARF_INCLUDE_DIRS}
     PATHS
       /usr/include
       /usr/include/libdwarf
@@ -27,13 +29,11 @@ find_path (DWARF_INCLUDE_DIR
       /sw/include
       ENV CPATH) # PATH and INCLUDE will also work
 
-if (DWARF_INCLUDE_DIR)
-    set (LIBDWARF_INCLUDE_DIRS  ${DWARF_INCLUDE_DIR})
-endif ()
-
 find_library (LIBDWARF_LIBRARIES
     NAMES
       dwarf
+    HINTS
+      ${LIBDWARF_LIBRARIES}
     PATHS
       /usr/lib
       /usr/local/lib
@@ -48,7 +48,7 @@ include (FindPackageHandleStandardArgs)
 # if all listed variables are TRUE
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(LibDwarf DEFAULT_MSG
     LIBDWARF_LIBRARIES
-    LIBDWARF_INCLUDE_DIRS)
+    LIBDWARF_INCLUDE_DIR)
 
-mark_as_advanced(LIBDW_INCLUDE_DIR DWARF_INCLUDE_DIR)
-mark_as_advanced(LIBDWARF_INCLUDE_DIRS LIBDWARF_LIBRARIES)
+#mark_as_advanced(LIBDW_INCLUDE_DIR DWARF_INCLUDE_DIR)
+#mark_as_advanced(LIBDWARF_INCLUDE_DIRS LIBDWARF_LIBRARIES)

@@ -21,6 +21,6 @@ set (SRC_LIST
   )
 
 add_library (instructionAPI ${SRC_LIST})
+target_link_libraries (instructionAPI common)
 
-FILE (GLOB includes "${CMAKE_CURRENT_SOURCE_DIR}/h")
-INSTALL (FILES ${includes} DESTINATION include)
+INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")

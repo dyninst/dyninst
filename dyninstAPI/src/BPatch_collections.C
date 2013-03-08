@@ -128,7 +128,7 @@ BPatch_typeCollection *BPatch_typeCollection::getModTypeCollection(BPatch_module
     assert(bpmod);
     mapped_object *moduleImage = bpmod->lowlevel_mod()->obj();
     assert( moduleImage != NULL );
-#if defined(USES_DWARF_DEBUG)
+#if defined(cap_dwarf)
     // TODO: can we use this on other platforms as well?    
     if( fileToTypesMap.defines( moduleImage->fullName().c_str() ) ) {
         BPatch_typeCollection *cachedTC = fileToTypesMap [ moduleImage->fullName().c_str() ];
@@ -299,7 +299,7 @@ BPatch_type * BPatch_typeCollection::addOrUpdateType( BPatch_type * type ) {
            return existingType;
         }
 #ifdef notdef
-	//#if defined( USES_DWARF_DEBUG )
+	//#if defined( cap_dwarf )
         /* Replace the existing type wholesale. */
         // bperr( "Updating existing type '%s' %d at %p with %p\n", type->getName(), type->getID(), existingType, type );
 	memmove( existingType, type, sizeof( BPatch_type ) );

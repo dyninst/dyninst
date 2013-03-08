@@ -50,7 +50,7 @@ set (SRC_LIST ${SRC_LIST}
     )
 endif()
 
-if (NOT WITHOUT_SYMTAB_API)
+if (LIGHTWEIGHT_SYMTAB)
 set (SRC_LIST ${SRC_LIST}
     src/SymtabCodeSource.C
     )
@@ -58,3 +58,19 @@ endif()
 
 
 add_library (parseAPI ${SRC_LIST})
+target_link_libraries(parseAPI common)
+target_link_libraries(parseAPI instructionAPI)
+
+if (UNIX)
+target_link_libraries(parseAPI ${LIBELF_LIBRARIES})
+endif()
+
+if (LIGHTWEIGHT_SYMTAB)
+target_link_libraries(parseAPI symLite)
+else()
+target_link_libraries(parseAPI symtabAPI)
+endif()
+
+
+
+INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
