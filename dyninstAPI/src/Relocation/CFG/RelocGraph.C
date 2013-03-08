@@ -183,7 +183,7 @@ bool RelocGraph::changeTarget(RelocEdge *e, TargetInt *n) {
    removeTarget(e);
    delete e->trg;
    e->trg = n;
-   
+   n->addSourceEdge(e);
    return true;
 }
 
@@ -191,6 +191,7 @@ bool RelocGraph::changeSource(RelocEdge *e, TargetInt *n) {
    removeSource(e);
    delete e->src;
    e->src = n;
+   n->addTargetEdge(e);
    return true;
 }
 
