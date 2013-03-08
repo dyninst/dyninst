@@ -113,11 +113,7 @@ parse_func::parse_func(
                 parse_func_count, parse_func_count*sizeof(parse_func));
 #endif
     _src = src;
-    extern AnnotationClass<parse_func> ImageFuncUpPtrAnno;
-    if (!func_->addAnnotation(this, ImageFuncUpPtrAnno))
-    {
-       fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
-    }
+    func->setData(this);
 }	
 
 

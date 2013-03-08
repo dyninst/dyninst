@@ -2457,7 +2457,6 @@ void Symtab::parseTypes()
 		return;
 	}
    linkedFile->parseTypeInfo(this);
-   isTypeInfoValid_ = true;
 
    for (unsigned int i = 0; i < _mods.size(); ++i)
    {
@@ -3606,6 +3605,7 @@ void Symtab::parseTypesNow()
 {
    if (isTypeInfoValid_)
       return;
+   isTypeInfoValid_ = true;
 
    parseTypes();
 }
@@ -3872,5 +3872,3 @@ void Symtab::getSegmentsSymReader(std::vector<SymSegment> &segs) {
    obj_private->getSegmentsSymReader(segs);
 #endif
 }
-
-
