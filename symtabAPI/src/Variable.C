@@ -279,7 +279,8 @@ void localVar::expandLocation(const VariableLocation &loc,
            << " / " << func_->getAllMangledNames()[0] << " has no frame pointer!" << endl;
    }
    */
-   assert(!func_fp.empty());
+   if (func_fp.empty())
+      return;
 
    // We need to break loc into a list matching the address
    // ranges of func_fp. 

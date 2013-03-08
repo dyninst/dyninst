@@ -42,29 +42,38 @@ RT\_OTHER & Miscellaneous information \\
 \end{center}
 
 \begin{tabular}{p{1.25in}p{1in}p{3.25in}}
-	Method name & Return type & Method description \\
-	\hline
-	getRegionNumber & unsigned & Index of the region in the file, starting at 0. \\
-	getRegionName & std::string & Name of the region (e.g. .text, .data). \\
-	getPtrToRawData & void * & Read-only pointer to the region's raw data buffer. \\
-	getDiskOffset & Offset & Offset within the file where the region begins. \\
-	getDiskSize & unsigned long & Size of the region's data in the file. \\
-	getMemOffset & Offset & Location where the region will be loaded into memory, modified by the file's base load address. \\
-	getMemSize & unsigned long & Size of the region in memory, including zero padding. \\
-	isBSS & bool & Type query for uninitialized data regions (zero disk size, non-zero memory size). \\
-	isText & bool & Type query for executable code regions. \\
-	isData & bool & Type query for initialized data regions. \\
-	getRegionPermissions & perm\_t & Permissions for the region; perm\_ t is defined above. \\
-	getRegionType & RegionType & Type of the region as defined above. \\
-	isLoadable & bool & True if the region will be loaded into memory (e.g., code or data), false otherwise (e.g., debug information). \\
-	isDirty & bool & True if the region's raw data buffer has been modified by the user. \\
+\toprule
+Method name & Return type & Method description \\
+\midrule
+getRegionNumber & unsigned & Index of the region in the file, starting at 0. \\
+getRegionName & std::string & Name of the region (e.g. .text, .data). \\
+getPtrToRawData & void * & Read-only pointer to the region's raw data buffer. \\
+getDiskOffset & Offset & Offset within the file where the region begins. \\
+getDiskSize & unsigned long & Size of the region's data in the file. \\
+getMemOffset & Offset & Location where the region will be loaded into memory, modified by the file's base load address. \\
+getMemSize & unsigned long & Size of the region in memory, including zero padding. \\
+isBSS & bool & Type query for uninitialized data regions (zero disk size, non-zero memory size). \\
+isText & bool & Type query for executable code regions. \\
+isData & bool & Type query for initialized data regions. \\
+getRegionPermissions & perm\_t & Permissions for the region; perm\_ t is defined above. \\
+getRegionType & RegionType & Type of the region as defined above. \\
+isLoadable & bool & True if the region will be loaded into memory (e.g., code or data), false otherwise (e.g., debug information). \\
+isDirty & bool & True if the region's raw data buffer has been modified by the user. \\
+\bottomrule
 \end{tabular}
 
 \begin{apient}
-static Region *createRegion(Offset diskOff, perm_t perms, RegionType regType,
-                            unsigned long diskSize = 0, Offset memOff = 0, unsigned long memSize = 0,
-                            std::string name = "", char *rawDataPtr = NULL, bool isLoadable = false,
-                            bool isTLS = false, unsigned long memAlign = sizeof(unsigned))
+static Region *createRegion(Offset diskOff,
+                            perm_t perms,
+                            RegionType regType,
+                            unsigned long diskSize = 0,
+                            Offset memOff = 0,
+                            unsigned long memSize = 0,
+                            std::string name = "",
+                            char *rawDataPtr = NULL,
+                            bool isLoadable = false,
+                            bool isTLS = false,
+                            unsigned long memAlign = sizeof(unsigned))
 \end{apient}
 \apidesc{
 This factory method creates a new region with the provided arguments. The \code{memOff} and \code{memSize} parameters identify where the region should be loaded in memory (modified by the base address of the file); if \code{memSize} is larger than \code{diskSize} the remainder will be zero-padded (e.g., bss regions). 
@@ -85,7 +94,8 @@ Sets the region index; the value must not overlap with any other regions and is 
 }
 
 \begin{apient}
-bool setPtrToRawData(void *newPtr, unsigned long rawsize)
+bool setPtrToRawData(void *newPtr,
+                     unsigned long rawsize)
 \end{apient}
 \apidesc{
 Set the raw data pointer of the region to \code{newPtr}. \code{rawsize} represents the size of the raw data buffer. 
@@ -108,7 +118,9 @@ This method sets whether the region is loaded into memory at load time. Returns 
 }
 
 \begin{apient}
-bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType, 
+bool addRelocationEntry(Offset relocationAddr,
+                        Symbol *dynref,
+                        unsigned long relType, 
                         Region::RegionType rtype = Region::RT_REL)
 \end{apient}
 \apidesc{
@@ -126,13 +138,15 @@ bool addRelocationEntry(const relocationEntry& rel)
 \apidesc{Add the provided relocation entry to this region.}
 
 \begin{apient}
-bool patchData(Offset off, void *buf, unsigned size);
+bool patchData(Offset off,
+               void *buf,
+               unsigned size);
 \end{apient}
 \apidesc{
 Patch the raw data for this region. \code{buf} represents the buffer to be patched at offset \code{off} and size \code{size}.
 }
 
-\paragraph{REMOVED}
+\subsubsection{REMOVED}
 
 The following methods were removed since they were inconsistent and dangerous to use. 
 

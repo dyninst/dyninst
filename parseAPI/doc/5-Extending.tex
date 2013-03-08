@@ -97,26 +97,31 @@ Users who which to incorporate the ParseAPI into large projects may need to stor
 
 \begin{apient}
 virtual Function * mkfunc(Address addr, 
-    FuncSource src,
-    std::string name, 
-    CodeObject * obj, 
-    CodeRegion * region,
-    Dyninst::InstructionSource * isrc)
+                          FuncSource src,
+                          std::string name, 
+                          CodeObject * obj, 
+                          CodeRegion * region,
+                          Dyninst::InstructionSource * isrc)
 \end{apient}
 \apidesc{Returns an object derived from Function as though the provided parameters had been passed to the Function constructor. The ParseAPI parser will never invoke \code{mkfunc()} twice with identical \code{addr}, and \code{region} parameters---that is, Functions are guaranteed to be unique by address within a region.}
 
 \begin{apient}
-virtual Block * mkblock(Function * func, CodeRegion * region, Address addr)
+virtual Block * mkblock(Function * func,
+                        CodeRegion * region,
+                        Address addr)
 \end{apient}
 \apidesc{Returns an object derived from Block as though the provided parameters had been passed to the Block constructor. The parser will never invoke \code{mkblock()} with identical \code{addr} and \code{region} parameters.}
 
 \begin{apient}
-virtual Edge * mkedge(Block * src, Block * trg, EdgeTypeEnum type)
+virtual Edge * mkedge(Block * src,
+                      Block * trg,
+                      EdgeTypeEnum type)
 \end{apient}
 \apidesc{Returns an object derived from Edge as though the provided parameters had been passed to the Edge constructor. The parser \emph{may} invoke \code{mkedge()} multiple times with identical parameters.}
 
 \begin{apient}
-virtual Block * mksink(CodeObject *obj, CodeRegion *r)
+virtual Block * mksink(CodeObject *obj,
+                       CodeRegion *r)
 \end{apient}
 \apidesc{Returns a ``sink'' block derived from Block to which all unresolvable control flow instructions will be linked. Implementors may return a unique sink block per CodeObject or a single global sink.}
 

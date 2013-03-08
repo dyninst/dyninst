@@ -2,7 +2,8 @@
 This is used only on ELF platforms. This class represents an archive. This class has information of all the members in the archives.
 
 \begin{apient}
-static bool openArchive(Archive *&img, string name)
+static bool openArchive(Archive *&img,
+                        string name)
 \end{apient}
 \apidesc{
 This factory method creates a new \code{Archive} object for an archive file on disk. This object serves as a handle to the parsed archive file. \code{name} represents the name of the archive to be parsed. The \code{Archive} object is returned in \code{img} if the parsing succeeds.
@@ -11,7 +12,9 @@ to \code{Not\_An\_Archive}. This returns \code{true} if the archive is parsed wi
 }
 
 \begin{apient}
-static bool openArchive(Archive *&img, char *mem_image, size_t size)
+static bool openArchive(Archive *&img,
+                        char *mem_image,
+                        size_t size)
 \end{apient}
 \apidesc{
 This factory method creates a new \code{Archive} object for an archive file in memory.
@@ -21,7 +24,8 @@ to \code{Not\_An\_Archive}. This returns \code{true} if the archive is parsed wi
 }
 
 \begin{apient}
-bool getMember(Symtab *&img, string member_name)
+bool getMember(Symtab *&img,
+               string member_name)
 \end{apient}
 \apidesc{
 This method returns the member object handle if the member exists in the archive. \code{img} corresponds to the object handle for the member.
@@ -29,7 +33,8 @@ This method returns \code{false} if the member with name \code{member\_name} doe
 }
 
 \begin{apient}
-bool getMemberByOffset(Symtab *&img, Offset memberOffset)
+bool getMemberByOffset(Symtab *&img,
+                       Offset memberOffset)
 \end{apient}
 \apidesc{
 This method returns the member object handle if the member exists at the start offset \code{memberOffset} in the archive. \code{img} corresponds to the object handle for the member.
@@ -51,7 +56,8 @@ This method returns \code{true} if the member with name \code{member\_name} exis
 }
 
 \begin{apient}
-bool findMemberWithDefinition(Symtab *&obj, string name)
+bool findMemberWithDefinition(Symtab *&obj,
+                              string name)
 \end{apient}
 \apidesc{
 This method retrieves the member in an archive which contains the definition to a symbol with mangled name \code{name}.
