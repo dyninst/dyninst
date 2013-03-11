@@ -370,6 +370,32 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
    return true;
 }
 
+bool DwarfWalker::parseCallsite()
+{
+   Dwarf_Bool has_line = false, has_file = false;
+   DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_call_file, &has_file, NULL));
+   if (!has_file)
+      return true;
+   DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_call_line, &has_line, NULL));
+   if (!has_line)
+      return true;
+
+   std::string inline_file;
+   bool result = findString(DW_AT_call_file, inline_file);
+   if (!result)
+      return false;
+
+   Dyninst::Offset inline_line;
+   result = findConstant(DW_AT_call_line, inline_line);
+   if (!result)
+      return false;
+
+   InlinedFunction *ifunc = static_cast<InlinedFunction *>(curFunc());
+   ifunc->callsite_file = inline_file;
+   ifunc->callsite_line = inline_line;
+   return true;
+}
+
 bool DwarfWalker::setFunctionFromRange(inline_t func_type)
 {
    //Use the lowest range as an entry for symbol matching
@@ -396,7 +422,7 @@ bool DwarfWalker::setFunctionFromRange(inline_t func_type)
    if (func_type == InlinedFunc) {
       FunctionBase *parent = curFunc();
       if (!parent) {
-         //InlinedSubroutine with containing subprogram.  Weird.
+         //InlinedSubroutine without containing subprogram.  Weird.
          return false;
       }
       InlinedFunction *ifunc = new InlinedFunction(parent);
@@ -419,7 +445,7 @@ bool DwarfWalker::setFunctionFromRange(inline_t func_type)
 }
 
 bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
-   bool result;
+   bool name_result;
    FunctionBase *func = NULL;
 
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
@@ -427,6 +453,9 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    parseRangeTypes();
    setFunctionFromRange(func_type);
    func = curFunc();
+
+   // Name first
+   name_result = findFuncName();
 
    if (curEnclosure() && !func) {
       // This is a member function; create the type entry
@@ -454,9 +483,7 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
       return true;
    }
 
-   // Name first
-   result = findFuncName();
-   if (result && !curName().empty()) {
+   if (name_result && !curName().empty()) {
       dwarf_printf("(0x%lx) Identified function name as %s\n", id(), curName().c_str());
       if (isMangledName())
          func->addMangledNameInternal(curName(), true, true);
@@ -466,24 +493,7 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
 
    //Collect callsite information for inlined functions.
    if (func_type == InlinedFunc) {
-      Dwarf_Bool has_line = false, has_file = false;
-      DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_call_file, &has_file, NULL));
-      DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_call_line, &has_line, NULL));
-      if (has_file && has_line) {
-         Dwarf_Attribute fileattr;
-         char *inline_file_cstr = NULL;
-         std::string inline_file;
-         Dyninst::Offset inline_line;
-         DWARF_FAIL_RET(dwarf_attr(entry(), DW_AT_call_file, &fileattr, NULL));
-         DWARF_FAIL_RET(dwarf_formstring(fileattr, &inline_file_cstr, NULL));
-         inline_file = inline_file_cstr;
-         dwarf_dealloc(dbg(), fileattr, DW_DLA_ATTR);
-         DWARF_FAIL_RET(findConstant(DW_AT_call_line, inline_line));
-
-         InlinedFunction *ifunc = static_cast<InlinedFunction *>(func);
-         ifunc->callsite_file = inline_file;
-         ifunc->callsite_line = inline_line;
-      }
+      parseCallsite();
    }
    
    // Get the return type
@@ -492,6 +502,22 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
       getReturnType(false, returnType);
       if (returnType)
          func->setReturnType(returnType);
+   }
+
+   // Get range information
+   if (hasRanges() && func->ranges.empty()) {
+      Address last_low = 0, last_high = 0;
+      func->ranges.reserve(rangesSize());
+      for (range_set_t::iterator i = ranges_begin(); i != ranges_end(); i++) {
+         Address low = i->first;
+         Address high = i->second;
+         if (last_low == low && last_high == high)
+            continue;
+         last_low = low;
+         last_high = high;
+
+         func->ranges.push_back(FuncRange(low, high - low, func));         
+      }
    }
 
    // Dwarf outlines some function information. You have the base entry, which contains
@@ -1501,6 +1527,47 @@ bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half attr,
    return true;
 }
 
+bool DwarfWalker::findString(Dwarf_Half attr,
+                             std::string &str)
+{
+   Dwarf_Half form;
+   Dwarf_Attribute strattr;
+
+   DWARF_FAIL_RET(dwarf_attr(entry(), attr, &strattr, NULL)); 
+   int status = dwarf_whatform(strattr, &form, NULL);
+   if (status != DW_DLV_OK) {
+      dwarf_dealloc(dbg(), strattr, DW_DLA_ATTR);
+      return false;
+   }
+   
+   bool result;
+   switch (form) {
+      case DW_FORM_string: {
+         char *s = NULL;
+         DWARF_FAIL_RET(dwarf_formstring(strattr, &s, NULL));
+         str  = s;
+         result = true;
+         break;
+      }
+      case DW_FORM_block:
+      case DW_FORM_block1: 
+      case DW_FORM_block2:
+      case DW_FORM_block4: {
+         Dwarf_Block *block = NULL;
+         DWARF_FAIL_RET(dwarf_formblock(strattr, &block, NULL));
+         str = string((char *) block->bl_data);
+         dwarf_dealloc(dbg(), block, DW_DLA_BLOCK);
+         result = !str.empty();
+         break;
+      }
+      default:
+         result = false;
+         break;
+   }
+   dwarf_dealloc(dbg(), strattr, DW_DLA_ATTR);
+   return result;
+}
+
 bool DwarfWalker::findConstant(Dwarf_Half attr,
                                Address &value) {
    Dwarf_Bool has = false;
@@ -2115,7 +2182,6 @@ void DwarfWalker::Contexts::setFunc(FunctionBase *f) {
   // any preceding lexical information since we probably 
   // nested. 
   c.top().func = f;
-  clearRanges();
 }
 
 void DwarfWalker::Contexts::clearFunc() {

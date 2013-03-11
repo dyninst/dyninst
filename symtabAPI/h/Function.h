@@ -40,6 +40,7 @@
 #include "Serialization.h"
 #include "Aggregate.h"
 #include "Variable.h"
+#include "IBSTree.h"
 
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
 
@@ -51,11 +52,26 @@ class Type;
 class FunctionBase;
 class DwarfWalker;
 
-struct FuncRange {
+class FuncRange {
+  public:
+   FuncRange(Dyninst::Offset off_, size_t size_, FunctionBase *cont_) :
+     container(cont_),
+     off(off_),
+     size(size_)
+   {
+   }
+   
+   FunctionBase *container;
    Dyninst::Offset off;
    unsigned long size;
+
+   //For interval tree
+   Dyninst::Offset low() const { return off; }
+   Dyninst::Offset high() const { return off + size; }
+   typedef Dyninst::Offset type;
 };
 
+typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef std::vector<FuncRange> FuncRangeCollection;
 typedef std::vector<FunctionBase *> InlineCollection;
 typedef std::vector<FuncRange> FuncRangeCollection;
@@ -64,6 +80,7 @@ class FunctionBase : public Aggregate
 {
    friend class InlinedFunction;
    friend class Function;
+   friend class DwarfWalker;
   public:
    /***** Return Type Information *****/
    SYMTAB_EXPORT Type  * getReturnType() const;

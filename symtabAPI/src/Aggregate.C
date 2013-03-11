@@ -68,7 +68,9 @@ Aggregate::Aggregate(Symbol *sym) :
     typedNames_.push_back(sym->getTypedName());
 }
 
-Aggregate::Aggregate(Module *mod)
+Aggregate::Aggregate(Module *mod) :
+   firstSymbol(NULL),
+   offset_(0)
 {
    module_ = mod;
 }
@@ -77,7 +79,6 @@ Offset Aggregate::getOffset() const
 { 
 	if (!firstSymbol)
 	{
-		fprintf(stderr, "%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
 		return (Offset) 0L;
 	}
 	return offset_;
@@ -87,7 +88,6 @@ unsigned Aggregate::getSize() const
 { 
 	if (!firstSymbol)
 	{
-		fprintf(stderr, "%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
 		return (unsigned) 0;
 	}
 	return firstSymbol->getSize(); 

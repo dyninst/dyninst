@@ -59,6 +59,7 @@ FunctionBase::FunctionBase(Symbol *sym) :
    params(NULL),
    retType_(NULL),
    functionSize_(NULL),
+   inline_parent(NULL),
    frameBaseExpanded_(false),
    data(NULL)
 {
@@ -70,6 +71,7 @@ FunctionBase::FunctionBase() :
    params(NULL),
    retType_(NULL),
    functionSize_(NULL),
+   inline_parent(NULL),
    frameBaseExpanded_(false),
    data(NULL)
 {
@@ -81,6 +83,7 @@ FunctionBase::FunctionBase(Module *m) :
    params(NULL),
    retType_(NULL),
    functionSize_(NULL),
+   inline_parent(NULL),
    frameBaseExpanded_(false),
    data(NULL)
 
@@ -121,6 +124,11 @@ bool FunctionBase::findLocalVariable(std::vector<localVar *> &vars, std::string 
       return true;
 
    return false;
+}
+
+const FuncRangeCollection &FunctionBase::getRanges()
+{
+   return ranges;
 }
 
 bool FunctionBase::getLocalVariables(std::vector<localVar *> &vars)
@@ -194,11 +202,17 @@ FunctionBase::~FunctionBase()
 }
 
 std::vector<Dyninst::VariableLocation> &FunctionBase::getFramePtrRefForInit() {
+   if (inline_parent)
+      return inline_parent->getFramePtr();
+
    return frameBase_;
 }
 
 std::vector<Dyninst::VariableLocation> &FunctionBase::getFramePtr() 
 {
+   if (inline_parent)
+      return inline_parent->getFramePtr();
+
    if (frameBaseExpanded_)
       return frameBase_;
 

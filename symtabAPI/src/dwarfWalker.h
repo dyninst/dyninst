@@ -186,6 +186,7 @@ class DwarfWalker {
    Dwarf_Die abstractEntry() { return contexts_.abstractEntry(); }
    void clearRanges() { contexts_.clearRanges(); }
    bool hasRanges() { return contexts_.ranges() != NULL; }
+   size_t rangesSize() { return contexts_.ranges()->size(); }
    range_set_t::iterator ranges_begin() { return contexts_.ranges()->begin(); }
    range_set_t::iterator ranges_end() { return contexts_.ranges()->end(); }
 
@@ -199,6 +200,7 @@ class DwarfWalker {
    void setOffset(Dwarf_Off offset) { contexts_.setOffset(offset); }
    void setRange(std::pair<Address, Address> range) { contexts_.setRange(range); }
 
+   bool parseCallsite();
    bool buildSrcFiles(Dwarf_Die entry);
    bool hasDeclaration(bool &decl);
    bool findTag();
@@ -234,6 +236,7 @@ class DwarfWalker {
 			       bool &constant,
 			       bool &expr,
 			       Dwarf_Half &form);
+   bool findString(Dwarf_Half attr, std::string &str);
    bool findConstant(Dwarf_Half attr, Address &value);
    bool findConstantWithForm(Dwarf_Attribute &attr,
                                Dwarf_Half form,

@@ -47,7 +47,7 @@
 
 using namespace std;
 
-/** Templape class for Interval Binary Search Tree. The implementation is
+/** Template class for Interval Binary Search Tree. The implementation is
   * based on a red-black tree (derived from our codeRange implementation)
   * to control the tree height and thus insertion and search cost.
   *

@@ -364,6 +364,7 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    no_of_sections(0),
    newSectionInsertPoint(0),
    no_of_symbols(0),
+   func_lookup(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -404,6 +405,7 @@ SYMTAB_EXPORT Symtab::Symtab() :
    no_of_sections(0),
    newSectionInsertPoint(0),
    no_of_symbols(0),
+   func_lookup(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1209,6 +1211,7 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    isLineInfoValid_(false), 
    isTypeInfoValid_(false),
    isDefensiveBinary_(defensive_bin),
+   func_lookup(NULL),   
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1261,6 +1264,7 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    isLineInfoValid_(false),
    isTypeInfoValid_(false),
    isDefensiveBinary_(defensive_bin),
+   func_lookup(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1310,6 +1314,7 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
    nativeCompiler(false), 
    isLineInfoValid_(false),
    isTypeInfoValid_(false), 
+   func_lookup(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1343,6 +1348,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
    nativeCompiler(false), 
    isLineInfoValid_(false), 
    isTypeInfoValid_(false),
+   func_lookup(NULL),
    _ref_cnt(1)
 {
    mf = MappedFile::createMappedFile(mem_image, image_size);
@@ -1613,6 +1619,7 @@ Symtab::Symtab(const Symtab& obj) :
    LookupInterface(),
    Serializable(),
    AnnotatableSparse(),
+   func_lookup(NULL),
    _ref_cnt(1)
 {
     create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
@@ -1877,6 +1884,9 @@ Symtab::~Symtab()
       if (allSymtabs[i] == this)
          allSymtabs.erase(allSymtabs.begin()+i);
    }
+
+   if (func_lookup)
+      delete func_lookup;
 
    // Make sure to free the underlying Object as it doesn't have a factory
    // open method

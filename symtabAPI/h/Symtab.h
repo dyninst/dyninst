@@ -39,8 +39,8 @@
 
 #include "Annotatable.h"
 #include "Serialization.h"
-
 #include "ProcReader.h"
+#include "IBSTree.h"
 
 #include "boost/shared_ptr.hpp"
 
@@ -64,14 +64,16 @@ class Object;
 class localVar;
 class relocationEntry;
 class Type;
+class FunctionBase;
+class FuncRange;
 
+typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
 class Symtab : public LookupInterface,
                public Serializable,
                public AnnotatableSparse
 {
-
    friend class Archive;
    friend class Symbol;
    friend class Function;
@@ -163,7 +165,11 @@ class Symtab : public LookupInterface,
                                           bool isRegex = false,
                                           bool checkCase = true);
    SYMTAB_EXPORT bool getAllFunctions(std::vector<Function *>&ret);
+
+   //Searches for functions without returning inlined instances
    SYMTAB_EXPORT bool getContainingFunction(Offset offset, Function* &func);
+   //Searches for functions and returns inlined instances
+   SYMTAB_EXPORT bool getContainingInlinedFunction(Offset offset, FunctionBase* &func);
 
    // Variable
    SYMTAB_EXPORT bool findVariableByOffset(Variable *&ret, const Offset offset);
@@ -402,6 +408,9 @@ class Symtab : public LookupInterface,
    bool changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newOffset);
    bool deleteAggregate(Aggregate *agg);
 
+   bool parseFunctionRanges();
+   bool addFunctionRange(FunctionBase *fbase, Dyninst::Offset next_start);
+
    // Used by binaryEdit.C...
  public:
    SYMTAB_EXPORT bool canBeShared();
@@ -599,6 +608,7 @@ class Symtab : public LookupInterface,
    bool isStaticBinary_;
    bool isDefensiveBinary_;
 
+   FuncRangeLookup *func_lookup;
    //Don't use obj_private, use getObject() instead.
  public:
    Object *getObject();
