@@ -1021,7 +1021,7 @@ bool bgq_process::handleStartupEvent(void *data)
       setState(errorstate);
       ReaderThread::get()->clearTimeout();
       getStartupTeardownProcs().dec();
-
+      startup_state = startup_donedone;
       return false;
    }
    else if (data == &no_control_authority_val) {
@@ -3906,6 +3906,8 @@ bool DecoderBlueGeneQ::decode(ArchEvent *ae, vector<Event::ptr> &events)
    struct MessageHeader *header = &msg->header;
 
    int_process *proc = ProcPool()->findProcByPid(header->rank);
+   if (!proc)
+      return false;
    bgq_process *qproc = dynamic_cast<bgq_process *>(proc);
 
    assert(header->service == ToolctlService);
