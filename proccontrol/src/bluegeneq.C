@@ -4339,6 +4339,7 @@ buffer_t ReaderThread::readNextElement(bool block)
    if (is_gen_kicked) {
       is_gen_kicked = false;
       buffer_t ret;
+      queue_lock.unlock();
       return ret;
    }
    buffer_t ret = msgs.front();
@@ -4755,6 +4756,15 @@ static void on_crash(int sig, siginfo_t *, void *context)
    abort();
 }
 
+static void registerIfDefault(int sig, struct sigaction *act)
+{
+   struct sigaction orig;
+   sigaction(sig, NULL, &orig);
+   if (orig.sa_handler != SIG_DFL)
+      return;
+   sigaction(sig, act, NULL);
+}
+
 static void registerSignalHandlers(bool enable)
 {
    struct sigaction action;
@@ -4766,12 +4776,12 @@ static void registerSignalHandlers(bool enable)
       action.sa_flags = SA_SIGINFO;
    }
 
-   sigaction(SIGSEGV, &action, NULL);
-   sigaction(SIGBUS, &action, NULL);
-   sigaction(SIGABRT, &action, NULL);
-   sigaction(SIGILL, &action, NULL);
-   sigaction(SIGQUIT, &action, NULL);
-   sigaction(SIGTERM, &action, NULL);
+   registerIfDefault(SIGSEGV, &action);
+   registerIfDefault(SIGBUS, &action);
+   registerIfDefault(SIGABRT, &action);
+   registerIfDefault(SIGILL, &action);
+   registerIfDefault(SIGQUIT, &action);
+   registerIfDefault(SIGTERM, &action);
 }
 
 void ComputeNode::emergencyShutdown()
