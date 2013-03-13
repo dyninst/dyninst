@@ -3963,8 +3963,7 @@ bool DecoderBlueGeneQ::decode(ArchEvent *ae, vector<Event::ptr> &events)
          assert(0);
    }
 
-#warning Investigate whether this delete is safe
-//   delete archevent;
+   delete archevent;
    return ret_result;
 }
 
