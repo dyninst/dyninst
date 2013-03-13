@@ -984,7 +984,6 @@ void BPatch::registerUnloadedModule(PCProcess *process, mapped_module *mod) {
     BPatch_module *bpmod = bImage->findModule(mod);
     if (bpmod == NULL) return;
 
-    signalNotificationFD();
     
     // For now we use the same callback for load and unload of library....
     if( dynLibraryCallback ) {
@@ -1311,7 +1310,6 @@ bool BPatch::pollForStatusChange()
         return false;
     }
 
-    clearNotificationFD();
 
     if( result == PCEventMuxer::EventsReceived ) {
         proccontrol_printf("[%s:%u] Events received\n", FILE__, __LINE__);
@@ -1368,7 +1366,6 @@ bool BPatch::waitForStatusChange() {
 		return false;
     }
 
-    clearNotificationFD();
 
     if( result == PCEventMuxer::EventsReceived ) {
         proccontrol_printf("%s:[%d] Events received in waitForStatusChange\n", FILE__, __LINE__);
@@ -1816,17 +1813,18 @@ bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB,
 }
 
 bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB, 
-                                              BPatch_Set<long> *signums) {
+                                           BPatch_Set<long> *signums) {
    // This is unfortunate, but our method above takes a std::set<long>,
    // not a std::set<long, comparison<long>>
-  
-
+   
    std::set<long> tmp;
-   std::copy(signums->begin(), signums->end(), std::inserter(tmp, tmp.end()));
-
+   if (NULL == signums || signums->empty())
+	   tmp = std::set<long>();
+   else
+       std::copy(signums->begin(), signums->end(), std::inserter(tmp, tmp.end()));
+   
    return registerSignalHandlerCallback(bpatchCB, tmp);
 }
-
 
 bool BPatch::removeSignalHandlerCallback(BPatchSignalHandlerCallback)
 {
@@ -1863,59 +1861,10 @@ void BPatch::continueIfExists(int pid)
     proc->continueExecution();
 }
 
-////////////// Signal FD functions
-
-void BPatch::signalNotificationFD() {
-#if !defined(os_windows)
-    // If the FDs are set up, write a byte to the input side.
-    createNotificationFD();
-
-    if (notificationFDInput_ == -1) return;
-    if (FDneedsPolling_) return;
-
-    char f = (char) 42;
-
-    int ret = write(notificationFDInput_, &f, sizeof(char));
-
-    if (ret == -1)
-        perror("Notification write");
-    else 
-        FDneedsPolling_ = true;
-#endif
-    return;
-}
-
-void BPatch::clearNotificationFD() {
-#if !defined(os_windows)
-    if (notificationFDOutput_ == -1) return;
-    if (!FDneedsPolling_) return;
-    char buf;
-
-    read(notificationFDOutput_, &buf, sizeof(char));
-    FDneedsPolling_ = false;
-#endif
-    return;
-}
-
-void BPatch::createNotificationFD() {
-#if !defined(os_windows)
-    if (notificationFDOutput_ == -1) {
-        assert(notificationFDInput_ == -1);
-        int pipeFDs[2];
-        pipeFDs[0] = pipeFDs[1] = -1;
-        int ret = pipe(pipeFDs);
-        if (ret == 0) {
-            notificationFDOutput_ = pipeFDs[0];
-            notificationFDInput_ = pipeFDs[1];
-        }
-    }
-#endif
-}
 
 int BPatch::getNotificationFD() {
 #if !defined(os_windows)
-    createNotificationFD();
-    return notificationFDOutput_;
+   return Dyninst::ProcControlAPI::evNotify()->getFD(); 
 #else
     return -1;
 #endif

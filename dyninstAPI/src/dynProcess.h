@@ -358,7 +358,6 @@ protected:
        thread_hash_size(0),
           eventCount_(0),
           tracedSyscalls_(NULL),
-          rtLibLoadHeap_(0),
           mt_cache_result_(not_cached),
           isInDebugSuicide_(false),
           irpcTramp_(NULL),
@@ -397,7 +396,6 @@ protected:
        thread_hash_size(0),
           eventCount_(0),
           tracedSyscalls_(NULL),
-          rtLibLoadHeap_(0),
           mt_cache_result_(not_cached),
           isInDebugSuicide_(false),
           irpcTramp_(NULL),
@@ -441,7 +439,6 @@ protected:
           eventHandler_(parent->eventHandler_),
           eventCount_(0),
           tracedSyscalls_(NULL), // filled after construction
-          rtLibLoadHeap_(parent->rtLibLoadHeap_),
           mt_cache_result_(parent->mt_cache_result_),
           isInDebugSuicide_(parent->isInDebugSuicide_),
           inEventHandling_(false),
@@ -475,15 +472,10 @@ protected:
     // RT library management
     bool loadRTLib();
 
-	bool postRTLoadRPC();
-
-	AstNodePtr createLoadRTAST(); // architecture-specific
     AstNodePtr createUnprotectStackAST(); // architecture-specific
     bool setRTLibInitParams();
     bool instrumentMTFuncs();
     bool initTrampGuard();
-    Address findFunctionToHijack(); // OS-specific
-    bool postRTLoadCleanup(); // architecture-specific
     bool extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record);
     bool iRPCDyninstInit();
     bool registerThread(PCThread *thread);
@@ -611,8 +603,6 @@ protected:
     int eventCount_;
 
     syscallNotification *tracedSyscalls_;
-
-    Address rtLibLoadHeap_;
 
     mt_cache_result_t mt_cache_result_;
 

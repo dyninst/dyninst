@@ -847,13 +847,6 @@ bool PCProcess::loadRTLib() {
    
    if (!pcProc_->addLibrary(dyninstRT_name)) return false;
 
-#if 0
-   if(!postRTLoadRPC())
-   {
-      return false;
-   }
-#endif
-
    bootstrapState_ = bs_loadedRTLib;
 
    // Process the library load (we hope)
@@ -869,12 +862,7 @@ bool PCProcess::loadRTLib() {
 
    startup_printf("%s[%d]: finished running RPC to load RT library\n", FILE__, __LINE__);
    
-   if( !postRTLoadCleanup() ) {
-      startup_printf("%s[%d]: failed to perform cleanup after RT library loaded\n",
-                     FILE__, __LINE__);
-      return false;
-   }
-   
+
    // Initialize some variables in the RT lib
    DYNINST_bootstrapStruct bs_record;
    
@@ -3362,36 +3350,7 @@ void PCProcess::invalidateMTCache() {
     mt_cache_result_ = not_cached;
 }
 
-#if !defined(os_windows)
-bool PCProcess::postRTLoadRPC()
-{
-   // First, generate the code to load the RT lib
-   AstNodePtr loadRTAst = createLoadRTAST();
-   if( loadRTAst == AstNodePtr() ) {
-      startup_printf("%s[%d]: failed to generate code to load RT lib\n", FILE__,
-                     __LINE__);
-      return false;
-   }
-   
-   // on some platforms, this RPC needs to be run from a specific address range
-   Address execAddress = findFunctionToHijack();
-   if( !postIRPC(loadRTAst, 
-                 NULL,  // no user data
-                 false, // don't run after it is done
-                 NULL,  // doesn't matter which thread
-                 true,  // wait for completion
-                 NULL,  // don't need to check result directly
-                 false, // internal RPC
-                 false, // is not a memory allocation RPC
-                 execAddress) ) 
-   {
-      startup_printf("%s[%d]: rpc failed to load RT lib\n", FILE__,
-                     __LINE__);
-      return false;
-   }
-   return true;
-}
-#endif
+
 StackwalkSymLookup::StackwalkSymLookup(PCProcess *p)
   : proc_(p)
 {}

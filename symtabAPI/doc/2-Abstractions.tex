@@ -120,8 +120,8 @@ class owns another, then instances of the owner class maintain an exclusive
 instance of the other. For example, each Symtab class instance contains multiple
 instances of class Symbol and each Symbol class instance belongs to one Symtab
 class instance. Each of four interfaces and the classes belonging to these
-interfaces are described in the rest of the section. The API functions in each
-of the classes are described in detail in Section 6.
+interfaces are described in the rest of this section. The API functions in each
+of the classes are described in detail in Section \ref{sec:symtabAPI}.
 
 \subsection{Symbol Table Interface}
 
@@ -142,7 +142,8 @@ lookup function signatures for both Module and Symtab classes.
 In addition, we define two symbol aggregates, Function and Variable. These classes collect multiple symbols with the same address and type but different names; for example, weak and strong symbols for a single function. 
 
 \subsection{Type Interface}
- The Type interface is responsible for parsing type information from the object file and handling the look-up and addition of new type information. Figure 2 shows the class inheritance diagram for the type interface. Class Type is the base class for all of the classes that are part of the interface. This class provides the basic common functionality for all the types, such as querying the name and size of a type. The rest of the classes represent specific types and provide more functionality based on the type. 
+\label{subsec:typeInterface}
+ The Type interface is responsible for parsing type information from the object file and handling the look-up and addition of new type information. Figure \ref{fig:class-inherit} shows the class inheritance diagram for the type interface. Class Type is the base class for all of the classes that are part of the interface. This class provides the basic common functionality for all the types, such as querying the name and size of a type. The rest of the classes represent specific types and provide more functionality based on the type. 
 
  \begin{figure}
     \centering

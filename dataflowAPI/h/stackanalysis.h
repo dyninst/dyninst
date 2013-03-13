@@ -41,12 +41,7 @@
 #include <string>
 #include <list>
 #include "util.h"
-#include "dynutil/h/dyn_regs.h"
-
-#include "common/h/IntervalTree.h"
-
-// for blockSet...
-//#include "dyninstAPI/src/image-func.h"
+#include "dyn_regs.h"
 
 // To define StackAST
 #include "DynAST.h"
@@ -312,8 +307,7 @@ class StackAnalysis {
     //      the stack pointer and the caller's stack pointer.
     //   c) The "depth" of any aliases of the stack pointer. 
     
-	typedef std::map<Offset, RegisterState> StateIntervals;
-	//typedef class IntervalTree<Offset, RegisterState> StateIntervals;
+    typedef std::map<Offset, RegisterState> StateIntervals;
     typedef std::map<ParseAPI::Block *, StateIntervals> Intervals;
     
     typedef std::map<ParseAPI::Function *, Height> FuncCleanAmounts;
@@ -339,7 +333,7 @@ class StackAnalysis {
     
  private:
     
-	std::string format(const RegisterState &input) const;
+    std::string format(const RegisterState &input) const;
 
     MachRegister sp();
     MachRegister fp();

@@ -50,62 +50,58 @@ bool resolve_libc_name(char *buf)
 #if defined(os_windows_test)
 	return false;
 #else
-	DIR *dirp;
-	struct dirent *dp;
-
-        std::vector<std::string> libc_dirs;
-        libc_dirs.push_back("/lib");
-        // 32-bit ubuntu
-        libc_dirs.push_back("/lib/i386-linux-gnu");
-        // 64-bit ubuntu
-        libc_dirs.push_back("/lib/x86_64-linux-gnu");
-
-        for (unsigned i = 0; i < libc_dirs.size(); ++i) {
-           if (NULL == (dirp = opendir(libc_dirs[i].c_str()))) 
-           {
-              continue;
-           }
-           
-           do {
-              errno = 0;
-              if ((dp = readdir(dirp)) != NULL) {
-                 int nelem = strlen("libc.so");
-                 if ( 0 != strncmp(dp->d_name, "libc.so", nelem))
-                    continue;
-                 
-                 dprintf("found %s\n", dp->d_name);
-                 sprintf(buf, "%s/%s", libc_dirs[i].c_str(), dp->d_name);
-                 closedir(dirp);
-                 return true;
-                 
-              }
-           } while (dp != NULL);
-        }
 	return false;
 #endif
 }
 
 class test_relocations_Mutator : public SymtabMutator {
 	std::vector<relocationEntry> relocs;
-	char libc_name[128];
+	char libc_name[1024];
 	Symtab *libc;
 	std::vector<std::string> expected_libc_relocations;
 
 	bool open_libc()
 	{
-		if (!resolve_libc_name(libc_name))
-		{
-			fprintf(stderr, "%s[%d]:  cannot find libc....\n", FILE__, __LINE__);
-			return false;
-		}
+#if defined(os_windows_test)
+           return false;
+#else
 
-		if (!Symtab::openFile(libc, libc_name))
-		{
-			fprintf(stderr, "%s[%d]:  cannot create libc....\n", FILE__, __LINE__);
-			return false;
-		}
-
-		return true;
+           DIR *dirp;
+           struct dirent *dp;
+           
+           std::vector<std::string> libc_dirs;
+           libc_dirs.push_back("/lib");
+           libc_dirs.push_back("/lib64");
+           // 32-bit ubuntu
+           libc_dirs.push_back("/lib/i386-linux-gnu");
+           // 64-bit ubuntu
+           libc_dirs.push_back("/lib/x86_64-linux-gnu");
+           
+           for (unsigned i = 0; i < libc_dirs.size(); ++i) {
+              if (NULL == (dirp = opendir(libc_dirs[i].c_str()))) {
+                 continue;
+              }
+              
+              do {
+                 errno = 0;
+                 if ((dp = readdir(dirp)) != NULL) {
+                    int nelem = strlen("libc.so");
+                    if ( 0 != strncmp(dp->d_name, "libc.so", nelem))
+                       continue;
+                    dprintf("found %s\n", dp->d_name);
+                    snprintf(libc_name, 1024, "%s/%s", libc_dirs[i].c_str(), dp->d_name);
+                    
+                    // Try this one
+                    if (Symtab::openFile(libc, libc_name)) {
+                       closedir(dirp);
+                       return true;
+                    }
+                 }
+              } while (dp != NULL);
+              closedir(dirp);
+           }
+           return false;
+#endif
 	}
 
 	public:

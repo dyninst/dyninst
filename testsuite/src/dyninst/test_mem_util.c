@@ -534,7 +534,7 @@ unsigned int loadExp = 75;
 unsigned int storeExp = 28;
 unsigned int prefeExp = 2;
 unsigned int accessExp = 103;
-unsigned int accessExpCC = 100;
+unsigned int accessExpCC = 102;
 
 int eaExpOffset[] =    { 0,0,0,0,0,0,0,                             /* 7 initial stack pushes (EA not checked) */
 			 0,0,0,0,0,0,0,0,0,0,0,0,0,                 /* 13 mod=0 loads */
@@ -684,8 +684,9 @@ void init_test_data()
 
   reduceCC(ccRed);
   caps = amd_features();
-  if(!(caps & CAP_3DNOW))
+  if(!(caps & CAP_3DNOW)) {
       reduce(amdRed);
+  }
   caps = ia32features();
   if(!(caps & CAP_SSE2))
       reduce(sse2Red);

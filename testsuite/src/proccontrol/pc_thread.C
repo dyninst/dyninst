@@ -71,6 +71,7 @@ static set<pair<PID, Address> > all_stack_addrs;
 static set<pair<PID, Address> > all_tls;
 static set<PID> all_initial_threads;
 static set<Process::const_ptr> exited_processes;
+static set<PID> all_known_processes;
 
 void pc_threadMutator::registerCB(EventType et, Process::cb_func_t f)
 {
@@ -83,7 +84,9 @@ void pc_threadMutator::registerCB(EventType et, Process::cb_func_t f)
 
 static Process::cb_ret_t proc_exit(Event::const_ptr ev)
 {
-   exited_processes.insert(ev->getProcess());
+   if (all_known_processes.find(ev->getProcess()->getPid()) == 
+       all_known_processes.end())
+      exited_processes.insert(ev->getProcess());
    return Process::cbDefault;
 }
 
@@ -429,6 +432,7 @@ test_results_t pc_threadMutator::executeTest()
 
    for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
       Process::ptr proc = *i;
+      all_known_processes.insert(proc->getPid());
       if (!proc->supportsUserThreadEvents()) {
          logerror("System does not support user thread events\n");
          return SKIPPED;

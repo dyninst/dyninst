@@ -71,8 +71,8 @@ using namespace std;
 static std::string errMsg;
 extern bool parseCompilerType(Object *);
 
-static const int Symtab_major_version = 7;
-static const int Symtab_minor_version = 0;
+static const int Symtab_major_version = 8;
+static const int Symtab_minor_version = 1;
 static const int Symtab_maintenance_version = 0;
 
 

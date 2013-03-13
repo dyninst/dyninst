@@ -66,18 +66,24 @@ CXXFLAGS	+= -m64
 CFLAGS		+= -m64
 endif
 
+ifneq (x$(DESTDIR),x)
+TARGETDIR = $(DESTDIR)/$(prefix)
+else
+TARGETDIR = $(prefix)
+endif
+
 LIBS += ${EXTRA_LIBS}
 
 all: ready parseThat
 
-install: $(prefix)/parseThat
+install: $(TARGETDIR)/parseThat
 
-$(prefix)/parseThat: parseThat
-	@if [ $(prefix) != "." ]; then                           \
-		echo "$(INSTALL) -d $(prefix)";                  \
-		$(INSTALL) -d $(prefix);                         \
-		echo "$(INSTALL) parseThat $(prefix)/parseThat"; \
-		$(INSTALL) parseThat $(prefix)/parseThat;        \
+$(TARGETDIR)/parseThat: parseThat
+	@if [ $(TARGETDIR) != "." ]; then                           \
+		echo "$(INSTALL) -d $(TARGETDIR)";                  \
+		$(INSTALL) -d $(TARGETDIR);                         \
+		echo "$(INSTALL) parseThat $(TARGETDIR)/parseThat"; \
+		$(INSTALL) parseThat $(TARGETDIR)/parseThat;        \
 	fi
 
 clean:

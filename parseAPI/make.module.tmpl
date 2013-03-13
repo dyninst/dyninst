@@ -8,7 +8,7 @@
 
 SUITE_NAME	= ParseAPI
 RELEASE_MAJOR	= 8
-RELEASE_MINOR = 0
+RELEASE_MINOR = 1
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 ifndef TARGET
@@ -91,7 +91,7 @@ SRCS +=	../src/ParserDetails.C \
 
 ifeq (x$(ENABLE_PARSE_API_GRAPHS),xyes)
 SRCS += ../src/GraphAdapter.C
-PUBLIC_H += ../src/GraphAdapter.h
+PUBLIC_H += ../h/GraphAdapter.h
 endif
 
 ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)

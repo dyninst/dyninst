@@ -68,6 +68,14 @@ extern "C" DLLEXPORT  TestMutator *test2_4_factory() {
 // static int mutatorTest(BPatch *bpatch, bool useAttach)
 test_results_t test2_4_Mutator::executeTest() {
     // attach to an a protected pid
+
+#if !defined(os_windows_test)
+   if (getuid() == 0 || geteuid() == 0) {
+      // We're root, there _are_ no protected PIDs
+      return SKIPPED;
+   }
+#endif
+   
     clearError();
     BPatch_process *ret = bpatch->processAttach(NULL, 1);
     int gotError = getError();

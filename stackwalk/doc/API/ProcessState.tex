@@ -99,7 +99,14 @@ Walker *getWalker() const;
 \end{apient}
 \apidesc{Return the \code{Walker} associated with the current process
   state. }
-    
+   
+\begin{apient}
+std::string getExecutablePath();
+\end{apient}
+\apidesc{
+Returns the name of the executable associated with the current process state.
+}
+
 \paragraph{Class LibraryState}
 
 \definedin{procstate.h}

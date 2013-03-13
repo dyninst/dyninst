@@ -105,9 +105,13 @@ test_results_t fucompp_Mutator::executeTest()
         RegisterAST::Ptr r_st0(new RegisterAST(st0));
         RegisterAST::Ptr r_st1(new RegisterAST(st1));
 
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+        expectedRead = { r_st0, r_st1 };
+        expectedWritten = { r_st0, r_st1 };
+#else
         expectedRead = list_of(r_st0)(r_st1);
         expectedWritten = list_of(r_st0)(r_st1);
-  
+#endif  
   
         retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
         decodedInsns.pop_front();

@@ -49,16 +49,17 @@ void Graph::entryNodes(NodeIterator &begin, NodeIterator &end) {
 }
 
 void Graph::exitNodes(NodeIterator &begin, NodeIterator &end) {
+	// std::cerr << "exitNodes called: " << exitNodes_.size() << " nodes" << std::endl;
     begin = NodeIterator(new NodeIteratorSet(exitNodes_.begin()));
     end = NodeIterator(new NodeIteratorSet(exitNodes_.end()));
     return;
 }
 
 void Graph::allNodes(NodeIterator &begin, NodeIterator &end) {
-  //std::cerr << "AllNodes called: " << nodes_.size() << " nodes" << std::endl;
+    // std::cerr << "AllNodes called: " << nodes_.size() << " nodes" << std::endl;
     begin = NodeIterator(new NodeIteratorSet(nodes_.begin()));
-    end = NodeIterator(new NodeIteratorSet(nodes_.end()));
-    return;
+	end = NodeIterator(new NodeIteratorSet(nodes_.end()));
+	return;
 }
 
 bool Graph::find(Address addr, NodeIterator &begin, NodeIterator &end) {
@@ -117,8 +118,8 @@ void Graph::addNode(Node::Ptr node) {
     if (!node->isVirtual()) {
         nodesByAddr_[node->addr()].insert(node);
     }        
-    //std::cerr << "\t\t After addNode: " << nodes_.size() << " nodes" << std::endl;
-    //std::cerr << "\t\t\t adding " << node << std::endl;
+    // std::cerr << "\t\t After addNode: " << nodes_.size() << " nodes" << std::endl;
+    // std::cerr << "\t\t\t adding " << node << std::endl;
 }
 
 

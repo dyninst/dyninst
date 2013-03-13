@@ -1132,6 +1132,7 @@ bool linux_process::plat_supportLWPPostDestroy()
 bool linux_thread::plat_cont()
 {
    pthrd_printf("Continuing thread %d\n", lwp);
+
    switch (getHandlerState().getState()) {
       case neonatal:
       case running:

@@ -3,6 +3,8 @@ AC_INIT([parseThat], [1.0])
 AC_CONFIG_SRCDIR([src/config.C])
 AC_PREFIX_DEFAULT([.])
 AC_CONFIG_AUX_DIR([../autodyninst])
+AC_LANG(C++)
+
 
 AC_SEARCH_LIBS(dlopen, dl)
 

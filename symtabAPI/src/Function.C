@@ -174,7 +174,10 @@ void Function::expandLocation(const VariableLocation &loc,
                                    err);
 
 
-   assert(!FDEs.empty());
+   if (FDEs.empty()) {
+      // Odd, but happens
+      return;
+   }
 
    // This looks surprisingly similar to localVar's version...
    // Perhaps we should unify. 

@@ -1923,7 +1923,7 @@ struct X86InstructionSemantics {
                 ROSE_ASSERT(operands.size() <= 1);
                 ROSE_ASSERT(insn->get_addressSize() == x86_insnsize_32);
                 ROSE_ASSERT(insn->get_operandSize() == x86_insnsize_32);
-                Word(32) extraBytes = (operands.size() == 1 ? read32(operands[0]) : number<32>(0));
+				Word(32) extraBytes = (operands.size() == 1 ? read32(operands[0]) : number<32>(0));
                 Word(32) oldSp = policy.readGPR(x86_gpr_sp);
                 Word(32) newSp = policy.add(oldSp, policy.add(number<32>(4), extraBytes));
                 policy.writeIP(policy.filterReturnTarget(readMemory<32>(x86_segreg_ss, oldSp, policy.true_())));

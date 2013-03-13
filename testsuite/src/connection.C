@@ -490,7 +490,7 @@ bool Connection::server_setup(string &hostname_, int &port_)
    addr.sin_port = 0;
    addr.sin_addr.s_addr = INADDR_ANY;
    
-   int result = bind(sockfd, (struct sockaddr *) &addr, socklen);
+   int result = ::bind(sockfd, (struct sockaddr *) &addr, socklen);
    if (result != 0){
       debug_printf("Unable to bind socket: %s\n", strerror(errno));
       return false;

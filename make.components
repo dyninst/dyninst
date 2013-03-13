@@ -1,5 +1,5 @@
 #Don't add tests or parseThat to Everything
-Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API parseThat
+Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
 
 Common          = dynutil common
 Dwarf           = ${Common} dwarf
@@ -95,11 +95,10 @@ endif # StackwalkerAPI
 endif # SymtabAPI
 endif # default
 
-ifeq (findstring(dyninstAPI,$(fullSystem)),dyninstAPI)
+ifndef DONT_BUILD_NEWTESTSUITE
+ifeq ($(findstring dyninstAPI,$(fullSystem)),dyninstAPI)
 BUILD_PARSETHAT ?= true
 endif
-
-ifndef DONT_BUILD_NEWTESTSUITE
 testsuites += testsuite
 fullSystem += testsuite
 ifeq (x$(BUILD_PARSETHAT),xtrue)
@@ -109,7 +108,6 @@ testsuite: parseThat
 testsuite_install: parseThat_install
 endif
 endif
-
 
 fullSystem_install = $(patsubst %,%_install,$(fullSystem))
 Everything_install = $(patsubst %,%_install,$(Everything))

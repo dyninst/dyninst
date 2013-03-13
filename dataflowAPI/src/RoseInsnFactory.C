@@ -69,27 +69,27 @@ SgAsmInstruction *RoseInsnFactory::convert(const InstructionAPI::Instruction::Pt
   // operand list
   SgAsmOperandList *roperands = new SgAsmOperandList;
   
-  //cerr << "Converting " << insn->format() << " @" << hex << addr << dec << endl;
+  // std::cerr << "Converting " << insn->format(addr) << " @" << std::hex << addr << std::dec << std::endl;
   
-  //cerr << "checking instruction: " << insn->format() << " for special handling" << endl;
+  // std::cerr << "checking instruction: " << insn->format(addr) << " for special handling" << std::endl;
   if (handleSpecialCases(insn->getOperation().getID(), rinsn, roperands)) {
-    rinsn->set_operandList(roperands);
-    return rinsn;
+      rinsn->set_operandList(roperands);
+      return rinsn;
   }
 
-  //cerr << "no special handling by opcode, checking if we should mangle operands..." << endl;
+  // std::cerr << "no special handling by opcode, checking if we should mangle operands..." << std::endl;
   std::vector<InstructionAPI::Operand> operands;
   insn->getOperands(operands);
-  //cerr << "\t " << operands.size() << " operands" << endl;
+  std::cerr << "\t " << operands.size() << " operands" << std::endl;
   massageOperands(insn, operands);
   int i = 0;
-  //cerr << "converting insn " << insn->format() << endl;
+  std::cerr << "converting insn " << insn->format(addr) << std::endl;
   for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin();
        opi != operands.end();
        ++opi, ++i) {
-    InstructionAPI::Operand &currOperand = *opi;
-    //cerr << "Converting operand " << currOperand.format() << endl;
-    roperands->append_operand(convertOperand(currOperand.getValue(), addr));
+      InstructionAPI::Operand &currOperand = *opi;
+      std::cerr << "Converting operand " << currOperand.format(Arch_x86, addr) << std::endl;
+      roperands->append_operand(convertOperand(currOperand.getValue(), addr));
   }  
   rinsn->set_operandList(roperands);
   return rinsn;
@@ -197,6 +197,13 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
   case e_loopn:
       operands.resize(1);
       break;
+  case e_ret_far:
+  case e_ret_near:
+	  if (operands.size() == 2) {
+		  operands[0]=operands[1];
+	  }
+	  operands.resize(1);
+	  break;
   default:
     break;
   }

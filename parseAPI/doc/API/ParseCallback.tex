@@ -8,7 +8,7 @@ instantiation of the default ParseCallback can be passed to the CodeObject durin
 
 \begin{apient}
 struct default_details {
-    default_details(unsigned char*b,size_t s, bool ib) : ibuf(b), isize(s), isbranch(ib) { }
+    default_details(unsigned char * b,size_t s, bool ib);
     unsigned char * ibuf;
     size_t isize;
     bool isbranch;
@@ -18,7 +18,10 @@ struct default_details {
 callbacks.}
 
 \begin{apient}
-virtual void instruction_cb(Function*,Block*,Address,insn_details*)
+virtual void instruction_cb(Function *,
+                            Block *,
+                            Address,
+                            insn_details *)
 \end{apient}
 \apidesc{Invoked for each instruction decoded during parsing. Implementing this callback may incur significant overhead.}
 
@@ -29,7 +32,9 @@ struct insn_details {
 \end{apient}
 
 \begin{apient}
-void interproc_cf(Function*,Address,interproc_details*)
+void interproc_cf(Function *,
+                  Address,
+                  interproc_details *)
 \end{apient}
 \apidesc{Invoked for each interprocedural control flow instruction.}
 
@@ -56,6 +61,7 @@ struct interproc_details {
 \apidesc{Details used in the \code{interproc\_cf} callback.}
 
 \begin{apient}
-void overlapping_blocks(Block*,Block*)
+void overlapping_blocks(Block *,
+                        Block *)
 \end{apient}
 \apidesc{Noification of inconsistent parse data (overlapping blocks).}

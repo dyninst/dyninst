@@ -1383,8 +1383,8 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
          // dest is the displacement from the current value of insn
          // this will need to work for both 32-bits and 64-bits
          // (since there is no JMP rel64)
-         insnCodeGen::generateBranch(gen, dest);
          retval = gen.getIndex();
+         insnCodeGen::generateBranch(gen, dest);
          break;
       }
       case trampPreamble: {
@@ -1605,18 +1605,14 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
    }
 
    if (reg.reg() == REGNUM_ESP) {
-      cerr << "Special handling for REGNUM_ESP!" << endl;
-      assert(0);
       //Special handling for ESP 
       if (dest_r.reg() == -1)
-         dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+          dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
       if (!gen.bt() || gen.bt()->alignedStack) {
-         cerr << "emitting a movRMtoReg..." << endl;
           emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
-      }
-      else {
-         cerr << "Emitting an LEA, no bt or not aligned stack" << endl;
+      } else {
           emitLEA(loc.reg, RealRegister(Null_Register), 0,
                   loc.offset, dest_r, gen);
       }
@@ -1629,7 +1625,7 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
    {
       //Register is still in its pristine state from app, leave it.
       if (dest_r.reg() == -1)
-	gen.rs()->noteVirtualInReal(dest, reg);
+	      gen.rs()->noteVirtualInReal(dest, reg);
       else if (dest_r.reg() != reg.reg())
          emitMovRegToReg(dest_r, reg, gen);
       return dest;

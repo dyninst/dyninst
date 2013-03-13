@@ -5,12 +5,14 @@
 The CodeRegion interface is an accounting structure used to divide CodeSources into distinct regions. This interface is mostly of interest to CodeSource implementors.
 
 \begin{apient}
-void names(Address addr, vector<std::string> & names)
+void names(Address addr,
+           vector<std::string> & names)
 \end{apient}
 \apidesc{Fills the provided vector with any names associated with the function at a given address in the region, e.g. symbol names in an ELF or PE binary.}
 
 \begin{apient}
-virtual bool findCatchBlock(Address addr, Address & catchStart)
+virtual bool findCatchBlock(Address addr,
+                            Address & catchStart)
 \end{apient}
 \apidesc{Finds the exception handler associated with an address, if one exists. This routine is only implemented for binary code sources that support structured exception handling, such as the SymtabAPI-based SymtabCodeSource provided as part of the ParseAPI.}
 

@@ -89,7 +89,6 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
          proccontrol_printf("[%s:%d] Failed to handle event, returning error\n", FILE__, __LINE__);
          return Error;
       }
-      BPatch::bpatch->signalNotificationFD();
       return EventsReceived;
    }
    else {
@@ -106,7 +105,6 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
      }
      proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
      if (!handle(NULL)) return Error;
-     BPatch::bpatch->signalNotificationFD();
      return EventsReceived;
    }
    proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning\n", FILE__, __LINE__);
