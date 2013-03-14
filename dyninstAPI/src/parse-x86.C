@@ -190,45 +190,63 @@ static const std::string DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
 static const std::string DYNINST_DTOR_LIST("DYNINSTdtors_addr");
 static const std::string SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
 static const std::string SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
+static const std::string LIBC_IREL_HANDLER("__libc_csu_irel");
+static const std::string DYNINST_IREL_HANDLER("DYNINSTglobal_irel_handler");
+static const std::string DYNINST_IREL_START("DYNINSTirel_start");
+static const std::string DYNINST_IREL_END("DYNINSTirel_end");
+static const std::string SYMTAB_IREL_START("__SYMTABAPI_IREL_START__");
+static const std::string SYMTAB_IREL_END("__SYMTABAPI_IREL_END__");
+
 
 static bool replaceHandler(func_instance *origHandler, func_instance *newHandler, 
-        int_symbol *newList, const std::string &listRelName)
-{
+			   std::vector<std::pair<int_symbol *, std::string> > &reloc_replacements) {
     // Add instrumentation to replace the function
    // TODO: this should be a function replacement!
    // And why the hell is it in parse-x86.C?
    origHandler->proc()->replaceFunction(origHandler, newHandler);
-   //origHandler->proc()->relocate();
-    /* PatchAPI stuffs */
-    AddressSpace::patch(origHandler->proc());
-    /* End of PatchAPI stuffs */
+   AddressSpace::patch(origHandler->proc());
 
-    
-    /* create the special relocation for the new list -- search the RT library for
-     * the symbol
-     */
-    Symbol *newListSym = const_cast<Symbol *>(newList->sym());
-    
-    std::vector<Region *> allRegions;
-    if( !newListSym->getSymtab()->getAllRegions(allRegions) ) {
-        return false;
-    }
+   for (auto iter = reloc_replacements.begin(); iter != reloc_replacements.end(); ++iter) {
+     int_symbol *newList = iter->first;
+     std::string listRelName = iter->second;
 
-    bool success = false;
-    std::vector<Region *>::iterator reg_it;
-    for(reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
-        std::vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
-        vector<relocationEntry>::iterator rel_it;
-        for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
-            if( rel_it->getDynSym() == newListSym ) {
-                relocationEntry *rel = &(*rel_it);
-                rel->setName(listRelName);
-                success = true;
-            }
-        }
-    }
+     /* create the special relocation for the new list -- search the RT library for
+      * the symbol
+      */
+     Symbol *newListSym = const_cast<Symbol *>(newList->sym());
+     
+     std::vector<Region *> allRegions;
+     if( !newListSym->getSymtab()->getAllRegions(allRegions) ) {
+       return false;
+     }
+     
+     std::vector<Region *>::iterator reg_it;
+     bool found = false;
+     for(reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
+       std::vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
+       vector<relocationEntry>::iterator rel_it;
+       for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
+	 if( rel_it->getDynSym() == newListSym ) {
+	   relocationEntry *rel = &(*rel_it);
+	   rel->setName(listRelName);
+	   found = true;
+	 }
+       }
+     }
+     if (!found) {
+       return false;
+     }
+   }
 
-    return success;
+   return true;
+}
+
+
+static bool replaceHandler(func_instance *origHandler, func_instance *newHandler,
+			   int_symbol *sym, std::string name) {
+  std::vector<std::pair<int_symbol *, std::string> > tmp;
+  tmp.push_back(make_pair(sym, name));
+  return replaceHandler(origHandler, newHandler, tmp);
 }
 
 bool BinaryEdit::doStaticBinarySpecialCases() {
@@ -318,6 +336,39 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
                 FILE__, __LINE__, LIBC_DTOR_HANDLER.c_str(),
                 DYNINST_DTOR_HANDLER.c_str());
     }
+
+    /*
+     * Replace the irel handler with our extended version, since they
+     * hard-code ALL THE OFFSETS in the function
+     */
+    func_instance *globalIrelHandler = findOnlyOneFunction(LIBC_IREL_HANDLER);
+    func_instance *dyninstIrelHandler = findOnlyOneFunction(DYNINST_IREL_HANDLER);
+    int_symbol irelStart;
+    int_symbol irelEnd;
+    bool irs_found = false;
+    bool ire_found = false;
+    for (auto iter = rtlib.begin(); iter != rtlib.end(); ++iter) {
+      if( (*rtlib_it)->getSymbolInfo(DYNINST_IREL_START, irelStart) ) {
+	irs_found = true;
+      }
+      
+      if( (*rtlib_it)->getSymbolInfo(DYNINST_IREL_END, irelEnd) ) {
+	ire_found = true;
+      }
+      if (irs_found && ire_found) break;
+    }
+    if (globalIrelHandler) {
+      assert(dyninstIrelHandler);
+      assert(irs_found);
+      assert(ire_found);
+      std::vector<std::pair<int_symbol *, string> > tmp;
+      tmp.push_back(make_pair(&irelStart, SYMTAB_IREL_START));
+      tmp.push_back(make_pair(&irelEnd, SYMTAB_IREL_END));
+      if (!replaceHandler(globalIrelHandler, dyninstIrelHandler, tmp)) {
+	return false;
+      }
+    }
+
 
     /*
      * Special Case 2: Issue a warning if attempting to link pthreads into a binary
@@ -605,5 +656,6 @@ func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHa
 
     return ret;
 }
+
 
 #endif

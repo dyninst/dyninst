@@ -31,6 +31,8 @@
 #if defined(DYNINST_RT_STATIC_LIB)
 void (*DYNINSTctors_addr)(void);
 void (*DYNINSTdtors_addr)(void);
+void *DYNINSTirel_start;
+void *DYNINSTirel_end;
 
 #if defined(MUTATEE64)
 static const unsigned long long CTOR_LIST_TERM = 0x0000000000000000ULL;
@@ -45,6 +47,13 @@ static const unsigned DTOR_LIST_START = 0xffffffff;
 #endif
 
 extern void DYNINSTBaseInit();
+
+typedef struct {
+  long *offset;
+  long info;
+  long (*ptr)(void);
+} rela_t;
+
 
 /*
  * When rewritting a static binary, .ctors and .dtors sections of
@@ -89,6 +98,16 @@ void DYNINSTglobal_dtors_handler() {
         (*tmp_ptr)();
         tmp_ptr++;
     }
+}
+
+void DYNINSTglobal_irel_handler() {
+  rela_t *rel = 0;
+  for (rel = (rela_t *)(&DYNINSTirel_start); rel != (rela_t *)(&DYNINSTirel_end); ++rel) {
+    long result = 0;
+    if (rel->info != 0x25) continue;
+    result = (rel->ptr());
+    *(rel->offset) = result;
+  }
 }
 
 #endif

@@ -143,6 +143,26 @@ class LinkMap {
         // Keep track of changes made to symbols and relocations
         vector< pair<Symbol *, Offset> > origSymbols;
         vector< pair<relocationEntry *, Symbol *> > origRels;
+
+	// GNU extension: indirect functions and IRELATIV relocations
+	// We basically create mini-PLT entries for load-time 
+	// decisions of which function to call
+	Offset pltRegionOffset;
+	Offset pltSize;
+	Offset pltRegionAlign;
+	// First Offset: offset of the PLT stub. 
+	// Second Offset: offset of the GOT entry referenced by the stub. 
+	std::map<Symbol *, std::pair<Offset, Offset> > pltEntries;
+	std::map<Symbol *, Offset> pltEntriesInGOT;
+
+	// GNU extension: create a new rel section
+	Offset relRegionOffset;
+	Offset relSize;
+	Offset relRegionAlign;
+	// With a GOT-equivalent
+	Offset relGotRegionOffset;
+	Offset relGotSize;
+	Offset relGotRegionAlign;
 };
 
 } // SymtabAPI

@@ -1866,6 +1866,9 @@ static Symbol::SymbolType pdelf_type(int elf_type)
   case STT_TLS:    return Symbol::ST_TLS;
   case STT_FUNC:   return Symbol::ST_FUNCTION;
   case STT_NOTYPE: return Symbol::ST_NOTYPE;
+#if defined(STT_GNU_IFUNC)
+  case STT_GNU_IFUNC: return Symbol::ST_INDIRECT;
+#endif
   default: return Symbol::ST_UNKNOWN;
   }
 }
