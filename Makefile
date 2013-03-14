@@ -203,7 +203,7 @@ pkgconfig:
 	$(HIDE_COMP)echo "Name: dyninst" >> dyninst.pc
 	$(HIDE_COMP)echo "Description: DyninstAPI binary instrumentation library" >> dyninst.pc
 	$(HIDE_COMP)echo "Requires: libelf, libdwarf" >> dyninst.pc
-	$(HIDE_COMP)echo "Version: 8.1.0" >> dyninst.pc
+	$(HIDE_COMP)echo "Version: 8.1.1" >> dyninst.pc
 	$(HIDE_COMP)echo "Cflags: $(PKGCONFIG_CFLAGS)" >> dyninst.pc
 	$(HIDE_COMP)echo "Libs: $(PKGCONFIG_LIBS)" >> dyninst.pc
 	$(HIDE_COMP)echo "Creating dyninst.pc pkgconfig file"

@@ -2,7 +2,7 @@ dnl == process this file with autoconf to produce a configure script ==
 
 
 AC_PREREQ(2.63)
-AC_INIT([Dyninst], [8.1], [bugs@dyninst.org], [dyninst])
+AC_INIT([Dyninst], [8.1.1], [bugs@dyninst.org], [dyninst])
 AC_LANG(C++)
 
 AC_PREFIX_DEFAULT(/usr)
