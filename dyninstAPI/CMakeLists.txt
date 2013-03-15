@@ -90,25 +90,72 @@ set (SRC_LIST
      src/Relocation/DynCFGMaker.C 
      src/Relocation/DynInstrumenter.C 
      src/Patching.C
+     src/frameChecker.C
+     src/BPatch_memoryAccessAdapter.C
 )
+
+# This is just .. messy. Sorry.
+
+if (PLATFORM MATCHES i386)
+set (SRC_LIST ${SRC_LIST} src/cpuid.S)
+endif ()
+
+if (PLATFORM MATCHES i386 OR PLATFORM MATCHES amd64 OR PLATFORM MATCHES x86_64)
+set (SRC_LIST ${SRC_LIST}
+     src/RegisterConversion-x86.C
+     src/Relocation/Widgets/CFWidget-x86.C
+     src/inst-x86.C
+     src/emit-x86.C
+     src/codegen-x86.C
+     src/stackwalk-x86.C
+     src/dynProcess-x86.C
+     src/parse-x86.C 
+     src/IAPI_to_AST.C 
+)
+elseif (PLATFORM MATCHES ppc)
+set (SRC_LIST ${SRC_LIST}
+     src/inst-power.C 
+     src/codegen-power.C 
+     src/parse-power.C 
+     src/RegisterConversion-ppc.C 
+     src/stackwalk-ppc.C
+     src/Relocation/Widgets/CFWidget-ppc.C
+)
+endif ()
+
+if (PLATFORM MATCHES freebsd)
+set (SRC_LIST ${SRC_LIST} 
+     src/freebsd.C
+     src/unix.C
+     src/freebsd-x86.C
+     src/syscall-freebsd.C
+)
+elseif (PLATFORM MATCHES linux OR PLATFORM MATCHES bgq)
+set (SRC_LIST ${SRC_LIST}
+     src/linux.C
+     src/inst-linux.C
+     src/unix.C
+     src/syscall-linux.C
+)
+  if (PLATFORM MATCHES i386 OR PLATFORM MATCHES x86_64)
+    set (SRC_LIST ${SRC_LIST} src/linux-x86.C)
+  elseif (PLATFORM MATCHES ppc)
+    set (SRC_LIST ${SRC_LIST} src/linux-power.C)
+  endif()
+endif()
 
 add_library (dyninstAPI ${SRC_LIST})
 
+target_link_libraries (dyninstAPI stackwalker)
 target_link_libraries (dyninstAPI pcontrol)
+target_link_libraries (dyninstAPI patchAPI)
+target_link_libraries (dyninstAPI parseAPI)
+target_link_libraries (dyninstAPI symtabAPI)
 
 if (UNIX)
 target_link_libraries (dyninstAPI ${LIBELF_LIBRARIES})
 target_link_libraries (dyninstAPI ${LIBDWARF_LIBRARIES})
 endif()
 
-if (LIGHTWEIGHT_SYMTAB)
-target_link_libraries(dyninstAPI symLite)
-else()
-target_link_libraries(dyninstAPI symtabAPI)
-endif()
-
-if (SW_ANALYSIS_STEPPER)
-target_link_libraries(dyninstAPI parseAPI)
-endif()
 
 INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")

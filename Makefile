@@ -256,6 +256,32 @@ pcontrol/fast:
 	$(MAKE) -f proccontrol/CMakeFiles/pcontrol.dir/build.make proccontrol/CMakeFiles/pcontrol.dir/build
 .PHONY : pcontrol/fast
 
+#=============================================================================
+# Target rules for targets named stackwalker
+
+# Build rule for target.
+stackwalker: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 stackwalker
+.PHONY : stackwalker
+
+# fast build rule for target.
+stackwalker/fast:
+	$(MAKE) -f stackwalk/CMakeFiles/stackwalker.dir/build.make stackwalk/CMakeFiles/stackwalker.dir/build
+.PHONY : stackwalker/fast
+
+#=============================================================================
+# Target rules for targets named dyninstAPI
+
+# Build rule for target.
+dyninstAPI: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dyninstAPI
+.PHONY : dyninstAPI
+
+# fast build rule for target.
+dyninstAPI/fast:
+	$(MAKE) -f dyninstAPI/CMakeFiles/dyninstAPI.dir/build.make dyninstAPI/CMakeFiles/dyninstAPI.dir/build
+.PHONY : dyninstAPI/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -277,6 +303,8 @@ help:
 	@echo "... parseAPI"
 	@echo "... patchAPI"
 	@echo "... pcontrol"
+	@echo "... stackwalker"
+	@echo "... dyninstAPI"
 .PHONY : help
 
 
