@@ -423,8 +423,7 @@ void AddressSpace::initializeHeap() {
    "block", otherwise returns false
 */
 bool AddressSpace::isInferiorAllocated(Address block) {
-   heapItem *h = NULL;  
-   return heap_.heapActive.find(block, h);
+   return (heap_.heapActive.find(block) != heap_.heapActive.end());
 }
 
 Address AddressSpace::inferiorMallocInternal(unsigned size,
@@ -473,15 +472,14 @@ Address AddressSpace::inferiorMallocInternal(unsigned size,
 void AddressSpace::inferiorFreeInternal(Address block) {
    // find block on active list
    infmalloc_printf("%s[%d]: inferiorFree for block at 0x%lx\n", FILE__, __LINE__, block);
-   heapItem *h = NULL;  
-   if (!heap_.heapActive.find(block, h)) {
-      // We can do this if we're at process teardown.
-      return;
-   }
+
+   auto iter = heap_.heapActive.find(block);
+   if (iter == heap_.heapActive.end()) return;
+   heapItem *h = iter->second;
    assert(h);
-    
+
    // Remove from the active list
-   heap_.heapActive.undef(block);
+   heap_.heapActive.erase(iter);
     
    // Add to the free list
    h->status = HEAPfree;
@@ -515,13 +513,13 @@ bool AddressSpace::inferiorReallocInternal(Address block, unsigned newSize) {
    infmalloc_printf("%s[%d]: inferiorRealloc for block 0x%lx, new size %d\n",
                     FILE__, __LINE__, block, newSize);
 
-   // find block on active list
-   heapItem *h = NULL;  
-   if (!heap_.heapActive.find(block, h)) {
+   auto iter = heap_.heapActive.find(block);
+   if (iter == heap_.heapActive.end()) {
       // We can do this if we're at process teardown.
       infmalloc_printf("%s[%d]: inferiorRealloc unable to find block, returning\n", FILE__, __LINE__);
       return false;
    }
+   heapItem *h = iter->second;
    assert(h);
    infmalloc_printf("%s[%d]: inferiorRealloc found block with addr 0x%lx, length %d\n",
                     FILE__, __LINE__, h->addr, h->length);

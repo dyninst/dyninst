@@ -36,7 +36,7 @@
 
 #include <limits.h>
 #include "common/h/headers.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"

@@ -337,39 +337,6 @@ typeCollection::~typeCollection()
     // We sometimes directly delete (refcount == 1) or go through the
     // decRefCount (which will delete when refcount == 0)
     // delete all of the types
-    // This doesn't seem to work - jkh 1/31/00
-#if 0
-    dictionary_hash_iter<std::string, type *> ti(typesByName);
-    dictionary_hash_iter<int, type *> tid(typesByID);
-    dictionary_hash_iter<std::string, type *> gi(globalVarsByName);
-    
-    std::string      gname; 
-    std::string	name;
-    type	*type;
-    int         id;
-    while (tid.next(id, type))
-        delete type;
-    
-    
-    // Underlying types deleted already just need to get rid of pointers
-    while (ti.next(name, type))
-        type = NULL;
-    
-    // delete globalVarsByName collection
-    while (gi.next(name, type))
-        delete type;
-    
-    for (dictionary_hash_iter<int, type *> it = typesByID.begin();
-         it != typesByID.end();
-         it ++) {
-        (*it)->decrRefCount();
-    }
-    for (dictionary_hash_iter<std::string, type *> it2 = typesByName.begin();
-         it2 != typesByName.end();
-         it2 ++) {
-        (*it2)->decrRefCount();
-    }
-#endif    
 }
 
 /*

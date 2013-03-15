@@ -370,12 +370,12 @@ void func_instance::debugPrint() const {
 // Add to mapped_object if a "new" name (true return from internal)
 void func_instance::addSymTabName(const std::string name, bool isPrimary) {
     if (ifunc()->addSymTabName(name, isPrimary))
-        obj()->addFunctionName(this, name, mapped_object::mangledName);
+       obj()->addFunctionName(this, name, obj()->allFunctionsByMangledName);
 }
 
 void func_instance::addPrettyName(const std::string name, bool isPrimary) {
     if (ifunc()->addPrettyName(name, isPrimary))
-        obj()->addFunctionName(this, name, mapped_object::prettyName);
+       obj()->addFunctionName(this, name, obj()->allFunctionsByPrettyName);
 }
 
 // Dig down to the low-level block of b, find the low-level functions

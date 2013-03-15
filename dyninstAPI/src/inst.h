@@ -35,7 +35,7 @@
 
 #include <string>
 #include "common/h/Vector.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "opcode.h" // enum opCode now defined here.
 #include "common/h/Types.h"
 #include "codegen.h" // codeBufIndex_t 
@@ -254,7 +254,7 @@ extern unsigned findTags(const std::string funcName);
 extern Address getMaxBranch();
 
 // find these internal functions before finding any other functions
-// extern dictionary_hash<std::string, unsigned> tagDict;
+// extern std::unordered_map<std::string, unsigned> tagDict;
 extern std::map<std::string, unsigned> primitiveCosts; 
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f);

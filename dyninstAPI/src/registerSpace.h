@@ -38,7 +38,7 @@
 #include <map>
 #include <set>
 #include "common/h/Vector.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "common/h/Types.h"
 #include "inst.h" // callWhen...
 
@@ -431,8 +431,7 @@ class registerSpace {
 
     // This structure is permanently tainted by its association with
     // virtual registers...
-    typedef dictionary_hash_iter<Register, registerSlot *> regDictIter;
-    dictionary_hash<Register, registerSlot *> registers_;
+    std::unordered_map<Register, registerSlot *> registers_;
 
     std::map<Register, registerSlot *> physicalRegisters_;
 

@@ -39,7 +39,7 @@
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "common/h/pathName.h"
 #include "common/h/debugOstream.h"
 

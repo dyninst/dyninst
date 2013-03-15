@@ -36,16 +36,14 @@ using namespace Dyninst;
 
 // create a new inferior heap that is a copy of src. This is used when a process
 // we are tracing forks.
-inferiorHeap::inferiorHeap(const inferiorHeap &src):
-    heapActive(addrHash16)
+inferiorHeap::inferiorHeap(const inferiorHeap &src)
 {
     for (unsigned u1 = 0; u1 < src.heapFree.size(); u1++) {
       heapFree.push_back(new heapItem(src.heapFree[u1]));
     }
 
-    pdvector<heapItem *> items = src.heapActive.values();
-    for (unsigned u2 = 0; u2 < items.size(); u2++) {
-      heapActive[items[u2]->addr] = new heapItem(items[u2]);
+    for (auto iter = src.heapActive.begin(); iter != src.heapActive.end(); ++iter) {
+       heapActive[iter->first] = new heapItem(*(iter->second));
     }
     
     for (unsigned u3 = 0; u3 < src.disabledList.size(); u3++) {
@@ -64,12 +62,9 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
 
 // For exec/process deletion
 void inferiorHeap::clear() {
-    Address addr;
-    heapItem *heapItemPtr;
-
-    dictionary_hash_iter<Address, heapItem *> activeIter(heapActive);
-    while (activeIter.next(addr, heapItemPtr))
-        delete heapItemPtr;
+    for (auto iter = heapActive.begin(); iter != heapActive.end(); ++iter) {
+       delete iter->second;
+    }
     heapActive.clear();
     
     for (unsigned i = 0; i < heapFree.size(); i++)

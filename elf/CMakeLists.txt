@@ -23,4 +23,6 @@ add_library (dynElf ${SRC_LIST})
 target_link_libraries (dynElf ${LIBELF_LIBRARIES})
 
 INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+INSTALL (TARGETS dynElf
+        LIBRARY DESTINATION lib)
 

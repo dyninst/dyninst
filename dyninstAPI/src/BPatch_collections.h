@@ -33,7 +33,7 @@
 
 #include <string>
 #include "BPatch_type.h"     //type and localVar
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "common/h/List.h"
 #include "dynutil/h/util.h"
 
@@ -46,10 +46,10 @@
  */
 class BPatch_localVarCollection{
   
-  dictionary_hash<std::string, BPatch_localVar *> localVariablesByName;
+  std::unordered_map<std::string, BPatch_localVar *> localVariablesByName;
 
 public:
-  BPatch_localVarCollection(): localVariablesByName(::Dyninst::stringhash){};
+  BPatch_localVarCollection() {};
   ~BPatch_localVarCollection();
 
   void addLocalVar(BPatch_localVar * var);
@@ -67,9 +67,9 @@ class BPatch_typeCollection {
     friend class BPatch_image;
     friend class BPatch_module;
 
-    dictionary_hash<std::string, BPatch_type *> typesByName;
-    dictionary_hash<std::string, BPatch_type *> globalVarsByName;
-    dictionary_hash<int, BPatch_type *> typesByID;
+    std::unordered_map<std::string, BPatch_type *> typesByName;
+    std::unordered_map<std::string, BPatch_type *> globalVarsByName;
+    std::unordered_map<int, BPatch_type *> typesByID;
 
     ~BPatch_typeCollection();
 
@@ -79,7 +79,7 @@ class BPatch_typeCollection {
     // DWARF:
     /* Cache type collections on a per-image basis.  (Since
        BPatch_functions are solitons, we don't have to cache them.) */
-    static dictionary_hash< std::string, BPatch_typeCollection * > fileToTypesMap;
+    static std::unordered_map< std::string, BPatch_typeCollection * > fileToTypesMap;
 
     // DWARF...
     bool dwarfParsed_;
@@ -126,8 +126,8 @@ public:
 
 class BPatch_builtInTypeCollection {
    
-    dictionary_hash<std::string, BPatch_type *> builtInTypesByName;
-    dictionary_hash<int, BPatch_type *> builtInTypesByID;
+    std::unordered_map<std::string, BPatch_type *> builtInTypesByName;
+    std::unordered_map<int, BPatch_type *> builtInTypesByID;
 public:
 
     BPatch_builtInTypeCollection();

@@ -40,7 +40,7 @@
 #include "common/h/arch.h" // instruction
 #include "codeRange.h"
 #include "parRegion.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "symtabAPI/h/Symbol.h"
 #include "bitArray.h"
 #include "InstructionCache.h"

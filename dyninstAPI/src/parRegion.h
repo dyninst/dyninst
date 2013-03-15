@@ -39,7 +39,7 @@
 #include "codeRange.h"
 #include "common/h/arch.h" // instruction
 #include "dyninstAPI/h/BPatch_parRegion.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include <map>
 
 class mapped_module;

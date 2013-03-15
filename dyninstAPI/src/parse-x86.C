@@ -33,7 +33,7 @@
  */
 
 #include "common/h/Vector.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "common/h/Vector.h"
 #include "parse-cfg.h"
 #include "instPoint.h"

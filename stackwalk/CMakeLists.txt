@@ -49,3 +49,5 @@ target_link_libraries(stackwalker parseAPI)
 endif()
 
 INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+INSTALL (TARGETS stackwalker
+        LIBRARY DESTINATION lib)

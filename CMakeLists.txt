@@ -1,6 +1,9 @@
 cmake_minimum_required (VERSION 2.6)
 project (Dyninst)
 
+set (SOVERSION "8.1")
+set (LIBVERSION "8.1.1")
+
 set (PLATFORM $ENV{PLATFORM})
 
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules")
@@ -49,3 +52,16 @@ add_subdirectory (patchAPI)
 add_subdirectory (proccontrol)
 add_subdirectory (stackwalk)
 add_subdirectory (dyninstAPI)
+add_subdirectory (dyninstAPI_RT)
+
+SET_TARGET_PROPERTIES (
+   common dynElf dynDwarf instructionAPI symtabAPI symLite parseAPI
+   patchAPI pcontrol stackwalker dyninstAPI dyninstAPI_RT
+   PROPERTIES
+     SOVERSION ${SOVERSION}
+     VERSION ${LIBVERSION}
+)
+
+# RTlib properties are set in its CMakeLists.txt; it seems
+# like multiple set_target_properties calls override instead
+# of accumulating

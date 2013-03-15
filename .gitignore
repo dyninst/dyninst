@@ -77,3 +77,7 @@ ipch/*
 *.diff
 *.msi
 *.tlog
+*/CMakeFiles
+*/lib*.so*
+*/lib*.a
+CMakeFiles

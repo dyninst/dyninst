@@ -82,3 +82,10 @@ if (PLATFORM MATCHES cnl)
 endif()  
 
 add_library (common ${SRC_LIST})
+
+if (${IBERTY_LIBRARY} MATCHES iberty)
+target_link_libraries (common ${IBERTY_LIBRARY})
+endif()
+
+INSTALL (TARGETS common
+        LIBRARY DESTINATION lib)

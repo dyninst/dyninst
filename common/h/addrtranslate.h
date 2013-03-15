@@ -35,7 +35,7 @@
 #include <vector>
 #include <utility>
 
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "common/h/Types.h"
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/SymReader.h"

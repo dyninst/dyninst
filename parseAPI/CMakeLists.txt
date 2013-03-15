@@ -18,6 +18,7 @@ set (SRC_LIST
         src/InstructionAdapter.C
         src/Parser-speculative.C
         src/ParseCallback.C 
+        src/IA_IAPI.C
         src/IA_x86Details.C 
         src/IA_powerDetails.C 
         src/IA_platformDetailsFactory.C 
@@ -44,13 +45,24 @@ set (SRC_LIST
         ../dataflowAPI/src/Visitors.C 
     )
 
+if (PLATFORM MATCHES amd64 OR PLATFORM MATCHES i386 OR PLATFORM
+MATCHES x86_64)
+set (SRC_LIST ${SRC_LIST}
+     src/IA_x86.C
+)
+elseif (PLATFORM MATCHES ppc)
+set (SRC_LIST ${SRC_LIST}
+     src/IA_power.C
+)
+endif()
+
 if (ENABLE_PARSE_API_GRAPHS)
 set (SRC_LIST ${SRC_LIST}
      src/GraphAdapter.C
     )
 endif()
 
-if (LIGHTWEIGHT_SYMTAB)
+if (NOT ${LIGHTWEIGHT_SYMTAB})
 set (SRC_LIST ${SRC_LIST}
     src/SymtabCodeSource.C
     )
@@ -65,7 +77,7 @@ if (UNIX)
 target_link_libraries(parseAPI ${LIBELF_LIBRARIES})
 endif()
 
-if (LIGHTWEIGHT_SYMTAB)
+if (${LIGHTWEIGHT_SYMTAB})
 target_link_libraries(parseAPI symLite)
 else()
 target_link_libraries(parseAPI symtabAPI)
@@ -74,3 +86,5 @@ endif()
 
 
 INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+INSTALL (TARGETS parseAPI
+        LIBRARY DESTINATION lib)

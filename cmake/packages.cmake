@@ -2,7 +2,7 @@ if (UNIX)
 
 find_package (LibElf REQUIRED)
 find_package (LibDwarf REQUIRED)
-
+find_package (LibIberty REQUIRED)
 include_directories (
                     ${LIBELF_INCLUDE_DIR}
                     ${LIBDWARF_INCLUDE_DIR}

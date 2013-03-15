@@ -1304,7 +1304,6 @@ image::image(fileDescriptor &desc,
              BPatch_hybridMode mode, 
              bool parseGaps) :
    desc_(desc),
-   activelyParsing(addrHash4),
    is_libdyninstRT(false),
    is_a_out(false),
    main_call_addr_(0),
@@ -1316,7 +1315,6 @@ image::image(fileDescriptor &desc,
    parse_cb_(NULL),
    nextBlockID_(0),
    pltFuncs(NULL),
-   varsByAddr(addrHash4),
    trackNewBlocks_(false),
    refCount(1),
    parseState_(unparsed),
@@ -2049,7 +2047,7 @@ bool image::findSymByPrefix(const std::string &prefix, pdvector<Symbol *> &ret) 
 	return true;	
 }
 
-dictionary_hash<Address, std::string> *image::getPltFuncs()
+std::unordered_map<Address, std::string> *image::getPltFuncs()
 {
    bool result;
    if (pltFuncs)
@@ -2061,7 +2059,7 @@ dictionary_hash<Address, std::string> *image::getPltFuncs()
    if (!result)
       return NULL;
 
-   pltFuncs = new dictionary_hash<Address, std::string>(addrHash);
+   pltFuncs = new std::unordered_map<Address, std::string>;
    assert(pltFuncs);
    for(unsigned k = 0; k < fbt.size(); k++) {
 #if defined(os_vxworks)
@@ -2091,8 +2089,8 @@ void image::getPltFuncs(std::map<Address, std::string> &out)
 image_variable* image::createImageVariable(Offset offset, std::string name, int size, pdmodule *mod)
 {
     // What to do here?
-    if (varsByAddr.defines(offset))
-        return varsByAddr[offset];
+   auto iter = varsByAddr.find(offset);
+   if (iter != varsByAddr.end()) return iter->second;
 
     Variable *sVar = getObject()->createVariable(name, offset, size, mod->mod());
 

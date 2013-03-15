@@ -282,6 +282,58 @@ dyninstAPI/fast:
 	$(MAKE) -f dyninstAPI/CMakeFiles/dyninstAPI.dir/build.make dyninstAPI/CMakeFiles/dyninstAPI.dir/build
 .PHONY : dyninstAPI/fast
 
+#=============================================================================
+# Target rules for targets named dyninstAPI_RT
+
+# Build rule for target.
+dyninstAPI_RT: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dyninstAPI_RT
+.PHONY : dyninstAPI_RT
+
+# fast build rule for target.
+dyninstAPI_RT/fast:
+	$(MAKE) -f dyninstAPI_RT/CMakeFiles/dyninstAPI_RT.dir/build.make dyninstAPI_RT/CMakeFiles/dyninstAPI_RT.dir/build
+.PHONY : dyninstAPI_RT/fast
+
+#=============================================================================
+# Target rules for targets named dyninstAPI_RT_m32
+
+# Build rule for target.
+dyninstAPI_RT_m32: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dyninstAPI_RT_m32
+.PHONY : dyninstAPI_RT_m32
+
+# fast build rule for target.
+dyninstAPI_RT_m32/fast:
+	$(MAKE) -f dyninstAPI_RT/CMakeFiles/dyninstAPI_RT_m32.dir/build.make dyninstAPI_RT/CMakeFiles/dyninstAPI_RT_m32.dir/build
+.PHONY : dyninstAPI_RT_m32/fast
+
+#=============================================================================
+# Target rules for targets named dyninstAPI_RT_m32_static
+
+# Build rule for target.
+dyninstAPI_RT_m32_static: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dyninstAPI_RT_m32_static
+.PHONY : dyninstAPI_RT_m32_static
+
+# fast build rule for target.
+dyninstAPI_RT_m32_static/fast:
+	$(MAKE) -f dyninstAPI_RT/CMakeFiles/dyninstAPI_RT_m32_static.dir/build.make dyninstAPI_RT/CMakeFiles/dyninstAPI_RT_m32_static.dir/build
+.PHONY : dyninstAPI_RT_m32_static/fast
+
+#=============================================================================
+# Target rules for targets named dyninstAPI_RT_static
+
+# Build rule for target.
+dyninstAPI_RT_static: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dyninstAPI_RT_static
+.PHONY : dyninstAPI_RT_static
+
+# fast build rule for target.
+dyninstAPI_RT_static/fast:
+	$(MAKE) -f dyninstAPI_RT/CMakeFiles/dyninstAPI_RT_static.dir/build.make dyninstAPI_RT/CMakeFiles/dyninstAPI_RT_static.dir/build
+.PHONY : dyninstAPI_RT_static/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -305,6 +357,10 @@ help:
 	@echo "... pcontrol"
 	@echo "... stackwalker"
 	@echo "... dyninstAPI"
+	@echo "... dyninstAPI_RT"
+	@echo "... dyninstAPI_RT_m32"
+	@echo "... dyninstAPI_RT_m32_static"
+	@echo "... dyninstAPI_RT_static"
 .PHONY : help
 
 

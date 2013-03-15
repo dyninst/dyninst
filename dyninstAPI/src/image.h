@@ -53,7 +53,7 @@
 #include "dyninstAPI/h/BPatch_enums.h"
 
 #include "common/h/Vector.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "common/h/List.h"
 #include "common/h/Types.h"
 
@@ -257,13 +257,13 @@ class image_variable {
 /* Stores source code to address in text association for modules */
 class lineDict {
  public:
-   lineDict() : lineMap(uiHash) { }
+   lineDict()  { }
    ~lineDict() { /* TODO */ }
    void setLineAddr (unsigned line, Address addr) { lineMap[line] = addr; }
    inline bool getLineAddr (const unsigned line, Address &adr);
 
  private:
-   dictionary_hash<unsigned, Address> lineMap;
+   std::unordered_map<unsigned, Address> lineMap;
 };
 
 std::string getModuleName(std::string constraint);
@@ -422,7 +422,7 @@ class image : public codeRange {
 
    void * getErrFunc() const { return (void *) dyninst_log_perror; }
 
-   dictionary_hash<Address, std::string> *getPltFuncs();
+   std::unordered_map<Address, std::string> *getPltFuncs();
    void getPltFuncs(std::map<Address, std::string> &out);
 #if defined(arch_power)
    bool updatePltFunc(parse_func *caller_func, Address stub_targ);
@@ -451,8 +451,8 @@ class image : public codeRange {
    bool determineImageType();
    bool addSymtabVariables();
 
-   void getModuleLanguageInfo(dictionary_hash<std::string, SymtabAPI::supportedLanguages> *mod_langs);
-   void setModuleLanguages(dictionary_hash<std::string, SymtabAPI::supportedLanguages> *mod_langs);
+   void getModuleLanguageInfo(std::unordered_map<std::string, SymtabAPI::supportedLanguages> *mod_langs);
+   void setModuleLanguages(std::unordered_map<std::string, SymtabAPI::supportedLanguages> *mod_langs);
 
    // We have a _lot_ of lookup types; this handles proper entry
    void enterFunctionInTables(parse_func *func);
@@ -477,7 +477,7 @@ class image : public codeRange {
    Address dataOffset_;
    unsigned dataLen_;
 
-   dictionary_hash<Address, parse_func *> activelyParsing;
+   std::unordered_map<Address, parse_func *> activelyParsing;
 
    //Address codeValidStart_;
    //Address codeValidEnd_;
@@ -529,9 +529,9 @@ class image : public codeRange {
 
    // "Function" symbol names that are PLT entries or the equivalent
    // FIXME remove
-   dictionary_hash<Address, std::string> *pltFuncs;
+   std::unordered_map<Address, std::string> *pltFuncs;
 
-   dictionary_hash <Address, image_variable *> varsByAddr;
+   std::unordered_map <Address, image_variable *> varsByAddr;
 
    vector<pair<string, Address> > codeHeaps_;
    vector<pair<string, Address> > dataHeaps_;
@@ -591,12 +591,10 @@ class pdmodule {
 };
 
 inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
-   if (!lineMap.defines(line)) {
-      return false;
-   } else {
-      adr = lineMap[line];
-      return true;
-   }
+   auto iter = lineMap.find(line);
+   if (iter == lineMap.end()) return false;
+   adr = iter->second;
+   return true;
 }
 
 class BPatch_basicBlock;

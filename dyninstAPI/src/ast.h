@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <string>
 #include "common/h/Vector.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "common/h/Types.h"
 
 #include "Point.h"
@@ -121,9 +121,9 @@ public:
 	
 	static unsigned astHash(AstNode * const &ast);
 
-	regTracker_t() : condLevel(0), tracker(astHash) {};
+  regTracker_t() : condLevel(0) {};
 
-	dictionary_hash<AstNode *, commonExpressionTracker> tracker;
+	std::unordered_map<AstNode *, commonExpressionTracker> tracker;
 
 	void addKeptRegister(codeGen &gen, AstNode *n, Register reg);
 	void removeKeptRegister(codeGen &gen, AstNode *n);

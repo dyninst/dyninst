@@ -29,3 +29,5 @@ target_link_libraries(patchAPI parseAPI)
 
 
 INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+INSTALL (TARGETS patchAPI
+        LIBRARY DESTINATION lib)

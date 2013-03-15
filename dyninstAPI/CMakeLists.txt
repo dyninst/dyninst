@@ -153,9 +153,13 @@ target_link_libraries (dyninstAPI parseAPI)
 target_link_libraries (dyninstAPI symtabAPI)
 
 if (UNIX)
+target_link_libraries (dyninstAPI dynElf)
+target_link_libraries (dyninstAPI dynDwarf)
 target_link_libraries (dyninstAPI ${LIBELF_LIBRARIES})
 target_link_libraries (dyninstAPI ${LIBDWARF_LIBRARIES})
+target_link_libraries (dyninstAPI pthread)
 endif()
 
-
 INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+INSTALL (TARGETS dyninstAPI
+        LIBRARY DESTINATION lib)

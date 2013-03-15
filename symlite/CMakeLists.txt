@@ -16,4 +16,6 @@ add_library (symLite ${SRC_LIST})
 target_link_libraries (symLite ${LIBELF_LIBRARIES})
 
 INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+INSTALL (TARGETS symLite
+        LIBRARY DESTINATION lib)
 

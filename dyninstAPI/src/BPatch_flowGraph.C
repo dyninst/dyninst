@@ -38,7 +38,7 @@
 
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "common/h/Pair.h"
 
 #include "BPatch_process.h"

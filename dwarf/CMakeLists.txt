@@ -19,4 +19,6 @@ add_library (dynDwarf ${SRC_LIST})
 target_link_libraries (dynDwarf ${LIBDWARF_LIBRARIES})
 
 INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+INSTALL (TARGETS dynDwarf
+        LIBRARY DESTINATION lib)
 

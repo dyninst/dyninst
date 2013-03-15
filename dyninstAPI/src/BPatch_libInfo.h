@@ -34,19 +34,16 @@
 #include <sys/types.h>
 #include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/h/BPatch_point.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "common/h/Types.h"
 #include "dynutil/h/util.h"
 #include "util.h"
 
 class BPatch_libInfo {
 public:
-   dictionary_hash<int, BPatch_process *> procsByPid;
+   std::unordered_map<int, BPatch_process *> procsByPid;
    BPatch_libInfo() : 
-       procsByPid(intHash),
-       stopThreadIDCounter_(0),
-       stopThreadCallbacks_(addrHash),
-       monitoredPoints_(addrHash)
+       stopThreadIDCounter_(0)
     {}
 
    bool registerMonitoredPoint(BPatch_point *point);
@@ -56,8 +53,8 @@ public:
 
 protected:
    int stopThreadIDCounter_;
-   dictionary_hash<Address, unsigned> stopThreadCallbacks_;
-   dictionary_hash<Address, BPatch_point *> monitoredPoints_;
+   std::unordered_map<Address, unsigned> stopThreadCallbacks_;
+   std::unordered_map<Address, BPatch_point *> monitoredPoints_;
 };
 
 #endif /* _BPatch_libInfo_h_ */

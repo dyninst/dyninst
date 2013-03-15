@@ -72,3 +72,5 @@ target_link_libraries(pcontrol symLite)
 endif()
 
 INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+INSTALL (TARGETS pcontrol
+        LIBRARY DESTINATION lib)

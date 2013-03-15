@@ -56,14 +56,9 @@
  */
 BPatch_localVarCollection::~BPatch_localVarCollection()
 {
-   dictionary_hash_iter<std::string, BPatch_localVar *> li(localVariablesByName);
-       
-   std::string	         name;
-   BPatch_localVar	*localVar;
-
-   // delete localVariablesByName collection
-   while (li.next(name, localVar))
-	delete localVar;
+   for (auto iter = localVariablesByName.begin(); iter != localVariablesByName.end(); ++iter) {
+      delete iter->second;
+   }
 }
 
 /*
@@ -86,10 +81,9 @@ void BPatch_localVarCollection::addLocalVar(BPatch_localVar * var){
  */
 BPatch_localVar * BPatch_localVarCollection::findLocalVar(const char *name){
 
-	if (localVariablesByName.defines(name) )
-		return localVariablesByName[name];
-	else
-		return (BPatch_localVar *)NULL;
+   auto iter = localVariablesByName.find(name);
+   if (iter == localVariablesByName.end()) return NULL;
+   return iter->second;
 }
 
 /*
@@ -97,22 +91,17 @@ BPatch_localVar * BPatch_localVarCollection::findLocalVar(const char *name){
  * this function returns all the local variables in the collection.
  */
 BPatch_Vector<BPatch_localVar *> *BPatch_localVarCollection::getAllVars() {
-    dictionary_hash_iter<std::string, BPatch_localVar *> li(localVariablesByName);
-
-    std::string name;
-    BPatch_localVar *localVar;
-
     BPatch_Vector<BPatch_localVar *> *localVarVec = new BPatch_Vector<BPatch_localVar *>;
 
-    // get all local vars in the localVariablesByName collection
-    while (li.next(name, localVar))
-	localVarVec->push_back(localVar);
+   for (auto iter = localVariablesByName.begin(); iter != localVariablesByName.end(); ++iter) {
+      localVarVec->push_back(iter->second);
+   }
 
     return localVarVec;
 }
   
 // Could be somewhere else... for DWARF-work.
-dictionary_hash<std::string, BPatch_typeCollection * > BPatch_typeCollection::fileToTypesMap(::Dyninst::stringhash);
+std::unordered_map<std::string, BPatch_typeCollection * > BPatch_typeCollection::fileToTypesMap;
 
 /*
  * Reference count
@@ -130,15 +119,15 @@ BPatch_typeCollection *BPatch_typeCollection::getModTypeCollection(BPatch_module
     assert( moduleImage != NULL );
 #if defined(cap_dwarf)
     // TODO: can we use this on other platforms as well?    
-    if( fileToTypesMap.defines( moduleImage->fullName().c_str() ) ) {
-        BPatch_typeCollection *cachedTC = fileToTypesMap [ moduleImage->fullName().c_str() ];
-        cachedTC->refcount++;
-        return cachedTC;
+    auto iter = fileToTypesMap.find(moduleImage->fullName());
+    if (iter != fileToTypesMap.end()) {
+       iter->second->refcount++;
+       return iter->second;
     }
 #endif
 
     BPatch_typeCollection *newTC = new BPatch_typeCollection();
-    fileToTypesMap[moduleImage->fullName().c_str()] = newTC;
+    fileToTypesMap[moduleImage->fullName()] = newTC;
     newTC->refcount++;
     return newTC;
 }
@@ -147,14 +136,13 @@ void BPatch_typeCollection::freeTypeCollection(BPatch_typeCollection *tc) {
     assert(tc);
     tc->refcount--;
     if (tc->refcount == 0) {
-        dictionary_hash_iter<std::string, BPatch_typeCollection *> iter(fileToTypesMap);
-        for (; iter; iter++) {
-            if (iter.currval() == tc) {
-                fileToTypesMap.undef(iter.currkey());
-                break;
-            }
-        }
-        delete tc;
+       for (auto iter = fileToTypesMap.begin(); iter != fileToTypesMap.end(); ++iter) {
+          if (iter->second == tc) {
+             fileToTypesMap.erase(iter);
+             break;
+          }
+       }
+       delete tc;
     }
 }
 
@@ -165,9 +153,6 @@ void BPatch_typeCollection::freeTypeCollection(BPatch_typeCollection *tc) {
  * for the type, by Name and ID.
  */
 BPatch_typeCollection::BPatch_typeCollection():
-    typesByName(::Dyninst::stringhash),
-    globalVarsByName(::Dyninst::stringhash),
-    typesByID(intHash),
     refcount(0),
     dwarfParsed_(false)
 {
@@ -186,40 +171,6 @@ BPatch_typeCollection::~BPatch_typeCollection()
     // decRefCount (which will delete when refcount == 0)
     assert(refcount == 0 ||
            refcount == 1);
-    // delete all of the types
-    // This doesn't seem to work - jkh 1/31/00
-#if 0
-    dictionary_hash_iter<std::string, BPatch_type *> ti(typesByName);
-    dictionary_hash_iter<int, BPatch_type *> tid(typesByID);
-    dictionary_hash_iter<std::string, BPatch_type *> gi(globalVarsByName);
-    
-    std::string      gname; 
-    std::string	name;
-    BPatch_type	*type;
-    int         id;
-    while (tid.next(id, type))
-        delete type;
-    
-    
-    // Underlying types deleted already just need to get rid of pointers
-    while (ti.next(name, type))
-        type = NULL;
-    
-    // delete globalVarsByName collection
-    while (gi.next(name, type))
-        delete type;
-    
-    for (dictionary_hash_iter<int, BPatch_type *> it = typesByID.begin();
-         it != typesByID.end();
-         it ++) {
-        (*it)->decrRefCount();
-    }
-    for (dictionary_hash_iter<std::string, BPatch_type *> it2 = typesByName.begin();
-         it2 != typesByName.end();
-         it2 ++) {
-        (*it2)->decrRefCount();
-    }
-#endif    
 }
 
 /*
@@ -234,49 +185,52 @@ BPatch_typeCollection::~BPatch_typeCollection()
  */
 BPatch_type *BPatch_typeCollection::findType(const char *name)
 {
-    if (typesByName.defines(name))
-    	return typesByName[name];
-    else {
-       if (BPatch::bpatch && BPatch::bpatch->builtInTypes)
-          return BPatch::bpatch->builtInTypes->findBuiltInType(name);
-       else
-          return NULL;
-    }
+   auto iter = typesByName.find(name);
+   if (iter != typesByName.end()) {
+      return iter->second;
+   }
+   else {
+      if (BPatch::bpatch && BPatch::bpatch->builtInTypes)
+         return BPatch::bpatch->builtInTypes->findBuiltInType(name);
+      else
+         return NULL;
+   }
 }
 
 BPatch_type *BPatch_typeCollection::findTypeLocal(const char *name)
 {
-   if (typesByName.defines(name))
-      return typesByName[name];
-   else
-      return NULL;
+   auto iter = typesByName.find(name);
+   if (iter != typesByName.end()) return iter->second;
+   return NULL;
 }
 
 BPatch_type *BPatch_typeCollection::findTypeLocal(const int &ID)
 {
-   if (typesByID.defines(ID))
-      return typesByID[ID];
-   else
-      return NULL;
+   auto iter = typesByID.find(ID);
+   if (iter != typesByID.end()) return iter->second;
+   return NULL;
 }
 
 
 BPatch_type * BPatch_typeCollection::findOrCreateType( const int & ID ) {
-    if( typesByID.defines(ID) ) { return typesByID[ID]; }
+   auto iter = typesByID.find(ID);
+   if (iter != typesByID.end()) {
+      return iter->second;
+   }
 
-    BPatch_type * returnType = NULL;
-    if( BPatch::bpatch && BPatch::bpatch->builtInTypes ) {
-        returnType = BPatch::bpatch->builtInTypes->findBuiltInType(ID);
-    }
-
-    if( returnType == NULL ) {
-        /* Create a placeholder type. */
-        returnType = BPatch_type::createPlaceholder(ID);
-	assert( returnType != NULL );
-
-        /* Having created the type, add it. */
-        addType( returnType );
-    }
+   BPatch_type * returnType = NULL;
+   if( BPatch::bpatch && BPatch::bpatch->builtInTypes ) {
+      returnType = BPatch::bpatch->builtInTypes->findBuiltInType(ID);
+   }
+   
+   if( returnType == NULL ) {
+      /* Create a placeholder type. */
+      returnType = BPatch_type::createPlaceholder(ID);
+      assert( returnType != NULL );
+      
+      /* Having created the type, add it. */
+      addType( returnType );
+   }
   
     return returnType;
 } /* end findOrCreateType() */
@@ -298,12 +252,6 @@ BPatch_type * BPatch_typeCollection::addOrUpdateType( BPatch_type * type ) {
         if (*existingType == *type) {
            return existingType;
         }
-#ifdef notdef
-	//#if defined( cap_dwarf )
-        /* Replace the existing type wholesale. */
-        // bperr( "Updating existing type '%s' %d at %p with %p\n", type->getName(), type->getID(), existingType, type );
-	memmove( existingType, type, sizeof( BPatch_type ) );
-#else
         if (existingType->getDataClass() == BPatch_dataUnknownType) {
            typesByID[type->getID()] = type;
            type->incrRefCount();
@@ -313,18 +261,17 @@ BPatch_type * BPatch_typeCollection::addOrUpdateType( BPatch_type * type ) {
            /* Merge the type information. */
 //           existingType->merge(type);  //TODO - change
         }
-#endif
     /* The type may have gained a name. */
     if( existingType->getName() != NULL) {
-       if (typesByName.defines(existingType->getName())) {
-          if (typesByName[ existingType->getName() ] != existingType) {
+       auto iter = typesByName.find(existingType->getName());
+       if (iter == typesByName.end()) {
+          typesByName[ existingType->getName() ] = existingType;
+          existingType->incrRefCount();
+       }
+       else if (iter->second != existingType) {
              typesByName[ existingType->getName() ]->decrRefCount();
              typesByName[ existingType->getName() ] = existingType;
              existingType->incrRefCount();
-          }
-       } else {
-          typesByName[ existingType->getName() ] = existingType;
-          existingType->incrRefCount();
        }
     }
 
@@ -335,16 +282,16 @@ BPatch_type * BPatch_typeCollection::addOrUpdateType( BPatch_type * type ) {
 
 BPatch_type *BPatch_typeCollection::findType(const int & ID)
 {
-    if (typesByID.defines(ID))
-    	return typesByID[ID];
-    else {
-	BPatch_type *ret = NULL;
-	
-	if (BPatch::bpatch && BPatch::bpatch->builtInTypes) 
-	    ret = BPatch::bpatch->builtInTypes->findBuiltInType(ID);
-
-	return ret;
-    }
+   auto iter = typesByID.find(ID);
+   if (iter != typesByID.end()) return iter->second;
+   else {
+      BPatch_type *ret = NULL;
+      
+      if (BPatch::bpatch && BPatch::bpatch->builtInTypes) 
+         ret = BPatch::bpatch->builtInTypes->findBuiltInType(ID);
+      
+      return ret;
+   }
 }
 
 /*
@@ -358,10 +305,11 @@ BPatch_type *BPatch_typeCollection::findType(const int & ID)
  */
 BPatch_type *BPatch_typeCollection::findVariableType(const char *name)
 {
-    if (globalVarsByName.defines(name))
-    	return globalVarsByName[name];
-    else
-	return (BPatch_type *) NULL;
+   auto iter = globalVarsByName.find(name);
+   if (iter != globalVarsByName.end()) {
+      return iter->second;
+   }
+   return NULL;
 }
 
 /*
@@ -389,10 +337,10 @@ void BPatch_typeCollection::addType(BPatch_type *type)
 }
 
 void BPatch_typeCollection::clearNumberedTypes() {
-   for (dictionary_hash_iter<int, BPatch_type *> it = typesByID.begin();
+   for (auto it = typesByID.begin();
         it != typesByID.end();
         it ++) {
-      (*it)->decrRefCount();
+      it->second->decrRefCount();
    }
    typesByID.clear();
 }
@@ -406,9 +354,7 @@ void BPatch_typeCollection::clearNumberedTypes() {
  *  XXX- Don't know if a collection is needed for types by name, but
  * it is created just in case. jdd 4/21/99
  */
-BPatch_builtInTypeCollection::BPatch_builtInTypeCollection():
-  builtInTypesByName(::Dyninst::stringhash),
-  builtInTypesByID(intHash)
+BPatch_builtInTypeCollection::BPatch_builtInTypeCollection()
 {
   /* Initialize hash tables: builtInTypesByName, builtInTypesByID */
 }
@@ -421,19 +367,13 @@ BPatch_builtInTypeCollection::BPatch_builtInTypeCollection():
  */
 BPatch_builtInTypeCollection::~BPatch_builtInTypeCollection()
 {
-    dictionary_hash_iter<std::string, BPatch_type *> bit(builtInTypesByName);
-    dictionary_hash_iter<int, BPatch_type *> bitid(builtInTypesByID);
-     
-      std::string	name;
-    int         id;
-    BPatch_type	*type;
 
-    // delete builtInTypesByName collection
-    while (bit.next(name, type))
-	type->decrRefCount();
-    // delete builtInTypesByID collection
-    while (bitid.next(id, type))
-	type->decrRefCount();
+   for (auto iter = builtInTypesByName.begin(); iter != builtInTypesByName.end(); ++iter) {
+      iter->second->decrRefCount();
+   }
+   for (auto iter = builtInTypesByID.begin(); iter != builtInTypesByID.end(); ++iter) {
+      iter->second->decrRefCount();
+   }
 }
 
 
@@ -449,18 +389,16 @@ BPatch_builtInTypeCollection::~BPatch_builtInTypeCollection()
  */
 BPatch_type *BPatch_builtInTypeCollection::findBuiltInType(const char *name)
 {
-    if (builtInTypesByName.defines(name))
-    	return builtInTypesByName[name];
-    else
-	return (BPatch_type *)NULL;
+   auto iter = builtInTypesByName.find(name);
+   if (iter != builtInTypesByName.end()) return iter->second;
+   return NULL;
 }
 
 BPatch_type *BPatch_builtInTypeCollection::findBuiltInType(const int & ID)
 {
-    if (builtInTypesByID.defines(ID))
-    	return builtInTypesByID[ID];
-    else
-	return (BPatch_type *)NULL;
+   auto iter = builtInTypesByID.find(ID);
+   if (iter != builtInTypesByID.end()) return iter->second;
+   return NULL;
 }
 
 void BPatch_builtInTypeCollection::addBuiltInType(BPatch_type *type)

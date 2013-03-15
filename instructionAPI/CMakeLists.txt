@@ -24,3 +24,5 @@ add_library (instructionAPI ${SRC_LIST})
 target_link_libraries (instructionAPI common)
 
 INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+INSTALL (TARGETS instructionAPI
+        LIBRARY DESTINATION lib)

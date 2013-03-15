@@ -36,7 +36,8 @@
 #define infHeap_h
 
 #include <string>
-#include "common/h/Dictionary.h"
+#include <vector>
+#include <unordered_map>
 #include "common/h/Types.h"
 #include "dynutil/h/util.h"
 #include "util.h"
@@ -49,7 +50,7 @@ typedef enum { textHeap=0x01,
                anyHeap=0x7, // OR of the previous three
                lowmemHeap=0x1000 }
         inferiorHeapType;
-typedef pdvector<Address> addrVecType;
+typedef std::vector<Address> addrVecType;
 
 class heapItem {
  public:
@@ -106,7 +107,7 @@ class disabledItem {
  public:
   disabledItem() : block() {}
 
-  disabledItem(heapItem *h, const pdvector<addrVecType> &preds) :
+  disabledItem(heapItem *h, const std::vector<addrVecType> &preds) :
     block(h), pointsToCheck(preds) {}
   disabledItem(const disabledItem &src) :
     block(src.block), pointsToCheck(src.pointsToCheck) {}
@@ -122,12 +123,12 @@ class disabledItem {
  ~disabledItem() {}
   
   heapItem block;                    // inferior heap block
-  pdvector<addrVecType> pointsToCheck; // list of addresses to check against PCs
+  std::vector<addrVecType> pointsToCheck; // list of addresses to check against PCs
 
   Address getPointer() const {return block.addr;}
   inferiorHeapType getHeapType() const {return block.type;}
-  const pdvector<addrVecType> &getPointsToCheck() const {return pointsToCheck;}
-  pdvector<addrVecType> &getPointsToCheck() {return pointsToCheck;}
+  const std::vector<addrVecType> &getPointsToCheck() const {return pointsToCheck;}
+  std::vector<addrVecType> &getPointsToCheck() {return pointsToCheck;}
 };
 
 /* Dyninst heap class */
@@ -169,19 +170,19 @@ class inferiorHeap {
  public:
     void clear();
     
-  inferiorHeap(): heapActive(Dyninst::addrHash16) {
+  inferiorHeap() {
       freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
   }
   inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy
                                           // of src (used on fork)
-  dictionary_hash<Address, heapItem*> heapActive; // active part of heap 
-  pdvector<heapItem*> heapFree;           // free block of data inferior heap 
-  pdvector<disabledItem> disabledList;    // items waiting to be freed.
+  std::unordered_map<Address, heapItem*> heapActive; // active part of heap 
+  std::vector<heapItem*> heapFree;           // free block of data inferior heap 
+  std::vector<disabledItem> disabledList;    // items waiting to be freed.
   int disabledListTotalMem;             // total size of item waiting to free
   int totalFreeMemAvailable;            // total free memory in the heap
   int freed;                            // total reclaimed (over time)
 
-  pdvector<heapItem *> bufferPool;        // distributed heap segments -- csserra
+  std::vector<heapItem *> bufferPool;        // distributed heap segments -- csserra
 };
  
 #endif

@@ -692,9 +692,9 @@ Address BinaryEdit::maxAllocedAddr() {
    inferiorFreeCompact();
    Address hi = lowWaterMark_;
 
-   for (dictionary_hash<Address, heapItem *>::iterator iter = heap_.heapActive.begin();
+   for (auto iter = heap_.heapActive.begin();
         iter != heap_.heapActive.end(); ++iter) {
-      Address localHi = (*iter)->addr + (*iter)->length;
+      Address localHi = iter->second->addr + iter->second->length;
       if (localHi > hi) hi = localHi;
    }
    return hi;

@@ -3151,7 +3151,7 @@ bool AstScrambleRegistersNode::usesAppRegister() const
 
 void regTracker_t::addKeptRegister(codeGen &gen, AstNode *n, Register reg) {
 	assert(n);
-	if (tracker.find(n)) {
+	if (tracker.find(n) != tracker.end()) {
 		assert(tracker[n].keptRegister == reg);
 		return;
 	}
@@ -3163,33 +3163,31 @@ void regTracker_t::addKeptRegister(codeGen &gen, AstNode *n, Register reg) {
 }
 
 void regTracker_t::removeKeptRegister(codeGen &gen, AstNode *n) {
-	if (!tracker.find(n)) {
-		return;
-	}
-	gen.rs()->unKeepRegister(tracker[n].keptRegister);
-	tracker.undef(n);
+   auto iter = tracker.find(n);
+   if (iter == tracker.end()) return;
+
+   gen.rs()->unKeepRegister(iter->second.keptRegister);
+   tracker.erase(iter);
 }
 
 Register regTracker_t::hasKeptRegister(AstNode *n) {
-	if (tracker.find(n))
-		return tracker[n].keptRegister;
-	return REG_NULL;	
+   auto iter = tracker.find(n);
+   if (iter == tracker.end())
+      return REG_NULL;
+   else return iter->second.keptRegister;
 }
 
 // Find if the given register is "owned" by an AST node,
 // and if so nuke it.
 
 bool regTracker_t::stealKeptRegister(Register r) {
-	AstNode *a;
-	commonExpressionTracker c;
 	ast_printf("STEALING kept register %d for someone else\n", r);
-	dictionary_hash_iter<AstNode *, commonExpressionTracker> reg_iter(tracker);
-        while (reg_iter.next(a, c)) {
-            if (c.keptRegister == r) {
-                tracker.undef(a);
-                return true;
-            }
-	}
+        for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
+           if (iter->second.keptRegister == r) {
+              tracker.erase(iter);
+              return true;
+           }
+        }
 	fprintf(stderr, "Odd - couldn't find kept register %d\n", r);
 	return true;
 }
@@ -3204,21 +3202,21 @@ void regTracker_t::increaseConditionalLevel() {
 	ast_printf("Entering conditional branch, level now %d\n", condLevel);
 }
 
-void regTracker_t::decreaseAndClean(codeGen &gen) {
-    AstNode *a;
-    commonExpressionTracker c;
+void regTracker_t::decreaseAndClean(codeGen &) {
+
     assert(condLevel > 0);
     
     ast_printf("Exiting from conditional branch, level currently %d\n", condLevel);
     
-    dictionary_hash_iter<AstNode *, commonExpressionTracker> reg_iter(tracker);
-    while (reg_iter.next(a, c)) {
-        if (c.keptLevel == condLevel) {
-            tracker.undef(a);
-            gen.rs()->unKeepRegister(c.keptRegister);
-            ast_printf("Removing kept register %d, level %d, for AST %p\n", 
-                       c.keptRegister, c.keptLevel, a);
-        }
+    std::vector<AstNode *> delete_list;
+
+    for (auto iter = tracker.begin(); iter != tracker.end();) {
+       if (iter->second.keptLevel == condLevel) {
+          iter = tracker.erase(iter);
+       }
+       else {
+          ++iter;
+       }
     }
     
     condLevel--;
@@ -3235,13 +3233,9 @@ void regTracker_t::debugPrint() {
     
     fprintf(stderr, "Condition level: %d\n", condLevel);
     
-    AstNode *a;
-    commonExpressionTracker c;
-    
-    dictionary_hash_iter<AstNode *, commonExpressionTracker> reg_iter(tracker);
-    while (reg_iter.next(a, c)) {
-        fprintf(stderr, "AstNode %p: register %d, condition level %d\n",
-                a, c.keptRegister, c.keptLevel);
+    for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
+       fprintf(stderr, "AstNode %p: register %d, condition level %d\n",
+               iter->first, iter->second.keptRegister, iter->second.keptLevel);
     }	
     fprintf(stderr, "==== End debug dump of register tracker ====\n");
 }
