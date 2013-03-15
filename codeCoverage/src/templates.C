@@ -60,14 +60,14 @@ template struct comparison<FunctionCoverage*>;
 template class BPatch_Set<FunctionCoverage*>;
 
 template class pdvector<BPFunctionList*>;
-template class dictionary_hash<pdstring,BPFunctionList*>;
-template class pdvector<dictionary_hash<pdstring,BPFunctionList*>::entry>;
+template class std::unordered_map<pdstring,BPFunctionList*>;
+template class pdvector<std::unordered_map<pdstring,BPFunctionList*>::entry>;
 
 template class pdvector<FunctionCoverage*>;
-template class dictionary_hash<pdstring,FunctionCoverage*>;
-template class pdvector<dictionary_hash<pdstring,FunctionCoverage*>::entry>;
+template class std::unordered_map<pdstring,FunctionCoverage*>;
+template class pdvector<std::unordered_map<pdstring,FunctionCoverage*>::entry>;
 
 class Statistic;
 #include <string>
-template class dictionary_hash<std::string, Statistic *>;
+template class std::unordered_map<std::string, Statistic *>;
 /** end of the template class initialization */

@@ -17,6 +17,47 @@ set (SRC_LIST
     src/sw_pcontrol.C  
 )
 
+if (PLATFORM MATCHES freebsd)
+set (SRC_LIST ${SRC_LIST}
+     src/freebsd-swk.C 
+     src/x86-swk.C
+     src/symtab-swk.C 
+     src/dbginfo-stepper.C 
+     src/x86-wanderer.C 
+     src/linuxbsd-swk.C
+     src/linuxbsd-x86-swk.C 
+     src/freebsd-x86-swk.C
+)
+elseif (PLATFORM MATCHES linux OR PLATFORM MATCHES freebsd)
+set (SRC_LIST ${SRC_LIST}
+     src/symtab-swk.C 
+     src/dbginfo-stepper.C 
+     src/linuxbsd-swk.C 
+     src/linux-swk.C
+)
+if (PLATFORM MATCHES ppc)
+set (SRC_LIST ${SRC_LIST}
+     src/linux-ppc-swk.C 
+     src/ppc-swk.C
+)
+elseif (PLATFORM MATCHES i386 OR PLATFORM MATCHES x86_64)
+set (SRC_LIST ${SRC_LIST}
+     src/linux-x86-swk.C 
+     src/x86-wanderer.C 
+     src/linuxbsd-x86-swk.C 
+     src/x86-swk.C 
+)
+endif()
+elseif (PLATFORM MATCHES bgq)
+set (SRC_LIST ${SRC_LIST}
+    src/ppc-swk.C 
+    src/symtab-swk.C 
+    src/linuxbsd-swk.C
+    src/bluegeneq-swk.C
+)
+endif()
+
+
 if (SW_ANALYSIS_STEPPER)
 set (SRC_LIST ${SRC_LIST}
      src/analysis_stepper.C

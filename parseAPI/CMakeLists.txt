@@ -48,10 +48,12 @@ set (SRC_LIST
 if (PLATFORM MATCHES amd64 OR PLATFORM MATCHES i386 OR PLATFORM
 MATCHES x86_64)
 set (SRC_LIST ${SRC_LIST}
+     src/InstructionSource-x86.C
      src/IA_x86.C
 )
 elseif (PLATFORM MATCHES ppc)
 set (SRC_LIST ${SRC_LIST}
+     src/InstructionSource-power.C
      src/IA_power.C
 )
 endif()

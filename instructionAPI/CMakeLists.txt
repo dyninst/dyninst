@@ -16,6 +16,7 @@ set (SRC_LIST
      src/InstructionCategories.C 
      src/Immediate.C 
      src/InstructionDecoder.C 
+     src/InstructionDecoder-x86.C
      src/InstructionDecoder-power.C 
      src/InstructionDecoderImpl.C
   )

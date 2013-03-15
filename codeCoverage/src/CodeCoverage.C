@@ -70,9 +70,9 @@ public:
 };
 
 /** mapping from function name to linked list of functions with the same name */
-dictionary_hash<pdstring,BPFunctionList*>* allFunctionsHash = NULL;
+std::unordered_map<pdstring,BPFunctionList*>* allFunctionsHash = NULL;
 
-dictionary_hash<pdstring,FunctionCoverage*>* allCoverageHash = NULL;
+std::unordered_map<pdstring,FunctionCoverage*>* allCoverageHash = NULL;
 
 /** static initialization of the global code coverage object used
   * by interval call backs
@@ -145,7 +145,7 @@ int CodeCoverage::initialize(const char* mutatee[],unsigned short interval,
 		return errorPrint(Error_ImageCreate);
 
 	allFunctionsHash = 
-		new dictionary_hash<pdstring,BPFunctionList*>(pdstring::hash);
+		new std::unordered_map<pdstring,BPFunctionList*>(pdstring::hash);
 
 	if(!allFunctionsHash)
 		return errorPrint(Error_HashCreate);
@@ -319,7 +319,7 @@ void CodeCoverage::createFileStructure(){
   * initializes the data structures that will be used for function coverage
   */
 int CodeCoverage::selectFunctions() {
-	allCoverageHash = new dictionary_hash< pdstring, FunctionCoverage * >(pdstring::hash);
+	allCoverageHash = new std::unordered_map< pdstring, FunctionCoverage * >(pdstring::hash);
 
 	for( unsigned int i = 0; i < appModules->size(); ++i ) {
 		BPatch_module * currentModule = (* appModules)[i];
@@ -420,7 +420,7 @@ int CodeCoverage::selectFunctions() {
 	instrumentedFunctionCount = allCoverageHash->size();
 	instrumentedFunctions = new FunctionCoverage * [ instrumentedFunctionCount ];
 	
-	dictionary_hash< pdstring, FunctionCoverage * >::const_iterator iter = allCoverageHash->begin();
+	std::unordered_map< pdstring, FunctionCoverage * >::const_iterator iter = allCoverageHash->begin();
 	for( int j = 0; iter != allCoverageHash->end() && j < instrumentedFunctionCount; ++iter, ++j ) {
 		instrumentedFunctions[j] = * iter;
 		}
