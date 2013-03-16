@@ -97,7 +97,7 @@ set (SRC_LIST
 # This is just .. messy. Sorry.
 
 if (PLATFORM MATCHES i386)
-set (SRC_LIST ${SRC_LIST} src/cpuid.S)
+set (SRC_LIST ${SRC_LIST} src/cpuid-x86.S)
 endif ()
 
 if (PLATFORM MATCHES i386 OR PLATFORM MATCHES amd64 OR PLATFORM MATCHES x86_64)
