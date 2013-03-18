@@ -3908,6 +3908,8 @@ bool DecoderBlueGeneQ::decode(ArchEvent *ae, vector<Event::ptr> &events)
    int_process *proc = ProcPool()->findProcByPid(header->rank);
    if (!proc)
       return false;
+   if (proc->getState() == int_process::errorstate)
+      return false;
    bgq_process *qproc = dynamic_cast<bgq_process *>(proc);
 
    assert(header->service == ToolctlService);
