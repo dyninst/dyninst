@@ -31,10 +31,9 @@ fi
 if [ ${P/ppc-/} != ${P} ]; then
 PLATFORM=ppc32_linux
 fi
-fi
 
 # Freebsd
-if [ ${P/freebsd/} != ${P} ]; then
+elif [ ${P/freebsd/} != ${P} ]; then
 if [ ${P/i686/} != ${P} ]; then
 PLATFORM=i386-unknown-freebsd7.2
 fi
@@ -50,10 +49,10 @@ fi
 if [ ${P/x86_64/} != ${P} ]; then
 PLATFORM=amd64-unknown-freebsd7.2
 fi
-fi
+
 
 # VxWorks
-if [ ${P/vxworks/} != ${P} ]; then
+elif [ ${P/vxworks/} != ${P} ]; then
 if [ ${P/i686/} != ${P} ]; then
 PLATFORM=i386-unknown-vxworks6.x
 fi

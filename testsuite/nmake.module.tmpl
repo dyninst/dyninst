@@ -11,7 +11,7 @@ RELEASE_NUM	= 6.0
 
 DEST		= $(TO_CORE)\$(PROGRAM_DEST)\testsuite
 
-CXXFLAGS     = $(CXXFLAGS) -Dos_windows_test -Darch_x86_test -Dcap_relocation_test -Dcap_dynamic_heap_test \
+CXXFLAGS     = $(CXXFLAGS) -Dos_windows_test -Darch_x86_test -Dcap_relocation_test \
 	-Dcap_stripped_binaries_test -Dcap_async_events_test -Dcap_threads_test -Di386_unknown_nt4_0_test \
 	-Di386-unknown-nt4.0_test
 CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external \

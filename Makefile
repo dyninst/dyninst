@@ -164,3 +164,46 @@ nightly: ready $(Everything_install) parseThat_install testsuite-nightly
 
 echo:
 	@echo $(Everything)
+
+PKGCONFIG_CFLAGS = $(CXX_REQ_FLAGS) -I$(includedir)
+PKGCONFIG_LIBS = -L$(libdir) -ldyninstAPI -lstackwalk -lpcontrol -lpatchAPI -lparseAPI -linstructionAPI -lsymtabAPI -lsymLite -ldynDwarf -ldynElf -lcommon 
+
+ifdef LIBDWARF_PLATFORM
+PKGCONFIG_CFLAGS += -I$(LIBDWARF_INC)
+ifeq (xtrue,x$(LIBDWARF_STATIC))
+PKGCONFIG_LIBS += -rdynamic -Wl,--whole-archive
+endif
+PKGCONFIG_LIBS += -L$(LIBDWARF_LIB) -ldwarf
+ifeq (xtrue,x$(LIBDWARF_STATIC))
+PKGCONFIG_LIBS += -Wl,--no-whole-archive
+endif
+endif
+
+ifdef LIBELF_PLATFORM
+PKGCONFIG_CFLAGS += -I$(LIBELF_INC)
+PKGCONFIG_LIBS += -L$(LIBELF_LIB) -lelf
+endif
+
+ifdef USE_LIBIBERTY
+ifdef LIBIBERTY_LIB
+PKGCONFIG_LIBS += -L$(LIBIBERTY_LIB)
+endif
+PKGCONFIG_LIBS += -rdynamic -Wl,--whole-archive -liberty -Wl,--no-whole-archive
+endif
+
+pkgconfig:
+	$(HIDE_COMP)$(RM) dyninst.pc
+	$(HIDE_COMP)echo "# This file contains pkgconfig information for Dyninst and its components" > dyninst.pc
+	$(HIDE_COMP)echo "prefix = $(prefix)" >> dyninst.pc
+	$(HIDE_COMP)echo "exec_prefix = $(exec_prefix)" >> dyninst.pc
+	$(HIDE_COMP)echo "includedir = $(includedir)" >> dyninst.pc
+	$(HIDE_COMP)echo "libdir = $(libdir)" >> dyninst.pc
+	$(HIDE_COMP)echo "bindir = $(bindir)" >> dyninst.pc
+	$(HIDE_COMP)echo >> dyninst.pc
+	$(HIDE_COMP)echo "Name: dyninst" >> dyninst.pc
+	$(HIDE_COMP)echo "Description: DyninstAPI binary instrumentation library" >> dyninst.pc
+	$(HIDE_COMP)echo "Requires: libelf, libdwarf" >> dyninst.pc
+	$(HIDE_COMP)echo "Version: 8.1.1" >> dyninst.pc
+	$(HIDE_COMP)echo "Cflags: $(PKGCONFIG_CFLAGS)" >> dyninst.pc
+	$(HIDE_COMP)echo "Libs: $(PKGCONFIG_LIBS)" >> dyninst.pc
+	$(HIDE_COMP)echo "Creating dyninst.pc pkgconfig file"

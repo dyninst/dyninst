@@ -65,6 +65,9 @@ namespace SymtabAPI{
 
 extern const std::string SYMTAB_CTOR_LIST_REL;
 extern const std::string SYMTAB_DTOR_LIST_REL;
+extern const std::string SYMTAB_IREL_START;
+extern const std::string SYMTAB_IREL_END;
+
 
 /*
  * The above "not necessary" comment applies to this class as well.
@@ -132,6 +135,17 @@ class emitElfStatic {
                           LinkMap &lmap,
                           StaticLinkError &err, 
                           string &errMsg);
+    bool buildPLT(Symtab *target,
+		  Offset globalOffset,
+		  LinkMap &lmap,
+		  StaticLinkError &err,
+		  string &errMsg);
+
+    bool buildRela(Symtab *target,
+		  Offset globalOffset,
+		  LinkMap &lmap,
+		  StaticLinkError &err,
+		  string &errMsg);		   
 
     bool hasRewrittenTLS() const;
 
@@ -352,6 +366,29 @@ class emitElfStatic {
      */
     bool calculateTOCs(Symtab *target, deque<Region *> &regions, Offset GOTbase, Offset newGOToffset, Offset globalOffset);
 
+    /**
+     * Somewhat architecture specific
+     *
+     * Allocate PLT entries for each INDIRECT-typed symbol
+     * Each PLT entry has an arch-specific size
+     */
+    Offset allocatePLTEntries(std::map<Symbol *, std::pair<Offset, Offset> > &entries,
+			      Offset pltOffset, Offset &size);
+
+    /**
+     * Aaand... architecture specific. 
+     * Generate a new relocation section that combines relocs
+     * from any indirect symbols with original relocs
+     */
+    Offset allocateRelocationSection(std::map<Symbol *, std::pair<Offset, Offset> > &entries,
+				     Offset relocOffset, Offset &size,
+				     Symtab *target);
+
+    Offset allocateRelGOTSection(const std::map<Symbol *, std::pair<Offset, Offset> > &entries,
+				 Offset relocOffset, Offset &size);
+
+    bool addIndirectSymbol(Symbol *sym, LinkMap &lmap);
+    
     // Update the TOC pointer if necessary (PPC, 64-bit)
     bool updateTOC(Symtab *file, LinkMap &lmap, Offset globalOffset);
 

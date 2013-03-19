@@ -108,6 +108,13 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
             errMsg = "Failed to locate original .dtors Region -- cannot apply relocation";
             return false;
         }
+    } else if (rel.name() == SYMTAB_IREL_START) {
+      // Start of our moved relocation section
+      symbolOffset = globalOffset + lmap.relRegionOffset;
+    }
+    else if (rel.name() == SYMTAB_IREL_END) {
+      // End of our moved relocation section
+      symbolOffset = globalOffset + lmap.relRegionOffset + lmap.relSize;
     }
 
     return true;
@@ -117,6 +124,21 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
        Offset dest, Offset relOffset, Offset globalOffset, LinkMap &lmap,
        string &errMsg) 
 {
+  Offset symbolOffset = 0;
+  if (rel.getDynSym()->getType() != Symbol::ST_INDIRECT) {
+    // Easy case, just use the symbol as given
+    symbolOffset = rel.getDynSym()->getOffset();
+  }
+  else {
+    // Indirect; the address is the PLT entry (yes, I said PLT)
+    // associated with this symbol. 
+    auto pltEntry = lmap.pltEntries.find(rel.getDynSym()); 
+    if (pltEntry == lmap.pltEntries.end()) {
+      return false;
+    }
+    symbolOffset = pltEntry->second.first + globalOffset;
+  }
+    
     if( X86_WIDTH == addressWidth_ ) {
         /*
          * Referring to the SYSV 386 supplement:
@@ -128,8 +150,6 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
          * P = relOffset
          */
        
-        Offset symbolOffset = rel.getDynSym()->getOffset();
-
         Elf32_Word addend;
         if( rel.regionType() == Region::RT_REL ) {
             memcpy(&addend, &targetData[dest], sizeof(Elf32_Word));
@@ -223,7 +243,6 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
          *
          * x86_64 only uses relocations that contain the addend.
          */
-        Offset symbolOffset = rel.getDynSym()->getOffset();
         unsigned symbolSize = rel.getDynSym()->getSize();
 
         Elf64_Xword addend = 0;
@@ -477,7 +496,7 @@ Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &lmap, Offset &layoutStart) {
 
     // According to the ELF abi, entries 0, 1, 2 are reserved in a GOT on x86
     if( lmap.gotSymbols.size() > 0 ) {
-        size = (lmap.gotSymbols.size()+GOT_RESERVED_SLOTS)*slotSize;
+      size = (lmap.gotSymbols.size()+GOT_RESERVED_SLOTS)*slotSize;
     }
 
     return size;

@@ -53,34 +53,32 @@ bool df_init_debug() {
   if (init) return true;
   init = true;
 
-  char *p;
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable:4996) 
 #endif
 
-  if ((p=getenv("DATAFLOW_DEBUG_STACKANALYSIS"))) {
+  if ((getenv("DATAFLOW_DEBUG_STACKANALYSIS"))) {
     fprintf(stderr, "Enabling DataflowAPI stack analysis debugging\n");
     df_debug_stackanalysis = 1;
   }
 
-  if ((p=getenv("DATAFLOW_DEBUG_SLICING"))) {
+  if ((getenv("DATAFLOW_DEBUG_SLICING"))) {
     fprintf(stderr, "Enabling DataflowAPI slicing debugging\n");
     df_debug_slicing = 1;
   }
 
-  if ((p=getenv("DATAFLOW_DEBUG_CONVERT"))) {
+  if ((getenv("DATAFLOW_DEBUG_CONVERT"))) {
     fprintf(stderr, "Enabling DataflowAPI->ROSE conversion debugging\n");
     df_debug_convert = 1;
   }
 
-  if ((p=getenv("DATAFLOW_DEBUG_EXPAND"))) {
+  if ((getenv("DATAFLOW_DEBUG_EXPAND"))) {
     fprintf(stderr, "Enabling DataflowAPI symbolic expansion debugging\n");
     df_debug_expand = 1;
   }
 
-  if ((p=getenv("DATAFLOW_DEBUG_LIVENESS"))) {
+  if ((getenv("DATAFLOW_DEBUG_LIVENESS"))) {
     fprintf(stderr, "Enabling DataflowAPI liveness debugging\n");
     df_debug_liveness = 1;
   }

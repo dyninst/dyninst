@@ -697,6 +697,20 @@ bool emitElf64::driver(Symtab *obj, string fName){
     }
 #endif
 
+    if (isStaticBinary && (strcmp(name, ".rela.plt") == 0)) {
+       string newName = ".o";
+       newName.append(name, 2, strlen(name));
+       renameSection(name, newName, false);
+    }
+
+    if (isStaticBinary && (strcmp(name, ".rela.plt") == 0)) {
+      string newName = ".o";
+      newName.append(name, 2, strlen(name));
+      renameSection(name, newName, false);
+      // Clear the PLT type; use PROGBITS
+      newshdr->sh_type = SHT_PROGBITS;
+    }
+
     // Change offsets of sections based on the newly added sections
     if(movePHdrsFirst) {
         /* This special case is specific to FreeBSD but there is no hurt in
@@ -1145,7 +1159,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
 
 //This method updates the .dynamic section to reflect the changes to the relocation section
 void emitElf64::updateDynamic(unsigned tag, Elf64_Addr val){
-
+  if (isStaticBinary) return;
   // This is for REL/RELA if it doesnt already exist in the original binary; 
   dynamicSecData[tag][0]->d_tag = tag;
   switch(dynamicSecData[tag][0]->d_tag){
@@ -1738,6 +1752,48 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     dynsymVector.push_back(Symbol::magicEmitElfSymbol());
     versionSymTable.push_back(0);
   }	  
+ 
+  if (obj->isStaticBinary()) {
+      // Static binary case
+      vector<Region *> newRegs;
+      obj->getAllNewRegions(newRegs);
+      if( newRegs.size() ) {
+          emitElfStatic linker(obj->getAddressWidth(), isStripped);
+
+          emitElfStatic::StaticLinkError err;
+          std::string errMsg;
+          linkedStaticData = linker.linkStatic(obj, err, errMsg);
+          if ( !linkedStaticData ) {
+               std::string linkStaticError = 
+                   std::string("Failed to link to static library code into the binary: ") +
+                   emitElfStatic::printStaticLinkError(err) + std::string(" = ")
+                   + errMsg;
+               setSymtabError(Emit_Error);
+               symtab_log_perror(linkStaticError.c_str());
+               return false;
+          }
+
+          hasRewrittenTLS = linker.hasRewrittenTLS();
+
+          // Find the end of the new Regions
+          obj->getAllNewRegions(newRegs);
+
+          Offset lastRegionAddr = 0, lastRegionSize = 0;
+          vector<Region *>::iterator newRegIter;
+          for(newRegIter = newRegs.begin(); newRegIter != newRegs.end();
+              ++newRegIter)
+          {
+              if( (*newRegIter)->getDiskOffset() > lastRegionAddr ) {
+                  lastRegionAddr = (*newRegIter)->getDiskOffset();
+                  lastRegionSize = (*newRegIter)->getDiskSize();
+              }
+          }
+
+          if( !emitElfUtils::updateHeapVariables(obj, lastRegionAddr + lastRegionSize) ) {
+              return false;
+          }
+      }
+  }
 
   for(i=0; i<allSymbols.size();i++) {
     if(allSymbols[i]->isInSymtab()) {
@@ -1975,46 +2031,6 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     //add .dynamic section
     if(dynsecSize)
       obj->addRegion(0, dynsecData, dynsecSize*sizeof(Elf64_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
-  }else{
-      // Static binary case
-      vector<Region *> newRegs;
-      obj->getAllNewRegions(newRegs);
-      if( newRegs.size() ) {
-          emitElfStatic linker(obj->getAddressWidth(), isStripped);
-
-          emitElfStatic::StaticLinkError err;
-          std::string errMsg;
-          linkedStaticData = linker.linkStatic(obj, err, errMsg);
-          if ( !linkedStaticData ) {
-               std::string linkStaticError = 
-                   std::string("Failed to link to static library code into the binary: ") +
-                   emitElfStatic::printStaticLinkError(err) + std::string(" = ")
-                   + errMsg;
-               setSymtabError(Emit_Error);
-               symtab_log_perror(linkStaticError.c_str());
-               return false;
-          }
-
-          hasRewrittenTLS = linker.hasRewrittenTLS();
-
-          // Find the end of the new Regions
-          obj->getAllNewRegions(newRegs);
-
-          Offset lastRegionAddr = 0, lastRegionSize = 0;
-          vector<Region *>::iterator newRegIter;
-          for(newRegIter = newRegs.begin(); newRegIter != newRegs.end();
-              ++newRegIter)
-          {
-              if( (*newRegIter)->getDiskOffset() > lastRegionAddr ) {
-                  lastRegionAddr = (*newRegIter)->getDiskOffset();
-                  lastRegionSize = (*newRegIter)->getDiskSize();
-              }
-          }
-
-          if( !emitElfUtils::updateHeapVariables(obj, lastRegionAddr + lastRegionSize) ) {
-              return false;
-          }
-      }
   }
 
   if(!obj->getAllNewRegions(newSecs))

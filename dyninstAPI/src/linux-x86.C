@@ -286,7 +286,7 @@ bool AddressSpace::getDyninstRTLibName() {
     }
 
     // Automatically choose 32-bit library if necessary.
-    const char *modifier = "_m32";
+    const char *modifier = "";
     const char *name = dyninstRT_name.c_str();
 
     const char *split = P_strrchr(name, '/');
@@ -300,8 +300,12 @@ bool AddressSpace::getDyninstRTLibName() {
         return false;
     }
 
-    if ( getAddressWidth() == sizeof(void *) || P_strstr(name, modifier) ) {
-        modifier = "";
+    if (getAddressWidth() == 4 &&
+        (sizeof(void *) == 8)) {
+       // Need _m32...
+       if (P_strstr(name, "_m32") == NULL) {
+          modifier = "_m32";
+       }
     }
 
     const char *suffix = split;

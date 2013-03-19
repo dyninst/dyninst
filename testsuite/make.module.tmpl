@@ -20,9 +20,9 @@ LFLAGS = -L../../common/$(PLATFORM) -L../../dwarf/$(PLATFORM) -L../../elf/$(PLAT
 ### Strip away most of it.
 #######################################################################
 
-CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) $(IFLAGS) -I../src -g $(BOOST_INCDIR) $(CPPFLAGS)
-CXXFLAGS = $(CXX_REQ_FLAGS)
-CXXFLAGS += $(CFLAGS)
+# Turn off NO_INITIALIZER_LIST_SUPPORT if we compile test suite with C++11
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) $(IFLAGS) -I../src -g $(BOOST_INCDIR) $(CPPFLAGS) -DNO_INITIALIZER_LIST_SUPPORT
+CXXFLAGS = $(CFLAGS)
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
 
 CFLAGS_NATIVE = $(CFLAGS)
@@ -637,9 +637,22 @@ test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	@echo Compiling $@
 	$(HIDE_COMP)$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
+# Deal with static DWARF; we need to link libdwarf.a into test_driver so the symbols are available. 
+ifeq (xtrue,x$(LIBDWARF_STATIC))
+STATIC_DWARF_HANDLING = -rdynamic -Wl,--whole-archive
+ifneq (x,x$(strip $(LIBDWARF_LIB)))
+STATIC_DWARF_HANDLING += -L$(LIBDWARF_LIB)
+endif
+STATIC_DWARF_HANDLING += -ldwarf -Wl,--no-whole-archive 
+ifneq (x,x$(strip $(LIBELF_LIB)))
+STATIC_DWARF_HANDLING += -L($LIBELF_LIB)
+endif
+STATIC_DWARF_HANDLING += -lelf
+endif
+
 test_driver: test_driver.o test_driver_templates.o dynlmon.o testdriver_be.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE) $(LIBTESTLAUNCH)
 	@echo Linking $@ 
-	$(HIDE_COMP)$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o testdriver_be.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_LINK) $(COMPONENT_LDFLAGS) $(EXTRA_LIBS) ; $(TESTDRIVER_EXTRA_LINK_STEP)
+	$(HIDE_COMP)$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o testdriver_be.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_LINK) $(COMPONENT_LDFLAGS) $(EXTRA_LIBS) $(STATIC_DWARF_HANDLING) ; $(TESTDRIVER_EXTRA_LINK_STEP)
 
 testdriver_wrapper: connection.o testdriver_wrapper.o
 	@echo Linking $@

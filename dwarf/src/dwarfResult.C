@@ -302,12 +302,6 @@ void ConcreteDwarfResult::pushOp(Operator op, unsigned ref) {
                if (!reader->ReadMem(peek(0), &u, sizeof(u))) error = true;
                v = u;
                dwarf_printf("Memory read from 0x%lx: 0x%lx\n", peek(0), u);
-               for (int i = -10; i < 10; ++i) {
-                  uint64_t tmp;
-                  reader->ReadMem(peek(0) + (i * 8), &tmp, sizeof(tmp));
-                  dwarf_printf("\t %d, 0x%lx: 0x%lx\n", 
-                               i, peek(0) + (i * 8), tmp);
-               }
                break;
             }
             default:

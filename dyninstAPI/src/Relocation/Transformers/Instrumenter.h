@@ -69,6 +69,10 @@ class Instrumenter : public Transformer {
   bool preCallInstrumentation(RelocBlock *trace);
   bool insnInstrumentation(RelocBlock *trace);
 
+  bool handleUnconditionalExitInstrumentation(RelocBlock *trace, RelocGraph *cfg, instPoint *exit);
+  bool handleCondIndExits(RelocBlock *trace, RelocGraph *cfg, instPoint *exit);
+  bool handleCondDirExits(RelocBlock *trace, RelocGraph *cfg, instPoint *exit);
+
   WidgetPtr makeInstrumentation(PatchAPI::Point *point);
 
   struct CallFallthroughPredicate {

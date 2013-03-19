@@ -100,11 +100,9 @@ parse_func::parse_func(
   unresolvedCF_(UNSET_CF),
   init_retstatus_(UNSET),
   o7_live(false),
-  ppc_saves_return_addr_(false)
-#if defined(cap_liveness)
-  , livenessCalculated_(false)
-#endif
-  ,isPLTFunction_(false)
+  ppc_saves_return_addr_(false),
+  livenessCalculated_(false),
+  isPLTFunction_(false)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     parse_func_count++;

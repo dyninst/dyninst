@@ -63,6 +63,7 @@ class HandlerPool;
 class MTLock;
 
 #define PC_VERSION_8_0_0
+#define PC_VERSION_8_1_0
 
 #define pc_const_cast boost::const_pointer_cast
 

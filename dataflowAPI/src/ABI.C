@@ -35,7 +35,6 @@
 using namespace Dyninst;
 using namespace DataflowAPI;
 
-#if defined(cap_liveness)
 bitArray ABI::callRead_;
 bitArray ABI::callWritten_;
 bitArray ABI::returnRead_;
@@ -51,7 +50,6 @@ bitArray ABI::allRegs_;
 bitArray ABI::allRegs64_;
 ABI* ABI::globalABI_ = NULL;
 ABI* ABI::globalABI64_ = NULL;
-#endif
 
 int ABI::getIndex(MachRegister machReg){
 	if (index->find(machReg) == index->end()){
@@ -92,7 +90,6 @@ ABI* ABI::getABI(int addr_width){
 }
 
 
-#if defined(cap_liveness)
 const bitArray &ABI::getCallReadRegisters() const {
     if (addr_width == 4)
         return callRead_;
@@ -158,23 +155,12 @@ const bitArray &ABI::getAllRegs() const
    }   
 }
 
-#endif
-
 bitArray ABI::getBitArray()  {
-/*#if defined(arch_x86) || defined(arch_x86_64)
-    return bitArray(REGNUM_IGNORED+1);
-#elif defined(arch_power)
-    return bitArray(lastReg);
-#else
-    return bitArray();
-#endif*/
-
-	return bitArray(index->size());
+  return bitArray(index->size());
 }
 #if defined(arch_x86) || defined(arch_x86_64)
 void ABI::initialize32(){
 
-#if defined(cap_liveness)
    returnRead_ = getBitArray(machRegIndex_x86().size());
    // Callee-save registers...
    returnRead_[machRegIndex_x86()[x86::ebx]] = true;
@@ -197,8 +183,6 @@ void ABI::initialize32(){
    
    // Assume calls write flags
    callWritten_ = callRead_;
-/*    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
-      callWritten_[i] = true; */
    
    callWritten_[machRegIndex_x86()[x86::of]] = true;
    callWritten_[machRegIndex_x86()[x86::sf]] = true;
@@ -226,9 +210,6 @@ void ABI::initialize32(){
     // VERY conservative, but it's safe wrt the ABI.
     // Let's set everything and unset flags
     callRead_ = syscallRead_;
- /*   for (unsigned i = REGNUM_OF; i <= REGNUM_RF; ++i) {
-       callRead_[i] = false;
-    }*/
     callRead_[machRegIndex_x86()[x86::of]] = false;
     callRead_[machRegIndex_x86()[x86::sf]] = false;
     callRead_[machRegIndex_x86()[x86::zf]] = false;
@@ -254,13 +235,11 @@ void ABI::initialize32(){
 #endif
 
         allRegs_ = getBitArray(machRegIndex_x86().size()).set();
-#endif
 
 }
 
 void ABI::initialize64(){
 
-#if defined(cap_liveness)
     returnRead64_ = getBitArray(machRegIndex_x86_64().size());
     returnRead64_[machRegIndex_x86_64()[x86_64::rax]] = true;
     returnRead64_[machRegIndex_x86_64()[x86_64::rcx]] = true; //Not correct, temporary
@@ -275,9 +254,7 @@ void ABI::initialize64(){
     returnRead64_[machRegIndex_x86_64()[x86_64::xmm0]] = true;
     returnRead64_[machRegIndex_x86_64()[x86_64::xmm1]] = true;
 
-//    returnRead64_[REGNUM_R10] = true;
     
-
     callRead64_ = getBitArray(machRegIndex_x86_64().size());
     callRead64_[machRegIndex_x86_64()[x86_64::rax]] = true;
     callRead64_[machRegIndex_x86_64()[x86_64::rcx]] = true;
@@ -305,8 +282,6 @@ void ABI::initialize64(){
     callWritten64_[machRegIndex_x86_64()[x86_64::r10]] = true;
     callWritten64_[machRegIndex_x86_64()[x86_64::r11]] = true;
     // And flags
-/*    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
-        callWritten64_[i] = true;*/
 
     callWritten64_[machRegIndex_x86_64()[x86_64::of]] = true;
     callWritten64_[machRegIndex_x86_64()[x86_64::sf]] = true;
@@ -326,16 +301,12 @@ void ABI::initialize64(){
     syscallWritten64_ = syscallRead64_;
 
     allRegs64_ = getBitArray(machRegIndex_x86_64().size()).set();
-#endif
-
-
 } 
 
 #endif  
 
 #if defined(arch_power)
 void ABI::initialize32(){
-#if defined(cap_liveness)
 
    returnRead_ = getBitArray(machRegIndex_ppc().size());
     // Return reads r3, r4, fpr1, fpr2
@@ -418,12 +389,10 @@ void ABI::initialize32(){
     syscallWritten_ = callWritten_;
 
     allRegs_ = getBitArray(machRegIndex_ppc().size()).set();
-#endif
 }
 
 void ABI::initialize64(){
 
-#if defined(cap_liveness)
     returnRead64_ = getBitArray(machRegIndex_ppc_64().size());
     // Return reads r3, r4, fpr1, fpr2
     returnRead64_[machRegIndex_ppc_64()[ppc64::r3]] = true;
@@ -434,10 +403,6 @@ void ABI::initialize64(){
     // Calls
     callRead64_ = getBitArray(machRegIndex_ppc_64().size());
     // Calls read r3 -> r10 (parameters), fpr1 -> fpr13 (volatile FPRs)
-/*    for (unsigned i = r3; i <= r10; i++) 
-        callRead64_[i] = true;
-    for (unsigned i = fpr1; i <= fpr13; i++) 
-        callRead64_[i] = true;*/
 
     callRead64_[machRegIndex_ppc_64()[ppc64::r3]] = true;
     callRead64_[machRegIndex_ppc_64()[ppc64::r4]] = true;
@@ -466,11 +431,6 @@ void ABI::initialize64(){
     callWritten64_ = getBitArray(machRegIndex_ppc_64().size());
     // Calls write to pretty much every register we use for code generation
     callWritten64_[machRegIndex_ppc_64()[ppc64::r0]] = true;
-/*    for (unsigned i = r3; i <= r12; i++)
-        callWritten64_[i] = true;
-    // FPRs 0->13 are volatile
-    for (unsigned i = fpr0; i <= fpr13; i++)
-        callWritten64_[i] = true;*/
 
     callWritten64_[machRegIndex_ppc_64()[ppc64::r3]] = true;
     callWritten64_[machRegIndex_ppc_64()[ppc64::r4]] = true;
@@ -503,6 +463,5 @@ void ABI::initialize64(){
     syscallWritten64_ = getBitArray(machRegIndex_ppc_64().size()).set();
 
     allRegs64_ = getBitArray(machRegIndex_ppc_64().size()).set();
-#endif
 }
 #endif

@@ -74,16 +74,15 @@ void annotations_debug_init()
 {
 	if (dyn_debug_annotations) return;
 
-	char *p;
-	if ( (p=getenv("DYNINST_DEBUG_ANNOTATIONS"))) {
+	if (getenv("DYNINST_DEBUG_ANNOTATIONS")) {
 		fprintf(stderr, "Enabling DyninstAPI annotations debug\n");
 		dyn_debug_annotations = true;
 	}
-	else if ( (p=getenv("DYNINST_DEBUG_ANNOTATION"))) {
+	else if (getenv("DYNINST_DEBUG_ANNOTATION")) {
 		fprintf(stderr, "Enabling DyninstAPI annotations debug\n");
 		dyn_debug_annotations = true;
 	}
-	else if ( (p=getenv("DYNINST_DEBUG_ANNOTATABLE"))) {
+	else if (getenv("DYNINST_DEBUG_ANNOTATABLE")) {
 		fprintf(stderr, "Enabling DyninstAPI annotations debug\n");
 		dyn_debug_annotations = true;
 	}
