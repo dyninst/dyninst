@@ -81,3 +81,6 @@ ipch/*
 */lib*.so*
 */lib*.a
 CMakeFiles
+CMakeCache.txt
+*/cmake_install.cmake
+*/Makefile
