@@ -79,7 +79,7 @@ void DYNINST_initialize_index_list()
   else {
      DYNINST_thread_hash_size = (int) (DYNINST_max_num_threads * 1.25);
      DYNINST_thread_hash_indices =  
-         malloc(DYNINST_thread_hash_size * sizeof(int));
+         malloc(DYNINST_thread_hash_size * sizeof(long));
 	DYNINST_thread_hash_tids = 
 		malloc(DYNINST_thread_hash_size * sizeof(dyntid_t));
   }
