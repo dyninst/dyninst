@@ -255,7 +255,10 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   if (psize == -1) psize = getpagesize();
 
   /* buffer size must be aligned */
-  if (size % DYNINSTheap_align != 0) return ((void *)-1);
+  if (size % DYNINSTheap_align != 0) {
+    free(node);
+    return ((void *)-1);
+  }
 
   /* use malloc() if appropriate */
   if (DYNINSTheap_useMalloc(lo_addr, hi_addr)) {
@@ -302,6 +305,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
    DYNINSTheap_loAddr = getpagesize();
 #endif
     if ((hi < DYNINSTheap_loAddr) || (lo > DYNINSTheap_hiAddr)) {
+      free(node);
 #ifdef DEBUG
       fprintf(stderr, "CAN'T MMAP IN RANGE GIVEN\n");
 #endif 
@@ -327,6 +331,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 #if !defined(os_osf)
     if (0 > fd) {
       free(node);
+      free(maps);
       return NULL;
     }
 #endif
