@@ -121,11 +121,13 @@ DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
       ret = read(fd, procAsciiMap + length, sizeof(procAsciiMap) - length);
       if (0 == ret) break;
       if (0 > ret) {
+	      close(fd);
 	      perror("read /proc");
 	      return -1;
       }
       length += ret;
       if (length >= sizeof(procAsciiMap)) {
+	      close(fd);
 	      fprintf(stderr, "DYNINSTgetMemoryMap: memory map buffer overflow\n");
 	      return -1;
       }
