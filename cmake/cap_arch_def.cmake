@@ -125,7 +125,7 @@ elseif (PLATFORM STREQUAL amd64-unknown-freebsd7.2)
 add_definitions (-Damd64_unknown_freebsd7_0)
 
 else (PLATFORM STREQUAL i386-unknown-linux2.4)
-  message (FATAL_ERROR Unknown platform: $(PLATFORM))
+  message (FATAL_ERROR "Unknown platform: $(PLATFORM)")
 endif (PLATFORM STREQUAL i386-unknown-linux2.4)
 
 if (HAVE_THREAD_DB)

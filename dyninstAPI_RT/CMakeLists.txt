@@ -1,10 +1,8 @@
 # CMake configuration for dyninstAPI_RT directory
 
-
 include_directories (
     ${PROJECT_SOURCE_DIR}/dyninstAPI_RT/src
   )
-
 
 set (SRC_LIST
     src/RTcommon.c 
@@ -53,8 +51,6 @@ set (SRC_LIST_ppc64
     src/RTstatic_ctors_dtors-ppc64.c                                                                                         
 )
 
-
-
 if (PLATFORM MATCHES amd64 OR PLATFORM MATCHES x86_64)
 set (SRC_LIST_mabi ${SRC_LIST} ${SRC_LIST_i386})
 set (SRC_LIST ${SRC_LIST} ${SRC_LIST_x86_64})
@@ -87,7 +83,20 @@ INSTALL (TARGETS dyninstAPI_RT dyninstAPI_RT_static
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
 
+# Test to see if we want the 32-bit library
+
 if (SRC_LIST_mabi) 
+
+include (CheckCCompilerFlag)
+message ("Checking for 32-bit runtime library...")
+
+# For some reason this test borks with HAS_M32
+CHECK_C_COMPILER_FLAG ("-O2" BUILD_MABI_RTLIB)
+
+if (BUILD_MABI_RTLIB)
+SET (BUILD_RTLIB_32 ON CACHE STRING "Build 32-bit version of RT library")
+
+if (BUILD_RTLIB_32)
 add_library (dyninstAPI_RT_m32 SHARED ${SRC_LIST_mabi})
 add_library (dyninstAPI_RT_m32_static STATIC ${SRC_LIST_mabi})
 
@@ -108,5 +117,7 @@ set_target_properties (dyninstAPI_RT_m32_static
 INSTALL (TARGETS dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
          LIBRARY DESTINATION lib
          ARCHIVE DESTINATION lib)
+endif()
+endif()
 endif()
 

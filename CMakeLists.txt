@@ -4,9 +4,8 @@ project (Dyninst)
 set (SOVERSION "8.1")
 set (LIBVERSION "8.1.1")
 
-set (PLATFORM $ENV{PLATFORM})
-
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules")
+include (cmake/platform.cmake)
 include (cmake/cap_arch_def.cmake)
 include (cmake/c++11.cmake)
 include (cmake/warnings.cmake)
