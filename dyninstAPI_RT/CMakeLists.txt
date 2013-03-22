@@ -87,13 +87,45 @@ INSTALL (TARGETS dyninstAPI_RT dyninstAPI_RT_static
 
 if (SRC_LIST_mabi) 
 
-include (CheckCCompilerFlag)
-message ("Checking for 32-bit runtime library...")
+# The following code is from CheckCCompilerFlag.cmake. It uses a
+# simple program that can be compiled even if 32-bit includes are 
+# missing; we need to extend it somewhat
+
+INCLUDE(CheckCSourceCompiles)
+
+MACRO (CHECK_C_COMPILER_FLAG_EXTENDED _FLAG _RESULT)
+   SET(SAFE_CMAKE_REQUIRED_DEFINITIONS
+   "${CMAKE_REQUIRED_DEFINITIONS}")
+   SET(CMAKE_REQUIRED_DEFINITIONS "${_FLAG}")
+# Addition here: use signal.h
+   CHECK_C_SOURCE_COMPILES("#include <signal.h> \n int main(void) { return 0; }" ${_RESULT}
+# End addition
+     # Some compilers do not fail with a bad flag
+     FAIL_REGEX "warning: command line option .* is valid for .* but
+   not for C"
+                                                            # Apple
+   gcc
+     FAIL_REGEX "unrecognized .*option"                     # GNU
+     FAIL_REGEX "unknown .*option"                          # Clang
+     FAIL_REGEX "ignoring unknown option"                   # MSVC
+     FAIL_REGEX "warning D9002"                             # MSVC,
+   any lang
+     FAIL_REGEX "[Uu]nknown option"                         # HP
+     FAIL_REGEX "[Ww]arning: [Oo]ption"                     # SunPro
+     FAIL_REGEX "command option .* is not recognized"       # XL
+     )
+   SET (CMAKE_REQUIRED_DEFINITIONS
+   "${SAFE_CMAKE_REQUIRED_DEFINITIONS}")
+ENDMACRO (CHECK_C_COMPILER_FLAG_EXTENDED)
+
+
+message ("-- Checking for 32-bit runtime library...")
 
 # For some reason this test borks with HAS_M32
-CHECK_C_COMPILER_FLAG ("-O2" BUILD_MABI_RTLIB)
+CHECK_C_COMPILER_FLAG_EXTENDED ("-m32" BUILD_MABI_RTLIB)
 
 if (BUILD_MABI_RTLIB)
+message ("--   Enabling 32-bit runtime library; change BUILD_RTLIB_32 to OFF to disable")
 SET (BUILD_RTLIB_32 ON CACHE STRING "Build 32-bit version of RT library")
 
 if (BUILD_RTLIB_32)
