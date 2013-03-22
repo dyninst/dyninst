@@ -2662,7 +2662,8 @@ bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
         return false;
 
     // If we're calling an empty glink stub.
-    if ( pltFuncs->defines(stub_addr) && (*pltFuncs)[stub_addr] == "@plt") 
+    unordered_map<Address, std::string>::iterator entry = pltFuncs->find(stub_addr);
+    if (entry != pltFuncs->end() && entry->second == "@plt")
     {
         int state = 0;
 

@@ -27,13 +27,13 @@ add_definitions (
     )
 
 elseif (PLATFORM MATCHES ppc32)
-add_definitions (-Darch_ppc32)
+add_definitions (-Darch_ppc32 -Darch_power)
 add_definitions (
              -Dcap_registers
     )
 
 elseif (PLATFORM MATCHES ppc64)
-add_definitions (-Darch_ppc64)
+add_definitions (-Darch_ppc64 -Darch_power -Darch_64bit)
 set (CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -m64)
 set (CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -m64)
 add_definitions (
