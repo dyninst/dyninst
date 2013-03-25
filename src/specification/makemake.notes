@@ -1,0 +1,113 @@
+
+- Data structures
+
+info
+        platforms
+                name
+                filename_conventions
+                linker
+                auxilliary_compilers
+                abis
+        languages
+                name
+                extensions
+        compilers
+                executable
+                defstring
+                platforms
+                presencevar
+                optimization
+                pic
+                parameters
+                languages
+                flags
+                abiflags
+                staticlink
+                dynamiclink
+                platform
+        mutators
+                name
+                sources
+                libraries
+                platform
+                compiler
+        mutatees
+                name
+                preprocessed_sources
+                raw_sources
+                libraries
+                platform
+                abi
+                compiler
+                optimization
+                groupable
+                module
+                format
+                pic
+        tests
+                name
+                mutator
+                mutatee
+                groupable
+                module (dyninst/proccontrol/etc.)
+        rungroups
+                mutatee
+                compiler
+                optimization
+                run_mode
+                start_state
+                groupable
+                tests
+                abi
+                thread_mode
+                process_mode
+                format
+                mutatorstart
+                mutateestart
+                mutateeruntime
+                pic
+                platmode
+        exception_types = NIL
+        exceptions = NIL
+        objects (object files)
+                object
+                compiler
+                sources
+                intermediate_sources
+                dependencies
+                flags
+
+- Code units
+  -- currently they're all in a file and specific functions are Makefile-called. What a mess. 
+  -- And each reads the tuple file! Oy vey. 
+
+write_make_mutators_gen
+  - print_mutators_list
+    -- For each module (dyninst, proccontrol, etc.)
+        -- Print mutator list (test1_1)
+        -- Print mutator object list (test1_1.o)
+        -- Print .so list (test1_1.so) - substitution from mutator list
+        -- Print rule for each mutator
+
+write_make_solo_mutatee_gen
+  - print_mutatee_comp_defs
+    -- Prints compiler variables
+  - for each compiler
+    - for each module
+      - print_mutatee_rules
+        -- Prints out the mutatee list variables and the build rule for each mutatee
+    - print_special_object_rules
+    - for each module
+      - print_patterns
+      - print_patterns_wildcards
+    - if the current compiler ... something
+      - for each ABI
+        - Rules for mutatee_driver
+  - for each module
+    - print_aux_patterns
+  - print_aux_patterns
+  - for each module
+    print_make_solo_mutatee_gen_footer
+
+write_test_info_new_gen
+write_group_mutatee_boilerplate
