@@ -176,3 +176,19 @@ def parse_object_files(tuplestring):
 					 'dependencies',
 					 'flags')
 	return map(lambda o: dict(zip(object_labels, o)), object_list)
+
+def read_tuples(tuplefile, info):
+   f = open(tuplefile)
+   info['platforms'] = parse_platforms(f.readline())
+   info['languages'] = parse_languages(f.readline())
+   info['compilers'] = parse_compilers(f.readline())
+   info['mutators'] = parse_mutators(f.readline())
+   info['mutatees'] = parse_mutatees(f.readline())
+   info['tests'] = parse_tests(f.readline())
+   info['rungroups'] = parse_rungroups(f.readline())
+#  info['exception_types'] = parse_exception_types(f.readline())
+   info['exception_types'] = None
+#  info['exceptions'] = parse_exceptions(f.readline())
+   info['exceptions'] = None
+   info['objects'] = parse_object_files(f.readline())
+   f.close()
