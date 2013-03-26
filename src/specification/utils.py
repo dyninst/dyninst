@@ -161,3 +161,11 @@ def normalize_compiler(m):
 #
 ######################################################################
 
+def object_flag_string(platform, compiler, abi, optimization, pic):
+   return "%s %s %s %s %s %s" % (compiler['flags']['std'],
+                                 compiler['flags']['mutatee'],
+                                 compiler['parameters']['partial_compile'],
+                                 compiler['abiflags'][platform['name']][abi]['flags'],
+                                 compiler['optimization'][optimization],
+                                 compiler['pic'][pic])
+
