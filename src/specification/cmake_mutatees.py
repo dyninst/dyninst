@@ -42,35 +42,8 @@ def collect_mutatee_comps(mutatees):
          comps.append(m['compiler'])
    return comps
 
-def print_mutatee_rules(out, mutatees, compiler, module, platform):
-	if(len(mutatees) == 0):
-		return
-	mut_names = map(lambda x: utils.mutatee_binary(x, platform,info), mutatees)
-	out.write("######################################################################\n")
-	out.write("# Mutatees compiled with %s for %s\n" % (mutatees[0]['compiler'], module))
-	out.write("######################################################################\n\n")
-        ifdef_comp = (compiler['presencevar'] != 'true')
-	if ifdef_comp:
-           out.write("# Only build if this compiler exists\n")
-           out.write("if (%s)\n" % compiler['presencevar'])
-	pname = os.environ.get('PLATFORM')
-	platform = utils.find_platform(pname,info)
-	ObjSuffix = platform['filename_conventions']['object_suffix']
-	groups = info['rungroups']
-
-
-def write_mutatee_cmakelists(filename, tuplefile):
-   tuples.read_tuples(tuplefile, info)
-   compilers = info['compilers']
-   mutatees = info['mutatees']
-   out = open(filename, "w")
-#   print_mutatee_comp_defs(out)
-#   comps = collect_mutatee_comps(mutatees)
-   comps = utils.uniq(map(lambda m: m['compiler'], mutatees))
-   pname = os.environ.get('PLATFORM')
-   platform = utils.find_platform(pname, info)
-#   ObjSuffix = platform['filename_conventions']['object_suffix']
-   modules = utils.uniq(map(lambda t: t['module'], info['tests']))
+def print_add_executable(mutatees, platform, info):
+   out = open("srclists.cmake", "w")
 
    # We want to build the list of sources for each mutatee; since each mutatee
    # gets compiled a bunch of different ways (32/64, no/low/high optimization, 
@@ -80,7 +53,7 @@ def write_mutatee_cmakelists(filename, tuplefile):
    # enumerates the entire list of mutatees. So instead, we iterate over 
    # everything and build a map of sources -> mutatees that care about them.
    # ... ugh. 
-   
+
    srcs_to_mutatees = {}
    for m in mutatees:
       collected_srcs = []
@@ -92,18 +65,87 @@ def write_mutatee_cmakelists(filename, tuplefile):
          collected_srcs.append(" ")
       key = ''.join(collected_srcs)
       srcs_to_mutatees.setdefault(key, []).append(m)
+      m['srclist'] = key
 
-   # For each unique set of sources, create a variable in the cmake file. 
-   # For lack of anything better, name it numerically. 
+   # Now that we have this map of sources to mutatees that use them,
+   # create CMake lists that mimic the structure. This way we can reference
+   # the list instead of reiterating. This is actually an important step;
+   # the old mutatee Makefile for x86_64-linux was ~7M. I'm aiming for 1M
+   # for the CMake file. 
 
-   srcs_to_vars = {}
+   srcs_to_vars = dict()
    i = 0
-   for s, m in srcs_to_mutatees.iteritems():
+   for s, mlist in srcs_to_mutatees.iteritems():
       out.write("set (SOURCE_LIST_%d %s)\n" % (i, s))
-      out.write("set (MUTATEE_LIST_%d %s)\n" % (i, utils.mutatee_binary(m,platform,info)))
+      out.write("set (MUTATEE_LIST_%d " % i)
+      for m in mlist:
+         out.write("%s " % utils.mutatee_binary(m,platform,info))
+         m['srclist_index'] = i
+      out.write(")\n")
+
       srcs_to_vars[s] = i
       i += 1
-      
    out.close()
+
+def print_set_language(mutatees, platform, info, cmakelists):
+#
+# Now that we have each executable defined (in CMake-speak), we
+# need to specify the language so we don't get everything compiled
+# in ${CC}. 
+# YAI (yet another iteration)
+# Again, build the list in Python and emit a set/foreach combo
+# to CMake. This keeps the files smaller by templating the cut-and
+# -paste code. 
+
+   compilers_to_muts = {}
+   for m in mutatees:
+      compilers_to_muts.setdefault(utils.mutatee_suffix(m, platform, info), []).append(m)
+
+   for c, mlist in compilers_to_muts.iteritems():
+      cmakelists.write("add_subdirectory (%s)\n" % c)
+
+      # All the mutatees in this group have identical compiler info, so pick one
+      mut = mlist[0]
+
+      if mut['compiler'] == '':
+         continue
+
+      # Directory tree: compiler, 32/64, static/dynamic, pic/non-pic, optimization
+      exe = mut['compiler']
+      abi = mut['abi']
+      stat_dyn = utils.mutatee_format(mut['format'])
+      pic = mut['pic']
+      opt = mut['optimization']
+      tree = '%s/%s/%s/%s/%s' % (exe, abi, stat_dyn, pic, opt)
+
+      print "Creating directory %s" % tree
+      if not os.path.exists(tree):
+         os.makedirs(tree)
+      out = open('%s/CMakeLists.txt' % tree, 'w')
+      out.write("# CMakeLists for the compiler/platform/opt string %s\n" % c)
+      out.write("include (srclists.cmake)\n")
+      
+      # Override compiler/optimization/language/etc.
+      for m in mlist:
+         out.write("add_executable (%s ${SOURCE_LIST_%d})\n" % (utils.mutatee_binary(m, platform, info),
+                                                                m['srclist_index']))
+      out.close()
+
+
+def write_mutatee_cmakelists(filename, tuplefile):
+   cmakelists = open("CMakeLists.txt", "w")
+   tuples.read_tuples(tuplefile, info)
+   compilers = info['compilers']
+   mutatees = info['mutatees']
+#   print_mutatee_comp_defs(out)
+#   comps = collect_mutatee_comps(mutatees)
+   comps = utils.uniq(map(lambda m: m['compiler'], mutatees))
+   pname = os.environ.get('PLATFORM')
+   platform = utils.find_platform(pname, info)
+#   ObjSuffix = platform['filename_conventions']['object_suffix']
+   modules = utils.uniq(map(lambda t: t['module'], info['tests']))
+
+   print_add_executable(mutatees, platform, info)
+   print_set_language(mutatees, platform, info, cmakelists)
 #
 

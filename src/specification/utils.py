@@ -129,23 +129,34 @@ def auxcomp_bto_component(compiler, mutatee):
 
 def mutatee_format(formatSpec):
     if formatSpec == 'staticMutatee':
-        format = '_static'
+        format = 'stat'
     else:
-        format = '_dynamic'
+        format = 'dyn'
     return format
 
 def mutatee_binary(mutatee, platform,info):
+   return "%s.%s" % (mutatee['name'], 
+                    mutatee_suffix(mutatee, platform, info))
+
+def mutatee_suffix(mutatee, platform, info):
    # Returns standard name for the solo mutatee binary for this mutatee
    es = platform['filename_conventions']['executable_suffix']
    format = mutatee_format(mutatee['format'])
-   return "%s.mutatee_solo%s%s%s" % (mutatee['name'], format,
-                           mutatee_bto_component(mutatee,info),
-                           es)
+   return "%s%s%s" % (format,
+                       mutatee_bto_component(mutatee,info),
+                       es)
+
 
 # Returns the command used to invoke the compiler
 def compiler_command(compiler, platform, abi):
    return compiler['abiflags'][platform['name']][abi]['command']
 
+
+def normalize_compiler(m):
+   exe = m['compiler']
+   if exe == '':
+      exe = 'nil'
+   return exe
 
 #
 ######################################################################
