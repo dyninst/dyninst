@@ -692,8 +692,9 @@ linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::str
    thread_db_process(p, e, a, envp, f),
    indep_lwp_control_process(p, e, a, envp, f),
    mmap_alloc_process(p, e, a, envp, f),
-   fork_tracker(NULL),
-   lwp_tracker(NULL)
+   int_followFork(p, e, a, envp, f),
+   int_signalMask(p, e, a, envp, f),
+   int_LWPTracking(p, e, a, envp, f)
 {
 }
 
@@ -704,17 +705,14 @@ linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    thread_db_process(pid_, p),
    indep_lwp_control_process(pid_, p),
    mmap_alloc_process(pid_, p),
-   fork_tracker(NULL),
-   lwp_tracker(NULL)
+   int_followFork(pid_, p),
+   int_signalMask(pid_, p),
+   int_LWPTracking(pid_, p)
 {
 }
 
 linux_process::~linux_process()
 {
-   if (fork_tracker) {
-      delete fork_tracker;
-      fork_tracker = NULL;
-   }
 }
 
 bool linux_process::plat_create()
@@ -1172,7 +1170,7 @@ bool linux_thread::plat_cont()
        tmpSignal = 0;
    }
 
-   void *data = (tmpSignal == 0) ? NULL : (void *) tmpSignal;
+   void *data = (tmpSignal == 0) ? NULL : (void *) (long) tmpSignal;
    int result;
    if (singleStep())
    {
@@ -1306,9 +1304,9 @@ void linux_thread::setOptions()
    long options = 0;
    options |= PTRACE_O_TRACEEXIT;
    options |= PTRACE_O_TRACEEXEC;
-   if (llproc()->lwp_getTracking())
+   if (llproc()->getLWPTracking()->lwp_getTracking())
       options |= PTRACE_O_TRACECLONE;
-   if (llproc()->fork_isTracking() != FollowFork::ImmediateDetach)
+   if (llproc()->getFollowFork()->fork_isTracking() != FollowFork::ImmediateDetach)
       options |= PTRACE_O_TRACEFORK;
 
    if (options) {
@@ -1515,23 +1513,8 @@ bool linux_process::fork_setTracking(FollowFork::follow_t f)
    return true;
 }
 
-FollowFork *linux_process::getForkTracking()
-{
-   if (!fork_tracker) {
-      fork_tracker = new FollowFork(proc());
-   }
-   return fork_tracker;
-}
-
 FollowFork::follow_t linux_process::fork_isTracking() {
    return fork_tracking;
-}
-
-LWPTracking *linux_process::getLWPTracking() {
-   if (!lwp_tracker) {
-      lwp_tracker = new LWPTracking(proc());
-   }
-   return lwp_tracker;
 }
 
 bool linux_process::plat_lwpChangeTracking(bool) {
@@ -1549,6 +1532,11 @@ bool linux_process::plat_lwpChangeTracking(bool) {
       lthrd->setOptions();
    }
    return true;
+}
+
+bool linux_process::allowSignal(int signal_no) {
+   dyn_sigset_t mask = getSigMask();
+   return sigismember(&mask, signal_no);
 }
 
 #if !defined(OFFSETOF)
@@ -1882,7 +1870,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
          const MachRegister reg = i->first;
          if (reg.getArchitecture() != curplat)
             continue;
-         long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) i->second.first, NULL);
+         long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) i->second.first, NULL);
          if (errno == -1) {
             perr_printf("Error reading registers from %d at %x\n", lwp, i->second.first);
             setLastError(err_internal, "Could not read user area from thread");
@@ -1968,7 +1956,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    const unsigned size = i->second.second;
    assert(sizeof(val) >= size);
    val = 0;
-   unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSR, lwp, (void *) offset, NULL);
+   unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSR, lwp, (void *) (unsigned long) offset, NULL);
    if (errno != 0) {
       perr_printf("Error reading registers from %d: %s\n", lwp, strerror(errno));
       setLastError(err_internal, "Could not read register from thread");
@@ -2050,11 +2038,11 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
          int result;
          if (Dyninst::getArchAddressWidth(curplat) == 4) {
             uint32_t res = (uint32_t) i->second;
-            result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) di->second.first, (void *) res);
+            result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) (unsigned long) di->second.first, (void *) res);
          }
          else {
             uint64_t res = (uint64_t) i->second;
-            result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) di->second.first, (void *) res);
+            result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) (unsigned long) di->second.first, (void *) res);
          }
          
          if (result != 0) {

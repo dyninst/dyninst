@@ -45,6 +45,25 @@ unsigned int response::next_id = 1;
 
 static Mutex id_lock;
 
+unsigned newResponseID()
+{
+  unsigned id;
+  id_lock.lock();
+  id = response::next_id++;
+  id_lock.unlock();
+  return id;
+}
+
+unsigned newResponseID(unsigned size)
+{
+  unsigned id;
+  id_lock.lock();
+  id = response::next_id;
+  response::next_id += size;
+  id_lock.unlock();
+  return id;
+}
+
 response::response() :
    event(Event::ptr()),
    state(unset),
@@ -58,9 +77,7 @@ response::response() :
    multi_resp_size(0),
    multi_resp_recvd(0)
 {
-  id_lock.lock();
-  id = next_id++;
-  id_lock.unlock();
+   id = newResponseID();
 }
 
 response::~response()
@@ -732,6 +749,7 @@ unsigned ResponseSet::getIDByIndex(unsigned int index, bool &found) const
   found = true;
   return i->second;
 }
+
 unsigned int ResponseSet::getID() const {
   return myid;
 }

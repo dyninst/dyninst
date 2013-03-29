@@ -289,6 +289,11 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    ppc_process(p, e, a, envp, f),
    hybrid_lwp_control_process(p, e, a, envp, f),
    mmap_alloc_process(p, e, a, envp, f),
+   int_multiToolControl(p, e, a, envp, f),
+   int_signalMask(p, e, a, envp, f),
+   int_callStackUnwinding(p, e, a, envp, f),
+   int_BGQData(p, e, a, envp, f),
+   int_remoteIO(p, e, a, envp, f),
    last_ss_thread(NULL),
    lwp_tracker(NULL),
    hasControlAuthority(false),
@@ -1153,7 +1158,7 @@ bool bgq_process::handleStartupEvent(void *data)
    if (startup_state == issue_control_request) {
       pthrd_printf("Issuing ControlMessage in startup handler\n");
       ControlMessage *ctrl_msg = (ControlMessage *) malloc(sizeof(ControlMessage));
-      sigset_t sigs = getSigMask()->getSigMask();;
+      sigset_t sigs = getSigMask();;
       sigaddset(&sigs, SIGTRAP);
       sigaddset(&sigs, SIGSTOP);
       ctrl_msg->notifySignalSet(&sigs);
@@ -1245,7 +1250,7 @@ bool bgq_process::handleStartupEvent(void *data)
     *  - GetThreadData
     *  - ThreadList
     **/
-   if (startup_state == issue_data_collection) {
+   if (startup_state == issue_data_collection || startup_state == skip_control_request_signal) {
       pthrd_printf("Issuing data request\n");
 
       GetProcessDataCmd procdata_cmd;
@@ -1264,7 +1269,7 @@ bool bgq_process::handleStartupEvent(void *data)
       thread_list.threadID = 0;
       sendCommand(thread_list, GetThreadList);
 
-      if (expecting_stop)
+      if (expecting_stop && startup_state != skip_control_request_signal)
          startup_state = waitfor_data_or_stop;
       else
          startup_state = waitfor_data_collection;
@@ -1471,7 +1476,7 @@ void bgq_process::fillInToolMessage(ToolMessage &msg, uint16_t msg_type, respons
    msg.toolId = bgq_process::getToolID();
 }
 
-ComputeNode *bgq_process::getComputeNode()
+ComputeNode *bgq_process::getComputeNode() const
 {
    return cn;
 }
@@ -1519,6 +1524,39 @@ MultiToolControl *bgq_process::mtool_getMultiToolControl()
    return mtool;
 }
 
+void bgq_process::bgq_getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const
+{
+   a = get_procdata_result.aCoord;
+   b = get_procdata_result.bCoord;
+   c = get_procdata_result.cCoord;
+   d = get_procdata_result.dCoord;
+   e = get_procdata_result.eCoord;
+   t = get_procdata_result.tCoord;
+}
+
+unsigned int bgq_process::bgq_getComputeNodeID() const
+{
+   return getComputeNode()->getID();
+}
+
+void bgq_process::bgq_getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const
+{
+   start = get_procdata_result.sharedMemoryStartAddr;
+   end = get_procdata_result.sharedMemoryEndAddr;
+}
+
+void bgq_process::bgq_getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const
+{
+   start = get_procdata_result.persistMemoryStartAddr;
+   end = get_procdata_result.persistMemoryEndAddr;
+}
+
+void bgq_process::bgq_getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const
+{
+   start = get_procdata_result.heapStartAddr;
+   end = get_procdata_result.heapEndAddr;
+}
+
 bool bgq_process::plat_waitAndHandleForProc()
 {
    pthrd_printf("Rotating transactions at top of plat_waitAndHandleForProc\n");
@@ -1529,11 +1567,32 @@ bool bgq_process::plat_waitAndHandleForProc()
 bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, response::ptr resp, unsigned int resp_mod)
 {
    uint16_t msg_type = getCommandMsgType(cmd_type);
+   unsigned int resp_id = 0;
+   bool use_respid = false;
+   if (resp) {
+      resp_id = resp->getID() + resp_mod;
+      use_respid = true;
+   }
    if (msg_type == Query) {
-      return query_transaction->writeCommand(&cmd, cmd_type, resp, resp_mod);
+      return query_transaction->writeCommand(&cmd, cmd_type, resp_id, use_respid);
    }
    else if (msg_type == Update) {
-      return update_transaction->writeCommand(&cmd, cmd_type, resp, resp_mod);
+      return update_transaction->writeCommand(&cmd, cmd_type, resp_id, use_respid);
+   }
+   else {
+      assert(0); //Are we trying to send an Ack?
+   }
+   return false;
+}
+
+bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, Resp::ptr resp)
+{
+   uint16_t msg_type = getCommandMsgType(cmd_type);
+   if (msg_type == Query) {
+      return query_transaction->writeCommand(&cmd, cmd_type, resp->getID(), true);
+   }
+   else if (msg_type == Update) {
+      return update_transaction->writeCommand(&cmd, cmd_type, resp->getID(), true);
    }
    else {
       assert(0); //Are we trying to send an Ack?
@@ -1629,6 +1688,78 @@ bool bgq_process::plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCa
       held_msgs.clear();
    }
    return !had_error;
+}
+
+bool bgq_process::plat_getFileDataAsync(int_eventAsyncFileRead *fileread)
+{
+   if (!fileread->orig_size)
+      fileread->orig_size = MaxMemorySize;
+
+   FileReadResp_t *readresp = new FileReadResp_t(fileread, this);
+   readresp->post();
+
+   GetFileContentsCmd getfile;
+   getfile.threadID = 0;
+   strncpy(getfile.pathname, fileread->filename.c_str(), MaxPersistPathnameSize);
+   getfile.offset = fileread->offset;
+   getfile.numbytes = fileread->orig_size;
+   
+   pthrd_printf("Sending GetFileContents for %s on %d from %lu to %lu\n", 
+                getfile.pathname, getPid(), fileread->offset, fileread->offset + fileread->orig_size);
+   bool result = sendCommand(getfile, GetFileContents, readresp);
+   rotateTransaction();
+   return result;
+}
+
+bool bgq_process::plat_getFileStatData(std::string filename, Dyninst::ProcControlAPI::stat64_ptr *stat_results,
+                                       std::set<StatResp_t *> &resps)
+{
+   GetFileStatDataCmd filestat;
+   filestat.threadID = 0;
+   strncpy(filestat.pathname, filename.c_str(), MaxPersistPathnameSize);
+   
+   StatResp_t *statresp = new StatResp_t(stat_results, this);
+   assert(statresp);
+   statresp->post();
+
+   pthrd_printf("Sending GetFileStatDataCmd for %s to %d\n", filename.c_str(), getPid());
+   bool result = sendCommand(filestat, GetFileStatData, statresp);
+   if (!result) {
+      perr_printf("Failed to send STAT command\n");
+      delete statresp;
+      return false;
+   }
+   rotateTransaction();   
+   resps.insert(statresp);
+   return true;
+}
+
+bool bgq_process::plat_getFileNames(FileSetResp_t *resp)
+{
+   GetFilenamesCmd fnames;
+   fnames.threadID = 0;
+
+   resp->post();
+
+   pthrd_printf("Sending getfilenames to %d\n", getPid());
+   bool result = sendCommand(fnames, GetFilenames, resp);
+   if (!result) {
+      perr_printf("Failed to send GetFilenames command\n");
+      return false;
+   }
+   rotateTransaction();
+   return true;
+}
+
+int bgq_process::getMaxFileReadSize()
+{
+   return MaxMemorySize;
+}
+
+bool bgq_process::allowSignal(int signal_no)
+{
+   dyn_sigset_t mask = getSigMask();
+   return sigismember(&mask, signal_no);   
 }
 
 set<void *> bgq_process::held_msgs;
@@ -2462,7 +2593,7 @@ Handler::handler_ret_t HandlePreControlAuthority::handleEvent(Event::ptr ev)
       if (!iev->dresp) {
          pthrd_printf("Constructing ControlMessage in HandlePreControlAuthority handler\n");
          ControlMessage *ctrl_msg = (ControlMessage *) malloc(sizeof(ControlMessage));
-         sigset_t sigs = bgproc->getSigMask()->getSigMask();;
+         sigset_t sigs = bgproc->getSigMask();
          sigaddset(&sigs, SIGTRAP);
          sigaddset(&sigs, SIGSTOP);
          ctrl_msg->notifySignalSet(&sigs);
@@ -3212,6 +3343,94 @@ bool DecoderBlueGeneQ::decodeLWPRefresh(ArchEventBGQ *, bgq_process *proc, ToolC
    return true;
 }
 
+bool DecoderBlueGeneQ::decodeFileContents(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, 
+                                          int rc, unsigned int resp_id, bool owns_msg,
+                                          std::vector<Event::ptr> &events)
+{
+   bool is_complete;
+   Resp_ptr r = proc->recvResp(resp_id, is_complete);
+   assert(r && is_complete);
+   
+   FileReadResp_t *resp = static_cast<FileReadResp_t *>(r);
+   int_eventAsyncFileRead *iev = resp->get();
+   iev->resp = resp;
+
+   GetFileContentsAckCmd *file_cmd_ack = static_cast<GetFileContentsAckCmd *>(cmd);
+   iev->data = file_cmd_ack->data;
+   iev->size = file_cmd_ack->numbytes;
+
+   if (owns_msg) {
+      ev->dontFreeMsg();
+      iev->to_free = ev->getMsg();
+   }
+
+   if (rc != 0) {
+      iev->errorcode = rc;
+      proc->setLastError(err_internal, "Error from CDTI while reading file");
+   }
+
+   EventAsyncFileRead::ptr newev = EventAsyncFileRead::ptr(new EventAsyncFileRead(iev));
+   newev->setProcess(proc->proc());
+   newev->setThread(proc->threadPool()->initialThread()->thread());
+   newev->setSyncType(Event::async);
+   events.push_back(newev);
+
+   resp->done();
+
+   return true;
+}
+
+bool DecoderBlueGeneQ::decodeGetFilenames(ArchEventBGQ *, bgq_process *proc, ToolCommand *cmd, int rc, int id)
+{
+   bool is_complete;
+   Resp_ptr r = proc->recvResp(id, is_complete);
+   assert(r && is_complete);
+   FileSetResp_t *fset_resp = static_cast<FileSetResp_t *>(r);
+   FileSet *fset = fset_resp->get();
+   
+   GetFilenamesAckCmd *filelist = static_cast<GetFilenamesAckCmd *>(cmd);
+   Process::ptr ui_proc = proc->proc();
+
+   if (rc != 0) {
+      proc->setLastError(err_internal, "Error from CDTI while getting filelist");
+      fset_resp->done();
+      return true;
+   }
+
+   for (uint32_t i = 0; i < filelist->numFiles; i++) {
+      fset->insert(make_pair(ui_proc, FileInfo(string(filelist->pathname[i]))));
+   }
+
+   fset_resp->done();
+   return true;
+}
+
+bool DecoderBlueGeneQ::decodeFileStat(ToolCommand *cmd, bgq_process *proc, unsigned int resp_id, int rc)
+{
+   bool is_complete;
+   Resp_ptr r = proc->recvResp(resp_id, is_complete);
+   assert(r && is_complete);
+   StatResp_t *resp = static_cast<StatResp_t *>(r);
+   GetFileStatDataAckCmd *statack = static_cast<GetFileStatDataAckCmd *>(cmd);
+      
+   stat64_ptr *statp = resp->get();
+   if (rc != 0) {
+      if (*statp)
+         delete *statp;
+      *statp = NULL;
+      proc->setLastError(err_notfound, "Error stat'ing file from CDTI");
+   }
+   else {
+      if (!*statp)
+         *statp = new stat64_ret_t;
+      memcpy(*statp, &statack->stat, sizeof(stat64_ret_t));
+   }
+
+   resp->done();
+
+   return true;
+}
+
 Event::ptr DecoderBlueGeneQ::createEventDetach(bgq_process *proc, bool err)
 {
    EventDetach::ptr new_ev = EventDetach::ptr(new EventDetach());
@@ -3275,6 +3494,18 @@ bool DecoderBlueGeneQ::decodeReleaseControlAck(ArchEventBGQ *, bgq_process *proc
    return false;
 }
 
+bool DecoderBlueGeneQ::usesResp(uint16_t cmdtype) 
+{ 
+   switch (cmdtype) {
+      case GetFilenamesAck:
+      case GetFileStatDataAck:
+      case GetFileContentsAck:
+         return true;
+      default:
+         return false;
+   }
+}
+ 
 bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_process *proc,
                                               int num_commands, CommandDescriptor *cmd_list, 
                                               vector<Event::ptr> &events)
@@ -3283,6 +3514,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
    ToolMessage *msg = archevent->getMsg();
    uint32_t seq_id = msg->header.sequenceId;
    bool resp_lock_held = false;
+   bool owns_message = true;
 
    ResponseSet *resp_set = NULL;
    if (seq_id) {
@@ -3300,19 +3532,30 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
       int_thread *thr = proc->threadPool()->findThreadByLWP(threadID);
 
       response::ptr cur_resp = response::ptr();
+      unsigned int id = 0;
       if (resp_set) {
-         getResponses().lock();
-         resp_lock_held = true;
-         bool found = false;
-         unsigned int id = resp_set->getIDByIndex(i, found);
-         pthrd_printf("Associated ACK %u and index %u with internal id %u\n", seq_id, i, id);
-         if (found)
-            cur_resp = getResponses().rmResponse(id);
-         if (!cur_resp) {
-            resp_lock_held = false;
-            getResponses().unlock();
+         if (!usesResp(desc->type)) {
+            getResponses().lock();
+            resp_lock_held = true;
+            bool found = false;
+            id = resp_set->getIDByIndex(i, found);
+            if (found) {
+               pthrd_printf("Old resp, associated ACK %u and index %u with internal id %u\n", seq_id, i, id);
+               cur_resp = getResponses().rmResponse(id);
+            }
+            if (!cur_resp) {
+               resp_lock_held = false;
+               getResponses().unlock();
+            }
          }
-         pthrd_printf("%s response in message\n", cur_resp ? "Found" : "Did not find");
+         else
+         {
+            bool found = false;
+            id = resp_set->getIDByIndex(i, found);
+            if (found) {
+               pthrd_printf("New resp, associated ACK %u and index %u with internal id %u\n", seq_id, i, id);
+            }
+         }
       }
   
       switch (desc->type) {
@@ -3449,16 +3692,25 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             pthrd_printf("Decoded GetAuxVectorsAck on %d/%d. Dropping\n", 
                          proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
             break;
-         case GetProcessDataAck: {
+         case GetProcessDataAck:
             pthrd_printf("Decoded new event on %d to GetProcessData message\n", proc->getPid());
             decodeStartupEvent(archevent, proc, msg, Event::async, events);
             break;
-         }
-         case GetPreferencesAck:
          case GetFilenamesAck:
-         case GetFileStatDataAck:
-         case GetFileContentsAck:
+            pthrd_printf("Decoded event on %d to GetFilenamesAck\n", proc->getPid());
+            decodeGetFilenames(archevent, proc, base_cmd, desc->returnCode, id);
+            break;
+         case GetPreferencesAck:
             assert(0); //Currently unused
+            break;
+         case GetFileStatDataAck:
+            pthrd_printf("Decoded new event on %d to GetFileStatDataAck message\n", proc->getPid());
+            decodeFileStat(base_cmd, proc, id, desc->returnCode);
+            break;
+         case GetFileContentsAck:
+            pthrd_printf("Decoding GetFileContentsAck on %d\n", proc->getPid());
+            decodeFileContents(archevent, proc, base_cmd, desc->returnCode, id, owns_message, events);
+            owns_message = false;
             break;
          case SetBreakpointAck:
             pthrd_printf("Decoding SetBreakpointAck on %d\n", proc->getPid());

@@ -84,6 +84,15 @@ class int_library;
 class int_process;
 class emulated_singlestep;
 
+class int_libraryTracking;
+class int_LWPTracking;
+class int_threadTracking;
+class int_followFork;
+class int_callStackUnwinding;
+class int_multiToolControl;
+class int_signalMask;
+class int_remoteIO;
+
 struct bp_install_state {
    Dyninst::Address addr;
    int_breakpoint *bp;
@@ -93,6 +102,13 @@ struct bp_install_state {
    result_response::ptr res_resp;
 };
 
+/**
+ * Data reflecting the contents of a process's memory should be
+ * stored in the mem_state object (e.g, breakpoints, libraries
+ * inferior mallocs).  That way, if two processes ever share memory
+ * (see POSIX vfork), then they can share a mem_state object
+ * and changes to one will be reflected in the other.
+ **/
 class mem_state
 {
   public:
@@ -110,6 +126,24 @@ class mem_state
    std::map<Dyninst::Address, unsigned long> inf_malloced_memory;
 };
 
+/**
+ * Counters are usually* used to determine when to return from waitAndHandleEvents.
+ * Each Counter is associated with int_processes or int_threads, and counts how
+ * many of them are in a certain state.  For example, ClearingBPs counts how
+ * many threads have int_threads are currently clearing breakpoints.
+ *
+ * Counters are embedded into their int_process and int_thread objects, and
+ * if one of those objects are deleted the counter will automatically be
+ * decremented.
+ *
+ * int_process::waitAndHandleEvents will check most counters when determining
+ * whether it should return.  For example, if any threads are ClearingBPs then
+ * int_process::waitAndHandleEvents will block until they're done.
+ *
+ * *=Some of the generator counters such as ForceGeneratorBlock and
+ *   GeneratorNonExitedThreads are used in the generator rather than 
+ *   waitAndHandleEvents.
+ **/
 class Counter {
   public:
    static const int NumCounterTypes = 12;
@@ -151,6 +185,21 @@ class Counter {
    static int global_counts[NumCounterTypes];
 };
 
+/**
+ * This class works with the StateTracker (see below) to determine
+ * when an Event should be handled.  Suppose you receive a Breakpoint
+ * event on Linux, which stopped the thread it occured on but you
+ * want the entire process stopped.  
+ *
+ * Override the Event's procStopper() to set a StateTracker describing
+ * the desired state of the process (all threads stopped in the BP case)
+ * then return false from procStopper when the process reaches that state.
+ *
+ * PC will move the process towards your desired state, then handle the event
+ * when procStopper returns false.  ProcStopEventManager will handle much of this,
+ * and it's *StoppedTo functions can be used to see if the process has reached
+ * your desired state.
+ **/
 class ProcStopEventManager {
   private:
    int_process *proc;
@@ -166,6 +215,33 @@ class ProcStopEventManager {
    bool threadStoppedTo(int_thread *thr, int state_id);
 };
 
+/**
+ * This is the central class in PC, representing both a process and 
+ * and the porting interface needed to move PC to a new platform.
+ *
+ * Most of the information about a process hangs off of here (except
+ * for memory related info, see mem_state above).  This includes
+ * PIDs, execution state, environment, etc.  
+ *
+ * There are numerous pure virtual functions below, most beginning
+ * with plat_*.  To port PC to a new platform make a new class (ie.,
+ * linux_process) that inherits from int_process and fill-in these
+ * pure virtual functions.  Then have int_process::createProcess
+ * return your new class, but cast back to an int_process.
+ *
+ * There are existing child classes of int_process that you can
+ * use if your system shares certain things in common with other
+ * platforms.  For example, several systems (Linux, BlueGene, FreeBSD)
+ * use the System V interfaces for library loading.  Thus there
+ * exists a sysv_process class that inherits from int_process and
+ * fills in the library handling virtual functions of int_process.
+ * Other examples are x86_process, which fill things like how
+ * to build a breakpoint instruction.
+ * 
+ * By having the new platforms inherit from these you leverage
+ * a lot of existing work.  Note that new ports will also have
+ * to implement their own decoders and generators.
+ **/
 class int_process
 {
    friend class Dyninst::ProcControlAPI::Process;
@@ -393,9 +469,6 @@ class int_process
    void throwNopEvent();
    void throwRPCPostEvent();
    
-   virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp);
-   virtual bool plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs);
-
    virtual bool plat_supportFork();
    virtual bool plat_supportExec();
    virtual bool plat_supportDOTF();
@@ -450,38 +523,19 @@ class int_process
    bool isRunningSilent(); //No callbacks
    void setRunningSilent(bool b);
 
-   //Interfaces used by the PlatformSpecific classes
-   virtual LibraryTracking *sysv_getLibraryTracking();
-   virtual bool sysv_setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp);
-   virtual bool sysv_isTrackingLibraries();
-
-   virtual ThreadTracking *threaddb_getThreadTracking();
-   virtual bool threaddb_setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
-                                         bool &add_bp);
-   virtual bool threaddb_isTrackingThreads();
-   virtual bool threaddb_refreshThreads();
-
-   virtual FollowFork *getForkTracking();
-   virtual bool fork_setTracking(FollowFork::follow_t b);
-   virtual FollowFork::follow_t fork_isTracking();
-
-   virtual LWPTracking *getLWPTracking();
-   bool lwp_setTracking(bool b);
-   virtual bool plat_lwpChangeTracking(bool b);
-   bool lwp_getTracking();
-   bool lwp_refreshPost(result_response::ptr &resp);
-   bool lwp_refreshCheck(bool &change);
-   bool lwp_refresh();
-   virtual bool plat_lwpRefreshNoteNewThread(int_thread *thr);
-   virtual bool plat_lwpRefresh(result_response::ptr resp);
-   
-   SignalMask *getSigMask();
-
-   virtual std::string mtool_getName();
-   virtual MultiToolControl::priority_t mtool_getPriority();
-   virtual MultiToolControl *mtool_getMultiToolControl();
-
    virtual ExecFileInfo* plat_getExecutableInfo() const { return NULL; }
+
+   int_libraryTracking *getLibraryTracking();
+   int_LWPTracking *getLWPTracking();
+   int_threadTracking *getThreadTracking();
+   int_followFork *getFollowFork();
+   int_multiToolControl *getMultiToolControl();
+   int_signalMask *getSignalMask();
+   int_callStackUnwinding *getCallStackUnwinding();
+   int_BGQData *getBGQData();
+   int_remoteIO *getRemoteIO();
+
+   //Interface into BGQ-specific process data.
  protected:
    State state;
    Dyninst::PID pid;
@@ -512,20 +566,51 @@ class int_process
    Counter startupteardown_procs;
    ProcStopEventManager proc_stop_manager;
    std::map<int, int> proc_desyncd_states;
-   FollowFork::follow_t fork_tracking;
-   bool lwp_tracking;
-   SignalMask pcsigmask;
    void *user_data;
    err_t last_error;
    const char *last_error_string;
    SymbolReaderFactory *symbol_reader;
    static SymbolReaderFactory *user_set_symbol_reader;
+
+   //Cached PlatFeature pointers, which are used to avoid slow dynamic casts
+   // (they're used frequently in tight loops on BG/Q)
+   int_libraryTracking *pLibraryTracking;
+   int_LWPTracking *pLWPTracking;
+   int_threadTracking *pThreadTracking;
+   int_followFork *pFollowFork;
+   int_multiToolControl *pMultiToolControl;
+   int_signalMask *pSignalMask;
+   int_callStackUnwinding *pCallStackUnwinding;
+   int_BGQData *pBGQData;
+   int_remoteIO *pRemoteIO;
+   bool LibraryTracking_set;
+   bool LWPTracking_set;
+   bool ThreadTracking_set;
+   bool FollowFork_set;
+   bool MultiToolControl_set;
+   bool SignalMask_set;
+   bool CallStackUnwinding_set;
+   bool BGQData_set;
+   bool remoteIO_set;
 };
 
 struct ProcToIntProc {
    int_process *operator()(const Process::ptr &p) const { return p->llproc(); }
 };
 
+/**
+ * These processes represent four common models of how to stop/continue threads.
+ * If a new platform follows one of these, then inherit them from the appropriate
+ * class.
+ *
+ * indep_lwp_control_process - Each thread/lwp stops and continues independent from
+ *  each other one.  (Linux)
+ * unified_lwp_control_process - There is no thread-specific control, every thread 
+ *  stops/runs alongside its peers (BG/P)
+ * hybrid_lwp_control_process - All threads in a process are run/stopped when
+ *  a thread stops/runs, but threads can be overridden with a suspend state
+ *  that can keep them stopped when others run (FreeBSD, Windows, BG/Q).
+ **/
 class indep_lwp_control_process : virtual public int_process
 {
   protected:
@@ -572,6 +657,9 @@ class hybrid_lwp_control_process : virtual public int_process
    virtual bool plat_processGroupContinues();
 };
 
+/**
+ * A collection of registers from a thread.
+ **/
 class int_registerPool
 {
  public:
@@ -588,6 +676,13 @@ class int_registerPool
    typedef reg_map_t::const_iterator const_iterator;
 };
 
+/**
+ * When a thread/process exits we delete the int_process/int_thread objects.  But,
+ * we leave the UI handles Process/Thread around until the user gets rid of their
+ * last pointer.  There are only a few operations that are legal on an exited process
+ * (such as getting the pid or exitcode).  thread_exitstate and proc_exitstate hold that 
+ * information after a process exits. 
+ **/
 class thread_exitstate
 {
   public:
@@ -612,6 +707,13 @@ class proc_exitstate
    void setLastError(err_t e_, const char *m) { last_error = e_; last_error_msg = m; }
 };
 
+/**
+ * int_thread repesents a thread/lwp (PC assumes an M:N model of 1:1).  See the comment
+ * above int_process, most of which applies here.
+ *
+ * An int_process also holds the stopped/running state of a process.  See the StateTracker
+ * comment for a longer discussion here.
+ **/
 class int_thread
 {
    friend class Dyninst::ProcControlAPI::Thread;
@@ -682,6 +784,53 @@ public:
    static const int GeneratorStateID        = 17;
    static std::string stateIDToName(int id);
 
+   /**
+    * Documentation on StateTracker.  aka How we stop/continue the process:
+    *
+    * Making a decision on when to stop/continue a thread is complicated,
+    * especially when multiple events are happening on multiple threads.
+    * We have to consider cases like an iRPC running on one thread, while
+    * another thread handles a breakpoint and another thread is being 
+    * stopped by the user.  
+    *
+    * Each of these events might try to change the stop/running states of
+    * other threads, which can lead to conflicts over who's running.
+    * We resolve these conflicts by:
+    * - Giving each PC subsystem (e.g., iRPCs, breakpoints, user stops, ...) its
+    *   variable indicating whether a thread should run.  These are the StateTrackers.
+    * - When we acutually decide whether a thread should stop/run, we use a priority-based
+    *   projection to reduce the multiple StateTrackers from each subsystem into
+    *   a single target state (this happens in int_process::syncRunState).
+    *
+    * As an example, if you look below you'll see that the IRPC subsystem's 
+    * StateTrackers are a higher priority than the Breakpoint handling
+    * subsystem.  That means that if an IRPC and a breakpoint are happening
+    * at the same time, then we'll handle the stop/continues for the IRPC
+    * first.  When those are done (e.g., when the iRPC subsystem sets
+    * its StateTrackers to the dontcare value), then we'll move on to 
+    * handle the breakpoints.
+    *
+    * The UserState is one of the lowest priority StateTrackers--meaning
+    * everything else takes precedence.  This state represents the wishes
+    * of the user.  You can override the user's wishes (i.e, impose a 
+    * temporary stop while handling something) by setting a higher priority
+    * state, doing your work, then clearing that state.
+    *
+    * In general, most people will use StateTrackers from Handlers when
+    * dealing with an event that might have multiple stages.  In these cases,
+    * have the first stage of the event (or the code that starts the events)
+    * set the StateTracker to the desired state.  Have the last stage of the
+    * event clear the StateTracker.  Events that can be handled with a single
+    * stage (e.g, forwarding a signal) don't usually need a StateTracker.
+    *
+    * The HandlerState and GeneratorState are two special case StateTrackers.
+    * Instead of representing a goal state, they represent the actual 
+    * stop/running state of a thread.  The GenratorState is the state
+    * as viewed by PC's generator thread, and similar HandlerState is for
+    * PC's handler thread.  These are seperate variables so that we don't
+    * get races if they both read/update that variable at once.  Most of the
+    * time, you'll want the HandlerState.
+    **/
    class StateTracker {
      protected:
       State state;
@@ -887,7 +1036,6 @@ public:
 
    hw_breakpoint *getHWBreakpoint(Address addr);
 
-   virtual CallStackUnwinding *getStackUnwinder();
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
@@ -952,8 +1100,13 @@ public:
 
    std::set<hw_breakpoint *> hw_breakpoints;
    static std::set<continue_cb_t> continue_cbs;
+   CallStackUnwinding *unwinder;
 };
 
+/**
+ * int_threadPool reprents a collection of threads.  Each int_process has one
+ * int_threadPool, which has multiple threads.
+ **/
 class int_threadPool {
    friend class Dyninst::ProcControlAPI::ThreadPool;
    friend class Dyninst::ProcControlAPI::ThreadPool::iterator;
@@ -997,6 +1150,12 @@ class int_threadPool {
    void restoreUserState();
 };
 
+/**
+ * Represents a Dynamic Shared Object (aka DSO, aka .dll/.so) loaded by the process.  
+ * Each DSO has a library name and load address.
+ *
+ * int_library doesn't hang directly from a process, but from its mem_state object.
+ **/
 class int_library
 {
    friend class Dyninst::ProcControlAPI::LibraryPool;
@@ -1041,6 +1200,49 @@ class int_library
    void markAOut() { is_shared_lib = false; }
 };
 
+/**
+ * There are five (FIVE!) classes related to breakpoints:
+ *
+ * Breakpoint - The user interface to breakpoints.  The user will always 
+ *  use this when handling breakpoints.  
+ *
+ * int_breakpoint - The internal handle for a breakpoint.  A Breakpoint
+ *  will always have one int_breakpoint.  However, internal breakpoints
+ *  (ie, the breakpoint used in System V library loading) don't necessary
+ *  have the UI interface object of Breakpoint.
+ * 
+ *  int_breakpoint's aren't process specific (so they can be copied easily)
+ *  upon fork.  A single int_breakpoint can be inserted into multiple 
+ *  processes, and multiple times into one int_process.  
+ * 
+ *  An int_breakpoint can have properties, like a control transfer 
+ *  int_breakpoint will transfer control when it executes, a
+ *  onetime breakpoint will clean itself after being hit, and
+ *  a thread-specific breakpoint will only trigger if hit by
+ *  certain threads.
+ *
+ *  If internal code wants to keep a handle to a breakpoint, then
+ *  it should use int_breakpoint.
+ *
+ * bp_instance - Each int_breakpoint/process/address triple is
+ *  represented by a bp_instance.  This reprents an actual
+ *  low-level breakpoint at some location.  Unless you're
+ *  writing low-level BP code you can ignore this class.
+ *
+ *  bp_instance is an abstract class, implemented by sw_breakpoint
+ *  and hw_breakpoint.
+ *
+ * sw_breakpoint is a type of bp_instance, as implemented by a 
+ *  trap instruction.  A certain sequence of bytes is written
+ *  into the process at a code location, which throws a SIGTRAP
+ *  (or similar) when executed.
+ *
+ * hw_breakpoint is a type of bp_instance, as implemented by
+ *  hardware debug registers.  These are usually used to implement
+ *  things like watchpoints in debuggers.  They are usually 
+ *  thread-specific and can set to trigger when code executes
+ *  or data is read or written.  
+ **/
 class int_breakpoint
 {
    friend class sw_breakpoint;
@@ -1211,6 +1413,12 @@ public:
   virtual async_ret_t resume(int_process *proc, std::set<response::ptr> &resps);
 };
 
+/**
+ * On PPC64 certain synchronization instructions can mis-behave if we
+ * try to single-step across them.  This class recognizes these situations
+ * and replaces a single-step operation with a breakpoint insertion/run over
+ * the offending code.
+ **/
 class emulated_singlestep {
    // Breakpoints that are added and removed in a group to emulate
    // a single step with breakpoints
@@ -1270,6 +1478,11 @@ public:
    }
 };
 
+/**
+ * The notify class is the internal interface to th UI Notify class.  
+ * It is used to signal the user (via platform-specific interfaces)
+ * that an event is ready to be handled.
+ **/
 class int_notify {
 #if defined(os_windows)
 	class windows_details
@@ -1477,5 +1690,82 @@ class int_cleanup {
     public:
         ~int_cleanup();
 };
+
+#define PROC_EXIT_TEST(STR, RET)                      \
+   if (!llproc_) {                                    \
+     perr_printf(STR " on exited process\n");         \
+     setLastError(err_exited, "Process is exited");   \
+     return RET;                                      \
+   }
+
+#define PROC_DETACH_TEST(STR, RET)                       \
+   if (llproc_->getState() == int_process::detached) {   \
+     perr_printf(STR " on detached process\n");          \
+     setLastError(err_detached, "Process is detached");  \
+     return RET;                                         \
+   }
+
+#define PROC_CB_TEST(STR, RET)                                          \
+   if (int_process::isInCB()) {                                         \
+     perr_printf(STR " while in callback\n");                           \
+     setLastError(err_incallback, "Cannot do operation from callback"); \
+     return RET;                                                        \
+   }
+
+#define PROC_EXIT_DETACH_TEST(STR, RET)         \
+   PROC_EXIT_TEST(STR, RET)                     \
+   PROC_DETACH_TEST(STR, RET)
+
+#define PROC_EXIT_DETACH_CB_TEST(STR, RET)      \
+   PROC_EXIT_TEST(STR, RET)                     \
+   PROC_DETACH_TEST(STR, RET)                   \
+   PROC_CB_TEST(STR, RET)
+
+#define THREAD_EXIT_TEST(STR, RET)                    \
+   if (!llthread_) {                                  \
+     perr_printf(STR " on exited thread\n");          \
+     setLastError(err_exited, "Thread is exited");    \
+     return RET;                                      \
+   }                                                  \
+   if (!llthread_->llproc()) {                        \
+     perr_printf(STR " on exited process\n");         \
+     setLastError(err_exited, "Process is exited");   \
+     return RET;                                      \
+   }
+
+#define THREAD_DETACH_TEST(STR, RET)                                    \
+   if (llthread_->llproc()->getState() == int_process::detached) {      \
+     perr_printf(STR " on detached process\n");                         \
+     setLastError(err_detached, "Process is detached");                 \
+     return RET;                                                        \
+   }                                                                    \
+
+#define THREAD_STOP_TEST(STR, RET)                                     \
+   if (llthread_->getUserState().getState() != int_thread::stopped) {  \
+      setLastError(err_notstopped, "Thread not stopped");              \
+      perr_printf(STR " on running thread %d\n", llthread_->getLWP()); \
+      return RET;                                                      \
+   }
+
+#define THREAD_EXIT_DETACH_TEST(STR, RET)         \
+   THREAD_EXIT_TEST(STR, RET)                     \
+   THREAD_DETACH_TEST(STR, RET)
+
+#define THREAD_EXIT_DETACH_CB_TEST(STR, RET)      \
+   THREAD_EXIT_TEST(STR, RET)                     \
+   THREAD_DETACH_TEST(STR, RET)                   \
+   PROC_CB_TEST(STR, RET)
+
+#define THREAD_EXIT_DETACH_STOP_TEST(STR, RET)    \
+   THREAD_EXIT_TEST(STR, RET)                     \
+   THREAD_DETACH_TEST(STR, RET)                   \
+   THREAD_STOP_TEST(STR, RET)
+
+#define PTR_EXIT_TEST(P, STR, RET)                       \
+   if (!P || !P->llproc()) {                             \
+      perr_printf(STR " on exited process\n");           \
+      P->setLastError(err_exited, "Process is exited");  \
+      return RET;                                        \
+   }
 
 #endif

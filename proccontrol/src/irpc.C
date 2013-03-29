@@ -329,7 +329,6 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
    int_threadPool *tp = proc->threadPool();
    int min_rpc_count = -1;
    int_thread *selected_thread = NULL;
-   bool found_user_running_thread = false;
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
       assert(thr);
@@ -341,9 +340,6 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
       if(thr->notAvailableForRPC()) {
          pthrd_printf("Skipping thread that is marked as system\n");
          continue;
-      }
-      if (thr->getUserState().getState() == int_thread::running) {
-         found_user_running_thread = true;
       }
 
       // Don't post RPCs to threads that are in the middle of exiting

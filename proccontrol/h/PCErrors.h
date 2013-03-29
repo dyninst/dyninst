@@ -144,6 +144,7 @@ const err_t err_dthrdstop      = 0x10018;
 const err_t err_dattachack     = 0x10019;
 const err_t err_dcaack         = 0x1001a;
 const err_t err_dstep          = 0x1001b;
+const err_t err_eof            = 0x1001c;
 
 PC_EXPORT err_t getLastError();
 PC_EXPORT void clearLastError();

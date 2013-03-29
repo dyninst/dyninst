@@ -90,6 +90,8 @@ class LWPTracking;
 class CallStackUnwinding;
 class FollowFork;
 class SignalMask;
+class BGQData;
+class RemoteIO;
 
 class ExecFileInfo;
 
@@ -522,12 +524,16 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    LWPTracking *getLWPTracking();
    FollowFork *getFollowFork();
    SignalMask *getSignalMask();
+   BGQData *getBGQ();
+   RemoteIO *getRemoteIO();
    const LibraryTracking *getLibraryTracking() const;
    const ThreadTracking *getThreadTracking() const;
    const LWPTracking *getLWPTracking() const;
    const FollowFork *getFollowFork() const;
    const SignalMask *getSignalMask() const;
-   
+   const BGQData *getBGQ() const;
+   const RemoteIO *getRemoteIO() const;
+
    /**
     * Errors that occured on this process
     **/
@@ -540,7 +546,7 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
 	ExecFileInfo* getExecutableInfo() const;
 };
 
-class PC_EXPORT Thread
+class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
 {
  protected:
    friend class ::int_thread;
@@ -578,7 +584,7 @@ class PC_EXPORT Thread
    bool stopThread();
    bool continueThread();
 
-   void setSingleStepMode(bool s) const;
+   bool setSingleStepMode(bool s) const;
    bool getSingleStepMode() const;
 
    bool getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const;

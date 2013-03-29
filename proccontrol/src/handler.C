@@ -38,6 +38,7 @@
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/int_event.h"
+#include "proccontrol/src/processplat.h"
 #include "dynutil/h/dyn_regs.h"
 
 #if defined(os_windows)
@@ -613,16 +614,13 @@ Handler::handler_ret_t HandleSignal::handleEvent(Event::ptr ev)
    int signal_no = sigev->getSignal();
    thrd->setContSignal(signal_no);
 
-#if !defined(os_windows)
-   SignalMask *smask = proc->getSigMask();
-   if (smask) {
-      dyn_sigset_t mask = smask->getSigMask();
-      if (!sigismember(&mask, signal_no)) {
+   int_signalMask *sigproc = proc->getSignalMask();
+   if (sigproc) {
+      if (!sigproc->allowSignal(signal_no)) {
          pthrd_printf("Not giving callback on signal because its not in the SignalMask\n");
          ev->setSuppressCB(true);
       }
    }
-#endif
 
    return ret_success;
 }
@@ -1153,7 +1151,8 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
        child_proc = int_process::createProcess(child_pid, parent_proc);
    }
 
-   if (parent_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
+   int_followFork *fork_proc = parent_proc->getFollowFork();
+   if (fork_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
       //Silence this event.  Child will be detached.
       ev->setSuppressCB(true);
    }
@@ -1185,7 +1184,8 @@ Handler::handler_ret_t HandlePostForkCont::handleEvent(Event::ptr ev)
    pthrd_printf("Handling post-fork continue for child %d\n", child_pid);
    assert(child_proc);
 
-   if (parent_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
+   int_followFork *fork_proc = parent_proc->getFollowFork();
+   if (fork_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
       child_proc->throwDetachEvent(false, false);
    }
    else {
@@ -1951,6 +1951,47 @@ void HandleAsyncIO::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::AsyncSetAllRegs));
 }
 
+HandleAsyncFileRead::HandleAsyncFileRead() :
+   Handler("HandleAsyncFileRead")
+{
+}
+
+HandleAsyncFileRead::~HandleAsyncFileRead()
+{
+}
+
+Handler::handler_ret_t HandleAsyncFileRead::handleEvent(Event::ptr ev)
+{
+   EventAsyncFileRead::ptr fileev = ev->getEventAsyncFileRead();
+   assert(fileev);
+   int_eventAsyncFileRead *iev = fileev->getInternal();
+   int_process *proc = ev->getProcess()->llproc();
+   
+   if (iev->resp)
+      delete iev->resp;
+
+   if (iev->isComplete())
+      return ret_success;
+
+   //Setup a read on the next part of the file, starting at the offset
+   // after this read ends.
+   int_eventAsyncFileRead *new_iev = new int_eventAsyncFileRead();
+   new_iev->filename = iev->filename;
+   new_iev->offset = iev->offset + iev->size;
+   new_iev->whole_file = iev->whole_file;
+   bool result = proc->getRemoteIO()->plat_getFileDataAsync(new_iev);
+   if (!result) {
+      pthrd_printf("Error requesting file data on %d from callback\n", proc->getPid());
+      return ret_error;
+   }
+   return ret_success;
+}
+
+void HandleAsyncFileRead::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::AsyncFileRead));
+}
+
 HandleNop::HandleNop() :
    Handler("Nop Handler")
 {
@@ -2453,6 +2494,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static iRPCPreCallbackHandler *hprerpc = NULL;
    static HandlePreBootstrap* hprebootstrap = NULL;
    static iRPCLaunchHandler *hrpclaunch = NULL;
+   static HandleAsyncFileRead *hasyncfileread = NULL;
    if (!initialized) {
       hbootstrap = new HandleBootstrap();
       hsignal = new HandleSignal();
@@ -2483,6 +2525,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hnop = new HandleNop();
       hdetach = new HandleDetach();
       hemulatedsinglestep = new HandleEmulatedSingleStep();
+      hasyncfileread = new HandleAsyncFileRead();
       initialized = true;
    }
    HandlerPool *hpool = new HandlerPool(p);
@@ -2515,6 +2558,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hnop);
    hpool->addHandler(hdetach);
    hpool->addHandler(hemulatedsinglestep);
+   hpool->addHandler(hasyncfileread);
    plat_createDefaultHandlerPool(hpool);
 
    print_add_handler = false;

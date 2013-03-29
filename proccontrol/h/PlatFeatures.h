@@ -35,19 +35,30 @@
 #include <vector>
 #include <string>
 
-#if !defined(PROCESSPLAT_H_)
-#define PROCESSPLAT_H_
+#if !defined(PLATFEATURES_H_)
+#define PLATFEATURES_H_
 
 class int_process;
 class sysv_process;
 class thread_db_process;
 class linux_process;
+class int_libraryTracking;
+class int_LWPTracking;
+class int_threadTracking;
+class int_followFork;
+class int_multiToolControl;
+class int_signalMask;
+class int_callStackUnwinding;
+class int_BGQData;
+class int_remoteIO;
+
 namespace bgq {
    class bgq_process;
 };
+class int_fileInfo;
 
-#if !defined(_MSC_VER)
 //For sigset_t
+#if !defined(_MSC_VER)
 #include <signal.h>
 #endif
 
@@ -56,12 +67,12 @@ namespace ProcControlAPI {
 
 class PC_EXPORT LibraryTracking
 {
-   friend class ::sysv_process;
+   friend class ::int_libraryTracking;
+   friend class ::int_process;
   protected:
    LibraryTracking(Process::ptr proc_);
    ~LibraryTracking();
    Process::weak_ptr proc;
-   static bool default_track_libs;
   public:
    static void setDefaultTrackLibraries(bool b);
    static bool getDefaultTrackLibraries();
@@ -75,6 +86,7 @@ class PC_EXPORT LibraryTrackingSet
 {
    friend class ProcessSet;
    friend class PSetFeatures;
+   friend class ::int_process;
   protected:
    LibraryTrackingSet(ProcessSet::ptr ps_);
    ~LibraryTrackingSet();
@@ -87,7 +99,9 @@ class PC_EXPORT LibraryTrackingSet
 class PC_EXPORT LWPTracking
 {
    friend class ::linux_process;
+   friend class ::int_process;
    friend class bgq::bgq_process;
+   friend class ::int_LWPTracking;
   protected:
    LWPTracking(Process::ptr proc_);
    ~LWPTracking();
@@ -106,6 +120,7 @@ class PC_EXPORT LWPTrackingSet
 {
    friend class ProcessSet;
    friend class PSetFeatures;
+   friend class ::int_process;
   protected:
    LWPTrackingSet(ProcessSet::ptr ps_);
    ~LWPTrackingSet();
@@ -117,7 +132,9 @@ class PC_EXPORT LWPTrackingSet
 
 class PC_EXPORT ThreadTracking
 {
+   friend class ::int_process;
    friend class ::thread_db_process;
+   friend class ::int_threadTracking;
   protected:
    ThreadTracking(Process::ptr proc_);
    ~ThreadTracking();
@@ -136,6 +153,7 @@ class PC_EXPORT ThreadTrackingSet
 {
    friend class ProcessSet;
    friend class PSetFeatures;
+   friend class ::int_process;
   protected:
    ThreadTrackingSet(ProcessSet::ptr ps_);
    ~ThreadTrackingSet();
@@ -148,6 +166,8 @@ class PC_EXPORT ThreadTrackingSet
 class PC_EXPORT FollowFork
 {
    friend class ::linux_process;
+   friend class ::int_process;
+   friend class ::int_followFork;
   protected:
    FollowFork(Process::ptr proc_);
    ~FollowFork();
@@ -197,6 +217,9 @@ class PC_EXPORT CallStackCallback
 
 class PC_EXPORT CallStackUnwinding
 {
+   friend class ::int_process;
+   friend class ::int_thread;
+   friend class ::int_callStackUnwinding;
   private:
    Thread::weak_ptr wt;
   public:
@@ -218,6 +241,8 @@ class PC_EXPORT CallStackUnwindingSet
 class PC_EXPORT MultiToolControl
 {
    friend class bgq::bgq_process;
+   friend class ::int_process;
+   friend class ::int_multiToolControl;
   public:
    typedef unsigned int priority_t;
   private:
@@ -250,58 +275,139 @@ typedef sigset_t dyn_sigset_t;
 class PC_EXPORT SignalMask
 {
    friend class ::int_process;
+   friend class ::int_signalMask;
   protected:
-   dyn_sigset_t the_sigset;
    static dyn_sigset_t default_sigset;
    static bool sigset_initialized;
-   SignalMask();
+  private:
+   Process::weak_ptr proc;
+   SignalMask(Process::ptr proc_);
    ~SignalMask();
   public:
    static dyn_sigset_t getDefaultSigMask();
    static void setDefaultSigMask(dyn_sigset_t s);
    dyn_sigset_t getSigMask() const;
-   void setSigMask(dyn_sigset_t s);
+   bool setSigMask(dyn_sigset_t s);
 };
 
-#if 0
-//TO BE IMPLEMENTED
-
-#if defined(_MSC_VER)
-typedef void* stat_ret_t;
-#else
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-typedef struct stat stat_ret_t;
-#endif
-
-class PC_EXPORT RemoteIO : virtual public PlatformFeatures
+class PC_EXPORT BGQData
 {
+   friend class ::int_process;
+   friend class bgq::bgq_process;
+   friend class ::int_BGQData;
+  protected:
+   static const unsigned int startup_timeout_sec_default = 45;
+   static const bool block_for_ca_default = true;
+   BGQData(Process::ptr proc_);
+   ~BGQData();
+   Process::weak_ptr proc;
   public:
-
-   bool getFileNames(std::vector<std::string> &filenames);
-   static bool getFileNames(ProcessSet::ptr pset, std::map<Process::ptr, std::vector<std::string> > &all_filenames);
-
-   bool getFileStatData(std::string filename, stat_ret_t &stat_results);
-   static bool getFileStatData(ProcessSet::ptr pset, std::string filename, 
-                               std::map<Process::ptr, stat_ret_t> &stat_results);
-
-   //Results of these two calls should be 'free()'d by the user
-   bool readFileContents(std::string filename, size_t offset, size_t numbytes, unsigned char* &result);
+   static void setStartupTimeout(unsigned int seconds);
+   static void setBlockForControlAuthority(bool block);
    
-   struct ReadT {
-      Process::ptr proc;
-      std::string filename;
-      size_t offset;
-      size_t numbytes;
-      void *result; //Output parameter
-   };
-   static bool readFileContents(std::vector<ReadT> &targets);
+   //Five coordinates on torus (a, b, c, d, e), one on CN (t)
+   bool getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const;
 
-   RemoteIO();
-   virtual ~RemoteIO();
+   //All processes that share a CN will shared a ComputeNode ID
+   unsigned int getComputeNodeID() const;
+
+   bool getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
+   bool getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
+   bool getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
 };
-#endif
+
+/**
+ * This struct is copied from the GLIBC sources for 'struct stat64'.  It is 
+ * recreated here because this header is supposed to compile without ifdefs 
+ * across platforms that may not have 'struct stat64'
+ **/
+extern "C" struct stat64_ret_t {
+   unsigned long long st_dev;
+   unsigned long long st_ino;
+   unsigned int st_mode;
+   unsigned int st_nlink;
+   unsigned int st_uid;
+   unsigned int st_gid;
+   unsigned long long st_rdev;
+   unsigned short __pad2;
+   long long st_size;
+   int st_blksize;
+   long long st_blocks;
+   int st_atime_;
+   unsigned int st_atime_nsec;
+   int st_mtime_;
+   unsigned int st_mtime_nsec;
+   int st_ctime_;
+   unsigned int st_ctime_nsec;
+   unsigned int __unused4;
+   unsigned int __unused5;
+};
+
+typedef stat64_ret_t *stat64_ptr;
+typedef boost::shared_ptr<int_fileInfo> int_fileInfo_ptr;
+
+class RemoteIO;
+class RemoteIOSet;
+
+class FileInfo {
+   friend class ::int_remoteIO;
+   friend class RemoteIO;
+   friend class RemoteIOSet;
+  private:
+   mutable int_fileInfo_ptr info;
+   int_fileInfo_ptr getInfo() const;
+  public:
+   FileInfo(std::string fname);
+   FileInfo();
+   FileInfo(const FileInfo &fi);
+   ~FileInfo();
+   
+   std::string getFilename() const;
+   stat64_ptr getStatResults() const; //Filled in by getFileStatData
+};
+
+typedef std::multimap<Process::const_ptr, FileInfo> FileSet;
+
+class PC_EXPORT RemoteIO
+{
+  protected:
+   Process::weak_ptr proc;
+  public:
+   RemoteIO(Process::ptr proc);
+   virtual ~RemoteIO();
+
+   //Construct filesets based on filenames, without doing a getFileNames
+   // User is responsible for 'delete'ing the FileSet when done.
+   FileSet *getFileSet(std::string filename) const;
+   FileSet *getFileSet(const std::set<std::string> &filenames) const;
+   bool addToFileSet(std::string filename, FileSet *fs) const;
+  
+   //Fetches filenames from BGQ's persisent memory ramdisk
+   bool getFileNames(FileSet *result) const;
+
+   //Get data as per a stat system call, fill in the FileInfo objects
+   bool getFileStatData(FileSet *fset) const;
+
+   //These are whole file reads and produce EventAsyncFileRead callbacks
+   bool readFileContents(const FileSet *fset);
+};
+
+class PC_EXPORT RemoteIOSet
+{
+  protected:
+   ProcessSet::weak_ptr pset;
+  public:
+   RemoteIOSet(ProcessSet::ptr procs_);
+   virtual ~RemoteIOSet();
+
+   FileSet *getFileSet(std::string filename);
+   FileSet *getFileSet(const std::set<std::string> &filenames);
+   bool addToFileSet(std::string filename, FileSet *fs);
+
+   bool getFileNames(FileSet *result);
+   bool getFileStatData(FileSet *fset);
+   bool readFileContents(const FileSet *fset);
+};
 
 }
 }
