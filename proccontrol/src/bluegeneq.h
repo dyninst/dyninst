@@ -283,16 +283,19 @@ struct buffer_t {
    void *buffer;
    size_t size;
    bool is_heap_allocated;
+   bool is_timeout;
    buffer_t(void *b, size_t s, bool h) :
      buffer(b),
      size(s),
-     is_heap_allocated(h)
+     is_heap_allocated(h),
+     is_timeout(false)
    {
    }
    buffer_t() :
      buffer(NULL),
      size(0),
-     is_heap_allocated(false)
+     is_heap_allocated(false),
+     is_timeout(false)
    {
    }
 
@@ -312,6 +315,7 @@ class ComputeNode
    ComputeNode(int cid);
 
    std::set<bgq_process *> procs;
+   std::vector<int> former_procs;
   public:
    static ComputeNode *getComputeNodeByID(int cn_id);
    static ComputeNode *getComputeNodeByRank(uint32_t rank);
@@ -412,11 +416,14 @@ class ArchEventBGQ : public ArchEvent
   private:
    ToolMessage *msg;
    bool free_msg;
+   bool timeout_msg;
   public:
    ArchEventBGQ(ToolMessage *msg);
+   ArchEventBGQ();
    virtual ~ArchEventBGQ();
 
    ToolMessage *getMsg() const;
+   bool isTimeout() const;
    void dontFreeMsg();
 };
 
@@ -448,8 +455,9 @@ class DecoderBlueGeneQ : public Decoder
    bool decodeDetachAck(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
    bool decodeReleaseControlAck(ArchEventBGQ *archevent, bgq_process *proc, int err_code, std::vector<Event::ptr> &events);
    bool decodeControlAck(ArchEventBGQ *ev, bgq_process *qproc, vector<Event::ptr> &events);
-   bool decodeLWPRefresh(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, std::vector<Event::ptr> &events);
 
+   bool decodeLWPRefresh(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, std::vector<Event::ptr> &events);
+   bool decodeTimeout(vector<Event::ptr> &events);
 
    Event::ptr createEventDetach(bgq_process *proc, bool err);
  public:
@@ -498,6 +506,10 @@ class ReaderThread : public IOThread
    virtual void localInit();
    int kick_fd;
    int kick_fd_write;
+   bool is_gen_kicked;
+   unsigned timeout_set;
+   struct timeval timeout;
+   Mutex timeout_lock;
   protected:
    virtual void thrd_kick();
   public:
@@ -507,6 +519,9 @@ class ReaderThread : public IOThread
    void addComputeNode(ComputeNode *cn);
    void rmComputeNode(ComputeNode *cn);
    void setKickPipe(int fd);
+   void setTimeout(const struct timeval &tv);
+   void clearTimeout();
+   void kick_generator();
 };
 
 class WriterThread : public IOThread
@@ -531,6 +546,7 @@ class WriterThread : public IOThread
    void notifyAck(int rank);
    void addProcess(bgq_process *proc);
    void rmProcess(bgq_process *proc);
+   void forcePastAck(ComputeNode *cn);
 };
 
 

@@ -192,6 +192,11 @@ bool int_process::waitfor_startup()
          globalSetLastError(err_exited, "Process exited during startup");
          return false;
       }
+      if (getState() == errorstate) {
+         pthrd_printf("Error.  Process in error state\n");
+         globalSetLastError(err_internal, "Process errored during startup");
+         return false;
+      }
    }
    return true;
 }
@@ -260,6 +265,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          perr_printf("Attempted to reattach to attached process %d\n", proc->getPid());
          proc->setLastError(err_attached, "Cannot reAttach to attached process.\n");
          procs.erase(i++);
+         had_error = true;
          continue;
       }
 
@@ -340,6 +346,12 @@ bool int_process::attach(int_processSet *ps, bool reattach)
 
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
       int_process *proc = *i;
+      if (proc->getState() == errorstate) {
+         pthrd_printf("Removing process %d in error state\n", proc->getPid());
+         procs.erase(i++);
+         had_error = true;
+         continue;
+      }
       pthrd_printf("Attaching to threads for %d\n", proc->getPid());
       bool result = proc->attachThreads();
       if (!result) {
@@ -410,9 +422,8 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       int_process *proc = *i;
       pthrd_printf("Wait for attach from process %d\n", proc->pid);
 
-	  bool result = proc->waitfor_startup();
-
-	  if (!result) {
+      bool result = proc->waitfor_startup();
+      if (!result) {
          pthrd_printf("Error waiting for attach to %d\n", proc->pid);
          procs.erase(i++);
          had_error = true;
@@ -424,6 +435,8 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    //idempotent after success, then just do it again.
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
       int_process *proc = *i;
+      if (proc->getState() == errorstate)
+         continue;
       bool result = proc->attachThreads();
       if (!result) {
          pthrd_printf("Failed to attach to threads in %d--now an error\n", proc->pid);
@@ -4351,18 +4364,12 @@ bool int_thread::StateTracker::setState(State to)
       pthrd_printf("Leaving %s state for %d/%d in state %s\n", s.c_str(), pid, lwp, stateStr(to));
       return true;
    }
-   if (to == errorstate) {
-      perr_printf("Setting %s state for %d/%d from %s to errorstate\n", 
-                  s.c_str(), pid, lwp, stateStr(state));
-      state = to;
-      return true;
-   }
    if (state == errorstate) {
       perr_printf("Attempted %s state reversion for %d/%d from errorstate to %s\n", 
                   s.c_str(), pid, lwp, stateStr(to));
       return false;
    }
-   if (state == exited) {
+   if (state == exited && to != errorstate) {
       perr_printf("Attempted %s state reversion for %d/%d from exited to %s\n", 
                   s.c_str(), pid, lwp, stateStr(to));
       return false;
