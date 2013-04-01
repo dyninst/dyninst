@@ -512,7 +512,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
       if( symObj->isStaticBinary() && isDirty() ) {
          if( !doStaticBinarySpecialCases() ) {
-            return false;
+	   cerr << "Failed to write file " << newFileName << ": static binary handler failed" << endl;
+	   return false;
          }
       }
 
