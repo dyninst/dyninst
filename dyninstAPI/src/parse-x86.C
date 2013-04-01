@@ -426,11 +426,17 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     if( loadLibc ) {
        std::map<std::string, BinaryEdit *> res;
        openResolvedLibraryName("libc.a", res);
+
+       if (res.empty()) {
+	 cerr << "Fatal error: failed to load DyninstAPI_RT library dependency (libc.a)" << endl;
+	 return false;
+       }
+
        std::map<std::string, BinaryEdit *>::iterator bedit_it;
        for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
           if( bedit_it->second == NULL ) {
-             logLine("Failed to load DyninstAPI_RT library dependency (libc.a)");
-             return false;
+	    cerr << "Fatal error: failed to load DyninstAPI_RT library dependency (libc.a)" << endl;
+	    return false;
           }
        }
     }

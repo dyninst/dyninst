@@ -526,7 +526,6 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                                                    std::map<std::string, BinaryEdit*> &retMap) {
     std::vector<std::string> paths;
     std::vector<std::string>::iterator pathIter;
-
     // First, find the specified library file
     bool resolved = getResolvedLibraryPath(filename, paths);
 
