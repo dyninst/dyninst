@@ -61,6 +61,31 @@ const int EmitterIA32::mt_offset = -4;
 const int EmitterAMD64::mt_offset = -8;
 #endif
 
+static void emitXMMRegsSaveRestore(codeGen &gen, bool isRestore) {
+   // Quick hack time: save at +0 to +0x70 (so occupying 0..0x80)
+   // and 0..7
+   GET_PTR(insn, gen);
+   for (unsigned xmm_reg = 0; xmm_reg <= 7; ++xmm_reg) {
+      unsigned char offset = xmm_reg * 16;
+      *insn++ = 0x66; *insn++ = 0x0f; 
+      if (isRestore) 
+         *insn++ = 0x6f;
+      else 
+         *insn++ = 0x7f;
+
+      if (xmm_reg == 0) {
+         *insn++ = 0x00;
+      }
+      else {
+         unsigned char modrm = 0x40 + (0x8 * xmm_reg);
+         *insn++ = modrm;
+         *insn++ = offset;
+      }
+   }
+   SET_PTR(insn, gen);
+}         
+
+
 bool EmitterIA32::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
    RealRegister src_r = gen.rs()->loadVirtual(src, gen);
    RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
@@ -2487,12 +2512,17 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
       //   fxsave (%rsp)           ; 0x0f 0xae 0x04 0x24
 
       // Change to REGET if we go back to magic LEA emission
+#if 0
       GET_PTR(buffer, gen);
       *buffer++ = 0x0f;
       *buffer++ = 0xae;
       *buffer++ = 0x04;
       *buffer++ = 0x24;
       SET_PTR(buffer, gen);
+#endif
+
+      emitMovRegToReg64(REGNUM_RAX, REGNUM_RSP, true, gen);
+      emitXMMRegsSaveRestore(gen, false);
    }
 
    if (bt) {
@@ -2542,12 +2572,16 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
    if (useFPRs) {
       // restore saved FP state
       // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
+#if 0
       GET_PTR(buffer, gen);
       *buffer++ = 0x0f;
       *buffer++ = 0xae;
       *buffer++ = 0x0c;
       *buffer++ = 0x24;
       SET_PTR(buffer, gen);
+#endif
+      emitMovRegToReg64(REGNUM_RAX, REGNUM_RSP, true, gen);
+      emitXMMRegsSaveRestore(gen, true);
    }
 
    int extra_space = gen.rs()->getStackHeight();
