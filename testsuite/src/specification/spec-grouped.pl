@@ -156,8 +156,8 @@ mutatee('dyninst_cxx_group_test', ['test5_1_mutatee.C',
 	'test5_6_mutatee.C',
 	'test5_7_mutatee.C',
 	'test5_8_mutatee.C',
-	'test5_9_mutatee.C'
-    ], ['cpp_test.C']).
+	'test5_9_mutatee.C', 
+        'cpp_test.C']).
 compiler_for_mutatee('dyninst_cxx_group_test', Compiler) :-
     comp_lang(Compiler, 'c++').
 mutatee_format('dyninst_cxx_group_test', 'staticMutatee').
@@ -604,18 +604,18 @@ test_platform('test1_35', 'i386-unknown-freebsd7.2').
 test_platform('test1_35', 'amd64-unknown-freebsd7.2').
 groupable_test('test1_35').
 mutator('test1_35', ['test1_35.C']).
-mutatee('test1_35', ['test1_35_mutatee.c'], Sources) :-
+mutatee('test1_35', ['test1_35_mutatee.c', Sources]) :-
     current_platform(Plat), platform(Arch, OS, _, Plat),
     (
         (Arch = 'x86_64', OS = 'linux') ->
-            Sources = ['call35_1_x86_64_linux.s'];
+            Sources = 'call35_1_x86_64_linux.s';
         (Arch = 'i386', OS = 'linux') ->
-            Sources = ['call35_1_x86_linux.s'];
+            Sources = 'call35_1_x86_linux.s';
         (Arch = 'i386', OS = 'freebsd') ->
-            Sources = ['call35_1_x86_linux.s'];
+            Sources = 'call35_1_x86_linux.s';
         (Arch = 'x86_64', OS = 'freebsd') ->
-            Sources = ['call35_1_x86_64_linux.s'];
-        Sources = ['call35_1.c']
+            Sources = 'call35_1_x86_64_linux.s';
+        Sources = 'call35_1.c'
     ).
 % test1_35s mutatee can be compiled with any C compiler
 compiler_for_mutatee('test1_35', Compiler) :-
@@ -1079,22 +1079,14 @@ test_exclude_compiler('test5_9', 'pgCC').
 % Convenience rule for mapping platforms to the asm sources for test_mem
 test_mem_mutatee_aux(P, Aux) :-
     (
-        platform('power32', 'aix', _, P) -> Aux = ['test_mem_util.c',
-                                                 'test6LS-power.s'];
-        platform('i386', 'linux', _, P) -> Aux = ['test_mem_util.c',
-                                                  'test6LS-x86.asm'];
-        platform('i386', 'windows', _, P) -> Aux = ['test_mem_util.c',
-                                                    'test6LS-masm.asm'];
-        platform('x86_64', 'linux', _, P) -> Aux = ['test_mem_util.c',
-                                                    'test6LS-x86_64.s'];
-        platform('power32', 'linux', _, P) -> Aux = ['test_mem_util.c',
-                                                   'test6LS-powerpc.S'];
-        platform('power64', 'linux', _, P) -> Aux = ['test_mem_util.c',
-                                                   'test6LS-powerpc.S'];
-        platform('i386', 'freebsd', _, P) -> Aux = ['test_mem_util.c',
-                                                   'test6LS-x86.asm'];
-        platform('x86_64', 'freebsd', _, P) -> Aux = ['test_mem_util.c',
-                                                    'test6LS-x86_64.s']
+        platform('power32', 'aix', _, P) -> Aux = 'test6LS-power.s';
+        platform('i386', 'linux', _, P) -> Aux = 'test6LS-x86.asm';
+        platform('i386', 'windows', _, P) -> Aux = 'test6LS-masm.asm';
+        platform('x86_64', 'linux', _, P) -> Aux = 'test6LS-x86_64.s';
+        platform('power32', 'linux', _, P) -> Aux = 'test6LS-powerpc.S';
+        platform('power64', 'linux', _, P) -> Aux = 'test6LS-powerpc.S';
+        platform('i386', 'freebsd', _, P) -> Aux = 'test6LS-x86.asm';
+        platform('x86_64', 'freebsd', _, P) -> Aux = 'test6LS-x86_64.s'
     ).
 
 % Convenience rule for checking platforms for test_mem_*
@@ -1118,7 +1110,7 @@ test('test_mem_1', 'test_mem_1', 'test_mem_1').
 test_platform('test_mem_1', Platform) :-
     test_mem_platform(Platform).
 mutator('test_mem_1', ['test_mem_1.C']).
-mutatee('test_mem_1', ['test_mem_1_mutatee.c'], Aux) :-
+mutatee('test_mem_1', ['test_mem_1_mutatee.c', 'test_mem_util.c', Aux]) :-
     current_platform(P),
     test_mem_mutatee_aux(P, Aux).
 compiler_for_mutatee('test_mem_1', Compiler) :-
@@ -1135,7 +1127,7 @@ test('test_mem_2', 'test_mem_2', 'test_mem_2').
 test_platform('test_mem_2', Platform) :-
     test_mem_platform(Platform).
 mutator('test_mem_2', ['test_mem_2.C']).
-mutatee('test_mem_2', ['test_mem_2_mutatee.c'], Aux) :-
+mutatee('test_mem_2', ['test_mem_2_mutatee.c', 'test_mem_util.c', Aux]) :-
     current_platform(Plat),
     test_mem_mutatee_aux(Plat, Aux).
 compiler_for_mutatee('test_mem_2', Compiler) :-
@@ -1152,7 +1144,7 @@ test('test_mem_3', 'test_mem_3', 'test_mem_3').
 test_platform('test_mem_3', Platform) :-
     test_mem_platform(Platform).
 mutator('test_mem_3', ['test_mem_3.C']).
-mutatee('test_mem_3', ['test_mem_3_mutatee.c'], Aux) :-
+mutatee('test_mem_3', ['test_mem_3_mutatee.c', 'test_mem_util.c', Aux]) :-
     current_platform(Plat),
     test_mem_mutatee_aux(Plat, Aux).
 compiler_for_mutatee('test_mem_3', Compiler) :-
@@ -1169,7 +1161,7 @@ test('test_mem_4', 'test_mem_4', 'test_mem_4').
 test_platform('test_mem_4', Platform) :-
     test_mem_platform(Platform).
 mutator('test_mem_4', ['test_mem_4.C']).
-mutatee('test_mem_4', ['test_mem_4_mutatee.c'], Aux) :-
+mutatee('test_mem_4', ['test_mem_4_mutatee.c', 'test_mem_util.c', Aux]) :-
     current_platform(Platform),
     test_mem_mutatee_aux(Platform, Aux).
 compiler_for_mutatee('test_mem_4', Compiler) :-
@@ -1186,7 +1178,7 @@ test('test_mem_5', 'test_mem_5', 'test_mem_5').
 test_platform('test_mem_5', Platform) :-
     test_mem_platform(Platform).
 mutator('test_mem_5', ['test_mem_5.C']).
-mutatee('test_mem_5', ['test_mem_5_mutatee.c'], Aux) :-
+mutatee('test_mem_5', ['test_mem_5_mutatee.c', 'test_mem_util.c', Aux]) :-
     current_platform(Platform),
     test_mem_mutatee_aux(Platform, Aux).
 compiler_for_mutatee('test_mem_5', Compiler) :-
@@ -1202,7 +1194,7 @@ test('test_mem_6', 'test_mem_6', 'test_mem_6').
 test_platform('test_mem_6', Platform) :-
     test_mem_platform(Platform).
 mutator('test_mem_6', ['test_mem_6.C']).
-mutatee('test_mem_6', ['test_mem_6_mutatee.c'], Aux) :-
+mutatee('test_mem_6', ['test_mem_6_mutatee.c', 'test_mem_util.c', Aux]) :-
     current_platform(Platform),
     test_mem_mutatee_aux(Platform, Aux).
 compiler_for_mutatee('test_mem_6', Compiler) :-
@@ -1219,7 +1211,7 @@ test('test_mem_7', 'test_mem_7', 'test_mem_7').
 test_platform('test_mem_7', Platform) :-
     test_mem_platform(Platform).
 mutator('test_mem_7', ['test_mem_7.C']).
-mutatee('test_mem_7', ['test_mem_7_mutatee.c'], Aux) :-
+mutatee('test_mem_7', ['test_mem_7_mutatee.c', 'test_mem_util.c', Aux]) :-
     current_platform(Platform),
     test_mem_mutatee_aux(Platform, Aux).
 compiler_for_mutatee('test_mem_7', Compiler) :-
@@ -1236,7 +1228,7 @@ test('test_mem_8', 'test_mem_8', 'test_mem_8').
 test_platform('test_mem_8', Platform) :-
     test_mem_platform(Platform).
 mutator('test_mem_8', ['test_mem_8.C']).
-mutatee('test_mem_8', ['test_mem_8_mutatee.c'], Aux) :-
+mutatee('test_mem_8', ['test_mem_8_mutatee.c', 'test_mem_util.c', Aux]) :-
     current_platform(Platform),
     test_mem_mutatee_aux(Platform, Aux).
 compiler_for_mutatee('test_mem_8', Compiler) :-
@@ -1457,7 +1449,7 @@ test_platform('test_thread_1', Platform) :-
     platform(_, OS, _, Platform),
     OS \= 'windows'.
 mutator('test_thread_1', ['test_thread_1.C']).
-mutatee('test_thread_1', ['test_thread_1_mutatee.c'], ['test_thread.c']).
+mutatee('test_thread_1', ['test_thread_1_mutatee.c','test_thread.c']).
 compiler_for_mutatee('test_thread_1', Compiler) :-
     comp_lang(Compiler, 'c').
 % Requires an additional library on Solaris
@@ -1474,7 +1466,7 @@ tests_module('test_thread_1', 'dyninst').
 
 % test_thread_2 (formerly test12_3)
 mutator('test_thread_2', ['test_thread_2.C']).
-mutatee('test_thread_2', ['test_thread_2_mutatee.c'], ['test_thread.c']).
+mutatee('test_thread_2', ['test_thread_2_mutatee.c', 'test_thread.c']).
 compiler_for_mutatee('test_thread_2', Compiler) :-
     comp_lang(Compiler, 'c').
 % Requires an additional library on Solaris
@@ -1497,7 +1489,7 @@ tests_module('test_thread_2', 'dyninst').
 
 % test_thread_3 (formerly test12_4)
 mutator('test_thread_3', ['test_thread_3.C']).
-mutatee('test_thread_3', ['test_thread_3_mutatee.c'], ['test_thread.c']).
+mutatee('test_thread_3', ['test_thread_3_mutatee.c', 'test_thread.c']).
 compiler_for_mutatee('test_thread_3', Compiler) :-
     comp_lang(Compiler, 'c').
 % Requires an additional library on Solaris
@@ -1519,7 +1511,7 @@ tests_module('test_thread_3', 'dyninst').
 
 % test_thread_5 (formerly test12_8)
 mutator('test_thread_5', ['test_thread_5.C']).
-mutatee('test_thread_5', ['test_thread_5_mutatee.c'], ['test_thread.c']).
+mutatee('test_thread_5', ['test_thread_5_mutatee.c', 'test_thread.c']).
 compiler_for_mutatee('test_thread_5', Compiler) :-
     comp_lang(Compiler, 'c').
 % Requires an additional library on Solaris
@@ -1612,7 +1604,7 @@ tests_module('test_thread_8', 'dyninst').
 % The Fortran tests
 
 % convenience clause for C components of Fortran tests
-spec_object_file(Object, 'gcc', [], [Source], [], ['-DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src']) :-
+spec_object_file(Object, 'gcc', [], [Source], [], ['-DSOLO_MUTATEE ${MUTATEE_G77_CFLAGS) ']) :-
     fortran_c_component(Testname),
     atom_concat(Testname, '_mutatee_solo_gcc_none', Object),
     atom_concat(Testname, '_solo_me.c', Source).
@@ -1630,11 +1622,11 @@ optimization_for_mutatee('test1_1F', Compiler, 'none') :-
 % sucks and I need to figure out a better way to do it.
 fortran_c_component('test1_1F').
 %spec_object_file('test1_1F_mutatee_solo_gcc_none', 'gcc',
-%   ['test1_1F_solo_me.c'], [], ['$(MUTATEE_G77_CFLAGS)']).
+%   ['test1_1F_solo_me.c'], [], ['${MUTATEE_G77_CFLAGS}']).
 % spec_exception('test1_1F_mutatee.c', 'mutatee_flags',
-%          ['gcc', '$(MUTATEE_G77_CFLAGS)']).
+%          ['gcc', '${MUTATEE_G77_CFLAGS}']).
 % spec_exception('test1_1F_mutatee.c', 'mutatee_flags',
-%          ['g++', '$(MUTATEE_G77_CFLAGS)']).
+%          ['g++', '${MUTATEE_G77_CFLAGS}']).
 % First try at a test that uses a one-to-many mutator-mutatee mapping
 test('test1_1F', 'test1_1', 'test1_1F').
 test_description('test1_1F', 'instrument with zero-arg function call (Fortran)').
@@ -2429,7 +2421,7 @@ test_threadmode('pc_launch', 'Threading').
 test_processmode('pc_launch', 'Processes').
 test_start_state('pc_launch', 'selfattach').
 tests_module('pc_launch', 'proccontrol').
-mutatee('pc_launch', ['pc_launch_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_launch', ['pc_launch_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_launch', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_launch', _, Opt) :- member(Opt, ['none']).
 
@@ -2444,7 +2436,7 @@ test_threadmode('pc_thread_cont', 'Threading').
 test_processmode('pc_thread_cont', 'Processes').
 test_start_state('pc_thread_cont', 'selfattach').
 tests_module('pc_thread_cont', 'proccontrol').
-mutatee('pc_thread_cont', ['pc_thread_cont_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_thread_cont', ['pc_thread_cont_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_thread_cont', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_thread_cont', _, Opt) :- member(Opt, ['none']).
 
@@ -2457,7 +2449,7 @@ test_threadmode('pc_breakpoint', 'Threading').
 test_processmode('pc_breakpoint', 'Processes').
 test_start_state('pc_breakpoint', 'selfattach').
 tests_module('pc_breakpoint', 'proccontrol').
-mutatee('pc_breakpoint', ['pc_breakpoint_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_breakpoint', ['pc_breakpoint_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_breakpoint', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_breakpoint', _, Opt) :- member(Opt, ['none']).
 
@@ -2472,7 +2464,7 @@ test_threadmode('pc_hw_breakpoint', 'Threading').
 test_processmode('pc_hw_breakpoint', 'Processes').
 test_start_state('pc_hw_breakpoint', 'selfattach').
 tests_module('pc_hw_breakpoint', 'proccontrol').
-mutatee('pc_hw_breakpoint', ['pc_hw_breakpoint_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_hw_breakpoint', ['pc_hw_breakpoint_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_hw_breakpoint', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_hw_breakpoint', _, Opt) :- member(Opt, ['none']).
 
@@ -2485,7 +2477,7 @@ test_threadmode('pc_library', 'Threading').
 test_processmode('pc_library', 'Processes').
 test_start_state('pc_library', 'selfattach').
 tests_module('pc_library', 'proccontrol').
-mutatee('pc_library', ['pc_library_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_library', ['pc_library_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_library', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_library', _, Opt) :- member(Opt, ['none']).
 
@@ -2498,7 +2490,7 @@ test_threadmode('pc_addlibrary', 'Threading').
 test_processmode('pc_addlibrary', 'Processes').
 test_start_state('pc_addlibrary', 'selfattach').
 tests_module('pc_addlibrary', 'proccontrol').
-mutatee('pc_addlibrary', ['pc_addlibrary_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_addlibrary', ['pc_addlibrary_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_addlibrary', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_addlibrary', _, Opt) :- member(Opt, ['none']).
 
@@ -2511,7 +2503,7 @@ test_threadmode('pc_singlestep', 'Threading').
 test_processmode('pc_singlestep', 'Processes').
 test_start_state('pc_singlestep', 'selfattach').
 tests_module('pc_singlestep', 'proccontrol').
-mutatee('pc_singlestep', ['pc_singlestep_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_singlestep', ['pc_singlestep_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_singlestep', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_singlestep', _, Opt) :- member(Opt, ['none']).
 
@@ -2524,7 +2516,7 @@ test_threadmode('pc_thread', 'Threading').
 test_processmode('pc_thread', 'Processes').
 test_start_state('pc_thread', 'selfattach').
 tests_module('pc_thread', 'proccontrol').
-mutatee('pc_thread', ['pc_thread_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_thread', ['pc_thread_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_thread', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_thread', _, Opt) :- member(Opt, ['none']).
 
@@ -2537,7 +2529,7 @@ test_threadmode('pc_groups', 'Threading').
 test_processmode('pc_groups', 'Processes').
 test_start_state('pc_groups', 'selfattach').
 tests_module('pc_groups', 'proccontrol').
-mutatee('pc_groups', ['pc_groups_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_groups', ['pc_groups_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_groups', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_groups', _, Opt) :- member(Opt, ['none']).
 
@@ -2550,7 +2542,7 @@ test_threadmode('pc_stat', 'Threading').
 test_processmode('pc_stat', 'Processes').
 test_start_state('pc_stat', 'selfattach').
 tests_module('pc_stat', 'proccontrol').
-mutatee('pc_stat', ['pc_stat_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_stat', ['pc_stat_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_stat', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_stat', _, Opt) :- member(Opt, ['none']).
 
@@ -2567,7 +2559,7 @@ test_threadmode('pc_fork', 'Threading').
 test_processmode('pc_fork', 'Processes').
 test_start_state('pc_fork', 'selfattach').
 tests_module('pc_fork', 'proccontrol').
-mutatee('pc_fork', ['pc_fork_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_fork', ['pc_fork_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_fork', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_fork', _, Opt) :- member(Opt, ['none']).
 
@@ -2583,7 +2575,7 @@ test_threadmode('pc_fork_exec', 'Threading').
 test_processmode('pc_fork_exec', 'Processes').
 test_start_state('pc_fork_exec', 'selfattach').
 tests_module('pc_fork_exec', 'proccontrol').
-mutatee('pc_fork_exec', ['pc_fork_exec_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_fork_exec', ['pc_fork_exec_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_fork_exec', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_fork_exec', _, Opt) :- member(Opt, ['none']).
 mutatee('pc_exec_targ', ['pc_exec_targ_mutatee.c']).
@@ -2599,7 +2591,7 @@ test_threadmode('pc_irpc', 'Threading').
 test_processmode('pc_irpc', 'Processes').
 test_start_state('pc_irpc', 'selfattach').
 tests_module('pc_irpc', 'proccontrol').
-mutatee('pc_irpc', ['pc_irpc_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_irpc', ['pc_irpc_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_irpc', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_irpc', _, Opt) :- member(Opt, ['none']).
 
@@ -2612,7 +2604,7 @@ test_threadmode('pc_detach', 'Threading').
 test_processmode('pc_detach', 'Processes').
 test_start_state('pc_detach', 'selfattach').
 tests_module('pc_detach', 'proccontrol').
-mutatee('pc_detach', ['pc_detach_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_detach', ['pc_detach_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_detach', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_detach', _, Opt) :- member(Opt, ['none']).
 
@@ -2626,7 +2618,7 @@ test_threadmode('pc_temp_detach', 'Threading').
 test_processmode('pc_temp_detach', 'Processes').
 test_start_state('pc_temp_detach', 'selfattach').
 tests_module('pc_temp_detach', 'proccontrol').
-mutatee('pc_temp_detach', ['pc_temp_detach_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_temp_detach', ['pc_temp_detach_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_temp_detach', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_temp_detach', _, Opt) :- member(Opt, ['none']).
 
@@ -2639,7 +2631,7 @@ test_threadmode('pc_terminate', 'Threading').
 test_processmode('pc_terminate', 'Processes').
 test_start_state('pc_terminate', 'selfattach').
 tests_module('pc_terminate', 'proccontrol').
-mutatee('pc_terminate', ['pc_terminate_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_terminate', ['pc_terminate_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_terminate', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_terminate', _, Opt) :- member(Opt, ['none']).
 
@@ -2652,7 +2644,7 @@ test_threadmode('pc_terminate_stopped', 'Threading').
 test_processmode('pc_terminate_stopped', 'Processes').
 test_start_state('pc_terminate_stopped', 'selfattach').
 tests_module('pc_terminate_stopped', 'proccontrol').
-mutatee('pc_terminate_stopped', ['pc_terminate_stopped_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_terminate_stopped', ['pc_terminate_stopped_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_terminate_stopped', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_terminate_stopped', _, Opt) :- member(Opt, ['none']).
 
@@ -2665,7 +2657,7 @@ test_threadmode('pc_mem_perm', 'Threading').
 test_processmode('pc_mem_perm', 'Processes').
 test_start_state('pc_mem_perm', 'selfattach').
 tests_module('pc_mem_perm', 'proccontrol').
-mutatee('pc_mem_perm', ['pc_mem_perm_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee('pc_mem_perm', ['pc_mem_perm_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
 mutatee_requires_libs('pc_mem_perm', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_mem_perm', _, Opt) :- member(Opt, ['none']).
 
@@ -3174,15 +3166,15 @@ mutator_comp('xlC').
 mutator_comp('bgxlc++').
 
 % Per-compiler link options for building mutatees
-mutatee_link_options(Gnu_family, '$(MUTATEE_LDFLAGS_GNU)') :- member(Gnu_family, ['icc', 'gcc', 'g++', 'iCC', 'bg_gcc', 'bg_g++', 'bgq_gcc', 'bgq_g++']).
-mutatee_link_options(Native_cc, '$(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-
+mutatee_link_options(Gnu_family, '${MUTATEE_LDFLAGS_GNU}') :- member(Gnu_family, ['icc', 'gcc', 'g++', 'iCC', 'bg_gcc', 'bg_g++', 'bgq_gcc', 'bgq_g++']).
+mutatee_link_options(Native_cc, '${MUTATEE_CFLAGS_NATIVE) ${MUTATEE_LDFLAGS_NATIVE}') :-
     member(Native_cc, ['xlc', 'pgcc']).
-mutatee_link_options(Native_cxx, '$(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-
+mutatee_link_options(Native_cxx, '${MUTATEE_CXXFLAGS_NATIVE) ${MUTATEE_LDFLAGS_NATIVE}') :-
     member(Native_cxx, ['xlC', 'pgCC']).
-mutatee_link_options('VC', '$(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)').
-mutatee_link_options('VC++', '$(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)').
-mutatee_link_options('bgxlc', '$(MUTATEE_LDFLAGS_NATIVE)').
-mutatee_link_options('bgxlc++', '$(MUTATEE_LDFLAGS_NATIVE)').
+mutatee_link_options('VC', '${LDFLAGS) ${MUTATEE_CFLAGS_NATIVE) ${MUTATEE_LDFLAGS_NATIVE}').
+mutatee_link_options('VC++', '${LDFLAGS) ${MUTATEE_CXXFLAGS_NATIVE) ${MUTATEE_LDFLAGS_NATIVE}').
+mutatee_link_options('bgxlc', '${MUTATEE_LDFLAGS_NATIVE}').
+mutatee_link_options('bgxlc++', '${MUTATEE_LDFLAGS_NATIVE}').
 
 % Static and dynamic linking
 compiler_static_link('g++', P, '-static') :- platform(_,'linux', _, P).
@@ -3206,47 +3198,47 @@ compiler_dynamic_link('icc', _, '-Xlinker -export-dynamic').
 compiler_dynamic_link('iCC', _, '-Xlinker -export-dynamic').
 
 % Specify the standard flags for each compiler
-comp_std_flags_str('gcc', '$(CFLAGS)').
-comp_std_flags_str('g++', '$(CXXFLAGS)').
-comp_std_flags_str('xlc', '$(CFLAGS_NATIVE)').
-comp_std_flags_str('pgcc', '$(CFLAGS_NATIVE)').
-comp_std_flags_str('bgxlc', '$(CFLAGS)').
-comp_std_flags_str('bgxlc++', '$(CXXFLAGS)').
+comp_std_flags_str('gcc', '${CFLAGS}').
+comp_std_flags_str('g++', '${CXXFLAGS}').
+comp_std_flags_str('xlc', '${CFLAGS_NATIVE}').
+comp_std_flags_str('pgcc', '${CFLAGS_NATIVE}').
+comp_std_flags_str('bgxlc', '${CFLAGS}').
+comp_std_flags_str('bgxlc++', '${CXXFLAGS}').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
-comp_std_flags_str('xlC', '$(CXXFLAGS_NATIVE)').
-comp_std_flags_str('pgCC', '$(CXXFLAGS_NATIVE)').
-comp_std_flags_str('bg_gcc', '$(CFLAGS)').
-comp_std_flags_str('bg_g++', '$(CXXFLAGS)').
-comp_std_flags_str('bgq_gcc', '$(CFLAGS)').
-comp_std_flags_str('bgq_g++', '$(CXXFLAGS)').
+comp_std_flags_str('xlC', '${CXXFLAGS_NATIVE}').
+comp_std_flags_str('pgCC', '${CXXFLAGS_NATIVE}').
+comp_std_flags_str('bg_gcc', '${CFLAGS}').
+comp_std_flags_str('bg_g++', '${CXXFLAGS}').
+comp_std_flags_str('bgq_gcc', '${CFLAGS}').
+comp_std_flags_str('bgq_g++', '${CXXFLAGS}').
 % FIXME Tear out the '-DSOLO_MUTATEE' from these and make it its own thing
-comp_mutatee_flags_str('gcc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src').
-comp_mutatee_flags_str('g++', '-DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src').
-comp_mutatee_flags_str('xlc', '$(MUTATEE_CFLAGS_NATIVE) -I../src').
-comp_mutatee_flags_str('pgcc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src').
-comp_mutatee_flags_str('bg_gcc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src').
-comp_mutatee_flags_str('bg_g++', '-DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src').
-comp_mutatee_flags_str('bgq_gcc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src').
-comp_mutatee_flags_str('bgq_g++', '-DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src').
-comp_mutatee_flags_str('bgxlc', '$(CFLAGS)').
-comp_mutatee_flags_str('bgxlc++', '$(CXXFLAGS)').
+comp_mutatee_flags_str('gcc', '-DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU} ').
+comp_mutatee_flags_str('g++', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU} ').
+comp_mutatee_flags_str('xlc', '${MUTATEE_CFLAGS_NATIVE} ').
+comp_mutatee_flags_str('pgcc', '-DSOLO_MUTATEE ${MUTATEE_CFLAGS_NATIVE} ').
+comp_mutatee_flags_str('bg_gcc', '-DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU} ').
+comp_mutatee_flags_str('bg_g++', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU} ').
+comp_mutatee_flags_str('bgq_gcc', '-DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU} ').
+comp_mutatee_flags_str('bgq_g++', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU} ').
+comp_mutatee_flags_str('bgxlc', '${CFLAGS}').
+comp_mutatee_flags_str('bgxlc++', '${CXXFLAGS}').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
-comp_mutatee_flags_str('xlC', '$(MUTATEE_CXXFLAGS_NATIVE) -I../src').
-comp_mutatee_flags_str('pgCC', '-DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src').
+comp_mutatee_flags_str('xlC', '${MUTATEE_CXXFLAGS_NATIVE} ').
+comp_mutatee_flags_str('pgCC', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE} ').
 % FIXME What do I specify for the Windows compilers, if anything?
 comp_std_flags_str('VC', '-TC').
 comp_std_flags_str('VC++', '-TP').
-comp_mutatee_flags_str('VC', '$(CFLAGS)').
-comp_mutatee_flags_str('VC++', '$(CXXFLAGS_NORM)').
-comp_std_flags_str('icc', '$(CFLAGS)').
-comp_std_flags_str('iCC', '$(CXXFLAGS)').
-comp_mutatee_flags_str('icc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src').
-comp_mutatee_flags_str('iCC', '-x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src').
+comp_mutatee_flags_str('VC', '${CFLAGS}').
+comp_mutatee_flags_str('VC++', '${CXXFLAGS_NORM}').
+comp_std_flags_str('icc', '${CFLAGS}').
+comp_std_flags_str('iCC', '${CXXFLAGS}').
+comp_mutatee_flags_str('icc', '-DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU} ').
+comp_mutatee_flags_str('iCC', '-x c++ -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}  ').
 
 % gfortran flags
 comp_std_flags_str('gfortran', '-g').
-comp_mutatee_flags_str('gfortran', '$(MUTATEE_G77_FFLAGS)').
-mutatee_link_options('gfortran', '$(MUTATEE_G77_LDFLAGS)').
+comp_mutatee_flags_str('gfortran', '${MUTATEE_G77_FFLAGS}').
+mutatee_link_options('gfortran', '${MUTATEE_G77_LDFLAGS}').
 
 % NASM (for test_mem (formerly test6))
 comp_lang('nasm', 'nasm_asm').
@@ -3254,7 +3246,7 @@ compiler_define_string('nasm', 'nasm').
 compiler_platform('nasm', Platform) :-
     platform('i386', OS, _, Platform), % NASM runs on x86 Linux, FreeBSD
     member(OS, ['freebsd', 'linux']).
-comp_std_flags_str('nasm', '-f elf -dPLATFORM=$(PLATFORM)').
+comp_std_flags_str('nasm', '-f elf -dPLATFORM=${PLATFORM}').
 comp_mutatee_flags_str('nasm', '').
 mutatee_link_options('nasm', '').
 mutatee_comp('nasm'). % I think I want to reorganize so this isnt required

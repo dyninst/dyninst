@@ -56,16 +56,27 @@ def print_src_lists(mutatees, platform, info):
    # everything and build a map of sources -> mutatees that care about them.
    # ... ugh. 
 
+   # Since CMake expects everything to be in its current directory, we have to 
+   # output the sources with relative paths
+
+   # Make sure this agrees with the subdirectory structure for CMakeLists 
+   # as defined below in print_compiler_cmakefiles
+   root = '../../../../../..' 
+   to_src = '%s/../src' % root
+   out.write("set (SRC %s)\n" % to_src)
+
    srcs_to_mutatees = {}
    preproc_to_mutatees = {}
    for m in mutatees:
       collected_srcs = []
+      # Preprocessed == module specific, apparently
       for s in m['preprocessed_sources']:
-         collected_srcs.append(s)
+         collected_srcs.append('\t${SRC}/%s/%s\n' % (m['module'], s))
          collected_srcs.append(" ")
          preproc_to_mutatees.setdefault(s, m)
+      # Raw == generic
       for s in m['raw_sources']:
-         collected_srcs.append(s)
+         collected_srcs.append('\t${SRC}/%s\n' % s)
          collected_srcs.append(" ")
       key = ''.join(collected_srcs)
       srcs_to_mutatees.setdefault(key, []).append(m)
@@ -80,7 +91,7 @@ def print_src_lists(mutatees, platform, info):
    srcs_to_vars = dict()
    i = 0
    for s, mlist in srcs_to_mutatees.iteritems():
-      out.write("set (SOURCE_LIST_%d %s)\n" % (i, s))
+      out.write("set (SOURCE_LIST_%d \n%s)\n" % (i, s))
       for m in mlist:
          m['srclist_index'] = i
       srcs_to_vars[s] = i
@@ -88,7 +99,7 @@ def print_src_lists(mutatees, platform, info):
 
    for s, m in preproc_to_mutatees.iteritems():
       module = m['module']
-      out.write("set_property (SOURCE %s APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=%s GROUPABLE=%d)\n" %
+      out.write("set_property (SOURCE %s APPEND PROPERTY COMPILE_FLAGS \"-DTEST_NAME=%s -DGROUPABLE=%d\")\n" %
                 (s,m['name'], m['groupable'] == 'true'))
       # Skip raw sources; they don't need the GROUPABLE and TEST_NAMEs set
 
@@ -105,6 +116,10 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists):
 # -paste code. 
 
    compilers_to_muts = {}
+
+   # This must be the inverse of 'tree', below
+   root = '../../../../../..' 
+
    for mut in mutatees:
       module = mut['module']
       exe = mut['compiler']
@@ -129,17 +144,32 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists):
       opt = mut['optimization']
 
       compiler = info['compilers'][mlist[0]['compiler']]
-      # Directory tree: compiler, 32/64, static/dynamic, pic/non-pic, optimization
+
+      c_compiler = utils.compiler_command(compiler, platform, abi)
+      c_flags = "-I../src/%s %s" % (module, 
+                                    utils.object_flag_string(platform, 
+                                                             compiler, 
+                                                             abi, 
+                                                             opt, 
+                                                             pic))
 
       if not os.path.exists(tree):
          os.makedirs(tree)
 
-      cmakelists.write("add_subdirectory (%s)\n" % tree)
-
       out = open('%s/CMakeLists.txt' % tree, 'w')
       out.write("# CMakeLists for %s\n" % tree)
-      out.write("include (srclists.cmake)\n")
-      
+
+      include_path = '-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/%s' % module
+      out.write("set (CMAKE_C_FLAGS \"%s %s\")\n" % (c_flags, include_path))
+      out.write("set (CMAKE_C_FLAGS_DEBUG \"\")\n")
+      out.write("set (CMAKE_C_FLAGS_RELEASE \"\")\n")
+      out.write("set (CMAKE_C_COMPILE_OBJECT \"${M_%s} -c <FLAGS> -o <OBJECT> -c <SOURCE>\")\n" % c_compiler)
+
+      # Directory tree: compiler, 32/64, static/dynamic, pic/non-pic, optimization
+
+      # This needs to match the number of subdirectories created above
+      out.write("include (%s/srclists.cmake)\n" % root)
+       
       # Add each mutatee executable
       for m in mlist:
          out.write("add_executable (%s ${SOURCE_LIST_%d})\n" % (utils.mutatee_binary(m, platform, info),
@@ -153,22 +183,15 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists):
       # <compiler string>
       # The TEST_NAME and GROUPABLE are taken care of in the srclist include file
       # -I../src/module is fixed
-      c_flags = "-I../src/%s %s" % (module, 
-                                    utils.object_flag_string(platform, 
-                                                             compiler, 
-                                                             abi, 
-                                                             opt, 
-                                                             pic))
-      c_compiler = utils.compiler_command(compiler, platform, abi)
-      out.write("set (CMAKE_C_FLAGS \"%s\")\n" % c_flags)
-      out.write("set (CMAKE_C_FLAGS_DEBUG \"\")\n")
-      out.write("set (CMAKE_C_FLAGS_RELEASE \"\")\n")
-      out.write("set (CMAKE_C_COMPILE_OBJECT \"$(M_%s) -c <FLAGS> -o <OBJECT>\")\n" % c_compiler)
 
       out.close()
 
-def write_mutatee_cmakelists(filename, tuplefile):
-   cmakelists = open("CMakeLists.txt", "w")
+      # And include it from the top-level test suite CMakeLists.txt
+      cmakelists.write("if (EXISTS ${M_%s})\n\tadd_subdirectory (%s)\nendif()\n" % (c_compiler, tree))
+
+
+def write_mutatee_cmakelists(tuplefile):
+   cmakelists = open("cmake-mutatees.txt", "w")
    tuples.read_tuples(tuplefile, info)
    compilers = info['compilers']
    mutatees = info['mutatees']
