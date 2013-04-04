@@ -639,9 +639,11 @@ void registerSpace::freeRegister(Register num)
         reg->refCount = 0;
     }
 
-#if defined(arch_x86)
-    if (reg->refCount == 0 && !registers_[num]->keptValue) {
-       markVirtualDead(num);
+#if defined(arch_x86) || defined(arch_x86_64)
+    if (addr_width == 4) {
+      if (reg->refCount == 0 && !registers_[num]->keptValue) {
+	markVirtualDead(num);
+      }
     }
 #endif
     return;
@@ -1100,6 +1102,7 @@ void registerSpace::loadReal(RealRegister r, registerSlot *virt_r, codeGen &gen)
 
 void registerSpace::freeReal(RealRegister r)
 {
+  regalloc_printf("Freeing register %d\n", r.reg());
    assert(regState()[r.reg()].contains);
    regState()[r.reg()].contains = NULL;
    regState()[r.reg()].last_used = timeline()++;
@@ -1156,6 +1159,9 @@ void registerSpace::makeRegisterAvail(RealRegister r, codeGen &gen) {
 
 void registerSpace::noteVirtualInReal(registerSlot *v_r, RealRegister r_r)
 {
+  regalloc_printf("Noting virtual %s in real reg %d\n",
+		  (v_r ? v_r->name.c_str() : "<NULL>"), r_r.reg());
+
    int reg = r_r.reg();
 
    bool already_allocd;
@@ -1165,7 +1171,9 @@ void registerSpace::noteVirtualInReal(registerSlot *v_r, RealRegister r_r)
       regState()[old_location.reg()].last_used = timeline()++;
    }
 
-   assert (!regState()[reg].contains);
+   if (regState()[reg].contains) {
+     assert(0);
+   }
    regState()[reg].contains = v_r;
    regState()[reg].last_used = timeline()++;
 }
