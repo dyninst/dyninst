@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <limits.h>
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 
 #define NTHRD 5
 thread_t thrds[NTHRD];

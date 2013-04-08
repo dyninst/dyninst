@@ -30,6 +30,7 @@
 #include <assert.h>
 
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 #include "test_thread.h"
 #include "test12.h"
 #include <sys/syscall.h>

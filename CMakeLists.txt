@@ -64,3 +64,5 @@ SET_TARGET_PROPERTIES (
 # RTlib properties are set in its CMakeLists.txt; it seems
 # like multiple set_target_properties calls override instead
 # of accumulating
+
+add_subdirectory(testsuite/${PLATFORM})

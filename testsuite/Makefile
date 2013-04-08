@@ -33,15 +33,15 @@ $(SUBDIRS:%=%/tuples): %/tuples: $(PROLOG_FILES)
 		--entry-goal "halt"
 
 $(SUBDIRS:%=%/make.mutators.gen): %/make.mutators.gen: $(PYTHON_FILES) %/tuples
-	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_make_mutators_gen('$*/make.mutators.gen', '$*/tuples')"
+#	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_make_mutators_gen('$*/make.mutators.gen', '$*/tuples')"
 
 $(SUBDIRS:%=%/make.solo_mutatee.gen): %/make.solo_mutatee.gen: $(PYTHON_FILES) %/tuples
-	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_make_solo_mutatee_gen('$*/make.solo_mutatee.gen', '$*/tuples')"
+#	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_make_solo_mutatee_gen('$*/make.solo_mutatee.gen', '$*/tuples')"
 
 # Generate the lists of tests to run in test_info_new.gen.C
 $(SUBDIRS:%=%/test_info_new.gen.C): %/test_info_new.gen.C: $(PYTHON_FILES) %/tuples
-	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_test_info_new_gen('$*/test_info_new.gen.C', '$*/tuples')"
-	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_group_mutatee_boilerplate('$*/', '_group.c', '$*/tuples')";
+#	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_test_info_new_gen('$*/test_info_new.gen.C', '$*/tuples')"
+#	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_group_mutatee_boilerplate('$*/', '_group.c', '$*/tuples')";
 
 $(SUBDIRS:%=%): %:%/make.mutators.gen %/make.solo_mutatee.gen %/test_info_new.gen.C
 
@@ -55,11 +55,11 @@ $(SUBDIR_WINDOWS:%=%/tuples): %/tuples: $(PROLOG_FILES)
 		--entry-goal "halt"
 
 $(SUBDIR_WINDOWS:%=%/nmake.mutators.gen): %/nmake.mutators.gen: $(PYTHON_FILES) %/tuples
-	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_make_mutators_gen_nt('$*/nmake.mutators.gen', '$*/tuples')"
+#	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_make_mutators_gen_nt('$*/nmake.mutators.gen', '$*/tuples')"
 
 $(SUBDIR_WINDOWS:%=%/nmake.solo_mutatee.gen): %/nmake.solo_mutatee.gen: $(PYTHON_FILES) %/tuples
-	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_make_solo_mutatee_gen_nt('$*/nmake.solo_mutatee.gen', '$*/tuples')"
+#	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_make_solo_mutatee_gen_nt('$*/nmake.solo_mutatee.gen', '$*/tuples')"
 
 #TODO do I need this big substitution thing here?
 $(SUBDIR_WINDOWS:%=%/test_info_new.gen.C): %/test_info_new.gen.C: $(PYTHON_FILES) %/tuples
-	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_test_info_new_gen_nt('$*/test_info_new.gen.C', '$*/tuples')"
+#	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_test_info_new_gen_nt('$*/test_info_new.gen.C', '$*/tuples')"

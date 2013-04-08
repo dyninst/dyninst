@@ -29,6 +29,7 @@
  */
 
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 #include <stdlib.h>
 
 #include <dlfcn.h>

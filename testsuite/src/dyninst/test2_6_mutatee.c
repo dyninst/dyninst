@@ -31,6 +31,7 @@
 #include <dlfcn.h>
 
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 #include "test2.h"
 
 /* Externally accessed function prototypes.  These must have globally unique

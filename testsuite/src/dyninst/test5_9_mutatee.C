@@ -29,6 +29,7 @@
  */
 #include "cpp_test.h"
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 
 /* group_mutatee_boilerplate.c is prepended to this file by the make system */
 

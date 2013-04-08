@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "pcontrol_mutatee_tools.h"
+#include "solo_mutatee_boilerplate.h"
 
 
 static volatile int global = 3;

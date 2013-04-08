@@ -28,6 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <stdio.h>
+
 enum sf_enum1 {
 	sf1_1 = 20,
 	sf1_2 = 40,

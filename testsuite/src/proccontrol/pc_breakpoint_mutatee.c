@@ -32,6 +32,7 @@
 #include <assert.h>
 #include "pcontrol_mutatee_tools.h"
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 
 int func_counts[4][MAX_POSSIBLE_THREADS];
 #define NUM_BREAKPOINT_SPINS 16

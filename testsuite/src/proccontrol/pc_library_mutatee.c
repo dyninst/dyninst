@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "pcontrol_mutatee_tools.h"
+#include "solo_mutatee_boilerplate.h"
 
 
 #if !defined(os_windows_test)

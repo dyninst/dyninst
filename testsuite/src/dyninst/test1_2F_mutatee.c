@@ -35,6 +35,7 @@
 #include <stdlib.h>
 /* #include "test1.mutateeCommon.h" */
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 
 // **********************************************************************
 // The following structure (struct block_) is made to correspond with the

@@ -29,6 +29,7 @@
  */
 #include <unistd.h>
 #include <stdlib.h>
+#include "solo_mutatee_boilerplate.h"
 
 #define EXIT_CODE 4
 

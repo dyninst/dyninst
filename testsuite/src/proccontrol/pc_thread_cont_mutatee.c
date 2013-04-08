@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "pcontrol_mutatee_tools.h"
+#include "solo_mutatee_boilerplate.h"
 
 struct local_data {
     testbarrier_t barrier;
