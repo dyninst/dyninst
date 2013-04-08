@@ -39,7 +39,6 @@
 extern "C" {
 #endif
 
-#include "mutatee_util.h"
 #include "solo_mutatee.h"
 
 /*
@@ -76,13 +75,6 @@ static const char *testname = QUOTE(TEST_NAME);
  */
 static int groupable_mutatee = GROUPABLE;
 
-const char * CONCAT(kill_compiler_warnings_, TEST_NAME) ()
-{
-   int foo = groupable_mutatee;
-   const char *bar = testname;
-   return (bar + foo);
-}
-
 /* The macro SOLO_MUTATEE(<testname>) (from solo_mutatee.h) defines a few
  * variables that are required by the mutatee driver.  This macro needs to be
  * called *after* the declaration of the main mutatee function.
@@ -99,6 +91,13 @@ mutatee_call_info_t mutatee_funcs[] = {
 int runTest[1];
 int passedTest[1];
 int max_tests = 1;
+
+const char * CONCAT(kill_compiler_warnings_, TEST_NAME) ()
+{
+   int foo = groupable_mutatee;
+   const char *bar = testname;
+   return (bar + foo);
+}
 #endif
 
 #ifdef __cplusplus
@@ -108,4 +107,3 @@ int max_tests = 1;
 /* ******************************************************************** */
 /* *** Everything above this line should be automatically generated *** */
 /* ******************************************************************** */
-#include QUOTE(MUTATEE_SRC)

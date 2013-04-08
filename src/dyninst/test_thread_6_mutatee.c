@@ -33,6 +33,7 @@
 #include <string.h>
 
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 
 #if !defined(os_windows_test)
 #include <unistd.h>

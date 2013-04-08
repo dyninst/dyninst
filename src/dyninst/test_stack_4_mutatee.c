@@ -31,6 +31,7 @@
 #include <unistd.h>
 
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 
 #define do_dyninst_breakpoint() stop_process_()
 

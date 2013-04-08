@@ -34,6 +34,7 @@
 
 #include <stdlib.h>
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 
 struct struct26_1 {
     int field1_;

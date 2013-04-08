@@ -34,6 +34,7 @@
 #include <errno.h>
 
 #include "pcontrol_mutatee_tools.h"
+#include "solo_mutatee_boilerplate.h"
 #include "communication.h"
 
 extern void *ThreadTrampoline(void *d);

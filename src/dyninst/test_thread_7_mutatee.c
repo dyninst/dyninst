@@ -35,6 +35,7 @@
 #include <assert.h>
 
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 
 extern thread_t spawnNewThread(void *initial_func, void *param);
 extern void* joinThread(thread_t threadid);

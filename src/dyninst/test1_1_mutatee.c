@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 #include <stdlib.h>
 
 /* Externally accessed function prototypes.  These must have globally unique

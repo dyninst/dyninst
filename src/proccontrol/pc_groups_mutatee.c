@@ -33,6 +33,7 @@
 #include <fcntl.h>
 
 #include "pcontrol_mutatee_tools.h"
+#include "solo_mutatee_boilerplate.h"
 
 static testbarrier_t barrier;
 static testlock_t init_lock;

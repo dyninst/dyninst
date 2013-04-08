@@ -37,6 +37,7 @@
 #include "pcontrol_mutatee_tools.h"
 #include "mutatee_util.h"
 #include "communication.h"
+#include "solo_mutatee_boilerplate.h"
 
 #define NUM_BREAKPOINT_SPINS 8
 

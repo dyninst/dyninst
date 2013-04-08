@@ -30,6 +30,7 @@
 #include <stdlib.h>
 
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 
 #if defined(os_freebsd_test)
 #include <sys/types.h>

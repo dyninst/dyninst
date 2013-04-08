@@ -81,7 +81,7 @@ def print_mutators_list(out, mutator_dict, test_dict):
         out.write("endforeach()\n\n")
 #
 
-def write_mutator_cmakelists(filename, tuplefile):
+def write_mutator_cmakelists(tuplefile):
    tuples.read_tuples(tuplefile, info)
    mutator_dict = info['mutators']
    test_dict = info['tests']
@@ -92,7 +92,7 @@ def write_mutator_cmakelists(filename, tuplefile):
 # For more information, see core/testsuite/src/specification/cmake_mutators.py
 
 """
-   out = open(filename, "w")
+   out = open("cmake-mutators.txt", "w")
    out.write(header)
    print_mutators_list(out, mutator_dict, test_dict)
    out.close()

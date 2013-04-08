@@ -36,6 +36,7 @@
 #include <unistd.h>
 
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 #include "test_thread.h"
 #include "test12.h"
 #include "../../dyninstAPI_RT/h/dyninstRTExport.h"

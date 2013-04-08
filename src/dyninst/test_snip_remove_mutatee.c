@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "mutatee_util.h"
+#include "solo_mutatee_boilerplate.h"
 
 int test_snip_remove_var =  0;
 int test_snip_remove_func() {return 5;}

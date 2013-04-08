@@ -35,6 +35,7 @@
 #include <string.h>
 
 #include "pcontrol_mutatee_tools.h"
+#include "solo_mutatee_boilerplate.h"
 
 #define EXIT_CODE 4
 static testlock_t fork_lock;
