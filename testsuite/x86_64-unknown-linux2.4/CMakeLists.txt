@@ -1,6 +1,10 @@
 # Build rules for the test libraries (libtestdyninst, libtestproccontrol, etc.)
 # and the executables
 
+if (UNIX)
+enable_language(ASM-ATT)
+endif(UNIX)
+
 foreach (def ${UNIFIED_DEFINES})
   # add_definitions doesn't seem to get pulled in; that's okay, since
   # we don't want it anyway (we want to override for mutators/ees)
