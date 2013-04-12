@@ -17,7 +17,7 @@ set (SRC_LIST ${SRC_LIST}
     src/RTheap.c 
     src/RTheap-freebsd.c 
     src/RTthread.c 
-    src/RTspace.s 
+    src/RTspace.S 
 )
 elseif (PLATFORM MATCHES linux OR PLATFORM MATCHES bgq)
 set (SRC_LIST ${SRC_LIST}
@@ -26,7 +26,7 @@ set (SRC_LIST ${SRC_LIST}
     src/RTheap.c 
     src/RTheap-linux.c 
     src/RTthread.c 
-    src/RTspace.s 
+    src/RTspace.S 
 )
 endif ()
 
@@ -37,7 +37,7 @@ set (SRC_LIST_i386
 )
 set (SRC_LIST_x86_64
     src/RTthread-x86-64.c 
-    src/RTtlsgetaddr-x86.S 
+    src/RTtlsgetaddr-x86.S
     src/RTstatic_ctors_dtors-x86.c
 )
 set (SRC_LIST_ppc32
@@ -50,6 +50,11 @@ set (SRC_LIST_ppc64
     src/RTthread-powerpc-asm.S
     src/RTstatic_ctors_dtors-ppc64.c                                                                                         
 )
+
+file (GLOB SRC_ASSEMBLY "src/*.S")
+set_source_files_properties(${SRC_ASSEMBLY}
+        PROPERTIES
+        LANGUAGE C)
 
 if (PLATFORM MATCHES amd64 OR PLATFORM MATCHES x86_64)
 set (SRC_LIST_mabi ${SRC_LIST} ${SRC_LIST_i386})
@@ -129,7 +134,6 @@ ENDIF()
 
 
 if (BUILD_RTLIB_32 MATCHES "ON")
-set_property(SOURCE src/RTspace.s APPEND PROPERTY COMPILE_FLAGS "--32")
 
 add_library (dyninstAPI_RT_m32 SHARED ${SRC_LIST_mabi})
 add_library (dyninstAPI_RT_m32_static STATIC ${SRC_LIST_mabi})
