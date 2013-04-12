@@ -28,6 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "solo_mutatee_boilerplate.h"
+
 int test_module_mutatee() {
    /*If mutatee should run, things go here.*/
    return 0;

@@ -804,44 +804,6 @@ void updateSearchPaths(const char *filename) {
 #endif
 }
 
-std::string getRTLibDir() {
-   char *platform = getenv("PLATFORM");
-   char cwd[1024];
-   if (!platform) {
-      // Try to strip it from the current path
-      getcwd(cwd, 1024);
-      platform = strrchr(cwd, '/');
-   }
-   if (!platform) return std::string();
-
-   // Shift past initial slash
-   while (platform[0] == '/') {
-      platform++;
-   }
-
-   std::string rtlib = "../../dyninstAPI_RT/";
-   rtlib += platform;
-   return rtlib;
-}
-
-#if !defined(os_windows_test)
-bool setRTLibEnvVars() {
-   std::string rtlib = getRTLibDir();
-
-   std::string ldpath = getenv("LD_LIBRARY_PATH");
-   
-   std::string newldpath = rtlib;
-   newldpath += ":";
-   newldpath += ldpath;
-   setenv("LD_LIBRARY_PATH", newldpath.c_str(), 1);
-
-   rtlib += "/libdyninstAPI_RT.so";
-   // 1 - overwrite existing
-   setenv("DYNINSTAPI_RT_LIB", rtlib.c_str(), 1);
-
-   return true;
-}
-#endif
 
 bool testsRemain(std::vector<RunGroup *> &groups)
 {
@@ -881,10 +843,6 @@ int main(int argc, char *argv[]) {
 
    updateSearchPaths(argv[0]);
    setOutput(new StdOutputDriver(NULL));
-#if !defined(os_windows_test)
-   // Use local RT libs
-   setRTLibEnvVars();
-#endif
 
    ParameterDict params;
    int result = parseArgs(argc, argv, params);

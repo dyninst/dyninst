@@ -283,7 +283,7 @@ const timeval &UsageMonitor::cpuUsage() const
     return total_cpu;
 }
 
-const unsigned long UsageMonitor::memUsage() const
+unsigned long UsageMonitor::memUsage() const
 {
     return total_mem;
 }

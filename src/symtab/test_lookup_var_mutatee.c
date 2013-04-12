@@ -28,6 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "solo_mutatee_boilerplate.h"
+
 int lookup_var = 4;
 
 int test_lookup_var_mutatee() {

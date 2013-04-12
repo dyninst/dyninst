@@ -405,12 +405,7 @@ std::string launchMutatee(std::string executable, std::vector<std::string> &args
    if (!shouldLaunch(group, params))
       return std::string(group_num) + ":-1";
 
-   bool needs_grand_fork = false;
-#if defined(os_linux)
-   need_grand_fork = (group->createmode == USEATTACH);
-#endif
-
-   string ret = launchMutatee_plat(executable, args, needs_grand_fork);
+   string ret = launchMutatee_plat(executable, args, false);
    if (ret == string(""))
       return string("");
 
