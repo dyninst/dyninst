@@ -29,6 +29,7 @@
  */
 
 #include <stdio.h>
+#include "solo_mutatee_boilerplate.h"
 
 enum sf_enum1 {
 	sf1_1 = 20,

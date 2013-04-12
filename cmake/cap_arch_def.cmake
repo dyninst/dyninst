@@ -130,9 +130,10 @@ else (PLATFORM STREQUAL i386-unknown-linux2.4)
   message (FATAL_ERROR "Unknown platform: $(PLATFORM)")
 endif (PLATFORM STREQUAL i386-unknown-linux2.4)
 
-if (HAVE_THREAD_DB)
+if (THREAD_DB_FOUND)
+message ("-- Enabling ThreadDB support")
 set (CAP_DEFINES ${CAP_DEFINES} -Dcap_thread_db)
-endif (HAVE_THREAD_DB)
+endif (THREAD_DB_FOUND)
 
 set (UNIFIED_DEFINES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES} ${OS_DEFINES} ${OLD_DEFINES})
 

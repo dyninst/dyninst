@@ -4,12 +4,16 @@ project (Dyninst)
 set (SOVERSION "8.1")
 set (LIBVERSION "8.1.1")
 
+if (UNIX)
+enable_language(ASM-ATT)
+endif()
+
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules")
 include (cmake/platform.cmake)
+include (cmake/packages.cmake)
 include (cmake/cap_arch_def.cmake)
 include (cmake/c++11.cmake)
 include (cmake/warnings.cmake)
-include (cmake/packages.cmake)
 include (cmake/options.cmake)
 
 set (BUILD_SHARED_LIBS ON)

@@ -17,7 +17,7 @@ set (SRC_LIST ${SRC_LIST}
     src/RTheap.c 
     src/RTheap-freebsd.c 
     src/RTthread.c 
-    src/RTspace.S 
+    src/RTspace.s 
 )
 elseif (PLATFORM MATCHES linux OR PLATFORM MATCHES bgq)
 set (SRC_LIST ${SRC_LIST}
@@ -26,7 +26,7 @@ set (SRC_LIST ${SRC_LIST}
     src/RTheap.c 
     src/RTheap-linux.c 
     src/RTthread.c 
-    src/RTspace.S 
+    src/RTspace.s 
 )
 endif ()
 
@@ -94,41 +94,43 @@ if (SRC_LIST_mabi)
 INCLUDE(CheckCSourceCompiles)
 
 MACRO (CHECK_C_COMPILER_FLAG_EXTENDED _FLAG _RESULT)
-   SET(SAFE_CMAKE_REQUIRED_DEFINITIONS
-   "${CMAKE_REQUIRED_DEFINITIONS}")
-   SET(CMAKE_REQUIRED_DEFINITIONS "${_FLAG}")
+   SET(SAFE_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+   SET(CMAKE_C_FLAGS "${_FLAG}")
+
 # Addition here: use signal.h
-   CHECK_C_SOURCE_COMPILES("#include <signal.h> \n int main(void) { return 0; }" ${_RESULT}
+   CHECK_C_SOURCE_COMPILES("#include <signal.h>
+   int main(void) { return 0; }" 
+        ${_RESULT}
 # End addition
      # Some compilers do not fail with a bad flag
-     FAIL_REGEX "warning: command line option .* is valid for .* but
-   not for C"
-                                                            # Apple
-   gcc
+     FAIL_REGEX "warning: command line option .* is valid for .* but not for C"
+                                                            # Apple gcc
      FAIL_REGEX "unrecognized .*option"                     # GNU
      FAIL_REGEX "unknown .*option"                          # Clang
      FAIL_REGEX "ignoring unknown option"                   # MSVC
-     FAIL_REGEX "warning D9002"                             # MSVC,
-   any lang
+     FAIL_REGEX "warning D9002"                             # MSVC, any lang
      FAIL_REGEX "[Uu]nknown option"                         # HP
      FAIL_REGEX "[Ww]arning: [Oo]ption"                     # SunPro
      FAIL_REGEX "command option .* is not recognized"       # XL
      )
-   SET (CMAKE_REQUIRED_DEFINITIONS
-   "${SAFE_CMAKE_REQUIRED_DEFINITIONS}")
+   SET(CMAKE_C_FLAGS "${SAFE_CMAKE_C_FLAGS}")
 ENDMACRO (CHECK_C_COMPILER_FLAG_EXTENDED)
 
 
-message ("-- Checking for 32-bit runtime library...")
+message (STATUS "Checking for 32-bit runtime library...")
 
-# For some reason this test borks with HAS_M32
-CHECK_C_COMPILER_FLAG_EXTENDED ("-m32" BUILD_MABI_RTLIB)
-
-if (BUILD_MABI_RTLIB)
-message ("--   Enabling 32-bit runtime library; change BUILD_RTLIB_32 to OFF to disable")
+CHECK_C_COMPILER_FLAG_EXTENDED ("-m32" CHECK_RT_LIB_32)
+if (CHECK_RT_LIB_32)
+message (STATUS "Enabling 32-bit runtime library; change BUILD_RTLIB_32 to OFF to disable")
 SET (BUILD_RTLIB_32 ON CACHE STRING "Build 32-bit version of RT library")
+ELSE ()
+SET (BUILD_RTLIB_32 OFF CACHE STRING "Build 32-bit version of RT library")
+ENDIF()
 
-if (BUILD_RTLIB_32)
+
+if (BUILD_RTLIB_32 MATCHES "ON")
+set_property(SOURCE src/RTspace.s APPEND PROPERTY COMPILE_FLAGS "--32")
+
 add_library (dyninstAPI_RT_m32 SHARED ${SRC_LIST_mabi})
 add_library (dyninstAPI_RT_m32_static STATIC ${SRC_LIST_mabi})
 
@@ -146,10 +148,11 @@ set_target_properties (dyninstAPI_RT_m32_static
                       LINK_FLAGS "-m32"
                       SOVERSION ${SOVERSION}
                       VERSION ${LIBVERSION})
+
 INSTALL (TARGETS dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
          LIBRARY DESTINATION lib
          ARCHIVE DESTINATION lib)
-endif()
-endif()
-endif()
 
+
+endif()
+endif()

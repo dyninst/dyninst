@@ -3,12 +3,12 @@ if (UNIX)
 find_package (LibElf REQUIRED)
 find_package (LibDwarf REQUIRED)
 find_package (LibIberty REQUIRED)
+find_package (ThreadDB)
 include_directories (
                     ${LIBELF_INCLUDE_DIR}
                     ${LIBDWARF_INCLUDE_DIR}
 )
 endif()
-
 
 set (PATH_BOOST "/usr" CACHE STRING "Path to boost")
 if (NOT (PATH_BOOST STREQUAL ""))

@@ -28,6 +28,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "solo_mutatee_boilerplate.h"
+
+
 int add_sym_func(int my_param)
 {
 	int my_local_var = 5 * my_param;

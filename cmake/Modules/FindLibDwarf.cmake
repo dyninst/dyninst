@@ -36,8 +36,11 @@ find_library (LIBDWARF_LIBRARIES
       ${LIBDWARF_LIBRARIES}
     PATHS
       /usr/lib
+      /usr/lib64
       /usr/local/lib
+      /usr/local/lib64
       /opt/local/lib
+      /opt/local/lib64
       /sw/lib
       ENV LIBRARY_PATH   # PATH and LIB will also work
       ENV LD_LIBRARY_PATH)

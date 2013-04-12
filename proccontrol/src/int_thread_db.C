@@ -1829,12 +1829,12 @@ bool thread_db_thread::plat_convertToSystemRegs(const int_registerPool &,
    return true;
 }
 
-async_ret_t thread_db_process::post_attach(bool, set<response::ptr> &) {
-   return aret_success;
+async_ret_t thread_db_process::post_attach(bool b, set<response::ptr> &s) {
+   return int_process::post_attach(b, s);
 }
 
-async_ret_t thread_db_process::post_create(std::set<response::ptr> &) {
-   return aret_success;
+async_ret_t thread_db_process::post_create(std::set<response::ptr> &async_responses) {
+   return int_process::post_create(async_responses);
 }
 
 bool thread_db_process::plat_getLWPInfo(lwpid_t, void *) {

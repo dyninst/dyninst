@@ -40,8 +40,11 @@ find_library (LIBELF_LIBRARIES
       ${LIBELF_LIBRARIES}
     PATHS
       /usr/lib
+      /usr/lib64
       /usr/local/lib
+      /usr/local/lib64
       /opt/local/lib
+      /opt/local/lib64
       /sw/lib
       ENV LIBRARY_PATH
       ENV LD_LIBRARY_PATH)

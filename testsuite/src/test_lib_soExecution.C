@@ -47,7 +47,7 @@
 
 TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data) {
   std::stringstream fname;
-  fname << odname << ".so";
+  fname  <<  odname << ".so";
 
   void *odhandle = dlopen(fname.str().c_str(), RTLD_NOW);
   if (NULL == odhandle) {
@@ -121,11 +121,12 @@ int setupMutatorsForRunGroup(RunGroup *group)
     if (test->mutator)
        continue;
     
-    const char *soname = test->soname;
-
-    void *handle = openSO(soname, true);
+    std::string soname = "lib";
+    soname += test->soname;
+    
+    void *handle = openSO(soname.c_str(), true);
     if (!handle) {
-       getOutput()->log(STDERR, "Couldn't open %s\n", soname);
+       getOutput()->log(STDERR, "Couldn't open %s\n", soname.c_str());
        return -1;
     }
 
@@ -137,7 +138,7 @@ int setupMutatorsForRunGroup(RunGroup *group)
 							  mutator_name);
     if (NULL == factory) {
       fprintf(stderr, "Error finding function: %s, in %s\n", mutator_name,
-	      soname);
+	      soname.c_str());
       fprintf(stderr, "%s\n", dlerror());
       dlclose(handle);
       return -1; //Error

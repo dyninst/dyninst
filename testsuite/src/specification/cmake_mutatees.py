@@ -3,17 +3,16 @@ import tuples
 import utils
 from collections import defaultdict
 
-info = {}
 # Path from a local CMakefile to the platform directory
 root = '../../../../../..' 
 
-def get_compiler_command(exe, platform, abi):
+def get_compiler_command(exe, platform, abi, info):
    compiler = info['compilers'][exe]
    c_compiler = utils.compiler_command(compiler, platform, abi)
    return c_compiler
 
 def get_flags(platform, compiler, abi, opt, pic):
-   c_flags = "${TEST_DEFINES}  %s" % utils.object_flag_string(platform, 
+   c_flags = "${MUTATOR_DEFINES}  %s" % utils.object_flag_string(platform, 
                                                               compiler, 
                                                               abi, 
                                                               opt, 
@@ -36,7 +35,7 @@ def is_valid_test(mutatee):
 
 
 	 
-def is_groupable(mutatee):
+def is_groupable(mutatee, info):
 	 if(mutatee['groupable'] == 'false'):
 		  return '0'
 	 groups = info['rungroups']
@@ -46,11 +45,11 @@ def is_groupable(mutatee):
 	 else:
 		  return '0'
 
-def get_all_mutatee_sources(groupable, module):
+def get_all_mutatee_sources(groupable, module, info):
 	return utils.uniq(reduce(lambda a, b: set(a) | set(b),
 		(map(lambda m: m['preprocessed_sources'],
 		filter(lambda m: m['name'] != 'none'
-			and is_valid_test(m) == 'true' and is_groupable(m) == groupable and get_module(m) == module,
+			and is_valid_test(m) == 'true' and is_groupable(m, info) == groupable and get_module(m) == module,
 			info['mutatees']))),
 		[]))
 	 
@@ -61,12 +60,12 @@ def collect_mutatee_comps(mutatees):
          comps.append(m['compiler'])
    return comps
 
-def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platform, cmakelists):
+def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platform, cmakelists, info):
    if len(mlist) == 0:
       return
 
    mut = mlist[0]
-   c_compiler = get_compiler_command(exe, platform, abi)
+   c_compiler = get_compiler_command(exe, platform, abi, info)
    compiler = info['compilers'][exe]
 
    include_path = '-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/%s' % module
@@ -109,7 +108,14 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
       if len(m['libraries']) > 0:
          out.write("target_link_libraries (%s" % utils.mutatee_binary(m, platform, info))
          for l in m['libraries']:
-            out.write(" %s" % l)
+            lib_ext = ''
+            
+            # This could be handled better....
+            if m['abi'] == '32':
+               if l == 'testA':
+                  lib_ext = '_m32'
+
+            out.write(" %s%s" % (l, lib_ext))
          out.write(")\n")
          
    # And install target
@@ -151,7 +157,7 @@ def print_src_lists(mutatees, platform, info):
       collected_srcs = ['\t${SRC}/mutatee_driver.c']
 
       # If it's a group mutatee we need to add the generated group file
-      if (is_groupable(m) == '1'):
+      if (is_groupable(m, info) == '1'):
          collected_srcs.append('\t${SRC}/../%s/%s_group.c\n' % (platform['name'], m['name']))
 
       # Preprocessed == module specific, apparently
@@ -184,7 +190,7 @@ def print_src_lists(mutatees, platform, info):
       i += 1
 
    for s, m in preproc_to_mutatees.iteritems():
-      groupable = is_groupable(m)
+      groupable = is_groupable(m, info)
       module = m['module']
       if ((utils.extension(s) == ".c") |
           (utils.extension(s) == ".C")):
@@ -204,7 +210,7 @@ def print_src_lists(mutatees, platform, info):
 def nested_dict():
    return defaultdict(nested_dict)
 
-def print_compiler_cmakefiles(mutatees, platform, info, cmakelists):
+def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compilers):
 #
 # Now that we have each executable defined (in CMake-speak), we
 # need to specify the language so we don't get everything compiled
@@ -241,35 +247,40 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists):
    # What valid compiler combinations are there? Let's test that here. We put in CMake tests, 
    # rather than testing it in the python, because we need to do this per-test-build-system. So
    # we do it on the fly and set well-known variable names 
-   cmakelists.write("include (../checkMutateeCompiler.cmake)\n")
+   cmake_compilers.write("include (../checkMutateeCompiler.cmake)\n")
    # That provides a CHECK_MUTATEE_COMPILER macro
    for exe, tmp1 in cmake_tree.iteritems():
       for abi, tmp2 in tmp1.iteritems():
          for stat_dyn, tmp3 in tmp2.iteritems():
             # Assuming everything else _just works_
             compiler = info['compilers'][exe]
-            c_compiler = get_compiler_command(exe, platform, abi)
+            c_compiler = get_compiler_command(exe, platform, abi, info)
             c_flags = get_flags(platform, info['compilers'][exe], abi, 'none', 'none')
             if stat_dyn == 'stat':
                linkage = compiler['staticlink']
             else:
                linkage = compiler['dynamiclink']
+            # Manual hack: check for a present libdl...
+            linkage = '%s -ldl' % linkage
+            c_flags = '%s -ldl' % linkage
 
             # You want crazy? Apparently three underscores breaks CMAKE's regexp parser. So no
             # underscores!
-            cmakelists.write("IF (DEFINED M_%s)\n" % c_compiler)
-            cmakelists.write("CHECK_MUTATEE_COMPILER (\"${M_%s}\"\n\t\"%s\"\n\t\"%s\"\n\tVALID_%s%s%s)\n"
-                             % (c_compiler, c_flags, linkage, exe.replace('+','x'), abi, stat_dyn))
-            cmakelists.write("message (\"Result is ${VALID_%s%s%s}\")\n" % (exe.replace('+','x'), 
-                                                                              abi, 
-                                                                              stat_dyn))
-            cmakelists.write("ELSE()\n message(\"M_%s is not defined\")\n" % c_compiler)
-            cmakelists.write("ENDIF()\n")
+            # And we can't redefine a variable as part of the cache, hence the two-level system.
+            varname = 'MUTATEE_%s%s%s' % (exe.replace('+','x'), abi, stat_dyn)
+            cmake_compilers.write("IF (DEFINED M_%s)\n" % c_compiler)
+            cmake_compilers.write("CHECK_MUTATEE_COMPILER (\"${M_%s}\"\n\t\"%s\"\n\t\"%s\"\n\tdummy%s)\n"
+                             % (c_compiler, c_flags, linkage, varname))
+            cmake_compilers.write("IF (dummy%s)\n" % varname)
+            cmake_compilers.write("SET (%s 1 CACHE STRING \"Build mutatess: compiler %s, ABI %s-bit, %s linked\")\n"
+                                  % (varname, exe, abi, stat_dyn))
+            cmake_compilers.write("ENDIF()\n")
+            cmake_compilers.write("ENDIF()\n")
 
    for exe, tmp1 in cmake_tree.iteritems():
       for abi, tmp2 in tmp1.iteritems():
          for stat_dyn, tmp3 in tmp2.iteritems():
-            cmakelists.write("if (${VALID_%s%s%s})\n" % (exe.replace('+','x'), 
+            cmakelists.write("if (${MUTATEE_%s%s%s})\n" % (exe.replace('+','x'), 
                                                            abi, 
                                                            stat_dyn))
             for pic, tmp4 in tmp3.iteritems():
@@ -277,23 +288,21 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists):
                   for module, tmp6 in tmp5.iteritems():
                      path = tmp6['path']
                      mlist = tmp6['mutatees']
-                     print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platform, cmakelists)
+                     print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platform, cmakelists, info)
             cmakelists.write("endif()\n")
 
-def write_mutatee_cmakelists(tuplefile):
-   cmakelists = open("cmake-mutatees.txt", "w")
-   tuples.read_tuples(tuplefile, info)
+def write_mutatee_cmakelists(directory, info, platform):
+   
+   cmakelists = open(directory + "/cmake-mutatees.txt", "w")
+   cmake_compilers = open(directory + "/cmake-compilers.txt", "w")
+
    compilers = info['compilers']
    mutatees = info['mutatees']
-#   print_mutatee_comp_defs(out)
-#   comps = collect_mutatee_comps(mutatees)
    comps = utils.uniq(map(lambda m: m['compiler'], mutatees))
    pname = os.environ.get('PLATFORM')
-   platform = utils.find_platform(pname, info)
-#   ObjSuffix = platform['filename_conventions']['object_suffix']
    modules = utils.uniq(map(lambda t: t['module'], info['tests']))
 
    print_src_lists(mutatees, platform, info)
-   print_compiler_cmakefiles(mutatees, platform, info, cmakelists)
+   print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compilers)
 #
 

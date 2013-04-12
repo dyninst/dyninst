@@ -35,6 +35,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "solo_mutatee_boilerplate.h"
+
 #if !defined(os_windows_test)
 #if defined (__cplusplus)
 extern "C" int relocation_test_variable1;

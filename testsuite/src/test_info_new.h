@@ -35,6 +35,7 @@
 #include <string>
 #include <map>
 
+#include "test_lib_dll.h"
 #include "TestData.h"
 #include "test_results.h"
 
@@ -73,7 +74,7 @@ public:
   TESTLIB_DLL_EXPORT bool has_data() const;
 
   TESTLIB_DLL_EXPORT const timeval &cpuUsage() const;
-  TESTLIB_DLL_EXPORT const unsigned long memUsage() const;
+  TESTLIB_DLL_EXPORT unsigned long memUsage() const;
 
   TESTLIB_DLL_EXPORT UsageMonitor &operator=(const UsageMonitor &);
   TESTLIB_DLL_EXPORT UsageMonitor &operator+=(const UsageMonitor &);

@@ -74,8 +74,8 @@ add_library (symtabAPI ${SRC_LIST})
 target_link_libraries (symtabAPI common)
 
 if (UNIX)
-  target_link_libraries (symtabAPI ${LIBELF_LIBRARIES})
-  target_link_libraries (symtabAPI ${LIBDWARF_LIBRARIES})
+  target_link_libraries (symtabAPI dynElf ${LIBELF_LIBRARIES})
+  target_link_libraries (symtabAPI dynDwarf ${LIBDWARF_LIBRARIES})
 endif()
 
 INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")

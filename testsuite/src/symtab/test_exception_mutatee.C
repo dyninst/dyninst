@@ -28,8 +28,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <stdio.h>
 #include <stdexcept>
 #include <string>
+#include "solo_mutatee_boilerplate.h"
 
 int excp_func2()
 {
