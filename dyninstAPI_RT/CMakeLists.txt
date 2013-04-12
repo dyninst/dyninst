@@ -51,6 +51,9 @@ set (SRC_LIST_ppc64
     src/RTstatic_ctors_dtors-ppc64.c                                                                                         
 )
 
+# We use gcc to compile the various assembly files, but
+# cmake doesn't default to knowing that gcc can
+# handle .S. 
 file (GLOB SRC_ASSEMBLY "src/*.S")
 set_source_files_properties(${SRC_ASSEMBLY}
         PROPERTIES
@@ -70,6 +73,7 @@ endif()
 
 
 add_library (dyninstAPI_RT SHARED ${SRC_LIST})
+target_link_libraries (dyninstAPI_RT dl)
 add_library (dyninstAPI_RT_static STATIC ${SRC_LIST})
 
 set_target_properties (dyninstAPI_RT
@@ -136,6 +140,7 @@ ENDIF()
 if (BUILD_RTLIB_32 MATCHES "ON")
 
 add_library (dyninstAPI_RT_m32 SHARED ${SRC_LIST_mabi})
+target_link_libraries (dyninstAPI_RT_m32 dl)
 add_library (dyninstAPI_RT_m32_static STATIC ${SRC_LIST_mabi})
 
 set_target_properties (dyninstAPI_RT_m32
