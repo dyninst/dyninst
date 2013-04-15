@@ -1,0 +1,37 @@
+include (../checkMutateeCompiler.cmake)
+IF (DEFINED M_gnu_cxx)
+CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
+	"-Wl,-export-dynamic -ldl -ldl"
+	"-Wl,-export-dynamic -ldl"
+	dummyMUTATEE_gxx64dyn)
+IF (dummyMUTATEE_gxx64dyn)
+SET (MUTATEE_gxx64dyn 1 CACHE STRING "Build mutatess: compiler g++, ABI 64-bit, dyn linked")
+ENDIF()
+ENDIF()
+IF (DEFINED M_gnu_cxx)
+CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
+	"-static -ldl -ldl"
+	"-static -ldl"
+	dummyMUTATEE_gxx64stat)
+IF (dummyMUTATEE_gxx64stat)
+SET (MUTATEE_gxx64stat 1 CACHE STRING "Build mutatess: compiler g++, ABI 64-bit, stat linked")
+ENDIF()
+ENDIF()
+IF (DEFINED M_gnu_cc)
+CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
+	"-Wl,-export-dynamic -ldl -ldl"
+	"-Wl,-export-dynamic -ldl"
+	dummyMUTATEE_gcc64dyn)
+IF (dummyMUTATEE_gcc64dyn)
+SET (MUTATEE_gcc64dyn 1 CACHE STRING "Build mutatess: compiler gcc, ABI 64-bit, dyn linked")
+ENDIF()
+ENDIF()
+IF (DEFINED M_gnu_cc)
+CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
+	"-static -ldl -ldl"
+	"-static -ldl"
+	dummyMUTATEE_gcc64stat)
+IF (dummyMUTATEE_gcc64stat)
+SET (MUTATEE_gcc64stat 1 CACHE STRING "Build mutatess: compiler gcc, ABI 64-bit, stat linked")
+ENDIF()
+ENDIF()
