@@ -1,5 +1,5 @@
-# CMakeLists for proccontrol/icc/32/dyn/pic/none
-set (CMAKE_C_FLAGS "-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}  -Di386_unknown_linux2_4 -Dm32_test  -fPIC")
+# CMakeLists for x86_64-unknown-linux2.4/proccontrol/icc/32/dyn/pic/none
+set (CMAKE_C_FLAGS "-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}  -Di386_unknown_linux2_4 -Dm32_test  -fPIC -g")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_COMPILER "${M_intel_cc_32}")

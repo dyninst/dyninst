@@ -1,0 +1,73 @@
+include (../checkMutateeCompiler.cmake)
+IF (DEFINED M_gnu_xx)
+CHECK_MUTATEE_COMPILER ("${M_gnu_xx}"
+	"-dynamic -Wl,-export-dynamic -ldl -ldl"
+	"-dynamic -Wl,-export-dynamic -ldl"
+	dummyMUTATEE_bgq_gxx64dyn)
+IF (dummyMUTATEE_bgq_gxx64dyn)
+SET (MUTATEE_bgq_gxx64dyn 1 CACHE STRING "Build mutatess: compiler bgq_g++, ABI 64-bit, dyn linked")
+ENDIF()
+ENDIF()
+IF (DEFINED M_gnu_xx)
+CHECK_MUTATEE_COMPILER ("${M_gnu_xx}"
+	"-static -ldl -ldl"
+	"-static -ldl"
+	dummyMUTATEE_bgq_gxx64stat)
+IF (dummyMUTATEE_bgq_gxx64stat)
+SET (MUTATEE_bgq_gxx64stat 1 CACHE STRING "Build mutatess: compiler bgq_g++, ABI 64-bit, stat linked")
+ENDIF()
+ENDIF()
+IF (DEFINED M_gnu_cc)
+CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
+	"-dynamic -Wl,-export-dynamic -ldl -ldl"
+	"-dynamic -Wl,-export-dynamic -ldl"
+	dummyMUTATEE_bgq_gcc64dyn)
+IF (dummyMUTATEE_bgq_gcc64dyn)
+SET (MUTATEE_bgq_gcc64dyn 1 CACHE STRING "Build mutatess: compiler bgq_gcc, ABI 64-bit, dyn linked")
+ENDIF()
+ENDIF()
+IF (DEFINED M_gnu_cc)
+CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
+	"-static -ldl -ldl"
+	"-static -ldl"
+	dummyMUTATEE_bgq_gcc64stat)
+IF (dummyMUTATEE_bgq_gcc64stat)
+SET (MUTATEE_bgq_gcc64stat 1 CACHE STRING "Build mutatess: compiler bgq_gcc, ABI 64-bit, stat linked")
+ENDIF()
+ENDIF()
+IF (DEFINED M_bg_cc)
+CHECK_MUTATEE_COMPILER ("${M_bg_cc}"
+	"-qnostaticlink -ldl -ldl"
+	"-qnostaticlink -ldl"
+	dummyMUTATEE_bgxlc64dyn)
+IF (dummyMUTATEE_bgxlc64dyn)
+SET (MUTATEE_bgxlc64dyn 1 CACHE STRING "Build mutatess: compiler bgxlc, ABI 64-bit, dyn linked")
+ENDIF()
+ENDIF()
+IF (DEFINED M_bg_cc)
+CHECK_MUTATEE_COMPILER ("${M_bg_cc}"
+	" -ldl -ldl"
+	" -ldl"
+	dummyMUTATEE_bgxlc64stat)
+IF (dummyMUTATEE_bgxlc64stat)
+SET (MUTATEE_bgxlc64stat 1 CACHE STRING "Build mutatess: compiler bgxlc, ABI 64-bit, stat linked")
+ENDIF()
+ENDIF()
+IF (DEFINED M_bg_CC)
+CHECK_MUTATEE_COMPILER ("${M_bg_CC}"
+	"-qnostaticlink -ldl -ldl"
+	"-qnostaticlink -ldl"
+	dummyMUTATEE_bgxlcxx64dyn)
+IF (dummyMUTATEE_bgxlcxx64dyn)
+SET (MUTATEE_bgxlcxx64dyn 1 CACHE STRING "Build mutatess: compiler bgxlc++, ABI 64-bit, dyn linked")
+ENDIF()
+ENDIF()
+IF (DEFINED M_bg_CC)
+CHECK_MUTATEE_COMPILER ("${M_bg_CC}"
+	" -ldl -ldl"
+	" -ldl"
+	dummyMUTATEE_bgxlcxx64stat)
+IF (dummyMUTATEE_bgxlcxx64stat)
+SET (MUTATEE_bgxlcxx64stat 1 CACHE STRING "Build mutatess: compiler bgxlc++, ABI 64-bit, stat linked")
+ENDIF()
+ENDIF()

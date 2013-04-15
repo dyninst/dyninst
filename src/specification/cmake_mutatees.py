@@ -40,7 +40,10 @@ def is_groupable(mutatee, info):
 		  return '0'
 	 groups = info['rungroups']
 	 mutatee_tests = filter(lambda g: g['mutatee'] == mutatee['name'], groups)
-	 if(max(map(lambda g: len(g['tests']), mutatee_tests)) > 1):
+         tmp = map(lambda g: len(g['tests']), mutatee_tests)
+         if not tmp:
+            return '0'
+	 if max(tmp) > 1:
 		  return '1'
 	 else:
 		  return '0'
@@ -69,7 +72,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    compiler = info['compilers'][exe]
 
    include_path = '-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/%s' % module
-   c_flags = "%s %s" % (include_path, get_flags(platform, info['compilers'][exe], abi, opt, pic))
+   c_flags = "%s %s -g" % (include_path, get_flags(platform, info['compilers'][exe], abi, opt, pic))
    
    if not os.path.exists(path):
       os.makedirs(path)
@@ -131,8 +134,8 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    cmakelists.write("\tadd_subdirectory (%s)\n" % path)
 
 
-def print_src_lists(mutatees, platform, info):
-   out = open("srclists.cmake", "w")
+def print_src_lists(mutatees, platform, info, directory):
+   out = open("%s/srclists.cmake" % directory, "w")
 
    # We want to build the list of sources for each mutatee; since each mutatee
    # gets compiled a bunch of different ways (32/64, no/low/high optimization, 
@@ -210,7 +213,7 @@ def print_src_lists(mutatees, platform, info):
 def nested_dict():
    return defaultdict(nested_dict)
 
-def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compilers):
+def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compilers, directory):
 #
 # Now that we have each executable defined (in CMake-speak), we
 # need to specify the language so we don't get everything compiled
@@ -239,7 +242,7 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compil
       if opt != 'none':
          continue
 
-      path = '%s/%s/%s/%s/%s/%s' % (module, exe, abi, stat_dyn, pic, opt)
+      path = '%s/%s/%s/%s/%s/%s/%s' % (directory, module, exe, abi, stat_dyn, pic, opt)
 
       cmake_tree[exe][abi][stat_dyn][pic][opt][module]['path'] = path;
       cmake_tree[exe][abi][stat_dyn][pic][opt][module].setdefault('mutatees', []).append(mut)
@@ -302,7 +305,7 @@ def write_mutatee_cmakelists(directory, info, platform):
    pname = os.environ.get('PLATFORM')
    modules = utils.uniq(map(lambda t: t['module'], info['tests']))
 
-   print_src_lists(mutatees, platform, info)
-   print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compilers)
+   print_src_lists(mutatees, platform, info, directory)
+   print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compilers, directory)
 #
 
