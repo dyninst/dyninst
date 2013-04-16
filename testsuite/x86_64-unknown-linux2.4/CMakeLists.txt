@@ -49,19 +49,19 @@ add_library (testdyninst SHARED
             ../src/dyninst/ParseThat.C
             ../src/dyninst/test_lib_test7.C
             ../src/dyninst/test_lib_test9.C)
-target_link_libraries (testdyninst dyninstAPI)
+target_link_libraries (testdyninst dyninstAPI pthread)
 
 add_library (testsymtab SHARED
             ../src/symtab/symtab_comp.C)
-target_link_libraries (testsymtab symtabAPI)
+target_link_libraries (testsymtab symtabAPI pthread)
 
 add_library (testinstruction SHARED
             ../src/instruction/instruction_comp.C)
-target_link_libraries (testinstruction instructionAPI)
+target_link_libraries (testinstruction instructionAPI pthread)
 
 add_library (testproccontrol SHARED
             ../src/proccontrol/proccontrol_comp.C)
-target_link_libraries (testproccontrol pcontrol)
+target_link_libraries (testproccontrol pcontrol pthread)
 
 add_executable (runTests 
                ../src/runTests.C
@@ -113,11 +113,13 @@ include (cmake-compilers.txt)
 add_library (testA SHARED ../src/libtestA.c)
 add_library (testB SHARED ../src/libtestB.c)
 add_library (Test12 SHARED ../src/dyninst/libTest12.c)
+install (TARGETS testA testB Test12 LIBRARY DESTINATION testsuite)
 
 if (${MUTATEE_gcc32dyn})
 add_library (testA_m32 SHARED ../src/libtestA.c)
 add_library (testB_m32 SHARED ../src/libtestB.c)
 add_library (Test12_m32 SHARED ../src/dyninst/libTest12.c)
+install (TARGETS testA_m32 testB_m32 Test12_m32 LIBRARY DESTINATION testsuite)
 
 set_target_properties (testA_m32
                       PROPERTIES

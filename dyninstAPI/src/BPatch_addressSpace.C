@@ -609,9 +609,7 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(const BPatch_type &type, std::s
    getAS(as);
    assert(as.size());
    BPatch_type &t = const_cast<BPatch_type &>(type);
-   cerr << "Allocating " << t.getSize() << endl;
    void *mem = (void *) as[0]->inferiorMalloc(t.getSize(), dataHeap);
-   cerr << "Returning " << hex << mem << dec << endl;
    if (!mem) return NULL;
    if(name.empty()){
       std::stringstream namestr;

@@ -1,5 +1,5 @@
-# CMakeLists for i386-unknown-linux2.4/dyninst/gfortran/32/dyn/none/none
-set (CMAKE_C_FLAGS "-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  -g ${MUTATEE_G77_FFLAGS}    -g")
+# CMakeLists for dyninst/gfortran/32/dyn/none/none
+set (CMAKE_C_FLAGS "-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  -g ${MUTATEE_G77_FFLAGS}   ")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_COMPILER "${M_gnu_fc}")
