@@ -1,5 +1,5 @@
-# CMakeLists for x86_64-unknown-linux2.4/dyninst/pgCC/64/dyn/pic/none
-set (CMAKE_C_FLAGS "-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE}    -KPIC -g")
+# CMakeLists for dyninst/pgCC/64/dyn/pic/none
+set (CMAKE_C_FLAGS "-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE}    -KPIC")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_COMPILER "${M_pg_cxx}")

@@ -1,5 +1,5 @@
-# CMakeLists for x86_64-unknown-linux2.4/symtab/g++/64/dyn/none/none
-set (CMAKE_C_FLAGS "-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -g")
+# CMakeLists for symtab/g++/64/dyn/none/none
+set (CMAKE_C_FLAGS "-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}    ")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_COMPILER "${M_gnu_cxx}")

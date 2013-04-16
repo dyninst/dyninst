@@ -1,5 +1,5 @@
-# CMakeLists for x86_64-unknown-linux2.4/proccontrol/gcc/64/dyn/pic/none
-set (CMAKE_C_FLAGS "-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}    -fPIC -g")
+# CMakeLists for proccontrol/gcc/64/dyn/pic/none
+set (CMAKE_C_FLAGS "-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}    -fPIC")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_COMPILER "${M_gnu_cc}")

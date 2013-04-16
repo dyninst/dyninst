@@ -63,21 +63,24 @@ def collect_mutatee_comps(mutatees):
          comps.append(m['compiler'])
    return comps
 
-def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platform, cmakelists, info):
+def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platform, cmakelists, info, directory):
    if len(mlist) == 0:
       return
+
+   gen_path = '%s/%s' % (directory, path)
 
    mut = mlist[0]
    c_compiler = get_compiler_command(exe, platform, abi, info)
    compiler = info['compilers'][exe]
 
    include_path = '-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/%s' % module
-   c_flags = "%s %s -g" % (include_path, get_flags(platform, info['compilers'][exe], abi, opt, pic))
+   c_flags = "-g %s %s" % (include_path, get_flags(platform, info['compilers'][exe], abi, opt, pic))
    
-   if not os.path.exists(path):
-      os.makedirs(path)
+
+   if not os.path.exists(gen_path):
+      os.makedirs(gen_path)
       
-   out = open('%s/CMakeLists.txt' % path, 'w')
+   out = open('%s/CMakeLists.txt' % gen_path, 'w')
    out.write("# CMakeLists for %s\n" % path)
    
    # This is kinda ugly, but we need to force usage of a particular compiler. So 
@@ -233,6 +236,7 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compil
       module = mut['module']
       exe = mut['compiler']
       if (exe == ''):
+         print "Skipping module %s with no compiler!" % module
          continue
       abi = mut['abi']
       stat_dyn = utils.mutatee_format(mut['format'])
@@ -242,7 +246,7 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compil
       if opt != 'none':
          continue
 
-      path = '%s/%s/%s/%s/%s/%s/%s' % (directory, module, exe, abi, stat_dyn, pic, opt)
+      path = '%s/%s/%s/%s/%s/%s' % (module, exe, abi, stat_dyn, pic, opt)
 
       cmake_tree[exe][abi][stat_dyn][pic][opt][module]['path'] = path;
       cmake_tree[exe][abi][stat_dyn][pic][opt][module].setdefault('mutatees', []).append(mut)
@@ -291,7 +295,7 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compil
                   for module, tmp6 in tmp5.iteritems():
                      path = tmp6['path']
                      mlist = tmp6['mutatees']
-                     print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platform, cmakelists, info)
+                     print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platform, cmakelists, info, directory)
             cmakelists.write("endif()\n")
 
 def write_mutatee_cmakelists(directory, info, platform):

@@ -1,5 +1,5 @@
-# CMakeLists for ppc64_bgq_ion/symtab/bgxlc/64/dyn/none/none
-set (CMAKE_C_FLAGS "-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CFLAGS} ${CFLAGS}    -g")
+# CMakeLists for symtab/bgxlc/64/dyn/none/none
+set (CMAKE_C_FLAGS "-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CFLAGS} ${CFLAGS}   ")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_COMPILER "${M_bg_cc}")

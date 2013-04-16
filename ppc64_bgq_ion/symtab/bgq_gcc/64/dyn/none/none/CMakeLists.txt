@@ -1,5 +1,5 @@
-# CMakeLists for ppc64_bgq_ion/symtab/bgq_gcc/64/dyn/none/none
-set (CMAKE_C_FLAGS "-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}     -g")
+# CMakeLists for symtab/bgq_gcc/64/dyn/none/none
+set (CMAKE_C_FLAGS "-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}    ")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_COMPILER "${M_gnu_cc}")
