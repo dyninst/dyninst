@@ -87,6 +87,7 @@ static bool libelfso0Flag;
 static bool libelfso1Flag;
 static int libelfso1version_major;
 static int libelfso1version_minor;
+static bool isStaticBinary = false;
 
 static void setVersion(){
   libelfso0Flag = false;
@@ -233,6 +234,7 @@ emitElf::emitElf(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*er
 
   bool isBlueGeneP = obj_->isBlueGeneP();
   bool hasNoteSection = obj_->hasNoteSection();
+  isStaticBinary = obj_->isStaticBinary();
 
   // for now, bluegene is the only system which uses the following mechanism for updating program header
   if(isBlueGeneP){
@@ -717,6 +719,15 @@ bool emitElf::driver(Symtab *obj, string fName){
         renameSection((string)name, newName, false);
     }
 
+    if (isStaticBinary && ((strcmp(name, ".rela.plt") == 0) ||
+			   (strcmp(name, ".rel.plt") == 0))) {
+       string newName = ".o";
+       newName.append(name, 2, strlen(name));
+       renameSection(name, newName, false);
+       // Clear the PLT type; use PROGBITS
+       newshdr->sh_type = SHT_PROGBITS;
+    }
+
     // Change offsets of sections based on the newly added sections
     if(movePHdrsFirst) {
         /* This special case is specific to FreeBSD but there is no hurt in
@@ -780,7 +791,7 @@ bool emitElf::driver(Symtab *obj, string fName){
       if(!createLoadableSections(obj,newshdr, extraAlignSize, 
                                  newNameIndexMapping, sectionNumber))        
          return false;
-      if (createNewPhdr && !movePHdrsFirst) {
+       if (createNewPhdr && !movePHdrsFirst) {
 	 sectionNumber++;
          createNewPhdrRegion(newNameIndexMapping);
 	}
@@ -1173,6 +1184,8 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
 
 //This method updates the .dynamic section to reflect the changes to the relocation section
 void emitElf::updateDynamic(unsigned tag, Elf32_Addr val){
+  if (isStaticBinary) return;
+
   if(dynamicSecData.find(tag) == dynamicSecData.end()) {
       rewrite_printf("%s[%d]: updateDynamic cannot find tag %d in section data\n",
               FILE__, __LINE__, tag);
@@ -1873,6 +1886,49 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     versionSymTable.push_back(0);
   }	  
 
+ 
+  if (obj->isStaticBinary()) {
+      // Static binary case
+      vector<Region *> newRegs;
+      obj->getAllNewRegions(newRegs);
+      if( newRegs.size() ) {
+          emitElfStatic linker(obj->getAddressWidth(), isStripped);
+
+          emitElfStatic::StaticLinkError err;
+          std::string errMsg;
+          linkedStaticData = linker.linkStatic(obj, err, errMsg);
+          if ( !linkedStaticData ) {
+               std::string linkStaticError = 
+                   std::string("Failed to link to static library code into the binary: ") +
+                   emitElfStatic::printStaticLinkError(err) + std::string(" = ")
+                   + errMsg;
+               setSymtabError(Emit_Error);
+               symtab_log_perror(linkStaticError.c_str());
+               return false;
+          }
+
+          hasRewrittenTLS = linker.hasRewrittenTLS();
+
+          // Find the end of the new Regions
+          obj->getAllNewRegions(newRegs);
+
+          Offset lastRegionAddr = 0, lastRegionSize = 0;
+          vector<Region *>::iterator newRegIter;
+          for(newRegIter = newRegs.begin(); newRegIter != newRegs.end();
+              ++newRegIter)
+          {
+              if( (*newRegIter)->getDiskOffset() > lastRegionAddr ) {
+                  lastRegionAddr = (*newRegIter)->getDiskOffset();
+                  lastRegionSize = (*newRegIter)->getDiskSize();
+              }
+          }
+
+          if( !emitElfUtils::updateHeapVariables(obj, lastRegionAddr + lastRegionSize) ) {
+              return false;
+          }
+      }
+  }
+
   for(i=0; i<allSymbols.size();i++) {
     if(allSymbols[i]->isInSymtab()) {
       allSymSymbols.push_back(allSymbols[i]);
@@ -2114,48 +2170,6 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     //add .dynamic section
     if(dynsecSize)
       obj->addRegion(0, dynsecData, dynsecSize*sizeof(Elf64_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
-  }else{
-      // Static binary case
-      vector<Region *> newRegs;
-      obj->getAllNewRegions(newRegs);
-      if( newRegs.size() ) {
-          // Link in all new libraries
-          emitElfStatic linker(obj->getAddressWidth(), isStripped);
-
-          emitElfStatic::StaticLinkError err;
-          std::string errMsg;
-          linkedStaticData = linker.linkStatic(obj, err, errMsg);
-          if ( !linkedStaticData ) {
-               std::string linkStaticError = 
-                   std::string("Failed to link to static library code into the binary: ") +
-                   emitElfStatic::printStaticLinkError(err) + std::string(" = ")
-                   + errMsg;
-               setSymtabError(Emit_Error);
-               symtab_log_perror(linkStaticError.c_str());
-               return false;
-          }
-
-          hasRewrittenTLS = linker.hasRewrittenTLS();
-
-          // Find the end of the new Regions
-          obj->getAllNewRegions(newRegs);
-
-          Offset lastRegionAddr = 0, lastRegionSize = 0;
-          vector<Region *>::iterator newRegIter;
-          for(newRegIter = newRegs.begin(); newRegIter != newRegs.end();
-              ++newRegIter)
-          {
-              if( (*newRegIter)->getDiskOffset() > lastRegionAddr ) {
-                  lastRegionAddr = (*newRegIter)->getDiskOffset();
-                  // FIXME: this was memSize, but seems like it should be diskSize
-                  lastRegionSize = (*newRegIter)->getDiskSize();
-              }
-          }
-
-          if( !emitElfUtils::updateHeapVariables(obj, lastRegionAddr + lastRegionSize) ) {
-              return false;
-          }
-      }
   }
 
   if(!obj->getAllNewRegions(newSecs))
