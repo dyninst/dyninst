@@ -3527,6 +3527,9 @@ void initialize_mutatees(std::vector<RunGroup *> &t) {
   add_test(rg, "{test: fucompp, mutator: fucompp, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: none, mutatorstart: local, optimization: none, mutateestart: local, compiler: , run_mode: createProcess}");
   fini_group(rg);
   rg = new RunGroup("", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "instruction", "", "none", "32", "NONE");
+  add_test(rg, "{test: stack_mov_32_bit, mutator: stack_mov_32_bit, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: none, mutatorstart: local, optimization: none, mutateestart: local, compiler: , run_mode: createProcess}");
+  fini_group(rg);
+  rg = new RunGroup("", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "instruction", "", "none", "32", "NONE");
   add_test(rg, "{test: mov_size_details, mutator: mov_size_details, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: none, mutatorstart: local, optimization: none, mutateestart: local, compiler: , run_mode: createProcess}");
   fini_group(rg);
   rg = new RunGroup("", SELFSTART, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "", "none", "32", "NONE");

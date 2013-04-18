@@ -1640,6 +1640,7 @@ struct {
     test_pictype_t pic;
   } rungroup_params[] = { {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC},
  {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC},
+ {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC},
  {"", STOPPED, USEATTACH, true, true, "instruction", "", "none", "32", nonPIC},
  {"", STOPPED, USEATTACH, true, true, "instruction", "", "none", "32", nonPIC},
  {"", STOPPED, USEATTACH, true, true, "instruction", "", "none", "32", nonPIC},
@@ -1654,6 +1655,7 @@ struct {
 	bool serialize_enable;
     const char * ilabel;
   } test_params[] = { {true, "fucompp", "fucompp", "fucompp.dll", false, "{test: fucompp, mutator: fucompp, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: none, mutatorstart: local, optimization: none, mutateestart: local, compiler: , run_mode: createProcess}"},
+ {true, "stack_mov_32_bit", "stack_mov_32_bit", "stack_mov_32_bit.dll", false, "{test: stack_mov_32_bit, mutator: stack_mov_32_bit, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: none, mutatorstart: local, optimization: none, mutateestart: local, compiler: , run_mode: createProcess}"},
  {true, "mov_size_details", "mov_size_details", "mov_size_details.dll", false, "{test: mov_size_details, mutator: mov_size_details, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: none, mutatorstart: local, optimization: none, mutateestart: local, compiler: , run_mode: createProcess}"},
  {true, "test_instruction_read_write", "test_instruction_read_write", "test_instruction_read_write.dll", false, "{test: test_instruction_read_write, mutator: test_instruction_read_write, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: none, mutatorstart: local, optimization: none, mutateestart: local, compiler: , run_mode: disk}"},
  {true, "test_instruction_farcall", "test_instruction_farcall", "test_instruction_farcall.dll", false, "{test: test_instruction_farcall, mutator: test_instruction_farcall, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: none, mutatorstart: local, optimization: none, mutateestart: local, compiler: , run_mode: disk}"},
@@ -1662,13 +1664,13 @@ struct {
  {true, "power_cft", "power_cft", "power_cft.dll", false, "{test: power_cft, mutator: power_cft, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: none, mutatorstart: local, optimization: none, mutateestart: local, compiler: , run_mode: disk}"} };
 
   int tp_index = 0;
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < 8; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].pic, rungroup_params[i].compiler,
 			rungroup_params[i].optimization, rungroup_params[i].abi, "NONE");
     
-    for (; tp_index < 7; tp_index++) {
+    for (; tp_index < 8; tp_index++) {
       rg->tests.push_back(new TestInfo(test_count++, 
                                        test_params[tp_index].iname, 
                                        test_params[tp_index].mrname, 
