@@ -44,7 +44,7 @@ using namespace DebuggerInterface;
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-#include "common/h/SymLite-elf.h"
+#include "common/src/SymLite-elf.h"
 
 
 #include <string>

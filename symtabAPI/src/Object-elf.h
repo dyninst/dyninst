@@ -44,10 +44,10 @@
 #endif
 
 #include<vector>
-#include "common/h/headers.h"
-#include "common/h/Types.h"
-#include "common/h/MappedFile.h"
-#include "common/h/IntervalTree.h"
+#include "common/src/headers.h"
+#include "common/src/Types.h"
+#include "common/src/MappedFile.h"
+#include "common/src/IntervalTree.h"
 
 #if 0
 #include "symtabAPI/h/Symbol.h"

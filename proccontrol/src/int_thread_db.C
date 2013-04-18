@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include "proccontrol/src/int_thread_db.h"
 
 
@@ -40,8 +40,8 @@
 #include <dlfcn.h>
 #include <iostream>
 
-#include "common/h/dthread.h"
-#include "dynutil/h/SymReader.h"
+#include "common/src/dthread.h"
+#include "common/h/SymReader.h"
 #include "proccontrol/src/int_event.h"
 #include "proccontrol/h/Mailbox.h"
 

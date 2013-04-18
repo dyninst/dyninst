@@ -28,9 +28,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dynutil/h/SymReader.h"
+#include "common/h/SymReader.h"
 #include "elf/h/Elf_X.h"
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 
 #include <map>
 

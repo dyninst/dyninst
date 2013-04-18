@@ -34,16 +34,16 @@
 #ifndef _ARCH_X86_H
 #define _ARCH_X86_H
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include <stdio.h>
-#include <common/h/Vector.h>
+#include <common/src/Vector.h>
 #include <set>
 #include <map>
 #include <vector>
 #include "dyn_regs.h"
 #include "entryIDs.h"
 
-#include "common/h/ia32_locations.h"
+#include "common/src/ia32_locations.h"
 
 #if defined(i386_unknown_nt4_0)
 // disable VC++ warning C4800: (performance warning)

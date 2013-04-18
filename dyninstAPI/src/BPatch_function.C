@@ -55,7 +55,7 @@
 #include "hybridAnalysis.h"
 #include "addressSpace.h"
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 
 #include "Point.h"
 #include "PatchMgr.h"

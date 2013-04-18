@@ -29,7 +29,7 @@
  */
 
 // $Id: timing-osf.C,v 1.6 2007/05/30 19:20:34 legendre Exp $
-#include "common/h/timing.h"
+#include "common/src/timing.h"
 
 // TODO: replace body with (better) platform-specific code
 

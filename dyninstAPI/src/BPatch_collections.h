@@ -34,8 +34,8 @@
 #include <string>
 #include "BPatch_type.h"     //type and localVar
 #include <unordered_map>
-#include "common/h/List.h"
-#include "dynutil/h/util.h"
+#include "common/src/List.h"
+#include "common/h/util.h"
 
 
 /*

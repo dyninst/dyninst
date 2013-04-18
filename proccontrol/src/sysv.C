@@ -27,14 +27,14 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "dynutil/h/SymReader.h"
-#include "dynutil/h/dyntypes.h"
+#include "common/h/SymReader.h"
+#include "common/h/dyntypes.h"
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #if defined(os_linux)
-#include "common/h/linuxKludges.h"
+#include "common/src/linuxKludges.h"
 #elif defined(os_freebsd)
-#include "common/h/freebsdKludges.h"
+#include "common/src/freebsdKludges.h"
 #endif
 
 #include "proccontrol/h/Handler.h"

@@ -31,11 +31,11 @@
 #ifndef LINUX_SWK_H
 #define LINUX_SWK_H
 
-#include "dynutil/h/dyntypes.h"
-#include "dynutil/h/SymReader.h"
+#include "common/h/dyntypes.h"
+#include "common/h/SymReader.h"
 
-#include "common/h/Types.h"
-#include "common/h/linuxKludges.h"
+#include "common/src/Types.h"
+#include "common/src/linuxKludges.h"
 
 #define START_THREAD_FUNC_NAME "start_thread"
 #define CLONE_FUNC_NAME "__clone"

@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#include "common/h/debug_common.h"
+#include "common/src/debug_common.h"
 
 int common_debug_dwarf = 0;
 int common_debug_addrtranslate = 0;

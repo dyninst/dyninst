@@ -39,13 +39,13 @@
 #include <tcl.h>
 #include <tk.h>
 
-#include "common/h/Vector.h"
-#include "common/src/Dictionary.C"
+#include "common/src/Vector.h"
+#include "common/src//Dictionary.C"
 #include "BPatch_Set.h"
 #include "BPatch_statement.h"
 
-#include "common/h/Types.h"
-#include "common/h/String.h"
+#include "common/src/Types.h"
+#include "common/src/String.h"
 
 #include <CCcommon.h>
 #include <FCAllBlocks.h>

@@ -37,7 +37,7 @@
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/x86_process.h"
-#include "common/h/dthread.h"
+#include "common/src/dthread.h"
 #include <sys/types.h>
 #include <vector>
 #include <deque>

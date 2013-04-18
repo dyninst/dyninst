@@ -33,8 +33,8 @@
 #if !defined(_R_SPRINGBOARD_H_)
 #define _R_SPRINGBOARD_H_
 #include <map>
-#include "common/h/IntervalTree.h"
-#include "dynutil/h/dyntypes.h"
+#include "common/src/IntervalTree.h"
+#include "common/h/dyntypes.h"
 #include "Transformers/Transformer.h" // Priority enum
 #include "dyninstAPI/src/codegen.h"
 

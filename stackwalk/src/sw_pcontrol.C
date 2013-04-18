@@ -38,12 +38,12 @@
 #include "proccontrol/h/PlatFeatures.h"
 #include "proccontrol/h/PCErrors.h"
 
-#include "dynutil/h/dyn_regs.h"
-#include "dynutil/h/SymReader.h"
+#include "common/h/dyn_regs.h"
+#include "common/h/SymReader.h"
 
 #include "stackwalk/src/libstate.h"
 #include "stackwalk/src/sw.h"
-#include "common/h/IntervalTree.h"
+#include "common/src/IntervalTree.h"
 #include <vector>
 
 using namespace Dyninst;

@@ -28,41 +28,45 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __TIMING_H
-#define __TIMING_H
 
-#include "common/h/Types.h"  // for getCurrentTimeRaw()
-#include "common/h/Time.h"   // for getCurrentTime(), ...
+#if !defined(_wtx_kludges_h)
+#define _wtx_kludges_h
 
+#include "common/src/Types.h"
+#include "common/h/dyntypes.h"
 
-/* Function for general time retrieval.  Use in dyninst, front-end; don't use
-   in daemon when desire high res timer level if exists instead (see
-   getWallTime in init.h) */
-COMMON_EXPORT timeStamp getCurrentTime();
+#ifndef HOST
+#define HOST // vxWorks foundation libraries require this to be defined.
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX // vxWorks definition of min and max is problematic.
+#endif
+#include "wtx.h"
 
-/* returns primitive wall time in microsecond units since 1970, 
-   (eg. gettimeofday) used by getCurrentTime() */
-COMMON_EXPORT int64_t getRawTime1970();
+typedef enum {
+    WTX_UNKNOWN,
+    WTX_INITIALIZED,
+    WTX_CONNECTED,
+    WTX_INVALID
+} wtx_state_t;
 
-/* Calculates the cpu cycle rate value.  Needs to be called once,
-   before any getCyclesPerSecond() call */
-COMMON_EXPORT void initCyclesPerSecond();
+extern HWTX wtxh;
+extern wtx_state_t wtx_state;
+extern std::vector<WTX_MODULE_INFO *> wtxDynLoadedMods;
+extern dyn_hash_map<std::string, WTX_MODULE_INFO *> wtxMods;
 
-/* Returns the cpu cycle rate.  Timeunits represented as units
-   (ie. cycles) per nanosecond */
-COMMON_EXPORT timeUnit getCyclesPerSecond();
-
-/* Platform dependent, used by initCyclesPerSecond(). */
-COMMON_EXPORT double calcCyclesPerSecondOS();
-
-enum { cpsMethodNotAvailable = -1 };
-
-/* A default stab at getting the cycle rate.  Used by calcCyclesPerSecondOS
-   if a method which gets a more precise value isn't available. */
-COMMON_EXPORT double calcCyclesPerSecond_default();
-
+bool wtxDisconnect(void);
+void setAgentMode(WTX_AGENT_MODE_TYPE /*type*/);
+bool wtxReadMem(const void *inTarget, u_int nbytes, void *inSelf);
+bool wtxWriteMem(void *inTarget, u_int nbytes, const void *inSelf);
+bool wtxFindSymbol(const char *name, WTX_SYMBOL_TYPE type, WTX_TGT_ID_T modId,
+                   Address &addr);
+bool wtxFindFunction(const char *name, WTX_TGT_ID_T modId, Address &addr);
+bool wtxFindVariable(const char *name, WTX_TGT_ID_T modId, Address &addr);
+bool wtxSuspendTask(WTX_TGT_ID_T ctxID);
+WTX_MODULE_INFO *wtxLoadObject(const std::string &objname);
+bool relocationTarget(const Address addr, Address *target);
+void printEventpoints(void);
+void printModuleInfo(WTX_MODULE_INFO *info);
 
 #endif
-
-
-

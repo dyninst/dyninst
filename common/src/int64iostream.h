@@ -28,50 +28,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef auxvparser_h
-#define auxvparser_h
+//----------------------------------------------------------------------------
+// $Id: int64iostream.h,v 1.11 2007/05/30 19:19:51 legendre Exp $
+//----------------------------------------------------------------------------
+//
+// Utility functions adding support for Microsoft's 64-bit integer
+// data type (__int64) into the iostream I/O mechanism.
+//
+//----------------------------------------------------------------------------
+#ifndef INT64IOSTREAM_H
+#define INT64IOSTREAM_H
 
-#include "common/h/Types.h"
-#include <map>
+#include <iostream>
+#include "common/src/Types.h"
+#include "common/src/std_namesp.h"
 
-class AuxvParser
-{
- private:
-   int pid;
-   unsigned ref_count;
-   bool create_err;
-   Address interpreter_base;
-   Address vsyscall_base;
-   Address vsyscall_text;
-   Address vsyscall_end;
-   bool found_vsyscall;
-   Address phdr;
-
-   unsigned page_size;
-   unsigned addr_size;
-   
-   bool readAuxvInfo();
-   void *readAuxvFromProc();
-   void *readAuxvFromStack();
-   Address getStackTop(bool &err);
-   AuxvParser(int pid, unsigned asize); 
-
-   static std::map<int, AuxvParser *> pid_to_parser;
-
- public:
-   static AuxvParser *createAuxvParser(int pid, unsigned asize);
-
-   void deleteAuxvParser();
-   ~AuxvParser();
-
-   Address getInterpreterBase();
-   bool parsedVsyscall();
-   Address getVsyscallBase();
-   Address getVsyscallText();
-   Address getVsyscallEnd();
-   Address getProgramBase();
-   Address getPageSize();
-};
-
-
+#if (defined(os_windows) && _MSC_VER < 1300)
+ostream& operator<<( ostream& s, int64_t val );
+ostream& operator<<( ostream& s, uint64_t val );
 #endif
+
+#endif // INT64IOSTREAM_H

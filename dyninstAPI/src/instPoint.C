@@ -38,7 +38,7 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "common/h/stats.h"
+#include "common/src/stats.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
@@ -53,7 +53,7 @@ using namespace Dyninst::ParseAPI;
 
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/parse-cfg.h"
-#include "common/h/arch.h"
+#include "common/src/arch.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/emitter.h"
 #if defined(arch_x86_64)

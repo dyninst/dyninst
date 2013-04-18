@@ -32,8 +32,8 @@
 #define __TIME_H
 
 #include <assert.h>
-#include "common/h/Types.h"
-#include "common/h/fraction.h"
+#include "common/src/Types.h"
+#include "common/src/fraction.h"
 
 /* These user classes that are defined:
    timeUnit  - eg. microsecond, minute, year

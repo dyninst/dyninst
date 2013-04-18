@@ -39,7 +39,7 @@
 #define cap_pthreads
 #include <pthread.h>
 #else
-#include <common/h/ntheaders.h>
+#include <common/src/ntheaders.h>
 #endif
 
 #if !defined(WINAPI)

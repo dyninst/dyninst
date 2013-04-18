@@ -36,11 +36,11 @@
 #include <utility>
 
 #include <unordered_map>
-#include "common/h/Types.h"
-#include "dynutil/h/dyntypes.h"
-#include "dynutil/h/SymReader.h"
-#include "dynutil/h/ProcReader.h"
-#include "common/h/debug_common.h"
+#include "common/src/Types.h"
+#include "common/h/dyntypes.h"
+#include "common/h/SymReader.h"
+#include "common/h/ProcReader.h"
+#include "common/src/debug_common.h"
 
 using namespace std;
 

@@ -31,7 +31,7 @@
 #include "InstructionDecoder-power.h"
 #include "Immediate.h"
 #include <boost/assign/list_of.hpp>
-#include "../../common/h/singleton_object_pool.h"
+#include "../../common/src/singleton_object_pool.h"
 
 namespace Dyninst
 {

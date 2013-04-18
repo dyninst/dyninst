@@ -270,7 +270,7 @@ set (MUTATOR_MODULE_LIB_LIST
 	testsymtab
 	)
 
-set (SRC ../src)
+set (SRC src)
 set (MUTATOR_SOURCE_LIST
 	${SRC}/dyninst/init_fini_callback.C
 	${SRC}/proccontrol/pc_addlibrary.C

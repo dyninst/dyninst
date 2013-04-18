@@ -31,7 +31,7 @@
 #define REGISTERMAP_H
 
 #include <map>
-#include "dynutil/h/dyn_regs.h"
+#include "common/h/dyn_regs.h"
 
 namespace Dyninst {
 namespace DataflowAPI {

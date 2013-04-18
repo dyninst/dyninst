@@ -40,8 +40,8 @@
 #include "symutil.h"
 #include "annotations.h"
 
-#include "common/h/pathName.h"
-#include "common/h/serialize.h"
+#include "common/src/pathName.h"
+#include "common/src/serialize.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;

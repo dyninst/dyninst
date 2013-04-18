@@ -28,65 +28,41 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// vectorSet.h
-// A container class for a set of objects providing just a few operations
-// (but doing so _very_ efficiently, in space and time):
-// 1) add an item
-// 2) remove an arbitrary item from the set and return its contents
-// 3) peek at individual items in the set by their index (0 thru size-1)
-// 4) remove an item by its index
+#ifndef __TIMING_H
+#define __TIMING_H
 
-#ifndef _VECTOR_SET_H_
-#define _VECTOR_SET_H_
-
-#ifdef external_templates
-#pragma interface
-#endif
-
-#if defined(__XLC__) || defined(__xlC__)
-#pragma implementation("../src/vectorSet.C")
-#endif
+#include "common/src/Types.h"  // for getCurrentTimeRaw()
+#include "common/src/Time.h"   // for getCurrentTime(), ...
 
 
-#include "common/h/Vector.h"
+/* Function for general time retrieval.  Use in dyninst, front-end; don't use
+   in daemon when desire high res timer level if exists instead (see
+   getWallTime in init.h) */
+COMMON_EXPORT timeStamp getCurrentTime();
 
-template <class T>
-class DLLEXPORT vectorSet {
- private:
-   pdvector<T> data;
+/* returns primitive wall time in microsecond units since 1970, 
+   (eg. gettimeofday) used by getCurrentTime() */
+COMMON_EXPORT int64_t getRawTime1970();
 
- public:
-   vectorSet() {} // empty set
-   vectorSet(const vectorSet &src) : data(src.data) {}
-  ~vectorSet() {}
+/* Calculates the cpu cycle rate value.  Needs to be called once,
+   before any getCyclesPerSecond() call */
+COMMON_EXPORT void initCyclesPerSecond();
 
-   vectorSet &operator=(const vectorSet &src) {
-      data = src.data;
-      return *this;
-   }
+/* Returns the cpu cycle rate.  Timeunits represented as units
+   (ie. cycles) per nanosecond */
+COMMON_EXPORT timeUnit getCyclesPerSecond();
 
-   bool empty() const {return data.size() == 0;}
-   unsigned size() const {return data.size();}
+/* Platform dependent, used by initCyclesPerSecond(). */
+COMMON_EXPORT double calcCyclesPerSecondOS();
 
-   const T &operator[](unsigned index) const {
-      return data[index];
-   }
+enum { cpsMethodNotAvailable = -1 };
 
-   T &operator[](unsigned index) {
-      return data[index];
-   }
-
-   T removeByIndex(unsigned index);
-   T removeOne() {
-      return removeByIndex(0);
-   }
-
-   vectorSet &operator+=(const T &item) {
-      data.push_back(item);
-      return *this;
-   }
-};
+/* A default stab at getting the cycle rate.  Used by calcCyclesPerSecondOS
+   if a method which gets a more precise value isn't available. */
+COMMON_EXPORT double calcCyclesPerSecond_default();
 
 
 #endif
+
+
 

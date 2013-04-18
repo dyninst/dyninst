@@ -35,8 +35,8 @@
 #include "dyninstAPI/h/BPatch_process.h"
 
 #include <unordered_map>
-#include "common/h/Types.h"
-#include "common/h/dthread.h"
+#include "common/src/Types.h"
+#include "common/src/dthread.h"
 
 #include "syscallNotification.h"
 

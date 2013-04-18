@@ -46,13 +46,13 @@
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "dyninstAPI/src/os.h"
-#include "common/h/stats.h"
-#include "common/h/Types.h"
+#include "common/src/stats.h"
+#include "common/src/Types.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/util.h" // getCurrWallTime
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
 
@@ -68,7 +68,7 @@
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/dynProcess.h"
-#include "common/h/linuxKludges.h"
+#include "common/src/linuxKludges.h"
 
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Instruction.h"

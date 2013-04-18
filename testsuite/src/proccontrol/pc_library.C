@@ -213,7 +213,7 @@ test_results_t pc_libraryMutator::executeTest()
 		 }
 #endif
 		 if (lib->getName().find("pc_library_mutatee") != std::string::npos ||
-           lib->getName().find("pc_library.mutatee") != std::string::npos) {
+           lib->getName().find("pc_library.") != std::string::npos) {
             pi.found_exec = true;
          }
       }

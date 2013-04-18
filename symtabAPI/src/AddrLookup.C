@@ -33,7 +33,7 @@
 #include "symtabAPI/h/AddrLookup.h"
 #include "symtabAPI/h/SymtabReader.h"
 
-#include "common/h/addrtranslate.h"
+#include "common/src/addrtranslate.h"
 
 
 #include <vector>

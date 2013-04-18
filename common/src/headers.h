@@ -50,31 +50,31 @@ typedef int (*xdr_wr_func)(void *, char *, int);
 }
 
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 
 #if defined(os_linux) || defined(os_bgp) || defined(os_bg_ion) || defined(os_bgq_ion)
-#include "common/h/linuxHeaders.h"
+#include "common/src/linuxHeaders.h"
 
 #elif defined(os_freebsd)
-#include "common/h/freebsdHeaders.h"
+#include "common/src/freebsdHeaders.h"
 
 #elif defined(os_bg_compute)
-#include "common/h/bg_compute_headers.h"
+#include "common/src/bg_compute_headers.h"
 
 #elif defined(os_aix)
-#include "common/h/aixv41Headers.h"
+#include "common/src/aixv41Headers.h"
 
 #elif defined(os_osf)
-#include "common/h/osfHeaders.h"
+#include "common/src/osfHeaders.h"
 
 #elif defined(os_windows)
-#include "common/h/ntHeaders.h"
+#include "common/src/ntHeaders.h"
 
 #elif defined(os_irix)
-#include "common/h/irixHeaders.h"
+#include "common/src/irixHeaders.h"
 
 #elif defined(os_vxworks)
-#include "common/h/vxworksHeaders.h"
+#include "common/src/vxworksHeaders.h"
 
 #endif  /* architecture specific */
 

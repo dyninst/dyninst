@@ -134,7 +134,7 @@ typedef pthread_cond_t EventCond_t;
 #define SOCKLEN_T socklen_t 
 #endif
 
-#include "dynutil/h/dyntypes.h"
+#include "common/h/dyntypes.h"
 
 #ifndef INVALID_HANDLE_VALUE
 #define INVALID_HANDLE_VALUE -1

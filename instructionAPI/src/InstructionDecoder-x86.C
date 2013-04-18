@@ -30,15 +30,15 @@
 
 #define INSIDE_INSTRUCTION_API
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include "InstructionDecoder-x86.h"
 #include "Expression.h"
-#include "common/h/arch-x86.h"
+#include "common/src/arch-x86.h"
 #include "Register.h"
 #include "Dereference.h"
 #include "Immediate.h" 
 #include "BinaryFunction.h"
-#include "common/h/singleton_object_pool.h"
+#include "common/src/singleton_object_pool.h"
 
 using namespace std;
 using namespace NS_x86;

@@ -75,7 +75,7 @@ using namespace std;
 #endif
 
 //#include "symutil.h"
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 #include "Collections.h"
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
@@ -89,7 +89,7 @@ using namespace std;
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
 
-#include "dynutil/h/SymReader.h"
+#include "common/h/SymReader.h"
 
 using namespace boost::assign;
 

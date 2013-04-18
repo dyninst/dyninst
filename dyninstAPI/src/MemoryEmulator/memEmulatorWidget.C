@@ -48,7 +48,7 @@
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/Relocation/CodeBuffer.h"
-#include "common/h/arch-x86.h"
+#include "common/src/arch-x86.h"
 
 #include "memEmulatorWidget.h"
 

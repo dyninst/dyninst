@@ -123,15 +123,15 @@ install (TARGETS testA_m32 testB_m32 Test12_m32 LIBRARY DESTINATION testsuite)
 
 set_target_properties (testA_m32
                       PROPERTIES
-                      COMPILE_FLAGS "-m32"
+                      COMPILE_FLAGS "-m32 -Dm32_test"
                       LINK_FLAGS "-m32")
 set_target_properties (testB_m32
                       PROPERTIES
-                      COMPILE_FLAGS "-m32"
+                      COMPILE_FLAGS "-m32 -Dm32_test"
                       LINK_FLAGS "-m32")
 set_target_properties (Test12_m32
                       PROPERTIES
-                      COMPILE_FLAGS "-m32"
+                      COMPILE_FLAGS "-m32 -Dm32_test"
                       LINK_FLAGS "-m32")
 endif()
 

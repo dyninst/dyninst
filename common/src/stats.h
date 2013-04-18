@@ -36,7 +36,7 @@
 #include <string>
 //#include "Dictionary.h"
 #include "Timer.h"
-#include "dynutil/h/util.h"
+#include "common/h/util.h"
 
 #if 0
 extern void printDyninstStats();

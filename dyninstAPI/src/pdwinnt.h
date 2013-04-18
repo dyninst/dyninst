@@ -39,7 +39,7 @@
 
 #ifndef PDWINNT_HDR
 #define PDWINNT_HDR
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "dyninstAPI/src/w32CONTEXT.h" //ccw 30 mar 2001
 
 typedef HANDLE handleT;

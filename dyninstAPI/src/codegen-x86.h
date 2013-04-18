@@ -29,7 +29,7 @@
  */
 
 #include <stdio.h>
-#include <common/h/Vector.h>
+#include <common/src/Vector.h>
 #include <set>
 #include <map>
 #include <vector>
@@ -47,7 +47,7 @@
 #error "invalid architecture-os inclusion"
 #endif
 
-#include "common/h/ia32_locations.h"
+#include "common/src/ia32_locations.h"
 
 #ifndef _CODEGEN_X86_H
 #define _CODEGEN_X86_H

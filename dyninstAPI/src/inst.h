@@ -34,10 +34,10 @@
 #define INST_HDR
 
 #include <string>
-#include "common/h/Vector.h"
+#include "common/src/Vector.h"
 #include <unordered_map>
 #include "opcode.h" // enum opCode now defined here.
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include "codegen.h" // codeBufIndex_t 
 #include "dyninstAPI/src/ast.h" // astNodePtr
 

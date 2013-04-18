@@ -1,5 +1,5 @@
 #include "dwarfWalker.h"
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "Module.h"
 #include "Symtab.h"
 #include "Collections.h"
@@ -8,8 +8,8 @@
 #include "Object-elf.h"
 #include "Function.h"
 #include "dwarf/h/dwarfExprParser.h"
-#include "common/h/pathName.h"
-#include "common/h/debug_common.h"
+#include "common/src/pathName.h"
+#include "common/src/debug_common.h"
 
 using namespace Dyninst;
 using namespace SymtabAPI;

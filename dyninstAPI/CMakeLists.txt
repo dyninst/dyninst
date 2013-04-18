@@ -160,6 +160,10 @@ target_link_libraries (dyninstAPI ${LIBDWARF_LIBRARIES})
 target_link_libraries (dyninstAPI pthread)
 endif()
 
-INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+FILE (GLOB headers "h/*.h")
+set_target_properties (dyninstAPI PROPERTIES PUBLIC_HEADER "${headers}")
+
 INSTALL (TARGETS dyninstAPI
-        LIBRARY DESTINATION lib)
+        EXPORT dyninst
+        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

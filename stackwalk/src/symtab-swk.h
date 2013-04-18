@@ -35,7 +35,7 @@
 
 #include "stackwalk/h/framestepper.h"
 #include "symtabAPI/h/Symtab.h"
-#include "dynutil/h/dyntypes.h"
+#include "common/h/dyntypes.h"
 #include "stackwalk/h/procstate.h"
 #include "symtabAPI/h/AddrLookup.h"
 #include "symtabAPI/h/Function.h"

@@ -28,45 +28,50 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#ifndef auxvparser_h
+#define auxvparser_h
 
-#if !defined(_wtx_kludges_h)
-#define _wtx_kludges_h
+#include "common/src/Types.h"
+#include <map>
 
-#include "common/h/Types.h"
-#include "dynutil/h/dyntypes.h"
+class AuxvParser
+{
+ private:
+   int pid;
+   unsigned ref_count;
+   bool create_err;
+   Address interpreter_base;
+   Address vsyscall_base;
+   Address vsyscall_text;
+   Address vsyscall_end;
+   bool found_vsyscall;
+   Address phdr;
 
-#ifndef HOST
-#define HOST // vxWorks foundation libraries require this to be defined.
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX // vxWorks definition of min and max is problematic.
-#endif
-#include "wtx.h"
+   unsigned page_size;
+   unsigned addr_size;
+   
+   bool readAuxvInfo();
+   void *readAuxvFromProc();
+   void *readAuxvFromStack();
+   Address getStackTop(bool &err);
+   AuxvParser(int pid, unsigned asize); 
 
-typedef enum {
-    WTX_UNKNOWN,
-    WTX_INITIALIZED,
-    WTX_CONNECTED,
-    WTX_INVALID
-} wtx_state_t;
+   static std::map<int, AuxvParser *> pid_to_parser;
 
-extern HWTX wtxh;
-extern wtx_state_t wtx_state;
-extern std::vector<WTX_MODULE_INFO *> wtxDynLoadedMods;
-extern dyn_hash_map<std::string, WTX_MODULE_INFO *> wtxMods;
+ public:
+   static AuxvParser *createAuxvParser(int pid, unsigned asize);
 
-bool wtxDisconnect(void);
-void setAgentMode(WTX_AGENT_MODE_TYPE /*type*/);
-bool wtxReadMem(const void *inTarget, u_int nbytes, void *inSelf);
-bool wtxWriteMem(void *inTarget, u_int nbytes, const void *inSelf);
-bool wtxFindSymbol(const char *name, WTX_SYMBOL_TYPE type, WTX_TGT_ID_T modId,
-                   Address &addr);
-bool wtxFindFunction(const char *name, WTX_TGT_ID_T modId, Address &addr);
-bool wtxFindVariable(const char *name, WTX_TGT_ID_T modId, Address &addr);
-bool wtxSuspendTask(WTX_TGT_ID_T ctxID);
-WTX_MODULE_INFO *wtxLoadObject(const std::string &objname);
-bool relocationTarget(const Address addr, Address *target);
-void printEventpoints(void);
-void printModuleInfo(WTX_MODULE_INFO *info);
+   void deleteAuxvParser();
+   ~AuxvParser();
+
+   Address getInterpreterBase();
+   bool parsedVsyscall();
+   Address getVsyscallBase();
+   Address getVsyscallText();
+   Address getVsyscallEnd();
+   Address getProgramBase();
+   Address getPageSize();
+};
+
 
 #endif

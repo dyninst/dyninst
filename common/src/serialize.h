@@ -31,9 +31,9 @@
 #ifndef __SERDES_H__
 #define __SERDES_H__
 
-#include "dynutil/h/util.h"
-#include "dynutil/h/Annotatable.h"
-#include "dynutil/h/Serialization.h"
+#include "common/h/util.h"
+#include "common/h/Annotatable.h"
+#include "common/h/Serialization.h"
 
 #if !defined(SERIALIZATION_DISABLED)
 
@@ -42,7 +42,7 @@
 #undef cap_have_libxml
 #endif
 
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 
 #include <string>
 #include <vector>
@@ -61,9 +61,9 @@
 #include <libxml/xmlwriter.h>
 #endif
 
-#include "common/h/Types.h"
-#include "common/h/sha1.h"
-#include "common/h/pathName.h"
+#include "common/src/Types.h"
+#include "common/src/sha1.h"
+#include "common/src/pathName.h"
 
 
 #define SERIALIZE_ENABLE_FLAG (short) 1

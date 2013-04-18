@@ -32,7 +32,7 @@
 // The argument given is returned here
 
 #include <stdio.h>
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 
 char *optarg;
 int P_getopt(int argc, char *argv[], const char *optstring)

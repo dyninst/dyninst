@@ -36,7 +36,7 @@
 #ifndef _EMITTER_H
 #define _EMITTER_H
 
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/ast.h"

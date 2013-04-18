@@ -50,7 +50,7 @@
 #pragma interface
 #endif
 
-#include "common/h/language.h"
+#include "common/src/language.h"
 
 #if defined(os_windows)
 //turn off 255 char identifier truncation message

@@ -28,13 +28,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #if defined(os_windows)
-#include "common/h/ntHeaders.h"
+#include "common/src/ntHeaders.h"
 #endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <map>
-#include "dynutil/h/dyntypes.h"
+#include "common/h/dyntypes.h"
 
 using namespace std;
 

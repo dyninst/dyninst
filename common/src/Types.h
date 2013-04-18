@@ -230,7 +230,7 @@ typedef int64_t time64;
 */
 
 #if defined(__cplusplus)
-#include "dynutil/h/dyntypes.h"
+#include "common/h/dyntypes.h"
 using namespace Dyninst;
 static const Address ADDR_NULL = (Address)(0);
 #else
@@ -274,7 +274,7 @@ typedef struct maps_entries {
 
 #ifdef __cplusplus
 
-#include "dynutil/h/util.h"
+#include "common/h/util.h"
 
 COMMON_EXPORT void Address_chk ();
 COMMON_EXPORT char *Address_str (Address addr);

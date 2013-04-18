@@ -35,7 +35,7 @@
 #include "Register.h"
 #include "Dereference.h"
 
-#include "common/h/arch.h"
+#include "common/src/arch.h"
 
 #include "legacy-instruction.h"
 

@@ -34,8 +34,8 @@
 #ifndef _DEBUG_OSTREAM_H_
 #define _DEBUG_OSTREAM_H_
 
-#include "common/h/std_namesp.h"
-#include "common/h/Types.h"
+#include "common/src/std_namesp.h"
+#include "common/src/Types.h"
 
 #ifdef NEW_TIME_TYPES
 class timeUnit;

@@ -43,7 +43,7 @@
 #include "mapped_object.h"
 #include "image.h"
 
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 
 #include "proccontrol/h/PCErrors.h"
 #include "MemoryEmulator/memEmulator.h"

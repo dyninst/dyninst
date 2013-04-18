@@ -33,25 +33,25 @@
  * $Id: inst-power.C,v 1.291 2008/06/19 22:13:42 jaw Exp $
  */
 
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/inst-power.h"
-#include "common/h/arch.h"
+#include "common/src/arch.h"
 #include "dyninstAPI/src/codegen.h"
 #if defined(os_aix)
 #include "dyninstAPI/src/aix.h"
 #endif
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "common/h/stats.h"
+#include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/instPoint.h" // class instPoint
 #include "dyninstAPI/src/debug.h"
-#include "common/h/debugOstream.h"
+#include "common/src/debugOstream.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"

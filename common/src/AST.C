@@ -30,7 +30,7 @@
 
 #include "DynAST.h"
 
-#include "../../common/h/singleton_object_pool.h"
+#include "../../common/src/singleton_object_pool.h"
 
 using namespace Dyninst; 
 

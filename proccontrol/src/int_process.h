@@ -39,9 +39,9 @@
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/memcache.h"
 
-#include "dynutil/h/dyn_regs.h"
-#include "dynutil/h/SymReader.h"
-#include "common/h/dthread.h"
+#include "common/h/dyn_regs.h"
+#include "common/h/SymReader.h"
+#include "common/src/dthread.h"
 
 #include <vector>
 #include <map>

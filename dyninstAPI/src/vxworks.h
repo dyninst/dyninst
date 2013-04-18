@@ -42,8 +42,8 @@ class process;
 
 #include <sys/param.h>
 #include <pthread.h>
-#include "common/h/Types.h"
-#include "common/h/Vector.h"
+#include "common/src/Types.h"
+#include "common/src/Vector.h"
 
 #define BYTES_TO_SAVE   256
 #define EXIT_NAME "_exit"

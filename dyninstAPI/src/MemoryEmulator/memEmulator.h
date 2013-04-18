@@ -37,7 +37,7 @@
 #if !defined(_MEMORY_EMULATOR_H_)
 #define _MEMORY_EMULATOR_H_
 
-#include "common/h/IntervalTree.h"
+#include "common/src/IntervalTree.h"
 #include "dyninstAPI/src/MemoryEmulator/memEmulatorTransformer.h"
 #include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
 

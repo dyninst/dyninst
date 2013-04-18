@@ -31,7 +31,7 @@
 #define BPATCH_FILE
 
 #include <stdio.h>
-#include "common/h/std_namesp.h"
+#include "common/src/std_namesp.h"
 #include "BPatch_sourceBlock.h"
 #include <iterator>
 

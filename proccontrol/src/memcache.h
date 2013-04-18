@@ -31,7 +31,7 @@
 #if !defined(MEMCACHE_H_)
 #define MEMCACHE_H_
 
-#include "dynutil/h/dyntypes.h"
+#include "common/h/dyntypes.h"
 #include "proccontrol/src/response.h"
 #include <set>
 #include <map>

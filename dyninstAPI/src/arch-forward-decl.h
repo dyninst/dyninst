@@ -32,7 +32,7 @@
 #define ARCH_FORWARD_H
 
 // simple handling of architecture-specific forward declarations
-// from common/h/arch-*.h
+// from common/src/arch-*.h
 
 #if defined(arch_power)
 namespace NS_power {

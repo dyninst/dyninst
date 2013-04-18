@@ -33,11 +33,11 @@
 #define PARREGION_H
 
 #include <string>
-#include "common/h/Vector.h"
-#include "common/h/Types.h"
-#include "common/h/Pair.h"
+#include "common/src/Vector.h"
+#include "common/src/Types.h"
+#include "common/src/Pair.h"
 #include "codeRange.h"
-#include "common/h/arch.h" // instruction
+#include "common/src/arch.h" // instruction
 #include "dyninstAPI/h/BPatch_parRegion.h"
 #include <unordered_map>
 #include <map>

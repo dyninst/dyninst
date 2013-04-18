@@ -32,7 +32,7 @@
 
 #include <vector>
 
-#include "common/h/arch.h"
+#include "common/src/arch.h"
 #include "dyninstAPI/src/patch.h"
 
 #if defined(arch_power)

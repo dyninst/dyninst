@@ -30,7 +30,7 @@
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
-#include "common/h/timing.h"
+#include "common/src/timing.h"
 
 static const char *PROC_FREQ_MIB = "dev.cpu.0.freq";
 

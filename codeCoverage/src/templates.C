@@ -35,17 +35,17 @@
   */
 
 #pragma implementation "Vector.h"
-#include "common/h/Vector.h"
+#include "common/src/Vector.h"
 
 #pragma implementation "Dictionary.h"
-#include "common/src/Dictionary.C"
+#include "common/src//Dictionary.C"
 
 #pragma implementation "BPatch_Set.h"
 #include "BPatch_Set.h"
 /** end of the pragma */
 
-#include "common/h/Types.h"
-#include "common/h/String.h"
+#include "common/src/Types.h"
+#include "common/src/String.h"
 
 class BPatch_function;
 class FunctionCoverage;

@@ -35,14 +35,14 @@
 #include <iomanip>
 
 #include <limits.h>
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include <unordered_map>
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "common/h/stats.h"
+#include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/function.h"

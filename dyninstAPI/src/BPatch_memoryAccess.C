@@ -36,7 +36,7 @@
 #include "BPatch_memoryAccess_NP.h"
 #include "BPatch_Vector.h"
 #include "BPatch_point.h"
-#include "../../common/h/Types.h"
+#include "../../common/src/Types.h"
 
 BPatch_addrSpec_NP::BPatch_addrSpec_NP(long _imm, int _ra, int _rb, int _scale) :
    imm(_imm), 

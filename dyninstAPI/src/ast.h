@@ -40,9 +40,9 @@
 
 #include <stdio.h>
 #include <string>
-#include "common/h/Vector.h"
+#include "common/src/Vector.h"
 #include <unordered_map>
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 
 #include "Point.h"
 
@@ -68,7 +68,7 @@ class image_variable;
 
 
 // a register number, e.g. [0,31]
-// typedef int reg; // see new Register type in "common/h/Types.h"
+// typedef int reg; // see new Register type in "common/src/Types.h"
 
 #include "opcode.h"
 

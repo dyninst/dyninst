@@ -39,8 +39,8 @@
 #include "Variable.h"
 #include "Serialization.h"
 
-#include "common/h/headers.h"
-#include "common/h/serialize.h"
+#include "common/src/headers.h"
+#include "common/src/serialize.h"
 
 using namespace std;
 using namespace Dyninst;

@@ -33,7 +33,7 @@
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/steppergroup.h"
 #include "stackwalk/h/swk_errors.h"
-#include "common/h/ntHeaders.h"
+#include "common/src/ntHeaders.h"
 
 #include <windows.h>
 

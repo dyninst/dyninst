@@ -41,7 +41,7 @@
 #include "proccontrol/src/x86_process.h"
 #include "proccontrol/src/mmapalloc.h"
 
-#include "common/h/dthread.h"
+#include "common/src/dthread.h"
 
 using namespace Dyninst;
 using namespace ProcControlAPI;

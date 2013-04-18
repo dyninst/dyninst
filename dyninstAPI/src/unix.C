@@ -38,7 +38,7 @@
 #include "dynThread.h"
 #include "function.h"
 
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 
 #include <sstream>
 

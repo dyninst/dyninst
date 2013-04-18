@@ -38,8 +38,8 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include "common/h/Types.h"
-#include "dynutil/h/util.h"
+#include "common/src/Types.h"
+#include "common/h/util.h"
 #include "util.h"
 
 typedef enum { HEAPfree, HEAPallocated } heapStatus;

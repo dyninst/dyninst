@@ -33,7 +33,7 @@
 #define x86_process_h_
 
 #include "proccontrol/src/int_process.h"
-#include "dynutil/h/dyn_regs.h"
+#include "common/h/dyn_regs.h"
 
 class x86_process : virtual public int_process
 {

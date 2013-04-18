@@ -30,7 +30,7 @@
 
 // $Id: Timer.C,v 1.19 2007/05/30 19:20:16 legendre Exp $
 
-#include "common/h/Timer.h"
+#include "common/src/Timer.h"
 
 timer::timer()
 : usecs_(0), ssecs_(0), wsecs_(0), cu_(0), cs_(0), cw_(0),

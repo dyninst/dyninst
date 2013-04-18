@@ -32,7 +32,7 @@
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/procstate.h"
-#include "dynutil/h/SymReader.h"
+#include "common/h/SymReader.h"
 
 #include "stackwalk/src/libstate.h"
 

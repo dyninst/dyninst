@@ -73,11 +73,16 @@ endif()
 add_library (symtabAPI ${SRC_LIST})
 target_link_libraries (symtabAPI common)
 
+FILE (GLOB headers "h/*.h")
+set_target_properties (symtabAPI PROPERTIES PUBLIC_HEADER "${headers}")
+
 if (UNIX)
   target_link_libraries (symtabAPI dynElf ${LIBELF_LIBRARIES})
   target_link_libraries (symtabAPI dynDwarf ${LIBDWARF_LIBRARIES})
 endif()
 
-INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
 INSTALL (TARGETS symtabAPI
-        LIBRARY DESTINATION lib)
+        EXPORT dyninst
+        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
+

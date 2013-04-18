@@ -36,10 +36,10 @@
 #include <string.h>
 #include <string>
 
-#include "common/h/Types.h"
-#include "common/h/Vector.h"
+#include "common/src/Types.h"
+#include "common/src/Vector.h"
 #include <unordered_map>
-#include "common/h/Pair.h"
+#include "common/src/Pair.h"
 
 #include "BPatch_process.h"
 #include "BPatch_edge.h"

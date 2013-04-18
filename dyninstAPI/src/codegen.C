@@ -37,7 +37,7 @@
 #include "addressSpace.h"
 #include "dynThread.h"
 #include "dynProcess.h"
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #if defined (os_osf)
 #include <malloc.h>
 #endif

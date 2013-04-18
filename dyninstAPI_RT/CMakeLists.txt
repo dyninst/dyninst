@@ -87,10 +87,14 @@ set_target_properties (dyninstAPI_RT_static
                       SOVERSION ${SOVERSION}
                       VERSION ${LIBVERSION})
 
-INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+FILE (GLOB headers "h/*.h")
+set_target_properties (dyninstAPI_RT PROPERTIES PUBLIC_HEADER "${headers}")
+
 INSTALL (TARGETS dyninstAPI_RT dyninstAPI_RT_static
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib)
+        EXPORT dyninst
+        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
+        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
 
 # Test to see if we want the 32-bit library
 
@@ -159,8 +163,10 @@ set_target_properties (dyninstAPI_RT_m32_static
                       VERSION ${LIBVERSION})
 
 INSTALL (TARGETS dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
-         LIBRARY DESTINATION lib
-         ARCHIVE DESTINATION lib)
+        EXPORT dyninst
+        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
+        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
 
 
 endif()

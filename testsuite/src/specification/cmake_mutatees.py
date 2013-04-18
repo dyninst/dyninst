@@ -101,9 +101,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    out.write("set (CMAKE_EXE_LINKER_FLAGS \"%s %s %s\")\n" % ( compiler['flags']['link'],
                                                                compiler['abiflags'][platform['name']][mut['abi']]['flags'],
                                                                linkage))
-   # Directory path: compiler, 32/64, static/dynamic, pic/non-pic, optimization
    
-   # This needs to match the number of subdirectories created above
    out.write("include (%s/srclists.cmake)\n" % root)
    
    # Add each mutatee executable
@@ -134,7 +132,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    out.close()
 
    # And include it from the top-level test suite CMakeLists.txt
-   cmakelists.write("\tadd_subdirectory (%s)\n" % path)
+   cmakelists.write("\tadd_subdirectory (%s/%s)\n" % (directory, path))
 
 
 def print_src_lists(mutatees, platform, info, directory):
@@ -236,7 +234,6 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compil
       module = mut['module']
       exe = mut['compiler']
       if (exe == ''):
-         print "Skipping module %s with no compiler!" % module
          continue
       abi = mut['abi']
       stat_dyn = utils.mutatee_format(mut['format'])
@@ -254,8 +251,7 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compil
    # What valid compiler combinations are there? Let's test that here. We put in CMake tests, 
    # rather than testing it in the python, because we need to do this per-test-build-system. So
    # we do it on the fly and set well-known variable names 
-   cmake_compilers.write("include (../checkMutateeCompiler.cmake)\n")
-   # That provides a CHECK_MUTATEE_COMPILER macro
+
    for exe, tmp1 in cmake_tree.iteritems():
       for abi, tmp2 in tmp1.iteritems():
          for stat_dyn, tmp3 in tmp2.iteritems():

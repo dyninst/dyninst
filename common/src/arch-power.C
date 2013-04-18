@@ -28,12 +28,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/Types.h"
-#include "common/h/arch-power.h"
+#include "common/src/Types.h"
+#include "common/src/arch-power.h"
 using namespace NS_power;
 
 #if defined(os_vxworks)
-#include "common/h/wtxKludges.h"
+#include "common/src/wtxKludges.h"
 #endif
 
 unsigned int NS_power::swapBytesIfNeeded(unsigned int i)

@@ -30,13 +30,13 @@
 
 #include <stack>
 #include <stdio.h>
-#include "dynutil/h/dyn_regs.h"
+#include "common/h/dyn_regs.h"
 #include "dwarf/h/dwarfExprParser.h"
 #include "dwarf/h/dwarfResult.h"
-#include "common/h/debug_common.h"
-#include "dynutil/h/VariableLocation.h"
-#include "dynutil/h/ProcReader.h"
-#include "common/h/Types.h"
+#include "common/src/debug_common.h"
+#include "common/h/VariableLocation.h"
+#include "common/h/ProcReader.h"
+#include "common/src/Types.h"
 
 using namespace std;
 

@@ -1,13 +1,13 @@
 #include "dwarf/h/dwarfResult.h"
-#include "dynutil/h/VariableLocation.h"
+#include "common/h/VariableLocation.h"
 #include "dwarf/h/dwarfFrameParser.h"
-#include "dynutil/h/ProcReader.h"
-#include "dynutil/h/dyntypes.h"
-#include "dynutil/h/dyn_regs.h"
-#include "common/h/Types.h"
-#include "common/h/debug_common.h"
+#include "common/h/ProcReader.h"
+#include "common/h/dyntypes.h"
+#include "common/h/dyn_regs.h"
+#include "common/src/Types.h"
+#include "common/src/debug_common.h"
 #include <iostream>
-#include "common/h/debug_common.h"
+#include "common/src/debug_common.h"
 
 using namespace Dyninst;
 using namespace Dwarf;

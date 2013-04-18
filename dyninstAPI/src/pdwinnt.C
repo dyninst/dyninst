@@ -28,20 +28,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/std_namesp.h"
+#include "common/src/std_namesp.h"
 #include <iomanip>
 #include <string>
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/addressSpace.h"
-#include "common/h/stats.h"
-#include "common/h/Types.h"
+#include "common/src/stats.h"
+#include "common/src/Types.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "common/h/ntHeaders.h"
+#include "common/src/ntHeaders.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/emit-x86.h"
-#include "common/h/arch.h"
+#include "common/src/arch.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "image.h"

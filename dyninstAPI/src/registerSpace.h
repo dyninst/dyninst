@@ -37,9 +37,9 @@
 #include <string>
 #include <map>
 #include <set>
-#include "common/h/Vector.h"
+#include "common/src/Vector.h"
 #include <unordered_map>
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include "inst.h" // callWhen...
 
 #include "bitArray.h"

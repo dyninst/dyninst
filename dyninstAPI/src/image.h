@@ -52,10 +52,10 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/h/BPatch_enums.h"
 
-#include "common/h/Vector.h"
+#include "common/src/Vector.h"
 #include <unordered_map>
-#include "common/h/List.h"
-#include "common/h/Types.h"
+#include "common/src/List.h"
+#include "common/src/Types.h"
 
 #if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)||defined(os_freebsd)
 #include "symtabAPI/h/Archive.h"

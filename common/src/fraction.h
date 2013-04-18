@@ -32,8 +32,8 @@
 #ifndef __FRACTION_H
 #define __FRACTION_H
 
-#include "common/h/Types.h"
-#include "common/h/std_namesp.h"
+#include "common/src/Types.h"
+#include "common/src/std_namesp.h"
 
 #if defined(os_windows)
         				// exception SPECIFICATIONS aren't

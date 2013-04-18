@@ -34,7 +34,7 @@
 #define _mapped_object_h
 
 #include <string>
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/h/BPatch_enums.h"
 #include <list>

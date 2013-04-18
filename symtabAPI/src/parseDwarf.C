@@ -42,11 +42,11 @@
 #include "Module.h"
 #include "symtabAPI/src/Object.h"
 #include "Collections.h"
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 #include "Variable.h"
 #include "Type-mem.h"
 #include <stdarg.h>
-#include "dynutil/h/Annotatable.h"
+#include "common/h/Annotatable.h"
 #include "annotations.h"
 #include "debug.h"
 

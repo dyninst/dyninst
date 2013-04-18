@@ -20,9 +20,14 @@ set (SRC_LIST
 endif()
 
 add_library (dynElf ${SRC_LIST})
+
+FILE (GLOB headers "h/*.h")
+set_target_properties (dynElf PROPERTIES PUBLIC_HEADER "${headers}")
+
 target_link_libraries (dynElf ${LIBELF_LIBRARIES})
 
-INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
 INSTALL (TARGETS dynElf
-        LIBRARY DESTINATION lib)
+        EXPORT dyninst
+        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
 

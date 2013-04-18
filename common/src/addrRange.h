@@ -38,9 +38,9 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <vector>
-#include "common/h/Types.h"
-#include "common/h/Vector.h"
-#include "common/h/std_namesp.h"
+#include "common/src/Types.h"
+#include "common/src/Vector.h"
+#include "common/src/std_namesp.h"
 
 /** template class for addrRangeTree. The implementation is based on red black
  * tree implementation for efficiency concerns and for getting sorted

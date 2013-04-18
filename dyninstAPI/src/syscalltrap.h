@@ -34,7 +34,7 @@
 #ifndef _SYSCALL_TRAP_H_
 #define _SYSCALL_TRAP_H_
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 
 /*
  * This file provides prototypes for the data structures which track

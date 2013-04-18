@@ -316,7 +316,7 @@ set (MUTATOR_MODULE_LIB_LIST
 	testdyninst
 	)
 
-set (SRC ../src)
+set (SRC src)
 set (MUTATOR_SOURCE_LIST
 	${SRC}/dyninst/amd64_7_arg_call.C
 	${SRC}/instruction/fucompp.C

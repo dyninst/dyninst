@@ -33,7 +33,7 @@
 
 #include "InstructionDecoderImpl.h"
 
-#include "common/h/ia32_locations.h"
+#include "common/src/ia32_locations.h"
 
 namespace NS_x86 {
 struct ia32_operand;

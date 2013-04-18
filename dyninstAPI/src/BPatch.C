@@ -38,14 +38,14 @@
 #endif
 
 #define BPATCH_FILE
-#include "common/h/Pair.h"
-#include "common/h/Vector.h"
-#include "common/h/stats.h"
+#include "common/src/Pair.h"
+#include "common/src/Vector.h"
+#include "common/src/stats.h"
 #include "BPatch.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_collections.h"
 #include "BPatch_thread.h"
-#include "common/h/timing.h"
+#include "common/src/timing.h"
 #include "debug.h"
 #include "mapped_module.h"
 #include "instPoint.h"
@@ -125,6 +125,7 @@ BPatch::BPatch()
     dynamicCallSiteCallback(NULL),
     signalHandlerCallback(NULL),
     codeOverwriteCallback(NULL),
+    inDestructor(false),
     builtInTypes(NULL),
     stdTypes(NULL),
     type_Error(NULL),
@@ -184,6 +185,7 @@ BPatch::BPatch()
  */
 BPatch::~BPatch()
 {
+   inDestructor = true;
     for(auto i = info->procsByPid.begin(); 
         i != info->procsByPid.end();
         ++i)
@@ -203,7 +205,6 @@ BPatch::~BPatch()
     if(builtInTypes)
       delete builtInTypes;
     
-
     if(systemPrelinkCommand){
         delete [] systemPrelinkCommand;
     }
@@ -1013,6 +1014,9 @@ void BPatch::registerProcess(BPatch_process *process, int pid)
  */
 void BPatch::unRegisterProcess(int pid, BPatch_process *proc)
 {
+   // DO NOT CHANGE THE MAP!
+   if (inDestructor) return;
+
    if (pid == -1 || (info->procsByPid.find(pid) == info->procsByPid.end())) {
       // Deleting an exited process; search and nuke
       for (auto iter = info->procsByPid.begin(); iter != info->procsByPid.end(); ++iter) {

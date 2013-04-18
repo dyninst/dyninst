@@ -13,9 +13,13 @@ set (SRC_LIST
   )
 
 add_library (symLite ${SRC_LIST})
+FILE (GLOB headers "h/*.h")
+set_target_properties (symLite PROPERTIES PUBLIC_HEADER "${headers}")
+
 target_link_libraries (symLite ${LIBELF_LIBRARIES})
 
-INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
 INSTALL (TARGETS symLite
-        LIBRARY DESTINATION lib)
+        EXPORT dyninst
+        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
 

@@ -85,8 +85,11 @@ else()
 target_link_libraries(parseAPI symtabAPI)
 endif()
 
+FILE (GLOB headers "h/*.h")
+set_target_properties (parseAPI PROPERTIES PUBLIC_HEADER "${headers}")
 
 
-INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
 INSTALL (TARGETS parseAPI
-        LIBRARY DESTINATION lib)
+        EXPORT dyninst
+        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

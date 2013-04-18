@@ -32,7 +32,7 @@
 
 #include "Visitor.h"
 #include "Instruction.h"
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 
 class BPatch_memoryAccess;
 

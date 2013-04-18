@@ -32,7 +32,7 @@
 #define SHOWERROR_H
 
 #include <string>
-#include "common/h/Pair.h"
+#include "common/src/Pair.h"
 
 #define BPFATAL(x) bpfatal_lf(__FILE__, __LINE__, x)
 extern void logLine(const char *line);
@@ -80,7 +80,7 @@ extern int dyn_debug_disassemble;
 
 extern char *dyn_debug_crash_debugger;
 
-#include "common/h/stats.h"
+#include "common/src/stats.h"
 
 extern StatContainer stats_instru;
 extern StatContainer stats_ptrace;

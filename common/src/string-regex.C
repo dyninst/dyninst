@@ -31,7 +31,7 @@
 
 // $Id: String.C,v 1.39 2008/07/01 19:26:47 legendre Exp $
 
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include <assert.h>
 #if !defined (os_windows)
 #include <sys/types.h>

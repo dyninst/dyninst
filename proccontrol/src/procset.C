@@ -40,7 +40,7 @@
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/processplat.h"
 #include "proccontrol/src/int_event.h"
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include <stdlib.h>
 #include <map>
 #include <algorithm>

@@ -41,14 +41,14 @@
 #include "debug.h"
 
 
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 
 #if defined(os_freebsd)
-#include "common/h/freebsdKludges.h"
+#include "common/src/freebsdKludges.h"
 #endif
 
 #if defined(os_linux)
-#include "common/h/linuxKludges.h"
+#include "common/src/linuxKludges.h"
 #endif
 
 extern void symtab_log_perror(const char *msg);

@@ -28,10 +28,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/headers.h"
-#include "common/h/parseauxv.h"
-#include "common/h/linuxKludges.h"
-#include "common/h/Types.h"
+#include "common/src/headers.h"
+#include "common/src/parseauxv.h"
+#include "common/src/linuxKludges.h"
+#include "common/src/Types.h"
 
 #include <elf.h>
 

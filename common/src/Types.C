@@ -33,7 +33,7 @@
  * Types.C: commonly used type-handling functions.
 ************************************************************************/
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include <stdio.h>
 #include <assert.h>
 

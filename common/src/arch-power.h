@@ -35,8 +35,8 @@
 
 // Code generation
 
-#include "common/h/Types.h"
-#include "common/h/Vector.h"
+#include "common/src/Types.h"
+#include "common/src/Vector.h"
 class AddressSpace;
 
 namespace NS_power {

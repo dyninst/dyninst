@@ -62,8 +62,8 @@ static Dyninst::PID run_local(char **args)
 #include <signal.h>
 #include <sys/wait.h>
 
-#include "../common/h/dthread.h"
-#include "../common/src/dthread-unix.C"
+#include "../common/src/dthread.h"
+#include "../common/src//dthread-unix.C"
 
 static char **getLaunchParams(char *executable, char *args[], const char *num, char * signal_file_name, const char *mode);
 static bool init_lmon();

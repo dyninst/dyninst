@@ -28,24 +28,65 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//----------------------------------------------------------------------------
-// $Id: int64iostream.h,v 1.11 2007/05/30 19:19:51 legendre Exp $
-//----------------------------------------------------------------------------
-//
-// Utility functions adding support for Microsoft's 64-bit integer
-// data type (__int64) into the iostream I/O mechanism.
-//
-//----------------------------------------------------------------------------
-#ifndef INT64IOSTREAM_H
-#define INT64IOSTREAM_H
+// vectorSet.h
+// A container class for a set of objects providing just a few operations
+// (but doing so _very_ efficiently, in space and time):
+// 1) add an item
+// 2) remove an arbitrary item from the set and return its contents
+// 3) peek at individual items in the set by their index (0 thru size-1)
+// 4) remove an item by its index
 
-#include <iostream>
-#include "common/h/Types.h"
-#include "common/h/std_namesp.h"
+#ifndef _VECTOR_SET_H_
+#define _VECTOR_SET_H_
 
-#if (defined(os_windows) && _MSC_VER < 1300)
-ostream& operator<<( ostream& s, int64_t val );
-ostream& operator<<( ostream& s, uint64_t val );
+#ifdef external_templates
+#pragma interface
 #endif
 
-#endif // INT64IOSTREAM_H
+#if defined(__XLC__) || defined(__xlC__)
+#pragma implementation("../src/vectorSet.C")
+#endif
+
+
+#include "common/src/Vector.h"
+
+template <class T>
+class DLLEXPORT vectorSet {
+ private:
+   pdvector<T> data;
+
+ public:
+   vectorSet() {} // empty set
+   vectorSet(const vectorSet &src) : data(src.data) {}
+  ~vectorSet() {}
+
+   vectorSet &operator=(const vectorSet &src) {
+      data = src.data;
+      return *this;
+   }
+
+   bool empty() const {return data.size() == 0;}
+   unsigned size() const {return data.size();}
+
+   const T &operator[](unsigned index) const {
+      return data[index];
+   }
+
+   T &operator[](unsigned index) {
+      return data[index];
+   }
+
+   T removeByIndex(unsigned index);
+   T removeOne() {
+      return removeByIndex(0);
+   }
+
+   vectorSet &operator+=(const T &item) {
+      data.push_back(item);
+      return *this;
+   }
+};
+
+
+#endif
+

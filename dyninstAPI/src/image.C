@@ -36,7 +36,7 @@
 #include <fstream>
 
 #include "image.h"
-#include "common/h/arch.h"
+#include "common/src/arch.h"
 #include "parRegion.h"
 #include "util.h"
 #include "inst.h"
@@ -44,13 +44,13 @@
 #include "function.h"
 #include "Parsing.h"
 
-#include "common/h/Timer.h"
-#include "common/h/debugOstream.h"
-#include "common/h/pathName.h"
-#include "common/h/MappedFile.h"
+#include "common/src/Timer.h"
+#include "common/src/debugOstream.h"
+#include "common/src/pathName.h"
+#include "common/src/MappedFile.h"
 
 #include "dyninstAPI/h/BPatch_flowGraph.h"
-#include "dynutil/h/util.h"
+#include "common/h/util.h"
 
 #include "symtabAPI/h/Function.h"
 
@@ -181,7 +181,7 @@ int codeBytesSeen = 0;
 #include <dataflowAPI/h/SymEval.h>
 #include <dataflowAPI/h/AbslocInterface.h>
 #include <dataflowAPI/h/Absloc.h>
-#include <dynutil/h/DynAST.h>
+#include <common/h/DynAST.h>
 
 namespace {
     /* On PPC GLIBC (32 & 64 bit) the address of main is in a structure

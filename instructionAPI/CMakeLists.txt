@@ -23,7 +23,10 @@ set (SRC_LIST
 
 add_library (instructionAPI ${SRC_LIST})
 target_link_libraries (instructionAPI common)
+FILE (GLOB headers "h/*.h")
+set_target_properties (instructionAPI PROPERTIES PUBLIC_HEADER "${headers}")
 
-INSTALL (DIRECTORY h/ DESTINATION include FILES_MATCHING PATTERN "*.h")
 INSTALL (TARGETS instructionAPI
-        LIBRARY DESTINATION lib)
+        EXPORT dyninst
+        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

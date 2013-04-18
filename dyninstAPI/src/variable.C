@@ -33,7 +33,7 @@
 // Variable.C
 
 #include <string>
-#include "dynutil/h/Annotatable.h"
+#include "common/h/Annotatable.h"
 #include "mapped_object.h"
 
 image_variable::image_variable(SymtabAPI::Variable *var, pdmodule *mod) :

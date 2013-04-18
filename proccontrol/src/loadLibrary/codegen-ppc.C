@@ -1,7 +1,7 @@
 // PPC code generation routines for library injection
 
 #include "loadLibrary/codegen.h"
-#include "common/h/arch-power.h"
+#include "common/src/arch-power.h"
 #include <iostream>
 
 
