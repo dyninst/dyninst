@@ -1,4 +1,3 @@
-include (../checkMutateeCompiler.cmake)
 IF (DEFINED M_gnu_cxx)
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"-Wl,-export-dynamic -ldl -ldl"

@@ -57,7 +57,7 @@ def print_mutators_list(out, mutator_dict, test_dict, info, platform):
 
         # Iteration 3: print the list of sources for these libraries. Sources
         # must be singular (so, really, 'source')
-        out.write("set (SRC ../src)\n")
+        out.write("set (SRC src)\n")
         out.write("set (MUTATOR_SOURCE_LIST\n")
         for m in mutator_dict:
            if (len(m['sources']) != 1):

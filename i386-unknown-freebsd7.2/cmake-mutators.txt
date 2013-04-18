@@ -316,7 +316,7 @@ set (MUTATOR_MODULE_LIB_LIST
 	testdyninst
 	)
 
-set (SRC ../src)
+set (SRC src)
 set (MUTATOR_SOURCE_LIST
 	${SRC}/instruction/fucompp.C
 	${SRC}/dyninst/init_fini_callback.C
