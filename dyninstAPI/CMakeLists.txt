@@ -164,6 +164,6 @@ FILE (GLOB headers "h/*.h")
 set_target_properties (dyninstAPI PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS dyninstAPI
-        EXPORT dyninst
+        EXPORT DyninstTargets
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

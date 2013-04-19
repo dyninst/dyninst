@@ -32,6 +32,6 @@ set_target_properties (patchAPI PROPERTIES PUBLIC_HEADER "${headers}")
 
 
 INSTALL (TARGETS patchAPI
-        EXPORT dyninst
+        EXPORT DyninstTargets
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

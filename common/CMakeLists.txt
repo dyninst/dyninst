@@ -91,6 +91,6 @@ target_link_libraries (common ${IBERTY_LIBRARY})
 endif()
 
 INSTALL (TARGETS common
-        EXPORT dyninst
+        EXPORT DyninstTargets
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

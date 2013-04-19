@@ -19,7 +19,7 @@ set_target_properties (symLite PROPERTIES PUBLIC_HEADER "${headers}")
 target_link_libraries (symLite ${LIBELF_LIBRARIES})
 
 INSTALL (TARGETS symLite
-        EXPORT dyninst
+        EXPORT DyninstTargets
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
 

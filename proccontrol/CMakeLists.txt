@@ -75,6 +75,6 @@ FILE (GLOB headers "h/*.h")
 set_target_properties (pcontrol PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS pcontrol
-        EXPORT dyninst
+        EXPORT DyninstTargets
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

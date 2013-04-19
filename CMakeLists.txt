@@ -22,7 +22,7 @@ set (BUILD_SHARED_LIBS ON)
 
 set (INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
 set (INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
-set (INSTALL_CMAKE_DIR lib/CMake/Dyninst CACHE PATH "Installation directory for CMake files")
+set (INSTALL_CMAKE_DIR lib/cmake/Dyninst CACHE PATH "Installation directory for CMake files")
 
 # Make the above absolute paths if necessary
 foreach (p LIB INCLUDE CMAKE)
@@ -84,6 +84,9 @@ SET_TARGET_PROPERTIES (
 # of accumulating
 
 
+
+
+
 #
 # DyninstConfig.cmake
 
@@ -92,7 +95,11 @@ export (PACKAGE Dyninst)
 file (RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${INSTALL_INCLUDE_DIR}")
 
 # For the build tree
-set (CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
+
+foreach (dir ${HEADER_DIRS})
+    set (CONF_INCLUDE_DIRS ${CONF_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/${dir}/h)
+endforeach()
+
 configure_file(cmake/DyninstConfig.cmake.in "${PROJECT_BINARY_DIR}/DyninstConfig.cmake" @ONLY)
 # For the install tree
 set (CONF_INCLUDE_DIRS "\${DYNINST_CMAKE_DIR}/${REL_INCLUDE_DIR}")
@@ -100,11 +107,12 @@ configure_file(cmake/DyninstConfig.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_
 
 # And version file
 configure_file(cmake/DyninstConfigVersion.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfigVersion.cmake" @ONLY)
+configure_file(cmake/DyninstConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/DyninstConfigVersion.cmake" @ONLY)
 
 install (FILES
         "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfig.cmake"
         "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfigVersion.cmake"
         DESTINATION "${INSTALL_CMAKE_DIR}")
 
-install (EXPORT dyninst
+install (EXPORT DyninstTargets
         DESTINATION "${INSTALL_CMAKE_DIR}")

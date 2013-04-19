@@ -82,7 +82,7 @@ if (UNIX)
 endif()
 
 INSTALL (TARGETS symtabAPI
-        EXPORT dyninst
+        EXPORT DyninstTargets
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
 

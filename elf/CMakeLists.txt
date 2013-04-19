@@ -27,7 +27,7 @@ set_target_properties (dynElf PROPERTIES PUBLIC_HEADER "${headers}")
 target_link_libraries (dynElf ${LIBELF_LIBRARIES})
 
 INSTALL (TARGETS dynElf
-        EXPORT dyninst
+        EXPORT DyninstTargets
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
 

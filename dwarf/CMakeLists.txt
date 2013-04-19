@@ -22,7 +22,7 @@ FILE (GLOB headers "h/*.h")
 set_target_properties (dynDwarf PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS dynDwarf
-        EXPORT dyninst
+        EXPORT DyninstTargets
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
 
