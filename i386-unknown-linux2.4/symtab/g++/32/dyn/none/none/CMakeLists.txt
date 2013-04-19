@@ -17,4 +17,4 @@ add_executable (test_exception.dyn_g++_32_none_none ${SOURCE_LIST_77})
 INSTALL (TARGETS
 		symtab_group_test.dyn_g++_32_none_none
 		test_exception.dyn_g++_32_none_none
-	DESTINATION testsuite)
+	DESTINATION ${INSTALL_DIR})

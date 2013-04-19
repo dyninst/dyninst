@@ -118,4 +118,4 @@ INSTALL (TARGETS
 		test_thread_6.dyn_pgCC_32_none_none
 		test_thread_7.dyn_pgCC_32_none_none
 		test_thread_8.dyn_pgCC_32_none_none
-	DESTINATION testsuite)
+	DESTINATION ${INSTALL_DIR})

@@ -1,3 +1,5 @@
+import gzip
+
 # PLList -> []
 # PLList -> [ List ]
 # List -> Element
@@ -178,7 +180,7 @@ def parse_object_files(tuplestring):
 	return map(lambda o: dict(zip(object_labels, o)), object_list)
 
 def read_tuples(tuplefile, info):
-   f = open(tuplefile)
+   f = gzip.open(tuplefile)
    info['platforms'] = parse_platforms(f.readline())
    info['languages'] = parse_languages(f.readline())
    info['compilers'] = parse_compilers(f.readline())

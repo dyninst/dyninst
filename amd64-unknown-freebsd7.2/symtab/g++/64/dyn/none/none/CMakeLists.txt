@@ -15,4 +15,4 @@ target_link_libraries (symtab_group_test.dyn_g++_64_none_none testA)
 
 INSTALL (TARGETS
 		symtab_group_test.dyn_g++_64_none_none
-	DESTINATION testsuite)
+	DESTINATION ${INSTALL_DIR})

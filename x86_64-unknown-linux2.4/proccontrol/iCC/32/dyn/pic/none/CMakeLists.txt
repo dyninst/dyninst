@@ -14,4 +14,4 @@ add_executable (pc_exec_targ.dyn_icpc_32_pic_none ${SOURCE_LIST_28})
 
 INSTALL (TARGETS
 		pc_exec_targ.dyn_icpc_32_pic_none
-	DESTINATION testsuite)
+	DESTINATION ${INSTALL_DIR})

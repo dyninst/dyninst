@@ -1,3 +1,16 @@
+cmake_minimum_required (VERSION 2.6)
+project (Dyninst-TestSuite)
+
+include (c++11.cmake)
+
+find_package (Dyninst REQUIRED CONFIG)
+message (STATUS "Dyninst includes: ${DYNINST_INCLUDE_DIR}")
+include_directories (${DYNINST_INCLUDE_DIR})
+
+set (BUILD_SHARED_LIBS ON)
+
+set (INSTALL_DIR "bin/testsuite" CACHE PATH "Testsuite installation directory")
+
 # Build rules for the test libraries (libtestdyninst, libtestproccontrol, etc.)
 # and the executables
 
@@ -5,10 +18,9 @@ if (UNIX)
 enable_language(ASM-ATT)
 endif(UNIX)
 
-foreach (def ${UNIFIED_DEFINES})
+foreach (def ${DYNINST_INTERNAL_DEFINES})
   # add_definitions doesn't seem to get pulled in; that's okay, since
   # we don't want it anyway (we want to override for mutators/ees)
-  remove_definitions (${def})
   add_definitions (${def}_test)
   set (MUTATEE_DEFINES "${MUTATEE_DEFINES} ${def}_test")
 endforeach()
@@ -38,7 +50,7 @@ add_library (testlaunch SHARED
             src/ResumeLog.C
             src/MutateeStart.C
             src/test_info_new.C
-            ${PLATFORM}/test_info_new.gen.C)
+            ${DYNINST_PLATFORM}/test_info_new.gen.C)
 target_link_libraries (testlaunch)
 
 add_library (testdyninst SHARED
@@ -74,7 +86,7 @@ add_executable (test_driver
                src/test_driver_templates.C
                src/dynlmon.C
                src/testdriver_be.C
-               ${PLATFORM}/test_info_new.gen.C)
+               ${DYNINST_PLATFORM}/test_info_new.gen.C)
 target_link_libraries (test_driver testSuite testlaunch)
 
 
@@ -92,11 +104,11 @@ install (TARGETS
         testsymtab
         testinstruction
         testproccontrol
-        DESTINATION testsuite)
+        DESTINATION ${INSTALL_DIR})
 
 
 
-include (${PLATFORM}/cmake-mutators.txt)
+include (${DYNINST_PLATFORM}/cmake-mutators.txt)
 
 if (UNIX)
 # Compiler macros
@@ -110,18 +122,18 @@ FIND_PROGRAM(M_pg_cxx NAMES pgCC)
 endif (UNIX)
 
 include (checkMutateeCompiler.cmake)
-include (${PLATFORM}/cmake-compilers.txt)
+include (${DYNINST_PLATFORM}/cmake-compilers.txt)
 
 add_library (testA SHARED src/libtestA.c)
 add_library (testB SHARED src/libtestB.c)
 add_library (Test12 SHARED src/dyninst/libTest12.c)
-install (TARGETS testA testB Test12 LIBRARY DESTINATION testsuite)
+install (TARGETS testA testB Test12 LIBRARY DESTINATION ${INSTALL_DIR})
 
 if (${MUTATEE_gcc64dyn} AND ${MUTATEE_gcc32dyn})
 add_library (testA_m32 SHARED src/libtestA.c)
 add_library (testB_m32 SHARED src/libtestB.c)
 add_library (Test12_m32 SHARED src/dyninst/libTest12.c)
-install (TARGETS testA_m32 testB_m32 Test12_m32 LIBRARY DESTINATION testsuite)
+install (TARGETS testA_m32 testB_m32 Test12_m32 LIBRARY DESTINATION ${INSTALL_DIR})
 
 set_target_properties (testA_m32
                       PROPERTIES
@@ -137,5 +149,5 @@ set_target_properties (Test12_m32
                       LINK_FLAGS "-m32")
 endif()
 
-include (${PLATFORM}/cmake-mutatees.txt)
+include (${DYNINST_PLATFORM}/cmake-mutatees.txt)
 

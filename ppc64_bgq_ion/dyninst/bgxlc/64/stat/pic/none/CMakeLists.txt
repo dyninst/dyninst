@@ -19,4 +19,4 @@ INSTALL (TARGETS
 		dyninst_group_test.stat_bgxlc_64_pic_none
 		test1_14.stat_bgxlc_64_pic_none
 		test1_29.stat_bgxlc_64_pic_none
-	DESTINATION testsuite)
+	DESTINATION ${INSTALL_DIR})

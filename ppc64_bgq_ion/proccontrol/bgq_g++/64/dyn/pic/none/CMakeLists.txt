@@ -48,4 +48,4 @@ INSTALL (TARGETS
 		pc_terminate.dyn_mpic++_64_pic_none
 		pc_terminate_stopped.dyn_mpic++_64_pic_none
 		pc_thread.dyn_mpic++_64_pic_none
-	DESTINATION testsuite)
+	DESTINATION ${INSTALL_DIR})

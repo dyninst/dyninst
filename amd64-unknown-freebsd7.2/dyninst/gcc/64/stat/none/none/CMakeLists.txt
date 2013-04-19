@@ -20,4 +20,4 @@ INSTALL (TARGETS
 		test1_14.stat_gcc_64_none_none
 		test1_29.stat_gcc_64_none_none
 		test1_35.stat_gcc_64_none_none
-	DESTINATION testsuite)
+	DESTINATION ${INSTALL_DIR})

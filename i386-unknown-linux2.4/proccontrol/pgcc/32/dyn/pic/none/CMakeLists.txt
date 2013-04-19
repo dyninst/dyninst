@@ -14,4 +14,4 @@ add_executable (pc_exec_targ.dyn_pgcc_32_pic_none ${SOURCE_LIST_11})
 
 INSTALL (TARGETS
 		pc_exec_targ.dyn_pgcc_32_pic_none
-	DESTINATION testsuite)
+	DESTINATION ${INSTALL_DIR})

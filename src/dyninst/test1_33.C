@@ -45,9 +45,9 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_basicBlock.h"
 
-#include "../../../parseAPI/h/CFG.h"
+#include "CFG.h"
 #if !defined(os_windows_test) && defined(ENABLE_PARSE_API_GRAPHS)
-#include "../../../parseAPI/h/GraphAdapter.h"
+#include "GraphAdapter.h"
 #endif
 
 #include "test_lib.h"

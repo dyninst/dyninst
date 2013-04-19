@@ -127,7 +127,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    out.write("INSTALL (TARGETS\n")
    for m in mlist:
       out.write("\t\t%s\n" % utils.mutatee_binary(m, platform, info))
-   out.write("\tDESTINATION testsuite)\n")
+   out.write("\tDESTINATION ${INSTALL_DIR})\n")
    
    out.close()
 

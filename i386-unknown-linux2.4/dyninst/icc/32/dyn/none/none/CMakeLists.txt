@@ -134,4 +134,4 @@ INSTALL (TARGETS
 		test_thread_6.dyn_icc_32_none_none
 		test_thread_7.dyn_icc_32_none_none
 		test_thread_8.dyn_icc_32_none_none
-	DESTINATION testsuite)
+	DESTINATION ${INSTALL_DIR})

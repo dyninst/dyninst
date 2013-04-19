@@ -17,4 +17,4 @@ add_executable (test_exception.dyn_icpc_64_pic_none ${SOURCE_LIST_69})
 INSTALL (TARGETS
 		symtab_group_test.dyn_icpc_64_pic_none
 		test_exception.dyn_icpc_64_pic_none
-	DESTINATION testsuite)
+	DESTINATION ${INSTALL_DIR})

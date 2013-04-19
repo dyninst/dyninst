@@ -62,4 +62,4 @@ INSTALL (TARGETS
 		pc_terminate_stopped.dyn_g++_32_pic_none
 		pc_thread.dyn_g++_32_pic_none
 		pc_thread_cont.dyn_g++_32_pic_none
-	DESTINATION testsuite)
+	DESTINATION ${INSTALL_DIR})

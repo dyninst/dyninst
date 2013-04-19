@@ -83,7 +83,7 @@ def print_mutators_list(out, mutator_dict, test_dict, info, platform):
         out.write("endforeach()\n\n")
         
         # And install
-        out.write("install (TARGETS ${MUTATOR_NAME_LIST} LIBRARY DESTINATION testsuite)\n")
+        out.write("install (TARGETS ${MUTATOR_NAME_LIST} LIBRARY DESTINATION ${INSTALL_DIR})\n")
 #
 
 def write_mutator_cmakelists(directory, info, platform):

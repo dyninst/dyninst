@@ -62,4 +62,4 @@ INSTALL (TARGETS
 		test1_7F.dyn_gfortran_32_none_none
 		test1_8F.dyn_gfortran_32_none_none
 		test1_9F.dyn_gfortran_32_none_none
-	DESTINATION testsuite)
+	DESTINATION ${INSTALL_DIR})

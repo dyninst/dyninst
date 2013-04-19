@@ -9,7 +9,7 @@ import group_boilerplate
 
 def generate(directory):
     info = {}
-    tuples.read_tuples(directory + '/tuples', info)
+    tuples.read_tuples(directory + '/tuples.gz', info)
     platform = utils.find_platform(os.environ.get('PLATFORM'), info)
 
     test_info_new_gen.write_test_info_new_gen(directory, info, platform)
