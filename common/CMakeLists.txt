@@ -60,7 +60,6 @@ endif()
 
 if (PLATFORM MATCHES bgq)
   set (SRC_LIST ${SRC_LIST}
-    src/linuxKludges.C
     src/bluegeneKludges.C
     src/timing-linux.C
     src/parseauxv.C

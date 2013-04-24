@@ -8,7 +8,14 @@ include_directories (
                     ${LIBELF_INCLUDE_DIR}
                     ${LIBDWARF_INCLUDE_DIR}
 )
+
+if (${PLATFORM} MATCHES "bgq")
+find_package (LaunchMon REQUIRED)
+include_directories (${LAUNCHMON_INCLUDE_DIR})
 endif()
+
+endif()
+
 
 set (PATH_BOOST "/usr" CACHE STRING "Path to boost")
 if (NOT (PATH_BOOST STREQUAL ""))

@@ -146,7 +146,7 @@ endif()
 
 add_library (dyninstAPI ${SRC_LIST})
 
-target_link_libraries (dyninstAPI stackwalker)
+target_link_libraries (dyninstAPI stackwalk)
 target_link_libraries (dyninstAPI pcontrol)
 target_link_libraries (dyninstAPI patchAPI)
 target_link_libraries (dyninstAPI parseAPI)

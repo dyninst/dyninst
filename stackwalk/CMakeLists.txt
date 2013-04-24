@@ -31,7 +31,6 @@ set (SRC_LIST ${SRC_LIST}
 elseif (PLATFORM MATCHES linux OR PLATFORM MATCHES freebsd)
 set (SRC_LIST ${SRC_LIST}
      src/symtab-swk.C 
-     src/dbginfo-stepper.C 
      src/linuxbsd-swk.C 
      src/linux-swk.C
 )
@@ -42,6 +41,7 @@ set (SRC_LIST ${SRC_LIST}
 )
 elseif (PLATFORM MATCHES i386 OR PLATFORM MATCHES x86_64)
 set (SRC_LIST ${SRC_LIST}
+     src/dbginfo-stepper.C 
      src/linux-x86-swk.C 
      src/x86-wanderer.C 
      src/linuxbsd-x86-swk.C 
@@ -70,29 +70,29 @@ set (SRC_LIST ${SRC_LIST}
 endif()
 
 
-add_library (stackwalker ${SRC_LIST})
+add_library (stackwalk ${SRC_LIST})
 
-target_link_libraries (stackwalker pcontrol)
+target_link_libraries (stackwalk pcontrol)
 
 if (UNIX)
-target_link_libraries (stackwalker ${LIBELF_LIBRARIES})
-target_link_libraries (stackwalker ${LIBDWARF_LIBRARIES})
+target_link_libraries (stackwalk ${LIBELF_LIBRARIES})
+target_link_libraries (stackwalk ${LIBDWARF_LIBRARIES})
 endif()
 
 if (LIGHTWEIGHT_SYMTAB)
-target_link_libraries(stackwalker symLite)
+target_link_libraries(stackwalk symLite)
 else()
-target_link_libraries(stackwalker symtabAPI)
+target_link_libraries(stackwalk symtabAPI)
 endif()
 
 if (SW_ANALYSIS_STEPPER)
-target_link_libraries(stackwalker parseAPI)
+target_link_libraries(stackwalk parseAPI)
 endif()
 
 FILE (GLOB headers "h/*.h")
-set_target_properties (stackwalker PROPERTIES PUBLIC_HEADER "${headers}")
+set_target_properties (stackwalk PROPERTIES PUBLIC_HEADER "${headers}")
 
-INSTALL (TARGETS stackwalker
+INSTALL (TARGETS stackwalk
         EXPORT DyninstTargets
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

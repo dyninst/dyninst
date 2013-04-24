@@ -73,7 +73,7 @@ add_subdirectory (dyninstAPI_RT)
 
 SET_TARGET_PROPERTIES (
    common dynElf dynDwarf instructionAPI symtabAPI symLite parseAPI
-   patchAPI pcontrol stackwalker dyninstAPI dyninstAPI_RT
+   patchAPI pcontrol stackwalk dyninstAPI dyninstAPI_RT
    PROPERTIES
      SOVERSION ${SOVERSION}
      VERSION ${LIBVERSION}
@@ -95,12 +95,13 @@ export (PACKAGE Dyninst)
 file (RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${INSTALL_INCLUDE_DIR}")
 
 # For the build tree
+# I don't think we want this; it doesn't work quite right
+#foreach (dir ${HEADER_DIRS})
+#    set (CONF_INCLUDE_DIRS ${CONF_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/${dir}/h)
+#endforeach()
+#configure_file(cmake/DyninstConfig.cmake.in "${PROJECT_BINARY_DIR}/DyninstConfig.cmake" @ONLY)
 
-foreach (dir ${HEADER_DIRS})
-    set (CONF_INCLUDE_DIRS ${CONF_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/${dir}/h)
-endforeach()
 
-configure_file(cmake/DyninstConfig.cmake.in "${PROJECT_BINARY_DIR}/DyninstConfig.cmake" @ONLY)
 # For the install tree
 set (CONF_INCLUDE_DIRS "\${DYNINST_CMAKE_DIR}/${REL_INCLUDE_DIR}")
 configure_file(cmake/DyninstConfig.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfig.cmake" @ONLY)
