@@ -11,7 +11,7 @@ using namespace std;
 
 
 Codegen::Codegen(Process *proc, std::string libname) 
-   : proc_(proc), libname_(libname), codeStart_(0), toc_(0) {}
+   : proc_(proc), libname_(libname), codeStart_(0) {}
 
 Codegen::~Codegen() {
    int_process *llproc = proc_->llproc();
@@ -54,7 +54,6 @@ unsigned Codegen::estimateSize() {
 
 Address Codegen::findSymbolAddr(const std::string name, bool saveTOC) {
    LibraryPool& libs = proc_->libraries();
-
    for (auto li = libs.begin(); li != libs.end(); li++) {
       if ((*li)->getName().empty()) continue;
 
@@ -64,11 +63,12 @@ Address Codegen::findSymbolAddr(const std::string name, bool saveTOC) {
       Symbol_t lookupSym = objSymReader->getSymbolByName(name);
       if (!objSymReader->isValidSymbol(lookupSym)) continue;
 
-      if (saveTOC) {
-         toc_ = (*li)->getLoadAddress() + objSymReader->getSymbolTOC(lookupSym);
-      }
+      Address addr = (*li)->getLoadAddress() + objSymReader->getSymbolOffset(lookupSym);
 
-      return (*li)->getLoadAddress() + objSymReader->getSymbolOffset(lookupSym);
+      if (saveTOC) {
+         toc_[addr] = (*li)->getLoadAddress() + objSymReader->getSymbolTOC(lookupSym);
+      }
+      return addr;
    }
    return 0;
 }
