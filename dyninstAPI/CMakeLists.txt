@@ -98,6 +98,7 @@ set (SRC_LIST
 
 if (PLATFORM MATCHES i386)
 set (SRC_LIST ${SRC_LIST} src/cpuid-x86.S)
+set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE C)
 endif ()
 
 if (PLATFORM MATCHES i386 OR PLATFORM MATCHES amd64 OR PLATFORM MATCHES x86_64)

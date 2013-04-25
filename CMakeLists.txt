@@ -90,7 +90,8 @@ SET_TARGET_PROPERTIES (
 #
 # DyninstConfig.cmake
 
-export (PACKAGE Dyninst)
+# Not sure if needed...
+#export (PACKAGE Dyninst)
 
 file (RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${INSTALL_INCLUDE_DIR}")
 
