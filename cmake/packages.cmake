@@ -9,13 +9,15 @@ include_directories (
                     ${LIBDWARF_INCLUDE_DIR}
 )
 
-if (${PLATFORM} MATCHES "bgq")
-find_package (LaunchMon REQUIRED)
-include_directories (${LAUNCHMON_INCLUDE_DIR})
 endif()
 
+if (PLATFORM MATCHES "bgq")
+# Not a find per se, just a magic include line
+set (PATH_BGQ "/bgsys/drivers/ppcfloor" CACHE STRING "Path to BG/Q include files")
+if (NOT (PATH_BGQ STREQUAL ""))
+include_directories (${PATH_BGQ})
 endif()
-
+endif()
 
 set (PATH_BOOST "/usr" CACHE STRING "Path to boost")
 if (NOT (PATH_BOOST STREQUAL ""))
