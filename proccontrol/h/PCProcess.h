@@ -141,6 +141,7 @@ class PC_EXPORT Library
    typedef boost::shared_ptr<const Library> const_ptr;
 
    std::string getName() const;
+   std::string getAbsoluteName() const;
    Dyninst::Address getLoadAddress() const;
    Dyninst::Address getDataLoadAddress() const;
    Dyninst::Address getDynamicAddress() const;

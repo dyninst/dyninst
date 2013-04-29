@@ -842,11 +842,11 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
         Address dataAddress = (*i)->getLoadAddress();
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
 
-        fileDescriptor tmpDesc((*i)->getName(), (*i)->getLoadAddress(),
+        fileDescriptor tmpDesc((*i)->getAbsoluteName(), (*i)->getLoadAddress(),
                     dataAddress, true);
 		if( execFd == tmpDesc ) {
             proccontrol_printf("%s[%d]: ignoring Library event for executable %s\n",
-                    FILE__, __LINE__, (*i)->getName().c_str());
+                    FILE__, __LINE__, (*i)->getAbsoluteName().c_str());
             continue;
         }
 
@@ -854,7 +854,7 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
                 evProc, evProc->getHybridMode());
         if( newObj == NULL ) {
             proccontrol_printf("%s[%d]: failed to create mapped object for library %s\n",
-                    FILE__, __LINE__, (*i)->getName().c_str());
+                    FILE__, __LINE__, (*i)->getAbsoluteName().c_str());
             return false;
         }
 
@@ -894,7 +894,7 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
     for(set<Library::ptr>::const_iterator i = deleted.begin(); i != deleted.end(); ++i) {
         Address dataAddress = (*i)->getLoadAddress();
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
-        deletedDescriptors.push_back(fileDescriptor((*i)->getName(), (*i)->getLoadAddress(),
+        deletedDescriptors.push_back(fileDescriptor((*i)->getAbsoluteName(), (*i)->getLoadAddress(),
                     dataAddress, true));
     }
 

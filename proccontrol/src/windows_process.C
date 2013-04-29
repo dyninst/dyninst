@@ -837,3 +837,8 @@ void windows_process::clearPendingDebugBreak() {
 	pthrd_printf("win_proc: clearing pending debug break\n");
 	pendingDebugBreak_ = false;
 }
+
+std::string int_process::plat_canonicalizeFileName(std::string path)
+{
+   return path;
+}

@@ -334,6 +334,8 @@ class int_process
    static bool infMalloc(unsigned long size, int_addressSet *aset, bool use_addr);
    static bool infFree(int_addressSet *aset);
 
+   static std::string plat_canonicalizeFileName(std::string s);
+
    enum bp_write_t {
       not_bp,
       bp_install,
@@ -1004,6 +1006,7 @@ class int_library
    friend class Dyninst::ProcControlAPI::LibraryPool::const_iterator;
   private:
    std::string name;
+   std::string abs_name;
    Dyninst::Address load_address;
    Dyninst::Address data_load_address;
    Dyninst::Address dynamic_address;
@@ -1022,6 +1025,7 @@ class int_library
    int_library(int_library *l);
    ~int_library();
    std::string getName();
+   std::string getAbsName();
    Dyninst::Address getAddr();
    Dyninst::Address getDataAddr();
    Dyninst::Address getDynamicAddr();

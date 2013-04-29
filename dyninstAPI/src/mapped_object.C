@@ -135,7 +135,7 @@ mapped_object *mapped_object::createMappedObject(Library::const_ptr lib,
                                                  AddressSpace *p,
                                                  BPatch_hybridMode analysisMode,
                                                  bool parseGaps) {
-   fileDescriptor desc(lib->getName(),
+   fileDescriptor desc(lib->getAbsoluteName(),
                        lib->getLoadAddress(),
                        p->usesDataLoadAddress() ? lib->getDataLoadAddress() : lib->getLoadAddress(),
                        lib->isSharedLib());

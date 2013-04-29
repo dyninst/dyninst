@@ -445,7 +445,7 @@ bool PCProcess::hasPassedMain()
    for(LibraryPool::const_iterator i = libraries.begin(); i != libraries.end();
            ++i)
    {
-       if( (*i)->getName() == derefPath ) {
+       if( (*i)->getAbsoluteName() == derefPath ) {
            foundDynLinker = true;
            ldso_start_addr = (*i)->getLoadAddress();
        }
@@ -911,7 +911,7 @@ Address PCProcess::setAOutLoadAddress(fileDescriptor &desc) {
    startup_printf("[%s:%u] - a.out is a shared library, computing load addr\n",
                   FILE__, __LINE__);
    memset(&aout, 0, sizeof(aout));
-   result = stat(pcProc_->libraries().getExecutable()->getName().c_str(), &aout);
+   result = stat(pcProc_->libraries().getExecutable()->getAbsoluteName().c_str(), &aout);
    if (result == -1) {
       startup_printf("[%s:%u] - setAOutLoadAddress couldn't stat %s: %s\n",
                      FILE__, __LINE__, proc_path, strerror(errno));

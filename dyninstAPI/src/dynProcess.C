@@ -154,7 +154,7 @@ PCProcess *PCProcess::attachProcess(const string &progpath, int pid,
     tmpPcProc->setData(ret);
 
     ret->runningWhenAttached_ = tmpPcProc->allThreadsRunningWhenAttached();
-    ret->file_ = tmpPcProc->libraries().getExecutable()->getName();
+    ret->file_ = tmpPcProc->libraries().getExecutable()->getAbsoluteName();
 
     if( !ret->bootstrapProcess() ) {
         startup_cerr << "Failed to bootstrap process " << pid 
@@ -661,7 +661,7 @@ bool PCProcess::createInitialMappedObjects() {
        // Some platforms don't use the data load address field
        if ((*i) == libraries.getExecutable()) continue;
 
-       startup_cerr << "Library: " << (*i)->getName() 
+       startup_cerr << "Library: " << (*i)->getAbsoluteName() 
             << hex << " / " << (*i)->getLoadAddress() 
             << ", " << ((*i)->isSharedLib() ? "<lib>" : "<aout>") << dec << endl;
 
@@ -669,11 +669,11 @@ bool PCProcess::createInitialMappedObjects() {
                                                                  this, analysisMode_);
        if( newObj == NULL ) {
            startup_printf("%s[%d]: failed to create mapped object for library %s\n",
-                   FILE__, __LINE__, (*i)->getName().c_str());
+                   FILE__, __LINE__, (*i)->getAbsoluteName().c_str());
            return false;
        }
 
-       if ((*i)->getName() == dyninstRT_name) {
+       if ((*i)->getAbsoluteName() == dyninstRT_name) {
           startup_printf("%s[%d]: RT library already loaded, manual loading not necessary\n",
                          FILE__, __LINE__);
           runtime_lib.insert(newObj);
