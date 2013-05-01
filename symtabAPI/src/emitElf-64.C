@@ -147,6 +147,8 @@ static int elfSymType(Symbol *sym)
   case Symbol::ST_TLS: return STT_TLS;
   case Symbol::ST_NOTYPE : return STT_NOTYPE;
   case Symbol::ST_UNKNOWN: return sym->getInternalType();
+     case Symbol::ST_INDIRECT: return STT_GNU_IFUNC;
+
   default: return STT_SECTION;
   }
 }
