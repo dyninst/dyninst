@@ -859,12 +859,14 @@ int_multiToolControl::~int_multiToolControl()
 int_signalMask::int_signalMask(Dyninst::PID p, string e, vector<string> a,
                                vector<string> envp, map<int,int> f) :
    int_process(p, e, a, envp, f),
+   sigset(SignalMask::getDefaultSigMask()),
    up_ptr(NULL)
-{
+{   
 }
 
 int_signalMask::int_signalMask(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
+   sigset(SignalMask::getDefaultSigMask()),
    up_ptr(NULL)
 {
 }
