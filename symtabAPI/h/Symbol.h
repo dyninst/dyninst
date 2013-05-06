@@ -91,6 +91,7 @@ class Symbol : public Serializable,
       ST_SECTION,
       ST_TLS,
       ST_DELETED,
+      ST_INDIRECT,
       ST_NOTYPE
    };
 

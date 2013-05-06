@@ -627,20 +627,20 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs 
      // Size is in bytes... 
      switch(res.size()) {
      case 1:
-       delta = sign * (long) res.convert<unsigned char>();
+       delta = sign * (long) res.convert<uint8_t>();
        break;
      case 2:
-       delta = sign * (long) res.convert<unsigned short>();
+       delta = sign * (long) res.convert<uint16_t>();
        break;
      case 4:
-       delta = sign * (long) res.convert<unsigned int>();
+       delta = sign * (long) res.convert<uint32_t>();
+       break;
+     case 8:
+       delta = sign * (long) res.convert<uint64_t>();
        break;
      default:
        assert(0);
      }
-#if 0
-     delta = sign * (long) res.convert<unsigned char>();
-#endif
      stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %lx\n", delta);
      xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));   
    }
@@ -685,16 +685,16 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
    // Size is in bytes... 
    switch(res.size()) {
    case 1:
-     delta = (long) res.convert<char>();
+     delta = (long) res.convert<int8_t>();
      break;
    case 2:
-     delta =  (long) res.convert<short>();
+     delta =  (long) res.convert<int16_t>();
      break;
    case 4:
-     delta =  (long) res.convert<int>();
+     delta =  (long) res.convert<int32_t>();
      break;
    case 8:
-     delta =  (long) res.convert<long>();
+     delta =  (long) res.convert<int64_t>();
      break;
    default:
      assert(0);

@@ -106,10 +106,6 @@ std::string PCProcess::createExecPath(const std::string &file, const std::string
 // whether the app is multi-threaded, but it can't be determined yet but it
 // also isn't necessary to know.
 bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
-#if !defined(cap_threads)
-    return false;
-#endif
-
     if( mt_cache_result_ != not_cached ) {
         if( mt_cache_result_ == cached_mt_true) return true;
         else return false;
@@ -158,10 +154,6 @@ static void findThreadFuncs(PCProcess *p, std::string func,
 
 bool PCProcess::instrumentMTFuncs() {
     bool res;
-
-#if !defined(cap_threads)
-    return true;
-#endif
 
     /**
      * Have dyn_pthread_self call the actual pthread_self
@@ -291,10 +283,8 @@ bool PCProcess::setMemoryAccessRights(Address start, size_t size,
     return false;
 }
 
-bool PCProcess::getMemoryAccessRights(Address start, size_t size,
-                                      PCMemPerm& rights) {
-    mal_printf("getMemoryAccessRights to %s [%lx %lx]\n",
-               rights.getPermName().c_str(), start, start+size);
+bool PCProcess::getMemoryAccessRights(Address start, PCMemPerm& rights) {
+    mal_printf("getMemoryAccessRights at %lx\n", start);
     assert(!"Not implemented yet");
     return false;
 }
@@ -455,7 +445,7 @@ bool PCProcess::hasPassedMain()
    for(LibraryPool::const_iterator i = libraries.begin(); i != libraries.end();
            ++i)
    {
-       if( (*i)->getName() == derefPath ) {
+       if( (*i)->getAbsoluteName() == derefPath ) {
            foundDynLinker = true;
            ldso_start_addr = (*i)->getLoadAddress();
        }
@@ -534,7 +524,6 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                                                    std::map<std::string, BinaryEdit*> &retMap) {
     std::vector<std::string> paths;
     std::vector<std::string>::iterator pathIter;
-
     // First, find the specified library file
     bool resolved = getResolvedLibraryPath(filename, paths);
 
@@ -922,7 +911,7 @@ Address PCProcess::setAOutLoadAddress(fileDescriptor &desc) {
    startup_printf("[%s:%u] - a.out is a shared library, computing load addr\n",
                   FILE__, __LINE__);
    memset(&aout, 0, sizeof(aout));
-   result = stat(pcProc_->libraries().getExecutable()->getName().c_str(), &aout);
+   result = stat(pcProc_->libraries().getExecutable()->getAbsoluteName().c_str(), &aout);
    if (result == -1) {
       startup_printf("[%s:%u] - setAOutLoadAddress couldn't stat %s: %s\n",
                      FILE__, __LINE__, proc_path, strerror(errno));

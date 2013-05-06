@@ -3526,6 +3526,7 @@ const char *Symbol::symbolType2Str(SymbolType t)
       CASE_RETURN_STR(ST_TLS);
       CASE_RETURN_STR(ST_DELETED);
       CASE_RETURN_STR(ST_NOTYPE);
+      CASE_RETURN_STR(ST_INDIRECT);
    };
 
    return "invalid symbol type";

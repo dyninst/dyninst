@@ -59,8 +59,7 @@ public:
                                          unsigned long rights);
     virtual bool plat_encodeMemoryRights(Process::mem_perm perm,
                                          unsigned long& rights);
-    virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
-                                            Process::mem_perm& rights);
+    virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, Process::mem_perm& rights);
     virtual bool plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
                                             Process::mem_perm rights,
                                             Process::mem_perm& oldRights);

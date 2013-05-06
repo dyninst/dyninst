@@ -74,7 +74,7 @@ SymbolReaderFactory *int_process::user_set_symbol_reader = NULL;
 
 static const int ProcControl_major_version = 8;
 static const int ProcControl_minor_version = 1;
-static const int ProcControl_maintenance_version = 0;
+static const int ProcControl_maintenance_version = 1;
 
 void Process::version(int& major, int& minor, int& maintenance)
 {
@@ -1650,9 +1650,8 @@ bool int_process::plat_encodeMemoryRights(Process::mem_perm rights_internal,
 	return false;
 }
 
-bool int_process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
-                                        Process::mem_perm& rights) {
-    if (!plat_getMemoryAccessRights(addr, size, rights)) {
+bool int_process::getMemoryAccessRights(Dyninst::Address addr, Process::mem_perm& rights) {
+    if (!plat_getMemoryAccessRights(addr, rights)) {
         pthrd_printf("Error get rights from memory %lx on target process %d\n",
                      addr, getPid());
         return false;
@@ -1661,10 +1660,8 @@ bool int_process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
     return true;
 }
 
-bool int_process::plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
-                                             Process::mem_perm& rights) {
+bool int_process::plat_getMemoryAccessRights(Dyninst::Address addr, Process::mem_perm& rights) {
     (void)addr;
-    (void)size;
     (void)rights;
     perr_printf("Called getMemoryAccessRights on unspported platform\n");
     setLastError(err_unsupported, "Get Memory Permission not supported on this platform\n");
@@ -5447,6 +5444,14 @@ std::string int_library::getName()
    return name;
 }
 
+std::string int_library::getAbsName()
+{
+   if (!abs_name.empty())
+      return abs_name;
+   abs_name = int_process::plat_canonicalizeFileName(name);
+   return abs_name;
+}
+
 Dyninst::Address int_library::getAddr()
 {
    return load_address;
@@ -5870,6 +5875,12 @@ std::string Library::getName() const
 {
    MTLock lock_this_func;
    return lib->getName();
+}
+
+std::string Library::getAbsoluteName() const
+{
+   MTLock lock_this_func;
+   return lib->getAbsName();
 }
 
 Dyninst::Address Library::getLoadAddress() const
@@ -6979,8 +6990,7 @@ bool Process::readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, 
    return true;
 }
 
-bool Process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
-                                    mem_perm& rights) {
+bool Process::getMemoryAccessRights(Dyninst::Address addr, mem_perm& rights) {
     if (!llproc_) {
         perr_printf("getMemoryAccessRights on deleted process\n");
         setLastError(err_exited, "Process is exited\n");
@@ -6993,10 +7003,9 @@ bool Process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
         return false;
     }
 
-    pthrd_printf("User wants to get Memory Rights from [%lx %lx]\n",
-                 addr, addr+size);
+    pthrd_printf("User wants to get Memory Rights at %lx\n", addr);
    
-    if (!llproc_->getMemoryAccessRights(addr, size, rights)) {
+    if (!llproc_->getMemoryAccessRights(addr, rights)) {
         pthrd_printf("Error get rights from memory %lx on target process %d\n",
                      addr, llproc_->getPid());
        return false;

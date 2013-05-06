@@ -273,7 +273,8 @@ SYMTAB_EXPORT bool Symbol::setSymbolType(SymbolType sType)
         (sType != ST_FUNCTION)&&
         (sType != ST_OBJECT)&&
         (sType != ST_MODULE)&&
-        (sType != ST_NOTYPE))
+        (sType != ST_NOTYPE) &&
+	(sType != ST_INDIRECT))
         return false;
     
     SymbolType oldType = type_;	

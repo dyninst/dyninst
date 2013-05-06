@@ -30,8 +30,6 @@
 
 // $Id: liveness.C,v 1.12 2008/09/04 21:06:20 bill Exp $
 
-#if defined(cap_liveness)
-
 #include "debug_dataflow.h"
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/Location.h"
@@ -620,4 +618,3 @@ MachRegister LivenessAnalyzer::changeIfMMX(MachRegister machReg){
 	if (!isMMX(machReg)) return machReg;
 	if (width == 4) return x86::mm0; else return x86_64::mm0;
 }
-#endif // cap_liveness

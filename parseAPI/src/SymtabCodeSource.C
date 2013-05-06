@@ -195,7 +195,7 @@ SymtabCodeRegion::length() const
 SymtabCodeSource::~SymtabCodeSource()
 {
     _have_stats = false;
-    free(stats_parse);
+    delete stats_parse;
     if(owns_symtab && _symtab)
         SymtabAPI::Symtab::closeSymtab(_symtab);
     for(unsigned i=0;i<_regions.size();++i)

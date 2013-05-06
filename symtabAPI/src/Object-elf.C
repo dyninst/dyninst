@@ -1866,6 +1866,9 @@ static Symbol::SymbolType pdelf_type(int elf_type)
   case STT_TLS:    return Symbol::ST_TLS;
   case STT_FUNC:   return Symbol::ST_FUNCTION;
   case STT_NOTYPE: return Symbol::ST_NOTYPE;
+#if defined(STT_GNU_IFUNC)
+  case STT_GNU_IFUNC: return Symbol::ST_INDIRECT;
+#endif
   default: return Symbol::ST_UNKNOWN;
   }
 }
@@ -3219,8 +3222,15 @@ void Object::find_code_and_data(Elf_X &elf,
 
         char *file_ptr = (char *)mf->base_addr();
 
-        if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags()))
-            regions_.push_back(new Region(i, "", phdr.p_paddr(), phdr.p_filesz(), phdr.p_vaddr(), phdr.p_memsz(), &file_ptr[phdr.p_offset()], getSegmentPerms(phdr.p_flags()), getSegmentType(phdr.p_type(), phdr.p_flags())));
+        if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags())) {
+            Region *reg = new Region(i, "", phdr.p_paddr(), phdr.p_filesz(),
+                                     phdr.p_vaddr(), phdr.p_memsz(),
+                                     &file_ptr[phdr.p_offset()],
+                                     getSegmentPerms(phdr.p_flags()),
+                                     getSegmentType(phdr.p_type(), phdr.p_flags()));
+            reg->setFileOffset(phdr.p_offset());
+            regions_.push_back(reg);
+        }
 
         // The code pointer, offset, & length should be set even if
         // txtaddr=0, so in this case we set these values by

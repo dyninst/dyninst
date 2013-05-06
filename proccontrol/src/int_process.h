@@ -334,6 +334,8 @@ class int_process
    static bool infMalloc(unsigned long size, int_addressSet *aset, bool use_addr);
    static bool infFree(int_addressSet *aset);
 
+   static std::string plat_canonicalizeFileName(std::string s);
+
    enum bp_write_t {
       not_bp,
       bp_install,
@@ -360,14 +362,12 @@ class int_process
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result, bp_write_t bp_write);
 
-   bool getMemoryAccessRights(Dyninst::Address addr, size_t size,
-                              Process::mem_perm& rights);
+   bool getMemoryAccessRights(Dyninst::Address addr, Process::mem_perm& rights);
    bool setMemoryAccessRights(Dyninst::Address addr, size_t size,
                               Process::mem_perm rights,
                               Process::mem_perm& oldRights);
    // Zuyu FIXME pure virtual function
-   virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
-                                           Process::mem_perm& rights);
+   virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, Process::mem_perm& rights);
    virtual bool plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
                                            Process::mem_perm rights,
                                            Process::mem_perm& oldRights);
@@ -1006,6 +1006,7 @@ class int_library
    friend class Dyninst::ProcControlAPI::LibraryPool::const_iterator;
   private:
    std::string name;
+   std::string abs_name;
    Dyninst::Address load_address;
    Dyninst::Address data_load_address;
    Dyninst::Address dynamic_address;
@@ -1024,6 +1025,7 @@ class int_library
    int_library(int_library *l);
    ~int_library();
    std::string getName();
+   std::string getAbsName();
    Dyninst::Address getAddr();
    Dyninst::Address getDataAddr();
    Dyninst::Address getDynamicAddr();

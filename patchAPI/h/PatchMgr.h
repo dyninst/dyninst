@@ -82,6 +82,8 @@ class PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
   typedef std::pair<Location, Point::Type> Candidate;
   typedef std::vector<Candidate> Candidates;
 
+  static void version(int &major, int &minor, int &maintenance);
+
     PatchMgr(AddrSpace* as,  Instrumenter* inst, PointMaker* pf);
     PATCHAPI_EXPORT virtual ~PatchMgr();
     PATCHAPI_EXPORT static PatchMgrPtr create(AddrSpace* as,

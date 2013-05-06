@@ -59,8 +59,6 @@ include ../make.module.tmpl
 # 32-bit runtime library
 ASM_SRCS_32  = ../src/RTspace.S ../src/RTtlsgetaddr-x86.S
 
-RELEASE_NUM ?= $(RELEASE_MAJOR).$(RELEASE_MINOR)
-
 TARGET_32_SO = libdyninstAPI_RT_m32.so
 XTARGET_32   = $(basename $(basename $(TARGET_32_SO)))
 VOUCHER_32   = V_$(XTARGET_32)

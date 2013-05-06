@@ -42,9 +42,7 @@
 #include "common/h/Types.h"
 #include "inst.h" // callWhen...
 
-#if defined(cap_liveness)
 #include "bitArray.h"
-#endif
 
 class codeGen;
 class instPoint;
@@ -459,10 +457,8 @@ class registerSpace {
     // Specialize liveness as represented by a bit array
     void specializeSpace(rs_location_t state);
 
-#if defined(cap_liveness)
     void specializeSpace(const bitArray &);
     bool checkLive(Register reg, const bitArray &liveRegs);
-#endif
 
     unsigned addr_width;
 

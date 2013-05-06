@@ -154,7 +154,7 @@ PCProcess *PCProcess::attachProcess(const string &progpath, int pid,
     tmpPcProc->setData(ret);
 
     ret->runningWhenAttached_ = tmpPcProc->allThreadsRunningWhenAttached();
-    ret->file_ = tmpPcProc->libraries().getExecutable()->getName();
+    ret->file_ = tmpPcProc->libraries().getExecutable()->getAbsoluteName();
 
     if( !ret->bootstrapProcess() ) {
         startup_cerr << "Failed to bootstrap process " << pid 
@@ -661,7 +661,7 @@ bool PCProcess::createInitialMappedObjects() {
        // Some platforms don't use the data load address field
        if ((*i) == libraries.getExecutable()) continue;
 
-       startup_cerr << "Library: " << (*i)->getName() 
+       startup_cerr << "Library: " << (*i)->getAbsoluteName() 
             << hex << " / " << (*i)->getLoadAddress() 
             << ", " << ((*i)->isSharedLib() ? "<lib>" : "<aout>") << dec << endl;
 
@@ -669,11 +669,11 @@ bool PCProcess::createInitialMappedObjects() {
                                                                  this, analysisMode_);
        if( newObj == NULL ) {
            startup_printf("%s[%d]: failed to create mapped object for library %s\n",
-                   FILE__, __LINE__, (*i)->getName().c_str());
+                   FILE__, __LINE__, (*i)->getAbsoluteName().c_str());
            return false;
        }
 
-       if ((*i)->getName() == dyninstRT_name) {
+       if ((*i)->getAbsoluteName() == dyninstRT_name) {
           startup_printf("%s[%d]: RT library already loaded, manual loading not necessary\n",
                          FILE__, __LINE__);
           runtime_lib.insert(newObj);
@@ -1705,14 +1705,14 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
     Address lo = ADDRESS_LO; // Should get reset to a more reasonable value
     Address hi = ADDRESS_HI; // Should get reset to a more reasonable value
 
-#if defined(cap_dynamic_heap)
+    //#if defined(cap_dynamic_heap)
     inferiorMallocAlign(size); // align size
     // Set the lo/hi constraints (if necessary)
     inferiorMallocConstraints(near_, lo, hi, type);
-#else
+    //#else
     /* align to cache line size (32 bytes on SPARC) */
-    size = (size + 0x1f) & ~0x1f;
-#endif
+    //size = (size + 0x1f) & ~0x1f;
+    //#endif
 
     infmalloc_printf("%s[%d]: inferiorMalloc entered; size %d, type %d, near 0x%lx (0x%lx to 0x%lx)\n",
                      FILE__, __LINE__, size, type, near_, lo, hi);
@@ -1724,7 +1724,7 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
         switch(ntry) {
         case AsIs: 
             break;
-#if defined(cap_dynamic_heap)
+	    //#if defined(cap_dynamic_heap)
         case DeferredFree: 
             infmalloc_printf("%s[%d]: garbage collecting and compacting\n",
                              FILE__, __LINE__);
@@ -1764,11 +1764,11 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
             infmalloc_printf("%s[%d]: inferiorMalloc: recompacting\n", FILE__, __LINE__);
             inferiorFreeCompact();
             break;
-#else /* !(cap_dynamic_heap) */
-        case DeferredFree: // deferred free, compact free blocks
-            inferiorFreeCompact();
-            break;
-#endif /* cap_dynamic_heap */
+	    //#else /* !(cap_dynamic_heap) */
+	    //case DeferredFree: // deferred free, compact free blocks
+            //inferiorFreeCompact();
+            //break;
+	    //#endif /* cap_dynamic_heap */
 
         default: // error - out of memory
             infmalloc_printf("%s[%d]: failed to allocate memory\n", FILE__, __LINE__);

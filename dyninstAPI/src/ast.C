@@ -996,20 +996,18 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       }
       case ifOp: {
          // This ast cannot be shared because it doesn't return a register
+	
          if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
-        
          REGISTER_CHECK(src1);
          codeBufIndex_t ifIndex= gen.getIndex();
 
          size_t preif_patches_size = gen.allPatches().size();
          codeBufIndex_t thenSkipStart = emitA(op, src1, 0, 0, gen, rc_before_jump, noCost);
+
          size_t postif_patches_size = gen.allPatches().size();
-         // DO NOT FREE THE REGISTER HERE!!! we use it later to regenerate the
-         // jump once code has been generated. This is annoying, since we
-         // don't really need the register... we just want it allocated.
-        
-         // I'm ignoring the above; we'll keep the _value_ of src1, but free it
-         // for internal code.
+
+	 // We can reuse src1 for the body of the conditional; however, keep the value here
+	 // so that we can use it for the branch fix below. 
          Register src1_copy = src1;
          if (loperand->decRefCount())
             gen.rs()->freeRegister(src1);
@@ -1152,30 +1150,62 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
          if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
          REGISTER_CHECK(src1);
+
          codeBufIndex_t startIndex = gen.getIndex();
-         codeBufIndex_t fromIndex = emitA(ifOp, src1, 0, 0, gen, rc_no_control, noCost);
+
+         size_t preif_patches_size = gen.allPatches().size();
+         codeBufIndex_t fromIndex = emitA(ifOp, src1, 0, 0, gen, rc_before_jump, noCost);
+         size_t postif_patches_size = gen.allPatches().size();
+
+	 // See comment in ifOp
+	 Register src1_copy = src1;
+
          if (loperand->decRefCount())
             gen.rs()->freeRegister(src1);
+
          if (roperand) {
-            gen.tracker()->increaseConditionalLevel();
-            if (!roperand->generateCode_phase2(gen, noCost,
-                                               addr,
-                                               src1)) ERROR_RETURN;
-            if (roperand->decRefCount())
-               gen.rs()->freeRegister(src1);
-            gen.tracker()->decreaseAndClean(gen);
-         }
+	   // The flow of control forks. We need to add the forked node to 
+	   // the path
+	   gen.tracker()->increaseConditionalLevel();
+	   if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
+	   if (roperand->decRefCount())
+	     gen.rs()->freeRegister(src2);
+	 }
+        
+         gen.tracker()->decreaseAndClean(gen);
+         gen.rs()->unifyTopRegStates(gen); //Join the registerState for the if
+
          //jump back
          (void) emitA(branchOp, 0, 0, codeGen::getDisplacement(gen.getIndex(), top),
                       gen, rc_no_control, noCost);
-        
-         // Rewind and replace the skip jump
-         codeBufIndex_t endIndex = gen.getIndex();
-         gen.setIndex(startIndex);
-         (void) emitA(ifOp, src1, 0, (Register) codeGen::getDisplacement(fromIndex, endIndex), 
-                      gen, rc_no_control, noCost);
-         gen.setIndex(endIndex);
-         // sprintf(errorLine,"branch forward %d\n", base - fromAddr);
+
+         if (preif_patches_size != postif_patches_size) {                                     
+            assert(postif_patches_size > preif_patches_size);                                 
+            ifTargetPatch if_targ(gen.getIndex() + gen.startAddr());                          
+            for (unsigned i=preif_patches_size; i < postif_patches_size; i++) {               
+               gen.allPatches()[i].setTarget(&if_targ);                                       
+            }                                                                                 
+            for (unsigned i=preif_patches_size; i < postif_patches_size; i++) {               
+               gen.allPatches()[i].applyPatch();                                              
+            }                                                                                 
+         }                                                                                    
+         else {                                                                               
+            gen.setIndex(startIndex);                                  
+            codeBufIndex_t endIndex = gen.getIndex();
+            // call emit again now with correct offset.                                       
+            // This backtracks over current code.                                             
+            // If/when we vectorize, we can do this in a two-pass arrangement                 
+            (void) emitA(op, src1_copy, 0,                                                    
+                         (Register) codeGen::getDisplacement(fromIndex, endIndex),  
+                         gen, rc_no_control, noCost);                                         
+            // Now we can free the register                                                   
+            // Register has already been freed; we're just re-using it.                       
+            //gen.rs()->freeRegister(src1);                                                   
+                                                                                              
+            gen.setIndex(endIndex);
+         }                                                                                    
+ 
+
          break;
       }
       case doOp: {

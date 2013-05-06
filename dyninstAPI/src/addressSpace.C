@@ -507,10 +507,10 @@ void AddressSpace::inferiorMallocAlign(unsigned &size) {
 }
     
 bool AddressSpace::inferiorReallocInternal(Address block, unsigned newSize) {
-#if defined (cap_dynamic_heap)
+  //#if defined (cap_dynamic_heap)
    // This is why it's not a reference...
    inferiorMallocAlign(newSize);
-#endif
+   //#endif
     
    infmalloc_printf("%s[%d]: inferiorRealloc for block 0x%lx, new size %d\n",
                     FILE__, __LINE__, block, newSize);
