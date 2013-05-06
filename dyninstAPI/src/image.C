@@ -1676,11 +1676,7 @@ parse_func *image::addFunction(Address functionEntryAddr, const char *fName)
         return NULL;
      }
 
-     if (!func->getSymtabFunction()->addAnnotation(func, ImageFuncUpPtrAnno))
-     {
-        fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
-        return NULL;
-     }
+     func->getSymtabFunction()->setData((void *) func);
 
      // If this is a Dyninst dynamic heap placeholder, add it to the
      // list of inferior heaps...
@@ -1849,19 +1845,10 @@ const pdvector<parse_func *> *image::findFuncVectorByPretty(const std::string &n
     for(unsigned index=0; index < funcs.size(); index++)
     {
         SymtabAPI::Function *symFunc = funcs[index];
-        parse_func *imf = NULL;
-        
-        if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
-	  // TODO: just create the function here...
-
-           return NULL;
-        }
-        
+        parse_func *imf = static_cast<parse_func *>(symFunc->getData());
         if (imf) {
             res->push_back(imf);
         }
-
-
     }		
     if(res->size())	
 	return res;	    
@@ -1883,11 +1870,7 @@ const pdvector <parse_func *> *image::findFuncVectorByMangled(const std::string 
 
     for(unsigned index=0; index < funcs.size(); index++) {
         SymtabAPI::Function *symFunc = funcs[index];
-        parse_func *imf = NULL;
-        
-        if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
-            return NULL;
-        }
+        parse_func *imf = static_cast<parse_func *>(symFunc->getData());
         
         if (imf) {
             res->push_back(imf);

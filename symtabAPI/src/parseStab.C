@@ -282,23 +282,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                //      name, ID);
             }
 
-            localVarCollection *lvs = NULL;
-
-            if (!symt_current_func->getAnnotation(lvs, FunctionLocalVariablesAnno)) 
-            {
-               lvs = new localVarCollection();
-               if (!symt_current_func->addAnnotation(lvs, FunctionLocalVariablesAnno)) 
-               {
-                  fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
-               }
-            }
-
-            if (!lvs)
-            {
-               fprintf(stderr, "%s[%d]: failed to get annotation here\n", FILE__, __LINE__);
-            }
-
-            lvs->addLocalVar(locVar);
+            symt_current_func->addLocalVar(locVar);
          }
       } 
       else if (symt_current_func) 
