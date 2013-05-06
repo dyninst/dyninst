@@ -5350,6 +5350,14 @@ std::string int_library::getName()
    return name;
 }
 
+std::string int_library::getAbsName()
+{
+   if (!abs_name.empty())
+      return abs_name;
+   abs_name = int_process::plat_canonicalizeFileName(name);
+   return abs_name;
+}
+
 Dyninst::Address int_library::getAddr()
 {
    return load_address;
@@ -5773,6 +5781,12 @@ std::string Library::getName() const
 {
    MTLock lock_this_func;
    return lib->getName();
+}
+
+std::string Library::getAbsoluteName() const
+{
+   MTLock lock_this_func;
+   return lib->getAbsName();
 }
 
 Dyninst::Address Library::getLoadAddress() const

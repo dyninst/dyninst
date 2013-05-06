@@ -81,7 +81,9 @@ emitElfStatic::emitElfStatic(unsigned addressWidth, bool isStripped) :
     addressWidth_(addressWidth),
     isStripped_(isStripped),
     hasRewrittenTLS_(false)
-{}
+{
+
+}
 
 /**
  * NOTE:
@@ -1052,10 +1054,20 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
     } 
 
     if (lmap.relSize > 0) {
+      Region::RegionType type;
+      if (addressWidth_ == 8) {
+	type = Region::RT_RELA;
+	cerr << "Adding region with type rela" << endl;
+      }
+      else {
+	cerr << "Adding region with type rel" << endl;
+	type = Region::RT_REL;
+      }
       target->addRegion(globalOffset + lmap.relRegionOffset,
 			reinterpret_cast<void *>(&newTargetData[lmap.relRegionOffset]),
 			static_cast<unsigned int>(lmap.relSize),
-			REL_NAME, Region::RT_RELA, true, lmap.relRegionAlign);
+			REL_NAME, type, true, lmap.relRegionAlign);
+      
     }
 
     if (lmap.relGotSize > 0) {
@@ -1787,9 +1799,14 @@ Offset emitElfStatic::allocateRelocationSection(std::map<Symbol *, std::pair<Off
 						Offset relocOffset, Offset &size,
 						Symtab *target) {
 #if defined(arch_x86_64)
-  unsigned relocSize = sizeof(Elf64_Rela);
+  unsigned relocSize;
+  if (addressWidth_ == 8)
+    relocSize = sizeof(Elf64_Rela);
+  else
+    relocSize = sizeof(Elf32_Rel);
 #elif defined(arch_x86)
-  unsigned relocSize = sizeof(Elf32_Rela);
+  // 32-bit only uses REL types
+  unsigned relocSize = sizeof(Elf32_Rel);
 #else
   size = 0;
   unsigned relocSize = 0;
@@ -1800,7 +1817,10 @@ Offset emitElfStatic::allocateRelocationSection(std::map<Symbol *, std::pair<Off
   Object *obj = target->getObject();
 
   Region *rela = NULL;
-  target->findRegion(rela, ".rela.plt");
+  if (addressWidth_ == 8)
+    target->findRegion(rela, ".rela.plt");
+  else
+    target->findRegion(rela, ".rel.plt");
 
   unsigned relocEntries = entries.size() + (rela ? rela->getRelocations().size() : 0);
   cur += relocEntries * relocSize;
@@ -1833,29 +1853,67 @@ bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset,
   return false;
 #endif
 
-  unsigned copied = 0;
-
-  char *data = lmap.allocatedData;
-  Elf64_Rela *relas = (Elf64_Rela *) &(data[lmap.relRegionOffset]);
-
-  Region *rela = NULL;
-  target->findRegion(rela, ".rela.plt");
-  if (rela) {
-    memcpy(relas, rela->getPtrToRawData(), rela->getDiskSize());
-    copied += rela->getDiskSize();
-    relas = (Elf64_Rela *) &(data[lmap.relRegionOffset + rela->getDiskSize()]);
+  if (addressWidth_ == 8) {
+    // 64-bit uses RELA
+    unsigned copied = 0;
+    
+    char *data = lmap.allocatedData;
+    Elf64_Rela *relas = (Elf64_Rela *) &(data[lmap.relRegionOffset]);
+    
+    Region *rela = NULL;
+    target->findRegion(rela, ".rela.plt");
+    if (rela) {
+      memcpy(relas, rela->getPtrToRawData(), rela->getDiskSize());
+      copied += rela->getDiskSize();
+      relas = (Elf64_Rela *) &(data[lmap.relRegionOffset + rela->getDiskSize()]);
+    }
+    
+    unsigned index = 0;
+    for (auto iter = lmap.pltEntries.begin(); iter != lmap.pltEntries.end(); ++iter) {
+      // Grab a GOT location
+      relas[index].r_offset = iter->second.second;
+      relas[index].r_info = ELF64_R_INFO((unsigned long) STN_UNDEF, R_X86_64_IRELATIVE);
+      relas[index].r_addend = iter->first->getOffset();
+      copied += sizeof(Elf64_Rela);
+      ++index;
+    }
+    assert(copied == lmap.relSize);
   }
+  else {
+    // 32 bit uses REL
+    unsigned copied = 0;
+    
+    char *data = lmap.allocatedData;
+    Elf32_Rel *rels = (Elf32_Rel *) &(data[lmap.relRegionOffset]);
+    
+    Region *rel = NULL;
+    target->findRegion(rel, ".rel.plt");
+    if (rel) {
+      memcpy(rels, rel->getPtrToRawData(), rel->getDiskSize());
+      copied += rel->getDiskSize();
+      rels = (Elf32_Rel *) &(data[lmap.relRegionOffset + rel->getDiskSize()]);
+    }
+    
+    unsigned index = 0;
+    for (auto iter = lmap.pltEntries.begin(); iter != lmap.pltEntries.end(); ++iter) {
+      // Grab a GOT location
+      rels[index].r_offset = iter->second.second;
+      rels[index].r_info = ELF32_R_INFO((unsigned long) STN_UNDEF, R_386_IRELATIVE);
+      // For a REL relocation, the addend goes in *offset instead of its own 
+      // slot...
 
-  unsigned index = 0;
-  for (auto iter = lmap.pltEntries.begin(); iter != lmap.pltEntries.end(); ++iter) {
-    // Grab a GOT location
-    relas[index].r_offset = iter->second.second;
-    relas[index].r_info = ELF64_R_INFO((unsigned long) STN_UNDEF, R_X86_64_IRELATIVE);
-    relas[index].r_addend = iter->first->getOffset();
-    copied += sizeof(Elf64_Rela);
-    ++index;
+      // So find the data address for rels[index].r_offset
+      // and set it to iter->first->getOffset(), AKA the symbol address
+
+      // We should be writing into .dyninstRELAgot; just have to figure out how. 
+      long *got = (long *) &(data[rels[index].r_offset - globalOffset]);
+      *got = iter->first->getOffset();
+
+      copied += sizeof(Elf32_Rel);
+      ++index;
+    }
+    assert(copied == lmap.relSize);
   }
-  assert(copied == lmap.relSize);
 
   return true;
 }

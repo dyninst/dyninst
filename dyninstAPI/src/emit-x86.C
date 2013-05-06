@@ -1676,14 +1676,27 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
       bitArray regsClobberedByCall = ABI::getABI(8)->getCallWrittenRegisters();
       for (int i = 0; i < gen.rs()->numGPRs(); i++) {
          registerSlot *reg = gen.rs()->GPRs()[i];
+         Register r = reg->encoding();
+         static LivenessAnalyzer live(8);
+         bool callerSave = 
+            regsClobberedByCall.test(live.getIndex(regToMachReg64.equal_range(r).first->second));
+         if (!callerSave) {
+            // We don't care!
+            regalloc_printf("%s[%d]: pre-call, skipping callee-saved register %d\n", FILE__, __LINE__,
+                     reg->number);
+            continue;
+         }
+
          regalloc_printf("%s[%d]: pre-call, register %d has refcount %d, keptValue %d, liveState %s\n",
                          FILE__, __LINE__, reg->number,
                          reg->refCount,
                          reg->keptValue,
                          (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::spilled) ? "spilled" : "dead"));
+
          if (reg->refCount > 0 ||  // Currently active
              reg->keptValue || // Has a kept value
              (reg->liveState == registerSlot::live)) { // needs to be saved pre-call
+            regalloc_printf("%s[%d]: \tsaving reg\n", FILE__, __LINE__);
             pair<unsigned, unsigned> regToSave;
             regToSave.first = reg->number;
             
@@ -1702,8 +1715,6 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
             reg->keptValue = false;
          }
          else {
-            Register r = reg->encoding();
-	    static LivenessAnalyzer live(8);
 	    // mapping from Register to MachRegister, then to index in liveness bitArray
 	    if (regsClobberedByCall.test(live.getIndex(regToMachReg64.equal_range(r).first->second))){	  
                gen.markRegDefined(r);
