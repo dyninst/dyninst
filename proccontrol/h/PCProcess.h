@@ -73,6 +73,9 @@ class SymbolReaderFactory;
 
 namespace ProcControlAPI {
 
+   extern bool is_restricted_ptrace;
+  
+
 class Process;
 class ThreadPool;
 class Thread;

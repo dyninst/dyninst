@@ -811,6 +811,7 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
 // We can detect this and warn the user; however, it takes root to disable it. 
 
 #include <fstream>
+
 static void warn_user_ptrace_restrictions() {
   ifstream ptrace_scope("/proc/sys/kernel/yama/ptrace_scope");
   if (ptrace_scope.is_open()) {
@@ -827,6 +828,7 @@ static void warn_user_ptrace_restrictions() {
 	     << "and follow the directions in that file." << endl;
       }
       cerr << "For more information, see https://wiki.ubuntu.com/SecurityTeam/Roadmap/KernelHardening" << endl;
+      is_restricted_ptrace = true;
     }
   } 
 }
