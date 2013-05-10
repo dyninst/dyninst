@@ -199,6 +199,8 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
       }
       case USEATTACH:
       {
+	// Check whether we're going to be able to attach at all
+	if(Dyninst::ProcControlAPI::is_restricted_ptrace) return SKIPPED;
          Dyninst::PID pid = getMutateePid(group);
          if (pid == NULL_PID) {
             std::string mutateeString = launchMutatee(group, params);

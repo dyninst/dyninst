@@ -67,7 +67,7 @@ class Codegen {
    Buffer buffer_;   
 
    // PPC64 only, but it's handy to stash it here
-   Address toc_;
+   std::map<Address, Address> toc_;
 };
 
 };

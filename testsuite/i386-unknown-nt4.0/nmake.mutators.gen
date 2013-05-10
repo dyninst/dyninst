@@ -18,11 +18,11 @@ dyninst_MUTATORS_SO = test1_1.dll test1_2.dll test1_3.dll test1_4.dll test1_5.dl
 
 dyninst_OBJS_ALL_MUTATORS = test1_1.obj test1_2.obj test1_3.obj test1_4.obj test1_5.obj test1_6.obj test1_7.obj test1_8.obj test1_9.obj test1_10.obj test1_11.obj test1_12.obj test1_13.obj test1_14.obj test1_16.obj test1_17.obj test1_18.obj test1_19.obj test1_20.obj test1_21.obj test1_22.obj snip_ref_shlib_var.obj snip_change_shlib_var.obj test_snip_remove.obj test1_23.obj test1_24.obj test1_25.obj test1_26.obj test1_27.obj test1_28.obj test1_29.obj test1_30.obj test1_31.obj test1_32.obj test1_33.obj test1_34.obj test1_36.obj test1_37.obj test1_38.obj test_write_param.obj test2_1.obj test2_2.obj test2_3.obj test2_4.obj test2_5.obj test2_7.obj test2_8.obj test2_11.obj test2_12.obj test2_13.obj test2_14.obj test3_1.obj test3_2.obj test3_3.obj test3_4.obj test3_7.obj test4_1.obj test5_1.obj test5_2.obj test5_3.obj test5_4.obj test5_5.obj test5_7.obj test5_8.obj test5_9.obj test_mem_1.obj test_mem_2.obj test_mem_3.obj test_mem_4.obj test_mem_5.obj test_mem_6.obj test_mem_7.obj test_mem_8.obj test_stack_1.obj test_stack_3.obj test_thread_6.obj test_thread_7.obj test_thread_8.obj test1_1.obj test1_2.obj test1_3.obj test1_4.obj test1_5.obj test1_6.obj test1_7.obj test1_8.obj test1_9.obj test1_10.obj test1_11.obj test1_12.obj test1_13.obj test1_14.obj test1_16.obj test1_17.obj test1_18.obj test1_19.obj test1_20.obj test1_25.obj test1_29.obj test1_31.obj test1_32.obj test1_34.obj test1_36.obj 
 
-instruction_MUTATORS = test_instruction_read_write test_instruction_farcall test_instruction_bind_eval power_decode power_cft fucompp mov_size_details 
+instruction_MUTATORS = test_instruction_read_write test_instruction_farcall test_instruction_bind_eval power_decode power_cft fucompp stack_mov_32_bit mov_size_details 
 
-instruction_MUTATORS_SO = test_instruction_read_write.dll test_instruction_farcall.dll test_instruction_bind_eval.dll power_decode.dll power_cft.dll fucompp.dll mov_size_details.dll 
+instruction_MUTATORS_SO = test_instruction_read_write.dll test_instruction_farcall.dll test_instruction_bind_eval.dll power_decode.dll power_cft.dll fucompp.dll stack_mov_32_bit.dll mov_size_details.dll 
 
-instruction_OBJS_ALL_MUTATORS = test_instruction_read_write.obj test_instruction_farcall.obj test_instruction_bind_eval.obj power_decode.obj power_cft.obj fucompp.obj mov_size_details.obj 
+instruction_OBJS_ALL_MUTATORS = test_instruction_read_write.obj test_instruction_farcall.obj test_instruction_bind_eval.obj power_decode.obj power_cft.obj fucompp.obj stack_mov_32_bit.obj mov_size_details.obj 
 
 symtab_MUTATORS = test_lookup_func test_lookup_var test_line_info test_module test_type_info test_symtab_ser_funcs test_ser_anno test_anno_basic_types 
 
@@ -612,6 +612,12 @@ power_decode.dll: power_decode.obj $(LIBTESTSUITE)
 	$(LINK) $(LDFLAGS) -DLL -out:$@ power_decode.obj $(MUTATOR_LIBS)
 
 power_decode.obj: ../src/instruction/power_decode.C
+	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
+
+stack_mov_32_bit.dll: stack_mov_32_bit.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) -DLL -out:$@ stack_mov_32_bit.obj $(MUTATOR_LIBS)
+
+stack_mov_32_bit.obj: ../src/instruction/stack_mov_32_bit.C
 	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
 
 test_instruction_bind_eval.dll: test_instruction_bind_eval.obj $(LIBTESTSUITE)

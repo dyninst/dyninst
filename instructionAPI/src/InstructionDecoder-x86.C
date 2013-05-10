@@ -119,6 +119,8 @@ namespace Dyninst
     decodedInstruction(NULL),
     sizePrefixPresent(false)
     {
+      if(a == Arch_x86_64) setMode(true);
+      
     }
     INSTRUCTION_EXPORT InstructionDecoder_x86::~InstructionDecoder_x86()
     {
@@ -140,7 +142,7 @@ namespace Dyninst
         unsigned scale;
         Register index;
         Register base;
-        Result_Type registerType = ia32_is_mode_64() ? u32 : u64;
+        Result_Type registerType = ia32_is_mode_64() ? u64 : u32;
 
         decode_SIB(locs->sib_byte, scale, index, base);
 

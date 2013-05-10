@@ -1579,10 +1579,6 @@ void Object::load_object(bool alloc_syms)
       interpreter_name_ = (char *) interp_scnp->get_data().d_buf(); 
     }
 
-    if (opd_scnp) {
-      parse_opd(opd_scnp);
-    }
-
     // global symbols are put in global_symbols. Later we read the
     // stab section to find the module to where they belong.
     // Experiment : lets try to be a bit more intelligent about
@@ -1696,6 +1692,10 @@ void Object::load_object(bool alloc_syms)
     // Set rel type based on the ELF machine type
     relType_ = getRelTypeByElfMachine(elfHdr);
 
+    if (opd_scnp) {
+      parse_opd(opd_scnp);
+    }
+
     return;
   } // end binding contour (for "goto cleanup2")
 
@@ -1761,10 +1761,6 @@ void Object::load_shared_object(bool alloc_syms)
 			txtaddr, dataddr, catch_addrs_);
     }
 #endif
-
-    if (opd_scnp) {
-      parse_opd(opd_scnp);
-    }
 
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -1845,6 +1841,11 @@ void Object::load_shared_object(bool alloc_syms)
       obj_type_ = obj_Executable;
     }else if( e_type == ET_REL ) {
         obj_type_ = obj_RelocatableFile;
+    }
+
+
+    if (opd_scnp) {
+      parse_opd(opd_scnp);
     }
 
     // Set rel type based on the ELF machine type
@@ -1968,20 +1969,35 @@ void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
   // Let's read this puppy
   unsigned long *buf = (unsigned long *)data.d_buf();
 
+  // In some cases, the OPD is a set of 3-tuples: <func offset, TOC, environment ptr>.
+  // In others, it's a set of 2-tuples. Since we can't tell the difference, we
+  // instead look for function offsets. 
+  // Heck, it can even change within the opd!
+
   // In almost all cases, the TOC is the same. So let's store it at the
   // special location 0 and only record differences. 
   Offset baseTOC = buf[1];
   TOC_table_[0] = baseTOC;
 
-  for (unsigned i = 0; i < (data.d_size() / sizeof(unsigned long)); i += 3) {
+  // Note the lack of 32/64 here: okay because the only platform with an OPD
+  // is 64-bit elf. 
+  unsigned i = 0;
+  while (i < (data.d_size() / sizeof(unsigned long))) {
     Offset func = buf[i];
     Offset toc = buf[i+1];
-    // Unused = buf[i+2];
-    if (toc == baseTOC) continue;
 
-    TOC_table_[func] = toc;
+    if (func == 0 && i != 0) break;
+
+    if (symsByOffset_.find(func) == symsByOffset_.end()) {
+      i++;
+      continue;
+    }
+
+    if (toc != baseTOC) {
+      TOC_table_[func] = toc;
+    }
+    i += 2;
   }
-
 }
 
 void Object::handle_opd_relocations(){
@@ -5515,14 +5531,14 @@ Dyninst::Architecture Object::getArch()
 
 Offset Object::getTOCoffset(Offset off) const {
   if (TOC_table_.empty()) return 0;
-
   Offset baseTOC = TOC_table_.find(0)->second;
-
   // We only store exceptions to the base TOC, so if we can't find it
   // return the base
 
   std::map<Offset, Offset>::const_iterator iter = TOC_table_.find(off);
-  if (iter == TOC_table_.end()) return baseTOC;
+  if (iter == TOC_table_.end()) {
+    return baseTOC;
+  }
   return iter->second;
 }
 

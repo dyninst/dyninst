@@ -2370,6 +2370,17 @@ test_runmode('fucompp', 'createProcess').
 test_start_state('fucompp', 'stopped').
 tests_module('fucompp', 'instruction').
 
+test('stack_mov_32_bit', 'stack_mov_32_bit', none).
+test_description('stack_mov_32_bit', 'Tests mov %eax 0x3(%rsp)').
+test_platform('stack_mov_32_bit', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('stack_mov_32_bit', ['stack_mov_32_bit.C']).
+test_runmode('stack_mov_32_bit', 'createProcess').
+test_start_state('stack_mov_32_bit', 'stopped').
+tests_module('stack_mov_32_bit', 'instruction').
+
 
 test('mov_size_details', 'mov_size_details', none).                                                 
 test_description('mov_size_details', 'Tests the sizes of mov AST elements.').                          

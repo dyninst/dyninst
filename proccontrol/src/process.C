@@ -77,6 +77,10 @@ static const int ProcControl_major_version = 8;
 static const int ProcControl_minor_version = 1;
 static const int ProcControl_maintenance_version = 1;
 
+bool Dyninst::ProcControlAPI::is_restricted_ptrace = false;
+
+
+
 void Process::version(int& major, int& minor, int& maintenance)
 {
     major = ProcControl_major_version;
