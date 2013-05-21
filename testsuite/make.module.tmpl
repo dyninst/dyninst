@@ -21,9 +21,9 @@ LFLAGS = -L../../common/$(PLATFORM) -L../../dwarf/$(PLATFORM) -L../../elf/$(PLAT
 #######################################################################
 
 # Turn off NO_INITIALIZER_LIST_SUPPORT if we compile test suite with C++11
-CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) $(IFLAGS) -I../src -g $(BOOST_INCDIR) $(CPPFLAGS) -DNO_INITIALIZER_LIST_SUPPORT
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) $(IFLAGS) -I../src -g $(BOOST_INCDIR) $(CPPFLAGS)
 CXXFLAGS = $(CFLAGS)
-CXXFLAGS += $(PLATFORM_CXXFLAGS)
+CXXFLAGS += $(PLATFORM_CXXFLAGS) $(CXX_REQ_FLAGS)
 
 CFLAGS_NATIVE = $(CFLAGS)
 CXXFLAGS_NATIVE = $(CXXFLAGS)
