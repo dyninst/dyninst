@@ -259,7 +259,6 @@ class bgq_process :
    static bool do_all_attach;
 
    static set<void *> held_msgs;
-   static unsigned int num_pending_stackwalks;
 };
 
 class bgq_thread : public thread_db_thread, public ppc_thread
@@ -270,6 +269,7 @@ class bgq_thread : public thread_db_thread, public ppc_thread
    bool last_signaled;
    CallStackUnwinding *unwinder;
    Address last_ss_addr;
+   stack_response::ptr pending_stack_resp;
   public:
    bgq_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~bgq_thread();

@@ -2833,6 +2833,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    proc_stop_rpc_count(Counter::ProcStopRPCs),
    generator_nonexited_thrd_count(Counter::GeneratorNonExitedThreads),
    neonatal_threads(Counter::NeonatalThreads),
+   pending_stackwalk_count(Counter::PendingStackwalks),
    exiting_state(this, ExitingStateID, dontcare),
    startup_state(this, StartupStateID, dontcare),
    pending_stop_state(this, PendingStopStateID, dontcare),
@@ -3405,6 +3406,11 @@ Counter &int_thread::getGeneratorNonExitedThreadCount()
 Counter &int_thread::neonatalThreadCount()
 {
    return neonatal_threads;
+}
+
+Counter &int_thread::pendingStackwalkCount()
+{
+   return pending_stackwalk_count;
 }
 
 void int_thread::setContSignal(int sig)
@@ -7992,6 +7998,7 @@ Counter::Counter(CounterType ct_) :
    local_count(0),
    ct(ct_)
 {
+   assert((int) ct < NumCounterTypes);
 }
 
 Counter::~Counter()
@@ -8094,6 +8101,8 @@ int Counter::processCount(CounterType ct, int_process* p)
       case NeonatalThreads:
          sum += (*i)->neonatalThreadCount().localCount();
          break;
+      case PendingStackwalks:
+         sum += (*i)->pendingStackwalkCount().localCount();
 		default:
 			break;
 		}
@@ -8130,6 +8139,7 @@ const char *Counter::getNameForCounter(int counter_type)
       STR_CASE(GeneratorNonExitedThreads);
       STR_CASE(StartupTeardownProcesses);
       STR_CASE(NeonatalThreads);
+      STR_CASE(PendingStackwalks);
       default: assert(0);
    }
    return NULL;

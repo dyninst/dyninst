@@ -76,6 +76,7 @@ static long timeout_val = 0;
 static long no_control_authority_val = 0;
 
 static const long startup_timeout_sec = 30;
+static const long stackwalk_timeout_sec = 30;
 
 uint64_t bgq_process::jobid = 0;
 uint32_t bgq_process::toolid = 0;
@@ -1614,6 +1615,8 @@ bool bgq_process::isActionCommand(uint16_t cmd_type)
 bool bgq_process::plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp)
 {
    GetThreadDataCmd thr_cmd;
+   bgq_thread *bgthr = dynamic_cast<bgq_thread *>(thr);
+   assert(bgthr);
 
    thr_cmd.threadID = thr->getLWP();
 
@@ -1624,31 +1627,51 @@ bool bgq_process::plat_getStackInfo(int_thread *thr, stack_response::ptr stk_res
                   thr->llproc()->getPid(), thr->getLWP());
       return false;
    }
+
+   struct timeval stackwalk_timeout;
+   stackwalk_timeout.tv_sec = stackwalk_timeout_sec;
+   stackwalk_timeout.tv_usec = 0;
+   ReaderThread::get()->setTimeout(stackwalk_timeout);
    
    //Needed to track to know when to free the ArchEventBGQ objects
    // associated with the stackwalks.
-   num_pending_stackwalks++;
+   thr->pendingStackwalkCount().inc();
+   bgthr->pending_stack_resp = stk_resp;
+
    return true;
 }
 
 bool bgq_process::plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs)
 {
-   GetThreadDataAckCmd *thrdata = static_cast<GetThreadDataAckCmd *>(stk_resp->getData());
    int_thread *t = stk_resp->getThread();
-   assert(stk_resp);
+   bgq_thread *bgt = dynamic_cast<bgq_thread *>(t);
    assert(t);
    Thread::ptr thr = t->thread();
    bool had_error = false, result;
+   GetThreadDataAckCmd *thrdata;
    
-   assert(num_pending_stackwalks > 0);
-   num_pending_stackwalks--;
+   ReaderThread::get()->clearTimeout();
+   
+   if (!t->pendingStackwalkCount().local()) {
+      /* If this hits, maybe we got an event after it'd timed out and we'd given up*/
+      pthrd_printf("Received stackwalk message on %d/%d when there are no pending stackwalks\n",
+                   getPid(), t->getLWP());
+      had_error = true;
+      goto done;
+   }
+   t->pendingStackwalkCount().dec();
+   bgt->pending_stack_resp = stack_response::ptr();
 
    if (stk_resp->hasError()) {
-      perr_printf("Error getting thread data on %d/%d", t->llproc()->getPid(), thr->getLWP());
+      setState(errorstate);
+      perr_printf("Error getting thread data on %d/%d\n", t->llproc()->getPid(), thr->getLWP());
       setLastError(err_internal, "Error receiving thread data\n");
       had_error = true;
       goto done;
    }
+
+   thrdata = static_cast<GetThreadDataAckCmd *>(stk_resp->getData());
+   assert(stk_resp);
 
    pthrd_printf("Handling response with call stack %d/%d\n", t->llproc()->getPid(), t->getLWP());
 
@@ -1681,7 +1704,7 @@ bool bgq_process::plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCa
 
    cbs->endStackWalk(thr);
   done:
-   if (!num_pending_stackwalks) {
+   if (!Counter::global(Counter::PendingStackwalks)) {
       for (set<void *>::iterator i = held_msgs.begin(); i != held_msgs.end(); i++) {
          free(*i);
       }
@@ -1763,7 +1786,6 @@ bool bgq_process::allowSignal(int signal_no)
 }
 
 set<void *> bgq_process::held_msgs;
-unsigned int bgq_process::num_pending_stackwalks = 0;
 
 int_thread *int_thread::createThreadPlat(int_process *proc, 
                                          Dyninst::THR_ID thr_id, 
@@ -3216,7 +3238,7 @@ bool DecoderBlueGeneQ::decodeTimeout(vector<Event::ptr> &events)
    pthrd_printf("Checking for processes affected by read timeout\n");
    const set<ComputeNode *> cns = ComputeNode::allNodes();
    for (set<ComputeNode *>::const_iterator i = cns.begin(); i != cns.end(); i++) {
-      const set<bgq_process *> procs = (*i)->getProcs();
+      const set<bgq_process *> &procs = (*i)->getProcs();
       for (set<bgq_process *>::const_iterator j = procs.begin(); j != procs.end(); j++) {
          bgq_process *proc = *j;
          switch (proc->startup_state) {
@@ -3249,6 +3271,37 @@ bool DecoderBlueGeneQ::decodeTimeout(vector<Event::ptr> &events)
             }
             default:
                break;
+         }
+      }
+
+      if (Counter::globalCount(Counter::PendingStackwalks)) {
+         for (set<bgq_process *>::const_iterator j = procs.begin(); j != procs.end(); j++) {
+            bgq_process *proc = *j;
+            for (int_threadPool::iterator k = proc->threadPool()->begin(); k != proc->threadPool()->end(); k++) {
+               int_thread *thr = *k;
+               if (thr->pendingStackwalkCount().local()) {
+                  pthrd_printf("Thread %d/%d timed out while waiting for stackwalk\n",
+                               proc->getPid(), thr->getLWP());
+                  bgq_thread *bgthr = dynamic_cast<bgq_thread *>(thr);
+                  assert(bgthr);
+                  
+                  stack_response::ptr sresp = bgthr->pending_stack_resp;
+                  assert(sresp);
+
+                  getResponses().lock();
+
+                  sresp->markError(err_dstack);
+                  sresp->postResponse(NULL);
+
+                  map<Event::ptr, EventAsync::ptr> resp_map;
+                  Event::ptr newev = decodeCompletedResponse(sresp, proc, thr, resp_map);
+                  if (newev)
+                     events.push_back(newev);
+
+                  getResponses().signal();
+                  getResponses().unlock();
+               }
+            }
          }
       }
       WriterThread::get()->forcePastAck(*i);

@@ -146,7 +146,7 @@ class mem_state
  **/
 class Counter {
   public:
-   static const int NumCounterTypes = 12;
+   static const int NumCounterTypes = 13;
    enum CounterType {
       HandlerRunningThreads = 0,
       GeneratorRunningThreads = 1,
@@ -159,7 +159,8 @@ class Counter {
       ForceGeneratorBlock = 8,
       GeneratorNonExitedThreads = 9,
       StartupTeardownProcesses = 10,
-      NeonatalThreads = 11
+      NeonatalThreads = 11,
+      PendingStackwalks = 12
    };
 
    Counter(CounterType ct_);
@@ -892,6 +893,7 @@ public:
    Counter &procStopRPCCount();
    Counter &getGeneratorNonExitedThreadCount();
    Counter &neonatalThreadCount();
+   Counter &pendingStackwalkCount();
       
    //Process control
    bool intStop();
@@ -1055,6 +1057,7 @@ public:
    Counter proc_stop_rpc_count;
    Counter generator_nonexited_thrd_count;
    Counter neonatal_threads;
+   Counter pending_stackwalk_count;
 
    StateTracker exiting_state;
    StateTracker startup_state;
