@@ -1375,13 +1375,15 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
               // parsing.
               if (!targ_sym) continue;
               
-              // I'm interested to see if these asserts will ever fail.
-              assert(iter->second.size() == 1);
-              assert(plt_rel_map.count(name) == 1);
+              if (iter->second.size() != 1)
+                 continue;
+              dyn_hash_map<string, Offset>::iterator pltrel_iter = plt_rel_map.find(name);
+              if (pltrel_iter == plt_rel_map.end())
+                 continue;
               
               Symbol *stub_sym = iter->second[0];
               relocationEntry re(stub_sym->getOffset(),
-                                 plt_rel_map[name],
+                                 pltrel_iter->second,
                                  name,
                                  targ_sym);
               fbt_.push_back(re);
