@@ -1774,6 +1774,19 @@ bool bgq_process::plat_getFileNames(FileSetResp_t *resp)
    return true;
 }
 
+string int_process::plat_canonicalizeFileName(std::string path)
+{
+   char *result = realpath(path.c_str(), NULL);
+   if (result) {
+      string sresult(result);
+      free(result);
+      return sresult;
+   }
+   else {
+      return path;
+   }
+}
+
 int bgq_process::getMaxFileReadSize()
 {
    return MaxMemorySize;
