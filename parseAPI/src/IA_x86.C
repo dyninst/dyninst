@@ -227,7 +227,8 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
        case COND_NOT_TAKEN:
        case FALLTHROUGH:
        case CALL_FT:
-          type = FALLTHROUGH;
+	 //          type = FALLTHROUGH;
+	 return false;
           break;
        default:
           return false;
