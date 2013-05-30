@@ -298,7 +298,7 @@ unsigned SymElf::getAddressWidth()
 unsigned long SymElf::getSymbolSize(const Symbol_t &sym)
 {
    GET_SYMBOL(sym, shdr, symbol, name, idx);
-   name = NULL; //Silence warnings
+   (void)name; //Silence warnings
    unsigned long size = symbol.st_size(idx);
    return size;
 }
@@ -312,21 +312,21 @@ Dyninst::Offset SymElf::getSymbolOffset(const Symbol_t &sym)
    }
 
    GET_SYMBOL(sym, shdr, symbols, name, idx);
-   name = NULL; //Silence warnings
+   (void)name; //Silence warnings
    return getSymOffset(symbols, idx);
 }
 
 Dyninst::Offset SymElf::getSymbolTOC(const Symbol_t &sym)
 {
    GET_SYMBOL(sym, shdr, symbols, name, idx);
-   name = NULL; //Silence warnings
+   (void)name; //Silence warnings
    return getSymTOC(symbols, idx);
 }
 
 std::string SymElf::getSymbolName(const Symbol_t &sym)
 {
    GET_SYMBOL(sym, shdr, symbols, name, idx);
-   idx = 0; //Silence warnings
+   (void)idx; (void)symbols; //Silence warnings
    return std::string(name);
 }
 
@@ -362,8 +362,8 @@ bool SymElf::isValidSymbol(const Symbol_t &sym)
 
 static int symcache_cmp(const void *a, const void *b)
 {
-   SymCacheEntry *aa = (SymCacheEntry *) a;
-   SymCacheEntry *bb = (SymCacheEntry *) b;
+   const SymCacheEntry *aa = (const SymCacheEntry *) a;
+   const SymCacheEntry *bb = (const SymCacheEntry *) b;
    if (aa->symaddress < bb->symaddress) return -1;
    else if (aa->symaddress > bb->symaddress) return 1;
    else return 0;
@@ -378,7 +378,7 @@ unsigned long SymElf::getSymOffset(const Elf_X_Sym &symbol, unsigned idx)
       
       unsigned long sym_offset = symbol.st_value(idx);
       while (sym_offset >= odp_addr && sym_offset < odp_addr + odp_size)
-         sym_offset = *((unsigned long *) (odp_data + sym_offset - odp_addr));
+         sym_offset = *((const unsigned long *) (odp_data + sym_offset - odp_addr));
       return sym_offset;
    }
 
@@ -396,7 +396,7 @@ unsigned long SymElf::getSymTOC(const Elf_X_Sym &symbol, unsigned idx)
       if (sym_offset < odp_addr || (sym_offset >= odp_addr + odp_size)) 
          return 0;
 
-      unsigned long toc = *((unsigned long *) (odp_data + (sym_offset - odp_addr + sizeof(long))));
+      unsigned long toc = *((const unsigned long *) (odp_data + (sym_offset - odp_addr + sizeof(long))));
       return toc;
    }
 
@@ -440,7 +440,7 @@ void SymElf::createSymCache()
 
       FOR_EACH_SYMBOL(shdr, symbols, str_buffer, idx)
       {
-         str_buffer = NULL; //Disable warnings
+         (void)str_buffer; //Disable warnings
          unsigned char symtype = symbols.ST_TYPE(idx);
          if (symtype != STT_FUNC)
             continue;
