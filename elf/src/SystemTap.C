@@ -214,9 +214,9 @@ bool SystemTapEntries::readAddr(const unsigned char *buffer, size_t bsize, unsig
       return false;
 
    if (read_size == 4)
-      result = *((uint32_t *) (buffer + offset));
+      result = *((const uint32_t *) (buffer + offset));
    else if (read_size == 8)
-      result = *((uint64_t *) (buffer + offset));
+      result = *((const uint64_t *) (buffer + offset));
    offset += read_size;
 
    return true;
