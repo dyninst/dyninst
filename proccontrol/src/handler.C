@@ -361,7 +361,6 @@ void HandlerPool::addEventToSet(Event::ptr ev, set<Event::ptr> &ev_set) const
 
 bool HandlerPool::handleEvent(Event::ptr orig_ev)
 {
-   EventType etype = orig_ev->getEventType();
    Event::ptr cb_replacement_ev = Event::ptr();
 
    /**

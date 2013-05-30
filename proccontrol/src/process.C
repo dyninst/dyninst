@@ -616,6 +616,7 @@ bool int_process::forked()
 
    int_thread *initial_thread;
    initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP, true, int_thread::as_created_attached);
+   (void)initial_thread; // suppress unused warning
 
    ProcPool()->addProcess(this);
 
@@ -1365,6 +1366,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
    pSignalMask(NULL),
    pCallStackUnwinding(NULL),
    pBGQData(NULL),
+   pRemoteIO(NULL),
    LibraryTracking_set(false),
    LWPTracking_set(false),
    ThreadTracking_set(false),
@@ -1395,7 +1397,6 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    forcedTermination(false),
    silent_mode(false),
    exitCode(p->exitCode),
-   exec_mem_cache(exec_mem_cache),
    continueSig(p->continueSig),
    mem_cache(this),
    async_event_count(Counter::AsyncEvents),
@@ -1872,8 +1873,8 @@ bool int_process::findAllocatedRegionAround(Dyninst::Address addr,
 bool int_process::plat_findAllocatedRegionAround(Dyninst::Address addr,
                                                  Process::MemoryRegion& memRegion) {
     (void)addr;
-    memRegion.first  = NULL;
-    memRegion.second = NULL;
+    memRegion.first  = 0;
+    memRegion.second = 0;
     perr_printf("Called findAllocatedRegionAround on unspported platform\n");
     setLastError(err_unsupported,
                  "Find Allocated Region Addr not supported on this platform\n");
@@ -4594,7 +4595,7 @@ int_breakpoint::int_breakpoint(Breakpoint::ptr up) :
    up_bp(up),
    to(0x0),
    isCtrlTransfer_(false),
-   data(false),
+   data(NULL),
    hw(false),
    hw_perms(0),
    hw_size(0),
@@ -4610,7 +4611,7 @@ int_breakpoint::int_breakpoint(Dyninst::Address to_, Breakpoint::ptr up, bool of
    up_bp(up),
    to(to_),
    isCtrlTransfer_(true),
-   data(false),
+   data(NULL),
    hw(false),
    hw_perms(0),
    hw_size(0),
@@ -4626,14 +4627,15 @@ int_breakpoint::int_breakpoint(unsigned int hw_prems_, unsigned int hw_size_, Br
   up_bp(up),
   to(0x0),
   isCtrlTransfer_(false),
-  data(false),
+  data(NULL),
   hw(true),
   hw_perms(hw_prems_),
   hw_size(hw_size_),
   onetime_bp(false),
   onetime_bp_hit(false),
   procstopper(false),
-  suppress_callbacks(false)
+  suppress_callbacks(false),
+  offset_transfer(false)
 {
 }
 
