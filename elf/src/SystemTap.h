@@ -8,6 +8,7 @@
 namespace Dyninst {
 
 class Elf_X;
+class Elf_X_Shdr;
 
 class ArgTree {
 private:
@@ -85,7 +86,7 @@ class SystemTapEntries {
 
    bool parse();
    bool parseAllNotes();
-   bool parseNotes(const void *notes, size_t size);
+   bool parseNotes(Elf_X_Shdr &shdr);
    bool parseOperands(std::string ops, Entry &entry);
    bool parseOperand_x86(std::string op, Arg &result);
    bool parseOperand_ppc(std::string op, Arg &result);
