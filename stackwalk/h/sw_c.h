@@ -46,8 +46,8 @@ walker_t newWalkerCreate(char *executable, char **args);
 int walkStack(walker_t walker, frame_t **out_frames, unsigned int *out_frames_size);
 int walkStackFromFrame(walker_t walker, frame_t frame, frame_t **out_frames, 
                        unsigned int *out_frames_size);
-int walkSingleFrame(walker_t walker, frame_t frame, frame_t out_frame);
-int getInitialFrame(walker_t walker, frame_t out_frame);
+int walkSingleFrame(walker_t walker, frame_t frame, frame_t *out_frame);
+int getInitialFrame(walker_t walker, frame_t *out_frame);
 
 unsigned long frameGetReturnAddress(frame_t frame);
 unsigned long frameGetFramePointer(frame_t frame);
