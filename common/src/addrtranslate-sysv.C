@@ -331,7 +331,7 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
 
    FCNode *fc = files.getNode(name, symreader_factory);
    if (!fc)
-      return false;
+      return NULL;
 
    vector<SymSegment> segs;
    fc->getSegments(segs);
