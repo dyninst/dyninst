@@ -2033,7 +2033,7 @@ bool image::getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges)
 Symbol *image::symbol_info(const std::string& symbol_name) {
    vector< Symbol *> symbols;
    if(!(linkedFile->findSymbol(symbols,symbol_name.c_str(),Symbol::ST_UNKNOWN, SymtabAPI::anyName))) 
-       return false;
+       return NULL;
 
    return symbols[0];
 }

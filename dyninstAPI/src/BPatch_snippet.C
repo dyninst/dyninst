@@ -964,7 +964,7 @@ BPatch_registerExpr::BPatch_registerExpr(Dyninst::MachRegister mach) {
    bool whocares;
    Register reg = convertRegID(mach, whocares);
    ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::origRegister,
-                                                 (void *)reg));
+                                                 (void *)(intptr_t)reg));
     assert(BPatch::bpatch != NULL);
 
     // Registers can hold a lot of different types...
@@ -1627,14 +1627,14 @@ static void constructorHelper(
     }
 
     // create callback ID argument
-    int cb_id = BPatch::bpatch->getStopThreadCallbackID(bp_cb); 
-    idNode = AstNode::operandNode(AstNode::Constant, (void*)(int) cb_id );
+    intptr_t cb_id = BPatch::bpatch->getStopThreadCallbackID(bp_cb); 
+    idNode = AstNode::operandNode(AstNode::Constant, (void*) cb_id );
     BPatch_type *inttype = BPatch::bpatch->stdTypes->findType("int");
     assert(inttype != NULL);
     idNode->setType(inttype);
 
     // create interpret/usecache argument
-    int ic = 0;
+    intptr_t ic = 0;
     if (useCache)
         ic += 1;
     if (interp == BPatch_interpAsTarget)

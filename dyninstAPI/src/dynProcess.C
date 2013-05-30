@@ -191,7 +191,8 @@ PCProcess *PCProcess::setupForkedProcess(PCProcess *parent, Process::ptr pcProc)
         if( !ret->getDyninstRTLibName() ) {
             startup_printf("%s[%d]: failed to get Dyninst RT lib name\n",
                     FILE__, __LINE__);
-            return false;
+            delete ret;
+            return NULL;
         }
         startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
                        ret->dyninstRT_name.c_str());

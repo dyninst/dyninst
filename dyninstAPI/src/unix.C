@@ -286,6 +286,7 @@ bool PCProcess::setMemoryAccessRights(Address start, size_t size,
 bool PCProcess::getMemoryAccessRights(Address start, PCMemPerm& rights) {
     mal_printf("getMemoryAccessRights at %lx\n", start);
     assert(!"Not implemented yet");
+    (void)rights; // unused parameter
     return false;
 }
 

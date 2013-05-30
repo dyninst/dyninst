@@ -899,11 +899,10 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    if (!arithl || !arithr)
       return false;
    
-   AstNode *data_oper = NULL, *const_oper = NULL;
+   AstNode *const_oper = NULL;
    if (arithl->getoType() == DataAddr && arithr->getoType() == Constant &&
        laddr == (Address) arithl->getOValue())
    {
-      data_oper = arithl;
       const_oper = arithr;
    }
    else if (arithl->getoType() == variableValue && arithr->getoType() == Constant)
@@ -914,14 +913,12 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
          return false;
       addr = var->getAddress();
       if (addr == laddr) {
-         data_oper = arithl;
          const_oper = arithr;
       }
    }
    else if (arithr->getoType() == DataAddr && arithl->getoType() == Constant &&
             laddr == (Address) arithr->getOValue() && roper->op == plusOp)
    {
-      data_oper = arithr;
       const_oper = arithl;
    }
    else if (arithl->getoType() == variableValue && arithr->getoType() == Constant)
@@ -932,7 +929,6 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
          return false;
       addr = var->getAddress();
       if (addr == laddr) {
-         data_oper = arithr;
          const_oper = arithl;
       }
    }
@@ -2284,6 +2280,7 @@ BPatch_type *AstOperatorNode::checkType() {
     if (roperand) rType = roperand->checkType();
 
     if (eoperand) eType = eoperand->checkType();
+    (void)eType; // unused...
 
     if (lType == BPatch::bpatch->type_Error ||
         rType == BPatch::bpatch->type_Error)
