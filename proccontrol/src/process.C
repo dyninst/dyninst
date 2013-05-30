@@ -5702,17 +5702,17 @@ std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> RegisterPool::iterato
    return *i;
 }
 
-RegisterPool::iterator RegisterPool::iterator::operator++()
-{
-   int_iter orig = i;
-   i++;
-   return RegisterPool::iterator(i);
-}
-
-RegisterPool::iterator RegisterPool::iterator::operator++(int)
+RegisterPool::iterator RegisterPool::iterator::operator++() // prefix
 {
    i++;
    return *this;
+}
+
+RegisterPool::iterator RegisterPool::iterator::operator++(int) // postfix
+{
+   RegisterPool::iterator orig = *this;
+   i++;
+   return orig;
 }
 
 RegisterPool::const_iterator::const_iterator()
@@ -5733,17 +5733,17 @@ std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> RegisterPool::const_i
    return *i;
 }
 
-RegisterPool::const_iterator RegisterPool::const_iterator::operator++()
-{
-   int_iter orig = i;
-   i++;
-   return RegisterPool::const_iterator(i);
-}
-
-RegisterPool::const_iterator RegisterPool::const_iterator::operator++(int)
+RegisterPool::const_iterator RegisterPool::const_iterator::operator++() // prefix
 {
    i++;
    return *this;
+}
+
+RegisterPool::const_iterator RegisterPool::const_iterator::operator++(int) // postfix
+{
+   RegisterPool::const_iterator orig = *this;
+   i++;
+   return orig;
 }
 
 void regpoolClearOnCont(int_thread *thr)
@@ -5927,17 +5927,17 @@ Library::ptr LibraryPool::iterator::operator*() const
    return (*int_iter)->up_lib;
 }
 
-LibraryPool::iterator LibraryPool::iterator::operator++()
+LibraryPool::iterator LibraryPool::iterator::operator++() // prefix
+{
+   ++int_iter;
+   return *this;
+}
+
+LibraryPool::iterator LibraryPool::iterator::operator++(int) // postfix
 {
    LibraryPool::iterator orig = *this;
    ++int_iter;
    return orig;
-}
-
-LibraryPool::iterator LibraryPool::iterator::operator++(int)
-{
-   ++int_iter;
-   return *this;
 }
 
 LibraryPool::iterator LibraryPool::begin()
@@ -6001,17 +6001,17 @@ bool LibraryPool::const_iterator::operator!=(const LibraryPool::const_iterator &
    return int_iter != i.int_iter;
 }
 
-LibraryPool::const_iterator LibraryPool::const_iterator::operator++()
+LibraryPool::const_iterator LibraryPool::const_iterator::operator++() // prefix
+{
+   ++int_iter;
+   return *this;
+}
+
+LibraryPool::const_iterator LibraryPool::const_iterator::operator++(int) // postfix
 {
    LibraryPool::const_iterator orig = *this;
    ++int_iter;
    return orig;
-}
-
-LibraryPool::const_iterator LibraryPool::const_iterator::operator++(int)
-{
-   ++int_iter;
-   return *this;
 }
 
 bool Process::registerEventCallback(EventType evt, Process::cb_func_t cbfunc)
@@ -7667,7 +7667,30 @@ Thread::ptr ThreadPool::iterator::operator*() const
    return curh;
 }
 
-ThreadPool::iterator ThreadPool::iterator::operator++()
+ThreadPool::iterator ThreadPool::iterator::operator++() // prefix
+{
+   MTLock lock_this_func;
+
+   assert(curi >= 0); //If this fails, you incremented a bad iterator
+   for (;;) {
+      curi++;
+      if (curi >= (signed int) curp->hl_threads.size()) {
+         curh = Thread::ptr();
+         curi = end_val;
+         return *this;
+      }
+      curh = curp->hl_threads[curi];
+      if (!curh->llthrd())
+         continue;
+      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
+         continue;
+	  if (!curh->isUser())
+		  continue;
+      return *this;
+   }
+}
+
+ThreadPool::iterator ThreadPool::iterator::operator++(int) // postfix
 {
    MTLock lock_this_func;
    ThreadPool::iterator orig = *this;
@@ -7685,32 +7708,9 @@ ThreadPool::iterator ThreadPool::iterator::operator++()
          continue;
       if (curh->llthrd()->getUserState().getState() == int_thread::exited)
          continue;
-	  if (!curh->isUser())
-		  continue;
-      return orig;
-   }
-}
-
-ThreadPool::iterator ThreadPool::iterator::operator++(int)
-{
-   MTLock lock_this_func;
-
-   assert(curi >= 0); //If this fails, you incremented a bad iterator
-   for (;;) {
-      curi++;
-      if (curi >= (signed int) curp->hl_threads.size()) {
-         curh = Thread::ptr();
-         curi = end_val;
-         return *this;
-      }
-      curh = curp->hl_threads[curi];
-      if (!curh->llthrd())
-         continue;
-      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
-         continue;
       if (!curh->isUser())
          continue;
-      return *this;
+      return orig;
    }
 }
 
@@ -7782,7 +7782,30 @@ Thread::const_ptr ThreadPool::const_iterator::operator*() const
    return curh;
 }
 
-ThreadPool::const_iterator ThreadPool::const_iterator::operator++()
+ThreadPool::const_iterator ThreadPool::const_iterator::operator++() // prefix
+{
+   MTLock lock_this_func;
+
+   assert(curi >= 0); //If this fails, you incremented a bad iterator
+   for (;;) {
+      curi++;
+      if (curi >= (signed int) curp->hl_threads.size()) {
+         curh = Thread::ptr();
+         curi = end_val;
+         return *this;
+      }
+      curh = curp->hl_threads[curi];
+      if (!curh->llthrd())
+         continue;
+      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
+         continue;
+	  if (!curh->isUser())
+		  continue;
+      return *this;
+   }
+}
+
+ThreadPool::const_iterator ThreadPool::const_iterator::operator++(int) // postfix
 {
    MTLock lock_this_func;
    ThreadPool::const_iterator orig = *this;
@@ -7803,29 +7826,6 @@ ThreadPool::const_iterator ThreadPool::const_iterator::operator++()
 	  if (!curh->isUser())
 		  continue;
       return orig;
-   }
-}
-
-ThreadPool::const_iterator ThreadPool::const_iterator::operator++(int)
-{
-   MTLock lock_this_func;
-
-   assert(curi >= 0); //If this fails, you incremented a bad iterator
-   for (;;) {
-      curi++;
-      if (curi >= (signed int) curp->hl_threads.size()) {
-         curh = Thread::ptr();
-         curi = end_val;
-         return *this;
-      }
-      curh = curp->hl_threads[curi];
-      if (!curh->llthrd())
-         continue;
-      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
-         continue;
-	  if (!curh->isUser())
-		  continue;
-      return *this;
    }
 }
 
