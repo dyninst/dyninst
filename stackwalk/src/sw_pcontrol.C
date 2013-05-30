@@ -142,14 +142,15 @@ ProcDebug::~ProcDebug()
    library_tracker = NULL;
 }
 
-#define CHECK_PROC_LIVE \
+#define CHECK_PROC_LIVE_RET(val) \
    do { \
    if (!proc || proc->isTerminated()) { \
      sw_printf("[%s:%u] - operation on exited process\n", __FILE__, __LINE__); \
      Stackwalker::setLastError(err_procexit, "Process has exited or been detached"); \
-     return false; \
+     return (val); \
    } \
    } while (0)
+#define CHECK_PROC_LIVE CHECK_PROC_LIVE_RET(false)
 
 bool ProcDebug::getRegValue(MachRegister reg, THR_ID thread, 
                             MachRegisterVal &val)
@@ -375,7 +376,7 @@ int ProcDebug::getNotificationFD()
 
 std::string ProcDebug::getExecutablePath()
 {
-   CHECK_PROC_LIVE;
+   CHECK_PROC_LIVE_RET("");
    return proc->libraries().getExecutable()->getName();
 }
 
