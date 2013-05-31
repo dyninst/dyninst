@@ -210,7 +210,7 @@ bool runHunt_binaryEdit()
             sprintf(exeFile, "./%s", config.writeFilePath);
         }
         int numargs = 0;
-        char **arg = (char **) malloc (2);
+        char **arg = (char **) malloc (2 * sizeof(char*));
         arg[0] = exeFile;
 
         fprintf(stderr, "Executing new binary: \"%s", exeFile);
@@ -225,7 +225,7 @@ bool runHunt_binaryEdit()
             nargs[offset] = '\0';
             numargs = atoi(nargs);
 
-            arg = (char **) realloc (arg, numargs+2);
+            arg = (char **) realloc (arg, (numargs+2) * sizeof(char*));
 
             char *args = strchr(config.binary_args, ':');
             args++;
