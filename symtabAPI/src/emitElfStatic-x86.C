@@ -150,7 +150,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
          * P = relOffset
          */
        
-        Elf32_Word addend;
+        Elf32_Word addend = 0;
         if( rel.regionType() == Region::RT_REL ) {
             memcpy(&addend, &targetData[dest], sizeof(Elf32_Word));
         }else if( rel.regionType() == Region::RT_RELA ) {

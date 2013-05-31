@@ -192,7 +192,7 @@ bool Variable::operator==(const Variable &v)
 		{
 			return false;
 		}
-	return ((Aggregate &)(*this)) == ((Aggregate &)v);
+	return ((Aggregate &)(*this)) == ((const Aggregate &)v);
 }
 
 bool Variable::removeSymbol(Symbol *sym) 
