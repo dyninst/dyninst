@@ -1765,7 +1765,7 @@ bool emitElfStatic::addIndirectSymbol(Symbol *sym, LinkMap &lmap) {
 bool emitElfStatic::buildPLT(Symtab *target, Offset globalOffset, 
 			     LinkMap &lmap, StaticLinkError &err,
 			     string &errMsg) {
-  (void)target; (void)err; (void)errMsg; // unused
+  (void)target; (void)globalOffset; (void)err; (void)errMsg; // unused
 #if !defined(arch_x86_64)
   return lmap.pltEntries.empty();
 #else

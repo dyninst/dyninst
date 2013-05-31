@@ -301,6 +301,7 @@ void PCProcess::redirectFds(int stdin_fd, int stdout_fd, int stderr_fd,
 bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileName) {
     const unsigned int ERROR_CODE = 101;
     bool use_abi_rt = false;
+    (void)fileName; // unused
 
 #if defined(arch_64bit)
     SymtabAPI::Symtab *symt_obj;

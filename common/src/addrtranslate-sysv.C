@@ -1005,6 +1005,7 @@ bool AddressTranslateSysV::plat_getTrapAddr() {
 
 Address AddressTranslateSysV::adjustForAddrSpaceWrap(Address base, std::string name) {
 #if !defined(arch_64bit)
+   (void)name; // unused
    return base;
 #else
    if (sizeof(long) != 8) return base;

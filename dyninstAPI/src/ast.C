@@ -2049,6 +2049,7 @@ bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen,
 						  Address&, 
 						  Register& )
 {
+   (void)gen; // unused
 #if defined(arch_x86_64)
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
       registerSlot *reg = gen.rs()->GPRs()[i];
