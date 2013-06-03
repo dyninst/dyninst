@@ -73,7 +73,7 @@ extern bool parseCompilerType(Object *);
 
 static const int Symtab_major_version = 8;
 static const int Symtab_minor_version = 1;
-static const int Symtab_maintenance_version = 0;
+static const int Symtab_maintenance_version = 2;
 
 
 void Symtab::version(int& major, int& minor, int& maintenance)

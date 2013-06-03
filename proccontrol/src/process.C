@@ -74,7 +74,7 @@ SymbolReaderFactory *int_process::user_set_symbol_reader = NULL;
 
 static const int ProcControl_major_version = 8;
 static const int ProcControl_minor_version = 1;
-static const int ProcControl_maintenance_version = 1;
+static const int ProcControl_maintenance_version = 2;
 
 bool Dyninst::ProcControlAPI::is_restricted_ptrace = false;
 
