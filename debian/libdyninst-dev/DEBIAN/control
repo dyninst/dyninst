@@ -1,0 +1,13 @@
+Package: libdyninst-dev
+Source: dyninst
+Version: 8.1.2-1
+Architecture: amd64
+Maintainer: Paradyn / Dyninst Project <dyninst-api@.cs.wisc.edu>
+Installed-Size: 1045
+Depends: libdyninst (= 8.1.2-1)
+Recommends: dyninst-doc
+Conflicts: libdyninstAPI-dev
+Section: libdevel
+Priority: optional
+Description: The dyninstAPI library development headers
+ The dyninstAPI library development headers.

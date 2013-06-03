@@ -1,0 +1,2 @@
+lib/libtestSuite.so /usr/lib
+bin/testprogs_new/* /usr/bin/dyninst/testsuite

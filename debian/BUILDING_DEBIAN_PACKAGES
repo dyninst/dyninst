@@ -1,0 +1,14 @@
+In order to build Debian packages the following steps need to be taken, from
+a Debian machine:
+
+1. Copy the Debian directory into core.
+2. Make sure the scripts directory is in the same directory as core.
+3. Install all of the Build-Depends packages listed in debian/control.
+4. Make sure debian/rules is executable
+5. Verify that libdyninst.install, libdyninst-dev.install, and dyninst-testsuite.install
+   put the correct set of files in the correct place.
+6. Run dpkg-buildpackage
+
+Notes:
+* tcl, tk, bison, and flex are dyner dependencies.  Remove if we remove dyner from the
+  non-tar distributions.

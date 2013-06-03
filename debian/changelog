@@ -1,0 +1,79 @@
+dyninst (8.1.2-1) unstable; urgency=low
+  * Bug fixes for Dyninst 8.1
+
+ -- Paradyn / Dyninst Project <paradyn@cs.wisc.edu>  Fri, 31 May 2013 15:48:14 +0000 
+
+dyninst (8.1.1-1) unstable; urgency=low
+  * Bug fixes for Dyninst 8.1
+
+ -- Paradyn / Dyninst Project <paradyn@cs.wisc.edu>  Thu, 14 Mar 2013 22:27:22 +0000
+
+dyninst (8.1.0-1) unstable; urgency=low
+  * Configure fixes and improvements
+  * while loop added to BPatch_snippet language
+  * Initial SystemTap support
+  * C++11x support
+  * Deprecated BPatch_Set in favor of std::set
+  * Bugfixes
+  * Added Process::addLibrary interface to ProcControl
+  * SSE support in InstructionAPI
+  * Fedora 18 Dwarf parsing support
+
+ -- Paradyn / Dyninst Project <paradyn@cs.wisc.edu>  Fri, 01 Mar 2013 19:06:35 +0000
+
+dyninst (8.0.0-1) unstable; urgency=low
+  * BG/Q rewriter support
+  * Initial PatchAPI release
+  * ProcControl, PatchAPI, Stackwalker integration
+  * BPatch_object abstraction added
+  * Function wrapping support
+  * Standards-compiant configure process
+  * Dwarf3/Dwarf4 parsing support
+
+
+ -- Paradyn / Dyninst Project <paradyn@cs.wisc.edu>  Mon, 19 Nov 2012 17:56:04 +0000
+
+dyninst (7.0-1) unstable; urgency=low
+
+  * Initial release of ParseAPI
+  * Initial release of ProcControlAPI
+  * PowerPC release of InstructionAPI
+  * BlueGene support for static binary rewriter
+
+ -- Paradyn / Dyninst Project <paradyn@cs.wisc.edu>  Thur, 10 Mar 2011 13:35:00 -0600
+
+dyninst (6.1-1) unstable; urgency=low
+
+  * Optimized instrumentation generation
+  * Bug fixes for static binary rewriter
+  * Optimized instruction decoding
+  * Initial release of depGraphAPI
+  * Gap parsing for stripped code
+
+ -- Paradyn / Dyninst Project <paradyn@cs.wisc.edu>  Mon, 7 Dec 2009 17:30:00 -0600
+
+dyninst (6.0-1) unstable; urgency=low
+
+  * Initial release of static binary rewriter
+  * Initial release of instructionAPI
+  * Initial release of stackwalkerAPI
+  * Beta release of depGraphAPI
+  * Code parsing improvements
+
+ -- Paradyn / Dyninst Project <paradyn@cs.wisc.edu>  Tue, 30 Jun 2009 00:00:00 -0600
+
+dyninst (5.2-1) unstable; urgency=low
+
+  * Optimized instrumentation generation
+  * Beta release of static binary rewriter
+  * Slicing support
+  * Parallel library support
+
+ -- Paradyn / Dyninst Project <paradyn@cs.wisc.edu>  Thu, 20 Apr 2006 10:24:22 -0500
+
+dyninst (5.0-1) unstable; urgency=low
+
+  * Initial release 
+
+ -- Paradyn / Dyninst Project <paradyn@cs.wisc.edu>  Thu, 20 Apr 2006 10:24:22 -0500
+

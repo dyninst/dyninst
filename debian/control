@@ -1,0 +1,22 @@
+Source: dyninst
+Priority: optional
+Maintainer: Paradyn / Dyninst Project <dyninst-api@.cs.wisc.edu>
+Build-Depends: debhelper (>= 4.0.0), nasm, libelf-dev, binutils-dev
+Standards-Version: 3.6.2
+Section: libs
+
+Package: libdyninst-dev
+Recommends: dyninst-doc
+Conflicts: libdyninstAPI-dev
+Section: libdevel
+Architecture: any
+Depends: libdyninst (= ${Source-Version})
+Description: The dyninstAPI library development headers
+ The dyninstAPI library development headers.
+
+Package: libdyninst
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: The dyninstAPI library and the runtime library
+ The dyninstAPI library and the runtime library

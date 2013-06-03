@@ -1,0 +1,11 @@
+Package: libdyninst
+Source: dyninst
+Version: 8.1.2-1
+Architecture: amd64
+Maintainer: Paradyn / Dyninst Project <dyninst-api@.cs.wisc.edu>
+Installed-Size: 213806
+Depends: libc6 (>= 2.14), libelf1 (>= 0.131), libgcc1 (>= 1:4.1.1), libstdc++6 (>= 4.6)
+Section: libs
+Priority: optional
+Description: The dyninstAPI library and the runtime library
+ The dyninstAPI library and the runtime library
