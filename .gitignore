@@ -5,6 +5,7 @@ DEPENDS
 *.so
 *.so.1
 *.so.?.?
+*.so.?.?.?
 *.a
 *.tlog
 *.log

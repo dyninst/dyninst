@@ -44,6 +44,7 @@
 #include "proccontrol/src/x86_process.h"
 #include "proccontrol/src/ppc_process.h"
 #include "proccontrol/src/mmapalloc.h"
+#include "proccontrol/src/processplat.h"
 #include "common/h/dthread.h"
 #include <sys/types.h>
 #include <sys/ptrace.h>
@@ -97,7 +98,7 @@ class DecoderLinux : public Decoder
    Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class linux_process : public sysv_process, public unix_process, public thread_db_process, public indep_lwp_control_process, public mmap_alloc_process
+class linux_process : public sysv_process, public unix_process, public thread_db_process, public indep_lwp_control_process, public mmap_alloc_process, public int_followFork, public int_signalMask, public int_LWPTracking
 {
  public:
    linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -140,19 +141,14 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_supportLWPPostDestroy();
    virtual void plat_adjustSyncType(Event::ptr ev, bool gen);
    virtual bool fork_setTracking(FollowFork::follow_t b);
-   virtual FollowFork *getForkTracking();
    virtual FollowFork::follow_t fork_isTracking();
-   virtual LWPTracking *getLWPTracking();
    virtual bool plat_lwpChangeTracking(bool b);
-
-
+   virtual bool allowSignal(int signal_no);
   protected:
    int computeAddrWidth(Dyninst::Architecture me);
-   FollowFork *fork_tracker;
-   LWPTracking *lwp_tracker;
 };
 
-class linux_x86_process : virtual public linux_process, virtual public x86_process
+class linux_x86_process : public linux_process, public x86_process
 {
   public:
    linux_x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -164,7 +160,7 @@ class linux_x86_process : virtual public linux_process, virtual public x86_proce
    virtual bool plat_supportHWBreakpoint();
 };
 
-class linux_ppc_process : virtual public linux_process, virtual public ppc_process
+class linux_ppc_process : public linux_process, public ppc_process
 {
   public:
    linux_ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -222,13 +218,6 @@ class linux_ppc_thread : virtual public linux_thread, virtual public ppc_thread
   public:
    linux_ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~linux_ppc_thread();
-};
-
-class LinuxFeatures : public LibraryTracking, public ThreadTracking, FollowFork
-{
-  public:
-   LinuxFeatures();
-   ~LinuxFeatures();
 };
 
 class LinuxPtrace

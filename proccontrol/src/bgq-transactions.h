@@ -145,7 +145,8 @@ class Transaction
       return *((CmdType *) packet_buffer);
    }
 
-   bool writeCommand(const ToolCommand *cmd, uint16_t cmd_type, response::ptr resp, unsigned int resp_mod)
+   bool writeCommand(const ToolCommand *cmd, uint16_t cmd_type, unsigned int resp_id,
+                     bool use_resp_id)
    {
       uint16_t msg_type = bgq_process::getCommandMsgType(cmd_type);
       assert(msg_type == msg_id);
@@ -201,12 +202,12 @@ class Transaction
          next_start_offset = last_cmd.offset + last_cmd.length;
       }
 
-      if (resp) {
+      if (use_resp_id) {
          if (!resp_set) {
             resp_set = new ResponseSet();
             msg->header.sequenceId = resp_set->getID();
          }
-         resp_set->addID(resp->getID() + resp_mod, transaction_index);
+         resp_set->addID(resp_id, transaction_index);
       }
 
       //growTransactionBuffer(next_start_offset + cmd_size);

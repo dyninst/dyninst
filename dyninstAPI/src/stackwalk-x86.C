@@ -128,7 +128,6 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
   bool result;
   AddressSpace::RelocInfo ri;
   baseTramp *base = NULL;
-  func_instance *func = NULL;
   instPoint *point = NULL;
   Address orig = 0;
 
@@ -149,7 +148,6 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
   }
 
   base = ri.bt;
-  func = ri.func;
   orig = ri.orig;
 
   // set entryExit if we're in entry or exit instrumentation

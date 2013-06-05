@@ -38,6 +38,8 @@
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/response.h"
+#include "proccontrol/src/processplat.h"
+#include "proccontrol/src/int_event.h"
 #include "common/h/Types.h"
 #include <stdlib.h>
 #include <map>
@@ -66,6 +68,7 @@ private:
    ThreadTrackingSet *thrdset;
    LWPTrackingSet *lwpset;
    FollowForkSet *forkset;
+   RemoteIOSet *ioset;
 };
 
 class TSetFeatures {
@@ -83,7 +86,8 @@ PSetFeatures::PSetFeatures() :
    libset(NULL),
    thrdset(NULL),
    lwpset(NULL),
-   forkset(NULL)
+   forkset(NULL),
+   ioset(NULL)
 {
 }
 
@@ -100,6 +104,10 @@ PSetFeatures::~PSetFeatures()
    if (forkset) {
       delete forkset;
       forkset = NULL;
+   }
+   if (ioset) {
+      delete ioset;
+      ioset = NULL;
    }
 }
 
@@ -846,6 +854,8 @@ ProcessSet::ptr ProcessSet::attachProcessSet(vector<AttachInfo> &ainfo)
          i++;
          continue;
       }
+      pthrd_printf("Erasing process %d from attach return set because err = %d\n",
+                   proc->getPid(), last_error);
       ai.error_ret = last_error;
       ai.proc = Process::ptr();
       newps->erase(i++);
@@ -978,11 +988,11 @@ LibraryTrackingSet *ProcessSet::getLibraryTracking()
       return features->libset;
 
    MTLock lock_this_func;
+   if (!procset)
+      return NULL;
    if (!features) {
       features = new PSetFeatures();
    }
-   if (!procset)
-      return NULL;
    for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
       Process::ptr p = *i;
       if (p->getLibraryTracking()) {
@@ -1000,11 +1010,11 @@ ThreadTrackingSet *ProcessSet::getThreadTracking()
       return features->thrdset;
 
    MTLock lock_this_func;
+   if (!procset)
+      return NULL;
    if (!features) {
       features = new PSetFeatures();
    }
-   if (!procset)
-      return NULL;
    for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
       Process::ptr p = *i;
       if (p->getThreadTracking()) {
@@ -1022,11 +1032,11 @@ LWPTrackingSet *ProcessSet::getLWPTracking()
       return features->lwpset;
 
    MTLock lock_this_func;
+   if (!procset)
+      return NULL;
    if (!features) {
       features = new PSetFeatures();
    }
-   if (!procset)
-      return NULL;
    for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
       Process::ptr p = *i;
       if (p->getLWPTracking()) {
@@ -1044,16 +1054,38 @@ FollowForkSet *ProcessSet::getFollowFork()
       return features->forkset;
 
    MTLock lock_this_func;
+   if (!procset)
+      return NULL;
    if (!features) {
       features = new PSetFeatures();
    }
-   if (!procset)
-      return NULL;
    for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
       Process::ptr p = *i;
       if (p->getFollowFork()) {
          features->forkset = new FollowForkSet(shared_from_this());
          return features->forkset;
+      }
+   }
+
+   return NULL;
+}
+
+RemoteIOSet *ProcessSet::getRemoteIO()
+{
+   if (features && features->ioset)
+      return features->ioset;
+
+   MTLock lock_this_func;
+   if (!procset)
+      return NULL;
+   if (!features) {
+      features = new PSetFeatures();
+   }
+   for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
+      Process::ptr p = *i;
+      if (p->getRemoteIO()) {
+         features->ioset = new RemoteIOSet(shared_from_this());
+         return features->ioset;
       }
    }
 
@@ -1080,6 +1112,10 @@ const FollowForkSet *ProcessSet::getFollowFork() const
    return const_cast<ProcessSet *>(this)->getFollowFork();
 }
 
+const RemoteIOSet *ProcessSet::getRemoteIO() const
+{
+   return const_cast<ProcessSet *>(this)->getRemoteIO();
+}
 
 ProcessSet::ptr ProcessSet::getErrorSubset() const
 {
@@ -1209,12 +1245,16 @@ struct test_exited {
 bool ProcessSet::anyExited() const
 {
    MTLock lock_this_func;
+   if (procset->empty())
+      return true;
    return any_match(procset->begin(), procset->end(), test_exited());
 }
 
 bool ProcessSet::allExited() const
 {
    MTLock lock_this_func;
+   if (procset->empty())
+      return true;
    return all_match(procset->begin(), procset->end(), test_exited());
 }
 
@@ -3074,14 +3114,14 @@ bool LibraryTrackingSet::setTrackLibraries(bool b) const
    procset_iter iter("setTrackLibraries", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
-      int_process *proc = p->llproc();
-
-      if (!p->getLibraryTracking()) {
+      int_libraryTracking *proc = p->llproc()->getLibraryTracking();
+      if (!proc) {
          perr_printf("Library tracking not supported on process %d\n", p->getPid());
          p->setLastError(err_unsupported, "No library tracking on this platform\n");
          had_error = true;
          continue;
       }
+      
       pthrd_printf("Changing sysv track libraries to %s for %d\n",
                    b ? "true" : "false", proc->getPid());
 
@@ -3089,7 +3129,7 @@ bool LibraryTrackingSet::setTrackLibraries(bool b) const
       int_breakpoint *bp;
       Address addr;
 
-      bool result = proc->sysv_setTrackLibraries(b, bp, addr, add_bp);
+      bool result = proc->setTrackLibraries(b, bp, addr, add_bp);
       if (!result) {
          had_error = true;
          continue;
@@ -3222,9 +3262,8 @@ bool ThreadTrackingSet::setTrackThreads(bool b) const
    procset_iter iter("setTrackThreads", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
-      int_process *proc = p->llproc();
-
-      if (!p->getThreadTracking()) {
+      int_threadTracking *proc = p->llproc()->getThreadTracking();
+      if (!proc) {
          perr_printf("Thread tracking not supported on process %d\n", p->getPid());
          p->setLastError(err_unsupported, "No thread tracking on this platform\n");
          had_error = true;
@@ -3236,7 +3275,7 @@ bool ThreadTrackingSet::setTrackThreads(bool b) const
 
       bool add_bp;
       set<pair<int_breakpoint *, Address> > bps;
-      bool result = proc->threaddb_setTrackThreads(b, bps, add_bp);
+      bool result = proc->setTrackThreads(b, bps, add_bp);
       if (!result) {
          had_error = true;
          continue;
@@ -3287,8 +3326,14 @@ bool ThreadTrackingSet::refreshThreads() const
    int_processSet *procset = ps->getIntProcessSet();
    procset_iter iter("refreshThreads", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_process *proc = (*i)->llproc();
-      if (!proc->threaddb_refreshThreads()) {
+      int_threadTracking *proc = (*i)->llproc()->getThreadTracking();
+      if (!proc) {
+         perr_printf("Thread tracking not supported on process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "No thread tracking on this platform\n");
+         had_error = true;
+         continue;
+      }
+      if (!proc->refreshThreads()) {
          had_error = true;
          continue;
       }
@@ -3340,7 +3385,13 @@ bool LWPTrackingSet::refreshLWPs() const
    set<int_process *> all_procs;
    set<int_process *> change_procs;
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_process *proc = (*i)->llproc();
+      int_LWPTracking *proc = (*i)->llproc()->getLWPTracking();
+      if (!proc) {
+         perr_printf("LWP tracking not supported on process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "No LWP tracking on this platform\n");
+         had_error = true;
+         continue;
+      }
       result_response::ptr resp;
       if (!proc->lwp_refreshPost(resp)) {
          pthrd_printf("Error refreshing lwps on %d\n", proc->getPid());
@@ -3355,7 +3406,9 @@ bool LWPTrackingSet::refreshLWPs() const
    int_process::waitForAsyncEvent(all_resps);
 
    for (set<int_process *>::iterator i = all_procs.begin(); i != all_procs.end(); i++) {
-      int_process *proc = *i;
+      int_LWPTracking *proc = (*i)->getLWPTracking();
+      if (!proc)
+         continue;
       bool changed;
       bool result = proc->lwp_refreshCheck(changed);
       if (!result) {
@@ -3409,23 +3462,14 @@ bool FollowForkSet::setFollowFork(FollowFork::follow_t f) const
    int_processSet *procset = ps->getIntProcessSet();
    procset_iter iter("setFollowFork", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      Process::ptr proc = *i;
-      if (!proc->getFollowFork()) {
-         perr_printf("Fork control not supported on process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "No fork control on this platform\n");
+      int_followFork *proc = (*i)->llproc()->getFollowFork();
+      if (!proc) {
+         perr_printf("Follow Fork not supported on process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "No follow fork control on this platform\n");
          had_error = true;
          continue;
       }
-
-      int_process *llproc = proc->llproc();
-      if (!llproc) {
-         perr_printf("setFollowFork attempted on deleted process %d\n", proc->getPid());
-         proc->setLastError(err_exited, "Process was exited");
-         had_error = true;
-         continue;
-      }
-
-      llproc->fork_setTracking(f);
+      proc->fork_setTracking(f);
    }
 
    return !had_error;
@@ -3462,14 +3506,14 @@ bool CallStackUnwindingSet::walkStack(CallStackCallback *stk_cb)
    getResponses().lock();
    for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
       Thread::ptr t = *i;
-      if (!t->getCallStackUnwinding()) {
+      int_thread *thr = t->llthrd();
+      int_callStackUnwinding *proc = thr->llproc()->getCallStackUnwinding();
+      if (!proc) {
          perr_printf("Stack unwinding not supported on process %d\n", t->getProcess()->getPid());
          t->setLastError(err_unsupported, "No stack unwinding on this platform\n");
          had_error = true;
          continue;
       }
-      int_thread *thr = t->llthrd();
-      int_process *proc = thr->llproc();
       stack_response::ptr stk_resp = stack_response::createStackResponse(thr);
       stk_resp->markSyncHandled();
 
@@ -3502,7 +3546,7 @@ bool CallStackUnwindingSet::walkStack(CallStackCallback *stk_cb)
          stack_response::ptr stk_resp = (*i)->getStackResponse();
          if (stk_resp->hasError() || stk_resp->isReady()) {
             int_thread *thr = stk_resp->getThread();
-            int_process *proc = thr->llproc();
+            int_callStackUnwinding *proc = thr->llproc()->getCallStackUnwinding();
             pthrd_printf("Handling completed stackwalk for %d/%d\n", proc->getPid(), thr->getLWP());
             bool result = proc->plat_handleStackInfo(stk_resp, stk_cb);
             if (!result) {
@@ -3519,6 +3563,155 @@ bool CallStackUnwindingSet::walkStack(CallStackCallback *stk_cb)
       }
       if (!did_something) 
          int_process::waitForAsyncEvent(a_resp);
+   }
+
+   return !had_error;
+}
+
+bool RemoteIOSet::getFileNames(FileSet *fset)
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   if (!fset) {
+      perr_printf("NULL FileSet passed to getFileNames\n");
+      globalSetLastError(err_badparam, "Unexpected NULL parameter");
+      return false;
+   }
+   ProcessSet::ptr procs = pset.lock();
+   if (!procs || procs->empty()) {
+      perr_printf("getFileNames attempted on empty proces set\n");
+      globalSetLastError(err_badparam, "getFileNames on empty process set");
+      return false;
+   }
+
+   pthrd_printf("RemoteIOSet::getFileNames called on %lu processes\n", (unsigned long)procs->size());
+
+   set<FileSetResp_t *> all_resps;
+   int_processSet *procset = procs->getIntProcessSet();
+   procset_iter iter("getFileNames", had_error, ERR_CHCK_NORM);   
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      int_remoteIO *proc = (*i)->llproc()->getRemoteIO();
+      if (!proc) {
+         perr_printf("getFileNames attempted on non RemoteIO process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "getFileNames not supported on this platform");
+         had_error = true;
+         continue;
+      }
+
+      FileSetResp_t *new_resp = new FileSetResp_t(fset, proc);
+      bool result = proc->plat_getFileNames(new_resp);
+      if (!result) {
+         pthrd_printf("Error running plat_getFileNames on %d\n", proc->getPid());
+         proc->setLastError(err_internal, "Internal error getting filenames");
+         had_error = true;
+         delete new_resp;
+         continue;
+      }
+
+      all_resps.insert(new_resp);
+   }
+
+   for (set<FileSetResp_t *>::iterator i = all_resps.begin(); i != all_resps.end(); i++) {
+      FileSetResp_t *resp = *i;
+      resp->getProc()->waitForEvent(resp);
+      delete resp;
+   }
+
+   return !had_error;
+}
+
+bool RemoteIOSet::getFileStatData(FileSet *fset)
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   if (!fset) {
+      perr_printf("NULL FileSet passed to getFileStatData\n");
+      globalSetLastError(err_badparam, "Unexpected NULL parameter");
+      return false;
+   }
+   ProcessSet::ptr procs = pset.lock();
+   if (!procs || procs->empty()) {
+      perr_printf("getFileStatData attempted on empty proces set\n");
+      globalSetLastError(err_badparam, "getFileStatData on empty process set");
+      return false;
+   }
+
+
+   pthrd_printf("RemoteIOSet::getFileStatData called on %lu processes\n", (unsigned long)procs->size());
+
+   set<StatResp_t *> all_resps;
+
+   for (FileSet::iterator i = fset->begin(); i != fset->end(); i++) {
+      pthrd_printf("About to access proc %p\n", i->first->llproc());
+      fflush(stderr);
+      int_remoteIO *proc = i->first->llproc()->getRemoteIO();
+      if (!proc) {
+         perr_printf("getFileStatData attempted on non RemoteIO process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "getFileStatData not supported on this platform");
+         had_error = true;
+         continue;
+      }
+      FileInfo &fi = i->second;
+      int_fileInfo_ptr info = fi.getInfo();
+      if (info->filename.empty()) {
+         perr_printf("Empty filename in stat operation on %d\n", proc->getPid());
+         proc->setLastError(err_badparam, "Empty filename specified in stat operation");
+         had_error = true;
+         continue;
+      }
+      
+      bool result = proc->plat_getFileStatData(info->filename, &info->stat_results, all_resps);
+      if (!result) {
+         pthrd_printf("Error while requesting file stat data on %d\n", proc->getPid());
+         had_error = true;
+         continue;
+      }
+   }
+
+   for (set<StatResp_t *>::iterator i = all_resps.begin(); i != all_resps.end(); i++) {
+      StatResp_t *resp = *i;
+      resp->getProc()->waitForEvent(resp);
+      delete resp;
+   }
+
+   return !had_error;
+}
+
+bool RemoteIOSet::readFileContents(const FileSet *fset)
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   if (!fset) {
+      perr_printf("NULL FileSet passed to getFileStatData\n");
+      globalSetLastError(err_badparam, "Unexpected NULL parameter");
+      return false;
+   }
+
+   set<FileReadResp_t *> resps;
+
+   for (FileSet::const_iterator i = fset->begin(); i != fset->end(); i++) {
+      int_remoteIO *proc = i->first->llproc()->getRemoteIO();
+      if (!proc) {
+         perr_printf("getFileStatData attempted on non RemoteIO process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "getFileStatData not supported on this platform");
+         had_error = true;
+         continue;
+      }
+
+      int_eventAsyncFileRead *fileread = new int_eventAsyncFileRead();
+      fileread->offset = 0;
+      fileread->whole_file = true;
+      fileread->filename = i->second.getFilename();
+      bool result = proc->plat_getFileDataAsync(fileread);
+      if (!result) {
+         pthrd_printf("Error while requesting file data on %d\n", proc->getPid());
+         had_error = true;
+         delete fileread;
+         continue;
+      }
    }
 
    return !had_error;

@@ -68,12 +68,17 @@ Aggregate::Aggregate(Symbol *sym) :
     typedNames_.push_back(sym->getTypedName());
 }
 
+Aggregate::Aggregate(Module *mod) :
+   firstSymbol(NULL),
+   offset_(0)
+{
+   module_ = mod;
+}
 
 Offset Aggregate::getOffset() const 
 { 
 	if (!firstSymbol)
 	{
-		fprintf(stderr, "%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
 		return (Offset) 0L;
 	}
 	return offset_;
@@ -83,7 +88,6 @@ unsigned Aggregate::getSize() const
 { 
 	if (!firstSymbol)
 	{
-		fprintf(stderr, "%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
 		return (unsigned) 0;
 	}
 	return firstSymbol->getSize(); 
@@ -197,8 +201,8 @@ Symbol * Aggregate::getFirstSymbol() const
     return firstSymbol;
 }
 
-SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary) 
- {
+bool Aggregate::addMangledNameInternal(std::string name, bool isPrimary, bool demangle)
+{
     // Check to see if we're duplicating
     for (unsigned i = 0; i < mangledNames_.size(); i++) {
         if (mangledNames_[i] == name)
@@ -211,6 +215,28 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
     }
     else
         mangledNames_.push_back(name);
+
+    if (demangle) {
+       Symtab *symt = module_->exec();
+       string pretty, typed;
+       bool result = symt->buildDemangledName(name, pretty, typed, 
+                                              symt->isNativeCompiler(), module_->language());
+       if (result) {
+          prettyNames_.push_back(pretty);
+          typedNames_.push_back(typed);
+       }
+       else {
+          //If mangling failed, then assume mangled name is already pretty
+          prettyNames_.push_back(pretty);
+       }
+    }
+    return true;
+}
+
+SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary) 
+{
+   if (!addMangledNameInternal(name, isPrimary, false))
+      return false;
 
     Symbol *staticSym = NULL;
     Symbol *dynamicSym = NULL;
@@ -259,6 +285,11 @@ SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary)
     else
         prettyNames_.push_back(name);
 
+    if (mangledNames_.empty()) {
+       //Can happen with inlined (symbolless) functions that
+       // only specify a demangled name.
+       mangledNames_.push_back(name);
+    }
     return true;
  }
 

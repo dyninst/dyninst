@@ -150,7 +150,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
          * P = relOffset
          */
        
-        Elf32_Word addend;
+        Elf32_Word addend = 0;
         if( rel.regionType() == Region::RT_REL ) {
             memcpy(&addend, &targetData[dest], sizeof(Elf32_Word));
         }else if( rel.regionType() == Region::RT_RELA ) {
@@ -215,6 +215,13 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
                        ") that is meant for use during dynamic linking";
                 errMsg = tmp.str();
                 return false;
+#if defined(R_386_IRELATIVE)
+	case R_386_IRELATIVE:
+              // Consistency error; we should never try to process one of these
+              // ourselves.
+	  assert(0);
+	  break;
+#endif
             default:
                 tmp << "Relocation type " << rel.getRelType() 
                     << " currently unimplemented";

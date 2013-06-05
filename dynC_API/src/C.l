@@ -68,7 +68,7 @@ const bool lexVerbose = false; // set to true for debug mode
 "/*"        { BEGIN(comment); }                                                  
 
 char|int|long|float|double|short|void|bool { yylval.sval = strdup(yytext); return TYPE;}
-"char"[ \t\v\f]*"*" {yylval.sval = "char *"; return TYPE; }
+"char"[ \t\v\f]*"*" {yylval.sval = strdup("char *"); return TYPE; }
 
 "struct" {return STRUCT; }
 "union" {return UNION; }
@@ -120,12 +120,7 @@ L?'(\\.|[^\\'])+' { return(CONSTANT); }
                   // this string handling code was taken from the flex manual
                   if(lexVerbose)printf("string done\n");
                   BEGIN(INITIAL);                                                    
-                  char * cstr = new char[c_string_buf.size() + 1];                   
-
-                  strcpy (cstr, c_string_buf.c_str());                               
-
-                  yylval.sval = strdup(cstr);                                   
-                  delete[] cstr;                                                     
+                  yylval.sval = strdup(c_string_buf.c_str());
                   return STRING;                                                     
                 }
 
@@ -241,6 +236,7 @@ void set_lex_input(char *str)
    
    input_str = str;
    bp = dynC_scan_string(str);
+   (void)bp; // unused warning...
    firstCall = false;
 }
 

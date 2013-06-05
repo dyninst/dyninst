@@ -138,7 +138,7 @@ public:
     unsigned getMemoryPageSize() const;
 
     typedef ProcControlAPI::Process::mem_perm PCMemPerm;
-    bool getMemoryAccessRights(Address start,  size_t size, PCMemPerm& rights);
+    bool getMemoryAccessRights(Address start,  PCMemPerm& rights);
     bool setMemoryAccessRights(Address start,  size_t size, PCMemPerm  rights);
     void changeMemoryProtections(Address addr, size_t size, PCMemPerm  rights,
                                  bool setShadow);

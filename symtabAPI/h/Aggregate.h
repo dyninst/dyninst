@@ -52,19 +52,22 @@ class Module;
 class Symtab; 
 class Region; 
 class Aggregate; 
+class DwarfWalker;
+
 struct SymbolCompareByAddr;
 
-class Aggregate /*: public AnnotatableSparse  */
+class Aggregate
 {
-    friend class Symtab;
-    friend struct SymbolCompareByAddr;
+   friend class Symtab;
+   friend struct SymbolCompareByAddr;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
-
- protected:
+   friend class DwarfWalker;
+  protected:
       SYMTAB_EXPORT Aggregate();
       SYMTAB_EXPORT Aggregate(Symbol *sym);
+      SYMTAB_EXPORT Aggregate(Module *m);      
+  public:
 
-   public:
       
       virtual ~Aggregate() {};
 
@@ -76,8 +79,8 @@ class Aggregate /*: public AnnotatableSparse  */
       /***** Symbol Collection Management *****/
       SYMTAB_EXPORT bool addSymbol(Symbol *sym);
       SYMTAB_EXPORT virtual bool removeSymbol(Symbol *sym) = 0;
-      SYMTAB_EXPORT bool getSymbols(std::vector<Symbol *>&syms) const;
-      SYMTAB_EXPORT Symbol * getFirstSymbol() const;
+      SYMTAB_EXPORT bool getSymbols(std::vector<Symbol *> &syms) const;
+      SYMTAB_EXPORT Symbol *getFirstSymbol() const;
 
       /***** Symbol naming *****/
       SYMTAB_EXPORT const std::vector<std::string> &getAllMangledNames();
@@ -97,11 +100,6 @@ class Aggregate /*: public AnnotatableSparse  */
 
 
    protected:
-
-      bool addMangledNameInt(std::string name, bool isPrimary);
-      bool addPrettyNameInt(std::string name, bool isPrimary);
-      bool addTypedNameInt(std::string name, bool isPrimary);
-
       SYMTAB_EXPORT bool removeSymbolInt(Symbol *sym);
       SYMTAB_EXPORT virtual bool changeSymbolOffset(Symbol *sym);
 
@@ -123,6 +121,7 @@ class Aggregate /*: public AnnotatableSparse  */
 	  //void rebuild_symbol_vector(SerializerBase *, std::vector<Offset> *) THROW_SPEC (SerializerError);
 	  void rebuild_symbol_vector(SerializerBase *, std::vector<Address> &) THROW_SPEC (SerializerError);
 	  SYMTAB_EXPORT void serialize_aggregate(SerializerBase *, const char * = "Aggregate") THROW_SPEC (SerializerError);
+     bool addMangledNameInternal(std::string name, bool isPrimary, bool demangle);
 };
 
 }

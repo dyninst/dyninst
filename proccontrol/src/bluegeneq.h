@@ -32,11 +32,13 @@
 #include "proccontrol/h/Decoder.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/src/int_process.h"
+#include "proccontrol/src/processplat.h"
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/ppc_process.h"
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/int_thread_db.h"
 #include "proccontrol/src/mmapalloc.h"
+#include "proccontrol/src/resp.h"
 
 #include "ramdisk/include/services/MessageHeader.h"
 #include "ramdisk/include/services/ToolctlMessages.h"
@@ -66,7 +68,12 @@ class bgq_process :
    public thread_db_process,
    public ppc_process,
    public hybrid_lwp_control_process,
-   public mmap_alloc_process
+   public mmap_alloc_process,
+   public int_multiToolControl,
+   public int_signalMask,
+   public int_callStackUnwinding,
+   public int_BGQData,
+   public int_remoteIO
 {
    friend class ComputeNode;
    friend class HandlerBGQStartup;
@@ -79,6 +86,7 @@ class bgq_process :
                            response::ptr resp);
 
    bool sendCommand(const ToolCommand &cmd, uint16_t cmd_type, response::ptr resp = response::ptr(), unsigned int resp_mod = 0);
+   bool sendCommand(const ToolCommand &cmd, uint16_t cmd_type, Resp::ptr resp);
 
   public:
    static uint32_t getCommandLength(uint16_t cmd_type, const ToolCommand &cmd);
@@ -154,7 +162,7 @@ class bgq_process :
    virtual bool plat_lwpRefreshNoteNewThread(int_thread *thr);
 
    bool handleStartupEvent(void *data);
-   ComputeNode *getComputeNode();
+   ComputeNode *getComputeNode() const;
    uint32_t getRank();
    void fillInToolMessage(ToolMessage &toolmsg, uint16_t msg_type, response::ptr resp = response::ptr());
 
@@ -165,6 +173,20 @@ class bgq_process :
    virtual MultiToolControl::priority_t mtool_getPriority();
    virtual MultiToolControl *mtool_getMultiToolControl();
 
+   virtual void bgq_getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const;
+   virtual unsigned int bgq_getComputeNodeID() const;
+   virtual void bgq_getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
+   virtual void bgq_getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
+   virtual void bgq_getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
+
+   virtual bool plat_getFileNames(FileSetResp_t *resp);
+   virtual bool plat_getFileStatData(std::string filename, Dyninst::ProcControlAPI::stat64_ptr *stat_results,
+                                     std::set<StatResp_t *> &resps);
+   virtual bool plat_getFileDataAsync(int_eventAsyncFileRead *fileread);
+   virtual int getMaxFileReadSize();
+
+   virtual bool allowSignal(int signal_no);
+   
    virtual int threaddb_getPid();
   private:
    typedef Transaction<QueryMessage, QueryAckMessage> QueryTransaction;
@@ -237,7 +259,6 @@ class bgq_process :
    static bool do_all_attach;
 
    static set<void *> held_msgs;
-   static unsigned int num_pending_stackwalks;
 };
 
 class bgq_thread : public thread_db_thread, public ppc_thread
@@ -248,6 +269,7 @@ class bgq_thread : public thread_db_thread, public ppc_thread
    bool last_signaled;
    CallStackUnwinding *unwinder;
    Address last_ss_addr;
+   stack_response::ptr pending_stack_resp;
   public:
    bgq_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~bgq_thread();
@@ -283,21 +305,23 @@ struct buffer_t {
    void *buffer;
    size_t size;
    bool is_heap_allocated;
+   bool is_timeout;
    buffer_t(void *b, size_t s, bool h) :
      buffer(b),
      size(s),
-     is_heap_allocated(h)
+     is_heap_allocated(h),
+     is_timeout(false)
    {
    }
    buffer_t() :
      buffer(NULL),
      size(0),
-     is_heap_allocated(false)
+     is_heap_allocated(false),
+     is_timeout(false)
    {
    }
 
 };
-
 
 class ComputeNode
 {
@@ -312,6 +336,7 @@ class ComputeNode
    ComputeNode(int cid);
 
    std::set<bgq_process *> procs;
+   std::vector<int> former_procs;
   public:
    static ComputeNode *getComputeNodeByID(int cn_id);
    static ComputeNode *getComputeNodeByRank(uint32_t rank);
@@ -412,11 +437,14 @@ class ArchEventBGQ : public ArchEvent
   private:
    ToolMessage *msg;
    bool free_msg;
+   bool timeout_msg;
   public:
    ArchEventBGQ(ToolMessage *msg);
+   ArchEventBGQ();
    virtual ~ArchEventBGQ();
 
    ToolMessage *getMsg() const;
+   bool isTimeout() const;
    void dontFreeMsg();
 };
 
@@ -449,7 +477,14 @@ class DecoderBlueGeneQ : public Decoder
    bool decodeReleaseControlAck(ArchEventBGQ *archevent, bgq_process *proc, int err_code, std::vector<Event::ptr> &events);
    bool decodeControlAck(ArchEventBGQ *ev, bgq_process *qproc, vector<Event::ptr> &events);
    bool decodeLWPRefresh(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, std::vector<Event::ptr> &events);
+   bool decodeTimeout(vector<Event::ptr> &events);
+   bool decodeFileStat(ToolCommand *cmd, bgq_process *proc, unsigned int resp_id, int rc);
+   bool decodeFileContents(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, 
+                           int rc, unsigned int resp_id, bool owns_msg,
+                           std::vector<Event::ptr> &events);
+   bool decodeGetFilenames(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, int rc, int id);
 
+   bool usesResp(uint16_t cmdtype);
 
    Event::ptr createEventDetach(bgq_process *proc, bool err);
  public:
@@ -498,6 +533,10 @@ class ReaderThread : public IOThread
    virtual void localInit();
    int kick_fd;
    int kick_fd_write;
+   bool is_gen_kicked;
+   unsigned timeout_set;
+   struct timeval timeout;
+   Mutex timeout_lock;
   protected:
    virtual void thrd_kick();
   public:
@@ -507,6 +546,9 @@ class ReaderThread : public IOThread
    void addComputeNode(ComputeNode *cn);
    void rmComputeNode(ComputeNode *cn);
    void setKickPipe(int fd);
+   void setTimeout(const struct timeval &tv);
+   void clearTimeout();
+   void kick_generator();
 };
 
 class WriterThread : public IOThread
@@ -531,6 +573,7 @@ class WriterThread : public IOThread
    void notifyAck(int rank);
    void addProcess(bgq_process *proc);
    void rmProcess(bgq_process *proc);
+   void forcePastAck(ComputeNode *cn);
 };
 
 

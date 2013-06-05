@@ -49,6 +49,7 @@ class Symbol;
 class Symtab;
 class Aggregate;
 class Function;
+class FunctionBase;
 
 class Variable : public Aggregate, public Serializable, public AnnotatableSparse {
 	friend class Symtab;
@@ -84,7 +85,7 @@ class localVar : public Serializable, public AnnotatableSparse
 	Type *type_;
 	std::string fileName_;
 	int lineNum_;
-        Function *func_;
+        FunctionBase *func_;
 	std::vector<VariableLocation> locs_;
         // We start with an abstract location that may include "the frame
         // pointer" as a register. Once a user requests the location list
@@ -101,7 +102,7 @@ class localVar : public Serializable, public AnnotatableSparse
         type_(NULL), lineNum_(-1), func_(NULL), locsExpanded_(false) {}
 	//  Internal use only
 	localVar(std::string name,  Type *typ, std::string fileName, 
-            int lineNum, Function *f, 
+            int lineNum, FunctionBase *f, 
             std::vector<VariableLocation> *locs = NULL);
             
 	// Copy constructor

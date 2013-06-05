@@ -39,6 +39,7 @@
 #include "proccontrol/h/Decoder.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/src/int_handler.h"
+#include "proccontrol/src/processplat.h"
 
 extern "C" {
 
@@ -61,7 +62,7 @@ using namespace ProcControlAPI;
 
 class thread_db_thread;
 
-class thread_db_process : virtual public int_process
+class thread_db_process : public int_threadTracking
 {
    friend class thread_db_thread;
    friend class ThreadDBDispatchHandler;
@@ -108,12 +109,10 @@ public:
     int_thread *triggerThread() const;
     async_ret_t initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info, Dyninst::LWP lwp);
 
-    virtual ThreadTracking *threaddb_getThreadTracking();
-    virtual bool threaddb_setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
+    virtual bool setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
                                           bool &add_bp);
-    virtual bool threaddb_isTrackingThreads();
-    virtual bool threaddb_refreshThreads();
-
+    virtual bool isTrackingThreads();
+    virtual bool refreshThreads();
     virtual int threaddb_getPid();
     
     //The types for thread_db functions we will call
@@ -169,7 +168,6 @@ protected:
     std::set<mem_response::ptr> resps;
     std::set<result_response::ptr> res_resps;
     EventThreadDB::ptr dispatch_event;
-    ThreadTracking *threadtracking;
 
     bool hasAsyncPending;
     bool initialThreadEventCreated;

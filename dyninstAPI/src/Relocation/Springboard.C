@@ -214,7 +214,6 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    codeGen gen;
 
    bool usedTrap = false;
-   unsigned size;
    // Arbitrarily select the first function containing this springboard, since only one can win. 
    generateBranch(r.from, r.destinations.begin()->second, gen);
 
@@ -226,7 +225,6 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
       if (conflict(r.from, r.from + 1, r.fromRelocatedCode)) return Failed;
 
       generateTrap(r.from, r.destinations.begin()->second, gen);
-      size = 1;
    }
 
    if (r.includeRelocatedCopies) {

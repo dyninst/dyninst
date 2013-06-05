@@ -542,7 +542,7 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen)
        bool override = false;
        if (registers_[REGNUM_EFLAGS]->liveState == registerSlot::live) {
           override = true;
-          registers_[REGNUM_EFLAGS]->liveState == registerSlot::spilled;
+          registers_[REGNUM_EFLAGS]->liveState = registerSlot::spilled;
        }
        if (registers_[REGNUM_SF]->liveState == registerSlot::live ||
            registers_[REGNUM_ZF]->liveState == registerSlot::live ||

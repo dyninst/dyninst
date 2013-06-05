@@ -1789,6 +1789,6 @@ Elf_X_Nhdr Elf_X_Nhdr::next() const
     if (!isValid())
         return Elf_X_Nhdr();
 
-    size_t offset = (char *)get_desc() + n_descsz() - (char *)data->d_buf;
+    size_t offset = (const char *)get_desc() + n_descsz() - (char *)data->d_buf;
     return Elf_X_Nhdr(data, offset);
 }

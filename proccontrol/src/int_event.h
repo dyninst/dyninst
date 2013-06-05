@@ -33,6 +33,7 @@
 
 #include "int_thread_db.h"
 #include "response.h"
+#include "resp.h"
 #include <set>
 
 namespace Dyninst {
@@ -173,6 +174,23 @@ class int_eventControlAuthority {
    bool waiting_on_stop;
    std::set<response::ptr> async_responses;
    data_response::ptr dresp;
+};
+
+class int_eventAsyncFileRead {
+  public:
+   int_eventAsyncFileRead();
+   ~int_eventAsyncFileRead();
+   bool isComplete();
+
+   void *data;
+   size_t size;
+   size_t orig_size;
+   void *to_free;
+   std::string filename;
+   size_t offset;
+   int errorcode;
+   bool whole_file;
+   Resp::ptr resp;
 };
 
 class int_eventAsyncIO {

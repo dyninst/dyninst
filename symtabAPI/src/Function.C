@@ -30,7 +30,6 @@
 
 // $Id: Object.C,v 1.31 2008/11/03 15:19:25 jaw Exp $
 
-#include "Annotatable.h"
 #include "common/h/serialize.h"
 
 #include "Symtab.h"
@@ -45,7 +44,6 @@
 #include "dwarf/h/dwarfFrameParser.h"
 #endif
 
-#include "annotations.h"
 #include <iterator>
 #include <algorithm>
 
@@ -55,76 +53,166 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-Function::Function(Symbol *sym)
-    : Aggregate(sym),
-      retType_(NULL), 
-      framePtrRegNum_(-1),
-      frameBaseExpanded_(false),
-      functionSize_(0)
-{}
-
-Function::Function()
-    : Aggregate(),
-      retType_(NULL), 
-      framePtrRegNum_(-1),
-      frameBaseExpanded_(false),
-      functionSize_(0)
-{}
-
-Type * Function::getReturnType() const
+FunctionBase::FunctionBase(Symbol *sym) :
+   Aggregate(sym),
+   locals(NULL),
+   params(NULL),
+   retType_(NULL),
+   functionSize_(0),
+   inline_parent(NULL),
+   frameBaseExpanded_(false),
+   data(NULL)
 {
-    return retType_;
 }
 
-bool Function::setReturnType(Type *newType)
+FunctionBase::FunctionBase() :
+   Aggregate(),
+   locals(NULL),
+   params(NULL),
+   retType_(NULL),
+   functionSize_(0),
+   inline_parent(NULL),
+   frameBaseExpanded_(false),
+   data(NULL)
 {
-    retType_ = newType;
-    return true;
 }
 
-int Function::getFramePtrRegnum() const
+FunctionBase::FunctionBase(Module *m) :
+   Aggregate(m),
+   locals(NULL),
+   params(NULL),
+   retType_(NULL),
+   functionSize_(0),
+   inline_parent(NULL),
+   frameBaseExpanded_(false),
+   data(NULL)
+
 {
-    return framePtrRegNum_;
 }
 
-bool Function::setFramePtrRegnum(int regnum)
+Type *FunctionBase::getReturnType() const
 {
-    framePtrRegNum_ = regnum;
-    return true;
+   module_->exec()->parseTypesNow();	
+   return retType_;
 }
 
-Offset Function::getPtrOffset() const
+bool FunctionBase::setReturnType(Type *newType)
 {
-    Offset retval = 0;
-    for (unsigned i = 0; i < symbols_.size(); ++i) {
-        Offset tmp_off = symbols_[i]->getPtrOffset();
-        if (tmp_off) {
-           if (retval == 0) retval = tmp_off;
-           assert(retval == tmp_off);
-        }
-    }
-    return retval;
+   retType_ = newType;
+   return true;
 }
 
-Offset Function::getTOCOffset() const
+bool FunctionBase::findLocalVariable(std::vector<localVar *> &vars, std::string name)
 {
-    Offset retval = 0;
-    for (unsigned i = 0; i < symbols_.size(); ++i) {
-        Offset tmp_toc = symbols_[i]->getLocalTOC();
-        if (tmp_toc) {
-            if (retval == 0) retval = tmp_toc;
-            assert(retval == tmp_toc);
-        }
-    }
-    return retval;
+   module_->exec()->parseTypesNow();	
+
+   unsigned origSize = vars.size();	
+
+   if (locals) {
+      localVar *var = locals->findLocalVar(name);
+      if (var) 
+         vars.push_back(var);
+   }
+
+   if (params) {
+      localVar *var = params->findLocalVar(name);
+      if (var) 
+         vars.push_back(var);
+   }
+
+   if (vars.size() > origSize)
+      return true;
+
+   return false;
 }
 
-std::vector<Dyninst::VariableLocation> &Function::getFramePtrRefForInit() {
+const FuncRangeCollection &FunctionBase::getRanges()
+{
+   return ranges;
+}
+
+bool FunctionBase::getLocalVariables(std::vector<localVar *> &vars)
+{
+   module_->exec()->parseTypesNow();	
+   if (!locals)
+      return false;
+
+   std::vector<localVar *> &p = *locals->getAllVars();
+   std::copy(p.begin(), p.end(), back_inserter(vars));
+   
+   if (p.empty())
+      return false;
+   return true;
+}
+
+bool FunctionBase::getParams(std::vector<localVar *> &params_)
+{
+   module_->exec()->parseTypesNow();
+   if (!params)
+      return false;
+
+   std::vector<localVar *> &p = *params->getAllVars();
+   std::copy(p.begin(), p.end(), back_inserter(params_));
+
+   if (p.empty())
+      return false;
+   return true;
+}
+
+bool FunctionBase::addLocalVar(localVar *locVar)
+{
+   if (!locals) {
+      locals = new localVarCollection();
+   }
+   locals->addLocalVar(locVar);
+   return true;
+}
+
+bool FunctionBase::addParam(localVar *param)
+{
+   if (!params) {
+      params = new localVarCollection();
+   }
+   params->addLocalVar(param);
+	return true;
+}
+
+FunctionBase *FunctionBase::getInlinedParent()
+{
+   module_->exec()->parseTypesNow();	
+   return inline_parent;
+}
+
+const InlineCollection &FunctionBase::getInlines()
+{
+   module_->exec()->parseTypesNow();	
+   return inlines;
+}
+
+FunctionBase::~FunctionBase()
+{
+   if (locals) {
+      delete locals;
+      locals = NULL;
+   }
+   if (params) {
+      delete params;
+      params = NULL;
+   }
+}
+
+std::vector<Dyninst::VariableLocation> &FunctionBase::getFramePtrRefForInit() {
+   if (inline_parent)
+      return inline_parent->getFramePtr();
+
    return frameBase_;
 }
 
-std::vector<Dyninst::VariableLocation> &Function::getFramePtr() 
+std::vector<Dyninst::VariableLocation> &FunctionBase::getFramePtr() 
 {
+   if (inline_parent)
+      return inline_parent->getFramePtr();
+
    if (frameBaseExpanded_)
       return frameBase_;
 
@@ -140,14 +228,14 @@ std::vector<Dyninst::VariableLocation> &Function::getFramePtr()
    return frameBase_;
 }
 
-bool Function::setFramePtr(vector<VariableLocation> *locs) 
+bool FunctionBase::setFramePtr(vector<VariableLocation> *locs) 
 {
    frameBase_.clear();
    std::copy(locs->begin(), locs->end(), std::back_inserter(frameBase_));
    return true;
 }
 
-void Function::expandLocation(const VariableLocation &loc,
+void FunctionBase::expandLocation(const VariableLocation &loc,
                               std::vector<VariableLocation> &ret) {
    // We are the frame base, so... WTF? 
 
@@ -232,216 +320,63 @@ void Function::expandLocation(const VariableLocation &loc,
 #endif
 }
 
-bool Function::findLocalVariable(std::vector<localVar *> &vars, std::string name)
+void *FunctionBase::getData()
 {
-   module_->exec()->parseTypesNow();	
+   return data;
+}
 
-   localVarCollection *lvs = NULL, *lps = NULL;
-   bool res1 = false, res2 = false;
-   res1 = getAnnotation(lvs, FunctionLocalVariablesAnno);
-   res2 = getAnnotation(lps, FunctionParametersAnno);
+void FunctionBase::setData(void *d)
+{
+   data = d;
+}
 
-   if (!res1 && !res2)
-      return false;
+Function::Function(Symbol *sym)
+    : FunctionBase(sym)
+{}
 
-   unsigned origSize = vars.size();	
+Function::Function()
+    : FunctionBase()
+{}
 
-   if (lvs)
-   {
-      localVar *var = lvs->findLocalVar(name);
-      if (var) 
-         vars.push_back(var);
-   }
+int Function::getFramePtrRegnum() const
+{
+   return 0;
+}
 
-   if (lps)
-   {
-      localVar *var = lps->findLocalVar(name);
-      if (var) 
-         vars.push_back(var);
-   }
-
-   if (vars.size() > origSize)
-      return true;
-
+bool Function::setFramePtrRegnum(int)
+{
    return false;
 }
 
-bool Function::getLocalVariables(std::vector<localVar *> &vars)
+Offset Function::getPtrOffset() const
 {
-   module_->exec()->parseTypesNow();	
-
-   localVarCollection *lvs = NULL;
-   if (!getAnnotation(lvs, FunctionLocalVariablesAnno))
-   {
-      return false;
-   }
-   if (!lvs)
-   {
-      return false;
-   }
-
-   std::vector<localVar *> &p = *lvs->getAllVars();
-   std::copy(p.begin(), p.end(), back_inserter(vars));
-   
-   if (p.empty())
-      return false;
-   return true;
+    Offset retval = 0;
+    for (unsigned i = 0; i < symbols_.size(); ++i) {
+        Offset tmp_off = symbols_[i]->getPtrOffset();
+        if (tmp_off) {
+           if (retval == 0) retval = tmp_off;
+           assert(retval == tmp_off);
+        }
+    }
+    return retval;
 }
 
-bool Function::getParams(std::vector<localVar *> &params)
+Offset Function::getTOCOffset() const
 {
-   module_->exec()->parseTypesNow();
-
-   localVarCollection *lvs = NULL;
-   if (!getAnnotation(lvs, FunctionParametersAnno))
-   {
-      if (!setupParams())
-      {
-         return false;
-      }
-
-      if (!getAnnotation(lvs, FunctionParametersAnno))
-      {
-         return false;
-      }
-   }
-
-   if (!lvs)
-      return false;
-
-   std::vector<localVar *> &p = *lvs->getAllVars();
-   std::copy(p.begin(), p.end(), back_inserter(params));
-
-   if (p.empty())
-      return false;
-   return true;
-}
-
-bool Function::addLocalVar(localVar *locVar)
-{
-   localVarCollection *lvs = NULL;
-
-   if (!getAnnotation(lvs, FunctionLocalVariablesAnno))
-   {
-      lvs = new localVarCollection();
-
-      if (!addAnnotation(lvs, FunctionLocalVariablesAnno))
-      {
-         return false;
-      }
-   }
-   if (!lvs)
-      return false;
-
-   lvs->addLocalVar(locVar);
-   return true;
-}
-
-bool Function::addParam(localVar *param)
-{
-	localVarCollection *ps = NULL;
-   if (!setupParams())
-   {
-      return false;
-   }
-
-	if (!getAnnotation(ps, FunctionParametersAnno))
-	{
-      return false;
-	}
-   
-	ps->addLocalVar(param);
-
-	return true;
-}
-
-bool Function::setupParams()
-{
-	localVarCollection *ps = NULL;
-
-	if (!getAnnotation(ps, FunctionParametersAnno))
-	{
-		ps = new localVarCollection();
-
-		if (!addAnnotation(ps, FunctionParametersAnno))
-		{
-			fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
-					FILE__, __LINE__);
-			return false;
-		}
-	}
-        
-   return true;
+    Offset retval = 0;
+    for (unsigned i = 0; i < symbols_.size(); ++i) {
+        Offset tmp_toc = symbols_[i]->getLocalTOC();
+        if (tmp_toc) {
+            if (retval == 0) retval = tmp_toc;
+            assert(retval == tmp_toc);
+        }
+    }
+    return retval;
 }
 
 Function::~Function()
 {
-   localVarCollection *lvs = NULL;
-   if (getAnnotation(lvs, FunctionLocalVariablesAnno) && (NULL != lvs))
-   {
-	   if (!removeAnnotation(FunctionLocalVariablesAnno))
-	   {
-		   fprintf(stderr, "%s[%d]:  ERROR removing local vars\n", FILE__, __LINE__);
-	   }
-	   delete lvs;
-   }
-
-   localVarCollection *lps = NULL;
-   if (getAnnotation(lps, FunctionParametersAnno) && (NULL != lps))
-   {
-	   if (!removeAnnotation(FunctionParametersAnno))
-	   {
-		   fprintf(stderr, "%s[%d]:  ERROR removing params\n", FILE__, __LINE__);
-	   }
-	   delete lps;
-   }
-
 }
-
-#if !defined(SERIALIZATION_DISABLED)
-Serializable *Function::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
-{
-	if (!sb) SER_ERR("bad paramater sb");
-
-
-
-	//  Use typeID as unique identifier
-	unsigned int t_id = retType_ ? retType_->getID() : (unsigned int) 0xdeadbeef;
-
-		ifxml_start_element(sb, tag);
-		gtranslate(sb, t_id, "typeID");
-		gtranslate(sb, framePtrRegNum_, "framePointerRegister");
-#if 0
-		gtranslate(sb, frameBase_, "framePointerLocationList");
-#endif
-		Aggregate::serialize_aggregate(sb);
-		ifxml_end_element(sb, tag);
-		if (sb->isInput())
-		{
-			if (t_id == 0xdeadbeef)
-				retType_ = NULL;
-			else
-				restore_type_by_id(sb, retType_, t_id);
-#if 0
-			for (unsigned long i = 0; i < symbols_.size(); ++i)
-			{
-				symbols_[i]->setFunction(this);
-				assert(symbols_[i]->isFunction());
-			}
-#endif
-		}
-
-	serialize_printf("%s[%d]:  Function(%p--%s)::%s\n", FILE__, __LINE__, this,
-			getAllPrettyNames().size() ? getAllPrettyNames()[0].c_str() : "UNNAMED_FUNCTION",
-			sb->isInput() ? "deserialize" : "serialize");
-	return NULL;
-}
-#else
-Serializable *Function::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
-}
-#endif
 
 bool Function::removeSymbol(Symbol *sym) 
 {
@@ -494,7 +429,7 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &f
 
 }
 
-bool Function::operator==(const Function &f)
+bool FunctionBase::operator==(const FunctionBase &f)
 {
 	if (retType_ && !f.retType_)
 		return false;
@@ -506,20 +441,21 @@ bool Function::operator==(const Function &f)
 			return false;
 		}
 
-	if (framePtrRegNum_ != f.framePtrRegNum_)
-		return false;
-
-#if 0
-	if (frameBase_.size() != f.frameBase_.size())
-		return false;
-
-	for (unsigned int i = 0; i < frameBase_.size(); ++i)
-	{
-		if (frameBase_[i] == frameBase_[i])
-			return false;
-	}
-#endif
-
-	return ((Aggregate &)(*this)) == ((Aggregate &)f);
+	return ((Aggregate &)(*this)) == ((const Aggregate &)f);
 }
 
+InlinedFunction::InlinedFunction(FunctionBase *parent) :
+   FunctionBase(parent->getModule())
+{
+   inline_parent = parent;
+   parent->inlines.push_back(this);
+}
+
+InlinedFunction::~InlinedFunction()
+{
+}
+
+bool InlinedFunction::removeSymbol(Symbol *)
+{
+   return false;
+}

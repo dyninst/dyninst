@@ -899,11 +899,10 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    if (!arithl || !arithr)
       return false;
    
-   AstNode *data_oper = NULL, *const_oper = NULL;
+   AstNode *const_oper = NULL;
    if (arithl->getoType() == DataAddr && arithr->getoType() == Constant &&
        laddr == (Address) arithl->getOValue())
    {
-      data_oper = arithl;
       const_oper = arithr;
    }
    else if (arithl->getoType() == variableValue && arithr->getoType() == Constant)
@@ -914,14 +913,12 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
          return false;
       addr = var->getAddress();
       if (addr == laddr) {
-         data_oper = arithl;
          const_oper = arithr;
       }
    }
    else if (arithr->getoType() == DataAddr && arithl->getoType() == Constant &&
             laddr == (Address) arithr->getOValue() && roper->op == plusOp)
    {
-      data_oper = arithr;
       const_oper = arithl;
    }
    else if (arithl->getoType() == variableValue && arithr->getoType() == Constant)
@@ -932,7 +929,6 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
          return false;
       addr = var->getAddress();
       if (addr == laddr) {
-         data_oper = arithr;
          const_oper = arithl;
       }
    }
@@ -996,20 +992,18 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       }
       case ifOp: {
          // This ast cannot be shared because it doesn't return a register
+	
          if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
-        
          REGISTER_CHECK(src1);
          codeBufIndex_t ifIndex= gen.getIndex();
 
          size_t preif_patches_size = gen.allPatches().size();
          codeBufIndex_t thenSkipStart = emitA(op, src1, 0, 0, gen, rc_before_jump, noCost);
+
          size_t postif_patches_size = gen.allPatches().size();
-         // DO NOT FREE THE REGISTER HERE!!! we use it later to regenerate the
-         // jump once code has been generated. This is annoying, since we
-         // don't really need the register... we just want it allocated.
-        
-         // I'm ignoring the above; we'll keep the _value_ of src1, but free it
-         // for internal code.
+
+	 // We can reuse src1 for the body of the conditional; however, keep the value here
+	 // so that we can use it for the branch fix below. 
          Register src1_copy = src1;
          if (loperand->decRefCount())
             gen.rs()->freeRegister(src1);
@@ -1152,6 +1146,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
          if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
          REGISTER_CHECK(src1);
+
          codeBufIndex_t startIndex = gen.getIndex();
 
          size_t preif_patches_size = gen.allPatches().size();
@@ -1204,9 +1199,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             //gen.rs()->freeRegister(src1);                                                   
                                                                                               
             gen.setIndex(endIndex);
-         }                                                                                    
- 
-         break;
+         }                                                                               break;
       }
       case doOp: {
          fprintf(stderr, "[%s:%d] WARNING: do AST node unimplemented!\n", __FILE__, __LINE__);
@@ -2056,6 +2049,7 @@ bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen,
 						  Address&, 
 						  Register& )
 {
+   (void)gen; // unused
 #if defined(arch_x86_64)
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
       registerSlot *reg = gen.rs()->GPRs()[i];
@@ -2287,6 +2281,7 @@ BPatch_type *AstOperatorNode::checkType() {
     if (roperand) rType = roperand->checkType();
 
     if (eoperand) eType = eoperand->checkType();
+    (void)eType; // unused...
 
     if (lType == BPatch::bpatch->type_Error ||
         rType == BPatch::bpatch->type_Error)

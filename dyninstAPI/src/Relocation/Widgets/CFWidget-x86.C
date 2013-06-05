@@ -82,7 +82,7 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
    ia32_condition cond;
 
    ia32_instruction orig_instr(memacc, &cond, &loc);
-   ia32_decode(IA32_FULL_DECODER, (unsigned char *)insn->ptr(), orig_instr);
+   ia32_decode(IA32_FULL_DECODER, (const unsigned char *)insn->ptr(), orig_instr);
    const unsigned char *ptr = (const unsigned char *)insn->ptr();
 
    std::vector<unsigned char> raw (ptr,

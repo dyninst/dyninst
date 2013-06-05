@@ -303,12 +303,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    bool result;
    FrameErrors_t frame_error = FE_No_Error;
 
-   Dyninst::Architecture arch;
    addr_width = getProcessState()->getAddressWidth();
-   if (addr_width == 4)
-      arch = Dyninst::Arch_x86;
-   else
-      arch = Dyninst::Arch_x86_64;
 
    depth_frame = cur_frame;
 

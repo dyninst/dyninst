@@ -16,28 +16,31 @@ using namespace SymtabAPI;
 using namespace Dwarf;
 using namespace std;
 
-#define DWARF_FAIL_RET(x) {                                                 \
+#define DWARF_FAIL_RET_VAL(x, v) {                                      \
       int status = (x);                                                 \
       if (status != DW_DLV_OK) {                                        \
          fprintf(stderr, "[%s:%d]: libdwarf returned %d, ret false\n", FILE__, __LINE__, status); \
-         return false;                                                  \
+         return (v);                                                    \
       }                                                                 \
    }
+#define DWARF_FAIL_RET(x) DWARF_FAIL_RET_VAL(x, false)
 
-#define DWARF_ERROR_RET(x) {                                            \
+#define DWARF_ERROR_RET_VAL(x, v) {                                     \
       int status = (x);                                                 \
       if (status == DW_DLV_ERROR) {                                     \
          fprintf(stderr, "[%s:%d]: parsing failure, ret false\n", FILE__, __LINE__); \
-         return false;                                                  \
+         return (v);                                                    \
       }                                                                 \
    }
+#define DWARF_ERROR_RET(x) DWARF_ERROR_RET_VAL(x, false)
 
-#define DWARF_CHECK_RET(x) {                                            \
-      if (x) {                                     \
+#define DWARF_CHECK_RET_VAL(x, v) {                                     \
+      if (x) {                                                          \
          fprintf(stderr, "[%s:%d]: parsing failure, ret false\n", FILE__, __LINE__); \
-         return false;                                                  \
+         return (v);                                                    \
       }                                                                 \
    }
+#define DWARF_CHECK_RET(x) DWARF_CHECK_RET_VAL(x, false)
 
 DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
    :
@@ -223,14 +226,16 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       if (!findTag()) return false;
       if (!findOffset()) return false;
       curName() = std::string();
+      setMangledName(false);
 
       dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p (%s), encl %p\n",
                    id(),
                    e,
                    (int) contexts_.c.size(), 
                    curFunc(),
-		   (curFunc() ? curFunc()->getAllMangledNames()[0].c_str() : "<null>"),
-		   curEnclosure());
+                   (curFunc() && !curFunc()->getAllMangledNames().empty()) ? 
+                   curFunc()->getAllMangledNames()[0].c_str() : "<null>",
+                   curEnclosure());
 
       // Insert only inserts the first time; we need that behavior
       enclosureMap.insert(std::make_pair(offset(), curEnclosure()));
@@ -240,12 +245,12 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
    // BLUEGENE BUG HACK
 #if defined(os_bg)
       if (tag() == DW_TAG_base_type ||
-	  tag() == DW_TAG_const_type ||
-	  tag() == DW_TAG_pointer_type) {
-	// XLC compilers nest a bunch of stuff under an invented function; however,
-	// this is broken (they don't close the function properly). If we see a 
-	// tag like this, close off the previous function immediately
-	clearFunc();
+          tag() == DW_TAG_const_type ||
+          tag() == DW_TAG_pointer_type) {
+         // XLC compilers nest a bunch of stuff under an invented function; however,
+         // this is broken (they don't close the function properly). If we see a 
+         // tag like this, close off the previous function immediately
+         clearFunc();
       }
 #endif
 
@@ -254,7 +259,10 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       switch(tag()) {
          case DW_TAG_subprogram:
          case DW_TAG_entry_point:
-            ret = parseSubprogram();
+            ret = parseSubprogram(NormalFunc);
+            break;
+         case DW_TAG_inlined_subroutine:
+            ret = parseSubprogram(InlinedFunc);
             break;
          case DW_TAG_lexical_block:
             ret = parseLexicalBlock();
@@ -365,22 +373,154 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
    return true;
 }
 
-bool DwarfWalker::parseSubprogram() {
+bool DwarfWalker::parseCallsite()
+{
+   Dwarf_Bool has_line = false, has_file = false;
+   DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_call_file, &has_file, NULL));
+   if (!has_file)
+      return true;
+   DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_call_line, &has_line, NULL));
+   if (!has_line)
+      return true;
+
+   std::string inline_file;
+   bool result = findString(DW_AT_call_file, inline_file);
+   if (!result)
+      return false;
+
+   Dyninst::Offset inline_line;
+   result = findConstant(DW_AT_call_line, inline_line);
+   if (!result)
+      return false;
+
+   InlinedFunction *ifunc = static_cast<InlinedFunction *>(curFunc());
+   ifunc->callsite_file = inline_file;
+   ifunc->callsite_line = inline_line;
+   return true;
+}
+
+bool DwarfWalker::setFunctionFromRange(inline_t func_type)
+{
+   //Use the lowest range as an entry for symbol matching
+   Address lowest = 0x0;
+   bool set_lowest = false;
+   if (!hasRanges()) {
+      return false;
+   }
+   for (range_set_t::iterator i = ranges_begin(); i != ranges_end(); i++) {
+      if (!set_lowest) {
+         lowest = i->first;
+         set_lowest = true;
+         continue;
+      }
+      if (lowest > i->first)
+         lowest = i->first;
+   }
+   if (!set_lowest) {
+      //No ranges.  Don't panic, this is probably an abstract origin or specification
+      // we'll get to it latter if it's really used.
+      return false;
+   }
+
+   if (func_type == InlinedFunc) {
+      FunctionBase *parent = curFunc();
+      if (!parent) {
+         //InlinedSubroutine without containing subprogram.  Weird.
+         return false;
+      }
+      InlinedFunction *ifunc = new InlinedFunction(parent);
+      setFunc(ifunc);
+      return true;
+   }
+
+   //Try to associate the function with existing symbols
+   Function *f = NULL;
+   bool result = symtab()->findFuncByEntryOffset(f, lowest);
+   if (result) {
+      dwarf_printf("(0x%lx) Lookup by offset 0x%lx identifies %p\n",
+                   id(), lowest, curFunc());
+      setFunc(f);
+      return true;
+   }
+
+   
+   return true;
+}
+
+bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
+   bool name_result;
+   FunctionBase *func = NULL;
+
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
 
+   parseRangeTypes();
+   setFunctionFromRange(func_type);
+   func = curFunc();
+
    // Name first
-   if (!findFuncName()) return false;
+   name_result = findFuncName();
 
-   // Get the return type
-   //if (!getReturnType(hasSpecification)) return false;
-   Type *returnType;
-   if (!getReturnType(false, returnType)) return false;
-
-   if (curEnclosure() && !curFunc()) {
+   if (curEnclosure() && !func) {
       // This is a member function; create the type entry
       // Since curFunc is false, we're not going back to reparse this
       // entry with a function object.
-      addFuncToContainer(returnType);
+      Type *ftype = NULL;
+      getReturnType(false, ftype);
+      addFuncToContainer(ftype);
+      setParseChild(false);
+   }
+
+   //curFunc will be set if we're parsing a defined object, or
+   // if we're recursively parsing a specification or abstract
+   // entry under a defined object.  It'll be unset if we're
+   // parsing a specification or abstract entry at the top-level
+   //This keeps us from parsing abstracts or specifications until
+   // we need them.
+   if (!func) {
+      setParseChild(false);
+      return true;
+   }
+
+   if (parsedFuncs.find(func) != parsedFuncs.end()) {
+      setParseChild(false);
+      return true;
+   }
+
+   if (name_result && !curName().empty()) {
+      dwarf_printf("(0x%lx) Identified function name as %s\n", id(), curName().c_str());
+      if (isMangledName())
+         func->addMangledNameInternal(curName(), true, true);
+      else
+         func->addPrettyName(curName(), true);
+   }
+
+   //Collect callsite information for inlined functions.
+   if (func_type == InlinedFunc) {
+      parseCallsite();
+   }
+   
+   // Get the return type
+   Type *returnType = NULL;
+   if (!func->getReturnType()) {
+      getReturnType(false, returnType);
+      if (returnType)
+         func->setReturnType(returnType);
+   }
+
+   // Get range information
+   if (hasRanges() && func->ranges.empty()) {
+      Address last_low = 0, last_high = 0;
+      func->ranges.reserve(rangesSize());
+      for (range_set_t::iterator i = ranges_begin(); i != ranges_end(); i++) {
+         Address low = i->first;
+         Address high = i->second;
+         if (last_low == low && last_high == high)
+            continue;
+         last_low = low;
+         last_high = high;
+
+         func->ranges.push_back(FuncRange(low, high - low, func));         
+      }
    }
 
    // Dwarf outlines some function information. You have the base entry, which contains
@@ -389,61 +529,34 @@ bool DwarfWalker::parseSubprogram() {
    // We want to skip parsing specification or abstract entries until we have
    // the base entry and can find/create the corresponding function object. 
 
-   // On the other hand, we can next actual function definitions. So...
-   // Try to find a function, and just don't freak out if we don't find one. 
-   bool foundFunc = false;
-   if (!findFunction(foundFunc)) return false;
-   
-   if (foundFunc) {
-     if (parsedFuncs.find(curFunc()) != parsedFuncs.end()) {
-       setParseChild(false);
-       return true;
-     }
-     parsedFuncs.insert(curFunc());
-   }
-   else if (!curFunc()) {
-     // Hopefully abstract or specification; skip for now.
-     setParseChild(false);
-     return true;
-   }
-
-   dwarf_printf("(0x%lx) Identified function name as %s\n", id(), curName().c_str());
 
    // Get the frame base if it exists
    if (!getFrameBase()) return false;
 
-   // Functions can operate as lexical blocks; this is optional, so we do _not_
-   // return failure if it doesn't work. 
-   parseLexicalBlock();
-      
    // Parse parent nodes and their children but not their sibling
-   bool isAbstractOrigin = false;
-   if (!handleAbstractOrigin(isAbstractOrigin)) return false;
-   if ( isAbstractOrigin ) {
+   bool hasAbstractOrigin = false;
+   if (!handleAbstractOrigin(hasAbstractOrigin)) return false;
+   if (hasAbstractOrigin) {
       dwarf_printf("(0x%lx) Parsing abstract parent\n", id());
       if (!parse_int(abstractEntry(), false)) return false;
-
       dwarf_dealloc(dbg(), abstractEntry(), DW_DLA_DIE); 
    } 
-   else {
-      // An abstract origin will point to a specification if it exists
-      // This can actually be three-layered, so backchain again
-      bool hasSpecification = false;
-      if (!handleSpecification(hasSpecification)) return false;
-      if ( hasSpecification ) {
-         dwarf_printf("(0x%lx) Parsing specification entry\n", id());
-         if (!parse_int(specEntry(), false)) return false;
-      }
+   // An abstract origin will point to a specification if it exists
+   // This can actually be three-layered, so backchain again
+   bool hasSpecification = false;
+   if (!handleSpecification(hasSpecification)) return false;
+   if ( hasSpecification ) {
+      dwarf_printf("(0x%lx) Parsing specification entry\n", id());
+      if (!parse_int(specEntry(), false)) return false;
    }
+
+   parsedFuncs.insert(func);
+
    return true;
 }
 
-bool DwarfWalker::parseLexicalBlock() {
-   // These have two forms; a low..high range and a set
-   // of address ranges. Right now we handle the first; 
-   // TODO on the second when we find an example. 
-   
-   dwarf_printf("(0x%lx) Parsing lexical block\n", id());
+bool DwarfWalker::parseRangeTypes() {
+   dwarf_printf("(0x%lx) Parsing ranges\n", id());
 
    clearRanges();
    Dwarf_Bool hasLow = false;
@@ -494,9 +607,13 @@ bool DwarfWalker::parseLexicalBlock() {
                break;
          }
       }
-   }
-   
+   }   
    return true;
+}
+
+bool DwarfWalker::parseLexicalBlock() {
+   dwarf_printf("(0x%lx) Parsing lexical block\n", id());
+   return parseRangeTypes();
 }
 
 bool DwarfWalker::parseCommonBlock() {
@@ -719,7 +836,9 @@ bool DwarfWalker::parseFormalParam() {
                 id(),
                 curName().c_str(), 
                 paramType, paramType->getName().c_str(),
-                curFunc()->getAllMangledNames()[0].c_str(), curFunc());
+                ((curFunc() && !curFunc()->getAllMangledNames().empty()) ? 
+                 curFunc()->getAllMangledNames()[0].c_str() : ""),
+                curFunc());
 
    assert( newParameter != NULL );
    for (unsigned int i = 0; i < locs.size(); ++i)
@@ -1170,55 +1289,27 @@ bool DwarfWalker::findFuncName() {
 
    Dwarf_Attribute linkageNameAttr;
 
-   int status = dwarf_attr( specEntry(), DW_AT_MIPS_linkage_name, & linkageNameAttr, NULL );
+   int status = dwarf_attr(entry(), DW_AT_MIPS_linkage_name, &linkageNameAttr, NULL);
    DWARF_CHECK_RET(status == DW_DLV_ERROR);
    if ( status == DW_DLV_OK )  {
       DWARF_FAIL_RET(dwarf_formstring( linkageNameAttr, &dwarfName, NULL ));
       curName() = dwarfName;
+      setMangledName(true);
       dwarf_printf("(0x%lx) Found mangled name of %s, using\n", id(), curName().c_str());
       dwarf_dealloc( dbg(), linkageNameAttr, DW_DLA_ATTR );
-   } 
-   else 
-   {
-      if (!findName(curName())) return false;
+      return true;
    } 
 
-   return true;   
-}
-
-bool DwarfWalker::findFunction(bool &found) {
-   dwarf_printf("(0x%lx) Looking up function object matching %s\n", id(), curName().c_str());
-
-   // Look it up by (entry) address
-   Dwarf_Addr entryAddr;
-   Offset lowpc;
-   int status = dwarf_lowpc(entry(), &entryAddr, NULL);
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
-   
-   if (status == DW_DLV_OK 
-       && obj()->convertDebugOffset(entryAddr, lowpc)) {
-      Function *tmp = NULL;
-      if (symtab()->findFuncByEntryOffset(tmp, lowpc)) {
-         setFunc(tmp);
-         dwarf_printf("(0x%lx) Lookup by offset 0x%lx identifies %p\n",
-                      id(), lowpc, curFunc());
-         found = true;
-         return true;
-      }
+   char *cname = NULL;
+   status = dwarf_diename(entry(), &cname, NULL);
+   if (status == DW_DLV_ERROR || !cname) {
+      curName() = std::string();
+      setMangledName(false);
+      return true;
    }
-#if 0
-   if (nameDefined()) {
-      std::vector<Function *> ret_funcs;
-      if (symtab()->findFunctionsByName(ret_funcs, curName())) {
-         setFunc(ret_funcs[0]);
-         dwarf_printf("(0x%lx) Found %ld possible matches, picking first: %p\n",
-                      id(), ret_funcs.size(), curFunc());
-         return true;
-      }
-   }
-#endif
-   dwarf_printf("(0x%lx) Failed to lookup by both name and address\n", id());
-   return false;
+   setMangledName(false);
+   curName() = std::string(cname);
+   return true;
 }
 
 bool DwarfWalker::getFrameBase() {
@@ -1246,27 +1337,20 @@ bool DwarfWalker::getReturnType(bool hasSpecification, Type *&returnType) {
       status = dwarf_attr( entry(), DW_AT_type, & typeAttribute, NULL );
    }
 
+
    DWARF_CHECK_RET(status == DW_DLV_ERROR);
-   
-   Type *voidType = tc()->findType("void");
-   
    if ( status == DW_DLV_NO_ENTRY ) {
-      returnType = voidType;
+      return NULL;
    }
-   else  {
-      /* There's a return type attribute. */
-      dwarf_printf("(0x%lx) Return type is not void\n", id());
-      Dwarf_Off typeOffset;
-      
-      DWARF_FAIL_RET(dwarf_global_formref( typeAttribute, & typeOffset, NULL ));
-      
-      //parsing_printf("%s/%d: ret type %d\n",
-      //			   __FILE__, __LINE__, typeOffset);
-      
-      returnType = tc()->findOrCreateType( (int) typeOffset );
-      
-      dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
-   } /* end if not a void return type */
+
+   /* There's a return type attribute. */
+   dwarf_printf("(0x%lx) Return type is not void\n", id());
+   Dwarf_Off typeOffset;
+   
+   DWARF_FAIL_RET(dwarf_global_formref( typeAttribute, & typeOffset, NULL ));
+   returnType = tc()->findOrCreateType( (int) typeOffset );
+   dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
+
    return true;
 }
 
@@ -1444,6 +1528,47 @@ bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half attr,
      expr = true;
    }
    return true;
+}
+
+bool DwarfWalker::findString(Dwarf_Half attr,
+                             std::string &str)
+{
+   Dwarf_Half form;
+   Dwarf_Attribute strattr;
+
+   DWARF_FAIL_RET(dwarf_attr(entry(), attr, &strattr, NULL)); 
+   int status = dwarf_whatform(strattr, &form, NULL);
+   if (status != DW_DLV_OK) {
+      dwarf_dealloc(dbg(), strattr, DW_DLA_ATTR);
+      return false;
+   }
+   
+   bool result;
+   switch (form) {
+      case DW_FORM_string: {
+         char *s = NULL;
+         DWARF_FAIL_RET(dwarf_formstring(strattr, &s, NULL));
+         str  = s;
+         result = true;
+         break;
+      }
+      case DW_FORM_block:
+      case DW_FORM_block1: 
+      case DW_FORM_block2:
+      case DW_FORM_block4: {
+         Dwarf_Block *block = NULL;
+         DWARF_FAIL_RET(dwarf_formblock(strattr, &block, NULL));
+         str = string((char *) block->bl_data);
+         dwarf_dealloc(dbg(), block, DW_DLA_BLOCK);
+         result = !str.empty();
+         break;
+      }
+      default:
+         result = false;
+         break;
+   }
+   dwarf_dealloc(dbg(), strattr, DW_DLA_ATTR);
+   return result;
 }
 
 bool DwarfWalker::findConstant(Dwarf_Half attr,
@@ -1745,7 +1870,7 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
   char buf[32];
   /* Get the (negative) typeID for this range/subarray. */
   Dwarf_Off dieOffset;
-  DWARF_FAIL_RET(dwarf_dieoffset( range, & dieOffset, NULL ));
+  DWARF_FAIL_RET_VAL(dwarf_dieoffset( range, & dieOffset, NULL ), NULL);
 
   /* Determine the range. */
   std::string loBound;
@@ -1755,7 +1880,7 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
   /* Does the recursion continue? */
   Dwarf_Die nextSibling;
   int status = dwarf_siblingof( dbg(), range, & nextSibling, NULL );
-  DWARF_CHECK_RET(status == DW_DLV_ERROR);
+  DWARF_CHECK_RET_VAL(status == DW_DLV_ERROR, NULL);
 
   snprintf(buf, 31, "__array%d", (int) offset());
 
@@ -2055,12 +2180,11 @@ void DwarfWalker::Contexts::pop() {
    c.pop();
 }
 
-void DwarfWalker::Contexts::setFunc(Function *f) {
+void DwarfWalker::Contexts::setFunc(FunctionBase *f) {
   // Bug workaround; if we're setting a function, ignore
   // any preceding lexical information since we probably 
   // nested. 
   c.top().func = f;
-  clearRanges();
 }
 
 void DwarfWalker::Contexts::clearFunc() {

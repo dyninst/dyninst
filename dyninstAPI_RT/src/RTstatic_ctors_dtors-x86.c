@@ -54,6 +54,10 @@ typedef struct {
   long (*ptr)(void);
 } rela_t;
 
+typedef struct {
+  long *offset;
+  long info;
+} rel_t;
 
 /*
  * When rewritting a static binary, .ctors and .dtors sections of
@@ -101,12 +105,25 @@ void DYNINSTglobal_dtors_handler() {
 }
 
 void DYNINSTglobal_irel_handler() {
-  rela_t *rel = 0;
-  for (rel = (rela_t *)(&DYNINSTirel_start); rel != (rela_t *)(&DYNINSTirel_end); ++rel) {
-    long result = 0;
-    if (rel->info != 0x25) continue;
-    result = (rel->ptr());
-    *(rel->offset) = result;
+  if (sizeof(long) == 8) {
+    rela_t *rel = 0;
+    for (rel = (rela_t *)(&DYNINSTirel_start); rel != (rela_t *)(&DYNINSTirel_end); ++rel) {
+      long result = 0;
+      if (rel->info != 0x25) continue;
+      result = (rel->ptr());
+      *(rel->offset) = result;
+    }
+  }
+  else {
+    rel_t *rel = 0;
+    for (rel = (rel_t *)(&DYNINSTirel_start); rel != (rel_t *)(&DYNINSTirel_end); ++rel) {
+      long (*ptr)(void) = 0;
+      long result = 0;
+      if (rel->info != 0x2a) continue;
+      ptr = (void*)*(rel->offset);
+      result = ptr();
+      *(rel->offset) = result;
+    }
   }
 }
 

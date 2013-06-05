@@ -34,6 +34,7 @@
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/int_event.h"
+#include "proccontrol/src/processplat.h"
 #include "proccontrol/h/Mailbox.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
@@ -196,6 +197,11 @@ bool int_process::waitfor_startup()
          globalSetLastError(err_exited, "Process exited during startup");
          return false;
       }
+      if (getState() == errorstate) {
+         pthrd_printf("Error.  Process in error state\n");
+         globalSetLastError(err_internal, "Process errored during startup");
+         return false;
+      }
    }
    return true;
 }
@@ -264,6 +270,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          perr_printf("Attempted to reattach to attached process %d\n", proc->getPid());
          proc->setLastError(err_attached, "Cannot reAttach to attached process.\n");
          procs.erase(i++);
+         had_error = true;
          continue;
       }
 
@@ -344,6 +351,12 @@ bool int_process::attach(int_processSet *ps, bool reattach)
 
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
       int_process *proc = *i;
+      if (proc->getState() == errorstate) {
+         pthrd_printf("Removing process %d in error state\n", proc->getPid());
+         procs.erase(i++);
+         had_error = true;
+         continue;
+      }
       pthrd_printf("Attaching to threads for %d\n", proc->getPid());
       bool result = proc->attachThreads();
       if (!result) {
@@ -414,9 +427,8 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       int_process *proc = *i;
       pthrd_printf("Wait for attach from process %d\n", proc->pid);
 
-	  bool result = proc->waitfor_startup();
-
-	  if (!result) {
+      bool result = proc->waitfor_startup();
+      if (!result) {
          pthrd_printf("Error waiting for attach to %d\n", proc->pid);
          procs.erase(i++);
          had_error = true;
@@ -428,6 +440,8 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    //idempotent after success, then just do it again.
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
       int_process *proc = *i;
+      if (proc->getState() == errorstate)
+         continue;
       bool result = proc->attachThreads();
       if (!result) {
          pthrd_printf("Failed to attach to threads in %d--now an error\n", proc->pid);
@@ -602,6 +616,7 @@ bool int_process::forked()
 
    int_thread *initial_thread;
    initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP, true, int_thread::as_created_attached);
+   (void)initial_thread; // suppress unused warning
 
    ProcPool()->addProcess(this);
 
@@ -948,6 +963,7 @@ bool int_process::waitAndHandleForProc(bool block, int_process *proc, bool &proc
 #define checkProcStopRPC        (hasProcStopRPC        = (int) Counter::global(Counter::ProcStopRPCs))
 #define checkStartupTeardownProcs (hasStartupTeardownProc = (int) Counter::global(Counter::StartupTeardownProcesses))
 #define checkNeonatalThreads     (hasNeonatalThreads   = (int) Counter::global(Counter::NeonatalThreads))
+#define checkAsyncEvents        (hasAsyncEvents        = (int) Counter::global(Counter::AsyncEvents))
 #define UNSET_CHECK        -8
 #define printCheck(VAL)    (((int) VAL) == UNSET_CHECK ? '?' : (VAL ? 'T' : 'F'))
 
@@ -978,7 +994,7 @@ bool int_process::waitAndHandleEvents(bool block)
       int hasHandlerThread = UNSET_CHECK, hasAsyncPending = UNSET_CHECK, hasRunningThread = UNSET_CHECK;
       int hasClearingBP = UNSET_CHECK, hasStopPending = UNSET_CHECK, hasSyncRPCRunningThrd = UNSET_CHECK;
       int hasProcStopRPC  = UNSET_CHECK, hasBlock = UNSET_CHECK, hasGotEvent = UNSET_CHECK;
-      int hasStartupTeardownProc = UNSET_CHECK, hasNeonatalThreads = UNSET_CHECK;
+      int hasStartupTeardownProc = UNSET_CHECK, hasNeonatalThreads = UNSET_CHECK, hasAsyncEvents = UNSET_CHECK;
 
       bool should_block = (!checkHandlerThread && 
                            ((checkBlock && !checkGotEvent && checkRunningThread) ||
@@ -988,11 +1004,12 @@ bool int_process::waitAndHandleEvents(bool block)
                             (checkProcStopRPC) ||
                             (checkAsyncPending) ||
                             (checkStartupTeardownProcs) ||
-                            (checkNeonatalThreads)
+                            (checkNeonatalThreads) ||
+                            (checkAsyncEvents)
                            )
                           );
       //Entry for this print match the above tests in order and one-for-one.
-      pthrd_printf("%s for events = !%c && ((%c && !%c && %c) || %c || %c || %c || %c || %c || %c || %c)\n",
+      pthrd_printf("%s for events = !%c && ((%c && !%c && %c) || %c || %c || %c || %c || %c || %c || %c || %c)\n",
                    should_block ? "Blocking" : "Polling",
                    printCheck(hasHandlerThread),
                    printCheck(hasBlock), printCheck(hasGotEvent), printCheck(hasRunningThread), 
@@ -1002,7 +1019,8 @@ bool int_process::waitAndHandleEvents(bool block)
                    printCheck(hasProcStopRPC),
                    printCheck(hasAsyncPending),
                    printCheck(hasStartupTeardownProc),
-                   printCheck(hasNeonatalThreads));
+                   printCheck(hasNeonatalThreads),
+                   printCheck(hasAsyncEvents));
 
       //TODO: If/When we move to per-process locks, then we'll need a smarter should_block check
       //      We don't want the should_block changing between the above measurement
@@ -1196,6 +1214,119 @@ bool int_process::preTerminate() {
     return true;
 }
 
+int_libraryTracking *int_process::getLibraryTracking()
+{
+   if (LibraryTracking_set)
+      return pLibraryTracking;
+   LibraryTracking_set = true;
+   pLibraryTracking = dynamic_cast<int_libraryTracking *>(this);
+   if (!pLibraryTracking)
+      return NULL;
+   if (!pLibraryTracking->up_ptr)
+      pLibraryTracking->up_ptr = new LibraryTracking(proc());
+   return pLibraryTracking;
+}
+
+int_LWPTracking *int_process::getLWPTracking()
+{
+   if (LWPTracking_set)
+      return pLWPTracking;
+   LWPTracking_set = true;
+   pLWPTracking = dynamic_cast<int_LWPTracking *>(this);
+   if (!pLWPTracking)
+      return NULL;
+   if (!pLWPTracking->up_ptr)
+      pLWPTracking->up_ptr = new LWPTracking(proc());
+   return pLWPTracking;
+}
+
+int_threadTracking *int_process::getThreadTracking()
+{
+   if (ThreadTracking_set)
+      return pThreadTracking;
+   ThreadTracking_set = true;
+   pThreadTracking = dynamic_cast<int_threadTracking *>(this);
+   if (!pThreadTracking)
+      return NULL;
+   if (!pThreadTracking->up_ptr)
+      pThreadTracking->up_ptr = new ThreadTracking(proc());
+   return pThreadTracking;
+}
+
+int_followFork *int_process::getFollowFork()
+{
+   if (FollowFork_set)
+      return pFollowFork;
+   FollowFork_set = true;
+   pFollowFork = dynamic_cast<int_followFork *>(this);
+   if (!pFollowFork)
+      return NULL;
+   if (!pFollowFork->up_ptr)
+      pFollowFork->up_ptr = new FollowFork(proc());
+   return pFollowFork;
+}
+
+int_callStackUnwinding *int_process::getCallStackUnwinding()
+{
+   if (CallStackUnwinding_set)
+      return pCallStackUnwinding;
+   CallStackUnwinding_set = true;
+   pCallStackUnwinding = dynamic_cast<int_callStackUnwinding *>(this);
+   return pCallStackUnwinding;
+}
+
+int_multiToolControl *int_process::getMultiToolControl()
+{
+   if (MultiToolControl_set)
+      return pMultiToolControl;
+   MultiToolControl_set = true;
+   pMultiToolControl = dynamic_cast<int_multiToolControl *>(this);
+   if (!pMultiToolControl)
+      return NULL;
+   if (!pMultiToolControl->up_ptr)
+      pMultiToolControl->up_ptr = new MultiToolControl(proc());
+   return pMultiToolControl;
+}
+
+int_signalMask *int_process::getSignalMask()
+{
+   if (SignalMask_set)
+      return pSignalMask;
+   SignalMask_set = true;
+   pSignalMask = dynamic_cast<int_signalMask *>(this);
+   if (!pSignalMask)
+      return NULL;
+   if (!pSignalMask->up_ptr)
+      pSignalMask->up_ptr = new SignalMask(proc());
+   return pSignalMask;
+}
+
+int_BGQData *int_process::getBGQData() 
+{
+   if (BGQData_set)
+      return pBGQData;
+   BGQData_set = true;
+   pBGQData = dynamic_cast<int_BGQData *>(this);
+   if (!pBGQData)
+      return NULL;
+   if (!pBGQData->up_ptr)
+      pBGQData->up_ptr = new BGQData(proc());
+   return pBGQData;
+}
+
+int_remoteIO *int_process::getRemoteIO()
+{
+   if (remoteIO_set)
+      return pRemoteIO;
+   remoteIO_set = true;
+   pRemoteIO = dynamic_cast<int_remoteIO *>(this);
+   if (!pRemoteIO)
+      return NULL;
+   if (!pRemoteIO->up_ptr)
+      pRemoteIO->up_ptr = new RemoteIO(proc());
+   return pRemoteIO;
+}
+
 int_process::int_process(Dyninst::PID p, std::string e,
                          std::vector<std::string> a,
                          std::vector<std::string> envp,
@@ -1224,12 +1355,29 @@ int_process::int_process(Dyninst::PID p, std::string e,
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
-   fork_tracking(FollowFork::getDefaultFollowFork()),
-   lwp_tracking(LWPTracking::getDefaultTrackLWPs()),
    user_data(NULL),
    last_error_string(NULL),
-   symbol_reader(NULL)
+   symbol_reader(NULL),
+   pLibraryTracking(NULL),
+   pLWPTracking(NULL),
+   pThreadTracking(NULL),
+   pFollowFork(NULL),
+   pMultiToolControl(NULL),
+   pSignalMask(NULL),
+   pCallStackUnwinding(NULL),
+   pBGQData(NULL),
+   pRemoteIO(NULL),
+   LibraryTracking_set(false),
+   LWPTracking_set(false),
+   ThreadTracking_set(false),
+   FollowFork_set(false),
+   MultiToolControl_set(false),
+   SignalMask_set(false),
+   CallStackUnwinding_set(false),
+   BGQData_set(false),
+   remoteIO_set(false)
 {
+   pthrd_printf("New int_process at %p\n", this);
    clearLastError();
 	wasCreatedViaAttach(pid == 0);
    //Put any object initialization in 'initializeProcess', below.
@@ -1249,19 +1397,35 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    forcedTermination(false),
    silent_mode(false),
    exitCode(p->exitCode),
-   exec_mem_cache(exec_mem_cache),
    continueSig(p->continueSig),
    mem_cache(this),
    async_event_count(Counter::AsyncEvents),
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
-   fork_tracking(p->fork_tracking),
-   lwp_tracking(p->lwp_tracking),
    user_data(NULL),
    last_error_string(NULL),
-   symbol_reader(NULL)
+   symbol_reader(NULL),
+   pLibraryTracking(NULL),
+   pLWPTracking(NULL),
+   pThreadTracking(NULL),
+   pFollowFork(NULL),
+   pMultiToolControl(NULL),
+   pSignalMask(NULL),
+   pCallStackUnwinding(NULL),
+   pBGQData(NULL),
+   pRemoteIO(NULL),
+   LibraryTracking_set(false),
+   LWPTracking_set(false),
+   ThreadTracking_set(false),
+   FollowFork_set(false),
+   MultiToolControl_set(false),
+   SignalMask_set(false),
+   CallStackUnwinding_set(false),
+   BGQData_set(false),
+   remoteIO_set(false)
 {
+   pthrd_printf("New int_process at %p\n", this);
    Process::ptr hlproc = Process::ptr(new Process());
    clearLastError();
    mem = new mem_state(*p->mem, this);
@@ -1283,7 +1447,6 @@ void int_process::initializeProcess(Process::ptr p)
 
 int_thread *int_process::findStoppedThread()
 {
-
    int_thread *result = NULL;
    for (int_threadPool::iterator i = threadpool->begin(); i != threadpool->end(); ++i)
    {
@@ -1654,9 +1817,8 @@ bool int_process::plat_encodeMemoryRights(Process::mem_perm rights_internal,
 	return false;
 }
 
-bool int_process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
-                                        Process::mem_perm& rights) {
-    if (!plat_getMemoryAccessRights(addr, size, rights)) {
+bool int_process::getMemoryAccessRights(Dyninst::Address addr, Process::mem_perm& rights) {
+    if (!plat_getMemoryAccessRights(addr, rights)) {
         pthrd_printf("Error get rights from memory %lx on target process %d\n",
                      addr, getPid());
         return false;
@@ -1665,10 +1827,8 @@ bool int_process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
     return true;
 }
 
-bool int_process::plat_getMemoryAccessRights(Dyninst::Address addr, size_t size,
-                                             Process::mem_perm& rights) {
+bool int_process::plat_getMemoryAccessRights(Dyninst::Address addr, Process::mem_perm& rights) {
     (void)addr;
-    (void)size;
     (void)rights;
     perr_printf("Called getMemoryAccessRights on unspported platform\n");
     setLastError(err_unsupported, "Get Memory Permission not supported on this platform\n");
@@ -1713,8 +1873,8 @@ bool int_process::findAllocatedRegionAround(Dyninst::Address addr,
 bool int_process::plat_findAllocatedRegionAround(Dyninst::Address addr,
                                                  Process::MemoryRegion& memRegion) {
     (void)addr;
-    memRegion.first  = NULL;
-    memRegion.second = NULL;
+    memRegion.first  = 0;
+    memRegion.second = 0;
     perr_printf("Called findAllocatedRegionAround on unspported platform\n");
     setLastError(err_unsupported,
                  "Find Allocated Region Addr not supported on this platform\n");
@@ -2116,7 +2276,7 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
    switch (ev->getSyncType()) {
 	  case Event::async: {
          break;
-	 }
+     }
       case Event::sync_thread: {
          int_thread *thrd = ev->getThread()->llthrd();
          int_thread::StateTracker &st = gen ? thrd->getGeneratorState() : thrd->getHandlerState();
@@ -2252,253 +2412,6 @@ bool int_process::plat_preAsyncWait()
   return true;
 }
 
-bool int_process::plat_getStackInfo(int_thread *, stack_response::ptr)
-{
-   setLastError(err_unsupported, "Collecting call stacks not supported\n");
-   perr_printf("Called plat_getStackInfo on unsupported platform\n");
-   return false;
-}
-
-bool int_process::plat_handleStackInfo(stack_response::ptr, CallStackCallback *)
-{
-   assert(0);
-   return false;
-}
-
-bool int_process::sysv_setTrackLibraries(bool, int_breakpoint* &, Address &, bool &)
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return false;
-}
-
-bool int_process::sysv_isTrackingLibraries()
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return false;
-}
-
-LibraryTracking *int_process::sysv_getLibraryTracking()
-{
-   return NULL;
-}
-
-bool int_process::threaddb_setTrackThreads(bool, std::set<std::pair<int_breakpoint *, Address> > &, bool &)
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return false;
-}
-
-bool int_process::threaddb_isTrackingThreads()
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return false;
-}
-
-bool int_process::threaddb_refreshThreads()
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return false;
-}
-
-ThreadTracking *int_process::threaddb_getThreadTracking()
-{
-   return NULL;
-}
-
-FollowFork *int_process::getForkTracking()
-{
-   return NULL;
-}
-
-bool int_process::fork_setTracking(FollowFork::follow_t)
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return false;
-}
-
-FollowFork::follow_t int_process::fork_isTracking() 
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return FollowFork::None;
-}
-
-LWPTracking *int_process::getLWPTracking()
-{
-   return NULL;
-}
-
-bool int_process::lwp_setTracking(bool b)
-{
-   pthrd_printf("Changing lwp tracking in %d from %s to %s\n", getPid(),
-                lwp_tracking ? "true" : "false", b ? "true" : "false");
-   if (b == lwp_tracking)
-      return true;
-   lwp_tracking = b;
-   return plat_lwpChangeTracking(b);
-}
-
-bool int_process::plat_lwpChangeTracking(bool)
-{
-   return true;
-}
-
-bool int_process::lwp_getTracking()
-{
-   return lwp_tracking;
-}
-
-bool int_process::lwp_refresh()
-{
-   pthrd_printf("Refreshing LWPs in process %d\n", getPid());
-   result_response::ptr resp;
-   bool result = lwp_refreshPost(resp);
-   if (!result) {
-      pthrd_printf("Error from lwp_refreshPost\n");
-      return false;
-   }
-   if (resp) {
-      int_process::waitForAsyncEvent(resp);
-   }
-   bool change;
-   result = lwp_refreshCheck(change);
-   if (!result) {
-      pthrd_printf("Failed to check for new LWPs");
-      return false;
-   }
-
-   if (!change)
-      return true;
-
-   setForceGeneratorBlock(true);
-   ProcPool()->condvar()->lock();
-   ProcPool()->condvar()->broadcast();
-   ProcPool()->condvar()->unlock();
-   int_process::waitAndHandleEvents(false);
-   setForceGeneratorBlock(false);
-   return true;
-}
-
-bool int_process::plat_lwpRefresh(result_response::ptr)
-{
-   return false;
-}
-
-bool int_process::lwp_refreshPost(result_response::ptr &resp)
-{
-   if (!plat_needsAsyncIO()) {
-      resp = result_response::ptr();
-      return true;
-   }
-
-   resp = result_response::createResultResponse();
-   resp->setProcess(this);
-   resp->markSyncHandled();
-   
-   getResponses().lock();
-   bool result = plat_lwpRefresh(resp);
-   if (result) {
-      getResponses().addResponse(resp, this);
-   }
-   if (!result) {
-      resp = result_response::ptr();
-   }
-   getResponses().unlock();
-   getResponses().noteResponse();
-   
-   return true;
-}
-
-bool int_process::lwp_refreshCheck(bool &change)
-{
-   vector<Dyninst::LWP> lwps;
-   change = false;
-   bool result = getThreadLWPs(lwps);
-   if (!result) {
-      pthrd_printf("Error calling getThreadLWPs during refresh\n");
-      return false;
-   }
-
-   //Look for added LWPs
-   int_threadPool *pool = threadPool();
-   int new_lwps_found = 0;
-   for (vector<Dyninst::LWP>::iterator i = lwps.begin(); i != lwps.end(); i++) {
-      Dyninst::LWP lwp = *i;
-      int_thread *thr = pool->findThreadByLWP(*i);
-      if (thr)
-         continue;
-      pthrd_printf("Found new thread %d/%d during refresh\n", getPid(), lwp);
-      thr = int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
-      new_lwps_found++;
-      change = true;
-      plat_lwpRefreshNoteNewThread(thr);
-   }
-
-   //Look for removed LWPs
-   if (lwps.size() - new_lwps_found != pool->size()) {     
-      for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
-         int_thread *thr = *i;
-         bool found = false;
-         for (vector<Dyninst::LWP>::iterator j = lwps.begin(); j != lwps.end(); j++) {
-            if (thr->getLWP() == *j) {
-               found = true;
-               break;
-            }
-         }
-         if (found)
-            continue;
-         change = true;
-         pthrd_printf("Found thread %d/%d is dead during refresh\n", getPid(), thr->getLWP());
-         EventLWPDestroy::ptr newev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
-         newev->setProcess(proc());
-         newev->setThread(thr->thread());
-         newev->setSyncType(Event::async);
-         mbox()->enqueue(newev);
-      }
-   }
-
-   return true;
-}
-
-bool int_process::plat_lwpRefreshNoteNewThread(int_thread *)
-{
-   return true;
-}
-
-std::string int_process::mtool_getName() 
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return string();
-}
-
-MultiToolControl::priority_t int_process::mtool_getPriority()
-{
-   perr_printf("Unsupported operation\n");
-   setLastError(err_unsupported, "Not supported on this platform");
-   return 0;
-}
-
-MultiToolControl *int_process::mtool_getMultiToolControl()
-{
-   return NULL;
-}
-
-SignalMask *int_process::getSigMask()
-{
-#if defined(os_windows)
-   return NULL;
-#else
-   return &pcsigmask;
-#endif
-}
-
 int_process::~int_process()
 {
    pthrd_printf("Deleting int_process at %p\n", this);
@@ -2520,6 +2433,7 @@ int_process::~int_process()
       delete threadpool;
       threadpool = NULL;
    }
+   
    //Do not delete handlerpool yet, we're currently under
    // an event handler.  We do want to delete this if called
    // from detach.
@@ -2920,6 +2834,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    proc_stop_rpc_count(Counter::ProcStopRPCs),
    generator_nonexited_thrd_count(Counter::GeneratorNonExitedThreads),
    neonatal_threads(Counter::NeonatalThreads),
+   pending_stackwalk_count(Counter::PendingStackwalks),
    exiting_state(this, ExitingStateID, dontcare),
    startup_state(this, StartupStateID, dontcare),
    pending_stop_state(this, PendingStopStateID, dontcare),
@@ -2951,7 +2866,8 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    postponed_stopped_on_breakpoint_addr(0x0),
    clearing_breakpoint(NULL),
    em_singlestep(NULL),
-   user_data(NULL)
+   user_data(NULL),
+   unwinder(NULL)
 {
    Thread::ptr new_thr(new Thread());
 
@@ -3491,6 +3407,11 @@ Counter &int_thread::getGeneratorNonExitedThreadCount()
 Counter &int_thread::neonatalThreadCount()
 {
    return neonatal_threads;
+}
+
+Counter &int_thread::pendingStackwalkCount()
+{
+   return pending_stackwalk_count;
 }
 
 void int_thread::setContSignal(int sig)
@@ -4358,18 +4279,12 @@ bool int_thread::StateTracker::setState(State to)
       pthrd_printf("Leaving %s state for %d/%d in state %s\n", s.c_str(), pid, lwp, stateStr(to));
       return true;
    }
-   if (to == errorstate) {
-      perr_printf("Setting %s state for %d/%d from %s to errorstate\n", 
-                  s.c_str(), pid, lwp, stateStr(state));
-      state = to;
-      return true;
-   }
    if (state == errorstate) {
       perr_printf("Attempted %s state reversion for %d/%d from errorstate to %s\n", 
                   s.c_str(), pid, lwp, stateStr(to));
       return false;
    }
-   if (state == exited) {
+   if (state == exited && to != errorstate) {
       perr_printf("Attempted %s state reversion for %d/%d from exited to %s\n", 
                   s.c_str(), pid, lwp, stateStr(to));
       return false;
@@ -4480,11 +4395,6 @@ hw_breakpoint *int_thread::getHWBreakpoint(Address a)
       if ((*i)->getAddr() == a)
          return *i;
    }
-   return NULL;
-}
-
-CallStackUnwinding *int_thread::getStackUnwinder()
-{
    return NULL;
 }
 
@@ -4685,7 +4595,7 @@ int_breakpoint::int_breakpoint(Breakpoint::ptr up) :
    up_bp(up),
    to(0x0),
    isCtrlTransfer_(false),
-   data(false),
+   data(NULL),
    hw(false),
    hw_perms(0),
    hw_size(0),
@@ -4701,7 +4611,7 @@ int_breakpoint::int_breakpoint(Dyninst::Address to_, Breakpoint::ptr up, bool of
    up_bp(up),
    to(to_),
    isCtrlTransfer_(true),
-   data(false),
+   data(NULL),
    hw(false),
    hw_perms(0),
    hw_size(0),
@@ -4717,14 +4627,15 @@ int_breakpoint::int_breakpoint(unsigned int hw_prems_, unsigned int hw_size_, Br
   up_bp(up),
   to(0x0),
   isCtrlTransfer_(false),
-  data(false),
+  data(NULL),
   hw(true),
   hw_perms(hw_prems_),
   hw_size(hw_size_),
   onetime_bp(false),
   onetime_bp_hit(false),
   procstopper(false),
-  suppress_callbacks(false)
+  suppress_callbacks(false),
+  offset_transfer(false)
 {
 }
 
@@ -5451,6 +5362,14 @@ std::string int_library::getName()
    return name;
 }
 
+std::string int_library::getAbsName()
+{
+   if (!abs_name.empty())
+      return abs_name;
+   abs_name = int_process::plat_canonicalizeFileName(name);
+   return abs_name;
+}
+
 Dyninst::Address int_library::getAddr()
 {
    return load_address;
@@ -5785,17 +5704,17 @@ std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> RegisterPool::iterato
    return *i;
 }
 
-RegisterPool::iterator RegisterPool::iterator::operator++()
-{
-   int_iter orig = i;
-   i++;
-   return RegisterPool::iterator(i);
-}
-
-RegisterPool::iterator RegisterPool::iterator::operator++(int)
+RegisterPool::iterator RegisterPool::iterator::operator++() // prefix
 {
    i++;
    return *this;
+}
+
+RegisterPool::iterator RegisterPool::iterator::operator++(int) // postfix
+{
+   RegisterPool::iterator orig = *this;
+   i++;
+   return orig;
 }
 
 RegisterPool::const_iterator::const_iterator()
@@ -5816,17 +5735,17 @@ std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> RegisterPool::const_i
    return *i;
 }
 
-RegisterPool::const_iterator RegisterPool::const_iterator::operator++()
-{
-   int_iter orig = i;
-   i++;
-   return RegisterPool::const_iterator(i);
-}
-
-RegisterPool::const_iterator RegisterPool::const_iterator::operator++(int)
+RegisterPool::const_iterator RegisterPool::const_iterator::operator++() // prefix
 {
    i++;
    return *this;
+}
+
+RegisterPool::const_iterator RegisterPool::const_iterator::operator++(int) // postfix
+{
+   RegisterPool::const_iterator orig = *this;
+   i++;
+   return orig;
 }
 
 void regpoolClearOnCont(int_thread *thr)
@@ -5874,6 +5793,12 @@ std::string Library::getName() const
 {
    MTLock lock_this_func;
    return lib->getName();
+}
+
+std::string Library::getAbsoluteName() const
+{
+   MTLock lock_this_func;
+   return lib->getAbsName();
 }
 
 Dyninst::Address Library::getLoadAddress() const
@@ -6004,17 +5929,17 @@ Library::ptr LibraryPool::iterator::operator*() const
    return (*int_iter)->up_lib;
 }
 
-LibraryPool::iterator LibraryPool::iterator::operator++()
+LibraryPool::iterator LibraryPool::iterator::operator++() // prefix
+{
+   ++int_iter;
+   return *this;
+}
+
+LibraryPool::iterator LibraryPool::iterator::operator++(int) // postfix
 {
    LibraryPool::iterator orig = *this;
    ++int_iter;
    return orig;
-}
-
-LibraryPool::iterator LibraryPool::iterator::operator++(int)
-{
-   ++int_iter;
-   return *this;
 }
 
 LibraryPool::iterator LibraryPool::begin()
@@ -6078,17 +6003,17 @@ bool LibraryPool::const_iterator::operator!=(const LibraryPool::const_iterator &
    return int_iter != i.int_iter;
 }
 
-LibraryPool::const_iterator LibraryPool::const_iterator::operator++()
+LibraryPool::const_iterator LibraryPool::const_iterator::operator++() // prefix
+{
+   ++int_iter;
+   return *this;
+}
+
+LibraryPool::const_iterator LibraryPool::const_iterator::operator++(int) // postfix
 {
    LibraryPool::const_iterator orig = *this;
    ++int_iter;
    return orig;
-}
-
-LibraryPool::const_iterator LibraryPool::const_iterator::operator++(int)
-{
-   ++int_iter;
-   return *this;
 }
 
 bool Process::registerEventCallback(EventType evt, Process::cb_func_t cbfunc)
@@ -6405,11 +6330,7 @@ int Process::getExitCode() const
 bool Process::isDetached() const
 {
     MTLock lock_this_func;
-    if (!llproc_) {
-        perr_printf("isDetached called on deleted process\n");
-        setLastError(err_exited, "Process is exited\n");
-        return false;
-    }
+    PROC_EXIT_TEST("isDetached", false);
 
     return llproc_->getState() == int_process::detached;
 }
@@ -6458,11 +6379,7 @@ bool Process::isTerminated() const
 bool Process::hasStoppedThread() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("hasStoppedThread on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+   PROC_EXIT_TEST("hasStoppedThread", false);
 
    int_threadPool::iterator i;
    for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); i++) {
@@ -6475,11 +6392,7 @@ bool Process::hasStoppedThread() const
 bool Process::hasRunningThread() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("hasRunningThread on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+   PROC_EXIT_TEST("hasRunningThread", false);
 
    int_threadPool::iterator i;
    for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); ++i) {
@@ -6494,11 +6407,7 @@ bool Process::hasRunningThread() const
 bool Process::allThreadsStopped() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("allThreadsStopped on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+   PROC_EXIT_TEST("allThreadsStopped", false);
 
    int_threadPool::iterator i;
    for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); i++) {
@@ -6511,11 +6420,7 @@ bool Process::allThreadsStopped() const
 bool Process::allThreadsRunning() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("allThreadsRunning on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+   PROC_EXIT_TEST("allThreadsRunning", false);
 
    int_threadPool::iterator i;
    for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); i++) {
@@ -6528,11 +6433,7 @@ bool Process::allThreadsRunning() const
 bool Process::allThreadsRunningWhenAttached() const 
 {
     MTLock lock_this_func;
-    if(!llproc_) {
-        perr_printf("allThreadsRunningWhenAttached on deleted process\n");
-        setLastError(err_exited, "Process is exited\n");
-        return false;
-    }
+    PROC_EXIT_TEST("allThreadsRunningWhenAttached", false);
 
     for(int_threadPool::iterator i = llproc_->threadPool()->begin(); 
             i != llproc_->threadPool()->end(); ++i)
@@ -6546,21 +6447,7 @@ bool Process::allThreadsRunningWhenAttached() const
 bool Process::runIRPCAsync(IRPC::ptr irpc)
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("postIRPC on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-   if (llproc_->getState() == int_process::detached) {
-       perr_printf("postIRPC on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-   if (int_process::isInCB()) {
-      perr_printf("User attempted continue call on thread while in CB, erroring.");
-      setLastError(err_incallback, "Cannot postSyncIRPC from callback\n");
-      return false;
-   }
+   PROC_EXIT_DETACH_TEST("runIRPCAsync", false);
 
 
    int_process *proc = llproc();
@@ -6597,6 +6484,7 @@ bool Process::runIRPCAsync(IRPC::ptr irpc)
 bool Process::runIRPCSync(IRPC::ptr irpc)
 {
    MTLock lock_this_func;
+   PROC_EXIT_DETACH_CB_TEST("runIRPCSync", false);
    pthrd_printf("Running SYNC RPC\n");
    bool result = runIRPCAsync(irpc);
    if (!result) return false;
@@ -6632,17 +6520,7 @@ bool Thread::runIRPCSync(IRPC::ptr irpc)
 bool Process::postIRPC(IRPC::ptr irpc) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("postIRPC on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if (llproc_->getState() == int_process::detached) {
-       perr_printf("postIRPC on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
+   PROC_EXIT_DETACH_TEST("postIRPC", false);
 
    int_process *proc = llproc();
    int_iRPC::ptr rpc = irpc->llrpc()->rpc;
@@ -6658,11 +6536,7 @@ bool Process::postIRPC(IRPC::ptr irpc) const
 bool Process::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("postIRPC on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+   PROC_EXIT_DETACH_TEST("getPostedIRPCs", false);
    int_threadPool *tp = llproc()->threadPool();
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i)
    {
@@ -6681,22 +6555,14 @@ bool Process::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 Dyninst::Architecture Process::getArchitecture() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getArchitecture on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return Dyninst::Arch_none;
-   }
+   PROC_EXIT_TEST("getArchitecture", Dyninst::Arch_none);
    return llproc_->getTargetArch();
 }
 
 Dyninst::OSType Process::getOS() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getOS on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return Dyninst::OSNone;
-   }
+   PROC_EXIT_TEST("getOS", Dyninst::OSNone);
 
    return llproc_->getOS();
 }
@@ -6704,10 +6570,7 @@ Dyninst::OSType Process::getOS() const
 bool Process::supportsLWPEvents() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("Support query on deleted process\n");
-      return false;
-   }
+   PROC_EXIT_TEST("supportsLWPEvents", false);
    //Intentionally not testing plat_supportLWP*Destroy, which is complicated on BG
    return llproc_->plat_supportLWPCreate(); 
 }
@@ -6715,30 +6578,21 @@ bool Process::supportsLWPEvents() const
 bool Process::supportsUserThreadEvents() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("Support query on deleted process\n");
-      return false;
-   }
+   PROC_EXIT_TEST("supportsUserThreadEvents", false);
    return llproc_->plat_supportThreadEvents();
 }
 
 bool Process::supportsFork() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("Support query on deleted process\n");
-      return false;
-   }
+   PROC_EXIT_TEST("supportsFork", false);
    return llproc_->plat_supportFork();
 }
 
 bool Process::supportsExec() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("Support query on deleted process\n");
-      return false;
-   }
+   PROC_EXIT_TEST("supportsExec", false);
    return llproc_->plat_supportExec();
 }
 
@@ -6807,6 +6661,7 @@ unsigned Process::getMemoryPageSize() const {
 
 Dyninst::Address Process::mallocMemory(size_t size, Dyninst::Address addr)
 {
+   PROC_EXIT_DETACH_CB_TEST("mallocMemory", 0);
    ProcessSet::ptr pset = ProcessSet::newProcessSet(shared_from_this());
    AddressSet::ptr addrset = AddressSet::newAddressSet(pset, addr);
    bool result = pset->mallocMemory(size, addrset);
@@ -6819,6 +6674,7 @@ Dyninst::Address Process::mallocMemory(size_t size, Dyninst::Address addr)
 
 Dyninst::Address Process::mallocMemory(size_t size)
 {
+   PROC_EXIT_DETACH_CB_TEST("mallocMemory", 0);
    ProcessSet::ptr pset = ProcessSet::newProcessSet(shared_from_this());
    AddressSet::ptr addr_result = pset->mallocMemory(size);
    if (addr_result->empty()) {
@@ -6829,11 +6685,13 @@ Dyninst::Address Process::mallocMemory(size_t size)
 
 Dyninst::Address Process::findFreeMemory(size_t size)
 {
+   PROC_EXIT_DETACH_TEST("findFreeMemory", 0);
 	return llproc()->plat_findFreeMemory(size);
 }
 
 bool Process::freeMemory(Dyninst::Address addr)
 {
+   PROC_EXIT_DETACH_CB_TEST("freeMemory", 0);
    Process::ptr this_ptr = shared_from_this();
    ProcessSet::ptr pset = ProcessSet::newProcessSet(this_ptr);
    AddressSet::ptr addrs = AddressSet::newAddressSet(pset, addr);
@@ -6843,17 +6701,7 @@ bool Process::freeMemory(Dyninst::Address addr)
 bool Process::writeMemory(Dyninst::Address addr, const void *buffer, size_t size) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("writeMemory on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("writeMemory on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
+   PROC_EXIT_DETACH_TEST("writeMemory", false);
 
    pthrd_printf("User wants to write memory to remote addr 0x%lx from buffer 0x%p of size %lu\n", 
                 addr, buffer, (unsigned long) size);
@@ -6876,17 +6724,7 @@ bool Process::writeMemory(Dyninst::Address addr, const void *buffer, size_t size
 bool Process::readMemory(void *buffer, Dyninst::Address addr, size_t size) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("readMemory on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("readMemory on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
+   PROC_EXIT_DETACH_TEST("readMemory", false);
 
    pthrd_printf("User wants to read memory from 0x%lx to 0x%p of size %lu\n", 
                 addr, buffer, (unsigned long) size);
@@ -6912,18 +6750,7 @@ bool Process::readMemory(void *buffer, Dyninst::Address addr, size_t size) const
 bool Process::writeMemoryAsync(Dyninst::Address addr, const void *buffer, size_t size, void *opaque_val) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("writeMemoryAsync on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("writeMemoryAsync on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-
+   PROC_EXIT_DETACH_TEST("writeMemoryAsync", false);
    pthrd_printf("User wants to async write memory to remote addr 0x%lx from buffer 0x%p of size %lu\n", 
                 addr, buffer, (unsigned long) size);
    result_response::ptr resp = result_response::createResultResponse();
@@ -6948,17 +6775,7 @@ bool Process::writeMemoryAsync(Dyninst::Address addr, const void *buffer, size_t
 bool Process::readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, void *opaque_val) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("readMemoryAsync on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("readMemoryAsync on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
+   PROC_EXIT_DETACH_TEST("readMemoryAsync", false);
 
    pthrd_printf("User wants to async read memory from 0x%lx to 0x%p of size %lu\n", 
                 addr, buffer, (unsigned long) size);
@@ -6983,8 +6800,7 @@ bool Process::readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, 
    return true;
 }
 
-bool Process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
-                                    mem_perm& rights) {
+bool Process::getMemoryAccessRights(Dyninst::Address addr, mem_perm& rights) {
     if (!llproc_) {
         perr_printf("getMemoryAccessRights on deleted process\n");
         setLastError(err_exited, "Process is exited\n");
@@ -6997,10 +6813,9 @@ bool Process::getMemoryAccessRights(Dyninst::Address addr, size_t size,
         return false;
     }
 
-    pthrd_printf("User wants to get Memory Rights from [%lx %lx]\n",
-                 addr, addr+size);
+    pthrd_printf("User wants to get Memory Rights at %lx\n", addr);
    
-    if (!llproc_->getMemoryAccessRights(addr, size, rights)) {
+    if (!llproc_->getMemoryAccessRights(addr, rights)) {
         pthrd_printf("Error get rights from memory %lx on target process %d\n",
                      addr, llproc_->getPid());
        return false;
@@ -7064,17 +6879,7 @@ bool Process::findAllocatedRegionAround(Dyninst::Address addr,
 bool Process::addBreakpoint(Address addr, Breakpoint::ptr bp) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("addBreakpoint on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if (bp->llbp()->isHW() && !llproc_->plat_supportHWBreakpoint()) {
-      perr_printf("User attempted to insert hardware breakpoint into unsupported process\n");
-      setLastError(err_unsupported, "Hardware breakpoints not supported on this platform\n");
-      return false;
-   }
+   PROC_EXIT_DETACH_TEST("addBreakpoint", false);
 
    if (hasRunningThread()) {
       perr_printf("User attempted to add breakpoint to running process\n");
@@ -7094,22 +6899,12 @@ bool Process::addBreakpoint(Address addr, Breakpoint::ptr bp) const
 bool Process::rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("rmBreakpoint on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
+   PROC_EXIT_DETACH_TEST("rmBreakpoint", false);
 
    if (hasRunningThread()) {
       perr_printf("User attempted to remove breakpoint on running process\n");
       setLastError(err_notstopped, "Attempted to remove breakpoint on running process\n");
       return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("User attempted to remove breakpoint from detached process\n");
-       setLastError(err_detached, "Attempted to remove breakpoint from detached process\n");
-       return false;
    }
 
    set<response::ptr> resps;
@@ -7136,11 +6931,7 @@ bool Process::rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
 unsigned Process::numHardwareBreakpointsAvail(unsigned mode)
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("numHardwareBreakpointsAvail on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return 0;
-   }
+   PROC_EXIT_DETACH_TEST("numHardwareBreakpointAvail", 0);
 
    unsigned min = INT_MAX;
    int_threadPool *tp = llproc_->threadPool();
@@ -7177,125 +6968,138 @@ void Process::setSymbolReader(SymbolReaderFactory *f) const
 SymbolReaderFactory *Process::getSymbolReader() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getSymbolReader on exited process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getSymbolReader", NULL);
    return llproc_->getSymReader();
 }
 
 LibraryTracking *Process::getLibraryTracking()
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
-   return llproc_->sysv_getLibraryTracking();
+   PROC_EXIT_TEST("getLibraryTracking", NULL);
+   int_libraryTracking *proc = llproc_->getLibraryTracking();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 ThreadTracking *Process::getThreadTracking()
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
-   return llproc_->threaddb_getThreadTracking();
+   PROC_EXIT_TEST("getThreadTracking", NULL);
+   int_threadTracking *proc = llproc_->getThreadTracking();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 LWPTracking *Process::getLWPTracking()
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
-   return llproc_->getLWPTracking();
+   PROC_EXIT_TEST("getLWPTracking", NULL);
+   int_LWPTracking *proc = llproc_->getLWPTracking();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 CallStackUnwinding *Thread::getCallStackUnwinding()
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getCallStackUnwinding on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
+   THREAD_EXIT_TEST("getCallStackUnwinding", NULL);
+   int_callStackUnwinding *uwproc = llthread_->llproc()->getCallStackUnwinding();
+   if (!uwproc) 
       return NULL;
+   if (!llthread_->unwinder) {
+      llthread_->unwinder = new CallStackUnwinding(shared_from_this());
    }
-   int_process *proc = llthread_->llproc();
-   assert(proc);
-   
-   return llthread_->getStackUnwinder();
+   return llthread_->unwinder;
 }
 
 FollowFork *Process::getFollowFork()
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
-   return llproc_->getForkTracking();
+   PROC_EXIT_TEST("getFollowFork", NULL);
+   int_followFork *proc = llproc_->getFollowFork();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 SignalMask *Process::getSignalMask()
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getSignalMask on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
-   return llproc_->getSigMask();
+   PROC_EXIT_TEST("getSignalMask", NULL);
+   int_signalMask *proc = llproc_->getSignalMask();
+   if (!proc) return NULL;
+   return proc->up_ptr;
+}
+
+RemoteIO *Process::getRemoteIO()
+{
+   MTLock lock_this_func;
+   PROC_EXIT_TEST("getRemoteIO", NULL);
+   int_remoteIO *proc = llproc_->getRemoteIO();
+   if (!proc) return NULL;
+   return proc->up_ptr;
+}
+
+BGQData *Process::getBGQ()
+{
+   MTLock lock_this_func;
+   PROC_EXIT_TEST("getBGQ", NULL);
+   int_BGQData *proc = llproc_->getBGQData();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 const LibraryTracking *Process::getLibraryTracking() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
-   return llproc_->sysv_getLibraryTracking();
+   PROC_EXIT_TEST("getLibraryTracking", NULL);
+   int_libraryTracking *proc = llproc_->getLibraryTracking();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 const ThreadTracking *Process::getThreadTracking() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
-   return llproc_->threaddb_getThreadTracking();
+   PROC_EXIT_TEST("getThreadTracking", NULL);
+   int_threadTracking *proc = llproc_->getThreadTracking();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 const LWPTracking *Process::getLWPTracking() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
-   return llproc_->getLWPTracking();
+   PROC_EXIT_TEST("getLWPTracking", NULL);
+   int_LWPTracking *proc = llproc_->getLWPTracking();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 const SignalMask *Process::getSignalMask() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getSignalMask on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
-   return llproc_->getSigMask();
+   PROC_EXIT_TEST("getSignalMask", NULL);
+   int_signalMask *proc = llproc_->getSignalMask();
+   if (!proc) return NULL;
+   return proc->up_ptr;
+}
+
+const RemoteIO *Process::getRemoteIO() const
+{
+   MTLock lock_this_func;
+   PROC_EXIT_TEST("getRemoteIO", NULL);
+   int_remoteIO *proc = llproc_->getRemoteIO();
+   if (!proc) return NULL;
+   return proc->up_ptr;
+}
+
+const BGQData *Process::getBGQ() const
+{
+   MTLock lock_this_func;
+   PROC_EXIT_TEST("getBGQ", NULL);
+   int_BGQData *proc = llproc_->getBGQData();
+   if (!proc) return NULL;
+   return proc->up_ptr;
 }
 
 err_t Process::getLastError() const {
@@ -7340,11 +7144,7 @@ void Process::clearLastError() const {
 ExecFileInfo* Process::getExecutableInfo() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getExecutableInfo on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }
+   PROC_EXIT_TEST("getExecutableInfo", NULL);
 
    return llproc()->plat_getExecutableInfo();
 }
@@ -7352,11 +7152,7 @@ ExecFileInfo* Process::getExecutableInfo() const
 unsigned int Process::getCapabilities() const
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getCapabilities on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return NULL;
-   }   
+   PROC_EXIT_TEST("getCapabilities", 0);
    return llproc()->plat_getCapabilities();
 }
 
@@ -7419,22 +7215,14 @@ int_thread *Thread::llthrd() const
 bool Thread::isStopped() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("isStopped called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_TEST("isStopped", false);
    return llthread_->getUserState().getState() == int_thread::stopped;
 }
 
 bool Thread::isRunning() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("isRunning called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_TEST("isRunning", false);
    return llthread_->getUserState().getState() == int_thread::running;
 }
 
@@ -7451,34 +7239,14 @@ bool Thread::isLive() const
 bool Thread::isDetached() const
 {
     MTLock lock_this_func;
-    if (!llthread_) {
-        perr_printf("isDetached called on exited thread\n");
-        setLastError(err_exited, "Thread is exited\n");
-        return false;
-    }
+    THREAD_EXIT_TEST("isDetached", false);
     return llthread_->getUserState().getState() == int_thread::detached;
 }
 
 bool Thread::stopThread()
 {
    MTLock lock_this_func(MTLock::deliver_callbacks);
-   if (!llthread_) {
-      perr_printf("stopThread called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-
-   if( llthread_->getUserState().getState() == int_thread::detached ) {
-       perr_printf("stopThread on detached thread\n");
-       setLastError(err_detached, "Thread is detached\n");
-       return false;
-   }
-
-   if (int_process::isInCB()) {
-      perr_printf("User attempted continue call on thread while in CB, erroring.");
-      setLastError(err_incallback, "Cannot continueThread from callback\n");
-      return false;
-   }
+   THREAD_EXIT_DETACH_CB_TEST("stopThread", false);
 
    int_thread *thrd = llthrd();
    int_process *proc = thrd->llproc();
@@ -7511,23 +7279,7 @@ bool Thread::stopThread()
 bool Thread::continueThread()
 {
    MTLock lock_this_func(MTLock::deliver_callbacks);
-   if (!llthread_) {
-      perr_printf("continueThread called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-
-   if( llthread_->getUserState().getState() == int_thread::detached ) {
-       perr_printf("continueThread on detached thread\n");
-       setLastError(err_detached, "Thread is detached\n");
-       return false;
-   }
-
-   if (int_process::isInCB()) {
-      perr_printf("User attempted continue call on thread while in CB, erroring.");
-      setLastError(err_incallback, "Cannot continueThread from callback\n");
-      return false;
-   }
+   THREAD_EXIT_DETACH_CB_TEST("continueThread", false);
 
    int_thread *thrd = llthrd();
    int_process *proc = thrd->llproc();
@@ -7547,17 +7299,7 @@ bool Thread::continueThread()
 bool Thread::getAllRegisters(RegisterPool &pool) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getAllRegisters called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      setLastError(err_notstopped, "Thread must be stopped before getting registers");
-      perr_printf("User called getAllRegisters on running thread %d\n", llthread_->getLWP());
-      return false;
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("getAllRegisters", false);
    
    allreg_response::ptr response = allreg_response::createAllRegResponse(pool.llregpool);   
    bool result = llthread_->getAllRegisters(response);
@@ -7582,16 +7324,7 @@ bool Thread::getAllRegisters(RegisterPool &pool) const
 bool Thread::setAllRegisters(RegisterPool &pool) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("setAllRegisters called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      setLastError(err_notstopped, "Thread must be stopped before setting registers");
-      perr_printf("User called setAllRegisters on running thread %d\n", llthread_->getLWP());
-      return false;
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("setAllRegisters", false);
    
    result_response::ptr response = result_response::createResultResponse();
    bool result = llthread_->setAllRegisters(*pool.llregpool, response);
@@ -7616,16 +7349,7 @@ bool Thread::setAllRegisters(RegisterPool &pool) const
 bool Thread::getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getRegister called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      setLastError(err_notstopped, "Thread must be stopped before getting registers");
-      perr_printf("User called getRegister on running thread %d\n", llthread_->getLWP());
-      return false;
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("getRegister", false);
 
    reg_response::ptr response = reg_response::createRegResponse();
    bool result = llthread_->getRegister(reg, response);
@@ -7650,16 +7374,8 @@ bool Thread::getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &va
 bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("setRegister called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      setLastError(err_notstopped, "Thread must be stopped before setting registers");
-      perr_printf("User called setRegister on running thread %d\n", llthread_->getLWP());
-      return false;
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("setRegister", false);
+
    result_response::ptr response = result_response::createResultResponse();
    bool result = llthread_->setRegister(reg, val, response);
    if (!result) {
@@ -7682,23 +7398,10 @@ bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val
 bool Thread::getAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getAllRegistersAsync on deleted thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("getAllRegistersAsync", false);
+
    pthrd_printf("User wants to async read registers on %d/%d\n",
                 llthread_->proc()->getPid(), llthread_->getLWP());
-   if( llthread_->getUserState().getState() == int_thread::detached ) {
-       perr_printf("getAllRegistersAsync on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      setLastError(err_notstopped, "Thread must be stopped before getting registers");
-      perr_printf("User called getAllRegistersAsync on running thread %d\n", llthread_->getLWP());
-      return false;
-   }
 
    allreg_response::ptr response = allreg_response::createAllRegResponse(pool.llregpool);   
    int_eventAsyncIO *iev = new int_eventAsyncIO(response, int_eventAsyncIO::regallread);
@@ -7717,23 +7420,9 @@ bool Thread::getAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 bool Thread::setAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("setAllRegistersAsync on deleted thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("getAllRegistersAsync", false);
    pthrd_printf("User wants to async set registers on %d/%d\n",
                 llthread_->proc()->getPid(), llthread_->getLWP());
-   if( llthread_->proc()->llproc()->getState() == int_process::detached ) {
-       perr_printf("setAllRegistersAsync on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      setLastError(err_notstopped, "Thread must be stopped before setting registers");
-      perr_printf("User called setAllRegistersAsync on running thread %d\n", llthread_->getLWP());
-      return false;
-   }
 
    result_response::ptr response = result_response::createResultResponse();
    int_eventAsyncIO *iev = new int_eventAsyncIO(response, int_eventAsyncIO::regallwrite);
@@ -7751,49 +7440,29 @@ bool Thread::setAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 bool Thread::isInitialThread() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("isInitialThread called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_TEST("isInitialThread", false);
    return llthread_->llproc()->threadPool()->initialThread() == llthread_;
 }
 
 bool Thread::isUser() const 
 {
 	MTLock lock_this_func;
-	if (!llthread_) {
-		perr_printf("isUser called on exited thread\n");
-		setLastError(err_exited, "Thread is exited\n");
-		return false;
-	}
+   THREAD_EXIT_TEST("isUser", false);
 	return llthread_->isUser();
 }
 
-void Thread::setSingleStepMode(bool s) const
+bool Thread::setSingleStepMode(bool s) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("setSingleStepMode called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return;
-   }
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-      perr_printf("setSingleStepMode called on running thread %d/%d\n",
-                  llthread_->llproc()->getPid(), llthread_->getLWP());
-      setLastError(err_notstopped, "Error, user tried to put non-stopped thread into single step");
-   }
+   THREAD_EXIT_DETACH_STOP_TEST("setSingleStepMode", false);
    llthread_->setSingleStepUserMode(s);
+   return true;
 }
 
 bool Thread::getSingleStepMode() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getSingleStepMode called on exited thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_TEST("getSingleStepMode", false);
    return llthread_->singleStepUserMode();
 }
 
@@ -7810,17 +7479,7 @@ Dyninst::LWP Thread::getLWP() const
 bool Thread::postIRPC(IRPC::ptr irpc) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-	   perr_printf("postIRPC on deleted thread %d\n", getLWP());
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
-
-   if( llthread_->getUserState().getState() == int_thread::detached ) {
-       perr_printf("postIRPC on detached thread\n");
-       setLastError(err_detached, "Thread is detached\n");
-       return false;
-   }
+   THREAD_EXIT_DETACH_TEST("postIRPC", false);
 
    int_thread *thr = llthread_;
    int_process *proc = thr->llproc();
@@ -7837,11 +7496,8 @@ bool Thread::postIRPC(IRPC::ptr irpc) const
 bool Thread::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("postIRPC on deleted thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return false;
-   }
+   THREAD_EXIT_TEST("getPostedIRPCs", false);
+
    rpc_list_t *rpc_list = llthread_->getPostedRPCs();
    for (rpc_list_t::iterator j = rpc_list->begin(); j != rpc_list->end(); ++j) {
       IRPC::ptr up_rpc = (*j)->getIRPC().lock();
@@ -7855,12 +7511,7 @@ bool Thread::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 bool Thread::haveUserThreadInfo() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("haveUserThreadInfo on deleted thread\n");
-      setLastError(err_exited, "Thread is exited");
-      return false;
-   }
-
+   THREAD_EXIT_TEST("haveUserThreadInfo", false);
    return llthread_->haveUserThreadInfo();
 }
 
@@ -7888,11 +7539,7 @@ Dyninst::THR_ID Thread::getTID() const
 Dyninst::Address Thread::getStartFunction() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getStartFunction on deleted thread\n");
-      setLastError(err_exited, "Thread is exited");
-      return false;
-   }
+   THREAD_EXIT_TEST("getStartFunction", 0);
 
    Dyninst::Address addr;
    bool result = llthread_->getStartFuncAddress(addr);
@@ -7905,11 +7552,7 @@ Dyninst::Address Thread::getStartFunction() const
 Dyninst::Address Thread::getStackBase() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getStartFunction on deleted thread\n");
-      setLastError(err_exited, "Thread is exited");
-      return false;
-   }
+   THREAD_EXIT_TEST("getStackBase", 0);
 
    Dyninst::Address addr;
    bool result = llthread_->getStackBase(addr);
@@ -7922,11 +7565,7 @@ Dyninst::Address Thread::getStackBase() const
 unsigned long Thread::getStackSize() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getStartFunction on deleted thread\n");
-      setLastError(err_exited, "Thread is exited");
-      return false;
-   }
+   THREAD_EXIT_TEST("getStackSize", 0);
 
    unsigned long size;
    bool result = llthread_->getStackSize(size);
@@ -7939,11 +7578,7 @@ unsigned long Thread::getStackSize() const
 Dyninst::Address Thread::getTLS() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getStartFunction on deleted thread\n");
-      setLastError(err_exited, "Thread is exited");
-      return false;
-   }
+   THREAD_EXIT_TEST("getTLS", 0);
 
    Dyninst::Address addr;
    bool result = llthread_->getTLSPtr(addr);
@@ -7968,11 +7603,8 @@ Dyninst::Address Thread::getThreadInfoBlockAddr() const
 IRPC::const_ptr Thread::getRunningIRPC() const
 {
    MTLock lock_this_func;
-   if (!llthread_) {
-      perr_printf("getRunningIRPC on deleted thread\n");
-      setLastError(err_exited, "Thread is exited\n");
-      return IRPC::const_ptr();
-   }
+   THREAD_EXIT_DETACH_TEST("getRunningIRPC", IRPC::const_ptr());
+
    int_iRPC::ptr running = llthread_->runningRPC();
    if (running == int_iRPC::ptr())
       return IRPC::const_ptr();
@@ -8037,7 +7669,30 @@ Thread::ptr ThreadPool::iterator::operator*() const
    return curh;
 }
 
-ThreadPool::iterator ThreadPool::iterator::operator++()
+ThreadPool::iterator ThreadPool::iterator::operator++() // prefix
+{
+   MTLock lock_this_func;
+
+   assert(curi >= 0); //If this fails, you incremented a bad iterator
+   for (;;) {
+      curi++;
+      if (curi >= (signed int) curp->hl_threads.size()) {
+         curh = Thread::ptr();
+         curi = end_val;
+         return *this;
+      }
+      curh = curp->hl_threads[curi];
+      if (!curh->llthrd())
+         continue;
+      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
+         continue;
+	  if (!curh->isUser())
+		  continue;
+      return *this;
+   }
+}
+
+ThreadPool::iterator ThreadPool::iterator::operator++(int) // postfix
 {
    MTLock lock_this_func;
    ThreadPool::iterator orig = *this;
@@ -8055,32 +7710,9 @@ ThreadPool::iterator ThreadPool::iterator::operator++()
          continue;
       if (curh->llthrd()->getUserState().getState() == int_thread::exited)
          continue;
-	  if (!curh->isUser())
-		  continue;
-      return orig;
-   }
-}
-
-ThreadPool::iterator ThreadPool::iterator::operator++(int)
-{
-   MTLock lock_this_func;
-
-   assert(curi >= 0); //If this fails, you incremented a bad iterator
-   for (;;) {
-      curi++;
-      if (curi >= (signed int) curp->hl_threads.size()) {
-         curh = Thread::ptr();
-         curi = end_val;
-         return *this;
-      }
-      curh = curp->hl_threads[curi];
-      if (!curh->llthrd())
-         continue;
-      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
-         continue;
       if (!curh->isUser())
          continue;
-      return *this;
+      return orig;
    }
 }
 
@@ -8152,7 +7784,30 @@ Thread::const_ptr ThreadPool::const_iterator::operator*() const
    return curh;
 }
 
-ThreadPool::const_iterator ThreadPool::const_iterator::operator++()
+ThreadPool::const_iterator ThreadPool::const_iterator::operator++() // prefix
+{
+   MTLock lock_this_func;
+
+   assert(curi >= 0); //If this fails, you incremented a bad iterator
+   for (;;) {
+      curi++;
+      if (curi >= (signed int) curp->hl_threads.size()) {
+         curh = Thread::ptr();
+         curi = end_val;
+         return *this;
+      }
+      curh = curp->hl_threads[curi];
+      if (!curh->llthrd())
+         continue;
+      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
+         continue;
+	  if (!curh->isUser())
+		  continue;
+      return *this;
+   }
+}
+
+ThreadPool::const_iterator ThreadPool::const_iterator::operator++(int) // postfix
 {
    MTLock lock_this_func;
    ThreadPool::const_iterator orig = *this;
@@ -8173,29 +7828,6 @@ ThreadPool::const_iterator ThreadPool::const_iterator::operator++()
 	  if (!curh->isUser())
 		  continue;
       return orig;
-   }
-}
-
-ThreadPool::const_iterator ThreadPool::const_iterator::operator++(int)
-{
-   MTLock lock_this_func;
-
-   assert(curi >= 0); //If this fails, you incremented a bad iterator
-   for (;;) {
-      curi++;
-      if (curi >= (signed int) curp->hl_threads.size()) {
-         curh = Thread::ptr();
-         curi = end_val;
-         return *this;
-      }
-      curh = curp->hl_threads[curi];
-      if (!curh->llthrd())
-         continue;
-      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
-         continue;
-	  if (!curh->isUser())
-		  continue;
-      return *this;
    }
 }
 
@@ -8368,6 +8000,7 @@ Counter::Counter(CounterType ct_) :
    local_count(0),
    ct(ct_)
 {
+   assert((int) ct < NumCounterTypes);
 }
 
 Counter::~Counter()
@@ -8470,6 +8103,8 @@ int Counter::processCount(CounterType ct, int_process* p)
       case NeonatalThreads:
          sum += (*i)->neonatalThreadCount().localCount();
          break;
+      case PendingStackwalks:
+         sum += (*i)->pendingStackwalkCount().localCount();
 		default:
 			break;
 		}
@@ -8506,6 +8141,7 @@ const char *Counter::getNameForCounter(int counter_type)
       STR_CASE(GeneratorNonExitedThreads);
       STR_CASE(StartupTeardownProcesses);
       STR_CASE(NeonatalThreads);
+      STR_CASE(PendingStackwalks);
       default: assert(0);
    }
    return NULL;

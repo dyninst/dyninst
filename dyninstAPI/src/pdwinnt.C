@@ -323,9 +323,8 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
 void OS::osDisconnect(void) {
 }
 
-bool PCProcess::getMemoryAccessRights(Address addr, size_t size,
-                                      PCMemPerm& rights) {
-    if(!pcProc_->getMemoryAccessRights(addr, size, rights)) {
+bool PCProcess::getMemoryAccessRights(Address addr, PCMemPerm& rights) {
+    if(!pcProc_->getMemoryAccessRights(addr, rights)) {
 	    mal_printf("ERROR: failed to get access rights for page %lx, %s[%d]\n",
                    addr, FILE__, __LINE__);
         return false;
