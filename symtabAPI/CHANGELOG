@@ -1,0 +1,2 @@
+11ace21 Prevent us accidentally rewriting indirect symbols as section typed
+e30438e Handle compressed OPD sections in PPC64 binaries

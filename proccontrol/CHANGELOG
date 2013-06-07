@@ -1,0 +1,3 @@
+93415ab Track whether we've detected that attach will break, and skip Dyninst attach mode if so.
+1df2a7e Fix PPC64 proccontrol library injection; TOC value could be wrong
+b0add71 clean up ProcControlAPI Windows Build Directory

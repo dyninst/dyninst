@@ -1,0 +1,1 @@
+3979d27 Add test for bug reported by Jean-Paul Laurent: mov %eax, 0x3(%rsp) was reporting incorrect registers.

@@ -1,0 +1,13 @@
+6890a8e Fallthrough edges should not be tail calls, ever--they should be shared code.
+b2b9bed Updates for 8.1.2: version & date in manual frontpage, function definition in parseAPI manual, newly generated parseAPI manual PDF
+5f8c0af Ensure that we compile test suite and Dyninst with the same CXXFLAGS to work around gcc 4.7.2 bug
+93415ab Track whether we've detected that attach will break, and skip Dyninst attach mode if so.
+11ace21 Prevent us accidentally rewriting indirect symbols as section typed
+be7aa6b Fix a problem rewriting 32-bit static Ubuntu binaries; add better error handling.
+886d8dc Fix a #define bug when instrumenting ia32 binaries
+0b07ddd Use Matt's patching mechanism for while loop generation as well as if statement generation
+1df2a7e Fix PPC64 proccontrol library injection; TOC value could be wrong
+e30438e Handle compressed OPD sections in PPC64 binaries
+3979d27 Add test for bug reported by Jean-Paul Laurent: mov %eax, 0x3(%rsp) was reporting incorrect registers.
+b0add71 clean up ProcControlAPI Windows Build Directory
+536628f Symlink path fix as suggested by Josh Stone

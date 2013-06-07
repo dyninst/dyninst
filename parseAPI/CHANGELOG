@@ -1,0 +1,2 @@
+6890a8e Fallthrough edges should not be tail calls, ever--they should be shared code.
+b2b9bed Updates for 8.1.2: version & date in manual frontpage, function definition in parseAPI manual, newly generated parseAPI manual PDF

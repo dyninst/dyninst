@@ -1,0 +1,3 @@
+be7aa6b Fix a problem rewriting 32-bit static Ubuntu binaries; add better error handling.
+886d8dc Fix a #define bug when instrumenting ia32 binaries
+0b07ddd Use Matt's patching mechanism for while loop generation as well as if statement generation
