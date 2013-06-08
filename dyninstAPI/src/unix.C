@@ -193,7 +193,7 @@ bool PCProcess::instrumentMTFuncs() {
 }
 
 bool PCEventHandler::shouldStopForSignal(int signal) {
-    if( signal == SIGSTOP || signal == SIGINT ) return true;
+    if( signal == SIGSTOP ) return true;
     return false;
 }
 
