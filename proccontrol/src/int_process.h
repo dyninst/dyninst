@@ -936,6 +936,12 @@ public:
    void markStoppedOnBP(bp_instance *bp);
    bp_instance *isStoppedOnBP();
 
+    // Syscall tracking
+   bool syscallUserMode() const; 
+   void setSyscallUserMode(bool s);
+   bool syscallMode() const;
+    bool preSyscall();
+
    // Emulating single steps with breakpoints
    void addEmulatedSingleStep(emulated_singlestep *es);
    void rmEmulatedSingleStep(emulated_singlestep *es);
@@ -1103,6 +1109,8 @@ public:
    bool generator_exiting_state;
    bool running_when_attached;
    bool suspended;
+
+    bool user_syscall;
 
    Address stopped_on_breakpoint_addr;
    Address postponed_stopped_on_breakpoint_addr;

@@ -33,6 +33,7 @@
 #include <string>
 #include <set>
 #include "dyntypes.h"
+#include "MachSyscall.h"
 #include "EventType.h"
 #include "PCProcess.h"
 #include "util.h"
@@ -92,6 +93,9 @@ class EventAsyncReadAllRegs;
 class EventAsyncSetAllRegs;
 class EventAsyncFileRead;
 class EventPostponedSyscall;
+class EventSyscall;
+class EventPreSyscall;
+class EventPostSyscall;
 
 class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
 {
@@ -249,6 +253,16 @@ class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
 
    boost::shared_ptr<EventPostponedSyscall> getEventPostponedSyscall();
    boost::shared_ptr<const EventPostponedSyscall> getEventPostponedSyscall() const;
+
+   boost::shared_ptr<EventSyscall> getEventSyscall();
+   boost::shared_ptr<const EventSyscall> getEventSyscall() const;
+   
+   boost::shared_ptr<EventPreSyscall> getEventPreSyscall();
+   boost::shared_ptr<const EventPreSyscall> getEventPreSyscall() const;
+   
+   boost::shared_ptr<EventPostSyscall> getEventPostSyscall();
+   boost::shared_ptr<const EventPostSyscall> getEventPostSyscall() const;
+
 
    //Not meant for public consumption
    void setLastError(err_t ec, const char *es);
@@ -552,6 +566,56 @@ class PC_EXPORT EventSingleStep : public Event
    typedef boost::shared_ptr<const EventSingleStep> const_ptr;
    EventSingleStep();
    virtual ~EventSingleStep();
+};
+
+class PC_EXPORT EventSyscall : public Event
+{
+   friend void boost::checked_delete<EventSyscall>(EventSyscall *);
+   friend void boost::checked_delete<const EventSyscall>(const EventSyscall *);
+
+   friend MachSyscall ProcControlAPI::makeFromEvent(const EventSyscall *);
+
+ public:
+   typedef boost::shared_ptr<EventSyscall> ptr;
+   typedef boost::shared_ptr<const EventSyscall> const_ptr;
+   EventSyscall(EventType type_);
+   virtual ~EventSyscall();
+
+   Dyninst::Address getAddress() const;
+   MachSyscall getSyscall() const;
+   
+ private:
+    long getSyscallNumber() const;
+};
+
+class PC_EXPORT EventPreSyscall : public EventSyscall
+{
+   friend void boost::checked_delete<EventPreSyscall>(EventPreSyscall *);
+   friend void boost::checked_delete<const EventPreSyscall>(const EventPreSyscall *);
+
+   friend MachSyscall ProcControlAPI::makeFromEvent(const EventPreSyscall *);
+
+ public:
+   typedef boost::shared_ptr<EventPreSyscall> ptr;
+   typedef boost::shared_ptr<const EventPreSyscall> const_ptr;
+   EventPreSyscall();
+   virtual ~EventPreSyscall();
+};
+
+class PC_EXPORT EventPostSyscall : public EventSyscall
+{
+   friend void boost::checked_delete<EventPostSyscall>(EventPostSyscall *);
+   friend void boost::checked_delete<const EventPostSyscall>(const EventPostSyscall *);
+
+   friend MachSyscall ProcControlAPI::makeFromEvent(const EventPostSyscall *);
+
+ public:
+   typedef boost::shared_ptr<EventPostSyscall> ptr;
+   typedef boost::shared_ptr<const EventPostSyscall> const_ptr;
+   EventPostSyscall();
+   virtual ~EventPostSyscall();
+
+   long getReturnValue() const;
 };
 
 class int_eventBreakpoint;
