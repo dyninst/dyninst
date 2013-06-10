@@ -57,6 +57,7 @@
 #include <sstream>
 #include <iostream>
 #include <iterator>
+#include <errno.h>
 
 #if defined(os_windows)
 #pragma warning(disable:4355)
@@ -2879,6 +2880,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    generator_exiting_state(false),
    running_when_attached(true),
    suspended(false),
+   user_syscall(false),
    stopped_on_breakpoint_addr(0x0),
    postponed_stopped_on_breakpoint_addr(0x0),
    clearing_breakpoint(NULL),
@@ -4076,6 +4078,40 @@ void int_thread::setSingleStepUserMode(bool s)
 bool int_thread::singleStep() const
 {
    return single_step || user_single_step;
+}
+
+void int_thread::setSyscallUserMode(bool s)
+{
+    user_syscall = s;
+}
+
+bool int_thread::syscallUserMode() const
+{
+    return user_syscall;
+}
+
+bool int_thread::syscallMode() const
+{
+    return user_syscall;
+}
+
+bool int_thread::preSyscall()
+{
+    /* On Linux, we distinguish between system call entry and exit based on the
+     * system call return value. This approach will always correctly label a
+     * system call entry. Only in the cast where the invoked system call does
+     * not exist (0 < syscall_number > __NR_syscall_max) will we incorrectly
+     * label the system call exist as system call entry. */
+    
+    bool ret = false;
+    MachRegisterVal syscallReturnValue;
+    if (!plat_getRegister(MachRegister::getSyscallReturnValueReg(llproc()->getTargetArch()), syscallReturnValue)) { return true; }
+    
+    if (syscallReturnValue == (MachRegisterVal)(-ENOSYS)) {
+        ret = true;
+    }
+
+    return ret;
 }
 
 void int_thread::markClearingBreakpoint(bp_instance *bp)
@@ -7534,6 +7570,33 @@ bool Thread::getSingleStepMode() const
    MTLock lock_this_func;
    THREAD_EXIT_TEST("getSingleStepMode", false);
    return llthread_->singleStepUserMode();
+}
+
+void Thread::setSyscallMode(bool s) const
+{
+    MTLock lock_this_func;
+    if (!llthread_) {
+        perr_printf("setSyscallMode called on exited thread\n");
+        setLastError(err_exited, "Thread is exited\n");
+        return;
+    } 
+   if (llthread_->getUserState().getState() != int_thread::stopped) {
+       perr_printf("setSyscallMode called on running thread %d/%d\n",
+               llthread_->llproc()->getPid(), llthread_->getLWP());
+       setLastError(err_notstopped, "Error, user tried to put non-stopped thread into syscall tracking");
+   }
+  llthread_->setSyscallUserMode(s); 
+}
+
+bool Thread::getSyscallMode() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("getSyscallMode called on exited thread\n");
+      setLastError(err_exited, "Thread is exited\n");
+      return false;
+   }
+   return llthread_->syscallUserMode();
 }
 
 Dyninst::LWP Thread::getLWP() const

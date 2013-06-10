@@ -595,6 +595,9 @@ class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    bool setSingleStepMode(bool s) const;
    bool getSingleStepMode() const;
 
+   void setSyscallMode(bool s) const;
+   bool getSyscallMode() const;
+
    bool getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const;
    bool getAllRegisters(RegisterPool &pool) const;
    bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const;

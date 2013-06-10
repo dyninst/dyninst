@@ -29,6 +29,7 @@
  */
 
 #include "common/h/dyntypes.h"
+#include "common/h/MachSyscall.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/int_event.h"
@@ -204,6 +205,8 @@ std::string EventType::name() const
       STR_CASE(AsyncSetAllRegs);
       STR_CASE(AsyncFileRead);
       STR_CASE(PostponedSyscall);
+      STR_CASE(PreSyscall);
+      STR_CASE(PostSyscall);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -664,6 +667,65 @@ EventSingleStep::EventSingleStep() :
 }
 
 EventSingleStep::~EventSingleStep()
+{
+}
+
+EventSyscall::EventSyscall(EventType type_) :
+   Event(type_)
+{
+}
+
+EventSyscall::~EventSyscall()
+{
+}
+
+Address EventSyscall::getAddress() const
+{
+    MachRegisterVal pc;
+    Process::const_ptr proc = getProcess();
+    Thread::const_ptr thrd = getThread();
+    thrd->getRegister(MachRegister::getPC(proc->getArchitecture()), pc);
+    return pc;
+}
+
+long EventSyscall::getSyscallNumber() const
+{
+    MachRegisterVal syscallNumber;
+    Process::const_ptr proc = getProcess();
+    Thread::const_ptr thrd = getThread();
+    thrd->getRegister(MachRegister::getSyscallNumberReg(proc->getArchitecture()), syscallNumber);
+    return syscallNumber;
+}
+
+MachSyscall EventSyscall::getSyscall() const
+{
+    return makeFromEvent(this);
+}
+
+long EventPostSyscall::getReturnValue() const
+{
+    MachRegisterVal syscallReturnValue;
+    Process::const_ptr proc = getProcess();
+    Thread::const_ptr thrd = getThread();
+    thrd->getRegister(MachRegister::getSyscallReturnValueReg(proc->getArchitecture()), syscallReturnValue);
+    return syscallReturnValue;
+}
+
+EventPreSyscall::EventPreSyscall() :
+    EventSyscall(EventType(EventType::Pre, EventType::PreSyscall))
+{
+}
+
+EventPreSyscall::~EventPreSyscall()
+{
+}
+
+EventPostSyscall::~EventPostSyscall()
+{
+}
+
+EventPostSyscall::EventPostSyscall() :
+    EventSyscall(EventType(EventType::Post, EventType::PostSyscall))
 {
 }
 
@@ -1379,3 +1441,7 @@ DEFN_EVENT_CAST(EventAsyncReadAllRegs, AsyncReadAllRegs)
 DEFN_EVENT_CAST(EventAsyncSetAllRegs, AsyncSetAllRegs)
 DEFN_EVENT_CAST(EventAsyncFileRead, AsyncFileRead)
 DEFN_EVENT_CAST(EventPostponedSyscall, PostponedSyscall)
+DEFN_EVENT_CAST2(EventSyscall, PreSyscall, PostSyscall)
+DEFN_EVENT_CAST(EventPreSyscall, PreSyscall)
+DEFN_EVENT_CAST(EventPostSyscall, PostSyscall)
+

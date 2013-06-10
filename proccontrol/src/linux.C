@@ -485,6 +485,20 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                event = Event::ptr(new EventSingleStep());
                break;
             }
+
+            if (thread->syscallMode() && !ibp) {
+                if (thread->preSyscall()) {
+                    pthrd_printf("Decoded event to pre-syscall on %d/%d\n",
+                            proc->getPid(), thread->getLWP());
+                    event = Event::ptr(new EventPreSyscall());
+                    break; 
+                } else {
+                    pthrd_printf("Decoded event to post-syscall on %d/%d\n",
+                            proc->getPid(), thread->getLWP());
+                    event = Event::ptr(new EventPostSyscall());
+                    break;
+                }
+            }
             
             if (ibp && ibp != clearingbp) {
                pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
@@ -1272,6 +1286,11 @@ bool linux_thread::plat_cont()
    {
       pthrd_printf("Calling PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SINGLESTEP, lwp, NULL, data);
+   }
+   else if (syscallMode())
+   {
+        pthrd_printf("Calling PTRACE_SYSCALL on %d with signal %d\n", lwp, tmpSignal);
+        result = do_ptrace((pt_req) PTRACE_SYSCALL, lwp, NULL, data);
    }
    else 
    {
