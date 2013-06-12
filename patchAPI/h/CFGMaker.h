@@ -51,7 +51,7 @@ namespace PatchAPI {
 /* A factory class to make / copy CFG structures.
    We provide default implementations.  */
 
-class CFGMaker {
+class PATCHAPI_EXPORT CFGMaker {
   public:
     PATCHAPI_EXPORT CFGMaker() {}
     PATCHAPI_EXPORT virtual ~CFGMaker() {}

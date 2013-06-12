@@ -45,7 +45,7 @@ class LineInformation;
 class localVar;
 class Symtab;
 
-class Statement : public AnnotatableSparse, public Serializable
+class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
 {
 	friend class Module;
 	friend class std::vector<Statement>;
@@ -102,7 +102,7 @@ class Statement : public AnnotatableSparse, public Serializable
 typedef Statement LineNoTuple;
 #define MODULE_ANNOTATABLE_CLASS AnnotatableSparse
 
-class Module : public LookupInterface,
+class SYMTAB_EXPORT Module : public LookupInterface,
 			   public Serializable, 
 			   public MODULE_ANNOTATABLE_CLASS
 {

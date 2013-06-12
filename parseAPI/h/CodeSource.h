@@ -54,7 +54,7 @@ class CFGModifier;
 **/
 
 
-class CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<Address> {
+class PARSER_EXPORT CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<Address> {
  public:
 
     /* Fills a vector with any names associated with the function at at 
@@ -94,7 +94,7 @@ struct Hint {
     std::string _name;
 };
 
-class CodeSource : public Dyninst::InstructionSource {
+class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
    friend class CFGModifier;
  private:
     bool _regions_overlap;
@@ -192,7 +192,7 @@ class CodeSource : public Dyninst::InstructionSource {
     binaries supported by the SymtabAPI 
 **/
 
-class SymtabCodeRegion : public CodeRegion {
+class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
  private:
     SymtabAPI::Symtab * _symtab;
     SymtabAPI::Region * _region;
@@ -221,7 +221,7 @@ class SymtabCodeRegion : public CodeRegion {
     PARSER_EXPORT SymtabAPI::Region * symRegion() const { return _region; }
 };
 
-class SymtabCodeSource : public CodeSource {
+class PARSER_EXPORT SymtabCodeSource : public CodeSource {
  private:
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;

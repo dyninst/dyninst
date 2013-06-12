@@ -111,7 +111,7 @@ class fact_list {
 
 /** Objects created by a CFGFactory must descend from `allocatable' **/
 
-class CFGFactory {   
+class PARSER_EXPORT CFGFactory {   
  public:
     PARSER_EXPORT CFGFactory() {};
     PARSER_EXPORT virtual ~CFGFactory();

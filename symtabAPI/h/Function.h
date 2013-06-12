@@ -52,7 +52,7 @@ class Type;
 class FunctionBase;
 class DwarfWalker;
 
-class FuncRange {
+class SYMTAB_EXPORT FuncRange {
   public:
    FuncRange(Dyninst::Offset off_, size_t size_, FunctionBase *cont_) :
      container(cont_),
@@ -76,7 +76,7 @@ typedef std::vector<FuncRange> FuncRangeCollection;
 typedef std::vector<FunctionBase *> InlineCollection;
 typedef std::vector<FuncRange> FuncRangeCollection;
 
-class FunctionBase : public Aggregate
+class SYMTAB_EXPORT FunctionBase : public Aggregate
 {
    friend class InlinedFunction;
    friend class Function;

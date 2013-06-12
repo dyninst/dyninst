@@ -767,7 +767,7 @@ unsigned int swapBytesIfNeeded(unsigned int i);
 // Bum bum bum.....
 ///////////////////////////////////////////////////////
 
-class instruction {
+class COMMON_EXPORT instruction {
  private:
     instructUnion insn_;
 

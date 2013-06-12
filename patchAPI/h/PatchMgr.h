@@ -62,7 +62,7 @@ Scope(PatchFunction *f) : obj(NULL), func(f), block(NULL), wholeProgram(false) {
 };
 
 
-class PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
+class PATCHAPI_EXPORT PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
   friend class Point;
   friend class PatchObject; // for splitting blocks as that is _not_ public.
   typedef std::pair<PatchFunction *, PatchBlock *> BlockInstance;

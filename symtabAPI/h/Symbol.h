@@ -68,7 +68,7 @@ class Symtab;
  * class Symbol
 ************************************************************************/
 
-class Symbol : public Serializable,
+class SYMTAB_EXPORT Symbol : public Serializable,
                public AnnotatableSparse 
 {
    friend class typeCommon;
@@ -261,7 +261,7 @@ class Symbol : public Serializable,
 		   const char *tag = "Symbol") THROW_SPEC (SerializerError);
 };
 
-class LookupInterface 
+class SYMTAB_EXPORT LookupInterface 
 {
    public:
       SYMTAB_EXPORT LookupInterface();

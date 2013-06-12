@@ -37,7 +37,43 @@
       #define SYMTAB_EXPORT __declspec(dllimport)
     #endif
   #else
-    #define SYMTAB_EXPORT
+    #define SYMTAB_EXPORT __attribute__((visibility ("default")))
+  #endif
+#endif
+
+#if !defined(SYMLITE_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined SYMLITE_LIB
+      #define SYMLITE_EXPORT __declspec(dllexport)
+    #else
+      #define SYMLITE_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define SYMLITE_EXPORT __attribute__((visibility ("default")))
+  #endif
+#endif
+
+#if !defined(DYNELF_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined DYNELF_LIB
+      #define DYNELF_EXPORT __declspec(dllexport)
+    #else
+      #define DYNELF_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define DYNELF_EXPORT __attribute__((visibility ("default")))
+  #endif
+#endif
+
+#if !defined(DYNDWARF_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined DYNDWARF_LIB
+      #define DYNDWARF_EXPORT __declspec(dllexport)
+    #else
+      #define DYNDWARF_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define DYNDWARF_EXPORT __attribute__((visibility ("default")))
   #endif
 #endif
 
@@ -49,7 +85,7 @@
        #define COMMON_EXPORT __declspec(dllimport)   
     #endif
   #else
-    #define COMMON_EXPORT
+    #define COMMON_EXPORT __attribute__((visibility ("default")))
   #endif
 #endif
 
@@ -62,7 +98,7 @@
        #define COMMON_TEMPLATE_EXPORT __declspec(dllimport)   
     #endif
   #else
-    #define COMMON_TEMPLATE_EXPORT
+    #define COMMON_TEMPLATE_EXPORT  __attribute__((visibility ("default")))
   #endif
 #endif
 
@@ -74,7 +110,7 @@
       #define INSTRUCTION_EXPORT __declspec(dllimport)
     #endif
   #else
-    #define INSTRUCTION_EXPORT
+    #define INSTRUCTION_EXPORT __attribute__((visibility ("default")))
 #endif
 #endif
 
@@ -86,7 +122,7 @@
       #define PARSER_EXPORT __declspec(dllimport)
     #endif
   #else
-    #define PARSER_EXPORT
+    #define PARSER_EXPORT __attribute__((visibility ("default")))
 #endif
 #endif
 
@@ -98,7 +134,7 @@
       #define PATCHAPI_EXPORT __declspec(dllimport)
     #endif
   #else
-    #define PATCHAPI_EXPORT
+    #define PATCHAPI_EXPORT __attribute__((visibility ("default")))
 #endif
 #endif
 
@@ -110,7 +146,7 @@
       #define DATAFLOW_EXPORT __declspec(dllimport)
     #endif
   #else
-    #define DATAFLOW_EXPORT
+    #define DATAFLOW_EXPORT __attribute__((visibility ("default")))
 #endif
 #endif
 
@@ -122,7 +158,7 @@
       #define PC_EXPORT __declspec(dllimport)
     #endif
   #else
-    #define PC_EXPORT
+    #define PC_EXPORT __attribute__((visibility ("default")))
 #endif
 #endif
 
@@ -134,7 +170,7 @@
       #define SW_EXPORT __declspec(dllimport)
     #endif
   #else
-    #define SW_EXPORT
+    #define SW_EXPORT __attribute__((visibility ("default")))
 #endif
 #endif
 
@@ -146,7 +182,7 @@
       #define INJECTOR_EXPORT __declspec(dllimport)
     #endif
   #else
-    #define INJECTOR_EXPORT
+    #define INJECTOR_EXPORT __attribute__((visibility ("default")))
 #endif
 #endif
 
@@ -158,7 +194,7 @@
       #define SYMEVAL_EXPORT __declspec(dllimport)
     #endif
   #else
-    #define SYMEVAL_EXPORT
+    #define SYMEVAL_EXPORT __attribute__((visibility ("default")))
 #endif
 #endif
 

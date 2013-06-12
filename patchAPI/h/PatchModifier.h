@@ -48,7 +48,7 @@ namespace PatchAPI {
    class PatchFunction;
    class PatchModifier;
 
-class InsertedCode {
+class PATCHAPI_EXPORT InsertedCode {
    friend class PatchModifier;
 
   public:
@@ -66,7 +66,7 @@ class InsertedCode {
 };   
    
 
-class PatchModifier {
+class PATCHAPI_EXPORT PatchModifier {
   public:
    // These are all static methods as this class has no state; so really, 
    // it's just a namespace. 

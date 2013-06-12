@@ -40,7 +40,7 @@
 /* If we're on Windows, we need to explicetely export these functions: */
 #define DLLEXPORT __declspec(dllexport) 
 #else
-#define DLLEXPORT
+#define DLLEXPORT  __attribute__ ((visibility ("default")))
 #endif
 #endif
   /*

@@ -47,7 +47,7 @@ class PatchBlock;
 class PatchFunction;
 class PatchCallback;
 
-class PatchEdge {
+class PATCHAPI_EXPORT PatchEdge {
    friend class PatchBlock;
    friend class PatchFunction;
    friend class PatchObject;
@@ -90,7 +90,7 @@ class PatchEdge {
     EdgePoints points_;
 };
 
-class PatchBlock {
+class PATCHAPI_EXPORT PatchBlock {
   friend class PatchEdge;
   friend class PatchFunction;
   friend class PatchObject;
@@ -172,7 +172,7 @@ class PatchBlock {
 
 
 
-class PatchFunction {
+class PATCHAPI_EXPORT PatchFunction {
    friend class PatchEdge;
    friend class PatchBlock;
    friend class PatchObject;

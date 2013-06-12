@@ -78,7 +78,7 @@ PARSER_EXPORT std::string format(EdgeTypeEnum e);
  * allows them to be added and removed from
  * accounting structures in constant time
  */
-class allocatable {
+class PARSER_EXPORT allocatable {
  public:
     allocatable() :
        anext_((allocatable*)FLIST_BADNEXT),
@@ -132,7 +132,7 @@ class allocatable {
 };
 
 class Block;
-class Edge : public allocatable {
+class PARSER_EXPORT Edge : public allocatable {
    friend class CFGModifier;
  protected:
     Block * _source;
@@ -198,7 +198,7 @@ class Edge : public allocatable {
  * 
  * EdgePredicates are composable by AND.
  */
-class EdgePredicate 
+class PARSER_EXPORT EdgePredicate 
 {
  public:
   PARSER_EXPORT EdgePredicate() { }
@@ -211,7 +211,7 @@ class EdgePredicate
  };
 
 /* may follow branches into the function if there is shared code */
-class Intraproc : public EdgePredicate {
+class PARSER_EXPORT Intraproc : public EdgePredicate {
  public:
     PARSER_EXPORT Intraproc() { }
     PARSER_EXPORT ~Intraproc() { }
@@ -220,7 +220,7 @@ class Intraproc : public EdgePredicate {
 };
 
 /* follow interprocedural edges */
- class Interproc : public EdgePredicate {
+ class PARSER_EXPORT Interproc : public EdgePredicate {
     public:
         PARSER_EXPORT Interproc() {}
         PARSER_EXPORT ~Interproc() { }
@@ -231,7 +231,7 @@ class Intraproc : public EdgePredicate {
  * For proper ostritch-like denial of 
  * unresolved control flow edges
  */
- class NoSinkPredicate : public ParseAPI::EdgePredicate {
+ class PARSER_EXPORT NoSinkPredicate : public ParseAPI::EdgePredicate {
  public:
     NoSinkPredicate() { }
 
@@ -242,7 +242,7 @@ class Intraproc : public EdgePredicate {
 
 /* doesn't follow branches into the function if there is shared code */
 class Function;
- class SingleContext : public EdgePredicate {
+ class PARSER_EXPORT SingleContext : public EdgePredicate {
  private:
     Function * _context;
     bool _forward;
@@ -277,7 +277,7 @@ class Function;
 };
 
 class CodeRegion;
-class Block : public Dyninst::interval<Address>, 
+class PARSER_EXPORT Block : public Dyninst::interval<Address>, 
               public allocatable {
     friend class CFGModifier;
  public:
@@ -423,7 +423,7 @@ enum StackTamper {
 class CodeObject;
 class CodeRegion;
 class FuncExtent;
-class Function : public allocatable, public AnnotatableSparse {
+class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
    friend class CFGModifier;
  protected:
     Address _start;
@@ -539,7 +539,7 @@ class Function : public allocatable, public AnnotatableSparse {
 };
 
 /* Describes a contiguous extent of a Function object */
-class FuncExtent : public Dyninst::interval<Address> {
+class PARSER_EXPORT FuncExtent : public Dyninst::interval<Address> {
  private:
     Function * _func;
     Address _start;

@@ -122,7 +122,7 @@ int fakeTickCount;
 
 unsigned *DYNINST_tramp_guards;
 
-unsigned DYNINST_default_tramp_guards[MAX_THREADS+1];
+DLLEXPORT unsigned DYNINST_default_tramp_guards[MAX_THREADS+1];
 
 #if defined(os_linux)
 void DYNINSTlinuxBreakPoint();

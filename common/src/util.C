@@ -222,7 +222,7 @@ const char *platform_string()
 //the cache information.  Thus the cache will live in libcommon.
 class SymElf;
 
-map<string, SymElf *> *getSymelfCache() {
+COMMON_EXPORT map<string, SymElf *> *getSymelfCache() {
    static map<string, SymElf *> elfmap;
    return &elfmap;
 }

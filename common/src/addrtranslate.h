@@ -46,7 +46,7 @@ using namespace std;
 
 namespace Dyninst {
 
-class LoadedLib {
+class COMMON_EXPORT LoadedLib {
    friend class AddressTranslate;
    friend class AddressTranslateSysV;
  protected:
@@ -96,7 +96,7 @@ struct LoadedLibCmp
    }
 };
 
-class AddressTranslate {
+class COMMON_EXPORT AddressTranslate {
  protected:
    PID pid;
    PROC_HANDLE phandle;
@@ -134,7 +134,7 @@ class AddressTranslate {
 
    COMMON_EXPORT virtual Address getLibraryTrapAddrSysV();
    
-   void setReadAbort(bool b);
+   COMMON_EXPORT void setReadAbort(bool b);
 };
 
 }

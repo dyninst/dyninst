@@ -261,7 +261,7 @@ inline int P_rexec(char **ahost, u_short inport, char *user,
 
 extern "C" char *cplus_demangle(char *, int);
 extern void dedemangle( char * demangled, char * dedemangled );
-extern char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
+extern char * COMMON_EXPORT P_cplus_demangle( const char * symbol, bool nativeCompiler,
 				bool includeTypes = false );
 
 inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}

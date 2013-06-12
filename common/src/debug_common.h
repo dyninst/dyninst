@@ -32,6 +32,7 @@
 #define COMMON_DEBUG_H
 
 #include <string>
+#include "util.h"
 
 extern int common_debug_dwarf;
 extern int common_debug_addrtranslate;
@@ -45,7 +46,7 @@ extern int common_debug_addrtranslate;
 #define dwarf_printf dwarf_printf_int
 #endif
 
-int dwarf_printf_int(const char *format, ...);
+COMMON_EXPORT int dwarf_printf_int(const char *format, ...);
 
 #if defined(__GNUC__)
 #define translate_printf(format, ...)                                       \
@@ -56,9 +57,9 @@ int dwarf_printf_int(const char *format, ...);
 #define translate_printf translate_printf_int
 #endif
 
-int translate_printf_int(const char *format, ...);
+COMMON_EXPORT int translate_printf_int(const char *format, ...);
 
 // And initialization
-bool init_debug_common();
+COMMON_EXPORT bool init_debug_common();
 
 #endif /* COMMON_DEBUG_H */

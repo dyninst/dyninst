@@ -42,7 +42,7 @@ class relocationEntry;
 class Symtab;
 
 
-class Region : public AnnotatableSparse {
+class SYMTAB_EXPORT Region : public AnnotatableSparse {
    friend class Object;
    friend class Symtab;
    friend class SymtabTranslatorBase;

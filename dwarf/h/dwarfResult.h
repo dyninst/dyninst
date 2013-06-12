@@ -3,6 +3,7 @@
 #include <vector>
 #include <stack>
 #include "libdwarf.h"
+#include "util.h"
 
 namespace Dyninst {
 
@@ -11,7 +12,7 @@ class ProcessReader;
 
 namespace Dwarf {
 
-class DwarfResult {
+class DYNDWARF_EXPORT DwarfResult {
    // An interface for building representations of Dwarf expressions.
    // In concrete mode, we have access to process state and
    // can calculate a value. In symbolic mode we lack this information
@@ -75,7 +76,7 @@ class DwarfResult {
 
 };
 
-class SymbolicDwarfResult : public DwarfResult {
+class DYNDWARF_EXPORT SymbolicDwarfResult : public DwarfResult {
 
   public:
   SymbolicDwarfResult(VariableLocation &v, Architecture a) :
@@ -105,7 +106,7 @@ class SymbolicDwarfResult : public DwarfResult {
    VariableLocation &var;
 };
 
-class ConcreteDwarfResult : public DwarfResult {
+class DYNDWARF_EXPORT ConcreteDwarfResult : public DwarfResult {
 
   public:
   ConcreteDwarfResult(ProcessReader *r, Architecture a, 

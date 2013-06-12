@@ -255,9 +255,9 @@ struct exception { // CSS
 #endif
 
 extern "C" char *cplus_demangle(char *, int);
-inline char * P_cplus_demangle( const char * symbol, bool /* nativeCompiler */ ) {
+inline char * COMMON_EXPORT P_cplus_demangle( const char * symbol, bool /* nativeCompiler */ ) {
    return cplus_demangle( (char *)symbol, 0);
-   } /* end P_cplus_demangle() */
+   } /* end COMMON_EXPORT P_cplus_demangle() */
 
 inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}
 inline bool_t P_xdr_u_char(XDR *x, u_char *uc) { return (xdr_u_char(x, uc));}
