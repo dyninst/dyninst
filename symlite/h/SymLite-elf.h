@@ -36,13 +36,13 @@
 
 namespace Dyninst {
 
-struct SymCacheEntry {
+struct SYMLITE_EXPORT SymCacheEntry {
    Dyninst::Offset symaddress;
    void *symloc;
    const char *demangled_name;
 };
 
-class SymElf : public Dyninst::SymReader
+class SYMLITE_EXPORT SymElf : public Dyninst::SymReader
 {
    friend class SymElfFactory;
  private:
@@ -104,7 +104,7 @@ class SymElf : public Dyninst::SymReader
    
 };
 
-class SymElfFactory : public Dyninst::SymbolReaderFactory
+class SYMLITE_EXPORT SymElfFactory : public Dyninst::SymbolReaderFactory
 {
 private:
    std::map<std::string, SymElf *> *open_symelfs;

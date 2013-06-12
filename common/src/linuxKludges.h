@@ -38,16 +38,16 @@ unsigned long long PDYN_div1000(unsigned long long in);
 unsigned long long PDYN_divMillion(unsigned long long in);
 unsigned long long PDYN_mulMillion(unsigned long long in);
 
-bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);
+COMMON_EXPORT bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);
 
-bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);
+COMMON_EXPORT bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);
 
-bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps);
+COMMON_EXPORT bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps);
 
-map_entries *getVMMaps(int pid, unsigned &maps_size);
+COMMON_EXPORT map_entries *getVMMaps(int pid, unsigned &maps_size);
 
 #define getVMMaps getLinuxMaps
-map_entries *getLinuxMaps(int pid, unsigned &maps_size);
+COMMON_EXPORT map_entries *getLinuxMaps(int pid, unsigned &maps_size);
 
 #endif
 

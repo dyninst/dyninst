@@ -43,7 +43,7 @@ namespace PatchAPI {
 /* Relocate the original code and generate snippet binary code in mutatee's
    address space. */
 
-class Instrumenter : public BatchCommand {
+class PATCHAPI_EXPORT Instrumenter : public BatchCommand {
   public:
     friend class Patcher;
     PATCHAPI_EXPORT static Instrumenter* create(AddrSpace* as);

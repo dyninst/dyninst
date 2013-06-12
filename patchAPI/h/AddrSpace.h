@@ -41,7 +41,7 @@ namespace PatchAPI {
 /* Interface specification for the interation between a PatchMgr and
    the address space */
 
-class AddrSpace {
+class PATCHAPI_EXPORT AddrSpace {
     friend class PatchMgr;
     friend class PatchFunction;
 

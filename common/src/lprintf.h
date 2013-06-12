@@ -47,9 +47,9 @@
  * function prototypes.
 ************************************************************************/
 
-extern void log_msg(const char *);
-extern void log_printf(void (*)(const char *), const char *, ...);
-extern void log_perror(void (*)(const char *), const char *);
+extern COMMON_EXPORT void log_msg(const char *);
+extern COMMON_EXPORT void log_printf(void (*)(const char *), const char *, ...);
+extern COMMON_EXPORT void log_perror(void (*)(const char *), const char *);
 
 
 

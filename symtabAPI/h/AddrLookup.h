@@ -47,7 +47,7 @@ typedef struct {
    Address dataAddr;
 } LoadedLibrary;
 
-class AddressLookup : public AnnotatableSparse
+class SYMTAB_EXPORT AddressLookup : public AnnotatableSparse
 {
  private:
    AddressTranslate *translator;

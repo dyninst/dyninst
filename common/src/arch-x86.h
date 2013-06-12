@@ -889,7 +889,7 @@ int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc);
 int displacement(const unsigned char *instr, unsigned type);
 
 /** Returns the immediate operand of an instruction **/
-Address get_immediate_operand(instruction *instr);
+COMMON_EXPORT Address get_immediate_operand(instruction *instr);
 
 COMMON_EXPORT int count_prefixes(unsigned insnType);
 

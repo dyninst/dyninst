@@ -50,7 +50,7 @@ class DwarfWalker;
  * This object will store all the local variables within this function.
  * Note: This class is unaware of scope.
  */
-class localVarCollection : public AnnotationContainer<localVar *> {
+class SYMTAB_EXPORT localVarCollection : public AnnotationContainer<localVar *> {
   
   std::vector<localVar *> localVars;
   
@@ -72,7 +72,7 @@ public:
  * Due to DWARF weirdness, this can be shared between multiple BPatch_modules.
  * So we reference-count to make life easier.
  */
-class typeCollection : public Serializable//, public AnnotatableSparse 
+class SYMTAB_EXPORT typeCollection : public Serializable//, public AnnotatableSparse 
 {
     friend class Symtab;
     friend class Object;

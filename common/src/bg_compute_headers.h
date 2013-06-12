@@ -47,6 +47,6 @@ inline void * P_memcpy (void *A1, const void *A2, size_t SIZE)
 
 extern "C" char *cplus_demangle(char *, int);
 extern void dedemangle( char * demangled, char * dedemangled );
-extern char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
+extern char * COMMON_EXPORT P_cplus_demangle( const char * symbol, bool nativeCompiler,
 				bool includeTypes = false );
 #endif // _bgl_compute_headers_h

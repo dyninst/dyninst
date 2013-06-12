@@ -49,7 +49,7 @@ namespace PatchAPI {
       generate code, e.g., codeGen in dyninst.
     - Implement generateCode().
  */
-class Snippet {
+class PATCHAPI_EXPORT Snippet {
   public:
     typedef boost::shared_ptr<Snippet> Ptr;
     Snippet() {};

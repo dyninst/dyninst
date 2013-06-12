@@ -20,18 +20,11 @@ set (SRC_LIST
      src/processplat.C 
      src/loadLibrary/injector.C 
      src/loadLibrary/codegen.C 
- )
- if(PLATFORM MATCHES i386 OR PLATFORM MATCHES x86_64)
-     set (SRC_LIST ${SRC_LIST}
      src/x86_process.C 
      src/loadLibrary/codegen-x86.C
- )
- else() # power; specify if we add other archs
-     set (SRC_LIST ${SRC_LIST}
      src/loadLibrary/codegen-ppc.C 
      src/ppc_process.C 
  )
- endif()
 if(UNIX)
 set (SRC_LIST ${SRC_LIST}
      src/sysv.C 

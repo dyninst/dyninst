@@ -11,6 +11,7 @@ include_directories (
 set (SRC_LIST
      src/SymLite-elf.C
   )
+add_definitions(-DSYMLITE_LIB)
 
 add_library (symLite ${SRC_LIST})
 FILE (GLOB headers "h/*.h")

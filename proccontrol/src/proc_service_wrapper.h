@@ -63,52 +63,52 @@ struct ps_prochandle;
 
 
 /* Read or write process memory at the given address.  */
-extern ps_err_e ps_pdread (struct ps_prochandle *,
+extern PC_EXPORT ps_err_e ps_pdread (struct ps_prochandle *,
 			   psaddr_t, void *, size_t);
-extern ps_err_e ps_pdwrite (struct ps_prochandle *,
+extern PC_EXPORT ps_err_e ps_pdwrite (struct ps_prochandle *,
 			    psaddr_t, const void *, size_t);
-extern ps_err_e ps_ptread (struct ps_prochandle *,
+extern PC_EXPORT ps_err_e ps_ptread (struct ps_prochandle *,
 			   psaddr_t, void *, size_t);
-extern ps_err_e ps_ptwrite (struct ps_prochandle *,
+extern PC_EXPORT ps_err_e ps_ptwrite (struct ps_prochandle *,
 			    psaddr_t, const void *, size_t);
 
 
 /* Get and set the given LWP's general or FPU register set.  */
-extern ps_err_e ps_lgetregs (struct ps_prochandle *,
+extern PC_EXPORT ps_err_e ps_lgetregs (struct ps_prochandle *,
 			     lwpid_t, prgregset_t);
-extern ps_err_e ps_lsetregs (struct ps_prochandle *,
+extern PC_EXPORT ps_err_e ps_lsetregs (struct ps_prochandle *,
 			     lwpid_t, const prgregset_t);
-extern ps_err_e ps_lgetfpregs (struct ps_prochandle *,
+extern PC_EXPORT ps_err_e ps_lgetfpregs (struct ps_prochandle *,
 			       lwpid_t, prfpregset_t *);
-extern ps_err_e ps_lsetfpregs (struct ps_prochandle *,
+extern PC_EXPORT ps_err_e ps_lsetfpregs (struct ps_prochandle *,
 			       lwpid_t, const prfpregset_t *);
 
 /* Return the PID of the process.  */
-extern pid_t ps_getpid (struct ps_prochandle *);
+extern PC_EXPORT pid_t ps_getpid (struct ps_prochandle *);
 
 /* Fetch the special per-thread address associated with the given LWP.
    This call is only used on a few platforms (most use a normal register).
    The meaning of the `int' parameter is machine-dependent.  */
-extern ps_err_e ps_get_thread_area (const struct ps_prochandle *,
+extern PC_EXPORT ps_err_e ps_get_thread_area (const struct ps_prochandle *,
 				    lwpid_t, int, psaddr_t *);
 
 
 /* Look up the named symbol in the named DSO in the symbol tables
    associated with the process being debugged, filling in *SYM_ADDR
    with the corresponding run-time address.  */
-extern ps_err_e ps_pglobal_lookup (struct ps_prochandle *,
+extern PC_EXPORT ps_err_e ps_pglobal_lookup (struct ps_prochandle *,
 				   const char *object_name,
 				   const char *sym_name,
 				   psaddr_t *sym_addr);
 
 
 /* Stop or continue the entire process.  */
-extern ps_err_e ps_pstop (const struct ps_prochandle *);
-extern ps_err_e ps_pcontinue (const struct ps_prochandle *);
+extern PC_EXPORT ps_err_e ps_pstop (const struct ps_prochandle *);
+extern PC_EXPORT ps_err_e ps_pcontinue (const struct ps_prochandle *);
 
 /* Stop or continue the given LWP alone.  */
-extern ps_err_e ps_lstop (const struct ps_prochandle *, lwpid_t);
-extern ps_err_e ps_lcontinue (const struct ps_prochandle *, lwpid_t);
+extern PC_EXPORT ps_err_e ps_lstop (const struct ps_prochandle *, lwpid_t);
+extern PC_EXPORT ps_err_e ps_lcontinue (const struct ps_prochandle *, lwpid_t);
 
 #endif
 #endif

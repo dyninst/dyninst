@@ -42,7 +42,7 @@
 namespace Dyninst{
 namespace SymtabAPI{
 
-class LineInformation : public AnnotationContainer<Statement>, 
+class SYMTAB_EXPORT LineInformation : public AnnotationContainer<Statement>, 
                         private RangeLookup< Statement, Statement::StatementLess > 
 {
 	SYMTAB_EXPORT bool addItem_impl(Statement);

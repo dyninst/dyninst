@@ -68,7 +68,7 @@ typedef bool (*anno_cmp_func_t)(void *, void*);
 extern int newAnnotationClass();
 extern bool void_ptr_cmp_func(void *, void *);
 
-class AnnotationClassBase
+class COMMON_EXPORT AnnotationClassBase
 {
 	friend class Serializable;
    private:

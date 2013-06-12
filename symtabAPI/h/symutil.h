@@ -64,7 +64,7 @@ typedef enum {
    lang_CMFortran
 } supportedLanguages;
 
-const char *supportedLanguages2Str(supportedLanguages s);
+SYMTAB_EXPORT const char *supportedLanguages2Str(supportedLanguages s);
 
 typedef enum {
    obj_Unknown,

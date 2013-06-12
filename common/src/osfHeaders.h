@@ -175,7 +175,7 @@ extern int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex, struct timeval 
 
 extern "C" char *cplus_demangle(char *, int);
 
-char * P_cplus_demangle( const char * symbol, 
+char * COMMON_EXPORT P_cplus_demangle( const char * symbol, 
                          bool  nativeCompiler, 
                          bool includeTypes = false ); 
 /* see osfKludges for implementation */

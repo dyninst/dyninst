@@ -69,7 +69,7 @@
 #else
 
 // we are not building for a Windows target 
-#define	BPATCH_DLL_EXPORT
+#define	BPATCH_DLL_EXPORT  __attribute__((visibility ("default")))
 
 #endif
 

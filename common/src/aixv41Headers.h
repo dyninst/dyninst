@@ -191,7 +191,7 @@ extern int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex, struct timeval 
 
 extern int P_recv(int s, void *buf, size_t len, int flags);
 
-extern char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTypes = false );
+extern char * COMMON_EXPORT P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTypes = false );
 
 extern void   P_xdr_destroy(XDR*);
 extern bool_t P_xdr_u_char(XDR*, u_char*);

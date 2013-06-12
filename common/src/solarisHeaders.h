@@ -295,7 +295,7 @@ inline char * nativeDemanglerBrokenness( int (*P_native_demangle)(const char *, 
 	} /* end nativeCompilerBrokenness() */
 
 extern void dedemangle( char * demangled, char * dedemangled );
-inline char * P_cplus_demangle( const char *symbol, bool nativeCompiler,
+inline char * COMMON_EXPORT P_cplus_demangle( const char *symbol, bool nativeCompiler,
 					bool includeTypes = false ) {
 	char * demangled = NULL;
 
@@ -337,7 +337,7 @@ inline char * P_cplus_demangle( const char *symbol, bool nativeCompiler,
         }
 
   return demangled;
-  } /* end P_cplus_demangle() */
+  } /* end COMMON_EXPORT P_cplus_demangle() */
 
 inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}
 inline bool_t P_xdr_u_char(XDR *x, u_char *uc) { return (xdr_u_char(x, uc));}

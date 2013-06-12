@@ -34,7 +34,7 @@
 #include "common/src/Types.h"
 #include <map>
 
-class AuxvParser
+class COMMON_EXPORT AuxvParser
 {
  private:
    int pid;

@@ -70,7 +70,7 @@ class FuncRange;
 typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
-class Symtab : public LookupInterface,
+class SYMTAB_EXPORT Symtab : public LookupInterface,
                public Serializable,
                public AnnotatableSparse
 {
@@ -632,7 +632,7 @@ class Symtab : public LookupInterface,
  **/
 SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
 
-class ExceptionBlock : public Serializable, public AnnotatableSparse {
+class SYMTAB_EXPORT ExceptionBlock : public Serializable, public AnnotatableSparse {
 
    public:
 	  SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
@@ -664,7 +664,7 @@ class ExceptionBlock : public Serializable, public AnnotatableSparse {
 //		   rel_addr_ =  GOT entry addr  corr. to PLT_entry
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
 
-class relocationEntry : public Serializable, public AnnotatableSparse {
+class SYMTAB_EXPORT relocationEntry : public Serializable, public AnnotatableSparse {
    public:
 
       SYMTAB_EXPORT relocationEntry();

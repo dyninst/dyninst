@@ -37,7 +37,7 @@
 #define _PATCH_CALLBACK_H_
 
 #include <vector>
-
+#include "util.h"
 
 namespace Dyninst {
 namespace PatchAPI {
@@ -48,7 +48,7 @@ class PatchBlock;
 class PatchEdge;
 class Point;
 
-class PatchCallback {
+class PATCHAPI_EXPORT PatchCallback {
 
   public:
   PatchCallback() : batching_(false) {};

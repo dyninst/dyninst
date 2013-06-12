@@ -73,7 +73,7 @@ class SymbolReaderFactory;
 
 namespace ProcControlAPI {
 
-   extern bool is_restricted_ptrace;
+   extern PC_EXPORT bool is_restricted_ptrace;
   
 
 class Process;

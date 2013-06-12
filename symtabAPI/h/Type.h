@@ -102,7 +102,7 @@ SYMTAB_EXPORT const char *visibility2Str(visibility_t v);
 
 #define FIELD_ANNOTATABLE_CLASS AnnotatableDense
 
-class Field : public Serializable, public FIELD_ANNOTATABLE_CLASS 
+class SYMTAB_EXPORT Field : public Serializable, public FIELD_ANNOTATABLE_CLASS 
 {
    friend class typeStruct;
    friend class typeUnion;
@@ -141,7 +141,7 @@ class Field : public Serializable, public FIELD_ANNOTATABLE_CLASS
 				  
 #define TYPE_ANNOTATABLE_CLASS AnnotatableDense
 
-class Type : public Serializable, public  TYPE_ANNOTATABLE_CLASS 
+class SYMTAB_EXPORT Type : public Serializable, public  TYPE_ANNOTATABLE_CLASS 
 {
    friend class typeCollection;
    friend std::string parseStabString(Module *, int linenum, char *, int, 
@@ -227,20 +227,20 @@ public:
 // We have to do this thanks to reference types and C++'s lovely 
 // multiple inheritance
 
-class fieldListInterface {
+class SYMTAB_EXPORT fieldListInterface {
  public:
    SYMTAB_EXPORT virtual ~fieldListInterface() {};
    SYMTAB_EXPORT virtual std::vector<Field *> *getComponents() const = 0;
 };
 
-class rangedInterface {
+class SYMTAB_EXPORT rangedInterface {
  public:
    SYMTAB_EXPORT virtual ~rangedInterface() {};
    SYMTAB_EXPORT virtual unsigned long getLow() const = 0;
    SYMTAB_EXPORT virtual unsigned long getHigh() const  = 0;
 };  
 
-class derivedInterface{
+class SYMTAB_EXPORT derivedInterface{
  public:
    SYMTAB_EXPORT virtual ~derivedInterface() {};
    SYMTAB_EXPORT virtual Type *getConstituentType() const = 0;
@@ -248,7 +248,7 @@ class derivedInterface{
 
 // Intermediate types (interfaces + Type)
 
-class fieldListType : public Type, public fieldListInterface 
+class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface 
 {
  private:
    void fixupComponents();
@@ -279,7 +279,7 @@ class fieldListType : public Type, public fieldListInterface
   //               Type *type, int offset, int size, visibility_t vis = visUnknown);
 };
 
-class rangedType : public Type, public rangedInterface {
+class SYMTAB_EXPORT rangedType : public Type, public rangedInterface {
  protected:
    unsigned long low_;
    unsigned long hi_;
@@ -297,7 +297,7 @@ class rangedType : public Type, public rangedInterface {
    SYMTAB_EXPORT unsigned long getHigh() const { return hi_; }
 };
 
-class derivedType : public Type, public derivedInterface {
+class SYMTAB_EXPORT derivedType : public Type, public derivedInterface {
  protected:
    Type *baseType_;
  protected:
@@ -314,7 +314,7 @@ class derivedType : public Type, public derivedInterface {
 
 // Derived classes from Type
 
-class typeEnum : public Type {
+class SYMTAB_EXPORT typeEnum : public Type {
  private:  
 	std::vector<std::pair<std::string, int> > consts;
  public:
@@ -331,7 +331,7 @@ class typeEnum : public Type {
    SYMTAB_EXPORT void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
-class typeFunction : public Type {
+class SYMTAB_EXPORT typeFunction : public Type {
  protected:
    SYMTAB_EXPORT void fixupUnknowns(Module *);
  private:
@@ -353,7 +353,7 @@ class typeFunction : public Type {
    SYMTAB_EXPORT void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
-class typeScalar : public Type {
+class SYMTAB_EXPORT typeScalar : public Type {
  private:
    bool isSigned_;
  public:
@@ -366,7 +366,7 @@ class typeScalar : public Type {
    SYMTAB_EXPORT void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
-class typeCommon : public fieldListType {
+class SYMTAB_EXPORT typeCommon : public fieldListType {
  private:
    std::vector<CBlock *> cblocks;
  protected:
@@ -384,7 +384,7 @@ class typeCommon : public fieldListType {
    SYMTAB_EXPORT void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
-class CBlock : public Serializable, public AnnotatableSparse
+class SYMTAB_EXPORT CBlock : public Serializable, public AnnotatableSparse
 {
    friend class typeCommon;
  private:
@@ -405,7 +405,7 @@ class CBlock : public Serializable, public AnnotatableSparse
 		   const char *tag="CBlock") THROW_SPEC(SerializerError);
 };
 
-class typeStruct : public fieldListType {
+class SYMTAB_EXPORT typeStruct : public fieldListType {
  protected:
    SYMTAB_EXPORT void updateSize();
    SYMTAB_EXPORT void postFieldInsert(int nsize);
@@ -425,7 +425,7 @@ class typeStruct : public fieldListType {
    SYMTAB_EXPORT void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
-class typeUnion : public fieldListType {
+class SYMTAB_EXPORT typeUnion : public fieldListType {
  protected:
    SYMTAB_EXPORT void updateSize();
    SYMTAB_EXPORT void postFieldInsert(int nsize);
@@ -443,7 +443,7 @@ class typeUnion : public fieldListType {
    SYMTAB_EXPORT void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
-class typePointer : public derivedType {
+class SYMTAB_EXPORT typePointer : public derivedType {
  protected: 
    SYMTAB_EXPORT void fixupUnknowns(Module *);
  public:
@@ -458,7 +458,7 @@ class typePointer : public derivedType {
    SYMTAB_EXPORT void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
-class typeTypedef: public derivedType {
+class SYMTAB_EXPORT typeTypedef: public derivedType {
  private:
    unsigned int sizeHint_;
  
@@ -477,7 +477,7 @@ class typeTypedef: public derivedType {
    SYMTAB_EXPORT void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
-class typeRef : public derivedType {
+class SYMTAB_EXPORT typeRef : public derivedType {
  protected:
    SYMTAB_EXPORT void fixupUnknowns(Module *);
  public:
@@ -490,7 +490,7 @@ class typeRef : public derivedType {
    SYMTAB_EXPORT void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
-class typeSubrange : public rangedType {
+class SYMTAB_EXPORT typeSubrange : public rangedType {
  private:
    //typeSubrange(int ID, int size, const char *low, const char *hi, const char *name);
  public:
@@ -502,7 +502,7 @@ class typeSubrange : public rangedType {
    SYMTAB_EXPORT void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
-class typeArray : public rangedType {
+class SYMTAB_EXPORT typeArray : public rangedType {
  private:
    Type *arrayElem;
    unsigned int sizeHint_;
