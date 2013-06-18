@@ -2788,9 +2788,9 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE50 */
-    { e_movmskps, t_done, 0, true, { Ed, Vps, Zz }, 0, s1W2R },
+    { e_movmskps, t_done, 0, true, { Gd, Wps, Zz }, 0, s1W2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_movmskpd, t_done, 0, true, { Ed, Vpd, Zz }, 0, s1W2R },
+    { e_movmskpd, t_done, 0, true, { Gd, Wpd, Zz }, 0, s1W2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE51 */
