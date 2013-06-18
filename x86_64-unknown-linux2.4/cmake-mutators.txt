@@ -484,4 +484,6 @@ foreach (val RANGE 143)
 	target_link_libraries (${lib} ${comp_dep} ${LIBTESTSUITE})
 endforeach()
 
-install (TARGETS ${MUTATOR_NAME_LIST} LIBRARY DESTINATION ${INSTALL_DIR})
+install (TARGETS ${MUTATOR_NAME_LIST}
+         RUNTIME DESTINATION ${INSTALL_DIR}
+         LIBRARY DESTINATION ${INSTALL_DIR})
