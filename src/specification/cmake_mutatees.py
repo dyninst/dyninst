@@ -113,7 +113,10 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
          out.write("target_link_libraries (%s" % utils.mutatee_binary(m, platform, info))
          for l in m['libraries']:
             lib_ext = ''
-            
+            if l == 'dl':
+               l = '${CMAKE_DL_LIBS}'
+            if l == 'pthread':
+               l = '${CMAKE_THREAD_LIBS_INIT}'
             # This could be handled better....
             if m['abi'] == '32':
                if l == 'testA':

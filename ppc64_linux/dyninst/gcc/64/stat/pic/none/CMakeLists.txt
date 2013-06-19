@@ -10,7 +10,7 @@ set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU} -m64 -static")
 include (../../../../../../srclists.cmake)
 add_executable (dyninst_group_test.stat_gcc_64_pic_none ${SOURCE_LIST_10})
-target_link_libraries (dyninst_group_test.stat_gcc_64_pic_none dl)
+target_link_libraries (dyninst_group_test.stat_gcc_64_pic_none ${CMAKE_DL_LIBS})
 add_executable (test1_14.stat_gcc_64_pic_none ${SOURCE_LIST_41})
 add_executable (test1_29.stat_gcc_64_pic_none ${SOURCE_LIST_4})
 

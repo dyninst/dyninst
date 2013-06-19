@@ -10,7 +10,7 @@ set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_NATIVE}  ")
 include (../../../../../../srclists.cmake)
 add_executable (dyninst_group_test.stat_bgxlc_64_none_none ${SOURCE_LIST_26})
-target_link_libraries (dyninst_group_test.stat_bgxlc_64_none_none dl)
+target_link_libraries (dyninst_group_test.stat_bgxlc_64_none_none ${CMAKE_DL_LIBS})
 add_executable (test1_14.stat_bgxlc_64_none_none ${SOURCE_LIST_38})
 add_executable (test1_29.stat_bgxlc_64_none_none ${SOURCE_LIST_9})
 

@@ -3160,8 +3160,8 @@ mutatee_link_options(Native_cc, '${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATI
     member(Native_cc, ['xlc', 'pgcc']).
 mutatee_link_options(Native_cxx, '${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}') :-
     member(Native_cxx, ['xlC', 'pgCC']).
-mutatee_link_options('VC', '${LDFLAGS) ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
-mutatee_link_options('VC++', '${LDFLAGS) ${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
+mutatee_link_options('VC', '${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
+mutatee_link_options('VC++', '${LDFLAGS} ${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
 mutatee_link_options('bgxlc', '${MUTATEE_LDFLAGS_NATIVE}').
 mutatee_link_options('bgxlc++', '${MUTATEE_LDFLAGS_NATIVE}').
 
