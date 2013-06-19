@@ -4,3 +4,12 @@ CMakeCache.txt
 *.so
 *#*
 cmake_install.cmake
+*.vcxproj*
+*.lib
+*.exp
+*.ilk
+*.dll
+*.pdb
+*.obj
+*.o
+
