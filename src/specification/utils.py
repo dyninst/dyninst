@@ -68,7 +68,7 @@ def compiler_count(lang, info):
 # Returns a string containing the mutatee's compile-time options filename
 # component: a string of the form _<compiler>_<ABI>_<optimization>
 def mutatee_cto_component(mutatee, info):
-   compiler = info['compilers'][mutatee['compiler']]
+   compiler = mutatee['compiler']
    return fullspec_cto_component(compiler,
                           mutatee['abi'],
                           mutatee['optimization'], mutatee['pic'])
@@ -84,7 +84,7 @@ def auxcomp_cto_component(compiler, mutatee):
 # Returns a string containing the mutatee's compile-time options filename
 # component for a fully specified set of build-time options
 def fullspec_cto_component(compiler, abi, optimization, pic):
-   retval = "_%s_%s_%s_%s" % (compiler['executable'],
+   retval = "_%s_%s_%s_%s" % (compiler,
                      abi,
                      pic,
                      optimization)

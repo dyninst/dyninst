@@ -9,9 +9,9 @@ set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU}  -Xlinker -export-dynamic")
 include (../../../../../../srclists.cmake)
-add_executable (pc_exec_targ.dyn_icpc_32_pic_none ${SOURCE_LIST_11})
+add_executable (pc_exec_targ.dyn_iCC_32_pic_none ${SOURCE_LIST_11})
 
 
 INSTALL (TARGETS
-		pc_exec_targ.dyn_icpc_32_pic_none
+		pc_exec_targ.dyn_iCC_32_pic_none
 	DESTINATION ${INSTALL_DIR})

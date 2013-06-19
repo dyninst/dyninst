@@ -9,10 +9,10 @@ set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  ")
 include (../../../../../../srclists.cmake)
-add_executable (symtab_group_test.dyn_cl_32_none_none.exe ${SOURCE_LIST_26})
-target_link_libraries (symtab_group_test.dyn_cl_32_none_none.exe testA_m32)
+add_executable (symtab_group_test.dyn_VC_32_none_none.exe ${SOURCE_LIST_26})
+target_link_libraries (symtab_group_test.dyn_VC_32_none_none.exe testA_m32)
 
 
 INSTALL (TARGETS
-		symtab_group_test.dyn_cl_32_none_none.exe
+		symtab_group_test.dyn_VC_32_none_none.exe
 	DESTINATION ${INSTALL_DIR})

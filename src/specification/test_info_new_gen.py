@@ -33,9 +33,8 @@ def mutatee_filename(rungroup, compilers, platform, info):
    if rungroup['mutatee'] == 'none':
       retval = ""
    else:
-      compiler = compilers[rungroup['compiler']]
       mutatee = rungroup['mutatee']
-      bto = utils.fullspec_bto_component(compiler,
+      bto = utils.fullspec_bto_component(rungroup['compiler'],
                                          rungroup['abi'],
                                          rungroup['optimization'],
                                          rungroup['pic'])
