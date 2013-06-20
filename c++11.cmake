@@ -12,7 +12,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
     # Woo visual studio!
 else ()
     message(FATAL_ERROR "Your C++ compiler does not support C++11.")
