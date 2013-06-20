@@ -22,6 +22,7 @@ if (UNIX)
 enable_language(ASM-ATT)
 elseif(WIN32)
 enable_language(ASM_MASM)
+add_definitions(-Dsnprintf=_snprintf)
 endif(UNIX)
 
 foreach (def ${DYNINST_INTERNAL_DEFINES})
@@ -75,15 +76,20 @@ endif()
 set_target_properties(${TESTSUITE_TESTLAUNCH_LINK} PROPERTIES COMPILE_DEFINITIONS TESTLIB_DLL_BUILD)
 
 target_link_libraries (testSuite ${CMAKE_DL_LIBS})
+if(WIN32)
+set (PLAT_SRC)
+else()
+set (PLAT_SRC src/dyninst/ParseThat.C
+    src/dyninst/test_lib_test7.C
+    src/dyninst/test_lib_test9.C)
+endif()
 
 add_library (testdyninst SHARED
             src/dyninst/dyninst_comp.C
             src/dyninst/test_lib_mutateeStart.C
             src/dyninst/Callbacks.C
             src/dyninst/Process_data.C
-            src/dyninst/ParseThat.C
-            src/dyninst/test_lib_test7.C
-            src/dyninst/test_lib_test9.C)
+	    ${PLAT_SRC})
 target_link_libraries (testdyninst testSuite dyninstAPI ${CMAKE_THREAD_LIBS_INIT})
 
 add_library (testsymtab SHARED
@@ -101,17 +107,28 @@ set (COMPLIB_DEFS TESTLIB_DLL_BUILD COMPLIB_DLL_BUILD)
 set (COMPLIB_TARGETS testdyninst testsymtab testinstruction testproccontrol)
 set_target_properties(${COMPLIB_TARGETS} PROPERTIES COMPILE_DEFINITIONS "${COMPLIB_DEFS}")
 
+if(WIN32)
+set(RUNTESTS_UTILS src/runTests-utils-nt.C)
+else()
+set(RUNTESTS_UTILS src/runTests-utils.C)
+endif()
+
 add_executable (runTests 
                src/runTests.C
-               src/runTests-utils.C
+	       ${RUNTESTS_UTILS}
                src/test_driver_templates.C)
 target_link_libraries (runTests)
 
+if(WIN32)
+set(TD_BE)
+else()
+set(TD_BE src/testdriver_be.C)
+endif()
 add_executable (test_driver
                src/test_driver.C
                src/test_driver_templates.C
                src/dynlmon.C
-               src/testdriver_be.C
+	       ${TD_BE}
                ${DYNINST_PLATFORM}/test_info_new.gen.C)
 target_link_libraries (test_driver ${TESTSUITE_TESTLAUNCH_LINK})
 
