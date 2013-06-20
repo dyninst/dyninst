@@ -132,14 +132,18 @@ add_executable (test_driver
                ${DYNINST_PLATFORM}/test_info_new.gen.C)
 target_link_libraries (test_driver ${TESTSUITE_TESTLAUNCH_LINK})
 
-
+if(WIN32)
+else()
 add_executable (testdriver_wrapper
                src/connection.C
                src/testdriver_wrapper.C)
+install (TARGETS
+        testdriver_wrapper
+        DESTINATION ${INSTALL_DIR})
+endif()
 
 install (TARGETS
         test_driver
-        testdriver_wrapper
         runTests
 	${TESTSUITE_TESTLAUNCH_LINK}
         testdyninst
