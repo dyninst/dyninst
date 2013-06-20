@@ -8,8 +8,8 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU} -m64 -Wl,-export-dynamic")
-include (../../../../../../srclists.cmake)
-add_executable (symtab_group_test.dyn_g++_64_pic_none ${SOURCE_LIST_39})
+include (${PROJECT_SRC_DIR}/ppc64_linux/srclists.cmake)
+add_executable (symtab_group_test.dyn_g++_64_pic_none ${SOURCE_LIST_8})
 target_link_libraries (symtab_group_test.dyn_g++_64_pic_none testA)
 
 

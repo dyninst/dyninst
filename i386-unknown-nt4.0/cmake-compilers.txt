@@ -7,8 +7,8 @@ IF (dummyMUTATEE_VC32dyn)
 SET (MUTATEE_VC32dyn 1 CACHE STRING "Build mutatess: compiler VC, ABI 32-bit, dyn linked")
 ENDIF()
 ENDIF()
-IF (DEFINED M_native_cxx)
-CHECK_MUTATEE_COMPILER ("${M_native_cxx}"
+IF (DEFINED M_native_cc)
+CHECK_MUTATEE_COMPILER ("${M_native_cc}"
 	" -ldl -ldl"
 	" -ldl"
 	dummyMUTATEE_VCxx32dyn)

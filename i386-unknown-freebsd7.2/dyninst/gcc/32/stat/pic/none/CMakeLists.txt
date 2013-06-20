@@ -8,11 +8,11 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU}  -static")
-include (../../../../../../srclists.cmake)
-add_executable (dyninst_group_test.stat_gcc_32_pic_none ${SOURCE_LIST_34})
-add_executable (test1_14.stat_gcc_32_pic_none ${SOURCE_LIST_48})
-add_executable (test1_29.stat_gcc_32_pic_none ${SOURCE_LIST_4})
-add_executable (test1_35.stat_gcc_32_pic_none ${SOURCE_LIST_64})
+include (${PROJECT_SRC_DIR}/i386-unknown-freebsd7.2/srclists.cmake)
+add_executable (dyninst_group_test.stat_gcc_32_pic_none ${SOURCE_LIST_4})
+add_executable (test1_14.stat_gcc_32_pic_none ${SOURCE_LIST_49})
+add_executable (test1_29.stat_gcc_32_pic_none ${SOURCE_LIST_37})
+add_executable (test1_35.stat_gcc_32_pic_none ${SOURCE_LIST_65})
 
 
 INSTALL (TARGETS

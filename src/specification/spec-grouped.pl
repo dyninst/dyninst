@@ -3036,7 +3036,7 @@ compiler_define_string('pgcc', 'pg_cc').
 compiler_define_string('VC', 'native_cc').
 compiler_define_string('xlc', 'native_cc').
 compiler_define_string('pgCC', 'pg_cxx').
-compiler_define_string('VC++', 'native_cxx').
+compiler_define_string('VC++', 'native_cc').
 compiler_define_string('cxx', 'native_cxx').
 compiler_define_string('xlC', 'native_cxx').
 compiler_define_string('gfortran', 'gnu_fc').

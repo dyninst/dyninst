@@ -1,4 +1,4 @@
-set (SRC ../../../../../../../src)
+set (SRC ${PROJECT_SOURCE_DIR}/src)
 set (SOURCE_LIST_0 
 	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_fork_mutatee.c
  	${SRC}/proccontrol/pcontrol_mutatee_tools.c
@@ -6,7 +6,19 @@ set (SOURCE_LIST_0
  	${SRC}/mutatee_util_mt.c
  )
 set (SOURCE_LIST_1 
-	${SRC}/mutatee_driver.c	${SRC}/../x86_64-unknown-linux2.4/dyninst_group_test_group.c
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test2_6_mutatee.c
+ 	${SRC}/mutatee_util.c
+ )
+set (SOURCE_LIST_2 
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test2_8_mutatee.c
+ 	${SRC}/mutatee_util.c
+ )
+set (SOURCE_LIST_3 
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test4_1_mutatee.c
+ 	${SRC}/mutatee_util.c
+ )
+set (SOURCE_LIST_4 
+	${SRC}/mutatee_driver.c	${PROJECT_SRC_DIR}/x86_64-unknown-linux2.4/dyninst_group_test_group.c
 	${SRC}/dyninst/test1_1_mutatee.c
  	${SRC}/dyninst/test1_2_mutatee.c
  	${SRC}/dyninst/test1_3_mutatee.c
@@ -51,20 +63,8 @@ set (SOURCE_LIST_1
  	${SRC}/dyninst/test_write_param_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_2 
-	${SRC}/mutatee_driver.c	${SRC}/dyninst/test2_8_mutatee.c
- 	${SRC}/mutatee_util.c
- )
-set (SOURCE_LIST_3 
-	${SRC}/mutatee_driver.c	${SRC}/dyninst/test4_1_mutatee.c
- 	${SRC}/mutatee_util.c
- )
-set (SOURCE_LIST_4 
-	${SRC}/mutatee_driver.c	${SRC}/dyninst/test1_29_mutatee.c
- 	${SRC}/mutatee_util.c
- )
 set (SOURCE_LIST_5 
-	${SRC}/mutatee_driver.c	${SRC}/dyninst/test2_6_mutatee.c
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_fork_8_mutatee.c
  	${SRC}/mutatee_util.c
  )
 set (SOURCE_LIST_6 
@@ -74,7 +74,9 @@ set (SOURCE_LIST_6
  	${SRC}/mutatee_util_mt.c
  )
 set (SOURCE_LIST_7 
-	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_fork_13_mutatee.c
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_mem_2_mutatee.c
+ 	${SRC}/dyninst/test_mem_util.c
+ 	${SRC}/dyninst/test6LS-x86_64.s
  	${SRC}/mutatee_util.c
  )
 set (SOURCE_LIST_8 
@@ -82,40 +84,59 @@ set (SOURCE_LIST_8
  	${SRC}/mutatee_util.c
  )
 set (SOURCE_LIST_9 
-	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_thread_6_mutatee.c
- 	${SRC}/mutatee_util.c
- 	${SRC}/mutatee_util_mt.c
- )
-set (SOURCE_LIST_10 
 	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_hw_breakpoint_mutatee.c
  	${SRC}/proccontrol/pcontrol_mutatee_tools.c
  	${SRC}/mutatee_util.c
  	${SRC}/mutatee_util_mt.c
  )
-set (SOURCE_LIST_11 
+set (SOURCE_LIST_10 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_mem_3_mutatee.c
  	${SRC}/dyninst/test_mem_util.c
  	${SRC}/dyninst/test6LS-x86_64.s
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_12 
+set (SOURCE_LIST_11 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_thread_8_mutatee.c
  	${SRC}/mutatee_util.c
  	${SRC}/mutatee_util_mt.c
  )
-set (SOURCE_LIST_13 
+set (SOURCE_LIST_12 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_thread_2_mutatee.c
  	${SRC}/dyninst/test_thread.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_14 
+set (SOURCE_LIST_13 
 	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_stat_mutatee.c
  	${SRC}/proccontrol/pcontrol_mutatee_tools.c
  	${SRC}/mutatee_util.c
  	${SRC}/mutatee_util_mt.c
  )
+set (SOURCE_LIST_14 
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_fork_13_mutatee.c
+ 	${SRC}/mutatee_util.c
+ )
 set (SOURCE_LIST_15 
-	${SRC}/mutatee_driver.c	${SRC}/../x86_64-unknown-linux2.4/symtab_group_test_group.c
+	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_detach_mutatee.c
+ 	${SRC}/proccontrol/pcontrol_mutatee_tools.c
+ 	${SRC}/mutatee_util.c
+ 	${SRC}/mutatee_util_mt.c
+ )
+set (SOURCE_LIST_16 
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_thread_5_mutatee.c
+ 	${SRC}/dyninst/test_thread.c
+ 	${SRC}/mutatee_util.c
+ )
+set (SOURCE_LIST_17 
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_thread_3_mutatee.c
+ 	${SRC}/dyninst/test_thread.c
+ 	${SRC}/mutatee_util.c
+ )
+set (SOURCE_LIST_18 
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_callback_1_mutatee.c
+ 	${SRC}/mutatee_util.c
+ )
+set (SOURCE_LIST_19 
+	${SRC}/mutatee_driver.c	${PROJECT_SRC_DIR}/x86_64-unknown-linux2.4/symtab_group_test_group.c
 	${SRC}/symtab/test_lookup_func_mutatee.c
  	${SRC}/symtab/test_lookup_var_mutatee.c
  	${SRC}/symtab/test_line_info_mutatee.c
@@ -128,55 +149,45 @@ set (SOURCE_LIST_15
  	${SRC}/symtab/test_add_symbols_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_16 
-	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_detach_mutatee.c
- 	${SRC}/proccontrol/pcontrol_mutatee_tools.c
- 	${SRC}/mutatee_util.c
- 	${SRC}/mutatee_util_mt.c
- )
-set (SOURCE_LIST_17 
-	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_thread_5_mutatee.c
- 	${SRC}/dyninst/test_thread.c
- 	${SRC}/mutatee_util.c
- )
-set (SOURCE_LIST_18 
-	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_thread_3_mutatee.c
- 	${SRC}/dyninst/test_thread.c
- 	${SRC}/mutatee_util.c
- )
-set (SOURCE_LIST_19 
-	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_callback_1_mutatee.c
- 	${SRC}/mutatee_util.c
- )
 set (SOURCE_LIST_20 
-	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_fork_8_mutatee.c
- 	${SRC}/mutatee_util.c
- )
-set (SOURCE_LIST_21 
 	${SRC}/mutatee_driver.c	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_22 
+set (SOURCE_LIST_21 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_fork_11_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_23 
+set (SOURCE_LIST_22 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_mem_7_mutatee.c
  	${SRC}/dyninst/test_mem_util.c
  	${SRC}/dyninst/test6LS-x86_64.s
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_24 
+set (SOURCE_LIST_23 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_fork_6_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_25 
+set (SOURCE_LIST_24 
 	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_thread_cont_mutatee.c
  	${SRC}/proccontrol/pcontrol_mutatee_tools.c
  	${SRC}/mutatee_util.c
  	${SRC}/mutatee_util_mt.c
  )
-set (SOURCE_LIST_26 
+set (SOURCE_LIST_25 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test1_19_mutatee.c
+ 	${SRC}/mutatee_util.c
+ )
+set (SOURCE_LIST_26 
+	${SRC}/mutatee_driver.c	${PROJECT_SRC_DIR}/x86_64-unknown-linux2.4/dyninst_cxx_group_test_group.c
+	${SRC}/dyninst/test5_1_mutatee.C
+ 	${SRC}/dyninst/test5_2_mutatee.C
+ 	${SRC}/dyninst/test5_3_mutatee.C
+ 	${SRC}/dyninst/test5_4_mutatee.C
+ 	${SRC}/dyninst/test5_5_mutatee.C
+ 	${SRC}/dyninst/test5_6_mutatee.C
+ 	${SRC}/dyninst/test5_7_mutatee.C
+ 	${SRC}/dyninst/test5_8_mutatee.C
+ 	${SRC}/dyninst/test5_9_mutatee.C
+ 	${SRC}/dyninst/cpp_test.C
  	${SRC}/mutatee_util.c
  )
 set (SOURCE_LIST_27 
@@ -194,69 +205,59 @@ set (SOURCE_LIST_29
  	${SRC}/mutatee_util.c
  )
 set (SOURCE_LIST_30 
-	${SRC}/mutatee_driver.c	${SRC}/../x86_64-unknown-linux2.4/dyninst_cxx_group_test_group.c
-	${SRC}/dyninst/test5_1_mutatee.C
- 	${SRC}/dyninst/test5_2_mutatee.C
- 	${SRC}/dyninst/test5_3_mutatee.C
- 	${SRC}/dyninst/test5_4_mutatee.C
- 	${SRC}/dyninst/test5_5_mutatee.C
- 	${SRC}/dyninst/test5_6_mutatee.C
- 	${SRC}/dyninst/test5_7_mutatee.C
- 	${SRC}/dyninst/test5_8_mutatee.C
- 	${SRC}/dyninst/test5_9_mutatee.C
- 	${SRC}/dyninst/cpp_test.C
- 	${SRC}/mutatee_util.c
- )
-set (SOURCE_LIST_31 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_fork_12_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_32 
+set (SOURCE_LIST_31 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test3_7_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_33 
+set (SOURCE_LIST_32 
 	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_terminate_mutatee.c
  	${SRC}/proccontrol/pcontrol_mutatee_tools.c
  	${SRC}/mutatee_util.c
  	${SRC}/mutatee_util_mt.c
  )
-set (SOURCE_LIST_34 
+set (SOURCE_LIST_33 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_callback_2_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_35 
+set (SOURCE_LIST_34 
 	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_library_mutatee.c
  	${SRC}/proccontrol/pcontrol_mutatee_tools.c
  	${SRC}/mutatee_util.c
  	${SRC}/mutatee_util_mt.c
  )
-set (SOURCE_LIST_36 
+set (SOURCE_LIST_35 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test3_1_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_37 
+set (SOURCE_LIST_36 
 	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_singlestep_mutatee.c
  	${SRC}/proccontrol/pcontrol_mutatee_tools.c
  	${SRC}/mutatee_util.c
  	${SRC}/mutatee_util_mt.c
  )
-set (SOURCE_LIST_38 
+set (SOURCE_LIST_37 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_thread_1_mutatee.c
  	${SRC}/dyninst/test_thread.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_39 
+set (SOURCE_LIST_38 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_mem_8_mutatee.c
  	${SRC}/dyninst/test_mem_util.c
  	${SRC}/dyninst/test6LS-x86_64.s
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_40 
+set (SOURCE_LIST_39 
 	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_breakpoint_mutatee.c
  	${SRC}/proccontrol/pcontrol_mutatee_tools.c
  	${SRC}/mutatee_util.c
  	${SRC}/mutatee_util_mt.c
+ )
+set (SOURCE_LIST_40 
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test1_29_mutatee.c
+ 	${SRC}/mutatee_util.c
  )
 set (SOURCE_LIST_41 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test3_2_mutatee.c
@@ -384,10 +385,9 @@ set (SOURCE_LIST_67
  	${SRC}/mutatee_util.c
  )
 set (SOURCE_LIST_68 
-	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_mem_2_mutatee.c
- 	${SRC}/dyninst/test_mem_util.c
- 	${SRC}/dyninst/test6LS-x86_64.s
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_thread_6_mutatee.c
  	${SRC}/mutatee_util.c
+ 	${SRC}/mutatee_util_mt.c
  )
 set (SOURCE_LIST_69 
 	${SRC}/mutatee_driver.c	${SRC}/symtab/test_exception_mutatee.C

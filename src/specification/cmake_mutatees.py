@@ -3,8 +3,6 @@ import tuples
 import utils
 from collections import defaultdict
 
-# Path from a local CMakefile to the platform directory
-root = '../../../../../..' 
 
 def get_compiler_command(exe, platform, abi, info):
    compiler = info['compilers'][exe]
@@ -104,7 +102,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
                                                                compiler['abiflags'][platform['name']][mut['abi']]['flags'],
                                                                linkage))
    
-   out.write("include (%s/srclists.cmake)\n" % root)
+   out.write("include (${PROJECT_SRC_DIR}/%s/srclists.cmake)\n" % platform['name'])
    
    # Add each mutatee executable
    for m in mlist:
@@ -157,8 +155,7 @@ def print_src_lists(mutatees, platform, info, directory):
 
    # Make sure this agrees with the subdirectory structure for CMakeLists 
    # as defined below in print_compiler_cmakefiles
-   to_src = '%s/../src' % root
-   out.write("set (SRC %s)\n" % to_src)
+   out.write("set (SRC ${PROJECT_SOURCE_DIR}/src)\n")
 
    srcs_to_mutatees = {}
    preproc_to_mutatees = {}
@@ -167,7 +164,7 @@ def print_src_lists(mutatees, platform, info, directory):
 
       # If it's a group mutatee we need to add the generated group file
       if (is_groupable(m, info) == '1'):
-         collected_srcs.append('\t${SRC}/../%s/%s_group.c\n' % (platform['name'], m['name']))
+         collected_srcs.append('\t${PROJECT_SRC_DIR}/%s/%s_group.c\n' % (platform['name'], m['name']))
 
       # Preprocessed == module specific, apparently
       for s in m['preprocessed_sources']:
