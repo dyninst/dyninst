@@ -8,8 +8,8 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU}  -Wl,-export-dynamic")
-include (${PROJECT_SRC_DIR}/amd64-unknown-freebsd7.2/srclists.cmake)
-add_executable (symtab_group_test.dyn_gcc_64_none_none ${SOURCE_LIST_46})
+include (${PROJECT_SOURCE_DIR}/amd64-unknown-freebsd7.2/srclists.cmake)
+add_executable (symtab_group_test.dyn_gcc_64_none_none ${SOURCE_LIST_8})
 target_link_libraries (symtab_group_test.dyn_gcc_64_none_none testA)
 
 

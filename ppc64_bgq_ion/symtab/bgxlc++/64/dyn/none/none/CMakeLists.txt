@@ -8,8 +8,8 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_NATIVE}  -qnostaticlink")
-include (${PROJECT_SRC_DIR}/ppc64_bgq_ion/srclists.cmake)
-add_executable (symtab_group_test.dyn_bgxlc++_64_none_none ${SOURCE_LIST_48})
+include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
+add_executable (symtab_group_test.dyn_bgxlc++_64_none_none ${SOURCE_LIST_19})
 target_link_libraries (symtab_group_test.dyn_bgxlc++_64_none_none testA)
 
 

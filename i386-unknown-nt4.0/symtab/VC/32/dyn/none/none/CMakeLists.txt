@@ -8,8 +8,8 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  ")
-include (${PROJECT_SRC_DIR}/i386-unknown-nt4.0/srclists.cmake)
-add_executable (symtab_group_test.dyn_VC_32_none_none.exe ${SOURCE_LIST_6})
+include (${PROJECT_SOURCE_DIR}/i386-unknown-nt4.0/srclists.cmake)
+add_executable (symtab_group_test.dyn_VC_32_none_none.exe ${SOURCE_LIST_29})
 target_link_libraries (symtab_group_test.dyn_VC_32_none_none.exe testA_m32)
 
 

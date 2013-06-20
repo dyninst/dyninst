@@ -8,10 +8,10 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU}  -static")
-include (${PROJECT_SRC_DIR}/ppc64_bgq_ion/srclists.cmake)
-add_executable (dyninst_group_test.stat_bgq_gcc_64_none_none ${SOURCE_LIST_44})
+include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
+add_executable (dyninst_group_test.stat_bgq_gcc_64_none_none ${SOURCE_LIST_29})
 target_link_libraries (dyninst_group_test.stat_bgq_gcc_64_none_none ${CMAKE_DL_LIBS})
-add_executable (test1_14.stat_bgq_gcc_64_none_none ${SOURCE_LIST_38})
+add_executable (test1_14.stat_bgq_gcc_64_none_none ${SOURCE_LIST_39})
 add_executable (test1_29.stat_bgq_gcc_64_none_none ${SOURCE_LIST_9})
 
 

@@ -8,10 +8,10 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU}  -static")
-include (${PROJECT_SRC_DIR}/ppc32_linux/srclists.cmake)
-add_executable (dyninst_group_test.stat_gcc_32_none_none ${SOURCE_LIST_7})
+include (${PROJECT_SOURCE_DIR}/ppc32_linux/srclists.cmake)
+add_executable (dyninst_group_test.stat_gcc_32_none_none ${SOURCE_LIST_57})
 target_link_libraries (dyninst_group_test.stat_gcc_32_none_none ${CMAKE_DL_LIBS})
-add_executable (test1_14.stat_gcc_32_none_none ${SOURCE_LIST_43})
+add_executable (test1_14.stat_gcc_32_none_none ${SOURCE_LIST_41})
 add_executable (test1_29.stat_gcc_32_none_none ${SOURCE_LIST_4})
 
 

@@ -8,13 +8,13 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU}  -static")
-include (${PROJECT_SRC_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
-add_executable (dyninst_cxx_group_test.stat_g++_64_pic_none ${SOURCE_LIST_26})
-add_executable (dyninst_group_test.stat_g++_64_pic_none ${SOURCE_LIST_4})
+include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
+add_executable (dyninst_cxx_group_test.stat_g++_64_pic_none ${SOURCE_LIST_51})
+add_executable (dyninst_group_test.stat_g++_64_pic_none ${SOURCE_LIST_48})
 target_link_libraries (dyninst_group_test.stat_g++_64_pic_none ${CMAKE_DL_LIBS})
 add_executable (test1_14.stat_g++_64_pic_none ${SOURCE_LIST_53})
-add_executable (test1_29.stat_g++_64_pic_none ${SOURCE_LIST_40})
-add_executable (test1_35.stat_g++_64_pic_none ${SOURCE_LIST_45})
+add_executable (test1_29.stat_g++_64_pic_none ${SOURCE_LIST_4})
+add_executable (test1_35.stat_g++_64_pic_none ${SOURCE_LIST_44})
 
 
 INSTALL (TARGETS
