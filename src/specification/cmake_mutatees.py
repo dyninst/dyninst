@@ -98,6 +98,8 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
       linkage = compiler['staticlink']
    else:
       linkage = compiler['dynamiclink']
+   if platform['name'] == 'i386-unknown-nt4.0' and module == 'proccontrol':
+      linkage = "%s %s" % (linkage, "ws2_32.lib")
    out.write("set (CMAKE_EXE_LINKER_FLAGS \"%s %s %s\")\n" % ( compiler['flags']['link'],
                                                                compiler['abiflags'][platform['name']][mut['abi']]['flags'],
                                                                linkage))
