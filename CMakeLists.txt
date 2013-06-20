@@ -168,6 +168,8 @@ FIND_PROGRAM(M_pg_cxx NAMES pgCC)
 elseif(WIN32)
 FIND_PROGRAM (M_native_cc NAMES cl)
 FIND_PROGRAM (M_native_cxx NAMES cl)
+set (MUTATEE_VC32dyn 1)
+set (MUTATEE_VCxx32dyn 1)
 endif (UNIX)
 
 include (checkMutateeCompiler.cmake)
