@@ -5,6 +5,9 @@ include (c++11.cmake)
 
 find_package (Dyninst REQUIRED CONFIG)
 find_package (Threads)
+find_package (Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
+
 message (STATUS "Dyninst includes: ${DYNINST_INCLUDE_DIR}")
 include_directories (${DYNINST_INCLUDE_DIR})
 message (STATUS "Project source dir: ${PROJECT_SOURCE_DIR}")
