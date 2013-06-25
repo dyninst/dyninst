@@ -208,7 +208,9 @@ SgAsmExpression::~SgAsmExpression()
 
 SgAsmValueExpression::SgAsmValueExpression()
 {
-
+  p_unfolded_expression_tree = NULL;
+  p_bit_offset = 0;
+  p_bit_size = 0;
 }
 
 SgAsmType* SgAsmValueExpression::get_type()
@@ -492,7 +494,7 @@ SgAsmBinaryMultiply::~SgAsmBinaryMultiply()
 
 SgAsmRegisterReferenceExpression::SgAsmRegisterReferenceExpression()
 {
-
+    p_type = NULL;
 }
 
 SgAsmType* SgAsmRegisterReferenceExpression::get_type()
@@ -584,6 +586,7 @@ SgAsmMemoryReferenceExpression::SgAsmMemoryReferenceExpression(SgAsmExpression* 
 {
   p_address = address;
   p_segment = segment;
+  p_type = NULL;
 }
 
 SgAsmType* SgAsmMemoryReferenceExpression::get_type()
@@ -723,6 +726,7 @@ SgAsmPowerpcInstruction::SgAsmPowerpcInstruction(rose_addr_t address, std::strin
     p_address = address;
     p_mnemonic = mnemonic;
     p_kind = kind;
+    p_operandList = NULL;
 }
 
 SgAsmx86Instruction::SgAsmx86Instruction(rose_addr_t address,
@@ -738,6 +742,12 @@ SgAsmx86Instruction::SgAsmx86Instruction(rose_addr_t address,
   p_baseSize = baseSize;
   p_operandSize = operandSize;
   p_addressSize = addressSize;
+
+  // these are as-yet unknown, but should still be initialized
+  p_lockPrefix = false;
+  p_repeatPrefix = x86_repeat_none;
+  p_branchPrediction = x86_branch_prediction_none;
+  p_segmentOverride = x86_segreg_none;
 }
 
 std::string SgAsmx86Instruction::class_name() const
