@@ -204,10 +204,13 @@ def print_src_lists(mutatees, platform, info, directory):
          ext = utils.extension(s)
          basename = s[0:-len('_mutatee') - len(ext)]
 
-         out.write("set_property (SOURCE ${SRC}/%s/%s APPEND PROPERTY COMPILE_FLAGS \"-DTEST_NAME=%s -DGROUPABLE=%s\")\n" %
+         out.write("set_property (SOURCE ${SRC}/%s/%s APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=%s)\n" %
                    (module, 
                     s, 
-                    basename, 
+                    basename))
+         out.write("set_property (SOURCE ${SRC}/%s/%s APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=%s)\n" %
+                   (module, 
+                    s, 
                     groupable))
       # Skip raw sources; they don't need the GROUPABLE and TEST_NAMEs set
 
