@@ -626,16 +626,16 @@ uint64_t getAsmSignedConstant(SgAsmValueExpression* valexp)
   switch(valexp->variantT())
   {
     case V_SgAsmByteValueExpression:
-      return (uint64_t) ((int8_t)  dynamic_cast<SgAsmByteValueExpression*>(valexp)->get_value());
+      return (uint64_t) ((int8_t)  static_cast<SgAsmByteValueExpression*>(valexp)->get_value());
       break;
     case V_SgAsmWordValueExpression:
-      return (uint64_t) ((int16_t) dynamic_cast<SgAsmWordValueExpression*>(valexp)->get_value());
+      return (uint64_t) ((int16_t) static_cast<SgAsmWordValueExpression*>(valexp)->get_value());
       break;
     case V_SgAsmDoubleWordValueExpression:
-      return (uint64_t) ((int32_t) dynamic_cast<SgAsmDoubleWordValueExpression*>(valexp)->get_value());
+      return (uint64_t) ((int32_t) static_cast<SgAsmDoubleWordValueExpression*>(valexp)->get_value());
       break;
     case V_SgAsmQuadWordValueExpression:
-      return (uint64_t) ((int64_t) dynamic_cast<SgAsmQuadWordValueExpression*>(valexp)->get_value());
+      return (uint64_t) ((int64_t) static_cast<SgAsmQuadWordValueExpression*>(valexp)->get_value());
       break;
     default:
       return 0; // error
