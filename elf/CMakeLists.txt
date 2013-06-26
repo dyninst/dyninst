@@ -20,6 +20,7 @@ set (SRC_LIST
 endif()
 
 add_library (dynElf ${SRC_LIST})
+add_definitions(DYNELF_LIB)
 
 FILE (GLOB headers "h/*.h")
 set_target_properties (dynElf PROPERTIES PUBLIC_HEADER "${headers}")

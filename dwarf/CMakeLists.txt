@@ -7,6 +7,7 @@ endif()
 include_directories (
   ${PROJECT_SOURCE_DIR}/dwarf/src
   )
+add_definitions(-DDYNDWARF_LIB)
 
 set (SRC_LIST
      src/dwarfResult.C
