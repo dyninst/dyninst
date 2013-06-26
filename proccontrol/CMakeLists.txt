@@ -14,19 +14,40 @@ set (SRC_LIST
      src/procpool.C 
      src/irpc.C 
      src/response.C 
-     src/int_thread_db.C 
+	 src/resp.C
      src/memcache.C 
-     src/sysv.C 
-     src/x86_process.C 
-     src/ppc_process.C 
-     src/mmapalloc.C 
      src/procset.C 
      src/processplat.C 
      src/loadLibrary/injector.C 
      src/loadLibrary/codegen.C 
-     src/loadLibrary/codegen-ppc.C 
+ )
+ if(PLATFORM MATCHES i386 OR PLATFORM MATCHES x86_64)
+     set (SRC_LIST ${SRC_LIST}
+     src/x86_process.C 
      src/loadLibrary/codegen-x86.C
  )
+ else() # power; specify if we add other archs
+     set (SRC_LIST ${SRC_LIST}
+     src/loadLibrary/codegen-ppc.C 
+     src/ppc_process.C 
+ )
+ endif()
+if(UNIX)
+set (SRC_LIST ${SRC_LIST}
+     src/sysv.C 
+     src/int_thread_db.C 
+     src/mmapalloc.C 
+)
+elseif(WIN32)
+set (SRC_LIST ${SRC_LIST}
+	src/GeneratorWindows.C
+	src/DecoderWindows.C
+	src/windows_handler.C
+	src/windows_process.C
+	src/windows_thread.C
+	src/loadLibrary/codegen-win.C
+)
+endif()
 
 if (PLATFORM MATCHES freebsd)
 set (SRC_LIST ${SRC_LIST}
@@ -60,8 +81,11 @@ set (SRC_LIST ${SRC_LIST}
      ../common/src/dthread-unix.C
      src/loadLibrary/codegen-stub.C
   )
-elseif (PLATFORM MATCHES windows)
 endif()
+
+SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+
+ADD_DEFINITIONS(-DPROCCONTROL_EXPORTS)
 
 add_library (pcontrol ${SRC_LIST})
 target_link_libraries(pcontrol common)
@@ -71,10 +95,16 @@ target_link_libraries(pcontrol dynElf)
 target_link_libraries(pcontrol symLite)
 endif()
 
+if(WIN32)
+target_link_libraries(pcontrol symtabAPI)
+endif()
+
 FILE (GLOB headers "h/*.h")
 set_target_properties (pcontrol PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS pcontrol
         EXPORT DyninstTargets
+        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

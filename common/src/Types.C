@@ -37,6 +37,10 @@
 #include <stdio.h>
 #include <assert.h>
 
+#if defined(_MSC_VER)
+#define snprintf _snprintf
+#endif
+
 // verify the size of the defined Address type
 void Address_chk ()
 {

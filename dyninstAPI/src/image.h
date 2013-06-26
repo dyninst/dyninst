@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string>
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11)
+#if !defined(os_windows)
 #include <regex.h>
 #endif
 

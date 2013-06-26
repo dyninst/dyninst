@@ -23,7 +23,6 @@ set (SRC_LIST
         src/IA_powerDetails.C 
         src/IA_platformDetailsFactory.C 
         src/CFGModifier.C
-        src/SymLiteCodeSource.C
         src/StackTamperVisitor.C
         ../dataflowAPI/src/ABI.C 
         ../dataflowAPI/src/Absloc.C 
@@ -44,6 +43,12 @@ set (SRC_LIST
         ../dataflowAPI/src/templates.C 
         ../dataflowAPI/src/Visitors.C 
     )
+
+if (NOT PLATFORM MATCHES nt)
+set (SRC_LIST ${SRC_LIST}
+    src/SymLiteCodeSource.C
+)
+endif()
 
 if (PLATFORM MATCHES amd64 OR PLATFORM MATCHES i386 OR PLATFORM
 MATCHES x86_64)
@@ -70,6 +75,10 @@ set (SRC_LIST ${SRC_LIST}
     )
 endif()
 
+SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+
+ADD_DEFINITIONS(-DPARSER_LIB)
+ADD_DEFINITIONS(-DDATAFLOW_LIB)
 
 add_library (parseAPI ${SRC_LIST})
 target_link_libraries(parseAPI common)
@@ -91,5 +100,7 @@ set_target_properties (parseAPI PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS parseAPI
         EXPORT DyninstTargets
+        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

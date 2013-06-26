@@ -92,7 +92,7 @@ set (BUG_DEFINES -Dbug_freebsd_missing_sigstop
              -Dbug_syscall_changepc_rewind
     )
 
-elseif (PLATFORM MATCHES windows)
+elseif (PLATFORM STREQUAL i386-unknown-nt4.0)
 set (OS_DEFINES -Dos_windows)
 set (CAP_DEFINES ${CAP_DEFINES} 
              -Dcap_mem_emulation
@@ -125,6 +125,9 @@ set (OLD_DEFINES -Di386_unknown_freebsd7_0)
 
 elseif (PLATFORM STREQUAL amd64-unknown-freebsd7.2)
 set (OLD_DEFINES -Damd64_unknown_freebsd7_0)
+
+elseif (PLATFORM STREQUAL i386-unknown-nt4.0)
+set (OLD_DEFINES -Di386_unknown_nt4_0)
 
 else (PLATFORM STREQUAL i386-unknown-linux2.4)
   message (FATAL_ERROR "Unknown platform: $(PLATFORM)")

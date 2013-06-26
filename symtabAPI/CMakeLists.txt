@@ -24,7 +24,6 @@ set (SRC_LIST
                 src/annotations.C 
                 src/debug.C 
                 src/SymtabReader.C 
-                src/dwarfWalker.C
   )
 
 if (PLATFORM MATCHES freebsd OR 
@@ -41,6 +40,7 @@ set (SRC_LIST ${SRC_LIST}
     src/emitElf.C 
     src/LinkMap.C 
     src/emitElfStatic.C 
+    src/dwarfWalker.C
 )
 
 if (PLATFORM MATCHES x86_64 OR PLATFORM MATCHES amd64)
@@ -66,8 +66,20 @@ set (SRC_LIST ${SRC_LIST}
     src/relocationEntry-elf-ppc64.C
     )
 endif()
-
 endif()
+
+
+if (PLATFORM MATCHES nt)
+set (SRC_LIST ${SRC_LIST}
+    src/Object-nt.C
+	src/emitWin.C
+	src/relocationEntry-stub.C
+)
+endif()
+
+SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+
+ADD_DEFINITIONS(-DSYMTAB_LIB)
   
 
 add_library (symtabAPI ${SRC_LIST})
@@ -83,6 +95,8 @@ endif()
 
 INSTALL (TARGETS symtabAPI
         EXPORT DyninstTargets
+        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
 

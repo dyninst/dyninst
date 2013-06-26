@@ -31,12 +31,14 @@
 // $Id: Timer.C,v 1.19 2007/05/30 19:20:16 legendre Exp $
 
 #include "common/src/Timer.h"
-
+#if defined(_MSC_VER)
+#include <time.h>
+#endif
 timer::timer()
 : usecs_(0), ssecs_(0), wsecs_(0), cu_(0), cs_(0), cw_(0),
   activation_count_(0),
 #if defined(os_windows)
-  CYCLES_PER_SEC_(CLK_TCK), // TODO: is this right?
+  CYCLES_PER_SEC_(CLOCKS_PER_SEC), // TODO: is this right?
 #else
   CYCLES_PER_SEC_(sysconf(_SC_CLK_TCK)), 
 #endif

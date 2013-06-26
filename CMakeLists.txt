@@ -2,8 +2,8 @@ cmake_minimum_required (VERSION 2.6)
 project (Dyninst)
 
 set (DYNINST_MAJOR_VERSION 8)
-set (DYNINST_MINOR_VERSION 1)
-set (DYNINST_PATCH_VERSION 1)
+set (DYNINST_MINOR_VERSION 2)
+set (DYNINST_PATCH_VERSION 0)
 
 set (SOVERSION "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}")
 set (LIBVERSION "${SOVERSION}.${DYNINST_PATCH_VERSION}")
@@ -37,6 +37,20 @@ include_directories (
                     ${PROJECT_SOURCE_DIR}/external
   )
 
+if(${PLATFORM} MATCHES nt)
+set (HEADER_DIRS common
+                 dataflowAPI
+                 dyninstAPI
+                 dyninstAPI_RT
+                 dynutil
+                 instructionAPI
+                 parseAPI
+                 patchAPI
+                 proccontrol
+                 stackwalk
+                 symtabAPI
+    )
+else()
 set (HEADER_DIRS common
                  dataflowAPI
                  dwarf
@@ -52,6 +66,7 @@ set (HEADER_DIRS common
                  symlite
                  symtabAPI
     )
+endif()
 
 foreach (dir ${HEADER_DIRS})
   include_directories ( ${PROJECT_SOURCE_DIR}/${dir}/h )
@@ -59,11 +74,13 @@ endforeach()
 
 # Component time
 add_subdirectory (common)
-add_subdirectory (elf)
-add_subdirectory (dwarf)
+if(NOT ${PLATFORM} MATCHES nt)
+    add_subdirectory (elf)
+    add_subdirectory (dwarf)
+    add_subdirectory (symlite)
+endif()
 add_subdirectory (instructionAPI)
 add_subdirectory (symtabAPI)
-add_subdirectory (symlite)
 add_subdirectory (parseAPI)
 add_subdirectory (patchAPI)
 add_subdirectory (proccontrol)
@@ -71,13 +88,28 @@ add_subdirectory (stackwalk)
 add_subdirectory (dyninstAPI)
 add_subdirectory (dyninstAPI_RT)
 
-SET_TARGET_PROPERTIES (
-   common dynElf dynDwarf instructionAPI symtabAPI symLite parseAPI
-   patchAPI pcontrol stackwalk dyninstAPI dyninstAPI_RT
-   PROPERTIES
-     SOVERSION ${SOVERSION}
-     VERSION ${LIBVERSION}
-)
+if(NOT ${PLATFORM} MATCHES nt)
+    SET_TARGET_PROPERTIES (
+        common dynElf dynDwarf instructionAPI symtabAPI symLite parseAPI
+        patchAPI pcontrol stackwalk dyninstAPI dyninstAPI_RT
+        PROPERTIES
+            SOVERSION ${SOVERSION}
+            VERSION ${LIBVERSION}
+    )
+else()
+    SET_TARGET_PROPERTIES (
+        common instructionAPI symtabAPI parseAPI
+        patchAPI pcontrol stackwalk dyninstAPI dyninstAPI_RT
+        PROPERTIES
+            SOVERSION ${SOVERSION}
+            VERSION ${LIBVERSION}
+    )
+
+endif()
+
+if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
+    add_definitions(-Dsnprintf=_snprintf)
+endif()
 
 # RTlib properties are set in its CMakeLists.txt; it seems
 # like multiple set_target_properties calls override instead
@@ -105,6 +137,7 @@ file (RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${INSTALL_INCLUDE_DI
 
 # For the install tree
 set (CONF_INCLUDE_DIRS "\${DYNINST_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+
 configure_file(cmake/DyninstConfig.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfig.cmake" @ONLY)
 
 # And version file
@@ -115,6 +148,5 @@ install (FILES
         "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfig.cmake"
         "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfigVersion.cmake"
         DESTINATION "${INSTALL_CMAKE_DIR}")
-
 install (EXPORT DyninstTargets
         DESTINATION "${INSTALL_CMAKE_DIR}")

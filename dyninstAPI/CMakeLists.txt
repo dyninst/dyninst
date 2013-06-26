@@ -62,7 +62,6 @@ set (SRC_LIST
      src/dynThread.C 
      src/pcEventHandler.C 
      src/pcEventMuxer.C 
-     src/syscallNotification.C 
      src/Relocation/CodeMover.C 
      src/Relocation/CFG/RelocGraph.C 
      src/Relocation/CFG/RelocBlock.C 
@@ -96,10 +95,6 @@ set (SRC_LIST
 
 # This is just .. messy. Sorry.
 
-if (PLATFORM MATCHES i386)
-set (SRC_LIST ${SRC_LIST} src/cpuid-x86.S)
-set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE C)
-endif ()
 
 if (PLATFORM MATCHES i386 OR PLATFORM MATCHES amd64 OR PLATFORM MATCHES x86_64)
 set (SRC_LIST ${SRC_LIST}
@@ -129,6 +124,7 @@ set (SRC_LIST ${SRC_LIST}
      src/freebsd.C
      src/unix.C
      src/freebsd-x86.C
+     src/syscallNotification.C 
      src/syscall-freebsd.C
 )
 elseif (PLATFORM MATCHES linux OR PLATFORM MATCHES bgq)
@@ -136,6 +132,7 @@ set (SRC_LIST ${SRC_LIST}
      src/linux.C
      src/inst-linux.C
      src/unix.C
+     src/syscallNotification.C 
      src/syscall-linux.C
 )
   if (PLATFORM MATCHES i386 OR PLATFORM MATCHES x86_64)
@@ -143,7 +140,32 @@ set (SRC_LIST ${SRC_LIST}
   elseif (PLATFORM MATCHES ppc)
     set (SRC_LIST ${SRC_LIST} src/linux-power.C)
   endif()
+elseif(PLATFORM MATCHES windows OR PLATFORM MATCHES nt)
+    set (SRC_LIST ${SRC_LIST}
+		src/hybridCallbacks.C
+		src/hybridInstrumentation.C
+		src/hybridOverwrites.C
+        src/inst-winnt.C
+        src/pdwinnt.C
+        src/syscall-nt.C
+		src/MemoryEmulator/memEmulator.C
+		src/MemoryEmulator/memEmulatorTransformer.C
+		src/MemoryEmulator/memEmulatorWidget.C
+		src/Relocation/DynAddrSpace.C
+		src/Relocation/DynCFGMaker.C
+		src/Relocation/DynInstrumenter.C
+		src/Relocation/DynObject.C
+		src/Relocation/DynPointMaker.C
+	)
 endif()
+
+set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+add_definitions(-DBPATCH_DLL_BUILD)
+if (PLATFORM MATCHES i386 AND UNIX)
+set (SRC_LIST ${SRC_LIST} src/cpuid-x86.S)
+set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE C)
+endif ()
+message(STATUS ${SRC_LIST})
 
 add_library (dyninstAPI ${SRC_LIST})
 
@@ -166,5 +188,7 @@ set_target_properties (dyninstAPI PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS dyninstAPI
         EXPORT DyninstTargets
+        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

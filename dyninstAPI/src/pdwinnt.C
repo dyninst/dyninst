@@ -59,6 +59,8 @@
 #include "nt_signal_emul.h"
 #include "dyninstAPI/src/PCEventMuxer.h"
 
+#define snprintf _snprintf
+
 // prototypes of functions used in this file
 
 void InitSymbolHandler( HANDLE hPCProcess );

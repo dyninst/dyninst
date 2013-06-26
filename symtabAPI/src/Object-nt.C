@@ -57,6 +57,10 @@
 
 #include "common/src/headers.h"
 
+#if defined(_MSC_VER)
+#define snprintf _snprintf
+#endif
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 

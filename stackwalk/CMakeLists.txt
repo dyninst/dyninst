@@ -1,7 +1,7 @@
 # CMake configuration for proccontrol directory
 
 include_directories (
-    ${PROJECT_SOURCE_DIR}/proccontrol/src
+    ${PROJECT_SOURCE_DIR}/stackwalk/src
   )
 
 set (SRC_LIST
@@ -29,46 +29,56 @@ set (SRC_LIST ${SRC_LIST}
      src/freebsd-x86-swk.C
 )
 elseif (PLATFORM MATCHES linux OR PLATFORM MATCHES freebsd)
-set (SRC_LIST ${SRC_LIST}
-     src/symtab-swk.C 
-     src/linuxbsd-swk.C 
-     src/linux-swk.C
-)
-if (PLATFORM MATCHES ppc)
-set (SRC_LIST ${SRC_LIST}
-     src/linux-ppc-swk.C 
-     src/ppc-swk.C
-)
-elseif (PLATFORM MATCHES i386 OR PLATFORM MATCHES x86_64)
-set (SRC_LIST ${SRC_LIST}
-     src/dbginfo-stepper.C 
-     src/linux-x86-swk.C 
-     src/x86-wanderer.C 
-     src/linuxbsd-x86-swk.C 
-     src/x86-swk.C 
-)
-endif()
-elseif (PLATFORM MATCHES bgq)
-set (SRC_LIST ${SRC_LIST}
-    src/ppc-swk.C 
-    src/symtab-swk.C 
-    src/linuxbsd-swk.C
-    src/bluegeneq-swk.C
-)
-endif()
+    set (SRC_LIST ${SRC_LIST}
+        src/symtab-swk.C 
+        src/linuxbsd-swk.C 
+        src/linux-swk.C
+    )
+    if (PLATFORM MATCHES ppc)
+        set (SRC_LIST ${SRC_LIST}
+            src/linux-ppc-swk.C 
+            src/ppc-swk.C
+        )
 
+    elseif (PLATFORM MATCHES i386 OR PLATFORM MATCHES x86_64)
+        set (SRC_LIST ${SRC_LIST}
+            src/dbginfo-stepper.C 
+            src/linux-x86-swk.C 
+            src/x86-wanderer.C 
+            src/linuxbsd-x86-swk.C 
+            src/x86-swk.C 
+        )
+    endif()
+elseif (PLATFORM MATCHES bgq)
+    set (SRC_LIST ${SRC_LIST}
+        src/ppc-swk.C 
+        src/symtab-swk.C 
+        src/linuxbsd-swk.C
+        src/bluegeneq-swk.C
+    )
+endif()
+if (PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
+    set (SRC_LIST ${SRC_LIST}
+        src/x86-wanderer.C 
+        src/x86-swk.C
+        src/win-x86-swk.C
+    )
+endif()
 
 if (SW_ANALYSIS_STEPPER)
-set (SRC_LIST ${SRC_LIST}
-     src/analysis_stepper.C
-     src/callchecker-IAPI.C
-  )
+    set (SRC_LIST ${SRC_LIST}
+        src/analysis_stepper.C
+        src/callchecker-IAPI.C
+    )
 else ()
-set (SRC_LIST ${SRC_LIST}
-     src/callchecker.C
-  )
+    set (SRC_LIST ${SRC_LIST}
+        src/callchecker.C
+    )
 endif()
 
+SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+
+ADD_DEFINITIONS(-DSTACKWALKER_EXPORTS)
 
 add_library (stackwalk ${SRC_LIST})
 
@@ -94,5 +104,7 @@ set_target_properties (stackwalk PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS stackwalk
         EXPORT DyninstTargets
+        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

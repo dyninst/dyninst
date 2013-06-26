@@ -92,7 +92,7 @@ unsigned generateAndWriteBranch(AddressSpace *proc,
 #endif
     gen.fillRemaining(codeGen::cgNOP);
     
-    proc->writeTextSpace((caddr_t)fromAddr, gen.used(), gen.start_ptr());
+    proc->writeTextSpace((void*)(fromAddr), gen.used(), gen.start_ptr());
     return gen.used();
 }
 

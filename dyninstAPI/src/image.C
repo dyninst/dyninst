@@ -69,6 +69,7 @@
 
 #if defined(i386_unknown_nt4_0)
 #include <dbghelp.h>
+#define snprintf _snprintf
 //#include <cvconst.h>
 #endif
 

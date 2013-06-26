@@ -7,7 +7,6 @@ include_directories (
 set (SRC_LIST
     src/RTcommon.c 
     src/RTmemEmulator.c
-    src/RTsignal.c 
 )
 
 if (PLATFORM MATCHES freebsd)
@@ -18,6 +17,7 @@ set (SRC_LIST ${SRC_LIST}
     src/RTheap-freebsd.c 
     src/RTthread.c 
     src/RTspace.S 
+    src/RTsignal.c 
 )
 elseif (PLATFORM MATCHES linux OR PLATFORM MATCHES bgq)
 set (SRC_LIST ${SRC_LIST}
@@ -27,6 +27,14 @@ set (SRC_LIST ${SRC_LIST}
     src/RTheap-linux.c 
     src/RTthread.c 
     src/RTspace.S 
+    src/RTsignal.c 
+)
+elseif (PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
+set (SRC_LIST ${SRC_LIST}
+    src/RTheap.c 
+    src/RTheap-win.c
+    src/RTwinnt.c
+	src/RTthread.c
 )
 endif ()
 
@@ -73,7 +81,13 @@ endif()
 
 
 add_library (dyninstAPI_RT SHARED ${SRC_LIST})
-target_link_libraries (dyninstAPI_RT dl)
+
+if (NOT PLATFORM MATCHES nt AND NOT PLATFORM MATCHES windows)
+    target_link_libraries (dyninstAPI_RT dl)
+else() # windows
+    target_link_libraries (dyninstAPI_RT ws2_32 dbghelp psapi)
+endif()
+
 add_library (dyninstAPI_RT_static STATIC ${SRC_LIST})
 
 set_target_properties (dyninstAPI_RT
@@ -164,6 +178,7 @@ set_target_properties (dyninstAPI_RT_m32_static
 
 INSTALL (TARGETS dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
         EXPORT DyninstTargets
+        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

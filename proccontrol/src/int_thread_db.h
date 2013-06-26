@@ -30,6 +30,10 @@
 #if !defined(INT_THREAD_DB_H_)
 #define INT_THREAD_DB_H_
 
+#if defined(os_windows)
+#error "Thread_db should not be included on Windows"
+#endif
+
 #include "proccontrol/src/int_process.h"
 
 #if defined(cap_thread_db)

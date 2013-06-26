@@ -21,6 +21,11 @@ set (SRC_LIST
         src/PatchModifier.C 
   )
 
+SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+
+ADD_DEFINITIONS(-DPATCHAPI_LIB)
+
+
 add_library (patchAPI ${SRC_LIST})
 target_link_libraries(patchAPI common)
 target_link_libraries(patchAPI symtabAPI)
@@ -33,5 +38,7 @@ set_target_properties (patchAPI PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS patchAPI
         EXPORT DyninstTargets
+        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

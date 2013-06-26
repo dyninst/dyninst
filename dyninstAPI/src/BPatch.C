@@ -1628,8 +1628,7 @@ bool BPatch::waitUntilStopped(BPatch_thread *appThread){
 		ret = false;
  		goto done;
 	}
-#if defined(i386_unknown_nt4_0) || \
-    defined(mips_unknown_ce2_11)
+#if defined(os_windows)
 	else if((appThread->getProcess()->stopSignal() != EXCEPTION_BREAKPOINT) && 
 		(appThread->getProcess()->stopSignal() != -1))
 	{

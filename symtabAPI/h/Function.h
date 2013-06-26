@@ -103,8 +103,8 @@ class FunctionBase : public Aggregate
    SYMTAB_EXPORT std::vector<VariableLocation> &getFramePtr();   
 
    /***** Opaque data object pointers, usable by user ****/
-   void *getData();
-   void setData(void *d);
+   SYMTAB_EXPORT void *getData();
+   SYMTAB_EXPORT void setData(void *d);
 
    /* internal helper functions */
    bool addLocalVar(localVar *);

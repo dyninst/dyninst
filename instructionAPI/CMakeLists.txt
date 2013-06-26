@@ -20,6 +20,9 @@ set (SRC_LIST
      src/InstructionDecoder-power.C 
      src/InstructionDecoderImpl.C
   )
+SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+
+ADD_DEFINITIONS(-DINSTRUCTION_LIB)
 
 add_library (instructionAPI ${SRC_LIST})
 target_link_libraries (instructionAPI common)
@@ -28,5 +31,7 @@ set_target_properties (instructionAPI PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS instructionAPI
         EXPORT DyninstTargets
+        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
