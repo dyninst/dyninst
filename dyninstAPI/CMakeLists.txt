@@ -165,7 +165,6 @@ if (PLATFORM MATCHES i386 AND UNIX)
 set (SRC_LIST ${SRC_LIST} src/cpuid-x86.S)
 set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE C)
 endif ()
-message(STATUS ${SRC_LIST})
 
 add_library (dyninstAPI ${SRC_LIST})
 

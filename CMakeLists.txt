@@ -88,6 +88,12 @@ add_subdirectory (stackwalk)
 add_subdirectory (dyninstAPI)
 add_subdirectory (dyninstAPI_RT)
 
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set (CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden)
+    set (CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden)
+    message(STATUS "Found g++, enabling -fvisibility=hidden")
+endif()
+
 if(NOT ${PLATFORM} MATCHES nt)
     SET_TARGET_PROPERTIES (
         common dynElf dynDwarf instructionAPI symtabAPI symLite parseAPI
