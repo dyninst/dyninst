@@ -3413,15 +3413,8 @@ Object::Object(const Object& obj)
 
 Object::~Object()
 {
-  unsigned i;
   relocation_table_.clear();
   fbt_.clear();
-  for(i=0; i<allRegionHdrs.size();i++) {
-#if !defined(os_freebsd)
-    // This claims a double-delete on FreeBSD
-    delete allRegionHdrs[i];
-#endif
-  }
   allRegionHdrs.clear();
   versionMapping.clear();
   versionFileNameMapping.clear();

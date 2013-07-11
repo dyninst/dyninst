@@ -609,6 +609,10 @@ class Symtab : public LookupInterface,
    bool isDefensiveBinary_;
 
    FuncRangeLookup *func_lookup;
+
+   // Line information map from module name to line info
+   dyn_hash_map<std::string, LineInformation> *lineInfo;
+
    //Don't use obj_private, use getObject() instead.
  public:
    Object *getObject();
