@@ -283,7 +283,10 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compil
             cmake_compilers.write("CHECK_MUTATEE_COMPILER (\"${M_%s}\"\n\t\"%s\"\n\t\"%s\"\n\tdummy%s)\n"
                              % (c_compiler, c_flags, linkage, varname))
             cmake_compilers.write("IF (dummy%s)\n" % varname)
-            cmake_compilers.write("SET (%s 1 CACHE STRING \"Build mutatess: compiler %s, ABI %s-bit, %s linked\")\n"
+            cmake_compilers.write("SET (%s 1 CACHE STRING \"Build mutatees: compiler %s, ABI %s-bit, %s linked\")\n"
+                                  % (varname, exe, abi, stat_dyn))
+            cmake_compilers.write("ELSE()\n")
+            cmake_compilers.write("SET (%s 0 CACHE STRING \"Skip mutatees: compilers %s, ABI %s-bit, %s linked\")\n"
                                   % (varname, exe, abi, stat_dyn))
             cmake_compilers.write("ENDIF()\n")
             cmake_compilers.write("ENDIF()\n")

@@ -4,7 +4,9 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"-Wl,-export-dynamic -ldl"
 	dummyMUTATEE_gxx32dyn)
 IF (dummyMUTATEE_gxx32dyn)
-SET (MUTATEE_gxx32dyn 1 CACHE STRING "Build mutatess: compiler g++, ABI 32-bit, dyn linked")
+SET (MUTATEE_gxx32dyn 1 CACHE STRING "Build mutatees: compiler g++, ABI 32-bit, dyn linked")
+ELSE()
+SET (MUTATEE_gxx32dyn 0 CACHE STRING "Skip mutatees: compilers g++, ABI 32-bit, dyn linked")
 ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_cxx)
@@ -13,7 +15,9 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"-static -ldl"
 	dummyMUTATEE_gxx32stat)
 IF (dummyMUTATEE_gxx32stat)
-SET (MUTATEE_gxx32stat 1 CACHE STRING "Build mutatess: compiler g++, ABI 32-bit, stat linked")
+SET (MUTATEE_gxx32stat 1 CACHE STRING "Build mutatees: compiler g++, ABI 32-bit, stat linked")
+ELSE()
+SET (MUTATEE_gxx32stat 0 CACHE STRING "Skip mutatees: compilers g++, ABI 32-bit, stat linked")
 ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_cc)
@@ -22,7 +26,9 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 	"-Wl,-export-dynamic -ldl"
 	dummyMUTATEE_gcc32dyn)
 IF (dummyMUTATEE_gcc32dyn)
-SET (MUTATEE_gcc32dyn 1 CACHE STRING "Build mutatess: compiler gcc, ABI 32-bit, dyn linked")
+SET (MUTATEE_gcc32dyn 1 CACHE STRING "Build mutatees: compiler gcc, ABI 32-bit, dyn linked")
+ELSE()
+SET (MUTATEE_gcc32dyn 0 CACHE STRING "Skip mutatees: compilers gcc, ABI 32-bit, dyn linked")
 ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_cc)
@@ -31,6 +37,8 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 	"-static -ldl"
 	dummyMUTATEE_gcc32stat)
 IF (dummyMUTATEE_gcc32stat)
-SET (MUTATEE_gcc32stat 1 CACHE STRING "Build mutatess: compiler gcc, ABI 32-bit, stat linked")
+SET (MUTATEE_gcc32stat 1 CACHE STRING "Build mutatees: compiler gcc, ABI 32-bit, stat linked")
+ELSE()
+SET (MUTATEE_gcc32stat 0 CACHE STRING "Skip mutatees: compilers gcc, ABI 32-bit, stat linked")
 ENDIF()
 ENDIF()
