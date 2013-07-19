@@ -1,6 +1,6 @@
 IF (DEFINED M_gnu_xx)
 CHECK_MUTATEE_COMPILER ("${M_gnu_xx}"
-	"-dynamic -Wl,-export-dynamic -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -dynamic -Wl,-export-dynamic -ldl -ldl"
 	"-dynamic -Wl,-export-dynamic -ldl"
 	dummyMUTATEE_bgq_gxx64dyn)
 IF (dummyMUTATEE_bgq_gxx64dyn)
@@ -9,7 +9,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_xx)
 CHECK_MUTATEE_COMPILER ("${M_gnu_xx}"
-	"-static -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -static -ldl -ldl"
 	"-static -ldl"
 	dummyMUTATEE_bgq_gxx64stat)
 IF (dummyMUTATEE_bgq_gxx64stat)
@@ -18,7 +18,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_cc)
 CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
-	"-dynamic -Wl,-export-dynamic -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}     -dynamic -Wl,-export-dynamic -ldl -ldl"
 	"-dynamic -Wl,-export-dynamic -ldl"
 	dummyMUTATEE_bgq_gcc64dyn)
 IF (dummyMUTATEE_bgq_gcc64dyn)
@@ -27,7 +27,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_cc)
 CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
-	"-static -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}     -static -ldl -ldl"
 	"-static -ldl"
 	dummyMUTATEE_bgq_gcc64stat)
 IF (dummyMUTATEE_bgq_gcc64stat)
@@ -36,7 +36,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_bg_cc)
 CHECK_MUTATEE_COMPILER ("${M_bg_cc}"
-	"-qnostaticlink -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CFLAGS} ${CFLAGS}    -qnostaticlink -ldl -ldl"
 	"-qnostaticlink -ldl"
 	dummyMUTATEE_bgxlc64dyn)
 IF (dummyMUTATEE_bgxlc64dyn)
@@ -45,7 +45,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_bg_cc)
 CHECK_MUTATEE_COMPILER ("${M_bg_cc}"
-	" -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CFLAGS} ${CFLAGS}     -ldl -ldl"
 	" -ldl"
 	dummyMUTATEE_bgxlc64stat)
 IF (dummyMUTATEE_bgxlc64stat)
@@ -54,7 +54,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_bg_CC)
 CHECK_MUTATEE_COMPILER ("${M_bg_CC}"
-	"-qnostaticlink -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} ${CXXFLAGS}    -qnostaticlink -ldl -ldl"
 	"-qnostaticlink -ldl"
 	dummyMUTATEE_bgxlcxx64dyn)
 IF (dummyMUTATEE_bgxlcxx64dyn)
@@ -63,7 +63,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_bg_CC)
 CHECK_MUTATEE_COMPILER ("${M_bg_CC}"
-	" -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} ${CXXFLAGS}     -ldl -ldl"
 	" -ldl"
 	dummyMUTATEE_bgxlcxx64stat)
 IF (dummyMUTATEE_bgxlcxx64stat)

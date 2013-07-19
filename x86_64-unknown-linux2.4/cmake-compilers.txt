@@ -1,6 +1,6 @@
 IF (DEFINED M_gnu_cc)
 CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
-	"-Wl,-export-dynamic -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}  -m32 -Di386_unknown_linux2_4 -Dm32_test   -Wl,-export-dynamic -ldl -ldl"
 	"-Wl,-export-dynamic -ldl"
 	dummyMUTATEE_gcc32dyn)
 IF (dummyMUTATEE_gcc32dyn)
@@ -9,7 +9,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_cc)
 CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
-	"-static -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}  -m32 -Di386_unknown_linux2_4 -Dm32_test   -static -ldl -ldl"
 	"-static -ldl"
 	dummyMUTATEE_gcc32stat)
 IF (dummyMUTATEE_gcc32stat)
@@ -18,7 +18,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_cc)
 CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
-	"-Wl,-export-dynamic -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}     -Wl,-export-dynamic -ldl -ldl"
 	"-Wl,-export-dynamic -ldl"
 	dummyMUTATEE_gcc64dyn)
 IF (dummyMUTATEE_gcc64dyn)
@@ -27,7 +27,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_cc)
 CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
-	"-static -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}     -static -ldl -ldl"
 	"-static -ldl"
 	dummyMUTATEE_gcc64stat)
 IF (dummyMUTATEE_gcc64stat)
@@ -36,7 +36,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_intel_CC_32)
 CHECK_MUTATEE_COMPILER ("${M_intel_CC_32}"
-	"-Xlinker -export-dynamic -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -x c++ -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}   -Di386_unknown_linux2_4 -Dm32_test   -Xlinker -export-dynamic -ldl -ldl"
 	"-Xlinker -export-dynamic -ldl"
 	dummyMUTATEE_iCC32dyn)
 IF (dummyMUTATEE_iCC32dyn)
@@ -45,7 +45,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_intel_CC)
 CHECK_MUTATEE_COMPILER ("${M_intel_CC}"
-	"-Xlinker -export-dynamic -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -x c++ -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}      -Xlinker -export-dynamic -ldl -ldl"
 	"-Xlinker -export-dynamic -ldl"
 	dummyMUTATEE_iCC64dyn)
 IF (dummyMUTATEE_iCC64dyn)
@@ -54,7 +54,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_intel_cc_32)
 CHECK_MUTATEE_COMPILER ("${M_intel_cc_32}"
-	"-Xlinker -export-dynamic -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}  -Di386_unknown_linux2_4 -Dm32_test   -Xlinker -export-dynamic -ldl -ldl"
 	"-Xlinker -export-dynamic -ldl"
 	dummyMUTATEE_icc32dyn)
 IF (dummyMUTATEE_icc32dyn)
@@ -63,7 +63,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_intel_cc)
 CHECK_MUTATEE_COMPILER ("${M_intel_cc}"
-	"-Xlinker -export-dynamic -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}     -Xlinker -export-dynamic -ldl -ldl"
 	"-Xlinker -export-dynamic -ldl"
 	dummyMUTATEE_icc64dyn)
 IF (dummyMUTATEE_icc64dyn)
@@ -72,7 +72,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_cxx)
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
-	"-Wl,-export-dynamic -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}  -m32 -Di386_unknown_linux2_4 -Dm32_test   -Wl,-export-dynamic -ldl -ldl"
 	"-Wl,-export-dynamic -ldl"
 	dummyMUTATEE_gxx32dyn)
 IF (dummyMUTATEE_gxx32dyn)
@@ -81,7 +81,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_cxx)
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
-	"-static -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}  -m32 -Di386_unknown_linux2_4 -Dm32_test   -static -ldl -ldl"
 	"-static -ldl"
 	dummyMUTATEE_gxx32stat)
 IF (dummyMUTATEE_gxx32stat)
@@ -90,7 +90,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_cxx)
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
-	"-Wl,-export-dynamic -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -Wl,-export-dynamic -ldl -ldl"
 	"-Wl,-export-dynamic -ldl"
 	dummyMUTATEE_gxx64dyn)
 IF (dummyMUTATEE_gxx64dyn)
@@ -99,7 +99,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_gnu_cxx)
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
-	"-static -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -static -ldl -ldl"
 	"-static -ldl"
 	dummyMUTATEE_gxx64stat)
 IF (dummyMUTATEE_gxx64stat)
@@ -108,7 +108,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_pg_cc)
 CHECK_MUTATEE_COMPILER ("${M_pg_cc}"
-	" -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_NATIVE}  -tp px -m32 -Di386_unknown_linux2_4 -Dm32_test    -ldl -ldl"
 	" -ldl"
 	dummyMUTATEE_pgcc32dyn)
 IF (dummyMUTATEE_pgcc32dyn)
@@ -117,7 +117,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_pg_cc)
 CHECK_MUTATEE_COMPILER ("${M_pg_cc}"
-	" -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_NATIVE}      -ldl -ldl"
 	" -ldl"
 	dummyMUTATEE_pgcc64dyn)
 IF (dummyMUTATEE_pgcc64dyn)
@@ -126,7 +126,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_pg_cxx)
 CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
-	" -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE}  -tp px -m32 -Di386_unknown_linux2_4 -Dm32_test    -ldl -ldl"
 	" -ldl"
 	dummyMUTATEE_pgCC32dyn)
 IF (dummyMUTATEE_pgCC32dyn)
@@ -135,7 +135,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_pg_cxx)
 CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
-	" -ldl -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE}      -ldl -ldl"
 	" -ldl"
 	dummyMUTATEE_pgCC64dyn)
 IF (dummyMUTATEE_pgCC64dyn)

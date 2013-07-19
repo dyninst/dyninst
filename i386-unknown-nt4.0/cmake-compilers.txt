@@ -1,6 +1,6 @@
 IF (DEFINED M_native_cc)
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
-	" -ldl -ldl"
+	"${MUTATOR_DEFINES}  -TC ${CFLAGS}     -ldl -ldl"
 	" -ldl"
 	dummyMUTATEE_VC32dyn)
 IF (dummyMUTATEE_VC32dyn)
@@ -9,7 +9,7 @@ ENDIF()
 ENDIF()
 IF (DEFINED M_native_cc)
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
-	" -ldl -ldl"
+	"${MUTATOR_DEFINES}  -TP ${CXXFLAGS_NORM}     -ldl -ldl"
 	" -ldl"
 	dummyMUTATEE_VCxx32dyn)
 IF (dummyMUTATEE_VCxx32dyn)
