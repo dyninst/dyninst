@@ -11,7 +11,7 @@ MACRO (CHECK_MUTATEE_COMPILER _COMPILER _COMP_FLAG _LINK_FLAG _RESULT)
    SET(CMAKE_EXE_LINKER_FLAGS "${_LINK_FLAG}")
    SET(CMAKE_C_FLAGS "${_COMP_FLAG}")
 
-   CHECK_C_SOURCE_COMPILES("#include <signal.h> \n int main(void) { return 0; }" ${_RESULT}
+   CHECK_C_SOURCE_COMPILES("#include <signal.h> \n #include <features.h>\n int main(void) { return 0; }" ${_RESULT}
 
      # Some compilers do not fail with a bad flag
      FAIL_REGEX "warning: command line option .* is valid for .* but not for C"
