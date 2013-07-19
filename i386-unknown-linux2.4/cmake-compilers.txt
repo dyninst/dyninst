@@ -22,8 +22,8 @@ ENDIF()
 ENDIF()
 IF (NOT ${M_intel_CC} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_intel_CC}"
-	"${MUTATOR_DEFINES}  ${CXXFLAGS} -x c++ -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}      -Xlinker -export-dynamic -ldl -ldl"
-	"-Xlinker -export-dynamic -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -x c++ -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}      -Xlinker -export-dynamic -ldl -ldl -lstdc++"
+	"-Xlinker -export-dynamic -ldl -lstdc++"
 	dummyMUTATEE_iCC32dyn)
 IF (dummyMUTATEE_iCC32dyn)
 SET (MUTATEE_iCC32dyn 1 CACHE STRING "Build mutatees: compiler iCC, ABI 32-bit, dyn linked")
@@ -44,8 +44,8 @@ ENDIF()
 ENDIF()
 IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
-	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -Wl,-export-dynamic -ldl -ldl"
-	"-Wl,-export-dynamic -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -Wl,-export-dynamic -ldl -ldl -lstdc++"
+	"-Wl,-export-dynamic -ldl -lstdc++"
 	dummyMUTATEE_gxx32dyn)
 IF (dummyMUTATEE_gxx32dyn)
 SET (MUTATEE_gxx32dyn 1 CACHE STRING "Build mutatees: compiler g++, ABI 32-bit, dyn linked")
@@ -55,8 +55,8 @@ ENDIF()
 ENDIF()
 IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
-	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -static -ldl -ldl"
-	"-static -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -static -ldl -ldl -lstdc++"
+	"-static -ldl -lstdc++"
 	dummyMUTATEE_gxx32stat)
 IF (dummyMUTATEE_gxx32stat)
 SET (MUTATEE_gxx32stat 1 CACHE STRING "Build mutatees: compiler g++, ABI 32-bit, stat linked")
@@ -88,8 +88,8 @@ ENDIF()
 ENDIF()
 IF (NOT ${M_pg_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
-	"${MUTATOR_DEFINES}  ${CXXFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE}      -ldl -ldl"
-	" -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE}      -ldl -ldl -lstdc++"
+	" -ldl -lstdc++"
 	dummyMUTATEE_pgCC32dyn)
 IF (dummyMUTATEE_pgCC32dyn)
 SET (MUTATEE_pgCC32dyn 1 CACHE STRING "Build mutatees: compiler pgCC, ABI 32-bit, dyn linked")

@@ -11,8 +11,8 @@ ENDIF()
 ENDIF()
 IF (NOT ${M_native_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
-	"${MUTATOR_DEFINES}  -TP ${CXXFLAGS_NORM}     -ldl -ldl"
-	" -ldl"
+	"${MUTATOR_DEFINES}  -TP ${CXXFLAGS_NORM}     -ldl -ldl -lstdc++"
+	" -ldl -lstdc++"
 	dummyMUTATEE_VCxx32dyn)
 IF (dummyMUTATEE_VCxx32dyn)
 SET (MUTATEE_VCxx32dyn 1 CACHE STRING "Build mutatees: compiler VC++, ABI 32-bit, dyn linked")

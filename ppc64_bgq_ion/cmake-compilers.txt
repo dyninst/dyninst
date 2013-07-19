@@ -1,7 +1,7 @@
 IF (NOT ${M_gnu_xx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_xx}"
-	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -dynamic -Wl,-export-dynamic -ldl -ldl"
-	"-dynamic -Wl,-export-dynamic -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -dynamic -Wl,-export-dynamic -ldl -ldl -lstdc++"
+	"-dynamic -Wl,-export-dynamic -ldl -lstdc++"
 	dummyMUTATEE_bgq_gxx64dyn)
 IF (dummyMUTATEE_bgq_gxx64dyn)
 SET (MUTATEE_bgq_gxx64dyn 1 CACHE STRING "Build mutatees: compiler bgq_g++, ABI 64-bit, dyn linked")
@@ -11,8 +11,8 @@ ENDIF()
 ENDIF()
 IF (NOT ${M_gnu_xx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_xx}"
-	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -static -ldl -ldl"
-	"-static -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -static -ldl -ldl -lstdc++"
+	"-static -ldl -lstdc++"
 	dummyMUTATEE_bgq_gxx64stat)
 IF (dummyMUTATEE_bgq_gxx64stat)
 SET (MUTATEE_bgq_gxx64stat 1 CACHE STRING "Build mutatees: compiler bgq_g++, ABI 64-bit, stat linked")
@@ -66,8 +66,8 @@ ENDIF()
 ENDIF()
 IF (NOT ${M_bg_CC} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_bg_CC}"
-	"${MUTATOR_DEFINES}  ${CXXFLAGS} ${CXXFLAGS}    -qnostaticlink -ldl -ldl"
-	"-qnostaticlink -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} ${CXXFLAGS}    -qnostaticlink -ldl -ldl -lstdc++"
+	"-qnostaticlink -ldl -lstdc++"
 	dummyMUTATEE_bgxlcxx64dyn)
 IF (dummyMUTATEE_bgxlcxx64dyn)
 SET (MUTATEE_bgxlcxx64dyn 1 CACHE STRING "Build mutatees: compiler bgxlc++, ABI 64-bit, dyn linked")
@@ -77,8 +77,8 @@ ENDIF()
 ENDIF()
 IF (NOT ${M_bg_CC} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_bg_CC}"
-	"${MUTATOR_DEFINES}  ${CXXFLAGS} ${CXXFLAGS}     -ldl -ldl"
-	" -ldl"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} ${CXXFLAGS}     -ldl -ldl -lstdc++"
+	" -ldl -lstdc++"
 	dummyMUTATEE_bgxlcxx64stat)
 IF (dummyMUTATEE_bgxlcxx64stat)
 SET (MUTATEE_bgxlcxx64stat 1 CACHE STRING "Build mutatees: compiler bgxlc++, ABI 64-bit, stat linked")

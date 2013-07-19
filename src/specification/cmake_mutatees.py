@@ -274,7 +274,10 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compil
             # Manual hack: check for a present libdl...
             linkage = '%s -ldl' % linkage
             c_flags = '%s %s -ldl' % (c_flags, linkage)
-
+            if 'c++' in compiler['languages']:
+               c_flags = '%s %s' % (c_flags, '-lstdc++')
+               linkage = '%s %s' % (linkage, '-lstdc++')
+                
             # You want crazy? Apparently three underscores breaks CMAKE's regexp parser. So no
             # underscores!
             # And we can't redefine a variable as part of the cache, hence the two-level system.
