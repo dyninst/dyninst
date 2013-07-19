@@ -273,7 +273,7 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compil
                linkage = compiler['dynamiclink']
             # Manual hack: check for a present libdl...
             linkage = '%s -ldl' % linkage
-            c_flags = '%s -ldl' % linkage
+            c_flags = '%s %s -ldl' % (c_flags, linkage)
 
             # You want crazy? Apparently three underscores breaks CMAKE's regexp parser. So no
             # underscores!
