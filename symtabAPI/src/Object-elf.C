@@ -3239,7 +3239,7 @@ void Object::find_code_and_data(Elf_X &elf,
         Elf_X_Phdr &phdr = elf.get_phdr(i);
 
         char *file_ptr = (char *)mf->base_addr();
-
+        /*
         if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags())) {
             Region *reg = new Region(i, "", phdr.p_paddr(), phdr.p_filesz(),
                                      phdr.p_vaddr(), phdr.p_memsz(),
@@ -3249,7 +3249,7 @@ void Object::find_code_and_data(Elf_X &elf,
             reg->setFileOffset(phdr.p_offset());
             regions_.push_back(reg);
         }
-
+        */
         // The code pointer, offset, & length should be set even if
         // txtaddr=0, so in this case we set these values by
         // identifying the segment that contains the entryAddress
