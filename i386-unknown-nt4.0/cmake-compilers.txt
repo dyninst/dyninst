@@ -1,4 +1,4 @@
-IF (DEFINED M_native_cc)
+IF (NOT ${M_native_cc} MATCHES "NOT_FOUND")
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
 	"${MUTATOR_DEFINES}  -TC ${CFLAGS}     -ldl -ldl"
 	" -ldl"
@@ -9,7 +9,7 @@ ELSE()
 SET (MUTATEE_VC32dyn 0 CACHE STRING "Skip mutatees: compilers VC, ABI 32-bit, dyn linked")
 ENDIF()
 ENDIF()
-IF (DEFINED M_native_cc)
+IF (NOT ${M_native_cc} MATCHES "NOT_FOUND")
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
 	"${MUTATOR_DEFINES}  -TP ${CXXFLAGS_NORM}     -ldl -ldl"
 	" -ldl"
