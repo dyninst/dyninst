@@ -279,7 +279,7 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compil
             # underscores!
             # And we can't redefine a variable as part of the cache, hence the two-level system.
             varname = 'MUTATEE_%s%s%s' % (exe.replace('+','x'), abi, stat_dyn)
-            cmake_compilers.write("IF (NOT ${M_%s} MATCHES \"NOT_FOUND\")\n" % c_compiler)
+            cmake_compilers.write("IF (NOT ${M_%s} MATCHES \"NOTFOUND\")\n" % c_compiler)
             cmake_compilers.write("CHECK_MUTATEE_COMPILER (\"${M_%s}\"\n\t\"%s\"\n\t\"%s\"\n\tdummy%s)\n"
                              % (c_compiler, c_flags, linkage, varname))
             cmake_compilers.write("IF (dummy%s)\n" % varname)

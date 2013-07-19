@@ -1,4 +1,4 @@
-IF (NOT ${M_gnu_cc} MATCHES "NOT_FOUND")
+IF (NOT ${M_gnu_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 	"${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}     -Wl,-export-dynamic -ldl -ldl"
 	"-Wl,-export-dynamic -ldl"
@@ -9,7 +9,7 @@ ELSE()
 SET (MUTATEE_gcc32dyn 0 CACHE STRING "Skip mutatees: compilers gcc, ABI 32-bit, dyn linked")
 ENDIF()
 ENDIF()
-IF (NOT ${M_gnu_cc} MATCHES "NOT_FOUND")
+IF (NOT ${M_gnu_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 	"${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}     -static -ldl -ldl"
 	"-static -ldl"
@@ -20,7 +20,7 @@ ELSE()
 SET (MUTATEE_gcc32stat 0 CACHE STRING "Skip mutatees: compilers gcc, ABI 32-bit, stat linked")
 ENDIF()
 ENDIF()
-IF (NOT ${M_intel_CC} MATCHES "NOT_FOUND")
+IF (NOT ${M_intel_CC} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_intel_CC}"
 	"${MUTATOR_DEFINES}  ${CXXFLAGS} -x c++ -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}      -Xlinker -export-dynamic -ldl -ldl"
 	"-Xlinker -export-dynamic -ldl"
@@ -31,7 +31,7 @@ ELSE()
 SET (MUTATEE_iCC32dyn 0 CACHE STRING "Skip mutatees: compilers iCC, ABI 32-bit, dyn linked")
 ENDIF()
 ENDIF()
-IF (NOT ${M_intel_cc} MATCHES "NOT_FOUND")
+IF (NOT ${M_intel_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_intel_cc}"
 	"${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}     -Xlinker -export-dynamic -ldl -ldl"
 	"-Xlinker -export-dynamic -ldl"
@@ -42,7 +42,7 @@ ELSE()
 SET (MUTATEE_icc32dyn 0 CACHE STRING "Skip mutatees: compilers icc, ABI 32-bit, dyn linked")
 ENDIF()
 ENDIF()
-IF (NOT ${M_gnu_cxx} MATCHES "NOT_FOUND")
+IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -Wl,-export-dynamic -ldl -ldl"
 	"-Wl,-export-dynamic -ldl"
@@ -53,7 +53,7 @@ ELSE()
 SET (MUTATEE_gxx32dyn 0 CACHE STRING "Skip mutatees: compilers g++, ABI 32-bit, dyn linked")
 ENDIF()
 ENDIF()
-IF (NOT ${M_gnu_cxx} MATCHES "NOT_FOUND")
+IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -static -ldl -ldl"
 	"-static -ldl"
@@ -64,7 +64,7 @@ ELSE()
 SET (MUTATEE_gxx32stat 0 CACHE STRING "Skip mutatees: compilers g++, ABI 32-bit, stat linked")
 ENDIF()
 ENDIF()
-IF (NOT ${M_pg_cc} MATCHES "NOT_FOUND")
+IF (NOT ${M_pg_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_pg_cc}"
 	"${MUTATOR_DEFINES}  ${CFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_NATIVE}      -ldl -ldl"
 	" -ldl"
@@ -75,7 +75,7 @@ ELSE()
 SET (MUTATEE_pgcc32dyn 0 CACHE STRING "Skip mutatees: compilers pgcc, ABI 32-bit, dyn linked")
 ENDIF()
 ENDIF()
-IF (NOT ${M_gnu_fc} MATCHES "NOT_FOUND")
+IF (NOT ${M_gnu_fc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_fc}"
 	"${MUTATOR_DEFINES}  -g ${MUTATEE_G77_FFLAGS}     -ldl -ldl"
 	" -ldl"
@@ -86,7 +86,7 @@ ELSE()
 SET (MUTATEE_gfortran32dyn 0 CACHE STRING "Skip mutatees: compilers gfortran, ABI 32-bit, dyn linked")
 ENDIF()
 ENDIF()
-IF (NOT ${M_pg_cxx} MATCHES "NOT_FOUND")
+IF (NOT ${M_pg_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
 	"${MUTATOR_DEFINES}  ${CXXFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE}      -ldl -ldl"
 	" -ldl"
