@@ -83,7 +83,7 @@ endif()
 add_library (dyninstAPI_RT SHARED ${SRC_LIST})
 
 if (NOT PLATFORM MATCHES nt AND NOT PLATFORM MATCHES windows)
-    target_link_libraries (dyninstAPI_RT dl)
+    target_link_libraries (dyninstAPI_RT ${CMAKE_DL_LIBS})
 else() # windows
     target_link_libraries (dyninstAPI_RT ws2_32 dbghelp psapi)
 endif()
@@ -91,21 +91,22 @@ endif()
 add_library (dyninstAPI_RT_static STATIC ${SRC_LIST})
 
 # this should carry over from CMakeLists.txt
-#append_target_properties (dyninstAPI_RT
-#                      PROPERTIES
-#                      SOVERSION ${SOVERSION}
-#                      VERSION ${LIBVERSION})
+set_target_properties (dyninstAPI_RT
+                      PROPERTIES
+                      SOVERSION ${SOVERSION}
+                      VERSION ${LIBVERSION})
 
 # this will not
-append_target_properties (dyninstAPI_RT_static
+set_target_properties (dyninstAPI_RT_static
                       PROPERTIES
                       OUTPUT_NAME dyninstAPI_RT
                       SOVERSION ${SOVERSION}
                       VERSION ${LIBVERSION})
 
+message(STATUS "dyninstAPI RT library SOVERSION: ${SOVERSION}")
 FILE (GLOB headers "h/*.h")
 # append, you fool!
-append_target_properties (dyninstAPI_RT PROPERTIES PUBLIC_HEADER "${headers}")
+set_target_properties (dyninstAPI_RT PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS dyninstAPI_RT dyninstAPI_RT_static
         EXPORT DyninstTargets
@@ -161,7 +162,7 @@ ENDIF()
 if (BUILD_RTLIB_32 MATCHES "ON")
 
 add_library (dyninstAPI_RT_m32 SHARED ${SRC_LIST_mabi})
-target_link_libraries (dyninstAPI_RT_m32 dl)
+target_link_libraries (dyninstAPI_RT_m32 ${CMAKE_DL_LIBS})
 add_library (dyninstAPI_RT_m32_static STATIC ${SRC_LIST_mabi})
 
 set_target_properties (dyninstAPI_RT_m32
