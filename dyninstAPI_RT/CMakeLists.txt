@@ -90,19 +90,22 @@ endif()
 
 add_library (dyninstAPI_RT_static STATIC ${SRC_LIST})
 
-set_target_properties (dyninstAPI_RT
-                      PROPERTIES
-                      SOVERSION ${SOVERSION}
-                      VERSION ${LIBVERSION})
+# this should carry over from CMakeLists.txt
+#append_target_properties (dyninstAPI_RT
+#                      PROPERTIES
+#                      SOVERSION ${SOVERSION}
+#                      VERSION ${LIBVERSION})
 
-set_target_properties (dyninstAPI_RT_static
+# this will not
+append_target_properties (dyninstAPI_RT_static
                       PROPERTIES
                       OUTPUT_NAME dyninstAPI_RT
                       SOVERSION ${SOVERSION}
                       VERSION ${LIBVERSION})
 
 FILE (GLOB headers "h/*.h")
-set_target_properties (dyninstAPI_RT PROPERTIES PUBLIC_HEADER "${headers}")
+# append, you fool!
+append_target_properties (dyninstAPI_RT PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS dyninstAPI_RT dyninstAPI_RT_static
         EXPORT DyninstTargets
