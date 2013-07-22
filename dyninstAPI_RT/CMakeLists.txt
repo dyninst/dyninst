@@ -104,12 +104,18 @@ set_target_properties (dyninstAPI_RT_static
                       VERSION ${LIBVERSION})
 
 message(STATUS "dyninstAPI RT library SOVERSION: ${SOVERSION}")
+message(STATUS "dyninstAPI RT library LIBVERSION: ${LIBVERSION}")
+
+get_property(dyninstAPI_RT_location TARGET dyninstAPI_RT PROPERTY LOCATION)
+message(STATUS "dyninstAPI output location: ${dyninstAPI_RT_location}")
+
 FILE (GLOB headers "h/*.h")
 # append, you fool!
 set_target_properties (dyninstAPI_RT PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS dyninstAPI_RT dyninstAPI_RT_static
         EXPORT DyninstTargets
+        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
