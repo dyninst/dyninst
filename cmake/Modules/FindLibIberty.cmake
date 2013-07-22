@@ -4,7 +4,7 @@
 # It sets the following variables:
 #  IBERTY_LIBRARY     - The JSON-C library to link against.
 
-FIND_LIBRARY( IBERTY_LIBRARY NAMES iberty )
+FIND_LIBRARY( IBERTY_LIBRARY NAMES iberty.so )
 
 IF (IBERTY_LIBRARY)
 

@@ -83,29 +83,37 @@ endif()
 add_library (dyninstAPI_RT SHARED ${SRC_LIST})
 
 if (NOT PLATFORM MATCHES nt AND NOT PLATFORM MATCHES windows)
-    target_link_libraries (dyninstAPI_RT dl)
+    target_link_libraries (dyninstAPI_RT ${CMAKE_DL_LIBS})
 else() # windows
     target_link_libraries (dyninstAPI_RT ws2_32 dbghelp psapi)
 endif()
 
 add_library (dyninstAPI_RT_static STATIC ${SRC_LIST})
 
-set_target_properties (dyninstAPI_RT
+# this should carry over from CMakeLists.txt
+set_target_properties (dyninstAPI_RT dyninstAPI_RT_static
                       PROPERTIES
                       SOVERSION ${SOVERSION}
                       VERSION ${LIBVERSION})
 
+# this will not
 set_target_properties (dyninstAPI_RT_static
                       PROPERTIES
-                      OUTPUT_NAME dyninstAPI_RT
-                      SOVERSION ${SOVERSION}
-                      VERSION ${LIBVERSION})
+                      OUTPUT_NAME dyninstAPI_RT)
+
+message(STATUS "dyninstAPI RT library SOVERSION: ${SOVERSION}")
+message(STATUS "dyninstAPI RT library LIBVERSION: ${LIBVERSION}")
+
+get_property(dyninstAPI_RT_location TARGET dyninstAPI_RT PROPERTY LOCATION)
+message(STATUS "dyninstAPI output location: ${dyninstAPI_RT_location}")
 
 FILE (GLOB headers "h/*.h")
-set_target_properties (dyninstAPI_RT PROPERTIES PUBLIC_HEADER "${headers}")
+# append, you fool!
+set_target_properties (dyninstAPI_RT dyninstAPI_RT_static PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS dyninstAPI_RT dyninstAPI_RT_static
         EXPORT DyninstTargets
+        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
@@ -158,10 +166,10 @@ ENDIF()
 if (BUILD_RTLIB_32 MATCHES "ON")
 
 add_library (dyninstAPI_RT_m32 SHARED ${SRC_LIST_mabi})
-target_link_libraries (dyninstAPI_RT_m32 dl)
+target_link_libraries (dyninstAPI_RT_m32 ${CMAKE_DL_LIBS})
 add_library (dyninstAPI_RT_m32_static STATIC ${SRC_LIST_mabi})
 
-set_target_properties (dyninstAPI_RT_m32
+set_target_properties (dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
                       PROPERTIES
                       COMPILE_FLAGS "-m32"
                       LINK_FLAGS "-m32"
@@ -170,11 +178,11 @@ set_target_properties (dyninstAPI_RT_m32
 
 set_target_properties (dyninstAPI_RT_m32_static
                       PROPERTIES
-                      OUTPUT_NAME dyninstAPI_RT_m32
-                      COMPILE_FLAGS "-m32"
-                      LINK_FLAGS "-m32"
-                      SOVERSION ${SOVERSION}
-                      VERSION ${LIBVERSION})
+                      OUTPUT_NAME dyninstAPI_RT_m32)
+#                      COMPILE_FLAGS "-m32"
+#                      LINK_FLAGS "-m32"
+#                      SOVERSION ${SOVERSION}
+#                      VERSION ${LIBVERSION})
 
 INSTALL (TARGETS dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
         EXPORT DyninstTargets

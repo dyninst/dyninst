@@ -18,6 +18,13 @@ include (cmake/warnings.cmake)
 include (cmake/options.cmake)
 include (cmake/optimization.cmake)
 
+if(UNIX)
+if(NOT IBERTY_FOUND)
+message(STATUS "No shared libiberty, using gnu demangler")
+set(CAP_DEFINES ${CAP_DEFINES} -Dcap_gnu_demangler)
+endif()
+endif()
+
 set (BUILD_SHARED_LIBS ON)
 
 set (INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
@@ -97,7 +104,7 @@ endif()
 if(NOT ${PLATFORM} MATCHES nt)
     SET_TARGET_PROPERTIES (
         common dynElf dynDwarf instructionAPI symtabAPI symLite parseAPI
-        patchAPI pcontrol stackwalk dyninstAPI dyninstAPI_RT
+        patchAPI pcontrol stackwalk dyninstAPI
         PROPERTIES
             SOVERSION ${SOVERSION}
             VERSION ${LIBVERSION}
@@ -105,7 +112,7 @@ if(NOT ${PLATFORM} MATCHES nt)
 else()
     SET_TARGET_PROPERTIES (
         common instructionAPI symtabAPI parseAPI
-        patchAPI pcontrol stackwalk dyninstAPI dyninstAPI_RT
+        patchAPI pcontrol stackwalk dyninstAPI
         PROPERTIES
             SOVERSION ${SOVERSION}
             VERSION ${LIBVERSION}
