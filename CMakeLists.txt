@@ -97,7 +97,7 @@ endif()
 if(NOT ${PLATFORM} MATCHES nt)
     SET_TARGET_PROPERTIES (
         common dynElf dynDwarf instructionAPI symtabAPI symLite parseAPI
-        patchAPI pcontrol stackwalk dyninstAPI dyninstAPI_RT
+        patchAPI pcontrol stackwalk dyninstAPI
         PROPERTIES
             SOVERSION ${SOVERSION}
             VERSION ${LIBVERSION}
@@ -105,7 +105,7 @@ if(NOT ${PLATFORM} MATCHES nt)
 else()
     SET_TARGET_PROPERTIES (
         common instructionAPI symtabAPI parseAPI
-        patchAPI pcontrol stackwalk dyninstAPI dyninstAPI_RT
+        patchAPI pcontrol stackwalk dyninstAPI
         PROPERTIES
             SOVERSION ${SOVERSION}
             VERSION ${LIBVERSION}

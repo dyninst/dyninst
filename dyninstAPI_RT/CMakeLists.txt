@@ -91,7 +91,7 @@ endif()
 add_library (dyninstAPI_RT_static STATIC ${SRC_LIST})
 
 # this should carry over from CMakeLists.txt
-set_target_properties (dyninstAPI_RT
+set_target_properties (dyninstAPI_RT dyninstAPI_RT_static
                       PROPERTIES
                       SOVERSION ${SOVERSION}
                       VERSION ${LIBVERSION})
@@ -99,9 +99,7 @@ set_target_properties (dyninstAPI_RT
 # this will not
 set_target_properties (dyninstAPI_RT_static
                       PROPERTIES
-                      OUTPUT_NAME dyninstAPI_RT
-                      SOVERSION ${SOVERSION}
-                      VERSION ${LIBVERSION})
+                      OUTPUT_NAME dyninstAPI_RT)
 
 message(STATUS "dyninstAPI RT library SOVERSION: ${SOVERSION}")
 message(STATUS "dyninstAPI RT library LIBVERSION: ${LIBVERSION}")
@@ -111,7 +109,7 @@ message(STATUS "dyninstAPI output location: ${dyninstAPI_RT_location}")
 
 FILE (GLOB headers "h/*.h")
 # append, you fool!
-set_target_properties (dyninstAPI_RT PROPERTIES PUBLIC_HEADER "${headers}")
+set_target_properties (dyninstAPI_RT dyninstAPI_RT_static PROPERTIES PUBLIC_HEADER "${headers}")
 
 INSTALL (TARGETS dyninstAPI_RT dyninstAPI_RT_static
         EXPORT DyninstTargets
@@ -171,7 +169,7 @@ add_library (dyninstAPI_RT_m32 SHARED ${SRC_LIST_mabi})
 target_link_libraries (dyninstAPI_RT_m32 ${CMAKE_DL_LIBS})
 add_library (dyninstAPI_RT_m32_static STATIC ${SRC_LIST_mabi})
 
-set_target_properties (dyninstAPI_RT_m32
+set_target_properties (dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
                       PROPERTIES
                       COMPILE_FLAGS "-m32"
                       LINK_FLAGS "-m32"
@@ -180,11 +178,11 @@ set_target_properties (dyninstAPI_RT_m32
 
 set_target_properties (dyninstAPI_RT_m32_static
                       PROPERTIES
-                      OUTPUT_NAME dyninstAPI_RT_m32
-                      COMPILE_FLAGS "-m32"
-                      LINK_FLAGS "-m32"
-                      SOVERSION ${SOVERSION}
-                      VERSION ${LIBVERSION})
+                      OUTPUT_NAME dyninstAPI_RT_m32)
+#                      COMPILE_FLAGS "-m32"
+#                      LINK_FLAGS "-m32"
+#                      SOVERSION ${SOVERSION}
+#                      VERSION ${LIBVERSION})
 
 INSTALL (TARGETS dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
         EXPORT DyninstTargets
