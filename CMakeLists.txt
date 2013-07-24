@@ -153,8 +153,11 @@ install (TARGETS
         DESTINATION ${INSTALL_DIR})
 
 
-
 include (${DYNINST_PLATFORM}/cmake-mutators.txt)
+
+ADD_CUSTOM_TARGET(test_names.txt
+	COMMAND echo >> test_names.txt ${MUTATOR_NAME_LIST}
+	VERBATIM)
 
 if (UNIX)
 # Compiler macros
