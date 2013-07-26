@@ -1,4 +1,8 @@
-cmake_minimum_required (VERSION 2.6)
+if(UNIX)
+cmake_minimum_required (VERSION 2.8.11)
+else()
+cmake_minimum_required (VERSION 2.6.4)
+endif()
 project (Dyninst)
 
 set (DYNINST_MAJOR_VERSION 8)
@@ -17,13 +21,6 @@ include (cmake/c++11.cmake)
 include (cmake/warnings.cmake)
 include (cmake/options.cmake)
 include (cmake/optimization.cmake)
-
-if(UNIX)
-if(NOT IBERTY_FOUND)
-message(STATUS "No shared libiberty, using gnu demangler")
-set(CAP_DEFINES ${CAP_DEFINES} -Dcap_gnu_demangler)
-endif()
-endif()
 
 set (BUILD_SHARED_LIBS ON)
 
@@ -95,6 +92,13 @@ add_subdirectory (stackwalk)
 add_subdirectory (dyninstAPI)
 add_subdirectory (dyninstAPI_RT)
 
+if(UNIX)
+add_dependencies(dynDwarf libdwarf_imp)
+add_dependencies(dynElf libelf_imp)
+add_dependencies(common libiberty_imp)
+add_dependencies(libdwarf_imp libelf_imp)
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX)
     set (CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden)
     set (CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden)
@@ -157,6 +161,15 @@ configure_file(cmake/DyninstConfig.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_
 configure_file(cmake/DyninstConfigVersion.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfigVersion.cmake" @ONLY)
 configure_file(cmake/DyninstConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/DyninstConfigVersion.cmake" @ONLY)
 
+if(UNIX)
+get_filename_component(ELFDIR "${LIBELF_LIBRARIES}" PATH)
+file(GLOB LIBELF_INSTALL_FILES ${ELFDIR}/libelf.so*)
+message(STATUS "Libelf is ${LIBELF_LIBRARIES}")
+message(STATUS "Installing ${LIBELF_INSTALL_FILES} from ${ELFDIR}")
+message(STATUS "Installing ${LIBDWARF_LIBRARIES}")
+install (FILES ${LIBDWARF_LIBRARIES} ${LIBELF_INSTALL_FILES}
+	DESTINATION "${INSTALL_LIB_DIR}")
+endif()
 install (FILES
         "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfig.cmake"
         "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfigVersion.cmake"

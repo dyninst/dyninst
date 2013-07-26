@@ -106,7 +106,7 @@ add_library (common ${SRC_LIST})
 FILE (GLOB headers "h/*.h")
 set_target_properties (common PROPERTIES PUBLIC_HEADER "${headers}")
 
-if (${IBERTY_LIBRARY} MATCHES iberty.so)
+if (${IBERTY_LIBRARY} MATCHES iberty)
 target_link_libraries (common ${IBERTY_LIBRARY})
 endif()
 
