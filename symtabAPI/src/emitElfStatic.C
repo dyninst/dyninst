@@ -1843,6 +1843,13 @@ Offset emitElfStatic::allocateRelGOTSection(const std::map<Symbol *, std::pair<O
 }
 
 
+#if !defined(R_X86_64_IRELATIVE)
+#define R_X86_64_IRELATIVE 37
+#endif
+#if !defined(R_386_IRELATIVE)
+#define R_386_IRELATIVE 42
+#endif
+
 bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset, 
 			     LinkMap &lmap, StaticLinkError &err,
 			     string &errMsg) {
