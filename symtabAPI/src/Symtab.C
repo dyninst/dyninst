@@ -1812,7 +1812,6 @@ Symtab::~Symtab()
    // Only called if we fail to create a process.
    // Or delete the a.out...
 
-#if 1 
 
    for (unsigned i = 0; i < regions_.size(); i++) 
    {
@@ -1894,7 +1893,10 @@ Symtab::~Symtab()
 
    //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
    if (mf) MappedFile::closeMappedFile(mf);
-#endif
+
+   // Delete line information
+   delete lineInfo;
+
 }	
 
 #if !defined(SERIALIZATION_DISABLED)
@@ -2296,8 +2298,7 @@ bool Symtab::addRegion(Region *sec)
 
 void Symtab::parseLineInformation()
 {
-   dyn_hash_map<std::string, LineInformation> *lineInfo = new dyn_hash_map <std::string, LineInformation>;
-
+   lineInfo = new dyn_hash_map <std::string, LineInformation>;
 
    Object *linkedFile = getObject();
 	if (!linkedFile)
