@@ -80,6 +80,13 @@ include_directories (${PATH_BGQ})
 endif()
 endif()
 
+
+# UPDATE this for newer versions of Boost if you're using
+# an older CMake and it complains that it can't find Boost
+set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
+			      "1.50" "1.50.0" "1.51" "1.51.0" "1.52" "1.52.0"
+			      "1.53" "1.53.0" "1.54" "1.54.0")
+
 set (PATH_BOOST "/usr" CACHE STRING "Path to boost")
 if (NOT (PATH_BOOST STREQUAL ""))
   set (CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${PATH_BOOST}/lib ${PATH_BOOST}/lib64)
