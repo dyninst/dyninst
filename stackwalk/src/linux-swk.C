@@ -73,7 +73,6 @@ using namespace Dyninst::Stackwalker;
 // if porting to some linux-like platform that doesn't support 
 // them.
 #include <sys/ptrace.h>
-#include <linux/ptrace.h>
 typedef enum __ptrace_request pt_req;
 #define cap_ptrace_traceclone
 #define cap_ptrace_setoptions
