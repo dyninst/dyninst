@@ -34,7 +34,8 @@ set (SRC_LIST ${SRC_LIST}
     src/RTheap.c 
     src/RTheap-win.c
     src/RTwinnt.c
-	src/RTthread.c
+    src/RTthread.c
+    src/RTthread-x86.c
 )
 endif ()
 
@@ -59,6 +60,7 @@ set (SRC_LIST_ppc64
     src/RTstatic_ctors_dtors-ppc64.c                                                                                         
 )
 
+
 # We use gcc to compile the various assembly files, but
 # cmake doesn't default to knowing that gcc can
 # handle .S. 
@@ -67,6 +69,8 @@ set_source_files_properties(${SRC_ASSEMBLY}
         PROPERTIES
         LANGUAGE C)
 
+# The arch-specific files other than RTthread-x86 are Unix-only.
+if(UNIX)
 if (PLATFORM MATCHES amd64 OR PLATFORM MATCHES x86_64)
 set (SRC_LIST_mabi ${SRC_LIST} ${SRC_LIST_i386})
 set (SRC_LIST ${SRC_LIST} ${SRC_LIST_x86_64})
@@ -78,7 +82,7 @@ set (SRC_LIST ${SRC_LIST} ${SRC_LIST_i386})
 elseif (PLATFORM MATCHES ppc32)
 set (SRC_LIST ${SRC_LIST} ${SRC_LIST_ppc32})
 endif()
-
+endif()
 
 add_library (dyninstAPI_RT SHARED ${SRC_LIST})
 

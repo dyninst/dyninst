@@ -217,9 +217,10 @@ inline int P_unlink(const char *pathname) {
 	return _unlink(pathname);
 }
 extern char *cplus_demangle(char *, int, bool );
-inline char * COMMON_EXPORT P_cplus_demangle( const char * symbol, bool /* nativeCompiler */, bool includeTypes = false ) {
+/* We can't export this, it's inline. */
+inline char * P_cplus_demangle( const char * symbol, bool /* nativeCompiler */, bool includeTypes = false ) {
    return cplus_demangle( (char *)symbol, 0, includeTypes );
-   } /* end COMMON_EXPORT P_cplus_demangle() */
+   }
 
 #ifndef BPATCH_LIBRARY
 #if defined(PARADYND)

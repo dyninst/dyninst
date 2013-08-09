@@ -49,15 +49,15 @@ class PATCHAPI_EXPORT PatchObject {
   friend class PatchParseCallback;
 
   public:
-    PATCHAPI_EXPORT static PatchObject* create(ParseAPI::CodeObject* co, Address base,
+    static PatchObject* create(ParseAPI::CodeObject* co, Address base,
                                                CFGMaker* cm = NULL,
                                                PatchCallback *cb = NULL);
 
-    PATCHAPI_EXPORT static PatchObject* clone(PatchObject* par_obj, Address base,
+    static PatchObject* clone(PatchObject* par_obj, Address base,
                                                CFGMaker* cm = NULL,
                                                PatchCallback *cb = NULL);
 
-    PATCHAPI_EXPORT virtual ~PatchObject();
+    virtual ~PatchObject();
 
     typedef std::vector<PatchFunction *> funclist;
     typedef std::map<const ParseAPI::Function*, PatchFunction*> FuncMap;
@@ -77,31 +77,31 @@ class PATCHAPI_EXPORT PatchObject {
     PatchMgrPtr mgr() const;
 
     // Function
-    PATCHAPI_EXPORT PatchFunction *getFunc(ParseAPI::Function *, bool create = true);
-    PATCHAPI_EXPORT void addFunc(PatchFunction*);
-    PATCHAPI_EXPORT void removeFunc(PatchFunction*);
-    PATCHAPI_EXPORT void removeFunc(ParseAPI::Function *);
+    PatchFunction *getFunc(ParseAPI::Function *, bool create = true);
+    void addFunc(PatchFunction*);
+    void removeFunc(PatchFunction*);
+    void removeFunc(ParseAPI::Function *);
     template <class Iter> 
 	void funcs(Iter iter); 
     // Block
-    PATCHAPI_EXPORT PatchBlock *getBlock(ParseAPI::Block*, bool create = true);
-    PATCHAPI_EXPORT void addBlock(PatchBlock*);
-    PATCHAPI_EXPORT void removeBlock(PatchBlock*);
-    PATCHAPI_EXPORT void removeBlock(ParseAPI::Block*);
+    PatchBlock *getBlock(ParseAPI::Block*, bool create = true);
+    void addBlock(PatchBlock*);
+    void removeBlock(PatchBlock*);
+    void removeBlock(ParseAPI::Block*);
     template <class Iter>
      void blocks(Iter iter); 
 
     // Edge
-    PATCHAPI_EXPORT PatchEdge *getEdge(ParseAPI::Edge*, PatchBlock* = NULL, PatchBlock* = NULL, bool create = true);
-    PATCHAPI_EXPORT void addEdge(PatchEdge*);
-    PATCHAPI_EXPORT void removeEdge(PatchEdge*);
-    PATCHAPI_EXPORT void removeEdge(ParseAPI::Edge*);
+    PatchEdge *getEdge(ParseAPI::Edge*, PatchBlock* = NULL, PatchBlock* = NULL, bool create = true);
+    void addEdge(PatchEdge*);
+    void removeEdge(PatchEdge*);
+    void removeEdge(ParseAPI::Edge*);
     template <class Iter>
       void edges(Iter iter); 
 
-    PATCHAPI_EXPORT PatchCallback *cb() const { return cb_; }
+    PatchCallback *cb() const { return cb_; }
 
-    PATCHAPI_EXPORT bool consistency(const AddrSpace *as) const;
+    bool consistency(const AddrSpace *as) const;
 
 
   protected:
@@ -113,10 +113,10 @@ class PATCHAPI_EXPORT PatchObject {
     EdgeMap edges_;
     CFGMaker* cfg_maker_;
 
-    PATCHAPI_EXPORT PatchObject(ParseAPI::CodeObject* o, Address a, CFGMaker* cm, PatchCallback *cb = NULL);
-    PATCHAPI_EXPORT PatchObject(const PatchObject* par_obj, Address a, CFGMaker* cm, PatchCallback *cb = NULL);
-    PATCHAPI_EXPORT void copyCFG(PatchObject* par_obj);
-    PATCHAPI_EXPORT bool splitBlock(PatchBlock *first, ParseAPI::Block *second);
+    PatchObject(ParseAPI::CodeObject* o, Address a, CFGMaker* cm, PatchCallback *cb = NULL);
+    PatchObject(const PatchObject* par_obj, Address a, CFGMaker* cm, PatchCallback *cb = NULL);
+    void copyCFG(PatchObject* par_obj);
+    bool splitBlock(PatchBlock *first, ParseAPI::Block *second);
 
     void createFuncs();
     void createBlocks();

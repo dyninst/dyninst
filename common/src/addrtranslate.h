@@ -61,29 +61,29 @@ class COMMON_EXPORT LoadedLib {
    void *up_ptr;
 
  public:
-   COMMON_EXPORT LoadedLib(string name, Address load_addr);
-   COMMON_EXPORT virtual ~LoadedLib();
-   COMMON_EXPORT void add_mapped_region(Address addr, unsigned long size);
+    LoadedLib(string name, Address load_addr);
+    virtual ~LoadedLib();
+    void add_mapped_region(Address addr, unsigned long size);
    
-   COMMON_EXPORT string getName() const;
-   COMMON_EXPORT void setDataLoadAddr(Address a);
-   COMMON_EXPORT vector< pair<Address, unsigned long> > *getMappedRegions();
+    string getName() const;
+    void setDataLoadAddr(Address a);
+    vector< pair<Address, unsigned long> > *getMappedRegions();
 
-   COMMON_EXPORT virtual Address offToAddress(Offset off);
-   COMMON_EXPORT virtual Offset addrToOffset(Address addr);
+    virtual Address offToAddress(Offset off);
+    virtual Offset addrToOffset(Address addr);
 
-   COMMON_EXPORT virtual Address getCodeLoadAddr() const;
-   COMMON_EXPORT virtual Address getDataLoadAddr() const;
-   COMMON_EXPORT virtual Address getDynamicAddr() const;
-   COMMON_EXPORT virtual void getOutputs(string &filename, Address &code, Address &data);
+    virtual Address getCodeLoadAddr() const;
+    virtual Address getDataLoadAddr() const;
+    virtual Address getDynamicAddr() const;
+    virtual void getOutputs(string &filename, Address &code, Address &data);
 
-   COMMON_EXPORT void* getUpPtr();
-   COMMON_EXPORT void setUpPtr(void *v);
+    void* getUpPtr();
+    void setUpPtr(void *v);
 
-   COMMON_EXPORT void setShouldClean(bool b);
-   COMMON_EXPORT bool shouldClean();
+    void setShouldClean(bool b);
+    bool shouldClean();
 
-   COMMON_EXPORT void setFactory(SymbolReaderFactory *factory);
+    void setFactory(SymbolReaderFactory *factory);
 };
 
 struct LoadedLibCmp
@@ -110,31 +110,31 @@ class COMMON_EXPORT AddressTranslate {
    bool read_abort;
  public:
 
-   COMMON_EXPORT static AddressTranslate *createAddressTranslator(PID pid_,
+    static AddressTranslate *createAddressTranslator(PID pid_,
                                          ProcessReader *reader_ = NULL,
                                          SymbolReaderFactory *symfactory_ = NULL,
                                          PROC_HANDLE phand = INVALID_HANDLE_VALUE,
                                          std::string exename = std::string(""),
                                          Address interp_base = (Address) -1);
-   COMMON_EXPORT static AddressTranslate *createAddressTranslator(ProcessReader *reader_ = NULL,
+    static AddressTranslate *createAddressTranslator(ProcessReader *reader_ = NULL,
                                          SymbolReaderFactory *symfactory_ = NULL,
                                          std::string exename = std::string(""),
                                          Address interp_base = (Address) -1);
    
-   COMMON_EXPORT virtual bool refresh() = 0;
-   COMMON_EXPORT virtual ~AddressTranslate();
+    virtual bool refresh() = 0;
+    virtual ~AddressTranslate();
   
-   COMMON_EXPORT PID getPid();
-   COMMON_EXPORT bool getLibAtAddress(Address addr, LoadedLib* &lib);
-   COMMON_EXPORT bool getLibs(vector<LoadedLib *> &libs_);
-   COMMON_EXPORT bool getArchLibs(vector<LoadedLib *> &olibs);
-   COMMON_EXPORT LoadedLib *getLoadedLib(std::string name);
-   COMMON_EXPORT LoadedLib *getLoadedLib(SymReader *sym);
-   COMMON_EXPORT LoadedLib *getExecutable();
+    PID getPid();
+    bool getLibAtAddress(Address addr, LoadedLib* &lib);
+    bool getLibs(vector<LoadedLib *> &libs_);
+    bool getArchLibs(vector<LoadedLib *> &olibs);
+    LoadedLib *getLoadedLib(std::string name);
+    LoadedLib *getLoadedLib(SymReader *sym);
+    LoadedLib *getExecutable();
 
-   COMMON_EXPORT virtual Address getLibraryTrapAddrSysV();
+    virtual Address getLibraryTrapAddrSysV();
    
-   COMMON_EXPORT void setReadAbort(bool b);
+    void setReadAbort(bool b);
 };
 
 }

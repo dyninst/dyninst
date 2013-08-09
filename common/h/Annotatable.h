@@ -74,9 +74,6 @@ class COMMON_EXPORT AnnotationClassBase
    private:
       static std::vector<AnnotationClassBase *> *annotation_types;
       static dyn_hash_map<std::string, AnnotationClassID> *annotation_ids_by_name;
-#if 0
-	  COMMON_EXPORT static void clearAnnotationIDMap();
-#endif
       anno_cmp_func_t cmp_func;
       AnnotationClassID id;
       std::string name;
@@ -85,23 +82,23 @@ class COMMON_EXPORT AnnotationClassBase
 
 	  ser_func_t serialize_func;
 
-     COMMON_EXPORT AnnotationClassBase(std::string n, 
+     AnnotationClassBase(std::string n, 
                                        anno_cmp_func_t cmp_func_ = NULL, 
                                        ser_func_t sf_ = NULL);
 
-	  COMMON_EXPORT virtual ~AnnotationClassBase(); 
+     virtual ~AnnotationClassBase(); 
 
    public:
 
-      COMMON_EXPORT static AnnotationClassBase *findAnnotationClass(unsigned int id);
-      COMMON_EXPORT static void dumpAnnotationClasses();
+       static AnnotationClassBase *findAnnotationClass(unsigned int id);
+       static void dumpAnnotationClasses();
 
-      COMMON_EXPORT AnnotationClassID getID() { return id; }
-      COMMON_EXPORT std::string &getName() {return name;}
-      COMMON_EXPORT anno_cmp_func_t getCmpFunc() {return cmp_func;}
-	  COMMON_EXPORT ser_func_t getSerializeFunc() {return serialize_func;}
-	  COMMON_EXPORT virtual const char *getTypeName() = 0;
-	  COMMON_EXPORT virtual void *allocate() = 0;
+       AnnotationClassID getID() { return id; }
+       std::string &getName() {return name;}
+       anno_cmp_func_t getCmpFunc() {return cmp_func;}
+	   ser_func_t getSerializeFunc() {return serialize_func;}
+	   virtual const char *getTypeName() = 0;
+	   virtual void *allocate() = 0;
 };
 
 template <class T> 
@@ -188,7 +185,7 @@ COMMON_EXPORT bool serialize_post_annotation(void *, void *, SerializerBase *, A
 
 class COMMON_EXPORT AnnotatableDense
 {
-	friend COMMON_EXPORT bool add_annotations(SerializerBase *, AnnotatableDense *, std::vector<ser_rec_t> &);
+	friend  bool COMMON_EXPORT add_annotations(SerializerBase *, AnnotatableDense *, std::vector<ser_rec_t> &);
 	friend class SerializerBase;
 	friend class Serializable;
 	typedef void *anno_list_t;
@@ -485,7 +482,7 @@ class COMMON_EXPORT AnnotatableSparse
 {
 	friend class SerializerBase;
 	friend class Serializable;
-	friend COMMON_EXPORT bool add_annotations(SerializerBase *, 
+	friend  bool COMMON_EXPORT add_annotations(SerializerBase *, 
 			AnnotatableSparse *, std::vector<ser_rec_t> &);
 
    public:

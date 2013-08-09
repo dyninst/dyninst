@@ -55,32 +55,32 @@ class PATCHAPI_EXPORT PatchEdge {
    friend class PatchParseCallback;
 
   public:
-   PATCHAPI_EXPORT static PatchEdge *create(ParseAPI::Edge *,
+   static PatchEdge *create(ParseAPI::Edge *,
                                             PatchBlock *src,
                                             PatchBlock *trg);
-   PATCHAPI_EXPORT PatchEdge(ParseAPI::Edge *internalEdge,
+   PatchEdge(ParseAPI::Edge *internalEdge,
              PatchBlock *source,
              PatchBlock *target);
-   PATCHAPI_EXPORT PatchEdge(const PatchEdge *parent,
+   PatchEdge(const PatchEdge *parent,
              PatchBlock *child_src,
              PatchBlock *child_trg);
-   PATCHAPI_EXPORT virtual ~PatchEdge();
+   virtual ~PatchEdge();
 
    // Getters
-   PATCHAPI_EXPORT ParseAPI::Edge *edge() const;
-   PATCHAPI_EXPORT PatchBlock *src();
-   PATCHAPI_EXPORT PatchBlock *trg();
-   PATCHAPI_EXPORT ParseAPI::EdgeTypeEnum type() const;
-   PATCHAPI_EXPORT bool sinkEdge() const;
-   PATCHAPI_EXPORT bool interproc() const;
-   PATCHAPI_EXPORT bool intraproc() const { return !interproc(); }
+   ParseAPI::Edge *edge() const;
+   PatchBlock *src();
+   PatchBlock *trg();
+   ParseAPI::EdgeTypeEnum type() const;
+   bool sinkEdge() const;
+   bool interproc() const;
+   bool intraproc() const { return !interproc(); }
 
-   PATCHAPI_EXPORT void remove(Point *);
-   PATCHAPI_EXPORT PatchCallback *cb() const;
+   void remove(Point *);
+   PatchCallback *cb() const;
 
-   PATCHAPI_EXPORT bool consistency() const;
+   bool consistency() const;
 
-   PATCHAPI_EXPORT std::string format() const;
+   std::string format() const;
 
  protected:
     ParseAPI::Edge *edge_;
@@ -100,51 +100,51 @@ class PATCHAPI_EXPORT PatchBlock {
    typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns;
     typedef std::vector<PatchEdge*> edgelist;
 
-    PATCHAPI_EXPORT static PatchBlock *create(ParseAPI::Block *, PatchFunction *);
-    PATCHAPI_EXPORT PatchBlock(const PatchBlock *parblk, PatchObject *child);
-    PATCHAPI_EXPORT PatchBlock(ParseAPI::Block *block, PatchObject *obj);
-    PATCHAPI_EXPORT virtual ~PatchBlock();
+    static PatchBlock *create(ParseAPI::Block *, PatchFunction *);
+    PatchBlock(const PatchBlock *parblk, PatchObject *child);
+    PatchBlock(ParseAPI::Block *block, PatchObject *obj);
+    virtual ~PatchBlock();
 
     // Getters
-    PATCHAPI_EXPORT Address start() const;
-    PATCHAPI_EXPORT Address end() const;
-    PATCHAPI_EXPORT Address last() const;
-    PATCHAPI_EXPORT Address size() const;
+    Address start() const;
+    Address end() const;
+    Address last() const;
+    Address size() const;
 
-    PATCHAPI_EXPORT PatchFunction* getFunction(ParseAPI::Function*);
-    PATCHAPI_EXPORT bool isShared();
-    PATCHAPI_EXPORT int containingFuncs() const;
-    PATCHAPI_EXPORT void getInsns(Insns &insns) const;
-    PATCHAPI_EXPORT InstructionAPI::Instruction::Ptr getInsn(Address a) const;
-    PATCHAPI_EXPORT std::string disassemble() const;
-    PATCHAPI_EXPORT bool containsCall() const { return 0 < numCallEdges(); };
-    PATCHAPI_EXPORT bool containsDynamicCall();
-    PATCHAPI_EXPORT std::string format() const;
-    PATCHAPI_EXPORT std::string long_format() const;
-    PATCHAPI_EXPORT PatchFunction* getCallee();
+    PatchFunction* getFunction(ParseAPI::Function*);
+    bool isShared();
+    int containingFuncs() const;
+    void getInsns(Insns &insns) const;
+    InstructionAPI::Instruction::Ptr getInsn(Address a) const;
+    std::string disassemble() const;
+    bool containsCall() const { return 0 < numCallEdges(); };
+    bool containsDynamicCall();
+    std::string format() const;
+    std::string long_format() const;
+    PatchFunction* getCallee();
 
-    PATCHAPI_EXPORT ParseAPI::Block *block() const;
-    PATCHAPI_EXPORT PatchObject* object() const;
-    PATCHAPI_EXPORT PatchObject *obj() const { return object(); }
-    PATCHAPI_EXPORT const edgelist &sources();
-    PATCHAPI_EXPORT const edgelist &targets();
+    ParseAPI::Block *block() const;
+    PatchObject* object() const;
+    PatchObject *obj() const { return object(); }
+    const edgelist &sources();
+    const edgelist &targets();
     
-    PATCHAPI_EXPORT PatchEdge *findSource(ParseAPI::EdgeTypeEnum type);
-    PATCHAPI_EXPORT PatchEdge *findTarget(ParseAPI::EdgeTypeEnum type);
+    PatchEdge *findSource(ParseAPI::EdgeTypeEnum type);
+    PatchEdge *findTarget(ParseAPI::EdgeTypeEnum type);
 
     template <class OutputIterator> 
     void getFuncs(OutputIterator result);
 
-    PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);
+    Point *findPoint(Location loc, Point::Type type, bool create = true);
 
-   PATCHAPI_EXPORT void remove(Point *);
-   PATCHAPI_EXPORT PatchCallback *cb() const;
+   void remove(Point *);
+   PatchCallback *cb() const;
 
-   PATCHAPI_EXPORT bool consistency() const;
+   bool consistency() const;
 
-   PATCHAPI_EXPORT bool wasUserAdded() const;
+   bool wasUserAdded() const;
 
-   PATCHAPI_EXPORT virtual void markModified()  {};
+   virtual void markModified()  {};
 
   protected:
     typedef enum {
@@ -191,23 +191,23 @@ class PATCHAPI_EXPORT PatchFunction {
      };
      typedef std::set<PatchBlock *, compare> Blockset;
 
-     PATCHAPI_EXPORT static PatchFunction *create(ParseAPI::Function *, PatchObject*);
-     PATCHAPI_EXPORT PatchFunction(ParseAPI::Function *f, PatchObject* o);
-     PATCHAPI_EXPORT PatchFunction(const PatchFunction* parFunc, PatchObject* child);
-     PATCHAPI_EXPORT virtual ~PatchFunction();
+     static PatchFunction *create(ParseAPI::Function *, PatchObject*);
+     PatchFunction(ParseAPI::Function *f, PatchObject* o);
+     PatchFunction(const PatchFunction* parFunc, PatchObject* child);
+     virtual ~PatchFunction();
 
      const string &name() const { return func_->name(); }
      Address addr() const { return addr_;  }
      ParseAPI::Function *function() const { return func_; }
-     PATCHAPI_EXPORT PatchObject *obj() const { return obj_; }
+     PatchObject *obj() const { return obj_; }
 
-     PATCHAPI_EXPORT PatchBlock *entry();
-     PATCHAPI_EXPORT const Blockset &blocks();
-     PATCHAPI_EXPORT const Blockset &callBlocks();
-     //PATCHAPI_EXPORT const Blockset &returnBlocks();
-     PATCHAPI_EXPORT const Blockset &exitBlocks();
+     PatchBlock *entry();
+     const Blockset &blocks();
+     const Blockset &callBlocks();
+     //const Blockset &returnBlocks();
+     const Blockset &exitBlocks();
 
-     PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);
+     Point *findPoint(Location loc, Point::Type type, bool create = true);
 
      // Moved to source code because we treat non-returning calls as exits
      bool verifyExit(PatchBlock *block) { return exitBlocks().find(block) != exitBlocks().end(); }
@@ -224,16 +224,16 @@ class PATCHAPI_EXPORT PatchFunction {
      }
 
      // Fast access to a range of instruction points
-     PATCHAPI_EXPORT bool findInsnPoints(Point::Type type, PatchBlock *block,
+     bool findInsnPoints(Point::Type type, PatchBlock *block,
                                          InsnPoints::const_iterator &start,
                                          InsnPoints::const_iterator &end);
 
-   PATCHAPI_EXPORT void remove(Point *);
-   PATCHAPI_EXPORT PatchCallback *cb() const;
+   void remove(Point *);
+   PatchCallback *cb() const;
 
-   PATCHAPI_EXPORT bool consistency() const;
+   bool consistency() const;
 
-   PATCHAPI_EXPORT virtual void markModified() {};
+   virtual void markModified() {};
 
    protected:
      // For callbacks from ParseAPI to PatchAPI

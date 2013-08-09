@@ -45,40 +45,40 @@ namespace SymtabAPI{
 class SYMTAB_EXPORT LineInformation : public AnnotationContainer<Statement>, 
                         private RangeLookup< Statement, Statement::StatementLess > 
 {
-	SYMTAB_EXPORT bool addItem_impl(Statement);
-	SYMTAB_EXPORT Serializable *ac_serialize_impl(SerializerBase *, const char * = "lineInformation") THROW_SPEC (SerializerError);
+	bool addItem_impl(Statement);
+	Serializable *ac_serialize_impl(SerializerBase *, const char * = "lineInformation") THROW_SPEC (SerializerError);
    public:
       typedef RangeLookup< Statement, Statement::StatementLess >::const_iterator const_iterator;
       typedef RangeLookup< Statement, Statement::StatementLess >::AddressRange AddressRange;
 
-      SYMTAB_EXPORT LineInformation();
+      LineInformation();
 
       /* You MAY freely deallocate the lineSource strings you pass in. */
-      SYMTAB_EXPORT bool addLine( const char * lineSource, 
+      bool addLine( const char * lineSource, 
             unsigned int lineNo, 
             unsigned int lineOffset, 
             Offset lowInclusiveAddr, 
             Offset highExclusiveAddr );
 
-      SYMTAB_EXPORT void addLineInfo(LineInformation *lineInfo);	      
+      void addLineInfo(LineInformation *lineInfo);	      
 
-      SYMTAB_EXPORT bool addAddressRange( Offset lowInclusiveAddr, 
+      bool addAddressRange( Offset lowInclusiveAddr, 
             Offset highExclusiveAddr, 
             const char * lineSource, 
             unsigned int lineNo, 
             unsigned int lineOffset = 0 );
 
       /* You MUST NOT deallocate the strings returned. */
-      SYMTAB_EXPORT bool getSourceLines( Offset addressInRange, std::vector< Statement *> & lines );
-      SYMTAB_EXPORT bool getSourceLines( Offset addressInRange, std::vector< LineNoTuple > & lines);
+      bool getSourceLines( Offset addressInRange, std::vector< Statement *> & lines );
+      bool getSourceLines( Offset addressInRange, std::vector< LineNoTuple > & lines);
 
-      SYMTAB_EXPORT bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
+      bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
 
-      SYMTAB_EXPORT const_iterator begin() const;
-      SYMTAB_EXPORT const_iterator end() const;
-      SYMTAB_EXPORT unsigned getSize() const;
+      const_iterator begin() const;
+      const_iterator end() const;
+      unsigned getSize() const;
 
-      SYMTAB_EXPORT ~LineInformation();
+      ~LineInformation();
 
    protected:
       /* We maintain internal copies of all the source file names.  Because

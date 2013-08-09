@@ -92,27 +92,27 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    /***** Public Member Functions *****/
    public:
-   SYMTAB_EXPORT static void version(int& major, int& minor, int& maintenance);
-   SYMTAB_EXPORT Symtab(MappedFile *);
+   static void version(int& major, int& minor, int& maintenance);
+   Symtab(MappedFile *);
 
-   SYMTAB_EXPORT Symtab();
+   Symtab();
 
-   SYMTAB_EXPORT Symtab(const Symtab& obj);
-   SYMTAB_EXPORT Symtab(unsigned char *mem_image, size_t image_size, 
+   Symtab(const Symtab& obj);
+   Symtab(unsigned char *mem_image, size_t image_size, 
                         const std::string &name, bool defensive_binary, bool &err);
 
    typedef enum {
       NotDefensive,
       Defensive} def_t; 
 
-   SYMTAB_EXPORT static bool openFile(Symtab *&obj, std::string filename, 
+   static bool openFile(Symtab *&obj, std::string filename, 
                                       def_t defensive_binary = NotDefensive);
-   SYMTAB_EXPORT static bool openFile(Symtab *&obj, void *mem_image, size_t size, 
+   static bool openFile(Symtab *&obj, void *mem_image, size_t size, 
                                       std::string name, def_t defensive_binary = NotDefensive);
-   SYMTAB_EXPORT static Symtab *findOpenSymtab(std::string filename);
-   SYMTAB_EXPORT static bool closeSymtab(Symtab *);
+   static Symtab *findOpenSymtab(std::string filename);
+   static bool closeSymtab(Symtab *);
 
-   SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
+   Serializable * serialize_impl(SerializerBase *sb, 
 		   const char *tag = "Symtab") THROW_SPEC (SerializerError);
    void rebuild_symbol_hashes(SerializerBase *);
    void rebuild_funcvar_hashes(SerializerBase *);
@@ -121,14 +121,14 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    static bool setup_module_up_ptrs(SerializerBase *,Symtab *st);
    static bool fixup_relocation_symbols(SerializerBase *,Symtab *st);
 
-   SYMTAB_EXPORT bool exportXML(std::string filename);
-   SYMTAB_EXPORT bool exportBin(std::string filename);
+   bool exportXML(std::string filename);
+   bool exportBin(std::string filename);
    static Symtab *importBin(std::string filename);
-   SYMTAB_EXPORT bool getRegValueAtFrame(Address pc, 
+   bool getRegValueAtFrame(Address pc, 
                                      Dyninst::MachRegister reg, 
                                      Dyninst::MachRegisterVal &reg_result,
                                      MemRegReader *reader);
-   SYMTAB_EXPORT bool hasStackwalkDebugInfo();
+   bool hasStackwalkDebugInfo();
 
    /**************************************
     *** LOOKUP FUNCTIONS *****************
@@ -136,7 +136,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    // Symbol
 
-   SYMTAB_EXPORT virtual bool findSymbol(std::vector<Symbol *> &ret, 
+   virtual bool findSymbol(std::vector<Symbol *> &ret, 
                                          const std::string& name,
                                          Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
                                          NameType nameType = anyName,
@@ -144,218 +144,218 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
                                          bool checkCase = false,
                                          bool includeUndefined = false);
 
-   SYMTAB_EXPORT virtual bool getAllSymbols(std::vector<Symbol *> &ret);
-   SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
+   virtual bool getAllSymbols(std::vector<Symbol *> &ret);
+   virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
 
    std::vector<Symbol *> *findSymbolByOffset(Offset);
 
    // Return all undefined symbols in the binary. Currently used for finding
    // the .o's in a static archive that have definitions of these symbols
-   SYMTAB_EXPORT bool getAllUndefinedSymbols(std::vector<Symbol *> &ret);
+   bool getAllUndefinedSymbols(std::vector<Symbol *> &ret);
 
    // Inversely, return all non-undefined symbols in the binary
-   SYMTAB_EXPORT bool getAllDefinedSymbols(std::vector<Symbol *> &ret);
+   bool getAllDefinedSymbols(std::vector<Symbol *> &ret);
 
    // Function
 
-   SYMTAB_EXPORT bool findFuncByEntryOffset(Function *&ret, const Offset offset);
-   SYMTAB_EXPORT bool findFunctionsByName(std::vector<Function *> &ret, const std::string name,
+   bool findFuncByEntryOffset(Function *&ret, const Offset offset);
+   bool findFunctionsByName(std::vector<Function *> &ret, const std::string name,
                                           NameType nameType = anyName, 
                                           bool isRegex = false,
                                           bool checkCase = true);
-   SYMTAB_EXPORT bool getAllFunctions(std::vector<Function *>&ret);
+   bool getAllFunctions(std::vector<Function *>&ret);
 
    //Searches for functions without returning inlined instances
-   SYMTAB_EXPORT bool getContainingFunction(Offset offset, Function* &func);
+   bool getContainingFunction(Offset offset, Function* &func);
    //Searches for functions and returns inlined instances
-   SYMTAB_EXPORT bool getContainingInlinedFunction(Offset offset, FunctionBase* &func);
+   bool getContainingInlinedFunction(Offset offset, FunctionBase* &func);
 
    // Variable
-   SYMTAB_EXPORT bool findVariableByOffset(Variable *&ret, const Offset offset);
-   SYMTAB_EXPORT bool findVariablesByName(std::vector<Variable *> &ret, const std::string name,
+   bool findVariableByOffset(Variable *&ret, const Offset offset);
+   bool findVariablesByName(std::vector<Variable *> &ret, const std::string name,
                                           NameType nameType = anyName, 
                                           bool isRegex = false, 
                                           bool checkCase = true);
-   SYMTAB_EXPORT bool getAllVariables(std::vector<Variable *> &ret);
+   bool getAllVariables(std::vector<Variable *> &ret);
 
    // Module
 
-   SYMTAB_EXPORT bool getAllModules(std::vector<Module *>&ret);
-   SYMTAB_EXPORT bool findModuleByOffset(Module *&ret, Offset off);
-   SYMTAB_EXPORT bool findModuleByName(Module *&ret, const std::string name);
-   SYMTAB_EXPORT Module *getDefaultModule();
+   bool getAllModules(std::vector<Module *>&ret);
+   bool findModuleByOffset(Module *&ret, Offset off);
+   bool findModuleByName(Module *&ret, const std::string name);
+   Module *getDefaultModule();
 
    // Region
 
-   SYMTAB_EXPORT bool getCodeRegions(std::vector<Region *>&ret);
-   SYMTAB_EXPORT bool getDataRegions(std::vector<Region *>&ret);
-   SYMTAB_EXPORT bool getAllRegions(std::vector<Region *>&ret);
-   SYMTAB_EXPORT bool getAllNewRegions(std::vector<Region *>&ret);
+   bool getCodeRegions(std::vector<Region *>&ret);
+   bool getDataRegions(std::vector<Region *>&ret);
+   bool getAllRegions(std::vector<Region *>&ret);
+   bool getAllNewRegions(std::vector<Region *>&ret);
    //  change me to use a hash
-   SYMTAB_EXPORT bool findRegion(Region *&ret, std::string regname);
-   SYMTAB_EXPORT bool findRegion(Region *&ret, const Offset addr, const unsigned long size);
-   SYMTAB_EXPORT bool findRegionByEntry(Region *&ret, const Offset offset);
-   SYMTAB_EXPORT Region *findEnclosingRegion(const Offset offset);
+   bool findRegion(Region *&ret, std::string regname);
+   bool findRegion(Region *&ret, const Offset addr, const unsigned long size);
+   bool findRegionByEntry(Region *&ret, const Offset offset);
+   Region *findEnclosingRegion(const Offset offset);
 
    // Exceptions
-   SYMTAB_EXPORT bool findException(ExceptionBlock &excp,Offset addr);
-   SYMTAB_EXPORT bool getAllExceptions(std::vector<ExceptionBlock *> &exceptions);
-   SYMTAB_EXPORT bool findCatchBlock(ExceptionBlock &excp, Offset addr, 
+   bool findException(ExceptionBlock &excp,Offset addr);
+   bool getAllExceptions(std::vector<ExceptionBlock *> &exceptions);
+   bool findCatchBlock(ExceptionBlock &excp, Offset addr, 
          unsigned size = 0);
 
    // Relocation entries
-   SYMTAB_EXPORT bool getFuncBindingTable(std::vector<relocationEntry> &fbt) const;
-   SYMTAB_EXPORT bool updateFuncBindingTable(Offset stub_addr, Offset plt_addr);
+   bool getFuncBindingTable(std::vector<relocationEntry> &fbt) const;
+   bool updateFuncBindingTable(Offset stub_addr, Offset plt_addr);
 
    /**************************************
     *** SYMBOL ADDING FUNCS **************
     **************************************/
 
-   SYMTAB_EXPORT bool addSymbol(Symbol *newsym);
-   SYMTAB_EXPORT bool addSymbol(Symbol *newSym, Symbol *referringSymbol);
-   SYMTAB_EXPORT Function *createFunction(std::string name, Offset offset, size_t size, Module *mod = NULL);
-   SYMTAB_EXPORT Variable *createVariable(std::string name, Offset offset, size_t size, Module *mod = NULL);
+   bool addSymbol(Symbol *newsym);
+   bool addSymbol(Symbol *newSym, Symbol *referringSymbol);
+   Function *createFunction(std::string name, Offset offset, size_t size, Module *mod = NULL);
+   Variable *createVariable(std::string name, Offset offset, size_t size, Module *mod = NULL);
 
-   SYMTAB_EXPORT bool deleteFunction(Function *func);
-   SYMTAB_EXPORT bool deleteVariable(Variable *var);
+   bool deleteFunction(Function *func);
+   bool deleteVariable(Variable *var);
 
 
    /*****Query Functions*****/
-   SYMTAB_EXPORT bool isExec() const;
-   SYMTAB_EXPORT bool isStripped();
-   SYMTAB_EXPORT ObjectType getObjectType() const;
-   SYMTAB_EXPORT Dyninst::Architecture getArchitecture();
-   SYMTAB_EXPORT bool isCode(const Offset where) const;
-   SYMTAB_EXPORT bool isData(const Offset where) const;
-   SYMTAB_EXPORT bool isValidOffset(const Offset where) const;
+   bool isExec() const;
+   bool isStripped();
+   ObjectType getObjectType() const;
+   Dyninst::Architecture getArchitecture();
+   bool isCode(const Offset where) const;
+   bool isData(const Offset where) const;
+   bool isValidOffset(const Offset where) const;
 
-   SYMTAB_EXPORT bool isNativeCompiler() const;
-   SYMTAB_EXPORT bool getMappedRegions(std::vector<Region *> &mappedRegs) const;
+   bool isNativeCompiler() const;
+   bool getMappedRegions(std::vector<Region *> &mappedRegs) const;
 
    /***** Line Number Information *****/
-   SYMTAB_EXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
+   bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
          std::string lineSource, unsigned int LineNo);
-   SYMTAB_EXPORT bool getSourceLines(std::vector<Statement *> &lines, 
+   bool getSourceLines(std::vector<Statement *> &lines, 
          Offset addressInRange);
-   SYMTAB_EXPORT bool getSourceLines(std::vector<LineNoTuple> &lines, 
+   bool getSourceLines(std::vector<LineNoTuple> &lines, 
                                      Offset addressInRange);
-   SYMTAB_EXPORT bool addLine(std::string lineSource, unsigned int lineNo,
+   bool addLine(std::string lineSource, unsigned int lineNo,
          unsigned int lineOffset, Offset lowInclAddr,
          Offset highExclAddr);
-   SYMTAB_EXPORT bool addAddressRange(Offset lowInclAddr, Offset highExclAddr, std::string lineSource,
+   bool addAddressRange(Offset lowInclAddr, Offset highExclAddr, std::string lineSource,
          unsigned int lineNo, unsigned int lineOffset = 0);
-   SYMTAB_EXPORT void setTruncateLinePaths(bool value);
-   SYMTAB_EXPORT bool getTruncateLinePaths();
+   void setTruncateLinePaths(bool value);
+   bool getTruncateLinePaths();
 
    /***** Type Information *****/
-   SYMTAB_EXPORT virtual bool findType(Type *&type, std::string name);
-   SYMTAB_EXPORT virtual Type *findType(unsigned type_id);
-   SYMTAB_EXPORT virtual bool findVariableType(Type *&type, std::string name);
+   virtual bool findType(Type *&type, std::string name);
+   virtual Type *findType(unsigned type_id);
+   virtual bool findVariableType(Type *&type, std::string name);
 
-   SYMTAB_EXPORT bool addType(Type *typ);
+   bool addType(Type *typ);
 
    static boost::shared_ptr<builtInTypeCollection> builtInTypes();
    static boost::shared_ptr<typeCollection> stdTypes();
 
-   SYMTAB_EXPORT static std::vector<Type *> *getAllstdTypes();
-   SYMTAB_EXPORT static std::vector<Type *> *getAllbuiltInTypes();
+   static std::vector<Type *> *getAllstdTypes();
+   static std::vector<Type *> *getAllbuiltInTypes();
 
-   SYMTAB_EXPORT void parseTypesNow();
+   void parseTypesNow();
 
    /***** Local Variable Information *****/
-   SYMTAB_EXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
+   bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
 
    /***** Relocation Sections *****/
-   SYMTAB_EXPORT bool hasRel() const;
-   SYMTAB_EXPORT bool hasRela() const;
-   SYMTAB_EXPORT bool hasReldyn() const;
-   SYMTAB_EXPORT bool hasReladyn() const;
-   SYMTAB_EXPORT bool hasRelplt() const;
-   SYMTAB_EXPORT bool hasRelaplt() const;
+   bool hasRel() const;
+   bool hasRela() const;
+   bool hasReldyn() const;
+   bool hasReladyn() const;
+   bool hasRelplt() const;
+   bool hasRelaplt() const;
    
-   SYMTAB_EXPORT bool isStaticBinary() const;
+   bool isStaticBinary() const;
 
    /***** Write Back binary functions *****/
-   SYMTAB_EXPORT bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
-   SYMTAB_EXPORT bool addRegion(Offset vaddr, void *data, unsigned int dataSize, 
+   bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
+   bool addRegion(Offset vaddr, void *data, unsigned int dataSize, 
          std::string name, Region::RegionType rType_, bool loadable = false,
          unsigned long memAlign = sizeof(unsigned), bool tls = false);
-   SYMTAB_EXPORT bool addRegion(Region *newreg);
-   SYMTAB_EXPORT bool emit(std::string filename, unsigned flag = 0);
+   bool addRegion(Region *newreg);
+   bool emit(std::string filename, unsigned flag = 0);
 
-   SYMTAB_EXPORT void addDynLibSubstitution(std::string oldName, std::string newName);
-   SYMTAB_EXPORT std::string getDynLibSubstitution(std::string name);
+   void addDynLibSubstitution(std::string oldName, std::string newName);
+   std::string getDynLibSubstitution(std::string name);
 
-   SYMTAB_EXPORT bool getSegments(std::vector<Segment> &segs) const;
+   bool getSegments(std::vector<Segment> &segs) const;
    
-   SYMTAB_EXPORT void fixup_code_and_data(Offset newImageOffset,
+   void fixup_code_and_data(Offset newImageOffset,
                                           Offset newImageLength,
                                           Offset newDataOffset,
                                           Offset newDataLength);
-   SYMTAB_EXPORT bool fixup_RegionAddr(const char* name, Offset memOffset, long memSize);
-   SYMTAB_EXPORT bool fixup_SymbolAddr(const char* name, Offset newOffset);
-   SYMTAB_EXPORT bool updateRegion(const char* name, void *buffer, unsigned size);
-   SYMTAB_EXPORT bool updateCode(void *buffer, unsigned size);
-   SYMTAB_EXPORT bool updateData(void *buffer, unsigned size);
-   SYMTAB_EXPORT Offset getFreeOffset(unsigned size);
+   bool fixup_RegionAddr(const char* name, Offset memOffset, long memSize);
+   bool fixup_SymbolAddr(const char* name, Offset newOffset);
+   bool updateRegion(const char* name, void *buffer, unsigned size);
+   bool updateCode(void *buffer, unsigned size);
+   bool updateData(void *buffer, unsigned size);
+   Offset getFreeOffset(unsigned size);
 
-   SYMTAB_EXPORT bool addLibraryPrereq(std::string libname);
-   SYMTAB_EXPORT bool addSysVDynamic(long name, long value);
+   bool addLibraryPrereq(std::string libname);
+   bool addSysVDynamic(long name, long value);
 
-   SYMTAB_EXPORT bool addLinkingResource(Archive *library);
-   SYMTAB_EXPORT bool getLinkingResources(std::vector<Archive *> &libs);
+   bool addLinkingResource(Archive *library);
+   bool getLinkingResources(std::vector<Archive *> &libs);
 
-   SYMTAB_EXPORT bool addExternalSymbolReference(Symbol *externalSym, Region *localRegion, relocationEntry localRel);
-   SYMTAB_EXPORT bool addTrapHeader_win(Address ptr);
+   bool addExternalSymbolReference(Symbol *externalSym, Region *localRegion, relocationEntry localRel);
+   bool addTrapHeader_win(Address ptr);
 
-   SYMTAB_EXPORT bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym);
+   bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym);
 
    /***** Data Member Access *****/
-   SYMTAB_EXPORT std::string file() const;
-   SYMTAB_EXPORT std::string name() const;
-   SYMTAB_EXPORT std::string memberName() const;
+   std::string file() const;
+   std::string name() const;
+   std::string memberName() const;
 
-   SYMTAB_EXPORT char *mem_image() const;
+   char *mem_image() const;
 
-   SYMTAB_EXPORT Offset imageOffset() const;
-   SYMTAB_EXPORT Offset dataOffset() const;
-   SYMTAB_EXPORT Offset dataLength() const;
-   SYMTAB_EXPORT Offset imageLength() const;
-   //   SYMTAB_EXPORT char*  image_ptr ()  const;
-   //   SYMTAB_EXPORT char*  data_ptr ()  const;
-   SYMTAB_EXPORT Offset getInitOffset();
-   SYMTAB_EXPORT Offset getFiniOffset();
+   Offset imageOffset() const;
+   Offset dataOffset() const;
+   Offset dataLength() const;
+   Offset imageLength() const;
+   //   char*  image_ptr ()  const;
+   //   char*  data_ptr ()  const;
+   Offset getInitOffset();
+   Offset getFiniOffset();
 
-   SYMTAB_EXPORT const char*  getInterpreterName() const;
+   const char*  getInterpreterName() const;
 
-   SYMTAB_EXPORT unsigned getAddressWidth() const;
-   SYMTAB_EXPORT Offset getLoadOffset() const;
-   SYMTAB_EXPORT Offset getEntryOffset() const;
-   SYMTAB_EXPORT Offset getBaseOffset() const;
-   SYMTAB_EXPORT Offset getTOCoffset(Function *func = NULL) const;
-   SYMTAB_EXPORT Offset getTOCoffset(Offset off) const;
-   SYMTAB_EXPORT Address getLoadAddress();
-   SYMTAB_EXPORT bool isDefensiveBinary() const; 
-   SYMTAB_EXPORT Offset fileToDiskOffset(Dyninst::Offset) const;
-   SYMTAB_EXPORT Offset fileToMemOffset(Dyninst::Offset) const;
+   unsigned getAddressWidth() const;
+   Offset getLoadOffset() const;
+   Offset getEntryOffset() const;
+   Offset getBaseOffset() const;
+   Offset getTOCoffset(Function *func = NULL) const;
+   Offset getTOCoffset(Offset off) const;
+   Address getLoadAddress();
+   bool isDefensiveBinary() const; 
+   Offset fileToDiskOffset(Dyninst::Offset) const;
+   Offset fileToMemOffset(Dyninst::Offset) const;
 
 
-   SYMTAB_EXPORT std::string getDefaultNamespacePrefix() const;
+   std::string getDefaultNamespacePrefix() const;
 
-   SYMTAB_EXPORT unsigned getNumberofRegions() const;
-   SYMTAB_EXPORT unsigned getNumberofSymbols() const;
+   unsigned getNumberofRegions() const;
+   unsigned getNumberofSymbols() const;
 
-   SYMTAB_EXPORT std::vector<std::string> &getDependencies();
-   SYMTAB_EXPORT bool removeLibraryDependency(std::string lib);
+   std::vector<std::string> &getDependencies();
+   bool removeLibraryDependency(std::string lib);
 
-   SYMTAB_EXPORT Archive *getParentArchive() const;
+   Archive *getParentArchive() const;
 
    /***** Error Handling *****/
-   SYMTAB_EXPORT static SymtabError getLastSymtabError();
-   SYMTAB_EXPORT static std::string printError(SymtabError serr);
+   static SymtabError getLastSymtabError();
+   static std::string printError(SymtabError serr);
 
-   SYMTAB_EXPORT ~Symtab();
+   ~Symtab();
 
    bool delSymbol(Symbol *sym) { return deleteSymbol(sym); }
    bool deleteSymbol(Symbol *sym); 
@@ -368,9 +368,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    /***** Private Member Functions *****/
    private:
 
-   SYMTAB_EXPORT Symtab(std::string filename, bool defensive_bin, bool &err);
+   Symtab(std::string filename, bool defensive_bin, bool &err);
 
-   SYMTAB_EXPORT bool extractInfo(Object *linkedFile);
+   bool extractInfo(Object *linkedFile);
 
    // Parsing code
 
@@ -413,15 +413,15 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    // Used by binaryEdit.C...
  public:
-   SYMTAB_EXPORT bool canBeShared();
-   SYMTAB_EXPORT Module *getOrCreateModule(const std::string &modName, 
+   bool canBeShared();
+   Module *getOrCreateModule(const std::string &modName, 
                                            const Offset modAddr);
 
  public:
    //Only valid on ELF formats
-   SYMTAB_EXPORT Offset getElfDynamicOffset();
+   Offset getElfDynamicOffset();
    // SymReader interface
-   SYMTAB_EXPORT void getSegmentsSymReader(std::vector<SymSegment> &segs);
+   void getSegmentsSymReader(std::vector<SymSegment> &segs);
 
  private:
    void createDefaultModule();
@@ -635,20 +635,20 @@ SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &
 class SYMTAB_EXPORT ExceptionBlock : public Serializable, public AnnotatableSparse {
 
    public:
-	  SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
+	  Serializable * serialize_impl(SerializerBase *sb, 
 			  const char *tag = "exceptionBlock") THROW_SPEC (SerializerError);
-      SYMTAB_EXPORT ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
-      SYMTAB_EXPORT ExceptionBlock(Offset cStart);
-      SYMTAB_EXPORT ExceptionBlock(const ExceptionBlock &eb);
-      SYMTAB_EXPORT ~ExceptionBlock();
-      SYMTAB_EXPORT ExceptionBlock();
+      ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
+      ExceptionBlock(Offset cStart);
+      ExceptionBlock(const ExceptionBlock &eb);
+      ~ExceptionBlock();
+      ExceptionBlock();
 
-      SYMTAB_EXPORT bool hasTry() const;
-      SYMTAB_EXPORT Offset tryStart() const;
-      SYMTAB_EXPORT Offset tryEnd() const;
-      SYMTAB_EXPORT Offset trySize() const;
-      SYMTAB_EXPORT Offset catchStart() const;
-      SYMTAB_EXPORT bool contains(Offset a) const;
+      bool hasTry() const;
+      Offset tryStart() const;
+      Offset tryEnd() const;
+      Offset trySize() const;
+      Offset catchStart() const;
+      bool contains(Offset a) const;
 
       friend SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
    private:
@@ -667,46 +667,46 @@ SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &
 class SYMTAB_EXPORT relocationEntry : public Serializable, public AnnotatableSparse {
    public:
 
-      SYMTAB_EXPORT relocationEntry();
-      SYMTAB_EXPORT relocationEntry(Offset ta, Offset ra, Offset add, 
+      relocationEntry();
+      relocationEntry(Offset ta, Offset ra, Offset add, 
 			  std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
-      SYMTAB_EXPORT relocationEntry(Offset ta, Offset ra, std::string n, 
+      relocationEntry(Offset ta, Offset ra, std::string n, 
 			  Symbol *dynref = NULL, unsigned long relType = 0);
-      SYMTAB_EXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, 
+      relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, 
 			  unsigned long relType = 0, Region::RegionType rtype = Region::RT_REL);
-      SYMTAB_EXPORT relocationEntry(Offset ta, Offset ra, Offset add,
+      relocationEntry(Offset ta, Offset ra, Offset add,
                           std::string n, Symbol *dynref = NULL, unsigned long relType = 0,
                           Region::RegionType rtype = Region::RT_REL);
 
-	  SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
+	  Serializable * serialize_impl(SerializerBase *sb, 
 			  const char *tag = "relocationEntry") THROW_SPEC (SerializerError);
 
-      SYMTAB_EXPORT Offset target_addr() const;
-      SYMTAB_EXPORT Offset rel_addr() const;
-      SYMTAB_EXPORT Offset addend() const;
-      SYMTAB_EXPORT Region::RegionType regionType() const;
-      SYMTAB_EXPORT const std::string &name() const;
-      SYMTAB_EXPORT Symbol *getDynSym() const;
-      SYMTAB_EXPORT bool addDynSym(Symbol *dynref);
-      SYMTAB_EXPORT unsigned long getRelType() const;
+      Offset target_addr() const;
+      Offset rel_addr() const;
+      Offset addend() const;
+      Region::RegionType regionType() const;
+      const std::string &name() const;
+      Symbol *getDynSym() const;
+      bool addDynSym(Symbol *dynref);
+      unsigned long getRelType() const;
 
-      SYMTAB_EXPORT void setTargetAddr(const Offset);
-      SYMTAB_EXPORT void setRelAddr(const Offset);
-      SYMTAB_EXPORT void setAddend(const Offset);
-      SYMTAB_EXPORT void setRegionType(const Region::RegionType);
-      SYMTAB_EXPORT void setName(const std::string &newName);
-      SYMTAB_EXPORT void setRelType(unsigned long relType) { relType_ = relType; }
+      void setTargetAddr(const Offset);
+      void setRelAddr(const Offset);
+      void setAddend(const Offset);
+      void setRegionType(const Region::RegionType);
+      void setName(const std::string &newName);
+      void setRelType(unsigned long relType) { relType_ = relType; }
 
       // dump output.  Currently setup as a debugging aid, not really
       //  for object persistance....
-      //SYMTAB_EXPORT std::ostream & operator<<(std::ostream &s) const;
-      friend SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
+      //std::ostream & operator<<(std::ostream &s) const;
+      friend SYMTAB_EXPORT std::ostream & operator<<(std::ostream &os, const relocationEntry &q);
 
       enum {pltrel = 1, dynrel = 2} relocationType;
-      SYMTAB_EXPORT bool operator==(const relocationEntry &) const;
+      bool operator==(const relocationEntry &) const;
 
       // Architecture-specific functions
-      SYMTAB_EXPORT static unsigned long getGlobalRelType(unsigned addressWidth, Symbol *sym = NULL);
+      static unsigned long getGlobalRelType(unsigned addressWidth, Symbol *sym = NULL);
       static const char *relType2Str(unsigned long r, unsigned addressWidth = sizeof(Address));
 
    private:

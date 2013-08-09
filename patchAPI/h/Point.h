@@ -204,55 +204,55 @@ class PATCHAPI_EXPORT Point {
     Point() {}
 
     // Block instrumentation /w/ optional function context
-    PATCHAPI_EXPORT Point(Point::Type t, PatchMgrPtr mgr, PatchBlock *, PatchFunction * = NULL);
+    Point(Point::Type t, PatchMgrPtr mgr, PatchBlock *, PatchFunction * = NULL);
     // Insn instrumentation /w/ optional function context
-    PATCHAPI_EXPORT Point(Point::Type t, PatchMgrPtr mgr, PatchBlock *, Address, InstructionAPI::Instruction::Ptr, PatchFunction * = NULL);
+    Point(Point::Type t, PatchMgrPtr mgr, PatchBlock *, Address, InstructionAPI::Instruction::Ptr, PatchFunction * = NULL);
     // Function entry or during
-    PATCHAPI_EXPORT Point(Point::Type t, PatchMgrPtr mgr, PatchFunction *);
+    Point(Point::Type t, PatchMgrPtr mgr, PatchFunction *);
     // Function call or exit site
-    PATCHAPI_EXPORT Point(Point::Type t, PatchMgrPtr mgr, PatchFunction *, PatchBlock *);
+    Point(Point::Type t, PatchMgrPtr mgr, PatchFunction *, PatchBlock *);
     // Edge
-    PATCHAPI_EXPORT Point(Point::Type t, PatchMgrPtr mgr, PatchEdge *, PatchFunction * = NULL);
+    Point(Point::Type t, PatchMgrPtr mgr, PatchEdge *, PatchFunction * = NULL);
 
-    PATCHAPI_EXPORT virtual ~Point();
+    virtual ~Point();
 
     // Point as a snippet container
     typedef std::list<InstancePtr>::iterator instance_iter;
     instance_iter begin() { return instanceList_.begin();}
     instance_iter end() { return instanceList_.end();}
-    PATCHAPI_EXPORT virtual InstancePtr pushBack(SnippetPtr);
-    PATCHAPI_EXPORT virtual InstancePtr pushFront(SnippetPtr);
-    PATCHAPI_EXPORT bool remove(InstancePtr);
+    virtual InstancePtr pushBack(SnippetPtr);
+    virtual InstancePtr pushFront(SnippetPtr);
+    bool remove(InstancePtr);
 
     // Remove all snippets in this point
-    PATCHAPI_EXPORT void clear();
+    void clear();
 
     // Getters
-    PATCHAPI_EXPORT size_t size();
+    size_t size();
     Address addr() const { return addr_; }
-    PATCHAPI_EXPORT Type type() const {return type_;}
+    Type type() const {return type_;}
     bool empty() const { return instanceList_.empty();}
 
-    PATCHAPI_EXPORT PatchFunction* getCallee();
+    PatchFunction* getCallee();
 
-    PATCHAPI_EXPORT PatchObject* obj() const;
+    PatchObject* obj() const;
     const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
-    PATCHAPI_EXPORT PatchFunction *func() const { return the_func_; }
-    PATCHAPI_EXPORT PatchBlock *block() const { return the_block_; }
-    PATCHAPI_EXPORT PatchEdge *edge() const { return the_edge_; }
-    PATCHAPI_EXPORT PatchMgrPtr mgr() const { return mgr_; }
+    PatchFunction *func() const { return the_func_; }
+    PatchBlock *block() const { return the_block_; }
+    PatchEdge *edge() const { return the_edge_; }
+    PatchMgrPtr mgr() const { return mgr_; }
 
     // Point type utilities
     
     // Test whether the type contains a specific type.
-    PATCHAPI_EXPORT static bool TestType(Point::Type types, Point::Type trg);
+    static bool TestType(Point::Type types, Point::Type trg);
     // Add a specific type to a set of types
-    PATCHAPI_EXPORT static void AddType(Point::Type& types, Point::Type trg);
+    static void AddType(Point::Type& types, Point::Type trg);
     // Remove a specific type from a set of types
-    PATCHAPI_EXPORT static void RemoveType(Point::Type& types, Point::Type trg);
+    static void RemoveType(Point::Type& types, Point::Type trg);
 
-    PATCHAPI_EXPORT PatchCallback *cb() const;
+    PatchCallback *cb() const;
 
     bool consistency() const;
     
@@ -360,16 +360,16 @@ class PATCHAPI_EXPORT PointMaker {
     virtual ~PointMaker() {}
 
     // Location bundles what we need to know. 
-    PATCHAPI_EXPORT Point *createPoint(Location loc, Point::Type type);
+    Point *createPoint(Location loc, Point::Type type);
 
     void setMgr(PatchMgrPtr mgr) { mgr_ = mgr; }
   protected:
     // User override
-    PATCHAPI_EXPORT virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *);
-    PATCHAPI_EXPORT virtual Point *mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *, PatchBlock *);
-    PATCHAPI_EXPORT virtual Point *mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, PatchFunction *context);
-    PATCHAPI_EXPORT virtual Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address, InstructionAPI::Instruction::Ptr, PatchFunction *context);
-    PATCHAPI_EXPORT virtual Point *mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *, PatchFunction *context);
+    virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *);
+    virtual Point *mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *, PatchBlock *);
+    virtual Point *mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, PatchFunction *context);
+    virtual Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address, InstructionAPI::Instruction::Ptr, PatchFunction *context);
+    virtual Point *mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *, PatchFunction *context);
 
 
     PatchMgrPtr mgr_;

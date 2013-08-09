@@ -54,7 +54,7 @@ public:
     virtual Architecture getArch() const = 0;
 
     // The following routines have default, architecture-specific behavior
-    PARSER_EXPORT virtual bool isAligned(const Address) const;
+    virtual bool isAligned(const Address) const;
 };
 
 }

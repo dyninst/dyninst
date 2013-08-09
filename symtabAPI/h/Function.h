@@ -83,39 +83,39 @@ class SYMTAB_EXPORT FunctionBase : public Aggregate
    friend class DwarfWalker;
   public:
    /***** Return Type Information *****/
-   SYMTAB_EXPORT Type  * getReturnType() const;
+   Type  * getReturnType() const;
    
    /***** Local Variable Information *****/
-   SYMTAB_EXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
-   SYMTAB_EXPORT bool getLocalVariables(std::vector<localVar *>&vars);
-   SYMTAB_EXPORT bool getParams(std::vector<localVar *>&params);
+   bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
+   bool getLocalVariables(std::vector<localVar *>&vars);
+   bool getParams(std::vector<localVar *>&params);
 
-   SYMTAB_EXPORT bool operator==(const FunctionBase &);
+   bool operator==(const FunctionBase &);
 
-   SYMTAB_EXPORT FunctionBase *getInlinedParent();
-   SYMTAB_EXPORT const InlineCollection &getInlines();
+   FunctionBase *getInlinedParent();
+   const InlineCollection &getInlines();
    
-   SYMTAB_EXPORT const FuncRangeCollection &getRanges();
+   const FuncRangeCollection &getRanges();
    
    /***** Frame Pointer Information *****/
-   SYMTAB_EXPORT bool setFramePtr(std::vector<VariableLocation> *locs);
-   SYMTAB_EXPORT std::vector<VariableLocation> &getFramePtrRefForInit();
-   SYMTAB_EXPORT std::vector<VariableLocation> &getFramePtr();   
+   bool setFramePtr(std::vector<VariableLocation> *locs);
+   std::vector<VariableLocation> &getFramePtrRefForInit();
+   std::vector<VariableLocation> &getFramePtr();   
 
    /***** Opaque data object pointers, usable by user ****/
-   SYMTAB_EXPORT void *getData();
-   SYMTAB_EXPORT void setData(void *d);
+   void *getData();
+   void setData(void *d);
 
    /* internal helper functions */
    bool addLocalVar(localVar *);
    bool addParam(localVar *);
-   SYMTAB_EXPORT bool	setReturnType(Type *);
+   bool	setReturnType(Type *);
 
   protected:
-   SYMTAB_EXPORT FunctionBase(Symbol *);
-   SYMTAB_EXPORT FunctionBase(Module *);
-   SYMTAB_EXPORT FunctionBase();
-   SYMTAB_EXPORT ~FunctionBase();
+   FunctionBase(Symbol *);
+   FunctionBase(Module *);
+   FunctionBase();
+   ~FunctionBase();
 
    localVarCollection *locals;
    localVarCollection *params;
@@ -135,37 +135,37 @@ class SYMTAB_EXPORT FunctionBase : public Aggregate
                        std::vector<VariableLocation> &ret);
 };
 
-class Function : public FunctionBase
+class SYMTAB_EXPORT Function : public FunctionBase
 {
    friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
    
  private:
-   SYMTAB_EXPORT Function(Symbol *sym);
+   Function(Symbol *sym);
    
  public:
    
-   SYMTAB_EXPORT Function();
-   SYMTAB_EXPORT virtual ~Function();
+   Function();
+   virtual ~Function();
    
    /* Symbol management */
-   SYMTAB_EXPORT bool removeSymbol(Symbol *sym);      
+   bool removeSymbol(Symbol *sym);      
    
    /***** IA64-Specific Frame Pointer Information *****/
-   SYMTAB_EXPORT bool  setFramePtrRegnum(int regnum);
-   SYMTAB_EXPORT int   getFramePtrRegnum() const;
+   bool  setFramePtrRegnum(int regnum);
+   int   getFramePtrRegnum() const;
    
    /***** PPC64 Linux Specific Information *****/
-   SYMTAB_EXPORT Offset getPtrOffset() const;
-   SYMTAB_EXPORT Offset getTOCOffset() const;
+   Offset getPtrOffset() const;
+   Offset getTOCOffset() const;
    
-   SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
+   Serializable * serialize_impl(SerializerBase *sb, 
                                 const char *tag = "Function") THROW_SPEC (SerializerError);
 
-   SYMTAB_EXPORT unsigned getSize();
+   unsigned getSize();
 };
 
-class InlinedFunction : public FunctionBase
+class SYMTAB_EXPORT InlinedFunction : public FunctionBase
 {
    friend class Symtab;
    friend class DwarfWalker;
@@ -173,8 +173,8 @@ class InlinedFunction : public FunctionBase
    InlinedFunction(FunctionBase *parent);
    ~InlinedFunction();
   public:
-   SYMTAB_EXPORT std::pair<std::string, Dyninst::Offset> getCallsite();
-   SYMTAB_EXPORT virtual bool removeSymbol(Symbol *sym);
+   std::pair<std::string, Dyninst::Offset> getCallsite();
+   virtual bool removeSymbol(Symbol *sym);
   private:
    std::string callsite_file;
    Dyninst::Offset callsite_line;

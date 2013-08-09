@@ -53,24 +53,24 @@ namespace PatchAPI {
 
 class PATCHAPI_EXPORT CFGMaker {
   public:
-    PATCHAPI_EXPORT CFGMaker() {}
-    PATCHAPI_EXPORT virtual ~CFGMaker() {}
+    CFGMaker() {}
+    virtual ~CFGMaker() {}
 
     // Make function
-    PATCHAPI_EXPORT virtual PatchFunction* makeFunction(ParseAPI::Function*,
+    virtual PatchFunction* makeFunction(ParseAPI::Function*,
                                                         PatchObject*);
-    PATCHAPI_EXPORT virtual PatchFunction* copyFunction(PatchFunction*,
+    virtual PatchFunction* copyFunction(PatchFunction*,
                                                         PatchObject*);
 
     // Make block
-    PATCHAPI_EXPORT virtual PatchBlock* makeBlock(ParseAPI::Block*,
+    virtual PatchBlock* makeBlock(ParseAPI::Block*,
                                                   PatchObject*);
-    PATCHAPI_EXPORT virtual PatchBlock* copyBlock(PatchBlock*, PatchObject*);
+    virtual PatchBlock* copyBlock(PatchBlock*, PatchObject*);
 
     // Make edge
-    PATCHAPI_EXPORT virtual PatchEdge* makeEdge(ParseAPI::Edge*, PatchBlock*,
+    virtual PatchEdge* makeEdge(ParseAPI::Edge*, PatchBlock*,
                                 PatchBlock*, PatchObject*);
-    PATCHAPI_EXPORT virtual PatchEdge* copyEdge(PatchEdge*, PatchObject*);
+    virtual PatchEdge* copyEdge(PatchEdge*, PatchObject*);
 };
 
 }

@@ -160,14 +160,14 @@ class PARSER_EXPORT Edge : public allocatable {
     EdgeType _type;
 
  public:
-    PARSER_EXPORT Edge(Block * source,
+    Edge(Block * source,
          Block * target,
          EdgeTypeEnum type);
-     PARSER_EXPORT virtual ~Edge();
+     virtual ~Edge();
 
-    PARSER_EXPORT Block * src() const { return _source; }
-    PARSER_EXPORT Block * trg() const { return _target; }
-    PARSER_EXPORT EdgeTypeEnum type() const { 
+    Block * src() const { return _source; }
+    Block * trg() const { return _target; }
+    EdgeTypeEnum type() const { 
         return static_cast<EdgeTypeEnum>(_type._type_enum); 
     }
     bool sinkEdge() const { return _type._sink != 0; }
@@ -181,12 +181,12 @@ class PARSER_EXPORT Edge : public allocatable {
        return !interproc();
     }
 
-    PARSER_EXPORT void install();
+    void install();
 
     /* removes from blocks (and if of type CALL, from finalized source functions ) */
-    PARSER_EXPORT void uninstall();
+    void uninstall();
 
-    PARSER_EXPORT static void destroy(Edge *, CodeObject *);
+    static void destroy(Edge *, CodeObject *);
 
  friend class CFGFactory;
  friend class Parser;
@@ -201,10 +201,10 @@ class PARSER_EXPORT Edge : public allocatable {
 class PARSER_EXPORT EdgePredicate 
 {
  public:
-  PARSER_EXPORT EdgePredicate() { }
-    PARSER_EXPORT virtual ~EdgePredicate() { }
-    PARSER_EXPORT virtual bool pred_impl(Edge *) const;
-    PARSER_EXPORT bool operator()(Edge* e) const 
+  EdgePredicate() { }
+    virtual ~EdgePredicate() { }
+    virtual bool pred_impl(Edge *) const;
+    bool operator()(Edge* e) const 
     {
       return pred_impl(e);
     }
@@ -213,18 +213,18 @@ class PARSER_EXPORT EdgePredicate
 /* may follow branches into the function if there is shared code */
 class PARSER_EXPORT Intraproc : public EdgePredicate {
  public:
-    PARSER_EXPORT Intraproc() { }
-    PARSER_EXPORT ~Intraproc() { }
-    PARSER_EXPORT bool pred_impl(Edge *) const;
+    Intraproc() { }
+    ~Intraproc() { }
+    bool pred_impl(Edge *) const;
 
 };
 
 /* follow interprocedural edges */
  class PARSER_EXPORT Interproc : public EdgePredicate {
     public:
-        PARSER_EXPORT Interproc() {}
-        PARSER_EXPORT ~Interproc() { }
-        PARSER_EXPORT bool pred_impl(Edge *) const;
+        Interproc() {}
+        ~Interproc() { }
+        bool pred_impl(Edge *) const;
 };
 
 /*
@@ -248,29 +248,29 @@ class Function;
     bool _forward;
     bool _backward;
  public:
-    PARSER_EXPORT SingleContext(Function * f, bool forward, bool backward) : 
+    SingleContext(Function * f, bool forward, bool backward) : 
         _context(f),
         _forward(forward),
         _backward(backward) { }
-    PARSER_EXPORT ~SingleContext() { }
-    PARSER_EXPORT bool pred_impl(Edge *) const;
+    ~SingleContext() { }
+    bool pred_impl(Edge *) const;
 };
 
 /* Doesn't follow branches into the function if there is shared code. 
  * Will follow interprocedural call/return edges */
- class SingleContextOrInterproc : public EdgePredicate {
+ class PARSER_EXPORT SingleContextOrInterproc : public EdgePredicate {
     private:
         Function * _context;
         bool _forward;
         bool _backward;
     public:
-        PARSER_EXPORT SingleContextOrInterproc(Function * f, bool forward, bool backward) :
+        SingleContextOrInterproc(Function * f, bool forward, bool backward) :
             _context(f),
             _forward(forward),
             _backward(backward) { }
-        PARSER_EXPORT ~SingleContextOrInterproc() { }
-        PARSER_EXPORT bool pred_impl(Edge *) const;
-	PARSER_EXPORT bool operator()(Edge* e) const 
+        ~SingleContextOrInterproc() { }
+        bool pred_impl(Edge *) const;
+	bool operator()(Edge* e) const 
 	{
 	  return pred_impl(e);
 	}
@@ -284,34 +284,34 @@ class PARSER_EXPORT Block : public Dyninst::interval<Address>,
     typedef std::map<Offset, InstructionAPI::InstructionPtr> Insns;
     typedef std::vector<Edge*> edgelist;
 
-    PARSER_EXPORT Block(CodeObject * o, CodeRegion * r, Address start);
-    PARSER_EXPORT virtual ~Block();
+    Block(CodeObject * o, CodeRegion * r, Address start);
+    virtual ~Block();
 
-    PARSER_EXPORT Address start() const { return _start; }
-    PARSER_EXPORT Address end() const { return _end; }
-    PARSER_EXPORT Address lastInsnAddr() const { return _lastInsn; } 
-    PARSER_EXPORT Address last() const { return lastInsnAddr(); }
-    PARSER_EXPORT Address size() const { return _end - _start; }
+    Address start() const { return _start; }
+    Address end() const { return _end; }
+    Address lastInsnAddr() const { return _lastInsn; } 
+    Address last() const { return lastInsnAddr(); }
+    Address size() const { return _end - _start; }
 
-    PARSER_EXPORT bool parsed() const { return _parsed; }
+    bool parsed() const { return _parsed; }
 
-    PARSER_EXPORT CodeObject * obj() const { return _obj; }
-    PARSER_EXPORT CodeRegion * region() const { return _region; }
+    CodeObject * obj() const { return _obj; }
+    CodeRegion * region() const { return _region; }
 
     /* Edge access */
-    PARSER_EXPORT const edgelist & sources() const { return _srclist; }
-    PARSER_EXPORT const edgelist & targets() const { return _trglist; }
+    const edgelist & sources() const { return _srclist; }
+    const edgelist & targets() const { return _trglist; }
 
-    PARSER_EXPORT bool consistent(Address addr, Address & prev_insn);
+    bool consistent(Address addr, Address & prev_insn);
 
-    PARSER_EXPORT int  containingFuncs() const;
-    PARSER_EXPORT void getFuncs(std::vector<Function *> & funcs);
+    int  containingFuncs() const;
+    void getFuncs(std::vector<Function *> & funcs);
     template<class OutputIterator> void getFuncs(OutputIterator result); 
 
-    PARSER_EXPORT void getInsns(Insns &insns) const;
-    PARSER_EXPORT InstructionAPI::InstructionPtr getInsn(Offset o) const;
+    void getInsns(Insns &insns) const;
+    InstructionAPI::InstructionPtr getInsn(Offset o) const;
 
-    PARSER_EXPORT bool wasUserAdded() const;
+    bool wasUserAdded() const;
 
     /* interval implementation */
     Address low() const { return start(); }
@@ -437,49 +437,49 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     std::string _name;
     Block * _entry;
  protected:
-    PARSER_EXPORT Function(); 
+    Function(); 
  public:
     bool _is_leaf_function;
     Address _ret_addr; // return address of a function stored in stack at function entry
     typedef std::vector<Block*> blocklist;
     typedef std::set<Edge*> edgelist;
     
-    PARSER_EXPORT Function(Address addr, string name, CodeObject * obj, 
+    Function(Address addr, string name, CodeObject * obj, 
         CodeRegion * region, InstructionSource * isource);
 
-    PARSER_EXPORT virtual ~Function();
+    virtual ~Function();
 
-    PARSER_EXPORT virtual const string & name();
+    virtual const string & name();
 
-    PARSER_EXPORT Address addr() const { return _start; }
-    PARSER_EXPORT CodeRegion * region() const { return _region; }
-    PARSER_EXPORT InstructionSource * isrc() const { return _isrc; }
-    PARSER_EXPORT CodeObject * obj() const { return _obj; }
-    PARSER_EXPORT FuncSource src() const { return _src; }
-    PARSER_EXPORT FuncReturnStatus retstatus() const { return _rs; }
-    PARSER_EXPORT Block * entry() const { return _entry; }
-    PARSER_EXPORT bool parsed() const { return _parsed; }
+    Address addr() const { return _start; }
+    CodeRegion * region() const { return _region; }
+    InstructionSource * isrc() const { return _isrc; }
+    CodeObject * obj() const { return _obj; }
+    FuncSource src() const { return _src; }
+    FuncReturnStatus retstatus() const { return _rs; }
+    Block * entry() const { return _entry; }
+    bool parsed() const { return _parsed; }
 
     /* Basic block and CFG access */
-    PARSER_EXPORT blocklist & blocks();
-    PARSER_EXPORT const blocklist& blocks() const;
+    blocklist & blocks();
+    const blocklist& blocks() const;
     
-    PARSER_EXPORT bool contains(Block *b);
-    PARSER_EXPORT const edgelist & callEdges();
-    PARSER_EXPORT const blocklist & returnBlocks();
-    PARSER_EXPORT const blocklist & exitBlocks();
+    bool contains(Block *b);
+    const edgelist & callEdges();
+    const blocklist & returnBlocks();
+    const blocklist & exitBlocks();
 
     /* Function details */
-    PARSER_EXPORT bool hasNoStackFrame() const { return _no_stack_frame; }
-    PARSER_EXPORT bool savesFramePointer() const { return _saves_fp; }
-    PARSER_EXPORT bool cleansOwnStack() const { return _cleans_stack; }
+    bool hasNoStackFrame() const { return _no_stack_frame; }
+    bool savesFramePointer() const { return _saves_fp; }
+    bool cleansOwnStack() const { return _cleans_stack; }
 
     /* Parse updates and obfuscation */
-    PARSER_EXPORT void setEntryBlock(Block *new_entry);
-    PARSER_EXPORT void set_retstatus(FuncReturnStatus rs);
-    PARSER_EXPORT void removeBlock( Block* );
+    void setEntryBlock(Block *new_entry);
+    void set_retstatus(FuncReturnStatus rs);
+    void removeBlock( Block* );
 
-    PARSER_EXPORT StackTamper tampersStack(bool recalculate=false);
+    StackTamper tampersStack(bool recalculate=false);
 
     struct less
     {
@@ -490,7 +490,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     };
 
     /* Contiguous code segments of function */
-    PARSER_EXPORT std::vector<FuncExtent *> const& extents();
+    std::vector<FuncExtent *> const& extents();
 
     /* This should not remain here - this is an experimental fix for
        defensive mode CFG inconsistency */
@@ -555,14 +555,14 @@ class PARSER_EXPORT FuncExtent : public Dyninst::interval<Address> {
         _func = NULL;
     }
 
-    PARSER_EXPORT Function * func() { return _func; }
+    Function * func() { return _func; }
 
-    PARSER_EXPORT Address start() const { return _start; }
-    PARSER_EXPORT Address end() const { return _end; }
+    Address start() const { return _start; }
+    Address end() const { return _end; }
 
     /* interval implementation */
-    PARSER_EXPORT Address low() const { return _start; }
-    PARSER_EXPORT Address high() const { return _end; } 
+    Address low() const { return _start; }
+    Address high() const { return _end; } 
 };
 
 
