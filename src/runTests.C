@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
    setupVars(useLog, logfile);
 
    setLibPath();
-
+   int numFailed = 0;
    int result = 0;
    int invocation = 0;
 

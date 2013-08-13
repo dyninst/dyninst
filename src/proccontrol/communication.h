@@ -41,8 +41,8 @@
 #if defined(os_windows_test)
 #include <winsock2.h>
 #include <windows.h>
-#include <external/stdint-win.h>
-#include <external/inttypes-win.h>
+#include "external/stdint-win.h"
+#include "external/inttypes-win.h"
 typedef int pid_t;
 #endif
 

@@ -6,6 +6,10 @@ include (c++11.cmake)
 
 find_package (Dyninst REQUIRED CONFIG)
 find_package (Threads)
+set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
+			      "1.50" "1.50.0" "1.51" "1.51.0" "1.52" "1.52.0"
+			      "1.53" "1.53.0" "1.54" "1.54.0")
+
 find_package (Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
