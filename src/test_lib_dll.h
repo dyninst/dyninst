@@ -49,10 +49,8 @@
 
 #ifdef COMPLIB_DLL_BUILD
 #define COMPLIB_DLL_EXPORT __declspec(dllexport)
-#pragma message("COMPLIB_DLL_EXPORT exporting")
 #else
 #define COMPLIB_DLL_EXPORT __declspec(dllimport)
-#pragma message("COMPLIB_DLL_EXPORT importing")
 #endif
 
 #ifdef TESTLIB_DLL_BUILD
