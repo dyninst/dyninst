@@ -81,6 +81,12 @@ endif()
 set_target_properties(${TESTSUITE_TESTLAUNCH_LINK} PROPERTIES COMPILE_DEFINITIONS TESTLIB_DLL_BUILD)
 
 target_link_libraries (testSuite ${CMAKE_DL_LIBS})
+
+add_library(DatabaseOutputDriver SHARED
+				 src/DatabaseOutputDriver.C
+				 )
+target_link_libraries(DatabaseOutputDriver testSuite)
+set_target_properties(DatabaseOutputDriver PROPERTIES PREFIX "")
 if(WIN32)
 set (PLAT_SRC)
 else()
@@ -155,6 +161,7 @@ install (TARGETS
         testsymtab
         testinstruction
         testproccontrol
+	DatabaseOutputDriver
         DESTINATION ${INSTALL_DIR})
 
 
