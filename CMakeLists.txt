@@ -88,6 +88,10 @@ add_library(DatabaseOutputDriver SHARED
 target_link_libraries(DatabaseOutputDriver testSuite)
 set_target_properties(DatabaseOutputDriver PROPERTIES PREFIX "")
 if(WIN32)
+	set_target_properties(DatabaseOutputDriver PROPERTIES COMPILE_DEFINITIONS os_windows_test)
+endif()
+
+if(WIN32)
 set (PLAT_SRC)
 else()
 set (PLAT_SRC src/dyninst/ParseThat.C
