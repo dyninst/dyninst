@@ -89,6 +89,7 @@ target_link_libraries(DatabaseOutputDriver testSuite)
 set_target_properties(DatabaseOutputDriver PROPERTIES PREFIX "")
 if(WIN32)
 	set_target_properties(DatabaseOutputDriver PROPERTIES COMPILE_DEFINITIONS os_windows_test)
+	target_link_libraries(DatabaseOutputDriver ws2_32)
 endif()
 
 if(WIN32)
