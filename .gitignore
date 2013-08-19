@@ -90,3 +90,4 @@ Makefile
 *.eps
 *log.*
 *.rej
+install_manifest.txt
