@@ -1533,6 +1533,25 @@ bool DwarfWalker::findString(Dwarf_Half attr,
    Dwarf_Half form;
    Dwarf_Attribute strattr;
 
+   if (attr == DW_AT_call_file || attr == DW_AT_decl_file) {
+      unsigned long line_index;
+      bool result = findConstant(attr, line_index);
+      if (!result)
+         return false;
+      if (line_index == 0) {
+         str = string("");
+         return true;
+      }
+      line_index--;
+      if (line_index >= srcFiles().size()) {
+         dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
+                      line_index, srcFiles().size());
+         return false;
+      }
+      str = srcFiles()[line_index];
+      return true;
+   }
+
    DWARF_FAIL_RET(dwarf_attr(entry(), attr, &strattr, NULL)); 
    int status = dwarf_whatform(strattr, &form, NULL);
    if (status != DW_DLV_OK) {

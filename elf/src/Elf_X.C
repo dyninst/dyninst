@@ -727,8 +727,8 @@ void Elf_X_Shdr::sh_flags(unsigned long input)
 
 void Elf_X_Shdr::sh_addr(unsigned long input)
 {
-    if (!is64) shdr32->sh_flags = input;
-    else       shdr64->sh_flags = input;
+    if (!is64) shdr32->sh_addr = input;
+    else       shdr64->sh_addr = input;
 }
 
 void Elf_X_Shdr::sh_offset(unsigned long input)

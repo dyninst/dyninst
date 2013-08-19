@@ -433,8 +433,7 @@ Module::~Module()
 		  }
 		  else
 		  {
-			  fprintf(stderr, "%s[%d]:  removed delete for %p\n", FILE__, __LINE__, li);
-			  delete li;
+		          if (!exec_->lineInfo->erase(fullName_)) exec_->lineInfo->erase(fileName_);
 		  }
       }
    }

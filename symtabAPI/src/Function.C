@@ -235,6 +235,11 @@ bool FunctionBase::setFramePtr(vector<VariableLocation> *locs)
    return true;
 }
 
+std::pair<std::string, Dyninst::Offset> InlinedFunction::getCallsite()
+{
+   return make_pair(callsite_file, callsite_line);
+}
+
 void FunctionBase::expandLocation(const VariableLocation &loc,
                               std::vector<VariableLocation> &ret) {
    // We are the frame base, so... WTF? 
