@@ -147,45 +147,7 @@ static void initTrampGuards(unsigned maxthreads)
 {
 
    unsigned i;
-#if defined(rs6000_ibm_aix4_1)
-	/* 	WHAT IS GOING ON HERE?
-		For save the world to work, the DYNINST_tramp_guards must be reloaded in the
-		exact same place when the mutated binary is run.  Normally, DYNINST_tramp_guards
-		is allocated by malloc (See below).  This does not work for AIX because before
-		we get to the init section of the RT lib, which reloads DYNINST_tramp_guards, the
-		address DYNINST_tramp_guards needs to be loaded at has been allocated and is in
-		use.  To get around this, I am using mmap to allocate DYNINST_tramp_guards on
-		AIX.  I am allocating to a MAP_VARIABLE location because there is no address that
-		is always known to be free that we can allocate.  This way, when the init section
-		of the RT lib is run this address will probably be free (with a little magic in 
-		loadFile() in RTmutatedBinary_XCOFF.c.
 
-		Just in case we cannot mmap the space we need here (at this point in execution I
-		cannot imagine this happening, if you want to do anything useful with Dyninst) I fall
-		back to malloc and print a warning that save the world will probably not work.
-	*/
-	
-/* http://publibn.boulder.ibm.com/doc_link/en_US/a_doc_lib/aixprggd/genprogc/sys_mem_alloc.htm#HDRA9E4A4C9921SYLV */
-	unsigned int memLoc = sbrk(0);
-	int pageSize = getpagesize();
-	int arraySize = ((maxthreads +1) * sizeof(unsigned));
-	arraySize -= (arraySize  % pageSize);
-	arraySize +=  pageSize;
-
-	/*fprintf(stderr,"TRAMP GUARDS (sbrk 0x%x)\n",sbrk(0));*/
-
-	/*fprintf(stderr, "MMAP: 0x%x,0x%x,,,1,0x0\n",memLoc,arraySize);*/
-	DYNINST_tramp_guards = (unsigned *) mmap(0x0, arraySize, PROT_READ|PROT_WRITE, MAP_VARIABLE|MAP_ANONYMOUS, -1,0x0);
-
-	if (DYNINST_tramp_guards == (unsigned *) -1){
-		perror("mmap: DYNINST_tramp_guards ");
-		fprintf(stderr,"Warning: DYNINST_tramp_guards may not be allocated correctly for save the world code!\n");
-   		DYNINST_tramp_guards = (unsigned *) malloc((maxthreads+1)*sizeof(unsigned));
-	}
-
-	/*fprintf(stderr,"TRAMP GUARDS 0x%x (sbrk 0x%x)\n", DYNINST_tramp_guards,sbrk(0));*/
-
-#else
    /*We allocate maxthreads+1 because maxthreads is sometimes used as an*/
    /*error value to mean we don't know what thread this is.  Sometimes used*/
    /*during the early setup phases.*/
@@ -195,7 +157,6 @@ static void initTrampGuards(unsigned maxthreads)
    else {
       DYNINST_tramp_guards = (unsigned *) malloc((maxthreads+1)*sizeof(unsigned));
    }
-#endif
    for (i=0; i<maxthreads; i++)
    {
       DYNINST_tramp_guards[i] = 1;
