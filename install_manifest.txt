@@ -1,6 +1,4 @@
 /scratch/bill/dyninst/lib/libdwarf.so
-/scratch/bill/dyninst/lib/libelf.so
-/scratch/bill/dyninst/lib/libelf.so.1
 /scratch/bill/dyninst/lib/cmake/Dyninst/DyninstConfig.cmake
 /scratch/bill/dyninst/lib/cmake/Dyninst/DyninstConfigVersion.cmake
 /scratch/bill/dyninst/lib/cmake/Dyninst/DyninstTargets.cmake

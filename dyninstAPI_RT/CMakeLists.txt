@@ -27,7 +27,9 @@ set (SRC_LIST ${SRC_LIST}
     src/RTheap-linux.c 
     src/RTthread.c 
     src/RTspace.S 
-    src/RTsignal.c 
+    src/RTsignal.c
+    src/RTstatic_ctors_dtors_begin.c 
+    src/RTstatic_ctors_dtors_end.c 
 )
 elseif (PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
 set (SRC_LIST ${SRC_LIST}
@@ -103,7 +105,8 @@ set_target_properties (dyninstAPI_RT dyninstAPI_RT_static
 # this will not
 set_target_properties (dyninstAPI_RT_static
                       PROPERTIES
-                      OUTPUT_NAME dyninstAPI_RT)
+                      OUTPUT_NAME dyninstAPI_RT
+		      COMPILE_DEFINITIONS DYNINST_RT_STATIC_LIB)
 
 message(STATUS "dyninstAPI RT library SOVERSION: ${SOVERSION}")
 message(STATUS "dyninstAPI RT library LIBVERSION: ${LIBVERSION}")
@@ -182,9 +185,10 @@ set_target_properties (dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
 
 set_target_properties (dyninstAPI_RT_m32_static
                       PROPERTIES
-                      OUTPUT_NAME dyninstAPI_RT_m32)
-#                      COMPILE_FLAGS "-m32"
-#                      LINK_FLAGS "-m32"
+                      OUTPUT_NAME dyninstAPI_RT_m32
+                      COMPILE_FLAGS "-m32"
+                      LINK_FLAGS "-m32"
+		      COMPILE_DEFINITIONS DYNINST_RT_STATIC_LIB)
 #                      SOVERSION ${SOVERSION}
 #                      VERSION ${LIBVERSION})
 

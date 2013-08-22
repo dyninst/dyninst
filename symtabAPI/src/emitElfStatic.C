@@ -506,12 +506,12 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                             break;
                     }
                 }else if( isConstructorRegion(*reg_it) ) {
-                    lmap.newCtorRegions.push_back(*reg_it);
+                    lmap.newCtorRegions.insert(*reg_it);
                     if( (*reg_it)->getMemAlignment() > lmap.ctorRegionAlign ) {
                         lmap.ctorRegionAlign = (*reg_it)->getMemAlignment();
                     }
                 }else if( isDestructorRegion(*reg_it) ) {
-                    lmap.newDtorRegions.push_back(*reg_it);
+                    lmap.newDtorRegions.insert(*reg_it);
                     if( (*reg_it)->getMemAlignment() > lmap.dtorRegionAlign ) {
                         lmap.dtorRegionAlign = (*reg_it)->getMemAlignment();
                     }
@@ -1211,9 +1211,11 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
 
            string regionName = (*region_it)->getRegionName();           
            if (regionName.compare(0, 4, ".toc") == 0) isTOC = true;
-
+	   
            if (!isText && !isTOC) {
-              continue;
+	     // Just process all regions; if there are still relocations lurking it had
+	     // better be because something got modified...
+	     //   continue;
            }
         map<Region *, LinkMap::AllocPair>::iterator result;
         result = lmap.regionAllocs.find(*region_it);

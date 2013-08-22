@@ -14,6 +14,9 @@ ExternalProject_Add(LibElf
 )
 set(LIBELF_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/libelf/include)
 set(LIBELF_LIBRARIES ${CMAKE_SOURCE_DIR}/libelf/lib/libelf.so)
+set(SHOULD_INSTALL_LIBELF 1)
+else()
+set(SHOULD_INSTALL_LIBELF 0)
 endif()
 
 add_library(libelf_imp SHARED IMPORTED)

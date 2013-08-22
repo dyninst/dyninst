@@ -141,8 +141,8 @@ void LinkMap::printAll(ostream &os, Offset globalOffset) {
             printRegionFromInfo(os, originalCtorRegion, 0, 0);
         }
 
-        vector<Region *>::iterator reg_it;
-        for(reg_it = newCtorRegions.begin(); reg_it != newCtorRegions.end(); ++reg_it) {
+        for(auto reg_it = newCtorRegions.begin(); 
+	    reg_it != newCtorRegions.end(); ++reg_it) {
             printRegion(os, *reg_it, globalOffset);
         }
 
@@ -159,8 +159,8 @@ void LinkMap::printAll(ostream &os, Offset globalOffset) {
             printRegionFromInfo(os, originalDtorRegion, 0, 0);
         }
 
-        vector<Region *>::iterator reg_it;
-        for(reg_it = newDtorRegions.begin(); reg_it != newDtorRegions.end(); ++reg_it) {
+        for(auto reg_it = newDtorRegions.begin(); 
+	    reg_it != newDtorRegions.end(); ++reg_it) {
             printRegion(os, *reg_it, globalOffset);
         }
 
