@@ -167,6 +167,8 @@ set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE C)
 endif ()
 
 add_library (dyninstAPI ${SRC_LIST})
+add_library (dyninstAPI_static STATIC ${SRC_LIST})
+
 
 target_link_libraries (dyninstAPI stackwalk)
 target_link_libraries (dyninstAPI pcontrol)
@@ -183,9 +185,9 @@ target_link_libraries (dyninstAPI pthread)
 endif()
 
 FILE (GLOB headers "h/*.h")
-set_target_properties (dyninstAPI PROPERTIES PUBLIC_HEADER "${headers}")
+set_target_properties (dyninstAPI dyninstAPI_static PROPERTIES PUBLIC_HEADER "${headers}")
 
-INSTALL (TARGETS dyninstAPI
+INSTALL (TARGETS dyninstAPI dyninstAPI_static
         EXPORT DyninstTargets
         RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}

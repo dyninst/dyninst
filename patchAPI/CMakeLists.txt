@@ -27,16 +27,17 @@ ADD_DEFINITIONS(-DPATCHAPI_LIB)
 
 
 add_library (patchAPI ${SRC_LIST})
+add_library (patchAPI_static STATIC ${SRC_LIST})
 target_link_libraries(patchAPI common)
 target_link_libraries(patchAPI symtabAPI)
 target_link_libraries(patchAPI instructionAPI)
 target_link_libraries(patchAPI parseAPI)
 
 FILE (GLOB headers "h/*.h")
-set_target_properties (patchAPI PROPERTIES PUBLIC_HEADER "${headers}")
+set_target_properties (patchAPI patchAPI_static PROPERTIES PUBLIC_HEADER "${headers}")
 
 
-INSTALL (TARGETS patchAPI
+INSTALL (TARGETS patchAPI patchAPI_static
         EXPORT DyninstTargets
         RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}

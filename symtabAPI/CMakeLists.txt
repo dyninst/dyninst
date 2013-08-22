@@ -83,17 +83,18 @@ ADD_DEFINITIONS(-DSYMTAB_LIB)
   
 
 add_library (symtabAPI ${SRC_LIST})
+add_library (symtabAPI_static STATIC  ${SRC_LIST})
 target_link_libraries (symtabAPI common)
 
 FILE (GLOB headers "h/*.h")
-set_target_properties (symtabAPI PROPERTIES PUBLIC_HEADER "${headers}")
+set_target_properties (symtabAPI symtabAPI_static PROPERTIES PUBLIC_HEADER "${headers}")
 
 if (UNIX)
   target_link_libraries (symtabAPI dynElf ${LIBELF_LIBRARIES})
   target_link_libraries (symtabAPI dynDwarf ${LIBDWARF_LIBRARIES})
 endif()
 
-INSTALL (TARGETS symtabAPI
+INSTALL (TARGETS symtabAPI symtabAPI_static
         EXPORT DyninstTargets
         RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}

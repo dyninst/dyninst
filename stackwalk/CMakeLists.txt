@@ -81,6 +81,7 @@ SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 ADD_DEFINITIONS(-DSTACKWALKER_EXPORTS)
 
 add_library (stackwalk ${SRC_LIST})
+add_library (stackwalk_static STATIC ${SRC_LIST})
 
 target_link_libraries (stackwalk pcontrol)
 
@@ -100,9 +101,9 @@ target_link_libraries(stackwalk parseAPI)
 endif()
 
 FILE (GLOB headers "h/*.h")
-set_target_properties (stackwalk PROPERTIES PUBLIC_HEADER "${headers}")
+set_target_properties (stackwalk stackwalk_static PROPERTIES PUBLIC_HEADER "${headers}")
 
-INSTALL (TARGETS stackwalk
+INSTALL (TARGETS stackwalk stackwalk_static
         EXPORT DyninstTargets
         RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}

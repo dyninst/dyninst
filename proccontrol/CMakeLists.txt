@@ -81,6 +81,7 @@ SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 ADD_DEFINITIONS(-DPROCCONTROL_EXPORTS)
 
 add_library (pcontrol ${SRC_LIST})
+add_library (pcontrol_static STATIC ${SRC_LIST})
 target_link_libraries(pcontrol common)
 
 if (UNIX)
@@ -93,9 +94,9 @@ target_link_libraries(pcontrol symtabAPI)
 endif()
 
 FILE (GLOB headers "h/*.h")
-set_target_properties (pcontrol PROPERTIES PUBLIC_HEADER "${headers}")
+set_target_properties (pcontrol pcontrol_static PROPERTIES PUBLIC_HEADER "${headers}")
 
-INSTALL (TARGETS pcontrol
+INSTALL (TARGETS pcontrol pcontrol_static
         EXPORT DyninstTargets
         RUNTIME DESTINATION ${INSTALL_LIB_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
