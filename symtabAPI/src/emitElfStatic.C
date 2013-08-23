@@ -1057,10 +1057,8 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
       Region::RegionType type;
       if (addressWidth_ == 8) {
 	type = Region::RT_RELA;
-	cerr << "Adding region with type rela" << endl;
       }
       else {
-	cerr << "Adding region with type rel" << endl;
 	type = Region::RT_REL;
       }
       target->addRegion(globalOffset + lmap.relRegionOffset,
