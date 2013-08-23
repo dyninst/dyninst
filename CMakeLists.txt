@@ -203,7 +203,12 @@ include (checkMutateeCompiler.cmake)
 include (${DYNINST_PLATFORM}/cmake-compilers.txt)
 
 add_library (testA SHARED src/libtestA.c)
+add_library (testA_static STATIC src/libtestA.c)
 add_library (testB SHARED src/libtestB.c)
+add_library (testB_static STATIC src/libtestB.c)
+set_target_properties(testA_static PROPERTIES OUTPUT_NAME testA)
+set_target_properties(testB_static PROPERTIES OUTPUT_NAME testB)
+
 if(UNIX)
 add_library (Test12 SHARED src/dyninst/libTest12.c)
 install (TARGETS Test12 
@@ -212,7 +217,7 @@ install (TARGETS Test12
 	ARCHIVE DESTINATION ${INSTALL_DIR}
 )
 endif()
-install (TARGETS testA testB 
+install (TARGETS testA testB testA_static testB_static
 	LIBRARY DESTINATION ${INSTALL_DIR}
 	RUNTIME DESTINATION ${INSTALL_DIR}
 	ARCHIVE DESTINATION ${INSTALL_DIR}
