@@ -253,13 +253,6 @@ void add_handler(instPoint* pt, func_instance* add_me)
 }
 
 
-static bool replaceHandler(func_instance *origHandler, func_instance *newHandler,
-			   int_symbol *sym, std::string name) {
-  std::vector<std::pair<int_symbol *, std::string> > tmp;
-  tmp.push_back(make_pair(sym, name));
-  return replaceHandler(origHandler, newHandler, tmp);
-}
-
 bool BinaryEdit::doStaticBinarySpecialCases() {
     Symtab *origBinary = mobj->parse_img()->getObject();
 
