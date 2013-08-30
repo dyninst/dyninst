@@ -47,7 +47,7 @@
 
 extern void DYNINST_stopThread(void *, void *, void *, void *);
 
-struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0};
+struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0, {}};
 extern FILE *stOut;
 
 //#define DEBUG_MEM_EM
@@ -58,8 +58,8 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
    int min;
    int max;
    volatile int guard2;
-   origAddr = 0;
-   currAddr = 0;
+   (void)origAddr; /* unused parameter */
+   (void)currAddr; /* unused parameter */
 
    do {
       guard2 = RTmemoryMapper.guard2;
@@ -103,8 +103,8 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
    int min;
    int max;
    volatile int guard2;
-   origAddr = 0;
-   currAddr = 0;
+   (void)origAddr; /* unused parameter */
+   (void)currAddr; /* unused parameter */
 
    do {
       guard2 = RTmemoryMapper.guard2;
@@ -147,6 +147,7 @@ int RTuntranslatedEntryCounter;
 extern void DYNINST_stopThread (void * pointAddr, void *callBackID, void *flags, void *calculation);
 
 void RThandleShadow(void *direction, void *pointAddr, void *callbackID, void *flags, void *calculation) {
+   (void)calculation; /* unused parameter */
    if ((int)((long) direction) == 1) {
         if (RTuntranslatedEntryCounter == 0) {
             // Entering a system call...
