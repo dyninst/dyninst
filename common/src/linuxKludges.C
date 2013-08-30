@@ -179,7 +179,7 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
 using namespace __cxxabiv1;
 #endif
 
-char * COMMON_EXPORT P_cplus_demangle( const char * symbol, bool nativeCompiler,
+char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
 				bool includeTypes ) 
 {
    int opts = 0;
