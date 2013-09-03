@@ -224,7 +224,8 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 
       usedTrap = true;
       if (conflict(r.from, r.from + 1, r.fromRelocatedCode)) return Failed;
-
+      if(!addrSpace_->canUseTraps()) return Failed;
+      
       generateTrap(r.from, r.destinations.begin()->second, gen);
       size = 1;
    }

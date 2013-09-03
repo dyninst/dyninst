@@ -1507,13 +1507,6 @@ func_instance *AddressSpace::findFuncByEntry(Address addr) {
 
 bool AddressSpace::canUseTraps()
 {
-   BinaryEdit *binEdit = dynamic_cast<BinaryEdit *>(this);
-   if (binEdit && binEdit->getMappedObject()->parse_img()->getObject()->isStaticBinary())
-      return false;
-
-   PCProcess *pcProc = dynamic_cast<PCProcess *>(this);
-   if( pcProc ) return useTraps_;
-
 #if !defined(cap_mutatee_traps)
    return false;
 #else
