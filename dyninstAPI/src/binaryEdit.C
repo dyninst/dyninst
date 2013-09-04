@@ -1058,5 +1058,6 @@ void BinaryEdit::addTrap(Address from, Address to, codeGen &gen) {
    gen.setAddr(from);
    insnCodeGen::generateTrap(gen);
    trapMapping.addTrapMapping(from, to, true);
+   springboard_cerr << "Generated springboard trap " << hex << from << "->" << to << dec << endl;
 }
 

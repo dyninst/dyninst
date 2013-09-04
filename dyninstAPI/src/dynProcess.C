@@ -3312,7 +3312,7 @@ bool PCProcess::continueSyncRPCThreads() {
     return true;
 }
 
-void PCProcess::addTrap(Address from, Address to, codeGen &) {
+void PCProcess::addTrap(Address from, Address to, codeGen &gen) {
     map<Address, Breakpoint::ptr>::iterator breakIter =
        installedCtrlBrkpts.find(from);
 
@@ -3331,6 +3331,7 @@ void PCProcess::addTrap(Address from, Address to, codeGen &) {
     }
 
     installedCtrlBrkpts.insert(make_pair(from, newBreak));
+    gen.invalidate();
 }
 
 void PCProcess::removeTrap(Address from) {

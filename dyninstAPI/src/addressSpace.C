@@ -1988,11 +1988,12 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
   for (std::list<codeGen>::iterator iter = patches.begin();
        iter != patches.end(); ++iter) 
   {
-      //relocation_cerr << "Writing springboard @ " << hex << iter->startAddr() << endl;
+      springboard_cerr << "Writing springboard @ " << hex << iter->startAddr() << endl;
       if (!writeTextSpace((void *)iter->startAddr(),
           iter->used(),
           iter->start_ptr())) 
       {
+	springboard_cerr << "\t FAILED to write springboard @ " << hex << iter->startAddr() << endl;
          // HACK: code modification will make this happen...
          return false;
       }

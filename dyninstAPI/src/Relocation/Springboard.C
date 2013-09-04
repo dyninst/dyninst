@@ -214,10 +214,10 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    codeGen gen;
 
    bool usedTrap = false;
-   unsigned size;
    // Arbitrarily select the first function containing this springboard, since only one can win. 
    generateBranch(r.from, r.destinations.begin()->second, gen);
-
+   unsigned size = gen.used();
+   
    if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
@@ -234,14 +234,8 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
       createRelocSpringboards(r, usedTrap, input);
    }
    
-   if (!usedTrap) {
-      registerBranch(r.from, r.from + gen.used(), r.destinations, r.fromRelocatedCode);
-      springboards.push_back(gen);
-   }
-   else {
-      // Assume trap has size 1
-      registerBranch(r.from, r.from + 1, r.destinations, r.fromRelocatedCode);
-   }
+   registerBranch(r.from, r.from + size, r.destinations, r.fromRelocatedCode);
+   springboards.push_back(gen);
 
    return Succeeded;
 }

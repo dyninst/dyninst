@@ -774,7 +774,6 @@ void* dyninstTrapTranslate(void *source,
       }         
    } while (local_version != *table_version);
 
-   // rtdebug_printf "Mapped %p to %p\n", source, target);
    return target;
 }
 
