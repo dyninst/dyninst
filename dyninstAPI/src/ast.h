@@ -400,7 +400,8 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 	BPatch_type *getType();
 	void		  setType(BPatch_type *t);
 	void		  setTypeChecking(bool x) { doTypeCheck = x; }
-	virtual BPatch_type	  *checkType();
+	virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
+	
 
         // PatchAPI compatibility
         virtual bool generate(Dyninst::PatchAPI::Point *, 
@@ -460,7 +461,7 @@ class AstOperatorNode : public AstNode {
    virtual std::string format(std::string indent);
     virtual int costHelper(enum CostStyleType costStyle) const;	
 
-    virtual BPatch_type	  *checkType();
+    virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
     virtual bool accessesParam(void);         // Does this AST access "Param"
 
     virtual bool canBeKept() const;
@@ -533,7 +534,7 @@ class AstOperandNode : public AstNode {
 
     virtual int costHelper(enum CostStyleType costStyle) const;	
         
-    virtual BPatch_type	  *checkType();
+    virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
 
     virtual bool accessesParam(void) { return (oType == Param || oType == ParamAtEntry || oType == ParamAtCall); };
     virtual bool canBeKept() const;
@@ -588,7 +589,7 @@ class AstCallNode : public AstNode {
 
     virtual int costHelper(enum CostStyleType costStyle) const;	
         
-    virtual BPatch_type	  *checkType();
+    virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
     virtual bool accessesParam(); 
     virtual bool canBeKept() const;
 
@@ -637,7 +638,7 @@ class AstSequenceNode : public AstNode {
 
     virtual int costHelper(enum CostStyleType costStyle) const;	
 
-    virtual BPatch_type	  *checkType();
+    virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
     virtual bool accessesParam();
     virtual bool canBeKept() const;
 
@@ -671,7 +672,7 @@ class AstVariableNode : public AstNode {
 
     virtual int costHelper(enum CostStyleType costStyle) const;	
 
-    virtual BPatch_type	  *checkType() { return getType(); }
+    virtual BPatch_type	  *checkType(BPatch_function* = NULL) { return getType(); }
     virtual bool accessesParam();
     virtual bool canBeKept() const;
     virtual operandType getoType() const { return ast_wrappers_[index]->getoType(); };
@@ -839,7 +840,7 @@ class AstOriginalAddrNode : public AstNode {
     virtual ~AstOriginalAddrNode() {};
 
 
-    virtual BPatch_type *checkType() { return getType(); };
+    virtual BPatch_type *checkType(BPatch_function*  = NULL) { return getType(); };
     virtual bool canBeKept() const { return true; }
     virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
@@ -859,7 +860,7 @@ class AstActualAddrNode : public AstNode {
     virtual ~AstActualAddrNode() {};
 
 
-    virtual BPatch_type *checkType() { return getType(); };
+    virtual BPatch_type *checkType(BPatch_function*  = NULL) { return getType(); };
     virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
@@ -878,7 +879,7 @@ class AstDynamicTargetNode : public AstNode {
     virtual ~AstDynamicTargetNode() {};
 
 
-    virtual BPatch_type *checkType() { return getType(); };
+    virtual BPatch_type *checkType(BPatch_function*  = NULL) { return getType(); };
     virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;

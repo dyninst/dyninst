@@ -931,6 +931,10 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
                FILE__, __LINE__, i);
          return retHandle;
       }
+      if(!expr.checkTypesAtPoint(bppoint)) 
+      {
+	continue;
+      }
 
       /* PatchAPI stuffs */
       instPoint *ipoint = static_cast<instPoint *>(bppoint->getPoint(when));

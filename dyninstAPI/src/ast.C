@@ -31,13 +31,13 @@
 // $Id: ast.C,v 1.209 2008/09/15 18:37:49 jaw Exp $
 
 #include "dyninstAPI/src/image.h"
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/debug.h"
+#include "function.h"
+#include "inst.h"
+#include "instP.h"
+#include "instPoint.h"
+#include "ast.h"
+#include "util.h"
+#include "debug.h"
 
 extern int dyn_debug_ast;
 
@@ -47,21 +47,21 @@ extern int dyn_debug_ast;
 using namespace Dyninst::InstructionAPI;
 
 #include "dyninstAPI/h/BPatch.h"
-#include "dyninstAPI/src/BPatch_collections.h"
+#include "BPatch_collections.h"
 #include "dyninstAPI/h/BPatch_type.h"
-#include "dyninstAPI/src/BPatch_libInfo.h" // For instPoint->BPatch_point mapping
-
+#include "BPatch_libInfo.h" // For instPoint->BPatch_point mapping
+#include "BPatch_function.h"
 #include "dyninstAPI/h/BPatch_point.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/h/BPatch_type.h"
 
-#include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/binaryEdit.h"
+#include "addressSpace.h"
+#include "binaryEdit.h"
 
 #if defined(arch_power)
-#include "dyninstAPI/src/inst-power.h"
+#include "inst-power.h"
 #elif defined(arch_x86) || defined (arch_x86_64)
-#include "dyninstAPI/src/inst-x86.h"
+#include "inst-x86.h"
 extern int tramp_pre_frame_size_32;
 extern int tramp_pre_frame_size_64;
 #else
@@ -2261,11 +2261,11 @@ void AstNode::print() const {
 }
 #endif
 
-BPatch_type *AstNode::checkType() {
+BPatch_type *AstNode::checkType(BPatch_function* func) {
     return BPatch::bpatch->type_Untyped;
 }
 
-BPatch_type *AstOperatorNode::checkType() {
+BPatch_type *AstOperatorNode::checkType(BPatch_function* func) {
     BPatch_type *ret = NULL;
     BPatch_type *lType = NULL, *rType = NULL, *eType = NULL;
     bool errorFlag = false;
@@ -2279,11 +2279,11 @@ BPatch_type *AstOperatorNode::checkType() {
        return ret;
     }
 
-    if (loperand) lType = loperand->checkType();
+    if (loperand) lType = loperand->checkType(func);
 
-    if (roperand) rType = roperand->checkType();
+    if (roperand) rType = roperand->checkType(func);
 
-    if (eoperand) eType = eoperand->checkType();
+    if (eoperand) eType = eoperand->checkType(func);
 
     if (lType == BPatch::bpatch->type_Error ||
         rType == BPatch::bpatch->type_Error)
@@ -2350,7 +2350,7 @@ BPatch_type *AstOperatorNode::checkType() {
     return ret;
 }
 
-BPatch_type *AstOperandNode::checkType()
+BPatch_type *AstOperandNode::checkType(BPatch_function* func)
 {
     BPatch_type *ret = NULL;
     BPatch_type *type = NULL;
@@ -2365,7 +2365,7 @@ BPatch_type *AstOperandNode::checkType()
        return ret;
     }
     
-    if (operand_) type = operand_->checkType();
+    if (operand_) type = operand_->checkType(func);
 
     if (type == BPatch::bpatch->type_Error)
        errorFlag = true;
@@ -2377,9 +2377,30 @@ BPatch_type *AstOperandNode::checkType()
     else if ((oType == Param) || (oType == ParamAtCall) || 
              (oType == ParamAtEntry) || (oType == ReturnVal) 
              || (oType == ReturnAddr)) {
-            // XXX Params and ReturnVals untyped for now
-      // ReturnAddr should be void *, probably
+      if(func)
+      {
+	switch(oType)
+	{
+	case ReturnVal:
+	  {
+	    ret = func->getReturnType();
+	    if(!ret || (ret == BPatch::bpatch->builtInTypes->findBuiltInType("void"))) {
+	      errorFlag = true;
+	      ret = BPatch::bpatch->type_Untyped;
+	    }
+	    
+	    break;
+	  }
+	default:
+	  ret = BPatch::bpatch->type_Untyped;
+	}
+	
+      }
+      else
+      {
+	// If we don't have a function context, then ignore types
         ret = BPatch::bpatch->type_Untyped; 
+      }
     }
     else if ((oType == origRegister)) {
         ret = BPatch::bpatch->type_Untyped;
@@ -2416,7 +2437,7 @@ BPatch_type *AstOperandNode::checkType()
 }
 
 
-BPatch_type *AstCallNode::checkType() {
+BPatch_type *AstCallNode::checkType(BPatch_function* func) {
     BPatch_type *ret = NULL;
     bool errorFlag = false;
     
@@ -2424,7 +2445,7 @@ BPatch_type *AstCallNode::checkType() {
     
     unsigned i;
     for (i = 0; i < args_.size(); i++) {
-        BPatch_type *operandType = args_[i]->checkType();
+        BPatch_type *operandType = args_[i]->checkType(func);
         /* XXX Check operands for compatibility */
         if (operandType == BPatch::bpatch->type_Error) {
             errorFlag = true;
@@ -2460,7 +2481,7 @@ BPatch_type *AstCallNode::checkType() {
     return ret;
 }
 
-BPatch_type *AstSequenceNode::checkType() {
+BPatch_type *AstSequenceNode::checkType(BPatch_function* func) {
     BPatch_type *ret = NULL;
     BPatch_type *sType = NULL;
     bool errorFlag = false;
@@ -2475,7 +2496,7 @@ BPatch_type *AstSequenceNode::checkType() {
     }
 
     for (unsigned i = 0; i < sequence_.size(); i++) {
-        sType = sequence_[i]->checkType();
+        sType = sequence_[i]->checkType(func);
         if (sType == BPatch::bpatch->type_Error)
             errorFlag = true;
     }

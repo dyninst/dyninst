@@ -1792,3 +1792,10 @@ Dyninst::PatchAPI::Snippet::Ptr Dyninst::PatchAPI::convert(const BPatch_snippet 
    return snip->ast_wrapper;
 }
 
+bool BPatch_snippet::checkTypesAtPoint(BPatch_point* p) const
+{
+  if(!p) return true;
+  
+  return ast_wrapper->checkType(p->getFunction()) != BPatch::bpatch->type_Error;
+}
+
