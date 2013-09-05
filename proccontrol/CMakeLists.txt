@@ -83,6 +83,7 @@ ADD_DEFINITIONS(-DPROCCONTROL_EXPORTS)
 add_library (pcontrol ${SRC_LIST})
 add_library (pcontrol_static STATIC ${SRC_LIST})
 target_link_libraries(pcontrol common)
+target_link_libraries(pcontrol ${CMAKE_DL_LIBS})
 
 if (UNIX)
 target_link_libraries(pcontrol dynElf)
