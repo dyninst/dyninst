@@ -36,6 +36,8 @@
 
 int test1_13_func1(int p1, int p2, int p3, int p4, int p5);
 int test1_13_func2();
+void test1_13_func3();
+
 void test1_13_call1(int a1, int a2, int a3, int a4, int a5);
 void test1_13_call2(int ret);
 
@@ -53,6 +55,7 @@ void test1_13_call2(int ret);
  */
 
 static int globalVariable13_1 = 0;
+static int called_func_3 = 0;
 
 #define RET13_1 1300100
 
@@ -68,7 +71,7 @@ int test1_13_mutatee() {
 
   retval = test1_13_func1(131, 132, 133, 134, 135);
   
-  if (0 == retval) {
+  if (0 == retval && called_func_3) {
     test_passes(testname);
   }
   return retval;
@@ -77,6 +80,10 @@ int test1_13_mutatee() {
 int test1_13_func2()
 {
     return(RET13_1);
+}
+void test1_13_func3()
+{
+  called_func_3 = 1;
 }
 
 int test1_13_func1(int p1, int p2, int p3, int p4, int p5)
@@ -103,6 +110,7 @@ int test1_13_func1(int p1, int p2, int p3, int p4, int p5)
 	if (!(globalVariable13_1 & 32)) logerror("    return value wrong\n");
 	retval = -1; /* Test failed */
     }
+    test1_13_func3();
     return retval;
 }
 
