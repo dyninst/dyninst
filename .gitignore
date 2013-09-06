@@ -91,3 +91,11 @@ Makefile
 *log.*
 *.rej
 install_manifest.txt
+binutils
+libelf
+libdwarf
+*.aux
+*.dvi
+*.toc
+CHANGELOG
+*.bak

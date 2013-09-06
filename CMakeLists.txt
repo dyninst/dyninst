@@ -162,7 +162,6 @@ configure_file(cmake/DyninstConfig.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_
 
 # And version file
 configure_file(cmake/DyninstConfigVersion.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfigVersion.cmake" @ONLY)
-configure_file(cmake/DyninstConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/DyninstConfigVersion.cmake" @ONLY)
 
 if(UNIX)
 if(SHOULD_INSTALL_LIBELF)
@@ -173,9 +172,11 @@ message(STATUS "Installing ${LIBELF_INSTALL_FILES} from ${ELFDIR}")
 install (FILES ${LIBELF_INSTALL_FILES}
 	DESTINATION "${INSTALL_LIB_DIR}")
 endif()
+if(NOT LIBDWARF_FOUND)
 message(STATUS "Installing ${LIBDWARF_LIBRARIES}")
 install (FILES ${LIBDWARF_LIBRARIES}
 	DESTINATION "${INSTALL_LIB_DIR}")
+endif()
 endif()
 install (FILES
         "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfig.cmake"

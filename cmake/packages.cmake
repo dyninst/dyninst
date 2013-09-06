@@ -30,7 +30,12 @@ message(STATUS "No libdwarf found, attempting to build as external project")
 ExternalProject_Add(LibDwarf
 	PREFIX ${CMAKE_SOURCE_DIR}/libdwarf
 	DEPENDS libelf_imp
-	URL http://reality.sgiweb.org/davea/libdwarf-20130126.tar.gz
+#	URL http://reality.sgiweb.org/davea/libdwarf-20130126.tar.gz
+#	URL http://sourceforge.net/code-snapshots/git/l/li/libdwarf/code.git/libdwarf-code-cc781ea02fda2885760910dc4fc81cce257e10f9.zip
+#	URL http://sourceforge.net/p/libdwarf/code/ci/20130126/tarball
+	URL http://www.paradyn.org/libdwarf/libdwarf-20130126.tar.gz
+#	GIT_REPOSITORY git://git.code.sf.net/p/libdwarf/code libdwarf-code
+#	GIT_TAG 20130126
 	CONFIGURE_COMMAND CFLAGS=-I${LIBELF_INCLUDE_DIR} LDFLAGS=-L${CMAKE_SOURCE_DIR}/libelf/lib <SOURCE_DIR>/libdwarf/configure --enable-shared
 	BUILD_COMMAND make
 	INSTALL_DIR ${CMAKE_SOURCE_DIR}/libdwarf
