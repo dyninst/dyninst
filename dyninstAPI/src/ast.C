@@ -2258,7 +2258,7 @@ void AstNode::print() const {
 }
 #endif
 
-BPatch_type *AstNode::checkType(BPatch_function* func) {
+BPatch_type *AstNode::checkType(BPatch_function*) {
     return BPatch::bpatch->type_Untyped;
 }
 
