@@ -48,6 +48,7 @@ set (SRC_LIST ${SRC_LIST}
      src/unix.C
      src/notify_pipe.C
      ../common/src/dthread-unix.C
+	 ../common/src/dthread.C
      src/loadLibrary/codegen-freebsd.C
   )
 elseif (PLATFORM MATCHES linux)
@@ -56,6 +57,7 @@ set (SRC_LIST ${SRC_LIST}
      src/unix.C
      src/notify_pipe.C
      ../common/src/dthread-unix.C
+	 ../common/src/dthread.C
      src/loadLibrary/codegen-linux.C
   )
 elseif (PLATFORM MATCHES bgq)
@@ -64,6 +66,7 @@ set (SRC_LIST ${SRC_LIST}
      src/bgq-messages.C
      src/notify_pipe.C
      ../common/src/dthread-unix.C
+	 ../common/src/dthread.C
      src/loadLibrary/codegen-linux.C
   )
 elseif (PLATFORM MATCHES cnl)
@@ -72,6 +75,7 @@ set (SRC_LIST ${SRC_LIST}
      src/unix.C
      src/notify_pipe.C
      ../common/src/dthread-unix.C
+	 ../common/src/dthread.C
      src/loadLibrary/codegen-stub.C
   )
 endif()
@@ -87,6 +91,7 @@ target_link_libraries(pcontrol common)
 if (UNIX)
 target_link_libraries(pcontrol dynElf)
 target_link_libraries(pcontrol symLite)
+target_link_libraries(pcontrol ${Boost_LIBRARIES})
 endif()
 
 if(WIN32)
