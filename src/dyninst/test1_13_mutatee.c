@@ -89,8 +89,11 @@ void test1_13_func3()
 int test1_13_func1(int p1, int p2, int p3, int p4, int p5)
 {
   int retval;
-    test1_13_func2();
-
+  if(test1_13_func2() != RET13_1) 
+  {
+    logerror("Failed test #13; instrumentation affected return value of func2\n");
+    return -1;
+  }
     if ((p1 == 131) && (p2 == 132) && (p3 == 133) &&
 	(p4 == 134) && (p5 == 135) && (globalVariable13_1 == 63)) {
 	logerror("Passed test #13 (paramExpr,retExpr,nullExpr)\n");

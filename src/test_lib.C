@@ -87,7 +87,7 @@ using namespace std;
 
 
 /* Control Debug printf statements */
-int debugPrint = 0;
+static int debugPrint_ = 0;
 
 // output logging
 FILE *outlog = NULL;
@@ -343,8 +343,13 @@ void flushErrorLog() {
 }
 
 void setDebugPrint(int debug) {
-   debugPrint = debug;
+   debugPrint_ = debug;
 }
+int debugPrint() 
+{
+  return debugPrint_;
+}
+
 
 bool inTestList(test_data_t &test, std::vector<char *> &test_list)
 {
@@ -368,7 +373,7 @@ void dprintf(const char *fmt, ...) {
    va_list args;
    va_start(args, fmt);
 
-   if(debugPrint)
+   if(debugPrint())
       vfprintf(stderr, fmt, args);
 
    va_end(args);

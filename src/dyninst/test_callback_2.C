@@ -71,7 +71,6 @@ extern "C" DLLEXPORT TestMutator *test_callback_2_factory() {
 #define TESTNAME "test_callback_2"
 #define TESTDESC "user defined message callback -- st"
 
-extern int debugPrint;
 
 bool test7done = false;
 bool test7err = false;
@@ -160,7 +159,7 @@ bool test_callback_2_Mutator::setVar(const char *vname, void *addr, int testno,
 
 static void test7cb(BPatch_process *  proc, void *buf, unsigned int bufsize)
 {
-  if (debugPrint)
+  if (debugPrint())
     dprintf("%s[%d]:  inside test7cb\n", __FILE__, __LINE__);
 
   if (bufsize != sizeof(user_msg_t)) {
@@ -175,7 +174,7 @@ static void test7cb(BPatch_process *  proc, void *buf, unsigned int bufsize)
   user_event_t what = msg->what;
   unsigned long tid = msg->tid;
 
-  if (debugPrint)
+  if (debugPrint())
     dprintf("%s[%d]:  thread = %lu, what = %d\n", __FILE__, __LINE__, tid, what);
 
   elog.push_back(*msg);
@@ -362,7 +361,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 		bpatch->removeUserEventCallback(test7cb);
 		return FAILED;
 	}
-	if (debugPrint) 
+	if (debugPrint()) 
 	{
 		int one = 1;
 		const char *varName = "libraryDebug";
@@ -495,7 +494,6 @@ test_results_t test_callback_2_Mutator::executeTest()
 // extern "C" int test12_7_mutatorMAIN(ParameterDict &param)
 test_results_t test_callback_2_Mutator::setup(ParameterDict &param) {
 	DyninstMutator::setup(param);
-	debugPrint = param["debugPrint"]->getInt();
 	bpatch = (BPatch *)(param["bpatch"]->getPtr());
 	return PASSED;
 }

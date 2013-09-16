@@ -178,7 +178,12 @@ test_results_t test1_13_Mutator::executeTest()
 	// This insertion *should* fail, as we're trying to instrument the return point of a
 	// void function.
 	if(insertSnippetAt(appAddrSpace, appImage, "test1_13_func3", BPatch_exit, call13_3Expr, 13, 
-			   "Test type system: void functions can't take retExprs")) return FAILED;
+			   "Test type system: void functions can't take retExprs")) {
+	  logerror("Failed: retExpr inserted into void function\n");
+	  
+	  return FAILED;
+	}
+	
 	
 	return PASSED;
 } // test1_13_Mutator::executeTest()

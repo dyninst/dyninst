@@ -90,8 +90,6 @@ public:
 bool isMutateeMABI32(const char *name);
 bool isMutateeXLC(const char *name);
 
-static bool debugPrint;
-
 DyninstComponent::DyninstComponent() :
    bpatch(NULL),
    libRTname(NULL),
@@ -1102,7 +1100,7 @@ bool verifyChildMemory(BPatch_process *appThread,
 
 void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg)
 {
-	if(!debugPrint)
+  if(!debugPrint())
 		return;
 
 	printf("%s: %d\n", msg, res->size());
@@ -1136,7 +1134,7 @@ void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg)
 
 static inline void dumpxpct(const BPatch_memoryAccess* exp[], unsigned int size, const char* msg)
 {
-  //	if(!debugPrint)
+  //	if(!debugPrint())
   //	return;
 
 	printf("%s: %d\n", msg, size);
@@ -1577,7 +1575,7 @@ void buildArgs(const char** child_argv, char *pathname, int testNo){
 	int n=0;
 
 	child_argv[n++] = pathname;
-	if (debugPrint){
+	if (debugPrint()){
 		child_argv[n++] = const_cast<char*>("-verbose");
 	}
 	child_argv[n++] = const_cast<char*>("-orig"); 

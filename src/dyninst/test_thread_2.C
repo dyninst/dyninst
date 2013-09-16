@@ -70,8 +70,6 @@ extern "C" DLLEXPORT TestMutator *test_thread_2_factory() {
 #define TESTNAME "test_thread_2"
 #define TESTDESC "thread create callback"
 
-static int debugPrint;
-
 void test_thread_2_Mutator::dumpVars() {
   BPatch_Vector<BPatch_variableExpr *> vars;
   appImage->getVariables(vars);
@@ -127,7 +125,7 @@ static int test3_threadCreateCounter = 0;
 static void threadCreateCB(BPatch_process * proc, BPatch_thread *thr)
 {
   assert(thr);  
-  if (debugPrint)
+  if (debugPrint())
      dprintf("%s[%d]:  thread %lu start event for pid %d\n", __FILE__, __LINE__,
              thr->getTid(), proc->getPid());
   test3_threadCreateCounter++;
@@ -212,7 +210,7 @@ test_results_t test_thread_2_Mutator::executeTest() {
     return FAILED;
   }
 
-  if (debugPrint) {
+  if (debugPrint()) {
     dprintf("%s[%d]:  read following tids for test%d from mutatee\n", __FILE__, __LINE__, TESTNO);
 
     for (unsigned int i = 0; i < TEST3_THREADS; ++i) {
@@ -263,7 +261,6 @@ test_results_t test_thread_2_Mutator::executeTest() {
 test_results_t test_thread_2_Mutator::setup(ParameterDict &param) {
   DyninstMutator::setup(param);
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
-  debugPrint = param["debugPrint"]->getInt();
 
   return PASSED;
 }

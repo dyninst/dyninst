@@ -61,7 +61,6 @@ extern "C" DLLEXPORT TestMutator *test_thread_1_factory() {
 
 static int mutateeXLC;
 extern BPatch *bpatch;
-static int debugPrint;
 
 static const char *expected_fnames[] = {"call1_1","call1_2","call1_3","call1_4"};
 static int test1done = 0;

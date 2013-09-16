@@ -70,7 +70,6 @@ extern "C" DLLEXPORT TestMutator *test_thread_3_factory() {
 #define TESTNAME "test_thread_3"
 #define TESTDESC "thread create callback - doa"
 
-static int debugPrint;
 
 void test_thread_3_Mutator::dumpVars() {
   BPatch_Vector<BPatch_variableExpr *> vars;
@@ -126,7 +125,7 @@ static int test3_threadCreateCounter = 0;
 static void threadCreateCB(BPatch_process * proc, BPatch_thread *thr)
 {
   assert(thr);  
-  if (debugPrint)
+  if (debugPrint())
      dprintf("%s[%d]:  thread %lu start event for pid %d\n", __FILE__, __LINE__,
                thr->getTid(), proc->getPid());
   test3_threadCreateCounter++;
@@ -213,7 +212,7 @@ test_results_t test_thread_3_Mutator::executeTest() {
          (sizeof(unsigned long) * TEST3_THREADS),
          TESTNO, TESTDESC);
 
-  if (debugPrint) {
+  if (debugPrint()) {
     dprintf("%s[%d]:  read following tids for test%d from mutatee\n", __FILE__, __LINE__, TESTNO);
 
     for (unsigned int i = 0; i < TEST3_THREADS; ++i) {
@@ -261,7 +260,6 @@ test_results_t test_thread_3_Mutator::executeTest() {
 
 test_results_t test_thread_3_Mutator::setup(ParameterDict &param) {
   DyninstMutator::setup(param);
-  debugPrint = param["debugPrint"]->getInt();
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   return PASSED;
 }

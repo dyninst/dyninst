@@ -69,7 +69,7 @@ test4_3_Mutator::test4_3_Mutator()
 static bool passedTest = false;
 static int threadCount = 0;
 static BPatch_process *mythreads[25];
-static int debugPrint;
+static int debugPrint_;
 
 static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 {
@@ -168,7 +168,7 @@ test_results_t test4_3_Mutator::mutatorTest() {
     dprintf("in mutatorTest3\n");
 
     child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
+    if (debugPrint()) child_argv[n++] = const_cast<char*>("-verbose");
 
     child_argv[n++] = const_cast<char*>("-run");
     child_argv[n++] = const_cast<char*>("test4_3");
@@ -220,7 +220,7 @@ test_results_t test4_3_Mutator::executeTest() {
 test_results_t test4_3_Mutator::setup(ParameterDict &param) {
     pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
-    debugPrint = param["debugPrint"]->getInt();
+    debugPrint_ = param["debugPrint"]->getInt();
 
     return PASSED;
 }

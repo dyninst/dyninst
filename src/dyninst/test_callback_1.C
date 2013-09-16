@@ -68,7 +68,6 @@ static const char *expected_fnames[] = {"call2_1","call2_2","call2_3","call2_4"}
 static int test2done = 0;
 static int test2err = 0;
 static int mutateeXLC = 0;
-static int debugPrint;
 template class BPatch_Vector<void *>;
 static BPatch_Vector<BPatch_point *> test2handles;
 static BPatch_Vector<BPatch_point *> dyncalls;
@@ -228,7 +227,6 @@ test_results_t test_callback_1_Mutator::setup(ParameterDict &param) {
   return SKIPPED;
 #else
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
-    debugPrint = param["debugPrint"]->getInt();
     mutateeXLC = param["mutateeXLC"]->getInt();
 
     if (DyninstMutator::setup(param) == FAILED) {

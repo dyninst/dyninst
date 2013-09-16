@@ -74,7 +74,6 @@ extern "C" DLLEXPORT TestMutator *test_thread_5_factory() {
 #define TESTNAME "test_thread_5"
 #define TESTDESC "user defined message callback -- mt"
 
-static int debugPrint;
 
 static BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc,
                         int testno, const char *testname)
@@ -165,7 +164,7 @@ static bool findThreadIndex(unsigned long tid, unsigned int &index)
   for (index = 0; index < TEST8_THREADS; ++index) {
     if (0 == tids[index]) {
       tids[index] = tid;
-      if (debugPrint)
+      if (debugPrint())
         dprintf("%s[%d]:  giving new slot to thread id %lu\n",
                 __FILE__, __LINE__, tid);
       return true;
@@ -180,7 +179,7 @@ static void test8cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
 {
   // FIXME This being static is probably killing the test
   static int destroy_counter = 0;
-  if (debugPrint)
+  if (debugPrint())
     dprintf("%s[%d]:  inside test8cb\n", __FILE__, __LINE__);
 
   if (bufsize != sizeof(user_msg_t)) {
@@ -195,7 +194,7 @@ static void test8cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
   user_event_t what = msg->what;
   unsigned long tid = msg->tid;
 
-  if (debugPrint)
+  if (debugPrint())
     dprintf("%s[%d]:  thread = %lu, what = %d\n", __FILE__, __LINE__, tid, what);
   unsigned int index;
   if (!findThreadIndex(tid, index)) {
@@ -205,7 +204,7 @@ static void test8cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
     return;
   }
 
-  if (debugPrint)
+  if (debugPrint())
     dprintf("%s[%d]:  thread id %lu: index %d\n", __FILE__, __LINE__, tid, index);
   if (last_event[index] != (what - 1)) {
     test8err = true;
@@ -379,7 +378,6 @@ test_results_t test_thread_5_Mutator::executeTest() {
 // extern "C" int test12_8_mutatorMAIN(ParameterDict &param)
 test_results_t test_thread_5_Mutator::setup(ParameterDict &param) {
   DyninstMutator::setup(param);
-  debugPrint = param["debugPrint"]->getInt();
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   return PASSED;
 }
