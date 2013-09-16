@@ -50,9 +50,11 @@ class DwarfWalker;
  * This object will store all the local variables within this function.
  * Note: This class is unaware of scope.
  */
+
+
 class SYMTAB_EXPORT localVarCollection : public AnnotationContainer<localVar *> {
   
-  std::vector<localVar *> localVars;
+  std::vector<localVar* > localVars;
   
   bool addItem_impl(localVar *);
 public:

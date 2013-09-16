@@ -145,6 +145,8 @@ class DwarfWalker {
    bool parseMember();
    bool parseConstPackedVolatile();
    bool parseTypeReferences();
+   bool parseHighPCLowPC();
+   
 
    // These vary as we parse the tree
    FunctionBase *curFunc() { return contexts_.curFunc(); }

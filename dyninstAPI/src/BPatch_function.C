@@ -569,7 +569,9 @@ BPatch_Vector<BPatch_localVar *> * BPatch_function::getParams()
 {
     if (!mod->isValid()) return NULL;
     constructVarsAndParams();
-    return funcParameters->getAllVars();
+    // Do *not* hand back the alphabetical locals collection; hand back the params in the order they're
+    // presented
+    return &params;
 }
 
 /*

@@ -2387,8 +2387,7 @@ BPatch_type *AstOperandNode::checkType(BPatch_function* func)
 	    if(!ret || (ret == BPatch::bpatch->builtInTypes->findBuiltInType("void"))) {
 	      errorFlag = true;
 	      ret = BPatch::bpatch->type_Untyped;
-	    }
-	    
+	    } 
 	    break;
 	  }
 	default:

@@ -957,7 +957,9 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
         return NULL;
      }
    }   
-
+   // If we inserted nothing successfully, NULL
+   if(retHandle->isEmpty()) return NULL;
+   
    return retHandle;
 }
 
