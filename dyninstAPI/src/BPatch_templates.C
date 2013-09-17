@@ -48,9 +48,9 @@
 #pragma implementation "refCounter.h"
 #endif
 #include <string>
-#include "common/h/refCounter.h"
-#include "common/h/Types.h"
-#include "common/h/Pair.h"
+#include "common/src/refCounter.h"
+#include "common/src/Types.h"
+#include "common/src/Pair.h"
 #include "function.h"
 
 // VG(09/19/01): I don't think one can forward a typedefed enum (BPatch_opCode)

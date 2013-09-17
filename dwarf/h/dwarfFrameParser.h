@@ -37,6 +37,7 @@
 #include "dyn_regs.h"
 #include "ProcReader.h"
 #include "libdwarf.h"
+#include "util.h"
 
 namespace Dyninst {
 
@@ -60,7 +61,7 @@ typedef struct {
 } fde_cie_data;
 
 
-class DwarfFrameParser {
+class DYNDWARF_EXPORT DwarfFrameParser {
   public:
 
    typedef boost::shared_ptr<DwarfFrameParser> Ptr;

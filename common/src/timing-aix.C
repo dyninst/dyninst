@@ -30,7 +30,7 @@
 
 
 // $Id: timing-aix.C,v 1.10 2007/05/30 19:20:30 legendre Exp $
-#include "common/h/timing.h"
+#include "common/src/timing.h"
 #include <stdio.h>
 #if defined(XLC) && defined(USE_PMAPI)
 #include <pmapi.h>

@@ -197,6 +197,10 @@ class BPATCH_DLL_EXPORT BPatch {
    BPatch_Vector<BPatchUserEventCallback> userEventCallbacks;
    BPatch_Vector<BPatchStopThreadCallback> stopThreadCallbacks;
 
+   // If we're destroying everything, skip cleaning up some intermediate
+   // data structures
+   bool inDestructor;
+
    public:  
      
    

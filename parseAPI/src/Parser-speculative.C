@@ -33,7 +33,7 @@
  * for function preambles in gaps between known code regions.
  */
 
-#include "common/h/arch.h"
+#include "common/src/arch.h"
 
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/CodeSource.h"

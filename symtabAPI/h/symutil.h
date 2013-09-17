@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//Hashing function for dictionary_hashes
+//Hashing function for std::unordered_mapes
 
 #if !defined(_symtab_util_h_)
 #define _symtab_util_h_
@@ -64,7 +64,7 @@ typedef enum {
    lang_CMFortran
 } supportedLanguages;
 
-const char *supportedLanguages2Str(supportedLanguages s);
+SYMTAB_EXPORT const char *supportedLanguages2Str(supportedLanguages s);
 
 typedef enum {
    obj_Unknown,

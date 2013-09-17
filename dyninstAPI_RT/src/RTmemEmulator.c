@@ -52,12 +52,14 @@ extern FILE *stOut;
 
 //#define DEBUG_MEM_EM
 
-unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
+unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, unsigned long currAddr) {
    /* Standard nonblocking synchronization construct */
    int index;
    int min;
    int max;
    volatile int guard2;
+   origAddr = 0;
+   currAddr = 0;
 
    do {
       guard2 = RTmemoryMapper.guard2;
@@ -95,12 +97,14 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
    return 0;
 }
 
-unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
+unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr, unsigned long currAddr) {
    /* Standard nonblocking synchronization construct */
 	int index;
    int min;
    int max;
    volatile int guard2;
+   origAddr = 0;
+   currAddr = 0;
 
    do {
       guard2 = RTmemoryMapper.guard2;

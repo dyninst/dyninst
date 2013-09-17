@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dynutil/h/dyntypes.h"
+#include "common/h/dyntypes.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/int_event.h"

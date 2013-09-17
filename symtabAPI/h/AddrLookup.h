@@ -47,7 +47,7 @@ typedef struct {
    Address dataAddr;
 } LoadedLibrary;
 
-class AddressLookup : public AnnotatableSparse
+class SYMTAB_EXPORT AddressLookup : public AnnotatableSparse
 {
  private:
    AddressTranslate *translator;
@@ -63,29 +63,29 @@ class AddressLookup : public AnnotatableSparse
    Dyninst::Address symToAddress(LoadedLib *ll, Symbol *sym);
    Symtab *getSymtab(LoadedLib *);
  public:
-   SYMTAB_EXPORT static AddressLookup *createAddressLookup(ProcessReader *reader = NULL);
-   SYMTAB_EXPORT static AddressLookup *createAddressLookup(PID pid, ProcessReader *reader = NULL);
-   SYMTAB_EXPORT static AddressLookup *createAddressLookup(const std::vector<LoadedLibrary> &name_addrs);
+   static AddressLookup *createAddressLookup(ProcessReader *reader = NULL);
+   static AddressLookup *createAddressLookup(PID pid, ProcessReader *reader = NULL);
+   static AddressLookup *createAddressLookup(const std::vector<LoadedLibrary> &name_addrs);
    
-   SYMTAB_EXPORT bool getAddress(Symtab *tab, Symbol *sym, Address &addr);
-   SYMTAB_EXPORT bool getAddress(Symtab *tab, Offset off, Address &addr);
+   bool getAddress(Symtab *tab, Symbol *sym, Address &addr);
+   bool getAddress(Symtab *tab, Offset off, Address &addr);
 
-   SYMTAB_EXPORT bool getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool close = false);
-   SYMTAB_EXPORT bool getOffset(Address addr, Symtab* &tab, Offset &off);
+   bool getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool close = false);
+   bool getOffset(Address addr, Symtab* &tab, Offset &off);
    
-   SYMTAB_EXPORT bool getAllSymtabs(std::vector<Symtab *> &tabs);
-   SYMTAB_EXPORT bool getLoadAddress(Symtab* sym, Address &load_addr);
-   SYMTAB_EXPORT bool getDataLoadAddress(Symtab* sym, Address &load_addr);
+   bool getAllSymtabs(std::vector<Symtab *> &tabs);
+   bool getLoadAddress(Symtab* sym, Address &load_addr);
+   bool getDataLoadAddress(Symtab* sym, Address &load_addr);
 
-   SYMTAB_EXPORT bool getLoadAddresses(std::vector<LoadedLibrary> &name_addrs);
-   SYMTAB_EXPORT bool getExecutable(LoadedLibrary &lib);
-   SYMTAB_EXPORT bool getOffset(Address addr, LoadedLibrary &lib, Offset &off);
+   bool getLoadAddresses(std::vector<LoadedLibrary> &name_addrs);
+   bool getExecutable(LoadedLibrary &lib);
+   bool getOffset(Address addr, LoadedLibrary &lib, Offset &off);
 
-   SYMTAB_EXPORT bool refresh();
+   bool refresh();
 
-   SYMTAB_EXPORT Address getLibraryTrapAddrSysV();
+   Address getLibraryTrapAddrSysV();
    
-   SYMTAB_EXPORT virtual ~AddressLookup();
+   virtual ~AddressLookup();
 };
 
 }

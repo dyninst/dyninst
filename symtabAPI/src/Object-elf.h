@@ -37,17 +37,17 @@
 #if !defined(_Object_elf_h_)
 #define _Object_elf_h_
 
-#if defined(USES_DWARF_DEBUG)
+#if defined(cap_dwarf)
 //#include "dwarf.h"
 #include "libdwarf.h"
 #include "dwarf/h/dwarfHandle.h"
 #endif
 
 #include<vector>
-#include "common/h/headers.h"
-#include "common/h/Types.h"
-#include "common/h/MappedFile.h"
-#include "common/h/IntervalTree.h"
+#include "common/src/headers.h"
+#include "common/src/Types.h"
+#include "common/src/MappedFile.h"
+#include "common/src/IntervalTree.h"
 
 #if 0
 #include "symtabAPI/h/Symbol.h"
@@ -599,7 +599,7 @@ class Object : public AObject {
                          Address textaddr, Address dataaddr,
                          std::vector<ExceptionBlock> &catch_addrs);
 
-#if defined(USES_DWARF_DEBUG)
+#if defined(cap_dwarf)
   std::string find_symbol(std::string name); 
   bool fixSymbolsInModule(Dwarf_Debug dbg, std::string & moduleName, Dwarf_Die dieEntry);
   unsigned fixSymbolsInModuleByRange(IntervalTree<Dwarf_Addr, std::string> &module_ranges);

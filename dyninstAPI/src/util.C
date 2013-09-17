@@ -32,8 +32,8 @@
  * util.C - support functions.
  */
 
-#include "common/h/headers.h"
-#include "common/h/Time.h"
+#include "common/src/headers.h"
+#include "common/src/Time.h"
 #include "dyninstAPI/src/util.h"
 #include "debug.h"
 

@@ -32,7 +32,7 @@
 
 #include "proccontrol/h/PCErrors.h"
 
-#include "common/h/dthread.h"
+#include "common/src/dthread.h"
 
 using namespace Dyninst;
 using namespace ProcControlAPI;

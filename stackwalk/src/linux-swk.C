@@ -40,7 +40,7 @@
 #include "stackwalk/src/symtab-swk.h"
 #include "stackwalk/src/libstate.h"
 
-#include "common/h/parseauxv.h"
+#include "common/src/parseauxv.h"
 
 #include <string>
 #include <sstream>
@@ -57,8 +57,8 @@
 #include <fcntl.h>
 #include <poll.h>
 
-#include "common/h/parseauxv.h"
-#include "dynutil/h/dyn_regs.h"
+#include "common/src/parseauxv.h"
+#include "common/h/dyn_regs.h"
 
 #include "symtabAPI/h/SymtabReader.h"
 

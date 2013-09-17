@@ -29,7 +29,7 @@
  */
 
 #include <algorithm>
-#include "../common/h/parseauxv.h"
+#include "../common/src/parseauxv.h"
 #include "Object.h"
 #include "Object-nt.h"
 #include "emitWin.h"

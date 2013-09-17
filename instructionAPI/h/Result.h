@@ -524,8 +524,8 @@ namespace Dyninst
       }
     };
     
-    Result operator+(const Result& arg1, const Result& arg2);
-    Result operator*(const Result& arg1, const Result& arg2);
+    INSTRUCTION_EXPORT Result operator+(const Result& arg1, const Result& arg2);
+    INSTRUCTION_EXPORT Result operator*(const Result& arg1, const Result& arg2);
     
   };
 };

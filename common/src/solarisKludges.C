@@ -31,8 +31,8 @@
 
 // $Id: solarisKludges.C,v 1.8 2007/12/04 18:05:22 legendre Exp $
 
-#include "common/h/headers.h"
-#include "common/h/parseauxv.h"
+#include "common/src/headers.h"
+#include "common/src/parseauxv.h"
 
 #include <sys/auxv.h>
 

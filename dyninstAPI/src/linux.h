@@ -38,9 +38,9 @@
 #define LINUX_PD_HDR
 class PCProcess;
 
-#include "common/h/Types.h"
-#include "common/h/Vector.h"
-#include "common/h/linuxKludges.h"
+#include "common/src/Types.h"
+#include "common/src/Vector.h"
+#include "common/src/linuxKludges.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Archive.h"
 

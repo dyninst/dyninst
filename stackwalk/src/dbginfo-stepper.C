@@ -37,9 +37,9 @@
 #include "stackwalk/src/dbgstepper-impl.h"
 #include "stackwalk/src/linuxbsd-swk.h"
 #include "stackwalk/src/libstate.h"
-#include "dynutil/h/dyntypes.h"
-#include "dynutil/h/VariableLocation.h"
-#include "common/h/Types.h"
+#include "common/h/dyntypes.h"
+#include "common/h/VariableLocation.h"
+#include "common/src/Types.h"
 #include "dwarf/h/dwarfFrameParser.h"
 #include "dwarf/h/dwarfHandle.h"
 

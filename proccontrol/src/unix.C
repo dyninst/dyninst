@@ -40,12 +40,11 @@
 #include <sys/mman.h>
 
 #include <string>
-
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #if defined(os_linux)
-#include "common/h/linuxKludges.h"
+#include "common/src/linuxKludges.h"
 #elif defined(os_freebsd)
-#include "common/h/freebsdKludges.h"
+#include "common/src/freebsdKludges.h"
 #endif
 
 using namespace std;

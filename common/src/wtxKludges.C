@@ -28,9 +28,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/Types.h"
-#include "common/h/wtxKludges.h"
-#include "common/h/pathName.h"
+#include "common/src/Types.h"
+#include "common/src/wtxKludges.h"
+#include "common/src/pathName.h"
 #include "symtabAPI/h/Symtab.h"
 #include <elf.h>
 

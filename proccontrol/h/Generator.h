@@ -34,7 +34,7 @@
 #include "Decoder.h"
 #include "PCErrors.h"
 
-#include "common/h/dthread.h"
+#include "common/src/dthread.h"
 #include "util.h"
 
 #include <set>

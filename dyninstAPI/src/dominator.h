@@ -34,7 +34,7 @@ class dominatorCFG;
 class dominatorBB;
 
 #include "dyninstAPI/h/BPatch_Vector.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include <set>
 
 class dominatorBB {
@@ -68,7 +68,7 @@ protected:
 class dominatorCFG {
    friend class dominatorBB;
  protected:
-   dictionary_hash<unsigned, dominatorBB *> map;
+   std::unordered_map<unsigned, dominatorBB *> map_;
    BPatch_flowGraph *fg;
    BPatch_Vector<dominatorBB *> all_blocks;
    BPatch_Vector<dominatorBB *> sorted_blocks;

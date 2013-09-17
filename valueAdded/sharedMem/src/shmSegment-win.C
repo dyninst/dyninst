@@ -37,8 +37,8 @@
 // paradynd.
 //
 //----------------------------------------------------------------------------
-#include "common/h/headers.h"
-#include "common/h/std_namesp.h"
+#include "common/src/headers.h"
+#include "common/src/std_namesp.h"
 #include "shmSegment.h"
 #include "../h/SharedMem.h"
 #include "sharedMemInternal.h"

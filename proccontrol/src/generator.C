@@ -34,7 +34,7 @@
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/procpool.h"
 
-#include "common/h/dthread.h"
+#include "common/src/dthread.h"
 
 #include <assert.h>
 #include <iostream>

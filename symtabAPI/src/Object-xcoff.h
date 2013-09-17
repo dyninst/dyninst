@@ -41,11 +41,11 @@
  * header files.
 ************************************************************************/
 
-#include "common/h/headers.h"
-//#include <common/h/Line.h>
+#include "common/src/headers.h"
+//#include <common/src/Line.h>
 #include "symtabAPI/h/Symbol.h"
 #include "symtabAPI/h/Symtab.h"
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 
 #include <string>
 #include <vector>

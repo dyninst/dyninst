@@ -44,7 +44,7 @@ class pdmodule;
 class image;
 
 #include <string>
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include "dyninstAPI/src/image.h"
 #include "symtabAPI/h/Symtab.h"
 

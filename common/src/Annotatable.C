@@ -30,11 +30,11 @@
 
 // $Id: Annotatable.C,v 1.12 2008/11/03 15:19:23 jaw Exp $
 
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "dyntypes.h"
 #include "Annotatable.h"
 #include "Serialization.h"
-#include "common/h/serialize.h"
+#include "common/src/serialize.h"
 
 using namespace Dyninst;
 

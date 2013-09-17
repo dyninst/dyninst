@@ -45,7 +45,7 @@ class LineInformation;
 class localVar;
 class Symtab;
 
-class Statement : public AnnotatableSparse, public Serializable
+class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
 {
 	friend class Module;
 	friend class std::vector<Statement>;
@@ -83,26 +83,26 @@ class Statement : public AnnotatableSparse, public Serializable
 	bool operator==(const Statement &cmp) const;
 	~Statement() {}
 
-	SYMTAB_EXPORT Offset startAddr() { return start_addr_;}
-	SYMTAB_EXPORT Offset endAddr() {return end_addr_;}
-	SYMTAB_EXPORT std::string getFile() { return file_;}
-	SYMTAB_EXPORT unsigned int getLine() {return line_;}
-	SYMTAB_EXPORT unsigned int getColumn() {return column;}
+	Offset startAddr() { return start_addr_;}
+	Offset endAddr() {return end_addr_;}
+	std::string getFile() { return file_;}
+	unsigned int getLine() {return line_;}
+	unsigned int getColumn() {return column;}
 
-	SYMTAB_EXPORT Serializable *serialize_impl(SerializerBase *sb, const char *tag = "Statement") THROW_SPEC (SerializerError);
+	Serializable *serialize_impl(SerializerBase *sb, const char *tag = "Statement") THROW_SPEC (SerializerError);
 
 	//  Does dyninst really need these?
-	SYMTAB_EXPORT void setLine(unsigned int l) {line_ = l;}
-	SYMTAB_EXPORT void setColumn(unsigned int l) {column = l;}
-	SYMTAB_EXPORT void setFile(const char * l) {file_ = std::string(l); first = file_.c_str();}
-	SYMTAB_EXPORT void setStartAddr(Offset l) {start_addr_ = l;}
-	SYMTAB_EXPORT void setEndAddr(Offset l) {end_addr_ = l;}
+	void setLine(unsigned int l) {line_ = l;}
+	void setColumn(unsigned int l) {column = l;}
+	void setFile(const char * l) {file_ = std::string(l); first = file_.c_str();}
+	void setStartAddr(Offset l) {start_addr_ = l;}
+	void setEndAddr(Offset l) {end_addr_ = l;}
 };
 
 typedef Statement LineNoTuple;
 #define MODULE_ANNOTATABLE_CLASS AnnotatableSparse
 
-class Module : public LookupInterface,
+class SYMTAB_EXPORT Module : public LookupInterface,
 			   public Serializable, 
 			   public MODULE_ANNOTATABLE_CLASS
 {
@@ -110,85 +110,85 @@ class Module : public LookupInterface,
 
 	public:
 
-	SYMTAB_EXPORT Module();
-	SYMTAB_EXPORT Module(supportedLanguages lang, Offset adr, std::string fullNm,
+	Module();
+	Module(supportedLanguages lang, Offset adr, std::string fullNm,
                         Symtab *img);
-	SYMTAB_EXPORT Module(const Module &mod);
-	SYMTAB_EXPORT bool operator==(Module &mod);
+	Module(const Module &mod);
+	bool operator==(Module &mod);
 
-	SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, const char *tag = "Module") THROW_SPEC (SerializerError);
+	Serializable * serialize_impl(SerializerBase *sb, const char *tag = "Module") THROW_SPEC (SerializerError);
 
-	SYMTAB_EXPORT const std::string &fileName() const;
-	SYMTAB_EXPORT const std::string &fullName() const;
-	SYMTAB_EXPORT bool setName(std::string newName);
+	const std::string &fileName() const;
+	const std::string &fullName() const;
+	bool setName(std::string newName);
 
-	SYMTAB_EXPORT supportedLanguages language() const;
-	SYMTAB_EXPORT void setLanguage(supportedLanguages lang);
+	supportedLanguages language() const;
+	void setLanguage(supportedLanguages lang);
 
-	SYMTAB_EXPORT Offset addr() const;
-	SYMTAB_EXPORT Symtab *exec() const;
+	Offset addr() const;
+	Symtab *exec() const;
 
-	SYMTAB_EXPORT bool isShared() const;
-	SYMTAB_EXPORT ~Module();
+	bool isShared() const;
+	~Module();
 
 	// Symbol output methods
-	SYMTAB_EXPORT virtual bool findSymbol(std::vector<Symbol *> &ret, 
+	virtual bool findSymbol(std::vector<Symbol *> &ret, 
                                               const std::string& name,
                                               Symbol::SymbolType sType = Symbol::ST_UNKNOWN, 
                                               NameType nameType = anyName,
                                               bool isRegex = false, 
                                               bool checkCase = false,
                                               bool includeUndefined = false);
-	SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
+	virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
 			Symbol::SymbolType sType);
-	SYMTAB_EXPORT virtual bool getAllSymbols(std::vector<Symbol *> &ret);
+	virtual bool getAllSymbols(std::vector<Symbol *> &ret);
 
 
 	// Function based methods
-	SYMTAB_EXPORT bool getAllFunctions(std::vector<Function *>&ret);
-	SYMTAB_EXPORT bool findFunctionByEntryOffset(Function *&ret, const Offset offset);
-	SYMTAB_EXPORT bool findFunctionsByName(std::vector<Function *> &ret, const std::string& name,
+	bool getAllFunctions(std::vector<Function *>&ret);
+	bool findFunctionByEntryOffset(Function *&ret, const Offset offset);
+	bool findFunctionsByName(std::vector<Function *> &ret, const std::string& name,
 			NameType nameType = anyName, 
 			bool isRegex = false,
 			bool checkCase = true);
 
 	// Variable based methods
-	SYMTAB_EXPORT bool findVariableByOffset(Variable *&ret, const Offset offset);
-	SYMTAB_EXPORT bool findVariablesByName(std::vector<Variable *> &ret, const std::string& name,
+	bool findVariableByOffset(Variable *&ret, const Offset offset);
+	bool findVariablesByName(std::vector<Variable *> &ret, const std::string& name,
 			NameType nameType = anyName, 
 			bool isRegex = false, 
 			bool checkCase = true);
-   SYMTAB_EXPORT bool getAllVariables(std::vector<Variable *> &ret);
+   bool getAllVariables(std::vector<Variable *> &ret);
 
 
    // Type output methods
-   SYMTAB_EXPORT virtual bool findType(Type *&type, std::string name);
-   SYMTAB_EXPORT virtual bool findVariableType(Type *&type, std::string name);
+   virtual bool findType(Type *&type, std::string name);
+   virtual bool findVariableType(Type *&type, std::string name);
 
-   SYMTAB_EXPORT std::vector<Type *> *getAllTypes();
-   SYMTAB_EXPORT std::vector<std::pair<std::string, Type *> > *getAllGlobalVars();
+   std::vector<Type *> *getAllTypes();
+   std::vector<std::pair<std::string, Type *> > *getAllGlobalVars();
 
-   SYMTAB_EXPORT typeCollection *getModuleTypes();
+   typeCollection *getModuleTypes();
 
    /***** Local Variable Information *****/
-   SYMTAB_EXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
+   bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
 
    /***** Line Number Information *****/
-   SYMTAB_EXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
+   bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
          std::string lineSource, unsigned int LineNo);
-   SYMTAB_EXPORT bool getSourceLines(std::vector<Statement *> &lines,
+   bool getSourceLines(std::vector<Statement *> &lines,
          Offset addressInRange);
-   SYMTAB_EXPORT bool getSourceLines(std::vector<LineNoTuple> &lines,
+   bool getSourceLines(std::vector<LineNoTuple> &lines,
          Offset addressInRange);
-   SYMTAB_EXPORT bool getStatements(std::vector<Statement *> &statements);
-   SYMTAB_EXPORT LineInformation *getLineInformation();
+   bool getStatements(std::vector<Statement *> &statements);
+   LineInformation *getLineInformation();
 
-   SYMTAB_EXPORT bool hasLineInformation();
-   SYMTAB_EXPORT bool setDefaultNamespacePrefix(std::string str);
+   bool hasLineInformation();
+   bool setDefaultNamespacePrefix(std::string str);
 
 
    //  Super secret private methods that aren't really private
-   SYMTAB_EXPORT typeCollection *getModuleTypesPrivate();
+   typeCollection *getModuleTypesPrivate();
 
    private:
    bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo);

@@ -29,7 +29,7 @@
  */
 
 #include "InstructionDecoderImpl.h"
-#include "common/h/singleton_object_pool.h"
+#include "common/src/singleton_object_pool.h"
 #include "InstructionDecoder-x86.h"
 #include "InstructionDecoder-power.h"
 #include "BinaryFunction.h"

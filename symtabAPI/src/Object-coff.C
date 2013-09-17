@@ -30,7 +30,7 @@
 
 // $Id: Object-coff.C,v 1.6 2008/06/19 19:54:11 legendre Exp $
 
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "Object.h"
 #include "Object-coff.h"
 #include <cmplrs/demangle_string.h>  // For native C++ (cxx) name demangling.

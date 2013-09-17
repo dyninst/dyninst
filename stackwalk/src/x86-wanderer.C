@@ -38,9 +38,9 @@
 #include "stackwalk/src/libstate.h"
 #include "stackwalk/src/sw.h"
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 
-#include "dynutil/h/SymReader.h"
+#include "common/h/SymReader.h"
 
 using namespace Dyninst;
 using namespace Stackwalker;

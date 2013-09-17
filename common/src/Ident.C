@@ -33,7 +33,7 @@
  * $Id: Ident.C,v 1.6 2008/06/11 22:48:17 legendre Exp $
 ************************************************************************/
 
-#include "common/h/Ident.h"
+#include "common/src/Ident.h"
 #include <stdio.h>
 #include <string>
 #include <iostream>

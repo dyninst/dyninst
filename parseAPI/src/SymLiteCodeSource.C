@@ -33,10 +33,10 @@
 
 #include <boost/assign/list_of.hpp>
 
-#include "common/h/stats.h"
+#include "common/src/stats.h"
 #include "dyntypes.h"
 
-#include "dynutil/h/SymReader.h"
+#include "common/h/SymReader.h"
 
 #include "SymLiteCodeSource.h"
 #include "debug_parse.h"

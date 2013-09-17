@@ -55,7 +55,7 @@
 //  With these two methods the user can specify a tracking data structure that specifies what kind
 //  of code they have provided.
 
-#include "dynutil/h/dyntypes.h"
+#include "common/h/dyntypes.h"
 #include <list>
 #include "dyninstAPI/src/codegen.h"
 

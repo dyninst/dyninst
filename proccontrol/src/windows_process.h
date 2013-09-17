@@ -32,7 +32,7 @@
 #define WINDOWS_PROCESS_H
 
 #include "x86_process.h"
-#include "common/h/IntervalTree.h"
+#include "common/src/IntervalTree.h"
 
 class windows_thread;
 

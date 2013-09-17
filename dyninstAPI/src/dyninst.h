@@ -35,7 +35,7 @@
 #define INSTRUMENTATION_H
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-#include "common/h/stringDecl.h"
+#include "common/src/stringDecl.h"
 
 
 #endif

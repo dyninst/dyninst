@@ -31,9 +31,9 @@
 // debugOstream.C
 
 #if 0
-#include "common/h/debugOstream.h"
-#include "common/h/Time.h"
-#include "common/h/int64iostream.h"
+#include "common/src/debugOstream.h"
+#include "common/src/Time.h"
+#include "common/src/int64iostream.h"
 
 debug_ostream &debug_ostream::operator<<(char c) {
    if (on)

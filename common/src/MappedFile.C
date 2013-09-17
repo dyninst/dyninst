@@ -27,8 +27,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "common/h/MappedFile.h"
-#include "common/h/pathName.h"
+#include "common/src/MappedFile.h"
+#include "common/src/pathName.h"
 #include <iostream>
 using namespace std;
 

@@ -34,9 +34,9 @@
 #define FUNCTION_H
 
 #include <string>
-#include "common/h/Vector.h"
-#include "common/h/Types.h"
-#include "common/h/Pair.h"
+#include "common/src/Vector.h"
+#include "common/src/Types.h"
+#include "common/src/Pair.h"
 #include "codegen.h"
 #include "codeRange.h"
 #include "util.h"

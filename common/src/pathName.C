@@ -29,11 +29,11 @@
  */
 
 // pathName.C
-#include "common/h/headers.h"  // P_strrchr()
+#include "common/src/headers.h"  // P_strrchr()
 #include <ctype.h>
 #include <assert.h>
 #include <limits.h>
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 
 #if defined(os_windows) //ccw 20 july 2000 : 29 mar 2001
 

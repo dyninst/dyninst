@@ -34,9 +34,9 @@
 #include "proccontrol/h/Event.h"
 #include "dyninstAPI/h/BPatch_process.h"
 
-#include "common/h/Dictionary.h"
-#include "common/h/Types.h"
-#include "common/h/dthread.h"
+#include <unordered_map>
+#include "common/src/Types.h"
+#include "common/src/dthread.h"
 
 #include "syscallNotification.h"
 

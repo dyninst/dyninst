@@ -34,8 +34,8 @@
 
 #include <string.h>
 
-#include "common/h/Time.h"
-#include "common/h/timing.h"
+#include "common/src/Time.h"
+#include "common/src/timing.h"
 
 #include "BPatch.h"
 #include "BPatch_addressSpace.h"
@@ -1790,5 +1790,12 @@ BPatch_scrambleRegistersExpr::BPatch_scrambleRegistersExpr(){
 Dyninst::PatchAPI::Snippet::Ptr Dyninst::PatchAPI::convert(const BPatch_snippet *snip) {
    // TODO when this class exists
    return snip->ast_wrapper;
+}
+
+bool BPatch_snippet::checkTypesAtPoint(BPatch_point* p) const
+{
+  if(!p) return true;
+  
+  return ast_wrapper->checkType(p->getFunction()) != BPatch::bpatch->type_Error;
 }
 

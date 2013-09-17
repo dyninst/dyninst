@@ -35,7 +35,7 @@
 #include "boost/assign/std/set.hpp"
 #include <map>
 #include <string>
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include "codegen.h"
 #include "util.h"
 #include "debug.h"
@@ -50,7 +50,7 @@
 #include "pcrel.h"
 
 #if defined(os_vxworks)
-#include "common/h/wtxKludges.h"
+#include "common/src/wtxKludges.h"
 #endif
 
 using namespace std;

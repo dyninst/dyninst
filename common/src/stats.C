@@ -33,9 +33,9 @@
  * $Id: stats.C,v 1.2 2008/07/01 19:26:49 legendre Exp $
  */
 
-#include "common/h/headers.h"
-#include "common/h/stats.h"
-#include "dynutil/h/util.h"
+#include "common/src/headers.h"
+#include "common/src/stats.h"
+#include "common/h/util.h"
 #include <sstream>
 #include <string>
 #if 0

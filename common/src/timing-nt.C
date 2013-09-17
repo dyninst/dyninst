@@ -30,14 +30,14 @@
 
 
 // $Id: timing-nt.C,v 1.8 2007/05/30 19:20:33 legendre Exp $
-#include "common/h/ntHeaders.h"   // for LARGE_INTEGERS
+#include "common/src/ntHeaders.h"   // for LARGE_INTEGERS
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/timeb.h>
 #include <shlwapi.h>
-#include "common/h/timing.h"
+#include "common/src/timing.h"
 
-#include "common/h/int64iostream.h"
+#include "common/src/int64iostream.h"
 
 // returns us since 1970 at ms granularity
 int64_t getRawTime1970() {

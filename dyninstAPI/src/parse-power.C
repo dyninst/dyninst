@@ -35,9 +35,9 @@
 // classified
 //
 
-#include "common/h/Vector.h"
-#include "common/h/Dictionary.h"
-#include "common/h/Vector.h"
+#include "common/src/Vector.h"
+#include <unordered_map>
+#include "common/src/Vector.h"
 #include "parse-cfg.h"
 #include "instPoint.h"
 #include "image.h"
@@ -49,14 +49,10 @@
 #include <set>
 #include <algorithm>
 
-#include "common/h/arch.h"
+#include "common/src/arch.h"
 
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
-
-#if !defined(cap_instruction_api)
-#include "parseAPI/h/InstrucIter.h"
-#endif
 
 #include "mapped_object.h"
 #include "binaryEdit.h"

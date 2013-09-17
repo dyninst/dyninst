@@ -120,6 +120,10 @@ class BPATCH_DLL_EXPORT BPatchSnippetHandle {
   // have multiple instances of instrumentation due to function
   // relocation.
   bool usesTrap();
+  bool isEmpty() 
+  {
+    return instances_.empty();
+  }
   
 
   // mtHandles_ is not empty, , returns the function that the 

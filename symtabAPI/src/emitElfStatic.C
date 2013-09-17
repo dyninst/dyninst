@@ -506,12 +506,12 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                             break;
                     }
                 }else if( isConstructorRegion(*reg_it) ) {
-                    lmap.newCtorRegions.push_back(*reg_it);
+                    lmap.newCtorRegions.insert(*reg_it);
                     if( (*reg_it)->getMemAlignment() > lmap.ctorRegionAlign ) {
                         lmap.ctorRegionAlign = (*reg_it)->getMemAlignment();
                     }
                 }else if( isDestructorRegion(*reg_it) ) {
-                    lmap.newDtorRegions.push_back(*reg_it);
+                    lmap.newDtorRegions.insert(*reg_it);
                     if( (*reg_it)->getMemAlignment() > lmap.dtorRegionAlign ) {
                         lmap.dtorRegionAlign = (*reg_it)->getMemAlignment();
                     }
@@ -1057,10 +1057,8 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
       Region::RegionType type;
       if (addressWidth_ == 8) {
 	type = Region::RT_RELA;
-	cerr << "Adding region with type rela" << endl;
       }
       else {
-	cerr << "Adding region with type rel" << endl;
 	type = Region::RT_REL;
       }
       target->addRegion(globalOffset + lmap.relRegionOffset,
@@ -1211,9 +1209,11 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
 
            string regionName = (*region_it)->getRegionName();           
            if (regionName.compare(0, 4, ".toc") == 0) isTOC = true;
-
+	   
            if (!isText && !isTOC) {
-              continue;
+	     // Just process all regions; if there are still relocations lurking it had
+	     // better be because something got modified...
+	     //   continue;
            }
         map<Region *, LinkMap::AllocPair>::iterator result;
         result = lmap.regionAllocs.find(*region_it);
@@ -1843,6 +1843,13 @@ Offset emitElfStatic::allocateRelGOTSection(const std::map<Symbol *, std::pair<O
   return relocOffset + size;
 }
 
+
+#if !defined(R_X86_64_IRELATIVE)
+#define R_X86_64_IRELATIVE 37
+#endif
+#if !defined(R_386_IRELATIVE)
+#define R_386_IRELATIVE 42
+#endif
 
 bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset, 
 			     LinkMap &lmap, StaticLinkError &err,

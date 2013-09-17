@@ -28,21 +28,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dynutil/h/SymReader.h"
+#include "common/h/SymReader.h"
 #include "elf/h/Elf_X.h"
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 
 #include <map>
 
 namespace Dyninst {
 
-struct SymCacheEntry {
+struct SYMLITE_EXPORT SymCacheEntry {
    Dyninst::Offset symaddress;
    void *symloc;
    const char *demangled_name;
 };
 
-class SymElf : public Dyninst::SymReader
+class SYMLITE_EXPORT SymElf : public Dyninst::SymReader
 {
    friend class SymElfFactory;
  private:
@@ -104,7 +104,7 @@ class SymElf : public Dyninst::SymReader
    
 };
 
-class SymElfFactory : public Dyninst::SymbolReaderFactory
+class SYMLITE_EXPORT SymElfFactory : public Dyninst::SymbolReaderFactory
 {
 private:
    std::map<std::string, SymElf *> *open_symelfs;

@@ -38,15 +38,14 @@
 #endif
 
 #define BPATCH_FILE
-#include "common/h/Pair.h"
-#include "common/h/Vector.h"
-#include "common/h/stats.h"
-#include "common/h/Dictionary.h"
+#include "common/src/Pair.h"
+#include "common/src/Vector.h"
+#include "common/src/stats.h"
 #include "BPatch.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_collections.h"
 #include "BPatch_thread.h"
-#include "common/h/timing.h"
+#include "common/src/timing.h"
 #include "debug.h"
 #include "mapped_module.h"
 #include "instPoint.h"
@@ -126,6 +125,7 @@ BPatch::BPatch()
     dynamicCallSiteCallback(NULL),
     signalHandlerCallback(NULL),
     codeOverwriteCallback(NULL),
+    inDestructor(false),
     builtInTypes(NULL),
     stdTypes(NULL),
     type_Error(NULL),
@@ -185,11 +185,12 @@ BPatch::BPatch()
  */
 BPatch::~BPatch()
 {
-    for(dictionary_hash<int, BPatch_process *>::iterator i =
-            info->procsByPid.begin(); i != info->procsByPid.end();
-            ++i)
+   inDestructor = true;
+    for(auto i = info->procsByPid.begin(); 
+        i != info->procsByPid.end();
+        ++i)
     {
-        delete i.currval();
+       delete i->second;
     }
 
     delete info;
@@ -204,7 +205,6 @@ BPatch::~BPatch()
     if(builtInTypes)
       delete builtInTypes;
     
-
     if(systemPrelinkCommand){
         delete [] systemPrelinkCommand;
     }
@@ -596,16 +596,15 @@ void defaultErrorFunc(BPatchErrorLevel level, int num, const char * const *param
  */
 BPatch_process *BPatch::getProcessByPid(int pid, bool *exists)
 {
-    if (info->procsByPid.defines(pid)) {
-        if (exists) *exists = true;
-        BPatch_process *proc = info->procsByPid[pid];
-        return proc;
+   auto iter = info->procsByPid.find(pid);
+   if (iter != info->procsByPid.end()) {
+      if (exists) *exists = true;
+      BPatch_process *proc = iter->second;
+      return proc;
     } else {
-       
-
-        if (exists) *exists = false;
-        return NULL;
-    }
+      if (exists) *exists = false;
+      return NULL;
+   }
 }
 
 BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
@@ -630,15 +629,8 @@ BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
 BPatch_Vector<BPatch_process *> *BPatch::getProcesses()
 {
    BPatch_Vector<BPatch_process *> *result = new BPatch_Vector<BPatch_process *>;
-   dictionary_hash_iter<int, BPatch_process *> ti(info->procsByPid);
-
-   int pid;
-   BPatch_process *proc;
-   
-   while (ti.next(pid, proc))
-   {
-      assert(proc);
-      result->push_back(proc);
+   for (auto iter = info->procsByPid.begin(); iter != info->procsByPid.end(); ++iter) {
+      result->push_back(iter->second);
    }
    
    return result;
@@ -655,8 +647,8 @@ BPatch_Vector<BPatch_process *> *BPatch::getProcesses()
  */
 void BPatch::registerProvisionalThread(int pid)
 {
-    assert(!info->procsByPid.defines(pid));
-    info->procsByPid[pid] = NULL;
+   assert(info->procsByPid.find(pid) == info->procsByPid.end());
+   info->procsByPid[pid] = NULL;
 }
 
 
@@ -1007,7 +999,7 @@ void BPatch::registerProcess(BPatch_process *process, int pid)
    if (!pid)
       pid = process->getPid();
 
-   assert(!info->procsByPid.defines(pid) || !info->procsByPid[pid]);
+   assert(info->procsByPid.find(pid) == info->procsByPid.end());
    info->procsByPid[pid] = process;
 }
 
@@ -1022,35 +1014,25 @@ void BPatch::registerProcess(BPatch_process *process, int pid)
  */
 void BPatch::unRegisterProcess(int pid, BPatch_process *proc)
 {
-   if (pid == -1 || !info->procsByPid.defines(pid)) {
+   // DO NOT CHANGE THE MAP!
+   if (inDestructor) return;
+
+   if (pid == -1 || (info->procsByPid.find(pid) == info->procsByPid.end())) {
       // Deleting an exited process; search and nuke
-      dictionary_hash_iter<int, BPatch_process *> procsIter(info->procsByPid);
-      BPatch_process *p;
-      int pid2;
-      while (procsIter.next(pid2, p)) {
-         if (p == proc) {
-            info->procsByPid.undef(pid2);
+      for (auto iter = info->procsByPid.begin(); iter != info->procsByPid.end(); ++iter) {
+         if (iter->second == proc) {
+            info->procsByPid.erase(iter);
             return;
          }
       }
+      if (pid != -1) {
+         char ebuf[256];
+         sprintf(ebuf, "%s[%d]: no process %d defined in procsByPid\n", FILE__, __LINE__, pid);
+         reportError(BPatchFatal, 68, ebuf);
+         return;
+      }
    }
-
-   if (!info->procsByPid.defines(pid)) {
-      char ebuf[256];
-      sprintf(ebuf, "%s[%d]: no process %d defined in procsByPid\n", FILE__, __LINE__, pid);
-      reportError(BPatchFatal, 68, ebuf);
-      //fprintf(stderr, "%s[%d]:  ERROR, no process %d defined in procsByPid\n", FILE__,  __LINE__, pid);
-      //dictionary_hash_iter<int, BPatch_process *> iter(info->procsByPid);
-      //BPatch_process *p;
-      //int pid;
-      //while (iter.next(pid, p)) {
-      //   fprintf(stderr, "%s[%d]:  have process %d\n", FILE__, __LINE__, pid);
-      //}
-      return;
-   }
-   assert(info->procsByPid.defines(pid));
-   info->procsByPid.undef(pid);	
-   assert(!info->procsByPid.defines(pid));
+   info->procsByPid.erase(pid);
 }
 
 static void buildPath(const char *path, const char **argv,
@@ -1246,7 +1228,7 @@ BPatch_process *BPatch::processAttach
         return NULL;
     }
 
-   if (info->procsByPid.defines(pid)) {
+    if (info->procsByPid.find(pid) != info->procsByPid.end()) {
       char msg[256];
       sprintf(msg, "attachProcess failed.  Dyninst is already attached to %d.",
               pid);
@@ -1337,13 +1319,12 @@ bool BPatch::waitForStatusChange() {
     // Sanity check: make sure there are processes running that could
     // cause events to occur, otherwise the user will be waiting indefinitely
     bool processRunning = false;
-    for(dictionary_hash<int, BPatch_process *>::iterator i =
-        info->procsByPid.begin(); i != info->procsByPid.end(); ++i) 
+    for(auto i = info->procsByPid.begin(); i != info->procsByPid.end(); ++i) 
     {
-        if( !i.currval()->isStopped() ) {
-            processRunning = true;
-            break;
-        }
+       if( !i->second->isStopped() ) {
+          processRunning = true;
+          break;
+       }
     }
 
     if( !processRunning ) {
@@ -1647,8 +1628,7 @@ bool BPatch::waitUntilStopped(BPatch_thread *appThread){
 		ret = false;
  		goto done;
 	}
-#if defined(i386_unknown_nt4_0) || \
-    defined(mips_unknown_ce2_11)
+#if defined(os_windows)
 	else if((appThread->getProcess()->stopSignal() != EXCEPTION_BREAKPOINT) && 
 		(appThread->getProcess()->stopSignal() != -1))
 	{
@@ -1960,9 +1940,10 @@ void BPatch::addNonReturningFunc(std::string name)
 }
 
 int BPatch_libInfo::getStopThreadCallbackID(Address cb) {
-    if( stopThreadCallbacks_.defines(cb) ) {
-        return stopThreadCallbacks_[cb];
-    }
+   auto iter = stopThreadCallbacks_.find(cb);
+   if (iter != stopThreadCallbacks_.end()) {
+      return iter->second;
+   }
 
     int cb_id = ++stopThreadIDCounter_;
     stopThreadCallbacks_[cb] = cb_id;
@@ -1970,9 +1951,8 @@ int BPatch_libInfo::getStopThreadCallbackID(Address cb) {
 }
 
 bool BPatch_libInfo::registerMonitoredPoint(BPatch_point *point) {
-    if( monitoredPoints_.defines((Address)point->getAddress()) ) {
-        return false;
-    }
+   if (monitoredPoints_.find((Address) point->getAddress()) != monitoredPoints_.end())
+      return false;
 
     monitoredPoints_[(Address)point->getAddress()] = point;
 
@@ -1983,11 +1963,9 @@ bool BPatch_libInfo::registerMonitoredPoint(BPatch_point *point) {
 }
 
 BPatch_point *BPatch_libInfo::getMonitoredPoint(Address addr) {
-    if( !monitoredPoints_.defines(addr) ) {
-        return NULL;
-    }
-
-    return monitoredPoints_[addr];
+   auto iter = monitoredPoints_.find(addr);
+   if (iter == monitoredPoints_.end()) return NULL;
+   return iter->second;
 }
 
 // Functions for accessing stop thread callback state

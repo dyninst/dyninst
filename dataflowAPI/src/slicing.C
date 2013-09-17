@@ -39,7 +39,7 @@
 
 #include "dataflowAPI/h/slicing.h"
 
-#include "dynutil/h/Graph.h"
+#include "common/h/Graph.h"
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 

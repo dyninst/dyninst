@@ -34,7 +34,7 @@
 #define _mapped_object_h
 
 #include <string>
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/h/BPatch_enums.h"
 #include <list>
@@ -336,11 +336,14 @@ public:
     void set_short_name();
 
     pdvector<mapped_module *> everyModule;
-    dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;
-    dictionary_hash< std::string, pdvector<func_instance *> * > allFunctionsByMangledName;
-    dictionary_hash< std::string, pdvector<func_instance *> * > allFunctionsByPrettyName;
-    dictionary_hash< std::string, pdvector<int_variable *> * > allVarsByMangledName;
-    dictionary_hash< std::string, pdvector<int_variable *> * > allVarsByPrettyName;
+    typedef std::unordered_map<std::string, std::vector<func_instance *> *> func_index_t;
+    typedef std::unordered_map<std::string, std::vector<int_variable *> *> var_index_t;
+    
+    std::unordered_map<const image_variable *, int_variable *> everyUniqueVariable;
+    func_index_t allFunctionsByMangledName;
+    func_index_t allFunctionsByPrettyName;
+    var_index_t allVarsByMangledName;
+    var_index_t allVarsByPrettyName;
 
     codeRangeTree codeRangesByAddr_;
 
@@ -353,7 +356,8 @@ public:
         mangledName = 1,
         prettyName = 2,
         typedName = 4 } nameType_t;
-    void addFunctionName(func_instance *func, const std::string newName, nameType_t nameType);
+    void addFunctionName(func_instance *func, const std::string newName, 
+                         func_index_t &index);
 
     bool dirty_; // marks the shared object as dirty
     bool dirtyCalled_;//see comment for setDirtyCalled

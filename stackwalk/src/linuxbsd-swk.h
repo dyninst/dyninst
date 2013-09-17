@@ -31,10 +31,10 @@
 #ifndef LINUXBSD_SWK_H
 #define LINUXBSD_SWK_H
 
-#include "dynutil/h/dyntypes.h"
-#include "dynutil/h/SymReader.h"
+#include "common/h/dyntypes.h"
+#include "common/h/SymReader.h"
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 
 #include "stackwalk/h/framestepper.h"
 

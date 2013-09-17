@@ -39,14 +39,14 @@
 #include "debug_parse.h"
 #include "IA_platformDetails.h"
 #include "util.h"
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include "dyntypes.h"
 
 #include <deque>
 #include <map>
 
 #if defined(os_vxworks)
-#include "common/h/wtxKludges.h"
+#include "common/src/wtxKludges.h"
 #endif
 
 using namespace Dyninst;

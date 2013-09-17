@@ -36,8 +36,8 @@
 #ifndef _EMIT_X86_H
 #define _EMIT_X86_H
 
-#include "common/h/headers.h"
-#include "common/h/arch.h"
+#include "common/src/headers.h"
+#include "common/src/arch.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
 

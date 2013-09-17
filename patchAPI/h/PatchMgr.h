@@ -62,7 +62,7 @@ Scope(PatchFunction *f) : obj(NULL), func(f), block(NULL), wholeProgram(false) {
 };
 
 
-class PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
+class PATCHAPI_EXPORT PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
   friend class Point;
   friend class PatchObject; // for splitting blocks as that is _not_ public.
   typedef std::pair<PatchFunction *, PatchBlock *> BlockInstance;
@@ -85,8 +85,8 @@ class PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
   static void version(int &major, int &minor, int &maintenance);
 
     PatchMgr(AddrSpace* as,  Instrumenter* inst, PointMaker* pf);
-    PATCHAPI_EXPORT virtual ~PatchMgr();
-    PATCHAPI_EXPORT static PatchMgrPtr create(AddrSpace* as,
+    virtual ~PatchMgr();
+    static PatchMgrPtr create(AddrSpace* as,
                                               Instrumenter* inst = NULL,
                                               PointMaker* pf = NULL);
 
@@ -101,7 +101,7 @@ class PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
     // Query Points:
 
     // Direct interface; specify a Location and a unique Type, receive a Point.
-    PATCHAPI_EXPORT Point *findPoint(Location loc,
+    Point *findPoint(Location loc,
                                      Point::Type type,
                                      bool create = true);
     // And accumulation version
@@ -146,7 +146,7 @@ class PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
 
     // Snippet instance removal
     // Return false if no point if found
-    PATCHAPI_EXPORT bool removeSnippet(InstancePtr);
+    bool removeSnippet(InstancePtr);
 
     // Delete ALL snippets at certain points.
     // This uses the same filter-based interface as findPoints.
@@ -165,7 +165,7 @@ class PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
        return true;
     }
 
-    PATCHAPI_EXPORT void destroy(Point *);
+    void destroy(Point *);
 
     // Use default identity filter function.
     bool removeSnippets(Scope scope,
@@ -176,18 +176,18 @@ class PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
     }
 
     // Getters
-    PATCHAPI_EXPORT AddrSpace* as() const { return as_; }
-    PATCHAPI_EXPORT PointMaker* pointMaker() const { return point_maker_; }
-    PATCHAPI_EXPORT Instrumenter* instrumenter() const { return instor_; }
+    AddrSpace* as() const { return as_; }
+    PointMaker* pointMaker() const { return point_maker_; }
+    Instrumenter* instrumenter() const { return instor_; }
     //----------------------------------------------------
     // Mapping order: Scope -> Type -> Point Set
     //   The Scope x Type provides us a list of matching locations;
     //   we then filter those locations. Points are stored in
     //   their contexts (e.g., Functions or Blocks). 
     //----------------------------------------------------
-    PATCHAPI_EXPORT bool getCandidates(Scope &, Point::Type types, Candidates &ret);
+    bool getCandidates(Scope &, Point::Type types, Candidates &ret);
 
-    PATCHAPI_EXPORT bool consistency() const;
+    bool consistency() const;
 
   private:
 
@@ -227,7 +227,7 @@ class PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
     //bool getEdgeInstances(Scope &scope, EdgeCandidates &edges);
     void getInsnInstances(Scope &scope, InsnInstances &insns);
 
-    PATCHAPI_EXPORT void enumerateTypes(Point::Type types, EnumeratedTypes &out);
+    void enumerateTypes(Point::Type types, EnumeratedTypes &out);
 
     bool match(Point *, Location *);
     bool verify(Location &loc);

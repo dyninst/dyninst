@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/headers.h"
-#include "common/h/irixKludges.h"
+#include "common/src/headers.h"
+#include "common/src/irixKludges.h"
 
 // copied from solarisKludges.C
 unsigned long long PDYN_div1000(unsigned long long in) {

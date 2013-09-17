@@ -35,7 +35,7 @@
 #include <list>
 #include <set>
 
-#include "dynutil/h/dyntypes.h"
+#include "common/h/dyntypes.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/response.h"

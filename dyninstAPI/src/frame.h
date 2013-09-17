@@ -33,9 +33,9 @@
 #ifndef FRAME_H
 #define FRAME_H
 
-#include "common/h/std_namesp.h"
-#include "common/h/Types.h"
-#include "common/h/Vector.h"
+#include "common/src/std_namesp.h"
+#include "common/src/Types.h"
+#include "common/src/Vector.h"
 
 #include "instPoint.h"
 #include "baseTramp.h"

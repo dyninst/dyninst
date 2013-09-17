@@ -32,7 +32,7 @@
 #define RESPONSE_H_
 
 #include "proccontrol/h/Event.h"
-#include "common/h/dthread.h"
+#include "common/src/dthread.h"
 #include <map>
 #include <vector>
 

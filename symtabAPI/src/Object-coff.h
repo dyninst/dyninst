@@ -60,7 +60,7 @@
 ************************************************************************/
 
 #include "symtabAPI/h/Dyn_Symbol.h"
-#include <common/h/Types.h>
+#include <common/src/Types.h>
 #include <string>
 #include <vector>
 #include <map>

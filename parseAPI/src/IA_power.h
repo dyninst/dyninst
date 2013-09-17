@@ -29,7 +29,7 @@
  */
 #if !defined(IA_POWER__H)
 #define IA_POWER__H
-#include "dynutil/h/DynAST.h"
+#include "common/h/DynAST.h"
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/SymEval.h"
 #include "dataflowAPI/h/slicing.h"

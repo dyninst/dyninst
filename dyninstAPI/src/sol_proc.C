@@ -42,14 +42,14 @@
 #include <poll.h>
 #include <sys/types.h>  // for reading lwps out of proc
 #include <dirent.h>     // for reading lwps out of proc
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/dyn_thread.h"
-#include "common/h/stats.h"
-#include "common/h/pathName.h" // for path name manipulation routines
+#include "common/src/stats.h"
+#include "common/src/pathName.h" // for path name manipulation routines
 #include "dyninstAPI/src/sol_proc.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for DYNINST_BREAKPOINT_SIGNUM

@@ -68,7 +68,7 @@ class Symtab;
  * class Symbol
 ************************************************************************/
 
-class Symbol : public Serializable,
+class SYMTAB_EXPORT Symbol : public Serializable,
                public AnnotatableSparse 
 {
    friend class typeCommon;
@@ -124,11 +124,11 @@ class Symbol : public Serializable,
    };
    static const char *symbolVisibility2Str(SymbolVisibility t);
 
-   SYMTAB_EXPORT Symbol();
+   Symbol();
 
-   SYMTAB_EXPORT static Symbol *magicEmitElfSymbol();
+   static Symbol *magicEmitElfSymbol();
 
-   SYMTAB_EXPORT Symbol (const std::string& name,
+   Symbol (const std::string& name,
                          SymbolType t,
                          SymbolLinkage l,
                          SymbolVisibility v,
@@ -141,75 +141,75 @@ class Symbol : public Serializable,
 			 int index= -1,
 			 int strindex = -1,
                          bool cs = false);
-   SYMTAB_EXPORT ~Symbol();
+   ~Symbol();
 
-   SYMTAB_EXPORT bool          operator== (const Symbol &) const;
+   bool          operator== (const Symbol &) const;
 
    /***********************************************************
      Name Output Functions
     ***********************************************************/		
-   SYMTAB_EXPORT const std::string&      getMangledName () const;
-   SYMTAB_EXPORT const std::string&	 getPrettyName() const;
-   SYMTAB_EXPORT const std::string&      getTypedName() const;
+   const std::string&      getMangledName () const;
+   const std::string&	 getPrettyName() const;
+   const std::string&      getTypedName() const;
 
-   SYMTAB_EXPORT Module *getModule() const { return module_; } 
-   SYMTAB_EXPORT Symtab *getSymtab() const;
-   SYMTAB_EXPORT SymbolType getType () const { return type_; }
-   SYMTAB_EXPORT SymbolLinkage getLinkage () const { return linkage_; }
-   SYMTAB_EXPORT Offset getOffset() const { return offset_; }
-   SYMTAB_EXPORT Offset getPtrOffset() const { return ptr_offset_; }
-   SYMTAB_EXPORT Offset getLocalTOC() const { return localTOC_; }
-   SYMTAB_EXPORT unsigned getSize() const { return size_; }
-   SYMTAB_EXPORT Region *getRegion() const { return region_; }
+   Module *getModule() const { return module_; } 
+   Symtab *getSymtab() const;
+   SymbolType getType () const { return type_; }
+   SymbolLinkage getLinkage () const { return linkage_; }
+   Offset getOffset() const { return offset_; }
+   Offset getPtrOffset() const { return ptr_offset_; }
+   Offset getLocalTOC() const { return localTOC_; }
+   unsigned getSize() const { return size_; }
+   Region *getRegion() const { return region_; }
 
-   SYMTAB_EXPORT bool isInDynSymtab() const { return (type_ != ST_DELETED) && isDynamic_; }
-   SYMTAB_EXPORT bool isInSymtab() const { return (type_ != ST_DELETED) && !isDynamic_; }
-   SYMTAB_EXPORT bool isAbsolute() const { return isAbsolute_; }
-   SYMTAB_EXPORT bool isCommonStorage() const { return isCommonStorage_; }
+   bool isInDynSymtab() const { return (type_ != ST_DELETED) && isDynamic_; }
+   bool isInSymtab() const { return (type_ != ST_DELETED) && !isDynamic_; }
+   bool isAbsolute() const { return isAbsolute_; }
+   bool isCommonStorage() const { return isCommonStorage_; }
 
-   SYMTAB_EXPORT bool              isFunction()            const;
-   SYMTAB_EXPORT bool              setFunction(Function * func);
-   SYMTAB_EXPORT Function *        getFunction()           const;
+   bool              isFunction()            const;
+   bool              setFunction(Function * func);
+   Function *        getFunction()           const;
 
-   SYMTAB_EXPORT bool              isVariable()            const;
-   SYMTAB_EXPORT bool              setVariable(Variable *var);
-   SYMTAB_EXPORT Variable *        getVariable()           const;
+   bool              isVariable()            const;
+   bool              setVariable(Variable *var);
+   Variable *        getVariable()           const;
 
-   SYMTAB_EXPORT SymbolVisibility getVisibility() const { return visibility_; }
+   SymbolVisibility getVisibility() const { return visibility_; }
 
-   SYMTAB_EXPORT int getIndex() const { return index_; }
-   SYMTAB_EXPORT bool setIndex(int index) { index_ = index; return true; }
-   SYMTAB_EXPORT int getStrIndex() const { return strindex_; }
-   SYMTAB_EXPORT bool setStrIndex(int strindex) { strindex_ = strindex; return true; }
-   SYMTAB_EXPORT void setReferringSymbol (Symbol *referringSymbol);
-   SYMTAB_EXPORT Symbol* getReferringSymbol ();
+   int getIndex() const { return index_; }
+   bool setIndex(int index) { index_ = index; return true; }
+   int getStrIndex() const { return strindex_; }
+   bool setStrIndex(int strindex) { strindex_ = strindex; return true; }
+   void setReferringSymbol (Symbol *referringSymbol);
+   Symbol* getReferringSymbol ();
 
    //////////////// Modification
-   SYMTAB_EXPORT bool setOffset (Offset newOffset);
-   SYMTAB_EXPORT bool setPtrOffset (Offset newOffset);
-   SYMTAB_EXPORT bool setLocalTOC (Offset localTOC);
-   SYMTAB_EXPORT bool setSize(unsigned ns);
-   SYMTAB_EXPORT bool setRegion(Region *r);
-   SYMTAB_EXPORT bool setModule(Module *mod);
+   bool setOffset (Offset newOffset);
+   bool setPtrOffset (Offset newOffset);
+   bool setLocalTOC (Offset localTOC);
+   bool setSize(unsigned ns);
+   bool setRegion(Region *r);
+   bool setModule(Module *mod);
 
-   SYMTAB_EXPORT bool setMangledName(std::string name);
+   bool setMangledName(std::string name);
 
-   SYMTAB_EXPORT bool setSymbolType(SymbolType sType);
+   bool setSymbolType(SymbolType sType);
 
-   SYMTAB_EXPORT SymbolTag            tag ()               const;
-   SYMTAB_EXPORT bool  setDynamic(bool d) { isDynamic_ = d; return true;}
-   SYMTAB_EXPORT bool  setAbsolute(bool a) { isAbsolute_ = a; return true; }
-   SYMTAB_EXPORT bool  setCommonStorage(bool cs) { isCommonStorage_ = cs; return true; }
+   SymbolTag            tag ()               const;
+   bool  setDynamic(bool d) { isDynamic_ = d; return true;}
+   bool  setAbsolute(bool a) { isAbsolute_ = a; return true; }
+   bool  setCommonStorage(bool cs) { isCommonStorage_ = cs; return true; }
 
-   SYMTAB_EXPORT bool  setVersionFileName(std::string &fileName);
-   SYMTAB_EXPORT bool  setVersions(std::vector<std::string> &vers);
-   SYMTAB_EXPORT bool  setVersionNum(unsigned verNum);
-   SYMTAB_EXPORT void setVersionHidden() { versionHidden_ = true; }
+   bool  setVersionFileName(std::string &fileName);
+   bool  setVersions(std::vector<std::string> &vers);
+   bool  setVersionNum(unsigned verNum);
+   void setVersionHidden() { versionHidden_ = true; }
 
-   SYMTAB_EXPORT bool  getVersionFileName(std::string &fileName);
-   SYMTAB_EXPORT bool  getVersions(std::vector<std::string> *&vers);
-   SYMTAB_EXPORT bool  getVersionNum(unsigned &verNum);
-   SYMTAB_EXPORT bool  getVersionHidden() { return versionHidden_; }
+   bool  getVersionFileName(std::string &fileName);
+   bool  getVersions(std::vector<std::string> *&vers);
+   bool  getVersionNum(unsigned &verNum);
+   bool  getVersionHidden() { return versionHidden_; }
 
    friend
       std::ostream& operator<< (std::ostream &os, const Symbol &s);
@@ -257,27 +257,27 @@ class Symbol : public Serializable,
 
    public:
 
-   SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *, 
+   Serializable * serialize_impl(SerializerBase *, 
 		   const char *tag = "Symbol") THROW_SPEC (SerializerError);
 };
 
-class LookupInterface 
+class SYMTAB_EXPORT LookupInterface 
 {
    public:
-      SYMTAB_EXPORT LookupInterface();
-      SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret,
+      LookupInterface();
+      virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret,
             Symbol::SymbolType sType) = 0;
-      SYMTAB_EXPORT virtual bool findSymbol(std::vector<Symbol *> &ret,
+      virtual bool findSymbol(std::vector<Symbol *> &ret,
                                             const std::string& name,
                                             Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
                                             NameType nameType = anyName,
                                             bool isRegex = false,
                                             bool checkCase = false,
                                             bool includeUndefined = false) = 0;
-      SYMTAB_EXPORT virtual bool findType(Type *&type, std::string name) = 0;
-      SYMTAB_EXPORT virtual bool findVariableType(Type *&type, std::string name)= 0;
+      virtual bool findType(Type *&type, std::string name) = 0;
+      virtual bool findVariableType(Type *&type, std::string name)= 0;
 
-      SYMTAB_EXPORT virtual ~LookupInterface();
+      virtual ~LookupInterface();
 };
 
 std::ostream& operator<< (std::ostream &os, const Symbol &s);

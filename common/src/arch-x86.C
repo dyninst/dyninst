@@ -38,7 +38,7 @@
 // Note: Unless specified "book" refers to Intel's manual
 
 // This include *must* come first in the file.
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -50,11 +50,11 @@
 #include "boost/assign/std/vector.hpp"
 #include "boost/assign/std/set.hpp"
 
-#include "common/h/arch-x86.h"
+#include "common/src/arch-x86.h"
 #include "dyn_regs.h"
 
 #if defined(os_vxworks)
-#include "common/h/wtxKludges.h"
+#include "common/src/wtxKludges.h"
 #endif
 
 using namespace std;

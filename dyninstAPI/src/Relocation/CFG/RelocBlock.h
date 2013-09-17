@@ -31,7 +31,7 @@
 #if !defined(PATCHAPI_TRACE_H_)
 #define PATCHAPI_TRACE_H_
 
-#include "common/h/Types.h" // Address
+#include "common/src/Types.h" // Address
 #include "dyninstAPI/src/codegen.h" // codeGen
 #include "dyninstAPI/src/function.h"
 #include "instructionAPI/h/Instruction.h" // Instruction::Ptr

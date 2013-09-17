@@ -31,12 +31,12 @@
 #include "dwarf/h/dwarfFrameParser.h"
 #include "dwarf/h/dwarfExprParser.h"
 #include "dwarf/h/dwarfResult.h"
-#include "dynutil/h/VariableLocation.h"
-#include "common/h/Types.h"
+#include "common/h/VariableLocation.h"
+#include "common/src/Types.h"
 #include "libdwarf.h"
 #include <stdio.h>
 #include <iostream>
-#include "common/h/debug_common.h" // dwarf_printf
+#include "common/src/debug_common.h" // dwarf_printf
 
 using namespace Dyninst;
 using namespace Dwarf;

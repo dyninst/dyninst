@@ -41,9 +41,9 @@
 #include "stackwalk/src/sw.h"
 #include "stackwalk/src/libstate.h"
 
-#include "common/h/lru_cache.h"
+#include "common/src/lru_cache.h"
 
-#include "dynutil/h/SymReader.h"
+#include "common/h/SymReader.h"
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;

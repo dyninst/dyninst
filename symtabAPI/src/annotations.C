@@ -32,7 +32,7 @@
 
 #include "annotations.h"
 #include "Annotatable.h"
-#include "common/h/serialize.h"
+#include "common/src/serialize.h"
 
 AnnotationClass<localVarCollection> FunctionLocalVariablesAnno(std::string("FunctionLocalVariablesAnno"));
 AnnotationClass<localVarCollection> FunctionParametersAnno(std::string("FunctionParametersAnno"));

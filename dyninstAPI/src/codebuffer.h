@@ -32,7 +32,7 @@
 
 #include <vector>
 
-#include "common/h/arch.h"
+#include "common/src/arch.h"
 #include "dyninstAPI/src/patch.h"
 
 // This class serves as a flexible buffer target for code generation.

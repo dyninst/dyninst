@@ -48,9 +48,9 @@
 #include "Symbol.h"
 #include "Symtab.h"
 #include "LineInformation.h"
-#include "common/h/headers.h"
-#include "common/h/MappedFile.h"
-#include "common/h/lprintf.h"
+#include "common/src/headers.h"
+#include "common/src/MappedFile.h"
+#include "common/src/lprintf.h"
 
 namespace Dyninst{
 namespace SymtabAPI{

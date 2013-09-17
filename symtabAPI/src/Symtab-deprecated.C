@@ -38,10 +38,10 @@
 #include <string.h>
 #include <algorithm>
 
-#include "common/h/Timer.h"
-#include "common/h/debugOstream.h"
-#include "common/h/serialize.h"
-#include "common/h/pathName.h"
+#include "common/src/Timer.h"
+#include "common/src/debugOstream.h"
+#include "common/src/serialize.h"
+#include "common/src/pathName.h"
 
 #include "Serialization.h"
 #include "Symtab.h"

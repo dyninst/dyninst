@@ -35,7 +35,7 @@
 #else
 #include <procfs.h>
 #endif
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/sol_proc.h"

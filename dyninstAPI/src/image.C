@@ -36,7 +36,7 @@
 #include <fstream>
 
 #include "image.h"
-#include "common/h/arch.h"
+#include "common/src/arch.h"
 #include "parRegion.h"
 #include "util.h"
 #include "inst.h"
@@ -44,13 +44,13 @@
 #include "function.h"
 #include "Parsing.h"
 
-#include "common/h/Timer.h"
-#include "common/h/debugOstream.h"
-#include "common/h/pathName.h"
-#include "common/h/MappedFile.h"
+#include "common/src/Timer.h"
+#include "common/src/debugOstream.h"
+#include "common/src/pathName.h"
+#include "common/src/MappedFile.h"
 
 #include "dyninstAPI/h/BPatch_flowGraph.h"
-#include "dynutil/h/util.h"
+#include "common/h/util.h"
 
 #include "symtabAPI/h/Function.h"
 
@@ -62,13 +62,14 @@
 #include <sys/time.h>
 #endif
 
-#if defined( USES_DWARF_DEBUG )
+#if defined( cap_dwarf )
 #include "dwarf.h"
 #include "libdwarf.h"
 #endif
 
 #if defined(i386_unknown_nt4_0)
 #include <dbghelp.h>
+#define snprintf _snprintf
 //#include <cvconst.h>
 #endif
 
@@ -181,7 +182,7 @@ int codeBytesSeen = 0;
 #include <dataflowAPI/h/SymEval.h>
 #include <dataflowAPI/h/AbslocInterface.h>
 #include <dataflowAPI/h/Absloc.h>
-#include <dynutil/h/DynAST.h>
+#include <common/h/DynAST.h>
 
 namespace {
     /* On PPC GLIBC (32 & 64 bit) the address of main is in a structure
@@ -1304,7 +1305,6 @@ image::image(fileDescriptor &desc,
              BPatch_hybridMode mode, 
              bool parseGaps) :
    desc_(desc),
-   activelyParsing(addrHash4),
    is_libdyninstRT(false),
    is_a_out(false),
    main_call_addr_(0),
@@ -1316,7 +1316,6 @@ image::image(fileDescriptor &desc,
    parse_cb_(NULL),
    nextBlockID_(0),
    pltFuncs(NULL),
-   varsByAddr(addrHash4),
    trackNewBlocks_(false),
    refCount(1),
    parseState_(unparsed),
@@ -2049,7 +2048,7 @@ bool image::findSymByPrefix(const std::string &prefix, pdvector<Symbol *> &ret) 
 	return true;	
 }
 
-dictionary_hash<Address, std::string> *image::getPltFuncs()
+std::unordered_map<Address, std::string> *image::getPltFuncs()
 {
    bool result;
    if (pltFuncs)
@@ -2061,7 +2060,7 @@ dictionary_hash<Address, std::string> *image::getPltFuncs()
    if (!result)
       return NULL;
 
-   pltFuncs = new dictionary_hash<Address, std::string>(addrHash);
+   pltFuncs = new std::unordered_map<Address, std::string>;
    assert(pltFuncs);
    for(unsigned k = 0; k < fbt.size(); k++) {
 #if defined(os_vxworks)
@@ -2091,8 +2090,8 @@ void image::getPltFuncs(std::map<Address, std::string> &out)
 image_variable* image::createImageVariable(Offset offset, std::string name, int size, pdmodule *mod)
 {
     // What to do here?
-    if (varsByAddr.defines(offset))
-        return varsByAddr[offset];
+   auto iter = varsByAddr.find(offset);
+   if (iter != varsByAddr.end()) return iter->second;
 
     Variable *sVar = getObject()->createVariable(name, offset, size, mod->mod());
 

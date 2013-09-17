@@ -31,7 +31,7 @@
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/src/libstate.h"
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include <assert.h>
 #include <string>
 #include <vector>
