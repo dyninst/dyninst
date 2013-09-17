@@ -34,7 +34,7 @@
 #include <invent.h>
 #include <stdio.h>
 #include <assert.h>
-#include "common/h/timing.h"
+#include "common/src/timing.h"
 
 
 double calcCyclesPerSecond_invent()

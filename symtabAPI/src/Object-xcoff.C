@@ -38,7 +38,7 @@
 
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/src/Object.h"
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 
 #include "Collections.h"
 #include "Symtab.h"
@@ -79,7 +79,7 @@ using namespace std;
 #include <scnhdr.h>
 
 #include <dlfcn.h>
-#include "common/h/debugOstream.h"
+#include "common/src/debugOstream.h"
 
 /* For some reason this symbol type isn't global */
 #if !defined(C_WEAKEXT)

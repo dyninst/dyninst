@@ -31,7 +31,7 @@
 // $Id: binaryEdit.C,v 1.26 2008/10/28 18:42:44 bernat Exp $
 
 #include "binaryEdit.h"
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "debug.h"
@@ -692,9 +692,9 @@ Address BinaryEdit::maxAllocedAddr() {
    inferiorFreeCompact();
    Address hi = lowWaterMark_;
 
-   for (dictionary_hash<Address, heapItem *>::iterator iter = heap_.heapActive.begin();
+   for (auto iter = heap_.heapActive.begin();
         iter != heap_.heapActive.end(); ++iter) {
-      Address localHi = (*iter)->addr + (*iter)->length;
+      Address localHi = iter->second->addr + iter->second->length;
       if (localHi > hi) hi = localHi;
    }
    return hi;
@@ -1058,5 +1058,6 @@ void BinaryEdit::addTrap(Address from, Address to, codeGen &gen) {
    gen.setAddr(from);
    insnCodeGen::generateTrap(gen);
    trapMapping.addTrapMapping(from, to, true);
+   springboard_cerr << "Generated springboard trap " << hex << from << "->" << to << dec << endl;
 }
 

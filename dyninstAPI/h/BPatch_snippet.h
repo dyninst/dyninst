@@ -188,6 +188,16 @@ class BPATCH_DLL_EXPORT BPatch_snippet {
 
     bool is_trivial();
 
+    // BPatch_snippet::checkTypesAtPoint
+    // Type checking for inserting a particular
+    // snippet at a particular point
+    // 
+    // Currently: check return exprs against the existence
+    // of return values
+    // Called at insertion time, but can be used to check in advance
+
+    bool checkTypesAtPoint(BPatch_point* p) const;
+    
     //    protected:
     //AstNodePtr *ast_wrapper; 
 

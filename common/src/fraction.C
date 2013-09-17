@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/fraction.h"
-#include "common/h/int64iostream.h"
+#include "common/src/fraction.h"
+#include "common/src/int64iostream.h"
 
 fraction::ostream_fmt fraction::curFmt = sparse;
 

@@ -35,6 +35,7 @@
 #include "dyn_regs.h"
 #include "libdwarf.h"
 #include "dwarf.h"
+#include "util.h"
 
 namespace Dyninst {
 
@@ -45,21 +46,21 @@ namespace Dwarf {
 
 class DwarfResult;
 
-int Register_DWARFtoMachineEnc32(int n);
-int Register_DWARFtoMachineEnc64(int n);
+DYNDWARF_EXPORT int Register_DWARFtoMachineEnc32(int n);
+DYNDWARF_EXPORT int Register_DWARFtoMachineEnc64(int n);
 
-bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
+DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                            long int *initialStackValue,
                            Dyninst::VariableLocation &loc,
                            Dyninst::Architecture arch);
 
-bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
+DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                            long int *initialStackValue,
                            Dyninst::ProcessReader *reader,
                            Dyninst::Architecture arch,
                            long int &end_result);
 
-bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
+DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                            long int *initialStackValue,
                            DwarfResult &res,
                            Dyninst::Architecture arch);

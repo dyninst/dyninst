@@ -38,7 +38,7 @@
  */
 
 #include "dyninstAPI/src/inst.h"
-#include "common/h/arch.h"  // for type, instruction
+#include "common/src/arch.h"  // for type, instruction
 #include "dyninstAPI/src/frame.h"
 
 class baseTramp;

@@ -34,12 +34,12 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <string>
-#include "common/h/Pair.h"
-#include "common/h/Vector.h"
+#include "common/src/Pair.h"
+#include "common/src/Vector.h"
 #include "util.h"
 #include "BPatch.h"
 #include "dyninstAPI/src/debug.h"
-#include "common/h/dthread.h"
+#include "common/src/dthread.h"
 #include "os.h"
 
 unsigned long getExecThreadID() {

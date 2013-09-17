@@ -28,12 +28,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/serialize.h"
+#include "common/src/serialize.h"
 
 #if !defined(SERIALIZATION_DISABLED)
 
 #if !defined(os_windows)
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 #include <dlfcn.h>
 #if defined (cap_have_libxml)
 //libxml2 functions

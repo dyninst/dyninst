@@ -29,7 +29,7 @@
  */
 
 // Needs to be the first include.
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 
 #include <stdio.h>
 #include <string>
@@ -47,12 +47,12 @@
 #include <functional>
 
 #define INSIDE_INSTRUCTION_API
-#include "common/h/arch-x86.h"
+#include "common/src/arch-x86.h"
 
 using namespace std;
 using namespace NS_x86;
 
-#include "../../common/h/singleton_object_pool.h"
+#include "../../common/src/singleton_object_pool.h"
 
 namespace Dyninst
 {

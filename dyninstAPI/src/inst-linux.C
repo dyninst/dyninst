@@ -41,7 +41,7 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "common/h/stats.h"
+#include "common/src/stats.h"
 #include "dyninstAPI/src/frame.h"
 
 //

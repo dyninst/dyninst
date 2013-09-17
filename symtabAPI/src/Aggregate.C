@@ -30,7 +30,7 @@
 #include "dyntypes.h"
 #include "Annotatable.h"
 #include "Serialization.h"
-#include "common/h/serialize.h"
+#include "common/src/serialize.h"
 
 #include "Symtab.h"
 #include "symutil.h"

@@ -30,9 +30,9 @@
 
 // $Id: timing.C,v 1.26 2007/05/30 19:20:36 legendre Exp $
 
-#include "common/h/Timer.h"
-#include "common/h/timing.h"
-#include "common/h/Time.h"
+#include "common/src/Timer.h"
+#include "common/src/timing.h"
+#include "common/src/Time.h"
 
 /* time retrieval function definitions */
 

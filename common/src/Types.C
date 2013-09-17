@@ -33,9 +33,13 @@
  * Types.C: commonly used type-handling functions.
 ************************************************************************/
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include <stdio.h>
 #include <assert.h>
+
+#if defined(_MSC_VER)
+#define snprintf _snprintf
+#endif
 
 // verify the size of the defined Address type
 void Address_chk ()

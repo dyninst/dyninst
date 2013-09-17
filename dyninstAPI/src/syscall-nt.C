@@ -30,7 +30,7 @@
 
 // $Id: syscall-nt.C,v 1.4 2006/03/14 22:57:31 legendre Exp $
 
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/dynProcess.h"

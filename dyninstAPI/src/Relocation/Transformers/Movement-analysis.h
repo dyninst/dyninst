@@ -37,7 +37,7 @@
 #include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
 #include "dataflowAPI/h/AbslocInterface.h" // And more of the same
 
-#include "dynutil/h/Graph.h" // PC-sensitive transformer
+#include "common/h/Graph.h" // PC-sensitive transformer
 #include "dataflowAPI/h/SymEval.h" // Variable class
 #include "Movement-adhoc.h"
 #include "../CodeMover.h"

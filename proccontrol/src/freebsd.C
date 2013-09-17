@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dynutil/h/dyn_regs.h"
-#include "dynutil/h/dyntypes.h"
+#include "common/h/dyn_regs.h"
+#include "common/h/dyntypes.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
@@ -41,7 +41,7 @@
 #include "proccontrol/src/freebsd.h"
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/int_event.h"
-#include "common/h/freebsdKludges.h"
+#include "common/src/freebsdKludges.h"
 #include "symlite/h/SymLite-elf.h"
 
 #include <iostream>

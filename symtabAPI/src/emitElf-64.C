@@ -39,14 +39,14 @@
 #include "emitElf-64.h"
 #include "emitElfStatic.h"
 #include "debug.h"
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 
 #if defined(os_freebsd)
-#include "common/h/freebsdKludges.h"
+#include "common/src/freebsdKludges.h"
 #endif
 
 #if defined(os_linux)
-#include "common/h/linuxKludges.h"
+#include "common/src/linuxKludges.h"
 #endif
 
 extern void symtab_log_perror(const char *msg);
@@ -140,16 +140,17 @@ bool emitElf64::cannotRelocatePhdrs()
 static int elfSymType(Symbol *sym)
 {
   switch (sym->getType()) {
-  case Symbol::ST_MODULE: return STT_FILE;
-  case Symbol::ST_SECTION: return STT_SECTION;
-  case Symbol::ST_OBJECT: return STT_OBJECT;
-  case Symbol::ST_FUNCTION: return STT_FUNC;
-  case Symbol::ST_TLS: return STT_TLS;
-  case Symbol::ST_NOTYPE : return STT_NOTYPE;
-  case Symbol::ST_UNKNOWN: return sym->getInternalType();
+     case Symbol::ST_MODULE: return STT_FILE;
+     case Symbol::ST_SECTION: return STT_SECTION;
+     case Symbol::ST_OBJECT: return STT_OBJECT;
+     case Symbol::ST_FUNCTION: return STT_FUNC;
+     case Symbol::ST_TLS: return STT_TLS;
+     case Symbol::ST_NOTYPE : return STT_NOTYPE;
+     case Symbol::ST_UNKNOWN: return sym->getInternalType();
+#if defined(STT_GNU_IFUNC)
      case Symbol::ST_INDIRECT: return STT_GNU_IFUNC;
-
-  default: return STT_SECTION;
+#endif
+     default: return STT_SECTION;
   }
 }
 

@@ -32,8 +32,8 @@
 #define REGISTER_CONVERSION_H
 
 #include "Register.h"
-#include "common/h/Types.h"
-#include "dynutil/h/dyn_regs.h"
+#include "common/src/Types.h"
+#include "common/h/dyn_regs.h"
 #include <map>
 
 using namespace Dyninst;

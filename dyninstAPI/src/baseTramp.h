@@ -35,7 +35,7 @@
 #ifndef BASE_TRAMP_H
 #define BASE_TRAMP_H
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include "inst.h" // callWhen
 #include "dyninstAPI/src/codeRange.h"
 //#include "arch.h"

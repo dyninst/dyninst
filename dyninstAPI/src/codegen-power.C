@@ -38,7 +38,7 @@
 #include "dyninstAPI/src/function.h"
 
 #if defined(os_vxworks)
-#include "common/h/wtxKludges.h"
+#include "common/src/wtxKludges.h"
 #endif
 
 // "Casting" methods. We use a "base + offset" model, but often need to 

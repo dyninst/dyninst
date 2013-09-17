@@ -43,7 +43,7 @@
 #include "mapped_object.h"
 #include "image.h"
 
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 
 #include "proccontrol/h/PCErrors.h"
 #include "MemoryEmulator/memEmulator.h"
@@ -3313,7 +3313,7 @@ bool PCProcess::continueSyncRPCThreads() {
     return true;
 }
 
-void PCProcess::addTrap(Address from, Address to, codeGen &) {
+void PCProcess::addTrap(Address from, Address to, codeGen &gen) {
     map<Address, Breakpoint::ptr>::iterator breakIter =
        installedCtrlBrkpts.find(from);
 
@@ -3332,6 +3332,7 @@ void PCProcess::addTrap(Address from, Address to, codeGen &) {
     }
 
     installedCtrlBrkpts.insert(make_pair(from, newBreak));
+    gen.invalidate();
 }
 
 void PCProcess::removeTrap(Address from) {

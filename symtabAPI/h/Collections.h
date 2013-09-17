@@ -50,20 +50,22 @@ class DwarfWalker;
  * This object will store all the local variables within this function.
  * Note: This class is unaware of scope.
  */
-class localVarCollection : public AnnotationContainer<localVar *> {
+
+
+class SYMTAB_EXPORT localVarCollection : public AnnotationContainer<localVar *> {
   
-  std::vector<localVar *> localVars;
+  std::vector<localVar* > localVars;
   
-  SYMTAB_EXPORT bool addItem_impl(localVar *);
+  bool addItem_impl(localVar *);
 public:
-  SYMTAB_EXPORT localVarCollection(){}
-  SYMTAB_EXPORT ~localVarCollection();
+  localVarCollection(){}
+  ~localVarCollection();
 
-  SYMTAB_EXPORT void addLocalVar(localVar * var);
-  SYMTAB_EXPORT localVar * findLocalVar(std::string &name);
-  SYMTAB_EXPORT std::vector<localVar *> *getAllVars();  
+  void addLocalVar(localVar * var);
+  localVar * findLocalVar(std::string &name);
+  std::vector<localVar *> *getAllVars();  
 
-  SYMTAB_EXPORT Serializable *ac_serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
+  Serializable *ac_serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
 };
   
 
@@ -72,7 +74,7 @@ public:
  * Due to DWARF weirdness, this can be shared between multiple BPatch_modules.
  * So we reference-count to make life easier.
  */
-class typeCollection : public Serializable//, public AnnotatableSparse 
+class SYMTAB_EXPORT typeCollection : public Serializable//, public AnnotatableSparse 
 {
     friend class Symtab;
     friend class Object;
@@ -95,44 +97,44 @@ class typeCollection : public Serializable//, public AnnotatableSparse
     // DWARF...
     bool dwarfParsed_;
 
-	SYMTAB_EXPORT Serializable *serialize_impl(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
+	Serializable *serialize_impl(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
 	public:
-    SYMTAB_EXPORT typeCollection();
-    SYMTAB_EXPORT ~typeCollection();
+    typeCollection();
+    ~typeCollection();
 public:
 	static void addDeferredLookup(int, dataClass, Type **);
 
-    SYMTAB_EXPORT static typeCollection *getModTypeCollection(Module *mod);
+    static typeCollection *getModTypeCollection(Module *mod);
 #if 0
-    SYMTAB_EXPORT static typeCollection *getGlobalTypeCollection();
-    SYMTAB_EXPORT static void freeTypeCollection(typeCollection *tc);
+    static typeCollection *getGlobalTypeCollection();
+    static void freeTypeCollection(typeCollection *tc);
 #endif
 
     // DWARF...
-    SYMTAB_EXPORT bool dwarfParsed() { return dwarfParsed_; }
-    SYMTAB_EXPORT void setDwarfParsed() { dwarfParsed_ = true; }
+    bool dwarfParsed() { return dwarfParsed_; }
+    void setDwarfParsed() { dwarfParsed_ = true; }
 
-    SYMTAB_EXPORT Type	*findType(std::string name);
-    SYMTAB_EXPORT Type	*findType(const int ID);
-    SYMTAB_EXPORT Type 	*findTypeLocal(std::string name);
-    SYMTAB_EXPORT Type 	*findTypeLocal(const int ID);
-    SYMTAB_EXPORT void	addType(Type *type);
-    SYMTAB_EXPORT void        addGlobalVariable(std::string &name, Type *type);
+    Type	*findType(std::string name);
+    Type	*findType(const int ID);
+    Type 	*findTypeLocal(std::string name);
+    Type 	*findTypeLocal(const int ID);
+    void	addType(Type *type);
+    void        addGlobalVariable(std::string &name, Type *type);
 
     /* Some debug formats allow forward references.  Rather than
        fill in forward in a second pass, generate placeholder
        types, and fill them in as we go.  Because we require
        One True Pointer for each type (in parseStab.C), when
        updating a type, return that One True Pointer. */
-    SYMTAB_EXPORT Type * findOrCreateType( const int ID );
+    Type * findOrCreateType( const int ID );
     template<class T>
-    SYMTAB_EXPORT T* addOrUpdateType(T* type);
+    T* addOrUpdateType(T* type);
 
-    SYMTAB_EXPORT Type *findVariableType(std::string &name);
+    Type *findVariableType(std::string &name);
 
-    SYMTAB_EXPORT std::vector<Type *> *getAllTypes();
-    SYMTAB_EXPORT std::vector<std::pair<std::string, Type *> > *getAllGlobalVariables();
-    SYMTAB_EXPORT void clearNumberedTypes();
+    std::vector<Type *> *getAllTypes();
+    std::vector<std::pair<std::string, Type *> > *getAllGlobalVariables();
+    void clearNumberedTypes();
 };
 
 /*

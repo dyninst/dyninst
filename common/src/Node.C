@@ -36,7 +36,7 @@
 #include "Node.h"
 #include <assert.h>
 
-#include "common/h/NodeIterator.h"
+#include "common/src/NodeIterator.h"
 
 // Nodes are quite simple; they have an Insn, an Absloc, and a set of Edges.
 

@@ -38,8 +38,8 @@
 #include "stackwalk/src/sw.h"
 #include "stackwalk/src/symtab-swk.h"
 
-#include "common/h/headers.h"
-#include "common/h/Types.h"
+#include "common/src/headers.h"
+#include "common/src/Types.h"
 
 #include <string>
 #include <sstream>

@@ -41,37 +41,37 @@ namespace PatchAPI {
 /* Interface specification for the interation between a PatchMgr and
    the address space */
 
-class AddrSpace {
+class PATCHAPI_EXPORT AddrSpace {
     friend class PatchMgr;
     friend class PatchFunction;
 
   public:
-    PATCHAPI_EXPORT static AddrSpace* create(PatchObject* obj);
-    PATCHAPI_EXPORT virtual ~AddrSpace();
+    static AddrSpace* create(PatchObject* obj);
+    virtual ~AddrSpace();
 
     // Write data in mutatee's address space
-    PATCHAPI_EXPORT virtual bool write(PatchObject* /*obj*/, Address /*to*/,
+    virtual bool write(PatchObject* /*obj*/, Address /*to*/,
                                        Address /*from*/, size_t /*size*/);
 
     // Memory allocation / reallocation / deallocation in mutatee's addressSpace
-    PATCHAPI_EXPORT virtual Address malloc(PatchObject* /*obj*/, size_t /*size*/,
+    virtual Address malloc(PatchObject* /*obj*/, size_t /*size*/,
                                            Address /*near*/);
 
-    PATCHAPI_EXPORT virtual bool realloc(PatchObject* /*obj*/, Address /*orig*/,
+    virtual bool realloc(PatchObject* /*obj*/, Address /*orig*/,
                                          size_t /*size*/);
 
-    PATCHAPI_EXPORT virtual bool free(PatchObject* /*obj*/, Address /*orig*/);
+    virtual bool free(PatchObject* /*obj*/, Address /*orig*/);
 
     // Load a binary oject into the address space
-    PATCHAPI_EXPORT virtual bool loadObject(PatchObject* obj);
+    virtual bool loadObject(PatchObject* obj);
 
     // Getters
     typedef std::map<const ParseAPI::CodeObject*, PatchObject*> ObjMap;
     ObjMap& objMap() { return obj_map_; }
     PatchObject* findObject(const ParseAPI::CodeObject*) const;
     template <class Iter> void objs(Iter iter); // EXPORTED
-    PATCHAPI_EXPORT PatchObject* executable() { return first_object_; }
-    PATCHAPI_EXPORT PatchMgrPtr mgr() const { return mgr_; }
+    PatchObject* executable() { return first_object_; }
+    PatchMgrPtr mgr() const { return mgr_; }
 
     std::string format() const;
 
@@ -82,7 +82,7 @@ class AddrSpace {
     PatchObject* first_object_;
     PatchMgrPtr mgr_;
 
-    PATCHAPI_EXPORT bool init(PatchObject*);
+    bool init(PatchObject*);
     AddrSpace() {}
     explicit AddrSpace(AddrSpace*) {}
 };

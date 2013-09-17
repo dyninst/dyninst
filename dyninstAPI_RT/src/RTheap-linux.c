@@ -67,6 +67,8 @@ RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi)
 {
   /* We do not save footprint space by allocating in
      the user's heap on this platform, so we stay out of it. */
+  (void)lo; /* unused parameter */
+  (void)hi; /* unused parameter */
   return RT_FALSE;
 }
 
@@ -94,7 +96,8 @@ int
 DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
 {
    int fd;
-   ssize_t ret, length;
+   ssize_t ret;
+   size_t length;
    char *p;
    dyninstmm_t *ms;
    unsigned i, num;

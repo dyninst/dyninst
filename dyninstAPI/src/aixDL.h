@@ -31,7 +31,7 @@
 #if !defined(aix_dl_hdr)
 #define aix_dl_hdr
 
-#include "common/h/Vector.h"
+#include "common/src/Vector.h"
 class process;
 class mapped_object;
 //

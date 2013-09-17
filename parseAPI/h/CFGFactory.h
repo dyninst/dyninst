@@ -111,47 +111,47 @@ class fact_list {
 
 /** Objects created by a CFGFactory must descend from `allocatable' **/
 
-class CFGFactory {   
+class PARSER_EXPORT CFGFactory {   
  public:
-    PARSER_EXPORT CFGFactory() {};
-    PARSER_EXPORT virtual ~CFGFactory();
+    CFGFactory() {};
+    virtual ~CFGFactory();
     
     /*
      * These methods are called by ParseAPI, and perform bookkeeping
      * around the user-overridden creation/destruction methods.
      */
-    PARSER_EXPORT Function *_mkfunc(Address addr, FuncSource src,
+    Function *_mkfunc(Address addr, FuncSource src,
                                     std::string name, CodeObject *obj,
                                     CodeRegion *region, InstructionSource *isrc);
-    PARSER_EXPORT Block *_mkblock(Function *f, CodeRegion *r, Address addr);
-    PARSER_EXPORT Edge *_mkedge(Block *src, Block *trg, EdgeTypeEnum type);
+    Block *_mkblock(Function *f, CodeRegion *r, Address addr);
+    Edge *_mkedge(Block *src, Block *trg, EdgeTypeEnum type);
     
-    PARSER_EXPORT Block *_mksink(CodeObject *obj, CodeRegion *r);
+    Block *_mksink(CodeObject *obj, CodeRegion *r);
 
-    PARSER_EXPORT void destroy_func(Function *f);
-    PARSER_EXPORT void destroy_block(Block *b);
-    PARSER_EXPORT void destroy_edge(Edge *e);
+    void destroy_func(Function *f);
+    void destroy_block(Block *b);
+    void destroy_edge(Edge *e);
 
-    PARSER_EXPORT void destroy_all();
+    void destroy_all();
 
  protected:
-    PARSER_EXPORT virtual Function * mkfunc(Address addr, FuncSource src, 
+    virtual Function * mkfunc(Address addr, FuncSource src, 
             std::string name, CodeObject * obj, CodeRegion * region, 
             Dyninst::InstructionSource * isrc);
-    PARSER_EXPORT virtual Block * mkblock(Function * f, CodeRegion * r, 
+    virtual Block * mkblock(Function * f, CodeRegion * r, 
             Address addr);
-    PARSER_EXPORT virtual Edge * mkedge(Block * src, Block * trg, 
+    virtual Edge * mkedge(Block * src, Block * trg, 
             EdgeTypeEnum type);
     /*
      * A `sink' block is the target of all unresolvable control
      * flow in a parsing unit. Implementors may return a unique
      * sink per CodeObject or a single global sink.
      */
-    PARSER_EXPORT virtual Block * mksink(CodeObject *obj, CodeRegion *r);
+    virtual Block * mksink(CodeObject *obj, CodeRegion *r);
 
-    PARSER_EXPORT virtual void free_func(Function * f);
-    PARSER_EXPORT virtual void free_block(Block * b);
-    PARSER_EXPORT virtual void free_edge(Edge * e);
+    virtual void free_func(Function * f);
+    virtual void free_block(Block * b);
+    virtual void free_edge(Edge * e);
 
     fact_list<Edge> edges_;
     fact_list<Block> blocks_;

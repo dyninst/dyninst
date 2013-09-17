@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/addrtranslate.h"
+#include "common/src/addrtranslate.h"
 
 #include <cstdio>
 

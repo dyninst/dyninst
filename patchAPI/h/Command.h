@@ -41,33 +41,33 @@ namespace PatchAPI {
    instrumentation request (public interface) or an internal step of
    instrumentation (plugin interface) */
 
-class Command {
+class PATCHAPI_EXPORT Command {
   public:
     Command() {}
     virtual ~Command() {}
 
-    PATCHAPI_EXPORT virtual bool commit();
+    virtual bool commit();
 
-    PATCHAPI_EXPORT virtual bool run() = 0;
-    PATCHAPI_EXPORT virtual bool undo() = 0;
+    virtual bool run() = 0;
+    virtual bool undo() = 0;
 };
 
 /* A BatchCommand is in fact a list of Commands, and is to iterate all Commands
    in the list to run() or undo(). */
 
-class BatchCommand : public Command {
+class PATCHAPI_EXPORT BatchCommand : public Command {
   public:
-    PATCHAPI_EXPORT BatchCommand* create();
+    BatchCommand* create();
     BatchCommand() {}
     virtual ~BatchCommand() {}
 
-    PATCHAPI_EXPORT virtual bool run();
-    PATCHAPI_EXPORT virtual bool undo();
+    virtual bool run();
+    virtual bool undo();
 
     /* Add/Remove Commands to to_do_ list. */
     typedef std::list<Command*> CommandList;
-    PATCHAPI_EXPORT void add(Command*);
-    PATCHAPI_EXPORT void remove(CommandList::iterator);
+    void add(Command*);
+    void remove(CommandList::iterator);
 
   protected:
     CommandList to_do_;
@@ -79,22 +79,22 @@ class BatchCommand : public Command {
    after executing all Commands in its list. Instrumenter is for code relocation
    and code generation. */
 
-class Patcher : public BatchCommand {
+class PATCHAPI_EXPORT Patcher : public BatchCommand {
   public:
-   PATCHAPI_EXPORT static Patcher* create(Dyninst::PatchAPI::PatchMgrPtr mgr) {
+   static Patcher* create(Dyninst::PatchAPI::PatchMgrPtr mgr) {
       return new Patcher(mgr);
     }
     Patcher(Dyninst::PatchAPI::PatchMgrPtr mgr) : mgr_(mgr) {}
     virtual ~Patcher() {}
 
-    PATCHAPI_EXPORT virtual bool run();
+    virtual bool run();
   private:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
 };
 
 /* Default implementation of some basic instrumentation Commands */
 
-class PushFrontCommand : public Command {
+class PATCHAPI_EXPORT PushFrontCommand : public Command {
   public:
     static PushFrontCommand* create(Dyninst::PatchAPI::Point* pt,
                       Dyninst::PatchAPI::SnippetPtr snip) {
@@ -104,8 +104,8 @@ class PushFrontCommand : public Command {
                      Dyninst::PatchAPI::SnippetPtr snip) : pt_(pt), snip_(snip) {}
     virtual ~PushFrontCommand() {}
 
-    PATCHAPI_EXPORT virtual bool run();
-    PATCHAPI_EXPORT virtual bool undo();
+    virtual bool run();
+    virtual bool undo();
     InstancePtr instance() { return instance_; }
  private:
    Dyninst::PatchAPI::Point* pt_;
@@ -113,7 +113,7 @@ class PushFrontCommand : public Command {
    Dyninst::PatchAPI::InstancePtr instance_;
 };
 
-class PushBackCommand : public Command {
+class PATCHAPI_EXPORT PushBackCommand : public Command {
   public:
     static PushBackCommand* create(Dyninst::PatchAPI::Point* pt,
                       Dyninst::PatchAPI::SnippetPtr snip) {
@@ -124,8 +124,8 @@ class PushBackCommand : public Command {
                     : pt_(pt), snip_(snip) {}
     virtual ~PushBackCommand() {}
 
-    PATCHAPI_EXPORT virtual bool run();
-    PATCHAPI_EXPORT virtual bool undo();
+    virtual bool run();
+    virtual bool undo();
     InstancePtr instance() { return instance_; }
 
   private:
@@ -134,7 +134,7 @@ class PushBackCommand : public Command {
     Dyninst::PatchAPI::InstancePtr instance_;
 };
 
-class RemoveSnippetCommand : public Command {
+class PATCHAPI_EXPORT RemoveSnippetCommand : public Command {
   public:
     static RemoveSnippetCommand* create(Dyninst::PatchAPI::InstancePtr instance) {
       return new RemoveSnippetCommand(instance);
@@ -143,13 +143,13 @@ class RemoveSnippetCommand : public Command {
       : instance_(instance) {}
     virtual ~RemoveSnippetCommand() {}
 
-    PATCHAPI_EXPORT virtual bool run();
-    PATCHAPI_EXPORT virtual bool undo();
+    virtual bool run();
+    virtual bool undo();
   private:
     Dyninst::PatchAPI::InstancePtr instance_;
 };
 
-class RemoveCallCommand : public Command {
+class PATCHAPI_EXPORT RemoveCallCommand : public Command {
   public:
     static RemoveCallCommand* create(Dyninst::PatchAPI::PatchMgrPtr mgr,
                       Dyninst::PatchAPI::PatchBlock* call_block,
@@ -162,15 +162,15 @@ class RemoveCallCommand : public Command {
       : mgr_(mgr), call_block_(call_block), context_(context) {}
     virtual ~RemoveCallCommand() {}
 
-    PATCHAPI_EXPORT virtual bool run();
-    PATCHAPI_EXPORT virtual bool undo();
+    virtual bool run();
+    virtual bool undo();
   private:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
     Dyninst::PatchAPI::PatchBlock* call_block_;
     Dyninst::PatchAPI::PatchFunction* context_;
 };
 
-class ReplaceCallCommand : public Command {
+class PATCHAPI_EXPORT ReplaceCallCommand : public Command {
   public:
     static ReplaceCallCommand* create(Dyninst::PatchAPI::PatchMgrPtr mgr,
                       Dyninst::PatchAPI::PatchBlock* call_block,
@@ -185,8 +185,8 @@ class ReplaceCallCommand : public Command {
       : mgr_(mgr), call_block_(call_block), new_callee_(new_callee), context_(context) {}
     virtual ~ReplaceCallCommand() {}
 
-    PATCHAPI_EXPORT virtual bool run();
-    PATCHAPI_EXPORT virtual bool undo();
+    virtual bool run();
+    virtual bool undo();
   private:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
     Dyninst::PatchAPI::PatchBlock* call_block_;
@@ -194,7 +194,7 @@ class ReplaceCallCommand : public Command {
     Dyninst::PatchAPI::PatchFunction* context_;
 };
 
-class ReplaceFuncCommand : public Command {
+class PATCHAPI_EXPORT ReplaceFuncCommand : public Command {
   public:
     static ReplaceFuncCommand* create(Dyninst::PatchAPI::PatchMgrPtr mgr,
                       Dyninst::PatchAPI::PatchFunction* old_func,
@@ -207,8 +207,8 @@ class ReplaceFuncCommand : public Command {
       : mgr_(mgr), old_func_(old_func), new_func_(new_func)  {}
     virtual ~ReplaceFuncCommand() {}
 
-    PATCHAPI_EXPORT virtual bool run();
-    PATCHAPI_EXPORT virtual bool undo();
+    virtual bool run();
+    virtual bool undo();
   private:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
     Dyninst::PatchAPI::PatchFunction* old_func_;

@@ -44,6 +44,25 @@ using namespace std;
 namespace Dyninst{
 namespace SymtabAPI{
 
+template <typename T>
+struct CtorComp
+{
+  bool operator()(T lhs, T rhs)
+  {
+    static std::string first_ctor_name("RTstatic_ctors_dtors_begin.c.o");
+    static std::string last_ctor_name("RTstatic_ctors_dtors_end.c.o");
+    if(lhs->symtab()->name() == first_ctor_name) return true;
+    if(rhs->symtab()->name() == first_ctor_name) return false;
+    if(lhs->symtab()->name() == last_ctor_name) return false;
+    if(rhs->symtab()->name() == last_ctor_name) return true;
+    return true;
+  }
+  
+};
+ 
+ 
+ 
+
 /*
  * A data structure that holds all the information necessary to perform a
  * static link once all the relocatable files have been copied into a new data
@@ -131,14 +150,14 @@ class LinkMap {
         Offset ctorSize;
         Offset ctorRegionAlign;
         Region *originalCtorRegion;
-        vector<Region *> newCtorRegions;
+        set<Region *, CtorComp<Region*> > newCtorRegions;
 
         // new destructor Region info
         Offset dtorRegionOffset;
         Offset dtorSize;
         Offset dtorRegionAlign;
         Region *originalDtorRegion;
-        vector<Region *> newDtorRegions;
+        set<Region *, CtorComp<Region*> > newDtorRegions;
 
         // Keep track of changes made to symbols and relocations
         vector< pair<Symbol *, Offset> > origSymbols;

@@ -40,7 +40,7 @@
 #include "dyninstAPI/src/trapMappings.h"
 #include <list>
 
-#include "common/h/IntervalTree.h"
+#include "common/src/IntervalTree.h"
 
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/InstructionSource.h"

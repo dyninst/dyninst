@@ -45,8 +45,8 @@
 
 #include "pcEventMuxer.h"
 
-#include "common/h/headers.h"
-#include "common/h/linuxKludges.h"
+#include "common/src/headers.h"
+#include "common/src/linuxKludges.h"
 
 #include "symtabAPI/h/Symtab.h"
 using namespace Dyninst::SymtabAPI;

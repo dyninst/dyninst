@@ -48,16 +48,16 @@ namespace PatchAPI {
    class PatchFunction;
    class PatchModifier;
 
-class InsertedCode {
+class PATCHAPI_EXPORT InsertedCode {
    friend class PatchModifier;
 
   public:
   InsertedCode() : entry_(NULL) {};
 
    typedef boost::shared_ptr<InsertedCode> Ptr;
-   PATCHAPI_EXPORT PatchBlock *entry() { return entry_; }
-   PATCHAPI_EXPORT const std::vector<PatchEdge *> &exits() { return exits_;}
-   PATCHAPI_EXPORT const std::set<PatchBlock *> &blocks() { return blocks_; }
+   PatchBlock *entry() { return entry_; }
+   const std::vector<PatchEdge *> &exits() { return exits_;}
+   const std::set<PatchBlock *> &blocks() { return blocks_; }
   private:
    
    PatchBlock *entry_;
@@ -66,29 +66,29 @@ class InsertedCode {
 };   
    
 
-class PatchModifier {
+class PATCHAPI_EXPORT PatchModifier {
   public:
    // These are all static methods as this class has no state; so really, 
    // it's just a namespace. 
 
    // Redirect the target of an existing edge. 
-   PATCHAPI_EXPORT static bool redirect(PatchEdge *edge, PatchBlock *target);
+   static bool redirect(PatchEdge *edge, PatchBlock *target);
 
    // Split a block at a provided point.; we double-check whether the address
    // is a valid instruction boundary unless trust is true. 
-   PATCHAPI_EXPORT static PatchBlock *split(PatchBlock *, Address, 
+   static PatchBlock *split(PatchBlock *, Address, 
                                             bool trust = false, 
                                             Address newlast = (Address)-1);
    
    // Remove a block from the CFG; the block must be unreachable
    // (that is, have no in-edges) unless force is true.
-   PATCHAPI_EXPORT static bool remove(std::vector<PatchBlock *> &blocks, bool force = false);
+   static bool remove(std::vector<PatchBlock *> &blocks, bool force = false);
 
    // As the above, but for functions. 
-   PATCHAPI_EXPORT static bool remove(PatchFunction *);
+   static bool remove(PatchFunction *);
 
-   PATCHAPI_EXPORT static InsertedCode::Ptr insert(PatchObject *, SnippetPtr snip, Point *point);
-   PATCHAPI_EXPORT static InsertedCode::Ptr insert(PatchObject *, void *start, unsigned size);
+   static InsertedCode::Ptr insert(PatchObject *, SnippetPtr snip, Point *point);
+   static InsertedCode::Ptr insert(PatchObject *, void *start, unsigned size);
 
   private:
    static InsertedCode::Ptr insert(PatchObject *, void *start, unsigned size, Address base);

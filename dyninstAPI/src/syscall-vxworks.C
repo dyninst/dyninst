@@ -34,7 +34,7 @@
 #define EXEC_FUNC "execve"
 #define EXIT_FUNC "_exit"
 
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/dynProcess.h"

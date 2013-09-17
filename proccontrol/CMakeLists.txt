@@ -1,0 +1,105 @@
+# CMake configuration for proccontrol directory
+
+include_directories (
+    ${PROJECT_SOURCE_DIR}/proccontrol/src
+  )
+
+set (SRC_LIST
+     src/event.C 
+     src/generator.C 
+     src/handler.C 
+     src/mailbox.C 
+     src/process.C 
+     src/pcerrors.C 
+     src/procpool.C 
+     src/irpc.C 
+     src/response.C 
+	 src/resp.C
+     src/memcache.C 
+     src/procset.C 
+     src/processplat.C 
+     src/loadLibrary/injector.C 
+     src/loadLibrary/codegen.C 
+     src/x86_process.C 
+     src/loadLibrary/codegen-x86.C
+     src/loadLibrary/codegen-ppc.C 
+     src/ppc_process.C 
+ )
+if(UNIX)
+set (SRC_LIST ${SRC_LIST}
+     src/sysv.C 
+     src/int_thread_db.C 
+     src/mmapalloc.C 
+)
+elseif(WIN32)
+set (SRC_LIST ${SRC_LIST}
+	src/GeneratorWindows.C
+	src/DecoderWindows.C
+	src/windows_handler.C
+	src/windows_process.C
+	src/windows_thread.C
+	src/loadLibrary/codegen-win.C
+)
+endif()
+
+if (PLATFORM MATCHES freebsd)
+set (SRC_LIST ${SRC_LIST}
+     src/freebsd.C
+     src/unix.C
+     src/notify_pipe.C
+     ../common/src/dthread-unix.C
+     src/loadLibrary/codegen-freebsd.C
+  )
+elseif (PLATFORM MATCHES linux)
+set (SRC_LIST ${SRC_LIST}
+     src/linux.C
+     src/unix.C
+     src/notify_pipe.C
+     ../common/src/dthread-unix.C
+     src/loadLibrary/codegen-linux.C
+  )
+elseif (PLATFORM MATCHES bgq)
+set (SRC_LIST ${SRC_LIST}
+     src/bluegeneq.C
+     src/bgq-messages.C
+     src/notify_pipe.C
+     ../common/src/dthread-unix.C
+     src/loadLibrary/codegen-linux.C
+  )
+elseif (PLATFORM MATCHES cnl)
+set (SRC_LIST ${SRC_LIST}
+     src/linux.C
+     src/unix.C
+     src/notify_pipe.C
+     ../common/src/dthread-unix.C
+     src/loadLibrary/codegen-stub.C
+  )
+endif()
+
+SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+
+ADD_DEFINITIONS(-DPROCCONTROL_EXPORTS)
+
+add_library (pcontrol ${SRC_LIST})
+add_library (pcontrol_static STATIC ${SRC_LIST})
+target_link_libraries(pcontrol common)
+target_link_libraries(pcontrol ${CMAKE_DL_LIBS})
+
+if (UNIX)
+target_link_libraries(pcontrol dynElf)
+target_link_libraries(pcontrol symLite)
+endif()
+
+if(WIN32)
+target_link_libraries(pcontrol symtabAPI)
+endif()
+
+FILE (GLOB headers "h/*.h")
+set_target_properties (pcontrol pcontrol_static PROPERTIES PUBLIC_HEADER "${headers}")
+
+INSTALL (TARGETS pcontrol pcontrol_static
+        EXPORT DyninstTargets
+        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
+        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
+        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

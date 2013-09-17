@@ -9,714 +9,428 @@
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|Win32">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|Win32">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{33F95814-6383-4480-A3F5-B9DC73B1DA1A}</ProjectGuid>
-    <RootNamespace>dyninstAPI</RootNamespace>
-    <Keyword>ManagedCProj</Keyword>
+    <ProjectGUID>{E073A1A2-1433-425B-AFFE-CE787A4F2E2F}</ProjectGUID>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>Win32</Platform>
+    <ProjectName>dyninstAPI</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <CharacterSet>MultiByte</CharacterSet>
-    <CLRSupport>false</CLRSupport>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <CLRSupport>false</CLRSupport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
-  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />  </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup>
-    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\lib\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">i386-unknown-nt4.0\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\lib\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">i386-unknown-nt4.0\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</LinkIncremental>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSdkDir)include;$(FrameworkSDKDir)\include;c:\boost;c:\Program Files (x86)\boost\boost_1_51</IncludePath>
-    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
-    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
-    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
-    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
-    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
-    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
-  </PropertyGroup>
+    <PropertyGroup>
+      <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI\Debug\</OutDir>
+      <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">dyninstAPI.dir\Debug\</IntDir>
+      <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">dyninstAPI</TargetName>
+      <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.dll</TargetExt>
+      <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+      <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</GenerateManifest>
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI\Release\</OutDir>
+      <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">dyninstAPI.dir\Release\</IntDir>
+      <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">dyninstAPI</TargetName>
+      <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.dll</TargetExt>
+      <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+      <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</GenerateManifest>
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI\MinSizeRel\</OutDir>
+      <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">dyninstAPI.dir\MinSizeRel\</IntDir>
+      <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">dyninstAPI</TargetName>
+      <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">.dll</TargetExt>
+      <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">false</LinkIncremental>
+      <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">true</GenerateManifest>
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI\RelWithDebInfo\</OutDir>
+      <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">dyninstAPI.dir\RelWithDebInfo\</IntDir>
+      <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">dyninstAPI</TargetName>
+      <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">.dll</TargetExt>
+      <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">true</LinkIncremental>
+      <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">true</GenerateManifest>
+    </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalOptions>/MP
- %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../dynutil/h;./h;..;../external;../symtabAPI/h;../instructionAPI/h;../parseAPI/h;../patchAPI/h;../stackwalker/h;../proccontrol/h;../dataflowAPI/h;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;os_windows;arch_x86;cap_instruction_api;cap_relocation;cap_mem_emulation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;cap_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;BPATCH_LIBRARY;BPATCH_DLL_BUILD;DLL_BUILD;snprintf=_snprintf;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>false</MinimalRebuild>
-      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <DisableSpecificWarnings>4251;4503;4396;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;BPATCH_DLL_BUILD;CMAKE_INTDIR="Debug";dyninstAPI_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>Debug</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>C:/dyninst-cmake/dyninst/dyninstAPI/Debug/dyninstAPI.pdb</ProgramDataBaseFileName>
     </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;BPATCH_DLL_BUILD;CMAKE_INTDIR=\"Debug\";dyninstAPI_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
     <Link>
-      <AdditionalDependencies>Psapi.lib;dbghelp.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
-      <SuppressStartupBanner>true</SuppressStartupBanner>
-      <AdditionalLibraryDirectories>../../lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <AdditionalOptions> /machine:X86 /debug %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;..\stackwalk\Debug\stackwalk.lib;..\proccontrol\Debug\pcontrol.lib;..\patchAPI\Debug\patchAPI.lib;..\parseAPI\Debug\parseAPI.lib;..\symtabAPI\Debug\symtabAPI.lib;..\instructionAPI\Debug\instructionAPI.lib;..\common\Debug\common.lib;Psapi.lib;WS2_32.lib;dbghelp.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AssemblyDebug>true</AssemblyDebug>
-      <NoEntryPoint>false</NoEntryPoint>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DataExecutionPrevention>
-      </DataExecutionPrevention>
+      <ImportLibrary>C:/dyninst-cmake/dyninst/dyninstAPI/Debug/dyninstAPI.lib</ImportLibrary>
+      <ProgramDataBaseFile>C:/dyninst-cmake/dyninst/dyninstAPI/Debug/dyninstAPI.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+      <Version></Version>
     </Link>
-    <PostBuildEvent>
-      <Command>mkdir $(TargetDir)..\include
-copy $(ProjectDir)h\*.h $(TargetDir)..\include
-</Command>
-    </PostBuildEvent>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>./h;..;../external;../dynutil/h;../symtabAPI/h;../instructionAPI/h;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>false</MinimalRebuild>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat></DebugInformationFormat>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;BPATCH_DLL_BUILD;CMAKE_INTDIR="Release";dyninstAPI_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>Release</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>C:/dyninst-cmake/dyninst/dyninstAPI/Release/dyninstAPI.pdb</ProgramDataBaseFileName>
     </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;BPATCH_DLL_BUILD;CMAKE_INTDIR=\"Release\";dyninstAPI_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
     <Link>
-      <AdditionalDependencies>Psapi.lib;dbghelp.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libdyninstAPI.dll</OutputFile>
-      <SuppressStartupBanner>true</SuppressStartupBanner>
-      <AdditionalLibraryDirectories>../../i386-unknown-nt4.0/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DataExecutionPrevention>
-      </DataExecutionPrevention>
+      <AdditionalOptions> /machine:X86 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;..\stackwalk\Release\stackwalk.lib;..\proccontrol\Release\pcontrol.lib;..\patchAPI\Release\patchAPI.lib;..\parseAPI\Release\parseAPI.lib;..\symtabAPI\Release\symtabAPI.lib;..\instructionAPI\Release\instructionAPI.lib;..\common\Release\common.lib;Psapi.lib;WS2_32.lib;dbghelp.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <ImportLibrary>C:/dyninst-cmake/dyninst/dyninstAPI/Release/dyninstAPI.lib</ImportLibrary>
+      <ProgramDataBaseFile>C:/dyninst-cmake/dyninst/dyninstAPI/Release/dyninstAPI.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+      <Version></Version>
     </Link>
-    <PostBuildEvent>
-      <Command>echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
-mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
-echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-echo copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-</Command>
-    </PostBuildEvent>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat></DebugInformationFormat>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;BPATCH_DLL_BUILD;CMAKE_INTDIR="MinSizeRel";dyninstAPI_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>MinSizeRel</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>C:/dyninst-cmake/dyninst/dyninstAPI/MinSizeRel/dyninstAPI.pdb</ProgramDataBaseFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;BPATCH_DLL_BUILD;CMAKE_INTDIR=\"MinSizeRel\";dyninstAPI_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalOptions> /machine:X86 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;..\stackwalk\MinSizeRel\stackwalk.lib;..\proccontrol\MinSizeRel\pcontrol.lib;..\patchAPI\MinSizeRel\patchAPI.lib;..\parseAPI\MinSizeRel\parseAPI.lib;..\symtabAPI\MinSizeRel\symtabAPI.lib;..\instructionAPI\MinSizeRel\instructionAPI.lib;..\common\MinSizeRel\common.lib;Psapi.lib;WS2_32.lib;dbghelp.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <ImportLibrary>C:/dyninst-cmake/dyninst/dyninstAPI/MinSizeRel/dyninstAPI.lib</ImportLibrary>
+      <ProgramDataBaseFile>C:/dyninst-cmake/dyninst/dyninstAPI/MinSizeRel/dyninstAPI.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+      <Version></Version>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;BPATCH_DLL_BUILD;CMAKE_INTDIR="RelWithDebInfo";dyninstAPI_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>RelWithDebInfo</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>C:/dyninst-cmake/dyninst/dyninstAPI/RelWithDebInfo/dyninstAPI.pdb</ProgramDataBaseFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;BPATCH_DLL_BUILD;CMAKE_INTDIR=\"RelWithDebInfo\";dyninstAPI_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalOptions> /machine:X86 /debug %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;..\stackwalk\RelWithDebInfo\stackwalk.lib;..\proccontrol\RelWithDebInfo\pcontrol.lib;..\patchAPI\RelWithDebInfo\patchAPI.lib;..\parseAPI\RelWithDebInfo\parseAPI.lib;..\symtabAPI\RelWithDebInfo\symtabAPI.lib;..\instructionAPI\RelWithDebInfo\instructionAPI.lib;..\common\RelWithDebInfo\common.lib;Psapi.lib;WS2_32.lib;dbghelp.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ImportLibrary>C:/dyninst-cmake/dyninst/dyninstAPI/RelWithDebInfo/dyninstAPI.lib</ImportLibrary>
+      <ProgramDataBaseFile>C:/dyninst-cmake/dyninst/dyninstAPI/RelWithDebInfo/dyninstAPI.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+      <Version></Version>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\addressSpace.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\ast.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\image.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Widgets\ASTWidget.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\baseTramp.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\binaryEdit.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\block.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch.C">
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_addressSpace.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_basicBlock.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_basicBlockLoop.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_binaryEdit.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_collections.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_edge.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</PreprocessToFile>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_flowGraph.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_frame.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_function.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_image.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_instruction.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_loopTreeNode.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_memoryAccess.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_memoryAccessAdapter.C">
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/TP %(AdditionalOptions)</AdditionalOptions>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_module.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_object.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_parRegion.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_point.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_process.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_snippet.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_sourceBlock.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_statement.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_templates.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_thread.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\BPatch_type.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Widgets\CallbackWidget.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Widgets\CFWidget-x86.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Widgets\CFWidget.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\CodeBuffer.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\codegen-x86.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\codegen.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\CodeMover.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\codeRange.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\CodeTracker.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\debug.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\common\src\Dictionary.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\dominator.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\dummy.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\DynAddrSpace.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\DynCFGMaker.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\DynInstrumenter.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\DynObject.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\DynPointMaker.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\dynProcess-x86.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\dynProcess.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\dynThread.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\edge.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\emit-x86.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\frame.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\frameChecker.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\function.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\hybridCallbacks.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\hybridInstrumentation.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\hybridOverwrites.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\IAPI_to_AST.C">
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/TP %(AdditionalOptions)</AdditionalOptions>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\common\src\Ident.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\infHeap.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Widgets\InsnWidget.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\inst-winnt.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\inst-x86.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\inst.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\instPoint.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Transformers\Instrumenter.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Widgets\InstWidget.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\mapped_module.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\mapped_object.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\MemoryEmulator\memEmulator.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\MemoryEmulator\memEmulatorTransformer.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\MemoryEmulator\memEmulatorWidget.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Transformers\Modification.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Transformers\Movement-adhoc.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Transformers\Movement-analysis.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\parRegion.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\parse-cfg.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\parse-x86.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Parsing-arch.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Parsing.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\patchapi_debug.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Patching.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\pcEventHandler.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\pcEventMuxer.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Widgets\PCWidget.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\pdwinnt.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\RegisterConversion-x86.C">
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/TP %(AdditionalOptions)</AdditionalOptions>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\registerSpace.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Widgets\RelDataWidget.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\CFG\RelocBlock.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\CFG\RelocEdge.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\CFG\RelocGraph.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\CFG\RelocTarget.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Springboard.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\stackwalk-x86.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\syscall-nt.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\templates-nt.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\Relocation\Transformers\Transformer.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\util.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include="src\variable.C">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
-      <RuntimeTypeInfo Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RuntimeTypeInfo>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-    </ClCompile>
+    <CustomBuild Include="CMakeLists.txt">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building Custom Rule C:/dyninst-cmake/dyninst/dyninstAPI/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files (x86)\CMake 2.8\bin\cmake.exe" -HC:/dyninst-cmake/dyninst -BC:/dyninst-cmake/dyninst --check-stamp-file C:\dyninst-cmake\dyninst\dyninstAPI\CMakeFiles\generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI/CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI\CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI\CMakeFiles\generate.stamp</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building Custom Rule C:/dyninst-cmake/dyninst/dyninstAPI/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+"C:\Program Files (x86)\CMake 2.8\bin\cmake.exe" -HC:/dyninst-cmake/dyninst -BC:/dyninst-cmake/dyninst --check-stamp-file C:\dyninst-cmake\dyninst\dyninstAPI\CMakeFiles\generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI/CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI\CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI\CMakeFiles\generate.stamp</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">Building Custom Rule C:/dyninst-cmake/dyninst/dyninstAPI/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">setlocal
+"C:\Program Files (x86)\CMake 2.8\bin\cmake.exe" -HC:/dyninst-cmake/dyninst -BC:/dyninst-cmake/dyninst --check-stamp-file C:\dyninst-cmake\dyninst\dyninstAPI\CMakeFiles\generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI/CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI\CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI\CMakeFiles\generate.stamp</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">Building Custom Rule C:/dyninst-cmake/dyninst/dyninstAPI/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">setlocal
+"C:\Program Files (x86)\CMake 2.8\bin\cmake.exe" -HC:/dyninst-cmake/dyninst -BC:/dyninst-cmake/dyninst --check-stamp-file C:\dyninst-cmake\dyninst\dyninstAPI\CMakeFiles\generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI/CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI\CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI\CMakeFiles\generate.stamp</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="h\BPatch_object.h" />
-    <ClInclude Include="src\addLibrary.h" />
-    <ClInclude Include="src\addressSpace.h" />
-    <ClInclude Include="src\arch-forward-decl.h" />
-    <ClInclude Include="src\ast.h" />
-    <ClInclude Include="src\image.h" />
-    <ClInclude Include="src\Relocation\Widgets\ASTWidget.h" />
-    <ClInclude Include="src\baseTramp.h" />
-    <ClInclude Include="h\baseTrampTemplate.h" />
-    <ClInclude Include="src\binaryEdit.h" />
-    <ClInclude Include="src\block.h" />
-    <ClInclude Include="h\BPatch.h" />
-    <ClInclude Include="h\BPatch_addressSpace.h" />
-    <ClInclude Include="src\BPatch_asyncEventHandler.h" />
-    <ClInclude Include="h\BPatch_basicBlock.h" />
-    <ClInclude Include="h\BPatch_basicBlockLoop.h" />
-    <ClInclude Include="h\BPatch_binaryEdit.h" />
-    <ClInclude Include="h\BPatch_callbacks.h" />
-    <ClInclude Include="src\BPatch_collections.h" />
-    <ClInclude Include="h\BPatch_dll.h" />
-    <ClInclude Include="h\BPatch_edge.h" />
-    <ClInclude Include="h\BPatch_enums.h" />
-    <ClInclude Include="h\BPatch_flowGraph.h" />
-    <ClInclude Include="h\BPatch_frame.h" />
-    <ClInclude Include="h\BPatch_function.h" />
-    <ClInclude Include="h\BPatch_image.h" />
-    <ClInclude Include="h\BPatch_instruction.h" />
-    <ClInclude Include="src\BPatch_libInfo.h" />
-    <ClInclude Include="h\BPatch_loopTreeNode.h" />
-    <ClInclude Include="h\BPatch_memoryAccess_NP.h" />
-    <ClInclude Include="h\BPatch_module.h" />
-    <ClInclude Include="h\BPatch_parRegion.h" />
-    <ClInclude Include="h\BPatch_point.h" />
-    <ClInclude Include="h\BPatch_process.h" />
-    <ClInclude Include="h\BPatch_Set.h" />
-    <ClInclude Include="h\BPatch_snippet.h" />
-    <ClInclude Include="h\BPatch_sourceBlock.h" />
-    <ClInclude Include="h\BPatch_sourceObj.h" />
-    <ClInclude Include="h\BPatch_thread.h" />
-    <ClInclude Include="h\BPatch_type.h" />
-    <ClInclude Include="src\BPatch_typePrivate.h" />
-    <ClInclude Include="h\BPatch_Vector.h" />
-    <ClInclude Include="src\callbacks.h" />
-    <ClInclude Include="src\Relocation\Widgets\CallbackWidget.h" />
-    <ClInclude Include="src\Relocation\Widgets\CFWidget.h" />
-    <ClInclude Include="src\clock.h" />
-    <ClInclude Include="src\Relocation\CodeBuffer.h" />
-    <ClInclude Include="src\codegen-x86.h" />
-    <ClInclude Include="src\codegen.h" />
-    <ClInclude Include="src\Relocation\CodeMover.h" />
-    <ClInclude Include="src\codeRange.h" />
-    <ClInclude Include="src\Relocation\CodeTracker.h" />
-    <ClInclude Include="src\debug.h" />
-    <ClInclude Include="src\debuggerinterface.h" />
-    <ClInclude Include="src\deviceStructs.h" />
-    <ClInclude Include="..\common\h\Dictionary.h" />
-    <ClInclude Include="src\dominator.h" />
-    <ClInclude Include="src\dynamiclinking.h" />
-    <ClInclude Include="src\Relocation\DynCommon.h" />
-    <ClInclude Include="src\dyninst.h" />
-    <ClInclude Include="src\Relocation\DynObject.h" />
-    <ClInclude Include="src\Relocation\DynPointMaker.h" />
-    <ClInclude Include="src\dynProcess.h" />
-    <ClInclude Include="src\dynThread.h" />
-    <ClInclude Include="..\dynutil\h\dyntypes.h" />
-    <ClInclude Include="src\editSharedLibrary.h" />
-    <ClInclude Include="src\emit-x86.h" />
-    <ClInclude Include="src\EventHandler.h" />
-    <ClInclude Include="src\frame.h" />
-    <ClInclude Include="src\frameChecker.h" />
-    <ClInclude Include="src\function.h" />
-    <ClInclude Include="src\hybridAnalysis.h" />
-    <ClInclude Include="..\common\h\Ident.h" />
-    <ClInclude Include="src\image-func.h" />
-    <ClInclude Include="src\imageUpdate.h" />
-    <ClInclude Include="src\Relocation\Widgets\Include.h" />
-    <ClInclude Include="src\Relocation\Transformers\Include.h" />
-    <ClInclude Include="src\inferiorRPC.h" />
-    <ClInclude Include="src\infHeap.h" />
-    <ClInclude Include="src\Relocation\Widgets\InsnWidget.h" />
-    <ClInclude Include="src\inst-x86.h" />
-    <ClInclude Include="src\inst.h" />
-    <ClInclude Include="src\instP.h" />
-    <ClInclude Include="src\instPoint.h" />
-    <ClInclude Include="src\InstrucIter-Function.h" />
-    <ClInclude Include="src\InstructionCache.h" />
-    <ClInclude Include="src\Relocation\Widgets\Instrumentation.h" />
-    <ClInclude Include="src\Relocation\Transformers\Instrumenter.h" />
-    <ClInclude Include="src\Relocation\Widgets\InstWidget.h" />
-    <ClInclude Include="..\common\h\List.h" />
-    <ClInclude Include="src\mailbox.h" />
-    <ClInclude Include="src\mapped_module.h" />
-    <ClInclude Include="src\mapped_object.h" />
-    <ClInclude Include="src\MapSymbols.h" />
-    <ClInclude Include="src\MemoryEmulator\memEmulator.h" />
-    <ClInclude Include="src\MemoryEmulator\memEmulatorStub.h" />
-    <ClInclude Include="src\MemoryEmulator\memEmulatorTransformer.h" />
-    <ClInclude Include="src\MemoryEmulator\memEmulatorWidget.h" />
-    <ClInclude Include="src\miniTramp.h" />
-    <ClInclude Include="src\Relocation\Transformers\Modification.h" />
-    <ClInclude Include="src\Relocation\Transformers\Movement-adhoc.h" />
-    <ClInclude Include="src\Relocation\Transformers\Movement-analysis.h" />
-    <ClInclude Include="src\nt_signal_emul.h" />
-    <ClInclude Include="src\ntDL.h" />
-    <ClInclude Include="src\NTTypes.h" />
-    <ClInclude Include="src\os.h" />
-    <ClInclude Include="..\common\h\Pair.h" />
-    <ClInclude Include="src\parRegion.h" />
-    <ClInclude Include="src\parse-cfg.h" />
-    <ClInclude Include="src\Parsing.h" />
-    <ClInclude Include="src\Relocation\patchapi_debug.h" />
-    <ClInclude Include="src\Patching.h" />
-    <ClInclude Include="..\common\h\pathName.h" />
-    <ClInclude Include="src\pcEventHandler.h" />
-    <ClInclude Include="src\pcEventMuxer.h" />
-    <ClInclude Include="src\Relocation\Widgets\PCWidget.h" />
-    <ClInclude Include="src\pdwinnt.h" />
-    <ClInclude Include="..\common\h\refCounter.h" />
-    <ClInclude Include="src\registerSpace.h" />
-    <ClInclude Include="src\Relocation\Widgets\RelDataWidget.h" />
-    <ClInclude Include="src\Relocation\Relocation.h" />
-    <ClInclude Include="src\Relocation\CFG\RelocBlock.h" />
-    <ClInclude Include="src\Relocation\CFG\RelocEdge.h" />
-    <ClInclude Include="src\Relocation\CFG\RelocGraph.h" />
-    <ClInclude Include="src\Relocation\CFG\RelocTarget.h" />
-    <ClInclude Include="src\replacedInstruction.h" />
-    <ClInclude Include="src\saveSharedLibrary.h" />
-    <ClInclude Include="src\showerror.h" />
-    <ClInclude Include="src\signalgenerator-winnt.h" />
-    <ClInclude Include="src\signalgenerator.h" />
-    <ClInclude Include="src\signalhandler-winnt.h" />
-    <ClInclude Include="src\signalhandler.h" />
-    <ClInclude Include="src\Relocation\Springboard.h" />
-    <ClInclude Include="..\common\h\String.h" />
-    <ClInclude Include="src\syscallNotification.h" />
-    <ClInclude Include="src\syscalltrap.h" />
-    <ClInclude Include="src\Relocation\Widgets\Target.h" />
-    <ClInclude Include="src\Relocation\Widgets\Trace.h" />
-    <ClInclude Include="src\Relocation\Transformers\Transformer.h" />
-    <ClInclude Include="src\trapMappings.h" />
-    <ClInclude Include="..\dynutil\h\util.h" />
-    <ClInclude Include="..\common\h\Vector.h" />
-    <ClInclude Include="src\w32CONTEXT.h" />
-    <ClInclude Include="src\Relocation\Widgets\Widget.h" />
-    <ClInclude Include="src\wincetypes.h" />
+    <ClCompile Include="src\BPatch.C"  />
+    <ClCompile Include="src\BPatch_image.C"  />
+    <ClCompile Include="src\BPatch_function.C"  />
+    <ClCompile Include="src\BPatch_snippet.C"  />
+    <ClCompile Include="src\BPatch_thread.C"  />
+    <ClCompile Include="src\BPatch_process.C"  />
+    <ClCompile Include="src\BPatch_type.C"  />
+    <ClCompile Include="src\BPatch_module.C"  />
+    <ClCompile Include="src\BPatch_object.C"  />
+    <ClCompile Include="src\BPatch_point.C"  />
+    <ClCompile Include="src\BPatch_collections.C"  />
+    <ClCompile Include="src\BPatch_sourceBlock.C"  />
+    <ClCompile Include="src\BPatch_basicBlock.C"  />
+    <ClCompile Include="src\BPatch_basicBlockLoop.C"  />
+    <ClCompile Include="src\BPatch_edge.C"  />
+    <ClCompile Include="src\BPatch_loopTreeNode.C"  />
+    <ClCompile Include="src\BPatch_flowGraph.C"  />
+    <ClCompile Include="src\BPatch_frame.C"  />
+    <ClCompile Include="src\BPatch_parRegion.C"  />
+    <ClCompile Include="src\BPatch_statement.C"  />
+    <ClCompile Include="src\BPatch_addressSpace.C"  />
+    <ClCompile Include="src\BPatch_binaryEdit.C"  />
+    <ClCompile Include="src\BPatch_memoryAccess.C"  />
+    <ClCompile Include="src\dummy.C"  />
+    <ClCompile Include="src\debug.C"  />
+    <ClCompile Include="src\ast.C"  />
+    <ClCompile Include="src\registerSpace.C"  />
+    <ClCompile Include="src\codegen.C"  />
+    <ClCompile Include="src\inst.C"  />
+    <ClCompile Include="src\instPoint.C"  />
+    <ClCompile Include="src\baseTramp.C"  />
+    <ClCompile Include="src\addressSpace.C"  />
+    <ClCompile Include="src\binaryEdit.C"  />
+    <ClCompile Include="src\infHeap.C"  />
+    <ClCompile Include="src\frame.C"  />
+    <ClCompile Include="src\codeRange.C"  />
+    <ClCompile Include="src\image.C"  />
+    <ClCompile Include="src\dominator.C"  />
+    <ClCompile Include="src\parse-cfg.C"  />
+    <ClCompile Include="src\mapped_object.C"  />
+    <ClCompile Include="src\mapped_module.C"  />
+    <ClCompile Include="src\function.C"  />
+    <ClCompile Include="src\block.C"  />
+    <ClCompile Include="src\edge.C"  />
+    <ClCompile Include="src\variable.C"  />
+    <ClCompile Include="src\util.C"  />
+    <ClCompile Include="src\BPatch_instruction.C"  />
+    <ClCompile Include="src\parRegion.C"  />
+    <ClCompile Include="src\Parsing.C"  />
+    <ClCompile Include="src\Parsing-arch.C"  />
+    <ClCompile Include="src\hybridInstrumentation.C"  />
+    <ClCompile Include="src\hybridOverwrites.C"  />
+    <ClCompile Include="src\hybridCallbacks.C"  />
+    <ClCompile Include="src\dynProcess.C"  />
+    <ClCompile Include="src\dynThread.C"  />
+    <ClCompile Include="src\pcEventHandler.C"  />
+    <ClCompile Include="src\pcEventMuxer.C"  />
+    <ClCompile Include="src\Relocation\CodeMover.C"  />
+    <ClCompile Include="src\Relocation\CFG\RelocGraph.C"  />
+    <ClCompile Include="src\Relocation\CFG\RelocBlock.C"  />
+    <ClCompile Include="src\Relocation\CFG\RelocEdge.C"  />
+    <ClCompile Include="src\Relocation\CFG\RelocTarget.C"  />
+    <ClCompile Include="src\Relocation\Springboard.C"  />
+    <ClCompile Include="src\Relocation\Widgets\ASTWidget.C"  />
+    <ClCompile Include="src\Relocation\Widgets\CFWidget.C"  />
+    <ClCompile Include="src\Relocation\Widgets\CallbackWidget.C"  />
+    <ClCompile Include="src\Relocation\Widgets\InsnWidget.C"  />
+    <ClCompile Include="src\Relocation\Widgets\InstWidget.C"  />
+    <ClCompile Include="src\Relocation\Widgets\PCWidget.C"  />
+    <ClCompile Include="src\Relocation\Widgets\RelDataWidget.C"  />
+    <ClCompile Include="src\Relocation\Transformers\Transformer.C"  />
+    <ClCompile Include="src\Relocation\Transformers\Instrumenter.C"  />
+    <ClCompile Include="src\Relocation\Transformers\Modification.C"  />
+    <ClCompile Include="src\Relocation\Transformers\Movement-adhoc.C"  />
+    <ClCompile Include="src\Relocation\Transformers\Movement-analysis.C"  />
+    <ClCompile Include="src\Relocation\CodeTracker.C"  />
+    <ClCompile Include="src\Relocation\CodeBuffer.C"  />
+    <ClCompile Include="src\Relocation\patchapi_debug.C"  />
+    <ClCompile Include="src\Relocation\DynObject.C"  />
+    <ClCompile Include="src\Relocation\DynAddrSpace.C"  />
+    <ClCompile Include="src\Relocation\DynPointMaker.C"  />
+    <ClCompile Include="src\Relocation\DynCFGMaker.C"  />
+    <ClCompile Include="src\Relocation\DynInstrumenter.C"  />
+    <ClCompile Include="src\Patching.C"  />
+    <ClCompile Include="src\frameChecker.C"  />
+    <ClCompile Include="src\BPatch_memoryAccessAdapter.C"  />
+    <ClCompile Include="src\RegisterConversion-x86.C"  />
+    <ClCompile Include="src\Relocation\Widgets\CFWidget-x86.C"  />
+    <ClCompile Include="src\inst-x86.C"  />
+    <ClCompile Include="src\emit-x86.C"  />
+    <ClCompile Include="src\codegen-x86.C"  />
+    <ClCompile Include="src\stackwalk-x86.C"  />
+    <ClCompile Include="src\dynProcess-x86.C"  />
+    <ClCompile Include="src\parse-x86.C"  />
+    <ClCompile Include="src\IAPI_to_AST.C"  />
+    <ClCompile Include="src\inst-winnt.C"  />
+    <ClCompile Include="src\pdwinnt.C"  />
+    <ClCompile Include="src\syscall-nt.C"  />
+    <ClCompile Include="src\MemoryEmulator\memEmulator.C"  />
+    <ClCompile Include="src\MemoryEmulator\memEmulatorTransformer.C"  />
+    <ClCompile Include="src\MemoryEmulator\memEmulatorWidget.C"  />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\common\common.vcxproj">
-      <Project>{197e213a-6900-4d09-b280-109a0d02df36}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    <ProjectReference Include="C:/dyninst-cmake/dyninst/ZERO_CHECK.vcxproj">
+      <Project>AAB9B8B5-4638-49F9-84A8-3A57168491CA</Project>
     </ProjectReference>
-    <ProjectReference Include="..\DyninstAPI_RT\DyninstAPI_RT.vcxproj">
-      <Project>{2ab5fa1e-cf56-4e8a-93b7-6a8940dcb602}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    <ProjectReference Include="C:/dyninst-cmake/dyninst/common/common.vcxproj">
+      <Project>C177E433-B9F9-4222-8000-B375B1F4D013</Project>
     </ProjectReference>
-    <ProjectReference Include="..\instructionAPI\instructionAPI.vcxproj">
-      <Project>{56f83fe4-e104-4d97-a4b9-89f41b034529}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    <ProjectReference Include="C:/dyninst-cmake/dyninst/instructionAPI/instructionAPI.vcxproj">
+      <Project>1A2094A6-7BBB-4E53-9DFD-830801D76EE9</Project>
     </ProjectReference>
-    <ProjectReference Include="..\parseAPI\parseAPI.vcxproj">
-      <Project>{39161b28-a3b4-40b9-ae03-4e021448ba80}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    <ProjectReference Include="C:/dyninst-cmake/dyninst/parseAPI/parseAPI.vcxproj">
+      <Project>D09AF9B2-5A7D-4517-9CDC-E8DEA662F8A2</Project>
     </ProjectReference>
-    <ProjectReference Include="..\patchAPI\patchAPI.vcxproj">
-      <Project>{6deca5e0-df7a-4017-82f3-e7d105ddf0e4}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    <ProjectReference Include="C:/dyninst-cmake/dyninst/patchAPI/patchAPI.vcxproj">
+      <Project>B6BA7C1B-2B1C-4D92-B8BA-C624A34B34D8</Project>
     </ProjectReference>
-    <ProjectReference Include="..\proccontrol\proccontrol.vcxproj">
-      <Project>{e2356da6-9c35-45f6-b9d2-21c1cad3a6ef}</Project>
+    <ProjectReference Include="C:/dyninst-cmake/dyninst/proccontrol/pcontrol.vcxproj">
+      <Project>A059AF20-439D-499E-B7CD-C9772385AD3C</Project>
     </ProjectReference>
-    <ProjectReference Include="..\stackwalk\stackwalk.vcxproj">
-      <Project>{bf4f4a40-e4c7-4f0e-a667-0ba93b05d42a}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    <ProjectReference Include="C:/dyninst-cmake/dyninst/stackwalk/stackwalk.vcxproj">
+      <Project>07E48887-28A5-4E6F-B582-7F813881259D</Project>
     </ProjectReference>
-    <ProjectReference Include="..\symtabAPI\symtabAPI.vcxproj">
-      <Project>{79cc6672-5a8b-4d3b-beea-75024607a81b}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    <ProjectReference Include="C:/dyninst-cmake/dyninst/symtabAPI/symtabAPI.vcxproj">
+      <Project>B74FAC02-F105-45F1-A44F-03A80EDF56A6</Project>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ClassDiagram1.cd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

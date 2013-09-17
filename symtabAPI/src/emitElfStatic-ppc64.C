@@ -48,7 +48,7 @@
 #include "Object.h"
 #include "Region.h"
 #include "debug.h"
-#include "common/h/arch-power.h"
+#include "common/src/arch-power.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;

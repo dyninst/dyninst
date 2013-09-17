@@ -31,7 +31,7 @@
 // $Id: list.C,v
 
 #include <ostream>
-#include "common/h/List.h"
+#include "common/src/List.h"
 
 using namespace std;
 

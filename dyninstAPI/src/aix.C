@@ -37,11 +37,11 @@
 
 #include <pthread.h>
 
-#include "common/h/headers.h"
-#include "common/h/Types.h"
-#include "common/h/Dictionary.h"
-#include "common/h/pathName.h"
-#include "common/h/debugOstream.h"
+#include "common/src/headers.h"
+#include "common/src/Types.h"
+#include <unordered_map>
+#include "common/src/pathName.h"
+#include "common/src/debugOstream.h"
 
 #include "symtabAPI/h/Symtab.h"
 
@@ -52,7 +52,7 @@
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/image.h"
-#include "common/h/stats.h"
+#include "common/src/stats.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/inst-power.h" // Tramp constants

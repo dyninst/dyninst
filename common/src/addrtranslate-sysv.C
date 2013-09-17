@@ -47,12 +47,12 @@
 
 #include <iostream>
 
-#include "common/h/parseauxv.h"
-#include "common/h/headers.h"
-#include "common/h/pathName.h"
+#include "common/src/parseauxv.h"
+#include "common/src/headers.h"
+#include "common/src/pathName.h"
 
-#include "common/h/addrtranslate.h"
-#include "common/src/addrtranslate-sysv.h"
+#include "common/src/addrtranslate.h"
+#include "common/src//addrtranslate-sysv.h"
 
 #if defined(os_linux) || defined(os_bg)
 #define R_DEBUG_NAME "_r_debug"
@@ -61,7 +61,7 @@
 #endif
 
 #if defined(os_linux)
-#include "common/h/linuxKludges.h"
+#include "common/src/linuxKludges.h"
 #endif
 
 using namespace std;

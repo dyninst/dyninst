@@ -30,7 +30,7 @@
 
 // $Id: osfKludges.C,v 1.13 2007/05/30 19:20:27 legendre Exp $
 
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include <sys/procfs.h>
 
 extern "C" {

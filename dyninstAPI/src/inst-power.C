@@ -33,25 +33,25 @@
  * $Id: inst-power.C,v 1.291 2008/06/19 22:13:42 jaw Exp $
  */
 
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/inst-power.h"
-#include "common/h/arch.h"
+#include "common/src/arch.h"
 #include "dyninstAPI/src/codegen.h"
 #if defined(os_aix)
 #include "dyninstAPI/src/aix.h"
 #endif
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "common/h/stats.h"
+#include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/instPoint.h" // class instPoint
 #include "dyninstAPI/src/debug.h"
-#include "common/h/debugOstream.h"
+#include "common/src/debugOstream.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
@@ -82,7 +82,7 @@ const char *registerNames[] = { "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
 			"r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23",
 			"r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31"};
 
-dictionary_hash<std::string, unsigned> funcFrequencyTable(::Dyninst::stringhash);
+std::unordered_map<std::string, unsigned> funcFrequencyTable;
 
 void initDefaultPointFrequencyTable()
 {
@@ -2662,7 +2662,8 @@ bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
         return false;
 
     // If we're calling an empty glink stub.
-    if ( pltFuncs->defines(stub_addr) && (*pltFuncs)[stub_addr] == "@plt") 
+    unordered_map<Address, std::string>::iterator entry = pltFuncs->find(stub_addr);
+    if (entry != pltFuncs->end() && entry->second == "@plt")
     {
         int state = 0;
 

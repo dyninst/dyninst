@@ -34,13 +34,13 @@
 #define IMAGE_FUNC_H
 
 #include <string>
-#include "common/h/Vector.h"
-#include "common/h/Types.h"
-#include "common/h/Pair.h"
-#include "common/h/arch.h" // instruction
+#include "common/src/Vector.h"
+#include "common/src/Types.h"
+#include "common/src/Pair.h"
+#include "common/src/arch.h" // instruction
 #include "codeRange.h"
 #include "parRegion.h"
-#include "common/h/Dictionary.h"
+#include <unordered_map>
 #include "symtabAPI/h/Symbol.h"
 #include "bitArray.h"
 #include "InstructionCache.h"

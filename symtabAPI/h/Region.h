@@ -42,7 +42,7 @@ class relocationEntry;
 class Symtab;
 
 
-class Region : public AnnotatableSparse {
+class SYMTAB_EXPORT Region : public AnnotatableSparse {
    friend class Object;
    friend class Symtab;
    friend class SymtabTranslatorBase;
@@ -84,64 +84,64 @@ class Region : public AnnotatableSparse {
 
    static const char *regionType2Str(RegionType);
 
-   SYMTAB_EXPORT Region();
-   SYMTAB_EXPORT static Region *createRegion(Offset diskOff, perm_t perms, RegionType regType,
+   Region();
+   static Region *createRegion(Offset diskOff, perm_t perms, RegionType regType,
                 unsigned long diskSize = 0, Offset memOff = 0, unsigned long memSize = 0,
                 std::string name = "", char *rawDataPtr = NULL, bool isLoadable = false,
                 bool isTLS = false, unsigned long memAlign = sizeof(unsigned));
-   SYMTAB_EXPORT Region(const Region &reg);
-   SYMTAB_EXPORT Region& operator=(const Region &reg);
-   SYMTAB_EXPORT std::ostream& operator<< (std::ostream &os);
-   SYMTAB_EXPORT bool operator== (const Region &reg);
+   Region(const Region &reg);
+   Region& operator=(const Region &reg);
+   std::ostream& operator<< (std::ostream &os);
+   bool operator== (const Region &reg);
 
-   SYMTAB_EXPORT ~Region();
+   ~Region();
 
-   SYMTAB_EXPORT unsigned getRegionNumber() const;
-   SYMTAB_EXPORT bool setRegionNumber(unsigned regnumber);
-   SYMTAB_EXPORT std::string getRegionName() const;
+   unsigned getRegionNumber() const;
+   bool setRegionNumber(unsigned regnumber);
+   std::string getRegionName() const;
 
-   SYMTAB_EXPORT Offset getDiskOffset() const;
-   SYMTAB_EXPORT unsigned long getDiskSize() const;
-   SYMTAB_EXPORT unsigned long getFileOffset();
+   Offset getDiskOffset() const;
+   unsigned long getDiskSize() const;
+   unsigned long getFileOffset();
 
-   SYMTAB_EXPORT Offset getMemOffset() const;
-   SYMTAB_EXPORT unsigned long getMemSize() const;
-   SYMTAB_EXPORT unsigned long getMemAlignment() const;
-   SYMTAB_EXPORT void setMemOffset(Offset);
-   SYMTAB_EXPORT void setMemSize(unsigned long);
-   SYMTAB_EXPORT void setDiskSize(unsigned long);
-   SYMTAB_EXPORT void setFileOffset(Offset);
+   Offset getMemOffset() const;
+   unsigned long getMemSize() const;
+   unsigned long getMemAlignment() const;
+   void setMemOffset(Offset);
+   void setMemSize(unsigned long);
+   void setDiskSize(unsigned long);
+   void setFileOffset(Offset);
 
-   SYMTAB_EXPORT void *getPtrToRawData() const;
-   SYMTAB_EXPORT bool setPtrToRawData(void *, unsigned long);//also sets diskSize
+   void *getPtrToRawData() const;
+   bool setPtrToRawData(void *, unsigned long);//also sets diskSize
 
-   SYMTAB_EXPORT bool isBSS() const;
-   SYMTAB_EXPORT bool isText() const;
-   SYMTAB_EXPORT bool isData() const;
-   SYMTAB_EXPORT bool isTLS() const;
-   SYMTAB_EXPORT bool isOffsetInRegion(const Offset &offset) const;
-   SYMTAB_EXPORT bool isLoadable() const;
-   SYMTAB_EXPORT bool setLoadable(bool isLoadable);
-   SYMTAB_EXPORT bool isDirty() const;
-   SYMTAB_EXPORT std::vector<relocationEntry> &getRelocations();
-   SYMTAB_EXPORT bool patchData(Offset off, void *buf, unsigned size);
-   SYMTAB_EXPORT bool isStandardCode();
+   bool isBSS() const;
+   bool isText() const;
+   bool isData() const;
+   bool isTLS() const;
+   bool isOffsetInRegion(const Offset &offset) const;
+   bool isLoadable() const;
+   bool setLoadable(bool isLoadable);
+   bool isDirty() const;
+   std::vector<relocationEntry> &getRelocations();
+   bool patchData(Offset off, void *buf, unsigned size);
+   bool isStandardCode();
 
-   SYMTAB_EXPORT perm_t getRegionPermissions() const;
-   SYMTAB_EXPORT bool setRegionPermissions(perm_t newPerms);
-   SYMTAB_EXPORT RegionType getRegionType() const;
+   perm_t getRegionPermissions() const;
+   bool setRegionPermissions(perm_t newPerms);
+   RegionType getRegionType() const;
 
-   SYMTAB_EXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType, Region::RegionType rtype = Region::RT_REL);
-   SYMTAB_EXPORT bool addRelocationEntry(const relocationEntry& rel);
+   bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType, Region::RegionType rtype = Region::RT_REL);
+   bool addRelocationEntry(const relocationEntry& rel);
 
-   SYMTAB_EXPORT bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym);
+   bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym);
 
-   SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
+   Serializable * serialize_impl(SerializerBase *sb, 
 		   const char *tag = "Region") THROW_SPEC (SerializerError);
 
-   SYMTAB_EXPORT Symtab *symtab() const { return symtab_; }
+   Symtab *symtab() const { return symtab_; }
    protected:                     
-   SYMTAB_EXPORT Region(unsigned regnum, std::string name, Offset diskOff,
+   Region(unsigned regnum, std::string name, Offset diskOff,
 			unsigned long diskSize, Offset memOff, unsigned long memSize,
 			char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable = false,
 			bool isTLS = false, unsigned long memAlign = sizeof(unsigned));

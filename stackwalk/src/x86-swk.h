@@ -33,9 +33,9 @@
 
 #include "stackwalk/h/steppergroup.h"
 #include "stackwalk/h/framestepper.h"
-#include "dynutil/h/dyntypes.h"
+#include "common/h/dyntypes.h"
 
-#include "common/h/lru_cache.h"
+#include "common/src/lru_cache.h"
 
 namespace Dyninst {
 namespace Stackwalker {

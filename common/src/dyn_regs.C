@@ -29,7 +29,7 @@
  */
 
 #define DYN_DEFINE_REGS
-#include "dynutil/h/dyn_regs.h"
+#include "common/h/dyn_regs.h"
 
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"

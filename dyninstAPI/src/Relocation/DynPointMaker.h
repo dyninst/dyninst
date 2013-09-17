@@ -31,7 +31,7 @@
 #define PATCHAPI_DYNPOINTMAKER_H_
 
 #include "Point.h"
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include "instructionAPI/h/Instruction.h"
 
 

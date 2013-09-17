@@ -37,7 +37,7 @@
 #ifndef LINUX_POWER_HDR
 #define LINUX_POWER_HDR
 
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 
 // floor of inferior malloc address range within a single branch of x
 // for 32-bit ELF PowerPC mutatees

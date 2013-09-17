@@ -54,7 +54,7 @@ class CFGModifier;
 **/
 
 
-class CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<Address> {
+class PARSER_EXPORT CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<Address> {
  public:
 
     /* Fills a vector with any names associated with the function at at 
@@ -63,23 +63,23 @@ class CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<A
 
        Optional
     */
-    PARSER_EXPORT virtual void names(Address, vector<std::string> &) { return; }
+    virtual void names(Address, vector<std::string> &) { return; }
 
     /* Finds the exception handler block for a given address
        in the region.
 
        Optional
     */
-    PARSER_EXPORT virtual bool findCatchBlock(Address /* addr */, Address & /* catchStart */) 
+    virtual bool findCatchBlock(Address /* addr */, Address & /* catchStart */) 
     { return false; }
 
     /** interval implementation **/
-    PARSER_EXPORT Address low() const =0;
-    PARSER_EXPORT Address high() const =0;
+    Address low() const =0;
+    Address high() const =0;
 
-    PARSER_EXPORT bool contains(Address) const;
+    bool contains(Address) const;
 
-    PARSER_EXPORT virtual bool wasUserAdded() const { return false; }
+    virtual bool wasUserAdded() const { return false; }
 
 };
 
@@ -94,7 +94,7 @@ struct Hint {
     std::string _name;
 };
 
-class CodeSource : public Dyninst::InstructionSource {
+class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
    friend class CFGModifier;
  private:
     bool _regions_overlap;
@@ -144,31 +144,31 @@ class CodeSource : public Dyninst::InstructionSource {
 
        Optional.
     */
-    PARSER_EXPORT virtual bool nonReturning(Address /*func_entry*/) { return false; }
-    PARSER_EXPORT virtual bool nonReturning(std::string /* func_name */) { return false; }
+    virtual bool nonReturning(Address /*func_entry*/) { return false; }
+    virtual bool nonReturning(std::string /* func_name */) { return false; }
 
     /*
      * If the binary file type supplies non-zero base
      * or load addresses (e.g. Windows PE), override.
      */
-    PARSER_EXPORT virtual Address baseAddress() const { return 0; }
-    PARSER_EXPORT virtual Address loadAddress() const { return 0; }
+    virtual Address baseAddress() const { return 0; }
+    virtual Address loadAddress() const { return 0; }
 
-    PARSER_EXPORT std::map< Address, std::string > & linkage() const { return _linkage; }
-    PARSER_EXPORT std::vector< Hint > const& hints() const { return _hints; } 
-    PARSER_EXPORT std::vector<CodeRegion *> const& regions() const { return _regions; }
-    PARSER_EXPORT int findRegions(Address addr, set<CodeRegion *> & ret) const;
-    PARSER_EXPORT bool regionsOverlap() const { return _regions_overlap; }
+    std::map< Address, std::string > & linkage() const { return _linkage; }
+    std::vector< Hint > const& hints() const { return _hints; } 
+    std::vector<CodeRegion *> const& regions() const { return _regions; }
+    int findRegions(Address addr, set<CodeRegion *> & ret) const;
+    bool regionsOverlap() const { return _regions_overlap; }
 
-    PARSER_EXPORT Address getTOC() const { return _table_of_contents; }
+    Address getTOC() const { return _table_of_contents; }
     /* If the binary file type supplies per-function
      * TOC's (e.g. ppc64 Linux), override.
      */
-    PARSER_EXPORT virtual Address getTOC(Address) const { return _table_of_contents; }
+    virtual Address getTOC(Address) const { return _table_of_contents; }
 
     // statistics accessor
-    PARSER_EXPORT virtual void print_stats() const { return; }
-    PARSER_EXPORT virtual bool have_stats() const { return false; }
+    virtual void print_stats() const { return; }
+    virtual bool have_stats() const { return false; }
 
     // manage statistics
     virtual void incrementCounter(std::string /*name*/) const { return; } 
@@ -192,36 +192,36 @@ class CodeSource : public Dyninst::InstructionSource {
     binaries supported by the SymtabAPI 
 **/
 
-class SymtabCodeRegion : public CodeRegion {
+class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
  private:
     SymtabAPI::Symtab * _symtab;
     SymtabAPI::Region * _region;
  public:
-    PARSER_EXPORT SymtabCodeRegion(SymtabAPI::Symtab *, SymtabAPI::Region *);
-    PARSER_EXPORT ~SymtabCodeRegion();
+    SymtabCodeRegion(SymtabAPI::Symtab *, SymtabAPI::Region *);
+    ~SymtabCodeRegion();
 
-    PARSER_EXPORT void names(Address, vector<std::string> &);
-    PARSER_EXPORT bool findCatchBlock(Address addr, Address & catchStart);
+    void names(Address, vector<std::string> &);
+    bool findCatchBlock(Address addr, Address & catchStart);
 
     /** InstructionSource implementation **/
-    PARSER_EXPORT bool isValidAddress(const Address) const;
-    PARSER_EXPORT void* getPtrToInstruction(const Address) const;
-    PARSER_EXPORT void* getPtrToData(const Address) const;
-    PARSER_EXPORT unsigned int getAddressWidth() const;
-    PARSER_EXPORT bool isCode(const Address) const;
-    PARSER_EXPORT bool isData(const Address) const;
-    PARSER_EXPORT Address offset() const;
-    PARSER_EXPORT Address length() const;
-    PARSER_EXPORT Architecture getArch() const;
+    bool isValidAddress(const Address) const;
+    void* getPtrToInstruction(const Address) const;
+    void* getPtrToData(const Address) const;
+    unsigned int getAddressWidth() const;
+    bool isCode(const Address) const;
+    bool isData(const Address) const;
+    Address offset() const;
+    Address length() const;
+    Architecture getArch() const;
 
     /** interval **/
-    PARSER_EXPORT Address low() const { return offset(); }
-    PARSER_EXPORT Address high() const { return offset() + length(); }
+    Address low() const { return offset(); }
+    Address high() const { return offset() + length(); }
 
-    PARSER_EXPORT SymtabAPI::Region * symRegion() const { return _region; }
+    SymtabAPI::Region * symRegion() const { return _region; }
 };
 
-class SymtabCodeSource : public CodeSource {
+class PARSER_EXPORT SymtabCodeSource : public CodeSource {
  private:
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;
@@ -239,42 +239,42 @@ class SymtabCodeSource : public CodeSource {
         virtual bool operator()(SymtabAPI::Function * f) =0;
     };
 
-    PARSER_EXPORT SymtabCodeSource(SymtabAPI::Symtab *, 
+    SymtabCodeSource(SymtabAPI::Symtab *, 
                                    hint_filt *, 
                                    bool allLoadedRegions=false);
-    PARSER_EXPORT SymtabCodeSource(SymtabAPI::Symtab *);
-    PARSER_EXPORT SymtabCodeSource(char *);
+    SymtabCodeSource(SymtabAPI::Symtab *);
+    SymtabCodeSource(char *);
 
-    PARSER_EXPORT ~SymtabCodeSource();
+    ~SymtabCodeSource();
 
-    PARSER_EXPORT bool nonReturning(Address func_entry);
-    PARSER_EXPORT bool nonReturning(std::string func_name);
+    bool nonReturning(Address func_entry);
+    bool nonReturning(std::string func_name);
 
-    PARSER_EXPORT bool resizeRegion(SymtabAPI::Region *, Address newDiskSize);
+    bool resizeRegion(SymtabAPI::Region *, Address newDiskSize);
 
-    PARSER_EXPORT Address baseAddress() const;
-    PARSER_EXPORT Address loadAddress() const;
-    PARSER_EXPORT Address getTOC(Address addr) const;
-    PARSER_EXPORT SymtabAPI::Symtab * getSymtabObject() {return _symtab;} 
+    Address baseAddress() const;
+    Address loadAddress() const;
+    Address getTOC(Address addr) const;
+    SymtabAPI::Symtab * getSymtabObject() {return _symtab;} 
 
     /** InstructionSource implementation **/
-    PARSER_EXPORT bool isValidAddress(const Address) const;
-    PARSER_EXPORT void* getPtrToInstruction(const Address) const;
-    PARSER_EXPORT void* getPtrToData(const Address) const;
-    PARSER_EXPORT unsigned int getAddressWidth() const;
-    PARSER_EXPORT bool isCode(const Address) const;
-    PARSER_EXPORT bool isData(const Address) const;
-    PARSER_EXPORT Address offset() const;
-    PARSER_EXPORT Address length() const;
-    PARSER_EXPORT Architecture getArch() const;
+    bool isValidAddress(const Address) const;
+    void* getPtrToInstruction(const Address) const;
+    void* getPtrToData(const Address) const;
+    unsigned int getAddressWidth() const;
+    bool isCode(const Address) const;
+    bool isData(const Address) const;
+    Address offset() const;
+    Address length() const;
+    Architecture getArch() const;
 
-    PARSER_EXPORT void removeHint(Hint);
+    void removeHint(Hint);
 
-    PARSER_EXPORT static void addNonReturning(std::string func_name);
+    static void addNonReturning(std::string func_name);
     
     // statistics accessor
-    PARSER_EXPORT void print_stats() const;
-    PARSER_EXPORT bool have_stats() const { return _have_stats; }
+    void print_stats() const;
+    bool have_stats() const { return _have_stats; }
 
     // manage statistics
     void incrementCounter(std::string name) const;

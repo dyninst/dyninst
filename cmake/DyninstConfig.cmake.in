@@ -1,0 +1,20 @@
+# - Config file for Dyninst and its component libraries
+# It defines the following variables:
+#
+# DYNINST_INCLUDE_DIRS
+# DYNINST_LIBRARIES
+# DYNINST_INTERNAL_DEFINES - used by the test suite
+
+# compute paths
+
+get_filename_component(DYNINST_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set (DYNINST_INCLUDE_DIR @CONF_INCLUDE_DIRS@)
+
+# Library dependencies
+include ("${DYNINST_CMAKE_DIR}/DyninstTargets.cmake")
+
+set (DYNINST_LIBRARIES "dyninst")
+
+# Other variables Dyninst mutators may depend on
+set (DYNINST_PLATFORM "@PLATFORM@")
+set (DYNINST_INTERNAL_DEFINES @UNIFIED_DEFINES@)

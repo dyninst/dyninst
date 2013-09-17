@@ -33,7 +33,7 @@
 #include <set>
 #include <map>
 #include "dyntypes.h"
-#include "common/h/dthread.h"
+#include "common/src/dthread.h"
 
 using namespace Dyninst;
 

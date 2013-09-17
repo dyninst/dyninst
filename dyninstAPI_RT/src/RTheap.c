@@ -238,8 +238,8 @@ static Address constrained_mmap(size_t len, Address lo, Address hi,
 
 static int heap_memmapCompare(const void *A, const void *B)
 {
-  dyninstmm_t *a = (dyninstmm_t *)A;
-  dyninstmm_t *b = (dyninstmm_t *)B;
+  const dyninstmm_t *a = (const dyninstmm_t *)A;
+  const dyninstmm_t *b = (const dyninstmm_t *)B;
   if (a->pr_vaddr < b->pr_vaddr) return -1;
   if (a->pr_vaddr > b->pr_vaddr) return 1;
   return 0;

@@ -33,7 +33,7 @@
 
 #include <string>
 
-#include "common/h/debug_common.h"
+#include "common/src/debug_common.h"
 
 extern int sym_debug_parsing;
 extern int sym_debug_aggregates;

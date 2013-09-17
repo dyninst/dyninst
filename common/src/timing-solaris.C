@@ -32,7 +32,7 @@
 #include <cstring>
 #include <sys/types.h>
 #include <sys/processor.h>
-#include "common/h/timing.h"
+#include "common/src/timing.h"
 
 // TODO: replace body with (better) platform-specific code
 

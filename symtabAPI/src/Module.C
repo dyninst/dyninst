@@ -40,8 +40,8 @@
 #include "symutil.h"
 #include "annotations.h"
 
-#include "common/h/pathName.h"
-#include "common/h/serialize.h"
+#include "common/src/pathName.h"
+#include "common/src/serialize.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -433,8 +433,7 @@ Module::~Module()
 		  }
 		  else
 		  {
-			  fprintf(stderr, "%s[%d]:  removed delete for %p\n", FILE__, __LINE__, li);
-			  delete li;
+		          if (!exec_->lineInfo->erase(fullName_)) exec_->lineInfo->erase(fileName_);
 		  }
       }
    }

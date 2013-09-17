@@ -56,52 +56,52 @@ class DwarfWalker;
 
 struct SymbolCompareByAddr;
 
-class Aggregate
+class SYMTAB_EXPORT Aggregate
 {
    friend class Symtab;
    friend struct SymbolCompareByAddr;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
    friend class DwarfWalker;
   protected:
-      SYMTAB_EXPORT Aggregate();
-      SYMTAB_EXPORT Aggregate(Symbol *sym);
-      SYMTAB_EXPORT Aggregate(Module *m);      
+      Aggregate();
+      Aggregate(Symbol *sym);
+      Aggregate(Module *m);      
   public:
 
       
       virtual ~Aggregate() {};
 
-      SYMTAB_EXPORT Offset   getOffset() const;
-      SYMTAB_EXPORT unsigned getSize() const;
-      SYMTAB_EXPORT Module * getModule() const { return module_; }
-      SYMTAB_EXPORT Region * getRegion() const;
+      Offset   getOffset() const;
+      unsigned getSize() const;
+      Module * getModule() const { return module_; }
+      Region * getRegion() const;
 
       /***** Symbol Collection Management *****/
-      SYMTAB_EXPORT bool addSymbol(Symbol *sym);
-      SYMTAB_EXPORT virtual bool removeSymbol(Symbol *sym) = 0;
-      SYMTAB_EXPORT bool getSymbols(std::vector<Symbol *> &syms) const;
-      SYMTAB_EXPORT Symbol *getFirstSymbol() const;
+      bool addSymbol(Symbol *sym);
+      virtual bool removeSymbol(Symbol *sym) = 0;
+      bool getSymbols(std::vector<Symbol *> &syms) const;
+      Symbol *getFirstSymbol() const;
 
       /***** Symbol naming *****/
-      SYMTAB_EXPORT const std::vector<std::string> &getAllMangledNames();
-      SYMTAB_EXPORT const std::vector<std::string> &getAllPrettyNames();
-      SYMTAB_EXPORT const std::vector<std::string> &getAllTypedNames();
+      const std::vector<std::string> &getAllMangledNames();
+      const std::vector<std::string> &getAllPrettyNames();
+      const std::vector<std::string> &getAllTypedNames();
 
       /***** Aggregate updating *****/
-      SYMTAB_EXPORT virtual bool addMangledName(std::string name, bool isPrimary);
-      SYMTAB_EXPORT virtual bool addPrettyName(std::string name, bool isPrimary);
-      SYMTAB_EXPORT virtual bool addTypedName(std::string name, bool isPrimary);
+      virtual bool addMangledName(std::string name, bool isPrimary);
+      virtual bool addPrettyName(std::string name, bool isPrimary);
+      virtual bool addTypedName(std::string name, bool isPrimary);
 
-      SYMTAB_EXPORT bool setModule(Module *mod);
-      SYMTAB_EXPORT bool setSize(unsigned size);
-      SYMTAB_EXPORT bool setOffset(unsigned offset);
+      bool setModule(Module *mod);
+      bool setSize(unsigned size);
+      bool setOffset(unsigned offset);
       
 	  bool operator==(const Aggregate &a);
 
 
    protected:
-      SYMTAB_EXPORT bool removeSymbolInt(Symbol *sym);
-      SYMTAB_EXPORT virtual bool changeSymbolOffset(Symbol *sym);
+      bool removeSymbolInt(Symbol *sym);
+      virtual bool changeSymbolOffset(Symbol *sym);
 
       // Offset comes from a symbol
       // Module we keep here so we can have the correct "primary"
@@ -120,7 +120,7 @@ class Aggregate
 	  void restore_module_by_name(SerializerBase *, std::string &) THROW_SPEC (SerializerError);
 	  //void rebuild_symbol_vector(SerializerBase *, std::vector<Offset> *) THROW_SPEC (SerializerError);
 	  void rebuild_symbol_vector(SerializerBase *, std::vector<Address> &) THROW_SPEC (SerializerError);
-	  SYMTAB_EXPORT void serialize_aggregate(SerializerBase *, const char * = "Aggregate") THROW_SPEC (SerializerError);
+	  void serialize_aggregate(SerializerBase *, const char * = "Aggregate") THROW_SPEC (SerializerError);
      bool addMangledNameInternal(std::string name, bool isPrimary, bool demangle);
 };
 

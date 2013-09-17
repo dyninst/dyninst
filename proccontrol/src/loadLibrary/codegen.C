@@ -117,11 +117,13 @@ bool Codegen::generateCall(Address addr, const std::vector<Address> &args) {
          return generateCallIA32(addr, args);
       case Arch_x86_64:
          return generateCallAMD64(addr, args);
-      case Arch_ppc32:
+#if !defined(os_windows)
+	  case Arch_ppc32:
          return generateCallPPC32(addr, args);
       case Arch_ppc64:
          return generateCallPPC64(addr, args);
-      default:
+#endif //!defined(os_windows)
+	  default:
          return false;
    }
 }
@@ -171,11 +173,13 @@ bool Codegen::generatePreamble() {
          return generatePreambleIA32();
       case Arch_x86_64:
          return generatePreambleAMD64();
+#if !defined(os_windows)
       case Arch_ppc32:
          return generatePreamblePPC32();
       case Arch_ppc64:
          return generatePreamblePPC64();
-      default:
+#endif //!defined(os_windows)
+	  default:
          return false;
    }
 }

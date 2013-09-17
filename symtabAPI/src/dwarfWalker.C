@@ -1,5 +1,5 @@
 #include "dwarfWalker.h"
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 #include "Module.h"
 #include "Symtab.h"
 #include "Collections.h"
@@ -8,8 +8,8 @@
 #include "Object-elf.h"
 #include "Function.h"
 #include "dwarf/h/dwarfExprParser.h"
-#include "common/h/pathName.h"
-#include "common/h/debug_common.h"
+#include "common/src/pathName.h"
+#include "common/src/debug_common.h"
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -405,6 +405,8 @@ bool DwarfWalker::setFunctionFromRange(inline_t func_type)
    Address lowest = 0x0;
    bool set_lowest = false;
    if (!hasRanges()) {
+     dwarf_printf("(0x%lx) setFunctionFromRange has no ranges, returning false\n", id());
+     
       return false;
    }
    for (range_set_t::iterator i = ranges_begin(); i != ranges_end(); i++) {
@@ -419,6 +421,7 @@ bool DwarfWalker::setFunctionFromRange(inline_t func_type)
    if (!set_lowest) {
       //No ranges.  Don't panic, this is probably an abstract origin or specification
       // we'll get to it latter if it's really used.
+     dwarf_printf("(0x%lx) setFunctionFromRange has ranges, but no lowest, returning false\n", id());
       return false;
    }
 
@@ -426,6 +429,7 @@ bool DwarfWalker::setFunctionFromRange(inline_t func_type)
       FunctionBase *parent = curFunc();
       if (!parent) {
          //InlinedSubroutine without containing subprogram.  Weird.
+	dwarf_printf("(0x%lx) setFunctionFromRange found inline without parent, returning false\n", id());
          return false;
       }
       InlinedFunction *ifunc = new InlinedFunction(parent);
@@ -441,7 +445,11 @@ bool DwarfWalker::setFunctionFromRange(inline_t func_type)
                    id(), lowest, curFunc());
       setFunc(f);
       return true;
+   } else 
+   {
+     dwarf_printf("(0x%lx) Lookup by offset 0x%lx failed\n", id(), lowest);
    }
+   
 
    
    return true;
@@ -467,6 +475,8 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
       Type *ftype = NULL;
       getReturnType(false, ftype);
       addFuncToContainer(ftype);
+      dwarf_printf("(0x%lx) parseSubprogram not parsing member function's children\n", id());
+      
       setParseChild(false);
    }
 
@@ -477,11 +487,13 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    //This keeps us from parsing abstracts or specifications until
    // we need them.
    if (!func) {
+      dwarf_printf("(0x%lx) parseSubprogram not parsing children b/c curFunc() NULL\n", id());
       setParseChild(false);
       return true;
    }
 
    if (parsedFuncs.find(func) != parsedFuncs.end()) {
+      dwarf_printf("(0x%lx) parseSubprogram not parsing children b/c curFunc() not in parsedFuncs\n", id());
       setParseChild(false);
       return true;
    }
@@ -555,26 +567,40 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    return true;
 }
 
+bool DwarfWalker::parseHighPCLowPC()
+{
+   Dwarf_Attribute hasLow;
+
+   Dwarf_Attribute hasHigh;
+   if(dwarf_attr(entry(), DW_AT_low_pc, &hasLow, NULL) != DW_DLV_OK) return false;
+   if(dwarf_attr(entry(), DW_AT_high_pc, &hasHigh, NULL) != DW_DLV_OK) return false;
+
+   Address low, high;
+   Address tempLow, tempHigh;
+   if (!findConstant(DW_AT_low_pc, tempLow)) return false;
+   if (!findConstant(DW_AT_high_pc, tempHigh)) return false;
+   obj()->convertDebugOffset(tempLow, low);
+   obj()->convertDebugOffset(tempHigh, high);
+   Dwarf_Half form;
+   DWARF_FAIL_RET(dwarf_whatform(hasHigh, &form, NULL));
+   
+   if(form != DW_FORM_addr)
+   {
+     high += low;
+   }
+   dwarf_printf("(0x%lx) Lexical block from 0x%lx to 0x%lx\n", id(), low, high);
+   setRange(make_pair(low, high));
+   return true;
+   
+}
+
+
 bool DwarfWalker::parseRangeTypes() {
    dwarf_printf("(0x%lx) Parsing ranges\n", id());
 
    clearRanges();
-   Dwarf_Bool hasLow = false;
-   DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_low_pc, &hasLow, NULL));
-
-   Dwarf_Bool hasHigh = false;
-   DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_high_pc, &hasHigh, NULL));
-
-   if (hasLow && hasHigh) {
-      Address low, high;
-      Address tempLow, tempHigh;
-      if (!findConstant(DW_AT_low_pc, tempLow)) return false;
-      if (!findConstant(DW_AT_high_pc, tempHigh)) return false;
-      obj()->convertDebugOffset(tempLow, low);
-      obj()->convertDebugOffset(tempHigh, high);
-      dwarf_printf("(0x%lx) Lexical block from 0x%lx to 0x%lx\n", id(), low, high);
-      setRange(make_pair(low, high));
-   }
+   parseHighPCLowPC();
+   
 
    Dwarf_Bool hasRanges = false;
    DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_ranges, &hasRanges, NULL));
@@ -1340,6 +1366,7 @@ bool DwarfWalker::getReturnType(bool hasSpecification, Type *&returnType) {
 
    DWARF_CHECK_RET(status == DW_DLV_ERROR);
    if ( status == DW_DLV_NO_ENTRY ) {
+     dwarf_printf("(0x%lx) Return type is void\n", id());
       return NULL;
    }
 
@@ -1535,6 +1562,25 @@ bool DwarfWalker::findString(Dwarf_Half attr,
 {
    Dwarf_Half form;
    Dwarf_Attribute strattr;
+
+   if (attr == DW_AT_call_file || attr == DW_AT_decl_file) {
+      unsigned long line_index;
+      bool result = findConstant(attr, line_index);
+      if (!result)
+         return false;
+      if (line_index == 0) {
+         str = string("");
+         return true;
+      }
+      line_index--;
+      if (line_index >= srcFiles().size()) {
+         dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
+                      line_index, srcFiles().size());
+         return false;
+      }
+      str = srcFiles()[line_index];
+      return true;
+   }
 
    DWARF_FAIL_RET(dwarf_attr(entry(), attr, &strattr, NULL)); 
    int status = dwarf_whatform(strattr, &form, NULL);

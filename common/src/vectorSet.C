@@ -30,7 +30,7 @@
 // vectorSet.C
 // see vectorSet.h for comments, documentation, etc.
 
-#include "common/h/vectorSet.h"
+#include "common/src/vectorSet.h"
 
 template <class T>
 T vectorSet<T>::removeByIndex(unsigned index) {

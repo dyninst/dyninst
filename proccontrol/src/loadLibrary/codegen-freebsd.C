@@ -6,7 +6,7 @@
 #include <iostream>
 #include "PCProcess.h"
 #include "int_process.h"
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 #include <sys/mman.h>
 
 using namespace Dyninst;

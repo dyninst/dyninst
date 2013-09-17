@@ -32,7 +32,7 @@
 #define DBGSTEPPER_IMPL_
 
 #include "stackwalk/h/framestepper.h"
-#include "dynutil/h/ProcReader.h"
+#include "common/h/ProcReader.h"
 
 namespace Dyninst {
 

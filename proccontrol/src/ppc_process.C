@@ -29,7 +29,7 @@
  */
 
 #include "proccontrol/src/ppc_process.h"
-#include "common/h/arch-power.h"
+#include "common/src/arch-power.h"
 #include <string.h>
 #include <iostream>
 

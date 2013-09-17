@@ -31,11 +31,11 @@
 #include <stdio.h>
 #include <vector>
 
-#include "dynutil/h/dyntypes.h"
-#include "dynutil/h/Annotatable.h"
-#include "common/h/serialize.h"
-#include "common/h/Types.h"
-#include "common/h/headers.h"
+#include "common/h/dyntypes.h"
+#include "common/h/Annotatable.h"
+#include "common/src/serialize.h"
+#include "common/src/Types.h"
+#include "common/src/headers.h"
 
 #if defined(SERIALIZATION_DISABLED)
 unsigned short Dyninst::get_serializer_index(Dyninst::SerializerBase *) {

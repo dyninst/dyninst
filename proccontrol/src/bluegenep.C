@@ -42,7 +42,7 @@
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/irpc.h"
 
-#include "dynutil/h/SymReader.h"
+#include "common/h/SymReader.h"
 #include "symlite/h/SymLite-elf.h"
 
 #include <sys/types.h>

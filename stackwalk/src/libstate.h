@@ -31,10 +31,10 @@
 #if !defined(LIBSTATE_H_)
 #define LIBSTATE_H_
 
-#include "dynutil/h/ProcReader.h"
-#include "dynutil/h/SymReader.h"
+#include "common/h/ProcReader.h"
+#include "common/h/SymReader.h"
 #include "stackwalk/h/procstate.h"
-#include "common/h/addrtranslate.h"
+#include "common/src/addrtranslate.h"
 #include <set>
 
 namespace Dyninst {

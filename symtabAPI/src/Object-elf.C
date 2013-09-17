@@ -69,13 +69,13 @@ using namespace std;
 #include <stdio.h>
 #include <algorithm>
 
-#if defined(USES_DWARF_DEBUG)
+#if defined(cap_dwarf)
 #include "dwarf.h"
 #include "libdwarf.h"
 #endif
 
 //#include "symutil.h"
-#include "common/h/pathName.h"
+#include "common/src/pathName.h"
 #include "Collections.h"
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
@@ -89,7 +89,7 @@ using namespace std;
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
 
-#include "dynutil/h/SymReader.h"
+#include "common/h/SymReader.h"
 
 using namespace boost::assign;
 
@@ -2388,7 +2388,7 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 #endif
 }
 
-#if defined(USES_DWARF_DEBUG)
+#if defined(cap_dwarf)
 
 string Object::find_symbol(string name)
 {
@@ -2423,7 +2423,7 @@ string Object::find_symbol(string name)
  *
  ********************************************************/
 
-#if defined(USES_DWARF_DEBUG)
+#if defined(cap_dwarf)
 
 void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
 {
@@ -2992,7 +2992,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
 bool Object::fix_global_symbol_modules_static_dwarf()
 { return false; }
 
-#endif // USES_DWARF_DEBUG
+#endif // cap_dwarf
 
 /********************************************************
  *
@@ -3239,7 +3239,7 @@ void Object::find_code_and_data(Elf_X &elf,
         Elf_X_Phdr &phdr = elf.get_phdr(i);
 
         char *file_ptr = (char *)mf->base_addr();
-
+        /*
         if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags())) {
             Region *reg = new Region(i, "", phdr.p_paddr(), phdr.p_filesz(),
                                      phdr.p_vaddr(), phdr.p_memsz(),
@@ -3249,7 +3249,7 @@ void Object::find_code_and_data(Elf_X &elf,
             reg->setFileOffset(phdr.p_offset());
             regions_.push_back(reg);
         }
-
+        */
         // The code pointer, offset, & length should be set even if
         // txtaddr=0, so in this case we set these values by
         // identifying the segment that contains the entryAddress
@@ -3413,15 +3413,8 @@ Object::Object(const Object& obj)
 
 Object::~Object()
 {
-  unsigned i;
   relocation_table_.clear();
   fbt_.clear();
-  for(i=0; i<allRegionHdrs.size();i++) {
-#if !defined(os_freebsd)
-    // This claims a double-delete on FreeBSD
-    delete allRegionHdrs[i];
-#endif
-  }
   allRegionHdrs.clear();
   versionMapping.clear();
   versionFileNameMapping.clear();

@@ -38,10 +38,10 @@
 #endif
 
 #include <string>
-#include "common/h/headers.h"
-#include "common/h/Time.h"
-#include "common/h/Types.h"
-#include "common/h/stats.h"
+#include "common/src/headers.h"
+#include "common/src/Time.h"
+#include "common/src/Types.h"
+#include "common/src/stats.h"
 
 extern void printDyninstStats();
 extern CntStatistic insnGenerated;

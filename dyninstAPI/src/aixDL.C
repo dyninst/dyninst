@@ -36,9 +36,9 @@
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/image.h"
-#include "common/h/arch.h"
+#include "common/src/arch.h"
 #include "dyninstAPI/src/inst-power.h"
-#include "common/h/debugOstream.h"
+#include "common/src/debugOstream.h"
 #include <sys/ptrace.h>
 #include <sys/ldr.h>
 

@@ -32,7 +32,7 @@
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/src/int_process.h"
 
-#include "common/h/dthread.h"
+#include "common/src/dthread.h"
 
 #include <queue>
 

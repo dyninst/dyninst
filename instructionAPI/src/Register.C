@@ -29,12 +29,12 @@
  */
 
 #include "Register.h"
-#include "../../common/h/Singleton.h"
+#include "../../common/src/Singleton.h"
 #include <vector>
 #include <set>
 #include <sstream>
 #include "Visitor.h"
-#include "../../common/h/singleton_object_pool.h"
+#include "../../common/src/singleton_object_pool.h"
 #include "InstructionDecoder-power.h"
 #include "dyn_regs.h"
 

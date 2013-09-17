@@ -35,11 +35,11 @@
 #define _INST_POINT_H_
 
 #include <stdlib.h>
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include "dyninstAPI/src/inst.h"
-#include "common/h/arch.h" // instruction
+#include "common/src/arch.h" // instruction
 #include "dyninstAPI/src/codeRange.h"
-#include "common/h/stats.h"
+#include "common/src/stats.h"
 #include "dyninstAPI/src/ast.h"
 #include "bitArray.h"
 

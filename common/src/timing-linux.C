@@ -30,7 +30,7 @@
 
 // $Id: timing-linux.C,v 1.7 2007/05/30 19:20:32 legendre Exp $
 #include <stdio.h>
-#include "common/h/timing.h"
+#include "common/src/timing.h"
 
 
 // TODO: replace body with (better) platform-specific code

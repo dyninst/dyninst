@@ -37,8 +37,8 @@
  * header files.
 ************************************************************************/
 
-#include "common/h/headers.h"
-#include "common/h/lprintf.h"
+#include "common/src/headers.h"
+#include "common/src/lprintf.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>

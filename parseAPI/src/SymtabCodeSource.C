@@ -32,7 +32,7 @@
 
 #include <boost/assign/list_of.hpp>
 
-#include "common/h/stats.h"
+#include "common/src/stats.h"
 #include "dyntypes.h"
 
 #include "symtabAPI/h/Symtab.h"

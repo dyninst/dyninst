@@ -41,7 +41,7 @@
 #include "dataflowAPI/h/slicing.h"
 #include "dataflowAPI/h/AbslocInterface.h"
 #include "instructionAPI/h/InstructionDecoder.h"
-#include "dynutil/h/Graph.h"
+#include "common/h/Graph.h"
 #include "StackTamperVisitor.h"
 
 using namespace std;

@@ -32,7 +32,7 @@
 #define SW_INTERNAL_H_
 
 #include <set>
-#include "common/h/addrRange.h"
+#include "common/src/addrRange.h"
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/h/walker.h"

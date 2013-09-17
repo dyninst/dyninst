@@ -30,7 +30,7 @@
 
 #include <procfs.h>
 #include "addrtranslate-sysv.h"
-#include "common/h/headers.h"
+#include "common/src/headers.h"
 
 namespace Dyninst {
 

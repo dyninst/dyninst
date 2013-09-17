@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/Time.h"
+#include "common/src/Time.h"
 #include <iostream>
 #include <time.h>
 #include <string.h>
@@ -36,7 +36,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <limits.h>
-#include "common/h/int64iostream.h"
+#include "common/src/int64iostream.h"
 
 
 timeUnit::ostream_fmt timeUnit::curFmt = timeUnit::sparse;

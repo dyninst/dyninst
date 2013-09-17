@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/parseauxv.h"
+#include "common/src/parseauxv.h"
 #include <elf.h>
 #include <unistd.h>
 #include <assert.h>

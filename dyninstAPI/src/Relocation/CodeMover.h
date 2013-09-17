@@ -33,7 +33,7 @@
 #define _R_CODE_MOVER_H_
 
 #include "CFG.h"
-#include "common/h/Types.h"
+#include "common/src/Types.h"
 #include <list>
 #include <map>
 #include "dyninstAPI/src/codegen.h" // codeGen structure

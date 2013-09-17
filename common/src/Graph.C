@@ -35,7 +35,7 @@
 #include "Node.h"
 #include <assert.h>
 
-#include "../h/NodeIterator.h"
+#include "NodeIterator.h"
 #include <iostream>
 
 using namespace Dyninst;
