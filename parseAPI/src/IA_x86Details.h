@@ -42,6 +42,22 @@ namespace Dyninst
         
         class IA_x86Details : public IA_platformDetails
         {
+	private:
+	  struct InstructionInfo
+	  {
+	    Dyninst::InstructionAPI::Instruction::Ptr insn;
+	    Address addrOfInsn;
+	    Address addrFromInsn;
+	  InstructionInfo() : addrOfInsn(0), addrFromInsn(0) 
+	    {
+	    }
+	    
+	  };
+	  InstructionInfo tableInsn;
+	  InstructionInfo thunkInsn;
+	  
+	  
+
             friend IA_platformDetails* makePlatformDetails(Dyninst::Architecture Arch, const IA_IAPI* cb);
             protected:
                 IA_x86Details(const IA_IAPI* cb) :
@@ -52,13 +68,13 @@ namespace Dyninst
                                             std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
             private:
                 bool isMovAPSTable(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
-                std::pair<Address, Address> findThunkAndOffset(Dyninst::ParseAPI::Block * start);
+                void findThunkAndOffset(Dyninst::ParseAPI::Block * start);
                 bool isTableInsn(Dyninst::InstructionAPI::Instruction::Ptr i);
                 IA_IAPI::allInsns_t::const_iterator findTableInsn();
                 boost::tuple<Dyninst::InstructionAPI::Instruction::Ptr,
                 Dyninst::InstructionAPI::Instruction::Ptr,
                 bool> findMaxSwitchInsn(Dyninst::ParseAPI::Block *start);
-                Address findThunkInBlock(Dyninst::ParseAPI::Block * curBlock, Address& thunkOffset);
+                void findThunkInBlock(Dyninst::ParseAPI::Block * curBlock);
                 bool computeTableBounds(Dyninst::InstructionAPI::Instruction::Ptr maxSwitchInsn,
                                         Dyninst::InstructionAPI::Instruction::Ptr branchInsn,
                                         Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
@@ -71,10 +87,10 @@ namespace Dyninst
                                       unsigned tableStride,
                                       int offsetMultiplier,
                                       std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum> >& outEdges);
-                Address getTableAddress(Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
-                                        Address tableInsnAddr,
-                                        Address thunkOffset);
-
+		void computeTableAddress();
+		void reviseTableAddress();
+		bool handleCall(IA_IAPI& block);
+		bool handleAdd(IA_IAPI& block);
         };
     }
 }

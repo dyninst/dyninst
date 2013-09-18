@@ -31,7 +31,6 @@ ExternalProject_Add(LibDwarf
 	PREFIX ${CMAKE_SOURCE_DIR}/libdwarf
 	DEPENDS libelf_imp
 #	URL http://reality.sgiweb.org/davea/libdwarf-20130126.tar.gz
-#	URL http://sourceforge.net/code-snapshots/git/l/li/libdwarf/code.git/libdwarf-code-cc781ea02fda2885760910dc4fc81cce257e10f9.zip
 #	URL http://sourceforge.net/p/libdwarf/code/ci/20130126/tarball
 	URL http://www.paradyn.org/libdwarf/libdwarf-20130126.tar.gz
 #	GIT_REPOSITORY git://git.code.sf.net/p/libdwarf/code libdwarf-code

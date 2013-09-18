@@ -257,16 +257,14 @@ bool IA_x86Details::parseJumpTable(Block* currBlk,
         return true;
     }
     bool foundJCCAlongTaken = false;
-    Instruction::Ptr tableInsn;
-    Address tableInsnAddr;
     IA_IAPI::allInsns_t::const_iterator tableLoc = findTableInsn();
     if(tableLoc == currentBlock->allInsns.end())
     {
         parsing_printf("\tunable to find table insn\n");
         return false;
     }
-    tableInsnAddr = tableLoc->first;
-    tableInsn = tableLoc->second;
+    tableInsn.addrOfInsn = tableLoc->first;
+    tableInsn.insn = tableLoc->second;
     Instruction::Ptr maxSwitchInsn, branchInsn;
     boost::tie(maxSwitchInsn, branchInsn, foundJCCAlongTaken) = findMaxSwitchInsn(currBlk);
     if(!maxSwitchInsn || !branchInsn)
@@ -274,10 +272,10 @@ bool IA_x86Details::parseJumpTable(Block* currBlk,
         parsing_printf("\tunable to fix max switch size\n");
         return false;
     }
-    Address thunkOffset;
-    Address thunkInsnAddr;
-    boost::tie(thunkInsnAddr, thunkOffset) = findThunkAndOffset(currBlk);
-    if(thunkInsnAddr != 0)
+    computeTableAddress();
+    
+    findThunkAndOffset(currBlk);
+    if(thunkInsn.addrOfInsn != 0)
     {
         /*
          * FIXME
@@ -294,25 +292,25 @@ bool IA_x86Details::parseJumpTable(Block* currBlk,
         //     through allInsns is required; as per the previous 
         //     comment, I think something is wrong here anyway
         IA_IAPI::allInsns_t::const_iterator thunkLoc =
-            search_insn_vec(thunkInsnAddr,currentBlock->allInsns);
+            search_insn_vec(thunkInsn.addrOfInsn, currentBlock->allInsns);
 
         if(thunkLoc != currentBlock->allInsns.end())
         {
             if(thunkLoc->second && thunkLoc->second->getOperation().getID() == e_lea)
             {
                 tableLoc = thunkLoc;
-                tableInsnAddr = thunkInsnAddr;
-                tableInsn = thunkLoc->second;
+                tableInsn.addrOfInsn = thunkInsn.addrOfInsn;
+                tableInsn.insn = thunkLoc->second;
             }
         }
     }
-    parsing_printf("\ttableInsn %s at 0x%lx\n",tableInsn->format().c_str(), tableInsnAddr);
-    if(thunkOffset) {
+    parsing_printf("\ttableInsn %s at 0x%lx\n",tableInsn.insn->format().c_str(), tableInsn.addrOfInsn);
+    if(thunkInsn.addrFromInsn) {
         parsing_printf("\tThunk-calculated table base address: 0x%lx\n",
-                       thunkOffset);
+                       thunkInsn.addrFromInsn);
     }
     unsigned tableSize = 0, tableStride = 0;
-    bool ok = computeTableBounds(maxSwitchInsn, branchInsn, tableInsn, foundJCCAlongTaken,
+    bool ok = computeTableBounds(maxSwitchInsn, branchInsn, tableInsn.insn, foundJCCAlongTaken,
                                  tableSize, tableStride);
     if(!ok)
     {
@@ -334,8 +332,8 @@ bool IA_x86Details::parseJumpTable(Block* currBlk,
             if(iprel.defined)
             {
                 parsing_printf("\trevising tableInsn to %s at 0x%lx\n",tableLoc->second->format().c_str(), tableLoc->first);
-                tableInsn = tableLoc->second;
-                tableInsnAddr = tableLoc->first;
+                tableInsn.insn = tableLoc->second;
+                tableInsn.addrOfInsn = tableLoc->first;
             }
 
         }
@@ -402,10 +400,14 @@ bool IA_x86Details::parseJumpTable(Block* currBlk,
             }
         }
     }
-    Address tableBase = getTableAddress(tableInsn, tableInsnAddr, thunkOffset);
+    // This first compute() should be unnecessary, as we'll already have done the work above.
+    // However, if there turn out to be bugs later (PIC tables where we're revising the table insn
+    // and it matters), then recompute here before revision...
+    //    computeTableAddress();
+    reviseTableAddress();
 
     IA_IAPI::allInsns_t::const_iterator findSubtract =
-        search_insn_vec(tableInsnAddr,currentBlock->allInsns);
+        search_insn_vec(tableInsn.addrOfInsn,currentBlock->allInsns);
 
     int offsetMultiplier = 1;
     while(findSubtract->first < currentBlock->current)
@@ -420,7 +422,7 @@ bool IA_x86Details::parseJumpTable(Block* currBlk,
     }
     
 
-    return fillTableEntries(thunkOffset, tableBase,
+    return fillTableEntries(thunkInsn.addrFromInsn, tableInsn.addrFromInsn,
                             tableSize, tableStride, offsetMultiplier, outEdges);
 }
 namespace detail
@@ -436,96 +438,132 @@ namespace detail
     }
 };
 
+bool IA_x86Details::handleCall(IA_IAPI& block)
+{
+  parsing_printf("\tchecking call at 0x%lx for thunk\n", block.getAddr());
+  if(!block.isRealCall())
+  {
+    parsing_printf("\tthunk found at 0x%lx, checking for add\n", block.getAddr());
+    block.advance();
+    thunkInsn.addrFromInsn = block.getAddr();
+    Instruction::Ptr addInsn = block.getInstruction();
+    if(addInsn)
+      parsing_printf("\tinsn after thunk: %s\n", addInsn->format().c_str());
+    else
+      parsing_printf("\tNO INSN after thunk at 0x%lx\n", thunkInsn.addrFromInsn);
+    if(addInsn)
+    {
+      std::set<RegisterAST::Ptr> boundRegs;
+      
+      if(addInsn->getOperation().getID() == e_pop)
+      {
+	addInsn->getWriteSet(boundRegs);
+	block.advance();
+	addInsn = block.getInstruction();
+      }
+      if(addInsn && ((addInsn->getOperation().getID() == e_add) ||
+		     (addInsn->getOperation().getID() == e_lea)))
+      {
+	Expression::Ptr op0 = addInsn->getOperand(0).getValue();
+	Expression::Ptr op1 = addInsn->getOperand(1).getValue();
+	for(std::set<RegisterAST::Ptr>::const_iterator curReg = boundRegs.begin();
+	    curReg != boundRegs.end();
+	    ++curReg)
+	{
+	  op0->bind(curReg->get(), Result(u64, 0));
+	  op1->bind(curReg->get(), Result(u64, 0));
+	  
+	}
+	
+	
+	Result imm = addInsn->getOperand(1).getValue()->eval();
+	Result imm2 = addInsn->getOperand(0).getValue()->eval();
+	if(imm.defined)
+	{
+	  Address thunkDiff = imm.convert<Address>();
+	  parsing_printf("\tsetting thunkInsn.addrFromInsn to 0x%lx (0x%lx + 0x%lx)\n",
+			 thunkInsn.addrFromInsn+thunkDiff, thunkInsn.addrFromInsn, thunkDiff);
+	  thunkInsn.addrOfInsn = block.getPrevAddr();
+	  thunkInsn.addrFromInsn = thunkInsn.addrFromInsn + thunkDiff;
+	  return true;
+	  
+	}
+	else if(imm2.defined)
+	{
+	  Address thunkDiff = imm2.convert<Address>();
+	  parsing_printf("\tsetting thunkInsn.addrFromInsn to 0x%lx (0x%lx + 0x%lx)\n",
+			 thunkInsn.addrFromInsn+thunkDiff, thunkInsn.addrFromInsn, thunkDiff);
+	  thunkInsn.addrOfInsn = block.getPrevAddr();
+	  thunkInsn.addrFromInsn = thunkInsn.addrFromInsn + thunkDiff;
+	  return true;
+	}
+	else
+	{
+	  parsing_printf("\tadd insn %s found following thunk at 0x%lx, couldn't bind operands!\n",
+			 addInsn->format().c_str(), thunkInsn.addrFromInsn);
+	}
+      }
+    }
+    thunkInsn.addrFromInsn = 0;
+  }
+  thunkInsn.addrFromInsn = 0;
+  thunkInsn.addrOfInsn = 0;
+  thunkInsn.insn.reset();
+  
+  return false;
+}
 
-Address IA_x86Details::findThunkInBlock(Block* curBlock, Address& thunkOffset) 
+bool IA_x86Details::handleAdd(IA_IAPI& block)
+{
+  parsing_printf("\t found add insn %s without obvious thunk\n",
+		 block.getInstruction()->format().c_str());
+  // Check table insn and bail if it's not of the mov eax, [eax] form
+  // We do this indirectly: if there was already a displacment that we
+  // could find in the table insn, we have a "table address"; otherwise, check adds
+  if(tableInsn.addrFromInsn != 0) 
+  {
+    return false;
+  }
+  
+  // Use the add operand as our table base; we're handling tables of the form:
+  // <reg = index>
+  // add reg, $base
+  // mov reg, [reg]
+  // jmp *reg
+  Expression::Ptr addExpr = block.getInstruction()->getOperand(1).getValue();
+  zeroAllGPRegisters z(block.getAddr());
+  addExpr->apply(&z);
+  thunkInsn.insn = block.getInstruction();
+  thunkInsn.addrFromInsn = z.getResult();
+  thunkInsn.addrOfInsn = block.getAddr();
+  
+  parsing_printf("\t setting thunk offset to 0x%lx (EXPERIMENTAL!)\n", thunkInsn.addrFromInsn);
+  
+  return thunkInsn.addrFromInsn != 0;
+}
+
+
+void IA_x86Details::findThunkInBlock(Block* curBlock) 
 {
     const unsigned char* buf =
             (const unsigned char*)(currentBlock->_isrc->getPtrToInstruction(curBlock->start()));
     if( buf == NULL ) {
         parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
                        FILE__, __LINE__);
-        return false;
+        return;
     }
     
     InstructionDecoder dec(buf,curBlock->size() + InstructionDecoder::maxInstructionLength,
                            currentBlock->_isrc->getArch());
-    IA_IAPI * blockptr = NULL;
-    blockptr = new IA_IAPI(dec,curBlock->start(),currentBlock->_obj,currentBlock->_cr,
+    IA_IAPI block(dec,curBlock->start(),currentBlock->_obj,currentBlock->_cr,
 			   currentBlock->_isrc, curBlock);
-    IA_IAPI & block = *blockptr;
 
     parsing_printf("\tchecking block at 0x%lx for thunk\n", curBlock->start());
     while(block.getAddr() < curBlock->end())
     {
         if(block.getInstruction()->getCategory() == c_CallInsn)
         {
-            parsing_printf("\tchecking call at 0x%lx for thunk\n", block.getAddr());
-            if(!block.isRealCall())
-            {
-                parsing_printf("\tthunk found at 0x%lx, checking for add\n", block.getAddr());
-                block.advance();
-                thunkOffset = block.getAddr();
-                Instruction::Ptr addInsn = block.getInstruction();
-                if(addInsn)
-                    parsing_printf("\tinsn after thunk: %s\n", addInsn->format().c_str());
-                else
-                    parsing_printf("\tNO INSN after thunk at 0x%lx\n", thunkOffset);
-                if(addInsn)
-                {
-		  std::set<RegisterAST::Ptr> boundRegs;
-		  
-                    if(addInsn->getOperation().getID() == e_pop)
-                    {
-		      addInsn->getWriteSet(boundRegs);
-                        block.advance();
-                        addInsn = block.getInstruction();
-                    }
-                    if(addInsn && ((addInsn->getOperation().getID() == e_add) ||
-				   (addInsn->getOperation().getID() == e_lea)))
-                    {
-		      Expression::Ptr op0 = addInsn->getOperand(0).getValue();
-		      Expression::Ptr op1 = addInsn->getOperand(1).getValue();
-		      for(std::set<RegisterAST::Ptr>::const_iterator curReg = boundRegs.begin();
-			  curReg != boundRegs.end();
-			  ++curReg)
-		      {
-			op0->bind(curReg->get(), Result(u64, 0));
-			op1->bind(curReg->get(), Result(u64, 0));
-			
-		      }
-		      
-
-                        Result imm = addInsn->getOperand(1).getValue()->eval();
-                        Result imm2 = addInsn->getOperand(0).getValue()->eval();
-                        if(imm.defined)
-                        {
-                            Address thunkDiff = imm.convert<Address>();
-                            parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx)\n",
-                                           thunkOffset+thunkDiff, thunkOffset, thunkDiff);
-                            Address ret = block.getPrevAddr();
-                            thunkOffset = thunkOffset + thunkDiff;
-                            delete blockptr;
-                            return ret;
-                        }
-                        else if(imm2.defined)
-                        {
-                            Address thunkDiff = imm2.convert<Address>();
-                            parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx)\n",
-                                           thunkOffset+thunkDiff, thunkOffset, thunkDiff);
-                            Address ret = block.getPrevAddr();
-                            thunkOffset = thunkOffset + thunkDiff;
-                            delete blockptr;
-                            return ret;
-                        }
-                        else
-                        {
-                            parsing_printf("\tadd insn %s found following thunk at 0x%lx, couldn't bind operands!\n",
-                                           addInsn->format().c_str(), thunkOffset);
-                        }
-                    }
-                }
-                thunkOffset = 0;
-            }
+	  if(handleCall(block)) return;
         }
         else if(block.getInstruction()->getOperation().getID() == e_lea)
             // Look for an AMD64 IP-relative LEA.  If we find one, it should point to the start of a
@@ -537,17 +575,24 @@ Address IA_x86Details::findThunkInBlock(Block* curBlock, Address& thunkOffset)
             Result iprel = IPRelAddr->eval();
             if(iprel.defined)
             {
-                thunkOffset = iprel.convert<Address>();
-                parsing_printf("\tsetting thunkOffset to 0x%lx at 0x%lx\n",thunkOffset, block.getAddr());
-                Address ret = block.getAddr();
-                delete blockptr;
-                return ret;
+                thunkInsn.addrFromInsn = iprel.convert<Address>();
+                parsing_printf("\tsetting thunkOffset to 0x%lx at 0x%lx\n",thunkInsn.addrFromInsn, block.getAddr());
+                thunkInsn.addrOfInsn = block.getAddr();
+		thunkInsn.insn = block.getInstruction();
+                return;
             }
         }
+	else if(block.getInstruction()->getOperation().getID() == e_add)
+	{
+	  if(handleAdd(block)) {
+	    parsing_printf("handleAdd found thunk candidate, addr is 0x%lx\n", block.getAddr());
+	    return;
+	  }
+	  
+	}
         block.advance();
     }
-    delete blockptr;
-    return 0;
+    return;
 }
 
 void processPredecessor(Edge* e, std::set<Block*>& visited, std::deque<Block*>& worklist)
@@ -568,14 +613,13 @@ void processPredecessor(Edge* e, std::set<Block*>& visited, std::deque<Block*>& 
 }
 
 
-std::pair<Address, Address> IA_x86Details::findThunkAndOffset(Block* start) 
+void IA_x86Details::findThunkAndOffset(Block* start) 
 {
     std::set<Block*> visited;
     std::deque<Block*> worklist;
     Block* curBlock;
     worklist.insert(worklist.begin(), start);
     visited.insert(start);
-    Address thunkOffset = 0;
 
     // traverse only intraprocedural edges
     Intraproc epred;
@@ -589,10 +633,12 @@ std::pair<Address, Address> IA_x86Details::findThunkAndOffset(Block* start)
         // it may be a jump table but it's not one our heuristics should expect to
         // handle well.  Better to bail out than try to parse something that will be garbage.
         if(curBlock->start() > start->start()) continue;
-        Address tableInsnAddr = findThunkInBlock(curBlock, thunkOffset);
-        if(tableInsnAddr != 0)
+        findThunkInBlock(curBlock);
+        if(thunkInsn.addrOfInsn != 0)
         {
-            return std::make_pair(tableInsnAddr, thunkOffset);
+	  parsing_printf("\tSUCCESS, tableInsnAddr = 0x%lx, thunkOffset = 0x%lx\n",
+			 thunkInsn.addrOfInsn, thunkInsn.addrFromInsn);
+	  return;
         }
 
         //Block::edgelist::const_iterator sit = curBlock->sources().begin(&epred);
@@ -605,7 +651,7 @@ std::pair<Address, Address> IA_x86Details::findThunkAndOffset(Block* start)
 	
 
     }
-    return std::make_pair(0, 0);
+    return;
 
 }
 
@@ -717,16 +763,14 @@ boost::tuple<Instruction::Ptr,
     
     return boost::make_tuple(compareInsn, condBranchInsn, compareOnTakenBranch);
 }
- 
-Address IA_x86Details::getTableAddress(Instruction::Ptr tableInsn,
-                                 Address tableInsnAddr,
-                                 Address thunkOffset) 
+
+void IA_x86Details::computeTableAddress()
 {
     // Extract displacement from table insn
     Expression::Ptr displacementSrc;
-    if(tableInsn->getCategory() == c_BranchInsn)
+    if(tableInsn.insn->getCategory() == c_BranchInsn)
     {
-        Expression::Ptr op = tableInsn->getOperand(0).getValue();
+        Expression::Ptr op = tableInsn.insn->getOperand(0).getValue();
         std::vector<Expression::Ptr> tmp;
         op->getChildren(tmp);
         if(tmp.empty())
@@ -740,21 +784,21 @@ Address IA_x86Details::getTableAddress(Instruction::Ptr tableInsn,
     }
     else
     {
-        parsing_printf("\tcracking table instruction %s\n", tableInsn->format().c_str());
+        parsing_printf("\tcracking table instruction %s\n", tableInsn.insn->format().c_str());
         std::vector<Expression::Ptr> tmp;
-        Expression::Ptr op = tableInsn->getOperand(1).getValue();
+        Expression::Ptr op = tableInsn.insn->getOperand(1).getValue();
         if(!op)
         {
             parsing_printf("\ttable insn BAD! (no second operand)\n");
-            return 0;
+            return;
         }
-        if(tableInsn->getOperation().getID() != e_lea)
+        if(tableInsn.insn->getOperation().getID() != e_lea)
         {
             op->getChildren(tmp);
             if(tmp.empty())
             {
                 parsing_printf("\ttable insn BAD! (not LEA, second operand not a deref)\n");
-                return 0;
+                return;
             }
             displacementSrc = tmp[0];
         }
@@ -764,57 +808,54 @@ Address IA_x86Details::getTableAddress(Instruction::Ptr tableInsn,
         }
     }
     
-    zeroAllGPRegisters z(tableInsnAddr + tableInsn->size());
+    zeroAllGPRegisters z(tableInsn.addrOfInsn + tableInsn.insn->size());
     displacementSrc->apply(&z);
     
-    Address jumpTable = 0;
-    //if(!disp.defined)
     if(!z.isDefined())
     {
-        if(!thunkOffset)
-        {
-            parsing_printf("\ttable insn: %s, displacement %s, bind of all GPRs FAILED\n",
-                           tableInsn->format().c_str(), displacementSrc->format().c_str());
-            return 0;
-        }
+      parsing_printf("\ttable insn: %s, displacement %s, bind of all GPRs FAILED\n",
+		     tableInsn.insn->format().c_str(), displacementSrc->format().c_str());
+      return;
     }
     else
     {
-//        jumpTable = disp.convert<Address>();
-        jumpTable = z.getResult();
+        tableInsn.addrFromInsn = z.getResult();
     }
-    parsing_printf("\tjumpTable set to 0x%lx\n",jumpTable);
+    parsing_printf("\ttableInsn.addrFromInsn set to 0x%lx\n",tableInsn.addrFromInsn);
+}
 
-    if(!jumpTable && !thunkOffset)
+void IA_x86Details::reviseTableAddress()
+{
+    if(!tableInsn.addrFromInsn && !thunkInsn.addrFromInsn)
     {
-        return 0;
+        return;
     }
 
 
-    // in AMD64 rip-relative LEA case, jumpTable and thunkOffset are
+    // in AMD64 rip-relative LEA case, tableInsn.addrFromInsn and thunkOffset are
     // calculated from the same instruction (FIXME this indicates
     // a flaw in the overall logic which is corrected here)
-    if(jumpTable != thunkOffset) {
-        jumpTable += thunkOffset;
-        parsing_printf("\tjumpTable revised to 0x%lx\n",jumpTable);
+    if(tableInsn.addrFromInsn != thunkInsn.addrFromInsn) {
+        tableInsn.addrFromInsn += thunkInsn.addrFromInsn;
+        parsing_printf("\ttableInsn.addrFromInsn revised to 0x%lx\n",tableInsn.addrFromInsn);
     }
     // On Windows, all of our other addresses have had the base address
     // of their module subtracted off before we ever use them.  We need to fix this up
     // to conform to that standard so that Symtab actually believes that there's code
     // at the table's destination.
 #if defined(os_windows)
-    jumpTable -= currentBlock->_obj->cs()->loadAddress();
+    tableInsn.addrFromInsn -= currentBlock->_obj->cs()->loadAddress();
 #endif
-    if( !currentBlock->_isrc->isValidAddress(jumpTable) )
-{
+    if( !currentBlock->_isrc->isValidAddress(tableInsn.addrFromInsn) )
+    {
         // If the "jump table" has a start address that is outside
         // of the valid range of the binary, we can say with high
         // probability that we have misinterpreted some other
         // construct (such as a function pointer comparison & tail
         // call, for example) as a jump table. Give up now.
-    return 0;
-}
-    return jumpTable;
+      tableInsn.addrFromInsn = 0;
+    }
+    return;
 }
 
 bool IA_x86Details::fillTableEntries(Address thunkOffset,
