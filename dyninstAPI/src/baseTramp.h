@@ -111,6 +111,8 @@ class baseTramp {
     bool spilledRegisters;
     int  stackHeight;
     bool skippedRedZone;
+    bool wasFullFPRSave;
+    
     
     bool validOptimizationInfo() { return optimizationInfo_; }
 
