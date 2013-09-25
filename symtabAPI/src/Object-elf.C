@@ -4910,10 +4910,10 @@ void Object::parseTypeInfo(Symtab *obj)
 #endif	 
 
 	parseStabTypes(obj);
-
-   DwarfWalker walker(obj, *(dwarf->type_dbg()));
-   walker.parse();
-   //parseDwarfTypes(obj);
+	Dwarf_Debug* typeInfo = dwarf->type_dbg();
+	if(!typeInfo) return;
+	DwarfWalker walker(obj, *typeInfo);
+	walker.parse();
         
 #if defined(TIMED_PARSE)
 	struct timeval endtime;
