@@ -2,7 +2,7 @@
 AC_INIT([parseThat], [1.0])
 AC_CONFIG_SRCDIR([src/config.C])
 AC_PREFIX_DEFAULT([.])
-AC_CONFIG_AUX_DIR([../autodyninst])
+#AC_CONFIG_AUX_DIR([../autodyninst])
 AC_LANG(C++)
 
 
@@ -36,7 +36,7 @@ AC_ARG_WITH(liberty-lib,
 if test -n ${DYNINST_ROOT}; then
    # Add search paths to CPPFLAGS and LDFLAGS.
    if test -z ${DYNINST_LIB}; then
-      DYNINST_LIB="${DYNINST_ROOT}/${PLATFORM}/lib"
+      DYNINST_LIB="${DYNINST_ROOT}/lib"
    fi
    if test -z ${DYNINST_INC}; then
       DYNINST_INC="${DYNINST_ROOT}/include"

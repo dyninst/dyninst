@@ -1,92 +1,108 @@
-TO_CORE = ..
+# ----------------------------------------------
+# Configuration variables taken from ./configure
+# ----------------------------------------------
+CPPFLAGS     = -I/scratch/bill/dyninst/include 
+CXX          = g++
+CXXFLAGS     = -g -O2
+DEFINES      = -DPACKAGE_NAME=\"parseThat\" -DPACKAGE_TARNAME=\"parsethat\" -DPACKAGE_VERSION=\"1.0\" -DPACKAGE_STRING=\"parseThat\ 1.0\" -DPACKAGE_BUGREPORT=\"\" -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_BPATCH_PROCESS_H=1
+LDFLAGS      = -L/scratch/bill/dyninst/lib 
+DWARFFLAGS      = 
+ELFFLAGS      = 
+EXTRA_LIBS         = -ldl 
+DEMANGLER_LINK = 
+prefix       = /scratch/bill/dyninst
+PLATFORM    ?= x86_64-unknown-linux-gnu
+DYNINST_VER  = 5
 
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
+INSTALL      = /usr/bin/install -c
 
-include ../make.config
+vpath % ./src
 
-ifdef LIBELF_PLATFORM
-ifneq (x,x$(strip $(LIBELF_LIB)))
-LIBELF_LINK_FLAGS += -L$(LIBELF_LIB)
-endif
-LIBELF_LINK_FLAGS += -lelf
-endif
+# -------------------------------------------
+# Begin Makefile based on variables set above
+# -------------------------------------------
+.PHONY: clean ready
 
-ifdef LIBDWARF_PLATFORM
-ifneq (x,x$(strip $(LIBDWARF_LIB)))
-LIBDWARF_LINK_FLAGS += -L$(LIBDWARF_LIB)
-endif
-ifeq (xtrue,x$(LIBDWARF_STATIC))
-LIBDWARF_LINK_FLAGS += -Wl,--whole-archive
-endif
+SRCS         = parseThat.C \
+               config.C \
+               ipc.C \
+               record.C \
+               strlist.C \
+               reglist.C \
+               log.C \
+               utils.C \
+               sha1.C \
+               dyninstCore.C
 
-LIBDWARF_LINK_FLAGS += -ldwarf
-
-ifeq (xtrue,x$(LIBDWARF_STATIC))
-LIBDWARF_LINK_FLAGS += -Wl,--no-whole-archive
-endif
-
-endif
-
-VPATH = $(PLATFORM)
-
-ABS_PROGRAM_DEST := $(abspath $(PROGRAM_DEST))
-ABS_LIBRARY_DEST := $(abspath $(LIBRARY_DEST))
-ABS_INCLUDE_DEST := $(abspath $(INCLUDE_DEST))
-ABS_LIBDWARF_DEST := $(LIBDWARF_LINK_FLAGS)
-ABS_LIBELF_DEST := $(LIBELF_LINK_FLAGS)
-
-ifdef includedir
-CONFIG_ARGS = "--with-dyninst-include=$(includedir)"
-endif
-ifdef includedir
-CONFIG_ARGS += "--with-dyninst-lib=$(libdir)"
-endif
-CONFIG_ARGS += "--with-dwarf-lib=$(ABS_LIBDWARF_DEST)"
-ifdef LIBELF_LIB
-CONFIG_ARGS += "--with-elf-lib=$(ABS_LIBELF_DEST)"
+ifeq ($(DYNINST_VER), 5)
+SRCS        += dyninstCompat.v5.C
 endif
 
-
-
-ifdef DEMANGLER_EXEC_LINK
-CONFIG_ARGS += "--with-liberty-lib=\"$(DEMANGLER_EXEC_LINK)\""
+ifeq ($(DYNINST_VER), 4)
+SRCS        += dyninstCompat.v4.C
 endif
 
-CONFIG_LD_FLAGS = $(patsubst %,-L../%,$(shell echo ../*/$(PLATFORM)))
-CONFIG_CFLAGS = $(patsubst %,-I../%,$(shell echo ../*/h))
+OBJS         = $(SRCS:%.C=%.o)
 
-ifdef ABS_PROGRAM_DEST
-INSTALL_PREFIX = --prefix=$(ABS_PROGRAM_DEST)
+CXXFLAGS    += -Wall
+LIBS        += -ldyninstAPI -lstackwalk -lpcontrol -lpatchAPI -lparseAPI -linstructionAPI -lsymtabAPI -lsymLite -ldynDwarf -ldynElf -lcommon -pthread
+
+# The echo will remove the quotes
+LIBS += $(shell echo $(DEMANGLER_LINK))
+
+ifneq (x,x$(strip $(ELFFLAGS)))
+LIBS += $(ELFFLAGS) 
+endif
+ifneq (x,x$(strip $(DWARFFLAGS)))
+LIBS += $(DWARFFLAGS)
+endif
+
+ifeq (freebsd, $(findstring freebsd, $(PLATFORM)))
+LIBS	    += -lpthread
+endif
+
+ifeq (ppc64_linux, $(findstring ppc64_linux, $(PLATFORM)))
+CXXFLAGS	+= -m64
+CFLAGS		+= -m64
+endif
+
+ifneq (x$(DESTDIR),x)
+TARGETDIR = $(DESTDIR)/$(prefix)
 else
-INSTALL_PREFIX =
+TARGETDIR = $(prefix)
 endif
 
-MAKE_LOCAL_LOCATION = $(wildcard $(TO_CORE)/$(PLATFORM)/make.config.local)
-ifndef MAKE_LOCAL_LOCATION
-MAKE_LOCAL_LOCATION = $(TO_CORE)/make.config.local
-endif
+LIBS += ${EXTRA_LIBS}
 
-all:  $(PLATFORM)/parseThat
+all: ready parseThat
 
-$(PLATFORM)/parseThat: $(PLATFORM)/Makefile
-	$(MAKE) -C $(PLATFORM)
+install: $(TARGETDIR)/parseThat
 
-$(PLATFORM)/Makefile: Makefile.in $(MAKE_LOCAL_LOCATION)
-	@if [ -d $(PLATFORM) ]; then \
-		echo "directory $(PLATFORM) exists"; \
-	else \
-		mkdir $(PLATFORM); \
-	fi; \
-	cd $(PLATFORM); \
-	echo $(CONFIG_ARGS); \
-	CPPFLAGS="$(CPPFLAGS)" LDFLAGS="$(CONFIG_LD_FLAGS)" CXXFLAGS="$(CONFIG_CFLAGS)" CFLAGS="$(CONFIG_CFLAGS)" PLATFORM="$(PLATFORM)" ../configure $(CONFIG_ARGS) $(INSTALL_PREFIX);
+$(TARGETDIR)/parseThat: parseThat
+	@if [ $(TARGETDIR) != "." ]; then                           \
+		echo "$(INSTALL) -d $(TARGETDIR)";                  \
+		$(INSTALL) -d $(TARGETDIR);                         \
+		echo "$(INSTALL) parseThat $(TARGETDIR)/parseThat"; \
+		$(INSTALL) parseThat $(TARGETDIR)/parseThat;        \
+	fi
 
 clean:
-	cd $(PLATFORM); $(MAKE) clean;
+	rm -f parseThat *.o *.so
 
-distclean:
-	rm -rf $(PLATFORM)
+distclean: clean
+	rm Makefile config.log config.status
 
-install: $(PLATFORM)/parseThat
-	cd $(PLATFORM); $(MAKE) install;
+ready:
+	@echo "Begin parseThat build for $(PLATFORM)"
+
+parseThat: $(OBJS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS)
+
+$(OBJS): %.o: %.C
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(DEFINES) $^ -c -o $@
+
+alarm: alarm.c liblib.so
+	gcc -Wall -g -o alarm alarm.c liblib.so
+
+liblib.so: lib.c
+	gcc -Wall -g -shared -o liblib.so lib.c

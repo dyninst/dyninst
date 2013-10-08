@@ -1104,14 +1104,18 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
 
         if(movePHdrsFirst) {
            if (!old->p_offset) {
-              if (newPhdr->p_vaddr)
+	     if (newPhdr->p_vaddr) 
+	     {
                  newPhdr->p_vaddr = old->p_vaddr - pgSize;
+		 newPhdr->p_align = pgSize;
+	     }
 	      newPhdr->p_paddr = newPhdr->p_vaddr;
 	      newPhdr->p_filesz += pgSize;
 	      newPhdr->p_memsz = newPhdr->p_filesz;
            }
            else {
               newPhdr->p_offset += pgSize;
+	      newPhdr->p_align = pgSize;
            }
            if (newPhdr->p_vaddr) {
               newPhdr->p_vaddr += library_adjust;
