@@ -119,6 +119,7 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid) {
      **/
     if (!DYNINST_thread_hash_size) {
         //Uninitialized tramp guard.
+        tc_lock_unlock(&DYNINST_index_lock);
         return DYNINST_max_num_threads;
     }
 

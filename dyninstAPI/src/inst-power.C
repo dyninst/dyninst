@@ -2589,20 +2589,11 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 #else
     // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
     if (p->getAddressWidth() == sizeof(uint64_t)) {
-        Address buffer[3];
         Address val_to_write = f->addr();
         // Use function descriptor address, if available.
         if (f->getPtrAddress()) val_to_write = f->getPtrAddress();
-        assert(p->proc());
-        Address toc = p->proc()->getTOCoffsetInfo(f);
-        buffer[0] = val_to_write;
-        buffer[1] = toc;
-        buffer[2] = 0x0;
-
-        if (!p->writeDataSpace((void *) addr, sizeof(buffer), buffer))
-            fprintf(stderr, "%s[%d]:  writeDataSpace failed\n",
-                            FILE__, __LINE__);
-        return true;
+        return p->writeDataSpace((void *) addr,
+                                 sizeof(val_to_write), &val_to_write);
     }
     else {
         // Originally copied from inst-x86.C
