@@ -57,21 +57,14 @@ int atomic_set(volatile int *val)
    return result;
 }
 #else
-int atomic_set(volatile int *val)
+static int atomic_set(volatile int *val)
 {
-   int result;
-   __asm(
-      "movl $0,%%eax\n"
-      "movl $1,%%edx\n"
-      "movl %1,%%ecx\n"
-      "lock\n"
-      "cmpxchgl %%edx,(%%ecx)\n"
-      "setz %%al\n"
-      "movl %%eax,%0\n"
-      : "=r" (result)
-      : "r" (val)
-      : "%eax", "%edx", "%ecx");
-   return result;
+   int result = 1;
+   __asm__ __volatile__(
+           "xchgl %0, %1\n"
+           : "+r" (result), "+m" (*val)
+           :: "memory");
+   return !result;
 }
 #endif
 
@@ -83,13 +76,9 @@ int tc_lock_lock(tc_lock_t *tc)
    if (me == tc->tid)
       return DYNINST_DEAD_LOCK;
 
-   while (1) {
-      if (tc->mutex == 0 && atomic_set(&tc->mutex))
-      {
-         tc->tid = me;
-         break;
-      }
-   }
+   while (!atomic_set(&tc->mutex));
+
+   tc->tid = me;
    return 0;
 }
 

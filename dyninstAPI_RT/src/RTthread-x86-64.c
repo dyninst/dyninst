@@ -30,60 +30,15 @@
 
 #include "dyninstAPI_RT/src/RTthread.h"
 
-long atomic_set(volatile int *val)
+static int atomic_set(volatile int *val)
 {
-   long result = 0;
-#if defined(MUTATEE_32)
-   __asm("movl $1,%%eax\n"
-         "movl %1,%%ecx\n"
-         "lock\n"
-         "xchgl %%eax, (%%ecx)\n"
-         "movl %%eax, %0\n"
-         : "=r" (result)
-         : "r" (val)
-         : "%eax",
-           "%ecx");
-#else
-   __asm("mov $1,%%rax\n"
-         "mov %1,%%rcx\n"
-         "lock\n"
-         "xchg %%rax, (%%rcx)\n"
-         "mov %%rax, %0\n"
-         : "=r" (result)
-         : "r" (val)
-         : "%rax",
-           "%rcx");
-#endif
+   int result = 1;
+   __asm__ __volatile__(
+           "xchgl %0, %1\n"
+           : "+r" (result), "+m" (*val)
+           :: "memory");
    return !result;
 }
-/*
-#if 1
-   __asm(
-         "movl $0,%%eax\n"
-         "movl $1,%%ebx\n"
-         "movl %1,%%ecx\n"
-         "lock\n"
-         "cmpxchgl %%ebx,(%%ecx)\n"
-         "setz %%al\n"
-         "movl %%eax,%0\n"
-         : "=r" (result)
-         : "r" (val)
-         : "%eax", "%ebx", "%ecx");
-#else
-      __asm(
-            "mov $0,%%rax\n"
-            "mov $1,%%rbx\n"
-            "mov %1,%%rcx\n"
-            "lock\n"
-            "cmpxchg %%rbx,(%%rcx)\n"
-            "setz %%al\n"
-            "mov %%rax,%0\n"
-            : "=r" (result)
-            : "r" (val)
-            : "%rax", "%rbx", "%rcx");
-#endif
-      return result;
-*/
 
 int tc_lock_lock(tc_lock_t *tc)
 {
@@ -93,13 +48,9 @@ int tc_lock_lock(tc_lock_t *tc)
    if (me == tc->tid)
       return DYNINST_DEAD_LOCK;
 
-   while (1) {
-      int wasNotLocked = atomic_set(&tc->mutex);
-      if( wasNotLocked ) {
-          tc->tid = me;
-          break;
-      }
-   }
+   while (!atomic_set(&tc->mutex));
+
+   tc->tid = me;
    return 0;
 }
 
