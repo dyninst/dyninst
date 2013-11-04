@@ -228,7 +228,7 @@ int DYNINSTasyncDisconnect()
 
 int DYNINSTwriteEvent(void *ev, size_t sz)
 {
-  int res;
+  ssize_t res;
 
   if (DYNINSTstaticMode)
      return 0;
@@ -250,10 +250,10 @@ try_again:
        return -1;
     }
   }
-  if (res != sz) {
+  if ((size_t)res != sz) {
     /*  maybe we need logic to handle partial writes? */
-    fprintf(stderr, "%s[%d]:  partial ? write error, %d bytes, should be %d\n",
-            __FILE__, __LINE__, res, (int) sz);
+    fprintf(stderr, "%s[%d]:  partial ? write error, %zd bytes, should be %zu\n",
+            __FILE__, __LINE__, res, sz);
     return -1;
   }
   return 0;

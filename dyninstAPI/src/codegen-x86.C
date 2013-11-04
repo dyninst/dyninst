@@ -1153,11 +1153,14 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
    Address from = gen.currAddr();
 
    bool is_data_abs64 = false;
-   unsigned nPrefixes = count_prefixes(insnType);
    signed long newDisp = targetAddr - from;
    GET_PTR(newInsn, gen);
 
+   Register pointer_reg = (Register)-1;
+     
+#if defined(arch_x86_64)	
    // count opcode bytes (1 or 2)
+   unsigned nPrefixes = count_prefixes(insnType);
    unsigned nOpcodeBytes = 1;
    if (*(origInsn + nPrefixes) == 0x0F) {
       nOpcodeBytes = 2;
@@ -1166,10 +1169,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
           nOpcodeBytes = 3;  
        }
    }
-   
-   Register pointer_reg = (Register)-1;
-     
-#if defined(arch_x86_64)	
+
    if (!is_disp32(newDisp+insnSz) && !is_addr32(targetAddr)) {
       // Case C: replace with 64-bit.
       is_data_abs64 = true;

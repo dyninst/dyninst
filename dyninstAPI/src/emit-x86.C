@@ -734,13 +734,11 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt,codeGen &gen)
     bool useFPRs;
     bool createFrame;
     bool saveOrigAddr;
-    bool localSpace;
     bool alignStack;
     if (bt) {
        useFPRs = bt->savedFPRs;
        createFrame = bt->createdFrame;
        saveOrigAddr = bt->savedOrigAddr;
-       localSpace = bt->createdLocalSpace;
        alignStack = bt->alignedStack;
     }
     else {
@@ -751,7 +749,6 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt,codeGen &gen)
                   !bt->makesCall() );
        createFrame = true;
        saveOrigAddr = bt->instP();
-       localSpace = true;
        alignStack = true;
     }
 

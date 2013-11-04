@@ -1265,7 +1265,7 @@ YY_RULE_SETUP
 case 8:
 YY_RULE_SETUP
 #line 71 "../src/C.l"
-{yylval.sval = "char *"; return TYPE; }
+{yylval.sval = strdup("char *"); return TYPE; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
@@ -1446,19 +1446,14 @@ YY_RULE_SETUP
                   // this string handling code was taken from the flex manual
                   if(lexVerbose)printf("string done\n");
                   BEGIN(INITIAL);                                                    
-                  char * cstr = new char[c_string_buf.size() + 1];                   
-
-                  strcpy (cstr, c_string_buf.c_str());                               
-
-                  yylval.sval = strdup(cstr);                                   
-                  delete[] cstr;                                                     
+                  yylval.sval = strdup(c_string_buf.c_str());
                   return STRING;                                                     
                 }
 	YY_BREAK
 case 44:
 /* rule 44 can match eol */
 YY_RULE_SETUP
-#line 132 "../src/C.l"
+#line 127 "../src/C.l"
 { /* error - unterminated strin constant */
                   yylval.context = "Unterminated string constant";
                   yycolumn = 1;
@@ -1468,7 +1463,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 139 "../src/C.l"
+#line 134 "../src/C.l"
 { /* octal escape sequence */
                   int result;                                                        
                   (void) sscanf( dynCtext + 1, "%o", &result );                        
@@ -1484,7 +1479,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 152 "../src/C.l"
+#line 147 "../src/C.l"
 { /* generate error - bad escape sequence */
                   yylval.context = "bad escape sequence";                       
                  // yylval.line_number = line_num;                                
@@ -1493,38 +1488,38 @@ YY_RULE_SETUP
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 157 "../src/C.l"
+#line 152 "../src/C.l"
 c_string_buf += '\n';                                                
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 158 "../src/C.l"
+#line 153 "../src/C.l"
 c_string_buf += '\t';                                                
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 159 "../src/C.l"
+#line 154 "../src/C.l"
 c_string_buf += '\r';                                                
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 160 "../src/C.l"
+#line 155 "../src/C.l"
 c_string_buf += '\b';                                             
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 161 "../src/C.l"
+#line 156 "../src/C.l"
 c_string_buf += '\f';                                                
 	YY_BREAK
 case 52:
 /* rule 52 can match eol */
 YY_RULE_SETUP
-#line 163 "../src/C.l"
+#line 158 "../src/C.l"
 c_string_buf += dynCtext[1];
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 164 "../src/C.l"
+#line 159 "../src/C.l"
 {
                   char *yptr = dynCtext;
                   while ( *yptr ) { c_string_buf += *yptr++; }
@@ -1533,277 +1528,277 @@ YY_RULE_SETUP
 
 case 54:
 YY_RULE_SETUP
-#line 171 "../src/C.l"
+#line 166 "../src/C.l"
 { return(ELLIPSIS); }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 172 "../src/C.l"
+#line 167 "../src/C.l"
 { return(RIGHT_ASSIGN); }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 173 "../src/C.l"
+#line 168 "../src/C.l"
 { return(LEFT_ASSIGN); }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 174 "../src/C.l"
+#line 169 "../src/C.l"
 { return(ADD_ASSIGN); }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 175 "../src/C.l"
+#line 170 "../src/C.l"
 { return(SUB_ASSIGN); }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 176 "../src/C.l"
+#line 171 "../src/C.l"
 { return(MUL_ASSIGN); }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 177 "../src/C.l"
+#line 172 "../src/C.l"
 { return(DIV_ASSIGN); }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 178 "../src/C.l"
+#line 173 "../src/C.l"
 { return(MOD_ASSIGN); }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 179 "../src/C.l"
+#line 174 "../src/C.l"
 { return(AND_ASSIGN); }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 180 "../src/C.l"
+#line 175 "../src/C.l"
 { return(XOR_ASSIGN); }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 181 "../src/C.l"
+#line 176 "../src/C.l"
 { return(OR_ASSIGN); }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 182 "../src/C.l"
+#line 177 "../src/C.l"
 { return(RIGHT_OP); }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 183 "../src/C.l"
+#line 178 "../src/C.l"
 { return(LEFT_OP); }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 184 "../src/C.l"
+#line 179 "../src/C.l"
 { return(INC_OP); }
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 185 "../src/C.l"
+#line 180 "../src/C.l"
 { return(DEC_OP); }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 186 "../src/C.l"
+#line 181 "../src/C.l"
 { return(PTR_OP); }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 187 "../src/C.l"
+#line 182 "../src/C.l"
 { return(AND); }
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 188 "../src/C.l"
+#line 183 "../src/C.l"
 { return(OR); }
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 189 "../src/C.l"
+#line 184 "../src/C.l"
 { return(LESS_EQ); }
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 190 "../src/C.l"
+#line 185 "../src/C.l"
 { return(GREATER_EQ); }
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 191 "../src/C.l"
+#line 186 "../src/C.l"
 { return(EQ); }
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 192 "../src/C.l"
+#line 187 "../src/C.l"
 { return(NOT_EQ); }
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 193 "../src/C.l"
+#line 188 "../src/C.l"
 { return(SEMI); }
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 194 "../src/C.l"
+#line 189 "../src/C.l"
 { return('{'); }
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 195 "../src/C.l"
+#line 190 "../src/C.l"
 { return('}'); }
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-#line 196 "../src/C.l"
+#line 191 "../src/C.l"
 { return(NOPEN); }
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 197 "../src/C.l"
+#line 192 "../src/C.l"
 { return(NCLOSE); }
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-#line 198 "../src/C.l"
+#line 193 "../src/C.l"
 { return(COMMA); }
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
-#line 199 "../src/C.l"
+#line 194 "../src/C.l"
 { return(COLON); }
 	YY_BREAK
 case 83:
 YY_RULE_SETUP
-#line 200 "../src/C.l"
+#line 195 "../src/C.l"
 { return(ASSIGN); }
 	YY_BREAK
 case 84:
 YY_RULE_SETUP
-#line 201 "../src/C.l"
+#line 196 "../src/C.l"
 { if(lexVerbose)printf("(\n"); return('('); }
 	YY_BREAK
 case 85:
 YY_RULE_SETUP
-#line 202 "../src/C.l"
+#line 197 "../src/C.l"
 { if(lexVerbose)printf(")\n"); return(')'); }
 	YY_BREAK
 case 86:
 YY_RULE_SETUP
-#line 203 "../src/C.l"
+#line 198 "../src/C.l"
 { return('['); }
 	YY_BREAK
 case 87:
 YY_RULE_SETUP
-#line 204 "../src/C.l"
+#line 199 "../src/C.l"
 { return(']'); }
 	YY_BREAK
 case 88:
 YY_RULE_SETUP
-#line 205 "../src/C.l"
+#line 200 "../src/C.l"
 { return(DOT); }
 	YY_BREAK
 case 89:
 YY_RULE_SETUP
-#line 206 "../src/C.l"
+#line 201 "../src/C.l"
 { return('&'); }
 	YY_BREAK
 case 90:
 YY_RULE_SETUP
-#line 207 "../src/C.l"
+#line 202 "../src/C.l"
 { return('!'); }
 	YY_BREAK
 case 91:
 YY_RULE_SETUP
-#line 208 "../src/C.l"
+#line 203 "../src/C.l"
 { return('~'); }
 	YY_BREAK
 case 92:
 YY_RULE_SETUP
-#line 209 "../src/C.l"
+#line 204 "../src/C.l"
 { return('-'); }
 	YY_BREAK
 case 93:
 YY_RULE_SETUP
-#line 210 "../src/C.l"
+#line 205 "../src/C.l"
 { return('+'); }
 	YY_BREAK
 case 94:
 YY_RULE_SETUP
-#line 211 "../src/C.l"
+#line 206 "../src/C.l"
 { return('*'); }
 	YY_BREAK
 case 95:
 YY_RULE_SETUP
-#line 212 "../src/C.l"
+#line 207 "../src/C.l"
 { return('/'); }
 	YY_BREAK
 case 96:
 YY_RULE_SETUP
-#line 213 "../src/C.l"
+#line 208 "../src/C.l"
 { return('%'); }
 	YY_BREAK
 case 97:
 YY_RULE_SETUP
-#line 214 "../src/C.l"
+#line 209 "../src/C.l"
 { return('<'); }
 	YY_BREAK
 case 98:
 YY_RULE_SETUP
-#line 215 "../src/C.l"
+#line 210 "../src/C.l"
 { return('>'); }
 	YY_BREAK
 case 99:
 YY_RULE_SETUP
-#line 216 "../src/C.l"
+#line 211 "../src/C.l"
 { return('^'); }
 	YY_BREAK
 case 100:
 YY_RULE_SETUP
-#line 217 "../src/C.l"
+#line 212 "../src/C.l"
 { return('|'); }
 	YY_BREAK
 case 101:
 YY_RULE_SETUP
-#line 218 "../src/C.l"
+#line 213 "../src/C.l"
 { return('?'); }
 	YY_BREAK
 case 102:
 YY_RULE_SETUP
-#line 219 "../src/C.l"
+#line 214 "../src/C.l"
 { if(lexVerbose)printf("Backtick\n"); return(BACKTICK); }
 	YY_BREAK
 case 103:
 YY_RULE_SETUP
-#line 220 "../src/C.l"
+#line 215 "../src/C.l"
 { }
 	YY_BREAK
 case 104:
 /* rule 104 can match eol */
 YY_RULE_SETUP
-#line 222 "../src/C.l"
+#line 217 "../src/C.l"
 {if(strstr(dynCtext, "//") != NULL){++line_num;}else{if(strncmp(dynCtext,"/*", 2) == 0){BEGIN(comment);++line_num;}else{if(lexVerbose)printf("No Semi!\n"); fatalError = true; dynClloc.first_column = yycolumn; yylval.context = "syntax error: missing ';'!"; yyless(dynCleng - 1); return(ERROR);}}}
 	YY_BREAK
 case 105:
 /* rule 105 can match eol */
 YY_RULE_SETUP
-#line 224 "../src/C.l"
+#line 219 "../src/C.l"
 {if(lexVerbose)printf("New Line!\n"); line_num++; yycolumn = 0; lineStr = "";}
 	YY_BREAK
 case 106:
 YY_RULE_SETUP
-#line 226 "../src/C.l"
+#line 221 "../src/C.l"
 { if(lexVerbose) printf("Unrecognized [%s]\n", dynCtext); /* ignore bad characters */ }
 	YY_BREAK
 case 107:
 YY_RULE_SETUP
-#line 230 "../src/C.l"
+#line 225 "../src/C.l"
 ECHO;
 	YY_BREAK
-#line 1807 "lex.dynC.c"
+#line 1802 "lex.dynC.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(stringmode):
 	yyterminate();
@@ -2775,7 +2770,7 @@ void dynCfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 230 "../src/C.l"
+#line 225 "../src/C.l"
 
 
 
@@ -2791,6 +2786,7 @@ void set_lex_input(char *str)
    
    input_str = str;
    bp = dynC_scan_string(str);
+   (void)bp; // unused warning...
    firstCall = false;
 }
 

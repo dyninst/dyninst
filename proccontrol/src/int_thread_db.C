@@ -1540,7 +1540,7 @@ async_ret_t thread_db_process::getEventForThread(int_eventThreadDB *iev) {
          // this problem.
          handles.push_back(*evMsg.th_p);
       }
-      pthrd_printf("Received %lu messages from thread_db on %d\n", msgs.size(), getPid());
+      pthrd_printf("Received %lu messages from thread_db on %d\n", (unsigned long)msgs.size(), getPid());
       iev->msgs = msgs;
       iev->handles = handles;
       iev->completed_getmsgs = true;

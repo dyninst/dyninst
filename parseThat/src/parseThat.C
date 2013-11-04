@@ -210,7 +210,7 @@ bool runHunt_binaryEdit()
             sprintf(exeFile, "./%s", config.writeFilePath);
         }
         int numargs = 0;
-        char **arg = (char **) malloc (2);
+        char **arg = (char **) malloc (2 * sizeof(char*));
         arg[0] = exeFile;
 
         fprintf(stderr, "Executing new binary: \"%s", exeFile);
@@ -225,7 +225,7 @@ bool runHunt_binaryEdit()
             nargs[offset] = '\0';
             numargs = atoi(nargs);
 
-            arg = (char **) realloc (arg, numargs+2);
+            arg = (char **) realloc (arg, (numargs+2) * sizeof(char*));
 
             char *args = strchr(config.binary_args, ':');
             args++;
@@ -247,7 +247,7 @@ bool runHunt_binaryEdit()
         fprintf(stderr,"\"\n");
         arg[numargs+1] = NULL;
 
-        result = execvp(exeFile, arg);
+        execvp(exeFile, arg);
         perror ("execvp failed");
         abort();
     } else if(pid < 0) {
@@ -257,7 +257,10 @@ bool runHunt_binaryEdit()
     }
 
     result = waitpid(pid,&status,0);
-    if ( WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+    if (result == -1) {
+        perror ("waitpid failed");
+        return true;
+    }else if ( WIFEXITED(status) && WEXITSTATUS(status) != 0) {
         printf(" Exiting non-zero \n");
         return true;
     }else if (WIFSIGNALED (status) && WTERMSIG(status) != 1) {
@@ -803,7 +806,7 @@ void parseArgs(int argc, char **argv)
                             info->host   = arg;
                             *(strchr(arg, ':')) = '\0';
                         }
-                        info->tool = "parseThat";
+                        info->tool = strdup("parseThat");
 
                         config.remoteHost = (BPatch_remoteHost *)
                             malloc(sizeof(BPatch_remoteHost));

@@ -451,7 +451,7 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
     proc->getRegValue(heightIter->first, in.getThread(), sp_base);
     out_sp = sp_base - sp_height.height();
 	
-    if(heightIter->second.height() == -1 * proc->getAddressWidth())
+    if(heightIter->second.height() == -1 * (long)proc->getAddressWidth())
     {
       // FP candidate: register pointing to entry SP
        fprintf(stderr, "Found candidate FP %s, height 0x%lx\n",

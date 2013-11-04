@@ -65,7 +65,8 @@ void DYNINSTglobal_ctors_handler() {
     void (**ctor)(void) = &DYNINSTctors_begin;
 
     while( ctor != ( &DYNINSTctors_end )) {
-	if(*ctor && (*ctor != -1)) (*ctor)();
+	if(*ctor && (*ctor != (void*)-1))
+	    (*ctor)();
         ctor++;
     }
 
@@ -79,7 +80,8 @@ void DYNINSTglobal_dtors_handler() {
 
     // Destructors are called in the forward order that they are listed
     while( dtor != (&DYNINSTdtors_end )) {
-	if(*dtor && (*dtor != -1)) (*dtor)();
+	if(*dtor && (*dtor != (void*)-1))
+	    (*dtor)();
 	dtor++;
     }
 }
@@ -100,7 +102,7 @@ void DYNINSTglobal_irel_handler() {
       long (*ptr)(void) = 0;
       long result = 0;
       if (rel->info != 0x2a) continue;
-      ptr = *(rel->offset);
+      ptr = (void*)*(rel->offset);
       result = ptr();
       *(rel->offset) = result;
     }

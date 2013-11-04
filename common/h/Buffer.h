@@ -85,17 +85,17 @@ class COMMON_EXPORT Buffer {
       bool operator!=(const iterator<storage> &rhs) const {
          return rhs.pos != pos;
       }
-      iterator<storage> operator++() {
+      iterator<storage> operator++() { // prefix
+         assert(valid);
+         ++pos;
+         return *this;
+      }
+         
+      iterator<storage> operator++(int) { // postfix
          assert(valid);
          iterator<storage> i = *this;
          ++pos;
          return i;
-      }
-         
-      iterator<storage> operator++(int) {
-         assert(valid);
-         ++pos;
-         return *this;
       }
 
      private:

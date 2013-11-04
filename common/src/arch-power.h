@@ -779,7 +779,7 @@ class COMMON_EXPORT instruction {
     }
     // Pointer creation method
     instruction(const void *ptr) {
-      insn_ = *((instructUnion *)ptr);
+      insn_ = *((const instructUnion *)ptr);
     }
 
     instruction(const instruction &insn) :        insn_(insn.insn_) {};

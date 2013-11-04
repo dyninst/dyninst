@@ -1328,7 +1328,6 @@ IRPC::IRPC(rpc_wrapper *wrapper_) :
 
 IRPC::~IRPC()
 {
-  memset(wrapper, 0, sizeof(wrapper));
   delete wrapper;
   wrapper = NULL;
 }

@@ -98,7 +98,7 @@ void dedemangle( char * demangled, char * result )
 
       resultBegins = demangled;
       int stack = 0; bool inTemplate = false;
-      unsigned int offset, start_template_offset=0, stop_template_offset=0;
+      unsigned int offset;
       int lastColon = 0;
       for ( offset = 0; offset < strlen( resultBegins ); offset++ ) 
       {
@@ -106,8 +106,6 @@ void dedemangle( char * demangled, char * result )
          {
             stack++;
             inTemplate = true;
-            if (stack == 1)
-               start_template_offset = offset;
          }
          else if ( resultBegins[offset] == '>' ) 
          {
@@ -115,7 +113,6 @@ void dedemangle( char * demangled, char * result )
             if ( stack == 0 ) 
             { 
                inTemplate = false;
-               stop_template_offset = offset;
             }
          }
          else if ( !inTemplate && resultBegins[offset] == '(' ) 

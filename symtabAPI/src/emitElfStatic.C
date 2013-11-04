@@ -1765,6 +1765,7 @@ bool emitElfStatic::addIndirectSymbol(Symbol *sym, LinkMap &lmap) {
 bool emitElfStatic::buildPLT(Symtab *target, Offset globalOffset, 
 			     LinkMap &lmap, StaticLinkError &err,
 			     string &errMsg) {
+  (void)target; (void)globalOffset; (void)err; (void)errMsg; // unused
 #if !defined(arch_x86_64)
   return lmap.pltEntries.empty();
 #else
@@ -1814,7 +1815,6 @@ Offset emitElfStatic::allocateRelocationSection(std::map<Symbol *, std::pair<Off
 #endif
 
   Offset cur = relocOffset;
-  Object *obj = target->getObject();
 
   Region *rela = NULL;
   if (addressWidth_ == 8)
@@ -1833,6 +1833,7 @@ Offset emitElfStatic::allocateRelGOTSection(const std::map<Symbol *, std::pair<O
 					    Offset relocOffset, Offset &size) {
 #if defined(arch_x86_64)
   unsigned relocSize = sizeof(Elf64_Rela);
+  (void)relocSize; // unused?!
 #else
   size = 0;
   return relocOffset;
@@ -1853,6 +1854,7 @@ Offset emitElfStatic::allocateRelGOTSection(const std::map<Symbol *, std::pair<O
 bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset, 
 			     LinkMap &lmap, StaticLinkError &err,
 			     string &errMsg) {
+  (void)err; (void)errMsg; // unused
   if (lmap.relSize == 0) return true;
 
 #if !defined(arch_x86_64)

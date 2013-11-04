@@ -347,8 +347,8 @@ bool IA_IAPI::isGarbageInsn() const
         }
         case e_add:
             if (2 == curInsn()->size() && 
-                0 == ((char*)curInsn()->ptr())[0] && 
-                0 == ((char*)curInsn()->ptr())[1]) 
+                0 == curInsn()->rawByte(0) && 
+                0 == curInsn()->rawByte(1)) 
             {
                 cerr << "REACHED A 0x0000 INSTRUCTION "<< std::hex << current 
                      << std::dec <<" COUNTING AS INVALID" << endl;
@@ -370,7 +370,7 @@ bool IA_IAPI::isGarbageInsn() const
                 }
             }
 #else // faster raw-byte implementation 
-            switch (((char*)curInsn()->ptr())[0]) {
+            switch (curInsn()->rawByte(0)) {
                 case 0x06:
                 case 0x0e:
                 case 0x16:
@@ -381,7 +381,7 @@ bool IA_IAPI::isGarbageInsn() const
                     break;
                 case 0x0f:
                     if (2 == curInsn()->size() && 
-                        ((0xa0 == ((unsigned char*)curInsn()->ptr())[1]) || (0xa8 == ((unsigned char*)curInsn()->ptr())[1])))
+                        ((0xa0 == curInsn()->rawByte(1)) || (0xa8 == curInsn()->rawByte(1))))
                     {
                         ret = true;
                         cerr << "REACHED A 2-BYTE PUSH OF A SEGMENT REGISTER "<< std::hex << current 

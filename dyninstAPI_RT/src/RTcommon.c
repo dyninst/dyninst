@@ -660,6 +660,7 @@ void dyninst_init_lock(dyninst_lock_t *lock)
 
 void dyninst_free_lock(dyninst_lock_t *lock)
 {
+    (void)lock; /* unused parameter */
 }
 
 int dyninst_lock(dyninst_lock_t *lock)

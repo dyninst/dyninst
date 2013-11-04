@@ -719,6 +719,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                //Create Type defined as a pre-exisitng type.
 
                newType = Type::createPlaceholder(symdescID, name);
+               (void)newType; // unused...
             }
 
             break;
@@ -1168,6 +1169,7 @@ static Type *parseArrayDef(Module *mod, const char *name,
 	}
 
 	//  //bperr("Symbol Desriptor: %s Descriptor ID: %d Type: %d, Low Bound: %d, Hi Bound: %d,\n", symdesc, symdescID, elementType, lowbound, hibound);
+       (void)symdesc; (void)symdescID; // otherwise unused symbols from above
 
 
 	if (ptrType) {
@@ -1871,6 +1873,7 @@ static char *parseFieldList(Module *mod, fieldListType *newType,
 			cnt++;  // needs further examination
 
 		// //bperr("\tType: %d, Starting Offset: %d (bits), Size: %d (bits)\n", comptype, beg_offset, size);
+                (void)size; // otherwise unused symbol
 		// Add struct field to type
 
 		Type *fieldType = tc->findOrCreateType( comptype );
@@ -1975,13 +1978,14 @@ static char *parseCPlusPlusInfo(Module *mod,
 	    cnt = strlen(stabstr);
 	    return(&(stabstr[cnt]));
 	    break;
-    }
+    } (void)nestedType; // unused
 
     cnt++;		// skip to size
     if (isdigit(stabstr[cnt])) {
 	structsize = parseSymDesc(stabstr, cnt);
     }
-    
+    (void)structsize; // unused
+
     if (stabstr[cnt] == 'V') cnt++;
     if (stabstr[cnt] == '(') cnt++;
 
@@ -2409,7 +2413,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 	    cnt++;		// skip to size
 	    structsize = parseSymDesc(stabstr, cnt);
-	   
+	    (void)structsize; // unused
+
 	    std::string tName = convertCharToString(name);
 	    //Create new type
             if (typdescr == dataStructure) {

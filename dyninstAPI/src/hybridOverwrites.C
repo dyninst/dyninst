@@ -233,7 +233,7 @@ bool HybridAnalysisOW::removeLoop(owLoop *loop,
         std::vector<BPatch_function*> modFuncs;
         if (writePoint) {
    			cerr << "Calling overwriteAnalysis with point @ " << hex << writePoint->getAddress() << dec << endl;
-            overwriteAnalysis(writePoint,(void*)loop->getID());
+            overwriteAnalysis(writePoint,(void*)(intptr_t)loop->getID());
         } else {
             std::set<BPatch_function *> funcsToInstrument;
             proc()->overwriteAnalysisUpdate(loop->shadowMap,

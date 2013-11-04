@@ -1003,7 +1003,7 @@ bool int_remoteIO::getFileStatData(FileSet &files)
       delete *i;
    }
 
-   return true;      
+   return !had_error;
 }
 
 bool int_remoteIO::getFileDataAsync(const FileSet &files)

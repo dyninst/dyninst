@@ -598,7 +598,6 @@ EventRPC::EventRPC(rpc_wrapper *wrapper_) :
 
 EventRPC::~EventRPC()
 {
-   memset(wrapper, 0, sizeof(wrapper));
    delete wrapper;
    wrapper = NULL;
 

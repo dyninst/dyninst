@@ -119,7 +119,7 @@ bool SystemTapEntries::parseAllNotes()
       if (shdr.sh_type() != SHT_NOTE)
          continue;
       
-      bool result = parseNotes((const void *) shdr.get_data().d_buf(), shdr.sh_size());
+      bool result = parseNotes(shdr);
       if (!result) 
          return false;
    }
@@ -134,34 +134,19 @@ bool SystemTapEntries::parseAllNotes()
 #define SDT_NOTE_NAME "stapsdt"
 #endif
 
-bool SystemTapEntries::parseNotes(const void *notes, size_t size)
+bool SystemTapEntries::parseNotes(Elf_X_Shdr &shdr)
 {
-   unsigned i=0;
-   const unsigned char *buffer = (const unsigned char *) notes;
    bool parseError = false;
 
-   while (i < size) {
+   for (Elf_X_Nhdr note = shdr.get_note(); note.isValid(); note = note.next()) {
+      if (note.n_type() != SDT_NOTE_TYPE ||
+              strcmp(note.get_name(), SDT_NOTE_NAME) != 0)
+          continue;
+
       Entry e;
-
-      //Elf32_Nhdr and Elf64_Nhdr are the same structs with different names
-      // Just using Elf32_Nhdr
-      Elf32_Nhdr *header = (Elf32_Nhdr *) (buffer+i);
-      i += sizeof(Elf32_Nhdr);
-
-      //Skip note name, then align
-      const char *note_name = (const char *) (buffer + i);
-      i += header->n_namesz;
-      while (i % 4 != 0) i++;
-
-      if (header->n_type != SDT_NOTE_TYPE) {
-         i += header->n_descsz;
-         continue;
-      }
-      if (strcmp(SDT_NOTE_NAME, note_name) != 0) {
-         i += header->n_descsz;
-         continue;
-      }
-
+      unsigned i = 0;
+      size_t size = note.n_descsz();
+      const unsigned char *buffer = (const unsigned char *)note.get_desc();
 
       //System tap structure format looks like:
       // struct {
@@ -229,9 +214,9 @@ bool SystemTapEntries::readAddr(const unsigned char *buffer, size_t bsize, unsig
       return false;
 
    if (read_size == 4)
-      result = *((uint32_t *) (buffer + offset));
+      result = *((const uint32_t *) (buffer + offset));
    else if (read_size == 8)
-      result = *((uint64_t *) (buffer + offset));
+      result = *((const uint64_t *) (buffer + offset));
    offset += read_size;
 
    return true;

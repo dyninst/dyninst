@@ -16,28 +16,31 @@ using namespace SymtabAPI;
 using namespace Dwarf;
 using namespace std;
 
-#define DWARF_FAIL_RET(x) {                                                 \
+#define DWARF_FAIL_RET_VAL(x, v) {                                      \
       int status = (x);                                                 \
       if (status != DW_DLV_OK) {                                        \
          fprintf(stderr, "[%s:%d]: libdwarf returned %d, ret false\n", FILE__, __LINE__, status); \
-         return false;                                                  \
+         return (v);                                                    \
       }                                                                 \
    }
+#define DWARF_FAIL_RET(x) DWARF_FAIL_RET_VAL(x, false)
 
-#define DWARF_ERROR_RET(x) {                                            \
+#define DWARF_ERROR_RET_VAL(x, v) {                                     \
       int status = (x);                                                 \
       if (status == DW_DLV_ERROR) {                                     \
          fprintf(stderr, "[%s:%d]: parsing failure, ret false\n", FILE__, __LINE__); \
-         return false;                                                  \
+         return (v);                                                    \
       }                                                                 \
    }
+#define DWARF_ERROR_RET(x) DWARF_ERROR_RET_VAL(x, false)
 
-#define DWARF_CHECK_RET(x) {                                            \
-      if (x) {                                     \
+#define DWARF_CHECK_RET_VAL(x, v) {                                     \
+      if (x) {                                                          \
          fprintf(stderr, "[%s:%d]: parsing failure, ret false\n", FILE__, __LINE__); \
-         return false;                                                  \
+         return (v);                                                    \
       }                                                                 \
    }
+#define DWARF_CHECK_RET(x) DWARF_CHECK_RET_VAL(x, false)
 
 DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
    :
@@ -1913,7 +1916,7 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
   char buf[32];
   /* Get the (negative) typeID for this range/subarray. */
   Dwarf_Off dieOffset;
-  DWARF_FAIL_RET(dwarf_dieoffset( range, & dieOffset, NULL ));
+  DWARF_FAIL_RET_VAL(dwarf_dieoffset( range, & dieOffset, NULL ), NULL);
 
   /* Determine the range. */
   std::string loBound;
@@ -1923,7 +1926,7 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
   /* Does the recursion continue? */
   Dwarf_Die nextSibling;
   int status = dwarf_siblingof( dbg(), range, & nextSibling, NULL );
-  DWARF_CHECK_RET(status == DW_DLV_ERROR);
+  DWARF_CHECK_RET_VAL(status == DW_DLV_ERROR, NULL);
 
   snprintf(buf, 31, "__array%d", (int) offset());
 

@@ -5969,8 +5969,6 @@ int instruction::getStackDelta()
 bool instruction::isNop() const
 { 
 
-   int displacement_location = 0;
-   int displacement_size = 0;
    if (!(type_ & IS_NOP)) //NOP or LEA
       return false;
 
@@ -6011,8 +6009,6 @@ bool instruction::isNop() const
             return false;
          }
       }
-      displacement_location = loc.disp_position;
-      displacement_size = loc.disp_size;
    }
    
    if (loc.modrm_rm == 4) {

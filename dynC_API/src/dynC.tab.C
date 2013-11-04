@@ -99,11 +99,11 @@
 
 extern "C" {
 //   std::string lineStr;
-   void yyerror(char *s); 
-   void yyerrorNonUni(char *s);
-   void yyerrorNoTok(char *s);
-   void yyerrorNoTokNonUni(char *s);
-   void yywarn(char *s);
+   void yyerror(const char *s); 
+   void yyerrorNonUni(const char *s);
+   void yyerrorNoTok(const char *s);
+   void yyerrorNoTokNonUni(const char *s);
+   void yywarn(const char *s);
    int yyparse();
    void makeOneTimeStatement(BPatch_snippet &statement);
    void makeOneTimeStatementGbl(BPatch_snippet &statement);
@@ -117,7 +117,7 @@ extern std::string lineStr;
 #define YYDEBUG 0 //set to 1 for debug mode
 
 //name of current snippet for error reporting
-char *dynCSnippetName = "";
+const char *dynCSnippetName = "";
 
 SnippetGenerator *snippetGen;
 BPatch_point *snippetPoint = NULL;
@@ -270,7 +270,7 @@ typedef union YYSTYPE
    double dval;
    char  *sval;
 
-   char *context;
+   const char *context;
    
    struct VariableSpec {
       bool isConstant;
@@ -646,14 +646,14 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   164,   164,   187,   209,   229,   264,   301,   355,   360,
-     373,   379,   384,   392,   402,   407,   413,   418,   429,   437,
-     448,   450,   457,   472,   489,   494,   500,   509,   513,   520,
-     521,   526,   531,   536,   541,   546,   551,   556,   564,   570,
-     576,   585,   596,   608,   638,   660,   673,   677,   684,   690,
-     699,   705,   711,   712,   713,   714,   725,   799,   805,   810,
-     816,   822,   828,   834,   840,   846,   852,   858,   864,   870,
-     879,   880,   889,   895,   901,   907
+       0,   164,   164,   187,   207,   225,   256,   289,   337,   342,
+     355,   361,   366,   374,   384,   389,   395,   400,   411,   419,
+     430,   432,   439,   454,   469,   474,   480,   489,   493,   500,
+     501,   506,   511,   516,   521,   526,   531,   536,   544,   550,
+     556,   565,   574,   584,   610,   630,   641,   645,   652,   658,
+     667,   673,   679,   680,   681,   682,   691,   759,   765,   770,
+     776,   782,   788,   794,   800,   806,   812,   818,   824,   830,
+     839,   840,   849,   855,   861,   867
 };
 #endif
 
@@ -1820,9 +1820,7 @@ yyreduce:
        (yyval.snippet) = snippetGen->findOrCreateVariable(mangledName.c_str(), (yyvsp[(1) - (2)].varSpec).type);
        if((yyval.snippet) == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerror(errString);
-          free(errString);
+          yyerror(snippetGen->getError().c_str());
           break;
        }
 
@@ -1839,7 +1837,7 @@ yyreduce:
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 210 "../src/C.y"
+#line 208 "../src/C.y"
     {   
       
        std::string mangledName = dynC_API::mangle((yyvsp[(2) - (4)].sval), dynCSnippetName, (yyvsp[(1) - (4)].varSpec).type);
@@ -1847,9 +1845,7 @@ yyreduce:
        BPatch_snippet *alloc = snippetGen->findOrCreateVariable(mangledName.c_str(), (yyvsp[(1) - (4)].varSpec).type);
        if(alloc == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerror(errString);
-          free(errString);
+          yyerror(snippetGen->getError().c_str());
           break;
        }
        BPatch_arithExpr *assign = new BPatch_arithExpr(BPatch_assign, *alloc, *(yyvsp[(4) - (4)].snippet));
@@ -1864,15 +1860,13 @@ yyreduce:
   case 5:
 
 /* Line 1455 of yacc.c  */
-#line 230 "../src/C.y"
+#line 226 "../src/C.y"
     {
        //IDENTIFIER leaks, but how to fix b/c use of $0?
        if((yyvsp[(4) - (5)].ival) < 0){
           std::stringstream errMessage;
           errMessage << "Invalid array size: " << (yyvsp[(4) - (5)].ival);
-          char *eM = strdup(errMessage.str().c_str());
-          yyerrorNoTok(eM);
-          free(eM);
+          yyerrorNoTok(errMessage.str().c_str());
           (yyval.snippet) = new BPatch_nullExpr();
           break;
        }
@@ -1883,9 +1877,7 @@ yyreduce:
        (yyval.snippet) = snippetGen->findOrCreateArray(mangledName.c_str(), (yyvsp[(1) - (5)].varSpec).type, (yyvsp[(4) - (5)].ival));
        if((yyval.snippet) == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerror(errString);
-          free(errString);
+          yyerror(snippetGen->getError().c_str());
           break;
        }
        if(!((yyvsp[(1) - (5)].varSpec).isStatic || (yyvsp[(1) - (5)].varSpec).isGlobal)){ 
@@ -1904,7 +1896,7 @@ yyreduce:
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 265 "../src/C.y"
+#line 257 "../src/C.y"
     {
        std::stringstream type;
        type << (yyvsp[(1) - (8)].varSpec).type << "[" << (yyvsp[(7) - (8)].snippetStringListPair)->size() << "]";
@@ -1913,9 +1905,7 @@ yyreduce:
        (yyval.snippet) = snippetGen->findOrCreateArray(mangledName.c_str(), (yyvsp[(1) - (8)].varSpec).type, (yyvsp[(7) - (8)].snippetStringListPair)->size()); //will only allocate memory if nessessary
        if((yyval.snippet) == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerror(errString);
-          free(errString);
+          yyerror(snippetGen->getError().c_str());
           break;
        }
        std::vector<BPatch_snippet* > *assignVect = new std::vector<BPatch_snippet *>();
@@ -1926,9 +1916,7 @@ yyreduce:
              errMessage += type.str();
              errMessage += "\' with a value of type ";
              errMessage += (*(yyvsp[(7) - (8)].snippetStringListPair))[n].second;
-             char *eM = strdup(errMessage.c_str());
-             yyerrorNoTok(eM);
-             free(eM);
+             yyerrorNoTok(errMessage.c_str());
              (yyval.snippet) = new BPatch_nullExpr();
              break;
           }
@@ -1946,16 +1934,14 @@ yyreduce:
   case 7:
 
 /* Line 1455 of yacc.c  */
-#line 302 "../src/C.y"
+#line 290 "../src/C.y"
     {
        std::vector<BPatch_snippet *> argVect;
        std::stringstream type;
        if((yyvsp[(4) - (9)].ival) < 0){
           std::stringstream errMessage;
           errMessage << "Invalid array size: " << (yyvsp[(4) - (9)].ival);
-          char *eM = strdup(errMessage.str().c_str());
-          yyerrorNoTok(eM);
-          free(eM);
+          yyerrorNoTok(errMessage.str().c_str());
           (yyval.snippet) = new BPatch_nullExpr();
           break;
        }
@@ -1965,9 +1951,7 @@ yyreduce:
        (yyval.snippet) = snippetGen->findOrCreateArray(mangledName.c_str(), (yyvsp[(1) - (9)].varSpec).type, (yyvsp[(4) - (9)].ival)); //will only allocate memory if nessessary
        if((yyval.snippet) == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerror(errString);
-          free(errString);
+          yyerror(snippetGen->getError().c_str());
           break;
        }
        std::vector<BPatch_snippet* > *assignVect = new std::vector<BPatch_snippet *>();
@@ -1983,9 +1967,7 @@ yyreduce:
              errMessage += type.str();
              errMessage += "\' with a value of type ";
              errMessage += (*(yyvsp[(8) - (9)].snippetStringListPair))[n].second;
-             char *eM = strdup(errMessage.c_str());
-             yyerrorNoTok(eM);
-             free(eM);
+             yyerrorNoTok(errMessage.c_str());
              (yyval.snippet) = new BPatch_nullExpr();
              break;
           }
@@ -2003,7 +1985,7 @@ yyreduce:
   case 8:
 
 /* Line 1455 of yacc.c  */
-#line 356 "../src/C.y"
+#line 338 "../src/C.y"
     {
       YYSTYPE::VariableSpec rSpec = {false,false,false,false,false,false,false,false,(yyvsp[(1) - (1)].sval)};
       (yyval.varSpec) = rSpec;
@@ -2013,7 +1995,7 @@ yyreduce:
   case 9:
 
 /* Line 1455 of yacc.c  */
-#line 361 "../src/C.y"
+#line 343 "../src/C.y"
     {
       if ((yyvsp[(2) - (2)].varSpec).isStatic){
          //throw error: two static
@@ -2028,7 +2010,7 @@ yyreduce:
   case 10:
 
 /* Line 1455 of yacc.c  */
-#line 374 "../src/C.y"
+#line 356 "../src/C.y"
     { 
        if(verbose) printf("\n");
        (yyval.snippetList) = new BPatch_Vector<BPatch_snippet *>; 
@@ -2039,7 +2021,7 @@ yyreduce:
   case 11:
 
 /* Line 1455 of yacc.c  */
-#line 380 "../src/C.y"
+#line 362 "../src/C.y"
     {
        (yyvsp[(1) - (2)].snippetList)->push_back((yyvsp[(2) - (2)].snippet));
        (yyval.snippetList) = (yyvsp[(1) - (2)].snippetList);
@@ -2049,7 +2031,7 @@ yyreduce:
   case 12:
 
 /* Line 1455 of yacc.c  */
-#line 385 "../src/C.y"
+#line 367 "../src/C.y"
     {
        BPatch_sequence *seq = new BPatch_sequence(*(yyvsp[(2) - (3)].snippetList));
        makeOneTimeStatementGbl(*seq);
@@ -2062,7 +2044,7 @@ yyreduce:
   case 13:
 
 /* Line 1455 of yacc.c  */
-#line 393 "../src/C.y"
+#line 375 "../src/C.y"
     {
        BPatch_sequence seq = BPatch_sequence(*(yyvsp[(3) - (4)].snippetList));
        makeOneTimeStatementGbl(seq);
@@ -2074,7 +2056,7 @@ yyreduce:
   case 14:
 
 /* Line 1455 of yacc.c  */
-#line 403 "../src/C.y"
+#line 385 "../src/C.y"
     {
        (yyval.snippet) = new BPatch_nullExpr();
        actionTaken = false;
@@ -2084,7 +2066,7 @@ yyreduce:
   case 15:
 
 /* Line 1455 of yacc.c  */
-#line 408 "../src/C.y"
+#line 390 "../src/C.y"
     {
        yyerrorNoTok((yyvsp[(1) - (1)].context));
        (yyval.snippet) = new BPatch_nullExpr();
@@ -2095,7 +2077,7 @@ yyreduce:
   case 16:
 
 /* Line 1455 of yacc.c  */
-#line 414 "../src/C.y"
+#line 396 "../src/C.y"
     {
        (yyval.snippet) = (yyvsp[(1) - (2)].snippet);
     ;}
@@ -2104,7 +2086,7 @@ yyreduce:
   case 17:
 
 /* Line 1455 of yacc.c  */
-#line 419 "../src/C.y"
+#line 401 "../src/C.y"
     {
        if(!actionTaken){
           yywarn("Statement does nothing!");
@@ -2119,7 +2101,7 @@ yyreduce:
   case 18:
 
 /* Line 1455 of yacc.c  */
-#line 430 "../src/C.y"
+#line 412 "../src/C.y"
     {
        if(verbose) printf(" if () ");
        (yyval.snippet) = new BPatch_ifExpr(*(yyvsp[(3) - (5)].boolExpr), *(yyvsp[(5) - (5)].snippet));
@@ -2131,7 +2113,7 @@ yyreduce:
   case 19:
 
 /* Line 1455 of yacc.c  */
-#line 438 "../src/C.y"
+#line 420 "../src/C.y"
     {
        if(verbose) printf(" if () else ");
        (yyval.snippet) = new BPatch_ifExpr(*(yyvsp[(3) - (7)].boolExpr), *(yyvsp[(5) - (7)].snippet), *(yyvsp[(7) - (7)].snippet));
@@ -2144,7 +2126,7 @@ yyreduce:
   case 21:
 
 /* Line 1455 of yacc.c  */
-#line 451 "../src/C.y"
+#line 433 "../src/C.y"
     {
         (yyval.snippet) = new BPatch_sequence(*(yyvsp[(2) - (3)].snippetList));
         delete (yyvsp[(2) - (3)].snippetList);
@@ -2154,7 +2136,7 @@ yyreduce:
   case 22:
 
 /* Line 1455 of yacc.c  */
-#line 458 "../src/C.y"
+#line 440 "../src/C.y"
     {
        if(strcmp((yyvsp[(3) - (6)].sval), "break") == 0){
           if(verbose) printf("break_ ()");
@@ -2173,14 +2155,12 @@ yyreduce:
   case 23:
 
 /* Line 1455 of yacc.c  */
-#line 474 "../src/C.y"
+#line 456 "../src/C.y"
     { 
        BPatch_function *func = snippetGen->findFunction((yyvsp[(3) - (6)].sval), *(yyvsp[(5) - (6)].snippetList));
        if(func == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerrorNoTok(errString);
-          free(errString);
+          yyerrorNoTok(snippetGen->getError().c_str());
           break;
        }
        (yyval.snippet) = new BPatch_funcCallExpr(*func, *(yyvsp[(5) - (6)].snippetList));
@@ -2190,7 +2170,7 @@ yyreduce:
   case 24:
 
 /* Line 1455 of yacc.c  */
-#line 489 "../src/C.y"
+#line 469 "../src/C.y"
     {
        //No parameters, return an empty vector
        (yyval.snippetList) = new BPatch_Vector<BPatch_snippet *>;
@@ -2200,7 +2180,7 @@ yyreduce:
   case 25:
 
 /* Line 1455 of yacc.c  */
-#line 495 "../src/C.y"
+#line 475 "../src/C.y"
     { 
        (yyval.snippetList) = new BPatch_Vector<BPatch_snippet *>; 
        (yyval.snippetList)->push_back((yyvsp[(1) - (1)].snippet));
@@ -2210,7 +2190,7 @@ yyreduce:
   case 26:
 
 /* Line 1455 of yacc.c  */
-#line 501 "../src/C.y"
+#line 481 "../src/C.y"
     { 
        if(verbose) printf(" , ");
        (yyvsp[(1) - (3)].snippetList)->push_back((yyvsp[(3) - (3)].snippet)); 
@@ -2221,7 +2201,7 @@ yyreduce:
   case 27:
 
 /* Line 1455 of yacc.c  */
-#line 510 "../src/C.y"
+#line 490 "../src/C.y"
     { 
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0), BPatch_constExpr(0));
     ;}
@@ -2230,7 +2210,7 @@ yyreduce:
   case 28:
 
 /* Line 1455 of yacc.c  */
-#line 514 "../src/C.y"
+#line 494 "../src/C.y"
     {
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_ne, BPatch_constExpr(0), BPatch_constExpr(0));
     ;}
@@ -2239,7 +2219,7 @@ yyreduce:
   case 30:
 
 /* Line 1455 of yacc.c  */
-#line 522 "../src/C.y"
+#line 502 "../src/C.y"
     {
        if(verbose) printf(" < ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_lt, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2249,7 +2229,7 @@ yyreduce:
   case 31:
 
 /* Line 1455 of yacc.c  */
-#line 527 "../src/C.y"
+#line 507 "../src/C.y"
     {
        if(verbose) printf(" > ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_gt, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2259,7 +2239,7 @@ yyreduce:
   case 32:
 
 /* Line 1455 of yacc.c  */
-#line 532 "../src/C.y"
+#line 512 "../src/C.y"
     {
        if(verbose) printf(" == ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_eq, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2269,7 +2249,7 @@ yyreduce:
   case 33:
 
 /* Line 1455 of yacc.c  */
-#line 537 "../src/C.y"
+#line 517 "../src/C.y"
     {
        if(verbose) printf(" <= ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_le, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2279,7 +2259,7 @@ yyreduce:
   case 34:
 
 /* Line 1455 of yacc.c  */
-#line 542 "../src/C.y"
+#line 522 "../src/C.y"
     {
        if(verbose) printf(" >= ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_ge, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2289,7 +2269,7 @@ yyreduce:
   case 35:
 
 /* Line 1455 of yacc.c  */
-#line 547 "../src/C.y"
+#line 527 "../src/C.y"
     {
        if(verbose) printf(" != ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_ne, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2299,7 +2279,7 @@ yyreduce:
   case 36:
 
 /* Line 1455 of yacc.c  */
-#line 552 "../src/C.y"
+#line 532 "../src/C.y"
     {
        if(verbose) printf(" AND ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_and, *(yyvsp[(1) - (3)].boolExpr), *(yyvsp[(3) - (3)].boolExpr));
@@ -2309,7 +2289,7 @@ yyreduce:
   case 37:
 
 /* Line 1455 of yacc.c  */
-#line 557 "../src/C.y"
+#line 537 "../src/C.y"
     {       if(verbose) printf(" OR ");
        (yyval.boolExpr) = new BPatch_boolExpr(BPatch_or, *(yyvsp[(1) - (3)].boolExpr), *(yyvsp[(3) - (3)].boolExpr));
     ;}
@@ -2318,7 +2298,7 @@ yyreduce:
   case 38:
 
 /* Line 1455 of yacc.c  */
-#line 565 "../src/C.y"
+#line 545 "../src/C.y"
     {
       YYSTYPE::VariableSpec vSpec = {false,false,false,false,false,false,false,false,""};
       vSpec.isGlobal = true;
@@ -2329,7 +2309,7 @@ yyreduce:
   case 39:
 
 /* Line 1455 of yacc.c  */
-#line 571 "../src/C.y"
+#line 551 "../src/C.y"
     {
       YYSTYPE::VariableSpec vSpec = {false,false,false,false,false,false,false,false,""};
       vSpec.isLocal = true;
@@ -2340,7 +2320,7 @@ yyreduce:
   case 40:
 
 /* Line 1455 of yacc.c  */
-#line 577 "../src/C.y"
+#line 557 "../src/C.y"
     {
       YYSTYPE::VariableSpec vSpec = {false,false,false,false,false,false,false,false,""};
       vSpec.isParam = true;
@@ -2351,14 +2331,12 @@ yyreduce:
   case 41:
 
 /* Line 1455 of yacc.c  */
-#line 586 "../src/C.y"
+#line 566 "../src/C.y"
     {
        (yyval.snippet) = snippetGen->findInstVariable(dynC_API::getMangledStub((yyvsp[(1) - (1)].sval), dynCSnippetName).c_str(), (yyvsp[(1) - (1)].sval));
        if((yyval.snippet) == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerror(errString);
-          free(errString);
+          yyerror(snippetGen->getError().c_str());
           break;
        }
     ;}
@@ -2367,14 +2345,12 @@ yyreduce:
   case 42:
 
 /* Line 1455 of yacc.c  */
-#line 597 "../src/C.y"
+#line 575 "../src/C.y"
     {
        (yyval.snippet) = snippetGen->findAppVariable((yyvsp[(3) - (3)].sval));
        if((yyval.snippet) == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerrorNoTokNonUni(errString);
-          free(errString);
+          yyerrorNoTokNonUni(snippetGen->getError().c_str());
           break;
        }
     ;}
@@ -2383,7 +2359,7 @@ yyreduce:
   case 43:
 
 /* Line 1455 of yacc.c  */
-#line 609 "../src/C.y"
+#line 585 "../src/C.y"
     {
        //disallowed if there is no point specifier
        if(!(yyvsp[(1) - (3)].varSpec).isGlobal && snippetPoint == NULL){
@@ -2399,14 +2375,10 @@ yyreduce:
        if((yyval.snippet) == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
           if((yyvsp[(1) - (3)].varSpec).isGlobal){
-             char *errString = strdup(snippetGen->getError().c_str());
-             yyerror(errString);
-             free(errString);
+             yyerror(snippetGen->getError().c_str());
              YYABORT;
           }else{
-             char *errString = strdup(snippetGen->getError().c_str());
-             yyerrorNonUni(errString);
-             free(errString);
+             yyerrorNonUni(snippetGen->getError().c_str());
              YYABORT;
           }
           break;
@@ -2417,7 +2389,7 @@ yyreduce:
   case 44:
 
 /* Line 1455 of yacc.c  */
-#line 639 "../src/C.y"
+#line 611 "../src/C.y"
     {
        //special case for indexed parameters
        if(snippetPoint == NULL){
@@ -2432,9 +2404,7 @@ yyreduce:
        (yyval.snippet) = snippetGen->findParameter((yyvsp[(3) - (3)].ival));
        if((yyval.snippet) == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerrorNoTokNonUni(errString);
-          free(errString);
+          yyerrorNoTokNonUni(snippetGen->getError().c_str());
           break;
        }
     ;}
@@ -2443,16 +2413,14 @@ yyreduce:
   case 45:
 
 /* Line 1455 of yacc.c  */
-#line 661 "../src/C.y"
+#line 631 "../src/C.y"
     {
        //array referance
        //check for integer in arith_expression
        (yyval.snippet) = snippetGen->generateArrayRef((yyvsp[(1) - (4)].snippet), (yyvsp[(3) - (4)].snippet));
        if((yyval.snippet) == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerror(errString);
-          free(errString);
+          yyerror(snippetGen->getError().c_str());
           break;
        }
     ;}
@@ -2461,7 +2429,7 @@ yyreduce:
   case 46:
 
 /* Line 1455 of yacc.c  */
-#line 674 "../src/C.y"
+#line 642 "../src/C.y"
     {
        (yyval.snippet) = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *(yyvsp[(2) - (2)].snippet)));
     ;}
@@ -2470,7 +2438,7 @@ yyreduce:
   case 47:
 
 /* Line 1455 of yacc.c  */
-#line 678 "../src/C.y"
+#line 646 "../src/C.y"
     {
        (yyval.snippet) = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *(yyvsp[(2) - (2)].snippet)));
     ;}
@@ -2479,7 +2447,7 @@ yyreduce:
   case 48:
 
 /* Line 1455 of yacc.c  */
-#line 685 "../src/C.y"
+#line 653 "../src/C.y"
     { 
       if(verbose) printf(" %d ", (yyvsp[(1) - (1)].ival));
       BPatch_snippet * c = new BPatch_constExpr((yyvsp[(1) - (1)].ival));
@@ -2490,7 +2458,7 @@ yyreduce:
   case 49:
 
 /* Line 1455 of yacc.c  */
-#line 691 "../src/C.y"
+#line 659 "../src/C.y"
     { 
        if(verbose) printf(" %s ", (yyvsp[(1) - (1)].sval));
        BPatch_snippet * c = new BPatch_constExpr((yyvsp[(1) - (1)].sval));
@@ -2501,7 +2469,7 @@ yyreduce:
   case 50:
 
 /* Line 1455 of yacc.c  */
-#line 700 "../src/C.y"
+#line 668 "../src/C.y"
     {
         std::vector<std::pair<BPatch_snippet *, const char *> > *cnlist = new std::vector<std::pair<BPatch_snippet *, const char *> >();
         cnlist->push_back(*(yyvsp[(1) - (1)].snippetStringPair));
@@ -2512,7 +2480,7 @@ yyreduce:
   case 51:
 
 /* Line 1455 of yacc.c  */
-#line 706 "../src/C.y"
+#line 674 "../src/C.y"
     {
         (yyvsp[(1) - (3)].snippetStringListPair)->push_back(*(yyvsp[(3) - (3)].snippetStringPair));
         (yyval.snippetStringListPair) = (yyvsp[(1) - (3)].snippetStringListPair);
@@ -2522,28 +2490,26 @@ yyreduce:
   case 53:
 
 /* Line 1455 of yacc.c  */
-#line 712 "../src/C.y"
-    {(yyval.snippet) = (yyvsp[(1) - (1)].snippetStringPair)->first;}
+#line 680 "../src/C.y"
+    {(yyval.snippet) = (yyvsp[(1) - (1)].snippetStringPair)->first;;}
     break;
 
   case 54:
 
 /* Line 1455 of yacc.c  */
-#line 713 "../src/C.y"
+#line 681 "../src/C.y"
     {(yyval.snippet) = new BPatch_nullExpr();;}
     break;
 
   case 55:
 
 /* Line 1455 of yacc.c  */
-#line 715 "../src/C.y"
+#line 683 "../src/C.y"
     {
    (yyval.snippet) = snippetGen->findRegister((yyvsp[(3) - (3)].sval));
    if ((yyval.snippet) == NULL){
       (yyval.snippet) = new BPatch_nullExpr();
-      char *errString = strdup(snippetGen->getError().c_str());
-      yyerror(errString);
-      free(errString);
+      yyerror(snippetGen->getError().c_str());
    }
 ;}
     break;
@@ -2551,7 +2517,7 @@ yyreduce:
   case 56:
 
 /* Line 1455 of yacc.c  */
-#line 726 "../src/C.y"
+#line 692 "../src/C.y"
     {
        if(verbose) printf("dyninst`%s ", (yyvsp[(3) - (3)].sval));
        
@@ -2561,9 +2527,7 @@ yyreduce:
           (yyval.snippet) = snippetGen->getContextInfo(SnippetGenerator::SG_FunctionName);
           if((yyval.snippet) == NULL){
              (yyval.snippet) = new BPatch_nullExpr();
-             char *errString = strdup(snippetGen->getError().c_str());
-             yyerror(errString);
-             free(errString);
+             yyerror(snippetGen->getError().c_str());
           }
           break;
        }
@@ -2571,9 +2535,7 @@ yyreduce:
           (yyval.snippet) = snippetGen->getContextInfo(SnippetGenerator::SG_ModuleName);
           if((yyval.snippet) == NULL){
              (yyval.snippet) = new BPatch_nullExpr();
-             char *errString = strdup(snippetGen->getError().c_str());
-             yyerror(errString);
-             free(errString);
+             yyerror(snippetGen->getError().c_str());
           }
           break;
        }
@@ -2611,9 +2573,7 @@ yyreduce:
           (yyval.snippet) = snippetGen->getContextInfo(SnippetGenerator::SG_TID);
           if((yyval.snippet) == NULL){
              (yyval.snippet) = new BPatch_nullExpr();
-             char *errString = strdup(snippetGen->getError().c_str());
-             yyerror(errString);
-             free(errString);
+             yyerror(snippetGen->getError().c_str());
           }
           break;
        }
@@ -2623,14 +2583,14 @@ yyreduce:
        }
  
        yyerror("Syntax error: unrecognized dyninst call");
-       (yyval.snippet) = new BPatch_nullExpr()
+       (yyval.snippet) = new BPatch_nullExpr();
     ;}
     break;
 
   case 57:
 
 /* Line 1455 of yacc.c  */
-#line 800 "../src/C.y"
+#line 760 "../src/C.y"
     {
        if(verbose) printf(" * ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_times, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2641,7 +2601,7 @@ yyreduce:
   case 58:
 
 /* Line 1455 of yacc.c  */
-#line 806 "../src/C.y"
+#line 766 "../src/C.y"
     {
        (yyval.snippet) = (yyvsp[(1) - (1)].snippet);
        actionTaken = true;
@@ -2651,7 +2611,7 @@ yyreduce:
   case 59:
 
 /* Line 1455 of yacc.c  */
-#line 811 "../src/C.y"
+#line 771 "../src/C.y"
     {
        if(verbose) printf(" = ");
 	    (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2662,7 +2622,7 @@ yyreduce:
   case 60:
 
 /* Line 1455 of yacc.c  */
-#line 817 "../src/C.y"
+#line 777 "../src/C.y"
     {
        if(verbose) printf(" += ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_plus, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet)));
@@ -2673,7 +2633,7 @@ yyreduce:
   case 61:
 
 /* Line 1455 of yacc.c  */
-#line 823 "../src/C.y"
+#line 783 "../src/C.y"
     {
        if(verbose) printf(" -= ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_minus, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet)));
@@ -2684,7 +2644,7 @@ yyreduce:
   case 62:
 
 /* Line 1455 of yacc.c  */
-#line 829 "../src/C.y"
+#line 789 "../src/C.y"
     {
        if(verbose) printf(" *= ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_times, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet)));
@@ -2695,7 +2655,7 @@ yyreduce:
   case 63:
 
 /* Line 1455 of yacc.c  */
-#line 835 "../src/C.y"
+#line 795 "../src/C.y"
     {
        if(verbose) printf(" /= ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_divide, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet)));
@@ -2706,7 +2666,7 @@ yyreduce:
   case 64:
 
 /* Line 1455 of yacc.c  */
-#line 841 "../src/C.y"
+#line 801 "../src/C.y"
     {
        if(verbose) printf(" %%= ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_minus, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_times, BPatch_arithExpr(BPatch_divide, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet)), *(yyvsp[(3) - (3)].snippet))));
@@ -2717,7 +2677,7 @@ yyreduce:
   case 65:
 
 /* Line 1455 of yacc.c  */
-#line 847 "../src/C.y"
+#line 807 "../src/C.y"
     {
        if(verbose) printf(" / ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_divide, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2728,7 +2688,7 @@ yyreduce:
   case 66:
 
 /* Line 1455 of yacc.c  */
-#line 853 "../src/C.y"
+#line 813 "../src/C.y"
     {
        if(verbose) printf(" %% ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_minus, *(yyvsp[(1) - (3)].snippet), BPatch_arithExpr(BPatch_times, BPatch_arithExpr(BPatch_divide, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet)), *(yyvsp[(3) - (3)].snippet)));
@@ -2739,7 +2699,7 @@ yyreduce:
   case 67:
 
 /* Line 1455 of yacc.c  */
-#line 859 "../src/C.y"
+#line 819 "../src/C.y"
     {
        if(verbose) printf(" + ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_plus, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2750,7 +2710,7 @@ yyreduce:
   case 68:
 
 /* Line 1455 of yacc.c  */
-#line 865 "../src/C.y"
+#line 825 "../src/C.y"
     {
        if(verbose) printf(" - ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_minus, *(yyvsp[(1) - (3)].snippet), *(yyvsp[(3) - (3)].snippet));
@@ -2761,7 +2721,7 @@ yyreduce:
   case 69:
 
 /* Line 1455 of yacc.c  */
-#line 871 "../src/C.y"
+#line 831 "../src/C.y"
     {
        if(dynamic_cast<BPatch_nullExpr *>((yyvsp[(1) - (3)].snippet))){
           printf("Picked second\n");
@@ -2775,14 +2735,14 @@ yyreduce:
   case 70:
 
 /* Line 1455 of yacc.c  */
-#line 879 "../src/C.y"
+#line 839 "../src/C.y"
     {(yyval.snippet) = (yyvsp[(2) - (3)].snippet);;}
     break;
 
   case 71:
 
 /* Line 1455 of yacc.c  */
-#line 881 "../src/C.y"
+#line 841 "../src/C.y"
     {
        (yyval.snippet) = (yyvsp[(1) - (1)].snippet);
        actionTaken = true;
@@ -2792,7 +2752,7 @@ yyreduce:
   case 72:
 
 /* Line 1455 of yacc.c  */
-#line 890 "../src/C.y"
+#line 850 "../src/C.y"
     {
        if(verbose) printf(" ++ ");
        BPatch_arithExpr addOne = BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (2)].snippet), BPatch_arithExpr(BPatch_plus, *(yyvsp[(1) - (2)].snippet), BPatch_constExpr(1)));
@@ -2803,7 +2763,7 @@ yyreduce:
   case 73:
 
 /* Line 1455 of yacc.c  */
-#line 896 "../src/C.y"
+#line 856 "../src/C.y"
     {
        if(verbose) printf(" ++ ");
        BPatch_arithExpr addOne = BPatch_arithExpr(BPatch_assign, *(yyvsp[(2) - (2)].snippet), BPatch_arithExpr(BPatch_plus, *(yyvsp[(2) - (2)].snippet), BPatch_constExpr(1)));
@@ -2814,7 +2774,7 @@ yyreduce:
   case 74:
 
 /* Line 1455 of yacc.c  */
-#line 902 "../src/C.y"
+#line 862 "../src/C.y"
     {
        if(verbose) printf(" -- ");
        BPatch_arithExpr subOne = BPatch_arithExpr(BPatch_assign, *(yyvsp[(1) - (2)].snippet), BPatch_arithExpr(BPatch_minus, *(yyvsp[(1) - (2)].snippet), BPatch_constExpr(1)));
@@ -2825,7 +2785,7 @@ yyreduce:
   case 75:
 
 /* Line 1455 of yacc.c  */
-#line 908 "../src/C.y"
+#line 868 "../src/C.y"
     {
        if(verbose) printf(" -- ");
        BPatch_arithExpr subOne = BPatch_arithExpr(BPatch_assign, *(yyvsp[(2) - (2)].snippet), BPatch_arithExpr(BPatch_minus, *(yyvsp[(2) - (2)].snippet), BPatch_constExpr(1)));
@@ -2836,7 +2796,7 @@ yyreduce:
 
 
 /* Line 1455 of yacc.c  */
-#line 2840 "dynC.tab.c"
+#line 2800 "dynC.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -3055,14 +3015,14 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 915 "../src/C.y"
+#line 875 "../src/C.y"
 
 
 #include <stdio.h>
 
 std::stringstream * err;
 
-void yyerror(char *s)
+void yyerror(const char *s)
 {
    fatalError = true;
    fflush(stdout);
@@ -3071,16 +3031,16 @@ void yyerror(char *s)
       err.str("");
       char ebase[256];
       getErrorBase(ebase, 256);
-      err << ebase << " error: " << strdup(s) << " for token '" << lineStr << "'";
+      err << ebase << " error: " << s << " for token '" << lineStr << "'";
       if(universalErrors->find(err.str()) != universalErrors->end()){
          return;
       }
       printf("%s\n", err.str().c_str());
-      universalErrors->insert(std::string(strdup(err.str().c_str())));
+      universalErrors->insert(err.str());
    }
 }
 
-void yyerrorNonUni(char *s){
+void yyerrorNonUni(const char *s){
    fatalError = true;
    fflush(stdout);
    std::stringstream err;
@@ -3097,7 +3057,7 @@ void getErrorBase(char *errbase, int length){
    strncpy(errbase, base, (length > 512 ? 512 : length));
 }
 
-void yyerrorNoTok(char *s){
+void yyerrorNoTok(const char *s){
    fatalError = true;
    fflush(stdout);
    std::stringstream err;
@@ -3109,18 +3069,18 @@ void yyerrorNoTok(char *s){
       return;
    }   
    printf("%s\n", err.str().c_str());
-   universalErrors->insert(std::string(strdup(err.str().c_str())));
+   universalErrors->insert(err.str());
 }
 
 
-void yyerrorNoTokNonUni(char *s){
+void yyerrorNoTokNonUni(const char *s){
    fatalError = true;
    char ebase[256];
    getErrorBase(ebase, 256);
    printf("%s error: %s\n", ebase, s);
 }
 
-void yywarn(char *s)
+void yywarn(const char *s)
 {
    std::stringstream err;
    err.str("");
@@ -3129,7 +3089,7 @@ void yywarn(char *s)
       return;
    }   
    printf("%s\n", err.str().c_str());
-   universalErrors->insert(std::string(strdup(err.str().c_str())));
+   universalErrors->insert(err.str());
 }
 
 void makeOneTimeStatement(BPatch_snippet &statement){

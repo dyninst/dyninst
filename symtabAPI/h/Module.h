@@ -85,7 +85,7 @@ class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
 
 	Offset startAddr() { return start_addr_;}
 	Offset endAddr() {return end_addr_;}
-	std::string getFile() { return file_;}
+	const std::string &getFile() { return file_;}
 	unsigned int getLine() {return line_;}
 	unsigned int getColumn() {return column;}
 

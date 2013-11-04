@@ -114,7 +114,7 @@ int walkStackFromFrame(walker_t walker, frame_t frame, frame_t **out_frames,
 }
 
 
-int walkSingleFrame(walker_t walker, frame_t frame, frame_t out_frame)
+int walkSingleFrame(walker_t walker, frame_t frame, frame_t *out_frame)
 {
    Walker *w = (Walker *) walker.walker;
    Frame *f = (Frame *) frame.frame;
@@ -124,11 +124,11 @@ int walkSingleFrame(walker_t walker, frame_t frame, frame_t out_frame)
    if (!result) 
       return -1;
 
-   out_frame.frame = (void *) new Frame(oframe);
+   out_frame->frame = (void *) new Frame(oframe);
    return 0;
 }
 
-int getInitialFrame(walker_t walker, frame_t out_frame)
+int getInitialFrame(walker_t walker, frame_t *out_frame)
 {   
    Walker *w = (Walker *) walker.walker;
 
@@ -137,7 +137,7 @@ int getInitialFrame(walker_t walker, frame_t out_frame)
    if (!result) 
       return -1;
    
-   out_frame.frame = (void *) new Frame(oframe);
+   out_frame->frame = (void *) new Frame(oframe);
    return 0;
 }
 

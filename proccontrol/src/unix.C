@@ -237,8 +237,8 @@ bool unix_process::plat_setMemoryAccessRights(Dyninst::Address addr,
 bool unix_process::plat_findAllocatedRegionAround(Dyninst::Address addr,
                                                   Process::MemoryRegion& memRegion) {
     (void)addr;
-    memRegion.first  = NULL;
-    memRegion.second = NULL;
+    memRegion.first  = 0;
+    memRegion.second = 0;
     perr_printf("Called findAllocatedRegionAround on unspported platform\n");
     setLastError(err_unsupported, "Find Allocated Memory Region not supported on this platform\n");
     return false;

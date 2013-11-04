@@ -58,7 +58,7 @@ FunctionBase::FunctionBase(Symbol *sym) :
    locals(NULL),
    params(NULL),
    retType_(NULL),
-   functionSize_(NULL),
+   functionSize_(0),
    inline_parent(NULL),
    frameBaseExpanded_(false),
    data(NULL)
@@ -70,7 +70,7 @@ FunctionBase::FunctionBase() :
    locals(NULL),
    params(NULL),
    retType_(NULL),
-   functionSize_(NULL),
+   functionSize_(0),
    inline_parent(NULL),
    frameBaseExpanded_(false),
    data(NULL)
@@ -82,7 +82,7 @@ FunctionBase::FunctionBase(Module *m) :
    locals(NULL),
    params(NULL),
    retType_(NULL),
-   functionSize_(NULL),
+   functionSize_(0),
    inline_parent(NULL),
    frameBaseExpanded_(false),
    data(NULL)
@@ -446,7 +446,7 @@ bool FunctionBase::operator==(const FunctionBase &f)
 			return false;
 		}
 
-	return ((Aggregate &)(*this)) == ((Aggregate &)f);
+	return ((Aggregate &)(*this)) == ((const Aggregate &)f);
 }
 
 InlinedFunction::InlinedFunction(FunctionBase *parent) :

@@ -178,7 +178,7 @@ add_library (dyninstAPI_RT_m32_static STATIC ${SRC_LIST_mabi})
 
 set_target_properties (dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
                       PROPERTIES
-                      COMPILE_FLAGS "-m32"
+                      COMPILE_FLAGS "-DMUTATEE_32 -m32"
                       LINK_FLAGS "-m32"
                       SOVERSION ${SOVERSION}
                       VERSION ${LIBVERSION})
@@ -186,7 +186,7 @@ set_target_properties (dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
 set_target_properties (dyninstAPI_RT_m32_static
                       PROPERTIES
                       OUTPUT_NAME dyninstAPI_RT_m32
-                      COMPILE_FLAGS "-m32"
+                      COMPILE_FLAGS "-DMUTATEE_32 -m32"
                       LINK_FLAGS "-m32"
 		      COMPILE_DEFINITIONS DYNINST_RT_STATIC_LIB)
 #                      SOVERSION ${SOVERSION}

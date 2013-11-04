@@ -86,7 +86,7 @@ static const unsigned X86_64_WIDTH = 8;
  * entry doesn't reference the .ctors/.dtors tables.
  */
 static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
-        LinkMap &lmap, string &errMsg, Offset &symbolOffset)
+        LinkMap &lmap, string &, Offset &symbolOffset)
 {
   /*
     if( rel.name() ==  SYMTAB_CTOR_LIST_REL ) {
@@ -152,7 +152,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
          * P = relOffset
          */
        
-        Elf32_Word addend;
+        Elf32_Word addend = 0;
         if( rel.regionType() == Region::RT_REL ) {
             memcpy(&addend, &targetData[dest], sizeof(Elf32_Word));
         }else if( rel.regionType() == Region::RT_RELA ) {
@@ -616,7 +616,7 @@ Offset emitElfStatic::layoutNewCtorRegion(LinkMap &lmap) {
     return retOffset;
 }
 
-bool emitElfStatic::createNewCtorRegion(LinkMap &lmap) {
+bool emitElfStatic::createNewCtorRegion(LinkMap &) {
     return true;
 }
 
@@ -648,7 +648,7 @@ Offset emitElfStatic::layoutNewDtorRegion(LinkMap &lmap) {
     return retOffset;
 }
 
-bool emitElfStatic::createNewDtorRegion(LinkMap &lmap) {
+bool emitElfStatic::createNewDtorRegion(LinkMap &) {
 
     return true;
 }

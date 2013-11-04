@@ -91,7 +91,7 @@ const char *reglist::getReason(char *s)
 		return NULL;
 	    }
 	}
-	return false;
+	return NULL;
     }
 
     if (skip_rules.size() > 0) {

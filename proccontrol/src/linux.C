@@ -2038,14 +2038,14 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
             continue;
          
          int result;
+         uintptr_t res;
          if (Dyninst::getArchAddressWidth(curplat) == 4) {
-            uint32_t res = (uint32_t) i->second;
-            result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) (unsigned long) di->second.first, (void *) res);
+            res = (uint32_t) i->second;
          }
          else {
-            uint64_t res = (uint64_t) i->second;
-            result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) (unsigned long) di->second.first, (void *) res);
+            res = (uint64_t) i->second;
          }
+         result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) (unsigned long) di->second.first, (void *) res);
          
          if (result != 0) {
             int error = errno;
@@ -2170,17 +2170,17 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    const unsigned int offset = i->second.first;
    const unsigned int size = i->second.second;
    int result;
+   uintptr_t value;
    if (size == 4) {
-      uint32_t value = (uint32_t) val;
-      result = do_ptrace((pt_req) PTRACE_POKEUSR, lwp, (void *) offset, (void *) value);
+      value = (uint32_t) val;
    }
    else if (size == 8) {
-      uint64_t value = (uint64_t) val;
-      result = do_ptrace((pt_req) PTRACE_POKEUSR, lwp, (void *) offset, (void *) value);
+      value = (uint64_t) val;
    }
    else {
       assert(0);
    }
+   result = do_ptrace((pt_req) PTRACE_POKEUSR, lwp, (void *) (uintptr_t)offset, (void *) value);
    pthrd_printf("Set register %s (size %u, offset %u) to value %lx\n", reg.name().c_str(), size, offset, val);
    if (result != 0) {
       int error = errno;
@@ -2292,7 +2292,7 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
    switch (arch) {
       case Arch_x86: {
          uint32_t addrv[4];
-         int result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, lwp, (void *) val, &addrv);
+         int result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, lwp, (void *) (intptr_t)val, &addrv);
          if (result != 0) {
             int error = errno;
             perr_printf("Error doing PTRACE_GET_THREAD_AREA on %d/%d: %s\n", llproc()->getPid(), lwp, strerror(error));
@@ -2303,7 +2303,7 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
          break;
       }
       case Arch_x86_64: {
-         int op;
+         intptr_t op;
          if (val == FS_REG_NUM)
             op = ARCH_GET_FS;
          else if (val == GS_REG_NUM)

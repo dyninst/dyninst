@@ -140,7 +140,7 @@ typedef union YYSTYPE
    double dval;
    char  *sval;
 
-   char *context;
+   const char *context;
    
    struct VariableSpec {
       bool isConstant;

@@ -3585,7 +3585,7 @@ bool RemoteIOSet::getFileNames(FileSet *fset)
       return false;
    }
 
-   pthrd_printf("RemoteIOSet::getFileNames called on %lu processes\n", procs->size());
+   pthrd_printf("RemoteIOSet::getFileNames called on %lu processes\n", (unsigned long)procs->size());
 
    set<FileSetResp_t *> all_resps;
    int_processSet *procset = procs->getIntProcessSet();
@@ -3639,7 +3639,7 @@ bool RemoteIOSet::getFileStatData(FileSet *fset)
    }
 
 
-   pthrd_printf("RemoteIOSet::getFileStatData called on %lu processes\n", procs->size());
+   pthrd_printf("RemoteIOSet::getFileStatData called on %lu processes\n", (unsigned long)procs->size());
 
    set<StatResp_t *> all_resps;
 

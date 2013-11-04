@@ -899,11 +899,10 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    if (!arithl || !arithr)
       return false;
    
-   AstNode *data_oper = NULL, *const_oper = NULL;
+   AstNode *const_oper = NULL;
    if (arithl->getoType() == DataAddr && arithr->getoType() == Constant &&
        laddr == (Address) arithl->getOValue())
    {
-      data_oper = arithl;
       const_oper = arithr;
    }
    else if (arithl->getoType() == variableValue && arithr->getoType() == Constant)
@@ -914,14 +913,12 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
          return false;
       addr = var->getAddress();
       if (addr == laddr) {
-         data_oper = arithl;
          const_oper = arithr;
       }
    }
    else if (arithr->getoType() == DataAddr && arithl->getoType() == Constant &&
             laddr == (Address) arithr->getOValue() && roper->op == plusOp)
    {
-      data_oper = arithr;
       const_oper = arithl;
    }
    else if (arithl->getoType() == variableValue && arithr->getoType() == Constant)
@@ -932,7 +929,6 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
          return false;
       addr = var->getAddress();
       if (addr == laddr) {
-         data_oper = arithr;
          const_oper = arithl;
       }
    }
@@ -2053,6 +2049,7 @@ bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen,
 						  Address&, 
 						  Register& )
 {
+   (void)gen; // unused
 #if defined(arch_x86_64)
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
       registerSlot *reg = gen.rs()->GPRs()[i];
@@ -2261,7 +2258,7 @@ void AstNode::print() const {
 }
 #endif
 
-BPatch_type *AstNode::checkType(BPatch_function* func) {
+BPatch_type *AstNode::checkType(BPatch_function*) {
     return BPatch::bpatch->type_Untyped;
 }
 
@@ -2284,6 +2281,7 @@ BPatch_type *AstOperatorNode::checkType(BPatch_function* func) {
     if (roperand) rType = roperand->checkType(func);
 
     if (eoperand) eType = eoperand->checkType(func);
+    (void)eType; // unused...
 
     if (lType == BPatch::bpatch->type_Error ||
         rType == BPatch::bpatch->type_Error)

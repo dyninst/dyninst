@@ -238,8 +238,8 @@ static Address constrained_mmap(size_t len, Address lo, Address hi,
 
 static int heap_memmapCompare(const void *A, const void *B)
 {
-  dyninstmm_t *a = (dyninstmm_t *)A;
-  dyninstmm_t *b = (dyninstmm_t *)B;
+  const dyninstmm_t *a = (const dyninstmm_t *)A;
+  const dyninstmm_t *b = (const dyninstmm_t *)B;
   if (a->pr_vaddr < b->pr_vaddr) return -1;
   if (a->pr_vaddr > b->pr_vaddr) return 1;
   return 0;
@@ -255,7 +255,10 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   if (psize == -1) psize = getpagesize();
 
   /* buffer size must be aligned */
-  if (size % DYNINSTheap_align != 0) return ((void *)-1);
+  if (size % DYNINSTheap_align != 0) {
+    free(node);
+    return ((void *)-1);
+  }
 
   /* use malloc() if appropriate */
   if (DYNINSTheap_useMalloc(lo_addr, hi_addr)) {
@@ -302,6 +305,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
    DYNINSTheap_loAddr = getpagesize();
 #endif
     if ((hi < DYNINSTheap_loAddr) || (lo > DYNINSTheap_hiAddr)) {
+      free(node);
 #ifdef DEBUG
       fprintf(stderr, "CAN'T MMAP IN RANGE GIVEN\n");
 #endif 
@@ -327,6 +331,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 #if !defined(os_osf)
     if (0 > fd) {
       free(node);
+      free(maps);
       return NULL;
     }
 #endif

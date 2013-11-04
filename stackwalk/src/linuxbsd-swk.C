@@ -149,9 +149,10 @@ bool ProcSelf::getDefaultThread(THR_ID &default_tid)
         const char *sys_err_msg = strerror(errno);
         sw_printf("[%s:%u] - gettid syscall failed with %s\n",
                 __FILE__, __LINE__, sys_err_msg);
-        std::string errmsg("gettid syscall failed with ");
-        errmsg += sys_err_msg;
-        setLastError(err_internal, errmsg.c_str());
+        // Note, it's illegal to use a string temp for setLastError, so this
+        // just sets a non-specific const message instead.  But P_gettid
+        // should never fail anyway, as even ENOSYS is retried with getpid.
+        setLastError(err_internal, "gettid syscall failed");
         return false;
     }
 

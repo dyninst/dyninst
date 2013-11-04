@@ -331,7 +331,7 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
 
    FCNode *fc = files.getNode(name, symreader_factory);
    if (!fc)
-      return false;
+      return NULL;
 
    vector<SymSegment> segs;
    fc->getSegments(segs);
@@ -1005,6 +1005,7 @@ bool AddressTranslateSysV::plat_getTrapAddr() {
 
 Address AddressTranslateSysV::adjustForAddrSpaceWrap(Address base, std::string name) {
 #if !defined(arch_64bit)
+   (void)name; // unused
    return base;
 #else
    if (sizeof(long) != 8) return base;

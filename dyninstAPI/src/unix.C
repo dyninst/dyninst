@@ -286,6 +286,7 @@ bool PCProcess::setMemoryAccessRights(Address start, size_t size,
 bool PCProcess::getMemoryAccessRights(Address start, PCMemPerm& rights) {
     mal_printf("getMemoryAccessRights at %lx\n", start);
     assert(!"Not implemented yet");
+    (void)rights; // unused parameter
     return false;
 }
 
@@ -300,6 +301,7 @@ void PCProcess::redirectFds(int stdin_fd, int stdout_fd, int stderr_fd,
 bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileName) {
     const unsigned int ERROR_CODE = 101;
     bool use_abi_rt = false;
+    (void)fileName; // unused
 
 #if defined(arch_64bit)
     SymtabAPI::Symtab *symt_obj;

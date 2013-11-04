@@ -144,13 +144,7 @@ void StackAnalysis::summarizeBlocks() {
     for (unsigned j = 0; j < instances.size(); j++) {
       InstructionAPI::Instruction::Ptr insn = instances[j].first;
       Offset &off = instances[j].second;
-      Offset next;
-      if (j < (instances.size() - 1)) {
-		  next = instances[j+1].second;
-      }
-      else {
-		  next = block->end();
-      }
+
       // Fills in insnEffects[off]
       TransferFuncs &xferFuncs = insnEffects[block][off];
 

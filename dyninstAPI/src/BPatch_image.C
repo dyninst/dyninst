@@ -696,7 +696,6 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name,
     pdvector<int_variable *> vars;
     std::vector<AddressSpace *> as;
     int_variable *var = NULL;
-    AddressSpace *var_as = NULL;
     
     if (!addSpace)
        return NULL;
@@ -707,7 +706,6 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name,
       (void)as[i]->findVarsByAll(name, vars);
        if (vars.size()) {
           var = vars[0];
-          var_as = as[i];
           break;
        }
     }
@@ -718,7 +716,6 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name,
 	 (void)as[i]->findVarsByAll(under_name, vars);
           if (vars.size()) {
              var = vars[0];
-             var_as = as[i];
              break;
           }
        }
@@ -732,7 +729,6 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name,
           (void)as[i]->findVarsByAll(prefix_name, vars);
           if (vars.size()) {
              var = vars[0];
-             var_as = as[i];
              break;
           }
        }

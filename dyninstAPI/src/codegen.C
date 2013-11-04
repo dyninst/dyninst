@@ -771,7 +771,7 @@ std::string codeGen::format() const {
    Instruction::Ptr insn = deco.decode();
    ret << hex;
    while(insn) {
-     ret << "\t" << base << ": " << insn->format(base) << " / " << *((unsigned *)insn->ptr()) << endl;
+     ret << "\t" << base << ": " << insn->format(base) << " / " << *((const unsigned *)insn->ptr()) << endl;
       base += insn->size();
       insn = deco.decode();
    }

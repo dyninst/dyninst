@@ -1006,7 +1006,7 @@ BPatch_object *BPatch_process::loadLibrary(const char *libname, bool)
        if (!stopExecution()) {
           BPatch_reportError(BPatchWarning, 0, 
                   "Failed to stop process for loadLibrary");
-          return false;
+          return NULL;
        }
    }
 
@@ -1033,7 +1033,7 @@ BPatch_object *BPatch_process::loadLibrary(const char *libname, bool)
       BPatch_reportError(BPatchSerious, 100, msg.c_str());
    }
    BPatch_function *dlopen_func = bpfv[0];
-   if (dlopen_func == NULL) return false;
+   if (dlopen_func == NULL) return NULL;
 
    /**
     * Generate a call to DYNINSTloadLibrary, and then run the generated code.
@@ -1744,5 +1744,5 @@ bool BPatch_process::protectAnalyzedCode()
            ret = false;
        }
     }
-    return false;
+    return ret;
 }

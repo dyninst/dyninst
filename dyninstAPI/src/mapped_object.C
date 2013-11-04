@@ -619,7 +619,7 @@ const int_variable *mapped_object::getVariable(const std::string &varname) {
 block_instance *mapped_object::findBlockByEntry(Address addr)
 {
     std::set<block_instance *> allBlocks;
-    if (!findBlocksByAddr(addr, allBlocks)) return false;
+    if (!findBlocksByAddr(addr, allBlocks)) return NULL;
     for (std::set<block_instance *>::iterator iter = allBlocks.begin();
         iter != allBlocks.end(); ++iter)
     {

@@ -121,6 +121,7 @@ void DYNINSTbreakPoint()
 static int failed_breakpoint = 0;
 void uncaught_breakpoint(int sig)
 {
+   (void)sig; /* unused parameter */
    failed_breakpoint = 1;
 }
 
@@ -367,6 +368,7 @@ dyntid_t dyn_pthread_self()
    platform-ness here. 
 */
 int DYNINST_am_initial_thread( dyntid_t tid ) {
+	(void)tid; /* unused parameter */
 	if( dyn_lwp_self() == getpid() ) {
 		return 1;
    }
@@ -395,10 +397,10 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
   #endif // power
 #endif // UC_PC
 
-extern unsigned long dyninstTrapTableUsed;
-extern unsigned long dyninstTrapTableVersion;
-extern trapMapping_t *dyninstTrapTable;
-extern unsigned long dyninstTrapTableIsSorted;
+extern volatile unsigned long dyninstTrapTableUsed;
+extern volatile unsigned long dyninstTrapTableVersion;
+extern volatile trapMapping_t *dyninstTrapTable;
+extern volatile unsigned long dyninstTrapTableIsSorted;
 
 /**
  * This comment is now obsolete, left for historic purposes
@@ -429,6 +431,8 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
 {
    void *orig_ip;
    void *trap_to;
+   (void)sig; /* unused parameter */
+   (void)sg; /* unused parameter */
 
    orig_ip = (void *) UC_PC(context);
    assert(orig_ip);
@@ -438,18 +442,18 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
       unsigned long one = 1;
       struct trap_mapping_header *hdr = getStaticTrapMap((unsigned long) orig_ip);
       assert(hdr);
-      trapMapping_t *mapping = &(hdr->traps[0]);
+      volatile trapMapping_t *mapping = &(hdr->traps[0]);
       trap_to = dyninstTrapTranslate(orig_ip,
                                      (unsigned long *) &hdr->num_entries, 
                                      &zero, 
-                                     (volatile trapMapping_t **) &mapping,
+                                     &mapping,
                                      &one);
    }
    else {
       trap_to = dyninstTrapTranslate(orig_ip, 
                                      &dyninstTrapTableUsed,
                                      &dyninstTrapTableVersion,
-                                     (volatile trapMapping_t **) &dyninstTrapTable,
+                                     &dyninstTrapTable,
                                      &dyninstTrapTableIsSorted);
                                      
    }
@@ -577,7 +581,7 @@ static int parse_link_map(struct link_map *l)
    }
 
    new_pos = get_next_free_bitmask(all_headers_last, -1);
-   assert(new_pos >= 0 && new_pos < NUM_LIBRARIES);
+   assert(new_pos < NUM_LIBRARIES);
    if (new_pos == NUM_LIBRARIES)
       return ERROR_FULL;
 

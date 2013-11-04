@@ -176,7 +176,7 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
     
     pdvector<AstNodePtr> args;
     args.push_back(AstNode::operandNode(AstNode::Constant, (void *)page_start));
-    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)size));
+    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)(intptr_t)size));
     // prot = READ|WRITE|EXECUTE
     args.push_back(AstNode::operandNode(AstNode::Constant, (void *)7));
 
