@@ -52,7 +52,7 @@
 #include "common/src/pathName.h"
 
 #include "common/src/addrtranslate.h"
-#include "common/src//addrtranslate-sysv.h"
+#include "common/src/addrtranslate-sysv.h"
 
 #if defined(os_linux) || defined(os_bg)
 #define R_DEBUG_NAME "_r_debug"

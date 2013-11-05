@@ -29,7 +29,7 @@
  */
 
 #include "common/src/addrtranslate.h"
-#include "common/src//addrtranslate-sysv.h"
+#include "common/src/addrtranslate-sysv.h"
 #include "common/src/linuxKludges.h"
 
 #include <linux/limits.h>

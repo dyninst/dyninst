@@ -32,7 +32,7 @@
 #include "common/src/headers.h"
 
 #include "common/src/addrtranslate.h"
-#include "common/src//addrtranslate-sysv.h"
+#include "common/src/addrtranslate-sysv.h"
 
 using namespace Dyninst;
 
