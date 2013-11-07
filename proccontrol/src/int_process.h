@@ -764,27 +764,28 @@ public:
    } State;
    //The order of these is very important.  Lower numbered
    // states take precedence over higher numbered states.
-   static const int NumStateIDs = 18;
+   static const int NumStateIDs = 19;
    static const int NumTargetStateIDs = (NumStateIDs-2); //Handler and Generator states aren't target states
 
-   static const int AsyncStateID            = 0;
-   static const int CallbackStateID         = 1;
-   static const int PendingStopStateID      = 2;
-   static const int IRPCStateID             = 3;
-   static const int IRPCSetupStateID        = 4;
-   static const int IRPCWaitStateID         = 5;
-   static const int BreakpointStateID       = 6;
-   static const int BreakpointHoldStateID   = 7;
-   static const int BreakpointResumeStateID = 8;
-   static const int ExitingStateID          = 9;
-   static const int InternalStateID         = 10;
-   static const int StartupStateID          = 11;
-   static const int DetachStateID           = 12;
-   static const int UserRPCStateID          = 13;
-   static const int ControlAuthorityStateID = 14;
-   static const int UserStateID             = 15;
-   static const int HandlerStateID          = 16;
-   static const int GeneratorStateID        = 17;
+   static const int PostponedSyscallStateID = 0;
+   static const int AsyncStateID            = 1;
+   static const int CallbackStateID         = 2;
+   static const int PendingStopStateID      = 3;
+   static const int IRPCStateID             = 4;
+   static const int IRPCSetupStateID        = 5;
+   static const int IRPCWaitStateID         = 6;
+   static const int BreakpointStateID       = 7;
+   static const int BreakpointHoldStateID   = 8;
+   static const int BreakpointResumeStateID = 9;
+   static const int ExitingStateID          = 10;
+   static const int InternalStateID         = 11;
+   static const int StartupStateID          = 12;
+   static const int DetachStateID           = 13;
+   static const int UserRPCStateID          = 14;
+   static const int ControlAuthorityStateID = 15;
+   static const int UserStateID             = 16;
+   static const int HandlerStateID          = 17;
+   static const int GeneratorStateID        = 18;
    static std::string stateIDToName(int id);
 
    /**
@@ -861,6 +862,7 @@ public:
    };
 
    //State management, see above comment on states
+   StateTracker &getPostponedSyscallState();
    StateTracker &getExitingState();
    StateTracker &getStartupState();
    StateTracker &getBreakpointState();
@@ -1059,6 +1061,7 @@ public:
    Counter neonatal_threads;
    Counter pending_stackwalk_count;
 
+   StateTracker postponed_syscall_state;
    StateTracker exiting_state;
    StateTracker startup_state;
    StateTracker pending_stop_state;

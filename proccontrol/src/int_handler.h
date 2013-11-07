@@ -413,5 +413,15 @@ class HandleCallbacks : public Handler
   static void getRealEvents(EventType ev, std::vector<EventType> &out_evs);
 };
 
+class HandlePostponedSyscall : public Handler
+{
+ public:
+  HandlePostponedSyscall();
+  virtual ~HandlePostponedSyscall();
+
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+  virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
 
 #endif

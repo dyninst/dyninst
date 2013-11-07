@@ -89,6 +89,7 @@ class PC_EXPORT EventType
    static const int WinStopThreadDestroy = 511;
    static const int PreBootstrap        = 512;
    static const int Continue            = 513;
+   static const int PostponedSyscall    = 514;
 
    //Users should define their own events at this value or higher.
    static const int MaxProcCtrlEvent    = 1000;

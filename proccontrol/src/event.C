@@ -203,6 +203,7 @@ std::string EventType::name() const
       STR_CASE(AsyncReadAllRegs);
       STR_CASE(AsyncSetAllRegs);
       STR_CASE(AsyncFileRead);
+      STR_CASE(PostponedSyscall);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -1074,6 +1075,15 @@ int_eventAsyncFileRead *EventAsyncFileRead::getInternal()
 int_eventControlAuthority *EventControlAuthority::getInternalEvent() const 
 {
    return iev;
+}
+
+EventPostponedSyscall::EventPostponedSyscall() :
+   Event(EventType(EventType::None, EventType::PostponedSyscall))
+{
+}
+
+EventPostponedSyscall::~EventPostponedSyscall()
+{
 }
 
 int_eventBreakpoint::int_eventBreakpoint(Address a, sw_breakpoint *, int_thread *thr) :

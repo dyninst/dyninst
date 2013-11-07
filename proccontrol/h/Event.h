@@ -91,6 +91,7 @@ class EventAsyncWrite;
 class EventAsyncReadAllRegs;
 class EventAsyncSetAllRegs;
 class EventAsyncFileRead;
+class EventPostponedSyscall;
 
 class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
 {
@@ -245,6 +246,9 @@ class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
 
    boost::shared_ptr<EventAsyncFileRead> getEventAsyncFileRead();
    boost::shared_ptr<const EventAsyncFileRead> getEventAsyncFileRead() const;
+
+   boost::shared_ptr<EventPostponedSyscall> getEventPostponedSyscall();
+   boost::shared_ptr<const EventPostponedSyscall> getEventPostponedSyscall() const;
 
    //Not meant for public consumption
    void setLastError(err_t ec, const char *es);
@@ -848,6 +852,18 @@ class PC_EXPORT EventAsyncFileRead : public Event {
 
    bool isEOF() const;
    int errorCode() const;
+};
+
+class EventPostponedSyscall : public Event
+{
+   friend void boost::checked_delete<EventPostponedSyscall>(EventPostponedSyscall *);
+   friend void boost::checked_delete<const EventPostponedSyscall>(const EventPostponedSyscall *);
+  public:
+   typedef boost::shared_ptr<EventPostponedSyscall> ptr;
+   typedef boost::shared_ptr<const EventPostponedSyscall> const_ptr;
+
+   EventPostponedSyscall();
+   virtual ~EventPostponedSyscall();
 };
 
 }

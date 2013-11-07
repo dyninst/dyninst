@@ -278,6 +278,41 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       pthrd_printf("Decoded to signal %d\n", stopsig);
       switch (stopsig)
       {
+         case (SIGTRAP | 0x80): //PTRACE_O_TRACESYSGOOD
+            if (!proc || !thread) {
+                //Legacy event on old process?
+                return true;
+            }
+            pthrd_printf("Decoded event to syscall-stop on %d/%d\n",
+                  proc->getPid(), thread->getLWP());
+            if (lthread->hasPostponedSyscallEvent()) {
+               delete archevent;
+               archevent = lthread->getPostponedSyscallEvent();
+               ext = archevent->event_ext;
+               switch (ext) {
+                  case PTRACE_EVENT_FORK:
+                  case PTRACE_EVENT_CLONE:
+                     pthrd_printf("Resuming %s event after syscall exit on %d/%d\n",
+                                  ext == PTRACE_EVENT_FORK ? "fork" : "clone",
+                                  proc->getPid(), thread->getLWP());
+                     if (!archevent->findPairedEvent(parent, child)) {
+                        pthrd_printf("Parent half of paired event, postponing decode "
+                                     "until child arrives\n");
+                        archevent->postponePairedEvent();
+                        return true;
+                     }
+                     break;
+                  case PTRACE_EVENT_EXEC:
+                     pthrd_printf("Resuming exec event after syscall exit on %d/%d\n",
+                                  proc->getPid(), thread->getLWP());
+                     event = Event::ptr(new EventExec(EventType::Post));
+                     event->setSyncType(Event::sync_process);
+                     break;
+               }
+               break;
+            }
+            perr_printf("Received an unexpected syscall TRAP\n");
+            return false;
          case SIGSTOP:
             if (!proc) {               
                //The child half of an event pair.  Find the parent or postpone it.
@@ -318,6 +353,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 #endif
             ext = status >> 16;
             if (ext) {
+               bool postpone = false;
                switch (ext) {
                   case PTRACE_EVENT_EXIT:
                      if (!proc || !thread) {
@@ -338,13 +374,13 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      break;
                   case PTRACE_EVENT_FORK: 
                   case PTRACE_EVENT_CLONE: {
-                     pthrd_printf("Decoded event to %s on %d/%d\n",
-                                  ext == PTRACE_EVENT_FORK ? "fork" : "clone",
-                                  proc->getPid(), thread->getLWP());
                      if (!proc || !thread) {
                         //Legacy event on old process. 
                         return true;
                      }
+                     pthrd_printf("Decoded event to %s on %d/%d\n",
+                                  ext == PTRACE_EVENT_FORK ? "fork" : "clone",
+                                  proc->getPid(), thread->getLWP());
                      unsigned long cpid_l = 0x0;
                      int result = do_ptrace((pt_req) PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(), 
                                             NULL, &cpid_l);
@@ -354,26 +390,27 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      }
                      pid_t cpid = (pid_t) cpid_l;                     
                      archevent->child_pid = cpid;
-                     archevent->event_ext = ext;
-                     if (!archevent->findPairedEvent(parent, child)) {
-                        pthrd_printf("Parent half of paired event, postponing decode "
-                                     "until child arrives\n");
-                        archevent->postponePairedEvent();
-                        return true;
-                     }
+                     postpone = true;
                      break;
                   }
                   case PTRACE_EVENT_EXEC: {
-                     pthrd_printf("Decoded event to exec on %d/%d\n",
-                                  proc->getPid(), thread->getLWP());
                      if (!proc || !thread) {
                         //Legacy event on old process. 
                         return true;
                      }
-                     event = Event::ptr(new EventExec(EventType::Post));
-                     event->setSyncType(Event::sync_process);
+                     pthrd_printf("Decoded event to exec on %d/%d\n",
+                                  proc->getPid(), thread->getLWP());
+                     postpone = true;
                      break;
                   }
+               }
+               if (postpone) {
+                  pthrd_printf("Postponing event until syscall exit on %d/%d\n",
+                               proc->getPid(), thread->getLWP());
+                  archevent->event_ext = ext;
+                  event = Event::ptr(new EventPostponedSyscall());
+                  lthread->postponeSyscallEvent(archevent);
+                  archevent = NULL;
                }
                break;
             }
@@ -1129,6 +1166,25 @@ bool linux_process::plat_supportLWPPostDestroy()
    return true;
 }
 
+void linux_thread::postponeSyscallEvent(ArchEventLinux *event)
+{
+   assert(!postponed_syscall_event);
+   postponed_syscall_event = event;
+}
+
+bool linux_thread::hasPostponedSyscallEvent()
+{
+   return postponed_syscall_event != NULL;
+}
+
+ArchEventLinux *linux_thread::getPostponedSyscallEvent()
+{
+   ArchEventLinux *ret = postponed_syscall_event;
+   postponed_syscall_event = NULL;
+   return ret;
+}
+
+
 bool linux_thread::plat_cont()
 {
    pthrd_printf("Continuing thread %d\n", lwp);
@@ -1174,7 +1230,12 @@ bool linux_thread::plat_cont()
 
    void *data = (tmpSignal == 0) ? NULL : (void *) (long) tmpSignal;
    int result;
-   if (singleStep())
+   if (hasPostponedSyscallEvent())
+   {
+      pthrd_printf("Calling PTRACE_SYSCALL on %d with signal %d\n", lwp, tmpSignal);
+      result = do_ptrace((pt_req) PTRACE_SYSCALL, lwp, NULL, data);
+   }
+   else if (singleStep())
    {
       pthrd_printf("Calling PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SINGLESTEP, lwp, NULL, data);
@@ -1272,12 +1333,14 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 
 linux_thread::linux_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
-   thread_db_thread(p, t, l)
+   thread_db_thread(p, t, l),
+   postponed_syscall_event(NULL)
 {
 }
 
 linux_thread::~linux_thread()
 {
+   delete postponed_syscall_event;
 }
 
 bool linux_thread::plat_stop()
@@ -1306,6 +1369,7 @@ void linux_thread::setOptions()
    long options = 0;
    options |= PTRACE_O_TRACEEXIT;
    options |= PTRACE_O_TRACEEXEC;
+   options |= PTRACE_O_TRACESYSGOOD;
    if (llproc()->getLWPTracking()->lwp_getTracking())
       options |= PTRACE_O_TRACECLONE;
    if (llproc()->getFollowFork()->fork_isTracking() != FollowFork::ImmediateDetach)

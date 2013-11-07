@@ -178,7 +178,6 @@ class linux_thread : virtual public thread_db_thread
  public:
    linux_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
 
-   linux_thread();
    virtual ~linux_thread();
 
    virtual bool plat_cont();
@@ -203,8 +202,15 @@ class linux_thread : virtual public thread_db_thread
    void setOptions();
    bool unsetOptions();
    bool getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
-   
+
+   void postponeSyscallEvent(ArchEventLinux *event);
+   bool hasPostponedSyscallEvent();
+   ArchEventLinux *getPostponedSyscallEvent();
+
    static void fake_async_main(void *);
+
+ private:
+   ArchEventLinux *postponed_syscall_event;
 };
 
 class linux_x86_thread : virtual public linux_thread, virtual public x86_thread

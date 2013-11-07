@@ -2835,6 +2835,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    generator_nonexited_thrd_count(Counter::GeneratorNonExitedThreads),
    neonatal_threads(Counter::NeonatalThreads),
    pending_stackwalk_count(Counter::PendingStackwalks),
+   postponed_syscall_state(this, PostponedSyscallStateID, dontcare),
    exiting_state(this, ExitingStateID, dontcare),
    startup_state(this, StartupStateID, dontcare),
    pending_stop_state(this, PendingStopStateID, dontcare),
@@ -3163,6 +3164,11 @@ void int_thread::triggerContinueCBs()
    }
 }
 
+int_thread::StateTracker &int_thread::getPostponedSyscallState()
+{
+   return postponed_syscall_state;
+}
+
 int_thread::StateTracker &int_thread::getBreakpointState()
 {
    return breakpoint_state;
@@ -3278,6 +3284,7 @@ int_thread::StateTracker &int_thread::getActiveState() {
 int_thread::StateTracker &int_thread::getStateByID(int id)
 {
    switch (id) {
+      case PostponedSyscallStateID: return postponed_syscall_state;
       case ExitingStateID: return exiting_state;
       case StartupStateID: return startup_state;
       case AsyncStateID: return async_state;
@@ -3304,6 +3311,7 @@ int_thread::StateTracker &int_thread::getStateByID(int id)
 std::string int_thread::stateIDToName(int id)
 {
    switch (id) {
+      case PostponedSyscallStateID: return "postponed syscall";
       case ExitingStateID: return "exiting";      
       case StartupStateID: return "startup";
       case AsyncStateID: return "async";

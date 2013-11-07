@@ -891,6 +891,9 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    pthrd_printf("Handle thread create for %d/%d with new thread %d\n",
 	   proc->getPid(), thrd ? thrd->getLWP() : (Dyninst::LWP)(-1), threadev->getLWP());
 
+   if (thrd && thrd->getPostponedSyscallState().isDesynced())
+      thrd->getPostponedSyscallState().restoreState();
+
    if (ev->getEventType().code() == EventType::UserThreadCreate) {
       //If we support both user and LWP thread creation, and we're doing a user
       // creation, then the Thread object may already exist.  Do nothing.
@@ -1155,6 +1158,10 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
       //Silence this event.  Child will be detached.
       ev->setSuppressCB(true);
    }
+
+   int_thread *thrd = ev->getThread()->llthrd();
+   if (thrd && thrd->getPostponedSyscallState().isDesynced())
+      thrd->getPostponedSyscallState().restoreState();
 
    assert(child_proc);
    return child_proc->forked() ? ret_success : ret_error;
@@ -2461,6 +2468,27 @@ bool HandleCallbacks::removeCallback(Process::cb_func_t func)
    return true;
 }
 
+HandlePostponedSyscall::HandlePostponedSyscall() :
+   Handler("Postponed Syscall")
+{
+}
+
+HandlePostponedSyscall::~HandlePostponedSyscall()
+{
+}
+
+void HandlePostponedSyscall::getEventTypesHandled(vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::PostponedSyscall));
+}
+
+Handler::handler_ret_t HandlePostponedSyscall::handleEvent(Event::ptr ev)
+{
+   int_thread *thrd = ev->getThread()->llthrd();
+   thrd->getPostponedSyscallState().desyncState(int_thread::running);
+   return ret_success;
+}
+
 HandlerPool *createDefaultHandlerPool(int_process *p)
 {
    static bool initialized = false;
@@ -2494,6 +2522,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandlePreBootstrap* hprebootstrap = NULL;
    static iRPCLaunchHandler *hrpclaunch = NULL;
    static HandleAsyncFileRead *hasyncfileread = NULL;
+   static HandlePostponedSyscall *hppsyscall = NULL;
    if (!initialized) {
       hbootstrap = new HandleBootstrap();
       hsignal = new HandleSignal();
@@ -2525,6 +2554,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hdetach = new HandleDetach();
       hemulatedsinglestep = new HandleEmulatedSingleStep();
       hasyncfileread = new HandleAsyncFileRead();
+      hppsyscall = new HandlePostponedSyscall();
       initialized = true;
    }
    HandlerPool *hpool = new HandlerPool(p);
@@ -2558,6 +2588,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hdetach);
    hpool->addHandler(hemulatedsinglestep);
    hpool->addHandler(hasyncfileread);
+   hpool->addHandler(hppsyscall);
    plat_createDefaultHandlerPool(hpool);
 
    print_add_handler = false;
