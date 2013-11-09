@@ -1163,6 +1163,15 @@ bool PCProcess::detachProcess(bool /*cont*/) {
 
     if( !isAttached() ) return false;
 
+    if (tracedSyscalls_) {
+        tracedSyscalls_->removePreFork();
+        tracedSyscalls_->removePostFork();
+        tracedSyscalls_->removePreExec();
+        tracedSyscalls_->removePostExec();
+        tracedSyscalls_->removePreExit();
+        tracedSyscalls_->removePreLwpExit();
+    }
+
     // TODO figure out if ProcControl should care about continuing a process
     // after detach
     
