@@ -104,8 +104,8 @@ struct X86InstructionSemantics {
     }
     
 
-    template <size_t Len>
-    Word(Len) invertMaybe(const Word(Len)& w, bool inv) {
+    template <typename W>
+    W invertMaybe(const W& w, bool inv) {
         if (inv) {
             return policy.invert(w);
         } else {
@@ -118,8 +118,8 @@ struct X86InstructionSemantics {
         return policy.template number<Len>(v);
     }
 
-    template <size_t From, size_t To, size_t Len>
-        Word(To - From) extract(Word(Len) w) {
+    template <size_t From, size_t To, typename W>
+        Word(To - From) extract(W w) {
         return policy.template extract<From, To>(w);
     }
 
@@ -1742,7 +1742,7 @@ struct X86InstructionSemantics {
             case x86_aaa: {
                 ROSE_ASSERT(operands.size() == 0);
                 Word(1) incAh = policy.or_(policy.readFlag(x86_flag_af),
-                                           greaterOrEqualToTen(extract<0, 4>(policy.readGPR(x86_gpr_ax))));
+                                           greaterOrEqualToTen<4>(extract<0, 4>(policy.readGPR(x86_gpr_ax))));
                 updateGPRLowWord(x86_gpr_ax,
                                  policy.concat(policy.add(policy.ite(incAh, number<4>(6), number<4>(0)),
                                                           extract<0, 4>(policy.readGPR(x86_gpr_ax))),
@@ -1761,7 +1761,7 @@ struct X86InstructionSemantics {
             case x86_aas: {
                 ROSE_ASSERT(operands.size() == 0);
                 Word(1) decAh = policy.or_(policy.readFlag(x86_flag_af),
-                                           greaterOrEqualToTen(extract<0, 4>(policy.readGPR(x86_gpr_ax))));
+                                           greaterOrEqualToTen<4>(extract<0, 4>(policy.readGPR(x86_gpr_ax))));
                 updateGPRLowWord(x86_gpr_ax,
                                  policy.concat(policy.add(policy.ite(decAh, number<4>(-6), number<4>(0)),
                                                           extract<0, 4>(policy.readGPR(x86_gpr_ax))),

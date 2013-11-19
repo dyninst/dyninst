@@ -46,7 +46,7 @@
 #define DO_INLINE_F
 #endif
 
-#define ListHash(ptr, size) (((unsigned int)(ptr) % (unsigned int)(size)))
+#define ListHash(ptr, size) (((unsigned int)(intptr_t)(ptr) % (unsigned int)(size)))
 
 template <class DataType> class List;
 template <class DataType, class KeyType> class ListBase;
