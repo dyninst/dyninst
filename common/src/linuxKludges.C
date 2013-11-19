@@ -1069,7 +1069,7 @@ bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps)
          continue;
       }
       unsigned lwp_id = atoi(direntry->d_name+1);
-      int lwp_ppid;
+      int lwp_ppid = 0;
       if (!lwp_id) 
          continue;
       sprintf(name, "/proc/%d/status", lwp_id);
