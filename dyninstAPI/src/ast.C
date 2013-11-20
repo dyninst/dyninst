@@ -2399,7 +2399,7 @@ BPatch_type *AstOperandNode::checkType(BPatch_function* func)
         ret = BPatch::bpatch->type_Untyped; 
       }
     }
-    else if ((oType == origRegister)) {
+    else if (oType == origRegister) {
         ret = BPatch::bpatch->type_Untyped;
     }
     else {
