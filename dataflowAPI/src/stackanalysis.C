@@ -1028,7 +1028,7 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(const RegisterState &in
 // something that can take further input.
 void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc> &inputs ) {
    TransferFunc &input = inputs[target];
-   if (input.target.isValid()) assert(input.target = target);
+   if (input.target.isValid()) assert(input.target == target);
    input.target = target; // Default constructed TransferFuncs won't have this
    assert(target.isValid());
 
