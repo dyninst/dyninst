@@ -1,5 +1,9 @@
 # CMake configuration for dyninstAPI_RT directory
 
+if (PLATFORM MATCHES bgq)
+set (CMAKE_C_COMPILER mpicc)
+endif()
+
 include_directories (
     ${PROJECT_SOURCE_DIR}/dyninstAPI_RT/src
   )
@@ -162,7 +166,7 @@ ENDMACRO (CHECK_C_COMPILER_FLAG_EXTENDED)
 message (STATUS "Checking for 32-bit runtime library...")
 
 CHECK_C_COMPILER_FLAG_EXTENDED ("-m32" CHECK_RT_LIB_32)
-if (CHECK_RT_LIB_32)
+if (CHECK_RT_LIB_32 AND NOT ${PLATFORM} MATCHES bgq)
 message (STATUS "Enabling 32-bit runtime library; change BUILD_RTLIB_32 to OFF to disable")
 SET (BUILD_RTLIB_32 ON CACHE STRING "Build 32-bit version of RT library")
 ELSE ()
