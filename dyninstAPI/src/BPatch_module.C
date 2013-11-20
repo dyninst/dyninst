@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string>
+#include <sstream>
 
 #define BPATCH_FILE
 
@@ -546,9 +547,10 @@ BPatch_module::findFunctionByAddress(void *addr, BPatch_Vector<BPatch_function *
         }
    }
    if (funcs.empty() && notify_on_failure) {
-       std::string msg = std::string("No functions at: "
-           + (Address)addr + mod->fileName());
-       BPatch_reportError(BPatchSerious, 100, msg.c_str());
+       std::ostringstream msg;
+       msg << "No functions at: " << std::hex << (Address)addr
+           << " " << mod->fileName();
+       BPatch_reportError(BPatchSerious, 100, msg.str().c_str());
    }
 
    return &funcs;
