@@ -1367,7 +1367,7 @@ bool DwarfWalker::getReturnType(bool hasSpecification, Type *&returnType) {
    DWARF_CHECK_RET(status == DW_DLV_ERROR);
    if ( status == DW_DLV_NO_ENTRY ) {
      dwarf_printf("(0x%lx) Return type is void\n", id());
-      return NULL;
+      return false;
    }
 
    /* There's a return type attribute. */
