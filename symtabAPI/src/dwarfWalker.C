@@ -2086,6 +2086,7 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
 
   DWARF_FAIL_RET(dwarf_loclist_from_expr_a(dbg(), expr_ptr, expr_len, addr_size, 
 					   &descs, &cnt, NULL));
+  assert(cnt == 1);
 
   bool ret = decodeLocationListForStaticOffsetOrAddress(&descs, cnt, locs, NULL);
   //deallocateLocationList(&descs, cnt);
