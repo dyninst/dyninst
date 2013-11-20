@@ -962,7 +962,7 @@ Offset emitElfStatic::layoutNewCtorRegion(LinkMap &lmap) {
 
     pair<map<Region *, LinkMap::AllocPair>::iterator, bool> result;
 
-    vector<Region *>::iterator reg_it;
+    set<Region *, CtorComp<Region*> >::iterator reg_it;
     for(reg_it = lmap.newCtorRegions.begin(); reg_it != lmap.newCtorRegions.end(); ++reg_it) {
         result = lmap.regionAllocs.insert(make_pair(*reg_it, make_pair(0, retOffset)));
 
@@ -1041,7 +1041,7 @@ Offset emitElfStatic::layoutNewDtorRegion(LinkMap &lmap) {
         retOffset += lmap.originalDtorRegion->getDiskSize() - addressWidth_ - addressWidth_;
     }
 
-    vector<Region *>::iterator reg_it;
+    set<Region *, CtorComp<Region*> >::iterator reg_it;
     for(reg_it = lmap.newDtorRegions.begin(); reg_it != lmap.newDtorRegions.end(); ++reg_it) {
         result = lmap.regionAllocs.insert(make_pair(*reg_it, make_pair(0, retOffset)));
 
