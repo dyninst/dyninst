@@ -391,7 +391,7 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
   #endif // amd-64
 #elif defined(arch_power)
   #if defined(arch_64bit)
-    #define UC_PC(x) x->uc_mcontext.gp_regs[32]
+    #define UC_PC(x) x->uc_mcontext.regs->gpr[32]
   #else // 32-bit
     #define UC_PC(x) x->uc_mcontext.uc_regs->gregs[32]
   #endif // power
