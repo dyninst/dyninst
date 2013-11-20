@@ -106,6 +106,19 @@ class int_callStackUnwinding : virtual public int_process
    virtual bool plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs) = 0;
 };
 
+class int_memUsage : virtual public resp_process
+{
+  public:
+   MemoryUsage *up_ptr;
+   int_memUsage(Dyninst::PID p, std::string e, std::vector<std::string> a,
+                std::vector<std::string> envp, std::map<int,int> f);
+   int_memUsage(Dyninst::PID pid_, int_process *p);
+   virtual ~int_memUsage();
+   virtual bool plat_getStackUsage(MemUsageResp_t *resp) = 0;
+   virtual bool plat_getHeapUsage(MemUsageResp_t *resp) = 0;
+   virtual bool plat_getSharedUsage(MemUsageResp_t *resp) = 0;
+};
+
 class int_multiToolControl : virtual public int_process
 {
   protected:
@@ -154,7 +167,7 @@ class int_BGQData : virtual public int_process
    virtual void bgq_getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const = 0;
 };
 
-class int_remoteIO : public resp_process
+class int_remoteIO : virtual public resp_process
 {
   public:
    RemoteIO *up_ptr;

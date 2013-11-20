@@ -51,6 +51,7 @@ class int_signalMask;
 class int_callStackUnwinding;
 class int_BGQData;
 class int_remoteIO;
+class int_memUsage;
 
 namespace bgq {
    class bgq_process;
@@ -226,6 +227,34 @@ class PC_EXPORT CallStackUnwinding
    CallStackUnwinding(Thread::ptr t);
    virtual ~CallStackUnwinding();
    bool walkStack(CallStackCallback *stk_cb) const;
+};
+
+class PC_EXPORT MemoryUsage
+{
+   friend class ::int_process;
+   friend class ::int_memUsage;
+  private:
+   MemoryUsage(Process::ptr proc_);
+   ~MemoryUsage();
+   Process::weak_ptr proc;
+  public:
+   bool sharedUsed(unsigned long &sused) const;
+   bool heapUsed(unsigned long &hused) const;
+   bool stackUsed(unsigned long &sused) const;
+};
+
+class PC_EXPORT MemoryUsageSet
+{
+   friend class ProcessSet;
+   friend class PSetFeatures;
+  protected:
+   MemoryUsageSet(ProcessSet::ptr ps_);
+   ~MemoryUsageSet();
+   ProcessSet::weak_ptr wps;
+  public:
+   bool sharedUsed(std::map<Process::const_ptr, unsigned long> &used) const;
+   bool heapUsed(std::map<Process::const_ptr, unsigned long> &used) const;
+   bool stackUsed(std::map<Process::const_ptr, unsigned long> &used) const;
 };
 
 class PC_EXPORT CallStackUnwindingSet

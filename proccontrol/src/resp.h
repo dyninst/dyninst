@@ -153,5 +153,6 @@ class int_eventAsyncFileRead;
 typedef RespItem<Dyninst::ProcControlAPI::stat64_ptr> StatResp_t;
 typedef RespItem<Dyninst::ProcControlAPI::int_eventAsyncFileRead> FileReadResp_t;
 typedef RespItem<Dyninst::ProcControlAPI::FileSet> FileSetResp_t;
+typedef RespItem<unsigned long> MemUsageResp_t;
 
 #endif

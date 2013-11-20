@@ -69,6 +69,7 @@ private:
    LWPTrackingSet *lwpset;
    FollowForkSet *forkset;
    RemoteIOSet *ioset;
+   MemoryUsageSet *memset;
 };
 
 class TSetFeatures {
@@ -1092,6 +1093,28 @@ RemoteIOSet *ProcessSet::getRemoteIO()
    return NULL;
 }
 
+MemoryUsageSet *ProcessSet::getMemoryUsage()
+{
+   if (features && features->memset)
+      return features->memset;
+
+   MTLock lock_this_func;
+   if (!procset)
+      return NULL;
+   if (!features) {
+      features = new PSetFeatures();
+   }
+   for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
+      Process::ptr p = *i;
+      if (p->getMemoryUsage()) {
+         features->memset = new MemoryUsageSet(shared_from_this());
+         return features->memset;
+      }
+   }
+
+   return NULL;
+}
+
 const LibraryTrackingSet *ProcessSet::getLibraryTracking() const
 {
    return const_cast<ProcessSet *>(this)->getLibraryTracking();
@@ -1117,6 +1140,10 @@ const RemoteIOSet *ProcessSet::getRemoteIO() const
    return const_cast<ProcessSet *>(this)->getRemoteIO();
 }
 
+const MemoryUsageSet *ProcessSet::getMemoryUsage() const
+{
+   return const_cast<ProcessSet *>(this)->getMemoryUsage();
+}
 ProcessSet::ptr ProcessSet::getErrorSubset() const
 {
    MTLock lock_this_func;
@@ -3717,3 +3744,159 @@ bool RemoteIOSet::readFileContents(const FileSet *fset)
    return !had_error;
 }
 
+MemoryUsageSet::MemoryUsageSet(ProcessSet::ptr ps_) :
+   wps(ps_)
+{
+}
+
+MemoryUsageSet::~MemoryUsageSet()
+{
+   wps = ProcessSet::weak_ptr();
+}
+
+bool MemoryUsageSet::sharedUsed(std::map<Process::const_ptr, unsigned long> &used) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   ProcessSet::ptr ps = wps.lock();
+   if (!ps) {
+      perr_printf("setTrackLibraries on deleted process set\n");
+      globalSetLastError(err_badparam, "sharedUsed attempted on deleted ProcessSet object");
+      return false;
+   }
+   set<MemUsageResp_t *> resps;
+   unsigned long *result_sizes = new unsigned long[ps->size()];
+   pthrd_printf("Performing set operation getting sharedUsed\n");
+
+   int_processSet *procset = ps->getIntProcessSet();
+   procset_iter iter("sharedUsed", had_error, ERR_CHCK_ALL);
+   unsigned j = 0;
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      int_memUsage *proc = (*i)->llproc()->getMemUsage();
+      if (!proc) {
+         perr_printf("GetMemUsage not supported on process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "No getMemUsage on this platform\n");
+         had_error = true;
+         continue;
+      }
+      MemUsageResp_t *resp = new MemUsageResp_t(result_sizes + j++, proc);
+      bool result = proc->plat_getSharedUsage(resp);
+      if (!result) {
+         had_error = true;
+         delete resp;
+         continue;
+      }
+
+      resps.insert(resp);
+   }
+
+   for (set<MemUsageResp_t *>::iterator i = resps.begin(); i != resps.end(); i++) {
+      MemUsageResp_t *resp = *i;
+      resp->getProc()->waitForEvent(resp);
+      used.insert(make_pair(resp->getProc()->proc(), *resp->get()));
+      delete resp;
+   }
+
+   delete [] result_sizes;
+
+   return !had_error;
+}
+
+bool MemoryUsageSet::heapUsed(std::map<Process::const_ptr, unsigned long> &used) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   ProcessSet::ptr ps = wps.lock();
+   if (!ps) {
+      perr_printf("setTrackLibraries on deleted process set\n");
+      globalSetLastError(err_badparam, "heapUsed attempted on deleted ProcessSet object");
+      return false;
+   }
+   set<MemUsageResp_t *> resps;
+   unsigned long *result_sizes = new unsigned long[ps->size()];
+   pthrd_printf("Performing set operation getting heapUsed\n");
+
+   int_processSet *procset = ps->getIntProcessSet();
+   procset_iter iter("heapUsed", had_error, ERR_CHCK_ALL);
+   unsigned j = 0;
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      int_memUsage *proc = (*i)->llproc()->getMemUsage();
+      if (!proc) {
+         perr_printf("GetMemUsage not supported on process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "No getMemUsage on this platform\n");
+         had_error = true;
+         continue;
+      }
+      MemUsageResp_t *resp = new MemUsageResp_t(result_sizes + j++, proc);
+      bool result = proc->plat_getHeapUsage(resp);
+      if (!result) {
+         had_error = true;
+         delete resp;
+         continue;
+      }
+
+      resps.insert(resp);
+   }
+
+   for (set<MemUsageResp_t *>::iterator i = resps.begin(); i != resps.end(); i++) {
+      MemUsageResp_t *resp = *i;
+      resp->getProc()->waitForEvent(resp);
+      used.insert(make_pair(resp->getProc()->proc(), *resp->get()));
+      delete resp;
+   }
+
+   delete [] result_sizes;
+
+   return !had_error;
+}
+
+bool MemoryUsageSet::stackUsed(std::map<Process::const_ptr, unsigned long> &used) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   ProcessSet::ptr ps = wps.lock();
+   if (!ps) {
+      perr_printf("setTrackLibraries on deleted process set\n");
+      globalSetLastError(err_badparam, "stackUsed attempted on deleted ProcessSet object");
+      return false;
+   }
+   set<MemUsageResp_t *> resps;
+   unsigned long *result_sizes = new unsigned long[ps->size()];
+   pthrd_printf("Performing set operation getting stackUsed\n");
+
+   int_processSet *procset = ps->getIntProcessSet();
+   procset_iter iter("stackUsed", had_error, ERR_CHCK_ALL);
+   unsigned j = 0;
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      int_memUsage *proc = (*i)->llproc()->getMemUsage();
+      if (!proc) {
+         perr_printf("GetMemUsage not supported on process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "No getMemUsage on this platform\n");
+         had_error = true;
+         continue;
+      }
+      MemUsageResp_t *resp = new MemUsageResp_t(result_sizes + j++, proc);
+      bool result = proc->plat_getStackUsage(resp);
+      if (!result) {
+         had_error = true;
+         delete resp;
+         continue;
+      }
+
+      resps.insert(resp);
+   }
+
+   for (set<MemUsageResp_t *>::iterator i = resps.begin(); i != resps.end(); i++) {
+      MemUsageResp_t *resp = *i;
+      resp->getProc()->waitForEvent(resp);
+      used.insert(make_pair(resp->getProc()->proc(), *resp->get()));
+      delete resp;
+   }
+
+   delete [] result_sizes;
+
+   return !had_error;
+}

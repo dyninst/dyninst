@@ -99,7 +99,7 @@ class DecoderLinux : public Decoder
    Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class linux_process : public sysv_process, public unix_process, public thread_db_process, public indep_lwp_control_process, public mmap_alloc_process, public int_followFork, public int_signalMask, public int_LWPTracking
+class linux_process : public sysv_process, public unix_process, public thread_db_process, public indep_lwp_control_process, public mmap_alloc_process, public int_followFork, public int_signalMask, public int_LWPTracking, public int_memUsage
 {
  public:
    linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -145,6 +145,12 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual FollowFork::follow_t fork_isTracking();
    virtual bool plat_lwpChangeTracking(bool b);
    virtual bool allowSignal(int signal_no);
+
+   bool readStatM(unsigned long &stk, unsigned long &heap, unsigned long &shrd);
+   virtual bool plat_getStackUsage(MemUsageResp_t *resp);
+   virtual bool plat_getHeapUsage(MemUsageResp_t *resp);
+   virtual bool plat_getSharedUsage(MemUsageResp_t *resp);
+
   protected:
    int computeAddrWidth(Dyninst::Architecture me);
 };

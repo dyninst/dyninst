@@ -285,6 +285,7 @@ static Mutex id_init_lock;
 bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
                          vector<string> envp, std::map<int, int> f) :
    int_process(p, e, a, envp, f),
+   resp_process(p, e, a, envp, f),
    sysv_process(p, e, a, envp, f),
    thread_db_process(p, e, a, envp, f),
    ppc_process(p, e, a, envp, f),
@@ -295,6 +296,7 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    int_callStackUnwinding(p, e, a, envp, f),
    int_BGQData(p, e, a, envp, f),
    int_remoteIO(p, e, a, envp, f),
+   int_memUsage(p, e, a, envp, f),
    last_ss_thread(NULL),
    lwp_tracker(NULL),
    hasControlAuthority(false),
@@ -309,6 +311,8 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    rank(pid),
    page_size(0),
    interp_base(0),
+   cur_memquery(no_memquery),
+   procdata_result_valid(false),
    get_thread_list(NULL),
    stopwait_on_control_authority(NULL),
    priority(0),
@@ -1315,8 +1319,10 @@ bool bgq_process::handleStartupEvent(void *data)
 
       for (unsigned i = 0; i < (unsigned) query_ack->numCommands; i++) {
          char *cmd_ptr = ((char *) data) + query_ack->cmdList[i].offset;
-         if (query_ack->cmdList[i].type == GetProcessDataAck)
+         if (query_ack->cmdList[i].type == GetProcessDataAck) {
             get_procdata_result = *(GetProcessDataAckCmd *) cmd_ptr;
+            procdata_result_valid = true;
+         }
          else if (query_ack->cmdList[i].type == GetAuxVectorsAck)
             get_auxvectors_result = *(GetAuxVectorsAckCmd *) cmd_ptr;
          else if (query_ack->cmdList[i].type == GetThreadListAck) {
@@ -1675,6 +1681,9 @@ bool bgq_process::plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCa
 
    pthrd_printf("Handling response with call stack %d/%d\n", t->llproc()->getPid(), t->getLWP());
 
+   bgt->last_stack_start = thrdata->stackStartAddr;
+   bgt->last_stack_end = thrdata->stackCurrentAddr;
+
    result = cbs->beginStackWalk(thr);
    if (!result) {
       pthrd_printf("User choose not to receive call stack data for %d/%d\n",
@@ -1790,6 +1799,74 @@ string int_process::plat_canonicalizeFileName(std::string path)
 int bgq_process::getMaxFileReadSize()
 {
    return MaxMemorySize;
+}
+
+bool bgq_process::fillInMemQuery(MemUsageResp_t *resp)
+{
+   assert(procdata_result_valid);
+
+   switch (cur_memquery) {
+      case no_memquery:
+         assert(0);
+      case shared_memquery:
+         *(resp->get()) = get_procdata_result.sharedMemoryEndAddr - get_procdata_result.sharedMemoryStartAddr;
+         break;
+      case stack_memquery:
+         #warning TODO
+         *(resp->get()) = 0;
+         break;
+      case heap_memquery:
+         *(resp->get()) = (get_procdata_result.heapBreakAddr - get_procdata_result.heapStartAddr) + 
+                          (get_procdata_result.mmapEndAddr - get_procdata_result.mmapStartAddr);
+         break;
+   }
+   resp->done();
+   return true;
+}
+
+bool bgq_process::handleMemQuery(MemUsageResp_t *resp)
+{
+   resp->post();
+
+   if (procdata_result_valid)
+      return fillInMemQuery(resp);
+
+   pthrd_printf("Sending GetProcessDataCmd for memory query for %d\n", getPid());
+   GetProcessDataCmd pdata;
+   pdata.threadID = 0;
+   bool result = sendCommand(pdata, GetProcessData);
+   if (!result) {
+      perr_printf("Error sending get process data command\n");
+      return false;
+   }
+   rotateTransaction();
+
+   return true;
+}
+
+bool bgq_process::plat_getStackUsage(MemUsageResp_t *resp)
+{
+   pthrd_printf("Accumulating stack usage for %d\n", getPid());
+   unsigned long stack_usage = 0;
+   for (int_threadPool::iterator i = threadpool->begin(); i != threadpool->end(); i++) {
+      bgq_thread *thr = dynamic_cast<bgq_thread *>(*i);
+      stack_usage += thr->last_stack_start - thr->last_stack_end;
+   }
+   *resp->get() = stack_usage;
+   resp->done();
+   return true;
+}
+
+bool bgq_process::plat_getHeapUsage(MemUsageResp_t *resp)
+{
+   cur_memquery = heap_memquery;
+   return handleMemQuery(resp);
+}
+
+bool bgq_process::plat_getSharedUsage(MemUsageResp_t *resp)
+{
+   cur_memquery = shared_memquery;
+   return handleMemQuery(resp);
 }
 
 bool bgq_process::allowSignal(int signal_no)
@@ -3497,6 +3574,23 @@ bool DecoderBlueGeneQ::decodeFileStat(ToolCommand *cmd, bgq_process *proc, unsig
    return true;
 }
 
+bool DecoderBlueGeneQ::decodeMemoryQuery(ArchEventBGQ * /*ev*/, bgq_process *proc, ToolCommand *cmd, unsigned int resp_id, int /*rc*/)
+{
+   assert(proc->cur_memquery != bgq_process::no_memquery);
+   proc->get_procdata_result = *static_cast<GetProcessDataAckCmd *>(cmd);
+   proc->procdata_result_valid = true;
+
+   bool is_complete;
+   Resp_ptr r = proc->recvResp(resp_id, is_complete);
+   assert(r && is_complete);
+   MemUsageResp_t *resp = static_cast<MemUsageResp_t *>(r);
+
+   proc->fillInMemQuery(resp);
+
+   proc->cur_memquery = bgq_process::no_memquery;
+   return true;
+}
+
 Event::ptr DecoderBlueGeneQ::createEventDetach(bgq_process *proc, bool err)
 {
    EventDetach::ptr new_ev = EventDetach::ptr(new EventDetach());
@@ -3760,7 +3854,10 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             break;
          case GetProcessDataAck:
             pthrd_printf("Decoded new event on %d to GetProcessData message\n", proc->getPid());
-            decodeStartupEvent(archevent, proc, msg, Event::async, events);
+            if (proc->startup_state < bgq_process::startup_done)
+               decodeStartupEvent(archevent, proc, msg, Event::async, events);
+            else
+               decodeMemoryQuery(archevent, proc, base_cmd, id, desc->returnCode);
             break;
          case GetFilenamesAck:
             pthrd_printf("Decoded event on %d to GetFilenamesAck\n", proc->getPid());
@@ -3833,7 +3930,9 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
                          proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
             break;
          case ContinueProcessAck:
-            pthrd_printf("Decoded ContinueProcessAck on %d/%d. Dropping\n", proc->getPid(), thr->getLWP());
+            pthrd_printf("Decoded ContinueProcessAck on %d/%d.\n", proc->getPid(), thr->getLWP());
+            if (proc)
+               proc->procdata_result_valid = false;
             break;
          case StepThreadAck:
             pthrd_printf("Decoded StepThreadAck on %d/%d. Dropping\n",

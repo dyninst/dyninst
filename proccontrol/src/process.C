@@ -1288,6 +1288,19 @@ int_multiToolControl *int_process::getMultiToolControl()
    return pMultiToolControl;
 }
 
+int_memUsage *int_process::getMemUsage()
+{
+   if (MemUsage_set)
+      return pMemUsage;
+   MemUsage_set = true;
+   pMemUsage = dynamic_cast<int_memUsage *>(this);
+   if (!pMemUsage)
+      return NULL;
+   if (!pMemUsage->up_ptr)
+      pMemUsage->up_ptr = new MemoryUsage(proc());
+   return pMemUsage;
+}
+
 int_signalMask *int_process::getSignalMask()
 {
    if (SignalMask_set)
@@ -1365,6 +1378,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
    pMultiToolControl(NULL),
    pSignalMask(NULL),
    pCallStackUnwinding(NULL),
+   pMemUsage(NULL),
    pBGQData(NULL),
    pRemoteIO(NULL),
    LibraryTracking_set(false),
@@ -1374,6 +1388,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
    MultiToolControl_set(false),
    SignalMask_set(false),
    CallStackUnwinding_set(false),
+   MemUsage_set(false),
    BGQData_set(false),
    remoteIO_set(false)
 {
@@ -1413,6 +1428,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    pMultiToolControl(NULL),
    pSignalMask(NULL),
    pCallStackUnwinding(NULL),
+   pMemUsage(NULL),
    pBGQData(NULL),
    pRemoteIO(NULL),
    LibraryTracking_set(false),
@@ -1422,6 +1438,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    MultiToolControl_set(false),
    SignalMask_set(false),
    CallStackUnwinding_set(false),
+   MemUsage_set(false),
    BGQData_set(false),
    remoteIO_set(false)
 {
@@ -5341,7 +5358,7 @@ int_library::int_library(std::string n, bool shared_lib,
    user_data(NULL),
    is_shared_lib(shared_lib)
 {
-   assert(n != "");
+//   assert(n != "");
    up_lib = Library::ptr(new Library());
    up_lib->lib = this;
 }
@@ -7047,6 +7064,15 @@ RemoteIO *Process::getRemoteIO()
    return proc->up_ptr;
 }
 
+MemoryUsage *Process::getMemoryUsage()
+{
+   MTLock lock_this_func;
+   PROC_EXIT_TEST("getMemoryUsage", NULL);
+   int_memUsage *proc = llproc_->getMemUsage();
+   if (!proc) return NULL;
+   return proc->up_ptr;
+}
+
 BGQData *Process::getBGQ()
 {
    MTLock lock_this_func;
@@ -7097,6 +7123,15 @@ const RemoteIO *Process::getRemoteIO() const
    MTLock lock_this_func;
    PROC_EXIT_TEST("getRemoteIO", NULL);
    int_remoteIO *proc = llproc_->getRemoteIO();
+   if (!proc) return NULL;
+   return proc->up_ptr;
+}
+
+const MemoryUsage *Process::getMemoryUsage() const
+{
+   MTLock lock_this_func;
+   PROC_EXIT_TEST("getMemoryUsage", NULL);
+   int_memUsage *proc = llproc_->getMemUsage();
    if (!proc) return NULL;
    return proc->up_ptr;
 }

@@ -73,7 +73,8 @@ class bgq_process :
    public int_signalMask,
    public int_callStackUnwinding,
    public int_BGQData,
-   public int_remoteIO
+   public int_remoteIO,
+   public int_memUsage
 {
    friend class ComputeNode;
    friend class HandlerBGQStartup;
@@ -188,6 +189,12 @@ class bgq_process :
    virtual bool allowSignal(int signal_no);
    
    virtual int threaddb_getPid();
+
+   bool fillInMemQuery(MemUsageResp_t *resp);
+   bool handleMemQuery(MemUsageResp_t *resp);
+   virtual bool plat_getStackUsage(MemUsageResp_t *resp);
+   virtual bool plat_getHeapUsage(MemUsageResp_t *resp);
+   virtual bool plat_getSharedUsage(MemUsageResp_t *resp);
   private:
    typedef Transaction<QueryMessage, QueryAckMessage> QueryTransaction;
    typedef Transaction<UpdateMessage, UpdateAckMessage> UpdateTransaction;
@@ -214,6 +221,13 @@ class bgq_process :
    unsigned int page_size;
    Address interp_base;
 
+   enum {
+      no_memquery,
+      shared_memquery,
+      stack_memquery,
+      heap_memquery
+   } cur_memquery;
+   bool procdata_result_valid;
    GetProcessDataAckCmd get_procdata_result;
    GetAuxVectorsAckCmd get_auxvectors_result;
    GetThreadListAckCmd *get_thread_list;
@@ -270,6 +284,8 @@ class bgq_thread : public thread_db_thread, public ppc_thread
    CallStackUnwinding *unwinder;
    Address last_ss_addr;
    stack_response::ptr pending_stack_resp;
+   Address last_stack_start;
+   Address last_stack_end;
   public:
    bgq_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~bgq_thread();
@@ -483,7 +499,7 @@ class DecoderBlueGeneQ : public Decoder
                            int rc, unsigned int resp_id, bool owns_msg,
                            std::vector<Event::ptr> &events);
    bool decodeGetFilenames(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, int rc, int id);
-
+   bool decodeMemoryQuery(ArchEventBGQ *ev, bgq_process *proc, ToolCommand *cmd, unsigned int resp_id, int rc);
    bool usesResp(uint16_t cmdtype);
 
    Event::ptr createEventDetach(bgq_process *proc, bool err);

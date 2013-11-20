@@ -92,6 +92,8 @@ class int_callStackUnwinding;
 class int_multiToolControl;
 class int_signalMask;
 class int_remoteIO;
+class int_memStats;
+class int_memUsage;
 
 struct bp_install_state {
    Dyninst::Address addr;
@@ -534,6 +536,7 @@ class int_process
    int_followFork *getFollowFork();
    int_multiToolControl *getMultiToolControl();
    int_signalMask *getSignalMask();
+   int_memUsage *getMemUsage();
    int_callStackUnwinding *getCallStackUnwinding();
    int_BGQData *getBGQData();
    int_remoteIO *getRemoteIO();
@@ -584,6 +587,7 @@ class int_process
    int_multiToolControl *pMultiToolControl;
    int_signalMask *pSignalMask;
    int_callStackUnwinding *pCallStackUnwinding;
+   int_memUsage *pMemUsage;
    int_BGQData *pBGQData;
    int_remoteIO *pRemoteIO;
    bool LibraryTracking_set;
@@ -593,6 +597,7 @@ class int_process
    bool MultiToolControl_set;
    bool SignalMask_set;
    bool CallStackUnwinding_set;
+   bool MemUsage_set;
    bool BGQData_set;
    bool remoteIO_set;
 };

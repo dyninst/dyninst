@@ -724,6 +724,7 @@ int linux_process::computeAddrWidth(Dyninst::Architecture me)
 linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
                              std::vector<std::string> envp,  std::map<int,int> f) :
    int_process(p, e, a, envp, f),
+   resp_process(p, e, a, envp, f),
    sysv_process(p, e, a, envp, f),
    unix_process(p, e, a, envp, f),
    thread_db_process(p, e, a, envp, f),
@@ -731,12 +732,14 @@ linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::str
    mmap_alloc_process(p, e, a, envp, f),
    int_followFork(p, e, a, envp, f),
    int_signalMask(p, e, a, envp, f),
-   int_LWPTracking(p, e, a, envp, f)
+   int_LWPTracking(p, e, a, envp, f),
+   int_memUsage(p, e, a, envp, f)
 {
 }
 
 linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
+   resp_process(pid_, p),
    sysv_process(pid_, p),
    unix_process(pid_, p),
    thread_db_process(pid_, p),
@@ -744,7 +747,8 @@ linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    mmap_alloc_process(pid_, p),
    int_followFork(pid_, p),
    int_signalMask(pid_, p),
-   int_LWPTracking(pid_, p)
+   int_LWPTracking(pid_, p),
+   int_memUsage(pid_, p)
 {
 }
 
@@ -971,6 +975,7 @@ bool linux_process::plat_writeMem(int_thread *thr, const void *local,
 linux_x86_process::linux_x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
                                      std::vector<std::string> envp, std::map<int,int> f) :
    int_process(p, e, a, envp, f),
+   resp_process(p, e, a, envp, f),
    linux_process(p, e, a, envp, f),
    x86_process(p, e, a, envp, f)
 {
@@ -978,6 +983,7 @@ linux_x86_process::linux_x86_process(Dyninst::PID p, std::string e, std::vector<
 
 linux_x86_process::linux_x86_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
+   resp_process(pid_, p),
    linux_process(pid_, p),
    x86_process(pid_, p)
 {
@@ -1006,6 +1012,7 @@ bool linux_x86_process::plat_supportHWBreakpoint()
 linux_ppc_process::linux_ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
                                      std::vector<std::string> envp, std::map<int,int> f) :
    int_process(p, e, a, envp, f),
+   resp_process(p, e, a, envp, f),
    linux_process(p, e, a, envp, f),
    ppc_process(p, e, a, envp, f)
 {
@@ -1013,6 +1020,7 @@ linux_ppc_process::linux_ppc_process(Dyninst::PID p, std::string e, std::vector<
 
 linux_ppc_process::linux_ppc_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
+   resp_process(pid_, p),
    linux_process(pid_, p),
    ppc_process(pid_, p)
 {
@@ -1603,6 +1611,63 @@ bool linux_process::plat_lwpChangeTracking(bool) {
 bool linux_process::allowSignal(int signal_no) {
    dyn_sigset_t mask = getSigMask();
    return sigismember(&mask, signal_no);
+}
+
+bool linux_process::readStatM(unsigned long &stk, unsigned long &heap, unsigned long &shrd)
+{
+   char path[64];
+   snprintf(path, 64, "/proc/%d/statm", getPid());
+   path[63] = '\0';
+   
+   unsigned long size, resident, shared, text, lib, data, dt;
+   FILE *f = fopen(path, "r");
+   if (!f) {
+      perr_printf("Could not open %s: %s\n", path, strerror(errno));
+      setLastError(err_internal, "Could not access /proc");
+      return false;
+   }
+   fscanf(f, "%lu %lu %lu %lu %lu %lu %lu", &size, &resident, &shared, 
+          &text, &lib, &data, &dt);
+   fclose(f);
+   unsigned long page_size = getpagesize();
+
+   stk = 0;
+   shrd = (shared + text) * page_size;
+   heap = data * page_size;
+   return true;
+}
+
+bool linux_process::plat_getStackUsage(MemUsageResp_t *resp)
+{
+   unsigned long stk, heap, shrd;
+   bool result = readStatM(stk, heap, shrd);
+   if (!result) 
+      return false;
+   *resp->get() = stk;
+   resp->done();
+   return true;
+}
+
+bool linux_process::plat_getHeapUsage(MemUsageResp_t *resp)
+{
+   unsigned long stk, heap, shrd;
+   bool result = readStatM(stk, heap, shrd);
+   if (!result) 
+      return false;
+   *resp->get() = heap;
+   resp->done();
+   return true;
+}
+
+bool linux_process::plat_getSharedUsage(MemUsageResp_t *resp)
+{
+   unsigned long stk, heap, shrd;
+   bool result = readStatM(stk, heap, shrd);
+   if (!result) 
+      return false;
+   *resp->get() = shrd;
+   resp->done();
+   return true;
 }
 
 #if !defined(OFFSETOF)
