@@ -374,6 +374,28 @@ FrameNode::FrameNode(frame_cmp_wrapper f) :
 {
 }
 
+FrameNode::FrameNode(frame_cmp_wrapper f, string s) :
+   children(f),
+   parent(NULL),
+   frame_type(FTString),
+   walker(NULL),
+   had_error(false),
+   ftstring(s)
+{
+}
+
+FrameNode::FrameNode(const FrameNode &fn) :
+   children(fn.children.key_comp()),
+   parent(NULL),
+   frame_type(fn.frame_type),
+   frame(fn.frame),
+   thrd(fn.thrd),
+   walker(fn.walker),
+   had_error(fn.had_error),
+   ftstring(fn.ftstring)
+{
+}
+
 FrameNode::~FrameNode()
 {
 }
@@ -390,6 +412,12 @@ inline bool frame_cmp_wrapper::operator()(const FrameNode *a, const FrameNode *b
       return false;
    else if (b->frame_type == FrameNode::FTThread)
       return true;
+   else if (a->frame_type == FrameNode::FTString && b->frame_type == FrameNode::FTString)
+      return a->frameString() < b->frameString();
+   else if (a->frame_type == FrameNode::FTString)
+      return false;
+   else if (b->frame_type == FrameNode::FTString)
+      return true;
    else
       return f(a->frame, b->frame);
 }
@@ -400,6 +428,16 @@ CallTree::CallTree(frame_cmp_t cmpf)
    head = new FrameNode(cmp_wrapper);
    head->frame_type = FrameNode::FTHead;
    head->parent = NULL;
+}
+
+frame_cmp_t CallTree::getComparator()
+{
+   return cmp_wrapper.f;
+}
+
+frame_cmp_wrapper CallTree::getCompareWrapper()
+{
+   return cmp_wrapper;
 }
 
 static void deleteTree(FrameNode *node) {

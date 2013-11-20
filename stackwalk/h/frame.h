@@ -129,19 +129,19 @@ protected:
 
 //Default FrameComparators, if none provided
 typedef bool (*frame_cmp_t)(const Frame &a, const Frame &b); //Return true if a < b, by some comparison
-bool frame_addr_cmp(const Frame &a, const Frame &b); //Default
-bool frame_lib_offset_cmp(const Frame &a, const Frame &b);
-bool frame_symname_cmp(const Frame &a, const Frame &b);
-bool frame_lineno_cmp(const Frame &a, const Frame &b);
+SW_EXPORT bool frame_addr_cmp(const Frame &a, const Frame &b); //Default
+SW_EXPORT bool frame_lib_offset_cmp(const Frame &a, const Frame &b);
+SW_EXPORT bool frame_symname_cmp(const Frame &a, const Frame &b);
+SW_EXPORT bool frame_lineno_cmp(const Frame &a, const Frame &b);
 
 class FrameNode;
-struct frame_cmp_wrapper {
+struct SW_EXPORT frame_cmp_wrapper {
    frame_cmp_t f;
    bool operator()(const FrameNode *a, const FrameNode *b);
 };
 typedef std::set<FrameNode *, frame_cmp_wrapper> frame_set_t;
 
-class FrameNode {
+class SW_EXPORT FrameNode {
    friend class CallTree;
    friend class WalkerSet;
    friend struct frame_cmp_wrapper;
@@ -152,24 +152,30 @@ class FrameNode {
    enum {
       FTFrame,
       FTThread,
+      FTString,
       FTHead
    } frame_type;
    Frame frame;
    THR_ID thrd;
    Walker *walker;
    bool had_error;
+   std::string ftstring;
 
    FrameNode(frame_cmp_wrapper f);
   public:
    ~FrameNode();
 
+   FrameNode(frame_cmp_wrapper f, std::string s);
+   FrameNode(const FrameNode &fn);
    bool isFrame() const { return frame_type == FTFrame; }
    bool isThread() const { return frame_type == FTThread; }
    bool isHead() const { return frame_type == FTHead; }
+   bool isString() const { return frame_type == FTString; }
 
    const Frame *getFrame() const { return (frame_type == FTFrame) ? &frame : NULL; }
    Frame *getFrame() { return (frame_type == FTFrame) ? &frame : NULL; }
    THR_ID getThread() const { return (frame_type == FTThread) ? thrd : NULL_LWP; }
+   std::string frameString() const { return ftstring; }
    bool hadError() const { return (frame_type == FTThread) ? had_error : false; }
 
    const frame_set_t &getChildren() const { return children; }
@@ -178,11 +184,13 @@ class FrameNode {
    const FrameNode *getParent() const { return parent; }
    FrameNode *getParent() { return parent; }
 
+   void addChild(FrameNode *fn) { children.insert(fn); fn->parent = this; }
+   
    Walker *getWalker() { return walker; }
    const Walker *getWalker() const { return walker; }
 };
 
-class CallTree {
+class SW_EXPORT CallTree {
    friend class WalkerSet;
   public:
 
@@ -193,6 +201,8 @@ class CallTree {
 
    FrameNode *addFrame(const Frame &f, FrameNode *parent);
    FrameNode *addThread(THR_ID thrd, FrameNode *parent, Walker *walker, bool err_stack);
+   frame_cmp_t getComparator();
+   frame_cmp_wrapper getCompareWrapper();
 
    void addCallStack(const std::vector<Frame> &stk, THR_ID thrd, Walker *walker, bool err_stack);
   private:

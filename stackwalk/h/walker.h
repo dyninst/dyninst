@@ -162,7 +162,7 @@ class SW_EXPORT Walker {
    static SymbolReaderFactory *symrfact;
 };
 
-class WalkerSet {
+class SW_EXPORT WalkerSet {
   private:
    int_walkerSet *iwalkerset;
    WalkerSet();
