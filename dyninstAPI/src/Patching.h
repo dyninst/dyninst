@@ -49,7 +49,7 @@ namespace Dyninst {
 class DynPatchCallback : public PatchAPI::PatchCallback {
 
   public:
-    DynPatchCallback(AddressSpace* as) : as_(as) {}
+    DynPatchCallback() {}
     ~DynPatchCallback() {}
 
   protected:
@@ -75,9 +75,6 @@ class DynPatchCallback : public PatchAPI::PatchCallback {
                            PatchAPI::PatchBlock *, 
                            PatchAPI::PatchBlock *);
 #endif
-
-  private:
-    AddressSpace *as_;
 };
 };
 
