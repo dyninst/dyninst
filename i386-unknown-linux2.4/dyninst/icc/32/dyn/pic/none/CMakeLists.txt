@@ -26,14 +26,14 @@ target_link_libraries (test2_6.dyn_icc_32_pic_none ${CMAKE_DL_LIBS})
 add_executable (test2_8.dyn_icc_32_pic_none ${SOURCE_LIST_64})
 add_executable (test3_1.dyn_icc_32_pic_none ${SOURCE_LIST_43})
 add_executable (test3_2.dyn_icc_32_pic_none ${SOURCE_LIST_46})
-add_executable (test3_3.dyn_icc_32_pic_none ${SOURCE_LIST_95})
+add_executable (test3_3.dyn_icc_32_pic_none ${SOURCE_LIST_96})
 add_executable (test3_4.dyn_icc_32_pic_none ${SOURCE_LIST_54})
 add_executable (test3_5.dyn_icc_32_pic_none ${SOURCE_LIST_94})
 add_executable (test3_6.dyn_icc_32_pic_none ${SOURCE_LIST_33})
 add_executable (test3_7.dyn_icc_32_pic_none ${SOURCE_LIST_82})
 add_executable (test4_1.dyn_icc_32_pic_none ${SOURCE_LIST_1})
 add_executable (test4_2.dyn_icc_32_pic_none ${SOURCE_LIST_56})
-add_executable (test4_3.dyn_icc_32_pic_none ${SOURCE_LIST_101})
+add_executable (test4_3.dyn_icc_32_pic_none ${SOURCE_LIST_102})
 add_executable (test4_3b.dyn_icc_32_pic_none ${SOURCE_LIST_31})
 add_executable (test4_4.dyn_icc_32_pic_none ${SOURCE_LIST_50})
 add_executable (test4_4b.dyn_icc_32_pic_none ${SOURCE_LIST_67})
@@ -43,6 +43,7 @@ add_executable (test_fork_10.dyn_icc_32_pic_none ${SOURCE_LIST_71})
 add_executable (test_fork_11.dyn_icc_32_pic_none ${SOURCE_LIST_88})
 add_executable (test_fork_12.dyn_icc_32_pic_none ${SOURCE_LIST_6})
 add_executable (test_fork_13.dyn_icc_32_pic_none ${SOURCE_LIST_59})
+add_executable (test_fork_14.dyn_icc_32_pic_none ${SOURCE_LIST_95})
 add_executable (test_fork_5.dyn_icc_32_pic_none ${SOURCE_LIST_28})
 add_executable (test_fork_6.dyn_icc_32_pic_none ${SOURCE_LIST_7})
 add_executable (test_fork_7.dyn_icc_32_pic_none ${SOURCE_LIST_40})
@@ -59,7 +60,7 @@ add_executable (test_mem_8.dyn_icc_32_pic_none ${SOURCE_LIST_9})
 add_executable (test_snip_remove.dyn_icc_32_pic_none ${SOURCE_LIST_72})
 add_executable (test_stack_1.dyn_icc_32_pic_none ${SOURCE_LIST_25})
 add_executable (test_stack_2.dyn_icc_32_pic_none ${SOURCE_LIST_26})
-add_executable (test_stack_3.dyn_icc_32_pic_none ${SOURCE_LIST_97})
+add_executable (test_stack_3.dyn_icc_32_pic_none ${SOURCE_LIST_98})
 add_executable (test_stack_4.dyn_icc_32_pic_none ${SOURCE_LIST_85})
 add_executable (test_thread_1.dyn_icc_32_pic_none ${SOURCE_LIST_15})
 target_link_libraries (test_thread_1.dyn_icc_32_pic_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
@@ -109,6 +110,7 @@ INSTALL (TARGETS
 		test_fork_11.dyn_icc_32_pic_none
 		test_fork_12.dyn_icc_32_pic_none
 		test_fork_13.dyn_icc_32_pic_none
+		test_fork_14.dyn_icc_32_pic_none
 		test_fork_5.dyn_icc_32_pic_none
 		test_fork_6.dyn_icc_32_pic_none
 		test_fork_7.dyn_icc_32_pic_none

@@ -11,7 +11,7 @@ set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU} -m32 -Di386_unknown_linux2_4
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (symtab_group_test.dyn_g++_32_none_none ${SOURCE_LIST_35})
 target_link_libraries (symtab_group_test.dyn_g++_32_none_none testA_m32)
-add_executable (test_exception.dyn_g++_32_none_none ${SOURCE_LIST_69})
+add_executable (test_exception.dyn_g++_32_none_none ${SOURCE_LIST_70})
 
 
 INSTALL (TARGETS
