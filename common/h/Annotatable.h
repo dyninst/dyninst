@@ -235,7 +235,7 @@ class COMMON_EXPORT AnnotatableDense
 
 		 if (annotations->data == NULL) 
 		 {
-			annotations->data = (anno_list_t *) calloc(sizeof(anno_list_t *), (size));
+			annotations->data = (anno_list_t *) calloc(sizeof(anno_list_t), (size));
 			annotations->max = size;
 			for (unsigned i=0; i<size; i++)
 				annotations->data[i] = NULL;
@@ -245,7 +245,7 @@ class COMMON_EXPORT AnnotatableDense
 			 int old_max = annotations->max;
 			 size = annotations->max * 2;
 			 annotations->max = size;
-			 annotations->data = (anno_list_t *) realloc(annotations->data, sizeof(anno_list_t *) * size);
+			 annotations->data = (anno_list_t *) realloc(annotations->data, sizeof(anno_list_t) * size);
 			 for (unsigned i=old_max; i<size; i++)
 				 annotations->data[i] = NULL;
 		 }
