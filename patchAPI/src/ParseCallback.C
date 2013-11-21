@@ -133,13 +133,13 @@ void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *
    }
 
    if (pe->points_.during) {
-       pb->obj()->cb()->destroy(pe->points_.during);
        if (funcs.empty()) {
           pb->getFuncs(std::back_inserter(funcs));
        }
        for (vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {
            (*fit)->remove(pe->points_.during);
        }
+       pb->obj()->cb()->destroy(pe->points_.during);
        pe->points_.during = NULL;
    }
 }
