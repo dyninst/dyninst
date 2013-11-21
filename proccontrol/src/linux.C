@@ -1481,9 +1481,11 @@ bool linux_process::preTerminate() {
          threw_event = true;
       }
       bool exited = false;
+      auto pid = getPid();
       int_process::waitAndHandleForProc(true, this, exited);
       if (exited) {
-         perr_printf("Process %d exited during terminate handling.  Is this irony?\n", getPid());
+         // Note, can't even call getPid() anymore, since 'this' is ironically deleted.
+         perr_printf("Process %d exited during terminate handling.  Is this irony?\n", pid);
          return false;
       }
    }
