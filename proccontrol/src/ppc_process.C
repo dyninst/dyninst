@@ -223,7 +223,7 @@ async_ret_t ppc_process::readInsnForSS(Address pc, int_thread *, unsigned int &r
       pthrd_printf("Returning async from memory read during single step test\n");
       return aret_async;
    }
-   memcpy(&rawInsn, i->second->getBuffer(), sizeof(unsigned int));
+   memcpy(&rawInsn, new_resp->getBuffer(), sizeof(unsigned int));
    return aret_success;
 }
 
