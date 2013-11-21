@@ -230,6 +230,7 @@ Elf_X::~Elf_X()
   for (auto iter = elf_x_by_ptr.begin(); iter != elf_x_by_ptr.end(); ++iter) {
     if (iter->second == this) {
       elf_x_by_ptr.erase(iter);
+      return;
     }
   }
 }
