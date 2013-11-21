@@ -648,6 +648,7 @@ bool SymElfFactory::closeSymbolReader(SymReader *sr)
    std::map<std::string, SymElf *>::iterator i = open_symelfs->find(ser->file);
    if (i == open_symelfs->end()) {
       delete ser;
+      return true;
    }
 
    ser->ref_count--;
