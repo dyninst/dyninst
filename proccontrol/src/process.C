@@ -5537,8 +5537,7 @@ int_notify::int_notify() :
    events_noted(0)
 {
    the_notify = this;
-   up_notify = new EventNotify();
-   up_notify->llnotify = this;
+   up_notify.llnotify = this;
 }
 
 int_notify *notify()
@@ -7962,7 +7961,7 @@ void EventNotify::removeCB(notify_cb_t cb)
 
 EventNotify *Dyninst::ProcControlAPI::evNotify()
 {
-   return notify()->up_notify;
+   return &notify()->up_notify;
 }
 
 Breakpoint::Breakpoint()
