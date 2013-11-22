@@ -7,7 +7,7 @@
 
 namespace Dyninst {
 
-struct VariableLocation;
+class VariableLocation;
 class ProcessReader;
 
 namespace Dwarf {

@@ -529,7 +529,7 @@ BPatch_storageClass BPatch_localVar::convertToBPatchStorage(Dyninst::VariableLoc
                                              (loc->mr_reg == Dyninst::FrameBase) ||
                                              (loc->mr_reg == Dyninst::CFA)))
       return BPatch_storageFrameOffset;
-   else if((stClass == storageRegOffset))
+   else if(stClass == storageRegOffset)
       return BPatch_storageRegOffset;
    else {
       assert(0);

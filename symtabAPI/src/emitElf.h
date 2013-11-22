@@ -72,11 +72,7 @@ class emitElf{
     Elf_Data *dynsymData;
     Elf_Data *dynData;
     Elf_Data *rodata;
-    Elf_Data *dataData;
-    
-    Elf32_Shdr *textSh;
-    Elf32_Shdr *rodataSh;
-    
+
     Elf_Scn *phdrs_scn;
 
     std::vector<Region *>nonLoadableSecs;
@@ -98,8 +94,8 @@ class emitElf{
     Elf32_Off newSegmentStart;
     Elf32_Shdr *firstNewLoadSec;// initialize to NULL
  
-    //text & data segment ends
-    Elf32_Off dataSegEnd, textSegEnd;
+    // data segment end
+    Elf32_Off dataSegEnd;
 	 Elf32_Off dynSegOff, dynSegAddr, phdrSegOff, phdrSegAddr;
     unsigned dynSegSize;
 

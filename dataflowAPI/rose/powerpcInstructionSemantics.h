@@ -28,8 +28,8 @@ struct PowerpcInstructionSemantics {
     return policy.template number<Len>(v);
   }
 
-  template <size_t From, size_t To, size_t Len>
-  Word(To - From) extract(Word(Len) w) {
+  template <size_t From, size_t To, typename W>
+  Word(To - From) extract(W w) {
     return policy.template extract<From, To>(w);
   }
 
@@ -449,7 +449,7 @@ build_mask(uint8_t mb_value, uint8_t me_value)
            SgAsmExpression* RA = binaryAdd->get_lhs();
 
            Word(32) effectiveAddress = readEffectiveAddress(operands[1]);
-           writeMemory(effectiveAddress,read32(operands[0]),policy.true_());
+           writeMemory<32>(effectiveAddress,read32(operands[0]),policy.true_());
            write32(RA,effectiveAddress);
            break;
          }
@@ -989,7 +989,7 @@ build_mask(uint8_t mb_value, uint8_t me_value)
         // For 32-bit case we can ignore value of L
  
            Word(32) RA = read32(operands[2]);
-           Word(32) SI = policy.signExtend<16,32>(extract<0,16>(read32(operands[3])));
+           Word(32) SI = signExtend<16,32>(extract<0,16>(read32(operands[3])));
 
            Word(32) carries = number<32>(0);
 

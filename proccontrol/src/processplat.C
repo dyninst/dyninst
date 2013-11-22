@@ -516,7 +516,7 @@ bool RemoteIO::addToFileSet(std::string filename, FileSet *fs) const
 {
    MTLock lock_this_func;
    Process::const_ptr p = proc.lock();
-   PTR_EXIT_TEST(p, "addToFileSet", NULL);
+   PTR_EXIT_TEST(p, "addToFileSet", false);
    fs->insert(make_pair(p, FileInfo(filename)));
    return true;
 }

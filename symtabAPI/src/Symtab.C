@@ -3818,7 +3818,7 @@ SYMTAB_EXPORT bool Symtab::addTrapHeader_win(Address ptr)
    getObject()->setTrapHeader(ptr);
    return true;
 #else
-   ptr = ptr; //keep compiler happy
+   (void) ptr; //keep compiler happy
    assert(0);
    return false;
 #endif

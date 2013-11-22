@@ -219,7 +219,7 @@
  * the compiler are fine. 
  */
 #if !((__cplusplus >= 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X__))
-#if (__GNUC__ == 4 && __GNUC_MINOR__ == 7 && ((__GNUC_PATCHLEVEL__ == 0) || (__GNUC_PATCHLEVEL__ == 1)))
+#if defined(__GLIBCXX__) && (__GLIBCXX__ >= 20120322) && (__GLIBCXX__ < 20120920)
 #error "Using GCC 4.7.0 or 4.7.1 with Dyninst requires the -std:c++0x or -std:c++11 flag. Other versions do not."
 #endif
 #endif

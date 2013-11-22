@@ -47,7 +47,7 @@ namespace {
  * cases in this function are identical. We'll pay
  * extra in this (uncommon) case.
  */
-inline bool is_code(Function * f, Address addr)
+static inline bool is_code(Function * f, Address addr)
 {
     return f->region()->isCode(addr) ||
            f->isrc()->isCode(addr);

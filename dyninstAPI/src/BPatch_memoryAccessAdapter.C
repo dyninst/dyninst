@@ -183,8 +183,8 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction::Ptr insn,
         op != operands.end();
        ++op)
     {
-        isLoad = op->readsMemory();
-        isStore = op->writesMemory();
+        bool isLoad = op->readsMemory();
+        bool isStore = op->writesMemory();
         if(isLoad || isStore)
         {
             op->getValue()->apply(this);

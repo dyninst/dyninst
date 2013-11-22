@@ -72,7 +72,8 @@ COMMON_EXPORT const char *storageRefClass2Str(storageRefClass sc);
 //Use mr_reg instead of reg for new code.  reg left in for backwards
 // compatibility.
 
-struct VariableLocation  {
+class VariableLocation  {
+  public:
 	storageClass stClass;
 	storageRefClass refClass;
         MachRegister mr_reg;

@@ -212,10 +212,8 @@ class int_iRPC : public boost::enable_shared_from_this<int_iRPC>
    IRPC::weak_ptr hl_irpc;
    bool async;
    bool freeBinaryBlob;
-   bool needs_clean;
    bool restore_internal;
    bool counted_sync;
-   int lock_live;
    Dyninst::Address malloc_result;
    int_thread::State restore_at_end;
 
