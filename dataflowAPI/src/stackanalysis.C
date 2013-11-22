@@ -312,6 +312,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
     switch (what) {
        case e_push:
           sign = -1;
+          //FALLTHROUGH
        case e_pop:
           handlePushPop(insn, sign, xferFuncs);
           break;
@@ -324,6 +325,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
 	 break;
        case e_sub:
           sign = -1;
+          //FALLTHROUGH
        case e_add:
           handleAddSub(insn, sign, xferFuncs);
           break;
@@ -332,6 +334,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
           break;
        case e_pushfd:
           sign = -1;
+          //FALLTHROUGH
        case e_popfd:
           handlePushPopFlags(sign, xferFuncs);
           break;

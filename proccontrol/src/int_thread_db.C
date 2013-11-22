@@ -684,6 +684,7 @@ async_ret_t thread_db_process::initThreadDB() {
                pthrd_printf("Postponing thread_db initialization for async\n");
                return aret_async;
             }
+            //FALLTHROUGH
          default:
             perr_printf("Failed to create thread agent: %s(%d)\n",
                         tdErr2Str(errVal), errVal);

@@ -480,6 +480,7 @@ bool IA_IAPI::isFakeCall() const
             {
             case e_push:
                 sign = -1;
+                //FALLTHROUGH
             case e_pop: {
                 int size = insn->getOperand(0).getValue()->size();
                 stackDelta += sign * size;
@@ -488,6 +489,7 @@ bool IA_IAPI::isFakeCall() const
             case e_pusha:
             case e_pushad:
                 sign = -1;
+                //FALLTHROUGH
             case e_popa:
             case e_popad:
                 if (1 == sign) {
@@ -500,6 +502,7 @@ bool IA_IAPI::isFakeCall() const
             case e_pushf:
             case e_pushfd:
                 sign = -1;
+                //FALLTHROUGH
             case e_popf:
             case e_popfd:
                 stackDelta += sign * 4;
@@ -535,6 +538,7 @@ bool IA_IAPI::isFakeCall() const
 
             case e_sub:
                 sign = -1;
+                //FALLTHROUGH
             case e_add: {
                 Operand arg = insn->getOperand(1);
                 Result delta = arg.getValue()->eval();

@@ -1318,6 +1318,7 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
            break;
         case Region::RT_BSS:
            newshdr->sh_type = SHT_NOBITS;
+           //FALLTHROUGH
         case Region::RT_DATA:
            newshdr->sh_flags = SHF_WRITE | SHF_ALLOC;
            break;
