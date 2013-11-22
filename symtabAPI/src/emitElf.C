@@ -1172,7 +1172,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
   // libelf from overwriting the program headers data when outputing
   // sections.  Fill in the new section's data with what we just wrote.
   Elf_Data *data = elf_newdata(phdrs_scn);
-  size_t total_size = newEhdr->e_phnum * newEhdr->e_phentsize;
+  size_t total_size = (size_t)newEhdr->e_phnum * (size_t)newEhdr->e_phentsize;
   data->d_buf = malloc(total_size);
   memcpy(data->d_buf, phdr_data, total_size);
   data->d_size = total_size;
