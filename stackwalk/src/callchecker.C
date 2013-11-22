@@ -36,6 +36,7 @@ using namespace Stackwalker;
 using namespace std;
 
 CallChecker::CallChecker(ProcessState * proc_) : proc(proc_) {}
+CallChecker::~CallChecker() {}
 
 bool CallChecker::isPrevInstrACall(Address addr, Address & target)
 {

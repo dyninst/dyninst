@@ -70,6 +70,7 @@ AnalysisStepperImpl::AnalysisStepperImpl(Walker *w, AnalysisStepper *p) :
 
 AnalysisStepperImpl::~AnalysisStepperImpl()
 {
+    delete callchecker;
 }
 
 
