@@ -56,31 +56,12 @@ int P_getopt(int argc, char *argv[], const char *optstring)
 }
 
 int P_copy(const char *from, const char *to) {
-    int from_fd = P_open(from, O_RDONLY, 0);
-    if (from_fd == -1)  {
-        perror("Opening from file in copy"); 
-        return -1;
-    }
-    int to_fd = P_open(to, O_WRONLY | O_APPEND | O_CREAT | O_TRUNC, 0);
-    if (to_fd == -1) {
-        perror("Opening to file in copy");
-        close(from_fd);
-        return -1;
-    }
-
-    char buffer[1048576];
-    while(true) {
-        int amount = read(from_fd, buffer, 1048576);
-        if (amount == -1) {
-            perror("Reading in file copy");
-            return -1;
-        }
-        write(to_fd, buffer, amount);
-        if (amount < 1048576) break;
-    }
-    close(to_fd);
-    close(from_fd);
-    return 0;
+    std::ifstream src(from, std::ios::binary);
+    std::ofstream dst(to, std::ios::binary | std::ios::trunc);
+    dst << src.rdbuf();
+    dst.close();
+    src.close();
+    return (src && dst) ? 0 : -1;
 }
 
 
