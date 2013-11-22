@@ -2394,6 +2394,7 @@ bool HandleCallbacks::removeCallback(EventType oet, Process::cb_func_t func)
             bool result = removeCallback_int(et, func);
             if (result)
                removed_cb = true;
+            break;
          }
          case EventType::Any: {
             bool result1 = removeCallback_int(EventType(EventType::Pre, et.code()), func);
@@ -2433,6 +2434,7 @@ bool HandleCallbacks::removeCallback(EventType et)
       case EventType::Post:
       case EventType::None: {
          result = removeCallback_int(et);
+         break;
       }
       case EventType::Any: {
          bool result1 = removeCallback_int(EventType(EventType::Pre, et.code()));
