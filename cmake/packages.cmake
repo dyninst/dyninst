@@ -50,6 +50,8 @@ endif()
 add_library(libdwarf_imp SHARED IMPORTED)
 set_property(TARGET libdwarf_imp 
 		    PROPERTY IMPORTED_LOCATION ${LIBDWARF_LIBRARIES})
+
+if (NOT USE_GNU_DEMANGLER)
 find_package (LibIberty)
 
 if(NOT IBERTY_FOUND)
@@ -68,6 +70,7 @@ message(STATUS "Using libiberty ${IBERTY_LIBRARY}")
 add_library(libiberty_imp STATIC IMPORTED)
 set_property(TARGET libiberty_imp
 		    PROPERTY IMPORTED_LOCATION ${IBERTY_LIBRARY})
+endif()
 
 find_package (ThreadDB)
 include_directories (
