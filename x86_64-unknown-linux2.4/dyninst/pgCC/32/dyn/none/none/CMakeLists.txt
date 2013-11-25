@@ -8,6 +8,13 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE} -tp px -m32 -Di386_unknown_linux2_4 -Dm32_test ")
+IF (NOT ${M_pg_cxx} MATCHES "NOTFOUND")
+CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
+	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE}  -tp px -m32 -Di386_unknown_linux2_4 -Dm32_test  "
+	"${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE} -tp px -m32 -Di386_unknown_linux2_4 -Dm32_test "
+	MUTATEEpgcxx32dyn)
+
+IF (MUTATEEpgcxx32dyn)
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (amd64_7_arg_call.dyn_pgCC_32_none_none ${SOURCE_LIST_47})
 add_executable (dyninst_group_test.dyn_pgCC_32_none_none ${SOURCE_LIST_48})
@@ -119,3 +126,6 @@ INSTALL (TARGETS
 		test_thread_7.dyn_pgCC_32_none_none
 		test_thread_8.dyn_pgCC_32_none_none
 	DESTINATION ${INSTALL_DIR})
+
+ENDIF()
+ENDIF()

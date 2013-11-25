@@ -8,6 +8,13 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU}  -Wl,-export-dynamic")
+IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
+CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
+	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}    "
+	"${MUTATEE_LDFLAGS_GNU}  -Wl,-export-dynamic"
+	MUTATEEgnucxx32dyn)
+
+IF (MUTATEEgnucxx32dyn)
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
 add_executable (dyninst_cxx_group_test.dyn_g++_32_none_none ${SOURCE_LIST_92})
 add_executable (dyninst_group_test.dyn_g++_32_none_none ${SOURCE_LIST_69})
@@ -137,3 +144,6 @@ INSTALL (TARGETS
 		test_thread_7.dyn_g++_32_none_none
 		test_thread_8.dyn_g++_32_none_none
 	DESTINATION ${INSTALL_DIR})
+
+ENDIF()
+ENDIF()

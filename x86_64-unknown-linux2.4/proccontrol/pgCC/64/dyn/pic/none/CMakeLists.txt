@@ -8,6 +8,13 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  ")
+IF (NOT ${M_pg_cxx} MATCHES "NOTFOUND")
+CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
+	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  ${CXXFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE}    -KPIC"
+	"${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  "
+	MUTATEEpgcxx64dyn)
+
+IF (MUTATEEpgcxx64dyn)
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (pc_exec_targ.dyn_pgCC_64_pic_none ${SOURCE_LIST_28})
 
@@ -15,3 +22,6 @@ add_executable (pc_exec_targ.dyn_pgCC_64_pic_none ${SOURCE_LIST_28})
 INSTALL (TARGETS
 		pc_exec_targ.dyn_pgCC_64_pic_none
 	DESTINATION ${INSTALL_DIR})
+
+ENDIF()
+ENDIF()

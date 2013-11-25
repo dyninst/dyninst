@@ -3047,11 +3047,11 @@ compiler_define_string_32('iCC', 'intel_CC_32').
 compiler_define_string('bg_gcc', 'gnu_cc').
 compiler_define_string('bg_g++', 'gnu_xx').
 compiler_define_string('bg_gfortran', 'gnu_fc').
-compiler_define_string('bgq_gcc', 'gnu_cc').
-compiler_define_string('bgq_g++', 'gnu_xx').
+compiler_define_string('bgq_gcc', 'mpi_cc').
+compiler_define_string('bgq_g++', 'mpi_cxx').
 compiler_define_string('bgq_gfortran', 'gnu_fc').
-compiler_define_string('bgxlc', 'bg_cc').
-compiler_define_string('bgxlc++', 'bg_CC').
+compiler_define_string('bgxlc', 'mpi_xlc').
+compiler_define_string('bgxlc++', 'mpi_xlcxx').
 
 %%%%%%%%%%
 % *_s relations translate various internal atoms into strings than are

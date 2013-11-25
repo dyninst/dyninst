@@ -8,6 +8,13 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_G77_LDFLAGS}  ")
+IF (NOT ${M_gnu_fc} MATCHES "NOTFOUND")
+CHECK_MUTATEE_COMPILER ("${M_gnu_fc}"
+	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  -g ${MUTATEE_G77_FFLAGS}   "
+	"${MUTATEE_G77_LDFLAGS}  "
+	MUTATEEgnufc32dyn)
+
+IF (MUTATEEgnufc32dyn)
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
 add_executable (test1_10F.dyn_gfortran_32_none_none ${SOURCE_LIST_20})
 add_executable (test1_11F.dyn_gfortran_32_none_none ${SOURCE_LIST_12})
@@ -63,3 +70,6 @@ INSTALL (TARGETS
 		test1_8F.dyn_gfortran_32_none_none
 		test1_9F.dyn_gfortran_32_none_none
 	DESTINATION ${INSTALL_DIR})
+
+ENDIF()
+ENDIF()

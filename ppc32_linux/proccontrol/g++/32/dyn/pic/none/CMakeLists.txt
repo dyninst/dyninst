@@ -8,6 +8,13 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU}  -Wl,-export-dynamic")
+IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
+CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
+	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}    -fPIC"
+	"${MUTATEE_LDFLAGS_GNU}  -Wl,-export-dynamic"
+	MUTATEEgnucxx32dyn)
+
+IF (MUTATEEgnucxx32dyn)
 include (${PROJECT_SOURCE_DIR}/ppc32_linux/srclists.cmake)
 add_executable (pc_addlibrary.dyn_g++_32_pic_none ${SOURCE_LIST_39})
 target_link_libraries (pc_addlibrary.dyn_g++_32_pic_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
@@ -63,3 +70,6 @@ INSTALL (TARGETS
 		pc_thread.dyn_g++_32_pic_none
 		pc_thread_cont.dyn_g++_32_pic_none
 	DESTINATION ${INSTALL_DIR})
+
+ENDIF()
+ENDIF()

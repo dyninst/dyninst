@@ -4,6 +4,10 @@ project (Dyninst-TestSuite)
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules")
 include (c++11.cmake)
 
+#CMake tries to auto-add flags to link lines, which isn't helpful.  Blanking this variable should fix.
+SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
 find_package (Dyninst REQUIRED CONFIG)
 find_package (Threads)
 set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
@@ -190,17 +194,22 @@ FIND_PROGRAM(M_pg_cc NAMES pgcc)
 MESSAGE(STATUS "Mutatee pgcc: ${M_pg_cc}")
 FIND_PROGRAM(M_pg_cxx NAMES pgCC)
 MESSAGE(STATUS "Mutatee pgCC: ${M_pg_cxx}")
-#TODO BG/Q
+FIND_PROGRAM(M_mpi_cc NAMES mpicc)
+MESSAGE(STATUS "Mutatee mpicc: ${M_mpi_cc}")
+FIND_PROGRAM(M_mpi_cxx NAMES mpicxx)
+MESSAGE(STATUS "Mutatee mpicxx: ${M_mpi_cxx}")
+FIND_PROGRAM(M_mpi_xlc NAMES mpixlc)
+MESSAGE(STATUS "Mutatee mpixlc: ${M_mpi_xlc}")
+FIND_PROGRAM(M_mpi_xlcxx NAMES mpixlcxx)
+MESSAGE(STATUS "Mutatee mpixlcxx: ${M_mpi_xlcxx}")
+
 elseif(WIN32)
 FIND_PROGRAM (M_native_cc NAMES cl)
 FIND_PROGRAM (M_native_cxx NAMES cl)
 FIND_PROGRAM (M_native_linker NAMES link)
-set (MUTATEE_VC32dyn 1)
-set (MUTATEE_VCxx32dyn 1)
 endif (UNIX)
 
 include (checkMutateeCompiler.cmake)
-include (${DYNINST_PLATFORM}/cmake-compilers.txt)
 
 add_library (testA SHARED src/libtestA.c)
 add_library (testA_static STATIC src/libtestA.c)
@@ -223,7 +232,7 @@ install (TARGETS testA testB testA_static testB_static
 	ARCHIVE DESTINATION ${INSTALL_DIR}
 )
 
-if (${MUTATEE_gcc64dyn} AND ${MUTATEE_gcc32dyn})
+if(NOT ${PLATFORM} MATCHES nt)
 add_library (testA_m32 SHARED src/libtestA.c)
 add_library (testB_m32 SHARED src/libtestB.c)
 add_library (Test12_m32 SHARED src/dyninst/libTest12.c)

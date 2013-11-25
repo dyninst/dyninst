@@ -8,6 +8,13 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  ")
+IF (NOT ${M_pg_cc} MATCHES "NOTFOUND")
+CHECK_MUTATEE_COMPILER ("${M_pg_cc}"
+	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_NATIVE}    "
+	"${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  "
+	MUTATEEpgcc32dyn)
+
+IF (MUTATEEpgcc32dyn)
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
 add_executable (dyninst_group_test.dyn_pgcc_32_none_none ${SOURCE_LIST_69})
 target_link_libraries (dyninst_group_test.dyn_pgcc_32_none_none ${CMAKE_DL_LIBS})
@@ -135,3 +142,6 @@ INSTALL (TARGETS
 		test_thread_7.dyn_pgcc_32_none_none
 		test_thread_8.dyn_pgcc_32_none_none
 	DESTINATION ${INSTALL_DIR})
+
+ENDIF()
+ENDIF()

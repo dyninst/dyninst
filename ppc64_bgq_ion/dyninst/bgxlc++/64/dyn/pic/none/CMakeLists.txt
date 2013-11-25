@@ -2,12 +2,19 @@
 set (CMAKE_C_FLAGS "-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS} ${CXXFLAGS}   -qpic")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
-set (CMAKE_C_COMPILER "${M_bg_CC}")
+set (CMAKE_C_COMPILER "${M_mpi_xlcxx}")
 set (CMAKE_CXX_FLAGS ${CMAKE_C_FLAGS})
 set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_NATIVE}  -qnostaticlink")
+IF (NOT ${M_mpi_xlcxx} MATCHES "NOTFOUND")
+CHECK_MUTATEE_COMPILER ("${M_mpi_xlcxx}"
+	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS} ${CXXFLAGS}   -qpic"
+	"${MUTATEE_LDFLAGS_NATIVE}  -qnostaticlink"
+	MUTATEEmpixlcxx64dyn)
+
+IF (MUTATEEmpixlcxx64dyn)
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
 add_executable (dyninst_cxx_group_test.dyn_bgxlc++_64_pic_none ${SOURCE_LIST_45})
 add_executable (dyninst_group_test.dyn_bgxlc++_64_pic_none ${SOURCE_LIST_29})
@@ -117,3 +124,6 @@ INSTALL (TARGETS
 		test_thread_7.dyn_bgxlc++_64_pic_none
 		test_thread_8.dyn_bgxlc++_64_pic_none
 	DESTINATION ${INSTALL_DIR})
+
+ENDIF()
+ENDIF()

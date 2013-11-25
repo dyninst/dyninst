@@ -70,8 +70,8 @@ void initialize_mutatees(std::vector<RunGroup *> &t) {
 	# TODO Change these to get the string conversions from a tuple output
 	for group in rungroups:
 		compiler = info['compilers'][group['compiler']]
-		if compiler['presencevar'] != 'true':
-			out.write("#ifdef %s\n" % (compiler['presencevar']))
+#		if compiler['presencevar'] != 'true':
+#			out.write("#ifdef %s\n" % (compiler['presencevar']))
 		mutateename = mutatee_filename(group, compilers, platform, info)
 		out.write('  rg = new RunGroup("%s", ' % (mutateename))
 		if group['start_state'] == 'stopped':
@@ -149,8 +149,8 @@ void initialize_mutatees(std::vector<RunGroup *> &t) {
 			out.write('  add_test(rg, "%s");\n' % (ts))
 		out.write('  fini_group(rg);\n')
 		# Close compiler presence #ifdef
-		if compiler['presencevar'] != 'true':
-			out.write("#endif // defined(%s)\n" % (compiler['presencevar']))
+#		if compiler['presencevar'] != 'true':
+#			out.write("#endif // defined(%s)\n" % (compiler['presencevar']))
 	out.write('}\n')
 
 

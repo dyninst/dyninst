@@ -403,11 +403,10 @@ void setupVars(bool useLog, string &logfile)
    }
 
    pdscrdir = base_dir + "/dyninst/scripts";
+   bool have_scripts = true;
    if ( ! isDir(pdscrdir) )
    {
-      cerr << pdscrdir << " does not exist.  Paradyn scripts dir required." 
-         << endl;
-      exit(1);
+      have_scripts = false;
    }
 
    // Determine Test log dir
@@ -423,14 +422,20 @@ void setupVars(bool useLog, string &logfile)
 
    // Determin Test log file
    string buildnum, build_id;
-   buildnum = pdscrdir + "/buildnum";
-   if ( getenv("PARADYN_BASE") != NULL && isRegFile(buildnum) )
-   {
-      getInput(buildnum.c_str(), build_id); 
-   } else
-   {
-      getInput("date '+%Y-%m-%d'", build_id);
+   if (have_scripts) {
+      buildnum = pdscrdir + "/buildnum";
+      if ( getenv("PARADYN_BASE") != NULL && isRegFile(buildnum) )
+      {
+         getInput(buildnum.c_str(), build_id); 
+      } else
+      {
+         getInput("date '+%Y-%m-%d'", build_id);
+      }
    }
+   else {
+      build_id = string("0");
+   }
+      
 
    if ( useLog ) 
    {

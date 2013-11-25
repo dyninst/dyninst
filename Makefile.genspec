@@ -27,7 +27,7 @@ $(SUBDIRS:%=%/tuples): %/tuples: $(PROLOG_FILES)
 	cd $(TO_SPEC); gprolog --entry-goal "['spec-grouped.pl']" \
 		--entry-goal "test_init('$*')" \
 		--entry-goal "write_tuples('../../$@', '$*')" \
-		--entry-goal "halt" ; gzip ../../$@
+		--entry-goal "halt" ; gzip -f ../../$@
 
 $(SUBDIRS:%=%/cmake-mutatees.txt): %/cmake-mutatees.txt: $(PYTHON_FILES) %/tuples
 	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import generate ; generate.generate('$*')"

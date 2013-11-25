@@ -8,6 +8,13 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU} -m64 -Wl,-export-dynamic")
+IF (NOT ${M_gnu_cc} MATCHES "NOTFOUND")
+CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
+	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}  -m64  -fPIC"
+	"${MUTATEE_LDFLAGS_GNU} -m64 -Wl,-export-dynamic"
+	MUTATEEgnucc64dyn)
+
+IF (MUTATEEgnucc64dyn)
 include (${PROJECT_SOURCE_DIR}/ppc64_linux/srclists.cmake)
 add_executable (dyninst_group_test.dyn_gcc_64_pic_none ${SOURCE_LIST_14})
 target_link_libraries (dyninst_group_test.dyn_gcc_64_pic_none ${CMAKE_DL_LIBS})
@@ -117,3 +124,6 @@ INSTALL (TARGETS
 		test_thread_7.dyn_gcc_64_pic_none
 		test_thread_8.dyn_gcc_64_pic_none
 	DESTINATION ${INSTALL_DIR})
+
+ENDIF()
+ENDIF()

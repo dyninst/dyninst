@@ -8,6 +8,13 @@ set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU}  -Xlinker -export-dynamic")
+IF (NOT ${M_intel_CC} MATCHES "NOTFOUND")
+CHECK_MUTATEE_COMPILER ("${M_intel_CC}"
+	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  ${CXXFLAGS} -x c++ -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     "
+	"${MUTATEE_LDFLAGS_GNU}  -Xlinker -export-dynamic"
+	MUTATEEintelCC64dyn)
+
+IF (MUTATEEintelCC64dyn)
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (pc_exec_targ.dyn_iCC_64_none_none ${SOURCE_LIST_28})
 
@@ -15,3 +22,6 @@ add_executable (pc_exec_targ.dyn_iCC_64_none_none ${SOURCE_LIST_28})
 INSTALL (TARGETS
 		pc_exec_targ.dyn_iCC_64_none_none
 	DESTINATION ${INSTALL_DIR})
+
+ENDIF()
+ENDIF()

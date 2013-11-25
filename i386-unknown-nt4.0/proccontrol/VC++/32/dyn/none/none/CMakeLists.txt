@@ -10,6 +10,13 @@ set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
 set (CMAKE_C_LINK_EXECUTABLE ${M_native_linker})
 set (CMAKE_CXX_LINK_EXECUTABLE ${M_native_linker})
 set (CMAKE_EXE_LINKER_FLAGS "${LDFLAGS} ${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}   ws2_32.lib")
+IF (NOT ${M_native_cc} MATCHES "NOTFOUND")
+CHECK_MUTATEE_COMPILER ("${M_native_cc}"
+	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  -TP ${CXXFLAGS_NORM}   "
+	"${LDFLAGS} ${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}   ws2_32.lib"
+	MUTATEEnativecc32dyn)
+
+IF (MUTATEEnativecc32dyn)
 include (${PROJECT_SOURCE_DIR}/i386-unknown-nt4.0/srclists.cmake)
 add_executable (pc_addlibrary.dyn_VC++_32_none_none.exe ${SOURCE_LIST_28})
 target_link_libraries (pc_addlibrary.dyn_VC++_32_none_none.exe ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
@@ -60,3 +67,6 @@ INSTALL (TARGETS
 		pc_thread.dyn_VC++_32_none_none.exe
 		pc_thread_cont.dyn_VC++_32_none_none.exe
 	DESTINATION ${INSTALL_DIR})
+
+ENDIF()
+ENDIF()

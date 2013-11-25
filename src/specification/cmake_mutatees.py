@@ -101,9 +101,20 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
       linkage = compiler['dynamiclink']
    if platform['name'] == 'i386-unknown-nt4.0' and module == 'proccontrol':
       linkage = "%s %s" % (linkage, "ws2_32.lib")
-   out.write("set (CMAKE_EXE_LINKER_FLAGS \"%s %s %s\")\n" % ( compiler['flags']['link'],
-                                                               compiler['abiflags'][platform['name']][mut['abi']]['flags'],
-                                                               linkage))
+   link_flags = "%s %s %s" % (compiler['flags']['link'],
+                              compiler['abiflags'][platform['name']][mut['abi']]['flags'],
+                              linkage)
+   out.write("set (CMAKE_EXE_LINKER_FLAGS \"%s\")\n" % link_flags)
+   
+   varname = "MUTATEE%s%s%s" % (c_compiler, abi, stat_dyn)
+   varname = varname.replace('_', '')
+   
+   out.write("IF (NOT ${M_%s} MATCHES \"NOTFOUND\")\n" % c_compiler)
+   out.write("CHECK_MUTATEE_COMPILER (\"${M_%s}\"\n" % c_compiler)
+   out.write("\t\"%s\"\n" % c_flags)
+   out.write("\t\"%s\"\n" % link_flags)
+   out.write("\t%s)\n\n" % varname)
+   out.write("IF (%s)\n" % varname)
    
    out.write("include (${PROJECT_SOURCE_DIR}/%s/srclists.cmake)\n" % platform['name'])
    
@@ -133,12 +144,15 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    out.write("INSTALL (TARGETS\n")
    for m in mlist:
       out.write("\t\t%s\n" % utils.mutatee_binary(m, platform, info))
-   out.write("\tDESTINATION ${INSTALL_DIR})\n")
+   out.write("\tDESTINATION ${INSTALL_DIR})\n\n")
+   
+   out.write("ENDIF()\n");
+   out.write("ENDIF()\n");
    
    out.close()
 
    # And include it from the top-level test suite CMakeLists.txt
-   cmakelists.write("\tadd_subdirectory (%s/%s)\n" % (directory, path))
+   cmakelists.write("add_subdirectory (%s/%s)\n" % (directory, path))
 
 
 def print_src_lists(mutatees, platform, info, directory):
@@ -222,7 +236,7 @@ def print_src_lists(mutatees, platform, info, directory):
 def nested_dict():
    return defaultdict(nested_dict)
 
-def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compilers, directory):
+def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, directory):
 #
 # Now that we have each executable defined (in CMake-speak), we
 # need to specify the language so we don't get everything compiled
@@ -256,62 +270,19 @@ def print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compil
       cmake_tree[exe][abi][stat_dyn][pic][opt][module]['path'] = path;
       cmake_tree[exe][abi][stat_dyn][pic][opt][module].setdefault('mutatees', []).append(mut)
 
-   # What valid compiler combinations are there? Let's test that here. We put in CMake tests, 
-   # rather than testing it in the python, because we need to do this per-test-build-system. So
-   # we do it on the fly and set well-known variable names 
-
    for exe, tmp1 in cmake_tree.iteritems():
       for abi, tmp2 in tmp1.iteritems():
          for stat_dyn, tmp3 in tmp2.iteritems():
-            # Assuming everything else _just works_
-            compiler = info['compilers'][exe]
-            c_compiler = get_compiler_command(exe, platform, abi, info)
-            c_flags = get_flags(platform, info['compilers'][exe], abi, 'none', 'none')
-            if stat_dyn == 'stat':
-               linkage = compiler['staticlink']
-            else:
-               linkage = compiler['dynamiclink']
-            # Manual hack: check for a present libdl...
-            linkage = '%s -ldl' % linkage
-            c_flags = '%s %s -ldl' % (c_flags, linkage)
-            if 'c++' in compiler['languages']:
-               c_flags = '%s %s' % (c_flags, '-lstdc++')
-               linkage = '%s %s' % (linkage, '-lstdc++')
-                
-            # You want crazy? Apparently three underscores breaks CMAKE's regexp parser. So no
-            # underscores!
-            # And we can't redefine a variable as part of the cache, hence the two-level system.
-            varname = 'MUTATEE_%s%s%s' % (exe.replace('+','x'), abi, stat_dyn)
-            cmake_compilers.write("IF (NOT ${M_%s} MATCHES \"NOTFOUND\")\n" % c_compiler)
-            cmake_compilers.write("CHECK_MUTATEE_COMPILER (\"${M_%s}\"\n\t\"%s\"\n\t\"%s\"\n\tdummy%s)\n"
-                             % (c_compiler, c_flags, linkage, varname))
-            cmake_compilers.write("IF (dummy%s)\n" % varname)
-            cmake_compilers.write("SET (%s 1 CACHE STRING \"Build mutatees: compiler %s, ABI %s-bit, %s linked\")\n"
-                                  % (varname, exe, abi, stat_dyn))
-            cmake_compilers.write("ELSE()\n")
-            cmake_compilers.write("SET (%s 0 CACHE STRING \"Skip mutatees: compilers %s, ABI %s-bit, %s linked\")\n"
-                                  % (varname, exe, abi, stat_dyn))
-            cmake_compilers.write("ENDIF()\n")
-            cmake_compilers.write("ENDIF()\n")
-
-   for exe, tmp1 in cmake_tree.iteritems():
-      for abi, tmp2 in tmp1.iteritems():
-         for stat_dyn, tmp3 in tmp2.iteritems():
-            cmakelists.write("if (${MUTATEE_%s%s%s})\n" % (exe.replace('+','x'), 
-                                                           abi, 
-                                                           stat_dyn))
             for pic, tmp4 in tmp3.iteritems():
                for opt, tmp5 in tmp4.iteritems():
                   for module, tmp6 in tmp5.iteritems():
                      path = tmp6['path']
                      mlist = tmp6['mutatees']
                      print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platform, cmakelists, info, directory)
-            cmakelists.write("endif()\n")
 
 def write_mutatee_cmakelists(directory, info, platform):
    
    cmakelists = open(directory + "/cmake-mutatees.txt", "w")
-   cmake_compilers = open(directory + "/cmake-compilers.txt", "w")
 
    compilers = info['compilers']
    mutatees = info['mutatees']
@@ -320,6 +291,6 @@ def write_mutatee_cmakelists(directory, info, platform):
    modules = utils.uniq(map(lambda t: t['module'], info['tests']))
 
    print_src_lists(mutatees, platform, info, directory)
-   print_compiler_cmakefiles(mutatees, platform, info, cmakelists, cmake_compilers, directory)
+   print_compiler_cmakefiles(mutatees, platform, info, cmakelists, directory)
 #
 
