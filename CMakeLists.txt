@@ -16,8 +16,8 @@ set (SOVERSION "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}")
 set (LIBVERSION "${SOVERSION}.${DYNINST_PATCH_VERSION}")
 set (DYNINST_VERSION "${LIBVERSION}")
 
-#Change to revert to libiberty demangler
-set(USE_GNU_DEMANGLER 1)
+#Change to switch between libiberty/libstdc++ demangler
+#set(USE_GNU_DEMANGLER 1)
 
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules")
 include (cmake/platform.cmake)

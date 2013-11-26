@@ -108,7 +108,7 @@ FILE (GLOB headers "h/*.h")
 set_target_properties (common common_static PROPERTIES PUBLIC_HEADER "${headers}")
 
 if (${IBERTY_LIBRARY} MATCHES iberty)
-target_link_libraries (common ${IBERTY_LIBRARY})
+target_link_libraries (common LINK_PRIVATE ${IBERTY_LIBRARY})
 endif()
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)

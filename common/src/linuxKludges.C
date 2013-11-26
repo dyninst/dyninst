@@ -176,7 +176,7 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
 
 #if defined(cap_gnu_demangler)
 #include <cxxabi.h>
-using namespace __cxxabiv1;
+using namespace abi;
 #endif
 
 char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
