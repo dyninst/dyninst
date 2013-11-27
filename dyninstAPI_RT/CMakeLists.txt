@@ -1,11 +1,19 @@
 # CMake configuration for dyninstAPI_RT directory
-
-if (PLATFORM MATCHES bgq)
-set (CMAKE_C_COMPILER mpicc)
+if(UNIX)
+cmake_minimum_required (VERSION 2.8.11)
+else()
+cmake_minimum_required (VERSION 2.6.4)
 endif()
+project (DyninstRT)
+
+set (DYNINST_ROOT ${PROJECT_SOURCE_DIR}/..)
+
+include (${DYNINST_ROOT}/cmake/shared.cmake)
 
 include_directories (
-    ${PROJECT_SOURCE_DIR}/dyninstAPI_RT/src
+    ${DYNINST_ROOT}/dyninstAPI_RT/src
+    ${DYNINST_ROOT}/dyninstAPI_RT/h
+    ${DYNINST_ROOT}
   )
 
 set (SRC_LIST

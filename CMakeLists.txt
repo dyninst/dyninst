@@ -5,54 +5,14 @@ cmake_minimum_required (VERSION 2.6.4)
 endif()
 project (Dyninst)
 
-set (DYNINST_MAJOR_VERSION 8)
-set (DYNINST_MINOR_VERSION 2)
-set (DYNINST_PATCH_VERSION 0)
+set (DYNINST_ROOT ${PROJECT_SOURCE_DIR})
 
-# Debugging
-set(Boost_DEBUG 1)
-
-set (SOVERSION "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}")
-set (LIBVERSION "${SOVERSION}.${DYNINST_PATCH_VERSION}")
-set (DYNINST_VERSION "${LIBVERSION}")
-
-#Change to switch between libiberty/libstdc++ demangler
-#set(USE_GNU_DEMANGLER 1)
-
-set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules")
-include (cmake/platform.cmake)
-include (cmake/packages.cmake)
-include (cmake/cap_arch_def.cmake)
-include (cmake/c++11.cmake)
-include (cmake/visibility.cmake)
-include (cmake/warnings.cmake)
-include (cmake/options.cmake)
-include (cmake/optimization.cmake)
-
-set (BUILD_SHARED_LIBS ON)
-
-set (INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
-set (INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
-set (INSTALL_CMAKE_DIR lib/cmake/Dyninst CACHE PATH "Installation directory for CMake files")
-
-# Make the above absolute paths if necessary
-foreach (p LIB INCLUDE CMAKE)
-  set (var INSTALL_${p}_DIR)
-  if (NOT IS_ABSOLUTE "${${var}}")
-     set (${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
-  endif()
-endforeach()
-
-include_directories (
-                    ${PROJECT_SOURCE_DIR}
-                    ${PROJECT_SOURCE_DIR}/external
-  )
+include (${DYNINST_ROOT}/cmake/shared.cmake)
 
 if(${PLATFORM} MATCHES nt)
 set (HEADER_DIRS common
                  dataflowAPI
                  dyninstAPI
-                 dyninstAPI_RT
                  dynutil
                  instructionAPI
                  parseAPI
@@ -66,7 +26,6 @@ set (HEADER_DIRS common
                  dataflowAPI
                  dwarf
                  dyninstAPI
-                 dyninstAPI_RT
                  dynutil
                  elf
                  instructionAPI
@@ -80,8 +39,13 @@ set (HEADER_DIRS common
 endif()
 
 foreach (dir ${HEADER_DIRS})
-  include_directories ( ${PROJECT_SOURCE_DIR}/${dir}/h )
+  include_directories ( ${DYNINST_ROOT}/${dir}/h )
 endforeach()
+
+include_directories (
+                    ${DYNINST_ROOT}
+                    ${DYNINST_ROOT}/external
+  )
 
 # Component time
 add_subdirectory (common)
@@ -97,12 +61,39 @@ add_subdirectory (patchAPI)
 add_subdirectory (proccontrol)
 add_subdirectory (stackwalk)
 add_subdirectory (dyninstAPI)
-add_subdirectory (dyninstAPI_RT)
+
+#Build the RT library as a seperate project so we can change compilers
+set(RT_SOURCE_DIR ${DYNINST_ROOT}/dyninstAPI_RT)
+set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
+file(MAKE_DIRECTORY ${RT_BINARY_DIR})
+if (PLATFORM MATCHES bgq)
+set (RT_C_COMPILER mpicc)
+else()
+set (RT_C_COMPILER ${CMAKE_C_COMPILER})
+endif()
+
+execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR}
+                COMMAND ${CMAKE_COMMAND}
+                -DCMAKE_C_COMPILER=${RT_C_COMPILER}
+                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+                -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+                -DPLATFORM=${PLATFORM}
+                ${RT_SOURCE_DIR})
+add_custom_target(DyninstRT
+                  ALL
+                  COMMAND ${CMAKE_COMMAND} --build ${RT_BINARY_DIR} --config $<CONFIGURATION>
+                  COMMENT "Building DyninstRT"
+                  VERBATIM)
+install(CODE "execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR} COMMAND ${CMAKE_COMMAND} -P ${RT_BINARY_DIR}/cmake_install.cmake)")
+
 
 if(UNIX)
 add_dependencies(dynDwarf libdwarf_imp)
 add_dependencies(dynElf libelf_imp)
+if (NOT USE_GNU_DEMANGLER)
 add_dependencies(common libiberty_imp)
+endif()
 add_dependencies(libdwarf_imp libelf_imp)
 endif()
 
@@ -125,42 +116,6 @@ else()
 
 endif()
 
-if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
-    add_definitions(-Dsnprintf=_snprintf)
-endif()
-
-# RTlib properties are set in its CMakeLists.txt; it seems
-# like multiple set_target_properties calls override instead
-# of accumulating
-
-
-
-
-
-#
-# DyninstConfig.cmake
-
-# Not sure if needed...
-#export (PACKAGE Dyninst)
-
-file (RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${INSTALL_INCLUDE_DIR}")
-
-# For the build tree
-# I don't think we want this; it doesn't work quite right
-#foreach (dir ${HEADER_DIRS})
-#    set (CONF_INCLUDE_DIRS ${CONF_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/${dir}/h)
-#endforeach()
-#configure_file(cmake/DyninstConfig.cmake.in "${PROJECT_BINARY_DIR}/DyninstConfig.cmake" @ONLY)
-
-
-# For the install tree
-set (CONF_INCLUDE_DIRS "\${DYNINST_CMAKE_DIR}/${REL_INCLUDE_DIR}")
-
-configure_file(cmake/DyninstConfig.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfig.cmake" @ONLY)
-
-# And version file
-configure_file(cmake/DyninstConfigVersion.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfigVersion.cmake" @ONLY)
-
 if(UNIX)
 if(SHOULD_INSTALL_LIBELF)
 get_filename_component(ELFDIR "${LIBELF_LIBRARIES}" PATH)
@@ -182,3 +137,8 @@ install (FILES
         DESTINATION "${INSTALL_CMAKE_DIR}")
 install (EXPORT DyninstTargets
         DESTINATION "${INSTALL_CMAKE_DIR}")
+
+configure_file(cmake/DyninstConfig.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfig.cmake" @ONLY)
+
+# And version file
+configure_file(cmake/DyninstConfigVersion.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfigVersion.cmake" @ONLY)

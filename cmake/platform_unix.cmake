@@ -22,10 +22,10 @@ endif()
 
 if (INVALID_PLATFORM)
 # Try to set it automatically
-execute_process (COMMAND ${PROJECT_SOURCE_DIR}/scripts/sysname
+execute_process (COMMAND ${DYNINST_ROOT}/scripts/sysname
                  OUTPUT_VARIABLE SYSNAME_OUT
                  )
-execute_process (COMMAND ${PROJECT_SOURCE_DIR}/scripts/dynsysname ${SYSNAME_OUT}
+execute_process (COMMAND ${DYNINST_ROOT}/scripts/dynsysname ${SYSNAME_OUT}
                  OUTPUT_VARIABLE DYNSYSNAME_OUT
                  )
 string (REPLACE "\n" "" PLATFORM ${DYNSYSNAME_OUT})
