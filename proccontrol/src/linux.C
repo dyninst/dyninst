@@ -65,6 +65,12 @@
 #include "common/src/linuxKludges.h"
 #include "common/src/parseauxv.h"
 
+// Before glibc-2.7, sys/ptrace.h lacked PTRACE_O_* and PTRACE_EVENT_*, so we
+// need them from linux/ptrace.h.  (Conditionally, as later glibc conflicts.)
+#if !__GLIBC_PREREQ(2,7)
+#include <linux/ptrace.h>
+#endif
+
 using namespace Dyninst;
 using namespace ProcControlAPI;
 #include "symlite/h/SymLite-elf.h"
