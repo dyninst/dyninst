@@ -127,6 +127,7 @@ class IBSNode {
     typedef typename ITYPE::type interval_type;
   public:
     IBSNode() : 
+        val_(0),
         color(IBS::TREE_BLACK),
         left(NULL),
         right(NULL),
@@ -135,6 +136,7 @@ class IBSNode {
     /** constructor for non-nil elements **/
     IBSNode(interval_type value, IBSNode *n) :
         val_(value),
+        color(IBS::TREE_RED),
         left(n),
         right(n),
         parent(NULL) { }

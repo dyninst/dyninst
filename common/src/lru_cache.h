@@ -58,7 +58,6 @@ class LRUCache {
    int tail;
    lru_hash_func hash_func;
 
-   int bar;
    static const int lru_undefined = -1;
    static const int lru_tombstone = -2;
 

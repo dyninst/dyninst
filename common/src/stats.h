@@ -74,9 +74,6 @@ class COMMON_EXPORT Statistic  {
     virtual ~Statistic() {}; // Avoid warnings
 
     StatContainer *container_;
-
-    // 
-    bool valid;
 };
 
 class COMMON_EXPORT CntStatistic : public Statistic {

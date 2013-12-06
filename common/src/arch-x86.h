@@ -595,7 +595,7 @@ struct ia32_condition
   // TODO: add a field/hack for ECX [not needed for CMOVcc, but for Jcc]
   int tttn;
 
-  ia32_condition() : is(false) {}
+  ia32_condition() : is(false), tttn(-1) {}
   void set(int _tttn) { is = true; tttn = _tttn; }
 };
 
@@ -675,7 +675,9 @@ class ia32_instruction
  public:
   ia32_instruction(ia32_memacc* _mac = NULL, ia32_condition* _cnd = NULL,
                    ia32_locations *loc_ = NULL)
-    : mac(_mac), cond(_cnd), entry(NULL), loc(loc_), rip_relative_data(false) {}
+    : size(0), prf(), mac(_mac), cond(_cnd), entry(NULL), loc(loc_),
+      legacy_type(0), rip_relative_data(false)
+  {}
 
   ia32_entry * getEntry() { return entry; }
   unsigned int getSize() const { return size; }
