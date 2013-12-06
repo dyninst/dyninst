@@ -136,7 +136,8 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_,
     dec(dec_),
     validCFT(false), 
     cachedCFT(std::make_pair(false, 0)),
-    validLinkerStubState(false)
+    validLinkerStubState(false),
+    cachedLinkerStubState(false)
 {
     hascftstatus.first = false;
     tailCalls.clear();
