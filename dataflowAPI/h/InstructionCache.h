@@ -53,6 +53,7 @@ class InstructionCache
   ParseAPI::Function* currentFunction;
 
   public:
+  InstructionCache(): currentFunction(NULL) {}
   bool getLivenessInfo(Address addr, ParseAPI::Function* func, ReadWriteInfo& rw);
   void insertInstructionInfo(Address addr, ReadWriteInfo rw, ParseAPI::Function* func);
   void clean() {cache.clear();}

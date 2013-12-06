@@ -413,7 +413,7 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
 }
 
 StackAnalysis::StackAnalysis() :
-   func(NULL), intervals_(NULL) {};
+   func(NULL), intervals_(NULL), word_size(0) {};
    
 
 StackAnalysis::StackAnalysis(Function *f) : func(f),
