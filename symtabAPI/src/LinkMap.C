@@ -44,7 +44,10 @@ LinkMap::LinkMap() :
     gotRegionOffset(0), gotSize(0), gotRegionAlign(0),
     ctorDtorHandler(NULL), ctorRegionOffset(0), ctorSize(0),
     ctorRegionAlign(0), originalCtorRegion(NULL), dtorRegionOffset(0),
-    dtorSize(0), dtorRegionAlign(0), originalDtorRegion(NULL) 
+    dtorSize(0), dtorRegionAlign(0), originalDtorRegion(NULL),
+    pltRegionOffset(0), pltSize(0), pltRegionAlign(0),
+    relRegionOffset(0), relSize(0), relRegionAlign(0),
+    relGotRegionOffset(0), relGotSize(0), relGotRegionAlign(0)
 {
 }
 

@@ -48,9 +48,21 @@ DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
    mod_(NULL),
    symtab_(symtab),
    tc_(NULL),
+   is_mangled_name_(false),
    modLow(0),
-   modHigh(0) {
-}   
+   modHigh(0),
+   cu_header_length(0),
+   version(0),
+   abbrev_offset(0),
+   addr_size(0),
+   offset_size(0),
+   extension_size(0),
+   signature(),
+   typeoffset(0),
+   next_cu_header(0),
+   compile_offset(0)
+{
+}
 
 DwarfWalker::~DwarfWalker() {}
 

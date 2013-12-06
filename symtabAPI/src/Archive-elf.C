@@ -95,7 +95,7 @@ Archive::Archive(std::string& filename, bool& err)
 }
 
 Archive::Archive(char *, size_t, bool &err) 
-    : basePtr(NULL), symbolTableParsed(false) 
+    : mf(NULL), basePtr(NULL), symbolTableParsed(false)
 {
     err = false;
     serr = Obj_Parsing;

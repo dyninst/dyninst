@@ -450,7 +450,7 @@ bool FunctionBase::operator==(const FunctionBase &f)
 }
 
 InlinedFunction::InlinedFunction(FunctionBase *parent) :
-   FunctionBase(parent->getModule())
+   FunctionBase(parent->getModule()), callsite_line(0)
 {
    inline_parent = parent;
    parent->inlines.push_back(this);

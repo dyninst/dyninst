@@ -1804,21 +1804,22 @@ std::vector<Symbol *> *CBlock::getFunctions()
   return &functions;
 }
 
-Type::Type() : name_(std::string("unnamedType")), size_(0), type_(dataUnknownType) {}
+Type::Type() : ID_(0), name_(std::string("unnamedType")), size_(0),
+               type_(dataUnknownType), updatingSize(false), refCount(1) {}
 fieldListType::fieldListType() : derivedFieldList(NULL) {}
-rangedType::rangedType() {}
-derivedType::derivedType() {}
+rangedType::rangedType() : low_(0), hi_(0) {}
+derivedType::derivedType() : baseType_(NULL) {}
 typeEnum::typeEnum() {}
-typeFunction::typeFunction() {}
-typeScalar::typeScalar() {}
+typeFunction::typeFunction() : retType_(NULL) {}
+typeScalar::typeScalar() : isSigned_(false) {}
 typeCommon::typeCommon() {}
 typeStruct::typeStruct() {}
 typeUnion::typeUnion() {}
 typePointer::typePointer() {}
-typeTypedef::typeTypedef() {}
+typeTypedef::typeTypedef() : sizeHint_(0) {}
 typeRef::typeRef() {}
 typeSubrange::typeSubrange() {}
-typeArray::typeArray() {}
+typeArray::typeArray() : arrayElem(NULL), sizeHint_(0) {}
 
 #if !defined(SERIALIZATION_DISABLED)
 Serializable * Type::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
