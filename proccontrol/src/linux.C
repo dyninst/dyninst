@@ -2568,7 +2568,8 @@ ArchEventLinux::ArchEventLinux(pid_t p, int s) :
    pid(p), 
    interrupted(false), 
    error(0),
-   child_pid(NULL_PID)
+   child_pid(NULL_PID),
+   event_ext(0)
 {
 }
 
@@ -2577,7 +2578,8 @@ ArchEventLinux::ArchEventLinux(int e) :
    pid(NULL_PID),
    interrupted(false),
    error(e),
-   child_pid(NULL_PID)
+   child_pid(NULL_PID),
+   event_ext(0)
 {
 }
       
@@ -2774,8 +2776,12 @@ LinuxPtrace::LinuxPtrace() :
    pid(0),
    addr(NULL),
    data(NULL),
+   proc(NULL),
+   remote_addr(0),
    size(0),
-   ret(0)
+   ret(0),
+   bret(false),
+   err(0)
 {
 }
 

@@ -59,6 +59,7 @@ int_breakpoint *sysv_process::lib_trap = NULL;
 sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, vector<string> envp, map<int,int> f) :
    int_process(p, e, a, envp, f),
    int_libraryTracking(p, e, a, envp, f),
+   breakpoint_addr(0),
    lib_initialized(false),
    procreader(NULL),
    aout(NULL),
@@ -86,6 +87,8 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
      // method in a class that inherits from us
      translator_state = Ready;
    }
+   else
+     translator_state = NotReady;
 }
 
 sysv_process::~sysv_process()

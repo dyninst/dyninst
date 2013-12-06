@@ -327,7 +327,7 @@ bool ppc_process::plat_needsPCSaveBeforeSingleStep()
 }
 
 ppc_thread::ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
-   int_thread(p, t, l)
+   int_thread(p, t, l), have_cached_pc(false), cached_pc(0)
 {
 }
 
