@@ -451,15 +451,13 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
 	
     proc->getRegValue(heightIter->first, in.getThread(), sp_base);
     out_sp = sp_base - sp_height.height();
-	
+
     if(heightIter->second.height() == -1 * (long)proc->getAddressWidth())
     {
       // FP candidate: register pointing to entry SP
-       fprintf(stderr, "Found candidate FP %s, height 0x%lx\n",
-               heightIter->first.name().c_str(), (unsigned long) heightIter->second.height());
-      
+       sw_printf("[%s:%u] - Found candidate FP %s, height 0x%lx\n", __FILE__, __LINE__,
+                 heightIter->first.name().c_str(), (unsigned long) heightIter->second.height());
     }
-    
 
     // Since we know the outgoing SP,
     // the outgoing RA must be located just below it
