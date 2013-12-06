@@ -98,6 +98,7 @@ DebugStepperImpl::DebugStepperImpl(Walker *w, DebugStepper *parent) :
    FrameStepper(w),
    last_addr_read(0),
    last_val_read(0),
+   addr_width(0),
    parent_stepper(parent),
    cur_frame(NULL),
    depth_frame(NULL)
