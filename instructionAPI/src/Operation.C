@@ -170,7 +170,11 @@ namespace Dyninst
     Operation::Operation()
     {
       operationID = e_No_Entry;
+      doneOtherSetup = false;
+      doneFlagsSetup = false;
+      archDecodedFrom = Arch_none;
       prefixID = prefix_none;
+      addrWidth = u64;
     }
     
     const Operation::registerSet&  Operation::implicitReads() const

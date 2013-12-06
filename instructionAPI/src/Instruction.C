@@ -120,7 +120,7 @@ namespace Dyninst
     }
     
     INSTRUCTION_EXPORT Instruction::Instruction() :
-      m_Valid(false), m_size(0)
+      m_Valid(false), m_size(0), arch_decoded_from(Arch_none)
     {
 
 #if defined(DEBUG_INSN_ALLOCATIONS)

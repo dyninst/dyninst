@@ -117,7 +117,8 @@ namespace Dyninst
       InstructionDecoderImpl(a),
     locs(NULL),
     decodedInstruction(NULL),
-    sizePrefixPresent(false)
+    sizePrefixPresent(false),
+    addrSizePrefixPresent(false)
     {
       if(a == Arch_x86_64) setMode(true);
       
