@@ -40,8 +40,8 @@ set (CAP_DEFINES ${CAP_DEFINES}
 
 elseif (PLATFORM MATCHES ppc64)
 set (ARCH_DEFINES -Darch_power -Darch_64bit)
-set (CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -m64)
-set (CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -m64)
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
 set (CAP_DEFINES ${CAP_DEFINES} 
              -Dcap_32_64
              -Dcap_registers
