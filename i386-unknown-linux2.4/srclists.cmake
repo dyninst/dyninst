@@ -517,40 +517,44 @@ set (SOURCE_LIST_94
  	${SRC}/mutatee_util.c
  )
 set (SOURCE_LIST_95 
-	${SRC}/mutatee_driver.c	${SRC}/dyninst/test3_3_mutatee.c
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_fork_14_mutatee.c
  	${SRC}/mutatee_util.c
  )
 set (SOURCE_LIST_96 
+	${SRC}/mutatee_driver.c	${SRC}/dyninst/test3_3_mutatee.c
+ 	${SRC}/mutatee_util.c
+ )
+set (SOURCE_LIST_97 
 	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_terminate_stopped_mutatee.c
  	${SRC}/proccontrol/pcontrol_mutatee_tools.c
  	${SRC}/mutatee_util.c
  	${SRC}/mutatee_util_mt.c
  )
-set (SOURCE_LIST_97 
+set (SOURCE_LIST_98 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_stack_3_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_98 
+set (SOURCE_LIST_99 
 	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_fork_exec_mutatee.c
  	${SRC}/proccontrol/pcontrol_mutatee_tools.c
  	${SRC}/mutatee_util.c
  	${SRC}/mutatee_util_mt.c
  )
-set (SOURCE_LIST_99 
+set (SOURCE_LIST_100 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test1_14F_mutatee.c
  	${SRC}/mutatee_util.c
  	${SRC}/test1_14F_fortran.F
  )
-set (SOURCE_LIST_100 
+set (SOURCE_LIST_101 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test1_8F_mutatee.c
  	${SRC}/mutatee_util.c
  	${SRC}/test1_8F_fortran.F
  )
-set (SOURCE_LIST_101 
+set (SOURCE_LIST_102 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test4_3_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_102 
+set (SOURCE_LIST_103 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test1_4F_mutatee.c
  	${SRC}/mutatee_util.c
  	${SRC}/test1_4F_fortran.F
@@ -731,6 +735,8 @@ set_property (SOURCE ${SRC}/dyninst/test1_8_mutatee.c APPEND PROPERTY COMPILE_DE
 set_property (SOURCE ${SRC}/dyninst/test1_8_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=1)
 set_property (SOURCE ${SRC}/dyninst/test1_22_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=test1_22)
 set_property (SOURCE ${SRC}/dyninst/test1_22_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=1)
+set_property (SOURCE ${SRC}/dyninst/test_fork_14_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=test_fork_14)
+set_property (SOURCE ${SRC}/dyninst/test_fork_14_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=0)
 set_property (SOURCE ${SRC}/dyninst/test1_31F_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=test1_31F)
 set_property (SOURCE ${SRC}/dyninst/test1_31F_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=0)
 set_property (SOURCE ${SRC}/dyninst/test_snip_remove_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=test_snip_remove)

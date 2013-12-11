@@ -17,7 +17,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc64stat MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/amd64-unknown-freebsd7.2/srclists.cmake)
-add_executable (dyninst_group_test.stat_gcc_64_pic_none ${SOURCE_LIST_69})
+add_executable (dyninst_group_test.stat_gcc_64_pic_none ${SOURCE_LIST_70})
 add_executable (test1_14.stat_gcc_64_pic_none ${SOURCE_LIST_50})
 add_executable (test1_29.stat_gcc_64_pic_none ${SOURCE_LIST_4})
 add_executable (test1_35.stat_gcc_64_pic_none ${SOURCE_LIST_42})

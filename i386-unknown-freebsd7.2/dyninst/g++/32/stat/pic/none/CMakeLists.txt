@@ -17,11 +17,11 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 
 IF (MUTATEEgnucxx32stat MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-freebsd7.2/srclists.cmake)
-add_executable (dyninst_cxx_group_test.stat_g++_32_pic_none ${SOURCE_LIST_68})
+add_executable (dyninst_cxx_group_test.stat_g++_32_pic_none ${SOURCE_LIST_69})
 add_executable (dyninst_group_test.stat_g++_32_pic_none ${SOURCE_LIST_26})
 add_executable (test1_14.stat_g++_32_pic_none ${SOURCE_LIST_48})
 add_executable (test1_29.stat_g++_32_pic_none ${SOURCE_LIST_4})
-add_executable (test1_35.stat_g++_32_pic_none ${SOURCE_LIST_65})
+add_executable (test1_35.stat_g++_32_pic_none ${SOURCE_LIST_66})
 
 
 INSTALL (TARGETS

@@ -17,7 +17,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc32dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc32_linux/srclists.cmake)
-add_executable (symtab_group_test.dyn_gcc_32_none_none ${SOURCE_LIST_51})
+add_executable (symtab_group_test.dyn_gcc_32_none_none ${SOURCE_LIST_52})
 target_link_libraries (symtab_group_test.dyn_gcc_32_none_none testA_m32)
 
 

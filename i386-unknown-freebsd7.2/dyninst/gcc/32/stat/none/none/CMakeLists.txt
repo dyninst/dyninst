@@ -20,7 +20,7 @@ include (${PROJECT_SOURCE_DIR}/i386-unknown-freebsd7.2/srclists.cmake)
 add_executable (dyninst_group_test.stat_gcc_32_none_none ${SOURCE_LIST_26})
 add_executable (test1_14.stat_gcc_32_none_none ${SOURCE_LIST_48})
 add_executable (test1_29.stat_gcc_32_none_none ${SOURCE_LIST_4})
-add_executable (test1_35.stat_gcc_32_none_none ${SOURCE_LIST_65})
+add_executable (test1_35.stat_gcc_32_none_none ${SOURCE_LIST_66})
 
 
 INSTALL (TARGETS

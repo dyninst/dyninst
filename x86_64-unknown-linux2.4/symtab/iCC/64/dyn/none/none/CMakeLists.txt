@@ -19,7 +19,7 @@ IF (MUTATEEintelCC64dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (symtab_group_test.dyn_iCC_64_none_none ${SOURCE_LIST_35})
 target_link_libraries (symtab_group_test.dyn_iCC_64_none_none testA)
-add_executable (test_exception.dyn_iCC_64_none_none ${SOURCE_LIST_69})
+add_executable (test_exception.dyn_iCC_64_none_none ${SOURCE_LIST_70})
 
 
 INSTALL (TARGETS

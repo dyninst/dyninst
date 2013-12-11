@@ -1357,6 +1357,19 @@ test_runmode('test_fork_13', 'createProcess').
 test_start_state('test_fork_13', 'stopped').
 tests_module('test_fork_13', 'dyninst').
 
+test('test_fork_14', 'test_fork_14', 'test_fork_14').
+% No fork() on Windows
+test_platform('test_fork_14', Platform) :-
+    platform(_, OS, _, Platform),
+    OS \= 'windows'.
+mutator('test_fork_14', ['test_fork_14.C']).
+mutatee('test_fork_14', ['test_fork_14_mutatee.c']).
+compiler_for_mutatee('test_fork_14', Compiler) :-
+    comp_lang(Compiler, 'c').
+test_runmode('test_fork_14', 'createProcess').
+test_start_state('test_fork_14', 'stopped').
+tests_module('test_fork_14', 'dyninst').
+
 % test_stack_1 (formerly test8_1)
 test('test_stack_1', 'test_stack_1', 'test_stack_1').
 test_description('test_stack_1', 'Basic getCallStack test').

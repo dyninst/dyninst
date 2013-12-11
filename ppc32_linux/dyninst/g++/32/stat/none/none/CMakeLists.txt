@@ -18,7 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 IF (MUTATEEgnucxx32stat MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc32_linux/srclists.cmake)
 add_executable (dyninst_cxx_group_test.stat_g++_32_none_none ${SOURCE_LIST_21})
-add_executable (dyninst_group_test.stat_g++_32_none_none ${SOURCE_LIST_57})
+add_executable (dyninst_group_test.stat_g++_32_none_none ${SOURCE_LIST_58})
 target_link_libraries (dyninst_group_test.stat_g++_32_none_none ${CMAKE_DL_LIBS})
 add_executable (test1_14.stat_g++_32_none_none ${SOURCE_LIST_41})
 add_executable (test1_29.stat_g++_32_none_none ${SOURCE_LIST_4})

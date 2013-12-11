@@ -17,7 +17,7 @@ CHECK_MUTATEE_COMPILER ("${M_mpi_cxx}"
 
 IF (MUTATEEmpicxx64stat MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
-add_executable (dyninst_cxx_group_test.stat_bgq_g++_64_pic_none ${SOURCE_LIST_45})
+add_executable (dyninst_cxx_group_test.stat_bgq_g++_64_pic_none ${SOURCE_LIST_46})
 add_executable (dyninst_group_test.stat_bgq_g++_64_pic_none ${SOURCE_LIST_29})
 target_link_libraries (dyninst_group_test.stat_bgq_g++_64_pic_none ${CMAKE_DL_LIBS})
 add_executable (test1_14.stat_bgq_g++_64_pic_none ${SOURCE_LIST_39})

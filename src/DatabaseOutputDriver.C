@@ -311,7 +311,7 @@ void DatabaseOutputDriver::writeSQLLog() {
        else
            buf.clear();
 
-       fprintf(out, buf.c_str());
+       fprintf(out, "%s", buf.c_str());
        delete [] buffer;
    }
    if (buf.rfind("RESULT:") == std::string::npos) {
