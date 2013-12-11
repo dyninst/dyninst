@@ -459,7 +459,7 @@ supportedLanguages AObject::pickLanguage(string &working_module, char *working_o
             char *next_dot = strchr(dbg_gen_ver_maj, '.');
             if (NULL != next_dot)
             {
-               next_dot = '\0';  //terminate major version number string
+               *next_dot = '\0';  //terminate major version number string
                int ver_maj = atoi(dbg_gen_ver_maj);
                //cerr <<"Major Debug Ver. "<<ver_maj<< endl;
                if (ver_maj < 3)

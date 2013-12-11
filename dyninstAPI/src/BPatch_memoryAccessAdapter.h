@@ -40,7 +40,6 @@ class BPatch_memoryAccessAdapter : public Dyninst::InstructionAPI::Visitor
 {
  public:
      BPatch_memoryAccessAdapter() :
-        isLoad(false), isStore(false),
         bytes(0), imm(0), ra(-1), rb(-1),
         setImm(false) {
   }
@@ -55,8 +54,6 @@ class BPatch_memoryAccessAdapter : public Dyninst::InstructionAPI::Visitor
   virtual void visit(Dyninst::InstructionAPI::RegisterAST* r);
   virtual void visit(Dyninst::InstructionAPI::Immediate* i);
     private:
-        bool isLoad;
-        bool isStore;
         unsigned int bytes;
         long imm;
         int ra;

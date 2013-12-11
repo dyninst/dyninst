@@ -55,8 +55,7 @@
   #include <functional>
   #define DECLTHROW(x) throw(x)
   //***************** GCC ***********************
-   #if (__GNUC__ > 4) || \
-      (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
+   #if defined (__GLIBCXX__) && (__GLIBCXX__ >= 20080306)
       //**************** GCC >= 4.3.0 ***********
       #include <tr1/unordered_set>
       #include <tr1/unordered_map>

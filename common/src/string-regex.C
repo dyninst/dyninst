@@ -73,9 +73,9 @@ void dedemangle( char * demangled, char * result )
        resultBegins = demangled+i+1;
        if (resultBegins[0] == ':' && resultBegins[1] == ':')
 	 resultBegins += 2;
-       resultEnds = const_cast<char *>(strrchr(resultBegins, ' '));
+       resultEnds = strrchr(resultBegins, ' ');
        if (resultEnds)
-	 resultEnds = '\0';
+	 *resultEnds = '\0';
      }
      demangled = resultBegins;
    }

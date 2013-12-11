@@ -1736,6 +1736,7 @@ pdmodule *image::getOrCreateModule(Module *mod) {
     return pdmod;
 }
 
+#if defined(os_aix)
 namespace {
     /* 
      * See ParseAPI::SymtabCodeSource::lookup_region for 
@@ -1752,6 +1753,7 @@ namespace {
         return *regs.begin();
     }
 };
+#endif
 
 
 /*********************************************************************/

@@ -40,7 +40,8 @@
 
 const Dyninst::Address BPatch_object::E_OUT_OF_BOUNDS((Dyninst::Address) -1);
 
-struct BPatch_object_getMod {
+class BPatch_object_getMod {
+  public:
    void operator()(mapped_module *m) { 
       BPatch_module *mod = img->findOrCreateModule(m);
       if (mod) mods.push_back(mod);

@@ -65,6 +65,12 @@
 #include "common/src/linuxKludges.h"
 #include "common/src/parseauxv.h"
 
+// Before glibc-2.7, sys/ptrace.h lacked PTRACE_O_* and PTRACE_EVENT_*, so we
+// need them from linux/ptrace.h.  (Conditionally, as later glibc conflicts.)
+#if !__GLIBC_PREREQ(2,7)
+#include <linux/ptrace.h>
+#endif
+
 using namespace Dyninst;
 using namespace ProcControlAPI;
 #include "symlite/h/SymLite-elf.h"
@@ -2087,7 +2093,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    const unsigned size = i->second.second;
    assert(sizeof(val) >= size);
    val = 0;
-   unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSR, lwp, (void *) (unsigned long) offset, NULL);
+   unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
    if (errno != 0) {
       perr_printf("Error reading registers from %d: %s\n", lwp, strerror(errno));
       setLastError(err_internal, "Could not read register from thread");
@@ -2309,7 +2315,7 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    else {
       assert(0);
    }
-   result = do_ptrace((pt_req) PTRACE_POKEUSR, lwp, (void *) (uintptr_t)offset, (void *) value);
+   result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) (uintptr_t)offset, (void *) value);
    pthrd_printf("Set register %s (size %u, offset %u) to value %lx\n", reg.name().c_str(), size, offset, val);
    if (result != 0) {
       int error = errno;

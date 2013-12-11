@@ -145,12 +145,12 @@ bool operator>(const fraction &a, const fraction &b) {
   double ax, ay;
   int as;
   getFrSpec(a.getNumer(), a.getDenom(), &ax, &ay, &as);
-  if(as == -1) { ax =- ax; ay =-ay; }
+  if(as == -1) { ax = -ax; ay = -ay; }
 
   double bx, by;
   int bs;
   getFrSpec(b.getNumer(), b.getDenom(), &bx, &by, &bs);
-  if(bs == -1) { bx =- bx; by =-by; }
+  if(bs == -1) { bx = -bx; by = -by; }
   return (ax > bx || (ax == bx && ay > by));
 }
 
@@ -158,12 +158,12 @@ bool operator<(const fraction &a, const fraction &b) {
   double ax, ay;
   int as;
   getFrSpec(a.getNumer(), a.getDenom(), &ax, &ay, &as);
-  if(as == -1) { ax =- ax; ay =-ay; }
+  if(as == -1) { ax = -ax; ay = -ay; }
 
   double bx, by;
   int bs;
   getFrSpec(b.getNumer(), b.getDenom(), &bx, &by, &bs);
-  if(bs == -1) { bx =- bx; by =-by; }
+  if(bs == -1) { bx = -bx; by = -by; }
   return (ax < bx || (ax == bx && ay < by));
 }
 

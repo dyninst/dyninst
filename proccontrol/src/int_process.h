@@ -772,9 +772,9 @@ public:
    static const int NumStateIDs = 19;
    static const int NumTargetStateIDs = (NumStateIDs-2); //Handler and Generator states aren't target states
 
-   static const int PostponedSyscallStateID = 0;
-   static const int AsyncStateID            = 1;
-   static const int CallbackStateID         = 2;
+   static const int AsyncStateID            = 0;
+   static const int CallbackStateID         = 1;
+   static const int PostponedSyscallStateID = 2;
    static const int PendingStopStateID      = 3;
    static const int IRPCStateID             = 4;
    static const int IRPCSetupStateID        = 5;

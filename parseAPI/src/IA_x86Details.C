@@ -687,7 +687,7 @@ boost::tuple<Instruction::Ptr,
         InstructionDecoder dec(buf, curBlk->size(), currentBlock->_isrc->getArch());
         Instruction::Ptr i;
         Address curAdr = curBlk->start();
-        while(i = dec.decode())
+        while((i = dec.decode()))
         {
             if(i->getCategory() == c_CompareInsn)
             // check for cmp

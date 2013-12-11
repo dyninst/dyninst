@@ -49,7 +49,6 @@
 #include "common/src/dthread.h"
 #include <sys/types.h>
 #include <sys/ptrace.h>
-#include <linux/ptrace.h>
 
 typedef enum __ptrace_request pt_req;
 

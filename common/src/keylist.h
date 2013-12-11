@@ -72,7 +72,7 @@ typedef int KYL_BOOL;
 
 #pragma interface
 
-#define ListHash(ptr, size) (((unsigned int)(ptr) % (unsigned int)(size)))
+#define ListHash(ptr, size) (((unsigned int)(intptr_t)(ptr) % (unsigned int)(size)))
 
 template <class Type> class KeyList;
 

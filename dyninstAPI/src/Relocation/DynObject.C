@@ -44,14 +44,14 @@ using Dyninst::PatchAPI::DynCFGMaker;
 DynObject::DynObject(ParseAPI::CodeObject* co, AddressSpace* as, Address base)
    : PatchObject(co, base, 
                  new DynCFGMaker, 
-                 new DynPatchCallback(as)),
+                 new DynPatchCallback),
      as_(as) {
 }
 
 DynObject::DynObject(const DynObject* par_obj, AddressSpace *child, Address base)
   : PatchObject(par_obj, base,
                 new DynCFGMaker,
-                new DynPatchCallback(child)),
+                new DynPatchCallback),
     as_(child) {
 }
 

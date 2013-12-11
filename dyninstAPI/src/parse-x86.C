@@ -122,7 +122,7 @@ bool parse_func::writesFPRs(unsigned level) {
             InstructionDecoder d(buf,fe->end()-fe->start(),isrc()->getArch());
             Instruction::Ptr i;
 
-            while(i = d.decode()) {
+            while((i = d.decode())) {
                 if(i->isWritten(st0) ||
                     i->isWritten(st1) ||
                     i->isWritten(st2) ||
