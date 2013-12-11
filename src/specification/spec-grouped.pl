@@ -1047,7 +1047,7 @@ test_start_state('test5_7', 'stopped').
 groupable_test('test5_7').
 restricted_amd64_abi('test5_7').
 tests_module('test5_7', 'dyninst').
-test_exclude_compiler('test5_7', 'pgCC').
+test_exclude_compiler('test5_7', 'pgcxx').
 
 test('test5_8', 'test5_8', 'dyninst_cxx_group_test').
 % test5_8 only runs on Linux, Solaris, and Windows
@@ -1059,7 +1059,7 @@ test_runmode('test5_8', 'staticdynamic').
 test_start_state('test5_8', 'stopped').
 groupable_test('test5_8').
 restricted_amd64_abi('test5_8').
-% pgCC uses non-standard name mangling for templates
+% pgcxx uses non-standard name mangling for templates
 tests_module('test5_8', 'dyninst').
 
 test('test5_9', 'test5_9', 'dyninst_cxx_group_test').
@@ -1073,8 +1073,8 @@ test_start_state('test5_9', 'stopped').
 groupable_test('test5_9').
 restricted_amd64_abi('test5_9').
 tests_module('test5_9', 'dyninst').
-% pgCC uses non-standard name mangling for templates
-test_exclude_compiler('test5_9', 'pgCC').
+% pgcxx uses non-standard name mangling for templates
+test_exclude_compiler('test5_9', 'pgcxx').
 
 % Convenience rule for mapping platforms to the asm sources for test_mem
 test_mem_mutatee_aux(P, Aux) :-
@@ -2880,9 +2880,9 @@ compiler_platform('VC', Plat) :- platform(_, OS, _, Plat), OS == 'windows'.
 compiler_platform('VC++', Plat) :- platform(_, OS, _, Plat), OS == 'windows'.
 % Portland Group compiler only runs on i386 Linux
 compiler_platform('pgcc', Plat) :- platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
-compiler_platform('pgCC', Plat) :- platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
+compiler_platform('pgcxx', Plat) :- platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
 compiler_platform('pgcc', Plat) :- platform(Arch, OS, _, Plat), Arch == 'x86_64', OS == 'linux'.
-compiler_platform('pgCC', Plat) :- platform(Arch, OS, _, Plat), Arch == 'x86_64', OS == 'linux'.
+compiler_platform('pgcxx', Plat) :- platform(Arch, OS, _, Plat), Arch == 'x86_64', OS == 'linux'.
 % AIXs native compilers are xlc & xlC
 compiler_platform('xlc', 'rs6000-ibm-aix5.1').
 compiler_platform('xlC', 'rs6000-ibm-aix5.1').
@@ -2999,9 +2999,9 @@ insane('Too many compilers on platform P1 for extension P2',
 comp_lang('gfortran', 'fortran').
 comp_lang(Compiler, 'c') :-
     member(Compiler, ['gcc', 'pgcc', 'VC', 'xlc', 'icc', 'bg_gcc', 'bgq_gcc', 'bgxlc']);
-    member(Compiler, ['g++', 'pgCC', 'VC++', 'xlC', 'icpc', 'bg_g++', 'bgq_g++', 'bgxlc++']).
+    member(Compiler, ['g++', 'pgcxx', 'VC++', 'xlC', 'icpc', 'bg_g++', 'bgq_g++', 'bgxlc++']).
 comp_lang(Compiler, 'c++') :-
-    member(Compiler, ['g++', 'pgCC', 'VC++', 'xlC', 'icpc', 'bg_g++', 'bgq_g++', 'bgxlc++']).
+    member(Compiler, ['g++', 'pgcxx', 'VC++', 'xlC', 'icpc', 'bg_g++', 'bgq_g++', 'bgxlc++']).
 comp_lang('gcc', 'att_asm') :-
     % We dont use gcc for assembly files on AIX
     current_platform(Platform),
@@ -3013,7 +3013,7 @@ mutatee_comp('gcc').
 mutatee_comp('gfortran').
 mutatee_comp('g++').
 mutatee_comp('pgcc').
-mutatee_comp('pgCC').
+mutatee_comp('pgcxx').
 mutatee_comp('VC').
 mutatee_comp('VC++').
 mutatee_comp('xlc').
@@ -3036,7 +3036,7 @@ mutatee_comp('bgxlc++').
 % to Compiler.
 % FIXME Theres got to be a better way to do this.
 compiler_presence_def('pgcc', 'PGI').
-compiler_presence_def('pgCC', 'PGI').
+compiler_presence_def('pgcxx', 'PGI').
 compiler_presence_def('icc', 'ICC').
 compiler_presence_def('icpc', 'ICC').
 compiler_presence_def('xlc', 'XLC').
@@ -3048,7 +3048,7 @@ compiler_define_string('g++', 'gnu_cxx').
 compiler_define_string('pgcc', 'pg_cc').
 compiler_define_string('VC', 'native_cc').
 compiler_define_string('xlc', 'native_cc').
-compiler_define_string('pgCC', 'pg_cxx').
+compiler_define_string('pgcxx', 'pg_cxx').
 compiler_define_string('VC++', 'native_cc').
 compiler_define_string('cxx', 'native_cxx').
 compiler_define_string('xlC', 'native_cxx').
@@ -3093,6 +3093,7 @@ compiler_s('bg_gfortran', 'powerpc-bgp-linux-gfortran').
 compiler_s('bgq_gcc', 'mpicc').
 compiler_s('bgq_g++', 'mpic++').
 compiler_s('bgq_gfortran', 'mpif90').
+compiler_s('pgcxx', 'pgCC').
 
 
 % Translation for Optimization Level
@@ -3102,12 +3103,12 @@ compiler_s('bgq_gfortran', 'mpif90').
 % FIXME Im also not sure that all these compilers default to no optimization
 compiler_opt_trans(_, 'none', '').
 compiler_opt_trans(Comp, 'low', '-O1') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'gfortran', 'icc', 'icpc', 'bg_gcc', 'bg_g++', 'bg_gfortran', 'bgq_gcc', 'bgq_g++', 'bgq_gfortran']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgcxx', 'gfortran', 'icc', 'icpc', 'bg_gcc', 'bg_g++', 'bg_gfortran', 'bgq_gcc', 'bgq_g++', 'bgq_gfortran']).
 compiler_opt_trans(Comp, 'low', '/O1') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(IBM, 'low', '-O') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'high', '-O2') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'gfortran', 'icc', 'icpc', 'bg_gcc', 'bg_g++', 'bg_gfortran', 'bgq_gcc', 'bgq_g++', 'bgq_gfortran']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgcxx', 'gfortran', 'icc', 'icpc', 'bg_gcc', 'bg_g++', 'bg_gfortran', 'bgq_gcc', 'bgq_g++', 'bgq_gfortran']).
 compiler_opt_trans(Comp, 'high', '/O2') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(IBM, 'high', '-O3') :-
     member(IBM, ['xlc', 'xlC']).
@@ -3121,7 +3122,7 @@ compiler_pic_trans(_, 'none', '').
 compiler_pic_trans(Comp, 'pic', '-fPIC') :-
     member(Comp, ['gcc', 'g++', 'gfortran', 'icc', 'icpc', 'bg_gcc', 'bg_g++', 'bg_gfortran', 'bgq_gcc', 'bgq_g++', 'bgq_gfortran']).
 compiler_pic_trans(Comp, 'pic', '-KPIC') :-
-    member(Comp, ['pgcc', 'pgCC']).
+    member(Comp, ['pgcc', 'pgcxx']).
 compiler_pic_trans(Comp, 'pic', '-qpic') :-
     member(Comp, ['bgxlc', 'bgxlc++']).
 compiler_pic_trans(Comp, 'pic', '') :-
@@ -3129,7 +3130,7 @@ compiler_pic_trans(Comp, 'pic', '') :-
 
 compiler_pic('g++', 'pic').
 compiler_pic('gcc', 'pic').
-compiler_pic('pgCC', 'pic').
+compiler_pic('pgcxx', 'pic').
 compiler_pic('pgcc', 'pic').
 compiler_pic('icpc', 'pic').
 compiler_pic('icc', 'pic').
@@ -3155,14 +3156,14 @@ insane('P1 not defined as a compiler, but has optimization translation defined',
 % Translation for parameter flags
 % partial_compile: compile to an object file rather than an executable
 compiler_parm_trans(Comp, 'partial_compile', '-c') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgcxx', 
                   'xlc', 'xlC', 'gfortran', 'VC', 'VC++', 'icc', 'icpc',
                   'bg_gcc', 'bg_g++', 'bg_gfortran', 'bgxlc', 'bgxlc++',
                   'bgq_gcc', 'bgq_g++', 'bgq_gfortran']).
 
 % Mutator compiler defns
 mutator_comp('g++').
-mutator_comp('pgCC').
+mutator_comp('pgcxx').
 mutator_comp('VC++').
 mutator_comp('xlC').
 mutator_comp('bgxlc++').
@@ -3172,7 +3173,7 @@ mutatee_link_options(Gnu_family, '${MUTATEE_LDFLAGS_GNU}') :- member(Gnu_family,
 mutatee_link_options(Native_cc, '${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}') :-
     member(Native_cc, ['xlc', 'pgcc']).
 mutatee_link_options(Native_cxx, '${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}') :-
-    member(Native_cxx, ['xlC', 'pgCC']).
+    member(Native_cxx, ['xlC', 'pgcxx']).
 mutatee_link_options('VC', '${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
 mutatee_link_options('VC++', '${LDFLAGS} ${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
 mutatee_link_options('bgxlc', '${MUTATEE_LDFLAGS_NATIVE}').
@@ -3208,7 +3209,7 @@ comp_std_flags_str('bgxlc', '${CFLAGS}').
 comp_std_flags_str('bgxlc++', '${CXXFLAGS}').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
 comp_std_flags_str('xlC', '${CXXFLAGS_NATIVE}').
-comp_std_flags_str('pgCC', '${CXXFLAGS_NATIVE}').
+comp_std_flags_str('pgcxx', '${CXXFLAGS_NATIVE}').
 comp_std_flags_str('bg_gcc', '${CFLAGS}').
 comp_std_flags_str('bg_g++', '${CXXFLAGS}').
 comp_std_flags_str('bgq_gcc', '${CFLAGS}').
@@ -3226,7 +3227,7 @@ comp_mutatee_flags_str('bgxlc', '${CFLAGS}').
 comp_mutatee_flags_str('bgxlc++', '${CXXFLAGS}').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
 comp_mutatee_flags_str('xlC', '${MUTATEE_CXXFLAGS_NATIVE} ').
-comp_mutatee_flags_str('pgCC', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE} ').
+comp_mutatee_flags_str('pgcxx', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE} ').
 % FIXME What do I specify for the Windows compilers, if anything?
 comp_std_flags_str('VC', '-TC').
 comp_std_flags_str('VC++', '-TP').
@@ -3298,7 +3299,7 @@ compiler_platform_abi_s(Compiler, Platform, ABI, '', CompilerString) :-
     mutatee_abi(ABI),
     platform_abi(Platform, ABI),
     compiler_define_string(Compiler, CompilerString),
-    \+ ((member(Compiler, ['gcc', 'g++', 'icc', 'icpc', 'pgcc', 'pgCC']),
+    \+ ((member(Compiler, ['gcc', 'g++', 'icc', 'icpc', 'pgcc', 'pgcxx']),
          Platform = 'x86_64-unknown-linux2.4',
          ABI = 32);
         (member(Compiler, ['gcc', 'g++']),
@@ -3310,7 +3311,7 @@ compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
     compiler_define_string(Compiler, CompilerString).
 compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
                         '-tp px -m32 -Di386_unknown_linux2_4 -Dm32_test', CompilerString) :-
-    member(Compiler, ['pgcc', 'pgCC']),
+    member(Compiler, ['pgcc', 'pgcxx']),
     compiler_define_string(Compiler, CompilerString).
 compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
                         '-Di386_unknown_linux2_4 -Dm32_test', CompilerString) :-
@@ -3334,7 +3335,7 @@ compiler_platform_abi(Compiler, Platform, ABI) :-
    mutatee_abi(ABI).
 %   \+ (
 %      member(Platform, ['x86_64-unknown-linux2.4']),
-%      member(Compiler, ['icc', 'icpc', 'pgcc', 'pgCC']),
+%      member(Compiler, ['icc', 'icpc', 'pgcc', 'pgcxx']),
 %      member(ABI, [32])
 %   ).
 
