@@ -12,9 +12,10 @@ IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}    -fPIC"
 	"${MUTATEE_LDFLAGS_GNU}  -static"
+	"cxx"
 	MUTATEEgnucxx32stat)
 
-IF (MUTATEEgnucxx32stat)
+IF (MUTATEEgnucxx32stat MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc32_linux/srclists.cmake)
 add_executable (dyninst_cxx_group_test.stat_g++_32_pic_none ${SOURCE_LIST_21})
 add_executable (dyninst_group_test.stat_g++_32_pic_none ${SOURCE_LIST_57})

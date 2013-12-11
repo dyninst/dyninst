@@ -12,9 +12,10 @@ IF (NOT ${M_intel_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_intel_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}    "
 	"${MUTATEE_LDFLAGS_GNU}  -Xlinker -export-dynamic"
+	"c"
 	MUTATEEintelcc64dyn)
 
-IF (MUTATEEintelcc64dyn)
+IF (MUTATEEintelcc64dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (pc_exec_targ.dyn_icc_64_none_none ${SOURCE_LIST_28})
 

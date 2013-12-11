@@ -109,12 +109,19 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    varname = "MUTATEE%s%s%s" % (c_compiler, abi, stat_dyn)
    varname = varname.replace('_', '')
    
+   if ('c++' in compiler['languages']):
+      lang = 'cxx'
+   elif ('fortran' in compiler['languages']):
+      lang = 'fortran'
+   elif ('c' in compiler['languages']):
+      lang = 'c'
    out.write("IF (NOT ${M_%s} MATCHES \"NOTFOUND\")\n" % c_compiler)
    out.write("CHECK_MUTATEE_COMPILER (\"${M_%s}\"\n" % c_compiler)
    out.write("\t\"%s\"\n" % c_flags)
    out.write("\t\"%s\"\n" % link_flags)
+   out.write("\t\"%s\"\n" % lang)
    out.write("\t%s)\n\n" % varname)
-   out.write("IF (%s)\n" % varname)
+   out.write("IF (%s MATCHES \"1\")\n" % varname)
    
    out.write("include (${PROJECT_SOURCE_DIR}/%s/srclists.cmake)\n" % platform['name'])
    

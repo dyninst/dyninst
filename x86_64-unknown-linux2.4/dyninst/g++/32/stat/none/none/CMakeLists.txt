@@ -12,9 +12,10 @@ IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}  -m32 -Di386_unknown_linux2_4 -Dm32_test  "
 	"${MUTATEE_LDFLAGS_GNU} -m32 -Di386_unknown_linux2_4 -Dm32_test -static"
+	"cxx"
 	MUTATEEgnucxx32stat)
 
-IF (MUTATEEgnucxx32stat)
+IF (MUTATEEgnucxx32stat MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (dyninst_group_test.stat_g++_32_none_none ${SOURCE_LIST_48})
 target_link_libraries (dyninst_group_test.stat_g++_32_none_none ${CMAKE_DL_LIBS})

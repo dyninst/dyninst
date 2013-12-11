@@ -12,9 +12,10 @@ IF (NOT ${M_gnu_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}  -m32 -Di386_unknown_linux2_4 -Dm32_test  -fPIC"
 	"${MUTATEE_LDFLAGS_GNU} -m32 -Di386_unknown_linux2_4 -Dm32_test -Wl,-export-dynamic"
+	"c"
 	MUTATEEgnucc32dyn)
 
-IF (MUTATEEgnucc32dyn)
+IF (MUTATEEgnucc32dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (amd64_7_arg_call.dyn_gcc_32_pic_none ${SOURCE_LIST_47})
 add_executable (dyninst_group_test.dyn_gcc_32_pic_none ${SOURCE_LIST_48})

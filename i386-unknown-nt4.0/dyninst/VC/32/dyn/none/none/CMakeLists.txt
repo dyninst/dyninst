@@ -14,9 +14,10 @@ IF (NOT ${M_native_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  -TC ${CFLAGS}   "
 	"${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  "
+	"c"
 	MUTATEEnativecc32dyn)
 
-IF (MUTATEEnativecc32dyn)
+IF (MUTATEEnativecc32dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-nt4.0/srclists.cmake)
 add_executable (dyninst_group_test.dyn_VC_32_none_none.exe ${SOURCE_LIST_41})
 target_link_libraries (dyninst_group_test.dyn_VC_32_none_none.exe ${CMAKE_DL_LIBS})

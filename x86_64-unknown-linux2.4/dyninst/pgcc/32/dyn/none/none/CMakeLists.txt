@@ -12,9 +12,10 @@ IF (NOT ${M_pg_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_pg_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_NATIVE}  -tp px -m32 -Di386_unknown_linux2_4 -Dm32_test  "
 	"${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE} -tp px -m32 -Di386_unknown_linux2_4 -Dm32_test "
+	"c"
 	MUTATEEpgcc32dyn)
 
-IF (MUTATEEpgcc32dyn)
+IF (MUTATEEpgcc32dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (amd64_7_arg_call.dyn_pgcc_32_none_none ${SOURCE_LIST_47})
 add_executable (dyninst_group_test.dyn_pgcc_32_none_none ${SOURCE_LIST_48})

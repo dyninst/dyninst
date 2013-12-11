@@ -12,9 +12,10 @@ IF (NOT ${M_gnu_fc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_fc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  -g ${MUTATEE_G77_FFLAGS}   -fPIC"
 	"${MUTATEE_G77_LDFLAGS}  "
+	"fortran"
 	MUTATEEgnufc32dyn)
 
-IF (MUTATEEgnufc32dyn)
+IF (MUTATEEgnufc32dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
 add_executable (test1_10F.dyn_gfortran_32_pic_none ${SOURCE_LIST_20})
 add_executable (test1_11F.dyn_gfortran_32_pic_none ${SOURCE_LIST_12})

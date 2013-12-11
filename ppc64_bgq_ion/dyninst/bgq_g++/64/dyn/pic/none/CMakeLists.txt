@@ -12,9 +12,10 @@ IF (NOT ${M_mpi_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_mpi_cxx}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}    -fPIC"
 	"${MUTATEE_LDFLAGS_GNU}  -dynamic -Wl,-export-dynamic"
+	"cxx"
 	MUTATEEmpicxx64dyn)
 
-IF (MUTATEEmpicxx64dyn)
+IF (MUTATEEmpicxx64dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
 add_executable (dyninst_cxx_group_test.dyn_bgq_g++_64_pic_none ${SOURCE_LIST_45})
 add_executable (dyninst_group_test.dyn_bgq_g++_64_pic_none ${SOURCE_LIST_29})

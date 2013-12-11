@@ -14,9 +14,10 @@ IF (NOT ${M_native_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  -TC ${CFLAGS}   "
 	"${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  "
+	"c"
 	MUTATEEnativecc32dyn)
 
-IF (MUTATEEnativecc32dyn)
+IF (MUTATEEnativecc32dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-nt4.0/srclists.cmake)
 add_executable (symtab_group_test.dyn_VC_32_none_none.exe ${SOURCE_LIST_29})
 target_link_libraries (symtab_group_test.dyn_VC_32_none_none.exe testA_m32)

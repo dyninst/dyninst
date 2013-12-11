@@ -12,9 +12,10 @@ IF (NOT ${M_pg_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_pg_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_NATIVE}    "
 	"${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  "
+	"c"
 	MUTATEEpgcc64dyn)
 
-IF (MUTATEEpgcc64dyn)
+IF (MUTATEEpgcc64dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (symtab_group_test.dyn_pgcc_64_none_none ${SOURCE_LIST_35})
 target_link_libraries (symtab_group_test.dyn_pgcc_64_none_none testA)

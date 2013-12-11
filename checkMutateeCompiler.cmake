@@ -1,32 +1,54 @@
 
-INCLUDE(CheckCSourceCompiles)
-
-MACRO (CHECK_MUTATEE_COMPILER _COMPILER _COMP_FLAG _LINK_FLAG _RESULT)
-   SET(${_RESULT})
-#   SET(SAFE_CMAKE_C_COMPILER "${CMAKE_C_COMPILER}")
-#   SET(SAFE_CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
-#   SET(SAFE_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-
-#   SET(CMAKE_C_COMPILER "${_COMPILER}")
-#   SET(CMAKE_EXE_LINKER_FLAGS "${_LINK_FLAG}")
-#   SET(CMAKE_C_FLAGS "${_COMP_FLAG}")
-
-   CHECK_C_SOURCE_COMPILES("#include <signal.h> \n #include <features.h>\n int main(void) { return 0; }" ${_RESULT}
-
-     # Some compilers do not fail with a bad flag
-     FAIL_REGEX "warning: command line option .* is valid for .* but not for C"
-                                                            # Apple gcc
-     FAIL_REGEX "unrecognized .*option"                     # GNU
-     FAIL_REGEX "unknown .*option"                          # Clang
-     FAIL_REGEX "ignoring unknown option"                   # MSVC
-     FAIL_REGEX "warning D9002"                             # MSVC, any lang
-     FAIL_REGEX "[Uu]nknown option"                         # HP
-     FAIL_REGEX "[Ww]arning: [Oo]ption"                     # SunPro
-     FAIL_REGEX "command option .* is not recognized"       # XL
-     FAIL_REGEX "cannot find"                               # Missing libraries
-     )
-
-#   SET (CMAKE_C_COMPILER "${SAFE_CMAKE_C_COMPILER}")
-#   SET (CMAKE_EXE_LINKER_FLAGS "${SAFE_CMAKE_EXE_LINKER_FLAGS}")
-#   SET (CMAKE_C_FLAGS "${SAFE_CMAKE_C_FLAGS}")
+MACRO (CHECK_MUTATEE_COMPILER _COMPILER _COMP_FLAG _LINK_FLAG _LANG _RESULT)
+   if (NOT DEFINED ${_RESULT})
+      set(COMPILER_RESULT 0)
+      file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest)
+      if(${_LANG} MATCHES cxx)
+            execute_process(WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest
+                            RESULT_VARIABLE COMPILER_RESULT
+                            OUTPUT_QUIET
+                            ERROR_QUIET
+                            COMMAND ${CMAKE_COMMAND}
+                            -DCMAKE_CXX_COMPILER=${_COMPILER}
+                            -DCMAKE_CXX_FLAGS=${_COMP_FLAG}
+                            -DCMAKE_EXE_LINKER_FLAGS=${_LINK_FLAG}
+                            ${PROJECT_SOURCE_DIR}/compiler_test/cxx)
+      elseif (${_LANG} MATCHES fortran)
+            execute_process(WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest
+                            RESULT_VARIABLE COMPILER_RESULT
+                            OUTPUT_QUIET
+                            ERROR_QUIET
+                            COMMAND ${CMAKE_COMMAND}
+                            -DCMAKE_Fortran_COMPILER=${_COMPILER}
+                            -DCMAKE_Fortran_FLAGS=${_COMP_FLAG}
+                            -DCMAKE_EXE_LINKER_FLAGS=${_LINK_FLAG}
+                            ${PROJECT_SOURCE_DIR}/compiler_test/fortran)
+      elseif (${_LANG} MATCHES c)
+            execute_process(WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest
+                            RESULT_VARIABLE COMPILER_RESULT
+                            OUTPUT_QUIET
+                            ERROR_QUIET
+                            COMMAND ${CMAKE_COMMAND}
+                            -DCMAKE_C_COMPILER=${_COMPILER}
+                            -DCMAKE_C_FLAGS=${_COMP_FLAG}
+                            -DCMAKE_EXE_LINKER_FLAGS=${_LINK_FLAG}
+                            ${PROJECT_SOURCE_DIR}/compiler_test/c)
+      endif()
+      if (${COMPILER_RESULT} MATCHES 0)
+            execute_process(WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest
+                            RESULT_VARIABLE COMPILER_RESULT
+                            OUTPUT_QUIET
+                            ERROR_QUIET
+                            COMMAND ${CMAKE_COMMAND}
+                            --build ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest)
+      endif()
+      file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest)
+      if ("${COMPILER_RESULT}" MATCHES "0")
+         message(STATUS "Compiler test ${_RESULT} - Success")
+         set(${_RESULT} 1 CACHE INTERNAL "Test ${VAR}")
+      else()
+         message(STATUS "Compiler test ${_RESULT} - Failed")
+         set(${_RESULT} 0 CACHE INTERNAL "Test ${VAR}")
+      endif()      
+   endif()
 ENDMACRO (CHECK_MUTATEE_COMPILER)

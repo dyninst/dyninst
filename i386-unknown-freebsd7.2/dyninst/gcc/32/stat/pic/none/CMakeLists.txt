@@ -12,9 +12,10 @@ IF (NOT ${M_gnu_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}    -fPIC"
 	"${MUTATEE_LDFLAGS_GNU}  -static"
+	"c"
 	MUTATEEgnucc32stat)
 
-IF (MUTATEEgnucc32stat)
+IF (MUTATEEgnucc32stat MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-freebsd7.2/srclists.cmake)
 add_executable (dyninst_group_test.stat_gcc_32_pic_none ${SOURCE_LIST_26})
 add_executable (test1_14.stat_gcc_32_pic_none ${SOURCE_LIST_48})

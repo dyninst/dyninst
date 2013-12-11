@@ -3222,7 +3222,7 @@ comp_mutatee_flags_str('VC++', '${CXXFLAGS_NORM}').
 comp_std_flags_str('icc', '${CFLAGS}').
 comp_std_flags_str('iCC', '${CXXFLAGS}').
 comp_mutatee_flags_str('icc', '-DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU} ').
-comp_mutatee_flags_str('iCC', '-x c++ -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}  ').
+comp_mutatee_flags_str('iCC', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}  ').
 
 % gfortran flags
 comp_std_flags_str('gfortran', '-g').

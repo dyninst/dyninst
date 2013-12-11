@@ -12,9 +12,10 @@ IF (NOT ${M_intel_cc_32} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_intel_cc_32}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}  -Di386_unknown_linux2_4 -Dm32_test  "
 	"${MUTATEE_LDFLAGS_GNU} -Di386_unknown_linux2_4 -Dm32_test -Xlinker -export-dynamic"
+	"c"
 	MUTATEEintelcc3232dyn)
 
-IF (MUTATEEintelcc3232dyn)
+IF (MUTATEEintelcc3232dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (symtab_group_test.dyn_icc_32_none_none ${SOURCE_LIST_35})
 target_link_libraries (symtab_group_test.dyn_icc_32_none_none testA_m32)

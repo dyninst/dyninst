@@ -12,9 +12,10 @@ IF (NOT ${M_gnu_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}  -m64  -fPIC"
 	"${MUTATEE_LDFLAGS_GNU} -m64 -Wl,-export-dynamic"
+	"c"
 	MUTATEEgnucc64dyn)
 
-IF (MUTATEEgnucc64dyn)
+IF (MUTATEEgnucc64dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_linux/srclists.cmake)
 add_executable (symtab_group_test.dyn_gcc_64_pic_none ${SOURCE_LIST_9})
 target_link_libraries (symtab_group_test.dyn_gcc_64_pic_none testA)

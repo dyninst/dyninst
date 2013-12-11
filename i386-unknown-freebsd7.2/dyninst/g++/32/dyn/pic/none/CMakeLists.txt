@@ -12,9 +12,10 @@ IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}    -fPIC"
 	"${MUTATEE_LDFLAGS_GNU}  -Wl,-export-dynamic"
+	"cxx"
 	MUTATEEgnucxx32dyn)
 
-IF (MUTATEEgnucxx32dyn)
+IF (MUTATEEgnucxx32dyn MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-freebsd7.2/srclists.cmake)
 add_executable (dyninst_cxx_group_test.dyn_g++_32_pic_none ${SOURCE_LIST_68})
 add_executable (dyninst_group_test.dyn_g++_32_pic_none ${SOURCE_LIST_26})
