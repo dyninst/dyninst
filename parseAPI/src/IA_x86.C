@@ -266,8 +266,7 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
         return false;
     }
 
-    if ((curInsn()->getCategory() == c_BranchInsn ||
-         curInsn()->getCategory() == c_CallInsn) &&
+    if ((curInsn()->getCategory() == c_BranchInsn) &&
         (type != COND_NOT_TAKEN && type != CALL_FT))
     {
         //std::map<Address, Instruction::Ptr>::const_iterator prevIter =

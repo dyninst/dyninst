@@ -5,6 +5,7 @@ include(ExternalProject)
 find_package (LibElf)
 if(NOT LIBELF_FOUND)
 message(STATUS "No libelf found, attempting to build as external project")
+cmake_minimum_required (VERSION 2.8.11)
 ExternalProject_Add(LibElf
 	PREFIX ${CMAKE_BINARY_DIR}/libelf
 	URL http://www.mr511.de/software/libelf-0.8.13.tar.gz
@@ -27,6 +28,7 @@ find_package (LibDwarf)
 
 if(NOT LIBDWARF_FOUND)
 message(STATUS "No libdwarf found, attempting to build as external project")
+cmake_minimum_required (VERSION 2.8.11)
 ExternalProject_Add(LibDwarf
 	PREFIX ${CMAKE_BINARY_DIR}/libdwarf
 	DEPENDS libelf_imp
@@ -55,6 +57,7 @@ if (NOT USE_GNU_DEMANGLER)
 find_package (LibIberty)
 
 if(NOT IBERTY_FOUND)
+cmake_minimum_required (VERSION 2.8.11)
 ExternalProject_Add(LibIberty
 	PREFIX ${CMAKE_BINARY_DIR}/binutils
 	URL http://ftp.gnu.org/gnu/binutils/binutils-2.23.tar.gz
