@@ -87,7 +87,7 @@ static void print_help()
    fprintf(stderr, "Mutatee Compilers\n");
    fprintf(stderr, "  -<compiler name>                  Run mutatees compiled with <compiler name>\n");
    fprintf(stderr, "                                    Valid choices for <compiler name> are:\n");
-   fprintf(stderr, "                                    gcc, g++, g77, icc, icpc, pgcc, pgCC, \n");
+   fprintf(stderr, "                                    gcc, g++, g77, icc, icpc, pgcc, pgcxx, \n");
    fprintf(stderr, "                                    cc, CC, cxx, VC, VC++, sun_cc, xlc, xlC,\n");
    fprintf(stderr, "                                    ibm_as, masm, nasm, nocompiler\n");
    fprintf(stderr, "  -allcompilers                     Run all compilers\n");
