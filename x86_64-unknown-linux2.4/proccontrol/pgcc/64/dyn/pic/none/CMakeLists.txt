@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_pg_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  ${CFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_NATIVE}    -KPIC"
 	"${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  "
 	"c"
-	MUTATEEpgcc64dyn)
+	"pg_cc 64 dyn"
+	MUTATEEpgcc64dync)
 
-IF (MUTATEEpgcc64dyn MATCHES "1")
+IF (MUTATEEpgcc64dync MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (pc_exec_targ.dyn_pgcc_64_pic_none ${SOURCE_LIST_28})
 

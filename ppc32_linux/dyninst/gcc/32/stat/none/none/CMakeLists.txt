@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}    "
 	"${MUTATEE_LDFLAGS_GNU}  -static"
 	"c"
-	MUTATEEgnucc32stat)
+	"gnu_cc 32 stat"
+	MUTATEEgnucc32statc)
 
-IF (MUTATEEgnucc32stat MATCHES "1")
+IF (MUTATEEgnucc32statc MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc32_linux/srclists.cmake)
 add_executable (dyninst_group_test.stat_gcc_32_none_none ${SOURCE_LIST_58})
 target_link_libraries (dyninst_group_test.stat_gcc_32_none_none ${CMAKE_DL_LIBS})

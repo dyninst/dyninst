@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}    -fPIC"
 	"${MUTATEE_LDFLAGS_GNU}  -Wl,-export-dynamic"
 	"cxx"
-	MUTATEEgnucxx32dyn)
+	"gnu_cxx 32 dyn"
+	MUTATEEgnucxx32dyncxx)
 
-IF (MUTATEEgnucxx32dyn MATCHES "1")
+IF (MUTATEEgnucxx32dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
 add_executable (symtab_group_test.dyn_g++_32_pic_none ${SOURCE_LIST_27})
 target_link_libraries (symtab_group_test.dyn_g++_32_pic_none testA_m32)

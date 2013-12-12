@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_pg_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_NATIVE}    -KPIC"
 	"${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  "
 	"c"
-	MUTATEEpgcc32dyn)
+	"pg_cc 32 dyn"
+	MUTATEEpgcc32dync)
 
-IF (MUTATEEpgcc32dyn MATCHES "1")
+IF (MUTATEEpgcc32dync MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
 add_executable (dyninst_group_test.dyn_pgcc_32_pic_none ${SOURCE_LIST_69})
 target_link_libraries (dyninst_group_test.dyn_pgcc_32_pic_none ${CMAKE_DL_LIBS})

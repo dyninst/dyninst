@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE}  -tp px -m32 -Di386_unknown_linux2_4 -Dm32_test  -KPIC"
 	"${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE} -tp px -m32 -Di386_unknown_linux2_4 -Dm32_test "
 	"cxx"
-	MUTATEEpgcxx32dyn)
+	"pg_cxx 32 dyn"
+	MUTATEEpgcxx32dyncxx)
 
-IF (MUTATEEpgcxx32dyn MATCHES "1")
+IF (MUTATEEpgcxx32dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (amd64_7_arg_call.dyn_pgcxx_32_pic_none ${SOURCE_LIST_47})
 add_executable (dyninst_group_test.dyn_pgcxx_32_pic_none ${SOURCE_LIST_48})

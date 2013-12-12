@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_mpi_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}    "
 	"${MUTATEE_LDFLAGS_GNU}  -dynamic -Wl,-export-dynamic"
 	"c"
-	MUTATEEmpicc64dyn)
+	"mpi_cc 64 dyn"
+	MUTATEEmpicc64dync)
 
-IF (MUTATEEmpicc64dyn MATCHES "1")
+IF (MUTATEEmpicc64dync MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
 add_executable (symtab_group_test.dyn_bgq_gcc_64_none_none ${SOURCE_LIST_19})
 target_link_libraries (symtab_group_test.dyn_bgq_gcc_64_none_none testA)

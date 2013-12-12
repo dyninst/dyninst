@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CFLAGS} -DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU}    "
 	"${MUTATEE_LDFLAGS_GNU}  -static"
 	"c"
-	MUTATEEgnucc64stat)
+	"gnu_cc 64 stat"
+	MUTATEEgnucc64statc)
 
-IF (MUTATEEgnucc64stat MATCHES "1")
+IF (MUTATEEgnucc64statc MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/amd64-unknown-freebsd7.2/srclists.cmake)
 add_executable (dyninst_group_test.stat_gcc_64_none_none ${SOURCE_LIST_70})
 add_executable (test1_14.stat_gcc_64_none_none ${SOURCE_LIST_50})

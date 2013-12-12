@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}  -m64  "
 	"${MUTATEE_LDFLAGS_GNU} -m64 -static"
 	"cxx"
-	MUTATEEgnucxx64stat)
+	"gnu_cxx 64 stat"
+	MUTATEEgnucxx64statcxx)
 
-IF (MUTATEEgnucxx64stat MATCHES "1")
+IF (MUTATEEgnucxx64statcxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_linux/srclists.cmake)
 add_executable (dyninst_cxx_group_test.stat_g++_64_none_none ${SOURCE_LIST_11})
 add_executable (dyninst_group_test.stat_g++_64_none_none ${SOURCE_LIST_14})

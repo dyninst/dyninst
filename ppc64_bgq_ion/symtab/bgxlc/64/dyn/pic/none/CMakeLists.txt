@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_mpi_xlc}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CFLAGS} ${CFLAGS}   -qpic"
 	"${MUTATEE_LDFLAGS_NATIVE}  -qnostaticlink"
 	"c"
-	MUTATEEmpixlc64dyn)
+	"mpi_xlc 64 dyn"
+	MUTATEEmpixlc64dync)
 
-IF (MUTATEEmpixlc64dyn MATCHES "1")
+IF (MUTATEEmpixlc64dync MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
 add_executable (symtab_group_test.dyn_bgxlc_64_pic_none ${SOURCE_LIST_19})
 target_link_libraries (symtab_group_test.dyn_bgxlc_64_pic_none testA)

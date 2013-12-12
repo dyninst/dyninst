@@ -1,5 +1,5 @@
 # CMakeLists for proccontrol/VC/32/dyn/none/none
-set (CMAKE_C_FLAGS "-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  -TC ${CFLAGS}   ")
+set (CMAKE_C_FLAGS "/DEBUG \"-I${PROJECT_SOURCE_DIR}/testsuite/src\" \"-I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol\" ${MUTATOR_DEFINES}  -TC ${CFLAGS}   ")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_COMPILER "${M_native_cc}")
@@ -12,12 +12,13 @@ set (CMAKE_CXX_LINK_EXECUTABLE ${M_native_linker})
 set (CMAKE_EXE_LINKER_FLAGS "${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}   ws2_32.lib")
 IF (NOT ${M_native_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
-	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  -TC ${CFLAGS}   "
+	"/DEBUG \"-I${PROJECT_SOURCE_DIR}/testsuite/src\" \"-I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol\" ${MUTATOR_DEFINES}  -TC ${CFLAGS}   "
 	"${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}   ws2_32.lib"
 	"c"
-	MUTATEEnativecc32dyn)
+	"native_cc 32 dyn"
+	MUTATEEnativecc32dync)
 
-IF (MUTATEEnativecc32dyn MATCHES "1")
+IF (MUTATEEnativecc32dync MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-nt4.0/srclists.cmake)
 add_executable (pc_addlibrary.dyn_VC_32_none_none.exe ${SOURCE_LIST_28})
 target_link_libraries (pc_addlibrary.dyn_VC_32_none_none.exe ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})

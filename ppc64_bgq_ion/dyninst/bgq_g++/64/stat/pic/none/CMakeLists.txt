@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_mpi_cxx}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}    -fPIC"
 	"${MUTATEE_LDFLAGS_GNU}  -static"
 	"cxx"
-	MUTATEEmpicxx64stat)
+	"mpi_cxx 64 stat"
+	MUTATEEmpicxx64statcxx)
 
-IF (MUTATEEmpicxx64stat MATCHES "1")
+IF (MUTATEEmpicxx64statcxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
 add_executable (dyninst_cxx_group_test.stat_bgq_g++_64_pic_none ${SOURCE_LIST_46})
 add_executable (dyninst_group_test.stat_bgq_g++_64_pic_none ${SOURCE_LIST_29})

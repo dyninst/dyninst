@@ -71,9 +71,17 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    c_compiler = get_compiler_command(exe, platform, abi, info)
    compiler = info['compilers'][exe]
 
-   include_path = '-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/%s' % module
-   c_flags = "-g %s %s" % (include_path, get_flags(platform, info['compilers'][exe], abi, opt, pic))
+   if platform['name'] == 'i386-unknown-nt4.0':
+      include_path = '\\\"-I${PROJECT_SOURCE_DIR}/testsuite/src\\\" \\\"-I${PROJECT_SOURCE_DIR}/testsuite/src/%s\\\"' % module
+   else:
+      include_path = '-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/%s' % module
    
+   c_flags = "%s %s" % (include_path, get_flags(platform, info['compilers'][exe], abi, opt, pic))
+   #This should be (used to be?) a compiler property, but it's not right now.
+   if platform['name'] == 'i386-unknown-nt4.0':
+      c_flags = '/DEBUG ' + c_flags
+   else:
+      c_flags = '-g ' + c_flags
 
    if not os.path.exists(gen_path):
       os.makedirs(gen_path)
@@ -105,21 +113,24 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
                               compiler['abiflags'][platform['name']][mut['abi']]['flags'],
                               linkage)
    out.write("set (CMAKE_EXE_LINKER_FLAGS \"%s\")\n" % link_flags)
-   
-   varname = "MUTATEE%s%s%s" % (c_compiler, abi, stat_dyn)
-   varname = varname.replace('_', '')
-   
+
    if ('c++' in compiler['languages']):
       lang = 'cxx'
    elif ('fortran' in compiler['languages']):
       lang = 'fortran'
    elif ('c' in compiler['languages']):
       lang = 'c'
+   
+   varname = "MUTATEE%s%s%s%s" % (c_compiler, abi, stat_dyn, lang)
+   varname = varname.replace('_', '')
+   msgstring = "%s %s %s" % (c_compiler, abi, stat_dyn)
+   
    out.write("IF (NOT ${M_%s} MATCHES \"NOTFOUND\")\n" % c_compiler)
    out.write("CHECK_MUTATEE_COMPILER (\"${M_%s}\"\n" % c_compiler)
    out.write("\t\"%s\"\n" % c_flags)
    out.write("\t\"%s\"\n" % link_flags)
    out.write("\t\"%s\"\n" % lang)
+   out.write("\t\"%s\"\n" % msgstring)
    out.write("\t%s)\n\n" % varname)
    out.write("IF (%s MATCHES \"1\")\n" % varname)
    

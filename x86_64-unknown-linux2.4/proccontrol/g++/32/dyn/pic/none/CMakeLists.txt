@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}  -m32 -Di386_unknown_linux2_4 -Dm32_test  -fPIC"
 	"${MUTATEE_LDFLAGS_GNU} -m32 -Di386_unknown_linux2_4 -Dm32_test -Wl,-export-dynamic"
 	"cxx"
-	MUTATEEgnucxx32dyn)
+	"gnu_cxx 32 dyn"
+	MUTATEEgnucxx32dyncxx)
 
-IF (MUTATEEgnucxx32dyn MATCHES "1")
+IF (MUTATEEgnucxx32dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (pc_addlibrary.dyn_g++_32_pic_none ${SOURCE_LIST_50})
 target_link_libraries (pc_addlibrary.dyn_g++_32_pic_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})

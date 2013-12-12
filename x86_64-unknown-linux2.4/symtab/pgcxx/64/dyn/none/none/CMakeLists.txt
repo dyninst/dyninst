@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  ${CXXFLAGS_NATIVE} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE}    "
 	"${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  "
 	"cxx"
-	MUTATEEpgcxx64dyn)
+	"pg_cxx 64 dyn"
+	MUTATEEpgcxx64dyncxx)
 
-IF (MUTATEEpgcxx64dyn MATCHES "1")
+IF (MUTATEEpgcxx64dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (symtab_group_test.dyn_pgcxx_64_none_none ${SOURCE_LIST_35})
 target_link_libraries (symtab_group_test.dyn_pgcxx_64_none_none testA)

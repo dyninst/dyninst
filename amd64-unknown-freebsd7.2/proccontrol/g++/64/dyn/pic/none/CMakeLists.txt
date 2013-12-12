@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}    -fPIC"
 	"${MUTATEE_LDFLAGS_GNU}  -Wl,-export-dynamic"
 	"cxx"
-	MUTATEEgnucxx64dyn)
+	"gnu_cxx 64 dyn"
+	MUTATEEgnucxx64dyncxx)
 
-IF (MUTATEEgnucxx64dyn MATCHES "1")
+IF (MUTATEEgnucxx64dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/amd64-unknown-freebsd7.2/srclists.cmake)
 add_executable (pc_addlibrary.dyn_g++_64_pic_none ${SOURCE_LIST_48})
 target_link_libraries (pc_addlibrary.dyn_g++_64_pic_none ${CMAKE_THREAD_LIBS_INIT})

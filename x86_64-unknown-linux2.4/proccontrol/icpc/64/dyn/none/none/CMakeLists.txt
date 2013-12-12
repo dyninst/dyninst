@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_intel_CC}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     "
 	"${MUTATEE_LDFLAGS_GNU}  -Xlinker -export-dynamic"
 	"cxx"
-	MUTATEEintelCC64dyn)
+	"intel_CC 64 dyn"
+	MUTATEEintelCC64dyncxx)
 
-IF (MUTATEEintelCC64dyn MATCHES "1")
+IF (MUTATEEintelCC64dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (pc_exec_targ.dyn_icpc_64_none_none ${SOURCE_LIST_28})
 

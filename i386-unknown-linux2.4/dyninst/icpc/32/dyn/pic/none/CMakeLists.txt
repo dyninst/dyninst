@@ -13,9 +13,10 @@ CHECK_MUTATEE_COMPILER ("${M_intel_CC}"
 	"-g -I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  ${CXXFLAGS} -DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}     -fPIC"
 	"${MUTATEE_LDFLAGS_GNU}  -Xlinker -export-dynamic"
 	"cxx"
-	MUTATEEintelCC32dyn)
+	"intel_CC 32 dyn"
+	MUTATEEintelCC32dyncxx)
 
-IF (MUTATEEintelCC32dyn MATCHES "1")
+IF (MUTATEEintelCC32dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
 add_executable (dyninst_cxx_group_test.dyn_icpc_32_pic_none ${SOURCE_LIST_92})
 add_executable (dyninst_group_test.dyn_icpc_32_pic_none ${SOURCE_LIST_69})
