@@ -231,8 +231,7 @@ install (TARGETS testA testB testA_static testB_static
 	RUNTIME DESTINATION ${INSTALL_DIR}
 	ARCHIVE DESTINATION ${INSTALL_DIR}
 )
-
-if(NOT ${PLATFORM} MATCHES nt)
+if (${MUTATEE_gcc64dyn} AND ${MUTATEE_gcc32dyn})
 add_library (testA_m32 SHARED src/libtestA.c)
 add_library (testB_m32 SHARED src/libtestB.c)
 add_library (Test12_m32 SHARED src/dyninst/libTest12.c)
