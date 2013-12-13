@@ -265,10 +265,6 @@ class parse_func : public ParseAPI::Function
 
    void *getPtrToInstruction(Address addr) const;
 
-   /*** Debugging output operators ***/
-   ostream & operator<<(ostream &s) const;
-   friend ostream &operator<<(ostream &os, parse_func &f);
-
    /*** misc. accessors ***/
    pdmodule *pdmod() const { return mod_;}
    image *img() const { return image_; }

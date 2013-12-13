@@ -354,7 +354,9 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
             i = j - 1; 
             break;
          }
-            
+      case DW_OP_piece:
+	// Should detect multiple of these...
+	continue;
          default:
             return false;
       } /* end operand switch */

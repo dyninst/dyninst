@@ -1661,6 +1661,10 @@ bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
          DWARF_FAIL_RET(dwarf_formudata(locationAttribute, &u_tmp, NULL));
          value = (Address) u_tmp;
          return true;
+   case DW_FORM_sec_offset:
+     DWARF_FAIL_RET(dwarf_global_formref(locationAttribute, &u_tmp, NULL));
+     value = (Address)(u_tmp);
+     return true;
       default:
          dwarf_printf("(0x%lx) Unhandled form 0x%x for constant decode\n", id(), (unsigned) form);
          return false;

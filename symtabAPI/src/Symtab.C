@@ -881,7 +881,9 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
 {
 
     switch(sym->getType()) {
-    case Symbol::ST_FUNCTION: {
+    case Symbol::ST_FUNCTION: 
+    case Symbol::ST_INDIRECT:
+      {
         // We want to do the following:
         // If no function exists, create and add. 
         // Combine this information
