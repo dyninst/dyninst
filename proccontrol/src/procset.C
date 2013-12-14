@@ -88,7 +88,8 @@ PSetFeatures::PSetFeatures() :
    thrdset(NULL),
    lwpset(NULL),
    forkset(NULL),
-   ioset(NULL)
+   ioset(NULL),
+   memset(NULL)
 {
 }
 
@@ -109,6 +110,10 @@ PSetFeatures::~PSetFeatures()
    if (ioset) {
       delete ioset;
       ioset = NULL;
+   }
+   if (memset) {
+      delete memset;
+      memset = NULL;
    }
 }
 
