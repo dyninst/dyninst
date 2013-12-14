@@ -380,6 +380,7 @@ FrameNode::FrameNode(frame_cmp_wrapper f, string s) :
    children(f),
    parent(NULL),
    frame_type(FTString),
+   thrd(NULL_THR_ID),
    walker(NULL),
    had_error(false),
    ftstring(s)
