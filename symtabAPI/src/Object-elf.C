@@ -3410,45 +3410,6 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
 #endif
 }
 
-Object::Object(const Object& obj)
-  : AObject(obj),
-    elfHdr(obj.elfHdr),
-    hasReldyn_(false),
-    hasReladyn_(false),
-    hasRelplt_(false),
-    hasRelaplt_(false),
-    relType_(obj.relType_),
-    isBlueGeneP_(false), isBlueGeneQ_(false),
-    hasNoteSection_(false),
-    elf_hash_addr_(0), gnu_hash_addr_(0),
-    dynamic_offset_(0), dynamic_size_(0), dynsym_size_(0),
-    init_addr_(0), fini_addr_(0),
-    text_addr_(0), text_size_(0),
-    symtab_addr_(0), strtab_addr_(0),
-    dynamic_addr_(0), dynsym_addr_(0), dynstr_addr_(0),
-    got_addr_(0), got_size_(0),
-    plt_addr_(0), plt_size_(0), plt_entry_size_(0),
-    rel_plt_addr_(0), rel_plt_size_(0), rel_plt_entry_size_(0),
-    rel_addr_(0), rel_size_(0), rel_entry_size_(0),
-    opd_addr_(0), opd_size_(0),
-    stab_off_(0), stab_size_(0), stabstr_off_(0),
-    stab_indx_off_(0), stab_indx_size_(0), stabstr_indx_off_(0),
-    dwarvenDebugInfo(false),
-    loadAddress_(obj.loadAddress_),
-    entryAddress_(obj.entryAddress_),
-    interpreter_name_(obj.interpreter_name_),
-    isStripped(obj.isStripped),
-    dwarf(NULL),
-    EEL(false), did_open(false),
-    obj_type_(obj_Unknown),
-    relocation_table_(obj.relocation_table_),
-    fbt_(obj.fbt_),
-    deps_(obj.deps_),
-    DbgSectionMapSorted(obj.DbgSectionMapSorted)
-{
-  // TODO copy more fields from obj, instead of zeroing?
-}
-
 Object::~Object()
 {
   relocation_table_.clear();

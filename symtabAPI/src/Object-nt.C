@@ -1110,8 +1110,14 @@ Object::Object(MappedFile *mf_,
                void (*err_func)(const char *), bool alloc_syms) :
     AObject(mf_, err_func),
     curModule( NULL ),
+    baseAddr( 0 ),
+    imageBase( 0 ),
     peHdr( NULL ),
-    trapHeaderPtr_( 0 )
+    trapHeaderPtr_( 0 ),
+    SecAlignment( 0 ),
+    textSectionId( 0 ),
+    dataSectionId( 0 ),
+    hProc( NULL )
 {
    FindInterestingSections(alloc_syms, defensive);
    if (alloc_syms && defensive) {

@@ -297,15 +297,14 @@ class emitElf64;
 class Object : public AObject {
   friend class emitElf;
   friend class emitElf64;
- public:
-  Object() {}
-  Object(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true);
-  Object(MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
-  Object(MappedFile *, std::string &member_name, Offset offset,	
-          void (*)(const char *) = log_msg, void *base = NULL, bool alloc_syms = true);
+
+  // declared but not implemented; no copying allowed
   Object(const Object &);
+  const Object& operator=(const Object &);
+
+ public:
+  Object(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true);
   virtual ~Object();
-  //const Object& operator=(const Object &);
 
   bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&allSymbols, unsigned flag);  
   

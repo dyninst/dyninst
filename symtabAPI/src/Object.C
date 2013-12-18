@@ -401,20 +401,6 @@ SYMTAB_EXPORT AObject::AObject(MappedFile *mf_, void (*err_func)(const char *))
 {
 }
 
-SYMTAB_EXPORT AObject::AObject(const AObject &obj)
-: mf(obj.mf), symbols_(obj.symbols_), 
-   code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), code_len_(obj.code_len_),
-   data_ptr_(obj.data_ptr_), data_off_(obj.data_off_), data_len_(obj.data_len_),
-   code_vldS_(obj.code_vldS_), code_vldE_(obj.code_vldE_),
-   data_vldS_(obj.data_vldS_), data_vldE_(obj.data_vldE_),
-   loader_off_(obj.loader_off_), loader_len_(obj.loader_len_),
-   is_aout_(obj.is_aout_), is_dynamic_(obj.is_dynamic_),
-   has_error(obj.has_error), is_static_binary_(obj.is_static_binary_),
-   no_of_sections_(obj.no_of_sections_), no_of_symbols_(obj.no_of_symbols_),
-   deferredParse(false), err_func_(obj.err_func_), addressWidth_nbytes(4)
-{
-}
-
 //  a helper routine that selects a language based on information from the symtab
 supportedLanguages AObject::pickLanguage(string &working_module, char *working_options,
       supportedLanguages working_lang)
