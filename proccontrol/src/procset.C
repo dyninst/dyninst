@@ -623,7 +623,7 @@ public:
       msg(m),
       had_error(e),
       flags(f),
-      container(NULL),
+      container(),
       finished_clear(false),
       did_begin(false)
    {
