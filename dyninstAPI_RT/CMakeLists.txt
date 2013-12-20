@@ -1,6 +1,6 @@
 # CMake configuration for dyninstAPI_RT directory
 cmake_minimum_required (VERSION 2.6.4)
-project (DyninstRT)
+project (DyninstRT C)
 
 set (DYNINST_ROOT ${PROJECT_SOURCE_DIR}/..)
 

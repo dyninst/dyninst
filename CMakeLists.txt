@@ -59,8 +59,10 @@ add_subdirectory (stackwalk)
 add_subdirectory (dyninstAPI)
 
 #Build the RT library as a seperate project so we can change compilers
+message(STATUS "Configuring DyninstAPI_RT")
 set(RT_SOURCE_DIR ${DYNINST_ROOT}/dyninstAPI_RT)
 set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
+file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile ${RT_BINARY_DIR}/Makefile)
 file(MAKE_DIRECTORY ${RT_BINARY_DIR})
 if (PLATFORM MATCHES bgq)
 set (RT_C_COMPILER mpicc)
@@ -71,10 +73,10 @@ endif()
 execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR}
                 COMMAND ${CMAKE_COMMAND}
                 -DCMAKE_C_COMPILER=${RT_C_COMPILER}
-                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                 -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
                 -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
                 -DPLATFORM=${PLATFORM}
+                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                 ${RT_SOURCE_DIR})
 add_custom_target(DyninstRT
                   ALL
