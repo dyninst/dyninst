@@ -38,10 +38,12 @@
 //#define PROCCTRL_LOCK_PRINTS 1
 
 #include <stdio.h>
+#include <string.h>
 #include "util.h"
+#include "dyntypes.h"
 
-extern void pc_print_lock();
-extern void pc_print_unlock();
+PC_EXPORT extern void pc_print_lock();
+PC_EXPORT extern void pc_print_unlock();
 #if defined(PROCCTRL_LOCK_PRINTS)
 #define PC_PRINT_LOCK pc_print_lock()
 #define PC_PRINT_UNLOCK pc_print_unlock()
@@ -65,7 +67,7 @@ extern void pc_print_unlock();
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - " format, __FILE__, __LINE__, \
+         fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - " format, FILE__, __LINE__, \
                  thrdName(), gettod(), ## __VA_ARGS__);                 \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \
@@ -75,7 +77,7 @@ extern void pc_print_unlock();
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - Error: " format, __FILE__, __LINE__, thrdName(), gettod(), ## __VA_ARGS__); \
+         fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - Error: " format, FILE__, __LINE__, thrdName(), gettod(), ## __VA_ARGS__); \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \
    } while (0)
@@ -86,7 +88,7 @@ extern void pc_print_unlock();
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s] - " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+         fprintf(pctrl_err_out, "[%s:%u-%s] - " format, FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \
    } while (0)
@@ -95,18 +97,18 @@ extern void pc_print_unlock();
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s] - Error: " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+         fprintf(pctrl_err_out, "[%s:%u-%s] - Error: " format, FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \
    } while (0)
 
 #endif
 
-extern bool dyninst_debug_proccontrol;
-extern const char *thrdName();
-extern FILE* pctrl_err_out;
+PC_EXPORT extern bool dyninst_debug_proccontrol;
+PC_EXPORT extern const char *thrdName();
+PC_EXPORT extern FILE* pctrl_err_out;
 
-extern unsigned long gettod();
+PC_EXPORT extern unsigned long gettod();
 
 namespace Dyninst {
 namespace ProcControlAPI {
