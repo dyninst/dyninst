@@ -637,7 +637,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
 
 class SYMTAB_EXPORT ExceptionBlock : public Serializable, public AnnotatableSparse {
-
+  // Accessors provide consistent access to the *original* offsets.
+  // We allow this to be updated (e.g. to account for relocated code
    public:
 	  Serializable * serialize_impl(SerializerBase *sb, 
 			  const char *tag = "exceptionBlock") THROW_SPEC (SerializerError);
@@ -653,6 +654,30 @@ class SYMTAB_EXPORT ExceptionBlock : public Serializable, public AnnotatableSpar
       Offset trySize() const;
       Offset catchStart() const;
       bool contains(Offset a) const;
+      void setTryStart(Offset ts) 
+      {
+	tryStart_ptr = ts;
+      }
+      void setTryEnd(Offset te)
+      {
+	tryEnd_ptr = te;
+      }
+
+      void setCatchStart(Offset cs)
+      {
+	catchStart_ptr = cs;
+      }
+
+      void setFdeStart(Offset fs)
+      {
+	fdeStart_ptr = fs;
+      }
+      
+      void setFdeEnd(Offset fe)
+      {
+	fdeEnd_ptr = fe;
+      }      	
+
 
       friend SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
    private:
@@ -660,6 +685,11 @@ class SYMTAB_EXPORT ExceptionBlock : public Serializable, public AnnotatableSpar
       unsigned trySize_;
       Offset catchStart_;
       bool hasTry_;
+      Offset tryStart_ptr;
+      Offset tryEnd_ptr;
+      Offset catchStart_ptr;
+      Offset fdeStart_ptr;
+      Offset fdeEnd_ptr;
 };
 
 // relocation information for calls to functions not in this image

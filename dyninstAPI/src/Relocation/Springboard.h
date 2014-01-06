@@ -185,6 +185,59 @@ class SpringboardBuilder;
    Springboards sBoardMap_;
  };
 
+ // Persistent tracking of things that have already gotten springboards across multiple
+ // calls to AddressSpace::relocateInt() and thus across multiple SpringboardFoo,
+ // CodeTracker, CodeMover objects.
+
+class InstalledSpringboards
+{
+ public:
+  typedef boost::shared_ptr<InstalledSpringboards> Ptr;
+  static const int Allocated;
+  static const int UnallocatedStart;
+ InstalledSpringboards() : nextFuncID_(UnallocatedStart) 
+  {
+  }
+  
+  
+
+  template <typename BlockIter> 
+  bool addBlocks(BlockIter begin, BlockIter end);
+  bool addFunc(func_instance* f);
+  bool conflict(Address start, Address end, bool inRelocatedCode);
+  bool conflictInRelocated(Address start, Address end);
+
+  void registerBranch(Address start, Address end, const SpringboardReq::Destinations &dest, bool inRelocatedCode);
+  void registerBranchInRelocated(Address start, Address end);
+  bool forceTrap(Address a) 
+  {
+    return relocTraps_.find(a) != relocTraps_.end();
+  }
+
+    
+  
+ private:
+  int nextFuncID_;
+  // tracks relocation addresses that need trap-based springboards
+  std::set<Address> relocTraps_; 
+  
+
+  // We don't really care about the payload; I just want an "easy to look up"
+  // range data structure. 
+  // Map this to an int because IntervalTree collapses similar ranges. Punks.
+  IntervalTree<Address, int> validRanges_;
+
+  // Like the previous, but for branches we put in relocated code. We
+  // assume anything marked as "in relocated code" is a valid thing to write
+  // to, since relocation size is >= original size. However, we still don't
+  // want overlapping branches. 
+  IntervalTree<Address, bool> overwrittenRelocatedCode_;
+  void debugRanges();
+  
+};
+ 
+ 
+
 class SpringboardBuilder {
   typedef enum {
     Failed,
@@ -203,13 +256,11 @@ class SpringboardBuilder {
 		SpringboardMap &input);
 
  private:
-
-  static const int Allocated;
-  static const int UnallocatedStart;
-
- SpringboardBuilder(AddressSpace *a) : addrSpace_(a), curRange_(UnallocatedStart) {};
   template <typename BlockIter> 
-     bool addBlocks(BlockIter begin, BlockIter end, int funcID);
+  bool addBlocks(BlockIter begin, BlockIter end);
+
+
+  SpringboardBuilder(AddressSpace *a);
 
   bool generateInt(std::list<codeGen> &springboards,
                    SpringboardMap &input,
@@ -230,40 +281,27 @@ class SpringboardBuilder {
 			    const SpringboardReq &p,
 			    bool useTrap);
 
-  bool conflict(Address start, Address end, bool inRelocatedCode);
-  bool conflictInRelocated(Address start, Address end);
-
-  void registerBranch(Address start, Address end, const SpringboardReq::Destinations &dest, bool inRelocatedCode);
-  void registerBranchInRelocated(Address start, Address end);
 
   void addMultiNeeded(const SpringboardReq &p);
 
   void generateBranch(Address from, Address to, codeGen &input);
   void generateTrap(Address from, Address to, codeGen &input);
 
+  bool conflict(Address start, Address end, bool inRelocatedCode) { return installed_springboards_->conflict(start, end, inRelocatedCode); }
+
+  void registerBranch(Address start, Address end, const SpringboardReq::Destinations &dest, bool inRelocatedCode)
+  {
+    return installed_springboards_->registerBranch(start, end, dest, inRelocatedCode);
+  }
+
   bool isLegalShortBranch(Address from, Address to);
   Address shortBranchBack(Address from);
 
-  void debugRanges();
 
   AddressSpace *addrSpace_;
 
-  // tracks relocation addresses that need trap-based springboards
-  static std::set<Address> relocTraps_; 
+  InstalledSpringboards::Ptr installed_springboards_;
   
-
-  // We don't really care about the payload; I just want an "easy to look up"
-  // range data structure. 
-  // Map this to an int because IntervalTree collapses similar ranges. Punks.
-  IntervalTree<Address, int> validRanges_;
-  int curRange_;
-
-  // Like the previous, but for branches we put in relocated code. We
-  // assume anything marked as "in relocated code" is a valid thing to write
-  // to, since relocation size is >= original size. However, we still don't
-  // want overlapping branches. 
-  IntervalTree<Address, bool> overwrittenRelocatedCode_;
-
   std::list<SpringboardReq> multis_;
 
 };

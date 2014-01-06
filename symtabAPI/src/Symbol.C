@@ -428,9 +428,13 @@ std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
 ostream & Dyninst::SymtabAPI::operator<< (ostream &s, const ExceptionBlock &eb) 
 {
 	s << "tryStart=" << eb.tryStart_ 
-		<< "trySize=" << eb.trySize_ 
-		<< "catchStart=" << eb.catchStart_ 
-		<< "hasTry=" << eb.trySize_ ;
+	  << ", trySize=" << eb.trySize_ 
+	  << ", catchStart=" << eb.catchStart_ 
+	  << ", hasTry=" << eb.trySize_ 
+	  << ", tryStart_ptr=" << eb.tryStart_ptr
+	  << ", tryEnd_ptr=" << eb.tryEnd_ptr
+	  << ", catchStart_ptr=" << eb.catchStart_ptr;
+	
 	return s; 
 }
 

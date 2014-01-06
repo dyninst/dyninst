@@ -41,9 +41,15 @@ using namespace Relocation;
 
 extern int dyn_debug_trap;
 
-const int SpringboardBuilder::Allocated(0);
-const int SpringboardBuilder::UnallocatedStart(1);
-std::set<Address> SpringboardBuilder::relocTraps_; 
+const int InstalledSpringboards::Allocated(0);
+const int InstalledSpringboards::UnallocatedStart(1);
+
+SpringboardBuilder::SpringboardBuilder(AddressSpace* a)
+ : addrSpace_(a), 
+   installed_springboards_(a->getInstalledSpringboards())
+{
+}
+
 
 template <typename BlockIter> 
 SpringboardBuilder::Ptr SpringboardBuilder::create(BlockIter begin,
@@ -52,7 +58,7 @@ SpringboardBuilder::Ptr SpringboardBuilder::create(BlockIter begin,
   Ptr ret = Ptr(new SpringboardBuilder(as));
   if (!ret) return ret;
 
-  if (!ret->addBlocks(begin, end, UnallocatedStart)) return Ptr();
+  if (!ret->addBlocks(begin, end)) return Ptr();
   return ret;
 }
 
@@ -62,11 +68,12 @@ SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator b
 {
   Ptr ret = Ptr(new SpringboardBuilder(as));
   if (!ret) return ret;
-  int id = UnallocatedStart;
   for (; begin != end; ++begin) {
      func_instance *func = *begin;
      //if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), func, id++)) {
-     if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), id++)) {
+     //if (!ret->addBlocks(func->blocks().begin(), func->blocks().end())) {
+     if(!ret->installed_springboards_->addFunc(func)) 
+     {
         return Ptr();
      }
   }
@@ -130,7 +137,22 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
 }
 
 template <typename BlockIter>
-bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, int funcID) {
+bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end)
+{
+  return installed_springboards_->addBlocks(begin, end);
+  
+}
+
+bool InstalledSpringboards::addFunc(func_instance* func)
+{
+  if(!addBlocks(func->blocks().begin(), func->blocks().end())) return false;
+  nextFuncID_++;
+  return true;
+}
+
+
+template <typename BlockIter>
+bool InstalledSpringboards::addBlocks(BlockIter begin, BlockIter end) {
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {
@@ -176,21 +198,21 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, int funcID) {
            */
           if (LB < start) { 
              validRanges_.remove(LB); // replace [LB UB)...
-             validRanges_.insert(LB, start, funcID); // with  [LB start)
+             validRanges_.insert(LB, start, nextFuncID_); // with  [LB start)
              if (UB <= end) { // [start UB)
-                validRanges_.insert(start, UB, funcID);
+                validRanges_.insert(start, UB, nextFuncID_);
              } else { // [start end) or [start end) and [end UB) 
-                validRanges_.insert(start, end, funcID);
-                validRanges_.insert(end, UB, funcID);
+                validRanges_.insert(start, end, nextFuncID_);
+                validRanges_.insert(end, UB, nextFuncID_);
              }
           } 
           else {
              if (start < LB) { // add [start LB) or [start LB)
-                validRanges_.insert(start, LB, funcID);
+                validRanges_.insert(start, LB, nextFuncID_);
              }
              if (UB > end) { // [LB end) and [end UB) 
-                validRanges_.insert(LB, end, funcID);
-                validRanges_.insert(end, UB, funcID);
+                validRanges_.insert(LB, end, nextFuncID_);
+                validRanges_.insert(end, UB, nextFuncID_);
              } // otherwise [LB UB) is already in validRanges_
           }
           lookup = UB;
@@ -201,7 +223,7 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, int funcID) {
        }
     }
     if (start < end) { // [start end) or [UB end)
-        validRanges_.insert(start, end, funcID);
+        validRanges_.insert(start, end, nextFuncID_);
     }
   }
   return true;
@@ -248,7 +270,7 @@ bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &,
    return true;
 }
 
-bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) {
+bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocated) {
    if (inRelocated) 
        return conflictInRelocated(start, end);
 
@@ -263,6 +285,24 @@ bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) 
     // We also don't want to start in one function's dead space and cross
    // into another's. So check to see if state suddenly changes.
 
+
+   // The above comment is wholly wrong, but leaving it in and responding to it for the moment.
+   // Springboards *should* stay within a particular block, but we attempt to address this by
+   // ensuring that higher priority springboards are installed before lower priority ones
+   // (which is to say mandatory before optional), and by processing them from high addresses
+   // to low ones in each priority group. We glue arbitrary blocks together at each priority level.
+
+   // NOTE: this approach may be responsible for our reinstrumentation bug, where we have the same
+   // problem with "installed 2 byte branch, think we now have space for 5 byte branch"
+   // that we do with "installed trap, think we now have space for a branch". Need to determine how to properly
+   // avoid expanding springboards when reinstrumenting in a general way, not just in the trap/branch case.
+
+   // And now that we're working with a per-address-space set of data structures, we have to keep track of
+   // multiple relocation invocations' worth of requests. However, we know that in a given batch of springboard
+   // requests, we can't have two springboards starting at the same address. SO:
+   // If we find that we're overwriting at the same address as an existing springboard
+   // and we're not running into another interval, there's no conflict (replacing a springboard).
+   // If we find *any* other case where we're hitting allocated, conflict.
    Address working = start;
    Address LB;
    Address UB = 0;
@@ -278,6 +318,12 @@ bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) 
       }
       springboard_cerr << "\t\t Found " << hex << LB << " -> " << UB << " /w/ state " << state << dec << endl;
       if (state == Allocated) {
+	if(LB == start && UB >= end) 
+	{
+	  springboard_cerr << "\t Starting range matches already allocated springboard, assuming overwrite, ret OK" << endl;
+	  return false;
+	}
+	
          springboard_cerr << "\t Starting range already allocated, ret conflict" << endl;
          return true;
       }
@@ -296,7 +342,7 @@ bool SpringboardBuilder::conflict(Address start, Address end, bool inRelocated) 
    return false;
 }
 
-bool SpringboardBuilder::conflictInRelocated(Address start, Address end) {
+bool InstalledSpringboards::conflictInRelocated(Address start, Address end) {
    // Much simpler case: do we overlap something already in the range set, 
    // or did we use a trap for this block initially
    for (Address i = start; i < end; ++i) {
@@ -324,7 +370,7 @@ bool SpringboardBuilder::conflictInRelocated(Address start, Address end) {
    return false;
 }
 
-void SpringboardBuilder::registerBranch
+void InstalledSpringboards::registerBranch
 (Address start, Address end, const SpringboardReq::Destinations & dest, bool inRelocated) 
 {
    // Remove the valid ranges for everything between start and end, using much the 
@@ -382,12 +428,12 @@ void SpringboardBuilder::registerBranch
    }
 }
 
-void SpringboardBuilder::registerBranchInRelocated(Address start, Address end) {
+void InstalledSpringboards::registerBranchInRelocated(Address start, Address end) {
    overwrittenRelocatedCode_.insert(start, end, true);
 }
 
 
-void SpringboardBuilder::debugRanges() {
+void InstalledSpringboards::debugRanges() {
   std::vector<std::pair<std::pair<Address, Address>, int> > elements;
   validRanges_.elements(elements);
   if (false) cerr << "Range debug: " << endl;
@@ -450,7 +496,7 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req,
                break;
          }
          bool curUseTrap = useTrap;
-         if ( !useTrap && relocTraps_.end() != relocTraps_.find(*a_iter)) {
+         if ( !useTrap && installed_springboards_->forceTrap(*a_iter)) {
             springboard_cerr << "Springboard conflict for " << hex 
                              << req.from << "[" << (*a_iter) 
                              << "] our previous springboard here needed a trap, "

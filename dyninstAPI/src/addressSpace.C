@@ -84,6 +84,7 @@ AddressSpace::AddressSpace () :
     memEmulator_(NULL),
     emulateMem_(false),
     emulatePC_(false),
+    installedSpringboards_(new Relocation::InstalledSpringboards()),
     delayRelocation_(false)
 {
 #if 0
