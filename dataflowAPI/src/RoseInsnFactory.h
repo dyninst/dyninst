@@ -109,7 +109,7 @@ class RoseInsnX86Factory : public RoseInsnFactory {
 
   class RoseInsnPPCFactory : public RoseInsnFactory {
   public:
-    DATAFLOW_EXPORT RoseInsnPPCFactory(void) {};
+    DATAFLOW_EXPORT RoseInsnPPCFactory(void): kind(powerpc_unknown_instruction) {};
     DATAFLOW_EXPORT virtual ~RoseInsnPPCFactory(void) {};
 
   private:

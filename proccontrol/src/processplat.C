@@ -1052,12 +1052,14 @@ int_memUsage::~int_memUsage()
 
 int_BGQData::int_BGQData(Dyninst::PID p, string e, vector<string> a,
                          vector<string> envp, map<int,int> f) :
-   int_process(p, e, a, envp, f)
+   int_process(p, e, a, envp, f),
+   up_ptr(NULL)
 {
 }
 
 int_BGQData::int_BGQData(Dyninst::PID pid_, int_process *p) :
-   int_process(pid_, p)
+   int_process(pid_, p),
+   up_ptr(NULL)
 {
 }
 
@@ -1089,13 +1091,15 @@ int_fileInfo::~int_fileInfo()
 int_remoteIO::int_remoteIO(Dyninst::PID p, std::string e, std::vector<std::string> a,
                            std::vector<std::string> envp, std::map<int,int> f) :
    int_process(p, e, a, envp, f),
-   resp_process(p, e, a, envp, f)
+   resp_process(p, e, a, envp, f),
+   up_ptr(NULL)
 {
 }
 
 int_remoteIO::int_remoteIO(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
-   resp_process(pid_, p)
+   resp_process(pid_, p),
+   up_ptr(NULL)
 {
 }
 

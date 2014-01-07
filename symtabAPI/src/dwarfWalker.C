@@ -48,9 +48,21 @@ DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
    mod_(NULL),
    symtab_(symtab),
    tc_(NULL),
+   is_mangled_name_(false),
    modLow(0),
-   modHigh(0) {
-}   
+   modHigh(0),
+   cu_header_length(0),
+   version(0),
+   abbrev_offset(0),
+   addr_size(0),
+   offset_size(0),
+   extension_size(0),
+   signature(),
+   typeoffset(0),
+   next_cu_header(0),
+   compile_offset(0)
+{
+}
 
 DwarfWalker::~DwarfWalker() {}
 
@@ -1661,6 +1673,10 @@ bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
          DWARF_FAIL_RET(dwarf_formudata(locationAttribute, &u_tmp, NULL));
          value = (Address) u_tmp;
          return true;
+   case DW_FORM_sec_offset:
+     DWARF_FAIL_RET(dwarf_global_formref(locationAttribute, &u_tmp, NULL));
+     value = (Address)(u_tmp);
+     return true;
       default:
          dwarf_printf("(0x%lx) Unhandled form 0x%x for constant decode\n", id(), (unsigned) form);
          return false;
@@ -2082,6 +2098,7 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
 
   DWARF_FAIL_RET(dwarf_loclist_from_expr_a(dbg(), expr_ptr, expr_len, addr_size, 
 					   &descs, &cnt, NULL));
+  assert(cnt == 1);
 
   bool ret = decodeLocationListForStaticOffsetOrAddress(&descs, cnt, locs, NULL);
   //deallocateLocationList(&descs, cnt);

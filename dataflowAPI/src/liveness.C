@@ -51,7 +51,7 @@ using namespace Dyninst::ParseAPI;
 
 // Code for register liveness detection
 
-LivenessAnalyzer::LivenessAnalyzer(int w){
+LivenessAnalyzer::LivenessAnalyzer(int w): errorno((ErrorType)-1) {
     width = w;
     abi = ABI::getABI(width);
 }

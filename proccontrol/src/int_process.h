@@ -1558,7 +1558,7 @@ class int_notify {
    friend EventNotify *Dyninst::ProcControlAPI::evNotify();
  private:
    static int_notify *the_notify;
-   EventNotify *up_notify;
+   EventNotify up_notify;
    std::set<EventNotify::notify_cb_t> cbs;
    int events_noted;
    details_t my_internals;

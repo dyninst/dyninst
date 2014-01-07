@@ -111,6 +111,10 @@ PSetFeatures::~PSetFeatures()
       delete ioset;
       ioset = NULL;
    }
+   if (memset) {
+      delete memset;
+      memset = NULL;
+   }
 }
 
 TSetFeatures::TSetFeatures() :
@@ -619,6 +623,7 @@ public:
       msg(m),
       had_error(e),
       flags(f),
+      container(),
       finished_clear(false),
       did_begin(false)
    {

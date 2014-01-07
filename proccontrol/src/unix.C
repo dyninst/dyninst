@@ -160,12 +160,12 @@ bool unix_process::plat_decodeMemoryRights(Process::mem_perm& perm,
                                            unsigned long rights) {
     switch (rights) {
       default:                                 return false;
-      case PROT_NONE:                          perm.clrR().clrW().clrX();
-      case PROT_READ:                          perm.setR().clrW().clrX();
-      case PROT_EXEC:                          perm.clrR().clrW().setX();
-      case PROT_READ | PROT_WRITE:             perm.setR().setW().clrX();
-      case PROT_READ | PROT_EXEC:              perm.setR().clrW().setX();
-      case PROT_READ | PROT_WRITE | PROT_EXEC: perm.setR().setW().setX();
+      case PROT_NONE:                          perm.clrR().clrW().clrX(); break;
+      case PROT_READ:                          perm.setR().clrW().clrX(); break;
+      case PROT_EXEC:                          perm.clrR().clrW().setX(); break;
+      case PROT_READ | PROT_WRITE:             perm.setR().setW().clrX(); break;
+      case PROT_READ | PROT_EXEC:              perm.setR().clrW().setX(); break;
+      case PROT_READ | PROT_WRITE | PROT_EXEC: perm.setR().setW().setX(); break;
     }
 
     return true;
@@ -216,12 +216,20 @@ bool unix_process::plat_setMemoryAccessRights(Dyninst::Address addr,
     if (!mprotect((void*)addr, size, (int)rights)) {
         pthrd_printf("ERROR: failed to set access rights for page %lx\n", addr);
         switch (errno) {
-          case EACCES: setLastError(err_prem, "Permission denied");
-          case EINVAL: setLastError(err_badparam,
-                          "Given page address is invalid or not page-aligned");
-          case ENOMEM: setLastError(err_badparam, "Insufficient memory,"
-                          "or the given memory region contains invalid address space");
-          default:     setLastError(err_unsupported, "Unknown error code");
+          case EACCES:
+              setLastError(err_prem, "Permission denied");
+              break;
+          case EINVAL:
+              setLastError(err_badparam,
+                      "Given page address is invalid or not page-aligned");
+              break;
+          case ENOMEM:
+              setLastError(err_badparam, "Insufficient memory, "
+                      "or the given memory region contains invalid address space");
+              break;
+          default:
+              setLastError(err_unsupported, "Unknown error code");
+              break;
         }
         return false;
     }

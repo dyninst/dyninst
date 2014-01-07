@@ -36,6 +36,9 @@
 #include <elf.h>
 
 #include <vector>
+#include <fstream>
+#include <sstream>
+#include <algorithm>
 #include <sys/types.h>
 #include <unistd.h>
 #include <dirent.h>
@@ -53,31 +56,12 @@ int P_getopt(int argc, char *argv[], const char *optstring)
 }
 
 int P_copy(const char *from, const char *to) {
-    int from_fd = P_open(from, O_RDONLY, 0);
-    if (from_fd == -1)  {
-        perror("Opening from file in copy"); 
-        return -1;
-    }
-    int to_fd = P_open(to, O_WRONLY | O_APPEND | O_CREAT | O_TRUNC, 0);
-    if (to_fd == -1) {
-        perror("Opening to file in copy");
-        close(from_fd);
-        return -1;
-    }
-
-    char buffer[1048576];
-    while(true) {
-        int amount = read(from_fd, buffer, 1048576);
-        if (amount == -1) {
-            perror("Reading in file copy");
-            return -1;
-        }
-        write(to_fd, buffer, amount);
-        if (amount < 1048576) break;
-    }
-    close(to_fd);
-    close(from_fd);
-    return 0;
+    std::ifstream src(from, std::ios::binary);
+    std::ofstream dst(to, std::ios::binary | std::ios::trunc);
+    dst << src.rdbuf();
+    dst.close();
+    src.close();
+    return (src && dst) ? 0 : -1;
 }
 
 
@@ -920,112 +904,58 @@ void *AuxvParser::readAuxvFromProc() {
 }
 
 
-#define LINE_LEN 1024
 map_entries *getVMMaps(int pid, unsigned &maps_size) {
-   char line[LINE_LEN], prems[16], *s;
-   int result;
-   int fd = -1;
-   map_entries *maps = NULL;
-   unsigned i, no_lines = 0, cur_pos = 0, cur_size = 4096;
-   unsigned file_size = 0;
-   char *buffer = NULL;
-  
-   sprintf(line, "/proc/%d/maps", pid);
-   fd = open(line, O_RDONLY);
-   if (fd == -1)
-      goto done_err;
-   
-   cur_pos = 0;
-   buffer = (char *) malloc(cur_size);
-   if (!buffer) {
-      goto done_err;
-   }
-   for (;;) {
-      result = read(fd, buffer+cur_pos, cur_size - cur_pos);
-      if (result == -1) {
-         goto done_err;
-      }
-      cur_pos += result;
-      if (result == 0) {
-         break;
-      }
-      assert(cur_pos <= cur_size);
-      if (cur_size == cur_pos) {
-         cur_size *= 2;
-         buffer = (char *) realloc(buffer, cur_size);
-         if (!buffer) {
-            goto done_err;
-         }
-      }
-   }
-   file_size = cur_pos;
+   std::ostringstream maps_filename;
+   maps_filename << "/proc/" << pid << "/maps";
+   std::ifstream maps_file(maps_filename.str());
 
-   close(fd);
-   fd = -1;
-   //Calc num of entries needed and allocate the buffer.  Assume the 
-   //process is stopped.
-   no_lines = file_size ? 1 : 0;
-   for (i = 0; i < file_size; i++) {
-      if (buffer[i] == '\n')
-         no_lines++;
-   } 
+   std::vector<map_entries> maps;
+   while (maps_file.good()) {
+      char delim;
+      std::string prems;
+      map_entries map;
+      memset(&map, 0, sizeof(map));
 
-   maps = (map_entries *) malloc(sizeof(map_entries) * (no_lines+1));
-   memset(maps, 0, sizeof(map_entries) * (no_lines+1));
-   if (!maps)
-      goto done_err;
+      maps_file >> std::hex >> map.start >> delim >> map.end >> prems >> map.offset
+         >> map.dev_major >> delim >> map.dev_minor >> std::dec >> map.inode;
 
-   //Read all of the maps entries
-   cur_pos = 0;
-   for (i = 0; i < no_lines; i++) {
-      if (cur_pos >= file_size)
-         break;
-      unsigned next_end = cur_pos;
-      while (buffer[next_end] != '\n' && next_end < file_size) next_end++;
-      unsigned int line_size = (next_end - cur_pos) > LINE_LEN ? LINE_LEN : (next_end - cur_pos);
-      memcpy(line, buffer+cur_pos, line_size);
-      line[line_size] = '\0';
-      line[LINE_LEN - 1] = '\0';
-      cur_pos = next_end+1;
-
-      sscanf(line, "%lx-%lx %16s %lx %x:%x %u %" MAPENTRIES_PATH_SIZE_STR "s\n", 
-             (Address *) &maps[i].start, (Address *) &maps[i].end, prems, 
-             (Address *) &maps[i].offset, &maps[i].dev_major,
-             &maps[i].dev_minor, &maps[i].inode, maps[i].path);
-      maps[i].prems = 0;
-      for (s = prems; *s != '\0'; s++) {
-         switch (*s) {
+      for (auto i = prems.begin(); i != prems.end(); ++i)
+         switch (*i) {
             case 'r':
-               maps[i].prems |= PREMS_READ;
+               map.prems |= PREMS_READ;
                break;
             case 'w':
-               maps[i].prems |= PREMS_WRITE;
+               map.prems |= PREMS_WRITE;
                break;
             case 'x':
-               maps[i].prems |= PREMS_EXEC;
+               map.prems |= PREMS_EXEC;
                break;
             case 'p':
-               maps[i].prems |= PREMS_PRIVATE;
+               map.prems |= PREMS_PRIVATE;
                break;
             case 's':
-               maps[i].prems |= PREMS_EXEC;
+               map.prems |= PREMS_EXEC;
                break;
          }
-      }
+
+      std::string path;
+      std::getline(maps_file, path);
+      path.erase(0, path.find_first_not_of(" \t"));
+      strncpy(map.path, path.c_str(), sizeof(map.path) - 1);
+
+      if (maps_file.good())
+         maps.push_back(map);
    }
-   //Zero out the last entry
-   memset(&(maps[i]), 0, sizeof(map_entries));
-   maps_size = i;
 
-   free(buffer);
-   return maps;
+   if (maps.empty())
+      return NULL;
 
- done_err:
-   if (fd != -1)
-      close(fd);
-   if (buffer)
-      free(buffer);
-   return NULL;
+   map_entries *cmaps = (map_entries *)calloc(maps.size() + 1, sizeof(map_entries));
+   if (cmaps != NULL) {
+      std::copy(maps.begin(), maps.end(), cmaps);
+      maps_size = maps.size();
+   }
+   return cmaps;
 }
 
 bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps)

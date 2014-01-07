@@ -117,7 +117,8 @@ namespace Dyninst
       InstructionDecoderImpl(a),
     locs(NULL),
     decodedInstruction(NULL),
-    sizePrefixPresent(false)
+    sizePrefixPresent(false),
+    addrSizePrefixPresent(false)
     {
       if(a == Arch_x86_64) setMode(true);
       
@@ -288,6 +289,7 @@ namespace Dyninst
 	      if (locs->rex_w) {
                     return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(immStart)));
 	      }
+              //FALLTHROUGH
             case op_z:
         // 32 bit mode & no prefix, or 16 bit mode & prefix => 32 bit
         // 16 bit mode, no prefix or 32 bit mode, prefix => 16 bit

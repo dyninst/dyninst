@@ -77,7 +77,6 @@ const char MULTIPLE_WILDCARD_CHARACTER = '*';
 
 class AObject {
 public:
-    SYMTAB_EXPORT AObject() {};
     SYMTAB_EXPORT unsigned nsymbols () const;
     
     SYMTAB_EXPORT bool get_symbols( std::string & name, std::vector< Symbol *> & symbols);
@@ -145,10 +144,6 @@ protected:
     SYMTAB_EXPORT virtual ~AObject();
     // explicitly protected
     SYMTAB_EXPORT AObject(MappedFile *, void (*err_func)(const char *));
-    SYMTAB_EXPORT AObject(MappedFile *, 
-                      dyn_hash_map<std::string, LineInformation> &, 
-                      void (*)(const char *)) { assert(0); }
-    SYMTAB_EXPORT AObject(const AObject &obj);
 
     MappedFile *mf;
 
@@ -201,6 +196,9 @@ private:
     friend class SymbolIter;
     friend class Symtab;
 
+    // declared but not implemented; no copying allowed
+    AObject(const AObject &obj);
+    const AObject& operator=(const AObject &obj);
 };
 
 }//namepsace Symtab

@@ -171,10 +171,13 @@ class Object : public AObject
  private:
     Module* curModule;
 
+    // declared but not implemented; no copying allowed
+    Object(const Object &);
+    const Object& operator=(const Object &);
+
  public:
     SYMTAB_EXPORT Object(MappedFile *, bool defensive, 
                          void (*)(const char *) = log_msg, bool alloc_syms = true);
-    SYMTAB_EXPORT Object(){};
   
     SYMTAB_EXPORT virtual ~Object( void );
 

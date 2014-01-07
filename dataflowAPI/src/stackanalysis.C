@@ -312,6 +312,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
     switch (what) {
        case e_push:
           sign = -1;
+          //FALLTHROUGH
        case e_pop:
           handlePushPop(insn, sign, xferFuncs);
           break;
@@ -324,6 +325,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
 	 break;
        case e_sub:
           sign = -1;
+          //FALLTHROUGH
        case e_add:
           handleAddSub(insn, sign, xferFuncs);
           break;
@@ -332,6 +334,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
           break;
        case e_pushfd:
           sign = -1;
+          //FALLTHROUGH
        case e_popfd:
           handlePushPopFlags(sign, xferFuncs);
           break;
@@ -410,7 +413,7 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
 }
 
 StackAnalysis::StackAnalysis() :
-   func(NULL), intervals_(NULL) {};
+   func(NULL), intervals_(NULL), word_size(0) {};
    
 
 StackAnalysis::StackAnalysis(Function *f) : func(f),
@@ -1028,7 +1031,7 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(const RegisterState &in
 // something that can take further input.
 void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc> &inputs ) {
    TransferFunc &input = inputs[target];
-   if (input.target.isValid()) assert(input.target = target);
+   if (input.target.isValid()) assert(input.target == target);
    input.target = target; // Default constructed TransferFuncs won't have this
    assert(target.isValid());
 

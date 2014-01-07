@@ -198,30 +198,26 @@ static int elfSymVisibility(Symbol::SymbolVisibility sVisibility)
 }
 
 emitElf::emitElf(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *)) :
-   oldElfHandle(oldElfHandle_), 
-   phdrs_scn(NULL),
-   isStripped(isStripped_), 
-   object(obj_),
-   err_func_(err_func)
+   oldElfHandle(oldElfHandle_), newElf(NULL), oldElf(NULL),
+   newEhdr(NULL), oldEhdr(NULL),
+   newPhdr(NULL), oldPhdr(NULL), phdr_offset(0),
+   textData(NULL), symStrData(NULL), dynStrData(NULL),
+   olddynStrData(NULL), olddynStrSize(0),
+   symTabData(NULL), dynsymData(NULL), dynData(NULL),
+   phdrs_scn(NULL), verneednum(0), verdefnum(0),
+   newSegmentStart(0), firstNewLoadSec(NULL),
+   dataSegEnd(0), dynSegOff(0), dynSegAddr(0),
+   phdrSegOff(0), phdrSegAddr(0), dynSegSize(0),
+   secNameIndex(0), currEndOffset(0), currEndAddress(0),
+   linkedStaticData(NULL), loadSecTotalSize(0),
+   isStripped(isStripped_), library_adjust(0),
+   object(obj_), err_func_(err_func),
+   hasRewrittenTLS(false), TLSExists(false), newTLSData(NULL)
 {
-  firstNewLoadSec = NULL;
-  textData = NULL;
-  symStrData = NULL;
-  symTabData = NULL;
-  dynsymData = NULL;
-  dynStrData = NULL;
-  hashData = NULL;
-  rodata = NULL;
- 
-  linkedStaticData = NULL;
-  hasRewrittenTLS = false;
-  TLSExists = false;
-  newTLSData = NULL;
-   
   oldElf = oldElfHandle->e_elfp();
   curVersionNum = 2;
   setVersion();
- 
+
   //Set variable based on the mechanism to add new load segment
   // 1) createNewPhdr (Total program headers + 1) - default
   //	(a) movePHdrsFirst
@@ -1172,7 +1168,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
   // libelf from overwriting the program headers data when outputing
   // sections.  Fill in the new section's data with what we just wrote.
   Elf_Data *data = elf_newdata(phdrs_scn);
-  size_t total_size = newEhdr->e_phnum * newEhdr->e_phentsize;
+  size_t total_size = (size_t)newEhdr->e_phnum * (size_t)newEhdr->e_phentsize;
   data->d_buf = malloc(total_size);
   memcpy(data->d_buf, phdr_data, total_size);
   data->d_size = total_size;
@@ -1318,6 +1314,7 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
            break;
         case Region::RT_BSS:
            newshdr->sh_type = SHT_NOBITS;
+           //FALLTHROUGH
         case Region::RT_DATA:
            newshdr->sh_flags = SHF_WRITE | SHF_ALLOC;
            break;

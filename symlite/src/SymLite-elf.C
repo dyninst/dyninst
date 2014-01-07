@@ -43,6 +43,7 @@ SymElf::SymElf(std::string file_) :
    elf(NULL),
    fd(-1),
    need_odp(false),
+   odp_section(NULL),
    file(file_),
    buffer(NULL),
    buffer_size(0),
@@ -72,6 +73,7 @@ SymElf::SymElf(const char *buffer_, unsigned long buffer_size_) :
    elf(NULL),
    fd(-1),
    need_odp(false),
+   odp_section(NULL),
    file(),
    buffer(buffer_),
    buffer_size(buffer_size_),
@@ -243,14 +245,11 @@ std::string SymElf::getInterpreterName()
       Dyninst::Offset off = (Dyninst::Offset) phdr.p_offset();
       
       if (fd != -1) {
-         off_t old_offset = lseek(fd, 0, SEEK_CUR);
-         lseek(fd, off, SEEK_SET);
          char interp_buffer[4096];
          ssize_t result;
          do {
-            result = read(fd, interp_buffer, 4096);
+            result = pread(fd, interp_buffer, 4096, off);
          } while (result == -1 && errno == EINTR);
-         lseek(fd, old_offset, SEEK_SET);
          if (result != -1) {
             return std::string(interp_buffer);
          }
@@ -648,6 +647,7 @@ bool SymElfFactory::closeSymbolReader(SymReader *sr)
    std::map<std::string, SymElf *>::iterator i = open_symelfs->find(ser->file);
    if (i == open_symelfs->end()) {
       delete ser;
+      return true;
    }
 
    ser->ref_count--;

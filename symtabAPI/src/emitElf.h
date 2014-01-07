@@ -68,10 +68,8 @@ class emitElf{
     char *olddynStrData;
     unsigned olddynStrSize;
     Elf_Data *symTabData;
-    Elf_Data *hashData;
     Elf_Data *dynsymData;
     Elf_Data *dynData;
-    Elf_Data *rodata;
 
     Elf_Scn *phdrs_scn;
 

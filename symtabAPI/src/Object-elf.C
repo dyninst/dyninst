@@ -3322,16 +3322,35 @@ stab_entry *Object::get_stab_info() const
 
 Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *), 
 	       bool alloc_syms) :
-  AObject(mf_, err_func), 
+  AObject(mf_, err_func),
+  elfHdr(NULL),
   hasReldyn_(false),
   hasReladyn_(false),
   hasRelplt_(false),
   hasRelaplt_(false),
   relType_(Region::RT_REL),
-  opd_addr_(0),
-  opd_size_(0),
+  isBlueGeneP_(false), isBlueGeneQ_(false),
+  hasNoteSection_(false),
+  elf_hash_addr_(0), gnu_hash_addr_(0),
+  dynamic_offset_(0), dynamic_size_(0), dynsym_size_(0),
+  init_addr_(0), fini_addr_(0),
+  text_addr_(0), text_size_(0),
+  symtab_addr_(0), strtab_addr_(0),
+  dynamic_addr_(0), dynsym_addr_(0), dynstr_addr_(0),
+  got_addr_(0), got_size_(0),
+  plt_addr_(0), plt_size_(0), plt_entry_size_(0),
+  rel_plt_addr_(0), rel_plt_size_(0), rel_plt_entry_size_(0),
+  rel_addr_(0), rel_size_(0), rel_entry_size_(0),
+  opd_addr_(0), opd_size_(0),
+  stab_off_(0), stab_size_(0), stabstr_off_(0),
+  stab_indx_off_(0), stab_indx_size_(0), stabstr_indx_off_(0),
+  dwarvenDebugInfo(false),
+  loadAddress_(0), entryAddress_(0),
+  interpreter_name_(NULL),
+  isStripped(false),
   dwarf(NULL),
-  EEL(false),
+  EEL(false), did_open(false),
+  obj_type_(obj_Unknown),
   DbgSectionMapSorted(false)
 {
 
@@ -3340,9 +3359,6 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
   gettimeofday(&starttime, NULL);
 #endif
   is_aout_ = false;
-  did_open = false;
-  interpreter_name_ = NULL;
-  isStripped = false;
 
   if(mf->getFD() != -1) {
      elfHdr = Elf_X::newElf_X(mf->getFD(), ELF_C_READ, NULL, mf_->pathname());
@@ -3392,23 +3408,6 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
   double dursecs = difftime/(1000 );
   cout << "obj parsing in Object-elf took "<<dursecs <<" msecs" << endl;
 #endif
-}
-
-Object::Object(const Object& obj)
-  : AObject(obj), 
-    dwarf(NULL),
-    EEL(false)
-{
-  interpreter_name_ = obj.interpreter_name_;
-  isStripped = obj.isStripped;
-  loadAddress_ = obj.loadAddress_;
-  entryAddress_ = obj.entryAddress_;
-  relocation_table_ = obj.relocation_table_;
-  fbt_ = obj.fbt_;
-  elfHdr = obj.elfHdr;
-  deps_ = obj.deps_;
-  DbgSectionMapSorted = obj.DbgSectionMapSorted;
-  relType_ = obj.relType_;
 }
 
 Object::~Object()

@@ -33,6 +33,7 @@
 #include <assert.h>
 
 DThread::DThread() :
+   thrd(0),
    live(false)
 {
 }

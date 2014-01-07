@@ -43,6 +43,7 @@ using namespace Dyninst::ParseAPI;
 
 int parse_func_count = 0;
 
+
 const char * image_edge::getTypeString()
 {
     switch(type()) {
@@ -546,13 +547,18 @@ bool parse_func::hasUnresolvedCF() {
            iter != blocks().end(); ++iter) {
          for (Block::edgelist::const_iterator iter2 = (*iter)->targets().begin();
               iter2 != (*iter)->targets().end(); ++iter2) {
-            if ((*iter2)->sinkEdge() &&
-                (((*iter2)->type() == ParseAPI::INDIRECT) ||
-                 ((*iter2)->type() == ParseAPI::DIRECT)) &&
-                (!((*iter2)->interproc()))) {
-               unresolvedCF_ = HAS_UNRESOLVED_CF;
-               break;
-            }
+	   if ((*iter2)->sinkEdge())
+	   {
+	     if ((*iter2)->interproc()) {
+	       continue;
+	     }
+	     if (((*iter2)->type() == ParseAPI::INDIRECT) ||
+		 ((*iter2)->type() == ParseAPI::DIRECT))
+	     {
+	       unresolvedCF_ = HAS_UNRESOLVED_CF;
+	       break;
+	     }
+	   }
          }
          if (unresolvedCF_ == HAS_UNRESOLVED_CF) break;
       }

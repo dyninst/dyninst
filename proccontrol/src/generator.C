@@ -67,6 +67,7 @@ int_cleanup::~int_cleanup() {
 
 Generator::Generator(std::string name_) :
    state(none),
+   m_Event(NULL),
    name(name_),
    eventBlock_(false)
 {

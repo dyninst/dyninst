@@ -73,6 +73,7 @@ response::response() :
    errorcode(0),
    proc(NULL),
    aio(NULL),
+   resp_type((resp_type_t)-1),
    decoder_event(NULL),
    multi_resp_size(0),
    multi_resp_recvd(0)

@@ -84,7 +84,9 @@ namespace Dyninst
 
     InstructionDecoder_power::InstructionDecoder_power(Architecture a)
       : InstructionDecoderImpl(a),
-	isRAWritten(false)
+        insn(0), insn_in_progress(NULL),
+	isRAWritten(false), invertBranchCondition(false),
+        isFPInsn(false), bcIsConditional(false)
     {
         power_entry::buildTables();
     }

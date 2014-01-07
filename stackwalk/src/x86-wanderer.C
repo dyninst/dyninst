@@ -376,4 +376,5 @@ WandererHelper::WandererHelper(ProcessState *proc_) :
 
 WandererHelper::~WandererHelper()
 {
+    delete callchecker;
 }

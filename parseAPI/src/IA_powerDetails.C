@@ -57,7 +57,7 @@ namespace Dyninst
       class TOCandOffsetExtractor : public Dyninst::InstructionAPI::Visitor
       {
       public:
-	TOCandOffsetExtractor(Address TOCvalue) : toc_contents(TOCvalue) {}
+	TOCandOffsetExtractor(Address TOCvalue) : result(0), toc_contents(TOCvalue) {}
 	virtual ~TOCandOffsetExtractor() {}
 	virtual void visit(BinaryFunction* b) {
 	  Address arg1 = m_stack.front();

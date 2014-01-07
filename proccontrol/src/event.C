@@ -1137,7 +1137,9 @@ int_eventBreakpointRestore::~int_eventBreakpointRestore()
 {
 }
 
-int_eventNewLWP::int_eventNewLWP()
+int_eventNewLWP::int_eventNewLWP() :
+   lwp(NULL_LWP),
+   attach_status(int_thread::as_unknown)
 {
 }
 
@@ -1211,6 +1213,7 @@ int_eventThreadDB::~int_eventThreadDB()
 
 int_eventDetach::int_eventDetach() :
    temporary_detach(false),
+   leave_stopped(false),
    removed_bps(false),
    done(false),
    had_error(false)
@@ -1237,8 +1240,18 @@ int_eventControlAuthority::int_eventControlAuthority(string toolname_, unsigned 
 {
 }
 
-int_eventControlAuthority::int_eventControlAuthority()
-{   
+int_eventControlAuthority::int_eventControlAuthority() :
+   toolid(0),
+   priority(0),
+   trigger(EventControlAuthority::ControlUnset),
+   control_lost(false),
+   handled_bps(false),
+   took_ca(false),
+   did_desync(false),
+   unset_desync(false),
+   dont_delete(false),
+   waiting_on_stop(false)
+{
 }
 
 int_eventControlAuthority::~int_eventControlAuthority()
@@ -1247,6 +1260,10 @@ int_eventControlAuthority::~int_eventControlAuthority()
 
 int_eventAsyncIO::int_eventAsyncIO(response::ptr resp_, asyncio_type iot_) : 
    resp(resp_),
+   local_memory(NULL),
+   remote_addr(0),
+   size(0),
+   opaque_value(NULL),
    iot(iot_),
    rpool(NULL)
 {

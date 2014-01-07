@@ -87,7 +87,6 @@ namespace Dyninst
 
         private:
             buffer m_buf;
-        const unsigned char* rawInstruction;
       boost::shared_ptr<InstructionDecoderImpl> m_Impl;
     };
           

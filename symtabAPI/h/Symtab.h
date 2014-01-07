@@ -706,7 +706,7 @@ class SYMTAB_EXPORT relocationEntry : public Serializable, public AnnotatableSpa
       //std::ostream & operator<<(std::ostream &s) const;
       friend SYMTAB_EXPORT std::ostream & operator<<(std::ostream &os, const relocationEntry &q);
 
-      enum {pltrel = 1, dynrel = 2} relocationType;
+      enum {pltrel = 1, dynrel = 2};
       bool operator==(const relocationEntry &) const;
 
       // Architecture-specific functions

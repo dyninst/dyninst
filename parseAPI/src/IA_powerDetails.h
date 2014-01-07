@@ -49,7 +49,11 @@ namespace Dyninst
             friend IA_platformDetails* makePlatformDetails(Dyninst::Architecture Arch, const IA_IAPI* cb);
             protected:
                 IA_powerDetails(const IA_IAPI* cb) :
-                    IA_platformDetails(cb) {}
+                    IA_platformDetails(cb),
+                    tableIsRelative(false), tableStartAddress(0),
+                    adjustTableStartAddress(0), jumpStartAddress(0),
+                    adjustEntry(0), foundAdjustEntry(false), TOC_address(0)
+                {}
             public:
                 virtual ~IA_powerDetails() {}
                 virtual bool parseJumpTable(Dyninst::ParseAPI::Block* currBlk,

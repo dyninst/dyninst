@@ -106,6 +106,8 @@ MappedFile::MappedFile(std::string fullpath_, bool &ok) :
 #if defined(os_windows)
 	   hMap(NULL),
 	   hFile(NULL),
+#else
+	   fd(-1),
 #endif
    remote_file(false),
    did_mmap(false),

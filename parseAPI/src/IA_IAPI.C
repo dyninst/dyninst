@@ -136,7 +136,8 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_,
     dec(dec_),
     validCFT(false), 
     cachedCFT(std::make_pair(false, 0)),
-    validLinkerStubState(false)
+    validLinkerStubState(false),
+    cachedLinkerStubState(false)
 {
     hascftstatus.first = false;
     tailCalls.clear();
@@ -612,6 +613,8 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                                ci->format().c_str(), current);
 		outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
 		tailCalls[INDIRECT]=true;
+		// Fix the cache, because we're dumb.
+		tailCalls[DIRECT]=true;
 		return;
 	      }
 	      else
@@ -631,10 +634,10 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                            ci->format().c_str(), current);
             parsedJumpTable = true;
             successfullyParsedJumpTable = parseJumpTable(currBlk, outEdges);
-	    parsing_printf("Parsed jump table 2\n");
+	    parsing_printf("Parsed jump table\n");
             if(!successfullyParsedJumpTable || outEdges.empty()) {
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
-            	parsing_printf("%s[%d]: BCTR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__,
+            	parsing_printf("%s[%d]: unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__,
                            ci->format().c_str(), current, context->name().c_str());
             }
             return;
@@ -642,7 +645,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     }
     else if(ci->getCategory() == c_ReturnInsn)
     {
-        parsing_printf("%s[%d]: BLR %s at 0x%lx\n", FILE__, __LINE__,
+        parsing_printf("%s[%d]: return candidate %s at 0x%lx\n", FILE__, __LINE__,
                            ci->format().c_str(), current);
         if(ci->allowsFallThrough())
         {

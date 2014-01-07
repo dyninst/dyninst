@@ -116,7 +116,7 @@ Elf_X::Elf_X()
 { }
 
 Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
-    : ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL),
+    : elf(NULL), ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL),
       filedes(input), is64(false), isArchive(false), ref_count(1),
       cached_debug_buffer(NULL), cached_debug_size(0), cached_debug(false)
 {
@@ -161,8 +161,8 @@ Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
 }
 
 Elf_X::Elf_X(char *mem_image, size_t mem_size)
-    : ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL),
-      is64(false), isArchive(false), ref_count(1),
+    : elf(NULL), ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL),
+      filedes(-1), is64(false), isArchive(false), ref_count(1),
       cached_debug_buffer(NULL), cached_debug_size(0), cached_debug(false)
 {
     if (elf_version(EV_CURRENT) == EV_NONE) {
@@ -230,6 +230,7 @@ Elf_X::~Elf_X()
   for (auto iter = elf_x_by_ptr.begin(); iter != elf_x_by_ptr.end(); ++iter) {
     if (iter->second == this) {
       elf_x_by_ptr.erase(iter);
+      return;
     }
   }
 }

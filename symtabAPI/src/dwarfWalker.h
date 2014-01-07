@@ -52,7 +52,8 @@ class DwarfWalker {
             func(NULL), commonBlock(NULL),
             enumType(NULL), enclosure(NULL),
             parseSibling(true), parseChild(true), 
-            base(0) {};
+            entry(NULL), specEntry(NULL), abstractEntry(NULL),
+            offset(0), tag(0), base(0) {};
       };
       
       std::stack<Context> c;

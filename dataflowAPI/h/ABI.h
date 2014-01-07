@@ -85,7 +85,7 @@ class ABI{
     	return bitArray(size);
     }
 
-    ABI() {}
+    ABI(): index(NULL), addr_width(0) {}
 };
 
 

@@ -51,7 +51,10 @@ Region *Region::createRegion( Offset diskOff, perm_t perms, RegionType regType,
    return newreg;
 }
 
-Region::Region(): rawDataPtr_(NULL), buffer_(NULL)
+Region::Region(): regNum_(0), diskOff_(0), diskSize_(0), memOff_(0),
+    memSize_(0), fileOff_(0), rawDataPtr_(NULL), permissions_(RP_R),
+    rType_(RT_INVALID), isDirty_(false), buffer_(NULL), isLoadable_(false),
+    isTLS_(false), memAlign_(0), symtab_(NULL)
 {
 }
 
@@ -60,9 +63,9 @@ Region::Region(unsigned regnum, std::string name, Offset diskOff,
                     char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable,
                     bool isThreadLocal, unsigned long memAlignment) :
     regNum_(regnum), name_(name), diskOff_(diskOff), diskSize_(diskSize), memOff_(memOff),
-    memSize_(memSize), rawDataPtr_(rawDataPtr), permissions_(perms), rType_(regType),
+    memSize_(memSize), fileOff_(0), rawDataPtr_(rawDataPtr), permissions_(perms), rType_(regType),
     isDirty_(false), buffer_(NULL), isLoadable_(isLoadable), isTLS_(isThreadLocal),
-    memAlign_(memAlignment)
+    memAlign_(memAlignment), symtab_(NULL)
 {
    if (memOff)
       isLoadable_ = true;
@@ -74,9 +77,10 @@ Region::Region(const Region &reg) :
 #endif
    regNum_(reg.regNum_), name_(reg.name_),
    diskOff_(reg.diskOff_), diskSize_(reg.diskSize_), memOff_(reg.memOff_),
-   memSize_(reg.memSize_), rawDataPtr_(reg.rawDataPtr_), permissions_(reg.permissions_),
-   rType_(reg.rType_), isDirty_(reg.isDirty_), rels_(reg.rels_), buffer_(reg.buffer_),
-   isLoadable_(reg.isLoadable_), isTLS_(reg.isTLS_), memAlign_(reg.memAlign_)
+   memSize_(reg.memSize_), fileOff_(reg.fileOff_), rawDataPtr_(reg.rawDataPtr_),
+   permissions_(reg.permissions_), rType_(reg.rType_), isDirty_(reg.isDirty_),
+   rels_(reg.rels_), buffer_(reg.buffer_), isLoadable_(reg.isLoadable_),
+   isTLS_(reg.isTLS_), memAlign_(reg.memAlign_), symtab_(reg.symtab_)
 {
 }
 

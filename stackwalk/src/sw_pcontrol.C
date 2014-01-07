@@ -801,7 +801,8 @@ public:
 
 StackCallback::StackCallback(CallTree &t) :
    tree(t),
-   cur(NULL)
+   cur(NULL),
+   cur_walker(NULL)
 {
    top_first = true;
 }

@@ -657,7 +657,7 @@ std::vector<Type *> *builtInTypeCollection::getAllBuiltInTypes() {
 	typesVec->push_back(it->second);
    }
    if(!typesVec->size()){
-       free(typesVec);
+       delete typesVec;
        return NULL;
    }
    return typesVec;

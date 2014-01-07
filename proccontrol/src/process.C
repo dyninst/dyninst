@@ -4772,7 +4772,9 @@ bool int_breakpoint::isOffsetTransfer() const
 bp_instance::bp_instance(Address addr_) :
    addr(addr_),
    installed(false),
-   suspend_count(0)
+   suspend_count(0),
+   swbp(NULL),
+   hwbp(NULL)
 {
 }
 
@@ -4781,7 +4783,9 @@ bp_instance::bp_instance(const bp_instance *ip) :
    hl_bps(ip->hl_bps),
    addr(ip->addr),
    installed(ip->installed),
-   suspend_count(ip->suspend_count)
+   suspend_count(ip->suspend_count),
+   swbp(NULL),
+   hwbp(NULL)
 {
 }
 
@@ -5158,7 +5162,8 @@ hw_breakpoint::hw_breakpoint(int_thread *thread, unsigned mode, unsigned size,
    hw_perms(mode),
    hw_size(size),
    proc_wide(pwide),
-   thr(thread)
+   thr(thread),
+   error(false)
 {
    swbp = NULL;
    hwbp = this;
@@ -5537,8 +5542,7 @@ int_notify::int_notify() :
    events_noted(0)
 {
    the_notify = this;
-   up_notify = new EventNotify();
-   up_notify->llnotify = this;
+   up_notify.llnotify = this;
 }
 
 int_notify *notify()
@@ -5801,7 +5805,7 @@ int_registerPool::~int_registerPool()
 {
 }
 
-Library::Library()
+Library::Library() : lib(NULL)
 {
 }
 
@@ -7665,7 +7669,7 @@ void Thread::setLastError(err_t ec, const char *es) const {
    }
 }
 
-ThreadPool::ThreadPool()
+ThreadPool::ThreadPool() : threadpool(NULL)
 {
 }
 
@@ -7937,7 +7941,7 @@ size_t ThreadPool::size() const
    return threadpool->size();
 }
 
-EventNotify::EventNotify()
+EventNotify::EventNotify() : llnotify(NULL)
 {
 }
 
@@ -7962,10 +7966,10 @@ void EventNotify::removeCB(notify_cb_t cb)
 
 EventNotify *Dyninst::ProcControlAPI::evNotify()
 {
-   return notify()->up_notify;
+   return &notify()->up_notify;
 }
 
-Breakpoint::Breakpoint()
+Breakpoint::Breakpoint() : llbreakpoint_(NULL)
 {
 }
 
@@ -8194,7 +8198,8 @@ MTManager::MTManager() :
    work_lock(true),
    have_queued_events(false),
    is_running(false),
-   should_exit(false)
+   should_exit(false),
+   threadMode(Process::NoThreads)
 {
 }
 
