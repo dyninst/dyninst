@@ -81,6 +81,7 @@ static const long stackwalk_timeout_sec = 30;
 uint64_t bgq_process::jobid = 0;
 uint32_t bgq_process::toolid = 0;
 bool bgq_process::set_ids = false;
+#warning TODO do we do an all_attach during subset debugging?
 bool bgq_process::do_all_attach = true;
 
 const char *getCommandName(uint16_t cmd_type);
@@ -1000,6 +1001,11 @@ bool bgq_process::handleStartupEvent(void *data)
    } attach_action = action_none;
    bool expecting_stop = false;
 
+   if (getState() == errorstate) {
+      pthrd_printf("Process is already in error state, skipping handling\n");
+      return false;
+   }
+
    /**
     * Check error triggered events
     **/
@@ -1030,7 +1036,8 @@ bool bgq_process::handleStartupEvent(void *data)
       }
       setState(errorstate);
       ReaderThread::get()->clearTimeout();
-      getStartupTeardownProcs().dec();
+      if (getStartupTeardownProcs().local())
+         getStartupTeardownProcs().dec();
       startup_state = startup_donedone;
       return false;
    }
@@ -1039,6 +1046,8 @@ bool bgq_process::handleStartupEvent(void *data)
       setLastError(err_cauthority, "Process timed out while waiting for control authority");
       setState(errorstate);
       ReaderThread::get()->clearTimeout();
+      if (getStartupTeardownProcs().local())
+         getStartupTeardownProcs().dec();
       return false;
    }
 
@@ -1119,6 +1128,8 @@ bool bgq_process::handleStartupEvent(void *data)
       if (!result) {
          pthrd_printf("Error sending Attach from startup handler\n");
          setState(errorstate);
+         if (getStartupTeardownProcs().local())
+            getStartupTeardownProcs().dec();
          ReaderThread::get()->clearTimeout();
          return false;
       }
@@ -1145,6 +1156,8 @@ bool bgq_process::handleStartupEvent(void *data)
             for (set<bgq_process *>::iterator i = cn->procs.begin(); i != cn->procs.end(); i++) {
                (*i)->setState(int_process::errorstate);
                ReaderThread::get()->clearTimeout();
+               if ((*i)->getStartupTeardownProcs().local())
+                  (*i)->getStartupTeardownProcs().dec();
             }
             return false;
          }
@@ -1179,6 +1192,8 @@ bool bgq_process::handleStartupEvent(void *data)
          delete ctrl_msg;
          setState(errorstate);
          ReaderThread::get()->clearTimeout();
+         if (getStartupTeardownProcs().local())
+            getStartupTeardownProcs().dec();
          return false;
       }
 
@@ -1201,6 +1216,8 @@ bool bgq_process::handleStartupEvent(void *data)
          setLastError(err_internal, "Could not send ControlMessage\n");
          setState(errorstate);
          ReaderThread::get()->clearTimeout();
+         if (getStartupTeardownProcs().local())
+            getStartupTeardownProcs().dec();
          return false;
       }
       if (controllingToolId != bgq_process::getToolID()) {
