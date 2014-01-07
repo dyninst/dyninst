@@ -195,6 +195,9 @@ class bgq_process :
    virtual bool plat_getStackUsage(MemUsageResp_t *resp);
    virtual bool plat_getHeapUsage(MemUsageResp_t *resp);
    virtual bool plat_getSharedUsage(MemUsageResp_t *resp);
+   virtual bool plat_residentNeedsMemVals();
+   virtual bool plat_getResidentUsage(unsigned long stacku, unsigned long heapu, unsigned long sharedu,
+                                      MemUsageResp_t *resp);
   private:
    typedef Transaction<QueryMessage, QueryAckMessage> QueryTransaction;
    typedef Transaction<UpdateMessage, UpdateAckMessage> UpdateTransaction;
@@ -347,12 +350,16 @@ class ComputeNode
    static std::map<int, ComputeNode *> id_to_cn;
    static std::map<std::string, int> socket_to_id;
    static std::set<ComputeNode *> all_compute_nodes;
+   static std::map<int, ComputeNode *> rank_to_cn;
 
    static bool constructSocketToID();
    ComputeNode(int cid);
 
    std::set<bgq_process *> procs;
    std::vector<int> former_procs;
+   std::set<int> ranks_owned; //All ranks, not just ones we're attached to
+
+   static bool fillInAllRanksOwned();
   public:
    static ComputeNode *getComputeNodeByID(int cn_id);
    static ComputeNode *getComputeNodeByRank(uint32_t rank);
@@ -369,6 +376,7 @@ class ComputeNode
    bool reliableWrite(void *buffer, size_t buffer_size);
    void removeNode(bgq_process *proc);
 
+   int numRanksOwned();
    const std::set<bgq_process *> &getProcs() const { return procs; }
    ~ComputeNode();
 

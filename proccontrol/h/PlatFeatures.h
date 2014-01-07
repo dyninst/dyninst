@@ -241,6 +241,7 @@ class PC_EXPORT MemoryUsage
    bool sharedUsed(unsigned long &sused) const;
    bool heapUsed(unsigned long &hused) const;
    bool stackUsed(unsigned long &sused) const;
+   bool resident(unsigned long &resident) const;
 };
 
 class PC_EXPORT MemoryUsageSet
@@ -251,10 +252,18 @@ class PC_EXPORT MemoryUsageSet
    MemoryUsageSet(ProcessSet::ptr ps_);
    ~MemoryUsageSet();
    ProcessSet::weak_ptr wps;
+   typedef enum {
+      mus_shared = 0,
+      mus_heap,
+      mus_stack,
+      mus_resident
+   } mem_usage_t;
+   bool usedX(std::map<Process::const_ptr, unsigned long> &used, mem_usage_t mu) const;
   public:
    bool sharedUsed(std::map<Process::const_ptr, unsigned long> &used) const;
    bool heapUsed(std::map<Process::const_ptr, unsigned long> &used) const;
    bool stackUsed(std::map<Process::const_ptr, unsigned long> &used) const;
+   bool resident(std::map<Process::const_ptr, unsigned long> &res) const;
 };
 
 class PC_EXPORT CallStackUnwindingSet

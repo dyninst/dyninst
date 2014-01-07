@@ -1810,14 +1810,29 @@ bool bgq_process::fillInMemQuery(MemUsageResp_t *resp)
          assert(0);
       case shared_memquery:
          *(resp->get()) = get_procdata_result.sharedMemoryEndAddr - get_procdata_result.sharedMemoryStartAddr;
+         pthrd_printf("Getting shared memory size for process %d: %lx to %lx = %lu bytes\n", getPid(),
+                      get_procdata_result.sharedMemoryStartAddr, 
+                      get_procdata_result.sharedMemoryEndAddr,
+                      *resp->get());
          break;
       case stack_memquery:
-         #warning TODO
-         *(resp->get()) = 0;
+         assert(0);
          break;
       case heap_memquery:
-         *(resp->get()) = (get_procdata_result.heapBreakAddr - get_procdata_result.heapStartAddr) + 
-                          (get_procdata_result.mmapEndAddr - get_procdata_result.mmapStartAddr);
+         *resp->get() = (get_procdata_result.heapBreakAddr - get_procdata_result.heapStartAddr);
+         pthrd_printf("Getting heap memory size for process %d: %lx to %lx = %lu bytes\n", getPid(),
+                      get_procdata_result.heapStartAddr,
+                      get_procdata_result.heapBreakAddr,
+                      get_procdata_result.heapBreakAddr - get_procdata_result.heapStartAddr);
+
+         //mmap region doesn't measure what we want -- show the unmapped regions
+         /*
+         *resp->get() += get_procdata_result.mmapEndAddr - get_procdata_result.mmapStartAddr);
+         pthrd_printf("Getting mmap memory size for process %d: %lx to %lx = %lu bytes\n", getPid(),
+                      get_procdata_result.mmapStartAddr,
+                      get_procdata_result.mmapEndAddr,
+                      get_procdata_result.mmapEndAddr - get_procdata_result.mmapStartAddr);
+         */
          break;
    }
    resp->done();
@@ -1834,7 +1849,7 @@ bool bgq_process::handleMemQuery(MemUsageResp_t *resp)
    pthrd_printf("Sending GetProcessDataCmd for memory query for %d\n", getPid());
    GetProcessDataCmd pdata;
    pdata.threadID = 0;
-   bool result = sendCommand(pdata, GetProcessData);
+   bool result = sendCommand(pdata, GetProcessData, resp);
    if (!result) {
       perr_printf("Error sending get process data command\n");
       return false;
@@ -1850,7 +1865,10 @@ bool bgq_process::plat_getStackUsage(MemUsageResp_t *resp)
    unsigned long stack_usage = 0;
    for (int_threadPool::iterator i = threadpool->begin(); i != threadpool->end(); i++) {
       bgq_thread *thr = dynamic_cast<bgq_thread *>(*i);
-      stack_usage += thr->last_stack_start - thr->last_stack_end;
+      stack_usage += (thr->last_stack_start - thr->last_stack_end);
+      pthrd_printf("Getting stack memory size for %d/%d: %lx to %lx: %lu bytes\n", getPid(), thr->getLWP(),
+                   thr->last_stack_start, thr->last_stack_end,
+                   thr->last_stack_start - thr->last_stack_end);
    }
    *resp->get() = stack_usage;
    resp->done();
@@ -1867,6 +1885,30 @@ bool bgq_process::plat_getSharedUsage(MemUsageResp_t *resp)
 {
    cur_memquery = shared_memquery;
    return handleMemQuery(resp);
+}
+
+bool bgq_process::plat_residentNeedsMemVals()
+{
+   return true;
+}
+
+bool bgq_process::plat_getResidentUsage(unsigned long stacku, unsigned long heapu, unsigned long sharedu,
+                                        MemUsageResp_t *resp)
+{
+   resp->post();
+
+   unsigned long memory_used = 0;
+   unsigned int procs_per_cn = getComputeNode()->numRanksOwned();
+   
+   memory_used += stacku;
+   memory_used += heapu;
+   memory_used += sharedu / procs_per_cn;
+   
+   *resp->get() = memory_used;
+
+   resp->done();
+
+   return true;
 }
 
 bool bgq_process::allowSignal(int signal_no)
@@ -2319,6 +2361,7 @@ CallStackUnwinding *bgq_thread::getStackUnwinder()
 map<int, ComputeNode *> ComputeNode::id_to_cn;
 map<string, int> ComputeNode::socket_to_id;
 set<ComputeNode *> ComputeNode::all_compute_nodes;
+std::map<int, ComputeNode *> ComputeNode::rank_to_cn;
 
 ComputeNode *ComputeNode::getComputeNodeByID(int cn_id)
 {
@@ -2392,8 +2435,44 @@ bool ComputeNode::constructSocketToID()
    return true;
 }
 
+bool ComputeNode::fillInAllRanksOwned()
+{
+   static bool done = false;
+   if (done)
+      return true;
+   done = true;
+   
+   pthrd_printf("Filling in ranks_owned for each CN\n");
+   char rank_dir[64];
+   snprintf(rank_dir, 64, "/jobs/%lu/toolctl_rank", bgq_process::getJobID());   
+
+   DIR *dir = opendir(rank_dir);
+   if (!dir) {
+      perr_printf("Error opening directory %s\n", rank_dir);
+      return false;
+   }
+
+   struct dirent *dent;
+   while ((dent = readdir(dir)) != NULL) {
+      if (!dent->d_name || *dent->d_name < '0' || *dent->d_name > '9')
+         continue;
+      uint32_t rank = atoi(dent->d_name);
+      ComputeNode *cn = getComputeNodeByRank(rank);
+      if (!cn)
+         continue;
+      cn->ranks_owned.insert(rank);
+   }
+
+   closedir(dir);
+   return true;
+}
+
 ComputeNode *ComputeNode::getComputeNodeByRank(uint32_t rank)
 {
+   map<int, ComputeNode *>::iterator j = rank_to_cn.find(rank);
+   if (j != rank_to_cn.end())
+      return j->second;
+
    char rank_path[64];
    char target_path[PATH_MAX];
    snprintf(rank_path, 64, "/jobs/%lu/toolctl_rank/%u", bgq_process::getJobID(), rank);
@@ -2417,7 +2496,9 @@ ComputeNode *ComputeNode::getComputeNodeByRank(uint32_t rank)
       return NULL;
    }
 
-   return getComputeNodeByID(i->second);
+   ComputeNode *cn = getComputeNodeByID(i->second);
+   rank_to_cn.insert(make_pair(rank, cn));
+   return cn;
 }
 
 ComputeNode::ComputeNode(int cid) :
@@ -2484,6 +2565,16 @@ int ComputeNode::getFD() const
 int ComputeNode::getID() const
 {
    return cn_id;
+}
+
+int ComputeNode::numRanksOwned()
+{
+   bool result = fillInAllRanksOwned();
+   if (!result)
+      return false;
+   if (ranks_owned.empty())
+      return false;
+   return ranks_owned.size();
 }
 
 bool ComputeNode::reliableWrite(void *buffer, size_t buffer_size)
@@ -3228,11 +3319,13 @@ bool GeneratorBGQ::readMessage(int fd, vector<ArchEvent *> &events)
 
 bool GeneratorBGQ::plat_skipGeneratorBlock()
 {
-   bool result = getResponses().hasAsyncPending(false);
+/*   bool result = getResponses().hasAsyncPending(false) ||
+                 Counter::globalCount(Counter::AsyncEventCounts);
    if (result) {
       pthrd_printf("Async events pending, skipping generator block\n");
    }
-   return result;
+   return result;*/
+   return true;
 }
 
 void GeneratorBGQ::kick()

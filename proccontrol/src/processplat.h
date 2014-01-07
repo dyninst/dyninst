@@ -117,6 +117,10 @@ class int_memUsage : virtual public resp_process
    virtual bool plat_getStackUsage(MemUsageResp_t *resp) = 0;
    virtual bool plat_getHeapUsage(MemUsageResp_t *resp) = 0;
    virtual bool plat_getSharedUsage(MemUsageResp_t *resp) = 0;
+
+   virtual bool plat_residentNeedsMemVals() = 0;
+   virtual bool plat_getResidentUsage(unsigned long stacku, unsigned long heapu, unsigned long sharedu,
+                                      MemUsageResp_t *resp) = 0;
 };
 
 class int_multiToolControl : virtual public int_process

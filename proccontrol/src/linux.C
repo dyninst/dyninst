@@ -1676,6 +1676,17 @@ bool linux_process::plat_getSharedUsage(MemUsageResp_t *resp)
    return true;
 }
 
+bool linux_process::plat_residentNeedsMemVals()
+{
+   return false;
+}
+
+bool linux_process::plat_getResidentUsage(unsigned long, unsigned long, unsigned long,
+                           MemUsageResp_t *resp)
+{
+#error TODO fill in resident usage query
+}
+
 #if !defined(OFFSETOF)
 #define OFFSETOF(STR, FLD) (unsigned long) (&(((STR *) 0x0)->FLD))
 #endif

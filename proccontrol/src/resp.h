@@ -114,7 +114,7 @@ public:
    unsigned int getIDEnd();
    void post();
    void done();
-
+   bool hadError() const;
 };
 
 template<class T>
