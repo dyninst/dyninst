@@ -75,8 +75,8 @@ static void registerSignalHandlers(bool enable);
 static long timeout_val = 0;
 static long no_control_authority_val = 0;
 
-static const long startup_timeout_sec = 30;
-static const long stackwalk_timeout_sec = 30;
+static const long startup_timeout_sec = 300;
+static const long stackwalk_timeout_sec = 300;
 
 uint64_t bgq_process::jobid = 0;
 uint32_t bgq_process::toolid = 0;
@@ -4924,6 +4924,7 @@ void ReaderThread::kick_generator()
 void ReaderThread::setTimeout(const struct timeval &tv)
 {
    bool was_timeout_set;
+   pthrd_printf("Setting timeout to %ld sec + %ld usec\n", (long) tv.tv_sec, tv.tv_usec);
    timeout_lock.lock();
    was_timeout_set = (timeout_set != 0);
    timeout_set++;
@@ -4936,6 +4937,7 @@ void ReaderThread::setTimeout(const struct timeval &tv)
 
 void ReaderThread::clearTimeout()
 {
+   pthrd_printf("Clearing timeout\n");
    timeout_lock.lock();
    assert(timeout_set != 0);
    timeout_set--;
