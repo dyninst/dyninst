@@ -83,7 +83,7 @@ namespace Dyninst {
      
              string linkname(linkstream.str());
              executable_path = deref_link(linkname.c_str());
-             sw_printf("[%s:%u] - Set executable path to %s\n", __FILE__, __LINE__, executable_path.c_str());
+             sw_printf("[%s:%u] - Set executable path to %s\n", FILE__, __LINE__, executable_path.c_str());
           }
        }
        library_tracker = new StaticBinaryLibState(this, executable_path);

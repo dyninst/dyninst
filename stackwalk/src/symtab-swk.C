@@ -65,7 +65,7 @@ Symtab *SymtabWrapper::getSymtab(std::string filename)
   }
   
   sw_printf("[%s:%u] - Trying to open symtab object %s\n", 
-            __FILE__, __LINE__, filename.c_str());
+            FILE__, __LINE__, filename.c_str());
   Symtab *symtab;
   bool result = Symtab::openFile(symtab, filename);
   if (!result) {
@@ -112,7 +112,7 @@ bool SwkSymtab::lookupAtAddr(Address addr, std::string &out_name,
 
   LibraryState *libtracker = walker->getProcessState()->getLibraryTracker();
   if (!libtracker) {
-     sw_printf("[%s:%u] - getLibraryTracker() failed\n", __FILE__, __LINE__);
+     sw_printf("[%s:%u] - getLibraryTracker() failed\n", FILE__, __LINE__);
      setLastError(err_nolibtracker, "No library tracker object registered");
      return false;
   }
@@ -120,7 +120,7 @@ bool SwkSymtab::lookupAtAddr(Address addr, std::string &out_name,
   LibAddrPair lib;
   result = libtracker->getLibraryAtAddr(addr, lib);
   if (!result) {
-     sw_printf("[%s:%u] - getLibraryAtAddr() failed: %s\n", __FILE__, __LINE__, getLastErrorMsg());
+     sw_printf("[%s:%u] - getLibraryAtAddr() failed: %s\n", FILE__, __LINE__, getLastErrorMsg());
     return false;
   }
 
@@ -133,7 +133,7 @@ bool SwkSymtab::lookupAtAddr(Address addr, std::string &out_name,
   result = symtab->getAllSymbolsByType(syms, Symbol::ST_FUNCTION);
   if (!result) {
     sw_printf("[%s:%u] - Couldn't get symbols for %s\n", 
-              __FILE__, __LINE__, libname.c_str());
+              FILE__, __LINE__, libname.c_str());
     return false;
   }
   Symbol *candidate = NULL;
@@ -154,7 +154,7 @@ bool SwkSymtab::lookupAtAddr(Address addr, std::string &out_name,
     out_name = candidate->getName();
   out_value = (void *) candidate;
 
-  sw_printf("[%s:%u] - Found name for %lx : %s\n", __FILE__, __LINE__,
+  sw_printf("[%s:%u] - Found name for %lx : %s\n", FILE__, __LINE__,
 	    addr, out_name.c_str());  
   
   return true;

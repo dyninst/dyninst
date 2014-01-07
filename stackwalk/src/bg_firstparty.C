@@ -58,7 +58,7 @@ bool Walker::createDefaultSteppers() {
    FrameStepper *stepper = new FrameFuncStepper(this);
    bool result = addStepper(stepper);
    if (!result) {
-      sw_printf("[%s:%u] - Error adding stepper %p\n", __FILE__, __LINE__, stepper);
+      sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__, stepper);
    }
    return result;
 }
@@ -76,7 +76,7 @@ bool ProcSelf::getThreadIds(std::vector<THR_ID> &threads)
 
   result = getDefaultThread(tid);
   if (!result) {
-    sw_printf("[%s:%u] - Could not read default thread\n", __FILE__, __LINE__);
+    sw_printf("[%s:%u] - Could not read default thread\n", FILE__, __LINE__);
     return false;
   }
   threads.clear();

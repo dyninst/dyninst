@@ -150,7 +150,7 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(set<height_pair_t> heights
 
         if (sp_height == StackAnalysis::Height::bottom) {
             sw_printf("[%s:%u] - Analysis didn't find a stack height\n", 
-                    __FILE__, __LINE__);
+                    FILE__, __LINE__);
             continue;
         } else {
             
@@ -194,7 +194,7 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(set<height_pair_t> heights
 	  if (out_fp_addr != in_fp) {
 	    sw_printf(
 		      "[%s:%u] - Warning - current FP %lx does not point to next FP located at %lx\n",
-		      __FILE__, __LINE__, in_fp, out_fp_addr);
+		      FILE__, __LINE__, in_fp, out_fp_addr);
 	  }
 	  bool resultMem = proc->readMem(&out_fp, out_fp_addr, proc->getAddressWidth());
 	  if (resultMem) {
@@ -205,12 +205,12 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(set<height_pair_t> heights
 	    out.setFP(out_fp);
 	  }
 	  else {
-	    sw_printf("[%s:%u] - Failed to read FP value\n", __FILE__, __LINE__);
+	    sw_printf("[%s:%u] - Failed to read FP value\n", FILE__, __LINE__);
 	  }
 	}
 	else
 	{
-	  sw_printf("[%s:%u] - Failed to find FP\n", __FILE__, __LINE__);
+	  sw_printf("[%s:%u] - Failed to find FP\n", FILE__, __LINE__);
 	}
 	
 	
@@ -220,10 +220,10 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(set<height_pair_t> heights
 
         if (result) {
             sw_printf("[%s:%u] - Warning - found multiple valid frames.\n", 
-                    __FILE__, __LINE__);
+                    FILE__, __LINE__);
         } else {
             sw_printf("[%s:%u] - Found a valid frame\n", 
-                    __FILE__, __LINE__);
+                    FILE__, __LINE__);
             result = true;
         }
     }
@@ -263,7 +263,7 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
     
     Symbol_t sym = readers[name]->getContainingSymbol(callSite);
     if (!readers[name]->isValidSymbol(sym)) {
-       sw_printf("[%s:%u] - Could not find symbol at offset %lx\n", __FILE__,
+       sw_printf("[%s:%u] - Could not find symbol at offset %lx\n", FILE__,
                  __LINE__, callSite);
        return err_heights_pair;
     }
@@ -275,7 +275,7 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
 
     if(!func)
     {
-      sw_printf("[%s:%u] - Could not find function at offset %lx\n", __FILE__,
+      sw_printf("[%s:%u] - Could not find function at offset %lx\n", FILE__,
                 __LINE__, callSite);
       return err_heights_pair;
     }
@@ -285,7 +285,7 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
    set<ParseAPI::Block*> blocks;
    obj->findBlocks(region, callSite, blocks);
    if(blocks.size() == 0) {
-      sw_printf("[%s:%u] - Function at entry point %lx did not contain call site %lx\n", __FILE__,
+      sw_printf("[%s:%u] - Function at entry point %lx did not contain call site %lx\n", FILE__,
                 __LINE__, entry_addr, callSite);
      return err_heights_pair;
    }
@@ -296,7 +296,7 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
    StackAnalysis analysis(func);
    heights.insert(height_pair_t(analysis.findSP(block, callSite), analysis.findFP(block, callSite)));
  
-   sw_printf("[%s:%u] - Have %lu possible stack heights in %s at %lx:\n", __FILE__, __LINE__, heights.size(), name.c_str(), callSite);
+   sw_printf("[%s:%u] - Have %lu possible stack heights in %s at %lx:\n", FILE__, __LINE__, heights.size(), name.c_str(), callSite);
    for (set<height_pair_t>::iterator i = heights.begin(); 
         i != heights.end(); i++)
    {
@@ -319,13 +319,13 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    LibAddrPair libaddr;
    LibraryState *ls = getProcessState()->getLibraryTracker();
    if (!ls) {
-      sw_printf("[%s:%u] - Failed to get library tracker\n", __FILE__, __LINE__);
+      sw_printf("[%s:%u] - Failed to get library tracker\n", FILE__, __LINE__);
       return gcf_not_me;
    }
 
    bool result = ls->getLibraryAtAddr(in.getRA(), libaddr);
    if (!result) {
-      sw_printf("[%s:%u] - Failed to get library at %lx\n", __FILE__, __LINE__, in.getRA());
+      sw_printf("[%s:%u] - Failed to get library at %lx\n", FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
    
@@ -340,7 +340,7 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    set<height_pair_t> heights = analyzeFunction(name, function_offset);
    gcframe_ret_t ret = gcf_not_me;
    if (*(heights.begin()) == err_height_pair) {
-     sw_printf("[%s:%u] - Analysis failed on %s at %lx\n", __FILE__, __LINE__, name.c_str(), offset);
+     sw_printf("[%s:%u] - Analysis failed on %s at %lx\n", FILE__, __LINE__, name.c_str(), offset);
      return ret;
    }
 
@@ -386,7 +386,7 @@ std::vector<AnalysisStepperImpl::registerState_t> AnalysisStepperImpl::fullAnaly
    obj->cs()->findRegions(callSite, regions);
    
    if (regions.empty()) {
-      sw_printf("[%s:%u] - Could not find region at %lx\n", __FILE__, __LINE__, callSite);
+      sw_printf("[%s:%u] - Could not find region at %lx\n", FILE__, __LINE__, callSite);
       return heights;
    }
    //We shouldn't be dealing with overlapping regions in a live process
@@ -396,7 +396,7 @@ std::vector<AnalysisStepperImpl::registerState_t> AnalysisStepperImpl::fullAnaly
    set<ParseAPI::Function*> funcs;
    obj->findFuncs(region, callSite, funcs);
    if (funcs.empty()) {
-      sw_printf("[%s:%u] - Could not find function at offset %lx\n", __FILE__,
+      sw_printf("[%s:%u] - Could not find function at offset %lx\n", FILE__,
                 __LINE__, callSite);
       return heights;
    }
@@ -415,7 +415,7 @@ std::vector<AnalysisStepperImpl::registerState_t> AnalysisStepperImpl::fullAnaly
       
    }
 
-   sw_printf("[%s:%u] - Have %lu possible stack heights in %s at %lx:\n", __FILE__, __LINE__, heights.size(), name.c_str(), callSite);
+   sw_printf("[%s:%u] - Have %lu possible stack heights in %s at %lx:\n", FILE__, __LINE__, heights.size(), name.c_str(), callSite);
 
    // Return set of possible heights
    return heights;  
@@ -476,10 +476,10 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
     
     if (result) {
       sw_printf("[%s:%u] - Warning - found multiple valid frames.\n", 
-		__FILE__, __LINE__);
+		FILE__, __LINE__);
     } else {
       sw_printf("[%s:%u] - Found a valid frame\n", 
-		__FILE__, __LINE__);
+		FILE__, __LINE__);
       result = true;
     }
   }
@@ -489,11 +489,11 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
 
 bool AnalysisStepperImpl::validateRA(Address candidateRA)
 {
-  sw_printf("[%s:%u] - Calling isPrevInstrACall\n", __FILE__, __LINE__);
+  sw_printf("[%s:%u] - Calling isPrevInstrACall\n", FILE__, __LINE__);
   Address target;
   if (!isPrevInstrACall(candidateRA, target)) {
     sw_printf("[%s:%u] - Return location %lx does not follow a call instruction\n",
-	      __FILE__, __LINE__, candidateRA);
+	      FILE__, __LINE__, candidateRA);
     return false;
   }
   return true;
@@ -502,10 +502,10 @@ bool AnalysisStepperImpl::validateRA(Address candidateRA)
 gcframe_ret_t AnalysisStepperImpl::checkResult(bool result)
 {
   if (result) {
-    sw_printf("[%s:%u] - success\n", __FILE__, __LINE__); 
+    sw_printf("[%s:%u] - success\n", FILE__, __LINE__); 
     return gcf_success;
   } else {
-    sw_printf("[%s:%u] - failed\n", __FILE__, __LINE__); 
+    sw_printf("[%s:%u] - failed\n", FILE__, __LINE__); 
     return gcf_not_me;
   }
 }
@@ -522,7 +522,7 @@ bool AnalysisStepperImpl::getOutRA(Address out_sp, Address& out_ra, location_t& 
   bool resultMem = proc->readMem(&out_ra, out_ra_addr, addr_width);
   if (!resultMem) {
     sw_printf("[%s:%u] - Error reading from return location %lx on stack\n",
-	      __FILE__, __LINE__, out_ra_addr);
+	      FILE__, __LINE__, out_ra_addr);
     return false;
   }
   return true;

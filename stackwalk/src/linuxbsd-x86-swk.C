@@ -65,7 +65,7 @@ bool Walker::createDefaultSteppers()
   if (!result)
      goto error;
   sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
-            __FILE__, __LINE__, stepper);
+            FILE__, __LINE__, stepper);
 
   frameFuncHelper_x86 = LookupFuncStart::getLookupFuncStart(getProcessState());
   stepper = new FrameFuncStepper(this, frameFuncHelper_x86);
@@ -73,7 +73,7 @@ bool Walker::createDefaultSteppers()
   if (!result)
      goto error;
   sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n",
-            __FILE__, __LINE__, stepper);
+            FILE__, __LINE__, stepper);
 
   //Call getLookupFuncStart twice to get reference counts correct.
   frameFuncHelper_x86 = LookupFuncStart::getLookupFuncStart(getProcessState());
@@ -83,21 +83,21 @@ bool Walker::createDefaultSteppers()
   if (!result)
      goto error;
   sw_printf("[%s:%u] - Stepper %p is StepperWanderer\n",
-            __FILE__, __LINE__, stepper);
+            FILE__, __LINE__, stepper);
 
   stepper = new SigHandlerStepper(this);
   result = addStepper(stepper);
   if (!result)
      goto error;
   sw_printf("[%s:%u] - Stepper %p is SigHandlerStepper\n",
-            __FILE__, __LINE__, stepper);
+            FILE__, __LINE__, stepper);
 
   stepper = new BottomOfStackStepper(this);
   result = addStepper(stepper);
   if (!result)
      goto error;
   sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
-            __FILE__, __LINE__, stepper);
+            FILE__, __LINE__, stepper);
 
 #ifdef USE_PARSE_API 
   stepper = new AnalysisStepper(this);
@@ -105,7 +105,7 @@ bool Walker::createDefaultSteppers()
   if (!result)
      goto error;
   sw_printf("[%s:%u] - Stepper %p is AnalysisStepper\n",
-            __FILE__, __LINE__, stepper);
+            FILE__, __LINE__, stepper);
 #endif
 
   return true;

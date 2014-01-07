@@ -43,13 +43,13 @@ bool CallChecker::isPrevInstrACall(Address addr, Address & target)
    bool result;
    unsigned char buffer[max_call_length];
 
-   sw_printf("[%s:%u] - isPrevInstrACall on %lx\n", __FILE__, __LINE__, addr);
+   sw_printf("[%s:%u] - isPrevInstrACall on %lx\n", FILE__, __LINE__, addr);
    Address start = addr - max_call_length;
    result = proc->readMem(buffer, start, max_call_length);
    if (!result)
    {
       sw_printf("[%s:%u] - Address 0x%lx is not a call--unreadable\n",
-                __FILE__, __LINE__, addr);
+                FILE__, __LINE__, addr);
       return false;
    }
 
@@ -57,7 +57,7 @@ bool CallChecker::isPrevInstrACall(Address addr, Address & target)
       int32_t disp = *((int32_t *) (buffer+1));
       target = addr + disp;
       sw_printf("[%s:%u] - Found call encoded by %x to %lx (addr = %lx, disp = %lx)\n",
-                __FILE__, __LINE__, (int) buffer[0], target, addr, disp);
+                FILE__, __LINE__, (int) buffer[0], target, addr, disp);
                 
       return true;
    }
@@ -102,7 +102,7 @@ bool CallChecker::isPrevInstrACall(Address addr, Address & target)
       if (i + size == max_call_length)
       {
          sw_printf("[%s:%u] - Found call of size %d encoded by: ",
-                   __FILE__, __LINE__, size);
+                   FILE__, __LINE__, size);
          for (unsigned j=i; j<i+size; j++) {
             sw_printf("%x ", buffer[j]);
          }

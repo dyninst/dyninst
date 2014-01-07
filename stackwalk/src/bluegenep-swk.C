@@ -79,7 +79,7 @@ namespace Dyninst {
 
     // this is based on the linux version.  BG/P uses Linux SysV dynamic libs
     bool ProcDebugBGP::debug_post_attach(ThreadState *) {
-      sw_printf("[%s:%u] - Entering debug_post_attach on %d\n", __FILE__, __LINE__, pid);
+      sw_printf("[%s:%u] - Entering debug_post_attach on %d\n", FILE__, __LINE__, pid);
 
       pollForNewThreads();
 
@@ -93,7 +93,7 @@ namespace Dyninst {
       }
 
 /*   
-    sw_printf("[%s:%u] - Successfully polled for threads in debug_post_attach on %d\n", __FILE__, __LINE__, pid);      
+    sw_printf("[%s:%u] - Successfully polled for threads in debug_post_attach on %d\n", FILE__, __LINE__, pid);      
 #   if defined(cap_stackwalker_use_symtab)
       library_tracker = new SymtabLibState(this, executable_path);
 #   else
@@ -104,14 +104,14 @@ namespace Dyninst {
          setDefaultLibraryTracker();
       // This should really be checking for exceptions, since the above are constructors.
       if (!library_tracker) {
-        sw_printf("[%s:%u] - PID %d failed to create library tracker\n", __FILE__, __LINE__, pid);
+        sw_printf("[%s:%u] - PID %d failed to create library tracker\n", FILE__, __LINE__, pid);
         setLastError(err_nolibtracker, "Failed to create library tracker!");
         return false;
       }
 
-      sw_printf("[%s:%u] - PID %d registering lib spotter...\n", __FILE__, __LINE__, pid);
+      sw_printf("[%s:%u] - PID %d registering lib spotter...\n", FILE__, __LINE__, pid);
       registerLibSpotter();
-      sw_printf("[%s:%u] - PID %d registered lib spotter successfully\n", __FILE__, __LINE__, pid);
+      sw_printf("[%s:%u] - PID %d registered lib spotter successfully\n", FILE__, __LINE__, pid);
       return true;
     }
 
@@ -131,7 +131,7 @@ namespace Dyninst {
       bool result = getRegValue(Dyninst::ReturnAddr, thrd, cur_pc);
       if (!result) {
         sw_printf("[%s:%u] - Error getting PC value for thrd %d\n",
-                  __FILE__, __LINE__, (int) thrd);
+                  FILE__, __LINE__, (int) thrd);
         return false;
       }
       if (cur_pc == lib_trap_addr || cur_pc-1 == lib_trap_addr)
@@ -147,14 +147,14 @@ namespace Dyninst {
 
       if (!wrote_trap)
       {
-         sw_printf("[%s:%u] - Skipping trap clean\n", __FILE__, __LINE__);
+         sw_printf("[%s:%u] - Skipping trap clean\n", FILE__, __LINE__);
          return true;
       }
 
       lib_load_trap = library_tracker->getLibTrapAddress();
       if (!lib_load_trap) {
         sw_printf("[%s:%u] - Couldn't get trap addr, couldn't set up "
-                  "library loading notification.\n", __FILE__, __LINE__);
+                  "library loading notification.\n", FILE__, __LINE__);
         return false;
       }
 
@@ -166,12 +166,12 @@ namespace Dyninst {
       write_trap_msg.dataArea.SET_MEM.len  = trap_len;
 
       sw_printf("[%s:%u] - Restoring memory over library trap at %lx\n", 
-                  __FILE__, __LINE__, lib_load_trap);
+                  FILE__, __LINE__, lib_load_trap);
       write_ack = false;
       if (!BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, write_trap_msg))
       {
         sw_printf("[%s:%u] - Couldn't write BG trap at load address: %lx\n", 
-                  __FILE__, __LINE__, lib_load_trap);
+                  FILE__, __LINE__, lib_load_trap);
         return false;
       }
 
@@ -180,7 +180,7 @@ namespace Dyninst {
 	result = debug_wait_and_handle(true, false, handled);
 	if (result) {
 	  sw_printf("[%s:%u] - Unable to get ack for setmem in " 
-		    "registerLibSpotter()\n", __FILE__, __LINE__);
+		    "registerLibSpotter()\n", FILE__, __LINE__);
 	  break;
 	}
       }
@@ -195,14 +195,14 @@ namespace Dyninst {
 
       if (!library_tracker) {
         sw_printf("[%s:%u] - Not using lib tracker, don't know how "
-                  "to get library load address\n", __FILE__, __LINE__);
+                  "to get library load address\n", FILE__, __LINE__);
         return;
       }
    
       lib_load_trap = library_tracker->getLibTrapAddress();
       if (!lib_load_trap) {
         sw_printf("[%s:%u] - Couldn't get trap addr, couldn't set up "
-                  "library loading notification.\n", __FILE__, __LINE__);
+                  "library loading notification.\n", FILE__, __LINE__);
         return;
       }
 
@@ -216,7 +216,7 @@ namespace Dyninst {
       write_trap_msg.dataArea.SET_MEM.len  = trap_len;
 
       sw_printf("[%s:%u] - Reading original memory at library trap\n",
-		__FILE__, __LINE__);
+		FILE__, __LINE__);
       assert(trap_len <= sizeof(lib_trap_orig_mem));
       memset(lib_trap_orig_mem, 0, sizeof(lib_trap_orig_mem));
       bool result = readMem(lib_trap_orig_mem, lib_load_trap, trap_len);
@@ -226,12 +226,12 @@ namespace Dyninst {
       }
 
       sw_printf("[%s:%u] - Installing BG trap at load address: %lx\n", 
-                  __FILE__, __LINE__, lib_load_trap);
+                  FILE__, __LINE__, lib_load_trap);
       write_ack = false;
       if (!BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, write_trap_msg))
       {
         sw_printf("[%s:%u] - Couldn't write BG trap at load address: %lx\n", 
-                  __FILE__, __LINE__, lib_load_trap);
+                  FILE__, __LINE__, lib_load_trap);
         return;
       }
 
@@ -239,14 +239,14 @@ namespace Dyninst {
       while (!write_ack) {
 	result = debug_wait_and_handle(true, false, handled);
 	if (result) {
-        sw_printf("[%s:%u] - Unable to get ack for setmem in registerLibSpotter()\n", __FILE__, __LINE__);
+        sw_printf("[%s:%u] - Unable to get ack for setmem in registerLibSpotter()\n", FILE__, __LINE__);
 	  break;
 	}
       }
  
       wrote_trap = true;
       sw_printf("[%s:%u] - Successfully wrote BG library trap at %lx\n",
-                __FILE__, __LINE__, lib_load_trap);
+                FILE__, __LINE__, lib_load_trap);
     }
 
 
@@ -262,7 +262,7 @@ namespace Dyninst {
 
 
     bool ProcDebugBGP::pollForNewThreads() {
-      sw_printf("[%s:%u] - Polling for new threads on %d\n", __FILE__, __LINE__, pid);
+      sw_printf("[%s:%u] - Polling for new threads on %d\n", FILE__, __LINE__, pid);
 
       // send a request for thread info to the BG debugger pipe
       BG_Debugger_Msg get_info_msg(GET_THREAD_INFO, pid, 0, 0, 0);
@@ -270,7 +270,7 @@ namespace Dyninst {
 
       if (!BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, get_info_msg)) {
         sw_printf("[%s:%u] - Error writing GET_THREAD_INFO to BG debug stream.\n", 
-                  __FILE__, __LINE__);
+                  FILE__, __LINE__);
         setLastError(err_procread, "Failed to write GET_THREAD_INFO request.");
         return false;
       }
@@ -279,7 +279,7 @@ namespace Dyninst {
       // stackwalker debug interface.
       if (!debug_waitfor(dbg_thread_info)) {
         sw_printf("[%s:%u] - Unable to get ack for GET_THREAD_INFO in pollForNewThreads()\n", 
-                  __FILE__, __LINE__);
+                  FILE__, __LINE__);
       }
 
       return true;
@@ -294,7 +294,7 @@ namespace Dyninst {
 	ev.data.idata = msg.dataArea.SIGNAL_ENCOUNTERED.signal;
         if (ev.data.idata == SIGTRAP && isLibraryTrap(ts->getTid())) {
           ev.dbg = dbg_libraryload;
-          sw_printf("[%s:%u] - Decoded library load event\n", __FILE__, __LINE__);
+          sw_printf("[%s:%u] - Decoded library load event\n", FILE__, __LINE__);
         } else {
           ProcDebugBG::translate_event(msg, ev);
         }
@@ -310,7 +310,7 @@ namespace Dyninst {
           uint32_t *dest = (uint32_t*)ev.data.pdata;
           copy(&msg_ids[0], &msg_ids[ev.size], dest);
 
-          sw_printf("[%s:%u] - Received thread info: ", __FILE__, __LINE__);
+          sw_printf("[%s:%u] - Received thread info: ", FILE__, __LINE__);
           for (size_t i=0; i < ev.size; i++) sw_printf("%d ", msg_ids[i]);
           sw_printf("\n");
         }
@@ -330,12 +330,12 @@ namespace Dyninst {
       switch (ev.dbg) {
       case dbg_libraryload:
         {
-          sw_printf("[%s:%u] - Handling library load event on %d/%d\n", __FILE__, __LINE__, pid, tid);
+          sw_printf("[%s:%u] - Handling library load event on %d/%d\n", FILE__, __LINE__, pid, tid);
           for_all_threads(set_stopped(true));
           LibraryState *ls = getLibraryTracker();
           if (!ls) {
             sw_printf("[%s:%u] - WARNING! No library tracker registered on %d/%d\n", 
-                      __FILE__, __LINE__, pid, tid);
+                      FILE__, __LINE__, pid, tid);
             setLastError(err_nolibtracker, "No library tracker found!");
             return false;
           }
@@ -348,14 +348,14 @@ namespace Dyninst {
 	  bool result = setRegValue(Dyninst::ReturnAddr, tid, newpc);
 	  if (!result) {
 	    sw_printf("[%s:%u] - Error! Could not set PC past trap!\n",
-		      __FILE__, __LINE__);
+		      FILE__, __LINE__);
 	    setLastError(err_internal, "Could not set PC after trap\n");
 	    return false;
 	  }
           
           if (!debug_continue(ts)) {
             sw_printf("[%s:%u] - Debug continue failed on %d/%d with %d\n", 
-                      __FILE__, __LINE__, pid, tid, ev.data.idata);
+                      FILE__, __LINE__, pid, tid, ev.data.idata);
             setLastError(err_internal, "debug_continue() failed after library load.");
             return false;
           }

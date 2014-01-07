@@ -67,13 +67,13 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
    SymReader *orig_reader = LibraryWrapper::getLibrary(s);
    if (!orig_reader) {
       sw_printf("[%s:%u] - Error.  Could not find elf handle for %s\n",
-                __FILE__, __LINE__, s.c_str());
+                FILE__, __LINE__, s.c_str());
       return DwarfFrameParser::Ptr();
    }
    Elf_X *orig_elf = (Elf_X *) orig_reader->getElfHandle();
    if (!orig_elf) {
       sw_printf("[%s:%u] - Error. Could not find elf handle for file %s\n",
-                __FILE__, __LINE__, s.c_str());
+                FILE__, __LINE__, s.c_str());
       dwarf_aux_info[s] = DwarfFrameParser::Ptr();
       return DwarfFrameParser::Ptr();
    }
@@ -212,12 +212,12 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
    if (!result) {
       sw_printf("[%s:%u] - Stackwalking through an invalid PC at %lx\n",
-                __FILE__, __LINE__, in.getRA());
+                FILE__, __LINE__, in.getRA());
       return gcf_error;
    }
    Address pc = in.getRA() - lib.second;
    sw_printf("[%s:%u] Dwarf-based stackwalking, using local address 0x%lx from 0x%lx - 0x%lx\n",
-             __FILE__, __LINE__, pc, in.getRA(), lib.second);
+             FILE__, __LINE__, pc, in.getRA(), lib.second);
    if (in.getRALocation().location != loc_register && !in.nonCall()) {
       /**
        * If we're here, then our in.getRA() should be pointed at the
@@ -245,7 +245,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    DwarfFrameParser::Ptr dauxinfo = getAuxDwarfInfo(lib.first);
    if (!dauxinfo || !dauxinfo->hasFrameDebugInfo()) {
       sw_printf("[%s:%u] - Library %s does not have stackwalking debug info\n",
-                 __FILE__, __LINE__, lib.first.c_str());
+                 FILE__, __LINE__, lib.first.c_str());
       return gcf_not_me;
    }
 
@@ -255,7 +255,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 #endif
 
    sw_printf("[%s:%u] - Using DWARF debug file info for %s\n", 
-                   __FILE__, __LINE__, lib.first.c_str());
+                   FILE__, __LINE__, lib.first.c_str());
    cur_frame = &in;
    gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo, isVsyscallPage);
    cur_frame = NULL;
@@ -265,7 +265,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    
    if (gcresult == gcf_success) {
       sw_printf("[%s:%u] - Success walking with DWARF aux file\n",
-                __FILE__, __LINE__);
+                FILE__, __LINE__);
       return gcf_success;
    }
    
@@ -321,7 +321,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    }
    if (!result) {
       sw_printf("[%s:%u] - Couldn't get return debug info at %lx, error: %u\n",
-                __FILE__, __LINE__, in.getRA(), frame_error);
+                FILE__, __LINE__, in.getRA(), frame_error);
       return gcf_not_me;
    }
    location_t ra_loc = getLastComputedLocation(ret_value);
@@ -336,7 +336,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                                       frame_value, this, frame_error);
    if (!result) {
       sw_printf("[%s:%u] - Couldn't get frame debug info at %lx\n",
-                 __FILE__, __LINE__, in.getRA());
+                 FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
    location_t fp_loc = getLastComputedLocation(frame_value);
@@ -345,7 +345,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                                       stack_value, this, frame_error);
    if (!result) {
       sw_printf("[%s:%u] - Couldn't get stack debug info at %lx\n",
-                 __FILE__, __LINE__, in.getRA());
+                 FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
    location_t sp_loc = getLastComputedLocation(stack_value);   

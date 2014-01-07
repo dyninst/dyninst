@@ -56,7 +56,7 @@ TrackLibState::TrackLibState(ProcessState *parent, std::string executable_) :
    PID pid = procstate->getProcessId();
    
    sw_printf("[%s:%u] - Creating a TrackLibState on pid %d\n",
-             __FILE__, __LINE__, pid);
+             FILE__, __LINE__, pid);
    if (!symfactory)
       symfactory = Walker::getSymbolReader();
 
@@ -68,7 +68,7 @@ TrackLibState::TrackLibState(ProcessState *parent, std::string executable_) :
    }
    if (!translate) {
       sw_printf("[%s:%u] - Creation of AddressTranslate failed "
-                "on pid %d!\n", __FILE__, __LINE__, pid);
+                "on pid %d!\n", FILE__, __LINE__, pid);
    }
    assert(translate);
 }
@@ -106,14 +106,14 @@ bool TrackLibState::updateLibs()
    if (!result) {
       sw_printf("[%s:%u] - Could not get load addresses out of SymtabAPI for %d."
                 "This may happen during process create before libs have be set up\n",
-                 __FILE__, __LINE__, pid);
+                 FILE__, __LINE__, pid);
       needs_update = true;
    }
 
    vector<pair<LibAddrPair, unsigned int> > arch_libs;
    if (!updateLibsArch(arch_libs)) {
 #if !defined(os_linux) && !defined(arch_x86_64)
-      sw_printf("[%s:%u] - updateLibsArch failed\n",  __FILE__, __LINE__);
+      sw_printf("[%s:%u] - updateLibsArch failed\n",  FILE__, __LINE__);
 #endif
    }
 
@@ -144,7 +144,7 @@ bool TrackLibState::getLibraryAtAddr(Address addr, LibAddrPair &olib)
 {
    bool result = refresh();
    if (!result) {
-      sw_printf("[%s:%u] - Failed to refresh library.\n", __FILE__, __LINE__);
+      sw_printf("[%s:%u] - Failed to refresh library.\n", FILE__, __LINE__);
       setLastError(err_symtab, "Failed to refresh library list");
       return false;
    }
@@ -164,7 +164,7 @@ bool TrackLibState::getLibraryAtAddr(Address addr, LibAddrPair &olib)
    LoadedLib *ll;
    result = translate->getLibAtAddress(addr, ll);
    if (!result) {
-      sw_printf("[%s:%u] - no file loaded at %lx\n", __FILE__, __LINE__, addr);
+      sw_printf("[%s:%u] - no file loaded at %lx\n", FILE__, __LINE__, addr);
       setLastError(err_nofile, "No file loaded at specified address");
       return false;
    }
@@ -302,7 +302,7 @@ bool TrackLibState::getAOut(LibAddrPair &addr_pair)
    aout = translate->getExecutable();
    if (!aout) {
       sw_printf("[%s:%u] - Error.  SymtabAPI getAOut failed\n",
-                __FILE__, __LINE__);
+                FILE__, __LINE__);
       return false;
    }
    addr_pair = LibAddrPair(aout->getName(), aout->getCodeLoadAddr());

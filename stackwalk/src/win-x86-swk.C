@@ -59,7 +59,7 @@ bool Walker::createDefaultSteppers()
   if (!result)
      goto error;
   sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n",
-            __FILE__, __LINE__, stepper);
+            FILE__, __LINE__, stepper);
 #if defined(USE_PARSE_API)
   stepper = new AnalysisStepper(this);
   result = addStepper(stepper);
@@ -81,7 +81,7 @@ bool ProcSelf::getThreadIds(std::vector<THR_ID> &threads)
   result = getDefaultThread(tid);
   if (!result) {
     sw_printf("[%s:%u] - Could not read default thread\n",
-	       __FILE__, __LINE__);
+	       FILE__, __LINE__);
     return false;
   }
   threads.clear();

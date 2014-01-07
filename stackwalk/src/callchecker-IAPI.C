@@ -41,7 +41,7 @@ CallChecker::CallChecker(ProcessState * proc_) : proc(proc_) {}
 
 bool CallChecker::isPrevInstrACall(Address addr, Address &target)
 {
-    sw_printf("[%s:%u] - isPrevInstrACall on %lx\n", __FILE__, __LINE__, addr);
+    sw_printf("[%s:%u] - isPrevInstrACall on %lx\n", FILE__, __LINE__, addr);
     if (addr == 0) return false;
     const unsigned max_call_length = 6;
     unsigned char buffer[max_call_length];
@@ -80,7 +80,7 @@ bool CallChecker::isPrevInstrACall(Address addr, Address &target)
             int disp = *((int*)(bufferPtr+(size-prevInsn->size() + 2)));
             target = addr + disp;
             sw_printf("[%s:%u] - Found call encoded by %d to %lx (addr = %lx, disp = %lx)\n",
-                    __FILE__, __LINE__,
+                    FILE__, __LINE__,
                     (int)buffer[0], target, addr, disp);
             return true;
         } else {

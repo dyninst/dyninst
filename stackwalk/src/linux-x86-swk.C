@@ -106,7 +106,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
          result = getProcessState()->readMem(&sp, sp_loc.val.addr, addr_size);
          if (!result) {
             sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                      __FILE__, __LINE__);
+                      FILE__, __LINE__);
             return gcf_error;
          }
          last_read_sp_addr = sp_loc.val.addr;
@@ -118,21 +118,21 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
       if (frames[i].frame_size && (sp != in.getSP() + frames[i].frame_size)) {
          sw_printf("[%s:%u] - Signal frame candidate %d does not fit (%lx != %lx). Trying another.\n",
-                   __FILE__, __LINE__, i, sp, in.getSP() + frames[i].frame_size);
+                   FILE__, __LINE__, i, sp, in.getSP() + frames[i].frame_size);
          continue;
       }
-      sw_printf("[%s:%u] - Using signal frame candidate %d\n", __FILE__, __LINE__, i);
+      sw_printf("[%s:%u] - Using signal frame candidate %d\n", FILE__, __LINE__, i);
 
       location_t fp_loc;
       Address fp = 0x0;
       fp_loc.location = loc_address;
       fp_loc.val.addr = in.getSP() + frames[i].fp_offset;
       sw_printf("[%s:%u] - SigHandler Reading FP from %lx\n",
-                __FILE__, __LINE__, fp_loc.val.addr);
+                FILE__, __LINE__, fp_loc.val.addr);
       result = getProcessState()->readMem(&fp, fp_loc.val.addr, addr_size);
       if (!result) {
          sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                   __FILE__, __LINE__);
+                   FILE__, __LINE__);
          return gcf_error;
       }
 
@@ -141,11 +141,11 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
       pc_loc.location = loc_address;
       pc_loc.val.addr = in.getSP() + frames[i].pc_offset;
       sw_printf("[%s:%u] - SigHandler Reading PC from %lx\n",
-                __FILE__, __LINE__, pc_loc.val.addr);
+                FILE__, __LINE__, pc_loc.val.addr);
       result = getProcessState()->readMem(&pc, pc_loc.val.addr, addr_size);
       if (!result) {
          sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                   __FILE__, __LINE__);
+                   FILE__, __LINE__);
          return gcf_error;
       }
 
@@ -159,6 +159,6 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
       return gcf_success;
    }
    
-   sw_printf("[%s:%u] - Could not find matching candidate for signal frame\n", __FILE__, __LINE__);
+   sw_printf("[%s:%u] - Could not find matching candidate for signal frame\n", FILE__, __LINE__);
    return gcf_not_me;
 }
