@@ -78,7 +78,7 @@ execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR}
   ${RT_SOURCE_DIR})
 add_custom_target(DyninstRT
   ALL
-  COMMAND ${CMAKE_COMMAND} --build ${RT_BINARY_DIR} --config $<CONFIGURATION>
+  COMMAND ${CMAKE_COMMAND} --config $<CONFIGURATION> --build ${RT_BINARY_DIR}
   COMMENT "Building DyninstRT"
   VERBATIM)
 install(CODE "include(\"${RT_BINARY_DIR}/cmake_install.cmake\")")
