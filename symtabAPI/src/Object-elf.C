@@ -2252,6 +2252,8 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
     case DT_VERDEFNUM:
       verdefnum = dyns.d_ptr(i);
       break;
+    case DT_SONAME:
+      soname_ = &strs[dyns.d_ptr(i)];
     default:
       break;
     }
@@ -3351,7 +3353,8 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
   dwarf(NULL),
   EEL(false), did_open(false),
   obj_type_(obj_Unknown),
-  DbgSectionMapSorted(false)
+  DbgSectionMapSorted(false),
+  soname_(NULL)
 {
 
 #if defined(TIMED_PARSE)
@@ -5572,4 +5575,10 @@ void Object::getSegmentsSymReader(vector<SymSegment> &segs) {
 
       segs.push_back(seg);
    }
+}
+
+const char* Object::getFileName() const
+{
+  if(soname_) return soname_;
+  return mf->filename().c_str();
 }
