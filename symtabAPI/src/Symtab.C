@@ -3121,7 +3121,7 @@ SYMTAB_EXPORT std::string Symtab::file() const
 
 SYMTAB_EXPORT std::string Symtab::name() const 
 {
-   return mf->filename();
+  return obj_private->getFileName();
 }
 
 SYMTAB_EXPORT std::string Symtab::memberName() const 

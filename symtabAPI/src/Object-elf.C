@@ -5579,6 +5579,9 @@ void Object::getSegmentsSymReader(vector<SymSegment> &segs) {
 
 const char* Object::getFileName() const
 {
-  if(soname_) return soname_;
+  if(soname_) {
+    return soname_;
+  }
+  
   return mf->filename().c_str();
 }
