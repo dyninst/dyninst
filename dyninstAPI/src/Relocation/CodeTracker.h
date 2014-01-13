@@ -127,12 +127,14 @@ class EmulatorTracker : public TrackerElement {
   virtual ~EmulatorTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
+    Address dummy = reloc;
     assert(reloc >= reloc_);
     assert(reloc < (reloc_ + size_));
     return orig_;
   }
 
   virtual Address origToReloc(Address orig) const {
+    Address dummy = orig;
     assert(orig == orig_);
     return reloc_;
   }
@@ -151,12 +153,14 @@ class InstTracker : public TrackerElement {
   virtual ~InstTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
+    Address dummy = reloc;
     assert(reloc >= reloc_);
     assert(reloc < (reloc_ + size_));
     return orig_;
   }
 
   virtual Address origToReloc(Address orig) const {
+    Address dummy = orig;
     assert(orig == orig_);
     return reloc_;
   }
@@ -177,12 +181,14 @@ class PaddingTracker : public TrackerElement {
    virtual ~PaddingTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
+    Address dummy = reloc;
     assert(reloc >= reloc_);
     assert(reloc < (reloc_ + size_));
     return orig_;
   }
 
   virtual Address origToReloc(Address orig) const {
+    Address dummy = orig;
     assert(orig == orig_);
     return reloc_;
   }
