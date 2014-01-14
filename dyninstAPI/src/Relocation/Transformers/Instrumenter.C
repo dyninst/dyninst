@@ -342,11 +342,12 @@ bool Instrumenter::handleCondDirExits(RelocBlock *trace, RelocGraph *cfg, instPo
    CFWidget::Ptr jcc = CFWidget::create(retcc);
    jcc->clearIsIndirect(); // Will turn this into a straight conditional branch
    jcc->clearIsCall();
-   jcc->clearIsConditional();
+   assert(jcc->isConditional());
    trace->setCF(jcc);
    
    // And the new relocBlock
    RelocBlock *instRelocBlock = RelocBlock::createInst(exit, retcc->addr(), trace->block(), trace->func());
+   retcc->clearIsConditional();
    instRelocBlock->setCF(retcc);
    cfg->addRelocBlockAfter(trace, instRelocBlock);
    
