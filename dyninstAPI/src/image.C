@@ -362,7 +362,10 @@ void image::findMain()
 #if defined(ppc32_linux) || defined(ppc32_bgp)
     using namespace Dyninst::InstructionAPI;
 
-    if(!desc_.isSharedObject())
+    // Only look for main in executables, but do allow position-independent
+    // executables (PIE) which look like shared objects with an INTERP.
+    // (Some strange DSOs also have INTERP, but this is rare.)
+    if(!desc_.isSharedObject() || linkedFile->getInterpreterName() != NULL)
     {
     	bool foundMain = false;
     	bool foundStart = false;
@@ -445,7 +448,10 @@ void image::findMain()
 || defined(i386_unknown_solaris2_5) \
 || (defined(os_freebsd) \
     && (defined(arch_x86) || defined(arch_x86_64)))
-    if(!desc_.isSharedObject())
+    // Only look for main in executables, but do allow position-independent
+    // executables (PIE) which look like shared objects with an INTERP.
+    // (Some strange DSOs also have INTERP, but this is rare.)
+    if(!desc_.isSharedObject() || linkedFile->getInterpreterName() != NULL)
     {
     	bool foundMain = false;
     	bool foundStart = false;
