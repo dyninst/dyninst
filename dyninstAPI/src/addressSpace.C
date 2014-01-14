@@ -81,10 +81,10 @@ AddressSpace::AddressSpace () :
     trampGuardBase_(NULL),
     up_ptr_(NULL),
     costAddr_(0),
+    installedSpringboards_(new Relocation::InstalledSpringboards()),
     memEmulator_(NULL),
     emulateMem_(false),
     emulatePC_(false),
-    installedSpringboards_(new Relocation::InstalledSpringboards()),
     delayRelocation_(false)
 {
 #if 0
