@@ -46,6 +46,7 @@
 #include "parseAPI/h/InstructionSource.h"
 #include "Relocation/Relocation.h"
 #include "Relocation/CodeTracker.h"
+#include "Relocation/Springboard.h"
 #include "Patching.h"
 
 #include "PatchMgr.h"
@@ -527,7 +528,13 @@ class AddressSpace : public InstructionSource {
     std::map<mapped_object *, FuncSet> modifiedFunctions_;
 
     bool relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address near);
-
+    Dyninst::Relocation::InstalledSpringboards::Ptr installedSpringboards_;
+ public:
+    Dyninst::Relocation::InstalledSpringboards::Ptr getInstalledSpringboards() 
+    {
+      return installedSpringboards_;
+    }
+ protected:
     // defensive mode code
     typedef std::pair<Address, unsigned> DefensivePad;
     std::map<Address, std::map<func_instance*,std::set<DefensivePad> > > forwardDefensiveMap_;

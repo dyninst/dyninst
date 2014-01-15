@@ -163,7 +163,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     const fileDescriptor &getFileDesc() const { return desc_; }
     // Full name, including path
     const string &fullName() const { return fullName_; }
-    const string &fileName() const { return fileName_; }
+    string fileName() const;
     Address codeAbs() const;
     Address codeBase() const { return codeBase_; }
     Address imageOffset() const { return parse_img()->imageOffset(); }

@@ -312,7 +312,7 @@ class Object : public AObject {
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
   stab_entry * get_stab_info() const;
-  const char * getFileName() const { return mf->filename().c_str(); }
+  const char * getFileName() const;
   void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
   void parseFileLineInfo(Symtab *obj, dyn_hash_map<std::string, LineInformation> &li);
   void parseTypeInfo(Symtab *obj);
@@ -619,6 +619,9 @@ class Object : public AObject {
  public:  
   std::set<std::string> prereq_libs;
   std::vector<std::pair<long, long> > new_dynamic_entries;
+ private:
+  const char* soname_;
+  
 };
 
 //const char *pdelf_get_shnames(Elf *elfp, bool is64);

@@ -2252,6 +2252,8 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
     case DT_VERDEFNUM:
       verdefnum = dyns.d_ptr(i);
       break;
+    case DT_SONAME:
+      soname_ = &strs[dyns.d_ptr(i)];
     default:
       break;
     }
@@ -3351,7 +3353,8 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
   dwarf(NULL),
   EEL(false), did_open(false),
   obj_type_(obj_Unknown),
-  DbgSectionMapSorted(false)
+  DbgSectionMapSorted(false),
+  soname_(NULL)
 {
 
 #if defined(TIMED_PARSE)
@@ -3617,6 +3620,7 @@ static signed long read_sleb128(const unsigned char *data, unsigned *bytes_read)
   if (shift < sizeof(int) && (data[*bytes_read] & 0x40))
     result |= -(1 << shift);
   (*bytes_read)++;
+  
   return result;
 }
 
@@ -3729,7 +3733,6 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
 	*value &= ~(0x7l);
       }
     }
-
   return size;
 }
 
@@ -3970,6 +3973,10 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
     table_end += except_off;
 
     while (except_off < table_end && except_off < except_size) {
+      Offset tryStart;
+      Offset tryEnd;
+      Offset catchStart;
+      
       //The entries in the gcc_except_table are the following format:
       //   <type>   region start
       //   <type>   region length
@@ -3977,14 +3984,22 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
       //  uleb128   action
       //The 'region' is the try block, the 'landing pad' is the catch.
       mi.pc = except_scn->sh_addr() + except_off;
+      tryStart = except_off;
+      //cerr << "Reading tryStart at " <<  except_off;
+      
       except_off += read_val_of_type(table_format, &region_start, 
 				     datap + except_off, mi);
       mi.pc = except_scn->sh_addr() + except_off;
+      tryEnd = except_off;
+      //cerr << "Reading tryEnd at " << except_off;
       except_off += read_val_of_type(table_format, &region_size, 
 				     datap + except_off, mi);
       mi.pc = except_scn->sh_addr() + except_off;
+      catchStart = except_off;
+      //cerr << "Reading catchStart at " <<  except_off;
       except_off += read_val_of_type(table_format, &catch_block, 
 				     datap + except_off, mi);
+      //cerr << "Reading action (uleb128) at " << except_off;
       except_off += read_val_of_type(DW_EH_PE_uleb128, &action, 
 				     datap + except_off, mi);
 
@@ -3992,6 +4007,10 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
 	continue;
       ExceptionBlock eb(region_start + low_pc, (unsigned) region_size, 
 			catch_block + low_pc);
+      eb.setTryStart(tryStart);
+      eb.setTryEnd(tryEnd);
+      eb.setCatchStart(catchStart);
+      
       addresses.push_back(eb);
     }
   }
@@ -4023,6 +4042,7 @@ static bool read_except_table_gcc2(Elf_X_Shdr *except_table,
 
   unsigned i = 0;
   while (i < except_size) {
+    ExceptionBlock eb;
     if (mi.word_size == 4) {
       i += read_val_of_type(DW_EH_PE_udata4, &try_start, datap + i, mi);
       i += read_val_of_type(DW_EH_PE_udata4, &try_end, datap + i, mi);
@@ -5555,4 +5575,13 @@ void Object::getSegmentsSymReader(vector<SymSegment> &segs) {
 
       segs.push_back(seg);
    }
+}
+
+const char* Object::getFileName() const
+{
+  if(soname_) {
+    return soname_;
+  }
+  
+  return mf->filename().c_str();
 }

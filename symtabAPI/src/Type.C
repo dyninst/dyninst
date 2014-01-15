@@ -911,6 +911,7 @@ void typeStruct::updateSize()
 void typeStruct::postFieldInsert(int nsize) 
 {
   //	size_ += nsize; 
+  (void)nsize; // unused
 }
 
 bool typeStruct::isCompatible(Type *otype) 

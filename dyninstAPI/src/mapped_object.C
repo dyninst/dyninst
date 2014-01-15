@@ -2201,3 +2201,8 @@ void mapped_object::replacePLTStub(SymtabAPI::Symbol *sym, func_instance *orig, 
       }
    }
 }
+
+string mapped_object::fileName() const { 
+  return parse_img()->getObject()->name();
+  
+}

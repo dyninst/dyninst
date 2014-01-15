@@ -462,7 +462,21 @@ void emitElf64::renameSection(const std::string &oldStr, const std::string &newS
   }
 }
 
-bool emitElf64::driver(Symtab *obj, string fName){
+bool emitElf64::driver(Symtab *obj, string fName)
+{
+  std::vector<ExceptionBlock*> exceptions;
+  obj->getAllExceptions(exceptions);
+  //  cerr << "Dumping exception info: " << endl;
+  
+  for(auto eb = exceptions.begin();
+      eb != exceptions.end();
+      ++eb)
+  {
+    //cerr << **eb << endl;
+  }
+  
+
+
   int newfd;
   Region *foundSec = NULL;
   unsigned pgSize = getpagesize();

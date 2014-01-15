@@ -3121,7 +3121,7 @@ SYMTAB_EXPORT std::string Symtab::file() const
 
 SYMTAB_EXPORT std::string Symtab::name() const 
 {
-   return mf->filename();
+  return obj_private->getFileName();
 }
 
 SYMTAB_EXPORT std::string Symtab::memberName() const 
@@ -3341,7 +3341,12 @@ SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(Offset tStart,
 SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(const ExceptionBlock &eb) :
    Serializable(),
    tryStart_(eb.tryStart_), trySize_(eb.trySize_), 
-   catchStart_(eb.catchStart_), hasTry_(eb.hasTry_) 
+   catchStart_(eb.catchStart_), hasTry_(eb.hasTry_),
+   tryStart_ptr(eb.tryStart_ptr),
+   tryEnd_ptr(eb.tryEnd_ptr),
+   catchStart_ptr(eb.catchStart_ptr),
+   fdeStart_ptr(eb.fdeStart_ptr),
+   fdeEnd_ptr(eb.fdeEnd_ptr)
 {
 }
 SYMTAB_EXPORT bool ExceptionBlock::hasTry() const
