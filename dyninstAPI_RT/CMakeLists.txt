@@ -105,8 +105,9 @@ endif()
 add_library (dyninstAPI_RT_static STATIC ${SRC_LIST})
 
 # this should carry over from CMakeLists.txt
-set_target_properties (dyninstAPI_RT dyninstAPI_RT_static
+set_target_properties (dyninstAPI_RT
                       PROPERTIES
+		      OUTPUT_NAME dyninstAPI_RT
                       SOVERSION ${SOVERSION}
                       VERSION ${LIBVERSION})
 
@@ -115,6 +116,10 @@ set_target_properties (dyninstAPI_RT_static
                       PROPERTIES
                       OUTPUT_NAME dyninstAPI_RT
 		      COMPILE_DEFINITIONS DYNINST_RT_STATIC_LIB)
+
+set_target_properties (dyninstAPI_RT PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+set_target_properties (dyninstAPI_RT_static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+
 
 message(STATUS "dyninstAPI RT library SOVERSION: ${SOVERSION}")
 message(STATUS "dyninstAPI RT library LIBVERSION: ${LIBVERSION}")
@@ -184,10 +189,11 @@ add_library (dyninstAPI_RT_m32 SHARED ${SRC_LIST_mabi})
 target_link_libraries (dyninstAPI_RT_m32 ${CMAKE_DL_LIBS})
 add_library (dyninstAPI_RT_m32_static STATIC ${SRC_LIST_mabi})
 
-set_target_properties (dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
+set_target_properties (dyninstAPI_RT_m32
                       PROPERTIES
                       COMPILE_FLAGS "-DMUTATEE_32 -m32"
                       LINK_FLAGS "-m32"
+		      OUTPUT_NAME dyninstAPI_RT_m32
                       SOVERSION ${SOVERSION}
                       VERSION ${LIBVERSION})
 
@@ -197,8 +203,9 @@ set_target_properties (dyninstAPI_RT_m32_static
                       COMPILE_FLAGS "-DMUTATEE_32 -m32"
                       LINK_FLAGS "-m32"
 		      COMPILE_DEFINITIONS DYNINST_RT_STATIC_LIB)
-#                      SOVERSION ${SOVERSION}
-#                      VERSION ${LIBVERSION})
+
+set_target_properties (dyninstAPI_RT_m32 PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+set_target_properties (dyninstAPI_RT_m32_static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 
 INSTALL (TARGETS dyninstAPI_RT_m32 dyninstAPI_RT_m32_static
         EXPORT DyninstTargets

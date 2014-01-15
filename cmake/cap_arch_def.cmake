@@ -152,3 +152,5 @@ endforeach()
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${UNIFIED_DEF_STRING}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${UNIFIED_DEF_STRING}")
 
+message(STATUS "Set arch and platform based definitions")
+
