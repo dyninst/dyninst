@@ -701,7 +701,7 @@ int linux_process::computeAddrWidth(Dyninst::Architecture me)
 
    // We want to check the highest 4 bytes of each integer
    // On big-endian systems, these come first in memory
-   int start_index;
+   int start_index = 0;
    switch (me) {
       case Arch_x86:
       case Arch_x86_64:
@@ -714,6 +714,7 @@ int linux_process::computeAddrWidth(Dyninst::Architecture me)
       case Arch_none:
       default:
          assert(0);
+	 return 0;
    }
 
    for (long int i=start_index; i<words_read; i+= 4)
@@ -1125,6 +1126,7 @@ bool linux_process::plat_needsAsyncIO() const
       fake_async_thread = new DThread();
       bool result = fake_async_thread->spawn(linux_thread::fake_async_main, NULL);
       assert(result);
+      if(!result) return false;
    }
    return true;
 }
@@ -2033,12 +2035,14 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
    // for a new platform.
    assert(sentinel1 == 0xfeedface);
    assert(sentinel2 == 0xfeedface);
+   if(sentinel1 != 0xfeedface || sentinel2 != 0xfeedface) return false;
+   
 
    regpool.regs.clear();
    for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++)
    {
       const MachRegister reg = i->first;
-      MachRegisterVal val;
+      MachRegisterVal val = 0;
       if (reg.getArchitecture() != curplat)
          continue;
       const unsigned int offset = i->second.first;
@@ -2094,6 +2098,8 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    const unsigned offset = i->second.first;
    const unsigned size = i->second.second;
    assert(sizeof(val) >= size);
+   if(sizeof(val) < size) return false;
+   
    val = 0;
    unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
    if (errno != 0) {
@@ -2235,6 +2241,7 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
                break;
             default:
                assert(0);
+	       return false;
          }
 
          if (!is_gpr) {
@@ -2316,6 +2323,8 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    }
    else {
       assert(0);
+      return false;
+      
    }
    result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) (uintptr_t)offset, (void *) value);
    pthrd_printf("Set register %s (size %u, offset %u) to value %lx\n", reg.name().c_str(), size, offset, val);
@@ -2600,9 +2609,12 @@ bool ArchEventLinux::findPairedEvent(ArchEventLinux* &parent, ArchEventLinux* &c
       //'this' event  is a child, search list for a parent
       is_parent = false;
    }
-   else
+   else 
+   {
       assert(0);
-
+      return false;
+   }
+   
    vector<ArchEventLinux *>::iterator i;
    for (i = pending_events.begin(); i != pending_events.end(); i++) {
       parent = is_parent ? this : *i;

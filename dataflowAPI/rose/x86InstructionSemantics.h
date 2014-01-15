@@ -88,7 +88,8 @@ struct X86InstructionSemantics {
     template<size_t N>
     void stos_semantics(SgAsmx86Instruction *insn) {
         const SgAsmExpressionPtrList& operands = insn->get_operandList()->get_operands();
-        ROSE_ASSERT(operands.size() == 0);
+	ROSE_ASSERT(operands.size() == 0);
+        if(operands.size()) return;
         ROSE_ASSERT(insn->get_addressSize() == x86_insnsize_32);
 
         /* Fill memory pointed to by ES:[DI] with contents of AX. */

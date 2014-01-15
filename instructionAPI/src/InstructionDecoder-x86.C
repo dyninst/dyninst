@@ -541,13 +541,11 @@ namespace Dyninst
                 return IntelRegTable64[bank][index];
             else if(arch == Arch_x86) 
 	    {
-	      assert(bank <= b_fpstack);
+	      if(bank > b_fpstack) return InvalidReg;
 	      return IntelRegTable32[bank][index];
 	    }
-	    
-            else
-                assert(0);
-            return IntelRegTable32[bank][index];
+	    assert(0);
+	    return InvalidReg;
         }
 
   };

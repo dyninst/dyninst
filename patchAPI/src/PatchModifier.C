@@ -74,8 +74,11 @@ bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
    }
 
    assert(src->consistency());
-   assert(oldTrg->start() == numeric_limits<Address>::max() || // don't check sink block's consistency
-          oldTrg->consistency());
+   if(oldTrg) {
+     assert(oldTrg->start() == numeric_limits<Address>::max() || // don't check sink block's consistency
+	    oldTrg->consistency());
+   }
+   
    if (target) { // otherwise we're redirecting to a sink edge and deleted
                  // the edge if there already was another one of the same type
       assert(edge->consistency());
@@ -212,12 +215,13 @@ bool PatchModifier::remove(vector<PatchBlock *> &blocks, bool force)
 
 bool PatchModifier::remove(PatchFunction *func)
 {
-    PatchObject *obj = func->obj();
-    bool success = ParseAPI::CFGModifier::remove(func->function());
+  //    PatchObject *obj = func->obj();
+  //bool success = 
+       return ParseAPI::CFGModifier::remove(func->function());
 
     // DEBUG
-    if (success) {
-        assert(obj);
-    }
-    return success;
+    //if (success) {
+    //    assert(obj);
+    //}
+    //return success;
 }

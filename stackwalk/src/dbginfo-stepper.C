@@ -437,6 +437,7 @@ bool DebugStepperImpl::lookupInCache(const Frame &cur, Frame &caller) {
 #endif 
    else {
        assert(0 && "Unknown architecture word size");
+       return false;
    }
 
   location_t RA;

@@ -137,6 +137,7 @@ bool DwarfHandle::init_dbg()
          break;
       default:
          assert(0 && "Unsupported archiecture in ELF file.");
+	 return false;
    }
    sw = Dwarf::DwarfFrameParser::create(*frame_data, arch);
 

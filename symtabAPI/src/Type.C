@@ -908,7 +908,7 @@ void typeStruct::updateSize()
    updatingSize = false;
 }
 
-void typeStruct::postFieldInsert(int nsize) 
+void typeStruct::postFieldInsert(int) 
 {
   //	size_ += nsize; 
   (void)nsize; // unused

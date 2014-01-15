@@ -53,7 +53,10 @@ public:
    ProcessReaderPtrace(int pid_);
    virtual bool start();
    virtual bool ReadMem(Address inTraced, void *inSelf, unsigned amount);
-   virtual bool GetReg(MachRegister /*reg*/, MachRegisterVal &/*val*/) { assert(0); }
+   virtual bool GetReg(MachRegister /*reg*/, MachRegisterVal &/*val*/) { 
+     assert(0); 
+     return false;
+   }
    virtual bool done();
 
    virtual ~ProcessReaderPtrace();
