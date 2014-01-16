@@ -46,11 +46,6 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
-#if defined(os_aix)
-  extern void resetBRL(AddressSpace *p, Address loc, unsigned val); //inst-power.C
-  extern void resetBR(AddressSpace *p, Address loc);               //inst-power.C
-#endif
-
 // Normal constructor
 baseTramp::baseTramp() :
    point_(NULL),

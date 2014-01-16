@@ -6,5 +6,4 @@ ppc32_bgp/
 ppc32_linux/
 ppc32-unknown-vxworks6.x/
 ppc64_linux/
-rs6000-ibm-aix5.1/
 x86_64-unknown-linux2.4/

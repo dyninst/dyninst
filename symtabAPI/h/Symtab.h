@@ -361,9 +361,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool deleteSymbol(Symbol *sym); 
 
    Symbol *getSymbolByIndex(unsigned);
-   protected:
-   Symtab(std::string filename, std::string member_name, Offset offset, bool &err, void *base = NULL);
-   Symtab(char *img, size_t size, std::string member_name, Offset offset, bool &err, void *base = NULL);
 
    /***** Private Member Functions *****/
    private:

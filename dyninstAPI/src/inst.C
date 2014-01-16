@@ -85,11 +85,7 @@ unsigned generateAndWriteBranch(AddressSpace *proc,
 
     codeGen gen(fillSize);
 
-#if defined(os_aix)
-    insnCodeGen::generateInterFunctionBranch(gen, fromAddr, newAddr);
-#else
     insnCodeGen::generateBranch(gen, fromAddr, newAddr);
-#endif
     gen.fillRemaining(codeGen::cgNOP);
     
     proc->writeTextSpace((void*)(fromAddr), gen.used(), gen.start_ptr());

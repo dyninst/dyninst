@@ -57,7 +57,7 @@
 #include "common/src/List.h"
 #include "common/src/Types.h"
 
-#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)||defined(os_freebsd)
+#if defined(os_linux)||defined(os_freebsd)
 #include "symtabAPI/h/Archive.h"
 #endif
 
@@ -217,7 +217,6 @@ private:
      HANDLE fileHandle_;
 #endif
      string file_;
-     // AIX: two strings define an object.
      string member_;
      Address code_;
      Address data_;
@@ -492,7 +491,7 @@ class image : public codeRange {
 
    // data from the symbol table 
    SymtabAPI::Symtab *linkedFile;
-#if defined (os_aix) || defined(os_linux) || defined(os_freebsd)
+#if defined(os_linux) || defined(os_freebsd)
    SymtabAPI::Archive *archive;
 #endif
 

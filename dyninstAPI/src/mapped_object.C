@@ -974,10 +974,7 @@ void mapped_object::getInferiorHeaps(vector<pair<string, Address> > &foundHeaps)
     vector<pair<string, Address> > data_heaps;
 
     if (!parse_img()->getInferiorHeaps(code_heaps, data_heaps)) {
-#if !defined(os_aix)
-        // AIX: see auxiliary lookup, below.
         return;
-#endif
     }
 
 
@@ -990,78 +987,6 @@ void mapped_object::getInferiorHeaps(vector<pair<string, Address> > &foundHeaps)
         foundHeaps.push_back(pair<string,Address>(data_heaps[i].first,
                                                   data_heaps[i].second + dataBase()));
     }
-
-    // AIX: we scavenge space. Do that here.
-
-#if defined(os_aix)
-    // ...
-
-    // a.out: from the end of the loader to 0x20000000
-    // Anything in 0x2....: skip
-    // Anything in 0xd....: to the next page
-
-    Address start = 0;
-    unsigned size = 0;
-
-#if 0
-    fprintf(stderr, "Looking for inferior heap in %s/%s, codeAbs 0x%x (0x%x/0x%x)\n",
-            getFileDesc().file().c_str(),
-            getFileDesc().member().c_str(),
-            codeAbs(),
-            codeBase(),
-            codeOffset());
-#endif
-
-    if (codeAbs() >= 0xd0000000) {
-        // This caused problems on sp3-01.cs.wisc.edu; apparently we were overwriting
-        // necessary library information. For now I'm disabling it (10FEB06) until
-        // we can get a better idea of what was going on.
-#if 0
-        start = codeAbs() + imageSize();
-        start += instruction::size() - (start % (Address)instruction::size());
-        size = PAGESIZE - (start % PAGESIZE);
-#endif
-    }
-    else if (codeAbs() > 0x20000000) {
-        // ...
-    }
-    else if (codeAbs() > 0x10000000) {
-        // We also have the loader; there is no information on where
-        // it goes (ARGH) so we pad the end of the code segment to
-        // try and avoid it.
-
-        SymtabAPI::Region *sec;
-        image_->getObject()->findRegion(sec, ".loader");
-        Address loader_end = codeAbs() +
-            //sec.getSecAddr() +
-            image_->getObject()->getLoadOffset() +
-            sec->getDiskSize();
-        //Address loader_end = codeAbs() +
-        //    image_->getObject()->loader_off() +
-        //    image_->getObject()->loader_len();
-        // If we loaded it up in the data segment, don't use...
-        if (loader_end > 0x20000000)
-            loader_end = 0;
-        Address code_end = codeAbs() + imageSize();
-
-        start = (loader_end > code_end) ? loader_end : code_end;
-
-        start += instruction::size() - (start % (Address)instruction::size());
-        size = (0x20000000 - start);
-    }
-
-
-    if (start) {
-        char name_scratch[1024];
-        snprintf(name_scratch, 1023,
-                 "DYNINSTstaticHeap_%i_uncopiedHeap_0x%lx_scratchpage_%s",
-                 (unsigned) size,
-                 start,
-                 fileName().c_str());
-
-        foundHeaps.push_back(pair<string,Address>(string(name_scratch),start));
-    }
-#endif
 }
 
 

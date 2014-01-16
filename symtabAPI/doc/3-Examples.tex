@@ -130,24 +130,4 @@ obj->findSymbolByType(syms, "bar", Symbol::ST_FUNCTION);
 vector<localVar *> *vars = syms[0]->findLocalVarible("foo");
 \end{lstlisting}
 
-Parsing an XCOFF object file is different than the rest of the file formats as the XCOFF format also allows archives to contain dynamic libraries. The following examples shows how to open an XCOFF archive using SymtabAPI on AIX.
-
-\begin{lstlisting}
-//Name the object file to be parsed
-std::string file = "libfoo.a"
-
-// Declare a pointer to an object of type Archive. This represents the archive.
-Archive *archive = NULL;
-
-// Declare an pointer to an object of type Symtab. This represents the object.
-Symtab *obj = NULL;
-
-// Try to parse the archive file; error handling omitted for simplicity
-Archive::openArchive(file, archive);
-
-// Get the Symtab object for the desired object
-archive->getMember("bar.o", obj);
-// Obj now contains a handle to the desired binary object "bar.o"
-\end{lstlisting}
-
 The rest of this document describes the class hierarchy and the API in detail.

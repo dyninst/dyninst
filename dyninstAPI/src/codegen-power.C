@@ -182,22 +182,10 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     bool mustRestore = false;
     
     if (scratch == REG_NULL) { 
-        // On AIX we use an open slot in the stack frame. 
         // On Linux we save under the stack and hope it doesn't
         // cause problems.
-#if !defined(os_aix)
         fprintf(stderr, " %s[%d] No registers generateBranchViaTrap \n", FILE__, __LINE__);
         return generateBranchViaTrap(gen, from, to, isCall);
-#endif
-        
-        // 32-bit: we can use the word at +16 from the stack pointer
-        if (gen.addrSpace()->getAddressWidth() == 4)
-            insnCodeGen::generateImm(gen, STop, 0, 1, 4*4);
-        else /* gen.addrSpace()->getAddressWidth() == 8 */
-            insnCodeGen::generateMemAccess64(gen, STDop, STDxop, 0, 1, 4*8);
-
-        mustRestore = true;
-        scratch = 0;
     }
     
     // Load the destination into our scratch register
@@ -723,14 +711,6 @@ bool insnCodeGen::generate(codeGen &gen,
 	  newOffset = targetAddr - relocAddr;
           to = targetAddr;
         }
-
-#if defined(os_aix)
-	// I don't understand why this is here, so we'll allow relocation
-	// for Linux since it's a new port.
-    } else if (IFORM_OP(insn) == SVCop) {
-        logLine("attempt to relocate a system call\n");
-        assert(0);
-#endif
     }
     else {
 #if defined(os_vxworks)

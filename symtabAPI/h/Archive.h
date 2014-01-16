@@ -114,7 +114,6 @@ class SYMTAB_EXPORT Archive : public AnnotatableSparse {
 
       //architecture specific data - 
       //For ELF the elf pointer for the archive
-      //NONE as of now for xcoff
       void *basePtr;
 
       dyn_hash_map<string, ArchiveMember *> membersByName;

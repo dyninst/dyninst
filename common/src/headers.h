@@ -61,9 +61,6 @@ typedef int (*xdr_wr_func)(void *, char *, int);
 #elif defined(os_bg_compute)
 #include "common/src/bg_compute_headers.h"
 
-#elif defined(os_aix)
-#include "common/src/aixv41Headers.h"
-
 #elif defined(os_windows)
 #include "common/src/ntHeaders.h"
 

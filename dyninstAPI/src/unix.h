@@ -79,11 +79,7 @@ typedef int procWaitpidStatus_t;
 class EventRecord;
 bool decodeWaitPidStatus(procWaitpidStatus_t status, EventRecord &ev);
 
-#if defined (os_aix) && defined(cap_proc)
-extern int SYSSET_MAP(int, int);
-#else
 #define SYSSET_MAP(x, pid)  (x)
-#endif
 
 typedef unsigned long eventInfo_t;
 typedef void * eventMoreInfo_t;

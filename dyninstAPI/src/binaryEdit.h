@@ -117,7 +117,7 @@ class BinaryEdit : public AddressSpace {
     // We are unable to determine this if the daemon hasn't yet figured out
     // what libraries are linked against the application.  Currently, we
     // identify an application as being multi-threaded if it is linked against
-    // a thread library (eg. libpthreads.a on AIX).  There are cases where we
+    // a thread library (eg. libpthreads.so on Linux).  There are cases where we
     // are querying whether the app is multi-threaded, but it can't be
     // determined yet but it also isn't necessary to know.
     bool multithread_capable(bool ignore_if_mt_not_set = false);
