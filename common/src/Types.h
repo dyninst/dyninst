@@ -53,14 +53,12 @@
 /*
    --- inttypes.h ---
              int32_t  uint32_t  int64_t uint64_t 32B lmts 64Blmts 64BlitMacros#
-Sol5.6       yes      yes       yes     yes      yes      no*     yes   
-Sol5.7       yes      yes       yes     yes      yes      no*     yes   
 Linux        yes      yes       yes     yes      yes      yes     yes
 Aix4.2       nonexistant
 Aix4.3       yes      yes       yes     yes      yes      no*     yes
 WindowsNT    nonexistant
 
-  * the 64bit limits on solaris and aix are defined, but they are not defined
+  * the 64bit limits on aix are defined, but they are not defined
     properly to include the numeric literal postfix (eg. LL), so we need to
     explicitly define these
   # we rename all of the 64 bit literal macros to our shortened name
@@ -167,7 +165,7 @@ typedef int64_t off64_t;
 #elif defined(os_bg)
 #define I64_C(x) (x##ll)
 #define U64_C(x) (x##ull)
-#else                               /* linux, solaris, aix4.3 --------- */
+#else                               /* linux, aix4.3 ------------------ */
 #define I64_C(x)  INT64_C(x)
 #define UI64_C(x) UINT64_C(x)
 #endif
@@ -179,7 +177,7 @@ typedef int64_t off64_t;
 #define INT32_MIN  (-2147483647-1)
 #endif
 
-                                   /* solaris, aix4.{23} ------------- */
+                                   /* aix4.{23} ---------------------- */
 #if defined(os_aix)
 /* see note (*) above */
 #define I32_MAX    INT32_MAX
@@ -187,7 +185,7 @@ typedef int64_t off64_t;
 #define I32_MIN    INT32_MIN
 #define I64_MAX    I64_C(9223372036854775807)
 #define UI64_MAX   UI64_C(18446744073709551615)
-/* The GNU compilers on solaris and aix have what seems like a bug where a
+/* The GNU compilers on aix have what seems like a bug where a
    warning is printed when the ...808 int64 minimum is used, so we'll get the
    value with some trickery */
 #define I64_MIN    (-I64_MAX-1)

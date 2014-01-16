@@ -1,7 +1,7 @@
 
 This is the version 8.0 release of the Dyninst API.  Currently, the API
-library is available for the Sparc/Solaris, POWER/AIX, x86/Linux,
-x86/Windows XP/2000/2003, ia64/Linux, and x86_64/Linux platforms.
+library is available for the POWER/AIX, x86/Linux, x86/Windows XP/2000/2003,
+ia64/Linux, and x86_64/Linux platforms.
 
 Documentation for the API can be found at:
 
@@ -24,7 +24,6 @@ running on:
     i386-unknown-nt4.0		Windows XP/2000/2003 on an Intel x86 processor
     ia64-unknown-linux2.4	Linux 2.4/2.6 on an IA-64 processor
     rs6000-ibm-aix5.1		AIX Version 5.1
-    sparc-sun-solaris2.9	Solaris 2.9 on a SPARC processor
     x86_64-unknown-linux2.4     Linux 2.4/2.6 on an AMD-64 processor
 
 DYNINST_ROOT should be set to the pathname of the top of the library

@@ -442,7 +442,6 @@ void image::findMain()
     }
 #elif defined(i386_unknown_linux2_0) \
 || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
-|| defined(i386_unknown_solaris2_5) \
 || (defined(os_freebsd) \
     && (defined(arch_x86) || defined(arch_x86_64)))
     if(!desc_.isSharedObject())

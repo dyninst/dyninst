@@ -19,7 +19,7 @@ static AddressLookup *createAddressLookup(ProcessReader *reader = NULL)
 \end{apient}
 \apidesc{
 This factory constructor creates a new \code{AddressLookup} object associated with the process that called this function. The returned \code{AddressLookup} object should be cleaned with the delete operator when it is no longer needed.
-If the reader parameter is non-NULL on Linux or Solaris then the new \code{AddressLookup} object will use reader to read from the target process.
+If the reader parameter is non-NULL on Linux then the new \code{AddressLookup} object will use reader to read from the target process.
 This function returns the new \code{AddressLookup} object on success and \code{NULL} on error.
 }
 
@@ -28,7 +28,7 @@ static AddressLookup *createAddressLookup(PID pid,
                                           ProcessReader *reader = NULL)
 \end{apient}
 \apidesc{
-This factory constructor creates a new \code{AddressLookup} object associated with the process referred to by \code{pid}. The returned \code{AddressLookup} object should be cleaned with the delete operator when it is no longer needed. If the \code{reader} parameter is non-NULL on Linux or Solaris then the new \code{AddressLookup} object will use it to read from the target process. This function returns the new \code{AddressLookup} object on success and \code{NULL} on error.
+This factory constructor creates a new \code{AddressLookup} object associated with the process referred to by \code{pid}. The returned \code{AddressLookup} object should be cleaned with the delete operator when it is no longer needed. If the \code{reader} parameter is non-NULL on Linux then the new \code{AddressLookup} object will use it to read from the target process. This function returns the new \code{AddressLookup} object on success and \code{NULL} on error.
 }
 
 \begin{apient}
@@ -146,10 +146,10 @@ This function returns \code{true} on success and \code{false} otherwise.}
 \subsection{Class ProcessReader}
 \label{subsec:ProcessReader}
 
-The implementation of the \code{AddressLookup} on Linux and Solaris requires it to be able to read from the target process's address space. By default, reading from another process on the same system this is done through the operating system debugger interface. A user can provide their own process reading mechanism by implementing a child of the \code{ProcessReader} class and passing it to the \code{AddressLookup} constructors. 
+The implementation of the \code{AddressLookup} on Linux requires it to be able to read from the target process's address space. By default, reading from another process on the same system this is done through the operating system debugger interface. A user can provide their own process reading mechanism by implementing a child of the \code{ProcessReader} class and passing it to the \code{AddressLookup} constructors. 
 The API described in this section is an interface that a user can implement. With the exception of the \code{ProcessReader} constructor, these functions should not be called by user code.
 
-The \code{ProcessReader} is defined, but not used, on non-Linux and Solaris systems.
+The \code{ProcessReader} is defined, but not used, on non-Linux systems.
 
 \begin{apient}
 ProcessReader()

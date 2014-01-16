@@ -189,7 +189,6 @@ void DYNINSTBaseInit()
  * libdyninstAPI_RT_init is called by one of the following methods:
  *    GCC: link with gcc -shared, and use __attribute__((constructor));
  *    AIX: ld with -binitfini:libdyninstAPI_RT_init
- *    Solaris: ld with -z initarray=libdyninstAPI_RT_init
  *    Linux: ld with -init libdyninstAPI_RT_init
  *           gcc with -Wl,-init -Wl,...
  *    Windows: called from DllMain, which exists in lieu of libdyninstAPI_RT_init

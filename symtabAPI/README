@@ -1,7 +1,7 @@
         *** Symtab 8.0 Release Notes ***
 
 This is the version 8.0 release of the SymtabAPI.  Currently, the API
-library is available for ELF platforms (Linux, Solaris, BlueGene), ECOFF (AIX)
+library is available for ELF platforms (Linux, BlueGene), ECOFF (AIX)
 and PE platforms (Windows).
 
 Documentation for the Symtab API can be found at:

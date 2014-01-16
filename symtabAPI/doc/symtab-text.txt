@@ -1176,16 +1176,16 @@ vector<VariableLocation> *getLocationLists()
 7.1 Class AddressLookup
 	The AddressLookup class provides a mapping interface for determining the address in a process where a SymtabAPI object is loaded. A single dynamic library may load at different addresses in different processes. The ‘address’ fields in a dynamic libraries’ symbol tables will contain offsets rather than absolute addresses. These offsets can be added to the libraries’ load address, which is computed at runtime, to determine the absolute address where a symbol is loaded. 
 	The AddressLookup class examines a process and finds its dynamic libraries and executables and each one’s load address. This information can be used to map between SymtabAPI objects and absolute addresses. Each AddressLookup instance is associated with one process. An AddressLookup object can be created to work with the currently running process or a different process on the same system.
-	On the Linux and Solaris platforms the AddressLookup class needs to read from the process’ address space to determine its shared objects and load addresses. By default, AddressLookup will attach to another process using a debugger interface to read the necessary information, or simply use memcpy if reading from the current process. The default behavior can be changed by implementing a new ProcessReader class and passing an instance of it to the createAddressLookup factor constructors. The ProcessReader class is discussed in more detail in Section 7.1.1.
+	On the Linux platforms the AddressLookup class needs to read from the process’ address space to determine its shared objects and load addresses. By default, AddressLookup will attach to another process using a debugger interface to read the necessary information, or simply use memcpy if reading from the current process. The default behavior can be changed by implementing a new ProcessReader class and passing an instance of it to the createAddressLookup factor constructors. The ProcessReader class is discussed in more detail in Section 7.1.1.
 	When an AddressLookup object is created for a running process it takes a snapshot of the process’ currently loaded libraries and their load addresses. This snapshot is used to answer queries into the AddressLookup object, and is not automatically updated when the process loads or unloads libraries. The refresh function can be used to updated an AddressLookup object’s view of its process.
 static AddressLookup *createAddressLookup(ProcessReader *reader = NULL)
 	This factory constructor creates a new AddressLookup object associated with the process that called this function. The returned AddressLookup object should be cleaned with the delete operator when it is no longer needed.
-	If the reader parameter is non-NULL on Linux or Solaris then the new AddressLookup object will use reader to read from the target process.
+	If the reader parameter is non-NULL on Linux then the new AddressLookup object will use reader to read from the target process.
 	This function returns the new AddressLookup object on success and NULL on error.
 static AddressLookup *createAddressLookup(PID pid, 
 							ProcessReader *reader = NULL)
 	This factory constructor creates a new AddressLookup object associated with the process referred to by pid. The returned AddressLookup object should be cleaned with the delete operator when it is no longer needed.
-	If the reader parameter is non-NULL on Linux or Solaris then the new AddressLookup object will use reader to read from the target process.
+	If the reader parameter is non-NULL on Linux then the new AddressLookup object will use reader to read from the target process.
 	This function returns the new AddressLookup object on success and NULL on error.
 typedef struct {
 	std::string name;
@@ -1226,9 +1226,9 @@ bool getDataLoadAddress(Symtab *sym, Address &load_addr)
 	This function returns true on success and false otherwise.
 	
 7.1.1 Class ProcessReader
-	The implementation of the AddressLookup on Linux and Solaris requires it to be able to read from the target process’ address space. By default, reading from another process on the same system this is done through the OS’s debugger interface. A user can provide their own process reading mechanism by implementing a child of the ProcessReader class and passing it to the AddressLookup constructors. 
+	The implementation of the AddressLookup on Linux requires it to be able to read from the target process’ address space. By default, reading from another process on the same system this is done through the OS’s debugger interface. A user can provide their own process reading mechanism by implementing a child of the ProcessReader class and passing it to the AddressLookup constructors. 
 	The API described in this section is an interface that a user can implement. With the exception of the ProcessReader constructor, these functions should not be called by user code.
-	The ProcessReader is defined, but not used, on non-Linux and Solaris systems.
+	The ProcessReader is defined, but not used, on non-Linux systems.
 PID pid
 	The pid member variable of ProcessReader refers to the PID of the process being read from.
 ProcessReader(PID pid_)
@@ -1258,7 +1258,6 @@ Appendix A: Building SymtabAPI
 	Linux/x86-64										libdwarf-20060327 
 											libelf
 											libxml2
-	Solaris/Sparc										libxml2
 	AIX/Power										libxml2
 	Windows/x86										libxml2
 	
@@ -1273,7 +1272,6 @@ Appendix A: Building SymtabAPI
 	i386-unknown-linux2.4										Linux 2.4/2.6 on an Intel x86 processor
 	ia64-unknown-linux2.4										Linux 2.4/2.6 on an IA-64 processor
 	rs6000-ibm-aix5.1										AIX Version 5.1
-	sparc-sun-solaris2.9										Solaris 2.9 on a SPARC processor
 	x86_64-unknown-linux2.4										Linux 2.4/2.6 on an AMD-64 processor
 	
 	LD_LIBRARY_PATH variable should be set in a way that it includes libdwarf home directory/lib and ${DYNINST_ROOT}/${PLATFORM}/lib directories.

@@ -116,8 +116,7 @@ bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
         return false;
     }
 
-    if(    findObject("libthread.so*", true) // Solaris
-        || findObject("libpthreads.*", true) // AIX
+    if(    findObject("libpthreads.*", true) // AIX
         || findObject("libpthread.so*", true) // Linux
         || findObject("libpthread-*.so", true) // Linux
         || findObject("libthr.*", true) ) // FreeBSD

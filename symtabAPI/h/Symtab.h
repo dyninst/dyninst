@@ -693,9 +693,6 @@ class SYMTAB_EXPORT ExceptionBlock : public Serializable, public AnnotatableSpar
 };
 
 // relocation information for calls to functions not in this image
-// on sparc-solaris: target_addr_ = rel_addr_ = PLT entry addr
-// on x86-solaris: target_addr_ = PLT entry addr
-//		   rel_addr_ =  GOT entry addr  corr. to PLT_entry
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
 
 class SYMTAB_EXPORT relocationEntry : public Serializable, public AnnotatableSparse {
