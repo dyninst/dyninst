@@ -40,9 +40,6 @@
  * This should enforce the abstract OS operations
  */ 
 
-//  JAW: 1-09-07 removed switches for platforms:
-//  hppa1_1_hp_hpux
-
 #if defined(i386_unknown_nt4_0) 
 #include "dyninstAPI/src/pdwinnt.h"
 
