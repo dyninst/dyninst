@@ -54,6 +54,7 @@
    --- inttypes.h ---
              int32_t  uint32_t  int64_t uint64_t 32B lmts 64Blmts 64BlitMacros#
 Linux        yes      yes       yes     yes      yes      yes     yes
+FreeBSD      yes      yes       yes     yes      yes      yes     yes
 WindowsNT    nonexistant
 
   # we rename all of the 64 bit literal macros to our shortened name
@@ -135,7 +136,7 @@ typedef int64_t off64_t;
 #elif defined(os_bg)
 #define I64_C(x) (x##ll)
 #define U64_C(x) (x##ull)
-#else                               /* linux -------------------------- */
+#else                               /* linux, freebsd ----------------- */
 #define I64_C(x)  INT64_C(x)
 #define UI64_C(x) UINT64_C(x)
 #endif
@@ -150,7 +151,7 @@ typedef int64_t off64_t;
 #define I32_MAX  _I32_MAX
 #define I32_MIN  _I32_MIN
 #define UI32_MAX  _UI32_MAX
-#else                              /* linux -------------------------- */
+#else                              /* linux, freebsd ----------------- */
 #define I64_MAX  INT64_MAX
 #define UI64_MAX UINT64_MAX
 #define I64_MIN  INT64_MIN
