@@ -1270,7 +1270,6 @@ Appendix A: Building SymtabAPI
 	Once the dependencies for SymtabAPI have been installed, SymtabAPI must be configured to know where to find these packages. This is done through SymtabAPI’s core/make.config.local file. This file must be written in GNU Makefile syntax and must specify directories for each dependency. Specifically, LIBDWARFDIR, LIBELFDIR and LIBXML2DIR variables must be set. LIBDWARFDIR should be set to the absolute path of libdwarf library where dwarf.h and libdwarf.h files reside. LIBELFDIR should be set to the absolute path where libelf.a and libelf.so files are located. Finally, LIBXML2DIR to the absolute path where libxml2 is located.
 	The next thing is to set DYNINST_ROOT, PLATFORM, and LD_LIBRARY_PATH environment variables. DYNINST_ROOT should be set to the path of the directory that contains core and scripts subdirectories.
 	PLATFORM should be set to one of the following values depending upon what operating system you are running on:
-	alpha-dec-osf5.1										Tru64 UNIX on the Alpha processor
 	i386-unknown-linux2.4										Linux 2.4/2.6 on an Intel x86 processor
 	ia64-unknown-linux2.4										Linux 2.4/2.6 on an IA-64 processor
 	rs6000-ibm-aix5.1										AIX Version 5.1

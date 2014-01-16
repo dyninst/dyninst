@@ -1,8 +1,7 @@
 
 This is the version 8.0 release of the Dyninst API.  Currently, the API
 library is available for the Sparc/Solaris, POWER/AIX, x86/Linux,
-x86/Windows XP/2000/2003, Alpha/Tru64 Unix, ia64/Linux, and x86_64/Linux 
-platforms.
+x86/Windows XP/2000/2003, ia64/Linux, and x86_64/Linux platforms.
 
 Documentation for the API can be found at:
 
@@ -21,7 +20,6 @@ environment variables PLATFORM and DYNINST_ROOT.  PLATFORM should be set to
 one of the following values depending upon what operating system you are
 running on:
 
-    alpha-dec-osf5.1		Tru64 Unix on the Alpha processor
     i386-unknown-linux2.4	Linux 2.4/2.6 on an Intel x86 processor
     i386-unknown-nt4.0		Windows XP/2000/2003 on an Intel x86 processor
     ia64-unknown-linux2.4	Linux 2.4/2.6 on an IA-64 processor

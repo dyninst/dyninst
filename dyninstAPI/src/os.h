@@ -41,7 +41,6 @@
  */ 
 
 //  JAW: 1-09-07 removed switches for platforms:
-//  alpha_dec_osf4_0
 //  hppa1_1_hp_hpux
 
 #if defined(os_aix)

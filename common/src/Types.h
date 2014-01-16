@@ -56,8 +56,6 @@
 Sol5.6       yes      yes       yes     yes      yes      no*     yes   
 Sol5.7       yes      yes       yes     yes      yes      no*     yes   
 Linux        yes      yes       yes     yes      yes      yes     yes
-Osf4.0       nonexistant
-Osf5.0       ?
 Aix4.2       nonexistant
 Aix4.3       yes      yes       yes     yes      yes      no*     yes
 WindowsNT    nonexistant
@@ -99,15 +97,6 @@ WindowsNT    nonexistant
 #    endif
 #  endif
 #  endif /* defined (arch_power) */
-
-#elif defined(arch_alpha)
-#define TYPE64BIT
-#  ifndef _H_INTTYPES
-   typedef int int32_t;
-   typedef long int64_t;
-   typedef unsigned int uint32_t;
-   typedef unsigned long uint64_t;
-#  endif
 
 #elif defined(os_linux)
 #if !defined(__STDC_CONSTANT_MACROS)
@@ -171,9 +160,6 @@ typedef int64_t off64_t;
 #if defined(os_aix) && !defined(_H_INTTYPES)  /* aix4.2 ---- */
 #define I64_C(x)  (x##ll)
 #define UI64_C(x) (x##ull)
-#elif defined(os_osf)     /* osf ---------------------------- */
-#define I64_C(x)  (x##l)
-#define UI64_C(x) (x##ul)
 #elif defined(os_windows)
 				   /* nt ----------------------------- */
 #define I64_C(x)  (x##i64)
@@ -187,13 +173,13 @@ typedef int64_t off64_t;
 #endif
 
 /* Set up the 32 and 64 BIT LIMITS for those not already set up ======= */
-#if defined(os_osf)  || (defined(os_aix) && !defined(_H_INTTYPES))
+#if (defined(os_aix) && !defined(_H_INTTYPES))
 #define INT32_MAX  (2147483647)
 #define UINT32_MAX (4294967295U)
 #define INT32_MIN  (-2147483647-1)
 #endif
 
-                                   /* solaris, aix4.{23}, osf -------- */
+                                   /* solaris, aix4.{23} ------------- */
 #if defined(os_aix)
 /* see note (*) above */
 #define I32_MAX    INT32_MAX
