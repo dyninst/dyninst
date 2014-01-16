@@ -75,7 +75,6 @@ unsigned findTags(const std::string ) {
 #endif
 }
 
-// IA64 has its own version; dunno if this would work there, so skipping for now
 unsigned generateAndWriteBranch(AddressSpace *proc, 
                                 Address fromAddr, 
                                 Address newAddr,

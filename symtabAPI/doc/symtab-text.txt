@@ -1233,10 +1233,6 @@ Appendix A: Building SymtabAPI
 	Linux/x86										libdwarf-20060327 
 											libelf
 											libxml2
-	Linux/IA-64										libdwarf-20060327 
-											libunwind-0.98.5
-											libelf
-											libxml2
 	Linux/x86-64										libdwarf-20060327 
 											libelf
 											libxml2
@@ -1251,7 +1247,6 @@ Appendix A: Building SymtabAPI
 	The next thing is to set DYNINST_ROOT, PLATFORM, and LD_LIBRARY_PATH environment variables. DYNINST_ROOT should be set to the path of the directory that contains core and scripts subdirectories.
 	PLATFORM should be set to one of the following values depending upon what operating system you are running on:
 	i386-unknown-linux2.4										Linux 2.4/2.6 on an Intel x86 processor
-	ia64-unknown-linux2.4										Linux 2.4/2.6 on an IA-64 processor
 	x86_64-unknown-linux2.4										Linux 2.4/2.6 on an AMD-64 processor
 	
 	LD_LIBRARY_PATH variable should be set in a way that it includes libdwarf home directory/lib and ${DYNINST_ROOT}/${PLATFORM}/lib directories.

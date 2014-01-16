@@ -178,31 +178,6 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP)
     return conservativeRegSpace(iP->proc());
 }
 
-void registerSpace::overwriteRegisterSpace(Register,
-                                           Register) {
-    // This should _NOT_ be used; it's defined to catch errors.
-    assert(0);
-}
-
-// Ugly IA-64-age.
-void registerSpace::overwriteRegisterSpace64(Register first,
-                                             Register last) {
-    delete globalRegSpace64_;
-    globalRegSpace64_ = new registerSpace();
-    
-    pdvector<registerSlot *> regs;
-    for (unsigned i = first; i <= last; i++) {
-        char buf[128];
-        sprintf(buf, "reg%d", i);
-        regs.push_back(new registerSlot(i,
-                                        buf,
-                                        false,
-                                        registerSlot::deadAlways,
-                                        registerSlot::GPR));
-    }
-    createRegSpaceInt(regs, globalRegSpace64_);
-}
-
 
 registerSpace::registerSpace() :
     savedFlagSize(0),

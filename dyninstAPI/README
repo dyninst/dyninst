@@ -1,7 +1,7 @@
 
 This is the version 8.0 release of the Dyninst API.  Currently, the API
-library is available for the POWER/Linux, x86/Linux, x86/Windows XP/2000/2003,
-ia64/Linux, and x86_64/Linux platforms.
+library is available for the POWER/Linux, x86/Linux, x86_64/Linux, and
+x86/Windows XP/2000/2003 platforms.
 
 Documentation for the API can be found at:
 
@@ -22,7 +22,6 @@ running on:
 
     i386-unknown-linux2.4	Linux 2.4/2.6 on an Intel x86 processor
     i386-unknown-nt4.0		Windows XP/2000/2003 on an Intel x86 processor
-    ia64-unknown-linux2.4	Linux 2.4/2.6 on an IA-64 processor
     x86_64-unknown-linux2.4     Linux 2.4/2.6 on an AMD-64 processor
 
 DYNINST_ROOT should be set to the pathname of the top of the library
@@ -50,9 +49,7 @@ in most distributions.  The first is libelf, which is included with most
 distributions and can be installed using the distribution's package manager.
 The second is libdwarf.  You can get the latest source code distribution
 of libdwarf from http://reality.sgiweb.org/davea/.  RPM files for libdwarf
-are also available from various sites.  Lastly, for IA-64, libunwind must
-be installed, which can be found at 
-http://www.hpl.hp.com/research/linux/libunwind/.
+are also available from various sites.
 
 Building the Dyninst API from source
 ------------------------------------
