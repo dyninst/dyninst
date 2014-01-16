@@ -227,8 +227,6 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
        case COND_NOT_TAKEN:
        case FALLTHROUGH:
        case CALL_FT:
-          type = FALLTHROUGH;
-          break;
        default:
           return false;
     }
@@ -266,8 +264,7 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
         return false;
     }
 
-    if ((curInsn()->getCategory() == c_BranchInsn) &&
-        (type != COND_NOT_TAKEN && type != CALL_FT))
+    if ((curInsn()->getCategory() == c_BranchInsn))
     {
         //std::map<Address, Instruction::Ptr>::const_iterator prevIter =
                 //allInsns.find(current);
