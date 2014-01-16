@@ -41,11 +41,10 @@ proper pathname is:
     %DYNINST_ROOT%/i386-unknown-nt4.0/lib/libdyninstAPI_RT.dll (Windows)
 
 On Unix-based systems, you will also need to add $DYNINST_ROOT/$PLATFORM/lib
-to your LD_LIBRARY_PATH environment variable (LIBPATH on AIX,
-LD_LIBRARY64_PATH on Irix).  On Windows, you will instead need to add
-%DYNINST_ROOT%/i386-unknown-nt4.0/lib to your PATH environment variable.  
-This is so that mutator applications can be linked dynamically with the
-Dyninst library.
+to your LD_LIBRARY_PATH environment variable (LIBPATH on AIX).  On Windows,
+you will instead need to add %DYNINST_ROOT%/i386-unknown-nt4.0/lib to your
+PATH environment variable.  This is so that mutator applications can be linked
+dynamically with the Dyninst library.
 
 Notes on Using Dyninst with Linux
 ---------------------------------

@@ -43,8 +43,6 @@
 //  JAW: 1-09-07 removed switches for platforms:
 //  alpha_dec_osf4_0
 //  hppa1_1_hp_hpux
-//  mips_unknown_ce2_11
-//  mips_sgi_irix6_4
 
 #if defined(os_aix)
 #include "dyninstAPI/src/aix.h"

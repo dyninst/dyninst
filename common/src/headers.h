@@ -70,9 +70,6 @@ typedef int (*xdr_wr_func)(void *, char *, int);
 #elif defined(os_windows)
 #include "common/src/ntHeaders.h"
 
-#elif defined(os_irix)
-#include "common/src/irixHeaders.h"
-
 #elif defined(os_vxworks)
 #include "common/src/vxworksHeaders.h"
 

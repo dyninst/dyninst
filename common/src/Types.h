@@ -56,7 +56,6 @@
 Sol5.6       yes      yes       yes     yes      yes      no*     yes   
 Sol5.7       yes      yes       yes     yes      yes      no*     yes   
 Linux        yes      yes       yes     yes      yes      yes     yes
-Irix         yes      yes       yes     yes      yes      yes     yes
 Osf4.0       nonexistant
 Osf5.0       ?
 Aix4.2       nonexistant
@@ -182,7 +181,7 @@ typedef int64_t off64_t;
 #elif defined(os_bg)
 #define I64_C(x) (x##ll)
 #define U64_C(x) (x##ull)
-#else                               /* linux, solaris, irix, aix4.3 --- */
+#else                               /* linux, solaris, aix4.3 --------- */
 #define I64_C(x)  INT64_C(x)
 #define UI64_C(x) UINT64_C(x)
 #endif
@@ -216,7 +215,7 @@ typedef int64_t off64_t;
 #define I32_MAX  _I32_MAX
 #define I32_MIN  _I32_MIN
 #define UI32_MAX  _UI32_MAX
-#else                              /* linux, irix -------------------- */
+#else                              /* linux -------------------------- */
 #define I64_MAX  INT64_MAX
 #define UI64_MAX UINT64_MAX
 #define I64_MIN  INT64_MIN
