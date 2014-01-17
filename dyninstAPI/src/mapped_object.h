@@ -386,11 +386,6 @@ public:
 
     mapped_module *getOrCreateForkedModule(mapped_module *mod);
 
-    // from a string that is a complete path name to a function in a module
-    // (ie. "/usr/lib/libc.so.1/write") return a string with the function
-    // part removed.  return 0 on error
-    char *getModulePart(std::string &full_path_name) ;
-
     bool memoryImg_;
 
     std::map<block_instance *, std::string> calleeNames_;

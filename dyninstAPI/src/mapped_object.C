@@ -352,36 +352,6 @@ bool mapped_object::analyze()
   return true;
 }
 
-// TODO: this should probably not be a mapped_object method, but since
-// for now it is only used by mapped_objects it is
-// from a string that is a complete path name to a function in a module
-// (ie. "/usr/lib/libc.so.1/write") return a string with the function
-// part removed.  return 0 on error
-char *mapped_object::getModulePart(std::string &full_path_name) {
-
-    char *whole_name = P_strdup(full_path_name.c_str());
-    char *next=0;
-    char *last=next;
-    if((last = P_strrchr(whole_name, '/'))){
-        next = whole_name;
-        for(u_int i=0;(next!=last)&&(i<full_path_name.length()); i++){
-	    next++;
-	    if(next == last){
-		u_int size = i+2;
-	        char *temp_str = new char[size];
-	        if(P_strncpy(temp_str,whole_name,size-1)){
-                    temp_str[size-1] = '\0';
-		    delete whole_name;
-		    return temp_str;
-		    temp_str = 0;
-                }
-            }
-        }
-    }
-    delete whole_name;
-    return 0;
-}
-
 mapped_module *mapped_object::findModule(string m_name, bool wildcard)
 {
    parsing_printf("findModule for %s (substr match %d)\n",
