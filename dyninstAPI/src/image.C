@@ -270,6 +270,29 @@ namespace {
         void * fini_addr;
     };
 
+    void *get_raw_symtab_ptr(Symtab *linkedFile, Address addr)
+    {
+        Region *reg = linkedFile->findEnclosingRegion(addr);
+        if (reg != NULL) {
+            char *data = (char*)reg->getPtrToRawData();
+            data += addr - reg->getMemOffset();
+            return data;
+        }
+        return NULL;
+    }
+
+    Address deref_opd(Symtab *linkedFile, Address addr)
+    {
+        Region *reg = linkedFile->findEnclosingRegion(addr);
+        if (reg && reg->getRegionName() == ".opd") {
+            // opd symbol needing dereference
+            void *data = get_raw_symtab_ptr(linkedFile, addr);
+            if (data)
+                return *(Address*)data;
+        }
+        return addr;
+    }
+
     /*
      * b ends with a call to libc_start_main. We are looking for the
      * value in GR8, which is the address of a structure that contains
@@ -290,6 +313,7 @@ namespace {
             b->end()-b->start(),
             b->region()->getArch());
 
+        RegisterAST::Ptr r2( new RegisterAST(ppc32::r2) );
         RegisterAST::Ptr r8( new RegisterAST(ppc32::r8) );
 
         Address cur_addr = b->start();
@@ -303,49 +327,66 @@ namespace {
         if(!r8_def)
             return 0;
 
-        // Get all of the assignments that happen in this instruction
-        AssignmentConverter conv(true);
-        vector<Assignment::Ptr> assigns;
-        conv.convert(r8_def,r8_def_addr,f,b,assigns);
+        Address ss_addr = 0;
 
-        // find the one we care about (r8)
-        vector<Assignment::Ptr>::iterator ait = assigns.begin();
-        for( ; ait != assigns.end(); ++ait) {
-            AbsRegion & outReg = (*ait)->out();
-            Absloc const& loc = outReg.absloc();
-            if(loc.reg() == r8->getID())
-                break;
-        }
-        if(ait == assigns.end()) {
-            return 0;
-        }
-
-        // Slice back to the definition of R8, and, if possible, simplify
-        // to a constant
-        Slicer slc(*ait,b,f);
-        Default_Predicates preds;
-        Graph::Ptr slg = slc.backwardSlice(preds);
-        DataflowAPI::Result_t sl_res;
-        DataflowAPI::SymEval::expand(slg,sl_res);
-        AST::Ptr calculation = sl_res[*ait];
-        SimpleArithVisitor visit; 
-        AST::Ptr simplified = calculation->accept(&visit);
-        //printf("after simplification:\n%s\n",simplified->format().c_str());
-        if(simplified->getID() == AST::V_ConstantAST) { 
-            ConstantAST::Ptr cp = ConstantAST::convert(simplified);
-            Address ss_addr = cp->val().val;
-
-            // need a pointer to the image data
-            SymtabAPI::Region * dreg = linkedFile->findEnclosingRegion(ss_addr);
-        
-            if(dreg) {
-                struct libc_startup_info * si =
-                    (struct libc_startup_info *)(
-                        ((Address)dreg->getPtrToRawData()) + 
-                        ss_addr - (Address)dreg->getMemOffset());
-                return (Address)si->main_addr;
+        // Try a TOC-based lookup first
+        if (r8_def->isRead(r2)) {
+            set<Expression::Ptr> memReads;
+            r8_def->getMemoryReadOperands(memReads);
+            Address TOC = f->obj()->cs()->getTOC(r8_def_addr);
+            if (TOC != 0 && memReads.size() == 1) {
+                Expression::Ptr expr = *memReads.begin();
+                expr->bind(r2.get(), Result(u64, TOC));
+                const Result &res = expr->eval();
+                if (res.defined) {
+                    void *res_addr =
+                        get_raw_symtab_ptr(linkedFile, res.convert<Address>());
+                    if (res_addr)
+                        ss_addr = *(Address*)res_addr;
+                }
             }
         }
+
+        if (ss_addr == 0) {
+            // Get all of the assignments that happen in this instruction
+            AssignmentConverter conv(true);
+            vector<Assignment::Ptr> assigns;
+            conv.convert(r8_def,r8_def_addr,f,b,assigns);
+
+            // find the one we care about (r8)
+            vector<Assignment::Ptr>::iterator ait = assigns.begin();
+            for( ; ait != assigns.end(); ++ait) {
+                AbsRegion & outReg = (*ait)->out();
+                Absloc const& loc = outReg.absloc();
+                if(loc.reg() == r8->getID())
+                    break;
+            }
+            if(ait == assigns.end()) {
+                return 0;
+            }
+
+            // Slice back to the definition of R8, and, if possible, simplify
+            // to a constant
+            Slicer slc(*ait,b,f);
+            Default_Predicates preds;
+            Graph::Ptr slg = slc.backwardSlice(preds);
+            DataflowAPI::Result_t sl_res;
+            DataflowAPI::SymEval::expand(slg,sl_res);
+            AST::Ptr calculation = sl_res[*ait];
+            SimpleArithVisitor visit; 
+            AST::Ptr simplified = calculation->accept(&visit);
+            //printf("after simplification:\n%s\n",simplified->format().c_str());
+            if(simplified->getID() == AST::V_ConstantAST) { 
+                ConstantAST::Ptr cp = ConstantAST::convert(simplified);
+                ss_addr = cp->val().val;
+            }
+        }
+
+        // need a pointer to the image data
+        auto si = (struct libc_startup_info *)
+            get_raw_symtab_ptr(linkedFile, ss_addr);
+        if (si)
+            return (Address)si->main_addr;
 
         return 0;
     }
@@ -359,10 +400,13 @@ namespace {
  */
 void image::findMain()
 {
-#if defined(ppc32_linux) || defined(ppc32_bgp)
+#if defined(ppc32_linux) || defined(ppc32_bgp) || defined(ppc64_linux)
     using namespace Dyninst::InstructionAPI;
 
-    if(!desc_.isSharedObject())
+    // Only look for main in executables, but do allow position-independent
+    // executables (PIE) which look like shared objects with an INTERP.
+    // (Some strange DSOs also have INTERP, but this is rare.)
+    if(!desc_.isSharedObject() || linkedFile->getInterpreterName() != NULL)
     {
     	bool foundMain = false;
     	bool foundStart = false;
@@ -382,22 +426,21 @@ void image::findMain()
         if (foundText == false) {
             return;
         }
-	
-    	if( !foundMain )
-    	{
-            logLine("No main symbol found: attempting to create symbol for main\n");
-            const unsigned char* p;
-            p = (( const unsigned char * ) eReg->getPtrToRawData());
 
-            Address mainAddress = 0;
+        if( !foundMain )
+        {
+            logLine("No main symbol found: attempting to create symbol for main\n");
+
+            Address eAddr = linkedFile->getEntryOffset();
+            eAddr = deref_opd(linkedFile, eAddr);
 
 	        bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
 	        SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
             CodeObject tco(&scs,NULL,NULL,false);
 
-            tco.parse(eReg->getMemOffset(),false);
+            tco.parse(eAddr,false);
             set<CodeRegion *> regions;
-            scs.findRegions(eReg->getMemOffset(),regions);
+            scs.findRegions(eAddr,regions);
             if(regions.empty()) {
                 // express puzzlement
                 return;
@@ -405,23 +448,31 @@ void image::findMain()
             SymtabCodeRegion * reg = 
                 static_cast<SymtabCodeRegion*>(*regions.begin());
             Function * func = 
-                tco.findFuncByEntry(reg,eReg->getMemOffset());
+                tco.findFuncByEntry(reg,eAddr);
             if(!func) {
                 // again, puzzlement
                 return;
             }
 
+            Block * b = NULL;
             const Function::edgelist & calls = func->callEdges();
-            if(calls.size() != 1) {
+            if (calls.empty()) {
+                // when there are no calls, let's hope the entry block is it
+                b = tco.findBlockByEntry(reg,eAddr);
+            } else if(calls.size() == 1) {
+                Function::edgelist::iterator cit = calls.begin();
+                b = (*cit)->src();
+            } else {
                 startup_printf("%s[%d] _start has unexpected number (%d) of"
                                " call edges, bailing on findMain()\n",
                     FILE__,__LINE__,calls.size());
-                return; 
+                return;
             }
-            Function::edgelist::iterator cit = calls.begin();
-            Block * b = (*cit)->src();
+            if (!b) return;
 
-            mainAddress = evaluate_main_address(linkedFile,func,b);
+            Address mainAddress = evaluate_main_address(linkedFile,func,b);
+            mainAddress = deref_opd(linkedFile, mainAddress);
+
             if(0 == mainAddress || !scs.isValidAddress(mainAddress)) {
                 startup_printf("%s[%d] failed to find main\n",FILE__,__LINE__);
                 return;
@@ -431,8 +482,8 @@ void image::findMain()
             }
            	Symbol *newSym= new Symbol( "main", 
                                             Symbol::ST_FUNCTION,
-                                            Symbol::SL_GLOBAL, 
-                                            Symbol::SV_DEFAULT, 
+                                            Symbol::SL_LOCAL,
+                                            Symbol::SV_INTERNAL,
                                             mainAddress,
                                             linkedFile->getDefaultModule(),
                                             eReg, 
@@ -445,7 +496,10 @@ void image::findMain()
 || defined(i386_unknown_solaris2_5) \
 || (defined(os_freebsd) \
     && (defined(arch_x86) || defined(arch_x86_64)))
-    if(!desc_.isSharedObject())
+    // Only look for main in executables, but do allow position-independent
+    // executables (PIE) which look like shared objects with an INTERP.
+    // (Some strange DSOs also have INTERP, but this is rare.)
+    if(!desc_.isSharedObject() || linkedFile->getInterpreterName() != NULL)
     {
     	bool foundMain = false;
     	bool foundStart = false;
@@ -595,8 +649,8 @@ void image::findMain()
             	//logLine( "No static symbol for function main\n" );
                 Symbol *newSym = new Symbol("DYNINST_pltMain", 
                                             Symbol::ST_FUNCTION, 
-                                            Symbol::SL_GLOBAL,
-                                            Symbol::SV_DEFAULT,
+                                            Symbol::SL_LOCAL,
+                                            Symbol::SV_INTERNAL,
                                             mainAddress,
                                             linkedFile->getDefaultModule(),
                                             eReg, 
@@ -607,8 +661,8 @@ void image::findMain()
            {
            	Symbol *newSym= new Symbol( "main", 
                                             Symbol::ST_FUNCTION,
-                                            Symbol::SL_GLOBAL, 
-                                            Symbol::SV_DEFAULT, 
+                                            Symbol::SL_LOCAL,
+                                            Symbol::SV_INTERNAL,
                                             mainAddress,
                                             linkedFile->getDefaultModule(),
                                             eReg, 
@@ -620,8 +674,8 @@ void image::findMain()
     	{
             Symbol *startSym = new Symbol( "_start",
                                            Symbol::ST_FUNCTION,
-                                           Symbol::SL_GLOBAL,
-                                           Symbol::SV_DEFAULT, 
+                                           Symbol::SL_LOCAL,
+                                           Symbol::SV_INTERNAL,
                                            eReg->getMemOffset(),
                                            linkedFile->getDefaultModule(),
                                            eReg,
@@ -636,8 +690,8 @@ void image::findMain()
 	  if (linkedFile->findRegion(finisec,".fini")) {
 	    Symbol *finiSym = new Symbol( "_fini",
 					  Symbol::ST_FUNCTION,
-					  Symbol::SL_GLOBAL, 
-					  Symbol::SV_DEFAULT, 
+					  Symbol::SL_LOCAL,
+					  Symbol::SV_INTERNAL,
 					  finisec->getMemOffset(),
 					  linkedFile->getDefaultModule(),
 					  finisec, 
@@ -658,8 +712,8 @@ void image::findMain()
         {
 	    Symbol *newSym = new Symbol( "_DYNAMIC", 
 					Symbol::ST_OBJECT, 
-                                         Symbol::SL_GLOBAL, 
-                                         Symbol::SV_DEFAULT,
+                                         Symbol::SL_LOCAL,
+                                         Symbol::SV_INTERNAL,
                                          dynamicsec->getMemOffset(), 
                                          linkedFile->getDefaultModule(),
                                          dynamicsec, 
