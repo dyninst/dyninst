@@ -323,7 +323,7 @@ class PATCHAPI_EXPORT Instance : public boost::enable_shared_from_this<Instance>
    typedef boost::shared_ptr<Instance> Ptr;
 
   Instance(Point* point, SnippetPtr snippet)
-     : point_(point), snippet_(snippet), guarded_(true) { }
+     : point_(point), snippet_(snippet), state_(PENDING), type_(SYSTEM), guarded_(true) { }
     virtual ~Instance() {}
     static InstancePtr create(Point*, SnippetPtr,
                         SnippetType type = SYSTEM, SnippetState state = PENDING);
