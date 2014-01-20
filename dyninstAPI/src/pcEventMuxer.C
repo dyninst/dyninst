@@ -53,7 +53,7 @@ Process::cb_ret_t PCEventMuxer::ret_stopped(Process::cbProcStop, Process::cbProc
 Process::cb_ret_t PCEventMuxer::ret_continue(Process::cbProcContinue, Process::cbProcContinue);
 Process::cb_ret_t PCEventMuxer::ret_default(Process::cbDefault, Process::cbDefault);
 
-PCEventMuxer::PCEventMuxer() : callbacksRegistered_(false) {
+PCEventMuxer::PCEventMuxer() : callbacksRegistered_(false), started_(false) {
 };
 
 bool PCEventMuxer::start() {

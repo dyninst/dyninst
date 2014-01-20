@@ -129,6 +129,7 @@ bool HybridAnalysisOW::codeChangeCB
 }
 
 HybridAnalysisOW::HybridAnalysisOW(HybridAnalysis *hybrid)
+   : bpatchBeginCB(NULL), bpatchEndCB(NULL)
 {
     hybrid_ = hybrid;
 }

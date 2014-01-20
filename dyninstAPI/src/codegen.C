@@ -64,6 +64,8 @@ codeGen::codeGen() :
     buffer_(NULL),
     offset_(0),
     size_(0),
+    max_(0),
+    pc_rel_use_count(0),
     emitter_(NULL),
     allocated_(false),
     aSpace_(NULL),
@@ -84,6 +86,8 @@ codeGen::codeGen(unsigned size) :
     buffer_(NULL),
     offset_(0),
     size_(size),
+    max_(size+codeGenPadding),
+    pc_rel_use_count(0),
     emitter_(NULL),
     allocated_(true),
     aSpace_(NULL),
@@ -110,6 +114,8 @@ codeGen::codeGen(codeBuf_t *buffer, int size) :
     buffer_(buffer),
     offset_(0),
     size_(size-codeGenPadding),
+    max_(size+codeGenPadding),
+    pc_rel_use_count(0),
     emitter_(NULL),
     allocated_(false),
     aSpace_(NULL),
@@ -137,8 +143,11 @@ codeGen::~codeGen() {
 
 // Deep copy
 codeGen::codeGen(const codeGen &g) :
+    buffer_(NULL),
     offset_(g.offset_),
     size_(g.size_),
+    max_(g.max_),
+    pc_rel_use_count(g.pc_rel_use_count),
     emitter_(NULL),
     allocated_(g.allocated_),
     aSpace_(g.aSpace_),
@@ -159,8 +168,6 @@ codeGen::codeGen(const codeGen &g) :
         buffer_ = (codeBuf_t *) malloc(bufferSize);
         memcpy(buffer_, g.buffer_, bufferSize);
     }
-    else
-        buffer_ = NULL;
 }
 
 bool codeGen::operator==(void *p) const {
@@ -177,6 +184,7 @@ codeGen &codeGen::operator=(const codeGen &g) {
     offset_ = g.offset_;
     size_ = g.size_;
     max_ = g.max_;
+    pc_rel_use_count = g.pc_rel_use_count;
     allocated_ = g.allocated_;
     thr_ = g.thr_;
     isPadded_ = g.isPadded_;

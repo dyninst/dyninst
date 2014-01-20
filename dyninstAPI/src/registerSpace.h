@@ -388,7 +388,6 @@ class registerSpace {
                          // instrumentation before a frame is set up.
 
     std::vector<regState_t *> regStateStack;
-    int cur_register_state;
 
     std::vector<RealRegsState>& regState();
     int& timeline();

@@ -105,7 +105,10 @@ char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
     "tls_cb_0"};
 
 string fileDescriptor::emptyString(string(""));
-fileDescriptor::fileDescriptor() {
+fileDescriptor::fileDescriptor():
+        code_(0), data_(0), dynamic_(0), shared_(false),
+        pid_(0), length_(0), rawPtr_(NULL)
+{
     // This shouldn't be called... must be public for pdvector, though
 }
 
@@ -1359,15 +1362,24 @@ image::image(fileDescriptor &desc,
              BPatch_hybridMode mode, 
              bool parseGaps) :
    desc_(desc),
+   imageOffset_(0),
+   imageLen_(0),
+   dataOffset_(0),
+   dataLen_(0),
    is_libdyninstRT(false),
    is_a_out(false),
    main_call_addr_(0),
-   nativeCompiler(false),    
+   nativeCompiler(false),
+   linkedFile(NULL),
+#if defined(os_linux) || defined(os_freebsd)
+   archive(NULL),
+#endif
    obj_(NULL),
    cs_(NULL),
    filt(NULL),
    img_fact_(NULL),
    parse_cb_(NULL),
+   cb_arg0_(NULL),
    nextBlockID_(0),
    pltFuncs(NULL),
    trackNewBlocks_(false),

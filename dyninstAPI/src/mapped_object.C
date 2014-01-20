@@ -217,6 +217,7 @@ mapped_object::mapped_object(const mapped_object *s, AddressSpace *child) :
    analysisMode_(s->analysisMode_),
    pagesUpdated_(true),
    codeByteUpdates_(0),
+   memEnd_(s->memEnd_),
    memoryImg_(s->memoryImg_)
 {
    // Let's do modules
