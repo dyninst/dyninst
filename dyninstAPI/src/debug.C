@@ -125,7 +125,7 @@ int bpfatal_lf(const char *__file__, unsigned int __line__, const char *format, 
   fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
   va_list va;
   va_start(va, format);
-  VSNPRINTF(errbuf + header_len, ERR_BUF_SIZE,format, va);
+  VSNPRINTF(errbuf + header_len, ERR_BUF_SIZE - header_len, format, va);
   va_end(va);
 
   fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
