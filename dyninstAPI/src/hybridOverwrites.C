@@ -537,7 +537,7 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
                           blockWrites->begin(), 
                           blockWrites->end());
         // store block bounds or alter previous entry if blocks are contiguous
-        if (boundsArray[boundsIdx-1] == (*bIter)->getStartAddress()) {
+        if (boundsIdx > 0 && boundsArray[boundsIdx-1] == (*bIter)->getStartAddress()) {
             boundsArray[boundsIdx-1] = (*bIter)->getEndAddress();
         } else {
             if (boundsIdx > 0) {
