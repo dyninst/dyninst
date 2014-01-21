@@ -4032,9 +4032,9 @@ static bool read_except_table_gcc2(Elf_X_Shdr *except_table,
                                    std::vector<ExceptionBlock> &addresses,
                                    const mach_relative_info &mi)
 {
-  Offset try_start;
-  Offset try_end;
-  Offset catch_start;
+  Offset try_start = (Offset) -1;
+  Offset try_end = (Offset) -1;
+  Offset catch_start = 0;
 
   Elf_X_Data data = except_table->get_data();
   const unsigned char *datap = (const unsigned char *)data.get_string();
