@@ -340,6 +340,8 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
 
 #if defined(cap_binary_rewriter)
 
+void r_debugCheck() { return; }
+
 #define NUM_LIBRARIES 512 //Important, max number of rewritten libraries
 
 #define WORD_SIZE (8 * sizeof(unsigned))
