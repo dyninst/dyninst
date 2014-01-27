@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGUID>{6D97A7FF-0727-4B1E-8EA0-F9C6D74CD92F}</ProjectGUID>
+    <ProjectGUID>{BA5FC254-9410-46CF-A740-2DF39B117699}</ProjectGUID>
     <Keyword>Win32Proj</Keyword>
     <Platform>Win32</Platform>
     <ProjectName>INSTALL</ProjectName>
@@ -60,7 +60,7 @@
     </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -82,7 +82,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -104,7 +104,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">
     <Midl>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -126,7 +126,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">
     <Midl>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -147,7 +147,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="..\CMakeFiles\55984ff63a0b55b7a1b8e0ff1d5456dc\INSTALL_force.rule">
+    <CustomBuild Include="CMakeFiles\55984ff63a0b55b7a1b8e0ff1d5456dc\INSTALL_force.rule">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'"> </Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
 cd .
@@ -158,7 +158,7 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:/dyninst-cmake/dyninst/CMakeFiles/55984ff63a0b55b7a1b8e0ff1d5456dc/INSTALL_force.rule;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeFiles/55984ff63a0b55b7a1b8e0ff1d5456dc/INSTALL_force.rule;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\INSTALL_force</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'"> </Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
@@ -170,7 +170,7 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:/dyninst-cmake/dyninst/CMakeFiles/55984ff63a0b55b7a1b8e0ff1d5456dc/INSTALL_force.rule;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeFiles/55984ff63a0b55b7a1b8e0ff1d5456dc/INSTALL_force.rule;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\INSTALL_force</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'"> </Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">setlocal
@@ -182,7 +182,7 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">C:/dyninst-cmake/dyninst/CMakeFiles/55984ff63a0b55b7a1b8e0ff1d5456dc/INSTALL_force.rule;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeFiles/55984ff63a0b55b7a1b8e0ff1d5456dc/INSTALL_force.rule;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\INSTALL_force</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'"> </Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">setlocal
@@ -194,13 +194,13 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">C:/dyninst-cmake/dyninst/CMakeFiles/55984ff63a0b55b7a1b8e0ff1d5456dc/INSTALL_force.rule;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeFiles/55984ff63a0b55b7a1b8e0ff1d5456dc/INSTALL_force.rule;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\INSTALL_force</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="C:/dyninst-cmake/dyninst/ALL_BUILD.vcxproj">
-      <Project>C279E421-5523-42F3-AF3F-22CE0BDB43D3</Project>
+    <ProjectReference Include="C:/dyninst-cmake/dyninst/dyninstAPI_RT/ALL_BUILD.vcxproj">
+      <Project>4FFDA457-CA75-41EA-B26E-98665C8EFCE6</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

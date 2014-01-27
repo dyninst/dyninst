@@ -133,6 +133,7 @@ async_ret_t ppc_process::readPCForSS(int_thread *thr, Address &pc)
       }
       bool ready = pcResponse->isReady();
       assert(ready);
+      if(!ready) return aret_error;
       pc = (Address) pcResponse->getResult();
       return aret_success;
    }
@@ -177,6 +178,7 @@ async_ret_t ppc_process::readInsnForSS(Address pc, int_thread *, unsigned int &r
       }
       bool ready = new_resp->isReady();
       assert(ready);
+      if(!ready) return aret_error;
       return aret_success;
    }
 

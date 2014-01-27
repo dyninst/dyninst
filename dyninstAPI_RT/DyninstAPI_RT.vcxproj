@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGUID>{AEF8F40E-1BD3-4650-8F81-5701F3BFBCB3}</ProjectGUID>
+    <ProjectGUID>{7CC277D6-0898-4C0E-8F18-6D68F801492D}</ProjectGUID>
     <Keyword>Win32Proj</Keyword>
     <Platform>Win32</Platform>
     <ProjectName>dyninstAPI_RT</ProjectName>
@@ -80,28 +80,25 @@
     </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAs>CompileAsC</CompileAs>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ExceptionHandling>
       </ExceptionHandling>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <Optimization>Disabled</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;CMAKE_INTDIR="Debug";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;snprintf=_snprintf;CMAKE_INTDIR="Debug";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>Debug</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>C:/dyninst-cmake/dyninst/dyninstAPI_RT/Debug/dyninstAPI_RT.pdb</ProgramDataBaseFileName>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;CMAKE_INTDIR=\"Debug\";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;snprintf=_snprintf;CMAKE_INTDIR=\"Debug\";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -124,27 +121,25 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAs>CompileAsC</CompileAs>
       <ExceptionHandling>
       </ExceptionHandling>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <Optimization>MaxSpeed</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat></DebugInformationFormat>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;CMAKE_INTDIR="Release";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;snprintf=_snprintf;CMAKE_INTDIR="Release";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>Release</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>C:/dyninst-cmake/dyninst/dyninstAPI_RT/Release/dyninstAPI_RT.pdb</ProgramDataBaseFileName>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;CMAKE_INTDIR=\"Release\";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;snprintf=_snprintf;CMAKE_INTDIR=\"Release\";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -167,7 +162,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAs>CompileAsC</CompileAs>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -177,17 +172,17 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat></DebugInformationFormat>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;CMAKE_INTDIR="MinSizeRel";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;snprintf=_snprintf;CMAKE_INTDIR="MinSizeRel";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>MinSizeRel</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>C:/dyninst-cmake/dyninst/dyninstAPI_RT/MinSizeRel/dyninstAPI_RT.pdb</ProgramDataBaseFileName>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;CMAKE_INTDIR=\"MinSizeRel\";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;snprintf=_snprintf;CMAKE_INTDIR=\"MinSizeRel\";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -210,7 +205,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAs>CompileAsC</CompileAs>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ExceptionHandling>
@@ -220,17 +215,17 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;CMAKE_INTDIR="RelWithDebInfo";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;snprintf=_snprintf;CMAKE_INTDIR="RelWithDebInfo";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>RelWithDebInfo</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>C:/dyninst-cmake/dyninst/dyninstAPI_RT/RelWithDebInfo/dyninstAPI_RT.pdb</ProgramDataBaseFileName>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;CMAKE_INTDIR=\"RelWithDebInfo\";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;cap_dynamic_heap;cap_liveness;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_stripped_binaries;cap_tramp_liveness;cap_virtual_registers;cap_mem_emulation;arch_x86;os_windows;i386_unknown_nt4_0;WITH_SYMTAB_API;WITHOUT_SYMLITE;USE_PARSE_API;snprintf=_snprintf;CMAKE_INTDIR=\"RelWithDebInfo\";dyninstAPI_RT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>C:/Program Files (x86)/Microsoft Visual Studio 10.0/DIA SDK/include;C:/Program Files (x86)/boost/boost_1_51;C:/dyninst-cmake/dyninst;C:/dyninst-cmake/dyninst/external;C:/dyninst-cmake/dyninst/common/h;C:/dyninst-cmake/dyninst/dataflowAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dynutil/h;C:/dyninst-cmake/dyninst/instructionAPI/h;C:/dyninst-cmake/dyninst/parseAPI/h;C:/dyninst-cmake/dyninst/patchAPI/h;C:/dyninst-cmake/dyninst/proccontrol/h;C:/dyninst-cmake/dyninst/stackwalk/h;C:/dyninst-cmake/dyninst/symtabAPI/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/src;C:/dyninst-cmake/dyninst/dyninstAPI_RT/../dyninstAPI_RT/h;C:/dyninst-cmake/dyninst/dyninstAPI_RT/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -255,7 +250,7 @@
     <CustomBuild Include="CMakeLists.txt">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building Custom Rule C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
-"C:\Program Files (x86)\CMake 2.8\bin\cmake.exe" -HC:/dyninst-cmake/dyninst -BC:/dyninst-cmake/dyninst --check-stamp-file C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\generate.stamp
+"C:\Program Files (x86)\CMake 2.8\bin\cmake.exe" -HC:/dyninst-cmake/dyninst/dyninstAPI_RT -BC:/dyninst-cmake/dyninst/dyninstAPI_RT --check-stamp-file C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -263,11 +258,11 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeSystem.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeCCompiler.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeCXXCompiler.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeRCCompiler.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake;C:\dyninst-cmake\dyninst\cmake\shared.cmake;C:\dyninst-cmake\dyninst\cmake\platform.cmake;C:\dyninst-cmake\dyninst\cmake\platform_windows.cmake;C:\dyninst-cmake\dyninst\cmake\cap_arch_def.cmake;C:\dyninst-cmake\dyninst\cmake\visibility.cmake;C:\dyninst-cmake\dyninst\cmake\warnings.cmake;C:\dyninst-cmake\dyninst\cmake\options.cmake;C:\dyninst-cmake\dyninst\cmake\optimization.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\generate.stamp</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building Custom Rule C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
-"C:\Program Files (x86)\CMake 2.8\bin\cmake.exe" -HC:/dyninst-cmake/dyninst -BC:/dyninst-cmake/dyninst --check-stamp-file C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\generate.stamp
+"C:\Program Files (x86)\CMake 2.8\bin\cmake.exe" -HC:/dyninst-cmake/dyninst/dyninstAPI_RT -BC:/dyninst-cmake/dyninst/dyninstAPI_RT --check-stamp-file C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -275,11 +270,11 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeSystem.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeCCompiler.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeCXXCompiler.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeRCCompiler.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake;C:\dyninst-cmake\dyninst\cmake\shared.cmake;C:\dyninst-cmake\dyninst\cmake\platform.cmake;C:\dyninst-cmake\dyninst\cmake\platform_windows.cmake;C:\dyninst-cmake\dyninst\cmake\cap_arch_def.cmake;C:\dyninst-cmake\dyninst\cmake\visibility.cmake;C:\dyninst-cmake\dyninst\cmake\warnings.cmake;C:\dyninst-cmake\dyninst\cmake\options.cmake;C:\dyninst-cmake\dyninst\cmake\optimization.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\generate.stamp</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">Building Custom Rule C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">setlocal
-"C:\Program Files (x86)\CMake 2.8\bin\cmake.exe" -HC:/dyninst-cmake/dyninst -BC:/dyninst-cmake/dyninst --check-stamp-file C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\generate.stamp
+"C:\Program Files (x86)\CMake 2.8\bin\cmake.exe" -HC:/dyninst-cmake/dyninst/dyninstAPI_RT -BC:/dyninst-cmake/dyninst/dyninstAPI_RT --check-stamp-file C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -287,11 +282,11 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeSystem.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeCCompiler.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeCXXCompiler.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeRCCompiler.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake;C:\dyninst-cmake\dyninst\cmake\shared.cmake;C:\dyninst-cmake\dyninst\cmake\platform.cmake;C:\dyninst-cmake\dyninst\cmake\platform_windows.cmake;C:\dyninst-cmake\dyninst\cmake\cap_arch_def.cmake;C:\dyninst-cmake\dyninst\cmake\visibility.cmake;C:\dyninst-cmake\dyninst\cmake\warnings.cmake;C:\dyninst-cmake\dyninst\cmake\options.cmake;C:\dyninst-cmake\dyninst\cmake\optimization.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\generate.stamp</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">Building Custom Rule C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">setlocal
-"C:\Program Files (x86)\CMake 2.8\bin\cmake.exe" -HC:/dyninst-cmake/dyninst -BC:/dyninst-cmake/dyninst --check-stamp-file C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\generate.stamp
+"C:\Program Files (x86)\CMake 2.8\bin\cmake.exe" -HC:/dyninst-cmake/dyninst/dyninstAPI_RT -BC:/dyninst-cmake/dyninst/dyninstAPI_RT --check-stamp-file C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -299,7 +294,7 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">C:/dyninst-cmake/dyninst/dyninstAPI_RT/CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeSystem.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeCCompiler.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeCXXCompiler.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\2.8.11.1\CMakeRCCompiler.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-MSVC.cmake;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake;C:\dyninst-cmake\dyninst\cmake\shared.cmake;C:\dyninst-cmake\dyninst\cmake\platform.cmake;C:\dyninst-cmake\dyninst\cmake\platform_windows.cmake;C:\dyninst-cmake\dyninst\cmake\cap_arch_def.cmake;C:\dyninst-cmake\dyninst\cmake\visibility.cmake;C:\dyninst-cmake\dyninst\cmake\warnings.cmake;C:\dyninst-cmake\dyninst\cmake\options.cmake;C:\dyninst-cmake\dyninst\cmake\optimization.cmake;C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">C:\dyninst-cmake\dyninst\dyninstAPI_RT\CMakeFiles\generate.stamp</Outputs>
     </CustomBuild>
   </ItemGroup>
@@ -311,12 +306,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="src\RTwinnt.c"  />
     <ClCompile Include="src\RTthread.c"  />
     <ClCompile Include="src\RTthread-x86.c"  />
-    <ClCompile Include="src\RTtlsgetaddr-x86.S"  />
-    <ClCompile Include="src\RTstatic_ctors_dtors-x86.c"  />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="C:/dyninst-cmake/dyninst/ZERO_CHECK.vcxproj">
-      <Project>AAB9B8B5-4638-49F9-84A8-3A57168491CA</Project>
+    <ProjectReference Include="C:/dyninst-cmake/dyninst/dyninstAPI_RT/ZERO_CHECK.vcxproj">
+      <Project>9509E24E-70DC-42D5-ABBA-97209E1BF5E7</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

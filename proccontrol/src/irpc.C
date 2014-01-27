@@ -117,7 +117,11 @@ void int_iRPC::setState(int_iRPC::State s)
 {
    int old_state = (int) state;
    int new_state = (int) s;
-   assert(new_state >= old_state);
+   if(new_state < old_state)
+   {
+     assert(!"Illegal state reversion");
+     return;
+   }
    state = s;
 }
 
@@ -713,6 +717,8 @@ bool int_iRPC::saveRPCState()
                    id(), thrd->llproc()->getPid(), thrd->getLWP());
       bool result = fillInAllocation();
       assert(result);
+      if(!result) return false;
+      
    }
    assert(allocation());   
 
@@ -722,6 +728,8 @@ bool int_iRPC::saveRPCState()
                    thrd->llproc()->getPid(), thrd->getLWP());
       bool result = thread()->saveRegsForRPC(regsave_result);
       assert(result);
+      if(!result) return false;
+      
    }
    
    if (shouldSaveData() && !allocation()->orig_data)
@@ -735,6 +743,8 @@ bool int_iRPC::saveRPCState()
       memsave_result = mem_response::createMemResponse((char *) allocation()->orig_data, allocSize());
       bool result = thrd->llproc()->readMem(addr(), memsave_result, (thrd->isRPCEphemeral() ? thrd : NULL));
       assert(result);
+      if(!result) return false;
+      
    }
 
    return true;
@@ -1029,6 +1039,8 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
       ievent->alloc_regresult = reg_response::createRegResponse();
       bool result = proc->plat_collectAllocationResult(thr, ievent->alloc_regresult);
       assert(result);
+      if(!result) return ret_error;
+      
       proc->handlerPool()->notifyOfPendingAsyncs(ievent->alloc_regresult, ev);
    }
 
@@ -1043,6 +1055,7 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
                                             rpc->allocSize(),
                                             ievent->memrestore_response);
       assert(result);
+      if(!result) return ret_error;
    }
    if (rpc->directFree()) {
 	   assert(rpc->addr());
@@ -1080,6 +1093,7 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
       pthrd_printf("Restoring all registers\n");
       bool result = thr->restoreRegsForRPC(isLastRPC, ievent->regrestore_response);
       assert(result);
+      if(!result) return ret_error;
    }
 
    set<response::ptr> async_pending;

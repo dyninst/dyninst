@@ -70,6 +70,8 @@ else()
   set (RT_C_COMPILER ${CMAKE_C_COMPILER})
 endif()
 
+message(STATUS "Configuring RT library")
+
 execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR}
   COMMAND ${CMAKE_COMMAND}
   -DCMAKE_C_COMPILER=${RT_C_COMPILER}
@@ -77,14 +79,16 @@ execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR}
   -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
   -DPLATFORM=${PLATFORM}
+  -G ${CMAKE_GENERATOR}
   ${RT_SOURCE_DIR})
 
 add_custom_target(DyninstRT
   ALL
-  COMMAND ${CMAKE_COMMAND} --build ${RT_BINARY_DIR}
-  COMMENT "Building DyninstRT"
-  VERBATIM)
-install(CODE "include(\"${RT_BINARY_DIR}/cmake_install.cmake\")")
+  #  COMMAND ${CMAKE_COMMAND} -E chdir ${RT_BINARY_DIR} ${ACTUAL_BUILD}
+  ${CMAKE_BUILD_TOOL}
+  WORKING_DIRECTORY ${RT_BINARY_DIR}
+  COMMENT "Building DyninstRT")
+
 
 
 if(UNIX)
@@ -108,6 +112,7 @@ if(NOT ${PLATFORM} MATCHES nt)
     PROPERTIES
     SOVERSION ${SOVERSION}
     VERSION ${LIBVERSION}
+    CLEAN_DIRECT_OUTPUT 1
     )
 else()
   SET_TARGET_PROPERTIES (
@@ -116,6 +121,7 @@ else()
     PROPERTIES
     SOVERSION ${SOVERSION}
     VERSION ${LIBVERSION}
+    CLEAN_DIRECT_OUTPUT 1
     )
 
 endif()
@@ -141,6 +147,8 @@ install (FILES
   DESTINATION "${INSTALL_CMAKE_DIR}")
 install (EXPORT DyninstTargets
   DESTINATION "${INSTALL_CMAKE_DIR}")
+#install(CODE "include(\"${RT_BINARY_DIR}/cmake_install.cmake\")")
+install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
 
 configure_file(cmake/DyninstConfig.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/DyninstConfig.cmake" @ONLY)
 

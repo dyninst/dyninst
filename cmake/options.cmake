@@ -15,3 +15,5 @@ endif()
 if (SW_ANALYSIS_STEPPER)
 add_definitions (-DUSE_PARSE_API)
 endif()
+
+message(status "Options set")

@@ -64,6 +64,7 @@ bool DThread::spawn(initial_func_t func, void *param)
    data->param = param;
    int result = pthread_create(&thrd, NULL, thread_init, data);
    assert(result == 0);
+   if(result) return false;
    live = true;
    return true;
 }
@@ -94,9 +95,8 @@ Mutex::Mutex(bool recursive)
       pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
    }
    int result = pthread_mutex_init(&mutex, &attr);
-   assert(result == 0);
-
    pthread_mutexattr_destroy(&attr);
+   assert(result == 0);
 }
 
 #include <stdio.h>

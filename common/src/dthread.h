@@ -130,15 +130,21 @@ class ScopeLock {
      c(NULL)
    {
       bool result = m->lock();
-      assert(result);
+      if(!result) 
+      {
+	assert(!"Failed to wait and acquire lock");
+      }
    }
       
    ScopeLock(CondVar &c_) :
      m(NULL),
      c(&c_)
    {
-      bool result = c->lock();
-      assert(result);
+     bool result = c->lock();
+      if(!result) 
+      {
+	assert(!"Failed to wait and acquire lock");
+      }
    }
 
    void unlock() {

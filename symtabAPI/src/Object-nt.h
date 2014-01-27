@@ -180,7 +180,7 @@ class Object : public AObject
                          void (*)(const char *) = log_msg, bool alloc_syms = true);
   
     SYMTAB_EXPORT virtual ~Object( void );
-
+	SYMTAB_EXPORT const char* getFileName() const { return curModule->GetName().c_str(); }
     SYMTAB_EXPORT bool isForwarded( Offset addr );
     SYMTAB_EXPORT bool isEEL() const { return false; }
     SYMTAB_EXPORT bool isText( const Offset addr ) const; 

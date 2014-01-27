@@ -3761,6 +3761,8 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr respon
             return false;
          }
          assert(is_ready);
+	 if(!is_ready) return false;
+	 
          response->setResponse(pool.regs[reg]);
       }
       else {
@@ -4210,6 +4212,8 @@ void int_thread::addEmulatedSingleStep(emulated_singlestep *es)
 
 void int_thread::rmEmulatedSingleStep(emulated_singlestep *es)
 {
+  (void)es;
+  
    assert(em_singlestep == es);
    delete em_singlestep;
    em_singlestep = NULL;

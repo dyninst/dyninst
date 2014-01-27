@@ -47,7 +47,11 @@
 
 extern void DYNINST_stopThread(void *, void *, void *, void *);
 
-struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0, {}};
+#if _MSC_VER
+struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0 };
+#else
+struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0, {} };
+#endif
 extern FILE *stOut;
 
 //#define DEBUG_MEM_EM

@@ -679,7 +679,12 @@ bool DwarfWalker::parseCommonBlock() {
    }
    
    Symbol *commonBlockVar = commonBlockVars[0];
-   assert(commonBlockVar);
+   if(!commonBlockVar)
+   {
+     assert(!"No common block variables to parse!");
+     return false;
+   }
+
 
    typeCommon *commonBlockType = NULL;
 

@@ -750,6 +750,8 @@ Handler::handler_ret_t HandleCrash::handleEvent(Event::ptr ev)
    int_thread *thrd = ev->getThread()->llthrd();
    assert(proc);
    assert(thrd);
+   if( !proc || !thrd) return ret_error;
+   
    EventCrash *event = static_cast<EventCrash *>(ev.get());
 
    if (proc->wasForcedTerminated()) {

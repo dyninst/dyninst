@@ -4896,7 +4896,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       case am_O: /* operand offset */
         nib += wordSzB * addrSzAttr;
         if(mac) {
-          int offset;
+          int offset = 0;
           switch(addrSzAttr) {
           case 1: // 16-bit offset
               offset = *((const short int*)addr);

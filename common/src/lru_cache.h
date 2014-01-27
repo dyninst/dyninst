@@ -111,6 +111,7 @@ class LRUCache {
          if (++index == max_hash_size)
             index = 0;
          assert(start != index);
+	 if(start == index) return;
       }
    }
 
