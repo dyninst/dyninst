@@ -50,18 +50,6 @@ SpringboardBuilder::SpringboardBuilder(AddressSpace* a)
 {
 }
 
-
-template <typename BlockIter> 
-SpringboardBuilder::Ptr SpringboardBuilder::create(BlockIter begin,
-						   BlockIter end,
-						   AddressSpace *as) {
-  Ptr ret = Ptr(new SpringboardBuilder(as));
-  if (!ret) return ret;
-
-  if (!ret->addBlocks(begin, end)) return Ptr();
-  return ret;
-}
-
 SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator begin,
 						       FuncSet::const_iterator end,
 						       AddressSpace *as) 
@@ -70,8 +58,6 @@ SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator b
   if (!ret) return ret;
   for (; begin != end; ++begin) {
      func_instance *func = *begin;
-     //if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), func, id++)) {
-     //if (!ret->addBlocks(func->blocks().begin(), func->blocks().end())) {
      if(!ret->installed_springboards_->addFunc(func)) 
      {
         return Ptr();
@@ -134,13 +120,6 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
       return false;
 
    return true;
-}
-
-template <typename BlockIter>
-bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end)
-{
-  return installed_springboards_->addBlocks(begin, end);
-  
 }
 
 bool InstalledSpringboards::addFunc(func_instance* func)

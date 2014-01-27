@@ -261,17 +261,12 @@ class SpringboardBuilder {
   typedef boost::shared_ptr<SpringboardBuilder> Ptr;
   typedef std::set<func_instance *> FuncSet;
 
-  template <typename RelocBlockIter> 
-    static Ptr create(RelocBlockIter begin, RelocBlockIter end, AddressSpace *addrSpace); 
   static Ptr createFunc(FuncSet::const_iterator begin, FuncSet::const_iterator end, AddressSpace *addrSpace);
 
   bool generate(std::list<codeGen> &springboards,
 		SpringboardMap &input);
 
  private:
-  template <typename BlockIter> 
-  bool addBlocks(BlockIter begin, BlockIter end);
-
   SpringboardBuilder(AddressSpace *a);
 
   bool generateInt(std::list<codeGen> &springboards,
