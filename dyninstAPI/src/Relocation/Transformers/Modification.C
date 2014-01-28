@@ -135,11 +135,13 @@ bool Modification::replaceFunction(RelocBlock *trace, RelocGraph *cfg) {
    if (target) {
       cfg->makeEdge(new Target<RelocBlock *>(stub),
                     new Target<RelocBlock *>(target),
+                    NULL,
                     ParseAPI::DIRECT);
    }
    else {
       cfg->makeEdge(new Target<RelocBlock *>(stub),
                     new Target<block_instance *>(newfun->entryBlock()),
+                    NULL,
                     ParseAPI::DIRECT);
    }
 
@@ -185,6 +187,7 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
       relocation_cerr << "\t Also relocated new function, using target " << target->id() << endl;
       cfg->makeEdge(new Target<RelocBlock *>(stub),
                     new Target<RelocBlock *>(target),
+                    NULL,
                     ParseAPI::DIRECT);
    }
    else {
@@ -192,6 +195,7 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
                       << hex << newfun->entryBlock()->start() << dec << " directly" << endl;
       cfg->makeEdge(new Target<RelocBlock *>(stub),
                     new Target<block_instance *>(newfun->entryBlock()),
+                    NULL,
                     ParseAPI::DIRECT);
    }
    relocation_cerr << "Stub block is " << stub->format() << endl;

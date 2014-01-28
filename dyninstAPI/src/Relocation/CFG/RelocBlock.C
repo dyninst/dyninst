@@ -192,7 +192,8 @@ void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *c
             boost::tie(valid, addr) = getJumpTarget();
             if (valid) {
                cfg->makeEdge(new Target<RelocBlock *>(this), 
-                             new Target<Address>(addr), 
+                             new Target<Address>(addr),
+                             edge, 
                              type);
             }
             break;
@@ -202,7 +203,8 @@ void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *c
          case ParseAPI::CALL_FT: {
 
             cfg->makeEdge(new Target<RelocBlock *>(this), 
-                          new Target<Address>(block_->end()), 
+                          new Target<Address>(block_->end()),
+                          edge,
                           type);
             break;
          }
@@ -228,6 +230,7 @@ void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *c
          if (e == OutEdge) {
             cfg->makeEdge(new Target<RelocBlock *>(this), 
                           new Target<RelocBlock *>(t),
+                          edge,
                           type);
             return;
          }
@@ -239,12 +242,14 @@ void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *c
       else {
          if (e == OutEdge) {
             cfg->makeEdge(new Target<RelocBlock *>(this), 
-                          new Target<block_instance *>(block), 
+                          new Target<block_instance *>(block),
+                          edge,
                           type);
          }
          else {
             cfg->makeEdge(new Target<block_instance *>(block), 
                           new Target<RelocBlock *>(this),
+                          edge,
                           type);
          }
       }
@@ -275,6 +280,14 @@ bool RelocBlock::determineSpringboards(PriorityMap &p) {
    for (RelocEdges::const_iterator iter = inEdges_.begin();
         iter != inEdges_.end(); ++iter) {
      if ((*iter)->type == ParseAPI::CALL) continue;
+     /* Skip tailcalls also */
+     edge_instance* edge = (*iter)->edge;
+     if (edge) {
+         if (edge->interproc() && 
+            (((*iter)->type == ParseAPI::DIRECT) || ((*iter)->type == ParseAPI::INDIRECT))) {
+             continue;
+         }
+     }
       if ((*iter)->src->type() != TargetInt::RelocBlockTarget) {
 	relocation_cerr << "determineSpringboards (non-relocated source): " << func_->symTabName()
 			<< " / " << hex << block_->start() << " is required (type "
