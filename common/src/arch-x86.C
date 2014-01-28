@@ -5575,6 +5575,9 @@ Address get_immediate_operand(instruction *instr)
 
     ia32_decode(IA32_FULL_DECODER,(const unsigned char *)(instr->ptr()),detail);
 
+    if (loc.imm_cnt < 1)
+      return 0;
+
     // now find the immediate value in the locations
     Address immediate = 0;
 
