@@ -79,7 +79,11 @@ namespace Dyninst
         INSTRUCTION_EXPORT static void version(int& major, int& minor, int& maintenance);
       union raw_insn_T
       {
+#if defined(__powerpc__) || defined(__powerpc64__)
 	unsigned int small_insn;
+#else
+	uintptr_t small_insn;
+#endif
 	unsigned char* large_insn;
       };
     public:
