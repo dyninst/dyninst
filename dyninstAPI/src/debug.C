@@ -702,6 +702,30 @@ StatContainer stats_ptrace;
 StatContainer stats_parse;
 StatContainer stats_codegen;
 
+const std::string INST_GENERATE_TIMER("instGenerateTimer");
+const std::string INST_INSTALL_TIMER("instInstallTimer");
+const std::string INST_LINK_TIMER("instLinkTimer");
+const std::string INST_REMOVE_TIMER("instRemoveTimer");
+const std::string INST_GENERATE_COUNTER("instGenerateCounter");
+const std::string INST_INSTALL_COUNTER("instInstallCounter");
+const std::string INST_LINK_COUNTER("instLinkCounter");
+const std::string INST_REMOVE_COUNTER("instRemoveCounter");
+
+const std::string PTRACE_WRITE_TIMER("ptraceWriteTimer");
+const std::string PTRACE_WRITE_COUNTER("ptraceWriteCounter");
+const std::string PTRACE_WRITE_AMOUNT("ptraceWriteAmountCounter");
+const std::string PTRACE_READ_TIMER("ptraceReadTimer");
+const std::string PTRACE_READ_COUNTER("ptraceReadCounter");
+const std::string PTRACE_READ_AMOUNT("ptraceReadAmountCounter");
+
+const std::string PARSE_SYMTAB_TIMER("parseSymtabTimer");
+const std::string PARSE_ANALYZE_TIMER("parseAnalyzeTimer");
+
+const std::string CODEGEN_AST_TIMER("codegenAstTimer");
+const std::string CODEGEN_AST_COUNTER("codegenAstCounter");
+const std::string CODEGEN_REGISTER_TIMER("codegenRegisterTimer");
+const std::string CODEGEN_LIVENESS_TIMER("codegenLivenessTimer");
+
 TimeStatistic running_time;
 
 bool have_stats = 0;
