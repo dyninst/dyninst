@@ -1075,7 +1075,8 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
          // be an absolute because that will remove the alias (and vice versa).
          assert(!alias.isAbs());
          input = alias;
-		 assert(input.target.isValid());
+         input.target = target;
+         assert(input.target.isValid());
                    
                  // if the input was also a delta, apply this also 
                  if (isDelta()) {
