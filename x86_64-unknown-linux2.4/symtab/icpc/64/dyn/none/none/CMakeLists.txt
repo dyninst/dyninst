@@ -18,14 +18,14 @@ CHECK_MUTATEE_COMPILER ("${M_intel_CC}"
 
 IF (MUTATEEintelCC64dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
-add_executable (symtab_group_test.dyn_icpc_64_none_none ${SOURCE_LIST_35})
-target_link_libraries (symtab_group_test.dyn_icpc_64_none_none testA)
-add_executable (test_exception.dyn_icpc_64_none_none ${SOURCE_LIST_70})
+add_executable (symtab_group_testdyn_icpc_64_none_none ${SOURCE_LIST_35})
+target_link_libraries (symtab_group_testdyn_icpc_64_none_none testA)
+add_executable (test_exceptiondyn_icpc_64_none_none ${SOURCE_LIST_70})
 
 
 INSTALL (TARGETS
-		symtab_group_test.dyn_icpc_64_none_none
-		test_exception.dyn_icpc_64_none_none
+		symtab_group_testdyn_icpc_64_none_none
+		test_exceptiondyn_icpc_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
 ELSE()

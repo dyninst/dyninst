@@ -18,12 +18,12 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc64dync MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_linux/srclists.cmake)
-add_executable (symtab_group_test.dyn_gcc_64_none_none ${SOURCE_LIST_9})
-target_link_libraries (symtab_group_test.dyn_gcc_64_none_none testA)
+add_executable (symtab_group_testdyn_gcc_64_none_none ${SOURCE_LIST_9})
+target_link_libraries (symtab_group_testdyn_gcc_64_none_none testA)
 
 
 INSTALL (TARGETS
-		symtab_group_test.dyn_gcc_64_none_none
+		symtab_group_testdyn_gcc_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
 ELSE()

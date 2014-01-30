@@ -18,14 +18,14 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 
 IF (MUTATEEgnucxx32dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
-add_executable (symtab_group_test.dyn_g++_32_none_none ${SOURCE_LIST_35})
-target_link_libraries (symtab_group_test.dyn_g++_32_none_none testA_m32)
-add_executable (test_exception.dyn_g++_32_none_none ${SOURCE_LIST_70})
+add_executable (symtab_group_testdyn_g++_32_none_none ${SOURCE_LIST_35})
+target_link_libraries (symtab_group_testdyn_g++_32_none_none testA_m32)
+add_executable (test_exceptiondyn_g++_32_none_none ${SOURCE_LIST_70})
 
 
 INSTALL (TARGETS
-		symtab_group_test.dyn_g++_32_none_none
-		test_exception.dyn_g++_32_none_none
+		symtab_group_testdyn_g++_32_none_none
+		test_exceptiondyn_g++_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
 ELSE()

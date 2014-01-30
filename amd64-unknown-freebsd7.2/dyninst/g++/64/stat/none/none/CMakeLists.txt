@@ -18,19 +18,19 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 
 IF (MUTATEEgnucxx64statcxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/amd64-unknown-freebsd7.2/srclists.cmake)
-add_executable (dyninst_cxx_group_test.stat_g++_64_none_none ${SOURCE_LIST_65})
-add_executable (dyninst_group_test.stat_g++_64_none_none ${SOURCE_LIST_70})
-add_executable (test1_14.stat_g++_64_none_none ${SOURCE_LIST_50})
-add_executable (test1_29.stat_g++_64_none_none ${SOURCE_LIST_4})
-add_executable (test1_35.stat_g++_64_none_none ${SOURCE_LIST_42})
+add_executable (dyninst_cxx_group_teststat_g++_64_none_none ${SOURCE_LIST_65})
+add_executable (dyninst_group_teststat_g++_64_none_none ${SOURCE_LIST_70})
+add_executable (test1_14stat_g++_64_none_none ${SOURCE_LIST_50})
+add_executable (test1_29stat_g++_64_none_none ${SOURCE_LIST_4})
+add_executable (test1_35stat_g++_64_none_none ${SOURCE_LIST_42})
 
 
 INSTALL (TARGETS
-		dyninst_cxx_group_test.stat_g++_64_none_none
-		dyninst_group_test.stat_g++_64_none_none
-		test1_14.stat_g++_64_none_none
-		test1_29.stat_g++_64_none_none
-		test1_35.stat_g++_64_none_none
+		dyninst_cxx_group_teststat_g++_64_none_none
+		dyninst_group_teststat_g++_64_none_none
+		test1_14stat_g++_64_none_none
+		test1_29stat_g++_64_none_none
+		test1_35stat_g++_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
 ELSE()
