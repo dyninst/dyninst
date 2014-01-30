@@ -1,5 +1,5 @@
 # CMakeLists for symtab/VC/32/dyn/none/none
-set (CMAKE_C_FLAGS "/DEBUG \"-I${PROJECT_SOURCE_DIR}/testsuite/src\" \"-I${PROJECT_SOURCE_DIR}/testsuite/src/symtab\" ${MUTATOR_DEFINES}  -TC ${CFLAGS}   ")
+set (CMAKE_C_FLAGS "/D_DEBUG /I${PROJECT_SOURCE_DIR}/testsuite/src /I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  /TC ${CFLAGS}   ")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_COMPILER "${M_native_cc}")
@@ -27,9 +27,10 @@ target_link_libraries (symtab_group_test.dyn_VC_32_none_none.exe testA_m32)
 INSTALL (TARGETS
 		symtab_group_test.dyn_VC_32_none_none.exe
 	DESTINATION ${INSTALL_DIR})
+
 ELSE()
-MESSAGE (STATUS "Compiler check for ${M_native_cc} failed")
+MESSAGE (STATUS "Compiler check for native_cc failed")
 ENDIF()
 ELSE()
-MESSAGE (STATUS "Compiler ${M_native_cc} not present")
+MESSAGE (STATUS "Compiler native_cc not present")
 ENDIF()

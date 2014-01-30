@@ -72,14 +72,14 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    compiler = info['compilers'][exe]
 
    if platform['name'] == 'i386-unknown-nt4.0':
-      include_path = '\\\"-I${PROJECT_SOURCE_DIR}/testsuite/src\\\" \\\"-I${PROJECT_SOURCE_DIR}/testsuite/src/%s\\\"' % module
+      include_path = '/I${PROJECT_SOURCE_DIR}/testsuite/src /I${PROJECT_SOURCE_DIR}/testsuite/src/%s' % module
    else:
       include_path = '-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/%s' % module
    
    c_flags = "%s %s" % (include_path, get_flags(platform, info['compilers'][exe], abi, opt, pic))
    #This should be (used to be?) a compiler property, but it's not right now.
    if platform['name'] == 'i386-unknown-nt4.0':
-      c_flags = '/DEBUG ' + c_flags
+      c_flags = '/D_DEBUG ' + c_flags
    else:
       c_flags = '-g ' + c_flags
 
@@ -166,7 +166,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    out.write("ELSE()\n");
    out.write("MESSAGE (STATUS \"Compiler check for %s failed\")\n" % c_compiler);
    out.write("ENDIF()\n");
-   out.write("ELSE()\\n");
+   out.write("ELSE()\n");
    out.write("MESSAGE (STATUS \"Compiler %s not present\")\n" % c_compiler);
    out.write("ENDIF()\n");
    

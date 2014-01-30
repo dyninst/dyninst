@@ -129,5 +129,9 @@ INSTALL (TARGETS
 		test_thread_8.dyn_bgxlc++_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ELSE()
+MESSAGE (STATUS "Compiler check for mpi_xlcxx failed")
 ENDIF()
+ELSE()
+MESSAGE (STATUS "Compiler mpi_xlcxx not present")
 ENDIF()

@@ -3229,8 +3229,8 @@ comp_mutatee_flags_str('bgxlc++', '${CXXFLAGS}').
 comp_mutatee_flags_str('xlC', '${MUTATEE_CXXFLAGS_NATIVE} ').
 comp_mutatee_flags_str('pgcxx', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE} ').
 % FIXME What do I specify for the Windows compilers, if anything?
-comp_std_flags_str('VC', '-TC').
-comp_std_flags_str('VC++', '-TP').
+comp_std_flags_str('VC', '/TC').
+comp_std_flags_str('VC++', '/TP').
 comp_mutatee_flags_str('VC', '${CFLAGS}').
 comp_mutatee_flags_str('VC++', '${CXXFLAGS_NORM}').
 comp_std_flags_str('icc', '${CFLAGS}').

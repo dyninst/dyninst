@@ -25,5 +25,9 @@ INSTALL (TARGETS
 		pc_exec_targ.dyn_pgcxx_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ELSE()
+MESSAGE (STATUS "Compiler check for pg_cxx failed")
 ENDIF()
+ELSE()
+MESSAGE (STATUS "Compiler pg_cxx not present")
 ENDIF()

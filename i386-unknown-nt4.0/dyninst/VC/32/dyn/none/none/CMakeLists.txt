@@ -1,5 +1,5 @@
 # CMakeLists for dyninst/VC/32/dyn/none/none
-set (CMAKE_C_FLAGS "/DEBUG \"-I${PROJECT_SOURCE_DIR}/testsuite/src\" \"-I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst\" ${MUTATOR_DEFINES}  -TC ${CFLAGS}   ")
+set (CMAKE_C_FLAGS "/D_DEBUG /I${PROJECT_SOURCE_DIR}/testsuite/src /I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  /TC ${CFLAGS}   ")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_COMPILER "${M_native_cc}")
@@ -12,7 +12,7 @@ set (CMAKE_CXX_LINK_EXECUTABLE ${M_native_linker})
 set (CMAKE_EXE_LINKER_FLAGS "${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  ")
 IF (NOT ${M_native_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
-	"/DEBUG \"-I${PROJECT_SOURCE_DIR}/testsuite/src\" \"-I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst\" ${MUTATOR_DEFINES}  -TC ${CFLAGS}   "
+	"/D_DEBUG /I${PROJECT_SOURCE_DIR}/testsuite/src /I${PROJECT_SOURCE_DIR}/testsuite/src/dyninst ${MUTATOR_DEFINES}  /TC ${CFLAGS}   "
 	"${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  "
 	"c"
 	"native_cc 32 dyn"
@@ -80,5 +80,9 @@ INSTALL (TARGETS
 		test_thread_8.dyn_VC_32_none_none.exe
 	DESTINATION ${INSTALL_DIR})
 
+ELSE()
+MESSAGE (STATUS "Compiler check for native_cc failed")
 ENDIF()
+ELSE()
+MESSAGE (STATUS "Compiler native_cc not present")
 ENDIF()

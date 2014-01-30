@@ -28,5 +28,9 @@ INSTALL (TARGETS
 		test_exception.dyn_g++_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ELSE()
+MESSAGE (STATUS "Compiler check for gnu_cxx failed")
 ENDIF()
+ELSE()
+MESSAGE (STATUS "Compiler gnu_cxx not present")
 ENDIF()

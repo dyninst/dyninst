@@ -26,5 +26,9 @@ INSTALL (TARGETS
 		symtab_group_test.dyn_bgxlc_64_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ELSE()
+MESSAGE (STATUS "Compiler check for mpi_xlc failed")
 ENDIF()
+ELSE()
+MESSAGE (STATUS "Compiler mpi_xlc not present")
 ENDIF()

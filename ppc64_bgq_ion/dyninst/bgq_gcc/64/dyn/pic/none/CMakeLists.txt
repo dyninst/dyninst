@@ -127,5 +127,9 @@ INSTALL (TARGETS
 		test_thread_8.dyn_bgq_gcc_64_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ELSE()
+MESSAGE (STATUS "Compiler check for mpi_cc failed")
 ENDIF()
+ELSE()
+MESSAGE (STATUS "Compiler mpi_cc not present")
 ENDIF()

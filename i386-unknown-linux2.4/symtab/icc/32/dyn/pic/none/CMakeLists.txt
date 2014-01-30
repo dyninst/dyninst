@@ -26,5 +26,9 @@ INSTALL (TARGETS
 		symtab_group_test.dyn_icc_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ELSE()
+MESSAGE (STATUS "Compiler check for intel_cc failed")
 ENDIF()
+ELSE()
+MESSAGE (STATUS "Compiler intel_cc not present")
 ENDIF()

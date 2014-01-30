@@ -25,5 +25,9 @@ INSTALL (TARGETS
 		pc_exec_targ.dyn_icpc_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ELSE()
+MESSAGE (STATUS "Compiler check for intel_CC failed")
 ENDIF()
+ELSE()
+MESSAGE (STATUS "Compiler intel_CC not present")
 ENDIF()
