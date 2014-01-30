@@ -121,7 +121,7 @@ TEST_DLL_EXPORT ComponentTester *componentTesterFactory()
 }
 
 
-test_results_t InstructionMutator::verify_read_write_sets(const Instruction::Ptr& i, const registerSet& expectedRead,
+test_results_t InstructionMutator::verify_read_write_sets(Instruction::Ptr i, const registerSet& expectedRead,
                                       const registerSet& expectedWritten)
 {
     set<RegisterAST::Ptr> actualRead_uo;

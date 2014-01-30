@@ -12,7 +12,7 @@ set (CMAKE_CXX_LINK_EXECUTABLE ${M_native_linker})
 set (CMAKE_EXE_LINKER_FLAGS "${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  ")
 IF (NOT ${M_native_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
-	"/DEBUG \"-I${PROJECT_SOURCE_DIR}/testsuite/src\" \"-I${PROJECT_SOURCE_DIR}/testsuite/src/symtab\" ${MUTATOR_DEFINES}  -TC ${CFLAGS}   "
+	"/D_DEBUG /I${PROJECT_SOURCE_DIR}/testsuite/src /I${PROJECT_SOURCE_DIR}/testsuite/src/symtab ${MUTATOR_DEFINES}  /TC ${CFLAGS}   "
 	"${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}  "
 	"c"
 	"native_cc 32 dyn"
@@ -27,6 +27,9 @@ target_link_libraries (symtab_group_test.dyn_VC_32_none_none.exe testA_m32)
 INSTALL (TARGETS
 		symtab_group_test.dyn_VC_32_none_none.exe
 	DESTINATION ${INSTALL_DIR})
-
+ELSE()
+MESSAGE (STATUS "Compiler check for ${M_native_cc} failed")
 ENDIF()
+ELSE()
+MESSAGE (STATUS "Compiler ${M_native_cc} not present")
 ENDIF()

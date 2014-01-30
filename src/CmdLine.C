@@ -636,7 +636,7 @@ struct groupcmp
          return ((int) lv->createmode) < ((int) rv->createmode);
 
       if (lv->threadmode != rv->threadmode)
-         return ((int) lv->threadmode) != ((int) rv->threadmode);
+         return ((int) lv->threadmode) < ((int) rv->threadmode);
       
       if (lv->procmode != rv->procmode)
          return ((int) lv->procmode) < ((int) rv->procmode);

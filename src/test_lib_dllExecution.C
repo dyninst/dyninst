@@ -136,7 +136,7 @@ typedef ComponentTester* (*comptester_factory_t)();
 ComponentTester *Module::loadModuleLibrary()
 {
    libhandle = NULL;
-   std::string dllname = "libtest";
+   std::string dllname = "test";
    dllname += name;
    dllname += ".dll";
 

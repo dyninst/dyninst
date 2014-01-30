@@ -66,7 +66,7 @@ class COMPLIB_DLL_EXPORT InstructionMutator : public TestMutator {
    virtual ~InstructionMutator();
    
     protected:   
-        test_results_t verify_read_write_sets(const Dyninst::InstructionAPI::Instruction::Ptr& i, const registerSet& expectedRead,
+        test_results_t verify_read_write_sets(Dyninst::InstructionAPI::Instruction::Ptr i, const registerSet& expectedRead,
            const registerSet& expectedWritten);
 
    test_results_t failure_accumulator(test_results_t lhs, test_results_t rhs);
