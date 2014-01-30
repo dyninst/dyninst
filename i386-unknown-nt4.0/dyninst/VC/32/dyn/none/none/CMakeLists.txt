@@ -20,64 +20,64 @@ CHECK_MUTATEE_COMPILER ("${M_native_cc}"
 
 IF (MUTATEEnativecc32dync MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-nt4.0/srclists.cmake)
-add_executable (dyninst_group_test.dyn_VC_32_none_none.exe ${SOURCE_LIST_41})
-target_link_libraries (dyninst_group_test.dyn_VC_32_none_none.exe ${CMAKE_DL_LIBS})
-add_executable (test1_12.dyn_VC_32_none_none.exe ${SOURCE_LIST_42})
-add_executable (test1_14.dyn_VC_32_none_none.exe ${SOURCE_LIST_30})
-add_executable (test1_19.dyn_VC_32_none_none.exe ${SOURCE_LIST_14})
-add_executable (test1_29.dyn_VC_32_none_none.exe ${SOURCE_LIST_4})
-add_executable (test2_14.dyn_VC_32_none_none.exe ${SOURCE_LIST_35})
-add_executable (test2_8.dyn_VC_32_none_none.exe ${SOURCE_LIST_2})
-add_executable (test3_1.dyn_VC_32_none_none.exe ${SOURCE_LIST_20})
-add_executable (test3_2.dyn_VC_32_none_none.exe ${SOURCE_LIST_24})
-add_executable (test3_3.dyn_VC_32_none_none.exe ${SOURCE_LIST_32})
-add_executable (test3_4.dyn_VC_32_none_none.exe ${SOURCE_LIST_37})
-add_executable (test3_7.dyn_VC_32_none_none.exe ${SOURCE_LIST_16})
-add_executable (test4_1.dyn_VC_32_none_none.exe ${SOURCE_LIST_3})
-add_executable (test_mem_1.dyn_VC_32_none_none.exe ${SOURCE_LIST_40})
-add_executable (test_mem_2.dyn_VC_32_none_none.exe ${SOURCE_LIST_1})
-add_executable (test_mem_3.dyn_VC_32_none_none.exe ${SOURCE_LIST_15})
-add_executable (test_mem_4.dyn_VC_32_none_none.exe ${SOURCE_LIST_10})
-add_executable (test_mem_5.dyn_VC_32_none_none.exe ${SOURCE_LIST_18})
-add_executable (test_mem_6.dyn_VC_32_none_none.exe ${SOURCE_LIST_39})
-add_executable (test_mem_7.dyn_VC_32_none_none.exe ${SOURCE_LIST_7})
-add_executable (test_mem_8.dyn_VC_32_none_none.exe ${SOURCE_LIST_8})
-add_executable (test_snip_remove.dyn_VC_32_none_none.exe ${SOURCE_LIST_31})
-add_executable (test_stack_1.dyn_VC_32_none_none.exe ${SOURCE_LIST_36})
-add_executable (test_stack_3.dyn_VC_32_none_none.exe ${SOURCE_LIST_34})
-add_executable (test_thread_6.dyn_VC_32_none_none.exe ${SOURCE_LIST_38})
-add_executable (test_thread_7.dyn_VC_32_none_none.exe ${SOURCE_LIST_26})
-add_executable (test_thread_8.dyn_VC_32_none_none.exe ${SOURCE_LIST_6})
+add_executable (dyninst_group_test.dyn_VC_32_none_none ${SOURCE_LIST_41})
+target_link_libraries (dyninst_group_test.dyn_VC_32_none_none ${CMAKE_DL_LIBS})
+add_executable (test1_12.dyn_VC_32_none_none ${SOURCE_LIST_42})
+add_executable (test1_14.dyn_VC_32_none_none ${SOURCE_LIST_30})
+add_executable (test1_19.dyn_VC_32_none_none ${SOURCE_LIST_14})
+add_executable (test1_29.dyn_VC_32_none_none ${SOURCE_LIST_4})
+add_executable (test2_14.dyn_VC_32_none_none ${SOURCE_LIST_35})
+add_executable (test2_8.dyn_VC_32_none_none ${SOURCE_LIST_2})
+add_executable (test3_1.dyn_VC_32_none_none ${SOURCE_LIST_20})
+add_executable (test3_2.dyn_VC_32_none_none ${SOURCE_LIST_24})
+add_executable (test3_3.dyn_VC_32_none_none ${SOURCE_LIST_32})
+add_executable (test3_4.dyn_VC_32_none_none ${SOURCE_LIST_37})
+add_executable (test3_7.dyn_VC_32_none_none ${SOURCE_LIST_16})
+add_executable (test4_1.dyn_VC_32_none_none ${SOURCE_LIST_3})
+add_executable (test_mem_1.dyn_VC_32_none_none ${SOURCE_LIST_40})
+add_executable (test_mem_2.dyn_VC_32_none_none ${SOURCE_LIST_1})
+add_executable (test_mem_3.dyn_VC_32_none_none ${SOURCE_LIST_15})
+add_executable (test_mem_4.dyn_VC_32_none_none ${SOURCE_LIST_10})
+add_executable (test_mem_5.dyn_VC_32_none_none ${SOURCE_LIST_18})
+add_executable (test_mem_6.dyn_VC_32_none_none ${SOURCE_LIST_39})
+add_executable (test_mem_7.dyn_VC_32_none_none ${SOURCE_LIST_7})
+add_executable (test_mem_8.dyn_VC_32_none_none ${SOURCE_LIST_8})
+add_executable (test_snip_remove.dyn_VC_32_none_none ${SOURCE_LIST_31})
+add_executable (test_stack_1.dyn_VC_32_none_none ${SOURCE_LIST_36})
+add_executable (test_stack_3.dyn_VC_32_none_none ${SOURCE_LIST_34})
+add_executable (test_thread_6.dyn_VC_32_none_none ${SOURCE_LIST_38})
+add_executable (test_thread_7.dyn_VC_32_none_none ${SOURCE_LIST_26})
+add_executable (test_thread_8.dyn_VC_32_none_none ${SOURCE_LIST_6})
 
 
 INSTALL (TARGETS
-		dyninst_group_test.dyn_VC_32_none_none.exe
-		test1_12.dyn_VC_32_none_none.exe
-		test1_14.dyn_VC_32_none_none.exe
-		test1_19.dyn_VC_32_none_none.exe
-		test1_29.dyn_VC_32_none_none.exe
-		test2_14.dyn_VC_32_none_none.exe
-		test2_8.dyn_VC_32_none_none.exe
-		test3_1.dyn_VC_32_none_none.exe
-		test3_2.dyn_VC_32_none_none.exe
-		test3_3.dyn_VC_32_none_none.exe
-		test3_4.dyn_VC_32_none_none.exe
-		test3_7.dyn_VC_32_none_none.exe
-		test4_1.dyn_VC_32_none_none.exe
-		test_mem_1.dyn_VC_32_none_none.exe
-		test_mem_2.dyn_VC_32_none_none.exe
-		test_mem_3.dyn_VC_32_none_none.exe
-		test_mem_4.dyn_VC_32_none_none.exe
-		test_mem_5.dyn_VC_32_none_none.exe
-		test_mem_6.dyn_VC_32_none_none.exe
-		test_mem_7.dyn_VC_32_none_none.exe
-		test_mem_8.dyn_VC_32_none_none.exe
-		test_snip_remove.dyn_VC_32_none_none.exe
-		test_stack_1.dyn_VC_32_none_none.exe
-		test_stack_3.dyn_VC_32_none_none.exe
-		test_thread_6.dyn_VC_32_none_none.exe
-		test_thread_7.dyn_VC_32_none_none.exe
-		test_thread_8.dyn_VC_32_none_none.exe
+		dyninst_group_test.dyn_VC_32_none_none
+		test1_12.dyn_VC_32_none_none
+		test1_14.dyn_VC_32_none_none
+		test1_19.dyn_VC_32_none_none
+		test1_29.dyn_VC_32_none_none
+		test2_14.dyn_VC_32_none_none
+		test2_8.dyn_VC_32_none_none
+		test3_1.dyn_VC_32_none_none
+		test3_2.dyn_VC_32_none_none
+		test3_3.dyn_VC_32_none_none
+		test3_4.dyn_VC_32_none_none
+		test3_7.dyn_VC_32_none_none
+		test4_1.dyn_VC_32_none_none
+		test_mem_1.dyn_VC_32_none_none
+		test_mem_2.dyn_VC_32_none_none
+		test_mem_3.dyn_VC_32_none_none
+		test_mem_4.dyn_VC_32_none_none
+		test_mem_5.dyn_VC_32_none_none
+		test_mem_6.dyn_VC_32_none_none
+		test_mem_7.dyn_VC_32_none_none
+		test_mem_8.dyn_VC_32_none_none
+		test_snip_remove.dyn_VC_32_none_none
+		test_stack_1.dyn_VC_32_none_none
+		test_stack_3.dyn_VC_32_none_none
+		test_thread_6.dyn_VC_32_none_none
+		test_thread_7.dyn_VC_32_none_none
+		test_thread_8.dyn_VC_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
 ELSE()

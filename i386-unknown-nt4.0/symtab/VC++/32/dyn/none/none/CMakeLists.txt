@@ -20,12 +20,12 @@ CHECK_MUTATEE_COMPILER ("${M_native_cc}"
 
 IF (MUTATEEnativecc32dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-nt4.0/srclists.cmake)
-add_executable (symtab_group_test.dyn_VC++_32_none_none.exe ${SOURCE_LIST_29})
-target_link_libraries (symtab_group_test.dyn_VC++_32_none_none.exe testA_m32)
+add_executable (symtab_group_test.dyn_VC++_32_none_none ${SOURCE_LIST_29})
+target_link_libraries (symtab_group_test.dyn_VC++_32_none_none testA_m32)
 
 
 INSTALL (TARGETS
-		symtab_group_test.dyn_VC++_32_none_none.exe
+		symtab_group_test.dyn_VC++_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
 ELSE()

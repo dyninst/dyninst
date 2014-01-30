@@ -140,11 +140,9 @@ def mutatee_binary(mutatee, platform,info):
 
 def mutatee_suffix(mutatee, platform, info):
    # Returns standard name for the solo mutatee binary for this mutatee
-   es = platform['filename_conventions']['executable_suffix']
    format = mutatee_format(mutatee['format'])
-   return "%s%s%s" % (format,
-                       mutatee_bto_component(mutatee,info),
-                       es)
+   return "%s%s" % (format,
+                       mutatee_bto_component(mutatee,info))
 
 
 # Returns the command used to invoke the compiler
