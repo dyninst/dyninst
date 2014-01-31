@@ -113,7 +113,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    link_flags = "%s %s %s" % (compiler['flags']['link'],
                               compiler['abiflags'][platform['name']][mut['abi']]['flags'],
                               linkage)
-   out.write("message( STATUS \"Old linker flags were \"${CMAKE_EXE_LINKER_FLAGS}\", new are %s\")\n" % link_flags)
+   out.write("message( STATUS \"Old linker flags were ${CMAKE_EXE_LINKER_FLAGS}, new are %s\")\n" % link_flags)
    out.write("set (CMAKE_EXE_LINKER_FLAGS \"%s\")\n" % link_flags)
 
    if ('c++' in compiler['languages']):

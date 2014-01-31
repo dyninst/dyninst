@@ -3175,8 +3175,8 @@ mutatee_link_options(Native_cc, '${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATI
     member(Native_cc, ['xlc', 'pgcc']).
 mutatee_link_options(Native_cxx, '${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}') :-
     member(Native_cxx, ['xlC', 'pgcxx']).
-mutatee_link_options('VC', '${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
-mutatee_link_options('VC++', '${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
+mutatee_link_options('VC', '${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_LDFLAGS_NATIVE}').
+mutatee_link_options('VC++', '${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_LDFLAGS_NATIVE}').
 mutatee_link_options('bgxlc', '${MUTATEE_LDFLAGS_NATIVE}').
 mutatee_link_options('bgxlc++', '${MUTATEE_LDFLAGS_NATIVE}').
 
@@ -3233,7 +3233,7 @@ comp_mutatee_flags_str('pgcxx', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE} ').
 comp_std_flags_str('VC', '/TC').
 comp_std_flags_str('VC++', '/TP').
 comp_mutatee_flags_str('VC', '${CFLAGS}').
-comp_mutatee_flags_str('VC++', '${CXXFLAGS_NORM}').
+comp_mutatee_flags_str('VC++', '${CXXFLAGS}').
 comp_std_flags_str('icc', '${CFLAGS}').
 comp_std_flags_str('icpc', '${CXXFLAGS}').
 comp_mutatee_flags_str('icc', '-DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU} ').
