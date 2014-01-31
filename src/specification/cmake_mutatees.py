@@ -100,9 +100,10 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    out.write("set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})\n")
    out.write("set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})\n")
 
-   if platform['name'] == 'i386-unknown-nt4.0':
-       out.write("set (CMAKE_C_LINK_EXECUTABLE ${M_native_linker})\n")
-       out.write("set (CMAKE_CXX_LINK_EXECUTABLE ${M_native_linker})\n")
+#  We shouldn't need this and it appears to be harmful!
+#   if platform['name'] == 'i386-unknown-nt4.0':
+#       out.write("set (CMAKE_C_LINK_EXECUTABLE ${M_native_linker})\n")
+#       out.write("set (CMAKE_CXX_LINK_EXECUTABLE ${M_native_linker})\n")
    if stat_dyn == 'stat':
       linkage = compiler['staticlink']
    else:
