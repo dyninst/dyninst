@@ -2405,8 +2405,9 @@ pcMutateeLibs(Libs) :-
    current_platform(P),
    platform(_, OS, _, P),
    (
-       OS = 'freebsd' -> Libs = ['pthread'];
-       Libs = ['dl', 'pthread']
+    OS = 'freebsd' -> Libs = ['pthread'];
+    OS = 'windows' -> Libs = ['dl', 'pthread', 'ws2_32'];
+    Libs = ['dl', 'pthread']
    ).
 
 compiler_for_mutatee(Mutatee, Compiler) :-
@@ -3174,8 +3175,8 @@ mutatee_link_options(Native_cc, '${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATI
     member(Native_cc, ['xlc', 'pgcc']).
 mutatee_link_options(Native_cxx, '${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}') :-
     member(Native_cxx, ['xlC', 'pgcxx']).
-mutatee_link_options('VC', '${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
-mutatee_link_options('VC++', '${LDFLAGS} ${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
+mutatee_link_options('VC', '${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
+mutatee_link_options('VC++', '${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
 mutatee_link_options('bgxlc', '${MUTATEE_LDFLAGS_NATIVE}').
 mutatee_link_options('bgxlc++', '${MUTATEE_LDFLAGS_NATIVE}').
 
