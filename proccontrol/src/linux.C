@@ -1686,9 +1686,9 @@ bool linux_process::plat_residentNeedsMemVals()
 }
 
 bool linux_process::plat_getResidentUsage(unsigned long, unsigned long, unsigned long,
-                           MemUsageResp_t *resp)
+                           MemUsageResp_t *)
 {
-#error TODO fill in resident usage query
+   return false;
 }
 
 #if !defined(OFFSETOF)
