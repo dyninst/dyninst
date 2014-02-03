@@ -206,7 +206,7 @@ void StackAnalysis::fixpoint() {
     }
     else {
         stackanalysis_printf("\t Calculating meet with block [%x-%x]\n", block->start(), block->lastInsnAddr());
-       meetInputs(block, input);
+       meetInputs(block, blockInputs[block], input);
     }
     
     stackanalysis_printf("\t New in meet: %s\n", format(input).c_str());
@@ -928,7 +928,7 @@ StackAnalysis::RegisterState StackAnalysis::getSrcOutputRegs(Edge* e)
 	return blockOutputs[b];
 }
 
-void StackAnalysis::meetInputs(Block *block, RegisterState &input) {
+void StackAnalysis::meetInputs(Block *block, RegisterState& blockInput, RegisterState &input) {
    input.clear();
 
    //Intraproc epred; // ignore calls, returns in edge iteration
@@ -942,7 +942,8 @@ void StackAnalysis::meetInputs(Block *block, RegisterState &input) {
 					 this,
 					 boost::bind(&StackAnalysis::getSrcOutputRegs, this, _1),
 					 boost::ref(input)));
-   
+
+   meet(blockInput, input);
 
 }
 
@@ -1074,7 +1075,8 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
          // be an absolute because that will remove the alias (and vice versa).
          assert(!alias.isAbs());
          input = alias;
-		 assert(input.target.isValid());
+         input.target = target;
+         assert(input.target.isValid());
                    
                  // if the input was also a delta, apply this also 
                  if (isDelta()) {
