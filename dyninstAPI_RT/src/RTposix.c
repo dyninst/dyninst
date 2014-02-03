@@ -278,12 +278,9 @@ int unmap_region(void *addr, int len) {
 
 #if defined(cap_mutatee_traps)
 extern void dyninstTrapHandler(int sig, siginfo_t *info, void *context);
-extern void r_debugCheck();
 
 int DYNINSTinitializeTrapHandler()
 {
-    r_debugCheck();
-
    int result;
    struct sigaction new_handler;
 
