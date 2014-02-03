@@ -1,5 +1,5 @@
 # CMakeLists for proccontrol/VC/32/dyn/none/none
-set (CMAKE_C_FLAGS "/D_DEBUG ${MUTATOR_DEFINES}  /TC ${CFLAGS}   ")
+set (CMAKE_C_FLAGS "/D_DEBUG ${MUTATOR_DEFINES}   ${CFLAGS}   ")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_COMPILER "${M_native_cc}")
@@ -14,7 +14,7 @@ message( STATUS "Old linker flags were ${CMAKE_EXE_LINKER_FLAGS}, new are ${CMAK
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_LDFLAGS_NATIVE}  ")
 IF (NOT ${M_native_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
-	"/D_DEBUG ${MUTATOR_DEFINES}  /TC ${CFLAGS}   "
+	"/D_DEBUG ${MUTATOR_DEFINES}   ${CFLAGS}   "
 	"${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_LDFLAGS_NATIVE}  "
 	"c"
 	"native_cc 32 dyn"

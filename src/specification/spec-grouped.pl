@@ -3230,14 +3230,14 @@ comp_mutatee_flags_str('bgxlc++', '${CXXFLAGS}').
 comp_mutatee_flags_str('xlC', '${MUTATEE_CXXFLAGS_NATIVE} ').
 comp_mutatee_flags_str('pgcxx', '${MUTATEE_CXXFLAGS_NATIVE} ').
 % FIXME What do I specify for the Windows compilers, if anything?
-comp_std_flags_str('VC', '/TC').
-comp_std_flags_str('VC++', '/TP').
+comp_std_flags_str('VC', '').
+comp_std_flags_str('VC++', '').
 comp_mutatee_flags_str('VC', '${CFLAGS}').
 comp_mutatee_flags_str('VC++', '${CXXFLAGS}').
 comp_std_flags_str('icc', '${CFLAGS}').
 comp_std_flags_str('icpc', '${CXXFLAGS}').
 comp_mutatee_flags_str('icc', '${MUTATEE_CFLAGS_GNU} ').
-comp_mutatee_flags_str('icpc', '${MUTATEE_CXXFLAGS_GNU}  ').
+comp_mutatee_flags_str('icpc', ' ${MUTATEE_CXXFLAGS_GNU}  ').
 
 % gfortran flags
 comp_std_flags_str('gfortran', '-g').
