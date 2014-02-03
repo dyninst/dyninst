@@ -22,12 +22,12 @@ CHECK_MUTATEE_COMPILER ("${M_mpi_xlcxx}"
 
 IF (MUTATEEmpixlcxx64dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
-add_executable (symtab_group_testdyn_bgxlc++_64_none_none ${SOURCE_LIST_19})
-target_link_libraries (symtab_group_testdyn_bgxlc++_64_none_none testA)
+add_executable (symtab_group_test.dyn_bgxlc++_64_none_none ${SOURCE_LIST_19})
+target_link_libraries (symtab_group_test.dyn_bgxlc++_64_none_none testA)
 
 
 INSTALL (TARGETS
-		symtab_group_testdyn_bgxlc++_64_none_none
+		symtab_group_test.dyn_bgxlc++_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
 ELSE()

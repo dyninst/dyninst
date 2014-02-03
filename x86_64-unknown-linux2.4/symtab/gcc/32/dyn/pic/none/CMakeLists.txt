@@ -22,12 +22,12 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc32dync MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
-add_executable (symtab_group_testdyn_gcc_32_pic_none ${SOURCE_LIST_35})
-target_link_libraries (symtab_group_testdyn_gcc_32_pic_none testA_m32)
+add_executable (symtab_group_test.dyn_gcc_32_pic_none ${SOURCE_LIST_35})
+target_link_libraries (symtab_group_test.dyn_gcc_32_pic_none testA_m32)
 
 
 INSTALL (TARGETS
-		symtab_group_testdyn_gcc_32_pic_none
+		symtab_group_test.dyn_gcc_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
 ELSE()

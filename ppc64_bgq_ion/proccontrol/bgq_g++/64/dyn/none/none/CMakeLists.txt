@@ -22,45 +22,45 @@ CHECK_MUTATEE_COMPILER ("${M_mpi_cxx}"
 
 IF (MUTATEEmpicxx64dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
-add_executable (pc_addlibrarydyn_bgq_g++_64_none_none ${SOURCE_LIST_37})
-target_link_libraries (pc_addlibrarydyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_breakpointdyn_bgq_g++_64_none_none ${SOURCE_LIST_30})
-target_link_libraries (pc_breakpointdyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_detachdyn_bgq_g++_64_none_none ${SOURCE_LIST_11})
-target_link_libraries (pc_detachdyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_groupsdyn_bgq_g++_64_none_none ${SOURCE_LIST_36})
-target_link_libraries (pc_groupsdyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_irpcdyn_bgq_g++_64_none_none ${SOURCE_LIST_60})
-target_link_libraries (pc_irpcdyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_launchdyn_bgq_g++_64_none_none ${SOURCE_LIST_61})
-target_link_libraries (pc_launchdyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_librarydyn_bgq_g++_64_none_none ${SOURCE_LIST_25})
-target_link_libraries (pc_librarydyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_singlestepdyn_bgq_g++_64_none_none ${SOURCE_LIST_27})
-target_link_libraries (pc_singlestepdyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_statdyn_bgq_g++_64_none_none ${SOURCE_LIST_4})
-target_link_libraries (pc_statdyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_terminatedyn_bgq_g++_64_none_none ${SOURCE_LIST_23})
-target_link_libraries (pc_terminatedyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_terminate_stoppeddyn_bgq_g++_64_none_none ${SOURCE_LIST_45})
-target_link_libraries (pc_terminate_stoppeddyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_threaddyn_bgq_g++_64_none_none ${SOURCE_LIST_34})
-target_link_libraries (pc_threaddyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_addlibrary.dyn_bgq_g++_64_none_none ${SOURCE_LIST_37})
+target_link_libraries (pc_addlibrary.dyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_breakpoint.dyn_bgq_g++_64_none_none ${SOURCE_LIST_30})
+target_link_libraries (pc_breakpoint.dyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_detach.dyn_bgq_g++_64_none_none ${SOURCE_LIST_11})
+target_link_libraries (pc_detach.dyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_groups.dyn_bgq_g++_64_none_none ${SOURCE_LIST_36})
+target_link_libraries (pc_groups.dyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_irpc.dyn_bgq_g++_64_none_none ${SOURCE_LIST_60})
+target_link_libraries (pc_irpc.dyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_launch.dyn_bgq_g++_64_none_none ${SOURCE_LIST_61})
+target_link_libraries (pc_launch.dyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_library.dyn_bgq_g++_64_none_none ${SOURCE_LIST_25})
+target_link_libraries (pc_library.dyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_singlestep.dyn_bgq_g++_64_none_none ${SOURCE_LIST_27})
+target_link_libraries (pc_singlestep.dyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_stat.dyn_bgq_g++_64_none_none ${SOURCE_LIST_4})
+target_link_libraries (pc_stat.dyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_terminate.dyn_bgq_g++_64_none_none ${SOURCE_LIST_23})
+target_link_libraries (pc_terminate.dyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_terminate_stopped.dyn_bgq_g++_64_none_none ${SOURCE_LIST_45})
+target_link_libraries (pc_terminate_stopped.dyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_thread.dyn_bgq_g++_64_none_none ${SOURCE_LIST_34})
+target_link_libraries (pc_thread.dyn_bgq_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 
 INSTALL (TARGETS
-		pc_addlibrarydyn_bgq_g++_64_none_none
-		pc_breakpointdyn_bgq_g++_64_none_none
-		pc_detachdyn_bgq_g++_64_none_none
-		pc_groupsdyn_bgq_g++_64_none_none
-		pc_irpcdyn_bgq_g++_64_none_none
-		pc_launchdyn_bgq_g++_64_none_none
-		pc_librarydyn_bgq_g++_64_none_none
-		pc_singlestepdyn_bgq_g++_64_none_none
-		pc_statdyn_bgq_g++_64_none_none
-		pc_terminatedyn_bgq_g++_64_none_none
-		pc_terminate_stoppeddyn_bgq_g++_64_none_none
-		pc_threaddyn_bgq_g++_64_none_none
+		pc_addlibrary.dyn_bgq_g++_64_none_none
+		pc_breakpoint.dyn_bgq_g++_64_none_none
+		pc_detach.dyn_bgq_g++_64_none_none
+		pc_groups.dyn_bgq_g++_64_none_none
+		pc_irpc.dyn_bgq_g++_64_none_none
+		pc_launch.dyn_bgq_g++_64_none_none
+		pc_library.dyn_bgq_g++_64_none_none
+		pc_singlestep.dyn_bgq_g++_64_none_none
+		pc_stat.dyn_bgq_g++_64_none_none
+		pc_terminate.dyn_bgq_g++_64_none_none
+		pc_terminate_stopped.dyn_bgq_g++_64_none_none
+		pc_thread.dyn_bgq_g++_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
 ELSE()

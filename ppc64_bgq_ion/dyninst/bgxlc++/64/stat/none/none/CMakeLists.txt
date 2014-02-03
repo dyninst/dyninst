@@ -22,18 +22,18 @@ CHECK_MUTATEE_COMPILER ("${M_mpi_xlcxx}"
 
 IF (MUTATEEmpixlcxx64statcxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
-add_executable (dyninst_cxx_group_teststat_bgxlc++_64_none_none ${SOURCE_LIST_46})
-add_executable (dyninst_group_teststat_bgxlc++_64_none_none ${SOURCE_LIST_29})
-target_link_libraries (dyninst_group_teststat_bgxlc++_64_none_none ${CMAKE_DL_LIBS})
-add_executable (test1_14stat_bgxlc++_64_none_none ${SOURCE_LIST_39})
-add_executable (test1_29stat_bgxlc++_64_none_none ${SOURCE_LIST_9})
+add_executable (dyninst_cxx_group_test.stat_bgxlc++_64_none_none ${SOURCE_LIST_46})
+add_executable (dyninst_group_test.stat_bgxlc++_64_none_none ${SOURCE_LIST_29})
+target_link_libraries (dyninst_group_test.stat_bgxlc++_64_none_none ${CMAKE_DL_LIBS})
+add_executable (test1_14.stat_bgxlc++_64_none_none ${SOURCE_LIST_39})
+add_executable (test1_29.stat_bgxlc++_64_none_none ${SOURCE_LIST_9})
 
 
 INSTALL (TARGETS
-		dyninst_cxx_group_teststat_bgxlc++_64_none_none
-		dyninst_group_teststat_bgxlc++_64_none_none
-		test1_14stat_bgxlc++_64_none_none
-		test1_29stat_bgxlc++_64_none_none
+		dyninst_cxx_group_test.stat_bgxlc++_64_none_none
+		dyninst_group_test.stat_bgxlc++_64_none_none
+		test1_14.stat_bgxlc++_64_none_none
+		test1_29.stat_bgxlc++_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
 ELSE()

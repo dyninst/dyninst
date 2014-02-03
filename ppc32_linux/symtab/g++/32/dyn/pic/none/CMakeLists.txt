@@ -22,12 +22,12 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 
 IF (MUTATEEgnucxx32dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc32_linux/srclists.cmake)
-add_executable (symtab_group_testdyn_g++_32_pic_none ${SOURCE_LIST_52})
-target_link_libraries (symtab_group_testdyn_g++_32_pic_none testA_m32)
+add_executable (symtab_group_test.dyn_g++_32_pic_none ${SOURCE_LIST_52})
+target_link_libraries (symtab_group_test.dyn_g++_32_pic_none testA_m32)
 
 
 INSTALL (TARGETS
-		symtab_group_testdyn_g++_32_pic_none
+		symtab_group_test.dyn_g++_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
 ELSE()

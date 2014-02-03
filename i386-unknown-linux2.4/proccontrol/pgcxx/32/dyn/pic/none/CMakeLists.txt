@@ -22,11 +22,11 @@ CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
 
 IF (MUTATEEpgcxx32dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
-add_executable (pc_exec_targdyn_pgcxx_32_pic_none ${SOURCE_LIST_11})
+add_executable (pc_exec_targ.dyn_pgcxx_32_pic_none ${SOURCE_LIST_11})
 
 
 INSTALL (TARGETS
-		pc_exec_targdyn_pgcxx_32_pic_none
+		pc_exec_targ.dyn_pgcxx_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
 ELSE()
