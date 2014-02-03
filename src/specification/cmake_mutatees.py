@@ -153,7 +153,8 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
             # This could be handled better....
             if m['abi'] == '32':
                if l == 'testA':
-                  lib_ext = '_m32'
+                  if platform['name'] != 'i386-unknown-nt4.0':
+                     lib_ext = '_m32'
 
             out.write(" %s%s" % (l, lib_ext))
          out.write(")\n")
