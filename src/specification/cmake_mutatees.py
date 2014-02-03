@@ -71,12 +71,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    c_compiler = get_compiler_command(exe, platform, abi, info)
    compiler = info['compilers'][exe]
 
-   if platform['name'] == 'i386-unknown-nt4.0':
-      include_path = '/I${PROJECT_SOURCE_DIR}/testsuite/src /I${PROJECT_SOURCE_DIR}/testsuite/src/%s' % module
-   else:
-      include_path = '-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/%s' % module
-   
-   c_flags = "%s %s" % (include_path, get_flags(platform, info['compilers'][exe], abi, opt, pic))
+   c_flags = get_flags(platform, info['compilers'][exe], abi, opt, pic)
    #This should be (used to be?) a compiler property, but it's not right now.
    if platform['name'] == 'i386-unknown-nt4.0':
       c_flags = '/D_DEBUG ' + c_flags
@@ -99,6 +94,10 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    out.write("set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})\n")
    out.write("set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})\n")
    out.write("set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})\n")
+
+   out.write ("include_directories(\"${PROJECT_SOURCE_DIR}/testsuite/src\")\n")
+   out.write ("include_directories(\"${PROJECT_SOURCE_DIR}/testsuite/src/%s\")\n" % module)
+   out.write ("add_definitions(-DSOLO_MUTATEE)\n")
 
 #  We shouldn't need this and it appears to be harmful!
 #   if platform['name'] == 'i386-unknown-nt4.0':
