@@ -2405,8 +2405,9 @@ pcMutateeLibs(Libs) :-
    current_platform(P),
    platform(_, OS, _, P),
    (
-       OS = 'freebsd' -> Libs = ['pthread'];
-       Libs = ['dl', 'pthread']
+    OS = 'freebsd' -> Libs = ['pthread'];
+    OS = 'windows' -> Libs = ['dl', 'pthread', 'ws2_32'];
+    Libs = ['dl', 'pthread']
    ).
 
 compiler_for_mutatee(Mutatee, Compiler) :-
@@ -3174,8 +3175,8 @@ mutatee_link_options(Native_cc, '${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATI
     member(Native_cc, ['xlc', 'pgcc']).
 mutatee_link_options(Native_cxx, '${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}') :-
     member(Native_cxx, ['xlC', 'pgcxx']).
-mutatee_link_options('VC', '${LDFLAGS} ${MUTATEE_CFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
-mutatee_link_options('VC++', '${LDFLAGS} ${MUTATEE_CXXFLAGS_NATIVE} ${MUTATEE_LDFLAGS_NATIVE}').
+mutatee_link_options('VC', '${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_LDFLAGS_NATIVE}').
+mutatee_link_options('VC++', '${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_LDFLAGS_NATIVE}').
 mutatee_link_options('bgxlc', '${MUTATEE_LDFLAGS_NATIVE}').
 mutatee_link_options('bgxlc++', '${MUTATEE_LDFLAGS_NATIVE}').
 
@@ -3214,29 +3215,29 @@ comp_std_flags_str('bg_gcc', '${CFLAGS}').
 comp_std_flags_str('bg_g++', '${CXXFLAGS}').
 comp_std_flags_str('bgq_gcc', '${CFLAGS}').
 comp_std_flags_str('bgq_g++', '${CXXFLAGS}').
-% FIXME Tear out the '-DSOLO_MUTATEE' from these and make it its own thing
-comp_mutatee_flags_str('gcc', '-DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU} ').
-comp_mutatee_flags_str('g++', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU} ').
+
+comp_mutatee_flags_str('gcc', '${MUTATEE_CFLAGS_GNU} ').
+comp_mutatee_flags_str('g++', '${MUTATEE_CXXFLAGS_GNU} ').
 comp_mutatee_flags_str('xlc', '${MUTATEE_CFLAGS_NATIVE} ').
-comp_mutatee_flags_str('pgcc', '-DSOLO_MUTATEE ${MUTATEE_CFLAGS_NATIVE} ').
-comp_mutatee_flags_str('bg_gcc', '-DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU} ').
-comp_mutatee_flags_str('bg_g++', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU} ').
-comp_mutatee_flags_str('bgq_gcc', '-DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU} ').
-comp_mutatee_flags_str('bgq_g++', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU} ').
+comp_mutatee_flags_str('pgcc', '${MUTATEE_CFLAGS_NATIVE} ').
+comp_mutatee_flags_str('bg_gcc', '${MUTATEE_CFLAGS_GNU} ').
+comp_mutatee_flags_str('bg_g++', '${MUTATEE_CXXFLAGS_GNU} ').
+comp_mutatee_flags_str('bgq_gcc', '${MUTATEE_CFLAGS_GNU} ').
+comp_mutatee_flags_str('bgq_g++', '${MUTATEE_CXXFLAGS_GNU} ').
 comp_mutatee_flags_str('bgxlc', '${CFLAGS}').
 comp_mutatee_flags_str('bgxlc++', '${CXXFLAGS}').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
 comp_mutatee_flags_str('xlC', '${MUTATEE_CXXFLAGS_NATIVE} ').
-comp_mutatee_flags_str('pgcxx', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_NATIVE} ').
+comp_mutatee_flags_str('pgcxx', '${MUTATEE_CXXFLAGS_NATIVE} ').
 % FIXME What do I specify for the Windows compilers, if anything?
-comp_std_flags_str('VC', '/TC').
-comp_std_flags_str('VC++', '/TP').
+comp_std_flags_str('VC', '').
+comp_std_flags_str('VC++', '').
 comp_mutatee_flags_str('VC', '${CFLAGS}').
-comp_mutatee_flags_str('VC++', '${CXXFLAGS_NORM}').
+comp_mutatee_flags_str('VC++', '${CXXFLAGS}').
 comp_std_flags_str('icc', '${CFLAGS}').
 comp_std_flags_str('icpc', '${CXXFLAGS}').
-comp_mutatee_flags_str('icc', '-DSOLO_MUTATEE ${MUTATEE_CFLAGS_GNU} ').
-comp_mutatee_flags_str('icpc', '-DSOLO_MUTATEE ${MUTATEE_CXXFLAGS_GNU}  ').
+comp_mutatee_flags_str('icc', '${MUTATEE_CFLAGS_GNU} ').
+comp_mutatee_flags_str('icpc', ' ${MUTATEE_CXXFLAGS_GNU}  ').
 
 % gfortran flags
 comp_std_flags_str('gfortran', '-g').

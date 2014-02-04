@@ -71,12 +71,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    c_compiler = get_compiler_command(exe, platform, abi, info)
    compiler = info['compilers'][exe]
 
-   if platform['name'] == 'i386-unknown-nt4.0':
-      include_path = '/I${PROJECT_SOURCE_DIR}/testsuite/src /I${PROJECT_SOURCE_DIR}/testsuite/src/%s' % module
-   else:
-      include_path = '-I${PROJECT_SOURCE_DIR}/testsuite/src -I${PROJECT_SOURCE_DIR}/testsuite/src/%s' % module
-   
-   c_flags = "%s %s" % (include_path, get_flags(platform, info['compilers'][exe], abi, opt, pic))
+   c_flags = get_flags(platform, info['compilers'][exe], abi, opt, pic)
    #This should be (used to be?) a compiler property, but it's not right now.
    if platform['name'] == 'i386-unknown-nt4.0':
       c_flags = '/D_DEBUG ' + c_flags
@@ -100,18 +95,24 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    out.write("set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})\n")
    out.write("set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})\n")
 
-   if platform['name'] == 'i386-unknown-nt4.0':
-       out.write("set (CMAKE_C_LINK_EXECUTABLE ${M_native_linker})\n")
-       out.write("set (CMAKE_CXX_LINK_EXECUTABLE ${M_native_linker})\n")
+   out.write ("include_directories(\"${PROJECT_SOURCE_DIR}/testsuite/src\")\n")
+   out.write ("include_directories(\"${PROJECT_SOURCE_DIR}/testsuite/src/%s\")\n" % module)
+   out.write ("add_definitions(-DSOLO_MUTATEE)\n")
+
+#  We shouldn't need this and it appears to be harmful!
+#   if platform['name'] == 'i386-unknown-nt4.0':
+#       out.write("set (CMAKE_C_LINK_EXECUTABLE ${M_native_linker})\n")
+#       out.write("set (CMAKE_CXX_LINK_EXECUTABLE ${M_native_linker})\n")
    if stat_dyn == 'stat':
       linkage = compiler['staticlink']
    else:
       linkage = compiler['dynamiclink']
-   if platform['name'] == 'i386-unknown-nt4.0' and module == 'proccontrol':
-      linkage = "%s %s" % (linkage, "ws2_32.lib")
+#   if platform['name'] == 'i386-unknown-nt4.0' and module == 'proccontrol':
+#      linkage = "%s %s" % (linkage, "ws2_32.lib")
    link_flags = "%s %s %s" % (compiler['flags']['link'],
                               compiler['abiflags'][platform['name']][mut['abi']]['flags'],
                               linkage)
+   out.write("message( STATUS \"Old linker flags were ${CMAKE_EXE_LINKER_FLAGS}, new are %s\")\n" % link_flags)
    out.write("set (CMAKE_EXE_LINKER_FLAGS \"%s\")\n" % link_flags)
 
    if ('c++' in compiler['languages']):
@@ -152,7 +153,8 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
             # This could be handled better....
             if m['abi'] == '32':
                if l == 'testA':
-                  lib_ext = '_m32'
+                  if platform['name'] != 'i386-unknown-nt4.0':
+                     lib_ext = '_m32'
 
             out.write(" %s%s" % (l, lib_ext))
          out.write(")\n")
