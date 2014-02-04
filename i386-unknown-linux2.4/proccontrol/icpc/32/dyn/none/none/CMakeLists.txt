@@ -18,7 +18,12 @@ CHECK_MUTATEE_COMPILER ("${M_intel_CC}"
 IF (MUTATEEintelCC32dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
 add_executable (pc_exec_targ.dyn_icpc_32_none_none ${SOURCE_LIST_11})
-set_source_files_properties(${SOURCE_LIST_11} PROPERTIES LANGUAGE CXX)
+foreach (f ${SOURCE_LIST_11})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
+	endif()
+	endforeach()
 set_target_properties(pc_exec_targ.dyn_icpc_32_none_none PROPERTIES LINKER_LANGUAGE CXX)
 
 

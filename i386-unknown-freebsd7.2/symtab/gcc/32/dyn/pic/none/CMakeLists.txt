@@ -18,7 +18,12 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 IF (MUTATEEgnucc32dynC MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-freebsd7.2/srclists.cmake)
 add_executable (symtab_group_test.dyn_gcc_32_pic_none ${SOURCE_LIST_23})
-set_source_files_properties(${SOURCE_LIST_23} PROPERTIES LANGUAGE C)
+foreach (f ${SOURCE_LIST_23})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE C)
+	endif()
+	endforeach()
 set_target_properties(symtab_group_test.dyn_gcc_32_pic_none PROPERTIES LINKER_LANGUAGE C)
 target_link_libraries (symtab_group_test.dyn_gcc_32_pic_none testA_m32)
 

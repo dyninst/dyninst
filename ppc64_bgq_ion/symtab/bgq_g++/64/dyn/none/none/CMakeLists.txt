@@ -18,7 +18,12 @@ CHECK_MUTATEE_COMPILER ("${M_mpi_cxx}"
 IF (MUTATEEmpicxx64dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
 add_executable (symtab_group_test.dyn_bgq_g++_64_none_none ${SOURCE_LIST_19})
-set_source_files_properties(${SOURCE_LIST_19} PROPERTIES LANGUAGE CXX)
+foreach (f ${SOURCE_LIST_19})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
+	endif()
+	endforeach()
 set_target_properties(symtab_group_test.dyn_bgq_g++_64_none_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (symtab_group_test.dyn_bgq_g++_64_none_none testA)
 

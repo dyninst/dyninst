@@ -18,7 +18,12 @@ CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
 IF (MUTATEEpgcxx32dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (pc_exec_targ.dyn_pgcxx_32_none_none ${SOURCE_LIST_28})
-set_source_files_properties(${SOURCE_LIST_28} PROPERTIES LANGUAGE CXX)
+foreach (f ${SOURCE_LIST_28})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
+	endif()
+	endforeach()
 set_target_properties(pc_exec_targ.dyn_pgcxx_32_none_none PROPERTIES LINKER_LANGUAGE CXX)
 
 

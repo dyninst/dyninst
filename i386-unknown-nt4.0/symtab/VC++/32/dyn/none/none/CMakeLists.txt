@@ -18,7 +18,12 @@ CHECK_MUTATEE_COMPILER ("${M_native_cc}"
 IF (MUTATEEnativecc32dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-nt4.0/srclists.cmake)
 add_executable (symtab_group_test.dyn_VC++_32_none_none ${SOURCE_LIST_29})
-set_source_files_properties(${SOURCE_LIST_29} PROPERTIES LANGUAGE CXX)
+foreach (f ${SOURCE_LIST_29})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
+	endif()
+	endforeach()
 set_target_properties(symtab_group_test.dyn_VC++_32_none_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (symtab_group_test.dyn_VC++_32_none_none testA)
 

@@ -18,7 +18,12 @@ CHECK_MUTATEE_COMPILER ("${M_intel_cc}"
 IF (MUTATEEintelcc64dynC MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (symtab_group_test.dyn_icc_64_none_none ${SOURCE_LIST_35})
-set_source_files_properties(${SOURCE_LIST_35} PROPERTIES LANGUAGE C)
+foreach (f ${SOURCE_LIST_35})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE C)
+	endif()
+	endforeach()
 set_target_properties(symtab_group_test.dyn_icc_64_none_none PROPERTIES LINKER_LANGUAGE C)
 target_link_libraries (symtab_group_test.dyn_icc_64_none_none testA)
 

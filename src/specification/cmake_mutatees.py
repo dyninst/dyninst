@@ -135,8 +135,12 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    for m in mlist:
       out.write("add_executable (%s ${SOURCE_LIST_%d})\n" % (utils.mutatee_binary(m, platform, info),
                                                              m['srclist_index']))
-      out.write("set_source_files_properties(${SOURCE_LIST_%d} PROPERTIES LANGUAGE %s)\n" % (m['srclist_index'],
-                                                                                             lang))
+      out.write("foreach (f ${SOURCE_LIST_%d})\n" % m['srclist_index']);
+      out.write("\tget_source_file_property(lang ${f} LANGUAGE)\n")
+      out.write("\tif(lang MATCHES \"C\")\n")
+      out.write("\t\tset_source_files_properties(${f} PROPERTIES LANGUAGE %s)\n" % lang)
+      out.write("\tendif()\n");
+      out.write("\tendforeach()\n");
       out.write("set_target_properties(%s PROPERTIES LINKER_LANGUAGE %s)\n" % (utils.mutatee_binary(m,platform,info),
                                                                                lang))
       # This lists all libraries
