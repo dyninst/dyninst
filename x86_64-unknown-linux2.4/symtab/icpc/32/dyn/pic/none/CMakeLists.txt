@@ -1,30 +1,39 @@
 # CMakeLists for symtab/icpc/32/dyn/pic/none
-set (CMAKE_C_FLAGS "-g ${MUTATOR_DEFINES}  ${CXXFLAGS}  ${MUTATEE_CXXFLAGS_GNU}   -Di386_unknown_linux2_4 -Dm32_test  -fPIC")
-set (CMAKE_C_FLAGS_DEBUG "")
-set (CMAKE_C_FLAGS_RELEASE "")
-set (CMAKE_C_COMPILER "${M_intel_CC_32}")
-set (CMAKE_CXX_FLAGS ${CMAKE_C_FLAGS})
-set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
-set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
-set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
+set (CMAKE_CXX_FLAGS "-g ${MUTATOR_DEFINES}  ${CXXFLAGS}  ${MUTATEE_CXXFLAGS_GNU}   -Di386_unknown_linux2_4 -Dm32_test  -fPIC")
+set (CMAKE_CXX_FLAGS_DEBUG "")
+set (CMAKE_CXX_FLAGS_RELEASE "")
+set (CMAKE_CXX_COMPILER "${M_intel_CC_32}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/symtab")
 add_definitions(-DSOLO_MUTATEE)
-message( STATUS "Old linker flags were ${CMAKE_EXE_LINKER_FLAGS}, new are ${MUTATEE_LDFLAGS_GNU} -Di386_unknown_linux2_4 -Dm32_test -Xlinker -export-dynamic")
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU} -Di386_unknown_linux2_4 -Dm32_test -Xlinker -export-dynamic")
 IF (NOT ${M_intel_CC_32} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_intel_CC_32}"
 	"-g ${MUTATOR_DEFINES}  ${CXXFLAGS}  ${MUTATEE_CXXFLAGS_GNU}   -Di386_unknown_linux2_4 -Dm32_test  -fPIC"
 	"${MUTATEE_LDFLAGS_GNU} -Di386_unknown_linux2_4 -Dm32_test -Xlinker -export-dynamic"
-	"cxx"
+	"CXX"
 	"intel_CC_32 32 dyn"
-	MUTATEEintelCC3232dyncxx)
+	MUTATEEintelCC3232dynCXX)
 
-IF (MUTATEEintelCC3232dyncxx MATCHES "1")
+IF (MUTATEEintelCC3232dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
 add_executable (symtab_group_test.dyn_icpc_32_pic_none ${SOURCE_LIST_35})
+foreach (f ${SOURCE_LIST_35})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
+	endif()
+	endforeach()
+set_target_properties(symtab_group_test.dyn_icpc_32_pic_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (symtab_group_test.dyn_icpc_32_pic_none testA_m32)
 add_executable (test_exception.dyn_icpc_32_pic_none ${SOURCE_LIST_70})
+foreach (f ${SOURCE_LIST_70})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
+	endif()
+	endforeach()
+set_target_properties(test_exception.dyn_icpc_32_pic_none PROPERTIES LINKER_LANGUAGE CXX)
 
 
 INSTALL (TARGETS

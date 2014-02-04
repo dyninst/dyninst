@@ -1,30 +1,39 @@
 # CMakeLists for symtab/g++/32/dyn/pic/none
-set (CMAKE_C_FLAGS "-g ${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}    -fPIC")
-set (CMAKE_C_FLAGS_DEBUG "")
-set (CMAKE_C_FLAGS_RELEASE "")
-set (CMAKE_C_COMPILER "${M_gnu_cxx}")
-set (CMAKE_CXX_FLAGS ${CMAKE_C_FLAGS})
-set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
-set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
-set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
+set (CMAKE_CXX_FLAGS "-g ${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}    -fPIC")
+set (CMAKE_CXX_FLAGS_DEBUG "")
+set (CMAKE_CXX_FLAGS_RELEASE "")
+set (CMAKE_CXX_COMPILER "${M_gnu_cxx}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/symtab")
 add_definitions(-DSOLO_MUTATEE)
-message( STATUS "Old linker flags were ${CMAKE_EXE_LINKER_FLAGS}, new are ${MUTATEE_LDFLAGS_GNU}  -Wl,-export-dynamic")
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU}  -Wl,-export-dynamic")
 IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"-g ${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}    -fPIC"
 	"${MUTATEE_LDFLAGS_GNU}  -Wl,-export-dynamic"
-	"cxx"
+	"CXX"
 	"gnu_cxx 32 dyn"
-	MUTATEEgnucxx32dyncxx)
+	MUTATEEgnucxx32dynCXX)
 
-IF (MUTATEEgnucxx32dyncxx MATCHES "1")
+IF (MUTATEEgnucxx32dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
 add_executable (symtab_group_test.dyn_g++_32_pic_none ${SOURCE_LIST_27})
+foreach (f ${SOURCE_LIST_27})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
+	endif()
+	endforeach()
+set_target_properties(symtab_group_test.dyn_g++_32_pic_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (symtab_group_test.dyn_g++_32_pic_none testA_m32)
 add_executable (test_exception.dyn_g++_32_pic_none ${SOURCE_LIST_76})
+foreach (f ${SOURCE_LIST_76})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
+	endif()
+	endforeach()
+set_target_properties(test_exception.dyn_g++_32_pic_none PROPERTIES LINKER_LANGUAGE CXX)
 
 
 INSTALL (TARGETS
