@@ -18,23 +18,19 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc32statc MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
-add_executable (dyninst_group_teststat_gcc_32_none_none ${SOURCE_LIST_69})
-target_link_libraries (dyninst_group_teststat_gcc_32_none_none ${CMAKE_DL_LIBS})
-add_executable (test1_14stat_gcc_32_none_none ${SOURCE_LIST_70})
-add_executable (test1_29stat_gcc_32_none_none ${SOURCE_LIST_58})
-add_executable (test1_35stat_gcc_32_none_none ${SOURCE_LIST_91})
+add_executable (dyninst_group_test.stat_gcc_32_none_none ${SOURCE_LIST_69})
+target_link_libraries (dyninst_group_test.stat_gcc_32_none_none ${CMAKE_DL_LIBS})
+add_executable (test1_14.stat_gcc_32_none_none ${SOURCE_LIST_70})
+add_executable (test1_29.stat_gcc_32_none_none ${SOURCE_LIST_58})
+add_executable (test1_35.stat_gcc_32_none_none ${SOURCE_LIST_91})
 
 
 INSTALL (TARGETS
-		dyninst_group_teststat_gcc_32_none_none
-		test1_14stat_gcc_32_none_none
-		test1_29stat_gcc_32_none_none
-		test1_35stat_gcc_32_none_none
+		dyninst_group_test.stat_gcc_32_none_none
+		test1_14.stat_gcc_32_none_none
+		test1_29.stat_gcc_32_none_none
+		test1_35.stat_gcc_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for gnu_cc failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler gnu_cc not present")
 ENDIF()

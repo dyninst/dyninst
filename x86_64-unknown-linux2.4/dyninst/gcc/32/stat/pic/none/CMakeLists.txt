@@ -18,21 +18,17 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc32statc MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
-add_executable (dyninst_group_teststat_gcc_32_pic_none ${SOURCE_LIST_48})
-target_link_libraries (dyninst_group_teststat_gcc_32_pic_none ${CMAKE_DL_LIBS})
-add_executable (test1_14stat_gcc_32_pic_none ${SOURCE_LIST_53})
-add_executable (test1_29stat_gcc_32_pic_none ${SOURCE_LIST_4})
+add_executable (dyninst_group_test.stat_gcc_32_pic_none ${SOURCE_LIST_48})
+target_link_libraries (dyninst_group_test.stat_gcc_32_pic_none ${CMAKE_DL_LIBS})
+add_executable (test1_14.stat_gcc_32_pic_none ${SOURCE_LIST_53})
+add_executable (test1_29.stat_gcc_32_pic_none ${SOURCE_LIST_4})
 
 
 INSTALL (TARGETS
-		dyninst_group_teststat_gcc_32_pic_none
-		test1_14stat_gcc_32_pic_none
-		test1_29stat_gcc_32_pic_none
+		dyninst_group_test.stat_gcc_32_pic_none
+		test1_14.stat_gcc_32_pic_none
+		test1_29.stat_gcc_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for gnu_cc failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler gnu_cc not present")
 ENDIF()

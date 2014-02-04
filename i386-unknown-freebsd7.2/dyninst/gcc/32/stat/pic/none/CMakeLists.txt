@@ -18,22 +18,18 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc32statc MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-freebsd7.2/srclists.cmake)
-add_executable (dyninst_group_teststat_gcc_32_pic_none ${SOURCE_LIST_26})
-add_executable (test1_14stat_gcc_32_pic_none ${SOURCE_LIST_48})
-add_executable (test1_29stat_gcc_32_pic_none ${SOURCE_LIST_4})
-add_executable (test1_35stat_gcc_32_pic_none ${SOURCE_LIST_66})
+add_executable (dyninst_group_test.stat_gcc_32_pic_none ${SOURCE_LIST_26})
+add_executable (test1_14.stat_gcc_32_pic_none ${SOURCE_LIST_48})
+add_executable (test1_29.stat_gcc_32_pic_none ${SOURCE_LIST_4})
+add_executable (test1_35.stat_gcc_32_pic_none ${SOURCE_LIST_66})
 
 
 INSTALL (TARGETS
-		dyninst_group_teststat_gcc_32_pic_none
-		test1_14stat_gcc_32_pic_none
-		test1_29stat_gcc_32_pic_none
-		test1_35stat_gcc_32_pic_none
+		dyninst_group_test.stat_gcc_32_pic_none
+		test1_14.stat_gcc_32_pic_none
+		test1_29.stat_gcc_32_pic_none
+		test1_35.stat_gcc_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for gnu_cc failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler gnu_cc not present")
 ENDIF()

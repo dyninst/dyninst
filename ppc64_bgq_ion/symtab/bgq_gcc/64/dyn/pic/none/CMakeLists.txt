@@ -18,17 +18,13 @@ CHECK_MUTATEE_COMPILER ("${M_mpi_cc}"
 
 IF (MUTATEEmpicc64dync MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
-add_executable (symtab_group_testdyn_bgq_gcc_64_pic_none ${SOURCE_LIST_19})
-target_link_libraries (symtab_group_testdyn_bgq_gcc_64_pic_none testA)
+add_executable (symtab_group_test.dyn_bgq_gcc_64_pic_none ${SOURCE_LIST_19})
+target_link_libraries (symtab_group_test.dyn_bgq_gcc_64_pic_none testA)
 
 
 INSTALL (TARGETS
-		symtab_group_testdyn_bgq_gcc_64_pic_none
+		symtab_group_test.dyn_bgq_gcc_64_pic_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for mpi_cc failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler mpi_cc not present")
 ENDIF()

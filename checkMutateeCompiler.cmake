@@ -7,10 +7,10 @@ MACRO (CHECK_MUTATEE_COMPILER _COMPILER _COMP_FLAG _LINK_FLAG _LANG _MSG _RESULT
       if(${_LANG} MATCHES cxx)
             execute_process(WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest
                             RESULT_VARIABLE COMPILER_RESULT
-#                            OUTPUT_QUIET
-#                            ERROR_QUIET
-							OUTPUT_VARIABLE COMPILER_OUTPUT
-							ERROR_VARIABLE COMPILER_OUTPUT
+                            OUTPUT_QUIET
+                            ERROR_QUIET
+#							OUTPUT_VARIABLE COMPILER_OUTPUT
+#							ERROR_VARIABLE COMPILER_OUTPUT
                             COMMAND ${CMAKE_COMMAND}
                             -DCMAKE_CXX_COMPILER=${_COMPILER}
                             -DCMAKE_CXX_FLAGS=${_COMP_FLAG}
@@ -19,10 +19,10 @@ MACRO (CHECK_MUTATEE_COMPILER _COMPILER _COMP_FLAG _LINK_FLAG _LANG _MSG _RESULT
       elseif (${_LANG} MATCHES fortran)
             execute_process(WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest
                             RESULT_VARIABLE COMPILER_RESULT
-#                            OUTPUT_QUIET
-#                            ERROR_QUIET
-							OUTPUT_VARIABLE COMPILER_OUTPUT
-							ERROR_VARIABLE COMPILER_OUTPUT
+                            OUTPUT_QUIET
+                            ERROR_QUIET
+#							OUTPUT_VARIABLE COMPILER_OUTPUT
+#							ERROR_VARIABLE COMPILER_OUTPUT
                             COMMAND ${CMAKE_COMMAND}
                             -DCMAKE_Fortran_COMPILER=${_COMPILER}
                             -DCMAKE_Fortran_FLAGS=${_COMP_FLAG}
@@ -31,10 +31,10 @@ MACRO (CHECK_MUTATEE_COMPILER _COMPILER _COMP_FLAG _LINK_FLAG _LANG _MSG _RESULT
       elseif (${_LANG} MATCHES c)
             execute_process(WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest
                             RESULT_VARIABLE COMPILER_RESULT
-#                            OUTPUT_QUIET
-#                            ERROR_QUIET
-							OUTPUT_VARIABLE COMPILER_OUTPUT
-							ERROR_VARIABLE COMPILER_OUTPUT
+                            OUTPUT_QUIET
+                            ERROR_QUIET
+#							OUTPUT_VARIABLE COMPILER_OUTPUT
+#							ERROR_VARIABLE COMPILER_OUTPUT
                             COMMAND ${CMAKE_COMMAND}
                             -DCMAKE_C_COMPILER=${_COMPILER}
                             -DCMAKE_C_FLAGS=${_COMP_FLAG}
@@ -44,10 +44,10 @@ MACRO (CHECK_MUTATEE_COMPILER _COMPILER _COMP_FLAG _LINK_FLAG _LANG _MSG _RESULT
       if (${COMPILER_RESULT} MATCHES 0)
             execute_process(WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest
                             RESULT_VARIABLE COMPILER_RESULT
-#                            OUTPUT_QUIET
-#                            ERROR_QUIET
-							OUTPUT_VARIABLE COMPILER_OUTPUT
-							ERROR_VARIABLE COMPILER_OUTPUT
+                            OUTPUT_QUIET
+                            ERROR_QUIET
+#							OUTPUT_VARIABLE COMPILER_OUTPUT
+#							ERROR_VARIABLE COMPILER_OUTPUT
                             COMMAND ${CMAKE_COMMAND}
                             --build ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest)
       endif()

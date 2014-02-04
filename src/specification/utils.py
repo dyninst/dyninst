@@ -135,8 +135,8 @@ def mutatee_format(formatSpec):
     return format
 
 def mutatee_binary(mutatee, platform,info):
-   return "%s%s" % (mutatee['name'], 
-                    mutatee_suffix(mutatee, platform, info))
+   return "%s.%s" % (mutatee['name'], 
+                     mutatee_suffix(mutatee, platform, info))
 
 def mutatee_suffix(mutatee, platform, info):
    # Returns standard name for the solo mutatee binary for this mutatee

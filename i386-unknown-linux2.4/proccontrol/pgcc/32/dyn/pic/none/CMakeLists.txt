@@ -18,16 +18,12 @@ CHECK_MUTATEE_COMPILER ("${M_pg_cc}"
 
 IF (MUTATEEpgcc32dync MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
-add_executable (pc_exec_targdyn_pgcc_32_pic_none ${SOURCE_LIST_11})
+add_executable (pc_exec_targ.dyn_pgcc_32_pic_none ${SOURCE_LIST_11})
 
 
 INSTALL (TARGETS
-		pc_exec_targdyn_pgcc_32_pic_none
+		pc_exec_targ.dyn_pgcc_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for pg_cc failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler pg_cc not present")
 ENDIF()

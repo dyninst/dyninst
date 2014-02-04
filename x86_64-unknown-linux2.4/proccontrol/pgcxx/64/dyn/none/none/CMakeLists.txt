@@ -18,16 +18,12 @@ CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
 
 IF (MUTATEEpgcxx64dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
-add_executable (pc_exec_targdyn_pgcxx_64_none_none ${SOURCE_LIST_28})
+add_executable (pc_exec_targ.dyn_pgcxx_64_none_none ${SOURCE_LIST_28})
 
 
 INSTALL (TARGETS
-		pc_exec_targdyn_pgcxx_64_none_none
+		pc_exec_targ.dyn_pgcxx_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for pg_cxx failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler pg_cxx not present")
 ENDIF()

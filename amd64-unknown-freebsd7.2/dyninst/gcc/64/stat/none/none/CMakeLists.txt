@@ -18,22 +18,18 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc64statc MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/amd64-unknown-freebsd7.2/srclists.cmake)
-add_executable (dyninst_group_teststat_gcc_64_none_none ${SOURCE_LIST_70})
-add_executable (test1_14stat_gcc_64_none_none ${SOURCE_LIST_50})
-add_executable (test1_29stat_gcc_64_none_none ${SOURCE_LIST_4})
-add_executable (test1_35stat_gcc_64_none_none ${SOURCE_LIST_42})
+add_executable (dyninst_group_test.stat_gcc_64_none_none ${SOURCE_LIST_70})
+add_executable (test1_14.stat_gcc_64_none_none ${SOURCE_LIST_50})
+add_executable (test1_29.stat_gcc_64_none_none ${SOURCE_LIST_4})
+add_executable (test1_35.stat_gcc_64_none_none ${SOURCE_LIST_42})
 
 
 INSTALL (TARGETS
-		dyninst_group_teststat_gcc_64_none_none
-		test1_14stat_gcc_64_none_none
-		test1_29stat_gcc_64_none_none
-		test1_35stat_gcc_64_none_none
+		dyninst_group_test.stat_gcc_64_none_none
+		test1_14.stat_gcc_64_none_none
+		test1_29.stat_gcc_64_none_none
+		test1_35.stat_gcc_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for gnu_cc failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler gnu_cc not present")
 ENDIF()

@@ -18,16 +18,12 @@ CHECK_MUTATEE_COMPILER ("${M_intel_CC_32}"
 
 IF (MUTATEEintelCC3232dyncxx MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
-add_executable (pc_exec_targdyn_icpc_32_none_none ${SOURCE_LIST_28})
+add_executable (pc_exec_targ.dyn_icpc_32_none_none ${SOURCE_LIST_28})
 
 
 INSTALL (TARGETS
-		pc_exec_targdyn_icpc_32_none_none
+		pc_exec_targ.dyn_icpc_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for intel_CC_32 failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler intel_CC_32 not present")
 ENDIF()
