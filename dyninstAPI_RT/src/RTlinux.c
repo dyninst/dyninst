@@ -696,10 +696,12 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
  * the binary. Leaving this code in would create a global constructor for the
  * function runDYNINSTBaseInit(). See DYNINSTglobal_ctors_handler.
  */ 
+extern void r_debugCheck();
 extern void DYNINSTBaseInit();
 void runDYNINSTBaseInit() __attribute__((constructor));
 void runDYNINSTBaseInit()
 {
+    r_debugCheck();
    DYNINSTBaseInit();
 }
 #endif
