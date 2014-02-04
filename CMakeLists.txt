@@ -121,6 +121,7 @@ else()
     SOVERSION ${SOVERSION}
     VERSION ${LIBVERSION}
     CLEAN_DIRECT_OUTPUT 1
+
     )
 
 endif()
