@@ -80,29 +80,29 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
 
    if not os.path.exists(gen_path):
       os.makedirs(gen_path)
+
+   if ('c++' in compiler['languages']):
+      lang = 'CXX'
+   elif ('fortran' in compiler['languages']):
+      lang = 'Fortran'
+   elif ('c' in compiler['languages']):
+      lang = 'C'
       
    out = open('%s/CMakeLists.txt' % gen_path, 'w')
    out.write("# CMakeLists for %s\n" % path)
    
-   # This is kinda ugly, but we need to force usage of a particular compiler. So 
-   out.write("set (CMAKE_C_FLAGS \"%s\")\n" % c_flags)
-   out.write("set (CMAKE_C_FLAGS_DEBUG \"\")\n")
-   out.write("set (CMAKE_C_FLAGS_RELEASE \"\")\n")
-   out.write("set (CMAKE_C_COMPILER \"${M_%s}\")\n" % c_compiler)
-
-   out.write("set (CMAKE_CXX_FLAGS ${CMAKE_C_FLAGS})\n")
-   out.write("set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})\n")
-   out.write("set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})\n")
-   out.write("set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})\n")
+   if lang == 'fortran':
+      out.write("enable_language(Fortran)\n");
+      # This is kinda ugly, but we need to force usage of a particular compiler. So 
+   out.write("set (CMAKE_%s_FLAGS \"%s\")\n" % (lang, c_flags))
+   out.write("set (CMAKE_%s_FLAGS_DEBUG \"\")\n" % lang)
+   out.write("set (CMAKE_%s_FLAGS_RELEASE \"\")\n" %lang)
+   out.write("set (CMAKE_%s_COMPILER \"${M_%s}\")\n" % (lang, c_compiler))
 
    out.write ("include_directories(\"${PROJECT_SOURCE_DIR}/testsuite/src\")\n")
    out.write ("include_directories(\"${PROJECT_SOURCE_DIR}/testsuite/src/%s\")\n" % module)
    out.write ("add_definitions(-DSOLO_MUTATEE)\n")
 
-#  We shouldn't need this and it appears to be harmful!
-#   if platform['name'] == 'i386-unknown-nt4.0':
-#       out.write("set (CMAKE_C_LINK_EXECUTABLE ${M_native_linker})\n")
-#       out.write("set (CMAKE_CXX_LINK_EXECUTABLE ${M_native_linker})\n")
    if stat_dyn == 'stat':
       linkage = compiler['staticlink']
    else:
@@ -112,15 +112,9 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    link_flags = "%s %s %s" % (compiler['flags']['link'],
                               compiler['abiflags'][platform['name']][mut['abi']]['flags'],
                               linkage)
-   out.write("message( STATUS \"Old linker flags were ${CMAKE_EXE_LINKER_FLAGS}, new are %s\")\n" % link_flags)
+   #out.write("message( STATUS \"Old linker flags were ${CMAKE_EXE_LINKER_FLAGS}, new are %s\")\n" % link_flags)
    out.write("set (CMAKE_EXE_LINKER_FLAGS \"%s\")\n" % link_flags)
 
-   if ('c++' in compiler['languages']):
-      lang = 'cxx'
-   elif ('fortran' in compiler['languages']):
-      lang = 'fortran'
-   elif ('c' in compiler['languages']):
-      lang = 'c'
    
    varname = "MUTATEE%s%s%s%s" % (c_compiler, abi, stat_dyn, lang)
    varname = varname.replace('_', '')
@@ -141,6 +135,10 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    for m in mlist:
       out.write("add_executable (%s ${SOURCE_LIST_%d})\n" % (utils.mutatee_binary(m, platform, info),
                                                              m['srclist_index']))
+      out.write("set_source_files_properties(${SOURCE_LIST_%d} PROPERTIES LANGUAGE %s)\n" % (m['srclist_index'],
+                                                                                             lang))
+      out.write("set_target_properties(%s PROPERTIES LINKER_LANGUAGE %s)\n" % (utils.mutatee_binary(m,platform,info),
+                                                                               lang))
       # This lists all libraries
       if len(m['libraries']) > 0:
          out.write("target_link_libraries (%s" % utils.mutatee_binary(m, platform, info))

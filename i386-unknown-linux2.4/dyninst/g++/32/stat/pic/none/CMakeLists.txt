@@ -1,33 +1,38 @@
 # CMakeLists for dyninst/g++/32/stat/pic/none
-set (CMAKE_C_FLAGS "-g ${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}    -fPIC")
-set (CMAKE_C_FLAGS_DEBUG "")
-set (CMAKE_C_FLAGS_RELEASE "")
-set (CMAKE_C_COMPILER "${M_gnu_cxx}")
-set (CMAKE_CXX_FLAGS ${CMAKE_C_FLAGS})
-set (CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
-set (CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
-set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
+set (CMAKE_CXX_FLAGS "-g ${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}    -fPIC")
+set (CMAKE_CXX_FLAGS_DEBUG "")
+set (CMAKE_CXX_FLAGS_RELEASE "")
+set (CMAKE_CXX_COMPILER "${M_gnu_cxx}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/dyninst")
 add_definitions(-DSOLO_MUTATEE)
-message( STATUS "Old linker flags were ${CMAKE_EXE_LINKER_FLAGS}, new are ${MUTATEE_LDFLAGS_GNU}  -static")
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU}  -static")
 IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 	"-g ${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}    -fPIC"
 	"${MUTATEE_LDFLAGS_GNU}  -static"
-	"cxx"
+	"CXX"
 	"gnu_cxx 32 stat"
-	MUTATEEgnucxx32statcxx)
+	MUTATEEgnucxx32statCXX)
 
-IF (MUTATEEgnucxx32statcxx MATCHES "1")
+IF (MUTATEEgnucxx32statCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
 add_executable (dyninst_cxx_group_test.stat_g++_32_pic_none ${SOURCE_LIST_92})
+set_source_files_properties(${SOURCE_LIST_92} PROPERTIES LANGUAGE CXX)
+set_target_properties(dyninst_cxx_group_test.stat_g++_32_pic_none PROPERTIES LINKER_LANGUAGE CXX)
 add_executable (dyninst_group_test.stat_g++_32_pic_none ${SOURCE_LIST_69})
+set_source_files_properties(${SOURCE_LIST_69} PROPERTIES LANGUAGE CXX)
+set_target_properties(dyninst_group_test.stat_g++_32_pic_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (dyninst_group_test.stat_g++_32_pic_none ${CMAKE_DL_LIBS})
 add_executable (test1_14.stat_g++_32_pic_none ${SOURCE_LIST_70})
+set_source_files_properties(${SOURCE_LIST_70} PROPERTIES LANGUAGE CXX)
+set_target_properties(test1_14.stat_g++_32_pic_none PROPERTIES LINKER_LANGUAGE CXX)
 add_executable (test1_29.stat_g++_32_pic_none ${SOURCE_LIST_58})
+set_source_files_properties(${SOURCE_LIST_58} PROPERTIES LANGUAGE CXX)
+set_target_properties(test1_29.stat_g++_32_pic_none PROPERTIES LINKER_LANGUAGE CXX)
 add_executable (test1_35.stat_g++_32_pic_none ${SOURCE_LIST_91})
+set_source_files_properties(${SOURCE_LIST_91} PROPERTIES LANGUAGE CXX)
+set_target_properties(test1_35.stat_g++_32_pic_none PROPERTIES LINKER_LANGUAGE CXX)
 
 
 INSTALL (TARGETS
