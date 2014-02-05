@@ -92,6 +92,7 @@ if (PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
     src/ntKludges.C
     src/timing-nt.C
     src/dthread-win.C
+	src/dthread.C
     src/addrtranslate-win.C
   )
   add_definitions(-DWIN32 -D_WIN32_WINNT=0x500 -Dsnprintf=_snprintf)
@@ -117,6 +118,7 @@ endif()
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   target_link_libraries (common Psapi WS2_32 dbghelp)
+  target_link_libraries(common ${Boost_LIBRARIES})
 endif()
 INSTALL (TARGETS common common_static
         EXPORT DyninstTargets

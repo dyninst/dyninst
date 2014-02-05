@@ -35,6 +35,13 @@
 #include "util.h"
 #include <cassert>
 
+#include <boost/thread/condition_variable.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/variant/get.hpp>
+#include <boost/variant/static_visitor.hpp>
+#include <boost/variant/variant.hpp>
+
 #if !defined(os_windows)
 #define cap_pthreads
 #include <pthread.h>
@@ -74,13 +81,8 @@ class COMMON_EXPORT DThread {
 
 class COMMON_EXPORT Mutex {
    friend class CondVar;
-#if defined(cap_pthreads)
-   pthread_mutex_t mutex;
-#else
-#if defined(os_windows)
-   HANDLE mutex;
-#endif
-#endif
+   boost::variant<boost::mutex *, boost::recursive_mutex *> mutex;
+   
  public:
    Mutex(bool recursive=false);
    ~Mutex();
@@ -91,16 +93,7 @@ class COMMON_EXPORT Mutex {
 };
 
 class COMMON_EXPORT CondVar {
-#if defined(cap_pthreads)
-   pthread_cond_t cond;
-#else
-	int numWaiting;
-	CRITICAL_SECTION numWaitingLock;
-	HANDLE wait_sema;
-	HANDLE wait_done;
-	bool was_broadcast;
-	Mutex sync_cv_ops;
-#endif
+   boost::condition_variable_any cond;
    Mutex *mutex;
    bool created_mutex;
  public:
