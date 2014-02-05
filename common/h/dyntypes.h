@@ -38,7 +38,13 @@
 #endif
 
 #ifndef FILE__
-#define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
+#if defined(_MSC_VER)
+#define FILE__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+#elif defined(__GNUC__)
+#define FILE__ ((strrchr(__FILE__, '/') ? : __FILE__ - 1) + 1)
+#else
+#define FILE__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#endif
 #endif
 
 #if defined(_POWER) && !defined(__GNUC__)

@@ -96,7 +96,8 @@ target_link_libraries(parseAPI symtabAPI)
 endif()
 
 FILE (GLOB headers "h/*.h")
-set_target_properties (parseAPI parseAPI_static PROPERTIES PUBLIC_HEADER "${headers}")
+FILE (GLOB dataflowheaders "../dataflowAPI/h/*.h")
+set_target_properties (parseAPI parseAPI_static PROPERTIES PUBLIC_HEADER "${headers};${dataflowheaders}")
 
 
 INSTALL (TARGETS parseAPI parseAPI_static

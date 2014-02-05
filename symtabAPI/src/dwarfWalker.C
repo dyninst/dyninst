@@ -628,7 +628,7 @@ bool DwarfWalker::parseRangeTypes() {
       bool done = false;
       for (unsigned i = 0; i < ranges_length && !done; i++) {
          Dwarf_Ranges *cur = ranges + i;
-         Address cur_base = 0;
+         Address cur_base = modLow;
          switch (cur->dwr_type) {
             case DW_RANGES_ENTRY: {
                Address low = cur->dwr_addr1 + cur_base;

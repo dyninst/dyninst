@@ -149,6 +149,9 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_getStackUsage(MemUsageResp_t *resp);
    virtual bool plat_getHeapUsage(MemUsageResp_t *resp);
    virtual bool plat_getSharedUsage(MemUsageResp_t *resp);
+   virtual bool plat_residentNeedsMemVals();
+   virtual bool plat_getResidentUsage(unsigned long stacku, unsigned long heapu, unsigned long sharedu,
+                                      MemUsageResp_t *resp);
 
   protected:
    int computeAddrWidth(Dyninst::Architecture me);

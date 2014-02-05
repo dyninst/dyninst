@@ -5598,8 +5598,8 @@ Address get_immediate_operand(instruction *instr)
             immediate = *(const unsigned char*)(instr->ptr()+loc.imm_position[0]);
             break;
         default:
-            fprintf(stderr,"%s[%u]:  invalid immediate size %d in insn\n",
-                FILE__,__LINE__,loc.imm_size[0]);
+//            fprintf(stderr,"%s[%u]:  invalid immediate size %d in insn\n",
+//                FILE__,__LINE__,loc.imm_size[0]);
             break;
     }
 

@@ -463,7 +463,10 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
 #if defined(cap_binary_rewriter)
 
 extern struct r_debug _r_debug;
-struct r_debug _r_debug __attribute__ ((weak));
+DLLEXPORT struct r_debug _r_debug __attribute__ ((weak));
+
+/* Verify that the r_debug variable is visible */
+void r_debugCheck() { assert(_r_debug.r_map); }
 
 #define NUM_LIBRARIES 512 //Important, max number of rewritten libraries
 
@@ -508,6 +511,7 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
       assert(i >= 0 && i <= NUM_LIBRARIES);
       if (i == NUM_LIBRARIES) {
          header = NULL;
+         rtdebug_printf("%s[%d]:  getStaticTrapMap: returning NULL\n", __FILE__, __LINE__);
          goto done;
       }
       header = all_headers[i];
@@ -525,8 +529,10 @@ static int parse_libs()
    struct link_map *l_current;
 
    l_current = _r_debug.r_map;
-   if (!l_current)
-      return -1;
+   if (!l_current) {
+        rtdebug_printf("%s[%d]:  parse_libs: _r_debug.r_map was not set\n", __FILE__, __LINE__);
+       return -1;
+   }
 
    clear_bitmask(all_headers_current);
    while (l_current) {
@@ -678,6 +684,7 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
 #endif
 
 
+
 #endif /* cap_mutatee_traps */
 
 #if defined(cap_binary_rewriter) && !defined(DYNINST_RT_STATIC_LIB)
@@ -689,10 +696,12 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
  * the binary. Leaving this code in would create a global constructor for the
  * function runDYNINSTBaseInit(). See DYNINSTglobal_ctors_handler.
  */ 
+extern void r_debugCheck();
 extern void DYNINSTBaseInit();
 void runDYNINSTBaseInit() __attribute__((constructor));
 void runDYNINSTBaseInit()
 {
+    r_debugCheck();
    DYNINSTBaseInit();
 }
 #endif

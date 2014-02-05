@@ -83,7 +83,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    fp_loc.location = loc_address;
    fp_loc.val.addr = in.getSP() + fp_offset;
    sw_printf("[%s:%u] - SigHandler Reading FP from %lx\n",
-             __FILE__, __LINE__, fp_loc.val.addr);
+             FILE__, __LINE__, fp_loc.val.addr);
    result = getProcessState()->readMem(&fp, fp_loc.val.addr, addr_size);
    if (!result) {
       return gcf_error;
@@ -94,7 +94,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    pc_loc.location = loc_address;
    pc_loc.val.addr = in.getSP() + pc_offset;
    sw_printf("[%s:%u] - SigHandler Reading PC from %lx\n",
-             __FILE__, __LINE__, pc_loc.val.addr);
+             FILE__, __LINE__, pc_loc.val.addr);
    result = getProcessState()->readMem(&pc, pc_loc.val.addr, addr_size);
    if (!result) {
       return gcf_error;
@@ -105,7 +105,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    sp_loc.location = loc_address;
    sp_loc.val.addr = in.getSP() + sp_offset;
    sw_printf("[%s:%u] - SigHandler Reading PC from %lx\n",
-             __FILE__, __LINE__, sp_loc.val.addr);
+             FILE__, __LINE__, sp_loc.val.addr);
    result = getProcessState()->readMem(&sp, sp_loc.val.addr, addr_size);
    if (!result) {
       return gcf_error;

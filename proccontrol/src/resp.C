@@ -58,6 +58,7 @@ void resp_process::addResp(Resp::ptr resp, unsigned id_start, unsigned id_end)
 {
    active_resps_lock.lock();
    for (unsigned i=id_start; i<id_end; i++) {
+      pthrd_printf("Adding active response %d\n", i);
       active_resps.insert(make_pair(i, resp));
    }
    active_resps_lock.unlock();
@@ -67,6 +68,7 @@ Resp::ptr resp_process::recvResp(unsigned int id, bool &is_complete) {
    Resp::ptr resp;
 
    active_resps_lock.lock();
+   pthrd_printf("Recieved active response %d\n", id);
    map<int, Resp::ptr>::iterator i = active_resps.find(id);
    assert(i != active_resps.end());
    resp = i->second;
@@ -199,4 +201,9 @@ void Resp::done()
 void Resp::post()
 {
    proc->markRespPosted(this);
+}
+
+bool Resp::hadError() const
+{
+   return (state == Error);
 }

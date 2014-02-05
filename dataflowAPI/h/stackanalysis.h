@@ -347,7 +347,7 @@ class StackAnalysis {
     void createIntervals();
 
     void createEntryInput(RegisterState &input);
-    void meetInputs(ParseAPI::Block *b, RegisterState &input);
+    void meetInputs(ParseAPI::Block *b, RegisterState& blockInput, RegisterState &input);
     void meet(const RegisterState &source, RegisterState &accum);
     RegisterState getSrcOutputRegs(ParseAPI::Edge* e);
     void computeInsnEffects(ParseAPI::Block *block,

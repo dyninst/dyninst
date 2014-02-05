@@ -54,7 +54,7 @@ bool Walker::createDefaultSteppers()
   stepper = new FrameFuncStepper(this);
   result = addStepper(stepper);
   if (!result) {
-    sw_printf("[%s:%u] - Error adding stepper %p\n", __FILE__, __LINE__,
+    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
 	      stepper);
     return false;
   }

@@ -2384,6 +2384,7 @@ bool HandleCallbacks::removeCallback(EventType oet, Process::cb_func_t func)
    bool removed_cb = false;
    std::vector<EventType> real_ets;
    getRealEvents(oet, real_ets);
+   pthrd_printf("Removing event %s callback with function %p\n", oet.name().c_str(), func);
    
    for (std::vector<EventType>::iterator i = real_ets.begin(); i != real_ets.end(); i++)
    {

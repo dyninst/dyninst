@@ -85,7 +85,7 @@ void handle_fault(int /*sig*/)
       // ProcSelf::readMem.  Restore the SIGSEGV handler, and 
       // the faulting instruction should restart after we return.
       sw_printf("[%s:%u] - Caught segfault that didn't come " \
-                "from stackwalker memory read!", __FILE__, __LINE__);
+                "from stackwalker memory read!", FILE__, __LINE__);
       signal(SIGSEGV, SIG_DFL);
       return;
    }
@@ -101,7 +101,7 @@ bool ProcSelf::readMem(void *dest, Address source, size_t size)
    reading_memory = true;
    if (sigsetjmp(readmem_jmp, 1)) {
       sw_printf("[%s:%u] - Caught fault while reading from %lx to %lx\n", 
-                __FILE__, __LINE__, source, source + size);
+                FILE__, __LINE__, source, source + size);
       setLastError(err_procread, "Could not read from process");
       return false;
    }
@@ -118,7 +118,7 @@ bool ProcSelf::getThreadIds(std::vector<THR_ID> &threads)
 
   result = getDefaultThread(tid);
   if (!result) {
-    sw_printf("[%s:%u] - Could not read default thread\n", __FILE__, __LINE__);
+    sw_printf("[%s:%u] - Could not read default thread\n", FILE__, __LINE__);
     return false;
   }
   threads.clear();
@@ -140,7 +140,7 @@ bool Walker::createDefaultSteppers()
   stepper = new FrameFuncStepper(this);
   result = addStepper(stepper);
   if (!result) {
-    sw_printf("[%s:%u] - Error adding stepper %p\n", __FILE__, __LINE__,
+    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
 	      stepper);
     return false;
   }
@@ -148,7 +148,7 @@ bool Walker::createDefaultSteppers()
   stepper = new BottomOfStackStepper(this);
   result = addStepper(stepper);
   if (!result) {
-    sw_printf("[%s:%u] - Error adding stepper %p\n", __FILE__, __LINE__,
+    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
 	      stepper);
     return false;
   }  
@@ -243,19 +243,19 @@ void BottomOfStackStepperImpl::initialize()
    ProcessState *proc = walker->getProcessState();
    assert(proc);
 
-   sw_printf("[%s:%u] - Initializing BottomOfStackStepper\n", __FILE__, __LINE__);
+   sw_printf("[%s:%u] - Initializing BottomOfStackStepper\n", FILE__, __LINE__);
    initialized = true;
    
    LibraryState *ls = proc->getLibraryTracker();
    if (!ls) {
       sw_printf("[%s:%u] - Error initing StackBottom.  No library state for process.\n",
-                __FILE__, __LINE__);
+                FILE__, __LINE__);
       return;
    }
    SymtabLibState *symtab_ls = dynamic_cast<SymtabLibState *>(ls);
    if (!symtab_ls) {
       sw_printf("[%s:%u] - Error initing StackBottom. Unknown library state.\n",
-                __FILE__, __LINE__);
+                FILE__, __LINE__);
    }
 
    bool result = false;
@@ -268,18 +268,18 @@ void BottomOfStackStepperImpl::initialize()
    if (aout) {
       result = aout->findFunctionsByName(funcs, "main");
       if (!result || !funcs.size()) {
-         sw_printf("[%s:%u] - Error. Could not locate main\n", __FILE__, __LINE__);
+         sw_printf("[%s:%u] - Error. Could not locate main\n", FILE__, __LINE__);
       }
       for (i = funcs.begin(); i != funcs.end(); i++) {
          Address start = (*i)->getOffset() + aout_libaddr.second;
          Address end = start + (*i)->getSize();
          sw_printf("[%s:%u] - Adding _start stack bottom [0x%lx, 0x%lx]\n",
-                   __FILE__, __LINE__, start, end);
+                   FILE__, __LINE__, start, end);
          ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
       }
    }
    else {
-      sw_printf("[%s:%u] - Error. Could not locate a.out\n", __FILE__, __LINE__);
+      sw_printf("[%s:%u] - Error. Could not locate a.out\n", FILE__, __LINE__);
    }
 
    //Find pthread_body in 
@@ -290,13 +290,13 @@ void BottomOfStackStepperImpl::initialize()
       if (libpthread) {
          result = libpthread->findFunctionsByName(funcs, "_pthread_body");
          if (!result || !funcs.size()) {
-            sw_printf("[%s:%u] - Error. Could not locate main\n", __FILE__, __LINE__);
+            sw_printf("[%s:%u] - Error. Could not locate main\n", FILE__, __LINE__);
          }
          for (i = funcs.begin(); i != funcs.end(); i++) {
             Address start = (*i)->getOffset() + aout_libaddr.second;
             Address end = start + (*i)->getSize();
             sw_printf("[%s:%u] - Adding _start stack bottom [0x%lx, 0x%lx]\n",
-                      __FILE__, __LINE__, start, end);
+                      FILE__, __LINE__, start, end);
             ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
          }
       }

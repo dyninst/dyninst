@@ -855,6 +855,9 @@ ProcessSet::ptr ProcessSet::attachProcessSet(vector<AttachInfo> &ainfo)
       AttachInfo &ai = *(j->second);
       
       err_t last_error = proc->getLastError();
+      if (last_error == err_none && proc->getState() == int_process::errorstate) {
+         last_error = err_noproc;
+      }
       if (last_error == err_none) {
          ai.proc = proc->proc();
          ai.error_ret = err_none;
@@ -3753,6 +3756,7 @@ bool RemoteIOSet::readFileContents(const FileSet *fset)
 MemoryUsageSet::MemoryUsageSet(ProcessSet::ptr ps_) :
    wps(ps_)
 {
+   pthrd_printf("Constructed MemoryUsageSet %p on procset of size %lu\n", this, (unsigned long) ps_->size());
 }
 
 MemoryUsageSet::~MemoryUsageSet()
@@ -3760,24 +3764,42 @@ MemoryUsageSet::~MemoryUsageSet()
    wps = ProcessSet::weak_ptr();
 }
 
-bool MemoryUsageSet::sharedUsed(std::map<Process::const_ptr, unsigned long> &used) const
+bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, MemoryUsageSet::mem_usage_t mu) const
 {
    MTLock lock_this_func;
    bool had_error = false;
 
+   const char *mu_str = NULL;
+   switch (mu) {
+      case mus_shared:
+         mu_str = "sharedUsed";
+         break;
+      case mus_heap:
+         mu_str = "heapUsed";
+         break;
+      case mus_stack:
+         mu_str = "stackUsed";
+         break;
+      case mus_resident:
+         mu_str = "resident";
+         break;
+   }
    ProcessSet::ptr ps = wps.lock();
    if (!ps) {
-      perr_printf("setTrackLibraries on deleted process set\n");
-      globalSetLastError(err_badparam, "sharedUsed attempted on deleted ProcessSet object");
+      perr_printf("%s on deleted process set\n", mu_str);
+      globalSetLastError(err_badparam, "memory usage query attempted on deleted ProcessSet object");
       return false;
    }
    set<MemUsageResp_t *> resps;
-   unsigned long *result_sizes = new unsigned long[ps->size()];
-   pthrd_printf("Performing set operation getting sharedUsed\n");
+   const unsigned int max_operations = (mu == mus_resident ? ps->size() * 4 : ps->size());
+   unsigned long *result_sizes = new unsigned long[max_operations];
+   pthrd_printf("Performing set operation getting %s (may use %u ops)\n", mu_str, max_operations);
+
+   map<int_memUsage *, MemUsageResp_t *> shared_results, stack_results, heap_results, resident_results;
 
    int_processSet *procset = ps->getIntProcessSet();
-   procset_iter iter("sharedUsed", had_error, ERR_CHCK_ALL);
-   unsigned j = 0;
+   procset_iter iter(mu_str, had_error, ERR_CHCK_ALL);
+   unsigned int cur = 0;
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       int_memUsage *proc = (*i)->llproc()->getMemUsage();
       if (!proc) {
@@ -3786,123 +3808,158 @@ bool MemoryUsageSet::sharedUsed(std::map<Process::const_ptr, unsigned long> &use
          had_error = true;
          continue;
       }
-      MemUsageResp_t *resp = new MemUsageResp_t(result_sizes + j++, proc);
-      bool result = proc->plat_getSharedUsage(resp);
-      if (!result) {
-         had_error = true;
-         delete resp;
-         continue;
+
+      int start, end;
+      if (mu == mus_resident && proc->plat_residentNeedsMemVals()) {
+         //To get resident we need shared, heap and stack first.  Do each one.
+         start = (int) mus_shared;
+         end = (int) mus_stack;
+      }
+      else {
+         //Just do the operation that was requested.
+         start = mu;
+         end = mu;
+      }
+      for (int i = start; i <= end; i++) {
+         assert(cur < max_operations);
+         MemUsageResp_t *resp = new MemUsageResp_t(result_sizes + cur++, proc);
+         bool result = false;
+         switch ((mem_usage_t) i) {
+            case mus_shared:
+               result = proc->plat_getSharedUsage(resp);
+               break;
+            case mus_heap:
+               result = proc->plat_getHeapUsage(resp);
+               break;
+            case mus_stack:
+               result = proc->plat_getStackUsage(resp);
+               break;
+            case mus_resident:
+               result = proc->plat_getResidentUsage(0, 0, 0, resp);
+               break;
+         }
+      
+         if (!result) {
+            had_error = true;
+            delete resp;
+            continue;
+         }
+
+         switch ((mem_usage_t) i) {
+            case mus_shared:
+               shared_results.insert(make_pair(proc, resp));
+               break;
+            case mus_heap:
+               heap_results.insert(make_pair(proc, resp));
+               break;
+            case mus_stack:
+               stack_results.insert(make_pair(proc, resp));
+               break;
+            case mus_resident:
+               resident_results.insert(make_pair(proc, resp));
+               break;
+         }
+
+         resps.insert(resp);
+      }
+   }
+
+   for (set<MemUsageResp_t *>::iterator i = resps.begin(); i != resps.end(); i++)
+      (*i)->getProc()->waitForEvent((*i));
+   resps.clear();
+
+   if (mu == mus_resident) { 
+      for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+         int_memUsage *proc = (*i)->llproc()->getMemUsage();
+         if (!proc)
+            continue;
+         if (!proc->plat_residentNeedsMemVals())
+            continue;
+
+         map<int_memUsage *, MemUsageResp_t *>::iterator sh, st, he;
+         sh = shared_results.find(proc);
+         st = stack_results.find(proc);
+         he = heap_results.find(proc);
+         if (sh == shared_results.end() || st == stack_results.end() || he == heap_results.end() ||
+             sh->second->hadError() || st->second->hadError() || he->second->hadError()) {
+            perr_printf("Failed to read shared stack or heap on process %d for resident memory\n",
+                        proc->getPid());
+            continue;
+         }
+         pthrd_printf("Currently doing operation %u of %u\n", cur, max_operations);
+         assert(cur < max_operations);
+         MemUsageResp_t *resp = new MemUsageResp_t(result_sizes + cur++, proc);
+         bool result = proc->plat_getResidentUsage(*st->second->get(), *he->second->get(), *sh->second->get(), resp);
+         if (!result) {
+            perr_printf("Error calculating resident usage from stack, heap and shared on %d\n", proc->getPid());
+            delete resp;
+            continue;
+         }
+         resident_results.insert(make_pair(proc, resp));
+         resps.insert(resp);
       }
 
-      resps.insert(resp);
+      for (set<MemUsageResp_t *>::iterator i = resps.begin(); i != resps.end(); i++)
+         (*i)->getProc()->waitForEvent(*i);
    }
 
-   for (set<MemUsageResp_t *>::iterator i = resps.begin(); i != resps.end(); i++) {
-      MemUsageResp_t *resp = *i;
-      resp->getProc()->waitForEvent(resp);
-      used.insert(make_pair(resp->getProc()->proc(), *resp->get()));
-      delete resp;
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      int_memUsage *proc = (*i)->llproc()->getMemUsage();
+      if (!proc)
+         continue;   
+      map<int_memUsage *, MemUsageResp_t *> *the_results = NULL;
+      switch (mu) {
+         case mus_shared:
+            the_results = &shared_results;
+            break;
+         case mus_heap:
+            the_results = &heap_results;
+            break;
+         case mus_stack:
+            the_results = &stack_results;
+            break;
+         case mus_resident:
+            the_results = &resident_results;
+            break;
+      }
+      map<int_memUsage *, MemUsageResp_t *>::iterator j = the_results->find(proc);
+      if (j == the_results->end())
+         continue;
+      MemUsageResp_t *resp = j->second;
+      used.insert(make_pair(resp->getProc()->proc(), *resp->get()));         
    }
+
+   map<int_memUsage *, MemUsageResp_t *>::iterator i;
+   for (i = shared_results.begin(); i != shared_results.end(); i++)
+      delete i->second;
+   for (i = stack_results.begin(); i != stack_results.end(); i++)
+      delete i->second;
+   for (i = heap_results.begin(); i != heap_results.end(); i++)
+      delete i->second;
+   for (i = resident_results.begin(); i != resident_results.end(); i++)
+      delete i->second;
 
    delete [] result_sizes;
 
    return !had_error;
+}
+
+bool MemoryUsageSet::sharedUsed(std::map<Process::const_ptr, unsigned long> &used) const
+{
+   return usedX(used, mus_shared);
 }
 
 bool MemoryUsageSet::heapUsed(std::map<Process::const_ptr, unsigned long> &used) const
 {
-   MTLock lock_this_func;
-   bool had_error = false;
-
-   ProcessSet::ptr ps = wps.lock();
-   if (!ps) {
-      perr_printf("setTrackLibraries on deleted process set\n");
-      globalSetLastError(err_badparam, "heapUsed attempted on deleted ProcessSet object");
-      return false;
-   }
-   set<MemUsageResp_t *> resps;
-   unsigned long *result_sizes = new unsigned long[ps->size()];
-   pthrd_printf("Performing set operation getting heapUsed\n");
-
-   int_processSet *procset = ps->getIntProcessSet();
-   procset_iter iter("heapUsed", had_error, ERR_CHCK_ALL);
-   unsigned j = 0;
-   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_memUsage *proc = (*i)->llproc()->getMemUsage();
-      if (!proc) {
-         perr_printf("GetMemUsage not supported on process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "No getMemUsage on this platform\n");
-         had_error = true;
-         continue;
-      }
-      MemUsageResp_t *resp = new MemUsageResp_t(result_sizes + j++, proc);
-      bool result = proc->plat_getHeapUsage(resp);
-      if (!result) {
-         had_error = true;
-         delete resp;
-         continue;
-      }
-
-      resps.insert(resp);
-   }
-
-   for (set<MemUsageResp_t *>::iterator i = resps.begin(); i != resps.end(); i++) {
-      MemUsageResp_t *resp = *i;
-      resp->getProc()->waitForEvent(resp);
-      used.insert(make_pair(resp->getProc()->proc(), *resp->get()));
-      delete resp;
-   }
-
-   delete [] result_sizes;
-
-   return !had_error;
+   return usedX(used, mus_heap);
 }
 
 bool MemoryUsageSet::stackUsed(std::map<Process::const_ptr, unsigned long> &used) const
 {
-   MTLock lock_this_func;
-   bool had_error = false;
+   return usedX(used, mus_stack);
+}
 
-   ProcessSet::ptr ps = wps.lock();
-   if (!ps) {
-      perr_printf("setTrackLibraries on deleted process set\n");
-      globalSetLastError(err_badparam, "stackUsed attempted on deleted ProcessSet object");
-      return false;
-   }
-   set<MemUsageResp_t *> resps;
-   unsigned long *result_sizes = new unsigned long[ps->size()];
-   pthrd_printf("Performing set operation getting stackUsed\n");
-
-   int_processSet *procset = ps->getIntProcessSet();
-   procset_iter iter("stackUsed", had_error, ERR_CHCK_ALL);
-   unsigned j = 0;
-   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_memUsage *proc = (*i)->llproc()->getMemUsage();
-      if (!proc) {
-         perr_printf("GetMemUsage not supported on process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "No getMemUsage on this platform\n");
-         had_error = true;
-         continue;
-      }
-      MemUsageResp_t *resp = new MemUsageResp_t(result_sizes + j++, proc);
-      bool result = proc->plat_getStackUsage(resp);
-      if (!result) {
-         had_error = true;
-         delete resp;
-         continue;
-      }
-
-      resps.insert(resp);
-   }
-
-   for (set<MemUsageResp_t *>::iterator i = resps.begin(); i != resps.end(); i++) {
-      MemUsageResp_t *resp = *i;
-      resp->getProc()->waitForEvent(resp);
-      used.insert(make_pair(resp->getProc()->proc(), *resp->get()));
-      delete resp;
-   }
-
-   delete [] result_sizes;
-
-   return !had_error;
+bool MemoryUsageSet::resident(std::map<Process::const_ptr, unsigned long> &res) const
+{
+   return usedX(res, mus_resident);
 }

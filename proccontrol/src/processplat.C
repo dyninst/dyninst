@@ -394,6 +394,69 @@ bool MemoryUsage::stackUsed(unsigned long &used) const
    return true;
 }
 
+bool MemoryUsage::resident(unsigned long &resident) const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   PTR_EXIT_TEST(p, "resident", false);
+   int_memUsage *llproc = p->llproc()->getMemUsage();
+   
+   if (!llproc->plat_residentNeedsMemVals()) {
+      unsigned long val;
+      MemUsageResp_t mem_response(&val, llproc);
+      bool result = llproc->plat_getResidentUsage(0, 0, 0, &mem_response);
+      if (!result) {
+         llproc->setLastError(err_internal, "Could not get resident usage\n");
+         perr_printf("Error getting resident usage\n");
+         return false;
+      }
+      
+      llproc->waitForEvent(&mem_response);
+      resident = *mem_response.get();
+      return true;
+   }
+
+   unsigned long st, he, sh, re;
+   MemUsageResp_t st_resp(&st, llproc), he_resp(&he, llproc), sh_resp(&sh, llproc), re_resp(&re, llproc);
+
+   bool result = llproc->plat_getStackUsage(&st_resp);
+   if (!result) {
+      llproc->setLastError(err_internal, "Could not get resident usage\n");
+      perr_printf("Error getting stack usage for resident in proc %d\n", llproc->getPid());
+      return false;
+   }
+
+   result = llproc->plat_getHeapUsage(&he_resp);
+   if (!result) {
+      llproc->setLastError(err_internal, "Could not get resident usage\n");
+      perr_printf("Error getting heap usage for resident in proc %d\n", llproc->getPid());
+      return false;
+   }
+
+   result = llproc->plat_getSharedUsage(&sh_resp);
+   if (!result) {
+      llproc->setLastError(err_internal, "Could not get resident usage\n");
+      perr_printf("Error getting shared usage for resident in proc %d\n", llproc->getPid());
+      return false;
+   }
+
+   llproc->waitForEvent(&st_resp);
+   llproc->waitForEvent(&he_resp);
+   llproc->waitForEvent(&sh_resp);
+
+   result = llproc->plat_getResidentUsage(st, he, sh, &re_resp);
+   if (!result) {
+      llproc->setLastError(err_internal, "Could not get resident usage\n");
+      perr_printf("Error getting resident usage for resident in proc %d\n", llproc->getPid());
+      return false;
+   }
+
+   llproc->waitForEvent(&re_resp);
+
+   resident = *re_resp.get();
+   return true;
+}
+
 dyn_sigset_t SignalMask::default_sigset;
 bool SignalMask::sigset_initialized = false;
 

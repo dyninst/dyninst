@@ -93,7 +93,7 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
         break;      
      default:
         sw_printf("[%s:%u] - Request for unsupported register %s\n",
-                  __FILE__, __LINE__, reg.name().c_str());
+                  FILE__, __LINE__, reg.name().c_str());
         setLastError(err_badparam, "Unknown register passed in reg field");
   }
 
@@ -146,7 +146,7 @@ static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessSta
   }
 
   if (!result) {
-    sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, in_fp);
+    sw_printf("[%s:%u] - Couldn't read from %lx\n", FILE__, __LINE__, in_fp);
     return gcf_error;
   }
   
@@ -173,7 +173,7 @@ bool Walker::checkValidFrame(const Frame &in, const Frame &out)
 {
    if (out.getSP() <= in.getSP() && out.getSPLocation().location != loc_unknown) {
       sw_printf("[%s:%u] - Stackwalk went backwards, %lx to %lx\n",
-                __FILE__, __LINE__, in.getSP(), out.getSP());
+                FILE__, __LINE__, in.getSP(), out.getSP());
       return false;
    }
    return true;
@@ -280,27 +280,27 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address addr)
    result = checkCache(addr, res);
    if (result) {
       sw_printf("[%s:%u] - Cached value for %lx is %d/%d\n",
-                __FILE__, __LINE__, addr, (int) res.first, (int) res.second);
+                FILE__, __LINE__, addr, (int) res.first, (int) res.second);
       return res;
    }
 
    result = proc->getLibraryTracker()->getLibraryAtAddr(addr, lib);
    if (!result)
    {
-      sw_printf("[%s:%u] - No library at %lx\n", __FILE__, __LINE__, addr);
+      sw_printf("[%s:%u] - No library at %lx\n", FILE__, __LINE__, addr);
       goto done;
    }
 
    reader = LibraryWrapper::getLibrary(lib.first);
    if (!reader) {
       sw_printf("[%s:%u] - Failed to open symbol reader %s\n",
-                __FILE__, __LINE__, lib.first.c_str() );
+                FILE__, __LINE__, lib.first.c_str() );
       goto done;
    }   
    off = addr - lib.second;
    sym = reader->getContainingSymbol(off);
    if (!reader->isValidSymbol(sym)) {
-      sw_printf("[%s:%u] - Could not find symbol in binary\n", __FILE__, __LINE__);
+      sw_printf("[%s:%u] - Could not find symbol in binary\n", FILE__, __LINE__);
       goto done;
    }
    func_addr = reader->getSymbolOffset(sym) + lib.second;
@@ -308,7 +308,7 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address addr)
    result = proc->readMem(mem, func_addr, FUNCTION_PROLOG_TOCHECK);
    if (!result) {
       sw_printf("[%s:%u] - Error.  Couldn't read from memory at %lx\n",
-                __FILE__, __LINE__, func_addr);
+                FILE__, __LINE__, func_addr);
       goto done;
    }
    
@@ -359,7 +359,7 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address addr)
 
  done:
    sw_printf("[%s:%u] - Function containing %lx has frame type %d/%d\n",
-             __FILE__, __LINE__, addr, (int) res.first, (int) res.second);
+             FILE__, __LINE__, addr, (int) res.first, (int) res.second);
    updateCache(addr, res);
    return res;
 }
@@ -412,9 +412,9 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
   Address sp_addr = 0x0;
 
   sw_printf("[%s:%u] - DyninstDynamicStepper with lib_base 0x%lx, stack-height %d, orig_ra 0x%lx, aligned %d %s\n",
-            __FILE__, __LINE__, lib_base, stack_height, orig_ra, aligned, pEntryExit ? "<entry/exit>" : "<normal>");
+            FILE__, __LINE__, lib_base, stack_height, orig_ra, aligned, pEntryExit ? "<entry/exit>" : "<normal>");
   sw_printf("[%s:%u] - incoming frame has RA 0x%lx, SP 0x%lx, FP 0x%lx\n",
-            __FILE__, __LINE__, in.getRA(), in.getSP(), in.getFP());
+            FILE__, __LINE__, in.getRA(), in.getSP(), in.getFP());
   // Handle frameless instrumentation
   if (0x0 != orig_ra)
   {
@@ -425,7 +425,7 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
     out.setSP(in.getSP()); //Not really correct, but difficult to compute and unlikely to matter
     out.setRALocation(unknownLocation);
     sw_printf("[%s:%u] - DyninstDynamicStepper handled frameless instrumentation\n",
-              __FILE__, __LINE__);
+              FILE__, __LINE__);
     return gcf_success;
   }
 
@@ -450,7 +450,7 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
     result = getProcessState()->readMem(&ra_value, newRAAddr, addr_width);
 
     if (!result) {
-      sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, newRAAddr);
+      sw_printf("[%s:%u] - Couldn't read from %lx\n", FILE__, __LINE__, newRAAddr);
       return gcf_error;
     }
 
@@ -458,7 +458,7 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
     out.setFP(in.getFP()); // FP stays the same
     out.setSP(newRAAddr + addr_width);
     sw_printf("[%s:%u] - DyninstDynamicStepper handled post entry/exit instrumentation\n",
-              __FILE__, __LINE__);
+              FILE__, __LINE__);
     return gcf_success;
   }
 
@@ -475,17 +475,17 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
     result = getProcessState()->readMem(&sp_value, sp_addr, addr_width);
 
     if (!result) {
-      sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, sp_addr);
+      sw_printf("[%s:%u] - Couldn't read from %lx\n", FILE__, __LINE__, sp_addr);
       return gcf_error;
     }
 
     sw_printf("[%s:%u] - Read SP %p from addr %p, using stack height of 0x%lx\n",
-              __FILE__, __LINE__, sp_value, sp_addr, stack_height);
+              FILE__, __LINE__, sp_value, sp_addr, stack_height);
     out.setSP(sp_value);
   }
 
   sw_printf("[%s:%u] - DyninstDynamicStepper handled normal instrumentation\n",
-            __FILE__, __LINE__);
+            FILE__, __LINE__);
   return gcf_success;
 }
 

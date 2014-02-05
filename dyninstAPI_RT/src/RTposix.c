@@ -292,4 +292,5 @@ int DYNINSTinitializeTrapHandler()
    result = sigaction(SIGTRAP, &new_handler, NULL);
    return (result == 0) ? 1 /*Success*/ : 0 /*Fail*/ ;
 }
+
 #endif

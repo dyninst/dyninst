@@ -79,7 +79,7 @@ ProcessState::ProcessState(Dyninst::PID pid_, std::string executable_path_) :
    if (i != proc_map.end())
    {
       sw_printf("[%s:%u] - Already attached to debuggee %d\n",
-                __FILE__, __LINE__, pid_);
+                FILE__, __LINE__, pid_);
       setLastError(err_badparam, "Attach requested to already " \
                    "attached process");
       return;
