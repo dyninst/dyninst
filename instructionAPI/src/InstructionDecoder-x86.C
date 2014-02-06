@@ -272,6 +272,19 @@ namespace Dyninst
     Expression::Ptr InstructionDecoder_x86::decodeImmediate(unsigned int opType, const unsigned char* immStart, 
 							    bool isSigned)
     {
+#if 0
+        /* See "2.2.1.5 Immediates" from the Intel Manual" */
+        bool is_64 = ia32_is_mode_64();
+        fprintf(stderr, "decodeImmediate: ia32_is_mode_64 returned %s\n", (is_64 ? "true" : "false"));
+        if (is_64) {
+            fprintf(stderr, "setting isSigned to true (was %s)\n", (isSigned ? "true" : "false"));
+            isSigned = true;
+        }
+#endif
+
+        // rex_w indicates we need to sign-extend also.
+        isSigned = isSigned || locs->rex_w;
+
         switch(opType)
         {
             case op_b:
@@ -286,25 +299,27 @@ namespace Dyninst
                 return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(immStart)));
                 break;
             case op_v:
-	      if (locs->rex_w) {
+                if (locs->rex_w) {
+                    /* Check with valgrind--if uninit reads go away--this was probably wrong (was 64, change to 32) */
+//                    return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int32_t*)(immStart))); // TODO: signed, read the first 32
                     return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(immStart)));
-	      }
-              //FALLTHROUGH
+                }
+                //FALLTHROUGH
             case op_z:
-        // 32 bit mode & no prefix, or 16 bit mode & prefix => 32 bit
-        // 16 bit mode, no prefix or 32 bit mode, prefix => 16 bit
-	      if(!sizePrefixPresent)
-	      {
-		return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(immStart)));
-	      }
-	      else
-	      {
-		return Immediate::makeImmediate(Result(isSigned ? s16 : u16,*(const word_t*)(immStart)));
-	      }
-	      break;
+                // 32 bit mode & no prefix, or 16 bit mode & prefix => 32 bit
+                // 16 bit mode, no prefix or 32 bit mode, prefix => 16 bit
+                if(!sizePrefixPresent)
+                {
+                    return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(immStart)));
+                }
+                else
+                {
+                    return Immediate::makeImmediate(Result(isSigned ? s16 : u16,*(const word_t*)(immStart)));
+                }
+                break;
             case op_p:
-        // 32 bit mode & no prefix, or 16 bit mode & prefix => 48 bit
-        // 16 bit mode, no prefix or 32 bit mode, prefix => 32 bit
+                // 32 bit mode & no prefix, or 16 bit mode & prefix => 48 bit
+                // 16 bit mode, no prefix or 32 bit mode, prefix => 32 bit
                 if(!sizePrefixPresent)
                 {
                     return Immediate::makeImmediate(Result(isSigned ? s48 : u48,*(const int64_t*)(immStart)));
@@ -313,7 +328,7 @@ namespace Dyninst
                 {
                     return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(immStart)));
                 }
-        
+
                 break;
             case op_a:
             case op_dq:
