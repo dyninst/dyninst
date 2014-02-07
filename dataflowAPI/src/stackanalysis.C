@@ -624,16 +624,16 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs 
      // Size is in bytes... 
      switch(res.size()) {
      case 1:
-       delta = sign * (long) res.convert<uint8_t>();
+       delta = sign * res.convert<int8_t>();
        break;
      case 2:
-       delta = sign * (long) res.convert<uint16_t>();
+       delta = sign * res.convert<int16_t>();
        break;
      case 4:
-       delta = sign * (long) res.convert<uint32_t>();
+       delta = sign * res.convert<int32_t>();
        break;
      case 8:
-       delta = sign * (long) res.convert<uint64_t>();
+       delta = sign * res.convert<int64_t>(); 
        break;
      default:
        assert(0);
