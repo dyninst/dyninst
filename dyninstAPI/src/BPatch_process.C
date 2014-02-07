@@ -1010,63 +1010,78 @@ BPatch_object *BPatch_process::loadLibrary(const char *libname, bool)
        }
    }
 
-   /**
-    * Find the DYNINSTloadLibrary function
-    **/
-   BPatch_Vector<BPatch_function *> bpfv;
-   BPatch_module* dyn_rt_lib = image->findModule("dyninstAPI_RT", true);
-   if(dyn_rt_lib == NULL)
-   {
-      cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find module for "
-           << "DyninstAPI Runtime Library" << endl;
-      return NULL;
-   }
-   dyn_rt_lib->findFunction("DYNINSTloadLibrary", bpfv);
-   if (!bpfv.size()) {
-      cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal"
-           << "Function DYNINSTloadLibrary" << endl;
-      return NULL;
-   }
-   if (bpfv.size() > 1) {
-      std::string msg = std::string("Found ") + utos(bpfv.size()) +
-         std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
-      BPatch_reportError(BPatchSerious, 100, msg.c_str());
-   }
-   BPatch_function *dlopen_func = bpfv[0];
-   if (dlopen_func == NULL) return NULL;
+   BPatch_object *object = NULL;
+   do {
 
-   /**
-    * Generate a call to DYNINSTloadLibrary, and then run the generated code.
-    **/
-   BPatch_Vector<BPatch_snippet *> args;
-   BPatch_constExpr nameArg(libname);
-   args.push_back(&nameArg);
-   BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
+      /**
+       * Find the DYNINSTloadLibrary function
+       **/
+      BPatch_Vector<BPatch_function *> bpfv;
+      BPatch_module* dyn_rt_lib = image->findModule("dyninstAPI_RT", true);
+      if(dyn_rt_lib == NULL)
+      {
+         cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find module for "
+              << "DyninstAPI Runtime Library" << endl;
+         break;
+      }
+      dyn_rt_lib->findFunction("DYNINSTloadLibrary", bpfv);
+      if (!bpfv.size()) {
+         cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal"
+              << "Function DYNINSTloadLibrary" << endl;
+         break;
+      }
+      if (bpfv.size() > 1) {
+         std::string msg = std::string("Found ") + utos(bpfv.size()) +
+            std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
+         BPatch_reportError(BPatchSerious, 100, msg.c_str());
+      }
+      BPatch_function *dlopen_func = bpfv[0];
+      if (dlopen_func == NULL)
+        break;
 
-   if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true)) {
-      BPatch_variableExpr *dlerror_str_var =
-         dyn_rt_lib->findVariable("gLoadLibraryErrorString");
-      assert(NULL != dlerror_str_var);
-      char dlerror_str[256];
-      dlerror_str_var->readValue((void *)dlerror_str, 256);
-      BPatch_reportError(BPatchSerious, 124, dlerror_str);
-      return NULL;
-   }
-   /* Find the new mapped_object, map it to a BPatch_module, and return it */
+      /**
+       * Generate a call to DYNINSTloadLibrary, and then run the generated code.
+       **/
+      BPatch_Vector<BPatch_snippet *> args;
+      BPatch_constExpr nameArg(libname);
+      args.push_back(&nameArg);
+      BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
 
-   mapped_object* plib = llproc->findObject(libname);
-   if (!plib) {
-     std::string wildcard(libname);
-     wildcard += "*";
-     plib = llproc->findObject(wildcard, true);
-   }
-   if (!plib) {
-      // Best effort; take the latest added mapped_object
-      plib = llproc->mappedObjects().back();
+      if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true)) {
+         BPatch_variableExpr *dlerror_str_var =
+            dyn_rt_lib->findVariable("gLoadLibraryErrorString");
+         assert(NULL != dlerror_str_var);
+         char dlerror_str[256];
+         dlerror_str_var->readValue((void *)dlerror_str, 256);
+         BPatch_reportError(BPatchSerious, 124, dlerror_str);
+         break;
+      }
+      /* Find the new mapped_object, map it to a BPatch_module, and return it */
+
+      mapped_object* plib = llproc->findObject(libname);
+      if (!plib) {
+        std::string wildcard(libname);
+        wildcard += "*";
+        plib = llproc->findObject(wildcard, true);
+      }
+      if (!plib) {
+         // Best effort; take the latest added mapped_object
+         plib = llproc->mappedObjects().back();
+      }
+
+      dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
+      object = getImage()->findOrCreateObject(plib);
+
+   } while (0);
+
+   if( !wasStopped ) {
+       if( !continueExecution() ) {
+           BPatch_reportError(BPatchWarning, 0,
+                   "Failed to continue process for loadLibrary");
+       }
    }
 
-   dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
-   return getImage()->findOrCreateObject(plib);
+   return object;
 }
 
 
