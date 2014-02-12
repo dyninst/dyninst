@@ -65,7 +65,8 @@ baseTramp::baseTramp() :
    suppressThreads(false),
    spilledRegisters(false),
    stackHeight(0),
-   skippedRedZone(false)
+   skippedRedZone(false),
+   wasFullFPRSave(false)
 {
 }
 

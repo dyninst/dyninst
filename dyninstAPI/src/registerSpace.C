@@ -180,6 +180,9 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP)
 
 
 registerSpace::registerSpace() :
+    pc_rel_reg(0),
+    pc_rel_use_count(0),
+    instFrameSize_(0),
     savedFlagSize(0),
     currStackPointer(0),
     addr_width(0)

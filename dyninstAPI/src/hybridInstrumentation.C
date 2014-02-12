@@ -101,7 +101,7 @@ InternalSignalHandlerCallback HybridAnalysis::getSignalHandlerCB()
 
 
 HybridAnalysis::HybridAnalysis(BPatch_hybridMode mode, BPatch_process* proc) 
-: stats_()
+: instrumentedFuncs(NULL), stats_()
 {
     mode_ = mode;
     proc_ = proc;
@@ -112,7 +112,7 @@ HybridAnalysis::HybridAnalysis(BPatch_hybridMode mode, BPatch_process* proc)
         proc_->getImage()->findModule("dyninstAPI_RT", true);
     assert(sharedlib_runtime);
 	virtualFreeAddr_ = 0;
-
+	virtualFreeSize_ = 0;
 }
 
 bool HybridAnalysis::init()
@@ -1311,9 +1311,9 @@ bool HybridAnalysis::blockcmp::operator () (const BPatch_basicBlock *b1,
 
 HybridAnalysis::SynchHandle::SynchHandle(BPatch_point *prePt, 
                                          BPatchSnippetHandle *preHandle)
+    : prePt_(prePt), postPt_(NULL),
+      preHandle_(preHandle), postHandle_(NULL)
 {
-    prePt_ = prePt;
-    preHandle_ = preHandle;
 }
 
 void 

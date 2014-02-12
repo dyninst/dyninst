@@ -77,6 +77,9 @@ using PatchAPI::DynRemoveSnipCommand;
 
 AddressSpace::AddressSpace () :
     trapMapping(this),
+    new_func_cb(NULL),
+    new_instp_cb(NULL),
+    heapInitialized_(false),
     useTraps_(true),
     trampGuardBase_(NULL),
     up_ptr_(NULL),
@@ -85,7 +88,8 @@ AddressSpace::AddressSpace () :
     memEmulator_(NULL),
     emulateMem_(false),
     emulatePC_(false),
-    delayRelocation_(false)
+    delayRelocation_(false),
+    patcher_(NULL)
 {
 #if 0
    // Disabled for now; used by defensive mode

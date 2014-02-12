@@ -3209,12 +3209,14 @@ SYMTAB_EXPORT LookupInterface::~LookupInterface()
 SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(Offset tStart, 
       unsigned tSize, 
       Offset cStart) 
-: tryStart_(tStart), trySize_(tSize), catchStart_(cStart), hasTry_(true) 
+: tryStart_(tStart), trySize_(tSize), catchStart_(cStart), hasTry_(true),
+  tryStart_ptr(0), tryEnd_ptr(0), catchStart_ptr(0), fdeStart_ptr(0), fdeEnd_ptr(0)
 {
 }
 
    SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(Offset cStart) 
-: tryStart_(0), trySize_(0), catchStart_(cStart), hasTry_(false) 
+: tryStart_(0), trySize_(0), catchStart_(cStart), hasTry_(false),
+  tryStart_ptr(0), tryEnd_ptr(0), catchStart_ptr(0), fdeStart_ptr(0), fdeEnd_ptr(0)
 {
 }
 

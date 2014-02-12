@@ -272,7 +272,6 @@ public:
 
         // variables
 
-        bool codeChanged;
         //snippets
         std::set<BPatchSnippetHandle*> snippets;
         //shadows

@@ -282,7 +282,10 @@ BinaryEdit::BinaryEdit() :
    lowWaterMark_(0),
    isDirty_(false),
    memoryTracker_(NULL),
-   multithread_capable_(false) {
+   mobj(NULL),
+   multithread_capable_(false),
+   writing_(false)
+{
    trapMapping.shouldBlockFlushes(true);
 }
 

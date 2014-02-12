@@ -92,6 +92,7 @@ parse_func::parse_func(
   func_(func),
   mod_(m),
   image_(i),
+  OMPparsed_(false),
   usedRegisters(NULL),
   containsFPRWrites_(unknown),
   containsSPRWrites_(unknown),
@@ -197,7 +198,10 @@ parse_block::parse_block(
         CodeRegion * reg,
         Address addr) :
     Block(obj,reg,addr),
-    needsRelocation_(false)
+    needsRelocation_(false),
+    blockNumber_(0),
+    unresolvedCF_(false),
+    abruptEnd_(false)
 {
      
 }
@@ -208,6 +212,7 @@ parse_block::parse_block(
         Address firstOffset) :
     Block(func->obj(),reg,firstOffset),
     needsRelocation_(false),
+    blockNumber_(0),
     unresolvedCF_(false),
     abruptEnd_(false)
 { 

@@ -154,10 +154,6 @@ namespace Dyninst
         m_Operands = o.m_Operands;
       //m_Operands.reserve(o.m_Operands.size());
       //std::copy(o.m_Operands.begin(), o.m_Operands.end(), std::back_inserter(m_Operands));
-      if(m_size > sizeof(unsigned int)) 
-      {
-	delete[] m_RawInsn.large_insn;
-      }
       
       m_size = o.m_size;
       if(o.m_size > sizeof(unsigned int))

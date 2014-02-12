@@ -107,7 +107,7 @@ int BPatch_process::getPid()
 BPatch_process::BPatch_process(const char *path, const char *argv[],
                                BPatch_hybridMode mode, const char **envp,
                                int stdin_fd, int stdout_fd, int stderr_fd)
-   : llproc(NULL), lastSignal(-1), exitCode(-1), 
+   : llproc(NULL), lastSignal(-1), exitCode(-1), exitSignal(-1),
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(false), detached(false), 
      terminated(false), reportedExit(false),
@@ -290,7 +290,7 @@ bool LinuxConsideredHarmful(pid_t pid) // PUSH
  */
 BPatch_process::BPatch_process
 (const char *path, int pid, BPatch_hybridMode mode)
-   : llproc(NULL), lastSignal(-1), exitCode(-1), 
+   : llproc(NULL), lastSignal(-1), exitCode(-1), exitSignal(-1),
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false), 
      terminated(false), reportedExit(false),
@@ -369,7 +369,7 @@ BPatch_process::BPatch_process
  * childPid           Process ID of the target process.
  */
 BPatch_process::BPatch_process(PCProcess *nProc)
-   : llproc(nProc), lastSignal(-1), exitCode(-1),
+   : llproc(nProc), lastSignal(-1), exitCode(-1), exitSignal(-1),
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true),
      createdViaAttach(true), detached(false),
      terminated(false),
