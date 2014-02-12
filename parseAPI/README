@@ -1,6 +1,6 @@
 
 This is release 8.0 of the ParseAPI. Currently, this library is
-available for the x86[_64]/Linux, x86/Windows XP/2000/20003, POWER/AIX, and
+available for the x86[_64]/Linux, x86/Windows XP/2000/20003, and
 POWER/Linux platforms.
 
 Documentation for the API can be found at
@@ -38,7 +38,6 @@ with one of the following values:
     i386-unknown-nt4.0          
     ppc32_linux                 Linux 2.6 on a 32-bit PPC processor
     ppc64_linux                 Linux 2.6 on a 64-bit PPC processor
-    rs6000-ibm-aix5.1           AIX Version 5.1
 
 Compile the ParseAPI and its Dyninst component dependencies by typeing 
 `make ParseAPI`.

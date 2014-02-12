@@ -204,9 +204,7 @@ const char *platform_string()
 	return "x86_64-unknown-nt4.0";
 #endif
 #elif defined (arch_power)
-#if defined (os_aix)
-	return "rs6000-ibm-aix5.1";
-#elif defined (os_linux)
+#if defined (os_linux)
 #if defined (arch_64bit)
 	return "ppc64_linux";
 #else

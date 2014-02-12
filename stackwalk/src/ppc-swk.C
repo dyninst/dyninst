@@ -56,17 +56,6 @@ typedef union {
    } pair64;
 } ra_fp_pair_t;
 
-#elif defined(os_aix)
-
-#define GET_FRAME_BASE(spr) __asm__("or %0, 1, 1\n" : "=r"(spr))
-typedef union {
-   struct {
-      uint32_t out_fp;
-      uint32_t unused;
-      uint32_t out_ra;
-   } pair32;
-} ra_fp_pair_t;
-
 #else
 
 #error Unknown platform

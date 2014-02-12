@@ -158,14 +158,6 @@ void parse_func::changeModule(pdmodule *mod) {
 
 bool parse_func::isInstrumentableByFunctionName()
 {
-#if defined(i386_unknown_solaris2_5)
-    /* On Solaris, this function is called when a signal handler
-       returns.  If it requires trap-based instrumentation, it can foul
-       the handler return mechanism.  So, better exclude it.  */
-    if (prettyName() == "_setcontext" || prettyName() == "setcontext")
-        return false;
-#endif /* i386_unknown_solaris2_5 */
-    
     // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
     // they can't be instrumented or we would have an infinite loop
     if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"

@@ -42,9 +42,6 @@
 #include "dyninstAPI/src/inst-power.h"
 #include "common/src/arch.h"
 #include "dyninstAPI/src/codegen.h"
-#if defined(os_aix)
-#include "dyninstAPI/src/aix.h"
-#endif
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "common/src/stats.h"
@@ -112,10 +109,6 @@ void initDefaultPointFrequencyTable()
 
 Register floatingLiveRegList[] = {13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
 unsigned int floatingLiveRegListSize = 14;
-
-// It appears as though 32-bit AIX and 32-bit Linux have compatible
-// calling conventions, and thus we share the initialization code
-// for both. 
 
 // Note that while we have register definitions for r13..r31, we only
 // use r0..r12 (well, r3..r12). I believe this is to reduce the number
@@ -934,12 +927,9 @@ unsigned restoreFPRegisters(codeGen &gen,
  * CTR, CR, XER, SPR0, FPSCR
  */
 unsigned saveSPRegisters(codeGen &gen,
-                         registerSpace * 
-#if defined(os_aix)
-                         theRegSpace
-#endif
-                         , int save_off
-			 , int force_save)
+                         registerSpace *,
+                         int save_off,
+			 int force_save)
 {
     unsigned num_saved = 0;
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
@@ -982,24 +972,6 @@ unsigned saveSPRegisters(codeGen &gen,
     }
 
     saveFPSCR(gen, 10, save_off + fpscr_off); num_saved++;
-    
-    // MQ only exists on POWER, not PowerPC. Right now that's correlated
-    // to AIX vs Linux, but we _really_ should fix that...
-    // We need to dynamically determine the CPU and emit code based on that.
-    //
-    // Apparently, AIX64 doesn't use the MQ register either.
-    //
-    // Well, if it isn't used, then it's dead, and we won't save it.
-    // ARGH inferior RPCs...
-#if defined(os_aix) && !defined(arch_64bit)
-    registerSlot *mq = ((*theRegSpace)[registerSpace::mq]);
-    if (mq->liveState == registerSlot::live) {
-        saveSPR(gen, 10, mq->encoding(), save_off + spr0_off); num_saved++;
-        mq->liveState = registerSlot::spilled;
-        gen.rs()->markSavedRegister(registerSpace::mq, save_off + spr0_off);
-
-    }
-#endif
 
     return num_saved;
 }
@@ -1010,12 +982,9 @@ unsigned saveSPRegisters(codeGen &gen,
  */
 
 unsigned restoreSPRegisters(codeGen &gen,
-                            registerSpace *
-#if defined(os_aix)
-                            theRegSpace
-#endif
-                            , int save_off
-			    , int force_save)
+                            registerSpace *,
+                            int save_off,
+			    int force_save)
 {
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
     unsigned num_restored = 0;
@@ -1053,14 +1022,6 @@ unsigned restoreSPRegisters(codeGen &gen,
     restoreSPR(gen, 10, SPR_XER, save_off + xer_off); num_restored++;
     }
     restoreFPSCR(gen, 10, save_off + fpscr_off); num_restored++;
-    
-#if defined(os_aix) && !defined(arch_64bit)
-    // See comment in saveSPRegisters
-    registerSlot *mq = ((*theRegSpace)[registerSpace::mq]);
-    if (mq->liveState == registerSlot::spilled) {
-        restoreSPR(gen, 10, mq->encoding(), save_off + spr0_off); num_restored++;
-    }
-#endif
 
     return num_restored;
 }
@@ -1257,10 +1218,10 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 // Emit a function call.
 //   It saves registers as needed.
 //   copy the passed arguments into the canonical argument registers (r3-r10)
-//   AIX and 64-bit ELF Linux ONLY: 
+//   64-bit ELF Linux ONLY: 
 //     Locate the TOC entry of the callee module and copy it into R2
 //   generate a branch and link the destination
-//   AIX and 64-bit ELF Linux ONLY:
+//   64-bit ELF Linux ONLY:
 //     Restore the original TOC into R2
 //   restore the saved registers.
 //
@@ -1338,7 +1299,6 @@ Register EmitterPOWER::emitCallReplacement(opCode ocode,
 }
 
 // There are four "axes" going on here:
-// AIX vs Linux
 // 32 bit vs 64 bit  
 // Instrumentation vs function call replacement
 // Static vs. dynamic 
@@ -1374,7 +1334,6 @@ Register EmitterPOWER::emitCall(opCode ocode,
     Address caller_toc = 0;
     pdvector <Register> srcs;
 
-    // AIX, 32/64, static/dynamic, inst/replacement;
     // Linux, 64, static/dynamic, inst/repl
     // DYN
     toc_anchor = gen.addrSpace()->getTOCoffsetInfo(callee);
@@ -1409,7 +1368,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
 
     //  Save the link register.
     // mflr r0
-    // AIX/Linux, 32/64, stat/dynamic, instrumentation
+    // Linux, 32/64, stat/dynamic, instrumentation
     if (needToSaveLR) {
         assert(inInstrumentation);
         insnCodeGen::generateMoveFromLR(gen, 0);
@@ -1542,7 +1501,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
     // Call generation time.
     bool setTOC = false;
 
-	// AIX, 32/64, stat/dyn, inst/repl; Linux, 64, stat/dyn, inst/repl
+	// Linux, 64, stat/dyn, inst/repl
     if (toc_anchor != caller_toc) {
         setTOC = true;
     }
@@ -1688,16 +1647,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
 	      // registers). To get the 9th, etc. argument you want
 	      // PARAM_OFFSET(...) + (8 * arg number) instead of
 	      // 8 * (arg_number - 8)
-	      // We can't test on AIX as of this writing; previously the 64-bit ppc
-	      // AIX code was subtracting 8 from the argument number.
-	      // Preserving that behavior here; failures will be reflected in test 1_36.
-#if defined(os_aix)
-	      int stackSlot =
-		src1 - 8;
-#else
-	      int stackSlot =
-		src1;
-#endif
+	      int stackSlot = src1;
 	      stkOffset = TRAMP_FRAME_SIZE_64 +
                             stackSlot * sizeof(long) +
                             PARAM_OFFSET(addrWidth);
@@ -2108,14 +2058,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             case divOp:
                 instOp = DIVSop;   // POWER divide instruction
                                    // Same as DIVWop for PowerPC
-#if defined(os_aix)                // Should use runtime CPU detection ...
-		if (gen.width() == 8)
-		    instXop = DIVWxop; // divs instruction deleted on 64-bit
-		else
-		    instXop = DIVSxop;
-#else
                 instXop = DIVWxop; // PowerPC
-#endif
                 break;
 
             // Bool ops
@@ -2394,25 +2337,7 @@ bool doNotOverflow(int value)
   else return(false);
 }
 
-#if defined (os_aix)
-// hasBeenBound: returns false
-// On AIX (at least what we handle so far), all symbols are bound
-// at load time. This kind of obviates the need for a hasBeenBound
-// function: of _course_ the symbol has been bound. 
-// So the idea of having a relocation entry for the function doesn't
-// quite make sense. Given the target address, we can scan the function
-// lists until we find the desired function.
-
-bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &,func_instance *&, Address ) {
-  // What needs doing:
-  // Locate call instruction
-  // Decipher call instruction (static/dynamic call, global linkage code)
-  // Locate target
-  // Lookup target
-  return false; // Haven't patched this up yet
-}
-
-#elif !defined(os_vxworks)
+#if !defined(os_vxworks)
 // hasBeenBound: returns true if the runtime linker has bound the
 // function symbol corresponding to the relocation entry in at the address
 // specified by entry and base_addr.  If it has been bound, then the callee 
@@ -2575,18 +2500,6 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr i,
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 {
-#if defined(os_aix)
-    Address buffer[3];
-    Address val_to_write = f->addr();
-    Address toc = p->proc()->getTOCoffsetInfo(val_to_write);
-    buffer[0] = val_to_write;
-    buffer[1] = toc;
-    buffer[2] = 0x0;
-
-    if (!p->writeDataSpace((void *) addr, sizeof(buffer), buffer))
-        fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-    return true;
-#else
     // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
     if (p->getAddressWidth() == sizeof(uint64_t)) {
         Address val_to_write = f->addr();
@@ -2602,7 +2515,6 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
         return p->writeDataSpace((void *) addr,
                                  sizeof(val_to_write), &val_to_write);
     }
-#endif
 }
 
 Emitter *AddressSpace::getEmitter() 
@@ -3474,7 +3386,7 @@ bool EmitterPOWER::emitCallInstruction(codeGen &gen, func_instance *callee, bool
     }
 
 
-    // AIX 32/64, etc; Linux 64
+    // Linux 64
     if (setTOC) {
         // Set up the new TOC value
         emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);

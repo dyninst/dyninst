@@ -56,7 +56,7 @@
 #include "dynThread.h"
 #include "pcEventMuxer.h"
 
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+#if defined(i386_unknown_nt4_0)
 #include "nt_signal_emul.h"
 #endif
 
@@ -1639,9 +1639,6 @@ bool BPatch::waitUntilStopped(BPatch_thread *appThread){
 	}
 #else
 	else if ((appThread->getProcess()->stopSignal() != SIGSTOP) &&
-#if defined(bug_irix_broken_sigstop)
-		 (appThread->getProcess()->stopSignal() != SIGEMT) &&
-#endif 
 		 (appThread->getProcess()->stopSignal() != SIGHUP)) {
 		cerr << "ERROR :  process stopped on signal "
 		     << "different than SIGSTOP" << endl;

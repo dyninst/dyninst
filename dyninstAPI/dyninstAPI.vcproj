@@ -2654,15 +2654,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\w32CONTEXT.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\Relocation\Widgets\Widget.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\wincetypes.h"
 				>
 			</File>
 		</Filter>

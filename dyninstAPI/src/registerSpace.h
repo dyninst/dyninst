@@ -226,13 +226,6 @@ class registerSpace {
     
     ~registerSpace();
 
-    // IA-64... it overrides the register space with particular register
-    // numbers based on its rotating window mechanism.
-    // Note: this screws with the default registerSpace, and so 
-    // _really_ needs to be used continually or not at all.
-    static void overwriteRegisterSpace(unsigned firstReg, unsigned lastReg);
-    static void overwriteRegisterSpace64(unsigned firstReg, unsigned lastReg);
-
     // Read the value in register souce from wherever we've stored it in
     // memory (including the register itself), and stick it in actual register
     // destination. So the source is the label, and destination is an actual.

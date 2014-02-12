@@ -38,9 +38,6 @@
 #include "dynThread.h"
 #include "dynProcess.h"
 #include "common/src/Types.h"
-#if defined (os_osf)
-#include <malloc.h>
-#endif
 #include "codegen.h"
 #include "util.h"
 #include "function.h"
@@ -216,18 +213,8 @@ void codeGen::allocate(unsigned size)
    allocated_ = true;
    if (!buffer_) {
       fprintf(stderr, "%s[%d]:  malloc (%d) failed: %s\n", FILE__, __LINE__, size, strerror(errno));
-#if defined (os_osf)
-    //struct mallinfo my_mallinfo  = mallinfo();
-    //extern struct mallinfo = mallinfo();
-    fprintf(stderr, "malloc info:\n");
-    fprintf(stderr, "\t arena = %d\n", mallinfo().arena);
-    fprintf(stderr, "\t ordblocks = %d\n", mallinfo().ordblks);
-    fprintf(stderr, "\t free ordblocks = %d\n", mallinfo().fordblks);
-    fprintf(stderr, "\t smblocks = %d\n", mallinfo().smblks);
-    fprintf(stderr, "\t free smblocks = %d\n", mallinfo().fsmblks);
-#endif
-    }
-    assert(buffer_);
+   }
+   assert(buffer_);
 }
 
 // Very similar to destructor

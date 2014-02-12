@@ -493,7 +493,6 @@ void image::findMain()
     }
 #elif defined(i386_unknown_linux2_0) \
 || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
-|| defined(i386_unknown_solaris2_5) \
 || (defined(os_freebsd) \
     && (defined(arch_x86) || defined(arch_x86_64)))
     // Only look for main in executables, but do allow position-independent
@@ -722,96 +721,6 @@ void image::findMain()
 	}
     }
     
-#elif defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)
-   
-   bool foundMain = false;
-   vector <SymtabAPI::Function *> funcs;
-   if (linkedFile->findFunctionsByName(funcs, "main") ||
-       linkedFile->findFunctionsByName(funcs, "usla_main"))
-       foundMain = true;
-
-   Region *sec = NULL;
-   bool found = linkedFile->findRegion(sec, ".text"); 	
-
-   if( !foundMain && linkedFile->isExec() && found )
-   {
-       //we havent found a symbol for main therefore we have to parse _start
-       //to find the address of main
-
-       //last two calls in _start are to main and exit
-       //find the end of _start then back up to find the target addresses
-       //for exit and main
-      
-       int c;
-       int calls = 0;
-       Word *code_ptr_ = (Word *) sec->getPtrToRawData();
-       
-       for( c = 0; code_ptr_[ c ] != 0; c++ );
-
-       instruction i;
-       while( c > 0 )
-       {
-           i.setInstruction((codeBuf_t*)(&code_ptr_[ c ]));
-
-           if(IFORM_LK(i) && 
-              ((IFORM_OP(i) == Bop) || (BFORM_OP(i) == BCop) ||
-               ((XLFORM_OP(i) == BCLRop) && 
-                ((XLFORM_XO(i) == 16) || (XLFORM_XO(i) == 528)))))
-           {
-               calls++;
-               if( calls == 2 )
-                   break;
-           }
-           c--;
-       }
-       
-       Offset currAddr = sec->getMemOffset() + c * instruction::size();
-       Offset mainAddr = 0;
-       
-       if( ( IFORM_OP(i) == Bop ) || ( BFORM_OP(i) == BCop ) )
-       {
-           int disp = 0;
-           if(IFORM_OP(i) == Bop)
-           {
-               disp = IFORM_LI(i);
-           }
-           else if(BFORM_OP(i) == BCop)
-           {
-               disp = BFORM_BD(i);
-           }
-
-           disp <<= 2;
-
-           if(IFORM_AA(i))
-           {
-               mainAddr = (Offset)disp;
-           }
-           else
-               mainAddr = (Offset)( currAddr + disp );      
-       }  
-       
-       Symbol *sym = new Symbol( "main", 
-                                 Symbol::ST_FUNCTION,
-                                 Symbol::SL_GLOBAL,
-                                 Symbol::SV_DEFAULT, 
-                                 mainAddr,
-                                 linkedFile->getDefaultModule(),
-                                 sec);
-       linkedFile->addSymbol(sym);
-      
-   
-       //since we are here make up a sym for _start as well
-
-       Symbol *sym1 = new Symbol( "__start", 
-                                  Symbol::ST_FUNCTION,
-                                  Symbol::SL_GLOBAL, 
-                                  Symbol::SV_DEFAULT, 
-                                  sec->getMemOffset(), 
-                                  linkedFile->getDefaultModule(),
-                                  sec);
-       linkedFile->addSymbol(sym1);
-   }
-
 #elif defined(i386_unknown_nt4_0)
 
    if(linkedFile->isExec()) {
@@ -1278,45 +1187,6 @@ void image::analyzeImage() {
 
     obj_->parse();
 
-#if defined(os_aix)
-  {
-  image_parRegion *parReg;
-  int currentSectionNum = 0;
-
-  // Most of the time there will be no parallel regions in an image, so nothing will happen.
-  // If there is a parallel region we examine it individually 
-  for (unsigned i = 0; i < parallelRegions.size(); i++)
-    {
-      parReg = parallelRegions[i];
-      if (parReg == NULL)
-    continue;
-      else
-    {
-      // Every parallel region has the parse_func that contains the
-      //   region associated with it 
-            parse_func * imf = const_cast<parse_func*>(parReg->getAssociatedFunc());
-      
-      // Returns pointers to all potential parse_funcs that correspond
-      //   to what could be the parent OpenMP function for the region 
-      const pdvector<parse_func *> *prettyNames =
-        findFuncVectorByPretty(imf->calcParentFunc(imf, parallelRegions));
-      
-      //There may be more than one (or none) functions with that name, we take the first 
-      // This function gives us all the information about the parallel region by getting
-      // information for the parallel region parent function  
-      if (prettyNames->size() > 0)
-        imf->parseOMP(parReg, (*prettyNames)[0], currentSectionNum);
-      else
-        continue;
-    }
-    }
-  }
-  /**************************/
-  /* END OpenMP Parsing Code */
-  /**************************/
-
-#endif
-
 #if defined(cap_stripped_binaries)
    {
        vector<CodeRegion *>::const_iterator rit = cs_->regions().begin();
@@ -1349,9 +1219,6 @@ void image::analyzeImage() {
 // wraps (in the normal case) the object name and a relocation
 // address (0 for a.out file). On the following platforms, we
 // are handling a special case:
-//   AIX: objects can possibly have a name like /lib/libc.so:shr.o
-//          since libraries are archives
-//        Both text and data sections have a relocation address
 
 
 image::image(fileDescriptor &desc, 
@@ -1377,51 +1244,7 @@ image::image(fileDescriptor &desc,
    mode_(mode),
    arch(Dyninst::Arch_none)
 {
-#if defined(os_aix)
-   archive = NULL;
-   string file = desc_.file().c_str();
-   SymtabAPI::SymtabError serr = SymtabAPI::Not_An_Archive;
-
-   startup_printf("%s[%d]:  opening file %s (or archive)\n", FILE__, __LINE__, file.c_str());
-   if (!SymtabAPI::Archive::openArchive(archive, file))
-   {
-      err = true;
-      if (archive->getLastError() != serr) {
-         startup_printf("%s[%d]:  opened archive\n", FILE__, __LINE__);
-         return;
-      }
-      else
-      {
-         startup_printf("%s[%d]:  opening file (not archive)\n", FILE__, __LINE__);
-         if (!SymtabAPI::Symtab::openFile(linkedFile, file, BPatch_defensiveMode == mode)) 
-         {
-            startup_printf("%s[%d]:  opening file (not archive) failed\n", FILE__, __LINE__);
-            err = true;
-            return;
-         }
-         startup_printf("%s[%d]:  opened file\n", FILE__, __LINE__);
-      }
-   }
-   else
-   {
-      assert (archive);
-      startup_printf("%s[%d]:  getting member\n", FILE__, __LINE__);
-      string member = std::string(desc_.member());
-      if (member == fileDescriptor::emptyString) {
-         fprintf(stderr, "%s[%d]:  WARNING:  not asking for unnamed member\n", FILE__, __LINE__);
-      }
-      else {
-         if (!archive->getMember(linkedFile, member))
-         {
-            startup_printf("%s[%d]:  getting member failed\n", FILE__, __LINE__);
-            err = true;
-            return;
-         }
-         startup_printf("%s[%d]:  got member\n", FILE__, __LINE__);
-      }
-   }
-   startup_printf("%s[%d]:  opened file %s (or archive)\n", FILE__, __LINE__, file.c_str());
-#elif defined(os_linux) || defined(os_freebsd)
+#if defined(os_linux) || defined(os_freebsd)
    string file = desc_.file().c_str();
    if( desc_.member().empty() ) {
        startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
@@ -1596,10 +1419,6 @@ image::~image()
     if(parse_cb_) delete parse_cb_;
 
     if (linkedFile) { SymtabAPI::Symtab::closeSymtab(linkedFile); }
-#if defined (os_aix)
-    //fprintf(stderr, "%s[%d]:  IMAGE DTOR:  archive = %p\n", FILE__, __LINE__, archive);
-    if (archive) delete archive;
-#endif
 }
 
 bool pdmodule::findFunction( const std::string &name, pdvector<parse_func *> &found ) {
@@ -1790,34 +1609,12 @@ pdmodule *image::getOrCreateModule(Module *mod) {
     return pdmod;
 }
 
-#if defined(os_aix)
-namespace {
-    /* 
-     * See ParseAPI::SymtabCodeSource::lookup_region for 
-     * details about this
-     */  
-    CodeRegion * aix_region_hack(set<CodeRegion *> regs,Address addr)
-    {
-        set<CodeRegion*>::iterator rit = regs.begin();
-        for( ; rit != regs.end(); ++rit) {
-            CodeRegion * tmp = *rit;
-            if(tmp->isCode(addr))
-                return tmp;
-        }
-        return *regs.begin();
-    }
-};
-#endif
-
 
 /*********************************************************************/
 /**** Function lookup (by name or address) routines               ****/
 /****                                                             ****/
 /**** Overlapping region objects MUST NOT use these routines(+)   ****/
 /*********************************************************************/
-/*
- * (+) that is, except on AIX which is just /different/
- */
 
 int
 image::findFuncs(const Address offset, set<Function *> & funcs) {
@@ -1830,16 +1627,11 @@ image::findFuncs(const Address offset, set<Function *> & funcs) {
     else if(cnt == 1)
         return obj_->findFuncs(*match.begin(),offset,funcs);
 
-#if !defined(os_aix)
         fprintf(stderr,"[%s:%d] image::findFuncs(offset) called on "
                        "overlapping-region object\n",
             FILE__,__LINE__);
         assert(0);
         return 0;
-#else
-    CodeRegion * single = aix_region_hack(match,offset);
-    return obj_->findFuncs(single,offset,funcs);
-#endif 
 }
 
 parse_func *image::findFuncByEntry(const Address &entry) {
@@ -1852,16 +1644,11 @@ parse_func *image::findFuncByEntry(const Address &entry) {
     else if(cnt == 1)
         return (parse_func*)obj_->findFuncByEntry(*match.begin(),entry);
 
-#if !defined(os_aix)
     fprintf(stderr,"[%s:%d] image::findFuncByEntry(entry) called on "
                    "overlapping-region object\n",
         FILE__,__LINE__);
     assert(0);
     return 0;
-#else
-    CodeRegion * single = aix_region_hack(match,entry);
-    return (parse_func*)obj_->findFuncByEntry(single,entry);
-#endif 
 }
 
 int 
@@ -1876,16 +1663,11 @@ image::findBlocksByAddr(const Address addr, set<ParseAPI::Block *> & blocks )
     else if(cnt == 1)
         return obj_->findBlocks(*match.begin(),addr,blocks);
 
-#if !defined(os_aix)
         fprintf(stderr,"[%s:%d] image::findBlocks(offset) called on "
                        "overlapping-region object\n",
             FILE__,__LINE__);
         assert(0);
         return 0;
-#else
-    CodeRegion * single = aix_region_hack(match,addr);
-    return obj_->findBlocks(single,addr,blocks);
-#endif
 }
 
 // Return the vector of functions associated with a pretty (demangled) name

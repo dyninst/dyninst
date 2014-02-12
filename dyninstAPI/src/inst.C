@@ -75,7 +75,6 @@ unsigned findTags(const std::string ) {
 #endif
 }
 
-// IA64 has its own version; dunno if this would work there, so skipping for now
 unsigned generateAndWriteBranch(AddressSpace *proc, 
                                 Address fromAddr, 
                                 Address newAddr,
@@ -85,11 +84,7 @@ unsigned generateAndWriteBranch(AddressSpace *proc,
 
     codeGen gen(fillSize);
 
-#if defined(os_aix)
-    insnCodeGen::generateInterFunctionBranch(gen, fromAddr, newAddr);
-#else
     insnCodeGen::generateBranch(gen, fromAddr, newAddr);
-#endif
     gen.fillRemaining(codeGen::cgNOP);
     
     proc->writeTextSpace((void*)(fromAddr), gen.used(), gen.start_ptr());

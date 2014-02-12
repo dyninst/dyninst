@@ -728,8 +728,6 @@ char *BPatch_variableExpr::getNameWithLength(char *buffer, int max)
 
 void *BPatch_variableExpr::getAddress()
 {
-  //  for AIX this may be broken, in the case where the mutator is 32b
-  //  and the mutatee is 64b.
   return address;
 }
 
