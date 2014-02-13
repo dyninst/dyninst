@@ -41,10 +41,6 @@
 #include "mapped_object.h"
 #include "dynProcess.h"
 
-#if defined(os_aix)
-#include "parRegion.h"
-#endif
-
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
@@ -128,17 +124,6 @@ DynCFGFactory::mkfunc(
 
     if(obj->cs()->linkage().find(ret->addr()) != obj->cs()->linkage().end())
         ret->isPLTFunction_ = true;
-
-
-    /*
-     * OMP parallel regions support
-     */
-#if defined(os_aix)
-    if(strstr(stf->getAllMangledNames()[0].c_str(), "@OL@") != NULL){
-        image_parRegion * pR = new image_parRegion(stf->getOffset(),ret);
-        _img->parallelRegions.push_back(pR);
-    }
-#endif
 
     return ret;
 }

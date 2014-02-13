@@ -92,6 +92,7 @@ parse_func::parse_func(
   func_(func),
   mod_(m),
   image_(i),
+  OMPparsed_(false),
   usedRegisters(NULL),
   containsFPRWrites_(unknown),
   containsSPRWrites_(unknown),
@@ -158,14 +159,6 @@ void parse_func::changeModule(pdmodule *mod) {
 
 bool parse_func::isInstrumentableByFunctionName()
 {
-#if defined(i386_unknown_solaris2_5)
-    /* On Solaris, this function is called when a signal handler
-       returns.  If it requires trap-based instrumentation, it can foul
-       the handler return mechanism.  So, better exclude it.  */
-    if (prettyName() == "_setcontext" || prettyName() == "setcontext")
-        return false;
-#endif /* i386_unknown_solaris2_5 */
-    
     // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
     // they can't be instrumented or we would have an infinite loop
     if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
@@ -205,7 +198,10 @@ parse_block::parse_block(
         CodeRegion * reg,
         Address addr) :
     Block(obj,reg,addr),
-    needsRelocation_(false)
+    needsRelocation_(false),
+    blockNumber_(0),
+    unresolvedCF_(false),
+    abruptEnd_(false)
 {
      
 }
@@ -216,6 +212,7 @@ parse_block::parse_block(
         Address firstOffset) :
     Block(func->obj(),reg,firstOffset),
     needsRelocation_(false),
+    blockNumber_(0),
     unresolvedCF_(false),
     abruptEnd_(false)
 { 

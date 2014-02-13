@@ -1,2 +1,0 @@
-*.[dhC] DEPENDS libdyninstAPI.a V_libsymtabAPI.c .deps *.bb *.bbg *.da *.gcov
-libdemangle.*

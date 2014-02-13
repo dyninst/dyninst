@@ -399,7 +399,7 @@ ostream& operator<<(ostream&s, timeStamp z) {
 #if !defined(os_windows)
     ostream::fmtflags oldflags;
 #else
-    long oldflags;  // irix,nt environment doesn't define ostream::fmtflags
+    long oldflags;  // nt environment doesn't define ostream::fmtflags
 #endif
     oldflags = s.flags(ostream::oct);
     s << "[1970 + " << tl << "]"; 

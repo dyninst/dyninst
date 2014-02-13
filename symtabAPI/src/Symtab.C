@@ -177,7 +177,7 @@ boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
    // in stab document, size specified in bits, system size is in bytes
    builtInTypes->addBuiltInType(newType = new typeScalar(-1, 4, "int", true));
    newType->decrRefCount();
-   // -2  char, 8 bit type holding a character. GDB & dbx(AIX) treat as signed
+   // -2  char, 8 bit type holding a character. GDB treats as signed
    builtInTypes->addBuiltInType(newType = new typeScalar(-2, 1, "char", true));
    newType->decrRefCount();
    // -3  short, 16 bit signed integral type
@@ -1368,116 +1368,6 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    defaultNamespacePrefix = "";
 }
 
-// Symtab constructor for archive members
-#if defined(os_aix)
-Symtab::Symtab(std::string filename, std::string member_name, Offset offset, 
-               bool &err, void *base) :
-   LookupInterface(),
-   Serializable(),
-   AnnotatableSparse(),
-   member_name_(member_name),
-   member_offset_(offset),
-   parentArchive_(NULL),
-   mf(NULL), mfForDebugInfo(NULL),
-   imageOffset_(0), imageLen_(0),
-   dataOffset_(0), dataLen_(0),
-   is_a_out(false),
-   main_call_addr_(0),
-   nativeCompiler(false),
-   address_width_(sizeof(int)),
-   code_ptr_(NULL), data_ptr_(NULL),
-   entry_address_(0), base_address_(0), load_address_(0),
-   object_type_(obj_Unknown), is_eel_(false),
-   no_of_sections(0),
-   newSectionInsertPoint(0),
-   no_of_symbols(0),
-   sorted_everyFunction(false),
-   isLineInfoValid_(false),
-   isTypeInfoValid_(false),
-   nlines_(0), fdptr_(0), lines_(NULL),
-   stabstr_(NULL), nstabs_(0), stabs_(NULL),
-   stringpool_(NULL),
-   hasRel_(false), hasRela_(false), hasReldyn_(false),
-   hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
-   isStaticBinary_(false), isDefensiveBinary_(false),
-   func_lookup(NULL),
-   lineInfo(NULL),
-   obj_private(NULL),
-   _ref_cnt(1)
-{
-   mf = MappedFile::createMappedFile(filename);
-   assert(mf);
-   obj_private = new Object(mf, member_name, offset, symtab_log_perror, base);
-   if (obj_private->hasError()) {
-     err = true;
-     return;
-   }
-   err = !extractInfo(obj_private);
-   defaultNamespacePrefix = "";
-
-   create_printf("%s[%d]: created symtab for %s(%s)\n", FILE__, __LINE__, filename.c_str(),
-           member_name.c_str());
-}
-#else
-Symtab::Symtab(std::string, std::string, Offset, bool &, void *)
-{
-    assert(0);
-}
-#endif
-
-#if defined(os_aix) // is this ever used on AIX? 
-Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
-                       Offset offset, bool &err, void *base) :
-   LookupInterface(),
-   Serializable(),
-   AnnotatableSparse(),
-   member_name_(member_name),
-   member_offset_(offset),
-   parentArchive_(NULL),
-   mf(NULL), mfForDebugInfo(NULL),
-   imageOffset_(0), imageLen_(0),
-   dataOffset_(0), dataLen_(0),
-   is_a_out(false),
-   main_call_addr_(0),
-   nativeCompiler(false),
-   address_width_(sizeof(int)),
-   code_ptr_(NULL), data_ptr_(NULL),
-   entry_address_(0), base_address_(0), load_address_(0),
-   object_type_(obj_Unknown), is_eel_(false),
-   no_of_sections(0),
-   newSectionInsertPoint(0),
-   no_of_symbols(0),
-   sorted_everyFunction(false),
-   isLineInfoValid_(false),
-   isTypeInfoValid_(false),
-   nlines_(0), fdptr_(0), lines_(NULL),
-   stabstr_(NULL), nstabs_(0), stabs_(NULL),
-   stringpool_(NULL),
-   hasRel_(false), hasRela_(false), hasReldyn_(false),
-   hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
-   isStaticBinary_(false), isDefensiveBinary_(false),
-   func_lookup(NULL),
-   lineInfo(NULL),
-   obj_private(NULL),
-   _ref_cnt(1)
-{
-   mf = MappedFile::createMappedFile(mem_image, image_size);
-   assert(mf);
-   obj_private = new Object(mf, mf, member_name, offset, symtab_log_perror, base);
-   if (obj_private->hasError()) {
-     err = true;
-     return;
-   }
-   err = !extractInfo(obj_private);
-   defaultNamespacePrefix = "";
-}
-#else 
-Symtab::Symtab(char *, size_t, std::string , Offset, bool &, void *)
-{
-    assert(0);
-}
-#endif
-
 bool sort_reg_by_addr(const Region* a, const Region* b)
 {
   if (a->getMemOffset() == b->getMemOffset())
@@ -1510,8 +1400,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     
     if (0 == imageLen_ || 0 == linkedFile->code_ptr()) 
     {
-        // for AIX, code_ptr()==NULL is normal behavior
-#if !defined(os_aix)
        if (0 == linkedFile->code_ptr()) {
           //fprintf(stderr, "[%s][%d]WARNING: null code pointer in Symtab for"
           //" file %s, possibly due to a missing .text section.\n",
@@ -1519,7 +1407,6 @@ bool Symtab::extractInfo(Object *linkedFile)
           linkedFile->code_ptr_ = (char *) linkedFile->code_off();
        }
        else 
-#endif
        {
            if( object_type_ != obj_RelocatableFile ||
                linkedFile->code_ptr() == 0)
@@ -1610,17 +1497,11 @@ bool Symtab::extractInfo(Object *linkedFile)
     is_eel_ = linkedFile->isEEL();
     linkedFile->getSegments(segments_);
 
-#if !defined(os_aix) && !defined(os_windows)
+#if !defined(os_windows)
     linkedFile->getDependencies(deps_);
 #endif
 
-#if defined (os_aix)
-    //  These should go away
-    linkedFile->get_stab_info(stabstr_, nstabs_, stabs_, stringpool_);
-    linkedFile->get_line_info(nlines_, lines_, fdptr_);
-#endif
-
-#if defined(os_aix) || defined(os_linux) || defined(os_freebsd)
+#if defined(os_linux) || defined(os_freebsd)
     // make sure we're using the right demangler
     
     nativeCompiler = parseCompilerType(linkedFile);
@@ -3328,12 +3209,14 @@ SYMTAB_EXPORT LookupInterface::~LookupInterface()
 SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(Offset tStart, 
       unsigned tSize, 
       Offset cStart) 
-: tryStart_(tStart), trySize_(tSize), catchStart_(cStart), hasTry_(true) 
+: tryStart_(tStart), trySize_(tSize), catchStart_(cStart), hasTry_(true),
+  tryStart_ptr(0), tryEnd_ptr(0), catchStart_ptr(0), fdeStart_ptr(0), fdeEnd_ptr(0)
 {
 }
 
    SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(Offset cStart) 
-: tryStart_(0), trySize_(0), catchStart_(cStart), hasTry_(false) 
+: tryStart_(0), trySize_(0), catchStart_(cStart), hasTry_(false),
+  tryStart_ptr(0), tryEnd_ptr(0), catchStart_ptr(0), fdeStart_ptr(0), fdeEnd_ptr(0)
 {
 }
 
@@ -3820,7 +3703,7 @@ SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 
 SYMTAB_EXPORT bool Symtab::removeLibraryDependency(std::string lib)
 {
-#if defined(os_aix) || defined(os_windows)
+#if defined(os_windows)
    return false;
 #else
    Object *obj = getObject();
@@ -3834,10 +3717,6 @@ SYMTAB_EXPORT bool Symtab::removeLibraryDependency(std::string lib)
    
 SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 {
-#if defined(os_aix)
-   return false;
-#endif
-
    Object *obj = getObject();
 	if (!obj)
 	{
@@ -3971,7 +3850,7 @@ SYMTAB_EXPORT bool Symtab::getLinkingResources(std::vector<Archive *> &libs) {
 
 SYMTAB_EXPORT Address Symtab::getLoadAddress()
 {
-#if defined(os_linux) || defined(os_freebsd) || defined(os_aix)
+#if defined(os_linux) || defined(os_freebsd)
    return getObject()->getLoadAddress();
 #else
    return 0x0;

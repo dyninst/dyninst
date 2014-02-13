@@ -100,8 +100,10 @@ AstNode::AstNode() {
    doTypeCheck = true;
    lineNum = 0;
    columnNum = 0;
+   snippetName = NULL;
    lineInfoSet = false;
    columnInfoSet = false;
+   snippetNameSet = false;
 }
 
 //The following methods are for error reporting in dynC_API

@@ -38,9 +38,6 @@
 #include "dynThread.h"
 #include "dynProcess.h"
 #include "common/src/Types.h"
-#if defined (os_osf)
-#include <malloc.h>
-#endif
 #include "codegen.h"
 #include "util.h"
 #include "function.h"
@@ -64,6 +61,8 @@ codeGen::codeGen() :
     buffer_(NULL),
     offset_(0),
     size_(0),
+    max_(0),
+    pc_rel_use_count(0),
     emitter_(NULL),
     allocated_(false),
     aSpace_(NULL),
@@ -84,6 +83,8 @@ codeGen::codeGen(unsigned size) :
     buffer_(NULL),
     offset_(0),
     size_(size),
+    max_(size+codeGenPadding),
+    pc_rel_use_count(0),
     emitter_(NULL),
     allocated_(true),
     aSpace_(NULL),
@@ -110,6 +111,8 @@ codeGen::codeGen(codeBuf_t *buffer, int size) :
     buffer_(buffer),
     offset_(0),
     size_(size-codeGenPadding),
+    max_(size+codeGenPadding),
+    pc_rel_use_count(0),
     emitter_(NULL),
     allocated_(false),
     aSpace_(NULL),
@@ -137,8 +140,11 @@ codeGen::~codeGen() {
 
 // Deep copy
 codeGen::codeGen(const codeGen &g) :
+    buffer_(NULL),
     offset_(g.offset_),
     size_(g.size_),
+    max_(g.max_),
+    pc_rel_use_count(g.pc_rel_use_count),
     emitter_(NULL),
     allocated_(g.allocated_),
     aSpace_(g.aSpace_),
@@ -159,8 +165,6 @@ codeGen::codeGen(const codeGen &g) :
         buffer_ = (codeBuf_t *) malloc(bufferSize);
         memcpy(buffer_, g.buffer_, bufferSize);
     }
-    else
-        buffer_ = NULL;
 }
 
 bool codeGen::operator==(void *p) const {
@@ -177,6 +181,7 @@ codeGen &codeGen::operator=(const codeGen &g) {
     offset_ = g.offset_;
     size_ = g.size_;
     max_ = g.max_;
+    pc_rel_use_count = g.pc_rel_use_count;
     allocated_ = g.allocated_;
     thr_ = g.thr_;
     isPadded_ = g.isPadded_;
@@ -216,18 +221,8 @@ void codeGen::allocate(unsigned size)
    allocated_ = true;
    if (!buffer_) {
       fprintf(stderr, "%s[%d]:  malloc (%d) failed: %s\n", FILE__, __LINE__, size, strerror(errno));
-#if defined (os_osf)
-    //struct mallinfo my_mallinfo  = mallinfo();
-    //extern struct mallinfo = mallinfo();
-    fprintf(stderr, "malloc info:\n");
-    fprintf(stderr, "\t arena = %d\n", mallinfo().arena);
-    fprintf(stderr, "\t ordblocks = %d\n", mallinfo().ordblks);
-    fprintf(stderr, "\t free ordblocks = %d\n", mallinfo().fordblks);
-    fprintf(stderr, "\t smblocks = %d\n", mallinfo().smblks);
-    fprintf(stderr, "\t free smblocks = %d\n", mallinfo().fsmblks);
-#endif
-    }
-    assert(buffer_);
+   }
+   assert(buffer_);
 }
 
 // Very similar to destructor

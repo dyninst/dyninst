@@ -311,7 +311,7 @@ template <class Type> class HTable {
   // Of course, old broken compilers don't like the standard, so we just
   // write something that compiles (as was the case before).
   // BTW, is this operator used anywhere?
-#if (defined(i386_unknown_nt4_0) && _MSC_VER < 1300) || defined(mips_sgi_irix6_4)
+#if (defined(i386_unknown_nt4_0) && _MSC_VER < 1300)
   friend std::ostream& operator<< (std::ostream &os, HTable<Type> &data);
 #else
   friend std::ostream& operator<< <> (std::ostream &os, HTable<Type> &data);

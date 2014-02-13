@@ -50,8 +50,6 @@
 
 using namespace Dyninst::InstructionAPI;
 
-#ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
-//defined in inst-mips.C
 
 //
 // All costs are based on Measurements on a SPARC station 10/40.
@@ -102,9 +100,7 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTreportCost"] = 1350;
     primitiveCosts["DYNINSTreportNewTags"] = 837;
 }
-#endif
 
- 
 
 // hasBeenBound: returns false
 // dynamic linking not implemented on this platform

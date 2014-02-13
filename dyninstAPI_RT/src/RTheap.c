@@ -328,13 +328,11 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     /*DYNINSTheap_printMappings(nmaps, maps);*/
 
     fd = DYNINSTheap_mmapFdOpen();
-#if !defined(os_osf)
     if (0 > fd) {
       free(node);
       free(maps);
       return NULL;
     }
-#endif
     heap = (void*) constrained_mmap(size, lo, hi, maps, nmaps, fd);
     free(maps);
     DYNINSTheap_mmapFdClose(fd);

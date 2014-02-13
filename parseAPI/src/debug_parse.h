@@ -56,19 +56,19 @@ namespace ParseAPI {
 }
 }
 
-#define PARSE_BLOCK_COUNT "parseBlockCount"
-#define PARSE_FUNCTION_COUNT "parseFunctionCount"
-#define PARSE_BLOCK_SIZE "parseBlockSize"
+extern const std::string PARSE_BLOCK_COUNT;
+extern const std::string PARSE_FUNCTION_COUNT;
+extern const std::string PARSE_BLOCK_SIZE;
 
-#define PARSE_NORETURN_COUNT "parseNoReturnCount"
-#define PARSE_RETURN_COUNT "parseReturnCount"
-#define PARSE_UNKNOWN_COUNT "parseUnknownCount"
+extern const std::string PARSE_NORETURN_COUNT;
+extern const std::string PARSE_RETURN_COUNT;
+extern const std::string PARSE_UNKNOWN_COUNT;
 
-#define PARSE_NORETURN_HEURISTIC "parseNoReturnHeuristicCount"
+extern const std::string PARSE_NORETURN_HEURISTIC;
 
-#define PARSE_JUMPTABLE_COUNT "parseJumptableCount"
-#define PARSE_JUMPTABLE_FAIL "parseJumptableFail"
-#define PARSE_TAILCALL_COUNT "isTailcallCount"
-#define PARSE_TAILCALL_FAIL "isTailcallFail"
+extern const std::string PARSE_JUMPTABLE_COUNT;
+extern const std::string PARSE_JUMPTABLE_FAIL;
+extern const std::string PARSE_TAILCALL_COUNT;
+extern const std::string PARSE_TAILCALL_FAIL;
 
 #endif

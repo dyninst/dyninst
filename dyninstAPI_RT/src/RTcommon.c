@@ -40,11 +40,6 @@
 #include "RTcommon.h"
 #include "RTthread.h"
 
-#if defined(rs6000_ibm_aix4_1)
-#include <sys/mman.h>
-#include <sys/types.h>
-#endif
-
 unsigned int DYNINSTobsCostLow;
 unsigned int DYNINSThasInitialized = 0;
 unsigned DYNINST_max_num_threads;
@@ -188,8 +183,6 @@ void DYNINSTBaseInit()
  * main() via libdyninstAPI_RT_init (defined in RTposix.c and RTwinnt.c).
  * libdyninstAPI_RT_init is called by one of the following methods:
  *    GCC: link with gcc -shared, and use __attribute__((constructor));
- *    AIX: ld with -binitfini:libdyninstAPI_RT_init
- *    Solaris: ld with -z initarray=libdyninstAPI_RT_init
  *    Linux: ld with -init libdyninstAPI_RT_init
  *           gcc with -Wl,-init -Wl,...
  *    Windows: called from DllMain, which exists in lieu of libdyninstAPI_RT_init

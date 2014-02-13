@@ -95,9 +95,9 @@ namespace Dyninst
       {
 	m_size = size;
 	m_RawInsn.small_insn = 0;
-	if(size <= sizeof(unsigned int))
+	if(size <= sizeof(m_RawInsn.small_insn))
 	{
-	  memcpy(&m_RawInsn, raw, size);
+	  memcpy(&m_RawInsn.small_insn, raw, size);
 	}
 	else
 	{
@@ -135,7 +135,7 @@ namespace Dyninst
     INSTRUCTION_EXPORT Instruction::~Instruction()
     {
 
-      if(m_size > sizeof(unsigned int))
+      if(m_size > sizeof(m_RawInsn.small_insn))
       {
 	delete[] m_RawInsn.large_insn;
       }
@@ -154,13 +154,9 @@ namespace Dyninst
         m_Operands = o.m_Operands;
       //m_Operands.reserve(o.m_Operands.size());
       //std::copy(o.m_Operands.begin(), o.m_Operands.end(), std::back_inserter(m_Operands));
-      if(m_size > sizeof(unsigned int)) 
-      {
-	delete[] m_RawInsn.large_insn;
-      }
       
       m_size = o.m_size;
-      if(o.m_size > sizeof(unsigned int))
+      if(o.m_size > sizeof(m_RawInsn.small_insn))
       {
 	m_RawInsn.large_insn = new unsigned char[o.m_size];
 	memcpy(m_RawInsn.large_insn, o.m_RawInsn.large_insn, m_size);
@@ -186,13 +182,13 @@ namespace Dyninst
       m_Operands = rhs.m_Operands;
       //m_Operands.reserve(rhs.m_Operands.size());
       //std::copy(rhs.m_Operands.begin(), rhs.m_Operands.end(), std::back_inserter(m_Operands));
-      if(m_size > sizeof(unsigned int)) 
+      if(m_size > sizeof(m_RawInsn.small_insn))
       {
 	delete[] m_RawInsn.large_insn;
       }
       
       m_size = rhs.m_size;
-      if(rhs.m_size > sizeof(unsigned int))
+      if(rhs.m_size > sizeof(m_RawInsn.small_insn))
       {
 	m_RawInsn.large_insn = new unsigned char[rhs.m_size];
 	memcpy(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size);
@@ -248,7 +244,7 @@ namespace Dyninst
 
      INSTRUCTION_EXPORT const void* Instruction::ptr() const
      {
-         if(m_size > sizeof(unsigned int))
+         if(m_size > sizeof(m_RawInsn.small_insn))
          {
              return m_RawInsn.large_insn;
          }
@@ -259,8 +255,8 @@ namespace Dyninst
      }
     INSTRUCTION_EXPORT unsigned char Instruction::rawByte(unsigned int index) const
     {
-      if(index > m_size) return 0;
-      if(m_size > sizeof(unsigned int)) 
+      if(index >= m_size) return 0;
+      if(m_size > sizeof(m_RawInsn.small_insn))
       {
 	return m_RawInsn.large_insn[index];
       }

@@ -171,9 +171,9 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual bool have_stats() const { return false; }
 
     // manage statistics
-    virtual void incrementCounter(std::string /*name*/) const { return; } 
-    virtual void addCounter(std::string /*name*/, int /*num*/) const { return; }
-    virtual void decrementCounter(std::string /*name*/) const { return; }
+    virtual void incrementCounter(const std::string& /*name*/) const { return; } 
+    virtual void addCounter(const std::string& /*name*/, int /*num*/) const { return; }
+    virtual void decrementCounter(const std::string& /*name*/) const { return; }
     
  protected:
     CodeSource() : _regions_overlap(false),
@@ -277,9 +277,9 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource {
     bool have_stats() const { return _have_stats; }
 
     // manage statistics
-    void incrementCounter(std::string name) const;
-    void addCounter(std::string name, int num) const; 
-    void decrementCounter(std::string name) const;
+    void incrementCounter(const std::string& name) const;
+    void addCounter(const std::string& name, int num) const; 
+    void decrementCounter(const std::string& name) const;
 
  private:
     void init(hint_filt *, bool);

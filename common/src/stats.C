@@ -77,17 +77,14 @@ StatContainer::StatContainer()
 }
 
 Statistic*
-StatContainer::operator[](std::string &name) 
+StatContainer::operator[](const std::string &name) 
 {
-    if (stats_.find(name) != stats_.end()) {
-        return stats_[name];
-    } else {
-        return NULL;
-    }
+    auto const& it = stats_.find(name);
+    return (it != stats_.end()) ? it->second : NULL;
 }
 
 void
-StatContainer::add(std::string name, StatType type)
+StatContainer::add(const std::string& name, StatType type)
 {
     Statistic *s = NULL;
 
@@ -107,32 +104,32 @@ StatContainer::add(std::string name, StatType type)
     stats_[name] = s;
 }
 
-void StatContainer::startTimer(std::string name) 
+void StatContainer::startTimer(const std::string& name) 
 {
     TimeStatistic *timer = dynamic_cast<TimeStatistic *>(stats_[name]);
     if (!timer) return;
     timer->start();
 }
 
-void StatContainer::stopTimer(std::string name) {
+void StatContainer::stopTimer(const std::string& name) {
     TimeStatistic *timer = dynamic_cast<TimeStatistic *>(stats_[name]);
     if (!timer) return;
     timer->stop();
 }
 
-void StatContainer::incrementCounter(std::string name) {
+void StatContainer::incrementCounter(const std::string& name) {
     CntStatistic *counter = dynamic_cast<CntStatistic *>(stats_[name]);
     if (!counter) return;
     (*counter)++;
 }
 
-void StatContainer::decrementCounter(std::string name) {
+void StatContainer::decrementCounter(const std::string& name) {
     CntStatistic *counter = dynamic_cast<CntStatistic *>(stats_[name]);
     if (!counter) return;
     (*counter)--;
 }
 
-void StatContainer::addCounter(std::string name, int val) {
+void StatContainer::addCounter(const std::string& name, int val) {
     CntStatistic *counter = dynamic_cast<CntStatistic *>(stats_[name]);
     if (!counter) return;
     (*counter) += val;
