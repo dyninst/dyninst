@@ -47,8 +47,8 @@
 class MappedFile;
 
 #define SYM_MAJOR 8
-#define SYM_MINOR 1
-#define SYM_BETA  1
+#define SYM_MINOR 2
+#define SYM_BETA  0
  
 namespace Dyninst {
 
