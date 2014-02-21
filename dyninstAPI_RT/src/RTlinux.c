@@ -216,22 +216,6 @@ void mark_heaps_exec() {
  * OS initialization function
 ************************************************************************/
 int DYNINST_sysEntry;
-void DYNINSTos_init(int calledByFork, int calledByAttach)
-{
-   RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
-#if defined(arch_x86)
-   /**
-    * The following line reads the vsyscall entry point directly from
-    * it's stored, which can then be used by the mutator to locate
-    * the vsyscall page.
-    * The problem is, I don't know if this memory read is valid on
-    * older systems--It could cause a segfault.  I'm going to leave
-    * it commented out for now, until further investigation.
-    * -Matt 1/18/06
-    **/
-   //__asm("movl %%gs:0x10, %%eax\n" : "=r" (DYNINST_sysEntry))
-#endif
-}
 
 #if !defined(DYNINST_RT_STATIC_LIB)
 /*

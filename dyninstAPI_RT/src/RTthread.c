@@ -50,9 +50,9 @@ void setNewthrCB(void (*cb)(int)) {
 #define IDX_NONE -1
 
 /* I split these in half to make mutator-side updates easier */
-dyntid_t *DYNINST_thread_hash_tids;
-long *DYNINST_thread_hash_indices;
-unsigned DYNINST_thread_hash_size;
+DLLEXPORT dyntid_t *DYNINST_thread_hash_tids;
+DLLEXPORT long *DYNINST_thread_hash_indices;
+DLLEXPORT unsigned DYNINST_thread_hash_size;
 
 static DECLARE_TC_LOCK(DYNINST_index_lock);
 
@@ -65,12 +65,12 @@ DLLEXPORT int DYNINSTthreadCount() { return (DYNINST_max_num_threads - num_free)
 
 void DYNINST_initialize_index_list()
 {
-  static int init_index_done;
+  static int init_index_done = 0;
   unsigned i;
 
   if (init_index_done) return;
   init_index_done = 1;
-
+  if(DYNINST_max_num_threads == 0) DYNINST_max_num_threads = MAX_THREADS;
   if (DYNINST_max_num_threads == MAX_THREADS) {
      DYNINST_thread_hash_size = THREADS_HASH_SIZE;
      DYNINST_thread_hash_indices = default_thread_hash_indices;

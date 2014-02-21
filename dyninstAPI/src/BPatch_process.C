@@ -1014,14 +1014,7 @@ BPatch_object *BPatch_process::loadLibrary(const char *libname, bool)
     * Find the DYNINSTloadLibrary function
     **/
    BPatch_Vector<BPatch_function *> bpfv;
-   BPatch_module* dyn_rt_lib = image->findModule("dyninstAPI_RT", true);
-   if(dyn_rt_lib == NULL)
-   {
-      cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find module for "
-           << "DyninstAPI Runtime Library" << endl;
-      return NULL;
-   }
-   dyn_rt_lib->findFunction("DYNINSTloadLibrary", bpfv);
+   image->findFunction("DYNINSTloadLibrary", bpfv);
    if (!bpfv.size()) {
       cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal"
            << "Function DYNINSTloadLibrary" << endl;
@@ -1045,7 +1038,7 @@ BPatch_object *BPatch_process::loadLibrary(const char *libname, bool)
 
    if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true)) {
       BPatch_variableExpr *dlerror_str_var =
-         dyn_rt_lib->findVariable("gLoadLibraryErrorString");
+         image->findVariable("gLoadLibraryErrorString");
       assert(NULL != dlerror_str_var);
       char dlerror_str[256];
       dlerror_str_var->readValue((void *)dlerror_str, 256);

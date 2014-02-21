@@ -46,7 +46,7 @@
 #endif
 
 unsigned int DYNINSTobsCostLow;
-unsigned int DYNINSThasInitialized = 0;
+DLLEXPORT unsigned int DYNINSThasInitialized = 0;
 unsigned DYNINST_max_num_threads;
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
@@ -197,26 +197,16 @@ void DYNINSTBaseInit()
  * This is only called in the Dynamic instrumentation case.  Static
  * libraries don't call this.
  **/
-void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
+void DYNINSTinit()
 {
-   int calledByFork = 0, calledByAttach = 0;
    rtdebug_printf("%s[%d]:  DYNINSTinit:  welcome to DYNINSTinit()\n", __FILE__, __LINE__);
    initFPU();
+   mark_heaps_exec();
 
    DYNINSTstaticMode = 0;
    tc_lock_init(&DYNINST_trace_lock);
-   DYNINST_mutatorPid = pid;
-   
-   if (isMutatedExec) {
-      fflush(stdout);
-      cause = 9;
-   }
-
-   calledByFork = (cause == 2);
-   calledByAttach = (cause == 3);
+   if(DYNINST_max_num_threads < MAX_THREADS) DYNINST_max_num_threads = MAX_THREADS;
    DYNINSThasInitialized = 1;
-   DYNINST_max_num_threads = maxthreads;
-   DYNINSTdebugRTlib = debug_flag; /* set by mutator on request */
    rtdebug_printf("%s[%d]:  welcome to DYNINSTinit\n", __FILE__, __LINE__);
 
    /* sanity check */
@@ -225,12 +215,7 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
    
    initTrampGuards(DYNINST_max_num_threads);
 
-   DYNINSTos_init(calledByFork, calledByAttach);
    DYNINST_initialize_index_list();
-
-   DYNINST_bootstrap_info.pid = dyn_pid_self();
-   DYNINST_bootstrap_info.ppid = pid;    
-   DYNINST_bootstrap_info.event = cause;
 
    /* defensive stuff */
    memset(DYNINST_target_cache, 

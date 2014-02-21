@@ -100,10 +100,6 @@ void mark_heaps_exec() {
     RTprintf( "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
 } /* end mark_heaps_exec() */
 
-void DYNINSTos_init(int calledByFork, int calledByAttach)
-{
-    RTprintf("DYNINSTos_init(%d,%d\n", calledByFork, calledByAttach);
-}
 
 #if defined(cap_binary_rewriter) && !defined(DYNINST_RT_STATIC_LIB)
 /* For a static binary, all global constructors are combined in an undefined

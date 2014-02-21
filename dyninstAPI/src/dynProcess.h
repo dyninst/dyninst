@@ -599,7 +599,7 @@ protected:
 
     // The same PCEventHandler held by the BPatch layer
     PCEventHandler *eventHandler_;
-    Mutex eventCountLock_;
+    //Mutex<> eventCountLock_;
     int eventCount_;
 
     syscallNotification *tracedSyscalls_;

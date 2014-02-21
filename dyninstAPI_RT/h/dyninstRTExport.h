@@ -103,7 +103,7 @@ DLLEXPORT unsigned dyninst_threadIndex();
  * Internal functions that we export to ensure they show up.
  **/
 
-DLLEXPORT void DYNINSTinit(int, int, int, int);
+DLLEXPORT void DYNINSTinit();
 DLLEXPORT void DYNINST_snippetBreakpoint();
 DLLEXPORT void DYNINST_stopThread(void *, void *, void *, void *);
 DLLEXPORT void DYNINST_stopInterProc(void *, void *, void *, void *, void *, void *);

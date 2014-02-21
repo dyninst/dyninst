@@ -94,21 +94,8 @@ void libdyninstAPI_RT_init()
    if (initCalledOnce) return;
    initCalledOnce++;
 
-#if defined(arch_x86) || defined(arch_x86_64)
-   /* Modern x86-32/x86-64 cpus have non-executable data */
-   mark_heaps_exec();
-#endif
-
-   /* RTmutatedBinary_init(); */
-   
-   if (libdyninstAPI_RT_init_localCause != -1 && 
-       libdyninstAPI_RT_init_localPid != -1 &&
-       libdyninstAPI_RT_init_maxthreads != -1)
-   {
-      DYNINSTinit(libdyninstAPI_RT_init_localCause, libdyninstAPI_RT_init_localPid,
-                  libdyninstAPI_RT_init_maxthreads, libdyninstAPI_RT_init_debug_flag);
-   }
-
+  
+   DYNINSTinit();
    rtdebug_printf("%s[%d]:  did DYNINSTinit\n", __FILE__, __LINE__);
 }
 
