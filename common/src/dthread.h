@@ -53,7 +53,7 @@
 #define WINAPI
 #endif
 
-class COMMON_EXPORT DThread {
+class PC_EXPORT DThread {
 #if defined(cap_pthreads)
    pthread_t thrd;
  public:
@@ -79,85 +79,47 @@ class COMMON_EXPORT DThread {
    long id();
 };
 
-class COMMON_EXPORT Mutex {
-   friend class CondVar;
-   boost::variant<boost::mutex *, boost::recursive_mutex *> mutex;
-   
- public:
-   Mutex(bool recursive=false);
-   ~Mutex();
-
-   bool trylock();
-   bool lock();
-   bool unlock();
+template<bool isRecursive>
+struct boost_mutex_selector
+{
+	typedef boost::mutex mutex;
+};
+template<>
+struct boost_mutex_selector<true>
+{
+	typedef boost::recursive_mutex mutex;
 };
 
-class COMMON_EXPORT CondVar {
+template <bool isRecursive = false>
+class PC_EXPORT Mutex : public boost_mutex_selector<isRecursive>::mutex {
+   
+};
+
+
+template <typename mutex_t = Mutex<false> >
+class PC_EXPORT CondVar {
    boost::condition_variable_any cond;
-   Mutex *mutex;
+   mutex_t *mutex;
    bool created_mutex;
  public:
-   CondVar(Mutex *m = NULL);
-   ~CondVar();
+   CondVar(mutex_t * m = NULL) : cond(), created_mutex(false) { 
+		if(m) {
+			mutex = m;
+		} else {
+			mutex = new mutex_t;
+			created_mutex = true;
+		}
+   }
+   ~CondVar() { if(created_mutex) delete mutex; }
 
-   bool unlock();
-   bool trylock();
-   bool lock();
-   bool signal();
-   bool broadcast();
-   bool wait();
+   bool unlock() { mutex->unlock(); return true;}
+   bool trylock() { return mutex->try_lock(); }
+   bool lock() { mutex->lock(); return true; }
+   bool signal() { cond.notify_one(); return true; }
+   bool broadcast() { cond.notify_all(); return true; }
+   bool wait() { cond.wait(*mutex); return true; }
+
 };
 
-/**
- * Construct a version of this class as a local variable, and it will hold
- * its lock as long as it's in scope.  Thus you can get auto-unlock upon 
- * return.
- **/
-class ScopeLock {
-  private:
-   Mutex *m;
-   CondVar *c;
-  public:
-   ScopeLock(Mutex &m_) :
-     m(&m_),
-     c(NULL)
-   {
-      bool result = m->lock();
-      if(!result) 
-      {
-	assert(!"Failed to wait and acquire lock");
-      }
-   }
-      
-   ScopeLock(CondVar &c_) :
-     m(NULL),
-     c(&c_)
-   {
-     bool result = c->lock();
-      if(!result) 
-      {
-	assert(!"Failed to wait and acquire lock");
-      }
-   }
-
-   void unlock() {
-      if (m) {
-         m->unlock();
-         m = NULL;
-      }
-      else if (c) {
-         c->unlock();
-         c = NULL;
-      }
-   }
-
-   bool isLocked() {
-      return m || c;
-   }
-
-   ~ScopeLock() {
-      unlock();
-   }
-};
 
 #endif

@@ -486,7 +486,7 @@ bool HandlerPool::handleEvent(Event::ptr orig_ev)
 }
 
 std::set<HandlerPool *> HandlerPool::procsAsyncPending;
-Mutex HandlerPool::asyncPendingLock;
+Mutex<> HandlerPool::asyncPendingLock;
 
 void HandlerPool::markProcAsyncPending(HandlerPool *p)
 {

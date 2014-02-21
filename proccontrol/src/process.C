@@ -2873,7 +2873,6 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    generator_state(this, GeneratorStateID, neonatal),
    target_state(int_thread::none),
    saved_user_state(int_thread::none),
-   regpool_lock(true),
    user_single_step(false),
    single_step(false),
    handler_exiting_state(false),
@@ -5554,7 +5553,7 @@ int_notify *notify()
    if (int_notify::the_notify)
       return int_notify::the_notify;
 
-   static Mutex init_lock;
+   static Mutex<> init_lock;
    init_lock.lock();
    if (!int_notify::the_notify) {
       int_notify::the_notify = new int_notify();
@@ -8044,7 +8043,7 @@ bool Breakpoint::suppressCallbacks() const
    return llbreakpoint_->suppressCallbacks();
 }
 
-Mutex Counter::locks[Counter::NumCounterTypes];
+Mutex<false> Counter::locks[Counter::NumCounterTypes];
 int Counter::global_counts[Counter::NumCounterTypes];
 
 Counter::Counter(CounterType ct_) :
@@ -8199,7 +8198,6 @@ const char *Counter::getNameForCounter(int counter_type)
 }
 
 MTManager::MTManager() :
-   work_lock(true),
    have_queued_events(false),
    is_running(false),
    should_exit(false),

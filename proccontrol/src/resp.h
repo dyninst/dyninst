@@ -72,7 +72,7 @@ class resp_process : virtual public int_process {
    void markRespDone(Resp_ptr resp);
 
    std::map<int, Resp_ptr> active_resps;
-   CondVar active_resps_lock;
+   CondVar<Mutex<false> > active_resps_lock;
 public:
    Resp_ptr recvResp(unsigned int id, bool &is_complete);
 

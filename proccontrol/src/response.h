@@ -140,7 +140,7 @@ class response : public boost::enable_shared_from_this<response> {
 class responses_pending {
   private:
    std::map<unsigned int, response::ptr> pending;
-   CondVar cvar;
+   CondVar<Mutex <false> > cvar;
 
   public:
    response::ptr rmResponse(unsigned int id);
@@ -150,7 +150,7 @@ class responses_pending {
    void noteResponse();
    bool hasAsyncPending(bool ev_only = true);
 
-   CondVar &condvar();
+   CondVar<Mutex <false> > &condvar();
    void lock();
    void unlock();
    void signal();
@@ -319,7 +319,7 @@ class ResponseSet {
   std::map<unsigned, unsigned> ids;
   unsigned myid;
   static unsigned next_id;
-  static Mutex id_lock;
+  static Mutex<false> id_lock;
   static std::map<unsigned, ResponseSet *> all_respsets;
  public:
   ResponseSet();

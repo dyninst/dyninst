@@ -85,7 +85,7 @@ public:
 protected:
     std::map<PCProcess *, int> procCount;
     std::queue<ProcControlAPI::Event::const_ptr> eventQueue;
-    CondVar queueCond;
+    CondVar<> queueCond;
 };
 
 class PCEventHandler;

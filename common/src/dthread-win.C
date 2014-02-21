@@ -40,7 +40,7 @@ DThread::~DThread()
 
 long DThread::self()
 {
-	return (long)::GetCurrentThread();
+	return (long)::GetCurrentThreadId();
 }
 bool DThread::spawn(DThread::initial_func_t func, void *param)
 {
@@ -57,5 +57,5 @@ bool DThread::join()
 
 long DThread::id()
 {
-	return (long)thrd;
+	return (long)::GetThreadId(thrd);
 }

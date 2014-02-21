@@ -96,7 +96,7 @@ class HandlerPool
    static void markProcAsyncPending(HandlerPool *p);
    static void clearProcAsyncPending(HandlerPool *p);
    static std::set<HandlerPool *> procsAsyncPending;
-   static Mutex asyncPendingLock;
+   static Mutex<false> asyncPendingLock;
 };
 
 class HandlePreBootstrap : public Handler

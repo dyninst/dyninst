@@ -184,7 +184,7 @@ class Counter {
 
    void adjust(int val);
 
-   static Mutex locks[NumCounterTypes];
+   static Mutex<> locks[NumCounterTypes];
    static int global_counts[NumCounterTypes];
 };
 
@@ -1091,7 +1091,7 @@ public:
    State saved_user_state;
 
    int_registerPool cached_regpool;
-   Mutex regpool_lock;
+   Mutex<true> regpool_lock;
    int_iRPC_ptr running_rpc;
    int_iRPC_ptr writing_rpc;
    rpc_list_t posted_rpcs;
@@ -1588,8 +1588,8 @@ class MTManager {
 private:
   static MTManager *mt_;
   DThread evhandler_thread;
-  CondVar pending_event_lock;
-  Mutex work_lock;
+  CondVar<> pending_event_lock;
+  Mutex < true > work_lock;
   bool have_queued_events;
   bool is_running;
   bool should_exit;

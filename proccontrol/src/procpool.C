@@ -98,7 +98,7 @@ bool ProcessPool::for_each(ifunc f, void *data)
    return true;
 }
 
-CondVar *ProcessPool::condvar()
+CondVar<> *ProcessPool::condvar()
 {
    return &var;
 }

@@ -43,7 +43,7 @@ using namespace std;
 
 unsigned int response::next_id = 1;
 
-static Mutex id_lock;
+static Mutex<> id_lock;
 
 unsigned newResponseID()
 {
@@ -365,7 +365,7 @@ void responses_pending::signal()
    cvar.broadcast();
 }
 
-CondVar &responses_pending::condvar()
+CondVar<> &responses_pending::condvar()
 {
    return cvar;
 }
@@ -722,7 +722,7 @@ void data_response::postResponse(void *d)
 }
 
 unsigned int ResponseSet::next_id = 1;
-Mutex ResponseSet::id_lock;
+Mutex<> ResponseSet::id_lock;
 std::map<unsigned int, ResponseSet *> ResponseSet::all_respsets;
 
 ResponseSet::ResponseSet()

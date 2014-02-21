@@ -39,6 +39,8 @@ set (SRC_LIST ${SRC_LIST}
 	src/windows_process.C
 	src/windows_thread.C
 	src/loadLibrary/codegen-win.C
+     ../common/src/dthread-win.C
+	 ../common/src/dthread.C
 )
 endif()
 
@@ -92,12 +94,15 @@ target_link_libraries(pcontrol ${CMAKE_DL_LIBS})
 if (UNIX)
 target_link_libraries(pcontrol dynElf)
 target_link_libraries(pcontrol symLite)
+# Boost auto-links on Windows; don't double-link
 target_link_libraries(pcontrol ${Boost_LIBRARIES})
 endif()
 
 if(WIN32)
 target_link_libraries(pcontrol symtabAPI)
 endif()
+
+
 
 FILE (GLOB headers "h/*.h")
 set_target_properties (pcontrol pcontrol_static PROPERTIES PUBLIC_HEADER "${headers}")

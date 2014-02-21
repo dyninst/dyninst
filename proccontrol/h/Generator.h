@@ -103,7 +103,7 @@ class PC_EXPORT Generator
    static bool allStopped(int_process *proc, void *);
 
    static std::set<gen_cb_func_t> CBs;
-   static Mutex *cb_lock;
+   static Mutex<> *cb_lock;
 
    //Public interface
    //  Implemented by architectures
