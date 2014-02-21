@@ -180,7 +180,7 @@ class Object : public AObject
                          void (*)(const char *) = log_msg, bool alloc_syms = true);
   
     SYMTAB_EXPORT virtual ~Object( void );
-	SYMTAB_EXPORT const char* getFileName() const { return curModule->GetName().c_str(); }
+	SYMTAB_EXPORT std::string getFileName() const { return mf->filename(); }
     SYMTAB_EXPORT bool isForwarded( Offset addr );
     SYMTAB_EXPORT bool isEEL() const { return false; }
     SYMTAB_EXPORT bool isText( const Offset addr ) const; 
@@ -230,13 +230,19 @@ class Object : public AObject
     std::map<std::string, std::map<std::string, WORD> > & getHintNameTable();
     PIMAGE_NT_HEADERS getPEHdr() { return peHdr; }
 	void setTOCoffset(Offset) {};
+	// Adjusts the data in all the sections to reflect what
+	// the loader will do if the binary is loaded at actualBaseAddress
+	SYMTAB_EXPORT void rebase(Offset off);
+	SYMTAB_EXPORT Region* findRegionByName(const std::string& name) const;
+	SYMTAB_EXPORT void applyRelocs(Region* relocs, Offset delta);
+
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
     SYMTAB_EXPORT void    parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &);
     SYMTAB_EXPORT void    FindInterestingSections( bool, bool );
     Region *          findEnclosingRegion(const Offset where);
     void AddTLSFunctions();
-
+	DWORD* get_dword_ptr(Offset rva);
     Offset baseAddr;     // location of this object in mutatee address space
 
     Offset imageBase; // Virtual Address at which the binary is loaded in its address space

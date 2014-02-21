@@ -1731,6 +1731,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
     return true;
   }
 
+
   // Create a CodeMover covering these functions
   //cerr << "Creating a CodeMover" << endl;
 
@@ -1914,7 +1915,6 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
   //     inferiorFree(addr)
   // In effect, we keep trying until we get a code generation that fits
   // in the space we have allocated.
-
   Address baseAddr = 0;
 
   codeGen genTemplate;

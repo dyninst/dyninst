@@ -113,6 +113,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
                   FILE__, __LINE__, codeAbs(), codeAbs() + imageSize());
    startup_printf("[%s:%d] \tData: 0x%lx to 0x%lx\n",
                   FILE__, __LINE__, dataAbs(), dataAbs() + dataSize());
+   image_->getObject()->rebase(codeBase_);
 
 
    // Sets "fileName_"

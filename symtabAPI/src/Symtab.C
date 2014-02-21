@@ -4013,3 +4013,9 @@ void Symtab::getSegmentsSymReader(std::vector<SymSegment> &segs) {
    obj_private->getSegmentsSymReader(segs);
 #endif
 }
+
+void Symtab::rebase(Offset loadOff)
+{
+	getObject()->rebase(loadOff);
+	load_address_ = loadOff;
+}

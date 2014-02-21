@@ -843,6 +843,7 @@ void IA_x86Details::reviseTableAddress()
     // at the table's destination.
 #if defined(os_windows)
     tableInsn.addrFromInsn -= currentBlock->_obj->cs()->loadAddress();
+    parsing_printf("\ttableInsn.addrFromInsn revised to 0x%lx\n",tableInsn.addrFromInsn);
 #endif
     if( !currentBlock->_isrc->isValidAddress(tableInsn.addrFromInsn) )
     {
@@ -852,6 +853,7 @@ void IA_x86Details::reviseTableAddress()
         // construct (such as a function pointer comparison & tail
         // call, for example) as a jump table. Give up now.
       tableInsn.addrFromInsn = 0;
+      parsing_printf("\ttableInsn.addrFromInsn not valid, revised to 0x%lx\n",tableInsn.addrFromInsn);
     }
     return;
 }
