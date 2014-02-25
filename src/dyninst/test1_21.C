@@ -62,8 +62,14 @@ class test1_21_Mutator : public DyninstMutator {
 	test_results_t mutatorTest21();
 };
 
-test1_21_Mutator::test1_21_Mutator() : libNameAroot("libtestA"),
-									   libNameBroot("libtestB") 
+test1_21_Mutator::test1_21_Mutator() : 
+#if defined(os_windows_test)
+    libNameAroot("testA"),
+	libNameBroot("testB") 
+#else
+    libNameAroot("libtestA"),
+	libNameBroot("libtestB") 
+#endif
 {}
 
 extern "C" DLLEXPORT  TestMutator *test1_21_factory() 

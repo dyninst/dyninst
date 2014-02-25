@@ -119,10 +119,10 @@ Process::cb_ret_t on_library(Event::const_ptr ev)
       Library::ptr lib = *i;
 	// FIXME
 	  //cerr << hex << "Callback library " << lib << dec << endl;
-	  if (lib->getName().find("libtestA") != string::npos) {
+	  if (lib->getName().find("testA") != string::npos) {
          pi.loaded_libtesta = pi.order++;
       }
-      if (lib->getName().find("libtestB") != string::npos) {
+      if (lib->getName().find("testB") != string::npos) {
          pi.loaded_libtestb = pi.order++;
       }
 
@@ -143,10 +143,11 @@ Process::cb_ret_t on_library(Event::const_ptr ev)
 
    for (i = evlib->libsRemoved().begin(); i != evlib->libsRemoved().end(); i++) {
       Library::ptr lib = *i;
-      if (lib->getName().find("libtestA") != string::npos) {
+	  // Reduce these to "testA/testB" because Windows standard is for DLLs not to be "lib" prefixed
+      if (lib->getName().find("testA") != string::npos) {
 		  pi.unloaded_libtesta = pi.order++;
       }
-      if (lib->getName().find("libtestB") != string::npos) {
+      if (lib->getName().find("testB") != string::npos) {
          pi.unloaded_libtestb = pi.order++;
       }
 	  find_by_pointer f(lib);

@@ -62,8 +62,14 @@ class test1_22_Mutator : public DyninstMutator {
 	virtual test_results_t mutatorTest22();
 };
 
-test1_22_Mutator::test1_22_Mutator() : libNameAroot("libtestA"),
-									   libNameBroot("libtestB") 
+test1_22_Mutator::test1_22_Mutator() :
+#if defined(os_windows_test)
+    libNameAroot("testA"),
+	libNameBroot("testB") 
+#else
+    libNameAroot("libtestA"),
+	libNameBroot("libtestB") 
+#endif
 {
 }
 
