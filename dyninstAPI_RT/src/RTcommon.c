@@ -47,7 +47,7 @@
 
 unsigned int DYNINSTobsCostLow;
 DLLEXPORT unsigned int DYNINSThasInitialized = 0;
-unsigned DYNINST_max_num_threads;
+unsigned DYNINST_max_num_threads = MAX_THREADS;
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTdebugRTlib = 0;

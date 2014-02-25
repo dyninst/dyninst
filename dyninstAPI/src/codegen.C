@@ -99,8 +99,9 @@ codeGen::codeGen(unsigned size) :
     inInstrumentation_(false)
 {
     buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
-    if (!buffer_)
+    if (!buffer_) {
        fprintf(stderr, "%s[%d]: malloc failed: size is %d + codeGenPadding = %d\n", FILE__, __LINE__, size, codeGenPadding);
+	}
     assert(buffer_);
     memset(buffer_, 0, size+codeGenPadding);
 }

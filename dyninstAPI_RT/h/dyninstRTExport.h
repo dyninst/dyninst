@@ -112,6 +112,7 @@ DLLEXPORT unsigned long RTtranslateMemory(unsigned long, unsigned long, unsigned
 DLLEXPORT unsigned long RTtranslateMemoryShift(unsigned long, unsigned long, unsigned long);
 DLLEXPORT int DYNINSTthreadIndex();
 DLLEXPORT void *DYNINSTos_malloc(size_t, void *, void *); 
+DLLEXPORT int DYNINSTloadLibrary(char *);
 
 /** 
  * And variables

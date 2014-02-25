@@ -62,7 +62,7 @@ typedef unsigned char RT_Boolean;
 static const RT_Boolean RT_TRUE=1;
 static const RT_Boolean RT_FALSE=0;
 
-extern char gLoadLibraryErrorString[];
+DLLEXPORT extern char gLoadLibraryErrorString[];
 extern void *gBRKptr;
 
 struct DYNINST_bootstrapStruct {
