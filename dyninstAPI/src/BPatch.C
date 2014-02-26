@@ -948,6 +948,10 @@ void BPatch::registerLoadedModule(PCProcess *process, mapped_module *mod) {
 
     BPatch_process *bProc = BPatch::bpatch->getProcessByPid(process->getPid());
     if (!bProc) return; // Done
+
+    // Squash this notification if the PCProcess has changed (e.g. during exec)
+    if (bProc->llproc != process) return;
+
     BPatch_image *bImage = bProc->getImage();
     assert(bImage); // This we can assert to be true
     
@@ -968,6 +972,10 @@ void BPatch::registerUnloadedModule(PCProcess *process, mapped_module *mod) {
 
     BPatch_process *bProc = BPatch::bpatch->getProcessByPid(process->getPid());
     if (!bProc) return; // Done
+
+    // Squash this notification if the PCProcess has changed (e.g. during exec)
+    if (bProc->llproc != process) return;
+
     BPatch_image *bImage = bProc->getImage();
     if (!bImage) { // we got an event during process startup
         return;
