@@ -3102,22 +3102,23 @@ compiler_s('pgcxx', 'pgCC').
 % FIXME(?) I think the Windows optimization strings should be with cap-O, not
 % zero
 % FIXME Im also not sure that all these compilers default to no optimization
-compiler_opt_trans(_, 'none', '').
+compiler_opt_trans(Comp, 'none', '-g') :- \+ member(Comp, ['VC++', 'VC']).
 compiler_opt_trans(Comp, 'low', '-O1') :-
     member(Comp, ['gcc', 'g++', 'pgcc', 'pgcxx', 'gfortran', 'icc', 'icpc', 'bg_gcc', 'bg_g++', 'bg_gfortran', 'bgq_gcc', 'bgq_g++', 'bgq_gfortran']).
-compiler_opt_trans(Comp, 'low', '/O1') :- Comp == 'VC++'; Comp == 'VC'.
+compiler_opt_trans(Comp, 'low', '/O1 /MD /Zi /DNDEBUG') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(IBM, 'low', '-O') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'high', '-O2') :-
     member(Comp, ['gcc', 'g++', 'pgcc', 'pgcxx', 'gfortran', 'icc', 'icpc', 'bg_gcc', 'bg_g++', 'bg_gfortran', 'bgq_gcc', 'bgq_g++', 'bgq_gfortran']).
-compiler_opt_trans(Comp, 'high', '/O2') :- Comp == 'VC++'; Comp == 'VC'.
+compiler_opt_trans(Comp, 'high', '/O2 /MD /Zi /DNDEBUG') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(IBM, 'high', '-O3') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'max', '-O3') :-
     member(Comp, ['gcc', 'g++', 'icc', 'icpc', 'bg_gcc', 'bg_g++', 'bg_gfortran', 'bgq_gcc', 'bgq_g++', 'bgq_gfortran']).
 compiler_opt_trans(IBM, 'max', '-O5') :-
     member(IBM, ['xlc', 'xlC']).
-compiler_opt_trans(Comp, 'max', '/Ox') :- Comp == 'VC++'; Comp == 'VC'.
+compiler_opt_trans(Comp, 'max', '/Ox /MD /Zi /DNDEBUG') :- Comp == 'VC++'; Comp == 'VC'.
+compiler_opt_trans(Comp, 'none', '/Od /Zi /MDd /D_DEBUG') :- Comp == 'VC++'; Comp == 'VC'.
 
 compiler_pic_trans(_, 'none', '').
 compiler_pic_trans(Comp, 'pic', '-fPIC') :-
@@ -3232,8 +3233,8 @@ comp_mutatee_flags_str('pgcxx', '${MUTATEE_CXXFLAGS_NATIVE} ').
 % FIXME What do I specify for the Windows compilers, if anything?
 comp_std_flags_str('VC', '').
 comp_std_flags_str('VC++', '').
-comp_mutatee_flags_str('VC', '${CFLAGS}').
-comp_mutatee_flags_str('VC++', '${CXXFLAGS}').
+comp_mutatee_flags_str('VC', '${MUTATEE_CFLAGS_NATIVE}').
+comp_mutatee_flags_str('VC++', '${MUTATEE_CXXFLAGS_NATIVE}').
 comp_std_flags_str('icc', '${CFLAGS}').
 comp_std_flags_str('icpc', '${CXXFLAGS}').
 comp_mutatee_flags_str('icc', '${MUTATEE_CFLAGS_GNU} ').

@@ -1,7 +1,8 @@
 # CMakeLists for proccontrol/VC++/32/dyn/none/none
-set (CMAKE_CXX_FLAGS "/D_DEBUG ${MUTATOR_DEFINES}   ${CXXFLAGS}   ")
+set (CMAKE_CXX_FLAGS "${MUTATOR_DEFINES}   ${MUTATEE_CXXFLAGS_NATIVE}  /Od /Zi /MDd /D_DEBUG ")
 set (CMAKE_CXX_FLAGS_DEBUG "")
 set (CMAKE_CXX_FLAGS_RELEASE "")
+set (CMAKE_CXX_FLAGS_RELWITHDEBUGINFO "")
 set (CMAKE_CXX_COMPILER "${M_native_cc}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol")
@@ -9,7 +10,7 @@ add_definitions(-DSOLO_MUTATEE)
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_LDFLAGS_NATIVE}  ")
 IF (NOT ${M_native_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
-	"/D_DEBUG ${MUTATOR_DEFINES}   ${CXXFLAGS}   "
+	"${MUTATOR_DEFINES}   ${MUTATEE_CXXFLAGS_NATIVE}  /Od /Zi /MDd /D_DEBUG "
 	"${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_LDFLAGS_NATIVE}  "
 	"CXX"
 	"native_cc 32 dyn"

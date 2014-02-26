@@ -248,7 +248,12 @@ install (TARGETS testA testB testA_static testB_static
 	RUNTIME DESTINATION ${INSTALL_DIR}
 	ARCHIVE DESTINATION ${INSTALL_DIR}
 )
-if (${MUTATEE_gcc64dyn} AND ${MUTATEE_gcc32dyn})
+
+CHECK_MUTATEE_COMPILER(gcc "-m32" "-m32" C "" m32_works)
+#if (${MUTATEE_gcc64dyn} AND ${MUTATEE_gcc32dyn})
+#if (UNIX)
+if(${m32_works})
+message(STATUS "Building 32-bit helper libraries")
 add_library (testA_m32 SHARED src/libtestA.c)
 add_library (testB_m32 SHARED src/libtestB.c)
 add_library (Test12_m32 SHARED src/dyninst/libTest12.c)

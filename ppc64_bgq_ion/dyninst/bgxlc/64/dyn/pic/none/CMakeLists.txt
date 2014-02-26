@@ -1,7 +1,8 @@
 # CMakeLists for dyninst/bgxlc/64/dyn/pic/none
-set (CMAKE_C_FLAGS "-g ${MUTATOR_DEFINES}  ${CFLAGS} ${CFLAGS}   -qpic")
+set (CMAKE_C_FLAGS "${MUTATOR_DEFINES}  ${CFLAGS} ${CFLAGS}  -g -qpic")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
+set (CMAKE_C_FLAGS_RELWITHDEBUGINFO "")
 set (CMAKE_C_COMPILER "${M_mpi_xlc}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/dyninst")
@@ -9,7 +10,7 @@ add_definitions(-DSOLO_MUTATEE)
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_NATIVE}  -qnostaticlink")
 IF (NOT ${M_mpi_xlc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_mpi_xlc}"
-	"-g ${MUTATOR_DEFINES}  ${CFLAGS} ${CFLAGS}   -qpic"
+	"${MUTATOR_DEFINES}  ${CFLAGS} ${CFLAGS}  -g -qpic"
 	"${MUTATEE_LDFLAGS_NATIVE}  -qnostaticlink"
 	"C"
 	"mpi_xlc 64 dyn"

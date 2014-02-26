@@ -1,7 +1,8 @@
 # CMakeLists for symtab/VC/32/dyn/none/none
-set (CMAKE_C_FLAGS "/D_DEBUG ${MUTATOR_DEFINES}   ${CFLAGS}   ")
+set (CMAKE_C_FLAGS "${MUTATOR_DEFINES}   ${MUTATEE_CFLAGS_NATIVE}  /Od /Zi /MDd /D_DEBUG ")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
+set (CMAKE_C_FLAGS_RELWITHDEBUGINFO "")
 set (CMAKE_C_COMPILER "${M_native_cc}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/symtab")
@@ -9,7 +10,7 @@ add_definitions(-DSOLO_MUTATEE)
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_LDFLAGS_NATIVE}  ")
 IF (NOT ${M_native_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_native_cc}"
-	"/D_DEBUG ${MUTATOR_DEFINES}   ${CFLAGS}   "
+	"${MUTATOR_DEFINES}   ${MUTATEE_CFLAGS_NATIVE}  /Od /Zi /MDd /D_DEBUG "
 	"${CMAKE_EXE_LINKER_FLAGS} ${MUTATEE_LDFLAGS_NATIVE}  "
 	"C"
 	"native_cc 32 dyn"

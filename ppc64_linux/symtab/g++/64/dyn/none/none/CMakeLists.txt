@@ -1,7 +1,8 @@
 # CMakeLists for symtab/g++/64/dyn/none/none
-set (CMAKE_CXX_FLAGS "-g ${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}  -m64  ")
+set (CMAKE_CXX_FLAGS "${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}  -m64 -g ")
 set (CMAKE_CXX_FLAGS_DEBUG "")
 set (CMAKE_CXX_FLAGS_RELEASE "")
+set (CMAKE_CXX_FLAGS_RELWITHDEBUGINFO "")
 set (CMAKE_CXX_COMPILER "${M_gnu_cxx}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/symtab")
@@ -9,7 +10,7 @@ add_definitions(-DSOLO_MUTATEE)
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU} -m64 -Wl,-export-dynamic")
 IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
-	"-g ${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}  -m64  "
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}  -m64 -g "
 	"${MUTATEE_LDFLAGS_GNU} -m64 -Wl,-export-dynamic"
 	"CXX"
 	"gnu_cxx 64 dyn"
