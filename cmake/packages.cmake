@@ -101,7 +101,7 @@ set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
   "1.53" "1.53.0" "1.54" "1.54.0")
 
 set (PATH_BOOST "/usr" CACHE STRING "Path to boost")
-#set(Boost_USE_STATIC_LIBS ON)
+
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
@@ -117,3 +117,7 @@ link_directories ( ${Boost_LIBRARY_DIR} )
 include_directories (
   ${Boost_INCLUDE_DIRS}
   )
+
+message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
+message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
+message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")

@@ -95,7 +95,7 @@ if (UNIX)
 target_link_libraries(pcontrol dynElf)
 target_link_libraries(pcontrol symLite)
 # Boost auto-links on Windows; don't double-link
-target_link_libraries(pcontrol ${Boost_LIBRARIES})
+target_link_libraries(pcontrol ${Boost_THREAD_LIBRARY})
 endif()
 
 if(WIN32)
