@@ -1699,7 +1699,7 @@ dynreg_to_user_t dynreg_to_user;
 static void init_dynreg_to_user()
 {
    static volatile bool initialized = false;
-   static Mutex init_lock;
+   static Mutex<> init_lock;
    if (initialized)
       return;
       

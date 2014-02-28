@@ -158,7 +158,7 @@ protected:
 
     static volatile bool thread_db_initialized;
     bool thread_db_proc_initialized;
-    static Mutex thread_db_init_lock;
+    static Mutex<> thread_db_init_lock;
 
     std::map<Dyninst::Address, std::pair<int_breakpoint *, EventType> > addr2Event;
     td_thragent_t *threadAgent;

@@ -516,7 +516,7 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
 }
 
 volatile bool thread_db_process::thread_db_initialized = false;
-Mutex thread_db_process::thread_db_init_lock;
+Mutex<> thread_db_process::thread_db_init_lock;
 
 thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> envp, std::vector<std::string> a, std::map<int, int> f) :
   int_process(p, e, a, envp, f),
