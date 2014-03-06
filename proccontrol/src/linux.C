@@ -103,6 +103,16 @@ Generator *Generator::getDefaultGenerator()
 
 bool GeneratorLinux::initialize()
 {
+   int result;
+   
+   sigset_t usr2_set;
+   sigemptyset(&usr2_set);
+   sigaddset(&usr2_set, SIGUSR2);
+   result = pthread_sigmask(SIG_UNBLOCK, &usr2_set, NULL);
+   if (result != 0) {
+      perr_printf("Unable to unblock SIGUSR2: %s\n", strerror(result));
+   }
+   
    generator_lwp = P_gettid();
    generator_pid = P_getpid();
    return true;
