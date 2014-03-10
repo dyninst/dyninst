@@ -18,7 +18,7 @@ add_library (symLite_static STATIC ${SRC_LIST})
 FILE (GLOB headers "h/*.h")
 set_target_properties (symLite symLite_static PROPERTIES PUBLIC_HEADER "${headers}")
 
-target_link_libraries (symLite ${LIBELF_LIBRARIES})
+target_link_libraries (symLite dynElf ${LIBELF_LIBRARIES})
 
 INSTALL (TARGETS symLite symLite_static
         EXPORT DyninstTargets
