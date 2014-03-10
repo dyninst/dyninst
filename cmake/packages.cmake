@@ -111,9 +111,14 @@ if (NOT (PATH_BOOST STREQUAL ""))
   set (CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${PATH_BOOST}/include)
 endif()
 
-find_package (Boost REQUIRED COMPONENTS thread system)
+# Boost 1.40/1.41 are not compatible with each other
+# so ensure that we don't mix incompatible headers with
+# the thread library
+set (BOOST_MIN_VERSION 1.41.0)
 
-#link_directories ( ${Boost_LIBRARY_DIRS} )
+find_package (Boost ${BOOST_MIN_VERSION} REQUIRED COMPONENTS thread system)
+
+link_directories ( ${Boost_LIBRARY_DIRS} )
 
 include_directories (
   ${Boost_INCLUDE_DIRS}
