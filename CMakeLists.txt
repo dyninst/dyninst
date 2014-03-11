@@ -193,9 +193,9 @@ install (TARGETS
 
 include (${DYNINST_PLATFORM}/cmake-mutators.txt)
 
-ADD_CUSTOM_TARGET(test_names.txt
-	COMMAND echo >> test_names.txt ${MUTATOR_NAME_LIST}
-	VERBATIM)
+FOREACH (m ${MUTATOR_NAME_LIST})
+	file(APPEND test_names.txt "${m}\n")
+ENDFOREACH()
 
 if (UNIX)
 # Compiler macros
