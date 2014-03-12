@@ -97,17 +97,13 @@ static int forkNewMutatee(const char *filename, const char *child_argv[])
     if (!pgid) pgid = getpgid(0);
     else if (pgid != getpgid(0)) {
        logerror("%s[%d]:  Something is broken with the test -- all forked processes should belong to the same group\n",                __FILE__, __LINE__);
-       // FIXME Don't call abort here.  We juse want to return failure from
-       // this mutator
-       abort();
+       return -1;
     }
 
     execv (filename, (char * const *)child_argv);
     //  if we get here, error
     logerror("%s[%d]:  exec failed: %s\n", __FILE__, __LINE__, strerror(errno));
-    // FIXME Don't call exit here.  We just want to return failure from this
-    // mutator..
-    exit (-1);
+    return -1;
   }
   else if (pid < 0) {
     //  fork error, fail test
@@ -138,9 +134,7 @@ static bool grandparentForkMutatees(int num, int *pids, const char *filename, co
         } while (result == -1 && errno == EINTR);
         if (0 > result) {
            logerror("%s[%d]:  read failed %s\n", __FILE__, __LINE__, strerror(errno));
-	   // FIXME Don't abort here.  We just want to return failure from this
-	   // mutator
-           abort();
+	   return false;
         }
         dprintf("%s[%d]:  parent -- have new pid %d\n", __FILE__, __LINE__, pids[i]);
       }
@@ -150,15 +144,11 @@ static bool grandparentForkMutatees(int num, int *pids, const char *filename, co
       int waitpid_ret = waitpid(childpid, &status, 0);
       if (waitpid_ret != childpid) {
         logerror("%s[%d]:  waitpid failed: %s\n", __FILE__, __LINE__, strerror(errno));
-	// FIXME Don't exit here.  We just want to return failure from this
-	// mutator
-        exit (0);
+	return false;
       }
       if (!WIFEXITED(status)) {
          logerror("%s[%d]:  not exited\n", __FILE__, __LINE__);
-	 // FIXME Don't exit here.  We just want to return failure from this
-	 // mutator
-         exit(-1);
+	 return false;
       }
       close(filedes[0]);
       close(filedes[1]);
@@ -186,9 +176,7 @@ static bool grandparentForkMutatees(int num, int *pids, const char *filename, co
       }
       close (filedes[0]);
       close (filedes[1]);
-      // FIXME Don't exit here.  We just want to return failure from this
-      // mutator
-      exit(0);
+      return false;
    }
    else if (childpid < 0) {
      //  fork error, fail test
@@ -221,7 +209,7 @@ test_results_t test3_6_Mutator::executeTest() {
     // Start the mutatees
     if (!grandparentForkMutatees(Mutatees, pids, pathname, child_argv)) {
       logerror("%s[%d]:  failed to fork mutatees\n", __FILE__, __LINE__);
-      exit(1);
+      return FAILED;
     }
 
     P_sleep(2);
