@@ -29,7 +29,6 @@ ADD_DEFINITIONS(-DPATCHAPI_LIB)
 add_library (patchAPI ${SRC_LIST})
 add_library (patchAPI_static STATIC ${SRC_LIST})
 target_link_libraries(patchAPI common)
-target_link_libraries(patchAPI symtabAPI)
 target_link_libraries(patchAPI instructionAPI)
 target_link_libraries(patchAPI parseAPI)
 

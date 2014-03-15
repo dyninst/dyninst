@@ -43,7 +43,9 @@
 #include "dwarf/h/dwarfFrameParser.h"
 #include "dwarf/h/dwarfHandle.h"
 
+#if defined(WITH_SYMTAB_API)
 #include "symtabAPI/h/Symtab.h"
+#endif
 
 using namespace Dyninst;
 using namespace Stackwalker;
@@ -149,10 +151,6 @@ location_t DebugStepperImpl::getLastComputedLocation(unsigned long value)
 
 bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
 {
-   using namespace SymtabAPI;
-   
-   const Frame *prevDepthFrame = depth_frame;
-  
    if (reg.isFramePointer()) {
       val = static_cast<MachRegisterVal>(depth_frame->getFP());
       return true;
@@ -162,32 +160,34 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
       val = static_cast<MachRegisterVal>(depth_frame->getSP());
       return true;
    }
-   
+
    if (reg.isPC()) {
       val = static_cast<MachRegisterVal>(depth_frame->getRA());
       return true;
    }
 
+   bool result = false;
+   const Frame *prevDepthFrame = depth_frame;
    depth_frame = depth_frame->getPrevFrame();
    if (!depth_frame)
    {
-      bool bres =  getProcessState()->getRegValue(reg, cur_frame->getThread(), val);
-      depth_frame = prevDepthFrame;
-      return bres;
+      result = getProcessState()->getRegValue(reg, cur_frame->getThread(), val);
    }
-
-   Offset offset;
-   void *symtab_v = NULL;
-   std::string lib;
-   depth_frame->getLibOffset(lib, offset, symtab_v);
-   Symtab *symtab = (Symtab*) symtab_v;
-   if (!symtab)
+#if defined(WITH_SYMTAB_API)
+   else
    {
-     depth_frame = prevDepthFrame;
-     return false;
+      Offset offset;
+      void *symtab_v = NULL;
+      std::string lib;
+      depth_frame->getLibOffset(lib, offset, symtab_v);
+      SymtabAPI::Symtab *symtab = (SymtabAPI::Symtab*) symtab_v;
+      if (symtab)
+      {
+         result = symtab->getRegValueAtFrame(offset, reg, val, this);
+      }
    }
+#endif
 
-   bool result = symtab->getRegValueAtFrame(offset, reg, val, this);
    depth_frame = prevDepthFrame;
    return result;
 }

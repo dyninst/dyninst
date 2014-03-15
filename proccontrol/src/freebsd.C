@@ -42,7 +42,14 @@
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/int_event.h"
 #include "common/src/freebsdKludges.h"
+
+#if defined(WITH_SYMLITE)
 #include "symlite/h/SymLite-elf.h"
+#elif defined(WITH_SYMTAB_API)
+#include "symtabAPI/h/SymtabReader.h"
+#else
+#error "No defined symbol reader"
+#endif
 
 #include <iostream>
 
@@ -1745,12 +1752,18 @@ bool freebsd_process::plat_individualRegAccess()
 
 SymbolReaderFactory *freebsd_process::plat_defaultSymReader()
 {
+#if defined(WITH_SYMLITE)
   static SymbolReaderFactory *symreader_factory = NULL;
   if (symreader_factory)
     return symreader_factory;
 
   symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
   return symreader_factory;
+#elif defined(WITH_SYMTAB_API)
+  return SymtabAPI::getSymtabReaderFactory();
+#else
+#error "No defined symbol reader"
+#endif
 }
 
 bool freebsd_process::plat_threadOpsNeedProcStop()

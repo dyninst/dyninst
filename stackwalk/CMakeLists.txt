@@ -62,6 +62,7 @@ if (PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
         src/x86-wanderer.C 
         src/x86-swk.C
         src/win-x86-swk.C
+        src/symtab-swk.C
     )
 endif()
 

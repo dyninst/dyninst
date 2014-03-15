@@ -44,9 +44,13 @@ set (SRC_LIST
         ../dataflowAPI/src/Visitors.C 
     )
 
-if (NOT PLATFORM MATCHES nt)
+if (LIGHTWEIGHT_SYMTAB)
 set (SRC_LIST ${SRC_LIST}
     src/SymLiteCodeSource.C
+)
+else()
+set (SRC_LIST ${SRC_LIST}
+    src/SymtabCodeSource.C
 )
 endif()
 
@@ -69,12 +73,6 @@ set (SRC_LIST ${SRC_LIST}
     )
 endif()
 
-if (NOT ${LIGHTWEIGHT_SYMTAB})
-set (SRC_LIST ${SRC_LIST}
-    src/SymtabCodeSource.C
-    )
-endif()
-
 SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
 ADD_DEFINITIONS(-DPARSER_LIB)
@@ -89,7 +87,7 @@ if (UNIX)
 target_link_libraries(parseAPI ${LIBELF_LIBRARIES})
 endif()
 
-if (${LIGHTWEIGHT_SYMTAB})
+if (LIGHTWEIGHT_SYMTAB)
 target_link_libraries(parseAPI symLite)
 else()
 target_link_libraries(parseAPI symtabAPI)

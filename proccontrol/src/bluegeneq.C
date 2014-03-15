@@ -63,7 +63,13 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
+#if defined(WITH_SYMLITE)
 #include "symlite/h/SymLite-elf.h"
+#elif defined(WITH_SYMTAB_API)
+#include "symtabAPI/h/SymtabReader.h"
+#else
+#error "No defined symbol reader"
+#endif
 
 using namespace bgq;
 using namespace std;
@@ -630,12 +636,18 @@ bool bgq_process::plat_supportLWPPostDestroy()
 
 static SymbolReaderFactory *getElfReader()
 {
+#if defined(WITH_SYMLITE)
    static SymbolReaderFactory *symreader_factory = NULL;
    if (symreader_factory)
       return symreader_factory;
 
    symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
    return symreader_factory;
+#elif defined(WITH_SYMTAB_API)
+   return SymtabAPI::getSymtabReaderFactory();
+#else
+#error "No defined symbol reader"
+#endif
 }
 
 SymbolReaderFactory *bgq_process::plat_defaultSymReader()

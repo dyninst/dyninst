@@ -93,12 +93,13 @@ target_link_libraries(pcontrol ${CMAKE_DL_LIBS})
 
 if (UNIX)
 target_link_libraries(pcontrol dynElf)
-target_link_libraries(pcontrol symLite)
 # Boost auto-links on Windows; don't double-link
 target_link_libraries(pcontrol ${Boost_LIBRARIES})
 endif()
 
-if(WIN32)
+if (LIGHTWEIGHT_SYMTAB)
+target_link_libraries(pcontrol symLite)
+else()
 target_link_libraries(pcontrol symtabAPI)
 endif()
 

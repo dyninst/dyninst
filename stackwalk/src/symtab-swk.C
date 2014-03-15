@@ -29,7 +29,7 @@
  */
 
 
-#if defined(cap_stackwalker_use_symtab)
+#if defined(WITH_SYMTAB_API)
 
 #include "stackwalk/h/symlookup.h"
 #include "stackwalk/h/swk_errors.h"
@@ -101,68 +101,6 @@ void SymtabWrapper::notifyOfSymtab(Symtab *symtab, std::string name)
   }
 
   wrapper->map[name] = symtab;
-}
-
-bool SwkSymtab::lookupAtAddr(Address addr, std::string &out_name,
-				void* &out_value)
-{
-  Address load_addr;
-  std::string libname;
-  bool result;
-
-  LibraryState *libtracker = walker->getProcessState()->getLibraryTracker();
-  if (!libtracker) {
-     sw_printf("[%s:%u] - getLibraryTracker() failed\n", FILE__, __LINE__);
-     setLastError(err_nolibtracker, "No library tracker object registered");
-     return false;
-  }
-
-  LibAddrPair lib;
-  result = libtracker->getLibraryAtAddr(addr, lib);
-  if (!result) {
-     sw_printf("[%s:%u] - getLibraryAtAddr() failed: %s\n", FILE__, __LINE__, getLastErrorMsg());
-    return false;
-  }
-
-  Symtab *symtab = SymtabWrapper::getSymtab(lib.first);
-  assert(symtab);
-  load_addr = lib.second;
-
-  //TODO: Cache symbol vector and use binary search
-  std::vector<Symbol *> syms;
-  result = symtab->getAllSymbolsByType(syms, Symbol::ST_FUNCTION);
-  if (!result) {
-    sw_printf("[%s:%u] - Couldn't get symbols for %s\n", 
-              FILE__, __LINE__, libname.c_str());
-    return false;
-  }
-  Symbol *candidate = NULL;
-  unsigned long distance = 0;
-  for (unsigned i = 0; i < syms.size(); i++)
-  {
-    unsigned long cur_distance = (addr - load_addr) - syms[i]->getAddr();
-    if (!candidate || cur_distance < distance) {
-      distance = cur_distance;
-      candidate = syms[i];
-    }
-  }
-
-  out_name = candidate->getTypedName();
-  if (!out_name.length())
-    out_name = candidate->getPrettyName();
-  if (!out_name.length())
-    out_name = candidate->getName();
-  out_value = (void *) candidate;
-
-  sw_printf("[%s:%u] - Found name for %lx : %s\n", FILE__, __LINE__,
-	    addr, out_name.c_str());  
-  
-  return true;
-}
-
-SwkSymtab::SwkSymtab(Walker *w, std::string exec_name) :
-   SymbolLookup(w, exec_name)
-{
 }
 
 #endif

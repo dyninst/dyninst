@@ -73,7 +73,14 @@
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
+
+#if defined(WITH_SYMLITE)
 #include "symlite/h/SymLite-elf.h"
+#elif defined(WITH_SYMTAB_API)
+#include "symtabAPI/h/SymtabReader.h"
+#else
+#error "No defined symbol reader"
+#endif
 
 #if !defined(PTRACE_GETREGS) && defined(PPC_PTRACE_GETREGS)
 #define PTRACE_GETREGS PPC_PTRACE_GETREGS
@@ -1289,12 +1296,18 @@ bool linux_thread::plat_cont()
 
 SymbolReaderFactory *getElfReader()
 {
+#if defined(WITH_SYMLITE)
   static SymbolReaderFactory *symreader_factory = NULL;
   if (symreader_factory)
     return symreader_factory;
 
   symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
   return symreader_factory;
+#elif defined(WITH_SYMTAB_API)
+  return SymtabAPI::getSymtabReaderFactory();
+#else
+#error "No defined symbol reader"
+#endif
 }
 
 SymbolReaderFactory *linux_process::plat_defaultSymReader()
