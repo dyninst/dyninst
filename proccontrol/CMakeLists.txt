@@ -88,19 +88,19 @@ ADD_DEFINITIONS(-DPROCCONTROL_EXPORTS)
 
 add_library (pcontrol ${SRC_LIST})
 add_library (pcontrol_static STATIC ${SRC_LIST})
-target_link_libraries(pcontrol common)
-target_link_libraries(pcontrol ${CMAKE_DL_LIBS})
+target_link_private_libraries(pcontrol common)
+target_link_private_libraries(pcontrol ${CMAKE_DL_LIBS})
 
 if (UNIX)
-target_link_libraries(pcontrol dynElf)
 # Boost auto-links on Windows; don't double-link
-target_link_libraries(pcontrol ${Boost_LIBRARIES})
+target_link_private_libraries(pcontrol ${Boost_LIBRARIES})
+target_link_private_libraries(pcontrol pthread)
 endif()
 
 if (LIGHTWEIGHT_SYMTAB)
-target_link_libraries(pcontrol symLite)
+target_link_private_libraries(pcontrol symLite)
 else()
-target_link_libraries(pcontrol symtabAPI)
+target_link_private_libraries(pcontrol symtabAPI)
 endif()
 
 

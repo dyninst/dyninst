@@ -28,9 +28,9 @@ ADD_DEFINITIONS(-DPATCHAPI_LIB)
 
 add_library (patchAPI ${SRC_LIST})
 add_library (patchAPI_static STATIC ${SRC_LIST})
-target_link_libraries(patchAPI common)
-target_link_libraries(patchAPI instructionAPI)
-target_link_libraries(patchAPI parseAPI)
+target_link_private_libraries(patchAPI common)
+target_link_private_libraries(patchAPI instructionAPI)
+target_link_private_libraries(patchAPI parseAPI)
 
 FILE (GLOB headers "h/*.h")
 set_target_properties (patchAPI patchAPI_static PROPERTIES PUBLIC_HEADER "${headers}")

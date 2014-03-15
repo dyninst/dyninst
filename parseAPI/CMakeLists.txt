@@ -80,17 +80,13 @@ ADD_DEFINITIONS(-DDATAFLOW_LIB)
 
 add_library (parseAPI ${SRC_LIST})
 add_library (parseAPI_static STATIC ${SRC_LIST})
-target_link_libraries(parseAPI common)
-target_link_libraries(parseAPI instructionAPI)
-
-if (UNIX)
-target_link_libraries(parseAPI ${LIBELF_LIBRARIES})
-endif()
+target_link_private_libraries(parseAPI common)
+target_link_private_libraries(parseAPI instructionAPI)
 
 if (LIGHTWEIGHT_SYMTAB)
-target_link_libraries(parseAPI symLite)
+target_link_private_libraries(parseAPI symLite)
 else()
-target_link_libraries(parseAPI symtabAPI)
+target_link_private_libraries(parseAPI symtabAPI)
 endif()
 
 FILE (GLOB headers "h/*.h")

@@ -170,18 +170,18 @@ add_library (dyninstAPI ${SRC_LIST})
 add_library (dyninstAPI_static STATIC ${SRC_LIST})
 
 
-target_link_libraries (dyninstAPI stackwalk)
-target_link_libraries (dyninstAPI pcontrol)
-target_link_libraries (dyninstAPI patchAPI)
-target_link_libraries (dyninstAPI parseAPI)
-target_link_libraries (dyninstAPI symtabAPI)
+target_link_private_libraries (dyninstAPI common)
+target_link_private_libraries (dyninstAPI instructionAPI)
+target_link_private_libraries (dyninstAPI stackwalk)
+target_link_private_libraries (dyninstAPI pcontrol)
+target_link_private_libraries (dyninstAPI patchAPI)
+target_link_private_libraries (dyninstAPI parseAPI)
+target_link_private_libraries (dyninstAPI symtabAPI)
 
 if (UNIX)
-target_link_libraries (dyninstAPI dynElf)
-target_link_libraries (dyninstAPI dynDwarf)
-target_link_libraries (dyninstAPI ${LIBELF_LIBRARIES})
-target_link_libraries (dyninstAPI ${LIBDWARF_LIBRARIES})
-target_link_libraries (dyninstAPI pthread)
+# Boost auto-links on Windows; don't double-link
+target_link_private_libraries(dyninstAPI ${Boost_LIBRARIES})
+target_link_private_libraries (dyninstAPI pthread)
 endif()
 
 FILE (GLOB headers "h/*.h")

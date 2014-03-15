@@ -9,6 +9,15 @@ set (SOVERSION "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}")
 set (LIBVERSION "${SOVERSION}.${DYNINST_PATCH_VERSION}")
 set (DYNINST_VERSION "${LIBVERSION}")
 
+# Link libraries privately when possible
+function (target_link_private_libraries target)
+  if(${CMAKE_VERSION} VERSION_LESS "2.8.7")
+    target_link_libraries (${target} ${ARGN})
+  else()
+    target_link_libraries (${target} LINK_PRIVATE ${ARGN})
+  endif()
+endfunction ()
+
 #Change to switch between libiberty/libstdc++ demangler
 #set(USE_GNU_DEMANGLER 1)
 

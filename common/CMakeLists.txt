@@ -109,11 +109,7 @@ FILE (GLOB headers "h/*.h")
 set_target_properties (common common_static PROPERTIES PUBLIC_HEADER "${headers}")
 
 if (${IBERTY_LIBRARY} MATCHES iberty)
-if(${CMAKE_VERSION} VERSION_LESS "2.8")
-target_link_libraries (common ${IBERTY_LIBRARY})
-else()
-target_link_libraries (common LINK_PRIVATE ${IBERTY_LIBRARY})
-endif()
+target_link_private_libraries (common ${IBERTY_LIBRARY})
 endif()
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)

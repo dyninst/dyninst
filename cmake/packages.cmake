@@ -42,10 +42,14 @@ if (UNIX)
       INSTALL_COMMAND mkdir -p <INSTALL_DIR>/include && mkdir -p <INSTALL_DIR>/lib && install <SOURCE_DIR>/libdwarf/libdwarf.h <INSTALL_DIR>/include && install <SOURCE_DIR>/libdwarf/dwarf.h <INSTALL_DIR>/include && install <BINARY_DIR>/libdwarf.so <INSTALL_DIR>/lib
       )
     add_dependencies(LibDwarf libelf_imp)
-    target_link_libraries(LibDwarf libelf_imp)
+    target_link_private_libraries(LibDwarf libelf_imp)
     #ExternalProject_Get_Property(LibDwarf 
     set(LIBDWARF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libdwarf/include)
     set(LIBDWARF_LIBRARIES ${CMAKE_BINARY_DIR}/libdwarf/lib/libdwarf.so)
+  else()
+    # Unfortunately, libdwarf doesn't always link to libelf itself.
+    # (e.g. https://bugzilla.redhat.com/show_bug.cgi?id=1061432)
+    set(LIBDWARF_LIBRARIES ${LIBDWARF_LIBRARIES} ${LIBELF_LIBRARIES})
   endif()
 
   add_library(libdwarf_imp SHARED IMPORTED)

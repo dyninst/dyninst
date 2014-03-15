@@ -5,6 +5,8 @@ set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 set (CMAKE_CXX_FLAGS_RELEASE "-O2")
 set (CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
 set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
+# Ensure each library is fully linked
+set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
 else (MSVC)
 set (CMAKE_C_FLAGS_DEBUG "/Od /Zi /MDd /D_DEBUG")
 set (CMAKE_C_FLAGS_RELEASE "/O2 /MD /D NDEBUG")
