@@ -1497,7 +1497,11 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
               newshdr->sh_size);
 	    
       newdata->d_version = 1;
-
+      if (newshdr->sh_addralign < newdata->d_align) 
+      {
+	newshdr->sh_addralign = newdata->d_align;
+      }
+      
      if (0 > elf_update(newElf, ELF_C_NULL))
      {
        fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, errno, elf_errmsg(elf_errno()));
