@@ -798,7 +798,10 @@ bool emitElf::driver(Symtab *obj, string fName){
         // Update the heap symbols, now that loadSecTotalSize is set
         updateSymbols(dynsymData, dynStrData, loadSecTotalSize);
     }
-
+    if (newshdr->sh_addralign < newdata->d_align) 
+    {
+      newshdr->sh_addralign = newdata->d_align;
+    }
     if ( 0 > elf_update(newElf, ELF_C_NULL))
     {
        fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, elf_errno(), elf_errmsg(elf_errno()));
