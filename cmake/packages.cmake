@@ -118,7 +118,7 @@ endif()
 # Boost 1.40/1.41 are not compatible with each other
 # so ensure that we don't mix incompatible headers with
 # the thread library
-set (BOOST_MIN_VERSION 1.41.0)
+#set (BOOST_MIN_VERSION 1.41.0)
 
 find_package (Boost ${BOOST_MIN_VERSION} REQUIRED COMPONENTS thread system)
 
