@@ -169,10 +169,8 @@ static bool grandparentForkMutatees(int num, int *pids, const char *filename, co
         //  let parent know the grandchild pid
         if (0 > write(filedes[1], &gchild_pid, sizeof(int))) {
             logerror("%s[%d]:  write failed\n", __FILE__, __LINE__);
-	    // FIXME Don't abort here.  We just want to return failure from
-	    // this mutator
-            abort();
-        }
+	    return false;
+       }
       }
       close (filedes[0]);
       close (filedes[1]);
