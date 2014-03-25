@@ -256,8 +256,15 @@ if(${m32_works})
 message(STATUS "Building 32-bit helper libraries")
 add_library (testA_m32 SHARED src/libtestA.c)
 add_library (testB_m32 SHARED src/libtestB.c)
+add_library (testA_m32_static STATIC src/libtestA.c)
+add_library (testB_m32_static STATIC src/libtestB.c)
+set_target_properties(testA_m32_static PROPERTIES OUTPUT_NAME testA_m32)
+set_target_properties(testB_m32_static PROPERTIES OUTPUT_NAME testB_m32)
 add_library (Test12_m32 SHARED src/dyninst/libTest12.c)
-install (TARGETS testA_m32 testB_m32 Test12_m32 LIBRARY DESTINATION ${INSTALL_DIR})
+
+install (TARGETS testA_m32 testB_m32 Test12_m32 testA_m32_static testB_m32_static 
+	LIBRARY DESTINATION ${INSTALL_DIR}
+	ARCHIVE DESTINATION ${INSTALL_DIR})
 
 set_target_properties (testA_m32
                       PROPERTIES
