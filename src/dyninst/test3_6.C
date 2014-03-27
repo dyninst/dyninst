@@ -94,7 +94,7 @@ static int forkNewMutatee(const char *filename, const char *child_argv[])
   pid = fork();
   if (pid == 0) {
     // child, do exec
-    dprintf("%s[%d]:  before exec in new mutatee %s, pgid = %d\n", __FILE__, __LINE__, filename, getpgid(0));
+    dprintf("%s[%d]:  before exec in new mutatee %s, pid = %d\n", __FILE__, __LINE__, filename, getpid());
     execv (filename, (char * const *)child_argv);
     //  if we get here, error
     logerror("%s[%d]:  exec failed: %s\n", __FILE__, __LINE__, strerror(errno));
@@ -118,7 +118,7 @@ void test3_6_Mutator::cleanup()
       ++i)
   {
     int result = kill(*i, SIGKILL);
-    if(!result) fprintf(stderr, "Failed to kill %d: %d\n", *i, strerror(errno));
+    if(!result) fprintf(stderr, "Failed to kill %d: %s\n", *i, strerror(errno));
     
   }
 #endif  
