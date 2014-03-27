@@ -55,6 +55,7 @@
 class test3_6_Mutator : public DyninstMutator {
   BPatch_exitType expectedSignal;
   unsigned int Mutatees;
+  std::vector<int> pids;
   int debugPrint;
   BPatch *bpatch;
   char *pathname;
@@ -64,6 +65,8 @@ public:
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
+  void cleanup();
+  
 };
 extern "C" DLLEXPORT  TestMutator *test3_6_factory() {
   return new test3_6_Mutator();
@@ -92,14 +95,6 @@ static int forkNewMutatee(const char *filename, const char *child_argv[])
   if (pid == 0) {
     // child, do exec
     dprintf("%s[%d]:  before exec in new mutatee %s, pgid = %d\n", __FILE__, __LINE__, filename, getpgid(0));
-
-    //  sanity check, make sure that all forked processes have the same process group id
-    if (!pgid) pgid = getpgid(0);
-    else if (pgid != getpgid(0)) {
-       logerror("%s[%d]:  Something is broken with the test -- all forked processes should belong to the same group\n",                __FILE__, __LINE__);
-       return -1;
-    }
-
     execv (filename, (char * const *)child_argv);
     //  if we get here, error
     logerror("%s[%d]:  exec failed: %s\n", __FILE__, __LINE__, strerror(errno));
@@ -113,80 +108,22 @@ static int forkNewMutatee(const char *filename, const char *child_argv[])
 
   return pid;
 }
+#endif
 
-static bool grandparentForkMutatees(int num, int *pids, const char *filename, const char *child_argv[])
+void test3_6_Mutator::cleanup()
 {
-    //  this is like fork_mutatee in test_util.C, except it guarantees that mutatees are all
-    //  in the same process group.
-
-    //  need a pipe to get grandchild pids back to grandparent
-    int filedes[2];
-    int result;
-    pipe(filedes);
-
-    int childpid = fork();
-    if (childpid > 0) {
-      //parent -- read grandchild pids
-      for (unsigned int i = 0; i < num; ++i) {
-        result = 0;
-        do {
-           result = read(filedes[0], &pids[i], sizeof(int));
-        } while (result == -1 && errno == EINTR);
-        if (0 > result) {
-           logerror("%s[%d]:  read failed %s\n", __FILE__, __LINE__, strerror(errno));
-	   return false;
-        }
-        dprintf("%s[%d]:  parent -- have new pid %d\n", __FILE__, __LINE__, pids[i]);
-      }
-
-      //  and wait for child exit
-      int status;
-      int waitpid_ret = waitpid(childpid, &status, 0);
-      if (waitpid_ret != childpid) {
-        logerror("%s[%d]:  waitpid failed: %s\n", __FILE__, __LINE__, strerror(errno));
-	return false;
-      }
-      if (!WIFEXITED(status)) {
-         logerror("%s[%d]:  not exited\n", __FILE__, __LINE__);
-	 return false;
-      }
-      close(filedes[0]);
-      close(filedes[1]);
-      return true;
-    }
-
-    else if (childpid == 0) {
-      int gchild_pid;
-      //  child -- run as its own session, fork children (mutatees), and exit.
-      setsid();
-      for (int n=0; n<num; n++) {
-        gchild_pid = forkNewMutatee(filename, child_argv);
-        if (gchild_pid < 0) {
-           logerror("%s[%d]:  failed to fork/exec\n", __FILE__, __LINE__);
-           return false;
-        }
-        dprintf("%s[%d]:  forked mutatee %d\n", __FILE__, __LINE__, gchild_pid);
-        //  let parent know the grandchild pid
-        if (0 > write(filedes[1], &gchild_pid, sizeof(int))) {
-            logerror("%s[%d]:  write failed\n", __FILE__, __LINE__);
-	    return false;
-       }
-      }
-      close (filedes[0]);
-      close (filedes[1]);
-      return false;
-   }
-   else if (childpid < 0) {
-     //  fork error, fail test
-     close (filedes[0]);
-     close (filedes[1]);
-     logerror("%s[%d]:  fork failed: %s\n", __FILE__, __LINE__, strerror(errno));
-     return false;
-   }
-   return true;
+#if !defined(os_windows_test)
+  for(std::vector<int>::iterator i = pids.begin();
+      i != pids.end();
+      ++i)
+  {
+    int result = kill(*i, SIGKILL);
+    if(!result) fprintf(stderr, "Failed to kill %d: %d\n", *i, strerror(errno));
+    
+  }
+#endif  
 }
 
-#endif
 
 // static int mutatorTest(char *pathname, BPatch *bpatch)
 test_results_t test3_6_Mutator::executeTest() {
@@ -199,16 +136,22 @@ test_results_t test3_6_Mutator::executeTest() {
     child_argv[n++] = const_cast<char*>("test3_6"); // run test1 in mutatee
     child_argv[n++] = NULL;
 
-    int pids[Mutatees];
     BPatch_process *appProc[MAX_MUTATEES];
 
-    for (n=0; n<MAX_MUTATEES; n++) appProc[n]=NULL;
-
-    // Start the mutatees
-    if (!grandparentForkMutatees(Mutatees, pids, pathname, child_argv)) {
-      logerror("%s[%d]:  failed to fork mutatees\n", __FILE__, __LINE__);
-      return FAILED;
+    for (n=0; n<MAX_MUTATEES; n++) {
+      appProc[n]=NULL;
+      int pid = forkNewMutatee(pathname, child_argv);
+      if(pid < 0) 
+      {
+	cleanup();
+	logerror("failed to fork mutatees\n");
+	return FAILED;
+      }
+      pids.push_back(pid);
     }
+    
+
+
 
     P_sleep(2);
     //  Attach to them
@@ -218,7 +161,7 @@ test_results_t test3_6_Mutator::executeTest() {
         if (!appProc[n]) {
             logerror("*ERROR*: unable to create handle%d for executable\n", n);
             logerror("**Failed** test3_6 (simultaneous multiple-process management - terminate (fork))\n");
-            MopUpMutatees(n-1,appProc);
+	    cleanup();
             return FAILED;
         }
         dprintf("Mutatee %d attached, pid=%d\n", n, appProc[n]->getPid());
@@ -255,7 +198,7 @@ test_results_t test3_6_Mutator::executeTest() {
 	logerror("Passed test3_6 (simultaneous multiple-process management - terminate (fork))\n");
         return PASSED;
     }
-
+    cleanup();
     return FAILED;
 #else // os_windows
     logerror("Skipped test3_6 (simultaneous multiple-process management - terminate (fork))\n");
