@@ -277,11 +277,11 @@ install (TARGETS testA_m32 testB_m32 Test12_m32 testA_m32_static testB_m32_stati
 	LIBRARY DESTINATION ${INSTALL_DIR}
 	ARCHIVE DESTINATION ${INSTALL_DIR})
 
-set_target_properties (testA_m32
+set_target_properties (testA_m32 testA_m32_static
                       PROPERTIES
                       COMPILE_FLAGS "-m32 -Dm32_test"
                       LINK_FLAGS "-m32")
-set_target_properties (testB_m32
+set_target_properties (testB_m32 testB_m32_static
                       PROPERTIES
                       COMPILE_FLAGS "-m32 -Dm32_test"
                       LINK_FLAGS "-m32")
