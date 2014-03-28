@@ -25,10 +25,7 @@ bool Codegen::generate() {
    int_process *proc = proc_->llproc();
    if (!proc)
       return false;
-   bool saved_debug_flag = dyninst_debug_proccontrol;
-   dyninst_debug_proccontrol = true;
    codeStart_ = proc->infMalloc(size, false, (unsigned int) 0);
-   dyninst_debug_proccontrol = saved_debug_flag;
    if (!codeStart_) {
       return false;
    }
