@@ -58,7 +58,7 @@ bool Codegen::generateInt() {
        if (dlopen_addr) {
           break;
        }
-
+       fprintf(stderr, "Couldn't find dlopen address, bailing\n");
        // We can't go farther without parsing
        return false;
     } while(0);
