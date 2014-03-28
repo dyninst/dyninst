@@ -151,8 +151,10 @@ bool Codegen::generateStackUnprotect() {
    Address var_addr = findSymbolAddr("__stack_prot");
    Address mprotect_addr = findSymbolAddr("mprotect", true);
 
-   if (!var_addr || !mprotect_addr) return false;
-
+   if (!var_addr || !mprotect_addr) {
+     fprintf(stderr, "Couldn't find symbols to unprotect stack, bailing\n");
+     return false;
+   }
    Address page_start;
    Address pagesize = getpagesize();
 
