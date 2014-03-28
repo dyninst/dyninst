@@ -29,9 +29,11 @@ Injector::~Injector() {}
 bool Injector::inject(std::string libname) {
    int_process *proc = proc_->llproc();
    pthrd_printf("Injecting %s into process %d\n", libname.c_str(), proc->getPid());
+   fprintf(stderr, "Injecting %s into process %d\n", libname.c_str(), proc->getPid());
    if (!checkIfExists(libname)) {
       perr_printf("Library %s doesn't exist\n", libname.c_str());
       proc->setLastError(err_nofile, "File doesn't exist\n");
+      fprintf(stderr, "Error opening file: %s\n", libname.c_str());
       return false;
    }
 
@@ -39,6 +41,7 @@ bool Injector::inject(std::string libname) {
    if (!codegen.generate()) {
       perr_printf("Could not generate code\n");
       proc->setLastError(err_internal, "Error in code generation");
+      fprintf(stderr, "Error generating code\n");
       return false;
    }
 
@@ -79,6 +82,7 @@ bool Injector::inject(std::string libname) {
    bool result = rpcMgr()->postRPCToProc(proc, irpc);
    if (!result) {
       pthrd_printf("Error posting RPC to process %d\n", proc->getPid());
+      fprintf(stderr, "Error posting RPC\n");
       return false;
    }
 
@@ -92,11 +96,12 @@ bool Injector::inject(std::string libname) {
    result = int_process::waitAndHandleEvents(false);
    if (!result) {
       perr_printf("Error waiting for and handling events\n");
+      fprintf(stderr, "Error waiting for and handling events\n");
       return false;
    }
 
    //TODO: Any mechanism for error checks?
-   
+   fprintf(stderr, "inject() returned OK\n");
    return true;
 }                                                   
 
