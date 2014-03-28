@@ -285,8 +285,8 @@ test_results_t test1_22_Mutator::executeTest()
 	addLibArchExt(libNameB,127, pointer_size, isStatic);
 
 	char libA[128], libB[128];
-	snprintf(libA, 128, "./%s", libNameA);
-	snprintf(libB, 128, "./%s", libNameB);
+	snprintf(libA, 128, "%s", libNameA);
+	snprintf(libB, 128, "%s", libNameB);
 
 	if (! appAddrSpace->loadLibrary(libA)) 
 	{
