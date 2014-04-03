@@ -113,8 +113,8 @@ static Process::cb_ret_t on_library(Event::const_ptr ev)
 
 #else
 
-#define LIBTESTA "./libtestA.dll"
-#define LIBTESTA_32 "./libtestA_m32.dll"
+#define LIBTESTA "./testA.dll"
+#define LIBTESTA_32 "./testA_m32.dll"
 
 #endif
 
