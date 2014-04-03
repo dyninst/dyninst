@@ -836,6 +836,7 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
 
 Process::cb_ret_t default_on_exit(Event::const_ptr ev)
 {
+  logerror("Got exit event for process %d\n", ev->getProcess()->getPid());
    return Process::cbDefault;
 }
 
