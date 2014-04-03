@@ -1370,6 +1370,7 @@ bool ProcControlComponent::block_for_events()
 		logerror("Error waiting for events\n");
 		return false;
 	}
+	logerror("block_for_events returning OK\n")
 	return true;
 #endif
 }
