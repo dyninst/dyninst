@@ -844,7 +844,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
 #if !defined(os_bg_test) && !defined(os_windows_test)
    resetSignalFD(params);
 #endif
-
+   logerror("Begin ProcControl group teardown\n");
 #if defined(USE_SOCKETS)
    for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
 #if defined(os_windows_test)
@@ -856,6 +856,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
            error = true;
        }
    }
+   logerror("Sockets all closed\n");
 #endif
 #if defined(USE_PIPES)
    for (unsigned i=0; i<2; i++) {
@@ -870,6 +871,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
 #endif
 
    if (curgroup_self_cleaning) {
+     logerror("Self cleaning group, we're done here\n");
       procs.clear();
       return PASSED;
    }
@@ -880,6 +882,10 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
       for (std::vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
          Process::ptr p = *i;
          if (!p->isTerminated()) {
+	   logerror("Process %d not terminated, is %s, is %s, blocking for events\n",
+		    p->getPid(), 
+		    p->allThreadsStopped() ? "stopped" : "running",
+		    p->isExited() ? "exited" : "not exited");
             bool result = block_for_events();
             if (!result) {
                logerror("Process failed to handle events\n");
