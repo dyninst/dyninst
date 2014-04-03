@@ -322,8 +322,19 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
 	   NULL, // current directory
 	   &si, // startup info
 	   &pi); // process info
-   if (result == FALSE) 
+   if (result == FALSE) {
+     DWORD lastError = ::GetLastError();
+     TCHAR errBuff[1024];
+     ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
+		     NULL,
+		     lastError,
+		     MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		     errBuff,
+		     STR_ELEMS(errBuff) - 1,
+		     NULL);
+     fprintf(stderr, "Mutatee creation failed: %s\n", errBuff);
       return std::string("");
+   }
 
    if (wait_for_pipe) {
 	   // Keep synchronization pattern the same as on Unix...
