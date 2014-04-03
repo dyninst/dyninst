@@ -330,7 +330,7 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
 		     lastError,
 		     MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		     errBuff,
-		     STR_ELEMS(errBuff) - 1,
+		     sizeof(errBuff)/sizeof(TCHAR) - 1,
 		     NULL);
      fprintf(stderr, "Mutatee creation failed: %s\n", errBuff);
       return std::string("");
