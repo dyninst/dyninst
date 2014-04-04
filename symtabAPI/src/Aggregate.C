@@ -227,7 +227,7 @@ bool Aggregate::addMangledNameInternal(std::string name, bool isPrimary, bool de
        }
        else {
           //If mangling failed, then assume mangled name is already pretty
-          prettyNames_.push_back(pretty);
+          prettyNames_.push_back(name);
        }
     }
     return true;
