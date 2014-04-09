@@ -667,6 +667,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
                param["socket_name"]->getString());
    }
    cur_group = group;
+
    for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
       bool result = initializeConnectionInfo(*j);
       if (!result) {
@@ -694,9 +695,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       logerror("Failed to accept connections from new mutatees\n");
       error = true;
    }
-#endif
-#if defined(os_bg_test)
-   Process::removeEventCallback(EventType::Library, setSocketOnLibLoad);
 #endif
    if (group->createmode == CREATE)
    {
@@ -757,6 +755,10 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       logerror("Failed to create pipes\n");
       error = true;
    }
+#endif
+
+#if defined(os_bg_test)
+   Process::removeEventCallback(EventType::Library, setSocketOnLibLoad);
 #endif
 
    if (group->state != RUNNING && check_threads_on_startup) {
