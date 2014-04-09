@@ -4582,6 +4582,7 @@ extern void setWThread(long t);
 
 IOThread::IOThread() :
    do_exit(false),
+   kicked(false),
    init_done(false),
    shutdown_done(false),
    lwp(0),
@@ -4624,6 +4625,7 @@ void IOThread::thrd_main()
    initLock.unlock();
 
    while (!do_exit) {
+      kicked = false;
       run();
    }
 
@@ -4639,6 +4641,7 @@ void IOThread::thrd_kick()
 
 void IOThread::kick()
 {
+   kicked = true;
    if (emergency)
       kick_thread(pid, lwp);
    thrd_kick();
@@ -4697,17 +4700,13 @@ void ReaderThread::run()
    /* Setup the FD list for select.  Block if there's no FDs ready yet */
    {
       pthrd_printf("Creating FD list in reader thread\n");
-      bool result = fd_lock.lock();
-      if (!result) {
-         pthrd_printf("Reader thread kicked.\n");
-         return;
-      }
+      fd_lock.lock();
       while (fds.empty()) {
-         result = fd_lock.wait();
-         if (!result) {
-            pthrd_printf("Reader thread kicked.\n");
+         if (kicked) {
+            fd_lock.unlock();
             return;
          }
+         fd_lock.wait();
       }
       for (set<int>::iterator i = fds.begin(); i != fds.end(); i++) {
          int fd = *i;
@@ -4911,6 +4910,10 @@ void ReaderThread::thrd_kick()
 {
    char c = 'k';
    write(kick_fd_write, &c, 1);
+
+   fd_lock.lock();
+   fd_lock.signal();
+   fd_lock.unlock();
 }
 
 void ReaderThread::kick_generator()
@@ -4996,17 +4999,14 @@ void WriterThread::run()
    if (acks_to_handle.empty() && writes_to_handle.empty())
    {
       pthrd_printf("Waiting for acks or writes\n");
-      bool result = msg_lock.lock();
-      if (!result || do_exit) {
+      msg_lock.lock();
+      while (acks.empty() && writes.empty() && !kicked) {
+         msg_lock.wait();
+      }
+      if (kicked) {
+         msg_lock.unlock();
          pthrd_printf("Kick on writer thread\n");
          return;
-      }   
-      while (acks.empty() && writes.empty()) {
-         result = msg_lock.wait();
-         if (!result || do_exit) {
-            pthrd_printf("Kick on writer thread\n");
-            return;
-         }
       }
       acks_to_handle = acks;
       writes_to_handle = writes;
@@ -5018,11 +5018,7 @@ void WriterThread::run()
 
    /* Turn all ACKs into potential writes. */
    if (!acks_to_handle.empty()) {
-      bool result = rank_lock.lock();
-      if (!result) {
-         pthrd_printf("Kick on writer thread\n");
-         return;
-      }
+      rank_lock.lock();
       for (vector<int>::iterator i = acks_to_handle.begin(); i != acks_to_handle.end(); i++) {
          int rank = *i;
          map<int, ComputeNode *>::iterator j = rank_to_cn.find(rank);
@@ -5045,11 +5041,7 @@ void WriterThread::run()
          pthrd_printf("CN %d not ready to write, has pending messages\n", cn->getID());
          continue;
       }
-      bool result = cn->pending_queue_lock.lock();
-      if (!result) {
-         pthrd_printf("Kick on writer thread\n");
-         return;
-      }
+      cn->pending_queue_lock.lock();
       if (cn->queued_pending_msgs.empty()) {
          pthrd_printf("No queued messages to write to CN %d\n", cn->getID());
          cn->pending_queue_lock.unlock();
