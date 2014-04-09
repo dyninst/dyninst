@@ -282,7 +282,7 @@ int_process *int_process::createProcess(Dyninst::PID, int_process *)
    return NULL;
 }
 
-static Mutex id_init_lock;
+static Mutex<> id_init_lock;
 bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
                          vector<string> envp, std::map<int, int> f) :
    int_process(p, e, a, envp, f),
@@ -322,7 +322,7 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    detach_state(no_detach_issued)
 {
    if (!set_ids) {
-      ScopeLock lock(id_init_lock);
+      ScopeLock<> lock(id_init_lock);
       if (!set_ids) {
          char *jobid_env = getenv("BG_JOBID");
          assert(jobid_env);
@@ -446,7 +446,7 @@ bool bgq_process::plat_detach(result_response::ptr, bool)
       bool is_last_detacher = true;
       
       { 
-         ScopeLock lock_this_scope(cn->detach_lock);
+         ScopeLock<> lock_this_scope(cn->detach_lock);
          
          for (set<bgq_process *>::iterator i = cn->procs.begin(); i != cn->procs.end(); i++) {
             bgq_process *peer_proc = *i;
@@ -1073,7 +1073,7 @@ bool bgq_process::handleStartupEvent(void *data)
          attach_action = group_done;
       }
       else {
-         ScopeLock lock(cn->attach_lock);
+         ScopeLock<> lock(cn->attach_lock);
          pthrd_printf("Doing all attach\n");
          if (cn->all_attach_error) {
             pthrd_printf("CN attach left us in an error state, failng attach to %d\n", getPid());
@@ -1144,7 +1144,7 @@ bool bgq_process::handleStartupEvent(void *data)
       attach_ack = NULL;
       
       if (cn->issued_all_attach) {
-         ScopeLock lock(cn->attach_lock);
+         ScopeLock<> lock(cn->attach_lock);
          cn->all_attach_done = true;
          set<ToolMessage *>::iterator i;
          
@@ -2629,7 +2629,7 @@ bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool hea
    WriterThread::get()->writeMessage(newmsg, proc->getComputeNode());
    return true;
 #else
-   ScopeLock lock(send_lock);
+   ScopeLock<> lock(send_lock);
 
    if (have_pending_message) {
       pthrd_printf("Enqueuing message while another is pending\n");
@@ -2666,7 +2666,7 @@ bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool hea
 
 bool ComputeNode::flushNextMessage()
 {
-   ScopeLock lock(send_lock);
+   ScopeLock<> lock(send_lock);
    assert(have_pending_message);
 
    if (queued_pending_msgs.empty()) {
@@ -2707,7 +2707,7 @@ bool ComputeNode::writeToolAttachMessage(bgq_process *proc, ToolMessage *msg, bo
       return writeToolMessage(proc, msg, heap_alloced);
    }
 
-   ScopeLock lock(attach_lock);
+   ScopeLock<> lock(attach_lock);
 
    if (!all_attach_done) {
       have_pending_message = true;
