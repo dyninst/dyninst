@@ -57,13 +57,13 @@ static Dyninst::PID run_local(char **args)
 	return NULL_PID;
 }
 #endif
+
 #if defined(cap_launchmon)
 #include "lmon_api/lmon_fe.h"
 #include <signal.h>
 #include <sys/wait.h>
+#include <pthread.h>
 
-#include "../common/src/dthread.h"
-#include "../common/src//dthread-unix.C"
 
 static char **getLaunchParams(char *executable, char *args[], const char *num, char * signal_file_name, const char *mode);
 static bool init_lmon();
@@ -143,10 +143,10 @@ typedef struct
    bool attach;
 } lmon_spawn_args;
 
-static DThread *lmon_thread;
+static pthread_t thrd;
 static lmon_spawn_args spawn_args;
 
-static void invokeLaunchMON_Spawn(void *opaque_args)
+static void *invokeLaunchMON_Spawn(void *opaque_args)
 {
    lmon_rc_e rc;
    lmon_spawn_args *a = (lmon_spawn_args *) opaque_args;
@@ -169,20 +169,18 @@ static void invokeLaunchMON_Spawn(void *opaque_args)
                                          NULL, NULL);
    }
    free(a->test_args);
+   return NULL;
 }
 
 void waitForLaunchMONStartup()
 {
-   assert(lmon_thread);
-   lmon_thread->join();
-   delete lmon_thread;
-   lmon_thread = NULL;
+   pthread_join(thrd, NULL);
 }
 
 int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon_args[], bool attach, int &mpirun_pid)
 {
    lmon_rc_e rc;
-   int session;
+   int session, result;
    char *signal_file = NULL;
    char signal_file_name[64];
    char signal_full_path[4092];
@@ -222,8 +220,6 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
       mpirun_pid = run_local(new_test_args);
    }
 
-   assert(!lmon_thread);
-   lmon_thread = new DThread();
    spawn_args.session = session;
    spawn_args.mpirun_pid = mpirun_pid;
    spawn_args.launcher_host = launcher_host;
@@ -231,9 +227,9 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
    spawn_args.test_args = new_test_args;
    spawn_args.signal_file = signal_file;
    spawn_args.attach = attach;
-   bool result = lmon_thread->spawn(invokeLaunchMON_Spawn, &spawn_args);
-   if (!result) {
-      fprintf(stderr, "Failed to create launchMON thread\n");
+   result = pthread_create(&thrd, NULL, invokeLaunchMON_Spawn, (void *) &spawn_args);
+   if (result != 0) {
+      fprintf(stderr, "Failed to create launchMON thread: %s\n", strerror(thrd));
       return -1;
    }
 
@@ -274,14 +270,14 @@ static char **getLaunchParams(char *executable, char *args[], const char *num, c
    unsigned i=0, j=0;
    for (char **counter = args; *counter; counter++, count++);
    char **new_args = (char **) malloc(sizeof(char *) * (count+14));
-   new_args[i++] = "srun";
-   new_args[i++] = "-n";
+   new_args[i++] = const_cast<char *>("srun");
+   new_args[i++] = const_cast<char *>("-n");
    new_args[i++] = const_cast<char *>(num);
 
    for (j=0; args[j]; j++)
       new_args[i++] = args[j];
    if (signal_file_name) {
-      new_args[i++] = "-signal_file";
+      new_args[i++] = const_cast<char *>("-signal_file");
       new_args[i++] = signal_file_name;
    }
    new_args[i++] = NULL;
