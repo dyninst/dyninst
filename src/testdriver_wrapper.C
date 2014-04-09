@@ -104,8 +104,8 @@ int main(int argc, char *argv[])
 
    setcwd();
    debug_log = fopen("./wrapper_output", "w");
-
-   copy_iolibs();
+   
+//   copy_iolibs();
 
    parse_args(argc, argv);
 

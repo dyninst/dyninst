@@ -572,6 +572,7 @@ void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups,
       return;
 
    // Reset program_setup usage data before we init a new program.
+   // A SIGSEGV here on BGQ may come from not having Dyninst libraries in your LD_LIBRARY_PATH
    group->mod->tester->clear_program_usage();
 
    log_teststart(group->index, 0, program_setup_rs);
