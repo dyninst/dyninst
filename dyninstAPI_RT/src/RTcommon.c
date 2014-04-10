@@ -66,7 +66,7 @@ int DYNINSTstaticMode = 1;
 #if defined(os_linux) || defined(os_freebsd)
 #define HEAP_LOCAL extern
 #else
-#define HEAP_LOCAL
+#define HEAP_LOCAL DLLEXPORT
 #endif
 
 HEAP_LOCAL HEAP_TYPE DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
