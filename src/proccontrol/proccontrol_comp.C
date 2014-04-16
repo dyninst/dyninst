@@ -596,7 +596,7 @@ bool ProcControlComponent::initializeConnectionInfo(Process::const_ptr proc)
    else {
       reader = factory->openSymbolReader(exec_name);
       if (!reader) {
-         logerror("Could not open executable\n");
+         logerror("Could not open executable %s\n", exec_name.c_str());
          return false;
       }
       Symbol_t sym = reader->getSymbolByName(string("MutatorSocket"));
@@ -712,6 +712,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
             if (!result) {
                logerror("Failed to handle events during thread create\n");
                error = true;
+			   return false;
             }
          }
       }
@@ -723,6 +724,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
             if (!result) {
                logerror("Failed to handle events during thread create\n");
                error = true;
+			   return false;
             }
          }
       }
