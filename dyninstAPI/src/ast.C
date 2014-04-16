@@ -2383,7 +2383,9 @@ BPatch_type *AstOperandNode::checkType(BPatch_function* func)
 	  {
 	    ret = func->getReturnType();
 	    if(!ret || (ret->isCompatible(BPatch::bpatch->builtInTypes->findBuiltInType("void")))) {
-	      errorFlag = true;
+		  if(ret) {
+		      errorFlag = true;
+		  } 
 	      ret = BPatch::bpatch->type_Untyped;
 	    } 
 	    break;
