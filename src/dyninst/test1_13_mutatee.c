@@ -133,5 +133,9 @@ void test1_13_call1(int a1, int a2, int a3, int a4, int a5)
 
 void test1_13_call2(int ret)
 {
-    if (ret == RET13_1) globalVariable13_1 |= 32;
+    if (ret == RET13_1) {
+		globalVariable13_1 |= 32;
+	} else {
+		dprintf("expected ret %d, actual %d\n", RET13_1, ret);
+	}
 }
