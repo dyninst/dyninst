@@ -75,7 +75,7 @@ static volatile int unused; /* move decl here to dump compiler warning - jkh */
 #if (defined(x86_64_unknown_linux2_4_test) || (defined(os_freebsd_test) && defined(arch_x86_64_test))) && (__WORDSIZE == 32)
 static const char *libNameA = "libtestA_m32.so";
 #elif defined(os_windows_test)
-static const char *libNameA = "libtestA.dll";
+static const char *libNameA = "testA.dll";
 #else
 static const char *libNameA = "libtestA.so";
 #endif
