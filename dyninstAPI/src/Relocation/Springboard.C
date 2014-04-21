@@ -141,7 +141,8 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
      // Don't try to springboard a user-added block...
 
     // Check for overlapping blocks. Lovely.
-    Address LB, UB; SpringboardInfo *id = NULL;
+    Address LB = 0, UB = 0;
+    SpringboardInfo *id = NULL;
     Address start = bbl->start();
     Address end = bbl->end();
 
@@ -284,7 +285,7 @@ bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocate
    // and we're not running into another interval, there's no conflict (replacing a springboard).
    // If we find *any* other case where we're hitting allocated, conflict.
    Address working = start;
-   Address LB;
+   Address LB = 0;
    Address UB = 0;
    SpringboardInfo *state = NULL;
    SpringboardInfo *lastState = state;

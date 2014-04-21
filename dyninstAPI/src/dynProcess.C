@@ -2746,7 +2746,7 @@ void PCProcess::generatePatchBranches(AddrPairSet &branchesNeeded) {
     insnCodeGen::generateBranch(gen, from, to);
 
     // Safety check: make sure we didn't overrun the patch area
-    Address lb, ub;
+    Address lb = 0, ub = 0;
     std::pair<func_instance*,Address> tmp;
     if (!reverseDefensiveMap_.find(from, lb, ub, tmp)) {
       // Huh? This worked before!
