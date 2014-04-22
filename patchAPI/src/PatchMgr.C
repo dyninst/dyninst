@@ -52,8 +52,8 @@ using Dyninst::PatchAPI::PatchEdge;
 using Dyninst::PatchAPI::PatchFunction;
 
 static const int PatchAPI_major_version = 8;
-static const int PatchAPI_minor_version = 1;
-static const int PatchAPI_maintenance_version = 1;
+static const int PatchAPI_minor_version = 2;
+static const int PatchAPI_maintenance_version = 0;
 
 void PatchMgr::version(int& major, int& minor, int& maintenance)
 {

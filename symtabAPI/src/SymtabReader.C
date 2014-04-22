@@ -244,7 +244,7 @@ bool SymtabReader::isValidSection(Section_t sec)
 
 void *SymtabReader::getElfHandle()
 {
-#if defined(os_solaris) || defined(os_linux) || defined(os_bg) || defined(os_freebsd) || defined(os_vxworks)
+#if defined(os_linux) || defined(os_bg) || defined(os_freebsd) || defined(os_vxworks)
    Object *obj = symtab->getObject();
    return obj->getElfHandle();
 #else

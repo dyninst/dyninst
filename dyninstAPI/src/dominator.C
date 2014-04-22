@@ -157,9 +157,12 @@ dominatorCFG::dominatorCFG(BPatch_flowGraph *flowgraph) :
    fg(flowgraph),
    currentDepthNo(0)
 {
+   //First initialize nullNode since dominatorBB's ctor uses it
+   nullNode = NULL;
    nullNode = new dominatorBB(NULL, this);
    nullNode->ancestor = nullNode->child = nullNode;
    nullNode->size = 0;
+
    //Create a new dominatorBB object for each basic block
    entryBlock = new dominatorBB(NULL, this);
    all_blocks.push_back(entryBlock);

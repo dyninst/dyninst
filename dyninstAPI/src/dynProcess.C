@@ -1082,8 +1082,10 @@ bool PCProcess::detachProcess(bool /*cont*/) {
 
     // TODO figure out if ProcControl should care about continuing a process
     // after detach
-    
-    if( pcProc_->detach() ) {
+
+    // NB: it's possible to get markExited() while handling events for the
+    // tracedSyscalls_->remove* calls above, clearing pcProc_.
+    if( isTerminated() || pcProc_->detach() ) {
         attached_ = false;
         return true;
     }
@@ -1998,7 +2000,6 @@ bool PCProcess::postIRPC_internal(void *buf,
                                   bool userRPC,
                                   bool isMemAlloc,
                                   void **result) {
-   assert(pcProc_);
    if( isTerminated() ) {
       proccontrol_printf("%s[%d]: cannot post RPC to exited or terminated process %d\n",
                          FILE__, __LINE__, getpid());

@@ -41,14 +41,8 @@
 #define INFO_TO_PID(info) info
 #define INFO_TO_ADDRESS(info) (Address) 0
 
-// process exits do not cause poll events on alpha-osf, so we have a timeout
-#if defined (os_osf)
-#define POLL_TIMEOUT 1000 /*ms*/
-#define POLL_FD get_fd()
-#else
 #define POLL_FD status_fd()
 #define POLL_TIMEOUT -1
-#endif
 
 //  On /proc platforms we have predefined system call mappings (SYS_fork, etc).
 //  Define them here for platforms which don't have them 
@@ -85,11 +79,7 @@ typedef int procWaitpidStatus_t;
 class EventRecord;
 bool decodeWaitPidStatus(procWaitpidStatus_t status, EventRecord &ev);
 
-#if defined (os_aix) && defined(cap_proc)
-extern int SYSSET_MAP(int, int);
-#else
 #define SYSSET_MAP(x, pid)  (x)
-#endif
 
 typedef unsigned long eventInfo_t;
 typedef void * eventMoreInfo_t;
@@ -128,11 +118,7 @@ typedef pthread_cond_t EventCond_t;
 #define THREAD_RETURN void *
 #define DO_THREAD_RETURN return NULL
 
-#if defined(os_osf)
-#define SOCKLEN_T size_t 
-#else
-#define SOCKLEN_T socklen_t 
-#endif
+#define SOCKLEN_T socklen_t
 
 #include "common/h/dyntypes.h"
 

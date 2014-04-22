@@ -313,7 +313,7 @@ SymtabCodeSource::print_stats() const {
 }
 
 void
-SymtabCodeSource::incrementCounter(std::string name) const
+SymtabCodeSource::incrementCounter(const std::string& name) const
 {
     if (_have_stats) {
         stats_parse->incrementCounter(name);
@@ -321,7 +321,7 @@ SymtabCodeSource::incrementCounter(std::string name) const
 }
 
 void 
-SymtabCodeSource::addCounter(std::string name, int num) const
+SymtabCodeSource::addCounter(const std::string& name, int num) const
 {
     if (_have_stats) {
         stats_parse->addCounter(name, num);
@@ -329,7 +329,7 @@ SymtabCodeSource::addCounter(std::string name, int num) const
 }
 
 void
-SymtabCodeSource::decrementCounter(std::string name) const
+SymtabCodeSource::decrementCounter(const std::string& name) const
 {
     if (_have_stats) {
         stats_parse->decrementCounter(name);
@@ -579,33 +579,10 @@ SymtabCodeSource::lookup_region(const Address addr) const
     
         assert(rcnt <= 1 || regionsOverlap());
 
-#if defined(os_aix)    
-        // XXX AIX objects frequently have overlapping regions.
-        //     Prefer code over data regions, following 
-        //     SymtabAPI::findEnclosingRegion()
-        if(rcnt) {
-            set<CodeRegion*>::iterator sit = stab.begin();
-            for( ; sit != stab.end(); ++sit) {
-                CodeRegion * tmp = *sit;
-                if(tmp->isCode(addr)) {
-                    ret = tmp;
-                    break;
-                } else {
-                    // XXX hold the first non-code region as 
-                    //     the default return. Don't stop looking,
-                    //     however; might find a code region
-                    if(!ret)
-                        ret = tmp;
-                }
-            } 
-            _lookup_cache = ret; 
-        }
-#else
         if(rcnt) {
             ret = *stab.begin();
             _lookup_cache = ret;
         } 
-#endif
     }
     return ret;
 }
@@ -613,14 +590,11 @@ SymtabCodeSource::lookup_region(const Address addr) const
 inline void 
 SymtabCodeSource::overlapping_warn(const char * file, unsigned line) const
 {
-    // XXX AIX objects frequently have overlapping regions; just deal.
-#if !defined(os_aix)
     if(regionsOverlap()) {
         fprintf(stderr,"Invocation of routine at %s:%d is ambiguous for "
                        "binaries with overlapping code regions\n",
             file,line);
     }
-#endif
 }
 
 bool

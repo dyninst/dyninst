@@ -39,9 +39,11 @@
 #include <utility>
 
 #define SW_MAJOR 8
-#define SW_MINOR 1
-#define SW_BETA  1
+#define SW_MINOR 2
+#define SW_BETA  0
 
+#define SW_VERSION_8_2_0
+#define SW_VERSION_8_1_2
 #define SW_VERSION_8_1_1
 #define SW_VERSION_8_1_0
 #define SW_VERSION_8_0_0

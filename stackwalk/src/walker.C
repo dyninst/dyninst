@@ -344,8 +344,8 @@ void Walker::setSymbolReader(SymbolReaderFactory *srf)
     } \
   } \
   result = proc->getRegValue(Dyninst::ReturnAddr, thread, pc); \
-  result = !result || proc->getRegValue(Dyninst::StackTop, thread, sp); \
-  result = !result || proc->getRegValue(Dyninst::FrameBase, thread, fp); \
+  result = result && proc->getRegValue(Dyninst::StackTop, thread, sp); \
+  result = result && proc->getRegValue(Dyninst::FrameBase, thread, fp); \
   if (!result) { \
     sw_printf("Failed to get registers from process\n"); \
     result = false; \

@@ -5515,12 +5515,6 @@ bool insn_hasDisp32(unsigned ModRMbyte){
     return (Mod == 0 && RM == 5) || (Mod == 2);
 }
 
-// We keep an array-let that represents various fixed
-// insns
-unsigned char illegalRep[2] = {0x0f, 0x0b};
-unsigned char trapRep[1] = {0xCC};
- 
-
 const char* ia32_entry::name(ia32_locations* loc)
 {
   dyn_hash_map<entryID, string>::const_iterator found = entryNames_IAPI.find(id);
@@ -5580,6 +5574,9 @@ Address get_immediate_operand(instruction *instr)
     ia32_instruction detail(mac,&cond,&loc);
 
     ia32_decode(IA32_FULL_DECODER,(const unsigned char *)(instr->ptr()),detail);
+
+    if (loc.imm_cnt < 1)
+      return 0;
 
     // now find the immediate value in the locations
     Address immediate = 0;

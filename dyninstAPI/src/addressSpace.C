@@ -77,6 +77,9 @@ using PatchAPI::DynRemoveSnipCommand;
 
 AddressSpace::AddressSpace () :
     trapMapping(this),
+    new_func_cb(NULL),
+    new_instp_cb(NULL),
+    heapInitialized_(false),
     useTraps_(true),
     trampGuardBase_(NULL),
     up_ptr_(NULL),
@@ -85,7 +88,8 @@ AddressSpace::AddressSpace () :
     memEmulator_(NULL),
     emulateMem_(false),
     emulatePC_(false),
-    delayRelocation_(false)
+    delayRelocation_(false),
+    patcher_(NULL)
 {
 #if 0
    // Disabled for now; used by defensive mode
@@ -1788,7 +1792,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   relocation_cerr << "  Patching in jumps to generated code" << endl;
 
   if (!patchCode(cm, spb)) {
-      cerr << "Error: patching in jumps failed, ret false!" << endl;
+      relocation_cerr << "Error: patching in jumps failed, ret false!" << endl;
     return false;
   }
 
@@ -1981,7 +1985,7 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
   std::list<codeGen> patches;
 
   if (!spb->generate(patches, p)) {
-      cerr << "Failed springboard generation, ret false" << endl;
+      springboard_cerr << "Failed springboard generation, ret false" << endl;
     return false;
   }
 
@@ -2130,7 +2134,8 @@ void AddressSpace::addDefensivePad(block_instance *callBlock, func_instance *cal
   // as they are invariant. 
    instPoint *point = instPoint::preCall(callFunc, callBlock);
    if (!point) {
-      cerr << "Error: no preCall point for " << callBlock->long_format() << endl;
+      mal_printf("Error: no preCall point for %s\n",
+                 callBlock->long_format().c_str());
       return;
    }
 

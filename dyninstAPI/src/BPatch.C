@@ -56,7 +56,7 @@
 #include "dynThread.h"
 #include "pcEventMuxer.h"
 
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+#if defined(i386_unknown_nt4_0)
 #include "nt_signal_emul.h"
 #endif
 
@@ -948,6 +948,10 @@ void BPatch::registerLoadedModule(PCProcess *process, mapped_module *mod) {
 
     BPatch_process *bProc = BPatch::bpatch->getProcessByPid(process->getPid());
     if (!bProc) return; // Done
+
+    // Squash this notification if the PCProcess has changed (e.g. during exec)
+    if (bProc->llproc != process) return;
+
     BPatch_image *bImage = bProc->getImage();
     assert(bImage); // This we can assert to be true
     
@@ -968,6 +972,10 @@ void BPatch::registerUnloadedModule(PCProcess *process, mapped_module *mod) {
 
     BPatch_process *bProc = BPatch::bpatch->getProcessByPid(process->getPid());
     if (!bProc) return; // Done
+
+    // Squash this notification if the PCProcess has changed (e.g. during exec)
+    if (bProc->llproc != process) return;
+
     BPatch_image *bImage = bProc->getImage();
     if (!bImage) { // we got an event during process startup
         return;
@@ -1639,9 +1647,6 @@ bool BPatch::waitUntilStopped(BPatch_thread *appThread){
 	}
 #else
 	else if ((appThread->getProcess()->stopSignal() != SIGSTOP) &&
-#if defined(bug_irix_broken_sigstop)
-		 (appThread->getProcess()->stopSignal() != SIGEMT) &&
-#endif 
 		 (appThread->getProcess()->stopSignal() != SIGHUP)) {
 		cerr << "ERROR :  process stopped on signal "
 		     << "different than SIGSTOP" << endl;

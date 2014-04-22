@@ -410,13 +410,6 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
    stab_indx_off_ = 0;
    stab_indx_size_ = 0;
    stabstr_indx_off_ = 0;
-#if defined(os_irix)
-   MIPS_stubs_addr_ = 0;
-   MIPS_stubs_off_ = 0;
-   MIPS_stubs_size_ = 0;
-   got_zero_index_ = -1;
-   dynsym_zero_index_ = -1;
-#endif
    dwarvenDebugInfo = false;
 
    txtaddr = 0;
@@ -3285,10 +3278,6 @@ const char *Object::elf_vaddr_to_ptr(Offset vaddr) const
   unsigned code_size_ = code_len_;
   unsigned data_size_ = data_len_;
 
-#if defined(os_irix)
-  vaddr -= base_addr;
-#endif
-
   if (vaddr >= code_off_ && vaddr < code_off_ + code_size_) {
     ret = ((char *)code_ptr_) + (vaddr - code_off_);
   } else if (vaddr >= data_off_ && vaddr < data_off_ + data_size_) {
@@ -4032,9 +4021,9 @@ static bool read_except_table_gcc2(Elf_X_Shdr *except_table,
                                    std::vector<ExceptionBlock> &addresses,
                                    const mach_relative_info &mi)
 {
-  Offset try_start;
-  Offset try_end;
-  Offset catch_start;
+  Offset try_start = (Offset) -1;
+  Offset try_end = (Offset) -1;
+  Offset catch_start = 0;
 
   Elf_X_Data data = except_table->get_data();
   const unsigned char *datap = (const unsigned char *)data.get_string();

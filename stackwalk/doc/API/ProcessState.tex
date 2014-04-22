@@ -164,8 +164,8 @@ virtual void notifyOfUpdate() = 0
 virtual Address getLibTrapAddress() = 0
 \end{apient}
 \apidesc{
-    Some platforms that implement the System/V standard (Linux, Solaris,
-    BlueGene/P) use a trap event to determine when a process loads a library. A
+    Some platforms that implement the System/V standard (Linux, BlueGene/P)
+    use a trap event to determine when a process loads a library. A
     trap instruction is inserted into a certain address, and that trap will
     execute whenever the list of loaded libraries change. 
 	

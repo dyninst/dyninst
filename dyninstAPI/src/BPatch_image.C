@@ -74,7 +74,7 @@ using namespace std;
  */
 
 BPatch_image::BPatch_image(BPatch_addressSpace *_addSpace) :
-   addSpace(_addSpace)
+   addSpace(_addSpace), defaultModule(NULL)
 {
    _srcType = BPatch_sourceProgram;
 }
@@ -85,7 +85,7 @@ BPatch_image::BPatch_image(BPatch_addressSpace *_addSpace) :
  * Construct a BPatch_image.
  */
 BPatch_image::BPatch_image() :
-   addSpace(NULL)
+   addSpace(NULL), defaultModule(NULL)
 {
    _srcType = BPatch_sourceProgram;
 }

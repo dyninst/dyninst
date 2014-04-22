@@ -51,6 +51,7 @@ struct Symbol_t {
    void *v2;
    int i1;
    int i2;
+   Symbol_t(): v1(NULL), v2(NULL), i1(0), i2(0) {}
 };
 
 struct Section_t {
@@ -58,6 +59,7 @@ struct Section_t {
    void *v2;
    int i1;
    int i2;
+   Section_t(): v1(NULL), v2(NULL), i1(0), i2(0) {}
 };
 
 struct SymSegment {
@@ -67,6 +69,9 @@ struct SymSegment {
    size_t mem_size;
    int type;
    int perms;
+   SymSegment(): file_offset(0), mem_addr(0),
+		 file_size(0), mem_size(0),
+		 type(0), perms(0) {}
 };
 
 /**

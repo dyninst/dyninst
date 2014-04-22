@@ -107,7 +107,7 @@ int BPatch_process::getPid()
 BPatch_process::BPatch_process(const char *path, const char *argv[],
                                BPatch_hybridMode mode, const char **envp,
                                int stdin_fd, int stdout_fd, int stderr_fd)
-   : llproc(NULL), lastSignal(-1), exitCode(-1), 
+   : llproc(NULL), lastSignal(-1), exitCode(-1), exitSignal(-1),
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(false), detached(false), 
      terminated(false), reportedExit(false),
@@ -290,7 +290,7 @@ bool LinuxConsideredHarmful(pid_t pid) // PUSH
  */
 BPatch_process::BPatch_process
 (const char *path, int pid, BPatch_hybridMode mode)
-   : llproc(NULL), lastSignal(-1), exitCode(-1), 
+   : llproc(NULL), lastSignal(-1), exitCode(-1), exitSignal(-1),
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false), 
      terminated(false), reportedExit(false),
@@ -369,7 +369,7 @@ BPatch_process::BPatch_process
  * childPid           Process ID of the target process.
  */
 BPatch_process::BPatch_process(PCProcess *nProc)
-   : llproc(nProc), lastSignal(-1), exitCode(-1),
+   : llproc(nProc), lastSignal(-1), exitCode(-1), exitSignal(-1),
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true),
      createdViaAttach(true), detached(false),
      terminated(false),
@@ -1010,56 +1010,71 @@ BPatch_object *BPatch_process::loadLibrary(const char *libname, bool)
        }
    }
 
-   /**
-    * Find the DYNINSTloadLibrary function
-    **/
-   BPatch_Vector<BPatch_function *> bpfv;
-   image->findFunction("DYNINSTloadLibrary", bpfv);
-   if (!bpfv.size()) {
-      cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal"
-           << "Function DYNINSTloadLibrary" << endl;
-      return NULL;
-   }
-   if (bpfv.size() > 1) {
-      std::string msg = std::string("Found ") + utos(bpfv.size()) +
-         std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
-      BPatch_reportError(BPatchSerious, 100, msg.c_str());
-   }
-   BPatch_function *dlopen_func = bpfv[0];
-   if (dlopen_func == NULL) return NULL;
+   BPatch_object *object = NULL;
+   do {
 
-   /**
-    * Generate a call to DYNINSTloadLibrary, and then run the generated code.
-    **/
-   BPatch_Vector<BPatch_snippet *> args;
-   BPatch_constExpr nameArg(libname);
-   args.push_back(&nameArg);
-   BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
+      /**
+       * Find the DYNINSTloadLibrary function
+       **/
+      BPatch_Vector<BPatch_function *> bpfv;
+      image->findFunction("DYNINSTloadLibrary", bpfv);
+      if (!bpfv.size()) {
+         cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal"
+              << "Function DYNINSTloadLibrary" << endl;
+         break;
+      }
+      if (bpfv.size() > 1) {
+         std::string msg = std::string("Found ") + utos(bpfv.size()) +
+            std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
+         BPatch_reportError(BPatchSerious, 100, msg.c_str());
+      }
+      BPatch_function *dlopen_func = bpfv[0];
+      if (dlopen_func == NULL)
+        break;
 
-   if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true)) {
-      BPatch_variableExpr *dlerror_str_var =
-         image->findVariable("gLoadLibraryErrorString");
-      assert(NULL != dlerror_str_var);
-      char dlerror_str[256];
-      dlerror_str_var->readValue((void *)dlerror_str, 256);
-      BPatch_reportError(BPatchSerious, 124, dlerror_str);
-      return NULL;
-   }
-   /* Find the new mapped_object, map it to a BPatch_module, and return it */
+      /**
+       * Generate a call to DYNINSTloadLibrary, and then run the generated code.
+       **/
+      BPatch_Vector<BPatch_snippet *> args;
+      BPatch_constExpr nameArg(libname);
+      args.push_back(&nameArg);
+      BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
 
-   mapped_object* plib = llproc->findObject(libname);
-   if (!plib) {
-     std::string wildcard(libname);
-     wildcard += "*";
-     plib = llproc->findObject(wildcard, true);
-   }
-   if (!plib) {
-      // Best effort; take the latest added mapped_object
-      plib = llproc->mappedObjects().back();
+      if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true)) {
+         BPatch_variableExpr *dlerror_str_var =
+            image->findVariable("gLoadLibraryErrorString");
+         assert(NULL != dlerror_str_var);
+         char dlerror_str[256];
+         dlerror_str_var->readValue((void *)dlerror_str, 256);
+         BPatch_reportError(BPatchSerious, 124, dlerror_str);
+         break;
+      }
+      /* Find the new mapped_object, map it to a BPatch_module, and return it */
+
+      mapped_object* plib = llproc->findObject(libname);
+      if (!plib) {
+        std::string wildcard(libname);
+        wildcard += "*";
+        plib = llproc->findObject(wildcard, true);
+      }
+      if (!plib) {
+         // Best effort; take the latest added mapped_object
+         plib = llproc->mappedObjects().back();
+      }
+
+      dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
+      object = getImage()->findOrCreateObject(plib);
+
+   } while (0);
+
+   if( !wasStopped ) {
+       if( !continueExecution() ) {
+           BPatch_reportError(BPatchWarning, 0,
+                   "Failed to continue process for loadLibrary");
+       }
    }
 
-   dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
-   return getImage()->findOrCreateObject(plib);
+   return object;
 }
 
 

@@ -56,11 +56,7 @@
 #include "dyninstAPI_RT/src/RTcommon.h"
 #include "dyninstAPI_RT/src/RTheap.h"
 
-#if defined (os_osf)
-#define SOCKLEN_T size_t
-#else
 #define SOCKLEN_T socklen_t
-#endif
 
 #if !(defined(arch_power) && defined(os_linux))
 void RTmutatedBinary_init() 
