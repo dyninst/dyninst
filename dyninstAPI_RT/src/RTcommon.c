@@ -196,7 +196,6 @@ void DYNINSTinit()
    initFPU();
    mark_heaps_exec();
 
-   DYNINSTstaticMode = 0;
    tc_lock_init(&DYNINST_trace_lock);
    if(DYNINST_max_num_threads < MAX_THREADS) DYNINST_max_num_threads = MAX_THREADS;
    DYNINSThasInitialized = 1;
