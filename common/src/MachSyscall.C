@@ -1,5 +1,5 @@
-#include "dynutil/h/MachSyscall.h"
-#include "dynutil/h/dyntypes.h"
+#include "MachSyscall.h"
+#include "dyntypes.h"
 
 using namespace std;
 using namespace Dyninst;
