@@ -946,6 +946,21 @@ bool PCProcess::setRTLibInitParams() {
         fprintf(stderr, "%s[%d]:  set var in RTlib for debug...\n", FILE__, __LINE__);
     }
 
+    int static_mode = 0;
+    if (!findVarsByAll("DYNINSTstaticMode", vars)) {
+        if (!findVarsByAll("DYNINSTstaticMode", vars)) {
+            startup_printf("%s[%d]: could not find necessary internal variable\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+    }
+
+    assert(vars.size() == 1);
+    if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *) &static_mode)) {
+        startup_printf("%s[%d]: writeDataWord failed\n", FILE__, __LINE__);
+        return false;
+    }
+    vars.clear();
     return true;
 }
 
