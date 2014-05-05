@@ -1,5 +1,5 @@
 # CMakeLists for proccontrol/gcc/64/dyn/none/none
-set (CMAKE_C_FLAGS "${MUTATOR_DEFINES}  ${CFLAGS} ${MUTATEE_CFLAGS_GNU}  -m64 -g ")
+set (CMAKE_C_FLAGS "${MUTATOR_DEFINES}  ${CFLAGS} ${MUTATEE_CFLAGS_GNU}  -m64 -g -O0 ")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_FLAGS_RELWITHDEBUGINFO "")
@@ -10,7 +10,7 @@ add_definitions(-DSOLO_MUTATEE)
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU} -m64 -Wl,-export-dynamic")
 IF (NOT ${M_gnu_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
-	"${MUTATOR_DEFINES}  ${CFLAGS} ${MUTATEE_CFLAGS_GNU}  -m64 -g "
+	"${MUTATOR_DEFINES}  ${CFLAGS} ${MUTATEE_CFLAGS_GNU}  -m64 -g -O0 "
 	"${MUTATEE_LDFLAGS_GNU} -m64 -Wl,-export-dynamic"
 	"C"
 	"gnu_cc 64 dyn"

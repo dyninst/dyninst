@@ -3102,7 +3102,7 @@ compiler_s('pgcxx', 'pgCC').
 % FIXME(?) I think the Windows optimization strings should be with cap-O, not
 % zero
 % FIXME Im also not sure that all these compilers default to no optimization
-compiler_opt_trans(Comp, 'none', '-g') :- \+ member(Comp, ['VC++', 'VC']).
+compiler_opt_trans(Comp, 'none', '-g -O0') :- \+ member(Comp, ['VC++', 'VC']).
 compiler_opt_trans(Comp, 'low', '-O1') :-
     member(Comp, ['gcc', 'g++', 'pgcc', 'pgcxx', 'gfortran', 'icc', 'icpc', 'bg_gcc', 'bg_g++', 'bg_gfortran', 'bgq_gcc', 'bgq_g++', 'bgq_gfortran']).
 compiler_opt_trans(Comp, 'low', '/O1 /MD /Zi /DNDEBUG') :- Comp == 'VC++'; Comp == 'VC'.

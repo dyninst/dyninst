@@ -1,5 +1,5 @@
 # CMakeLists for dyninst/bgxlc++/64/dyn/pic/none
-set (CMAKE_CXX_FLAGS "${MUTATOR_DEFINES}  ${CXXFLAGS} ${CXXFLAGS}  -g -qpic")
+set (CMAKE_CXX_FLAGS "${MUTATOR_DEFINES}  ${CXXFLAGS} ${CXXFLAGS}  -g -O0 -qpic")
 set (CMAKE_CXX_FLAGS_DEBUG "")
 set (CMAKE_CXX_FLAGS_RELEASE "")
 set (CMAKE_CXX_FLAGS_RELWITHDEBUGINFO "")
@@ -10,7 +10,7 @@ add_definitions(-DSOLO_MUTATEE)
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_NATIVE}  -qnostaticlink")
 IF (NOT ${M_mpi_xlcxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_mpi_xlcxx}"
-	"${MUTATOR_DEFINES}  ${CXXFLAGS} ${CXXFLAGS}  -g -qpic"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} ${CXXFLAGS}  -g -O0 -qpic"
 	"${MUTATEE_LDFLAGS_NATIVE}  -qnostaticlink"
 	"CXX"
 	"mpi_xlcxx 64 dyn"

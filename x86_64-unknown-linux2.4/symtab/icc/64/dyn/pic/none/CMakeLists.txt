@@ -1,5 +1,5 @@
 # CMakeLists for symtab/icc/64/dyn/pic/none
-set (CMAKE_C_FLAGS "${MUTATOR_DEFINES}  ${CFLAGS} ${MUTATEE_CFLAGS_GNU}   -g -fPIC")
+set (CMAKE_C_FLAGS "${MUTATOR_DEFINES}  ${CFLAGS} ${MUTATEE_CFLAGS_GNU}   -g -O0 -fPIC")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
 set (CMAKE_C_FLAGS_RELWITHDEBUGINFO "")
@@ -10,7 +10,7 @@ add_definitions(-DSOLO_MUTATEE)
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU}  -Xlinker -export-dynamic")
 IF (NOT ${M_intel_cc} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_intel_cc}"
-	"${MUTATOR_DEFINES}  ${CFLAGS} ${MUTATEE_CFLAGS_GNU}   -g -fPIC"
+	"${MUTATOR_DEFINES}  ${CFLAGS} ${MUTATEE_CFLAGS_GNU}   -g -O0 -fPIC"
 	"${MUTATEE_LDFLAGS_GNU}  -Xlinker -export-dynamic"
 	"C"
 	"intel_cc 64 dyn"
