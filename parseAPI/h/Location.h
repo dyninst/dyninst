@@ -154,7 +154,7 @@ Location(Edge *e) : func(NULL), block(NULL), offset(0), edge(e), untrusted(false
 					if (iter->second == offset) return true;
 				return false;
 			case edge_:{
-				Function::blocklist &blk = func->blocks();
+				Function::blocklist blk = func->blocks();
 				for (Function::blocklist::iterator blockIter = blk.begin(); blockIter != blk.end(); ++blockIter){
 					Intraproc epred;
 					const Block::edgelist& target_edges = (*blockIter) -> targets();
