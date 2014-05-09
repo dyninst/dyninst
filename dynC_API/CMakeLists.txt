@@ -1,6 +1,4 @@
 
-project(DynC CXX)
-
 file(GLOB SRC_LIST "src/*.C")
 
 include_directories(h src ../dyninstAPI/src)
@@ -12,7 +10,7 @@ file (GLOB headers "h/*.h")
 
 set_target_properties(dynC_API dynC_API_static PROPERTIES PUBLIC_HEADER "${headers}")
 
-target_link_libraries (dynC ${deps})
+target_link_libraries (dynC_API dyninstAPI)
 
 install(TARGETS dynC_API dynC_API_static
 		EXPORT DyninstTargets
