@@ -772,6 +772,7 @@ bool DwarfWalker::parseVariable() {
 
    Type *type = NULL;
    if (!findType(type, false)) return false;
+   assert(type);
    
    Dwarf_Unsigned variableLineNo;
    bool hasLineNumber = false;
@@ -1458,6 +1459,7 @@ bool DwarfWalker::addFuncToContainer(Type *returnType) {
 }
 
 bool DwarfWalker::findType(Type *&type, bool defaultToVoid) {
+  // Do *not* return true unless type is actually usable.
    int status;
 
    /* Acquire the parameter's type. */
@@ -1468,8 +1470,9 @@ bool DwarfWalker::findType(Type *&type, bool defaultToVoid) {
    if (status == DW_DLV_NO_ENTRY) {
       if (defaultToVoid) {
          type = tc()->findType("void");
+	 return (type != NULL);
       }
-      return true;
+      return false;
    }
 
    Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(specEntry());
