@@ -248,7 +248,7 @@ void StackAnalysis::summarize() {
 
 	intervals_ = new Intervals();
 
-	Function::blocklist & bs = func->blocks();
+	Function::blocklist bs = func->blocks();
 	Function::blocklist::iterator bit = bs.begin();
 	for( ; bit != bs.end(); ++bit) {
 		Block *block = *bit;
@@ -377,8 +377,8 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
 
     std::set<Height> returnCleanVals;
 
-    const Function::blocklist &returnBlocks = func->returnBlocks();
-    Function::blocklist::const_iterator rets = returnBlocks.begin();
+    Function::const_blocklist returnBlocks = func->returnBlocks();
+    auto rets = returnBlocks.begin();
     for (; rets != returnBlocks.end(); ++rets) {
          Block *ret = *rets;
          cur = (unsigned char *) ret->region()->getPtrToInstruction(ret->lastInsnAddr());

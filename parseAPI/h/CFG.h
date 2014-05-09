@@ -34,6 +34,9 @@
 #include <set>
 #include <map>
 #include <string>
+#include <functional>
+#include <boost/iterator/transform_iterator.hpp>
+#include <boost/range.hpp>
 #include "dyntypes.h"
 #include "IBSTree.h"
 
@@ -423,6 +426,7 @@ enum StackTamper {
 class CodeObject;
 class CodeRegion;
 class FuncExtent;
+
 class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
    friend class CFGModifier;
  protected:
@@ -441,7 +445,24 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
  public:
     bool _is_leaf_function;
     Address _ret_addr; // return address of a function stored in stack at function entry
-    typedef std::vector<Block*> blocklist;
+    typedef std::map<Address, Block*> blockmap;
+    template <typename P>
+    struct select2nd
+    {
+      typedef typename P::second_type result_type;
+      
+      result_type operator()(const P& p) const
+      {
+	return p.second;
+      }
+    };
+    typedef select2nd<blockmap::value_type> selector;
+
+    
+    typedef boost::transform_iterator<selector, blockmap::iterator> bmap_iterator;
+    typedef boost::transform_iterator<selector, blockmap::const_iterator> bmap_const_iterator;
+    typedef boost::iterator_range<bmap_iterator> blocklist;
+    typedef boost::iterator_range<bmap_const_iterator> const_blocklist;
     typedef std::set<Edge*> edgelist;
     
     Function(Address addr, string name, CodeObject * obj, 
@@ -461,13 +482,17 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     bool parsed() const { return _parsed; }
 
     /* Basic block and CFG access */
-    blocklist & blocks();
-    const blocklist& blocks() const;
+    blocklist blocks();
+    const_blocklist blocks() const;
+    int num_blocks() const 
+    {
+      return _bmap.size();
+    }
     
     bool contains(Block *b);
     const edgelist & callEdges();
-    const blocklist & returnBlocks();
-    const blocklist & exitBlocks();
+    const_blocklist returnBlocks() ;
+    const_blocklist exitBlocks();
 
     /* Function details */
     bool hasNoStackFrame() const { return _no_stack_frame; }
@@ -499,28 +524,60 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     static void destroy(Function *f);
 
  private:
-    std::vector<Block *> const& blocks_int();
     void delayed_link_return(CodeObject * co, Block * retblk);
     void finalize();
 
     bool _parsed;
     bool _cache_valid;
-    blocklist _bl;
+    //    blocklist _bl;
     std::vector<FuncExtent *> _extents;
 
     /* rapid lookup for edge predicate tests */
-    //typedef dyn_hash_map<Address, Block*> blockmap;
-    typedef std::map<Address, Block*> blockmap;
+    blocklist blocks_int();
+    
     blockmap _bmap;
+    bmap_iterator blocks_begin() {
+      return bmap_iterator(_bmap.begin());
+    }
+    bmap_iterator blocks_end() {
+      return bmap_iterator(_bmap.end());
+    }
+    bmap_const_iterator blocks_begin() const 
+    {
+      return bmap_const_iterator(_bmap.begin());
+    }
+    
+    bmap_const_iterator blocks_end() const 
+    {
+      return bmap_const_iterator(_bmap.end());
+    }
+    
+    
 
     /* rapid lookup for interprocedural queries */
     edgelist _call_edge_list;
-    blocklist _retBL;
+    blockmap _retBL;
+    bmap_const_iterator ret_begin() const 
+    {
+      return bmap_const_iterator(_retBL.begin());
+    }
+    bmap_const_iterator ret_end() const 
+    {
+      return bmap_const_iterator(_retBL.end());
+    }
     // Superset of return blocks; this includes all blocks where
     // execution leaves the function without coming back, including
     // returns, calls to non-returning calls, tail calls, etc.
     // Might want to include exceptions...
-    blocklist _exitBL;
+    blockmap _exitBL;
+    bmap_const_iterator exit_begin() const 
+    {
+      return bmap_const_iterator(_exitBL.begin());
+    }
+    bmap_const_iterator exit_end() const 
+    {
+      return bmap_const_iterator(_exitBL.end());
+    }
 
     /* function details */
     bool _no_stack_frame;
