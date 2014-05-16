@@ -8063,7 +8063,13 @@ bool Breakpoint::suppressCallbacks() const
    return llbreakpoint_->suppressCallbacks();
 }
 
-Mutex<false> Counter::locks[Counter::NumCounterTypes];
+// Note: These locks are intentionally indirect and leaked!
+// This is because we can't guarantee destructor order between compilation
+// units, and a static array of locks here in process.C may be destroyed before
+// int_cleanup in generator.C.  Thus the handler thread may still be running,
+// manipulating Counters, which throws an exception when it tries to acquire
+// the destroyed lock.
+Mutex<false> * Counter::locks = new Mutex<false>[Counter::NumCounterTypes];
 int Counter::global_counts[Counter::NumCounterTypes];
 
 Counter::Counter(CounterType ct_) :

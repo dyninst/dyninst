@@ -184,7 +184,7 @@ class Counter {
 
    void adjust(int val);
 
-   static Mutex<> locks[NumCounterTypes];
+   static Mutex<> * locks;
    static int global_counts[NumCounterTypes];
 };
 
