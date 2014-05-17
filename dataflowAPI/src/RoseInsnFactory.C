@@ -69,26 +69,26 @@ SgAsmInstruction *RoseInsnFactory::convert(const InstructionAPI::Instruction::Pt
   // operand list
   SgAsmOperandList *roperands = new SgAsmOperandList;
   
-  // std::cerr << "Converting " << insn->format(addr) << " @" << std::hex << addr << std::dec << std::endl;
+//   std::cerr << "Converting " << insn->format(addr) << " @" << std::hex << addr << std::dec << std::endl;
   
-  // std::cerr << "checking instruction: " << insn->format(addr) << " for special handling" << std::endl;
+//   std::cerr << "checking instruction: " << insn->format(addr) << " for special handling" << std::endl;
   if (handleSpecialCases(insn->getOperation().getID(), rinsn, roperands)) {
       rinsn->set_operandList(roperands);
       return rinsn;
   }
 
-  // std::cerr << "no special handling by opcode, checking if we should mangle operands..." << std::endl;
+//   std::cerr << "no special handling by opcode, checking if we should mangle operands..." << std::endl;
   std::vector<InstructionAPI::Operand> operands;
   insn->getOperands(operands);
-  std::cerr << "\t " << operands.size() << " operands" << std::endl;
+//   std::cerr << "\t " << operands.size() << " operands" << std::endl;
   massageOperands(insn, operands);
   int i = 0;
-  std::cerr << "converting insn " << insn->format(addr) << std::endl;
+//   std::cerr << "converting insn " << insn->format(addr) << std::endl;
   for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin();
        opi != operands.end();
        ++opi, ++i) {
       InstructionAPI::Operand &currOperand = *opi;
-      std::cerr << "Converting operand " << currOperand.format(Arch_x86, addr) << std::endl;
+//       std::cerr << "Converting operand " << currOperand.format(arch(), addr) << std::endl;
       roperands->append_operand(convertOperand(currOperand.getValue(), addr));
   }  
   rinsn->set_operandList(roperands);
@@ -117,10 +117,14 @@ void RoseInsnX86Factory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefi
 }
 
 void RoseInsnX86Factory::setSizes(SgAsmInstruction *insn) {
-  // FIXME when we go 64-bit...
   SgAsmx86Instruction *tmp = static_cast<SgAsmx86Instruction *>(insn);
-  tmp->set_operandSize(x86_insnsize_32);
-  tmp->set_addressSize(x86_insnsize_32);
+  if (a == Arch_x86_64) {
+      tmp->set_operandSize(x86_insnsize_64);
+      tmp->set_addressSize(x86_insnsize_64);
+  } else {
+      tmp->set_operandSize(x86_insnsize_32);
+      tmp->set_addressSize(x86_insnsize_32);
+  }
 }
 
 bool RoseInsnX86Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {

@@ -92,10 +92,11 @@ namespace DataflowAPI {
 
 class RoseInsnX86Factory : public RoseInsnFactory {
   public:
-    DATAFLOW_EXPORT RoseInsnX86Factory() {};
+    DATAFLOW_EXPORT RoseInsnX86Factory(Architecture arch): a(arch) {};
     DATAFLOW_EXPORT virtual ~RoseInsnX86Factory() {};
     
   private:
+    Architecture a;
     virtual SgAsmInstruction *createInsn();
     virtual void setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID prefix, std::string mnem);
     virtual void setSizes(SgAsmInstruction *insn);
@@ -104,12 +105,12 @@ class RoseInsnX86Factory : public RoseInsnFactory {
 
     X86InstructionKind convertKind(entryID opcode, prefixEntryID prefix);
 
-    virtual Architecture arch() { return Arch_x86; };
+    virtual Architecture arch() { return a; };
   };
 
   class RoseInsnPPCFactory : public RoseInsnFactory {
   public:
-    DATAFLOW_EXPORT RoseInsnPPCFactory(void): kind(powerpc_unknown_instruction) {};
+    DATAFLOW_EXPORT RoseInsnPPCFactory(void) {};
     DATAFLOW_EXPORT virtual ~RoseInsnPPCFactory(void) {};
 
   private:

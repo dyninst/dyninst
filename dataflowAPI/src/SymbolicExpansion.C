@@ -36,6 +36,7 @@
 #include "../rose/SgAsmx86Instruction.h"
 
 #include "../rose/x86InstructionSemantics.h"
+#include "../rose/x86_64InstructionSemantics.h"
 #include "../rose/powerpcInstructionSemantics.h"
 
 
@@ -51,6 +52,14 @@ bool SymbolicExpansion::expandX86(SgAsmInstruction *rose_insn,
   return true;
 }
 
+bool SymbolicExpansion::expandX86_64(SgAsmInstruction *rose_insn,
+                                     SymEvalPolicy_64 &policy) {
+  SgAsmx86Instruction *insn = static_cast<SgAsmx86Instruction *>(rose_insn);
+  
+  X86_64InstructionSemantics<SymEvalPolicy_64, Handle> t(policy);
+  t.processInstruction(insn);
+  return true;
+}
 bool SymbolicExpansion::expandPPC(SgAsmInstruction *rose_insn,
 				  SymEvalPolicy &policy) {
   SgAsmPowerpcInstruction *insn = static_cast<SgAsmPowerpcInstruction *>(rose_insn);

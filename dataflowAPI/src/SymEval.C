@@ -39,6 +39,8 @@
 #include "parseAPI/h/CFG.h"
 
 #include "../rose/x86InstructionSemantics.h"
+#include "../rose/x86_64InstructionSemantics.h"
+
 #include "../rose/powerpcInstructionSemantics.h"
 #include "../rose/SgAsmInstruction.h"
 #include "../h/stackanalysis.h"
@@ -60,7 +62,7 @@ using namespace InstructionAPI;
 using namespace DataflowAPI;
 
 
-std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment) {
+std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment, bool applyVisitors) {
   // This is a shortcut version for when we only want a
   // single assignment
   
@@ -68,7 +70,7 @@ std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment) {
   // Fill it in to mark it as existing
   res[assignment] = AST::Ptr();
   std::set<Instruction::Ptr> ignored;
-  bool succ = expand(res, ignored);
+  bool succ = expand(res, ignored, applyVisitors);
   return std::make_pair(res[assignment], succ);
 }
 
@@ -426,24 +428,50 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 			 Result_t &res)
 {
 
-   SymEvalPolicy policy(res, addr, insn->getArch(), insn);
-
+  
   SgAsmInstruction *roseInsn;
   switch(insn->getArch()) {
   case Arch_x86:  {
-    RoseInsnX86Factory fac;
+    SymEvalPolicy policy(res, addr, insn->getArch(), insn);
+    RoseInsnX86Factory fac(Arch_x86);
     roseInsn = fac.convert(insn, addr);
     
     SymbolicExpansion exp;
     exp.expandX86(roseInsn, policy);
+  if (policy.failedTranslate()) {
+     cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+     return false;
+  }
+
     break;
   }
+  case Arch_x86_64: {
+    SymEvalPolicy_64 policy(res, addr, insn->getArch(), insn);
+    RoseInsnX86Factory fac(Arch_x86_64);
+    roseInsn = fac.convert(insn, addr);
+    
+    SymbolicExpansion exp;
+    exp.expandX86_64(roseInsn, policy);
+  if (policy.failedTranslate()) {
+     cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+     return false;
+  }
+
+    break;
+
+  }
   case Arch_ppc32: {
+    SymEvalPolicy policy(res, addr, insn->getArch(), insn);
     RoseInsnPPCFactory fac;
     roseInsn = fac.convert(insn, addr);
 
     SymbolicExpansion exp;
     exp.expandPPC(roseInsn, policy);
+  if (policy.failedTranslate()) {
+     cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+     return false;
+  }
+
     break;
   }
   default:
@@ -451,10 +479,6 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
     break;
   }
 
-  if (policy.failedTranslate()) {
-     cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
-     return false;
-  }
   return true;
 }
 
@@ -467,7 +491,7 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
    bool skippedInput = false;
    bool success = false;
 
-    std::map<const AbsRegion*, std::set<Assignment::Ptr> > inputMap;
+    std::map<const AbsRegion, std::set<Assignment::Ptr> > inputMap;
 
     expand_cerr << "Calling process on " << ptr->format() << endl;
 
@@ -494,7 +518,7 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
        
 		 expand_cerr << "Assigning input " << edge->data().format()
                      << " from assignment " << assign->format() << endl;
-		 inputMap[&edge->data()].insert(assign);
+		 inputMap[edge->data()].insert(assign);
     }
     
     expand_cerr << "\t Input map has size " << inputMap.size() << endl;
@@ -507,7 +531,7 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
     // expand_cerr << "\t ... resulting in " << dbase.format() << endl;
 
     // We have an AST. Now substitute in all of its predecessors.
-    for (std::map<const AbsRegion*, std::set<Assignment::Ptr> >::iterator iter = inputMap.begin();
+    for (std::map<const AbsRegion, std::set<Assignment::Ptr> >::iterator iter = inputMap.begin();
          iter != inputMap.end(); ++iter) {
 		 // If we have multiple secondary definitions, we:
 		 //   if all definitions are equal, use the first
@@ -531,7 +555,7 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
 		  }
 
 		  // The region used by the current assignment...
-		  const AbsRegion &reg = *iter->first;
+		  const AbsRegion &reg = iter->first;
       
 		  // Create an AST around this one
 		  VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));

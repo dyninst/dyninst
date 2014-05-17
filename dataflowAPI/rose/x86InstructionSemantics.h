@@ -2276,7 +2276,7 @@ struct X86InstructionSemantics {
             case x86_rep_movsb: REP_MOVS(b, 1); break;
             case x86_rep_movsw: REP_MOVS(w, 2); break;
             case x86_rep_movsd: REP_MOVS(d, 4); break;
-#           undef MOVS
+#           undef REP_MOVS
 
             case x86_stosb: {
                 stos_semantics<1>(insn);

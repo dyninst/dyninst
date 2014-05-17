@@ -36,6 +36,7 @@ namespace Dyninst {
 namespace DataflowAPI {
 
 class SymEvalPolicy;
+class SymEvalPolicy_64;
 
  class SymbolicExpansion {
  public:
@@ -44,6 +45,11 @@ class SymEvalPolicy;
   
   static bool expandX86(SgAsmInstruction *rose_insn,
 			SymEvalPolicy &policy);
+
+  static bool expandX86_64(SgAsmInstruction *rose_insn,
+                           SymEvalPolicy_64 &policy);
+
+
   static bool expandPPC(SgAsmInstruction *rose_insn,
 			SymEvalPolicy &policy);
   

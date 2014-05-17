@@ -508,6 +508,7 @@ dyn_hash_map<std::string, bool>
 SymtabCodeSource::non_returning_funcs =
     boost::assign::map_list_of
         ("exit",true)
+	("_exit", true)
         ("abort",true)
         ("__f90_stop",true)
         ("fancy_abort",true)
@@ -528,8 +529,12 @@ SymtabCodeSource::non_returning_funcs =
         ("_gfortran_os_error",true)
         ("_gfortran_runtime_error",true)
         ("_gfortran_stop_numeric", true)
-   ("for_stop_core", true)
-  ("__sys_exit", true);
+	("for_stop_core", true)
+	("__sys_exit", true)
+	("_ZN11__sanitizer11CheckFailedEPKciS1_yy", true)
+	("_ZSt9terminatev", true)
+	("_gfortran_stop_string", true)
+	("__cxa_call_unexpected", true);
 
 bool
 SymtabCodeSource::nonReturning(string name)

@@ -649,7 +649,15 @@ enum X86GeneralPurposeRegister { // These must match numbering in object code
   x86_gpr_sp,
   x86_gpr_bp,
   x86_gpr_si,
-  x86_gpr_di // Not including r8..r15
+  x86_gpr_di, // Not including r8..r15
+  x86_gpr_r8,
+  x86_gpr_r9,
+  x86_gpr_r10,
+  x86_gpr_r11,
+  x86_gpr_r12,
+  x86_gpr_r13,
+  x86_gpr_r14,
+  x86_gpr_r15,
 };
 
 enum X86RegisterClass {

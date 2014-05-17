@@ -1356,7 +1356,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
     /** parsing complete **/
     if (HASHDEF(plt_entries,frame.func->addr())) {
-        if (obj().cs()->nonReturning(frame.func->addr())) {
+//        if (obj().cs()->nonReturning(frame.func->addr())) {
+        if (obj().cs()->nonReturning(plt_entries[frame.func->addr()])) {        
             frame.func->set_retstatus(NORETURN);
         } else {
             frame.func->set_retstatus(UNKNOWN);

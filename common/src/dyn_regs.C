@@ -287,7 +287,6 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 
    switch (getArchitecture()) {
       case Arch_x86:
-      case Arch_x86_64: // 64-bit not supported in ROSE
          switch (category) {
             case x86::GPR:
                c = x86_regclass_gpr;
@@ -417,6 +416,161 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                break;
          }
          break;
+     case Arch_x86_64:
+         switch (category) {
+            case x86_64::GPR:
+               c = x86_regclass_gpr;
+               switch (baseID) {
+                  case x86_64::BASEA:
+                     n = x86_gpr_ax;
+                     break;
+                  case x86_64::BASEC:
+                     n = x86_gpr_cx;
+                     break;
+                  case x86_64::BASED:
+                     n = x86_gpr_dx;
+                     break;
+                  case x86_64::BASEB:
+                     n = x86_gpr_bx;
+                     break;
+                  case x86_64::BASESP:
+                     n = x86_gpr_sp;
+                     break;
+                  case x86_64::BASEBP:
+                     n = x86_gpr_bp;
+                     break;
+                  case x86_64::BASESI:
+                     n = x86_gpr_si;
+                     break;
+                  case x86_64::BASEDI:
+                     n = x86_gpr_di;
+                     break;
+		  case x86_64::BASE8:
+		     n = x86_gpr_r8;
+		     break;
+		  case x86_64::BASE9:
+		     n = x86_gpr_r9;
+		     break;
+		  case x86_64::BASE10:
+		     n = x86_gpr_r10;
+		     break;
+		  case x86_64::BASE11:
+		     n = x86_gpr_r11;
+		     break;
+		  case x86_64::BASE12:
+		     n = x86_gpr_r12;
+		     break;
+		  case x86_64::BASE13:
+		     n = x86_gpr_r13;
+		     break;
+		  case x86_64::BASE14:
+		     n = x86_gpr_r14;
+		     break;
+		  case x86_64::BASE15:
+		     n = x86_gpr_r15;
+		     break;
+                  default:
+                     n = 0;
+                     break;
+               }
+               break;
+            case x86_64::SEG:
+               c = x86_regclass_segment;
+               switch (baseID) {
+                  case 0x0:
+                     n = x86_segreg_ds;
+                     break;
+                  case 0x1:
+                     n = x86_segreg_es;
+                     break;
+                  case 0x2:
+                     n = x86_segreg_fs;
+                     break;
+                  case 0x3:
+                     n = x86_segreg_gs;
+                     break;
+                  case 0x4:
+                     n = x86_segreg_cs;
+                     break;
+                  case 0x5:
+                     n = x86_segreg_ss;
+                     break;
+                  default:
+                     n = 0;
+                     break;
+               }
+               break;
+            case x86_64::FLAG:
+               c = x86_regclass_flags;
+	       switch(baseID) {
+	       case x86_64::CF:
+		 n = x86_flag_cf;
+		 break;
+	       case x86_64::PF:
+		 n = x86_flag_pf;
+		 break;
+	       case x86_64::AF:
+		 n = x86_flag_af;
+		 break;
+	       case x86_64::ZF:
+		 n = x86_flag_zf;
+		 break;
+	       case x86_64::SF:
+		 n = x86_flag_sf;
+		 break;
+	       case x86_64::TF:
+		 n = x86_flag_tf;
+		 break;
+	       case x86_64::IF:
+		 n = x86_flag_if;
+		 break;
+	       case x86_64::DF:
+		 n = x86_flag_df;
+		 break;
+	       case x86_64::OF:
+		 n = x86_flag_of;
+		 break;
+	       default:
+		 assert(0);
+		 break;
+	       }
+               break;
+            case x86_64::MISC:
+               c = x86_regclass_unknown;
+               break;
+            case x86_64::XMM:
+               c = x86_regclass_xmm;
+               n = baseID;
+               break;
+            case x86_64::MMX:
+               c = x86_regclass_mm;
+               n = baseID;
+               break;
+            case x86_64::CTL:
+               c = x86_regclass_cr;
+               n = baseID;
+               break;
+            case x86_64::DBG:
+               c = x86_regclass_dr;
+               n = baseID;
+               break;
+            case x86_64::TST:
+               c = x86_regclass_unknown;
+               break;
+            case 0:
+               switch (baseID) {
+                  case 0x10:
+                     c = x86_regclass_ip;
+                     n = 0;
+                     break;
+                  default:
+                     c = x86_regclass_unknown;
+                     break;
+               }
+               break;
+         }
+         break;
+ 
        case Arch_ppc32:
        case Arch_ppc64: // 64-bit not supported in ROSE
        {
@@ -469,7 +623,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
             case x86::FULL:
             case x86::OCT:
             case x86::FPDBL:
-               p = x86_regpos_all;
+               p = x86_regpos_qword;
                break;
             case x86::H_REG:
                p = x86_regpos_high_byte;

@@ -320,6 +320,7 @@ bool AbsRegionConverter::getCurrentStackHeight(ParseAPI::Function *func,
                                                ParseAPI::Block *block,
 					       Address addr,
 					       long &height) {
+  if (!stackAnalysisEnabled_) return false;
   StackAnalysis sA(func);
  
   StackAnalysis::Height heightSA = sA.findSP(block, addr);
@@ -340,6 +341,7 @@ bool AbsRegionConverter::getCurrentFrameHeight(ParseAPI::Function *func,
                                                ParseAPI::Block *block,
                                                Address addr,
 					       long &height) {
+  if (!stackAnalysisEnabled_) return false;					       
   StackAnalysis sA(func);
 
   StackAnalysis::Height heightSA = sA.find(block, addr, MachRegister::getFramePointer(func->isrc()->getArch()));;

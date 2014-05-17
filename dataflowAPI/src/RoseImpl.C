@@ -448,7 +448,7 @@ SgAsmBinaryAdd::SgAsmBinaryAdd(SgAsmExpression* lhs, SgAsmExpression* rhs)
 
 SgAsmType* SgAsmBinaryAdd::get_type()
 {
-  return ((SgAsmBinaryExpression*)this)->get_type();
+  return SgAsmBinaryExpression::get_type();
 }
 
 std::string SgAsmBinaryAdd::class_name() const
@@ -546,6 +546,8 @@ SgAsmx86RegisterReferenceExpression::SgAsmx86RegisterReferenceExpression(X86Regi
       p_type = new SgAsmTypeDoubleWord();
       break;
     case x86_regpos_qword:
+      p_type = new SgAsmTypeQuadWord();
+      break;
     default:
       p_type = 0;
   }

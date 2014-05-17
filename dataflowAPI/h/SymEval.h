@@ -288,9 +288,9 @@ size_t size;
 };
 
 // Get this out of the Dyninst namespace...
-std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::ROSEOperation &o);
-std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::Constant &o);
-std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::Variable &o);
+DATAFLOW_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::ROSEOperation &o);
+DATAFLOW_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::Constant &o);
+DATAFLOW_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::Variable &o);
 
 namespace Dyninst {
 
@@ -329,7 +329,7 @@ public:
   // static const AST::Ptr Placeholder;
   //
   // Single version: hand in an Assignment, get an AST
-    DATAFLOW_EXPORT static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment);
+    DATAFLOW_EXPORT static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment, bool applyVisitors = true);
 
   // Hand in a set of Assignments
   // get back a map of Assignments->ASTs

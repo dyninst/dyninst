@@ -255,7 +255,9 @@ Slicer::sliceInternalAux(
         // If the control flow search has run
         // off the rails somehow, widen;
         // otherwise search down this new path
-        if(!f.valid || visited.size() > 50*g->size()) {
+	// Xiaozhu: change from 50 to 100 changes my problem,
+	// but it is still adhoc.
+        if(!f.valid || visited.size() > 100*g->size()) {
             widenAll(g,dir,cand);
 	}
         else {
@@ -1268,7 +1270,9 @@ Slicer::Slicer(Assignment::Ptr a,
   a_(a),
   b_(block),
   f_(func),
-  converter(true) {
+  // Xiaozhu: Temporarily disable stackanalysis, should be able to
+  // specify it 
+  converter(true, false) {
   df_init_debug();
 };
 
@@ -1378,6 +1382,10 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
     // A region assignment can never kill
     return false; 
   }
+
+  // Xiaozhu: A call can ruin all bounds, so we don't need to 
+  // continue slicing. But need to figure out how to specify this
+  if (assign->insn()->getCategory() == c_CallInsn) return true;
 
   return reg.contains(assign->out());
 }

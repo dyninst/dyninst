@@ -71,7 +71,7 @@ typedef boost::shared_ptr<Graph> GraphPtr;
 // Used in temp slicer; should probably
 // replace OperationNodes when we fix up
 // the DDG code.
-class SliceNode : public Node {
+class DATAFLOW_EXPORT SliceNode : public Node {
  public:
   typedef boost::shared_ptr<SliceNode> Ptr;
       
