@@ -487,7 +487,7 @@ class AstOperatorNode : public AstNode {
                                      Address &retAddr,
                                      Register &retReg);
 
-    bool generateOptimizedAssignment(codeGen &gen, bool noCost);
+    bool generateOptimizedAssignment(codeGen &gen, int size, bool noCost);
 
     AstOperatorNode() {};
     opCode op;
