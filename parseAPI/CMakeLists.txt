@@ -24,7 +24,13 @@ set (SRC_LIST
         src/IA_platformDetailsFactory.C 
         src/CFGModifier.C
         src/StackTamperVisitor.C
-        ../dataflowAPI/src/ABI.C 
+	src/BackwardSlicing.C
+	src/BoundFactCalculator.C
+	src/BoundFactData.C
+	src/IndirectAnalyzer.C
+	src/IndirectASTVisitor.C
+	src/TableGuardData.C
+	../dataflowAPI/src/ABI.C 
         ../dataflowAPI/src/Absloc.C 
         ../dataflowAPI/src/AbslocInterface.C 
         ../dataflowAPI/src/convertOpcodes.C 
