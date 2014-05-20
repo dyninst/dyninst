@@ -247,6 +247,12 @@ def print_src_lists(mutatees, platform, info, directory):
                    (module, 
                     s, 
                     groupable))
+      elif (utils.extension(s) == ".asm" and
+            "nasm_asm" in platform["auxilliary_compilers"]):
+         out.write("set_property (SOURCE ${SRC}/%s/%s APPEND PROPERTY COMPILE_FLAGS -dPLATFORM=%s)\n" %
+                   (module,
+                    s,
+                    platform["name"]))
       # Skip raw sources; they don't need the GROUPABLE and TEST_NAMEs set
 
    out.close()
