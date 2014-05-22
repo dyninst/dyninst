@@ -31,7 +31,7 @@ struct BoundValue {
         type(bv.type), value(bv.value), coe(bv.coe),
 	tableBase(bv.tableBase), targetBase(bv.targetBase),
 	tableLookup(bv.tableLookup), tableOffset(bv.tableOffset),
-	posi(bv.posi) {parsing_printf("Inside BoundValue copy constructor: tableLookup %d\n", tableLookup);}
+	posi(bv.posi) {}
 
     BoundValue& operator = (const BoundValue &bv) {
         type = bv.type;
@@ -42,8 +42,6 @@ struct BoundValue {
 	tableLookup = bv.tableLookup;
 	tableOffset = bv.tableOffset;
 	posi = bv.posi;
-	parsing_printf("Inside operator = \n", tableLookup);
-
 	return *this;
     }
 
@@ -63,26 +61,30 @@ struct BoundFact {
     bool cmpBoundFactLive;
     set<MachRegister> cmpUsedRegs;
 
-    typedef map<Absloc, BoundValue > FactType;
+    typedef map<Absloc, BoundValue*> FactType;
     FactType fact;
     bool operator< (const BoundFact &bf) const {return fact < bf.fact; }
     bool operator!= (const BoundFact &bf) const;
 
     bool IsBounded(const Absloc &al) { return fact.find(al) != fact.end();}
-    BoundValue GetBound(const Absloc &al); 
+    BoundValue* GetBound(const Absloc &al); 
     
     void Intersect(BoundFact &bf);
 
-    void GenFact(const Absloc &al, BoundValue bv);
+    void GenFact(const Absloc &al, BoundValue* bv);
     void KillFact(const Absloc &al);
     void Print();
     void CheckCmpValidity(const MachRegister &reg);
     bool CMPBoundMatch(AST* ast);
 
     BoundFact();
+    ~BoundFact();
+
+    BoundFact(const BoundFact& bf);
+    BoundFact& operator = (const BoundFact &bf);
 };
 
-typedef map<Node::Ptr, BoundFact> BoundFactsType;
+typedef map<Node::Ptr, BoundFact*> BoundFactsType;
 
 
 #endif

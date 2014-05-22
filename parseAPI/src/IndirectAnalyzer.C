@@ -167,9 +167,9 @@ bool IndirectControlFlowAnalyzer::IsJumpTable(GraphPtr slice,
         SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*sbegin);
 	const Absloc &loc = node->assign()->out().absloc();
 	parsing_printf("Checking bound fact at %lx for %s\n",node->addr(), loc.format().c_str()); 
-	BoundFact &bf = bfc.GetBoundFact(*sbegin);
-	if (bf.IsBounded(loc)) {
-	    target = bf.GetBound(loc);
+	BoundFact *bf = bfc.GetBoundFact(*sbegin);
+	if (bf->IsBounded(loc)) {
+	    target = *(bf->GetBound(loc));
 
 	    if (target.tableLookup) return true;
 	    if (target.tableOffset) return true;

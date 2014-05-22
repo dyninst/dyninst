@@ -30,16 +30,17 @@ class BoundCalcVisitor: public ASTVisitor {
      
 public:
     using ASTVisitor::visit;
-    map<AST*, BoundValue> bound;
+    map<AST*, BoundValue*> bound;
     BoundFact &boundFact;
     BoundCalcVisitor(BoundFact &bf): boundFact(bf) {}
+    ~BoundCalcVisitor();
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
     virtual ASTPtr visit(DataflowAPI::ConstantAST *ast);
     virtual ASTPtr visit(DataflowAPI::VariableAST *ast);
     bool IsResultBounded(AST::Ptr ast) {
         return bound.find(ast.get()) != bound.end();
     }
-    BoundValue GetResultBound(AST::Ptr ast); 
+    BoundValue* GetResultBound(AST::Ptr ast); 
 };
 
 class JumpCondVisitor: public ASTVisitor {

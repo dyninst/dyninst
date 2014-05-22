@@ -14,9 +14,9 @@ bool BoundValue::operator == (const BoundValue &bv) const {
 	   (tableOffset == bv.tableOffset);
 }
 
-BoundValue BoundFact::GetBound(const Absloc &al) {
+BoundValue* BoundFact::GetBound(const Absloc &al) {
         if (fact.find(al) == fact.end())
-	    return BoundValue();
+	    return NULL;
 	else
 	    return fact.find(al)->second;
 
@@ -36,16 +36,16 @@ void BoundValue::Print() {
 void BoundFact::Intersect(BoundFact &bf) {
         for (auto fit = fact.begin(); fit != fact.end(); ++fit) {
 	    if (bf.IsBounded(fit->first)) {
-	        BoundValue &val1 = fit->second;
-		BoundValue val2 = bf.GetBound(fit->first);
-		if (val1.value != val2.value) val1.type = LessThan;
-		if (val1.value < val2.value) val1.value = val2.value;
-		if (val1.coe != val2.coe) val1.coe = 1;
-		if (val1.tableBase != val2.tableBase) val1.tableBase = 0;
-		if (val1.targetBase != val2.targetBase) val1.targetBase = 0;
-		val1.tableLookup = val1.tableLookup && val2.tableLookup;
-		val1.tableOffset = val1.tableOffset && val2.tableOffset;
-		val1.posi = val1.posi | val2.posi;
+	        BoundValue *val1 = fit->second;
+		BoundValue *val2 = bf.GetBound(fit->first);
+		if (val1->value != val2->value) val1->type = LessThan;
+		if (val1->value < val2->value) val1->value = val2->value;
+		if (val1->coe != val2->coe) val1->coe = 1;
+		if (val1->tableBase != val2->tableBase) val1->tableBase = 0;
+		if (val1->targetBase != val2->targetBase) val1->targetBase = 0;
+		val1->tableLookup = val1->tableLookup && val2->tableLookup;
+		val1->tableOffset = val1->tableOffset && val2->tableOffset;
+		val1->posi = val1->posi | val2->posi;
 	    }
 	}
 
@@ -73,24 +73,18 @@ void BoundFact::Print() {
     }
     for (auto fit = fact.begin(); fit != fact.end(); ++fit) {
         parsing_printf("\tVar: %s, ", fit->first.format().c_str());
-	fit->second.Print();
+	fit->second->Print();
     }
 }
 
-void BoundFact::GenFact(const Absloc &al, BoundValue bv) {
+void BoundFact::GenFact(const Absloc &al, BoundValue* bv) {
     KillFact(al);
-    parsing_printf("In GenFact: fact size %d bv:", fact.size());   
-    bv.Print();
-    auto ret = fact.insert(make_pair(al, bv));
-    parsing_printf("In GenFact, after insert; bv:");
-    bv.Print();
-    parsing_printf("The insertion is %d, in the map:", ret.second);
-    ret.first->second.Print();
-    bv.Print();
-
+    fact.insert(make_pair(al,bv));
 }
 
-void BoundFact::KillFact(const Absloc &al) { 
+void BoundFact::KillFact(const Absloc &al) {
+    if (fact.find(al) != fact.end() && fact[al] != NULL)
+        delete fact[al];
     fact.erase(al); 
     if (al.type() == Absloc::Register)
         CheckCmpValidity(al.reg());
@@ -123,3 +117,28 @@ BoundFact::BoundFact():
     cmpUsedRegs.clear();
     fact.clear();
 }
+
+BoundFact::~BoundFact() {
+    for (auto fit = fact.begin(); fit != fact.end(); ++fit)
+        if (fit->second != NULL)
+	    delete fit->second;
+    fact.clear();   
+}
+
+BoundFact& BoundFact::operator = (const BoundFact &bf) {
+    if (bf.cmpAST == AST::Ptr())
+        cmpAST = AST::Ptr();
+    else
+        cmpAST = bf.cmpAST;
+    cmpBound = bf.cmpBound;
+    cmpBoundFactLive = bf.cmpBoundFactLive;
+    cmpUsedRegs = bf.cmpUsedRegs;
+    fact.clear();
+    for (auto fit = bf.fact.begin(); fit != bf.fact.end(); ++fit)     
+        fact.insert(make_pair(fit->first, new BoundValue(*(fit->second))));
+    return *this;
+}
+
+BoundFact::BoundFact(const BoundFact &bf) {
+    *this = bf;
+}    

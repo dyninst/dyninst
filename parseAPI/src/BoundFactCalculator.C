@@ -16,7 +16,6 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
      */
     
 
-    defined.clear();
     queue<Node::Ptr> workingList;
 
     NodeIterator nbegin, nend;
@@ -31,23 +30,24 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
         Node::Ptr curNode = workingList.front();
 	workingList.pop();
 
-        BoundFact oldFact = boundFacts[curNode];
-	Meet(curNode);
-	CalcTransferFunction(curNode);
+        BoundFact* oldFact = GetBoundFact(curNode);
+	BoundFact* newFact = Meet(curNode);
+	CalcTransferFunction(curNode, newFact);
 
-	if (defined.find(curNode) == defined.end() || oldFact != boundFacts[curNode]) {
+	if (oldFact == NULL || *oldFact != *newFact) {
+	    if (oldFact != NULL) delete oldFact;
+	    boundFacts[curNode] = newFact;
 	    curNode->outs(nbegin, nend);
 	    for (; nbegin != nend; ++nbegin)
 	        workingList.push(*nbegin);
 	}
-	defined.insert(curNode);
     }
 
     return true;
 }
 
 
-void BoundFactsCalculator::ConditionalJumpBound(BoundFact& curFact, Node::Ptr src, Node::Ptr trg) {
+void BoundFactsCalculator::ConditionalJumpBound(BoundFact* curFact, Node::Ptr src, Node::Ptr trg) {
 
     /* This function checks whether any potential table guard is between the two nodes
      * that we are calculating the meet. Essentially, if there is a conditional jump 
@@ -97,78 +97,73 @@ void BoundFactsCalculator::ConditionalJumpBound(BoundFact& curFact, Node::Ptr sr
 	        // In thic case, we jump when the variable is larger than the constant.
 		// So the fallthrough path is the path that bounds the value.
 
-                if (curFact.cmpBoundFactLive == false || git->cmpBound > curFact.cmpBound) {
-		    curFact.cmpAST = git->cmpAST;
-		    curFact.cmpBound = git->cmpBound;
-		    curFact.cmpBoundFactLive = true;
-		    curFact.cmpUsedRegs = git->usedRegs;
+                if (curFact->cmpBoundFactLive == false || git->cmpBound > curFact->cmpBound) {
+		    curFact->cmpAST = git->cmpAST;
+		    curFact->cmpBound = git->cmpBound;
+		    curFact->cmpBoundFactLive = true;
+		    curFact->cmpUsedRegs = git->usedRegs;
 		}
 	    }
 	}
     }
-    if (!curFact.cmpBoundFactLive && firstBlock) {
+    if (!curFact->cmpBoundFactLive && firstBlock) {
         // If this is indirect jump is in the first block,
 	// it is possible that it is a jump table for a function 
 	// with variable number of arguments. Then the convention
 	// is that al contains the number of argument.
-        curFact.cmpAST = VariableAST::create(Variable(Absloc(x86_64::rax)));
-	curFact.cmpBound = 8;
-	curFact.cmpUsedRegs.insert(x86_64::rax);
-	curFact.cmpBoundFactLive = true;
-
-
+        curFact->cmpAST = VariableAST::create(Variable(Absloc(x86_64::rax)));
+	curFact->cmpBound = 8;
+	curFact->cmpUsedRegs.insert(x86_64::rax);
+	curFact->cmpBoundFactLive = true;
     }
 }
 
-void BoundFactsCalculator::Meet(Node::Ptr curNode) {
+
+BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 
     SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode); 
     parsing_printf("Calculate Meet for %lx\n", node->addr());
 
     NodeIterator gbegin, gend;
     curNode->ins(gbegin, gend);    
-    BoundFact &curFact = boundFacts[curNode];
-    parsing_printf("curFact Fact right after fecting from the map is\n");
-    curFact.Print();
+    BoundFact* newFact = new BoundFact();
 
     if (gbegin != gend) {
         bool first = true;	
 	for (; gbegin != gend; ++gbegin) {
-	    parsing_printf("curFact Fact before the change is\n");
-	    curFact.Print();
-
-	    SliceNode::Ptr meetSliceNode = boost::static_pointer_cast<SliceNode>(*gbegin);          
-	    if (defined.find(*gbegin) == defined.end()) {
+	    SliceNode::Ptr meetSliceNode = boost::static_pointer_cast<SliceNode>(*gbegin); 
+	    BoundFact *prevFact = GetBoundFact(*gbegin);	    
+	    if (prevFact == NULL) {
 	        parsing_printf("\tIncoming node %lx has not been calculated yet\n", meetSliceNode->addr());
 		continue;
 	    }
+	    prevFact = new BoundFact(*prevFact);
 	    parsing_printf("\tMeet incoming edge from %lx\n", meetSliceNode->addr());
-	    BoundFact prevFact = boundFacts[(*gbegin)]; 
+
 	    ConditionalJumpBound(prevFact, *gbegin, curNode);
 	    if (first) {
 	        first = false;
-		curFact = prevFact;
+		*newFact = *prevFact;
 	    } else {
-	        curFact.Intersect(prevFact);
+	        newFact->Intersect(*prevFact);
 	    }
-	    parsing_printf("curFact Fact after the change is\n");
-	    curFact.Print();
+	    parsing_printf("New fact after the change is\n");
+	    newFact->Print();
 
 	}
     } else {
-        ConditionalJumpBound(curFact, Node::Ptr(), curNode);
+        ConditionalJumpBound(newFact, Node::Ptr(), curNode);
 	parsing_printf("Meet no incoming nodes\n");
-	curFact.Print();
+	newFact->Print();
     }
+    return newFact;
 }
 
-void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode){
+void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact){
 
     SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);    
     AbsRegion &ar = node->assign()->out();
 
-    BoundFact &curFact = boundFacts[curNode];
-    parsing_printf("### size of BoundValue is %d\n", sizeof(BoundValue));
     parsing_printf("Expanding assignment %s in instruction at %lx: %s.\n", node->assign()->format().c_str(), node->addr(), node->assign()->insn()->format().c_str());
     pair<AST::Ptr, bool> expandRet = SymEval::expand(node->assign(), false);
 
@@ -185,22 +180,37 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode){
 
     parsing_printf("\t AST after expanding %s\n", calculation->format().c_str());
     parsing_printf("Calculating transfer function: Input facts\n");
-    curFact.Print();
+    newFact->Print();
 
-    BoundCalcVisitor bcv(curFact);
+    BoundCalcVisitor bcv(*newFact);
     calculation->accept(&bcv);
 
     if (bcv.IsResultBounded(calculation)) { 
         parsing_printf("Genenerate bound fact for %s\n", ar.absloc().format().c_str());
-        curFact.GenFact(ar.absloc(), bcv.GetResultBound(calculation));
+        newFact->GenFact(ar.absloc(), new BoundValue(*bcv.GetResultBound(calculation)));
     }
     else {
         parsing_printf("Kill bound fact for %s\n", ar.absloc().format().c_str());
-        curFact.KillFact(ar.absloc());
+        newFact->KillFact(ar.absloc());
     }
     parsing_printf("Calculating transfer function: Output facts\n");
-    curFact.Print();
+    newFact->Print();
 
 }						
+
+BoundFact* BoundFactsCalculator::GetBoundFact(Node::Ptr node) {
+    auto fit = boundFacts.find(node);
+    if (fit == boundFacts.end())
+        return NULL;
+    else
+        return fit->second;
+}
+
+BoundFactsCalculator::~BoundFactsCalculator() {
+    for (auto fit = boundFacts.begin(); fit != boundFacts.end(); ++fit)
+        if (fit->second != NULL)
+	    delete fit->second;
+    boundFacts.clear();
+}
 
 

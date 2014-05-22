@@ -20,13 +20,10 @@ class BoundFactsCalculator {
     bool firstBlock;
     ReachFact &rf;
 
-    set<Node::Ptr> defined;
-   
-    void ConditionalJumpBound(BoundFact &curFact, Node::Ptr src, Node::Ptr trg);  
+    void ConditionalJumpBound(BoundFact *curFact, Node::Ptr src, Node::Ptr trg);  
 
-    void Meet(Node::Ptr curNode);
-
-    void CalcTransferFunction(Node::Ptr curNode);
+    BoundFact* Meet(Node::Ptr curNode);
+    void CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact);
 
 public:
     bool CalculateBoundedFacts(); 
@@ -34,7 +31,8 @@ public:
     BoundFactsCalculator(GuardSet &g, ParseAPI::Function *f, GraphPtr s, bool first, ReachFact &r): 
         guards(g), func(f), slice(s), firstBlock(first), rf(r) {} 
 
-    BoundFact &GetBoundFact(Node::Ptr node) {return boundFacts[node];}
+    BoundFact *GetBoundFact(Node::Ptr node);
+    ~BoundFactsCalculator();
 };
 
 
