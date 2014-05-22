@@ -110,8 +110,9 @@ class IA_IAPI : public InstructionAdapter {
 private:
         virtual bool isRealCall() const;
         virtual bool isThunk() const;
-        bool parseJumpTable(Dyninst::ParseAPI::Block* currBlk,
-             std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const;
+        bool parseJumpTable(Dyninst::ParseAPI::Function * currFunc,
+	                    Dyninst::ParseAPI::Block* currBlk,
+			    std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const;
         bool isIPRelativeBranch() const;
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         virtual bool isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block* currBlk) const;

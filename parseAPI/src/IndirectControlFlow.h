@@ -4,7 +4,7 @@
 #include "TableGuardData.h"
 #include "BoundFactData.h"
 #include "CFG.h"
-#include "CodeSource.h"
+#include "InstructionSource.h"
 
 #include "slicing.h"
 
@@ -34,14 +34,13 @@ public:
     BoundFactsCalculator(GuardSet &g, ParseAPI::Function *f, GraphPtr s, bool first, ReachFact &r): 
         guards(g), func(f), slice(s), firstBlock(first), rf(r) {} 
 
-    BoundFact &GetBoundFact(Node::Ptr node) {return boundFacts[node.get()];}
+    BoundFact &GetBoundFact(Node::Ptr node) {return boundFacts[node];}
 };
 
 
 class IndirectControlFlowAnalyzer {
     GuardSet guards;
     // The function and block that contain the indirect jump
-    SymtabCodeSource *sts;
     ParseAPI::Function *func;
     ParseAPI::Block *block;
 
@@ -49,15 +48,16 @@ class IndirectControlFlowAnalyzer {
     void GetAllReachableBlock(set<ParseAPI::Block*> &reachable);
     void SaveGuardData(ParseAPI::Block *prev);    
     void FindAllConditionalGuards(); 
-    bool IsJumpTable(GraphPtr slice, BoundFactsCalculator &bfc);
+    bool IsJumpTable(GraphPtr slice, BoundFactsCalculator &bfc, BoundValue &target);
+    bool FillInOutEdges(BoundValue &target, std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
     GraphPtr CalcBackwardSlice(ParseAPI::Block *b, 
                                Address addr,
 			       string filename);
 
 
 public:
-    bool NewJumpTableAnalysis();
-    IndirectControlFlowAnalyzer(SymtabCodeSource *s, ParseAPI::Function *f, ParseAPI::Block *b): sts(s), func(f), block(b) {}
+    bool NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
+    IndirectControlFlowAnalyzer(ParseAPI::Function *f, ParseAPI::Block *b): func(f), block(b) {}
 
 };
 

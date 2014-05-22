@@ -41,6 +41,7 @@
 #include "util.h"
 #include "common/src/Types.h"
 #include "dyntypes.h"
+#include "IndirectControlFlow.h"
 
 #include <deque>
 #include <map>
@@ -633,7 +634,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             parsing_printf("%s[%d]: jump table candidate %s at 0x%lx\n", FILE__, __LINE__,
                            ci->format().c_str(), current);
             parsedJumpTable = true;
-            successfullyParsedJumpTable = parseJumpTable(currBlk, outEdges);
+            successfullyParsedJumpTable = parseJumpTable(context, currBlk, outEdges);
 	    parsing_printf("Parsed jump table\n");
             if(!successfullyParsedJumpTable || outEdges.empty()) {
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
@@ -656,7 +657,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             parsedJumpTable = true;
             parsing_printf("%s[%d]: BLR jump table candidate %s at 0x%lx\n", FILE__, __LINE__,
                            ci->format().c_str(), current);
-            successfullyParsedJumpTable = parseJumpTable(currBlk, outEdges);
+            successfullyParsedJumpTable = parseJumpTable(context, currBlk, outEdges);
 	    parsing_printf("Parsed BLR jump table\n");
             if(!successfullyParsedJumpTable || outEdges.empty()) {
             	parsing_printf("%s[%d]: BLR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", 
@@ -878,17 +879,40 @@ bool IA_IAPI::isRelocatable(InstrumentableLevel lvl) const
     return true;
 }
 
-bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Block* currBlk,
-                    std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const
+bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Function * currFunc,
+			     Dyninst::ParseAPI::Block* currBlk,
+			     std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const
 {
-    IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
-    bool ret = jumpTableParser->parseJumpTable(currBlk, outEdges);
+
+//    printf("Compare jump table parsing at %lx\n", currBlk->last());
+//    printf("Dump info from old dyn heuristics:\n");
+//    std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > > old_outEdges;
+//    IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
+//    bool ret = jumpTableParser->parseJumpTable(currBlk, old_outEdges);
+
+//    return false;
+//    for (auto eit = old_outEdges.begin(); eit != old_outEdges.end(); ++eit)
+//        printf(" %lx", eit->first);
+
+
+/*    
     parsing_printf("Jump table parser returned %d, %d edges\n", ret, outEdges.size());
     // Update statistics 
     currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_COUNT);
     if (!ret) currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_FAIL);
 
     delete jumpTableParser;
+    return ret;
+*/
+//    printf("\nDump outEdges from new analysis:\n");
+
+    IndirectControlFlowAnalyzer icfa(currFunc, currBlk);
+    bool ret = icfa.NewJumpTableAnalysis(outEdges);
+/*
+    for (auto eit = outEdges.begin(); eit != outEdges.end(); ++eit)
+        printf(" %lx", eit->first);
+    printf("\n");
+*/
     return ret;
 }
 

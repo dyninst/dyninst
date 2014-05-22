@@ -18,8 +18,19 @@ BoundValue BoundFact::GetBound(const Absloc &al) {
         if (fact.find(al) == fact.end())
 	    return BoundValue();
 	else
-	    return fact[al];
+	    return fact.find(al)->second;
 
+}
+
+void BoundValue::Print() {
+    parsing_printf("Bound type %d, ",type );
+    parsing_printf("Bound value: %lu, ",value);
+    parsing_printf("coe %d, ", coe);
+    parsing_printf("tableBase %lu, ",tableBase);
+    parsing_printf("targetBase %lu, ",targetBase);
+    parsing_printf("tableLookup %d, ",tableLookup);
+    parsing_printf("tableOffset %d, ",tableOffset);
+    parsing_printf("add %d\n", posi);
 }
 
 void BoundFact::Intersect(BoundFact &bf) {
@@ -34,6 +45,7 @@ void BoundFact::Intersect(BoundFact &bf) {
 		if (val1.targetBase != val2.targetBase) val1.targetBase = 0;
 		val1.tableLookup = val1.tableLookup && val2.tableLookup;
 		val1.tableOffset = val1.tableOffset && val2.tableOffset;
+		val1.posi = val1.posi | val2.posi;
 	    }
 	}
 
@@ -61,21 +73,21 @@ void BoundFact::Print() {
     }
     for (auto fit = fact.begin(); fit != fact.end(); ++fit) {
         parsing_printf("\tVar: %s, ", fit->first.format().c_str());
-	parsing_printf("Bound type %d, ",fit->second.type );
-	parsing_printf("Bound value: %lu, ",fit->second.value);
-	parsing_printf("coe %d, ", fit->second.coe);
-	parsing_printf("tableBase %lu, ",fit->second.tableBase);
-	parsing_printf("targetBase %lu, ",fit->second.targetBase);
-	parsing_printf("tableLookup %d, ",fit->second.tableLookup);
-	parsing_printf("tableOffset %d, ",fit->second.tableOffset);
-	parsing_printf("add %d\n", fit->second.posi);
+	fit->second.Print();
     }
 }
 
 void BoundFact::GenFact(const Absloc &al, BoundValue bv) {
-    fact[al] = bv;
-    if (al.type() == Absloc::Register)
-        CheckCmpValidity(al.reg());
+    KillFact(al);
+    parsing_printf("In GenFact: fact size %d bv:", fact.size());   
+    bv.Print();
+    auto ret = fact.insert(make_pair(al, bv));
+    parsing_printf("In GenFact, after insert; bv:");
+    bv.Print();
+    parsing_printf("The insertion is %d, in the map:", ret.second);
+    ret.first->second.Print();
+    bv.Print();
+
 }
 
 void BoundFact::KillFact(const Absloc &al) { 
@@ -104,4 +116,10 @@ bool BoundFact::operator != (const BoundFact &bf) const {
     return !equal(fact.begin(), fact.end(), bf.fact.begin());
 }
 
-
+BoundFact::BoundFact():
+    cmpAST(AST::Ptr()) {
+    cmpBound = 0;
+    cmpBoundFactLive = false;
+    cmpUsedRegs.clear();
+    fact.clear();
+}

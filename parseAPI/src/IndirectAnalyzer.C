@@ -22,7 +22,35 @@ static bool UsePC(Instruction::Ptr insn) {
     }
     return false;
 }
-bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis() {
+
+bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target, 
+                                                 vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
+    parsing_printf("\t tableBase = %lx, tableSize = %lu, tableStride = %d, targetOffset = %lu, tableLookup = %d, tableOffset = %d, posi = %d\n", target.tableBase, target.value, target.coe, target.targetBase, target.tableLookup, target.tableOffset, target.posi);
+
+    if (!block->obj()->cs()->isValidAddress(target.tableBase)) {
+        parsing_printf("\ttableBase 0x%lx invalid, returning false\n", target.tableBase);
+	return false;
+    }
+
+    for (uint64_t i = 0; i <= target.value; ++i) {
+        Address tableEntry = target.tableBase;
+	Address targetAddress = 0;
+	if (target.posi) tableEntry += target.coe * i; else tableEntry -= target.coe * i;
+	if (target.tableLookup || target.tableOffset) {
+	    targetAddress = *(const Address *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+	}
+	if (target.tableOffset && targetAddress != 0) {
+	    targetAddress += target.targetBase;
+	}
+
+//	if (block->obj()->cs()->isCode(targetAddress)) {
+	    outEdges.push_back(make_pair(targetAddress, INDIRECT));
+//	}
+    }
+    return true;
+}
+
+bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     FindAllConditionalGuards();
     ReachFact rf(guards);
@@ -30,13 +58,15 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis() {
 
     BackwardSlicer bs(func, block, block->last(), guards, rf);
     GraphPtr slice =  bs.CalculateBackwardSlicing();
-    
     parsing_printf("Calculate bound facts\n");     
     BoundFactsCalculator bfc(guards, func, slice, func->entry() == block, rf);
     bfc.CalculateBoundedFacts();
 
-    bool ijt = IsJumpTable(slice, bfc);
-    return ijt;
+    BoundValue target;
+    bool ijt = IsJumpTable(slice, bfc, target);
+    if (ijt) {
+        return FillInOutEdges(target, outEdges);
+    } else return false;
 }						       
 
 
@@ -129,7 +159,8 @@ void IndirectControlFlowAnalyzer::FindAllConditionalGuards(){
 
 
 bool IndirectControlFlowAnalyzer::IsJumpTable(GraphPtr slice, 
-					      BoundFactsCalculator &bfc) {
+					      BoundFactsCalculator &bfc,
+					      BoundValue &target) {
     NodeIterator sbegin, send;
     slice->exitNodes(sbegin, send);
     for (; sbegin != send; ++sbegin) {
@@ -138,10 +169,11 @@ bool IndirectControlFlowAnalyzer::IsJumpTable(GraphPtr slice,
 	parsing_printf("Checking bound fact at %lx for %s\n",node->addr(), loc.format().c_str()); 
 	BoundFact &bf = bfc.GetBoundFact(*sbegin);
 	if (bf.IsBounded(loc)) {
-	    BoundValue val = bf.GetBound(loc);
-	    if (val.tableLookup) return true;
-	    if (val.tableOffset) return true;
-	    if (val.type == LessThan && val.CoeBounded() && val.HasTableBase()) return true;
+	    target = bf.GetBound(loc);
+
+	    if (target.tableLookup) return true;
+	    if (target.tableOffset) return true;
+	    if (target.type == LessThan && target.CoeBounded() && target.HasTableBase()) return true;
 	}
     }
   

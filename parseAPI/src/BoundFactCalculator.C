@@ -31,11 +31,11 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
         Node::Ptr curNode = workingList.front();
 	workingList.pop();
 
-        BoundFact oldFact = boundFacts[curNode.get()];
+        BoundFact oldFact = boundFacts[curNode];
 	Meet(curNode);
 	CalcTransferFunction(curNode);
 
-	if (defined.find(curNode) == defined.end() || oldFact != boundFacts[curNode.get()]) {
+	if (defined.find(curNode) == defined.end() || oldFact != boundFacts[curNode]) {
 	    curNode->outs(nbegin, nend);
 	    for (; nbegin != nend; ++nbegin)
 	        workingList.push(*nbegin);
@@ -66,13 +66,20 @@ void BoundFactsCalculator::ConditionalJumpBound(BoundFact& curFact, Node::Ptr sr
     ParseAPI::Block *trgBlock = trgNode->block();
 
     for (auto git = guards.begin(); git != guards.end(); ++git) {
-        if (!git->constantBound) continue;
+        parsing_printf("Checking guard at %lx\n", git->jmpInsnAddr);
+        if (!git->constantBound) {
+	    parsing_printf("\t not a constant bound, skip\n");
+	    continue;
+        }	    
 
         ParseAPI::Block *guardBlock = git->block;
 	// Note that the guardBlock and the srcBlock can be the same, 
 	// but since the conditional jump will always be the last instruction
 	// in the block, if they are in the same block, the src can reach the guard
-	if (rf.incoming[guardBlock].find(srcBlock) == rf.incoming[guardBlock].end()) continue;
+	if (src != Node::Ptr() && rf.incoming[guardBlock].find(srcBlock) == rf.incoming[guardBlock].end()) {
+	    parsing_printf("\t this guard is not between the source block %lx and the target %lx, skip\n", srcBlock->start(), guardBlock->start());
+	    continue;
+        }	    
 	bool pred_taken = rf.branch_taken[guardBlock].find(trgBlock) != rf.branch_taken[guardBlock].end();
 	bool pred_ft = rf.branch_ft[guardBlock].find(trgBlock) != rf.branch_ft[guardBlock].end();
 	parsing_printf("pred_taken : %d, pred_ft: %d\n", pred_taken, pred_ft);
@@ -120,24 +127,33 @@ void BoundFactsCalculator::Meet(Node::Ptr curNode) {
 
     NodeIterator gbegin, gend;
     curNode->ins(gbegin, gend);    
-    BoundFact &curFact = boundFacts[curNode.get()];
+    BoundFact &curFact = boundFacts[curNode];
+    parsing_printf("curFact Fact right after fecting from the map is\n");
+    curFact.Print();
 
     if (gbegin != gend) {
         bool first = true;	
 	for (; gbegin != gend; ++gbegin) {
+	    parsing_printf("curFact Fact before the change is\n");
+	    curFact.Print();
+
 	    SliceNode::Ptr meetSliceNode = boost::static_pointer_cast<SliceNode>(*gbegin);          
 	    if (defined.find(*gbegin) == defined.end()) {
 	        parsing_printf("\tIncoming node %lx has not been calculated yet\n", meetSliceNode->addr());
 		continue;
 	    }
 	    parsing_printf("\tMeet incoming edge from %lx\n", meetSliceNode->addr());
-	    BoundFact prevFact = boundFacts[(*gbegin).get()]; 
+	    BoundFact prevFact = boundFacts[(*gbegin)]; 
 	    ConditionalJumpBound(prevFact, *gbegin, curNode);
 	    if (first) {
 	        first = false;
 		curFact = prevFact;
-	    } else
+	    } else {
 	        curFact.Intersect(prevFact);
+	    }
+	    parsing_printf("curFact Fact after the change is\n");
+	    curFact.Print();
+
 	}
     } else {
         ConditionalJumpBound(curFact, Node::Ptr(), curNode);
@@ -151,7 +167,8 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode){
     SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);    
     AbsRegion &ar = node->assign()->out();
 
-    BoundFact &curFact = boundFacts[curNode.get()];
+    BoundFact &curFact = boundFacts[curNode];
+    parsing_printf("### size of BoundValue is %d\n", sizeof(BoundValue));
     parsing_printf("Expanding assignment %s in instruction at %lx: %s.\n", node->assign()->format().c_str(), node->addr(), node->assign()->insn()->format().c_str());
     pair<AST::Ptr, bool> expandRet = SymEval::expand(node->assign(), false);
 
@@ -183,6 +200,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode){
     }
     parsing_printf("Calculating transfer function: Output facts\n");
     curFact.Print();
+
 }						
 
 

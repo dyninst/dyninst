@@ -3,14 +3,16 @@
 
 #include "Absloc.h"
 #include "Node.h"
+#include "debug_parse.h"
 
 using namespace std;
 using namespace Dyninst;
+using namespace Dyninst::ParseAPI;
 using namespace Dyninst::DataflowAPI;
 
 
 typedef enum {
-    Equal, LessThan
+    Undefined, Equal, LessThan
 } BoundType;
 
 struct BoundValue {
@@ -21,16 +23,36 @@ struct BoundValue {
     int coe;
     uint64_t tableBase, targetBase;
     bool tableLookup, tableOffset, posi;
-    BoundValue(BoundType t, uint64_t val, int c, uint64_t tableB, uint64_t tarB, bool tl, bool to, bool p = true): 
-        type(t), value(val), coe(c), tableBase(tableB), targetBase(tarB), tableLookup(tl), tableOffset(to), posi(p) {}
+    BoundValue(BoundType t, uint64_t val): 
+        type(t), value(val), coe(1), tableBase(0), targetBase(0), tableLookup(false), tableOffset(false), posi(true) {}
     BoundValue(): 
-        type(Equal), value(0), coe(1), tableBase(0), targetBase(0), tableLookup(false), tableOffset(false), posi(false) {}
+        type(Undefined), value(0), coe(1), tableBase(0), targetBase(0), tableLookup(false), tableOffset(false), posi(true) {}
+    BoundValue(const BoundValue & bv):
+        type(bv.type), value(bv.value), coe(bv.coe),
+	tableBase(bv.tableBase), targetBase(bv.targetBase),
+	tableLookup(bv.tableLookup), tableOffset(bv.tableOffset),
+	posi(bv.posi) {parsing_printf("Inside BoundValue copy constructor: tableLookup %d\n", tableLookup);}
+
+    BoundValue& operator = (const BoundValue &bv) {
+        type = bv.type;
+	value = bv.value;
+	coe = bv.coe;
+	tableBase = bv.tableBase;
+	targetBase = bv.targetBase;
+	tableLookup = bv.tableLookup;
+	tableOffset = bv.tableOffset;
+	posi = bv.posi;
+	parsing_printf("Inside operator = \n", tableLookup);
+
+	return *this;
+    }
 
     bool operator< (const BoundValue &bv) const { return value < bv.value; }
     bool operator== (const BoundValue &bv) const;
     bool CoeBounded() {return (coe == 4) || (coe == 8); }
     bool HasTableBase() {return tableBase != 0;}
     bool HasTargetBase() {return targetBase != 0; }
+    void Print();
 };
 
 struct BoundFact {
@@ -56,9 +78,11 @@ struct BoundFact {
     void Print();
     void CheckCmpValidity(const MachRegister &reg);
     bool CMPBoundMatch(AST* ast);
+
+    BoundFact();
 };
 
-typedef map<Node*, BoundFact> BoundFactsType;
+typedef map<Node::Ptr, BoundFact> BoundFactsType;
 
 
 #endif
