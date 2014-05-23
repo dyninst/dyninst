@@ -1341,6 +1341,8 @@ bool DwarfWalker::findFuncName() {
    Dwarf_Attribute linkageNameAttr;
 
    int status = dwarf_attr(entry(), DW_AT_MIPS_linkage_name, &linkageNameAttr, NULL);
+   if (status != DW_DLV_OK)
+      status = dwarf_attr(entry(), DW_AT_linkage_name, &linkageNameAttr, NULL);
    DWARF_CHECK_RET(status == DW_DLV_ERROR);
    if ( status == DW_DLV_OK )  {
       DWARF_FAIL_RET(dwarf_formstring( linkageNameAttr, &dwarfName, NULL ));

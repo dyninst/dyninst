@@ -2552,6 +2552,8 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
             /* Prefer the linkage (symbol table) name. */
             Dwarf_Attribute linkageNameAttribute;
             status = dwarf_attr(nameEntry, DW_AT_MIPS_linkage_name, &linkageNameAttribute, NULL);
+            if (status != DW_DLV_OK)
+               status = dwarf_attr(nameEntry, DW_AT_linkage_name, &linkageNameAttribute, NULL);
             if (status == DW_DLV_ERROR) goto error;
 
             bool hasLinkageName = false;
@@ -2759,6 +2761,8 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
 
             Dwarf_Attribute linkageNameAttribute;
             status = dwarf_attr(nameEntry, DW_AT_MIPS_linkage_name, &linkageNameAttribute, NULL);
+            if (status != DW_DLV_OK)
+               status = dwarf_attr(nameEntry, DW_AT_linkage_name, &linkageNameAttribute, NULL);
             if (status == DW_DLV_ERROR) goto error;
 
             if ( status == DW_DLV_OK ) 
