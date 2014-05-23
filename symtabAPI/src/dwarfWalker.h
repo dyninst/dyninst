@@ -116,7 +116,7 @@ class DwarfWalker {
               Address lowpc);
 
    // Takes current debug state as represented by dbg_;
-   bool parseModule(Module *&fixUnknownMod);
+   bool parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod);
    
    // Non-recursive version of parse
    // A Context must be provided as an _input_ to this function,
@@ -250,7 +250,8 @@ class DwarfWalker {
                                           std::vector<VariableLocation> &locs);
    typeArray *parseMultiDimensionalArray(Dwarf_Die firstRange,
                                          Type *elementType);
-   bool decipherBound(Dwarf_Attribute boundAttribute, std::string &name);
+   bool decipherBound(Dwarf_Attribute boundAttribute, Dwarf_Bool is_info,
+                      std::string &name);
 
    bool decodeExpression(Dwarf_Attribute &attr,
 			 std::vector<VariableLocation> &locs);

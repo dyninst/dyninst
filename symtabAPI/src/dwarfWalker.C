@@ -81,10 +81,12 @@ bool DwarfWalker::parse() {
     * following CU is already reported in next_cu_header.
     */
    compile_offset = 0;
+
+   /* Only .debug_info for now, not .debug_types */
+   Dwarf_Bool is_info = 1;
    
    /* Iterate over the compilation-unit headers. */
-   while (dwarf_next_cu_header_c(dbg(),
-                                 (Dwarf_Bool) 1, // Operate on .debug_info, not .debug_types
+   while (dwarf_next_cu_header_c(dbg(), is_info,
                                  &cu_header_length,
                                  &version,
                                  &abbrev_offset,
@@ -95,7 +97,7 @@ bool DwarfWalker::parse() {
                                  &typeoffset,
                                  &next_cu_header, NULL) == DW_DLV_OK ) {
       contexts_.push();
-      bool ret = parseModule(fixUnknownMod);
+      bool ret = parseModule(is_info, fixUnknownMod);
       contexts_.pop();
       if (!ret) return false;
       compile_offset = next_cu_header;
@@ -132,10 +134,10 @@ bool DwarfWalker::parse() {
    return true;
 }
 
-bool DwarfWalker::parseModule(Module *&fixUnknownMod) {
+bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
    /* Obtain the module DIE. */
    Dwarf_Die moduleDIE;
-   DWARF_FAIL_RET(dwarf_siblingof( dbg(), NULL, &moduleDIE, NULL ));
+   DWARF_FAIL_RET(dwarf_siblingof_b( dbg(), NULL, is_info, &moduleDIE, NULL ));
    
    /* Make sure we've got the right one. */
    Dwarf_Half moduleTag;
@@ -369,7 +371,8 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
 
       dwarf_printf("(0x%lx) Asking for sibling\n", id());
       Dwarf_Die siblingDwarf;
-      int status =  dwarf_siblingof( dbg(), entry(), & siblingDwarf, NULL );
+      Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry());
+      int status =  dwarf_siblingof_b( dbg(), entry(), is_info, & siblingDwarf, NULL );
 
       DWARF_CHECK_RET(status == DW_DLV_ERROR);
       
@@ -1273,7 +1276,8 @@ bool DwarfWalker::handleAbstractOrigin(bool &isAbstract) {
    Dwarf_Off abstractOffset;
    DWARF_FAIL_RET(dwarf_global_formref( abstractAttribute, & abstractOffset, NULL ));
    
-   DWARF_FAIL_RET(dwarf_offdie( dbg(), abstractOffset, & absE, NULL));
+   Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry());
+   DWARF_FAIL_RET(dwarf_offdie_b( dbg(), abstractOffset, is_info, & absE, NULL));
    
    dwarf_dealloc( dbg() , abstractAttribute, DW_DLA_ATTR );
    
@@ -1303,7 +1307,8 @@ bool DwarfWalker::handleSpecification(bool &hasSpec) {
    Dwarf_Off specOffset;
    DWARF_FAIL_RET(dwarf_global_formref( specAttribute, & specOffset, NULL ));
    
-   DWARF_FAIL_RET(dwarf_offdie( dbg(), specOffset, & specE, NULL ));
+   Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry());
+   DWARF_FAIL_RET(dwarf_offdie_b( dbg(), specOffset, is_info, & specE, NULL ));
    
    dwarf_dealloc( dbg(), specAttribute, DW_DLA_ATTR );
 
@@ -1880,11 +1885,12 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
    
    /* Look for the lower bound. */
    Dwarf_Attribute lowerBoundAttribute;
+   Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry);
    int status = dwarf_attr( entry, DW_AT_lower_bound, & lowerBoundAttribute, NULL );
    DWARF_CHECK_RET(status == DW_DLV_ERROR);
    
    if ( status == DW_DLV_OK ) {
-      if (!decipherBound(lowerBoundAttribute, loBound )) return false;
+      if (!decipherBound(lowerBoundAttribute, is_info, loBound )) return false;
       dwarf_dealloc( dbg(), lowerBoundAttribute, DW_DLA_ATTR );
    } /* end if we found a lower bound. */
    
@@ -1899,7 +1905,7 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
    }
 
    if ( status == DW_DLV_OK ) {
-      if (!decipherBound(upperBoundAttribute, hiBound )) return false;
+      if (!decipherBound(upperBoundAttribute, is_info, hiBound )) return false;
       dwarf_dealloc( dbg(), upperBoundAttribute, DW_DLA_ATTR );
    } /* end if we found an upper bound or count. */
    
@@ -1949,7 +1955,8 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
 
   /* Does the recursion continue? */
   Dwarf_Die nextSibling;
-  int status = dwarf_siblingof( dbg(), range, & nextSibling, NULL );
+  Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(range);
+  int status = dwarf_siblingof_b( dbg(), range, is_info, & nextSibling, NULL );
   DWARF_CHECK_RET_VAL(status == DW_DLV_ERROR, NULL);
 
   snprintf(buf, 31, "__array%d", (int) offset());
@@ -1984,7 +1991,9 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
   return outerType;
 } /* end parseMultiDimensionalArray() */
 
-bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, std::string &boundString ) {
+bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, Dwarf_Bool is_info,
+                                std::string &boundString )
+{
    Dwarf_Half boundForm;
    DWARF_FAIL_RET(dwarf_whatform( boundAttribute, & boundForm, NULL ));
    
@@ -2031,7 +2040,7 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, std::string &bou
          DWARF_FAIL_RET(dwarf_global_formref( boundAttribute, & boundOffset, NULL ));
          
          Dwarf_Die boundEntry;
-         DWARF_FAIL_RET(dwarf_offdie( dbg(), boundOffset, & boundEntry, NULL ));
+         DWARF_FAIL_RET(dwarf_offdie_b( dbg(), boundOffset, is_info, & boundEntry, NULL ));
          
       /* Does it have a name? */
          char * boundName = NULL;
