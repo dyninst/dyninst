@@ -72,6 +72,15 @@ bool DwarfWalker::parse() {
    /* Start the dwarven debugging. */
    Module *fixUnknownMod = NULL;
    mod_ = NULL;
+
+   /* NB: parseModule used to compute compile_offset as 11 bytes before the
+    * first die offset, to account for the header.  This would need 23 bytes
+    * instead for 64-bit format DWARF, and even more for type units.
+    * (See DWARF4 sections 7.4 & 7.5.1.)
+    * But more directly, we know the first CU is just at 0x0, and each
+    * following CU is already reported in next_cu_header.
+    */
+   compile_offset = 0;
    
    /* Iterate over the compilation-unit headers. */
    while (dwarf_next_cu_header_c(dbg(),
@@ -89,6 +98,7 @@ bool DwarfWalker::parse() {
       bool ret = parseModule(fixUnknownMod);
       contexts_.pop();
       if (!ret) return false;
+      compile_offset = next_cu_header;
    }
    
    if (!fixUnknownMod)
@@ -130,13 +140,6 @@ bool DwarfWalker::parseModule(Module *&fixUnknownMod) {
    /* Make sure we've got the right one. */
    Dwarf_Half moduleTag;
    DWARF_FAIL_RET(dwarf_tag( moduleDIE, & moduleTag, NULL ));
-
-   /* Get its offset */
-   Dwarf_Off dieOffset;
-   DWARF_FAIL_RET(dwarf_dieoffset( moduleDIE, &dieOffset, NULL));
-   // By observation, the module always starts 0xb into the header.
-   // Someday we should dig out a direct way of doing this. 
-   compile_offset = (dieOffset - 0xb);
 
    if (moduleTag != DW_TAG_compile_unit) return false;
    
