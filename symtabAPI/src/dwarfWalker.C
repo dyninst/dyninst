@@ -200,8 +200,6 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
 
    if (!parse_int(moduleDIE, true)) return false;
 
-   enclosureMap.clear();
-
    return true;
 
 } 
@@ -254,9 +252,6 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
                    curFunc()->getAllMangledNames()[0].c_str() : "<null>",
                    curEnclosure());
 
-      // Insert only inserts the first time; we need that behavior
-      enclosureMap.insert(std::make_pair(offset(), curEnclosure()));
-      
       bool ret = false;
       
    // BLUEGENE BUG HACK

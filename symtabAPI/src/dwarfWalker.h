@@ -269,9 +269,6 @@ class DwarfWalker {
    // to handle a bug where they don't finish off functions. 
    void clearFunc() { contexts_.clearFunc(); }
 
-   // Track which enclosure (array, struct, class, etc.) contains the current
-   // dwarf parsee
-   std::map<Dwarf_Off, fieldListType *> enclosureMap;
    // Header-only functions get multiple parsed.
    std::set<FunctionBase *> parsedFuncs;
    
