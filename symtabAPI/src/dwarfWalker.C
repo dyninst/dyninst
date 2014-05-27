@@ -73,34 +73,36 @@ bool DwarfWalker::parse() {
    Module *fixUnknownMod = NULL;
    mod_ = NULL;
 
-   /* NB: parseModule used to compute compile_offset as 11 bytes before the
-    * first die offset, to account for the header.  This would need 23 bytes
-    * instead for 64-bit format DWARF, and even more for type units.
-    * (See DWARF4 sections 7.4 & 7.5.1.)
-    * But more directly, we know the first CU is just at 0x0, and each
-    * following CU is already reported in next_cu_header.
-    */
-   compile_offset = 0;
+   /* First .debug_types (0), then .debug_info (1) */
+   for (int i = 0; i < 2; ++i) {
+      Dwarf_Bool is_info = i;
 
-   /* Only .debug_info for now, not .debug_types */
-   Dwarf_Bool is_info = 1;
-   
-   /* Iterate over the compilation-unit headers. */
-   while (dwarf_next_cu_header_c(dbg(), is_info,
-                                 &cu_header_length,
-                                 &version,
-                                 &abbrev_offset,
-                                 &addr_size,
-                                 &offset_size,
-                                 &extension_size,
-                                 &signature,
-                                 &typeoffset,
-                                 &next_cu_header, NULL) == DW_DLV_OK ) {
-      contexts_.push();
-      bool ret = parseModule(is_info, fixUnknownMod);
-      contexts_.pop();
-      if (!ret) return false;
-      compile_offset = next_cu_header;
+      /* NB: parseModule used to compute compile_offset as 11 bytes before the
+       * first die offset, to account for the header.  This would need 23 bytes
+       * instead for 64-bit format DWARF, and even more for type units.
+       * (See DWARF4 sections 7.4 & 7.5.1.)
+       * But more directly, we know the first CU is just at 0x0, and each
+       * following CU is already reported in next_cu_header.
+       */
+      compile_offset = next_cu_header = 0;
+
+      /* Iterate over the compilation-unit headers. */
+      while (dwarf_next_cu_header_c(dbg(), is_info,
+                                    &cu_header_length,
+                                    &version,
+                                    &abbrev_offset,
+                                    &addr_size,
+                                    &offset_size,
+                                    &extension_size,
+                                    &signature,
+                                    &typeoffset,
+                                    &next_cu_header, NULL) == DW_DLV_OK ) {
+         contexts_.push();
+         bool ret = parseModule(is_info, fixUnknownMod);
+         contexts_.pop();
+         if (!ret) return false;
+         compile_offset = next_cu_header;
+      }
    }
    
    if (!fixUnknownMod)
@@ -143,7 +145,9 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
    Dwarf_Half moduleTag;
    DWARF_FAIL_RET(dwarf_tag( moduleDIE, & moduleTag, NULL ));
 
-   if (moduleTag != DW_TAG_compile_unit) return false;
+   if (moduleTag != DW_TAG_compile_unit
+         && moduleTag != DW_TAG_type_unit)
+      return false;
    
    /* Extract the name of this module. */
    std::string moduleName;
