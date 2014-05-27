@@ -691,7 +691,7 @@ bool DwarfWalker::parseCommonBlock() {
 
    commonBlockType = dynamic_cast<typeCommon *>(tc()->findVariableType(commonBlockName));
    if (commonBlockType == NULL) {
-      commonBlockType = new typeCommon( (typeId_t) offset(), commonBlockName );
+      commonBlockType = new typeCommon( type_id(), commonBlockName );
       assert( commonBlockType != NULL );
       tc()->addGlobalVariable( commonBlockName, commonBlockType );
    }	
@@ -911,7 +911,7 @@ bool DwarfWalker::parseBaseType() {
    /* Generate the appropriate built-in type; since there's no
       reliable way to distinguish between a built-in and a scalar,
       we don't bother to try. */
-   typeScalar * baseType = new typeScalar( (typeId_t) offset(), (unsigned int) size, curName());
+   typeScalar * baseType = new typeScalar( type_id(), (unsigned int) size, curName());
    assert( baseType != NULL );
    
    /* Add the basic type to our collection. */
@@ -938,7 +938,7 @@ bool DwarfWalker::parseTypedef() {
       if (!fixName(curName(), referencedType)) return false;
    }
 
-   typeTypedef * typedefType = new typeTypedef( (typeId_t) offset(), referencedType, curName());
+   typeTypedef * typedefType = new typeTypedef( type_id(), referencedType, curName());
    typedefType = tc()->addOrUpdateType( typedefType );
 
    return true;
@@ -993,7 +993,7 @@ bool DwarfWalker::parseArray() {
                 baseArrayType->getLow(), 
                 baseArrayType->getHigh(),
                 curName().c_str());
-   typeArray *arrayType = new typeArray( (typeId_t) offset(),
+   typeArray *arrayType = new typeArray( type_id(),
                                          baseArrayType->getBaseType(), 
                                          baseArrayType->getLow(),
                                          baseArrayType->getHigh(), 
@@ -1022,7 +1022,7 @@ bool DwarfWalker::parseEnum() {
    dwarf_printf("(0x%lx) parseEnum entry\n", id());
    if (!findName(curName())) return false;
 
-   typeEnum* enumerationType = new typeEnum( (typeId_t) offset(), curName());
+   typeEnum* enumerationType = new typeEnum( type_id(), curName());
    assert( enumerationType != NULL );
    enumerationType = dynamic_cast<typeEnum *>(tc()->addOrUpdateType( enumerationType ));
 
@@ -1074,13 +1074,13 @@ bool DwarfWalker::parseStructUnionClass() {
    switch ( tag() ) {
       case DW_TAG_structure_type: 
       case DW_TAG_class_type: {
-         typeStruct *ts = new typeStruct( (typeId_t) offset(), curName());
+         typeStruct *ts = new typeStruct( type_id(), curName());
          containingType = dynamic_cast<fieldListType *>(tc()->addOrUpdateType(ts));
          break;
       }
       case DW_TAG_union_type: 
       {
-         typeUnion *tu = new typeUnion( (typeId_t) offset(), curName());
+         typeUnion *tu = new typeUnion( type_id(), curName());
          containingType = dynamic_cast<fieldListType *>(tc()->addOrUpdateType(tu));
          break;
       }
@@ -1154,7 +1154,7 @@ bool DwarfWalker::parseConstPackedVolatile() {
       if (!fixName(curName(), type)) return false;
    }
 
-   typeTypedef * modifierType = new typeTypedef((typeId_t) offset(), type, curName());
+   typeTypedef * modifierType = new typeTypedef(type_id(), type, curName());
    assert( modifierType != NULL );
    modifierType = tc()->addOrUpdateType( modifierType );
    return true;
@@ -1171,16 +1171,16 @@ bool DwarfWalker::parseTypeReferences() {
    Type * indirectType = NULL;
    switch ( tag() ) {
       case DW_TAG_subroutine_type:
-         indirectType = new typeFunction((typeId_t) offset(), typePointedTo, curName());
+         indirectType = new typeFunction(type_id(), typePointedTo, curName());
          indirectType = tc()->addOrUpdateType((typeFunction *) indirectType );
          break;
       case DW_TAG_ptr_to_member_type:
       case DW_TAG_pointer_type:
-         indirectType = new typePointer((typeId_t) offset(), typePointedTo, curName());
+         indirectType = new typePointer(type_id(), typePointedTo, curName());
          indirectType = tc()->addOrUpdateType((typePointer *) indirectType );
          break;
       case DW_TAG_reference_type:
-         indirectType = new typeRef((typeId_t) offset(), typePointedTo, curName());
+         indirectType = new typeRef(type_id(), typePointedTo, curName());
          indirectType = tc()->addOrUpdateType((typeRef *) indirectType );
          break;
       default:
@@ -1378,10 +1378,13 @@ bool DwarfWalker::getReturnType(bool hasSpecification, Type *&returnType) {
    Dwarf_Attribute typeAttribute;
    int status = DW_DLV_OK;
 
+   Dwarf_Bool is_info = true;
    if (hasSpecification) {
+      is_info = dwarf_get_die_infotypes_flag(specEntry());
       status = dwarf_attr( specEntry(), DW_AT_type, & typeAttribute, NULL );
    }   
    if (!hasSpecification || (status == DW_DLV_NO_ENTRY)) {
+      is_info = dwarf_get_die_infotypes_flag(entry());
       status = dwarf_attr( entry(), DW_AT_type, & typeAttribute, NULL );
    }
 
@@ -1397,7 +1400,8 @@ bool DwarfWalker::getReturnType(bool hasSpecification, Type *&returnType) {
    Dwarf_Off typeOffset;
    
    DWARF_FAIL_RET(dwarf_global_formref( typeAttribute, & typeOffset, NULL ));
-   returnType = tc()->findOrCreateType( (int) typeOffset );
+   typeId_t type_id = get_type_id(typeOffset, is_info);
+   returnType = tc()->findOrCreateType( type_id );
    dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
 
    return true;
@@ -1427,7 +1431,7 @@ bool DwarfWalker::addFuncToContainer(Type *returnType) {
       }
    }
 
-   typeFunction *funcType = new typeFunction( (typeId_t) offset(), returnType, toUse);
+   typeFunction *funcType = new typeFunction( type_id(), returnType, toUse);
    curEnclosure()->addField( toUse, funcType);
    free( demangledName );
    return true;
@@ -1450,14 +1454,18 @@ bool DwarfWalker::findType(Type *&type, bool defaultToVoid) {
 
    Dwarf_Off typeOffset;
    DWARF_FAIL_RET(dwarf_global_formref( typeAttribute, & typeOffset, NULL ));
+
+   Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(specEntry());
+   typeId_t type_id = get_type_id(typeOffset, is_info);
+
    dwarf_printf("(0x%lx) Returned type offset 0x%x\n", id(), (int) typeOffset);
    /* The typeOffset forms a module-unique type identifier,
       so the Type look-ups by it rather than name. */
-   type = tc()->findOrCreateType( (int) typeOffset );
-   dwarf_printf("(0x%lx) Returning type %p / %s for id 0x%lx\n", 
+   type = tc()->findOrCreateType( type_id );
+   dwarf_printf("(0x%lx) Returning type %p / %s for id 0x%x\n", 
                 id(), 
                 type, type->getName().c_str(),
-                (long) typeOffset);
+                type_id);
    dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
    return true;
 }
@@ -1914,7 +1922,8 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
 
    Dwarf_Off subrangeOffset;
    DWARF_ERROR_RET(dwarf_dieoffset( entry, & subrangeOffset, NULL ));
-   
+   typeId_t type_id = get_type_id(subrangeOffset, is_info);
+
    errno = 0;
    unsigned long low_conv = strtoul(loBound.c_str(), NULL, 10);
    if (errno) {
@@ -1927,9 +1936,9 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
       hi_conv = LONG_MAX;
    }  
    dwarf_printf("(0x%lx) Adding subrange type: id %d, low %ld, high %ld, named %s\n",
-                id(), (int) subrangeOffset, 
+                id(), type_id, 
                 low_conv, hi_conv, curName().c_str());
-   typeSubrange * rangeType = new typeSubrange( (int) subrangeOffset, 
+   typeSubrange * rangeType = new typeSubrange( type_id, 
                                                 0, low_conv, hi_conv, curName() );
    assert( rangeType != NULL );
    rangeType = tc()->addOrUpdateType( rangeType );
@@ -2278,4 +2287,22 @@ void DwarfWalker::Contexts::clearFunc() {
     c.top().func = NULL;
     repl.pop();
   }
+}
+
+typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
+{
+  auto key = make_pair(offset, is_info);
+  auto it = type_ids_.find(key);
+  if (it != type_ids_.end())
+    return it->second;
+
+  typeId_t id = (typeId_t) type_ids_.size();
+  type_ids_[key] = id;
+  return id;
+}
+
+typeId_t DwarfWalker::type_id()
+{
+  Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry());
+  return get_type_id(offset(), is_info);
 }

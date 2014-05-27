@@ -300,6 +300,11 @@ class DwarfWalker {
    // we need to subtract a "header overall offset". 
    Dwarf_Off compile_offset;
 
+   // Type IDs are just int, but Dwarf_Off is 64-bit and may be relative to
+   // either .debug_info or .debug_types.
+   std::map<std::pair<Dwarf_Off, bool>, int> type_ids_; // offset+is_info -> id
+   typeId_t get_type_id(Dwarf_Off offset, bool is_info);
+   typeId_t type_id(); // get_type_id() for the current entry
 };
 
 };
