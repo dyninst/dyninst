@@ -246,7 +246,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
    // We escape the loop by checking parseSibling() after 
    // parsing this DIE and its children, if any
    while(1) {
-      contexts_.push();
+      ContextGuard cg(contexts_);
 
       setEntry(e);
       setParseSibling(p);
@@ -378,7 +378,6 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
 
       if (!parseSibling()) {
          dwarf_printf("(0x%lx) Skipping sibling parse\n", id());
-         contexts_.pop();
          break;
       }
 
@@ -391,8 +390,6 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       
       /* Deallocate the entry we just parsed. */
       dwarf_dealloc( dbg(), entry(), DW_DLA_DIE );
-
-      contexts_.pop();
 
       if (status != DW_DLV_OK) {
          break;

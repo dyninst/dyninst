@@ -98,6 +98,12 @@ class DwarfWalker {
       void clearFunc();
    };
 
+   struct ContextGuard {
+     Contexts& c;
+     ContextGuard(Contexts& c): c(c) { c.push(); }
+     ~ContextGuard() { c.pop(); }
+   };
+
   public:
    typedef enum {
       NoError
