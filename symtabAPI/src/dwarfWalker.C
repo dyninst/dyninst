@@ -73,6 +73,9 @@ bool DwarfWalker::parse() {
    Module *fixUnknownMod = NULL;
    mod_ = NULL;
 
+   /* Prepopulate type signatures for DW_FORM_ref_sig8 */
+   findAllSig8Types();
+
    /* First .debug_types (0), then .debug_info (1) */
    for (int i = 0; i < 2; ++i) {
       Dwarf_Bool is_info = i;
@@ -1401,14 +1404,10 @@ bool DwarfWalker::getReturnType(bool hasSpecification, Type *&returnType) {
 
    /* There's a return type attribute. */
    dwarf_printf("(0x%lx) Return type is not void\n", id());
-   Dwarf_Off typeOffset;
-   
-   DWARF_FAIL_RET(dwarf_global_formref( typeAttribute, & typeOffset, NULL ));
-   typeId_t type_id = get_type_id(typeOffset, is_info);
-   returnType = tc()->findOrCreateType( type_id );
-   dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
 
-   return true;
+   bool ret = findAnyType( typeAttribute, is_info, returnType );
+   dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
+   return ret;
 }
 
 // I'm not sure how the provided fieldListType is different from curEnclosure(),
@@ -1456,10 +1455,37 @@ bool DwarfWalker::findType(Type *&type, bool defaultToVoid) {
       return true;
    }
 
+   Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(specEntry());
+
+   bool ret = findAnyType( typeAttribute, is_info, type );
+   dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
+   return ret;
+}
+
+bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
+                              Dwarf_Bool is_info, Type *&type) {
+   /* If this is a ref_sig8, look for the type elsewhere. */
+   Dwarf_Half form;
+   DWARF_FAIL_RET(dwarf_whatform(typeAttribute, &form, NULL));
+   if (form == DW_FORM_ref_sig8) {
+      Dwarf_Sig8 signature;
+      DWARF_FAIL_RET(dwarf_formsig8(typeAttribute, &signature, NULL));
+      return findSig8Type(&signature, type);
+   }
+
    Dwarf_Off typeOffset;
    DWARF_FAIL_RET(dwarf_global_formref( typeAttribute, & typeOffset, NULL ));
 
-   Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(specEntry());
+   /* NB: It's possible for an incomplete type to have a DW_AT_signature
+    * reference to a complete definition.  For example, GCC may output just the
+    * subprograms for a struct's methods in one CU, with the full struct
+    * defined in a type unit.
+    *
+    * No DW_AT_type has been found referencing an incomplete type this way,
+    * but if it did, here's the place to look for that DW_AT_signature and
+    * recurse into findAnyType again.
+    */
+
    typeId_t type_id = get_type_id(typeOffset, is_info);
 
    dwarf_printf("(0x%lx) Returned type offset 0x%x\n", id(), (int) typeOffset);
@@ -1470,7 +1496,6 @@ bool DwarfWalker::findType(Type *&type, bool defaultToVoid) {
                 id(), 
                 type, type->getName().c_str(),
                 type_id);
-   dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
    return true;
 }
 
@@ -2309,4 +2334,70 @@ typeId_t DwarfWalker::type_id()
 {
   Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry());
   return get_type_id(offset(), is_info);
+}
+
+void DwarfWalker::findAllSig8Types()
+{
+   /* First .debug_types (0), then .debug_info (1).
+    * In DWARF4, only .debug_types contains DW_TAG_type_unit,
+    * but DWARF5 is considering them for .debug_info too.*/
+   for (int i = 0; i < 2; ++i) {
+      Dwarf_Bool is_info = i;
+      compile_offset = next_cu_header = 0;
+
+      /* Iterate over the compilation-unit headers. */
+      while (dwarf_next_cu_header_c(dbg(), is_info,
+                                    &cu_header_length,
+                                    &version,
+                                    &abbrev_offset,
+                                    &addr_size,
+                                    &offset_size,
+                                    &extension_size,
+                                    &signature,
+                                    &typeoffset,
+                                    &next_cu_header, NULL) == DW_DLV_OK ) {
+         parseModuleSig8(is_info);
+         compile_offset = next_cu_header;
+      }
+   }
+}
+
+bool DwarfWalker::parseModuleSig8(Dwarf_Bool is_info)
+{
+   /* Obtain the type DIE. */
+   Dwarf_Die typeDIE;
+   DWARF_FAIL_RET(dwarf_siblingof_b( dbg(), NULL, is_info, &typeDIE, NULL ));
+
+   /* Make sure we've got the right one. */
+   Dwarf_Half typeTag;
+   DWARF_FAIL_RET(dwarf_tag( typeDIE, & typeTag, NULL ));
+
+   if (typeTag != DW_TAG_type_unit)
+      return false;
+
+   /* typeoffset is relative to the type unit; we want the global offset. */
+   Dwarf_Off cu_off, cu_length;
+   DWARF_FAIL_RET(dwarf_die_CU_offset_range( typeDIE, &cu_off, &cu_length, NULL ));
+
+   uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
+   typeId_t type_id = get_type_id(cu_off + typeoffset, is_info);
+   sig8_type_ids_[sig8] = type_id;
+
+   dwarf_printf("Mapped Sig8 {%016llx} to type id 0x%x\n", (long long) sig8, type_id);
+   return true;
+}
+
+bool DwarfWalker::findSig8Type(Dwarf_Sig8 *signature, Type *&returnType)
+{
+   uint64_t sig8 = * reinterpret_cast<uint64_t*>(signature);
+   auto it = sig8_type_ids_.find(sig8);
+   if (it != sig8_type_ids_.end()) {
+      typeId_t type_id = it->second;
+      returnType = tc()->findOrCreateType( type_id );
+      dwarf_printf("Found Sig8 {%016llx} as type id 0x%x\n", (long long) sig8, type_id);
+      return true;
+   }
+
+   dwarf_printf("Couldn't find Sig8 {%016llx}!\n", (long long) sig8);
+   return false;
 }

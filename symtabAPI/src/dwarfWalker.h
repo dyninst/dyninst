@@ -217,6 +217,8 @@ class DwarfWalker {
    bool getReturnType(bool hasSpecification, Type *&returnType);
    bool addFuncToContainer(Type *returnType);
    bool findType(Type *&, bool defaultToVoid);
+   bool findAnyType(Dwarf_Attribute typeAttribute,
+                    Dwarf_Bool is_info, Type *&type);
    bool getLineInformation(Dwarf_Unsigned &variableLineNo,
                            bool &hasLineNumber,
                            std::string &filename); 
@@ -305,6 +307,12 @@ class DwarfWalker {
    std::map<std::pair<Dwarf_Off, bool>, int> type_ids_; // offset+is_info -> id
    typeId_t get_type_id(Dwarf_Off offset, bool is_info);
    typeId_t type_id(); // get_type_id() for the current entry
+
+   // Map to connect DW_FORM_ref_sig8 to type IDs.
+   std::map<uint64_t, typeId_t> sig8_type_ids_;
+   bool parseModuleSig8(Dwarf_Bool is_info);
+   void findAllSig8Types();
+   bool findSig8Type(Dwarf_Sig8 *signature, Type *&type);
 };
 
 };
