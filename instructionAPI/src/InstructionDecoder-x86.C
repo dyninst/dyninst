@@ -605,10 +605,10 @@ namespace Dyninst
 		    retVal = IntelRegTable(m_Arch,amd64_ext_8,intelReg);
 	            break;
 		case op_v:
-		    if (locs->rex_w)
+		    if (locs->rex_w || isDefault64Insn())
 		        retVal = IntelRegTable(m_Arch, b_amd64ext, intelReg);
 	            else if (!sizePrefixPresent)
-		        retVal = IntelRegTable(m_Arch, b_amd64ext, intelReg);
+		        retVal = IntelRegTable(m_Arch, amd64_ext_32, intelReg);
 		    else
 		        retVal = IntelRegTable(m_Arch, amd64_ext_16, intelReg);
 		    break;	
