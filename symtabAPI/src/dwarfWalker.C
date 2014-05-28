@@ -158,12 +158,18 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
    int status = dwarf_diename( moduleDIE, &tmp, NULL );
    DWARF_CHECK_RET(status == DW_DLV_ERROR);
 
-   if ( status == DW_DLV_NO_ENTRY ) {
-      moduleName = "{ANONYMOUS}";
-   }
-   else {
+   if ( status == DW_DLV_OK ) {
       moduleName = tmp;
       dwarf_dealloc( dbg(), tmp, DW_DLA_STRING );
+   }
+   else if (moduleTag == DW_TAG_type_unit) {
+      uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
+      char buf[20];
+      snprintf(buf, sizeof(buf), "{%016llx}", (long long) sig8);
+      moduleName = buf;
+   }
+   else {
+      moduleName = "{ANONYMOUS}";
    }
 
    dwarf_printf("Next DWARF module: %s with DIE %p and tag %d\n", moduleName.c_str(), moduleDIE, moduleTag);
@@ -342,6 +348,11 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
             break;
          case DW_TAG_compile_unit:
             dwarf_printf("(0x%lx) Compilation unit, parsing children\n", id());
+            // Parse child
+            ret = parseChild();
+            break;
+         case DW_TAG_type_unit:
+            dwarf_printf("(0x%lx) Type unit, parsing children\n", id());
             // Parse child
             ret = parseChild();
             break;
