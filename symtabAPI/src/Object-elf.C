@@ -5603,11 +5603,11 @@ void Object::getSegmentsSymReader(vector<SymSegment> &segs) {
    }
 }
 
-const char* Object::getFileName() const
+std::string Object::getFileName() const
 {
   if(soname_) {
     return soname_;
   }
   
-  return mf->filename().c_str();
+  return mf->filename();
 }

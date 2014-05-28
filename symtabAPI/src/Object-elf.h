@@ -312,7 +312,7 @@ class Object : public AObject {
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
   stab_entry * get_stab_info() const;
-  const char * getFileName() const;
+  std::string getFileName() const;
   void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
   void parseFileLineInfo(Symtab *obj, dyn_hash_map<std::string, LineInformation> &li);
   void parseTypeInfo(Symtab *obj);
