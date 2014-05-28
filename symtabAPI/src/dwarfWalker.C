@@ -1521,6 +1521,11 @@ bool DwarfWalker::getLineInformation(Dwarf_Unsigned &variableLineNo,
       Dwarf_Unsigned fileNameDeclVal;
       DWARF_FAIL_RET(dwarf_formudata(fileDeclAttribute, &fileNameDeclVal, NULL));
       dwarf_dealloc( dbg(), fileDeclAttribute, DW_DLA_ATTR );			
+      if (fileNameDeclVal > srcFiles().size()) {
+         dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
+                      fileNameDeclVal, srcFiles().size());
+         return false;
+      }
       fileName = srcFiles()[fileNameDeclVal-1];
    }
    else {
