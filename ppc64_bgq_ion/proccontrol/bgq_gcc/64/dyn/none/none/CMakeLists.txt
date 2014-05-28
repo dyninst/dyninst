@@ -2,7 +2,7 @@
 set (CMAKE_C_FLAGS "${MUTATOR_DEFINES}  ${CFLAGS} ${MUTATEE_CFLAGS_GNU}   -g -O0 ")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
-set (CMAKE_C_FLAGS_RELWITHDEBUGINFO "")
+set (CMAKE_C_FLAGS_RELWITHDEBINFO "")
 set (CMAKE_C_COMPILER "${M_mpi_cc}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol")

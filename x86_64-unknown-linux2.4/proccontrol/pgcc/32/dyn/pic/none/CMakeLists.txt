@@ -2,7 +2,7 @@
 set (CMAKE_C_FLAGS "${MUTATOR_DEFINES}  ${CFLAGS_NATIVE} ${MUTATEE_CFLAGS_NATIVE}  -tp px -m32 -Di386_unknown_linux2_4 -Dm32_test -g -O0 -KPIC")
 set (CMAKE_C_FLAGS_DEBUG "")
 set (CMAKE_C_FLAGS_RELEASE "")
-set (CMAKE_C_FLAGS_RELWITHDEBUGINFO "")
+set (CMAKE_C_FLAGS_RELWITHDEBINFO "")
 set (CMAKE_C_COMPILER "${M_pg_cc}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol")

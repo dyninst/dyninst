@@ -2,7 +2,7 @@
 set (CMAKE_CXX_FLAGS "${MUTATOR_DEFINES}  ${CXXFLAGS}  ${MUTATEE_CXXFLAGS_GNU}   -Di386_unknown_linux2_4 -Dm32_test -g -O0 -fPIC")
 set (CMAKE_CXX_FLAGS_DEBUG "")
 set (CMAKE_CXX_FLAGS_RELEASE "")
-set (CMAKE_CXX_FLAGS_RELWITHDEBUGINFO "")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "")
 set (CMAKE_CXX_COMPILER "${M_intel_CC_32}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol")

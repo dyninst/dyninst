@@ -92,7 +92,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    out.write("set (CMAKE_%s_FLAGS \"%s\")\n" % (lang, c_flags))
    out.write("set (CMAKE_%s_FLAGS_DEBUG \"\")\n" % lang)
    out.write("set (CMAKE_%s_FLAGS_RELEASE \"\")\n" %lang)
-   out.write("set (CMAKE_%s_FLAGS_RELWITHDEBUGINFO \"\")\n" %lang)
+   out.write("set (CMAKE_%s_FLAGS_RELWITHDEBINFO \"\")\n" %lang)
    out.write("set (CMAKE_%s_COMPILER \"${M_%s}\")\n" % (lang, c_compiler))
 
    out.write ("include_directories(\"${PROJECT_SOURCE_DIR}/testsuite/src\")\n")

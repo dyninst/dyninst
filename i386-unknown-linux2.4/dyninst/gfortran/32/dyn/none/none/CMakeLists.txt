@@ -2,7 +2,7 @@
 set (CMAKE_Fortran_FLAGS "${MUTATOR_DEFINES}  -g ${MUTATEE_G77_FFLAGS}  -g -O0 ")
 set (CMAKE_Fortran_FLAGS_DEBUG "")
 set (CMAKE_Fortran_FLAGS_RELEASE "")
-set (CMAKE_Fortran_FLAGS_RELWITHDEBUGINFO "")
+set (CMAKE_Fortran_FLAGS_RELWITHDEBINFO "")
 set (CMAKE_Fortran_COMPILER "${M_gnu_fc}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/dyninst")

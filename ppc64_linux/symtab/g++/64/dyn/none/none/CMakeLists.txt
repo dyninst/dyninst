@@ -2,7 +2,7 @@
 set (CMAKE_CXX_FLAGS "${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}  -m64 -g -O0 ")
 set (CMAKE_CXX_FLAGS_DEBUG "")
 set (CMAKE_CXX_FLAGS_RELEASE "")
-set (CMAKE_CXX_FLAGS_RELWITHDEBUGINFO "")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "")
 set (CMAKE_CXX_COMPILER "${M_gnu_cxx}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/symtab")
