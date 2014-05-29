@@ -2361,13 +2361,14 @@ void DwarfWalker::Contexts::clearFunc() {
 
 typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
 {
-  auto key = make_pair(offset, is_info);
-  auto it = type_ids_.find(key);
-  if (it != type_ids_.end())
+  auto& type_ids = is_info ? info_type_ids_ : types_type_ids_;
+  auto it = type_ids.find(offset);
+  if (it != type_ids.end())
     return it->second;
 
-  typeId_t id = (typeId_t) type_ids_.size();
-  type_ids_[key] = id;
+  size_t size = info_type_ids_.size() + types_type_ids_.size();
+  typeId_t id = (typeId_t) size;
+  type_ids[offset] = id;
   return id;
 }
 

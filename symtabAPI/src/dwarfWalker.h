@@ -312,12 +312,13 @@ class DwarfWalker {
 
    // Type IDs are just int, but Dwarf_Off is 64-bit and may be relative to
    // either .debug_info or .debug_types.
-   std::map<std::pair<Dwarf_Off, bool>, int> type_ids_; // offset+is_info -> id
+   dyn_hash_map<Dwarf_Off, typeId_t> info_type_ids_; // .debug_info offset -> id
+   dyn_hash_map<Dwarf_Off, typeId_t> types_type_ids_; // .debug_types offset -> id
    typeId_t get_type_id(Dwarf_Off offset, bool is_info);
    typeId_t type_id(); // get_type_id() for the current entry
 
    // Map to connect DW_FORM_ref_sig8 to type IDs.
-   std::map<uint64_t, typeId_t> sig8_type_ids_;
+   dyn_hash_map<uint64_t, typeId_t> sig8_type_ids_;
    bool parseModuleSig8(Dwarf_Bool is_info);
    void findAllSig8Types();
    bool findSig8Type(Dwarf_Sig8 *signature, Type *&type);
