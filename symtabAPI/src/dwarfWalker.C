@@ -2367,7 +2367,7 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
     return it->second;
 
   size_t size = info_type_ids_.size() + types_type_ids_.size();
-  typeId_t id = (typeId_t) size;
+  typeId_t id = (typeId_t) size + 1;
   type_ids[offset] = id;
   return id;
 }
