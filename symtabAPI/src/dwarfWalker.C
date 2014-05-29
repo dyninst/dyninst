@@ -149,6 +149,7 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
    DWARF_FAIL_RET(dwarf_tag( moduleDIE, & moduleTag, NULL ));
 
    if (moduleTag != DW_TAG_compile_unit
+         && moduleTag != DW_TAG_partial_unit
          && moduleTag != DW_TAG_type_unit)
       return false;
    
@@ -348,6 +349,11 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
             break;
          case DW_TAG_compile_unit:
             dwarf_printf("(0x%lx) Compilation unit, parsing children\n", id());
+            // Parse child
+            ret = parseChild();
+            break;
+         case DW_TAG_partial_unit:
+            dwarf_printf("(0x%lx) Partial unit, parsing children\n", id());
             // Parse child
             ret = parseChild();
             break;
