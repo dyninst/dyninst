@@ -155,21 +155,16 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
    
    /* Extract the name of this module. */
    std::string moduleName;
-   char *tmp;
-   int status = dwarf_diename( moduleDIE, &tmp, NULL );
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
+   if (!findDieName( moduleDIE, moduleName )) return false;
 
-   if ( status == DW_DLV_OK ) {
-      moduleName = tmp;
-      dwarf_dealloc( dbg(), tmp, DW_DLA_STRING );
-   }
-   else if (moduleTag == DW_TAG_type_unit) {
+   if (moduleName.empty() && moduleTag == DW_TAG_type_unit) {
       uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
       char buf[20];
       snprintf(buf, sizeof(buf), "{%016llx}", (long long) sig8);
       moduleName = buf;
    }
-   else {
+
+   if (moduleName.empty()) {
       moduleName = "{ANONYMOUS}";
    }
 
@@ -679,9 +674,8 @@ bool DwarfWalker::parseLexicalBlock() {
 bool DwarfWalker::parseCommonBlock() {
    dwarf_printf("(0x%lx) Parsing common block\n", id());
 
-   char * commonBlockName_ptr;
-   DWARF_FAIL_RET(dwarf_diename( entry(), & commonBlockName_ptr, NULL ));
-   std::string commonBlockName = commonBlockName_ptr;
+   std::string commonBlockName;
+   if (!findDieName( entry(), commonBlockName )) return false;
    
    std::vector<Symbol *> commonBlockVars;
    if (!symtab()->findSymbol(commonBlockVars,
@@ -1290,7 +1284,7 @@ bool DwarfWalker::handleAbstractOrigin(bool &isAbstract) {
    DWARF_FAIL_RET(dwarf_attr( entry(), DW_AT_abstract_origin, & abstractAttribute, NULL ));
    
    Dwarf_Off abstractOffset;
-   DWARF_FAIL_RET(dwarf_global_formref( abstractAttribute, & abstractOffset, NULL ));
+   if (!findDieOffset( abstractAttribute, abstractOffset )) return false;
    
    Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry());
    DWARF_FAIL_RET(dwarf_offdie_b( dbg(), abstractOffset, is_info, & absE, NULL));
@@ -1321,7 +1315,7 @@ bool DwarfWalker::handleSpecification(bool &hasSpec) {
    DWARF_FAIL_RET(dwarf_attr( entry(), DW_AT_specification, & specAttribute, NULL ));
    
    Dwarf_Off specOffset;
-   DWARF_FAIL_RET(dwarf_global_formref( specAttribute, & specOffset, NULL ));
+   if (!findDieOffset( specAttribute, specOffset )) return false;
    
    Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry());
    DWARF_FAIL_RET(dwarf_offdie_b( dbg(), specOffset, is_info, & specE, NULL ));
@@ -1333,10 +1327,20 @@ bool DwarfWalker::handleSpecification(bool &hasSpec) {
    return true;
 }
 
-bool DwarfWalker::findName(std::string &name) {
+bool DwarfWalker::findDieName(Dwarf_Die die, std::string &name) {
    char *cname = NULL;
 
-   int status = dwarf_diename( specEntry(), &cname, NULL );     
+   Dwarf_Error error;
+   int status = dwarf_diename( die, &cname, &error );     
+
+   /* Squash errors from unsupported forms, like DW_FORM_GNU_strp_alt. */
+   if (status == DW_DLV_ERROR) {
+      if (dwarf_errno(error) == DW_DLE_ATTR_FORM_BAD) {
+         status = DW_DLV_NO_ENTRY;
+      }
+      dwarf_dealloc( dbg(), error, DW_DLA_ERROR );
+   }
+
    DWARF_CHECK_RET(status == DW_DLV_ERROR);
    if (status != DW_DLV_OK) {
       name = std::string();
@@ -1344,6 +1348,12 @@ bool DwarfWalker::findName(std::string &name) {
    }
 
    name = cname;
+   dwarf_dealloc( dbg(), cname, DW_DLA_STRING );
+   return true;
+}
+
+bool DwarfWalker::findName(std::string &name) {
+   if (!findDieName( specEntry(), name)) return false;
    dwarf_printf("(0x%lx) Found name %s\n", id(), name.c_str());
    return true;
 }
@@ -1369,15 +1379,8 @@ bool DwarfWalker::findFuncName() {
       return true;
    } 
 
-   char *cname = NULL;
-   status = dwarf_diename(entry(), &cname, NULL);
-   if (status == DW_DLV_ERROR || !cname) {
-      curName() = std::string();
-      setMangledName(false);
-      return true;
-   }
+   findDieName( entry(), curName() );
    setMangledName(false);
-   curName() = std::string(cname);
    return true;
 }
 
@@ -1476,6 +1479,32 @@ bool DwarfWalker::findType(Type *&type, bool defaultToVoid) {
    return ret;
 }
 
+bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
+   Dwarf_Half form;
+   DWARF_FAIL_RET(dwarf_whatform( attr, &form, NULL ));
+   switch (form) {
+      /* These forms are suitable as direct DIE offsets */
+      case DW_FORM_ref1:
+      case DW_FORM_ref2:
+      case DW_FORM_ref4:
+      case DW_FORM_ref8:
+      case DW_FORM_ref_udata:
+      case DW_FORM_ref_addr:
+      case DW_FORM_data4:
+      case DW_FORM_data8:
+         DWARF_FAIL_RET(dwarf_global_formref( attr, &offset, NULL ));
+         return true;
+
+      /* Then there's DW_FORM_sec_offset which refer other sections, or
+       * DW_FORM_GNU_ref_alt that refers to a whole different file.  We can't
+       * use such forms as a die offset, even if dwarf_global_formref is
+       * willing to decode it. */
+      default:
+         dwarf_printf("(0x%lx) Can't use form 0x%x as a die offset\n", id(), (int) form);
+         return false;
+   }
+}
+
 bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
                               Dwarf_Bool is_info, Type *&type) {
    /* If this is a ref_sig8, look for the type elsewhere. */
@@ -1488,7 +1517,7 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
    }
 
    Dwarf_Off typeOffset;
-   DWARF_FAIL_RET(dwarf_global_formref( typeAttribute, & typeOffset, NULL ));
+   if (!findDieOffset( typeAttribute, typeOffset )) return false;
 
    /* NB: It's possible for an incomplete type to have a DW_AT_signature
     * reference to a complete definition.  For example, GCC may output just the
@@ -2096,21 +2125,14 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, Dwarf_Bool is_in
          Dwarf_Die boundEntry;
          DWARF_FAIL_RET(dwarf_offdie_b( dbg(), boundOffset, is_info, & boundEntry, NULL ));
          
-      /* Does it have a name? */
-         char * boundName = NULL;
-         int status = dwarf_diename( boundEntry, & boundName, NULL );
-         DWARF_CHECK_RET(status == DW_DLV_ERROR);
-         
-         if ( status == DW_DLV_OK ) {
-            boundString = boundName;
-            
-            dwarf_dealloc( dbg(), boundName, DW_DLA_STRING );
+         /* Does it have a name? */
+         if (findDieName( boundEntry, boundString )
+               && !boundString.empty())
             return true;
-         }
          
          /* Does it describe a nameless constant? */
          Dwarf_Attribute constBoundAttribute;
-         status = dwarf_attr( boundEntry, DW_AT_const_value, & constBoundAttribute, NULL );
+         int status = dwarf_attr( boundEntry, DW_AT_const_value, & constBoundAttribute, NULL );
          DWARF_CHECK_RET(status == DW_DLV_ERROR);
          
          if ( status == DW_DLV_OK ) {

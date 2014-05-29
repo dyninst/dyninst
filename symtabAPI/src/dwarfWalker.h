@@ -225,9 +225,11 @@ class DwarfWalker {
    bool findType(Type *&, bool defaultToVoid);
    bool findAnyType(Dwarf_Attribute typeAttribute,
                     Dwarf_Bool is_info, Type *&type);
+   bool findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset);
    bool getLineInformation(Dwarf_Unsigned &variableLineNo,
                            bool &hasLineNumber,
                            std::string &filename); 
+   bool findDieName(Dwarf_Die die, std::string &);
    bool findName(std::string &);
    void removeFortranUnderscore(std::string &);
    bool findSize(unsigned &size);
