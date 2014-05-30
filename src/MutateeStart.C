@@ -508,7 +508,7 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
 
    bool printed_run = false;
    for (unsigned i = 0; i < group->tests.size(); i++) {
-      if (!group->tests[i]->disabled) {
+      if (!group->tests[i]->disabled && !group->tests[i]->result_reported) {
          if (!printed_run) {
             args.push_back("-run");
             printed_run = true;

@@ -800,7 +800,7 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
             if (groups[i]->tests[j]->disabled) {
                continue;
             }
-            if (cur_test && cur_test % testLimit == 0) {
+            if (cur_test && (cur_test % testLimit == 0)) {
                cur_test_limitgroup++;
             }
             cur_test++;
@@ -817,7 +817,7 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
       for (unsigned i=0; i < groups.size(); i++) 
       {
          if (groups[i]->disabled) continue;
-         if (cur_group && cur_group % groupLimit == 0) {
+         if (cur_group && (cur_group % groupLimit == 0)) {
             cur_limitgroup++;
          }
          cur_group++;
