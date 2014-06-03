@@ -156,7 +156,7 @@ typedef struct {
 
 #define DYNINST_NOT_IN_HASHTABLE ((unsigned)-1)
 
-extern int DYNINST_break_point_event;
+DLLEXPORT extern int DYNINST_break_point_event;
 
 typedef struct {
    void *source;
