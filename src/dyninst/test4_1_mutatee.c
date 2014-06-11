@@ -55,10 +55,14 @@ unsigned int test4_1_global1 = 0xdeadbeef;
 
 int test4_1_mutatee() {
   test4_1_global1 = 1000001;
+  int exit_code = 0;
+  
 #if defined(os_windows_test)
-  exit(GetCurrentProcessId());
+  exit_code = GetCurrentProcessId();
 #else
-  exit(getpid());
+  exit_code = getpid();
 #endif
+  exit(exit_code);
+  
   return 0; /* Unreachable, but stops some compilers from complaining */
 }

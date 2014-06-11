@@ -1051,13 +1051,13 @@ bool verifyChildMemory(BPatch_process *appThread,
 	BPatch_image *appImage = appThread->getImage();
 
 	if (!appImage) {
-		dprintf("unable to locate image for %d\n", appThread->getPid());
+		logerror("unable to locate image for %d\n", appThread->getPid());
 		return false;
 	}
 
 	BPatch_variableExpr *var = appImage->findVariable(name);
 	if (!var) {
-		dprintf("unable to located variable %s in child\n", name);
+		logerror("unable to located variable %s in child\n", name);
 		return false;
 	}
 
@@ -1069,7 +1069,7 @@ bool verifyChildMemory(BPatch_process *appThread,
 				name, expectedVal, actualVal);
 		return false;
 	} else {
-		dprintf("verified %s was = %d\n", name, actualVal);
+		logstatus("verified %s was = %d\n", name, actualVal);
 		return true;
 	}
 }
