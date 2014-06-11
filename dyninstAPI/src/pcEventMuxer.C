@@ -173,21 +173,33 @@ bool PCEventMuxer::registerCallbacks() {
 	// Fork/exec/exit
 	if (useCallback(EventType(EventType::Pre, EventType::Exit))) {
 		ret &= Process::registerEventCallback(EventType(EventType::Pre, EventType::Exit), exitCallback);
+		assert(ret);
+		
 	}
 	if (useCallback(EventType(EventType::Post, EventType::Exit))) {
 		ret &= Process::registerEventCallback(EventType(EventType::Post, EventType::Exit), exitCallback);
+		assert(ret);
+		
 	}
 	if (useCallback(EventType(EventType::Pre, EventType::Fork))) {
 		ret &= Process::registerEventCallback(EventType(EventType::Pre, EventType::Fork), defaultCallback);
+		assert(ret);
+		
 	}
 	if (useCallback(EventType(EventType::Post, EventType::Fork))) {
 		ret &= Process::registerEventCallback(EventType(EventType::Post, EventType::Fork), defaultCallback);
+		assert(ret);
+		
 	}
 	if (useCallback(EventType(EventType::Pre, EventType::Exec))) {
 		ret &= Process::registerEventCallback(EventType(EventType::Pre, EventType::Exec), defaultCallback);
+		assert(ret);
+		
 	}
 	if (useCallback(EventType(EventType::Post, EventType::Exec))) {
 		ret &= Process::registerEventCallback(EventType(EventType::Post, EventType::Exec), defaultCallback);
+		assert(ret);
+		
 	}
 
 
@@ -225,9 +237,9 @@ PCEventMuxer::cb_ret_t PCEventMuxer::defaultCallback(EventPtr ev) {
 PCEventMuxer::cb_ret_t PCEventMuxer::exitCallback(EventPtr ev) {
 	INITIAL_MUXING;
 	proccontrol_printf("[%s:%d] Exit callback\n", FILE__, __LINE__);
-	if (ev->getEventType().time() == EventType::Post) {
-		ret = ret_default;
-	}
+	//if (ev->getEventType().time() == EventType::Post) {
+	//	ret = ret_default;
+	//}
 #if defined(os_windows)
 	// On Windows we only receive post-exit, and as soon as the callback completes
 	// we terminate the process. Thus, we must handle things _right now_. 
