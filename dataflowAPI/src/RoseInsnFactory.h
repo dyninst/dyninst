@@ -83,7 +83,7 @@ namespace DataflowAPI {
     virtual bool handleSpecialCases(entryID opcode, SgAsmInstruction *rinsn, SgAsmOperandList *roperands) = 0;
     virtual void massageOperands(const InstructionPtr &insn, std::vector<InstructionAPI::Operand> &operands) = 0;
 
-    virtual SgAsmExpression *convertOperand(const ExpressionPtr expression, uint64_t addr);
+    virtual SgAsmExpression *convertOperand(const ExpressionPtr expression, int64_t addr, size_t insnSize);
 
     friend class ExpressionConversionVisitor;
 

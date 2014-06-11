@@ -25,7 +25,7 @@ static bool UsePC(Instruction::Ptr insn) {
 
 bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-    parsing_printf("\t tableBase = %lx, tableSize = %lu, tableStride = %d, targetOffset = %lu, tableLookup = %d, tableOffset = %d, posi = %d\n", target.tableBase, target.value, target.coe, target.targetBase, target.tableLookup, target.tableOffset, target.posi);
+    parsing_printf("\t tableBase = %lx, tableSize = %lu, tableStride = %d, targetOffset = %lx, tableLookup = %d, tableOffset = %d, posi = %d\n", target.tableBase, target.value, target.coe, target.targetBase, target.tableLookup, target.tableOffset, target.posi);
 
     if (!block->obj()->cs()->isValidAddress(target.tableBase)) {
         parsing_printf("\ttableBase 0x%lx invalid, returning false\n", target.tableBase);
@@ -72,14 +72,18 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 
 
 bool IndirectControlFlowAnalyzer::EndWithConditionalJump(ParseAPI::Block * b) {
-/*
+
     const unsigned char * buf = (const unsigned char*) b->obj()->cs()->getPtrToInstruction(b->last());
     InstructionDecoder dec(buf, b->end() - b->last(), b->obj()->cs()->getArch());
     Instruction::Ptr insn = dec.decode();
     entryID id = insn->getOperation().getID();
-*/    
-    for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit)
-        if ((*eit)->type() == COND_TAKEN) return true;
+
+    if (id == e_jz || id == e_jnz ||
+        id == e_jb || id == e_jnb ||
+	id == e_jbe || id == e_jnbe) return true;
+   
+//    for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit)
+//        if ((*eit)->type() == COND_TAKEN) return true;
     return false;
 
 }

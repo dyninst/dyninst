@@ -89,15 +89,15 @@ SgAsmInstruction *RoseInsnFactory::convert(const InstructionAPI::Instruction::Pt
        ++opi, ++i) {
       InstructionAPI::Operand &currOperand = *opi;
 //       std::cerr << "Converting operand " << currOperand.format(arch(), addr) << std::endl;
-      roperands->append_operand(convertOperand(currOperand.getValue(), addr));
+      roperands->append_operand(convertOperand(currOperand.getValue(), addr, insn->size()));
   }  
   rinsn->set_operandList(roperands);
   return rinsn;
 }
 
-SgAsmExpression *RoseInsnFactory::convertOperand(const Expression::Ptr expression, uint64_t addr) {
+SgAsmExpression *RoseInsnFactory::convertOperand(const Expression::Ptr expression, int64_t addr, size_t insnSize) {
   if(!expression) return NULL;
-  ExpressionConversionVisitor visitor(arch(), addr);
+  ExpressionConversionVisitor visitor(arch(), addr, insnSize);
   expression->apply(&visitor);
   return visitor.getRoseExpression();
 }

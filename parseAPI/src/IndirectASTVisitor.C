@@ -77,7 +77,8 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
     } else if (ast->getID() == AST::V_VariableAST) {
         VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
 	if (varAST->val().reg.absloc().isPC()) {
-	    MachRegister pc = varAST->val().reg.absloc().reg();	   
+	    MachRegister pc = varAST->val().reg.absloc().reg();
+	    parsing_printf("instruction size %d, ip value %lx, real value %lx\n", insnSize, varAST->val().addr, varAST->val().addr + insnSize);
 	    return ConstantAST::create(Constant(varAST->val().addr + insnSize, getArchAddressWidth(pc.getArchitecture()) * 8));
 	}
 	return VariableAST::create(Variable(varAST->val().reg));

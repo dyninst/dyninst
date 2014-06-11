@@ -26,8 +26,8 @@ void BoundValue::Print() {
     parsing_printf("Bound type %d, ",type );
     parsing_printf("Bound value: %lu, ",value);
     parsing_printf("coe %d, ", coe);
-    parsing_printf("tableBase %lu, ",tableBase);
-    parsing_printf("targetBase %lu, ",targetBase);
+    parsing_printf("tableBase %lx, ",tableBase);
+    parsing_printf("targetBase %lx, ",targetBase);
     parsing_printf("tableLookup %d, ",tableLookup);
     parsing_printf("tableOffset %d, ",tableOffset);
     parsing_printf("add %d\n", posi);

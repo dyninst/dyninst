@@ -100,7 +100,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate* immed) {
 void ExpressionConversionVisitor::visit(RegisterAST* regast) {
   // has no children
   
-  m_stack.push_front(archSpecificRegisterProc(regast, addr));
+  m_stack.push_front(archSpecificRegisterProc(regast, addr, size));
   roseExpression = m_stack.front();
   return;
 }
@@ -154,7 +154,7 @@ void ExpressionConversionVisitor::visit(Dereference* deref) {
   roseExpression = result;
 }
 
-SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast, uint64_t addr)
+SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast, uint64_t addr, uint64_t size)
 {
 
   MachRegister machReg = regast->getID();  
@@ -169,11 +169,13 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
     MachRegister machReg = regast->getID();
     if(machReg.isPC()) {
       // ideally this would be symbolic
+      // When ip is read, the value read is not the address of the current instruction,
+      // but the address of the next instruction.
       SgAsmExpression *constAddrExpr;
       if (arch == Arch_x86) 
-          constAddrExpr = new SgAsmDoubleWordValueExpression(addr);
+          constAddrExpr = new SgAsmDoubleWordValueExpression(addr + size);
       else
-          constAddrExpr = new SgAsmQuadWordValueExpression(addr);
+          constAddrExpr = new SgAsmQuadWordValueExpression(addr + size);
 
       return constAddrExpr;
     } 
