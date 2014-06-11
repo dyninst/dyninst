@@ -172,7 +172,7 @@ ArchEvent *GeneratorLinux::getEvent(bool block)
       else 
          pthrd_printf("Unable to interpret waitpid return.\n");
    }
-
+   
    newevent = new ArchEventLinux(pid, status);
    return newevent;
 }
@@ -386,7 +386,21 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      pthrd_printf("Decoded event to pre-exit on %d/%d\n",
                                   proc->getPid(), thread->getLWP());
                      if (thread->getLWP() == proc->getPid())
-                        event = Event::ptr(new EventExit(EventType::Pre, 0));
+		     {
+		       unsigned long exitcode = 0x0;
+		       int result = do_ptrace((pt_req)PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(),
+					      NULL, &exitcode);
+		       if(result == -1) 
+		       {
+			 perr_printf("Error getting event message from exit\n");
+			 return false;
+		       }
+		       exitcode = WEXITSTATUS(exitcode);
+		       
+		       pthrd_printf("Decoded event to pre-exit of process %d/%d with code %d\n",
+				      proc->getPid(), thread->getLWP(), exitcode);
+		       event = Event::ptr(new EventExit(EventType::Pre, exitcode));
+		     } 
                      else {
                         EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
                         event = lwp_ev;
