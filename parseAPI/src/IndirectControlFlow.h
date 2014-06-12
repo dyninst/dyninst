@@ -12,6 +12,9 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
 
+// To avoid the bound fact calculation from deadlock
+#define IN_QUEUE_LIMIT 10
+
 class BoundFactsCalculator {
     BoundFactsType boundFacts;
     GuardSet &guards;    

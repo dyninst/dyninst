@@ -17,6 +17,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
     
 
     queue<Node::Ptr> workingList;
+    map<Node::Ptr, int> inQueueLimit;
 
     NodeIterator nbegin, nend;
     slice->allNodes(nbegin, nend);
@@ -29,6 +30,9 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
     while (!workingList.empty()) {
         Node::Ptr curNode = workingList.front();
 	workingList.pop();
+
+	++inQueueLimit[curNode];
+	if (inQueueLimit[curNode] > IN_QUEUE_LIMIT) continue;
 
         BoundFact* oldFact = GetBoundFact(curNode);
 	BoundFact* newFact = Meet(curNode);
