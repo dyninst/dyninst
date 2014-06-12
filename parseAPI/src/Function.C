@@ -313,6 +313,37 @@ Function::blocks_int()
     Block::compare comp;
     sort(_bl.begin(),_bl.end(),comp);
 
+    // Xiaozhu: We need to recalculate the exit blocks each time as we found more code
+    // Here we use the same logic to determine whether a block is an exit block or not,
+    // but we apply the logic to all blocks.
+    _exitBL.clear();
+    for (auto bit = _bl.begin(); bit != _bl.end(); ++bit) {
+        Block *cur = *bit;
+	bool exit_func = false;
+        bool found_call = false;
+        bool found_call_ft = false;
+
+	if (cur->targets().empty()) exit_func = true;
+	for (auto eit = cur->targets().begin(); eit != cur->targets().end(); ++eit) {
+	    Edge *e = *eit;
+	    Block *t = e->trg();
+            if(e->type() == CALL || e->interproc()) {
+	        found_call = true;
+	    }
+            if (e->type() == CALL_FT) {
+               found_call_ft = true;
+            }
+
+	    if (e->type() == RET || t->obj() != cur->obj() || (found_call && !found_call_ft && !obj()->defensiveMode())) {
+	        exit_func = true;
+		break;
+	    }
+	}
+	if (exit_func) 
+	    _exitBL.push_back(cur);
+    }
+
+
     return _bl;
 }
 
