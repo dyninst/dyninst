@@ -618,6 +618,30 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 
    switch (getArchitecture()) {
       case Arch_x86:
+         switch (subrange) {
+            case x86::OCT:
+            case x86::FPDBL:
+               p = x86_regpos_qword;
+               break;
+            case x86::H_REG:
+               p = x86_regpos_high_byte;
+               break;
+            case x86::L_REG:
+               p = x86_regpos_low_byte;
+               break;
+            case x86::W_REG:
+               p = x86_regpos_word;
+               break;
+            case x86::FULL:
+            case x86_64::D_REG:
+               p = x86_regpos_dword;
+               break;
+	    case x86::BIT:
+     	       p = x86_regpos_all;
+	       break;
+         }
+         break;
+
       case Arch_x86_64:
          switch (subrange) {
             case x86::FULL:

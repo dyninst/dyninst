@@ -1,3 +1,6 @@
+#include "CodeObject.h"
+#include "CodeSource.h"
+
 #include "IndirectControlFlow.h"
 #include "IndirectASTVisitor.h"
 #include "debug_parse.h"
@@ -115,9 +118,11 @@ void BoundFactsCalculator::ConditionalJumpBound(BoundFact* curFact, Node::Ptr sr
 	// it is possible that it is a jump table for a function 
 	// with variable number of arguments. Then the convention
 	// is that al contains the number of argument.
-        curFact->cmpAST = VariableAST::create(Variable(Absloc(x86_64::rax)));
+	MachRegister reg;
+	if (func->obj()->cs()->getAddressWidth() == 8) reg = x86_64::rax; else reg = x86::eax;
+        curFact->cmpAST = VariableAST::create(Variable(Absloc(reg)));
 	curFact->cmpBound = 8;
-	curFact->cmpUsedRegs.insert(x86_64::rax);
+	curFact->cmpUsedRegs.insert(reg);
 	curFact->cmpBoundFactLive = true;
     }
 }
