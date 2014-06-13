@@ -2571,8 +2571,8 @@ bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
         int state = 0;
 
         // Find GOT2 value
-        ParseAPI::Function::blocklist & bl = caller_func->blocks();
-        ParseAPI::Function::blocklist::iterator bit = bl.begin();
+        auto bl = caller_func->blocks();
+        auto bit = bl.begin();
         for( ; bit != bl.end(); ++bit) {
           ParseAPI::Block * b = *bit;
           for(Address addr = b->start(); addr < b->end();

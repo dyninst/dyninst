@@ -74,10 +74,11 @@ set (SRC_LIST_ppc64
 # We use gcc to compile the various assembly files, but
 # cmake doesn't default to knowing that gcc can
 # handle .S. 
+ENABLE_LANGUAGE(ASM)
 file (GLOB SRC_ASSEMBLY "src/*.S")
 set_source_files_properties(${SRC_ASSEMBLY}
         PROPERTIES
-        LANGUAGE C)
+        LANGUAGE ASM)
 
 # The arch-specific files other than RTthread-x86 are Unix-only.
 if(UNIX)

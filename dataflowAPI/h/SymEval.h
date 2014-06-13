@@ -288,9 +288,9 @@ size_t size;
 };
 
 // Get this out of the Dyninst namespace...
-std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::ROSEOperation &o);
-std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::Constant &o);
-std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::Variable &o);
+DATAFLOW_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::ROSEOperation &o);
+DATAFLOW_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::Constant &o);
+DATAFLOW_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::Variable &o);
 
 namespace Dyninst {
 
