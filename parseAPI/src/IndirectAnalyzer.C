@@ -32,12 +32,16 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 	return false;
     }
 
-    for (uint64_t i = 0; i <= target.value; ++i) {
+    for (int i = 0; i <= target.value; ++i) {
         Address tableEntry = target.tableBase;
 	Address targetAddress = 0;
 	if (target.posi) tableEntry += target.coe * i; else tableEntry -= target.coe * i;
 	if (target.tableLookup || target.tableOffset) {
-	    targetAddress = *(const Address *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+	    if (target.coe == sizeof(Address)) {
+	        targetAddress = *(const Address *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+	    } else {
+	        targetAddress = *(const int *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+	    }
 	}
 	if (target.tableOffset && targetAddress != 0) {
 	    targetAddress += target.targetBase;
@@ -45,6 +49,7 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 
 //	if (block->obj()->cs()->isCode(targetAddress)) {
 	    outEdges.push_back(make_pair(targetAddress, INDIRECT));
+	parsing_printf("Add edge to %lx into the outEdges vector\n", targetAddress);
 //	}
     }
     return true;

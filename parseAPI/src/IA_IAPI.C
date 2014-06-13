@@ -883,36 +883,22 @@ bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Function * currFunc,
 			     Dyninst::ParseAPI::Block* currBlk,
 			     std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const
 {
-
-//    printf("Compare jump table parsing at %lx\n", currBlk->last());
-//    printf("Dump info from old dyn heuristics:\n");
-//    std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > > old_outEdges;
-//    IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
-//    bool ret = jumpTableParser->parseJumpTable(currBlk, old_outEdges);
-
-//    return false;
-//    for (auto eit = old_outEdges.begin(); eit != old_outEdges.end(); ++eit)
-//        printf(" %lx", eit->first);
+/*
+    IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
+    bool ret = jumpTableParser->parseJumpTable(currBlk, outEdges);
+    delete jumpTableParser;
+*/
 
 
-/*    
+    IndirectControlFlowAnalyzer icfa(currFunc, currBlk);
+    bool ret = icfa.NewJumpTableAnalysis(outEdges);
+
     parsing_printf("Jump table parser returned %d, %d edges\n", ret, outEdges.size());
+    for (auto oit = outEdges.begin(); oit != outEdges.end(); ++oit) parsing_printf("edge target at %lx\n", oit->first);
     // Update statistics 
     currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_COUNT);
     if (!ret) currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_FAIL);
 
-    delete jumpTableParser;
-    return ret;
-*/
-//    printf("\nDump outEdges from new analysis:\n");
-
-    IndirectControlFlowAnalyzer icfa(currFunc, currBlk);
-    bool ret = icfa.NewJumpTableAnalysis(outEdges);
-/*
-    for (auto eit = outEdges.begin(); eit != outEdges.end(); ++eit)
-        printf(" %lx", eit->first);
-    printf("\n");
-*/
     return ret;
 }
 

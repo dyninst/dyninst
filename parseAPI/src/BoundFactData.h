@@ -19,11 +19,11 @@ struct BoundValue {
 
 
     BoundType type;
-    uint64_t value;
+    int value;
     int coe;
-    uint64_t tableBase, targetBase;
+    Address tableBase, targetBase;
     bool tableLookup, tableOffset, posi;
-    BoundValue(BoundType t, uint64_t val): 
+    BoundValue(BoundType t, int val): 
         type(t), value(val), coe(1), tableBase(0), targetBase(0), tableLookup(false), tableOffset(false), posi(true) {}
     BoundValue(): 
         type(Undefined), value(0), coe(1), tableBase(0), targetBase(0), tableLookup(false), tableOffset(false), posi(true) {}

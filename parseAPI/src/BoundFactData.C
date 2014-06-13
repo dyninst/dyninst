@@ -24,7 +24,7 @@ BoundValue* BoundFact::GetBound(const Absloc &al) {
 
 void BoundValue::Print() {
     parsing_printf("Bound type %d, ",type );
-    parsing_printf("Bound value: %lu, ",value);
+    parsing_printf("Bound value: %d, ",value);
     parsing_printf("coe %d, ", coe);
     parsing_printf("tableBase %lx, ",tableBase);
     parsing_printf("targetBase %lx, ",targetBase);
