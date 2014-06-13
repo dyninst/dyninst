@@ -536,8 +536,8 @@ void parse_func::calcUsedRegs()
     using namespace Dyninst::InstructionAPI;
     std::set<RegisterAST::Ptr> writtenRegs;
 
-    Function::blocklist & bl = blocks();
-    Function::blocklist::iterator curBlock = bl.begin();
+    auto bl = blocks();
+    auto curBlock = bl.begin();
     for( ; curBlock != bl.end(); ++curBlock) 
     {
         InstructionDecoder d(getPtrToInstruction((*curBlock)->start()),

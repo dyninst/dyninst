@@ -839,28 +839,26 @@ bool PCProcess::loadRTLib() {
                      FILE__, __LINE__);
 
       bootstrapState_ = bs_loadedRTLib;
-
-      return true;
    }
-   
-   if (!pcProc_->addLibrary(dyninstRT_name)) {
-      startup_printf("%s[%d]: failed to start loading RT lib\n", FILE__,
-                     __LINE__);
-	   return false;
+   else {
+     if (!pcProc_->addLibrary(dyninstRT_name)) {
+       startup_printf("%s[%d]: failed to start loading RT lib\n", FILE__,
+		      __LINE__);
+       return false;
+     }
+     bootstrapState_ = bs_loadedRTLib;
+     
+     // Process the library load (we hope)
+     PCEventMuxer::handle();
+     
+     if( runtime_lib.size() == 0 ) {
+       startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
+		      __LINE__);
+       return false;
+     }
+     
+     bootstrapState_ = bs_loadedRTLib;
    }
-   bootstrapState_ = bs_loadedRTLib;
-
-   // Process the library load (we hope)
-   PCEventMuxer::handle();
-
-   if( runtime_lib.size() == 0 ) {
-      startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
-                     __LINE__);
-      return false;
-   }
-
-   bootstrapState_ = bs_loadedRTLib;
-
    int loaded_ok = 0;
    pdvector<int_variable *> vars;
    if (!findVarsByAll("DYNINSThasInitialized", vars)) {
