@@ -128,9 +128,18 @@ void ReachFact::ReachBlocks() {
 	NaturalDFS(condTakenBlock, branch_taken[jmpBlock]);
 	NaturalDFS(condFTBlock, branch_ft[jmpBlock]);
     }
+
+
+    forbid.clear();
+    for (auto tit = thunks.begin(); tit != thunks.end(); ++tit) {
+        ParseAPI::Block *thunkBlock = tit->second.block;
+	ReverseDFS(thunkBlock, thunk_ins[thunkBlock]);
+	NaturalDFS(thunkBlock, thunk_outs[thunkBlock]);
+	thunk_outs[thunkBlock].erase(thunkBlock);
+    }
 }
 
-ReachFact::ReachFact(GuardSet &g): guards(g) {
+ReachFact::ReachFact(GuardSet &g, ThunkData &t): guards(g), thunks(t) {
     ReachBlocks();
 }
 

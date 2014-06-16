@@ -127,6 +127,50 @@ void BoundFactsCalculator::ConditionalJumpBound(BoundFact* curFact, Node::Ptr sr
     }
 }
 
+void BoundFactsCalculator::ThunkBound(BoundFact* curFact, Node::Ptr src, Node::Ptr trg) {
+
+    // This function checks whether any found thunk is between 
+    // the src node and the trg node. If there is any, then we have 
+    // extra bound information to be added.
+    ParseAPI::Block *srcBlock;
+    Address srcAddr = 0;
+    if (src == Node::Ptr()) 
+        srcBlock = func->entry();
+    else {
+        SliceNode::Ptr srcNode = boost::static_pointer_cast<SliceNode>(src);
+	srcBlock = srcNode->block();
+	srcAddr = srcNode->addr();
+
+    }
+    SliceNode::Ptr trgNode = boost::static_pointer_cast<SliceNode>(trg);			       
+    ParseAPI::Block *trgBlock = trgNode->block();
+    Address trgAddr = trgNode->addr();
+
+    for (auto tit = thunks.begin(); tit != thunks.end(); ++tit) {
+        ParseAPI::Block* thunkBlock = tit->second.block;
+	parsing_printf("Check srcAddr at %lx, trgAddr at %lx, thunk at %lx\n", srcAddr, trgAddr, tit->first);
+	if (src != Node::Ptr()) {
+	    if (srcBlock == thunkBlock) {
+	        if (srcAddr > tit->first) continue;
+	    } else {
+	        if (rf.thunk_ins[thunkBlock].find(srcBlock) == rf.thunk_ins[thunkBlock].end()) continue;
+	    }
+	}
+	if (trgBlock == thunkBlock) {
+	    if (trgAddr < tit->first) continue;
+	} else {
+	    if (rf.thunk_outs[thunkBlock].find(trgBlock) == rf.thunk_outs[thunkBlock].end()) continue;
+	}
+
+	parsing_printf("\t find thunk at %lx between the source and the target. Add fact", tit->first);
+	BoundValue *bv = new BoundValue(Equal, tit->second.value);
+	bv->Print();
+	curFact->GenFact(Absloc(tit->second.reg), bv);
+    }
+
+
+}
+
 
 BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 
@@ -150,6 +194,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    parsing_printf("\tMeet incoming edge from %lx\n", meetSliceNode->addr());
 
 	    ConditionalJumpBound(prevFact, *gbegin, curNode);
+	    ThunkBound(prevFact, *gbegin, curNode);
 	    if (first) {
 	        first = false;
 		*newFact = *prevFact;
@@ -158,10 +203,13 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    }
 	    parsing_printf("New fact after the change is\n");
 	    newFact->Print();
+	    delete prevFact;
 
 	}
     } else {
         ConditionalJumpBound(newFact, Node::Ptr(), curNode);
+	ThunkBound(newFact, Node::Ptr(), curNode);
+
 	parsing_printf("Meet no incoming nodes\n");
 	newFact->Print();
     }

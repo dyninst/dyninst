@@ -157,9 +157,7 @@ SymtabCodeRegion::getArch() const
 bool
 SymtabCodeRegion::isCode(const Address addr) const
 {
-    parsing_printf("[%s:%d] check whether %lx is code or not\n", FILE__, __LINE__, addr);
     if(!contains(addr)) return false;
-    parsing_printf("[%s:%d] check whether %lx is code or not\n", FILE__, __LINE__, addr);
 
     // XXX this is the predicate from Symtab::isCode(a) +
     //     the condition by which Symtab::codeRegions_ is filled
@@ -668,10 +666,8 @@ bool
 SymtabCodeSource::isCode(const Address addr) const
 {
     overlapping_warn(FILE__,__LINE__);
-    parsing_printf("[%s:%d] check whether %lx is code or not\n", FILE__, __LINE__, addr);
 
     CodeRegion * cr = lookup_region(addr);
-    parsing_printf("[%s:%d] lookup code region for %lx. CodeRegion* is %p\n", FILE__, __LINE__, addr, cr);
 
     if(cr)
         return cr->isCode(addr);

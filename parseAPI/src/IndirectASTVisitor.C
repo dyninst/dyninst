@@ -59,6 +59,19 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 		}
 
 		break;
+	    case ROSEOperation::sMultOp:
+	    case ROSEOperation::uMultOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    if (child0->val().val == 1) return roseAST->child(1);
+		}
+
+	        if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    if (child1->val().val == 1) return roseAST->child(0);
+		}
+	        break;
+
 	    case ROSEOperation::xorOp:
 	        if (roseAST->child(0)->getID() == AST::V_VariableAST && roseAST->child(1)->getID() == AST::V_VariableAST) {
 		    VariableAST::Ptr child0 = boost::static_pointer_cast<VariableAST>(roseAST->child(0)); 
@@ -109,27 +122,22 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 		BoundValue* val = NULL;
 		if (child1->type == Equal && child2->tableLookup) {
 		    val = new BoundValue(*child2);
-		    val->targetBase = child1->value;
+		    val->targetBase += child1->value;
 		    val->tableOffset = true;
-		    val->posi = child2->posi;
 		} else if (child2->type == Equal && child1->tableLookup) {
 		    val = new BoundValue(*child1);
-		    val->targetBase = child2->value;
+		    val->targetBase += child2->value;
 		    val->tableOffset = true;
-		    val->posi = child1->posi;
-		} else if (child2->CoeBounded()) {
-		    val = new BoundValue(LessThan, child2->value);
-	            val->tableBase = child1->value;
-		    val->coe = child2->coe;
-		} else if (child1->CoeBounded()) {  
-		    val = new BoundValue(LessThan, child1->value);
-	            val->tableBase = child2->value;
-		    val->coe = child1->coe;
+		} else if (child1->type == Equal && child2->CoeBounded() ) {
+		    val = new BoundValue(*child2);
+	            val->tableBase += child1->value;
+		} else if (child2->type == Equal && child1->CoeBounded()) {  
+		    val = new BoundValue(*child1);
+	            val->tableBase += child2->value;
 		} else {
 		    val = new BoundValue((child1->type == Equal && child2->type == Equal) ? Equal : LessThan,
 		                         child1->value + child2->value);
 		}
-		val->tableLookup = false;
 		bound.insert(make_pair(ast, val));
 	    } else if (ast->child(0)->getID() == AST::V_RoseAST && ast->child(1)->getID() == AST::V_ConstantAST) {
   	        // Now check if this subexpression is actually a subtraction
@@ -138,19 +146,25 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 		if (child1->val().val == 1 && child0->val().op == ROSEOperation::invertOp)
 		    if (IsResultBounded(child0->child(0))) {
 		        BoundValue *val = new BoundValue(*GetResultBound(child0->child(0)));
-			val->posi = false;
+			if (val->tableLookup) val->addOffset = false; else val->addIndexing = false;
 			bound.insert(make_pair(ast, val));
 		    }
-	    }
+		
+	    }	    
 	    break;
 	case ROSEOperation::andOp:
 	    if (IsResultBounded(ast->child(0)) || IsResultBounded(ast->child(1))) {
-	        BoundValue* val = NULL;
-	        if (IsResultBounded(ast->child(0))) 
-		    val = new BoundValue(LessThan, GetResultBound(ast->child(0))->value);
-		else 
-		    val = new BoundValue(LessThan, GetResultBound(ast->child(1))->value);
-		bound.insert(make_pair(ast, val));
+	        int64_t value = -1;
+		BoundValue *val = NULL;
+		if (IsResultBounded(ast->child(0))) {
+		    val = GetResultBound(ast->child(0));
+		    if (val->value < value || value == -1) value = val->value;
+		}
+		if (IsResultBounded(ast->child(1))) {
+		    val = GetResultBound(ast->child(1));
+		    if (val->value < value || value == -1) value = val->value;
+		}
+		bound.insert(make_pair(ast, new BoundValue(LessThan, value)));
 	    }
 	    break;
 	case ROSEOperation::sMultOp:
@@ -183,6 +197,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 		BoundValue* val = new BoundValue((child1->type == Equal && child2->type == Equal) ? Equal : LessThan,
 		                                 child1->value);
 		val->coe = child1->coe << child2->value;
+		val->tableLookup = false;
 		bound.insert(make_pair(ast,val));
 	    }
 	    break;
@@ -202,7 +217,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	        BoundValue* child1 = GetResultBound(ast->child(0));
 		BoundValue* child2 = GetResultBound(ast->child(1));
 		// TODO: A temporory method
-		BoundValue* val = new BoundValue(LessThan,(child1->value * child1->coe) | (child2->value * child2->coe)) ;
+		BoundValue* val = new BoundValue(LessThan,(child1->value * child1->coe) | (child2->value * child2->coe)) ;		
 		bound.insert(make_pair(ast,val));
 
 	    }

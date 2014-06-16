@@ -589,7 +589,6 @@ void Parser::ProcessCFInsn(
 
         // We will not attempt to further process
         // unresolvable edges; they stay sinks
-	parsing_printf("\tresolvable_edge = %d, dynamic_call = %d, curEdge->second == NOEDGE = %d\n", resolvable_edge, dynamic_call, curEdge->second==NOEDGE);
         if(resolvable_edge) {
             parsing_printf("[%s:%d] pushing %lx onto worklist\n",
                 FILE__,__LINE__,we->target());

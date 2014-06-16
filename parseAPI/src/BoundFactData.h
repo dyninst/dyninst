@@ -19,19 +19,20 @@ struct BoundValue {
 
 
     BoundType type;
-    int value;
+    int64_t value;
     int coe;
-    Address tableBase, targetBase;
-    bool tableLookup, tableOffset, posi;
-    BoundValue(BoundType t, int val): 
-        type(t), value(val), coe(1), tableBase(0), targetBase(0), tableLookup(false), tableOffset(false), posi(true) {}
+    Address tableBase, targetBase;    
+    bool tableLookup, tableOffset;
+    bool addIndexing, addOffset;
+    BoundValue(BoundType t, int64_t val): 
+        type(t), value(val), coe(1), tableBase(0), targetBase(0), tableLookup(false), tableOffset(false), addIndexing(true), addOffset(true) {}
     BoundValue(): 
-        type(Undefined), value(0), coe(1), tableBase(0), targetBase(0), tableLookup(false), tableOffset(false), posi(true) {}
+        type(Undefined), value(0), coe(1), tableBase(0), targetBase(0), tableLookup(false), tableOffset(false), addIndexing(true), addOffset(true) {}
     BoundValue(const BoundValue & bv):
         type(bv.type), value(bv.value), coe(bv.coe),
 	tableBase(bv.tableBase), targetBase(bv.targetBase),
 	tableLookup(bv.tableLookup), tableOffset(bv.tableOffset),
-	posi(bv.posi) {}
+	addIndexing(bv.addIndexing), addOffset(bv.addOffset) {}
 
     BoundValue& operator = (const BoundValue &bv) {
         type = bv.type;
@@ -41,7 +42,8 @@ struct BoundValue {
 	targetBase = bv.targetBase;
 	tableLookup = bv.tableLookup;
 	tableOffset = bv.tableOffset;
-	posi = bv.posi;
+	addIndexing = bv.addIndexing;
+	addOffset = bv.addOffset;
 	return *this;
     }
 

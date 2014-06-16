@@ -9,7 +9,8 @@ bool BoundValue::operator == (const BoundValue &bv) const {
 	   (tableBase == bv.tableBase) &&
 	   (targetBase == bv.targetBase) &&
 	   (coe == bv.coe) &&
-	   (posi == bv.posi) &&
+	   (addIndexing == bv.addIndexing) &&
+	   (addOffset == bv.addOffset) &&
 	   (tableLookup == bv.tableLookup) &&
 	   (tableOffset == bv.tableOffset);
 }
@@ -30,7 +31,8 @@ void BoundValue::Print() {
     parsing_printf("targetBase %lx, ",targetBase);
     parsing_printf("tableLookup %d, ",tableLookup);
     parsing_printf("tableOffset %d, ",tableOffset);
-    parsing_printf("add %d\n", posi);
+    parsing_printf("addIndexing %d, ", addIndexing);
+    parsing_printf("addOffset %d\n", addOffset);
 }
 
 void BoundFact::Intersect(BoundFact &bf) {
@@ -45,7 +47,8 @@ void BoundFact::Intersect(BoundFact &bf) {
 		if (val1->targetBase != val2->targetBase) val1->targetBase = 0;
 		val1->tableLookup = val1->tableLookup && val2->tableLookup;
 		val1->tableOffset = val1->tableOffset && val2->tableOffset;
-		val1->posi = val1->posi | val2->posi;
+		val1->addIndexing = val1->addIndexing | val2->addIndexing;
+		val1->addOffset = val1->addOffset | val2->addOffset;
 	    }
 	}
 

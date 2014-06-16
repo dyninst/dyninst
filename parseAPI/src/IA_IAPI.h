@@ -107,9 +107,10 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool isNopJump() const;
         virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
         bool isIATcall(std::string &calleeName) const;
+        virtual bool isThunk() const;
+
 private:
         virtual bool isRealCall() const;
-        virtual bool isThunk() const;
         bool parseJumpTable(Dyninst::ParseAPI::Function * currFunc,
 	                    Dyninst::ParseAPI::Block* currBlk,
 			    std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const;

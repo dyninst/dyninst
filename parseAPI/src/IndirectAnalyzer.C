@@ -1,5 +1,6 @@
 #include "IndirectControlFlow.h"
 #include "BackwardSlicing.h"
+#include "IA_IAPI.h"
 #include "debug_parse.h"
 
 #include "CodeObject.h"
@@ -7,6 +8,7 @@
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
+#include "Register.h"
 
 static bool UsePC(Instruction::Ptr insn) {
     vector<Operand> operands;
@@ -25,17 +27,20 @@ static bool UsePC(Instruction::Ptr insn) {
 
 bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-    parsing_printf("\t tableBase = %lx, tableSize = %lu, tableStride = %d, targetOffset = %lx, tableLookup = %d, tableOffset = %d, posi = %d\n", target.tableBase, target.value, target.coe, target.targetBase, target.tableLookup, target.tableOffset, target.posi);
+
+    if (block->obj()->cs()->getArch() == Arch_x86) target.tableBase &= 0xffffffff;
+    parsing_printf("The final target bound fact:\n");
+    target.Print();
 
     if (!block->obj()->cs()->isValidAddress(target.tableBase)) {
         parsing_printf("\ttableBase 0x%lx invalid, returning false\n", target.tableBase);
 	return false;
     }
 
-    for (int i = 0; i <= target.value; ++i) {
+    for (int64_t i = 0; i <= target.value; ++i) {
         Address tableEntry = target.tableBase;
+	if (target.addIndexing) tableEntry += target.coe * i; else tableEntry -= target.coe * i;
 	Address targetAddress = 0;
-	if (target.posi) tableEntry += target.coe * i; else tableEntry -= target.coe * i;
 	if (target.tableLookup || target.tableOffset) {
 	    if (target.coe == sizeof(Address)) {
 	        targetAddress = *(const Address *) block->obj()->cs()->getPtrToInstruction(tableEntry);
@@ -44,13 +49,14 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 	    }
 	}
 	if (target.tableOffset && targetAddress != 0) {
-	    targetAddress += target.targetBase;
+	    if (target.addOffset) targetAddress += target.targetBase; else targetAddress = target.targetBase - targetAddress;
 	}
+	if (block->obj()->cs()->getArch() == Arch_x86) targetAddress &= 0xffffffff;
 
-//	if (block->obj()->cs()->isCode(targetAddress)) {
+	if (block->obj()->cs()->isCode(targetAddress)) {
 	    outEdges.push_back(make_pair(targetAddress, INDIRECT));
-	parsing_printf("Add edge to %lx into the outEdges vector\n", targetAddress);
-//	}
+	    parsing_printf("Add edge to %lx into the outEdges vector\n", targetAddress);
+	}
     }
     return true;
 }
@@ -58,13 +64,14 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     FindAllConditionalGuards();
-    ReachFact rf(guards);
+    FindAllThunks();
+    ReachFact rf(guards, thunks);
     parsing_printf("Calculate backward slice\n");
 
     BackwardSlicer bs(func, block, block->last(), guards, rf);
     GraphPtr slice =  bs.CalculateBackwardSlicing();
     parsing_printf("Calculate bound facts\n");     
-    BoundFactsCalculator bfc(guards, func, slice, func->entry() == block, rf);
+    BoundFactsCalculator bfc(guards, func, slice, func->entry() == block, rf, thunks);
     bfc.CalculateBoundedFacts();
 
     BoundValue target;
@@ -93,7 +100,8 @@ bool IndirectControlFlowAnalyzer::EndWithConditionalJump(ParseAPI::Block * b) {
 
 }
 
-void IndirectControlFlowAnalyzer::GetAllReachableBlock(set<ParseAPI::Block*> &reachable) {
+void IndirectControlFlowAnalyzer::GetAllReachableBlock() {
+    reachable.clear();
     queue<Block*> q;
     q.push(block);
     while (!q.empty()) {
@@ -132,10 +140,10 @@ void IndirectControlFlowAnalyzer::SaveGuardData(ParseAPI::Block *prev) {
 }
 
 void IndirectControlFlowAnalyzer::FindAllConditionalGuards(){
-    set<ParseAPI::Block*> visited, reachable;
+    set<ParseAPI::Block*> visited;
     queue<Block*> q;
     q.push(block);
-    GetAllReachableBlock(reachable);
+    GetAllReachableBlock();
 
     while (!q.empty()) {
         ParseAPI::Block * cur = q.front();
@@ -188,6 +196,46 @@ bool IndirectControlFlowAnalyzer::IsJumpTable(GraphPtr slice,
   
 
     return false;
+}
+
+void IndirectControlFlowAnalyzer::FindAllThunks() {
+    for (auto bit = reachable.begin(); bit != reachable.end(); ++bit) {
+        // We intentional treat a getting PC call as a special case that does not
+	// end a basic block. So, we need to check every instruction to find all thunks
+        ParseAPI::Block *b = *bit;
+	const unsigned char* buf =
+            (const unsigned char*)(b->obj()->cs()->getPtrToInstruction(b->start()));
+	if( buf == NULL ) {
+	    parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",FILE__, __LINE__);
+	    return;
+	}
+	parsing_printf("Looking for thunk in block [%lx,%lx).", b->start(), b->end());
+	InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());
+	InsnAdapter::IA_IAPI block(dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
+	while (block.getAddr() < b->end()) {
+	    if (block.getInstruction()->getCategory() == c_CallInsn && block.isThunk()) {
+	        bool valid;
+		Address addr;
+		boost::tie(valid, addr) = block.getCFT();
+		const unsigned char *target = (const unsigned char *) b->obj()->cs()->getPtrToInstruction(addr);
+		InstructionDecoder targetChecker(target, InstructionDecoder::maxInstructionLength, b->obj()->cs()->getArch());
+		Instruction::Ptr thunkFirst = targetChecker.decode();
+		set<RegisterAST::Ptr> thunkTargetRegs;
+		thunkFirst->getWriteSet(thunkTargetRegs);
+		
+		for (auto curReg = thunkTargetRegs.begin(); curReg != thunkTargetRegs.end(); ++curReg) {
+		    ThunkInfo t;
+		    t.reg = (*curReg)->getID();
+		    t.value = block.getAddr() + block.getInstruction()->size();
+		    t.block = b;
+		    thunks.insert(make_pair(block.getAddr(), t));
+
+		    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", block.getAddr(), t.value , t.reg.name().c_str());
+		}
+	    }
+	    block.advance();
+	}
+    }
 }
 
 bool IndirectControlFlowPred::endAtPoint(AssignmentPtr ap) {

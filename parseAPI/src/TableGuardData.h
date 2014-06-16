@@ -27,20 +27,34 @@ struct GuardData {
 
 typedef set<GuardData> GuardSet;
 
+struct ThunkInfo {
+    MachRegister reg;
+    Address value;
+    ParseAPI::Block *block;
+};
+
+typedef  map<Address, ThunkInfo > ThunkData;
+
 
 struct ReachFact {
     GuardSet &guards;
+    ThunkData &thunks;
+
     set<ParseAPI::Block*> forbid;
     map<ParseAPI::Block*, set<ParseAPI::Block*> > incoming;
     map<ParseAPI::Block*, set<ParseAPI::Block*> > branch_taken;
     map<ParseAPI::Block*, set<ParseAPI::Block*> > branch_ft;
+
+    map<ParseAPI::Block*, set<ParseAPI::Block*> > thunk_ins, thunk_outs;
+
+
 
     void ReverseDFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visited);
     void NaturalDFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visited);
 
     void ReachBlocks();
 
-    ReachFact(GuardSet &g);
+    ReachFact(GuardSet &g, ThunkData &t);
 };
 
 #endif
