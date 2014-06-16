@@ -47,15 +47,19 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 	    } else {
 	        targetAddress = *(const int *) block->obj()->cs()->getPtrToInstruction(tableEntry);
 	    }
-	}
-	if (target.tableOffset && targetAddress != 0) {
-	    if (target.addOffset) targetAddress += target.targetBase; else targetAddress = target.targetBase - targetAddress;
-	}
-	if (block->obj()->cs()->getArch() == Arch_x86) targetAddress &= 0xffffffff;
+	    
+	    if (target.tableOffset && targetAddress != 0) {
+	        if (target.addOffset) targetAddress += target.targetBase; else targetAddress = target.targetBase - targetAddress;
+	    }
+	} else targetAddress = tableEntry;
 
+	if (block->obj()->cs()->getArch() == Arch_x86) targetAddress &= 0xffffffff;
+	parsing_printf("Jumping to target %lx,", targetAddress);
 	if (block->obj()->cs()->isCode(targetAddress)) {
 	    outEdges.push_back(make_pair(targetAddress, INDIRECT));
-	    parsing_printf("Add edge to %lx into the outEdges vector\n", targetAddress);
+	    parsing_printf(" is code.\n" );
+	} else {
+	    parsing_printf(" not code.\n");
 	}
     }
     return true;

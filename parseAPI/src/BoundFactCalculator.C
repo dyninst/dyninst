@@ -113,7 +113,7 @@ void BoundFactsCalculator::ConditionalJumpBound(BoundFact* curFact, Node::Ptr sr
 	    }
 	}
     }
-    if (!curFact->cmpBoundFactLive && firstBlock) {
+    if (!curFact->cmpBoundFactLive && firstBlock && src == Node::Ptr()) {
         // If this is indirect jump is in the first block,
 	// it is possible that it is a jump table for a function 
 	// with variable number of arguments. Then the convention

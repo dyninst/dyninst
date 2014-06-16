@@ -334,13 +334,16 @@ Function::blocks_int()
                found_call_ft = true;
             }
 
-	    if (e->type() == RET || t->obj() != cur->obj() || (found_call && !found_call_ft && !obj()->defensiveMode())) {
-	        exit_func = true;
+	    if (e->type() == RET || t->obj() != cur->obj()) { 	        exit_func = true;
 		break;
 	    }
 	}
-	if (exit_func) 
+	if (found_call && !found_call_ft && !obj()->defensiveMode()) exit_func = true;
+
+	if (exit_func) { 
+	     parsing_printf("\t ##### Adding block %lx as an exit block\n", cur->start());
 	    _exitBL.push_back(cur);
+	}
     }
 
 
