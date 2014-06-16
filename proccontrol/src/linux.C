@@ -334,8 +334,14 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                }
                break;
             }
-            perr_printf("Received an unexpected syscall TRAP\n");
-            return false;
+	    // If we're expecting syscall events other than postponed ones, fall through the rest of
+	    // the event handling
+	    if(!thread->syscallMode())
+	    {
+	      perr_printf("Received an unexpected syscall TRAP\n");
+	      return false;
+	    }
+	    
          case SIGSTOP:
             if (!proc) {               
                //The child half of an event pair.  Find the parent or postpone it.
@@ -472,7 +478,6 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                event = Event::ptr(new EventRPC(thread->runningRPC()->getWrapperForDecode()));
                break;
             }
-
             bp_instance *clearingbp = thread->isClearingBreakpoint();
             if (thread->singleStep() && clearingbp) {
                 pthrd_printf("Decoded event to breakpoint restore\n");
