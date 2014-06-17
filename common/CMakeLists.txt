@@ -62,6 +62,7 @@ if (PLATFORM MATCHES linux)
     src/addrtranslate-sysv.C
     src/addrtranslate-auxv.C
     src/addrtranslate-linux.C
+    src/MachSyscall.C
   )
 endif()
 

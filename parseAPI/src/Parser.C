@@ -650,7 +650,7 @@ Parser::finalize(Function *f)
     assert(rd);
 
     // finish delayed parsing and sorting
-    vector<Block*> const& blocks = f->blocks_int();
+    Function::blocklist blocks = f->blocks_int();
 
     // is this the first time we've parsed this function?
     if (unlikely( !f->_extents.empty() )) {
@@ -664,7 +664,7 @@ Parser::finalize(Function *f)
         return;
     }
     
-    vector<Block*>::const_iterator bit = blocks.begin();
+    auto bit = blocks.begin();
     FuncExtent * ext = NULL;
     Address ext_s = (*bit)->start();
     Address ext_e = ext_s;

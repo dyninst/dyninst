@@ -112,17 +112,17 @@ Function::~Function()
     }
 }
 
-Function::blocklist &
+Function::blocklist
 Function::blocks()
 {
     if(!_cache_valid)
         finalize();
-    return _bl;
+    return blocklist(blocks_begin(), blocks_end());
 }
 
 // Get the current set of blocks,
 // as a const operation
-const Function::blocklist&
+Function::const_blocklist
 Function::blocks() const
 {
   /*Function* mutable_this = const_cast<Function*>(this);
@@ -132,7 +132,7 @@ Function::blocks() const
   */
   assert(_cache_valid);
   
-  return _bl;
+  return const_blocklist(blocks_begin(), blocks_end());
 }
 
 
@@ -143,18 +143,19 @@ Function::callEdges() {
     return _call_edge_list; 
 }
 
-const Function::blocklist &
+Function::const_blocklist
 Function::returnBlocks() {
   if (!_cache_valid) 
     finalize();
-  return _retBL;
+  return const_blocklist(ret_begin(), ret_end());
 }
 
-const Function::blocklist &
+Function::const_blocklist
 Function::exitBlocks() {
   if (!_cache_valid) 
     finalize();
-  return _exitBL;
+  return const_blocklist(exit_begin(), exit_end());
+  
 }
 
 vector<FuncExtent *> const&
@@ -170,20 +171,21 @@ Function::finalize()
 {
   _extents.clear();
   _exitBL.clear();
-  _bl.clear();
+  _bmap.clear();
   _retBL.clear();
   _call_edge_list.clear();
+  // for each block, decrement its refcount
 
     // The Parser knows how to finalize
     // a Function's parse data
     _obj->parser->finalize(this);
 }
 
-vector<Block *> const&
+Function::blocklist
 Function::blocks_int()
 {
     if(_cache_valid || !_entry)
-        return _bl;
+      return blocklist(blocks_begin(), blocks_end());
 
     // overloaded map warning:
     // visited[addr] == 1 means visited
@@ -192,14 +194,14 @@ Function::blocks_int()
     vector<Block *> worklist;
 
     bool need_entry = true;
-    for(vector<Block*>::iterator bit=_bl.begin();
-        bit!=_bl.end();++bit) 
+    for(auto bit=blocks_begin();
+        bit!=blocks_end();++bit) 
     {
         Block * b = *bit;
         visited[b->start()] = 1;
         need_entry = need_entry && (b != _entry);
     }
-    worklist.insert(worklist.begin(),_bl.begin(),_bl.end());
+    worklist.insert(worklist.begin(),blocks_begin(), blocks_end());
 
     if(need_entry) {
         worklist.push_back(_entry);
@@ -208,8 +210,8 @@ Function::blocks_int()
     }
 
     // avoid adding duplicate return blocks
-    for(vector<Block*>::iterator bit=_exitBL.begin();
-        bit!=_exitBL.end();++bit)
+    for(auto bit=exit_begin();
+        bit!=exit_end();++bit)
     {
         Block * b = *bit;
         visited[b->start()] = 2;
@@ -300,11 +302,11 @@ Function::blocks_int()
            if (link_return)
               delayed_link_return(_obj,cur);
            if(visited[cur->start()] <= 1) {
-              _exitBL.push_back(cur);
+	     _exitBL[cur->start()] = cur;
 	      parsing_printf("Adding block 0x%lx as exit\n", cur->start());
               if (link_return) 
 	      {
-                 _retBL.push_back(cur);
+		_retBL[cur->start()] = cur;
 	      }
 	      
            }
@@ -347,7 +349,7 @@ Function::blocks_int()
     }
 
 
-    return _bl;
+    return blocklist(blocks_begin(), blocks_end());
 }
 
 /* Adds return edges to the CFG for a particular retblk, based 
@@ -401,7 +403,6 @@ void
 Function::add_block(Block *b)
 {
   ++b->_func_cnt;            // block counts references
-  _bl.push_back(b);
   _bmap[b->start()] = b;
 }
 
@@ -456,26 +457,6 @@ void
 Function::removeBlock(Block* dead)
 {
     _cache_valid = false;
-    bool found = false;
-
-    // remove dead block from _bl // KEVINTODO: use binary search
-    std::vector<Block *>::iterator biter = _bl.begin();
-    while ( !found && _bl.end() != biter ) {
-        if (dead == *biter) {
-            found = true;
-            biter = _bl.erase(biter);
-        }
-        else {
-            biter++;
-        }
-    }
-    if (!found) {
-        fprintf(stderr,"Error, tried to remove block [%lx,%lx) from "
-                "function at %lx that it does not belong to at %s[%d]\n",
-                dead->start(),dead->end(), addr(), FILE__,__LINE__);
-        assert(0);
-    }
-
     // specify replacement entry prior to deleting entry block, unless 
     // deleting all blocks
     if (dead == _entry) {
@@ -508,17 +489,15 @@ Function::removeBlock(Block* dead)
                 break;
             }
             case RET:
-                _retBL.erase(std::remove(_retBL.begin(),
-                                                 _retBL.end(),
-                                                 dead),
-                                     _retBL.end());
-                break;
+	      _retBL.erase(dead->start());
+	      break;
             default:
                 break;
         }
     }
     // remove dead block from block map
     _bmap.erase(dead->start());
+    _exitBL.erase(dead->start());
 }
 
 class ST_Predicates : public Slicer::Predicates {};
@@ -537,7 +516,7 @@ Function::tampersStack(bool recalculate)
 
     // this is above the cond'n below b/c it finalizes the function, 
     // which could in turn call this function
-    const Function::blocklist retblks(returnBlocks());
+    Function::const_blocklist retblks(returnBlocks());
     if ( retblks.begin() == retblks.end() ) {
         _tamper = TAMPER_NONE;
         return _tamper;
@@ -553,8 +532,7 @@ Function::tampersStack(bool recalculate)
     vector<Assignment::Ptr> assgns;
     ST_Predicates preds;
     _tamper = TAMPER_UNSET;
-    Function::blocklist::const_iterator bit;
-    for (bit = retblks.begin(); retblks.end() != bit; ++bit) {
+    for (auto bit = retblks.begin(); retblks.end() != bit; ++bit) {
         Address retnAddr = (*bit)->lastInsnAddr();
         InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 
                                   InstructionDecoder::maxInstructionLength, 

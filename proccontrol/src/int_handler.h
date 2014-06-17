@@ -266,6 +266,26 @@ class HandleSingleStep : public Handler
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
+class HandlePreSyscall : public Handler
+{
+ public:
+  HandlePreSyscall();
+  virtual ~HandlePreSyscall();
+
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+  virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
+class HandlePostSyscall : public Handler
+{
+ public:
+  HandlePostSyscall();
+  virtual ~HandlePostSyscall();
+
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+  virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
 class HandleBreakpoint : public Handler
 {
  public:

@@ -65,6 +65,7 @@ add_subdirectory (patchAPI)
 add_subdirectory (proccontrol)
 add_subdirectory (stackwalk)
 add_subdirectory (dyninstAPI)
+add_subdirectory (dynC_API)
 
 #Build the RT library as a seperate project so we can change compilers
 message(STATUS "Configuring DyninstAPI_RT")

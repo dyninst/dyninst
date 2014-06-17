@@ -78,12 +78,7 @@ bool PCEventHandler::handle_internal(EventPtr ev) {
 
     if( !(   ev->getEventType().code() == EventType::ForceTerminate 
              || ev->getEventType().code() == EventType::Crash
-             || (ev->getEventType().code() == EventType::Exit 
-#if !defined(os_windows)
-                 && ev->getEventType().time() == EventType::Pre)
-#else
-           )
-#endif
+             || ev->getEventType().code() == EventType::Exit 
        ) ) 
     {
         // This means we already saw the entry to exit event and we can no longer
@@ -245,9 +240,18 @@ bool PCEventHandler::handle_internal(EventPtr ev) {
 }
 
 bool PCEventHandler::handleExit(EventExit::const_ptr ev, PCProcess *evProc) const {
-    evProc->setReportingEvent(false);
+  evProc->setReportingEvent(false);
+  static bool reportPreExit = true;//PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exit));
+    
     if( ev->getEventType().time() == EventType::Pre ) {
-        // This is handled as an RT signal on all platforms for now
+               proccontrol_printf("%s[%d]: reporting exit entry event to BPatch layer\n",
+                        FILE__, __LINE__);
+	       if(reportPreExit) {
+		 proccontrol_printf("%s[%d]: registering normal exit with code %d\n",
+				    FILE__, __LINE__, ev->getExitCode());
+		 BPatch::bpatch->registerNormalExit(evProc, ev->getExitCode());
+	       }
+	       
     }else{
 		std::vector<PCThread*> thrds;
 		evProc->getThreads(thrds);
@@ -258,7 +262,7 @@ bool PCEventHandler::handleExit(EventExit::const_ptr ev, PCProcess *evProc) cons
 			// Whether we got thread exits or not, all remaining threads are gone post-exit.
 			BPatch::bpatch->registerThreadExit(evProc, *i);
 		}
-		BPatch::bpatch->registerNormalExit(evProc, ev->getExitCode());
+		if(!reportPreExit) BPatch::bpatch->registerNormalExit(evProc, ev->getExitCode());
 	
 	}
 

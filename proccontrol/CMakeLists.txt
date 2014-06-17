@@ -30,6 +30,7 @@ set (SRC_LIST ${SRC_LIST}
      src/sysv.C 
      src/int_thread_db.C 
      src/mmapalloc.C 
+     src/pcmachsyscall.C
 )
 elseif(WIN32)
 set (SRC_LIST ${SRC_LIST}

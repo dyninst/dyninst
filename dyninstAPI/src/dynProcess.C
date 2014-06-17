@@ -837,28 +837,26 @@ bool PCProcess::loadRTLib() {
                      FILE__, __LINE__);
 
       bootstrapState_ = bs_loadedRTLib;
-
-      return true;
    }
-   
-   if (!pcProc_->addLibrary(dyninstRT_name)) {
-      startup_printf("%s[%d]: failed to start loading RT lib\n", FILE__,
-                     __LINE__);
-	   return false;
+   else {
+     if (!pcProc_->addLibrary(dyninstRT_name)) {
+       startup_printf("%s[%d]: failed to start loading RT lib\n", FILE__,
+		      __LINE__);
+       return false;
+     }
+     bootstrapState_ = bs_loadedRTLib;
+     
+     // Process the library load (we hope)
+     PCEventMuxer::handle();
+     
+     if( runtime_lib.size() == 0 ) {
+       startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
+		      __LINE__);
+       return false;
+     }
+     
+     bootstrapState_ = bs_loadedRTLib;
    }
-   bootstrapState_ = bs_loadedRTLib;
-
-   // Process the library load (we hope)
-   PCEventMuxer::handle();
-
-   if( runtime_lib.size() == 0 ) {
-      startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
-                     __LINE__);
-      return false;
-   }
-
-   bootstrapState_ = bs_loadedRTLib;
-
    int loaded_ok = 0;
    pdvector<int_variable *> vars;
    if (!findVarsByAll("DYNINSThasInitialized", vars)) {
@@ -944,6 +942,21 @@ bool PCProcess::setRTLibInitParams() {
         fprintf(stderr, "%s[%d]:  set var in RTlib for debug...\n", FILE__, __LINE__);
     }
 
+    int static_mode = 0;
+    if (!findVarsByAll("DYNINSTstaticMode", vars)) {
+        if (!findVarsByAll("DYNINSTstaticMode", vars)) {
+            startup_printf("%s[%d]: could not find necessary internal variable\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+    }
+
+    assert(vars.size() == 1);
+    if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *) &static_mode)) {
+        startup_printf("%s[%d]: writeDataWord failed\n", FILE__, __LINE__);
+        return false;
+    }
+    vars.clear();
     return true;
 }
 
