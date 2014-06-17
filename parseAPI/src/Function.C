@@ -312,15 +312,11 @@ Function::blocks_int()
            }
         }
     }
-    Block::compare comp;
-    sort(_bl.begin(),_bl.end(),comp);
 
-    // Xiaozhu: We need to recalculate the exit blocks each time as we found more code
-    // Here we use the same logic to determine whether a block is an exit block or not,
-    // but we apply the logic to all blocks.
-    _exitBL.clear();
-    for (auto bit = _bl.begin(); bit != _bl.end(); ++bit) {
-        Block *cur = *bit;
+    // We need to revalidate that the exit blocks we found before are still exit blocks
+    blockmap::iterator nextIt, curIt;
+    for (curIt = _exitBL.begin(); curIt != _exitBL.end(); ) {
+        Block *cur = curIt->second;
 	bool exit_func = false;
         bool found_call = false;
         bool found_call_ft = false;
@@ -333,19 +329,22 @@ Function::blocks_int()
 	        found_call = true;
 	    }
             if (e->type() == CALL_FT) {
-               found_call_ft = true;
+                found_call_ft = true;
             }
 
-	    if (e->type() == RET || t->obj() != cur->obj()) { 	        exit_func = true;
+	    if (e->type() == RET || t->obj() != cur->obj()) {
+	        exit_func = true;
 		break;
 	    }
 	}
 	if (found_call && !found_call_ft && !obj()->defensiveMode()) exit_func = true;
 
-	if (exit_func) { 
-	     parsing_printf("\t ##### Adding block %lx as an exit block\n", cur->start());
-	    _exitBL.push_back(cur);
-	}
+	if (!exit_func) { 
+	    nextIt = curIt;
+	    ++nextIt;
+	    _exitBL.erase(curIt);
+	    curIt = nextIt;
+	} else ++curIt;
     }
 
 
