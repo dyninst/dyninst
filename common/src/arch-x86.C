@@ -273,7 +273,7 @@ enum {
 #define ST5 { am_reg, x86::ist5 }
 #define ST6 { am_reg, x86::ist6 }
 #define ST7 { am_reg, x86::ist7 }
-#define FPOS 16
+#define FPOS 17
 
 enum {
   fNT=1,   // non-temporal
