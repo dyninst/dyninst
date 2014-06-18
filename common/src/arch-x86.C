@@ -365,6 +365,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_cmpps, "cmpps")
   (e_cmpsb, "cmpsb")
   (e_cmpsd, "cmpsd")
+  (e_cmpsd_sse, "cmpsd")
   (e_cmpss, "cmpss")
   (e_cmpsw, "cmpsw")
   (e_cmpxch, "cmpxch")
@@ -3049,7 +3050,7 @@ static ia32_entry sseMap[][4] = {
     { e_cmpps, t_done, 0, true, { Vps, Wps, Ib }, 0, s1RW2R3R }, // comparison writes to dest!
     { e_cmpss, t_done, 0, true, { Vss, Wss, Ib }, 0, s1RW2R3R },
     { e_cmppd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1RW2R3R },
-    { e_cmpsd, t_done, 0, true, { Vsd, Wsd, Ib }, 0, s1RW2R3R },
+    { e_cmpsd_sse, t_done, 0, true, { Vsd, Wsd, Ib }, 0, s1RW2R3R },
   },
   { /* SSEC4 */
     { e_pinsrw, t_done, 0, true, { Pq, Ed, Ib }, 0, s1RW2R3R },
