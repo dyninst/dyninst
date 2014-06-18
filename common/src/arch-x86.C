@@ -5860,8 +5860,8 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
       if (op.admet == am_O) {
          //The MOD/RM specifies a register that's used
          int regused = loc.modrm_reg;
-         if (loc.address_size == 4) {
-            regused |= loc.rex_r << 4;
+         if (loc.address_size == 4 && loc.rex_r) {
+             regused |= 0x8;
          }
          regs.push_back(regused);
       }
@@ -5996,7 +5996,7 @@ bool instruction::isNop() const
    if (loc.rex_x) {
       return false;
    }
-   if (loc.rex_r != loc.rex_b) {
+   if ((!loc.rex_r) != (!loc.rex_b)) { // Logical exclusive or
       return false;
    }
 
