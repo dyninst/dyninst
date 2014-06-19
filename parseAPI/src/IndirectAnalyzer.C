@@ -40,6 +40,7 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
     for (int64_t i = 0; i <= target.value; ++i) {
         Address tableEntry = target.tableBase;
 	if (target.addIndexing) tableEntry += target.coe * i; else tableEntry -= target.coe * i;
+	if (!block->obj()->cs()->isValidAddress(tableEntry)) continue;
 	Address targetAddress = 0;
 	if (target.tableLookup || target.tableOffset) {
 	    if (target.coe == sizeof(Address)) {

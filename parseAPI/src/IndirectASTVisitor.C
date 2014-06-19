@@ -134,7 +134,11 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 		} else if (child2->type == Equal && child1->CoeBounded()) {  
 		    val = new BoundValue(*child1);
 	            val->tableBase += child2->value;
-		} else {
+		} else if (!child1->addIndexing) {              
+		    val = new BoundValue(*child2);
+		} else if (!child2->addIndexing) {
+		    val = new BoundValue(*child1);
+		} else { 
 		    val = new BoundValue((child1->type == Equal && child2->type == Equal) ? Equal : LessThan,
 		                         child1->value + child2->value);
 		}
