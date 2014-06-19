@@ -64,6 +64,7 @@ enum entryID {
   e_cmpps,
   e_cmpsb,
   e_cmpsd,
+  e_cmpsd_sse,
   e_cmpss,
   e_cmpsw,
   e_cmpxch,

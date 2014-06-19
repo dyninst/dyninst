@@ -273,7 +273,7 @@ enum {
 #define ST5 { am_reg, x86::ist5 }
 #define ST6 { am_reg, x86::ist6 }
 #define ST7 { am_reg, x86::ist7 }
-#define FPOS 16
+#define FPOS 17
 
 enum {
   fNT=1,   // non-temporal
@@ -365,6 +365,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_cmpps, "cmpps")
   (e_cmpsb, "cmpsb")
   (e_cmpsd, "cmpsd")
+  (e_cmpsd_sse, "cmpsd")
   (e_cmpss, "cmpss")
   (e_cmpsw, "cmpsw")
   (e_cmpxch, "cmpxch")
@@ -3049,7 +3050,7 @@ static ia32_entry sseMap[][4] = {
     { e_cmpps, t_done, 0, true, { Vps, Wps, Ib }, 0, s1RW2R3R }, // comparison writes to dest!
     { e_cmpss, t_done, 0, true, { Vss, Wss, Ib }, 0, s1RW2R3R },
     { e_cmppd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1RW2R3R },
-    { e_cmpsd, t_done, 0, true, { Vsd, Wsd, Ib }, 0, s1RW2R3R },
+    { e_cmpsd_sse, t_done, 0, true, { Vsd, Wsd, Ib }, 0, s1RW2R3R },
   },
   { /* SSEC4 */
     { e_pinsrw, t_done, 0, true, { Pq, Ed, Ib }, 0, s1RW2R3R },
@@ -5860,8 +5861,8 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
       if (op.admet == am_O) {
          //The MOD/RM specifies a register that's used
          int regused = loc.modrm_reg;
-         if (loc.address_size == 4) {
-            regused |= loc.rex_r << 4;
+         if (loc.address_size == 4 && loc.rex_r) {
+             regused |= 0x8;
          }
          regs.push_back(regused);
       }
@@ -5996,7 +5997,7 @@ bool instruction::isNop() const
    if (loc.rex_x) {
       return false;
    }
-   if (loc.rex_r != loc.rex_b) {
+   if ((!loc.rex_r) != (!loc.rex_b)) { // Logical exclusive or
       return false;
    }
 

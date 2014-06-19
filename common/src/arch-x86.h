@@ -458,7 +458,7 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
        s1RW2R3R, // shld/shrd
        s1RW2RW3R, // [i]div, cmpxch8b
        s1R2R3R
-}; // should be no more than 2^16 otherwise adjust FPOS below
+}; // should be strictly less than 2^17 otherwise adjust FPOS below
 
 
 struct modRMByte {
