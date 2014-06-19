@@ -171,10 +171,13 @@ Function::finalize()
 {
   _extents.clear();
   _exitBL.clear();
+  // for each block, decrement its refcount
+  for (auto blk = blocks_begin(); blk != blocks_end(); blk++) {
+    (*blk)->_func_cnt--;
+  }
   _bmap.clear();
   _retBL.clear();
   _call_edge_list.clear();
-  // for each block, decrement its refcount
 
     // The Parser knows how to finalize
     // a Function's parse data

@@ -129,6 +129,27 @@ bool InstalledSpringboards::addFunc(func_instance* func)
   return true;
 }
 
+bool isNoneContained(std::set<ParseAPI::Block*> &blocks) {
+    bool noneContained = true;
+    for (auto block = blocks.begin(); block != blocks.end(); block++) {
+        springboard_cerr << hex << " Checking block " << (*block)->start() << "-" << (*block)->end() << dec << ": ";
+        if ((*block)->containingFuncs() > 0) {
+            std::vector<ParseAPI::Function *> funcs;
+            springboard_cerr << "failure - contained by " << (*block)->containingFuncs() << " function(s): ";
+            (*block)->getFuncs(funcs);
+            for (auto func = funcs.begin(); func != funcs.end(); func++) {
+                springboard_cerr << " " << (*func)->name() << " ";
+                springboard_cerr << ( (*func)->contains(*block) ? "(correct)" : "(incorrect)" );
+            }
+            springboard_cerr << endl;
+            noneContained = false;
+            break;
+        } else {
+            springboard_cerr << "success (no containing function)" << endl;
+        }
+    }
+    return noneContained;
+}
 
 template <typename BlockIter>
 bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, BlockIter end) {
@@ -137,7 +158,7 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
   for (; begin != end; ++begin) {
      block_instance *bbl = SCAST_BI(*begin);
 
-     if (bbl->wasUserAdded()) continue;
+     //if (bbl->wasUserAdded()) continue;
      // Don't try to springboard a user-added block...
 
     // Check for overlapping blocks. Lovely.
@@ -154,6 +175,21 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
        end = start + 16;
     }
 #endif
+
+    // Extend the block to include any subsequent no-ops that are not part of other blocks
+    int size = bbl->size();
+    if (size < 5) {
+        ParseAPI::CodeObject* co = func->ifunc()->obj();
+        ParseAPI::CodeRegion* cr = func->ifunc()->region();
+        std::set<ParseAPI::Block*> blocks;
+        co->findBlocks(cr, end, blocks);
+        while (isNoneContained(blocks) && cr->contains(end) && (size < 5)) {
+            end++;
+            size++;
+            blocks.clear();
+            co->findBlocks(cr, end, blocks);
+        }
+    }
 
     SpringboardInfo* info = new SpringboardInfo(nextFuncID_, func);
     for (Address lookup = start; lookup < end; ) 
