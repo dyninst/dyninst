@@ -1111,6 +1111,8 @@ public:
    bool suspended;
 
     bool user_syscall;
+    bool next_syscall_is_exit;
+    
 
    Address stopped_on_breakpoint_addr;
    Address postponed_stopped_on_breakpoint_addr;

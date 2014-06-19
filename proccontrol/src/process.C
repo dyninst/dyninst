@@ -2881,6 +2881,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    running_when_attached(true),
    suspended(false),
    user_syscall(false),
+   next_syscall_is_exit(false),
    stopped_on_breakpoint_addr(0x0),
    postponed_stopped_on_breakpoint_addr(0x0),
    clearing_breakpoint(NULL),
@@ -4103,14 +4104,16 @@ bool int_thread::preSyscall()
      * not exist (0 < syscall_number > __NR_syscall_max) will we incorrectly
      * label the system call exist as system call entry. */
     
-    bool ret = false;
+    bool ret = !next_syscall_is_exit;
     MachRegisterVal syscallReturnValue;
-    if (!plat_getRegister(MachRegister::getSyscallReturnValueReg(llproc()->getTargetArch()), syscallReturnValue)) { return true; }
+    if (!plat_getRegister(MachRegister::getSyscallReturnValueReg(llproc()->getTargetArch()), 
+			  syscallReturnValue)) { ret = true; }
     
     if (syscallReturnValue == (MachRegisterVal)(-ENOSYS)) {
         ret = true;
     }
-
+    next_syscall_is_exit = ret;
+    
     return ret;
 }
 
