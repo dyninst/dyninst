@@ -98,6 +98,12 @@ class DwarfWalker {
       void clearFunc();
    };
 
+   struct ContextGuard {
+     Contexts& c;
+     ContextGuard(Contexts& c): c(c) { c.push(); }
+     ~ContextGuard() { c.pop(); }
+   };
+
   public:
    typedef enum {
       NoError
@@ -116,7 +122,7 @@ class DwarfWalker {
               Address lowpc);
 
    // Takes current debug state as represented by dbg_;
-   bool parseModule(Module *&fixUnknownMod);
+   bool parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod);
    
    // Non-recursive version of parse
    // A Context must be provided as an _input_ to this function,
@@ -217,9 +223,13 @@ class DwarfWalker {
    bool getReturnType(bool hasSpecification, Type *&returnType);
    bool addFuncToContainer(Type *returnType);
    bool findType(Type *&, bool defaultToVoid);
+   bool findAnyType(Dwarf_Attribute typeAttribute,
+                    Dwarf_Bool is_info, Type *&type);
+   bool findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset);
    bool getLineInformation(Dwarf_Unsigned &variableLineNo,
                            bool &hasLineNumber,
                            std::string &filename); 
+   bool findDieName(Dwarf_Die die, std::string &);
    bool findName(std::string &);
    void removeFortranUnderscore(std::string &);
    bool findSize(unsigned &size);
@@ -250,7 +260,8 @@ class DwarfWalker {
                                           std::vector<VariableLocation> &locs);
    typeArray *parseMultiDimensionalArray(Dwarf_Die firstRange,
                                          Type *elementType);
-   bool decipherBound(Dwarf_Attribute boundAttribute, std::string &name);
+   bool decipherBound(Dwarf_Attribute boundAttribute, Dwarf_Bool is_info,
+                      std::string &name);
 
    bool decodeExpression(Dwarf_Attribute &attr,
 			 std::vector<VariableLocation> &locs);
@@ -268,9 +279,6 @@ class DwarfWalker {
    // to handle a bug where they don't finish off functions. 
    void clearFunc() { contexts_.clearFunc(); }
 
-   // Track which enclosure (array, struct, class, etc.) contains the current
-   // dwarf parsee
-   std::map<Dwarf_Off, fieldListType *> enclosureMap;
    // Header-only functions get multiple parsed.
    std::set<FunctionBase *> parsedFuncs;
    
@@ -302,6 +310,18 @@ class DwarfWalker {
    // we need to subtract a "header overall offset". 
    Dwarf_Off compile_offset;
 
+   // Type IDs are just int, but Dwarf_Off is 64-bit and may be relative to
+   // either .debug_info or .debug_types.
+   dyn_hash_map<Dwarf_Off, typeId_t> info_type_ids_; // .debug_info offset -> id
+   dyn_hash_map<Dwarf_Off, typeId_t> types_type_ids_; // .debug_types offset -> id
+   typeId_t get_type_id(Dwarf_Off offset, bool is_info);
+   typeId_t type_id(); // get_type_id() for the current entry
+
+   // Map to connect DW_FORM_ref_sig8 to type IDs.
+   dyn_hash_map<uint64_t, typeId_t> sig8_type_ids_;
+   bool parseModuleSig8(Dwarf_Bool is_info);
+   void findAllSig8Types();
+   bool findSig8Type(Dwarf_Sig8 *signature, Type *&type);
 };
 
 };

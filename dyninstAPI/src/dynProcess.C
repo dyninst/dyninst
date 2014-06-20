@@ -674,7 +674,9 @@ bool PCProcess::createInitialMappedObjects() {
            return false;
        }
 
-       if ((*i)->getAbsoluteName() == dyninstRT_name) {
+       const fileDescriptor &desc = newObj->getFileDesc();
+       fileDescriptor tmpDesc(dyninstRT_name, desc.code(), desc.data(), true);
+       if( desc == tmpDesc ) {
           startup_printf("%s[%d]: RT library already loaded, manual loading not necessary\n",
                          FILE__, __LINE__);
           runtime_lib.insert(newObj);

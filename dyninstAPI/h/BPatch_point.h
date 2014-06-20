@@ -62,7 +62,7 @@ namespace Dyninst {
       class Instance;
       class Point;
       typedef boost::shared_ptr<Instance> InstancePtr;
-      Point *convert(const BPatch_point *, BPatch_callWhen);
+      BPATCH_DLL_EXPORT Point *convert(const BPatch_point *, BPatch_callWhen);
    }
 }
 

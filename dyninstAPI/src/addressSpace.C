@@ -1743,7 +1743,12 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   CodeMover::Ptr cm = CodeMover::create(relocatedCode_.back());
   if (!cm->addFunctions(begin, end)) return false;
 
-  SpringboardBuilder::Ptr spb = SpringboardBuilder::createFunc(begin, end, this);
+  std::set<parse_func*> parseFuncs;
+  for (FuncSet::iterator func = begin; func != end; func++) {
+      parseFuncs.insert( (*func)->ifunc() );
+  }
+
+  SpringboardBuilder::Ptr spb = SpringboardBuilder::createFunc(parseFuncs.begin(), parseFuncs.end(), this);
 
   relocation_cerr << "Debugging CodeMover (pre-transform)" << endl;
   relocation_cerr << cm->format() << endl;

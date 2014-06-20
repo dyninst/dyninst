@@ -50,15 +50,14 @@ SpringboardBuilder::SpringboardBuilder(AddressSpace* a)
 {
 }
 
-SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator begin,
-						       FuncSet::const_iterator end,
+SpringboardBuilder::Ptr SpringboardBuilder::createFunc(std::set<parse_func*>::iterator begin,
+						       std::set<parse_func*>::iterator end,
 						       AddressSpace *as) 
 {
   Ptr ret = Ptr(new SpringboardBuilder(as));
   if (!ret) return ret;
   for (; begin != end; ++begin) {
-     func_instance *func = *begin;
-     if(!ret->installed_springboards_->addFunc(func)) 
+     if(!ret->installed_springboards_->addFunc(*begin)) 
      {
         return Ptr();
      }
@@ -122,22 +121,43 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
    return true;
 }
 
-bool InstalledSpringboards::addFunc(func_instance* func)
+bool InstalledSpringboards::addFunc(parse_func* func)
 {
   if(!addBlocks(func, func->blocks().begin(), func->blocks().end())) return false;
   nextFuncID_++;
   return true;
 }
 
+bool isNoneContained(std::set<ParseAPI::Block*> &blocks) {
+    bool noneContained = true;
+    for (auto block = blocks.begin(); block != blocks.end(); block++) {
+        springboard_cerr << hex << " Checking block " << (*block)->start() << "-" << (*block)->end() << dec << ": ";
+        if ((*block)->containingFuncs() > 0) {
+            std::vector<ParseAPI::Function *> funcs;
+            springboard_cerr << "failure - contained by " << (*block)->containingFuncs() << " function(s): ";
+            (*block)->getFuncs(funcs);
+            for (auto func = funcs.begin(); func != funcs.end(); func++) {
+                springboard_cerr << " " << (*func)->name() << " ";
+                springboard_cerr << ( (*func)->contains(*block) ? "(correct)" : "(incorrect)" );
+            }
+            springboard_cerr << endl;
+            noneContained = false;
+            break;
+        } else {
+            springboard_cerr << "success (no containing function)" << endl;
+        }
+    }
+    return noneContained;
+}
 
 template <typename BlockIter>
-bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, BlockIter end) {
+bool InstalledSpringboards::addBlocks(parse_func* func, BlockIter begin, BlockIter end) {
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {
-     block_instance *bbl = SCAST_BI(*begin);
+     parse_block *bbl = static_cast<parse_block*>(*begin);
 
-     if (bbl->wasUserAdded()) continue;
+     //if (bbl->wasUserAdded()) continue;
      // Don't try to springboard a user-added block...
 
     // Check for overlapping blocks. Lovely.
@@ -154,6 +174,21 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
        end = start + 16;
     }
 #endif
+
+    // Extend the block to include any subsequent no-ops that are not part of other blocks
+    int size = bbl->size();
+    if (size < 5) {
+        ParseAPI::CodeObject* co = func->obj();
+        ParseAPI::CodeRegion* cr = func->region();
+        std::set<ParseAPI::Block*> blocks;
+        co->findBlocks(cr, end, blocks);
+        while (isNoneContained(blocks) && cr->contains(end) && (size < 5)) {
+            end++;
+            size++;
+            blocks.clear();
+            co->findBlocks(cr, end, blocks);
+        }
+    }
 
     SpringboardInfo* info = new SpringboardInfo(nextFuncID_, func);
     for (Address lookup = start; lookup < end; ) 
@@ -320,7 +355,7 @@ bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocate
                     springboard_cerr << "\t Starting range matches already allocated springboard, prior springboard had higher priority, ret conflict" << endl;
                     return true;
                 }
-                if ((state->priority == p) && (state->func != func)) {
+                if ((state->priority == p) && (state->func != func->ifunc())) {
                     springboard_cerr << "\t Starting range matches already allocated springboard, equivalent priorities and different functions, ret conflict" << endl;
                     return true;
                 }
@@ -422,13 +457,13 @@ void InstalledSpringboards::registerBranch
    // [lb..start] as true
    // [start..end] as false
    // [end..ub] as true
-   SpringboardInfo* info = new SpringboardInfo(idToUse, func);
+   SpringboardInfo* info = new SpringboardInfo(idToUse, func->ifunc());
    if (LB < start) {
         springboard_cerr << "\tInserting prior space " << hex << LB << " -> " << start << " /w/ range " << idToUse << dec << endl;
        validRanges_.insert(LB, start, info);
    }
     springboard_cerr << "\t Inserting taken space " << hex << start << " -> " << end << " /w/ range " << Allocated << dec << endl;
-   validRanges_.insert(start, end, new SpringboardInfo(Allocated, func, p));
+   validRanges_.insert(start, end, new SpringboardInfo(Allocated, func->ifunc(), p));
    if (UB > end) {
         springboard_cerr << "\tInserting post space " << hex << end << " -> " << UB << " /w/ range " << idToUse << dec << endl;
       validRanges_.insert(end, UB, info);
@@ -436,7 +471,7 @@ void InstalledSpringboards::registerBranch
 }
 
 void InstalledSpringboards::registerBranchInRelocated(Address start, Address end, func_instance* func, Priority p) {
-   overwrittenRelocatedCode_.insert(start, end, new SpringboardInfo(1, func, p)); 
+   overwrittenRelocatedCode_.insert(start, end, new SpringboardInfo(1, func->ifunc(), p)); 
 }
 
 

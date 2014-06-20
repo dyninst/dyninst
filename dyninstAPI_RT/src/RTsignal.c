@@ -35,9 +35,11 @@
 #include <stdio.h>
 #include <signal.h>
 
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+
 typedef void (*dynsighandler_t)(int);
 
-int dyn_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact) {
+DLLEXPORT int dyn_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact) {
     if (signum != SIGTRAP) {
         return sigaction(signum, act, oldact);
     }
@@ -46,7 +48,7 @@ int dyn_sigaction(int signum, const struct sigaction *act, struct sigaction *old
     }
 }
 
-dynsighandler_t dyn_signal(int signum, dynsighandler_t handler) {
+DLLEXPORT dynsighandler_t dyn_signal(int signum, dynsighandler_t handler) {
     if (signum != SIGTRAP) {
         return signal(signum, handler);
     }

@@ -389,7 +389,7 @@ class StackAnalysis {
 
 };
 
-std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height &h);
+DATAFLOW_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height &h);
 
 namespace Dyninst {
   DEF_AST_LEAF_TYPE(StackAST, Dyninst::StackAnalysis::Height);

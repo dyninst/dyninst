@@ -2527,7 +2527,8 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
                status = dwarf_global_formref(specificationAttribute, &specificationOffset, NULL);
                if (status != DW_DLV_OK) goto error;
 
-               status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
+               Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(dieEntry);
+               status = dwarf_offdie_b( dbg, specificationOffset, is_info, & nameEntry, NULL );
                if (status != DW_DLV_OK) goto error;
 
                dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
@@ -2551,6 +2552,8 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
             /* Prefer the linkage (symbol table) name. */
             Dwarf_Attribute linkageNameAttribute;
             status = dwarf_attr(nameEntry, DW_AT_MIPS_linkage_name, &linkageNameAttribute, NULL);
+            if (status != DW_DLV_OK)
+               status = dwarf_attr(nameEntry, DW_AT_linkage_name, &linkageNameAttribute, NULL);
             if (status == DW_DLV_ERROR) goto error;
 
             bool hasLinkageName = false;
@@ -2591,7 +2594,8 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
                while ( true ) 
                {
                   Dwarf_Die priorSibling = siblingDie;
-                  status = dwarf_siblingof( dbg, siblingDie, & siblingDie, NULL );
+                  Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(priorSibling);
+                  status = dwarf_siblingof_b( dbg, priorSibling, is_info, & siblingDie, NULL );
                   if (status == DW_DLV_ERROR) goto error;
 
                   if ( ! first ) 
@@ -2741,7 +2745,8 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
 
                dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
 
-               status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
+               Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(dieEntry);
+               status = dwarf_offdie_b( dbg, specificationOffset, is_info, & nameEntry, NULL );
                if (status != DW_DLV_OK) goto error;
 
             } /* end if the DIE has a specification. */
@@ -2756,6 +2761,8 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
 
             Dwarf_Attribute linkageNameAttribute;
             status = dwarf_attr(nameEntry, DW_AT_MIPS_linkage_name, &linkageNameAttribute, NULL);
+            if (status != DW_DLV_OK)
+               status = dwarf_attr(nameEntry, DW_AT_linkage_name, &linkageNameAttribute, NULL);
             if (status == DW_DLV_ERROR) goto error;
 
             if ( status == DW_DLV_OK ) 
@@ -2821,7 +2828,10 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
    /* Recurse to its sibling, if any. */
 
    Dwarf_Die siblingDwarf;
-   status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
+   {
+      Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(dieEntry);
+      status = dwarf_siblingof_b( dbg, dieEntry, is_info, & siblingDwarf, NULL );
+   }
    if (status == DW_DLV_ERROR) goto error;
 
    if ( status == DW_DLV_OK ) 
@@ -2881,16 +2891,19 @@ bool Object::fix_global_symbol_modules_static_dwarf()
 
    IntervalTree<Dwarf_Addr, std::string> module_ranges;
 
+   /* Only .debug_info for now, not .debug_types */
+   Dwarf_Bool is_info = 1;
+
    /* Iterate over the CU headers. */
-   while ( dwarf_next_cu_header_c( dbg, 1, 
+   while ( dwarf_next_cu_header_c( dbg, is_info,
 				   NULL, NULL, NULL, // len, stamp, abbrev
 				   NULL, NULL, NULL, // address, offset, extension
 				   NULL, NULL, // signature, typeoffset
-				   & hdr, NULL ) == DW_DLV_OK ) 
+				   & hdr, NULL ) == DW_DLV_OK )
    {
       /* Obtain the module DIE. */
       Dwarf_Die moduleDIE;
-      status = dwarf_siblingof( dbg, NULL, & moduleDIE, NULL );
+      status = dwarf_siblingof_b( dbg, NULL, is_info, & moduleDIE, NULL );
       if (status != DW_DLV_OK) goto error;
 
       /* Make sure we've got the right one. */
@@ -4354,13 +4367,20 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
       Dwarf_Attribute languageAttribute = NULL;
       bool done = false;
 
+      /* Only .debug_info for now, not .debug_types */
+      Dwarf_Bool is_info = 1;
+
       while( !done && 
-             dwarf_next_cu_header(dbg, NULL, NULL, NULL, NULL, & hdr, NULL) == DW_DLV_OK )
+             dwarf_next_cu_header_c( dbg, is_info,
+                                     NULL, NULL, NULL, // len, stamp, abbrev
+                                     NULL, NULL, NULL, // address, offset, extension
+                                     NULL, NULL, // signature, typeoffset
+                                     & hdr, NULL ) == DW_DLV_OK )
 	{
 	  Dwarf_Half moduleTag;
 	  Dwarf_Unsigned languageConstant;
 
-	  status = dwarf_siblingof(dbg, NULL, &moduleDIE, NULL);
+	  status = dwarf_siblingof_b(dbg, NULL, is_info, &moduleDIE, NULL);
 	  if (status != DW_DLV_OK) {
             done = true;
             goto cleanup_dwarf;
@@ -4402,9 +4422,19 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
 	    {
             case DW_LANG_C:
             case DW_LANG_C89:
+            case DW_LANG_C99:
+#ifdef DW_LANG_C11
+            case DW_LANG_C11:
+#endif
 	      (*mod_langs)[working_module] = lang_C;
 	      break;
             case DW_LANG_C_plus_plus:
+#ifdef DW_LANG_C_plus_plus_03
+            case DW_LANG_C_plus_plus_03:
+#endif
+#ifdef DW_LANG_C_plus_plus_11
+            case DW_LANG_C_plus_plus_11:
+#endif
 	      (*mod_langs)[working_module] = lang_CPlusPlus;
 	      break;
             case DW_LANG_Fortran77:
@@ -4736,13 +4766,20 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
 		return; 
 	Dwarf_Debug &dbg = *dbg_ptr;
 
+        /* Only .debug_info for now, not .debug_types */
+        Dwarf_Bool is_info = 1;
+
 	/* Itereate over the CU headers. */
 	Dwarf_Unsigned header;
-	while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & header, NULL ) == DW_DLV_OK ) 
+	while ( dwarf_next_cu_header_c( dbg, is_info,
+                                        NULL, NULL, NULL, // len, stamp, abbrev
+                                        NULL, NULL, NULL, // address, offset, extension
+                                        NULL, NULL, // signature, typeoffset
+                                        & header, NULL ) == DW_DLV_OK )
 	{
 		/* Acquire the CU DIE. */
 		Dwarf_Die cuDIE;
-		int status = dwarf_siblingof( dbg, NULL, & cuDIE, NULL);
+		int status = dwarf_siblingof_b( dbg, NULL, is_info, & cuDIE, NULL);
 		if ( status != DW_DLV_OK ) { 
 			/* If we can get no (more) CUs, we're done. */
 			break;
@@ -5566,11 +5603,11 @@ void Object::getSegmentsSymReader(vector<SymSegment> &segs) {
    }
 }
 
-const char* Object::getFileName() const
+std::string Object::getFileName() const
 {
   if(soname_) {
     return soname_;
   }
   
-  return mf->filename().c_str();
+  return mf->filename();
 }

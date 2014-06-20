@@ -211,7 +211,7 @@ namespace Dyninst
             regType = op_q;
         }
         Expression::Ptr e =
-            makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, (locs->rex_b == 1)));
+            makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, locs->rex_b));
         switch(locs->modrm_mod)
         {
             case 0:
@@ -259,7 +259,7 @@ namespace Dyninst
             assert(0);
             break;
             case 3:
-                return makeRegisterExpression(makeRegisterID(locs->modrm_rm, opType, (locs->rex_b == 1)));
+                return makeRegisterExpression(makeRegisterID(locs->modrm_rm, opType, locs->rex_b));
             default:
                 return Expression::Ptr();
         
@@ -957,7 +957,7 @@ namespace Dyninst
                     		// use of actual register
                     		{
                     			insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
-                    					(locs->rex_b == 1) ? b_xmmhigh : b_xmm, locs->modrm_rm)),
+                    					locs->rex_b ? b_xmmhigh : b_xmm, locs->modrm_rm)),
                     					isRead, isWritten);
                     			break;
                     		}
@@ -969,7 +969,7 @@ namespace Dyninst
                     case am_V:
                        
                         insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
-                                (locs->rex_r == 1 )? b_xmmhigh : b_xmm,locs->modrm_reg)),
+                                locs->rex_r ? b_xmmhigh : b_xmm,locs->modrm_reg)),
                                     isRead, isWritten);
                         break;
                     case am_W:
@@ -986,7 +986,7 @@ namespace Dyninst
                             // use of actual register
                             {
                                 insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
-                                        (locs->rex_b == 1) ? b_xmmhigh : b_xmm, locs->modrm_rm)),
+                                        locs->rex_b ? b_xmmhigh : b_xmm, locs->modrm_rm)),
                                         isRead, isWritten);
                                 break;
                             }
