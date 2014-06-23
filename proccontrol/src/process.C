@@ -57,6 +57,7 @@
 #include <sstream>
 #include <iostream>
 #include <iterator>
+#include <errno.h>
 
 #if defined(os_windows)
 #pragma warning(disable:4355)
@@ -74,8 +75,8 @@ std::set<int_thread::continue_cb_t> int_thread::continue_cbs;
 SymbolReaderFactory *int_process::user_set_symbol_reader = NULL;
 
 static const int ProcControl_major_version = 8;
-static const int ProcControl_minor_version = 1;
-static const int ProcControl_maintenance_version = 1;
+static const int ProcControl_minor_version = 2;
+static const int ProcControl_maintenance_version = 0;
 
 bool Dyninst::ProcControlAPI::is_restricted_ptrace = false;
 
@@ -2879,6 +2880,8 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    generator_exiting_state(false),
    running_when_attached(true),
    suspended(false),
+   user_syscall(false),
+   next_syscall_is_exit(false),
    stopped_on_breakpoint_addr(0x0),
    postponed_stopped_on_breakpoint_addr(0x0),
    clearing_breakpoint(NULL),
@@ -4076,6 +4079,42 @@ void int_thread::setSingleStepUserMode(bool s)
 bool int_thread::singleStep() const
 {
    return single_step || user_single_step;
+}
+
+void int_thread::setSyscallUserMode(bool s)
+{
+    user_syscall = s;
+}
+
+bool int_thread::syscallUserMode() const
+{
+    return user_syscall;
+}
+
+bool int_thread::syscallMode() const
+{
+    return user_syscall;
+}
+
+bool int_thread::preSyscall()
+{
+    /* On Linux, we distinguish between system call entry and exit based on the
+     * system call return value. This approach will always correctly label a
+     * system call entry. Only in the cast where the invoked system call does
+     * not exist (0 < syscall_number > __NR_syscall_max) will we incorrectly
+     * label the system call exist as system call entry. */
+    
+    bool ret = !next_syscall_is_exit;
+    MachRegisterVal syscallReturnValue;
+    if (!plat_getRegister(MachRegister::getSyscallReturnValueReg(llproc()->getTargetArch()), 
+			  syscallReturnValue)) { ret = true; }
+    
+    if (syscallReturnValue == (MachRegisterVal)(-ENOSYS)) {
+        ret = true;
+    }
+    next_syscall_is_exit = ret;
+    
+    return ret;
 }
 
 void int_thread::markClearingBreakpoint(bp_instance *bp)
@@ -6521,12 +6560,32 @@ bool Process::runIRPCSync(IRPC::ptr irpc)
    bool result = runIRPCAsync(irpc);
    if (!result) return false;
 
+   bool exited = false;
+   int_process *proc = llproc();
+   int_iRPC::ptr int_rpc = irpc->llrpc()->rpc;
+
    while (irpc->state() != IRPC::Done) {
-	   result = int_process::waitAndHandleEvents(true);
-	   if (!result) {
-		  perr_printf("Error waiting for process to finish iRPC\n");
-		  return false;
-	   }
+      int_thread *thr = int_rpc->thread();
+      if (thr && thr->isStopped(int_thread::UserStateID)) {
+         pthrd_printf("RPC thread %d/%d was stopped during runIRPCSync, returning notrunning error\n",
+                      proc->getPid(), thr->getLWP());
+         setLastError(err_notrunning, "No threads are running to produce events\n");
+         return false;
+      }
+
+      result = int_process::waitAndHandleForProc(true, proc, exited);
+      if (exited) {
+         perr_printf("Process %d exited while waiting for irpc completion\n", getPid());
+         setLastError(err_exited, "Process exited during IRPC");
+         return false;
+      }
+      if (!result) {
+         if (getLastError() == err_notrunning)
+            pthrd_printf("RPC thread was stopped during runIRPCSync\n");
+         else
+            perr_printf("Error waiting for process to finish iRPC\n");
+         return false;
+      }
    }
    return true;
 }
@@ -7516,6 +7575,33 @@ bool Thread::getSingleStepMode() const
    return llthread_->singleStepUserMode();
 }
 
+void Thread::setSyscallMode(bool s) const
+{
+    MTLock lock_this_func;
+    if (!llthread_) {
+        perr_printf("setSyscallMode called on exited thread\n");
+        setLastError(err_exited, "Thread is exited\n");
+        return;
+    } 
+   if (llthread_->getUserState().getState() != int_thread::stopped) {
+       perr_printf("setSyscallMode called on running thread %d/%d\n",
+               llthread_->llproc()->getPid(), llthread_->getLWP());
+       setLastError(err_notstopped, "Error, user tried to put non-stopped thread into syscall tracking");
+   }
+  llthread_->setSyscallUserMode(s); 
+}
+
+bool Thread::getSyscallMode() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("getSyscallMode called on exited thread\n");
+      setLastError(err_exited, "Thread is exited\n");
+      return false;
+   }
+   return llthread_->syscallUserMode();
+}
+
 Dyninst::LWP Thread::getLWP() const
 {
    MTLock lock_this_func;
@@ -8043,7 +8129,13 @@ bool Breakpoint::suppressCallbacks() const
    return llbreakpoint_->suppressCallbacks();
 }
 
-Mutex<false> Counter::locks[Counter::NumCounterTypes];
+// Note: These locks are intentionally indirect and leaked!
+// This is because we can't guarantee destructor order between compilation
+// units, and a static array of locks here in process.C may be destroyed before
+// int_cleanup in generator.C.  Thus the handler thread may still be running,
+// manipulating Counters, which throws an exception when it tries to acquire
+// the destroyed lock.
+Mutex<false> * Counter::locks = new Mutex<false>[Counter::NumCounterTypes];
 int Counter::global_counts[Counter::NumCounterTypes];
 
 Counter::Counter(CounterType ct_) :

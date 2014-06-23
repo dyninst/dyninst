@@ -81,7 +81,9 @@ PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMaker* cm, Patch
 }
 
 PatchObject::PatchObject(const PatchObject* parObj, Address a, CFGMaker* cm, PatchCallback *cb)
-  : co_(parObj->co()), codeBase_(a) {
+  : co_(parObj->co()), codeBase_(a),
+    addr_space_(NULL)
+{
   if (!cm) {
     patchapi_debug("Use default PatchObject");
     cfg_maker_ = new CFGMaker;

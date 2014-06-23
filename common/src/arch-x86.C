@@ -273,7 +273,7 @@ enum {
 #define ST5 { am_reg, x86::ist5 }
 #define ST6 { am_reg, x86::ist6 }
 #define ST7 { am_reg, x86::ist7 }
-#define FPOS 16
+#define FPOS 17
 
 enum {
   fNT=1,   // non-temporal
@@ -365,6 +365,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_cmpps, "cmpps")
   (e_cmpsb, "cmpsb")
   (e_cmpsd, "cmpsd")
+  (e_cmpsd_sse, "cmpsd")
   (e_cmpss, "cmpss")
   (e_cmpsw, "cmpsw")
   (e_cmpxch, "cmpxch")
@@ -3049,7 +3050,7 @@ static ia32_entry sseMap[][4] = {
     { e_cmpps, t_done, 0, true, { Vps, Wps, Ib }, 0, s1RW2R3R }, // comparison writes to dest!
     { e_cmpss, t_done, 0, true, { Vss, Wss, Ib }, 0, s1RW2R3R },
     { e_cmppd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1RW2R3R },
-    { e_cmpsd, t_done, 0, true, { Vsd, Wsd, Ib }, 0, s1RW2R3R },
+    { e_cmpsd_sse, t_done, 0, true, { Vsd, Wsd, Ib }, 0, s1RW2R3R },
   },
   { /* SSEC4 */
     { e_pinsrw, t_done, 0, true, { Pq, Ed, Ib }, 0, s1RW2R3R },
@@ -5515,12 +5516,6 @@ bool insn_hasDisp32(unsigned ModRMbyte){
     return (Mod == 0 && RM == 5) || (Mod == 2);
 }
 
-// We keep an array-let that represents various fixed
-// insns
-unsigned char illegalRep[2] = {0x0f, 0x0b};
-unsigned char trapRep[1] = {0xCC};
- 
-
 const char* ia32_entry::name(ia32_locations* loc)
 {
   dyn_hash_map<entryID, string>::const_iterator found = entryNames_IAPI.find(id);
@@ -5580,6 +5575,9 @@ Address get_immediate_operand(instruction *instr)
     ia32_instruction detail(mac,&cond,&loc);
 
     ia32_decode(IA32_FULL_DECODER,(const unsigned char *)(instr->ptr()),detail);
+
+    if (loc.imm_cnt < 1)
+      return 0;
 
     // now find the immediate value in the locations
     Address immediate = 0;
@@ -5863,8 +5861,8 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
       if (op.admet == am_O) {
          //The MOD/RM specifies a register that's used
          int regused = loc.modrm_reg;
-         if (loc.address_size == 4) {
-            regused |= loc.rex_r << 4;
+         if (loc.address_size == 4 && loc.rex_r) {
+             regused |= 0x8;
          }
          regs.push_back(regused);
       }
@@ -5999,7 +5997,7 @@ bool instruction::isNop() const
    if (loc.rex_x) {
       return false;
    }
-   if (loc.rex_r != loc.rex_b) {
+   if ((!loc.rex_r) != (!loc.rex_b)) { // Logical exclusive or
       return false;
    }
 

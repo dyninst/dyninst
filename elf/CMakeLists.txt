@@ -25,7 +25,7 @@ add_definitions(-DDYNELF_LIB)
 
 FILE (GLOB headers "h/*.h")
 set_target_properties (dynElf dynElf_static PROPERTIES PUBLIC_HEADER "${headers}")
-target_link_libraries (dynElf ${LIBELF_LIBRARIES})
+target_link_private_libraries (dynElf ${LIBELF_LIBRARIES})
 
 INSTALL (TARGETS dynElf dynElf_static
         EXPORT DyninstTargets

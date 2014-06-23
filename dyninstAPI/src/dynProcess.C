@@ -674,7 +674,9 @@ bool PCProcess::createInitialMappedObjects() {
            return false;
        }
 
-       if ((*i)->getAbsoluteName() == dyninstRT_name) {
+       const fileDescriptor &desc = newObj->getFileDesc();
+       fileDescriptor tmpDesc(dyninstRT_name, desc.code(), desc.data(), true);
+       if( desc == tmpDesc ) {
           startup_printf("%s[%d]: RT library already loaded, manual loading not necessary\n",
                          FILE__, __LINE__);
           runtime_lib.insert(newObj);
@@ -837,28 +839,26 @@ bool PCProcess::loadRTLib() {
                      FILE__, __LINE__);
 
       bootstrapState_ = bs_loadedRTLib;
-
-      return true;
    }
-   
-   if (!pcProc_->addLibrary(dyninstRT_name)) {
-      startup_printf("%s[%d]: failed to start loading RT lib\n", FILE__,
-                     __LINE__);
-	   return false;
+   else {
+     if (!pcProc_->addLibrary(dyninstRT_name)) {
+       startup_printf("%s[%d]: failed to start loading RT lib\n", FILE__,
+		      __LINE__);
+       return false;
+     }
+     bootstrapState_ = bs_loadedRTLib;
+     
+     // Process the library load (we hope)
+     PCEventMuxer::handle();
+     
+     if( runtime_lib.size() == 0 ) {
+       startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
+		      __LINE__);
+       return false;
+     }
+     
+     bootstrapState_ = bs_loadedRTLib;
    }
-   bootstrapState_ = bs_loadedRTLib;
-
-   // Process the library load (we hope)
-   PCEventMuxer::handle();
-
-   if( runtime_lib.size() == 0 ) {
-      startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
-                     __LINE__);
-      return false;
-   }
-
-   bootstrapState_ = bs_loadedRTLib;
-
    int loaded_ok = 0;
    pdvector<int_variable *> vars;
    if (!findVarsByAll("DYNINSThasInitialized", vars)) {
@@ -944,6 +944,21 @@ bool PCProcess::setRTLibInitParams() {
         fprintf(stderr, "%s[%d]:  set var in RTlib for debug...\n", FILE__, __LINE__);
     }
 
+    int static_mode = 0;
+    if (!findVarsByAll("DYNINSTstaticMode", vars)) {
+        if (!findVarsByAll("DYNINSTstaticMode", vars)) {
+            startup_printf("%s[%d]: could not find necessary internal variable\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+    }
+
+    assert(vars.size() == 1);
+    if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *) &static_mode)) {
+        startup_printf("%s[%d]: writeDataWord failed\n", FILE__, __LINE__);
+        return false;
+    }
+    vars.clear();
     return true;
 }
 
@@ -1082,8 +1097,10 @@ bool PCProcess::detachProcess(bool /*cont*/) {
 
     // TODO figure out if ProcControl should care about continuing a process
     // after detach
-    
-    if( pcProc_->detach() ) {
+
+    // NB: it's possible to get markExited() while handling events for the
+    // tracedSyscalls_->remove* calls above, clearing pcProc_.
+    if( isTerminated() || pcProc_->detach() ) {
         attached_ = false;
         return true;
     }
@@ -1998,7 +2015,6 @@ bool PCProcess::postIRPC_internal(void *buf,
                                   bool userRPC,
                                   bool isMemAlloc,
                                   void **result) {
-   assert(pcProc_);
    if( isTerminated() ) {
       proccontrol_printf("%s[%d]: cannot post RPC to exited or terminated process %d\n",
                          FILE__, __LINE__, getpid());
@@ -2745,7 +2761,7 @@ void PCProcess::generatePatchBranches(AddrPairSet &branchesNeeded) {
     insnCodeGen::generateBranch(gen, from, to);
 
     // Safety check: make sure we didn't overrun the patch area
-    Address lb, ub;
+    Address lb = 0, ub = 0;
     std::pair<func_instance*,Address> tmp;
     if (!reverseDefensiveMap_.find(from, lb, ub, tmp)) {
       // Huh? This worked before!

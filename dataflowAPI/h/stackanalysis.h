@@ -46,15 +46,6 @@
 // To define StackAST
 #include "DynAST.h"
 
-#if defined(os_aix) 
-// AIX is missing a MINLONG...
-#if defined(arch_64bit)
-#define MINLONG INT64_MIN
-#else
-#define MINLONG INT32_MIN
-#endif
-#endif
-
 // FreeBSD is missing a MINLONG and MAXLONG
 #if defined(os_freebsd) 
 #if defined(arch_64bit)
@@ -398,7 +389,7 @@ class StackAnalysis {
 
 };
 
-std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height &h);
+DATAFLOW_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height &h);
 
 namespace Dyninst {
   DEF_AST_LEAF_TYPE(StackAST, Dyninst::StackAnalysis::Height);

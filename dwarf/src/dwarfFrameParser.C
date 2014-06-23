@@ -42,17 +42,35 @@ using namespace Dyninst;
 using namespace Dwarf;
 using namespace std;
 
-std::map<Dwarf_Debug, DwarfFrameParser::Ptr> DwarfFrameParser::frameParsers;
+struct frameParser_key
+{
+  Dwarf_Debug dbg;
+  Architecture arch;
+  frameParser_key(Dwarf_Debug d, Architecture a) : dbg(d), arch(a) 
+  {
+  }
+  
+  bool operator< (const frameParser_key& rhs) const
+  {
+    return (dbg < rhs.dbg) || (dbg == rhs.dbg && arch < rhs.arch);
+  }
+  
+};
+
+  
+
+std::map<DwarfFrameParser::frameParser_key, DwarfFrameParser::Ptr> DwarfFrameParser::frameParsers;
 
 DwarfFrameParser::Ptr DwarfFrameParser::create(Dwarf_Debug dbg, Architecture arch) {
-   std::map<Dwarf_Debug, DwarfFrameParser::Ptr>::iterator iter = frameParsers.find(dbg);
-   if (iter == frameParsers.end()) {
-      Ptr newParser = Ptr(new DwarfFrameParser(dbg, arch));
-      frameParsers[dbg] = newParser;
-      return newParser;
+  frameParser_key k(dbg, arch);
+  
+  auto iter = frameParsers.find(k);
+  if (iter == frameParsers.end()) {
+    Ptr newParser = Ptr(new DwarfFrameParser(dbg, arch));
+    frameParsers[k] = newParser;
+    return newParser;
    }
    else {
-      assert(iter->second->arch == arch);
       return iter->second;
    }
 }

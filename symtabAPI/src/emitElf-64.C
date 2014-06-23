@@ -2244,10 +2244,16 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
       dsize_type = DT_PLTRELSZ;
       buffer = relas;
    }
-if(dynamicSecData.find(dsize_type) != dynamicSecData.end())
-   old_reloc_size =  dynamicSecData[dsize_type][0]->d_un.d_val;
-else
-   old_reloc_size = 0;
+
+   if (buffer == NULL) {
+      log_elferror(err_func_, "Unknown relocation type encountered");
+      return;
+   }
+
+   if(dynamicSecData.find(dsize_type) != dynamicSecData.end())
+      old_reloc_size =  dynamicSecData[dsize_type][0]->d_un.d_val;
+   else
+      old_reloc_size = 0;
    dynamic_reloc_size = old_reloc_size+  l*sizeof(Elf64_Rel)+ m*sizeof(Elf64_Rela);
    string name;
    if (secTagRegionMapping.find(dtype) != secTagRegionMapping.end())

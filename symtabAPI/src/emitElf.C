@@ -1549,6 +1549,11 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         newdata64->d_size = newSecs[i]->getDiskSize();
         if (!newdata64->d_align)
            newdata64->d_align = newshdr->sh_addralign;
+	if(newshdr->sh_addralign < newdata64->d_align) 
+	{
+	  newshdr->sh_addralign = newdata64->d_align;
+	}
+	
         newshdr->sh_size = newdata64->d_size;
         memcpy(newdata, newdata64, sizeof(Elf_Data));
      }
@@ -1560,6 +1565,10 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         newdata->d_size = newSecs[i]->getDiskSize();
         if (!newdata->d_align)
            newdata->d_align = newshdr->sh_addralign;
+	if(newshdr->sh_addralign < newdata->d_align) 
+	{
+	  newshdr->sh_addralign = newdata->d_align;
+	}
         newshdr->sh_size = newdata->d_size;
      }
 
@@ -2343,7 +2352,12 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
       dsize_type = DT_PLTRELSZ;
       buffer = relas;
    }
-   
+
+   if (buffer == NULL) {
+      log_elferror(err_func_, "Unknown relocation type encountered");
+      return;
+   }
+
    /* The original binary may have overlapping rel.dyn and rel.plt section. The overlap is determined
       by the size given by the dynamic entry DT_RELSZ/DT_RELASZ. We try to reproduce similar overlap
       in the rewritten binary to keep the loader happy. We add new entries to the end of the original 

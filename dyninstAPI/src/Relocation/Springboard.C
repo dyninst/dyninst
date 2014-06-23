@@ -50,29 +50,14 @@ SpringboardBuilder::SpringboardBuilder(AddressSpace* a)
 {
 }
 
-
-template <typename BlockIter> 
-SpringboardBuilder::Ptr SpringboardBuilder::create(BlockIter begin,
-						   BlockIter end,
-						   AddressSpace *as) {
-  Ptr ret = Ptr(new SpringboardBuilder(as));
-  if (!ret) return ret;
-
-  if (!ret->addBlocks(begin, end)) return Ptr();
-  return ret;
-}
-
-SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator begin,
-						       FuncSet::const_iterator end,
+SpringboardBuilder::Ptr SpringboardBuilder::createFunc(std::set<parse_func*>::iterator begin,
+						       std::set<parse_func*>::iterator end,
 						       AddressSpace *as) 
 {
   Ptr ret = Ptr(new SpringboardBuilder(as));
   if (!ret) return ret;
   for (; begin != end; ++begin) {
-     func_instance *func = *begin;
-     //if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), func, id++)) {
-     //if (!ret->addBlocks(func->blocks().begin(), func->blocks().end())) {
-     if(!ret->installed_springboards_->addFunc(func)) 
+     if(!ret->installed_springboards_->addFunc(*begin)) 
      {
         return Ptr();
      }
@@ -136,33 +121,48 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
    return true;
 }
 
-template <typename BlockIter>
-bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end)
+bool InstalledSpringboards::addFunc(parse_func* func)
 {
-  return installed_springboards_->addBlocks(begin, end);
-  
-}
-
-bool InstalledSpringboards::addFunc(func_instance* func)
-{
-  if(!addBlocks(func->blocks().begin(), func->blocks().end())) return false;
+  if(!addBlocks(func, func->blocks().begin(), func->blocks().end())) return false;
   nextFuncID_++;
   return true;
 }
 
+bool isNoneContained(std::set<ParseAPI::Block*> &blocks) {
+    bool noneContained = true;
+    for (auto block = blocks.begin(); block != blocks.end(); block++) {
+        springboard_cerr << hex << " Checking block " << (*block)->start() << "-" << (*block)->end() << dec << ": ";
+        if ((*block)->containingFuncs() > 0) {
+            std::vector<ParseAPI::Function *> funcs;
+            springboard_cerr << "failure - contained by " << (*block)->containingFuncs() << " function(s): ";
+            (*block)->getFuncs(funcs);
+            for (auto func = funcs.begin(); func != funcs.end(); func++) {
+                springboard_cerr << " " << (*func)->name() << " ";
+                springboard_cerr << ( (*func)->contains(*block) ? "(correct)" : "(incorrect)" );
+            }
+            springboard_cerr << endl;
+            noneContained = false;
+            break;
+        } else {
+            springboard_cerr << "success (no containing function)" << endl;
+        }
+    }
+    return noneContained;
+}
 
 template <typename BlockIter>
-bool InstalledSpringboards::addBlocks(BlockIter begin, BlockIter end) {
+bool InstalledSpringboards::addBlocks(parse_func* func, BlockIter begin, BlockIter end) {
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {
-     block_instance *bbl = SCAST_BI(*begin);
+     parse_block *bbl = static_cast<parse_block*>(*begin);
 
-     if (bbl->wasUserAdded()) continue;
+     //if (bbl->wasUserAdded()) continue;
      // Don't try to springboard a user-added block...
 
     // Check for overlapping blocks. Lovely.
-    Address LB, UB; int id;
+    Address LB = 0, UB = 0;
+    SpringboardInfo *id = NULL;
     Address start = bbl->start();
     Address end = bbl->end();
 
@@ -175,6 +175,22 @@ bool InstalledSpringboards::addBlocks(BlockIter begin, BlockIter end) {
     }
 #endif
 
+    // Extend the block to include any subsequent no-ops that are not part of other blocks
+    int size = bbl->size();
+    if (size < 5) {
+        ParseAPI::CodeObject* co = func->obj();
+        ParseAPI::CodeRegion* cr = func->region();
+        std::set<ParseAPI::Block*> blocks;
+        co->findBlocks(cr, end, blocks);
+        while (isNoneContained(blocks) && cr->contains(end) && (size < 5)) {
+            end++;
+            size++;
+            blocks.clear();
+            co->findBlocks(cr, end, blocks);
+        }
+    }
+
+    SpringboardInfo* info = new SpringboardInfo(nextFuncID_, func);
     for (Address lookup = start; lookup < end; ) 
     {/* there may be more than one range that overlaps with bbl, 
       * so we update lookup and start to after each conflict
@@ -198,21 +214,21 @@ bool InstalledSpringboards::addBlocks(BlockIter begin, BlockIter end) {
            */
           if (LB < start) { 
              validRanges_.remove(LB); // replace [LB UB)...
-             validRanges_.insert(LB, start, nextFuncID_); // with  [LB start)
+             validRanges_.insert(LB, start, info); // with  [LB start)
              if (UB <= end) { // [start UB)
-                validRanges_.insert(start, UB, nextFuncID_);
+                validRanges_.insert(start, UB, info);
              } else { // [start end) or [start end) and [end UB) 
-                validRanges_.insert(start, end, nextFuncID_);
-                validRanges_.insert(end, UB, nextFuncID_);
+                validRanges_.insert(start, end, info);
+                validRanges_.insert(end, UB, info);
              }
           } 
           else {
              if (start < LB) { // add [start LB) or [start LB)
-                validRanges_.insert(start, LB, nextFuncID_);
+                validRanges_.insert(start, LB, info);
              }
              if (UB > end) { // [LB end) and [end UB) 
-                validRanges_.insert(LB, end, nextFuncID_);
-                validRanges_.insert(end, UB, nextFuncID_);
+                validRanges_.insert(LB, end, info);
+                validRanges_.insert(end, UB, info);
              } // otherwise [LB UB) is already in validRanges_
           }
           lookup = UB;
@@ -223,7 +239,7 @@ bool InstalledSpringboards::addBlocks(BlockIter begin, BlockIter end) {
        }
     }
     if (start < end) { // [start end) or [UB end)
-        validRanges_.insert(start, end, nextFuncID_);
+        validRanges_.insert(start, end, info);
     }
   }
   return true;
@@ -240,12 +256,12 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    generateBranch(r.from, r.destinations.begin()->second, gen);
    unsigned size = gen.used();
    
-   if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+   if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode, r.func, r.priority)) {
       // Errr...
       // Fine. Let's do the trap thing. 
 
       usedTrap = true;
-      if (conflict(r.from, r.from + 1, r.fromRelocatedCode)) return Failed;
+      if (conflict(r.from, r.from + 1, r.fromRelocatedCode, r.func, r.priority)) return Failed;
       if(!addrSpace_->canUseTraps()) return Failed;
       
       generateTrap(r.from, r.destinations.begin()->second, gen);
@@ -256,7 +272,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
       createRelocSpringboards(r, usedTrap, input);
    }
    
-   registerBranch(r.from, r.from + size, r.destinations, r.fromRelocatedCode);
+   registerBranch(r.from, r.from + size, r.destinations, r.fromRelocatedCode, r.func, r.priority);
    springboards.push_back(gen);
 
    return Succeeded;
@@ -270,7 +286,7 @@ bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &,
    return true;
 }
 
-bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocated) {
+bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocated, func_instance* func, Priority p) {
    if (inRelocated) 
        return conflictInRelocated(start, end);
 
@@ -304,10 +320,10 @@ bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocate
    // and we're not running into another interval, there's no conflict (replacing a springboard).
    // If we find *any* other case where we're hitting allocated, conflict.
    Address working = start;
-   Address LB;
+   Address LB = 0;
    Address UB = 0;
-   int state = -1;
-   int lastState = state;
+   SpringboardInfo *state = NULL;
+   SpringboardInfo *lastState = state;
    springboard_cerr << "Conflict called for " << hex << start << "->" << end << dec << endl;
    
    while (end > working) {
@@ -315,20 +331,45 @@ bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocate
        if (!validRanges_.find(working, LB, UB, state)) {
          springboard_cerr << "\t Conflict: unable to find entry for " << hex << working << dec << endl;
          return true;
-      }
-      springboard_cerr << "\t\t Found " << hex << LB << " -> " << UB << " /w/ state " << state << dec << endl;
-      if (state == Allocated) {
+       }
+       springboard_cerr << "\t\t Found " << hex << LB << " -> " << UB << " /w/ state " 
+           << state->val << ", "
+           << state->func->name() << ", priority " 
+           << state->priority << dec << endl;
+      if (state->val == Allocated) {
 	if(LB == start && UB >= end) 
 	{
-	  springboard_cerr << "\t Starting range matches already allocated springboard, assuming overwrite, ret OK" << endl;
-	  return false;
-	}
-	
-         springboard_cerr << "\t Starting range already allocated, ret conflict" << endl;
-         return true;
-      }
-      if (lastState != -1 &&
-          state != lastState) {
+               /* We need to pay attention to priorities here... 
+                *   If priorities are equal (and suggested), return OK
+                *   If new sb has higher priority, return OK
+                *   If the old sb has higher priority, return conflict 
+                *   If priorities are equal (and required):
+                *       If same function, return OK
+                *       If different functions {
+                *           If same target, then OK (simplify to conflict for ease of use)
+                *           If not same target, then conflict 
+                *   Otherwise, return OK
+                */
+
+                if (state->priority > p) {
+                    springboard_cerr << "\t Starting range matches already allocated springboard, prior springboard had higher priority, ret conflict" << endl;
+                    return true;
+                }
+                if ((state->priority == p) && (state->func != func->ifunc())) {
+                    springboard_cerr << "\t Starting range matches already allocated springboard, equivalent priorities and different functions, ret conflict" << endl;
+                    return true;
+                }
+                
+                springboard_cerr << "\t Starting range matches already allocated springboard, assuming overwrite, ret OK" << endl;
+               return false;
+           }
+
+           springboard_cerr << "\t Starting range already allocated, ret conflict" << endl;
+           return true;
+       }
+       if (lastState != NULL &&
+               state->func != lastState->func) {
+
           springboard_cerr << "\t Crossed into a different function, ret conflict" << endl;
           return true;
       }
@@ -347,7 +388,7 @@ bool InstalledSpringboards::conflictInRelocated(Address start, Address end) {
    // or did we use a trap for this block initially
    for (Address i = start; i < end; ++i) {
       Address lb, ub;
-      bool val;
+      SpringboardInfo* val = NULL;
       if (overwrittenRelocatedCode_.find(i, lb, ub, val)) {
          // oops!
          return true;
@@ -371,7 +412,7 @@ bool InstalledSpringboards::conflictInRelocated(Address start, Address end) {
 }
 
 void InstalledSpringboards::registerBranch
-(Address start, Address end, const SpringboardReq::Destinations & dest, bool inRelocated) 
+(Address start, Address end, const SpringboardReq::Destinations & dest, bool inRelocated, func_instance* func, Priority p) 
 {
    // Remove the valid ranges for everything between start and end, using much the 
    // same logic as above.
@@ -387,7 +428,7 @@ void InstalledSpringboards::registerBranch
    }
     
    if (inRelocated) {
-      return registerBranchInRelocated(start, end);
+      return registerBranchInRelocated(start, end, func, p);
    }
 
    Address working = start;
@@ -396,16 +437,16 @@ void InstalledSpringboards::registerBranch
    springboard_cerr << "Adding branch: " << hex << start << " -> " << end << dec << endl;
    int idToUse = -1;
    while (end > working) {
-      int state = 0;
+      SpringboardInfo* state = NULL;
       validRanges_.find(working, lb, ub, state);
       validRanges_.remove(lb);
 
-      if (idToUse == -1) idToUse = state;
+      if (idToUse == -1) idToUse = state->val;
       else {
-         if (idToUse != state) {
-            cerr << "Error: idToUse " << idToUse << " and state " << state << endl;
+         if (idToUse != state->val) {
+            cerr << "Error: idToUse " << idToUse << " and state->val " << state->val << endl;
          }
-         assert(idToUse == state);
+         assert(idToUse == state->val);
       }
       if (LB == 0) LB = lb;
       working = ub;
@@ -416,31 +457,32 @@ void InstalledSpringboards::registerBranch
    // [lb..start] as true
    // [start..end] as false
    // [end..ub] as true
+   SpringboardInfo* info = new SpringboardInfo(idToUse, func->ifunc());
    if (LB < start) {
         springboard_cerr << "\tInserting prior space " << hex << LB << " -> " << start << " /w/ range " << idToUse << dec << endl;
-       validRanges_.insert(LB, start, idToUse);
+       validRanges_.insert(LB, start, info);
    }
     springboard_cerr << "\t Inserting taken space " << hex << start << " -> " << end << " /w/ range " << Allocated << dec << endl;
-   validRanges_.insert(start, end, Allocated);
+   validRanges_.insert(start, end, new SpringboardInfo(Allocated, func->ifunc(), p));
    if (UB > end) {
         springboard_cerr << "\tInserting post space " << hex << end << " -> " << UB << " /w/ range " << idToUse << dec << endl;
-      validRanges_.insert(end, UB, idToUse);
+      validRanges_.insert(end, UB, info);
    }
 }
 
-void InstalledSpringboards::registerBranchInRelocated(Address start, Address end) {
-   overwrittenRelocatedCode_.insert(start, end, true);
+void InstalledSpringboards::registerBranchInRelocated(Address start, Address end, func_instance* func, Priority p) {
+   overwrittenRelocatedCode_.insert(start, end, new SpringboardInfo(1, func->ifunc(), p)); 
 }
 
 
 void InstalledSpringboards::debugRanges() {
-  std::vector<std::pair<std::pair<Address, Address>, int> > elements;
+  std::vector<std::pair<std::pair<Address, Address>, SpringboardInfo*> > elements;
   validRanges_.elements(elements);
   if (false) cerr << "Range debug: " << endl;
   for (unsigned i = 0; i < elements.size(); ++i) {
      if (false) cerr << "\t" << hex << elements[i].first.first
 	 << ".." << elements[i].first.second << dec
-	 << " -> " << elements[i].second << endl;
+	 << " -> " << elements[i].second->val << endl;
   }
   if (false) cerr << "-------------" << endl;
 }

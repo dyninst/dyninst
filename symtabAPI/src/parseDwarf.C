@@ -73,8 +73,6 @@ int dwarf_get_fde_info_for_cfa_reg3(
 }
 #endif
 
-std::map<Dwarf_Off, fieldListType*> enclosureMap;
-
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 

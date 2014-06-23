@@ -33,19 +33,18 @@
 #if !defined(PDWINNT_H)
 #define PDWINNT_H
 
-#if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+#if !defined(i386_unknown_nt4_0)
 #error "invalid architecture-os inclusion"
 #endif
 
 #ifndef PDWINNT_HDR
 #define PDWINNT_HDR
 #include "common/src/headers.h"
-#include "dyninstAPI/src/w32CONTEXT.h" //ccw 30 mar 2001
 
 typedef HANDLE handleT;
 
 struct dyn_saved_regs {
-    w32CONTEXT cont;
+    CONTEXT cont;
 };
 
 struct EXCEPTION_REGISTRATION {
@@ -62,7 +61,8 @@ struct EXCEPTION_REGISTRATION {
 
 #define CAN_DUMP_CORE false
 #define SLEEP_ON_MUTATEE_CRASH 0 /*seconds*/
-#define sleep Sleep
+
+static const auto sleep = Sleep;
 
 #define INFO_TO_EXIT_CODE(info) info.u.ExitProcess.dwExitCode
 #define INFO_TO_ADDRESS(info) info.u.Exception.ExceptionRecord.ExceptionAddress

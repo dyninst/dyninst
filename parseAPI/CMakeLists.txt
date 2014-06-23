@@ -44,9 +44,13 @@ set (SRC_LIST
         ../dataflowAPI/src/Visitors.C 
     )
 
-if (NOT PLATFORM MATCHES nt)
+if (LIGHTWEIGHT_SYMTAB)
 set (SRC_LIST ${SRC_LIST}
     src/SymLiteCodeSource.C
+)
+else()
+set (SRC_LIST ${SRC_LIST}
+    src/SymtabCodeSource.C
 )
 endif()
 
@@ -69,12 +73,6 @@ set (SRC_LIST ${SRC_LIST}
     )
 endif()
 
-if (NOT ${LIGHTWEIGHT_SYMTAB})
-set (SRC_LIST ${SRC_LIST}
-    src/SymtabCodeSource.C
-    )
-endif()
-
 SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
 ADD_DEFINITIONS(-DPARSER_LIB)
@@ -82,17 +80,13 @@ ADD_DEFINITIONS(-DDATAFLOW_LIB)
 
 add_library (parseAPI ${SRC_LIST})
 add_library (parseAPI_static STATIC ${SRC_LIST})
-target_link_libraries(parseAPI common)
-target_link_libraries(parseAPI instructionAPI)
+target_link_private_libraries(parseAPI common)
+target_link_private_libraries(parseAPI instructionAPI)
 
-if (UNIX)
-target_link_libraries(parseAPI ${LIBELF_LIBRARIES})
-endif()
-
-if (${LIGHTWEIGHT_SYMTAB})
-target_link_libraries(parseAPI symLite)
+if (LIGHTWEIGHT_SYMTAB)
+target_link_private_libraries(parseAPI symLite)
 else()
-target_link_libraries(parseAPI symtabAPI)
+target_link_private_libraries(parseAPI symtabAPI)
 endif()
 
 FILE (GLOB headers "h/*.h")

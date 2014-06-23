@@ -58,9 +58,6 @@ struct syscallTrap {
     char saved_insn[32];
     // Handle for further info
     void *saved_data;
-    // AIX use
-    Address origLR;
-    Address trapAddr;
 };
 
 /*

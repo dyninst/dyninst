@@ -127,8 +127,21 @@ class DYNDWARF_EXPORT DwarfFrameParser {
                          DwarfResult &cons,
                          bool &done,
                          FrameErrors_t &err_result);
-
-   static std::map<Dwarf_Debug, Ptr> frameParsers;
+   struct frameParser_key
+   {
+     Dwarf_Debug dbg;
+     Architecture arch;
+   frameParser_key(Dwarf_Debug d, Architecture a) : dbg(d), arch(a) 
+     {
+     }
+     
+     bool operator< (const frameParser_key& rhs) const
+     {
+       return (dbg < rhs.dbg) || (dbg == rhs.dbg && arch < rhs.arch);
+     }
+     
+   };
+   static std::map<frameParser_key, Ptr> frameParsers;
 
    typedef enum {
       dwarf_status_uninitialized,

@@ -487,7 +487,7 @@ class AstOperatorNode : public AstNode {
                                      Address &retAddr,
                                      Register &retReg);
 
-    bool generateOptimizedAssignment(codeGen &gen, bool noCost);
+    bool generateOptimizedAssignment(codeGen &gen, int size, bool noCost);
 
     AstOperatorNode() {};
     opCode op;
@@ -566,7 +566,7 @@ class AstOperandNode : public AstNode {
                                      Register &retReg);
     int_variable* lookUpVar(AddressSpace* as);
     
-    AstOperandNode() {};
+    AstOperandNode(): oType(undefOperandType), oValue(NULL), oVar(NULL) {};
 
     operandType oType;
     void *oValue;
@@ -612,7 +612,7 @@ class AstCallNode : public AstNode {
                                      Address &retAddr,
                                      Register &retReg);
 
-    AstCallNode() {};
+    AstCallNode(): func_addr_(0), func_(NULL), callReplace_(false), constFunc_(false) {};
     // Sometimes we just don't have enough information...
     const std::string func_name_;
     Address func_addr_;
@@ -696,7 +696,7 @@ class AstVariableNode : public AstNode {
                                      Address &retAddr,
                                      Register &retReg);
 
-    AstVariableNode() {};
+    AstVariableNode(): ranges_(NULL), index(0) {};
     std::vector<AstNodePtr>ast_wrappers_;
     std::vector<std::pair<Offset, Offset> > *ranges_;
     unsigned index;
@@ -776,7 +776,7 @@ class AstInsnMemoryNode : public AstInsnNode {
 
 class AstMiniTrampNode : public AstNode {
  public:
-    AstMiniTrampNode(AstNodePtr ast) {
+    AstMiniTrampNode(AstNodePtr ast): inline_(false) {
        if (ast != AstNodePtr())
           ast->referenceCount++;
        ast_ = ast;
@@ -806,7 +806,7 @@ class AstMiniTrampNode : public AstNode {
 
     AstNodePtr getAST() { return ast_; }
  private:
-    AstMiniTrampNode() {};
+    AstMiniTrampNode(): inline_(false) {};
 
     bool inline_;
     AstNodePtr ast_;

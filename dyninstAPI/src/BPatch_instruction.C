@@ -56,7 +56,8 @@ const unsigned int BPatch_instruction::nmaxacc_NP = 1;
 #endif
 
 BPatch_instruction::BPatch_instruction(internal_instruction *insn,
-                                       Address addr_) : nacc(0), insn_(insn), addr(addr_)
+                                       Address addr_)
+ : nacc(0), insn_(insn), parent(NULL), addr(addr_)
 {
   isLoad = new bool[nmaxacc_NP];
   isStore = new bool[nmaxacc_NP];

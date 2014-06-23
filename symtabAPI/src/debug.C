@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: Object-xcoff.C,v 1.32 2008/09/20 03:56:10 jaw Exp $
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>

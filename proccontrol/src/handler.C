@@ -1260,6 +1260,50 @@ Handler::handler_ret_t HandleSingleStep::handleEvent(Event::ptr ev)
    return ret_success;
 }
 
+HandlePreSyscall::HandlePreSyscall() :
+    Handler("Pre Syscall")
+{
+}
+
+HandlePreSyscall::~HandlePreSyscall()
+{
+}
+
+void HandlePreSyscall::getEventTypesHandled(vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::Pre, EventType::PreSyscall));
+}
+
+Handler::handler_ret_t HandlePreSyscall::handleEvent(Event::ptr ev)
+{
+   pthrd_printf("Handling event pre-syscall on %d/%d\n", 
+                ev->getProcess()->llproc()->getPid(), 
+                ev->getThread()->llthrd()->getLWP());
+   return ret_success;
+}
+
+HandlePostSyscall::HandlePostSyscall() :
+    Handler("Post Syscall")
+{
+}
+
+HandlePostSyscall::~HandlePostSyscall()
+{
+}
+
+void HandlePostSyscall::getEventTypesHandled(vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::Post, EventType::PostSyscall));
+}
+
+Handler::handler_ret_t HandlePostSyscall::handleEvent(Event::ptr ev)
+{
+   pthrd_printf("Handling event post-syscall on %d/%d\n", 
+                ev->getProcess()->llproc()->getPid(), 
+                ev->getThread()->llthrd()->getLWP());
+   return ret_success;
+}
+
 /**
  * This handler is triggered when a breakpoint is first hit (e.g., on
  * the SIGTRAP signal.  It's main purpose is to prepare the thread state
@@ -2507,6 +2551,8 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandleThreadCleanup *hthreadcleanup = NULL;
    static HandleThreadStop *hthreadstop = NULL;
    static HandleSingleStep *hsinglestep = NULL;
+   static HandlePreSyscall *hpresyscall = NULL;
+   static HandlePostSyscall *hpostsyscall = NULL;
    static HandleCrash *hcrash = NULL;
    static HandleBreakpoint *hbpoint = NULL;
    static HandleBreakpointContinue *hbpcontinue = NULL;
@@ -2539,6 +2585,8 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hthreadcleanup = new HandleThreadCleanup();
       hthreadstop = new HandleThreadStop();
       hsinglestep = new HandleSingleStep();
+      hpresyscall = new HandlePreSyscall();
+      hpostsyscall = new HandlePostSyscall();
       hcrash = new HandleCrash();
       hbpoint = new HandleBreakpoint();
       hbpcontinue = new HandleBreakpointContinue();
@@ -2573,6 +2621,8 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hthreadcleanup);
    hpool->addHandler(hthreadstop);
    hpool->addHandler(hsinglestep);
+   hpool->addHandler(hpresyscall);
+   hpool->addHandler(hpostsyscall);
    hpool->addHandler(hcrash);
    hpool->addHandler(hbpoint);
    hpool->addHandler(hbpcontinue);

@@ -73,7 +73,14 @@
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
+
+#if defined(WITH_SYMLITE)
 #include "symlite/h/SymLite-elf.h"
+#elif defined(WITH_SYMTAB_API)
+#include "symtabAPI/h/SymtabReader.h"
+#else
+#error "No defined symbol reader"
+#endif
 
 #if !defined(PTRACE_GETREGS) && defined(PPC_PTRACE_GETREGS)
 #define PTRACE_GETREGS PPC_PTRACE_GETREGS
@@ -103,6 +110,16 @@ Generator *Generator::getDefaultGenerator()
 
 bool GeneratorLinux::initialize()
 {
+   int result;
+   
+   sigset_t usr2_set;
+   sigemptyset(&usr2_set);
+   sigaddset(&usr2_set, SIGUSR2);
+   result = pthread_sigmask(SIG_UNBLOCK, &usr2_set, NULL);
+   if (result != 0) {
+      perr_printf("Unable to unblock SIGUSR2: %s\n", strerror(result));
+   }
+   
    generator_lwp = P_gettid();
    generator_pid = P_getpid();
    return true;
@@ -155,7 +172,7 @@ ArchEvent *GeneratorLinux::getEvent(bool block)
       else 
          pthrd_printf("Unable to interpret waitpid return.\n");
    }
-
+   
    newevent = new ArchEventLinux(pid, status);
    return newevent;
 }
@@ -317,8 +334,14 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                }
                break;
             }
-            perr_printf("Received an unexpected syscall TRAP\n");
-            return false;
+	    // If we're expecting syscall events other than postponed ones, fall through the rest of
+	    // the event handling
+	    if(!thread->syscallMode())
+	    {
+	      perr_printf("Received an unexpected syscall TRAP\n");
+	      return false;
+	    }
+	    
          case SIGSTOP:
             if (!proc) {               
                //The child half of an event pair.  Find the parent or postpone it.
@@ -369,7 +392,21 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      pthrd_printf("Decoded event to pre-exit on %d/%d\n",
                                   proc->getPid(), thread->getLWP());
                      if (thread->getLWP() == proc->getPid())
-                        event = Event::ptr(new EventExit(EventType::Pre, 0));
+		     {
+		       unsigned long exitcode = 0x0;
+		       int result = do_ptrace((pt_req)PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(),
+					      NULL, &exitcode);
+		       if(result == -1) 
+		       {
+			 perr_printf("Error getting event message from exit\n");
+			 return false;
+		       }
+		       exitcode = WEXITSTATUS(exitcode);
+		       
+		       pthrd_printf("Decoded event to pre-exit of process %d/%d with code %d\n",
+				      proc->getPid(), thread->getLWP(), exitcode);
+		       event = Event::ptr(new EventExit(EventType::Pre, exitcode));
+		     } 
                      else {
                         EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
                         event = lwp_ev;
@@ -441,7 +478,6 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                event = Event::ptr(new EventRPC(thread->runningRPC()->getWrapperForDecode()));
                break;
             }
-
             bp_instance *clearingbp = thread->isClearingBreakpoint();
             if (thread->singleStep() && clearingbp) {
                 pthrd_printf("Decoded event to breakpoint restore\n");
@@ -467,6 +503,20 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                        proc->getPid(), thread->getLWP());
                event = Event::ptr(new EventSingleStep());
                break;
+            }
+
+            if (thread->syscallMode() && !ibp) {
+                if (thread->preSyscall()) {
+                    pthrd_printf("Decoded event to pre-syscall on %d/%d\n",
+                            proc->getPid(), thread->getLWP());
+                    event = Event::ptr(new EventPreSyscall());
+                    break; 
+                } else {
+                    pthrd_printf("Decoded event to post-syscall on %d/%d\n",
+                            proc->getPid(), thread->getLWP());
+                    event = Event::ptr(new EventPostSyscall());
+                    break;
+                }
             }
             
             if (ibp && ibp != clearingbp) {
@@ -1256,6 +1306,11 @@ bool linux_thread::plat_cont()
       pthrd_printf("Calling PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SINGLESTEP, lwp, NULL, data);
    }
+   else if (syscallMode())
+   {
+        pthrd_printf("Calling PTRACE_SYSCALL on %d with signal %d\n", lwp, tmpSignal);
+        result = do_ptrace((pt_req) PTRACE_SYSCALL, lwp, NULL, data);
+   }
    else 
    {
       pthrd_printf("Calling PTRACE_CONT on %d with signal %d\n", lwp, tmpSignal);
@@ -1279,12 +1334,18 @@ bool linux_thread::plat_cont()
 
 SymbolReaderFactory *getElfReader()
 {
+#if defined(WITH_SYMLITE)
   static SymbolReaderFactory *symreader_factory = NULL;
   if (symreader_factory)
     return symreader_factory;
 
   symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
   return symreader_factory;
+#elif defined(WITH_SYMTAB_API)
+  return SymtabAPI::getSymtabReaderFactory();
+#else
+#error "No defined symbol reader"
+#endif
 }
 
 SymbolReaderFactory *linux_process::plat_defaultSymReader()

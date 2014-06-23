@@ -210,8 +210,6 @@ private:
 
 #if defined(os_linux) || defined(os_bg) || defined(os_freebsd) || defined(os_vxworks)
 #include "Object-elf.h"
-#elif defined(os_aix)
-#include "Object-xcoff.h"
 #elif defined(os_windows)
 #include "Object-nt.h"
 #else

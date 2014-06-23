@@ -72,7 +72,7 @@ class RelocGraph {
    void addRelocBlockBefore(RelocBlock *cur, RelocBlock *add);
    void addRelocBlockAfter(RelocBlock *cur, RelocBlock *add);
 
-   RelocEdge *makeEdge(TargetInt *, TargetInt *, ParseAPI::EdgeTypeEnum e);
+   RelocEdge *makeEdge(TargetInt *, TargetInt *, edge_instance* e, ParseAPI::EdgeTypeEnum et);
 
    bool removeEdge(RelocEdge *);
    void removeSource(RelocEdge *);

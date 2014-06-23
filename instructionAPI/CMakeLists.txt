@@ -26,7 +26,7 @@ ADD_DEFINITIONS(-DINSTRUCTION_LIB)
 
 add_library (instructionAPI ${SRC_LIST})
 add_library (instructionAPI_static STATIC ${SRC_LIST})
-target_link_libraries (instructionAPI common)
+target_link_private_libraries (instructionAPI common)
 FILE (GLOB headers "h/*.h")
 set_target_properties (instructionAPI instructionAPI_static PROPERTIES PUBLIC_HEADER "${headers}")
 

@@ -248,9 +248,11 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
     else 
        boost::tie(valid, addr) = getFallthrough();
 
+    Function* entry = _obj->findFuncByEntry(_cr, addr);
     if(curInsn()->getCategory() == c_BranchInsn &&
        valid &&
-       _obj->findFuncByEntry(_cr,addr))
+       entry && 
+       entry != context && !context->contains(entry->entry()))
     {
       parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
       tailCalls[type] = true;

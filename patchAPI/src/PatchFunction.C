@@ -51,7 +51,7 @@ PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
 
 const PatchFunction::Blockset&
 PatchFunction::blocks() {
-  if (all_blocks_.size() == func_->blocks().size()) 
+  if (all_blocks_.size() == func_->num_blocks()) 
       return all_blocks_;
 
   if (!all_blocks_.empty()) { // recompute other block lists if block list grew
@@ -84,13 +84,10 @@ PatchFunction::entry() {
 
 const PatchFunction::Blockset&
 PatchFunction::exitBlocks() {
-  if (func_->exitBlocks().size() != exit_blocks_.size()) 
-  {
-      for (ParseAPI::Function::blocklist::const_iterator iter = func_->exitBlocks().begin();
-           iter != func_->exitBlocks().end(); ++iter) {
-        PatchBlock* pblk = obj()->getBlock(*iter);
-        exit_blocks_.insert(pblk);
-      }
+  for (auto iter = func_->exitBlocks().begin();
+       iter != func_->exitBlocks().end(); ++iter) {
+    PatchBlock* pblk = obj()->getBlock(*iter);
+    exit_blocks_.insert(pblk);
   }
   return exit_blocks_;
 }
@@ -594,9 +591,9 @@ bool PatchFunction::consistency() const {
    }
 
    if (!all_blocks_.empty()) {
-      if (all_blocks_.size() != func_->blocks().size()) {
+      if (all_blocks_.size() != func_->num_blocks()) {
          cerr << "Error: size mismatch in all_blocks; PatchAPI " << all_blocks_.size() 
-              << " and ParseAPI " << func_->blocks().size() << endl;
+              << " and ParseAPI " << func_->num_blocks() << endl;
          CONSIST_FAIL;
       }
       for (Blockset::const_iterator iter = all_blocks_.begin(); iter != all_blocks_.end(); ++iter) {
@@ -621,10 +618,9 @@ bool PatchFunction::consistency() const {
    }
 
    if (!exit_blocks_.empty()) {
-      if (exit_blocks_.size() != func_->returnBlocks().size()) CONSIST_FAIL;
       for (Blockset::const_iterator iter = exit_blocks_.begin(); iter != exit_blocks_.end(); ++iter) {
          bool found = false;
-         for (ParseAPI::Function::blocklist::const_iterator iter2 = func_->returnBlocks().begin();
+         for (auto iter2 = func_->returnBlocks().begin();
               iter2 != func_->returnBlocks().end(); ++iter2) {
             if ((*iter)->block() == *iter2) {
                found = true;

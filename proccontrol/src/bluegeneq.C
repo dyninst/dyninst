@@ -63,7 +63,13 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
+#if defined(WITH_SYMLITE)
 #include "symlite/h/SymLite-elf.h"
+#elif defined(WITH_SYMTAB_API)
+#include "symtabAPI/h/SymtabReader.h"
+#else
+#error "No defined symbol reader"
+#endif
 
 using namespace bgq;
 using namespace std;
@@ -282,7 +288,7 @@ int_process *int_process::createProcess(Dyninst::PID, int_process *)
    return NULL;
 }
 
-static Mutex id_init_lock;
+static Mutex<> id_init_lock;
 bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
                          vector<string> envp, std::map<int, int> f) :
    int_process(p, e, a, envp, f),
@@ -322,7 +328,7 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    detach_state(no_detach_issued)
 {
    if (!set_ids) {
-      ScopeLock lock(id_init_lock);
+      ScopeLock<> lock(id_init_lock);
       if (!set_ids) {
          char *jobid_env = getenv("BG_JOBID");
          assert(jobid_env);
@@ -446,7 +452,7 @@ bool bgq_process::plat_detach(result_response::ptr, bool)
       bool is_last_detacher = true;
       
       { 
-         ScopeLock lock_this_scope(cn->detach_lock);
+         ScopeLock<> lock_this_scope(cn->detach_lock);
          
          for (set<bgq_process *>::iterator i = cn->procs.begin(); i != cn->procs.end(); i++) {
             bgq_process *peer_proc = *i;
@@ -630,12 +636,18 @@ bool bgq_process::plat_supportLWPPostDestroy()
 
 static SymbolReaderFactory *getElfReader()
 {
+#if defined(WITH_SYMLITE)
    static SymbolReaderFactory *symreader_factory = NULL;
    if (symreader_factory)
       return symreader_factory;
 
    symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
    return symreader_factory;
+#elif defined(WITH_SYMTAB_API)
+   return SymtabAPI::getSymtabReaderFactory();
+#else
+#error "No defined symbol reader"
+#endif
 }
 
 SymbolReaderFactory *bgq_process::plat_defaultSymReader()
@@ -1073,7 +1085,7 @@ bool bgq_process::handleStartupEvent(void *data)
          attach_action = group_done;
       }
       else {
-         ScopeLock lock(cn->attach_lock);
+         ScopeLock<> lock(cn->attach_lock);
          pthrd_printf("Doing all attach\n");
          if (cn->all_attach_error) {
             pthrd_printf("CN attach left us in an error state, failng attach to %d\n", getPid());
@@ -1144,7 +1156,7 @@ bool bgq_process::handleStartupEvent(void *data)
       attach_ack = NULL;
       
       if (cn->issued_all_attach) {
-         ScopeLock lock(cn->attach_lock);
+         ScopeLock<> lock(cn->attach_lock);
          cn->all_attach_done = true;
          set<ToolMessage *>::iterator i;
          
@@ -2629,7 +2641,7 @@ bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool hea
    WriterThread::get()->writeMessage(newmsg, proc->getComputeNode());
    return true;
 #else
-   ScopeLock lock(send_lock);
+   ScopeLock<> lock(send_lock);
 
    if (have_pending_message) {
       pthrd_printf("Enqueuing message while another is pending\n");
@@ -2666,7 +2678,7 @@ bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool hea
 
 bool ComputeNode::flushNextMessage()
 {
-   ScopeLock lock(send_lock);
+   ScopeLock<> lock(send_lock);
    assert(have_pending_message);
 
    if (queued_pending_msgs.empty()) {
@@ -2707,7 +2719,7 @@ bool ComputeNode::writeToolAttachMessage(bgq_process *proc, ToolMessage *msg, bo
       return writeToolMessage(proc, msg, heap_alloced);
    }
 
-   ScopeLock lock(attach_lock);
+   ScopeLock<> lock(attach_lock);
 
    if (!all_attach_done) {
       have_pending_message = true;
@@ -4582,6 +4594,7 @@ extern void setWThread(long t);
 
 IOThread::IOThread() :
    do_exit(false),
+   kicked(false),
    init_done(false),
    shutdown_done(false),
    lwp(0),
@@ -4624,6 +4637,7 @@ void IOThread::thrd_main()
    initLock.unlock();
 
    while (!do_exit) {
+      kicked = false;
       run();
    }
 
@@ -4639,6 +4653,7 @@ void IOThread::thrd_kick()
 
 void IOThread::kick()
 {
+   kicked = true;
    if (emergency)
       kick_thread(pid, lwp);
    thrd_kick();
@@ -4697,17 +4712,13 @@ void ReaderThread::run()
    /* Setup the FD list for select.  Block if there's no FDs ready yet */
    {
       pthrd_printf("Creating FD list in reader thread\n");
-      bool result = fd_lock.lock();
-      if (!result) {
-         pthrd_printf("Reader thread kicked.\n");
-         return;
-      }
+      fd_lock.lock();
       while (fds.empty()) {
-         result = fd_lock.wait();
-         if (!result) {
-            pthrd_printf("Reader thread kicked.\n");
+         if (kicked) {
+            fd_lock.unlock();
             return;
          }
+         fd_lock.wait();
       }
       for (set<int>::iterator i = fds.begin(); i != fds.end(); i++) {
          int fd = *i;
@@ -4911,6 +4922,10 @@ void ReaderThread::thrd_kick()
 {
    char c = 'k';
    write(kick_fd_write, &c, 1);
+
+   fd_lock.lock();
+   fd_lock.signal();
+   fd_lock.unlock();
 }
 
 void ReaderThread::kick_generator()
@@ -4996,17 +5011,14 @@ void WriterThread::run()
    if (acks_to_handle.empty() && writes_to_handle.empty())
    {
       pthrd_printf("Waiting for acks or writes\n");
-      bool result = msg_lock.lock();
-      if (!result || do_exit) {
+      msg_lock.lock();
+      while (acks.empty() && writes.empty() && !kicked) {
+         msg_lock.wait();
+      }
+      if (kicked) {
+         msg_lock.unlock();
          pthrd_printf("Kick on writer thread\n");
          return;
-      }   
-      while (acks.empty() && writes.empty()) {
-         result = msg_lock.wait();
-         if (!result || do_exit) {
-            pthrd_printf("Kick on writer thread\n");
-            return;
-         }
       }
       acks_to_handle = acks;
       writes_to_handle = writes;
@@ -5018,11 +5030,7 @@ void WriterThread::run()
 
    /* Turn all ACKs into potential writes. */
    if (!acks_to_handle.empty()) {
-      bool result = rank_lock.lock();
-      if (!result) {
-         pthrd_printf("Kick on writer thread\n");
-         return;
-      }
+      rank_lock.lock();
       for (vector<int>::iterator i = acks_to_handle.begin(); i != acks_to_handle.end(); i++) {
          int rank = *i;
          map<int, ComputeNode *>::iterator j = rank_to_cn.find(rank);
@@ -5045,11 +5053,7 @@ void WriterThread::run()
          pthrd_printf("CN %d not ready to write, has pending messages\n", cn->getID());
          continue;
       }
-      bool result = cn->pending_queue_lock.lock();
-      if (!result) {
-         pthrd_printf("Kick on writer thread\n");
-         return;
-      }
+      cn->pending_queue_lock.lock();
       if (cn->queued_pending_msgs.empty()) {
          pthrd_printf("No queued messages to write to CN %d\n", cn->getID());
          cn->pending_queue_lock.unlock();

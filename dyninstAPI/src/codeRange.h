@@ -123,13 +123,13 @@ class codeRangeTree {
 
 	/** constructor for structure */
 	entry() 
-	    : color(TREE_BLACK),left(NULL),right(NULL),parent(NULL) {}
+	    : key(0), value(NULL), color(TREE_BLACK),left(NULL),right(NULL),parent(NULL) {}
 
 	/** constructor used for non-nil elements 
 	 * @param e nil entry
 	 */	  
 	entry(entry* e) //constructor with nil entry 
-	    : color(TREE_RED), left(e), right(e), parent(NULL) {}
+	    : key(0), value(NULL), color(TREE_RED), left(e), right(e), parent(NULL) {}
 
 	/** constructor
 	 * @param d data element

@@ -89,9 +89,13 @@ namespace Dyninst
       static MachRegister getPC(Dyninst::Architecture arch);
       static MachRegister getFramePointer(Dyninst::Architecture arch);
       static MachRegister getStackPointer(Dyninst::Architecture arch);
+      static MachRegister getSyscallNumberReg(Dyninst::Architecture arch);
+      static MachRegister getSyscallReturnValueReg(Dyninst::Architecture arch);
       bool isPC() const;
       bool isFramePointer() const;
       bool isStackPointer() const;
+      bool isSyscallNumberReg() const;
+      bool isSyscallReturnValueReg() const;
 
       void getROSERegister(int &c, int &n, int &p);
 

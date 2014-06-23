@@ -29,9 +29,6 @@
  */
 
 #include <stdio.h>
-#ifdef rs6000_ibm_aix4_1
-#include <memory.h>
-#endif
 
 #include "common/src/headers.h"
 

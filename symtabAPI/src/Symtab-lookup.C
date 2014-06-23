@@ -736,27 +736,50 @@ bool Symtab::parseFunctionRanges()
 
 bool Symtab::getContainingFunction(Offset offset, Function* &func)
 {
-   if (!func_lookup)
-      parseFunctionRanges();
-   assert(func_lookup);
-   
-   set<FuncRange *> ranges;
-   int num_found = func_lookup->find(offset, ranges);
-   if (num_found == 0) {
-      func = NULL;
+   if (!isCode(offset)) {
       return false;
    }
-
-   //Assuming any overlapping ranges comes from function inlining.  Since
-   // we're returning the top level function, we'll just grab anything
-   // from the set and find the top level.  
-   FunctionBase *fbase = (*ranges.begin())->container;
-   while (fbase->getInlinedParent() != NULL) {
-      fbase = fbase->getInlinedParent();
+   if (everyFunction.size() && !sorted_everyFunction)
+   {
+      std::sort(everyFunction.begin(), everyFunction.end(),
+                SymbolCompareByAddr());
+      sorted_everyFunction = true;
    }
-   func = static_cast<Function *>(fbase);
-
-   return true;
+   
+   unsigned low = 0;
+   unsigned high = everyFunction.size();
+   unsigned last_mid = high+1;
+   unsigned mid;
+   
+   if (!high) return false;
+   for (;;)
+   {
+      mid = (low + high) / 2;
+      if (last_mid == mid)
+         break;
+      last_mid = mid;
+      Offset cur = everyFunction[mid]->getOffset();
+      if (cur > offset) {
+         high = mid;
+         continue;
+      }
+      if (cur < offset) {
+         low = mid;
+         continue;
+      }
+      if (cur == offset) {
+         func = everyFunction[mid];
+         return true;
+      }
+   }
+   if ((everyFunction[low]->getOffset() <= offset) &&
+       ((low+1 == everyFunction.size()) || 
+        (everyFunction[low+1]->getOffset() > offset)))
+   {
+      func = everyFunction[low];
+      return true;
+   }
+   return false;      
 }
 
 bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)

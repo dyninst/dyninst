@@ -1,1 +1,0 @@
-*.[dhC] DEPENDS libcommon.a V_libcommon.c *.bb *.bbg *.da libdemangle.*

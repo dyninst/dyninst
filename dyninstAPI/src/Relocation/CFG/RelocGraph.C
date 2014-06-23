@@ -124,8 +124,9 @@ bool RelocGraph::setSpringboard(block_instance *from, func_instance *func, Reloc
 
 RelocEdge *RelocGraph::makeEdge(TargetInt *s, 
                                 TargetInt *t,
-                                ParseAPI::EdgeTypeEnum e) {
-   RelocEdge *edge = new RelocEdge(s, t, e);
+                                edge_instance* e,
+                                ParseAPI::EdgeTypeEnum et) {
+   RelocEdge *edge = new RelocEdge(s, t, e, et);
    edges.push_back(edge);
    s->addTargetEdge(edge);
    t->addSourceEdge(edge);
@@ -169,8 +170,8 @@ bool RelocGraph::interpose(RelocEdge *e, RelocBlock *trace) {
    TargetInt *n1 = new Target<RelocBlock *>(trace);
    TargetInt *n2 = new Target<RelocBlock *>(trace);
 
-   makeEdge(s, n1, e->type);
-   makeEdge(n2, t, ParseAPI::FALLTHROUGH);
+   makeEdge(s, n1, e->edge, e->type);
+   makeEdge(n2, t, e->edge, ParseAPI::FALLTHROUGH);
    removeEdge(e);
    // So we don't try to free 'em...
    e->src = NULL;

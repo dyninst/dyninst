@@ -42,10 +42,14 @@ if (UNIX)
       INSTALL_COMMAND mkdir -p <INSTALL_DIR>/include && mkdir -p <INSTALL_DIR>/lib && install <SOURCE_DIR>/libdwarf/libdwarf.h <INSTALL_DIR>/include && install <SOURCE_DIR>/libdwarf/dwarf.h <INSTALL_DIR>/include && install <BINARY_DIR>/libdwarf.so <INSTALL_DIR>/lib
       )
     add_dependencies(LibDwarf libelf_imp)
-    target_link_libraries(LibDwarf libelf_imp)
+    target_link_private_libraries(LibDwarf libelf_imp)
     #ExternalProject_Get_Property(LibDwarf 
     set(LIBDWARF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libdwarf/include)
     set(LIBDWARF_LIBRARIES ${CMAKE_BINARY_DIR}/libdwarf/lib/libdwarf.so)
+  else()
+    # Unfortunately, libdwarf doesn't always link to libelf itself.
+    # (e.g. https://bugzilla.redhat.com/show_bug.cgi?id=1061432)
+    set(LIBDWARF_LIBRARIES ${LIBDWARF_LIBRARIES} ${LIBELF_LIBRARIES})
   endif()
 
   add_library(libdwarf_imp SHARED IMPORTED)
@@ -132,3 +136,12 @@ message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
 message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+
+include(${DYNINST_ROOT}/cmake/CheckCXX11Features.cmake)
+if(NOT HAS_CXX11_AUTO)
+  message(FATAL_ERROR "No support for C++11 auto found. Dyninst requires this compiler feature.")
+else()
+  message(STATUS "C++11 support found, required flags are: ${CXX11_COMPILER_FLAGS}")
+endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX11_COMPILER_FLAGS}")

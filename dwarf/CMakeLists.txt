@@ -18,7 +18,9 @@ set (SRC_LIST
 
 add_library (dynDwarf ${SRC_LIST})
 add_library (dynDwarf_static STATIC ${SRC_LIST})
-target_link_libraries (dynDwarf ${LIBDWARF_LIBRARIES})
+target_link_private_libraries (dynDwarf ${LIBDWARF_LIBRARIES})
+target_link_private_libraries (dynDwarf dynElf)
+target_link_private_libraries (dynDwarf common)
 
 FILE (GLOB headers "h/*.h")
 set_target_properties (dynDwarf dynDwarf_static PROPERTIES PUBLIC_HEADER "${headers}")

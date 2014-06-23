@@ -41,6 +41,7 @@
 #include <boost/variant/get.hpp>
 #include <boost/variant/static_visitor.hpp>
 #include <boost/variant/variant.hpp>
+#include <boost/interprocess/sync/scoped_lock.hpp>
 
 #if !defined(os_windows)
 #define cap_pthreads
@@ -112,14 +113,20 @@ class PC_EXPORT CondVar {
    }
    ~CondVar() { if(created_mutex) delete mutex; }
 
-   bool unlock() { mutex->unlock(); return true;}
+   void unlock() { mutex->unlock(); }
    bool trylock() { return mutex->try_lock(); }
-   bool lock() { mutex->lock(); return true; }
-   bool signal() { cond.notify_one(); return true; }
-   bool broadcast() { cond.notify_all(); return true; }
-   bool wait() { cond.wait(*mutex); return true; }
+   void lock() { mutex->lock(); }
+   void signal() { cond.notify_one(); }
+   void broadcast() { cond.notify_all(); }
+   void wait() { cond.wait(*mutex); }
 
 };
 
+template <class Mut = Mutex<false>>
+class ScopeLock : public boost::interprocess::scoped_lock<Mut>
+{
+  public:
+  ScopeLock(Mut &mut) : boost::interprocess::scoped_lock<Mut>(mut) {}
+};
 
 #endif

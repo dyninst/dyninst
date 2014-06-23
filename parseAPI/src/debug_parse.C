@@ -85,7 +85,22 @@ int Dyninst::ParseAPI::malware_printf_int(const char *format, ...)
 
     return ret;
 }
-        
+
+const std::string PARSE_BLOCK_COUNT("parseBlockCount");
+const std::string PARSE_FUNCTION_COUNT("parseFunctionCount");
+const std::string PARSE_BLOCK_SIZE("parseBlockSize");
+
+const std::string PARSE_NORETURN_COUNT("parseNoReturnCount");
+const std::string PARSE_RETURN_COUNT("parseReturnCount");
+const std::string PARSE_UNKNOWN_COUNT("parseUnknownCount");
+
+const std::string PARSE_NORETURN_HEURISTIC("parseNoReturnHeuristicCount");
+
+const std::string PARSE_JUMPTABLE_COUNT("parseJumptableCount");
+const std::string PARSE_JUMPTABLE_FAIL("parseJumptableFail");
+const std::string PARSE_TAILCALL_COUNT("isTailcallCount");
+const std::string PARSE_TAILCALL_FAIL("isTailcallFail");
+
 #if defined(_MSC_VER)
 #pragma warning(pop)    
 #endif

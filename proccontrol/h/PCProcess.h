@@ -64,6 +64,7 @@ class MTLock;
 
 #define PC_VERSION_8_0_0
 #define PC_VERSION_8_1_0
+#define PC_VERSION_8_2_0
 
 #define pc_const_cast boost::const_pointer_cast
 
@@ -593,6 +594,9 @@ class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
 
    bool setSingleStepMode(bool s) const;
    bool getSingleStepMode() const;
+
+   void setSyscallMode(bool s) const;
+   bool getSyscallMode() const;
 
    bool getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const;
    bool getAllRegisters(RegisterPool &pool) const;

@@ -193,16 +193,14 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
       // 2) Add the block to the function list
       (*iter)->add_block(ret);
       // 3) Swap the old block for the new in the return blocks
-      for (unsigned i = 0; i < (*iter)->_retBL.size(); ++i) {
-         if ((*iter)->_retBL[i] == b) {
-            (*iter)->_retBL[i] = ret;
-         }
+      auto ret_block_to_swap = (*iter)->_retBL.find(b->start());
+      if (ret_block_to_swap != (*iter)->_retBL.end()) {
+          ret_block_to_swap->second = ret;
       }
       // 4) Swap the old block for the new in the exit blocks
-      for (unsigned i = 0; i < (*iter)->_exitBL.size(); ++i) {
-         if ((*iter)->_exitBL[i] == b) {
-            (*iter)->_exitBL[i] = ret;
-         }
+      auto exit_block_to_swap = (*iter)->_exitBL.find(b->start());
+      if (exit_block_to_swap != (*iter)->_exitBL.end()) {
+          exit_block_to_swap->second = ret;
       }
       b->obj()->_pcb->addBlock(*iter, ret);
    }

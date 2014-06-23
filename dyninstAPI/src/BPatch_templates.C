@@ -34,17 +34,17 @@
 
 #define BPATCH_FILE
 
-#if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+#if !defined(i386_unknown_nt4_0)
 #pragma implementation "BPatch_Vector.h"
 #endif
 #include "BPatch_Vector.h"
 
-#if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+#if !defined(i386_unknown_nt4_0)
 #pragma implementation "BPatch_Set.h"
 #endif
 #include "BPatch_Set.h"
 
-#if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
+#if !defined(i386_unknown_nt4_0)
 #pragma implementation "refCounter.h"
 #endif
 #include <string>
