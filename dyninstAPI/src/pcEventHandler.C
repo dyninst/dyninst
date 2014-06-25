@@ -253,6 +253,7 @@ bool PCEventHandler::handleExit(EventExit::const_ptr ev, PCProcess *evProc) cons
 	       }
 	       
     }else{
+#if 0
 		std::vector<PCThread*> thrds;
 		evProc->getThreads(thrds);
 		for(std::vector<PCThread*>::iterator i = thrds.begin();
@@ -263,7 +264,7 @@ bool PCEventHandler::handleExit(EventExit::const_ptr ev, PCProcess *evProc) cons
 			BPatch::bpatch->registerThreadExit(evProc, *i);
 		}
 		if(!reportPreExit) BPatch::bpatch->registerNormalExit(evProc, ev->getExitCode());
-	
+#endif	
 	}
 
     return true;
