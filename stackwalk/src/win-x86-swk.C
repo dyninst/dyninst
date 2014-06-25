@@ -124,6 +124,10 @@ SymbolReaderFactory* Stackwalker::getDefaultSymbolReader()
 	return Walker::getSymbolReader();
 }
 
+static const char* START_FUNC_NAME = "_start";
+static const char* CLONE_FUNC_NAME = "clone";
+//static const char* START_THREAD_FUNC_NAME = 
+
 void BottomOfStackStepperImpl::initialize()
 {
 	// For now, we stop when we get a return address of 0
@@ -131,6 +135,82 @@ void BottomOfStackStepperImpl::initialize()
 	// By examination, this is an _start equivalent
 	ra_stack_tops.push_back(std::pair<Address, Address>(0x77959ECB, 0x77959F01));
 	ra_stack_tops.push_back(std::pair<Address, Address>(0x77959EAA, 0x77959EC6));
+/*   ProcessState *proc = walker->getProcessState();
+   assert(proc);
+
+   sw_printf("[%s:%u] - Initializing BottomOfStackStepper\n", FILE__, __LINE__);
+   
+   LibraryState *libs = proc->getLibraryTracker();
+   if (!libs) {
+      sw_printf("[%s:%u] - Error initing StackBottom.  No library state for process.\n",
+                FILE__, __LINE__);
+      return;
+   }
+   SymbolReaderFactory *fact = Walker::getSymbolReader();
+   if (!fact) {
+      sw_printf("[%s:%u] - Failed to get symbol reader\n");
+      return;
+   }
+
+   if (!aout_init)
+   {
+      LibAddrPair aout_addr;
+      SymReader *aout = NULL;
+      Symbol_t start_sym;
+      bool result = libs->getAOut(aout_addr);
+      if (result) {
+         aout = fact->openSymbolReader(aout_addr.first);
+         aout_init = true;
+      }
+      if (aout) {
+         start_sym = aout->getSymbolByName(START_FUNC_NAME);
+         if (aout->isValidSymbol(start_sym)) {
+            Dyninst::Address start = aout->getSymbolOffset(start_sym)+aout_addr.second;
+            Dyninst::Address end = aout->getSymbolSize(start_sym) + start;
+            if (start == end) {
+               sw_printf("[%s:%u] - %s symbol has 0 length, using length of %lu\n",
+                       FILE__, __LINE__, START_FUNC_NAME, START_HEURISTIC_LENGTH);
+               end = start + START_HEURISTIC_LENGTH;
+            }
+            sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for start\n", 
+                      FILE__, __LINE__, start, end);
+            ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
+         }
+      }
+   }
+
+   if (!libthread_init)
+   {
+      LibAddrPair libthread_addr;
+      SymReader *libthread = NULL;
+      Symbol_t clone_sym, startthread_sym;
+      bool result = libs->getLibthread(libthread_addr);
+      if (result) {
+         libthread = fact->openSymbolReader(libthread_addr.first);
+         libthread_init = true;
+      }
+      if (libthread) {
+         clone_sym = libthread->getSymbolByName(CLONE_FUNC_NAME);
+         if (libthread->isValidSymbol(clone_sym)) {
+            Dyninst::Address start = libthread->getSymbolOffset(clone_sym) + 
+               libthread_addr.second;
+            Dyninst::Address end = libthread->getSymbolSize(clone_sym) + start;
+            sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for clone\n", 
+                      FILE__, __LINE__, start, end);
+            ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
+         }
+         startthread_sym = libthread->getSymbolByName(START_THREAD_FUNC_NAME);
+         if (libthread->isValidSymbol(startthread_sym)) {
+            Dyninst::Address start = libthread->getSymbolOffset(startthread_sym) + 
+               libthread_addr.second;
+            Dyninst::Address end = libthread->getSymbolSize(startthread_sym) + start;
+            sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for start_thread\n", 
+                      FILE__, __LINE__, start, end);
+            ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
+         }
+      }
+   }
+*/
 }
 void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_t)
 {

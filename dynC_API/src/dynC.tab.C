@@ -165,6 +165,13 @@ std::vector<BPatch_snippet *> endSnippets;
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
+#undef ERROR
+#undef CHAR
+#undef SHORT
+#undef INT
+#undef LONG
+#undef FLOAT
+
 # define YYTOKENTYPE
    /* Put the tokens into the symbol table, so that GDB and other debuggers
       know about them.  */
