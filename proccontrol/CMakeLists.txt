@@ -24,13 +24,13 @@ set (SRC_LIST
      src/loadLibrary/codegen-x86.C
      src/loadLibrary/codegen-ppc.C 
      src/ppc_process.C 
+     src/pcmachsyscall.C
  )
 if(UNIX)
 set (SRC_LIST ${SRC_LIST}
      src/sysv.C 
      src/int_thread_db.C 
      src/mmapalloc.C 
-     src/pcmachsyscall.C
 )
 elseif(WIN32)
 set (SRC_LIST ${SRC_LIST}

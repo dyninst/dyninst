@@ -43,6 +43,7 @@ set (SRC_LIST
     src/debug_common.C 
     src/VariableLocation.C 
     src/Buffer.C
+    src/MachSyscall.C
   )
 
 if (PLATFORM MATCHES freebsd)
@@ -62,7 +63,6 @@ if (PLATFORM MATCHES linux)
     src/addrtranslate-sysv.C
     src/addrtranslate-auxv.C
     src/addrtranslate-linux.C
-    src/MachSyscall.C
   )
 endif()
 
