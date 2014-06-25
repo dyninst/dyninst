@@ -573,7 +573,7 @@ class PC_EXPORT EventSyscall : public Event
    friend void boost::checked_delete<EventSyscall>(EventSyscall *);
    friend void boost::checked_delete<const EventSyscall>(const EventSyscall *);
 
-   friend MachSyscall ProcControlAPI::makeFromEvent(const EventSyscall *);
+   friend MachSyscall makeFromEvent(const EventSyscall *);
 
  public:
    typedef boost::shared_ptr<EventSyscall> ptr;
@@ -593,7 +593,7 @@ class PC_EXPORT EventPreSyscall : public EventSyscall
    friend void boost::checked_delete<EventPreSyscall>(EventPreSyscall *);
    friend void boost::checked_delete<const EventPreSyscall>(const EventPreSyscall *);
 
-   friend MachSyscall ProcControlAPI::makeFromEvent(const EventPreSyscall *);
+   friend MachSyscall makeFromEvent(const EventPreSyscall *);
 
  public:
    typedef boost::shared_ptr<EventPreSyscall> ptr;
@@ -607,7 +607,7 @@ class PC_EXPORT EventPostSyscall : public EventSyscall
    friend void boost::checked_delete<EventPostSyscall>(EventPostSyscall *);
    friend void boost::checked_delete<const EventPostSyscall>(const EventPostSyscall *);
 
-   friend MachSyscall ProcControlAPI::makeFromEvent(const EventPostSyscall *);
+   friend MachSyscall makeFromEvent(const EventPostSyscall *);
 
  public:
    typedef boost::shared_ptr<EventPostSyscall> ptr;
