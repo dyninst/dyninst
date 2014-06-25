@@ -37,7 +37,6 @@
 #include "common/h/dyntypes.h"
 #include "Transformers/Transformer.h" // Priority enum
 #include "dyninstAPI/src/codegen.h"
-#include "dyninstAPI/src/parse-cfg.h"
 
 class AddressSpace;
 
@@ -196,11 +195,11 @@ class SpringboardBuilder;
 
 struct SpringboardInfo {
     int val;
-    parse_func *func;
+    func_instance *func;
     Priority priority;
 
-    SpringboardInfo(int v, parse_func* f) : val(v), func(f), priority(MIN_PRIORITY) {}
-    SpringboardInfo(int v, parse_func* f, Priority p) : val(v), func(f), priority(p) {}
+    SpringboardInfo(int v, func_instance* f) : val(v), func(f), priority(MIN_PRIORITY) {}
+    SpringboardInfo(int v, func_instance* f, Priority p) : val(v), func(f), priority(p) {}
 };
 
 class InstalledSpringboards
@@ -216,8 +215,8 @@ class InstalledSpringboards
   
 
   template <typename BlockIter> 
-  bool addBlocks(parse_func* func, BlockIter begin, BlockIter end);
-  bool addFunc(parse_func* f);
+  bool addBlocks(func_instance* func, BlockIter begin, BlockIter end);
+  bool addFunc(func_instance* f);
   bool conflict(Address start, Address end, bool inRelocatedCode, func_instance* func, Priority p);
   bool conflictInRelocated(Address start, Address end);
 
@@ -262,7 +261,7 @@ class SpringboardBuilder {
   typedef boost::shared_ptr<SpringboardBuilder> Ptr;
   typedef std::set<func_instance *> FuncSet;
 
-  static Ptr createFunc(std::set<parse_func*>::iterator begin, std::set<parse_func*>::iterator end, AddressSpace *addrSpace);
+  static Ptr createFunc(FuncSet::const_iterator begin, FuncSet::const_iterator end, AddressSpace *addrSpace);
 
   bool generate(std::list<codeGen> &springboards,
 		SpringboardMap &input);
