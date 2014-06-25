@@ -54,8 +54,8 @@ unsigned int test4_1_global1 = 0xdeadbeef;
 /* Function definitions follow */
 
 int test4_1_mutatee() {
-  test4_1_global1 = 1000001;
   int exit_code = 0;
+  test4_1_global1 = 1000001;
   
 #if defined(os_windows_test)
   exit_code = GetCurrentProcessId();

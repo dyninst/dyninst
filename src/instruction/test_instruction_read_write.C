@@ -294,7 +294,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   }
   {
       using namespace x86_64;
-  RegisterAST::Ptr r_r8(new RegisterAST(r8));
+  RegisterAST::Ptr r_r8(new RegisterAST(r8d));
   RegisterAST::Ptr r_rbp(new RegisterAST(rbp));
   
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
