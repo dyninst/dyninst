@@ -42,7 +42,6 @@ set (SRC_LIST ${SRC_LIST}
 	src/loadLibrary/codegen-win.C
      ../common/src/dthread-win.C
 	 ../common/src/dthread.C
-	../common/src/MachSyscall.C
 )
 endif()
 
