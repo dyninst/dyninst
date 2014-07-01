@@ -7575,20 +7575,12 @@ bool Thread::getSingleStepMode() const
    return llthread_->singleStepUserMode();
 }
 
-void Thread::setSyscallMode(bool s) const
+bool Thread::setSyscallMode(bool s) const
 {
     MTLock lock_this_func;
-    if (!llthread_) {
-        perr_printf("setSyscallMode called on exited thread\n");
-        setLastError(err_exited, "Thread is exited\n");
-        return;
-    } 
-   if (llthread_->getUserState().getState() != int_thread::stopped) {
-       perr_printf("setSyscallMode called on running thread %d/%d\n",
-               llthread_->llproc()->getPid(), llthread_->getLWP());
-       setLastError(err_notstopped, "Error, user tried to put non-stopped thread into syscall tracking");
-   }
-  llthread_->setSyscallUserMode(s); 
+    THREAD_EXIT_DETACH_STOP_TEST("getSyscallMode", false);
+    llthread_->setSyscallUserMode(s);
+    return true;
 }
 
 bool Thread::getSyscallMode() const

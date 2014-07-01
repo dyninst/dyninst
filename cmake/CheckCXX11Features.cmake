@@ -49,7 +49,11 @@ if (NOT CMAKE_CXX_COMPILER_LOADED)
     message(FATAL_ERROR "CheckCXX11Features modules only works if language CXX is enabled")
 endif ()
 
-cmake_minimum_required(VERSION 2.8.3)
+# cmake_minimum_required(VERSION 2.8.3)
+# workaround for earlier cmake:
+if (NOT DEFINED CMAKE_CURRENT_LIST_DIR)
+    GET_FILENAME_COMPONENT(CMAKE_CURRENT_LIST_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+endif ()
 
 #
 ### Check for needed compiler flags
