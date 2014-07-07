@@ -1,3 +1,4 @@
+#include "dyntypes.h"
 #include "CodeObject.h"
 #include "CodeSource.h"
 

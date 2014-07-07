@@ -1,3 +1,4 @@
+#include "dyntypes.h"
 #include "TableGuardData.h"
 #include "IndirectASTVisitor.h"
 #include "CFG.h"

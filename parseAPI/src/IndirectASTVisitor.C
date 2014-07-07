@@ -1,3 +1,4 @@
+#include "dyntypes.h"
 #include "IndirectASTVisitor.h"
 #include "debug_parse.h"
 #include <algorithm>
