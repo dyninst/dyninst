@@ -48,7 +48,9 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 	    } else {
 	        targetAddress = *(const int *) block->obj()->cs()->getPtrToInstruction(tableEntry);
 	    }
-	    
+#if defined(os_windows)
+            targetAddress -= block->obj()->cs()->loadAddress();
+#endif
 	    if (target.tableOffset && targetAddress != 0) {
 	        if (target.addOffset) targetAddress += target.targetBase; else targetAddress = target.targetBase - targetAddress;
 	    }
