@@ -49,7 +49,7 @@ struct BoundValue {
 
     bool operator< (const BoundValue &bv) const { return value < bv.value; }
     bool operator== (const BoundValue &bv) const;
-    bool CoeBounded() {return (coe == 4) || (coe == 8); }
+    bool CoeBounded() {return (coe == 4) || (coe == 8) || (coe == 2) || (coe == 1); }
     bool HasTableBase() {return tableBase != 0;}
     bool HasTargetBase() {return targetBase != 0; }
     void Print();

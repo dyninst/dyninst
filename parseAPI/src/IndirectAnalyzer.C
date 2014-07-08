@@ -11,6 +11,13 @@
 #include "InstructionDecoder.h"
 #include "Register.h"
 
+#define SIGNEX_64_32 0xffffffff00000000LL
+#define SIGNEX_64_16 0xffffffffffff0000LL
+#define SIGNEX_64_8  0xffffffffffffff00LL
+#define SIGNEX_32_16 0xffff0000
+#define SIGNEX_32_8 0xffffff00
+
+
 static bool UsePC(Instruction::Ptr insn) {
     vector<Operand> operands;
     insn->getOperands(operands);
@@ -28,7 +35,7 @@ static bool UsePC(Instruction::Ptr insn) {
 
 bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-
+    
     if (block->obj()->cs()->getArch() == Arch_x86) target.tableBase &= 0xffffffff;
     parsing_printf("The final target bound fact:\n");
     target.Print();
@@ -44,10 +51,41 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 	if (!block->obj()->cs()->isValidAddress(tableEntry)) continue;
 	Address targetAddress = 0;
 	if (target.tableLookup || target.tableOffset) {
-	    if (target.coe == sizeof(Address)) {
-	        targetAddress = *(const Address *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-	    } else {
-	        targetAddress = *(const int *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+	    // Assume the table contents are moved in a sign extended way. Fixme if not.
+	    switch (target.coe) {
+	        case 8:
+		    targetAddress = *(const uint64_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+		    break;
+		case 4:
+		    targetAddress = *(const uint32_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+		    if ((sizeof(Address) ==  8) && (targetAddress & 0x80000000)) {
+		        targetAddress |= SIGNEX_64_32;
+		    }
+		    break;
+		case 2:
+		    targetAddress = *(const uint16_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+		    if ((sizeof(Address) ==  8) && (targetAddress & 0x8000)) {
+		        targetAddress |= SIGNEX_64_16;
+		    }
+		    if ((sizeof(Address) ==  4) && (targetAddress & 0x8000)) {
+		        targetAddress |= SIGNEX_32_16;
+		    }
+
+		    break;
+		case 1:
+		    targetAddress = *(const uint8_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+		    if ((sizeof(Address) ==  8) && (targetAddress & 0x80)) {
+		        targetAddress |= SIGNEX_64_8;
+		    }
+		    if ((sizeof(Address) ==  4) && (targetAddress & 0x80)) {
+		        targetAddress |= SIGNEX_32_8;
+		    }
+
+		    break;
+
+		default:
+		    parsing_printf("Invalid table stride %d\n", target.coe);
+		    continue;
 	    }
 #if defined(os_windows)
             targetAddress -= block->obj()->cs()->loadAddress();
