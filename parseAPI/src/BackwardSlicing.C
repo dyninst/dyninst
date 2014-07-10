@@ -157,20 +157,24 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
 
 void BackwardSlicer::DeleteDataDependence(GraphPtr gp) {
     NodeIterator nbegin, nend;
-    EdgeIterator ebegin, eend;
+    EdgeIterator ebegin, eend, nextEdgeIt;
 
     gp->allNodes(nbegin, nend);
 
     for (; nbegin != nend; ++nbegin) {
         SliceNode::Ptr curNode = boost::static_pointer_cast<SliceNode>(*nbegin);
-	curNode->outs(ebegin, eend);
-	for (; ebegin != eend; ++ebegin) {
-	    SliceNode::Ptr nextNode = boost::static_pointer_cast<SliceNode>((*ebegin)->target());
-	    if (PassThroughGuards(curNode, nextNode)) {
-	        curNode->deleteOutEdge(ebegin);
-		nextNode->deleteInEdge(ebegin);
-	    }
-	}
+		curNode->outs(ebegin, eend);
+		for (; ebegin != eend; ) {
+			SliceNode::Ptr nextNode = boost::static_pointer_cast<SliceNode>((*ebegin)->target());
+			if (PassThroughGuards(curNode, nextNode)) {
+				nextEdgeIt = ebegin;
+				++nextEdgeIt;
+				nextNode->deleteInEdge(ebegin);
+				curNode->deleteOutEdge(ebegin);
+				ebegin = nextEdgeIt;
+			}
+			else ++ebegin;
+		}
     }
 
     DeleteUnreachableNodes(gp);

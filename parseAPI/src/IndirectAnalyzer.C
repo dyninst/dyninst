@@ -35,7 +35,11 @@ static bool UsePC(Instruction::Ptr insn) {
 
 bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-    
+ 
+#if defined(os_windows)
+    target.tableBase -= block->obj()->cs()->loadAddress();
+#endif
+
     if (block->obj()->cs()->getArch() == Arch_x86) target.tableBase &= 0xffffffff;
     parsing_printf("The final target bound fact:\n");
     target.Print();
@@ -87,12 +91,12 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 		    parsing_printf("Invalid table stride %d\n", target.coe);
 		    continue;
 	    }
-#if defined(os_windows)
-            targetAddress -= block->obj()->cs()->loadAddress();
-#endif
 	    if (target.tableOffset && targetAddress != 0) {
 	        if (target.addOffset) targetAddress += target.targetBase; else targetAddress = target.targetBase - targetAddress;
 	    }
+#if defined(os_windows)
+        targetAddress -= block->obj()->cs()->loadAddress();
+#endif
 	} else targetAddress = tableEntry;
 
 	if (block->obj()->cs()->getArch() == Arch_x86) targetAddress &= 0xffffffff;
