@@ -221,7 +221,6 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 
     SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);    
     AbsRegion &ar = node->assign()->out();
-
     parsing_printf("Expanding assignment %s in instruction at %lx: %s.\n", node->assign()->format().c_str(), node->addr(), node->assign()->insn()->format().c_str());
     pair<AST::Ptr, bool> expandRet = SymEval::expand(node->assign(), false);
 
