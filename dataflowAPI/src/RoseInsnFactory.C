@@ -209,14 +209,19 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
 	  operands.resize(1);
 	  break;
   case e_aaa:
+  case e_aas: 
+	  // ROSE does not expect implicit operand rax/eax to be treated as an operand
+	  operands.clear();
+	  break;
   case e_aad:
-  case e_aam:
-  case e_aas: {
+  case e_aam: {
 	  // ROSE does not expect implicit operand rax/eax to be treated as an operand
 	  std::set<RegisterAST::Ptr> regs;
 	  operands[0].getReadSet(regs);
-	  operands[0].getWriteSet(regs);
-	  if (!regs.empty()) operands[0] = operands[1];
+	  operands[0].getWriteSet(regs);	 	  
+	  if (!regs.empty()) {	      
+		      operands[0] = operands[1];
+	  }
 	  operands.resize(1);
 	  break;
   }
