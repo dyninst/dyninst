@@ -1209,12 +1209,14 @@ void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
     }
     write_printf("%lx_%d_%u[] = {", inTracedProcess, getPid(), write_no++);
 
-    const unsigned char *buffer = (const unsigned char *)inSelf;
-    for(unsigned i = 0; i < amount-1; ++i) {
-        if( amount && (i % 10 == 0) ) write_printf("\n");
-        write_printf("0x%02hhx, ", buffer[i]);
+    if( amount > 0 ) {
+       const unsigned char *buffer = (const unsigned char *)inSelf;
+       for(unsigned i = 0; i < amount-1; ++i) {
+           if( i % 10 == 0 ) write_printf("\n");
+           write_printf("0x%02hhx, ", buffer[i]);
+       }
+       write_printf("0x%02hhx", buffer[amount-1]);
     }
-    if(amount) write_printf("0x%02hhx", buffer[amount-1]);
     write_printf("\n};\n");
 }
 
