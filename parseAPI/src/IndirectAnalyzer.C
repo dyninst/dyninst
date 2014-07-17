@@ -35,7 +35,6 @@ static bool UsePC(Instruction::Ptr insn) {
 
 bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
- 
 #if defined(os_windows)
     target.tableBase -= block->obj()->cs()->loadAddress();
 #endif

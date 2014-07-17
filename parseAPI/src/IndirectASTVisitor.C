@@ -121,7 +121,9 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	        BoundValue* child1 = GetResultBound(ast->child(0));
 		BoundValue* child2 = GetResultBound(ast->child(1));
 		BoundValue* val = NULL;
-		if (child1->type == Equal && child2->tableLookup) {
+		if (child1->type == Equal && child2->type == Equal) {
+		    val = new BoundValue(Equal, child1->value + child2->value);
+		} else if (child1->type == Equal && child2->tableLookup) {
 		    val = new BoundValue(*child2);
 		    val->targetBase += child1->value;
 		    val->tableOffset = true;
