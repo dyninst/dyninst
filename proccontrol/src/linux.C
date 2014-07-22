@@ -1290,14 +1290,8 @@ bool linux_thread::plat_cont()
    //
    
    int tmpSignal = continueSig_;
-   // The above isn't quite right. In the cases where the signal we're not handling is
-   // a term/core signal, we want to ensure that we don't mistakenly forward the signal
-   // before we handle (and potentially squash) it.
-   // In the case where it's by default ignored (which is SIGCHLD only, on Linux),
-   // we want to use the existing "please continue with this signal" to get us to the
-   // pending stop.
-   // In the case where it's a stopping signal other than SIGSTOP, I'm not sure what happens.
-   if( hasPendingStop() && (tmpSignal != SIGCHLD)) {
+
+   if( hasPendingStop()) {
        tmpSignal = 0;
    }
 
