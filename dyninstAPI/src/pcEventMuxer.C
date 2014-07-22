@@ -116,13 +116,6 @@ bool PCEventMuxer::handle_internal(PCProcess *proc) {
    bool ret = true;
    while (mailbox_.size()) {
       EventPtr ev = dequeue(false);
-#if defined(os_windows)
-      // Windows does early handling of exit, so if we see an exit come through here
-      // don't call handle(), just return success
-      if (ev->getEventType().code() == EventType::Exit) {
-         continue;
-      }
-#endif
       if (!ev) continue;
       if (!handle(ev)) ret = false;
    }
@@ -240,11 +233,6 @@ PCEventMuxer::cb_ret_t PCEventMuxer::exitCallback(EventPtr ev) {
 	//if (ev->getEventType().time() == EventType::Post) {
 	//	ret = ret_default;
 	//}
-#if defined(os_windows)
-	// On Windows we only receive post-exit, and as soon as the callback completes
-	// we terminate the process. Thus, we must handle things _right now_. 
-	muxer().handle(ev);
-#endif
 	DEFAULT_RETURN;
 }
 
