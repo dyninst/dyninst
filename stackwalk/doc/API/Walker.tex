@@ -86,11 +86,16 @@ bool walkStack(std::vector<Frame> &stackwalk,
     top of the stack is returned in index 0 of stackwalk, and the bottom of the
     stack is returned in index \code{stackwalk.size()-1}.
 
-    A stackwalk can be taken on a specific thread by passing a value in the
-    thread parameter. If \code{thread} has the value \code{NULL\_THR\_ID}, then a default thread
-    will be chosen. When doing a third party stackwalk, the default thread will
-    be the process' initial thread. When doing a first party stackwalk, the
-    default thread will be the thread that called \code{walkStack}. 
+    A stackwalk can be taken on a specific thread by passing a value
+    in the thread parameter. If \code{thread} has the value
+    \code{NULL\_THR\_ID}, then a default thread will be chosen. When
+    doing a third party stackwalk, the default thread will be the
+    process' initial thread. When doing a first party stackwalk, the
+    default thread will be the thread that called
+    \code{walkStack}. The default StepperGroup provided to a Walker
+    will support collecting call stacks from almost all types of
+    functions, including signal handlers and optimized, frameless
+    functions.
 
     This method returns \code{true} on success and \code{false} on failure.
 }

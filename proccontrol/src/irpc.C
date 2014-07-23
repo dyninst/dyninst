@@ -362,7 +362,14 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
    }
 
    selected_thread = createThreadForRPC(proc, selected_thread);
-   pthrd_printf("Selected thread %d for iRPC %lu\n", selected_thread->getLWP(), rpc->id());
+   if(!selected_thread)
+   {
+     pthrd_printf("No thread available for iRPC %lu, aborting\n", rpc->id());
+     return false;
+     
+   }
+   pthrd_printf("Selected thread %d for iRPC %lu\n", selected_thread->getLWP(), rpc->id());   
+
 
    assert(selected_thread);
    return postRPCToThread(selected_thread, rpc);

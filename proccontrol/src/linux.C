@@ -1290,7 +1290,8 @@ bool linux_thread::plat_cont()
    //
    
    int tmpSignal = continueSig_;
-   if( hasPendingStop() ) {
+
+   if( hasPendingStop()) {
        tmpSignal = 0;
    }
 
