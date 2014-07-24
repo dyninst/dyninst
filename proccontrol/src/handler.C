@@ -656,11 +656,7 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
    
    ProcPool()->condvar()->lock();
 
-#if !defined(os_windows)
-   // On Windows, this is the only callback we get, so delay setting exited
-   // until cleanup
    proc->setState(int_process::exited);
-#endif
    ProcPool()->rmProcess(proc);
    if(proc->wasForcedTerminated())
    {

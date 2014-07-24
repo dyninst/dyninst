@@ -81,6 +81,7 @@ class PC_EXPORT Generator
       exiting
    } state_t;
    state_t state;
+   static const char* generatorStateStr(state_t);
    virtual bool isExitingState();
    virtual void setState(state_t newstate);
    virtual state_t getState();
