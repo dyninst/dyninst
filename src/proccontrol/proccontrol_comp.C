@@ -886,7 +886,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
       hasRunningProcs = false;
       for (std::vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
          Process::ptr p = *i;
-         if (!p->isTerminated()) {
+         while (!p->isTerminated()) {
 	   logerror("Process %d not terminated, is %s, is %s, blocking for events\n",
 		    p->getPid(), 
 		    p->allThreadsStopped() ? "stopped" : "running",

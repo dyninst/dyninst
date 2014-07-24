@@ -136,19 +136,24 @@ add_library (testdyninst SHARED
             src/dyninst/Callbacks.C
             src/dyninst/Process_data.C
 	    ${PLAT_SRC})
-target_link_libraries (testdyninst testSuite dyninstAPI ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (testdyninst testSuite dyninstAPI instructionAPI ${CMAKE_THREAD_LIBS_INIT})
 
 add_library (testsymtab SHARED
             src/symtab/symtab_comp.C)
-target_link_libraries (testsymtab testSuite symtabAPI ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (testsymtab testSuite symtabAPI common ${CMAKE_THREAD_LIBS_INIT})
 
 add_library (testinstruction SHARED
             src/instruction/instruction_comp.C)
-target_link_libraries (testinstruction testSuite instructionAPI symtabAPI ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (testinstruction testSuite instructionAPI symtabAPI common ${CMAKE_THREAD_LIBS_INIT})
 
 add_library (testproccontrol SHARED
             src/proccontrol/proccontrol_comp.C)
-target_link_libraries (testproccontrol testSuite pcontrol ${CMAKE_THREAD_LIBS_INIT})
+
+if(WIN32)
+target_link_libraries(testproccontrol testSuite pcontrol common ${CMAKE_THREAD_LIBS_INIT} ws2_32)
+else()
+target_link_libraries (testproccontrol testSuite pcontrol common ${CMAKE_THREAD_LIBS_INIT})
+endif()
 set (COMPLIB_DEFS TESTLIB_DLL_BUILD COMPLIB_DLL_BUILD)
 set (COMPLIB_TARGETS testdyninst testsymtab testinstruction testproccontrol)
 set_target_properties(${COMPLIB_TARGETS} PROPERTIES COMPILE_DEFINITIONS "${COMPLIB_DEFS}")

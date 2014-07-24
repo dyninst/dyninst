@@ -94,11 +94,14 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
     
   }
   int exitCode = thread->getProcess()->getExitCode();
-
+  int expectedExitCode = thread->getProcess()->getPid();
+#if !defined(os_windows_test)
+  expectedExitCode &= 0xFF;
+#endif
   
   // Read out the values of the variables.
   if (exit_type == ExitedNormally) {
-    if((thread->getProcess()->getPid() & 0xFF) == exitCode) {
+    if(expectedExitCode == exitCode) {
       if (verifyChildMemory(thread->getProcess(), "test4_1_global1", 1000001)) {
 	logerror("Passed test #1 (exit callback)\n");
 	passedTest = true;
@@ -109,8 +112,8 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
       }
     } else {
       logerror("**Failed** test #1 (exit callback)\n");
-      logerror("    exit code = %d, was not equal to masked pid %d\n", exitCode, 
-	       (thread->getProcess()->getPid() & 0xFF));
+      logerror("    exit code = %d, was not equal to expected %d\n", exitCode, 
+	       expectedExitCode);
       passedTest = false;
     }
   } else if (exit_type == ExitedViaSignal) {
