@@ -1077,7 +1077,7 @@ bool PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
     switch(et.code()) {
         case Dyninst::ProcControlAPI::EventType::Exit:
             switch(et.time()) {
-                case Dyninst::ProcControlAPI::EventType::Post:
+                case Dyninst::ProcControlAPI::EventType::Pre:
 		  return true;
                 default:
                     break;
@@ -1098,9 +1098,9 @@ bool PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
 
 bool PCEventMuxer::useBreakpoint(Dyninst::ProcControlAPI::EventType et)
 {
-  if(et.code() == Dyninst::ProcControlAPI::EventType::Exit &&
-     et.time() == Dyninst::ProcControlAPI::EventType::Pre)
-    return true;
+//  if(et.code() == Dyninst::ProcControlAPI::EventType::Exit &&
+//     et.time() == Dyninst::ProcControlAPI::EventType::Pre)
+//    return true;
   
   return false;
 }
