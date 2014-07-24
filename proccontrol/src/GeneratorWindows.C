@@ -229,6 +229,8 @@ bool GeneratorWindows::plat_continue(ArchEvent* evt)
 		setState(statesync);
 		EventExit::ptr e(new EventExit(EventType::Post, winEvt->evt.u.ExitProcess.dwExitCode));
 		e->setProcess(winproc->proc());
+		int_thread *thread = ProcPool()->findThread((Dyninst::LWP)(winEvt->evt.dwThreadId));
+		e->setThread(thread->thread());		
 		e->setSyncType(Event::sync_process);
 		e->getProcess()->llproc()->updateSyncState(e, true);
 		ProcPool()->condvar()->unlock();
