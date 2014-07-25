@@ -1164,7 +1164,7 @@ void PCProcess::setReportingEvent(bool b) {
 }
 
 void PCProcess::markExited() {
-    pcProc_ = Process::ptr();
+	if(pcProc_) pcProc_ = Process::ptr();
 }
 
 void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,

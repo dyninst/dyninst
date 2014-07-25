@@ -1074,11 +1074,6 @@ bool int_process::waitAndHandleEvents(bool block)
 
       gotEvent = true;
 
-#if defined(os_linux)
-      // Linux is bad about enforcing event ordering, and so we will get 
-      // thread events after a process has exited.
-//      bool terminating = (ev->getProcess()->isTerminated()) ||
-//         (ev->getProcess()->llproc() && ev->getProcess()->llproc()->wasForcedTerminated());
       bool terminating = (ev->getProcess()->isTerminated());
 
       bool exitEvent = (ev->getEventType().time() == EventType::Post &&
@@ -1090,10 +1085,10 @@ bool int_process::waitAndHandleEvents(bool block)
 	if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
 	continue;
       }
-#endif
 
       int_process* llp = ev->getProcess()->llproc();
-      if(!llp) {
+      if(!llp && !terminating) {
+	 pthrd_printf("Received event on deleted int_process, but Process doesn't think we're terminated yet\n");
          error = true;
          goto done;
       }
