@@ -38,8 +38,8 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 #if defined(os_windows)
     target.tableBase -= block->obj()->cs()->loadAddress();
 #endif
-
-    if (block->obj()->cs()->getArch() == Arch_x86) target.tableBase &= 0xffffffff;
+    Architecture arch = block->obj()->cs()->getArch();
+    if (arch == Arch_x86) target.tableBase &= 0xffffffff;
     parsing_printf("The final target bound fact:\n");
     target.Print();
 
@@ -61,26 +61,26 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 		    break;
 		case 4:
 		    targetAddress = *(const uint32_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    if ((sizeof(Address) ==  8) && (targetAddress & 0x80000000)) {
+		    if ((arch == Arch_x86_64) && (targetAddress & 0x80000000)) {
 		        targetAddress |= SIGNEX_64_32;
 		    }
 		    break;
 		case 2:
 		    targetAddress = *(const uint16_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    if ((sizeof(Address) ==  8) && (targetAddress & 0x8000)) {
+		    if ((arch == Arch_x86_64) && (targetAddress & 0x8000)) {
 		        targetAddress |= SIGNEX_64_16;
 		    }
-		    if ((sizeof(Address) ==  4) && (targetAddress & 0x8000)) {
+		    if ((arch == Arch_x86) && (targetAddress & 0x8000)) {
 		        targetAddress |= SIGNEX_32_16;
 		    }
 
 		    break;
 		case 1:
 		    targetAddress = *(const uint8_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    if ((sizeof(Address) ==  8) && (targetAddress & 0x80)) {
+		    if ((arch == Arch_x86_64) && (targetAddress & 0x80)) {
 		        targetAddress |= SIGNEX_64_8;
 		    }
-		    if ((sizeof(Address) ==  4) && (targetAddress & 0x80)) {
+		    if ((arch == Arch_x86) && (targetAddress & 0x80)) {
 		        targetAddress |= SIGNEX_32_8;
 		    }
 
@@ -94,7 +94,7 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 	        if (target.addOffset) targetAddress += target.targetBase; else targetAddress = target.targetBase - targetAddress;
 	    }
 #if defined(os_windows)
-        targetAddress -= block->obj()->cs()->loadAddress();
+            targetAddress -= block->obj()->cs()->loadAddress();
 #endif
 	} else targetAddress = tableEntry;
 

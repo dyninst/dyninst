@@ -100,7 +100,7 @@ void ReachFact::ReverseDFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visited)
     visited.insert(cur);
 
     for (auto eit = cur->sources().begin(); eit != cur->sources().end(); ++eit) 
-        if ((*eit)->intraproc() && (*eit)->type() != INDIRECT) ReverseDFS((*eit)->src(), visited);
+        if ((*eit)->intraproc()) ReverseDFS((*eit)->src(), visited);
 }
 
 void ReachFact::NaturalDFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visited) {
@@ -109,7 +109,7 @@ void ReachFact::NaturalDFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visited)
     visited.insert(cur);
 
     for (auto eit = cur->targets().begin(); eit != cur->targets().end(); ++eit) 
-        if ((*eit)->intraproc() && (*eit)->type() != INDIRECT) NaturalDFS((*eit)->trg(), visited);
+        if ((*eit)->intraproc()) NaturalDFS((*eit)->trg(), visited);
 }
 
 

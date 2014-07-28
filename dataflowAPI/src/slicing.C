@@ -1385,7 +1385,9 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
 
   // Xiaozhu: A call can ruin all bounds, so we don't need to 
   // continue slicing. But need to figure out how to specify this
-  if (assign->insn()->getCategory() == c_CallInsn) return true;
+  // 2014-07-27: But actually sometimes we do need to slice across function calls
+  // this is hard to decide.
+  //if (assign->insn()->getCategory() == c_CallInsn) return true;
 
   return reg.contains(assign->out());
 }

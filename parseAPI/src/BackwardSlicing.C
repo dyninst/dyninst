@@ -47,7 +47,7 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
     for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit)
-        if ((*eit)->intraproc() && (*eit)->type() != INDIRECT)
+        if ((*eit)->intraproc())
 	    BuildEdgesAux(srcNode, (*eit)->trg(), nodeMap, targetMap, newG, visit);	   
 }			  
 
@@ -132,6 +132,16 @@ GraphPtr BackwardSlicer::TransformGraph(GraphPtr gp) {
 
 }
 
+static void DumpNode(GraphPtr g) {
+    NodeIterator gbegin, gend;
+    g->allNodes(gbegin, gend);
+    for (; gbegin != gend; ++gbegin) {
+        SliceNode::Ptr cur = boost::static_pointer_cast<SliceNode>(*gbegin);
+	parsing_printf(" %lx", cur->addr());
+    }
+    parsing_printf("\n");
+}
+
 GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
     IndirectControlFlowPred mp(guards);
     
@@ -146,9 +156,8 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
     Slicer::Predicates p;
     Slicer s(assignments[0], block, func);
     GraphPtr slice = s.backwardSlice(mp);
-
     slice = TransformGraph(slice);
-//    if (debug) slice->printDOT("target.dot");
+//    if (addr == 0x80ade30) slice->printDOT("target.dot");
 //    DumpSliceInstruction(slice);
 //    return AST::Ptr();
 
@@ -176,8 +185,8 @@ void BackwardSlicer::DeleteDataDependence(GraphPtr gp) {
 			else ++ebegin;
 		}
     }
-
     DeleteUnreachableNodes(gp);
+
 }
 
 bool BackwardSlicer::PassThroughGuards(SliceNode::Ptr src, SliceNode::Ptr trg) {
