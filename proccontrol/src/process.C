@@ -4405,10 +4405,15 @@ bool int_thread::StateTracker::setState(State to)
                 stateStr(state), stateStr(to));
    state = to;
 
-   int_thread::State handler_state = up_thr->getHandlerState().getState();
-   int_thread::State generator_state = up_thr->getGeneratorState().getState();
-   if (up_thr->up_thread && handler_state == stopped) assert(generator_state == stopped || generator_state == exited || generator_state == detached );
-   if (up_thr->up_thread && generator_state == running) assert(handler_state == running);
+   if (up_thr->up_thread) {
+      int_thread::State handler_state = up_thr->getHandlerState().getState();
+      int_thread::State generator_state = up_thr->getGeneratorState().getState();
+      if (handler_state == stopped)
+         assert(generator_state == stopped || generator_state == exited || generator_state == detached );
+      if (generator_state == running)
+         assert(handler_state == running);
+   }
+
    return true;
 }
 

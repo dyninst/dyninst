@@ -192,6 +192,12 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
     }
 
     SpringboardInfo* info = new SpringboardInfo(nextFuncID_, func);
+
+    // If we extended the block, remember that range
+    if (end > bbl->end()) {
+      paddingRanges_.insert(bbl->end(), end, info);
+    }
+
     for (Address lookup = start; lookup < end; ) 
     {/* there may be more than one range that overlaps with bbl, 
       * so we update lookup and start to after each conflict
@@ -418,13 +424,29 @@ void InstalledSpringboards::registerBranch
    // Remove the valid ranges for everything between start and end, using much the 
    // same logic as above.
 
+   bool destTrapped = false;
    if ( 1 == (end - start) ) {
+      relocTraps_.insert(start);
+      destTrapped = true;// if we relocate again it will need a trap too
+   }
+   else {
+      // if any part of this range used extended blocks (consuming no-op padding)
+      // then relocating again can't assume the same luxury, and must trap.
+      for (Address i = start; i < end; ++i) {
+         Address lb, ub;
+         SpringboardInfo* val = NULL;
+         if (paddingRanges_.find(i, lb, ub, val)) {
+            destTrapped = true;
+         }
+      }
+   }
+
+   if (destTrapped) {
        for (SpringboardReq::Destinations::const_iterator dit=dest.begin();
             dit != dest.end();
             dit++)
        {
-           relocTraps_.insert(start);
-           relocTraps_.insert(dit->second);// if we relocate again it will need a trap too
+           relocTraps_.insert(dit->second);
        }
    }
     
