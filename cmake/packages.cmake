@@ -124,6 +124,12 @@ endif()
 # the thread library
 #set (BOOST_MIN_VERSION 1.41.0)
 
+if(DEFINED PATH_BOOST OR 
+	   DEFINED Boost_INCLUDE_DIR OR 
+	   DEFINED Boost_LIBRARY_DIR)
+  set(Boost_NO_SYSTEM_PATHS ON)
+endif()
+
 find_package (Boost ${BOOST_MIN_VERSION} REQUIRED COMPONENTS thread system)
 
 link_directories ( ${Boost_LIBRARY_DIRS} )

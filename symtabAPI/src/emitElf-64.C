@@ -2581,7 +2581,7 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
     dynsecData[curpos].d_tag = DT_NULL;
   dynsecData[curpos].d_un.d_val = 0;
   curpos++;
-  dynsecSize = curpos+1;                            //assign size to the correct number of entries
+  dynsecSize = curpos;
 }
 
 
