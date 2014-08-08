@@ -39,3 +39,37 @@ CMAKE_INSTALL_PREFIX/INSTALL_LIB_DIR, and headers will be installed
 into CMAKE_INSTALL_PREFIX/INSTALL_INCLUDE_DIR. If you wish to import
 Dyninst into your own CMake projects, the export information is in
 CMAKE_INSTALL_PREFIX/INSTALL_CMAKE_DIR.
+
+3) What's new
+
+SIGNIFICANT CAPABILITY CHANGES
+* Dyninst now builds with CMake, produces appropriate package information for other projects, and will automatically download libelf/libdwarf/binutils if it can't find them.
+* Dyninst now handles binaries built with DEP and ASLR on Windows
+* Fixes to handler rewriting gcc 4.7+ static binaries and instrumenting gcc 4.8+/DWARF4 binaries.
+* Proccontrol now provides access to pre- and post-syscall event callbacks.
+* SymtabAPI now supports access to inlined functions/
+
+FREQUENTLY ENCOUNTERED/CATASTROPHIC BUGS
+* Fixed crash bugs when destroying Symtab objects.
+* Fixed bug where reinstrumentation could cause a mutatee to crash.
+* Fixed section alignment bugs in rewriter.
+* Added checks and error returns for when a user has traps disabled, but instrumentation would require them.
+
+PERFORMANCE/CORRECTNESS IMPROVEMENTS
+
+* Optimized function call snippets via improved XMM save/restore generation.
+* Handle a new jump table idiom seen in newer versions of libc.
+* Fixed bugs where loadlibrary and exec callbacks from ProcControl were not guaranteed to occur with the process in a consistent state.
+* Assorted proccontrol bug fixes for BG/Q.
+* Fixed an outstanding signed/unsigned bug in InstructionAPI immediates.
+* Improved performance and fixed bugs in block-level instrumentation, particularly in shared code
+
+GENERAL BUG FIXES
+
+* Fixed springboard bug: we weren't properly handling tail calls with respect to entry instrumentation
+* Fixed various bugs in stack analysis leading to hangs.
+* Fixed parsing bug: a jump to a function's own entry point is not a tail call.
+
+QUALITY IMPROVEMENTS
+* We now do type checking on parameter and return value snippets where possible.
+* Properly control symbol visibility on Linux, so that only public Dyninst functions/variables are exposed to users.
