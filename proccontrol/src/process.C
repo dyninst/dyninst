@@ -1086,13 +1086,6 @@ bool int_process::waitAndHandleEvents(bool block)
 	continue;
       }
 
-      int_process* llp = ev->getProcess()->llproc();
-      if(!llp && !terminating) {
-	 pthrd_printf("Received event on deleted int_process, but Process doesn't think we're terminated yet\n");
-         error = true;
-         goto done;
-      }
-
       Process::const_ptr proc = ev->getProcess();
       int_process *llproc = proc->llproc();
       if (!llproc) {
@@ -1102,7 +1095,7 @@ bool int_process::waitAndHandleEvents(bool block)
          // floor.
          pthrd_printf("Dropping %s event from process %d due to process already exited\n",
                       ev->getEventType().name().c_str(), proc->getPid());
-         continue;
+	 goto done;
       }
       HandlerPool *hpool = llproc->handlerpool;
 
