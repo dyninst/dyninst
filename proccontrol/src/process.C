@@ -1078,25 +1078,19 @@ bool int_process::waitAndHandleEvents(bool block)
 
       bool exitEvent = (ev->getEventType().time() == EventType::Post &&
                         ev->getEventType().code() == EventType::Exit);
-      if (terminating && !exitEvent) {
-         // Since the user will never handle this one...
-	pthrd_printf("Received event %s on terminated process, ignoring\n",
-		     ev->name().c_str());
-	if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
-	continue;
-      }
-
       Process::const_ptr proc = ev->getProcess();
       int_process *llproc = proc->llproc();
-      if (!llproc) {
-         //Seen on Linux--a event comes in on an exited process because the kernel
-         // doesn't synchronize events across threads.  We thus get a thread exit
-         // event after a process exit event.  Just drop this event on the
-         // floor.
-         pthrd_printf("Dropping %s event from process %d due to process already exited\n",
-                      ev->getEventType().name().c_str(), proc->getPid());
-	 goto done;
+
+      if (terminating) {
+	if(!exitEvent || !llproc) {
+	  // Since the user will never handle this one...
+	  pthrd_printf("Received event %s on terminated process, ignoring\n",
+		       ev->name().c_str());
+	  if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
+	  continue;
+	}
       }
+
       HandlerPool *hpool = llproc->handlerpool;
 
       if (!ev->handling_started) {
