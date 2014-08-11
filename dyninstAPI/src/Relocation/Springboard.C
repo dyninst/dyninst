@@ -415,7 +415,7 @@ bool InstalledSpringboards::conflictInRelocated(Address start, Address end) {
        return true;
    }
 
-   return true;
+   return false;
 }
 
 void InstalledSpringboards::registerBranch
