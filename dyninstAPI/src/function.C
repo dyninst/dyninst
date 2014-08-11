@@ -268,7 +268,7 @@ mapped_object *func_instance::obj() const { return mod()->obj(); }
 AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
 const func_instance::BlockSet &func_instance::unresolvedCF() {
-   if (ifunc()->getPrevBlocksUnresolvedCF() != (int)ifunc()->num_blocks()) {
+   if (ifunc()->getPrevBlocksUnresolvedCF() != ifunc()->num_blocks()) {
        ifunc()->setPrevBlocksUnresolvedCF(ifunc()->num_blocks());
        // A block has unresolved control flow if it has an indirect
        // out-edge.
@@ -779,7 +779,7 @@ void func_instance::removeBlock(block_instance *block) {
     BlockSet::iterator bit = unresolvedCF_.find(block);
     if (bit != unresolvedCF_.end()) {
         unresolvedCF_.erase(bit);
-        int prev = ifunc()->getPrevBlocksUnresolvedCF();
+        size_t prev = ifunc()->getPrevBlocksUnresolvedCF();
         if (prev > 0) {
            ifunc()->setPrevBlocksUnresolvedCF(prev - 1);
         }
@@ -819,7 +819,7 @@ void func_instance::add_block_cb(block_instance * /*block*/)
       // these if cases will never execute anyway, at least not 
       // when we intend them to
     if (block->llb()->unresolvedCF()) {
-       int prev = ifunc()->getPrevBlocksUnresolvedCF();
+       size_t prev = ifunc()->getPrevBlocksUnresolvedCF();
        if (ifunc()->blocks().size() == prev) {
           unresolvedCF_.insert(block);
           ifunc()->setPrevBlocksUnresolvedCF(prev+1);

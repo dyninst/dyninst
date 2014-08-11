@@ -304,8 +304,8 @@ class parse_func : public ParseAPI::Function
    bool hasWeirdInsns() { return hasWeirdInsns_; } // true if we stopped the 
                                 // parse at a weird instruction (e.g., arpl)
    void setHasWeirdInsns(bool wi);
-   void setPrevBlocksUnresolvedCF(int newVal) { prevBlocksUnresolvedCF_ = newVal; };
-   int getPrevBlocksUnresolvedCF() const { return prevBlocksUnresolvedCF_; };
+   void setPrevBlocksUnresolvedCF(size_t newVal) { prevBlocksUnresolvedCF_ = newVal; };
+   size_t getPrevBlocksUnresolvedCF() const { return prevBlocksUnresolvedCF_; };
 
 
    // ----------------------------------------------------------------------
@@ -387,7 +387,7 @@ class parse_func : public ParseAPI::Function
 
    bool hasWeirdInsns_;            // true if we stopped the parse at a 
 								           // weird instruction (e.g., arpl)
-   int prevBlocksUnresolvedCF_; // num func blocks when calculated
+   size_t prevBlocksUnresolvedCF_; // num func blocks when calculated
 
    // Some functions are known to be unparesable by name
    bool isInstrumentableByFunctionName();
