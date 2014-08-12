@@ -47,7 +47,7 @@ struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTdebugRTlib = 0;
 
-int DYNINSTstaticMode = 1;
+DLLEXPORT int DYNINSTstaticMode = 1;
 
 /**
  * Allocate the Dyninst heaps
