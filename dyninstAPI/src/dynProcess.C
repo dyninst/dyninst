@@ -647,6 +647,7 @@ bool PCProcess::createInitialMappedObjects() {
 
     // Set the RT library name
     if( !getDyninstRTLibName() ) {
+      bperr("Dyninst was unable to find the dyninst runtime library.");
         startup_printf("%s[%d]: failed to get Dyninst RT lib name\n",
                 FILE__, __LINE__);
         return false;
