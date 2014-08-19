@@ -4,6 +4,7 @@ option (LIGHTWEIGHT_SYMTAB "Use lightweight symtab interface for ParseAPI, ProcC
 # Use ParseAPI analysis in Stackwalker?
 option (SW_ANALYSIS_STEPPER "Use ParseAPI-based analysis stepper in Stackwalker" ON)
 
+option (BUILD_RTLIB_32 "Build 32-bit runtime library on mixed 32/64 systems" ON)
 
 # Some global on/off switches
 if (LIGHTWEIGHT_SYMTAB)

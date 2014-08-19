@@ -76,9 +76,15 @@ set (SRC_LIST_ppc64
 # handle .S. 
 ENABLE_LANGUAGE(ASM)
 file (GLOB SRC_ASSEMBLY "src/*.S")
+if(PLATFORM MATCHES bgq OR NEED_NATIVE_ASSEMBER MATCHES YES)
 set_source_files_properties(${SRC_ASSEMBLY}
         PROPERTIES
         LANGUAGE ASM)
+else()
+set_source_files_properties(${SRC_ASSEMBLY}
+        PROPERTIES
+        LANGUAGE C)
+endif()
 
 # The arch-specific files other than RTthread-x86 are Unix-only.
 if(UNIX)
