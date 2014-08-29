@@ -249,3 +249,20 @@ Block::getInsn(Offset a) const {
    getInsns(insns);
    return insns[a];
 }
+
+bool Block::dominates(Function* func, Block *bb) {
+
+  if(!bb) return false;
+
+  if(bb == this) return true;
+
+  if(!immediateDominates[func])
+      return false;
+
+  for (auto iter = immediateDominates[func]->begin(); iter != immediateDominates[func]->end(); ++iter) {
+      if ((*iter)->dominates(func, bb)) return true;
+  }
+  return false;
+
+}
+

@@ -402,7 +402,6 @@ BPatch_flowGraph::createLoops()
         }
      }
   }
-
   // remove duplicate loops
   for (unsigned idx=0; idx < dupLoops.size(); idx++) {
      // Erase on a key element returns number removed;

@@ -33,16 +33,20 @@
 
 #include "CodeObject.h"
 #include "CFG.h"
+#include "Loop.h"
+#include "LoopTreeNode.h"
 
 #include "Parser.h"
 #include "debug_parse.h"
 #include "util.h"
+#include "LoopAnalyzer.h"
 
 #include "dataflowAPI/h/slicing.h"
 #include "dataflowAPI/h/AbslocInterface.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "common/h/Graph.h"
 #include "StackTamperVisitor.h"
+
 
 using namespace std;
 
@@ -65,7 +69,9 @@ Function::Function() :
         _saves_fp(false),
         _cleans_stack(false),
         _tamper(TAMPER_UNSET),
-        _tamper_addr(0)
+        _tamper_addr(0),
+	_loop_analyzed(false),
+	_loop_root(NULL)
 {
     fprintf(stderr,"PROBABLE ERROR, default ParseAPI::Function constructor\n");
 }
@@ -88,7 +94,10 @@ Function::Function(Address addr, string name, CodeObject * obj,
         _saves_fp(false),
         _cleans_stack(false),
         _tamper(TAMPER_UNSET),
-        _tamper_addr(0)
+        _tamper_addr(0),
+	_loop_analyzed(false),
+	_loop_root(NULL)
+
 {
     if (obj->defensiveMode()) {
         mal_printf("new funct at %lx\n",addr);
@@ -110,6 +119,8 @@ Function::~Function()
     for( ; eit != _extents.end(); ++eit) {
         delete *eit;
     }
+    for (auto lit = _loops.begin(); lit != _loops.end(); ++lit)
+        delete *lit;
 }
 
 Function::blocklist
@@ -596,3 +607,60 @@ Function::tampersStack(bool recalculate)
 void Function::destroy(Function *f) {
    f->obj()->destroy(f);
 }
+
+LoopTreeNode* Function::getLoopTree() {
+  if (_loop_analyzed == false) {
+      LoopAnalyzer la(this);
+      la.analyzeLoops();
+      _loop_analyzed = true;
+  }
+  return _loop_root;
+}
+
+// this methods returns the loop objects that exist in the control flow
+// grap. It returns a set. And if there are no loops, then it returns the empty
+// set. not NULL.
+void Function::getLoopsByNestingLevel(vector<Loop*>& lbb,
+                                              bool outerMostOnly)
+{
+  if (_loop_analyzed == false) {
+      LoopAnalyzer la(this);
+      la.analyzeLoops();
+      _loop_analyzed = true;
+  }
+
+  for (std::set<Loop *>::iterator iter = _loops.begin();
+       iter != _loops.end(); ++iter) {
+     // if we are only getting the outermost loops
+     if (outerMostOnly && 
+         (*iter)->parent != NULL) continue;
+
+     lbb.push_back(*iter);
+  }
+  return;
+}
+
+
+// get all the loops in this flow graph
+bool
+Function::getLoops(vector<Loop*>& lbb)
+{
+  getLoopsByNestingLevel(lbb, false);
+  return true;
+}
+
+// get the outermost loops in this flow graph
+bool
+Function::getOuterLoops(vector<Loop*>& lbb)
+{
+  getLoopsByNestingLevel(lbb, true);
+  return true;
+}
+
+Loop *Function::findLoop(const char *name)
+{
+  return getLoopTree()->findLoop(name);
+}
+
+
+

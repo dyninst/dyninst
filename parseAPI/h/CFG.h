@@ -54,8 +54,12 @@ namespace Dyninst {
 
 namespace ParseAPI {
 
+class LoopAnalyzer;
+class dominatorCFG;
 class CodeObject;
 class CFGModifier;
+class Loop;
+class LoopTreeNode;
 
 enum EdgeTypeEnum {
     CALL = 0,
@@ -337,7 +341,8 @@ class PARSER_EXPORT Block : public Dyninst::interval<Address>,
     };
 
     static void destroy(Block *b);
-
+    bool dominates(Function* func, Block *block);
+  
  private:
     void addSource(Edge * e);
     void addTarget(Edge * e);
@@ -360,6 +365,20 @@ class PARSER_EXPORT Block : public Dyninst::interval<Address>,
     int _func_cnt;
     bool _parsed;
 
+   // In ParseAPI level, a block can be shared by multiple funtions,
+   // The dominating related facts depend on from which function 
+   // we are looking at.
+    /** set of basic blocks that this basicblock dominates immediately*/
+    std::map<Function*, std::set<Block*>*> immediateDominates;
+
+    /** basic block which is the immediate dominator of the basic block */
+    std::map<Function*, Block*> immediateDominator;
+
+    /** same as previous two fields, but for postdominator tree */
+    std::map<Function*, std::set<Block*>*> immediatePostDominates;
+    std::map<Function*, Block*> immediatePostDominator;
+
+ friend class dominatorCFG;
  friend class Edge;
  friend class Function;
  friend class Parser;
@@ -429,6 +448,7 @@ class FuncExtent;
 
 class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
    friend class CFGModifier;
+   friend class LoopAnalyzer;
  protected:
     Address _start;
     CodeObject * _obj;
@@ -499,6 +519,12 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     bool hasNoStackFrame() const { return _no_stack_frame; }
     bool savesFramePointer() const { return _saves_fp; }
     bool cleansOwnStack() const { return _cleans_stack; }
+
+    /* Loops */    
+    LoopTreeNode* getLoopTree();
+    Loop* findLoop(const char *name);
+    bool getLoops(vector<Loop*> &loops);
+    bool getOuterLoops(vector<Loop*> &loops);
 
     /* Parse updates and obfuscation */
     void setEntryBlock(Block *new_entry);
@@ -586,6 +612,12 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     bool _cleans_stack;
     StackTamper _tamper;
     Address _tamper_addr;
+
+    /* Loop details*/
+    bool _loop_analyzed;
+    std::set<Loop*> _loops;
+    LoopTreeNode *_loop_root;
+    void getLoopsByNestingLevel(vector<Loop*>& lbb, bool outerMostOnly);
 
     /*** Internal parsing methods and state ***/
     void add_block(Block *b);
