@@ -124,9 +124,9 @@ class SymReaderCodeSource : public CodeSource {
     PARSER_EXPORT bool have_stats() const { return _have_stats; }
 
     // manage statistics
-    void incrementCounter(std::string name) const;
-    void addCounter(std::string name, int num) const; 
-    void decrementCounter(std::string name) const;
+    void incrementCounter(const std::string& name) const;
+    void addCounter(const std::string& name, int num) const; 
+    void decrementCounter(const std::string& name) const;
 
  private:
 

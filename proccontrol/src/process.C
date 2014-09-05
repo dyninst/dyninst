@@ -74,8 +74,8 @@ std::set<int_thread::continue_cb_t> int_thread::continue_cbs;
 SymbolReaderFactory *int_process::user_set_symbol_reader = NULL;
 
 static const int ProcControl_major_version = 8;
-static const int ProcControl_minor_version = 1;
-static const int ProcControl_maintenance_version = 1;
+static const int ProcControl_minor_version = 2;
+static const int ProcControl_maintenance_version = 0;
 
 bool Dyninst::ProcControlAPI::is_restricted_ptrace = false;
 
@@ -6522,12 +6522,32 @@ bool Process::runIRPCSync(IRPC::ptr irpc)
    bool result = runIRPCAsync(irpc);
    if (!result) return false;
 
+   bool exited = false;
+   int_process *proc = llproc();
+   int_iRPC::ptr int_rpc = irpc->llrpc()->rpc;
+
    while (irpc->state() != IRPC::Done) {
-	   result = int_process::waitAndHandleEvents(true);
-	   if (!result) {
-		  perr_printf("Error waiting for process to finish iRPC\n");
-		  return false;
-	   }
+      int_thread *thr = int_rpc->thread();
+      if (thr && thr->isStopped(int_thread::UserStateID)) {
+         pthrd_printf("RPC thread %d/%d was stopped during runIRPCSync, returning notrunning error\n",
+                      proc->getPid(), thr->getLWP());
+         setLastError(err_notrunning, "No threads are running to produce events\n");
+         return false;
+      }
+
+      result = int_process::waitAndHandleForProc(true, proc, exited);
+      if (exited) {
+         perr_printf("Process %d exited while waiting for irpc completion\n", getPid());
+         setLastError(err_exited, "Process exited during IRPC");
+         return false;
+      }
+      if (!result) {
+         if (getLastError() == err_notrunning)
+            pthrd_printf("RPC thread was stopped during runIRPCSync\n");
+         else
+            perr_printf("Error waiting for process to finish iRPC\n");
+         return false;
+      }
    }
    return true;
 }

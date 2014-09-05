@@ -344,7 +344,7 @@ SymReaderCodeSource::print_stats() const {
 }
 
 void
-SymReaderCodeSource::incrementCounter(std::string name) const
+SymReaderCodeSource::incrementCounter(const std::string& name) const
 {
     if (_have_stats) {
         stats_parse->incrementCounter(name);
@@ -352,7 +352,7 @@ SymReaderCodeSource::incrementCounter(std::string name) const
 }
 
 void 
-SymReaderCodeSource::addCounter(std::string name, int num) const
+SymReaderCodeSource::addCounter(const std::string& name, int num) const
 {
     if (_have_stats) {
         stats_parse->addCounter(name, num);
@@ -360,7 +360,7 @@ SymReaderCodeSource::addCounter(std::string name, int num) const
 }
 
 void
-SymReaderCodeSource::decrementCounter(std::string name) const
+SymReaderCodeSource::decrementCounter(const std::string& name) const
 {
     if (_have_stats) {
         stats_parse->decrementCounter(name);

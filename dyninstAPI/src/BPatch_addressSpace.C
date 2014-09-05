@@ -72,7 +72,7 @@ using Dyninst::PatchAPI::DynModifyCallCommand;
 using Dyninst::PatchAPI::DynRemoveCallCommand;
 
 BPatch_addressSpace::BPatch_addressSpace() :
-   image(NULL)
+   pendingInsertions(NULL), image(NULL)
 {
 }
 

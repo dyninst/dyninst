@@ -102,9 +102,9 @@ std::string PCProcess::createExecPath(const std::string &file, const std::string
 // We are unable to determine this if the daemon hasn't yet figured out what
 // libraries are linked against the application.  Currently, we identify an
 // application as being multi-threaded if it is linked against a thread
-// library (eg. libpthreads.a on AIX).  There are cases where we are querying
-// whether the app is multi-threaded, but it can't be determined yet but it
-// also isn't necessary to know.
+// library (eg. libpthreads.so on Linux).  There are cases where we are
+// querying whether the app is multi-threaded, but it can't be determined
+// yet but it also isn't necessary to know.
 bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
     if( mt_cache_result_ != not_cached ) {
         if( mt_cache_result_ == cached_mt_true) return true;
@@ -116,9 +116,7 @@ bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
         return false;
     }
 
-    if(    findObject("libthread.so*", true) // Solaris
-        || findObject("libpthreads.*", true) // AIX
-        || findObject("libpthread.so*", true) // Linux
+    if(    findObject("libpthread.so*", true) // Linux
         || findObject("libpthread-*.so", true) // Linux
         || findObject("libthr.*", true) ) // FreeBSD
     {

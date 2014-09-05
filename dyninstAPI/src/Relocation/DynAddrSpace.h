@@ -64,7 +64,6 @@ class DynAddrSpace : public AddrSpace {
 
     //CoAsMap coas_map_;
     AsSet as_set_;
-    AddressSpace* first_as_;
     bool recursive_;
 };
 

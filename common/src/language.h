@@ -45,8 +45,6 @@
 #  define TYPENAME typename
 #elif defined (__XLC__) || defined(__xlC__)
 #define TYPENAME typename
-#elif defined(mips_sgi_irix6_4)  // not sure what MACRO the IRIX compiler uses
-#  define TYPENAME typename
 #elif defined(_MSC_VER) && (_MSC_VER >= 1310)
     // Visual Studio .NET or greater
 #  define TYPENAME typename

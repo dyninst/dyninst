@@ -125,7 +125,7 @@ int bpfatal_lf(const char *__file__, unsigned int __line__, const char *format, 
   fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
   va_list va;
   va_start(va, format);
-  VSNPRINTF(errbuf + header_len, ERR_BUF_SIZE,format, va);
+  VSNPRINTF(errbuf + header_len, ERR_BUF_SIZE - header_len, format, va);
   va_end(va);
 
   fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
@@ -701,6 +701,30 @@ StatContainer stats_instru;
 StatContainer stats_ptrace;
 StatContainer stats_parse;
 StatContainer stats_codegen;
+
+const std::string INST_GENERATE_TIMER("instGenerateTimer");
+const std::string INST_INSTALL_TIMER("instInstallTimer");
+const std::string INST_LINK_TIMER("instLinkTimer");
+const std::string INST_REMOVE_TIMER("instRemoveTimer");
+const std::string INST_GENERATE_COUNTER("instGenerateCounter");
+const std::string INST_INSTALL_COUNTER("instInstallCounter");
+const std::string INST_LINK_COUNTER("instLinkCounter");
+const std::string INST_REMOVE_COUNTER("instRemoveCounter");
+
+const std::string PTRACE_WRITE_TIMER("ptraceWriteTimer");
+const std::string PTRACE_WRITE_COUNTER("ptraceWriteCounter");
+const std::string PTRACE_WRITE_AMOUNT("ptraceWriteAmountCounter");
+const std::string PTRACE_READ_TIMER("ptraceReadTimer");
+const std::string PTRACE_READ_COUNTER("ptraceReadCounter");
+const std::string PTRACE_READ_AMOUNT("ptraceReadAmountCounter");
+
+const std::string PARSE_SYMTAB_TIMER("parseSymtabTimer");
+const std::string PARSE_ANALYZE_TIMER("parseAnalyzeTimer");
+
+const std::string CODEGEN_AST_TIMER("codegenAstTimer");
+const std::string CODEGEN_AST_COUNTER("codegenAstCounter");
+const std::string CODEGEN_REGISTER_TIMER("codegenRegisterTimer");
+const std::string CODEGEN_LIVENESS_TIMER("codegenLivenessTimer");
 
 TimeStatistic running_time;
 

@@ -53,19 +53,10 @@
 /*
    --- inttypes.h ---
              int32_t  uint32_t  int64_t uint64_t 32B lmts 64Blmts 64BlitMacros#
-Sol5.6       yes      yes       yes     yes      yes      no*     yes   
-Sol5.7       yes      yes       yes     yes      yes      no*     yes   
 Linux        yes      yes       yes     yes      yes      yes     yes
-Irix         yes      yes       yes     yes      yes      yes     yes
-Osf4.0       nonexistant
-Osf5.0       ?
-Aix4.2       nonexistant
-Aix4.3       yes      yes       yes     yes      yes      no*     yes
+FreeBSD      yes      yes       yes     yes      yes      yes     yes
 WindowsNT    nonexistant
 
-  * the 64bit limits on solaris and aix are defined, but they are not defined
-    properly to include the numeric literal postfix (eg. LL), so we need to
-    explicitly define these
   # we rename all of the 64 bit literal macros to our shortened name
 */
 
@@ -78,37 +69,6 @@ WindowsNT    nonexistant
    typedef unsigned __int32 uint32_t;
    typedef unsigned __int16 uint16_t;
    typedef unsigned __int8 uint8_t;
-
-#elif defined(os_aix)  
-#if defined (arch_power)
-#  if defined(rs6000_ibm_aix64)
-#       define TYPE64BIT
-#  endif
-#  ifndef _ALL_SOURCE
-#     define _ALL_SOURCE
-#  endif
-#  include <sys/types.h>     /* if aix4.3, this will include inttypes.h */
-#  ifndef _H_INTTYPES        /* for aix4.2 */
-     typedef int int32_t;
-     typedef unsigned int uint32_t;
-#    if defined(rs6000_ibm_aix64)
-        typedef long int64_t;
-        typedef unsigned long uint64_t;
-#    else
-        typedef long long int64_t;
-        typedef unsigned long long uint64_t;
-#    endif
-#  endif
-#  endif /* defined (arch_power) */
-
-#elif defined(arch_alpha)
-#define TYPE64BIT
-#  ifndef _H_INTTYPES
-   typedef int int32_t;
-   typedef long int64_t;
-   typedef unsigned int uint32_t;
-   typedef unsigned long uint64_t;
-#  endif
 
 #elif defined(os_linux)
 #if !defined(__STDC_CONSTANT_MACROS)
@@ -169,45 +129,20 @@ typedef int64_t off64_t;
 
 
 /* Set up the 64 BIT LITERAL MACROS =================================== */
-#if defined(os_aix) && !defined(_H_INTTYPES)  /* aix4.2 ---- */
-#define I64_C(x)  (x##ll)
-#define UI64_C(x) (x##ull)
-#elif defined(os_osf)     /* osf ---------------------------- */
-#define I64_C(x)  (x##l)
-#define UI64_C(x) (x##ul)
-#elif defined(os_windows)
+#if defined(os_windows)
 				   /* nt ----------------------------- */
 #define I64_C(x)  (x##i64)
 #define UI64_C(x) (x##ui64)
 #elif defined(os_bg)
 #define I64_C(x) (x##ll)
 #define U64_C(x) (x##ull)
-#else                               /* linux, solaris, irix, aix4.3 --- */
+#else                               /* linux, freebsd ----------------- */
 #define I64_C(x)  INT64_C(x)
 #define UI64_C(x) UINT64_C(x)
 #endif
 
 /* Set up the 32 and 64 BIT LIMITS for those not already set up ======= */
-#if defined(os_osf)  || (defined(os_aix) && !defined(_H_INTTYPES))
-#define INT32_MAX  (2147483647)
-#define UINT32_MAX (4294967295U)
-#define INT32_MIN  (-2147483647-1)
-#endif
-
-                                   /* solaris, aix4.{23}, osf -------- */
-#if defined(os_aix)
-/* see note (*) above */
-#define I32_MAX    INT32_MAX
-#define UI32_MAX   UINT32_MAX
-#define I32_MIN    INT32_MIN
-#define I64_MAX    I64_C(9223372036854775807)
-#define UI64_MAX   UI64_C(18446744073709551615)
-/* The GNU compilers on solaris and aix have what seems like a bug where a
-   warning is printed when the ...808 int64 minimum is used, so we'll get the
-   value with some trickery */
-#define I64_MIN    (-I64_MAX-1)
-
-#elif defined(os_windows)
+#if defined(os_windows)
 			 /* nt ----------------------------- */
 #include <limits.h>
 #define I64_MAX  _I64_MAX
@@ -216,7 +151,7 @@ typedef int64_t off64_t;
 #define I32_MAX  _I32_MAX
 #define I32_MIN  _I32_MIN
 #define UI32_MAX  _UI32_MAX
-#else                              /* linux, irix -------------------- */
+#else                              /* linux, freebsd ----------------- */
 #define I64_MAX  INT64_MAX
 #define UI64_MAX UINT64_MAX
 #define I64_MIN  INT64_MIN

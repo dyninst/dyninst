@@ -43,14 +43,6 @@ typedef struct {
      unsigned long pr_size;
 } dyninstmm_t;
 
-#elif defined(os_aix)
-
-/* No actual /proc on AIX, we fake it with pre-built data */
-typedef struct {
-  Address pr_vaddr;
-  unsigned long pr_size;
-} dyninstmm_t;
-
 #elif defined(os_windows)
 typedef struct {
   Address pr_vaddr;

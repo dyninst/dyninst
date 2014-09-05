@@ -139,7 +139,7 @@ public:
 
 /*
  * This class defines the collection for the built-in Types
- * gnu ( and AIX??) use negative numbers to define other types
+ * gnu use negative numbers to define other types
  * in terms of these built-in types.
  * This collection is global and built in the BPatch_image constructor.
  * This means that only one collection of built-in types is made

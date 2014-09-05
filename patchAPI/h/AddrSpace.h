@@ -83,7 +83,7 @@ class PATCHAPI_EXPORT AddrSpace {
     PatchMgrPtr mgr_;
 
     bool init(PatchObject*);
-    AddrSpace() {}
+    AddrSpace(): first_object_(NULL) {}
     explicit AddrSpace(AddrSpace*) {}
 };
 

@@ -264,7 +264,7 @@ void LoadedLib::setUpPtr(void *v)
 
 #include <stdarg.h>
 
-//#if !defined(os_linux) && !defined(os_solaris)
+//#if !defined(os_linux)
 //This definition is for all the non-System V systems
 Address AddressTranslate::getLibraryTrapAddrSysV()
 {

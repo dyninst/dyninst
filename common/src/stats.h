@@ -171,7 +171,7 @@ class StatContainer {
      * This operator may return null if the named statistic does
      * not exist.
      */
-    COMMON_EXPORT Statistic * operator[](std::string &);
+    COMMON_EXPORT Statistic * operator[](const std::string &);
     COMMON_EXPORT Statistic * operator[](const char *s) {
        std::string namestr(s);
        return (*this)[namestr];
@@ -180,7 +180,7 @@ class StatContainer {
     // Create a new statistic of the given type indexed by name.
     // **This will replace any existing stat with the same index
     //   within this container**
-    COMMON_EXPORT void add(std::string name, StatType type);
+    COMMON_EXPORT void add(const std::string& name, StatType type);
 
     // Access all of the existing statistics
     COMMON_EXPORT dyn_hash_map< std::string, Statistic * > &
@@ -188,11 +188,11 @@ class StatContainer {
 
     // And some pass-through methods, encapsulated for
     // ease of use
-    COMMON_EXPORT void startTimer(std::string);
-    COMMON_EXPORT void stopTimer(std::string);
-    COMMON_EXPORT void incrementCounter(std::string);
-    COMMON_EXPORT void decrementCounter(std::string);
-    COMMON_EXPORT void addCounter(std::string, int);
+    COMMON_EXPORT void startTimer(const std::string&);
+    COMMON_EXPORT void stopTimer(const std::string&);
+    COMMON_EXPORT void incrementCounter(const std::string&);
+    COMMON_EXPORT void decrementCounter(const std::string&);
+    COMMON_EXPORT void addCounter(const std::string&, int);
 
  private:
     dyn_hash_map< std::string, Statistic * > stats_;

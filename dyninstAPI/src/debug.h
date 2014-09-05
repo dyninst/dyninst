@@ -87,29 +87,29 @@ extern StatContainer stats_ptrace;
 extern StatContainer stats_parse;
 extern StatContainer stats_codegen;
 
-#define INST_GENERATE_TIMER "instGenerateTimer"
-#define INST_INSTALL_TIMER "instInstallTimer"
-#define INST_LINK_TIMER "instLinkTimer"
-#define INST_REMOVE_TIMER "instRemoveTimer"
-#define INST_GENERATE_COUNTER "instGenerateCounter"
-#define INST_INSTALL_COUNTER "instInstallCounter"
-#define INST_LINK_COUNTER "instLinkCounter"
-#define INST_REMOVE_COUNTER "instRemoveCounter"
+extern const std::string INST_GENERATE_TIMER;
+extern const std::string INST_INSTALL_TIMER;
+extern const std::string INST_LINK_TIMER;
+extern const std::string INST_REMOVE_TIMER;
+extern const std::string INST_GENERATE_COUNTER;
+extern const std::string INST_INSTALL_COUNTER;
+extern const std::string INST_LINK_COUNTER;
+extern const std::string INST_REMOVE_COUNTER;
 
-#define PTRACE_WRITE_TIMER "ptraceWriteTimer"
-#define PTRACE_WRITE_COUNTER "ptraceWriteCounter"
-#define PTRACE_WRITE_AMOUNT "ptraceWriteAmountCounter"
-#define PTRACE_READ_TIMER "ptraceReadTimer"
-#define PTRACE_READ_COUNTER "ptraceReadCounter"
-#define PTRACE_READ_AMOUNT "ptraceReadAmountCounter"
+extern const std::string PTRACE_WRITE_TIMER;
+extern const std::string PTRACE_WRITE_COUNTER;
+extern const std::string PTRACE_WRITE_AMOUNT;
+extern const std::string PTRACE_READ_TIMER;
+extern const std::string PTRACE_READ_COUNTER;
+extern const std::string PTRACE_READ_AMOUNT;
 
-#define PARSE_SYMTAB_TIMER "parseSymtabTimer"
-#define PARSE_ANALYZE_TIMER "parseAnalyzeTimer"
+extern const std::string PARSE_SYMTAB_TIMER;
+extern const std::string PARSE_ANALYZE_TIMER;
 
-#define CODEGEN_AST_TIMER "codegenAstTimer"
-#define CODEGEN_AST_COUNTER "codegenAstCounter"
-#define CODEGEN_REGISTER_TIMER "codegenRegisterTimer"
-#define CODEGEN_LIVENESS_TIMER "codegenLivenessTimer"
+extern const std::string CODEGEN_AST_TIMER;
+extern const std::string CODEGEN_AST_COUNTER;
+extern const std::string CODEGEN_REGISTER_TIMER;
+extern const std::string CODEGEN_LIVENESS_TIMER;
 
 // C++ prototypes
 #define signal_cerr       if (dyn_debug_signal) cerr

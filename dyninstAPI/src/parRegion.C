@@ -34,16 +34,17 @@
 #include "addressSpace.h"
 
 image_parRegion::image_parRegion(parse_func * imageFunc)
+  : regionIf_(imageFunc), parentIf_(NULL),
+    firstInsnOffset_(0), lastInsnOffset_(0),
+    regionType(OMP_NONE)
 {
-   regionIf_ = imageFunc;
-  parentIf_ = NULL;
 }
 
 image_parRegion::image_parRegion(Address firstOffset, parse_func * imageFunc)
+  : regionIf_(imageFunc), parentIf_(NULL),
+    firstInsnOffset_(firstOffset), lastInsnOffset_(0),
+    regionType(OMP_NONE)
 {
-   regionIf_ = imageFunc;
-  parentIf_ = NULL;
-  firstInsnOffset_ = firstOffset;
 }
 
 const parse_func * image_parRegion::getAssociatedFunc() const {return regionIf_;}

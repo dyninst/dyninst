@@ -40,16 +40,7 @@
  * This should enforce the abstract OS operations
  */ 
 
-//  JAW: 1-09-07 removed switches for platforms:
-//  alpha_dec_osf4_0
-//  hppa1_1_hp_hpux
-//  mips_unknown_ce2_11
-//  mips_sgi_irix6_4
-
-#if defined(os_aix)
-#include "dyninstAPI/src/aix.h"
-
-#elif defined(i386_unknown_nt4_0) 
+#if defined(i386_unknown_nt4_0) 
 #include "dyninstAPI/src/pdwinnt.h"
 
 #elif defined(os_linux)

@@ -195,7 +195,7 @@ timer::get_current(double& u, double& s, double& w) {
 #include <sys/time.h>
 #include <sys/times.h>
 
-#if !defined(os_aix) && !defined(os_linux)
+#if !defined(os_linux)
 extern "C" int gettimeofday(struct timeval *tp, struct timezone *tzp);
 #endif
 

@@ -81,7 +81,9 @@ CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
    isIndirect_(false),
    gap_(0),
    insn_(insn),
-   addr_(addr) {
+   addr_(addr),
+   origTarget_(0)
+{
    
    // HACK to be sure things are parsed...
    insn->format();

@@ -927,13 +927,6 @@ Elf_X_Sym Elf_X_Data::get_sym()
     return Elf_X_Sym(is64, data);
 }
 
-#if defined(arch_mips)
-Elf_X_Options Elf_X_Data::get_options()
-{
-    return Elf_X_Options(is64, data);
-}
-#endif
-
 bool Elf_X_Data::isValid() const
 {
     return data;

@@ -69,11 +69,11 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func,
 {
   // fill the information of the basic blocks after creating
   // them. The dominator information will also be filled
-  valid = true;
+  isValid_ = valid = true;
 
   if (!createBasicBlocks()) {
     fprintf(stderr, "Failed to make basic blocks!\n");
-    valid = false;
+    isValid_ = valid = false;
     return;
   }
 }

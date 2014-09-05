@@ -82,7 +82,7 @@ class PATCHAPI_EXPORT Instrumenter : public BatchCommand {
     CallModMap callModifications_;
 
     explicit Instrumenter(AddrSpace* as) : as_(as) {}
-    Instrumenter() {}
+    Instrumenter(): as_(NULL) {}
 };
 }
 }
