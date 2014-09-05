@@ -27,7 +27,7 @@
 #define FLEX_SCANNER
 #define YY_FLEX_MAJOR_VERSION 2
 #define YY_FLEX_MINOR_VERSION 5
-#define YY_FLEX_SUBMINOR_VERSION 35
+#define YY_FLEX_SUBMINOR_VERSION 37
 #if YY_FLEX_SUBMINOR_VERSION > 0
 #define FLEX_BETA
 #endif
@@ -72,7 +72,6 @@ typedef int flex_int32_t;
 typedef unsigned char flex_uint8_t; 
 typedef unsigned short int flex_uint16_t;
 typedef unsigned int flex_uint32_t;
-#endif /* ! C99 */
 
 /* Limits of integral types. */
 #ifndef INT8_MIN
@@ -102,6 +101,8 @@ typedef unsigned int flex_uint32_t;
 #ifndef UINT32_MAX
 #define UINT32_MAX             (4294967295U)
 #endif
+
+#endif /* ! C99 */
 
 #endif /* ! FLEXINT_H */
 
@@ -171,7 +172,12 @@ typedef unsigned int flex_uint32_t;
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 #endif
 
-extern int dynCleng;
+#ifndef YY_TYPEDEF_YY_SIZE_T
+#define YY_TYPEDEF_YY_SIZE_T
+typedef size_t yy_size_t;
+#endif
+
+extern yy_size_t dynCleng;
 
 extern FILE *dynCin, *dynCout;
 
@@ -188,7 +194,7 @@ extern FILE *dynCin, *dynCout;
      */
     #define  YY_LESS_LINENO(n) \
             do { \
-                int yyl;\
+                yy_size_t yyl;\
                 for ( yyl = n; yyl < dynCleng; ++yyl )\
                     if ( dynCtext[yyl] == '\n' )\
                         --dynClineno;\
@@ -210,11 +216,6 @@ extern FILE *dynCin, *dynCout;
 
 #define unput(c) yyunput( c, (yytext_ptr)  )
 
-#ifndef YY_TYPEDEF_YY_SIZE_T
-#define YY_TYPEDEF_YY_SIZE_T
-typedef size_t yy_size_t;
-#endif
-
 #ifndef YY_STRUCT_YY_BUFFER_STATE
 #define YY_STRUCT_YY_BUFFER_STATE
 struct yy_buffer_state
@@ -232,7 +233,7 @@ struct yy_buffer_state
 	/* Number of characters read into yy_ch_buf, not including EOB
 	 * characters.
 	 */
-	int yy_n_chars;
+	yy_size_t yy_n_chars;
 
 	/* Whether we "own" the buffer - i.e., we know we created it,
 	 * and can realloc() it to grow it, and should free() it to
@@ -302,8 +303,8 @@ static YY_BUFFER_STATE * yy_buffer_stack = 0; /**< Stack as an array. */
 
 /* yy_hold_char holds the character lost when dynCtext is formed. */
 static char yy_hold_char;
-static int yy_n_chars;		/* number of characters read into yy_ch_buf */
-int dynCleng;
+static yy_size_t yy_n_chars;		/* number of characters read into yy_ch_buf */
+yy_size_t dynCleng;
 
 /* Points to current character in buffer. */
 static char *yy_c_buf_p = (char *) 0;
@@ -331,7 +332,7 @@ static void dynC_init_buffer (YY_BUFFER_STATE b,FILE *file  );
 
 YY_BUFFER_STATE dynC_scan_buffer (char *base,yy_size_t size  );
 YY_BUFFER_STATE dynC_scan_string (yyconst char *yy_str  );
-YY_BUFFER_STATE dynC_scan_bytes (yyconst char *bytes,int len  );
+YY_BUFFER_STATE dynC_scan_bytes (yyconst char *bytes,yy_size_t len  );
 
 void *dynCalloc (yy_size_t  );
 void *dynCrealloc (void *,yy_size_t  );
@@ -363,7 +364,7 @@ void dynCfree (void *  );
 
 /* Begin user sect3 */
 
-#define dynCwrap(n) 1
+#define dynCwrap() 1
 #define YY_SKIP_YYWRAP
 
 typedef unsigned char YY_CHAR;
@@ -939,7 +940,7 @@ const bool lexVerbose = false; // set to true for debug mode
 
 //"$"{L}({L}|{D})* { yylval.sval = &dynCtext[1]; return(DYNINST_CALL); }
 
-#line 943 "lex.dynC.c"
+#line 944 "lex.dynC.c"
 
 #define INITIAL 0
 #define comment 1
@@ -980,7 +981,7 @@ FILE *dynCget_out (void );
 
 void dynCset_out  (FILE * out_str  );
 
-int dynCget_leng (void );
+yy_size_t dynCget_leng (void );
 
 char *dynCget_text (void );
 
@@ -1039,7 +1040,7 @@ static int input (void );
 	if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) \
 		{ \
 		int c = '*'; \
-		unsigned n; \
+		size_t n; \
 		for ( n = 0; n < max_size && \
 			     (c = getc( dynCin )) != EOF && c != '\n'; ++n ) \
 			buf[n] = (char) c; \
@@ -1127,7 +1128,7 @@ YY_DECL
 #line 56 "../src/C.l"
 
 
-#line 1131 "lex.dynC.c"
+#line 1132 "lex.dynC.c"
 
 	if ( !(yy_init) )
 		{
@@ -1202,7 +1203,7 @@ yy_find_action:
 
 		if ( yy_act != YY_END_OF_BUFFER && yy_rule_can_match_eol[yy_act] )
 			{
-			int yyl;
+			yy_size_t yyl;
 			for ( yyl = 0; yyl < dynCleng; ++yyl )
 				if ( dynCtext[yyl] == '\n' )
 					   
@@ -1798,7 +1799,7 @@ YY_RULE_SETUP
 #line 225 "../src/C.l"
 ECHO;
 	YY_BREAK
-#line 1802 "lex.dynC.c"
+#line 1803 "lex.dynC.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(stringmode):
 	yyterminate();
@@ -1985,21 +1986,21 @@ static int yy_get_next_buffer (void)
 
 	else
 		{
-			int num_to_read =
+			yy_size_t num_to_read =
 			YY_CURRENT_BUFFER_LVALUE->yy_buf_size - number_to_move - 1;
 
 		while ( num_to_read <= 0 )
 			{ /* Not enough room in the buffer - grow it. */
 
 			/* just a shorter name for the current buffer */
-			YY_BUFFER_STATE b = YY_CURRENT_BUFFER;
+			YY_BUFFER_STATE b = YY_CURRENT_BUFFER_LVALUE;
 
 			int yy_c_buf_p_offset =
 				(int) ((yy_c_buf_p) - b->yy_ch_buf);
 
 			if ( b->yy_is_our_buffer )
 				{
-				int new_size = b->yy_buf_size * 2;
+				yy_size_t new_size = b->yy_buf_size * 2;
 
 				if ( new_size <= 0 )
 					b->yy_buf_size += b->yy_buf_size / 8;
@@ -2030,7 +2031,7 @@ static int yy_get_next_buffer (void)
 
 		/* Read in more data. */
 		YY_INPUT( (&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[number_to_move]),
-			(yy_n_chars), (size_t) num_to_read );
+			(yy_n_chars), num_to_read );
 
 		YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
 		}
@@ -2126,7 +2127,7 @@ static int yy_get_next_buffer (void)
 	yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
 	yy_is_jam = (yy_current_state == 480);
 
-	return yy_is_jam ? 0 : yy_current_state;
+		return yy_is_jam ? 0 : yy_current_state;
 }
 
 #ifndef YY_NO_INPUT
@@ -2153,7 +2154,7 @@ static int yy_get_next_buffer (void)
 
 		else
 			{ /* need more input */
-			int offset = (yy_c_buf_p) - (yytext_ptr);
+			yy_size_t offset = (yy_c_buf_p) - (yytext_ptr);
 			++(yy_c_buf_p);
 
 			switch ( yy_get_next_buffer(  ) )
@@ -2319,10 +2320,6 @@ static void dynC_load_buffer_state  (void)
 	dynCfree((void *) b  );
 }
 
-#ifndef __cplusplus
-extern int isatty (int );
-#endif /* __cplusplus */
-    
 /* Initializes or reinitializes a buffer.
  * This function is sometimes called more than once on the same buffer,
  * such as during a dynCrestart() or at EOF.
@@ -2435,7 +2432,7 @@ void dynCpop_buffer_state (void)
  */
 static void dynCensure_buffer_stack (void)
 {
-	int num_to_alloc;
+	yy_size_t num_to_alloc;
     
 	if (!(yy_buffer_stack)) {
 
@@ -2527,17 +2524,17 @@ YY_BUFFER_STATE dynC_scan_string (yyconst char * yystr )
 
 /** Setup the input buffer state to scan the given bytes. The next call to dynClex() will
  * scan from a @e copy of @a bytes.
- * @param bytes the byte buffer to scan
- * @param len the number of bytes in the buffer pointed to by @a bytes.
+ * @param yybytes the byte buffer to scan
+ * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
  * 
  * @return the newly allocated buffer state object.
  */
-YY_BUFFER_STATE dynC_scan_bytes  (yyconst char * yybytes, int  _yybytes_len )
+YY_BUFFER_STATE dynC_scan_bytes  (yyconst char * yybytes, yy_size_t  _yybytes_len )
 {
 	YY_BUFFER_STATE b;
 	char *buf;
 	yy_size_t n;
-	int i;
+	yy_size_t i;
     
 	/* Get memory for full buffer, including space for trailing EOB's. */
 	n = _yybytes_len + 2;
@@ -2619,7 +2616,7 @@ FILE *dynCget_out  (void)
 /** Get the length of the current token.
  * 
  */
-int dynCget_leng  (void)
+yy_size_t dynCget_leng  (void)
 {
         return dynCleng;
 }

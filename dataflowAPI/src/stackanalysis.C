@@ -248,7 +248,7 @@ void StackAnalysis::summarize() {
 
 	intervals_ = new Intervals();
 
-	Function::blocklist & bs = func->blocks();
+	Function::blocklist bs = func->blocks();
 	Function::blocklist::iterator bit = bs.begin();
 	for( ; bit != bs.end(); ++bit) {
 		Block *block = *bit;
@@ -377,8 +377,8 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
 
     std::set<Height> returnCleanVals;
 
-    const Function::blocklist &returnBlocks = func->returnBlocks();
-    Function::blocklist::const_iterator rets = returnBlocks.begin();
+    Function::const_blocklist returnBlocks = func->returnBlocks();
+    auto rets = returnBlocks.begin();
     for (; rets != returnBlocks.end(); ++rets) {
          Block *ret = *rets;
          cur = (unsigned char *) ret->region()->getPtrToInstruction(ret->lastInsnAddr());
@@ -624,16 +624,16 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs 
      // Size is in bytes... 
      switch(res.size()) {
      case 1:
-       delta = sign * (long) res.convert<uint8_t>();
+       delta = sign * res.convert<int8_t>();
        break;
      case 2:
-       delta = sign * (long) res.convert<uint16_t>();
+       delta = sign * res.convert<int16_t>();
        break;
      case 4:
-       delta = sign * (long) res.convert<uint32_t>();
+       delta = sign * res.convert<int32_t>();
        break;
      case 8:
-       delta = sign * (long) res.convert<uint64_t>();
+       delta = sign * res.convert<int64_t>(); 
        break;
      default:
        assert(0);

@@ -103,7 +103,8 @@ DLLEXPORT unsigned dyninst_threadIndex();
  * Internal functions that we export to ensure they show up.
  **/
 
-DLLEXPORT void DYNINSTinit(int, int, int, int);
+DLLEXPORT void DYNINSTsafeBreakPoint();
+DLLEXPORT void DYNINSTinit();
 DLLEXPORT void DYNINST_snippetBreakpoint();
 DLLEXPORT void DYNINST_stopThread(void *, void *, void *, void *);
 DLLEXPORT void DYNINST_stopInterProc(void *, void *, void *, void *, void *, void *);
@@ -112,6 +113,7 @@ DLLEXPORT unsigned long RTtranslateMemory(unsigned long, unsigned long, unsigned
 DLLEXPORT unsigned long RTtranslateMemoryShift(unsigned long, unsigned long, unsigned long);
 DLLEXPORT int DYNINSTthreadIndex();
 DLLEXPORT void *DYNINSTos_malloc(size_t, void *, void *); 
+DLLEXPORT int DYNINSTloadLibrary(char *);
 
 /** 
  * And variables

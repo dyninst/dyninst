@@ -57,7 +57,7 @@ namespace Dyninst {
    namespace PatchAPI {
       class Snippet;
       typedef boost::shared_ptr<Snippet> SnippetPtr;
-      SnippetPtr convert(const BPatch_snippet *);
+      BPATCH_DLL_EXPORT SnippetPtr convert(const BPatch_snippet *);
    }
 }
 

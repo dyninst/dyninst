@@ -42,10 +42,14 @@ if (UNIX)
       INSTALL_COMMAND mkdir -p <INSTALL_DIR>/include && mkdir -p <INSTALL_DIR>/lib && install <SOURCE_DIR>/libdwarf/libdwarf.h <INSTALL_DIR>/include && install <SOURCE_DIR>/libdwarf/dwarf.h <INSTALL_DIR>/include && install <BINARY_DIR>/libdwarf.so <INSTALL_DIR>/lib
       )
     add_dependencies(LibDwarf libelf_imp)
-    target_link_libraries(LibDwarf libelf_imp)
+    target_link_private_libraries(LibDwarf libelf_imp)
     #ExternalProject_Get_Property(LibDwarf 
     set(LIBDWARF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libdwarf/include)
     set(LIBDWARF_LIBRARIES ${CMAKE_BINARY_DIR}/libdwarf/lib/libdwarf.so)
+  else()
+    # Unfortunately, libdwarf doesn't always link to libelf itself.
+    # (e.g. https://bugzilla.redhat.com/show_bug.cgi?id=1061432)
+    set(LIBDWARF_LIBRARIES ${LIBDWARF_LIBRARIES} ${LIBELF_LIBRARIES})
   endif()
 
   add_library(libdwarf_imp SHARED IMPORTED)
@@ -98,22 +102,52 @@ endif()
 # an older CMake and it complains that it can't find Boost
 set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
   "1.50" "1.50.0" "1.51" "1.51.0" "1.52" "1.52.0"
-  "1.53" "1.53.0" "1.54" "1.54.0")
+  "1.53" "1.53.0" "1.54" "1.54.0" "1.55" "1.55.0" "1.56" "1.56.0")
 
+set (Boost_DEBUG ON)
 set (PATH_BOOST "/usr" CACHE STRING "Path to boost")
-set(Boost_USE_STATIC_LIBS ON)
+
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
-if (NOT (PATH_BOOST STREQUAL ""))
+if (NOT ("${Boost_NO_BOOST_CMAKE}" STREQUAL "OFF"))
+  message(STATUS "Disabling Boost's own CMake--known buggy in many cases")
+  set(Boost_NO_BOOST_CMAKE ON)
+endif()
+if (NOT ("${PATH_BOOST}" STREQUAL ""))
   set (CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${PATH_BOOST}/lib ${PATH_BOOST}/lib64)
   set (CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${PATH_BOOST}/include)
 endif()
 
-find_package (Boost REQUIRED COMPONENTS thread)
+# Boost 1.40/1.41 are not compatible with each other
+# so ensure that we don't mix incompatible headers with
+# the thread library
+#set (BOOST_MIN_VERSION 1.41.0)
 
-link_directories ( ${Boost_LIBRARY_DIR} )
+if(DEFINED PATH_BOOST OR 
+	   DEFINED Boost_INCLUDE_DIR OR 
+	   DEFINED Boost_LIBRARY_DIR)
+  set(Boost_NO_SYSTEM_PATHS ON)
+endif()
+
+find_package (Boost ${BOOST_MIN_VERSION} REQUIRED COMPONENTS thread system)
+
+link_directories ( ${Boost_LIBRARY_DIRS} )
 
 include_directories (
   ${Boost_INCLUDE_DIRS}
   )
+
+message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
+message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
+message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")
+message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+
+include(${DYNINST_ROOT}/cmake/CheckCXX11Features.cmake)
+if(NOT HAS_CXX11_AUTO)
+  message(FATAL_ERROR "No support for C++11 auto found. Dyninst requires this compiler feature.")
+else()
+  message(STATUS "C++11 support found, required flags are: ${CXX11_COMPILER_FLAGS}")
+endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX11_COMPILER_FLAGS}")

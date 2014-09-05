@@ -268,8 +268,8 @@ mapped_object *func_instance::obj() const { return mod()->obj(); }
 AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
 const func_instance::BlockSet &func_instance::unresolvedCF() {
-   if (ifunc()->getPrevBlocksUnresolvedCF() != (int)ifunc()->blocks().size()) {
-       ifunc()->setPrevBlocksUnresolvedCF(ifunc()->blocks().size());
+   if (ifunc()->getPrevBlocksUnresolvedCF() != ifunc()->num_blocks()) {
+       ifunc()->setPrevBlocksUnresolvedCF(ifunc()->num_blocks());
        // A block has unresolved control flow if it has an indirect
        // out-edge.
        blocks(); // force initialization of all_blocks_
@@ -286,7 +286,7 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
 }
 
 const func_instance::BlockSet &func_instance::abruptEnds() {
-    if (prevBlocksAbruptEnds_ != ifunc()->blocks().size()) {
+    if (prevBlocksAbruptEnds_ != ifunc()->num_blocks()) {
        prevBlocksAbruptEnds_ = blocks().size();
         for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin(); 
              iter != all_blocks_.end(); ++iter) 
@@ -492,9 +492,9 @@ bool func_instance::consistency() const {
    // 2) Check that all instPoints are in the
    //    correct block.
 
-   const ParseAPI::Function::blocklist &img_blocks = ifunc()->blocks();
-   assert(img_blocks.size() == all_blocks_.size());
-   for (ParseAPI::Function::blocklist::const_iterator iter = img_blocks.begin();
+   auto img_blocks = ifunc()->blocks();
+   assert(ifunc()->num_blocks() == all_blocks_.size());
+   for (auto iter = img_blocks.begin();
         iter != img_blocks.end(); ++iter) {
       parse_block *img_block = SCAST_PB(*iter);
       block_instance *b_inst = obj()->findBlock(img_block);
@@ -779,7 +779,7 @@ void func_instance::removeBlock(block_instance *block) {
     BlockSet::iterator bit = unresolvedCF_.find(block);
     if (bit != unresolvedCF_.end()) {
         unresolvedCF_.erase(bit);
-        int prev = ifunc()->getPrevBlocksUnresolvedCF();
+        size_t prev = ifunc()->getPrevBlocksUnresolvedCF();
         if (prev > 0) {
            ifunc()->setPrevBlocksUnresolvedCF(prev - 1);
         }
@@ -819,7 +819,7 @@ void func_instance::add_block_cb(block_instance * /*block*/)
       // these if cases will never execute anyway, at least not 
       // when we intend them to
     if (block->llb()->unresolvedCF()) {
-       int prev = ifunc()->getPrevBlocksUnresolvedCF();
+       size_t prev = ifunc()->getPrevBlocksUnresolvedCF();
        if (ifunc()->blocks().size() == prev) {
           unresolvedCF_.insert(block);
           ifunc()->setPrevBlocksUnresolvedCF(prev+1);

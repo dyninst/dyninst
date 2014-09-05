@@ -419,6 +419,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    Offset getElfDynamicOffset();
    // SymReader interface
    void getSegmentsSymReader(std::vector<SymSegment> &segs);
+   void rebase(Offset offset);
 
  private:
    void createDefaultModule();
@@ -442,7 +443,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool addUserType(Type *newtypeg);
 
    void setTOCOffset(Offset offset);
-
    /***** Private Data Members *****/
    private:
 

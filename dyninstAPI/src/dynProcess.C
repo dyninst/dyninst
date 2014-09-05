@@ -647,6 +647,7 @@ bool PCProcess::createInitialMappedObjects() {
 
     // Set the RT library name
     if( !getDyninstRTLibName() ) {
+      bperr("Dyninst was unable to find the dyninst runtime library.");
         startup_printf("%s[%d]: failed to get Dyninst RT lib name\n",
                 FILE__, __LINE__);
         return false;
@@ -674,7 +675,9 @@ bool PCProcess::createInitialMappedObjects() {
            return false;
        }
 
-       if ((*i)->getAbsoluteName() == dyninstRT_name) {
+       const fileDescriptor &desc = newObj->getFileDesc();
+       fileDescriptor tmpDesc(dyninstRT_name, desc.code(), desc.data(), true);
+       if( desc == tmpDesc ) {
           startup_printf("%s[%d]: RT library already loaded, manual loading not necessary\n",
                          FILE__, __LINE__);
           runtime_lib.insert(newObj);
@@ -837,43 +840,42 @@ bool PCProcess::loadRTLib() {
                      FILE__, __LINE__);
 
       bootstrapState_ = bs_loadedRTLib;
-
-      if( !wasCreatedViaFork() ) {
-         // Need to still initialize the library
-         if( !iRPCDyninstInit() ) return false;
-      }
-      
-      return true;
    }
-   
-   if (!pcProc_->addLibrary(dyninstRT_name)) return false;
-
-   bootstrapState_ = bs_loadedRTLib;
-
-   // Process the library load (we hope)
-   PCEventMuxer::handle();
-
-   if( runtime_lib.size() == 0 ) {
-      startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
-                     __LINE__);
-      return false;
+   else {
+     if (!pcProc_->addLibrary(dyninstRT_name)) {
+       startup_printf("%s[%d]: failed to start loading RT lib\n", FILE__,
+		      __LINE__);
+       return false;
+     }
+     bootstrapState_ = bs_loadedRTLib;
+     
+     // Process the library load (we hope)
+     PCEventMuxer::handle();
+     
+     if( runtime_lib.size() == 0 ) {
+       startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
+		      __LINE__);
+       return false;
+     }
+     
+     bootstrapState_ = bs_loadedRTLib;
    }
-
-   bootstrapState_ = bs_loadedRTLib;
-
-   startup_printf("%s[%d]: finished running RPC to load RT library\n", FILE__, __LINE__);
-   
-
-   // Initialize some variables in the RT lib
-   DYNINST_bootstrapStruct bs_record;
-   
-   if( !extractBootstrapStruct(&bs_record) || bs_record.event == 0 ) {
-      startup_printf("%s[%d]: RT library not initialized, using RPC to initialize\n",
-                FILE__, __LINE__);
-      if( !iRPCDyninstInit() ) return false;
-    }
-
-    return setRTLibInitParams();
+   int loaded_ok = 0;
+   pdvector<int_variable *> vars;
+   if (!findVarsByAll("DYNINSThasInitialized", vars)) {
+        startup_printf("%s[%d]: no DYNINSThasInitialized variable\n", FILE__, __LINE__);
+		return false;
+   }
+   if (!readDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *)&loaded_ok, false)) {
+        startup_printf("%s[%d]: readDataWord failed\n", FILE__, __LINE__);
+        return false;
+   }
+   if(!loaded_ok)
+   {
+	   startup_printf("%s[%d]: DYNINSTinit not called automatically\n", FILE__, __LINE__);
+   }
+   startup_printf("%s[%d]: DYNINSTinit succeeded\n", FILE__, __LINE__);
+   return setRTLibInitParams();
 }
 
 // Set up the parameters for DYNINSTinit in the RT lib
@@ -883,17 +885,6 @@ bool PCProcess::setRTLibInitParams() {
 
     int pid = P_getpid();
 
-    // Cause:
-    // 1 = created
-    // 2 = forked
-    // 3 = attached
-
-    int cause;
-    if( createdViaAttach_ ) {
-        cause = 3;
-    }else{
-        cause = 1;
-    }
 
     // Now we write these variables into the following global vrbles
     // in the dyninst library:
@@ -902,22 +893,6 @@ bool PCProcess::setRTLibInitParams() {
 
     pdvector<int_variable *> vars;
 
-    if (!findVarsByAll("libdyninstAPI_RT_init_localCause",vars, dyninstRT_name)) {
-        if (!findVarsByAll("_libdyninstAPI_RT_init_localCause", vars)) {
-            if (!findVarsByAll("libdyninstAPI_RT_init_localCause",vars)) {
-                startup_printf("%s[%d]: could not find necessary internal variable\n",
-                        FILE__, __LINE__);
-                return false;
-            }
-        }
-    }
-
-    assert(vars.size() == 1);
-    if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *)&cause)) {
-        startup_printf("%s[%d]: writeDataWord failed\n", FILE__, __LINE__);
-        return false;
-    }
-    vars.clear();
 
     if (!findVarsByAll("libdyninstAPI_RT_init_localPid", vars)) {
         if (!findVarsByAll("_libdyninstAPI_RT_init_localPid", vars)) {
@@ -970,75 +945,24 @@ bool PCProcess::setRTLibInitParams() {
         fprintf(stderr, "%s[%d]:  set var in RTlib for debug...\n", FILE__, __LINE__);
     }
 
+    int static_mode = 0;
+    if (!findVarsByAll("DYNINSTstaticMode", vars)) {
+        if (!findVarsByAll("DYNINSTstaticMode", vars)) {
+            startup_printf("%s[%d]: could not find necessary internal variable\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+    }
+
+    assert(vars.size() == 1);
+    if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *) &static_mode)) {
+        startup_printf("%s[%d]: writeDataWord failed\n", FILE__, __LINE__);
+        return false;
+    }
+    vars.clear();
     return true;
 }
 
-#if !defined(os_vxworks)
-bool PCProcess::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record) {
-    const std::string vrbleName("DYNINST_bootstrap_info");
-
-    pdvector<int_variable *> bootstrapInfoVec;
-    if( !findVarsByAll(vrbleName, bootstrapInfoVec) ) {
-        startup_printf("%s[%d]: failed to find bootstrap variable %s\n",
-                FILE__, __LINE__, vrbleName.c_str());
-        return false;
-    }
-
-    if( bootstrapInfoVec.size() > 1 ) {
-        startup_printf("%s[%d]: found more than 1 bootstrap struct var, choosing first one\n",
-                FILE__, __LINE__);
-        return false;
-    }
-
-    Address symAddr = bootstrapInfoVec[0]->getAddress();
-    if( !readDataSpace((const void *)symAddr, sizeof(*bs_record), bs_record, true) ) {
-        startup_printf("%s[%d]: failed to read bootstrap struct in RT library\n",
-                FILE__, __LINE__);
-        return false;
-    }
-
-    return true;
-}
-#endif
-
-bool PCProcess::iRPCDyninstInit() {
-    startup_printf("%s[%d]: running DYNINSTinit via iRPC\n", FILE__, __LINE__);
-    
-    extern int dyn_debug_rtlib;
-    int pid = P_getpid();
-    unsigned maxthreads = MAX_THREADS;
-    if( !multithread_capable() ) maxthreads = 1;
-
-    int cause;
-    if( createdViaAttach_ ) {
-        cause = 3;
-    }else{
-        cause = 1;
-    }
-
-    pdvector<AstNodePtr> the_args(4);
-    the_args[0] = AstNode::operandNode(AstNode::Constant, (void*)(Address)cause);
-    the_args[1] = AstNode::operandNode(AstNode::Constant, (void*)(Address)pid);
-    the_args[2] = AstNode::operandNode(AstNode::Constant, (void*)(Address)maxthreads);
-    the_args[3] = AstNode::operandNode(AstNode::Constant, (void*)(Address)dyn_debug_rtlib);
-    AstNodePtr dynInit = AstNode::funcCallNode("DYNINSTinit", the_args);
-
-    if( !postIRPC(dynInit, 
-                NULL,  // no user data
-                false, // don't run after it is done
-                NULL,  // doesn't matter which thread
-                true,  // wait for completion
-                NULL,  // don't need to check result directly
-                false) ) // don't deliver callbacks 
-    {
-        startup_printf("%s[%d]: failed to run DYNINSTinit via iRPC\n", FILE__, __LINE__);
-        return false;
-    }
-
-    startup_printf("%s[%d]: finished running DYNINSTinit via RPC\n", FILE__, __LINE__);
-
-    return true;
-}
 
 #if defined(os_vxworks)
 bool PCProcess::insertBreakpointAtMain() {
@@ -1164,12 +1088,29 @@ bool PCProcess::detachProcess(bool /*cont*/) {
     if( !isAttached() ) return false;
 
     if (tracedSyscalls_) {
+        // Process needs to be stopped to change instrumentation
+        bool needToContinue = false;
+        if( !isStopped() ) {
+            needToContinue = true;
+            if( !stopProcess() ) {
+                proccontrol_printf("%s[%d]: failed to stop process for removing syscalls\n",
+                        FILE__, __LINE__);
+            }
+        }
+
         tracedSyscalls_->removePreFork();
         tracedSyscalls_->removePostFork();
         tracedSyscalls_->removePreExec();
         tracedSyscalls_->removePostExec();
         tracedSyscalls_->removePreExit();
         tracedSyscalls_->removePreLwpExit();
+
+        if( needToContinue ) {
+            if( !continueProcess() ) {
+                proccontrol_printf("%s[%d]: failed to continue process after removing syscalls\n",
+                        FILE__, __LINE__);
+            }
+        }
     }
 
     // TODO figure out if ProcControl should care about continuing a process
@@ -1241,7 +1182,7 @@ void PCProcess::setReportingEvent(bool b) {
 }
 
 void PCProcess::markExited() {
-    pcProc_ = Process::ptr();
+	if(pcProc_) pcProc_ = Process::ptr();
 }
 
 void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
@@ -1269,12 +1210,14 @@ void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
     }
     write_printf("%lx_%d_%u[] = {", inTracedProcess, getPid(), write_no++);
 
-    const unsigned char *buffer = (const unsigned char *)inSelf;
-    for(unsigned i = 0; i < amount-1; ++i) {
-        if( amount && (i % 10 == 0) ) write_printf("\n");
-        write_printf("0x%02hhx, ", buffer[i]);
+    if( amount > 0 ) {
+       const unsigned char *buffer = (const unsigned char *)inSelf;
+       for(unsigned i = 0; i < amount-1; ++i) {
+           if( i % 10 == 0 ) write_printf("\n");
+           write_printf("0x%02hhx, ", buffer[i]);
+       }
+       write_printf("0x%02hhx", buffer[amount-1]);
     }
-    if(amount) write_printf("0x%02hhx", buffer[amount-1]);
     write_printf("\n};\n");
 }
 
@@ -1464,8 +1407,12 @@ bool PCProcess::registerThread(PCThread *thread) {
    if (tid == (Address) -1) return true;
    if (index == (Address) -1) return true;
 
-   if (!initializeRegisterThread()) return false;
-
+   if (!initializeRegisterThread()) {
+      startup_printf("%s[%d]: initializeRegisterThread failed\n",
+                     FILE__, __LINE__);
+	   
+	   return false;
+   }
    // Must match the "hash" algorithm used in the RT lib
    int working = (tid % thread_hash_size);
    while(1) {
@@ -1532,7 +1479,7 @@ bool PCProcess::unregisterThread(PCThread *thread) {
 }
 
 bool PCProcess::initializeRegisterThread() {
-   if (thread_hash_tids) return true;
+//   if (thread_hash_tids) return true;
 
    unsigned ptrsize = getAddressWidth();
    
@@ -2834,7 +2781,7 @@ void PCProcess::generatePatchBranches(AddrPairSet &branchesNeeded) {
     insnCodeGen::generateBranch(gen, from, to);
 
     // Safety check: make sure we didn't overrun the patch area
-    Address lb, ub;
+    Address lb = 0, ub = 0;
     std::pair<func_instance*,Address> tmp;
     if (!reverseDefensiveMap_.find(from, lb, ub, tmp)) {
       // Huh? This worked before!

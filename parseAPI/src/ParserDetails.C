@@ -195,10 +195,10 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
     }
         
     // make a temp edge
-    const Function::blocklist & ret_blks = tamperFunc->returnBlocks();
-    for (Function::blocklist::const_iterator bit = ret_blks.begin(); 
+    Function::const_blocklist ret_blks = tamperFunc->returnBlocks();
+    for (auto bit = ret_blks.begin(); 
          bit != ret_blks.end(); 
-         bit++)
+         ++bit)
     {
         Edge *edge = link_tempsink(*bit, CALL);
 

@@ -294,7 +294,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // Defensive mode
   BlockSet unresolvedCF_;
   BlockSet abruptEnds_;
-  unsigned int prevBlocksAbruptEnds_; // num func blocks when calculated
+  size_t prevBlocksAbruptEnds_; // num func blocks when calculated
 
 
   Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is

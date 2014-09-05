@@ -560,6 +560,7 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
 
 bool Walker::getInitialFrame(Frame &frame, THR_ID thread) {
    bool result;
+   frame.walker = this;
    result = callPreStackwalk(thread);
    if (!result) {
       sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",

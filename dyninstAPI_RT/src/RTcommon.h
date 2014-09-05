@@ -38,9 +38,7 @@
 void DYNINSTbreakPoint();
 /* Use a signal that is safe if we're not attached. */
 void DYNINSTsafeBreakPoint();
-void DYNINSTos_init(int calledByFork, int calledByAttach);
-void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag);
-void RTmutatedBinary_init();
+void DYNINSTinit();
 int DYNINSTreturnZero();
 int DYNINSTwriteEvent(void *ev, size_t sz);
 int DYNINSTasyncConnect(int pid);
@@ -66,7 +64,7 @@ extern void mark_heaps_exec(void);
 
 extern int DYNINSTdebugRTlib;
 
-extern int DYNINSTstaticMode;
+DLLEXPORT extern int DYNINSTstaticMode;
 
 #define MAX_THREADS 32 //Should match MAX_THREADS in process.h
 #define THREADS_HASH_SIZE 40 //MAX_THREADS*1.25

@@ -1078,8 +1078,7 @@ bool PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
         case Dyninst::ProcControlAPI::EventType::Exit:
             switch(et.time()) {
                 case Dyninst::ProcControlAPI::EventType::Pre:
-                case Dyninst::ProcControlAPI::EventType::Post:
-					return true;
+		  return true;
                 default:
                     break;
             }
@@ -1087,7 +1086,7 @@ bool PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
 		case Dyninst::ProcControlAPI::EventType::LWPDestroy:
             switch(et.time()) {
                 case Dyninst::ProcControlAPI::EventType::Pre:
-					return true;
+		  return true;
                 default:
                     break;
             }
@@ -1099,7 +1098,11 @@ bool PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
 
 bool PCEventMuxer::useBreakpoint(Dyninst::ProcControlAPI::EventType et)
 {
-	return false;
+//  if(et.code() == Dyninst::ProcControlAPI::EventType::Exit &&
+//     et.time() == Dyninst::ProcControlAPI::EventType::Pre)
+//    return true;
+  
+  return false;
 }
 
 bool PCEventHandler::isKillSignal(int signal)

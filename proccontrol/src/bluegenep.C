@@ -43,7 +43,13 @@
 #include "proccontrol/src/irpc.h"
 
 #include "common/h/SymReader.h"
+#if defined(WITH_SYMLITE)
 #include "symlite/h/SymLite-elf.h"
+#elif defined(WITH_SYMTAB_API)
+#include "symtabAPI/h/SymtabReader.h"
+#else
+#error "No defined symbol reader"
+#endif
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -1356,12 +1362,18 @@ bool bgp_process::plat_supportDOTF()
 
 SymbolReaderFactory *getElfReader()
 {
+#if defined(WITH_SYMLITE)
   static SymbolReaderFactory *symreader_factory = NULL;
   if (symreader_factory)
     return symreader_factory;
 
   symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
   return symreader_factory;
+#elif defined(WITH_SYMTAB_API)
+  return SymtabAPI::getSymtabReaderFactory();
+#else
+#error "No defined symbol reader"
+#endif
 }
 
 SymbolReaderFactory *bgp_process::plat_defaultSymReader()

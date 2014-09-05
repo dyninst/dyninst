@@ -61,7 +61,8 @@ struct EXCEPTION_REGISTRATION {
 
 #define CAN_DUMP_CORE false
 #define SLEEP_ON_MUTATEE_CRASH 0 /*seconds*/
-#define sleep Sleep
+
+static const auto sleep = Sleep;
 
 #define INFO_TO_EXIT_CODE(info) info.u.ExitProcess.dwExitCode
 #define INFO_TO_ADDRESS(info) info.u.Exception.ExceptionRecord.ExceptionAddress

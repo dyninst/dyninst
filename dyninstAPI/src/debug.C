@@ -52,7 +52,7 @@ unsigned long getExecThreadID() {
 
 // Make a lock.
 
-Mutex *debugPrintLock = NULL;
+Mutex<> *debugPrintLock = NULL;
 
 void BPatch_reportError(int errLevel, int num, const char *str) {
     BPatch::reportError((BPatchErrorLevel) errLevel, num, str);
@@ -245,95 +245,102 @@ int dyn_debug_disassemble = 0;
 static char *dyn_debug_write_filename = NULL;
 static FILE *dyn_debug_write_file = NULL;
 
+bool check_env_value(const char* env_var)
+{
+	char* val = getenv(env_var);
+	if(!val) return false;
+	return (bool)(atoi(val));
+}
+
 bool init_debug() {
   static bool init = false;
   if (init) return true;
   init = true;
 
   char *p;
-  if (getenv("DYNINST_DEBUG_MALWARE")) {
+  if (check_env_value("DYNINST_DEBUG_MALWARE")) {
     fprintf(stderr, "Enabling DyninstAPI malware debug\n");
     dyn_debug_malware = 1;
   }
-  if (getenv("DYNINST_DEBUG_TRAP")) {
+  if (check_env_value("DYNINST_DEBUG_TRAP")) {
     fprintf(stderr, "Enabling DyninstAPI debugging using traps\n");
     dyn_debug_trap = 1;
   }
-  if (getenv("DYNINST_DEBUG_SPRINGBOARD")) {
+  if (check_env_value("DYNINST_DEBUG_SPRINGBOARD")) {
     fprintf(stderr, "Enabling DyninstAPI springboard debug\n");
     dyn_debug_springboard = 1;
   }
-  if (getenv("DYNINST_DEBUG_STARTUP")) {
+  if (check_env_value("DYNINST_DEBUG_STARTUP")) {
     fprintf(stderr, "Enabling DyninstAPI startup debug\n");
     dyn_debug_startup = 1;
   }
-  if ( (getenv("DYNINST_DEBUG_PARSING"))) {
+  if ( (check_env_value("DYNINST_DEBUG_PARSING"))) {
      fprintf(stderr, "Enabling DyninstAPI parsing debug\n");
      dyn_debug_parsing = 1;
   }
-  if ( (getenv("DYNINST_DEBUG_PARSE"))) {
+  if ( (check_env_value("DYNINST_DEBUG_PARSE"))) {
      fprintf(stderr, "Enabling DyninstAPI parsing debug\n");
      dyn_debug_parsing = 1;
   }
-  if (    (getenv("DYNINST_DEBUG_DYNPC")) 
-       || (getenv("DYNINST_DEBUG_FORKEXEC")) 
-       || (getenv("DYNINST_DEBUG_INFRPC"))
-       || (getenv("DYNINST_DEBUG_SIGNAL"))
-       || (getenv("DYNINST_DEBUG_INFERIORRPC"))
-       || (getenv("DYNINST_DEBUG_THREAD"))
-       || (getenv("DYNINST_DEBUG_MAILBOX"))
-       || (getenv("DYNINST_DEBUG_DBI"))
+  if (    (check_env_value("DYNINST_DEBUG_DYNPC")) 
+       || (check_env_value("DYNINST_DEBUG_FORKEXEC")) 
+       || (check_env_value("DYNINST_DEBUG_INFRPC"))
+       || (check_env_value("DYNINST_DEBUG_SIGNAL"))
+       || (check_env_value("DYNINST_DEBUG_INFERIORRPC"))
+       || (check_env_value("DYNINST_DEBUG_THREAD"))
+       || (check_env_value("DYNINST_DEBUG_MAILBOX"))
+       || (check_env_value("DYNINST_DEBUG_DBI"))
      ) 
   {
     fprintf(stderr, "Enabling DyninstAPI process control debug\n");
     dyn_debug_proccontrol = 1;
   }
 
-  if ( (getenv("DYNINST_DEBUG_STACKWALK"))) {
+  if ( (check_env_value("DYNINST_DEBUG_STACKWALK"))) {
     fprintf(stderr, "Enabling DyninstAPI stack walking debug\n");
     dyn_debug_stackwalk = 1;
   }
-  if ( (getenv("DYNINST_DEBUG_INST"))) {
+  if ( (check_env_value("DYNINST_DEBUG_INST"))) {
     fprintf(stderr, "Enabling DyninstAPI inst debug\n");
     dyn_debug_inst = 1;
   }
-  if ( (getenv("DYNINST_DEBUG_RELOC"))) {
+  if ( (check_env_value("DYNINST_DEBUG_RELOC"))) {
     fprintf(stderr, "Enabling DyninstAPI relocation debug\n");
     dyn_debug_reloc = 1;
   }
-  if ( (getenv("DYNINST_DEBUG_RELOCATION"))) {
+  if ( (check_env_value("DYNINST_DEBUG_RELOCATION"))) {
     fprintf(stderr, "Enabling DyninstAPI relocation debug\n");
     dyn_debug_reloc = 1;
   }
-  if ( (getenv("DYNINST_DEBUG_SENSITIVITY"))) {
+  if ( (check_env_value("DYNINST_DEBUG_SENSITIVITY"))) {
     fprintf(stderr, "Enabling DyninstAPI sensitivity debug\n");
     dyn_debug_sensitivity = 1;
   }
-  if ( (getenv("DYNINST_DEBUG_DYN_UNW"))) {
+  if ( (check_env_value("DYNINST_DEBUG_DYN_UNW"))) {
     fprintf(stderr, "Enabling DyninstAPI dynamic unwind debug\n");
     dyn_debug_dyn_unw = 1;
     }
-  if ( (getenv("DYNINST_DEBUG_MUTEX"))) {
+  if ( (check_env_value("DYNINST_DEBUG_MUTEX"))) {
     fprintf(stderr, "Enabling DyninstAPI mutex debug\n");
     dyn_debug_mutex = 1;
     }
-  if ( (getenv("DYNINST_DEBUG_RTLIB"))) {
+  if ( (check_env_value("DYNINST_DEBUG_RTLIB"))) {
       fprintf(stderr, "Enabling DyninstAPI RTlib debug\n");
       dyn_debug_rtlib = 1;
   }
-  if ( (getenv("DYNINST_DEBUG_CATCHUP"))) {
+  if ( (check_env_value("DYNINST_DEBUG_CATCHUP"))) {
       fprintf(stderr, "Enabling DyninstAPI catchup debug\n");
       dyn_debug_catchup = 1;
   }
-  if ( (getenv("DYNINST_DEBUG_BPATCH"))) {
+  if ( (check_env_value("DYNINST_DEBUG_BPATCH"))) {
       fprintf(stderr, "Enabling DyninstAPI bpatch debug\n");
       dyn_debug_bpatch = 1;
   }
-  if ( (getenv("DYNINST_DEBUG_REGALLOC"))) {
+  if ( (check_env_value("DYNINST_DEBUG_REGALLOC"))) {
       fprintf(stderr, "Enabling DyninstAPI register allocation debug\n");
       dyn_debug_regalloc = 1;
   }
-  if ( (getenv("DYNINST_DEBUG_AST"))) {
+  if ( (check_env_value("DYNINST_DEBUG_AST"))) {
       fprintf(stderr, "Enabling DyninstAPI ast debug\n");
       dyn_debug_ast = 1;
   }
@@ -342,8 +349,8 @@ bool init_debug() {
     dyn_debug_write = 1;
     dyn_debug_write_filename = p;
   }
-  if ( (getenv("DYNINST_DEBUG_INFMALLOC")) ||
-       (getenv("DYNINST_DEBUG_INFERIORMALLOC"))) {
+  if ( (check_env_value("DYNINST_DEBUG_INFMALLOC")) ||
+       (check_env_value("DYNINST_DEBUG_INFERIORMALLOC"))) {
     fprintf(stderr, "Enabling DyninstAPI inferior malloc debugging\n");
     dyn_debug_infmalloc = 1;
   }
@@ -352,11 +359,11 @@ bool init_debug() {
      dyn_debug_crash = 1;
      dyn_debug_crash_debugger = p;
   }
-  if (getenv("DYNINST_DEBUG_DISASS")) {
+  if (check_env_value("DYNINST_DEBUG_DISASS")) {
       fprintf(stderr, "Enabling DyninstAPI instrumentation disassembly debugging\n");
       dyn_debug_disassemble = 1;
   }
-  debugPrintLock = new Mutex();
+  debugPrintLock = new Mutex<>();
 
   return true;
 }
@@ -733,7 +740,7 @@ bool have_stats = 0;
 bool init_stats() {
     running_time.start();
 
-    if (getenv("DYNINST_STATS_INST")) {
+    if (check_env_value("DYNINST_STATS_INST")) {
         fprintf(stderr, "Enabling DyninstAPI instrumentation statistics\n");
         stats_instru.add(INST_GENERATE_TIMER, TimerStat);
         stats_instru.add(INST_INSTALL_TIMER, TimerStat);
@@ -747,7 +754,7 @@ bool init_stats() {
     }
     
 
-    if (getenv("DYNINST_STATS_PTRACE")) {
+    if (check_env_value("DYNINST_STATS_PTRACE")) {
         fprintf(stderr, "Enabling DyninstAPI ptrace statistics\n");
         stats_ptrace.add(PTRACE_WRITE_TIMER, TimerStat);
         stats_ptrace.add(PTRACE_READ_TIMER, TimerStat);
@@ -760,14 +767,14 @@ bool init_stats() {
         have_stats = true;
     }
     
-    if (getenv("DYNINST_STATS_PARSING")) {
+    if (check_env_value("DYNINST_STATS_PARSING")) {
         fprintf(stderr, "Enabling DyninstAPI parsing statistics\n");
         stats_parse.add(PARSE_SYMTAB_TIMER, TimerStat);
         stats_parse.add(PARSE_ANALYZE_TIMER, TimerStat);
         have_stats = true;
     }
 
-    if (getenv("DYNINST_STATS_CODEGEN")) {
+    if (check_env_value("DYNINST_STATS_CODEGEN")) {
         fprintf(stderr, "Enabling DyninstAPI code generation statistics\n");
 
         stats_codegen.add(CODEGEN_AST_TIMER, TimerStat);
@@ -788,7 +795,7 @@ bool print_stats() {
                 running_time.wsecs());
     running_time.start();
 
-    if (getenv("DYNINST_STATS_INST")) {
+    if (check_env_value("DYNINST_STATS_INST")) {
         fprintf(stderr, "Printing DyninstAPI instrumentation statistics\n");
         fprintf(stderr, "  Generation: %ld calls, %f sec (user), %f sec (system), %f sec (wall)\n",
                 stats_instru[INST_GENERATE_COUNTER]->value(),
@@ -812,7 +819,7 @@ bool print_stats() {
                 stats_instru[INST_REMOVE_TIMER]->wsecs());
     }
 
-    if (getenv("DYNINST_STATS_PTRACE")) {
+    if (check_env_value("DYNINST_STATS_PTRACE")) {
         fprintf(stderr, "Printing DyninstAPI ptrace statistics\n");
         fprintf(stderr, "  Write: %ld calls, %ld bytes, %f sec (user), %f sec (system), %f sec (wall)\n",
                 stats_ptrace[PTRACE_WRITE_COUNTER]->value(),
@@ -829,7 +836,7 @@ bool print_stats() {
                 stats_ptrace[PTRACE_READ_TIMER]->wsecs());
     }
 
-    if (getenv("DYNINST_STATS_PARSING")) {
+    if (check_env_value("DYNINST_STATS_PARSING")) {
         fprintf(stderr, "Printing DyninstAPI parsing statistics\n");
         fprintf(stderr, "  Symtab parsing:  %f sec (user), %f sec (system), %f sec (wall)\n",
                 stats_parse[PARSE_SYMTAB_TIMER]->usecs(),
@@ -841,7 +848,7 @@ bool print_stats() {
                 stats_parse[PARSE_ANALYZE_TIMER]->wsecs());
     }
 
-    if (getenv("DYNINST_STATS_CODEGEN")) {
+    if (check_env_value("DYNINST_STATS_CODEGEN")) {
         fprintf(stderr, "Printing DyninstAPI code generation statistics\n");
         fprintf(stderr, "  AST generation: %ld calls, %f sec (user), %f sec (system), %f sec (wall)\n",
                 stats_codegen[CODEGEN_AST_COUNTER]->value(),

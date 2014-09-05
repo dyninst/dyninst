@@ -34,7 +34,7 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "dyninstAPI_RT/h/dyninstRTExport.h"
 
-dyntid_t dyn_pthread_self();    /*Thread library identifier*/
+DLLEXPORT dyntid_t dyn_pthread_self();    /*Thread library identifier*/
 int dyn_lwp_self();        /*LWP used by the kernel identifier*/
 int dyn_pid_self();        /*PID identifier representing the containing process*/
 

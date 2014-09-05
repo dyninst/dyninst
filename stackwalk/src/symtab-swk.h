@@ -31,7 +31,7 @@
 #if !defined(SYMTAB_SWK_H_)
 #define SYMTAB_SWK_H_
 
-#if defined(cap_stackwalker_use_symtab)
+#if defined(WITH_SYMTAB_API)
 
 #include "stackwalk/h/framestepper.h"
 #include "symtabAPI/h/Symtab.h"

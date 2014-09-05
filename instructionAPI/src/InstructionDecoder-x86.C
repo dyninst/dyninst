@@ -211,7 +211,7 @@ namespace Dyninst
             regType = op_q;
         }
         Expression::Ptr e =
-            makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, (locs->rex_b == 1)));
+            makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, locs->rex_b));
         switch(locs->modrm_mod)
         {
             case 0:
@@ -259,7 +259,7 @@ namespace Dyninst
             assert(0);
             break;
             case 3:
-                return makeRegisterExpression(makeRegisterID(locs->modrm_rm, opType, (locs->rex_b == 1)));
+                return makeRegisterExpression(makeRegisterID(locs->modrm_rm, opType, locs->rex_b));
             default:
                 return Expression::Ptr();
         
@@ -272,6 +272,19 @@ namespace Dyninst
     Expression::Ptr InstructionDecoder_x86::decodeImmediate(unsigned int opType, const unsigned char* immStart, 
 							    bool isSigned)
     {
+#if 0
+        /* See "2.2.1.5 Immediates" from the Intel Manual" */
+        bool is_64 = ia32_is_mode_64();
+        fprintf(stderr, "decodeImmediate: ia32_is_mode_64 returned %s\n", (is_64 ? "true" : "false"));
+        if (is_64) {
+            fprintf(stderr, "setting isSigned to true (was %s)\n", (isSigned ? "true" : "false"));
+            isSigned = true;
+        }
+#endif
+
+        // rex_w indicates we need to sign-extend also.
+        isSigned = isSigned || locs->rex_w;
+
         switch(opType)
         {
             case op_b:
@@ -286,25 +299,27 @@ namespace Dyninst
                 return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(immStart)));
                 break;
             case op_v:
-	      if (locs->rex_w) {
+                if (locs->rex_w) {
+                    /* Check with valgrind--if uninit reads go away--this was probably wrong (was 64, change to 32) */
+//                    return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int32_t*)(immStart))); // TODO: signed, read the first 32
                     return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(immStart)));
-	      }
-              //FALLTHROUGH
+                }
+                //FALLTHROUGH
             case op_z:
-        // 32 bit mode & no prefix, or 16 bit mode & prefix => 32 bit
-        // 16 bit mode, no prefix or 32 bit mode, prefix => 16 bit
-	      if(!sizePrefixPresent)
-	      {
-		return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(immStart)));
-	      }
-	      else
-	      {
-		return Immediate::makeImmediate(Result(isSigned ? s16 : u16,*(const word_t*)(immStart)));
-	      }
-	      break;
+                // 32 bit mode & no prefix, or 16 bit mode & prefix => 32 bit
+                // 16 bit mode, no prefix or 32 bit mode, prefix => 16 bit
+                if(!sizePrefixPresent)
+                {
+                    return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(immStart)));
+                }
+                else
+                {
+                    return Immediate::makeImmediate(Result(isSigned ? s16 : u16,*(const word_t*)(immStart)));
+                }
+                break;
             case op_p:
-        // 32 bit mode & no prefix, or 16 bit mode & prefix => 48 bit
-        // 16 bit mode, no prefix or 32 bit mode, prefix => 32 bit
+                // 32 bit mode & no prefix, or 16 bit mode & prefix => 48 bit
+                // 16 bit mode, no prefix or 32 bit mode, prefix => 32 bit
                 if(!sizePrefixPresent)
                 {
                     return Immediate::makeImmediate(Result(isSigned ? s48 : u48,*(const int64_t*)(immStart)));
@@ -313,7 +328,7 @@ namespace Dyninst
                 {
                     return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(immStart)));
                 }
-        
+
                 break;
             case op_a:
             case op_dq:
@@ -590,10 +605,10 @@ namespace Dyninst
 		    retVal = IntelRegTable(m_Arch,amd64_ext_8,intelReg);
 	            break;
 		case op_v:
-		    if (locs->rex_w)
+		    if (locs->rex_w || isDefault64Insn())
 		        retVal = IntelRegTable(m_Arch, b_amd64ext, intelReg);
 	            else if (!sizePrefixPresent)
-		        retVal = IntelRegTable(m_Arch, b_amd64ext, intelReg);
+		        retVal = IntelRegTable(m_Arch, amd64_ext_32, intelReg);
 		    else
 		        retVal = IntelRegTable(m_Arch, amd64_ext_16, intelReg);
 		    break;	
@@ -942,7 +957,7 @@ namespace Dyninst
                     		// use of actual register
                     		{
                     			insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
-                    					(locs->rex_b == 1) ? b_xmmhigh : b_xmm, locs->modrm_rm)),
+                    					locs->rex_b ? b_xmmhigh : b_xmm, locs->modrm_rm)),
                     					isRead, isWritten);
                     			break;
                     		}
@@ -954,7 +969,7 @@ namespace Dyninst
                     case am_V:
                        
                         insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
-                                (locs->rex_r == 1 )? b_xmmhigh : b_xmm,locs->modrm_reg)),
+                                locs->rex_r ? b_xmmhigh : b_xmm,locs->modrm_reg)),
                                     isRead, isWritten);
                         break;
                     case am_W:
@@ -971,7 +986,7 @@ namespace Dyninst
                             // use of actual register
                             {
                                 insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
-                                        (locs->rex_b == 1) ? b_xmmhigh : b_xmm, locs->modrm_rm)),
+                                        locs->rex_b ? b_xmmhigh : b_xmm, locs->modrm_rm)),
                                         isRead, isWritten);
                                 break;
                             }

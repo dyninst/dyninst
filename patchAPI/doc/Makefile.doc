@@ -1,0 +1,22 @@
+TEX=/s/texlive-2011/bin/pdflatex
+MAIN=patchapi
+DEP=patchapi.tex \
+	section/1_intro.tex \
+	section/2_abs.tex \
+	section/3_example.tex \
+	section/4_api_public.tex \
+	section/5_api_modification.tex \
+	section/6_api_plugin.tex \
+	section/7_dyninst.tex \
+	../../common/doc/manual_frontpage.tex \
+	../../common/doc/manual_commands.tex
+
+$(MAIN).pdf: $(DEP)
+	$(TEX) $(MAIN)
+	$(TEX) $(MAIN)
+
+clean:
+	@rm -f *.dvi *.log *.aux *.ent *.bak *.bbl *.blg *.out *.toc
+
+read:
+	@xpdf patchapi.pdf

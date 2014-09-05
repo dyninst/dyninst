@@ -77,16 +77,6 @@ class GeneratorWindows : public GeneratorMT
 			proc(NULL),
 			state(none) {}
    };
-   class CriticalSection
-   {
-	   Mutex& myLock;
-   public:
-	   CriticalSection(Mutex m) : myLock(m) {
-		//   myLock.lock();
-	   }
-	   ~CriticalSection() { /*myLock.unlock();*/ }
-   };
-
 
    void markUnhandledException(Dyninst::PID p);
    void enqueue_event(start_mode m, int_process* p);
@@ -102,7 +92,6 @@ class GeneratorWindows : public GeneratorMT
    virtual void setCachedEvent(ArchEvent* ae);
    std::map<int, ArchEvent*> m_Events;
    std::map<Dyninst::PID, long long> alreadyHandled;
-   //Mutex processDataLock;
 };
 
 #endif // !defined(GENERATOR_WINDOWS_H)

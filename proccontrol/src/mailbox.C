@@ -46,7 +46,7 @@ private:
    queue<Event::ptr> message_queue;
    queue<Event::ptr> priority_message_queue; //Mostly used for async responses
    queue<Event::ptr> user_message_queue;
-   CondVar message_cond;
+   CondVar<> message_cond;
 public:
    MailboxMT();
    ~MailboxMT();

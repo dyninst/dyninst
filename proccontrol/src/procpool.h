@@ -48,7 +48,7 @@ class ProcessPool
    std::map<Dyninst::PID, int_process *> procs;
    std::map<Dyninst::LWP, int_thread *> lwps;
    ProcessPool();
-   CondVar var;
+   CondVar<> var;
  public:
    ~ProcessPool();
    typedef bool(*ifunc)(int_process *, void *data);
@@ -65,7 +65,7 @@ class ProcessPool
    unsigned numProcs();
    bool LWPIDsAreUnique();
    bool for_each(ifunc f, void *data = NULL);
-   CondVar *condvar();
+   CondVar<> *condvar();
 };
 
 ProcessPool *ProcPool();

@@ -504,16 +504,18 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
 	DWORD64 codeBase = code_off();
 	symType = Symbol::ST_FUNCTION;
 	//codeBase += get_base_addr();
+	// Logic: if it's tagged/flagged as a function, function.
+	// If it's tagged/flagged as a public symbol and it points
+	// to text, function.
+	// Otherwise, variable.
 	if ((pSymInfo->Flags & SYMFLAG_FUNCTION) ||
-		(pSymInfo->Tag == SymTagFunction && !pSymInfo->Flags))
+		(pSymInfo->Tag == SymTagFunction))
 	{
 		symLinkage = Symbol::SL_UNKNOWN;
 	}
-	else if ((pSymInfo->Flags == SYMFLAG_EXPORT && 
-	    isText((Offset) pSymInfo->Address - (Offset)mf->base_addr())) ||
-	    (pSymInfo->Name && (!strcmp(pSymInfo->Name, "loadsnstores") ||
-		!strcmp(pSymInfo->Name, "_loadsnstores"))
-		))
+	else if (((pSymInfo->Flags & SYMFLAG_EXPORT) || 
+			  (pSymInfo->Tag == SymTagPublicSymbol)) && 
+	         isText((Offset) pSymInfo->Address - (Offset)mf->base_addr()))
 	{
 		symType = Symbol::ST_FUNCTION;
 		symLinkage = Symbol::SL_UNKNOWN;
@@ -549,6 +551,7 @@ BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
 	assert( obj != NULL );
 
 #if 0
+	if(pSymInfo->Name && (strcmp(pSymInfo->Name, "test1_1_func1_1") == 0))
 	fprintf(stderr, "symEnumSymsCallback, %s, Flags:0x%x, Tag:0x%x, Type:%d, Addr:0x%x...\n",
 		   pSymInfo->Name,
 	   pSymInfo->Flags,
@@ -1124,6 +1127,7 @@ Object::Object(MappedFile *mf_,
       AddTLSFunctions();
    }
    ParseSymbolInfo(alloc_syms);
+   rebase(0);
 }
 
 SYMTAB_EXPORT ObjectType Object::objType() const 
@@ -2364,3 +2368,74 @@ Dyninst::Architecture Object::getArch()
 		pos++;
 	}
 */
+
+DWORD* Object::get_dword_ptr(Offset rva)
+{
+	Offset off = RVA2Offset(rva);
+	int sectionNum = ImageOffset2SectionNum(off);
+	Region* r = regions_[sectionNum];
+	char* region_buf = (char*)(r->getPtrToRawData());
+	return (DWORD*)(region_buf + (off - r->getDiskOffset()));
+}
+
+Region* Object::findRegionByName(const std::string& name) const
+{
+	for(auto reg = regions_.begin();
+		reg != regions_.end();
+		++reg)
+	{
+		if((*reg)->getRegionName() == name)
+		{
+			return *reg;
+		}
+	}
+	return NULL;
+}
+void Object::applyRelocs(Region* relocs, Offset delta)
+{
+	unsigned char* section_pointer = (unsigned char*)relocs->getPtrToRawData();
+	unsigned char* section_end = section_pointer+relocs->getMemSize();
+	while(section_pointer < section_end)
+	{
+		PIMAGE_BASE_RELOCATION curRelocPage = (PIMAGE_BASE_RELOCATION)(section_pointer);
+		section_pointer += sizeof(IMAGE_BASE_RELOCATION);
+		Offset pageBase = curRelocPage->VirtualAddress;
+		if(pageBase == 0) break;
+		int numRelocs = (curRelocPage->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(WORD);
+		for(int i = 0; i < numRelocs; ++i)
+		{
+			WORD curReloc = *(WORD*)(section_pointer);
+			section_pointer += sizeof(WORD);
+			Offset addr = (curReloc & 0x0FFF) + pageBase;
+			WORD type = curReloc >> 12;
+			switch(type)
+			{
+			case IMAGE_REL_BASED_ABSOLUTE:
+				// These are placeholders only
+				break;
+			case IMAGE_REL_BASED_HIGHLOW:
+				{
+					// These should be the only things we deal with on Win32; revisit when we hit 64-bit windows
+					DWORD* loc_to_fix = get_dword_ptr(addr);
+					*(loc_to_fix) += delta;
+				}
+				break;
+			default:
+				fprintf(stderr, "Unknown relocation type 0x%x for addr %p\n", type, addr);
+				break;
+			}
+		}
+	}
+}
+void Object::rebase(Offset off)
+{
+	if(off == imageBase) return;
+	Region* relocs = findRegionByName(".reloc");
+	if(!relocs) {
+		fprintf(stderr, "rebase found no .reloc section, bailing\n");
+		return;
+	}
+	Offset delta = off - imageBase;
+	applyRelocs(relocs, delta);
+	imageBase = off;
+}

@@ -253,6 +253,42 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
    return InvalidReg;
 }
 
+MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
+{
+    switch (arch)
+    {
+        case Arch_x86:
+            return x86::oeax;
+        case Arch_x86_64:
+            return x86_64::orax;
+        case Arch_ppc32: 
+            return ppc32::r0;
+        case Arch_ppc64:
+            return ppc64::r0;
+        case Arch_none:
+            return InvalidReg;
+    }
+    return InvalidReg;
+}
+
+MachRegister MachRegister::getSyscallReturnValueReg(Dyninst::Architecture arch)
+{
+    switch (arch)
+    {
+        case Arch_x86:
+            return x86::eax;
+        case Arch_x86_64:
+            return x86_64::rax;
+        case Arch_ppc32: 
+            return ppc32::r3;
+        case Arch_ppc64:
+            return ppc64::r3;
+        case Arch_none:
+            return InvalidReg;
+    }
+    return InvalidReg;
+}
+
 bool MachRegister::isPC() const
 {
    return (*this == x86_64::rip || *this == x86::eip ||
@@ -269,6 +305,18 @@ bool MachRegister::isStackPointer() const
 {
    return (*this == x86_64::rsp || *this == x86::esp ||
            *this == ppc32::r1 || *this == ppc64::r1);
+}
+
+bool MachRegister::isSyscallNumberReg() const
+{
+    return (*this == x86_64::orax || *this == x86::oeax ||
+            *this == ppc32::r1 || *this == ppc64::r1);
+}
+
+bool MachRegister::isSyscallReturnValueReg() const
+{
+    return (*this == x86_64::rax || *this == x86::eax ||
+            *this == ppc32::r1 || *this == ppc64::r1);
 }
 
 COMMON_EXPORT bool Dyninst::isSegmentRegister(int regClass)

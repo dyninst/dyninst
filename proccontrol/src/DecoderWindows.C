@@ -326,10 +326,10 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				newEvt = EventForceTerminate::ptr(new EventForceTerminate(e.u.ExitProcess.dwExitCode));
 			}
 			else {
-				newEvt = EventExit::ptr(new EventExit(EventType::Post, e.u.ExitProcess.dwExitCode));
+				newEvt = EventExit::ptr(new EventExit(EventType::Pre, e.u.ExitProcess.dwExitCode));
 			}
-			GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
-			winGen->removeProcess(proc);
+//			GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
+//			winGen->removeProcess(proc);
 			newEvt->setSyncType(Event::sync_process);
 			newEvt->setProcess(proc->proc());
 			// Since we're doing thread exit/proc exit, and this means the thread will go away first,
@@ -337,18 +337,11 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			if(thread)
 				newEvt->setThread(thread->thread());
 			// We do this here because the generator thread will exit before updateSyncState otherwise
-			int_threadPool::iterator i = proc->threadPool()->begin();
-			for (; i != proc->threadPool()->end(); i++) {
-				(*i)->getGeneratorState().setState(int_thread::exited);
-		 		(*i)->setExitingInGenerator(true);
-			}
-/*			Event::ptr associatedLWPDestroy = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
-			associatedLWPDestroy->setProcess(proc->proc());
-			associatedLWPDestroy->setSyncType(Event::sync_process);
-			if(thread)
-				associatedLWPDestroy->setThread(thread->thread());
-			//associatedLWPDestroy->addSubservientEvent(newEvt);
-			*/
+//			int_threadPool::iterator i = proc->threadPool()->begin();
+//			for (; i != proc->threadPool()->end(); i++) {
+//				(*i)->getGeneratorState().setState(int_thread::exited);
+//		 		(*i)->setExitingInGenerator(true);
+//			}
 			events.push_back(newEvt);
 
 			return true;

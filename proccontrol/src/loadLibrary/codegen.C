@@ -25,7 +25,6 @@ bool Codegen::generate() {
    int_process *proc = proc_->llproc();
    if (!proc)
       return false;
-   
    codeStart_ = proc->infMalloc(size, false, (unsigned int) 0);
    if (!codeStart_) {
       return false;

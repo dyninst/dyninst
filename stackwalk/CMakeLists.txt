@@ -62,6 +62,7 @@ if (PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
         src/x86-wanderer.C 
         src/x86-swk.C
         src/win-x86-swk.C
+        src/symtab-swk.C
     )
 endif()
 
@@ -83,21 +84,23 @@ ADD_DEFINITIONS(-DSTACKWALKER_EXPORTS)
 add_library (stackwalk ${SRC_LIST})
 add_library (stackwalk_static STATIC ${SRC_LIST})
 
-target_link_libraries (stackwalk pcontrol)
+target_link_private_libraries (stackwalk common)
+target_link_private_libraries (stackwalk instructionAPI)
+target_link_private_libraries (stackwalk pcontrol)
 
 if (UNIX)
-target_link_libraries (stackwalk ${LIBELF_LIBRARIES})
-target_link_libraries (stackwalk ${LIBDWARF_LIBRARIES})
+target_link_private_libraries (stackwalk dynDwarf)
+target_link_private_libraries (stackwalk dynElf)
 endif()
 
 if (LIGHTWEIGHT_SYMTAB)
-target_link_libraries(stackwalk symLite)
+target_link_private_libraries(stackwalk symLite)
 else()
-target_link_libraries(stackwalk symtabAPI)
+target_link_private_libraries(stackwalk symtabAPI)
 endif()
 
 if (SW_ANALYSIS_STEPPER)
-target_link_libraries(stackwalk parseAPI)
+target_link_private_libraries(stackwalk parseAPI)
 endif()
 
 FILE (GLOB headers "h/*.h")

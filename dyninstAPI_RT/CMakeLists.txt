@@ -74,10 +74,17 @@ set (SRC_LIST_ppc64
 # We use gcc to compile the various assembly files, but
 # cmake doesn't default to knowing that gcc can
 # handle .S. 
+ENABLE_LANGUAGE(ASM)
 file (GLOB SRC_ASSEMBLY "src/*.S")
+if(PLATFORM MATCHES bgq OR NEED_NATIVE_ASSEMBER MATCHES YES)
+set_source_files_properties(${SRC_ASSEMBLY}
+        PROPERTIES
+        LANGUAGE ASM)
+else()
 set_source_files_properties(${SRC_ASSEMBLY}
         PROPERTIES
         LANGUAGE C)
+endif()
 
 # The arch-specific files other than RTthread-x86 are Unix-only.
 if(UNIX)
@@ -175,13 +182,13 @@ ENDMACRO (CHECK_C_COMPILER_FLAG_EXTENDED)
 message (STATUS "Checking for 32-bit runtime library...")
 
 CHECK_C_COMPILER_FLAG_EXTENDED ("-m32" CHECK_RT_LIB_32)
-if (CHECK_RT_LIB_32 AND NOT ${PLATFORM} MATCHES bgq)
+if (CHECK_RT_LIB_32 AND NOT ${PLATFORM} MATCHES bgq AND NOT ${BUILD_RTLIB_32} MATCHES "OFF")
 message (STATUS "Enabling 32-bit runtime library; change BUILD_RTLIB_32 to OFF to disable")
-SET (BUILD_RTLIB_32 ON CACHE STRING "Build 32-bit version of RT library")
+SET (BUILD_RTLIB_32 ON)
 ELSE ()
-SET (BUILD_RTLIB_32 OFF CACHE STRING "Build 32-bit version of RT library")
+message (STATUS "Disabling 32-bit runtime library; change BUILD_RTLIB_32 to ON and install 32-bit build environment to enable")
+SET (BUILD_RTLIB_32 OFF)
 ENDIF()
-
 
 if (BUILD_RTLIB_32 MATCHES "ON")
 

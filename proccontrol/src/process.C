@@ -57,6 +57,7 @@
 #include <sstream>
 #include <iostream>
 #include <iterator>
+#include <errno.h>
 
 #if defined(os_windows)
 #pragma warning(disable:4355)
@@ -1073,41 +1074,23 @@ bool int_process::waitAndHandleEvents(bool block)
 
       gotEvent = true;
 
-#if defined(os_linux)
-      // Linux is bad about enforcing event ordering, and so we will get 
-      // thread events after a process has exited.
-//      bool terminating = (ev->getProcess()->isTerminated()) ||
-//         (ev->getProcess()->llproc() && ev->getProcess()->llproc()->wasForcedTerminated());
       bool terminating = (ev->getProcess()->isTerminated());
 
       bool exitEvent = (ev->getEventType().time() == EventType::Post &&
                         ev->getEventType().code() == EventType::Exit);
-      if (terminating && !exitEvent) {
-         // Since the user will never handle this one...
-	pthrd_printf("Received event %s on terminated process, ignoring\n",
-		     ev->name().c_str());
-	if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
-	continue;
-      }
-#endif
-
-      int_process* llp = ev->getProcess()->llproc();
-      if(!llp) {
-         error = true;
-         goto done;
-      }
-
       Process::const_ptr proc = ev->getProcess();
       int_process *llproc = proc->llproc();
-      if (!llproc) {
-         //Seen on Linux--a event comes in on an exited process because the kernel
-         // doesn't synchronize events across threads.  We thus get a thread exit
-         // event after a process exit event.  Just drop this event on the
-         // floor.
-         pthrd_printf("Dropping %s event from process %d due to process already exited\n",
-                      ev->getEventType().name().c_str(), proc->getPid());
-         continue;
+
+      if (terminating) {
+	if(!exitEvent || !llproc) {
+	  // Since the user will never handle this one...
+	  pthrd_printf("Received event %s on terminated process, ignoring\n",
+		       ev->name().c_str());
+	  if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
+	  continue;
+	}
       }
+
       HandlerPool *hpool = llproc->handlerpool;
 
       if (!ev->handling_started) {
@@ -2873,13 +2856,14 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    generator_state(this, GeneratorStateID, neonatal),
    target_state(int_thread::none),
    saved_user_state(int_thread::none),
-   regpool_lock(true),
    user_single_step(false),
    single_step(false),
    handler_exiting_state(false),
    generator_exiting_state(false),
    running_when_attached(true),
    suspended(false),
+   user_syscall(false),
+   next_syscall_is_exit(false),
    stopped_on_breakpoint_addr(0x0),
    postponed_stopped_on_breakpoint_addr(0x0),
    clearing_breakpoint(NULL),
@@ -4079,6 +4063,42 @@ bool int_thread::singleStep() const
    return single_step || user_single_step;
 }
 
+void int_thread::setSyscallUserMode(bool s)
+{
+    user_syscall = s;
+}
+
+bool int_thread::syscallUserMode() const
+{
+    return user_syscall;
+}
+
+bool int_thread::syscallMode() const
+{
+    return user_syscall;
+}
+
+bool int_thread::preSyscall()
+{
+    /* On Linux, we distinguish between system call entry and exit based on the
+     * system call return value. This approach will always correctly label a
+     * system call entry. Only in the cast where the invoked system call does
+     * not exist (0 < syscall_number > __NR_syscall_max) will we incorrectly
+     * label the system call exist as system call entry. */
+    
+    bool ret = !next_syscall_is_exit;
+    MachRegisterVal syscallReturnValue;
+    if (!plat_getRegister(MachRegister::getSyscallReturnValueReg(llproc()->getTargetArch()), 
+			  syscallReturnValue)) { ret = true; }
+    
+    if (syscallReturnValue == (MachRegisterVal)(-ENOSYS)) {
+        ret = true;
+    }
+    next_syscall_is_exit = ret;
+    
+    return ret;
+}
+
 void int_thread::markClearingBreakpoint(bp_instance *bp)
 {
    assert(!clearing_breakpoint || bp == NULL);
@@ -4372,10 +4392,15 @@ bool int_thread::StateTracker::setState(State to)
                 stateStr(state), stateStr(to));
    state = to;
 
-   int_thread::State handler_state = up_thr->getHandlerState().getState();
-   int_thread::State generator_state = up_thr->getGeneratorState().getState();
-   if (up_thr->up_thread && handler_state == stopped) assert(generator_state == stopped || generator_state == exited || generator_state == detached );
-   if (up_thr->up_thread && generator_state == running) assert(handler_state == running);
+   if (up_thr->up_thread) {
+      int_thread::State handler_state = up_thr->getHandlerState().getState();
+      int_thread::State generator_state = up_thr->getGeneratorState().getState();
+      if (handler_state == stopped)
+         assert(generator_state == stopped || generator_state == exited || generator_state == detached );
+      if (generator_state == running)
+         assert(handler_state == running);
+   }
+
    return true;
 }
 
@@ -5554,7 +5579,7 @@ int_notify *notify()
    if (int_notify::the_notify)
       return int_notify::the_notify;
 
-   static Mutex init_lock;
+   static Mutex<> init_lock;
    init_lock.lock();
    if (!int_notify::the_notify) {
       int_notify::the_notify = new int_notify();
@@ -7537,6 +7562,25 @@ bool Thread::getSingleStepMode() const
    return llthread_->singleStepUserMode();
 }
 
+bool Thread::setSyscallMode(bool s) const
+{
+    MTLock lock_this_func;
+    THREAD_EXIT_DETACH_STOP_TEST("getSyscallMode", false);
+    llthread_->setSyscallUserMode(s);
+    return true;
+}
+
+bool Thread::getSyscallMode() const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("getSyscallMode called on exited thread\n");
+      setLastError(err_exited, "Thread is exited\n");
+      return false;
+   }
+   return llthread_->syscallUserMode();
+}
+
 Dyninst::LWP Thread::getLWP() const
 {
    MTLock lock_this_func;
@@ -8064,7 +8108,13 @@ bool Breakpoint::suppressCallbacks() const
    return llbreakpoint_->suppressCallbacks();
 }
 
-Mutex Counter::locks[Counter::NumCounterTypes];
+// Note: These locks are intentionally indirect and leaked!
+// This is because we can't guarantee destructor order between compilation
+// units, and a static array of locks here in process.C may be destroyed before
+// int_cleanup in generator.C.  Thus the handler thread may still be running,
+// manipulating Counters, which throws an exception when it tries to acquire
+// the destroyed lock.
+Mutex<false> * Counter::locks = new Mutex<false>[Counter::NumCounterTypes];
 int Counter::global_counts[Counter::NumCounterTypes];
 
 Counter::Counter(CounterType ct_) :
@@ -8219,7 +8269,6 @@ const char *Counter::getNameForCounter(int counter_type)
 }
 
 MTManager::MTManager() :
-   work_lock(true),
    have_queued_events(false),
    is_running(false),
    should_exit(false),

@@ -486,7 +486,7 @@ bool HandlerPool::handleEvent(Event::ptr orig_ev)
 }
 
 std::set<HandlerPool *> HandlerPool::procsAsyncPending;
-Mutex HandlerPool::asyncPendingLock;
+Mutex<> HandlerPool::asyncPendingLock;
 
 void HandlerPool::markProcAsyncPending(HandlerPool *p)
 {
@@ -656,11 +656,7 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
    
    ProcPool()->condvar()->lock();
 
-#if !defined(os_windows)
-   // On Windows, this is the only callback we get, so delay setting exited
-   // until cleanup
    proc->setState(int_process::exited);
-#endif
    ProcPool()->rmProcess(proc);
    if(proc->wasForcedTerminated())
    {
@@ -1255,6 +1251,50 @@ void HandleSingleStep::getEventTypesHandled(vector<EventType> &etypes)
 Handler::handler_ret_t HandleSingleStep::handleEvent(Event::ptr ev)
 {
    pthrd_printf("Handling event single step on %d/%d\n", 
+                ev->getProcess()->llproc()->getPid(), 
+                ev->getThread()->llthrd()->getLWP());
+   return ret_success;
+}
+
+HandlePreSyscall::HandlePreSyscall() :
+    Handler("Pre Syscall")
+{
+}
+
+HandlePreSyscall::~HandlePreSyscall()
+{
+}
+
+void HandlePreSyscall::getEventTypesHandled(vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::Pre, EventType::PreSyscall));
+}
+
+Handler::handler_ret_t HandlePreSyscall::handleEvent(Event::ptr ev)
+{
+   pthrd_printf("Handling event pre-syscall on %d/%d\n", 
+                ev->getProcess()->llproc()->getPid(), 
+                ev->getThread()->llthrd()->getLWP());
+   return ret_success;
+}
+
+HandlePostSyscall::HandlePostSyscall() :
+    Handler("Post Syscall")
+{
+}
+
+HandlePostSyscall::~HandlePostSyscall()
+{
+}
+
+void HandlePostSyscall::getEventTypesHandled(vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::Post, EventType::PostSyscall));
+}
+
+Handler::handler_ret_t HandlePostSyscall::handleEvent(Event::ptr ev)
+{
+   pthrd_printf("Handling event post-syscall on %d/%d\n", 
                 ev->getProcess()->llproc()->getPid(), 
                 ev->getThread()->llthrd()->getLWP());
    return ret_success;
@@ -2507,6 +2547,8 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandleThreadCleanup *hthreadcleanup = NULL;
    static HandleThreadStop *hthreadstop = NULL;
    static HandleSingleStep *hsinglestep = NULL;
+   static HandlePreSyscall *hpresyscall = NULL;
+   static HandlePostSyscall *hpostsyscall = NULL;
    static HandleCrash *hcrash = NULL;
    static HandleBreakpoint *hbpoint = NULL;
    static HandleBreakpointContinue *hbpcontinue = NULL;
@@ -2539,6 +2581,8 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hthreadcleanup = new HandleThreadCleanup();
       hthreadstop = new HandleThreadStop();
       hsinglestep = new HandleSingleStep();
+      hpresyscall = new HandlePreSyscall();
+      hpostsyscall = new HandlePostSyscall();
       hcrash = new HandleCrash();
       hbpoint = new HandleBreakpoint();
       hbpcontinue = new HandleBreakpointContinue();
@@ -2573,6 +2617,8 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hthreadcleanup);
    hpool->addHandler(hthreadstop);
    hpool->addHandler(hsinglestep);
+   hpool->addHandler(hpresyscall);
+   hpool->addHandler(hpostsyscall);
    hpool->addHandler(hcrash);
    hpool->addHandler(hbpoint);
    hpool->addHandler(hbpcontinue);

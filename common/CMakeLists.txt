@@ -43,6 +43,7 @@ set (SRC_LIST
     src/debug_common.C 
     src/VariableLocation.C 
     src/Buffer.C
+    src/MachSyscall.C
   )
 
 if (PLATFORM MATCHES freebsd)
@@ -91,8 +92,8 @@ if (PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   set (SRC_LIST ${SRC_LIST}
     src/ntKludges.C
     src/timing-nt.C
-    src/dthread-win.C
-	src/dthread.C
+#    src/dthread-win.C
+#	src/dthread.C
     src/addrtranslate-win.C
   )
   add_definitions(-DWIN32 -D_WIN32_WINNT=0x500 -Dsnprintf=_snprintf)
@@ -109,17 +110,13 @@ FILE (GLOB headers "h/*.h")
 set_target_properties (common common_static PROPERTIES PUBLIC_HEADER "${headers}")
 
 if (${IBERTY_LIBRARY} MATCHES iberty)
-if(${CMAKE_VERSION} VERSION_LESS "2.8")
-target_link_libraries (common ${IBERTY_LIBRARY})
-else()
-target_link_libraries (common LINK_PRIVATE ${IBERTY_LIBRARY})
-endif()
+target_link_private_libraries (common ${IBERTY_LIBRARY})
 endif()
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   target_link_libraries (common Psapi WS2_32 dbghelp)
-  target_link_libraries(common ${Boost_LIBRARIES})
 endif()
+
 INSTALL (TARGETS common common_static
         EXPORT DyninstTargets
 	RUNTIME DESTINATION ${INSTALL_LIB_DIR}

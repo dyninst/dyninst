@@ -46,10 +46,29 @@ int getpagesize() {
     return page_size;
 }
 
+
+
 void *map_region(void *addr, int len, int fd) {
     void *result;
+	DWORD lastError;
+	char* lpMessage;
     result = VirtualAlloc(addr, len, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-    return result;
+	if(!result) {
+		lastError = GetLastError();
+		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+				NULL,
+				lastError,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				(LPTSTR)(lpMessage),
+				0,
+				NULL);
+		fprintf(stderr, "VirtualAlloc failed in RTlib: %s\n", lpMessage);
+		LocalFree((LPVOID)lpMessage);
+	} else {
+		fprintf(stderr, "VirtualAlloc succeeded, %p to %p mapped for RTlib heap\n",
+			addr, (char*)(addr)+len);
+	}
+	return result;
 }
 
 int unmap_region(void *addr, int len) {

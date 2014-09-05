@@ -58,6 +58,10 @@ extern unsigned long dyninstTrapTableVersion;
 extern trapMapping_t *dyninstTrapTable;
 extern unsigned long dyninstTrapTableIsSorted;
 extern void DYNINSTBaseInit();
+extern double DYNINSTstaticHeap_512K_lowmemHeap_1[];
+extern double DYNINSTstaticHeap_16M_anyHeap_1[];
+extern unsigned long sizeOfLowMemHeap1;
+extern unsigned long sizeOfAnyHeap1;
 
 /************************************************************************
  * void DYNINSTbreakPoint(void)
@@ -77,11 +81,6 @@ void DYNINSTsafeBreakPoint() {
 }
 
 static dyntid_t initial_thread_tid;
-void DYNINSTos_init(int calledByFork, int calledByAttach)
-{
-  RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
-  initial_thread_tid = (dyntid_t) dyn_lwp_self();
-}
 
 /* this function is automatically called when windows loads this dll
  if we are launching a mutatee to instrument, dyninst will place
@@ -101,16 +100,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
       return 1;
    DllMainCalledOnce++;
 
-   if(libdyninstAPI_RT_init_localPid != -1 || libdyninstAPI_RT_init_localCause != -1)
-      DYNINSTinit(libdyninstAPI_RT_init_localCause, libdyninstAPI_RT_init_localPid,
-                  libdyninstAPI_RT_init_maxthreads, libdyninstAPI_RT_init_debug_flag);
+   DYNINSTinit();
 
 #if defined(cap_mutatee_traps)
    if (DYNINSTstaticMode) {
       DYNINSTinitializeTrapHandler();
-   }
-   else {
-      //fprintf(stderr,"DllMain: Runtime lib initialized for dynamic mode\n");
    }
 #endif
 
@@ -507,4 +501,20 @@ VOID __stdcall DYNINST_FakeGetSystemTime(LPSYSTEMTIME lpSystemTime)
     lpSystemTime->wMilliseconds = 855;
     fprintf(stOut,"called DYNINST_FakeGetSystemTime()\n");
     fflush(stOut);
+}
+
+void mark_heaps_exec() 
+{
+	int OK;
+	DWORD old_permissions;
+	OK = VirtualProtect(DYNINSTstaticHeap_16M_anyHeap_1, sizeOfAnyHeap1, 
+			PAGE_EXECUTE_READWRITE, &old_permissions);
+	if(!OK) {
+		fprintf(stderr, "ERROR: 16M/any heap not usable in RTlib: %d\n", GetLastError());
+	}
+	OK = VirtualProtect(DYNINSTstaticHeap_512K_lowmemHeap_1, sizeOfLowMemHeap1, 
+			PAGE_EXECUTE_READWRITE, &old_permissions);
+	if(!OK) {
+		fprintf(stderr, "ERROR: 512k/lowmem heap not usable in RTlib: %d\n", GetLastError());
+	}
 }

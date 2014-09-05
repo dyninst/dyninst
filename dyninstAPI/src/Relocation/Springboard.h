@@ -66,6 +66,7 @@ struct SpringboardReq {
 
    Address from;
    Priority priority;
+   func_instance *func;
    block_instance *block;
    Destinations destinations;
    bool checkConflicts;
@@ -83,6 +84,7 @@ struct SpringboardReq {
                   bool useTrap_)
    : from(from_), 
       priority(priority_),
+      func(func_),
       block(block_),
       checkConflicts(checkConflicts_), 
       includeRelocatedCopies(includeRelocCopies_),
@@ -92,7 +94,8 @@ struct SpringboardReq {
       destinations[func_] = to_;
    }
 SpringboardReq() 
-: from(0), priority(NotRequired), 
+: from(0), priority(NotRequired),
+      func(NULL), 
       block(NULL),
       checkConflicts(false),
       includeRelocatedCopies(false),
@@ -115,6 +118,7 @@ SpringboardReq()
             // New version version
             assert(destinations.empty()); 
             from = from_;
+            func = func_;
             block = block_;
             priority = priority_;
             destinations[func_] = to_;
@@ -189,6 +193,15 @@ class SpringboardBuilder;
  // calls to AddressSpace::relocateInt() and thus across multiple SpringboardFoo,
  // CodeTracker, CodeMover objects.
 
+struct SpringboardInfo {
+    int val;
+    func_instance *func;
+    Priority priority;
+
+    SpringboardInfo(int v, func_instance* f) : val(v), func(f), priority(MIN_PRIORITY) {}
+    SpringboardInfo(int v, func_instance* f, Priority p) : val(v), func(f), priority(p) {}
+};
+
 class InstalledSpringboards
 {
  public:
@@ -202,13 +215,13 @@ class InstalledSpringboards
   
 
   template <typename BlockIter> 
-  bool addBlocks(BlockIter begin, BlockIter end);
+  bool addBlocks(func_instance* func, BlockIter begin, BlockIter end);
   bool addFunc(func_instance* f);
-  bool conflict(Address start, Address end, bool inRelocatedCode);
+  bool conflict(Address start, Address end, bool inRelocatedCode, func_instance* func, Priority p);
   bool conflictInRelocated(Address start, Address end);
 
-  void registerBranch(Address start, Address end, const SpringboardReq::Destinations &dest, bool inRelocatedCode);
-  void registerBranchInRelocated(Address start, Address end);
+  void registerBranch(Address start, Address end, const SpringboardReq::Destinations &dest, bool inRelocatedCode, func_instance* func, Priority p);
+  void registerBranchInRelocated(Address start, Address end, func_instance* func, Priority p);
   bool forceTrap(Address a) 
   {
     return relocTraps_.find(a) != relocTraps_.end();
@@ -225,13 +238,18 @@ class InstalledSpringboards
   // We don't really care about the payload; I just want an "easy to look up"
   // range data structure. 
   // Map this to an int because IntervalTree collapses similar ranges. Punks.
-  IntervalTree<Address, int> validRanges_;
+  IntervalTree<Address, SpringboardInfo*> validRanges_;
+
+  // If we consume NOP-padding between functions to get room for a jump, that
+  // padding may not exist in the relocation buffer.  Remember such ranges so
+  // we can deal with that in reinstrumentation, if only to force a trap.
+  IntervalTree<Address, SpringboardInfo*> paddingRanges_;
 
   // Like the previous, but for branches we put in relocated code. We
   // assume anything marked as "in relocated code" is a valid thing to write
   // to, since relocation size is >= original size. However, we still don't
   // want overlapping branches. 
-  IntervalTree<Address, bool> overwrittenRelocatedCode_;
+  IntervalTree<Address, SpringboardInfo*> overwrittenRelocatedCode_;
   void debugRanges();
   
 };
@@ -248,18 +266,12 @@ class SpringboardBuilder {
   typedef boost::shared_ptr<SpringboardBuilder> Ptr;
   typedef std::set<func_instance *> FuncSet;
 
-  template <typename RelocBlockIter> 
-    static Ptr create(RelocBlockIter begin, RelocBlockIter end, AddressSpace *addrSpace); 
   static Ptr createFunc(FuncSet::const_iterator begin, FuncSet::const_iterator end, AddressSpace *addrSpace);
 
   bool generate(std::list<codeGen> &springboards,
 		SpringboardMap &input);
 
  private:
-  template <typename BlockIter> 
-  bool addBlocks(BlockIter begin, BlockIter end);
-
-
   SpringboardBuilder(AddressSpace *a);
 
   bool generateInt(std::list<codeGen> &springboards,
@@ -287,11 +299,11 @@ class SpringboardBuilder {
   void generateBranch(Address from, Address to, codeGen &input);
   void generateTrap(Address from, Address to, codeGen &input);
 
-  bool conflict(Address start, Address end, bool inRelocatedCode) { return installed_springboards_->conflict(start, end, inRelocatedCode); }
+  bool conflict(Address start, Address end, bool inRelocatedCode, func_instance* func, Priority p) { return installed_springboards_->conflict(start, end, inRelocatedCode, func, p); }
 
-  void registerBranch(Address start, Address end, const SpringboardReq::Destinations &dest, bool inRelocatedCode)
+  void registerBranch(Address start, Address end, const SpringboardReq::Destinations &dest, bool inRelocatedCode, func_instance* func, Priority p)
   {
-    return installed_springboards_->registerBranch(start, end, dest, inRelocatedCode);
+    return installed_springboards_->registerBranch(start, end, dest, inRelocatedCode, func, p);
   }
 
   bool isLegalShortBranch(Address from, Address to);

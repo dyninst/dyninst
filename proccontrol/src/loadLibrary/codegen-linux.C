@@ -31,7 +31,8 @@ bool Codegen::generateInt() {
     int mode = DLOPEN_MODE;
     bool useHiddenFunction = false;
     bool needsStackUnprotect = false;
-    
+    Address var_addr = 0;
+    Address mprotect_addr = 0;
     do {
        dlopen_addr = findSymbolAddr(DL_OPEN_FUNC_EXPORTED, true); 
        if (dlopen_addr) {
@@ -43,7 +44,9 @@ bool Codegen::generateInt() {
        useHiddenFunction = true;
        needsStackUnprotect = true;
        dlopen_addr = findSymbolAddr(DL_OPEN_FUNC_NAME, true);
-       if (dlopen_addr) {
+       var_addr = findSymbolAddr("__stack_prot");
+       mprotect_addr = findSymbolAddr("mprotect", true);
+       if (dlopen_addr && var_addr && mprotect_addr) {
           break;
        }
        
@@ -58,7 +61,7 @@ bool Codegen::generateInt() {
        if (dlopen_addr) {
           break;
        }
-
+       fprintf(stderr, "Couldn't find dlopen address, bailing\n");
        // We can't go farther without parsing
        return false;
     } while(0);
@@ -86,7 +89,7 @@ bool Codegen::generateInt() {
     generatePreamble();
     
     if (needsStackUnprotect) {
-       if (!generateStackUnprotect()) return false;
+      if (!generateStackUnprotect(var_addr, mprotect_addr)) return false;
     }
 
     if (!generateCall(dlopen_addr, arguments)) return false;
@@ -132,7 +135,7 @@ Address Codegen::buildLinuxArgStruct(Address libbase, unsigned mode) {
    return copyBuf(argsPtr, argsSize);
 }
 
-bool Codegen::generateStackUnprotect() {
+bool Codegen::generateStackUnprotect(Address var_addr, Address mprotect_addr) {
    // Since we are punching our way down to an internal function, we
    // may run into problems due to stack execute protection. Basically,
    // glibc knows that it needs to be able to execute on the stack in
@@ -148,11 +151,11 @@ bool Codegen::generateStackUnprotect() {
    // Instead of chasing the value of the undocumented flag, we will
    // unprotect the __stack_prot variable ourselves (if we can find it).
 
-   Address var_addr = findSymbolAddr("__stack_prot");
-   Address mprotect_addr = findSymbolAddr("mprotect", true);
 
-   if (!var_addr || !mprotect_addr) return false;
-
+   if (!var_addr || !mprotect_addr) {
+     fprintf(stderr, "Couldn't find symbols to unprotect stack, bailing\n");
+     return false;
+   }
    Address page_start;
    Address pagesize = getpagesize();
 

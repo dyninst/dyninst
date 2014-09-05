@@ -385,16 +385,16 @@ class ComputeNode
   private:
    int fd;
    int cn_id;
-   Mutex send_lock;
-   Mutex attach_lock;
-   Mutex detach_lock;
+   Mutex<> send_lock;
+   Mutex<> attach_lock;
+   Mutex<> detach_lock;
    bool do_all_attach;
    bool issued_all_attach;
    bool all_attach_done;
    bool all_attach_error;
 
    bool have_pending_message;
-   Mutex pending_queue_lock;
+   Mutex<> pending_queue_lock;
    std::queue<buffer_t> queued_pending_msgs;
 };
 
@@ -531,9 +531,10 @@ class IOThread
    virtual void run() = 0;
    virtual void localInit() = 0;
    virtual void thrd_kick();
-   CondVar initLock;
-   CondVar shutdownLock;
+   CondVar<> initLock;
+   CondVar<> shutdownLock;
    bool do_exit;
+   bool kicked;
    bool init_done;
    bool shutdown_done;
    DThread thrd;
@@ -549,8 +550,8 @@ class ReaderThread : public IOThread
    static ReaderThread *me;
    std::queue<buffer_t> msgs;
    std::set<int> fds;
-   CondVar queue_lock;
-   CondVar fd_lock;
+   CondVar<> queue_lock;
+   CondVar<> fd_lock;
 
    ReaderThread();
    virtual void run();
@@ -560,7 +561,7 @@ class ReaderThread : public IOThread
    bool is_gen_kicked;
    unsigned timeout_set;
    struct timeval timeout;
-   Mutex timeout_lock;
+   Mutex<> timeout_lock;
   protected:
    virtual void thrd_kick();
   public:
@@ -580,14 +581,14 @@ class WriterThread : public IOThread
   private:
    static WriterThread *me;
    std::map<int, ComputeNode *> rank_to_cn;
-   Mutex rank_lock;
+   Mutex<> rank_lock;
    WriterThread();
    virtual void run();
    virtual void localInit();
    
    std::vector<int> acks;
    std::vector<ComputeNode *> writes;
-   CondVar msg_lock;
+   CondVar<> msg_lock;
   protected:
    virtual void thrd_kick();
   public:
@@ -609,7 +610,7 @@ class DebugThread
    bool shutdown;
    bool initialized;
    int pfd[2];
-   CondVar init_lock;
+   CondVar<> init_lock;
    bool init();
    DebugThread();
   public:

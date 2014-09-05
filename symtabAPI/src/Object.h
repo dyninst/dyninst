@@ -139,7 +139,7 @@ public:
 
     // Only implemented for ELF right now
     SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &) {};
-
+	SYMTAB_EXPORT virtual void rebase(Offset) {};
 protected:
     SYMTAB_EXPORT virtual ~AObject();
     // explicitly protected

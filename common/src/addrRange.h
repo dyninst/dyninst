@@ -563,7 +563,7 @@ class addrRangeTree {
       virtual bool find(Address start, Address end, 
                         std::vector<T *> &ranges) const
       {
-         entry *cur;
+         entry *cur = nil;
          bool result = precessor_internal(start, cur);
          if (!result || cur == nil)
             result = successor_internal(start, cur);

@@ -34,13 +34,14 @@ namespace Dyninst {
 namespace Relocation {
 
 struct RelocEdge {
-   RelocEdge(TargetInt *s, TargetInt *t, ParseAPI::EdgeTypeEnum e) :
-     src(s), trg(t), type(e) {};
+   RelocEdge(TargetInt *s, TargetInt *t, edge_instance* e, ParseAPI::EdgeTypeEnum et) :
+     src(s), trg(t), edge(e), type(et) {};
 
    ~RelocEdge();
 
    TargetInt *src;
    TargetInt *trg;
+   edge_instance *edge;
    ParseAPI::EdgeTypeEnum type;
 };
 

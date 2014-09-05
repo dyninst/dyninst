@@ -844,7 +844,7 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
 
 
 #if defined(arch_x86) || defined(arch_x86_64)
-bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost) 
+bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size, bool noCost) 
 {
    //Recognize the common case of 'a = a op constant' and try to 
    // generate optimized code for this case.
@@ -877,10 +877,12 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    if (roperand->getoType() == Constant) {
       //Looks like 'global = constant'
 #if defined(arch_x86_64)
-      if (laddr >> 32 || ((Address) roperand->getOValue()) >> 32) {
-         // Make sure value and address are 32-bit values.
-         return false;
-      }
+     if (laddr >> 32 || ((Address) roperand->getOValue()) >> 32 || size == 8) {
+       // Make sure value and address are 32-bit values.
+       return false;
+     }
+     
+     
 #endif
       int imm = (int) (long) roperand->getOValue();
       emitStoreConst(laddr, (int) imm, gen, noCost);
@@ -955,7 +957,7 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    return true;
 }
 #else
-bool AstOperatorNode::generateOptimizedAssignment(codeGen &, bool) 
+bool AstOperatorNode::generateOptimizedAssignment(codeGen &, int, bool) 
 {
    return false;   
 }
@@ -1201,7 +1203,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             //gen.rs()->freeRegister(src1);                                                   
                                                                                               
             gen.setIndex(endIndex);
-         }                                                                               break;
+         }                                                                               
+	 break;
       }
       case doOp: {
          fprintf(stderr, "[%s:%d] WARNING: do AST node unimplemented!\n", __FILE__, __LINE__);
@@ -1283,7 +1286,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          break;
       }
       case storeOp: {
-         bool result = generateOptimizedAssignment(gen, noCost);
+	bool result = generateOptimizedAssignment(gen, size, noCost);
          if (result)
             break;
        
@@ -2385,7 +2388,9 @@ BPatch_type *AstOperandNode::checkType(BPatch_function* func)
 	  {
 	    ret = func->getReturnType();
 	    if(!ret || (ret->isCompatible(BPatch::bpatch->builtInTypes->findBuiltInType("void")))) {
-	      errorFlag = true;
+		  if(ret) {
+		      errorFlag = true;
+		  } 
 	      ret = BPatch::bpatch->type_Untyped;
 	    } 
 	    break;

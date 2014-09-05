@@ -92,14 +92,6 @@ namespace Dyninst {
         }
       }
 
-/*   
-    sw_printf("[%s:%u] - Successfully polled for threads in debug_post_attach on %d\n", FILE__, __LINE__, pid);      
-#   if defined(cap_stackwalker_use_symtab)
-      library_tracker = new SymtabLibState(this, executable_path);
-#   else
-      library_tracker = new DefaultLibState(this);
-#   endif
-*/
       if (!library_tracker)
          setDefaultLibraryTracker();
       // This should really be checking for exceptions, since the above are constructors.

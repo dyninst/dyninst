@@ -96,7 +96,6 @@ bool Injector::inject(std::string libname) {
    }
 
    //TODO: Any mechanism for error checks?
-   
    return true;
 }                                                   
 

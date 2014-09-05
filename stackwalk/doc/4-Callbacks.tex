@@ -182,7 +182,7 @@ virtual bool isTerminated()
     Attempting to collect stack walks or perform other operations on a
     terminated process is illegal an will lead to undefined behavior.
 	
-    A process termination will also be signaled through the notfication FD.
+    A process termination will also be signaled through the notification FD.
 Users should check processes for the isTerminated state after returning from
 handleDebugEvent.  
 }
@@ -198,7 +198,7 @@ static int getNotificationFD()
     event. Example code using \code{getNotificationFD} can be found in
     Section~\ref{subsec:debugger}. 
 
-	If StackwalkerAPI will only create one notification FD, even if it is attached to multiple 3rd party target processes.
+	StackwalkerAPI will only create one notification FD, even if it is attached to multiple 3rd party target processes.
 }
 
 \begin{apient}
@@ -340,14 +340,14 @@ C++, automatically include stackwalking debug information for use by exceptions.
 The \code{DebugStepper} class will also make use of this kind of exception
 information if it is available.
 
-\subsubsection{AnalysisStepper}
+\subsubsection{Class AnalysisStepper}
 
 This class uses dataflow analysis to determine possible stack sizes at
 all locations in a function as well as the location of the frame
 pointer. It is able to handle optimized code with omitted frame
 pointers and overlapping code sequences. 
 
-\subsubsection{StepperWanderer}
+\subsubsection{Class StepperWanderer}
 
 This class uses a heuristic approach to find possible return addresses
 in the stack frame. If a return address is found that matches a valid

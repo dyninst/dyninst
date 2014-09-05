@@ -2,6 +2,14 @@ cmake_minimum_required (VERSION 2.6.4)
 project (Dyninst)
 
 set (DYNINST_ROOT ${PROJECT_SOURCE_DIR})
+set (CMAKE_SKIP_BUILD_RPATH FALSE)
+set (CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES 
+	  "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+IF("${isSystemDir}" STREQUAL "-1")
+		    set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+ENDIF()
 
 include (${DYNINST_ROOT}/cmake/shared.cmake)
 
@@ -49,6 +57,11 @@ if(NOT ${PLATFORM} MATCHES nt)
   add_subdirectory (elf)
   add_subdirectory (dwarf)
   add_subdirectory (symlite)
+# DynC is not compatible with Windows when
+# we use bison on linux to generate source
+# TODO: generate with bison configured for
+# MSVC?
+  add_subdirectory (dynC_API)
 endif()
 add_subdirectory (instructionAPI)
 add_subdirectory (symtabAPI)
@@ -65,11 +78,11 @@ set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile ${RT_BINARY_DIR}/Makefile)
 file(MAKE_DIRECTORY ${RT_BINARY_DIR})
 if (PLATFORM MATCHES bgq)
-  set (RT_C_COMPILER mpicc)
+  set (RT_C_COMPILER mpicc CACHE STRING "Compiler for runtime library")
 else()
-  set (RT_C_COMPILER ${CMAKE_C_COMPILER})
+  set (RT_C_COMPILER ${CMAKE_C_COMPILER} CACHE STRING "Compiler for runtime library")
 endif()
-
+set (NEED_NATIVE_ASSEMBLER NO CACHE STRING "Does the compiler break on assembly files? (Unlikely)")
 message(STATUS "Configuring RT library")
 
 execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR}
@@ -81,6 +94,8 @@ execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR}
   -DINSTALL_LIB_DIR=${INSTALL_LIB_DIR}
   -DINSTALL_INCLUDE_DIR=${INSTALL_INCLUDE_DIR}
   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+  -DBUILD_RTLIB_32=${BUILD_RTLIB_32}
+  -DNEED_NATIVE_ASSEMBLER=${NEED_NATIVE_ASSEMBLER}
   -DPLATFORM=${PLATFORM}
   -G ${CMAKE_GENERATOR}
   ${RT_SOURCE_DIR})
@@ -111,7 +126,7 @@ endif()
 if(NOT ${PLATFORM} MATCHES nt)
   SET_TARGET_PROPERTIES (
     common dynElf dynDwarf instructionAPI symtabAPI symLite parseAPI
-    patchAPI pcontrol stackwalk dyninstAPI
+    patchAPI pcontrol stackwalk dyninstAPI dynC_API
     PROPERTIES
     SOVERSION ${SOVERSION}
     VERSION ${LIBVERSION}

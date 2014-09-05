@@ -272,6 +272,10 @@ SymReader *SymtabReaderFactory::openSymbolReader(std::string pathname)
    if (!symtabreader) { 
       return NULL;
    }
+   if(!symtabreader->symtab) {
+     delete symtabreader;
+     return NULL;
+   }
    open_syms[pathname] = symtabreader;
 
    return symtabreader;

@@ -798,7 +798,10 @@ bool emitElf::driver(Symtab *obj, string fName){
         // Update the heap symbols, now that loadSecTotalSize is set
         updateSymbols(dynsymData, dynStrData, loadSecTotalSize);
     }
-
+    if (newshdr->sh_addralign < newdata->d_align) 
+    {
+      newshdr->sh_addralign = newdata->d_align;
+    }
     if ( 0 > elf_update(newElf, ELF_C_NULL))
     {
        fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, elf_errno(), elf_errmsg(elf_errno()));
@@ -1546,6 +1549,11 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         newdata64->d_size = newSecs[i]->getDiskSize();
         if (!newdata64->d_align)
            newdata64->d_align = newshdr->sh_addralign;
+	if(newshdr->sh_addralign < newdata64->d_align) 
+	{
+	  newshdr->sh_addralign = newdata64->d_align;
+	}
+	
         newshdr->sh_size = newdata64->d_size;
         memcpy(newdata, newdata64, sizeof(Elf_Data));
      }
@@ -1557,6 +1565,10 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         newdata->d_size = newSecs[i]->getDiskSize();
         if (!newdata->d_align)
            newdata->d_align = newshdr->sh_addralign;
+	if(newshdr->sh_addralign < newdata->d_align) 
+	{
+	  newshdr->sh_addralign = newdata->d_align;
+	}
         newshdr->sh_size = newdata->d_size;
      }
 

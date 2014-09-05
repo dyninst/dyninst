@@ -43,6 +43,7 @@
 #include <cerrno>
 #include <cstring>
 
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
@@ -52,8 +53,14 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
+#if defined(WITH_SYMLITE)
 #include "symlite/h/SymLite-elf.h"
+#elif defined(WITH_SYMTAB_API)
 #include "symtabAPI/h/SymtabReader.h"
+#else
+#error "No defined symbol reader"
+#endif
+
 #include "linuxbsd-swk.h"
 
 
@@ -61,8 +68,14 @@ extern int P_gettid();
 
 SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
 {
+#if defined(WITH_SYMLITE)
    static SymElfFactory symelffact;
    return &symelffact;
+#elif defined(WITH_SYMTAB_API)
+   return SymtabAPI::getSymtabReaderFactory();
+#else
+#error "No defined symbol reader"
+#endif
 }
 
 static void registerLibSpotterSelf(ProcSelf *pself);

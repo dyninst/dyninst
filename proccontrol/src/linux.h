@@ -259,10 +259,10 @@ private:
    int err;
 
    DThread thrd;
-   CondVar init;
-   CondVar cond;
-   CondVar ret_lock;
-   Mutex request_lock;
+   CondVar<> init;
+   CondVar<> cond;
+   CondVar<> ret_lock;
+   Mutex<> request_lock;
 
    void start_request();
    void waitfor_ret();

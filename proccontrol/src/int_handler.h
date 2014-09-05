@@ -96,7 +96,7 @@ class HandlerPool
    static void markProcAsyncPending(HandlerPool *p);
    static void clearProcAsyncPending(HandlerPool *p);
    static std::set<HandlerPool *> procsAsyncPending;
-   static Mutex asyncPendingLock;
+   static Mutex<false> asyncPendingLock;
 };
 
 class HandlePreBootstrap : public Handler
@@ -261,6 +261,26 @@ class HandleSingleStep : public Handler
  public:
   HandleSingleStep();
   virtual ~HandleSingleStep();
+
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+  virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
+class HandlePreSyscall : public Handler
+{
+ public:
+  HandlePreSyscall();
+  virtual ~HandlePreSyscall();
+
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+  virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
+class HandlePostSyscall : public Handler
+{
+ public:
+  HandlePostSyscall();
+  virtual ~HandlePostSyscall();
 
   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);

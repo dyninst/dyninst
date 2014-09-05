@@ -184,7 +184,7 @@ class Counter {
 
    void adjust(int val);
 
-   static Mutex locks[NumCounterTypes];
+   static Mutex<> * locks;
    static int global_counts[NumCounterTypes];
 };
 
@@ -936,6 +936,12 @@ public:
    void markStoppedOnBP(bp_instance *bp);
    bp_instance *isStoppedOnBP();
 
+    // Syscall tracking
+   bool syscallUserMode() const; 
+   void setSyscallUserMode(bool s);
+   bool syscallMode() const;
+    bool preSyscall();
+
    // Emulating single steps with breakpoints
    void addEmulatedSingleStep(emulated_singlestep *es);
    void rmEmulatedSingleStep(emulated_singlestep *es);
@@ -1091,7 +1097,7 @@ public:
    State saved_user_state;
 
    int_registerPool cached_regpool;
-   Mutex regpool_lock;
+   Mutex<true> regpool_lock;
    int_iRPC_ptr running_rpc;
    int_iRPC_ptr writing_rpc;
    rpc_list_t posted_rpcs;
@@ -1103,6 +1109,10 @@ public:
    bool generator_exiting_state;
    bool running_when_attached;
    bool suspended;
+
+    bool user_syscall;
+    bool next_syscall_is_exit;
+    
 
    Address stopped_on_breakpoint_addr;
    Address postponed_stopped_on_breakpoint_addr;
@@ -1588,8 +1598,8 @@ class MTManager {
 private:
   static MTManager *mt_;
   DThread evhandler_thread;
-  CondVar pending_event_lock;
-  Mutex work_lock;
+  CondVar<> pending_event_lock;
+  Mutex < true > work_lock;
   bool have_queued_events;
   bool is_running;
   bool should_exit;
