@@ -108,13 +108,13 @@ static Process::cb_ret_t on_library(Event::const_ptr ev)
 
 #if !defined(os_windows_test)
 
-#define LIBTESTA "./libtestA.so"
-#define LIBTESTA_32 "./libtestA_m32.so"
+#define LIBTESTA "libtestA.so"
+#define LIBTESTA_32 "libtestA_m32.so"
 
 #else
 
-#define LIBTESTA "./libtestA.dll"
-#define LIBTESTA_32 "./libtestA_m32.dll"
+#define LIBTESTA "testA.dll"
+#define LIBTESTA_32 "testA_m32.dll"
 
 #endif
 

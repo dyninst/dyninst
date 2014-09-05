@@ -115,7 +115,8 @@ test_results_t test5_2_Mutator::executeTest() {
 	      else {
                  logerror( "**Failed** test #2 (overloaded functions)\n");
                  logerror( "    The overloaded function %s has wrong number of parameters\n", func->getMangledName().c_str());
-		 logerror( "    expected 1, actual %d, possible 'this' parameter %s\n", param->size(), (*param)[0]->getName());
+		 logerror( "    expected 1, actual %d, possible 'this' parameter %s\n", param->size(), 
+			 param->size() ? (*param)[0]->getName() : "<NO PARAMS>");
 		 if(param->size() == 2) logerror( "    second parameter %s\n", (*param)[1]->getName());
                  return FAILED;
               }

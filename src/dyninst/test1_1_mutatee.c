@@ -63,13 +63,13 @@ void test1_1_call1_1() {
 }
 
 static void func1_2() {
-  dprintf("func1_2 () called\n");
+  dprintf("func1_2 () called, address is %p\n", &func1_2);
 
 }
 
 void test1_1_func1_1() {
   dprintf("Value of globalVariable1_1 is %d.\n", globalVariable1_1);
-
+  dprintf("Address of func1_2 is %p, calling now\n", &func1_2);
   func1_2();
   dprintf("Value of globalVariable1_1 is now %d.\n", globalVariable1_1);
 
@@ -84,6 +84,7 @@ void test1_1_func1_1() {
 }
 
 int test1_1_mutatee() {
+  dprintf("Address of func1_1 is %p, calling func1_1\n", &test1_1_func1_1);
   test1_1_func1_1();
   if (11 == globalVariable1_1) {
     test_passes(testname);

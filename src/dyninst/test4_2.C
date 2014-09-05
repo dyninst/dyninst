@@ -176,10 +176,10 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
         logerror("    a process terminated via signal %d\n",
                  thread->getProcess()->getExitSignal());
         exited = 0;
-    } else if (thread->getProcess()->getPid() != exitCode) {
+    } else if ((thread->getProcess()->getPid() & 0xFF) != exitCode) {
         logerror("Failed test #2 (fork callback)\n");
         logerror("    exit code was not equal to pid (%d != %d)\n",
-                 thread->getProcess()->getPid(), exitCode);
+                 (thread->getProcess()->getPid() & 0xFF), exitCode);
         exited = 0;
     } else {
         dprintf("test #2, pid %d exited\n", exitCode);

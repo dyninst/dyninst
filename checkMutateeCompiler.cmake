@@ -15,6 +15,7 @@ MACRO (CHECK_MUTATEE_COMPILER _COMPILER _COMP_FLAG _LINK_FLAG _LANG _MSG _RESULT
                             -DCMAKE_CXX_COMPILER=${_COMPILER}
                             -DCMAKE_CXX_FLAGS=${_COMP_FLAG}
                             -DCMAKE_EXE_LINKER_FLAGS=${_LINK_FLAG}
+			    -G${CMAKE_GENERATOR}
                             ${PROJECT_SOURCE_DIR}/compiler_test/cxx)
       elseif (${_LANG} MATCHES Fortran)
             execute_process(WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest
@@ -27,6 +28,7 @@ MACRO (CHECK_MUTATEE_COMPILER _COMPILER _COMP_FLAG _LINK_FLAG _LANG _MSG _RESULT
                             -DCMAKE_Fortran_COMPILER=${_COMPILER}
                             -DCMAKE_Fortran_FLAGS=${_COMP_FLAG}
                             -DCMAKE_EXE_LINKER_FLAGS=${_LINK_FLAG}
+			    -G${CMAKE_GENERATOR}
                             ${PROJECT_SOURCE_DIR}/compiler_test/fortran)
       elseif (${_LANG} MATCHES C)
             execute_process(WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/CMakeTmp/CompilerTest
@@ -39,6 +41,7 @@ MACRO (CHECK_MUTATEE_COMPILER _COMPILER _COMP_FLAG _LINK_FLAG _LANG _MSG _RESULT
                             -DCMAKE_C_COMPILER=${_COMPILER}
                             -DCMAKE_C_FLAGS=${_COMP_FLAG}
                             -DCMAKE_EXE_LINKER_FLAGS=${_LINK_FLAG}
+			    -G${CMAKE_GENERATOR}
                             ${PROJECT_SOURCE_DIR}/compiler_test/c)
       endif()
       if (${COMPILER_RESULT} MATCHES 0)

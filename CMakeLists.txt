@@ -9,15 +9,15 @@ set (CMAKE_C_FLAGS_DEBUG "-O0 -g")
 set (CMAKE_C_FLAGS_RELEASE "-O2")
 set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 set (CMAKE_CXX_FLAGS_RELEASE "-O2")
-set (CMAKE_C_FLAGS_RELWITHDEBUGINFO "-O2 -g")
-set (CMAKE_CXX_FLAGS_RELWITHDEBUGINFO "-O2 -g")
+set (CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
 else (MSVC)
 set (CMAKE_C_FLAGS_DEBUG "/Od /Zi /MDd /D_DEBUG")
 set (CMAKE_C_FLAGS_RELEASE "/O2 /MD /D NDEBUG")
 set (CMAKE_CXX_FLAGS_DEBUG "/Od /Zi /MDd /D_DEBUG")
 set (CMAKE_CXX_FLAGS_RELEASE "/O2 /MD /D NDEBUG")
-set (CMAKE_C_FLAGS_RELWITHDEBUGINFO "/O2 /Zi /MD /D NDEBUG")
-set (CMAKE_CXX_FLAGS_RELWITHDEBUGINFO "/O2 /Zi /MD /D NDEBUG")
+set (CMAKE_C_FLAGS_RELWITHDEBINFO "/O2 /Zi /MD /D NDEBUG")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "/O2 /Zi /MD /D NDEBUG")
 endif()
 
 
@@ -29,7 +29,7 @@ find_package (Dyninst REQUIRED CONFIG)
 find_package (Threads)
 set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
 			      "1.50" "1.50.0" "1.51" "1.51.0" "1.52" "1.52.0"
-			      "1.53" "1.53.0" "1.54" "1.54.0")
+			      "1.53" "1.53.0" "1.54" "1.54.0" "1.55" "1.55.0")
 
 find_package (Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
@@ -39,6 +39,12 @@ include_directories (${DYNINST_INCLUDE_DIR})
 message (STATUS "Project source dir: ${PROJECT_SOURCE_DIR}")
 set (BUILD_SHARED_LIBS ON)
 
+if ("${DYNINST_PLATFORM}" MATCHES "bgq")
+find_package( LaunchMON REQUIRED )
+include_directories(${LAUNCHMON_INCLUDE_DIR})
+add_definitions(${LAUNCHMON_DEFINITIONS})
+endif()
+
 set (INSTALL_DIR "bin/testsuite" CACHE PATH "Testsuite installation directory")
 
 # Build rules for the test libraries (libtestdyninst, libtestproccontrol, etc.)
@@ -46,6 +52,9 @@ set (INSTALL_DIR "bin/testsuite" CACHE PATH "Testsuite installation directory")
 
 if (UNIX)
 enable_language(ASM-ATT)
+if ("${DYNINST_PLATFORM}" MATCHES "i386")
+enable_language(ASM_NASM)
+endif()
 elseif(WIN32)
 enable_language(ASM_MASM)
 add_definitions(-Dsnprintf=_snprintf)
@@ -127,19 +136,24 @@ add_library (testdyninst SHARED
             src/dyninst/Callbacks.C
             src/dyninst/Process_data.C
 	    ${PLAT_SRC})
-target_link_libraries (testdyninst testSuite dyninstAPI ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (testdyninst testSuite dyninstAPI instructionAPI ${CMAKE_THREAD_LIBS_INIT})
 
 add_library (testsymtab SHARED
             src/symtab/symtab_comp.C)
-target_link_libraries (testsymtab testSuite symtabAPI ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (testsymtab testSuite symtabAPI common ${CMAKE_THREAD_LIBS_INIT})
 
 add_library (testinstruction SHARED
             src/instruction/instruction_comp.C)
-target_link_libraries (testinstruction testSuite instructionAPI symtabAPI ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (testinstruction testSuite instructionAPI symtabAPI common ${CMAKE_THREAD_LIBS_INIT})
 
 add_library (testproccontrol SHARED
             src/proccontrol/proccontrol_comp.C)
-target_link_libraries (testproccontrol testSuite pcontrol ${CMAKE_THREAD_LIBS_INIT})
+
+if(WIN32)
+target_link_libraries(testproccontrol testSuite pcontrol common ${CMAKE_THREAD_LIBS_INIT} ws2_32)
+else()
+target_link_libraries (testproccontrol testSuite pcontrol common ${CMAKE_THREAD_LIBS_INIT})
+endif()
 set (COMPLIB_DEFS TESTLIB_DLL_BUILD COMPLIB_DLL_BUILD)
 set (COMPLIB_TARGETS testdyninst testsymtab testinstruction testproccontrol)
 set_target_properties(${COMPLIB_TARGETS} PROPERTIES COMPILE_DEFINITIONS "${COMPLIB_DEFS}")
@@ -150,24 +164,29 @@ else()
 set(RUNTESTS_UTILS src/runTests-utils.C)
 endif()
 
+if(WIN32)
+set(TD_BE)
+else()
+set(TD_BE src/testdriver_be.C)
+endif()
+
 add_executable (runTests 
                src/runTests.C
 	       ${RUNTESTS_UTILS}
                src/test_driver_templates.C)
 target_link_libraries (runTests)
 
-if(WIN32)
-set(TD_BE)
-else()
-set(TD_BE src/testdriver_be.C)
-endif()
 add_executable (test_driver
                src/test_driver.C
                src/test_driver_templates.C
                src/dynlmon.C
-	       ${TD_BE}
+               ${TD_BE}
                ${DYNINST_PLATFORM}/test_info_new.gen.C)
 target_link_libraries (test_driver ${TESTSUITE_TESTLAUNCH_LINK})
+if (LAUNCHMON_FE_LIBRARIES)
+target_link_libraries (test_driver ${LAUNCHMON_FE_LIBRARIES})
+target_link_libraries (test_driver ${LAUNCHMON_BE_LIBRARIES})
+endif()
 
 if(WIN32)
 else()
@@ -193,9 +212,9 @@ install (TARGETS
 
 include (${DYNINST_PLATFORM}/cmake-mutators.txt)
 
-ADD_CUSTOM_TARGET(test_names.txt
-	COMMAND echo >> test_names.txt ${MUTATOR_NAME_LIST}
-	VERBATIM)
+FOREACH (m ${MUTATOR_NAME_LIST})
+	file(APPEND test_names.txt "${m}\n")
+ENDFOREACH()
 
 if (UNIX)
 # Compiler macros
@@ -248,17 +267,29 @@ install (TARGETS testA testB testA_static testB_static
 	RUNTIME DESTINATION ${INSTALL_DIR}
 	ARCHIVE DESTINATION ${INSTALL_DIR}
 )
-if (${MUTATEE_gcc64dyn} AND ${MUTATEE_gcc32dyn})
+
+CHECK_MUTATEE_COMPILER(gcc "-m32" "-m32" C "" m32_works)
+#if (${MUTATEE_gcc64dyn} AND ${MUTATEE_gcc32dyn})
+#if (UNIX)
+if(${m32_works})
+message(STATUS "Building 32-bit helper libraries")
 add_library (testA_m32 SHARED src/libtestA.c)
 add_library (testB_m32 SHARED src/libtestB.c)
+add_library (testA_m32_static STATIC src/libtestA.c)
+add_library (testB_m32_static STATIC src/libtestB.c)
+set_target_properties(testA_m32_static PROPERTIES OUTPUT_NAME testA_m32)
+set_target_properties(testB_m32_static PROPERTIES OUTPUT_NAME testB_m32)
 add_library (Test12_m32 SHARED src/dyninst/libTest12.c)
-install (TARGETS testA_m32 testB_m32 Test12_m32 LIBRARY DESTINATION ${INSTALL_DIR})
 
-set_target_properties (testA_m32
+install (TARGETS testA_m32 testB_m32 Test12_m32 testA_m32_static testB_m32_static 
+	LIBRARY DESTINATION ${INSTALL_DIR}
+	ARCHIVE DESTINATION ${INSTALL_DIR})
+
+set_target_properties (testA_m32 testA_m32_static
                       PROPERTIES
                       COMPILE_FLAGS "-m32 -Dm32_test"
                       LINK_FLAGS "-m32")
-set_target_properties (testB_m32
+set_target_properties (testB_m32 testB_m32_static
                       PROPERTIES
                       COMPILE_FLAGS "-m32 -Dm32_test"
                       LINK_FLAGS "-m32")

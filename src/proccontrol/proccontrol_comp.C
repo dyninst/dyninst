@@ -596,7 +596,7 @@ bool ProcControlComponent::initializeConnectionInfo(Process::const_ptr proc)
    else {
       reader = factory->openSymbolReader(exec_name);
       if (!reader) {
-         logerror("Could not open executable\n");
+         logerror("Could not open executable %s\n", exec_name.c_str());
          return false;
       }
       Symbol_t sym = reader->getSymbolByName(string("MutatorSocket"));
@@ -667,6 +667,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
                param["socket_name"]->getString());
    }
    cur_group = group;
+
    for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
       bool result = initializeConnectionInfo(*j);
       if (!result) {
@@ -695,9 +696,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       error = true;
    }
 #endif
-#if defined(os_bg_test)
-   Process::removeEventCallback(EventType::Library, setSocketOnLibLoad);
-#endif
    if (group->createmode == CREATE)
    {
       Process::ptr a_proc = *procs.begin();
@@ -714,6 +712,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
             if (!result) {
                logerror("Failed to handle events during thread create\n");
                error = true;
+			   return false;
             }
          }
       }
@@ -725,6 +724,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
             if (!result) {
                logerror("Failed to handle events during thread create\n");
                error = true;
+			   return false;
             }
          }
       }
@@ -757,6 +757,10 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       logerror("Failed to create pipes\n");
       error = true;
    }
+#endif
+
+#if defined(os_bg_test)
+   Process::removeEventCallback(EventType::Library, setSocketOnLibLoad);
 #endif
 
    if (group->state != RUNNING && check_threads_on_startup) {
@@ -834,6 +838,7 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
 
 Process::cb_ret_t default_on_exit(Event::const_ptr ev)
 {
+  logerror("Got exit event for process %d\n", ev->getProcess()->getPid());
    return Process::cbDefault;
 }
 
@@ -844,7 +849,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
 #if !defined(os_bg_test) && !defined(os_windows_test)
    resetSignalFD(params);
 #endif
-
+   logerror("Begin ProcControl group teardown\n");
 #if defined(USE_SOCKETS)
    for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
 #if defined(os_windows_test)
@@ -856,6 +861,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
            error = true;
        }
    }
+   logerror("Sockets all closed\n");
 #endif
 #if defined(USE_PIPES)
    for (unsigned i=0; i<2; i++) {
@@ -870,6 +876,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
 #endif
 
    if (curgroup_self_cleaning) {
+     logerror("Self cleaning group, we're done here\n");
       procs.clear();
       return PASSED;
    }
@@ -879,7 +886,11 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
       hasRunningProcs = false;
       for (std::vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
          Process::ptr p = *i;
-         if (!p->isTerminated()) {
+         while (!p->isTerminated()) {
+	   logerror("Process %d not terminated, is %s, is %s, blocking for events\n",
+		    p->getPid(), 
+		    p->allThreadsStopped() ? "stopped" : "running",
+		    p->isExited() ? "exited" : "not exited");
             bool result = block_for_events();
             if (!result) {
                logerror("Process failed to handle events\n");
@@ -1362,6 +1373,7 @@ bool ProcControlComponent::block_for_events()
 		logerror("Error waiting for events\n");
 		return false;
 	}
+	logerror("block_for_events returning OK\n");
 	return true;
 #endif
 }

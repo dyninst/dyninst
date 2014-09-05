@@ -62,8 +62,14 @@ class test1_22_Mutator : public DyninstMutator {
 	virtual test_results_t mutatorTest22();
 };
 
-test1_22_Mutator::test1_22_Mutator() : libNameAroot("libtestA"),
-									   libNameBroot("libtestB") 
+test1_22_Mutator::test1_22_Mutator() :
+#if defined(os_windows_test)
+    libNameAroot("testA"),
+	libNameBroot("testB") 
+#else
+    libNameAroot("libtestA"),
+	libNameBroot("libtestB") 
+#endif
 {
 }
 
@@ -279,8 +285,8 @@ test_results_t test1_22_Mutator::executeTest()
 	addLibArchExt(libNameB,127, pointer_size, isStatic);
 
 	char libA[128], libB[128];
-	snprintf(libA, 128, "./%s", libNameA);
-	snprintf(libB, 128, "./%s", libNameB);
+	snprintf(libA, 128, "%s", libNameA);
+	snprintf(libB, 128, "%s", libNameB);
 
 	if (! appAddrSpace->loadLibrary(libA)) 
 	{

@@ -41,7 +41,7 @@
 extern "C" 
 {
 #endif
-int snip_change_shlib_var = 20;
+DLLEXPORT int snip_change_shlib_var = 20;
 
 int snip_ref_shlib_var1 = 5;
 long snip_ref_shlib_var2 = 5L;

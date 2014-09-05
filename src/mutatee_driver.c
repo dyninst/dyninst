@@ -468,6 +468,6 @@ int main(int iargc, char *argv[])
    if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
    }
-
+   //logstatus("Mutatee exiting\n");
    exit( retval);
 }
