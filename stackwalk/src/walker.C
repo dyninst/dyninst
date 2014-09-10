@@ -578,7 +578,6 @@ bool Walker::getInitialFrame(Frame &frame, THR_ID thread) {
       sw_printf("[%s:%u] - Call to postStackwalk failed\n", FILE__, __LINE__);
       return false;
    }
-   frame.walker = this;
 
    return result;
 }
