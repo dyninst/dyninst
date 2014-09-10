@@ -62,8 +62,14 @@ class snip_change_shlib_var_Mutator : public DyninstMutator {
 	virtual test_results_t mutatorTest();
 };
 
-snip_change_shlib_var_Mutator::snip_change_shlib_var_Mutator() : libNameAroot("libtestA"),
-									   libNameBroot("libtestB") 
+snip_change_shlib_var_Mutator::snip_change_shlib_var_Mutator() : 
+#if defined(os_windows_test)
+    libNameAroot("testA"),
+	libNameBroot("testB") 
+#else
+    libNameAroot("libtestA"),
+	libNameBroot("libtestB") 
+#endif
 {
 }
 
@@ -101,7 +107,7 @@ test_results_t snip_change_shlib_var_Mutator::mutatorTest()
 	BPatch_variableExpr *v = appImage->findVariable(vname);
 	if (!v)
 	{
-		logerror("%s[%d]:  could not find variable %s\n", FILE__, __LINE__);
+		logerror("%s[%d]:  could not find variable %s\n", FILE__, __LINE__, vname);
 		return FAILED;
 	}
 

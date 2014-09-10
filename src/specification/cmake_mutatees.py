@@ -72,11 +72,6 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    compiler = info['compilers'][exe]
 
    c_flags = get_flags(platform, info['compilers'][exe], abi, opt, pic)
-   #This should be (used to be?) a compiler property, but it's not right now.
-   if platform['name'] == 'i386-unknown-nt4.0':
-      c_flags = '/D_DEBUG ' + c_flags
-   else:
-      c_flags = '-g ' + c_flags
 
    if not os.path.exists(gen_path):
       os.makedirs(gen_path)
@@ -97,6 +92,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    out.write("set (CMAKE_%s_FLAGS \"%s\")\n" % (lang, c_flags))
    out.write("set (CMAKE_%s_FLAGS_DEBUG \"\")\n" % lang)
    out.write("set (CMAKE_%s_FLAGS_RELEASE \"\")\n" %lang)
+   out.write("set (CMAKE_%s_FLAGS_RELWITHDEBINFO \"\")\n" %lang)
    out.write("set (CMAKE_%s_COMPILER \"${M_%s}\")\n" % (lang, c_compiler))
 
    out.write ("include_directories(\"${PROJECT_SOURCE_DIR}/testsuite/src\")\n")
@@ -107,12 +103,9 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
       linkage = compiler['staticlink']
    else:
       linkage = compiler['dynamiclink']
-#   if platform['name'] == 'i386-unknown-nt4.0' and module == 'proccontrol':
-#      linkage = "%s %s" % (linkage, "ws2_32.lib")
    link_flags = "%s %s %s" % (compiler['flags']['link'],
                               compiler['abiflags'][platform['name']][mut['abi']]['flags'],
                               linkage)
-   #out.write("message( STATUS \"Old linker flags were ${CMAKE_EXE_LINKER_FLAGS}, new are %s\")\n" % link_flags)
    out.write("set (CMAKE_EXE_LINKER_FLAGS \"%s\")\n" % link_flags)
 
    
@@ -250,6 +243,12 @@ def print_src_lists(mutatees, platform, info, directory):
                    (module, 
                     s, 
                     groupable))
+      elif (utils.extension(s) == ".asm" and
+            "nasm_asm" in platform["auxilliary_compilers"]):
+         out.write("set_property (SOURCE ${SRC}/%s/%s APPEND PROPERTY COMPILE_FLAGS -dPLATFORM=%s)\n" %
+                   (module,
+                    s,
+                    platform["name"]))
       # Skip raw sources; they don't need the GROUPABLE and TEST_NAMEs set
 
    out.close()

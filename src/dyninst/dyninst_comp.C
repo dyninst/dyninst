@@ -850,29 +850,6 @@ int pointerSize(BPatch_image *img) {
 #endif
 }
 
-#if 0
-int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB,
-      int mutateeFortran)
-{
-    char libA[128], libB[128];
-    snprintf(libA, 128, "./%s", libNameA);
-    snprintf(libB, 128, "./%s", libNameB);
-    if (!mutateeFortran) {
-	if (! appThread->loadLibrary(libA)) {
-	     logerror("**Failed test #21 (findFunction in module)\n");
-	     logerror("  Mutator couldn't load %s into mutatee\n", libNameA);
-             return -1;
-	}
-	if (! appThread->loadLibrary(libB)) {
-	     logerror("**Failed test #21 (findFunction in module)\n");
-	     logerror("  Mutator couldn't load %s into mutatee\n", libNameB);
-             return -1;
-	}
-    }
-    return 0;
-}
-#endif
-
 typedef BPatch_Vector<BPatch_point * > point_vector;
 
 void instrument_entry_points( BPatch_addressSpace * app_thread,
@@ -1074,13 +1051,13 @@ bool verifyChildMemory(BPatch_process *appThread,
 	BPatch_image *appImage = appThread->getImage();
 
 	if (!appImage) {
-		dprintf("unable to locate image for %d\n", appThread->getPid());
+		logerror("unable to locate image for %d\n", appThread->getPid());
 		return false;
 	}
 
 	BPatch_variableExpr *var = appImage->findVariable(name);
 	if (!var) {
-		dprintf("unable to located variable %s in child\n", name);
+		logerror("unable to located variable %s in child\n", name);
 		return false;
 	}
 
@@ -1092,7 +1069,7 @@ bool verifyChildMemory(BPatch_process *appThread,
 				name, expectedVal, actualVal);
 		return false;
 	} else {
-		dprintf("verified %s was = %d\n", name, actualVal);
+		logstatus("verified %s was = %d\n", name, actualVal);
 		return true;
 	}
 }

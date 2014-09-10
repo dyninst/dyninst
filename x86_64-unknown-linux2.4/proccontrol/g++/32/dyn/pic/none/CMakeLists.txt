@@ -1,7 +1,8 @@
 # CMakeLists for proccontrol/g++/32/dyn/pic/none
-set (CMAKE_CXX_FLAGS "-g ${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}  -m32 -Di386_unknown_linux2_4 -Dm32_test  -fPIC")
+set (CMAKE_CXX_FLAGS "${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}  -m32 -Di386_unknown_linux2_4 -Dm32_test -g -O0 -fPIC")
 set (CMAKE_CXX_FLAGS_DEBUG "")
 set (CMAKE_CXX_FLAGS_RELEASE "")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "")
 set (CMAKE_CXX_COMPILER "${M_gnu_cxx}")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src")
 include_directories("${PROJECT_SOURCE_DIR}/testsuite/src/proccontrol")
@@ -9,7 +10,7 @@ add_definitions(-DSOLO_MUTATEE)
 set (CMAKE_EXE_LINKER_FLAGS "${MUTATEE_LDFLAGS_GNU} -m32 -Di386_unknown_linux2_4 -Dm32_test -Wl,-export-dynamic")
 IF (NOT ${M_gnu_cxx} MATCHES "NOTFOUND")
 CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
-	"-g ${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}  -m32 -Di386_unknown_linux2_4 -Dm32_test  -fPIC"
+	"${MUTATOR_DEFINES}  ${CXXFLAGS} ${MUTATEE_CXXFLAGS_GNU}  -m32 -Di386_unknown_linux2_4 -Dm32_test -g -O0 -fPIC"
 	"${MUTATEE_LDFLAGS_GNU} -m32 -Di386_unknown_linux2_4 -Dm32_test -Wl,-export-dynamic"
 	"CXX"
 	"gnu_cxx 32 dyn"

@@ -62,8 +62,8 @@ void closeLib(const char *lib, void *handle)
 #else
 #include <winsock2.h>
 #include <windows.h>
-#define LIBTESTA "./libtestA.dll"
-#define LIBTESTB "./libtestB.dll"
+#define LIBTESTA "./testA.dll"
+#define LIBTESTB "./testB.dll"
 
 void* openLib(const char* lib)
 {

@@ -174,15 +174,27 @@ test_results_t test1_13_Mutator::executeTest()
 	BPatch_funcCallExpr call13_3Expr(*call13_2_func, funcArgs2);
 
 	checkCost(call13_1Expr);
-	appAddrSpace->insertSnippet(call13_3Expr, *point13_2, BPatch_callAfter, BPatch_lastSnippet);
+	BPatchSnippetHandle* goodRetExpr = appAddrSpace->insertSnippet(call13_3Expr, *point13_2, BPatch_callAfter, BPatch_lastSnippet);
+	if(!goodRetExpr) {
+		logerror("Failed: couldn't insert return expression at exit point of func13_2\n");
+		return FAILED;
+	}
+	// Preserving this so that nobody gets a "clever" idea in the future.
+	// There is inconsistency across our various platforms/compilers as to whether
+	// type information's absence is used to signify "this returns void", or whether it means
+	// there is no type information. This means we have to fail toward no type info = untyped expression
+	// and allow insertion.
+	// However, gcc *does* overload this to "void return == no return type info", so we can't actually test
+	// that a void function can't take a return value snippet.
+
 	// This insertion *should* fail, as we're trying to instrument the return point of a
 	// void function.
-	if(insertSnippetAt(appAddrSpace, appImage, "test1_13_func3", BPatch_exit, call13_3Expr, 13, 
-			   "Test type system: void functions can't take retExprs")) {
-	  logerror("Failed: retExpr inserted into void function\n");
-	  
-	  return FAILED;
-	}
+	//if(insertSnippetAt(appAddrSpace, appImage, "test1_13_func3", BPatch_exit, call13_3Expr, 13, 
+	//		   "Test type system: void functions can't take retExprs")) {
+	//  logerror("Failed: retExpr inserted into void function\n");
+	//  
+	//  return FAILED;
+	//}
 	
 	
 	return PASSED;

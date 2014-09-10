@@ -58,8 +58,11 @@ extern "C" DLLEXPORT  TestMutator *test1_14_factory() {
   return new test1_14_Mutator();
 }
 
+#if !defined(os_windows_test)
 test1_14_Mutator::test1_14_Mutator() : libNameAroot("libtestA") {}
-
+#else
+test1_14_Mutator::test1_14_Mutator() : libNameAroot("testA") {}
+#endif
 //
 // Start Test Case #14 - mutator side (replace function call)
 //

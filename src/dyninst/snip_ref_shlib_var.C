@@ -63,8 +63,14 @@ class snip_ref_shlib_var_Mutator : public DyninstMutator {
 	virtual test_results_t mutatorTest();
 };
 
-snip_ref_shlib_var_Mutator::snip_ref_shlib_var_Mutator() : libNameAroot("libtestA"),
-									   libNameBroot("libtestB") 
+snip_ref_shlib_var_Mutator::snip_ref_shlib_var_Mutator() : 
+#if defined(os_windows_test)
+    libNameAroot("testA"),
+	libNameBroot("testB") 
+#else
+    libNameAroot("libtestA"),
+	libNameBroot("libtestB") 
+#endif
 {
 }
 
