@@ -130,7 +130,9 @@ bool isNopInsn(Instruction::Ptr insn)
         }
         // Check for zero displacement
         nopVisitor visitor;
-        insn->getOperand(0).getValue()->apply(&visitor);
+
+	// We need to get the src operand
+        insn->getOperand(1).getValue()->apply(&visitor);
         if (visitor.isNop) return true; 
     }
     return false;
@@ -141,7 +143,7 @@ bool IA_IAPI::isNop() const
     Instruction::Ptr ci = curInsn();
 
     assert(ci);
-    
+   
     return isNopInsn(ci);
 
 }

@@ -30,8 +30,6 @@
 
 
 #include "CFG.h"
-#include "Loop.h"
-#include "LoopTreeNode.h"
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;

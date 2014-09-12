@@ -184,13 +184,8 @@ dominatorCFG::~dominatorCFG() {
 void dominatorCFG::calcDominators() {
    //fill in predecessor and successors
    unsigned i;
-   for (i=0; i<all_blocks.size(); i++) {
+   for (i=0; i<all_blocks.size(); i++)
       all_blocks[i]->dominatorPredAndSucc();
-      dominatorBB *bb = all_blocks[i];
-      BPatch_basicBlock *block = bb->bpatchBlock;
-      if (block != NULL)
-      printf("domCFG [%lx,%lx): %d\n", block->getStartAddress(), block->getEndAddress(), bb->pred.size());     
-   }
 
    //Perform main computation
    performComputation();

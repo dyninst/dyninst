@@ -51,8 +51,6 @@ BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_edge *be,
 					     BPatch_flowGraph *fg) 
     : flowGraph(fg), parent(NULL) 
 {
-    printf("Back edge from [%lx,%lx) to [%lx,%lx)\n", be->getSource()->getStartAddress(), be->getSource()->getEndAddress(),be->getTarget()->getStartAddress(), be->getTarget()->getEndAddress());
-
     backEdges.insert(be);
 }
 

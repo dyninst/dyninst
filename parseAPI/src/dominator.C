@@ -140,10 +140,10 @@ void dominatorCFG::calcDominators() {
       Block *immDom = bb->immDom->parseBlock;
       Block *block = bb->parseBlock;
 
-      block->immediateDominator[func] = immDom;
-      if (!immDom->immediateDominates[func])
-         immDom->immediateDominates[func] = new std::set<Block*>;
-      immDom->immediateDominates[func]->insert(block);
+      func->immediateDominator[block] = immDom;
+      if (!func->immediateDominates[immDom])
+         func->immediateDominates[immDom] = new std::set<Block*>;
+      func->immediateDominates[immDom]->insert(block);
    }   
 }
 
@@ -191,10 +191,10 @@ void dominatorCFG::calcPostDominators() {
       Block *immDom = bb->immDom->parseBlock;
       Block *block = bb->parseBlock;
 
-      block->immediatePostDominator[func] = immDom;
-      if (!immDom->immediatePostDominates[func])
-         immDom->immediatePostDominates[func] = new std::set<Block*>;
-      immDom->immediatePostDominates[func]->insert(block);
+      func->immediatePostDominator[block] = immDom;
+      if (!func->immediatePostDominates[immDom])
+         func->immediatePostDominates[immDom] = new std::set<Block*>;
+      func->immediatePostDominates[immDom]->insert(block);
    }   
 }
 
@@ -251,10 +251,6 @@ void dominatorCFG::performComputation() {
       }
    }
 
-   storeDominatorResults();
-}
-
-void dominatorCFG::storeDominatorResults() {
 }
 
 void dominatorCFG::link(dominatorBB *parent, dominatorBB *block) {

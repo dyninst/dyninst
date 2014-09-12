@@ -126,7 +126,7 @@ bool
 SingleContext::pred_impl(Edge * e) const
 {
     bool base = EdgePredicate::pred_impl(e);
-    return base && 
+    return base && !e->interproc() && 
         (!_forward || _context->contains(e->trg())) &&
         (!_backward || _context->contains(e->src()));
 }
@@ -161,8 +161,9 @@ void Block::removeFunc(Function *)
 
 void Block::updateEnd(Address addr)
 {
-    _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -1*size());
+    _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -1*size());   
     _end = addr;
+//    assert(_end != 0x7b320f);
     _obj->cs()->addCounter(PARSE_BLOCK_SIZE, size());
 }
 
@@ -250,19 +251,4 @@ Block::getInsn(Offset a) const {
    return insns[a];
 }
 
-bool Block::dominates(Function* func, Block *bb) {
-
-  if(!bb) return false;
-
-  if(bb == this) return true;
-
-  if(!immediateDominates[func])
-      return false;
-
-  for (auto iter = immediateDominates[func]->begin(); iter != immediateDominates[func]->end(); ++iter) {
-      if ((*iter)->dominates(func, bb)) return true;
-  }
-  return false;
-
-}
 

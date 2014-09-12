@@ -35,8 +35,6 @@
 #include <set>
 #include "Annotatable.h"
 #include "CFG.h"
-#include "Loop.h"
-#include "LoopTreeNode.h"
 
 /** class which finds loops in a function 
   *
@@ -51,14 +49,6 @@ class LoopAnalyzer {
   std::set<Edge*> backEdges;
   std::set<Loop*> loops;
 
-  /** fills the dominator and immediate-dom information of basic blocks.
-   * without calling this method dominator info is not available
-   */
-  void fillDominatorInfo();
-
-  /** same as above, but for postdominator/immediate-postdom info 
-   */
-  void fillPostDominatorInfo();
 
   void dfsCreateLoopHierarchy(LoopTreeNode * parent,
                               vector<Loop *> &loops,
@@ -66,6 +56,9 @@ class LoopAnalyzer {
 
 public:
   bool analyzeLoops();
+  /** create the tree of loops/callees for this flow graph */
+  void createLoopHierarchy();
+ 
   LoopAnalyzer (Function *f);
 
 
@@ -74,14 +67,7 @@ public:
 //  bool containsDynamicCallsites();
 
 
- private:
-
- 
- 
-  /** create the tree of loops/callees for this flow graph */
-  void createLoopHierarchy();
-  
-   
+ private:   
   static void findBBForBackEdge(Edge*, std::set<Block*>&);
 
 

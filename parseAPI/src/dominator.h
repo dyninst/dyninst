@@ -81,7 +81,6 @@ class dominatorCFG {
    dominatorBB *nullNode;
 
    void performComputation();
-   void storeDominatorResults();
    void depthFirstSearch(dominatorBB *v);
    void eval(dominatorBB *v);
    void link(dominatorBB *v, dominatorBB *w);

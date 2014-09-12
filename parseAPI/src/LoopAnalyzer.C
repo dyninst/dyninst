@@ -37,9 +37,8 @@
 #include <unordered_map>
 #include <stack>
 #include "CFG.h"
-#include "Loop.h"
+
 #include "LoopAnalyzer.h"
-#include "dominator.h"
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -143,26 +142,6 @@ LoopAnalyzer::createLoops()
 }
 
 
-//this method fill the dominator information of each basic block
-//looking at the control flow edges. It uses a fixed point calculation
-//to find the immediate dominator of the basic blocks and the set of
-//basic blocks that are immediately dominated by this one.
-//Before calling this method all the dominator information
-//is going to give incorrect results. So first this function must
-//be called to process dominator related fields and methods.
-void LoopAnalyzer::fillDominatorInfo()
-{
-
-  dominatorCFG domcfg(func);
-  domcfg.calcDominators();
-}
-
-void LoopAnalyzer::fillPostDominatorInfo()
-{
-  dominatorCFG domcfg(func);
-  domcfg.calcPostDominators();
-}
-
 // Adds each back edge in the flow graph to the given set. A back edge
 // in a flow graph is an edge whose head dominates its tail.
 void LoopAnalyzer::createBackEdges()
@@ -174,8 +153,9 @@ void LoopAnalyzer::createBackEdges()
    for (auto bit = func->blocks().begin(); bit != func->blocks().end(); ++bit) {
       Block *source = *bit;
       for (auto eit = source->targets().begin(); eit != source->targets().end(); ++eit) {
-          Edge *e = *eit;	  
-          if (e->trg()->dominates(func,source))
+          Edge *e = *eit;
+	  if (e->interproc()) continue;
+          if (func->dominates(e->trg(), source))
 	      backEdges.insert(e);
 
       }
@@ -262,16 +242,13 @@ void LoopAnalyzer::dfsCreateLoopHierarchy(LoopTreeNode * parent,
   }
 }
 
-
 void LoopAnalyzer::createLoopHierarchy()
 {
   LoopTreeNode* loopRoot = new LoopTreeNode(NULL, NULL);
   func->_loop_root = loopRoot;
 
   vector<Loop *> outerLoops;
-  for (auto lit = loops.begin(); lit != loops.end(); ++lit)
-      if ((*lit)->parent == NULL)
-          outerLoops.push_back(*lit);
+  func->getOuterLoops(outerLoops);
 
   loop_sort l;
   std::sort(outerLoops.begin(), outerLoops.end(), l);
@@ -333,10 +310,10 @@ void LoopAnalyzer::insertCalleeIntoLoopHierarchy(Function *callee,
 
 
 
+
 bool LoopAnalyzer::analyzeLoops() {
-    fillDominatorInfo();
     createBackEdges();
     createLoops();
-    createLoopHierarchy();
     return true;
 }
+
