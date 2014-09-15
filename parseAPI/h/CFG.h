@@ -623,6 +623,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     void getLoopsByNestingLevel(vector<Loop*>& lbb, bool outerMostOnly);
 
 
+    /* Dominator and post-dominator info details */
     bool isDominatorInfoReady;
     bool isPostDominatorInfoReady;
     void fillDominatorInfo();
