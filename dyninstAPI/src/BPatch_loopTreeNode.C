@@ -37,17 +37,27 @@
 #include "dyninstAPI/h/BPatch_basicBlockLoop.h"
 #include "dyninstAPI/h/BPatch_function.h"
 #include "dyninstAPI/h/BPatch_process.h"
+#include "BPatch_flowGraph.h"
+#include "PatchCFG.h"
 
-class BPatch_basicBlockLoop;
+using namespace Dyninst::PatchAPI;
 
-BPatch_loopTreeNode::BPatch_loopTreeNode(BPatch_basicBlockLoop *l, 
-                                                  const char *n)
+
+BPatch_loopTreeNode::BPatch_loopTreeNode(BPatch_flowGraph* fg, 
+                                         PatchLoopTreeNode* tree,
+					 std::map<PatchLoop*, BPatch_basicBlockLoop*>& loopMap)
 {
-    loop = l;
-    hierarchicalName = NULL;
-    if (n != NULL) {
-        hierarchicalName = P_strdup(n);
-    }
+    loop = loopMap[tree->loop];
+    hierarchicalName = strdup(tree->name());
+
+    for (auto cit = tree->children.begin(); cit != tree->children.end(); ++cit)
+        children.push_back(new BPatch_loopTreeNode(fg, *cit, loopMap));
+
+    vector<PatchFunction*> patchCallees;
+    tree->getCallees(patchCallees);
+    for (auto fit = patchCallees.begin(); fit != patchCallees.end(); ++fit)
+        callees.push_back(SCAST_FI(*fit));
+
 }
  
 

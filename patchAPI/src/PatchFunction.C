@@ -905,7 +905,7 @@ void PatchFunction::fillDominatorInfo()
 void PatchFunction::fillPostDominatorInfo()
 {
     if (!isPostDominatorInfoReady) {
-        // Fill immediate dominator info
+        // Fill immediate post-dominator info
 	for (auto bit = blocks().begin(); bit != blocks().end(); ++bit) {
 	    ParseAPI::Block* b = (*bit)->block();
 	    ParseAPI::Block* imd = func_->getImmediatePostDominator(b);
@@ -914,7 +914,7 @@ void PatchFunction::fillPostDominatorInfo()
 	    else
 	        immediatePostDominator[*bit] = obj_->getBlock(imd);
 	}
-	// Fill immediate dominates info
+	// Fill immediate post-dominates info
 	for (auto bit = blocks().begin(); bit != blocks().end(); ++bit) {
 	    ParseAPI::Block* b = (*bit)->block();
 	    set<ParseAPI::Block*> postDominates;

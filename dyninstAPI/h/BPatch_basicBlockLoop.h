@@ -47,6 +47,12 @@
   * @see BPatch_flowGraph
   */
 
+namespace Dyninst {
+namespace PatchAPI{
+class PatchLoop;
+}
+}
+
 class BPatch_variableExpr;
 class BPatch_loopTreeNode;
 
@@ -55,9 +61,6 @@ class BPATCH_DLL_EXPORT BPatch_basicBlockLoop :
 {
 	friend class BPatch_flowGraph;
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlockLoop&);
-	friend void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
-                                           BPatch_Vector<BPatch_basicBlockLoop *> &loops,
-                                           std::string level);
 
 private:
         std::set<BPatch_edge*> backEdges;
@@ -157,12 +160,7 @@ public:
         std::string format() const;
 
 private:
-// internal use only
-	/** constructor of class */
-	BPatch_basicBlockLoop(BPatch_flowGraph *);
-
-	/** constructor of the class */
-	BPatch_basicBlockLoop(BPatch_edge *, BPatch_flowGraph *);
+	BPatch_basicBlockLoop(BPatch_flowGraph *, Dyninst::PatchAPI::PatchLoop*);
 
 	/** get either contained or outer loops, determined by outerMostOnly */
 	bool getLoops(BPatch_Vector<BPatch_basicBlockLoop*>&, 

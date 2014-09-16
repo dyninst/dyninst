@@ -42,7 +42,6 @@ set (SRC_LIST
      src/frame.C 
      src/codeRange.C 
      src/image.C 
-     src/dominator.C 
      src/parse-cfg.C 
      src/mapped_object.C 
      src/mapped_module.C 

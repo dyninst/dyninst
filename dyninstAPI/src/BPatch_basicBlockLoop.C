@@ -39,19 +39,33 @@
 #include <algorithm>
 #include "BPatch_edge.h"
 #include <iostream>
+#include "PatchCFG.h"
+#include "Relocation/DynCommon.h"
+#include "block.h"
 using namespace std;
+using namespace Dyninst::PatchAPI;
 //constructors
 //internal use only
 
-
-BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_flowGraph *fg)
-    : flowGraph(fg), parent(NULL) {}
-
-BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_edge *be, 
-					     BPatch_flowGraph *fg) 
+BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_flowGraph *fg, PatchLoop* loop) 
     : flowGraph(fg), parent(NULL) 
 {
-    backEdges.insert(be);
+    //parent pointer and containedLoops vectors are set in BPatch_flowgraph::createLoops
+    
+    //set backEdges
+    vector<PatchEdge*> be;
+    loop->getBackEdges(be);
+    for (auto eit = be.begin(); eit != be.end(); ++eit) {
+        backEdges.insert(fg->findEdge(SCAST_EI(*eit)));
+    }
+      
+    //set basicBlocks
+    vector<PatchBlock*> b;
+    loop->getLoopBasicBlocks(b);
+    for (auto bit = b.begin(); bit != b.end(); ++bit)
+        basicBlocks.insert(fg->findBlock(SCAST_BI(*bit)));
+
+
 }
 
 bool BPatch_basicBlockLoop::containsAddress(unsigned long addr)

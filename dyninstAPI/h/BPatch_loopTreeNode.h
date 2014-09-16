@@ -35,8 +35,18 @@
 #include "BPatch_Vector.h"
 #include "BPatch_function.h"
 
+
+
 class BPatch_basicBlockLoop;
 class func_instance;
+class BPatch_flowGraph;
+
+namespace Dyninst{
+namespace PatchAPI{
+class PatchLoop;
+class PatchLoopTreeNode;
+}
+}
 
 /** A class to represent the tree of nested loops and 
  *  callees (functions) in the control flow graph.
@@ -56,7 +66,9 @@ class BPATCH_DLL_EXPORT BPatch_loopTreeNode {
 
     //  BPatch_loopTreeNode::BPatch_loopTreeNode
     //  Create a loop tree node for BPatch_basicBlockLoop with name n 
-    BPatch_loopTreeNode(BPatch_basicBlockLoop *l, const char *n);
+    BPatch_loopTreeNode(BPatch_flowGraph*, 
+                        Dyninst::PatchAPI::PatchLoopTreeNode*, 
+			std::map<Dyninst::PatchAPI::PatchLoop*, BPatch_basicBlockLoop*>&);
 
     //  BPatch_loopTreeNode::~BPatch_loopTreeNode
     //  Destructor
