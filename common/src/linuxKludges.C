@@ -947,8 +947,10 @@ map_entries *getVMMaps(int pid, unsigned &maps_size) {
          maps.push_back(map);
    }
 
-   if (maps.empty())
+   if (maps.empty()) {
+      maps_size = 0;
       return NULL;
+   }
 
    map_entries *cmaps = (map_entries *)calloc(maps.size() + 1, sizeof(map_entries));
    if (cmaps != NULL) {

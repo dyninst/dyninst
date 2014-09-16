@@ -64,7 +64,7 @@ extern void mark_heaps_exec(void);
 
 extern int DYNINSTdebugRTlib;
 
-extern int DYNINSTstaticMode;
+DLLEXPORT extern int DYNINSTstaticMode;
 
 #define MAX_THREADS 32 //Should match MAX_THREADS in process.h
 #define THREADS_HASH_SIZE 40 //MAX_THREADS*1.25

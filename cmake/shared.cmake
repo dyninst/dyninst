@@ -3,7 +3,7 @@ set (DYNINST_MINOR_VERSION 2)
 set (DYNINST_PATCH_VERSION 0)
 
 # Debugging
-set(Boost_DEBUG 1)
+# set(Boost_DEBUG 1)
 
 set (SOVERSION "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}")
 set (LIBVERSION "${SOVERSION}.${DYNINST_PATCH_VERSION}")
@@ -25,7 +25,6 @@ set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${DYNINST_ROOT}/cmake/Modules")
 include (${DYNINST_ROOT}/cmake/platform.cmake)
 if (NOT ${PROJECT_NAME} MATCHES DyninstRT)
 include (${DYNINST_ROOT}/cmake/packages.cmake)
-#include (${DYNINST_ROOT}/cmake/c++11.cmake)
 endif()
 include (${DYNINST_ROOT}/cmake/cap_arch_def.cmake)
 include (${DYNINST_ROOT}/cmake/visibility.cmake)
@@ -58,6 +57,13 @@ file (RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${INSTALL_INCLUDE_DI
 
 # For the install tree
 set (CONF_INCLUDE_DIRS "\${DYNINST_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+
+# set default configuration type
+
+if (NOT CMAKE_BUILD_TYPE)
+   set (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING 
+       "Choose the build type (None, Debug, Release, RelWithDebInfo, MinSizeRel)" FORCE)
+endif()
 
 
 
