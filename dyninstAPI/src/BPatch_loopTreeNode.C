@@ -47,9 +47,14 @@ BPatch_loopTreeNode::BPatch_loopTreeNode(BPatch_flowGraph* fg,
                                          PatchLoopTreeNode* tree,
 					 std::map<PatchLoop*, BPatch_basicBlockLoop*>& loopMap)
 {
-    loop = loopMap[tree->loop];
-    hierarchicalName = strdup(tree->name());
-
+    if (tree->loop != NULL) {
+        loop = loopMap[tree->loop];
+	hierarchicalName = strdup(tree->name());
+    } else {
+        loop = NULL;
+	hierarchicalName = NULL;
+    }
+    
     for (auto cit = tree->children.begin(); cit != tree->children.end(); ++cit)
         children.push_back(new BPatch_loopTreeNode(fg, *cit, loopMap));
 
