@@ -745,7 +745,7 @@ Block* Function::getImmediatePostDominator(Block *A) {
 
 void Function::getImmediatePostDominates(Block *A, set<Block*> &imd) {
     fillPostDominatorInfo();
-    if (immediateDominates[A] != NULL)
+    if (immediatePostDominates[A] != NULL)
         imd.insert(immediatePostDominates[A]->begin(), immediatePostDominates[A]->end());
 }
 

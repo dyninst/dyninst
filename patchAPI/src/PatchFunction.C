@@ -980,7 +980,7 @@ PatchBlock* PatchFunction::getImmediatePostDominator(PatchBlock *A) {
 
 void PatchFunction::getImmediatePostDominates(PatchBlock *A, set<PatchBlock*> &imd) {
     fillPostDominatorInfo();
-    if (immediateDominates[A] != NULL)
+    if (immediatePostDominates[A] != NULL)
         imd.insert(immediatePostDominates[A]->begin(), immediatePostDominates[A]->end());
 }
 
