@@ -100,7 +100,14 @@ class ParseWorkElem
             case INDIRECT:
                 _order = br_indirect; break;
             case DIRECT:
-                _order = br_direct; break;
+                {
+                    if (tailcall) {
+                        _order = call;
+                    } else {
+                        _order = br_direct; 
+                    }
+                    break;
+                }
             case FALLTHROUGH:
                 _order = ret_fallthrough; break;
             case CATCH:
