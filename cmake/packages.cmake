@@ -70,13 +70,13 @@ if (UNIX)
 	INSTALL_DIR ${CMAKE_BINARY_DIR}/libiberty
 	INSTALL_COMMAND install <BINARY_DIR>/libiberty.a <INSTALL_DIR>
 	)
-      set(IBERTY_LIBRARY ${CMAKE_BINARY_DIR}/libiberty/libiberty.a)
+      set(IBERTY_LIBRARIES ${CMAKE_BINARY_DIR}/libiberty/libiberty.a)
     endif()
 
-    message(STATUS "Using libiberty ${IBERTY_LIBRARY}")
+    message(STATUS "Using libiberty ${IBERTY_LIBRARIES}")
     add_library(libiberty_imp STATIC IMPORTED)
     set_property(TARGET libiberty_imp
-      PROPERTY IMPORTED_LOCATION ${IBERTY_LIBRARY})
+      PROPERTY IMPORTED_LOCATION ${IBERTY_LIBRARIES})
   endif()
 
   find_package (ThreadDB)
