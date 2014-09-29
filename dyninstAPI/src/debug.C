@@ -379,7 +379,23 @@ int mal_printf(const char *format, ...)
   if (NULL == format) return -1;
 
   debugPrintLock->lock();
+  /*char *dyn_debug_write_filename = "mal_log.txt";
+  //[ACHIN - Added code to log into a file 
+  if (dyn_debug_write_filename && strlen(dyn_debug_write_filename)) {
+      dyn_debug_write_file = fopen(dyn_debug_write_filename, "a+");
+    }
+    if (!dyn_debug_write_file) {
+      dyn_debug_write_file = stderr;
+    }
+  
 
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(dyn_debug_write_file, format, va);
+  va_end(va);
+  fflush(dyn_debug_write_file);*/
+  //[ACHIN] - Added code ends
+  //[Achin] - Commenting out this code
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);

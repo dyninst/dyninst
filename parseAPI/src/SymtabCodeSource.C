@@ -430,6 +430,17 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
                 (*fsit)->getFirstSymbol()->getPrettyName().c_str());
             continue;
         }
+		/*Achin added code starts 12/15/2014*/
+		if(!strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"_non_rtti_object::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"bad_cast::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"exception::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"bad_typeid::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"sys_errlist"))
+		{
+		continue;
+		}
+
+		if(!strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"std::_non_rtti_object::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"std::__non_rtti_object::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"std::bad_cast::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"std::exception::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"std::bad_typeid::`vftable'"))
+		{
+		continue;
+		}
+		/*Achin added code ends*/
 
         if(HASHDEF(seen,(*fsit)->getOffset())) {
             // XXX it looks as though symtabapi now does de-duplication

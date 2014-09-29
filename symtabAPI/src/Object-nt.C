@@ -806,7 +806,19 @@ map<string, map<string, WORD> > & Object::getHintNameTable()
    
    return hnt_;
 }
+/*Achin's code [12-9-2014]*
+struct ImageSectionInfo
+{
+      char SectionName[IMAGE_SIZEOF_SHORT_NAME];//the macro is defined WinNT.h
+      char *SectionAddress;
+      int SectionSize;
+      ImageSectionInfo(const char* name)
+      {
+            strcpy(SectionName, name); 
+       }
+};
 
+*/
 void Object::FindInterestingSections(bool alloc_syms, bool defensive)
 {
    // now that we have the file mapped, look for 
@@ -814,6 +826,29 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
    assert( peHdr == NULL );
    HANDLE mapAddr = mf->base_addr();
    peHdr = ImageNtHeader( mapAddr );
+   /*Achin code 12-9-2014
+   MAGE_SECTION_HEADER *pSectionHdr = (IMAGE_SECTION_HEADER *) (pNtHdr + 1);
+
+	ImageSectionInfo *pSectionInfo = NULL;
+
+	//iterate through the list of all sections, and check the section name in the if conditon. etc
+	for ( int i = 0 ; i < pNtHdr->FileHeader.NumberOfSections ; i++ )
+	{
+		 char *name = (char*) pSectionHdr->Name;
+		 if ( memcmp(name, ".rdata", 5) == 0 )
+		 {
+			  pSectionInfo = new ImageSectionInfo(".rdata");
+			  pSectionInfo->SectionAddress = dllImageBase + pSectionHdr->VirtualAddress;
+
+			  range of the data segment - something you're looking for**
+			  pSectionInfo->SectionSize = pSectionHdr->Misc.VirtualSize;
+			  break;
+		  }
+		 
+		  pSectionHdr++;
+	}
+	*/
+
 
    if (peHdr == NULL) {
       code_ptr_ = (char*)mapAddr;
@@ -854,6 +889,8 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
       is_aout_ = true;
 
    getImportDescriptorTable(); //save the binary's original table, we may change it later
+   
+
 
    //get exported functions
    // note: there is an error in the PE specification regarding the export 
@@ -872,6 +909,16 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
 			if (funcNamePtrs && funcAddrs && funcAddrNameMap) {
 				for (unsigned i = 0; i < eT2->NumberOfNames; ++i) {
 					char *name = (char *) ::ImageRvaToVa(ImageNtHeader(mapAddr), mapAddr, funcNamePtrs[i], NULL);
+					
+					if (!strcmp(name,"??_7__non_rtti_object@@6B@") || !strcmp(name,"??_7bad_cast@@6B@") || !strcmp(name,"??_7bad_typeid@@6B@") || !strcmp(name,"??_7exception@@6B@") || !strcmp(name,"sys_errlist"))
+					{
+					continue;
+					}
+					if (!strcmp(name,"??_7__non_rtti_object@std@@6B@") || !strcmp(name,"??_7bad_cast@std@@6B@") || !strcmp(name,"??_7bad_typeid@std@@6B@") || !strcmp(name,"??_7exception@std@@6B@"))
+					{
+					continue;
+					}
+					fprintf(stderr, "The export sym function name - %s\n",name);
 					int funcIndx = funcAddrNameMap[i];
 					Address funcAddr = funcAddrs[funcIndx];
 					if ((funcAddr >= (Address) eT2) &&

@@ -2131,7 +2131,8 @@ bool PCProcess::postIRPC_internal(void *buf,
 
 
 BPatch_hybridMode PCProcess::getHybridMode() {
-    return BPatch_normalMode;
+    //return BPatch_normalMode; //[ACHIN - Change made to run Defensive mode functions - 11/11/2014]
+	return BPatch_defensiveMode;
 }
 
 bool PCProcess::isExploratoryModeOn() const {

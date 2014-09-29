@@ -213,7 +213,9 @@ class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
   // AST in. Returns a new AST. 
 
   static AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b); 
-
+  //ACHIN - added hasCycle function 11/17/2014
+  static void AST::hasCycle(AST::Ptr in,std::map<AST::Ptr, int> &visited);
+  
   virtual ID getID() const { return V_AST; };
 
   // VISITOR wooo....
