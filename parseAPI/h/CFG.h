@@ -683,6 +683,7 @@ class PARSER_EXPORT Loop
 
 private:
         std::set<Edge*> backEdges;
+	std::set<Block*> entries;
 
         // the function this loop is part of
         Function * func;
@@ -692,9 +693,6 @@ private:
 
 	/** the basic blocks in the loop */
         std::set<Block*> basicBlocks;
-
-        /** this func is only invoked by LoopAnalyzer::createLoops */
-        void addBackEdges(std::vector<Edge*> &edges);
 
 public:
 	/** If loop which directly encloses this loop. NULL if no such loop */
@@ -764,6 +762,12 @@ public:
 	/** returns the head basic block of the loop */
 
         Block * getLoopHead();
+
+        /* returns the entry blocks of the loop.
+	 * A natural loop has a single entry block
+	 * and an irreducible loop has mulbile entry blocks
+	 * */
+	bool getLoopEntries(set<Block*>&);
 
 	/** Loop::~Loop    */
 	/** destructor for the class */

@@ -47,167 +47,12 @@ using namespace Dyninst::ParseAPI;
 LoopAnalyzer::LoopAnalyzer(Function *f)
   : func(f) 
 {
-}
-
-
-bool LoopAnalyzer::IsDuplicateLoop(Loop *l2) {
-    for (auto lit = loops.begin(); lit != loops.end(); ++lit) {
-        Loop *l1 = *lit;
-        if(l1->hasBlock(l2->getLoopHead()) && l1->hasBlock(l2->getBackEdge()->src())
-	   && l2->hasBlock(l1->getLoopHead()) && l2->hasBlock(l1->getBackEdge()->src()))
-	   return true;
+    for (auto bit = f->blocks().begin(); bit != f->blocks().end(); ++bit) {
+        Block* b = *bit;
+	DFSP_pos[b] = 0;
+	header[b] = NULL;
     }
-    return false;
-}
-
-void
-LoopAnalyzer::createLoops()
-{
-   loops.clear();
-   for (auto iter = backEdges.begin(); iter != backEdges.end(); ++iter) {
-      assert((*iter) != NULL);
-      Loop *loop = new Loop(*iter, func);
-
-      // find all basic blocks in the loop and keep a map used
-      // to find the nest structure
-      findBBForBackEdge(*iter, loop->basicBlocks);
-
-      if (IsDuplicateLoop(loop)) {
-          delete loop;
-      } else {
-          loops.insert(loop);
-      }
-  }
-
-  func->_loops.insert(loops.begin(), loops.end());
-
-
-  //Build loop nesting relations
-  for (auto iter_1 = loops.begin(); iter_1 != loops.end(); ++iter_1) {
-     for (auto iter_2 = loops.begin(); iter_2 != loops.end(); ++iter_2) {
-        // Skip the first one, of course
-        if (iter_1 == iter_2) continue;
-
-        // We can't do this as a triangle (e.g, begin <= iter_1 < end, 
-        // iter_1 <= iter_2 < end) because we are checking
-        // whether l1 contains l2, not the reverse as well. 
-        // Also, the set is pointer-sorted, so there's no 
-        // structure at all. 
-
-        Loop *l1 = *iter_1;
-        Loop *l2 = *iter_2;
-
-
-        // Note that address ranges (as were previously used here)
-        // between the target of the back edge and the last instruction
-        // of the source of the back edge are insufficient to determine
-        // whether a block lies within a loop, given all possible
-        // layouts of loops in the address space. Instead, check
-        // for set membership.
-        //
-        // If loop A contains both the head block and the source
-        // of the back edge of loop B, it contains loop B (for
-        // nested natural loops)
-        if(l1->hasBlock(l2->getLoopHead()) &&
-           l1->hasBlock(l2->getBackEdge()->src()))
-        {
-           // l1 contains l2
-           l1->containedLoops.insert(l2);
-           if( l2->hasBlock(l1->getLoopHead()) &&
-               l2->hasBlock(l1->getBackEdge()->src()) )
-           {
-
-           }
-           else
-           {
-              // l2 has no parent, l1 is best so far
-              if(!l2->parent)
-              {
-                 l2->parent = l1;
-              }
-              else
-              {
-                 // if l1 is closer to l2 than l2's existing parent
-                 if(l2->parent->hasBlock(l1->getLoopHead()) &&
-                    l2->parent->hasBlock(l1->getBackEdge()->src()))
-                 {
-                    l2->parent = l1;
-                 }
-              }
-            }
-        }
-     }
-  }
-
-}
-
-
-// Adds each back edge in the flow graph to the given set. A back edge
-// in a flow graph is an edge whose head dominates its tail.
-void LoopAnalyzer::createBackEdges()
-{
-  /*
-   * Indirect jumps are NOT currently handled correctly
-   */
-
-   for (auto bit = func->blocks().begin(); bit != func->blocks().end(); ++bit) {
-      Block *source = *bit;
-      for (auto eit = source->targets().begin(); eit != source->targets().end(); ++eit) {
-          Edge *e = *eit;
-	  if (e->interproc()) continue;
-          if (func->dominates(e->trg(), source))
-	      backEdges.insert(e);
-
-      }
-   }
-}
-
-// this method is used to find the basic blocks contained by the loop
-// defined by a backedge. The tail of the backedge is the starting point and
-// the predecessors of the tail is inserted as a member of the loop.
-// then the predecessors of the newly inserted blocks are also inserted
-// until the head of the backedge is in the set(reached).
-
-void LoopAnalyzer::findBBForBackEdge(Edge* backEdge, std::set<Block*>& bbSet)
-{
-  std::stack<Block *> work;
-
-  Block *pred;
-
-  bbSet.insert(backEdge->trg());
-
-  if (bbSet.find(backEdge->src()) == bbSet.end()) {
-     bbSet.insert(backEdge->src());
-     work.push(backEdge->src());
-  }
-
-  while (!work.empty()) {
-    Block* bb = work.top();
-    work.pop();
-
-   for (auto eit = bb->sources().begin(); eit != bb->sources().end(); ++eit) {
-       if ((*eit)->interproc()) continue;
-       pred = (*eit)->src();
-       if (bbSet.find(pred) == bbSet.end()) {
-          bbSet.insert(pred);
-          work.push(pred);
-       }
-    }
-  }
-}
-
-// sort blocks by address ascending
-void bsort_loops_addr_asc(vector<Loop*> &v)
-{
-  if (v.size()==0) return;
-  for (unsigned i=0; i < v.size()-1; i++)
-    for (unsigned j=0; j < v.size()-1-i; j++)
-      if (v[j+1]->getLoopHead()->start()
-          < v[j]->getLoopHead()->start()) {
-        Loop *tmp = v[j];
-        v[j] = v[j+1];
-        v[j+1] = tmp;
-      }
+       
 }
 
 
@@ -312,8 +157,117 @@ void LoopAnalyzer::insertCalleeIntoLoopHierarchy(Function *callee,
 
 
 bool LoopAnalyzer::analyzeLoops() {
-    createBackEdges();
-    createLoops();
+    WMZC_DFS(func->entry(), 1);
+
+    for (auto bit = func->blocks().begin(); bit != func->blocks().end(); ++bit) {
+        Block* b = *bit;
+	if (header[b] == NULL) continue;
+	loop_tree[header[b]].insert(b);
+    }
+
+    for (auto bit = func->blocks().begin(); bit != func->blocks().end(); ++bit) {
+        Block* b = *bit;
+        if (header[b] == NULL) {
+	    // if header[b] == NULL, b is either the header of a outermost loop, or not in any loop
+	    createLoops(b);
+	}
+    }
+
+    for (auto bit = func->blocks().begin(); bit != func->blocks().end(); ++bit) {
+        Block* b = *bit;
+	if (loops[b] != NULL)
+	   func->_loops.insert(loops[b]); 
+    }
+        
+
     return true;
 }
 
+Block* LoopAnalyzer::WMZC_DFS(Block* b0, int pos) {
+    visited.insert(b0);
+    DFSP_pos[b0] = pos;
+
+    for (auto eit = b0->targets().begin(); eit != b0->targets().end(); ++eit) {
+        if ((*eit)->interproc() || (*eit)->sinkEdge()) continue;
+	Block* b = (*eit)->trg();	
+	if (visited.find(b) == visited.end()) {
+	    // case A, new
+	    Block* nh = WMZC_DFS(b, pos + 1);
+	    WMZC_TagHead(b0, nh);
+	} else {
+	    if (DFSP_pos[b] > 0) {
+	        // case B
+		if (loops[b] == NULL)
+		    loops[b] = new Loop(func);
+		WMZC_TagHead(b0, b);
+		loops[b]->entries.insert(b);
+		loops[b]->backEdges.insert(*eit);
+	    }
+	    else if (header[b] == NULL) {
+	        // case C, do nothing
+	    } else {
+	        Block* h = header[b];
+		if (DFSP_pos[h] > 0) {
+		    // case D
+		    WMZC_TagHead(b0, h);
+		} else {
+		    // case E
+		    // Mark b and (b0,b) as re-entry
+		    assert(loops[h]);
+		    loops[h]->entries.insert(b);
+		    while (header[h] != NULL) {
+		        h = header[h];
+			if (DFSP_pos[h] > 0) {
+			    WMZC_TagHead(b0, h);
+			    break;
+		        }	
+			assert(loops[h]);
+			loops[h]->entries.insert(b);
+
+		    }
+		}
+	    }
+	}
+    }
+    DFSP_pos[b0] = 0;
+    return header[b0];
+}
+
+void LoopAnalyzer::WMZC_TagHead(Block* b, Block* h) {
+    if (b == h || h == NULL) return;
+    Block *cur1, *cur2;
+    cur1 = b; cur2 = h;
+    while (header[cur1] != NULL) {
+        Block* ih = header[cur1];
+	if (ih == cur2) return;
+	if (DFSP_pos[ih] < DFSP_pos[cur2]) { // Can we guarantee both are not 0?
+	    header[cur1] = cur2;
+	    cur1 = cur2;
+	    cur2 = ih;
+	} else cur1 = ih;
+    }
+    header[cur1] = cur2;
+}
+
+// Recursively build the basic blocks in a loop
+// and the contained loops in a loop
+void LoopAnalyzer::createLoops(Block* cur) {   
+    if (loops[cur] != NULL)
+        loops[cur]->basicBlocks.insert(cur);
+
+    for (auto bit = loop_tree[cur].begin(); bit != loop_tree[cur].end(); ++bit) {
+        Block* child = *bit;
+	createLoops(child);
+	if (loops[cur] != NULL && loops[child] != NULL) {
+	    loops[cur]->containedLoops.insert(loops[child]->containedLoops.begin(), loops[child]->containedLoops.end());
+	    loops[cur]->containedLoops.insert(loops[child]);
+	    loops[child]->parent = loops[cur];
+	}
+	if (loops[cur] != NULL) {
+	    loops[cur]->basicBlocks.insert(child);
+	    if (loops[child] != NULL)
+	        loops[cur]->basicBlocks.insert(loops[child]->basicBlocks.begin(), loops[child]->basicBlocks.end());
+	}
+    }
+
+}

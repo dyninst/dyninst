@@ -45,7 +45,8 @@ using namespace Dyninst::ParseAPI;
 
 
 Loop::Loop(Function *f)
-    : func(f), parent(NULL) { assert(0);}
+    : func(f), parent(NULL) {
+    }
 
 Loop::Loop(Edge *be, Function *f) 
     : func(f), parent(NULL) 
@@ -91,13 +92,6 @@ int Loop::getBackEdges(vector<Edge*> &edges)
    edges.insert(edges.end(), backEdges.begin(), backEdges.end());
    return edges.size();
 
-}
-
-// this is a private function, invoked by LoopAnalyzer::createLoops
-void Loop::addBackEdges
-(std::vector<Edge*> &newEdges)
-{
-    backEdges.insert(newEdges.begin(),newEdges.end());
 }
 
 bool 
@@ -200,6 +194,12 @@ Block* Loop::getLoopHead()
 {
     assert(backEdges.size());
     return (* backEdges.begin())->trg();
+}
+
+bool Loop::getLoopEntries(set<Block*> &e) {
+    assert(entries.size());
+    e.insert(entries.begin(), entries.end());
+    return true;
 }
 
 

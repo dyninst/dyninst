@@ -42,13 +42,23 @@
 namespace Dyninst {
 namespace ParseAPI {
 
+//  Implement WMZC algorithm to detect both natural loops 
+//  and irreducible loops
+//  Reference: "A New Algorithm for Identifying Loops in Decompilation"
+//  by Tao Wei, Jian Mao, Wei Zou and Yu Chen
 class LoopAnalyzer {
  
   
   Function *func;
-  std::set<Edge*> backEdges;
-  std::set<Loop*> loops;
+  std::map<Block*, set<Block*> > loop_tree;
+  std::map<Block*, Loop*> loops;
 
+  std::map<Block*, Block*> header;  
+  std::map<Block*, int> DFSP_pos;
+  std::set<Block*> visited;
+
+  Block* WMZC_DFS(Block* b0, int pos);
+  void WMZC_TagHead(Block* b, Block* h);
 
   void dfsCreateLoopHierarchy(LoopTreeNode * parent,
                               vector<Loop *> &loops,
@@ -77,10 +87,7 @@ public:
 
   void insertCalleeIntoLoopHierarchy(Function * func, unsigned long addr);
 
-  void createBackEdges();
-  void createLoops();
-
-  bool IsDuplicateLoop(Loop *l2);
+  void createLoops(Block* cur);
 
 };
 }
