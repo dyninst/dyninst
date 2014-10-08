@@ -1091,12 +1091,14 @@ bool DwarfWalker::parseStructUnionClass() {
       case DW_TAG_structure_type: 
       case DW_TAG_class_type: {
          typeStruct *ts = new typeStruct( type_id(), curName());
+         ts->setSize(size);
          containingType = dynamic_cast<fieldListType *>(tc()->addOrUpdateType(ts));
          break;
       }
       case DW_TAG_union_type: 
       {
          typeUnion *tu = new typeUnion( type_id(), curName());
+         tu->setSize(size);
          containingType = dynamic_cast<fieldListType *>(tc()->addOrUpdateType(tu));
          break;
       }
