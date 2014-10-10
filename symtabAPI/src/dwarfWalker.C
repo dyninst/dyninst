@@ -2234,6 +2234,9 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **lo
    * May be we would need to parse the location list for IA64 functions to store the 
    * register numbers and offsets and use it based on the pc value. 
    */
+
+   uint64_t max_addr = (addr_size == 4) ? 0xffffffff : 0xffffffffffffffff;
+   Address base = modLow;
  
    for (unsigned locIndex = 0 ; locIndex < listLength; locIndex++) {
                    
@@ -2248,11 +2251,18 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **lo
       // If location == 0..-1, it's "unset" and we keep the big range unless
       // we're in a lexical block construct. 
       // 
-      dwarf_printf("(0x%lx) Decoding entry %d of %d over range 0x%lx - 0x%lx, mod 0x%lx - 0x%lx\n", 
+      dwarf_printf("(0x%lx) Decoding entry %d of %d over range 0x%lx - 0x%lx, mod 0x%lx - 0x%lx, base 0x%lx\n", 
                    id(), locIndex+1, (int) listLength,
                    (long) location->ld_lopc,
                    (long) location->ld_hipc,
-                   modLow, modHigh);
+                   modLow, modHigh, base);
+
+      if (location->ld_lopc == max_addr) {
+         //This is a base address selection entry, which changes the base address of 
+         // subsequent entries
+         base = location->ld_hipc;
+         continue;
+      }
 
       long int *tmp = (long int *)initialStackValue;
       bool result = decodeDwarfExpression(location, tmp, loc,
@@ -2290,8 +2300,8 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **lo
       }
       else {
          dwarf_printf("(0x%lx) Using lexical range, shifted by module low\n", id());
-         loc.lowPC = location->ld_lopc + modLow;
-         loc.hiPC = location->ld_hipc + modLow;
+         loc.lowPC = location->ld_lopc + base;
+         loc.hiPC = location->ld_hipc + base;
 
          dwarf_printf("(0x%lx) Variable valid over range 0x%lx to 0x%lx\n", 
                       id(), loc.lowPC, loc.hiPC);
