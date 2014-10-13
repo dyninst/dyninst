@@ -156,7 +156,7 @@ namespace Dyninst
             switch(locs->modrm_mod)
             {
                 case 0x00:
-                    baseAST = decodeImmediate(op_d, b.start + locs->sib_position + 1);
+                    baseAST = decodeImmediate(op_d, b.start + locs->sib_position + 1, true);
                     break;
                     case 0x01: {
                         MachRegister reg;
@@ -166,7 +166,7 @@ namespace Dyninst
 			  reg = MachRegister::getFramePointer(m_Arch);
 			
                         baseAST = makeAddExpression(make_shared(singleton_object_pool<RegisterAST>::construct(reg)),
-						    decodeImmediate(op_b, b.start + locs->sib_position + 1),
+						    decodeImmediate(op_b, b.start + locs->sib_position + 1, true),
 						    registerType);
                         break;
                     }
@@ -178,7 +178,7 @@ namespace Dyninst
                             reg = MachRegister::getFramePointer(m_Arch);
 
                         baseAST = makeAddExpression(make_shared(singleton_object_pool<RegisterAST>::construct(reg)), 
-						    decodeImmediate(op_d, b.start + locs->sib_position + 1),
+						    decodeImmediate(op_d, b.start + locs->sib_position + 1, true),
 						    registerType);
                         break;
                     }
