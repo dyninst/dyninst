@@ -2,7 +2,7 @@
 
 \definedin{CFG.h}
 
-The Function class represents the protion of the program CFG that is reachable through intraprocedural control flow transfers from the function's entry block. Functions in the ParseAPI have only a single entry point; multiple-entry functions such as those found in Fortran programs are represented as several functions that ``share'' a subset of the CFG. Functions may be non-contiguous and may share blocks with other functions. 
+The Function class represents the portion of the program CFG that is reachable through intraprocedural control flow transfers from the function's entry block. Functions in the ParseAPI have only a single entry point; multiple-entry functions such as those found in Fortran programs are represented as several functions that ``share'' a subset of the CFG. Functions may be non-contiguous and may share blocks with other functions. 
 
 \begin{center}
 \begin{tabular}{ll}
@@ -18,7 +18,7 @@ ONDEMAND & dynamically discovered at runtime \\
 \end{tabular}
 \end{center}
 
-\apidesc{Return type of function \code{src()}; see description below.}
+\apidesc{Return status of an function, which indicates whether this function will return to its caller or not; see description below.}
 
 \begin{center}
 \begin{tabular}{ll}
@@ -32,8 +32,6 @@ RETURN & may return \\
 \bottomrule
 \end{tabular}
 \end{center}
-
-\apidesc{Return type of function \code{retstatus()}; see description below.}
 
 \begin{apient}
 typedef std::vector<Block*> blocklist
@@ -62,6 +60,7 @@ obj & CodeObject * & CodeObject that contains this function. \\
 src & FuncSrc & The type of hint that identified this function's entry point. \\
 restatus & FuncReturnStatus * & Returns the best-effort determination of whether this function may return or not. Return status cannot always be statically determined, and at most can guarantee that a function \emph{may} return, not that it \emph{will} return. \\
 getReturnType & Type * & Type representing the return type of the function. \\
+
 \bottomrule
 \end{tabular}
 
@@ -74,6 +73,70 @@ Function(Address addr,
 \end{apient}
 \apidesc{Creates a function at \code{addr} in the code region specified. 
 Insructions for this function are given in \code{isource}.}
+
+\begin{apient}
+LoopTreeNode* getLoopTree()
+\end{apient}
+\apidesc{Return the nesting tree of the loops in the function. See class \code{LoopTreeNode} for more details}
+
+\begin{apient}
+Loop* findLoop(const char *name)
+\end{apient}
+\apidesc{Return the loop with the given nesting name. See class \code{LoopTreeNode} for more details about how loop nesting names are assigned.}
+
+\begin{apient}
+bool getLoops(vector<Loop*> &loops);
+\end{apient}
+\apidesc{Fill \code{loops} with all the loops in the function}
+
+\begin{apient}
+bool getOuterLoops(vector<Loop*> &loops);
+\end{apient}
+\apidesc{Fill \code{loops} with all the outermost loops in the function}
+
+\begin{apient}
+bool dominates(Block* A, Block *B);
+\end{apient}
+\apidesc{Return true if block \code{A} dominates block {B}}
+
+\begin{apient}
+Block* getImmediateDominator(Block *A);
+\end{apient}
+\apidesc{Return the immediate dominator of block \code{A}，\code{NULL} if the block \code{A} does not have an immediate dominator.}
+
+\begin{apient}
+void getImmediateDominates(Block *A, set<Block*> &imm);
+\end{apient}
+\apidesc{Fill \code{imm} with all the blocks immediate dominated by block \code{A}}
+
+\begin{apient}
+void getAllDominates(Block *A, set<Block*> &dom);
+\end{apient}
+\apidesc{Fill \code{dom} with all the blocks dominated by block \code{A}}
+
+
+\begin{apient}
+bool postDominates(Block* A, Block *B);
+\end{apient}
+\apidesc{Return true if block \code{A} post-dominates block {B}}
+
+\begin{apient}
+Block* getImmediatePostDominator(Block *A);
+\end{apient}
+\apidesc{Return the immediate post-dominator of block \code{A}，\code{NULL} if the block \code{A} does not have an immediate post-dominator.}
+
+\begin{apient}
+void getImmediatePostDominates(Block *A, set<Block*> &imm);
+\end{apient}
+\apidesc{Fill \code{imm} with all the blocks immediate post-dominated by block \code{A}}
+
+\begin{apient}
+void getAllPostDominates(Block *A, set<Block*> &dom);
+\end{apient}
+\apidesc{Fill \code{dom} with all the blocks post-dominated by block \code{A}}
+
+
+
 
 \begin{apient}
 std::vector<FuncExtent *> const& extents()
