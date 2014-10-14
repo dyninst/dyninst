@@ -82,11 +82,6 @@ bool Loop::containsAddressInclusive(Address addr)
     return false;
 }
 
-Edge* Loop::getBackEdge()
-{
-  return  * backEdges.begin();
-}
-
 int Loop::getBackEdges(vector<Edge*> &edges)
 {
    edges.insert(edges.end(), backEdges.begin(), backEdges.end());
@@ -188,18 +183,11 @@ bool Loop::hasBlockExclusive(Block*block)
 }
 
 
-//method that returns the head of the loop. Which is also
-//head of the back edge which defines the natural loop
-Block* Loop::getLoopHead()
-{
-    assert(backEdges.size());
-    return (* backEdges.begin())->trg();
-}
 
-bool Loop::getLoopEntries(set<Block*> &e) {
-    assert(entries.size());
-    e.insert(entries.begin(), entries.end());
-    return true;
+
+int Loop::getLoopEntries(vector<Block*> &e) {
+    e.insert(e.end(), entries.begin(), entries.end());
+    return e.size();
 }
 
 

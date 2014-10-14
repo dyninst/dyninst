@@ -57,8 +57,18 @@ LoopAnalyzer::LoopAnalyzer(Function *f)
 
 
 struct loop_sort {
+   Address getLoopSmallestEntry(Loop *l) const {
+       vector<Block*> entries;
+       l->getLoopEntries(entries);
+       Address min = 0;
+       for (auto bit = entries.begin(); bit != entries.end(); ++bit)
+           if (min == 0 || (*bit)->start() < min) min = (*bit)->start();
+       return min;          
+   }
    bool operator()(Loop *l, Loop *r) const {
-      return l->getLoopHead()->start() < r->getLoopHead()->start(); 
+      Address lentry = getLoopSmallestEntry(l);
+      Address rentry = getLoopSmallestEntry(r);
+      return lentry < rentry; 
    }
 };
 
@@ -173,6 +183,16 @@ bool LoopAnalyzer::analyzeLoops() {
 	}
     }
 
+    // The WMZC algorithm only identifies back edges 
+    // to the loop head, which is the first node of the loop 
+    // visited in the DFS.
+    // Add other back edges that targets other entry blocks
+    for (auto bit = func->blocks().begin(); bit != func->blocks().end(); ++bit) {
+        Block* b = *bit;
+	if (loops[b] != NULL) FillMoreBackEdges(loops[b]);
+    }
+    // Finish constructing all loops in the function.
+    // Now populuate the loop data structure of the function.
     for (auto bit = func->blocks().begin(); bit != func->blocks().end(); ++bit) {
         Block* b = *bit;
 	if (loops[b] != NULL)
@@ -183,10 +203,24 @@ bool LoopAnalyzer::analyzeLoops() {
     return true;
 }
 
+struct edge_sort {
+    bool operator() (Edge *l, Edge *r) const {
+        return l->trg()->start() < r->trg()->start();
+    }
+};
+
 Block* LoopAnalyzer::WMZC_DFS(Block* b0, int pos) {
     visited.insert(b0);
     DFSP_pos[b0] = pos;
-
+    // The final loop nesting structure depends on
+    // the order of DFS. To guarantee that we get the 
+    // same loop nesting structure for an individual binary 
+    // in all executions, we sort the target blocks using
+    // the start adress.
+    vector<Edge*> visitOrder;
+    edge_sort es;
+    visitOrder.insert(visitOrder.end(), b0->targets().begin(), b0->targets().end());
+    sort(visitOrder.begin(), visitOrder.end(), es);
     for (auto eit = b0->targets().begin(); eit != b0->targets().end(); ++eit) {
         if ((*eit)->interproc() || (*eit)->sinkEdge()) continue;
 	Block* b = (*eit)->trg();	
@@ -271,3 +305,18 @@ void LoopAnalyzer::createLoops(Block* cur) {
     }
 
 }
+
+void LoopAnalyzer::FillMoreBackEdges(Loop *loop) {
+    // All back edges to the header of the loop have been identified.
+    // Now find all back edges to the other entries of the loop.
+    for (auto bit = loop->basicBlocks.begin(); bit != loop->basicBlocks.end(); ++bit) {
+        Block* b = *bit;
+	for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
+	    Edge *e = *eit;
+	    if (e->interproc() || e->sinkEdge()) continue;
+	    if (loop->entries.find(e->trg()) != loop->entries.end())
+	        loop->backEdges.insert(e);
+	}	
+    }
+}
+

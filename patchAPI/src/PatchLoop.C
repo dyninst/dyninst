@@ -64,6 +64,12 @@ PatchLoop::PatchLoop(PatchObject *obj, ParseAPI::Loop *loop): loop_(loop) {
     for (auto bit = b.begin(); bit != b.end(); ++bit)
         basicBlocks.insert(obj->getBlock(*bit));
 
+    //set entries;
+    vector<ParseAPI::Block*> eb;
+    loop->getLoopEntries(eb);
+    for (auto bit = b.begin(); bit != b.end(); ++bit)
+        entries.insert(obj->getBlock(*bit));
+
 }
 
 
@@ -94,10 +100,6 @@ bool PatchLoop::containsAddressInclusive(Address addr)
 
     return false;
 }
-PatchEdge* PatchLoop::getBackEdge()
-{
-  return  * backEdges.begin();
-}
 
 int PatchLoop::getBackEdges(vector<PatchEdge*> &edges)
 {
@@ -106,6 +108,10 @@ int PatchLoop::getBackEdges(vector<PatchEdge*> &edges)
 
 }
 
+int PatchLoop::getLoopEntries(vector<PatchBlock*> &e) {
+   e.insert(e.end(), entries.begin(), entries.end());
+   return e.size();
+}
 
 
 bool PatchLoop::hasAncestor(PatchLoop* l) {
@@ -198,14 +204,6 @@ bool PatchLoop::hasBlockExclusive(PatchBlock*block)
     return false;
 }
 
-
-//method that returns the head of the loop. Which is also
-//head of the back edge which defines the natural loop
-PatchBlock* PatchLoop::getLoopHead()
-{
-    assert(backEdges.size());
-    return (* backEdges.begin())->trg();
-}
 
 
 PatchFunction* PatchLoop::getFunction() 

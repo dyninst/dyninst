@@ -710,15 +710,16 @@ public:
 	bool containsAddressInclusive(Address addr);
 
 
-	/** Loop::getBackEdge    */
-        /** return a back edge that defines this loop */
-
-        Edge * getBackEdge();
-
 	/** Loop::getBackEdges */
         /** Sets edges to the set of back edges that define this loop,
             returns the number of back edges that define this loop */
         int getBackEdges(vector<Edge*> &edges);
+
+        /* returns the entry blocks of the loop.
+	 * A natural loop has a single entry block
+	 * and an irreducible loop has mulbile entry blocks
+	 * */
+	int getLoopEntries(vector<Block*>&);
 
 	/** Loop::getContainedLoops    */
 	/** returns vector of contained loops */
@@ -757,17 +758,6 @@ public:
 	/** returns the function this loop is in */
 
         Function * getFunction();
-
-	/** Loop::getLoopHead    */
-	/** returns the head basic block of the loop */
-
-        Block * getLoopHead();
-
-        /* returns the entry blocks of the loop.
-	 * A natural loop has a single entry block
-	 * and an irreducible loop has mulbile entry blocks
-	 * */
-	bool getLoopEntries(set<Block*>&);
 
 	/** Loop::~Loop    */
 	/** destructor for the class */

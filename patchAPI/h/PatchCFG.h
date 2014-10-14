@@ -312,8 +312,12 @@ class PATCHAPI_EXPORT PatchLoop
 private:
         std::set<PatchEdge*> backEdges;
 
+	// The entries of the loop
+	std::set<PatchBlock*> entries;
+
         // the function this loop is part of
         PatchFunction * func;
+
 
 	/** set of loops that are contained (nested) in this loop. */
         std::set<PatchLoop*> containedLoops;
@@ -331,12 +335,15 @@ public:
 	bool containsAddressInclusive(Address addr);
 
 
-        /** return a back edge that defines this loop */
-        PatchEdge * getBackEdge();
-
         /** Sets edges to the set of back edges that define this loop,
             returns the number of back edges that define this loop */
         int getBackEdges(vector<PatchEdge*> &edges);
+
+        /* returns the entry blocks of the loop.
+	 * A natural loop has a single entry block
+	 * and an irreducible loop has mulbile entry blocks
+	 * */
+	int getLoopEntries(vector<PatchBlock*>&);
 
 	/** returns vector of contained loops */
         bool getContainedLoops(vector<PatchLoop*> &loops);
@@ -362,9 +369,6 @@ public:
 
 	/** returns the function this loop is in */
         PatchFunction * getFunction();
-
-	/** returns the head basic block of the loop */
-        PatchBlock * getLoopHead();
 
         ~PatchLoop() { }
 

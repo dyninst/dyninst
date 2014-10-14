@@ -732,9 +732,9 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop
     BPatch_basicBlockLoop *writeLoop = NULL;
     while (lIter != loops.end()) {
 
-        mal_printf("found nat'l loop w/ block[0] at 0x%x, back edge at 0%x\n",
-                   (*lIter)->getLoopHead()->getStartAddress(),
-                   (*lIter)->getBackEdge()->getSource()->getLastInsnAddress());
+//        mal_printf("found nat'l loop w/ block[0] at 0x%x, back edge at 0%x\n",
+//                   (*lIter)->getLoopHead()->getStartAddress(),
+//                   (*lIter)->getBackEdge()->getSource()->getLastInsnAddress());
 
         if ((*lIter)->containsAddressInclusive(writeAddr) && 
             (!writeLoop || writeLoop->hasAncestor(*lIter))) 
@@ -784,9 +784,9 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop
         lIter++;
     }
     if (writeLoop) {
-        mal_printf("CHOSE nat'l loop with: block[0] at 0x%x, back edge at 0%x\n",
-		    writeLoop->getLoopHead()->getStartAddress(),
-		    writeLoop->getBackEdge()->getSource()->getLastInsnAddress());
+//        mal_printf("CHOSE nat'l loop with: block[0] at 0x%x, back edge at 0%x\n",
+//		    writeLoop->getLoopHead()->getStartAddress(),
+//		    writeLoop->getBackEdge()->getSource()->getLastInsnAddress());
     }
     return writeLoop;
 }

@@ -65,7 +65,11 @@ BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_flowGraph *fg, PatchLoop* lo
     for (auto bit = b.begin(); bit != b.end(); ++bit)
         basicBlocks.insert(fg->findBlock(SCAST_BI(*bit)));
 
-
+    //set entries
+    vector<PatchBlock*> eb;
+    loop->getLoopEntries(eb);
+    for (auto bit = eb.begin(); bit != eb.end(); ++bit)
+        entries.insert(fg->findBlock(SCAST_BI(*bit)));
 }
 
 bool BPatch_basicBlockLoop::containsAddress(unsigned long addr)
@@ -96,10 +100,11 @@ bool BPatch_basicBlockLoop::containsAddressInclusive(unsigned long addr)
     return false;
 }
 
-BPatch_edge *BPatch_basicBlockLoop::getBackEdge()
-{
-  return  * backEdges.begin();
+int BPatch_basicBlockLoop::getLoopEntries(BPatch_Vector<BPatch_basicBlock*> &e) {
+    e.insert(e.end(), entries.begin(), entries.end());
+    return e.size();
 }
+
 int BPatch_basicBlockLoop::getBackEdges(BPatch_Vector<BPatch_edge*> &edges)
 {
    edges.insert(edges.end(), backEdges.begin(), backEdges.end());
@@ -215,14 +220,6 @@ bool BPatch_basicBlockLoop::hasBlockExclusive(BPatch_basicBlock*block)
     return false;
 }
 
-
-//method that returns the head of the loop. Which is also
-//head of the back edge which defines the natural loop
-BPatch_basicBlock* BPatch_basicBlockLoop::getLoopHead()
-{
-    assert(backEdges.size());
-    return (* backEdges.begin())->getTarget();
-}
 
 
 BPatch_flowGraph* BPatch_basicBlockLoop::getFlowGraph() 

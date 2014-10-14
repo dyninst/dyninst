@@ -168,27 +168,29 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
     if (DEBUG_LOOP) fprintf(stderr,"loop entry\n");
 
     // return inst points for each edge e where e's target is this
-    // loop's head and e's source is not a block in this loop or
-    // its subloops. we assume a natural loop, that the loop is
-    // always entered through the head
-    BPatch_Vector<BPatch_edge*> edges;
-    loop->getLoopHead()->getIncomingEdges(edges);
-    for (unsigned i = 0; i < edges.size(); i++) {
-      // hasBlock is inclusive, checks subloops
-      if (!loop->hasBlock(edges[i]->getSource())) {
-        if (DEBUG_LOOP) edges[i]->dump();
-        BPatch_point *iP = edges[i]->getPoint();
-        if (!iP) {
-          fprintf(stderr, "ERROR: failed to find loop entry point!\n");
-        }
-        else {
-          iP->overrideType(BPatch_locLoopEntry);
-          iP->setLoop(loop);
-          points->push_back(iP);
-        }
+    // loop's entries and e's source is not a block in this loop or
+    // its subloops.
+    BPatch_Vector<BPatch_basicBlock*> entries;
+    loop->getLoopEntries(entries);
+    for (auto bit = entries.begin(); bit != entries.end(); ++bit) {
+      BPatch_Vector<BPatch_edge*> edges;
+      (*bit)->getIncomingEdges(edges);
+      for (unsigned i = 0; i < edges.size(); i++) {
+        // hasBlock is inclusive, checks subloops
+        if (!loop->hasBlock(edges[i]->getSource())) {
+	  if (DEBUG_LOOP) edges[i]->dump();
+	  BPatch_point *iP = edges[i]->getPoint();
+	  if (!iP) {
+	    fprintf(stderr, "ERROR: failed to find loop entry point!\n");
+	  }
+	  else {
+	    iP->overrideType(BPatch_locLoopEntry);
+	    iP->setLoop(loop);
+	    points->push_back(iP);
+	  }
+	}
       }
     }
-
     if (0 == points->size()) {
       fprintf(stderr,"Warning: request to instrument loop entry "
               "of a loop w/o an entry edge.");
@@ -213,18 +215,22 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
   case BPatch_locLoopStartIter: {
     if (DEBUG_LOOP) fprintf(stderr,"loop start iter\n");
 
-    // instrument the head of the loop
-    block_instance *llHead = loop->getLoopHead()->lowlevel_block();
+    // instrument the entris of the loop
+    BPatch_Vector<BPatch_basicBlock*> entries;
+    loop->getLoopEntries(entries);
+    for (auto bit = entries.begin(); bit != entries.end(); ++bit) {
+      block_instance *llHead = (*bit)->lowlevel_block();
 
-    // TODO FIXME: if we want this to work right we need an underlying loop
-    // representation...
-    BPatch_point *p = getAddSpace()->findOrCreateBPPoint(func_,
-                                                         instPoint::blockEntry(loop->getLoopHead()->ifunc(),
-                                                                               llHead),
-                                                         BPatch_locBasicBlockEntry);
-    p->overrideType(BPatch_locLoopStartIter);
-    p->setLoop(loop);
-    points->push_back(p);
+      // TODO FIXME: if we want this to work right we need an underlying loop
+      // representation...
+      BPatch_point *p = getAddSpace()->findOrCreateBPPoint(func_,
+                                                           instPoint::blockEntry((*bit)->ifunc(),
+                                                                                 llHead),
+                                                           BPatch_locBasicBlockEntry);
+      p->overrideType(BPatch_locLoopStartIter);
+      p->setLoop(loop);
+      points->push_back(p);
+    }
 
     break;
   }
@@ -233,13 +239,16 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
     if (DEBUG_LOOP) fprintf(stderr,"loop end iter\n");
 
     // point for the backedge of this loop
-    BPatch_edge *edge = loop->getBackEdge();
-    if (DEBUG_LOOP) edge->dump();
-    BPatch_point *iP = edge->getPoint();
-    iP->overrideType(BPatch_locLoopEndIter);
-    iP->setLoop(loop);
-    points->push_back(iP);
-
+    BPatch_Vector<BPatch_edge*> backEdges;
+    loop->getBackEdges(backEdges);
+    for (auto eit = backEdges.begin(); eit != backEdges.end(); ++eit) {
+      BPatch_edge *edge = *eit;
+      if (DEBUG_LOOP) edge->dump();
+      BPatch_point *iP = edge->getPoint();
+      iP->overrideType(BPatch_locLoopEndIter);
+      iP->setLoop(loop);
+      points->push_back(iP);
+    }
     // and all edges which exit the loop
     findLoopExitInstPoints(loop, points);
 
@@ -605,20 +614,6 @@ getLoopMinMaxSourceLines(BPatch_loop * loop)
   return mm;
 }
 
-
-// sort blocks by address ascending
-void bsort_loops_addr_asc(BPatch_Vector<BPatch_loop*> &v)
-{
-  if (v.size()==0) return;
-  for (unsigned i=0; i < v.size()-1; i++)
-    for (unsigned j=0; j < v.size()-1-i; j++)
-      if (v[j+1]->getLoopHead()->getStartAddress()
-          < v[j]->getLoopHead()->getStartAddress()) {
-        BPatch_loop *tmp = v[j];
-        v[j] = v[j+1];
-        v[j+1] = tmp;
-      }
-}
 
 BPatch_loopTreeNode *BPatch_flowGraph::getLoopTree()
 {

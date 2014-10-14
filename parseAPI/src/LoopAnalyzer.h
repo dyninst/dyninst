@@ -59,7 +59,7 @@ class LoopAnalyzer {
 
   Block* WMZC_DFS(Block* b0, int pos);
   void WMZC_TagHead(Block* b, Block* h);
-
+  void FillMoreBackEdges(Loop *loop);
   void dfsCreateLoopHierarchy(LoopTreeNode * parent,
                               vector<Loop *> &loops,
 			      std::string level);
