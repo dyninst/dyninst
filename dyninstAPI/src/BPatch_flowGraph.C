@@ -154,6 +154,11 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
    *  instrumentation therefore may clobber any instrumentation that
    *  was added because it has an inaccurate view of the binary.
    *
+   *
+   *  2014-10-14 Xiaozhu:
+   *  Case (2) becomes irrelevant because under the new loop detection
+   *  algorithm, there is going to be only one loop identified.
+   *  Case (1) is still a problem.
    */
 
   if (DEBUG_LOOP)
@@ -221,8 +226,6 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
     for (auto bit = entries.begin(); bit != entries.end(); ++bit) {
       block_instance *llHead = (*bit)->lowlevel_block();
 
-      // TODO FIXME: if we want this to work right we need an underlying loop
-      // representation...
       BPatch_point *p = getAddSpace()->findOrCreateBPPoint(func_,
                                                            instPoint::blockEntry((*bit)->ifunc(),
                                                                                  llHead),

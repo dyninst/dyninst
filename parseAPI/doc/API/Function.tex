@@ -97,7 +97,7 @@ bool getOuterLoops(vector<Loop*> &loops);
 \begin{apient}
 bool dominates(Block* A, Block *B);
 \end{apient}
-\apidesc{Return true if block \code{A} dominates block {B}}
+\apidesc{Return true if block \code{A} dominates block \code{B}}
 
 \begin{apient}
 Block* getImmediateDominator(Block *A);
@@ -118,7 +118,7 @@ void getAllDominates(Block *A, set<Block*> &dom);
 \begin{apient}
 bool postDominates(Block* A, Block *B);
 \end{apient}
-\apidesc{Return true if block \code{A} post-dominates block {B}}
+\apidesc{Return true if block \code{A} post-dominates block \code{B}}
 
 \begin{apient}
 Block* getImmediatePostDominator(Block *A);

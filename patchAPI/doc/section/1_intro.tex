@@ -15,8 +15,9 @@ to handle new types of instrumentation, different binary types, or
 different patching techniques. 
 
 PatchAPI represents the binary as an annotatable and modifiable CFG. The CFG
-consists of abstractions for binary objects, functions, basic blocks, and edges
-connecting basic blocks, which are similar to the CFG abstractions used by the
+consists of abstractions for binary objects, functions, basic blocks, edges
+connecting basic blocks, and loops representing code that may execute repeatedly, 
+which are similar to the CFG abstractions used by the
 \href{ftp://ftp.cs.wisc.edu/paradyn/releases/release7.0/doc/parseapi.pdf}{ParseAPI}
 component.
 

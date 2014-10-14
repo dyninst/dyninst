@@ -51,6 +51,12 @@ patching: 1) find some \textbf{Point}; 2) insert or delete \textbf{Snippet} at s
 \item \emph{PatchEdge} - The PatchEdge class is a wrapper of ParseAPI's Edge class,
     which join two basic blocks in the CFG, indicating the type of control flow
     transfer instruction that joins the basic blocks to each other.
+\item \emph{PatchLoop} - The PatchLoop class is a wrapper of ParseAPI's Loop class,
+    which repreents a piece of code that may execute repeatedly.
+\item \emph{PatchLoopTreeNode} - The PatchLoopTreeNode class is a wrapper of ParseAPI's LoopTreeNode class,
+    which provides a tree interface to a collection of instances of class PatchLoop contained in a function. 
+    The structure of the tree follows the nesting relationship of the loops in a function. 
+
 \end{itemize}
 \subsection{Plugin Interface}
 \label{sec-2.2}
