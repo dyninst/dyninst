@@ -158,30 +158,12 @@ namespace Dyninst
                 case 0x00:
                     baseAST = decodeImmediate(op_d, b.start + locs->sib_position + 1, true);
                     break;
-                    case 0x01: {
-                        MachRegister reg;
-                        if (locs->rex_b)
-                            reg = x86_64::r13;
-                        else
-			  reg = MachRegister::getFramePointer(m_Arch);
-			
-                        baseAST = makeAddExpression(make_shared(singleton_object_pool<RegisterAST>::construct(reg)),
-						    decodeImmediate(op_b, b.start + locs->sib_position + 1, true),
-						    registerType);
-                        break;
-                    }
-                    case 0x02: {
-                        MachRegister reg;
-                        if (locs->rex_b)
-                            reg = x86_64::r13;
-                        else
-                            reg = MachRegister::getFramePointer(m_Arch);
-
-                        baseAST = makeAddExpression(make_shared(singleton_object_pool<RegisterAST>::construct(reg)), 
-						    decodeImmediate(op_d, b.start + locs->sib_position + 1, true),
-						    registerType);
-                        break;
-                    }
+                case 0x01: 
+                case 0x02: 
+                    baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, 
+											       registerType,
+											       locs->rex_b)));
+                    break;
                 case 0x03:
                 default:
                     assert(0);
@@ -194,6 +176,7 @@ namespace Dyninst
 											       registerType,
 											       locs->rex_b)));
         }
+
         if(index == 0x04 && (!(ia32_is_mode_64()) || !(locs->rex_x)))
         {
             return baseAST;
