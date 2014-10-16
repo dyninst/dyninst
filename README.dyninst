@@ -1,0 +1,75 @@
+READ THIS FIRST: how to build DyninstAPI and its subcomponents
+
+1) Configuration
+
+Dyninst is now built via CMake. We recommend performing an interactive
+configuration with "ccmake ." first, in order to see which options are
+relevant for your system. You may also perform a batch configuration
+with "cmake .".  Options are passed to CMake with -DVAR=VALUE. Common
+options include:
+
+Boost_INCLUDE_DIR
+CMAKE_BUILD_TYPE
+CMAKE_INSTALL_PREFIX
+LIBDWARF_INCLUDE_DIR
+LIBDWARF_LIBRARIES
+LIBELF_INCLUDE_DIR
+LIBELF_LIBRARIES
+IBERTY_LIBRARY
+
+CMake's default generator on Linux is normally "Unix Makefiles", and
+on Windows, it will normally produce project files for the most recent
+version of Visual Studio on your system. Other generators should work
+but are not tested. After the CMake step concludes, you will have
+appropriate Makefiles or equivalent and can build Dyninst.
+
+We require CMake 2.6 as a minimum on all systems, and CMake 2.8.11
+allows us to automatically download and build libelf/libdwarf/binutils
+on ELF systems if they are needed. If you do not have a sufficiently
+recent CMake, you may need to manually specify the location of these
+dependencies.
+
+2) Building and installation
+
+To build Dyninst and all its components, "make && make install" from
+the top-level directory of the source tree. To build and install a
+single component and its dependencies, do the same thing from that
+component's subdirectory. Libraries will be installed into
+CMAKE_INSTALL_PREFIX/INSTALL_LIB_DIR, and headers will be installed
+into CMAKE_INSTALL_PREFIX/INSTALL_INCLUDE_DIR. If you wish to import
+Dyninst into your own CMake projects, the export information is in
+CMAKE_INSTALL_PREFIX/INSTALL_CMAKE_DIR.
+
+3) What's new
+
+SIGNIFICANT CAPABILITY CHANGES
+* Dyninst now builds with CMake, produces appropriate package information for other projects, and will automatically download libelf/libdwarf/binutils if it can't find them.
+* Dyninst now handles binaries built with DEP and ASLR on Windows
+* Fixes to handler rewriting gcc 4.7+ static binaries and instrumenting gcc 4.8+/DWARF4 binaries.
+* Proccontrol now provides access to pre- and post-syscall event callbacks.
+* SymtabAPI now supports access to inlined functions/
+
+FREQUENTLY ENCOUNTERED/CATASTROPHIC BUGS
+* Fixed crash bugs when destroying Symtab objects.
+* Fixed bug where reinstrumentation could cause a mutatee to crash.
+* Fixed section alignment bugs in rewriter.
+* Added checks and error returns for when a user has traps disabled, but instrumentation would require them.
+
+PERFORMANCE/CORRECTNESS IMPROVEMENTS
+
+* Optimized function call snippets via improved XMM save/restore generation.
+* Handle a new jump table idiom seen in newer versions of libc.
+* Fixed bugs where loadlibrary and exec callbacks from ProcControl were not guaranteed to occur with the process in a consistent state.
+* Assorted proccontrol bug fixes for BG/Q.
+* Fixed an outstanding signed/unsigned bug in InstructionAPI immediates.
+* Improved performance and fixed bugs in block-level instrumentation, particularly in shared code
+
+GENERAL BUG FIXES
+
+* Fixed springboard bug: we weren't properly handling tail calls with respect to entry instrumentation
+* Fixed various bugs in stack analysis leading to hangs.
+* Fixed parsing bug: a jump to a function's own entry point is not a tail call.
+
+QUALITY IMPROVEMENTS
+* We now do type checking on parameter and return value snippets where possible.
+* Properly control symbol visibility on Linux, so that only public Dyninst functions/variables are exposed to users.

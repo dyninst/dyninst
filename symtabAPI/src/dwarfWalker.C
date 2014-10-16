@@ -1091,12 +1091,14 @@ bool DwarfWalker::parseStructUnionClass() {
       case DW_TAG_structure_type: 
       case DW_TAG_class_type: {
          typeStruct *ts = new typeStruct( type_id(), curName());
+         ts->setSize(size);
          containingType = dynamic_cast<fieldListType *>(tc()->addOrUpdateType(ts));
          break;
       }
       case DW_TAG_union_type: 
       {
          typeUnion *tu = new typeUnion( type_id(), curName());
+         tu->setSize(size);
          containingType = dynamic_cast<fieldListType *>(tc()->addOrUpdateType(tu));
          break;
       }
@@ -2257,7 +2259,7 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **lo
                                           symtab()->getArchitecture());
       if (!result) {
          dwarf_printf("(0x%lx): decodeDwarfExpr failed\n", id());
-         return false;
+         continue;
       }
 
       if (location->ld_lopc == 0 &&
@@ -2298,7 +2300,7 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **lo
    }
    
    /* decode successful */
-   return true;
+   return !locs.empty();
 } /* end decodeLocationListForStaticOffsetOrAddress() */
 
 void DwarfWalker::deallocateLocationList( Dwarf_Locdesc * locationList, 

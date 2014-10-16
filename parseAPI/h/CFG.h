@@ -484,7 +484,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     /* Basic block and CFG access */
     blocklist blocks();
     const_blocklist blocks() const;
-    int num_blocks()
+    size_t num_blocks()
     {
       if(!_cache_valid) finalize();
       return _bmap.size();

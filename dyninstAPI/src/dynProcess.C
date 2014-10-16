@@ -647,6 +647,7 @@ bool PCProcess::createInitialMappedObjects() {
 
     // Set the RT library name
     if( !getDyninstRTLibName() ) {
+      bperr("Dyninst was unable to find the dyninst runtime library.");
         startup_printf("%s[%d]: failed to get Dyninst RT lib name\n",
                 FILE__, __LINE__);
         return false;
@@ -1087,12 +1088,29 @@ bool PCProcess::detachProcess(bool /*cont*/) {
     if( !isAttached() ) return false;
 
     if (tracedSyscalls_) {
+        // Process needs to be stopped to change instrumentation
+        bool needToContinue = false;
+        if( !isStopped() ) {
+            needToContinue = true;
+            if( !stopProcess() ) {
+                proccontrol_printf("%s[%d]: failed to stop process for removing syscalls\n",
+                        FILE__, __LINE__);
+            }
+        }
+
         tracedSyscalls_->removePreFork();
         tracedSyscalls_->removePostFork();
         tracedSyscalls_->removePreExec();
         tracedSyscalls_->removePostExec();
         tracedSyscalls_->removePreExit();
         tracedSyscalls_->removePreLwpExit();
+
+        if( needToContinue ) {
+            if( !continueProcess() ) {
+                proccontrol_printf("%s[%d]: failed to continue process after removing syscalls\n",
+                        FILE__, __LINE__);
+            }
+        }
     }
 
     // TODO figure out if ProcControl should care about continuing a process
@@ -1164,7 +1182,7 @@ void PCProcess::setReportingEvent(bool b) {
 }
 
 void PCProcess::markExited() {
-    pcProc_ = Process::ptr();
+	if(pcProc_) pcProc_ = Process::ptr();
 }
 
 void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
@@ -1192,12 +1210,14 @@ void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
     }
     write_printf("%lx_%d_%u[] = {", inTracedProcess, getPid(), write_no++);
 
-    const unsigned char *buffer = (const unsigned char *)inSelf;
-    for(unsigned i = 0; i < amount-1; ++i) {
-        if( amount && (i % 10 == 0) ) write_printf("\n");
-        write_printf("0x%02hhx, ", buffer[i]);
+    if( amount > 0 ) {
+       const unsigned char *buffer = (const unsigned char *)inSelf;
+       for(unsigned i = 0; i < amount-1; ++i) {
+           if( i % 10 == 0 ) write_printf("\n");
+           write_printf("0x%02hhx, ", buffer[i]);
+       }
+       write_printf("0x%02hhx", buffer[amount-1]);
     }
-    if(amount) write_printf("0x%02hhx", buffer[amount-1]);
     write_printf("\n};\n");
 }
 

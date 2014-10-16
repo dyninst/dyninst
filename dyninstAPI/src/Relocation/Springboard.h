@@ -240,6 +240,11 @@ class InstalledSpringboards
   // Map this to an int because IntervalTree collapses similar ranges. Punks.
   IntervalTree<Address, SpringboardInfo*> validRanges_;
 
+  // If we consume NOP-padding between functions to get room for a jump, that
+  // padding may not exist in the relocation buffer.  Remember such ranges so
+  // we can deal with that in reinstrumentation, if only to force a trap.
+  IntervalTree<Address, SpringboardInfo*> paddingRanges_;
+
   // Like the previous, but for branches we put in relocated code. We
   // assume anything marked as "in relocated code" is a valid thing to write
   // to, since relocation size is >= original size. However, we still don't

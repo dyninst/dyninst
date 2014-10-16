@@ -1074,41 +1074,23 @@ bool int_process::waitAndHandleEvents(bool block)
 
       gotEvent = true;
 
-#if defined(os_linux)
-      // Linux is bad about enforcing event ordering, and so we will get 
-      // thread events after a process has exited.
-//      bool terminating = (ev->getProcess()->isTerminated()) ||
-//         (ev->getProcess()->llproc() && ev->getProcess()->llproc()->wasForcedTerminated());
       bool terminating = (ev->getProcess()->isTerminated());
 
       bool exitEvent = (ev->getEventType().time() == EventType::Post &&
                         ev->getEventType().code() == EventType::Exit);
-      if (terminating && !exitEvent) {
-         // Since the user will never handle this one...
-	pthrd_printf("Received event %s on terminated process, ignoring\n",
-		     ev->name().c_str());
-	if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
-	continue;
-      }
-#endif
-
-      int_process* llp = ev->getProcess()->llproc();
-      if(!llp) {
-         error = true;
-         goto done;
-      }
-
       Process::const_ptr proc = ev->getProcess();
       int_process *llproc = proc->llproc();
-      if (!llproc) {
-         //Seen on Linux--a event comes in on an exited process because the kernel
-         // doesn't synchronize events across threads.  We thus get a thread exit
-         // event after a process exit event.  Just drop this event on the
-         // floor.
-         pthrd_printf("Dropping %s event from process %d due to process already exited\n",
-                      ev->getEventType().name().c_str(), proc->getPid());
-         continue;
+
+      if (terminating) {
+	if(!exitEvent || !llproc) {
+	  // Since the user will never handle this one...
+	  pthrd_printf("Received event %s on terminated process, ignoring\n",
+		       ev->name().c_str());
+	  if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
+	  continue;
+	}
       }
+
       HandlerPool *hpool = llproc->handlerpool;
 
       if (!ev->handling_started) {
@@ -4410,10 +4392,15 @@ bool int_thread::StateTracker::setState(State to)
                 stateStr(state), stateStr(to));
    state = to;
 
-   int_thread::State handler_state = up_thr->getHandlerState().getState();
-   int_thread::State generator_state = up_thr->getGeneratorState().getState();
-   if (up_thr->up_thread && handler_state == stopped) assert(generator_state == stopped || generator_state == exited || generator_state == detached );
-   if (up_thr->up_thread && generator_state == running) assert(handler_state == running);
+   if (up_thr->up_thread) {
+      int_thread::State handler_state = up_thr->getHandlerState().getState();
+      int_thread::State generator_state = up_thr->getGeneratorState().getState();
+      if (handler_state == stopped)
+         assert(generator_state == stopped || generator_state == exited || generator_state == detached );
+      if (generator_state == running)
+         assert(handler_state == running);
+   }
+
    return true;
 }
 

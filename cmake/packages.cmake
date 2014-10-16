@@ -102,7 +102,7 @@ endif()
 # an older CMake and it complains that it can't find Boost
 set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
   "1.50" "1.50.0" "1.51" "1.51.0" "1.52" "1.52.0"
-  "1.53" "1.53.0" "1.54" "1.54.0" "1.55" "1.55.0")
+  "1.53" "1.53.0" "1.54" "1.54.0" "1.55" "1.55.0" "1.56" "1.56.0")
 
 set (Boost_DEBUG ON)
 set (PATH_BOOST "/usr" CACHE STRING "Path to boost")
@@ -123,6 +123,12 @@ endif()
 # so ensure that we don't mix incompatible headers with
 # the thread library
 #set (BOOST_MIN_VERSION 1.41.0)
+
+if(DEFINED PATH_BOOST OR 
+	   DEFINED Boost_INCLUDE_DIR OR 
+	   DEFINED Boost_LIBRARY_DIR)
+  set(Boost_NO_SYSTEM_PATHS ON)
+endif()
 
 find_package (Boost ${BOOST_MIN_VERSION} REQUIRED COMPONENTS thread system)
 

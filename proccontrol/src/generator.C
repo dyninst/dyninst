@@ -122,7 +122,7 @@ bool Generator::isExitingState()
 #endif
 #define STR_CASE(X) case Generator::X: return #X
 
-static const char *generatorStateStr(Generator::state_t s) {
+const char * Generator::generatorStateStr(Generator::state_t s) {
    switch (s) {
       STR_CASE(none);
       STR_CASE(initializing);

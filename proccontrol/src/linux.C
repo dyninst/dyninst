@@ -403,7 +403,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		       }
 		       exitcode = WEXITSTATUS(exitcode);
 		       
-		       pthrd_printf("Decoded event to pre-exit of process %d/%d with code %d\n",
+		       pthrd_printf("Decoded event to pre-exit of process %d/%d with code %lu\n",
 				      proc->getPid(), thread->getLWP(), exitcode);
 		       event = Event::ptr(new EventExit(EventType::Pre, exitcode));
 		     } 
@@ -1290,7 +1290,7 @@ bool linux_thread::plat_cont()
    //
    
    int tmpSignal = continueSig_;
-   if( hasPendingStop() ) {
+   if( hasPendingStop()) {
        tmpSignal = 0;
    }
 

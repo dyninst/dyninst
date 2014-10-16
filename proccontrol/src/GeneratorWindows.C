@@ -31,6 +31,7 @@
 #include "proccontrol/h/Generator.h"
 #include "GeneratorWindows.h"
 #include "DecoderWindows.h"
+#include "Mailbox.h"
 #include "windows_process.h"
 #include "windows_handler.h"
 #include "procpool.h"
@@ -130,15 +131,14 @@ bool GeneratorWindows::isExitingState()
 
 void GeneratorWindows::setState(Generator::state_t new_state)
 {
-	//CriticalSection c(processDataLock);
-	pthrd_printf("Setting generator state: %d\n", new_state);
-	if(thread_to_proc.find(DThread::self()) == thread_to_proc.end()) {
-		state = new_state;
-		return;
-	}
-   if (isExitingState())
-      return;
-   thread_to_proc[DThread::self()]->state = new_state;
+   pthrd_printf("Setting generator state to %s\n", generatorStateStr(new_state));
+    if(thread_to_proc.find(DThread::self()) == thread_to_proc.end()) {
+        state = new_state;
+	return;
+    }
+    if (isExitingState())
+        return;
+    thread_to_proc[DThread::self()]->state = new_state;
 }
 
 Generator::state_t GeneratorWindows::getState()
@@ -223,6 +223,21 @@ bool GeneratorWindows::plat_continue(ArchEvent* evt)
 	}
 	d->unhandled_exception = false;
 	pthrd_printf("GeneratorWindows::plat_continue() for %d done with ::ContinueDebugEvent()\n", winEvt->evt.dwProcessId);
+	if(winEvt->evt.dwDebugEventCode == EXIT_PROCESS_DEBUG_EVENT) {
+		pthrd_printf("GeneratorWindows::plat_continue() exiting %d and throwing post-exit event\n", winEvt->evt.dwProcessId);
+		ProcPool()->condvar()->lock();
+		setState(statesync);
+		EventExit::ptr e(new EventExit(EventType::Post, winEvt->evt.u.ExitProcess.dwExitCode));
+		e->setProcess(winproc->proc());
+		int_thread *thread = ProcPool()->findThread((Dyninst::LWP)(winEvt->evt.dwThreadId));
+		e->setThread(thread->thread());		
+		e->setSyncType(Event::sync_process);
+		e->getProcess()->llproc()->updateSyncState(e, true);
+		ProcPool()->condvar()->unlock();
+		setState(queueing);
+		mbox()->enqueue(e);
+		return true;
+	}
 	return true;
 }
 

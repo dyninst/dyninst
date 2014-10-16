@@ -1,0 +1,43 @@
+Building Dyninst with CMake
+
+Dyninst and its components are no longer built with autotools, but with CMake. For a complete guide to using CMake, see the CMake documentation at http://www.cmake.org.
+
+Quick upgrade guide for existing Dyninst users
+
+In your desired build directory, invoke the following:
+
+cmake /path/to/dyninst/source -Dfoo=bar …
+make
+make install
+
+in place of:
+
+configure --with-foo=bar
+make
+make install
+
+The PLATFORM environment variable will be automatically set to our best guess of your platform; you may manually override this if necessary. Valid values are in cmake/platforms-unix.cmake and cmake/platforms-win.cmake.
+
+The most common configuration options are:
+
+BOOST_ROOT: base directory of your boost installation
+CMAKE_CXX_COMPILER: C++ compiler to use
+CMAKE_C_COMPILER: C compiler to use
+LIBELF_INCLUDE_DIR: location of elf.h and libelf.h
+LIBELF_LIBRARIES: full path of libelf.so
+LIBDWARF_INCLUDE_DIR: location of libdwarf.h
+LIBDWARF_LIBRARIES: full path of libdwarf.so
+IBERTY_LIBRARY: full path of libiberty.[a|so]; libiberty.a must be built with -fPIC
+CMAKE_[C|CXX]_COMPILER_FLAGS: additional C/C++ compiler flags to use
+CMAKE_BUILD_TYPE: may be set to Debug, Release, or RelWithDebInfo for unoptimized, optimized, and optimized with debug information builds respectively. This replaces the NO_OPT_FLAG environment variable previously used by Dyninst. Note that Debug is the default; previously, the equivalent of Release was the default.
+CMAKE_INSTALL_PREFIX: like PREFIX for autotools-based systems. Where to install things.
+
+For a full list of options, the curses-based ccmake or the GUI-based cmake-gui are the best choices. Note that, unlike with autotools-based systems, the COMPILER variables and the FLAGS variables are wholly separate; setting CMAKE_C_COMPILER=”/usr/bin/gcc -m32” will not behave correctly.
+
+New capabilities
+
+CMake allows Dyninst to be built out-of-source; simply invoke CMake in your desired build location. In-source builds are still fully supported as well.
+Each component of Dyninst may be built independently: cd $component; make. Standard make options will work; there is limited support for make -jN. Setting VERBOSE=1 will replace the beautified CMake output with raw commands and their output, which can be useful for troubleshooting.
+Libelf, libdwarf, and libiberty will be automatically downloaded and used in the build provided that they are needed, they cannot be found, and your CMake version is at least 2.8.11. With older versions of CMake, you will be required to specify the location of these libraries if they are not present in system default paths.
+Dyninst now requires the boost thread libraries in order to build proccontrolAPI. These are available from boost.org, and should be available as prebuilt packages on most Linux distributions.
+On Windows, you will need the Debug Information Access (DIA) SDK, which should be available with an MSDN subscription, in order to build Dyninst; you will not need libelf, libdwarf, binutils, or the GCC demangler. Dyninst is still built via CMake, and the NMake and Visual Studio project file generators should both work. We have not tested building Dyninst on Windows with gcc, and we do not expect this to work presently.
