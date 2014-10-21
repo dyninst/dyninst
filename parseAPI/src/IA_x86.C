@@ -264,10 +264,19 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
     }
 
     if(allInsns.size() < 2) {
+      if(context->addr() == _curBlk->start())
+      {
+	parsing_printf("\tjump as only insn in entry block, TAIL CALL\n");
+	tailCalls[type] = true;
+	return true;
+      }
+      else
+      {
         parsing_printf("\ttoo few insns to detect tail call\n");
         context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
         tailCalls[type] = false;
         return false;
+      }
     }
 
     if ((curInsn()->getCategory() == c_BranchInsn))
