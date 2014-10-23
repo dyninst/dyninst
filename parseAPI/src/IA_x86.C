@@ -130,7 +130,7 @@ bool isNopInsn(Instruction::Ptr insn)
         }
         // Check for zero displacement
         nopVisitor visitor;
-        insn->getOperand(0).getValue()->apply(&visitor);
+        insn->getOperand(1).getValue()->apply(&visitor);
         if (visitor.isNop) return true; 
     }
     return false;

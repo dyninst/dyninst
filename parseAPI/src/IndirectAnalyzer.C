@@ -111,6 +111,9 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 }
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
+
+    if (block->last() != 0x4e4ffb) return false;
+
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     FindAllConditionalGuards();
     FindAllThunks();
@@ -119,6 +122,9 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 
     BackwardSlicer bs(func, block, block->last(), guards, rf);
     GraphPtr slice =  bs.CalculateBackwardSlicing();
+
+    return false;
+
     parsing_printf("Calculate bound facts\n");     
     BoundFactsCalculator bfc(guards, func, slice, func->entry() == block, rf, thunks);
     bfc.CalculateBoundedFacts();

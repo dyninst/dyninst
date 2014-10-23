@@ -37,6 +37,7 @@ using namespace Dyninst::ParseAPI;
 
 int Dyninst::ParseAPI::dyn_debug_parsing = 0;
 int Dyninst::ParseAPI::dyn_debug_malware = 0;
+int Dyninst::ParseAPI::dyn_debug_indirect_collect = 0;
 int Dyninst::ParseAPI::dyn_debug_initialized = 0;
 
 #if defined(_MSC_VER)
@@ -86,6 +87,24 @@ int Dyninst::ParseAPI::malware_printf_int(const char *format, ...)
     return ret;
 }
 
+int Dyninst::ParseAPI::indirect_collect_printf_int(const char *format, ...)
+{
+    if(!dyn_debug_initialized) {
+        if(getenv("DYNINST_DEBUG_INDIRECT_COLLECT"))
+            dyn_debug_indirect_collect = 1;
+        dyn_debug_initialized = 1;
+    }
+
+    if(!dyn_debug_parsing) return 0;
+    if(NULL == format) return -1;
+
+    va_list va;
+    va_start(va,format);
+    int ret = vfprintf(stderr, format, va);
+    va_end(va);
+
+    return ret;
+}
 const std::string PARSE_BLOCK_COUNT("parseBlockCount");
 const std::string PARSE_FUNCTION_COUNT("parseFunctionCount");
 const std::string PARSE_BLOCK_SIZE("parseBlockSize");
