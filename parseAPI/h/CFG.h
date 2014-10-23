@@ -54,6 +54,8 @@ namespace Dyninst {
 
 namespace ParseAPI {
 
+class LoopAnalyzer;
+class dominatorCFG;
 class CodeObject;
 class CFGModifier;
 
@@ -337,7 +339,7 @@ class PARSER_EXPORT Block : public Dyninst::interval<Address>,
     };
 
     static void destroy(Block *b);
-
+  
  private:
     void addSource(Edge * e);
     void addTarget(Edge * e);
@@ -359,6 +361,7 @@ class PARSER_EXPORT Block : public Dyninst::interval<Address>,
     edgelist _trglist;
     int _func_cnt;
     bool _parsed;
+
 
  friend class Edge;
  friend class Function;
@@ -426,9 +429,12 @@ enum StackTamper {
 class CodeObject;
 class CodeRegion;
 class FuncExtent;
+class Loop;
+class LoopTreeNode;
 
 class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
    friend class CFGModifier;
+   friend class LoopAnalyzer;
  protected:
     Address _start;
     CodeObject * _obj;
@@ -499,6 +505,29 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     bool hasNoStackFrame() const { return _no_stack_frame; }
     bool savesFramePointer() const { return _saves_fp; }
     bool cleansOwnStack() const { return _cleans_stack; }
+
+    /* Loops */    
+    LoopTreeNode* getLoopTree();
+    Loop* findLoop(const char *name);
+    bool getLoops(vector<Loop*> &loops);
+    bool getOuterLoops(vector<Loop*> &loops);
+
+    /* Dominator info */
+
+    /* Return true if A dominates B in this function */
+    bool dominates(Block* A, Block *B);
+    Block* getImmediateDominator(Block *A);
+    void getImmediateDominates(Block *A, set<Block*> &);
+    void getAllDominates(Block *A, set<Block*> &);
+
+    /* Post-dominator info */
+
+    /* Return true if A post-dominates B in this function */
+    bool postDominates(Block* A, Block *B);
+    Block* getImmediatePostDominator(Block *A);
+    void getImmediatePostDominates(Block *A, set<Block*> &);
+    void getAllPostDominates(Block *A, set<Block*> &);
+
 
     /* Parse updates and obfuscation */
     void setEntryBlock(Block *new_entry);
@@ -587,6 +616,26 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     StackTamper _tamper;
     Address _tamper_addr;
 
+    /* Loop details*/
+    bool _loop_analyzed; // true if loops in the function have been found and stored in _loops
+    std::set<Loop*> _loops;
+    LoopTreeNode *_loop_root; // NULL if the tree structure has not be calculated
+    void getLoopsByNestingLevel(vector<Loop*>& lbb, bool outerMostOnly);
+
+
+    /* Dominator and post-dominator info details */
+    bool isDominatorInfoReady;
+    bool isPostDominatorInfoReady;
+    void fillDominatorInfo();
+    void fillPostDominatorInfo();
+    /** set of basic blocks that this basicblock dominates immediately*/
+    std::map<Block*, std::set<Block*>*> immediateDominates;
+    /** basic block which is the immediate dominator of the basic block */
+    std::map<Block*, Block*> immediateDominator;
+    /** same as previous two fields, but for postdominator tree */
+    std::map<Block*, std::set<Block*>*> immediatePostDominates;
+    std::map<Block*, Block*> immediatePostDominator;
+
     /*** Internal parsing methods and state ***/
     void add_block(Block *b);
 
@@ -594,6 +643,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     friend class Parser;
     friend class CFGFactory;
     friend class CodeObject;
+    friend class dominatorCFG;
 };
 
 /* Describes a contiguous extent of a Function object */
@@ -623,6 +673,165 @@ class PARSER_EXPORT FuncExtent : public Dyninst::interval<Address> {
     Address high() const { return _end; } 
 };
 
+/** Natural loops
+  */
+
+class PARSER_EXPORT Loop  
+{
+	friend class LoopAnalyzer;
+	friend std::ostream& operator<<(std::ostream&,Loop&);
+
+private:
+        std::set<Edge*> backEdges;
+	std::set<Block*> entries;
+
+        // the function this loop is part of
+        Function * func;
+
+	/** set of loops that are contained (nested) in this loop. */
+        std::set<Loop*> containedLoops;
+
+	/** the basic blocks in the loop */
+        std::set<Block*> basicBlocks;
+
+public:
+	/** If loop which directly encloses this loop. NULL if no such loop */
+
+	Loop* parent;
+
+	/** Return true if the given address is within the range of
+	    this loop's basicBlocks */
+
+        bool containsAddress(Address addr);
+	  
+	/** Return true if the given address is within the range of
+	    this loop's basicBlocks or its children */
+		   
+	bool containsAddressInclusive(Address addr);
+
+
+	/** Loop::getBackEdges */
+        /** Sets edges to the set of back edges that define this loop,
+            returns the number of back edges that define this loop */
+        int getBackEdges(vector<Edge*> &edges);
+
+        /* returns the entry blocks of the loop.
+	 * A natural loop has a single entry block
+	 * and an irreducible loop has mulbile entry blocks
+	 * */
+	int getLoopEntries(vector<Block*>&);
+
+	/** Loop::getContainedLoops    */
+	/** returns vector of contained loops */
+
+        bool getContainedLoops(vector<Loop*> &loops);
+
+	/** Loop::getOuterLoops    */
+	/** returns vector of outer contained loops */
+
+	bool getOuterLoops(vector<Loop*> &loops);
+
+	/** Loop::getLoopBasicBlocks    */
+	/** returns all basic blocks in the loop */
+
+        bool getLoopBasicBlocks(vector<Block*> &blocks);
+
+	/** Loop::getLoopBasicBlocksExclusive    */
+	/** returns all basic blocks in this loop, exluding the blocks
+	    of its sub loops. */
+
+        bool getLoopBasicBlocksExclusive(vector<Block*> &blocks);
+
+        /** does this loop or its subloops contain the given block? */
+
+        bool hasBlock(Block *b);
+
+        /** does this loop contain the given block? */
+
+        bool hasBlockExclusive(Block *b);
+
+	/** Loop::hasAncestor    */
+	/** returns true if this loop is a descendant of the given loop */
+
+        bool hasAncestor(Loop *loop);
+
+	/** returns the function this loop is in */
+
+        Function * getFunction();
+
+	/** Loop::~Loop    */
+	/** destructor for the class */
+
+        ~Loop() { }
+
+        std::string format() const;
+
+private:
+// internal use only
+	/** constructor of class */
+	Loop(Function *);
+
+	/** constructor of the class */
+	Loop(Edge *, Function *);
+
+	/** get either contained or outer loops, determined by outerMostOnly */
+	bool getLoops(vector<Loop*>&, 
+		      bool outerMostOnly) const;
+}; // class Loop
+
+/** A class to represent the tree of nested loops and 
+ *  callees (functions) in the control flow graph.
+ *  @see BPatch_basicBlockLoop
+ *  @see BPatch_flowGraph
+ */
+
+class PARSER_EXPORT LoopTreeNode {
+    friend class LoopAnalyzer;
+
+ public:
+    // A loop node contains a single Loop instance
+    Loop *loop;
+
+    // The LoopTreeNode instances nested within this loop.
+    vector<LoopTreeNode *> children;
+
+    //  LoopTreeNode::LoopTreeNode
+    //  Create a loop tree node for Loop with name n 
+    LoopTreeNode(Loop *l, const char *n);
+
+    //  Destructor
+    ~LoopTreeNode();
+
+    //  LoopTreeNode::name
+    //  Return the name of this loop. 
+    const char * name(); 
+
+    //  LoopTreeNode::getCalleeName
+    //  Return the function name of the ith callee. 
+    const char * getCalleeName(unsigned int i);
+
+    //  LoopTreeNode::numCallees
+    //  Return the number of callees contained in this loop's body. 
+    unsigned int numCallees();
+
+    //Returns a vector of the functions called by this loop.
+    bool getCallees(vector<Function *> &v);
+    
+
+    //  BPatch_loopTreeNode::findLoop
+    //  find loop by hierarchical name
+    Loop * findLoop(const char *name);
+
+ private:
+
+    /** name which indicates this loop's relative nesting */
+    char *hierarchicalName;
+
+    // A vector of functions called within the body of this loop (and
+    // not the body of sub loops). 
+    vector<Function *> callees;
+
+}; // class LoopTreeNode 
 
 } //namespace ParseAPI
 } //namespace Dyninst

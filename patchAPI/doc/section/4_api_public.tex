@@ -267,6 +267,67 @@ PatchCallback *cb() const;
 Returns the PatchCallback object associated with this PatchFunction.
 }
 
+\begin{apient}
+PatchLoopTreeNode* getLoopTree()
+\end{apient}
+\apidesc{Return the nesting tree of the loops in the function. See class \code{PatchLoopTreeNode} for more details}
+
+\begin{apient}
+PatchLoop* findLoop(const char *name)
+\end{apient}
+\apidesc{Return the loop with the given nesting name. See class \code{PatchLoopTreeNode} for more details about how loop nesting names are assigned.}
+
+\begin{apient}
+bool getLoops(vector<PatchLoop*> &loops);
+\end{apient}
+\apidesc{Fill \code{loops} with all the loops in the function}
+
+\begin{apient}
+bool getOuterLoops(vector<PatchLoop*> &loops);
+\end{apient}
+\apidesc{Fill \code{loops} with all the outermost loops in the function}
+
+\begin{apient}
+bool dominates(PatchBlock* A, PatchBlock *B);
+\end{apient}
+\apidesc{Return true if block \code{A} dominates block \code{B}}
+
+\begin{apient}
+PatchBlock* getImmediateDominator(PatchBlock *A);
+\end{apient}
+\apidesc{Return the immediate dominator of block \code{A}，\code{NULL} if the block \code{A} does not have an immediate dominator.}
+
+\begin{apient}
+void getImmediateDominates(PatchBlock *A, set<PatchBlock*> &imm);
+\end{apient}
+\apidesc{Fill \code{imm} with all the blocks immediate dominated by block \code{A}}
+
+\begin{apient}
+void getAllDominates(PatchBlock *A, set<PatchBlock*> &dom);
+\end{apient}
+\apidesc{Fill \code{dom} with all the blocks dominated by block \code{A}}
+
+
+\begin{apient}
+bool postDominates(PatchBlock* A, PatchBlock *B);
+\end{apient}
+\apidesc{Return true if block \code{A} post-dominates block \code{B}}
+
+\begin{apient}
+PatchBlock* getImmediatePostDominator(PatchBlock *A);
+\end{apient}
+\apidesc{Return the immediate post-dominator of block \code{A}，\code{NULL} if the block \code{A} does not have an immediate post-dominator.}
+
+\begin{apient}
+void getImmediatePostDominates(PatchBlock *A, set<PatchBlock*> &imm);
+\end{apient}
+\apidesc{Fill \code{imm} with all the blocks immediate post-dominated by block \code{A}}
+
+\begin{apient}
+void getAllPostDominates(PatchBlock *A, set<PatchBlock*> &dom);
+\end{apient}
+\apidesc{Fill \code{dom} with all the blocks post-dominated by block \code{A}}
+
 \subsubsection{PatchBlock}
 \label{sec-3.2.10}
 
@@ -522,6 +583,169 @@ PatchCallback *cb() const;
 \apidesc{
 Returns a Patchcallback object associated with this PatchEdge.
 }
+
+\subsubsection{PatchLoop}
+\label{sec-3.2.12}
+
+\textbf{Declared in}: PatchCFG.h
+
+The PatchLoop class is a wrapper of ParseAPI's Loop class (has-a).
+It represents code structure that may execute repeatedly.
+
+\begin{apient}
+PatchLoop* parent
+\end{apient}
+\apidesc{Returns the loop which directly encloses this loop. NULL if no such loop.} 
+
+
+\begin{apient}
+bool containsAddress(Address addr)
+\end{apient}
+\apidesc{Returns true if the given address is within the range of this loop's basic blocks.}
+	
+
+\begin{apient}
+bool containsAddressInclusive(Address addr)
+\end{apient}
+\apidesc{Returns true if the given address is within the range of this loop's basic blocks or its children.}
+
+\begin{apient}
+int getLoopEntries(set<PatchBlock*>& entries);
+\end{apient}
+\apidesc{Fills \code{entries} with the set of entry basic blocks of the loop. Return the number of the entries that this loop has}
+        
+		   
+\begin{apient}
+int getBackEdges(vector<PatchEdge*> &edges)
+\end{apient}
+\apidesc{Sets \code{edges} to the set of back edges in this loop. 
+It returns the number of back edges that are in this loop. 
+}
+	
+\begin{apient}
+bool getContainedLoops(vector<PatchLoop*> &loops)
+\end{apient}
+\apidesc{Returns a vector of loops that are nested under this loop.}
+
+\begin{apient}
+bool getOuterLoops(vector<PatchLoop*> &loops)
+\end{apient}
+\apidesc{Returns a vector of loops that are directly nested under this loop.}
+
+	
+\begin{apient}
+bool getLoopBasicBlocks(vector<PatchBlock*> &blocks)
+\end{apient}
+\apidesc{Fills \code{blocks} with all basic blocks in the loop}
+
+        
+\begin{apient}
+bool getLoopBasicBlocksExclusive(vector<PatchBlock*> &blocks)
+\end{apient}
+\apidesc{Fills \code{blocks} with all basic blocks in this loop, excluding the blocks of its sub loops.}
+     
+\begin{apient}
+bool hasBlock(PatchBlock *b);
+\end{apient}
+\apidesc{Returns \code{true} if this loop contains basic block \code{b}.}
+
+\begin{apient}
+bool hasBlockExclusive(PatchBlock *b);
+\end{apient}
+\apidesc{Returns \code{true} if this loop contains basic block \code{b} and \code{b} is not in its sub loops.}
+
+\begin{apient}
+bool hasAncestor(PatchLoop *loop)
+\end{apient}
+\apidesc{Returns true if this loop is a descendant of the given loop.}
+
+\begin{apient}
+PatchFunction * getFunction();
+\end{apient}
+\apidesc{Returns the function that this loop is in.}
+
+\subsubsection{PatchLoopTreeNode}
+\label{sec-3.2.13}
+
+\textbf{Declared in}: PatchCFG.h
+
+The PatchLoopTreeNode class provides a tree interface to a collection of instances of class 
+PatchLoop contained in a function. The structure of the tree 
+follows the nesting relationship of the loops in a function. 
+Each PatchLoopTreeNode contains a pointer to a loop (represented by PatchLoop), and a set
+of sub-loops (represented by other PatchLoopTreeNode objects). The root 
+PatchLoopTreeNode instance has a null loop member since a function may contain multiple outer 
+loops. The outer loops are contained in the vector of \code{children} of the root. 
+
+Each instance of PatchLoopTreeNode is given a name that indicates its position in the hierarchy of loops.
+The name of each outermost loop takes the form of \code{loop\_x}, 
+where \code{x} is an integer from 1 to n,
+where n is the number of outer loops in the function.
+Each sub-loop has the name of its parent,
+followed by a \code{\_y}, where \code{y} is 1 to m, where m is the number of sub-loops under the outer loop.  
+For example, consider the following C function:
+
+\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
+\lstset{showstringspaces=false, numbers=none}
+
+\begin{lstlisting}
+
+void foo() {
+  int x, y, z, i;
+  for (x=0; x<10; x++) {
+    for (y = 0; y<10; y++)
+      ...
+    for (z = 0; z<10; z++)
+      ...
+  }
+  for (i = 0; i<10; i++) {
+     ...
+  }
+}
+\end{lstlisting}
+
+The \code{foo} function will have a root PatchLoopTreeNode, containing a NULL loop entry and 
+two PatchLoopTreeNode children representing the functions outermost loops. These children 
+would have names \code{loop\_1} and \code{loop\_2}, respectively representing the \code{x} and \code{i} loops. \code{loop\_2} has 
+no children. \code{loop\_1} has two child PatchLoopTreeNode objects, named \code{loop\_1\_1} and 
+\code{loop\_1\_2}, respectively representing the \code{y} and \code{z} loops. 
+
+\begin{apient}
+PatchLoop *loop;
+\end{apient}
+\apidesc{The PatchLoop instance it points to.}
+
+\begin{apient}
+std::vector<PatchLoopTreeNode *> children;
+\end{apient}
+\apidesc{The PatchLoopTreeNode instances nested within this loop.}
+    
+\begin{apient}
+const char * name(); 
+\end{apient}
+\apidesc{Returns the hierarchical name of this loop.}
+    
+\begin{apient}
+const char * getCalleeName(unsigned int i)
+\end{apient}
+\apidesc{Returns the function name of the ith callee.}
+
+\begin{apient}
+unsigned int numCallees()
+\end{apient}    
+\apidesc{Returns the number of callees contained in this loop's body.}
+
+\begin{apient}
+bool getCallees(vector<PatchFunction *> &v);
+\end{apient}
+\apidesc{Fills \code{v} with a vector of the functions called inside this loop.}
+    
+    
+\begin{apient}
+PatchLoop * findLoop(const char *name);
+\end{apient}
+\apidesc{Looks up a loop by the hierarchical name}
+ 
 
 \subsection{Point/Snippet Interface}
 \label{sec-3.1}

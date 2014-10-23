@@ -28,106 +28,31 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/dominator.h"
-#include "dyninstAPI/h/BPatch_basicBlock.h"
-#include "dyninstAPI/h/BPatch_flowGraph.h"
+#include "CFG.h"
 #include <iostream>
 #include <set>
+#include "dominator.h"
 using namespace std;
-
-dominatorBB::dominatorBB(BPatch_basicBlock *bb, dominatorCFG *dc) :
+using namespace Dyninst;
+using namespace Dyninst::ParseAPI;
+dominatorBB::dominatorBB(Block *bb, dominatorCFG *dc) :
      dfs_no(-1),
      size(1),
      immDom(NULL),
      ancestor(dc->nullNode),
      parent(NULL),
      child(dc->nullNode),
-     bpatchBlock(bb),
+     parseBlock(bb),
      dom_cfg(dc)
 {
    semiDom = this;
    label = this;
    if (bb)
-      dc->map_[bb->blockNo()] = this;
+      dc->map_[bb->start()] = this;
 }
 
 dominatorBB::~dominatorBB() 
 {
-}
-
-/**
- * Build a CFG on top of the BPatch_flowGraph that matches
- * the original, but with an extra entry block and using
- * dominatorBB's instead of BPatch_basicBlocks.
- **/
-void dominatorBB::dominatorPredAndSucc() {
-   unsigned i;
-
-   if (!bpatchBlock)
-      return;
-
-   //Predecessors
-   BPatch_Vector<BPatch_basicBlock*> blocks;
-   bpatchBlock->getSources(blocks);
-   for (i=0; i<blocks.size(); i++)
-   {
-      dominatorBB *p = dom_cfg->bpatchToDomBB(blocks[i]);
-      if (p) {
-          pred.push_back(p);
-      }
-   }
-
-   if (bpatchBlock->isEntryBlock() || !blocks.size()) {
-      dom_cfg->entryBlock->succ.push_back(this);
-      pred.push_back(dom_cfg->entryBlock);
-   }
-
-   //Successors
-   blocks.clear();
-   bpatchBlock->getTargets(blocks);
-   for (i=0; i<blocks.size(); i++)
-   {
-      dominatorBB *s = dom_cfg->bpatchToDomBB(blocks[i]);
-      assert(s);
-      succ.push_back(s);
-   }
-}
-
-/**
- * Build an inverted CFG for doing post-dominator analysis.  Running
- * the dominator analysis on this code will actually produce post-dominators
- **/
-void dominatorBB::postDominatorPredAndSucc() {
-   unsigned i;
-
-   if (!bpatchBlock)
-      return;
-
-   //Predecessors
-   BPatch_Vector<BPatch_basicBlock*> blocks;
-   bpatchBlock->getTargets(blocks);
-   for (i=0; i<blocks.size(); i++)
-   {
-      dominatorBB *p = dom_cfg->bpatchToDomBB(blocks[i]);
-      assert(p);
-      pred.push_back(p);
-   }
-
-   if (bpatchBlock->isExitBlock() || !blocks.size()) {
-      dom_cfg->entryBlock->succ.push_back(this);
-      pred.push_back(dom_cfg->entryBlock);
-   }
-
-   //Successors
-   blocks.clear();
-   bpatchBlock->getSources(blocks);
-   for (i=0; i<blocks.size(); i++)
-   {
-      dominatorBB *s = dom_cfg->bpatchToDomBB(blocks[i]);
-      assert(s);
-      succ.push_back(s);
-   }
 }
 
 dominatorBB *dominatorBB::eval() {
@@ -153,8 +78,8 @@ int dominatorBB::sdno() {
    return semiDom->dfs_no; 
 }
 
-dominatorCFG::dominatorCFG(BPatch_flowGraph *flowgraph) :
-   fg(flowgraph),
+dominatorCFG::dominatorCFG(Function *f) :
+   func(f),
    currentDepthNo(0)
 {
    //First initialize nullNode since dominatorBB's ctor uses it
@@ -167,8 +92,7 @@ dominatorCFG::dominatorCFG(BPatch_flowGraph *flowgraph) :
    entryBlock = new dominatorBB(NULL, this);
    all_blocks.push_back(entryBlock);
 
-   std::set<BPatch_basicBlock *>::iterator iter;
-   for (iter = fg->allBlocks.begin(); iter != fg->allBlocks.end(); iter++)
+   for (auto iter = f->blocks().begin(); iter != f->blocks().end(); iter++)
    {
       dominatorBB *newbb = new dominatorBB(*iter, this);
       all_blocks.push_back(newbb);
@@ -183,36 +107,69 @@ dominatorCFG::~dominatorCFG() {
 
 void dominatorCFG::calcDominators() {
    //fill in predecessor and successors
-   unsigned i;
-   for (i=0; i<all_blocks.size(); i++)
-      all_blocks[i]->dominatorPredAndSucc();
+   for (auto bit = func->blocks().begin(); bit != func->blocks().end(); ++bit)
+   {
+      Block *srcBlock = *bit;
+      dominatorBB *s = parseToDomBB(srcBlock);
+      for (auto eit = srcBlock->targets().begin(); eit != srcBlock->targets().end(); ++eit) {
+          if ((*eit)->interproc() || (*eit)->sinkEdge()) continue;
+          Block *trgBlock = (*eit)->trg();
+	  dominatorBB *t = parseToDomBB(trgBlock);
+	  s->succ.push_back(t);
+	  t->pred.push_back(s);
+      }
+      
+      if (srcBlock == func->entry() || !srcBlock->sources().size()) {
+          entryBlock->succ.push_back(s);
+	  s->pred.push_back(entryBlock);
+      }
+
+   }
 
    //Perform main computation
    performComputation();
 
    //Store results
-   for (i=0; i<all_blocks.size(); i++) 
+   for (size_t i=0; i<all_blocks.size(); i++) 
    {
       dominatorBB *bb = all_blocks[i];
-      if (!bb || !bb->bpatchBlock || 
-          !bb->immDom || !bb->immDom->bpatchBlock)
+      if (!bb || !bb->parseBlock || 
+          !bb->immDom || !bb->immDom->parseBlock)
          continue;
 
-      BPatch_basicBlock *immDom = bb->immDom->bpatchBlock;
-      BPatch_basicBlock *block = bb->bpatchBlock;
+      Block *immDom = bb->immDom->parseBlock;
+      Block *block = bb->parseBlock;
 
-      block->immediateDominator = immDom;
-      if (!immDom->immediateDominates)
-         immDom->immediateDominates = new std::set<BPatch_basicBlock *>;
-      immDom->immediateDominates->insert(block);
+      func->immediateDominator[block] = immDom;
+      if (!func->immediateDominates[immDom])
+         func->immediateDominates[immDom] = new std::set<Block*>;
+      func->immediateDominates[immDom]->insert(block);
    }   
 }
 
 void dominatorCFG::calcPostDominators() {
-   unsigned i;
+   set<Block*> exits;
+   for (auto bit = func->exitBlocks().begin(); bit != func->exitBlocks().end(); ++bit)
+       exits.insert(*bit);
    //fill in predecessor and successors
-   for (i=0; i<all_blocks.size(); i++)
-      all_blocks[i]->postDominatorPredAndSucc();
+   for (auto bit = func->blocks().begin(); bit != func->blocks().end(); ++bit)
+   {
+      Block *srcBlock = *bit;
+      dominatorBB *s = parseToDomBB(srcBlock);
+      for (auto eit = srcBlock->targets().begin(); eit != srcBlock->targets().end(); ++eit) {
+          if ((*eit)->interproc() || (*eit)->sinkEdge()) continue;
+          Block *trgBlock = (*eit)->trg();
+	  dominatorBB *t = parseToDomBB(trgBlock);
+	  // Reverse the original CFG to calculate post-dominators
+	  s->pred.push_back(t);
+	  t->succ.push_back(s);
+      }
+      if (exits.find(srcBlock) != exits.end() || !srcBlock->targets().size()) {
+          entryBlock->succ.push_back(s);
+	  s->pred.push_back(entryBlock);
+      }
+
+   }
 
    if (!entryBlock->succ.size())
    {
@@ -224,20 +181,20 @@ void dominatorCFG::calcPostDominators() {
    performComputation();
 
    //Store results
-   for (i=0; i<all_blocks.size(); i++) 
+   for (size_t i=0; i<all_blocks.size(); i++) 
    {
       dominatorBB *bb = all_blocks[i];
-      if (!bb || !bb->bpatchBlock || 
-          !bb->immDom || !bb->immDom->bpatchBlock)
+      if (!bb || !bb->parseBlock || 
+          !bb->immDom || !bb->immDom->parseBlock)
          continue;
 
-      BPatch_basicBlock *immDom = bb->immDom->bpatchBlock;
-      BPatch_basicBlock *block = bb->bpatchBlock;
+      Block *immDom = bb->immDom->parseBlock;
+      Block *block = bb->parseBlock;
 
-      block->immediatePostDominator = immDom;
-      if (!immDom->immediatePostDominates)
-         immDom->immediatePostDominates = new std::set<BPatch_basicBlock *>;
-      immDom->immediatePostDominates->insert(block);
+      func->immediatePostDominator[block] = immDom;
+      if (!func->immediatePostDominates[immDom])
+         func->immediatePostDominates[immDom] = new std::set<Block*>;
+      func->immediatePostDominates[immDom]->insert(block);
    }   
 }
 
@@ -294,10 +251,6 @@ void dominatorCFG::performComputation() {
       }
    }
 
-   storeDominatorResults();
-}
-
-void dominatorCFG::storeDominatorResults() {
 }
 
 void dominatorCFG::link(dominatorBB *parent, dominatorBB *block) {
@@ -328,8 +281,8 @@ void dominatorCFG::link(dominatorBB *parent, dominatorBB *block) {
    }
 }
 
-dominatorBB *dominatorCFG::bpatchToDomBB(BPatch_basicBlock *bb) {
-   auto iter = map_.find(bb->blockNo());
+dominatorBB *dominatorCFG::parseToDomBB(Block *bb) {
+   auto iter = map_.find(bb->start());
    if (iter == map_.end()) return NULL;
    return iter->second;
 }

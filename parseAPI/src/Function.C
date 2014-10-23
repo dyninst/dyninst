@@ -37,12 +37,15 @@
 #include "Parser.h"
 #include "debug_parse.h"
 #include "util.h"
+#include "LoopAnalyzer.h"
+#include "dominator.h"
 
 #include "dataflowAPI/h/slicing.h"
 #include "dataflowAPI/h/AbslocInterface.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "common/h/Graph.h"
 #include "StackTamperVisitor.h"
+
 
 using namespace std;
 
@@ -65,7 +68,12 @@ Function::Function() :
         _saves_fp(false),
         _cleans_stack(false),
         _tamper(TAMPER_UNSET),
-        _tamper_addr(0)
+        _tamper_addr(0),
+	_loop_analyzed(false),
+	_loop_root(NULL),
+	isDominatorInfoReady(false),
+	isPostDominatorInfoReady(false)
+
 {
     fprintf(stderr,"PROBABLE ERROR, default ParseAPI::Function constructor\n");
 }
@@ -88,7 +96,13 @@ Function::Function(Address addr, string name, CodeObject * obj,
         _saves_fp(false),
         _cleans_stack(false),
         _tamper(TAMPER_UNSET),
-        _tamper_addr(0)
+        _tamper_addr(0),
+	_loop_analyzed(false),
+	_loop_root(NULL),
+	isDominatorInfoReady(false),
+	isPostDominatorInfoReady(false)
+
+
 {
     if (obj->defensiveMode()) {
         mal_printf("new funct at %lx\n",addr);
@@ -110,6 +124,8 @@ Function::~Function()
     for( ; eit != _extents.end(); ++eit) {
         delete *eit;
     }
+    for (auto lit = _loops.begin(); lit != _loops.end(); ++lit)
+        delete *lit;
 }
 
 Function::blocklist
@@ -631,4 +647,149 @@ Function::tampersStack(bool recalculate)
 
 void Function::destroy(Function *f) {
    f->obj()->destroy(f);
+}
+
+LoopTreeNode* Function::getLoopTree() {
+  if (_loop_root == NULL) {
+      LoopAnalyzer la(this);
+      la.createLoopHierarchy();
+  }
+  return _loop_root;
+}
+
+// this methods returns the loop objects that exist in the control flow
+// grap. It returns a set. And if there are no loops, then it returns the empty
+// set. not NULL.
+void Function::getLoopsByNestingLevel(vector<Loop*>& lbb,
+                                              bool outerMostOnly)
+{
+  if (_loop_analyzed == false) {
+      LoopAnalyzer la(this);
+      la.analyzeLoops();
+      _loop_analyzed = true;
+  }
+
+  for (std::set<Loop *>::iterator iter = _loops.begin();
+       iter != _loops.end(); ++iter) {
+     // if we are only getting the outermost loops
+     if (outerMostOnly && 
+         (*iter)->parent != NULL) continue;
+
+     lbb.push_back(*iter);
+  }
+  return;
+}
+
+
+// get all the loops in this flow graph
+bool
+Function::getLoops(vector<Loop*>& lbb)
+{
+  getLoopsByNestingLevel(lbb, false);
+  return true;
+}
+
+// get the outermost loops in this flow graph
+bool
+Function::getOuterLoops(vector<Loop*>& lbb)
+{
+  getLoopsByNestingLevel(lbb, true);
+  return true;
+}
+
+Loop *Function::findLoop(const char *name)
+{
+  return getLoopTree()->findLoop(name);
+}
+
+
+//this method fill the dominator information of each basic block
+//looking at the control flow edges. It uses a fixed point calculation
+//to find the immediate dominator of the basic blocks and the set of
+//basic blocks that are immediately dominated by this one.
+//Before calling this method all the dominator information
+//is going to give incorrect results. So first this function must
+//be called to process dominator related fields and methods.
+void Function::fillDominatorInfo()
+{
+    if (!isDominatorInfoReady) {
+        dominatorCFG domcfg(this);
+	domcfg.calcDominators();
+	isDominatorInfoReady = true;
+    }
+}
+
+void Function::fillPostDominatorInfo()
+{
+    if (!isPostDominatorInfoReady) {
+        dominatorCFG domcfg(this);
+	domcfg.calcPostDominators();
+	isPostDominatorInfoReady = true;
+    }
+}
+
+bool Function::dominates(Block* A, Block *B) {
+    if (A == NULL || B == NULL) return false;
+    if (A == B) return true;
+
+    fillDominatorInfo();
+
+    if (!immediateDominates[A]) return false;
+
+    for (auto bit = immediateDominates[A]->begin(); bit != immediateDominates[A]->end(); ++bit)
+        if (dominates(*bit, B)) return true;
+    return false;
+}
+        
+Block* Function::getImmediateDominator(Block *A) {
+    fillDominatorInfo();
+    return immediateDominator[A];
+}
+
+void Function::getImmediateDominates(Block *A, set<Block*> &imd) {
+    fillDominatorInfo();
+    if (immediateDominates[A] != NULL)
+        imd.insert(immediateDominates[A]->begin(), immediateDominates[A]->end());
+}
+
+void Function::getAllDominates(Block *A, set<Block*> &d) {
+    fillDominatorInfo();
+    d.insert(A);
+    if (immediateDominates[A] == NULL) return;
+
+    for (auto bit = immediateDominates[A]->begin(); bit != immediateDominates[A]->end(); ++bit)
+        getAllDominates(*bit, d);
+}
+
+bool Function::postDominates(Block* A, Block *B) {
+    if (A == NULL || B == NULL) return false;
+    if (A == B) return true;
+
+    fillPostDominatorInfo();
+
+    if (!immediatePostDominates[A]) return false;
+
+    for (auto bit = immediatePostDominates[A]->begin(); bit != immediatePostDominates[A]->end(); ++bit)
+        if (postDominates(*bit, B)) return true;
+    return false;
+}
+        
+Block* Function::getImmediatePostDominator(Block *A) {
+    fillPostDominatorInfo();
+    return immediatePostDominator[A];
+}
+
+void Function::getImmediatePostDominates(Block *A, set<Block*> &imd) {
+    fillPostDominatorInfo();
+    if (immediatePostDominates[A] != NULL)
+        imd.insert(immediatePostDominates[A]->begin(), immediatePostDominates[A]->end());
+}
+
+void Function::getAllPostDominates(Block *A, set<Block*> &d) {
+    fillPostDominatorInfo();
+    d.insert(A);
+    if (immediatePostDominates[A] == NULL) return;
+
+    for (auto bit = immediatePostDominates[A]->begin(); bit != immediatePostDominates[A]->end(); ++bit)
+        getAllPostDominates(*bit, d);
 }

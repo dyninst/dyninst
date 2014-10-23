@@ -33,6 +33,8 @@
 #include "PatchMgr.h"
 #include "PatchCallback.h"
 
+#include "CFG.h"
+
 using namespace Dyninst;
 using namespace PatchAPI;
 
@@ -43,11 +45,19 @@ PatchFunction::create(ParseAPI::Function *f, PatchObject* obj) {
 
 PatchFunction::PatchFunction(ParseAPI::Function *f,
                              PatchObject* o) : 
-   func_(f), obj_(o), addr_((obj_->codeBase() + func_->addr()) & obj_->addrMask()) {
+   func_(f), obj_(o), addr_((obj_->codeBase() + func_->addr()) & obj_->addrMask()),
+   _loop_analyzed(false), _loop_root(NULL),
+   isDominatorInfoReady(false),	isPostDominatorInfoReady(false)
+{
 }
 
 PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
-  : func_(parFunc->func_), obj_(child), addr_(obj_->codeBase() + func_->addr()) {}
+  : func_(parFunc->func_), obj_(child), addr_(obj_->codeBase() + func_->addr()),
+    _loop_analyzed(false), _loop_root(NULL),
+   isDominatorInfoReady(false),	isPostDominatorInfoReady(false)
+{
+}
+
 
 const PatchFunction::Blockset&
 PatchFunction::blocks() {
@@ -793,4 +803,198 @@ void PatchFunction::invalidateBlocks() {
    call_blocks_.clear();
    return_blocks_.clear();
    exit_blocks_.clear();
+}
+
+PatchLoopTreeNode* PatchFunction::getLoopTree() {
+  if (_loop_root == NULL) {
+      if (_loop_analyzed == false) {
+          createLoops();
+	  _loop_analyzed = true;
+      }
+      _loop_root = new PatchLoopTreeNode(obj_, func_->getLoopTree(), _loop_map);
+      
+  }
+  return _loop_root;
+}
+
+// this methods returns the loop objects that exist in the control flow
+// grap. It returns a set. And if there are no loops, then it returns the empty
+// set. not NULL.
+void PatchFunction::getLoopsByNestingLevel(vector<PatchLoop*>& lbb, bool outerMostOnly)
+{
+  if (_loop_analyzed == false) {
+      createLoops();
+      _loop_analyzed = true;
+  }
+
+  for (std::set<PatchLoop *>::iterator iter = _loops.begin();
+       iter != _loops.end(); ++iter) {
+     // if we are only getting the outermost loops
+     if (outerMostOnly && 
+         (*iter)->parent != NULL) continue;
+
+     lbb.push_back(*iter);
+  }
+  return;
+}
+
+
+// get all the loops in this flow graph
+bool PatchFunction::getLoops(vector<PatchLoop*>& lbb)
+{
+  getLoopsByNestingLevel(lbb, false);
+  return true;
+}
+
+// get the outermost loops in this flow graph
+bool PatchFunction::getOuterLoops(vector<PatchLoop*>& lbb)
+{
+  getLoopsByNestingLevel(lbb, true);
+  return true;
+}
+PatchLoop *PatchFunction::findLoop(const char *name)
+{
+  return getLoopTree()->findLoop(name);
+}
+
+void PatchFunction::createLoops() {
+    vector<ParseAPI::Loop*> loops;    
+    func_->getLoops(loops);
+    
+    // Create all the PatchLoop objects in the function
+    for (auto lit = loops.begin(); lit != loops.end(); ++lit) {
+        PatchLoop* pl = new PatchLoop(obj_, *lit);
+	_loop_map[*lit] = pl;
+        _loops.insert(pl);
+    }
+
+    // Build nesting relations among loops
+    for (auto lit = loops.begin(); lit != loops.end(); ++lit) {
+         ParseAPI::Loop* l = *lit;
+         PatchLoop *pl = _loop_map[l];
+	 // set parent pointer
+         if (l->parent != NULL)
+	     pl->parent = _loop_map[l->parent];
+	 // set contained loop vector
+         vector<ParseAPI::Loop*> containedLoops;
+	 l->getContainedLoops(containedLoops);
+	 for (auto lit2 = containedLoops.begin(); lit2 != containedLoops.end(); ++lit2)
+	     pl->containedLoops.insert(_loop_map[*lit2]);
+    }     
+}
+
+void PatchFunction::fillDominatorInfo()
+{
+    if (!isDominatorInfoReady) {
+        // Fill immediate dominator info
+	for (auto bit = blocks().begin(); bit != blocks().end(); ++bit) {
+	    ParseAPI::Block* b = (*bit)->block();
+	    ParseAPI::Block* imd = func_->getImmediateDominator(b);
+	    if (imd == NULL)
+	        immediateDominator[*bit] = NULL;
+	    else
+	        immediateDominator[*bit] = obj_->getBlock(imd);
+	}
+	// Fill immediate dominates info
+	for (auto bit = blocks().begin(); bit != blocks().end(); ++bit) {
+	    ParseAPI::Block* b = (*bit)->block();
+	    set<ParseAPI::Block*> dominates;
+	    func_->getImmediateDominates(b, dominates);
+	    immediateDominates[*bit] = new set<PatchBlock*>;
+	    for (auto dit = dominates.begin(); dit != dominates.end(); ++dit)
+	        immediateDominates[*bit]->insert(obj_->getBlock(*dit));
+	}
+	isDominatorInfoReady = true;
+    }
+}
+
+void PatchFunction::fillPostDominatorInfo()
+{
+    if (!isPostDominatorInfoReady) {
+        // Fill immediate post-dominator info
+	for (auto bit = blocks().begin(); bit != blocks().end(); ++bit) {
+	    ParseAPI::Block* b = (*bit)->block();
+	    ParseAPI::Block* imd = func_->getImmediatePostDominator(b);
+	    if (imd == NULL)
+	        immediatePostDominator[*bit] = NULL;
+	    else
+	        immediatePostDominator[*bit] = obj_->getBlock(imd);
+	}
+	// Fill immediate post-dominates info
+	for (auto bit = blocks().begin(); bit != blocks().end(); ++bit) {
+	    ParseAPI::Block* b = (*bit)->block();
+	    set<ParseAPI::Block*> postDominates;
+	    func_->getImmediatePostDominates(b, postDominates);
+	    immediatePostDominates[*bit] = new set<PatchBlock*>;
+	    for (auto dit = postDominates.begin(); dit != postDominates.end(); ++dit)
+	        immediatePostDominates[*bit]->insert(obj_->getBlock(*dit));
+	}
+	isPostDominatorInfoReady = true;
+    }
+}
+
+bool PatchFunction::dominates(PatchBlock* A, PatchBlock *B) {
+    if (A == NULL || B == NULL) return false;
+    if (A == B) return true;
+
+    fillDominatorInfo();
+
+    if (!immediateDominates[A]) return false;
+
+    for (auto bit = immediateDominates[A]->begin(); bit != immediateDominates[A]->end(); ++bit)
+        if (dominates(*bit, B)) return true;
+    return false;
+}
+        
+PatchBlock* PatchFunction::getImmediateDominator(PatchBlock *A) {
+    fillDominatorInfo();
+    return immediateDominator[A];
+}
+
+void PatchFunction::getImmediateDominates(PatchBlock *A, set<PatchBlock*> &imd) {
+    fillDominatorInfo();
+    if (immediateDominates[A] != NULL)
+        imd.insert(immediateDominates[A]->begin(), immediateDominates[A]->end());
+}
+
+void PatchFunction::getAllDominates(PatchBlock *A, set<PatchBlock*> &d) {
+    fillDominatorInfo();
+    d.insert(A);
+    if (immediateDominates[A] == NULL) return;
+
+    for (auto bit = immediateDominates[A]->begin(); bit != immediateDominates[A]->end(); ++bit)
+        getAllDominates(*bit, d);
+}
+
+bool PatchFunction::postDominates(PatchBlock* A, PatchBlock *B) {
+    if (A == NULL || B == NULL) return false;
+    if (A == B) return true;
+
+    fillPostDominatorInfo();
+
+    if (!immediatePostDominates[A]) return false;
+
+    for (auto bit = immediatePostDominates[A]->begin(); bit != immediatePostDominates[A]->end(); ++bit)
+        if (postDominates(*bit, B)) return true;
+    return false;
+}
+        
+PatchBlock* PatchFunction::getImmediatePostDominator(PatchBlock *A) {
+    fillPostDominatorInfo();
+    return immediatePostDominator[A];
+}
+
+void PatchFunction::getImmediatePostDominates(PatchBlock *A, set<PatchBlock*> &imd) {
+    fillPostDominatorInfo();
+    if (immediatePostDominates[A] != NULL)
+        imd.insert(immediatePostDominates[A]->begin(), immediatePostDominates[A]->end());
+}
+
+void PatchFunction::getAllPostDominates(PatchBlock *A, set<PatchBlock*> &d) {
+    fillPostDominatorInfo();
+    d.insert(A);
+    if (immediatePostDominates[A] == NULL) return;
+
+    for (auto bit = immediatePostDominates[A]->begin(); bit != immediatePostDominates[A]->end(); ++bit)
+        getAllPostDominates(*bit, d);
 }

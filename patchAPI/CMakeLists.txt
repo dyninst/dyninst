@@ -19,6 +19,8 @@ set (SRC_LIST
         src/PatchCallback.C 
         src/ParseCallback.C 
         src/PatchModifier.C 
+	src/PatchLoop.C
+	src/PatchLoopTreeNode.C
   )
 
 SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)

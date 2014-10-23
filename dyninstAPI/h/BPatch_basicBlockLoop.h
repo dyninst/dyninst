@@ -47,6 +47,12 @@
   * @see BPatch_flowGraph
   */
 
+namespace Dyninst {
+namespace PatchAPI{
+class PatchLoop;
+}
+}
+
 class BPatch_variableExpr;
 class BPatch_loopTreeNode;
 
@@ -55,12 +61,10 @@ class BPATCH_DLL_EXPORT BPatch_basicBlockLoop :
 {
 	friend class BPatch_flowGraph;
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlockLoop&);
-	friend void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
-                                           BPatch_Vector<BPatch_basicBlockLoop *> &loops,
-                                           std::string level);
 
 private:
         std::set<BPatch_edge*> backEdges;
+	std::set<BPatch_basicBlock*> entries;
 
         // the flow graph this loop is part of
         BPatch_flowGraph *flowGraph;
@@ -90,15 +94,17 @@ public:
 	bool containsAddressInclusive(unsigned long addr);
 
 
-	/** BPatch_basicBlockLoop::getBackEdge    */
-        /** return a back edge that defines this loop */
-
-        BPatch_edge * getBackEdge();
-
 	/** BPatch_basicBlockLoop::getBackEdges */
         /** Sets edges to the set of back edges that define this loop,
             returns the number of back edges that define this loop */
         int getBackEdges(BPatch_Vector<BPatch_edge*> &edges);
+
+	/** BPatch_basicBlockLoop::getLoopEntries */
+	/** Sets e to the set of entry blocks of the loop.
+	 * A natural loop has a single entry block
+	 * and an irreducible loop has mulbile entry blocks
+	 * */
+	int getLoopEntries(BPatch_Vector<BPatch_basicBlock*> &e);
 
 	/** BPatch_basicBlockLoop::getContainedLoops    */
 	/** returns vector of contained loops */
@@ -138,11 +144,6 @@ public:
 
         BPatch_flowGraph * getFlowGraph();
 
-	/** BPatch_basicBlockLoop::getLoopHead    */
-	/** returns the head basic block of the loop */
-
-        BPatch_basicBlock * getLoopHead();
-
 	/** BPatch_basicBlockLoop::getLoopIterators    */
 	/** method that returns the variables used as iterator */
 	/** not implemented yet */
@@ -157,12 +158,7 @@ public:
         std::string format() const;
 
 private:
-// internal use only
-	/** constructor of class */
-	BPatch_basicBlockLoop(BPatch_flowGraph *);
-
-	/** constructor of the class */
-	BPatch_basicBlockLoop(BPatch_edge *, BPatch_flowGraph *);
+	BPatch_basicBlockLoop(BPatch_flowGraph *, Dyninst::PatchAPI::PatchLoop*);
 
 	/** get either contained or outer loops, determined by outerMostOnly */
 	bool getLoops(BPatch_Vector<BPatch_basicBlockLoop*>&, 

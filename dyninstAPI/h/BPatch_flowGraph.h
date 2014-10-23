@@ -55,7 +55,11 @@ typedef BPatch_basicBlockLoop BPatch_loop;
   * @see BPatch_basicBlock
   * @see BPatch_basicBlockLoop
   */
-
+namespace Dyninst {
+    namespace PatchAPI{
+        class PatchLoop;
+    }
+}    
 class BPATCH_DLL_EXPORT BPatch_flowGraph : 
       public Dyninst::AnnotatableSparse 
 {
@@ -185,9 +189,6 @@ public:
   
   bool createBasicBlocks();
   
-  /** create the tree of loops/callees for this flow graph */
-  void createLoopHierarchy();
-  
   void dfsVisitWithTargets(BPatch_basicBlock*,int*); 
 
   void dfsVisitWithSources(BPatch_basicBlock*,int*); 
@@ -201,15 +202,9 @@ public:
   void getLoopsByNestingLevel(BPatch_Vector<BPatch_basicBlockLoop*>&, 
 			      bool outerMostOnly);
   
-  bool dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *node, 
-                                        func_instance *func,
-                                        unsigned long addr);
-
-  void insertCalleeIntoLoopHierarchy(func_instance * func, unsigned long addr);
-
   void dfsPrintLoops(BPatch_loopTreeNode *n);
 
-  void createBackEdges();
+  std::map<Dyninst::PatchAPI::PatchLoop*, BPatch_basicBlockLoop*> _loop_map;  
   void createLoops();
 
   void dump();

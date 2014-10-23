@@ -28,67 +28,45 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#define BPATCH_FILE
 
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/BPatch_libInfo.h"
-#include "dyninstAPI/h/BPatch_loopTreeNode.h"
-#include "dyninstAPI/h/BPatch_basicBlockLoop.h"
-#include "dyninstAPI/h/BPatch_function.h"
-#include "dyninstAPI/h/BPatch_process.h"
-#include "BPatch_flowGraph.h"
-#include "PatchCFG.h"
+#include "CFG.h"
 
-using namespace Dyninst::PatchAPI;
+using namespace Dyninst;
+using namespace Dyninst::ParseAPI;
 
-
-BPatch_loopTreeNode::BPatch_loopTreeNode(BPatch_flowGraph* fg, 
-                                         PatchLoopTreeNode* tree,
-					 std::map<PatchLoop*, BPatch_basicBlockLoop*>& loopMap)
+LoopTreeNode::LoopTreeNode(Loop *l, const char *n)
 {
-    if (tree->loop != NULL) {
-        loop = loopMap[tree->loop];
-	hierarchicalName = strdup(tree->name());
-    } else {
-        loop = NULL;
-	hierarchicalName = NULL;
+    loop = l;
+    hierarchicalName = NULL;
+    if (n != NULL) {
+        hierarchicalName = strdup(n);
     }
-    
-    for (auto cit = tree->children.begin(); cit != tree->children.end(); ++cit)
-        children.push_back(new BPatch_loopTreeNode(fg, *cit, loopMap));
-
-    vector<PatchFunction*> patchCallees;
-    tree->getCallees(patchCallees);
-    for (auto fit = patchCallees.begin(); fit != patchCallees.end(); ++fit)
-        callees.push_back(SCAST_FI(*fit));
-
 }
  
 
 const char * 
-BPatch_loopTreeNode::getCalleeName(unsigned int i) 
+LoopTreeNode::getCalleeName(unsigned int i) 
 {
     assert(i < callees.size());
     assert(callees[i] != NULL);
-    return callees[i]->prettyName().c_str();
+    return callees[i]->name().c_str();
 }
 
 const char * 
-BPatch_loopTreeNode::name()
+LoopTreeNode::name()
 {
     assert(loop != NULL);
     return hierarchicalName; 
 }
 
 unsigned int
-BPatch_loopTreeNode::numCallees() { 
+LoopTreeNode::numCallees() { 
     return callees.size(); 
 }
 
 
-BPatch_loopTreeNode::~BPatch_loopTreeNode() {
-    // Loops are deleted by BPatch_flowGraph...
+LoopTreeNode::~LoopTreeNode() {
+    // Loops are deleted by Function...
     for (unsigned i = 0; i < children.size(); i++)
 	delete children[i];
     if (hierarchicalName)
@@ -97,27 +75,24 @@ BPatch_loopTreeNode::~BPatch_loopTreeNode() {
 }
 
 
-BPatch_basicBlockLoop *
-BPatch_loopTreeNode::findLoop(const char *name) 
+Loop *
+LoopTreeNode::findLoop(const char *name) 
 { 
     if (loop) {
         if (0==strcmp(name,hierarchicalName)) 
             return loop;
     }
     for (unsigned i = 0; i < children.size(); i++) {
-        BPatch_basicBlockLoop *lp = children[i]->findLoop(name);
+        Loop *lp = children[i]->findLoop(name);
         if (lp) return lp;
     }
     return NULL;
 }
 
-bool BPatch_loopTreeNode::getCallees(BPatch_Vector<BPatch_function *> &v,
-                                        BPatch_addressSpace *p)
+bool LoopTreeNode::getCallees(vector<Function *> &v)
 {
    for (unsigned i=0; i<callees.size(); i++) {
-      //  get() will not allocate a NULL entry in the map
-      BPatch_function *f = p->findOrCreateBPFunc(callees[i], NULL);
-      v.push_back(f);
+      v.push_back(callees[i]);
    }
    return true;
 }

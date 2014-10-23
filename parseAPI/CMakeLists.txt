@@ -31,6 +31,11 @@ set (SRC_LIST
 	src/IndirectASTVisitor.C
 	src/TableGuardData.C
 	../dataflowAPI/src/ABI.C 
+	src/dominator.C
+	src/LoopAnalyzer.C
+	src/Loop.C
+	src/LoopTreeNode.C
+        ../dataflowAPI/src/ABI.C 
         ../dataflowAPI/src/Absloc.C 
         ../dataflowAPI/src/AbslocInterface.C 
         ../dataflowAPI/src/convertOpcodes.C 

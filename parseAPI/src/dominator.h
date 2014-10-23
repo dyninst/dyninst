@@ -28,14 +28,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-class BPatch_basicBlock;
-class BPatch_flowGraph;
-class dominatorCFG;
-class dominatorBB;
+#ifndef _DOMINATOR_H_
+#define _DOMINATOR_H_
 
-#include "dyninstAPI/h/BPatch_Vector.h"
+#include "dyntypes.h"
+#include "CFG.h"
 #include <unordered_map>
 #include <set>
+
+namespace Dyninst{
+namespace ParseAPI{
+
+class dominatorCFG;
+class dominatorBB;
 
 class dominatorBB {
    friend class dominatorCFG;
@@ -49,46 +54,45 @@ protected:
    dominatorBB *parent;
    dominatorBB *child;
 
-   BPatch_basicBlock *bpatchBlock;
+   Block *parseBlock;
    dominatorCFG *dom_cfg;
 
    std::set<dominatorBB *> bucket;
-   BPatch_Vector<dominatorBB *> pred;
-   BPatch_Vector<dominatorBB *> succ;   
+   vector<dominatorBB *> pred;
+   vector<dominatorBB *> succ;   
  public:
-   dominatorBB(BPatch_basicBlock *bb, dominatorCFG *dc);
+   dominatorBB(Block *bb, dominatorCFG *dc);
    ~dominatorBB();
    dominatorBB *eval();
    void compress();
-   void dominatorPredAndSucc();
-   void postDominatorPredAndSucc();
    int sdno();
 };
 
 class dominatorCFG {
    friend class dominatorBB;
  protected:
-   std::unordered_map<unsigned, dominatorBB *> map_;
-   BPatch_flowGraph *fg;
-   BPatch_Vector<dominatorBB *> all_blocks;
-   BPatch_Vector<dominatorBB *> sorted_blocks;
+   std::unordered_map<Address, dominatorBB *> map_;
+   Function *func;
+   vector<dominatorBB *> all_blocks;
+   vector<dominatorBB *> sorted_blocks;
    int currentDepthNo;
 
    dominatorBB *entryBlock;
    dominatorBB *nullNode;
 
    void performComputation();
-   void storeDominatorResults();
    void depthFirstSearch(dominatorBB *v);
    void eval(dominatorBB *v);
    void link(dominatorBB *v, dominatorBB *w);
-   dominatorBB *bpatchToDomBB(BPatch_basicBlock *bb);
+   dominatorBB *parseToDomBB(Block *bb);
 
  public:
-   dominatorCFG(BPatch_flowGraph *flowgraph);
+   dominatorCFG(Function *f);
    ~dominatorCFG();
 
    void calcDominators();
    void calcPostDominators();
 };
-
+}
+}
+#endif
