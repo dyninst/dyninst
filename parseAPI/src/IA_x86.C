@@ -255,7 +255,7 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
        valid &&
        callee && 
        callee != context &&
-       context->contains(target)
+       !context->contains(target)
        )
     {
       parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
