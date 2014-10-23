@@ -109,8 +109,8 @@ add_library (common_static STATIC ${SRC_LIST})
 FILE (GLOB headers "h/*.h")
 set_target_properties (common common_static PROPERTIES PUBLIC_HEADER "${headers}")
 
-if (${IBERTY_LIBRARY} MATCHES iberty)
-target_link_private_libraries (common ${IBERTY_LIBRARY})
+if (IBERTY_FOUND)
+target_link_private_libraries (common ${IBERTY_LIBRARIES})
 endif()
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)

@@ -563,11 +563,12 @@ void Parser::ProcessCFInsn(
         }
 
         if (ah.isTailCall(frame.func, curEdge->second, frame.num_insns)) {
-           parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc (tail call)\n",
+            tailcall = true; 
+            parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc (tail call)\n",
                           newedge,
                           newedge->src()->start(),
                           newedge->trg()->start());
-           newedge->_type._interproc = true;
+	    newedge->_type._interproc = true;
         }
 
         if(!bundle) {
