@@ -158,9 +158,12 @@ static string Classify(AST::Ptr ast) {
 		        return " - " + Classify(child0->child(0));
 		    }
 		}
+		string p1 = Classify(roseAST->child(0));
 		string p2 = Classify(roseAST->child(1));
-		if (p2[1] == '-') return Classify(roseAST->child(0)) + p2;
-		else return Classify(roseAST->child(0)) + " + " + p2;
+		if (p2[1] == '-') return p1 + p2;
+		else if (p1[1] == '-') return p2 + p1;
+		else if (p1 < p2) return p1 + " + " + p2;
+		else return p2 + " + " + p1;
 	    }
 	    case ROSEOperation::sMultOp:
 	    case ROSEOperation::uMultOp:
