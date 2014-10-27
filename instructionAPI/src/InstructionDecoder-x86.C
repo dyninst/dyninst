@@ -683,7 +683,7 @@ namespace Dyninst
             case op_v:
             case op_lea:
             case op_z:
-	      if(!ia32_is_mode_64() ^ sizePrefixPresent)
+	      if(ia32_is_mode_64() || !sizePrefixPresent)
                 {
                     return u32;
                 }
