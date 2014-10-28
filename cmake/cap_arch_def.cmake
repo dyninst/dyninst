@@ -112,11 +112,11 @@ set (OLD_DEFINES -Dx86_64_unknown_linux2_4)
 
 elseif (PLATFORM STREQUAL ppc32_linux)
 set (OLD_DEFINES -Dppc32_linux)
-set (BUG_DEFINES -Dbug_registers_after_exit)
+set (BUG_DEFINES ${BUG_DEFINES} -Dbug_registers_after_exit)
 
 elseif (PLATFORM STREQUAL ppc64_linux)
 set (OLD_DEFINES -Dppc64_linux)
-set (BUG_DEFINES ${BUG_DEF} -Dbug_registers_after_exit)
+set (BUG_DEFINES ${BUG_DEFINES} -Dbug_registers_after_exit)
 
 elseif (PLATFORM STREQUAL ppc64_bgq_ion)
 set (OLD_DEFINES -Dppc64_bluegene -Dppc64_linux)

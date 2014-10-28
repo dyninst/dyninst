@@ -2381,7 +2381,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    bool useFPRs =  BPatch::bpatch->isForceSaveFPROn() ||
       ( BPatch::bpatch->isSaveFPROn()      &&
         gen.rs()->anyLiveFPRsAtEntry()     &&
-        bt->saveFPRs()               &&
+        //bt->saveFPRs()               &&
         bt->makesCall() );
    bool alignStack = useFPRs || !bt || bt->checkForFuncCalls();
    bool saveFlags = gen.rs()->checkVolatileRegisters(gen, registerSlot::live);
