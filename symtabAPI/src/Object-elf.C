@@ -4801,7 +4801,7 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
       else
 	moduleName = cuName;
     }
-    fprintf(stderr, "[%s:%u] - llparsing for module %s\n", __FILE__, __LINE__, moduleName);
+    //fprintf(stderr, "[%s:%u] - llparsing for module %s\n", __FILE__, __LINE__, moduleName);
 
     /* Acquire this CU's source lines. */
     Dwarf_Line * lineBuffer;
@@ -4865,7 +4865,7 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
       }
       if(!isText(lineAddr)) 
       {
-	fprintf(stderr, "Skipping non-code line addr %lx\n", lineAddr);
+	//	fprintf(stderr, "Skipping non-code line addr %lx\n", lineAddr);
 	continue;
       }
       
@@ -4908,7 +4908,7 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
 
 	if (startAddrToUse && endAddrToUse)
 	{
-	  fprintf(stderr, "%s[%d]:  adding %s[%llu]: 0x%lx -> 0x%lx to line info for %s\n", FILE__, __LINE__, canonicalLineSource, previousLineNo,  startAddrToUse, endAddrToUse, moduleName);
+	  //fprintf(stderr, "%s[%d]:  adding %s[%llu]: 0x%lx -> 0x%lx to line info for %s\n", FILE__, __LINE__, canonicalLineSource, previousLineNo,  startAddrToUse, endAddrToUse, moduleName);
                
 	  li[std::string(moduleName)].addLine(canonicalLineSource, 
 					      (unsigned int) previousLineNo, 
