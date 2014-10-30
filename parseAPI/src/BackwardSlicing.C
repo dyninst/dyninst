@@ -341,3 +341,31 @@ void BackwardSlicer::DeleteUnreachableNodes(GraphPtr gp) {
     }        
 }
 
+bool IndirectControlFlowPred::endAtPoint(AssignmentPtr ap) {
+        if (ap->insn()->writesMemory()) return true;
+	return false;
+}
+
+bool IndirectControlFlowPred::followCall(ParseAPI::Function*  , CallStack_t & , AbsRegion ) {
+/*
+    ParseAPI::Block *b = f->entry();
+
+    if (f->entry()->isThunk()) {
+        Absloc absloc = reg.absloc();
+	if (absloc.type() == Absloc::Register && absloc.reg().base() == x86::ebx) {
+	    return true;
+	}
+    }
+    */
+    return false;
+
+}
+
+bool IndirectControlFlowPred::addPredecessor(AbsRegion reg) {
+    if (reg.absloc().type() == Absloc::Register) {
+        MachRegister r = reg.absloc().reg();
+        return !r.isPC() && !r.isStackPointer();
+    } 
+    return true;
+}
+

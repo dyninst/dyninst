@@ -47,6 +47,7 @@ class IndirectControlFlowPred : public Slicer::Predicates {
 public:
     virtual bool endAtPoint(AssignmentPtr ap);  
     virtual bool followCall(ParseAPI::Function * callee, CallStack_t & cs, AbsRegion arg);
+    virtual bool addPredecessor(AbsRegion);
     IndirectControlFlowPred (GuardSet &g): guards(g) {};
 };
 

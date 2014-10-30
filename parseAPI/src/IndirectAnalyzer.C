@@ -17,22 +17,6 @@
 #define SIGNEX_32_16 0xffff0000
 #define SIGNEX_32_8 0xffffff00
 
-
-static bool UsePC(Instruction::Ptr insn) {
-    vector<Operand> operands;
-    insn->getOperands(operands);
-    
-    for(unsigned int i=0; i<operands.size();++i) {
-        Operand & op = operands[i];
-	set<RegisterAST::Ptr> regs;
-	op.getReadSet(regs);
-	for (auto rit = regs.begin(); rit != regs.end(); ++rit)
-	    if ((*rit)->getID().isPC()) return true;
-
-    }
-    return false;
-}
-
 bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
 #if defined(os_windows)
@@ -293,36 +277,4 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
     }
 }
 
-bool IndirectControlFlowPred::endAtPoint(AssignmentPtr ap) {
-        if (ap->insn()->writesMemory()) return true;
-	if (UsePC(ap->insn())) return true;
-	if (ap->insn()->getCategory() == c_CallInsn) return true;
-	return false;
-}
 
-bool IndirectControlFlowPred::followCall(ParseAPI::Function* , CallStack_t & , AbsRegion ) {
-
-/*        ParseAPI::Block * b = callee->entry();
-	vector<pair<Instruction::Ptr, Address> > insns;
-
-	const unsigned char * buf = (const unsigned char*) b->obj()->cs()->getPtrToInstruction(b->start());
-	InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());  
-
-	Instruction::Ptr insn;
-	Address curAddr = b->start();
-	int num = 0;
-	while ((insn = dec.decode()) != NULL) {
-	    insns.push_back(make_pair(insn, curAddr));
-	    curAddr += insn->size();
-	    ++num;
-	}
-
-	if (num != 2) return false;
-
-	if (insns[1].first->getCategory() != c_ReturnInsn) return false;
-	if (insns[0].first->getOperation().getID() != e_mov) return false;
-	printf("followCall to %lx\n", callee->addr());
-*/
-	return false;
-
-}

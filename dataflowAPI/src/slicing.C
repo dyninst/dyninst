@@ -1158,6 +1158,12 @@ Slicer::handleReturnBackward(
             return false;
         }
         return true;
+    } else { 
+      // Xiaozhu: If the user decides to not follow into the callee,
+      // we do not know for sure which register's values would stay
+      // intact. All values of the reigsters can be changed by the callee.
+      // We set err to true, and widen the slice
+      err = true;
     }
 
     return false;
@@ -1377,17 +1383,11 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
   // TBD: overlaps ins't quite the right thing here. "contained
   // by" would be better, but we need to get the AND/OR
   // of abslocs hammered out.
-
+  
   if (assign->out().type() != Absloc::Unknown) {
     // A region assignment can never kill
     return false; 
   }
-
-  // Xiaozhu: A call can ruin all bounds, so we don't need to 
-  // continue slicing. But need to figure out how to specify this
-  // 2014-07-27: But actually sometimes we do need to slice across function calls
-  // this is hard to decide.
-  //if (assign->insn()->getCategory() == c_CallInsn) return true;
 
   return reg.contains(assign->out());
 }
