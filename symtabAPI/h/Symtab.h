@@ -318,6 +318,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    char *mem_image() const;
 
+   Offset preferedBase() const;
    Offset imageOffset() const;
    Offset dataOffset() const;
    Offset dataLength() const;
@@ -456,6 +457,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    MappedFile *mf;
    MappedFile *mfForDebugInfo;
 
+   Offset preferedBase_;
    Offset imageOffset_;
    unsigned imageLen_;
    Offset dataOffset_;

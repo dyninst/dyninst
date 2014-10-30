@@ -195,6 +195,7 @@ class Object : public AObject
     //+ desc.loadAddr(); } //laodAddr is always zero in our fake address space.
     // TODO. Change these later.
     SYMTAB_EXPORT Offset getLoadAddress() const { return imageBase; }
+	SYMTAB_EXPORT Offset getPreferedBase() const { return preferedBase; }
     SYMTAB_EXPORT Offset getEntryAddress() const { return getEntryPoint(); }
     SYMTAB_EXPORT Offset getBaseAddress() const { return get_base_addr(); }
     SYMTAB_EXPORT Offset getTOCoffset(Offset /*ignored*/) const { return 0; }
@@ -245,6 +246,7 @@ private:
 	DWORD* get_dword_ptr(Offset rva);
     Offset baseAddr;     // location of this object in mutatee address space
 
+	Offset preferedBase; // Virtual address at which the binary is prefered to be loaded
     Offset imageBase; // Virtual Address at which the binary is loaded in its address space
 
     PIMAGE_NT_HEADERS   peHdr;      // PE file headers

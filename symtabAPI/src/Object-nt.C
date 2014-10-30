@@ -1115,6 +1115,7 @@ Object::Object(MappedFile *mf_,
     curModule( NULL ),
     baseAddr( 0 ),
     imageBase( 0 ),
+	preferedBase( 0 ),
     peHdr( NULL ),
     trapHeaderPtr_( 0 ),
     SecAlignment( 0 ),
@@ -1127,6 +1128,7 @@ Object::Object(MappedFile *mf_,
       AddTLSFunctions();
    }
    ParseSymbolInfo(alloc_syms);
+   preferedBase = imageBase;
    rebase(0);
 }
 
