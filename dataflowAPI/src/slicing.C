@@ -993,6 +993,13 @@ Slicer::handleReturnDetails(
     shiftAllAbsRegions(cur,-1*stack_depth,cur.con.front().func);
 }
 
+static bool EndsWithConditionalJump(ParseAPI::Block *b) {
+    bool cond = false;
+    for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit)
+        if ((*eit)->type() == COND_TAKEN) cond = true;
+    return cond;
+}
+
 bool
 Slicer::handleDefault(
     Direction dir,
@@ -1007,6 +1014,15 @@ Slicer::handleDefault(
     } else {
         cur.loc.block = e->src();
         getInsnsBackward(cur.loc);
+	if (EndsWithConditionalJump(e->src())) {
+	    vector<Element> newE;	 
+	    for (auto ait = cur.active.begin(); ait != cur.active.end(); ++ait) {	        
+	        Element &e = *(ait->second.begin());	
+	        newE.push_back(e);
+	    }
+	    cur.active[AbsRegion(Absloc(x86_64::rip))] = newE;
+  	    slicing_printf("\tadding tracking ip for control flow information ");
+	}
     }
     return true;
 }

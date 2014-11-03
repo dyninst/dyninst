@@ -214,6 +214,8 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
     Slicer::Predicates p;
     Slicer s(assignments[0], block, func);
     GraphPtr slice = s.backwardSlice(mp);
+//    slice->printDOT("target.dot");
+//    if (block->last() == 0x42f5a3)    exit(0);
 
 // Code for understanding characteristics of
 // jump target expressions
@@ -364,7 +366,7 @@ bool IndirectControlFlowPred::followCall(ParseAPI::Function*  , CallStack_t & , 
 bool IndirectControlFlowPred::addPredecessor(AbsRegion reg) {
     if (reg.absloc().type() == Absloc::Register) {
         MachRegister r = reg.absloc().reg();
-        return !r.isPC() && !r.isStackPointer();
+        return !r.isPC();
     } 
     return true;
 }
