@@ -203,7 +203,7 @@ typedef struct maps_entries {
    Address offset;
    int dev_major;
    int dev_minor;
-   int inode;
+   unsigned long inode;
    char path[MAPENTRIES_PATH_SIZE];
 } map_entries;
 
