@@ -783,6 +783,12 @@ bool AddressTranslateSysV::refresh()
             exec->dynamic_addr = (Address) link_elm->l_ld();
          continue;
       }
+      if (obj_name == "linux-vdso.so.1" ||
+	  obj_name == "linux-gate.so.1") 
+      {
+	continue;
+      }
+      
 
       Address text = (Address) link_elm->l_addr();
       if (obj_name.empty()) {
