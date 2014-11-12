@@ -5563,19 +5563,23 @@ bool Object::getTruncateLinePaths()
 
 Dyninst::Architecture Object::getArch()
 {
-#if defined(arch_power)
-  if (getAddressWidth() == 4) {
+  switch(elfHdr->e_machine())
+  {
+  case EM_PPC:
     return Dyninst::Arch_ppc32;
-  }
-  return Dyninst::Arch_ppc64;
-#elif defined(arch_x86) || defined(arch_x86_64)
-  if (getAddressWidth() == 4) {
+  case EM_PPC64:
+    return Dyninst::Arch_ppc64;
+  case EM_386:
     return Dyninst::Arch_x86;
+  case EM_X86_64:
+    return Dyninst::Arch_x86_64;
+  case EM_ARM:
+  default:
+    return Dyninst::Arch_none;
   }
-  return Dyninst::Arch_x86_64;
-#else
-  return Arch_none;
-#endif
+  assert (0 && "default not taken!");
+  return Dyninst::Arch_none;
+  
 }
 
 Offset Object::getTOCoffset(Offset off) const {
