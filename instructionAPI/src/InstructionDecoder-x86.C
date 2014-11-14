@@ -188,7 +188,7 @@ namespace Dyninst
 								  unsigned int opType)
     {
        unsigned int regType = op_d;
-        Result_Type aw = ia32_is_mode_64() ? u32 : u64;
+        Result_Type aw = ia32_is_mode_64() ? u64 : u32;
         if(ia32_is_mode_64())
         {
             regType = op_q;
