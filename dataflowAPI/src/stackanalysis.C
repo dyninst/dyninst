@@ -36,6 +36,7 @@
 #include <vector>
 #include <boost/bind.hpp>
 
+#include "ABI.h"
 #include "stackanalysis.h"
 
 #include "Annotatable.h"
@@ -847,6 +848,39 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block, Offset
    // Must be a thunk based on parsing.
    if (off != block->lastInsnAddr()) return false;
    
+   // Bottom callee-written registers
+   ABI* abi = ABI::getABI(word_size);
+   const bitArray callWritten = abi->getCallWrittenRegisters();
+   for (auto iter = abi->getIndexMap()->begin();
+           iter != abi->getIndexMap()->end();
+           ++iter) {
+       // We only care about GPRs right now
+       signed int gpr;
+       Architecture arch = insn->getArch();
+       switch(arch) {
+           case Arch_x86:
+               gpr = x86::GPR;
+               break;
+           case Arch_x86_64:
+               gpr = x86_64::GPR;
+               break;
+           case Arch_ppc32:
+               gpr = ppc32::GPR;
+               break;
+           case Arch_ppc64:
+               gpr = ppc64::GPR;
+               break;
+           default:
+               handleDefault(insn, xferFuncs);
+               return true;
+       };
+       if ((*iter).first.regClass() == x86::GPR) { 
+           if (callWritten.test((*iter).second)) {
+               xferFuncs.push_back(TransferFunc::bottomFunc((*iter).first));
+           }
+       }
+   }
+
    const Block::edgelist & outs = block->targets();  
    Block::edgelist::const_iterator eit = outs.begin();
    for( ; eit != outs.end(); ++eit) {
