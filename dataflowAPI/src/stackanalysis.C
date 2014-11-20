@@ -855,7 +855,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block, Offset
            iter != abi->getIndexMap()->end();
            ++iter) {
        // We only care about GPRs right now
-       signed int gpr;
+       unsigned int gpr;
        Architecture arch = insn->getArch();
        switch(arch) {
            case Arch_x86:
@@ -874,7 +874,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block, Offset
                handleDefault(insn, xferFuncs);
                return true;
        };
-       if ((*iter).first.regClass() == x86::GPR) { 
+       if ((*iter).first.regClass() == gpr) {
            if (callWritten.test((*iter).second)) {
                xferFuncs.push_back(TransferFunc::bottomFunc((*iter).first));
            }
