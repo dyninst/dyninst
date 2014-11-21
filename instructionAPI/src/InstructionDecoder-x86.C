@@ -189,6 +189,10 @@ namespace Dyninst
     {
        unsigned int regType = op_d;
         Result_Type aw = ia32_is_mode_64() ? u64 : u32;
+        if (opType == op_lea) {
+            // For an LEA, aw (address width) is insufficient, use makeSizeType
+            aw = makeSizeType(opType);
+        }
         if(ia32_is_mode_64())
         {
             regType = op_q;
