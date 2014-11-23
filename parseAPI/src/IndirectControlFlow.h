@@ -26,8 +26,7 @@ class BoundFactsCalculator {
     ReachFact &rf;
     ThunkData &thunks;
 
-    void ConditionalJumpBound(BoundFact *curFact, Node::Ptr src, Node::Ptr trg);  
-    void ThunkBound(BoundFact *curFact, Node::Ptr src, Node::Ptr trg);
+    //void ThunkBound(BoundFact *curFact, Node::Ptr src, Node::Ptr trg);
 
     BoundFact* Meet(Node::Ptr curNode);
     void CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact);

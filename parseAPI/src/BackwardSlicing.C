@@ -19,10 +19,11 @@ using namespace Dyninst::DataflowAPI;
 inline static void BuildAnEdge(SliceNode::Ptr srcNode,
                                SliceNode::Ptr trgNode,
 			       map<AssignmentPtr, SliceNode::Ptr> &nodeMap,
-			       GraphPtr newG) {
+			       GraphPtr newG,
+			       EdgeTypeEnum t) {
     SliceNode::Ptr newSrcNode = nodeMap[srcNode->assign()];
     SliceNode::Ptr newTrgNode = nodeMap[trgNode->assign()];
-    newG->insertPair(newSrcNode, newTrgNode);
+    newG->insertPair(newSrcNode, newTrgNode, TypedSliceEdge::create(newSrcNode, newTrgNode, t));
 }			       
 		       
 
@@ -31,27 +32,48 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 			  map<AssignmentPtr, SliceNode::Ptr> &nodeMap,
 			  map<ParseAPI::Block*, map<AssignmentPtr, SliceNode::Ptr> > &targetMap,
 			  GraphPtr newG,
-			  set<ParseAPI::Block*> &visit) {			 
+			  set<ParseAPI::Block*> &visit,
+			  EdgeTypeEnum t) {			 
     if (targetMap.find(curBlock) != targetMap.end()) {
+        // This block contains at least one silce node 
+	// that is reachable from the source DFS node
         map<AssignmentPtr, SliceNode::Ptr> &candNodes = targetMap[curBlock];
 	Address addr = 0;
 	SliceNode::Ptr trgNode;
 	for (auto cit = candNodes.begin(); cit != candNodes.end(); ++cit)
+	    // The node has to be either in a different block from the source node
+	    // or in the same block but has a larger address to be considered 
+	    // reachable from the source node
 	    if (cit->first->addr() > srcNode->addr() || curBlock != srcNode->block())
 	        if (addr == 0 || addr > cit->first->addr()) {
 		    addr = cit->first->addr();
 		    trgNode = cit->second;
 		}
 	if (addr != 0) {
-	    BuildAnEdge(srcNode, trgNode, nodeMap, newG);
+	    // There may be several assignments locating 
+	    // at the same address. Need to connecting all.
+	    if (t == _edgetype_end_) t = FALLTHROUGH;
+	    for (auto cit = candNodes.begin(); cit != candNodes.end(); ++cit)
+	        if (cit->first->addr() > srcNode->addr() || curBlock != srcNode->block())
+		    if (addr == cit->first->addr())
+		        BuildAnEdge(srcNode, cit->second, nodeMap, newG, t);
 	    return;
 	}
     }
+
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
     for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit)
-        if ((*eit)->intraproc())
-	    BuildEdgesAux(srcNode, (*eit)->trg(), nodeMap, targetMap, newG, visit);	   
+        if ((*eit)->intraproc()) {
+	    EdgeTypeEnum newT = t; 
+	    if (t == _edgetype_end_) {
+	        if ((*eit)->type() == COND_TAKEN || (*eit)->type() == COND_NOT_TAKEN) 
+		    newT = (*eit)->type();
+		else 
+		    newT = FALLTHROUGH;
+	    } 
+	    BuildEdgesAux(srcNode, (*eit)->trg(), nodeMap, targetMap, newG, visit, newT);	   
+	}
 }			  
 
 
@@ -60,7 +82,7 @@ static void BuildEdges(SliceNode::Ptr curNode,
 		       map<ParseAPI::Block*, map<AssignmentPtr, SliceNode::Ptr> > &targetMap,
 		       GraphPtr newG) {
     set<ParseAPI::Block*> visit;		     
-    BuildEdgesAux(curNode, curNode->block(), nodeMap, targetMap, newG, visit);
+    BuildEdgesAux(curNode, curNode->block(), nodeMap, targetMap, newG, visit, _edgetype_end_);
 }		       
 
 GraphPtr BackwardSlicer::TransformToCFG(GraphPtr gp) {
@@ -71,6 +93,8 @@ GraphPtr BackwardSlicer::TransformToCFG(GraphPtr gp) {
     
     // Create a AssignmentPtr to SliceNode map to maintain the new graph nodes
     map<AssignmentPtr, SliceNode::Ptr> nodeMap;
+
+    // Create a map to help find whether we have reached a node
     map<ParseAPI::Block*, map<AssignmentPtr, SliceNode::Ptr> > targetMap;
     for (; gbegin != gend; ++gbegin) {
         SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*gbegin);
@@ -78,22 +102,26 @@ GraphPtr BackwardSlicer::TransformToCFG(GraphPtr gp) {
 	nodeMap[node->assign()] = newNode;
 	targetMap[node->block()][node->assign()] = newNode;
     }
-/*
-    for (auto git = guards.begin(); git != guards.end(); ++git) {
-        nodeMap[] = SliceNode::create( , git->block, func);
-    }
-*/
+
+    // Start from each node to do DFS and build edges
     gp->allNodes(gbegin, gend);
     for (; gbegin != gend; ++gbegin) {
         SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*gbegin);
 	BuildEdges(node, nodeMap, targetMap, newG);
     }
+
+    SliceNode::Ptr virtualExit = SliceNode::create(Assignment::Ptr(), NULL, NULL);
+    newG->addNode(virtualExit);
     newG->allNodes(gbegin, gend);
     for (; gbegin != gend; ++gbegin) {
-        Node::Ptr ptr = *gbegin;
-	if (!ptr->hasInEdges()) newG->insertEntryNode(ptr);
-	if (!ptr->hasOutEdges()) newG->insertExitNode(ptr);
+        SliceNode::Ptr cur = boost::static_pointer_cast<SliceNode>(*gbegin);
+	if (!cur->hasOutEdges() && cur != virtualExit) {
+	    newG->insertPair(cur, virtualExit, TypedSliceEdge::create(cur, virtualExit, FALLTHROUGH));
+	}
     }
+
+    AdjustGraphEntryAndExit(newG);
+
 
     return newG;
 
@@ -128,21 +156,9 @@ GraphPtr BackwardSlicer::TransformGraph(GraphPtr gp) {
     if (AdjustGraphEntryAndExit(gp) == 1)  
         return gp; 
     else {
-        DeleteDataDependence(gp);
-	if (AdjustGraphEntryAndExit(gp) == 1) return gp; 
         return TransformToCFG(gp);
     }
 
-}
-
-static void DumpNode(GraphPtr g) {
-    NodeIterator gbegin, gend;
-    g->allNodes(gbegin, gend);
-    for (; gbegin != gend; ++gbegin) {
-        SliceNode::Ptr cur = boost::static_pointer_cast<SliceNode>(*gbegin);
-	parsing_printf(" %lx", cur->addr());
-    }
-    parsing_printf("\n");
 }
 
 static string Classify(AST::Ptr ast) {
@@ -214,89 +230,23 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
     Slicer::Predicates p;
     Slicer s(assignments[0], block, func);
     GraphPtr slice = s.backwardSlice(mp);
-//    slice->printDOT("target.dot");
-//    if (block->last() == 0x42f5a3)    exit(0);
 
 // Code for understanding characteristics of
 // jump target expressions
+/*
     Result_t symRet;
     SymEval::expand(slice, symRet);
     assert(symRet.find(assignments[0]) != symRet.end());    
     symRet[assignments[0]] =  SimplifyAnAST(symRet[assignments[0]], 0);
     string out = Classify(symRet[assignments[0]] );
     fprintf(stderr, "%lx: %s : %s\n", block->last(),  out.c_str(), symRet[assignments[0]]->format().c_str());
+*/
 // End of this piece of code
 
     slice = TransformGraph(slice);
-//    DumpSliceInstruction(slice);
-//    return AST::Ptr();
+    slice->printDOT("target.dot");
 
     return slice;
-}
-
-void BackwardSlicer::DeleteDataDependence(GraphPtr gp) {
-    NodeIterator nbegin, nend;
-    EdgeIterator ebegin, eend, nextEdgeIt;
-
-    gp->allNodes(nbegin, nend);
-
-    for (; nbegin != nend; ++nbegin) {
-        SliceNode::Ptr curNode = boost::static_pointer_cast<SliceNode>(*nbegin);
-		curNode->outs(ebegin, eend);
-		for (; ebegin != eend; ) {
-			SliceNode::Ptr nextNode = boost::static_pointer_cast<SliceNode>((*ebegin)->target());
-			if (PassThroughGuards(curNode, nextNode)) {
-				nextEdgeIt = ebegin;
-				++nextEdgeIt;
-				nextNode->deleteInEdge(ebegin);
-				curNode->deleteOutEdge(ebegin);
-				ebegin = nextEdgeIt;
-			}
-			else ++ebegin;
-		}
-    }
-    DeleteUnreachableNodes(gp);
-
-}
-
-bool BackwardSlicer::PassThroughGuards(SliceNode::Ptr src, SliceNode::Ptr trg) {
-    ParseAPI::Block *srcBlock = src->block();
-    ParseAPI::Block *trgBlock = trg->block();
-    for (auto git = guards.begin(); git != guards.end(); ++git) {
-        if (!git->constantBound) continue;
-
-        ParseAPI::Block *guardBlock = git->block;
-	// Note that the guardBlock and the srcBlock can be the same, 
-	// but since the conditional jump will always be the last instruction
-	// in the block, if they are in the same block, the src can reach the guard
-	if (rf.incoming[guardBlock].find(srcBlock) == rf.incoming[guardBlock].end()) continue;
-	bool pred_taken = rf.branch_taken[guardBlock].find(trgBlock) != rf.branch_taken[guardBlock].end();
-	bool pred_ft = rf.branch_ft[guardBlock].find(trgBlock) != rf.branch_ft[guardBlock].end();
-	// If both branches reach the trg node, then this conditional jump 
-	// does not bound any variable for the trg node.
-	if (pred_taken ^ pred_ft) {
-	    // Here I need to figure out which branch bounds the variable and 
-	    // check it is the bounded path that reaches the trg node.
-	    bool boundedOnTakenBranch = git->varSubtrahend ^ git->jumpWhenNoZF;
-	    if (   (boundedOnTakenBranch && pred_taken)
-	        // In thic case, we jump when the variable is smaller than the constant.
-		// So the condition taken path is the path that bounds the value.
-	        || (!boundedOnTakenBranch && pred_ft) ) {
-	        // In thic case, we jump when the variable is larger than the constant.
-		// So the fallthrough path is the path that bounds the value.
-
-                if (src->assign() != NULL) {
-		    Absloc loc = src->assign()->out().absloc();
-		    if (loc.type() == Absloc::Register && git->usedRegs.find(loc.reg()) != git->usedRegs.end()) {
-		        parsing_printf("(%lx, %lx) pass through guard at %lx\n", src->addr(), trg->addr(), git->jmpInsnAddr);
-
-		        return true;
-		    }
-		}
-	    }
-	}
-    }
-    return false;
 }
 
 int BackwardSlicer::AdjustGraphEntryAndExit(GraphPtr gp) {
@@ -310,37 +260,6 @@ int BackwardSlicer::AdjustGraphEntryAndExit(GraphPtr gp) {
 	if (!ptr->hasOutEdges()) gp->insertExitNode(ptr);
     }
     return nodeCount;
-}
-
-static void ReverseDFS(Node::Ptr cur, set<Node::Ptr> &visited) {
-    if (visited.find(cur) != visited.end()) return;
-    visited.insert(cur);
-    EdgeIterator ebegin, eend;
-    cur->ins(ebegin, eend);
-    for (; ebegin != eend; ++ebegin)
-        ReverseDFS((*ebegin)->source(), visited);
-}
-
-void BackwardSlicer::DeleteUnreachableNodes(GraphPtr gp) {
-    set<Node::Ptr> visited;
-    NodeIterator nbegin, nend;
-    gp->exitNodes(nbegin, nend);
-    for (; nbegin != nend; ++nbegin) {
-        SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*nbegin);
-	if (node->addr() == addr) break;
-    }
-    ReverseDFS(*nbegin, visited);
-    bool finish = false;
-    while (!finish) {
-        finish = true;
-	gp->allNodes(nbegin, nend);
-	for (; nbegin != nend; ++nbegin)
-	    if (visited.find(*nbegin) == visited.end()) {
-	        gp->deleteNode(*nbegin);
-		finish = false;
-		break;
-	    }
-    }        
 }
 
 bool IndirectControlFlowPred::endAtPoint(AssignmentPtr ap) {

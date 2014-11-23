@@ -17,29 +17,41 @@
 #define SIGNEX_32_16 0xffff0000
 #define SIGNEX_32_8 0xffffff00
 
+// Assume the table contain less than this many entries.
+#define MAX_TABLE_ENTRY 1000000
+
 bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-#if defined(os_windows)
-    target.tableBase -= block->obj()->cs()->loadAddress();
-#endif
+
+    Address tableBase = target.interval.low;
+    Address tableLastEntry = target.interval.high;
     Architecture arch = block->obj()->cs()->getArch();
-    if (arch == Arch_x86) target.tableBase &= 0xffffffff;
+    if (arch == Arch_x86) {
+        tableBase &= 0xffffffff;
+	tableLastEntry &= 0xffffffff;
+    }
+
+#if defined(os_windows)
+    tableBase -= block->obj()->cs()->loadAddress();
+    tableLastEntry -= block->obj()->cs()->loadAddress();
+#endif
+
     parsing_printf("The final target bound fact:\n");
     target.Print();
 
-    if (!block->obj()->cs()->isValidAddress(target.tableBase)) {
-        parsing_printf("\ttableBase 0x%lx invalid, returning false\n", target.tableBase);
+    if (!block->obj()->cs()->isValidAddress(tableBase)) {
+        parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
 	return false;
     }
 
-    for (int64_t i = 0; i <= target.value; ++i) {
-        Address tableEntry = target.tableBase;
-	if (target.addIndexing) tableEntry += target.coe * i; else tableEntry -= target.coe * i;
+    for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += target.interval.stride) {
 	if (!block->obj()->cs()->isValidAddress(tableEntry)) continue;
 	Address targetAddress = 0;
-	if (target.tableLookup || target.tableOffset) {
-	    // Assume the table contents are moved in a sign extended way. Fixme if not.
-	    switch (target.coe) {
+	if (target.isTableRead) {
+	    // Two assumptions:
+	    // 1. Assume the table contents are moved in a sign extended way;
+	    // 2. Assume memory access size is the same as the table stride
+	    switch (target.interval.stride) {
 	        case 8:
 		    targetAddress = *(const uint64_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
 		    break;
@@ -71,11 +83,15 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 		    break;
 
 		default:
-		    parsing_printf("Invalid table stride %d\n", target.coe);
-		    continue;
+		    parsing_printf("Invalid table stride %d\n", target.interval.stride);
+		    return false;
 	    }
-	    if (target.tableOffset && targetAddress != 0) {
-	        if (target.addOffset) targetAddress += target.targetBase; else targetAddress = target.targetBase - targetAddress;
+	    if (targetAddress != 0) {
+	        if (target.isSubReadContent) 
+		    targetAddress = target.targetBase - targetAddress;
+		else 
+		    targetAddress += target.targetBase; 
+
 	    }
 #if defined(os_windows)
             targetAddress -= block->obj()->cs()->loadAddress();
@@ -99,15 +115,13 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 //    if (block->last() != 0x4e4ffb) return false;
 
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
-    FindAllConditionalGuards();
+//    FindAllConditionalGuards();
     FindAllThunks();
     ReachFact rf(guards, thunks);
     parsing_printf("Calculate backward slice\n");
 
     BackwardSlicer bs(func, block, block->last(), guards, rf);
     GraphPtr slice =  bs.CalculateBackwardSlicing();
-
-    return false;
 
     parsing_printf("Calculate bound facts\n");     
     BoundFactsCalculator bfc(guards, func, slice, func->entry() == block, rf, thunks);
@@ -217,23 +231,20 @@ void IndirectControlFlowAnalyzer::FindAllConditionalGuards(){
 bool IndirectControlFlowAnalyzer::IsJumpTable(GraphPtr slice, 
 					      BoundFactsCalculator &bfc,
 					      BoundValue &target) {
-    NodeIterator sbegin, send;
-    slice->exitNodes(sbegin, send);
-    for (; sbegin != send; ++sbegin) {
-        SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*sbegin);
-	const Absloc &loc = node->assign()->out().absloc();
-	parsing_printf("Checking bound fact at %lx for %s\n",node->addr(), loc.format().c_str()); 
-	BoundFact *bf = bfc.GetBoundFact(*sbegin);
-	if (bf->IsBounded(loc)) {
-	    target = *(bf->GetBound(loc));
-
-	    if (target.tableLookup) return true;
-	    if (target.tableOffset) return true;
-	    if (target.type == LessThan && target.CoeBounded() && target.HasTableBase()) return true;
-	}
+    NodeIterator exitBegin, exitEnd, srcBegin, srcEnd;
+    slice->exitNodes(exitBegin, exitEnd);
+    SliceNode::Ptr virtualExit = boost::static_pointer_cast<SliceNode>(*exitBegin);
+    virtualExit->ins(srcBegin, srcEnd);
+    SliceNode::Ptr jumpNode = boost::static_pointer_cast<SliceNode>(*srcBegin);
+    
+    const Absloc &loc = jumpNode->assign()->out().absloc();
+    parsing_printf("Checking final bound fact for %s\n",loc.format().c_str()); 
+    BoundFact *bf = bfc.GetBoundFact(virtualExit);
+    if (bf->IsBounded(loc)) {
+        target = *(bf->GetBound(loc));
+	uint64_t s = target.interval.size();
+	if (s > 0 && s <= MAX_TABLE_ENTRY) return true;
     }
-  
-
     return false;
 }
 

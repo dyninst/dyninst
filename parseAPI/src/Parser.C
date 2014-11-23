@@ -640,7 +640,7 @@ Parser::finalize(Function *f)
 		// functions called from within, e.g. parse_frame from setting
 		// the caching flag and preventing later updates to the blocks()
 		// vector during finalization.
-		cache_value = false;
+	//	cache_value = false;
 	}
 
     parsing_printf("[%s] finalizing %s (%lx)\n",

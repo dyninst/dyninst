@@ -3,11 +3,11 @@
 
 #include "CFG.h"
 #include "slicing.h"
+#include "Edge.h"
 
 #include "TableGuardData.h"
 
 using namespace Dyninst;
-using namespace Dyninst::ParseAPI;
 
 
 /* This BackwardSlicer first call DataflowAPI::Slicer to get
@@ -51,5 +51,25 @@ public:
     IndirectControlFlowPred (GuardSet &g): guards(g) {};
 };
 
+
+class TypedSliceEdge: public Dyninst::Edge {
+    EdgeTypeEnum type_; 
+    
+    TypedSliceEdge(const SliceNode::Ptr source,
+              const SliceNode::Ptr target,
+	      EdgeTypeEnum t) 
+	      : Dyninst::Edge(source, target), type_(t) {};
+  public:	      
+   typedef boost::shared_ptr<TypedSliceEdge> Ptr; 
+   static TypedSliceEdge::Ptr create(SliceNode::Ptr source,
+                                     SliceNode::Ptr target,
+				     EdgeTypeEnum t) {
+	return Ptr(new TypedSliceEdge(source, target, t));       
+   }                                                
+
+  public:
+    EdgeTypeEnum type() { return type_;}
+
+};
 
 #endif

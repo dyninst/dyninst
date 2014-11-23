@@ -92,7 +92,7 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
         VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
 	if (varAST->val().reg.absloc().isPC()) {
 	    MachRegister pc = varAST->val().reg.absloc().reg();
-	    fprintf(stderr, "instruction size %d, ip value %lx, real value %lx\n", insnSize, varAST->val().addr, varAST->val().addr + insnSize);
+	    fprintf(stderr, "instruction size %lu, ip value %lx, real value %lx\n", insnSize, varAST->val().addr, varAST->val().addr + insnSize);
 	    return ConstantAST::create(Constant(varAST->val().addr + insnSize, getArchAddressWidth(pc.getArchitecture()) * 8));
 	}
 	return VariableAST::create(Variable(varAST->val().reg));
@@ -108,9 +108,6 @@ AST::Ptr SimplifyAnAST(AST::Ptr ast, uint64_t size) {
 }
 
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
-    if (boundFact.CMPBoundMatch(ast)) {
-        bound.insert(make_pair(ast, new BoundValue(LessThan, boundFact.cmpBound))); 
-    }
     unsigned totalChildren = ast->numChildren();
     for (unsigned i = 0 ; i < totalChildren; ++i) {
         ast->child(i)->accept(this);
@@ -118,117 +115,81 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
     switch (ast->val().op) {
         case ROSEOperation::addOp:
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {	    
-	        BoundValue* child1 = GetResultBound(ast->child(0));
-		BoundValue* child2 = GetResultBound(ast->child(1));
-		BoundValue* val = NULL;
-		if (child1->type == Equal && child2->type == Equal) {
-		    val = new BoundValue(Equal, child1->value + child2->value);
-		} else if (child1->type == Equal && child2->tableLookup) {
-		    val = new BoundValue(*child2);
-		    val->targetBase += child1->value;
-		    val->tableOffset = true;
-		} else if (child2->type == Equal && child1->tableLookup) {
-		    val = new BoundValue(*child1);
-		    val->targetBase += child2->value;
-		    val->tableOffset = true;
-		} else if (child1->type == Equal && child2->CoeBounded() ) {
-		    val = new BoundValue(*child2);
-	            val->tableBase += child1->value;
-		} else if (child2->type == Equal && child1->CoeBounded()) {  
-		    val = new BoundValue(*child1);
-	            val->tableBase += child2->value;
-		} else if (!child1->addIndexing) {              
-		    val = new BoundValue(*child2);
-		} else if (!child2->addIndexing) {
-		    val = new BoundValue(*child1);
-		} else { 
-		    val = new BoundValue((child1->type == Equal && child2->type == Equal) ? Equal : LessThan,
-		                         child1->value + child2->value);
-		}
-		bound.insert(make_pair(ast, val));
-	    } else if (ast->child(0)->getID() == AST::V_RoseAST && ast->child(1)->getID() == AST::V_ConstantAST) {
-  	        // Now check if this subexpression is actually a subtraction
-	        RoseAST::Ptr child0 = boost::static_pointer_cast<RoseAST>(ast->child(0));
-		ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(ast->child(1));
-		if (child1->val().val == 1 && child0->val().op == ROSEOperation::invertOp)
-		    if (IsResultBounded(child0->child(0))) {
-		        BoundValue *val = new BoundValue(*GetResultBound(child0->child(0)));
-			if (val->tableLookup) val->addOffset = false; else val->addIndexing = false;
-			bound.insert(make_pair(ast, val));
-		    }
-		
+		BoundValue* val = new BoundValue(*GetResultBound(ast->child(0)));
+		val->Add(*GetResultBound(ast->child(1)));
+		if (*val != BoundValue::top)
+		    bound.insert(make_pair(ast, val));
 	    }	    
 	    break;
-	case ROSEOperation::andOp:
-	    if (IsResultBounded(ast->child(0)) || IsResultBounded(ast->child(1))) {
-	        int64_t value = -1;
-		BoundValue *val = NULL;
-		if (IsResultBounded(ast->child(0))) {
-		    val = GetResultBound(ast->child(0));
-		    if (val->value < value || value == -1) value = val->value;
+	case ROSEOperation::invertOp:
+	    if (IsResultBounded(ast->child(0))) {
+	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
+		if (val->isTableRead)
+		    val->isInverted = true;
+		else {
+		    val->interval.Not();
+		    val->ClearTableCheck();
 		}
-		if (IsResultBounded(ast->child(1))) {
-		    val = GetResultBound(ast->child(1));
-		    if (val->value < value || value == -1) value = val->value;
-		}
-		bound.insert(make_pair(ast, new BoundValue(LessThan, value)));
+		if (*val != BoundValue::top)
+		    bound.insert(make_pair(ast,val));
 	    }
 	    break;
+	case ROSEOperation::andOp:{
+	    // For and operation, even one of them is a top,
+	    // we may still produce bound result.
+	    // For example, top And 0[3,3] => 1[0,3]
+	    BoundValue *val = NULL;
+	    if (IsResultBounded(ast->child(0)))
+	        val = new BoundValue(*GetResultBound(ast->child(0)));
+	    else
+	        val = new BoundValue(BoundValue::top);
+	    if (IsResultBounded(ast->child(1)))
+	        val->And(GetResultBound(ast->child(1))->interval);
+	    else
+	        val->And(StridedInterval::top);
+	    // the result of an AND operation should not be
+	    // the table lookup. Set all other values to default
+	    val->ClearTableCheck();
+	    if (*val != BoundValue::top)
+	        bound.insert(make_pair(ast, val));
+	    break;
+	}
 	case ROSEOperation::sMultOp:
 	case ROSEOperation::uMultOp:
-	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))){
-	        BoundValue* child1 = GetResultBound(ast->child(0));
-		BoundValue* child2 = GetResultBound(ast->child(1));
-		BoundValue* val = new BoundValue();
-		if (child2->value < 10) {
-		    val->value = child1->value;
-		    val->coe = child1->coe * child2->value;
-		}
-		else {
-		    val->value = child2->value;
-		    val->coe = child2->coe * child1->value;
-			}
-		if (child1->type == Equal && child2->type == Equal)
-		    val->type = Equal;
-		else
-		    val->type = LessThan;
-		val->tableLookup = false;
-		bound.insert(make_pair(ast,val));
+	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
+	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
+	        val->Mul(*GetResultBound(ast->child(1)));
+	        if (*val != BoundValue::top)
+	            bound.insert(make_pair(ast, val));
 	    }
 	    break;
-
 	case ROSEOperation::shiftLOp:
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
-	        BoundValue* child1 = GetResultBound(ast->child(0));
-		BoundValue* child2 = GetResultBound(ast->child(1));
-		BoundValue* val = new BoundValue((child1->type == Equal && child2->type == Equal) ? Equal : LessThan,
-		                                 child1->value);
-		val->coe = child1->coe << child2->value;
-		val->tableLookup = false;
-		bound.insert(make_pair(ast,val));
+	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
+	        val->ShiftLeft(*GetResultBound(ast->child(1)));
+	        if (*val != BoundValue::top)
+	            bound.insert(make_pair(ast, val));
 	    }
 	    break;
-	case ROSEOperation::derefOp:
+	case ROSEOperation::derefOp: 
 	    if (IsResultBounded(ast->child(0))) {
-	        BoundValue* child = GetResultBound(ast->child(0));
-		if (child->type == LessThan && child->CoeBounded() && child->HasTableBase()) {
-		    BoundValue *val = new BoundValue(*child);
-		    val->tableLookup = true;
-		    bound.insert(make_pair(ast,val));
-
-		}
+	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
+	        if (val->interval != StridedInterval::top)
+	            val->isTableRead = true;
+	        if (*val != BoundValue::top)
+	            bound.insert(make_pair(ast, val));
 	    }
 	    break;
-	case ROSEOperation::orOp:
+	case ROSEOperation::orOp: {
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
-	        BoundValue* child1 = GetResultBound(ast->child(0));
-		BoundValue* child2 = GetResultBound(ast->child(1));
-		// TODO: A temporory method
-		BoundValue* val = new BoundValue(LessThan,(child1->value * child1->coe) | (child2->value * child2->coe)) ;		
-		bound.insert(make_pair(ast,val));
-
+	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
+	        val->Or(*GetResultBound(ast->child(1)));
+	        if (*val != BoundValue::top)
+	            bound.insert(make_pair(ast, val));
 	    }
 	    break;
+
+        }
 	default:
 	    break;
     }
@@ -237,17 +198,14 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 }
 
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::ConstantAST *ast) {
-    bound.insert(make_pair(ast, new BoundValue(Equal, ast->val().val)));
+    bound.insert(make_pair(ast, new BoundValue(ast->val().val)));
     return AST::Ptr();
 }
 
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::VariableAST *ast) {
-    if (boundFact.CMPBoundMatch(ast)) {
-        bound.insert(make_pair(ast , new BoundValue(LessThan, boundFact.cmpBound)));
-    } else {
-        const Absloc& al = ast->val().reg.absloc();
-	if (boundFact.IsBounded(al)) bound.insert(make_pair(ast, new BoundValue(*boundFact.GetBound(al))));
-    }
+
+    const Absloc& al = ast->val().reg.absloc();
+    if (boundFact.IsBounded(al)) bound.insert(make_pair(ast, new BoundValue(*boundFact.GetBound(al))));
     return AST::Ptr();
 }
 
@@ -280,27 +238,33 @@ AST::Ptr JumpCondVisitor::visit(DataflowAPI::RoseAST *ast) {
 }
 
 AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
-    // For cmp type instruction
-    if (ast->val().op == ROSEOperation::extendMSBOp) {
-        AST::Ptr child = ast->child(0);
+    // For cmp type instruction setting zf
+    // Looking like <eqZero?>(<add>(<V([x86_64::rbx])>,<Imm:8>,),)
+    // Assuming ast has been simplified
+    if (ast->val().op == ROSEOperation::equalToZeroOp) {
+        AST::Ptr child = ast->child(0);	
 	if (child->getID() == AST::V_RoseAST) {
 	    RoseAST::Ptr childRose = boost::static_pointer_cast<RoseAST>(child);
-	    if (childRose->val().op == ROSEOperation::invertOp) {
-	        minuend = childRose->child(0);
+	    if (childRose->val().op == ROSEOperation::addOp) {
+	        subtrahend = childRose->child(0);
+	        minuend = childRose->child(1);
+
+		// If the minuend is a constant, then
+		// the minuend is currently in its two-complement form
+		if (minuend->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(minuend);
+		    uint64_t val = constAST->val().val;
+		    int size = constAST->val().size;
+		    val = ((~val) & ((1ul << size) - 1)) + 1;
+		    minuend = ConstantAST::create(Constant(val, size));
+		} else {
+		    // Otherwise, the minuend ast is in the form of add(invert(minuend), 1)
+		    // Need to extract the real minuend
+		    minuend = minuend->child(0)->child(0);
+		}
 		return AST::Ptr();
 	    }
 	}
-	subtrahend = child;
-	return AST::Ptr();
-    }
-    // For test type instruction
-    if (ast->val().op == ROSEOperation::equalToZeroOp) {
-        subtrahend = ast->child(0);
-	minuend = ConstantAST::create(Constant(0));
-    }
-    unsigned totalChildren = ast->numChildren();
-    for (unsigned i = 0 ; i < totalChildren; ++i) {
-        ast->child(i)->accept(this);
     }
     return AST::Ptr();
 }
