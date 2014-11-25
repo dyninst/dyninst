@@ -40,20 +40,6 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	inQueue.erase(curNode);
 	
 	SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);
-	// All nodes should have an associated assignment
-	// except for the virtual exit node.
-	// And we do not want to skip the virtual exit node
-	if (node->assign()) {
-	    Absloc loc = node->assign()->out().absloc();
-	    // In principle, we can look at any assignment,
-	    // we look at zf because it is simplest. 
-	    // So, if it is a flag assignment, and it is not zf, 
-	    // we ignore it.
-            if (loc.type() == Absloc::Register && 
-	        loc.reg().regClass() == x86::FLAG &&
-		!(loc.reg() == x86::zf || loc.reg() == x86_64::zf)) continue;
-	
-        }
 
 	++inQueueLimit[curNode];
 	if (inQueueLimit[curNode] > IN_QUEUE_LIMIT) continue;
@@ -138,7 +124,8 @@ static bool IsConditionalJump(Instruction::Ptr insn) {
 
     if (id == e_jz || id == e_jnz ||
         id == e_jb || id == e_jnb ||
-	id == e_jbe || id == e_jnbe) return true;
+	id == e_jbe || id == e_jnbe ||
+	id == e_jb_jnaej_j || id == e_jnb_jae_j) return true;
     return false;
 }
 
@@ -149,104 +136,78 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
     EdgeIterator gbegin, gend;
     curNode->ins(gbegin, gend);    
     BoundFact* newFact = NULL;
-
-    if (node->assign() && IsConditionalJump(node->assign()->insn())) {
-        // If the current node defines PC, it should be a conditional jump.
-	// Its predecessor nodes should define the flags. 
-	// There would be multiple predecessor, but we only look 
-	// at the first one because we need to process the whole instruction.	
-	parsing_printf("\t\tConditional jump! Try to find the zf slice node in its predecessors .\n");
-        TypedSliceEdge::Ptr zfEdge = TypedSliceEdge::Ptr();	
-        SliceNode::Ptr zfNode; 
+    
+    bool first = true;	
+    for (; gbegin != gend; ++gbegin) {
+        TypedSliceEdge::Ptr edge = boost::static_pointer_cast<TypedSliceEdge>(*gbegin);	
+	SliceNode::Ptr srcNode = boost::static_pointer_cast<SliceNode>(edge->source()); 
+	BoundFact *prevFact = GetBoundFact(srcNode);	    
 	
-	for (; gbegin != gend; ++gbegin) {
-	    TypedSliceEdge::Ptr edge = boost::static_pointer_cast<TypedSliceEdge>(*gbegin);
-	    SliceNode::Ptr srcNode = boost::static_pointer_cast<SliceNode>(edge->source()); 
-	    Absloc loc = srcNode->assign()->out().absloc();
+	if (prevFact == NULL) {
+	    parsing_printf("\t\tIncoming node %lx has not been calculated yet, default to top\n", srcNode->addr());
+	    prevFact = new BoundFact();
+	} else {	    
+	    // Otherwise, create a new copy.
+	    // We do not want to overwrite the bound fact
+	    // of the predecessor
+	    prevFact = new BoundFact(*prevFact);
+        }
+	parsing_printf("\t\tMeet incoming edge from %lx\n", srcNode->addr());
+	parsing_printf("\t\tThe fact from %lx before applying transfer function\n", srcNode->addr());
+	prevFact->Print();
 
-	    // In principle, we can look at any assignment,
-	    // we look at zf because it is simplest.
-	    if (loc.type() == Absloc::Register && (loc.reg() == x86::zf || loc.reg() == x86_64::zf)) {
-	        zfEdge = edge;
-		zfNode = srcNode;
-	        break;
-	    }
-	}
-
-	if (zfEdge == TypedSliceEdge::Ptr()) {
-	    parsing_printf("WARNING: Do not find zf in the predecessors!!\n");
-	    // We know nothing about it.
-	    // Set to top.  
-	    newFact = new BoundFact();
+	if (srcNode->assign() && srcNode->assign()->out().absloc().type() == Absloc::Register &&
+	    (srcNode->assign()->out().absloc().reg() == x86::zf || srcNode->assign()->out().absloc().reg() == x86_64::zf)) {
+	    // zf should be only predecessor of this node
+	    parsing_printf("\t\tThe predecessor node is zf assignment!\n");
+	    prevFact->SetPredicate(srcNode->assign());	    
+	} else if (srcNode->assign() && IsConditionalJump(srcNode->assign()->insn())) {
+	    // If the predecessor is a conditional jump,
+	    // we can determine bound fact based on the predicate and the edge type
+  	    parsing_printf("\t\tThe predecessor node is a conditional jump!\n");
+	    prevFact->ConditionalJumpBound(srcNode->assign()->insn(), edge->type());
 	} else {
-	    newFact = GetBoundFact(zfNode);
-	    if (newFact == NULL) {
-	        parsing_printf("\t\tIncoming node %lx has not been calculated yet, default to top\n", zfNode->addr());
-		newFact = new BoundFact();
-	    } else {
-	       // Otherwise, create a new copy.
-	       // We do not want to overwrite the bound fact
-	       // of the predecessor
-	        newFact = new BoundFact(*newFact); 
-	    }
-	    newFact->SetPredicate(zfNode->assign());	    
-	    parsing_printf("\t\tNew fact after the change is\n");
-	    newFact->Print();
-	}
-    } else {
-        // This is not a conditional jump,
-	// We process each assignment separately.
-	parsing_printf("\t\tNot conditional jump. Process each predecessor.\n");
-	bool first = true;	
-	for (; gbegin != gend; ++gbegin) {
-	    TypedSliceEdge::Ptr edge = boost::static_pointer_cast<TypedSliceEdge>(*gbegin);	
-	    SliceNode::Ptr srcNode = boost::static_pointer_cast<SliceNode>(edge->source()); 
-	    BoundFact *prevFact = GetBoundFact(srcNode);	    
-
-	    if (prevFact == NULL) {
-	        parsing_printf("\t\tIncoming node %lx has not been calculated yet, default to top\n", srcNode->addr());
-		prevFact = new BoundFact();
-	    } else {	    
-	       // Otherwise, create a new copy.
-	       // We do not want to overwrite the bound fact
-	       // of the predecessor
-	       prevFact = new BoundFact(*prevFact);
-	    }
-	    parsing_printf("\t\tMeet incoming edge from %lx\n", srcNode->addr());
-	    parsing_printf("\t\tThe fact from %lx before applying transfer function\n", srcNode->addr());
-	    prevFact->Print();
-            if (srcNode->assign() && IsConditionalJump(srcNode->assign()->insn())) {
-	        // If the predecessor is a conditional jump,
-		// we can determine bound fact based on the predicate and the edge type
-		parsing_printf("\t\tIncoming node is a conditional jump!\n");
-		prevFact->ConditionalJumpBound(srcNode->assign()->insn(), edge->type());
-	    } else {
-	        // The predecessor is not a conditional jump,
-		// then we can determine buond fact based on the src assignment
-		parsing_printf("\t\tnot a conditional jump\n");
-		CalcTransferFunction(srcNode, prevFact);
-
-	    }
-	    
-	    if (first) {
-	        // For the first incoming dataflow fact,
-	        // we just copy it.
-	        // We have to do this because if an a-loc
-	        // is missing in the fact map, we assume
-	        // the a-loc is bottomed. 
-	        first = false;
-		newFact = prevFact;
-	    } else {
-	        newFact->Meet(*prevFact);
-		delete prevFact;
-
-	    }
-	}
+	    // The predecessor is not a conditional jump,
+	    // then we can determine buond fact based on the src assignment
+	    parsing_printf("\t\tThe predecessor node is normal node\n");
+  	    CalcTransferFunction(srcNode, prevFact);
+        }
+	parsing_printf("\t\tFact from %lx fter applying transfer function\n", srcNode->addr());
+	prevFact->Print();
+        if (first) {
+	    // For the first incoming dataflow fact,
+	    // we just copy it.
+	    // We can do this because if an a-loc
+	    // is missing in the fact map, we assume
+	    // the a-loc is top. 
+	    first = false;
+	    newFact = prevFact;
+	} else {
+	    newFact->Meet(*prevFact);
+	    delete prevFact;
+        }
     }
+
 
     if (newFact == NULL) {
         // This should only happen for nodes without incoming edges;
-	newFact = new BoundFact();
+	if (firstBlock) {
+	    // If the indirect jump is in the entry block
+	    // of the function, we assume that rax is in
+	    // range [0,8] for analyzing the movaps table.
+	    // NEED TO HAVE A SAFE WAY TO DO THIS!!
+	    parsing_printf("\t\tApplying entry block rax assumption!\n");
+	    newFact = new BoundFact();
+	    AST::Ptr axAST;
+	    if (func->entry()->obj()->cs()->getAddressWidth() == 8)
+	        axAST = VariableAST::create(Variable(AbsRegion(Absloc(x86_64::rax))));
+	    else
+	        // DOES THIS REALLY SHOW UP IN 32-BIT CODE???
+	        axAST = VariableAST::create(Variable(AbsRegion(Absloc(x86::eax))));
+	    newFact->GenFact(axAST, new BoundValue(StridedInterval(1,0,8)));
+	} else {
+	    newFact = new BoundFact();
+	}
     }
     return newFact;
 }
@@ -279,11 +240,11 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 
     if (bcv.IsResultBounded(calculation)) { 
         parsing_printf("\t\t\tGenenerate bound fact for %s\n", ar.absloc().format().c_str());
-	newFact->GenFact(ar.absloc(), new BoundValue(*bcv.GetResultBound(calculation)));
+	newFact->GenFact(VariableAST::create(Variable(ar)), new BoundValue(*bcv.GetResultBound(calculation)));
     }
     else {
         parsing_printf("\t\t\tKill bound fact for %s\n", ar.absloc().format().c_str());
-	newFact->KillFact(ar.absloc());
+	newFact->KillFact(VariableAST::create(Variable(ar)));
     }
     parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
     newFact->Print();

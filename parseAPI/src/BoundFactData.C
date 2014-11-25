@@ -377,12 +377,20 @@ void BoundValue::Print() {
     parsing_printf("isSubReadContent %d\n", isSubReadContent);
 }
 
-BoundValue* BoundFact::GetBound(const Absloc &al) {
-        if (fact.find(al) == fact.end())
-	    return NULL;
-	else
-	    return fact.find(al)->second;
 
+
+BoundValue* BoundFact::GetBound(const AST::Ptr ast) {
+    return GetBound(ast.get());
+}
+
+BoundValue* BoundFact::GetBound(const AST* ast) {
+    BoundValue *ret = NULL;
+    for (auto fit = fact.begin(); fit != fact.end(); ++fit)
+        if (*(fit->first) == *ast) {
+	    ret = fit->second;
+	    break;
+	}
+    return ret;
 }
 
 void BoundValue::IntersectInterval(StridedInterval &si) {
@@ -505,11 +513,21 @@ void BoundValue::Or(const BoundValue &rhs) {
 }
 
 void BoundFact::Meet(BoundFact &bf) {
-        for (auto fit = fact.begin(); fit != fact.end(); ++fit) {
-	    if (bf.IsBounded(fit->first)) {
+        for (auto fit = fact.begin(); fit != fact.end();) {
+	    BoundValue *val2 = bf.GetBound(fit->first);
+	    // if ast fit->first cannot be found in bf,
+	    // then fit->first is top on this path.
+	    // Anything joins top becomes top
+	    if (val2 != NULL) {
 	        BoundValue *val1 = fit->second;
-		BoundValue *val2 = bf.GetBound(fit->first);
 		val1->Join(*val2);
+		++fit;
+	    } else {
+	        auto next = fit;
+		++next;
+		if (fit->second != NULL) delete fit->second;
+		fact.erase(fit);
+		fit = next;
 	    }
 	}
 
@@ -530,32 +548,41 @@ void BoundFact::Meet(BoundFact &bf) {
 void BoundFact::Print() {
     if (pred.valid) {
         parsing_printf("\t\t\tCurrent predicate:");
-	if (pred.e1_aloc.type() == Absloc::Unknown)
-	    parsing_printf(" element 1 is %ld;", pred.e1_const);
-	else 
-	    parsing_printf(" element 1 is %s;", pred.e1_aloc.format().c_str());
-
-        if (pred.e2_aloc.type() == Absloc::Unknown)
-	    parsing_printf(" element 2 is %ld\n", pred.e2_const);
-	else 
-	    parsing_printf(" element 2 is %s\n", pred.e2_aloc.format().c_str());
+	parsing_printf(" element 1 is %s;", pred.e1->format().c_str());
+	parsing_printf(" element 2 is %s\n", pred.e2->format().c_str());
     } else
         parsing_printf("\t\t\tDo not track predicate\n");
     for (auto fit = fact.begin(); fit != fact.end(); ++fit) {
-        parsing_printf("\t\t\tVar: %s, ", fit->first.format().c_str());
+        parsing_printf("\t\t\tVar: %s, ", fit->first->format().c_str());
 	fit->second->Print();
     }
 }
 
-void BoundFact::GenFact(const Absloc &al, BoundValue* bv) {
-    KillFact(al);
-    fact.insert(make_pair(al,bv));
+void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv) {
+    KillFact(ast);
+    fact.insert(make_pair(ast,bv));
 }
 
-void BoundFact::KillFact(const Absloc &al) {
-    if (fact.find(al) != fact.end() && fact[al] != NULL)
-        delete fact[al];
-    fact.erase(al); 
+static bool IsSubTree(AST::Ptr tree, AST::Ptr sub) {
+    if (*tree == *sub) return true;
+    bool ret = false;
+    unsigned totalChildren = tree->numChildren();
+    for (unsigned i = 0 ; i < totalChildren && !ret; ++i) {
+        ret |= IsSubTree(tree->child(i), sub);
+    } 
+    return ret;
+}
+
+void BoundFact::KillFact(const AST::Ptr ast) {
+    for (auto fit = fact.begin(); fit != fact.end();)
+        if (IsSubTree(fit->first, ast)) {
+	    auto next = fit;
+	    ++next;
+	    if (fit->second != NULL)
+	        delete fit->second;
+	    fact.erase(fit);
+	    fit= next;
+	} else ++fit;
     // Need to think about how this affects relation map
 }
 
@@ -591,167 +618,187 @@ BoundFact::BoundFact(const BoundFact &bf) {
 
 
 void BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
-    entryID id = insn->getOperation().getID();
     if (!pred.valid) {
         parsing_printf("WARNING: We reach a conditional jump, but have not tracked the flag! Do nothing and return\n");
 	return;
     }
+    entryID id = insn->getOperation().getID();
     parsing_printf("\t\tproduce conditional bound for %s, edge type %d\n", insn->format().c_str(), type);
     if (type == COND_TAKEN) {
         switch (id) {
 	    // unsigned 
 	    case e_jnbe: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        // If both elements are constant,
 			// it means the conditional jump is actually unconditional.
 			// It is possible to happen, but should be unlikely 
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, 0, pred.e1_const - 1));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val - 1));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, pred.e2_const + 1, StridedInterval::maxValue));
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = UnsignedLargerThan;
+		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLargerThan;
 		}
 		break;
 	    }
-	    case e_jnb: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	    case e_jnb: 
+	    case e_jnb_jae_j: {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, 0, pred.e1_const));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, pred.e2_const, StridedInterval::maxValue));
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = UnsignedLargerThanOrEqual;
+		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLargerThanOrEqual;
 		}
 		break;
 	    }
-	    case e_jb: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	    case e_jb: 
+	    case e_jb_jnaej_j: {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, pred.e1_const + 1, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    // Assuming a-loc pred.e1_aloc is always used as 
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, 0 , pred.e2_const - 1));
+		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val - 1));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = UnsignedLessThan;
+		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLessThan;
 		}
 		break;
 	    }
 	    case e_jbe: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, pred.e1_const, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    // Assuming a-loc pred.e1_aloc is always used as 
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, 0 , pred.e2_const));
+		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = UnsignedLessThanOrEqual;
+		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLessThanOrEqual;
 		}
 		break;
 	    }
 	    case e_jz: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        // the predicate sometimes is between the low 8 bits of a register
 			// and a constant. If I simply extends the predicate to the whole
 			// 64 bits of a register. I may get wrong constant value. 
-		        // IntersectInterval(pred.e2_aloc, StridedInterval(1, pred.e1_const, pred.e1_const));
+		        // IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, constAST->val().val));
 			parsing_printf("WARNING: do not track equal predicate\n");
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    parsing_printf("WARNING: do not track equal predicate\n");
-		    //IntersectInterval(pred.e1_aloc, StridedInterval(0, pred.e2_const , pred.e2_const));
+		    //IntersectInterval(pred.e1, StridedInterval(0, constAST->val().val , constAST->val().val));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = Equal;
+		    relation[make_pair(pred.e1, pred.e2)] = Equal;
 		}
 		break;
 	    }
 	    case e_jnz: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        DeleteElementFromInterval(pred.e2_aloc, pred.e1_const);
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        DeleteElementFromInterval(pred.e2, constAST->val().val);
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    DeleteElementFromInterval(pred.e1_aloc, pred.e2_const);
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    DeleteElementFromInterval(pred.e1, constAST->val().val);
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = NotEqual;
+		    relation[make_pair(pred.e1, pred.e2)] = NotEqual;
 		}
 		break;
 	    }
 
 	    // signed
 	    case e_jnle: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, StridedInterval::minValue, pred.e1_const - 1));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, StridedInterval::minValue, constAST->val().val - 1));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, pred.e2_const + 1, StridedInterval::maxValue));
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = SignedLargerThan;
+		    relation[make_pair(pred.e1, pred.e2)] = SignedLargerThan;
 		}
 		break;
 	    }
 	    case e_jnl: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, StridedInterval::minValue, pred.e1_const));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, StridedInterval::minValue, constAST->val().val));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, pred.e2_const, StridedInterval::maxValue));
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = SignedLargerThanOrEqual;
+		    relation[make_pair(pred.e1, pred.e2)] = SignedLargerThanOrEqual;
 		}
 		break;
 	    }
 	    case e_jl: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, pred.e1_const + 1, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, StridedInterval::minValue , pred.e2_const - 1));
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, StridedInterval::minValue , constAST->val().val - 1));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = SignedLessThan;
+		    relation[make_pair(pred.e1, pred.e2)] = SignedLessThan;
 		}
 		break;
 
 	    }
 	    case e_jle: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, pred.e1_const, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, StridedInterval::minValue , pred.e2_const));
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, StridedInterval::minValue , constAST->val().val));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = SignedLessThanOrEqual;
+		    relation[make_pair(pred.e1, pred.e2)] = SignedLessThanOrEqual;
 		}
 		break;
 	    }
@@ -767,158 +814,179 @@ void BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
         switch (id) {
 	    // unsigned 
 	    case e_jbe: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        // If both elements are constant,
 			// it means the conditional jump is actually unconditional.
 			// It is possible to happen, but should be unlikely 
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, 0, pred.e1_const - 1));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val - 1));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, pred.e2_const + 1, StridedInterval::maxValue));
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = UnsignedLargerThan;
+		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLargerThan;
 		}
 		break;
 	    }
-	    case e_jb: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	    case e_jb: 
+	    case e_jb_jnaej_j: {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, 0, pred.e1_const));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, pred.e2_const, StridedInterval::maxValue));
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = UnsignedLargerThanOrEqual;
+		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLargerThanOrEqual;
 		}
 		break;
 	    }
-	    case e_jnb: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	    case e_jnb:
+	    case e_jnb_jae_j: {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, pred.e1_const + 1, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    // Assuming a-loc pred.e1_aloc is always used as 
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, 0 , pred.e2_const - 1));
+		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val - 1));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = UnsignedLessThan;
+		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLessThan;
 		}
 		break;
 	    }
 	    case e_jnbe: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, pred.e1_const, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    // Assuming a-loc pred.e1_aloc is always used as 
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, 0 , pred.e2_const));
+		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = UnsignedLessThanOrEqual;
+		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLessThanOrEqual;
 		}
 		break;
 	    }
 	    case e_jnz: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        parsing_printf("WARNING: do not track equal predicate\n");
-		        //IntersectInterval(pred.e2_aloc, StridedInterval(1, pred.e1_const, pred.e1_const));
+		        //IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, constAST->val().val));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // the predicate sometimes is between the low 8 bits of a register
 		    // and a constant. If I simply extends the predicate to the whole
 		    // 64 bits of a register. I may get wrong constant value. 
-		    // IntersectInterval(pred.e2_aloc, StridedInterval(1, pred.e1_const, pred.e1_const));
+		    // IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, constAST->val().val));
 		    parsing_printf("WARNING: do not track equal predicate\n");
-		    //IntersectInterval(pred.e1_aloc, StridedInterval(0, pred.e2_const , pred.e2_const));
+		    //IntersectInterval(pred.e1, StridedInterval(0, constAST->val().val , constAST->val().val));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = Equal;
+		    relation[make_pair(pred.e1, pred.e2)] = Equal;
 		}
 		break;
 	    }
 	    case e_jz: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        DeleteElementFromInterval(pred.e2_aloc, pred.e1_const);
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        DeleteElementFromInterval(pred.e2, constAST->val().val);
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    DeleteElementFromInterval(pred.e1_aloc, pred.e2_const);
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    DeleteElementFromInterval(pred.e1, constAST->val().val);
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = NotEqual;
+		    relation[make_pair(pred.e1, pred.e2)] = NotEqual;
 		}
 		break;
 	    }
 
 	    // signed
 	    case e_jle: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, StridedInterval::minValue, pred.e1_const - 1));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, StridedInterval::minValue, constAST->val().val - 1));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, pred.e2_const + 1, StridedInterval::maxValue));
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = SignedLargerThan;
+		    relation[make_pair(pred.e1, pred.e2)] = SignedLargerThan;
 		}
 		break;
 	    }
 	    case e_jl: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, StridedInterval::minValue, pred.e1_const));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, StridedInterval::minValue, constAST->val().val));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, pred.e2_const, StridedInterval::maxValue));
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = SignedLargerThanOrEqual;
+		    relation[make_pair(pred.e1, pred.e2)] = SignedLargerThanOrEqual;
 		}
 		break;
 	    }
 	    case e_jnl: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, pred.e1_const + 1, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, StridedInterval::minValue , pred.e2_const - 1));
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, StridedInterval::minValue , constAST->val().val - 1));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = SignedLessThan;
+		    relation[make_pair(pred.e1, pred.e2)] = SignedLessThan;
 		}
 		break;
 
 	    }
 	    case e_jnle: {
-	        if (pred.e1_aloc.type() == Absloc::Unknown) {
-		    if (pred.e2_aloc.type() == Absloc::Unknown) {
+	        if (pred.e1->getID() == AST::V_ConstantAST) {
+		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-		        IntersectInterval(pred.e2_aloc, StridedInterval(1, pred.e1_const, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		    }
-		} else if (pred.e2_aloc.type() == Absloc::Unknown) {
-		    IntersectInterval(pred.e1_aloc, StridedInterval(1, StridedInterval::minValue , pred.e2_const));
+		} else if (pred.e2->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, StridedInterval::minValue , constAST->val().val));
 		} else {
-		    relation[make_pair(pred.e1_aloc, pred.e2_aloc)] = SignedLessThanOrEqual;
+		    relation[make_pair(pred.e1, pred.e2)] = SignedLessThanOrEqual;
 		}
 		break;
 	    }
@@ -929,6 +997,23 @@ void BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
     } else {
         assert(0 && "type should be either COND_TAKEN or COND_NOT_TAKEN");
     }
+
+    if (pred.id == e_sub) {
+        if (pred.e2->getID() == AST::V_ConstantAST) {
+	    BoundValue *val = GetBound(pred.e1);
+	    if (val != NULL) {
+	        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+	        val->interval.Sub(StridedInterval(constAST->val().val));
+	    }
+	} else if (pred.e1->getID() == AST::V_ConstantAST) {
+	    BoundValue *val = GetBound(pred.e2);
+	    if (val != NULL) {
+	        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+	        val->interval.Sub(StridedInterval(constAST->val().val));
+	    }
+
+	}
+    }
 }
 
 
@@ -936,8 +1021,6 @@ void BoundFact::SetPredicate(Assignment::Ptr assign ) {
     Instruction::Ptr insn = assign->insn();
     entryID id = insn->getOperation().getID();
     pred.valid = true;
-    pred.e1_aloc = Absloc();
-    pred.e2_aloc = Absloc();
     parsing_printf("\t\tLook for predicates for instruction %s, assign %s\n", insn->format().c_str(), assign->format().c_str());
     pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
     if (expandRet.first == NULL) {
@@ -952,45 +1035,19 @@ void BoundFact::SetPredicate(Assignment::Ptr assign ) {
     AST::Ptr simplifiedAST = SimplifyAnAST(expandRet.first, insn->size());
     parsing_printf("\t\tafter simplifying %s\n", simplifiedAST->format().c_str());
     switch (id) {
-        case e_cmp: {	
+        case e_cmp:
+	case e_sub: {	
 	    ComparisonVisitor cv;
 	    expandRet.first->accept(&cv);
-	    //parsing_printf("\t\t\tsubtrahend: %s, minuend: %s\n", cv.subtrahend->format().c_str(), cv.minuend->format().c_str());
-	    if (cv.subtrahend->getID() == AST::V_ConstantAST) {	       
-	        ConstantAST::Ptr subtrahendAST = boost::static_pointer_cast<ConstantAST>(cv.subtrahend);
-	        pred.e1_const = subtrahendAST->val().val;
-	    } else if (cv.subtrahend->getID() == AST::V_VariableAST) {
-	        VariableAST::Ptr subtrahendAST = boost::static_pointer_cast<VariableAST>(cv.subtrahend);
-		pred.e1_aloc = subtrahendAST->val().reg.absloc();
-	    } else {
-	        parsing_printf("\t\t The source cmp operand is neither a constant or an a-loc. Bottom it\n");
-		pred.valid = false;
-		return;
-	    }
-	    if (cv.minuend->getID() == AST::V_ConstantAST) {	       
-	        ConstantAST::Ptr minuendAST = boost::static_pointer_cast<ConstantAST>(cv.minuend);
-	        pred.e2_const = minuendAST->val().val;
-	    } else if (cv.minuend->getID() == AST::V_VariableAST) {
-	        VariableAST::Ptr minuendAST = boost::static_pointer_cast<VariableAST>(cv.minuend);
-		pred.e2_aloc = minuendAST->val().reg.absloc();
-	    } else {
-	        parsing_printf("\t\t The dest cmp operand is neither a constant or an a-loc. Bottom it\n");
-		pred.valid = false;
-		return;
-	    }
-
+	    pred.e1 = cv.subtrahend;
+	    pred.e2 = cv.minuend; 
+	    pred.id = id;
 	    break;
 	}
 	case e_test: {
 	    parsing_printf("\t\t To be handled\n");
 	    pred.valid = false;
 	    break;
-	}
-	case e_sub: {
-	    parsing_printf("\t\t To be handled\n");
-	    pred.valid = false;
-	    break;
-
 	}
 	default:
 	    parsing_printf("Not tracking this instruction that sets flags: %s\n", insn->format().c_str());
@@ -1007,16 +1064,20 @@ void BoundFact::SetToBottom() {
     fact.clear();
 }
 
-void BoundFact::IntersectInterval(Absloc aloc, StridedInterval si) {
-    if (fact.find(aloc) != fact.end()) {
-        fact[aloc]->IntersectInterval(si);
+void BoundFact::IntersectInterval(const AST::Ptr ast, StridedInterval si) {
+    BoundValue *bv = GetBound(ast);
+    if (bv != NULL) {
+        bv->IntersectInterval(si);
     } else {
-        fact.insert(make_pair(aloc, new BoundValue(si)));
+        // If the fact value does not exist,
+	// it means it is top and can be any value.
+        fact.insert(make_pair(ast, new BoundValue(si)));
     }
 }
 
-void BoundFact::DeleteElementFromInterval(Absloc aloc, int64_t val) {
-    if (fact.find(aloc) != fact.end()) {
-        fact[aloc]->DeleteElementFromInterval(val);
+void BoundFact::DeleteElementFromInterval(const AST::Ptr ast, int64_t val) {
+    BoundValue *bv = GetBound(ast);
+    if (bv != NULL) {
+        bv->DeleteElementFromInterval(val);
     }
 }

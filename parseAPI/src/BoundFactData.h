@@ -7,6 +7,7 @@
 
 #include "Instruction.h"
 #include "CFG.h"
+#include "entryIDs.h"
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -111,48 +112,36 @@ struct BoundFact {
 	SignedLessThanOrEqual,
 	SignedLargerThanOrEqual,
     } RelationType;
-    typedef map<Absloc, BoundValue*> FactType;
+    typedef map<AST::Ptr, BoundValue*> FactType;
     FactType fact;
 
-    typedef map< pair<Absloc, Absloc> , RelationType > RelationMap;
+    typedef map< pair<AST::Ptr, AST::Ptr> , RelationType > RelationMap;
     RelationMap relation;
 
     struct FlagPredicate {
         bool valid;
-        Absloc e1_aloc;
-	int e1_const;
-	Absloc e2_aloc;
-	int e2_const;
+	entryID id;
+	AST::Ptr e1;
+	AST::Ptr e2;
 
 	FlagPredicate():
 	    valid(false),
-	    e1_aloc(),
-	    e1_const(0),
-	    e2_aloc(),
-	    e2_const(0) {}
+	    id( _entry_ids_max_),
+	    e1(),
+	    e2() {}
 	bool operator != (const FlagPredicate& fp) const {
 	    if (!valid && !fp.valid) return false;
 	    if (valid != fp.valid) return true;
-	    if (e1_aloc.type() == Absloc::Unknown) {
-	        if (fp.e1_aloc.type() != Absloc::Unknown || e1_const != fp.e1_const) return true;
-	    } else {	        
-	        if (e1_aloc != fp.e1_aloc) return true;
-	    }
-	    if (e2_aloc.type() == Absloc::Unknown) {
-	        if (fp.e2_aloc.type() != Absloc::Unknown || e2_const != fp.e2_const) return true;
-	    } else {	        
-	        if (e2_aloc != fp.e2_aloc) return true;
-	    }
-	    return false;
+	    if (id != fp.id) return true;
+	    return !(*e1 == *e2);
 	}
 
 	FlagPredicate& operator = (const FlagPredicate &fp) {
 	    valid = fp.valid;
 	    if (valid) {
-	        e1_aloc = fp.e1_aloc;
-		e1_const = fp.e1_const;
-	        e2_aloc = fp.e2_aloc;
-		e2_const = fp.e2_const;
+		e1 = fp.e1;
+	        e2 = fp.e2;
+		id = fp.id;
 	    }
 	    return *this;
 	}
@@ -161,21 +150,20 @@ struct BoundFact {
     bool operator< (const BoundFact &bf) const {return fact < bf.fact; }
     bool operator!= (const BoundFact &bf) const;
 
-    bool IsBounded(const Absloc &al) { return fact.find(al) != fact.end();}
-    BoundValue* GetBound(const Absloc &al); 
-    
+    BoundValue* GetBound(const AST::Ptr ast); 
+    BoundValue* GetBound(const AST* ast);
     void Meet(BoundFact &bf);
 
 
     void ConditionalJumpBound(InstructionAPI::Instruction::Ptr insn, EdgeTypeEnum type);
     void SetPredicate(Assignment::Ptr assign);
-    void GenFact(const Absloc &al, BoundValue* bv);
-    void KillFact(const Absloc &al);
+    void GenFact(const AST::Ptr ast, BoundValue* bv);
+    void KillFact(const AST::Ptr ast);
     void SetToBottom();
     void Print();
 
-    void IntersectInterval(Absloc aloc, StridedInterval si);
-    void DeleteElementFromInterval(Absloc aloc, int64_t val);
+    void IntersectInterval(const AST::Ptr ast, StridedInterval si);
+    void DeleteElementFromInterval(const AST::Ptr ast, int64_t val);
 
     BoundFact();
     ~BoundFact();

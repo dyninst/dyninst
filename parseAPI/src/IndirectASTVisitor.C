@@ -27,8 +27,11 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 		    ConstantAST::Ptr child = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
 		    size_t size = child->val().size;
 		    uint64_t val = child->val().val;
-		    uint64_t mask = (1LL << size) - 1;
-		    val = (val & mask) ^ mask;
+		    if (size < 64) {
+		        uint64_t mask = (1LL << size) - 1;
+		        val = (~val) & mask;
+		    } else
+		        val = ~val;
 		    return ConstantAST::create(Constant(val, size));
 		}
 		break;
@@ -95,6 +98,11 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 	    fprintf(stderr, "instruction size %lu, ip value %lx, real value %lx\n", insnSize, varAST->val().addr, varAST->val().addr + insnSize);
 	    return ConstantAST::create(Constant(varAST->val().addr + insnSize, getArchAddressWidth(pc.getArchitecture()) * 8));
 	}
+	// We do not care about the address of the a-loc
+	// because we will keep tracking the changes of 
+	// each a-loc. Also, this brings a benefit that
+	// we can directly use ast->isStrictEqual() to 
+	// compare two ast.
 	return VariableAST::create(Variable(varAST->val().reg));
     }
     return ast;
@@ -108,6 +116,11 @@ AST::Ptr SimplifyAnAST(AST::Ptr ast, uint64_t size) {
 }
 
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
+    BoundValue *astBound = boundFact.GetBound(ast);
+    if (astBound != NULL) {
+        bound.insert(make_pair(ast, new BoundValue(*astBound)));
+        return AST::Ptr();
+    }
     unsigned totalChildren = ast->numChildren();
     for (unsigned i = 0 ; i < totalChildren; ++i) {
         ast->child(i)->accept(this);
@@ -203,9 +216,9 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::ConstantAST *ast) {
 }
 
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::VariableAST *ast) {
-
-    const Absloc& al = ast->val().reg.absloc();
-    if (boundFact.IsBounded(al)) bound.insert(make_pair(ast, new BoundValue(*boundFact.GetBound(al))));
+    BoundValue *astBound = boundFact.GetBound(ast);
+    if (astBound != NULL) 
+        bound.insert(make_pair(ast, new BoundValue(*astBound)));
     return AST::Ptr();
 }
 
@@ -247,23 +260,30 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 	    RoseAST::Ptr childRose = boost::static_pointer_cast<RoseAST>(child);
 	    if (childRose->val().op == ROSEOperation::addOp) {
 	        subtrahend = childRose->child(0);
-	        minuend = childRose->child(1);
-
+		minuend = childRose->child(1);
 		// If the minuend is a constant, then
 		// the minuend is currently in its two-complement form
 		if (minuend->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(minuend);
 		    uint64_t val = constAST->val().val;
 		    int size = constAST->val().size;
-		    val = ((~val) & ((1ul << size) - 1)) + 1;
+		    if (size < 64)
+		        val = ((~val) & ((1ul << size) - 1)) + 1;
+		    else if (size == 64)
+		        val = (~val) + 1;
+		    else
+		        parsing_printf("WARNING: constant bit size %d exceeds 64!\n", size);
 		    minuend = ConstantAST::create(Constant(val, size));
 		} else {
 		    // Otherwise, the minuend ast is in the form of add(invert(minuend), 1)
 		    // Need to extract the real minuend
 		    minuend = minuend->child(0)->child(0);
 		}
-		return AST::Ptr();
-	    }
+	    } 	
+	} else {
+            // The minuend is 0, thus the add operation is subsume.
+             subtrahend = ast->child(0);
+	     minuend = ConstantAST::create(Constant(0));
 	}
     }
     return AST::Ptr();

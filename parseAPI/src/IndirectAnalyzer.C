@@ -10,7 +10,7 @@
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 #include "Register.h"
-
+#include "SymEval.h"
 #define SIGNEX_64_32 0xffffffff00000000LL
 #define SIGNEX_64_16 0xffffffffffff0000LL
 #define SIGNEX_64_8  0xffffffffffffff00LL
@@ -240,8 +240,9 @@ bool IndirectControlFlowAnalyzer::IsJumpTable(GraphPtr slice,
     const Absloc &loc = jumpNode->assign()->out().absloc();
     parsing_printf("Checking final bound fact for %s\n",loc.format().c_str()); 
     BoundFact *bf = bfc.GetBoundFact(virtualExit);
-    if (bf->IsBounded(loc)) {
-        target = *(bf->GetBound(loc));
+    BoundValue *tarBoundValue = bf->GetBound(VariableAST::create(Variable(loc)));
+    if (tarBoundValue != NULL) {
+        target = *(tarBoundValue);
 	uint64_t s = target.interval.size();
 	if (s > 0 && s <= MAX_TABLE_ENTRY) return true;
     }
