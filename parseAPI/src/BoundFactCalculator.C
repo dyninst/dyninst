@@ -125,7 +125,9 @@ static bool IsConditionalJump(Instruction::Ptr insn) {
     if (id == e_jz || id == e_jnz ||
         id == e_jb || id == e_jnb ||
 	id == e_jbe || id == e_jnbe ||
-	id == e_jb_jnaej_j || id == e_jnb_jae_j) return true;
+	id == e_jb_jnaej_j || id == e_jnb_jae_j ||
+	id == e_jle || id == e_jl ||
+	id == e_jnl || id == e_jnle) return true;
     return false;
 }
 
@@ -170,6 +172,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    // The predecessor is not a conditional jump,
 	    // then we can determine buond fact based on the src assignment
 	    parsing_printf("\t\tThe predecessor node is normal node\n");
+	    if (srcNode->assign()) parsing_printf("\t\t\tentry id %d\n", srcNode->assign()->insn()->getOperation().getID());
   	    CalcTransferFunction(srcNode, prevFact);
         }
 	parsing_printf("\t\tFact from %lx fter applying transfer function\n", srcNode->addr());
