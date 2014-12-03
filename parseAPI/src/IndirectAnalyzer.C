@@ -112,7 +112,7 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
 
-//    if (block->last() != 0x4e4ffb) return false;
+//    if (block->last() != 0x403cf0) return false;
 
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
 //    FindAllConditionalGuards();

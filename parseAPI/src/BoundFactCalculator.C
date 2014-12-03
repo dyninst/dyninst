@@ -167,7 +167,10 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    // If the predecessor is a conditional jump,
 	    // we can determine bound fact based on the predicate and the edge type
   	    parsing_printf("\t\tThe predecessor node is a conditional jump!\n");
-	    prevFact->ConditionalJumpBound(srcNode->assign()->insn(), edge->type());
+	    if (!prevFact->ConditionalJumpBound(srcNode->assign()->insn(), edge->type())) {
+	        fprintf(stderr, "From %lx to %lx\n", srcNode->addr(), node->addr());
+		assert(0);
+	    }
 	} else {
 	    // The predecessor is not a conditional jump,
 	    // then we can determine buond fact based on the src assignment

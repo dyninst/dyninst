@@ -64,7 +64,13 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
     for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit)
-        if ((*eit)->intraproc()) {
+	// Xiaozhu:
+	// Our current slicing code ignores tail calls 
+	// (the slice code only checks if an edge type is CALL or not)
+ 	// so, I should be consistent here.
+	// If the slice code considers tail calls, need to change
+	// the predicate to (*eit)->interproc()
+        if ((*eit)->type() != CALL && (*eit)->type() != RET) {
 	    EdgeTypeEnum newT = t; 
 	    if (t == _edgetype_end_) {
 	        if ((*eit)->type() == COND_TAKEN || (*eit)->type() == COND_NOT_TAKEN) 
@@ -264,9 +270,9 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
     fprintf(stderr, "%lx: %s : %s\n", block->last(),  out.c_str(), symRet[assignments[0]]->format().c_str());
 */
 // End of this piece of code
+    slice->printDOT("target.dot");
 
     slice = TransformGraph(slice);
-    slice->printDOT("target.dot");
 
     return slice;
 }

@@ -617,10 +617,10 @@ BoundFact::BoundFact(const BoundFact &bf) {
 }   
 
 
-void BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
+bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
     if (!pred.valid) {
         parsing_printf("WARNING: We reach a conditional jump, but have not tracked the flag! Do nothing and return\n");
-	return;
+	return true;
     }
     entryID id = insn->getOperation().getID();
     parsing_printf("\t\tproduce conditional bound for %s, edge type %d\n", insn->format().c_str(), type);
@@ -992,10 +992,13 @@ void BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 	    }
 	    default:
 	        fprintf(stderr, "Unhandled conditional jump type. entry id is %d\n", id);
+		assert(0);
 	}
 
     } else {
-        assert(0 && "type should be either COND_TAKEN or COND_NOT_TAKEN");
+        fprintf(stderr, "Instruction %s\n", insn->format().c_str());
+	fprintf(stderr, "type should be either COND_TAKEN or COND_NOT_TAKEN");
+	return false;
     }
 
     if (pred.id == e_sub) {
@@ -1014,6 +1017,7 @@ void BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 
 	}
     }
+    return true;
 }
 
 

@@ -155,7 +155,7 @@ struct BoundFact {
     void Meet(BoundFact &bf);
 
 
-    void ConditionalJumpBound(InstructionAPI::Instruction::Ptr insn, EdgeTypeEnum type);
+    bool ConditionalJumpBound(InstructionAPI::Instruction::Ptr insn, EdgeTypeEnum type);
     void SetPredicate(Assignment::Ptr assign);
     void GenFact(const AST::Ptr ast, BoundValue* bv);
     void KillFact(const AST::Ptr ast);
