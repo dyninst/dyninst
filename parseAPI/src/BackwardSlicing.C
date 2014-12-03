@@ -245,8 +245,6 @@ static string Classify(AST::Ptr ast) {
 }
 
 GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
-    IndirectControlFlowPred mp(guards);
-    
     const unsigned char * buf = (const unsigned char*) block->obj()->cs()->getPtrToInstruction(addr);
     InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
     Instruction::Ptr insn = dec.decode();
@@ -255,8 +253,9 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
     vector<Assignment::Ptr> assignments;
     ac.convert(insn, addr, func, block, assignments);
 
-    Slicer::Predicates p;
     Slicer s(assignments[0], block, func);
+
+    IndirectControlFlowPred mp;
     GraphPtr slice = s.backwardSlice(mp);
 
 // Code for understanding characteristics of
@@ -270,10 +269,14 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
     fprintf(stderr, "%lx: %s : %s\n", block->last(),  out.c_str(), symRet[assignments[0]]->format().c_str());
 */
 // End of this piece of code
-    slice->printDOT("target.dot");
 
     slice = TransformGraph(slice);
-
+/*    
+    if (addr == 0x804a44d) {
+        slice->printDOT("target.dot");
+	exit(0);
+    }
+*/
     return slice;
 }
 

@@ -19,23 +19,21 @@ using namespace Dyninst::InstructionAPI;
 
 class BoundFactsCalculator {
     BoundFactsType boundFacts;
-    GuardSet &guards;    
     ParseAPI::Function *func;
     GraphPtr slice;
     bool firstBlock;
     ReachFact &rf;
     ThunkData &thunks;
 
-    //void ThunkBound(BoundFact *curFact, Node::Ptr src, Node::Ptr trg);
-
+    void ThunkBound(BoundFact *curFact, Node::Ptr src, Node::Ptr trg);
     BoundFact* Meet(Node::Ptr curNode);
     void CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact);
 
 public:
     bool CalculateBoundedFacts(); 
 
-    BoundFactsCalculator(GuardSet &g, ParseAPI::Function *f, GraphPtr s, bool first, ReachFact &r, ThunkData &t): 
-        guards(g), func(f), slice(s), firstBlock(first), rf(r), thunks(t) {} 
+    BoundFactsCalculator(ParseAPI::Function *f, GraphPtr s, bool first, ReachFact &r, ThunkData &t): 
+        func(f), slice(s), firstBlock(first), rf(r), thunks(t) {} 
 
     BoundFact *GetBoundFact(Node::Ptr node);
     ~BoundFactsCalculator();
@@ -43,17 +41,13 @@ public:
 
 
 class IndirectControlFlowAnalyzer {
-    GuardSet guards;
     // The function and block that contain the indirect jump
     ParseAPI::Function *func;
     ParseAPI::Block *block;
     set<ParseAPI::Block*> reachable;
     ThunkData thunks;
 
-    bool EndWithConditionalJump(ParseAPI::Block * b);
     void GetAllReachableBlock();  
-    void SaveGuardData(ParseAPI::Block *prev);    
-    void FindAllConditionalGuards(); 
     void FindAllThunks();
     bool IsJumpTable(GraphPtr slice, BoundFactsCalculator &bfc, BoundValue &target);
     bool FillInOutEdges(BoundValue &target, std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);

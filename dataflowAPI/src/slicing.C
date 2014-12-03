@@ -1020,7 +1020,11 @@ Slicer::handleDefault(
 	        Element &e = *(ait->second.begin());	
 	        newE.push_back(e);
 	    }
-	    cur.active[AbsRegion(Absloc(x86_64::rip))] = newE;
+	    if (cur.loc.block->obj()->cs()->getAddressWidth() == 8)
+	        cur.active[AbsRegion(Absloc(x86_64::rip))] = newE;
+	    else if  (cur.loc.block->obj()->cs()->getAddressWidth() == 4)
+	        cur.active[AbsRegion(Absloc(x86::eip))] = newE;
+
   	    slicing_printf("\tadding tracking ip for control flow information ");
 	}
     }

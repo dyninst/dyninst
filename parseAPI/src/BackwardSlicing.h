@@ -11,18 +11,14 @@ using namespace Dyninst;
 
 
 /* This BackwardSlicer first call DataflowAPI::Slicer to get
- * the traiditional backward slice, then it prune the slice 
- * according to the table guard, and finally transforms the
- * slice graph from a data dependence graph to a control flow
- * graph
+ * the traiditional backward slice, which is program dependence graph.
+ * Then it transforms the dependence graph to a control flow graph
  */
 class BackwardSlicer {
 
     ParseAPI::Function *func;
     ParseAPI::Block *block;
     Address addr;
-    GuardSet &guards;
-    ReachFact &rf;
 
     int AdjustGraphEntryAndExit(GraphPtr gp);
     void DeleteUnreachableNodes(GraphPtr gp);
@@ -36,19 +32,16 @@ public:
     GraphPtr CalculateBackwardSlicing();
     BackwardSlicer(ParseAPI::Function *f,
                    ParseAPI::Block *b,
-		   Address a,
-		   GuardSet &g,
-		   ReachFact &r):
-        func(f), block(b), addr(a), guards(g), rf(r) {};
+		   Address a):
+        func(f), block(b), addr(a) {};
 };	
 
 class IndirectControlFlowPred : public Slicer::Predicates {
-    GuardSet &guards;
+  
 public:
     virtual bool endAtPoint(AssignmentPtr ap);  
     virtual bool followCall(ParseAPI::Function * callee, CallStack_t & cs, AbsRegion arg);
     virtual bool addPredecessor(AbsRegion);
-    IndirectControlFlowPred (GuardSet &g): guards(g) {};
 };
 
 

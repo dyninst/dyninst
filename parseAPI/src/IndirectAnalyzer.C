@@ -115,16 +115,22 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 //    if (block->last() != 0x403cf0) return false;
 
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
-//    FindAllConditionalGuards();
+
+//  Find all blocks that reach the block containing the indirect jump
+//  This is a prerequisit for finding thunks
+    GetAllReachableBlock();
+//  Now we try to find all thunks in this function
     FindAllThunks();
-    ReachFact rf(guards, thunks);
+//  Calculates all blocks that can reach
+//  and be reachable from thunk blocks
+    ReachFact rf(thunks);
     parsing_printf("Calculate backward slice\n");
 
-    BackwardSlicer bs(func, block, block->last(), guards, rf);
+    BackwardSlicer bs(func, block, block->last());
     GraphPtr slice =  bs.CalculateBackwardSlicing();
 
     parsing_printf("Calculate bound facts\n");     
-    BoundFactsCalculator bfc(guards, func, slice, func->entry() == block, rf, thunks);
+    BoundFactsCalculator bfc(func, slice, func->entry() == block, rf, thunks);
     bfc.CalculateBoundedFacts();
 
     BoundValue target;
@@ -136,23 +142,8 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 
 
 
-bool IndirectControlFlowAnalyzer::EndWithConditionalJump(ParseAPI::Block * b) {
 
-    const unsigned char * buf = (const unsigned char*) b->obj()->cs()->getPtrToInstruction(b->last());
-    InstructionDecoder dec(buf, b->end() - b->last(), b->obj()->cs()->getArch());
-    Instruction::Ptr insn = dec.decode();
-    entryID id = insn->getOperation().getID();
-
-    if (id == e_jz || id == e_jnz ||
-        id == e_jb || id == e_jnb ||
-	id == e_jbe || id == e_jnbe) return true;
-   
-//    for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit)
-//        if ((*eit)->type() == COND_TAKEN) return true;
-    return false;
-
-}
-
+// Find all blocks that reach the block containing the indirect jump
 void IndirectControlFlowAnalyzer::GetAllReachableBlock() {
     reachable.clear();
     queue<Block*> q;
@@ -168,65 +159,6 @@ void IndirectControlFlowAnalyzer::GetAllReachableBlock() {
     }
 
 }
-
-void IndirectControlFlowAnalyzer::SaveGuardData(ParseAPI::Block *prev) {
-
-    Address curAddr = prev->start();
-    const unsigned char* buf = (const unsigned char*) prev->obj()->cs()->getPtrToInstruction(prev->start());
-    InstructionDecoder dec(buf, prev->end() - prev->start(), prev->obj()->cs()->getArch());
-    Instruction::Ptr insn;
-    vector<pair<Instruction::Ptr, Address> > insns;
-    
-    while ( (insn = dec.decode()) != NULL ) {
-        insns.push_back(make_pair(insn, curAddr));
-	curAddr += insn->size();
-    }
-    
-    for (auto iit = insns.rbegin(); iit != insns.rend(); ++iit) {
-        insn = iit->first;
-	if (insn->getOperation().getID() == e_cmp || insn->getOperation().getID() == e_test) {
-	    guards.insert(GuardData(func, prev, insn, insns.rbegin()->first, iit->second, insns.rbegin()->second));
-	    parsing_printf("Find guard and cmp pair: cmp %s, addr %lx, cond jump %s, addr %lx\n", insn->format().c_str(), iit->second, insns.rbegin()->first->format().c_str(), insns.rbegin()->second); 
-	    break;
-	}    
-    }
-}
-
-void IndirectControlFlowAnalyzer::FindAllConditionalGuards(){
-    set<ParseAPI::Block*> visited;
-    queue<Block*> q;
-    q.push(block);
-    GetAllReachableBlock();
-
-    while (!q.empty()) {
-        ParseAPI::Block * cur = q.front();
-	q.pop();
-	if (visited.find(cur) != visited.end()) continue;
-	visited.insert(cur);
-
-        // Since a guard has the condition that one branch must always reach the indirect jump,
-	// if the current block can reach a block that cannot reach the indirect jump, 
-	// then all the sources of the current block is not post-dominated by the indirect jump.
-	bool postDominate = true;
-	for (auto eit = cur->targets().begin(); eit != cur->targets().end(); ++eit) 
-	    if ((*eit)->intraproc() && (*eit)->type() != INDIRECT)
-	        if (reachable.find((*eit)->trg()) == reachable.end()) postDominate = false;
-	if (!postDominate) continue;
-
-	for (auto eit = cur->sources().begin(); eit != cur->sources().end(); ++eit)
-	    if ((*eit)->intraproc()) {
-	        ParseAPI::Block* prev = (*eit)->src();
-		if (EndWithConditionalJump(prev)) {		   
-		    SaveGuardData(prev);
-		}
-		else {
-		    q.push(prev);
-		}
-	    }
-    }
-}
-
-
 
 bool IndirectControlFlowAnalyzer::IsJumpTable(GraphPtr slice, 
 					      BoundFactsCalculator &bfc,
@@ -250,6 +182,7 @@ bool IndirectControlFlowAnalyzer::IsJumpTable(GraphPtr slice,
 }
 
 void IndirectControlFlowAnalyzer::FindAllThunks() {
+    // Enumuerate every block to find thunk
     for (auto bit = reachable.begin(); bit != reachable.end(); ++bit) {
         // We intentional treat a getting PC call as a special case that does not
 	// end a basic block. So, we need to check every instruction to find all thunks
@@ -280,7 +213,6 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 		    t.value = block.getAddr() + block.getInstruction()->size();
 		    t.block = b;
 		    thunks.insert(make_pair(block.getAddr(), t));
-
 		    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", block.getAddr(), t.value , t.reg.name().c_str());
 		}
 	    }

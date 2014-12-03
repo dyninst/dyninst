@@ -73,7 +73,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 
 
 
-/*
+
 void BoundFactsCalculator::ThunkBound(BoundFact* curFact, Node::Ptr src, Node::Ptr trg) {
 
     // This function checks whether any found thunk is between 
@@ -95,7 +95,7 @@ void BoundFactsCalculator::ThunkBound(BoundFact* curFact, Node::Ptr src, Node::P
 
     for (auto tit = thunks.begin(); tit != thunks.end(); ++tit) {
         ParseAPI::Block* thunkBlock = tit->second.block;
-	parsing_printf("Check srcAddr at %lx, trgAddr at %lx, thunk at %lx\n", srcAddr, trgAddr, tit->first);
+	parsing_printf("\t\tCheck srcAddr at %lx, trgAddr at %lx, thunk at %lx\n", srcAddr, trgAddr, tit->first);
 	if (src != Node::Ptr()) {
 	    if (srcBlock == thunkBlock) {
 	        if (srcAddr > tit->first) continue;
@@ -109,15 +109,15 @@ void BoundFactsCalculator::ThunkBound(BoundFact* curFact, Node::Ptr src, Node::P
 	    if (rf.thunk_outs[thunkBlock].find(trgBlock) == rf.thunk_outs[thunkBlock].end()) continue;
 	}
 
-	parsing_printf("\t find thunk at %lx between the source and the target. Add fact", tit->first);
-	BoundValue *bv = new BoundValue(Equal, tit->second.value);
+	parsing_printf("\t\t\tfind thunk at %lx between the source and the target. Add fact", tit->first);
+	BoundValue *bv = new BoundValue(tit->second.value);
 	bv->Print();
-	curFact->GenFact(Absloc(tit->second.reg), bv);
+	curFact->GenFact(VariableAST::create(Variable(AbsRegion(Absloc(tit->second.reg)))), bv);
     }
 
 
 }
-*/
+
 
 static bool IsConditionalJump(Instruction::Ptr insn) {
     entryID id = insn->getOperation().getID();
@@ -178,7 +178,8 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    if (srcNode->assign()) parsing_printf("\t\t\tentry id %d\n", srcNode->assign()->insn()->getOperation().getID());
   	    CalcTransferFunction(srcNode, prevFact);
         }
-	parsing_printf("\t\tFact from %lx fter applying transfer function\n", srcNode->addr());
+	ThunkBound(prevFact, srcNode, node);
+	parsing_printf("\t\tFact from %lx after applying transfer function\n", srcNode->addr());
 	prevFact->Print();
         if (first) {
 	    // For the first incoming dataflow fact,
@@ -214,6 +215,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	} else {
 	    newFact = new BoundFact();
 	}
+	ThunkBound(newFact, Node::Ptr(), node);
     }
     return newFact;
 }
