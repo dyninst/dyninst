@@ -2,10 +2,13 @@
 #include "CodeObject.h"
 #include "CodeSource.h"
 
-#include "IndirectControlFlow.h"
+#include "BoundFactCalculator.h"
 #include "IndirectASTVisitor.h"
 #include "debug_parse.h"
 #include "BackwardSlicing.h"
+#include "Instruction.h"
+
+using namespace Dyninst::InstructionAPI;
 
 bool BoundFactsCalculator::CalculateBoundedFacts() {    
     /* We use a dataflow analysis to calculate what registers are bounded 

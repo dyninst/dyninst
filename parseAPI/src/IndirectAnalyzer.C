@@ -1,5 +1,6 @@
 #include "dyntypes.h"
-#include "IndirectControlFlow.h"
+#include "IndirectAnalyzer.h"
+#include "BoundFactCalculator.h"
 #include "BackwardSlicing.h"
 #include "IA_IAPI.h"
 #include "debug_parse.h"
@@ -19,6 +20,8 @@
 
 // Assume the table contain less than this many entries.
 #define MAX_TABLE_ENTRY 1000000
+using namespace Dyninst::ParseAPI;
+using namespace Dyninst::InstructionAPI;
 
 bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {

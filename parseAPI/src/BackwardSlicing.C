@@ -12,9 +12,10 @@
 #include "AbslocInterface.h"
 #include "SymEval.h"
 
-#include "IndirectASTVisitor.h"
-
+using namespace Dyninst;
 using namespace Dyninst::DataflowAPI;
+using namespace Dyninst::ParseAPI;
+using namespace Dyninst::InstructionAPI;
 
 inline static void BuildAnEdge(SliceNode::Ptr srcNode,
                                SliceNode::Ptr trgNode,

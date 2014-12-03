@@ -1,15 +1,13 @@
-#ifndef TABLE_GUARD_DATA_H
-#define TABLE_GUARD_DATA_H
+#ifndef THUNK_DATA_H
+#define THUNK_DATA_H
 
 #include "CFG.h"
-#include "Instruction.h"
-
-#include "Instruction.h"
+//#include "Instruction.h"
 #include "DynAST.h"
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
-using namespace Dyninst::InstructionAPI;
+//using namespace Dyninst::InstructionAPI;
 
 
 struct ThunkInfo {

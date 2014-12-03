@@ -29,7 +29,7 @@ set (SRC_LIST
 	src/BoundFactData.C
 	src/IndirectAnalyzer.C
 	src/IndirectASTVisitor.C
-	src/TableGuardData.C
+	src/ThunkData.C
 	../dataflowAPI/src/ABI.C 
 	src/dominator.C
 	src/LoopAnalyzer.C

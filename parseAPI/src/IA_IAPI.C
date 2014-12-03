@@ -41,7 +41,7 @@
 #include "util.h"
 #include "common/src/Types.h"
 #include "dyntypes.h"
-#include "IndirectControlFlow.h"
+#include "IndirectAnalyzer.h"
 
 #include <deque>
 #include <map>

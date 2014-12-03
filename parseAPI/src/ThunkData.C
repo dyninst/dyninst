@@ -1,5 +1,5 @@
 #include "dyntypes.h"
-#include "TableGuardData.h"
+#include "ThunkData.h"
 #include "IndirectASTVisitor.h"
 #include "CFG.h"
 #include "Absloc.h"
