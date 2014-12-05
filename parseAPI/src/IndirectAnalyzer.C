@@ -41,7 +41,11 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 
     parsing_printf("The final target bound fact:\n");
     target.Print();
-
+/*
+    if (block->last() == 0x805351a) {
+        printf("Final fact: %d[%lx,%lx]\n", target.interval.stride, target.interval.low, target.interval.high);
+    }
+*/
     if (!block->obj()->cs()->isValidAddress(tableBase)) {
         parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
 	return false;
@@ -115,7 +119,7 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
 
-//    if (block->last() != 0x403cf0) return false;
+//    if (block->last() != 0x804e30b) return false;
 
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
 
@@ -133,7 +137,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     GraphPtr slice =  bs.CalculateBackwardSlicing();
 
     parsing_printf("Calculate bound facts\n");     
-    BoundFactsCalculator bfc(func, slice, func->entry() == block, rf, thunks);
+    BoundFactsCalculator bfc(func, slice, func->entry() == block, rf, thunks, block->last());
     bfc.CalculateBoundedFacts();
 
     BoundValue target;

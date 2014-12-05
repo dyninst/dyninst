@@ -96,6 +96,7 @@ struct BoundValue {
     void Mul(const BoundValue &rhs);
     void ShiftLeft(const BoundValue &rhs);
     void Or(const BoundValue &rhs);
+    void Invert();
 };
 
 struct BoundFact {

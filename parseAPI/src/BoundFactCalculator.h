@@ -11,7 +11,7 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
 // To avoid the bound fact calculation from deadlock
-#define IN_QUEUE_LIMIT 50
+#define IN_QUEUE_LIMIT 10
 
 
 
@@ -22,6 +22,7 @@ class BoundFactsCalculator {
     bool firstBlock;
     ReachFact &rf;
     ThunkData &thunks;
+    Address jumpAddr;
 
     void ThunkBound(BoundFact *curFact, Node::Ptr src, Node::Ptr trg);
     BoundFact* Meet(Node::Ptr curNode);
@@ -30,8 +31,8 @@ class BoundFactsCalculator {
 public:
     bool CalculateBoundedFacts(); 
 
-    BoundFactsCalculator(ParseAPI::Function *f, GraphPtr s, bool first, ReachFact &r, ThunkData &t): 
-        func(f), slice(s), firstBlock(first), rf(r), thunks(t) {} 
+    BoundFactsCalculator(ParseAPI::Function *f, GraphPtr s, bool first, ReachFact &r, ThunkData &t, Address addr): 
+        func(f), slice(s), firstBlock(first), rf(r), thunks(t), jumpAddr(addr) {} 
 
     BoundFact *GetBoundFact(Node::Ptr node);
     ~BoundFactsCalculator();

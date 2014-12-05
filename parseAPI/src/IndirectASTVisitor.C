@@ -139,8 +139,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 		if (val->isTableRead)
 		    val->isInverted = true;
 		else {
-		    val->interval.Not();
-		    val->ClearTableCheck();
+		    val->Invert();
 		}
 		if (*val != BoundValue::top)
 		    bound.insert(make_pair(ast,val));
@@ -210,7 +209,14 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 }
 
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::ConstantAST *ast) {
-    bound.insert(make_pair(ast, new BoundValue(ast->val().val)));
+    const Constant &v = ast->val();
+    int64_t value = v.val;
+    if (v.size != 64 && (value & (1LL << (v.size - 1)))) {
+        // Compute the two complements in bits of v.size
+	// and change it to a negative number
+        value = -(((~value) & ((1LL << v.size) - 1)) + 1);
+    }
+    bound.insert(make_pair(ast, new BoundValue(value)));
     return AST::Ptr();
 }
 

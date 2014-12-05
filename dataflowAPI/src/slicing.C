@@ -1178,14 +1178,7 @@ Slicer::handleReturnBackward(
             return false;
         }
         return true;
-    } else { 
-      // Xiaozhu: If the user decides to not follow into the callee,
-      // we do not know for sure which register's values would stay
-      // intact. All values of the reigsters can be changed by the callee.
-      // We set err to true, and widen the slice
-      err = true;
-    }
-
+    } 
     return false;
 }
 
@@ -1408,6 +1401,10 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
     // A region assignment can never kill
     return false; 
   }
+
+  // Have to assume that a call can overwrite 
+  // the values of all registers
+  if (assign->insn()->getOperation().getID() == e_call) return true;
 
   return reg.contains(assign->out());
 }

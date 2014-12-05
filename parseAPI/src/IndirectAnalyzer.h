@@ -7,7 +7,6 @@
 #include "slicing.h"
 #include "BoundFactCalculator.h"
 using namespace Dyninst;
-using namespace Dyninst::ParseAPI;
 
 class IndirectControlFlowAnalyzer {
     // The function and block that contain the indirect jump

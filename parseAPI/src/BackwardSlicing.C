@@ -127,6 +127,7 @@ GraphPtr BackwardSlicer::TransformToCFG(GraphPtr gp) {
 	    SliceNode::Ptr newNode = SliceNode::create(node->assign(), node->block(), node->func());
 	    nodeMap[node->assign()] = newNode;
 	    targetMap[node->block()][node->assign()] = newNode;
+	    newG->addNode(newNode);
 	}
     }
 
@@ -179,15 +180,7 @@ GraphPtr BackwardSlicer::TransformGraph(GraphPtr gp) {
 	    }
 	}
     }
-    
-    
-
-    if (AdjustGraphEntryAndExit(gp) == 1)  
-        return gp; 
-    else {
-        return TransformToCFG(gp);
-    }
-
+    return TransformToCFG(gp);
 }
 
 static string Classify(AST::Ptr ast) {
@@ -258,6 +251,7 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
 
     IndirectControlFlowPred mp;
     GraphPtr slice = s.backwardSlice(mp);
+    
 
 // Code for understanding characteristics of
 // jump target expressions
@@ -273,11 +267,12 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
 
     slice = TransformGraph(slice);
 /*    
-    if (addr == 0x804a44d) {
+     if (addr == 0x8068ffa) {
         slice->printDOT("target.dot");
 	exit(0);
     }
-*/
+*/   
+
     return slice;
 }
 

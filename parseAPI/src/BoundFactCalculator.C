@@ -49,10 +49,15 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 
         BoundFact* oldFact = GetBoundFact(curNode);
 	parsing_printf("Calculate Meet for %lx", node->addr());
-	if (node->assign())
+	if (node->assign()) {
 	    parsing_printf(", insn: %s\n", node->assign()->insn()->format().c_str());
-	else
+//	    if (jumpAddr == 0x805351a) printf("insn at %lx: %s\n", node->addr(), node->assign()->insn()->format().c_str());
+	}
+	else {
 	    parsing_printf(", the VirtualExit node\n");
+//	    if (jumpAddr == 0x805351a) printf("virtual node\n");
+
+	}
 	parsing_printf("\tOld fact for %lx:\n", node->addr());
 	if (oldFact == NULL) parsing_printf("\t\t do not exist\n"); else oldFact->Print();
 	BoundFact* newFact = Meet(curNode);
@@ -68,7 +73,22 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 		    workingList.push(*nbegin);
 		    inQueue.insert(*nbegin);
 		}
-	} else parsing_printf("\tFacts do not change!\n");
+	} else {
+	    delete newFact;
+	    parsing_printf("\tFacts do not change!\n");
+	}
+/*
+	if (jumpAddr == 0x805351a) {
+	    VariableAST::Ptr ecx = VariableAST::create(Variable(AbsRegion(Absloc(x86::ecx))));
+	    BoundValue *val = newFact->GetBound(ecx);
+	    if (val == NULL) {
+	        printf("\tecx is top\n");
+	    }
+	    else {
+	        printf("\tecx: %d[%lx,%lx]\n", val->interval.stride, val->interval.low, val->interval.high);
+	    }
+	}
+*/	
     }
 
     return true;
@@ -147,7 +167,6 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
         TypedSliceEdge::Ptr edge = boost::static_pointer_cast<TypedSliceEdge>(*gbegin);	
 	SliceNode::Ptr srcNode = boost::static_pointer_cast<SliceNode>(edge->source()); 
 	BoundFact *prevFact = GetBoundFact(srcNode);	    
-	
 	if (prevFact == NULL) {
 	    parsing_printf("\t\tIncoming node %lx has not been calculated yet, default to top\n", srcNode->addr());
 	    prevFact = new BoundFact();
@@ -157,6 +176,11 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    // of the predecessor
 	    prevFact = new BoundFact(*prevFact);
         }
+/*
+	if (jumpAddr == 0x805351a) {
+	    printf("\tMeet incoming edge from %lx\n", srcNode->addr());
+	}
+*/
 	parsing_printf("\t\tMeet incoming edge from %lx\n", srcNode->addr());
 	parsing_printf("\t\tThe fact from %lx before applying transfer function\n", srcNode->addr());
 	prevFact->Print();

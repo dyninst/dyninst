@@ -96,9 +96,12 @@ void StridedInterval::Neg() {
 
 void StridedInterval::Not() {
     if (stride < 0) return;
+    // Assume not is always used to 
+    // calculates its two's complement to 
+    // do a subtraction
     int64_t tmpLow = low;
-    low = ~high;
-    high = ~tmpLow;
+    low = -high+1;
+    high = -tmpLow+1;
 
 }
 
@@ -123,6 +126,13 @@ void StridedInterval::Add(const StridedInterval &rhs) {
     stride = GCD(stride, rhs.stride);
     low += rhs.low;
     high += rhs.high;
+
+    // This is likely to be caused by arithmetic overflow.
+    // In this case, a strided interval cannot accurately 
+    // capture the value range. Set to top.
+    if (low > high) {
+        *this = top;
+    }
 }
 
 void StridedInterval::Sub(const StridedInterval& minuend) {
@@ -451,8 +461,14 @@ void BoundValue::Add(const BoundValue &rhs) {
     } 
     // In other case, we only track the values
     else {
-        interval.Add(rhs.interval);
-	ClearTableCheck();
+        // If either one of the operand is a table read,
+	// then the result can be anything
+        if (isTableRead || rhs.isTableRead) {
+	    *this = top;
+	} else {
+	    interval.Add(rhs.interval);
+	    ClearTableCheck();
+	}
     }
 }
 
@@ -510,6 +526,18 @@ void BoundValue::Or(const BoundValue &rhs) {
     
     // The result is not a table read
     ClearTableCheck();
+}
+
+void BoundValue::Invert() {
+    if (isTableRead) {        
+        // The memory read content can be anything
+        *this = top;
+    } else {
+        interval.Not();
+    }    
+    // The result is not a table read
+    ClearTableCheck();
+
 }
 
 void BoundFact::Meet(BoundFact &bf) {
@@ -1046,10 +1074,65 @@ void BoundFact::SetPredicate(Assignment::Ptr assign ) {
 	    pred.e1 = cv.subtrahend;
 	    pred.e2 = cv.minuend; 
 	    pred.id = id;
+	    // The effect of the subtraction can only
+	    // be evaluated when there is a conditional jump
+	    // after it. Currently, we do not know anything.
 	    break;
 	}
 	case e_test: {
-	    parsing_printf("\t\t To be handled\n");
+	    if (simplifiedAST->getID() == AST::V_RoseAST) {
+	        RoseAST::Ptr rootRoseAST = boost::static_pointer_cast<RoseAST>(simplifiedAST);
+		if (rootRoseAST->val().op == ROSEOperation::equalToZeroOp && 
+		    rootRoseAST->child(0)->getID() == AST::V_RoseAST) {
+		    RoseAST::Ptr childAST = boost::static_pointer_cast<RoseAST>(rootRoseAST->child(0));
+		    if (childAST->val().op == ROSEOperation::andOp) {
+		        if (*childAST->child(0) == *childAST->child(1)) {
+			    pred.e1 = childAST->child(0);
+			    pred.e2 = ConstantAST::create(Constant(0));
+			    pred.id = id;
+			    break;
+			}
+			else {
+			    parsing_printf("\t\t For test instruction, now only handle the case where two operands are the same\n");
+			}
+		    }
+		}
+	    }
+	    pred.valid = false;
+	    break;
+	}
+	case e_and: {
+	    if (simplifiedAST->getID() == AST::V_RoseAST) {
+	        RoseAST::Ptr rootRoseAST = boost::static_pointer_cast<RoseAST>(simplifiedAST);
+		if (rootRoseAST->val().op == ROSEOperation::equalToZeroOp && 
+		    rootRoseAST->child(0)->getID() == AST::V_RoseAST) {
+		    RoseAST::Ptr childAST = boost::static_pointer_cast<RoseAST>(rootRoseAST->child(0));
+		    if (childAST->val().op == ROSEOperation::andOp) {
+			// The effect of the and instruction can be 
+			// evaluated now. And the predicate is actually
+			// simply comparing value to 0
+		        if (childAST->child(1)->getID() == AST::V_ConstantAST) {
+			    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(childAST->child(1));
+			    StridedInterval si(1,0,constAST->val().val);
+			    IntersectInterval(childAST->child(0), si);
+			    pred.e1 = childAST->child(0);
+			    pred.e2 = ConstantAST::create(Constant(0));
+			    pred.id = id;
+			    break;
+			} else if (childAST->child(0)->getID() == AST::V_ConstantAST){
+			    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(childAST->child(0));
+			    StridedInterval si(1,0,constAST->val().val);
+			    IntersectInterval(childAST->child(1), si);
+			    pred.e1 = ConstantAST::create(Constant(0));
+			    pred.e2 = childAST->child(0);
+			    pred.id = id;
+			    break;
+			} else {
+			    parsing_printf("\t\t None of the operands is constant, do not handle this case\n");
+			}
+		    }
+		}
+	    }
 	    pred.valid = false;
 	    break;
 	}
