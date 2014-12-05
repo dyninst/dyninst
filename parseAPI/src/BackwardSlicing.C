@@ -183,61 +183,6 @@ GraphPtr BackwardSlicer::TransformGraph(GraphPtr gp) {
     return TransformToCFG(gp);
 }
 
-static string Classify(AST::Ptr ast) {
-    if (ast->getID() == AST::V_RoseAST) {
-        RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast);
-	switch (roseAST->val().op) {
-	    case ROSEOperation::addOp: {
-	        if (ast->child(0)->getID() == AST::V_RoseAST && ast->child(1)->getID() == AST::V_ConstantAST) {
-  	            // Now check if this subexpression is actually a subtraction
-	            RoseAST::Ptr child0 = boost::static_pointer_cast<RoseAST>(ast->child(0));
-		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(ast->child(1));
-		    if (child1->val().val == 1 && child0->val().op == ROSEOperation::invertOp) {
-		        return " - " + Classify(child0->child(0));
-		    }
-		}
-		string p1 = Classify(roseAST->child(0));
-		string p2 = Classify(roseAST->child(1));
-		if (p2[1] == '-') return p1 + p2;
-		else if (p1[1] == '-') return p2 + p1;
-		else if (p1 < p2) return p1 + " + " + p2;
-		else return p2 + " + " + p1;
-	    }
-	    case ROSEOperation::sMultOp:
-	    case ROSEOperation::uMultOp:
-	    case ROSEOperation::shiftLOp:
-	        if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
-		    return Classify(roseAST->child(0)) + " * " + "Index";
-		}
-	        if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
-		    return Classify(roseAST->child(1)) + " * " + "Index";
-		}
-		break;
-	    case ROSEOperation::derefOp:
-	        return "[ " + Classify(ast->child(0)) + " ]";
-	    default:
-	        break;
-	}
-	return " unknown ";
-    } else if (ast->getID() == AST::V_VariableAST) {
-        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
-	switch (varAST->val().reg.absloc().type()) {
-	    case Absloc::Register: 
-	        return "Reg";
-	    case Absloc::Stack:
-	        return "Stack";
-	    case Absloc::Heap:
-	        return "Heap";
-	    default:
-	        return "Unknown";
-	}
-    } else if (ast->getID() == AST::V_ConstantAST) {
-        return "Imm";
-    }
-    return " unknown ";
-
-}
-
 GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
     const unsigned char * buf = (const unsigned char*) block->obj()->cs()->getPtrToInstruction(addr);
     InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
@@ -252,22 +197,9 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
     IndirectControlFlowPred mp;
     GraphPtr slice = s.backwardSlice(mp);
     
-
-// Code for understanding characteristics of
-// jump target expressions
-/*
-    Result_t symRet;
-    SymEval::expand(slice, symRet);
-    assert(symRet.find(assignments[0]) != symRet.end());    
-    symRet[assignments[0]] =  SimplifyAnAST(symRet[assignments[0]], 0);
-    string out = Classify(symRet[assignments[0]] );
-    fprintf(stderr, "%lx: %s : %s\n", block->last(),  out.c_str(), symRet[assignments[0]]->format().c_str());
-*/
-// End of this piece of code
-
     slice = TransformGraph(slice);
 /*    
-     if (addr == 0x8068ffa) {
+    if (addr == 0x8074b37) {
         slice->printDOT("target.dot");
 	exit(0);
     }
