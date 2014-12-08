@@ -28,6 +28,15 @@ class BoundFactsCalculator {
     BoundFact* Meet(Node::Ptr curNode);
     void CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact);
 
+    std::map<Node::Ptr, int> analysisOrder, nodeColor;
+    vector<Node::Ptr> reverseOrder;
+    int orderStamp;
+    
+    void DetermineAnalysisOrder();
+    void NaturalDFS(Node::Ptr);
+    void ReverseDFS(Node::Ptr);
+    bool HasIncomingEdgesFromLowerLevel(int curOrder, std::vector<Node::Ptr>& curNodes);
+
 public:
     bool CalculateBoundedFacts(); 
 

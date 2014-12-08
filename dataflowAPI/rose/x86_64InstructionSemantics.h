@@ -1176,7 +1176,7 @@ struct X86_64InstructionSemantics {
                 }
                 break;
             }
-/*
+
             case x86_neg: {
                 ROSE_ASSERT(operands.size() == 1);
                 switch (numBytesInAsmType(operands[0]->get_type())) {
@@ -1198,6 +1198,13 @@ struct X86_64InstructionSemantics {
                         write32(operands[0], result);
                         break;
                     }
+                    case 8: {
+                        Word(64) result = doAddOperation<64>(number<64>(0), policy.invert(read64(operands[0])), true,
+                                                             policy.false_());
+                        write64(operands[0], result);
+                        break;
+                    }
+
                     default:
                         ROSE_ASSERT(!"Bad size");
                         break;
@@ -1223,6 +1230,12 @@ struct X86_64InstructionSemantics {
                         write32(operands[0], result);
                         break;
                     }
+                    case 8: {
+                        Word(64) result = doIncOperation<64>(read64(operands[0]), false, false);
+                        write64(operands[0], result);
+                        break;
+                    }
+
                     default:
                         ROSE_ASSERT(!"Bad size");
                         break;
@@ -1248,13 +1261,19 @@ struct X86_64InstructionSemantics {
                         write32(operands[0], result);
                         break;
                     }
+                    case 8: {
+                        Word(64) result = doIncOperation<64>(read64(operands[0]), true, false);
+                        write64(operands[0], result);
+                        break;
+                    }
+
                     default:
                         ROSE_ASSERT(!"Bad size");
                         break;
                 }
                 break;
             }
-
+/*
             case x86_cmpxchg: {
                 ROSE_ASSERT(operands.size() == 2);
                 switch (numBytesInAsmType(operands[0]->get_type())) {

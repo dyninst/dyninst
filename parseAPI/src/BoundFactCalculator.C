@@ -10,10 +10,72 @@
 
 using namespace Dyninst::InstructionAPI;
 
+void BoundFactsCalculator::NaturalDFS(Node::Ptr cur) {
+    nodeColor[cur] = 1;
+    NodeIterator nbegin, nend;
+    cur->outs(nbegin, nend);
+
+    for (; nbegin != nend; ++nbegin) 
+        if (nodeColor.find(*nbegin) == nodeColor.end())
+	    NaturalDFS(*nbegin);
+
+    reverseOrder.push_back(cur);
+   
+}
+
+void BoundFactsCalculator::ReverseDFS(Node::Ptr cur) {
+    nodeColor[cur] = 1;
+    analysisOrder[cur] = orderStamp;
+    NodeIterator nbegin, nend;
+    cur->ins(nbegin, nend);
+
+    for (; nbegin != nend; ++nbegin) 
+        if (nodeColor.find(*nbegin) == nodeColor.end())
+	    ReverseDFS(*nbegin);
+}
+void BoundFactsCalculator::DetermineAnalysisOrder() {
+    NodeIterator nbegin, nend;
+    slice->allNodes(nbegin, nend);
+
+    nodeColor.clear();
+    reverseOrder.clear();
+    analysisOrder.clear();
+    for (; nbegin != nend; ++nbegin) 
+        if (nodeColor.find(*nbegin) == nodeColor.end()) {
+	    NaturalDFS(*nbegin);
+	}
+    nodeColor.clear();
+    orderStamp = 0;
+    for (auto nit = reverseOrder.rbegin(); nit != reverseOrder.rend(); ++nit)
+        if (nodeColor.find(*nit) == nodeColor.end()) {
+	    ++orderStamp;
+	    ReverseDFS(*nit);
+	} 
+}
+
+bool BoundFactsCalculator::HasIncomingEdgesFromLowerLevel(int curOrder, vector<Node::Ptr>& curNodes) {
+    for (auto nit = curNodes.begin(); nit != curNodes.end(); ++nit) {
+        Node::Ptr cur = *nit;
+	NodeIterator nbegin, nend;
+	cur->ins(nbegin, nend);
+	for (; nbegin != nend; ++nbegin) 
+	    if (analysisOrder[*nbegin] < curOrder) return true;
+    }
+    return false;
+
+}
+
 bool BoundFactsCalculator::CalculateBoundedFacts() {    
-    /* We use a dataflow analysis to calculate what registers are bounded 
-     * at each node. The key points of the dataflow analysis are how
-     * to calculate the meet and how to calculate the transfer function.
+    /* We use a dataflow analysis to calculate the value bound
+     * of each register and potentially some memory locations.
+     * The key steps of the dataflow analysis are 
+     * 1. Determine the analysis order:
+     *    First calculate all strongly connected components (SCC)
+     *    of the graph. The flow analysis inside a SCC is 
+     *    iterative. The flow analysis between several SCCs
+     *    is done topologically. 
+     * 2. For each node, need to calculate the meet and 
+     *    calculate the transfer function.
      * 1. The meet should be simply an intersection of all the bounded facts 
      * along all paths. 
      * 2. To calculate the transfer function, we first get the symbolic expression
@@ -23,60 +85,80 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
      * makes the register bounded. 
      */
     
+    DetermineAnalysisOrder();
 
     queue<Node::Ptr> workingList;
     set<Node::Ptr> inQueue;
     map<Node::Ptr, int> inQueueLimit;
 
-    NodeIterator nbegin, nend;
-    slice->allNodes(nbegin, nend);
-
-    for (; nbegin != nend; ++nbegin) {
-        workingList.push(*nbegin);
-	inQueue.insert(*nbegin);
-    }
-
-
-    while (!workingList.empty()) {
-        Node::Ptr curNode = workingList.front();
-	workingList.pop();
-	inQueue.erase(curNode);
-	
-	SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);
-
-	++inQueueLimit[curNode];
-	if (inQueueLimit[curNode] > IN_QUEUE_LIMIT) continue;
-
-        BoundFact* oldFact = GetBoundFact(curNode);
-	parsing_printf("Calculate Meet for %lx", node->addr());
-	if (node->assign()) {
-	    parsing_printf(", insn: %s\n", node->assign()->insn()->format().c_str());
-//	    if (jumpAddr == 0x805351a) printf("insn at %lx: %s\n", node->addr(), node->assign()->insn()->format().c_str());
+    for (int curOrder = 1; curOrder <= orderStamp; ++curOrder) {
+        // We first determine which nodes are
+	// in this SCC
+        vector<Node::Ptr> curNodes;
+	NodeIterator nbegin, nend;
+	slice->allNodes(nbegin, nend);
+	for (; nbegin != nend; ++nbegin) {
+	    if (analysisOrder[*nbegin] == curOrder) {
+	        curNodes.push_back(*nbegin);
+		workingList.push(*nbegin);
+		inQueue.insert(*nbegin);
+	    } 
 	}
-	else {
-	    parsing_printf(", the VirtualExit node\n");
-//	    if (jumpAddr == 0x805351a) printf("virtual node\n");
 
+	if (!HasIncomingEdgesFromLowerLevel(curOrder, curNodes)) {
+	    // If this SCC is an entry SCC,
+	    // we choose a node inside the SCC
+	    // and let it be top
+	    parsing_printf("This SCC does not incoming edges from outside\n");
+	    boundFacts[curNodes[0]] = new BoundFact();
 	}
-	parsing_printf("\tOld fact for %lx:\n", node->addr());
-	if (oldFact == NULL) parsing_printf("\t\t do not exist\n"); else oldFact->Print();
-	BoundFact* newFact = Meet(curNode);
-        parsing_printf("\tNew fact at %lx\n", node->addr());
-	newFact->Print();
-	if (oldFact == NULL || *oldFact != *newFact) {
-	    parsing_printf("\tFacts change!\n");
-	    if (oldFact != NULL) delete oldFact;
-	    boundFacts[curNode] = newFact;
-	    curNode->outs(nbegin, nend);
-	    for (; nbegin != nend; ++nbegin)
-	        if (inQueue.find(*nbegin) == inQueue.end()) {
-		    workingList.push(*nbegin);
-		    inQueue.insert(*nbegin);
-		}
-	} else {
-	    delete newFact;
-	    parsing_printf("\tFacts do not change!\n");
-	}
+	parsing_printf("Starting analysis inside SCC %d\n", curOrder);
+	// We now start iterative analysis inside the SCC
+	while (!workingList.empty()) {
+	    Node::Ptr curNode = workingList.front();
+	    workingList.pop();
+	    inQueue.erase(curNode);
+	    
+	    SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);
+	    ++inQueueLimit[curNode];
+	    if (inQueueLimit[curNode] > IN_QUEUE_LIMIT) continue;
+	    
+	    BoundFact* oldFact = GetBoundFact(curNode);
+	    parsing_printf("Calculate Meet for %lx", node->addr());
+	    if (node->assign()) {
+	        parsing_printf(", insn: %s\n", node->assign()->insn()->format().c_str());
+//	        if (jumpAddr == 0x805351a) printf("insn at %lx: %s\n", node->addr(), node->assign()->insn()->format().c_str());
+	    }
+	    else {
+	        parsing_printf(", the VirtualExit node\n");
+ //	        if (jumpAddr == 0x805351a) printf("virtual node\n");
+
+	    }
+	    parsing_printf("\tOld fact for %lx:\n", node->addr());
+	    if (oldFact == NULL) parsing_printf("\t\t do not exist\n"); else oldFact->Print();
+	    BoundFact* newFact = Meet(curNode);
+	    parsing_printf("\tNew fact at %lx\n", node->addr());
+	    if (newFact != NULL) newFact->Print(); else parsing_printf("\t\tNot calculated\n");
+	    if (newFact != NULL && (oldFact == NULL || *oldFact != *newFact)) {
+	        parsing_printf("\tFacts change!\n");
+		if (oldFact != NULL) delete oldFact;
+		boundFacts[curNode] = newFact;
+		curNode->outs(nbegin, nend);
+	        for (; nbegin != nend; ++nbegin)
+		    // We only add node inside current SCC into the working list
+		    if (inQueue.find(*nbegin) == inQueue.end() && analysisOrder[*nbegin] == curOrder) {
+		        workingList.push(*nbegin);
+			inQueue.insert(*nbegin);
+		    }
+	    } else {
+	        if (newFact != NULL) delete newFact;
+		parsing_printf("\tFacts do not change!\n");
+	    }
+
+        }
+
+
+
 /*
 	if (jumpAddr == 0x805351a) {
 	    VariableAST::Ptr ecx = VariableAST::create(Variable(AbsRegion(Absloc(x86::ecx))));
@@ -168,8 +250,8 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	SliceNode::Ptr srcNode = boost::static_pointer_cast<SliceNode>(edge->source()); 
 	BoundFact *prevFact = GetBoundFact(srcNode);	    
 	if (prevFact == NULL) {
-	    parsing_printf("\t\tIncoming node %lx has not been calculated yet, default to top\n", srcNode->addr());
-	    prevFact = new BoundFact();
+	    parsing_printf("\t\tIncoming node %lx has not been calculated yet, ignore it\n", srcNode->addr());
+	    continue;
 	} else {	    
 	    // Otherwise, create a new copy.
 	    // We do not want to overwrite the bound fact
@@ -239,10 +321,9 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	        // DOES THIS REALLY SHOW UP IN 32-BIT CODE???
 	        axAST = VariableAST::create(Variable(AbsRegion(Absloc(x86::eax))));
 	    newFact->GenFact(axAST, new BoundValue(StridedInterval(1,0,8)));
-	} else {
-	    newFact = new BoundFact();
-	}
-	ThunkBound(newFact, Node::Ptr(), node);
+	    ThunkBound(newFact, Node::Ptr(), node);
+
+	}    
     }
     return newFact;
 }
@@ -261,8 +342,9 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
         // If the instruction is outside the set of instrutions we
         // add instruction semantics. We assume this instruction
         // kills all bound fact.
-        parsing_printf("\t\t\t No semantic support for this instruction. Kill all bound fact\n");
-	newFact->SetToBottom();
+//      parsing_printf("\t\t\t No semantic support for this instruction. Kill all bound fact\n");
+//	newFact->SetToBottom();
+        parsing_printf("\t\t\t No semantic support for this instruction. Assume it does not affect jump target calculation. Ignore it (Treat as identity function)\n");	
 	return;
     }
     
@@ -272,15 +354,23 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	
     BoundCalcVisitor bcv(*newFact);
     calculation->accept(&bcv);
-
+    
+    AST::Ptr outAST = VariableAST::create(Variable(ar));
     if (bcv.IsResultBounded(calculation)) { 
         parsing_printf("\t\t\tGenenerate bound fact for %s\n", ar.absloc().format().c_str());
-	newFact->GenFact(VariableAST::create(Variable(ar)), new BoundValue(*bcv.GetResultBound(calculation)));
+	newFact->GenFact(outAST, new BoundValue(*bcv.GetResultBound(calculation)));
     }
     else {
         parsing_printf("\t\t\tKill bound fact for %s\n", ar.absloc().format().c_str());
-	newFact->KillFact(VariableAST::create(Variable(ar)));
+	newFact->KillFact(outAST);
     }
+    if (calculation->getID() == AST::V_VariableAST) {
+        // We only track alising between registers
+	parsing_printf("\t\t\t%s and %s are equal\n", calculation->format().c_str(), outAST->format().c_str());
+	newFact->InsertRelation(calculation, outAST, BoundFact::Equal);
+    }
+
+    newFact->AdjustPredicate(outAST, calculation);
     parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
     newFact->Print();
 

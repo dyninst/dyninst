@@ -198,8 +198,9 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
     GraphPtr slice = s.backwardSlice(mp);
     
     slice = TransformGraph(slice);
-/*    
-    if (addr == 0x8074b37) {
+
+/*
+    if (addr == 0x430ec3) {
         slice->printDOT("target.dot");
 	exit(0);
     }

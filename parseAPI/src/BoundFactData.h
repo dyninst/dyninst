@@ -116,8 +116,31 @@ struct BoundFact {
     typedef map<AST::Ptr, BoundValue*> FactType;
     FactType fact;
 
-    typedef map< pair<AST::Ptr, AST::Ptr> , RelationType > RelationMap;
-    RelationMap relation;
+    struct RelationShip {
+        AST::Ptr left;
+	AST::Ptr right;
+	RelationType type;
+	RelationShip(AST::Ptr l, AST::Ptr r, RelationType t):
+	    left(l), right(r), type(t) {}
+
+        bool operator != (const RelationShip &rhs) const {
+	    if (type != rhs.type) return true;
+	    if (!(*left == *rhs.left)) return true;
+	    if (!(*right == *rhs.right)) return true;
+	    return false;
+	}
+
+	RelationShip& operator = (const RelationShip &rhs) {
+	    left = rhs.left;
+	    right = rhs.right;
+	    type = rhs.type;
+	    return *this;
+	}
+
+	RelationShip(const RelationShip &r) { *this = r; }
+    };
+
+    vector<RelationShip*> relation;
 
     struct FlagPredicate {
         bool valid;
@@ -162,9 +185,11 @@ struct BoundFact {
     void KillFact(const AST::Ptr ast);
     void SetToBottom();
     void Print();
+    void AdjustPredicate(AST::Ptr out, AST::Ptr in);
 
     void IntersectInterval(const AST::Ptr ast, StridedInterval si);
     void DeleteElementFromInterval(const AST::Ptr ast, int64_t val);
+    void InsertRelation(AST::Ptr left, AST::Ptr right, RelationType);
 
     BoundFact();
     ~BoundFact();

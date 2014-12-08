@@ -551,23 +551,26 @@ void BoundFact::Meet(BoundFact &bf) {
 		val1->Join(*val2);
 		++fit;
 	    } else {
-	        auto next = fit;
-		++next;
-		if (fit->second != NULL) delete fit->second;
-		fact.erase(fit);
-		fit = next;
+	        auto toErase = fit;
+		++fit;
+		if (toErase->second != NULL) delete toErase->second;
+		fact.erase(toErase);
 	    }
 	}
 
-	// Meet the relation map
-	RelationMap newMap;
-	for (auto rit = relation.begin(); rit != relation.end(); ++rit) {
-	    auto it = bf.relation.find(rit->first);
-	    // The absloc pair has the same relation on both paths
-	    if (it != bf.relation.end() && it->second == rit->second)
-	        newMap.insert(make_pair(rit->first, rit->second));
+	// Meet the relation vector 	
+	for (auto rit = relation.begin(); rit != relation.end();) {
+	    bool find = false;
+	    for (auto it = bf.relation.begin(); it != bf.relation.end(); ++it)
+	        if (*((*rit)->left) == *((*it)->left) && *((*rit)->right) == *((*it)->right) && (*rit)->type == (*it)->type) {
+		    find = true;
+		    break;
+		}
+	    if (!find) {
+		if (*rit != NULL) delete *rit;
+	        rit = relation.erase(rit);
+	    } else ++rit;
 	}
-	relation = newMap;
 
 	// Meet the flag predicate
 	if (pred != bf.pred) pred.valid = false;
@@ -584,11 +587,22 @@ void BoundFact::Print() {
         parsing_printf("\t\t\tVar: %s, ", fit->first->format().c_str());
 	fit->second->Print();
     }
+    parsing_printf("\t\t\tRelations:\n");
+    for (auto rit = relation.begin(); rit != relation.end(); ++rit) {
+        parsing_printf("\t\t\t\t%s and %s, relation: %d\n", (*rit)->left->format().c_str(), (*rit)->right->format().c_str(), (*rit)->type);
+    }
 }
 
 void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv) {
     KillFact(ast);
     fact.insert(make_pair(ast,bv));
+    for (auto rit = relation.begin(); rit != relation.end(); ++rit) {
+	if ((*rit)->type == Equal) {
+	    if (*((*rit)->left) == *ast) fact.insert(make_pair((*rit)->right, new BoundValue(*bv)));
+	    if (*((*rit)->right) == *ast) fact.insert(make_pair((*rit)->left, new BoundValue(*bv))); 
+	}
+    }
+        
 }
 
 static bool IsSubTree(AST::Ptr tree, AST::Ptr sub) {
@@ -604,25 +618,35 @@ static bool IsSubTree(AST::Ptr tree, AST::Ptr sub) {
 void BoundFact::KillFact(const AST::Ptr ast) {
     for (auto fit = fact.begin(); fit != fact.end();)
         if (IsSubTree(fit->first, ast)) {
-	    auto next = fit;
-	    ++next;
-	    if (fit->second != NULL)
-	        delete fit->second;
-	    fact.erase(fit);
-	    fit= next;
+	    auto toErase = fit;
+	    ++fit;
+	    if (toErase->second != NULL) delete toErase->second;
+	    fact.erase(toErase);
 	} else ++fit;
-    // Need to think about how this affects relation map
+    // It also affects the relation map
+    for (auto rit = relation.begin(); rit != relation.end();) {
+	// If the one of them is changed,
+	// we no longer know their relationship
+	if (*((*rit)->left) == *ast || *((*rit)->right) == *ast) {
+	    if (*rit != NULL) delete *rit;
+	    rit = relation.erase(rit);
+	} else ++rit;
+    }
 }
 
 
-bool BoundFact::operator != (const BoundFact &bf) const {
+bool BoundFact::operator != (const BoundFact &bf) const {    
     if (pred != bf.pred) return true; 
     if (fact.size() != bf.fact.size()) return true;
+    if (relation.size() != bf.relation.size()) return true;
+    for (size_t i = 0; i < relation.size(); ++i)
+        if (*relation[i] != *bf.relation[i]) return true;
     return !equal(fact.begin(), fact.end(), bf.fact.begin());
 }
 
 BoundFact::BoundFact() {
     fact.clear();
+    relation.clear();
 }
 
 BoundFact::~BoundFact() {
@@ -630,13 +654,25 @@ BoundFact::~BoundFact() {
         if (fit->second != NULL)
 	    delete fit->second;
     fact.clear();   
+    for (auto rit = relation.begin(); rit != relation.end(); ++rit)
+        if (*rit != NULL)
+	    delete *rit;
+    relation.clear();
 }
 
 BoundFact& BoundFact::operator = (const BoundFact &bf) {
     pred = bf.pred;
+    for (auto fit = fact.begin(); fit != fact.end(); ++fit)
+        if (fit->second != NULL) delete fit->second;
     fact.clear();
     for (auto fit = bf.fact.begin(); fit != bf.fact.end(); ++fit)     
         fact.insert(make_pair(fit->first, new BoundValue(*(fit->second))));
+
+    for (auto rit = relation.begin(); rit != relation.end(); ++rit)
+        if (*rit != NULL) delete *rit;
+    relation.clear();
+    for (auto rit = bf.relation.begin(); rit != bf.relation.end(); ++rit)
+        relation.push_back(new RelationShip(**rit));
     return *this;
 }
 
@@ -664,13 +700,13 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val - 1));
+		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val - 1)));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLargerThan;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2,UnsignedLargerThan));
 		}
 		break;
 	    }
@@ -681,13 +717,13 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val));
+		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val)));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLargerThanOrEqual;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2, UnsignedLargerThanOrEqual));
 		}
 		break;
 	    }
@@ -704,9 +740,9 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val - 1));
+		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val - 1)));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLessThan;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2, UnsignedLessThan));
 		}
 		break;
 	    }
@@ -722,9 +758,9 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val));
+		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val)));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLessThanOrEqual;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2,UnsignedLessThanOrEqual));
 		}
 		break;
 	    }
@@ -743,7 +779,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    parsing_printf("WARNING: do not track equal predicate\n");
 		    //IntersectInterval(pred.e1, StridedInterval(0, constAST->val().val , constAST->val().val));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = Equal;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2,Equal));
 		}
 		break;
 	    }
@@ -759,7 +795,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    DeleteElementFromInterval(pred.e1, constAST->val().val);
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = NotEqual;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2, NotEqual));
 		}
 		break;
 	    }
@@ -777,7 +813,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = SignedLargerThan;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2, SignedLargerThan));
 		}
 		break;
 	    }
@@ -793,7 +829,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = SignedLargerThanOrEqual;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2,SignedLargerThanOrEqual));
 		}
 		break;
 	    }
@@ -809,7 +845,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    IntersectInterval(pred.e1, StridedInterval(1, StridedInterval::minValue , constAST->val().val - 1));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = SignedLessThan;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2,SignedLessThan));
 		}
 		break;
 
@@ -826,7 +862,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    IntersectInterval(pred.e1, StridedInterval(1, StridedInterval::minValue , constAST->val().val));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = SignedLessThanOrEqual;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2,SignedLessThanOrEqual));
 		}
 		break;
 	    }
@@ -850,13 +886,13 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val - 1));
+		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val - 1)));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLargerThan;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2,UnsignedLargerThan));
 		}
 		break;
 	    }
@@ -867,13 +903,13 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val));
+		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val)));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLargerThanOrEqual;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2 ,UnsignedLargerThanOrEqual));
 		}
 		break;
 	    }
@@ -890,9 +926,9 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val - 1));
+		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val - 1)));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLessThan;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2, UnsignedLessThan));
 		}
 		break;
 	    }
@@ -908,9 +944,9 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val));
+		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val)));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = UnsignedLessThanOrEqual;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2, UnsignedLessThanOrEqual));
 		}
 		break;
 	    }
@@ -931,7 +967,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    parsing_printf("WARNING: do not track equal predicate\n");
 		    //IntersectInterval(pred.e1, StridedInterval(0, constAST->val().val , constAST->val().val));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = Equal;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2, Equal));
 		}
 		break;
 	    }
@@ -947,7 +983,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    DeleteElementFromInterval(pred.e1, constAST->val().val);
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = NotEqual;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2,NotEqual));
 		}
 		break;
 	    }
@@ -965,7 +1001,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = SignedLargerThan;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2, SignedLargerThan));
 		}
 		break;
 	    }
@@ -981,7 +1017,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = SignedLargerThanOrEqual;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2, SignedLargerThanOrEqual));
 		}
 		break;
 	    }
@@ -997,7 +1033,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    IntersectInterval(pred.e1, StridedInterval(1, StridedInterval::minValue , constAST->val().val - 1));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = SignedLessThan;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2,SignedLessThan));
 		}
 		break;
 
@@ -1014,7 +1050,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    IntersectInterval(pred.e1, StridedInterval(1, StridedInterval::minValue , constAST->val().val));
 		} else {
-		    relation[make_pair(pred.e1, pred.e2)] = SignedLessThanOrEqual;
+		    relation.push_back(new RelationShip(pred.e1, pred.e2,SignedLessThanOrEqual));
 		}
 		break;
 	    }
@@ -1154,7 +1190,7 @@ void BoundFact::SetToBottom() {
 void BoundFact::IntersectInterval(const AST::Ptr ast, StridedInterval si) {
     BoundValue *bv = GetBound(ast);
     if (bv != NULL) {
-        bv->IntersectInterval(si);
+        bv->IntersectInterval(si); 
     } else {
         // If the fact value does not exist,
 	// it means it is top and can be any value.
@@ -1168,3 +1204,38 @@ void BoundFact::DeleteElementFromInterval(const AST::Ptr ast, int64_t val) {
         bv->DeleteElementFromInterval(val);
     }
 }
+
+void BoundFact::InsertRelation(AST::Ptr left, AST::Ptr right, RelationType r) {
+    parsing_printf("\t\t\t inserting relation %s and %s, type %d\n",left->format().c_str(), right->format().c_str(), r); 
+    relation.push_back(new RelationShip(left, right, r));
+}
+
+void BoundFact::AdjustPredicate(AST::Ptr out, AST::Ptr in) {
+    if (!pred.valid) return;
+    if (*out == *pred.e1 && pred.e2->getID() == AST::V_ConstantAST) {
+        parsing_printf("\t\t\t Adjust predicate\n");
+	if (in->getID() == AST::V_RoseAST) {
+	    RoseAST::Ptr root = boost::static_pointer_cast<RoseAST>(in);
+	    if (root->val().op == ROSEOperation::addOp && *pred.e1 == *(root->child(0)) && in->child(1)->getID() == AST::V_ConstantAST) {
+	        ConstantAST::Ptr v1 = boost::static_pointer_cast<ConstantAST>(pred.e2);
+	        ConstantAST::Ptr v2 = boost::static_pointer_cast<ConstantAST>(in->child(1));
+	        uint64_t newV = v1->val().val + v2->val().val;
+		pred.e2 = ConstantAST::create(Constant(newV, v1->val().size));
+	    }
+	}
+
+    } else if (*out == *pred.e2 && pred.e1->getID() == AST::V_ConstantAST) {
+        parsing_printf("\t\t\t Adjust predicate\n");
+	if (in->getID() == AST::V_RoseAST) {
+	    RoseAST::Ptr root = boost::static_pointer_cast<RoseAST>(in);
+	    if (root->val().op == ROSEOperation::addOp && *pred.e2 == *(root->child(0)) && in->child(1)->getID() == AST::V_ConstantAST) {
+	        ConstantAST::Ptr v1 = boost::static_pointer_cast<ConstantAST>(pred.e1);
+	        ConstantAST::Ptr v2 = boost::static_pointer_cast<ConstantAST>(in->child(1));
+	        uint64_t newV = v1->val().val + v2->val().val;
+		pred.e1 = ConstantAST::create(Constant(newV, v1->val().size));
+	    }
+	}
+
+    }
+}
+
