@@ -113,6 +113,8 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 	} else {
 	    parsing_printf(" not code.\n");
 	}
+	// If the jump target is resolved to be a constant, 
+	if (target.interval.stride == 0) break;
     }
     return true;
 }
