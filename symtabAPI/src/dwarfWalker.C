@@ -398,6 +398,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
 
       e = siblingDwarf;
    }
+   
    dwarf_printf("PARSE_INT exit, context size %d\n", (int) contexts_.c.size());
    return true;
 }
@@ -662,6 +663,8 @@ bool DwarfWalker::parseRangeTypes() {
                break;
          }
       }
+      dwarf_ranges_dealloc(dbg(), ranges, ranges_length);
+      
    }   
    return true;
 }
@@ -1639,7 +1642,11 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
       if (!decodeLocationListForStaticOffsetOrAddress( locationList,
                                                        listLength, 
                                                        locs, 
-                                                       initialStackValue)) return false;
+                                                       initialStackValue)) {
+	deallocateLocationList( locationList, listLength );
+	return false;
+      }
+      
       
       deallocateLocationList( locationList, listLength );
    }
@@ -1743,7 +1750,10 @@ bool DwarfWalker::findConstant(Dwarf_Half attr,
    // Get the form (datatype) for this particular attribute
    DWARF_FAIL_RET(dwarf_whatform(d_attr, &form, NULL));
 
-   return findConstantWithForm(d_attr, form, value);
+   bool ret = findConstantWithForm(d_attr, form, value);
+   dwarf_dealloc(dbg(), d_attr, DW_DLA_ATTR);
+   return ret;
+   
 }
 
 bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
