@@ -8,14 +8,16 @@
 #include "Instruction.h"
 #include "CFG.h"
 #include "entryIDs.h"
+
+#include <climits>
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::DataflowAPI;
 
 struct StridedInterval {   
-    static const int64_t minValue = -0x3fffffffffffffffLL;
-    static const int64_t maxValue = 0x3fffffffffffffffLL;
+    static const int64_t minValue = LLONG_MIN;
+    static const int64_t maxValue = LLONG_MAX;
     static const StridedInterval top;
     static const StridedInterval bottom;
     // stride < 0: bottom (empty set)

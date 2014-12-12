@@ -28,7 +28,7 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 		    size_t size = child->val().size;
 		    uint64_t val = child->val().val;
 		    if (size < 64) {
-		        uint64_t mask = (1LL << size) - 1;
+		        uint64_t mask = (1ULL << size) - 1;
 		        val = (~val) & mask;
 		    } else
 		        val = ~val;
@@ -211,10 +211,10 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::ConstantAST *ast) {
     const Constant &v = ast->val();
     int64_t value = v.val;
-    if (v.size != 64 && (value & (1LL << (v.size - 1)))) {
+    if (v.size != 64 && (value & (1ULL << (v.size - 1)))) {
         // Compute the two complements in bits of v.size
 	// and change it to a negative number
-        value = -(((~value) & ((1LL << v.size) - 1)) + 1);
+        value = -(((~value) & ((1ULL << v.size) - 1)) + 1);
     }
     bound.insert(make_pair(ast, new BoundValue(value)));
     return AST::Ptr();
@@ -273,7 +273,7 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 		    uint64_t val = constAST->val().val;
 		    int size = constAST->val().size;
 		    if (size < 64)
-		        val = ((~val) & ((1ul << size) - 1)) + 1;
+		        val = ((~val) & ((1ULL << size) - 1)) + 1;
 		    else if (size == 64)
 		        val = (~val) + 1;
 		    else

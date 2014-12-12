@@ -1190,7 +1190,8 @@ void BoundFact::SetToBottom() {
 void BoundFact::IntersectInterval(const AST::Ptr ast, StridedInterval si) {
     BoundValue *bv = GetBound(ast);
     if (bv != NULL) {
-        bv->IntersectInterval(si); 
+        GenFact(ast, new BoundValue(si));
+//        bv->IntersectInterval(si); 
     } else {
         // If the fact value does not exist,
 	// it means it is top and can be any value.
