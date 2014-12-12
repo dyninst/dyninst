@@ -182,6 +182,14 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	            bound.insert(make_pair(ast, val));
 	    }
 	    break;
+	case ROSEOperation::shiftROp:
+	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
+	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
+	        val->ShiftRight(*GetResultBound(ast->child(1)));
+	        if (*val != BoundValue::top)
+	            bound.insert(make_pair(ast, val));
+	    }
+	    break;
 	case ROSEOperation::derefOp: 
 	    if (IsResultBounded(ast->child(0))) {
 	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));

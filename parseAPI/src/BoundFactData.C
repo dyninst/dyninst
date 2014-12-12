@@ -206,6 +206,17 @@ void StridedInterval::Mul(const StridedInterval &rhs) {
     }
 }
 
+void StridedInterval::Div(const StridedInterval &rhs) {
+    if (rhs.stride == 0) {
+        low /= rhs.low;
+	high /= rhs.low;
+	stride /= rhs.low;
+	if (stride == 0 && low != high) stride = 1;
+    } else {
+        *this = top;
+    }
+}
+
 void StridedInterval::ShiftLeft(const StridedInterval &rhs) {
     if (rhs.stride == 0) {
         Mul(StridedInterval(1 << rhs.low));
@@ -214,7 +225,14 @@ void StridedInterval::ShiftLeft(const StridedInterval &rhs) {
 	*this = top;
     }
 }
-
+void StridedInterval::ShiftRight(const StridedInterval &rhs) {
+    if (rhs.stride == 0) {
+        Div(StridedInterval(1 << rhs.low));
+    } else {
+        // In other case, we widen
+	*this = top;
+    }
+}
 StridedInterval & StridedInterval::operator = (const StridedInterval &rhs) {
     stride = rhs.stride;
     low = rhs.low;
@@ -408,8 +426,7 @@ void BoundValue::IntersectInterval(StridedInterval &si) {
         // We are not going to continue tracking
 	// how the memory read is used.
 	// The read contents can be anything, so set to top
-	*this = top;
-	
+	*this = top;	
     }
     interval.Intersect(si);
 }
@@ -509,6 +526,19 @@ void BoundValue::ShiftLeft(const BoundValue &rhs) {
         interval.ShiftLeft(StridedInterval::top);
     else
         interval.ShiftLeft(rhs.interval);
+    
+    // The result is not a table read
+    ClearTableCheck();
+}
+void BoundValue::ShiftRight(const BoundValue &rhs) {
+    if (isTableRead) {        
+        // The memory read content can be anything
+        *this = top;
+    }
+    if (rhs.isTableRead)
+        interval.ShiftRight(StridedInterval::top);
+    else
+        interval.ShiftRight(rhs.interval);
     
     // The result is not a table read
     ClearTableCheck();
@@ -807,7 +837,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        IntersectInterval(pred.e2, StridedInterval(1, StridedInterval::minValue, constAST->val().val - 1));
+		        IntersectInterval(pred.e2, StridedInterval(1, 0 , constAST->val().val - 1));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -823,7 +853,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        IntersectInterval(pred.e2, StridedInterval(1, StridedInterval::minValue, constAST->val().val));
+		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -843,7 +873,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-		    IntersectInterval(pred.e1, StridedInterval(1, StridedInterval::minValue , constAST->val().val - 1));
+		    IntersectInterval(pred.e1, StridedInterval(1,  0 , constAST->val().val - 1));
 		} else {
 		    relation.push_back(new RelationShip(pred.e1, pred.e2,SignedLessThan));
 		}
@@ -860,7 +890,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-		    IntersectInterval(pred.e1, StridedInterval(1, StridedInterval::minValue , constAST->val().val));
+		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val));
 		} else {
 		    relation.push_back(new RelationShip(pred.e1, pred.e2,SignedLessThanOrEqual));
 		}
@@ -995,7 +1025,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        IntersectInterval(pred.e2, StridedInterval(1, StridedInterval::minValue, constAST->val().val - 1));
+		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val - 1));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -1011,7 +1041,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        IntersectInterval(pred.e2, StridedInterval(1, StridedInterval::minValue, constAST->val().val));
+		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -1031,7 +1061,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-		    IntersectInterval(pred.e1, StridedInterval(1, StridedInterval::minValue , constAST->val().val - 1));
+		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val - 1));
 		} else {
 		    relation.push_back(new RelationShip(pred.e1, pred.e2,SignedLessThan));
 		}
@@ -1048,7 +1078,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-		    IntersectInterval(pred.e1, StridedInterval(1, StridedInterval::minValue , constAST->val().val));
+		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val));
 		} else {
 		    relation.push_back(new RelationShip(pred.e1, pred.e2,SignedLessThanOrEqual));
 		}

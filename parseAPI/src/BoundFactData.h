@@ -51,7 +51,9 @@ struct StridedInterval {
     void Or(const StridedInterval &rhs);
     void Xor(const StridedInterval &rhs);
     void Mul(const StridedInterval &rhs); 
+    void Div(const StridedInterval &rhs);
     void ShiftLeft(const StridedInterval &rhs);
+    void ShiftRight(const StridedInterval &rhs);
     std::string format();
 
     StridedInterval & operator = (const StridedInterval &rhs);
@@ -97,6 +99,7 @@ struct BoundValue {
     void And(const BoundValue &rhs);
     void Mul(const BoundValue &rhs);
     void ShiftLeft(const BoundValue &rhs);
+    void ShiftRight(const BoundValue &rhs);
     void Or(const BoundValue &rhs);
     void Invert();
 };
