@@ -2297,6 +2297,35 @@ bool Symtab::addRegion(Region *sec)
    return true;
 }
 
+void Symtab::updateLineInformationAnnos()
+{
+  return;
+  /*
+   for (auto iter = lineInfo->begin(); iter!=lineInfo->end(); iter++)
+   {
+     Module *mod = NULL;
+     bool result = findModuleByName(mod, iter->first);
+     if (!result) {
+       mod = getDefaultModule();
+     }
+     
+     LineInformation *lineInformation = mod->getLineInformation();
+     // We ensure that the line info in lineInfo is always up-to-date with
+     // the line info per module, so just overwrite...
+     if (true || !lineInformation || !lineInformation->getSize()) 
+     {
+       mod->setLineInfo(&(iter->second));
+     } 
+     else 
+     {
+       lineInformation->addLineInfo(&(iter->second));
+       mod->setLineInfo(lineInformation);
+     }
+   }
+  */
+}
+
+
 void Symtab::parseLineInformation()
 {
    lineInfo = new dyn_hash_map <std::string, LineInformation>;
@@ -2309,39 +2338,36 @@ void Symtab::parseLineInformation()
 #endif
 		return;
 	}
-   linkedFile->parseFileLineInfo(this, *lineInfo);
+	linkedFile->parseFileLineInfo(this, *lineInfo);
 
    isLineInfoValid_ = true;	
-   dyn_hash_map <std::string, LineInformation>::iterator iter;
+   updateLineInformationAnnos();
+   
 
-   for (iter = lineInfo->begin(); iter!=lineInfo->end(); iter++)
-   {
-      Module *mod = NULL;
-      bool result = findModuleByName(mod, iter->first);
-      if (!result) {
-         mod = getDefaultModule();
-      }
-
-         LineInformation *lineInformation = mod->getLineInformation();
-         if (!lineInformation) 
-         {
-            mod->setLineInfo(&(iter->second));
-         } 
-         else 
-         {
-            lineInformation->addLineInfo(&(iter->second));
-            mod->setLineInfo(lineInformation);
-         }
-      }
 }
+
+void Symtab::forceFullLineInfoParse()
+{
+  if(!lineInfo) parseLineInformation();
+  getObject()->parseDwarfFileLineInfo(this);
+}
+
 
 SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
       std::string lineSource, unsigned int lineNo)
 {
    unsigned int originalSize = ranges.size();
+   if(!lineInfo) {
+     parseLineInformation();
+   }
+   
+   getObject()->parseDwarfFileLineInfo(this);
+   updateLineInformationAnnos();
 
+   
    /* Iteratate over the modules, looking for ranges in each. */
 
+   
    for ( unsigned int i = 0; i < _mods.size(); i++ ) 
    {
       LineInformation *lineInformation = _mods[i]->getLineInformation();
@@ -2354,13 +2380,19 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&r
    if ( ranges.size() != originalSize )
       return true;
 
-   fprintf(stderr, "%s[%d]:  failing to getAdressRanges for %s[%d]\n", FILE__, __LINE__, lineSource.c_str(), lineNo);
+   fprintf(stderr, "%s[%d]:  failing to getAddressRanges for %s[%d]\n", 
+	   FILE__, __LINE__, lineSource.c_str(), lineNo);
    return false;
 }
 
 SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement *> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
+
+   if(!lineInfo) parseLineInformation();
+   
+   getObject()->parseLineInfoForAddr(this, addressInRange, *lineInfo);
+   updateLineInformationAnnos();
 
    /* Iteratate over the modules, looking for ranges in each. */
    for ( unsigned int i = 0; i < _mods.size(); i++ ) 
@@ -2382,7 +2414,13 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement *> &lines, Offse
 SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
+
+   if(!lineInfo) parseLineInformation();
    
+
+   getObject()->parseLineInfoForAddr(this, addressInRange, *lineInfo);
+   updateLineInformationAnnos();
+
    /* Iteratate over the modules, looking for ranges in each. */
    for ( unsigned int i = 0; i < _mods.size(); i++ ) 
    {
@@ -2472,12 +2510,7 @@ void Symtab::parseTypes()
 
    for (unsigned int i = 0; i < _mods.size(); ++i)
    {
-	   typeCollection *tc = typeCollection::getModTypeCollection(_mods[i]);
-
-	   if (!_mods[i]->addAnnotation(tc, ModuleTypeInfoAnno))
-	   {
-		   fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
-	   }
+     _mods[i]->setModuleTypes(typeCollection::getModTypeCollection(_mods[i]));
    }
 
    //  optionally we might want to clear the static data struct in typeCollection

@@ -42,8 +42,7 @@ using namespace Dyninst::SymtabAPI;
 using namespace std;
 
 LineInformation::LineInformation() : 
-	AnnotationContainer<Statement>(),
-   Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >()
+    Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >()
 {
    size_ = 0;
 } /* end LineInformation constructor */
@@ -169,32 +168,3 @@ LineInformation::~LineInformation()
 {
 } /* end LineInformation destructor */
 
-#if !defined(SERIALIZATION_DISABLED)
-Serializable *LineInformation::ac_serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
-{
-   //fprintf(stderr, "%s[%d]:  LineInformation::serialize -- IMPLEMENT ME sb = %p\n", 
-   //      FILE__, __LINE__, sb);
-
-	std::pair<int, int> mypair;
-	std::pair<std::pair<int, int>, int> mypair2;
-
-	ifxml_start_element(sb, tag);
-	//gtranslate(sb, mypair);
-	//gtranslate(sb, mypair2);
-	gtranslate(sb, valuesByAddressRangeMap, "valuesByAddressRangeMap", "valueByAddressRange");
-	gtranslate(sb, addressRangesByValueMap, "addressRangesByValueMap", "addressRangeByValue");
-	gtranslate(sb, size_, "size");
-	//multimap_translator<std::pair<Address, Address>, Statement> mt;
-	//mt(sb, valuesByAddressRangeMap, "valuesByAddressRangeMap", "valueByAddressRange");
-	//translate_multimap(sb, valuesByAddressRangeMap, "valuesByAddressRangeMap", "valueByAddressRange");
-
-	//multimap_translator<std::pair<Address, Address>, Statement>(sb, addressRangesByValueMap, "addressRangesByValueMap", "addressRangeByValue");
-	ifxml_end_element(sb, tag);
-	return NULL;
-}
-#else
-Serializable *LineInformation::ac_serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
-}
-#endif

@@ -102,9 +102,7 @@ class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
 typedef Statement LineNoTuple;
 #define MODULE_ANNOTATABLE_CLASS AnnotatableSparse
 
-class SYMTAB_EXPORT Module : public LookupInterface,
-			   public Serializable, 
-			   public MODULE_ANNOTATABLE_CLASS
+ class SYMTAB_EXPORT Module : public LookupInterface
 {
 	friend class Symtab;
 
@@ -115,8 +113,6 @@ class SYMTAB_EXPORT Module : public LookupInterface,
                         Symtab *img);
 	Module(const Module &mod);
 	bool operator==(Module &mod);
-
-	Serializable * serialize_impl(SerializerBase *sb, const char *tag = "Module") THROW_SPEC (SerializerError);
 
 	const std::string &fileName() const;
 	const std::string &fullName() const;
@@ -189,10 +185,16 @@ class SYMTAB_EXPORT Module : public LookupInterface,
 
    //  Super secret private methods that aren't really private
    typeCollection *getModuleTypesPrivate();
-
-   private:
+   void setModuleTypes(typeCollection* tc) 
+   {
+     typeInfo_ = tc;
+   }
+   
    bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo);
-
+   private:
+   Dyninst::SymtabAPI::LineInformation* lineInfo_;
+   typeCollection* typeInfo_;
+   
 
    std::string fileName_;                   // short file 
    std::string fullName_;                   // full path to file 

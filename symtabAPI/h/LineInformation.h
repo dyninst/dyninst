@@ -42,11 +42,10 @@
 namespace Dyninst{
 namespace SymtabAPI{
 
-class SYMTAB_EXPORT LineInformation : public AnnotationContainer<Statement>, 
+class SYMTAB_EXPORT LineInformation : 
                         private RangeLookup< Statement, Statement::StatementLess > 
 {
 	bool addItem_impl(Statement);
-	Serializable *ac_serialize_impl(SerializerBase *, const char * = "lineInformation") THROW_SPEC (SerializerError);
    public:
       typedef RangeLookup< Statement, Statement::StatementLess >::const_iterator const_iterator;
       typedef RangeLookup< Statement, Statement::StatementLess >::AddressRange AddressRange;

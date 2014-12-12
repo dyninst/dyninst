@@ -222,12 +222,21 @@ bool Aggregate::addMangledNameInternal(std::string name, bool isPrimary, bool de
        bool result = symt->buildDemangledName(name, pretty, typed, 
                                               symt->isNativeCompiler(), module_->language());
        if (result) {
-          prettyNames_.push_back(pretty);
-          typedNames_.push_back(typed);
+	 if(std::find(prettyNames_.begin(), prettyNames_.end(), pretty) == prettyNames_.end()) 
+	 {
+	   prettyNames_.push_back(pretty);
+	 }
+	 if(std::find(typedNames_.begin(), typedNames_.end(), typed) == typedNames_.end()) 
+	 {
+	   typedNames_.push_back(typed);
+	 }
        }
        else {
           //If mangling failed, then assume mangled name is already pretty
-          prettyNames_.push_back(name);
+	 if(std::find(prettyNames_.begin(), prettyNames_.end(), name) == prettyNames_.end()) 
+	 {
+	   prettyNames_.push_back(name);
+	 }
        }
     }
     return true;

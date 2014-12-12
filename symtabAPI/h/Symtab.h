@@ -247,7 +247,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
          unsigned int lineNo, unsigned int lineOffset = 0);
    void setTruncateLinePaths(bool value);
    bool getTruncateLinePaths();
-
+   void forceFullLineInfoParse();
+   
    /***** Type Information *****/
    virtual bool findType(Type *&type, std::string name);
    virtual Type *findType(unsigned type_id);
@@ -436,6 +437,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
 
    void parseLineInformation();
+   void updateLineInformationAnnos();
+   
    void parseTypes();
    bool setDefaultNamespacePrefix(std::string &str);
 
