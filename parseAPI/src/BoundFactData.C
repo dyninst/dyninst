@@ -4,6 +4,10 @@
 #include "Instruction.h"
 #include "IndirectASTVisitor.h"
 #include "SymEval.h"
+#include "CodeSource.h"
+#include "CodeObject.h"
+#include "CFG.h"
+#include <iostream>
 
 using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::ParseAPI;
@@ -324,9 +328,10 @@ void StridedInterval::DeleteElement(int64_t val) {
 }
 
 string StridedInterval::format() {
-    char buf[1024];
-    sprintf(buf, "%d[%ld,%ld] %x[%lx,%lx]", stride, low, high, stride, low, high);
-    return string(buf);
+    stringstream o;
+	o << stride << "[" << low << "," << high << "] ";
+	o << hex << stride << "[" << low << "," << high << "]";
+    return o.str();
 }
 
 uint64_t StridedInterval::size() const {
@@ -568,6 +573,71 @@ void BoundValue::Invert() {
     // The result is not a table read
     ClearTableCheck();
 
+}
+
+static bool IsInReadOnlyRegion(Block *b, Address low, Address high) {	
+#if defined(os_windows)
+    low -= b->obj()->cs()->loadAddress();
+    high -= b->obj()->cs()->loadAddress();
+#endif
+	// Now let's assume it is always in a read only region
+	// unless it is reading a single memory location
+	return low != high;
+
+}
+
+static bool IsTableIndex(set<uint64_t> &values) {
+	// Check if this is a set of [0, high]
+	if (values.empty()) return false;
+	if (*(values.begin()) != 0) return false;
+	if (*(values.rbegin()) + 1 != values.size()) return false;
+	return true;
+}
+
+void BoundValue::MemoryRead(Block* b) {
+	if (interval != StridedInterval::top) {
+		if (IsInReadOnlyRegion(b, interval.low, interval.high)) {
+			set<uint64_t> values;
+			Address memAddrLow = interval.low;
+			Address memAddrHigh = interval.high;
+#if defined(os_windows)
+			memAddrLow -= b->obj()->cs()->loadAddress();
+			memAddrHigh -= b->obj()->cs()->loadAddress();
+#endif
+			for (Address memAddr = memAddrLow ; memAddr <= memAddrHigh; memAddr += interval.stride) {
+				if (!b->obj()->cs()->isValidAddress(memAddr)) continue;			
+				uint64_t val;
+				switch (interval.stride) {
+					case 8:
+						val = *(const uint64_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
+						break;
+					case 4:
+						val = *(const uint32_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
+						break;
+					case 2:
+						val = *(const uint16_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
+						break;
+					case 1:
+						val = *(const uint8_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
+						break;
+					default:
+						parsing_printf("Invalid table stride %d\n", interval.stride);
+						*this = top;
+						return;
+				}
+				values.insert(val);
+			}	  			
+			if (IsTableIndex(values)) {
+				// This is a table for indexing a next level table
+				interval.low = *(values.begin());
+				interval.high = *(values.rbegin());
+				interval.stride = 1;
+				ClearTableCheck();
+			} else {
+				isTableRead = true;
+			}
+	    } 
+	}	
 }
 
 void BoundFact::Meet(BoundFact &bf) {

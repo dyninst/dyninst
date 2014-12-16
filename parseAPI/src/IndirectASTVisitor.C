@@ -193,8 +193,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	case ROSEOperation::derefOp: 
 	    if (IsResultBounded(ast->child(0))) {
 	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
-	        if (val->interval != StridedInterval::top)
-	            val->isTableRead = true;
+			val->MemoryRead(block);
 	        if (*val != BoundValue::top)
 	            bound.insert(make_pair(ast, val));
 	    }

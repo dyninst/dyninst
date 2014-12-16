@@ -27,12 +27,13 @@ public:
 
 
 class BoundCalcVisitor: public ASTVisitor {
+	ParseAPI::Block *block;
      
 public:
     using ASTVisitor::visit;
     map<AST*, BoundValue*> bound;
     BoundFact &boundFact;
-    BoundCalcVisitor(BoundFact &bf): boundFact(bf) {}
+    BoundCalcVisitor(BoundFact &bf, ParseAPI::Block* b): boundFact(bf), block(b) {}
     ~BoundCalcVisitor();
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
     virtual ASTPtr visit(DataflowAPI::ConstantAST *ast);

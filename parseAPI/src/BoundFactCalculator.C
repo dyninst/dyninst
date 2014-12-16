@@ -352,7 +352,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     AST::Ptr calculation = SimplifyAnAST(expandRet.first, insn->size());
     parsing_printf("\t\t\t AST after expanding %s\n", calculation->format().c_str());
 	
-    BoundCalcVisitor bcv(*newFact);
+    BoundCalcVisitor bcv(*newFact, node->block());
     calculation->accept(&bcv);
     
     AST::Ptr outAST = VariableAST::create(Variable(ar));

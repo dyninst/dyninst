@@ -102,6 +102,7 @@ struct BoundValue {
     void ShiftRight(const BoundValue &rhs);
     void Or(const BoundValue &rhs);
     void Invert();
+	void MemoryRead(ParseAPI::Block* b);
 };
 
 struct BoundFact {
