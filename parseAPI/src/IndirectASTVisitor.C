@@ -301,4 +301,45 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
     return AST::Ptr();
 }
 
+AST::Ptr SubstituteAnAST(AST::Ptr ast, const BoundFact::AliasMap &aliasMap) {
+    if (ast->getID() == AST::V_RoseAST) {
+        unsigned totalChildren = ast->numChildren();
+	for (unsigned i = 0 ; i < totalChildren; ++i) {
+	    ast->setChild(i, SubstituteAnAST(ast->child(i), aliasMap));
+	}
+	return ast;
+    } else if (ast->getID() == AST::V_VariableAST) {
+        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
+	const AbsRegion &ar = varAST->val().reg;
+	auto findIt = aliasMap.find(ar);
+	if (findIt == aliasMap.end()) return ast;
+	else return findIt->second;
 
+    } else
+        return ast;
+}
+
+
+AST::Ptr DeepCopyAnAST(AST::Ptr ast) {
+    if (ast->getID() == AST::V_RoseAST) {
+        RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast);
+	AST::Children kids;
+        unsigned totalChildren = ast->numChildren();
+	for (unsigned i = 0 ; i < totalChildren; ++i) {
+	    kids.push_back(DeepCopyAnAST(ast->child(i)));
+	}
+	return RoseAST::create(ROSEOperation(roseAST->val()), kids);
+    } else if (ast->getID() == AST::V_VariableAST) {
+        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
+	return VariableAST::create(Variable(varAST->val()));
+    } else if (ast->getID() == AST::V_ConstantAST) {
+        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast);
+	return ConstantAST::create(Constant(constAST->val()));
+    } else if (ast->getID() == AST::V_BottomAST) {
+        BottomAST::Ptr bottomAST = boost::static_pointer_cast<BottomAST>(ast);
+	return BottomAST::create(bottomAST->val());
+    } else {
+        fprintf(stderr, "ast type %d, %s\n", ast->getID(), ast->format().c_str());
+        assert(0);	
+    }
+}

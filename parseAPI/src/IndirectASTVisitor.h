@@ -14,8 +14,8 @@ using namespace Dyninst::DataflowAPI;
 
 AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t size);
 AST::Ptr SimplifyAnAST(AST::Ptr ast, uint64_t size);
-
-
+AST::Ptr SubstituteAnAST(AST::Ptr ast, const BoundFact::AliasMap &aliasMap);
+AST::Ptr DeepCopyAnAST(AST::Ptr ast);
 class SimplifyVisitor: public ASTVisitor {
     uint64_t size;
 public:
@@ -27,12 +27,13 @@ public:
 
 
 class BoundCalcVisitor: public ASTVisitor {
-	ParseAPI::Block *block;
      
 public:
     using ASTVisitor::visit;
     map<AST*, BoundValue*> bound;
     BoundFact &boundFact;
+    ParseAPI::Block *block;
+
     BoundCalcVisitor(BoundFact &bf, ParseAPI::Block* b): boundFact(bf), block(b) {}
     ~BoundCalcVisitor();
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);

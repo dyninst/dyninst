@@ -148,6 +148,9 @@ struct BoundFact {
 
     vector<RelationShip*> relation;
 
+    typedef std::map<AbsRegion, AST::Ptr> AliasMap;
+    AliasMap aliasMap;
+
     struct FlagPredicate {
         bool valid;
 	entryID id;
@@ -196,6 +199,7 @@ struct BoundFact {
     void IntersectInterval(const AST::Ptr ast, StridedInterval si);
     void DeleteElementFromInterval(const AST::Ptr ast, int64_t val);
     void InsertRelation(AST::Ptr left, AST::Ptr right, RelationType);
+    void TrackAlias(AST::Ptr expr, AbsRegion ar);
 
     BoundFact();
     ~BoundFact();

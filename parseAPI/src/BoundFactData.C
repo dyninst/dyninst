@@ -9,6 +9,8 @@
 #include "CFG.h"
 #include <iostream>
 
+#define MAX_TABLE_ENTRY 1000000
+
 using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::DataflowAPI;
@@ -597,45 +599,50 @@ static bool IsTableIndex(set<uint64_t> &values) {
 void BoundValue::MemoryRead(Block* b) {
 	if (interval != StridedInterval::top) {
 		if (IsInReadOnlyRegion(b, interval.low, interval.high)) {
-			set<uint64_t> values;
-			Address memAddrLow = interval.low;
-			Address memAddrHigh = interval.high;
+		    set<uint64_t> values;
+		    Address memAddrLow = interval.low;
+		    Address memAddrHigh = interval.high;
 #if defined(os_windows)
-			memAddrLow -= b->obj()->cs()->loadAddress();
-			memAddrHigh -= b->obj()->cs()->loadAddress();
+                    memAddrLow -= b->obj()->cs()->loadAddress();
+		    memAddrHigh -= b->obj()->cs()->loadAddress();
 #endif
-			for (Address memAddr = memAddrLow ; memAddr <= memAddrHigh; memAddr += interval.stride) {
-				if (!b->obj()->cs()->isValidAddress(memAddr)) continue;			
-				uint64_t val;
-				switch (interval.stride) {
-					case 8:
-						val = *(const uint64_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
-						break;
-					case 4:
-						val = *(const uint32_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
-						break;
-					case 2:
-						val = *(const uint16_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
-						break;
-					case 1:
-						val = *(const uint8_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
-						break;
-					default:
-						parsing_printf("Invalid table stride %d\n", interval.stride);
-						*this = top;
-						return;
-				}
-				values.insert(val);
-			}	  			
-			if (IsTableIndex(values)) {
-				// This is a table for indexing a next level table
-				interval.low = *(values.begin());
-				interval.high = *(values.rbegin());
-				interval.stride = 1;
-				ClearTableCheck();
-			} else {
-				isTableRead = true;
-			}
+                    if (interval.size() <= MAX_TABLE_ENTRY && b->obj()->cs()->isValidAddress(memAddrLow)) {
+		        for (Address memAddr = memAddrLow ; memAddr <= memAddrHigh; memAddr += interval.stride) {
+			    if (!b->obj()->cs()->isValidAddress(memAddr)) {
+			        parsing_printf("INVALID ADDRESS %lx\n", memAddr);
+			        continue;			
+			    }
+			    uint64_t val;
+			    switch (interval.stride) {
+			        case 8:
+				    val = *(const uint64_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
+				    break;
+				case 4:
+				    val = *(const uint32_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
+				    break;
+				case 2:
+				    val = *(const uint16_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
+				    break;
+				case 1:
+				    val = *(const uint8_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
+				    break;
+				default:
+				    parsing_printf("Invalid table stride %d\n", interval.stride);
+				    *this = top;
+				    return;
+			    }
+			    values.insert(val);
+			}	  				    
+		    }
+		    if (IsTableIndex(values)) {
+		        // This is a table for indexing a next level table
+			interval.low = *(values.begin());
+			interval.high = *(values.rbegin());
+			interval.stride = 1;
+			ClearTableCheck();
+		    } else {
+		        isTableRead = true;
+		    }
 	    } 
 	}	
 }
@@ -674,6 +681,18 @@ void BoundFact::Meet(BoundFact &bf) {
 
 	// Meet the flag predicate
 	if (pred != bf.pred) pred.valid = false;
+
+	// Mee the alias map
+	for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ) {
+	    auto bit = bf.aliasMap.find(ait->first);
+	    if (bit == bf.aliasMap.end() || !(*(ait->second) == *(bit->second))) {
+	        auto toErase = ait;
+		++ait;
+		aliasMap.erase(toErase);
+	    } else {
+	        ++ait;
+	    }
+	}
 }
 
 void BoundFact::Print() {
@@ -691,6 +710,10 @@ void BoundFact::Print() {
     for (auto rit = relation.begin(); rit != relation.end(); ++rit) {
         parsing_printf("\t\t\t\t%s and %s, relation: %d\n", (*rit)->left->format().c_str(), (*rit)->right->format().c_str(), (*rit)->type);
     }
+    parsing_printf("\t\t\tAliasing:\n");
+    for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait) {
+        parsing_printf("\t\t\t\t%s = %s\n", ait->first.format().c_str(), ait->second->format().c_str());
+    }
 }
 
 void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv) {
@@ -702,7 +725,15 @@ void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv) {
 	    if (*((*rit)->right) == *ast) fact.insert(make_pair((*rit)->left, new BoundValue(*bv))); 
 	}
     }
-        
+
+    // Check alias
+    if (ast->getID() == AST::V_VariableAST) {
+        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
+	const AbsRegion &ar = varAST->val().reg;
+	if (aliasMap.find(ar) != aliasMap.end() && aliasMap[ar]->getID() != AST::V_ConstantAST) {
+	    fact.insert(make_pair(aliasMap[ar], new BoundValue(*bv)));
+	}
+    }
 }
 
 static bool IsSubTree(AST::Ptr tree, AST::Ptr sub) {
@@ -741,12 +772,19 @@ bool BoundFact::operator != (const BoundFact &bf) const {
     if (relation.size() != bf.relation.size()) return true;
     for (size_t i = 0; i < relation.size(); ++i)
         if (*relation[i] != *bf.relation[i]) return true;
+    if (aliasMap.size() != bf.aliasMap.size()) return true;
+    for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait) {
+        auto bit = bf.aliasMap.find(ait->first);
+	if (bit == bf.aliasMap.end()) return true;
+	if (!(*(ait->second) == *(bit->second))) return true;
+    }
     return !equal(fact.begin(), fact.end(), bf.fact.begin());
 }
 
 BoundFact::BoundFact() {
     fact.clear();
     relation.clear();
+    aliasMap.clear();
 }
 
 BoundFact::~BoundFact() {
@@ -758,6 +796,7 @@ BoundFact::~BoundFact() {
         if (*rit != NULL)
 	    delete *rit;
     relation.clear();
+    aliasMap.clear();
 }
 
 BoundFact& BoundFact::operator = (const BoundFact &bf) {
@@ -773,6 +812,8 @@ BoundFact& BoundFact::operator = (const BoundFact &bf) {
     relation.clear();
     for (auto rit = bf.relation.begin(); rit != bf.relation.end(); ++rit)
         relation.push_back(new RelationShip(**rit));
+    aliasMap = bf.aliasMap;
+
     return *this;
 }
 
@@ -1285,6 +1326,7 @@ void BoundFact::SetToBottom() {
         if (fit->second != NULL)
 	    delete fit->second;
     fact.clear();
+    aliasMap.clear();
 }
 
 void BoundFact::IntersectInterval(const AST::Ptr ast, StridedInterval si) {
@@ -1340,3 +1382,11 @@ void BoundFact::AdjustPredicate(AST::Ptr out, AST::Ptr in) {
     }
 }
 
+void BoundFact::TrackAlias(AST::Ptr expr, AbsRegion ar) {
+    expr = SubstituteAnAST(expr, aliasMap);
+    aliasMap[ar] = expr;
+    BoundValue *substiBound = GetBound(expr);
+    if (substiBound != NULL) {
+        GenFact(VariableAST::create(Variable(ar)), new BoundValue(*substiBound));
+    }
+}
