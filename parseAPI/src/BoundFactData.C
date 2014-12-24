@@ -716,7 +716,7 @@ void BoundFact::Print() {
     }
 }
 
-void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv) {
+void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv, bool isConditionalJump) {
     KillFact(ast);
     fact.insert(make_pair(ast,bv));
     for (auto rit = relation.begin(); rit != relation.end(); ++rit) {
@@ -727,7 +727,7 @@ void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv) {
     }
 
     // Check alias
-    if (ast->getID() == AST::V_VariableAST) {
+    if (isConditionalJump && ast->getID() == AST::V_VariableAST) {
         VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
 	const AbsRegion &ar = varAST->val().reg;
 	if (aliasMap.find(ar) != aliasMap.end() && aliasMap[ar]->getID() != AST::V_ConstantAST) {
@@ -841,7 +841,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val - 1)));
+		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val - 1)), true);
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -858,7 +858,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val)));
+		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val)), true);
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -881,7 +881,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val - 1)));
+		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val - 1)), true);
 		} else {
 		    relation.push_back(new RelationShip(pred.e1, pred.e2, UnsignedLessThan));
 		}
@@ -899,7 +899,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val)));
+		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val)), true);
 		} else {
 		    relation.push_back(new RelationShip(pred.e1, pred.e2,UnsignedLessThanOrEqual));
 		}
@@ -1027,7 +1027,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val - 1)));
+		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val - 1)), true);
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -1044,7 +1044,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val)));
+		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val)), true);
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -1067,7 +1067,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val - 1)));
+		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val - 1)), true);
 		} else {
 		    relation.push_back(new RelationShip(pred.e1, pred.e2, UnsignedLessThan));
 		}
@@ -1085,7 +1085,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val)));
+		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val)), true);
 		} else {
 		    relation.push_back(new RelationShip(pred.e1, pred.e2, UnsignedLessThanOrEqual));
 		}
@@ -1332,7 +1332,7 @@ void BoundFact::SetToBottom() {
 void BoundFact::IntersectInterval(const AST::Ptr ast, StridedInterval si) {
     BoundValue *bv = GetBound(ast);
     if (bv != NULL) {
-        GenFact(ast, new BoundValue(si));
+        GenFact(ast, new BoundValue(si), true);
 //        bv->IntersectInterval(si); 
     } else {
         // If the fact value does not exist,
@@ -1387,6 +1387,6 @@ void BoundFact::TrackAlias(AST::Ptr expr, AbsRegion ar) {
     aliasMap[ar] = expr;
     BoundValue *substiBound = GetBound(expr);
     if (substiBound != NULL) {
-        GenFact(VariableAST::create(Variable(ar)), new BoundValue(*substiBound));
+        GenFact(VariableAST::create(Variable(ar)), new BoundValue(*substiBound), false);
     }
 }

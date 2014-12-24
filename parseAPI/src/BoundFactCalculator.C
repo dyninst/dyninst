@@ -217,7 +217,7 @@ void BoundFactsCalculator::ThunkBound(BoundFact* curFact, Node::Ptr src, Node::P
 	parsing_printf("\t\t\tfind thunk at %lx between the source and the target. Add fact", tit->first);
 	BoundValue *bv = new BoundValue(tit->second.value);
 	bv->Print();
-	curFact->GenFact(VariableAST::create(Variable(AbsRegion(Absloc(tit->second.reg)))), bv);
+	curFact->GenFact(VariableAST::create(Variable(AbsRegion(Absloc(tit->second.reg)))), bv, false);
     }
 
 
@@ -320,7 +320,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    else
 	        // DOES THIS REALLY SHOW UP IN 32-BIT CODE???
 	        axAST = VariableAST::create(Variable(AbsRegion(Absloc(x86::eax))));
-	    newFact->GenFact(axAST, new BoundValue(StridedInterval(1,0,8)));
+	    newFact->GenFact(axAST, new BoundValue(StridedInterval(1,0,8)), false);
 	    ThunkBound(newFact, Node::Ptr(), node);
 
 	}    
@@ -358,7 +358,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     AST::Ptr outAST = VariableAST::create(Variable(ar));
     if (bcv.IsResultBounded(calculation)) { 
         parsing_printf("\t\t\tGenenerate bound fact for %s\n", ar.absloc().format().c_str());
-	newFact->GenFact(outAST, new BoundValue(*bcv.GetResultBound(calculation)));
+	newFact->GenFact(outAST, new BoundValue(*bcv.GetResultBound(calculation)), false);
     }
     else {
         parsing_printf("\t\t\tKill bound fact for %s\n", ar.absloc().format().c_str());
