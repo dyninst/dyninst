@@ -362,7 +362,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     }
     else {
         parsing_printf("\t\t\tKill bound fact for %s\n", ar.absloc().format().c_str());
-	newFact->KillFact(outAST);
+	newFact->KillFact(outAST, false);
     }
     if (calculation->getID() == AST::V_VariableAST) {
         // We only track alising between registers
