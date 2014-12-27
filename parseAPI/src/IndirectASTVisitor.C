@@ -86,7 +86,14 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
   	        }
 		break;
 	    case ROSEOperation::derefOp:
-	        return RoseAST::create(ROSEOperation(ROSEOperation::derefOp), ast->child(0));
+	        // Any 8-bit value is bounded in [0,255].
+		// Need to keep the length of the dereference if it is 8-bit.
+		// However, dereference longer than 8-bit should be regarded the same.
+	        if (roseAST->val().size == 8)
+		    return ast;
+		else
+		    return RoseAST::create(ROSEOperation(ROSEOperation::derefOp), ast->child(0));
+		break;
 	    default:
 	        break;
 
@@ -193,9 +200,12 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	case ROSEOperation::derefOp: 
 	    if (IsResultBounded(ast->child(0))) {
 	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
-			val->MemoryRead(block);
+		val->MemoryRead(block);
 	        if (*val != BoundValue::top)
 	            bound.insert(make_pair(ast, val));
+	    } else if (ast->val().size == 8) {
+	        // Any 8-bit value is bounded in [0,255]
+	        bound.insert(make_pair(ast, new BoundValue(StridedInterval(1,0,255))));
 	    }
 	    break;
 	case ROSEOperation::orOp: {
