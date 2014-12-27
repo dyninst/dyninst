@@ -717,7 +717,6 @@ void BoundFact::Print() {
 }
 
 void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv, bool isConditionalJump) {
-    parsing_printf("### %s,", ast->format().c_str());
     bv->Print();
     KillFact(ast, isConditionalJump);
     fact.insert(make_pair(ast, bv));
@@ -734,16 +733,14 @@ void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv, bool isConditionalJu
 	}
     }
 
-    // Check alias
-    if (isConditionalJump && ast->getID() == AST::V_VariableAST) {
-        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
-	const AbsRegion &ar = varAST->val().reg;
-	if (aliasMap.find(ar) != aliasMap.end() && aliasMap[ar]->getID() != AST::V_ConstantAST) {
-	    KillFact(aliasMap[ar], isConditionalJump);
-	    parsing_printf("### insert alias %s", aliasMap[ar]->format().c_str());
-	    bv->Print();
+    // Only check alias for bound produced by conditinal jumps.
+    if (isConditionalJump) {
+        AST::Ptr subAST = DeepCopyAnAST(ast);
+	subAST = SubstituteAnAST(subAST, aliasMap);
+	if (!(*subAST == *ast)) {
+	    KillFact(subAST, true);
+	    fact.insert(make_pair(subAST, new BoundValue(*bv)));
 
-	    fact.insert(make_pair(aliasMap[ar], new BoundValue(*bv)));
 	}
     }
 }
