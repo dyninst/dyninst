@@ -16,7 +16,7 @@ class IndirectControlFlowAnalyzer {
     ThunkData thunks;
 
     void GetAllReachableBlock();  
-    void FindAllThunks();
+    void FindAllThunks(GraphPtr slice);
     bool IsJumpTable(GraphPtr slice, BoundFactsCalculator &bfc, BoundValue &target);
     bool FillInOutEdges(BoundValue &target, std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
     GraphPtr CalcBackwardSlice(ParseAPI::Block *b, 

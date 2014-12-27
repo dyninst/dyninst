@@ -304,8 +304,8 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
         }
     }
 
-
-    if (newFact == NULL) {
+    curNode->ins(gbegin, gend);    
+    if (gbegin == gend) {
         // This should only happen for nodes without incoming edges;
 	if (firstBlock) {
 	    // If the indirect jump is in the entry block
