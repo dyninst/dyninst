@@ -322,8 +322,14 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	        axAST = VariableAST::create(Variable(AbsRegion(Absloc(x86::eax))));
 	    newFact->GenFact(axAST, new BoundValue(StridedInterval(1,0,8)), false);
 	    ThunkBound(newFact, Node::Ptr(), node);
-
-	}    
+	} else {
+	    newFact = new BoundFact();
+	    ThunkBound(newFact, Node::Ptr(), node);
+	    if (!(*newFact != BoundFact())) {
+	        delete newFact;
+		newFact = NULL;
+	    }
+	}
     }
     return newFact;
 }
