@@ -100,7 +100,6 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 }
 } // anonymous namespace
 
-
 static void 
 getBlockInsns(Block &blk, std::set<Address> &addrs)
 {

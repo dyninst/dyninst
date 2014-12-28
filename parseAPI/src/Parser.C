@@ -884,7 +884,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         
         Block * cur = NULL;
         ParseWorkElem * work = frame.popWork();
-
         if (work->order() == ParseWorkElem::call) {
             Function * ct = NULL;
             Edge * ce = NULL;
@@ -1050,7 +1049,12 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             }
         } else if (work->order() == ParseWorkElem::seed_addr) {
             cur = leadersToBlock[work->target()];
-        }
+        } else if (work->order() == ParseWorkElem::resolve_jump_table) {
+	    // resume to resolve jump table 
+	    parsing_printf("... continue parse indirect jump at %lx\n", work->ah()->getAddr());
+	    ProcessCFInsn(frame,work->cur(),*work->ah());
+            continue;
+	}
                        
         if (NULL == cur) {
             pair<Block*,Edge*> newedge =
@@ -1235,7 +1239,13 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             ++num_insns; 
 
             if(ah.hasCFT()) {
-               ProcessCFInsn(frame,cur,ah);
+	       if (ah.isIndirectJump()) {
+	           // Create a work element to represent that
+		   // we will resolve the jump table later
+                   frame.pushWork( frame.mkWork( work->bundle(), cur, ah));
+	       } else {
+	           ProcessCFInsn(frame,cur,ah);
+	       }
                break;
             } else if (func->_saves_fp &&
                        func->_no_stack_frame &&

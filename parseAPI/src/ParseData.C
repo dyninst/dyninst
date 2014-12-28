@@ -59,7 +59,19 @@ ParseWorkElem * ParseFrame::mkWork(
     b->add( ret );
     return ret;
 }
-
+ParseWorkElem * ParseFrame::mkWork(
+    ParseWorkBundle * b,
+    Block *block,
+    const InsnAdapter::IA_IAPI &ah)
+{
+    if(!b) {
+        b = new ParseWorkBundle();
+        work_bundles.push_back(b); 
+    }
+    ParseWorkElem * ret = new ParseWorkElem(b,block,ah);
+    b->add( ret );
+    return ret;
+}
 
 /**** Standard [no overlapping regions] ParseData ****/
 

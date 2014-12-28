@@ -82,6 +82,11 @@ class ParseFrame {
         Address target,
         bool resolvable,
         bool tailcall);
+    ParseWorkElem * mkWork(
+        ParseWorkBundle * b,
+	Block* block,
+        const InsnAdapter::IA_IAPI &ah);
+
     void pushWork(ParseWorkElem * elem) {
         worklist.push(elem);
     }

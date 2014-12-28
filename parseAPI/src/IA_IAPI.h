@@ -108,6 +108,7 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
         bool isIATcall(std::string &calleeName) const;
         virtual bool isThunk() const;
+	virtual bool isIndirectJump() const;
 
 private:
         virtual bool isRealCall() const;

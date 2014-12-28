@@ -481,6 +481,18 @@ bool IA_IAPI::isSysEnter() const
   return (ci->getOperation().getID() == e_sysenter);
 }
 
+bool IA_IAPI::isIndirectJump() const {
+    Instruction::Ptr ci = curInsn();
+    if(ci->getCategory() != c_BranchInsn) return false;
+    if(ci->allowsFallThrough()) return false;
+    bool valid;
+    Address target;
+    boost::tie(valid, target) = getCFT(); 
+    if (valid) return false;
+    parsing_printf("... indirect jump at 0x%x, delay parsing it\n", current);
+    return true;
+}
+
 void IA_IAPI::parseSysEnter(std::vector<std::pair<Address, EdgeTypeEnum> >& outEdges) const
 {
   IA_IAPI scratch(*this);
