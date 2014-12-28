@@ -855,7 +855,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val - 1)), true);
+			IntersectInterval(pred.e1, StridedInterval(1, 0, constAST->val().val - 1));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -872,7 +872,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val)), true);
+		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -895,7 +895,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val - 1)), true);
+		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val - 1));
 		} else {
 		    InsertRelation(pred.e1, pred.e2, UnsignedLessThan);
 		}
@@ -913,7 +913,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val)), true);
+		    IntersectInterval(pred.e1,StridedInterval(1, 0 , constAST->val().val));
 		} else {
 		    InsertRelation(pred.e1, pred.e2,UnsignedLessThanOrEqual);
 		}
@@ -1041,7 +1041,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val - 1)), true);
+		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val - 1));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -1058,7 +1058,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-		        GenFact(pred.e2, new BoundValue(StridedInterval(1, 0, constAST->val().val)), true);
+		        IntersectInterval(pred.e2,StridedInterval(1, 0, constAST->val().val));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -1081,7 +1081,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val - 1)), true);
+		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val - 1));
 		} else {
 		    InsertRelation(pred.e1, pred.e2, UnsignedLessThan);
 		}
@@ -1099,7 +1099,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
-		    GenFact(pred.e1, new BoundValue(StridedInterval(1, 0 , constAST->val().val)), true);
+		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val));
 		} else {
 		    InsertRelation(pred.e1, pred.e2, UnsignedLessThanOrEqual);
 		}
@@ -1346,8 +1346,8 @@ void BoundFact::SetToBottom() {
 void BoundFact::IntersectInterval(const AST::Ptr ast, StridedInterval si) {
     BoundValue *bv = GetBound(ast);
     if (bv != NULL) {
-        GenFact(ast, new BoundValue(si), true);
-//        bv->IntersectInterval(si); 
+        bv->IntersectInterval(si); 
+        GenFact(ast, new BoundValue(*bv), true);
     } else {
         // If the fact value does not exist,
 	// it means it is top and can be any value.
