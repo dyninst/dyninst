@@ -172,7 +172,9 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
          iter != candidates.end(); ++iter) {
        if (sType == Symbol::ST_UNKNOWN ||
            sType == Symbol::ST_NOTYPE ||
-           sType == (*iter)->getType()) {
+           sType == (*iter)->getType() ||
+           (sType == Symbol::ST_OBJECT && (*iter)->getType() == Symbol::ST_TLS)) //Treat TLS as variables
+       {
           matches.insert(*iter);
        }
     }

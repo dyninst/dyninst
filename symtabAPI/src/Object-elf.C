@@ -2301,9 +2301,9 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       unsigned secNumber = syms.st_shndx(i);
 
       // discard "dummy" symbol at beginning of file
-      if (i==0 && sname == "" && soffset == (Offset)0)
+      if (i==0 && sname == "" && soffset == 0)
 	continue;
-      
+
       Region *sec;
       if(secNumber >= 1 && secNumber < regions_.size()) {
 	sec = regions_[secNumber];
