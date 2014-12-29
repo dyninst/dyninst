@@ -113,6 +113,7 @@ public:
    virtual bool is_last() = 0;
    virtual bool load_next() = 0;   
    virtual bool is_valid() = 0;   
+   virtual Address map_address() = 0;
    virtual bool load_link(Address addr) = 0;
    virtual ~link_map_xplat() {};
 };
@@ -129,7 +130,8 @@ public:
    virtual void *l_ld();
    virtual bool is_last();
    virtual bool load_next();   
-   virtual bool is_valid();   
+   virtual bool is_valid();
+   virtual Address map_address();
    virtual bool load_link(Address addr);
 
 protected:
@@ -137,6 +139,7 @@ protected:
    char link_name[256];
    bool loaded_name;
    bool valid;
+   Address mapaddr;
    link_map_X link_elm;
 };
 
@@ -215,7 +218,8 @@ int r_debug_dyn<r_debug_X>::r_state() {
 template<class link_map_X>
 link_map_dyn<link_map_X>::link_map_dyn(ProcessReader *proc_, Address addr_) :
    proc(proc_),
-   loaded_name(false)
+   loaded_name(false),
+   mapaddr(addr_)
 {
    valid = load_link(addr_);
 }
@@ -227,6 +231,11 @@ link_map_dyn<link_map_X>::~link_map_dyn() {
 template<class link_map_X>
 bool link_map_dyn<link_map_X>::is_valid() {
    return valid;
+}
+
+template<class link_map_X>
+Address link_map_dyn<link_map_X>::map_address() {
+   return mapaddr;
 }
 
 template<class link_map_X>
@@ -276,14 +285,15 @@ bool link_map_dyn<link_map_X>::is_last()
 template<class link_map_X>
 bool link_map_dyn<link_map_X>::load_next() 
 {
-	if (is_last()) {
+   if (is_last()) {
       return false;
    }
-	if (load_link((Address) link_elm.l_next)) {
+   mapaddr = (Address) link_elm.l_next;
+   if (load_link(mapaddr)) {
       loaded_name = false;
       return true;
-	}
-	return false;
+   }
+   return false;
 }
 
 template<class link_map_X>
@@ -777,31 +787,29 @@ bool AddressTranslateSysV::refresh()
          continue;
       }
       string obj_name(link_elm->l_name());
-      // Don't re-add the executable, it has already been added
-      if (getExecName() == obj_name) {
-         if (exec)
-            exec->dynamic_addr = (Address) link_elm->l_ld();
-         continue;
-      }
-      if (obj_name == "linux-vdso.so.1" ||
-	  obj_name == "linux-gate.so.1") 
-      {
-	continue;
-      }
-      
-
       Address text = (Address) link_elm->l_addr();
-      if (obj_name.empty()) {
-         if (!text && exec) {
+
+      // Don't re-add the executable, it has already been added
+      if (getExecName() == obj_name || obj_name.empty()) {
+         if (exec && exec->load_addr == text) {
             exec->dynamic_addr = (Address) link_elm->l_ld();
+            exec->map_addr = link_elm->map_address();
          }
          continue;
       }
+      if (obj_name == "linux-vdso.so.1" ||
+          obj_name == "linux-gate.so.1") 
+      {
+         continue;
+      }
+      
+
       if (!link_elm->is_valid())
          goto done;
 
       LoadedLib *ll = getLoadedLibByNameAddr(text, obj_name);
       ll->dynamic_addr = (Address) link_elm->l_ld();
+      ll->map_addr = (Address) link_elm->map_address();
       loaded_lib_count++;
       translate_printf("    New Loaded Library: %s(%lx)\n",  obj_name.c_str(), text);
 
