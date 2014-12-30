@@ -144,6 +144,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     parsing_printf("Calculate bound facts\n");     
     BoundFactsCalculator bfc(func, slice, func->entry() == block, rf, thunks, block->last());
     bfc.CalculateBoundedFacts();
+//    if (block->last() == 0x40492b) exit(0);
 
     BoundValue target;
     bool ijt = IsJumpTable(slice, bfc, target);

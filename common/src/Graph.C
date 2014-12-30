@@ -122,7 +122,13 @@ void Graph::addNode(Node::Ptr node) {
     // std::cerr << "\t\t\t adding " << node << std::endl;
 }
 
+void Graph::clearEntryNodes() {
+    entryNodes_.clear();
+}
 
+void Graph::clearExitNodes() {
+    exitNodes_.clear();
+}
 // Fancy-shmancy predicate based search methods...
 
 bool Graph::find(NodePredicate::Ptr pred, NodeIterator &begin, NodeIterator &end) {

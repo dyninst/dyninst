@@ -98,6 +98,7 @@ static bool NodeIsZF(SliceNode::Ptr node) {
 }
 
 static bool ShouldSkip(SliceNode::Ptr curNode, GraphPtr g) {
+    if (!curNode->assign()) return false;
     if (NodeIsZF(curNode)) return false;
     NodeIterator gbegin, gend;
     g->allNodes(gbegin, gend);
@@ -195,17 +196,20 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
     Slicer s(assignments[0], block, func);
 
     IndirectControlFlowPred mp;
-    GraphPtr slice = s.backwardSlice(mp);
-    
-    slice = TransformGraph(slice);
 
+    GraphPtr slice = s.backwardSlice(mp);
 /*
-    if (addr == 0x430ec3) {
-        slice->printDOT("target.dot");
-	exit(0);
+    if (addr == 0x404e6c) {
+        slice->printDOT("target_raw.dot");
     }
 */   
-
+    slice = TransformGraph(slice);
+/*
+    if (addr == 0x404e6c) {
+        slice->printDOT("target_transformed.dot");
+	exit(0);
+    }
+*/
     return slice;
 }
 

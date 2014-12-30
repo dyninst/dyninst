@@ -128,6 +128,9 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
     bool isEntryNode(NodePtr node);
     bool isExitNode(NodePtr node);
 
+    void clearEntryNodes();
+    void clearExitNodes();
+
     unsigned size() const;
 
  protected:

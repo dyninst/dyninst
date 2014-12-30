@@ -33,6 +33,28 @@ void BoundFactsCalculator::ReverseDFS(Node::Ptr cur) {
         if (nodeColor.find(*nbegin) == nodeColor.end())
 	    ReverseDFS(*nbegin);
 }
+
+static void BuildEdgeFromVirtualEntry(SliceNode::Ptr virtualEntry,
+                                      ParseAPI::Block *curBlock,
+				      map<ParseAPI::Block*, vector<SliceNode::Ptr> >&targetMap,
+				      set<ParseAPI::Block*> &visit,
+				      GraphPtr slice) {
+    if (targetMap.find(curBlock) != targetMap.end()) {
+        const vector<SliceNode::Ptr> &targets = targetMap[curBlock];
+	for (auto nit = targets.begin(); nit != targets.end(); ++nit) {
+	    SliceNode::Ptr trgNode = *nit; 
+	    slice->insertPair(virtualEntry, trgNode, TypedSliceEdge::create(virtualEntry, trgNode, FALLTHROUGH));
+	}
+	return;
+    }
+    if (visit.find(curBlock) != visit.end()) return;
+    visit.insert(curBlock);
+    for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit)
+        if ((*eit)->type() != CALL && (*eit)->type() != RET) {
+	    BuildEdgeFromVirtualEntry(virtualEntry, (*eit)->trg(), targetMap, visit, slice);	   
+	}
+}				      
+
 void BoundFactsCalculator::DetermineAnalysisOrder() {
     NodeIterator nbegin, nend;
     slice->allNodes(nbegin, nend);
@@ -50,7 +72,60 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
         if (nodeColor.find(*nit) == nodeColor.end()) {
 	    ++orderStamp;
 	    ReverseDFS(*nit);
-	} 
+	}
+
+    // Create a virtual entry node that has
+    // edges into all entry SCCs
+    SliceNode::Ptr virtualEntry = SliceNode::create(Assignment::Ptr(), func->entry(), func);
+    analysisOrder[virtualEntry] = 0;
+    for (int curOrder = 1; curOrder <= orderStamp; ++curOrder) {
+        // First determine all nodes in this SCC
+        vector<Node::Ptr> curNodes;
+	NodeIterator nbegin, nend;
+	slice->allNodes(nbegin, nend);
+	for (; nbegin != nend; ++nbegin) {
+	    if (analysisOrder[*nbegin] == curOrder) {
+	        curNodes.push_back(*nbegin);
+	    } 
+	}
+
+        // If this SCC does not have any outside edge,
+	// it is an entry SCC and we need to connect
+	// the virtual entry to it
+	if (!HasIncomingEdgesFromLowerLevel(curOrder, curNodes)) {
+	    if (curNodes.size() == 1) {
+	        // If the SCC has only one node,
+		// we connect the virtual entry to this single node
+	        SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*(curNodes.begin()));
+	        slice->insertPair(virtualEntry, node, TypedSliceEdge::create(virtualEntry, node, FALLTHROUGH));
+	    } else {
+	        // If there are more than one node in this SCC,
+		// we do a DFS to see which nodes in the SCC can be
+		// reached from the entry of the function without passing
+		// through other nodes in the SCC.
+		// Basically, we only connect edges from the virtual entry
+		// to the entries of the SCC
+	        set<ParseAPI::Block*> visit;
+		map<ParseAPI::Block*, vector<SliceNode::Ptr> >targetMap;
+		for (auto nit = curNodes.begin(); nit != curNodes.end(); ++nit) {
+		    SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*nit);
+		    ParseAPI::Block * b = node->block();
+		    Address addr = node->addr();
+		    if (targetMap.find(b) == targetMap.end()) {
+		        targetMap[b].push_back(node);
+		    } else if (targetMap[b][0]->addr() > addr) {
+		        targetMap[b].clear();
+			targetMap[b].push_back(node);
+		    } else if (targetMap[b][0]->addr() == addr) {
+		        targetMap[b].push_back(node);
+		    }
+		}
+		BuildEdgeFromVirtualEntry(virtualEntry, virtualEntry->block(), targetMap, visit, slice); 
+	    }
+	}
+    }
+    slice->clearEntryNodes();
+    slice->markAsEntryNode(virtualEntry);
 }
 
 bool BoundFactsCalculator::HasIncomingEdgesFromLowerLevel(int curOrder, vector<Node::Ptr>& curNodes) {
@@ -86,12 +161,17 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
      */
     
     DetermineAnalysisOrder();
-
+/*
+    if (jumpAddr == 0x4049c1) {
+        slice->printDOT("target_final.dot");
+	exit(0);
+    }
+*/    
     queue<Node::Ptr> workingList;
     set<Node::Ptr> inQueue;
     map<Node::Ptr, int> inQueueLimit;
 
-    for (int curOrder = 1; curOrder <= orderStamp; ++curOrder) {
+    for (int curOrder = 0; curOrder <= orderStamp; ++curOrder) {
         // We first determine which nodes are
 	// in this SCC
         vector<Node::Ptr> curNodes;
@@ -108,7 +188,8 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	if (!HasIncomingEdgesFromLowerLevel(curOrder, curNodes)) {
 	    // If this SCC is an entry SCC,
 	    // we choose a node inside the SCC
-	    // and let it be top
+	    // and let it be top.
+	    // This should only contain the virtual entry node
 	    parsing_printf("This SCC does not incoming edges from outside\n");
 	    boundFacts[curNodes[0]] = new BoundFact();
 	}
@@ -127,11 +208,12 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    parsing_printf("Calculate Meet for %lx", node->addr());
 	    if (node->assign()) {
 	        parsing_printf(", insn: %s\n", node->assign()->insn()->format().c_str());
-//	        if (jumpAddr == 0x805351a) printf("insn at %lx: %s\n", node->addr(), node->assign()->insn()->format().c_str());
 	    }
 	    else {
-	        parsing_printf(", the VirtualExit node\n");
- //	        if (jumpAddr == 0x805351a) printf("virtual node\n");
+	        if (node->block() == NULL) 
+		    parsing_printf(", the VirtualExit node\n");
+		else
+		    parsing_printf(", the VirtualEntry node\n");
 
 	    }
 	    parsing_printf("\tOld fact for %lx:\n", node->addr());
@@ -258,16 +340,26 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    // of the predecessor
 	    prevFact = new BoundFact(*prevFact);
         }
-/*
-	if (jumpAddr == 0x805351a) {
-	    printf("\tMeet incoming edge from %lx\n", srcNode->addr());
-	}
-*/
 	parsing_printf("\t\tMeet incoming edge from %lx\n", srcNode->addr());
 	parsing_printf("\t\tThe fact from %lx before applying transfer function\n", srcNode->addr());
 	prevFact->Print();
-
-	if (srcNode->assign() && srcNode->assign()->out().absloc().type() == Absloc::Register &&
+	if (!srcNode->assign()) {
+	    parsing_printf("\t\tThe predecessor node is the virtual entry ndoe\n");
+	    if (firstBlock) {
+	        // If the indirect jump is in the entry block
+	        // of the function, we assume that rax is in
+	        // range [0,8] for analyzing the movaps table.
+	        // NEED TO HAVE A SAFE WAY TO DO THIS!!
+	        parsing_printf("\t\tApplying entry block rax assumption!\n");
+	        AST::Ptr axAST;
+	        if (func->entry()->obj()->cs()->getAddressWidth() == 8)
+	            axAST = VariableAST::create(Variable(AbsRegion(Absloc(x86_64::rax))));
+	        else
+	            // DOES THIS REALLY SHOW UP IN 32-BIT CODE???
+	            axAST = VariableAST::create(Variable(AbsRegion(Absloc(x86::eax))));
+	        prevFact->GenFact(axAST, new BoundValue(StridedInterval(1,0,8)), false);
+	    }
+	} else if (srcNode->assign() && srcNode->assign()->out().absloc().type() == Absloc::Register &&
 	    (srcNode->assign()->out().absloc().reg() == x86::zf || srcNode->assign()->out().absloc().reg() == x86_64::zf)) {
 	    // zf should be only predecessor of this node
 	    parsing_printf("\t\tThe predecessor node is zf assignment!\n");
@@ -303,34 +395,6 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    delete prevFact;
         }
     }
-
-    curNode->ins(gbegin, gend);    
-    if (gbegin == gend) {
-        // This should only happen for nodes without incoming edges;
-	if (firstBlock) {
-	    // If the indirect jump is in the entry block
-	    // of the function, we assume that rax is in
-	    // range [0,8] for analyzing the movaps table.
-	    // NEED TO HAVE A SAFE WAY TO DO THIS!!
-	    parsing_printf("\t\tApplying entry block rax assumption!\n");
-	    newFact = new BoundFact();
-	    AST::Ptr axAST;
-	    if (func->entry()->obj()->cs()->getAddressWidth() == 8)
-	        axAST = VariableAST::create(Variable(AbsRegion(Absloc(x86_64::rax))));
-	    else
-	        // DOES THIS REALLY SHOW UP IN 32-BIT CODE???
-	        axAST = VariableAST::create(Variable(AbsRegion(Absloc(x86::eax))));
-	    newFact->GenFact(axAST, new BoundValue(StridedInterval(1,0,8)), false);
-	    ThunkBound(newFact, Node::Ptr(), node);
-	} else {
-	    newFact = new BoundFact();
-	    ThunkBound(newFact, Node::Ptr(), node);
-	    if (!(*newFact != BoundFact())) {
-	        delete newFact;
-		newFact = NULL;
-	    }
-	}
-    }
     return newFact;
 }
 
@@ -363,7 +427,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     
     AST::Ptr outAST = VariableAST::create(Variable(ar));
     if (bcv.IsResultBounded(calculation)) { 
-        parsing_printf("\t\t\tGenenerate bound fact for %s\n", ar.absloc().format().c_str());
+        parsing_printf("\t\t\tGenerate bound fact for %s\n", ar.absloc().format().c_str());
 	newFact->GenFact(outAST, new BoundValue(*bcv.GetResultBound(calculation)), false);
     }
     else {
