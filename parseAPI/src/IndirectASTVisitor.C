@@ -289,8 +289,8 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(minuend);
 		    uint64_t val = constAST->val().val;
 		    int size = constAST->val().size;
-		    if (size < 64)
-		        val = ((~val) & ((1ULL << size) - 1)) + 1;
+		    if (size < 64) 
+		        val = ((~val)+ 1) & ((1ULL << size) - 1);
 		    else if (size == 64)
 		        val = (~val) + 1;
 		    else

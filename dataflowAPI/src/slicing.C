@@ -36,8 +36,10 @@
 #include "Instruction.h"
 
 #include "dataflowAPI/h/stackanalysis.h"
-
 #include "dataflowAPI/h/slicing.h"
+#include "ABI.h"
+#include "bitArray.h"
+
 
 #include "common/h/Graph.h"
 #include "instructionAPI/h/Instruction.h"
@@ -1402,10 +1404,11 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
     return false; 
   }
 
-  // Have to assume that a call can overwrite 
-  // the values of all registers
-  if (assign->insn()->getOperation().getID() == e_call) return true;
-
+  if (assign->insn()->getOperation().getID() == e_call && reg.absloc().type() == Absloc::Register) {
+      const MachRegister &r = reg.absloc().reg();
+      ABI* abi = ABI::getABI(b_->obj()->cs()->getAddressWidth());
+      if (abi->getCallWrittenRegisters()[abi->getIndex(r)]) return true;
+  }
   return reg.contains(assign->out());
 }
 
