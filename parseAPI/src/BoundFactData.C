@@ -64,6 +64,11 @@ static int64_t ExtendEuclidean(int64_t a, int64_t b, int64_t &x, int64_t &y) {
 
 void StridedInterval::Join(const StridedInterval &rhs) {
     // Union of two intervals
+    if (*this == top ) return;
+    if (rhs == top) {
+        *this = top;
+	return;
+    }
     if (stride < 0 && rhs.stride < 0) {
         // Bottom
         stride = -1;
@@ -436,6 +441,15 @@ void BoundValue::IntersectInterval(StridedInterval &si) {
 	*this = top;	
     }
     interval.Intersect(si);
+
+    if (interval == StridedInterval::bottom) {
+        // If the interval becomes bottom (empty set),
+	// it means that this control flow path is impossble.
+	// However, it is more likely that we miss some control
+	// flow paths. 
+	// We simply abandon previous bounds.
+        interval = si;
+    }
 }
 
 void BoundValue::DeleteElementFromInterval(int64_t val) {
@@ -859,8 +873,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 			IntersectInterval(pred.e1, StridedInterval(1, 0, constAST->val().val - 1));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
-//		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-//		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		} else {
 		    InsertRelation(pred.e1, pred.e2,UnsignedLargerThan);
 		}
@@ -876,8 +890,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
-//		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-//		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
 		    InsertRelation(pred.e1, pred.e2, UnsignedLargerThanOrEqual);
 		}
@@ -889,8 +903,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-//		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-//		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -907,8 +921,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-//		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-//		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -966,8 +980,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        IntersectInterval(pred.e2, StridedInterval(1, 0 , constAST->val().val - 1));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
-//		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-//		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		} else {
 		    InsertRelation(pred.e1, pred.e2, SignedLargerThan);
 		}
@@ -982,8 +996,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
-//		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-//		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
 		    InsertRelation(pred.e1, pred.e2,SignedLargerThanOrEqual);
 		}
@@ -994,8 +1008,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-//		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-//		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -1011,8 +1025,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-//		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-//		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -1045,8 +1059,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val - 1));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
-//		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-//		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		} else {
 		    InsertRelation(pred.e1, pred.e2,UnsignedLargerThan);
 		}
@@ -1062,8 +1076,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        IntersectInterval(pred.e2,StridedInterval(1, 0, constAST->val().val));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
-//		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-//		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
 		    InsertRelation(pred.e1, pred.e2 ,UnsignedLargerThanOrEqual);
 		}
@@ -1075,8 +1089,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-//		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-//		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -1093,8 +1107,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-//		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-//		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -1154,8 +1168,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val - 1));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
-//		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-//		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		} else {
 		    InsertRelation(pred.e1, pred.e2, SignedLargerThan);
 		}
@@ -1170,8 +1184,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
-//		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-//		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
 		    InsertRelation(pred.e1, pred.e2, SignedLargerThanOrEqual);
 		}
@@ -1182,8 +1196,8 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
-//		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-//		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
+		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
@@ -1379,6 +1393,8 @@ void BoundFact::AdjustPredicate(AST::Ptr out, AST::Ptr in) {
 	        ConstantAST::Ptr v1 = boost::static_pointer_cast<ConstantAST>(pred.e2);
 	        ConstantAST::Ptr v2 = boost::static_pointer_cast<ConstantAST>(in->child(1));
 	        uint64_t newV = v1->val().val + v2->val().val;
+		if (v1->val().size != 64)
+		    newV = newV & ((1ULL << v1->val().size) - 1);
 		pred.e2 = ConstantAST::create(Constant(newV, v1->val().size));
 	    }
 	}
@@ -1391,6 +1407,8 @@ void BoundFact::AdjustPredicate(AST::Ptr out, AST::Ptr in) {
 	        ConstantAST::Ptr v1 = boost::static_pointer_cast<ConstantAST>(pred.e1);
 	        ConstantAST::Ptr v2 = boost::static_pointer_cast<ConstantAST>(in->child(1));
 	        uint64_t newV = v1->val().val + v2->val().val;
+		if (v1->val().size != 64)
+		    newV = newV & ((1ULL << v1->val().size) - 1);
 		pred.e1 = ConstantAST::create(Constant(newV, v1->val().size));
 	    }
 	}
