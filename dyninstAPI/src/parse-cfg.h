@@ -233,13 +233,13 @@ class parse_func : public ParseAPI::Function
    }	
 
    /*** Function naming ***/
-   const string &symTabName() const { 
+   string symTabName() const { 
        return func_->getFirstSymbol()->getMangledName();
    }
-   const string &prettyName() const {
+   string prettyName() const {
        return func_->getFirstSymbol()->getPrettyName();
    }
-   const string &typedName() const {
+   string typedName() const {
        return func_->getFirstSymbol()->getTypedName();
    }
    const vector<string> &symTabNameVector() const {

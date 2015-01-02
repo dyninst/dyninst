@@ -216,7 +216,7 @@ bool Aggregate::addMangledNameInternal(std::string name, bool isPrimary, bool de
     else
         mangledNames_.push_back(name);
 
-    if (demangle) {
+    if (0 && demangle) {
        Symtab *symt = module_->exec();
        string pretty, typed;
        bool result = symt->buildDemangledName(name, pretty, typed, 
@@ -336,215 +336,25 @@ bool Aggregate::changeSymbolOffset(Symbol *sym)
         module_->exec()->changeAggregateOffset(this, oldOffset, getOffset());
 
     } else {
-        module_->exec()->addSymbolToAggregates(sym);
+      module_->exec()->addSymbolToAggregates(const_cast<const Symbol*>(sym));
     }
     return true;
 }
 
-#if !defined(SERIALIZATION_DISABLED)
-void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t, 
-		unsigned t_id) THROW_SPEC (SerializerError)
-{
-	if (module_)
-	{
-		typeCollection *tc = module_->getModuleTypesPrivate();
-		if (tc)
-		{
-			t = tc->findType(t_id);
-			if (!t)
-			{
-				//fprintf(stderr, "%s[%d]: failed to find type in module(%s) collection\n", 
-				//		FILE__, __LINE__, module_->fileName().c_str());
-			}
-		}
-		else
-		{
-			fprintf(stderr, "%s[%d]:  no types for module\n", FILE__, __LINE__);
-		}
-	}
-	else
-	{
-		fprintf(stderr, "%s[%d]:  bad deserialization order??\n", FILE__, __LINE__);
-		//SER_ERR("FIXME");
-	}
-
-	if (!t)
-	{
-		SerContextBase *scb = sb->getContext();
-		if (!scb)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
-
-		if (!scs)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		Symtab *st = scs->getScope();
-
-		if (!st)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		t = st->findType(t_id);
-
-		if (!t)
-		{
-			//  This should probably throw, but let's play nice for now
-			fprintf(stderr, "%s[%d]:  FIXME: cannot find type with id %d\n", FILE__, __LINE__, t_id);
-			std::vector<Module *> mods;
-			if (!st->getAllModules(mods))
-			{
-				fprintf(stderr, "%s[%d]:  failed to get all modules\n", FILE__, __LINE__);
-			}
-			for (unsigned int i = 0; i < mods.size(); ++i)
-			{
-				std::vector<Type *> *modtypes = mods[i]->getAllTypes();
-				fprintf(stderr, "%s[%d]:  module %s has %ld types\n", FILE__, __LINE__, mods[i]->fileName().c_str(), (signed long) (modtypes ? modtypes->size() : -1));
-				if (mods[i]->getModuleTypesPrivate()->findType(t_id))
-					fprintf(stderr, "%s[%d]:  found type %d in mod %s\n", FILE__, __LINE__, t_id, mods[i]->fileName().c_str());
-			}
-		}
-	}
-}
-#else
 void Aggregate::restore_type_by_id(SerializerBase *, Type *&, 
                                    unsigned ) THROW_SPEC (SerializerError) 
 {
 }
-#endif
 
-#if !defined(SERIALIZATION_DISABLED)
-void Aggregate::restore_module_by_name(SerializerBase *sb,  
-		std::string &mname) THROW_SPEC (SerializerError)
-{
-	if (!sb)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-		SerContextBase *scb = sb->getContext();
-		if (!scb)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
-
-		if (!scs)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		Symtab *st = scs->getScope();
-
-
-	if (!st)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-	if (!st->findModuleByName(module_, mname) || !(module_))
-	{
-		//  This should probably throw, but let's play nice for now
-		fprintf(stderr, "%s[%d]:  FIXME: aggregate w/out module: %s\n", FILE__, __LINE__, mname.c_str());
-	}
-}
-#else
 void Aggregate::restore_module_by_name(SerializerBase *, std::string &) THROW_SPEC (SerializerError)
 {
 }
-#endif
 
 extern Symbol * getSymForID(SerializerBase *sb, Address id);
 
-#if !defined(SERIALIZATION_DISABLED)
-void Aggregate::rebuild_symbol_vector(SerializerBase *sb, std::vector<Address> &symids) THROW_SPEC (SerializerError)
-{
-	Offset off_accum = 0;
-	for (unsigned long i = 0; i < symids.size(); ++i)
-	{
-		Symbol *sym = getSymForID(sb, symids[i]);
-		if (!sym)
-		{
-			fprintf(stderr, "%s[%d]:  ERROR rebuilding aggregate: ", __FILE__, __LINE__);
-			fprintf(stderr, "cannot find symbol for id %p\n", (void *) symids[i]);
-			continue;
-		}
-
-		symbols_.push_back(sym);
-        firstSymbol = symbols_[0];
-        offset_ = firstSymbol->getOffset();
-
-		//  sanity check to make sure that all our symbols share the same offset
-		if (serializer_debug_flag())
-		{
-			if (!off_accum) 
-				off_accum = sym->getOffset();
-			else
-			{
-				if (sym->getOffset() != off_accum)
-				{
-					fprintf(stderr, "%s[%d]:  INTERNAL ERROR:  mismatch offsets: %p--%p\n", FILE__, __LINE__, (void *)off_accum, (void *)sym->getOffset());
-				}
-			}
-		}
-
-		//  This sucks, but apparently there are symbols that are somehow
-		//  not getting their aggregate fields set properly (before serialize
-		//  presumably), strangely only affects 64bit cases.  Here we try
-		//  to correct for this by setting the aggregate values of all symbols
-		//  at this Offset.  This lookup should be avoided by solving the problem
-		//  somewhere else (at the source, wherever it is that the rogue symbols
-		//  are being created and/or lost)
-		//  
-		//  Maybe it is also somehow possible that spurious symbols are being
-		//  created and indexed during deserialize.
-		SerContextBase *scb = sb->getContext();
-		if (!scb)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
-
-		if (!scs)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		Symtab *st = scs->getScope();
-
-	if (!st)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-		std::vector<Symbol *> *syms = st->findSymbolByOffset(sym->getOffset());
-		for (unsigned long j = 0; j < syms->size(); ++j)
-		{
-			(*syms)[j]->aggregate_ = this;
-		}
-	}
-}
-#else
 void Aggregate::rebuild_symbol_vector(SerializerBase *, std::vector<Address> &) THROW_SPEC (SerializerError)
 {
 }
-#endif
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &a)
 {
@@ -582,58 +392,10 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &
 		return os;
 }
 
-#if !defined(SERIALIZATION_DISABLED)
-void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW_SPEC (SerializerError)
-{
-	std::string modname = module_ ? module_->fullName() : std::string("");
-	std::vector<Address> symids;
-	for (unsigned long i = 0; i < symbols_.size(); ++i)
-	{
-		assert(symbols_[i]);
-		assert(sizeof(Address) == sizeof(void *));
-		symids.push_back((Address) symbols_[i]);
-	}
-
-	try
-	{
-		ifxml_start_element(sb, tag);
-		gtranslate(sb, modname, "moduleName");
-		//  Arguably we should be able to reconstruct these name lists from the set of 
-		//  symbols, right?  
-		gtranslate(sb, mangledNames_, "mangledNameList");
-		gtranslate(sb, prettyNames_, "prettyNameList");
-		gtranslate(sb, typedNames_, "typedNameList");
-#if 0
-		gtranslate(sb, symbols_, "aggregatedSymbols", "aggregateSymbol");
-		gtranslate(sb, sym_offsets, "symbolOffsetList");
-#endif
-		gtranslate(sb, symids, "symbolIDList");
-		ifxml_end_element(sb, tag);
-
-		if (sb->isBin() && sb->isInput())
-		{
-			restore_module_by_name(sb, modname);
-			rebuild_symbol_vector(sb, symids);
-		}
-
-#if 0
-		if (sb->isBin() && sb->isInput())
-		{
-			fprintf(stderr, "%s[%d]:  DESERIALIZE AGGREGATE %s, %lu offsets\n", FILE__, __LINE__, prettyNames_.size() ? prettyNames_[0].c_str() : "no_names", sym_offsets.size());
-			rebuild_symbol_vector(sb, &sym_offsets);
-		}
-#endif
-	}
-	SER_CATCH(tag);
-
-	serialize_printf("%s[%d]:  %sSERIALIZE AGGREGATE, nsyms = %lu\n", FILE__, __LINE__, 
-			sb->isInput() ? "DE" : "", symbols_.size());
-}
-#else
 void Aggregate::serialize_aggregate(SerializerBase *, const char *) THROW_SPEC (SerializerError)
 {
 }
-#endif
+
 bool Aggregate::operator==(const Aggregate &a)
 {
 	if (mangledNames_.size() != a.mangledNames_.size()) return false;

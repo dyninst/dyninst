@@ -148,9 +148,9 @@ class SYMTAB_EXPORT Symbol : public Serializable,
    /***********************************************************
      Name Output Functions
     ***********************************************************/		
-   const std::string&      getMangledName () const;
-   const std::string&	 getPrettyName() const;
-   const std::string&      getTypedName() const;
+   std::string      getMangledName () const;
+   std::string	 getPrettyName() const;
+   std::string      getTypedName() const;
 
    Module *getModule() const { return module_; } 
    Symtab *getSymtab() const;

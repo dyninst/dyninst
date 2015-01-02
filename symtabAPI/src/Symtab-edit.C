@@ -135,39 +135,36 @@ bool Symtab::deleteAggregate(Aggregate *agg) {
 }
 
 bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
-    // Remove from global indices
-    std::vector<Symbol *>::iterator iter;
-
-    // everyDefinedSymbol
-    for (iter = everyDefinedSymbol.begin(); iter != everyDefinedSymbol.end(); iter++) 
+  typedef indexed_symbols::index<offset>::type syms_by_off;
+  
+  syms_by_off& defindex = everyDefinedSymbol.get<offset>();
+  syms_by_off& undefindex = undefDynSyms.get<offset>();
+  syms_by_off::iterator found = defindex.find(sym->getOffset());
+  
+  if(found != defindex.end())
+  {
+    while((*found)->getOffset() == sym->getOffset())
     {
-        //  we use indexes in this vector as a unique id for symbols, so mark
-        //  as deleted w/out changing vector
-        if ((*iter) == sym) (*iter) = &deletedSymbol;
+      if(*found == sym) {
+	defindex.erase(found);
+	break;
+      }
+      ++found;
     }
-    undefDynSymsByMangledName[sym->getMangledName()].erase(std::remove(undefDynSymsByMangledName[sym->getMangledName()].begin(),
-                                                                       undefDynSymsByMangledName[sym->getMangledName()].end(), sym),
-                                                           undefDynSymsByMangledName[sym->getMangledName()].end());
-    undefDynSymsByPrettyName[sym->getPrettyName()].erase(std::remove(undefDynSymsByPrettyName[sym->getPrettyName()].begin(),
-                                                                       undefDynSymsByPrettyName[sym->getPrettyName()].end(), sym),
-                                                         undefDynSymsByPrettyName[sym->getPrettyName()].end());
-    undefDynSymsByTypedName[sym->getTypedName()].erase(std::remove(undefDynSymsByTypedName[sym->getTypedName()].begin(),
-                                                                       undefDynSymsByTypedName[sym->getTypedName()].end(), sym),
-                                                           undefDynSymsByTypedName[sym->getTypedName()].end());
-    undefDynSyms.erase(std::remove(undefDynSyms.begin(), undefDynSyms.end(), sym), undefDynSyms.end());
-
-    symsByOffset[sym->getOffset()].erase(std::remove(symsByOffset[sym->getOffset()].begin(), symsByOffset[sym->getOffset()].end(),
-                                                     sym), symsByOffset[sym->getOffset()].end());
-    symsByMangledName[sym->getMangledName()].erase(std::remove(symsByMangledName[sym->getMangledName()].begin(),
-                                                               symsByMangledName[sym->getMangledName()].end(), sym),
-                                                   symsByMangledName[sym->getMangledName()].end());
-    symsByPrettyName[sym->getPrettyName()].erase(std::remove(symsByPrettyName[sym->getPrettyName()].begin(),
-                                                             symsByPrettyName[sym->getPrettyName()].end(), sym),
-                                                 symsByPrettyName[sym->getPrettyName()].end());
-    symsByTypedName[sym->getTypedName()].erase(std::remove(symsByTypedName[sym->getTypedName()].begin(),
-                                                           symsByTypedName[sym->getTypedName()].end(), sym),
-                                               symsByTypedName[sym->getTypedName()].end());
-    return true;
+  }
+  found = undefindex.find(sym->getOffset());
+  if(found != undefindex.end())
+  {
+    while((*found)->getOffset() == sym->getOffset())
+    {
+      if(*found == sym) {
+	undefindex.erase(found);
+	break;
+      }
+      ++found;
+    }
+  }
+  return true;
 }
 
 bool Symtab::deleteSymbol(Symbol *sym)
@@ -186,8 +183,22 @@ bool Symtab::changeSymbolOffset(Symbol *sym, Offset newOffset) {
     // do that and update funcsByOffset or varsByOffset.
     // If we are and not the only symbol, do 1), remove from 
     // the aggregate, and make a new aggregate.
-
-    Offset oldOffset = sym->offset_;
+  typedef indexed_symbols::index<offset>::type syms_by_off;
+  syms_by_off& defindex = everyDefinedSymbol.get<offset>();
+  syms_by_off::iterator found = defindex.find(sym->offset_);
+  while(found != defindex.end() && 
+	(*found)->getOffset() == sym->offset_)
+  {
+    if(*found == sym) 
+    {
+      sym->offset_ = newOffset;
+      defindex.replace(found, sym);
+      break;
+    }
+  }
+  
+  
+  /*    Offset oldOffset = sym->offset_;
     std::vector<Symbol *>::iterator iter;
     for (iter = symsByOffset[oldOffset].begin();
          iter != symsByOffset[oldOffset].end();
@@ -199,6 +210,7 @@ bool Symtab::changeSymbolOffset(Symbol *sym, Offset newOffset) {
     }
     sym->offset_ = newOffset;
     symsByOffset[newOffset].push_back(sym);
+  */
 
     if (sym->aggregate_ == NULL) return true;
     else 

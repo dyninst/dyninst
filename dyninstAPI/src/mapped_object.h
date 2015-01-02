@@ -60,9 +60,9 @@ class int_symbol {
 
     Address getAddr() const { return addr_; }
     unsigned getSize() const { return sym_->getSize(); }
-    const string &symTabName() const { return sym_->getMangledName(); }
-    const string &prettyName() const { return sym_->getPrettyName(); }
-    const string &typedName() const { return sym_->getTypedName(); }
+    string symTabName() const { return sym_->getMangledName(); }
+    string prettyName() const { return sym_->getPrettyName(); }
+    string typedName() const { return sym_->getTypedName(); }
     const SymtabAPI::Symbol *sym() const { return sym_; }
 
  private:

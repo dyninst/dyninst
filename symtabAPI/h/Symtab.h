@@ -43,11 +43,25 @@
 #include "IBSTree.h"
 
 #include "boost/shared_ptr.hpp"
+#include "boost/multi_index_container.hpp"
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/mem_fun.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/identity.hpp>
+using boost::multi_index_container;
+using boost::multi_index::indexed_by;
+using boost::multi_index::ordered_unique;
+using boost::multi_index::ordered_non_unique;
+
+using boost::multi_index::identity;
+using boost::multi_index::tag;
+using boost::multi_index::const_mem_fun;
+using boost::multi_index::member;
 
 class MappedFile;
 
-#define SYM_MAJOR 8
-#define SYM_MINOR 2
+#define SYM_MAJOR 9
+#define SYM_MINOR 0
 #define SYM_BETA  0
  
 namespace Dyninst {
@@ -148,7 +162,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
 
-   std::vector<Symbol *> *findSymbolByOffset(Offset);
+   std::vector<Symbol *> findSymbolByOffset(Offset);
 
    // Return all undefined symbols in the binary. Currently used for finding
    // the .o's in a static archive that have definitions of these symbols
@@ -384,8 +398,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool fixSymModule(Symbol *&sym);
    bool demangleSymbol(Symbol *&sym);
    bool addSymbolToIndices(Symbol *&sym, bool undefined);
-   bool addSymbolToAggregates(Symbol *&sym);
-   bool doNotAggregate(Symbol *&sym);
+   bool addSymbolToAggregates(const Symbol *sym);
+   bool doNotAggregate(const Symbol *sym);
    bool updateIndices(Symbol *sym, std::string newName, NameType nameType);
 
 
@@ -499,28 +513,47 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    unsigned no_of_symbols;
 
    // Indices
-
-   std::vector<Symbol *> everyDefinedSymbol;
+   struct offset {};
+   struct pretty {};
+   struct mangled {};
+   struct typed {};
+   
+   
+   
+   typedef 
+   boost::multi_index_container<Symbol * , indexed_by <
+   ordered_non_unique< tag<offset>, const_mem_fun < Symbol, Offset, &Symbol::getOffset > >,
+   ordered_non_unique< tag<mangled>, const_mem_fun < Symbol, std::string, &Symbol::getMangledName > >,
+   ordered_non_unique< tag<pretty>, const_mem_fun < Symbol, std::string, &Symbol::getPrettyName > >,
+   ordered_non_unique< tag<typed>, const_mem_fun < Symbol, std::string, &Symbol::getTypedName > >
+   >
+   > indexed_symbols;
+   
+   indexed_symbols everyDefinedSymbol;
+   indexed_symbols undefDynSyms;
+   
+   //std::vector<Symbol *> everyDefinedSymbol;
    // hashtable for looking up undefined symbols in the dynamic symbol
    // tale. Entries are referred by the relocation table entries
    // NOT a subset of everyDefinedSymbol
-   std::vector<Symbol *> undefDynSyms;
-   std::map <std::string, std::vector<Symbol *> > undefDynSymsByMangledName;
-   std::map <std::string, std::vector<Symbol *> > undefDynSymsByPrettyName;
-   std::map <std::string, std::vector<Symbol *> > undefDynSymsByTypedName;
+   //std::vector<Symbol *> undefDynSyms;
+
+   //std::map <std::string, std::vector<Symbol *> > undefDynSymsByMangledName;
+   //std::map <std::string, std::vector<Symbol *> > undefDynSymsByPrettyName;
+   //std::map <std::string, std::vector<Symbol *> > undefDynSymsByTypedName;
 
    
    // Symbols by offsets in the symbol table
-   dyn_hash_map <Offset, std::vector<Symbol *> > symsByOffset;
+   //dyn_hash_map <Offset, std::vector<Symbol *> > symsByOffset;
 
    // The raw name from the symbol table
-   dyn_hash_map <std::string, std::vector<Symbol *> > symsByMangledName;
+   //dyn_hash_map <std::string, std::vector<Symbol *> > symsByMangledName;
 
    // The name after we've run it through the demangler
-   dyn_hash_map <std::string, std::vector<Symbol *> > symsByPrettyName;
+   //dyn_hash_map <std::string, std::vector<Symbol *> > symsByPrettyName;
 
    // The name after we've derived the parameter types
-   dyn_hash_map <std::string, std::vector<Symbol *> > symsByTypedName;
+   //dyn_hash_map <std::string, std::vector<Symbol *> > symsByTypedName;
 
    // We also need per-Aggregate indices
    bool sorted_everyFunction;
