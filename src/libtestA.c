@@ -92,6 +92,27 @@ DLLEXPORT void test1_14_call2_libA(int *var) {
     *var = 2;
 }
 
+#if defined(os_windows_test)
+#define TLS_SPEC 
+#else
+#define TLS_SPEC __thread
+#endif
+
+TLS_SPEC int lib_tls_read_int = 0;
+TLS_SPEC unsigned char lib_tls_write_char = 0x40;
+TLS_SPEC signed long lib_tls_read_long = 0;
+
+int lib_check_tls_write(unsigned char expected)
+{
+   return (lib_tls_write_char == expected);
+}
+
+void lib_update_tls_reads()
+{
+   lib_tls_read_int++;
+   lib_tls_read_long--;
+}
+
 #if defined(os_windows_test) && defined(__cplusplus)
 }
 #endif

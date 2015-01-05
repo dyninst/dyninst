@@ -551,10 +551,16 @@ set (SOURCE_LIST_101
  	${SRC}/test1_8F_fortran.F
  )
 set (SOURCE_LIST_102 
+	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_tls_mutatee.c
+ 	${SRC}/proccontrol/pcontrol_mutatee_tools.c
+ 	${SRC}/mutatee_util.c
+ 	${SRC}/mutatee_util_mt.c
+ )
+set (SOURCE_LIST_103 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test4_3_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_103 
+set (SOURCE_LIST_104 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test1_4F_mutatee.c
  	${SRC}/mutatee_util.c
  	${SRC}/test1_4F_fortran.F
@@ -693,6 +699,8 @@ set_property (SOURCE ${SRC}/proccontrol/pc_fork_mutatee.c APPEND PROPERTY COMPIL
 set_property (SOURCE ${SRC}/proccontrol/pc_fork_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=0)
 set_property (SOURCE ${SRC}/dyninst/test1_31_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=test1_31)
 set_property (SOURCE ${SRC}/dyninst/test1_31_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=1)
+set_property (SOURCE ${SRC}/proccontrol/pc_tls_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=pc_tls)
+set_property (SOURCE ${SRC}/proccontrol/pc_tls_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=0)
 set_property (SOURCE ${SRC}/dyninst/test1_29F_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=test1_29F)
 set_property (SOURCE ${SRC}/dyninst/test1_29F_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=0)
 set_property (SOURCE ${SRC}/dyninst/test1_3F_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=test1_3F)

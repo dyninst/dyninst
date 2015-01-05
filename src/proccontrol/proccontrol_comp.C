@@ -1326,7 +1326,7 @@ bool ProcControlComponent::send_broadcast(unsigned char *msg, unsigned msg_size)
 bool ProcControlComponent::block_for_events()
 {
 #if !defined(os_windows_test)
-	int nfds = notification_fd+1;
+   int nfds = notification_fd+1;
    fd_set readset; FD_ZERO(&readset);
    fd_set writeset; FD_ZERO(&writeset);
    fd_set exceptset; FD_ZERO(&exceptset);

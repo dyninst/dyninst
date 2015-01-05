@@ -54,8 +54,8 @@ foreach (f ${SOURCE_LIST_36})
 	endforeach()
 set_target_properties(pc_groups.dyn_bgq_g++_64_pic_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (pc_groups.dyn_bgq_g++_64_pic_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_irpc.dyn_bgq_g++_64_pic_none ${SOURCE_LIST_60})
-foreach (f ${SOURCE_LIST_60})
+add_executable (pc_irpc.dyn_bgq_g++_64_pic_none ${SOURCE_LIST_61})
+foreach (f ${SOURCE_LIST_61})
 	get_source_file_property(lang ${f} LANGUAGE)
 	if(lang MATCHES "C")
 		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
@@ -63,8 +63,8 @@ foreach (f ${SOURCE_LIST_60})
 	endforeach()
 set_target_properties(pc_irpc.dyn_bgq_g++_64_pic_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (pc_irpc.dyn_bgq_g++_64_pic_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_launch.dyn_bgq_g++_64_pic_none ${SOURCE_LIST_61})
-foreach (f ${SOURCE_LIST_61})
+add_executable (pc_launch.dyn_bgq_g++_64_pic_none ${SOURCE_LIST_62})
+foreach (f ${SOURCE_LIST_62})
 	get_source_file_property(lang ${f} LANGUAGE)
 	if(lang MATCHES "C")
 		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
@@ -126,6 +126,15 @@ foreach (f ${SOURCE_LIST_34})
 	endforeach()
 set_target_properties(pc_thread.dyn_bgq_g++_64_pic_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (pc_thread.dyn_bgq_g++_64_pic_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_tls.dyn_bgq_g++_64_pic_none ${SOURCE_LIST_51})
+foreach (f ${SOURCE_LIST_51})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
+	endif()
+	endforeach()
+set_target_properties(pc_tls.dyn_bgq_g++_64_pic_none PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries (pc_tls.dyn_bgq_g++_64_pic_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 
 INSTALL (TARGETS
@@ -141,6 +150,7 @@ INSTALL (TARGETS
 		pc_terminate.dyn_bgq_g++_64_pic_none
 		pc_terminate_stopped.dyn_bgq_g++_64_pic_none
 		pc_thread.dyn_bgq_g++_64_pic_none
+		pc_tls.dyn_bgq_g++_64_pic_none
 	DESTINATION ${INSTALL_DIR})
 
 ENDIF()

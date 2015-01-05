@@ -2664,6 +2664,27 @@ mutatee('pc_mem_perm', ['pc_mem_perm_mutatee.c', 'pcontrol_mutatee_tools.c'], ['
 mutatee_requires_libs('pc_mem_perm', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_mem_perm', _, Opt) :- member(Opt, ['none']).
 
+test('pc_tls', 'pc_tls', 'pc_tls').
+test_description('pc_tls', 'Read and write thread local variables').
+test_platform('pc_tls', Platform) :- pcPlatforms(Platform),
+   \+ platform(_, 'windows', _, Platform).
+mutator('pc_tls', ['pc_tls.C']).
+test_runmode('pc_tls', 'dynamic').
+test_threadmode('pc_tls', 'Threading').
+test_processmode('pc_tls', 'Processes').
+test_start_state('pc_tls', 'selfattach').
+tests_module('pc_tls', 'proccontrol').
+mutatee('pc_tls', ['pc_tls_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
+mutatee_requires_libs('pc_tls', Libs) :- pcMutateeLibs(Libs).
+compiler_for_mutatee('pc_tls', Compiler) :-
+    comp_lang(Compiler, 'c'),
+    \+ member(Compiler, ['pgcc', 'pgcxx']).
+compiler_for_mutatee('pc_tls', Compiler) :-
+    comp_lang(Compiler, 'c++'),
+    \+ member(Compiler, ['pgcc', 'pgcxx']).
+
+
+
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
 % mutatee in state State, with State in {stopped, running, selfstart, selfattach, delayedattach}

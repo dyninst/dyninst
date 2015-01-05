@@ -54,8 +54,8 @@ foreach (f ${SOURCE_LIST_44})
 	endforeach()
 set_target_properties(pc_groups.dyn_g++_32_none_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (pc_groups.dyn_g++_32_none_none ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_irpc.dyn_g++_32_none_none ${SOURCE_LIST_72})
-foreach (f ${SOURCE_LIST_72})
+add_executable (pc_irpc.dyn_g++_32_none_none ${SOURCE_LIST_73})
+foreach (f ${SOURCE_LIST_73})
 	get_source_file_property(lang ${f} LANGUAGE)
 	if(lang MATCHES "C")
 		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
@@ -63,8 +63,8 @@ foreach (f ${SOURCE_LIST_72})
 	endforeach()
 set_target_properties(pc_irpc.dyn_g++_32_none_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (pc_irpc.dyn_g++_32_none_none ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_launch.dyn_g++_32_none_none ${SOURCE_LIST_73})
-foreach (f ${SOURCE_LIST_73})
+add_executable (pc_launch.dyn_g++_32_none_none ${SOURCE_LIST_74})
+foreach (f ${SOURCE_LIST_74})
 	get_source_file_property(lang ${f} LANGUAGE)
 	if(lang MATCHES "C")
 		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
@@ -144,6 +144,15 @@ foreach (f ${SOURCE_LIST_21})
 	endforeach()
 set_target_properties(pc_thread_cont.dyn_g++_32_none_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (pc_thread_cont.dyn_g++_32_none_none ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_tls.dyn_g++_32_none_none ${SOURCE_LIST_63})
+foreach (f ${SOURCE_LIST_63})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
+	endif()
+	endforeach()
+set_target_properties(pc_tls.dyn_g++_32_none_none PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries (pc_tls.dyn_g++_32_none_none ${CMAKE_THREAD_LIBS_INIT})
 
 
 INSTALL (TARGETS
@@ -161,6 +170,7 @@ INSTALL (TARGETS
 		pc_terminate_stopped.dyn_g++_32_none_none
 		pc_thread.dyn_g++_32_none_none
 		pc_thread_cont.dyn_g++_32_none_none
+		pc_tls.dyn_g++_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
 ENDIF()
