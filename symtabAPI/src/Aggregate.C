@@ -63,9 +63,9 @@ Aggregate::Aggregate(Symbol *sym) :
     symbols_.push_back(sym);
     firstSymbol = symbols_[0];
     offset_ = firstSymbol->getOffset();
-    mangledNames_.push_back(sym->getMangledName());
-    prettyNames_.push_back(sym->getPrettyName());
-    typedNames_.push_back(sym->getTypedName());
+    //mangledNames_.push_back(sym->getMangledName());
+    //prettyNames_.push_back(sym->getPrettyName());
+    //typedNames_.push_back(sym->getTypedName());
 }
 
 Aggregate::Aggregate(Module *mod) :
@@ -103,21 +103,52 @@ Region * Aggregate::getRegion() const
    	return firstSymbol->getRegion();
 }
 
-const vector<std::string> &Aggregate::getAllMangledNames() 
+#if 0
+vector<std::string> Aggregate::getAllMangledNames() 
 {
-    return mangledNames_;
+  std::set<std::string> tmp;
+  std::vector<std::string> ret;
+  
+  for(auto i = symbols_.begin();
+      i != symbols_.end();
+      ++i)
+  {
+    tmp.insert((*i)->getMangledName());
+  }
+  std::copy(tmp.begin(), tmp.end(), back_inserter(ret));
+  return ret;
 }
 
-const vector<std::string> &Aggregate::getAllPrettyNames() 
+vector<std::string> Aggregate::getAllPrettyNames() 
 {
-    return prettyNames_;
+  std::set<std::string> tmp;
+  std::vector<std::string> ret;
+  
+  for(auto i = symbols_.begin();
+      i != symbols_.end();
+      ++i)
+  {
+    tmp.insert((*i)->getPrettyName());
+  }
+  std::copy(tmp.begin(), tmp.end(), back_inserter(ret));
+  return ret;
 }
 
-const vector<std::string> &Aggregate::getAllTypedNames() 
+vector<std::string> Aggregate::getAllTypedNames() 
 {
-    return typedNames_;
+  std::set<std::string> tmp;
+  std::vector<std::string> ret;
+  
+  for(auto i = symbols_.begin();
+      i != symbols_.end();
+      ++i)
+  {
+    tmp.insert((*i)->getTypedName());
+  }
+  std::copy(tmp.begin(), tmp.end(), back_inserter(ret));
+  return ret;
 }
-
+#endif
 bool Aggregate::addSymbol(Symbol *sym) {
 
     // We keep a "primary" module, which is defined as "anything not DEFAULT_MODULE".
@@ -141,7 +172,7 @@ bool Aggregate::addSymbol(Symbol *sym) {
     // We can have multiple identical names - for example, there are
     // often two symbols for main (static and dynamic symbol table)
     
-    bool found = false;
+    /*bool found = false;
     for (unsigned j = 0; j < mangledNames_.size(); j++) {
         if (sym->getMangledName() == mangledNames_[j]) {
             found = true;
@@ -168,7 +199,7 @@ bool Aggregate::addSymbol(Symbol *sym) {
         }
     }
     if (!found) typedNames_.push_back(sym->getTypedName());
-
+    */
     return true;
 }
 
@@ -281,6 +312,8 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
 
 SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary) 
  {
+   assert(0);
+   
     // Check to see if we're duplicating
     for (unsigned i = 0; i < prettyNames_.size(); i++) {
         if (prettyNames_[i] == name)
@@ -304,6 +337,8 @@ SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary)
 
 SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary) 
 {
+  assert(0);
+  
   // Check to see if we're duplicating
   for (unsigned i = 0; i < typedNames_.size(); i++) {
     if (typedNames_[i] == name)
@@ -406,7 +441,7 @@ bool Aggregate::operator==(const Aggregate &a)
 	if (!module_ && a.module_) return false;
 	if (module_ && (module_->fullName() != a.module_->fullName())) return false;
 
-	for (unsigned int i = 0; i < mangledNames_.size(); ++i)
+	/*for (unsigned int i = 0; i < mangledNames_.size(); ++i)
 	{
 		if (mangledNames_[i] != a.mangledNames_[i]) return false;
 	}
@@ -418,6 +453,7 @@ bool Aggregate::operator==(const Aggregate &a)
 	{
 		if (typedNames_[i] != a.typedNames_[i]) return false;
 	}
+	*/
 	for (unsigned int i = 0; i < symbols_.size(); ++i)
 	{
 		Symbol *s1 = symbols_[i];
@@ -436,4 +472,30 @@ bool Aggregate::operator==(const Aggregate &a)
 	}
 
 	return true;
+}
+
+Aggregate::name_iter Aggregate::mangled_names_begin() const
+{
+  return boost::make_transform_iterator(symbols_.begin(), std::mem_fun(&Symbol::getMangledName));
+}
+
+Aggregate::name_iter Aggregate::mangled_names_end() const
+{
+  return boost::make_transform_iterator(symbols_.end(), std::mem_fun(&Symbol::getMangledName));
+}
+Aggregate::name_iter Aggregate::pretty_names_begin() const
+{
+  return boost::make_transform_iterator(symbols_.begin(), std::mem_fun(&Symbol::getPrettyName));
+}
+Aggregate::name_iter Aggregate::pretty_names_end() const
+{
+  return boost::make_transform_iterator(symbols_.end(), std::mem_fun(&Symbol::getPrettyName));
+}
+Aggregate::name_iter Aggregate::typed_names_begin() const
+{
+  return boost::make_transform_iterator(symbols_.begin(), std::mem_fun(&Symbol::getTypedName));
+}
+Aggregate::name_iter Aggregate::typed_names_end() const
+{
+  return boost::make_transform_iterator(symbols_.end(), std::mem_fun(&Symbol::getTypedName));
 }

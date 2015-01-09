@@ -496,9 +496,12 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
       // Check all pretty names (and then all mangled names if 
       // there is no match)
       bool found_match = false;
-      unsigned piter, miter;
-      for (piter = 0; piter < func->prettyNameVector().size(); piter++) {
-         const string &pName = func->prettyNameVector()[piter];
+
+      for (auto piter = func->pretty_names_begin(); 
+	   piter != func->pretty_names_end();
+	   ++ piter)
+      {
+         const string &pName = *piter;
          int err;
 
          if (0 == (err = regexec(&comp_pat, pName.c_str(), 1, NULL, 0 ))){
@@ -513,8 +516,11 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
       }
       if (found_match) continue; // Don't check mangled names
 
-      for (miter = 0; miter < func->symTabNameVector().size(); miter++) {
-         const string &mName = func->symTabNameVector()[miter];
+      for (auto miter = func->symtab_names_begin(); 
+	   miter != func->symtab_names_end();
+	   ++miter) 
+      {
+         const string &mName = *miter;
          int err;
 
          if (0 == (err = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
@@ -588,9 +594,10 @@ BPatch_image::findFunction(BPatch_Vector<BPatch_function *> &funcs,
       // Check all pretty names (and then all mangled names if there is no match)
       bool found_match = false;
 
-      for (unsigned piter = 0; piter < func->prettyNameVector().size(); piter++) {
-         const string &pName = func->prettyNameVector()[piter];
-
+      for (auto piter = func->pretty_names_begin(); 
+	   piter != func->pretty_names_end();
+	   ++piter) {
+	const string &pName = *piter;
          if ((*bpsieve)(pName.c_str(), user_data)) {
             if (func->isInstrumentable() || incUninstrumentable) {
                BPatch_function *foo = addSpace->findOrCreateBPFunc(func,NULL);
@@ -604,23 +611,6 @@ BPatch_image::findFunction(BPatch_Vector<BPatch_function *> &funcs,
 
       if (found_match) continue; // Don't check mangled names
 
-#if 0
-      // Apparently don't check mangled at all
-
-      for (unsigned miter = 0; miter < func->symTabNameVector().size(); miter++) {
-         const std::string &mName = func->symTabNameVector()[miter];
-         int err;
-
-         if (0 == (err = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
-            if (func->isInstrumentable() || incUninstrumentable) {
-               BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
-               funcs.push_back(foo);
-            }
-            found_match = true;
-            break;
-         }
-      }
-#endif
    }
 
    if (funcs.size() > 0) {

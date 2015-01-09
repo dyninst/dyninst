@@ -203,22 +203,22 @@ bool BPatch_function::getNames(std::vector<std::string> &names) {
 }
 
 bool BPatch_function::getDemangledNames(std::vector<std::string> &names) {
-	std::copy(func->prettyNameVector().begin(), 
-			func->prettyNameVector().end(),
-			std::back_inserter(names));
-	return (!func->prettyNameVector().empty());
+  std::copy(func->pretty_names_begin(),
+	    func->pretty_names_end(),
+	    std::back_inserter(names));
+  return func->pretty_names_begin() != func->pretty_names_end();
 }
 bool BPatch_function::getMangledNames(std::vector<std::string> &names) {
-	std::copy(func->symTabNameVector().begin(), 
-			func->symTabNameVector().end(),
-			std::back_inserter(names));
-	return (!func->symTabNameVector().empty());
+  std::copy(func->symtab_names_begin(),
+	    func->symtab_names_end(),
+	    std::back_inserter(names));
+  return func->symtab_names_begin() != func->symtab_names_end();
 }
 bool BPatch_function::getTypedNames(std::vector<std::string> &names) {
-	std::copy(func->typedNameVector().begin(), 
-			func->typedNameVector().end(),
-			std::back_inserter(names));
-	return (!func->typedNameVector().empty());
+  std::copy(func->typed_names_begin(),
+	    func->typed_names_end(),
+	    std::back_inserter(names));
+  return func->typed_names_begin() != func->typed_names_end();
 }
 
 
@@ -299,9 +299,8 @@ bool BPatch_function::getNames(BPatch_Vector<const char *> &names)
 {
     assert(func);
     unsigned pre_size = names.size();
-
-    for (unsigned i = 0; i < func->prettyNameVector().size(); i++) {
-        names.push_back(func->prettyNameVector()[i].c_str());
+    for (auto i = func->pretty_names_begin(); i != func->pretty_names_end(); i++) {
+        names.push_back(i->c_str());
     }
 
     return names.size() > pre_size;
@@ -322,8 +321,8 @@ bool BPatch_function::getMangledNames(BPatch_Vector<const char *> &names)
     assert(func);
     unsigned pre_size = names.size();
 
-    for (unsigned i = 0; i < func->symTabNameVector().size(); i++) {
-        names.push_back(func->symTabNameVector()[i].c_str());
+    for (auto i = func->symtab_names_begin(); i != func->symtab_names_end(); i++) {
+        names.push_back(i->c_str());
     }
 
     return names.size() > pre_size;

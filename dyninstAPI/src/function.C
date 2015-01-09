@@ -337,16 +337,19 @@ unsigned func_instance::getNumDynamicCalls()
 void func_instance::debugPrint() const {
     fprintf(stderr, "Function debug dump (%p):\n", this);
     fprintf(stderr, "  Symbol table names:\n");
-    for (unsigned i = 0; i < symTabNameVector().size(); i++) {
-        fprintf(stderr, "    %s\n", symTabNameVector()[i].c_str());
+    for (auto i = symtab_names_begin(); 
+	 i != symtab_names_end(); ++i) {
+      fprintf(stderr, "    %s\n", i->c_str());
     }
     fprintf(stderr, "  Demangled names:\n");
-    for (unsigned j = 0; j < prettyNameVector().size(); j++) {
-        fprintf(stderr, "    %s\n", prettyNameVector()[j].c_str());
+    for (auto j = pretty_names_begin(); 
+	 j != pretty_names_end(); ++j) {
+      fprintf(stderr, "    %s\n", j->c_str());
     }
     fprintf(stderr, "  Typed names:\n");
-    for (unsigned k = 0; k < typedNameVector().size(); k++) {
-        fprintf(stderr, "    %s\n", typedNameVector()[k].c_str());
+    for (auto k = typed_names_begin(); 
+	 k != typed_names_end(); ++k) {
+      fprintf(stderr, "    %s\n", k->c_str());
     }
     fprintf(stderr, "  Address: 0x%lx\n", addr());
     fprintf(stderr, "  Internal pointer: %p\n", ifunc());
@@ -519,8 +522,9 @@ bool func_instance::isInstrumentable() {
   // are uninstrumentable. They're not. It's fine. 
   
   std::string wrapper_prefix = "__sys_";
-  for (unsigned i = 0; i < symTabNameVector().size(); ++i) {
-    if (symTabNameVector()[i].compare(0, 6, wrapper_prefix) == 0) {
+  for(auto i = symtab_names_begin(); i != symtab_names_end(); ++i) 
+  {
+    if (i->compare(0, 6, wrapper_prefix) == 0) {
       return true;
     }
   }

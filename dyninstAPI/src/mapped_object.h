@@ -85,9 +85,14 @@ class int_variable {
 
     Address getAddress() const { return addr_; }
     // Can variables have multiple names?
-    const string &symTabName() const;
-    const vector<string>& prettyNameVector() const;
-    const vector<string>& symTabNameVector() const;
+    string symTabName() const;
+    SymtabAPI::Aggregate::name_iter pretty_names_begin() const;
+    SymtabAPI::Aggregate::name_iter pretty_names_end() const;
+    SymtabAPI::Aggregate::name_iter symtab_names_begin() const;
+    SymtabAPI::Aggregate::name_iter symtab_names_end() const;
+    
+    //const vector<string>& prettyNameVector() const;
+    //const vector<string>& symTabNameVector() const;
     mapped_module *mod() const { return mod_; };
     //AddressSpace *as() const { return mod()->proc(); }
     const image_variable *ivar() const { return ivar_; }

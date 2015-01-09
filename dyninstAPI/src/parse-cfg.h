@@ -242,15 +242,40 @@ class parse_func : public ParseAPI::Function
    string typedName() const {
        return func_->getFirstSymbol()->getTypedName();
    }
-   const vector<string> &symTabNameVector() const {
+   SymtabAPI::Aggregate::name_iter symtab_names_begin() const 
+   {
+     return func_->mangled_names_begin();
+   }
+   SymtabAPI::Aggregate::name_iter symtab_names_end() const 
+   {
+     return func_->mangled_names_end();
+   }
+   SymtabAPI::Aggregate::name_iter pretty_names_begin() const 
+   {
+     return func_->pretty_names_begin();
+   }
+   SymtabAPI::Aggregate::name_iter pretty_names_end() const 
+   {
+     return func_->pretty_names_end();
+   }
+   SymtabAPI::Aggregate::name_iter typed_names_begin() const 
+   {
+     return func_->typed_names_begin();
+   }
+   SymtabAPI::Aggregate::name_iter typed_names_end() const 
+   {
+     return func_->typed_names_end();
+   }
+   
+   /*   vector<string> symTabNameVector() const {
        return func_->getAllMangledNames();
    }
-   const vector<string> &prettyNameVector() const {
+   vector<string> prettyNameVector() const {
        return func_->getAllPrettyNames();
    }
-   const vector<string> &typedNameVector() const {
+   vector<string> typedNameVector() const {
        return func_->getAllTypedNames();
-   }
+       }*/
    void copyNames(parse_func *duplicate);
    // return true if the name is new (and therefore added)
    bool addSymTabName(std::string name, bool isPrimary = false);

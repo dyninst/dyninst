@@ -855,7 +855,7 @@ bool image::addSymtabVariables()
        Variable *symVar = *varIter;
 
        parsing_printf("New variable, mangled %s, module %s...\n",
-                      symVar->getAllMangledNames()[0].c_str(),
+		      symVar->getFirstSymbol()->getMangledName().c_str(),
                       symVar->getFirstSymbol()->getModule()->fileName().c_str());
        pdmodule *use = getOrCreateModule(symVar->getModule());
 

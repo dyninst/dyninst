@@ -41,7 +41,8 @@
 
 #include <iostream>
 #include "Annotatable.h"
-
+#include <boost/iterator/transform_iterator.hpp>
+#include <functional>
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
 
 namespace Dyninst{
@@ -83,11 +84,18 @@ class SYMTAB_EXPORT Aggregate
       Symbol *getFirstSymbol() const;
 
       /***** Symbol naming *****/
-      const std::vector<std::string> &getAllMangledNames();
-      const std::vector<std::string> &getAllPrettyNames();
-      const std::vector<std::string> &getAllTypedNames();
-
-      /***** Aggregate updating *****/
+      //std::vector<std::string> getAllMangledNames();
+      //std::vector<std::string> getAllPrettyNames();
+      //std::vector<std::string> getAllTypedNames();
+      typedef boost::transform_iterator<std::const_mem_fun_t<string, Symbol>, vector<Symbol*>::const_iterator> name_iter;
+      name_iter mangled_names_begin() const;
+      name_iter mangled_names_end() const;
+      name_iter pretty_names_begin() const;
+      name_iter pretty_names_end() const;
+      name_iter typed_names_begin() const;
+      name_iter typed_names_end() const;
+      
+     /***** Aggregate updating *****/
       virtual bool addMangledName(std::string name, bool isPrimary);
       virtual bool addPrettyName(std::string name, bool isPrimary);
       virtual bool addTypedName(std::string name, bool isPrimary);
