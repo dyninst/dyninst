@@ -371,7 +371,6 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    newSectionInsertPoint(0),
    no_of_symbols(0),
    sorted_everyFunction(false),
-   isLineInfoValid_(false),
    isTypeInfoValid_(false),
    nlines_(0), fdptr_(0), lines_(NULL),
    stabstr_(NULL), nstabs_(0), stabs_(NULL),
@@ -380,7 +379,6 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(false),
    func_lookup(NULL),
-   lineInfo(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -416,7 +414,6 @@ SYMTAB_EXPORT Symtab::Symtab() :
    newSectionInsertPoint(0),
    no_of_symbols(0),
    sorted_everyFunction(false),
-   isLineInfoValid_(false),
    isTypeInfoValid_(false),
    nlines_(0), fdptr_(0), lines_(NULL),
    stabstr_(NULL), nstabs_(0), stabs_(NULL),
@@ -425,7 +422,6 @@ SYMTAB_EXPORT Symtab::Symtab() :
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(false),
    func_lookup(NULL),
-   lineInfo(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1245,7 +1241,6 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    newSectionInsertPoint(0),
    no_of_symbols(0),
    sorted_everyFunction(false),
-   isLineInfoValid_(false),
    isTypeInfoValid_(false),
    nlines_(0), fdptr_(0), lines_(NULL),
    stabstr_(NULL), nstabs_(0), stabs_(NULL),
@@ -1254,7 +1249,6 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(defensive_bin),
    func_lookup(NULL),
-   lineInfo(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1319,7 +1313,6 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    newSectionInsertPoint(0),
    no_of_symbols(0),
    sorted_everyFunction(false),
-   isLineInfoValid_(false),
    isTypeInfoValid_(false),
    nlines_(0), fdptr_(0), lines_(NULL),
    stabstr_(NULL), nstabs_(0), stabs_(NULL),
@@ -1329,7 +1322,6 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    isStaticBinary_(false),
    isDefensiveBinary_(defensive_bin),
    func_lookup(NULL),
-   lineInfo(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1628,7 +1620,6 @@ Symtab::Symtab(const Symtab& obj) :
    newSectionInsertPoint(0),
    no_of_symbols(obj.no_of_symbols),
    sorted_everyFunction(false),
-   isLineInfoValid_(obj.isLineInfoValid_),
    isTypeInfoValid_(obj.isTypeInfoValid_),
    nlines_(0), fdptr_(0), lines_(NULL),
    stabstr_(NULL), nstabs_(0), stabs_(NULL),
@@ -1637,7 +1628,6 @@ Symtab::Symtab(const Symtab& obj) :
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(obj.isDefensiveBinary_),
    func_lookup(NULL),
-   lineInfo(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1894,9 +1884,6 @@ Symtab::~Symtab()
 
    //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
    if (mf) MappedFile::closeMappedFile(mf);
-
-   // Delete line information
-   delete lineInfo;
 
 }	
 
@@ -2297,77 +2284,26 @@ bool Symtab::addRegion(Region *sec)
    return true;
 }
 
-void Symtab::updateLineInformationAnnos()
-{
-  return;
-  /*
-   for (auto iter = lineInfo->begin(); iter!=lineInfo->end(); iter++)
-   {
-     Module *mod = NULL;
-     bool result = findModuleByName(mod, iter->first);
-     if (!result) {
-       mod = getDefaultModule();
-     }
-     
-     LineInformation *lineInformation = mod->getLineInformation();
-     // We ensure that the line info in lineInfo is always up-to-date with
-     // the line info per module, so just overwrite...
-     if (true || !lineInformation || !lineInformation->getSize()) 
-     {
-       mod->setLineInfo(&(iter->second));
-     } 
-     else 
-     {
-       lineInformation->addLineInfo(&(iter->second));
-       mod->setLineInfo(lineInformation);
-     }
-   }
-  */
-}
-
-
 void Symtab::parseLineInformation()
 {
-   lineInfo = new dyn_hash_map <std::string, LineInformation>;
-
    Object *linkedFile = getObject();
-	if (!linkedFile)
-	{
+   if (!linkedFile)
+   {
 #if !defined(os_vxworks)
-		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+     fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 #endif
-		return;
-	}
-	linkedFile->parseFileLineInfo(this, *lineInfo);
-
-   isLineInfoValid_ = true;	
-   updateLineInformationAnnos();
-   
-
+     return;
+   }
+   linkedFile->parseFileLineInfo(this);
 }
-
-void Symtab::forceFullLineInfoParse()
-{
-  if(!lineInfo) parseLineInformation();
-  getObject()->parseDwarfFileLineInfo(this);
-}
-
 
 SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
       std::string lineSource, unsigned int lineNo)
 {
    unsigned int originalSize = ranges.size();
-   if(!lineInfo) {
-     parseLineInformation();
-   }
-   
-   getObject()->parseDwarfFileLineInfo(this);
-   updateLineInformationAnnos();
-
+   parseLineInformation();
    
    /* Iteratate over the modules, looking for ranges in each. */
-
-   
    for ( unsigned int i = 0; i < _mods.size(); i++ ) 
    {
       LineInformation *lineInformation = _mods[i]->getLineInformation();
@@ -2389,10 +2325,7 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement *> &lines, Offse
 {
    unsigned int originalSize = lines.size();
 
-   if(!lineInfo) parseLineInformation();
-   
-   getObject()->parseLineInfoForAddr(this, addressInRange, *lineInfo);
-   updateLineInformationAnnos();
+   getObject()->parseLineInfoForAddr(this, addressInRange);
 
    /* Iteratate over the modules, looking for ranges in each. */
    for ( unsigned int i = 0; i < _mods.size(); i++ ) 
@@ -2415,11 +2348,7 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offse
 {
    unsigned int originalSize = lines.size();
 
-   if(!lineInfo) parseLineInformation();
-   
-
-   getObject()->parseLineInfoForAddr(this, addressInRange, *lineInfo);
-   updateLineInformationAnnos();
+   getObject()->parseLineInfoForAddr(this, addressInRange);
 
    /* Iteratate over the modules, looking for ranges in each. */
    for ( unsigned int i = 0; i < _mods.size(); i++ ) 
@@ -3184,7 +3113,6 @@ Serializable *Symtab::serialize_impl(SerializerBase *sb,
 		//  for an object class that does not exist.  Need to introduce logic to 
 		//  recreate the object in this case
 		isTypeInfoValid_ = true;
-		isLineInfoValid_ = true; //  NOTE:  set this to true after deserializing at least one lineInformaton object
 	}
 	gtranslate(sb, regions_, "Regions", "Region");
 	rebuild_region_indexes(sb);

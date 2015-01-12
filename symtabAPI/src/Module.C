@@ -156,7 +156,7 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
    
    LineInformation *lineInformation = getLineInformation();
    if(!lineInformation) {
-     exec_->forceFullLineInfoParse();
+     exec_->parseLineInformation();
      lineInformation = getLineInformation();
    }
    
@@ -175,7 +175,7 @@ bool Module::getStatements(std::vector<Statement *> &statements)
 	LineInformation *li = getLineInformation();
 	if (!li) 
 	{
-	  exec_->forceFullLineInfoParse();
+	  exec_->parseLineInformation();
 	  li = getLineInformation();
 	  if(!li) return false;
 	}
@@ -251,10 +251,6 @@ bool Module::setLineInfo(LineInformation *lineInfo)
 
 LineInformation *Module::getLineInformation()
 {
-  if(!lineInfo_)
-  {
-    exec_->parseLineInformation();
-  }
   return lineInfo_;
 }
 

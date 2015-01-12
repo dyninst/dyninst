@@ -314,7 +314,7 @@ class Object : public AObject {
   stab_entry * get_stab_info() const;
   std::string getFileName() const;
   void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
-  void parseFileLineInfo(Symtab *obj, dyn_hash_map<std::string, LineInformation> &li);
+  void parseFileLineInfo(Symtab *obj);
   
   void parseTypeInfo(Symtab *obj);
 
@@ -549,10 +549,10 @@ class Object : public AObject {
   Symbol *handle_opd_symbol(Region *opd, Symbol *sym);
   void handle_opd_relocations();
   void parse_opd(Elf_X_Shdr *);
-  void parseStabFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &li);
+  void parseStabFileLineInfo(Symtab *);
  public:
   void parseDwarfFileLineInfo(Symtab* obj);
-  void parseLineInfoForAddr(Symtab* obj, Offset addr_to_find, dyn_hash_map<std::string, LineInformation> &li);
+  void parseLineInfoForAddr(Symtab* obj, Offset addr_to_find);
   
  private:
   bool addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_find);

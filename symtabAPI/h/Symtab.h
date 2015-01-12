@@ -437,7 +437,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
 
    void parseLineInformation();
-   void updateLineInformationAnnos();
    
    void parseTypes();
    bool setDefaultNamespacePrefix(std::string &str);
@@ -584,8 +583,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool getExplicitSymtabRefs(std::set<Symtab *> &refs);
    std::set<Symtab *> explicitSymtabRefs_;
 
-   //Line Information valid flag;
-   bool isLineInfoValid_;
    //type info valid flag
    bool isTypeInfoValid_;
 
@@ -609,9 +606,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool isDefensiveBinary_;
 
    FuncRangeLookup *func_lookup;
-
-   // Line information map from module name to line info
-   dyn_hash_map<std::string, LineInformation> *lineInfo;
 
    //Don't use obj_private, use getObject() instead.
  public:

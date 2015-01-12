@@ -4521,7 +4521,7 @@ const char *Object::interpreter_name() const
 
 /* Parse everything in the file on disk, and cache that we've done so,
    because our modules may not bear any relation to the name source files. */
-void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInformation> &li) 
+void Object::parseStabFileLineInfo(Symtab *st) 
 {
   static dyn_hash_map< string, bool > haveParsedFileMap;
 
@@ -4539,7 +4539,8 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
   unsigned functionLineToPossiblyAdd = 0;
 
   //Offset baseAddress = getBaseAddress();
-
+  LineInformation* li_for_module = NULL;
+  
   for ( unsigned int i = 0; i < stabEntry->count(); i++ ) 
   {
     switch (stabEntry->type( i )) 
@@ -4566,8 +4567,16 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
 	{ 
 	  ++currentSourceFile; 
 	}
-
+	Module* mod;
+	
 	moduleName = currentSourceFile;
+	if(!st->findModuleByName(mod, moduleName)) mod = st->getDefaultModule();
+	li_for_module = mod->getLineInformation();
+	if(!li_for_module) 
+	{
+	  li_for_module = new LineInformation;
+	  mod->setLineInfo(li_for_module);
+	}    
 
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
       }
@@ -4730,10 +4739,11 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
 	{
 	  if (functionLineToPossiblyAdd < newLineSpec)
 	  {
-	    li[moduleName].addLine(currentSourceFile, 
-				   functionLineToPossiblyAdd, 
-				   current_col, currentAddress, 
-				   newLineAddress );
+	    if(li_for_module)
+	      li_for_module->addLine(currentSourceFile, 
+				     functionLineToPossiblyAdd, 
+				     current_col, currentAddress, 
+				     newLineAddress );
 	  }
 
 	  functionLineToPossiblyAdd = 0;
@@ -4742,10 +4752,10 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
 	//fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", 
 	//      FILE__, __LINE__, currentSourceFile, newLineSpec, 
 	//      currentAddress, newLineAddress);
-
-	li[moduleName].addLine(currentSourceFile, newLineSpec, 
-			       current_col, currentAddress, 
-			       newLineAddress );
+	if(li_for_module)
+	  li_for_module->addLine(currentSourceFile, newLineSpec, 
+				 current_col, currentAddress, 
+				 newLineAddress );
 
 	currentAddress = newLineAddress;
 	currentLineBase = newLineSpec + 1;
@@ -4759,58 +4769,6 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
 
   //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
-
-// Dwarf Debug Format parsing
-void Object::createLineInfoForModules(dyn_hash_map<std::string, LineInformation> &li) 
-{
-  Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
-  if (!dbg_ptr)
-    return; 
-  Dwarf_Debug &dbg = *dbg_ptr;
-
-  /* Only .debug_info for now, not .debug_types */
-  Dwarf_Bool is_info = 1;
-
-  /* Itereate over the CU headers. */
-  Dwarf_Unsigned header;
-  while ( dwarf_next_cu_header_c( dbg, is_info,
-				  NULL, NULL, NULL, // len, stamp, abbrev
-				  NULL, NULL, NULL, // address, offset, extension
-				  NULL, NULL, // signature, typeoffset
-				  & header, NULL ) == DW_DLV_OK )
-  {
-    /* Acquire the CU DIE. */
-    Dwarf_Die cuDIE;
-    int status = dwarf_siblingof_b( dbg, NULL, is_info, & cuDIE, NULL);
-    if ( status != DW_DLV_OK ) { 
-      /* If we can get no (more) CUs, we're done. */
-      break;
-    }
-
-    char * cuName;
-    const char *moduleName;
-    status = dwarf_diename( cuDIE, &cuName, NULL );
-    if ( status == DW_DLV_NO_ENTRY ) {
-      cuName = NULL;
-      moduleName = "DEFAULT_MODULE";
-    }
-    else {
-      moduleName = strrchr(cuName, '/');
-      if (!moduleName)
-	moduleName = strrchr(cuName, '\\');
-      if (moduleName)
-	moduleName++;
-      else
-	moduleName = cuName;
-    }
-    li[moduleName] = LineInformation();
-    /* Free this CU's DIE. */
-    dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
-    if (cuName)
-      dwarf_dealloc( dbg, cuName, DW_DLA_STRING );  
-  }
-  
-}
 
 bool Object::addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_check)
 {
@@ -5049,7 +5007,7 @@ dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
 
 
 
-void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find, dyn_hash_map<std::string, LineInformation> &li)
+void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
 {
   Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
   if (!dbg_ptr)
@@ -5206,10 +5164,14 @@ void Object::parseDwarfFileLineInfo(Symtab* st)
   /* Note that we've parsed this file. */
 } /* end parseDwarfFileLineInfo() */
 
-void Object::parseFileLineInfo(Symtab *st, dyn_hash_map<string, LineInformation> &li)
+void Object::parseFileLineInfo(Symtab *st)
 {
-  parseStabFileLineInfo(st, li);
-  // We explicitly do delayed DWARF line info parsing.
+  if(parsedAllLineInfo) return;
+  
+  parseStabFileLineInfo(st);
+  parseDwarfFileLineInfo(st);
+  parsedAllLineInfo = true;
+  
 }
 
 void Object::parseTypeInfo(Symtab *obj)
