@@ -2532,6 +2532,7 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
 	if (status != DW_DLV_OK) goto error;
 
 	dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
+	
       } /* end if the DIE has a specification. */
 
       /* Ignore artificial entries. */
@@ -2781,7 +2782,6 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
       /* Update the module information. */
 
       string symName = find_symbol(dieName);
-
       if ( symName != "" ) 
       {
 	assert(symbols_.find(symName)!=symbols_.end());
@@ -2969,7 +2969,6 @@ bool Object::fix_global_symbol_modules_static_dwarf()
 	//     FILE__, __LINE__, moduleName.c_str());
 
 	bool result = fixSymbolsInModule(dbg, moduleName, moduleDIE);
-	if (!result) goto error;
              
 	/* Deallocate declFileNoToName. */
              
@@ -2978,6 +2977,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
 	}
 
 	dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
+	if (!result) goto error;
 
       } /* end if the srcfile information was available */
     } /* end if code range information unavailable */

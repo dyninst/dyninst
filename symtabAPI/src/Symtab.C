@@ -854,8 +854,8 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
          pretty_name = working_name;
       }
       
-      sym->prettyName_ = pretty_name;
-      sym->typedName_ = typed_name;
+      //sym->prettyName_ = pretty_name;
+      //sym->typedName_ = typed_name;
    }
    else {
        // All cases where there really shouldn't be a mangled
@@ -863,7 +863,7 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
       
       char *prettyName = P_cplus_demangle(sym->getMangledName().c_str(), nativeCompiler, false);
       if (prettyName) {
-         sym->prettyName_ = std::string(prettyName);
+	//sym->prettyName_ = std::string(prettyName);
          // XXX caller-freed
          free(prettyName); 
       }

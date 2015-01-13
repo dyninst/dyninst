@@ -103,52 +103,6 @@ Region * Aggregate::getRegion() const
    	return firstSymbol->getRegion();
 }
 
-#if 0
-vector<std::string> Aggregate::getAllMangledNames() 
-{
-  std::set<std::string> tmp;
-  std::vector<std::string> ret;
-  
-  for(auto i = symbols_.begin();
-      i != symbols_.end();
-      ++i)
-  {
-    tmp.insert((*i)->getMangledName());
-  }
-  std::copy(tmp.begin(), tmp.end(), back_inserter(ret));
-  return ret;
-}
-
-vector<std::string> Aggregate::getAllPrettyNames() 
-{
-  std::set<std::string> tmp;
-  std::vector<std::string> ret;
-  
-  for(auto i = symbols_.begin();
-      i != symbols_.end();
-      ++i)
-  {
-    tmp.insert((*i)->getPrettyName());
-  }
-  std::copy(tmp.begin(), tmp.end(), back_inserter(ret));
-  return ret;
-}
-
-vector<std::string> Aggregate::getAllTypedNames() 
-{
-  std::set<std::string> tmp;
-  std::vector<std::string> ret;
-  
-  for(auto i = symbols_.begin();
-      i != symbols_.end();
-      ++i)
-  {
-    tmp.insert((*i)->getTypedName());
-  }
-  std::copy(tmp.begin(), tmp.end(), back_inserter(ret));
-  return ret;
-}
-#endif
 bool Aggregate::addSymbol(Symbol *sym) {
 
     // We keep a "primary" module, which is defined as "anything not DEFAULT_MODULE".
@@ -168,38 +122,6 @@ bool Aggregate::addSymbol(Symbol *sym) {
     firstSymbol = symbols_[0];
     offset_ = firstSymbol->getOffset();
 
-    // We need to add the symbol names (if they aren't there already)
-    // We can have multiple identical names - for example, there are
-    // often two symbols for main (static and dynamic symbol table)
-    
-    /*bool found = false;
-    for (unsigned j = 0; j < mangledNames_.size(); j++) {
-        if (sym->getMangledName() == mangledNames_[j]) {
-            found = true;
-            break;
-        }
-    }
-    if (!found) mangledNames_.push_back(sym->getMangledName());
-
-    found = false;
-
-    for (unsigned j = 0; j < prettyNames_.size(); j++) {
-        if (sym->getPrettyName() == prettyNames_[j]) {
-            found = true;
-            break;
-        }
-    }
-    if (!found) prettyNames_.push_back(sym->getPrettyName());
-
-    found = false;
-    for (unsigned j = 0; j < typedNames_.size(); j++) {
-        if (sym->getTypedName() == typedNames_[j]) {
-            found = true;
-            break;
-        }
-    }
-    if (!found) typedNames_.push_back(sym->getTypedName());
-    */
     return true;
 }
 
@@ -235,42 +157,14 @@ Symbol * Aggregate::getFirstSymbol() const
 bool Aggregate::addMangledNameInternal(std::string name, bool isPrimary, bool demangle)
 {
     // Check to see if we're duplicating
-    for (unsigned i = 0; i < mangledNames_.size(); i++) {
-        if (mangledNames_[i] == name)
-            return false;
-    }
-
-    if (isPrimary) {
-        std::vector<std::string>::iterator iter = mangledNames_.begin();
-        mangledNames_.insert(iter, name);
-    }
-    else
-        mangledNames_.push_back(name);
-
-    if (0 && demangle) {
-       Symtab *symt = module_->exec();
-       string pretty, typed;
-       bool result = symt->buildDemangledName(name, pretty, typed, 
-                                              symt->isNativeCompiler(), module_->language());
-       if (result) {
-	 if(std::find(prettyNames_.begin(), prettyNames_.end(), pretty) == prettyNames_.end()) 
-	 {
-	   prettyNames_.push_back(pretty);
-	 }
-	 if(std::find(typedNames_.begin(), typedNames_.end(), typed) == typedNames_.end()) 
-	 {
-	   typedNames_.push_back(typed);
-	 }
-       }
-       else {
-          //If mangling failed, then assume mangled name is already pretty
-	 if(std::find(prettyNames_.begin(), prettyNames_.end(), name) == prettyNames_.end()) 
-	 {
-	   prettyNames_.push_back(name);
-	 }
-       }
-    }
-    return true;
+  for (auto i = mangled_names_begin(); 
+       i != mangled_names_end();
+       ++i) 
+  {
+    if ((*i) == name)
+      return false;
+  }
+  return true;
 }
 
 SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary) 
@@ -311,47 +205,27 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
  }
 
 SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary) 
- {
-   assert(0);
-   
+{
     // Check to see if we're duplicating
-    for (unsigned i = 0; i < prettyNames_.size(); i++) {
-        if (prettyNames_[i] == name)
-            return false;
-    }
-
-    if (isPrimary) {
-        std::vector<std::string>::iterator iter = prettyNames_.begin();
-        prettyNames_.insert(iter, name);
-    }
-    else
-        prettyNames_.push_back(name);
-
-    if (mangledNames_.empty()) {
-       //Can happen with inlined (symbolless) functions that
-       // only specify a demangled name.
-       mangledNames_.push_back(name);
-    }
-    return true;
- }
+   for (auto i = pretty_names_begin(); 
+	i != pretty_names_end();
+	i++) {
+     if ((*i) == name)
+       return false;
+   }
+   return addMangledName(name, isPrimary);
+}
 
 SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary) 
 {
-  assert(0);
-  
-  // Check to see if we're duplicating
-  for (unsigned i = 0; i < typedNames_.size(); i++) {
-    if (typedNames_[i] == name)
-      return false;
-  }
-  
-  if (isPrimary) {
-    std::vector<std::string>::iterator iter = typedNames_.begin();
-    typedNames_.insert(iter, name);
-  }
-  else
-    typedNames_.push_back(name);
-  return true;
+    // Check to see if we're duplicating
+   for (auto i = typed_names_begin(); 
+	i != typed_names_end();
+	i++) {
+     if ((*i) == name)
+       return false;
+   }
+   return addMangledName(name, isPrimary);
 }
 
 bool Aggregate::changeSymbolOffset(Symbol *sym) 
@@ -393,38 +267,24 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *, std::vector<Address> &) 
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &a)
 {
-	std::string modname = a.module_ ? a.module_->fullName() : std::string("no_mod");
-	os   << "Aggregate{"
-		<< " Module=" << modname
-		<< " MangledNames=["; 
-		for (unsigned int i = 0; i < a.mangledNames_.size(); ++i)
-		{
-			os << a.mangledNames_[i];
-			if ((i + 1) < a.mangledNames_.size())
-				os << ", ";
-		}
-		os << "]";
-
-		os << " PrettyNames=["; 
-		for (unsigned int i = 0; i < a.prettyNames_.size(); ++i)
-		{
-			os << a.prettyNames_[i];
-			if ((i + 1) < a.prettyNames_.size())
-				os << ", ";
-		}
-		os << "]";
-
-		os << " TypedNames=["; 
-		for (unsigned int i = 0; i < a.typedNames_.size(); ++i)
-		{
-			os << a.typedNames_[i];
-			if ((i + 1) < a.typedNames_.size())
-				os << ", ";
-		}
-		os << "]";
-		os << " }";
-
-		return os;
+  std::string modname = a.module_ ? a.module_->fullName() : std::string("no_mod");
+  os   << "Aggregate{"
+       << " Module=" << modname
+       << " MangledNames=[";
+  ostream_iterator<string> out_iter(std::cout, ", ");
+  std::copy(a.mangled_names_begin(), a.mangled_names_end(), out_iter);
+  os << "]";
+  
+  os << " PrettyNames=["; 
+  std::copy(a.pretty_names_begin(), a.pretty_names_end(), out_iter);
+  os << "]";
+  os << " TypedNames=["; 
+  std::copy(a.typed_names_begin(), a.typed_names_end(), out_iter);
+  
+  os << "]";
+  os << " }";
+  
+  return os;
 }
 
 void Aggregate::serialize_aggregate(SerializerBase *, const char *) THROW_SPEC (SerializerError)
@@ -433,27 +293,11 @@ void Aggregate::serialize_aggregate(SerializerBase *, const char *) THROW_SPEC (
 
 bool Aggregate::operator==(const Aggregate &a)
 {
-	if (mangledNames_.size() != a.mangledNames_.size()) return false;
-	if (prettyNames_.size() != a.prettyNames_.size()) return false;
-	if (typedNames_.size() != a.typedNames_.size()) return false;
 	if (symbols_.size() != a.symbols_.size()) return false;
 	if (module_ && !a.module_) return false;
 	if (!module_ && a.module_) return false;
 	if (module_ && (module_->fullName() != a.module_->fullName())) return false;
 
-	/*for (unsigned int i = 0; i < mangledNames_.size(); ++i)
-	{
-		if (mangledNames_[i] != a.mangledNames_[i]) return false;
-	}
-	for (unsigned int i = 0; i < prettyNames_.size(); ++i)
-	{
-		if (prettyNames_[i] != a.prettyNames_[i]) return false;
-	}
-	for (unsigned int i = 0; i < typedNames_.size(); ++i)
-	{
-		if (typedNames_[i] != a.typedNames_[i]) return false;
-	}
-	*/
 	for (unsigned int i = 0; i < symbols_.size(); ++i)
 	{
 		Symbol *s1 = symbols_[i];

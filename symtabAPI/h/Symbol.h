@@ -239,8 +239,6 @@ class SYMTAB_EXPORT Symbol : public Serializable,
    Aggregate *   aggregate_; // Pointer to Function or Variable container, if appropriate.
 
    std::string mangledName_;
-   std::string prettyName_;
-   std::string typedName_;
 
    SymbolTag     tag_;
    int index_;

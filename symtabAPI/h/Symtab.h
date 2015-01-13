@@ -532,29 +532,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    indexed_symbols everyDefinedSymbol;
    indexed_symbols undefDynSyms;
    
-   //std::vector<Symbol *> everyDefinedSymbol;
-   // hashtable for looking up undefined symbols in the dynamic symbol
-   // tale. Entries are referred by the relocation table entries
-   // NOT a subset of everyDefinedSymbol
-   //std::vector<Symbol *> undefDynSyms;
-
-   //std::map <std::string, std::vector<Symbol *> > undefDynSymsByMangledName;
-   //std::map <std::string, std::vector<Symbol *> > undefDynSymsByPrettyName;
-   //std::map <std::string, std::vector<Symbol *> > undefDynSymsByTypedName;
-
-   
-   // Symbols by offsets in the symbol table
-   //dyn_hash_map <Offset, std::vector<Symbol *> > symsByOffset;
-
-   // The raw name from the symbol table
-   //dyn_hash_map <std::string, std::vector<Symbol *> > symsByMangledName;
-
-   // The name after we've run it through the demangler
-   //dyn_hash_map <std::string, std::vector<Symbol *> > symsByPrettyName;
-
-   // The name after we've derived the parameter types
-   //dyn_hash_map <std::string, std::vector<Symbol *> > symsByTypedName;
-
    // We also need per-Aggregate indices
    bool sorted_everyFunction;
    std::vector<Function *> everyFunction;
@@ -566,43 +543,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    std::vector<Variable *> everyVariable;
    dyn_hash_map <Offset, Variable *> varsByOffset;
 
-   // For now, skip the index-by-name structures. We can use the Symbol
-   // ones instead. 
-   /*
-   dyn_hash_map <std::string, std::vector<Function *> *> funcsByMangledName;
-   dyn_hash_map <std::string, std::vector<Function *> *> funcsByPrettyName;
-   dyn_hash_map <std::string, std::vector<Function *> *> funcsByTypedName;
-   */
-
-   //dyn_hash_map <Offset, std::vector<Function *> > funcsByEntryAddr;
-   // note, a prettyName is not unique, it may map to a function appearing
-   // in several modules.  Also only contains instrumentable functions....
-   //dyn_hash_map <std::string, std::vector<Function *>*> funcsByPretty;
-   // Hash table holding functions by mangled name.
-   // Should contain same functions as funcsByPretty....
-   //dyn_hash_map <std::string, std::vector<Function *>*> funcsByMangled;
-   // A way to iterate over all the functions efficiently
-   //std::vector<Symbol *> everyUniqueFunction;
-   //std::vector<Function *> allFunctions;
-   // And the counterpart "ones that are there right away"
-   //std::vector<Symbol *> exportedFunctions;
-
-   //dyn_hash_map <Address, Function *> funcsByAddr;
    dyn_hash_map <std::string, Module *> modsByFileName;
    dyn_hash_map <std::string, Module *> modsByFullName;
    std::vector<Module *> _mods;
-
-   // Variables indexed by pretty (non-mangled) name
-   /*
-   dyn_hash_map <std::string, std::vector <Symbol *> *> varsByPretty;
-   dyn_hash_map <std::string, std::vector <Symbol *> *> varsByMangled;
-   dyn_hash_map <Offset, Symbol *> varsByAddr;
-   std::vector<Symbol *> everyUniqueVariable;
-   */
-
-   //dyn_hash_map <std::string, std::vector <Symbol *> *> modsByName;
-   //std::vector<Module *> _mods;
-
 
    std::vector<relocationEntry > relocation_table_;
    std::vector<ExceptionBlock *> excpBlocks;
