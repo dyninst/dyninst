@@ -2563,6 +2563,8 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
       {
 	dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
 	status = dwarf_formstring( linkageNameAttribute, & dieName, NULL );
+	dwarf_dealloc(dbg, linkageNameAttribute, DW_DLA_ATTR);
+	
 	if (status != DW_DLV_OK) goto error;
 	hasLinkageName = true;
       }
