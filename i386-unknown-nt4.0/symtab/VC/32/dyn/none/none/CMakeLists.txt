@@ -33,9 +33,5 @@ INSTALL (TARGETS
 		symtab_group_test.dyn_VC_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for native_cc failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler native_cc not present")
 ENDIF()

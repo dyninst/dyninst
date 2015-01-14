@@ -173,9 +173,5 @@ INSTALL (TARGETS
 		pc_thread_cont.dyn_VC++_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for native_cc failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler native_cc not present")
 ENDIF()

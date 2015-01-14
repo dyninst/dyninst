@@ -51,9 +51,5 @@ INSTALL (TARGETS
 		test1_29.stat_gcc_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for gnu_cc failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler gnu_cc not present")
 ENDIF()

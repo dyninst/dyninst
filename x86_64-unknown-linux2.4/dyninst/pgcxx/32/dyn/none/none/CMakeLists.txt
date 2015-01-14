@@ -474,9 +474,5 @@ INSTALL (TARGETS
 		test_thread_8.dyn_pgcxx_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for pg_cxx failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler pg_cxx not present")
 ENDIF()

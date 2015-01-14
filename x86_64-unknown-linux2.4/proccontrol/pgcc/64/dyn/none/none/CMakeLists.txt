@@ -32,9 +32,5 @@ INSTALL (TARGETS
 		pc_exec_targ.dyn_pgcc_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for pg_cc failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler pg_cc not present")
 ENDIF()

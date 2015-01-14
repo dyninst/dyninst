@@ -465,9 +465,5 @@ INSTALL (TARGETS
 		test_thread_8.dyn_bgq_g++_64_pic_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for mpi_cxx failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler mpi_cxx not present")
 ENDIF()

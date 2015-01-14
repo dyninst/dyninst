@@ -33,9 +33,5 @@ INSTALL (TARGETS
 		symtab_group_test.dyn_pgcc_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for pg_cc failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler pg_cc not present")
 ENDIF()

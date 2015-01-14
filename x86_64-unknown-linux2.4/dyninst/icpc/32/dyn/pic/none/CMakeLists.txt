@@ -474,9 +474,5 @@ INSTALL (TARGETS
 		test_thread_8.dyn_icpc_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for intel_CC_32 failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler intel_CC_32 not present")
 ENDIF()

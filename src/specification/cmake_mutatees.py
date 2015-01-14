@@ -160,11 +160,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    for m in mlist:
       out.write("\t\t%s\n" % utils.mutatee_binary(m, platform, info))
    out.write("\tDESTINATION ${INSTALL_DIR})\n\n")
-   out.write("ELSE()\n");
-   out.write("MESSAGE (STATUS \"Compiler check for %s failed\")\n" % c_compiler);
    out.write("ENDIF()\n");
-   out.write("ELSE()\n");
-   out.write("MESSAGE (STATUS \"Compiler %s not present\")\n" % c_compiler);
    out.write("ENDIF()\n");
    
    out.close()

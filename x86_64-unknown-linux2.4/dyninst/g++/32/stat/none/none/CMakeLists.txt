@@ -51,9 +51,5 @@ INSTALL (TARGETS
 		test1_29.stat_g++_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
-ELSE()
-MESSAGE (STATUS "Compiler check for gnu_cxx failed")
 ENDIF()
-ELSE()
-MESSAGE (STATUS "Compiler gnu_cxx not present")
 ENDIF()
