@@ -36,7 +36,7 @@
 
 #include "dyntypes.h"
 #include "IBSTree.h"
-
+#include "IBSTree-fast.h"
 #include "CodeObject.h"
 #include "CFG.h"
 #include "ParserDetails.h"
@@ -142,12 +142,12 @@ class ParseFrame {
 /* per-CodeRegion parsing data */
 class region_data { 
  public:
-    // Function lookups
-    Dyninst::IBSTree<FuncExtent> funcsByRange;
+  // Function lookups
+  Dyninst::IBSTree_fast<FuncExtent> funcsByRange;
     dyn_hash_map<Address, Function *> funcsByAddr;
 
     // Block lookups
-    Dyninst::IBSTree<Block> blocksByRange;
+    Dyninst::IBSTree_fast<Block> blocksByRange;
     dyn_hash_map<Address, Block *> blocksByAddr;
 
     // Parsing internals 
