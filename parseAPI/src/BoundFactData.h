@@ -189,7 +189,7 @@ struct BoundFact {
 
 
     bool ConditionalJumpBound(InstructionAPI::Instruction::Ptr insn, EdgeTypeEnum type);
-    void SetPredicate(Assignment::Ptr assign);
+    void SetPredicate(Assignment::Ptr assign, std::pair<AST::Ptr, bool> expand);
     void GenFact(const AST::Ptr ast, BoundValue* bv, bool isConditionalJump);
     void KillFact(const AST::Ptr ast, bool isConditionalJump);
     void SetToBottom();

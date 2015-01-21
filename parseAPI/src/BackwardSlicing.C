@@ -17,20 +17,8 @@ using namespace Dyninst::DataflowAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
 
-inline static void BuildAnEdge(SliceNode::Ptr srcNode,
-                               SliceNode::Ptr trgNode,
-			       map<AssignmentPtr, SliceNode::Ptr> &nodeMap,
-			       GraphPtr newG,
-			       EdgeTypeEnum t) {
-    SliceNode::Ptr newSrcNode = nodeMap[srcNode->assign()];
-    SliceNode::Ptr newTrgNode = nodeMap[trgNode->assign()];
-    newG->insertPair(newSrcNode, newTrgNode, TypedSliceEdge::create(newSrcNode, newTrgNode, t));
-}			       
-		       
-
 static void BuildEdgesAux(SliceNode::Ptr srcNode,
                           ParseAPI::Block* curBlock,
-			  map<AssignmentPtr, SliceNode::Ptr> &nodeMap,
 			  map<ParseAPI::Block*, map<AssignmentPtr, SliceNode::Ptr> > &targetMap,
 			  GraphPtr newG,
 			  set<ParseAPI::Block*> &visit,
@@ -56,8 +44,9 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 	    if (t == _edgetype_end_) t = FALLTHROUGH;
 	    for (auto cit = candNodes.begin(); cit != candNodes.end(); ++cit)
 	        if (cit->first->addr() > srcNode->addr() || curBlock != srcNode->block())
-		    if (addr == cit->first->addr()) 
-		        BuildAnEdge(srcNode, cit->second, nodeMap, newG, t);
+		    if (addr == cit->first->addr()) {
+		        newG->insertPair(srcNode, cit->second, TypedSliceEdge::create(srcNode, cit->second, t));
+		    }
 	    return;
 	}
     }
@@ -79,17 +68,16 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 		else 
 		    newT = FALLTHROUGH;
 	    } 
-	    BuildEdgesAux(srcNode, (*eit)->trg(), nodeMap, targetMap, newG, visit, newT);	   
+	    BuildEdgesAux(srcNode, (*eit)->trg(), targetMap, newG, visit, newT);	   
 	}
 }			  
 
 
 static void BuildEdges(SliceNode::Ptr curNode,
-                       map<AssignmentPtr, SliceNode::Ptr> &nodeMap,
 		       map<ParseAPI::Block*, map<AssignmentPtr, SliceNode::Ptr> > &targetMap,
 		       GraphPtr newG) {
     set<ParseAPI::Block*> visit;		     
-    BuildEdgesAux(curNode, curNode->block(), nodeMap, targetMap, newG, visit, _edgetype_end_);
+    BuildEdgesAux(curNode, curNode->block(), targetMap, newG, visit, _edgetype_end_);
 }		       
 
 static bool NodeIsZF(SliceNode::Ptr node) {
@@ -97,47 +85,38 @@ static bool NodeIsZF(SliceNode::Ptr node) {
 	   (node->assign()->out().absloc().reg() == x86::zf || node->assign()->out().absloc().reg() == x86_64::zf);
 }
 
-static bool ShouldSkip(SliceNode::Ptr curNode, GraphPtr g) {
-    if (!curNode->assign()) return false;
-    if (NodeIsZF(curNode)) return false;
-    NodeIterator gbegin, gend;
-    g->allNodes(gbegin, gend);
-    for (; gbegin != gend; ++gbegin) {
-        SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*gbegin);
-	if (node->addr() == curNode->addr()) {
-	    if (NodeIsZF(node)) return true;
-	}	    
-    }
-    return false;
-}
-
 GraphPtr BackwardSlicer::TransformToCFG(GraphPtr gp) {
     GraphPtr newG = Graph::createGraph();
     
     NodeIterator gbegin, gend;
-    gp->allNodes(gbegin, gend);
     
-    // Create a AssignmentPtr to SliceNode map to maintain the new graph nodes
-    map<AssignmentPtr, SliceNode::Ptr> nodeMap;
-
     // Create a map to help find whether we have reached a node
     map<ParseAPI::Block*, map<AssignmentPtr, SliceNode::Ptr> > targetMap;
+
+    // Assignments that are at these addresses have flag assignment colocated
+    set<Address> shouldSkip;
+    gp->allNodes(gbegin, gend);
     for (; gbegin != gend; ++gbegin) {
         SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*gbegin);
-	if (!ShouldSkip(node, gp)) {
+	if (NodeIsZF(node))
+	    shouldSkip.insert(node->addr());
+    }
+
+    gp->allNodes(gbegin, gend);
+    for (; gbegin != gend; ++gbegin) {
+        SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*gbegin);
+	if (NodeIsZF(node) || shouldSkip.find(node->addr()) == shouldSkip.end()) {
 	    SliceNode::Ptr newNode = SliceNode::create(node->assign(), node->block(), node->func());
-	    nodeMap[node->assign()] = newNode;
 	    targetMap[node->block()][node->assign()] = newNode;
 	    newG->addNode(newNode);
 	}
     }
 
     // Start from each node to do DFS and build edges
-    gp->allNodes(gbegin, gend);
+    newG->allNodes(gbegin, gend);
     for (; gbegin != gend; ++gbegin) {
         SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*gbegin);
-	if (!ShouldSkip(node, gp))
-	    BuildEdges(node, nodeMap, targetMap, newG);
+	BuildEdges(node, targetMap, newG);
     }
 
     // Build a virtual exit node
@@ -159,27 +138,30 @@ GraphPtr BackwardSlicer::TransformToCFG(GraphPtr gp) {
 }
 
 GraphPtr BackwardSlicer::TransformGraph(GraphPtr gp) {
-
-    bool finish = false;
-    while (!finish) {
-        finish = true;
-	NodeIterator gbegin, gend;
-	gp->allNodes(gbegin, gend);
-	for (; gbegin != gend; ++gbegin) {
-	    Node::Ptr ptr = *gbegin;
-	    if (gp->isExitNode(ptr)) continue;
-	    SliceNode::Ptr cur = boost::static_pointer_cast<SliceNode>(ptr);
-	    if (cur->assign() == NULL) {
-		gp->deleteNode(*gbegin);
-		finish = false;
-		break;
-	    }
-	    if (cur->assign()->insn()->writesMemory()) {
-	        gp->deleteNode(*gbegin);
-		finish = false;
-		break;
-	    }
+    NodeIterator gbegin, gend, toErase;
+    gp->allNodes(gbegin, gend);
+    while (gbegin != gend) {
+        Node::Ptr ptr = *gbegin;
+	if (gp->isExitNode(ptr)) {
+	    ++gbegin;
+	    continue;
 	}
+	SliceNode::Ptr cur = boost::static_pointer_cast<SliceNode>(ptr);
+	if (cur->assign() == NULL) {
+	    toErase = gbegin;
+	    ++gbegin;
+	    gp->deleteNode(*toErase);
+	    continue;
+	}
+	if (cur->assign()->insn()->writesMemory()) {
+	    toErase = gbegin;
+	    ++gbegin;
+	    gp->deleteNode(*toErase);
+	    continue;
+	}
+	
+	// Normal case, we do not delete the node
+	++gbegin;
     }
     return TransformToCFG(gp);
 }

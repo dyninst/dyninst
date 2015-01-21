@@ -24,6 +24,8 @@ class BoundFactsCalculator {
     ThunkData &thunks;
     Address jumpAddr;
 
+    std::map<Assignment::Ptr, AST::Ptr> expandCache;
+
     void ThunkBound(BoundFact *curFact, Node::Ptr src, Node::Ptr trg);
     BoundFact* Meet(Node::Ptr curNode);
     void CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact);
@@ -36,6 +38,8 @@ class BoundFactsCalculator {
     void NaturalDFS(Node::Ptr);
     void ReverseDFS(Node::Ptr);
     bool HasIncomingEdgesFromLowerLevel(int curOrder, std::vector<Node::Ptr>& curNodes);
+
+    std::pair<AST::Ptr, bool> ExpandAssignment(Assignment::Ptr);
 
 public:
     bool CalculateBoundedFacts(); 

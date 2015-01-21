@@ -363,7 +363,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    (srcNode->assign()->out().absloc().reg() == x86::zf || srcNode->assign()->out().absloc().reg() == x86_64::zf)) {
 	    // zf should be only predecessor of this node
 	    parsing_printf("\t\tThe predecessor node is zf assignment!\n");
-	    prevFact->SetPredicate(srcNode->assign());	    
+	    prevFact->SetPredicate(srcNode->assign(), ExpandAssignment(srcNode->assign()) );	    
 	} else if (srcNode->assign() && IsConditionalJump(srcNode->assign()->insn())) {
 	    // If the predecessor is a conditional jump,
 	    // we can determine bound fact based on the predicate and the edge type
@@ -406,7 +406,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 
     parsing_printf("\t\t\tExpanding assignment %s in instruction at %lx: %s.\n", node->assign()->format().c_str(), node->addr(), insn->format().c_str());
     
-    pair<AST::Ptr, bool> expandRet = SymEval::expand(node->assign(), false);
+    pair<AST::Ptr, bool> expandRet = ExpandAssignment(node->assign());
 	
     if (expandRet.first == NULL) {
         // If the instruction is outside the set of instrutions we
@@ -464,4 +464,18 @@ BoundFactsCalculator::~BoundFactsCalculator() {
     boundFacts.clear();
 }
 
+pair<AST::Ptr, bool> BoundFactsCalculator::ExpandAssignment(Assignment::Ptr assign) {
+    if (expandCache.find(assign) != expandCache.end()) {
+        AST::Ptr ast = expandCache[assign];
+	if (ast) return make_pair(DeepCopyAnAST(ast), true); else return make_pair(ast, false);
+    } else {
+        pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
+	if (expandRet.second && expandRet.first) {
+	    expandCache[assign] = DeepCopyAnAST(expandRet.first);
+	} else {
+	    expandCache[assign] = AST::Ptr();
+	}
+	return expandRet;
+    }
+}
 

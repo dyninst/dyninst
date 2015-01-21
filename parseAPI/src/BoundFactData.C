@@ -1255,12 +1255,11 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 }
 
 
-void BoundFact::SetPredicate(Assignment::Ptr assign ) {   
+void BoundFact::SetPredicate(Assignment::Ptr assign,std::pair<AST::Ptr, bool> expandRet ) {   
     Instruction::Ptr insn = assign->insn();
     entryID id = insn->getOperation().getID();
     pred.valid = true;
     parsing_printf("\t\tLook for predicates for instruction %s, assign %s\n", insn->format().c_str(), assign->format().c_str());
-    pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
     if (expandRet.first == NULL) {
         // If the instruction is outside the set of instrutions we
         // add instruction semantics. We assume this instruction
