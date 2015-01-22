@@ -51,12 +51,12 @@ BPatch_loopTreeNode::BPatch_loopTreeNode(BPatch_basicBlockLoop *l,
 }
  
 
-const char * 
+std::string
 BPatch_loopTreeNode::getCalleeName(unsigned int i) 
 {
     assert(i < callees.size());
     assert(callees[i] != NULL);
-    return callees[i]->prettyName().c_str();
+    return callees[i]->prettyName();
 }
 
 const char * 

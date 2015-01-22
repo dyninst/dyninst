@@ -876,7 +876,8 @@ bool Symtab::addSymbolToIndices(Symbol *&sym, bool undefined)
 {
    assert(sym);
    if (!undefined) {
-      everyDefinedSymbol.insert(sym);
+     if(everyDefinedSymbol.find(sym) == everyDefinedSymbol.end())
+       everyDefinedSymbol.insert(sym);
       //      symsByMangledName[sym->getMangledName()].push_back(sym);
       //symsByPrettyName[sym->getPrettyName()].push_back(sym);
       //symsByTypedName[sym->getTypedName()].push_back(sym);
@@ -892,6 +893,7 @@ bool Symtab::addSymbolToIndices(Symbol *&sym, bool undefined)
       //undefDynSymsByTypedName[sym->getTypedName()].push_back(sym);
       // And undefDynSyms is already filled in
    }
+   
     return true;
 }
 
@@ -2625,7 +2627,7 @@ bool Symtab::setDefaultNamespacePrefix(string &str)
 SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
     // Start with all the defined symbols
-    std::vector<Symbol* > allSyms;
+  std::vector<Symbol* > allSyms;
     allSyms.insert(allSyms.end(), everyDefinedSymbol.begin(), everyDefinedSymbol.end());
 
     // Add the undefined dynamic symbols

@@ -92,14 +92,13 @@ SYMTAB_EXPORT string Symbol::getPrettyName() const
   if(atat != string::npos)
   {
     working_name = working_name.substr(0, atat);
-    return working_name;
   }
   
 #endif     
-  // All cases where there really shouldn't be a mangled
-  // name, since mangling is for functions.
+  // Assume not native (ie GNU) if we don't have an associated Symtab for some reason
+  bool native_comp = getSymtab() ? getSymtab()->isNativeCompiler() : false;
   
-  char *prettyName = P_cplus_demangle(working_name.c_str(), false, false);
+  char *prettyName = P_cplus_demangle(working_name.c_str(), native_comp, false);
   if (prettyName) {
     working_name = std::string(prettyName);
     // XXX caller-freed
@@ -119,10 +118,10 @@ SYMTAB_EXPORT string Symbol::getTypedName() const
     working_name = std::string(mangledName_.c_str(), nchars);
   }
 #endif     
-  // All cases where there really shouldn't be a mangled
-  // name, since mangling is for functions.
+  // Assume not native (ie GNU) if we don't have an associated Symtab for some reason
+  bool native_comp = getSymtab() ? getSymtab()->isNativeCompiler() : false;
   
-  char *prettyName = P_cplus_demangle(working_name.c_str(), false, true);
+  char *prettyName = P_cplus_demangle(working_name.c_str(), native_comp, true);
   if (prettyName) {
     working_name = std::string(prettyName);
     // XXX caller-freed
@@ -414,7 +413,7 @@ bool Symbol::operator==(const Symbol& s) const
 }
 
 Symtab *Symbol::getSymtab() const { 
-   return module_->exec(); 
+  return module_ ? module_->exec() : NULL; 
 }
 
 Symbol::Symbol () :

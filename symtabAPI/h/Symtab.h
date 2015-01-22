@@ -517,11 +517,14 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    struct pretty {};
    struct mangled {};
    struct typed {};
+   struct id {};
    
+ 
    
    
    typedef 
-   boost::multi_index_container<Symbol * , indexed_by <
+   boost::multi_index_container<Symbol::Ptr, indexed_by <
+   ordered_unique< tag<id>, const_mem_fun < Symbol::Ptr, Symbol*, &Symbol::Ptr::get> >,
    ordered_non_unique< tag<offset>, const_mem_fun < Symbol, Offset, &Symbol::getOffset > >,
    ordered_non_unique< tag<mangled>, const_mem_fun < Symbol, std::string, &Symbol::getMangledName > >,
    ordered_non_unique< tag<pretty>, const_mem_fun < Symbol, std::string, &Symbol::getPrettyName > >,

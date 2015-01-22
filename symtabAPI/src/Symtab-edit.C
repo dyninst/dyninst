@@ -135,35 +135,8 @@ bool Symtab::deleteAggregate(Aggregate *agg) {
 }
 
 bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
-  typedef indexed_symbols::index<offset>::type syms_by_off;
-  
-  syms_by_off& defindex = everyDefinedSymbol.get<offset>();
-  syms_by_off& undefindex = undefDynSyms.get<offset>();
-  syms_by_off::iterator found = defindex.find(sym->getOffset());
-  
-  if(found != defindex.end())
-  {
-    while((*found)->getOffset() == sym->getOffset())
-    {
-      if(*found == sym) {
-	defindex.erase(found);
-	break;
-      }
-      ++found;
-    }
-  }
-  found = undefindex.find(sym->getOffset());
-  if(found != undefindex.end())
-  {
-    while((*found)->getOffset() == sym->getOffset())
-    {
-      if(*found == sym) {
-	undefindex.erase(found);
-	break;
-      }
-      ++found;
-    }
-  }
+  everyDefinedSymbol.erase(sym);
+  undefDynSyms.erase(sym);
   return true;
 }
 
