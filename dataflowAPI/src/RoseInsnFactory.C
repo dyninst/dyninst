@@ -80,15 +80,15 @@ SgAsmInstruction *RoseInsnFactory::convert(const InstructionAPI::Instruction::Pt
   // std::cerr << "no special handling by opcode, checking if we should mangle operands..." << std::endl;
   std::vector<InstructionAPI::Operand> operands;
   insn->getOperands(operands);
-  std::cerr << "\t " << operands.size() << " operands" << std::endl;
+//  std::cerr << "\t " << operands.size() << " operands" << std::endl;
   massageOperands(insn, operands);
   int i = 0;
-  std::cerr << "converting insn " << insn->format(addr) << std::endl;
+//  std::cerr << "converting insn " << insn->format(addr) << std::endl;
   for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin();
        opi != operands.end();
        ++opi, ++i) {
       InstructionAPI::Operand &currOperand = *opi;
-      std::cerr << "Converting operand " << currOperand.format(Arch_x86, addr) << std::endl;
+//      std::cerr << "Converting operand " << currOperand.format(Arch_x86, addr) << std::endl;
       roperands->append_operand(convertOperand(currOperand.getValue(), addr));
   }  
   rinsn->set_operandList(roperands);
