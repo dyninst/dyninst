@@ -7,11 +7,19 @@
 
 #include "slicing.h"
 
+#include <unordered_set>
+#include <unordered_map>
+
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
 // To avoid the bound fact calculation from deadlock
 #define IN_QUEUE_LIMIT 10
+struct NodePtrHasher {
+    size_t operator() (const Node::Ptr &n) const {
+        return (size_t)n.get();
+    }
+};
 
 
 
@@ -30,7 +38,7 @@ class BoundFactsCalculator {
     BoundFact* Meet(Node::Ptr curNode);
     void CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact);
 
-    std::map<Node::Ptr, int> analysisOrder, nodeColor;
+    std::unordered_map<Node::Ptr, int, NodePtrHasher> analysisOrder, nodeColor;
     vector<Node::Ptr> reverseOrder;
     int orderStamp;
     

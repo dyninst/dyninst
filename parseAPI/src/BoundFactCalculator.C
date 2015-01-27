@@ -168,8 +168,8 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
     }
 */    
     queue<Node::Ptr> workingList;
-    set<Node::Ptr> inQueue;
-    map<Node::Ptr, int> inQueueLimit;
+    unordered_set<Node::Ptr, NodePtrHasher> inQueue;
+    unordered_map<Node::Ptr, int, NodePtrHasher> inQueueLimit;
 
     for (int curOrder = 0; curOrder <= orderStamp; ++curOrder) {
         // We first determine which nodes are
