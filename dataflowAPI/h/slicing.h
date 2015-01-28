@@ -37,6 +37,7 @@
 #include "dyntypes.h"
 #include <queue>
 #include <set>
+#include <unordered_set>
 #include <map>
 #include <unordered_map>
 #include <list>
@@ -48,6 +49,7 @@
 
 #include "AbslocInterface.h"
 
+#include <boost/functional/hash.hpp>
 
 namespace Dyninst {
 
@@ -334,7 +336,12 @@ class Slicer {
       Def(Element const& e, AbsRegion const& r) : ele(e), data(r) { } 
       Element ele;
       AbsRegion data;
-  
+ 
+      struct DefHasher {
+          size_t operator() (const Def &o) const {
+	      return Assignment::AssignmentPtrHasher()(o.ele.ptr);
+	  }
+      };
       // only the Assignment::Ptr of an Element matters
       // for comparison
       bool operator<(Def const& o) const {
@@ -346,6 +353,11 @@ class Slicer {
               return true;
           else 
               return false;
+      }
+
+      bool operator==(Def const &o) const {
+          if (ele.ptr != o.ele.ptr) return false;
+	  return data == o.data;
       }
     };
  
@@ -371,7 +383,7 @@ class Slicer {
         // from another 
         void replace(DefCache const& o);
 
-        std::set<Def> & get(AbsRegion const& r) { 
+        std::unordered_set<Def, Def::DefHasher> & get(AbsRegion const& r) { 
             return defmap[r];
         }
         bool defines(AbsRegion const& r) const {
@@ -381,7 +393,7 @@ class Slicer {
         void print() const;
 
       private:
-        std::map< AbsRegion, std::set<Def> > defmap;
+        std::map< AbsRegion, std::unordered_set<Def, Def::DefHasher> > defmap;
     
     };
 
@@ -627,18 +639,14 @@ class Slicer {
 
 
   // Assignments map to unique slice nodes
-  struct AssignmentHasher {
-    size_t operator() (const AssignmentPtr &ap) const {
-      return (size_t)ap.get();
-    }
-  };
-  std::unordered_map<AssignmentPtr, SliceNode::Ptr, AssignmentHasher> created_;
+  std::unordered_map<AssignmentPtr, SliceNode::Ptr, Assignment::AssignmentPtrHasher> created_;
 
   // cache to prevent edge duplication
   struct EdgeTupleHasher {
     size_t operator() (const EdgeTuple& et) const {
-        size_t seed = (size_t)et.d.get();
-        return (size_t)(et.s.get()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        size_t seed = (size_t)(et.s.get());
+        boost::hash_combine( seed , (size_t)(et.d.get()));
+	return seed;
     }
   };
   std::unordered_map<EdgeTuple, int, EdgeTupleHasher> unique_edges_;

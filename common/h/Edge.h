@@ -35,6 +35,7 @@
 #include "boost/weak_ptr.hpp"
 #include <set>
 #include "Annotatable.h"
+#include <unordered_set>
 
 namespace Dyninst {
 class Graph;
@@ -46,6 +47,12 @@ class COMMON_EXPORT Edge : public AnnotatableSparse {
     friend class Creator;
  public:
     typedef boost::shared_ptr<Edge> Ptr;
+    struct EdgePtrHasher {
+        size_t operator() (const Ptr &e) const {
+	    return (size_t)e.get();
+	}
+    };
+
 
  private:
     typedef boost::shared_ptr<Node> NodeSharedPtr;
@@ -83,8 +90,8 @@ class COMMON_EXPORT EdgeIterator {
 
     EdgeIterator &operator++();
     EdgeIterator operator++(int);
-    EdgeIterator &operator--();
-    EdgeIterator operator--(int);
+//    EdgeIterator &operator--();
+//    EdgeIterator operator--(int);
 
     bool operator==(const EdgeIterator &rhs) const;
     bool operator!=(const EdgeIterator &rhs) const;
@@ -120,7 +127,7 @@ class EdgeIteratorImpl {
     
  public:
     virtual void inc() = 0;
-    virtual void dec() = 0;
+//    virtual void dec() = 0;
     virtual Edge::Ptr get() = 0;
     virtual bool equals(EdgeIteratorImpl *) = 0;
     virtual EdgeIteratorImpl *copy() = 0;
@@ -134,7 +141,7 @@ class EdgeIteratorSet : public EdgeIteratorImpl {
 
  public:
     virtual void inc() { ++internal_; }
-    virtual void dec() { --internal_; }
+//    virtual void dec() { --internal_; }
     virtual Edge::Ptr get() { return *internal_; }
     virtual bool equals(EdgeIteratorImpl *rhs) {
         EdgeIteratorSet *tmp = dynamic_cast<EdgeIteratorSet *>(rhs);
@@ -151,11 +158,11 @@ class EdgeIteratorSet : public EdgeIteratorImpl {
         // Nothing to do
     }
     
-    EdgeIteratorSet(const std::set<Edge::Ptr>::iterator iter) : internal_(iter) {
+    EdgeIteratorSet(const std::unordered_set<Edge::Ptr, Edge::EdgePtrHasher>::iterator iter) : internal_(iter) {
     };
 
  private:
-    std::set<Edge::Ptr>::iterator internal_;
+    std::unordered_set<Edge::Ptr, Edge::EdgePtrHasher>::iterator internal_;
 };
 
 }

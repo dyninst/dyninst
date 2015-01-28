@@ -15,11 +15,6 @@ using namespace Dyninst::ParseAPI;
 
 // To avoid the bound fact calculation from deadlock
 #define IN_QUEUE_LIMIT 10
-struct NodePtrHasher {
-    size_t operator() (const Node::Ptr &n) const {
-        return (size_t)n.get();
-    }
-};
 
 
 
@@ -32,13 +27,13 @@ class BoundFactsCalculator {
     ThunkData &thunks;
     Address jumpAddr;
 
-    std::map<Assignment::Ptr, AST::Ptr> expandCache;
+    std::unordered_map<Assignment::Ptr, AST::Ptr, Assignment::AssignmentPtrHasher> expandCache;
 
     void ThunkBound(BoundFact *curFact, Node::Ptr src, Node::Ptr trg);
     BoundFact* Meet(Node::Ptr curNode);
     void CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact);
 
-    std::unordered_map<Node::Ptr, int, NodePtrHasher> analysisOrder, nodeColor;
+    std::unordered_map<Node::Ptr, int, Node::NodePtrHasher> analysisOrder, nodeColor;
     vector<Node::Ptr> reverseOrder;
     int orderStamp;
     

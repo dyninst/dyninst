@@ -44,7 +44,7 @@ class NodeIteratorImpl {
     
  public:
     virtual void inc() = 0;
-    virtual void dec() = 0;
+//    virtual void dec() = 0;
     virtual Node::Ptr get() = 0;
     virtual bool equals(NodeIteratorImpl *) = 0;
     virtual NodeIteratorImpl *copy() = 0;
@@ -56,7 +56,7 @@ class NodeIteratorImpl {
 class NodeIteratorSet : public NodeIteratorImpl {
  public:
     virtual void inc() { ++internal_; }
-    virtual void dec() { --internal_; }
+//    virtual void dec() { --internal_; }
     virtual Node::Ptr get() { return *internal_; }
     virtual bool equals(NodeIteratorImpl *rhs) {
         NodeIteratorSet *tmp = dynamic_cast<NodeIteratorSet *>(rhs);
@@ -72,10 +72,10 @@ class NodeIteratorSet : public NodeIteratorImpl {
         // Nothing to do
     }
     
-    NodeIteratorSet(const std::set<Node::Ptr>::iterator iter) : internal_(iter) {};
+    NodeIteratorSet(const std::unordered_set<Node::Ptr, Node::NodePtrHasher>::iterator iter) : internal_(iter) {};
 
  private:
-    std::set<Node::Ptr>::iterator internal_;
+    std::unordered_set<Node::Ptr, Node::NodePtrHasher>::iterator internal_;
 };
 
 class NodeFromEdgeSet : public NodeIteratorImpl {
@@ -86,7 +86,7 @@ class NodeFromEdgeSet : public NodeIteratorImpl {
         unset } iterType;
 
     virtual void inc() { ++internal_; }
-    virtual void dec() { --internal_; }
+//    virtual void dec() { --internal_; }
     virtual Node::Ptr get() { 
         switch(type_) {
         case target:
@@ -111,11 +111,11 @@ class NodeFromEdgeSet : public NodeIteratorImpl {
 
     virtual ~NodeFromEdgeSet() {};
 
-    NodeFromEdgeSet(const std::set<Edge::Ptr>::iterator iter,
+    NodeFromEdgeSet(const std::unordered_set<Edge::Ptr, Edge::EdgePtrHasher>::iterator iter,
                    iterType type) : internal_(iter), type_(type) {};
 
  private:
-    std::set<Edge::Ptr>::iterator internal_;
+    std::unordered_set<Edge::Ptr, Edge::EdgePtrHasher>::iterator internal_;
     iterType type_;
 };
 
@@ -172,10 +172,12 @@ class NodeSearchIterator : public NodeIteratorImpl{
         getNext(begin, end);
         updateWorklist(begin, end);
     }
+/*    
     virtual void dec() {
         // Unsupported
         assert(0); return;
     }
+*/
     virtual Node::Ptr get() { return current; }
     // Equality
     // 1) End == end, even if the internal data is not the same
@@ -293,7 +295,7 @@ class NodeIteratorPredicateObj : public NodeIteratorImpl {
         cur = next;
         setNext();
     }
-    virtual void dec() {  return; }
+//    virtual void dec() {  return; }
     virtual Node::Ptr get() { return *cur; }
     virtual bool equals(NodeIteratorImpl *rhs) {
         NodeIteratorPredicateObj *tmp = dynamic_cast<NodeIteratorPredicateObj *>(rhs);
@@ -352,7 +354,7 @@ class NodeIteratorPredicateFunc : public NodeIteratorImpl {
         cur = next;
         setNext();
     }
-    virtual void dec() {  return; }
+//    virtual void dec() {  return; }
     virtual Node::Ptr get() { return *cur; }
     virtual bool equals(NodeIteratorImpl *rhs) {
         NodeIteratorPredicateFunc *tmp = dynamic_cast<NodeIteratorPredicateFunc *>(rhs);

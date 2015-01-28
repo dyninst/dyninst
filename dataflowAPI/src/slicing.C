@@ -403,8 +403,8 @@ Slicer::updateAndLinkFromCache(
 
         // Link them up 
         vector<Element> const& eles = (*ait).second;
-        set<Def> const& defs = cache.get(r);
-        set<Def>::const_iterator dit = defs.begin();
+        unordered_set<Def, Def::DefHasher> const& defs = cache.get(r);
+        unordered_set<Def, Def::DefHasher>::const_iterator dit = defs.begin();
         for( ; dit != defs.end(); ++dit) {
             for(unsigned i=0;i<eles.size();++i) {
                 // don't create self-loops on assignments
@@ -1665,10 +1665,10 @@ void Slicer::constructInitialFrame(
 void
 Slicer::DefCache::merge(Slicer::DefCache const& o)
 {
-    map<AbsRegion, set<Def> >::const_iterator oit = o.defmap.begin();
+    map<AbsRegion, unordered_set<Def, Def::DefHasher> >::const_iterator oit = o.defmap.begin();
     for( ; oit != o.defmap.end(); ++oit) {
         AbsRegion const& r = oit->first;
-        set<Def> const& s = oit->second;
+        unordered_set<Def,Def::DefHasher> const& s = oit->second;
         defmap[r].insert(s.begin(),s.end());
     }
 }
@@ -1677,7 +1677,7 @@ void
 Slicer::DefCache::replace(Slicer::DefCache const& o)
 {   
     // XXX if o.defmap[region] is empty set, remove that entry
-    map<AbsRegion, set<Def> >::const_iterator oit = o.defmap.begin();
+    map<AbsRegion, unordered_set<Def, Def::DefHasher> >::const_iterator oit = o.defmap.begin();
     for( ; oit != o.defmap.end(); ++oit) {
         if(!(*oit).second.empty())
             defmap[(*oit).first] = (*oit).second;
@@ -1688,11 +1688,11 @@ Slicer::DefCache::replace(Slicer::DefCache const& o)
 
 void
 Slicer::DefCache::print() const {
-    map<AbsRegion, set<Def> >::const_iterator it = defmap.begin();
+    map<AbsRegion, unordered_set<Def, Def::DefHasher> >::const_iterator it = defmap.begin();
     for( ; it !=defmap.end(); ++it) {
         slicing_printf("\t\t%s ->\n",(*it).first.format().c_str());
-        set<Def> const& defs = (*it).second;
-        set<Def>::const_iterator dit = defs.begin();
+        unordered_set<Def, Def::DefHasher> const& defs = (*it).second;
+        unordered_set<Def, Def::DefHasher>::const_iterator dit = defs.begin();
         for( ; dit != defs.end(); ++dit) {
             slicing_printf("\t\t\t<%s,%s>\n",
                 (*dit).ele.ptr->format().c_str(),

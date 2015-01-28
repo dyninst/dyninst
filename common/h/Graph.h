@@ -40,6 +40,8 @@
 #include <list>
 #include <queue>
 #include <map>
+#include <unordered_set>
+#include <unordered_map>
 
 #include "Annotatable.h"
 #include "Node.h"
@@ -66,8 +68,8 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
     typedef boost::shared_ptr<Node> NodePtr;
     typedef boost::shared_ptr<Edge> EdgePtr;
 
-    typedef std::set<NodePtr> NodeSet;
-    typedef std::map<Address, NodeSet> NodeMap;
+    typedef std::unordered_set<NodePtr, Node::NodePtrHasher> NodeSet;
+    typedef std::unordered_map<Address, NodeSet> NodeMap;
 
  public:    
     typedef boost::shared_ptr<Graph> Ptr;

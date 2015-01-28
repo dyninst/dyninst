@@ -272,6 +272,12 @@ class AbsRegion {
 class Assignment {
  public:
   typedef boost::shared_ptr<Assignment> Ptr;
+  struct AssignmentPtrHasher {
+    size_t operator() (const Ptr& ap) const {
+      return (size_t)ap.get();
+    }
+  };
+
   typedef std::set<AbsRegion> Aliases;
 
   DATAFLOW_EXPORT const std::vector<AbsRegion> &inputs() const { return inputs_; }

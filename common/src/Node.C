@@ -157,7 +157,7 @@ NodeIterator NodeIterator::operator++(int) {
     ++(*this);
     return ret;    
 }
-
+/*
 // Prefix...
 NodeIterator &NodeIterator::operator--() {
     if (!iter_) return *this;
@@ -172,7 +172,7 @@ NodeIterator NodeIterator::operator--(int) {
     --(*this);
     return ret;    
 }
-
+*/
 
 Node::Ptr NodeIterator::operator*() const {
     if (!iter_) return Node::Ptr();
