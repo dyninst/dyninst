@@ -124,6 +124,9 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 	    }
 	}
     }
+//    fprintf(stderr, "%d\n", nodeColor.size());
+//    if (nodeColor.size() > 100) slice->printDOT("slice.dot");
+
     slice->clearEntryNodes();
     slice->markAsEntryNode(virtualEntry);
 }
@@ -191,7 +194,8 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    // and let it be top.
 	    // This should only contain the virtual entry node
 	    parsing_printf("This SCC does not incoming edges from outside\n");
-	    boundFacts[curNodes[0]] = new BoundFact();
+	    boundFactsIn[curNodes[0]] = new BoundFact();
+	    boundFactsOut[curNodes[0]] = new BoundFact();
 	}
 	parsing_printf("Starting analysis inside SCC %d\n", curOrder);
 	// We now start iterative analysis inside the SCC
@@ -204,7 +208,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    ++inQueueLimit[curNode];
 	    if (inQueueLimit[curNode] > IN_QUEUE_LIMIT) continue;
 	    
-	    BoundFact* oldFact = GetBoundFact(curNode);
+	    BoundFact* oldFactIn = GetBoundFactIn(curNode);
 	    parsing_printf("Calculate Meet for %lx", node->addr());
 	    if (node->assign()) {
 	        parsing_printf(", insn: %s\n", node->assign()->insn()->format().c_str());
@@ -217,14 +221,19 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 
 	    }
 	    parsing_printf("\tOld fact for %lx:\n", node->addr());
-	    if (oldFact == NULL) parsing_printf("\t\t do not exist\n"); else oldFact->Print();
-	    BoundFact* newFact = Meet(curNode);
+	    if (oldFactIn == NULL) parsing_printf("\t\t do not exist\n"); else oldFactIn->Print();
+	    BoundFact* newFactIn = Meet(curNode);
 	    parsing_printf("\tNew fact at %lx\n", node->addr());
-	    if (newFact != NULL) newFact->Print(); else parsing_printf("\t\tNot calculated\n");
-	    if (newFact != NULL && (oldFact == NULL || *oldFact != *newFact)) {
+	    if (newFactIn != NULL) newFactIn->Print(); else parsing_printf("\t\tNot calculated\n");
+	    if (newFactIn != NULL && (oldFactIn == NULL || *oldFactIn != *newFactIn)) {
 	        parsing_printf("\tFacts change!\n");
-		if (oldFact != NULL) delete oldFact;
-		boundFacts[curNode] = newFact;
+		if (oldFactIn != NULL) delete oldFactIn;
+		boundFactsIn[curNode] = newFactIn;
+		BoundFact* newFactOut = new BoundFact(*newFactIn);
+		CalcTransferFunction(curNode, newFactOut);
+		if (boundFactsOut.find(curNode) != boundFactsOut.end() && boundFactsOut[curNode] != NULL)
+		    delete boundFactsOut[curNode];
+		boundFactsOut[curNode] = newFactOut;
 		curNode->outs(nbegin, nend);
 	        for (; nbegin != nend; ++nbegin)
 		    // We only add node inside current SCC into the working list
@@ -233,7 +242,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 			inQueue.insert(*nbegin);
 		    }
 	    } else {
-	        if (newFact != NULL) delete newFact;
+	        if (newFactIn != NULL) delete newFactIn;
 		parsing_printf("\tFacts do not change!\n");
 	    }
 
@@ -261,7 +270,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 
 
 
-void BoundFactsCalculator::ThunkBound(BoundFact* curFact, Node::Ptr src, Node::Ptr trg) {
+void BoundFactsCalculator::ThunkBound( BoundFact*& curFact, Node::Ptr src, Node::Ptr trg, bool &newCopy) {
 
     // This function checks whether any found thunk is between 
     // the src node and the trg node. If there is any, then we have 
@@ -280,6 +289,7 @@ void BoundFactsCalculator::ThunkBound(BoundFact* curFact, Node::Ptr src, Node::P
     ParseAPI::Block *trgBlock = trgNode->block();
     Address trgAddr = trgNode->addr();
 
+    bool first = true;
     for (auto tit = thunks.begin(); tit != thunks.end(); ++tit) {
         ParseAPI::Block* thunkBlock = tit->second.block;
 	parsing_printf("\t\tCheck srcAddr at %lx, trgAddr at %lx, thunk at %lx\n", srcAddr, trgAddr, tit->first);
@@ -299,7 +309,12 @@ void BoundFactsCalculator::ThunkBound(BoundFact* curFact, Node::Ptr src, Node::P
 	parsing_printf("\t\t\tfind thunk at %lx between the source and the target. Add fact", tit->first);
 	BoundValue *bv = new BoundValue(tit->second.value);
 	bv->Print();
+	if (first && !newCopy) {
+	    newCopy = true;
+	    curFact = new BoundFact(*curFact);
+	}
 	curFact->GenFact(VariableAST::create(Variable(AbsRegion(Absloc(tit->second.reg)))), bv, false);
+	first = false;
     }
 
 
@@ -330,7 +345,8 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
     for (; gbegin != gend; ++gbegin) {
         TypedSliceEdge::Ptr edge = boost::static_pointer_cast<TypedSliceEdge>(*gbegin);	
 	SliceNode::Ptr srcNode = boost::static_pointer_cast<SliceNode>(edge->source()); 
-	BoundFact *prevFact = GetBoundFact(srcNode);	    
+	BoundFact *prevFact = GetBoundFactOut(srcNode);	    
+	bool newCopy = false;
 	if (prevFact == NULL) {
 	    parsing_printf("\t\tIncoming node %lx has not been calculated yet, ignore it\n", srcNode->addr());
 	    continue;
@@ -344,6 +360,8 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	parsing_printf("\t\tThe fact from %lx before applying transfer function\n", srcNode->addr());
 	prevFact->Print();
 	if (!srcNode->assign()) {
+	    prevFact = new BoundFact(*prevFact);
+	    newCopy = true;
 	    parsing_printf("\t\tThe predecessor node is the virtual entry ndoe\n");
 	    if (firstBlock) {
 	        // If the indirect jump is in the entry block
@@ -359,12 +377,9 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	            axAST = VariableAST::create(Variable(AbsRegion(Absloc(x86::eax))));
 	        prevFact->GenFact(axAST, new BoundValue(StridedInterval(1,0,8)), false);
 	    }
-	} else if (srcNode->assign() && srcNode->assign()->out().absloc().type() == Absloc::Register &&
-	    (srcNode->assign()->out().absloc().reg() == x86::zf || srcNode->assign()->out().absloc().reg() == x86_64::zf)) {
-	    // zf should be only predecessor of this node
-	    parsing_printf("\t\tThe predecessor node is zf assignment!\n");
-	    prevFact->SetPredicate(srcNode->assign(), ExpandAssignment(srcNode->assign()) );	    
 	} else if (srcNode->assign() && IsConditionalJump(srcNode->assign()->insn())) {
+	    prevFact = new BoundFact(*prevFact);
+	    newCopy = true;
 	    // If the predecessor is a conditional jump,
 	    // we can determine bound fact based on the predicate and the edge type
   	    parsing_printf("\t\tThe predecessor node is a conditional jump!\n");
@@ -372,14 +387,8 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	        fprintf(stderr, "From %lx to %lx\n", srcNode->addr(), node->addr());
 		assert(0);
 	    }
-	} else {
-	    // The predecessor is not a conditional jump,
-	    // then we can determine buond fact based on the src assignment
-	    parsing_printf("\t\tThe predecessor node is normal node\n");
-	    if (srcNode->assign()) parsing_printf("\t\t\tentry id %d\n", srcNode->assign()->insn()->getOperation().getID());
-  	    CalcTransferFunction(srcNode, prevFact);
-        }
-	ThunkBound(prevFact, srcNode, node);
+	} 
+	ThunkBound(prevFact, srcNode, node, newCopy);
 	parsing_printf("\t\tFact from %lx after applying transfer function\n", srcNode->addr());
 	prevFact->Print();
         if (first) {
@@ -389,18 +398,30 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    // is missing in the fact map, we assume
 	    // the a-loc is top. 
 	    first = false;
-	    newFact = prevFact;
+	    if (newCopy) newFact = prevFact; else newFact = new BoundFact(*prevFact);
 	} else {
 	    newFact->Meet(*prevFact);
-	    delete prevFact;
+	    if (newCopy) delete prevFact;
         }
     }
     return newFact;
 }
 
 void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact){
-
     SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);    
+    if (!node->assign()) return;
+    if (node->assign() && node->assign()->out().absloc().type() == Absloc::Register &&
+	    (node->assign()->out().absloc().reg() == x86::zf || node->assign()->out().absloc().reg() == x86_64::zf)) {
+	    // zf should be only predecessor of this node
+        parsing_printf("\t\tThe predecessor node is zf assignment!\n");
+	newFact->SetPredicate(node->assign(), ExpandAssignment(node->assign()) );	    
+	return;
+    }
+    // The predecessor is not a conditional jump,
+    // then we can determine buond fact based on the src assignment
+    parsing_printf("\t\tThe predecessor node is normal node\n");
+    parsing_printf("\t\t\tentry id %d\n", node->assign()->insn()->getOperation().getID());
+
     AbsRegion &ar = node->assign()->out();
     Instruction::Ptr insn = node->assign()->insn();
 
@@ -418,10 +439,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	return;
     }
     
-    parsing_printf("\t\t\t AST after expanding (without simplify) %s\n", expandRet.first->format().c_str());
-    AST::Ptr calculation = SimplifyAnAST(expandRet.first, insn->size());
-    parsing_printf("\t\t\t AST after expanding %s\n", calculation->format().c_str());
-	
+    AST::Ptr calculation = expandRet.first;	
     BoundCalcVisitor bcv(*newFact, node->block());
     calculation->accept(&bcv);
     
@@ -449,33 +467,48 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 
 }						
 
-BoundFact* BoundFactsCalculator::GetBoundFact(Node::Ptr node) {
-    auto fit = boundFacts.find(node);
-    if (fit == boundFacts.end())
+BoundFact* BoundFactsCalculator::GetBoundFactIn(Node::Ptr node) {
+    auto fit = boundFactsIn.find(node);
+    if (fit == boundFactsIn.end())
         return NULL;
     else
         return fit->second;
 }
-
+BoundFact* BoundFactsCalculator::GetBoundFactOut(Node::Ptr node) {
+    auto fit = boundFactsOut.find(node);
+    if (fit == boundFactsOut.end())
+        return NULL;
+    else
+        return fit->second;
+}
 BoundFactsCalculator::~BoundFactsCalculator() {
-    for (auto fit = boundFacts.begin(); fit != boundFacts.end(); ++fit)
+    for (auto fit = boundFactsIn.begin(); fit != boundFactsIn.end(); ++fit)
         if (fit->second != NULL)
 	    delete fit->second;
-    boundFacts.clear();
+    boundFactsIn.clear();
+    for (auto fit = boundFactsOut.begin(); fit != boundFactsOut.end(); ++fit)
+        if (fit->second != NULL)
+	    delete fit->second;
+    boundFactsOut.clear();
+
 }
 
 pair<AST::Ptr, bool> BoundFactsCalculator::ExpandAssignment(Assignment::Ptr assign) {
     if (expandCache.find(assign) != expandCache.end()) {
         AST::Ptr ast = expandCache[assign];
-	if (ast) return make_pair(DeepCopyAnAST(ast), true); else return make_pair(ast, false);
+//	if (ast) return make_pair(DeepCopyAnAST(ast), true); else return make_pair(ast, false);
+        if (ast) return make_pair(ast, true); else return make_pair(ast, false);
+
     } else {
         pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
 	if (expandRet.second && expandRet.first) {
-	    expandCache[assign] = DeepCopyAnAST(expandRet.first);
+	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, assign->insn()->size());
+	    //expandCache[assign] = DeepCopyAnAST(expandRet.first);
+	    expandCache[assign] = calculation;
 	} else {
 	    expandCache[assign] = AST::Ptr();
 	}
-	return expandRet;
+	return make_pair( expandCache[assign], expandRet.second );
     }
 }
 

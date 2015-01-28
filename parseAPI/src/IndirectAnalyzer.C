@@ -184,7 +184,7 @@ bool IndirectControlFlowAnalyzer::IsJumpTable(GraphPtr slice,
     
     const Absloc &loc = jumpNode->assign()->out().absloc();
     parsing_printf("Checking final bound fact for %s\n",loc.format().c_str()); 
-    BoundFact *bf = bfc.GetBoundFact(virtualExit);
+    BoundFact *bf = bfc.GetBoundFactOut(virtualExit);
     BoundValue *tarBoundValue = bf->GetBound(VariableAST::create(Variable(loc)));
     if (tarBoundValue != NULL) {
         target = *(tarBoundValue);

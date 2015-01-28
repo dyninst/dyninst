@@ -1239,6 +1239,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             ++num_insns; 
 
             if(ah.hasCFT()) {
+//	       if (false) {
 	       if (ah.isIndirectJump()) {
 	           // Create a work element to represent that
 		   // we will resolve the jump table later

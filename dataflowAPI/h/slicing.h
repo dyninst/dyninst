@@ -276,19 +276,22 @@ class Slicer {
     AbsRegion reg;
     Assignment::Ptr ptr;
   };
+  bool ReachableFromBothBranches(ParseAPI::Edge *e, std::vector<Element> &newE);
 
   // State for recursive slicing is a context, location pair
   // and a list of AbsRegions that are being searched for.
   struct SliceFrame {
     SliceFrame(
         Location const& l,
-        Context const& c)
+        Context const& c,
+	bool f)
       : loc(l),
         con(c),
-        valid(true)
+        valid(true),
+	firstCond(f)
     { }
-    SliceFrame() : valid(true) { }
-    SliceFrame(bool v) : valid(v) { }
+    SliceFrame() : valid(true), firstCond(true) { }
+    SliceFrame(bool v) : valid(v), firstCond(true) { }
 
     // Active slice nodes -- describe regions
     // that are currently under scrutiny
@@ -298,6 +301,7 @@ class Slicer {
     Location loc;
     Context con;
     bool valid;
+    bool firstCond;
 
     Address addr() const { return loc.addr(); }
   };

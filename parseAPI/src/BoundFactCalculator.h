@@ -19,7 +19,7 @@ using namespace Dyninst::ParseAPI;
 
 
 class BoundFactsCalculator {
-    BoundFactsType boundFacts;
+    BoundFactsType boundFactsIn, boundFactsOut;
     ParseAPI::Function *func;
     GraphPtr slice;
     bool firstBlock;
@@ -29,7 +29,7 @@ class BoundFactsCalculator {
 
     std::unordered_map<Assignment::Ptr, AST::Ptr, Assignment::AssignmentPtrHasher> expandCache;
 
-    void ThunkBound(BoundFact *curFact, Node::Ptr src, Node::Ptr trg);
+    void ThunkBound(BoundFact*& curFact, Node::Ptr src, Node::Ptr trg, bool &newCopy);
     BoundFact* Meet(Node::Ptr curNode);
     void CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact);
 
@@ -50,7 +50,8 @@ public:
     BoundFactsCalculator(ParseAPI::Function *f, GraphPtr s, bool first, ReachFact &r, ThunkData &t, Address addr): 
         func(f), slice(s), firstBlock(first), rf(r), thunks(t), jumpAddr(addr) {} 
 
-    BoundFact *GetBoundFact(Node::Ptr node);
+    BoundFact *GetBoundFactIn(Node::Ptr node);
+    BoundFact *GetBoundFactOut(Node::Ptr node);
     ~BoundFactsCalculator();
 };
 

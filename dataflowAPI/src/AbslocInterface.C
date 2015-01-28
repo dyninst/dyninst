@@ -674,6 +674,13 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
                           block,
 			  used,
 			  defined);
+    // PC should be regarded as a constant		
+    AbsRegion pc(Absloc::makePC(func->isrc()->getArch()));
+    for (auto uit = used.begin(); uit != used.end(); ++uit)
+        if (*uit == pc) {
+	    used.erase(uit);			 
+	    break;
+	}
     for (std::vector<AbsRegion>::const_iterator i = defined.begin();
 	 i != defined.end(); ++i) {
        Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, block, *i));

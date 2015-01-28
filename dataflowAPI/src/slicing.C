@@ -679,7 +679,7 @@ Slicer::getPredecessors(
 
     // Case 1: intra-block
     if(prev != cand.loc.rend) {
-        SliceFrame nf(cand.loc,cand.con);
+        SliceFrame nf(cand.loc,cand.con, cand.firstCond);
         nf.loc.rcurrent = prev;
 
         // Slightly more complicated than the forward case; check
@@ -1002,6 +1002,27 @@ static bool EndsWithConditionalJump(ParseAPI::Block *b) {
     return cond;
 }
 
+static void DFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visit, ParseAPI::Edge *ban, set<ParseAPI::Block*> &targets) {
+    if (visit.find(cur) != visit.end()) return;    
+    visit.insert(cur);
+    targets.erase(cur);
+    if (targets.empty()) return;
+    for (auto eit = cur->targets().begin(); eit != cur->targets().end(); ++eit)
+        if ((*eit) != ban && (*eit)->type() != CALL && (*eit)->type() != RET)
+	    DFS((*eit)->trg(), visit, ban, targets);
+}
+bool Slicer::ReachableFromBothBranches(ParseAPI::Edge *e, vector<Element> &newE) {
+    ParseAPI::Block *start;
+    start = e->src();
+    set<ParseAPI::Block*> visited , targets;
+    for (auto eit = newE.begin(); eit != newE.end(); ++eit)
+        targets.insert(eit->block);
+    DFS(start, visited, e, targets);
+//    fprintf(stderr, "%d %d\n", visited.size(), targets.size());
+    return targets.empty();
+}
+
+
 bool
 Slicer::handleDefault(
     Direction dir,
@@ -1016,17 +1037,19 @@ Slicer::handleDefault(
     } else {
         cur.loc.block = e->src();
         getInsnsBackward(cur.loc);
-	if (EndsWithConditionalJump(e->src())) {
+	if (cur.firstCond && EndsWithConditionalJump(e->src())) {
 	    vector<Element> newE;	 
 	    for (auto ait = cur.active.begin(); ait != cur.active.end(); ++ait) {	        
 	        Element &e = *(ait->second.begin());	
 	        newE.push_back(e);
 	    }
-	    if (cur.loc.block->obj()->cs()->getAddressWidth() == 8)
-	        cur.active[AbsRegion(Absloc(x86_64::rip))] = newE;
-	    else if  (cur.loc.block->obj()->cs()->getAddressWidth() == 4)
-	        cur.active[AbsRegion(Absloc(x86::eip))] = newE;
-
+	    if (!ReachableFromBothBranches(e, newE)) {
+	        if (cur.loc.block->obj()->cs()->getAddressWidth() == 8)
+		    cur.active[AbsRegion(Absloc(x86_64::rip))] = newE;
+		else if  (cur.loc.block->obj()->cs()->getAddressWidth() == 4)
+		    cur.active[AbsRegion(Absloc(x86::eip))] = newE;
+	    }
+	    cur.firstCond = false;
   	    slicing_printf("\tadding tracking ip for control flow information ");
 	}
     }
@@ -1069,7 +1092,7 @@ Slicer::handleCallBackward(
         ParseAPI::Function * f = (*mit).first;
         SliceFrame::ActiveMap & act = (*mit).second;
     
-        SliceFrame nf(cand.loc,cand.con);
+        SliceFrame nf(cand.loc,cand.con, cand.firstCond);
         nf.active = act;
 
         nf.con.push_back(ContextElement(f));

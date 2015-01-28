@@ -1268,9 +1268,7 @@ void BoundFact::SetPredicate(Assignment::Ptr assign,std::pair<AST::Ptr, bool> ex
 	SetToBottom();
 	return;
     }
-    parsing_printf("\t\texpand to %s\n", expandRet.first->format().c_str());
-    AST::Ptr simplifiedAST = SimplifyAnAST(expandRet.first, insn->size());
-    parsing_printf("\t\tafter simplifying %s\n", simplifiedAST->format().c_str());
+    AST::Ptr simplifiedAST = expandRet.first;
     switch (id) {
         case e_cmp:
 	case e_sub: {	
