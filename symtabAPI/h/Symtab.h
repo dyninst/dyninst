@@ -47,11 +47,13 @@
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/mem_fun.hpp>
 #include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/identity.hpp>
 using boost::multi_index_container;
 using boost::multi_index::indexed_by;
 using boost::multi_index::ordered_unique;
 using boost::multi_index::ordered_non_unique;
+using boost::multi_index::hashed_non_unique;
 
 using boost::multi_index::identity;
 using boost::multi_index::tag;
@@ -526,9 +528,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    boost::multi_index_container<Symbol::Ptr, indexed_by <
    ordered_unique< tag<id>, const_mem_fun < Symbol::Ptr, Symbol*, &Symbol::Ptr::get> >,
    ordered_non_unique< tag<offset>, const_mem_fun < Symbol, Offset, &Symbol::getOffset > >,
-   ordered_non_unique< tag<mangled>, const_mem_fun < Symbol, std::string, &Symbol::getMangledName > >,
-   ordered_non_unique< tag<pretty>, const_mem_fun < Symbol, std::string, &Symbol::getPrettyName > >,
-   ordered_non_unique< tag<typed>, const_mem_fun < Symbol, std::string, &Symbol::getTypedName > >
+   hashed_non_unique< tag<mangled>, const_mem_fun < Symbol, std::string, &Symbol::getMangledName > >,
+   hashed_non_unique< tag<pretty>, const_mem_fun < Symbol, std::string, &Symbol::getPrettyName > >,
+   hashed_non_unique< tag<typed>, const_mem_fun < Symbol, std::string, &Symbol::getTypedName > >
    >
    > indexed_symbols;
    

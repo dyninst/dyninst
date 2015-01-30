@@ -99,11 +99,12 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
     if (!isRegex) {
         // Easy case
         if (nameType & mangledName) {
-	  std::copy(mangledSyms.lower_bound(name), mangledSyms.upper_bound(name),
+	  auto mangled_range = mangledSyms.equal_range(name);
+	  std::copy(mangled_range.first, mangled_range.second,
 		    std::back_inserter(candidates));
 	  if(includeUndefined) 
 	  {
-	    std::copy(undefMangledSyms.lower_bound(name), undefMangledSyms.upper_bound(name),
+	    std::copy(undefMangledSyms.equal_range(name).first, undefMangledSyms.equal_range(name).second,
 		      std::back_inserter(candidates));
 	  }
 	  
@@ -113,11 +114,12 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
 	  //                                       undefDynSymsByMangledName[name].end());
         }
         if (nameType & prettyName) {
-	  std::copy(prettySyms.lower_bound(name), prettySyms.upper_bound(name),
+	  auto pretty_range = prettySyms.equal_range(name);
+	  std::copy(pretty_range.first, pretty_range.second,
 		    std::back_inserter(candidates));
 	  if(includeUndefined) 
 	  {
-	    std::copy(undefPrettySyms.lower_bound(name), undefPrettySyms.upper_bound(name),
+	    std::copy(undefPrettySyms.equal_range(name).first, undefPrettySyms.equal_range(name).second,
 		      std::back_inserter(candidates));
 	  }
 
@@ -127,11 +129,11 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
 	  //                                       undefDynSymsByPrettyName[name].end());
         }
         if (nameType & typedName) {
-	  std::copy(typedSyms.lower_bound(name), typedSyms.upper_bound(name),
+	  std::copy(typedSyms.equal_range(name).first, typedSyms.equal_range(name).second,
 		    std::back_inserter(candidates));
 	  if(includeUndefined) 
 	  {
-	    std::copy(undefTypedSyms.lower_bound(name), undefTypedSyms.upper_bound(name),
+	    std::copy(undefTypedSyms.equal_range(name).first, undefTypedSyms.equal_range(name).second,
 		      std::back_inserter(candidates));
 	  }
 	  //candidates.insert(candidates.end(), symsByTypedName[name].begin(), symsByTypedName[name].end());
