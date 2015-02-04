@@ -576,7 +576,7 @@ void Parser::ProcessCFInsn(
         }
 
         verbose_log(ah.getAddr(),curEdge);
-
+	parsing_printf("resolveable_edge: %d, tailcall: %d, target: %lx\n", resolvable_edge, tailcall, curEdge->first);
         ParseWorkElem * we = 
           bundle->add(
             new ParseWorkElem(

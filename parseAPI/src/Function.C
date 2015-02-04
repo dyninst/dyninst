@@ -339,7 +339,7 @@ Function::blocks_int()
             }
 
             if(!HASHDEF(visited,t->start())) {
-               parsing_printf("\t Adding target block to worklist\n");
+               parsing_printf("\t Adding target block [%lx,%lx) to worklist according to edge from %lx, type %d\n", t->start(), t->end(), e->src()->last(), e->type());
                 worklist.push_back(t);
                 visited[t->start()] = true;
                 add_block(t);

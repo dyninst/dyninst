@@ -1052,7 +1052,17 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         } else if (work->order() == ParseWorkElem::resolve_jump_table) {
 	    // resume to resolve jump table 
 	    parsing_printf("... continue parse indirect jump at %lx\n", work->ah()->getAddr());
-	    ProcessCFInsn(frame,work->cur(),*work->ah());
+	    Block *nextBlock = work->cur();
+	    if (nextBlock->last() != work->ah()->getAddr()) {
+	        // The block has been split
+	        region_data * rd = _parse_data->findRegion(frame.codereg);
+		set<Block*> blocks;
+		rd->blocksByRange.find(work->ah()->getAddr(), blocks);
+		assert(blocks.size() == 1);
+		nextBlock = *(blocks.begin());
+
+	    }
+	    ProcessCFInsn(frame,nextBlock,*work->ah());
             continue;
 	}
                        
@@ -1243,6 +1253,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 	       if (ah.isIndirectJump()) {
 	           // Create a work element to represent that
 		   // we will resolve the jump table later
+                   end_block(cur,ah);
                    frame.pushWork( frame.mkWork( work->bundle(), cur, ah));
 	       } else {
 	           ProcessCFInsn(frame,cur,ah);

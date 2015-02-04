@@ -266,7 +266,7 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
     }
 
     if(allInsns.size() < 2) {
-      if(context->addr() == _curBlk->start())
+      if(context->addr() == _curBlk->start() && curInsn()->getCategory() == c_BranchInsn)
       {
 	parsing_printf("\tjump as only insn in entry block, TAIL CALL\n");
 	tailCalls[type] = true;
