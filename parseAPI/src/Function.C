@@ -255,7 +255,8 @@ Function::blocks_int()
             Edge * e = *tit;
             Block * t = e->trg();
 
-            parsing_printf("\t Considering target block 0x%lx from edge %p\n", t->start(), e); 
+            parsing_printf("\t Considering target block [0x%lx,0x%lx) from edge %p\n", 
+			   t->start(), t->end(), e); 
 
             if (e->type() == CALL_FT) {
                found_call_ft = true;

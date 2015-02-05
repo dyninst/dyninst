@@ -252,13 +252,13 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       curName() = std::string();
       setMangledName(false);
 
-      dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p (%s), encl %p\n",
+      dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p, encl %p\n",
                    id(),
                    e,
                    (int) contexts_.c.size(), 
                    curFunc(),
-                   (curFunc() && !curFunc()->getAllMangledNames().empty()) ? 
-                   curFunc()->getAllMangledNames()[0].c_str() : "<null>",
+		   //                   (curFunc() && !curFunc()->getAllMangledNames().empty()) ? 
+                   //curFunc()->getAllMangledNames()[0].c_str() : "<null>",
                    curEnclosure());
 
       bool ret = false;
@@ -398,6 +398,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
 
       e = siblingDwarf;
    }
+   
    dwarf_printf("PARSE_INT exit, context size %d\n", (int) contexts_.c.size());
    return true;
 }
@@ -531,8 +532,8 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
       dwarf_printf("(0x%lx) Identified function name as %s\n", id(), curName().c_str());
       if (isMangledName())
          func->addMangledNameInternal(curName(), true, true);
-      else
-         func->addPrettyName(curName(), true);
+      //      else
+      // func->addPrettyName(curName(), true);
    }
 
    //Collect callsite information for inlined functions.
@@ -662,6 +663,8 @@ bool DwarfWalker::parseRangeTypes() {
                break;
          }
       }
+      dwarf_ranges_dealloc(dbg(), ranges, ranges_length);
+      
    }   
    return true;
 }
@@ -892,12 +895,12 @@ bool DwarfWalker::parseFormalParam() {
                                           paramType, 
                                           fileName, (int) lineNo, 
                                           curFunc());
-   dwarf_printf("(0x%lx) Creating new formal parameter %s/%p (%s)/%s (%p)\n",
+   dwarf_printf("(0x%lx) Creating new formal parameter %s/%p (%s) (%p)\n",
                 id(),
                 curName().c_str(), 
                 paramType, paramType->getName().c_str(),
-                ((curFunc() && !curFunc()->getAllMangledNames().empty()) ? 
-                 curFunc()->getAllMangledNames()[0].c_str() : ""),
+		//                ((curFunc() && !curFunc()->getAllMangledNames().empty()) ? 
+		//curFunc()->getAllMangledNames()[0].c_str() : ""),
                 curFunc());
 
    assert( newParameter != NULL );
@@ -1639,7 +1642,11 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
       if (!decodeLocationListForStaticOffsetOrAddress( locationList,
                                                        listLength, 
                                                        locs, 
-                                                       initialStackValue)) return false;
+                                                       initialStackValue)) {
+	deallocateLocationList( locationList, listLength );
+	return false;
+      }
+      
       
       deallocateLocationList( locationList, listLength );
    }
@@ -1743,7 +1750,10 @@ bool DwarfWalker::findConstant(Dwarf_Half attr,
    // Get the form (datatype) for this particular attribute
    DWARF_FAIL_RET(dwarf_whatform(d_attr, &form, NULL));
 
-   return findConstantWithForm(d_attr, form, value);
+   bool ret = findConstantWithForm(d_attr, form, value);
+   dwarf_dealloc(dbg(), d_attr, DW_DLA_ATTR);
+   return ret;
+   
 }
 
 bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,

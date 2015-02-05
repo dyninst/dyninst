@@ -464,8 +464,10 @@ BPatch_module::findFunction(const char *name,
          // If it matches, push onto the vector
          // Check all pretty names (and then all mangled names if there is no match)
          bool found_match = false;
-         for (unsigned piter = 0; piter < func->prettyNameVector().size(); piter++) {
-            const string &pName = func->prettyNameVector()[piter];
+         for (auto piter = func->pretty_names_begin(); 
+	      piter != func->pretty_names_end();
+	      ++piter) {
+	   const string &pName = *piter;
             int err;     
             if (0 == (err = regexec(&comp_pat, pName.c_str(), 1, NULL, 0 ))){
                if (func->isInstrumentable() || incUninstrumentable) {
@@ -479,8 +481,10 @@ BPatch_module::findFunction(const char *name,
          }
          if (found_match) continue; // Don't check mangled names
 
-         for (unsigned miter = 0; miter < func->symTabNameVector().size(); miter++) {
-            const string &mName = func->symTabNameVector()[miter];
+         for (auto miter = func->symtab_names_begin(); 
+	      miter != func->symtab_names_end();
+	      ++miter) {
+	   const string &mName = *miter;
             int err;
 
             if (0 == (err = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){

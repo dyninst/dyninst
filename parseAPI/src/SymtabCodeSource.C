@@ -73,8 +73,8 @@ SymtabCodeRegion::names(Address entry, vector<string> & names)
     bool found = _symtab->findFuncByEntryOffset(f,entry);
     if(found) {
         // just pretty names?
-        const vector<string> & pretty = f->getAllPrettyNames();
-        names.insert(names.begin(),pretty.begin(),pretty.end());
+        names.insert(names.begin(),f->pretty_names_begin(),
+		     f->pretty_names_end());
     }
 	else {
 		cerr << "\t Failed to find name" << endl;
@@ -494,11 +494,11 @@ SymtabCodeSource::nonReturning(Address addr)
     _symtab->findFuncByEntryOffset(f,addr); 
 
     if(f) {
-      const std::vector<std::string> &names = f->getAllMangledNames();
-      for (unsigned i = 0; i < names.size(); ++i) {
-	if (nonReturning(names[i])) {
-	  return true;
-	}
+      for(auto i = f->mangled_names_begin();
+	  i != f->mangled_names_end();
+	  ++i)
+      {
+	if(nonReturning(*i)) return true;
       }
     }
     return false;

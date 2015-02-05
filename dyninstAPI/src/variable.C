@@ -65,15 +65,26 @@ bool image_variable::addPrettyName(const std::string &name, bool isPrimary)
    return false;
 }       
 
-const vector<string>& image_variable::symTabNameVector() const 
+SymtabAPI::Aggregate::name_iter image_variable::symtab_names_begin() const
 {
-    return var_->getAllMangledNames();
+  return var_->mangled_names_begin();
 }
 
-const vector<string>& image_variable::prettyNameVector() const 
+SymtabAPI::Aggregate::name_iter image_variable::symtab_names_end() const
 {
-   return var_->getAllPrettyNames();
+  return var_->mangled_names_end();
 }
+SymtabAPI::Aggregate::name_iter image_variable::pretty_names_begin() const
+{
+  return var_->pretty_names_begin();
+}
+
+SymtabAPI::Aggregate::name_iter image_variable::pretty_names_end() const
+{
+  return var_->pretty_names_end();
+}
+
+
 
 int_variable::int_variable(image_variable *var, 
       Address base,
@@ -95,17 +106,26 @@ int_variable::int_variable(int_variable *parVar,
    // Mmm forkage
 }
 
-const vector<string>& int_variable::prettyNameVector() const 
+SymtabAPI::Aggregate::name_iter int_variable::symtab_names_begin() const
 {
-   return ivar_->prettyNameVector();
+  return ivar_->symtab_names_begin();
 }
 
-const vector<string>& int_variable::symTabNameVector() const 
+SymtabAPI::Aggregate::name_iter int_variable::symtab_names_end() const
 {
-   return ivar_->symTabNameVector();
+  return ivar_->symtab_names_end();
+}
+SymtabAPI::Aggregate::name_iter int_variable::pretty_names_begin() const
+{
+  return ivar_->pretty_names_begin();
 }
 
-const string &int_variable::symTabName() const 
+SymtabAPI::Aggregate::name_iter int_variable::pretty_names_end() const
+{
+  return ivar_->pretty_names_end();
+}
+
+string int_variable::symTabName() const 
 {
    return ivar_->symTabName();
 }

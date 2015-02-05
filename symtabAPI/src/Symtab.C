@@ -371,7 +371,6 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    newSectionInsertPoint(0),
    no_of_symbols(0),
    sorted_everyFunction(false),
-   isLineInfoValid_(false),
    isTypeInfoValid_(false),
    nlines_(0), fdptr_(0), lines_(NULL),
    stabstr_(NULL), nstabs_(0), stabs_(NULL),
@@ -380,7 +379,6 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(false),
    func_lookup(NULL),
-   lineInfo(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -416,7 +414,6 @@ SYMTAB_EXPORT Symtab::Symtab() :
    newSectionInsertPoint(0),
    no_of_symbols(0),
    sorted_everyFunction(false),
-   isLineInfoValid_(false),
    isTypeInfoValid_(false),
    nlines_(0), fdptr_(0), lines_(NULL),
    stabstr_(NULL), nstabs_(0), stabs_(NULL),
@@ -425,7 +422,6 @@ SYMTAB_EXPORT Symtab::Symtab() :
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(false),
    func_lookup(NULL),
-   lineInfo(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -667,7 +663,7 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
 
 #if !defined(os_vxworks)
       if (sym->getRegion() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
-         undefDynSyms.push_back(sym);
+         undefDynSyms.insert(sym);
          continue;
       }
 #endif
@@ -765,12 +761,14 @@ bool Symtab::createAggregates()
 #if !defined(os_vxworks)
     // In VxWorks, symbol offsets are not complete until object is loaded.
 
-    for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) 
-      {
-	if (!doNotAggregate(everyDefinedSymbol[i])) {
-	  addSymbolToAggregates(everyDefinedSymbol[i]);
-	}
-      }
+  for(auto i = everyDefinedSymbol.begin();
+      i != everyDefinedSymbol.end();
+      ++i)
+  {
+    if (!doNotAggregate(*i)) {
+      addSymbolToAggregates(*i);
+    }
+  }
 #endif
 
     return true;
@@ -856,8 +854,8 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
          pretty_name = working_name;
       }
       
-      sym->prettyName_ = pretty_name;
-      sym->typedName_ = typed_name;
+      //sym->prettyName_ = pretty_name;
+      //sym->typedName_ = typed_name;
    }
    else {
        // All cases where there really shouldn't be a mangled
@@ -865,7 +863,7 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
       
       char *prettyName = P_cplus_demangle(sym->getMangledName().c_str(), nativeCompiler, false);
       if (prettyName) {
-         sym->prettyName_ = std::string(prettyName);
+	//sym->prettyName_ = std::string(prettyName);
          // XXX caller-freed
          free(prettyName); 
       }
@@ -878,28 +876,31 @@ bool Symtab::addSymbolToIndices(Symbol *&sym, bool undefined)
 {
    assert(sym);
    if (!undefined) {
-      everyDefinedSymbol.push_back(sym);
-      symsByMangledName[sym->getMangledName()].push_back(sym);
-      symsByPrettyName[sym->getPrettyName()].push_back(sym);
-      symsByTypedName[sym->getTypedName()].push_back(sym);
+     if(everyDefinedSymbol.find(sym) == everyDefinedSymbol.end())
+       everyDefinedSymbol.insert(sym);
+      //      symsByMangledName[sym->getMangledName()].push_back(sym);
+      //symsByPrettyName[sym->getPrettyName()].push_back(sym);
+      //symsByTypedName[sym->getTypedName()].push_back(sym);
 #if !defined(os_vxworks)    
       // VxWorks doesn't know symbol addresses until object is loaded.
-      symsByOffset[sym->getOffset()].push_back(sym);
+      //symsByOffset[sym->getOffset()].push_back(sym);
 #endif
    }
    else {
       // We keep a different index for undefined symbols
-      undefDynSymsByMangledName[sym->getMangledName()].push_back(sym);
-      undefDynSymsByPrettyName[sym->getPrettyName()].push_back(sym);
-      undefDynSymsByTypedName[sym->getTypedName()].push_back(sym);
+      //undefDynSymsByMangledName[sym->getMangledName()].push_back(sym);
+      //undefDynSymsByPrettyName[sym->getPrettyName()].push_back(sym);
+      //undefDynSymsByTypedName[sym->getTypedName()].push_back(sym);
       // And undefDynSyms is already filled in
    }
+   
     return true;
 }
 
-bool Symtab::addSymbolToAggregates(Symbol *&sym) 
+bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp) 
 {
-
+  Symbol* sym = const_cast<Symbol*>(sym_tmp);
+  
     switch(sym->getType()) {
     case Symbol::ST_FUNCTION: 
     case Symbol::ST_INDIRECT:
@@ -993,7 +994,7 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
 // uses outlined locking primitives. These are named _L_lock_<num>
 // and _L_unlock_<num> and labelled as functions. We explicitly do
 // not include them in function scope.
-bool Symtab::doNotAggregate(Symbol *&sym) {
+bool Symtab::doNotAggregate(const Symbol *sym) {
   if (sym->getMangledName().compare(0, strlen("_L_lock_"), "_L_lock_") == 0) {
     return true;
   }
@@ -1015,7 +1016,9 @@ bool Symtab::doNotAggregate(Symbol *&sym) {
 /* Add the new name to the appropriate symbol index */
 
 bool Symtab::updateIndices(Symbol *sym, std::string newName, NameType nameType) {
-    if (nameType & mangledName) {
+
+#if 0
+     if (nameType & mangledName) {
         // Add this symbol under the given name (as mangled)
         symsByMangledName[newName].push_back(sym);
     }
@@ -1027,6 +1030,7 @@ bool Symtab::updateIndices(Symbol *sym, std::string newName, NameType nameType) 
         // Add this symbol under the given name (as typed)
         symsByTypedName[newName].push_back(sym);
     }
+#endif
     return true;
 }
 
@@ -1245,7 +1249,6 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    newSectionInsertPoint(0),
    no_of_symbols(0),
    sorted_everyFunction(false),
-   isLineInfoValid_(false),
    isTypeInfoValid_(false),
    nlines_(0), fdptr_(0), lines_(NULL),
    stabstr_(NULL), nstabs_(0), stabs_(NULL),
@@ -1254,7 +1257,6 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(defensive_bin),
    func_lookup(NULL),
-   lineInfo(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1319,7 +1321,6 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    newSectionInsertPoint(0),
    no_of_symbols(0),
    sorted_everyFunction(false),
-   isLineInfoValid_(false),
    isTypeInfoValid_(false),
    nlines_(0), fdptr_(0), lines_(NULL),
    stabstr_(NULL), nstabs_(0), stabs_(NULL),
@@ -1329,7 +1330,6 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    isStaticBinary_(false),
    isDefensiveBinary_(defensive_bin),
    func_lookup(NULL),
-   lineInfo(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1560,7 +1560,7 @@ bool Symtab::extractInfo(Object *linkedFile)
     // Be sure that module languages are set before demangling, or
     // we won't get very far.
 
-    if (!demangleSymbols(raw_syms)) 
+    /*    if (!demangleSymbols(raw_syms)) 
     {
         serr = Syms_To_Functions;
         return false;
@@ -1570,19 +1570,19 @@ bool Symtab::extractInfo(Object *linkedFile)
        serr = Syms_To_Functions;
        return false;
     }
-
+    */
     if (!createIndices(raw_syms, false)) 
     {
         serr = Syms_To_Functions;
         return false;
     }
 
-    if (!createIndices(undefDynSyms, true)) 
-    {
-        serr = Syms_To_Functions;
-        return false;
-    }
-
+    //if (!createIndices(undefDynSyms, true)) 
+    //{
+    //    serr = Syms_To_Functions;
+    //    return false;
+    //}
+    
     if (!createAggregates()) 
     {
         serr = Syms_To_Functions;
@@ -1628,7 +1628,6 @@ Symtab::Symtab(const Symtab& obj) :
    newSectionInsertPoint(0),
    no_of_symbols(obj.no_of_symbols),
    sorted_everyFunction(false),
-   isLineInfoValid_(obj.isLineInfoValid_),
    isTypeInfoValid_(obj.isTypeInfoValid_),
    nlines_(0), fdptr_(0), lines_(NULL),
    stabstr_(NULL), nstabs_(0), stabs_(NULL),
@@ -1637,7 +1636,6 @@ Symtab::Symtab(const Symtab& obj) :
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(obj.isDefensiveBinary_),
    func_lookup(NULL),
-   lineInfo(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1837,15 +1835,15 @@ Symtab::~Symtab()
    // Symbols are copied from linkedFile, and NOT deleted
    everyDefinedSymbol.clear();
    undefDynSyms.clear();
-   undefDynSymsByMangledName.clear();
-   undefDynSymsByPrettyName.clear();
-   undefDynSymsByTypedName.clear();
+   //undefDynSymsByMangledName.clear();
+   //undefDynSymsByPrettyName.clear();
+   //undefDynSymsByTypedName.clear();
 
    // TODO make annotation
-   symsByOffset.clear();
-   symsByMangledName.clear();
-   symsByPrettyName.clear();
-   symsByTypedName.clear();
+   //symsByOffset.clear();
+   //symsByMangledName.clear();
+   //symsByPrettyName.clear();
+   //symsByTypedName.clear();
 
    for (unsigned i = 0; i < everyFunction.size(); i++) 
    {
@@ -1894,9 +1892,6 @@ Symtab::~Symtab()
 
    //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
    if (mf) MappedFile::closeMappedFile(mf);
-
-   // Delete line information
-   delete lineInfo;
 
 }	
 
@@ -2299,49 +2294,24 @@ bool Symtab::addRegion(Region *sec)
 
 void Symtab::parseLineInformation()
 {
-   lineInfo = new dyn_hash_map <std::string, LineInformation>;
-
    Object *linkedFile = getObject();
-	if (!linkedFile)
-	{
-#if !defined(os_vxworks)
-		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
-#endif
-		return;
-	}
-   linkedFile->parseFileLineInfo(this, *lineInfo);
-
-   isLineInfoValid_ = true;	
-   dyn_hash_map <std::string, LineInformation>::iterator iter;
-
-   for (iter = lineInfo->begin(); iter!=lineInfo->end(); iter++)
+   if (!linkedFile)
    {
-      Module *mod = NULL;
-      bool result = findModuleByName(mod, iter->first);
-      if (!result) {
-         mod = getDefaultModule();
-      }
-
-         LineInformation *lineInformation = mod->getLineInformation();
-         if (!lineInformation) 
-         {
-            mod->setLineInfo(&(iter->second));
-         } 
-         else 
-         {
-            lineInformation->addLineInfo(&(iter->second));
-            mod->setLineInfo(lineInformation);
-         }
-      }
+#if !defined(os_vxworks)
+     fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+#endif
+     return;
+   }
+   linkedFile->parseFileLineInfo(this);
 }
 
 SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
       std::string lineSource, unsigned int lineNo)
 {
    unsigned int originalSize = ranges.size();
-
+   parseLineInformation();
+   
    /* Iteratate over the modules, looking for ranges in each. */
-
    for ( unsigned int i = 0; i < _mods.size(); i++ ) 
    {
       LineInformation *lineInformation = _mods[i]->getLineInformation();
@@ -2354,13 +2324,16 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&r
    if ( ranges.size() != originalSize )
       return true;
 
-   fprintf(stderr, "%s[%d]:  failing to getAdressRanges for %s[%d]\n", FILE__, __LINE__, lineSource.c_str(), lineNo);
+   fprintf(stderr, "%s[%d]:  failing to getAddressRanges for %s[%d]\n", 
+	   FILE__, __LINE__, lineSource.c_str(), lineNo);
    return false;
 }
 
 SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement *> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
+
+   getObject()->parseLineInfoForAddr(this, addressInRange);
 
    /* Iteratate over the modules, looking for ranges in each. */
    for ( unsigned int i = 0; i < _mods.size(); i++ ) 
@@ -2382,7 +2355,9 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement *> &lines, Offse
 SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
-   
+
+   getObject()->parseLineInfoForAddr(this, addressInRange);
+
    /* Iteratate over the modules, looking for ranges in each. */
    for ( unsigned int i = 0; i < _mods.size(); i++ ) 
    {
@@ -2472,12 +2447,7 @@ void Symtab::parseTypes()
 
    for (unsigned int i = 0; i < _mods.size(); ++i)
    {
-	   typeCollection *tc = typeCollection::getModTypeCollection(_mods[i]);
-
-	   if (!_mods[i]->addAnnotation(tc, ModuleTypeInfoAnno))
-	   {
-		   fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
-	   }
+     _mods[i]->setModuleTypes(typeCollection::getModTypeCollection(_mods[i]));
    }
 
    //  optionally we might want to clear the static data struct in typeCollection
@@ -2657,12 +2627,10 @@ bool Symtab::setDefaultNamespacePrefix(string &str)
 SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
     // Start with all the defined symbols
-    std::vector<Symbol *> allSyms;
+  std::vector<Symbol* > allSyms;
     allSyms.insert(allSyms.end(), everyDefinedSymbol.begin(), everyDefinedSymbol.end());
 
     // Add the undefined dynamic symbols
-    map<string, std::vector<Symbol *> >::iterator iter;
-    std::vector<Symbol *>::iterator siter;
 
     allSyms.insert(allSyms.end(), undefDynSyms.begin(), undefDynSyms.end());
 
@@ -2797,24 +2765,29 @@ SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, 
 
 SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
 {
-    // Find the symbol.
-    if (symsByMangledName.count(name) == 0) return false;
+  indexed_symbols::index<mangled>::type& mangled_syms = everyDefinedSymbol.get<mangled>();
+  // Find the symbol.
+  //if (symsByMangledName.count(name) == 0) return false;
+  if(mangled_syms.count(name) == 0) return false;
+  if(mangled_syms.count(name) > 1)
     // /* DEBUG
-    if (symsByMangledName[name].size() != 1)
-        fprintf(stderr, "*** Found %zu symbols with name %s.  Expecting 1.\n",
-                symsByMangledName[name].size(), name); // */
-    Symbol *sym = symsByMangledName[name][0];
-
-    // Update symbol.
-    Offset oldOffset = sym->getOffset();
-    sym->setOffset(newOffset);
-
+    //if (symsByMangledName[name].size() != 1)
+    fprintf(stderr, "*** Found %zu symbols with name %s.  Expecting 1.\n",
+	    mangled_syms.count(name), name); // */
+  indexed_symbols::index<mangled>::type::iterator sym = mangled_syms.find(name);
+  Symbol* new_sym = *sym;
+  
+  // Update symbol.
+  new_sym->setOffset(newOffset);
+  indexed_symbols::index<offset>::type& syms_by_offset = everyDefinedSymbol.get<offset>();
+  syms_by_offset.replace(everyDefinedSymbol.project<offset>(sym), new_sym);
+  
     /* DEBUG
     fprintf(stderr, "Fixing symbol %s from 0x%x to 0x%x\n",
             name, oldOffset, newOffset); // */
 
     // Update hashes.
-    if (symsByOffset.count(oldOffset)) {
+  /*   if (symsByOffset.count(oldOffset)) {
         std::vector<Symbol *>::iterator iter = symsByOffset[oldOffset].begin();
         while (iter != symsByOffset[oldOffset].end()) {
             if (*iter == sym) {
@@ -2826,10 +2799,10 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
     }
     if (!findSymbolByOffset(newOffset))
         symsByOffset[newOffset].push_back(sym);
-
+  */
     // Update aggregates.
-    if (!doNotAggregate(sym)) {
-      addSymbolToAggregates(sym);
+    if (!doNotAggregate(new_sym)) {
+      addSymbolToAggregates(new_sym);
     }
 
     return true;
@@ -3047,7 +3020,7 @@ bool Symtab::fixup_relocation_symbols(SerializerBase *, Symtab *st)
 
 void Symtab::rebuild_symbol_hashes(SerializerBase *sb)
 {
-	if (!is_input(sb))
+  /*	if (!is_input(sb))
 		return;
 
 	for (unsigned long i = 0; i < everyDefinedSymbol.size(); ++i)
@@ -3063,6 +3036,7 @@ void Symtab::rebuild_symbol_hashes(SerializerBase *sb)
 		symsByTypedName[tn].push_back(s);
 		symsByOffset[s->getOffset()].push_back(s);
 	}
+  */
 }
 
 void Symtab::rebuild_funcvar_hashes(SerializerBase *sb)
@@ -3151,7 +3125,6 @@ Serializable *Symtab::serialize_impl(SerializerBase *sb,
 		//  for an object class that does not exist.  Need to introduce logic to 
 		//  recreate the object in this case
 		isTypeInfoValid_ = true;
-		isLineInfoValid_ = true; //  NOTE:  set this to true after deserializing at least one lineInformaton object
 	}
 	gtranslate(sb, regions_, "Regions", "Region");
 	rebuild_region_indexes(sb);

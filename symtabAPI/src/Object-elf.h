@@ -314,7 +314,8 @@ class Object : public AObject {
   stab_entry * get_stab_info() const;
   std::string getFileName() const;
   void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
-  void parseFileLineInfo(Symtab *obj, dyn_hash_map<std::string, LineInformation> &li);
+  void parseFileLineInfo(Symtab *obj);
+  
   void parseTypeInfo(Symtab *obj);
 
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
@@ -363,7 +364,6 @@ class Object : public AObject {
 	//to determine if a mutation falls in the text section of
 	// a shared library
 	bool isinText(Offset addr, Offset baseaddr) const { 
-		//printf(" baseaddr %x TESTING %x %x \n", baseaddr, text_addr_ + baseaddr  , text_addr_ + baseaddr + text_size_ );
 		if(addr > text_addr_ + baseaddr     &&
 		   addr < text_addr_ + baseaddr + text_size_ ) {
 			return true;
@@ -549,9 +549,17 @@ class Object : public AObject {
   Symbol *handle_opd_symbol(Region *opd, Symbol *sym);
   void handle_opd_relocations();
   void parse_opd(Elf_X_Shdr *);
-  void parseStabFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &li);
-  void parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li);
-
+  void parseStabFileLineInfo(Symtab *);
+ public:
+  void parseDwarfFileLineInfo(Symtab* obj);
+  void parseLineInfoForAddr(Symtab* obj, Offset addr_to_find);
+  
+ private:
+  bool addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_find);
+  void parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li);
+  
+  
+  void createLineInfoForModules(dyn_hash_map<std::string, LineInformation> &li);
   void parseDwarfTypes(Symtab *obj);
   void parseStabTypes(Symtab *obj);
 
@@ -587,7 +595,6 @@ class Object : public AObject {
 
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
-  //void insert_symbols_static(std::vector<Symbol *> &allsymbols);
   bool fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp,
 					     Elf_X_Shdr *stabstrscnp);
   bool fix_global_symbol_modules_static_dwarf();
@@ -623,8 +630,6 @@ class Object : public AObject {
   const char* soname_;
   
 };
-
-//const char *pdelf_get_shnames(Elf *elfp, bool is64);
 
 }//namespace SymtabAPI
 }//namespace Dyninst

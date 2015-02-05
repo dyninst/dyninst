@@ -44,6 +44,7 @@
 #include "symutil.h"
 #include "Annotatable.h"
 #include "Serialization.h"
+#include <boost/shared_ptr.hpp>
 
 #ifndef CASE_RETURN_STR
 #define CASE_RETURN_STR(x) case x: return #x
@@ -82,6 +83,34 @@ class SYMTAB_EXPORT Symbol : public Serializable,
          typeCommon *);
 
    public:
+   struct Ptr
+   {
+   Ptr(Symbol* s) : m_this(s)
+     {
+     }
+     ~Ptr() 
+     {
+     }
+     Symbol* get() const
+     {
+       return m_this;
+     }
+     operator Symbol*() const
+     {
+       return m_this;
+     }
+     Symbol* operator->() const
+     {
+       return m_this;
+       
+     }
+     
+     Symbol* m_this;
+     
+   };
+   
+   
+   
 
    enum SymbolType {
       ST_UNKNOWN,
@@ -148,9 +177,9 @@ class SYMTAB_EXPORT Symbol : public Serializable,
    /***********************************************************
      Name Output Functions
     ***********************************************************/		
-   const std::string&      getMangledName () const;
-   const std::string&	 getPrettyName() const;
-   const std::string&      getTypedName() const;
+   std::string      getMangledName () const;
+   std::string	 getPrettyName() const;
+   std::string      getTypedName() const;
 
    Module *getModule() const { return module_; } 
    Symtab *getSymtab() const;
@@ -239,8 +268,6 @@ class SYMTAB_EXPORT Symbol : public Serializable,
    Aggregate *   aggregate_; // Pointer to Function or Variable container, if appropriate.
 
    std::string mangledName_;
-   std::string prettyName_;
-   std::string typedName_;
 
    SymbolTag     tag_;
    int index_;

@@ -238,10 +238,12 @@ class image_variable {
 
     Address getOffset() const;
 
-    const string &symTabName() const { return var_->getAllMangledNames()[0]; }
-    const vector<string>&  symTabNameVector() const;
-    const vector<string>& prettyNameVector() const;
-
+    string symTabName() const { return var_->getFirstSymbol()->getMangledName(); }
+    SymtabAPI::Aggregate::name_iter symtab_names_begin() const;
+    SymtabAPI::Aggregate::name_iter symtab_names_end() const;
+    SymtabAPI::Aggregate::name_iter pretty_names_begin() const;
+    SymtabAPI::Aggregate::name_iter pretty_names_end() const;
+    
     bool addSymTabName(const std::string &, bool isPrimary = false);
     bool addPrettyName(const std::string &, bool isPrimary = false);
 

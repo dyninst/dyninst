@@ -80,7 +80,7 @@ class BPATCH_DLL_EXPORT BPatch_loopTreeNode {
 
     //  BPatch_loopTreeNode::getCalleeName
     //  Return the function name of the ith callee. 
-    const char * getCalleeName(unsigned int i);
+    std::string getCalleeName(unsigned int i);
 
     //  BPatch_loopTreeNode::numCallees
     //  Return the number of callees contained in this loop's body. 

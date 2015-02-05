@@ -41,7 +41,8 @@
 
 #include <iostream>
 #include "Annotatable.h"
-
+#include <boost/iterator/transform_iterator.hpp>
+#include <functional>
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
 
 namespace Dyninst{
@@ -83,11 +84,18 @@ class SYMTAB_EXPORT Aggregate
       Symbol *getFirstSymbol() const;
 
       /***** Symbol naming *****/
-      const std::vector<std::string> &getAllMangledNames();
-      const std::vector<std::string> &getAllPrettyNames();
-      const std::vector<std::string> &getAllTypedNames();
-
-      /***** Aggregate updating *****/
+      //std::vector<std::string> getAllMangledNames();
+      //std::vector<std::string> getAllPrettyNames();
+      //std::vector<std::string> getAllTypedNames();
+      typedef boost::transform_iterator<std::const_mem_fun_t<string, Symbol>, vector<Symbol*>::const_iterator> name_iter;
+      name_iter mangled_names_begin() const;
+      name_iter mangled_names_end() const;
+      name_iter pretty_names_begin() const;
+      name_iter pretty_names_end() const;
+      name_iter typed_names_begin() const;
+      name_iter typed_names_end() const;
+      
+     /***** Aggregate updating *****/
       virtual bool addMangledName(std::string name, bool isPrimary);
       virtual bool addPrettyName(std::string name, bool isPrimary);
       virtual bool addTypedName(std::string name, bool isPrimary);
@@ -112,16 +120,13 @@ class SYMTAB_EXPORT Aggregate
       Symbol *firstSymbol;  // cached for speed
       Offset offset_;       // cached for speed
 
-      std::vector<std::string> mangledNames_;
-      std::vector<std::string> prettyNames_;
-      std::vector<std::string> typedNames_;
 
-	  void restore_type_by_id(SerializerBase *, Type *&, unsigned) THROW_SPEC (SerializerError);
-	  void restore_module_by_name(SerializerBase *, std::string &) THROW_SPEC (SerializerError);
-	  //void rebuild_symbol_vector(SerializerBase *, std::vector<Offset> *) THROW_SPEC (SerializerError);
-	  void rebuild_symbol_vector(SerializerBase *, std::vector<Address> &) THROW_SPEC (SerializerError);
-	  void serialize_aggregate(SerializerBase *, const char * = "Aggregate") THROW_SPEC (SerializerError);
-     bool addMangledNameInternal(std::string name, bool isPrimary, bool demangle);
+      void restore_type_by_id(SerializerBase *, Type *&, unsigned) THROW_SPEC (SerializerError);
+      void restore_module_by_name(SerializerBase *, std::string &) THROW_SPEC (SerializerError);
+      //void rebuild_symbol_vector(SerializerBase *, std::vector<Offset> *) THROW_SPEC (SerializerError);
+      void rebuild_symbol_vector(SerializerBase *, std::vector<Address> &) THROW_SPEC (SerializerError);
+      void serialize_aggregate(SerializerBase *, const char * = "Aggregate") THROW_SPEC (SerializerError);
+      bool addMangledNameInternal(std::string name, bool isPrimary, bool demangle);
 };
 
 }

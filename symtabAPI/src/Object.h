@@ -187,6 +187,8 @@ protected:
     unsigned no_of_symbols_;
 
     bool deferredParse;
+    bool parsedAllLineInfo;
+    
     void (*err_func_)(const char*);
     int addressWidth_nbytes;
 

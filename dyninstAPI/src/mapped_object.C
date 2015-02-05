@@ -724,27 +724,33 @@ void mapped_object::addFunctionName(func_instance *func,
    }
 
    assert(funcsByName != NULL);
-   funcsByName->push_back(func);
+   if(std::find(funcsByName->begin(),
+		funcsByName->end(),
+		func) == funcsByName->end()) 
+   {
+     funcsByName->push_back(func);
+   }
 }
+
 
 
 void mapped_object::addFunction(func_instance *func) {
     // Possibly multiple demangled (pretty) names...
     // And multiple functions (different addr) with the same pretty
     // name. So we have a many::many mapping...
-    for (unsigned pretty_iter = 0;
-         pretty_iter < func->prettyNameVector().size();
-         pretty_iter++) {
-        string pretty_name = func->prettyNameVector()[pretty_iter];
-        addFunctionName(func, pretty_name.c_str(), allFunctionsByPrettyName);
-    }
-
+  for (auto pretty_iter = func->pretty_names_begin();
+       pretty_iter != func->pretty_names_end();
+       ++pretty_iter)
+  {
+        addFunctionName(func, pretty_iter->c_str(), allFunctionsByPrettyName);
+  }
+  for(auto symtab_iter = func->symtab_names_begin();
+      symtab_iter != func->symtab_names_end();
+      ++symtab_iter)
+  {
+    
     // And multiple symtab names...
-    for (unsigned symtab_iter = 0;
-         symtab_iter < func->symTabNameVector().size();
-         symtab_iter++) {
-        string symtab_name = func->symTabNameVector()[symtab_iter];
-        addFunctionName(func, symtab_name.c_str(), allFunctionsByMangledName);
+        addFunctionName(func, symtab_iter->c_str(), allFunctionsByMangledName);
     }
 
     func->mod()->addFunction(func);
@@ -770,10 +776,11 @@ void mapped_object::addVariable(int_variable *var) {
     // Possibly multiple demangled (pretty) names...
     // And multiple functions (different addr) with the same pretty
     // name. So we have a many::many mapping...
-    for (unsigned pretty_iter = 0;
-         pretty_iter < var->prettyNameVector().size();
+  
+  for (auto pretty_iter = var->pretty_names_begin();
+         pretty_iter != var->pretty_names_end();
          pretty_iter++) {
-        string pretty_name = var->prettyNameVector()[pretty_iter];
+        string pretty_name = *pretty_iter;
         pdvector<int_variable *> *varsByPrettyEntry = NULL;
 
         // Ensure a vector exists
@@ -785,17 +792,22 @@ void mapped_object::addVariable(int_variable *var) {
         else {
            varsByPrettyEntry = iter->second;
         }
-
-
-        (*varsByPrettyEntry).push_back(var);
+	if(std::find(varsByPrettyEntry->begin(),
+		     varsByPrettyEntry->end(),
+		     var) == varsByPrettyEntry->end())
+	{
+	  varsByPrettyEntry->push_back(var);
+	}
+	
     }
 
+    
     // And multiple symtab names...
-    for (unsigned symtab_iter = 0;
-         symtab_iter < var->symTabNameVector().size();
+    for (auto symtab_iter = var->symtab_names_begin();
+         symtab_iter != var->symtab_names_end();
          symtab_iter++) {
-        string symtab_name = var->symTabNameVector()[symtab_iter];
-        pdvector<int_variable *> *varsBySymTabEntry = NULL;
+      string symtab_name = *symtab_iter;
+      pdvector<int_variable *> *varsBySymTabEntry = NULL;
 
         // Ensure a vector exist
         auto iter = allVarsByMangledName.find(symtab_name);
@@ -806,8 +818,12 @@ void mapped_object::addVariable(int_variable *var) {
         else {
            varsBySymTabEntry = iter->second;
         }
-
-        (*varsBySymTabEntry).push_back(var);
+	if(std::find(varsBySymTabEntry->begin(),
+		     varsBySymTabEntry->end(),
+		     var) == varsBySymTabEntry->end())
+	{
+	  varsBySymTabEntry->push_back(var);
+	}
     }
 
     everyUniqueVariable[var->ivar()] = var;
@@ -1779,8 +1795,8 @@ void mapped_object::remove(func_instance *func) {
     funcs_.erase(func->ifunc());
 
     // remove symtab names
-    for (auto name_iter = func->symTabNameVector().begin();
-         name_iter != func->symTabNameVector().end(); 
+    for (auto name_iter = func->symtab_names_begin();
+         name_iter != func->symtab_names_end(); 
          ++name_iter) {
        auto map_iter = allFunctionsByMangledName.find(*name_iter);
        if (map_iter == allFunctionsByMangledName.end()) continue;
@@ -1800,8 +1816,8 @@ void mapped_object::remove(func_instance *func) {
     }
 
     // remove pretty names
-    for (auto name_iter = func->prettyNameVector().begin();
-         name_iter != func->prettyNameVector().end(); 
+    for (auto name_iter = func->pretty_names_begin();
+         name_iter != func->pretty_names_end(); 
          ++name_iter) {
        auto map_iter = allFunctionsByPrettyName.find(*name_iter);
        if (map_iter == allFunctionsByPrettyName.end()) continue;
