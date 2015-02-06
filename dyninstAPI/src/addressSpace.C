@@ -1696,8 +1696,14 @@ bool AddressSpace::relocate() {
         unsigned int num = modFuncs.size();
         FuncSet overlappingFuncs;
         for (FuncSet::iterator iter2 = modFuncs.begin(); iter2 != modFuncs.end(); ++iter2) {
-           block_instance *entry = (*iter2)->entryBlock();
-           entry->getFuncs(std::inserter(overlappingFuncs,overlappingFuncs.begin()));
+//           block_instance *entry = (*iter2)->entryBlock();
+//           entry->getFuncs(std::inserter(overlappingFuncs,overlappingFuncs.begin()));
+           // Check whether any blocks in the function are are members of any other functions
+            func_instance* curFunc = *iter2;
+            for (auto iter3 = curFunc->blocks().begin(); iter3 != curFunc->blocks().end(); ++iter3) {
+                block_instance* curBlock = SCAST_BI(*iter3);
+                curBlock->getFuncs(std::inserter(overlappingFuncs,overlappingFuncs.begin()));
+           }
         }
         modFuncs.insert(overlappingFuncs.begin(), overlappingFuncs.end());
         if (num < modFuncs.size()) {
