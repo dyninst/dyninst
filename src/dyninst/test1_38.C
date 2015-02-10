@@ -141,14 +141,14 @@ test_results_t test1_38_Mutator::executeTest()
 	if (f38_1 != "funCall38_1") 
 	{
 		logerror("**Failed** test #38 (CFG loop/callee tree)\n");
-		logerror("    expected funCall38_1 not %s.\n",f38_1);
+		logerror("    expected funCall38_1 not %s.\n",f38_1.c_str());
 		//return FAILED;
 	}
 
 	if (f38_7 != "funCall38_7") 
 	{
 		logerror("**Failed** test #38 (CFG loop/callee tree)\n");
-		logerror("    expected funCall38_7 not %s.\n",f38_7);
+		logerror("    expected funCall38_7 not %s.\n",f38_7.c_str());
 		//return FAILED;
 	}
 
@@ -179,21 +179,21 @@ test_results_t test1_38_Mutator::executeTest()
 	if (f38_2 != "funCall38_2") 
 	{
 		logerror("**Failed** test #38 (CFG loop/callee tree)\n");
-		logerror("    expected funCall38_2 not %s.\n",f38_2);
+		logerror("    expected funCall38_2 not %s.\n",f38_2.c_str());
 		return FAILED;
 	}
 
 	if (f38_4 != "funCall38_4") 
 	{
 		logerror("**Failed** test #38 (CFG loop/callee tree)\n");
-		logerror("    expected funCall38_4 not %s.\n",f38_4);
+		logerror("    expected funCall38_4 not %s.\n",f38_4.c_str());
 		return FAILED;
 	}
 
 	if (f38_6 != "funCall38_6") 
 	{
 		logerror("**Failed** test #38 (CFG loop/callee tree)\n");
-		logerror("    expected funCall38_6 not %s.\n",f38_6);
+		logerror("    expected funCall38_6 not %s.\n",f38_6.c_str());
 		return FAILED;
 	}
 
@@ -211,7 +211,7 @@ test_results_t test1_38_Mutator::executeTest()
 		logerror("**Failed** test #38 (CFG loop/callee tree)\n");
 		logerror("    second for loop had %d funcs (%s), should be 0.\n",
 				secondForLoop->numCallees(),
-				secondForLoop->getCalleeName(0));
+			 secondForLoop->getCalleeName(0).c_str());
 		return FAILED;
 	}
 
@@ -239,7 +239,7 @@ test_results_t test1_38_Mutator::executeTest()
 	if (f38_3 != "funCall38_3") 
 	{
 		logerror("**Failed** test #38 (CFG loop/callee tree)\n");
-		logerror("    expected funCall38_3 not %s.\n",f38_3);
+		logerror("    expected funCall38_3 not %s.\n",f38_3.c_str());
 		return FAILED;
 	}
 
@@ -265,7 +265,7 @@ test_results_t test1_38_Mutator::executeTest()
 	if (f38_5 != "funCall38_5") 
 	{
 		logerror("**Failed** test #38 (CFG loop/callee tree)\n");
-		logerror("    expected funCall38_5 not %s.\n",f38_5);
+		logerror("    expected funCall38_5 not %s.\n",f38_5.c_str());
 		return FAILED;
 	}
 
