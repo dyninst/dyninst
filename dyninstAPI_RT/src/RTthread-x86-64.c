@@ -54,6 +54,3 @@ int tc_lock_lock(tc_lock_t *tc)
    return 0;
 }
 
-unsigned DYNINSTthreadIndexFAST() {
-   return 0;
-}

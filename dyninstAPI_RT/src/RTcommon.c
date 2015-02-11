@@ -42,7 +42,6 @@
 
 unsigned int DYNINSTobsCostLow;
 DLLEXPORT unsigned int DYNINSThasInitialized = 0;
-unsigned DYNINST_max_num_threads = MAX_THREADS;
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTdebugRTlib = 0;
@@ -115,9 +114,24 @@ FILE *stOut;
 int fakeTickCount;
 
 
-unsigned *DYNINST_tramp_guards;
+#if defined(_MSC_VER)
+#define TLS_VAR __declspec(thread)
+#else
+#define TLS_VAR __thread
+#endif
 
-DLLEXPORT unsigned DYNINST_default_tramp_guards[MAX_THREADS+1];
+TLS_VAR int DYNINST_tls_tramp_guard = 1;
+
+DLLEXPORT int DYNINST_lock_tramp_guard()
+{
+  if(!DYNINST_tls_tramp_guard) return 0;
+  DYNINST_tls_tramp_guard = 0;
+  return 1;
+}
+DLLEXPORT void DYNINST_unlock_tramp_guard()
+{
+  DYNINST_tls_tramp_guard = 1;
+}
 
 #if defined(os_linux)
 void DYNINSTlinuxBreakPoint();
@@ -138,41 +152,16 @@ static void initFPU()
    DYNINSTdummydouble *= x;
 }
 
-static void initTrampGuards(unsigned maxthreads)
-{
-
-   unsigned i;
-
-   /*We allocate maxthreads+1 because maxthreads is sometimes used as an*/
-   /*error value to mean we don't know what thread this is.  Sometimes used*/
-   /*during the early setup phases.*/
-   if (maxthreads <= MAX_THREADS) {
-      DYNINST_tramp_guards = DYNINST_default_tramp_guards;
-   }
-   else {
-      DYNINST_tramp_guards = (unsigned *) malloc((maxthreads+1)*sizeof(unsigned));
-   }
-   for (i=0; i<maxthreads; i++)
-   {
-      DYNINST_tramp_guards[i] = 1;
-   }
-}
-
 /**
  * This function is called in both static and dynamic rewriting, on
  * all platforms that support binary rewriting, but before DYNINSTinit
  **/
 void DYNINSTBaseInit()
 {
-   unsigned i;
-   DYNINST_max_num_threads = MAX_THREADS;
-   DYNINST_tramp_guards = DYNINST_default_tramp_guards;
-   for (i=0; i<DYNINST_max_num_threads+1; i++)
-      DYNINST_tramp_guards[i] = 1;
 #if defined(cap_mutatee_traps)
    DYNINSTinitializeTrapHandler();
 #endif
-   DYNINST_initialize_index_list();
+   DYNINST_unlock_tramp_guard();
    DYNINSThasInitialized = 1;
 
    RTuntranslatedEntryCounter = 0;
@@ -197,7 +186,6 @@ void DYNINSTinit()
    mark_heaps_exec();
 
    tc_lock_init(&DYNINST_trace_lock);
-   if(DYNINST_max_num_threads < MAX_THREADS) DYNINST_max_num_threads = MAX_THREADS;
    DYNINSThasInitialized = 1;
    rtdebug_printf("%s[%d]:  welcome to DYNINSTinit\n", __FILE__, __LINE__);
 
@@ -205,10 +193,6 @@ void DYNINSTinit()
    assert(sizeof(int64_t) == 8);
    assert(sizeof(int32_t) == 4);
    
-   initTrampGuards(DYNINST_max_num_threads);
-
-   DYNINST_initialize_index_list();
-
    /* defensive stuff */
    memset(DYNINST_target_cache, 
           0, 
@@ -648,19 +632,6 @@ int dyninst_lock(dyninst_lock_t *lock)
 void dyninst_unlock(dyninst_lock_t *lock)
 {
    tc_lock_unlock(lock);
-}
-
-unsigned dyninst_maxNumOfThreads()
-{
-#if !defined(cap_threads)
-   return 1;
-#else
-   if (!DYNINSThasInitialized)
-      return 0;
-   if (!DYNINST_multithread_capable)
-      return 1;
-   return DYNINST_max_num_threads;
-#endif
 }
 
 int rtdebug_printf(char *format, ...)

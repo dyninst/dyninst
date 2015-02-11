@@ -66,8 +66,6 @@ extern int DYNINSTdebugRTlib;
 
 DLLEXPORT extern int DYNINSTstaticMode;
 
-#define MAX_THREADS 32 //Should match MAX_THREADS in process.h
-#define THREADS_HASH_SIZE 40 //MAX_THREADS*1.25
 
 int rtdebug_printf(char *format, ...);
 #endif

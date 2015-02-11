@@ -905,32 +905,6 @@ void BinaryEdit::setupRTLibrary(std::vector<BinaryEdit *> &r)
    }
 }
 
-void BinaryEdit::setTrampGuard(int_variable* tg)
-{
-  trampGuardBase_ = tg;
-}
-
-
-int_variable* BinaryEdit::createTrampGuard()
-{
-  // If we have one, just return it
-  if(trampGuardBase_) return trampGuardBase_;
-  assert(rtlib.size());
-
-  std::vector<BinaryEdit *>::iterator rtlib_it;
-  const int_variable *var = NULL;
-  for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
-      mapped_object *mobj = (*rtlib_it)->getMappedObject();
-      var = mobj->getVariable("DYNINST_default_tramp_guards");
-      if( var ) break;
-  }
-  
-  assert(var);
-  trampGuardBase_ = const_cast<int_variable *>(var);
-  
-  return trampGuardBase_;
-}
-
 vector<BinaryEdit *> &BinaryEdit::rtLibrary()
 {
    return rtlib;

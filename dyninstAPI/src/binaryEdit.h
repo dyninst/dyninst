@@ -174,9 +174,6 @@ class BinaryEdit : public AddressSpace {
 
    mapped_object *getMappedObject();
    
-   int_variable* createTrampGuard();
-   void setTrampGuard(int_variable* tg); 
-
    void setMultiThreadCapable(bool b);
 
    void addSibling(BinaryEdit *);

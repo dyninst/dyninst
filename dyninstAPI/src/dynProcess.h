@@ -479,12 +479,8 @@ protected:
     AstNodePtr createUnprotectStackAST(); // architecture-specific
     bool setRTLibInitParams();
     bool instrumentMTFuncs();
-    bool initTrampGuard();
     bool extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record);
     bool iRPCDyninstInit();
-    bool registerThread(PCThread *thread);
-    bool unregisterThread(PCThread *thread);
-    bool initializeRegisterThread();
 
 
     Address getRTEventBreakpointAddr();
