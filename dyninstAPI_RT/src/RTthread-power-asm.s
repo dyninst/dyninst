@@ -18,3 +18,5 @@ compare_and_swap2:
    mr       3,5
    blr
    .machine "pop"
+
+.section .note.GNU-stack,"",@progbits

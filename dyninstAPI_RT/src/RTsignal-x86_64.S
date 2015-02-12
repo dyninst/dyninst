@@ -17,3 +17,5 @@ dyninstTrapHandler2:
         pop %r11
         popfq
         retq
+
+.section .note.GNU-stack,"",@progbits

@@ -91,3 +91,5 @@ atomic_set_return_0:
 #endif
 
    .machine "pop"
+
+.section .note.GNU-stack,"",@progbits        

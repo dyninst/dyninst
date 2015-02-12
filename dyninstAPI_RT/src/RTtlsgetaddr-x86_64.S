@@ -51,4 +51,8 @@ ___tls_get_addr:
     mov (%rdi), %rax /* Get the TLS offset of the variable */
     add %fs:0, %rax /* Get the absolute address of the variable */
     ret
+
 #endif
+
+.section .note.GNU-stack,"",@progbits
+        

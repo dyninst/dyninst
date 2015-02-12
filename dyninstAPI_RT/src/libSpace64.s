@@ -19,3 +19,5 @@ LT..DYNINSTstaticHeap_1048576_textHeap_libSpace:
 _section_.text:
 .csect .data[RW],3
 	.llong _section_.text
+
+.section .note.GNU-stack,"",@progbits        
