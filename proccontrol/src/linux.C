@@ -398,8 +398,11 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 					      NULL, &exitcode);
 		       if(result == -1) 
 		       {
-			 perr_printf("Error getting event message from exit\n");
-			 return false;
+                          int error = errno;
+                          perr_printf("Error getting event message from exit\n");
+                          if (error == ESRCH)
+                             proc->setLastError(err_exited, "Process exited during operation");
+                          return false;
 		       }
 		       exitcode = WEXITSTATUS(exitcode);
 		       
@@ -435,7 +438,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      int result = do_ptrace((pt_req) PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(), 
                                             NULL, &cpid_l);
                      if (result == -1) {
+                        int error = errno;
                         perr_printf("Error getting event message from fork/clone\n");
+                        if (error == ESRCH)
+                           proc->setLastError(err_exited, "Process exited during operation");
                         return false;
                      }
                      pid_t cpid = (pid_t) cpid_l;                     
@@ -970,6 +976,8 @@ bool linux_process::plat_attach(bool, bool &)
            int errnum = errno;
            pthrd_printf("Unable to continue process %d to flush out attach: %s\n",
                    pid, strerror(errnum));
+           if (errnum == ESRCH)
+              setLastError(err_exited, "Process exited during operation");
            return false;
        }
    }
@@ -1438,7 +1446,7 @@ bool linux_thread::plat_stop()
       int err = errno;
       if (err == ESRCH) {
          pthrd_printf("t_kill failed on %d, thread doesn't exist\n", lwp);
-         setLastError(err_noproc, "Thread no longer exists");
+         setLastError(err_exited, "Operation on exited thread");
          return false;
       }
       pthrd_printf("t_kill failed on %d: %s\n", lwp, strerror(err));
@@ -1464,7 +1472,10 @@ void linux_thread::setOptions()
       int result = do_ptrace((pt_req) PTRACE_SETOPTIONS, lwp, NULL, 
                           (void *) options);
       if (result == -1) {
+         int error = errno;
          pthrd_printf("Failed to set options for %lu: %s\n", tid, strerror(errno));
+         if (error == ESRCH)
+            setLastError(err_exited, "Process exited during operation");
       }
    }   
 }
@@ -1476,7 +1487,10 @@ bool linux_thread::unsetOptions()
     int result = do_ptrace((pt_req) PTRACE_SETOPTIONS, lwp, NULL,
             (void *) options);
     if (result == -1) {
+        int error = errno;
         pthrd_printf("Failed to set options for %lu: %s\n", tid, strerror(errno));
+        if (error == ESRCH)
+           setLastError(err_exited, "Process exited during operation");
         return false;
     }
     return true;
@@ -1503,9 +1517,13 @@ bool linux_process::plat_detach(result_response::ptr, bool leave_stopped)
       pthrd_printf("PTRACE_DETACH on %d\n", thr->getLWP());
       long result = do_ptrace((pt_req) PTRACE_DETACH, thr->getLWP(), NULL, (void *) 0);
       if (result == -1) {
+         int error = errno;
          had_error = true;
          perr_printf("Failed to PTRACE_DETACH on %d/%d (%s)\n", getPid(), thr->getLWP(), strerror(errno));
-         setLastError(err_internal, "PTRACE_DETACH operation failed\n");
+         if (error == ESRCH)
+            setLastError(err_exited, "Process exited during operation");
+         else
+            setLastError(err_internal, "PTRACE_DETACH operation failed\n");
       }
    }
    // Before we return from detach, make sure that we've gotten out of waitpid()
@@ -2093,8 +2111,12 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
             continue;
          long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) i->second.first, NULL);
          if (errno == -1) {
+            int error = errno;
             perr_printf("Error reading registers from %d at %x\n", lwp, i->second.first);
-            setLastError(err_internal, "Could not read user area from thread");
+            if (error == ESRCH)
+               setLastError(err_exited, "Process exited during operation");
+            else
+               setLastError(err_internal, "Could not read user area from thread");
             return false;
          }
          if (Dyninst::getArchAddressWidth(curplat) == 4) {
@@ -2183,8 +2205,10 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    val = 0;
    unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
    if (errno != 0) {
+      int error = errno;
       perr_printf("Error reading registers from %d: %s\n", lwp, strerror(errno));
-      setLastError(err_internal, "Could not read register from thread");
+      if (error == ESRCH)
+         setLastError(err_internal, "Could not read register from thread");
       return false;
    }
    val = result;
@@ -2274,7 +2298,10 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
             int error = errno;
             perr_printf("Error setting register %s for %d at %d: %s\n", i->first.name().c_str(),
                         lwp, (int) di->second.first, strerror(error));
-            setLastError(err_internal, "Could not read user area from thread");
+            if (error == ESRCH)
+               setLastError(err_exited, "Process exited during operation");
+            else
+               setLastError(err_internal, "Could not read user area from thread");
             return false;
          }
       }
@@ -2410,7 +2437,10 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    pthrd_printf("Set register %s (size %u, offset %u) to value %lx\n", reg.name().c_str(), size, offset, val);
    if (result != 0) {
       int error = errno;
-      setLastError(err_internal, "Could not set register value");
+      if (error == ESRCH)
+         setLastError(err_exited, "Process exited during operation");
+      else
+         setLastError(err_internal, "Could not set register value");
       perr_printf("Unable to set value of register %s in thread %d: %s (%d)\n",
                   reg.name().c_str(), lwp, strerror(error), error);
       return false;
@@ -2522,7 +2552,10 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
          if (result != 0) {
             int error = errno;
             perr_printf("Error doing PTRACE_GET_THREAD_AREA on %d/%d: %s\n", llproc()->getPid(), lwp, strerror(error));
-            setLastError(err_internal, "Error doing PTRACE_GET_THREAD_AREA\n");
+            if (error == ESRCH)
+               setLastError(err_exited, "Process exited during operation");
+            else
+               setLastError(err_internal, "Error doing PTRACE_GET_THREAD_AREA\n");
             return false;
          }
          addr = (Dyninst::Address) addrv[1];
@@ -2543,7 +2576,10 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
          if (result != 0) {
             int error = errno;
             perr_printf("Error doing PTRACE_ARCH_PRCTL on %d/%d: %s\n", llproc()->getPid(), lwp, strerror(error));
-            setLastError(err_internal, "Error doing PTRACE_ARCH_PRCTL\n");
+            if (error == ESRCH)
+               setLastError(err_exited, "Process exited during operation");
+            else
+               setLastError(err_internal, "Error doing PTRACE_ARCH_PRCTL\n");
             return false;
          }
          addr = (Dyninst::Address) addrv;
@@ -2604,7 +2640,10 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
          long result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, 
                                  lwp, (void *) entryNumber, (void *) &entryDesc);
          if (result == -1 && errno != 0) {
+            int error = errno;
             pthrd_printf("PTRACE to get segment base failed: %s\n", strerror(errno));
+            if (error == ESRCH)
+               setLastError(err_exited, "Process exited during operation");
             return false;
          }
 
