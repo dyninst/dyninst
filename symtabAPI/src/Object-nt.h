@@ -239,7 +239,7 @@ class Object : public AObject
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
     SYMTAB_EXPORT void    parseFileLineInfo(Symtab * st);
-    SYMTAB_EXPORT void parseLineInfoForAddr(Symtab*, Offset) 
+    SYMTAB_EXPORT void parseLineInfoForAddr(Symtab* st, Offset) 
     {
       parseFileLineInfo(st);
     }

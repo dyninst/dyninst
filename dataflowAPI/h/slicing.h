@@ -75,23 +75,23 @@ class DATAFLOW_EXPORT SliceNode : public Node {
  public:
   typedef boost::shared_ptr<SliceNode> Ptr;
       
-  DATAFLOW_EXPORT static SliceNode::Ptr create(AssignmentPtr ptr,
+  static SliceNode::Ptr create(AssignmentPtr ptr,
 				ParseAPI::Block *block,
 				ParseAPI::Function *func) {
     return Ptr(new SliceNode(ptr, block, func));
   }
       
-  DATAFLOW_EXPORT ParseAPI::Block *block() const { return b_; };
-  DATAFLOW_EXPORT ParseAPI::Function *func() const { return f_; };
-  DATAFLOW_EXPORT Address addr() const;
-  DATAFLOW_EXPORT AssignmentPtr assign() const { return a_; }
+  ParseAPI::Block *block() const { return b_; };
+  ParseAPI::Function *func() const { return f_; };
+  Address addr() const;
+  AssignmentPtr assign() const { return a_; }
       
-  DATAFLOW_EXPORT Node::Ptr copy() { return Node::Ptr(); }
-  DATAFLOW_EXPORT bool isVirtual() const { return false; }
+  Node::Ptr copy() { return Node::Ptr(); }
+  bool isVirtual() const { return false; }
       
-  DATAFLOW_EXPORT std::string format() const;
+  std::string format() const;
       
-  DATAFLOW_EXPORT virtual ~SliceNode() {};
+  virtual ~SliceNode() {};
       
  private:
       
