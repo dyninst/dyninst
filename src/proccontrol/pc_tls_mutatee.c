@@ -27,6 +27,13 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
+#if defined(os_linux_test)
+#define _GNU_SOURCE
+#include <link.h>
+#endif
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -55,6 +62,26 @@ static testlock_t init_lock;
 //NUM_ITERATIONS needs to match pc_tls
 #define NUM_ITERATIONS 8
 
+#if defined(os_linux_test)
+static unsigned int lib_count = 0;
+int cb(struct dl_phdr_info *info, size_t size, void *v)
+{
+   (void) info; (void) size; (void) v;
+   lib_count++;
+   return 0;
+}
+
+int am_i_staticlink()
+{
+   if (lib_count == 0)
+      dl_iterate_phdr(cb, NULL);
+
+   return (lib_count == 1);
+}
+#else
+#error Test currently only builds on Linux
+#endif
+
 void *openLib(const char *lib)
 {
    void *handle;
@@ -69,6 +96,9 @@ void closeLib(const char *lib, void *handle)
 
 int setLibFunctions(void *handle)
 {
+   if (am_i_staticlink())
+      return 0;
+
    lib_check_tls_write = (check_tls_write_t) dlsym(handle, "lib_check_tls_write");
    lib_update_tls_reads = (update_tls_reads_t) dlsym(handle, "lib_update_tls_reads");
    if (!lib_check_tls_write || !lib_update_tls_reads) {
@@ -111,25 +141,24 @@ static int threadFunc(int myid, void *data)
 
    testLock(&init_lock);
    testUnlock(&init_lock);
-
    for (i = 0; i < NUM_ITERATIONS; i++) {
       if (!exe_check_tls_write(0x40 + i)) {
          output->log(STDERR, "Executable TLS was not the expected value. expected %d was %d\n",
                      (int) (0x40 + i), (int) tls_write_char);
          myerror = 1;
       }
-      if (!lib_check_tls_write(0x40 + i)) {
+      if (!am_i_staticlink() && !lib_check_tls_write(0x40 + i)) {
          output->log(STDERR, "Library TLS was not the expected value\n");
          myerror = 1;
       }
       if (i != 0) {
          exe_update_tls_reads();
-         lib_update_tls_reads();
+         if (!am_i_staticlink()) {
+            lib_update_tls_reads();
+         }
       }
-
       breakpoint_func();
    }
-   
    return 0;
 }
 
@@ -145,9 +174,10 @@ int pc_tls_mutatee()
    testLock(&init_lock);
 
    myerror = 0;
-   handlea = openLib(LIBTESTA);
-
-   setLibFunctions(handlea);
+   if (!am_i_staticlink()) {
+      handlea = openLib(LIBTESTA);
+      setLibFunctions(handlea);
+   }
 
    result = initProcControlTest(threadFunc, NULL);
    if (result != 0) {
@@ -185,7 +215,8 @@ int pc_tls_mutatee()
       return -1;
    }
 
-   closeLib(LIBTESTA, handlea);
+   if (!am_i_staticlink())
+      closeLib(LIBTESTA, handlea);
 
    if (myerror == 0) {
       test_passes(testname);

@@ -681,7 +681,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    EventType thread_create(EventType::None, EventType::ThreadCreate);
    registerEventCounter(thread_create);
 
-   num_threads = group->threadmode == MultiThreaded ? DEFAULT_NUM_THREADS : 0;
+   num_threads = group->threadmode == MultiThreaded ? getNumThreads(param) : 0;
    int num_procs = pset->size();
    result = pset->continueProcs();
    if (!result) {

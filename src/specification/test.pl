@@ -199,7 +199,8 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
             compiler_opt_trans(Compiler, Optimization_level, _);
         (optimization_for_mutatee(Name, Compiler, Optimization_level),
          compiler_opt_trans(Compiler, Optimization_level, _))
-    ).
+    ),
+    module_pic(Module, PIC).
 
 % This one handles peers
 mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
@@ -227,6 +228,7 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
         (optimization_for_mutatee(Name, Compiler, Optimization_level),
          compiler_opt_trans(Compiler, Optimization_level, _))
     ),
+    module_pic(Module, PIC),
     test_platform_abi(TestName, Platform, ABI),
     % FIXME This is assuming a one-to-one relation between mutators and
     % mutatees.  This should still work as long as the mutatee is only used
@@ -274,7 +276,10 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
     compiler_format(Compiler, Format),
     \+ mutatee_compiler_platform_exclude(Compiler, Platform),
     mutatee_format(Mutatee, Format),
+    mutatee_module(Mutatee, Module),
+    module_runmode_format(Module, RunMode, Format),
     compiler_pic(Compiler, PIC),
+    module_pic(Module, PIC),
     % Enumerate / verify values for run-time options
     runmode(RunMode),
     runmode_launch_params(RunMode, Platform, MutatorStart, MutateeStart, MutateeLaunchtime),

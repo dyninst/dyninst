@@ -51,6 +51,7 @@ extern "C" DLLEXPORT TestMutator* pc_tls_factory()
 static map<Thread::const_ptr, int> thread_iters;
 static bool hasError = false;
 static bool initialized_symbols;
+static bool is_static;
 static Library::const_ptr libtesta;
 static Library::const_ptr executable;
 static Dyninst::Offset lib_tls_read_int;
@@ -90,6 +91,7 @@ static bool initSymbols(Process::const_ptr proc)
    if (initialized_symbols)
       return true;
    initialized_symbols = true;
+   libtesta = Library::ptr();
 
    for (LibraryPool::const_iterator i = proc->libraries().begin(); i != proc->libraries().end(); i++) {
       if ((*i)->getName().find("libtestA") != string::npos) {
@@ -98,15 +100,14 @@ static bool initSymbols(Process::const_ptr proc)
       }
    }
    executable = proc->libraries().getExecutable();
-   if (!libtesta) {
-      //If a static binary, then library is in executable.
-      libtesta = executable;
-   }
+   is_static = !libtesta;
 
-   bool result;
-   result = readSymbol(proc, libtesta, "lib_tls_read_int", lib_tls_read_int);
-   result &= readSymbol(proc, libtesta, "lib_tls_write_char", lib_tls_write_char);
-   result &= readSymbol(proc, libtesta, "lib_tls_read_long", lib_tls_read_long);
+   bool result = true;
+   if (!is_static) {
+      result = readSymbol(proc, libtesta, "lib_tls_read_int", lib_tls_read_int);
+      result &= readSymbol(proc, libtesta, "lib_tls_write_char", lib_tls_write_char);
+      result &= readSymbol(proc, libtesta, "lib_tls_read_long", lib_tls_read_long);
+   }
    result &= readSymbol(proc, executable, "tls_read_int", exe_tls_read_int);
    result &= readSymbol(proc, executable, "tls_write_char", exe_tls_write_char);
    result &= readSymbol(proc, executable, "tls_read_long", exe_tls_read_long);
@@ -140,12 +141,14 @@ static Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
    if ((long) VAL != (long) EXPECTED) { logerror("Unexpected value of " NAME " %ld != %ld\n", (long) VAL, (long) EXPECTED); hasError = true; goto done; }
 
    if (hasError) goto done;
-   result = thread->readThreadLocalMemory(&int_val, libtesta, lib_tls_read_int, sizeof(int));
-   ERR_CHECK("lib_tls_read_int", int_val, iteration);
-   result = thread->readThreadLocalMemory(&long_val, libtesta, lib_tls_read_long, sizeof(long));
-   ERR_CHECK("lib_tls_read_long", long_val, -1 * iteration);
-   result = thread->writeThreadLocalMemory(libtesta, lib_tls_write_char, &char_val, sizeof(char));
-   ERR_CHECK("lib_tls_read_long", 0, 0);
+   if (!is_static) {
+      result = thread->readThreadLocalMemory(&int_val, libtesta, lib_tls_read_int, sizeof(int));
+      ERR_CHECK("lib_tls_read_int", int_val, iteration);
+      result = thread->readThreadLocalMemory(&long_val, libtesta, lib_tls_read_long, sizeof(long));
+      ERR_CHECK("lib_tls_read_long", long_val, -1 * iteration);
+      result = thread->writeThreadLocalMemory(libtesta, lib_tls_write_char, &char_val, sizeof(char));
+      ERR_CHECK("lib_tls_read_long", 0, 0);
+   }
    result = thread->readThreadLocalMemory(&int_val, executable, exe_tls_read_int, sizeof(int));
    ERR_CHECK("exe_tls_read_int", int_val, iteration);
    result = thread->readThreadLocalMemory(&long_val, executable, exe_tls_read_long, sizeof(long));
