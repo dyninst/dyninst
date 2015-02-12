@@ -3551,6 +3551,11 @@ void int_thread::throwEventsBeforeContinue()
    }
 }
 
+bool int_thread::suppressSanityChecks()
+{
+   return false;
+}
+
 bool int_thread::isExiting() const
 {
     return handler_exiting_state;
@@ -4400,7 +4405,7 @@ bool int_thread::StateTracker::setState(State to)
                 stateStr(state), stateStr(to));
    state = to;
 
-   if (up_thr->up_thread) {
+   if (up_thr->up_thread && !up_thr->suppressSanityChecks()) {
       int_thread::State handler_state = up_thr->getHandlerState().getState();
       int_thread::State generator_state = up_thr->getGeneratorState().getState();
       if (handler_state == stopped)

@@ -1016,6 +1016,7 @@ public:
    void triggerContinueCBs();
 
    void throwEventsBeforeContinue();
+   virtual bool suppressSanityChecks();
 
    //User level thread info
    void setTID(Dyninst::THR_ID tid_);

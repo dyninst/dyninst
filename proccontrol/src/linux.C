@@ -406,12 +406,19 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		       pthrd_printf("Decoded event to pre-exit of process %d/%d with code %lu\n",
 				      proc->getPid(), thread->getLWP(), exitcode);
 		       event = Event::ptr(new EventExit(EventType::Pre, exitcode));
+                       
+                       for (int_threadPool::iterator j = proc->threadPool()->begin(); 
+                            j != proc->threadPool()->end(); ++j) 
+                       {
+                          dynamic_cast<linux_thread*>(*j)->setGeneratorExiting();
+                       }
 		     } 
                      else {
                         EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
                         event = lwp_ev;
                         event->setThread(thread->thread());
                         lproc->decodeTdbLWPExit(lwp_ev);
+                        lthread->setGeneratorExiting();
                      }
                      thread->setExitingInGenerator(true);
                      break;
@@ -1411,7 +1418,8 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 linux_thread::linux_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
    thread_db_thread(p, t, l),
-   postponed_syscall_event(NULL)
+   postponed_syscall_event(NULL),
+   generator_started_exit_processing(false)
 {
 }
 
@@ -2610,6 +2618,11 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
    }
  }
 
+bool linux_thread::suppressSanityChecks()
+{
+   return generator_started_exit_processing;
+}
+
 linux_x86_thread::linux_x86_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
    thread_db_thread(p, t, l),
@@ -2792,9 +2805,7 @@ Handler::handler_ret_t LinuxHandleForceTerminate::handleEvent(Event::ptr ev) {
 
    for (int_threadPool::iterator iter = proc->threadPool()->begin(); 
         iter != proc->threadPool()->end(); ++iter) {
-#if defined(os_linux)
       do_ptrace((pt_req) PTRACE_DETACH, (*iter)->getLWP(), NULL, NULL);
-#endif
    }
    return ret_success;
 }
