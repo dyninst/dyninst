@@ -279,6 +279,10 @@ bool IA_IAPI::hasCFT() const
   {
     hascftstatus.second = true;
   }
+  else if (c == c_SyscallInsn)
+  {
+    hascftstatus.second = true;
+  }
   
   hascftstatus.first = true;
   return hascftstatus.second;
@@ -459,8 +463,8 @@ bool IA_IAPI::isSyscall() const
     Instruction::Ptr ci = curInsn();
 
     return (((ci->getOperation().getID() == e_call) &&
-            /*(curInsn()->getOperation().isRead(gs))) ||*/
-            (ci->getOperand(0).format(ci->getArch()) == "16")) ||
+                (curInsn()->getOperation().isRead(gs)) &&
+                (ci->getOperand(0).format(ci->getArch()) == "16")) ||
             (ci->getOperation().getID() == e_syscall) || 
             (ci->getOperation().getID() == e_int) || 
             (ci->getOperation().getID() == power_op_sc));
@@ -478,6 +482,14 @@ bool IA_IAPI::isSysEnter() const
 {
   Instruction::Ptr ci = curInsn();
   return (ci->getOperation().getID() == e_sysenter);
+}
+
+void IA_IAPI::parseSyscall(std::vector<std::pair<Address, EdgeTypeEnum> >& outEdges) const
+{
+    parsing_printf("[%s:%d] Treating syscall as call to sink w/ possible FT edge to next insn at 0x%lx\n",
+		   FILE__, __LINE__, getAddr());
+    outEdges.push_back(std::make_pair((Address)-1,CALL));
+    outEdges.push_back(std::make_pair(getNextAddr(), CALL_FT));
 }
 
 void IA_IAPI::parseSysEnter(std::vector<std::pair<Address, EdgeTypeEnum> >& outEdges) const
@@ -498,7 +510,7 @@ void IA_IAPI::parseSysEnter(std::vector<std::pair<Address, EdgeTypeEnum> >& outE
   else
   {
     parsing_printf("[%s:%d] Treating sysenter as call to kernel w/normal return to next insn at 0x%lx\n",
-		   FILE__, __LINE__, getAddr());
+                  FILE__, __LINE__, getAddr());
     outEdges.push_back(std::make_pair(getNextAddr(), CALL_FT));
   }
 }
@@ -671,6 +683,9 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     {
       parseSysEnter(outEdges);
       return;
+    } else if (isSyscall()) {
+        parseSyscall(outEdges);
+        return;
     }
     
     fprintf(stderr, "Unhandled instruction %s\n", ci->format().c_str());

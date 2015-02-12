@@ -118,6 +118,7 @@ private:
         bool isFakeCall() const;
         bool isLinkerStub() const;
 	bool isSysEnter() const;
+	void parseSyscall(std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> >& outEdges) const;
 	void parseSysEnter(std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> >& outEdges) const;
         std::pair<bool, Address> getFallthrough() const;
 

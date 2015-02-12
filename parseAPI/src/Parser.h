@@ -213,6 +213,8 @@ class Parser {
 
     void invalidateContainingFuncs(Function *, Block *);
 
+    bool getSyscallNumber(Function *, Block *, Address, Architecture, long int &);
+
     friend class CodeObject;
 };
 

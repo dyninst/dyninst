@@ -136,7 +136,14 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
      * without hints.
      */
     std::vector<Hint> _hints;
-    
+
+    /*
+     * Lists of known non-returning functions (by name)
+     * and syscalls (by number)
+     */
+    static dyn_hash_map<std::string, bool> non_returning_funcs;
+    static dyn_hash_map<int, bool> non_returning_syscalls_x86;
+    static dyn_hash_map<int, bool> non_returning_syscalls_x86_64;
 
  public:
     /* Returns true if the function at an address is known to be
@@ -145,7 +152,8 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
        Optional.
     */
     virtual bool nonReturning(Address /*func_entry*/) { return false; }
-    virtual bool nonReturning(std::string /* func_name */) { return false; }
+    bool nonReturning(std::string func_name);
+    virtual bool nonReturningSyscall(int /*number*/) { return false; }
 
     /*
      * If the binary file type supplies non-zero base
@@ -227,8 +235,6 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource {
     bool owns_symtab;
     mutable CodeRegion * _lookup_cache;
 
-    static dyn_hash_map<std::string, bool> non_returning_funcs;
-    
     // Stats information
     StatContainer * stats_parse;
     bool _have_stats;
@@ -248,7 +254,7 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource {
     ~SymtabCodeSource();
 
     bool nonReturning(Address func_entry);
-    bool nonReturning(std::string func_name);
+    bool nonReturningSyscall(int num);
 
     bool resizeRegion(SymtabAPI::Region *, Address newDiskSize);
 

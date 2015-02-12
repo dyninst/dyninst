@@ -498,50 +498,25 @@ SymtabCodeSource::nonReturning(Address addr)
 	  i != f->mangled_names_end();
 	  ++i)
       {
-	if(nonReturning(*i)) return true;
+	if(CodeSource::nonReturning(*i)) return true;
       }
     }
     return false;
 }
 
-dyn_hash_map<std::string, bool>
-SymtabCodeSource::non_returning_funcs =
-    boost::assign::map_list_of
-        ("exit",true)
-        ("abort",true)
-        ("__f90_stop",true)
-        ("fancy_abort",true)
-        ("__stack_chk_fail",true)
-        ("__assert_fail",true)
-        ("ExitProcess",true)
-        ("_ZSt17__throw_bad_allocv",true)
-        ("_ZSt20__throw_length_errorPKc",true)
-        ("_Unwind_Resume",true)
-        ("longjmp",true)
-        ("siglongjmp",true)
-        ("_ZSt16__throw_bad_castv",true)
-        ("_ZSt19__throw_logic_errorPKc",true)
-        ("_ZSt20__throw_out_of_rangePKc",true)
-        ("__cxa_rethrow",true)
-        ("__cxa_throw",true)
-        ("_ZSt21__throw_runtime_errorPKc",true)
-        ("_gfortran_os_error",true)
-        ("_gfortran_runtime_error",true)
-        ("_gfortran_stop_numeric", true)
-   ("for_stop_core", true)
-  ("__sys_exit", true);
-
 bool
-SymtabCodeSource::nonReturning(string name)
+SymtabCodeSource::nonReturningSyscall(int num)
 {
-#if defined(os_windows)
-	// We see MSVCR<N>.exit
-	// Of course, it's often reached via indirect call, but hope never fails.
-	if ((name.compare(0, strlen("MSVCR"), "MSVCR") == 0) &&
-		(name.find("exit") != name.npos)) return true;
-#endif
-	parsing_printf("Checking non-returning (Symtab) for %s\n", name.c_str());
-    return non_returning_funcs.find(name) != non_returning_funcs.end();
+  parsing_printf("Checking non-returning (Symtab) for %d\n", num);
+  Architecture arch = getArch();
+  switch(arch) {
+    case(Arch_x86):
+      return non_returning_syscalls_x86.find(num) != non_returning_syscalls_x86.end();
+    case(Arch_x86_64):
+      return non_returning_syscalls_x86_64.find(num) != non_returning_syscalls_x86_64.end();
+    default:
+      return false;
+  }
 }
 
 Address

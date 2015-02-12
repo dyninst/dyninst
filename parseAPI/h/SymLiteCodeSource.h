@@ -85,8 +85,6 @@ class SymReaderCodeSource : public CodeSource {
     bool owns_symtab;
     mutable CodeRegion * _lookup_cache;
 
-    static dyn_hash_map<std::string, bool> non_returning_funcs;
-    
     // Stats information
     StatContainer * stats_parse;
     bool _have_stats;
@@ -98,7 +96,7 @@ class SymReaderCodeSource : public CodeSource {
     PARSER_EXPORT ~SymReaderCodeSource();
 
     PARSER_EXPORT bool nonReturning(Address func_entry);
-    PARSER_EXPORT bool nonReturning(std::string func_name);
+    PARSER_EXPORT bool nonReturningSyscall(int num);
 
     PARSER_EXPORT bool resizeRegion(SymSegment *, Address newDiskSize);
 
