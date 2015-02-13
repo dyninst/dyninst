@@ -180,18 +180,15 @@ GraphPtr BackwardSlicer::CalculateBackwardSlicing() {
     IndirectControlFlowPred mp;
 
     GraphPtr slice = s.backwardSlice(mp);
-/*
-    if (addr == 0x404e6c) {
+    /*
+    if (addr == 0x351113ed7d) {
         slice->printDOT("target_raw.dot");
-    }
-*/   
+    }*/
     slice = TransformGraph(slice);
-/*
-    if (addr == 0x404e6c) {
+    /*
+    if (addr == 0x351113ed7d) {
         slice->printDOT("target_transformed.dot");
-	exit(0);
-    }
-*/
+    }*/
     return slice;
 }
 

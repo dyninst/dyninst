@@ -322,6 +322,20 @@ class Assignment {
        block_(b),
        out_(o) {};
 
+  DATAFLOW_EXPORT static Assignment::Ptr makeAssignment(const InstructionAPI::Instruction::Ptr i,
+                             const Address a,
+                             ParseAPI::Function *f,
+                             ParseAPI::Block *b,
+                             const std::vector<AbsRegion> &ins,
+                             const AbsRegion &o);
+
+  DATAFLOW_EXPORT static Assignment::Ptr makeAssignment(const InstructionAPI::Instruction::Ptr i,
+                             const Address a,
+                             ParseAPI::Function *f,
+                             ParseAPI::Block *b,
+                             const AbsRegion &o);
+
+
   // Internally used method; add a dependence on 
   // a new abstract region. If this is a new region
   // we'll add it to the dependence list. Otherwise 

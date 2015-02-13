@@ -1058,7 +1058,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 	        region_data * rd = _parse_data->findRegion(frame.codereg);
 		set<Block*> blocks;
 		rd->blocksByRange.find(work->ah()->getAddr(), blocks);
-		assert(blocks.size() == 1);
+//		assert(blocks.size() == 1);
 		nextBlock = *(blocks.begin());
 
 	    }

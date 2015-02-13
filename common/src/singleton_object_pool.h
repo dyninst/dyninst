@@ -120,6 +120,15 @@ class singleton_object_pool
     new(temp) T(a1, a2, a3, a4, a5);
     return temp;
   }
+  template <typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
+  static T* construct(const A1& a1, const A2& a2, const A3& a3, const A4& a4, const A5& a5, const A6& a6)
+  {
+    T* const temp = malloc();
+    if(temp == 0) return temp;
+    new(temp) T(a1, a2, a3, a4, a5, a6);
+    return temp;
+  }
+
   inline static void destroy(T* const kill_me)
   {
     kill_me->~T();

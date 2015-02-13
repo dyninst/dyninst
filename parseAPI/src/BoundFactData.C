@@ -440,8 +440,9 @@ void BoundValue::IntersectInterval(StridedInterval &si) {
 	// The read contents can be anything, so set to top
 	*this = top;	
     }
+    parsing_printf("Intersect interval %s and %s", interval.format().c_str(), si.format().c_str());
     interval.Intersect(si);
-
+    parsing_printf("resulting in %s\n", interval.format().c_str());
     if (interval == StridedInterval::bottom) {
         // If the interval becomes bottom (empty set),
 	// it means that this control flow path is impossble.
@@ -887,10 +888,12 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+			parsing_printf("XXX\n");
 		        IntersectInterval(pred.e2, StridedInterval(1, 0, constAST->val().val));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
+		    parsing_printf("YYY\n");
 		    IntersectInterval(pred.e1, StridedInterval(1, constAST->val().val, StridedInterval::maxValue));
 		} else {
 		    InsertRelation(pred.e1, pred.e2, UnsignedLargerThanOrEqual);
@@ -1090,12 +1093,14 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
 		    } else {
 		        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
+			parsing_printf("!!!\n");
 		        IntersectInterval(pred.e2, StridedInterval(1, constAST->val().val + 1, StridedInterval::maxValue));
 		    }
 		} else if (pred.e2->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
 		    // Assuming a-loc pred.e1 is always used as 
 		    // unsigned value before it gets rewritten.
+		    parsing_printf("@@@\n");
 		    IntersectInterval(pred.e1, StridedInterval(1, 0 , constAST->val().val - 1));
 		} else {
 		    InsertRelation(pred.e1, pred.e2, UnsignedLessThan);
@@ -1264,8 +1269,9 @@ void BoundFact::SetPredicate(Assignment::Ptr assign,std::pair<AST::Ptr, bool> ex
         // If the instruction is outside the set of instrutions we
         // add instruction semantics. We assume this instruction
         // kills all bound fact.
-        parsing_printf("\t\t (Should not happen here) No semantic support for this instruction. Kill all bound fact\n");
-	SetToBottom();
+        parsing_printf("\t\tNo semantic support for this instruction. Invalidate current predicate\n");
+	pred.valid = false;
+	//SetToBottom();
 	return;
     }
     AST::Ptr simplifiedAST = expandRet.first;

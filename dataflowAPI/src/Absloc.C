@@ -42,6 +42,8 @@
 
 #include <sstream>
 
+#include "../../common/src/singleton_object_pool.h"
+
 using namespace Dyninst;
 // using namespace Dyninst::DepGraphAPI;
 using namespace Dyninst::InstructionAPI;
@@ -265,6 +267,25 @@ void AbsRegion::erase(const AbsRegion &rhs) {
 		 rhs.abslocs_.end());
 }
 */
+
+Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction::Ptr i,
+                             const Address a,
+                             ParseAPI::Function *f,
+                             ParseAPI::Block *b,
+                             const std::vector<AbsRegion> &ins,
+                             const AbsRegion &o) {
+      Assignment::Ptr ret = make_shared(singleton_object_pool<Assignment>::construct(i, a, f, b, ins, o));
+      return ret;
+}
+
+Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction::Ptr i,
+                             const Address a,
+                             ParseAPI::Function *f,
+                             ParseAPI::Block *b,
+                             const AbsRegion &o) {
+      return  make_shared(singleton_object_pool<Assignment>::construct(i, a, f, b, o));
+
+}			     
 
 void Assignment::addInput(const AbsRegion &reg) {
   inputs_.push_back(reg);

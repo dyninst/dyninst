@@ -456,7 +456,7 @@ class Slicer {
             SliceFrame &cand,
             bool skip,
             std::map<CacheEdge, std::set<AbsRegion> > & visited,
-            std::map<Address,DefCache> & cache);
+            std::unordered_map<Address,DefCache> & cache);
 
     bool updateAndLink(
             GraphPtr g,

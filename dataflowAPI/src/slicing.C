@@ -53,6 +53,8 @@
 
 #include <boost/bind.hpp>
 
+#include <ctime>
+
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace std;
@@ -150,11 +152,15 @@ Slicer::sliceInternal(
     Direction dir,
     Predicates &p)
 {
+    static clock_t sliceInternalTime = 0, 
+                   recursiveSliceTime = 0,
+		   t, t0;
+//    t = clock();
     Graph::Ptr ret;
     SliceNode::Ptr aP;
     SliceFrame initFrame;
     map<CacheEdge, set<AbsRegion> > visited;
-    map<Address,DefCache> cache;
+    unordered_map<Address,DefCache> cache;
     
     ret = Graph::createGraph();
 
@@ -178,10 +184,18 @@ Slicer::sliceInternal(
     insertInitialNode(ret, dir, aP);
 
     slicing_printf("Starting recursive slicing\n");
+//    t0 = clock();
     sliceInternalAux(ret,dir,p,initFrame,true,visited,cache);
+//    recursiveSliceTime += clock() - t0;
     slicing_printf("Finished recursive slicing\n");
 
     cleanGraph(ret);
+//    sliceInternalTime += clock() - t;
+   
+//    fprintf(stderr, "sliceInternal: %.3lf\n", (float)sliceInternalTime / CLOCKS_PER_SEC);
+//    fprintf(stderr, "recursiveSlice: %.3lf\n", (float)recursiveSliceTime / CLOCKS_PER_SEC);
+
+//    fprintf(stderr, "visited: %d, in slice %d, entry visited %d %d\n", cache.size(), ret->size(), cache.find(f_->addr()) != cache.end() , cache.find(f_->entry()->last()) != cache.end());
     return ret;
 }
 
@@ -193,7 +207,7 @@ Slicer::sliceInternalAux(
     SliceFrame &cand,
     bool skip,              // skip linking this frame; for bootstrapping
     map<CacheEdge,set<AbsRegion> > & visited,
-    map<Address,DefCache> & cache)
+    unordered_map<Address,DefCache> & cache)
 {
     vector<SliceFrame> nextCands;
     DefCache mydefs;
@@ -321,6 +335,11 @@ Slicer::updateAndLink(
     DefCache & cache,
     Predicates &p)
 {
+    static clock_t updateAndLinkTime = 0, 
+                   convertInsnTime = 0,
+		   t,tc;
+//    t = clock();
+
     vector<Assignment::Ptr> assns;
     vector<bool> killed;
     vector<Element> matches;
@@ -335,7 +354,10 @@ Slicer::updateAndLink(
     else
         insn = cand.loc.rcurrent->first;
 
+//    tc = clock();
     convertInstruction(insn,cand.addr(),cand.loc.func, cand.loc.block, assns);
+//    convertInsnTime += clock() - tc;
+//    fprintf(stderr, "convertInsn : %.3lf\n", (float)convertInsnTime / CLOCKS_PER_SEC);
     for(unsigned i=0; i<assns.size(); ++i) {
         SliceFrame::ActiveMap::iterator ait = cand.active.begin();
         unsigned j=0;
@@ -349,8 +371,11 @@ Slicer::updateAndLink(
         cachePotential(dir,assns[i],cache);
     }
 
-    if(!change && matches.empty()) // no change -- nothing killed, nothing added
+    if(!change && matches.empty()) {// no change -- nothing killed, nothing added
+//        updateAndLinkTime += clock() - t;
+//	fprintf(stderr, "updateAndLink: %.3lf\n", (float)updateAndLinkTime / CLOCKS_PER_SEC);
         return false;
+    }
 
     // update of active set -- matches + anything not killed
     SliceFrame::ActiveMap::iterator ait = cand.active.begin();
@@ -378,6 +403,8 @@ Slicer::updateAndLink(
           cand.active[matches[i].reg].push_back(matches[i]);
        }
     }
+//    updateAndLinkTime += clock() - t;
+//    fprintf(stderr, "updateAndLink: %.3lf\n", (float)updateAndLinkTime / CLOCKS_PER_SEC);
 
     return true;
 }
@@ -674,6 +701,10 @@ Slicer::getPredecessors(
     SliceFrame const& cand,
     vector<SliceFrame> & newCands)
 {
+    static clock_t getPredecessorsIntraTime = 0, 
+                   getPredecessorsInterTime = 0,
+		   t;
+//    t = clock();
     InsnVec::reverse_iterator prev = cand.loc.rcurrent;
     ++prev;
 
@@ -714,6 +745,8 @@ Slicer::getPredecessors(
     
             newCands.push_back(nf);
         }
+//	getPredecessorsIntraTime += clock() - t;
+//	fprintf(stderr, "getPredecessors (intra): %.3lf\n", (float)getPredecessorsIntraTime / CLOCKS_PER_SEC);
         return true;
     }
 
@@ -735,7 +768,9 @@ Slicer::getPredecessors(
 				    boost::ref(err),
 				    boost::ref(nf)
 				    ));
-   
+//    getPredecessorsInterTime += clock() - t;
+//    fprintf(stderr, "getPredecessors (inter): %.3lf\n", (float)getPredecessorsInterTime / CLOCKS_PER_SEC);
+
     return !err; 
 }
 
@@ -1012,12 +1047,17 @@ static void DFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visit, ParseAPI::Ed
 	    DFS((*eit)->trg(), visit, ban, targets);
 }
 bool Slicer::ReachableFromBothBranches(ParseAPI::Edge *e, vector<Element> &newE) {
+    static clock_t t1 = 0, t2;
+//    t2 = clock();
+
     ParseAPI::Block *start;
     start = e->src();
     set<ParseAPI::Block*> visited , targets;
     for (auto eit = newE.begin(); eit != newE.end(); ++eit)
         targets.insert(eit->block);
     DFS(start, visited, e, targets);
+//    t1 += clock() - t2;
+//    fprintf(stderr, "check control flow dependency %.3lf\n", (float)t1 / CLOCKS_PER_SEC);
 //    fprintf(stderr, "%d %d\n", visited.size(), targets.size());
     return targets.empty();
 }
@@ -1037,18 +1077,27 @@ Slicer::handleDefault(
     } else {
         cur.loc.block = e->src();
         getInsnsBackward(cur.loc);
-	if (cur.firstCond && EndsWithConditionalJump(e->src())) {
+	if ((true || cur.firstCond) && EndsWithConditionalJump(e->src())) {
 	    vector<Element> newE;	 
+	    
 	    for (auto ait = cur.active.begin(); ait != cur.active.end(); ++ait) {	        
-	        Element &e = *(ait->second.begin());	
-	        newE.push_back(e);
+	        newE.insert(newE.end(), ait->second.begin(), ait->second.end());
+	    }	    
+/*
+            for (auto ait = cur.active.begin(); ait != cur.active.end(); ++ait) {
+	        vector<Element> & oldE = ait->second; 
+		for (auto oit = oldE.begin(); oit != oldE.end(); ++oit)
+		    if (!f_->postDominates(oit->block, cur.loc.block)) newE.push_back(*oit);
 	    }
+*/	    
 	    if (!ReachableFromBothBranches(e, newE)) {
+//            if (!newE.empty()) {    
 	        if (cur.loc.block->obj()->cs()->getAddressWidth() == 8)
 		    cur.active[AbsRegion(Absloc(x86_64::rip))] = newE;
 		else if  (cur.loc.block->obj()->cs()->getAddressWidth() == 4)
 		    cur.active[AbsRegion(Absloc(x86::eip))] = newE;
 	    }
+
 	    cur.firstCond = false;
   	    slicing_printf("\tadding tracking ip for control flow information ");
 	}
@@ -1316,7 +1365,7 @@ Slicer::Slicer(Assignment::Ptr a,
   f_(func),
   // Xiaozhu: Temporarily disable stackanalysis, should be able to
   // specify it 
-  converter(true, false) {
+  converter(false, false) {
   df_init_debug();
 };
 
@@ -1460,11 +1509,15 @@ void Slicer::convertInstruction(Instruction::Ptr insn,
 				ParseAPI::Function *func,
                                 ParseAPI::Block *block,
 				std::vector<Assignment::Ptr> &ret) {
+  static std::unordered_map<Address, std::vector<Assignment::Ptr> > cache;
+  if (cache.find(addr) == cache.end()) {
   converter.convert(insn,
 		    addr,
 		    func,
                     block,
 		    ret);
+     cache[addr] = ret;
+  } else ret = cache[addr];
   return;
 }
 
@@ -1688,17 +1741,23 @@ void Slicer::constructInitialFrame(
 void
 Slicer::DefCache::merge(Slicer::DefCache const& o)
 {
+    static clock_t mergeTime = 0, t;
+//    t = clock();
     map<AbsRegion, unordered_set<Def, Def::DefHasher> >::const_iterator oit = o.defmap.begin();
     for( ; oit != o.defmap.end(); ++oit) {
         AbsRegion const& r = oit->first;
         unordered_set<Def,Def::DefHasher> const& s = oit->second;
         defmap[r].insert(s.begin(),s.end());
     }
+//    mergeTime += clock() - t;
+//    fprintf(stderr, "mergeTime: %.3lf\n", (float)mergeTime / CLOCKS_PER_SEC);
 }
 
 void
 Slicer::DefCache::replace(Slicer::DefCache const& o)
-{   
+{  
+    static clock_t replaceTime = 0, t;
+//    t = clock();
     // XXX if o.defmap[region] is empty set, remove that entry
     map<AbsRegion, unordered_set<Def, Def::DefHasher> >::const_iterator oit = o.defmap.begin();
     for( ; oit != o.defmap.end(); ++oit) {
@@ -1707,6 +1766,8 @@ Slicer::DefCache::replace(Slicer::DefCache const& o)
         else
             defmap.erase((*oit).first);
     }
+//    replaceTime += clock() - t;
+//    fprintf(stderr, "replace: %.3lf\n", (float)replaceTime / CLOCKS_PER_SEC);
 }
 
 void
