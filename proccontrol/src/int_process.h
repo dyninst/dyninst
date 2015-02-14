@@ -429,6 +429,9 @@ class int_process
    virtual bool plat_writeMem(int_thread *thr, const void *local, 
                               Dyninst::Address remote, size_t size, bp_write_t bp_write) = 0;
 
+   virtual async_ret_t plat_calcTLSAddress(int_thread *thread, int_library *lib, Offset off,
+                                           Address &outaddr, std::set<response::ptr> &resps);
+
    virtual Address plat_findFreeMemory(size_t) { return 0; }
 
    //For a platform, if plat_needsAsyncIO returns true then the async
@@ -1013,6 +1016,7 @@ public:
    void triggerContinueCBs();
 
    void throwEventsBeforeContinue();
+   virtual bool suppressSanityChecks();
 
    //User level thread info
    void setTID(Dyninst::THR_ID tid_);
@@ -1189,6 +1193,7 @@ class int_library
    Dyninst::Address load_address;
    Dyninst::Address data_load_address;
    Dyninst::Address dynamic_address;
+   Dyninst::Address sysv_map_address;
    bool has_data_load;
    bool marked;
    void *user_data;
@@ -1220,7 +1225,11 @@ class int_library
 
    Library::ptr getUpPtr() const;
    void markAsCleanable();
-   
+   void setLoadAddress(Address addr);
+   void setDynamicAddress(Address addr);
+
+   Address mapAddress();
+   void setMapAddress(Address a);
    void markAOut() { is_shared_lib = false; }
 };
 
@@ -1790,6 +1799,13 @@ class int_cleanup {
       perr_printf(STR " on exited process\n");           \
       P->setLastError(err_exited, "Process is exited");  \
       return RET;                                        \
+   }
+
+#define TRUTH_TEST(P, STR, RET)                                 \
+   if (!(P)) {                                                  \
+      perr_printf(STR " parameter is invalid\n");               \
+      setLastError(err_badparam, STR " paramter is invalid\n"); \
+      return RET;                                               \
    }
 
 #endif

@@ -277,10 +277,12 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
     // Looking like <eqZero?>(<add>(<V([x86_64::rbx])>,<Imm:8>,),)
     // Assuming ast has been simplified
     if (ast->val().op == ROSEOperation::equalToZeroOp) {
+        bool minuendIsZero = true;
         AST::Ptr child = ast->child(0);	
 	if (child->getID() == AST::V_RoseAST) {
 	    RoseAST::Ptr childRose = boost::static_pointer_cast<RoseAST>(child);
 	    if (childRose->val().op == ROSEOperation::addOp) {
+	        minuendIsZero = false;
 	        subtrahend = childRose->child(0);
 		minuend = childRose->child(1);
 		// If the minuend is a constant, then
@@ -302,7 +304,8 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 		    minuend = minuend->child(0)->child(0);
 		}
 	    } 	
-	} else {
+	} 
+	if (minuendIsZero) {
             // The minuend is 0, thus the add operation is subsume.
              subtrahend = ast->child(0);
 	     minuend = ConstantAST::create(Constant(0));

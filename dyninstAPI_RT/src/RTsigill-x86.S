@@ -60,3 +60,5 @@
 DYNINSTsigill:
     ud2
     ret
+
+.section .note.GNU-stack,"",@progbits

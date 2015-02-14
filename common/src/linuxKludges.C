@@ -166,6 +166,22 @@ using namespace abi;
 char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
 				bool includeTypes ) 
 {
+  static char* last_symbol = NULL, *last_typed = NULL, *last_pretty = NULL;
+
+  if(last_symbol && (strcmp(symbol, last_symbol) == 0))
+  {
+    if(includeTypes && last_typed)
+    {
+      return strdup(last_typed);
+    }
+    else if(last_pretty)
+    {
+      return strdup(last_pretty);
+    }
+  }
+
+
+
    int opts = 0;
    opts |= includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0;
    //   [ pgcc/CC are the "native" compilers on Linux. Go figure. ]
@@ -190,7 +206,11 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
    char * demangled = cplus_demangle( const_cast< char *>(symbol), opts);
 #endif
    if( demangled == NULL ) { return NULL; }
-
+   free(last_typed);
+   free(last_symbol);
+   free(last_pretty);
+   last_symbol = strdup(symbol);
+   last_typed = strdup(demangled);
    if( ! includeTypes ) {
         /* de-demangling never increases the length */   
         char * dedemangled = strdup( demangled );   
@@ -199,9 +219,10 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
         assert( dedemangled != NULL );
 
         free( demangled );
+	last_pretty = strdup(dedemangled);
         return dedemangled;
         }
-
+   last_pretty = NULL;
    return demangled;
 } /* end P_cplus_demangle() */
 

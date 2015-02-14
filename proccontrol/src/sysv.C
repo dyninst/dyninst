@@ -282,10 +282,16 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
          // Note: we set them all to "I'm a shared library"; the a.out is overridden below.
 
          lib = new int_library(ll->getName(), true, ll->getCodeLoadAddr(), ll->getDynamicAddr());
+         lib->setMapAddress(ll->getMapAddr());
          assert(lib);
          added_libs.insert(lib);
          ll->setUpPtr((void *) lib);
          mem->libs.insert(lib);
+      }
+      if (!lib->mapAddress()) {
+         lib->setMapAddress(ll->getMapAddr());
+         lib->setLoadAddress(ll->getCodeLoadAddr());
+         lib->setDynamicAddress(ll->getDynamicAddr());
       }
       lib->setMark(true);
    }

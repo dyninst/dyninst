@@ -118,23 +118,7 @@ supportedLanguages Module::language() const
 
 bool Module::hasLineInformation()
 {
-   LineInformation *li =  NULL;
-   if (getAnnotation(li, ModuleLineInfoAnno)) 
-   {
-      if (!li) 
-      {
-         fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
-               FILE__, __LINE__);
-         return false;
-      }
-
-      if (li->getSize())
-      {
-         return true;
-      }
-   }
-
-   return false;
+  return lineInfo_ && lineInfo_->getSize();
 }
 
 bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
@@ -171,6 +155,11 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
    unsigned int originalSize = lines.size();
    
    LineInformation *lineInformation = getLineInformation();
+   if(!lineInformation) {
+     exec_->parseLineInformation();
+     lineInformation = getLineInformation();
+   }
+   
    if (lineInformation)
       lineInformation->getSourceLines( addressInRange, lines );
 
@@ -184,34 +173,18 @@ bool Module::getStatements(std::vector<Statement *> &statements)
 {
 	unsigned initial_size = statements.size();
 	LineInformation *li = getLineInformation();
-
 	if (!li) 
 	{
-		//fprintf(stderr, "%s[%d]:  WARNING:  no line info for module %s\n", FILE__, __LINE__, fileName_.c_str());
-		//annotationsReport();
-		return false;
+	  exec_->parseLineInformation();
+	  li = getLineInformation();
+	  if(!li) return false;
 	}
 
-#if 0
-	statements.resize(initial_size + li->getSize());
-
-	int index = initial_size; 
-
-	for (LineInformation::const_iterator i = li->begin();
-			i != li->end();
-			++i)
-	{ 
-		//statements[index].start_addr = (*i).first.first;
-		//statements[index].end_addr = (*i).first.second;
-		statements[index] = const_cast<Statement *>(&(*i).second);
-		index++;
-	}
-#endif
 	for (LineInformation::const_iterator i = li->begin();
 			i != li->end();
 			++i)
 	{
-		statements.push_back(const_cast<Statement *>(&(i->second)));
+	  statements.push_back(const_cast<Statement *>(&(i->second)));
 	}
 
 	return (statements.size() > initial_size);
@@ -220,37 +193,16 @@ bool Module::getStatements(std::vector<Statement *> &statements)
 vector<Type *> *Module::getAllTypes()
 {
 	exec_->parseTypesNow();
-
-	typeCollection *tc = NULL;
-	if (!getAnnotation(tc, ModuleTypeInfoAnno))
-	{
-		return NULL;
-	}
-	if (!tc)
-	{
-		fprintf(stderr, "%s[%d]:  failed to getAnnotation here\n", FILE__, __LINE__);
-		return NULL;
-	}
-
-	return tc->getAllTypes();
+	if(typeInfo_) return typeInfo_->getAllTypes();
+	return NULL;
+	
 }
 
 vector<pair<string, Type *> > *Module::getAllGlobalVars()
 {
 	exec_->parseTypesNow();
-
-	typeCollection *tc = NULL;
-	if (!getAnnotation(tc, ModuleTypeInfoAnno))
-   {
-      return NULL;
-   }
-   if (!tc)
-   {
-      fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
-      return NULL;
-   }
-
-   return tc->getAllGlobalVariables();
+	if(typeInfo_) return typeInfo_->getAllGlobalVariables();
+	return NULL;	
 }
 
 typeCollection *Module::getModuleTypes()
@@ -261,13 +213,7 @@ typeCollection *Module::getModuleTypes()
 
 typeCollection *Module::getModuleTypesPrivate()
 {
-   typeCollection *tc = NULL;
-   if (!getAnnotation(tc, ModuleTypeInfoAnno))
-   {
-      return NULL;
-   }
-
-   return tc;
+  return typeInfo_;
 }
 
 bool Module::findType(Type *&type, std::string name)
@@ -299,70 +245,13 @@ bool Module::findVariableType(Type *&type, std::string name)
 
 bool Module::setLineInfo(LineInformation *lineInfo)
 {
-   LineInformation *li =  NULL;
-
-   if (!getAnnotation(li, ModuleLineInfoAnno)) 
-   {
-      if (li) 
-      {
-         return false;
-      }
-
-      if (!addAnnotation(lineInfo, ModuleLineInfoAnno))
-      {
-         return false;
-      }
-
-      return true;
-   }
-
-   if (li != lineInfo)
-   {
-	   fprintf(stderr, "%s[%d]:  REMOVED DELETE\n", FILE__, __LINE__);
-     //delete li;
-   }
-   
-   if (!addAnnotation(lineInfo, ModuleLineInfoAnno))
-   {
-     fprintf(stderr, "%s[%d]:  failed to add lineInfo annotation\n", FILE__, __LINE__);
-     return false;
-   }
-
-   return false;
+  lineInfo_ = lineInfo;
+  return true;
 }
 
 LineInformation *Module::getLineInformation()
 {
-	if (!exec_->isLineInfoValid_)
-	{
-		//fprintf(stderr, "%s[%d]:  TRIGGERING FL INFO PARSE\n", FILE__, __LINE__);
-		exec_->parseLineInformation();
-	}
-
-	if (!exec_->isLineInfoValid_) 
-	{
-		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-		return NULL;
-	}
-
-	LineInformation *li =  NULL;
-	if (getAnnotation(li, ModuleLineInfoAnno))
-	{
-		if (!li) 
-		{
-			fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n",
-					FILE__, __LINE__);
-			return NULL;
-		}
-
-		if (!li->getSize())
-		{
-			fprintf(stderr, "%s[%d]:  EMPTY LINE INFO ANNO\n", FILE__, __LINE__);
-			return NULL;
-		}
-	}
-
-	return li;
+  return lineInfo_;
 }
 
 bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string name)
@@ -389,6 +278,8 @@ bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string name)
 
 Module::Module(supportedLanguages lang, Offset adr,
       std::string fullNm, Symtab *img) :
+   lineInfo_(NULL),
+   typeInfo_(NULL),
    fullName_(fullNm),
    language_(lang),
    addr_(adr),
@@ -398,6 +289,8 @@ Module::Module(supportedLanguages lang, Offset adr,
 }
 
 Module::Module() :
+   lineInfo_(NULL),
+   typeInfo_(NULL),
    fileName_(""),
    fullName_(""),
    language_(lang_Unknown),
@@ -408,49 +301,21 @@ Module::Module() :
 
 Module::Module(const Module &mod) :
    LookupInterface(),
-   Serializable(),
-   MODULE_ANNOTATABLE_CLASS(),
+   lineInfo_(mod.lineInfo_),
+   typeInfo_(mod.typeInfo_),
    fileName_(mod.fileName_),
    fullName_(mod.fullName_),
    language_(mod.language_),
    addr_(mod.addr_),
    exec_(mod.exec_)
 {
-   //  Copy annotations here or no?
 }
 
 Module::~Module()
 {
-   LineInformation *li =  NULL;
-   if (getAnnotation(li, ModuleLineInfoAnno)) 
-   {
-      if (li) 
-      {
-		  if (!removeAnnotation(ModuleLineInfoAnno))
-		  {
-			  fprintf(stderr, "%s[%d]:  FIXME:  failed to remove LineInfo\n", 
-					  FILE__, __LINE__);
-		  }
-		  else
-		  {
-		          if (!exec_->lineInfo->erase(fullName_)) exec_->lineInfo->erase(fileName_);
-		  }
-      }
-   }
-	typeCollection *tc = NULL;
-	if (getAnnotation(tc, ModuleTypeInfoAnno))
-	{
-		if (tc)
-		{
-			if (!removeAnnotation(ModuleTypeInfoAnno))
-			{
-				fprintf(stderr, "%s[%d]:  FIXME:  failed to remove LineInfo\n", 
-						FILE__, __LINE__);
-			}
-			else
-				delete tc;
-		}
-	}
+  delete lineInfo_;
+  delete typeInfo_;
+  
 }
 
 bool Module::isShared() const
@@ -488,44 +353,6 @@ bool Module::getAllFunctions(std::vector<Function *> &ret)
 
 bool Module::operator==(Module &mod) 
 {
-   LineInformation *li =  NULL;
-   LineInformation *li_src =  NULL;
-   bool get_anno_res = false, get_anno_res_src = false;
-   get_anno_res = getAnnotation(li, ModuleLineInfoAnno);
-   get_anno_res_src = mod.getAnnotation(li_src, ModuleLineInfoAnno);
-
-   if (get_anno_res != get_anno_res_src)
-   {
-      fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
-            FILE__, __LINE__);
-      return false;
-   }
-
-   if (li) 
-   {
-      if (!li_src) 
-      {
-         fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
-               FILE__, __LINE__);
-         return false;
-      }
-
-      if (li->getSize() != li_src->getSize()) 
-         return false;
-
-      if ((li != li_src)) 
-         return false;
-   }
-   else
-   {
-      if (li_src) 
-      {
-         fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
-               FILE__, __LINE__);
-         return false;
-      }
-   }
-
    if (exec_ && !mod.exec_) return false;
    if (!exec_ && mod.exec_) return false;
    if (exec_)
@@ -539,6 +366,7 @@ bool Module::operator==(Module &mod)
          && (addr_==mod.addr_)
          && (fullName_==mod.fullName_)
          && (fileName_==mod.fileName_)
+	 && (lineInfo_ == mod.lineInfo_)
          );
 }
 
@@ -583,68 +411,3 @@ bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string
   return succ;
 }
 
-#if !defined(SERIALIZATION_DISABLED)
-Serializable * Module::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
-{
-   ifxml_start_element(sb, tag);
-   gtranslate(sb, fileName_, "fileName");
-   gtranslate(sb, fullName_, "fullName");
-   gtranslate(sb, addr_, "Address");
-   gtranslate(sb, language_, supportedLanguages2Str, "Language");
-   ifxml_end_element(sb, tag);
-
-   if (sb->isInput())
-   {
-	   SerContextBase *scb = sb->getContext();
-	   if (!scb)
-	   {
-		   fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		   SER_ERR("FIXME");
-	   }
-
-	   SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
-
-	   if (!scs)
-	   {
-		   fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		   SER_ERR("FIXME");
-	   }
-
-	   Symtab *st = scs->getScope();
-
-	   if (!st)
-	   {
-		   fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-		   SER_ERR("getScope");
-	   }
-
-	   exec_ = st;
-   }
-   return NULL;
-}
-  
-Serializable *Statement::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
-{
-	ifxml_start_element(sb, tag);
-	gtranslate(sb, file_, "file");
-	gtranslate(sb, line_, "line");
-	gtranslate(sb, column, "column");
-	gtranslate(sb, start_addr_, "startAddress");
-	gtranslate(sb, end_addr_, "endAddress");
-	ifxml_end_element(sb, tag);
-	return NULL;
-}
-
-#else
-
-Serializable *Module::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
-}
-
-Serializable *Statement::serialize_impl(SerializerBase *, const char *) THROW_SPEC(SerializerError)
-{
-   return NULL;
-}
-
-#endif

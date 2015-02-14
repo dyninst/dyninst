@@ -188,7 +188,11 @@ namespace Dyninst
 								  unsigned int opType)
     {
        unsigned int regType = op_d;
-        Result_Type aw = ia32_is_mode_64() ? u32 : u64;
+        Result_Type aw = ia32_is_mode_64() ? u64 : u32;
+        if (opType == op_lea) {
+            // For an LEA, aw (address width) is insufficient, use makeSizeType
+            aw = makeSizeType(opType);
+        }
         if(ia32_is_mode_64())
         {
             regType = op_q;
@@ -255,16 +259,6 @@ namespace Dyninst
     Expression::Ptr InstructionDecoder_x86::decodeImmediate(unsigned int opType, const unsigned char* immStart, 
 							    bool isSigned)
     {
-#if 0
-        /* See "2.2.1.5 Immediates" from the Intel Manual" */
-        bool is_64 = ia32_is_mode_64();
-        fprintf(stderr, "decodeImmediate: ia32_is_mode_64 returned %s\n", (is_64 ? "true" : "false"));
-        if (is_64) {
-            fprintf(stderr, "setting isSigned to true (was %s)\n", (isSigned ? "true" : "false"));
-            isSigned = true;
-        }
-#endif
-
         // rex_w indicates we need to sign-extend also.
         isSigned = isSigned || locs->rex_w;
 
@@ -283,8 +277,6 @@ namespace Dyninst
                 break;
             case op_v:
                 if (locs->rex_w) {
-                    /* Check with valgrind--if uninit reads go away--this was probably wrong (was 64, change to 32) */
-//                    return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int32_t*)(immStart))); // TODO: signed, read the first 32
                     return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(immStart)));
                 }
                 //FALLTHROUGH
@@ -683,7 +675,11 @@ namespace Dyninst
             case op_v:
             case op_lea:
             case op_z:
-	      if(!ia32_is_mode_64() ^ sizePrefixPresent)
+                if (locs->rex_w) 
+                {
+                    return u64;
+                }
+	      if(ia32_is_mode_64() || !sizePrefixPresent)
                 {
                     return u32;
                 }

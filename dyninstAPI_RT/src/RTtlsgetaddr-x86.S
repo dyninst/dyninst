@@ -48,4 +48,7 @@ ___tls_get_addr:
     mov (%eax), %eax /* Gets the TLS offset of the variable */
     add %gs:0, %eax /* Gets the absolute address of the variable */
     ret
+
 #endif
+
+.section .note.GNU-stack,"",@progbits

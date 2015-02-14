@@ -398,7 +398,7 @@ SYMTAB_EXPORT AObject::AObject(MappedFile *mf_, void (*err_func)(const char *))
    is_aout_(false), is_dynamic_(false),
    has_error(false), is_static_binary_(false),
    no_of_sections_(0), no_of_symbols_(0),
-   deferredParse(false), err_func_(err_func), addressWidth_nbytes(4)
+  deferredParse(false), parsedAllLineInfo(false), err_func_(err_func), addressWidth_nbytes(4)
 {
 }
 

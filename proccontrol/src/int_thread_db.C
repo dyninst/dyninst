@@ -333,6 +333,8 @@ thread_db_process::td_thr_set_event_t thread_db_process::p_td_thr_set_event;
 thread_db_process::td_thr_event_getmsg_t thread_db_process::p_td_thr_event_getmsg;
 thread_db_process::td_thr_dbsuspend_t thread_db_process::p_td_thr_dbsuspend;
 thread_db_process::td_thr_dbresume_t thread_db_process::p_td_thr_dbresume;
+thread_db_process::td_thr_tls_get_addr_t thread_db_process::p_td_thr_tls_get_addr;
+thread_db_process::td_thr_tlsbase_t thread_db_process::p_td_thr_tlsbase;
 
 bool thread_db_process::tdb_loaded = false;
 bool thread_db_process::tdb_loaded_result = false;
@@ -408,6 +410,8 @@ bool thread_db_process::loadedThreadDBLibrary()
    TDB_BIND(td_thr_event_getmsg);
    TDB_BIND(td_thr_dbsuspend);
    TDB_BIND(td_thr_dbresume);
+   TDB_BIND(td_thr_tls_get_addr);
+   TDB_BIND(td_thr_tlsbase);
 
    pthrd_printf("Successfully loaded thread_db.so library\n");
    tdb_loaded_result = true;
@@ -1332,11 +1336,31 @@ Handler::handler_ret_t ThreadDBLibHandler::handleEvent(Event::ptr ev) {
       pthrd_printf("Failed to load thread_db.  Not running handlers\n");
       return Handler::ret_success;
    }
-
    EventLibrary::const_ptr libEv = ev->getEventLibrary();
    thread_db_process *proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
-   const set<Library::ptr> &addLibs = libEv->libsAdded();
 
+   //Check if we need to clear the library->tls cache on library unload
+   const set<Library::ptr> &rmLibs = libEv->libsRemoved();
+   set<int_library *> &cached_libs = proc->libs_with_cached_tls_areas;
+   for (set<Library::ptr>::const_iterator i = rmLibs.begin(); i != rmLibs.end(); i++) {
+      int_library *ll_lib = (*i)->debug();
+      if (cached_libs.find(ll_lib) == cached_libs.end())
+         continue;
+      pthrd_printf("Removing library %s from internal tls cached on unload\n",
+                   ll_lib->getName().c_str());
+      for (int_threadPool::iterator j = proc->threadPool()->begin(); j != proc->threadPool()->end(); j++) {
+         thread_db_thread *thrd = dynamic_cast<thread_db_thread *>(*j);
+         if (!thrd)
+            continue;
+         map<int_library*, Address>::iterator k = thrd->cached_tls_areas.find(ll_lib);
+         if (k == thrd->cached_tls_areas.end())
+            continue;
+         thrd->cached_tls_areas.erase(k);
+      }
+   }
+
+   //Check if thread library is being loaded, init thread_db if so
+   const set<Library::ptr> &addLibs = libEv->libsAdded();
    set<Library::ptr>::iterator libIter;
    for( libIter = addLibs.begin(); libIter != addLibs.end(); ++libIter ) {
       if( ! proc->isSupportedThreadLib((*libIter)->getName()) )
@@ -1605,6 +1629,58 @@ bool thread_db_process::refreshThreads()
 int thread_db_process::threaddb_getPid()
 {
    return getPid();
+}
+
+async_ret_t thread_db_process::plat_calcTLSAddress(int_thread *thread, int_library *lib, Offset off,
+                                                   Address &outaddr, set<response::ptr> &resps)
+{
+   thread_db_thread *thrd = dynamic_cast<thread_db_thread *>(thread);
+   if (!thrd) {
+      perr_printf("Thread_db not supported on thread %d/%d\n", getPid(), thread->getLWP());
+      setLastError(err_unsupported, "TLS Operations not supported on this thread\n");
+      return aret_error;
+   }
+   bool is_staticbinary = plat_isStaticBinary();
+
+   if ((!is_staticbinary && !p_td_thr_tls_get_addr) ||
+       (is_staticbinary && !p_td_thr_tlsbase)) {
+      perr_printf("TLS operations not supported in this version of thread_db\n");
+      setLastError(err_unsupported, "TLS Operations not supported on this system\n");
+      return aret_error;
+   }
+   
+   map<int_library *, Address>::iterator i = thrd->cached_tls_areas.find(lib);
+   if (i != thrd->cached_tls_areas.end()) {
+      outaddr = i->second + off;
+      return aret_success;
+   }
+
+   getMemCache()->setSyncHandling(true);
+   void *tls_base = NULL;
+   td_err_e err;
+
+   if (!is_staticbinary)
+      err = p_td_thr_tls_get_addr(thrd->threadHandle, (void *) lib->mapAddress(),
+                                  0, &tls_base);
+   else
+      err = p_td_thr_tlsbase(thrd->threadHandle, 1, &tls_base);
+
+   if (err != TD_OK && getMemCache()->hasPendingAsync()) {
+      pthrd_printf("Async return in plat_calcTLSAddress\n");
+      getMemCache()->getPendingAsyncs(resps);
+      return aret_async;
+   }
+   getMemCache()->setSyncHandling(false);
+   if (err != TD_OK) {
+      perr_printf("Error return from td_thr_tls_get_addr from thread_db\n");
+      return aret_error;
+   }
+   
+   Address tls_base_addr = (Address) tls_base;
+   thrd->cached_tls_areas[lib] = tls_base_addr;
+   libs_with_cached_tls_areas.insert(lib);
+   outaddr = tls_base_addr + off;
+   return aret_success;
 }
 
 async_ret_t thread_db_thread::setEventReporting(bool on) {

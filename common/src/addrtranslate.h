@@ -54,6 +54,7 @@ class COMMON_EXPORT LoadedLib {
    Address load_addr;
    Address data_load_addr;
    Address dynamic_addr;
+   Address map_addr;
    bool should_clean;
    vector< pair<Address, unsigned long> > mapped_regions;
    SymReader *symreader;
@@ -76,6 +77,8 @@ class COMMON_EXPORT LoadedLib {
     virtual Address getDataLoadAddr() const;
     virtual Address getDynamicAddr() const;
     virtual void getOutputs(string &filename, Address &code, Address &data);
+
+    Address getMapAddr() const { return map_addr; }
 
     void* getUpPtr();
     void setUpPtr(void *v);

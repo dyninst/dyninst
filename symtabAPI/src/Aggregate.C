@@ -63,9 +63,9 @@ Aggregate::Aggregate(Symbol *sym) :
     symbols_.push_back(sym);
     firstSymbol = symbols_[0];
     offset_ = firstSymbol->getOffset();
-    mangledNames_.push_back(sym->getMangledName());
-    prettyNames_.push_back(sym->getPrettyName());
-    typedNames_.push_back(sym->getTypedName());
+    //mangledNames_.push_back(sym->getMangledName());
+    //prettyNames_.push_back(sym->getPrettyName());
+    //typedNames_.push_back(sym->getTypedName());
 }
 
 Aggregate::Aggregate(Module *mod) :
@@ -103,21 +103,6 @@ Region * Aggregate::getRegion() const
    	return firstSymbol->getRegion();
 }
 
-const vector<std::string> &Aggregate::getAllMangledNames() 
-{
-    return mangledNames_;
-}
-
-const vector<std::string> &Aggregate::getAllPrettyNames() 
-{
-    return prettyNames_;
-}
-
-const vector<std::string> &Aggregate::getAllTypedNames() 
-{
-    return typedNames_;
-}
-
 bool Aggregate::addSymbol(Symbol *sym) {
 
     // We keep a "primary" module, which is defined as "anything not DEFAULT_MODULE".
@@ -136,38 +121,6 @@ bool Aggregate::addSymbol(Symbol *sym) {
     symbols_.push_back(sym);
     firstSymbol = symbols_[0];
     offset_ = firstSymbol->getOffset();
-
-    // We need to add the symbol names (if they aren't there already)
-    // We can have multiple identical names - for example, there are
-    // often two symbols for main (static and dynamic symbol table)
-    
-    bool found = false;
-    for (unsigned j = 0; j < mangledNames_.size(); j++) {
-        if (sym->getMangledName() == mangledNames_[j]) {
-            found = true;
-            break;
-        }
-    }
-    if (!found) mangledNames_.push_back(sym->getMangledName());
-
-    found = false;
-
-    for (unsigned j = 0; j < prettyNames_.size(); j++) {
-        if (sym->getPrettyName() == prettyNames_[j]) {
-            found = true;
-            break;
-        }
-    }
-    if (!found) prettyNames_.push_back(sym->getPrettyName());
-
-    found = false;
-    for (unsigned j = 0; j < typedNames_.size(); j++) {
-        if (sym->getTypedName() == typedNames_[j]) {
-            found = true;
-            break;
-        }
-    }
-    if (!found) typedNames_.push_back(sym->getTypedName());
 
     return true;
 }
@@ -204,33 +157,14 @@ Symbol * Aggregate::getFirstSymbol() const
 bool Aggregate::addMangledNameInternal(std::string name, bool isPrimary, bool demangle)
 {
     // Check to see if we're duplicating
-    for (unsigned i = 0; i < mangledNames_.size(); i++) {
-        if (mangledNames_[i] == name)
-            return false;
-    }
-
-    if (isPrimary) {
-        std::vector<std::string>::iterator iter = mangledNames_.begin();
-        mangledNames_.insert(iter, name);
-    }
-    else
-        mangledNames_.push_back(name);
-
-    if (demangle) {
-       Symtab *symt = module_->exec();
-       string pretty, typed;
-       bool result = symt->buildDemangledName(name, pretty, typed, 
-                                              symt->isNativeCompiler(), module_->language());
-       if (result) {
-          prettyNames_.push_back(pretty);
-          typedNames_.push_back(typed);
-       }
-       else {
-          //If mangling failed, then assume mangled name is already pretty
-          prettyNames_.push_back(name);
-       }
-    }
-    return true;
+  for (auto i = mangled_names_begin(); 
+       i != mangled_names_end();
+       ++i) 
+  {
+    if ((*i) == name)
+      return false;
+  }
+  return true;
 }
 
 SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary) 
@@ -271,43 +205,27 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
  }
 
 SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary) 
- {
+{
     // Check to see if we're duplicating
-    for (unsigned i = 0; i < prettyNames_.size(); i++) {
-        if (prettyNames_[i] == name)
-            return false;
-    }
-
-    if (isPrimary) {
-        std::vector<std::string>::iterator iter = prettyNames_.begin();
-        prettyNames_.insert(iter, name);
-    }
-    else
-        prettyNames_.push_back(name);
-
-    if (mangledNames_.empty()) {
-       //Can happen with inlined (symbolless) functions that
-       // only specify a demangled name.
-       mangledNames_.push_back(name);
-    }
-    return true;
- }
+   for (auto i = pretty_names_begin(); 
+	i != pretty_names_end();
+	i++) {
+     if ((*i) == name)
+       return false;
+   }
+   return addMangledName(name, isPrimary);
+}
 
 SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary) 
 {
-  // Check to see if we're duplicating
-  for (unsigned i = 0; i < typedNames_.size(); i++) {
-    if (typedNames_[i] == name)
-      return false;
-  }
-  
-  if (isPrimary) {
-    std::vector<std::string>::iterator iter = typedNames_.begin();
-    typedNames_.insert(iter, name);
-  }
-  else
-    typedNames_.push_back(name);
-  return true;
+    // Check to see if we're duplicating
+   for (auto i = typed_names_begin(); 
+	i != typed_names_end();
+	i++) {
+     if ((*i) == name)
+       return false;
+   }
+   return addMangledName(name, isPrimary);
 }
 
 bool Aggregate::changeSymbolOffset(Symbol *sym) 
@@ -327,326 +245,59 @@ bool Aggregate::changeSymbolOffset(Symbol *sym)
         module_->exec()->changeAggregateOffset(this, oldOffset, getOffset());
 
     } else {
-        module_->exec()->addSymbolToAggregates(sym);
+      module_->exec()->addSymbolToAggregates(const_cast<const Symbol*>(sym));
     }
     return true;
 }
 
-#if !defined(SERIALIZATION_DISABLED)
-void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t, 
-		unsigned t_id) THROW_SPEC (SerializerError)
-{
-	if (module_)
-	{
-		typeCollection *tc = module_->getModuleTypesPrivate();
-		if (tc)
-		{
-			t = tc->findType(t_id);
-			if (!t)
-			{
-				//fprintf(stderr, "%s[%d]: failed to find type in module(%s) collection\n", 
-				//		FILE__, __LINE__, module_->fileName().c_str());
-			}
-		}
-		else
-		{
-			fprintf(stderr, "%s[%d]:  no types for module\n", FILE__, __LINE__);
-		}
-	}
-	else
-	{
-		fprintf(stderr, "%s[%d]:  bad deserialization order??\n", FILE__, __LINE__);
-		//SER_ERR("FIXME");
-	}
-
-	if (!t)
-	{
-		SerContextBase *scb = sb->getContext();
-		if (!scb)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
-
-		if (!scs)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		Symtab *st = scs->getScope();
-
-		if (!st)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		t = st->findType(t_id);
-
-		if (!t)
-		{
-			//  This should probably throw, but let's play nice for now
-			fprintf(stderr, "%s[%d]:  FIXME: cannot find type with id %d\n", FILE__, __LINE__, t_id);
-			std::vector<Module *> mods;
-			if (!st->getAllModules(mods))
-			{
-				fprintf(stderr, "%s[%d]:  failed to get all modules\n", FILE__, __LINE__);
-			}
-			for (unsigned int i = 0; i < mods.size(); ++i)
-			{
-				std::vector<Type *> *modtypes = mods[i]->getAllTypes();
-				fprintf(stderr, "%s[%d]:  module %s has %ld types\n", FILE__, __LINE__, mods[i]->fileName().c_str(), (signed long) (modtypes ? modtypes->size() : -1));
-				if (mods[i]->getModuleTypesPrivate()->findType(t_id))
-					fprintf(stderr, "%s[%d]:  found type %d in mod %s\n", FILE__, __LINE__, t_id, mods[i]->fileName().c_str());
-			}
-		}
-	}
-}
-#else
 void Aggregate::restore_type_by_id(SerializerBase *, Type *&, 
                                    unsigned ) THROW_SPEC (SerializerError) 
 {
 }
-#endif
 
-#if !defined(SERIALIZATION_DISABLED)
-void Aggregate::restore_module_by_name(SerializerBase *sb,  
-		std::string &mname) THROW_SPEC (SerializerError)
-{
-	if (!sb)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-		SerContextBase *scb = sb->getContext();
-		if (!scb)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
-
-		if (!scs)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		Symtab *st = scs->getScope();
-
-
-	if (!st)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-	if (!st->findModuleByName(module_, mname) || !(module_))
-	{
-		//  This should probably throw, but let's play nice for now
-		fprintf(stderr, "%s[%d]:  FIXME: aggregate w/out module: %s\n", FILE__, __LINE__, mname.c_str());
-	}
-}
-#else
 void Aggregate::restore_module_by_name(SerializerBase *, std::string &) THROW_SPEC (SerializerError)
 {
 }
-#endif
 
 extern Symbol * getSymForID(SerializerBase *sb, Address id);
 
-#if !defined(SERIALIZATION_DISABLED)
-void Aggregate::rebuild_symbol_vector(SerializerBase *sb, std::vector<Address> &symids) THROW_SPEC (SerializerError)
-{
-	Offset off_accum = 0;
-	for (unsigned long i = 0; i < symids.size(); ++i)
-	{
-		Symbol *sym = getSymForID(sb, symids[i]);
-		if (!sym)
-		{
-			fprintf(stderr, "%s[%d]:  ERROR rebuilding aggregate: ", __FILE__, __LINE__);
-			fprintf(stderr, "cannot find symbol for id %p\n", (void *) symids[i]);
-			continue;
-		}
-
-		symbols_.push_back(sym);
-        firstSymbol = symbols_[0];
-        offset_ = firstSymbol->getOffset();
-
-		//  sanity check to make sure that all our symbols share the same offset
-		if (serializer_debug_flag())
-		{
-			if (!off_accum) 
-				off_accum = sym->getOffset();
-			else
-			{
-				if (sym->getOffset() != off_accum)
-				{
-					fprintf(stderr, "%s[%d]:  INTERNAL ERROR:  mismatch offsets: %p--%p\n", FILE__, __LINE__, (void *)off_accum, (void *)sym->getOffset());
-				}
-			}
-		}
-
-		//  This sucks, but apparently there are symbols that are somehow
-		//  not getting their aggregate fields set properly (before serialize
-		//  presumably), strangely only affects 64bit cases.  Here we try
-		//  to correct for this by setting the aggregate values of all symbols
-		//  at this Offset.  This lookup should be avoided by solving the problem
-		//  somewhere else (at the source, wherever it is that the rogue symbols
-		//  are being created and/or lost)
-		//  
-		//  Maybe it is also somehow possible that spurious symbols are being
-		//  created and indexed during deserialize.
-		SerContextBase *scb = sb->getContext();
-		if (!scb)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
-
-		if (!scs)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		Symtab *st = scs->getScope();
-
-	if (!st)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-		std::vector<Symbol *> *syms = st->findSymbolByOffset(sym->getOffset());
-		for (unsigned long j = 0; j < syms->size(); ++j)
-		{
-			(*syms)[j]->aggregate_ = this;
-		}
-	}
-}
-#else
 void Aggregate::rebuild_symbol_vector(SerializerBase *, std::vector<Address> &) THROW_SPEC (SerializerError)
 {
 }
-#endif
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &a)
 {
-	std::string modname = a.module_ ? a.module_->fullName() : std::string("no_mod");
-	os   << "Aggregate{"
-		<< " Module=" << modname
-		<< " MangledNames=["; 
-		for (unsigned int i = 0; i < a.mangledNames_.size(); ++i)
-		{
-			os << a.mangledNames_[i];
-			if ((i + 1) < a.mangledNames_.size())
-				os << ", ";
-		}
-		os << "]";
-
-		os << " PrettyNames=["; 
-		for (unsigned int i = 0; i < a.prettyNames_.size(); ++i)
-		{
-			os << a.prettyNames_[i];
-			if ((i + 1) < a.prettyNames_.size())
-				os << ", ";
-		}
-		os << "]";
-
-		os << " TypedNames=["; 
-		for (unsigned int i = 0; i < a.typedNames_.size(); ++i)
-		{
-			os << a.typedNames_[i];
-			if ((i + 1) < a.typedNames_.size())
-				os << ", ";
-		}
-		os << "]";
-		os << " }";
-
-		return os;
+  std::string modname = a.module_ ? a.module_->fullName() : std::string("no_mod");
+  os   << "Aggregate{"
+       << " Module=" << modname
+       << " MangledNames=[";
+  ostream_iterator<string> out_iter(std::cout, ", ");
+  std::copy(a.mangled_names_begin(), a.mangled_names_end(), out_iter);
+  os << "]";
+  
+  os << " PrettyNames=["; 
+  std::copy(a.pretty_names_begin(), a.pretty_names_end(), out_iter);
+  os << "]";
+  os << " TypedNames=["; 
+  std::copy(a.typed_names_begin(), a.typed_names_end(), out_iter);
+  
+  os << "]";
+  os << " }";
+  
+  return os;
 }
 
-#if !defined(SERIALIZATION_DISABLED)
-void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW_SPEC (SerializerError)
-{
-	std::string modname = module_ ? module_->fullName() : std::string("");
-	std::vector<Address> symids;
-	for (unsigned long i = 0; i < symbols_.size(); ++i)
-	{
-		assert(symbols_[i]);
-		assert(sizeof(Address) == sizeof(void *));
-		symids.push_back((Address) symbols_[i]);
-	}
-
-	try
-	{
-		ifxml_start_element(sb, tag);
-		gtranslate(sb, modname, "moduleName");
-		//  Arguably we should be able to reconstruct these name lists from the set of 
-		//  symbols, right?  
-		gtranslate(sb, mangledNames_, "mangledNameList");
-		gtranslate(sb, prettyNames_, "prettyNameList");
-		gtranslate(sb, typedNames_, "typedNameList");
-#if 0
-		gtranslate(sb, symbols_, "aggregatedSymbols", "aggregateSymbol");
-		gtranslate(sb, sym_offsets, "symbolOffsetList");
-#endif
-		gtranslate(sb, symids, "symbolIDList");
-		ifxml_end_element(sb, tag);
-
-		if (sb->isBin() && sb->isInput())
-		{
-			restore_module_by_name(sb, modname);
-			rebuild_symbol_vector(sb, symids);
-		}
-
-#if 0
-		if (sb->isBin() && sb->isInput())
-		{
-			fprintf(stderr, "%s[%d]:  DESERIALIZE AGGREGATE %s, %lu offsets\n", FILE__, __LINE__, prettyNames_.size() ? prettyNames_[0].c_str() : "no_names", sym_offsets.size());
-			rebuild_symbol_vector(sb, &sym_offsets);
-		}
-#endif
-	}
-	SER_CATCH(tag);
-
-	serialize_printf("%s[%d]:  %sSERIALIZE AGGREGATE, nsyms = %lu\n", FILE__, __LINE__, 
-			sb->isInput() ? "DE" : "", symbols_.size());
-}
-#else
 void Aggregate::serialize_aggregate(SerializerBase *, const char *) THROW_SPEC (SerializerError)
 {
 }
-#endif
+
 bool Aggregate::operator==(const Aggregate &a)
 {
-	if (mangledNames_.size() != a.mangledNames_.size()) return false;
-	if (prettyNames_.size() != a.prettyNames_.size()) return false;
-	if (typedNames_.size() != a.typedNames_.size()) return false;
 	if (symbols_.size() != a.symbols_.size()) return false;
 	if (module_ && !a.module_) return false;
 	if (!module_ && a.module_) return false;
 	if (module_ && (module_->fullName() != a.module_->fullName())) return false;
 
-	for (unsigned int i = 0; i < mangledNames_.size(); ++i)
-	{
-		if (mangledNames_[i] != a.mangledNames_[i]) return false;
-	}
-	for (unsigned int i = 0; i < prettyNames_.size(); ++i)
-	{
-		if (prettyNames_[i] != a.prettyNames_[i]) return false;
-	}
-	for (unsigned int i = 0; i < typedNames_.size(); ++i)
-	{
-		if (typedNames_[i] != a.typedNames_[i]) return false;
-	}
 	for (unsigned int i = 0; i < symbols_.size(); ++i)
 	{
 		Symbol *s1 = symbols_[i];
@@ -665,4 +316,30 @@ bool Aggregate::operator==(const Aggregate &a)
 	}
 
 	return true;
+}
+
+Aggregate::name_iter Aggregate::mangled_names_begin() const
+{
+  return boost::make_transform_iterator(symbols_.begin(), std::mem_fun(&Symbol::getMangledName));
+}
+
+Aggregate::name_iter Aggregate::mangled_names_end() const
+{
+  return boost::make_transform_iterator(symbols_.end(), std::mem_fun(&Symbol::getMangledName));
+}
+Aggregate::name_iter Aggregate::pretty_names_begin() const
+{
+  return boost::make_transform_iterator(symbols_.begin(), std::mem_fun(&Symbol::getPrettyName));
+}
+Aggregate::name_iter Aggregate::pretty_names_end() const
+{
+  return boost::make_transform_iterator(symbols_.end(), std::mem_fun(&Symbol::getPrettyName));
+}
+Aggregate::name_iter Aggregate::typed_names_begin() const
+{
+  return boost::make_transform_iterator(symbols_.begin(), std::mem_fun(&Symbol::getTypedName));
+}
+Aggregate::name_iter Aggregate::typed_names_end() const
+{
+  return boost::make_transform_iterator(symbols_.end(), std::mem_fun(&Symbol::getTypedName));
 }

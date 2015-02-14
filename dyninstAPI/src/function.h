@@ -90,14 +90,38 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // this function) we make most methods passthroughs to the original
   // parsed version.
 
-  const string &symTabName() const { return ifunc()->symTabName(); };
-  const string &prettyName() const { return ifunc()->prettyName(); };
-  const string &typedName() const { return ifunc()->typedName(); };
-  const string &name() const { return symTabName(); }
+  string symTabName() const { return ifunc()->symTabName(); };
+  string prettyName() const { return ifunc()->prettyName(); };
+  string typedName() const { return ifunc()->typedName(); };
+  string name() const { return symTabName(); }
 
-  const vector<string>& symTabNameVector() const { return ifunc()->symTabNameVector(); }
-  const vector<string>& prettyNameVector() const { return ifunc()->prettyNameVector(); }
-  const vector<string>& typedNameVector() const { return ifunc()->typedNameVector(); }
+  SymtabAPI::Aggregate::name_iter symtab_names_begin() const 
+   {
+     return ifunc()->symtab_names_begin();
+   }
+   SymtabAPI::Aggregate::name_iter symtab_names_end() const 
+   {
+     return ifunc()->symtab_names_end();
+   }
+   SymtabAPI::Aggregate::name_iter pretty_names_begin() const 
+   {
+     return ifunc()->pretty_names_begin();
+   }
+   SymtabAPI::Aggregate::name_iter pretty_names_end() const 
+   {
+     return ifunc()->pretty_names_end();
+   }
+   SymtabAPI::Aggregate::name_iter typed_names_begin() const 
+   {
+     return ifunc()->typed_names_begin();
+   }
+   SymtabAPI::Aggregate::name_iter typed_names_end() const 
+   {
+     return ifunc()->typed_names_end();
+   }
+   //vector<string> symTabNameVector() const { return ifunc()->symTabNameVector(); }
+   //vector<string> prettyNameVector() const { return ifunc()->prettyNameVector(); }
+   //vector<string> typedNameVector() const { return ifunc()->typedNameVector(); }
 
   // Debuggering functions
   void debugPrint() const;

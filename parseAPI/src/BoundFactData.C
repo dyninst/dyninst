@@ -1275,6 +1275,7 @@ void BoundFact::SetPredicate(Assignment::Ptr assign,std::pair<AST::Ptr, bool> ex
 	return;
     }
     AST::Ptr simplifiedAST = expandRet.first;
+    parsing_printf("\t\t semanic expansions: %s\n", simplifiedAST->format().c_str());
     switch (id) {
         case e_cmp:
 	case e_sub: {	

@@ -43,11 +43,27 @@
 #include "IBSTree.h"
 
 #include "boost/shared_ptr.hpp"
+#include "boost/multi_index_container.hpp"
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/mem_fun.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/identity.hpp>
+using boost::multi_index_container;
+using boost::multi_index::indexed_by;
+using boost::multi_index::ordered_unique;
+using boost::multi_index::ordered_non_unique;
+using boost::multi_index::hashed_non_unique;
+
+using boost::multi_index::identity;
+using boost::multi_index::tag;
+using boost::multi_index::const_mem_fun;
+using boost::multi_index::member;
 
 class MappedFile;
 
-#define SYM_MAJOR 8
-#define SYM_MINOR 2
+#define SYM_MAJOR 9
+#define SYM_MINOR 0
 #define SYM_BETA  0
  
 namespace Dyninst {
@@ -148,7 +164,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
 
-   std::vector<Symbol *> *findSymbolByOffset(Offset);
+   std::vector<Symbol *> findSymbolByOffset(Offset);
 
    // Return all undefined symbols in the binary. Currently used for finding
    // the .o's in a static archive that have definitions of these symbols
@@ -247,7 +263,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
          unsigned int lineNo, unsigned int lineOffset = 0);
    void setTruncateLinePaths(bool value);
    bool getTruncateLinePaths();
-
+   void forceFullLineInfoParse();
+   
    /***** Type Information *****/
    virtual bool findType(Type *&type, std::string name);
    virtual Type *findType(unsigned type_id);
@@ -384,8 +401,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool fixSymModule(Symbol *&sym);
    bool demangleSymbol(Symbol *&sym);
    bool addSymbolToIndices(Symbol *&sym, bool undefined);
-   bool addSymbolToAggregates(Symbol *&sym);
-   bool doNotAggregate(Symbol *&sym);
+   bool addSymbolToAggregates(const Symbol *sym);
+   bool doNotAggregate(const Symbol *sym);
    bool updateIndices(Symbol *sym, std::string newName, NameType nameType);
 
 
@@ -437,6 +454,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
 
    void parseLineInformation();
+   
    void parseTypes();
    bool setDefaultNamespacePrefix(std::string &str);
 
@@ -499,29 +517,28 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    unsigned no_of_symbols;
 
    // Indices
-
-   std::vector<Symbol *> everyDefinedSymbol;
-   // hashtable for looking up undefined symbols in the dynamic symbol
-   // tale. Entries are referred by the relocation table entries
-   // NOT a subset of everyDefinedSymbol
-   std::vector<Symbol *> undefDynSyms;
-   std::map <std::string, std::vector<Symbol *> > undefDynSymsByMangledName;
-   std::map <std::string, std::vector<Symbol *> > undefDynSymsByPrettyName;
-   std::map <std::string, std::vector<Symbol *> > undefDynSymsByTypedName;
-
+   struct offset {};
+   struct pretty {};
+   struct mangled {};
+   struct typed {};
+   struct id {};
    
-   // Symbols by offsets in the symbol table
-   dyn_hash_map <Offset, std::vector<Symbol *> > symsByOffset;
-
-   // The raw name from the symbol table
-   dyn_hash_map <std::string, std::vector<Symbol *> > symsByMangledName;
-
-   // The name after we've run it through the demangler
-   dyn_hash_map <std::string, std::vector<Symbol *> > symsByPrettyName;
-
-   // The name after we've derived the parameter types
-   dyn_hash_map <std::string, std::vector<Symbol *> > symsByTypedName;
-
+ 
+   
+   
+   typedef 
+   boost::multi_index_container<Symbol::Ptr, indexed_by <
+   ordered_unique< tag<id>, const_mem_fun < Symbol::Ptr, Symbol*, &Symbol::Ptr::get> >,
+   ordered_non_unique< tag<offset>, const_mem_fun < Symbol, Offset, &Symbol::getOffset > >,
+   hashed_non_unique< tag<mangled>, const_mem_fun < Symbol, std::string, &Symbol::getMangledName > >,
+   hashed_non_unique< tag<pretty>, const_mem_fun < Symbol, std::string, &Symbol::getPrettyName > >,
+   hashed_non_unique< tag<typed>, const_mem_fun < Symbol, std::string, &Symbol::getTypedName > >
+   >
+   > indexed_symbols;
+   
+   indexed_symbols everyDefinedSymbol;
+   indexed_symbols undefDynSyms;
+   
    // We also need per-Aggregate indices
    bool sorted_everyFunction;
    std::vector<Function *> everyFunction;
@@ -533,43 +550,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    std::vector<Variable *> everyVariable;
    dyn_hash_map <Offset, Variable *> varsByOffset;
 
-   // For now, skip the index-by-name structures. We can use the Symbol
-   // ones instead. 
-   /*
-   dyn_hash_map <std::string, std::vector<Function *> *> funcsByMangledName;
-   dyn_hash_map <std::string, std::vector<Function *> *> funcsByPrettyName;
-   dyn_hash_map <std::string, std::vector<Function *> *> funcsByTypedName;
-   */
-
-   //dyn_hash_map <Offset, std::vector<Function *> > funcsByEntryAddr;
-   // note, a prettyName is not unique, it may map to a function appearing
-   // in several modules.  Also only contains instrumentable functions....
-   //dyn_hash_map <std::string, std::vector<Function *>*> funcsByPretty;
-   // Hash table holding functions by mangled name.
-   // Should contain same functions as funcsByPretty....
-   //dyn_hash_map <std::string, std::vector<Function *>*> funcsByMangled;
-   // A way to iterate over all the functions efficiently
-   //std::vector<Symbol *> everyUniqueFunction;
-   //std::vector<Function *> allFunctions;
-   // And the counterpart "ones that are there right away"
-   //std::vector<Symbol *> exportedFunctions;
-
-   //dyn_hash_map <Address, Function *> funcsByAddr;
    dyn_hash_map <std::string, Module *> modsByFileName;
    dyn_hash_map <std::string, Module *> modsByFullName;
    std::vector<Module *> _mods;
-
-   // Variables indexed by pretty (non-mangled) name
-   /*
-   dyn_hash_map <std::string, std::vector <Symbol *> *> varsByPretty;
-   dyn_hash_map <std::string, std::vector <Symbol *> *> varsByMangled;
-   dyn_hash_map <Offset, Symbol *> varsByAddr;
-   std::vector<Symbol *> everyUniqueVariable;
-   */
-
-   //dyn_hash_map <std::string, std::vector <Symbol *> *> modsByName;
-   //std::vector<Module *> _mods;
-
 
    std::vector<relocationEntry > relocation_table_;
    std::vector<ExceptionBlock *> excpBlocks;
@@ -583,8 +566,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool getExplicitSymtabRefs(std::set<Symtab *> &refs);
    std::set<Symtab *> explicitSymtabRefs_;
 
-   //Line Information valid flag;
-   bool isLineInfoValid_;
    //type info valid flag
    bool isTypeInfoValid_;
 
@@ -608,9 +589,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool isDefensiveBinary_;
 
    FuncRangeLookup *func_lookup;
-
-   // Line information map from module name to line info
-   dyn_hash_map<std::string, LineInformation> *lineInfo;
 
    //Don't use obj_private, use getObject() instead.
  public:

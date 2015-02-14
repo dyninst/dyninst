@@ -563,7 +563,7 @@ bool PCProcess::initTrampGuard() {
     if (!findVarsByAll(vrbleName, vars)) {
         return false;
     }
-    assert(vars.size() == 1);
+    assert(vars.size() >= 1);
 
     Address allocedTrampAddr = 0;
 
@@ -902,7 +902,7 @@ bool PCProcess::setRTLibInitParams() {
         }
     }
 
-    assert(vars.size() == 1);
+    assert(vars.size() >= 1);
     if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *)&pid)) {
         startup_printf("%s[%d]: writeDataWord failed\n", FILE__, __LINE__);
         return false;
@@ -920,7 +920,7 @@ bool PCProcess::setRTLibInitParams() {
     unsigned numThreads = MAX_THREADS;
     if( !multithread_capable() ) numThreads = 1;
 
-    assert(vars.size() == 1);
+    assert(vars.size() >= 1);
     if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *) &numThreads)) {
         startup_printf("%s[%d]: writeDataWord failed\n", FILE__, __LINE__);
         return false;
@@ -935,7 +935,7 @@ bool PCProcess::setRTLibInitParams() {
         }
     }
 
-    assert(vars.size() == 1);
+    assert(vars.size() >= 1);
     if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *) &dyn_debug_rtlib)) {
         startup_printf("%s[%d]: writeDataWord failed\n", FILE__, __LINE__);
         return false;
@@ -954,7 +954,7 @@ bool PCProcess::setRTLibInitParams() {
         }
     }
 
-    assert(vars.size() == 1);
+    assert(vars.size() >= 1);
     if (!writeDataWord((void*)vars[0]->getAddress(), sizeof(int), (void *) &static_mode)) {
         startup_printf("%s[%d]: writeDataWord failed\n", FILE__, __LINE__);
         return false;

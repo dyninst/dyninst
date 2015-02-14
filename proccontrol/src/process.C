@@ -2243,6 +2243,14 @@ void int_process::throwNopEvent()
    mbox()->enqueue(ev);
 }
 
+async_ret_t int_process::plat_calcTLSAddress(int_thread *, int_library *, Offset,
+                                             Address &, std::set<response::ptr> &)
+{
+   perr_printf("Unsupported access to plat_calcTLSAddress\n");
+   setLastError(err_unsupported, "TLS Access not supported on this platform\n");
+   return aret_error;
+}
+
 bool int_process::plat_needsAsyncIO() const
 {
    return false;
@@ -3543,6 +3551,11 @@ void int_thread::throwEventsBeforeContinue()
    }
 }
 
+bool int_thread::suppressSanityChecks()
+{
+   return false;
+}
+
 bool int_thread::isExiting() const
 {
     return handler_exiting_state;
@@ -4392,7 +4405,7 @@ bool int_thread::StateTracker::setState(State to)
                 stateStr(state), stateStr(to));
    state = to;
 
-   if (up_thr->up_thread) {
+   if (up_thr->up_thread && !up_thr->suppressSanityChecks()) {
       int_thread::State handler_state = up_thr->getHandlerState().getState();
       int_thread::State generator_state = up_thr->getGeneratorState().getState();
       if (handler_state == stopped)
@@ -5387,6 +5400,7 @@ int_library::int_library(std::string n, bool shared_lib,
    load_address(load_addr),
    data_load_address(data_load_addr),
    dynamic_address(dynamic_load_addr),
+   sysv_map_address(0),
    has_data_load(has_data_load_addr),
    marked(false),
    user_data(NULL),
@@ -5402,6 +5416,7 @@ int_library::int_library(int_library *l) :
    load_address(l->load_address),
    data_load_address(l->data_load_address),
    dynamic_address(l->dynamic_address),
+   sysv_map_address(l->sysv_map_address),
    has_data_load(l->has_data_load),
    marked(l->marked),
    user_data(NULL),
@@ -5447,6 +5462,26 @@ bool int_library::hasDataAddr()
 Dyninst::Address int_library::getDynamicAddr()
 {
    return dynamic_address;
+}
+
+void int_library::setLoadAddress(Address addr)
+{
+   load_address = addr;
+}
+
+void int_library::setDynamicAddress(Address addr)
+{
+   dynamic_address = addr;
+}
+
+Address int_library::mapAddress()
+{ 
+   return sysv_map_address;
+}
+
+void int_library::setMapAddress(Address a)
+{
+   sysv_map_address = a;
 }
 
 bool int_library::isSharedLib() const {
@@ -7530,6 +7565,118 @@ bool Thread::setAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
       return false;
    }
    llthread_->llproc()->plat_preAsyncWait();
+   return true;
+}
+
+bool Thread::readThreadLocalMemory(void *buffer, Library::const_ptr lib, Dyninst::Offset tls_symbol_offset, size_t size) const
+{
+   MTLock lock_this_func;
+   THREAD_EXIT_DETACH_STOP_TEST("readTLSMemory", false);
+   TRUTH_TEST(buffer, "buffer", false);
+   TRUTH_TEST(lib, "lib", false);
+
+   int_process *llproc = llthread_->llproc();
+   int_thread *llthrd = llthread_;
+   pthrd_printf("User wants to read TLS memory on thread %d/%d from library %s at offset %lu of size %lu\n",
+                llproc->getPid(), llthrd->getLWP(), lib->getName().c_str(),
+                (unsigned long) tls_symbol_offset, (unsigned long) size);
+   
+   Address var_address;
+   async_ret_t ret;
+   do {
+      set<response::ptr> resps;
+      ret = llproc->plat_calcTLSAddress(llthrd, lib->debug(), tls_symbol_offset, 
+                                        var_address, resps);
+      if (ret == aret_error) {
+         pthrd_printf("Failed calculate memory address of TLS variable");
+         return false;
+      }
+      if (ret == aret_async) {
+         llproc->waitForAsyncEvent(resps);
+      }
+   } while (ret != aret_success);
+
+   
+   mem_response::ptr memresp = mem_response::createMemResponse((char *) buffer, size);
+   bool result = llproc->readMem(var_address, memresp, llthrd);
+   if (result)
+      llproc->waitForAsyncEvent(memresp);
+   if (!result || memresp->hasError()) {
+      pthrd_printf("Failed to read TLS memory at address %lx of size %lu\n", var_address, size);
+      (void)memresp->isReady();
+      return false;
+   }
+
+   return true;
+}
+
+bool Thread::writeThreadLocalMemory(Library::const_ptr lib, Dyninst::Offset tls_symbol_offset, const void *buffer, size_t size) const
+{
+   MTLock lock_this_func;
+   THREAD_EXIT_DETACH_STOP_TEST("writeTLSMemory", false);
+   TRUTH_TEST(buffer, "buffer", false);
+   TRUTH_TEST(lib, "lib", false);
+
+   int_process *llproc = llthread_->llproc();
+   int_thread *llthrd = llthread_;
+   pthrd_printf("User wants to write to TLS memory on thread %d/%d in library %s at offset %lu of size %lu\n",
+                llproc->getPid(), llthrd->getLWP(), lib->getName().c_str(),
+                (unsigned long) tls_symbol_offset, (unsigned long) size);
+   
+   Address var_address;
+   async_ret_t ret;
+   do {
+      set<response::ptr> resps;
+      ret = llproc->plat_calcTLSAddress(llthrd, lib->debug(), tls_symbol_offset,
+                                        var_address, resps);
+      if (ret == aret_error) {
+         pthrd_printf("Failed calculate memory address of TLS variable");
+         return false;
+      }
+      if (ret == aret_async) {
+         llproc->waitForAsyncEvent(resps);
+      }
+   } while (ret != aret_success);
+
+   result_response::ptr resp = result_response::createResultResponse();
+   bool result = llproc->writeMem(buffer, var_address, size, resp);
+   if (result)
+      llproc->waitForAsyncEvent(resp);
+   if (!result || !resp->getResult() || resp->hasError()) {
+      pthrd_printf("Failed to write to TLS memory at address %lx of size %lu\n", var_address, size);
+      return false;
+   }
+   
+   return true;
+}
+
+bool Thread::getThreadLocalAddress(Library::const_ptr lib, Dyninst::Offset tls_symbol_offset, Dyninst::Address &result_addr)
+{
+   MTLock lock_this_func;
+   THREAD_EXIT_DETACH_STOP_TEST("getThreadLocalAddress", false);
+   TRUTH_TEST(lib, "lib", false);
+
+   int_process *llproc = llthread_->llproc();
+   int_thread *llthrd = llthread_;
+   pthrd_printf("User wants to get TLS address on thread %d/%d in library %s at offset %lu\n",
+                llproc->getPid(), llthrd->getLWP(), lib->getName().c_str(),
+                (unsigned long) tls_symbol_offset);
+   
+   Address var_address;
+   async_ret_t ret;
+   do {
+      set<response::ptr> resps;
+      ret = llproc->plat_calcTLSAddress(llthrd, lib->debug(), tls_symbol_offset,
+                                        var_address, resps);
+      if (ret == aret_error) {
+         pthrd_printf("Failed calculate memory address of TLS variable");
+         return false;
+      }
+      if (ret == aret_async) {
+         llproc->waitForAsyncEvent(resps);
+      }
+   } while (ret != aret_success);
+   result_addr = var_address;
    return true;
 }
 

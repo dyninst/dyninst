@@ -14,3 +14,5 @@ DYNINSTstaticHeap_8K_lowmemHeap_1:
         .skip 8192
 DYNINSTstaticHeap_32K_anyHeap_1:
         .skip 32768
+
+.section .note.GNU-stack,"",@progbits

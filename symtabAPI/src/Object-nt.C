@@ -1174,27 +1174,41 @@ static BOOL CALLBACK add_line_info(SRCCODEINFO *srcinfo, void *param)
 	return true;
 }
 
-static bool store_line_info(dyn_hash_map<std::string, LineInformation> *lineInfo,
-							info_for_all_files_t *baseInfo)
+static bool store_line_info(Symtab* st,	info_for_all_files_t *baseInfo)
 {
    for (info_for_all_files_t::iterator i = baseInfo->begin(); i != baseInfo->end(); i++)
    {
 	   const char *filename = (*i).first.c_str();
+	   Module* mod;
+	   
+	   if(!st->findModuleByName(mod, fileName)) 
+	   {
+	     mod = st->getDefaultModule();
+	   }    
+	   LineInformation* li_for_module = mod->getLineInformation();
+	   if(!li_for_module) 
+	   {
+	     li_for_module = new LineInformation;
+	     mod->setLineInfo(li_for_module);
+	   }
+
 	   for (info_for_file_t::iterator j = (*i).second->begin(); j != (*i).second->end(); j++) {
 		   info_for_file_t::iterator next = j;
 		   next++;
 		   if (next != (*i).second->end())
-			   (*lineInfo)[filename].addLine(filename, j->line_no, 0, j->addr, next->addr);
+			   li_for_module->addLine(filename, j->line_no, 0, j->addr, next->addr);
 		   else
-			   (*lineInfo)[filename].addLine(filename, j->line_no, 0, j->addr, j->addr);
+			   li_for_module->addLine(filename, j->line_no, 0, j->addr, j->addr);
 	   }
 	   delete (*i).second;
    }
    return true;
 }
 
-void Object::parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &li)
+void Object::parseFileLineInfo(Symtab *st)
 {   
+  if(parsedAllLineInfo) return;
+  
   int result;
   static Offset last_file = 0x0;
 
@@ -1209,6 +1223,8 @@ void Object::parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformati
 			      NULL,
 			      add_line_info, 
 			      &inf); 
+  // Set to true once we know we've done as much as we can
+  parsedAllLineInfo = true;
   if (!result) {
     //Not a big deal. The module probably didn't have any debug information.
     DWORD dwErr = GetLastError();
@@ -1216,7 +1232,8 @@ void Object::parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformati
 	//	   __FILE__, __LINE__, src_file_name, libname);
     return;
   }
-  store_line_info(&li, &inf);
+  store_line_info(st, &inf);
+  
 }
 
 typedef struct localsStruct {

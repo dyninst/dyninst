@@ -26,3 +26,5 @@ __i686.get_pc_thunk.cx:
         mov (%esp), %ecx
         ret
 #endif
+
+.section .note.GNU-stack,"",@progbits

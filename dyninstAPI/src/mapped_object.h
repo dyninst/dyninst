@@ -60,9 +60,9 @@ class int_symbol {
 
     Address getAddr() const { return addr_; }
     unsigned getSize() const { return sym_->getSize(); }
-    const string &symTabName() const { return sym_->getMangledName(); }
-    const string &prettyName() const { return sym_->getPrettyName(); }
-    const string &typedName() const { return sym_->getTypedName(); }
+    string symTabName() const { return sym_->getMangledName(); }
+    string prettyName() const { return sym_->getPrettyName(); }
+    string typedName() const { return sym_->getTypedName(); }
     const SymtabAPI::Symbol *sym() const { return sym_; }
 
  private:
@@ -85,9 +85,14 @@ class int_variable {
 
     Address getAddress() const { return addr_; }
     // Can variables have multiple names?
-    const string &symTabName() const;
-    const vector<string>& prettyNameVector() const;
-    const vector<string>& symTabNameVector() const;
+    string symTabName() const;
+    SymtabAPI::Aggregate::name_iter pretty_names_begin() const;
+    SymtabAPI::Aggregate::name_iter pretty_names_end() const;
+    SymtabAPI::Aggregate::name_iter symtab_names_begin() const;
+    SymtabAPI::Aggregate::name_iter symtab_names_end() const;
+    
+    //const vector<string>& prettyNameVector() const;
+    //const vector<string>& symTabNameVector() const;
     mapped_module *mod() const { return mod_; };
     //AddressSpace *as() const { return mod()->proc(); }
     const image_variable *ivar() const { return ivar_; }

@@ -494,6 +494,7 @@ BoundFactsCalculator::~BoundFactsCalculator() {
 }
 
 pair<AST::Ptr, bool> BoundFactsCalculator::ExpandAssignment(Assignment::Ptr assign) {
+    parsing_printf("expand assignment : %s Instruction: %s\n", assign->format().c_str(), assign->insn()->format().c_str());
     if (expandCache.find(assign) != expandCache.end()) {
         AST::Ptr ast = expandCache[assign];
 //	if (ast) return make_pair(DeepCopyAnAST(ast), true); else return make_pair(ast, false);

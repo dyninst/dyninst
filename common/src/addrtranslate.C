@@ -199,6 +199,7 @@ LoadedLib::LoadedLib(string n, Address la) :
    load_addr(la),
    data_load_addr(0),
    dynamic_addr(0),
+   map_addr(0),
    should_clean(false),
    symreader(NULL),
    symreader_factory(NULL),

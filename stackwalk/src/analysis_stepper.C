@@ -284,7 +284,16 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
    //Since there is only one region, there is only one block with the offset
     // Not actually true; overlapping code is always possible.
    set<ParseAPI::Block*> blocks;
-   obj->findBlocks(region, callSite, blocks);
+   for(auto i = func->blocks().begin();
+       i != func->blocks().end();
+       ++i)
+   {
+     if((*i)->start() <= callSite && (*i)->end() > callSite)
+     {
+       blocks.insert(*i);
+     }
+   }
+   //obj->findBlocks(region, callSite, blocks);
    if(blocks.size() == 0) {
       sw_printf("[%s:%u] - Function at entry point %lx did not contain call site %lx\n", FILE__,
                 __LINE__, entry_addr, callSite);

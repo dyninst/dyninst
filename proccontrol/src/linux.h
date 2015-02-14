@@ -216,9 +216,12 @@ class linux_thread : virtual public thread_db_thread
    ArchEventLinux *getPostponedSyscallEvent();
 
    static void fake_async_main(void *);
+   virtual bool suppressSanityChecks();
 
+   void setGeneratorExiting() { generator_started_exit_processing = true; }
  private:
    ArchEventLinux *postponed_syscall_event;
+   bool generator_started_exit_processing;
 };
 
 class linux_x86_thread : virtual public linux_thread, virtual public x86_thread

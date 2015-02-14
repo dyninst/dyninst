@@ -57,6 +57,7 @@ extern "C" {
 }
 
 #include <map>
+#include <set>
 #include <vector>
 #include <string>
 #include <deque>
@@ -70,6 +71,7 @@ class thread_db_process : public int_threadTracking
 {
    friend class thread_db_thread;
    friend class ThreadDBDispatchHandler;
+   friend class ThreadDBLibHandler;
 
    friend ps_err_e ps_pread(struct ps_prochandle *, psaddr_t, void *, size_t);
    friend ps_err_e ps_pwrite(struct ps_prochandle *, psaddr_t, const void *, size_t);
@@ -118,6 +120,9 @@ public:
     virtual bool isTrackingThreads();
     virtual bool refreshThreads();
     virtual int threaddb_getPid();
+
+    async_ret_t plat_calcTLSAddress(int_thread *thread, int_library *lib, Offset off,
+                                    Address &outaddr, std::set<response::ptr> &resps);
     
     //The types for thread_db functions we will call
     typedef td_err_e (*td_init_t)(void);
@@ -133,6 +138,10 @@ public:
     typedef td_err_e (*td_thr_event_getmsg_t)(const td_thrhandle_t *, td_event_msg_t *);
     typedef td_err_e (*td_thr_dbsuspend_t)(const td_thrhandle_t *);
     typedef td_err_e (*td_thr_dbresume_t)(const td_thrhandle_t *);
+    typedef td_err_e (*td_thr_tls_get_addr_t)(const td_thrhandle_t *, void *map_address,
+                                              size_t offset, void **address);
+    typedef td_err_e (*td_thr_tlsbase_t)(const td_thrhandle_t *, unsigned long modid,
+                                         void **address);
 
     //Function pointers to the thread_db functions
     static bool loadedThreadDBLibrary();
@@ -149,6 +158,8 @@ public:
     static td_thr_event_getmsg_t p_td_thr_event_getmsg;
     static td_thr_dbsuspend_t p_td_thr_dbsuspend;
     static td_thr_dbresume_t p_td_thr_dbresume;
+    static td_thr_tls_get_addr_t p_td_thr_tls_get_addr;
+    static td_thr_tlsbase_t p_td_thr_tlsbase;
 
 protected:
     Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg, bool &async);
@@ -182,6 +193,8 @@ private:
     static bool tdb_loaded;
     static bool tdb_loaded_result;
 
+    std::set<int_library *> libs_with_cached_tls_areas;
+
     async_ret_t ll_fetchThreadInfo(td_thrhandle_t *th, td_thrinfo_t *info);
 };
 
@@ -197,6 +210,7 @@ class thread_db_thread : virtual public int_thread
     friend class ThreadDBCreateHandler;
     friend class ThreadDBDispatchHandler;
     friend class thread_db_process;
+   friend class ThreadDBLibHandler;
 public:
     thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
     virtual ~thread_db_thread();
@@ -236,6 +250,8 @@ protected:
     bool thread_initialized;
     bool threadHandle_alloced;
     bool enabled_event_reporting;
+  private:
+    std::map<int_library *, Address> cached_tls_areas;
 };
 
 class ThreadDBDispatchHandler : public Handler
