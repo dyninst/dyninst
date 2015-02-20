@@ -7597,6 +7597,14 @@ bool Thread::readThreadLocalMemory(void *buffer, Library::const_ptr lib, Dyninst
 
    int_process *llproc = llthread_->llproc();
    int_thread *llthrd = llthread_;
+   int_library *intlib = lib->debug();
+   
+   if (!intlib || !intlib->inProcess(llproc)) {
+      perr_printf("Library %s is not loaded in process %d\n", lib->getName().c_str(), llproc->getPid());
+      setLastError(err_badparam, "Library object is not loaded in specified process\n");
+      return false;
+   }
+      
    pthrd_printf("User wants to read TLS memory on thread %d/%d from library %s at offset %lu of size %lu\n",
                 llproc->getPid(), llthrd->getLWP(), lib->getName().c_str(),
                 (unsigned long) tls_symbol_offset, (unsigned long) size);
@@ -7605,7 +7613,7 @@ bool Thread::readThreadLocalMemory(void *buffer, Library::const_ptr lib, Dyninst
    async_ret_t ret;
    do {
       set<response::ptr> resps;
-      ret = llproc->plat_calcTLSAddress(llthrd, lib->debug(), tls_symbol_offset, 
+      ret = llproc->plat_calcTLSAddress(llthrd, intlib, tls_symbol_offset, 
                                         var_address, resps);
       if (ret == aret_error) {
          pthrd_printf("Failed calculate memory address of TLS variable");
@@ -7639,6 +7647,14 @@ bool Thread::writeThreadLocalMemory(Library::const_ptr lib, Dyninst::Offset tls_
 
    int_process *llproc = llthread_->llproc();
    int_thread *llthrd = llthread_;
+   int_library *intlib = lib->debug();
+   
+   if (!intlib || !intlib->inProcess(llproc)) {
+      perr_printf("Library %s is not loaded in process %d\n", lib->getName().c_str(), llproc->getPid());
+      setLastError(err_badparam, "Library object is not loaded in specified process\n");
+      return false;
+   }
+      
    pthrd_printf("User wants to write to TLS memory on thread %d/%d in library %s at offset %lu of size %lu\n",
                 llproc->getPid(), llthrd->getLWP(), lib->getName().c_str(),
                 (unsigned long) tls_symbol_offset, (unsigned long) size);
@@ -7647,7 +7663,7 @@ bool Thread::writeThreadLocalMemory(Library::const_ptr lib, Dyninst::Offset tls_
    async_ret_t ret;
    do {
       set<response::ptr> resps;
-      ret = llproc->plat_calcTLSAddress(llthrd, lib->debug(), tls_symbol_offset,
+      ret = llproc->plat_calcTLSAddress(llthrd, intlib, tls_symbol_offset,
                                         var_address, resps);
       if (ret == aret_error) {
          pthrd_printf("Failed calculate memory address of TLS variable");
@@ -7678,6 +7694,14 @@ bool Thread::getThreadLocalAddress(Library::const_ptr lib, Dyninst::Offset tls_s
 
    int_process *llproc = llthread_->llproc();
    int_thread *llthrd = llthread_;
+   int_library *intlib = lib->debug();
+   
+   if (!intlib || !intlib->inProcess(llproc)) {
+      perr_printf("Library %s is not loaded in process %d\n", lib->getName().c_str(), llproc->getPid());
+      setLastError(err_badparam, "Library object is not loaded in specified process\n");
+      return false;
+   }
+      
    pthrd_printf("User wants to get TLS address on thread %d/%d in library %s at offset %lu\n",
                 llproc->getPid(), llthrd->getLWP(), lib->getName().c_str(),
                 (unsigned long) tls_symbol_offset);
@@ -7686,7 +7710,7 @@ bool Thread::getThreadLocalAddress(Library::const_ptr lib, Dyninst::Offset tls_s
    async_ret_t ret;
    do {
       set<response::ptr> resps;
-      ret = llproc->plat_calcTLSAddress(llthrd, lib->debug(), tls_symbol_offset,
+      ret = llproc->plat_calcTLSAddress(llthrd, intlib, tls_symbol_offset,
                                         var_address, resps);
       if (ret == aret_error) {
          pthrd_printf("Failed calculate memory address of TLS variable");
