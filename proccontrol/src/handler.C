@@ -1759,7 +1759,7 @@ Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
 		   lib != lev->libsAdded().end();
 		   ++lib)
 	   {
-		   ev->getProcess()->llproc()->memory()->libs.insert((*lib)->debug());
+              ev->getProcess()->llproc()->memory()->addLibrary((*lib)->debug());
 	   }
    }
    if(!lev->libsRemoved().empty())
@@ -1769,7 +1769,7 @@ Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
 		   lib != lev->libsRemoved().end();
 		   ++lib)
 	   {
-		   ev->getProcess()->llproc()->memory()->libs.erase((*lib)->debug());
+              ev->getProcess()->llproc()->memory()->rmLibrary((*lib)->debug());
 	   }
    }
    if(!lev->libsAdded().empty() || !lev->libsRemoved().empty())

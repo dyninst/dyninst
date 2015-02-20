@@ -286,7 +286,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
          assert(lib);
          added_libs.insert(lib);
          ll->setUpPtr((void *) lib);
-         mem->libs.insert(lib);
+         mem->addLibrary(lib);
       }
       if (!lib->mapAddress()) {
          lib->setMapAddress(ll->getMapAddr());
@@ -305,8 +305,9 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       }
       pthrd_printf("Didn't find old library %s at %lx, unloading\n",
                    lib->getName().c_str(), lib->getAddr());
+      i++;
       rmd_libs.insert(lib);
-      mem->libs.erase(i++);
+      mem->rmLibrary(lib);
    }
 
    if (!aout) {

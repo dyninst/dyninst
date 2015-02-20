@@ -5404,7 +5404,8 @@ int_library::int_library(std::string n, bool shared_lib,
    has_data_load(has_data_load_addr),
    marked(false),
    user_data(NULL),
-   is_shared_lib(shared_lib)
+   is_shared_lib(shared_lib),
+   memory(NULL)
 {
 //   assert(n != "");
    up_lib = Library::ptr(new Library());
@@ -5420,8 +5421,8 @@ int_library::int_library(int_library *l) :
    has_data_load(l->has_data_load),
    marked(l->marked),
    user_data(NULL),
-   is_shared_lib(l->is_shared_lib)
-   
+   is_shared_lib(l->is_shared_lib),
+   memory(NULL)
 {
    up_lib = Library::ptr(new Library());
    up_lib->lib = this;
@@ -5482,6 +5483,11 @@ Address int_library::mapAddress()
 void int_library::setMapAddress(Address a)
 {
    sysv_map_address = a;
+}
+
+bool int_library::inProcess(int_process *p)
+{
+   return (p->memory() == memory);
 }
 
 bool int_library::isSharedLib() const {
@@ -5600,6 +5606,20 @@ void mem_state::rmProc(int_process *p, bool &should_clean)
    }
 }
 
+void mem_state::addLibrary(int_library *lib)
+{
+   libs.insert(lib);
+   lib->memory = this;
+}
+
+void mem_state::rmLibrary(int_library *lib)
+{
+   set<int_library*>::iterator i = libs.find(lib);
+   if (i == libs.end())
+      return;
+   libs.erase(i);
+   lib->memory = NULL;
+}
 
 int_notify *int_notify::the_notify = NULL;
 int_notify::int_notify() :

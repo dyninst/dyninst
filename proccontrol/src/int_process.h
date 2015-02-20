@@ -122,6 +122,9 @@ class mem_state
    void addProc(int_process *p);
    void rmProc(int_process *p, bool &should_clean);
 
+   void addLibrary(int_library *lib);
+   void rmLibrary(int_library *lib);
+
    std::set<int_process *> procs;
    std::set<int_library *> libs;
    std::map<Dyninst::Address, sw_breakpoint *> breakpoints;
@@ -1188,6 +1191,7 @@ class int_library
    friend class Dyninst::ProcControlAPI::LibraryPool;
    friend class Dyninst::ProcControlAPI::LibraryPool::iterator;
    friend class Dyninst::ProcControlAPI::LibraryPool::const_iterator;
+   friend class mem_state;
   private:
    std::string name;
    std::string abs_name;
@@ -1200,6 +1204,7 @@ class int_library
    void *user_data;
    Library::ptr up_lib;
    bool is_shared_lib;
+   mem_state::ptr memory;
   public:
    int_library(std::string n, 
                bool shared_lib,
@@ -1232,6 +1237,8 @@ class int_library
    Address mapAddress();
    void setMapAddress(Address a);
    void markAOut() { is_shared_lib = false; }
+
+   bool inProcess(int_process *proc);
 };
 
 /**
