@@ -52,8 +52,8 @@ static map<Thread::const_ptr, int> thread_iters;
 static bool hasError = false;
 static bool initialized_symbols;
 static bool is_static;
-static Library::const_ptr libtesta;
-static Library::const_ptr executable;
+static std::map<Process::const_ptr, Library::const_ptr> libtesta;
+static std::map<Process::const_ptr, Library::const_ptr> executable;
 static Dyninst::Offset lib_tls_read_int;
 static Dyninst::Offset lib_tls_write_char;
 static Dyninst::Offset lib_tls_read_long;
@@ -88,29 +88,31 @@ static bool readSymbol(Process::const_ptr proc, Library::const_ptr lib, string s
 
 static bool initSymbols(Process::const_ptr proc)
 {
-   if (initialized_symbols)
-      return true;
-   initialized_symbols = true;
-   libtesta = Library::ptr();
-
+   Library::const_ptr lib, exe;
    for (LibraryPool::const_iterator i = proc->libraries().begin(); i != proc->libraries().end(); i++) {
       if ((*i)->getName().find("libtestA") != string::npos) {
-         libtesta = *i;
+         lib = *i;
+         libtesta.insert(make_pair(proc, lib));
          break;
       }
    }
-   executable = proc->libraries().getExecutable();
-   is_static = !libtesta;
+   exe = proc->libraries().getExecutable();
+   executable.insert(make_pair(proc, exe));
 
+   if (initialized_symbols)
+      return true;
+   initialized_symbols = true;
+
+   is_static = !lib;
    bool result = true;
    if (!is_static) {
-      result = readSymbol(proc, libtesta, "lib_tls_read_int", lib_tls_read_int);
-      result &= readSymbol(proc, libtesta, "lib_tls_write_char", lib_tls_write_char);
-      result &= readSymbol(proc, libtesta, "lib_tls_read_long", lib_tls_read_long);
+      result = readSymbol(proc, lib, "lib_tls_read_int", lib_tls_read_int);
+      result &= readSymbol(proc, lib, "lib_tls_write_char", lib_tls_write_char);
+      result &= readSymbol(proc, lib, "lib_tls_read_long", lib_tls_read_long);
    }
-   result &= readSymbol(proc, executable, "tls_read_int", exe_tls_read_int);
-   result &= readSymbol(proc, executable, "tls_write_char", exe_tls_write_char);
-   result &= readSymbol(proc, executable, "tls_read_long", exe_tls_read_long);
+   result &= readSymbol(proc, exe, "tls_read_int", exe_tls_read_int);
+   result &= readSymbol(proc, exe, "tls_write_char", exe_tls_write_char);
+   result &= readSymbol(proc, exe, "tls_read_long", exe_tls_read_long);
    if (!result) {
       logerror("Failed to find a symbol\n");
       hasError = true;
@@ -142,18 +144,18 @@ static Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
 
    if (hasError) goto done;
    if (!is_static) {
-      result = thread->readThreadLocalMemory(&int_val, libtesta, lib_tls_read_int, sizeof(int));
+      result = thread->readThreadLocalMemory(&int_val, libtesta[proc], lib_tls_read_int, sizeof(int));
       ERR_CHECK("lib_tls_read_int", int_val, iteration);
-      result = thread->readThreadLocalMemory(&long_val, libtesta, lib_tls_read_long, sizeof(long));
+      result = thread->readThreadLocalMemory(&long_val, libtesta[proc], lib_tls_read_long, sizeof(long));
       ERR_CHECK("lib_tls_read_long", long_val, -1 * iteration);
-      result = thread->writeThreadLocalMemory(libtesta, lib_tls_write_char, &char_val, sizeof(char));
+      result = thread->writeThreadLocalMemory(libtesta[proc], lib_tls_write_char, &char_val, sizeof(char));
       ERR_CHECK("lib_tls_read_long", 0, 0);
    }
-   result = thread->readThreadLocalMemory(&int_val, executable, exe_tls_read_int, sizeof(int));
+   result = thread->readThreadLocalMemory(&int_val, executable[proc], exe_tls_read_int, sizeof(int));
    ERR_CHECK("exe_tls_read_int", int_val, iteration);
-   result = thread->readThreadLocalMemory(&long_val, executable, exe_tls_read_long, sizeof(long));
+   result = thread->readThreadLocalMemory(&long_val, executable[proc], exe_tls_read_long, sizeof(long));
    ERR_CHECK("exe_tls_read_long", long_val, -1 * iteration);
-   result = thread->writeThreadLocalMemory(executable, exe_tls_write_char, &char_val, sizeof(char));
+   result = thread->writeThreadLocalMemory(executable[proc], exe_tls_write_char, &char_val, sizeof(char));
    ERR_CHECK("exe_tls_read_long", 0, 0);
    
   done:
@@ -173,6 +175,8 @@ test_results_t pc_tlsMutator::executeTest()
    thread_iters.clear();
    hasError = false;
    initialized_symbols = false;
+   libtesta.clear();
+   executable.clear();
    Breakpoint::ptr bp = Breakpoint::newBreakpoint();
 
    Process::registerEventCallback(EventType::Terminate, on_exit);
