@@ -970,82 +970,118 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             if (!ce) {
                 // odd; no call edge in this bundle
                 parsing_printf("[%s] unexpected missing call edge at %lx\n",
-                    FILE__,work->edge()->src()->lastInsnAddr());
+                        FILE__,work->edge()->src()->lastInsnAddr());
             } else {
-                Address target = ce->trg()->start();
-                Function * ct = _parse_data->findFunc(frame.codereg,target);
-                bool is_plt = false;
-                bool is_nonret = false;
+                // check for system call FT
+                Edge* edge = work->edge();
+                Block::Insns blockInsns;
+                edge->src()->getInsns(blockInsns);
+                auto prev = blockInsns.rbegin();
+                InstructionAPI::InstructionPtr prevInsn = prev->second;
+                if (prevInsn->getOperation().getID() == e_syscall) {
+                    Address src = edge->src()->lastInsnAddr();
 
-                // check if associated call edge's return status is still unknown
-                if (ct && (ct->_rs == UNSET) ) {
-                    // Delay parsing until we've finished the corresponding call edge
-                    parsing_printf("[%s] Parsing FT edge %lx, corresponding callee (%s) return status unknown; delaying work\n",
-                            __FILE__,
-                            work->edge()->src()->lastInsnAddr(),
-                            ct->name().c_str());
+                    bool is_nonret = false;
 
-                    // Add work to ParseFrame's delayed list
-                    frame.pushDelayedWork(work, ct);
+                    // Need to determine if system call is non-returning
+                    long int syscallNumber;
+                    if (!getSyscallNumber(func, edge->src(), src, frame.codereg->getArch(), syscallNumber)) {
+                        // If we cannot retrieve a syscall number, assume the syscall returns
+                        parsing_printf("[%s] could not retrieve syscall edge, assuming returns\n", FILE__);
+                        continue;
+                    }
 
-                    // Continue other work for this frame
-                    continue; 
-                }
-                
-                is_plt = HASHDEF(plt_entries,target);
-   
-                // CodeSource-defined tests 
-                is_nonret = obj().cs()->nonReturning(target);
-                if (is_nonret) {
-                  parsing_printf("\t Disallowing FT edge: CodeSource reports nonreturning\n");
-                }
-                if (!is_nonret && is_plt) {
-                    is_nonret |= obj().cs()->nonReturning(plt_entries[target]);
-		            if (is_nonret) {
-		              parsing_printf("\t Disallowing FT edge: CodeSource reports PLT nonreturning\n");
-		            }
-                }
-                // Parsed return status tests
-                if (!is_nonret && !is_plt && ct) {
-                    is_nonret |= (ct->retstatus() == NORETURN);
-		            if (is_nonret) {
-		              parsing_printf("\t Disallowing FT edge: function is non-returning\n");
-		            }
-                }
-                // Call-stack tampering tests
-                if (unlikely(!is_nonret && frame.func->obj()->defensiveMode() && ct)) {
-                    is_nonret |= (ct->retstatus() == UNKNOWN);
+                    if (obj().cs()->nonReturningSyscall(syscallNumber)) {
+                        is_nonret = true;
+                    }
+
                     if (is_nonret) {
-                        parsing_printf("\t Disallowing FT edge: function in "
-                                       "defensive binary may not return\n");
-                        mal_printf("Disallowing FT edge: function %lx in "
-                                   "defensive binary may not return\n", ct->addr());
-                    } else {
-                        StackTamper ct_tamper = ct->tampersStack();
-                        is_nonret |= (TAMPER_NONZERO == ct_tamper);
-                        is_nonret |= (TAMPER_ABS == ct_tamper);
+                        parsing_printf("[%s] no fallthrough for non-returning syscall\n",
+                                FILE__,
+                                work->edge()->src()->lastInsnAddr());
+
+                        // unlink tempsink fallthrough edge
+                        Edge * remove = work->edge();
+                        remove->src()->removeTarget(remove);
+                        factory().destroy_edge(remove);
+                        continue;
+                    }
+                } else {
+                    Address target = ce->trg()->start();
+                    Function * ct = _parse_data->findFunc(frame.codereg,target);
+                    bool is_plt = false;
+                    bool is_nonret = false;
+
+                    // check if associated call edge's return status is still unknown
+                    if (ct && (ct->_rs == UNSET) ) {
+                        // Delay parsing until we've finished the corresponding call edge
+                        parsing_printf("[%s] Parsing FT edge %lx, corresponding callee (%s) return status unknown; delaying work\n",
+                                __FILE__,
+                                work->edge()->src()->lastInsnAddr(),
+                                ct->name().c_str());
+
+                        // Add work to ParseFrame's delayed list
+                        frame.pushDelayedWork(work, ct);
+
+                        // Continue other work for this frame
+                        continue; 
+                    }
+
+                    is_plt = HASHDEF(plt_entries,target);
+
+                    // CodeSource-defined tests 
+                    is_nonret = obj().cs()->nonReturning(target);
+                    if (is_nonret) {
+                        parsing_printf("\t Disallowing FT edge: CodeSource reports nonreturning\n");
+                    }
+                    if (!is_nonret && is_plt) {
+                        is_nonret |= obj().cs()->nonReturning(plt_entries[target]);
                         if (is_nonret) {
-                            mal_printf("Disallowing FT edge: function at %lx "
-                                       "tampers with its stack\n", ct->addr());
-                            parsing_printf("\t Disallowing FT edge: function "
-                                           "tampers with its stack\n");
+                            parsing_printf("\t Disallowing FT edge: CodeSource reports PLT nonreturning\n");
                         }
                     }
-                }
-                if (is_nonret) {
-                    parsing_printf("[%s] no fallthrough for non-returning call "
-                                   "to %lx at %lx\n",FILE__,target,
-                                   work->edge()->src()->lastInsnAddr());
+                    // Parsed return status tests
+                    if (!is_nonret && !is_plt && ct) {
+                        is_nonret |= (ct->retstatus() == NORETURN);
+                        if (is_nonret) {
+                            parsing_printf("\t Disallowing FT edge: function is non-returning\n");
+                        }
+                    }
+                    // Call-stack tampering tests
+                    if (unlikely(!is_nonret && frame.func->obj()->defensiveMode() && ct)) {
+                        is_nonret |= (ct->retstatus() == UNKNOWN);
+                        if (is_nonret) {
+                            parsing_printf("\t Disallowing FT edge: function in "
+                                    "defensive binary may not return\n");
+                            mal_printf("Disallowing FT edge: function %lx in "
+                                    "defensive binary may not return\n", ct->addr());
+                        } else {
+                            StackTamper ct_tamper = ct->tampersStack();
+                            is_nonret |= (TAMPER_NONZERO == ct_tamper);
+                            is_nonret |= (TAMPER_ABS == ct_tamper);
+                            if (is_nonret) {
+                                mal_printf("Disallowing FT edge: function at %lx "
+                                        "tampers with its stack\n", ct->addr());
+                                parsing_printf("\t Disallowing FT edge: function "
+                                        "tampers with its stack\n");
+                            }
+                        }
+                    }
+                    if (is_nonret) {
+                        parsing_printf("[%s] no fallthrough for non-returning call "
+                                "to %lx at %lx\n",FILE__,target,
+                                work->edge()->src()->lastInsnAddr());
 
-                    // unlink tempsink fallthrough edge
-                    Edge * remove = work->edge();
-                    remove->src()->removeTarget(remove);
-                    factory().destroy_edge(remove);
-                    continue;
-                }
+                        // unlink tempsink fallthrough edge
+                        Edge * remove = work->edge();
+                        remove->src()->removeTarget(remove);
+                        factory().destroy_edge(remove);
+                        continue;
+                    }
 
-                // Invalidate cache_valid for all sharing functions
-                invalidateContainingFuncs(func, ce->src());                
+                    // Invalidate cache_valid for all sharing functions
+                    invalidateContainingFuncs(func, ce->src());                
+                }
             }
         } else if (work->order() == ParseWorkElem::seed_addr) {
             cur = leadersToBlock[work->target()];
@@ -1278,7 +1314,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             } else if ( ah.isInterruptOrSyscall() ) {
                 // 5. Raising instructions
                 end_block(cur,ah);
-    
+
                 pair<Block*,Edge*> newedge =
                     add_edge(frame,frame.func,cur,ah.getNextAddr(),FALLTHROUGH,NULL);
                 Block * targ = newedge.first;
@@ -1912,5 +1948,47 @@ void Parser::resumeFrames(Function * func, vector<ParseFrame *> & work)
         // remove func from delayedFrames map
         delayedFrames.erase(func);
     }
+}
+
+bool Parser::getSyscallNumber(Function * func,
+        Block * block,
+        Address addr,
+        Architecture arch,
+        long int & val)
+{
+    val = -1;
+
+    // In the common case, the setup of system call number
+    // is a mov in the previous instruction. We don't currently look elsewhere.
+    // In the future, could use slicing and symeval to find the value of
+    // this register at the system call (as unstrip does).
+    Block::Insns blockInsns;
+    block->getInsns(blockInsns);
+    auto prevPair = ++(blockInsns.rbegin());
+    InstructionAPI::InstructionPtr prevInsn = prevPair->second;
+    if (prevInsn->getOperation().getID() != e_mov) {
+        return false;
+    }
+
+    MachRegister syscallNumberReg = MachRegister::getSyscallNumberReg(arch);
+    if (syscallNumberReg == InvalidReg) {
+        return false;
+    }
+    InstructionAPI::RegisterAST* regAST = new InstructionAPI::RegisterAST(syscallNumberReg);
+    InstructionAPI::RegisterAST::Ptr regASTPtr = InstructionAPI::RegisterAST::Ptr(regAST);
+
+    std::vector<InstructionAPI::Operand> operands;
+    prevInsn->getOperands(operands);
+    for (unsigned i = 0; i < operands.size(); i++) {
+        if (!operands[i].isWritten(regASTPtr)) {
+            InstructionAPI::Expression::Ptr value = operands[i].getValue();
+            InstructionAPI::Result res = value->eval();
+            if (res.defined) {
+                val = res.convert<Offset>();
+            }
+        }
+    }
+
+    return (val != -1);
 }
 

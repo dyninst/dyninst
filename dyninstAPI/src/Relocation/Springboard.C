@@ -35,6 +35,7 @@
 
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/function.h"
+#include "common/src/arch-x86.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -178,17 +179,15 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
 
     // Extend the block to include any subsequent no-ops that are not part of other blocks
     int size = bbl->size();
-    if (size < 5) {
-        ParseAPI::CodeObject* co = func->ifunc()->obj();
-        ParseAPI::CodeRegion* cr = func->ifunc()->region();
-        std::set<ParseAPI::Block*> blocks;
+    ParseAPI::CodeObject* co = func->ifunc()->obj();
+    ParseAPI::CodeRegion* cr = func->ifunc()->region();
+    std::set<ParseAPI::Block*> blocks;
+    co->findBlocks(cr, end, blocks);
+    while (isNoneContained(blocks) && cr->contains(end)) {
+        end++;
+        size++;
+        blocks.clear();
         co->findBlocks(cr, end, blocks);
-        while (isNoneContained(blocks) && cr->contains(end) && (size < 5)) {
-            end++;
-            size++;
-            blocks.clear();
-            co->findBlocks(cr, end, blocks);
-        }
     }
 
     SpringboardInfo* info = new SpringboardInfo(nextFuncID_, func);

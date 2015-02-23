@@ -498,13 +498,6 @@ bool PCProcess::bootstrapProcess() {
             return false;
         }
 
-        // Initialize the tramp guard
-        startup_printf("%s[%d]: initializing tramp guard\n", FILE__, __LINE__);
-        if( !initTrampGuard() ) {
-            startup_printf("%s[%d]: failed to initalize tramp guards\n", FILE__, __LINE__);
-            return false;
-        }
-
         // Initialize the MT stuff
         if (multithread_capable()) {
             if( !instrumentMTFuncs() ) {
@@ -514,33 +507,6 @@ bool PCProcess::bootstrapProcess() {
             }
         }
     }
-
-    // Register the initial threads
-    startup_printf("%s[%d]: registering initial threads with RT library\n",
-            FILE__, __LINE__);
-    vector<pair<dynthread_t, PCThread *> > toUpdate;
-    for(map<dynthread_t, PCThread *>::iterator i = threadsByTid_.begin();
-            i != threadsByTid_.end(); ++i)
-    {
-        if( !registerThread(i->second) ) {
-            startup_printf("%s[%d]: bootstrap failed while registering threads with RT library\n",
-                    FILE__, __LINE__);
-            return false;
-        }
-
-        // If the information available has improved, update the mapping to reflect this
-        if( i->first != i->second->getTid() ) toUpdate.push_back(*i);
-    }
-
-    for(vector<pair<dynthread_t, PCThread *> >::iterator i = toUpdate.begin();
-            i != toUpdate.end(); ++i)
-    {
-        threadsByTid_.erase(i->first);
-        threadsByTid_.insert(make_pair(i->second->getTid(), i->second));
-    }
-
-    startup_printf("%s[%d]: finished registering initial threads with RT library\n",
-            FILE__, __LINE__);
 
     // use heuristics to set hybrid analysis mode
     if (BPatch_heuristicMode == analysisMode_) {
@@ -553,33 +519,6 @@ bool PCProcess::bootstrapProcess() {
 
     bootstrapState_ = bs_initialized;
     startup_printf("%s[%d]: finished bootstrapping process %d\n", FILE__, __LINE__, getPid());
-
-    return true;
-}
-
-bool PCProcess::initTrampGuard() {
-    const std::string vrbleName = "DYNINST_tramp_guards";
-    pdvector<int_variable *> vars;
-    if (!findVarsByAll(vrbleName, vars)) {
-        return false;
-    }
-    assert(vars.size() >= 1);
-
-    Address allocedTrampAddr = 0;
-
-    if (getAddressWidth() == 4) {
-        // Don't write directly into trampGuardBase_ as a buffer,
-        //   in case we're on a big endian architechture.
-        unsigned int value;
-        readDataWord((void *)vars[0]->getAddress(), 4, &value, true);
-        allocedTrampAddr = value;
-
-    } else if (getAddressWidth() == 8) {
-        readDataWord((void *)vars[0]->getAddress(), 8, &allocedTrampAddr, true);
-    } else assert(0 && "Incompatible mutatee address width");
-
-    trampGuardBase_ = getAOut()->getDefaultModule()->createVariable("DYNINST_tramp_guard", 
-            allocedTrampAddr, getAddressWidth());
 
     return true;
 }
@@ -1379,7 +1318,7 @@ bool PCProcess::removeThread(dynthread_t tid) {
 
     PCThread *toDelete = result->second;
 
-    if( !unregisterThread(toDelete) ) return false;
+    //if( !unregisterThread(toDelete) ) return false;
 
     threadsByTid_.erase(result);
 
@@ -1396,8 +1335,9 @@ bool PCProcess::removeThread(dynthread_t tid) {
 }
 extern Address getVarAddr(PCProcess *proc, std::string str);
 
-
-bool PCProcess::registerThread(PCThread *thread) {	
+#if 0
+bool PCProcess::registerThread(PCThread *thread) {
+  
    Address tid = (Address) thread->getTid();
    Address index = thread->getIndex();
    
@@ -1498,7 +1438,7 @@ bool PCProcess::initializeRegisterThread() {
 
    return true;
 }
-
+#endif
 
 
 void PCProcess::addThread(PCThread *thread) {

@@ -98,6 +98,8 @@ namespace Dyninst
               return c_BranchInsn;        
       case e_sysenter:
 	return c_SysEnterInsn;
+      case e_syscall:
+    return c_SyscallInsn;
           default:
 	return c_NoCategory;
       }

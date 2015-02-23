@@ -693,7 +693,7 @@ long EventSyscall::getSyscallNumber() const
     MachRegisterVal syscallNumber;
     Process::const_ptr proc = getProcess();
     Thread::const_ptr thrd = getThread();
-    thrd->getRegister(MachRegister::getSyscallNumberReg(proc->getArchitecture()), syscallNumber);
+    thrd->getRegister(MachRegister::getSyscallNumberOReg(proc->getArchitecture()), syscallNumber);
     return syscallNumber;
 }
 

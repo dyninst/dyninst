@@ -1152,12 +1152,7 @@ namespace Dyninst
            sizePrefixPresent = false;
         }
         addrSizePrefixPresent = (decodedInstruction->getPrefix()->getAddrSzPrefix() == 0x67);
-    }
-    
-    void InstructionDecoder_x86::decodeOpcode(InstructionDecoder::buffer& b)
-    {
         static ia32_entry invalid = { e_No_Entry, 0, 0, true, { {0,0}, {0,0}, {0,0} }, 0, 0 };
-        doIA32Decode(b);
         if(decodedInstruction->getEntry()) {
             m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
                                     decodedInstruction->getPrefix(), locs, m_Arch));
@@ -1173,6 +1168,12 @@ namespace Dyninst
             m_Operation = make_shared(singleton_object_pool<Operation>::construct(&invalid,
                                     decodedInstruction->getPrefix(), locs, m_Arch));
         }
+
+    }
+    
+    void InstructionDecoder_x86::decodeOpcode(InstructionDecoder::buffer& b)
+    {
+        doIA32Decode(b);
         b.start += decodedInstruction->getSize();
     }
     

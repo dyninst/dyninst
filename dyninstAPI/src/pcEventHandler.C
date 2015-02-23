@@ -407,7 +407,7 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
 
     evProc->addThread(newThr);
 
-    if( !evProc->registerThread(newThr) ) return false;
+    //if( !evProc->registerThread(newThr) ) return false;
     
     if (bpproc)
        bpproc->triggerThreadCreate(newThr);

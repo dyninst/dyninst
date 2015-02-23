@@ -38,15 +38,7 @@ DLLEXPORT dyntid_t dyn_pthread_self();    /*Thread library identifier*/
 int dyn_lwp_self();        /*LWP used by the kernel identifier*/
 int dyn_pid_self();        /*PID identifier representing the containing process*/
 
-int DYNINSTthreadIndex();
-unsigned long DYNINSTregisterThread(dyntid_t tid, unsigned index);
-int DYNINSTunregisterThread(dyntid_t tid);
-
-void DYNINST_initialize_index_list();
-unsigned DYNINSTthreadIndexSLOW();
-
 extern int DYNINST_multithread_capable;
-extern unsigned DYNINST_max_num_threads;
 
 typedef dyninst_lock_t tc_lock_t;
 

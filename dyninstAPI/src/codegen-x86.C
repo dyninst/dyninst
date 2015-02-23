@@ -282,6 +282,7 @@ void insnCodeGen::generateBranch(codeGen &gen,
 void insnCodeGen::generatePush64(codeGen &gen, Address val)
 {
   GET_PTR(insn, gen);
+#if 0
   for (int i = 3; i >= 0; i--) {
     unsigned short word = static_cast<unsigned short>((val >> (16 * i)) & 0xffff);
     *insn++ = 0x66; // operand size override
@@ -289,6 +290,24 @@ void insnCodeGen::generatePush64(codeGen &gen, Address val)
     *(unsigned short *)insn = word;
     insn += 2;
   }
+#endif
+  // NOTE: The size of this generated instruction(+1 for the ret) is stored in CALL_ABS64_SZ
+  unsigned int high = static_cast<unsigned int>(val >> 32);
+  unsigned int low = static_cast<unsigned int>(val);
+
+  // push the low 4
+  *insn++ = 0x68; 
+  *(unsigned int*)insn = low;
+  insn += 4;
+
+  // move the high 4 to rsp+4
+  *insn++ = 0xC7;
+  *insn++ = 0x44;
+  *insn++ = 0x24;
+  *insn++ = 0x04;
+  *(unsigned int*)insn = high;
+  insn += 4;
+
   SET_PTR(insn, gen);
 }
 

@@ -94,12 +94,6 @@ DLLEXPORT int dyninst_lock(dyninst_lock_t *lock);
 DLLEXPORT void dyninst_unlock(dyninst_lock_t *lock);
 
 /**
- * Functions for retrieving information about threads
- **/
-DLLEXPORT unsigned dyninst_maxNumOfThreads();
-DLLEXPORT unsigned dyninst_threadIndex();
-
-/**
  * Internal functions that we export to ensure they show up.
  **/
 
@@ -111,7 +105,6 @@ DLLEXPORT void DYNINST_stopInterProc(void *, void *, void *, void *, void *, voi
 DLLEXPORT void RThandleShadow(void *, void *, void *, void *, void *);
 DLLEXPORT unsigned long RTtranslateMemory(unsigned long, unsigned long, unsigned long);
 DLLEXPORT unsigned long RTtranslateMemoryShift(unsigned long, unsigned long, unsigned long);
-DLLEXPORT int DYNINSTthreadIndex();
 DLLEXPORT void *DYNINSTos_malloc(size_t, void *, void *); 
 DLLEXPORT int DYNINSTloadLibrary(char *);
 
@@ -121,12 +114,10 @@ DLLEXPORT int DYNINSTloadLibrary(char *);
 
 DLLEXPORT extern dyntid_t (*DYNINST_pthread_self)(void);
 DLLEXPORT extern unsigned int DYNINSTobsCostLow;
-DLLEXPORT extern int libdyninstAPI_RT_init_maxthreads;
 DLLEXPORT extern int libdyninstAPI_RT_init_localCause;
 DLLEXPORT extern int libdyninstAPI_RT_init_localPid;
 DLLEXPORT extern int libdyninstAPI_RT_init_debug_flag;
 DLLEXPORT extern struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
-DLLEXPORT extern unsigned *DYNINST_tramp_guards;
 
 #endif
 #endif

@@ -141,17 +141,12 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
      (*i).second->setupRTLibrary(rtLib);
   }
 
-
-  int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
-  assert(masterTrampGuard);
-
   for(i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
      BinaryEdit *llBinEdit = (*i).second;
      llBinEdit->registerFunctionCallback(createBPFuncCB);
      llBinEdit->registerInstPointCallback(createBPPointCB);
      llBinEdit->set_up_ptr(this);
      llBinEdit->setupRTLibrary(rtLib);
-     llBinEdit->setTrampGuard(masterTrampGuard);
      llBinEdit->setMultiThreadCapable(isMultiThreadCapable());
      for (j = llBinEdits.begin(); j != llBinEdits.end(); j++) {
         llBinEdit->addSibling((*j).second);
@@ -307,21 +302,13 @@ BPatch_object *BPatch_binaryEdit::loadLibrary(const char *libname, bool deps)
       lib.second->setPatcher(origBinEdit->patcher());
       /* End of PatchAPi stuffs */
 
-    int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
-    assert(masterTrampGuard);
 
     lib.second->registerFunctionCallback(createBPFuncCB);
     lib.second->registerInstPointCallback(createBPPointCB);
     lib.second->set_up_ptr(this);
     lib.second->setupRTLibrary(rtLib);
-    lib.second->setTrampGuard(masterTrampGuard);
     lib.second->setMultiThreadCapable(isMultiThreadCapable());
-    /* Do we need to do this?
-       std::map<std::string, BinaryEdit*>::iterator j;
-       for (j = llBinEdits.begin(); j != llBinEdits.end(); j++) {
-       lib.second->addSibling((*j).second);
-       }
-    */
+
     if (deps)
       if( !lib.second->getAllDependencies(llBinEdits) ) return NULL;
 

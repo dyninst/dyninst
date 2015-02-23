@@ -258,6 +258,24 @@ MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
     switch (arch)
     {
         case Arch_x86:
+            return x86::eax;
+        case Arch_x86_64:
+            return x86_64::rax;
+        case Arch_ppc32:
+            return ppc32::r0;
+        case Arch_ppc64:
+            return ppc64::r0;
+        case Arch_none:
+            return InvalidReg;
+    }
+    return InvalidReg;
+}
+
+MachRegister MachRegister::getSyscallNumberOReg(Dyninst::Architecture arch)
+{
+    switch (arch)
+    {
+        case Arch_x86:
             return x86::oeax;
         case Arch_x86_64:
             return x86_64::orax;

@@ -1181,7 +1181,7 @@ static bool store_line_info(Symtab* st,	info_for_all_files_t *baseInfo)
 	   const char *filename = (*i).first.c_str();
 	   Module* mod;
 	   
-	   if(!st->findModuleByName(mod, fileName)) 
+	   if(!st->findModuleByName(mod, filename)) 
 	   {
 	     mod = st->getDefaultModule();
 	   }    
@@ -1359,7 +1359,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
    else {
 	   
       fprintf(stderr, "[%s:%u] - Local variable of unknown type.  %s in %s\n",
-              __FILE__, __LINE__, pSymInfo->Name, func->getAllPrettyNames()[0].c_str());
+              __FILE__, __LINE__, pSymInfo->Name, func->pretty_names_begin()->c_str());
       paramType = "unknown";
    }
 

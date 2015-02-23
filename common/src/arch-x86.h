@@ -746,7 +746,8 @@ COMMON_EXPORT Address get_target(const unsigned char *instr, unsigned type, unsi
 #if defined(arch_x86_64)
 // size of instruction seqeunce to get anywhere in address space
 // without touching any registers
-#define JUMP_ABS64_SZ (17)
+//#define JUMP_ABS64_SZ (17)
+#define JUMP_ABS64_SZ (14)
 // Jump is push/return; call is push/push/return, so subtract a return
 #define CALL_ABS64_SZ (JUMP_ABS64_SZ+JUMP_ABS64_SZ-1)
 #endif

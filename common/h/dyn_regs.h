@@ -90,6 +90,7 @@ namespace Dyninst
       static MachRegister getFramePointer(Dyninst::Architecture arch);
       static MachRegister getStackPointer(Dyninst::Architecture arch);
       static MachRegister getSyscallNumberReg(Dyninst::Architecture arch);
+      static MachRegister getSyscallNumberOReg(Dyninst::Architecture arch);
       static MachRegister getSyscallReturnValueReg(Dyninst::Architecture arch);
       bool isPC() const;
       bool isFramePointer() const;
