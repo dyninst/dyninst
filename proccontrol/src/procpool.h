@@ -62,6 +62,7 @@ class ProcessPool
    // On Linux, we can get notifications for dead threads. Fun. 
    bool deadThread(Dyninst::LWP lwp);
    void addDeadThread(Dyninst::LWP lwp);
+   void removeDeadThread(Dyninst::LWP lwp);
    unsigned numProcs();
    bool LWPIDsAreUnique();
    bool for_each(ifunc f, void *data = NULL);
