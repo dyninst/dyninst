@@ -530,6 +530,11 @@ bool DwarfFrameParser::handleExpression(Address pc,
          cons.readReg(origReg);
          done = true;
          break;
+   case DW_FRAME_UNDEFINED_VAL:
+       dwarf_printf("\t Value not available for %s\n", origReg.name().c_str());
+       err_result = FE_No_Frame_Entry;
+       return false;
+
       default: {
          Dyninst::MachRegister dyn_register = MachRegister::DwarfEncToReg(registerNum, arch);
 	 dwarf_printf("\t Getting %s\n", dyn_register.name().c_str());
