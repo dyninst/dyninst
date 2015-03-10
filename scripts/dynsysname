@@ -31,7 +31,9 @@ fi
 if [ ${P/ppc-/} != ${P} ]; then
 PLATFORM=ppc32_linux
 fi
-
+if [ ${P/aarch64-/} != ${P} ]; then
+PLATFORM=aarch64-unknown-linux
+fi
 # Freebsd
 elif [ ${P/freebsd/} != ${P} ]; then
 if [ ${P/i686/} != ${P} ]; then
