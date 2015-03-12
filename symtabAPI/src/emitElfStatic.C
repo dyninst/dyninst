@@ -1740,7 +1740,10 @@ Offset emitElfStatic::allocatePLTEntries(std::map<Symbol *, std::pair<Offset, Of
 #elif defined(arch_power)
   unsigned entry_size = 0;
 #else
-#error "Unknown architecture"
+	unsigned entry_size = 0;
+#warning "AArch64:"
+#warning "steve: entry_size is tmp 0, need to be defined later"
+//#error "Unknown architecture"
 #endif
 
   Offset cur = pltOffset;
