@@ -28,36 +28,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Architecture include. Use this one instead of arch-<platform>
+// $Id: arch-power.h,v 1.45 2008/03/25 19:24:23 bernat Exp $
 
-#if !defined(arch_h)
-#define arch_h
+#ifndef _ARCH_AARCH64_H
+#define _ARCH_AARCH64_H
 
-#include <assert.h>
-#include <vector>
+// Code generation
 
-#if defined(arch_power)
-#include "arch-power.h"
-using namespace NS_power;
+#include "common/src/Types.h"
+#include "common/src/Vector.h"
+class AddressSpace;
 
-#elif defined(i386_unknown_nt4_0) \
-   || defined(arch_x86)           \
-   || defined(arch_x86_64)
-#include "arch-x86.h"
-using namespace NS_x86;
+namespace NS_aarch64 {
+#warning "This file is not implemented yet."
+/*
+ * Define arch64 instruction information.
+ *
+ */
 
-#elif defined(arch_aarch64)
-#include "arch-aarch64.h"
-using namespace NS_aarch64
+class COMMON_EXPORT instruction {
+}
 
-#else
-#error "unknown architecture"
-
-#endif
-
-// For platforms that require bit-twiddling. These should go away in the future.
-#define GET_PTR(insn, gen) codeBuf_t *insn = (codeBuf_t *)(gen).cur_ptr()
-#define SET_PTR(insn, gen) (gen).update(insn)
-#define REGET_PTR(insn, gen) insn = (codeBuf_t *)(gen).cur_ptr()
-
-#endif
+}
+//end of NS_aarch64

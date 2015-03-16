@@ -135,6 +135,13 @@ bool DwarfHandle::init_dbg()
       case EM_PPC64:
          arch = Arch_ppc64;
          break;
+			//steve: added, defination found: /usr/include/linux/elf-em.h
+			case EM_ARM:
+					arch = Arch_aarch32;
+					break;
+      case EM_AARCH64:
+      		arch = Arch_aarch64;
+         	break;
       default:
          assert(0 && "Unsupported archiecture in ELF file.");
 	 return false;

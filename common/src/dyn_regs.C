@@ -1128,6 +1128,8 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
          return 4;
       case Arch_x86_64:
       case Arch_ppc64:
+			//steve: added, 64bit width
+			case Arch_aarch64:
          return 8;
    }
    return 0;

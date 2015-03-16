@@ -44,6 +44,7 @@
 
 #include "proccontrol/src/x86_process.h"
 #include "proccontrol/src/ppc_process.h"
+#include "proccontrol/src/arm_process.h"
 #include "proccontrol/src/mmapalloc.h"
 #include "proccontrol/src/processplat.h"
 #include "common/src/dthread.h"
@@ -180,6 +181,18 @@ class linux_ppc_process : public linux_process, public ppc_process
    virtual Dyninst::Architecture getTargetArch();
 };
 
+//steve: added
+class linux_arm_process : public linux_process, public arm_process
+{
+  public:
+   linux_arm_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
+   linux_arm_process(Dyninst::PID pid_, int_process *p);
+   virtual ~linux_arm_process();
+
+   virtual Dyninst::Architecture getTargetArch();
+};
+
 
 class linux_thread : virtual public thread_db_thread
 {
@@ -236,6 +249,13 @@ class linux_ppc_thread : virtual public linux_thread, virtual public ppc_thread
   public:
    linux_ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~linux_ppc_thread();
+};
+
+class linux_arm_thread : virtual public linux_thread, virtual public arm_thread
+{
+  public:
+   linux_arm_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
+   virtual ~linux_arm_thread();
 };
 
 class LinuxPtrace

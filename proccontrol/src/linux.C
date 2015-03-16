@@ -702,6 +702,9 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 #elif defined(arch_x86) || defined(arch_x86_64)
 #define DEFAULT_PROCESS_TYPE linux_x86_process
 #define DEFAULT_THREAD_TYPE linux_x86_thread
+#elif defined(arch_aarch64) || defined(arch_aarch32)
+#define DEFAULT_PROCESS_TYPE linux_arm_process
+#define DEFAULT_THREAD_TYPE linux_arm_thread
 #endif
 
 int_process *int_process::createProcess(Dyninst::PID p, std::string e)
@@ -1112,6 +1115,39 @@ Dyninst::Architecture linux_ppc_process::getTargetArch()
    }
    int addr_width = computeAddrWidth(sizeof(void *) == 4 ? Arch_ppc32 : Arch_ppc64);
    arch = (addr_width == 4) ? Dyninst::Arch_ppc32 : Dyninst::Arch_ppc64;
+   return arch;
+}
+
+//steve: added
+linux_arm_process::linux_arm_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                                     std::vector<std::string> envp, std::map<int,int> f) :
+   int_process(p, e, a, envp, f),
+   resp_process(p, e, a, envp, f),
+   linux_process(p, e, a, envp, f),
+   arm_process(p, e, a, envp, f)
+{
+}
+
+linux_arm_process::linux_arm_process(Dyninst::PID pid_, int_process *p) :
+   int_process(pid_, p),
+   resp_process(pid_, p),
+   linux_process(pid_, p),
+   arm_process(pid_, p)
+{
+}
+
+
+linux_arm_process::~linux_arm_process()
+{
+}
+
+Dyninst::Architecture linux_arm_process::getTargetArch()
+{
+   if (arch != Dyninst::Arch_none) {
+      return arch;
+   }
+   int addr_width = computeAddrWidth(sizeof(void *) == 4 ? Arch_aarch32 : Arch_aarch64);
+   arch = (addr_width == 4) ? Dyninst::Arch_aarch32 : Dyninst::Arch_aarch64;
    return arch;
 }
 
@@ -2059,6 +2095,11 @@ static void init_dynreg_to_user()
 #elif defined(arch_power)
 //Kernel value for PPC_PTRACE_SETREGS 0x99
 #define MY_PTRACE_GETREGS 12
+//steve: added
+#elif defined(arch_aarch64)
+#warning "this value is not verified yet"
+//this getregs value is the same as PPC as online doc says.
+#define MY_PTRACE_GETREGS 12
 #endif
 
 //912 is currently the x86_64 size, 128 bytes for just-because padding
@@ -2685,6 +2726,19 @@ linux_ppc_thread::linux_ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::L
 }
 
 linux_ppc_thread::~linux_ppc_thread()
+{
+}
+
+//steve: added 
+linux_arm_thread::linux_arm_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
+   int_thread(p, t, l),
+   thread_db_thread(p, t, l),
+   linux_thread(p, t, l),
+   arm_thread(p, t, l)
+{
+}
+
+linux_arm_thread::~linux_arm_thread()
 {
 }
 
