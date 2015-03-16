@@ -73,12 +73,17 @@ set (SRC_LIST ${SRC_LIST}
     src/emitElfStatic-ppc64.C
     src/relocationEntry-elf-ppc64.C
     )
-#steve: should be modified later as aarch64
-else (true)
+elseif (PLATFORM MATCHES aarch64)
 set (SRC_LIST ${SRC_LIST}
     src/emitElf-64.C
     src/emitElfStatic-aarch64.C
     src/relocationEntry-elf-aarch64.C
+    )
+else (TRUE)
+set (SRC_LIST ${SRC_LIST}
+    src/emitElf-64.C
+    src/emitElfStatic-stub.C
+    src/relocationEntry-stub.C
     )
 endif()
 endif()

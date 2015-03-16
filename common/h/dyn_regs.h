@@ -51,7 +51,10 @@ namespace Dyninst
       Arch_x86    = 0x14000000,
       Arch_x86_64 = 0x18000000,
       Arch_ppc32  = 0x24000000,
-      Arch_ppc64  = 0x28000000
+      Arch_ppc64  = 0x28000000,
+			//steve: added, but not sure, need to be verified
+			Arch_aarch32 = 0x44000000,
+			Arch_aarch64 = 0x48000000,
    } Architecture;
 
 

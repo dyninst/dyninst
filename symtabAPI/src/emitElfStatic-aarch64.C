@@ -53,15 +53,25 @@ using namespace Dyninst::SymtabAPI;
 // This needs to be a #define so the assert actually shows the message
 #define EMIT_STATIC_ASSERT "This function is currently unimplemented on this architecture."
 
+static const unsigned AARCH64_WIDTH = 8;
+
+/* NOTE:
+ * As most of these functions are defined per architecture, the description of
+ * each of these functions is in the emitElfStatic header. Comments describing
+ * the function interface are explicitly left out.
+ */
+
 bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *, relocationEntry &,
         Offset, Offset, Offset, LinkMap &, string &) {
     assert(!EMIT_STATIC_ASSERT);
     return false;
 }
 
+//steve: TODO not sure
 bool emitElfStatic::checkSpecialCaseSymbols(Symtab *, Symbol *) {
-    assert(!EMIT_STATIC_ASSERT);
-    return false;
+    //assert(!EMIT_STATIC_ASSERT);
+    //return false;
+    return true;
 }
 
 Offset emitElfStatic::layoutTLSImage(Offset, Region *, Region *, LinkMap &) {

@@ -26,6 +26,9 @@ set (SRC_LIST
      src/loadLibrary/codegen-ppc.C 
      src/ppc_process.C 
      src/pcmachsyscall.C
+		 #steve: added
+		 src/loadLibrary/codegen-aarch64.C
+		 src/arm_process.C
  )
 if(UNIX)
 set (SRC_LIST ${SRC_LIST}
