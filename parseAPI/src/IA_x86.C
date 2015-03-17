@@ -296,8 +296,10 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
            --prevIter;
            prevInsn = prevIter->second;
         }
-
-
+	++prevIter;
+        do {
+	--prevIter;
+	prevInsn = prevIter->second;
         if(prevInsn->getOperation().getID() == e_leave)
         {
            parsing_printf("\tprev insn was leave, TAIL CALL\n");
@@ -323,6 +325,7 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
             }
             parsing_printf("\tprev insn was %s, not tail call\n", prevInsn->format().c_str());
         }
+	} while (allInsns.begin() != prevIter);
     }
 
     tailCalls[type] = false;
