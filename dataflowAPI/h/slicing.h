@@ -68,6 +68,8 @@ typedef boost::shared_ptr<Graph> GraphPtr;
  }
  typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 
+ class Slicer;
+
 // Used in temp slicer; should probably
 // replace OperationNodes when we fix up
 // the DDG code.
@@ -103,6 +105,8 @@ class DATAFLOW_EXPORT SliceNode : public Node {
   AssignmentPtr a_;
   ParseAPI::Block *b_;
   ParseAPI::Function *f_;
+
+  friend class Slicer;
 };
 
 class SliceEdge : public Edge {
@@ -267,6 +271,14 @@ class Slicer {
         ptr(p)
     { }
 
+    // basic comparator for ordering
+    bool operator<(const Element& el) const { 
+        if (ptr->addr() < el.ptr->addr()) { return true; }
+        if (el.ptr->addr() < ptr->addr()) { return false; }
+        if (ptr->out() < el.ptr->out()) { return true; }
+        return false;
+    }
+
     ParseAPI::Block * block;
     ParseAPI::Function * func;
 
@@ -347,42 +359,6 @@ class Slicer {
               return false;
       }
     };
- 
-    /*
-     * A cache from AbsRegions -> Defs.
-     *
-     * Each node that has been visited in the search
-     * has a DefCache that reflects the resolution of
-     * any AbsRegions down-slice. If the node is visited
-     * again through a different search path (if the graph
-     * has fork-join structure), this caching prevents
-     * expensive recursion
-     */
-    class DefCache {
-      public:
-        DefCache() { }
-        ~DefCache() { }
-
-        // add the values from another defcache
-        void merge(DefCache const& o);
-   
-        // replace mappings in this cache with those
-        // from another 
-        void replace(DefCache const& o);
-
-        std::set<Def> & get(AbsRegion const& r) { 
-            return defmap[r];
-        }
-        bool defines(AbsRegion const& r) const {
-            return defmap.find(r) != defmap.end();
-        }
-
-        void print() const;
-
-      private:
-        std::map< AbsRegion, std::set<Def> > defmap;
-    
-    };
 
     // For preventing insertion of duplicate edges
     // into the slice graph
@@ -433,35 +409,24 @@ class Slicer {
             Predicates &p,
             SliceFrame &cand,
             bool skip,
-            std::map<CacheEdge, std::set<AbsRegion> > & visited,
-            std::map<Address,DefCache> & cache);
+            std::map<CacheEdge, std::set<AbsRegion> > & visited);
 
     bool updateAndLink(
             GraphPtr g,
             Direction dir,
             SliceFrame & cand,
-            DefCache & cache,
             Predicates &p);
 
-    void updateAndLinkFromCache(
-            GraphPtr g,
-            Direction dir,
-            SliceFrame & f,
-            DefCache & cache);
+    bool stopSlicing(SliceFrame::ActiveMap& active, 
+                     GraphPtr g,
+                     Address addr,
+                     Direction dir);
 
-    void removeBlocked(
-            SliceFrame & f,
-            std::set<AbsRegion> const& block);
 
     void markVisited(
             std::map<CacheEdge, std::set<AbsRegion> > & visited,
             CacheEdge const& e,
             SliceFrame::ActiveMap const& active);
-
-    void cachePotential(
-            Direction dir,
-            Assignment::Ptr assn,
-            DefCache & cache);
 
     void findMatch(
             GraphPtr g,
@@ -469,8 +434,7 @@ class Slicer {
             SliceFrame const& cand,
             AbsRegion const& cur,
             Assignment::Ptr assn,
-            std::vector<Element> & matches,
-            DefCache & cache);
+            std::vector<Element> & matches);
 
     bool getNextCandidates(
             Direction dir,
@@ -579,6 +543,12 @@ class Slicer {
 		  Element const&target,
           AbsRegion const& data);
 
+  void insertPair(GraphPtr graph,
+		  Direction dir,
+		  SliceNode::Ptr& source,
+		  SliceNode::Ptr& target,
+          AbsRegion const& data);
+
   void convertInstruction(InstructionPtr,
 			  Address,
 			  ParseAPI::Function *,
@@ -624,6 +594,10 @@ class Slicer {
 
   // cache to prevent edge duplication
   std::map<EdgeTuple, int> unique_edges_;
+
+  // map of previous active maps. these are used to end recursion.
+  typedef std::map<AbsRegion, std::set<Element> > PrevMap;
+  std::map<Address, PrevMap> prev_maps;
 
   AssignmentConverter converter;
 
