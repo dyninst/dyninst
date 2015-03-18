@@ -265,6 +265,15 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
       return true;
     }
 
+    if (curInsn()->getCategory() == c_BranchInsn &&
+            valid &&
+            !callee &&
+            target) {
+        parsing_printf("\tjump to 0x%lx is known block, but not func entry, NOT TAIL CALL\n", addr);
+        tailCalls[type] = false;
+        return false;
+    }
+
     if(allInsns.size() < 2) {
       if(context->addr() == _curBlk->start() && curInsn()->getCategory() == c_BranchInsn)
       {

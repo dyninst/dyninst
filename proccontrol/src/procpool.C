@@ -145,6 +145,11 @@ bool ProcessPool::deadThread(Dyninst::LWP lwp) {
 void ProcessPool::addDeadThread(Dyninst::LWP lwp) {
    deadThreads.insert(lwp);
 }
+void ProcessPool::removeDeadThread(Dyninst::LWP lwp) {
+    // Called when we get a LWP create, as that had *better*
+    // not be for an alread-dead thread.
+    deadThreads.erase(lwp);
+}
 
 unsigned ProcessPool::numProcs()
 {

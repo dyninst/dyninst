@@ -110,19 +110,19 @@ Generator *Generator::getDefaultGenerator()
 
 bool GeneratorLinux::initialize()
 {
-   int result;
+    int result;
    
-   sigset_t usr2_set;
-   sigemptyset(&usr2_set);
-   sigaddset(&usr2_set, SIGUSR2);
-   result = pthread_sigmask(SIG_UNBLOCK, &usr2_set, NULL);
-   if (result != 0) {
-      perr_printf("Unable to unblock SIGUSR2: %s\n", strerror(result));
-   }
+    sigset_t usr2_set;
+    sigemptyset(&usr2_set);
+    sigaddset(&usr2_set, SIGUSR2);
+    result = pthread_sigmask(SIG_UNBLOCK, &usr2_set, NULL);
+    if (result != 0) {
+	perr_printf("Unable to unblock SIGUSR2: %s\n", strerror(result));
+    }
    
-   generator_lwp = P_gettid();
-   generator_pid = P_getpid();
-   return true;
+    generator_lwp = P_gettid();
+    generator_pid = P_getpid();
+    return true;
 }
 
 bool GeneratorLinux::canFastHandle()
@@ -276,10 +276,6 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    }
    if (proc) {
       lproc = dynamic_cast<linux_process *>(proc);
-   }
-
-   if (ProcPool()->deadThread(archevent->pid)) {
-      return true;
    }
 
    if (!proc) {
@@ -675,17 +671,23 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       else 
          assert(0);
       event->setSyncType(Event::sync_thread);
+      ProcPool()->removeDeadThread(child->pid);
       delete parent;
       delete child;
    }
    else {
-      //Single event decoded
-      assert(event);
-      assert(!parent);
-      assert(!child);
-      assert(proc->proc());
-      assert(thread->thread());
-      delete archevent;
+       if (archevent && ProcPool()->deadThread(archevent->pid)) {
+	   delete archevent;
+	   return true;
+       }
+
+       //Single event decoded
+       assert(event);
+       assert(!parent);
+       assert(!child);
+       assert(proc->proc());
+       assert(thread->thread());
+       delete archevent;
    }
    event->setThread(thread->thread());
    event->setProcess(proc->proc());
