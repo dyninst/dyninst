@@ -364,7 +364,6 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   // ".shstrtab" section: string table for section header names
   const char *shnames = pdelf_get_shnames(elfHdr);
   if (shnames == NULL) {
-    //fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
     log_elferror(err_func_, ".shstrtab section");
     //return false;
   }
@@ -832,7 +831,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	  plt_entry_size_ = 8;
 	else {
 	  if (plt_entry_size_ != 8) 
-	    fprintf(stderr, "%s[%d]:  weird plt_entry_size_ is %d, not 8\n", 
+             create_printf("%s[%d]:  weird plt_entry_size_ is %d, not 8\n", 
 		    FILE__, __LINE__, plt_entry_size_);
 	}
 
@@ -1067,7 +1066,6 @@ bool Object::get_relocationDyn_entries( unsigned rel_scnp_index,
 	  // We should never reach this case.
 	  return false;
 	};
-	// /* DEBUG */ fprintf( stderr, "%s: relocation information for target 0x%lx\n", __FUNCTION__, next_plt_entry_addr );
 	relocationEntry re( offset, string( &strs[ sym.st_name(index) ] ), NULL, type );
 	re.setAddend(addend);
 	re.setRegionType(rtype);
@@ -1111,8 +1109,8 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
       // Sanity check.
       if (!plt_entry_size_) {
-	fprintf(stderr, "%s[%d]:  FIXME:  plt_entry_size not established\n", FILE__, __LINE__);
-	plt_entry_size_ = 8;
+         create_printf("%s[%d]:  FIXME:  plt_entry_size not established\n", FILE__, __LINE__);
+         plt_entry_size_ = 8;
       }
 
       if (plt_entry_size_ == 8) {
@@ -1176,9 +1174,6 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 	}
 
 	if (!glink) {
-	  //              fprintf(stderr, "*** Cound not find .glink section for '%s'.\n",
-	  //                      mf->pathname().c_str());
-	  //              fprintf(stderr, "*** It may not be a ppc32 elf object.\n");
 	  return false;
 	}
 
@@ -1261,13 +1256,11 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 	}
 
       } else {
-	fprintf(stderr, "ERROR: Can't handle %d PLT entry size\n",
+         create_printf("ERROR: Can't handle %d PLT entry size\n",
 		plt_entry_size_);
 	return false;
       }
 
-      //fprintf(stderr, "%s[%d]:  skipping %d (6*%d) bytes initial plt\n", 
-      //        FILE__, __LINE__, 9*plt_entry_size_, plt_entry_size_);
       //  actually this is just fudged to make the offset value 72, which is what binutils uses
       //  Note that binutils makes the distinction between PLT_SLOT_SIZE (8), 
       //  and PLT_ENTRY_SIZE (12).  PLT_SLOT_SIZE seems to be what we want, even though we also
@@ -1561,8 +1554,6 @@ void Object::load_object(bool alloc_syms)
     }
     get_valid_memory_areas(*elfHdr);
 
-    //fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
-
 #if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
     if (eh_frame_scnp != 0 && gcc_except != 0) 
     {
@@ -1699,7 +1690,7 @@ void Object::load_object(bool alloc_syms)
     /* NOTE: The file should NOT be munmap()ed.  The mapped file is
        used for function parsing (see dyninstAPI/src/symtab.C) */
 
-    fprintf(stderr, "%s[%d]:  failed to load elf object\n", FILE__, __LINE__);
+     create_printf("%s[%d]:  failed to load elf object\n", FILE__, __LINE__);
   }
 }
 
@@ -1750,7 +1741,6 @@ void Object::load_shared_object(bool alloc_syms)
     get_valid_memory_areas(*elfHdr);
 
 #if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
-    //fprintf(stderr, "[%s:%u] - Mod Name is %s\n", __FILE__, __LINE__, name.c_str());
     if (eh_frame_scnp != 0 && gcc_except != 0) {
       find_catch_blocks(eh_frame_scnp, gcc_except, 
 			txtaddr, dataddr, catch_addrs_);
@@ -2060,7 +2050,6 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym)
                                         // to mark this symbol somehow as a
                                         // fake.
 #endif
-  ///* DEBUG */ fprintf(stderr, "addr:0x%lx ptr_addr:0x%lx toc:0x%lx section:%s\n", opd_entry[0], soffset, opd_entry[1], regions_[i]->getRegionName().c_str());
   return retval;
 }
 
@@ -2804,8 +2793,6 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
 	}
       }
 
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module %s for symbols of name '%s'\n", __FILE__, __LINE__, useModuleName.c_str(), symName.c_str() );
-
       dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
 
     } 
@@ -2966,9 +2953,6 @@ bool Object::fix_global_symbol_modules_static_dwarf()
       if ( status == DW_DLV_OK ) 
       {
 	/* Walk the tree. */
-
-	//fprintf(stderr, "%s[%d]:  about to fixSymbolsInModule(%s,...)\n",
-	//     FILE__, __LINE__, moduleName.c_str());
 
 	bool result = fixSymbolsInModule(dbg, moduleName, moduleDIE);
              
@@ -3324,7 +3308,6 @@ stab_entry *Object::get_stab_info() const
     };
   }
 
-  //fprintf(stderr, "%s[%d]:  WARNING:  FIXME, stab_off = %d, stab_size = %d, stabstr_off_ = %d\n", FILE__, __LINE__, stab_off_, stab_size_, stabstr_off_);
   return new stab_entry_64();
 }
 
@@ -4114,11 +4097,9 @@ bool Object::find_catch_blocks(Elf_X_Shdr *eh_frame,
   status = dwarf_get_fde_list_eh(dbg, &cie_data, &cie_count,
 				 &fde_data, &fde_count, &err);
   if (status != DW_DLV_OK) {
-    //fprintf(stderr, "[%s:%u] - No fde data\n", __FILE__, __LINE__);
     //No actual stackwalk info in this object
     return false;
   }
-  //fprintf(stderr, "[%s:%u] - Found %d fdes\n", __FILE__, __LINE__, fde_count);
 
   mach_relative_info mi;
   mi.text = txtaddr;
@@ -4341,7 +4322,6 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
       if(lang_Fortran == alang)
       {
 	(*mod_langs)[aname] = lang_Fortran_with_pretty_debug;
-	//fprintf(stderr, "%s[%d]:  UPDATE: lang_Fortran->langFortran_with_pretty_debug\n", FILE__, __LINE__);
       }
     }
   }
@@ -4580,7 +4560,6 @@ void Object::parseStabFileLineInfo(Symtab *st)
 	  mod->setLineInfo(li_for_module);
 	}    
 
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
       }
       break;
 
@@ -4597,22 +4576,15 @@ void Object::parseStabFileLineInfo(Symtab *st)
 	  ++currentSourceFile; 
 	}
 
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
       }
       break;
 
     case N_FUN: /* a function */ 
       {
-	//fprintf(stderr, "%s[%d]:  N_FUN [%s, %lu, %lu, %lu, %lu]\n", 
-	//      FILE__, __LINE__, stabEntry->name(i) ? stabEntry->name(i) : "no_name",
-	//      stabEntry->nameIdx(i), stabEntry->other(i), 
-	//      stabEntry->desc(i), stabEntry->val(i));
-
 	if ( *stabEntry->name( i ) == 0 ) 
 	{
 	  currentFunction = NULL;
 	  currentLineBase = 0;
-	  //fprintf(stderr, "%s[%d]:  GOT EOF marker\n", FILE__, __LINE__);
 	  break;
 	} /* end if the N_FUN is an end-of-function-marker. */
 
@@ -4639,7 +4611,7 @@ void Object::parseStabFileLineInfo(Symtab *st)
 
 	if (iter >= 2047) 
 	{
-	  fprintf(stderr, "%s[%d]:  something went horribly awry\n", FILE__, __LINE__);
+           create_printf("%s[%d]:  something went horribly awry\n", FILE__, __LINE__);
 	  continue;
 	}
 	else 
@@ -4653,12 +4625,9 @@ void Object::parseStabFileLineInfo(Symtab *st)
 	  case 'P':
 	  case 'p':
 	  //  A prototype function? need to discard
-	  //fprintf(stderr, "%s[%d]:  discarding prototype %s\n", FILE__, __LINE__, stabstr);
 	  continue;
 	  break;
 	  default:
-	    fprintf(stderr, "%s[%d]:  discarding unknown %s, key = %c\n", 
-		    FILE__, __LINE__, stabstr, stabstr[iter +1]);
 	    continue;
 	    break;
 	  };
@@ -4667,16 +4636,7 @@ void Object::parseStabFileLineInfo(Symtab *st)
 	if (! st->findFunctionsByName(funcs, std::string(stringbuf))
 	    || !funcs.size())
 	{
-	  fprintf(stderr, "%s[%d]:  failed to find function with name %s\n", 
-		  FILE__, __LINE__, stabEntry->name(i));
 	  continue;
-	}
-
-	if (funcs.size() > 1)
-	{
-	  //  we see a lot of these on solaris (solaris only)
-	  fprintf(stderr, "%s[%d]:  WARN:  found %lu functions with name %s (stringbuf %s)\n", 
-		  FILE__, __LINE__, (unsigned long) funcs.size(), stabEntry->name(i), stringbuf);
 	}
 
 	currentFunction = funcs[0];
@@ -4693,40 +4653,18 @@ void Object::parseStabFileLineInfo(Symtab *st)
       {
 	unsigned current_col = 0;
 
-	//fprintf(stderr, "%s[%d]:  N_SLINE [%s, %lu, %lu, %lu, %lu]\n", 
-	// FILE__, __LINE__, stabEntry->name(i) ? stabEntry->name(i) : "no_name",
-	// stabEntry->nameIdx(i), stabEntry->other(i), stabEntry->desc(i), 
-	// stabEntry->val(i));
-
 	if (!currentLineBase)
 	{
-	  //fprintf(stderr, "%s[%d]:  skipping SLINE b/c no earlier line base\n", 
-	  //     FILE__, __LINE__);
-	  //fprintf(stderr, "%s[%d]:  N_FUN [%s, %lu, %lu, %lu, %lu]\n", 
-	  //      FILE__, __LINE__, stabEntry->name(last_fun) ? stabEntry->name(last_fun) : "no_name",
-	  //      stabEntry->nameIdx(last_fun), stabEntry->other(last_fun), 
-	  //      stabEntry->desc(last_fun), stabEntry->val(last_fun));
-	  //fprintf(stderr, "%s[%d]:  N_SLINE [%s, %lu, %lu, %lu, %lu]\n", 
-	  //      FILE__, __LINE__, stabEntry->name(i) ? stabEntry->name(i) : "no_name",
-	  //      stabEntry->nameIdx(i), stabEntry->other(i), stabEntry->desc(i), 
-	  //      stabEntry->val(i));
 	  continue;
 	}
 
 	unsigned newLineSpec = stabEntry->desc(i);
-
-	//if (newLineSpec > (currentLineBase + 100)) 
-	//{
-	//fprintf(stderr, "%s[%d]:  FIXME???? newLineSpec = %d, currentLineBase = %d\n", FILE__, __LINE__, newLineSpec, currentLineBase);
-	//}
 
 	//  Addresses specified in SLINEs are relative to the beginning of the fn
 	Offset newLineAddress = stabEntry->val(i) + currentFunction->getOffset();
 
 	if (newLineAddress <= currentAddress)
 	{
-	  //fprintf(stderr, "%s[%d]:  skipping addLine for bad address %lu <= %lu\n", 
-	  //     FILE__, __LINE__, newLineAddress, currentAddress);
 	  continue;
 	}
 
@@ -4751,9 +4689,6 @@ void Object::parseStabFileLineInfo(Symtab *st)
 	  functionLineToPossiblyAdd = 0;
 	}
 
-	//fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", 
-	//      FILE__, __LINE__, currentSourceFile, newLineSpec, 
-	//      currentAddress, newLineAddress);
 	if(li_for_module)
 	  li_for_module->addLine(currentSourceFile, newLineSpec, 
 				 current_col, currentAddress, 
@@ -4772,7 +4707,7 @@ void Object::parseStabFileLineInfo(Symtab *st)
   //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
 
-bool Object::addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_check)
+bool Object::addrInCU(Symtab* /*obj*/, Dwarf_Debug dbg, Dwarf_Die cu, Address to_check)
 {
   Dwarf_Addr tempLow = 0, tempHigh = -1;
   Address low = 0, high = -1;
@@ -4840,7 +4775,6 @@ bool Object::addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_che
       case DW_RANGES_ENTRY: {
 	Address curlow = cur->dwr_addr1 + cur_base;
 	Address curhigh = cur->dwr_addr2 + cur_base;
-	//fprintf(stderr, "Found range %p to %p\n", curlow, curhigh);
 	
 	if(curlow <= to_check && to_check < curhigh) return true;
 	
@@ -4913,7 +4847,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
     if ( status != DW_DLV_OK ) 
     { 
-      fprintf(stderr, "%s[%d]:  dwarf_lineaddr() failed\n", FILE__, __LINE__);
       continue;
       
     }
@@ -5294,11 +5227,11 @@ void Object::parseStabTypes(Symtab *obj)
 	tc = typeCollection::getModTypeCollection(mod);
 	parseActive = true;
 	if (!mod) {
-	  fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+           create_printf("%s[%d]:  FIXME\n", FILE__, __LINE__);
 	}
 	else if (!tc) 
 	{
-	  fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+           create_printf("%s[%d]:  FIXME\n", FILE__, __LINE__);
 	}
 	else 
 	  tc->clearNumberedTypes();

@@ -377,12 +377,7 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
 	    } 
 	  else 
 	    {
-	      if (!vers)
-		{
-		  fprintf(stderr, "%s[%d]:  weird inconsistency here...  getVersions returned NULL\n",
-			  FILE__, __LINE__);
-		}
-	      else
+              if (vers)
 		{
 		  // There should only be one version string by this time
 		  //If the verison name already exists then add the same version number to the version symbol table
@@ -799,7 +794,6 @@ bool emitElf64::driver(Symtab *obj, string fName)
 
     if ( 0 > elf_update(newElf, ELF_C_NULL))
     {
-       fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, elf_errno(), elf_errmsg(elf_errno()));
        return false;
     }
 
@@ -814,7 +808,6 @@ bool emitElf64::driver(Symtab *obj, string fName)
 
   if ( 0 >  elf_update(newElf, ELF_C_NULL))
   {
-     fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, elf_errno(), elf_errmsg(elf_errno()));
      return false;
   }
    
@@ -859,13 +852,6 @@ bool emitElf64::driver(Symtab *obj, string fName)
 
   //Write the new Elf file
   if (elf_update(newElf, ELF_C_WRITE) < 0){
-    int err;
-    if ((err = elf_errno()) != 0)
-      {
-	const char *msg = elf_errmsg(err);
-	/* print msg */
-	fprintf(stderr, "Error: Unable to write ELF file: %s\n", msg);
-      }
     log_elferror(err_func_, "elf_update failed");
     return false;
   }
@@ -1022,9 +1008,6 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
          memcpy(insert_phdr, &newSeg, oldEhdr->e_phentsize);
          added_new_sec = true;
          rewrite_printf("Added New program header : offset 0x%lx,addr 0x%lx file Size 0x%lx memsize 0x%lx \n", newSeg.p_paddr, newSeg.p_vaddr, newSeg.p_filesz, newSeg.p_memsz);
-#ifdef BINEDIT_DEBUG
-         fprintf(stderr, "Added New program header : offset 0x%lx,addr 0x%lx\n", newPhdr->p_offset, newPhdr->p_vaddr);
-#endif
       }
 
     memcpy(newPhdr, old, oldEhdr->e_phentsize);
@@ -1504,7 +1487,6 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
       
      if (0 > elf_update(newElf, ELF_C_NULL))
      {
-       fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, errno, elf_errmsg(elf_errno()));
        return false;
      }
 
@@ -1572,16 +1554,10 @@ bool emitElf64::addSectionHeaderTable(Elf64_Shdr *shdr) {
     
    newdata->d_size = secNameIndex;
    newshdr->sh_size = newdata->d_size;
-#ifdef BINEDIT_DEBUG
-   fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
-           ".shstrtab", newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
-#endif
    //elf_update(newElf, ELF_C_NULL);
    
    newdata->d_align = 4;
    newdata->d_version = 1;
-	if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
-		fprintf(stderr, "%s[%d]:  ERROR:  setting size to non multiple of entry size in section %s: %lu/%lu\n", FILE__, __LINE__, ".shstrtab", newshdr->sh_size, newshdr->sh_entsize);
    return true;
 }
 
@@ -1690,13 +1666,6 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
       currEndOffset = newshdr->sh_offset + newshdr->sh_size;
       //currEndAddress = newshdr->sh_addr + newshdr->sh_size;
       /* DEBUG */
-#ifdef BINEDIT_DEBUG
-      fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
-	      nonLoadableSecs[i]->getRegionName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
-#endif
-
-	if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
-		fprintf(stderr, "%s[%d]:  ERROR:  setting size to non multiple of entry size in section %s: %lu/%lu\n", FILE__, __LINE__, nonLoadableSecs[i]->getRegionName().c_str(), newshdr->sh_size, newshdr->sh_entsize);
 
       prevshdr = newshdr;
     }	

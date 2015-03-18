@@ -215,15 +215,8 @@ void Type::incrRefCount()
 
 void Type::decrRefCount() 
 {
-	//assert(refCount > 0);
 	if (refCount > 0)
 		refCount--;
-	//if (0 == refCount)
-//		fprintf(stderr, "%s[%d]:  REMOVED DELETE\n", FILE__, __LINE__);
-#if 0
-	if (!--refCount)
-		delete this;
-#endif
 }
 
 std::string &Type::getName()
@@ -1210,10 +1203,7 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr)
 	// localVar->addField() TODO????
 	//fieldList[j]->getOffset()+(Offset) baseAddr, -1, storageAddr);
 	
-      if (!func->getFunction()->addLocalVar(locVar)) 
-      {
-         fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-      }
+        func->getFunction()->addLocalVar(locVar);
     }
 
     // look to see if the field list matches an existing block
@@ -1420,11 +1410,6 @@ fieldListType::fieldListType(std::string &name, typeId_t ID, dataClass typeDes) 
 
 fieldListType::~fieldListType() 
 {
-   if (derivedFieldList != NULL)
-   {
-	   fprintf(stderr, "%s[%d]:  REMOVED DELETE\n", FILE__, __LINE__);
-      //delete derivedFieldList;
-   }
    fieldList.clear();
 }
 
@@ -1742,7 +1727,6 @@ Field::Field(Field &oField) :
    offset_ = oField.offset_;
    fieldName_ = std::string(oField.fieldName_);
    vis_ = oField.vis_;
-   fprintf(stderr, "%s[%d]:  copy annnotations here??\n", FILE__, __LINE__);
 
    if (type_ != NULL)
       type_->incrRefCount();
@@ -2102,10 +2086,6 @@ Serializable * CBlock::serialize_impl(SerializerBase *sb, const char *tag) THROW
 	gtranslate(sb, fieldList, "CBLockFieldList", "CBlockField");
 	gtranslate(sb, f_offsets, "CBLockFunctionOffsets", "CBlockFuncOffset");
 	ifxml_end_element(sb, tag);
-
-	if (sb->isInput())
-		fprintf(stderr, "%s[%d]:  TODO:  need to look up %lu symbols here\n", 
-			FILE__, __LINE__, (unsigned long) f_offsets.size());
 
 	return NULL;
 }

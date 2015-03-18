@@ -228,13 +228,7 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol)
         newSym->setVersionFileName(filename);
         std::string rstr;
 
-        bool ret = newSym->getVersionFileName(rstr);
-        if (!ret) 
-        {
-           fprintf(stderr, "%s[%d]:  failed to getVersionFileName(%s)\n", 
-                 FILE__, __LINE__, rstr.c_str());
-        }
-
+        newSym->getVersionFileName(rstr);
         if (referringSymbol->getVersions(vers) && vers != NULL && vers->size() > 0) 
         {
             newSymVers->push_back((*vers)[0]);
@@ -282,8 +276,6 @@ Function *Symtab::createFunction(std::string name,
     Region *reg = NULL;
     
     if (!findRegion(reg, ".text") && !isDefensiveBinary()) {
-        assert(0 && "could not find text region");
-        fprintf(stderr, "%s[%d]:  could not find text region\n", FILE__, __LINE__);
         return NULL;
     }
     
@@ -292,8 +284,6 @@ Function *Symtab::createFunction(std::string name,
     }
 
     if (!reg) {
-        fprintf(stderr, "%s[%d]:  could not find region for func at %lx\n", 
-                FILE__, __LINE__,offset);
         return NULL;
     }
     
@@ -311,16 +301,6 @@ Function *Symtab::createFunction(std::string name,
         }
     }
     if (!found) {
-        fprintf(stderr, "Mod is %p/%s\n",
-                mod, mod->fileName().c_str());
-        for (unsigned i = 0; i < _mods.size(); i++) {
-            fprintf(stderr, "Matched against %p/%s\n",
-                    _mods[i], _mods[i]->fileName().c_str());
-        }
-        fprintf(stderr, "This %p; mod symtab %p\n",
-                this, mod->exec());
-
-        assert(0 && "passed invalid module\n");
         return NULL;
     }
     
@@ -346,15 +326,11 @@ Function *Symtab::createFunction(std::string name,
                                 false);
 
     if (!addSymbol(statSym) || !addSymbol(dynSym)) {
-        assert(0 && "failed to add symbol\n");
-        fprintf(stderr, "%s[%d]:  symtab failed to addSymbol\n", FILE__, __LINE__);
         return NULL;
     }
     
     Function *func = statSym->getFunction();
     if (!func) {		
-        assert(0 && "failed aggregate creation");
-        fprintf(stderr, "%s[%d]:  symtab failed to create function\n", FILE__, __LINE__);
         return NULL;
     }
     
@@ -369,17 +345,6 @@ Variable *Symtab::createVariable(std::string name,
                                  Module *mod)
 {
     Region *reg = NULL;
-#if 0    
-    if (!findRegion(reg, ".data") {
-        fprintf(stderr, "%s[%d]:  could not find %s region\n", FILE__, __LINE__, regionName.c_str());
-        return NULL;
-    }
-    
-    if (!reg) {
-        fprintf(stderr, "%s[%d]:  could not find data region\n", FILE__, __LINE__);
-        return NULL;
-    }
-#endif    
     // Let's get the module hammered out. 
     if (mod == NULL) {
         mod = getDefaultModule();
@@ -419,13 +384,11 @@ Variable *Symtab::createVariable(std::string name,
     dynSym->setModule(mod);
 
     if (!addSymbol(statSym) || !addSymbol(dynSym)) {
-        fprintf(stderr, "%s[%d]:  symtab failed to addSymbol\n", FILE__, __LINE__);
         return NULL;
     }
     
     Variable *var = statSym->getVariable();
     if (!var) {		
-        fprintf(stderr, "%s[%d]:  symtab failed to create var\n", FILE__, __LINE__);
         return NULL;
     }
     

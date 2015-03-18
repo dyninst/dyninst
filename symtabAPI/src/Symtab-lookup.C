@@ -44,6 +44,7 @@
 #include "common/src/serialize.h"
 #include "common/src/pathName.h"
 
+#include "debug.h"
 #include "Serialization.h"
 #include "Symtab.h"
 #include "Module.h"
@@ -295,9 +296,9 @@ bool Symtab::findFunctionsByName(std::vector<Function *> &ret, const std::string
       }
       if (!funcSyms[i]->getFunction())
         {
-	  fprintf(stderr, "%s[%d]:  WARNING:  internal inconsistency\n", FILE__, __LINE__);
-	  fprintf(stderr, "%s[%d]:  WARNING:  %s is %s a function\n", FILE__, __LINE__, name.c_str(), funcSyms[i]->isFunction() ? "" : "not");
-	  fprintf(stderr, "%s[%d]:  WARNING:  %s is %s a variable\n", FILE__, __LINE__, name.c_str(), funcSyms[i]->isVariable() ? "" : "not");
+           create_printf("%s[%d]:  WARNING:  internal inconsistency\n", FILE__, __LINE__);
+           create_printf("%s[%d]:  WARNING:  %s is %s a function\n", FILE__, __LINE__, name.c_str(), funcSyms[i]->isFunction() ? "" : "not");
+           create_printf("%s[%d]:  WARNING:  %s is %s a variable\n", FILE__, __LINE__, name.c_str(), funcSyms[i]->isVariable() ? "" : "not");
 	  continue;
         }
       unsortedFuncs.push_back(funcSyms[i]->getFunction());

@@ -761,9 +761,6 @@ void nonpublic_free_bin_serializer(SerializerBase *sb)
 	{
 		delete(sbin);
 	}
-	else
-		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-
 }
 #endif
 #endif

@@ -32,7 +32,7 @@
 #include <string>
 
 #include "symutil.h"
-
+#include "debug.h"
 #include "Collections.h"
 #include "Symtab.h"
 #include "Module.h"
@@ -83,7 +83,7 @@ void localVarCollection::addLocalVar(localVar * var)
 {
 	if (!addItem(var))
 	{
-		fprintf(stderr, "%s[%d]:  ERROR adding localVar\n", FILE__, __LINE__);
+           create_printf("%s[%d]:  ERROR adding localVar\n", FILE__, __LINE__);
 	}
 }
 
@@ -128,7 +128,7 @@ Serializable *localVarCollection::ac_serialize_impl(SerializerBase *s, const cha
 
 	if (lvmagic != 72)
 	{
-		fprintf(stderr, "\n\n%s[%d]: FIXME:  out-of-sync\n\n\n", FILE__, __LINE__);
+           create_printf("\n\n%s[%d]: FIXME:  out-of-sync\n\n\n", FILE__, __LINE__);
 	}
 
 	serialize_printf("%s[%d]:  localVarCollection: ac_serialize_impl, translate done\n", FILE__, __LINE__);
@@ -184,15 +184,8 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 	for (iter = deferred_lookups.begin(); iter != deferred_lookups.end(); iter++)
 	{
 		std::vector<std::pair<dataClass, Type **> > *to_assign = iter->second;
-		if (!to_assign) 
-		{
-			fprintf(stderr, "%s[%d]:  FIXME!\n", FILE__, __LINE__);
-		}
-
 		if (!to_assign->size())
 		{
-			fprintf(stderr, "%s[%d]:  No lookups for id %d, weird\n", 
-					FILE__, __LINE__, iter->first);
 			continue;
 		}
 
@@ -234,16 +227,6 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 						if (localt->getDataClass() != ldc) 
 							continue;
 						nfound++;
-						if (t)
-						{
-#if 0
-							fprintf(stderr, "%s[%d]: WARN: found %d types w/ID %d (so far)\n", 
-									FILE__, __LINE__, nfound, iter->first);
-							fprintf(stderr, "%s[%d]:  have %s vs, %s\n", FILE__, __LINE__, 
-									dataClass2Str(t->getDataClass()), 
-									dataClass2Str(localt->getDataClass()));
-#endif
-						}
 						t = localt;
 					}
 					//if (t) break;
@@ -255,10 +238,10 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 			}
 			if (!t)
 			{
-				fprintf(stderr, "%s[%d]:  FIXME:  cannot find type id %d\n", 
-						FILE__, __LINE__, iter->first);
-				err = true;
-				continue;
+                           create_printf("%s[%d]:  FIXME:  cannot find type id %d\n", 
+                                         FILE__, __LINE__, iter->first);
+                           err = true;
+                           continue;
 			}
 		}
 	}
@@ -473,8 +456,6 @@ void typeCollection::clearNumberedTypes()
    {
       if (it->second)
          it->second->decrRefCount();
-      else
-         fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
    }
 
    typesByID.clear();

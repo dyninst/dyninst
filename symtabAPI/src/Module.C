@@ -61,7 +61,6 @@ bool Module::findSymbol(std::vector<Symbol *> &found,
     std::vector<Symbol *> obj_syms;
     
     if (exec()->findSymbol(obj_syms, name, sType, nameType, isRegex, checkCase, includeUndefined)) {
-        //fprintf(stderr, "%s[%d]:  no symbols matching %s found\n", FILE__, __LINE__, name.c_str());
         return false;
     }
     
@@ -81,7 +80,6 @@ bool Module::getAllSymbols(std::vector<Symbol *> &found) {
     std::vector<Symbol *> obj_syms;
     
     if (!exec()->getAllSymbols(obj_syms)) {
-        //fprintf(stderr, "%s[%d]:  no symbols matching %s found\n", FILE__, __LINE__, name.c_str());
         return false;
     }
     

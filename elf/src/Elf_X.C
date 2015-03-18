@@ -129,11 +129,6 @@ Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
     else {
        elf = elf_begin(input, cmd, NULL);
     }
-    int errnum;
-    if ((errnum = elf_errno()) != 0) {
-       const char *msg = elf_errmsg(errnum);
-       fprintf(stderr, "Elf error: %s\n", msg);
-    }
     if (elf) {
        if (elf_kind(elf) == ELF_K_ELF) {
           char *identp = elf_getident(elf, NULL);

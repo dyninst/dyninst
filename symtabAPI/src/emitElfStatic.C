@@ -1567,9 +1567,6 @@ emitElfUtils::orderLoadableSections(Symtab *obj, vector<Region*> & sections)
         // find a `hole' of appropriate size
         sz = (sz + 4096 - 1) & ~(4096-1);
         ret = obj->getFreeOffset(sz);
-        if(!ret) {
-            fprintf(stderr,"Failed to finde hole of size %lx, bailing\n",sz);
-        }
     }
     return ret;
 }

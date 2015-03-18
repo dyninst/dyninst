@@ -146,48 +146,36 @@ class stab_entry_32 : public stab_entry {
 
     const char *name(int i = 0) { 
        if (!stabptr) {
-          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
-                FILE__, __LINE__);
           return "bad_name";
        }
        return stabstr + ((stab32 *)stabptr)[i].name; 
     }
     unsigned long nameIdx(int i = 0) {
        if (!stabptr) {
-          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
-                FILE__, __LINE__);
           return 0L;
        }
        return ((stab32 *)stabptr)[i].name; 
     }
     unsigned char type(int i = 0) {
        if (!stabptr) {
-          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
-                FILE__, __LINE__);
           return 0;
        }
        return ((stab32 *)stabptr)[i].type; 
     }
     unsigned char other(int i = 0) {
        if (!stabptr) {
-          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
-                FILE__, __LINE__);
           return 0;
        }
        return ((stab32 *)stabptr)[i].other; 
     }
     unsigned short desc(int i = 0) { 
        if (!stabptr) {
-          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
-                FILE__, __LINE__);
           return 0;
        }
        return ((stab32 *)stabptr)[i].desc; 
     }
     unsigned long val(int i = 0) { 
        if (!stabptr) {
-          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
-                FILE__, __LINE__);
           return 0L;
        }
        return ((stab32 *)stabptr)[i].val; 
@@ -202,48 +190,36 @@ class stab_entry_64 : public stab_entry {
 
     const char *name(int i = 0) { 
        if (!stabptr) {
-          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
-                FILE__, __LINE__);
           return "bad_name";
        }
        return stabstr + ((stab64 *)stabptr)[i].name; 
     }
     unsigned long nameIdx(int i = 0) {
        if (!stabptr) {
-          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
-                FILE__, __LINE__);
           return 0L;
        }
        return ((stab64 *)stabptr)[i].name; 
     }
     unsigned char type(int i = 0) {
        if (!stabptr) {
-          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
-                FILE__, __LINE__);
           return 0;
        }
        return ((stab64 *)stabptr)[i].type; 
     }
     unsigned char other(int i = 0) { 
        if (!stabptr) {
-          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
-                FILE__, __LINE__);
           return 0;
        }
        return ((stab64 *)stabptr)[i].other; 
     }
     unsigned short desc(int i = 0) { 
        if (!stabptr) {
-          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
-                FILE__, __LINE__);
           return 0;
        }
        return ((stab64 *)stabptr)[i].desc; 
     }
     unsigned long val(int i = 0) { 
        if (!stabptr) {
-          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
-                FILE__, __LINE__);
           return 0L;
        }
        return ((stab64 *)stabptr)[i].val; 

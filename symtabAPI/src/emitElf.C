@@ -402,12 +402,7 @@ bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sy
 	    } 
 	  else 
 	    {
-	      if (!vers)
-		{
-		  fprintf(stderr, "%s[%d]:  weird inconsistency here...  getVersions returned NULL\n",
-			  FILE__, __LINE__);
-		}
-	      else
+               if (vers)
 		{
 		  // There should only be one version string by this time
 		  //If the verison name already exists then add the same version number to the version symbol table
@@ -804,7 +799,6 @@ bool emitElf::driver(Symtab *obj, string fName){
     }
     if ( 0 > elf_update(newElf, ELF_C_NULL))
     {
-       fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, elf_errno(), elf_errmsg(elf_errno()));
        return false;
     }
 
@@ -819,7 +813,6 @@ bool emitElf::driver(Symtab *obj, string fName){
 
   if ( 0 >  elf_update(newElf, ELF_C_NULL))
   {
-     fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, elf_errno(), elf_errmsg(elf_errno()));
      return false;
   }
    
@@ -899,13 +892,6 @@ bool emitElf::driver(Symtab *obj, string fName){
 
   //Write the new Elf file
   if (elf_update(newElf, ELF_C_WRITE) < 0){
-    int err;
-    if ((err = elf_errno()) != 0)
-      {
-	const char *msg = elf_errmsg(err);
-	/* print msg */
-	fprintf(stderr, "Error: Unable to write ELF file: %s\n", msg);
-      }
     log_elferror(err_func_, "elf_update failed");
     return false;
   }
@@ -1056,9 +1042,6 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
          newSeg.p_align = pgSize;
          memcpy(insert_phdr, &newSeg, oldEhdr->e_phentsize);
          added_new_sec = true;
-#ifdef BINEDIT_DEBUG
-         fprintf(stderr, "Added New program header : offset 0x%lx,addr 0x%lx\n", newPhdr->p_offset, newPhdr->p_vaddr);
-#endif
       }
 
      memcpy(newPhdr, old, oldEhdr->e_phentsize);
@@ -1586,7 +1569,6 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
 
      if (0 > elf_update(newElf, ELF_C_NULL))
      {
-       fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, errno, elf_errmsg(elf_errno()));
        return false;
      }
 

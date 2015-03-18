@@ -524,7 +524,6 @@ Symbol *SymbolIter::currval()
 {
 	if (currentPositionInVector >= symbolIterator->second.size())
 	{
-		fprintf(stderr, "%s[%d]:  OUT OF RANGE\n", FILE__, __LINE__);
 		return NULL;
 	}
    return ((symbolIterator->second)[ currentPositionInVector ]);
