@@ -646,13 +646,13 @@ void insnCodeGen::removeStackFrame(codeGen &gen) {
                 popStack(gen);
 }
 
-bool insnCodeGen::generate(codeGen &gen,
-                           instruction &insn,
+bool insnCodeGen::generate(codeGen & /*gen*/,
+                           instruction & /*insn*/,
                            AddressSpace * /*proc*/,
-                           Address origAddr,
-                           Address relocAddr,
-                           patchTarget *fallthroughOverride,
-                           patchTarget *targetOverride) {
+                           Address /*origAddr*/,
+                           Address /*relocAddr*/,
+                           patchTarget * /*fallthroughOverride*/,
+                           patchTarget * /*targetOverride*/) {
   assert(0 && "Deprecated!");
   return false;
 #if 0
@@ -888,7 +888,7 @@ bool insnCodeGen::modifyCall(Address target,
     return modifyJcc(target, insn, gen);
 }
 
-bool insnCodeGen::modifyData(Address target,
+bool insnCodeGen::modifyData(Address /*target*/,
 			     NS_power::instruction &insn,
 			     codeGen &gen) {
   // Only know how to "modify" syscall...

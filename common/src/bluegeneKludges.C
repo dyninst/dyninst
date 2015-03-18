@@ -136,7 +136,7 @@ map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
       line[LINE_LEN - 1] = '\0';
       cur_pos = next_end+1;
 
-      sscanf(line, "%lx-%lx %16s %lx %x:%x %u %" MAPENTRIES_PATH_SIZE_STR "s\n", 
+      sscanf(line, "%lx-%lx %16s %lx %x:%x %lu %" MAPENTRIES_PATH_SIZE_STR "s\n", 
              (Address *) &maps[i].start, (Address *) &maps[i].end, prems, 
              (Address *) &maps[i].offset, &maps[i].dev_major,
              &maps[i].dev_minor, &maps[i].inode, maps[i].path);

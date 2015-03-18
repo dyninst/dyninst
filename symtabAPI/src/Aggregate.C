@@ -154,7 +154,7 @@ Symbol * Aggregate::getFirstSymbol() const
     return firstSymbol;
 }
 
-bool Aggregate::addMangledNameInternal(std::string name, bool isPrimary, bool demangle)
+bool Aggregate::addMangledNameInternal(std::string name, bool /*isPrimary*/, bool /*demangle*/)
 {
     // Check to see if we're duplicating
   for (auto i = mangled_names_begin(); 

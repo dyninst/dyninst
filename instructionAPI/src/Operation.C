@@ -530,6 +530,8 @@ namespace Dyninst
 	doneFlagsSetup = true;
       }
       doneOtherSetup = true;
+#else
+      (void) needFlags; //Silence warnings
 #endif //defined(arch_x86) || defined(arch_x86_64)
     return;
     }

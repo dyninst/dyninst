@@ -35,7 +35,7 @@
 
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/function.h"
-#include "common/src/arch-x86.h"
+#include "common/src/arch.h"
 
 using namespace Dyninst;
 using namespace Relocation;

@@ -177,6 +177,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction::Ptr insn,
   assert(nac < 3);
   return bmap;
 #else
+    (void) is64; //Silence warnings
     std::vector<Operand> operands;
     insn->getOperands(operands);
     for(std::vector<Operand>::iterator op = operands.begin();

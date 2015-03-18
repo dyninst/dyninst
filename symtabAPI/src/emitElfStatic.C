@@ -1687,6 +1687,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
     // section before outputting the patched GOT data -- this will require some refactoring.
 #else
     rewrite_printf("WARNING: updateRelocation is not implemented on this architecture\n");
+    (void) obj; (void) rel; (void) library_adjust; //silence warnings
 #endif
 
     return true;

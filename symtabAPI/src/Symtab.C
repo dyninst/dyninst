@@ -1009,7 +1009,7 @@ bool Symtab::doNotAggregate(const Symbol *sym) {
 
 /* Add the new name to the appropriate symbol index */
 
-bool Symtab::updateIndices(Symbol *sym, std::string newName, NameType nameType) {
+bool Symtab::updateIndices(Symbol * /*sym*/, std::string /*newName*/, NameType /*nameType*/) {
 
 #if 0
      if (nameType & mangledName) {
@@ -2932,7 +2932,7 @@ bool Symtab::fixup_relocation_symbols(SerializerBase *, Symtab *st)
    return true;
 }
 
-void Symtab::rebuild_symbol_hashes(SerializerBase *sb)
+void Symtab::rebuild_symbol_hashes(SerializerBase * /*sb*/)
 {
   /*	if (!is_input(sb))
 		return;
