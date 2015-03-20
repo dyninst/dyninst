@@ -328,44 +328,50 @@ set (SOURCE_LIST_57
  	${SRC}/mutatee_util.c
  )
 set (SOURCE_LIST_58 
+	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_tls_mutatee.c
+ 	${SRC}/proccontrol/pcontrol_mutatee_tools.c
+ 	${SRC}/mutatee_util.c
+ 	${SRC}/mutatee_util_mt.c
+ )
+set (SOURCE_LIST_59 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test3_4_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_59 
+set (SOURCE_LIST_60 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_thread_6_mutatee.c
  	${SRC}/mutatee_util.c
  	${SRC}/mutatee_util_mt.c
  )
-set (SOURCE_LIST_60 
+set (SOURCE_LIST_61 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test4_3_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_61 
+set (SOURCE_LIST_62 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_fork_5_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_62 
+set (SOURCE_LIST_63 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_stack_4_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_63 
+set (SOURCE_LIST_64 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test_thread_7_mutatee.c
  	${SRC}/mutatee_util.c
  	${SRC}/mutatee_util_mt.c
  )
-set (SOURCE_LIST_64 
+set (SOURCE_LIST_65 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test4_2_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_65 
+set (SOURCE_LIST_66 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test1_12_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_66 
+set (SOURCE_LIST_67 
 	${SRC}/mutatee_driver.c	${SRC}/dyninst/test4_3b_mutatee.c
  	${SRC}/mutatee_util.c
  )
-set (SOURCE_LIST_67 
+set (SOURCE_LIST_68 
 	${SRC}/mutatee_driver.c	${SRC}/proccontrol/pc_irpc_mutatee.c
  	${SRC}/proccontrol/pcontrol_mutatee_tools.c
  	${SRC}/mutatee_util.c
@@ -479,6 +485,8 @@ set_property (SOURCE ${SRC}/proccontrol/pc_fork_mutatee.c APPEND PROPERTY COMPIL
 set_property (SOURCE ${SRC}/proccontrol/pc_fork_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=0)
 set_property (SOURCE ${SRC}/dyninst/test1_31_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=test1_31)
 set_property (SOURCE ${SRC}/dyninst/test1_31_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=1)
+set_property (SOURCE ${SRC}/proccontrol/pc_tls_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=pc_tls)
+set_property (SOURCE ${SRC}/proccontrol/pc_tls_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=0)
 set_property (SOURCE ${SRC}/dyninst/test_snip_remove_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=test_snip_remove)
 set_property (SOURCE ${SRC}/dyninst/test_snip_remove_mutatee.c APPEND PROPERTY COMPILE_DEFINITIONS GROUPABLE=0)
 set_property (SOURCE ${SRC}/dyninst/test5_5_mutatee.C APPEND PROPERTY COMPILE_DEFINITIONS TEST_NAME=test5_5)

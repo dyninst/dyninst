@@ -8,9 +8,9 @@
 
 
 include_directories ("..src/proccontrol")
-set (proccontrol_MUTATORS pc_launch pc_breakpoint pc_library pc_addlibrary pc_singlestep pc_thread pc_groups pc_stat pc_irpc pc_detach pc_terminate pc_terminate_stopped )
+set (proccontrol_MUTATORS pc_launch pc_breakpoint pc_library pc_addlibrary pc_singlestep pc_thread pc_groups pc_stat pc_irpc pc_detach pc_terminate pc_terminate_stopped pc_tls )
 
-set (proccontrol_OBJS_ALL_MUTATORS pc_launch.o pc_breakpoint.o pc_library.o pc_addlibrary.o pc_singlestep.o pc_thread.o pc_groups.o pc_stat.o pc_irpc.o pc_detach.o pc_terminate.o pc_terminate_stopped.o )
+set (proccontrol_OBJS_ALL_MUTATORS pc_launch.o pc_breakpoint.o pc_library.o pc_addlibrary.o pc_singlestep.o pc_thread.o pc_groups.o pc_stat.o pc_irpc.o pc_detach.o pc_terminate.o pc_terminate_stopped.o pc_tls.o )
 
 
 include_directories ("..src/dyninst")
@@ -44,6 +44,7 @@ set (MUTATOR_NAME_LIST
 	pc_terminate
 	pc_terminate_stopped
 	pc_thread
+	pc_tls
 	power_cft
 	power_decode
 	snip_change_shlib_var
@@ -153,6 +154,7 @@ set (MUTATOR_NAME_LIST
 
 set (MUTATOR_MODULE_LIB_LIST
 	testdyninst
+	testproccontrol
 	testproccontrol
 	testproccontrol
 	testproccontrol
@@ -287,6 +289,7 @@ set (MUTATOR_SOURCE_LIST
 	${SRC}/proccontrol/pc_terminate.C
 	${SRC}/proccontrol/pc_terminate_stopped.C
 	${SRC}/proccontrol/pc_thread.C
+	${SRC}/proccontrol/pc_tls.C
 	${SRC}/instruction/power_cft.C
 	${SRC}/instruction/power_decode.C
 	${SRC}/dyninst/snip_change_shlib_var.C
@@ -394,13 +397,13 @@ set (MUTATOR_SOURCE_LIST
 	${SRC}/symtab/test_type_info.C
 	)
 
-foreach (val RANGE 117)
+foreach (val RANGE 118)
 	list (GET MUTATOR_NAME_LIST ${val} lib)
 	list (GET MUTATOR_SOURCE_LIST ${val} source)
 	add_library (${lib} ${source})
 endforeach()
 
-foreach (val RANGE 117)
+foreach (val RANGE 118)
 	list (GET MUTATOR_NAME_LIST ${val} lib)
 	list (GET MUTATOR_MODULE_LIB_LIST ${val} comp_dep)
 	target_link_libraries (${lib} ${comp_dep} ${LIBTESTSUITE})

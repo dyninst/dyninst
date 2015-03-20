@@ -80,8 +80,8 @@ foreach (f ${SOURCE_LIST_40})
 	endforeach()
 set_target_properties(pc_groups.dyn_gcc_64_none_none PROPERTIES LINKER_LANGUAGE C)
 target_link_libraries (pc_groups.dyn_gcc_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_irpc.dyn_gcc_64_none_none ${SOURCE_LIST_67})
-foreach (f ${SOURCE_LIST_67})
+add_executable (pc_irpc.dyn_gcc_64_none_none ${SOURCE_LIST_68})
+foreach (f ${SOURCE_LIST_68})
 	get_source_file_property(lang ${f} LANGUAGE)
 	if(lang MATCHES "C")
 		set_source_files_properties(${f} PROPERTIES LANGUAGE C)
@@ -170,6 +170,15 @@ foreach (f ${SOURCE_LIST_20})
 	endforeach()
 set_target_properties(pc_thread_cont.dyn_gcc_64_none_none PROPERTIES LINKER_LANGUAGE C)
 target_link_libraries (pc_thread_cont.dyn_gcc_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_tls.dyn_gcc_64_none_none ${SOURCE_LIST_58})
+foreach (f ${SOURCE_LIST_58})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE C)
+	endif()
+	endforeach()
+set_target_properties(pc_tls.dyn_gcc_64_none_none PROPERTIES LINKER_LANGUAGE C)
+target_link_libraries (pc_tls.dyn_gcc_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 
 INSTALL (TARGETS
@@ -190,6 +199,7 @@ INSTALL (TARGETS
 		pc_terminate_stopped.dyn_gcc_64_none_none
 		pc_thread.dyn_gcc_64_none_none
 		pc_thread_cont.dyn_gcc_64_none_none
+		pc_tls.dyn_gcc_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
 ENDIF()

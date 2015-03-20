@@ -31,7 +31,8 @@
                   optimization_for_mutatee/3, spec_exception/3,
                   spec_object_file/6, fortran_c_component/1,
                   whitelist/1, parameter/1, parameter_values/2,
-                  mutatee_abi/1, platform_abi/2,
+                  mutatee_abi/1, platform_abi/2, module_pic/2,
+                  mutatee_module/2, module_runmode_format/3,
                   compiler_platform_abi_s/5, test_platform_abi/3,
                   restricted_amd64_abi/1, compiler_presence_def/2,
                   restricted_abi_for_arch/3, insane/2, module/1,
@@ -2412,8 +2413,14 @@ pcMutateeLibs(Libs) :-
 
 compiler_for_mutatee(Mutatee, Compiler) :-
     test(T, _, Mutatee),
+    \+ member(Mutatee, ['pc_tls']),
     tests_module(T, 'proccontrol'),
     member(Compiler, ['gcc', 'g++', 'VC', 'VC++', 'bg_gcc', 'bg_g++', 'bgq_gcc', 'bgq_g++']).
+
+mutatee_format(Mutatee, 'staticMutatee') :-
+    test(T, _, Mutatee),
+    \+ member(T, ['pc_library', 'pc_addlibrary', 'pc_fork_exec']),
+    tests_module(T, 'proccontrol').
 
 test('pc_launch', 'pc_launch', 'pc_launch').
 test_description('pc_launch', 'Launch a process').
@@ -2664,6 +2671,27 @@ mutatee('pc_mem_perm', ['pc_mem_perm_mutatee.c', 'pcontrol_mutatee_tools.c'], ['
 mutatee_requires_libs('pc_mem_perm', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_mem_perm', _, Opt) :- member(Opt, ['none']).
 
+test('pc_tls', 'pc_tls', 'pc_tls').
+test_description('pc_tls', 'Read and write thread local variables').
+test_platform('pc_tls', Platform) :- pcPlatforms(Platform),
+   \+ platform(_, 'windows', _, Platform).
+mutator('pc_tls', ['pc_tls.C']).
+test_runmode('pc_tls', 'dynamic').
+test_threadmode('pc_tls', 'Threading').
+test_processmode('pc_tls', 'Processes').
+test_start_state('pc_tls', 'selfattach').
+tests_module('pc_tls', 'proccontrol').
+mutatee('pc_tls', ['pc_tls_mutatee.c', 'pcontrol_mutatee_tools.c'], ['mutatee_util_mt.c']).
+mutatee_requires_libs('pc_tls', Libs) :- pcMutateeLibs(Libs).
+compiler_for_mutatee('pc_tls', Compiler) :-
+    mutatee_comp(Compiler),
+    comp_lang(Compiler, Language),
+    member(Language, ['c']),
+    \+ member(Compiler, ['pgcc', 'pgcxx']).
+
+
+
+
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
 % mutatee in state State, with State in {stopped, running, selfstart, selfattach, delayedattach}
@@ -2762,6 +2790,14 @@ format_runmode(_, 'binary', 'dynamicMutatee').
 format_runmode(_, 'createProcess', 'dynamicMutatee').
 format_runmode(_, 'useAttach', 'dynamicMutatee').
 format_runmode(_, 'disk', 'dynamicMutatee').
+format_runmode(_, 'createProcess', 'staticMutatee').
+format_runmode(_, 'useAttach', 'staticMutatee').
+
+module_runmode_format('dyninst', 'binary', 'staticMutatee').
+module_runmode_format('dyninst', _, 'dynamicMutatee').
+module_runmode_format('proccontrol', _, _).
+module_runmode_format('instruction', _, _).
+module_runmode_format('symtab', _, _).
 
 % Platform ABI support
 % Testing out how this looks with whitelist clauses
@@ -3553,6 +3589,17 @@ runmode_platform(P, 'disk', _) :- platform(_, _, _, P).
 % mutatee_peers/2
 mutatee_peers(M, P) :-
     findall(N, mutatee_peer(M, N), Ps), sort(Ps, P).
+
+mutatee_module('none', 'instruction').
+mutatee_module('none', 'dyninst').
+mutatee_module(Mutatee, Module) :-
+    \+ member(Mutatee, ['none']),
+    test(Name, _, Mutatee), !,
+    tests_module(Name, Module).
+
+module_pic(Module, _) :-
+    \+ member(Module, ['proccontrol']).
+module_pic('proccontrol', 'none').
 
 %%%%%
 % Playing around with how to specify that some tests only run in 64-bit mode

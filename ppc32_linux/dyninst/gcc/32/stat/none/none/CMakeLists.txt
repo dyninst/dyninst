@@ -18,8 +18,8 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc32statC MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc32_linux/srclists.cmake)
-add_executable (dyninst_group_test.stat_gcc_32_none_none ${SOURCE_LIST_58})
-foreach (f ${SOURCE_LIST_58})
+add_executable (dyninst_group_test.stat_gcc_32_none_none ${SOURCE_LIST_59})
+foreach (f ${SOURCE_LIST_59})
 	get_source_file_property(lang ${f} LANGUAGE)
 	if(lang MATCHES "C")
 		set_source_files_properties(${f} PROPERTIES LANGUAGE C)
