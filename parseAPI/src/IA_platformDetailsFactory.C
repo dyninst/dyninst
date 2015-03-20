@@ -31,6 +31,7 @@
 #include "IA_platformDetails.h"
 #include "IA_x86Details.h"
 #include "IA_powerDetails.h"
+#include "IA_aarch64Details.h"
 
 namespace Dyninst
 {
@@ -46,6 +47,9 @@ namespace Dyninst
                 case Arch_ppc32:
                 case Arch_ppc64:
                     return new IA_powerDetails(cb);
+								//not sure not
+								case Arch_aarch64:
+										return new IA_aarch64Details(cb);
                 default:
                     assert(!"makePlatformDetails called for platform w/o details class!");
                     return NULL;

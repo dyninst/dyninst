@@ -61,6 +61,9 @@
 #elif defined(arch_x86) || defined(arch_x86_64)
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
+#elif defined (arch_aarch64)
+#include "dyninstAPI/src/inst-aarch64.h"
+#include "dyninstAPI/src/emit-aarch64.h"
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
@@ -706,6 +709,10 @@ bool registerSpace::readProgramRegister(codeGen &gen,
                                        size,
                                        true);
     return true;
+#elif defined(arch_aarch64)
+#warning "This fucntion is not implemented yet!"
+		assert(0);
+		return false;
 #else
     // Real version that uses stored information
 
@@ -754,6 +761,10 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
                                          Register destination,
                                          Register source,
                                          unsigned) {
+#if defined(arch_aarch64)
+		//not implemented yet
+		return false;
+#else
     registerSlot *src = registers_[source];
     assert(source);
     registerSlot *dest = registers_[destination];
@@ -785,6 +796,7 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
         return false;
         break;
     }
+#endif
 }
 
 
@@ -1458,8 +1470,13 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 	std::pair<std::multimap<Register, MachRegister>::iterator, std::multimap<Register, MachRegister>::iterator> range;
 	LivenessAnalyzer *live;
 	if (addr_width == 4){
+#if defined(arch_aarch64)
+	assert(0);
+	//#error "aarch64 should not be 32bit long"
+#else
 		range = regToMachReg32.equal_range(reg);
 		live = &live1;
+#endif
 	}
 	else {
 		range = regToMachReg64.equal_range(reg);

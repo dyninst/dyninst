@@ -379,6 +379,10 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
   #else // 32-bit
     #define UC_PC(x) x->uc_mcontext.uc_regs->gregs[32]
   #endif // power
+#elif defined(arch_aarch64)
+	#warning "UC_PC: in aarch64, pc is not directly accessable."
+	//aarch64 pc is not one of 31 GPRs, but an independent reg
+	#define UC_PC(x) x->uc_mcontext.pc
 #endif // UC_PC
 
 extern volatile unsigned long dyninstTrapTableUsed;
@@ -483,6 +487,7 @@ static tc_lock_t trap_mapping_lock;
 
 static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
 {
+#if !defined (arch_aarch64)
    struct trap_mapping_header *header;
    int i;
    
@@ -506,6 +511,10 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
  done:
    tc_lock_unlock(&trap_mapping_lock);
    return header;
+#else
+	assert(0);
+	return NULL;
+#endif
 }
 
 static int parse_libs()

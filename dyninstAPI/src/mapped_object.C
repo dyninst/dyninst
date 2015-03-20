@@ -1983,7 +1983,9 @@ void mapped_object::setCodeBytesUpdated(bool newval)
 }
 
 #if !( (defined(os_linux) || defined(os_freebsd)) && \
-       (defined(arch_x86) || defined(arch_x86_64) || defined(arch_power)) )
+       (defined(arch_x86) || defined(arch_x86_64) || defined(arch_power)\
+        ||defined(arch_aarch64)\
+       ) )
 func_instance *mapped_object::findGlobalConstructorFunc(const std::string &) {
     assert(!"Not implemented");
     return NULL;

@@ -1092,6 +1092,45 @@ RegisterMap &machRegIndex_ppc_64() {
    return mrmap;
 }
 
+RegisterMap &machRegIndex_aarch64() {
+   static RegisterMap mrmap;
+   if (mrmap.empty()) {
+      mrmap =  map_list_of
+				(aarch64::r0, 0)  	
+        (aarch64::r1, 1)
+        (aarch64::r2, 2)
+        (aarch64::r3, 3)
+        (aarch64::r4, 4)
+        (aarch64::r5, 5)
+        (aarch64::r6, 6)
+        (aarch64::r7, 7)
+        (aarch64::r8, 8)
+        (aarch64::r9, 9)
+        (aarch64::r10, 10)
+        (aarch64::r11, 11)
+        (aarch64::r12, 12)
+        (aarch64::r13, 13)
+        (aarch64::r14, 14)
+        (aarch64::r15, 15)
+        (aarch64::r16, 16)
+        (aarch64::r17, 17)
+        (aarch64::r18, 18)
+        (aarch64::r19, 19)
+        (aarch64::r20, 20)
+        (aarch64::r21, 21)
+        (aarch64::r22, 22)
+        (aarch64::r23, 23)
+        (aarch64::r24, 24)
+        (aarch64::r25, 25)
+        (aarch64::r26, 26)
+        (aarch64::r27, 27)
+        (aarch64::r28, 28)
+        (aarch64::r29, 29)
+        (aarch64::r30, 30);
+	 }
+	return mrmap;
+}
+
 #endif
 
 };

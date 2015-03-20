@@ -27,44 +27,15 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include "CodeSource.h"
 
-#ifndef LEGACY_BPATCH_INSTRUCTION_H
-#define LEGACY_BPATCH_INSTRUCTION_H
-
-/*
- * Legacy support for BPatch_instruction and BPatch_memoryAccess,
- * both of which hold a pointer to an opaque type containing the
- * platform-specific `instruction' type.
- */
-
-#include "arch-forward-decl.h"
-
-#if defined(arch_power)
-using namespace NS_power;
-
-#elif defined(i386_unknown_nt4_0) \
-   || defined(arch_x86)           \
-   || defined(arch_x86_64)
-using namespace NS_x86;
-
-#elif defined(arch_aarch64)
-using namespace NS_aarch64;
-
-#else
-#error "unknown architecture"
-
-#endif
-
-class internal_instruction {
- public:
-    explicit internal_instruction(instruction * insn)
-        : _insn(insn)
-    { }
-
-    instruction * insn() const { return _insn; }
- private:
-    instruction * _insn; 
-};
-
-
-#endif 
+using namespace Dyninst;
+bool
+InstructionSource::isAligned(const Address addr) const
+{
+#warning "This function is not verified yet!"
+//aarch64: instructions have a width of 32bits.
+//0x3 should be fine.
+		assert(0);
+    return !(addr & 0x3);
+}

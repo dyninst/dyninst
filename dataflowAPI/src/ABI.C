@@ -81,6 +81,13 @@ ABI* ABI::getABI(int addr_width){
 
 #endif
 
+#warning "This is not verified yet!"
+#if defined(arch_aarch64)
+	globalABI64_->addr_width = 8;
+	globalABI_->index = &machRegIndex_ppc();
+	globalABI64_->index = &machRegIndex_ppc();
+#endif
+
 	initialize32();
 #if defined(cap_32_64)
 	initialize64();
@@ -463,5 +470,16 @@ void ABI::initialize64(){
     syscallWritten64_ = getBitArray(machRegIndex_ppc_64().size()).set();
 
     allRegs64_ = getBitArray(machRegIndex_ppc_64().size()).set();
+}
+#endif
+
+#warning "This is not verified!"
+#if defined(arch_aarch64)
+void ABI::initialize32(){
+	assert(0);
+}
+
+void ABI::initialize64(){
+	assert(0);
 }
 #endif

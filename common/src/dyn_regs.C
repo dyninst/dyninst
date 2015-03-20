@@ -84,6 +84,10 @@ MachRegister MachRegister::getBaseRegister() const {
       case Arch_ppc64:
       case Arch_none:
          return *this;
+			case Arch_aarch64:
+					//not verified
+					assert(0);
+				return *this;
    }
    return InvalidReg;
 }
@@ -175,7 +179,9 @@ unsigned int MachRegister::size() const {
          return 4;
       }
       case Arch_ppc64:
-         return 8;
+			//aarch64: 64bit = 8*8bit
+			case Arch_aarch64:
+         return 8;	
       case Arch_none:
          return 0;
    }
@@ -211,6 +217,10 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
          return ppc32::pc;
       case Arch_ppc64:
          return ppc64::pc;
+      case Arch_aarch64:
+					assert(0);
+					//aarch64: pc is not accessable
+         return aarch64::pc;
       case Arch_none:
          return InvalidReg;
    }
@@ -229,6 +239,9 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
          return ppc32::r1;
       case Arch_ppc64:
          return ppc64::r1;
+      case Arch_aarch64:
+				//aarch64: frame pointer is X29 by convention
+         return aarch64::x29;
       case Arch_none:
          return InvalidReg;
    }
@@ -247,6 +260,10 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
          return ppc32::r1;
       case Arch_ppc64:
          return ppc64::r1;
+      case Arch_aarch64:
+					//aarch64: stack pointer is an independent register
+					assert(0);
+         return aarch64::x0;
       case Arch_none:
          return InvalidReg;
    }
@@ -265,6 +282,10 @@ MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
             return ppc32::r0;
         case Arch_ppc64:
             return ppc64::r0;
+        case Arch_aarch64:
+						//aarch64: not verified
+						assert(0);
+            return aarch64::x0;
         case Arch_none:
             return InvalidReg;
     }
@@ -283,6 +304,10 @@ MachRegister MachRegister::getSyscallNumberOReg(Dyninst::Architecture arch)
             return ppc32::r0;
         case Arch_ppc64:
             return ppc64::r0;
+        case Arch_aarch64:
+						//not verified
+						assert(0);
+            return aarch64::x0;
         case Arch_none:
             return InvalidReg;
     }
@@ -301,6 +326,10 @@ MachRegister MachRegister::getSyscallReturnValueReg(Dyninst::Architecture arch)
             return ppc32::r3;
         case Arch_ppc64:
             return ppc64::r3;
+        case Arch_aarch64:
+						//not verified
+						assert(0);
+            return aarch64::x0;
         case Arch_none:
             return InvalidReg;
     }
@@ -1108,6 +1137,45 @@ int MachRegister::getDwarfEnc() const
             case Dyninst::ppc64::ixer: return 101;
             case Dyninst::ppc64::ilr: return 108;
             case Dyninst::ppc64::ictr: return 109;
+            default: return -1;
+         }
+         break;
+			#warning "This is not verified yet!"
+      case Arch_aarch64:
+         switch (val()) {
+						/*
+            case Dyninst::aarch64::x0: 	return 0;
+            case Dyninst::aarch64::x1: 	return 1;
+            case Dyninst::aarch64::x2: 	return 2;
+            case Dyninst::aarch64::x3: 	return 3;
+            case Dyninst::aarch64::x4: 	return 4;
+            case Dyninst::aarch64::x5: 	return 5;
+            case Dyninst::aarch64::x6: 	return 6;
+            case Dyninst::aarch64::x7: 	return 7;
+            case Dyninst::aarch64::x8: 	return 8;
+            case Dyninst::aarch64::x9: 	return 9;
+            case Dyninst::aarch64::x10: 	return 10;
+            case Dyninst::aarch64::x11: 	return 11;
+            case Dyninst::aarch64::x12: 	return 12;
+            case Dyninst::aarch64::x13: 	return 13;
+            case Dyninst::aarch64::x14: 	return 14;
+            case Dyninst::aarch64::x15: 	return 15;
+            case Dyninst::aarch64::x16: 	return 16;
+            case Dyninst::aarch64::x17: 	return 17;
+            case Dyninst::aarch64::x18: 	return 18;
+            case Dyninst::aarch64::x19: 	return 19;
+            case Dyninst::aarch64::x20: 	return 20;
+            case Dyninst::aarch64::x21: 	return 21;
+            case Dyninst::aarch64::x22: 	return 22;
+            case Dyninst::aarch64::x23: 	return 23;
+            case Dyninst::aarch64::x24: 	return 24;
+            case Dyninst::aarch64::x25: 	return 25;
+            case Dyninst::aarch64::x26: 	return 26;
+            case Dyninst::aarch64::x27: 	return 27;
+            case Dyninst::aarch64::x28: 	return 28;
+            case Dyninst::aarch64::x29: 	return 29;
+            case Dyninst::aarch64::x30: 	return 30;
+						*/
             default: return -1;
          }
          break;

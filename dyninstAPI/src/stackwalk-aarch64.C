@@ -28,43 +28,59 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef LEGACY_BPATCH_INSTRUCTION_H
-#define LEGACY_BPATCH_INSTRUCTION_H
+#include "debug.h"
+#include "dynProcess.h"
+#include "baseTramp.h"
+#include "function.h"
+#include "frameChecker.h"
+#include "inst-aarch64.h"
 
-/*
- * Legacy support for BPatch_instruction and BPatch_memoryAccess,
- * both of which hold a pointer to an opaque type containing the
- * platform-specific `instruction' type.
- */
+#warning "This file is not implemented yet!"
+using namespace Dyninst;
 
-#include "arch-forward-decl.h"
+bool PCProcess::createStackwalkerSteppers()
+{
+	assert(0);
+  return true;
+}
 
-#if defined(arch_power)
-using namespace NS_power;
+bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
+                                                       Dyninst::Address * /*orig_ra*/,
+                                                       unsigned * stack_height,
+                                                       bool * /* deref */,
+                                                       bool * /*entryExit*/)
+{
+	assert(0);
+	return false;
+}
 
-#elif defined(i386_unknown_nt4_0) \
-   || defined(arch_x86)           \
-   || defined(arch_x86_64)
-using namespace NS_x86;
+using namespace Stackwalker;
 
-#elif defined(arch_aarch64)
-using namespace NS_aarch64;
+FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
+{
+	assert(0);
+  FrameFuncHelper::alloc_frame_t result;
+  return result;
+}
 
-#else
-#error "unknown architecture"
+bool DynWandererHelper::isPrevInstrACall(Address /*addr*/, Address &/*target*/)
+{
+  // NOT IMPLEMENTED
+  assert(0);
+  return false;
+}
 
-#endif
+WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address /*func_entry*/, Address /*pc*/)
+{
+  // NOT IMPLEMENTED
+  assert(0);
+  return WandererHelper::unknown_s;
+}
 
-class internal_instruction {
- public:
-    explicit internal_instruction(instruction * insn)
-        : _insn(insn)
-    { }
+bool DynWandererHelper::requireExactMatch()
+{
+  // NOT IMPLEMENTED
+  assert(0);
+  return false;
+}
 
-    instruction * insn() const { return _insn; }
- private:
-    instruction * _insn; 
-};
-
-
-#endif 

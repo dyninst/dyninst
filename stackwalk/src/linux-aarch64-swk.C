@@ -28,43 +28,47 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef LEGACY_BPATCH_INSTRUCTION_H
-#define LEGACY_BPATCH_INSTRUCTION_H
+#include "stackwalk/h/swk_errors.h"
+#include "stackwalk/h/walker.h"
+#include "stackwalk/h/basetypes.h"
+#include "stackwalk/h/procstate.h"
+#include "stackwalk/h/framestepper.h"
+#include "stackwalk/src/linuxbsd-swk.h"
+#include "common/h/dyn_regs.h"
+#include <sys/user.h>
+#include <sys/ptrace.h>
+#include <assert.h>
+#include <errno.h>
+#include <string.h>
 
-/*
- * Legacy support for BPatch_instruction and BPatch_memoryAccess,
- * both of which hold a pointer to an opaque type containing the
- * platform-specific `instruction' type.
- */
+#warning "This file is not implemented yet!"
 
-#include "arch-forward-decl.h"
+using namespace Dyninst;
+using namespace Dyninst::Stackwalker;
 
-#if defined(arch_power)
-using namespace NS_power;
+bool Walker::createDefaultSteppers()
+{
+	assert(0);
+  FrameStepper *stepper;
+  bool result;
 
-#elif defined(i386_unknown_nt4_0) \
-   || defined(arch_x86)           \
-   || defined(arch_x86_64)
-using namespace NS_x86;
+  stepper = new FrameFuncStepper(this);
+  result = addStepper(stepper);
+  if (!result) {
+    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+	      stepper);
+    return false;
+  }
 
-#elif defined(arch_aarch64)
-using namespace NS_aarch64;
+  return true;
+}
 
-#else
-#error "unknown architecture"
-
-#endif
-
-class internal_instruction {
- public:
-    explicit internal_instruction(instruction * insn)
-        : _insn(insn)
-    { }
-
-    instruction * insn() const { return _insn; }
- private:
-    instruction * _insn; 
-};
-
-
-#endif 
+gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &/*in*/, 
+                                                    Frame &/*out*/)
+{
+	assert(0);
+   /**
+    * TODO: Implement me on non-x86 platforms.
+    **/
+   return gcf_not_me;
+}

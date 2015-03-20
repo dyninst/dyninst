@@ -28,43 +28,47 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef LEGACY_BPATCH_INSTRUCTION_H
-#define LEGACY_BPATCH_INSTRUCTION_H
+#warning "This file is not implemented yet!"
+
+#if defined(DYNINST_RT_STATIC_LIB)
+void (*DYNINSTctors_addr)(void);
+void (*DYNINSTdtors_addr)(void);
+
+//#if defined(MUTATEE64)
+static const unsigned long long CTOR_LIST_TERM = 0x0000000000000000ULL;
+static const unsigned long long CTOR_LIST_START = 0xffffffffffffffffULL;
+static const unsigned long long DTOR_LIST_TERM = 0x0000000000000000ULL;
+static const unsigned long long DTOR_LIST_START = 0xffffffffffffffffULL;
+//#else
+/*
+static const unsigned CTOR_LIST_TERM = 0x00000000;
+static const unsigned CTOR_LIST_START = 0xffffffff;
+static const unsigned DTOR_LIST_TERM = 0x00000000;
+static const unsigned DTOR_LIST_START = 0xffffffff;
+*/
+//#endif
+
+extern void DYNINSTBaseInit();
 
 /*
- * Legacy support for BPatch_instruction and BPatch_memoryAccess,
- * both of which hold a pointer to an opaque type containing the
- * platform-specific `instruction' type.
+ * When rewritting a static binary, .ctors and .dtors sections of
+ * instrumentation code needs to be combined with the existing .ctors
+ * and .dtors sections of the static binary.
+ *
+ * The following functions process the .ctors and .dtors sections
+ * that have been rewritten. The rewriter will relocate the 
+ * address of DYNINSTctors_addr and DYNINSTdtors_addr to point to
+ * new .ctors and .dtors sections.
  */
 
-#include "arch-forward-decl.h"
+void DYNINSTglobal_ctors_handler() {
+#warning "This function is not implemented yet!"
+	assert(0);
+}
 
-#if defined(arch_power)
-using namespace NS_power;
-
-#elif defined(i386_unknown_nt4_0) \
-   || defined(arch_x86)           \
-   || defined(arch_x86_64)
-using namespace NS_x86;
-
-#elif defined(arch_aarch64)
-using namespace NS_aarch64;
-
-#else
-#error "unknown architecture"
+void DYNINSTglobal_dtors_handler() {
+#warning "This function is not implemented yet!"
+	assert(0);
+}
 
 #endif
-
-class internal_instruction {
- public:
-    explicit internal_instruction(instruction * insn)
-        : _insn(insn)
-    { }
-
-    instruction * insn() const { return _insn; }
- private:
-    instruction * _insn; 
-};
-
-
-#endif 
