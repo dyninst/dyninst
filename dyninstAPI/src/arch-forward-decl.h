@@ -46,6 +46,12 @@ namespace NS_x86 {
     class instruction;
 }
 using namespace NS_x86;
+#elif defined(arch_aarch64) \
+	 || defined(aarch64_unknown_linux)
+namespace NS_aarch64{
+		class instruction;
+}
+using namespace NS_aarch64;
 #else
 #error "unknown architecture"
 

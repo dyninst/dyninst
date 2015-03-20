@@ -64,6 +64,8 @@ using namespace Dyninst::InstructionAPI;
 #include "inst-x86.h"
 extern int tramp_pre_frame_size_32;
 extern int tramp_pre_frame_size_64;
+#elif defined(arch_aarch64)
+#include "inst-aarch64.h"
 #else
 #error "Unknown architecture in ast.h"
 #endif
@@ -1767,6 +1769,11 @@ bool AstCallNode::initRegisters(codeGen &gen) {
 
     // Monotonically increasing...
 #endif
+
+#if defined(arch_aarch64)
+	#warning "This function is not implemented yet!"
+	assert(false);
+#endif
     return ret;
     
 }
@@ -2031,6 +2038,9 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
                   REG_SP,
                   retReg, 
                   gen, noCost);
+#elif defined (arch_aarch64)
+			#warning "This function is not implemented yet!"
+			assert(0);
 #else
         assert(0);
 #endif

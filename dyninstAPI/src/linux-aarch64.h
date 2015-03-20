@@ -28,43 +28,30 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef LEGACY_BPATCH_INSTRUCTION_H
-#define LEGACY_BPATCH_INSTRUCTION_H
 
-/*
- * Legacy support for BPatch_instruction and BPatch_memoryAccess,
- * both of which hold a pointer to an opaque type containing the
- * platform-specific `instruction' type.
- */
-
-#include "arch-forward-decl.h"
-
-#if defined(arch_power)
-using namespace NS_power;
-
-#elif defined(i386_unknown_nt4_0) \
-   || defined(arch_x86)           \
-   || defined(arch_x86_64)
-using namespace NS_x86;
-
-#elif defined(arch_aarch64)
-using namespace NS_aarch64;
-
-#else
-#error "unknown architecture"
-
+#if !defined(os_linux) || !defined(arch_aarch64)
+#error "invalid architecture-os inclusion"
 #endif
 
-class internal_instruction {
- public:
-    explicit internal_instruction(instruction * insn)
-        : _insn(insn)
-    { }
+#ifndef LINUX_AARCH64_HDR
+#define LINUX_AARCH64_HDR
 
-    instruction * insn() const { return _insn; }
- private:
-    instruction * _insn; 
-};
+#include "common/src/Types.h"
 
+// floor of inferior malloc address range within a single branch of x
+// for 32-bit ELF PowerPC mutatees
+extern Address region_lo(const Address x);
 
-#endif 
+// floor of inferior malloc address range within a single branch of x
+// for 64-bit ELF PowerPC mutatees
+extern Address region_lo_64(const Address x);
+
+// ceiling of inferior malloc address range within a single branch of x
+// for 32-bit ELF PowerPC mutatees
+extern Address region_hi(const Address x);
+
+// ceiling of inferior malloc address range within a single branch of x
+// for 64-bit ELF PowerPC mutatees
+extern Address region_hi_64(const Address x);
+
+#endif

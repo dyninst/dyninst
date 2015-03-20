@@ -28,43 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef LEGACY_BPATCH_INSTRUCTION_H
-#define LEGACY_BPATCH_INSTRUCTION_H
+#include "dyninstAPI_RT/src/RTthread.h"
 
-/*
- * Legacy support for BPatch_instruction and BPatch_memoryAccess,
- * both of which hold a pointer to an opaque type containing the
- * platform-specific `instruction' type.
- */
-
-#include "arch-forward-decl.h"
-
-#if defined(arch_power)
-using namespace NS_power;
-
-#elif defined(i386_unknown_nt4_0) \
-   || defined(arch_x86)           \
-   || defined(arch_x86_64)
-using namespace NS_x86;
-
-#elif defined(arch_aarch64)
-using namespace NS_aarch64;
-
-#else
-#error "unknown architecture"
-
-#endif
-
-class internal_instruction {
- public:
-    explicit internal_instruction(instruction * insn)
-        : _insn(insn)
-    { }
-
-    instruction * insn() const { return _insn; }
- private:
-    instruction * _insn; 
-};
-
-
-#endif 
+int tc_lock_lock(tc_lock_t *t) {
+  return 0;
+}

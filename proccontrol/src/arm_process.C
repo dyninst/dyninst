@@ -28,6 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#warning "This file is not implemented yet!"
+
 #include <string.h>
 #include <iostream>
 #include "proccontrol/src/arm_process.h"
@@ -56,13 +58,13 @@ arm_process::~arm_process()
 
 unsigned arm_process::plat_breakpointSize()
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
   return 4;
 }
 
 void arm_process::plat_breakpointBytes(unsigned char *buffer)
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
   //buffer[0] = 0x7d;
   //buffer[1] = 0x82;
   //buffer[2] = 0x10;
@@ -71,7 +73,7 @@ void arm_process::plat_breakpointBytes(unsigned char *buffer)
 
 bool arm_process::plat_breakpointAdvancesPC() const
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
    return false;
 }
 
@@ -91,51 +93,53 @@ bool arm_process::plat_breakpointAdvancesPC() const
 
 void arm_process::cleanupSSOnContinue(int_thread *thr)
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
 }
 
 void arm_process::registerSSClearCB()
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
 }
 
 async_ret_t arm_process::readPCForSS(int_thread *thr, Address &pc)
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
 }
 
 async_ret_t arm_process::readInsnForSS(Address pc, int_thread *, unsigned int &rawInsn)
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
 }
 
 async_ret_t arm_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Address> &addrResult) {
-#warning "This function is not verified."
+	assert(0); //not implemented
 }
 
 void arm_process::plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr> resps)
-#warning "This function is not verified."
 {
+	assert(0); //not implemented
 }
 
 bool arm_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
-#warning "This function is not verified."
+	assert(0); //not implemented
    return true;
 }
 
 bool arm_process::plat_needsPCSaveBeforeSingleStep() 
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
    return true;
 }
 
 arm_thread::arm_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l), have_cached_pc(false), cached_pc(0)
 {
+	assert(0); //not implemented
 }
 
 arm_thread::~arm_thread()
 {
+	assert(0); //not implemented
 }
 
 bool arm_thread::rmHWBreakpoint(hw_breakpoint *,
@@ -143,7 +147,7 @@ bool arm_thread::rmHWBreakpoint(hw_breakpoint *,
                                 std::set<response::ptr> &,
                                 bool &)
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
    return false;
 }
 
@@ -152,13 +156,13 @@ bool arm_thread::addHWBreakpoint(hw_breakpoint *,
                                  std::set<response::ptr> &,
                                  bool &)
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
    return false;
 }
 
 unsigned arm_thread::hwBPAvail(unsigned)
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
    return 0;
 }
 
@@ -166,28 +170,28 @@ EventBreakpoint::ptr arm_thread::decodeHWBreakpoint(response::ptr &,
                                                     bool,
                                                     Dyninst::MachRegisterVal)
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
    return EventBreakpoint::ptr();
 }
 
 bool arm_thread::bpNeedsClear(hw_breakpoint *)
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
    return false;
 }
 
 void arm_thread::setCachedPC(Address pc)
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
 }
 
 void arm_thread::clearCachedPC()
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
 }
 
 bool arm_thread::haveCachedPC(Address &pc)
 {
-#warning "This function is not verified."
+	assert(0); //not implemented
    return true;
 }

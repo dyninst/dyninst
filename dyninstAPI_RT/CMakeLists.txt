@@ -69,6 +69,11 @@ set (SRC_LIST_ppc64
     src/RTthread-powerpc-asm.S
     src/RTstatic_ctors_dtors-ppc64.c                                                                                         
 )
+set (SRC_LIST_aarch64
+    src/RTthread-aarch64.c
+    src/RTthread-aarch64-asm.S
+    src/RTstatic_ctors_dtors-aarch64.c                                                                                         
+)
 
 
 # We use gcc to compile the various assembly files, but
@@ -98,6 +103,8 @@ elseif (PLATFORM MATCHES i386)
 set (SRC_LIST ${SRC_LIST} ${SRC_LIST_i386})
 elseif (PLATFORM MATCHES ppc32)
 set (SRC_LIST ${SRC_LIST} ${SRC_LIST_ppc32})
+elseif (PLATFORM MATCHES aarch64)
+set (SRC_LIST ${SRC_LIST} ${SRC_LIST_aarch64})
 endif()
 endif()
 

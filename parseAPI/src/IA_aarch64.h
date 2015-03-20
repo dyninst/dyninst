@@ -28,43 +28,52 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef LEGACY_BPATCH_INSTRUCTION_H
-#define LEGACY_BPATCH_INSTRUCTION_H
+#if !defined(IA_AARCH64__H)
+#define IA_AARCH64__H
+#include "common/h/DynAST.h"
+#include "dataflowAPI/h/Absloc.h"
+#include "dataflowAPI/h/SymEval.h"
+#include "dataflowAPI/h/slicing.h"
 
-/*
- * Legacy support for BPatch_instruction and BPatch_memoryAccess,
- * both of which hold a pointer to an opaque type containing the
- * platform-specific `instruction' type.
- */
 
-#include "arch-forward-decl.h"
+namespace Dyninst {
+namespace InsnAdapter {
 
-#if defined(arch_power)
-using namespace NS_power;
 
-#elif defined(i386_unknown_nt4_0) \
-   || defined(arch_x86)           \
-   || defined(arch_x86_64)
-using namespace NS_x86;
-
-#elif defined(arch_aarch64)
-using namespace NS_aarch64;
-
-#else
-#error "unknown architecture"
-
-#endif
-
-class internal_instruction {
+class AARCH64_BLR_Visitor: public ASTVisitor 
+{
  public:
-    explicit internal_instruction(instruction * insn)
-        : _insn(insn)
-    { }
+  typedef enum {
+    AARCH64_BLR_UNSET,
+    AARCH64_BLR_UNKNOWN,
+    AARCH64_BLR_RETURN,
+    AARCH64_BLR_NOTRETURN } ReturnState;
 
-    instruction * insn() const { return _insn; }
- private:
-    instruction * _insn; 
+ AARCH64_BLR_Visitor(Address ret)
+   : ret_(ret), return_(AARCH64_BLR_UNSET) {};
+
+     virtual AST::Ptr visit(AST *);
+     virtual AST::Ptr visit(DataflowAPI::BottomAST *);
+     virtual AST::Ptr visit(DataflowAPI::ConstantAST *);
+     virtual AST::Ptr visit(DataflowAPI::VariableAST *);
+     virtual AST::Ptr visit(DataflowAPI::RoseAST *);
+     //virtual AST::Ptr visit(StackAST *);
+     virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();};
+     virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};
+     virtual ASTPtr visit(StpAST *) {return AST::Ptr();};
+     virtual ASTPtr visit(YicesAST *) {return AST::Ptr();};
+     virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();};
+
+  
+   virtual ~AARCH64_BLR_Visitor() {};
+
+  ReturnState returnState() const { return return_; };
+
+  private:
+  Address ret_;
+  ReturnState return_;
+
 };
-
-
-#endif 
+}
+}
+#endif

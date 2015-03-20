@@ -149,6 +149,8 @@ SymtabCodeRegion::getArch() const
         return Arch_x86_64;
     else
         return Arch_x86;
+#elif defined(arch_aarch64)
+		return Arch_aarch64;
 #else
     return Arch_none;
 #endif
@@ -627,6 +629,8 @@ SymtabCodeSource::getArch() const
         return Arch_x86_64;
     else
         return Arch_x86;
+#elif defined(arch_aarch64)
+		return Arch_aarch64;
 #else
     return Arch_none;
 #endif

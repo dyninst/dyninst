@@ -57,6 +57,8 @@ typedef int handleT; // a /proc file descriptor
 #include "linux-x86.h"
 #elif defined(os_linux) && defined(arch_power)
 #include "linux-power.h"
+#elif defined(os_linux) && defined(arch_aarch64)
+#include "linux-aarch64.h"
 #elif defined(os_vxworks)
 #else
 #error Invalid or unknown architecture-os inclusion
