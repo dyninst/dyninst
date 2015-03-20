@@ -529,18 +529,11 @@ void Parser::ProcessCFInsn(
             ProcessCallInsn(frame,cur,ah,dynamic_call,
                 absolute_call,resolvable_edge,curEdge->first);
 
-            tailcall = !dynamic_call && 
-               ah.isTailCall(frame.func, CALL, frame.num_insns);
             if(resolvable_edge) {
-                if (tailcall) {
-                    newedge = link_tempsink(cur,DIRECT);
-                } else newedge = link_tempsink(cur,CALL);
+                 newedge = link_tempsink(cur,CALL);
             }
             else { 
-                if (tailcall) {
-                    newedge = link(cur,_sink,INDIRECT,true);
-                }
-                else newedge = link(cur,_sink,CALL,true);
+                newedge = link(cur,_sink,CALL,true);
             }
             if(!ah.isCall()) {
                parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc\n",
