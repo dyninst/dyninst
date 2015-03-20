@@ -135,8 +135,8 @@ test_results_t test1_38_Mutator::executeTest()
 		return FAILED;
 	}
 	// call38_1 and call38_7 should be off the root
-	const char * f38_1 = root->getCalleeName(0);
-	const char * f38_7 = root->getCalleeName(1);
+	const char * f38_1 = root->getCalleeName(0).c_str();
+	const char * f38_7 = root->getCalleeName(1).c_str();
 
 	if (0 != strcmp("funCall38_1",f38_1)) 
 	{
@@ -172,9 +172,9 @@ test_results_t test1_38_Mutator::executeTest()
 	}
 
 	// call38_2, call38_4 and call38_6 should be under the outer loop
-	const char * f38_2 = firstForLoop->getCalleeName(0);
-	const char * f38_4 = firstForLoop->getCalleeName(1);
-	const char * f38_6 = firstForLoop->getCalleeName(2);
+	const char * f38_2 = firstForLoop->getCalleeName(0).c_str();
+	const char * f38_4 = firstForLoop->getCalleeName(1).c_str();
+	const char * f38_6 = firstForLoop->getCalleeName(2).c_str();
 
 	if (0 != strcmp("funCall38_2",f38_2)) 
 	{
@@ -211,7 +211,7 @@ test_results_t test1_38_Mutator::executeTest()
 		logerror("**Failed** test #38 (CFG loop/callee tree)\n");
 		logerror("    second for loop had %d funcs (%s), should be 0.\n",
 				secondForLoop->numCallees(),
-				secondForLoop->getCalleeName(0));
+				secondForLoop->getCalleeName(0).c_str());
 		return FAILED;
 	}
 
@@ -234,7 +234,7 @@ test_results_t test1_38_Mutator::executeTest()
 		return FAILED;
 	}
 
-	const char * f38_3 = thirdForLoop->getCalleeName(0);
+	const char * f38_3 = thirdForLoop->getCalleeName(0).c_str();
 
 	if (0 != strcmp("funCall38_3",f38_3)) 
 	{
@@ -260,7 +260,7 @@ test_results_t test1_38_Mutator::executeTest()
 		return FAILED;
 	}
 
-	const char * f38_5 = whileLoop->getCalleeName(0);
+	const char * f38_5 = whileLoop->getCalleeName(0).c_str();
 
 	if (0 != strcmp("funCall38_5",f38_5)) 
 	{
