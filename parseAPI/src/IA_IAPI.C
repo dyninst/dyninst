@@ -561,7 +561,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         }
  
         if (callEdge)
-            outEdges.push_back(std::make_pair(target, NOEDGE));
+            outEdges.push_back(std::make_pair(target, CALL));
         if (ftEdge)
             outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
         return;
@@ -598,7 +598,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                     parsing_printf("%s[%d]: PLT tail call to %x (%s)\n", 
                         FILE__, __LINE__, target,
                         (*plt_entries)[target].c_str());
-                    outEdges.push_back(std::make_pair(target, NOEDGE));
+                    outEdges.push_back(std::make_pair(target, DIRECT));
                     tailCalls[DIRECT] = true;
                 }
             }

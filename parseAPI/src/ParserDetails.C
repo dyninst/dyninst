@@ -510,7 +510,7 @@ void Parser::ProcessCFInsn(
         if(!is_code(frame.func,curEdge->first) &&
            !HASHDEF(plt_entries,curEdge->first))
         {
-            if(curEdge->second != NOEDGE || !dynamic_call) {
+            if(curEdge->second != CALL || !dynamic_call) {
                 has_unres = true;
                 resolvable_edge = false;
                 if ((int)curEdge->second != -1 && _obj.defensiveMode()) 
@@ -522,7 +522,7 @@ void Parser::ProcessCFInsn(
         /*
          * Call case 
          */ 
-        if(curEdge->second == NOEDGE)
+        if(curEdge->second == CALL)
         {
             // call callback
             resolvable_edge = resolvable_edge && !dynamic_call;
@@ -592,15 +592,14 @@ void Parser::ProcessCFInsn(
                 // update the underlying code bytes for CF targets
                 if (  CALL == curEdge->second
                       || DIRECT == curEdge->second
-                      || COND_TAKEN == curEdge->second
-					  || NOEDGE == curEdge->second)
+                      || COND_TAKEN == curEdge->second)
                 {
 
                     _pcb.updateCodeBytes(curEdge->first);
                 }
             }
         } 
-        else if( unlikely(_obj.defensiveMode() && NOEDGE != curEdge->second) )
+        else if( unlikely(_obj.defensiveMode()) )
         {   
             ProcessUnresBranchEdge(frame, cur, ah, curEdge->first);
         }
