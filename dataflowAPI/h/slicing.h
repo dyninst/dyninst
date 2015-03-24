@@ -360,6 +360,42 @@ class Slicer {
       }
     };
 
+    /*
+     * A cache from AbsRegions -> Defs.
+     *
+     * Each node that has been visited in the search
+     * has a DefCache that reflects the resolution of
+     * any AbsRegions down-slice. If the node is visited
+     * again through a different search path (if the graph
+     * has fork-join structure), this caching prevents
+     * expensive recursion
+     */
+    class DefCache {
+      public:
+        DefCache() { }
+        ~DefCache() { }
+
+        // add the values from another defcache
+        void merge(DefCache const& o);
+   
+        // replace mappings in this cache with those
+        // from another 
+        void replace(DefCache const& o);
+
+        std::set<Def> & get(AbsRegion const& r) { 
+            return defmap[r];
+        }
+        bool defines(AbsRegion const& r) const {
+            return defmap.find(r) != defmap.end();
+        }
+
+        void print() const;
+
+      private:
+        std::map< AbsRegion, std::set<Def> > defmap;
+    
+    };
+
     // For preventing insertion of duplicate edges
     // into the slice graph
     struct EdgeTuple {
@@ -409,13 +445,26 @@ class Slicer {
             Predicates &p,
             SliceFrame &cand,
             bool skip,
-            std::map<CacheEdge, std::set<AbsRegion> > & visited);
+            std::map<CacheEdge, std::set<AbsRegion> > & visited,
+            std::map<Address,DefCache> & single,
+            std::map<Address, DefCache>& cache);
 
     bool updateAndLink(
             GraphPtr g,
             Direction dir,
             SliceFrame & cand,
+            DefCache & cache,
             Predicates &p);
+
+    void updateAndLinkFromCache(
+            GraphPtr g,
+            Direction dir,
+            SliceFrame & f,
+            DefCache & cache);
+
+    void removeBlocked(
+            SliceFrame & f,
+            std::set<AbsRegion> const& block);
 
     bool stopSlicing(SliceFrame::ActiveMap& active, 
                      GraphPtr g,
@@ -428,13 +477,19 @@ class Slicer {
             CacheEdge const& e,
             SliceFrame::ActiveMap const& active);
 
+    void cachePotential(
+            Direction dir,
+            Assignment::Ptr assn,
+            DefCache & cache);
+
     void findMatch(
             GraphPtr g,
             Direction dir,
             SliceFrame const& cand,
             AbsRegion const& cur,
             Assignment::Ptr assn,
-            std::vector<Element> & matches);
+            std::vector<Element> & matches,
+            DefCache & cache);
 
     bool getNextCandidates(
             Direction dir,
@@ -577,11 +632,15 @@ class Slicer {
 
   void cleanGraph(GraphPtr g);
 
+  void promotePlausibleNodes(GraphPtr g, Direction d);
+
   ParseAPI::Block *getBlock(ParseAPI::Edge *e,
 			    Direction dir);
   
 
   void insertInitialNode(GraphPtr ret, Direction dir, SliceNode::Ptr aP);
+
+  void mergeRecursiveCaches(std::map<Address, DefCache>& sc, std::map<Address, DefCache>& c, Address a);
 
   InsnCache insnCache_;
 
@@ -598,6 +657,14 @@ class Slicer {
   // map of previous active maps. these are used to end recursion.
   typedef std::map<AbsRegion, std::set<Element> > PrevMap;
   std::map<Address, PrevMap> prev_maps;
+
+  // set of plausible entry/exit nodes.
+  std::set<SliceNode::Ptr> plausibleNodes;
+
+  // a stack and set of addresses that mirror our recursion.
+  // these are used to detect loops and properly merge cache.
+  std::deque<Address> addrStack;
+  std::set<Address> addrSet;
 
   AssignmentConverter converter;
 
