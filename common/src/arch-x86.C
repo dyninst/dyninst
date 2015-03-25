@@ -2425,10 +2425,10 @@ static ia32_entry groupMap[][8] = {
   { e_test, t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R }, // book swears this is illegal, sandpile claims it's an aliased TEST
   { e_not,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
   { e_neg,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
-  { e_mul,  t_done, 0, true, { AX, AL, Eb }, 0, s1W2RW3R },
+  { e_mul,  t_done, 0, true, { AX, AL, Eb }, 0, s1W2R3R },
   { e_imul, t_done, 0, true, { AX, AL, Eb }, 0, s1W2R3R },
   { e_div,  t_done, 0, true, { AX, AL, Eb }, 0, s1RW2R3R },
-  { e_idiv, t_done, 0, true, { AX, AL, Eb }, 0, s1W2R3R }
+  { e_idiv, t_done, 0, true, { AX, AL, Eb }, 0, s1RW2R3R }
  },
 
  { /* group 3b - operands are defined here */
