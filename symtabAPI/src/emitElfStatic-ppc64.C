@@ -211,7 +211,6 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 
 	int relocation_length = sizeof(Elf64_Word)*8; // in bits
 	int relocation_pos = 0; // in bits
-	int branch_pred = -1;
         /*
          * Referring to the SYSV 386 supplement:
          *
@@ -804,11 +803,11 @@ Offset emitElfStatic::layoutTLSImage(Offset globalOffset, Region *dataTLS, Regio
     return tlsLayoutVariant1(globalOffset, dataTLS, bssTLS, lmap);
 }
 
-Offset emitElfStatic::adjustTLSOffset(Offset curOffset, Offset tlsSize) {
+Offset emitElfStatic::adjustTLSOffset(Offset curOffset, Offset /*tlsSize*/) {
     return curOffset;
 }
 
-char emitElfStatic::getPaddingValue(Region::RegionType rtype) {
+char emitElfStatic::getPaddingValue(Region::RegionType /*rtype*/) {
    // Can't noop-pad because this returns a char, not an unsigned
    return 0x0;
 }
@@ -819,7 +818,7 @@ void emitElfStatic::cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &r
     tlsCleanupVariant2(regionAllocs, dataTLS, bssTLS);
 }
 
-Offset emitElfStatic::getGOTSize(Symtab *target, LinkMap &lmap, Offset &layoutStart) {
+Offset emitElfStatic::getGOTSize(Symtab * /*target*/, LinkMap &lmap, Offset & /*layoutStart*/) {
     Offset size = 0;
 
     unsigned slotSize = 0;
@@ -868,7 +867,7 @@ Offset emitElfStatic::getGOTAlign(LinkMap &) {
     return 0;
 }
 
-void emitElfStatic::buildGOT(Symtab *target, LinkMap &lmap) {
+void emitElfStatic::buildGOT(Symtab * /*target*/, LinkMap &lmap) {
 
     if( PPC32_WIDTH == addressWidth_ ) {
 	return;
@@ -1240,8 +1239,8 @@ Offset emitElfStatic::allocStubRegions(LinkMap &lmap, Offset globalOffset) {
 }
 
 
-bool emitElfStatic::handleInterModuleSpecialCase(Symtab *target,
-						 Symtab *src,
+bool emitElfStatic::handleInterModuleSpecialCase(Symtab * /*target*/,
+						 Symtab * /*src*/,
 						 LinkMap &lmap,
 						 char *data,
 						 relocationEntry rel,

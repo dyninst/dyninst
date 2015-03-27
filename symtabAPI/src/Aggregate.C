@@ -42,7 +42,7 @@
 
 #include "symtabAPI/src/Object.h"
 
-
+#include "debug.h"
 #include "Aggregate.h"
 #include "Symbol.h"
 
@@ -97,8 +97,8 @@ Region * Aggregate::getRegion() const
 {
 	if (!firstSymbol)
 	{
-		fprintf(stderr, "%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
-		return NULL;
+           create_printf("%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
+           return NULL;
 	}
    	return firstSymbol->getRegion();
 }
@@ -154,7 +154,7 @@ Symbol * Aggregate::getFirstSymbol() const
     return firstSymbol;
 }
 
-bool Aggregate::addMangledNameInternal(std::string name, bool isPrimary, bool demangle)
+bool Aggregate::addMangledNameInternal(std::string name, bool /*isPrimary*/, bool /*demangle*/)
 {
     // Check to see if we're duplicating
   for (auto i = mangled_names_begin(); 
@@ -305,7 +305,7 @@ bool Aggregate::operator==(const Aggregate &a)
 		if (s1 && !s2) return false;
 		if (!s1 && s2) return false;
 		if (!s1)
-			fprintf(stderr, "%s[%d]:  WARN:  NULL Symbol pointer here\n", FILE__, __LINE__);
+                   create_printf("%s[%d]:  WARN:  NULL Symbol pointer here\n", FILE__, __LINE__);
 		else
 		{
 			//  just compare offset and a couple other params

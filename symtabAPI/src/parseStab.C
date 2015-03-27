@@ -303,11 +303,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             //	     name, ID);
          }
 
-         if (!symt_current_func->addLocalVar(locVar)) 
-         {
-            fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-         }
-
+         symt_current_func->addLocalVar(locVar);
       }
    } 
    else if (stabstr[cnt]) 
@@ -525,10 +521,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
                if (symt_current_func) 
                {
-                  if (!symt_current_func->addParam(param)) 
-                  {
-                     fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-                  }
+                  symt_current_func->addParam(param);
                } 
 
                break;
@@ -561,11 +554,8 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                loc.frameOffset = 0;
                var->addLocation(loc);
                if (symt_current_func) {
-                     if (!symt_current_func->addParam(var)) 
-                     {
-                        fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-                     }
-                  }
+                  symt_current_func->addParam(var);
+               }
             }
             break;
 
@@ -798,10 +788,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   loc.frameOffset = framePtr;
                   locVar->addLocation(loc);
 
-                  if (!symt_current_func->addLocalVar(locVar)) 
-                  {
-                     fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-                  }
+                  symt_current_func->addLocalVar(locVar);
                }
 
                //else 
@@ -1143,7 +1130,6 @@ static Type *parseArrayDef(Module *mod, const char *name,
 	   {
 		   /* multi dimensional array - Fortran style */
 		   /* it has no valid id, so we give it a known duplicate */
-		   //fprintf(stderr, "%s[%d]:  parseArrayDef(...'%s'...)\n", FILE__, __LINE__, stabstr);
 		   ptrType = parseArrayDef(mod, name, 0, stabstr, cnt, sizeHint);
 	   } 
 	   else 
@@ -1257,7 +1243,6 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
    typeCollection *tc = typeCollection::getModTypeCollection(mod);
    if (!mod || !tc) 
    {
-      fprintf(stderr, "%s[%d]: FIXME\n", FILE__, __LINE__);
       return NULL;
    }
    else 
@@ -1416,14 +1401,11 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 		long low_conv = strtol(low, NULL, 10);
 		if (errno)
 		{
-		//	fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
-		//			FILE__, __LINE__, low, strerror(errno));
 			low_conv = LONG_MIN;
 		}
 
 		if (low_conv < LONG_MIN)
 		{
-			fprintf(stderr, "%s[%d]:  signed variable saturation...\n", FILE__, __LINE__);
 			low_conv = LONG_MIN;
 		}
 
@@ -1431,14 +1413,11 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 		long hi_conv = strtol(hi, NULL, 10);
 		if (errno)
 		{
-			//fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
-		//			FILE__, __LINE__, hi, strerror(errno));
 			hi_conv = LONG_MAX;
 		}
 
 		if (hi_conv > LONG_MAX)
 		{
-			fprintf(stderr, "%s[%d]:  signed variable saturation...\n", FILE__, __LINE__);
 			hi_conv = LONG_MAX;
 		}
 
@@ -1477,8 +1456,6 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 			long low_conv = strtol(low, NULL, 10);
 			if (errno)
 			{
-				fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
-						FILE__, __LINE__, low, strerror(errno));
 				low_conv = LONG_MIN;
 			}
 
@@ -1486,8 +1463,6 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 			long hi_conv = strtol(hi, NULL, 10);
 			if (errno)
 			{
-				fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
-						FILE__, __LINE__, hi, strerror(errno));
 				hi_conv = LONG_MAX;
 			}
 

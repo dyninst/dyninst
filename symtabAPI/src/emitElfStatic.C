@@ -1567,9 +1567,6 @@ emitElfUtils::orderLoadableSections(Symtab *obj, vector<Region*> & sections)
         // find a `hole' of appropriate size
         sz = (sz + 4096 - 1) & ~(4096-1);
         ret = obj->getFreeOffset(sz);
-        if(!ret) {
-            fprintf(stderr,"Failed to finde hole of size %lx, bailing\n",sz);
-        }
     }
     return ret;
 }
@@ -1690,6 +1687,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
     // section before outputting the patched GOT data -- this will require some refactoring.
 #else
     rewrite_printf("WARNING: updateRelocation is not implemented on this architecture\n");
+    (void) obj; (void) rel; (void) library_adjust; //silence warnings
 #endif
 
     return true;

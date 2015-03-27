@@ -1950,9 +1950,9 @@ void Parser::resumeFrames(Function * func, vector<ParseFrame *> & work)
     }
 }
 
-bool Parser::getSyscallNumber(Function * func,
+bool Parser::getSyscallNumber(Function * /*func*/,
         Block * block,
-        Address addr,
+        Address /*addr*/,
         Architecture arch,
         long int & val)
 {

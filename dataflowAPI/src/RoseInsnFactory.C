@@ -225,6 +225,16 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
 	  operands.resize(1);
 	  break;
   }
+  case e_div:
+  case e_idiv:
+  case e_imul:
+  case e_mul:
+    // remove implicit operands.
+    if (operands.size() == 3) {
+      operands[0] = operands[2];
+      operands.resize(1);
+    }
+    break;
   default:
     break;
   }

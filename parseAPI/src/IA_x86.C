@@ -219,13 +219,13 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
 {
    // Collapse down to "branch" or "fallthrough"
     switch(type) {
-       case CALL:
        case COND_TAKEN:
        case DIRECT:
        case INDIRECT:
-       case RET:
           type = DIRECT;
           break;
+       case CALL:
+       case RET:
        case COND_NOT_TAKEN:
        case FALLTHROUGH:
        case CALL_FT:
@@ -245,10 +245,7 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
     }
     
     bool valid; Address addr;
-    if (type == DIRECT)
-       boost::tie(valid, addr) = getCFT();
-    else 
-       boost::tie(valid, addr) = getFallthrough();
+    boost::tie(valid, addr) = getCFT();
 
     Function* callee = _obj->findFuncByEntry(_cr, addr);
     Block* target = _obj->findBlockByEntry(_cr, addr);

@@ -48,9 +48,5 @@ void setNewthrCB(void (*cb)(int)) {
 
 #define IDX_NONE -1
 
-/* I split these in half to make mutator-side updates easier */
 
-static DECLARE_TC_LOCK(DYNINST_index_lock);
-
-static int num_free;
 

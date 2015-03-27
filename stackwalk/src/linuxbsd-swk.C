@@ -173,6 +173,7 @@ bool ProcSelf::getDefaultThread(THR_ID &default_tid)
     return true;
 }
 
+#if !defined(os_bgq)
 static LibraryState *local_lib_state = NULL;
 extern "C" {
    static void lib_trap_handler(int sig);
@@ -182,7 +183,6 @@ static void lib_trap_handler(int /*sig*/)
    local_lib_state->notifyOfUpdate();
 }
 
-#if !defined(os_bgq)
 static Address lib_trap_addr_self = 0x0;
 static bool lib_trap_addr_self_err = false;
 static void registerLibSpotterSelf(ProcSelf *pself)

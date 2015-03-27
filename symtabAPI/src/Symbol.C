@@ -231,15 +231,6 @@ SYMTAB_EXPORT bool Symbol::setVersionFileName(std::string &fileName)
    std::string *fn_p = NULL;
    if (getAnnotation(fn_p, SymbolFileNameAnno)) 
    {
-      if (!fn_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
-      }
-      else
-      {
-         fprintf(stderr, "%s[%d]:  WARNING, already have filename set for symbol %s\n", 
-                 FILE__, __LINE__, getMangledName().c_str());
-      }
       return false;
    }
    else
@@ -248,7 +239,6 @@ SYMTAB_EXPORT bool Symbol::setVersionFileName(std::string &fileName)
       std::string *fn = new std::string(fileName);
       if (!addAnnotation(fn, SymbolFileNameAnno)) 
       {
-         fprintf(stderr, "%s[%d]:  failed to add anno here\n", FILE__, __LINE__);
          return false;
       }
       return true;
@@ -262,20 +252,11 @@ SYMTAB_EXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
    std::vector<std::string> *vn_p = NULL;
    if (getAnnotation(vn_p, SymbolVersionNamesAnno)) 
    {
-      if (!vn_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
-      }
-      else
-         fprintf(stderr, "%s[%d]:  WARNING, already have versions set for symbol %s\n", FILE__, __LINE__, getMangledName().c_str());
       return false;
    }
    else
    {
-      if (!addAnnotation(&vers, SymbolVersionNamesAnno)) 
-      {
-         fprintf(stderr, "%s[%d]:  failed to add anno here\n", FILE__, __LINE__);
-      }
+      addAnnotation(&vers, SymbolVersionNamesAnno);
    }
 
    return true;
@@ -287,11 +268,7 @@ SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName)
 
    if (getAnnotation(fn_p, SymbolFileNameAnno)) 
    {
-      if (!fn_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
-      }
-      else
+      if (fn_p) 
          fileName = *fn_p;
 
       return true;
@@ -306,11 +283,7 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
 
    if (getAnnotation(vn_p, SymbolVersionNamesAnno)) 
    {
-      if (!vn_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
-      }
-      else
+      if (vn_p) 
       {
          vers = vn_p;
          return true;
@@ -482,12 +455,8 @@ Symbol::~Symbol ()
 
 	if (getAnnotation(sfa_p, SymbolFileNameAnno))
 	{
-		if (!removeAnnotation(SymbolFileNameAnno))
-		{
-			fprintf(stderr, "%s[%d]:  failed to remove file name anno\n", 
-					FILE__, __LINE__);
-		}
-		delete (sfa_p);
+           removeAnnotation(SymbolFileNameAnno);
+           delete (sfa_p);
 	}
 }
 

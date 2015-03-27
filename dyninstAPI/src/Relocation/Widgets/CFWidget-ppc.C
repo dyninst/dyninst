@@ -71,10 +71,10 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
 
 
 bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
-                                  Register reg,
+                                    Register /*reg*/,
                                   Instruction::Ptr insn,
                                   const RelocBlock *trace,
-				  Address origAddr) 
+                                    Address /*origAddr*/) 
 {
   NS_power::instruction ugly_insn(insn->ptr());
   IFORM_LK_SET(ugly_insn, 1);
@@ -270,10 +270,10 @@ bool CFPatch::handleTOCUpdate(codeGen &gen) {
   }
 }
 
-bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
-                                       const codeGen &templ,
-                                       Register &reg,
-                                       const RelocBlock *trace) 
+bool CFWidget::generateAddressTranslator(CodeBuffer & /*buffer*/,
+                                         const codeGen & /*templ*/,
+                                         Register & /*reg*/,
+                                         const RelocBlock * /*trace*/) 
 {
 #if !defined(cap_mem_emulation)
    return true;

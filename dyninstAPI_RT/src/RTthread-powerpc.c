@@ -40,6 +40,8 @@
  *
  **/
 
+extern int atomic_set(volatile int *int_ptr);
+
 int tc_lock_lock(tc_lock_t *tc)
 {
    dyntid_t me;

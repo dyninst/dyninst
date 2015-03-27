@@ -509,7 +509,7 @@ void Parser::ProcessCFInsn(
         if(!is_code(frame.func,curEdge->first) &&
            !HASHDEF(plt_entries,curEdge->first))
         {
-            if(curEdge->second != NOEDGE || !dynamic_call) {
+            if(curEdge->second != CALL || !dynamic_call) {
                 has_unres = true;
                 resolvable_edge = false;
                 if ((int)curEdge->second != -1 && _obj.defensiveMode()) 
@@ -521,25 +521,18 @@ void Parser::ProcessCFInsn(
         /*
          * Call case 
          */ 
-        if(curEdge->second == NOEDGE)
+        if(curEdge->second == CALL)
         {
             // call callback
             resolvable_edge = resolvable_edge && !dynamic_call;
             ProcessCallInsn(frame,cur,ah,dynamic_call,
                 absolute_call,resolvable_edge,curEdge->first);
 
-            tailcall = !dynamic_call && 
-               ah.isTailCall(frame.func, CALL, frame.num_insns);
             if(resolvable_edge) {
-                if (tailcall) {
-                    newedge = link_tempsink(cur,DIRECT);
-                } else newedge = link_tempsink(cur,CALL);
+                 newedge = link_tempsink(cur,CALL);
             }
             else { 
-                if (tailcall) {
-                    newedge = link(cur,_sink,INDIRECT,true);
-                }
-                else newedge = link(cur,_sink,CALL,true);
+                newedge = link(cur,_sink,CALL,true);
             }
             if(!ah.isCall()) {
                parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc\n",
@@ -598,15 +591,14 @@ void Parser::ProcessCFInsn(
                 // update the underlying code bytes for CF targets
                 if (  CALL == curEdge->second
                       || DIRECT == curEdge->second
-                      || COND_TAKEN == curEdge->second
-					  || NOEDGE == curEdge->second)
+                      || COND_TAKEN == curEdge->second)
                 {
 
                     _pcb.updateCodeBytes(curEdge->first);
                 }
             }
         } 
-        else if( unlikely(_obj.defensiveMode() && NOEDGE != curEdge->second) )
+        else if( unlikely(_obj.defensiveMode()) )
         {   
             ProcessUnresBranchEdge(frame, cur, ah, curEdge->first);
         }

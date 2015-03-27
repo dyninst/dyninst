@@ -7,6 +7,7 @@
 #include "Object.h"
 #include "Object-elf.h"
 #include "Function.h"
+#include "debug.h"
 #include "dwarf/h/dwarfExprParser.h"
 #include "common/src/pathName.h"
 #include "common/src/debug_common.h"
@@ -19,7 +20,7 @@ using namespace std;
 #define DWARF_FAIL_RET_VAL(x, v) {                                      \
       int status = (x);                                                 \
       if (status != DW_DLV_OK) {                                        \
-         fprintf(stderr, "[%s:%d]: libdwarf returned %d, ret false\n", FILE__, __LINE__, status); \
+         types_printf("[%s:%d]: libdwarf returned %d, ret false\n", FILE__, __LINE__, status); \
          return (v);                                                    \
       }                                                                 \
    }
@@ -28,7 +29,7 @@ using namespace std;
 #define DWARF_ERROR_RET_VAL(x, v) {                                     \
       int status = (x);                                                 \
       if (status == DW_DLV_ERROR) {                                     \
-         fprintf(stderr, "[%s:%d]: parsing failure, ret false\n", FILE__, __LINE__); \
+         types_printf("[%s:%d]: parsing failure, ret false\n", FILE__, __LINE__); \
          return (v);                                                    \
       }                                                                 \
    }
@@ -36,7 +37,7 @@ using namespace std;
 
 #define DWARF_CHECK_RET_VAL(x, v) {                                     \
       if (x) {                                                          \
-         fprintf(stderr, "[%s:%d]: parsing failure, ret false\n", FILE__, __LINE__); \
+         types_printf("[%s:%d]: parsing failure, ret false\n", FILE__, __LINE__); \
          return (v);                                                    \
       }                                                                 \
    }

@@ -207,8 +207,6 @@ bool RangeLookup< Value, ValueRange >::addValue(Value v,
 	{
 		// insert() is amortized constant time if the new value is inserted 
 		// immediately before the hint. 
-	  /* DEBUG */ //fprintf( stderr, "%s[%d]: inserting range [0x%lx, 0x%lx)\n", __FILE__, __LINE__, lowInclusiveAddr, highExclusiveAddr);
-
 		valuesByAddressRangeMap.insert( rangeOfRanges.second, 
 				std::make_pair(AddressRange(lowInclusiveAddr, 
 						highExclusiveAddr), v));
@@ -235,8 +233,6 @@ bool RangeLookup< Value, ValueRange >::addValue(Value v,
 			; --downIterator ) 
 	{
 
-	  /* DEBUG */ //fprintf( stderr, "%s[%d]: found containing range [0x%lx, 0x%lx) while inserting [0x%lx, 0x%lx) \n", __FILE__, __LINE__, downIterator->first.first, downIterator->first.second, lowInclusiveAddr, highExclusiveAddr);
-
 		containingRangeList.push_back( * downIterator );
 
 		if ( downIterator == valuesByAddressRangeMap.begin() ) 
@@ -253,14 +249,11 @@ bool RangeLookup< Value, ValueRange >::addValue(Value v,
 			; ++upIterator ) 
 	{
 
-	  /* DEBUG */ //fprintf( stderr, "%s[%d]: found contained range [0x%lx, 0x%lx) while inserting [0x%lx, 0x%lx) \n", __FILE__, __LINE__, upIterator->first.first, upIterator->first.second, lowInclusiveAddr, highExclusiveAddr);
-
 		containedRangeList.push_back( * upIterator );
 	} /* end iteration looking for contained ranges */
 
 	if (containingRangeList.size() == 0 && containedRangeList.size() == 0 ) 
 	{
-	  /* DEBUG */ //fprintf( stderr, "%s[%d]: inserting range [0x%lx, 0x%lx)\n", __FILE__, __LINE__, lowInclusiveAddr, highExclusiveAddr);
 		/* insert() is amortized constant time if the new value is inserted immediately before the hint. */
 		valuesByAddressRangeMap.insert(rangeOfRanges.second, 
 				std::make_pair(AddressRange(lowInclusiveAddr, 
@@ -284,8 +277,6 @@ bool RangeLookup< Value, ValueRange >::addValue(Value v,
 			AddressRange ar = containingIterator->first;
 			Value lnt = containingIterator->second;
 
-			/* DEBUG */ //fprintf( stderr, "%s[%d]: removing range [0x%lx, 0x%lx) (%s, %u)...\n", __FILE__, __LINE__, ar.first, ar.second, lnt.first, lnt.second );
-
 			// These could be out of sync, though I'm not sure how. We know that
 			// values by address range has what we're looking for, because we've got
 			// an iterator; the converse is not automatically true. So check that remove
@@ -299,23 +290,16 @@ bool RangeLookup< Value, ValueRange >::addValue(Value v,
 			//assert( removeByValue( valuesByAddressRangeMap, * containingIterator ) );
 			//assert( removeByValue( addressRangesByValueMap, std::make_pair( lnt, ar ) ) );
 
-		        /* DEBUG */ //fprintf( stderr, "%s[%d]: ... done removing range [0x%lx, 0%lx) (%s, %u)\n", __FILE__, __LINE__, ar.first, ar.second, lnt.first, lnt.second );
-			/* DEBUG */ //fprintf( stderr, "%s[%d]: inserting range [0x%lx, 0x%lx) (%s, %u)\n", __FILE__, __LINE__, ar.first, splitAddress, lnt.first, lnt.second );
-
 			valuesByAddressRangeMap.insert(std::make_pair(AddressRange(ar.first, 
 							splitAddress), lnt));
 			addressRangesByValueMap.insert( std::make_pair(lnt,AddressRange(ar.first, 
 							splitAddress)));
-
-			/* DEBUG */ //fprintf( stderr, "%s[%d]: inserting range [0x%lx, 0x%lx) (%s, %u)\n", __FILE__, __LINE__, splitAddress, ar.second, lnt.first, lnt.second );
 
 			valuesByAddressRangeMap.insert(std::make_pair(AddressRange(splitAddress, 
 							ar.second ), lnt ) );
 			addressRangesByValueMap.insert(std::make_pair(lnt, AddressRange(splitAddress, 
 							ar.second ) ) );
 		} /* end removes/split/insert iteration */
-
-		/* DEBUG */ //fprintf( stderr, "%s[%d]: inserting new range [0x%lx, 0x%lx)\n\n", __FILE__, __LINE__, lowInclusiveAddr, highExclusiveAddr );
 
 		/* Insert the new range. */
 		valuesByAddressRangeMap.insert(std::make_pair(AddressRange(lowInclusiveAddr, 
@@ -344,8 +328,6 @@ bool RangeLookup< Value, ValueRange >::addValue(Value v,
 
 			if (containedIterator->first.first >= splitAddress) 
 			{
-			  /* DEBUG */ //fprintf( stderr, "%s[%d]: will split at 0x%lx\n", __FILE__, __LINE__, splitAddress );
-
 				/* If there is, our current splitAddress should be a split, */
 				splitAddressList.push_back( splitAddress );				
 
@@ -357,8 +339,6 @@ bool RangeLookup< Value, ValueRange >::addValue(Value v,
 				splitAddress = containedIterator->first.second; 
 			}
 		} /* end split point determination iteration */
-
-		/* DEBUG */ fprintf( stderr, "%s[%d]: will split at 0x%lx\n", __FILE__, __LINE__, splitAddress );
 
 		splitAddressList.push_back( splitAddress );
 
@@ -372,15 +352,11 @@ bool RangeLookup< Value, ValueRange >::addValue(Value v,
 		{
 			highAddress = * splitAddressIterator;
 
-			/* DEBUG */ // fprintf( stderr, "%s[%d]: inserting range [0x%lx, 0x%lx) \n", __FILE__, __LINE__, lowAddress, highAddress);
-
 			valuesByAddressRangeMap.insert(std::make_pair(AddressRange(lowAddress, highAddress ), v ) );
 			addressRangesByValueMap.insert(std::make_pair(v, AddressRange(lowAddress, highAddress ) ) );
 
 			lowAddress = highAddress;
 		} /* end iteration to split range to be inserted. */
-
-		/* DEBUG */ //fprintf( stderr, "%s[%d]: inserting range [0x%lx, 0x%lx)\n", __FILE__, __LINE__, highAddress, highExclusiveAddr);
 
 		valuesByAddressRangeMap.insert(std::make_pair(AddressRange( highAddress, highExclusiveAddr ), v ) );
 		addressRangesByValueMap.insert(std::make_pair(v, AddressRange( highAddress, highExclusiveAddr ) ) );	
