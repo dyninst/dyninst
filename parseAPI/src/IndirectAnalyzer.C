@@ -1,7 +1,7 @@
 #include "dyntypes.h"
 #include "IndirectAnalyzer.h"
 #include "BoundFactCalculator.h"
-#include "BackwardSlicing.h"
+#include "JumpTablePred.h"
 #include "IA_IAPI.h"
 #include "debug_parse.h"
 
@@ -122,13 +122,13 @@ bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target,
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
 
 //    if (block->last() != 0x80a922d) return false;
+//    parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
+//      fprintf(stderr,"Apply indirect control flow analysis at %lx\n", block->last());
 
-    parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
+//    parsing_printf("Calculate backward slice\n");
 
-    parsing_printf("Calculate backward slice\n");
-
-    BackwardSlicer bs(func, block, block->last());
-    GraphPtr slice =  bs.CalculateBackwardSlicing();
+//    BackwardSlicer bs(func, block, block->last());
+//    GraphPtr slice =  bs.CalculateBackwardSlicing();
 
     parsing_printf("Looking for thunk\n");
 //  Find all blocks that reach the block containing the indirect jump
@@ -136,21 +136,24 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     GetAllReachableBlock();
 //  Now we try to find all thunks in this function.
 //  We pass in the slice because we may need to add new ndoes.
-    FindAllThunks(slice);
+//    FindAllThunks(slice);
 //  Calculates all blocks that can reach
 //  and be reachable from thunk blocks
     ReachFact rf(thunks);
 
-    parsing_printf("Calculate bound facts\n");     
-    BoundFactsCalculator bfc(func, slice, func->entry() == block, rf, thunks, block->last());
-    bfc.CalculateBoundedFacts();
-//    if (block->last() == 0x40492b) exit(0);
+    
+    const unsigned char * buf = (const unsigned char*) block->obj()->cs()->getPtrToInstruction(block->last());
+    InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
+    Instruction::Ptr insn = dec.decode();
+    AssignmentConverter ac(true, false);
+    vector<Assignment::Ptr> assignments;
+    ac.convert(insn, block->last(), func, block, assignments);
+    Slicer s(assignments[0], block, func);
+    
+    JumpTablePred jtp(func, block, rf, thunks, outEdges);
+    GraphPtr slice = s.backwardSlice(jtp);
 
-    BoundValue target;
-    bool ijt = IsJumpTable(slice, bfc, target);
-    if (ijt) {
-        return FillInOutEdges(target, outEdges);
-    } else return false;
+    return !outEdges.empty();
 }						       
 
 

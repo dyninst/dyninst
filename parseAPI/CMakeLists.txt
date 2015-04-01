@@ -24,7 +24,7 @@ set (SRC_LIST
         src/IA_platformDetailsFactory.C 
         src/CFGModifier.C
         src/StackTamperVisitor.C
-	src/BackwardSlicing.C
+	src/JumpTablePred.C
 	src/BoundFactCalculator.C
 	src/BoundFactData.C
 	src/IndirectAnalyzer.C

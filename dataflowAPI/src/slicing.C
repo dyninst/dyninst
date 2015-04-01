@@ -189,15 +189,17 @@ Slicer::sliceInternal(
 
     // add to graph
     insertInitialNode(ret, dir, aP);
+    if (p.addNodeCallback(a_)) {
+        // initialize slice stack and set for loop detection.
+        // the set may be redundant, but speeds up the loopless case.
+        addrStack.push_back(initFrame.addr());
+        addrSet.insert(initFrame.addr());
+	
+	slicing_printf("Starting recursive slicing\n");
+	sliceInternalAux(ret,dir,p,initFrame,true,visited, singleCache, cache);
+	slicing_printf("Finished recursive slicing\n");
+    }
 
-    // initialize slice stack and set for loop detection.
-    // the set may be redundant, but speeds up the loopless case.
-    addrStack.push_back(initFrame.addr());
-    addrSet.insert(initFrame.addr());
-
-    slicing_printf("Starting recursive slicing\n");
-    sliceInternalAux(ret,dir,p,initFrame,true,visited, singleCache, cache);
-    slicing_printf("Finished recursive slicing\n");
 
     // promote any remaining plausible nodes.
     promotePlausibleNodes(ret, dir); 
@@ -236,7 +238,7 @@ void Slicer::sliceInternalAux(
     // `false' otherwise.
 
     if (!skip) {
-        updateAndLink(g,dir,cand, mydefs, p);
+        if (!updateAndLink(g,dir,cand, mydefs, p)) return;
 	    slicing_printf("\t\tfinished udpateAndLink, active.size: %ld\n",
                        cand.active.size());
     }
@@ -400,8 +402,10 @@ bool Slicer::updateAndLink(
         SliceFrame::ActiveMap::iterator ait = cand.active.begin();
         unsigned j=0;
         for( ; ait != cand.active.end(); ++ait,++j) {
-            findMatch(g,dir,cand,(*ait).first,assns[i],matches, cache); // links
-            killed[j] = killed[j] || kills((*ait).first,assns[i]);
+            if (findMatch(g,dir,cand,(*ait).first,assns[i],matches, cache)) { // links	  
+	        if (!p.addNodeCallback(assns[i])) return false;
+	    }
+	    killed[j] = killed[j] || kills((*ait).first,assns[i]);
             change = change || killed[j];
         }
         // Record the *potential* of this instruction to interact
@@ -412,7 +416,7 @@ bool Slicer::updateAndLink(
     if(!change && matches.empty()) {// no change -- nothing killed, nothing added
 //        updateAndLinkTime += clock() - t;
 //	fprintf(stderr, "updateAndLink: %.3lf\n", (float)updateAndLinkTime / CLOCKS_PER_SEC);
-        return false;
+        return true;
     }
 
     // update of active set -- matches + anything not killed
@@ -518,9 +522,10 @@ Slicer::cachePotential(
  * and see whether they match, for the direction-appropriate
  * definition of "match". If so, generate new slice elements
  * and return them in the `match' vector, after linking them
- * to the elements associated with the region `cur'
+ * to the elements associated with the region `cur'.
+ * Return true if these exists at least a match.
  */
-void
+bool
 Slicer::findMatch(
     Graph::Ptr g,
     Direction dir,
@@ -530,10 +535,10 @@ Slicer::findMatch(
     vector<Element> & matches,
     DefCache& cache)
 {
+    bool hadmatch = false;
     if(dir == forward) {
 		slicing_cerr << "\t\tComparing candidate assignment " << assn->format() << " to input region " << reg.format() << endl;
         vector<AbsRegion> const& inputs = assn->inputs();
-        bool hadmatch = false;
         for(unsigned i=0;i<inputs.size();++i) {
             if(reg.contains(inputs[i])) {
                 hadmatch = true;    
@@ -562,6 +567,7 @@ Slicer::findMatch(
         slicing_printf("\t\t\t\t\tComparing current %s to candidate %s\n",
             reg.format().c_str(),assn->out().format().c_str());
         if(reg.contains(assn->out())) {
+	    hadmatch = true;
             slicing_printf("\t\t\t\t\t\tMatch!\n");
 
             // Link the assignments associated with this
@@ -596,6 +602,8 @@ Slicer::findMatch(
             }
         }
     }
+
+    return hadmatch;
 }
 
 

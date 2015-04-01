@@ -171,6 +171,11 @@ class Slicer {
        return false; 
     }
     DATAFLOW_EXPORT virtual ~Predicates() {};
+
+    // Callback function when adding a new node to the slice.
+    // Return true if we want to continue slicing
+    DATAFLOW_EXPORT virtual bool addNodeCallback(AssignmentPtr) { return true;}
+
   };
 
   DATAFLOW_EXPORT GraphPtr forwardSlice(Predicates &predicates);
@@ -504,7 +509,7 @@ class Slicer {
             Assignment::Ptr assn,
             DefCache & cache);
 
-    void findMatch(
+    bool findMatch(
             GraphPtr g,
             Direction dir,
             SliceFrame const& cand,

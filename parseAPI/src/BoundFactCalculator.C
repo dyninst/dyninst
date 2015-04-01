@@ -5,7 +5,7 @@
 #include "BoundFactCalculator.h"
 #include "IndirectASTVisitor.h"
 #include "debug_parse.h"
-#include "BackwardSlicing.h"
+#include "JumpTablePred.h"
 #include "Instruction.h"
 
 using namespace Dyninst::InstructionAPI;
@@ -124,7 +124,7 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 	    }
 	}
     }
-    fprintf(stderr, "%d\n", nodeColor.size());
+//    fprintf(stderr, "%d\n", nodeColor.size());
 //    if (nodeColor.size() > 100) slice->printDOT("slice.dot");
 
     slice->clearEntryNodes();
