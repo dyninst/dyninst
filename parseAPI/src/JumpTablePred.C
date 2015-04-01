@@ -169,7 +169,7 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap) {
     }
 
     currentAssigns.insert(ap);
-    
+    if (currentAssigns.size() < 5) return true; 
     GraphPtr g = BuildAnalysisGraph();
 
     BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, block->last());

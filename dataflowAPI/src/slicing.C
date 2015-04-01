@@ -1571,20 +1571,19 @@ std::string SliceNode::format() const {
 // converts an instruction to a vector of assignments. if this slicer has
 // already converted this instruction, this function returns the same
 // assignments.
+// Note that we CANNOT use a global cache based on the address
+// of the instruction to convert because the block that contains
+// the instructino may change during parsing.
 void Slicer::convertInstruction(Instruction::Ptr insn,
 				Address addr,
 				ParseAPI::Function *func,
                                 ParseAPI::Block *block,
 				std::vector<Assignment::Ptr> &ret) {
-  static std::unordered_map<Address, std::vector<Assignment::Ptr> > cache;
-  if (cache.find(addr) == cache.end()) {
   converter.convert(insn,
 		    addr,
 		    func,
                     block,
 		    ret);
-     cache[addr] = ret;
-  } else ret = cache[addr];
   return;
 }
 
