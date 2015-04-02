@@ -124,11 +124,17 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 	    }
 	}
     }
-//    fprintf(stderr, "%d\n", nodeColor.size());
+    fprintf(stderr, "%d\n", nodeColor.size());
 //    if (nodeColor.size() > 100) slice->printDOT("slice.dot");
 
     slice->clearEntryNodes();
     slice->markAsEntryNode(virtualEntry);
+/*    
+    if (nodeColor.size() == 13 && jumpAddr == 0x47cc70) { 
+        dyn_debug_parsing=1;
+	slice->printDOT("slice.dot");
+    }
+*/
 }
 
 bool BoundFactsCalculator::HasIncomingEdgesFromLowerLevel(int curOrder, vector<Node::Ptr>& curNodes) {
@@ -164,12 +170,6 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
      */
     
     DetermineAnalysisOrder();
-/*
-    if (jumpAddr == 0x4049c1) {
-        slice->printDOT("target_final.dot");
-	exit(0);
-    }
-*/    
     queue<Node::Ptr> workingList;
     unordered_set<Node::Ptr, Node::NodePtrHasher> inQueue;
     unordered_map<Node::Ptr, int, Node::NodePtrHasher> inQueueLimit;
@@ -200,6 +200,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	parsing_printf("Starting analysis inside SCC %d\n", curOrder);
 	// We now start iterative analysis inside the SCC
 	while (!workingList.empty()) {
+	    // We get the current node
 	    Node::Ptr curNode = workingList.front();
 	    workingList.pop();
 	    inQueue.erase(curNode);
@@ -222,17 +223,29 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    }
 	    parsing_printf("\tOld fact for %lx:\n", node->addr());
 	    if (oldFactIn == NULL) parsing_printf("\t\t do not exist\n"); else oldFactIn->Print();
+
+	    // We find all predecessors of the current node
+	    // and calculates the meet of the analysis results
+	    // from the predecessors
 	    BoundFact* newFactIn = Meet(curNode);
 	    parsing_printf("\tNew fact at %lx\n", node->addr());
 	    if (newFactIn != NULL) newFactIn->Print(); else parsing_printf("\t\tNot calculated\n");
+
+	    // If the current node has not been calcualted yet,
+	    // or the new meet results are different from the 
+	    // old ones, we keep the new results
 	    if (newFactIn != NULL && (oldFactIn == NULL || *oldFactIn != *newFactIn)) {
 	        parsing_printf("\tFacts change!\n");
 		if (oldFactIn != NULL) delete oldFactIn;
 		boundFactsIn[curNode] = newFactIn;
 		BoundFact* newFactOut = new BoundFact(*newFactIn);
+
+		// The current node has a transfer function
+		// that changes the analysis results
 		CalcTransferFunction(curNode, newFactOut);
+	
 		if (boundFactsOut.find(curNode) != boundFactsOut.end() && boundFactsOut[curNode] != NULL)
-		    delete boundFactsOut[curNode];
+		    delete boundFactsOut[curNode];		    
 		boundFactsOut[curNode] = newFactOut;
 		curNode->outs(nbegin, nend);
 	        for (; nbegin != nend; ++nbegin)
@@ -247,21 +260,6 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    }
 
         }
-
-
-
-/*
-	if (jumpAddr == 0x805351a) {
-	    VariableAST::Ptr ecx = VariableAST::create(Variable(AbsRegion(Absloc(x86::ecx))));
-	    BoundValue *val = newFact->GetBound(ecx);
-	    if (val == NULL) {
-	        printf("\tecx is top\n");
-	    }
-	    else {
-	        printf("\tecx: %d[%lx,%lx]\n", val->interval.stride, val->interval.low, val->interval.high);
-	    }
-	}
-*/	
     }
 
     return true;
@@ -425,8 +423,6 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     AbsRegion &ar = node->assign()->out();
     Instruction::Ptr insn = node->assign()->insn();
 
-    parsing_printf("\t\t\tExpanding assignment %s in instruction at %lx: %s.\n", node->assign()->format().c_str(), node->addr(), insn->format().c_str());
-    
     pair<AST::Ptr, bool> expandRet = ExpandAssignment(node->assign());
 	
     if (expandRet.first == NULL) {
@@ -437,13 +433,27 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 //	newFact->SetToBottom();
         parsing_printf("\t\t\t No semantic support for this instruction. Assume it does not affect jump target calculation. Ignore it (Treat as identity function)\n");	
 	return;
+    } else {
+        parsing_printf("\tAST: %s\n", expandRet.first->format().c_str());
     }
     
     AST::Ptr calculation = expandRet.first;	
     BoundCalcVisitor bcv(*newFact, node->block());
     calculation->accept(&bcv);
     
-    AST::Ptr outAST = VariableAST::create(Variable(ar));
+    AST::Ptr outAST;
+    // If the instruction writes memory,
+    // we need the AST that represents the memory access and the address.
+    // When the AbsRegion represents memory,
+    // the generator of the AbsRegion is set to be the AST that represents
+    // the memory address during symbolic expansion.
+    // In other cases, if the AbsRegion represents a register,
+    // the generator is not set.
+    if (ar.generator() != NULL) 
+        outAST = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp), ar.generator()), node->assign()->insn()->size());
+    else
+        outAST = VariableAST::create(Variable(ar));
+
     if (bcv.IsResultBounded(calculation)) { 
         parsing_printf("\t\t\tGenerate bound fact for %s\n", ar.absloc().format().c_str());
 	newFact->GenFact(outAST, new BoundValue(*bcv.GetResultBound(calculation)), false);
@@ -494,7 +504,7 @@ BoundFactsCalculator::~BoundFactsCalculator() {
 }
 
 pair<AST::Ptr, bool> BoundFactsCalculator::ExpandAssignment(Assignment::Ptr assign) {
-    parsing_printf("expand assignment : %s Instruction: %s\n", assign->format().c_str(), assign->insn()->format().c_str());
+    parsing_printf("Expand assignment : %s Instruction: %s\n", assign->format().c_str(), assign->insn()->format().c_str());
     if (expandCache.find(assign) != expandCache.end()) {
         AST::Ptr ast = expandCache[assign];
 //	if (ast) return make_pair(DeepCopyAnAST(ast), true); else return make_pair(ast, false);

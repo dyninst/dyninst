@@ -123,7 +123,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 
 //    if (block->last() != 0x80a922d) return false;
 //    parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
-//      fprintf(stderr,"Apply indirect control flow analysis at %lx\n", block->last());
+      fprintf(stderr,"Apply indirect control flow analysis at %lx\n", block->last());
 
 //    parsing_printf("Calculate backward slice\n");
 

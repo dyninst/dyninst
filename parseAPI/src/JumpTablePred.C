@@ -36,7 +36,6 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 	// that is reachable from the source DFS node
         map<AssignmentPtr, SliceNode::Ptr> &candNodes = targetMap[curBlock];
 	Address addr = 0;
-	SliceNode::Ptr trgNode;
 	for (auto cit = candNodes.begin(); cit != candNodes.end(); ++cit)
 	    // The node has to be either in a different block from the source node
 	    // or in the same block but has a larger address to be considered 
@@ -44,7 +43,6 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 	    if (cit->first->addr() > srcNode->addr() || curBlock != srcNode->block())
 	        if (addr == 0 || addr > cit->first->addr()) {
 		    addr = cit->first->addr();
-		    trgNode = cit->second;
 		}
 	if (addr != 0) {
 	    // There may be several assignments locating 
@@ -167,7 +165,7 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap) {
        ap->out().absloc().reg() != x86::zf && ap->out().absloc().reg() != x86_64::zf) {
 	return true;
     }
-
+    fprintf(stderr, "Adding assignment %s in instruction %s at %lx\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr());
     currentAssigns.insert(ap);
     if (currentAssigns.size() < 5) return true; 
     GraphPtr g = BuildAnalysisGraph();
@@ -177,9 +175,15 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap) {
 
     BoundValue target;
     bool ijt = IsJumpTable(g, bfc, target);
+//    if (dyn_debug_parsing) exit(0);
     if (ijt) {
-        return !FillInOutEdges(target, outEdges);
-    } else return true;
+        bool ret = !FillInOutEdges(target, outEdges);
+	fprintf(stderr, "Return %s\n", ret ? "true" : "false");
+        return ret;
+    } else {
+        fprintf(stderr, "Return true\n");
+        return true;
+    }	
 
 
 
