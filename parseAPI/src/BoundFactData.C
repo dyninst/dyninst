@@ -358,38 +358,38 @@ bool StridedInterval::IsConst() const{
 BoundValue::BoundValue(int64_t val):
         interval(val), 
 	targetBase(0), 
-	isTableRead(false), 
+	tableReadSize(0),
 	isInverted(false),
 	isSubReadContent(false) {}
 
 BoundValue::BoundValue(const StridedInterval &si):
         interval(si), 
 	targetBase(0), 
-	isTableRead(false), 
+	tableReadSize(0),
 	isInverted(false),
 	isSubReadContent(false) {}
 
 BoundValue::BoundValue():
         interval(),
 	targetBase(0),
-	isTableRead(false),
+	tableReadSize(0),
 	isInverted(false),
 	isSubReadContent(false) {}
 
 BoundValue::BoundValue(const BoundValue & bv):
+        interval(bv.interval),
 	targetBase(bv.targetBase),
-	isTableRead(bv.isTableRead),
+	tableReadSize(bv.tableReadSize),
 	isInverted(bv.isInverted),
 	isSubReadContent(bv.isSubReadContent) 
 {
-    interval = bv.interval;
 }
 
 
 bool BoundValue::operator == (const BoundValue &bv) const {
     return (interval == bv.interval) &&
 	   (targetBase == bv.targetBase) &&
-	   (isTableRead == bv.isTableRead) &&
+	   (tableReadSize == bv.tableReadSize) &&
 	   (isInverted == bv.isInverted) &&
 	   (isSubReadContent == bv.isSubReadContent);
 }
@@ -402,7 +402,7 @@ BoundValue & BoundValue::operator = (const BoundValue &bv) {
 
     interval = bv.interval;
     targetBase = bv.targetBase;
-    isTableRead = bv.isTableRead;
+    tableReadSize = bv.tableReadSize;
     isInverted = bv.isInverted;
     isSubReadContent = bv.isSubReadContent;
     return *this;
@@ -412,7 +412,7 @@ BoundValue & BoundValue::operator = (const BoundValue &bv) {
 void BoundValue::Print() {
     parsing_printf("Interval %s, ", interval.format().c_str() );
     parsing_printf("targetBase %lx, ",targetBase);
-    parsing_printf("isTableRead %d, ", isTableRead);
+    parsing_printf("tableReadSize %d, ", tableReadSize);
     parsing_printf("isInverted %d, ", isInverted);
     parsing_printf("isSubReadContent %d\n", isSubReadContent);
 }
@@ -434,7 +434,7 @@ BoundValue* BoundFact::GetBound(const AST* ast) {
 }
 
 void BoundValue::IntersectInterval(StridedInterval &si) {
-    if (isTableRead) {
+    if (tableReadSize) {
         // We are not going to continue tracking
 	// how the memory read is used.
 	// The read contents can be anything, so set to top
@@ -458,7 +458,7 @@ void BoundValue::DeleteElementFromInterval(int64_t val) {
 }
 
 void BoundValue::Join(BoundValue &bv) {
-    if (isTableRead != bv.isTableRead) {
+    if (tableReadSize != bv.tableReadSize) {
         // Unless boths are table reads, we stop trakcing
 	// how the read is used.
 	// Also, since a memory read can be any value,
@@ -473,7 +473,7 @@ void BoundValue::Join(BoundValue &bv) {
 }
 
 void BoundValue::ClearTableCheck(){
-    isTableRead = false;
+    tableReadSize = 0;
     targetBase = 0;
     isInverted = false;
     isSubReadContent = false;
@@ -482,18 +482,18 @@ void BoundValue::ClearTableCheck(){
 void BoundValue::Add(const BoundValue &rhs) {
     // First consider the case for: Imm - [table read address]
     // where the isInverted is true
-    if (isTableRead && isInverted && rhs.interval.IsConst(1)) {
+    if (tableReadSize && isInverted && rhs.interval.IsConst(1)) {
         isInverted = false;
 	isSubReadContent = true;
-    } else if (rhs.isTableRead && rhs.isInverted && interval.IsConst(1)) {
+    } else if (rhs.tableReadSize && rhs.isInverted && interval.IsConst(1)) {
         *this = rhs;
         isInverted = false;
 	isSubReadContent = true;
     }
     // Then check if we find the target base
-    else if (isTableRead && !isInverted && rhs.interval.IsConst() && !rhs.isTableRead) {
+    else if (tableReadSize && !isInverted && rhs.interval.IsConst() && !rhs.tableReadSize) {
         targetBase = rhs.interval.low;
-    } else if (rhs.isTableRead && !rhs.isInverted && interval.IsConst() && !isTableRead) {
+    } else if (rhs.tableReadSize && !rhs.isInverted && interval.IsConst() && !tableReadSize) {
         int64_t val = interval.low;
         *this = rhs;
 	targetBase = val;
@@ -502,7 +502,7 @@ void BoundValue::Add(const BoundValue &rhs) {
     else {
         // If either one of the operand is a table read,
 	// then the result can be anything
-        if (isTableRead || rhs.isTableRead) {
+        if (tableReadSize || rhs.tableReadSize) {
 	    *this = top;
 	} else {
 	    interval.Add(rhs.interval);
@@ -512,11 +512,11 @@ void BoundValue::Add(const BoundValue &rhs) {
 }
 
 void BoundValue::And(const BoundValue &rhs) { 
-    if (isTableRead) {        
+    if (tableReadSize) {        
         // The memory read content can be anything
         *this = top;
     }
-    if (rhs.isTableRead)
+    if (rhs.tableReadSize)
         interval.And(StridedInterval::top);
     else
         interval.And(rhs.interval);
@@ -526,11 +526,11 @@ void BoundValue::And(const BoundValue &rhs) {
 }
 
 void BoundValue::Mul(const BoundValue &rhs) { 
-    if (isTableRead) {        
+    if (tableReadSize) {        
         // The memory read content can be anything
         *this = top;
     }
-    if (rhs.isTableRead)
+    if (rhs.tableReadSize)
         interval.Mul(StridedInterval::top);
     else
         interval.Mul(rhs.interval);
@@ -540,11 +540,11 @@ void BoundValue::Mul(const BoundValue &rhs) {
 }
 
 void BoundValue::ShiftLeft(const BoundValue &rhs) {
-    if (isTableRead) {        
+    if (tableReadSize) {        
         // The memory read content can be anything
         *this = top;
     }
-    if (rhs.isTableRead)
+    if (rhs.tableReadSize)
         interval.ShiftLeft(StridedInterval::top);
     else
         interval.ShiftLeft(rhs.interval);
@@ -553,11 +553,11 @@ void BoundValue::ShiftLeft(const BoundValue &rhs) {
     ClearTableCheck();
 }
 void BoundValue::ShiftRight(const BoundValue &rhs) {
-    if (isTableRead) {        
+    if (tableReadSize) {        
         // The memory read content can be anything
         *this = top;
     }
-    if (rhs.isTableRead)
+    if (rhs.tableReadSize)
         interval.ShiftRight(StridedInterval::top);
     else
         interval.ShiftRight(rhs.interval);
@@ -567,11 +567,11 @@ void BoundValue::ShiftRight(const BoundValue &rhs) {
 }
 
 void BoundValue::Or(const BoundValue &rhs) { 
-    if (isTableRead) {        
+    if (tableReadSize) {        
         // The memory read content can be anything
         *this = top;
     }
-    if (rhs.isTableRead)
+    if (rhs.tableReadSize)
         interval.Or(StridedInterval::top);
     else
         interval.Or(rhs.interval);
@@ -581,7 +581,7 @@ void BoundValue::Or(const BoundValue &rhs) {
 }
 
 void BoundValue::Invert() {
-    if (isTableRead) {        
+    if (tableReadSize) {        
         // The memory read content can be anything
         *this = top;
     } else {
@@ -611,7 +611,7 @@ static bool IsTableIndex(set<uint64_t> &values) {
 	return true;
 }
 
-void BoundValue::MemoryRead(Block* b) {
+void BoundValue::MemoryRead(Block* b, int readSize) {
 	if (interval != StridedInterval::top) {
 		if (IsInReadOnlyRegion(b, interval.low, interval.high)) {
 		    set<uint64_t> values;
@@ -628,7 +628,7 @@ void BoundValue::MemoryRead(Block* b) {
 			        continue;			
 			    }
 			    uint64_t val;
-			    switch (interval.stride) {
+			    switch (readSize) {
 			        case 8:
 				    val = *(const uint64_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
 				    break;
@@ -642,7 +642,7 @@ void BoundValue::MemoryRead(Block* b) {
 				    val = *(const uint8_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
 				    break;
 				default:
-				    parsing_printf("Invalid table stride %d\n", interval.stride);
+				    parsing_printf("Invalid table stride %d\n", readSize);
 				    *this = top;
 				    return;
 			    }
@@ -656,10 +656,10 @@ void BoundValue::MemoryRead(Block* b) {
 			interval.stride = 1;
 			ClearTableCheck();
 		    } else {
-		        isTableRead = true;
+		        tableReadSize = readSize;
 		    }
 	    } else
-	        isTableRead = true;
+	        tableReadSize = readSize;
 	}	
 }
 
@@ -698,7 +698,7 @@ void BoundFact::Meet(BoundFact &bf) {
 	// Meet the flag predicate
 	if (pred != bf.pred) pred.valid = false;
 
-	// Mee the alias map
+	// Meet the alias map
 	for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ) {
 	    auto bit = bf.aliasMap.find(ait->first);
 	    if (bit == bf.aliasMap.end() || !(*(ait->second) == *(bit->second))) {
@@ -709,6 +709,9 @@ void BoundFact::Meet(BoundFact &bf) {
 	        ++ait;
 	    }
 	}
+
+	// Meet the stack top
+	if (stackTop != bf.stackTop) stackTop.valid = false;
 }
 
 void BoundFact::Print() {
@@ -729,6 +732,11 @@ void BoundFact::Print() {
     parsing_printf("\t\t\tAliasing:\n");
     for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait) {
         parsing_printf("\t\t\t\t%s = %s\n", ait->first.format().c_str(), ait->second->format().c_str());
+    }
+    if (stackTop.valid) {
+        parsing_printf("\t\t\tStack top is %lld\n", stackTop.value);
+    } else {
+        parsing_printf("\t\t\tNo known value at the top of the stack\n");
     }
 }
 
@@ -798,6 +806,7 @@ void BoundFact::KillFact(const AST::Ptr ast, bool isConditionalJump) {
 
 bool BoundFact::operator != (const BoundFact &bf) const {    
     if (pred != bf.pred) return true; 
+    if (stackTop != bf.stackTop) return true;
     if (fact.size() != bf.fact.size()) return true;
     if (relation.size() != bf.relation.size()) return true;
     for (size_t i = 0; i < relation.size(); ++i)
@@ -831,6 +840,7 @@ BoundFact::~BoundFact() {
 
 BoundFact& BoundFact::operator = (const BoundFact &bf) {
     pred = bf.pred;
+    stackTop = bf.stackTop;
     for (auto fit = fact.begin(); fit != fact.end(); ++fit)
         if (fit->second != NULL) delete fit->second;
     fact.clear();
@@ -1427,4 +1437,16 @@ void BoundFact::TrackAlias(AST::Ptr expr, AbsRegion ar) {
     if (substiBound != NULL) {
         GenFact(VariableAST::create(Variable(ar)), new BoundValue(*substiBound), false);
     }
+}
+
+void BoundFact::PushAConst(int64_t value) {
+    stackTop.valid = true;
+    stackTop.value = value;
+}
+
+bool BoundFact::PopAConst(AST::Ptr ast) {
+    if (!stackTop.valid) return false;
+    GenFact(ast, new BoundValue(stackTop.value), false);
+    stackTop.valid = false;
+    return true;
 }

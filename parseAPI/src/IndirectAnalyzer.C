@@ -12,118 +12,15 @@
 #include "InstructionDecoder.h"
 #include "Register.h"
 #include "SymEval.h"
-#define SIGNEX_64_32 0xffffffff00000000LL
-#define SIGNEX_64_16 0xffffffffffff0000LL
-#define SIGNEX_64_8  0xffffffffffffff00LL
-#define SIGNEX_32_16 0xffff0000
-#define SIGNEX_32_8 0xffffff00
-
-// Assume the table contain less than this many entries.
-#define MAX_TABLE_ENTRY 1000000
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
 
-bool IndirectControlFlowAnalyzer::FillInOutEdges(BoundValue &target, 
-                                                 vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-
-    Address tableBase = target.interval.low;
-    Address tableLastEntry = target.interval.high;
-    Architecture arch = block->obj()->cs()->getArch();
-    if (arch == Arch_x86) {
-        tableBase &= 0xffffffff;
-	tableLastEntry &= 0xffffffff;
-    }
-
-#if defined(os_windows)
-    tableBase -= block->obj()->cs()->loadAddress();
-    tableLastEntry -= block->obj()->cs()->loadAddress();
-#endif
-
-    parsing_printf("The final target bound fact:\n");
-    target.Print();
-/*
-    if (block->last() == 0x805351a) {
-        printf("Final fact: %d[%lx,%lx]\n", target.interval.stride, target.interval.low, target.interval.high);
-    }
-*/
-    if (!block->obj()->cs()->isValidAddress(tableBase)) {
-        parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
-	return false;
-    }
-
-    for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += target.interval.stride) {
-	if (!block->obj()->cs()->isValidAddress(tableEntry)) continue;
-	Address targetAddress = 0;
-	if (target.isTableRead) {
-	    // Two assumptions:
-	    // 1. Assume the table contents are moved in a sign extended way;
-	    // 2. Assume memory access size is the same as the table stride
-	    switch (target.interval.stride) {
-	        case 8:
-		    targetAddress = *(const uint64_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    break;
-		case 4:
-		    targetAddress = *(const uint32_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    if ((arch == Arch_x86_64) && (targetAddress & 0x80000000)) {
-		        targetAddress |= SIGNEX_64_32;
-		    }
-		    break;
-		case 2:
-		    targetAddress = *(const uint16_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    if ((arch == Arch_x86_64) && (targetAddress & 0x8000)) {
-		        targetAddress |= SIGNEX_64_16;
-		    }
-		    if ((arch == Arch_x86) && (targetAddress & 0x8000)) {
-		        targetAddress |= SIGNEX_32_16;
-		    }
-
-		    break;
-		case 1:
-		    targetAddress = *(const uint8_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    if ((arch == Arch_x86_64) && (targetAddress & 0x80)) {
-		        targetAddress |= SIGNEX_64_8;
-		    }
-		    if ((arch == Arch_x86) && (targetAddress & 0x80)) {
-		        targetAddress |= SIGNEX_32_8;
-		    }
-
-		    break;
-
-		default:
-		    parsing_printf("Invalid table stride %d\n", target.interval.stride);
-		    return false;
-	    }
-	    if (targetAddress != 0) {
-	        if (target.isSubReadContent) 
-		    targetAddress = target.targetBase - targetAddress;
-		else 
-		    targetAddress += target.targetBase; 
-
-	    }
-#if defined(os_windows)
-            targetAddress -= block->obj()->cs()->loadAddress();
-#endif
-	} else targetAddress = tableEntry;
-
-	if (block->obj()->cs()->getArch() == Arch_x86) targetAddress &= 0xffffffff;
-	parsing_printf("Jumping to target %lx,", targetAddress);
-	if (block->obj()->cs()->isCode(targetAddress)) {
-	    outEdges.push_back(make_pair(targetAddress, INDIRECT));
-	    parsing_printf(" is code.\n" );
-	} else {
-	    parsing_printf(" not code.\n");
-	}
-	// If the jump target is resolved to be a constant, 
-	if (target.interval.stride == 0) break;
-    }
-    return true;
-}
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
 
 //    if (block->last() != 0x80a922d) return false;
 //    parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
-      fprintf(stderr,"Apply indirect control flow analysis at %lx\n", block->last());
+//      fprintf(stderr,"Apply indirect control flow analysis at %lx\n", block->last());
 
 //    parsing_printf("Calculate backward slice\n");
 
@@ -176,26 +73,6 @@ void IndirectControlFlowAnalyzer::GetAllReachableBlock() {
 
 }
 
-bool IndirectControlFlowAnalyzer::IsJumpTable(GraphPtr slice, 
-					      BoundFactsCalculator &bfc,
-					      BoundValue &target) {
-    NodeIterator exitBegin, exitEnd, srcBegin, srcEnd;
-    slice->exitNodes(exitBegin, exitEnd);
-    SliceNode::Ptr virtualExit = boost::static_pointer_cast<SliceNode>(*exitBegin);
-    virtualExit->ins(srcBegin, srcEnd);
-    SliceNode::Ptr jumpNode = boost::static_pointer_cast<SliceNode>(*srcBegin);
-    
-    const Absloc &loc = jumpNode->assign()->out().absloc();
-    parsing_printf("Checking final bound fact for %s\n",loc.format().c_str()); 
-    BoundFact *bf = bfc.GetBoundFactOut(virtualExit);
-    BoundValue *tarBoundValue = bf->GetBound(VariableAST::create(Variable(loc)));
-    if (tarBoundValue != NULL) {
-        target = *(tarBoundValue);
-	uint64_t s = target.interval.size();
-	if (s > 0 && s <= MAX_TABLE_ENTRY) return true;
-    }
-    return false;
-}
 
 static Address ThunkAdjustment(Address afterThunk, MachRegister reg, GraphPtr slice, ParseAPI::Block *b) {
     // After the call to thunk, there is usually

@@ -124,17 +124,17 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 	    }
 	}
     }
-    fprintf(stderr, "%d\n", nodeColor.size());
+//    fprintf(stderr, "%d\n", nodeColor.size());
 //    if (nodeColor.size() > 100) slice->printDOT("slice.dot");
 
     slice->clearEntryNodes();
     slice->markAsEntryNode(virtualEntry);
-/*    
-    if (nodeColor.size() == 13 && jumpAddr == 0x47cc70) { 
-        dyn_debug_parsing=1;
-	slice->printDOT("slice.dot");
-    }
-*/
+//    if (nodeColor.size() == 24 && jumpAddr == 0x4305ff) {
+//    if (nodeColor.size() == 5 && jumpAddr == 0x48377d) { 
+//        dyn_debug_parsing=1;
+//	slice->printDOT("slice.dot");
+//    }
+
 }
 
 bool BoundFactsCalculator::HasIncomingEdgesFromLowerLevel(int curOrder, vector<Node::Ptr>& curNodes) {
@@ -415,10 +415,11 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	newFact->SetPredicate(node->assign(), ExpandAssignment(node->assign()) );	    
 	return;
     }
+    entryID id = node->assign()->insn()->getOperation().getID();
     // The predecessor is not a conditional jump,
     // then we can determine buond fact based on the src assignment
     parsing_printf("\t\tThe predecessor node is normal node\n");
-    parsing_printf("\t\t\tentry id %d\n", node->assign()->insn()->getOperation().getID());
+    parsing_printf("\t\t\tentry id %d\n", id);
 
     AbsRegion &ar = node->assign()->out();
     Instruction::Ptr insn = node->assign()->insn();
@@ -440,7 +441,6 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     AST::Ptr calculation = expandRet.first;	
     BoundCalcVisitor bcv(*newFact, node->block());
     calculation->accept(&bcv);
-    
     AST::Ptr outAST;
     // If the instruction writes memory,
     // we need the AST that represents the memory access and the address.
@@ -450,16 +450,44 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     // In other cases, if the AbsRegion represents a register,
     // the generator is not set.
     if (ar.generator() != NULL) 
-        outAST = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp), ar.generator()), node->assign()->insn()->size());
+        outAST = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, ar.size()), ar.generator()), node->assign()->insn()->size());
     else
         outAST = VariableAST::create(Variable(ar));
 
+
+    if (id == e_push) {
+         if (calculation->getID() == AST::V_ConstantAST) {
+	     ConstantAST::Ptr c = boost::static_pointer_cast<ConstantAST>(calculation);
+	     newFact->PushAConst(c->val().val);
+	     parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
+	     newFact->Print();
+	     return;
+	 }
+    }
+
+    if (id == e_pop) {
+        if (newFact->PopAConst(outAST)) {
+	     parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
+	     newFact->Print();
+	     return;
+        }	     
+    }
+
+    // Assume all SETxx entry ids are contiguous    
+    if (id >= e_setb && id <= e_setz) {
+        newFact->GenFact(outAST, new BoundValue(StridedInterval(1,0,1)), false);
+	parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
+	newFact->Print();
+	return;
+    }
+
+
     if (bcv.IsResultBounded(calculation)) { 
-        parsing_printf("\t\t\tGenerate bound fact for %s\n", ar.absloc().format().c_str());
+        parsing_printf("\t\t\tGenerate bound fact for %s\n", outAST->format().c_str());
 	newFact->GenFact(outAST, new BoundValue(*bcv.GetResultBound(calculation)), false);
     }
     else {
-        parsing_printf("\t\t\tKill bound fact for %s\n", ar.absloc().format().c_str());
+        parsing_printf("\t\t\tKill bound fact for %s\n", outAST->format().c_str());
 	newFact->KillFact(outAST, false);
     }
     if (calculation->getID() == AST::V_VariableAST) {

@@ -90,6 +90,16 @@ static bool AssignIsZF(Assignment::Ptr a) {
     return a->out().absloc().type() == Absloc::Register &&
 	   (a->out().absloc().reg() == x86::zf || a->out().absloc().reg() == x86_64::zf);
 }
+
+static bool IsPushAndChangeSP(Assignment::Ptr a) {
+    entryID id = a->insn()->getOperation().getID();
+    if (id != e_push) return false;
+    Absloc aloc = a->out().absloc();
+    if (aloc.type() == Absloc::Register && aloc.reg().isStackPointer()) return true;
+    return false;;
+
+}
+
 static int AdjustGraphEntryAndExit(GraphPtr gp) {
     int nodeCount = 0;
     NodeIterator gbegin, gend;
@@ -120,7 +130,7 @@ GraphPtr JumpTablePred::BuildAnalysisGraph() {
     }
     for (auto ait = currentAssigns.begin(); ait != currentAssigns.end(); ++ait) {
         Assignment::Ptr a = *ait;
-	if (AssignIsZF(a) || shouldSkip.find(a->addr()) == shouldSkip.end()) {
+	if ( (AssignIsZF(a) || shouldSkip.find(a->addr()) == shouldSkip.end()) && !IsPushAndChangeSP(a)) {
 	    SliceNode::Ptr newNode = SliceNode::create(a, a->block(), a->func());
 	    targetMap[a->block()][a] = newNode;
 	    newG->addNode(newNode);
@@ -165,9 +175,9 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap) {
        ap->out().absloc().reg() != x86::zf && ap->out().absloc().reg() != x86_64::zf) {
 	return true;
     }
-    fprintf(stderr, "Adding assignment %s in instruction %s at %lx\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr());
+//    fprintf(stderr, "Adding assignment %s in instruction %s at %lx\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr());
     currentAssigns.insert(ap);
-    if (currentAssigns.size() < 5) return true; 
+//    if (currentAssigns.size() < 5) return true; 
     GraphPtr g = BuildAnalysisGraph();
 
     BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, block->last());
@@ -175,13 +185,15 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap) {
 
     BoundValue target;
     bool ijt = IsJumpTable(g, bfc, target);
-//    if (dyn_debug_parsing) exit(0);
     if (ijt) {
         bool ret = !FillInOutEdges(target, outEdges);
-	fprintf(stderr, "Return %s\n", ret ? "true" : "false");
+//	fprintf(stderr, "Return %s\n", ret ? "true" : "false");
+//	if (dyn_debug_parsing) exit(0);
         return ret;
     } else {
-        fprintf(stderr, "Return true\n");
+//        fprintf(stderr, "Return true\n");
+//	if (dyn_debug_parsing) exit(0);
+
         return true;
     }	
 
@@ -214,11 +226,9 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
     for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += target.interval.stride) {
 	if (!block->obj()->cs()->isValidAddress(tableEntry)) continue;
 	Address targetAddress = 0;
-	if (target.isTableRead) {
-	    // Two assumptions:
-	    // 1. Assume the table contents are moved in a sign extended way;
-	    // 2. Assume memory access size is the same as the table stride
-	    switch (target.interval.stride) {
+	if (target.tableReadSize > 0) {
+	    // Assume the table contents are moved in a sign extended way;
+	    switch (target.tableReadSize) {
 	        case 8:
 		    targetAddress = *(const uint64_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
 		    break;
@@ -250,7 +260,7 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 		    break;
 
 		default:
-		    parsing_printf("Invalid table stride %d\n", target.interval.stride);
+		    parsing_printf("Invalid memory read size %d\n", target.tableReadSize);
 		    return false;
 	    }
 	    if (targetAddress != 0) {

@@ -77,7 +77,9 @@ struct BoundValue {
     StridedInterval interval;
 
     Address targetBase;    
-    bool isTableRead;
+    // If tableReadSize == 0, this does not represent a memory access
+    // Otherwise, tableReadSize reprenents the number bytes of the access
+    int tableReadSize;
     bool isInverted;
     bool isSubReadContent;
     BoundValue(int64_t val); 
@@ -102,7 +104,7 @@ struct BoundValue {
     void ShiftRight(const BoundValue &rhs);
     void Or(const BoundValue &rhs);
     void Invert();
-	void MemoryRead(ParseAPI::Block* b);
+    void MemoryRead(ParseAPI::Block* b, int readSize);
 };
 
 struct BoundFact {
@@ -180,6 +182,25 @@ struct BoundFact {
 	}
     } pred;
 
+    struct StackTop {
+        int64_t value;
+	bool valid;
+
+	StackTop(): valid(false) {}
+	StackTop(int64_t v): value(v), valid(true) {}
+	bool operator != (const StackTop &st) const {
+	    if (!valid && !st.valid) return false;
+	    if (valid != st.valid) return true;
+	    return value != st.value;
+	}
+
+	StackTop& operator = (const StackTop &st) {
+	    valid = st.valid;
+	    if (valid) value = st.value;
+	    return *this;
+	}
+    } stackTop;
+
     bool operator< (const BoundFact &bf) const {return fact < bf.fact; }
     bool operator!= (const BoundFact &bf) const;
 
@@ -200,6 +221,9 @@ struct BoundFact {
     void DeleteElementFromInterval(const AST::Ptr ast, int64_t val);
     void InsertRelation(AST::Ptr left, AST::Ptr right, RelationType);
     void TrackAlias(AST::Ptr expr, AbsRegion ar);
+
+    void PushAConst(int64_t value);
+    bool PopAConst(AST::Ptr ast);
 
     BoundFact();
     ~BoundFact();
