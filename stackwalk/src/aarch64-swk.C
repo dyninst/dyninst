@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -121,14 +121,14 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
   out_sp = in_fp;
   out.setSP(out_sp);
-  
+
   // Read the current frame
   if (sizeof(uint64_t) == addrWidth) {
      result = getProcessState()->readMem(&this_frame_pair.pair64, in_fp,
                                          sizeof(this_frame_pair.pair64));
   }
   else {
-     result = getProcessState()->readMem(&this_frame_pair.pair32, in_fp, 
+     result = getProcessState()->readMem(&this_frame_pair.pair32, in_fp,
                                          sizeof(this_frame_pair.pair32));
   }
   if (!result) {
@@ -138,11 +138,11 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
   // Read the previous frame
   if (sizeof(uint64_t) == addrWidth) {
-    result = getProcessState()->readMem(&last_frame_pair.pair64, this_frame_pair.pair64.out_fp, 
+    result = getProcessState()->readMem(&last_frame_pair.pair64, this_frame_pair.pair64.out_fp,
                                         sizeof(last_frame_pair.pair64));
   }
   else {
-    result = getProcessState()->readMem(&last_frame_pair.pair32, this_frame_pair.pair32.out_fp, 
+    result = getProcessState()->readMem(&last_frame_pair.pair32, this_frame_pair.pair32.out_fp,
                                         sizeof(last_frame_pair.pair32));
   }
   if (!result) {
@@ -155,7 +155,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   // whether the function creates a frame or not
   if (FrameFuncHelper::no_frame == alloc_frame.first)
   {
-    actual_frame_pair_p = &this_frame_pair;    
+    actual_frame_pair_p = &this_frame_pair;
   }
   else
   {
@@ -169,7 +169,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
     // Get the RA from the PC register
     if (sizeof(uint64_t) == addrWidth)
     {
-      result = getProcessState()->getRegValue(aarch64::lr, in.getThread(), out_ra);
+      result = getProcessState()->getRegValue(aarch64::x30, in.getThread(), out_ra);
     }
     else
     {
@@ -206,7 +206,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   else
   {
     if (sizeof(uint64_t) == addrWidth) {
-      out.setFP(this_frame_pair.pair64.out_fp); 
+      out.setFP(this_frame_pair.pair64.out_fp);
     }
     else {
 			//aarch32 is not supported now
@@ -223,7 +223,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
   return gcf_success;
 }
- 
+
 unsigned FrameFuncStepperImpl::getPriority() const
 {
    return frame_priority;
@@ -263,14 +263,14 @@ WandererHelper::~WandererHelper()
 {
 }
 
-gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &/*in*/, Frame &/*out*/, 
+gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &/*in*/, Frame &/*out*/,
                                                           Address /*base*/, Address /*lib_base*/,
                                                           unsigned /*size*/, unsigned /*stack_height*/)
 {
   return gcf_not_me;
 }
 
-gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Frame &out, 
+gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Frame &out,
                                                             Address /*base*/, Address /*lib_base*/,
                                                             unsigned /*size*/, unsigned stack_height,
                                                             bool /* aligned */,
@@ -290,15 +290,15 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
 
   in_fp = in.getFP();
   out.setSP(in_fp);
-  
+
   if (sizeof(uint64_t) == addrWidth) {
-    result = getProcessState()->readMem(&ra_fp_pair.pair64, in_fp, 
+    result = getProcessState()->readMem(&ra_fp_pair.pair64, in_fp,
                                         sizeof(ra_fp_pair.pair64));
   }
   else {
 		//aarch32 is not supported now
 		assert(0);
-    result = getProcessState()->readMem(&ra_fp_pair.pair32, in_fp, 
+    result = getProcessState()->readMem(&ra_fp_pair.pair32, in_fp,
                                         sizeof(ra_fp_pair.pair32));
   }
   if (!result) {
@@ -311,13 +311,13 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
   else {
     out.setFP(ra_fp_pair.pair32.out_fp);
   }
-  
+
   raLocation.location = loc_address;
   raLocation.val.addr = in_fp + stack_height; // stack_height is the offset to the saved RA
   out.setRALocation(raLocation);
-  
+
   // TODO make 32-bit compatible
-  result = getProcessState()->readMem(&out_ra, raLocation.val.addr, 
+  result = getProcessState()->readMem(&out_ra, raLocation.val.addr,
                                       sizeof(out_ra));
   if (!result) {
     sw_printf("[%s:%u] - Couldn't read instrumentation RA from %lx\n", FILE__, __LINE__, raLocation.val.addr);
@@ -331,7 +331,7 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
 namespace Dyninst {
   namespace Stackwalker {
 
-    void getTrapInstruction(char *buffer, unsigned buf_size, 
+    void getTrapInstruction(char *buffer, unsigned buf_size,
                             unsigned &actual_len, bool include_return)
     {
       assert(buf_size >= 4);
@@ -341,7 +341,7 @@ namespace Dyninst {
       buffer[3] = 0x08;
       actual_len = 4;
       if (include_return)
-      {   
+      {
         assert(buf_size >= 8);
         buffer[4] = 0x4e;
         buffer[5] = 0x80;
@@ -350,7 +350,7 @@ namespace Dyninst {
         actual_len = 8;
         return;
       }
-  
+
       assert(buf_size >= 1);
       actual_len = 1;
       return;

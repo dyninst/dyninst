@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -50,7 +50,7 @@ class AddressSpace;
 class parse_block;
 class baseTramp;
 
-// A class to retain information about where the original register can be found. It can be in one of the following states: 
+// A class to retain information about where the original register can be found. It can be in one of the following states:
 // 1) Unsaved, and available via the register itself;
 // 2) Saved in a frame, e.g., a base tramp;
 // 3) Pushed on the stack at a relative offset from the current stack pointer.
@@ -65,10 +65,10 @@ class baseTramp;
 
 // Terminology:
 // "Live" : contains a value outside of instrumentation, and so must be saved before use
-// "Used" : used by instrumentation code. 
+// "Used" : used by instrumentation code.
 
 class RealRegister {
-   //This is currently only used on x86_32 to represent the 
+   //This is currently only used on x86_32 to represent the
    // virtual/real register difference.  'Register' still refers
    // to virtual registers on this platform.  Contained in a struct
    // so that no one can accidently cast a Register into a RealRegister
@@ -94,10 +94,10 @@ class registerSlot {
     const initialLiveness_t initialState;
 
     // Are we off limits for allocation in this particular instance?
-    bool offLimits; 
+    bool offLimits;
 
     typedef enum { invalid, GPR, FPR, SPR, realReg} regType_t;
-    const regType_t type; 
+    const regType_t type;
 
     ////////// Code generation
 
@@ -113,7 +113,7 @@ class registerSlot {
     bool beenUsed;      // Has this register been used by generated code?
 
     // New version of "if we were saved, then where?" It's a pair - true/false,
-    // then offset from the "zeroed" stack pointer. 
+    // then offset from the "zeroed" stack pointer.
     typedef enum { unspilled, framePointer } spillReference_t;
     spillReference_t spilledState;
     int saveOffset; // Offset where this register can be
@@ -133,12 +133,12 @@ class registerSlot {
         assert(offLimits == false);
         assert(refCount == 0);
         assert(liveState != live);
-        
-        if (incRefCount) 
+
+        if (incRefCount)
             refCount = 1;
         beenUsed = true;
     }
-    
+
     // Default is just fine
     // registerSlot(const registerSlot &r)
 
@@ -158,7 +158,7 @@ class registerSlot {
                  std::string name_,
                  bool offLimits_,
                  initialLiveness_t initial,
-                 regType_t type_) : 
+                 regType_t type_) :
        alloc_num(0),
         number(num),
         name(name_),
@@ -213,17 +213,17 @@ class registerSpace {
     static registerSpace *irpcRegSpace(AddressSpace *proc);
     // Aaand instPoint-specific
     static registerSpace *actualRegSpace(instPoint *iP);
-    // DO NOT DELETE THESE. 
+    // DO NOT DELETE THESE.
     static registerSpace *savedRegSpace(AddressSpace *proc);
 
     static registerSpace *getRegisterSpace(AddressSpace *proc);
     static registerSpace *getRegisterSpace(unsigned addr_width);
-    
+
     registerSpace();
-    
+
     static void createRegisterSpace(pdvector<registerSlot *> &registers);
     static void createRegisterSpace64(pdvector<registerSlot *> &registers);
-    
+
     ~registerSpace();
 
     // Read the value in register souce from wherever we've stored it in
@@ -231,12 +231,12 @@ class registerSpace {
     // destination. So the source is the label, and destination is an actual.
     // Size is a legacy parameter for places where we don't have register information
     // (SPARC/IA-64)
-    bool readProgramRegister(codeGen &gen, Register source, 
+    bool readProgramRegister(codeGen &gen, Register source,
                              Register destination,
                              unsigned size);
 
     // And the reverse
-    bool writeProgramRegister(codeGen &gen, Register destination, 
+    bool writeProgramRegister(codeGen &gen, Register destination,
                               Register source,
                               unsigned size);
 
@@ -246,8 +246,8 @@ class registerSpace {
 
 
     // Like allocate, but don't keep it around; if someone else tries to
-    // allocate they might get this one. 
-    Register getScratchRegister(codeGen &gen, bool noCost = true, bool realReg = false); 
+    // allocate they might get this one.
+    Register getScratchRegister(codeGen &gen, bool noCost = true, bool realReg = false);
     // Like the above, but excluding a set of registers (that we don't want
     // to touch)
     Register getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost = true, bool realReg = false);
@@ -258,11 +258,11 @@ class registerSpace {
     bool saveAllRegisters(codeGen &gen, bool noCost);
     bool restoreAllRegisters(codeGen &gen, bool noCost);
 
-    // For now, we save registers elsewhere and mark them here. 
+    // For now, we save registers elsewhere and mark them here.
     bool markSavedRegister(Register num, int offsetFromFP);
     bool markSavedRegister(RealRegister num, int offsetFromFP);
 
-    // 
+    //
     bool markKeptRegister(Register num);
 
     // Things that will be modified implicitly by anything else we
@@ -281,30 +281,30 @@ class registerSpace {
 
     // Mark all registers as unallocated, but keep live/dead info
     void cleanSpace();
-    
+
     // Check to see if the register is free
     // DO NOT USE THIS!!!! to tell if you can use a register as
     // a scratch register; do that with trySpecificRegister
     // or allocateSpecificRegister. This is _ONLY_ to determine
     // if a register should be saved (e.g., over a call).
     bool isFreeRegister(Register k);
-    
+
     // Checks to see if register starts live
     bool isRegStartsLive(Register reg);
     int fillDeadRegs(Register * deadRegs, int num);
-    
+
     // Bump up the reference count. Occasionally, we underestimate it
     // and call this routine to correct this.
     void incRefCount(Register k);
-    
-    // Reset when the regSpace is reset - marked offlimits for 
+
+    // Reset when the regSpace is reset - marked offlimits for
     // allocation.
     bool markReadOnly(Register k);
     bool readOnlyRegister(Register k);
     // Make sure that no registers remain allocated, except "to_exclude"
     // Used for assertion checking.
     void checkLeaks(Register to_exclude);
-    
+
     int getAddressWidth() { return addr_width; }
     void debugPrint();
     void printAllocedRegisters();
@@ -335,12 +335,12 @@ class registerSpace {
     /**
      * The following set of 'public' and 'private' methods and data deal with
      * virtual registers, currently used only on x86.  The above 'Register' class
-     * allocates and uses virtual registers, these methods provide mappings from 
+     * allocates and uses virtual registers, these methods provide mappings from
      * virtual registers to real registers.
      **/
  public:
     //Put VReg into RReg
-    RealRegister loadVirtual(registerSlot *virt_r, codeGen &gen); 
+    RealRegister loadVirtual(registerSlot *virt_r, codeGen &gen);
     RealRegister loadVirtual(Register virt_r, codeGen &gen);
 
     //Put VReg into specific real register
@@ -369,7 +369,7 @@ class registerSpace {
     void incStack(int val);
     int getInstFrameSize();
     void setInstFrameSize(int val);
- 
+
     int getStackHeight();
     void setStackHeight(int val);
 
@@ -397,7 +397,7 @@ class registerSpace {
 
     //low-level functions for code gen
     void spillToVReg(RealRegister reg, registerSlot *v_reg, codeGen &gen);
-    void movVRegToReal(registerSlot *v_reg, RealRegister r, codeGen &gen); 
+    void movVRegToReal(registerSlot *v_reg, RealRegister r, codeGen &gen);
     void movRegToReg(RealRegister dest, RealRegister src, codeGen &gen);
 
     unsigned savedFlagSize;
@@ -405,21 +405,21 @@ class registerSpace {
  private:
 
     registerSpace(const registerSpace &);
-    
+
     registerSlot &getRegisterSlot(Register reg);
 
-    registerSlot *findRegister(Register reg); 
+    registerSlot *findRegister(Register reg);
     registerSlot *findRegister(RealRegister reg);
 
     bool spillRegister(Register reg, codeGen &gen, bool noCost);
     bool stealRegister(Register reg, codeGen &gen, bool noCost);
 
-    bool restoreRegister(Register reg, codeGen &gen, bool noCost); 
+    bool restoreRegister(Register reg, codeGen &gen, bool noCost);
     bool popRegister(Register reg, codeGen &gen, bool noCost);
 
     bool markSavedRegister(registerSlot *num, int offsetFromFP);
-    
-    int currStackPointer; 
+
+    int currStackPointer;
 
     // This structure is permanently tainted by its association with
     // virtual registers...
@@ -455,13 +455,13 @@ class registerSpace {
 
  public:
     static bool hasXMM;  // for Intel architectures, XMM registers
-    
+
  public:
 #if defined(arch_power)
     typedef enum { r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,
                    r13, r14, r15, r16, r17, r18, r19, r20, r21, r22, r23,
                    r24, r25, r26, r27, r28, r29, r30, r31,
-                   fpr0, fpr1, fpr2, fpr3, fpr4, fpr5, fpr6, 
+                   fpr0, fpr1, fpr2, fpr3, fpr4, fpr5, fpr6,
                    fpr7, fpr8, fpr9, fpr10, fpr11, fpr12, fpr13,
                    fpr14, fpr15, fpr16, fpr17, fpr18, fpr19, fpr20,
                    fpr21, fpr22, fpr23, fpr24, fpr25, fpr26, fpr27,
@@ -476,22 +476,21 @@ class registerSpace {
     int framePointer();
 #endif
 #if defined(arch_aarch64)
+#warning "Not verified yet!"
+	//31 GPRs, 32 FPRs
     typedef enum { r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,
                    r13, r14, r15, r16, r17, r18, r19, r20, r21, r22, r23,
                    r24, r25, r26, r27, r28, r29, r30,
-									 //31 GPRs
-                   fpr0, fpr1, fpr2, fpr3, fpr4, fpr5, fpr6, 
+                   fpr0, fpr1, fpr2, fpr3, fpr4, fpr5, fpr6,
                    fpr7, fpr8, fpr9, fpr10, fpr11, fpr12, fpr13,
                    fpr14, fpr15, fpr16, fpr17, fpr18, fpr19, fpr20,
                    fpr21, fpr22, fpr23, fpr24, fpr25, fpr26, fpr27,
                    fpr28, fpr29, fpr30, fpr31,
-									 //32 FPRs
-									 #warning "Not verified yet!"
-                   xer, lr, ctr, mq, cr, lastReg, ignored } aarch64Registers_t;
+                   lr, sp, pc, pstate, fpcr, fpsr, ignored } aarch64Registers_t;
     static unsigned GPR(Register x) { return x; }
     static unsigned FPR(Register x) { return x - fpr0; }
     static unsigned SPR(Register x);
-    int framePointer() { return r1; }
+    int framePointer() { return r29; }
 #endif
     // Create a map of register names to register numbers
     std::map<std::string, Register> registersByName;

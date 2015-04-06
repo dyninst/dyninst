@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -152,7 +152,7 @@ namespace NS_aarch64 {
 //  unsigned op : 6;
 //  unsigned bt : 5;   // rt, bo, bf_
 //  unsigned ba : 5;   // ba, bi, bfa_
-//  unsigned bb : 5; 
+//  unsigned bb : 5;
 //  unsigned xo : 10;  // xo, eo
 //  unsigned lk : 1;
 //};
@@ -331,21 +331,18 @@ typedef union {
 typedef instructUnion codeBuf_t;
 typedef unsigned codeBufIndex_t;
 
-#define SPR_XER	1
 #define SPR_LR	8
-#define SPR_CTR	9
-#define SPR_MQ 0
 
 /*
  * Register saving constants
  */
-#define maxFPR 32           /* Save FPRs 0-13 */
+#define maxFPR 31           /* Save FPRs 0-13 */
 #define maxGPR 32           /* More space than is needed */
-#define FPRspaceUsed (8*16) /* Aligned space for FPRs */
-#define GPRoffset(reg) (-1* (FPRspaceUsed + 4*(maxGPR-reg)))
-#define GPRspaceUsed (20*4) /* Aligned space for GPRs */
+#define FPRspaceUsed (32*16) /* Aligned space for FPRs */
+#define GPRoffset(reg) (-1* (FPRspaceUsed + 8*(maxGPR-reg)))
+//#define GPRspaceUsed (20*4) /* Aligned space for GPRs */
 
-#define stackFrameSize (FPRspaceUsed+GPRspaceUsed+128)
+//#define stackFrameSize (FPRspaceUsed+GPRspaceUsed+128)
 
 /*
  * Define the operation codes
@@ -354,7 +351,7 @@ typedef unsigned codeBufIndex_t;
 #define X_EXTENDEDop     31
 #define XO_EXTENDEDop    31
 #define X_FP_EXTENDEDop  63
-#define A_FP_EXTENDEDop1  59   
+#define A_FP_EXTENDEDop1  59
 #define A_FP_EXTENDEDop2  63
 
 // ------------- Op Codes, instruction form I  ------------------
@@ -374,7 +371,7 @@ typedef unsigned codeBufIndex_t;
 #define ORILop		24	/* (logical) or immediate lower -- ORIop*/
 #define ORIUop          25
 #define XORILop         26
-#define XORIUop         27 
+#define XORIUop         27
 #define ANDILop         28      /* and immediate lower -- ANDIop*/
 #define ANDIUop         29
 #define RLDop		30	/* RLD* family -- rotate left doubleword */
@@ -693,11 +690,11 @@ typedef unsigned codeBufIndex_t;
 
 
 
-#define BREAK_POINT_INSN 0x7d821008  /* trap */
-// #define BREAK_POINT_INSN 0x7fe00008  -- this form should also work and
+#define BREAK_POINT_INSN 0xd4200000  /* BRK */
+// #define BREAK_POINT_INSN 0xd4200000  -- this form should also work and
 // follows the recommended form outlined in the AIX manual
 
-#define SPIN_WAIT_INSN 0x48000000 /* VxWorks Trap - Can't perform a trap there. */
+//#define SPIN_WAIT_INSN 0x48000000 /* VxWorks Trap - Can't perform a trap there. */
 
 /* high and low half words.  Useful to load addresses as two parts */
 #define LOW(x)  ((x) & 0xffff)
@@ -778,14 +775,14 @@ class COMMON_EXPORT instruction {
     }
     unsigned int asInt() const { return insn_.raw; }
     void setInstruction(unsigned char *ptr, Address = 0);
-    
+
 
     // To solve host/target endian mismatches
     static int signExtend(unsigned int i, unsigned int pos);
     static instructUnion &swapBytes(instructUnion &i);
 
     // We need instruction::size() all _over_ the place.
-    static unsigned size() { return sizeof(instructUnion); } 
+    static unsigned size() { return sizeof(instructUnion); }
 
     Address getBranchOffset() const;
     void setBranchOffset(Address newOffset);
@@ -800,7 +797,7 @@ class COMMON_EXPORT instruction {
 
     // return the type of the instruction
     unsigned type() const;
-    
+
     // return a pointer to the instruction
     const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
 
@@ -812,28 +809,28 @@ class COMMON_EXPORT instruction {
     //const unsigned int &raw() const { return insn_.raw; }
 
     unsigned opcode() const;
-    
+
     // Local version
-    bool isInsnType(const unsigned mask, const unsigned match) const { 
+    bool isInsnType(const unsigned mask, const unsigned match) const {
         return ((insn_.raw & mask) == match);
     }
-    
+
     Address getTarget(Address insnAddr) const;
-    
+
     unsigned spaceToRelocate() const;
     bool getUsedRegs(pdvector<int> &regs);
-    
-    bool valid() const { 
+
+    bool valid() const {
 			assert(0);
-			return false; 
+			return false;
 		}
-    
+
     bool isCall() const;
-    
+
     static bool isAligned(Address addr) {
         return !(addr & 0x3);
     }
-    
+
     bool isCondBranch() const;
     bool isUncondBranch() const;
     bool isThunk() const;

@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -87,7 +87,7 @@ void statusLine(const char *line, bool /* unused */ )
     BPatch::reportError(BPatchInfo, 0, line);
 }
 
-//  bpfatal, bpsevere, bpwarn, and bpinfo are intended as drop-in 
+//  bpfatal, bpsevere, bpwarn, and bpinfo are intended as drop-in
 //  replacements for printf.
 #define ERR_BUF_SIZE 2048 // egad -- 1024 is not large enough
 
@@ -158,7 +158,7 @@ int bperr(const char *format, ...)
     int syserrlen = snprintf(syserr, 128," [%d: %s]", errno, strerror(errno));
 #endif
     /* reset errno so that future calls to this function don't report same error */
-    errno = 0; 
+    errno = 0;
 
     if ((errbuflen + syserrlen) < ERR_BUF_SIZE)
       strcat(errbuf, syserr);
@@ -283,15 +283,15 @@ bool init_debug() {
      fprintf(stderr, "Enabling DyninstAPI parsing debug\n");
      dyn_debug_parsing = 1;
   }
-  if (    (check_env_value("DYNINST_DEBUG_DYNPC")) 
-       || (check_env_value("DYNINST_DEBUG_FORKEXEC")) 
+  if (    (check_env_value("DYNINST_DEBUG_DYNPC"))
+       || (check_env_value("DYNINST_DEBUG_FORKEXEC"))
        || (check_env_value("DYNINST_DEBUG_INFRPC"))
        || (check_env_value("DYNINST_DEBUG_SIGNAL"))
        || (check_env_value("DYNINST_DEBUG_INFERIORRPC"))
        || (check_env_value("DYNINST_DEBUG_THREAD"))
        || (check_env_value("DYNINST_DEBUG_MAILBOX"))
        || (check_env_value("DYNINST_DEBUG_DBI"))
-     ) 
+     )
   {
     fprintf(stderr, "Enabling DyninstAPI process control debug\n");
     dyn_debug_proccontrol = 1;
@@ -541,7 +541,7 @@ int reloc_printf_int(const char *format, ...)
   if (NULL == format) return -1;
 
   debugPrintLock->lock();
-  
+
   fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
@@ -559,7 +559,7 @@ int dyn_unw_printf_int(const char *format, ...)
   if (NULL == format) return -1;
 
   debugPrintLock->lock();
-  
+
   fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
@@ -577,7 +577,7 @@ int mutex_printf_int(const char *format, ...)
   if (NULL == format) return -1;
 
   debugPrintLock->lock();
-  
+
   fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
@@ -594,17 +594,17 @@ int catchup_printf_int(const char *format, ...)
 
     if (!dyn_debug_catchup) return 0;
     if (NULL == format) return -1;
-    
+
     debugPrintLock->lock();
-    
+
     fprintf(stderr, "[%ld]", getExecThreadID());
     va_list va;
     va_start(va, format);
     int ret = vfprintf(stderr, format, va);
     va_end(va);
-    
+
     debugPrintLock->unlock();
-    
+
     return ret;
 }
 
@@ -614,7 +614,7 @@ int bpatch_printf(const char *format, ...)
   if (NULL == format) return -1;
 
   debugPrintLock->lock();
-  
+
   fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
@@ -632,7 +632,7 @@ int regalloc_printf_int(const char *format, ...)
   if (NULL == format) return -1;
 
   debugPrintLock->lock();
-  
+
   fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
@@ -650,7 +650,7 @@ int ast_printf_int(const char *format, ...)
   if (NULL == format) return -1;
 
   debugPrintLock->lock();
-  
+
   fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
@@ -668,7 +668,7 @@ int write_printf_int(const char *format, ...)
   if (NULL == format) return -1;
 
   debugPrintLock->lock();
-  
+
   if (!dyn_debug_write_file) {
     if (dyn_debug_write_filename && strlen(dyn_debug_write_filename)) {
       dyn_debug_write_file = fopen(dyn_debug_write_filename, "w");
@@ -683,7 +683,7 @@ int write_printf_int(const char *format, ...)
   int ret = vfprintf(dyn_debug_write_file, format, va);
   va_end(va);
   fflush(dyn_debug_write_file);
-  
+
   debugPrintLock->unlock();
 
   return ret;
@@ -696,7 +696,7 @@ int infmalloc_printf_int(const char *format, ...)
   if (NULL == format) return -1;
 
   debugPrintLock->lock();
-  
+
   fprintf(stderr, "[%ld]", getExecThreadID());
   va_list va;
   va_start(va, format);
@@ -773,7 +773,7 @@ bool init_stats() {
         stats_instru.add(INST_REMOVE_COUNTER, CountStat);
         have_stats = true;
     }
-    
+
 
     if (check_env_value("DYNINST_STATS_PTRACE")) {
         fprintf(stderr, "Enabling DyninstAPI ptrace statistics\n");
@@ -787,7 +787,7 @@ bool init_stats() {
         stats_ptrace.add(PTRACE_READ_AMOUNT, CountStat);
         have_stats = true;
     }
-    
+
     if (check_env_value("DYNINST_STATS_PARSING")) {
         fprintf(stderr, "Enabling DyninstAPI parsing statistics\n");
         stats_parse.add(PARSE_SYMTAB_TIMER, TimerStat);
@@ -809,7 +809,7 @@ bool init_stats() {
 
 bool print_stats() {
     running_time.stop();
-    if (have_stats) 
+    if (have_stats)
         fprintf(stderr, "Running time: %f sec (user), %f sec (system), %f sec (wall)\n",
                 running_time.usecs(),
                 running_time.ssecs(),
@@ -881,7 +881,7 @@ bool print_stats() {
                 stats_codegen[CODEGEN_REGISTER_TIMER]->usecs(),
                 stats_codegen[CODEGEN_REGISTER_TIMER]->ssecs(),
                 stats_codegen[CODEGEN_REGISTER_TIMER]->wsecs());
-        
+
         fprintf(stderr, "  Liveness analysis: %f sec (user), %f sec (system), %f sec (wall)\n",
                 stats_codegen[CODEGEN_LIVENESS_TIMER]->usecs(),
                 stats_codegen[CODEGEN_LIVENESS_TIMER]->ssecs(),

@@ -1,34 +1,32 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
-#warning "This file is not implemented yet!"
 
 #include <string.h>
 #include <iostream>
@@ -41,7 +39,8 @@ using namespace NS_aarch64;
 
 using namespace std;
 
-arm_process::arm_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+//constructors, blank functions
+arm_process::arm_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
                          std::vector<std::string> envp, std::map<int, int> f) :
    int_process(p, e, a, envp, f)
 {
@@ -58,61 +57,39 @@ arm_process::~arm_process()
 
 unsigned arm_process::plat_breakpointSize()
 {
-	assert(0); //not implemented
+  //This size is the number of bytes of one
+  //trap instruction. In aarch64, this is BRK
+  //which stands for breakpoint, with a normal
+  //length of 32bits == 4bytes
   return 4;
 }
 
 void arm_process::plat_breakpointBytes(unsigned char *buffer)
 {
-	assert(0); //not implemented
-  //buffer[0] = 0x7d;
-  //buffer[1] = 0x82;
-  //buffer[2] = 0x10;
-  //buffer[3] = 0x08;
+  //memory oppucation:
+  //high---low addr
+  //[3] [2] [1] [0]
+  //this is a BRK instruction in aarch64, which incurs a
+  //software exception, the encoding is
+  //0b1101_0100_001x_xxxx_xxxx_xxxx_xxx0_0000
+  //(x is for imm16)
+  //the following instruction stands for
+  //BRK #0;
+  buffer[0] = 0x00;
+  buffer[1] = 0x00;
+  buffer[2] = 0x20;
+  buffer[3] = 0xd4;
 }
 
 bool arm_process::plat_breakpointAdvancesPC() const
 {
-	assert(0); //not implemented
+   //as doc says, arm will return to the interrupted intruction
    return false;
 }
 
-//static bool atomicLoad(const instruction &insn) {
-//#warning "This function is not verified."
-//	return false;
-//}
-//
-//static bool atomicStore(const instruction &insn) {
-//#warning "This function is not verified."
-//	return false;
-//}
-
-//void clear_ss_state_cb(int_thread *thr) {
-//#warning "This function is not verified."
-//}
-
-void arm_process::cleanupSSOnContinue(int_thread *thr)
-{
-	assert(0); //not implemented
-}
-
-void arm_process::registerSSClearCB()
-{
-	assert(0); //not implemented
-}
-
-async_ret_t arm_process::readPCForSS(int_thread *thr, Address &pc)
-{
-	assert(0); //not implemented
-}
-
-async_ret_t arm_process::readInsnForSS(Address pc, int_thread *, unsigned int &rawInsn)
-{
-	assert(0); //not implemented
-}
-
+/*
 async_ret_t arm_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Address> &addrResult) {
-	assert(0); //not implemented
+     return aret_success;
 }
 
 void arm_process::plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr> resps)
@@ -121,34 +98,35 @@ void arm_process::plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<respon
 }
 
 bool arm_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
-	assert(0); //not implemented
+#warning "This function is not verified."
    return true;
 }
 
-bool arm_process::plat_needsPCSaveBeforeSingleStep() 
+bool arm_process::plat_needsPCSaveBeforeSingleStep()
 {
-	assert(0); //not implemented
-   return true;
+#warning "This function is not verified."
+   //pc is saved in LR, which might be accomplished by BL instruction
+   //but for single step, is this true as well?
+   return false;
 }
+*/
 
 arm_thread::arm_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l), have_cached_pc(false), cached_pc(0)
 {
-	assert(0); //not implemented
 }
 
 arm_thread::~arm_thread()
 {
-	assert(0); //not implemented
 }
 
+#warning "HWBreakpoint is not supported now."
 bool arm_thread::rmHWBreakpoint(hw_breakpoint *,
                                 bool,
                                 std::set<response::ptr> &,
                                 bool &)
 {
-	assert(0); //not implemented
-   return false;
+    return false;
 }
 
 bool arm_thread::addHWBreakpoint(hw_breakpoint *,
@@ -156,42 +134,43 @@ bool arm_thread::addHWBreakpoint(hw_breakpoint *,
                                  std::set<response::ptr> &,
                                  bool &)
 {
-	assert(0); //not implemented
-   return false;
+    return false;
 }
 
 unsigned arm_thread::hwBPAvail(unsigned)
 {
-	assert(0); //not implemented
-   return 0;
+    return 0;
 }
 
 EventBreakpoint::ptr arm_thread::decodeHWBreakpoint(response::ptr &,
                                                     bool,
                                                     Dyninst::MachRegisterVal)
 {
-	assert(0); //not implemented
-   return EventBreakpoint::ptr();
+    return EventBreakpoint::ptr();
 }
 
 bool arm_thread::bpNeedsClear(hw_breakpoint *)
 {
 	assert(0); //not implemented
-   return false;
+    return false;
 }
 
 void arm_thread::setCachedPC(Address pc)
 {
-	assert(0); //not implemented
+    //what is cached PC?
+    cached_pc = pc;
+    have_cached_pc = true;
 }
 
 void arm_thread::clearCachedPC()
 {
-	assert(0); //not implemented
+    have_cached_pc = false;
 }
 
 bool arm_thread::haveCachedPC(Address &pc)
 {
-	assert(0); //not implemented
-   return true;
+    if (!have_cached_pc)
+        return false;
+    pc = cached_pc;
+    return true;
 }
