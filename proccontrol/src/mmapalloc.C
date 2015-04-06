@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -49,7 +49,7 @@ static const unsigned char linux_x86_64_call_mmap[] = {
    0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $<addr>,%rdi
    0x00, 0x00, 0x00,                               //
    0x48, 0xc7, 0xc0, 0x09, 0x00, 0x00, 0x00,       //mov    $0x9,%rax
-   0x0f, 0x05,                                     //syscall 
+   0x0f, 0x05,                                     //syscall
    0x48, 0x8d, 0xa4, 0x24, 0x80, 0x00, 0x00, 0x00, //lea    128(%rsp),%rsp
    0xcc,                                           //Trap
    0x90                                            //nop
@@ -67,7 +67,7 @@ static const unsigned char linux_x86_64_call_munmap[] = {
    0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $<addr>,%rdi
    0x00, 0x00, 0x00,                               //
    0x48, 0xc7, 0xc0, 0x0b, 0x00, 0x00, 0x00,       //mov    $0xb,%rax
-   0x0f, 0x05,                                     //syscall 
+   0x0f, 0x05,                                     //syscall
    0x48, 0x8d, 0xa4, 0x24, 0x80, 0x00, 0x00, 0x00, //lea    128(%rsp),%rsp
    0xcc,                                           //Trap
    0x90                                            //nop
@@ -191,7 +191,7 @@ static const unsigned char linux_ppc64_call_mmap[] = {
    0x3c, 0xe0, 0x00, 0x00,              // lis     r7,<fd=-1>
    0x7c, 0xe7, 0x3b, 0xb8,              // nand    r7,r7,r7
    0x3d, 0x00, 0x00, 0x00,              // lis     r8,<offset>
-   0x44, 0x00, 0x00, 0x02,              // sc      
+   0x44, 0x00, 0x00, 0x02,              // sc
    0x7d, 0x82, 0x10, 0x08,              // trap
    0x60, 0x00, 0x00, 0x00               // nop
 };
@@ -219,11 +219,70 @@ static const unsigned char linux_ppc64_call_munmap[] = {
    0x78, 0x84, 0x07, 0xc6,              // rldicr  r4,r4,0x32,0x31,
    0x64, 0x84, 0x00, 0x00,              // oris    r4,r4,<size_hi>
    0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_lo>
-   0x44, 0x00, 0x00, 0x02,              // sc      
+   0x44, 0x00, 0x00, 0x02,              // sc
    0x7d, 0x82, 0x10, 0x08,              // trap
    0x60, 0x00, 0x00, 0x00               // nop
 };
 static const unsigned int linux_ppc64_call_munmap_size = sizeof(linux_ppc64_call_munmap);
+
+//aarch64
+//mov
+//31-21 | 20 - 5 | 4 - 0
+//      | imm    | reg
+static const unsigned int linux_aarch64_mmap_flags_position = 36;
+static const unsigned int linux_aarch64_mmap_size_position =  20;
+static const unsigned int linux_aarch64_mmap_addr_position =  4;
+static const unsigned int linux_aarch64_mmap_start_position = 4;
+static const unsigned char linux_aarch64_call_mmap[] = {
+    // _NR_mmap 1058
+    0xd5, 0x03, 0x20, 0x1f,         // nop              ;mmap(void *addr, size_t size, int _prot,
+                                    //                  ;   int _flags, int _fd, _off_t offset)
+    0xd2, 0x80, 0x00, 0x00,         // mov x0, #0           ;<addr>
+    0xf2, 0xa0, 0x00, 0x00,         // movk x0, #0, lsl #16     ;<addr>
+    0xf2, 0xc0, 0x00, 0x00,         // movk x0, #0, lsl #32     ;<addr>
+    0xf2, 0xe0, 0x00, 0x00,         // movk x0, #0, lsl #48     ;<addr>
+
+    0xd2, 0x80, 0x00, 0x01,         // mov x1, #0               ;<size>
+    0xf2, 0xa0, 0x00, 0x01,         // movk x1, #0, lsl #16      ;<size>
+    0xf2, 0xc0, 0x00, 0x01,         // movk x1, #0, lsl #32      ;<size>
+    0xf2, 0xe0, 0x00, 0x01,         // movk x1, #0, lsl #48      ;<size>
+
+    0xd2, 0x80, 0x00, 0x03,         // mov x3, #0x00            ;<flags>
+    0xf2, 0xa0, 0x00, 0x03,         // movk x3, #0x00, lsl #16      ;<flags>
+    //0xf2, 0xc0, 0x00, 0x03,         // mov x3, #0x00, lsl #32      ;<flags>
+    //0xf2, 0xe0, 0x00, 0x03,         // mov x3, #0x00, lsl #48      ;<flags>
+
+    0xd2, 0x80, 0x00, 0xe2,             // mov x2, #0x7     ;<prot>
+    0xd2, 0x80, 0x00, 0x04,             // mov x4  #0       ;fd
+    0xd2, 0x80, 0x00, 0x05,             // mov x5, #0       ;offset
+    0xd2, 0x80, 0x84, 0x48,             // mov x8, #d1058   ;pass sys call number
+    0xd4, 0x00, 0x00, 0x01,             // svc #0           ;system call
+    0xd4, 0x20, 0x00, 0x00,             // brk #0           ;trap?
+    0xd5, 0x03, 0x20, 0x1f              // nop
+};
+static const unsigned int linux_aarch64_call_mmap_size = sizeof(linux_aarch64_call_mmap);
+
+static const unsigned int linux_aarch64_munmap_size_position = 20;
+static const unsigned int linux_aarch64_munmap_addr_position =  4;
+static const unsigned int linux_aarch64_munmap_start_position = 4;
+static const unsigned char linux_aarch64_call_munmap[] = {
+    0xd5, 0x03, 0x20, 0x1f,             // nop              ;munmap(void *addr, int size)
+    0xd2, 0x80, 0x00, 0x00,         // mov x0, #0       ;&addr
+    0xf2, 0xa0, 0x00, 0x00,         // mov x0, #0, lsl #16     ;<addr>
+    0xf2, 0xc0, 0x00, 0x00,         // mov x0, #0, lsl #32     ;<addr>
+    0xf2, 0xe0, 0x00, 0x00,         // mov x0, #0, lsl #48     ;<addr>
+
+    0xd2, 0x80, 0x00, 0x01,         // mov x1, #0               ;size
+    0xf2, 0xa0, 0x00, 0x01,         // mov x1, #0, lsl #16      ;<size>
+    0xf2, 0xc0, 0x00, 0x01,         // mov x1, #0, lsl #32      ;<size>
+    0xf2, 0xe0, 0x00, 0x01,         // mov x1, #0, lsl #48      ;<size>
+
+    0xd2, 0x80, 0x1a, 0xe8,         // mov x8, #d215    ;pass sys call number
+    0xd4, 0x00, 0x00, 0x01,             // svc #0
+    0xd4, 0x20, 0x00, 0x00,             // brk #0
+    0xd5, 0x03, 0x20, 0x1f              // nop
+};
+static const unsigned int linux_aarch64_call_munmap_size = sizeof(linux_aarch64_call_munmap);
 
 static const unsigned int freebsd_x86_64_mmap_flags_position = 21;
 static const unsigned int freebsd_x86_64_mmap_size_position = 34;
@@ -288,24 +347,24 @@ static const unsigned int freebsd_x86_munmap_addr_position = 10;
 static const unsigned int freebsd_x86_munmap_start_position = 4;
 static const unsigned char freebsd_x86_call_munmap[] = {
    0x90, 0x90, 0x90, 0x90,                         //nop sled
-   0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (size)    
+   0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (size)
    0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (addr)
    0xb8, 0x49, 0x00, 0x00, 0x00,                   //mov    $0x49,%eax (SYS_munmap)
    0x50,                                           //push   %eax (required by calling convention)
    0xcd, 0x80,                                     //int    $0x80
-   0x8d, 0x64, 0x24, 0x0c,                         //lea    0xc(%esp),%esp 
+   0x8d, 0x64, 0x24, 0x0c,                         //lea    0xc(%esp),%esp
    0xcc,                                           //trap
    0x90                                            //nop
 };
 static const unsigned int freebsd_x86_call_munmap_size = sizeof(freebsd_x86_call_munmap);
 
-mmap_alloc_process::mmap_alloc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+mmap_alloc_process::mmap_alloc_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
                                        std::vector<std::string> envp, std::map<int,int> f) :
    int_process(p, e, a, envp, f)
 {
 }
 
-mmap_alloc_process::mmap_alloc_process(Dyninst::PID pid_, int_process *p) : 
+mmap_alloc_process::mmap_alloc_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p)
 {
 }
@@ -314,157 +373,164 @@ mmap_alloc_process::~mmap_alloc_process()
 {
 }
 
-// For compatibility 
+// For compatibility
 #ifndef MAP_ANONYMOUS
 #define MAP_ANONYMOUS MAP_ANON
 #endif
 
 bool mmap_alloc_process::plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp)
 {
-   switch (getTargetArch())
-   {
-      case Arch_x86_64: {
-         bool result = thr->getRegister(x86_64::rax, resp);
-         assert(result);
-	 if(!result) return false;
-         break;
-      }
-      case Arch_x86: {
-         bool result = thr->getRegister(x86::eax, resp);
-         assert(result);
-	 if(!result) return false;
-         break;
-      }
-      case Arch_ppc32: {
-         bool result = thr->getRegister(ppc32::r3, resp);
-         assert(result);
-	 if(!result) return false;
-         break;
-      }
-      case Arch_ppc64: {
-         bool result = thr->getRegister(ppc64::r3, resp);
-         assert(result);
-	 if(!result) return false;
-         break;
-      }
-      default:
-         assert(0);
-         break;
-   }
-   return true;
-} 
+    switch (getTargetArch())
+    {
+        case Arch_x86_64: {
+            bool result = thr->getRegister(x86_64::rax, resp);
+            assert(result);
+	    if(!result) return false;
+            break;
+        }
+        case Arch_x86: {
+            bool result = thr->getRegister(x86::eax, resp);
+            assert(result);
+	    if(!result) return false;
+            break;
+        }
+        case Arch_ppc32: {
+            bool result = thr->getRegister(ppc32::r3, resp);
+            assert(result);
+	    if(!result) return false;
+            break;
+        }
+        case Arch_ppc64: {
+            bool result = thr->getRegister(ppc64::r3, resp);
+            assert(result);
+	        if(!result) return false;
+            break;
+        }
+        case Arch_aarch64: {
+            bool result = thr->getRegister(aarch64::x0, resp);
+            pthrd_printf("ARM-info: createAllocaResult... \n");
+            assert(result);
+	            if(!result) return false;
+            break;
+        }
+        default:
+            assert(0);
+            break;
+    }
+    return true;
+}
 
-bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, bool use_addr, unsigned long size, 
-                                                      void* &buffer, unsigned long &buffer_size, 
+bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, bool use_addr, unsigned long size,
+                                                      void* &buffer, unsigned long &buffer_size,
                                                       unsigned long &start_offset)
 {
-   int flags = MAP_ANONYMOUS | MAP_PRIVATE;
-   if (use_addr) 
-      flags |= MAP_FIXED;
-   else
-      addr = 0x0;
+    int flags = MAP_ANONYMOUS | MAP_PRIVATE;
+    if (use_addr)
+        flags |= MAP_FIXED;
+    else
+        addr = 0x0;
 
-   if (getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86) {
-       const void *buf_tmp = NULL;
-       unsigned addr_size = 0;
-       unsigned addr_pos = 0;
-       unsigned flags_pos = 0;
-       unsigned size_pos = 0;
+    if (getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86) {
+        const void *buf_tmp = NULL;
+        unsigned addr_size = 0;
+        unsigned addr_pos = 0;
+        unsigned flags_pos = 0;
+        unsigned size_pos = 0;
 
-       bool use_linux = (getOS() == Dyninst::Linux);
-       bool use_bsd = (getOS() == Dyninst::FreeBSD);
-       bool use_64 = (getTargetArch() == Arch_x86_64);
-       
-       if (use_linux && use_64) {
-          buf_tmp = linux_x86_64_call_mmap;
-          buffer_size = linux_x86_64_call_mmap_size;
-          start_offset = linux_x86_64_mmap_start_position;
-          addr_pos = linux_x86_64_mmap_addr_position;
-          flags_pos = linux_x86_64_mmap_flags_position;
-          size_pos = linux_x86_64_mmap_size_position;
-          addr_size = 8;
-       }
-       else if (use_bsd && use_64) {
-          buf_tmp = freebsd_x86_64_call_mmap;
-          buffer_size = freebsd_x86_64_call_mmap_size;
-          start_offset = freebsd_x86_64_mmap_start_position;
-          addr_pos = freebsd_x86_64_mmap_addr_position;
-          flags_pos = freebsd_x86_64_mmap_flags_position;
-          size_pos = freebsd_x86_64_mmap_size_position;
-          addr_size = 8;
-       }
-       else if (use_linux && !use_64) {
-          buf_tmp = linux_x86_call_mmap;
-          buffer_size = linux_x86_call_mmap_size;
-          start_offset = linux_x86_mmap_start_position;
-          addr_pos = linux_x86_mmap_addr_position;
-          flags_pos = linux_x86_mmap_flags_position;
-          size_pos = linux_x86_mmap_size_position;
-          addr_size = 4;
-       } 
-       else if (use_bsd && !use_64) {
-          buf_tmp = freebsd_x86_call_mmap;
-          buffer_size = freebsd_x86_call_mmap_size;
-          start_offset = freebsd_x86_mmap_start_position;
-          addr_pos = freebsd_x86_mmap_addr_position;
-          flags_pos = freebsd_x86_mmap_flags_position;
-          size_pos = freebsd_x86_mmap_size_position;
-          addr_size = 4;
-       }
-       else {
-          assert(0); //Fill in the entry in mmapalloc.h for this system
-       }
-       
-       buffer = malloc(buffer_size);
-       memcpy(buffer, buf_tmp, buffer_size);
+        bool use_linux = (getOS() == Dyninst::Linux);
+        bool use_bsd = (getOS() == Dyninst::FreeBSD);
+        bool use_64 = (getTargetArch() == Arch_x86_64);
 
-       //Assuming endianess of debugger and debugee match.
-       *((unsigned int *) (((char *) buffer)+size_pos)) = size;
-       *((unsigned int *) (((char *) buffer)+flags_pos)) = flags;
-       if (addr_size == 8)
-          *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
-       else if (addr_size == 4)
-          *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
-       else 
-          assert(0);
+        if (use_linux && use_64) {
+           buf_tmp = linux_x86_64_call_mmap;
+           buffer_size = linux_x86_64_call_mmap_size;
+           start_offset = linux_x86_64_mmap_start_position;
+           addr_pos = linux_x86_64_mmap_addr_position;
+           flags_pos = linux_x86_64_mmap_flags_position;
+           size_pos = linux_x86_64_mmap_size_position;
+           addr_size = 8;
+        }
+        else if (use_bsd && use_64) {
+           buf_tmp = freebsd_x86_64_call_mmap;
+           buffer_size = freebsd_x86_64_call_mmap_size;
+           start_offset = freebsd_x86_64_mmap_start_position;
+           addr_pos = freebsd_x86_64_mmap_addr_position;
+           flags_pos = freebsd_x86_64_mmap_flags_position;
+           size_pos = freebsd_x86_64_mmap_size_position;
+           addr_size = 8;
+        }
+        else if (use_linux && !use_64) {
+           buf_tmp = linux_x86_call_mmap;
+           buffer_size = linux_x86_call_mmap_size;
+           start_offset = linux_x86_mmap_start_position;
+           addr_pos = linux_x86_mmap_addr_position;
+           flags_pos = linux_x86_mmap_flags_position;
+           size_pos = linux_x86_mmap_size_position;
+           addr_size = 4;
+        }
+        else if (use_bsd && !use_64) {
+           buf_tmp = freebsd_x86_call_mmap;
+           buffer_size = freebsd_x86_call_mmap_size;
+           start_offset = freebsd_x86_mmap_start_position;
+           addr_pos = freebsd_x86_mmap_addr_position;
+           flags_pos = freebsd_x86_mmap_flags_position;
+           size_pos = freebsd_x86_mmap_size_position;
+           addr_size = 4;
+        }
+        else {
+           assert(0); //Fill in the entry in mmapalloc.h for this system
+        }
+
+        buffer = malloc(buffer_size);
+        memcpy(buffer, buf_tmp, buffer_size);
+
+        //Assuming endianess of debugger and debugee match.
+        *((unsigned int *) (((char *) buffer)+size_pos)) = size;
+        *((unsigned int *) (((char *) buffer)+flags_pos)) = flags;
+        if (addr_size == 8)
+            *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
+        else if (addr_size == 4)
+            *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
+        else
+            assert(0);
    }
-   else if (getTargetArch() == Arch_ppc32) {
-      unsigned int flags_hi_position;
-      unsigned int flags_lo_position;
-      unsigned int size_hi_position;
-      unsigned int size_lo_position;
-      unsigned int addr_hi_position;
-      unsigned int addr_lo_position;
-      const void *buf_tmp;
+    else  if (getTargetArch() == Arch_ppc32) {
+        unsigned int flags_hi_position;
+        unsigned int flags_lo_position;
+        unsigned int size_hi_position;
+        unsigned int size_lo_position;
+        unsigned int addr_hi_position;
+        unsigned int addr_lo_position;
+        const void *buf_tmp;
 
-      //BlueGene can share the linux allocation snippet.
-      bool use_linux = (getOS() == Linux || getOS() == BlueGeneP || getOS() == BlueGeneL);
+        //BlueGene can share the linux allocation snippet.
+        bool use_linux = (getOS() == Linux || getOS() == BlueGeneP || getOS() == BlueGeneL);
 
-      if (use_linux) {
-         flags_hi_position = linux_ppc32_mmap_flags_hi_position;
-         flags_lo_position = linux_ppc32_mmap_flags_lo_position;
-         size_hi_position = linux_ppc32_mmap_size_hi_position;
-         size_lo_position = linux_ppc32_mmap_size_lo_position;
-         addr_hi_position = linux_ppc32_mmap_addr_hi_position;
-         addr_lo_position = linux_ppc32_mmap_addr_lo_position;
-         start_offset = linux_ppc32_mmap_start_position;
-         buffer_size = linux_ppc32_call_mmap_size;
-         buf_tmp = linux_ppc32_call_mmap;
-      }
-      else {
-         assert(0); //Fill in the entry in mmapalloc.h for this system
-      }
+        if (use_linux) {
+           flags_hi_position = linux_ppc32_mmap_flags_hi_position;
+           flags_lo_position = linux_ppc32_mmap_flags_lo_position;
+           size_hi_position = linux_ppc32_mmap_size_hi_position;
+           size_lo_position = linux_ppc32_mmap_size_lo_position;
+           addr_hi_position = linux_ppc32_mmap_addr_hi_position;
+           addr_lo_position = linux_ppc32_mmap_addr_lo_position;
+           start_offset = linux_ppc32_mmap_start_position;
+           buffer_size = linux_ppc32_call_mmap_size;
+           buf_tmp = linux_ppc32_call_mmap;
+        }
+        else {
+           assert(0); //Fill in the entry in mmapalloc.h for this system
+        }
 
-      buffer = malloc(buffer_size);
-      memcpy(buffer, buf_tmp, buffer_size);
-      
-      // Assuming endianess of debugger and debuggee match
-      *((uint16_t *) (((char *) buffer)+size_hi_position)) = (uint16_t)(size >> 16);
-      *((uint16_t *) (((char *) buffer)+size_lo_position)) = (uint16_t)size;
-      *((uint16_t *) (((char *) buffer)+flags_hi_position)) = (uint16_t)(flags >> 16);
-      *((uint16_t *) (((char *) buffer)+flags_lo_position)) = (uint16_t)flags;
-      *((uint16_t *) (((char *) buffer)+addr_hi_position)) = (uint16_t)(addr >> 16);
-      *((uint16_t *) (((char *) buffer)+addr_lo_position)) = (uint16_t)addr;
+        buffer = malloc(buffer_size);
+        memcpy(buffer, buf_tmp, buffer_size);
+
+        // Assuming endianess of debugger and debuggee match
+        *((uint16_t *) (((char *) buffer)+size_hi_position)) = (uint16_t)(size >> 16);
+        *((uint16_t *) (((char *) buffer)+size_lo_position)) = (uint16_t)size;
+        *((uint16_t *) (((char *) buffer)+flags_hi_position)) = (uint16_t)(flags >> 16);
+        *((uint16_t *) (((char *) buffer)+flags_lo_position)) = (uint16_t)flags;
+        *((uint16_t *) (((char *) buffer)+addr_hi_position)) = (uint16_t)(addr >> 16);
+        *((uint16_t *) (((char *) buffer)+addr_lo_position)) = (uint16_t)addr;
    }
    else if (getTargetArch() == Arch_ppc64) {
       unsigned int flags_highest_position;
@@ -521,16 +587,61 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
        *((uint16_t *) (((char *) buffer)+addr_higher_position)) = (uint16_t)((uint64_t)addr >> 32);
        *((uint16_t *) (((char *) buffer)+addr_hi_position)) = (uint16_t)(addr >> 16);
        *((uint16_t *) (((char *) buffer)+addr_lo_position)) = (uint16_t)addr;
-   }else{
-       assert(0);
-   }
 
-   return true;
+    }else if( getTargetArch() == Arch_aarch64 ){
+        const void *buf_tmp;
+        unsigned int addr_size;
+        unsigned int addr_pos, size_pos, flags_pos;
+
+        bool use_linux = ( getOS() == Linux );
+
+        if (use_linux) {
+           start_offset             = linux_aarch64_mmap_start_position;
+           buffer_size              = linux_aarch64_call_mmap_size;
+           buf_tmp                  = linux_aarch64_call_mmap;
+           addr_pos                 = linux_aarch64_mmap_addr_position;
+           size_pos                 = linux_aarch64_mmap_size_position;
+           flags_pos                = linux_aarch64_mmap_flags_position;
+           addr_size = 8;
+        }
+        else {
+           assert(0); //Fill in the entry in mmapalloc.h for this system
+        }
+        buffer = malloc(buffer_size);
+        memcpy(buffer, buf_tmp, buffer_size);
+
+        // To avoid the matter of endianness, I decided to operate on byte.
+        pthrd_printf("ARM-info: create alloc snippet...\n");
+#define BYTE_ASSGN(POS, VAL)\
+        (*(((char *) buffer) + POS + 1)) |= ((VAL>>11)&0x1f);\
+        (*(((char *) buffer) + POS + 2)) |= ((VAL>> 3)&0xff);\
+        (*(((char *) buffer) + POS + 3)) |= ((VAL<< 5)&0xf0);
+
+        BYTE_ASSGN(addr_pos,    (uint16_t)(addr)     )
+        BYTE_ASSGN(addr_pos+4,  (uint16_t)(addr>>16) )
+        BYTE_ASSGN(addr_pos+8,  (uint16_t)(addr>>32) )
+        BYTE_ASSGN(addr_pos+12, (uint16_t)(addr>>48) )
+
+        BYTE_ASSGN(size_pos,    (uint16_t)(size) )
+        BYTE_ASSGN(size_pos+4,  (uint16_t)(size>>16) )
+        BYTE_ASSGN(size_pos+8,  (uint16_t)(size>>32) )
+        BYTE_ASSGN(size_pos+12, (uint16_t)(size>>48) )
+
+        BYTE_ASSGN(flags_pos,    (uint16_t)(flags) )
+        BYTE_ASSGN(flags_pos+4,  (uint16_t)(flags>>16) )
+
+        assert(addr_size == 8);
+
+    }else{
+        assert(0);
+    }
+
+    return true;
 }
 
-bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr, 
-                                                        unsigned long size, void* &buffer, 
-                                                        unsigned long &buffer_size, 
+bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
+                                                        unsigned long size, void* &buffer,
+                                                        unsigned long &buffer_size,
                                                         unsigned long &start_offset)
 {
    if (getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86) {
@@ -566,7 +677,7 @@ bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
           addr_pos = linux_x86_munmap_addr_position;
           size_pos = linux_x86_munmap_size_position;
           addr_size = 4;
-       } 
+       }
        else if (use_bsd && !use_64) {
           buf_tmp = freebsd_x86_call_munmap;
           buffer_size = freebsd_x86_call_munmap_size;
@@ -578,7 +689,7 @@ bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
        else {
           assert(0);
        }
-       
+
        buffer = malloc(buffer_size);
        memcpy(buffer, buf_tmp, buffer_size);
 
@@ -588,7 +699,7 @@ bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
           *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
        else if (addr_size == 4)
           *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
-       else 
+       else
           assert(0);
    }
    else if (getTargetArch() == Arch_ppc32) {
@@ -652,7 +763,7 @@ bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
 
       buffer = malloc(buffer_size);
       memcpy(buffer, buf_tmp, buffer_size);
-      
+
       // Assuming endianess of debugger and debuggee match
       *((uint16_t *) (((char *) buffer)+size_highest_position)) = (uint16_t)((uint64_t)size >> 48);
       *((uint16_t *) (((char *) buffer)+size_higher_position)) = (uint16_t)((uint64_t)size >> 32);
@@ -662,6 +773,43 @@ bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
       *((uint16_t *) (((char *) buffer)+addr_higher_position)) = (uint16_t)((uint64_t)addr >> 32);
       *((uint16_t *) (((char *) buffer)+addr_hi_position)) = (uint16_t)(addr >> 16);
       *((uint16_t *) (((char *) buffer)+addr_lo_position)) = (uint16_t)addr;
+   }
+   else if( getTargetArch() == Arch_aarch64 ) {
+        const void *buf_tmp = NULL;
+        unsigned int addr_size;
+        unsigned int addr_pos;
+        unsigned int size_pos;
+
+        bool use_linux = (getOS() == Linux );
+        if (use_linux) {
+            buf_tmp             = linux_aarch64_call_munmap;
+            buffer_size         = linux_aarch64_call_munmap_size;
+            start_offset        = linux_aarch64_munmap_start_position;
+            addr_pos            = linux_aarch64_munmap_addr_position;
+            size_pos            = linux_aarch64_munmap_size_position;
+            addr_size           = 8;
+        }
+        else {
+           assert(0);
+        }
+
+        buffer = malloc(buffer_size);
+        memcpy(buffer, buf_tmp, buffer_size);
+
+        pthrd_printf("ARM-info: create de-alloc snippet...\n");
+
+        BYTE_ASSGN(addr_pos,    (uint16_t)(addr)     )
+        BYTE_ASSGN(addr_pos+4,  (uint16_t)(addr>>16) )
+        BYTE_ASSGN(addr_pos+8,  (uint16_t)(addr>>32) )
+        BYTE_ASSGN(addr_pos+12, (uint16_t)(addr>>48) )
+
+        BYTE_ASSGN(size_pos,    (uint16_t)(size) )
+        BYTE_ASSGN(size_pos+4,  (uint16_t)(size>>16) )
+        BYTE_ASSGN(size_pos+8,  (uint16_t)(size>>32) )
+        BYTE_ASSGN(size_pos+12, (uint16_t)(size>>48) )
+
+        // Assuming endianess of debugger and debuggee match
+        assert(addr_size == 8);
    }
    else {
       assert(0);

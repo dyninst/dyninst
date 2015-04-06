@@ -14,20 +14,19 @@ set (SRC_LIST
      src/procpool.C 
      src/irpc.C 
      src/response.C 
-	 src/resp.C
+	   src/resp.C
      src/memcache.C 
      src/procset.C 
      src/processplat.C 
      src/loadLibrary/injector.C 
      src/loadLibrary/codegen.C 
-     src/x86_process.C 
      src/loadLibrary/codegen-x86.C
      src/loadLibrary/codegen-ppc.C 
-     src/ppc_process.C 
-     src/pcmachsyscall.C
-		 #steve: added
 		 src/loadLibrary/codegen-aarch64.C
+     src/x86_process.C 
+     src/ppc_process.C 
 		 src/arm_process.C
+     src/pcmachsyscall.C
  )
 if(UNIX)
 set (SRC_LIST ${SRC_LIST}

@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -43,11 +43,10 @@
 
 #warning "This file is not implemented yet!"
 
-// "Casting" methods. We use a "base + offset" model, but often need to 
+// "Casting" methods. We use a "base + offset" model, but often need to
 // turn that into "current instruction pointer".
 codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {
-assert(0);
-//#warning "This function is not implemented yet!"
+    assert(0);
     return (instructUnion *)gen.cur_ptr();
 }
 
@@ -64,41 +63,36 @@ codeBuf_t *insnCodeGen::ptrAndInc(codeGen &gen) {
 #endif
 
 void insnCodeGen::generate(codeGen &gen, instruction&insn) {
-assert(0);
-//#warning "This function is not implemented yet!"
+    assert(0);
 #if defined(endian_mismatch)
   // Writing an instruction.  Convert byte order if necessary.
   unsigned raw = swapBytesIfNeeded(insn.asInt());
 #else
   unsigned raw = insn.asInt();
 #endif
-  
+
   gen.copy(&raw, sizeof(unsigned));
 }
 
 void insnCodeGen::generateIllegal(codeGen &gen) { // instP.h
-assert(0);
-//#warning "This function is not implemented yet!"
+    assert(0);
     instruction insn;
     generate(gen,insn);
 }
 
 void insnCodeGen::generateTrap(codeGen &gen) {
-assert(0);
-//#warning "This function is not implemented yet!"
+    assert(0);
     instruction insn(BREAK_POINT_INSN);
     generate(gen,insn);
 }
 
 void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link)
 {
-assert(0);
-//#warning "This function is not implemented yet!"
+    assert(0);
 }
 
 void insnCodeGen::generateBranch(codeGen &gen, Address from, Address to, bool link) {
-assert(0);
-//#warning "This function is not implemented yet!"
+    assert(0);
 
     long disp = (to - from);
 
@@ -107,12 +101,11 @@ assert(0);
     }
 
     return generateBranch(gen, disp, link);
-   
+
 }
 
 void insnCodeGen::generateCall(codeGen &gen, Address from, Address to) {
-assert(0);
-//#warning "This function is not implemented yet!"
+    assert(0);
     generateBranch(gen, from, to, true);
 }
 
@@ -120,41 +113,37 @@ void insnCodeGen::generateInterFunctionBranch(codeGen &gen,
                                               Address from,
                                               Address to,
                                               bool link) {
-assert(0);
-//#warning "This function is not implemented yet!"
+    assert(0);
 }
 
-void insnCodeGen::generateLongBranch(codeGen &gen, 
-                                     Address from, 
-                                     Address to, 
+void insnCodeGen::generateLongBranch(codeGen &gen,
+                                     Address from,
+                                     Address to,
                                      bool isCall) {
-assert(0);
-//#warning "This function is not implemented yet!"
+    assert(0);
 }
 
 void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, bool isCall) {
-assert(0);
-//#warning "This function is not implemented yet!"
+    assert(0);
 }
 
-void insnCodeGen::generateAddReg (codeGen & gen, int op, Register rt, 
+void insnCodeGen::generateAddReg (codeGen & gen, int op, Register rt,
 				   Register ra, Register rb)
 {
-assert(0);
-//#warning "This function is not implemented yet!"
+    assert(0);
 }
 
 void insnCodeGen::generateLoadReg(codeGen &gen, Register rt,
                                   Register ra, Register rb)
 {
-assert(0);
+    assert(0);
 //#warning "This function is not implemented yet!"
 }
 
 void insnCodeGen::generateStoreReg(codeGen &gen, Register rt,
                                    Register ra, Register rb)
 {
-assert(0);
+    assert(0);
 //#warning "This function is not implemented yet!"
 }
 
@@ -218,7 +207,7 @@ assert(0);
 void insnCodeGen::generateRShift64(codeGen &gen, Register rs, int shift, Register ra)
 {
 assert(0);
-//not implemented 
+//not implemented
 }
 
 //
@@ -231,8 +220,8 @@ assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::generateSimple(codeGen &gen, int op, 
-                                 Register src1, Register src2, 
+void insnCodeGen::generateSimple(codeGen &gen, int op,
+                                 Register src1, Register src2,
                                  Register dest)
 {
 assert(0);
@@ -302,12 +291,12 @@ assert(0);
 
         // This was a check in old code. Assert it isn't the case,
         // since this is a _conditional_ branch...
-        assert(insn.isInsnType(Bmask, BCAAmatch) == false); 
-        
+        assert(insn.isInsnType(Bmask, BCAAmatch) == false);
+
         // We may need an instPoint for liveness calculations
 
         instPoint *point = gen.func()->findInstPByAddr(origAddr);
-        if (!point) 
+        if (!point)
             point = instPoint::createArbitraryInstPoint(origAddr,
                                                         gen.addrSpace(),
                                                         gen.func());
@@ -315,7 +304,7 @@ assert(0);
 
 
         if (targetAddr) {
-            generateBranch(gen, 
+            generateBranch(gen,
                            relocAddr,
                            targetAddr,
                            IFORM_LK(insn));
@@ -326,7 +315,7 @@ assert(0);
                            insn.getTarget(origAddr),
                            IFORM_LK(insn));
         }
-    } 
+    }
     else if (insn.isCondBranch()) {
         // conditional pc relative branch.
 #if defined(os_vxworks)
@@ -350,10 +339,10 @@ assert(0);
     return true;
 #endif
 }
-                           
+
 bool insnCodeGen::generateMem(codeGen &,
                               instruction&,
-                              Address, 
+                              Address,
                               Address,
                               Register,
                   Register) {
@@ -373,7 +362,7 @@ assert(0);
 void insnCodeGen::generateMoveToCR(codeGen &gen, Register rs) {
 assert(0);
 //#warning "This function is not implemented yet!"
-}    
+}
 
 bool insnCodeGen::modifyJump(Address target,
 			     NS_aarch64::instruction &insn,

@@ -1,0 +1,9 @@
+-I/home/xi/dyninst
+-I/home/xi/dyninst/common/h
+-I/home/xi/dyninst/common/src
+-I/home/xi/dyninst/proccontrol/h
+-I/home/xi/dyninst/proccontrol/src
+-I/home/xi/dyninst/symtabAPI/h
+-I/home/xi/dyninst/symtabAPI/src
+-I/home/xi/dyninst/stackwalk/h
+-I/home/xi/dyninst/stackwalk/src

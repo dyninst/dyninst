@@ -5,5 +5,10 @@
 #include "Symbol.h"
 #include "PCProcess.h"
 
+#include "common/src/arch-aarch64.h"
 
+using namespace Dyninst;
+using namespace NS_aarch64;
+using namespace ProcControlAPI;
+using namespace std;
 

@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -64,6 +64,14 @@
 
 #include "common/src/linuxKludges.h"
 #include "common/src/parseauxv.h"
+
+//needed by GETREGSET/SETREGSET
+#if defined(arch_aarch64)
+#include<sys/user.h>
+#include<sys/procfs.h>
+#include<bits/uio.h>
+#include<linux/elf.h>
+#endif
 
 // Before glibc-2.7, sys/ptrace.h lacked PTRACE_O_* and PTRACE_EVENT_*, so we
 // need them from linux/ptrace.h.  (Conditionally, as later glibc conflicts.)
@@ -111,7 +119,7 @@ Generator *Generator::getDefaultGenerator()
 bool GeneratorLinux::initialize()
 {
     int result;
-   
+
     sigset_t usr2_set;
     sigemptyset(&usr2_set);
     sigaddset(&usr2_set, SIGUSR2);
@@ -119,7 +127,7 @@ bool GeneratorLinux::initialize()
     if (result != 0) {
 	perr_printf("Unable to unblock SIGUSR2: %s\n", strerror(result));
     }
-   
+
     generator_lwp = P_gettid();
     generator_pid = P_getpid();
     return true;
@@ -136,7 +144,7 @@ ArchEvent *GeneratorLinux::getEvent(bool block)
 
    //Block (or not block) in waitpid to receive a OS event
    options = __WALL;
-   options |= block ? 0 : WNOHANG; 
+   options |= block ? 0 : WNOHANG;
    pthrd_printf("%s in waitpid\n", block ? "blocking" : "polling");
 
    if (isExitingState())
@@ -169,10 +177,10 @@ ArchEvent *GeneratorLinux::getEvent(bool block)
       else if (WIFCONTINUED(status))
          perr_printf("Continued with signal SIGCONT (Unexpected)\n");
 #endif
-      else 
+      else
          pthrd_printf("Unable to interpret waitpid return.\n");
    }
-   
+
    newevent = new ArchEventLinux(pid, status);
    return newevent;
 }
@@ -197,13 +205,13 @@ void GeneratorLinux::evictFromWaitpid()
       return;
    if (generator_pid != P_getpid())
       return;
-   
+
    //Throw a SIGUSR2 at the generator thread.  This will kick it out of
    // a waitpid with EINTR, and allow it to exit.  Will do nothing if not
    // blocked in waitpid.
    //
-   //There's a subtle race condition here, which we can't easily fix.  
-   // The generator thread could be just before waitpid, but after 
+   //There's a subtle race condition here, which we can't easily fix.
+   // The generator thread could be just before waitpid, but after
    // it's exit test when the signal hits.  We won't throw EINTR because
    // we're not in waitpid yet, and we won't retest the exiting state.
    // This exact kind of race is why we have things like pselect, but
@@ -248,7 +256,7 @@ DecoderLinux::~DecoderLinux()
 {
 }
 
-unsigned DecoderLinux::getPriority() const 
+unsigned DecoderLinux::getPriority() const
 {
    return Decoder::default_priority;
 }
@@ -257,6 +265,9 @@ Dyninst::Address DecoderLinux::adjustTrapAddr(Dyninst::Address addr, Dyninst::Ar
 {
   if (arch == Dyninst::Arch_x86 || arch == Dyninst::Arch_x86_64) {
     return addr-1;
+  }
+  if (arch == Dyninst::Arch_aarch64){
+    return addr;
   }
   return addr;
 }
@@ -337,12 +348,12 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	      perr_printf("Received an unexpected syscall TRAP\n");
 	      return false;
 	    }
-	    
+
          case SIGSTOP:
-            if (!proc) {               
+            if (!proc) {
                //The child half of an event pair.  Find the parent or postpone it.
                if (!archevent->findPairedEvent(parent, child)) {
-                  pthrd_printf("Child half of paired event, postponing decode " 
+                  pthrd_printf("Child half of paired event, postponing decode "
                                "until parent arrives\n");
                   archevent->postponePairedEvent();
                   return true;
@@ -350,7 +361,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                break;
             }
             if (lthread->hasPendingStop()) {
-               pthrd_printf("Recieved pending SIGSTOP on %d/%d\n", 
+               pthrd_printf("Recieved pending SIGSTOP on %d/%d\n",
                             thread->llproc()->getPid(), thread->getLWP());
                event = Event::ptr(new EventStop());
                break;
@@ -373,7 +384,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                if (!result) {
                   fprintf(stderr, "Failed to read PC address upon crash\n");
                }
-               fprintf(stderr, "Got SIGTRAP at %lx\n", addr);               
+               fprintf(stderr, "Got SIGTRAP at %lx\n", addr);
             }
 #endif
             ext = status >> 16;
@@ -381,57 +392,57 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                bool postpone = false;
                switch (ext) {
                   case PTRACE_EVENT_EXIT:
-                     if (!proc || !thread) {
-                        //Legacy event on old process. 
+                    if (!proc || !thread) {
+                        //Legacy event on old process.
                         return true;
-                     }
-                     pthrd_printf("Decoded event to pre-exit on %d/%d\n",
+                    }
+                    pthrd_printf("Decoded event to pre-exit on %d/%d\n",
                                   proc->getPid(), thread->getLWP());
-                     if (thread->getLWP() == proc->getPid())
-		     {
-		       unsigned long exitcode = 0x0;
-		       int result = do_ptrace((pt_req)PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(),
-					      NULL, &exitcode);
-		       if(result == -1) 
-		       {
-                          int error = errno;
-                          perr_printf("Error getting event message from exit\n");
-                          if (error == ESRCH)
-                             proc->setLastError(err_exited, "Process exited during operation");
-                          return false;
-		       }
-		       exitcode = WEXITSTATUS(exitcode);
-		       
-		       pthrd_printf("Decoded event to pre-exit of process %d/%d with code %lu\n",
-				      proc->getPid(), thread->getLWP(), exitcode);
-		       event = Event::ptr(new EventExit(EventType::Pre, exitcode));
-                       
-                       for (int_threadPool::iterator j = proc->threadPool()->begin(); 
-                            j != proc->threadPool()->end(); ++j) 
-                       {
-                          dynamic_cast<linux_thread*>(*j)->setGeneratorExiting();
-                       }
-		     } 
-                     else {
+                    if (thread->getLWP() == proc->getPid())
+		            {
+		                unsigned long exitcode = 0x0;
+		                int result = do_ptrace((pt_req)PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(),
+					        NULL, &exitcode);
+		                if(result == -1)
+		                {
+                            int error = errno;
+                            perr_printf("Error getting event message from exit\n");
+                            if (error == ESRCH)
+                                proc->setLastError(err_exited, "Process exited during operation");
+                            return false;
+		                }
+		                exitcode = WEXITSTATUS(exitcode);
+
+		                pthrd_printf("Decoded event to pre-exit of process %d/%d with code %lu\n",
+				            proc->getPid(), thread->getLWP(), exitcode);
+		                event = Event::ptr(new EventExit(EventType::Pre, exitcode));
+
+                        for (int_threadPool::iterator j = proc->threadPool()->begin();
+                             j != proc->threadPool()->end(); ++j)
+                        {
+                           dynamic_cast<linux_thread*>(*j)->setGeneratorExiting();
+                        }
+		            }
+                    else {
                         EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
                         event = lwp_ev;
                         event->setThread(thread->thread());
                         lproc->decodeTdbLWPExit(lwp_ev);
                         lthread->setGeneratorExiting();
-                     }
-                     thread->setExitingInGenerator(true);
-                     break;
-                  case PTRACE_EVENT_FORK: 
+                    }
+                    thread->setExitingInGenerator(true);
+                    break;
+                  case PTRACE_EVENT_FORK:
                   case PTRACE_EVENT_CLONE: {
                      if (!proc || !thread) {
-                        //Legacy event on old process. 
+                        //Legacy event on old process.
                         return true;
                      }
                      pthrd_printf("Decoded event to %s on %d/%d\n",
                                   ext == PTRACE_EVENT_FORK ? "fork" : "clone",
                                   proc->getPid(), thread->getLWP());
                      unsigned long cpid_l = 0x0;
-                     int result = do_ptrace((pt_req) PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(), 
+                     int result = do_ptrace((pt_req) PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(),
                                             NULL, &cpid_l);
                      if (result == -1) {
                         int error = errno;
@@ -440,14 +451,14 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                            proc->setLastError(err_exited, "Process exited during operation");
                         return false;
                      }
-                     pid_t cpid = (pid_t) cpid_l;                     
+                     pid_t cpid = (pid_t) cpid_l;
                      archevent->child_pid = cpid;
                      postpone = true;
                      break;
                   }
                   case PTRACE_EVENT_EXEC: {
                      if (!proc || !thread) {
-                        //Legacy event on old process. 
+                        //Legacy event on old process.
                         return true;
                      }
                      pthrd_printf("Decoded event to exec on %d/%d\n",
@@ -474,19 +485,21 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             }
             Dyninst::MachRegisterVal addr;
             Dyninst::Address adjusted_addr;
+
             result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
+
             if (!result) {
                perr_printf("Failed to read PC address upon SIGTRAP\n");
                return false;
             }
             adjusted_addr = adjustTrapAddr(addr, proc->getTargetArch());
-
             if (rpcMgr()->isRPCTrap(thread, adjusted_addr)) {
                pthrd_printf("Decoded event to rpc completion on %d/%d at %lx\n",
                             proc->getPid(), thread->getLWP(), adjusted_addr);
                event = Event::ptr(new EventRPC(thread->runningRPC()->getWrapperForDecode()));
                break;
             }
+
             bp_instance *clearingbp = thread->isClearingBreakpoint();
             if (thread->singleStep() && clearingbp) {
                 pthrd_printf("Decoded event to breakpoint restore\n");
@@ -519,7 +532,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                     pthrd_printf("Decoded event to pre-syscall on %d/%d\n",
                             proc->getPid(), thread->getLWP());
                     event = Event::ptr(new EventPreSyscall());
-                    break; 
+                    break;
                 } else {
                     pthrd_printf("Decoded event to post-syscall on %d/%d\n",
                             proc->getPid(), thread->getLWP());
@@ -527,9 +540,9 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                     break;
                 }
             }
-            
+
             if (ibp && ibp != clearingbp) {
-               pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
+               pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(),
                             thread->getLWP(), adjusted_addr);
                EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_eventBreakpoint(adjusted_addr, ibp, thread)));
                event = event_bp;
@@ -596,7 +609,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                if (!result) {
                   fprintf(stderr, "Failed to read PC address upon crash\n");
                }
-               fprintf(stderr, "Got crash at %lx\n", addr);               
+               fprintf(stderr, "Got crash at %lx\n", addr);
                while (1) sleep(1);
             }
 #endif
@@ -605,10 +618,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       if (event && event->getSyncType() == Event::unset)
          event->setSyncType(Event::sync_thread);
    }
-   else if ((WIFEXITED(status) || WIFSIGNALED(status)) && 
-            (!proc || !thread || thread->getGeneratorState().getState() == int_thread::exited)) 
+   else if ((WIFEXITED(status) || WIFSIGNALED(status)) &&
+            (!proc || !thread || thread->getGeneratorState().getState() == int_thread::exited))
    {
-      //This can happen if the debugger process spawned the 
+      //This can happen if the debugger process spawned the
       // child, but then detached.  We recieve the child process
       // exit (because we're the parent), but are no longer debugging it.
       // We'll just drop this event on the ground.
@@ -668,7 +681,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
          event = Event::ptr(new EventFork(EventType::Post, child->pid));
       else if (parent->event_ext == PTRACE_EVENT_CLONE)
          event = Event::ptr(new EventNewLWP(child->pid, (int) int_thread::as_created_attached));
-      else 
+      else
          assert(0);
       event->setSyncType(Event::sync_thread);
       ProcPool()->removeDeadThread(child->pid);
@@ -677,8 +690,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    }
    else {
        if (archevent && ProcPool()->deadThread(archevent->pid)) {
-	   delete archevent;
-	   return true;
+	      delete archevent;
+	      return true;
        }
 
        //Single event decoded
@@ -718,7 +731,7 @@ int_process *int_process::createProcess(Dyninst::PID p, std::string e)
    return static_cast<int_process *>(newproc);
 }
 
-int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
+int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::vector<std::string> envp,
         std::map<int,int> f)
 {
    LinuxPtrace::getPtracer(); //Make sure ptracer thread is initialized
@@ -747,17 +760,17 @@ int linux_process::computeAddrWidth(Dyninst::Architecture me)
     * The names are from a set of small integers (ranging from 0 to 37 at
     * the time of this writing).  Since these are small numbers, the top half
     * of name word will be 0x0 on 64 bit processes.  On 32-bit process this
-    * word will contain a value, of which some should be non-zero.  
+    * word will contain a value, of which some should be non-zero.
     *
     * We'll thus check every word that is 1 mod 4.  If all are 0x0 we assume we're
     * looking at a 64-bit process.
     **/
    uint32_t buffer[256];
    char auxv_name[64];
-   
+
    snprintf(auxv_name, 64, "/proc/%d/auxv", getPid());
    int fd = open(auxv_name, O_RDONLY);
-   if (fd == -1) { 
+   if (fd == -1) {
       pthrd_printf("Couldn't open %s to determine address width: %s",
                    auxv_name, strerror(errno));
       return -1;
@@ -773,10 +786,12 @@ int linux_process::computeAddrWidth(Dyninst::Architecture me)
    switch (me) {
       case Arch_x86:
       case Arch_x86_64:
+      case Arch_aarch64:
          start_index = 1;
          break;
       case Arch_ppc32:
       case Arch_ppc64:
+      case Arch_aarch32:
          start_index = 0;
          break;
       case Arch_none:
@@ -796,7 +811,7 @@ int linux_process::computeAddrWidth(Dyninst::Architecture me)
    return word_size;
 }
 
-linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
                              std::vector<std::string> envp,  std::map<int,int> f) :
    int_process(p, e, a, envp, f),
    resp_process(p, e, a, envp, f),
@@ -843,7 +858,7 @@ bool linux_process::plat_create_int()
    if (pid == -1)
    {
       int errnum = errno;
-      pthrd_printf("Could not fork new process for %s: %s\n", 
+      pthrd_printf("Could not fork new process for %s: %s\n",
                    executable.c_str(), strerror(errnum));
       setLastError(err_internal, "Unable to fork new process");
       return false;
@@ -884,7 +899,7 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
         char sstat[256];
         char *status;
         int paren_level = 1;
-        
+
         snprintf(proc_stat_name, 128, "/proc/%d/stat", *i);
         FILE *sfile = fopen(proc_stat_name, "r");
 
@@ -922,7 +937,7 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
 // Ubuntu 10.10 and other hardened systems do not allow arbitrary ptrace_attaching; instead
 // you may only attach to a child process (https://wiki.ubuntu.com/SecurityTeam/Roadmap/KernelHardening)
 //
-// We can detect this and warn the user; however, it takes root to disable it. 
+// We can detect this and warn the user; however, it takes root to disable it.
 
 #include <fstream>
 
@@ -944,7 +959,7 @@ static void warn_user_ptrace_restrictions() {
       cerr << "For more information, see https://wiki.ubuntu.com/SecurityTeam/Roadmap/KernelHardening" << endl;
       is_restricted_ptrace = true;
     }
-  } 
+  }
 }
 
 
@@ -986,7 +1001,7 @@ bool linux_process::plat_attach(bool, bool &)
            return false;
        }
    }
-   
+
    return true;
 }
 
@@ -1037,19 +1052,19 @@ bool linux_process::plat_forked()
    return true;
 }
 
-bool linux_process::plat_readMem(int_thread *thr, void *local, 
+bool linux_process::plat_readMem(int_thread *thr, void *local,
                                  Dyninst::Address remote, size_t size)
 {
    return LinuxPtrace::getPtracer()->ptrace_read(remote, size, local, thr->getLWP());
 }
 
-bool linux_process::plat_writeMem(int_thread *thr, const void *local, 
+bool linux_process::plat_writeMem(int_thread *thr, const void *local,
                                   Dyninst::Address remote, size_t size, bp_write_t)
 {
    return LinuxPtrace::getPtracer()->ptrace_write(remote, size, local, thr->getLWP());
 }
 
-linux_x86_process::linux_x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+linux_x86_process::linux_x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
                                      std::vector<std::string> envp, std::map<int,int> f) :
    int_process(p, e, a, envp, f),
    resp_process(p, e, a, envp, f),
@@ -1086,7 +1101,7 @@ bool linux_x86_process::plat_supportHWBreakpoint()
    return true;
 }
 
-linux_ppc_process::linux_ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+linux_ppc_process::linux_ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
                                      std::vector<std::string> envp, std::map<int,int> f) :
    int_process(p, e, a, envp, f),
    resp_process(p, e, a, envp, f),
@@ -1119,7 +1134,7 @@ Dyninst::Architecture linux_ppc_process::getTargetArch()
 }
 
 //steve: added
-linux_arm_process::linux_arm_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+linux_arm_process::linux_arm_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
                                      std::vector<std::string> envp, std::map<int,int> f) :
    int_process(p, e, a, envp, f),
    resp_process(p, e, a, envp, f),
@@ -1148,6 +1163,7 @@ Dyninst::Architecture linux_arm_process::getTargetArch()
    }
    int addr_width = computeAddrWidth(sizeof(void *) == 4 ? Arch_aarch32 : Arch_aarch64);
    arch = (addr_width == 4) ? Dyninst::Arch_aarch32 : Dyninst::Arch_aarch64;
+   assert(arch == Dyninst::Arch_aarch64); //should be aarch64 at this stage
    return arch;
 }
 
@@ -1165,19 +1181,19 @@ void linux_thread::fake_async_main(void *)
          continue;
 
       getResponses().lock();
-      
+
       //Pick a random async response to fill.
       int size = fake_async_msgs.size();
       int elem = rand() % size;
       unsigned int id = fake_async_msgs[elem];
       fake_async_msgs[elem] = fake_async_msgs[size-1];
       fake_async_msgs.pop_back();
-      
+
       pthrd_printf("Faking response for event %d\n", id);
       //Pull the response from the list
       response::ptr resp = getResponses().rmResponse(id);
       assert(resp != response::ptr());
-      
+
       //Add data to the response.
       reg_response::ptr regr = resp->getRegResponse();
       allreg_response::ptr allr = resp->getAllRegResponse();
@@ -1193,7 +1209,7 @@ void linux_thread::fake_async_main(void *)
          memr->postResponse();
       else
          assert(0);
-      
+
       Event::ptr ev = resp->getEvent();
       if (ev == Event::ptr()) {
          //Someone is blocking for this response, mark it ready
@@ -1209,11 +1225,11 @@ void linux_thread::fake_async_main(void *)
          async_ev->setThread(ev->getThread());
          async_ev->setSyncType(Event::async);
          async_ev->addSubservientEvent(ev);
-         
+
          pthrd_printf("Enqueueing Async event with subservient %s to mailbox\n", ev->name().c_str());
          mbox()->enqueue(async_ev, true);
       }
-      
+
       getResponses().signal();
       getResponses().unlock();
    }
@@ -1238,14 +1254,14 @@ bool linux_process::plat_readMemAsync(int_thread *thr, Dyninst::Address addr, me
 {
    bool b = plat_readMem(thr, result->getBuffer(), addr, result->getSize());
    if (!b) {
-      result->markError(getLastError());      
+      result->markError(getLastError());
    }
    result->setLastBase(addr);
    fake_async_msgs.push_back(result->getID());
    return true;
 }
 
-bool linux_process::plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr, size_t size, 
+bool linux_process::plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr, size_t size,
                                        result_response::ptr result, bp_write_t bp_write)
 {
    bool b = plat_writeMem(thr, local, addr, size, bp_write);
@@ -1270,7 +1286,7 @@ bool linux_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
    return findProcLWPs(pid, lwps);
 }
 
-bool linux_process::plat_supportLWPCreate() 
+bool linux_process::plat_supportLWPCreate()
 {
    return true;
 }
@@ -1314,7 +1330,7 @@ bool linux_thread::plat_cont()
       case exited:
       case errorstate:
       case detached:
-         perr_printf("Continue attempted on thread in invalid state %s\n", 
+         perr_printf("Continue attempted on thread in invalid state %s\n",
                      int_thread::stateStr(handler_state.getState()));
          return false;
       case neonatal_intermediate:
@@ -1341,7 +1357,7 @@ bool linux_thread::plat_cont()
    // Don't continue the thread with the pending signal if there is a pending stop.
    // Wait until the user sees the signal event to deliver the signal to the process.
    //
-   
+
    int tmpSignal = continueSig_;
    if( hasPendingStop()) {
        tmpSignal = 0;
@@ -1364,7 +1380,7 @@ bool linux_thread::plat_cont()
         pthrd_printf("Calling PTRACE_SYSCALL on %d with signal %d\n", lwp, tmpSignal);
         result = do_ptrace((pt_req) PTRACE_SYSCALL, lwp, NULL, data);
    }
-   else 
+   else
    {
       pthrd_printf("Calling PTRACE_CONT on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_CONT, lwp, NULL, data);
@@ -1448,8 +1464,8 @@ static bool t_kill(int pid, int sig)
   return (result == 0);
 }
 
-int_thread *int_thread::createThreadPlat(int_process *proc, 
-                                         Dyninst::THR_ID thr_id, 
+int_thread *int_thread::createThreadPlat(int_process *proc,
+                                         Dyninst::THR_ID thr_id,
                                          Dyninst::LWP lwp_id,
                                          bool initial_thrd)
 {
@@ -1507,7 +1523,7 @@ void linux_thread::setOptions()
       options |= PTRACE_O_TRACEFORK;
 
    if (options) {
-      int result = do_ptrace((pt_req) PTRACE_SETOPTIONS, lwp, NULL, 
+      int result = do_ptrace((pt_req) PTRACE_SETOPTIONS, lwp, NULL,
                           (void *) options);
       if (result == -1) {
          int error = errno;
@@ -1515,7 +1531,7 @@ void linux_thread::setOptions()
          if (error == ESRCH)
             setLastError(err_exited, "Process exited during operation");
       }
-   }   
+   }
 }
 
 bool linux_thread::unsetOptions()
@@ -1569,7 +1585,7 @@ bool linux_process::plat_detach(result_response::ptr, bool leave_stopped)
    GeneratorLinux* g = dynamic_cast<GeneratorLinux*>(Generator::getDefaultGenerator());
    assert(g);
    g->evictFromWaitpid();
-   
+
    return !had_error;
 }
 
@@ -1623,7 +1639,7 @@ bool linux_process::preTerminate() {
     // On some Linux versions (currently only identified on our power platform),
     // a force terminate can fail to actually kill a process due to some OS level
     // race condition. The result is that some threads in a process are stopped
-    // instead of exited and for some reason, continues will not continue the 
+    // instead of exited and for some reason, continues will not continue the
     // process. This can be detected because some OS level structures (such as pipes)
     // still exist for the terminated process
 
@@ -1644,11 +1660,11 @@ bool linux_process::preTerminate() {
       }
    }
 #endif
-   
-   // We don't want to be mixing termination and breakpoint stepping. 
+
+   // We don't want to be mixing termination and breakpoint stepping.
    removeAllBreakpoints();
 
-   // And put things back where we found them. 
+   // And put things back where we found them.
    throwNopEvent();
 
    pthrd_printf("Waiting for process %d to resynchronize before terminating\n", getPid());
@@ -1690,11 +1706,11 @@ Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsi
 
 bool linux_process::fork_setTracking(FollowFork::follow_t f)
 {
-   int_threadPool::iterator i;      
+   int_threadPool::iterator i;
    for (i = threadPool()->begin(); i != threadPool()->end(); i++) {
       int_thread *thrd = *i;
       if (thrd->getUserState().getState() != int_thread::stopped) {
-         perr_printf("Could not set fork tracking because thread %d/%d was not stopped\n", 
+         perr_printf("Could not set fork tracking because thread %d/%d was not stopped\n",
                      getPid(), thrd->getLWP());
          setLastError(err_notstopped, "All threads must be stopped to change fork tracking\n");
          return false;
@@ -1753,7 +1769,7 @@ bool linux_process::readStatM(unsigned long &stk, unsigned long &heap, unsigned 
    char path[64];
    snprintf(path, 64, "/proc/%d/statm", getPid());
    path[63] = '\0';
-   
+
    unsigned long size, resident, shared, text, lib, data, dt;
    FILE *f = fopen(path, "r");
    if (!f) {
@@ -1761,7 +1777,7 @@ bool linux_process::readStatM(unsigned long &stk, unsigned long &heap, unsigned 
       setLastError(err_internal, "Could not access /proc");
       return false;
    }
-   fscanf(f, "%lu %lu %lu %lu %lu %lu %lu", &size, &resident, &shared, 
+   fscanf(f, "%lu %lu %lu %lu %lu %lu %lu", &size, &resident, &shared,
           &text, &lib, &data, &dt);
    fclose(f);
    unsigned long page_size = getpagesize();
@@ -1776,7 +1792,7 @@ bool linux_process::plat_getStackUsage(MemUsageResp_t *resp)
 {
    unsigned long stk, heap, shrd;
    bool result = readStatM(stk, heap, shrd);
-   if (!result) 
+   if (!result)
       return false;
    *resp->get() = stk;
    resp->done();
@@ -1787,7 +1803,7 @@ bool linux_process::plat_getHeapUsage(MemUsageResp_t *resp)
 {
    unsigned long stk, heap, shrd;
    bool result = readStatM(stk, heap, shrd);
-   if (!result) 
+   if (!result)
       return false;
    *resp->get() = heap;
    resp->done();
@@ -1798,7 +1814,7 @@ bool linux_process::plat_getSharedUsage(MemUsageResp_t *resp)
 {
    unsigned long stk, heap, shrd;
    bool result = readStatM(stk, heap, shrd);
-   if (!result) 
+   if (!result)
       return false;
    *resp->get() = shrd;
    resp->done();
@@ -1827,18 +1843,18 @@ static void init_dynreg_to_user()
    static Mutex<> init_lock;
    if (initialized)
       return;
-      
+
    init_lock.lock();
    if (initialized) {
       init_lock.unlock();
       return;
    }
-    
+
    //Match the order of the 'user' structure to map registers correctly.
    int cur = 0;
    if (sizeof(void*) == 8) {
       /**
-       * This is annoying, struct user is different for 64-bit processes debugging 
+       * This is annoying, struct user is different for 64-bit processes debugging
        * 32-bit processes.
        **/
       //r15
@@ -1949,7 +1965,7 @@ static void init_dynreg_to_user()
    dynreg_to_user[x86_64::dr5]   = make_pair(cur+=8, 8);
    dynreg_to_user[x86_64::dr6]   = make_pair(cur+=8, 8);
    dynreg_to_user[x86_64::dr7]   = make_pair(cur+=8, 8);
- 
+
    cur = 0;
    if(sizeof(void *) == 8 ) {
        dynreg_to_user[ppc32::r0]        = make_pair(cur, 4);
@@ -2085,6 +2101,45 @@ static void init_dynreg_to_user()
    dynreg_to_user[ppc64::dar]        = make_pair(cur+=8, 8);
    dynreg_to_user[ppc64::dsisr]      = make_pair(cur+=8, 8);
 
+
+   //according to /sys/user.h
+   cur = 0;
+   int step = 8;
+   dynreg_to_user[aarch64::x0]         = make_pair(cur,    8);
+   dynreg_to_user[aarch64::x1]         = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x2]         = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x3]         = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x4]         = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x5]         = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x6]         = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x7]         = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x8]         = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x9]         = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x10]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x11]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x12]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x13]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x14]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x15]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x16]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x17]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x18]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x19]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x20]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x21]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x22]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x23]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x24]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x25]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x26]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x27]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x28]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x29]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::x30]        = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::sp]         = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::pc]         = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::pstate]     = make_pair(cur+=step, 8);
+
    initialized = true;
 
    init_lock.unlock();
@@ -2095,18 +2150,26 @@ static void init_dynreg_to_user()
 #elif defined(arch_power)
 //Kernel value for PPC_PTRACE_SETREGS 0x99
 #define MY_PTRACE_GETREGS 12
-//steve: added
 #elif defined(arch_aarch64)
-#warning "this value is not verified yet"
-//this getregs value is the same as PPC as online doc says.
-#define MY_PTRACE_GETREGS 12
 #endif
 
+#if defined(arch_aarch64)
+//31 GPR + SP + PC + PSTATE
+#define MAX_USER_REGS 34
+#define MAX_USER_SIZE (34*8)
+#else
 //912 is currently the x86_64 size, 128 bytes for just-because padding
 #define MAX_USER_SIZE (912+128)
+#endif
 bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 {
+
+#if defined(MY_PTRACE_GETREGS)
    static bool have_getregs = true;
+#else
+#define MY_PTRACE_GETREGS 0
+   static bool have_getregs = false;
+#endif
    static bool tested_getregs = false;
 
 #if defined(bug_registers_after_exit)
@@ -2148,12 +2211,26 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
    }
    if (!have_getregs)
    {
+#if defined(arch_aarch64)
+        elf_gregset_t regs;
+        struct iovec iovec;
+        iovec.iov_base = &regs;
+        iovec.iov_len = sizeof(regs);
+        long ret = do_ptrace((pt_req)PTRACE_GETREGSET, lwp, (void *)NT_PRSTATUS, &iovec);
+        if( ret < 0){
+            perr_printf("-AARCH64: Unable to fetch registers!\n");
+            return false;
+        }
+        memcpy(user_area, regs, iovec.iov_len);
+#else
       for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++) {
          const MachRegister reg = i->first;
          if (reg.getArchitecture() != curplat)
             continue;
          long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) i->second.first, NULL);
-         if (errno == -1) {
+         //errno == -1 is not sufficient here for aarch4
+         //if (errno == -1) {
+         if (errno == -1 || result == -1) {
             int error = errno;
             perr_printf("Error reading registers from %d at %x\n", lwp, i->second.first);
             if (error == ESRCH)
@@ -2174,6 +2251,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
             assert(0);
          }
       }
+#endif
    }
 
    //If a sentinel assert fails, then someone forgot to increase MAX_USER_SIZE
@@ -2181,37 +2259,37 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
    assert(sentinel1 == 0xfeedface);
    assert(sentinel2 == 0xfeedface);
    if(sentinel1 != 0xfeedface || sentinel2 != 0xfeedface) return false;
-   
 
-   regpool.regs.clear();
-   for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++)
-   {
-      const MachRegister reg = i->first;
-      MachRegisterVal val = 0;
-      if (reg.getArchitecture() != curplat)
-         continue;
-      const unsigned int offset = i->second.first;
-      const unsigned int size = i->second.second;
-      if (size == 4) {
-         if( sizeof(void *) == 8 ) {
-            // Avoid endian issues
-            uint64_t tmpVal = *((uint64_t *) (user_area+offset));
-            val = (uint32_t) tmpVal;
-         }else{
-            val = *((uint32_t *) (user_area+offset));
-         }
-      }
-      else if (size == 8) {
-         val = *((uint64_t *) (user_area+offset));
-      }
-      else {
-         assert(0);
-      }
 
-     pthrd_printf("Register %s has value %lx, offset %d\n", reg.name().c_str(), val, offset);
-      regpool.regs[reg] = val;
-   }
-   return true;
+    regpool.regs.clear();
+    for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++)
+    {
+        const MachRegister reg = i->first;
+        MachRegisterVal val = 0;
+        if (reg.getArchitecture() != curplat)
+           continue;
+        const unsigned int offset = i->second.first;
+        const unsigned int size = i->second.second;
+        if (size == 4) {
+           if( sizeof(void *) == 8 ) {
+              // Avoid endian issues
+              uint64_t tmpVal = *((uint64_t *) (user_area+offset));
+              val = (uint32_t) tmpVal;
+           }else{
+              val = *((uint32_t *) (user_area+offset));
+           }
+        }
+        else if (size == 8) {
+           val = *((uint64_t *) (user_area+offset));
+        }
+        else {
+           assert(0);
+        }
+
+        pthrd_printf("Register %2s has value %16lx, offset %d\n", reg.name().c_str(), val, offset);
+        regpool.regs[reg] = val;
+    }
+    return true;
 }
 
 bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
@@ -2227,7 +2305,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    }
 #endif
 
-   if (x86::fsbase == reg || x86::gsbase == reg 
+   if (x86::fsbase == reg || x86::gsbase == reg
        || x86_64::fsbase == reg || x86_64::gsbase == reg) {
       return getSegmentBase(reg, val);
    }
@@ -2244,12 +2322,33 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    const unsigned size = i->second.second;
    assert(sizeof(val) >= size);
    if(sizeof(val) < size) return false;
-   
+
    val = 0;
-   unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
+
+/*
+ * Here it is different for aarch64,
+ * I have to use GETREGSET instead of PEEKUSER
+ */
+   unsigned long result;
+#if defined(arch_aarch64)
+   elf_gregset_t regs;
+   struct iovec iovec;
+   iovec.iov_base = &regs;
+   iovec.iov_len = sizeof(regs);
+   long ret = do_ptrace((pt_req)PTRACE_GETREGSET, lwp, (void *)NT_PRSTATUS, &iovec);
+   if( ret < 0){
+       perr_printf("ERROR-ARM: Unable to fetch registers!\n");
+       return false;
+   }
+   result = regs[(int)(offset/8)]; //30, 31(sp), 32(pc), 33(pstate)
+#else
+   result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
+#endif
+   //unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
    if (errno != 0) {
       int error = errno;
       perr_printf("Error reading registers from %d: %s\n", lwp, strerror(errno));
+      pthrd_printf("ARM-Info: offset(%d-%d)\n", (void *)(unsigned long)offset, offset/8);
       if (error == ESRCH)
          setLastError(err_internal, "Could not read register from thread");
       return false;
@@ -2262,14 +2361,21 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
 
 #if defined(PT_SETREGS)
 #define MY_PTRACE_SETREGS PT_SETREGS
+#elif defined(arch_aarch64)
+//#define MY_PTRACE_SETREGS PTRACE_SETREGSET
 #else
 //Common kernel value for PTRACE_SETREGS
 #define MY_PTRACE_SETREGS 13
 #endif
 
-bool linux_thread::plat_setAllRegisters(int_registerPool &regpool) 
+bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
 {
+#if defined(MY_PTRACE_SETREGS)
    static bool have_setregs = true;
+#else
+#define MY_PTRACE_SETREGS 0
+   static bool have_setregs = false;
+#endif
    static bool tested_setregs = false;
 #if defined(bug_registers_after_exit)
    /* On some kernels, attempting to read registers from a thread in a pre-Exit
@@ -2281,17 +2387,17 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
        return false;
    }
 #endif
-   
+
 
    if (have_setregs)
    {
       unsigned char user_area[MAX_USER_SIZE];
-      //Fill in 'user_area' with the contents of regpool.   
+      //Fill in 'user_area' with the contents of regpool.
       if( !plat_convertToSystemRegs(regpool, user_area) ) return false;
-      
+
       //Double up the user_area parameter because if MY_PTRACE_SETREGS is
       // defined to PPC_PTRACE_SETREGS than the parameters data and addr
-      // pointers get swapped (just because linux hates us).  Since the 
+      // pointers get swapped (just because linux hates us).  Since the
       // other is ignored, we pass it in twice.
       int result = do_ptrace((pt_req) MY_PTRACE_SETREGS, lwp, user_area, user_area);
       if (result != 0) {
@@ -2310,23 +2416,52 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
    }
    if (!have_setregs)
    {
+#if defined(arch_aarch64)
+        pthrd_printf("ARM-info: setAllregisters.\n");
+        elf_gregset_t regs;
+        struct iovec iovec;
+        long ret;
+        iovec.iov_base = &regs;
+        iovec.iov_len = sizeof(regs);
+
+        //set regs
+        for (int_registerPool::iterator i = regpool.regs.begin(); i != regpool.regs.end(); i++) {
+            dynreg_to_user_t::iterator di = dynreg_to_user.find(i->first);
+            assert(di != dynreg_to_user.end());
+            int regs_pos = (int)(di->second.first / sizeof(unsigned long));
+            assert( regs_pos < MAX_USER_REGS);
+            regs[regs_pos] = i->second;
+        }
+
+        //store them back
+        ret = do_ptrace((pt_req)PTRACE_SETREGSET, lwp, (void *)NT_PRSTATUS, &iovec);
+        if( ret < 0 ){
+            int error = errno;
+            perr_printf("ERROR-ARM: Unable to set registers: %s\n", strerror(error) );
+            if (error == ESRCH)
+               setLastError(err_exited, "Process exited during operation");
+            else
+               setLastError(err_internal, "Could not read user area from thread");
+            return false;
+        }
+#else //not aarch64
       Dyninst::Architecture curplat = llproc()->getTargetArch();
       init_dynreg_to_user();
       for (int_registerPool::iterator i = regpool.regs.begin(); i != regpool.regs.end(); i++) {
          assert(i->first.getArchitecture() == curplat);
          dynreg_to_user_t::iterator di = dynreg_to_user.find(i->first);
          assert(di != dynreg_to_user.end());
-         
+
          //Don't treat errors on these registers as real errors.
          bool not_present = true;
          if (curplat == Arch_ppc32)
-            not_present = (i->first == ppc32::mq || i->first == ppc32::dar || 
+            not_present = (i->first == ppc32::mq || i->first == ppc32::dar ||
                            i->first == ppc32::dsisr || i->first == ppc32::trap ||
                            i->first == ppc32::or3);
-         
+
          if (not_present)
             continue;
-         
+
          int result;
          uintptr_t res;
          if (Dyninst::getArchAddressWidth(curplat) == 4) {
@@ -2336,7 +2471,8 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
             res = (uint64_t) i->second;
          }
          result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) (unsigned long) di->second.first, (void *) res);
-         
+
+         //if (result != 0) {
          if (result != 0) {
             int error = errno;
             perr_printf("Error setting register %s for %d at %d: %s\n", i->first.name().c_str(),
@@ -2348,6 +2484,7 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
             return false;
          }
       }
+#endif
    }
 
    pthrd_printf("Successfully set the values of all registers for %d\n", lwp);
@@ -2373,20 +2510,23 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
          int rclass = (int) reg.regClass();
 
          switch (llproc()->getTargetArch()) {
-            //In this case our definition of GPR is anything stored in the elf_gregset_t of 
+            //In this case our definition of GPR is anything stored in the elf_gregset_t of
             // the user struct.
             case Dyninst::Arch_x86:
-               is_gpr = ((rclass == x86::GPR) || (rclass == x86::FLAG) || 
+               is_gpr = ((rclass == x86::GPR) || (rclass == x86::FLAG) ||
                          (rclass == x86::MISC) || (rclass == x86::SEG) || !rclass);
                break;
             case Dyninst::Arch_x86_64:
-               is_gpr = ((rclass == x86_64::GPR) || (rclass == x86_64::FLAG) || 
+               is_gpr = ((rclass == x86_64::GPR) || (rclass == x86_64::FLAG) ||
                          (rclass == x86_64::MISC) || (rclass == x86_64::SEG) || !rclass);
                break;
             case Dyninst::Arch_ppc32:
                is_gpr = true;
                break;
             case Dyninst::Arch_ppc64:
+               is_gpr = true;
+               break;
+            case Dyninst::Arch_aarch64:
                is_gpr = true;
                break;
             default:
@@ -2405,11 +2545,11 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
       assert(offset+size < MAX_USER_SIZE);
 
       if ((offset+size) > sizeof(prgregset_t)) continue;
-      
+
       int_registerPool::reg_map_t::const_iterator j = regpool.regs.find(reg);
       assert(j != regpool.regs.end());
       val = j->second;
-      
+
       if (size == 4) {
           if( sizeof(void *) == 8 ) {
               *((uint64_t *) (user_area+offset)) = (uint64_t) val;
@@ -2453,14 +2593,14 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    init_dynreg_to_user();
    dynreg_to_user_t::iterator i = dynreg_to_user.find(reg);
    if (reg.getArchitecture() != llproc()->getTargetArch() ||
-       i == dynreg_to_user.end()) 
+       i == dynreg_to_user.end())
    {
       setLastError(err_badparam, "Invalid register passed to setRegister");
       perr_printf("User passed invalid register %s to plat_setRegister, arch is %x\n",
                   reg.name().c_str(), (unsigned int) reg.getArchitecture());
       return false;
    }
-   
+
    const unsigned int offset = i->second.first;
    const unsigned int size = i->second.second;
    int result;
@@ -2474,9 +2614,37 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    else {
       assert(0);
       return false;
-      
+
    }
+
+#if defined(arch_aarch64)
+   elf_gregset_t regs;
+   struct iovec iovec;
+   long ret;
+   iovec.iov_base = &regs;
+   iovec.iov_len = sizeof(regs);
+   //first get
+   ret = do_ptrace((pt_req)PTRACE_GETREGSET, lwp, (void *)NT_PRSTATUS, &iovec);
+   if( ret < 0){
+       perr_printf("ERROR-ARM: Unable to fetch registers!\n");
+       return false;
+   }
+
+   //set the corresponding reg
+   assert( (int)(offset/8) < 34 );
+   regs[(int)(offset/8)] = value;
+
+   //store them back
+   ret = do_ptrace((pt_req)PTRACE_SETREGSET, lwp, (void *)NT_PRSTATUS, &iovec);
+   if( ret < 0 ){
+       perr_printf("ERROR-ARM: Unable to set registers!\n");
+       return false;
+   }
+   result = ret;
+#else
    result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) (uintptr_t)offset, (void *) value);
+#endif
+   //result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) (uintptr_t)offset, (void *) value);
    pthrd_printf("Set register %s (size %u, offset %u) to value %lx\n", reg.name().c_str(), size, offset, val);
    if (result != 0) {
       int error = errno;
@@ -2488,7 +2656,7 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
                   reg.name().c_str(), lwp, strerror(error), error);
       return false;
    }
-   
+
    return true;
 }
 
@@ -2502,7 +2670,7 @@ bool linux_thread::plat_getAllRegistersAsync(allreg_response::ptr result)
    return true;
 }
 
-bool linux_thread::plat_getRegisterAsync(Dyninst::MachRegister reg, 
+bool linux_thread::plat_getRegisterAsync(Dyninst::MachRegister reg,
                                          reg_response::ptr result)
 {
    Dyninst::MachRegisterVal val = 0;
@@ -2530,7 +2698,7 @@ bool linux_thread::plat_setAllRegistersAsync(int_registerPool &pool,
    return true;
 }
 
-bool linux_thread::plat_setRegisterAsync(Dyninst::MachRegister reg, 
+bool linux_thread::plat_setRegisterAsync(Dyninst::MachRegister reg,
                                          Dyninst::MachRegisterVal val,
                                          result_response::ptr result)
 {
@@ -2554,12 +2722,12 @@ bool linux_thread::attach()
 
    if (attach_status != as_needs_attach)
    {
-      pthrd_printf("thread::attach called on running thread %d/%d, should " 
+      pthrd_printf("thread::attach called on running thread %d/%d, should "
                    "be auto-attached.\n", llproc()->getPid(), lwp);
       return true;
    }
 
-   pthrd_printf("Calling PTRACE_ATTACH on thread %d/%d\n", 
+   pthrd_printf("Calling PTRACE_ATTACH on thread %d/%d\n",
                 llproc()->getPid(), lwp);
    int result = do_ptrace((pt_req) PTRACE_ATTACH, lwp, NULL, NULL);
    if (result != 0) {
@@ -2636,7 +2804,7 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
 
 //Copied from /usr/include/asm/ldt.h, as it was not available on all machines
 struct linux_x86_user_desc {
-   unsigned int  entry_number;   
+   unsigned int  entry_number;
    unsigned long base_addr;
    unsigned int  limit;
    unsigned int  seg_32bit:1;
@@ -2653,7 +2821,7 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
    {
       case Arch_x86_64:
          // TODO
-         // use ptrace_arch_prctl     
+         // use ptrace_arch_prctl
          pthrd_printf("Segment bases on x86_64 not implemented\n");
          return false;
       case Arch_x86: {
@@ -2680,7 +2848,7 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
          entryNumber = segmentSelectorVal / 8;
 
          pthrd_printf("Get segment base doing PTRACE with entry %lu\n", entryNumber);
-         long result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, 
+         long result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA,
                                  lwp, (void *) entryNumber, (void *) &entryDesc);
          if (result == -1 && errno != 0) {
             int error = errno;
@@ -2729,7 +2897,7 @@ linux_ppc_thread::~linux_ppc_thread()
 {
 }
 
-//steve: added 
+//steve: added
 linux_arm_thread::linux_arm_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
    thread_db_thread(p, t, l),
@@ -2742,7 +2910,7 @@ linux_arm_thread::~linux_arm_thread()
 {
 }
 
-ArchEventLinux::ArchEventLinux(bool inter_) : 
+ArchEventLinux::ArchEventLinux(bool inter_) :
    status(0),
    pid(NULL_PID),
    interrupted(inter_),
@@ -2752,17 +2920,17 @@ ArchEventLinux::ArchEventLinux(bool inter_) :
 {
 }
 
-ArchEventLinux::ArchEventLinux(pid_t p, int s) : 
+ArchEventLinux::ArchEventLinux(pid_t p, int s) :
    status(s),
-   pid(p), 
-   interrupted(false), 
+   pid(p),
+   interrupted(false),
    error(0),
    child_pid(NULL_PID),
    event_ext(0)
 {
 }
 
-ArchEventLinux::ArchEventLinux(int e) : 
+ArchEventLinux::ArchEventLinux(int e) :
    status(0),
    pid(NULL_PID),
    interrupted(false),
@@ -2771,7 +2939,7 @@ ArchEventLinux::ArchEventLinux(int e) :
    event_ext(0)
 {
 }
-      
+
 ArchEventLinux::~ArchEventLinux()
 {
 }
@@ -2789,12 +2957,12 @@ bool ArchEventLinux::findPairedEvent(ArchEventLinux* &parent, ArchEventLinux* &c
       //'this' event  is a child, search list for a parent
       is_parent = false;
    }
-   else 
+   else
    {
       assert(0);
       return false;
    }
-   
+
    vector<ArchEventLinux *>::iterator i;
    for (i = pending_events.begin(); i != pending_events.end(); i++) {
       parent = is_parent ? this : *i;
@@ -2834,7 +3002,7 @@ Handler::handler_ret_t LinuxHandleNewThr::handleEvent(Event::ptr ev)
       ProcPool()->condvar()->unlock();
    }
    assert(thr);
-                                        
+
    pthrd_printf("Setting ptrace options for new thread %d\n", thr->getLWP());
    thr->setOptions();
    return ret_success;
@@ -2898,7 +3066,7 @@ LinuxHandleForceTerminate::~LinuxHandleForceTerminate() {}
 Handler::handler_ret_t LinuxHandleForceTerminate::handleEvent(Event::ptr ev) {
    int_process *proc = ev->getProcess()->llproc();
 
-   for (int_threadPool::iterator iter = proc->threadPool()->begin(); 
+   for (int_threadPool::iterator iter = proc->threadPool()->begin();
         iter != proc->threadPool()->end(); ++iter) {
       do_ptrace((pt_req) PTRACE_DETACH, (*iter)->getLWP(), NULL, NULL);
    }
@@ -3014,7 +3182,7 @@ void LinuxPtrace::main()
             break;
          case ptrace_bulkwrite:
             bret = PtraceBulkWrite(remote_addr, size, data, pid);
-            break;            
+            break;
          case unknown:
             assert(0);
       }
@@ -3035,7 +3203,7 @@ void LinuxPtrace::waitfor_ret()
 {
    cond.signal();
    cond.unlock();
-   ret_lock.wait();   
+   ret_lock.wait();
 }
 
 void LinuxPtrace::end_request()
@@ -3055,7 +3223,7 @@ long LinuxPtrace::ptrace_int(pt_req request_, pid_t pid_, void *addr_, void *dat
    data = data_;
 
    waitfor_ret();
-   
+
    long myret = ret;
    int my_errno = err;
 
@@ -3076,7 +3244,7 @@ bool LinuxPtrace::plat_create(linux_process *p)
    return result;
 }
 
-bool LinuxPtrace::ptrace_read(Dyninst::Address inTrace, unsigned size_, 
+bool LinuxPtrace::ptrace_read(Dyninst::Address inTrace, unsigned size_,
                               void *inSelf, int pid_)
 {
    start_request();
@@ -3091,7 +3259,7 @@ bool LinuxPtrace::ptrace_read(Dyninst::Address inTrace, unsigned size_,
    return result;
 }
 
-bool LinuxPtrace::ptrace_write(Dyninst::Address inTrace, unsigned size_, 
+bool LinuxPtrace::ptrace_write(Dyninst::Address inTrace, unsigned size_,
                                const void *inSelf, int pid_)
 {
    start_request();
@@ -3112,7 +3280,7 @@ void linux_process::plat_adjustSyncType(Event::ptr ev, bool gen)
    if (gen) return;
 
    if (ev->getEventType().code() != EventType::LWPDestroy ||
-       ev->getEventType().time() != EventType::Pre) 
+       ev->getEventType().time() != EventType::Pre)
       return;
 
    int_thread *thrd = ev->getThread()->llthrd();

@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -49,13 +49,13 @@
 
 using namespace std;
 
-unix_process::unix_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+unix_process::unix_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
                            std::vector<std::string> envp, std::map<int,int> f) :
    int_process(p, e, a, envp, f)
 {
 }
 
-unix_process::unix_process(Dyninst::PID pid_, int_process *p) : 
+unix_process::unix_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p)
 {
 }
@@ -78,7 +78,7 @@ void unix_process::plat_execv() {
     for (unsigned i=0; i < env.size(); ++i) {
        new_env[i] = env[i].c_str();
     }
-    new_env[env.size()] = (char *) NULL; 
+    new_env[env.size()] = (char *) NULL;
 
     for(std::map<int,int>::iterator fdit = fds.begin(),
             fdend = fds.end();
@@ -104,12 +104,12 @@ void unix_process::plat_execv() {
     }
 
     if( env.size() ) {
-        execve(executable.c_str(), const_cast<char * const *>(new_argv), 
+        execve(executable.c_str(), const_cast<char * const *>(new_argv),
                 const_cast<char * const *>(new_env));
     }else{
         execv(executable.c_str(), const_cast<char * const*>(new_argv));
     }
-    int errnum = errno;         
+    int errnum = errno;
     pthrd_printf("Failed to exec %s: %s\n", executable.c_str(), strerror(errnum));
     if (errnum == ENOENT)
         setLastError(err_nofile, "No such file");
@@ -125,7 +125,7 @@ bool unix_process::post_forked()
    ProcPool()->condvar()->lock();
 
    int_thread *thrd = threadPool()->initialThread();
-   //The new process is currently stopped, but should be moved to 
+   //The new process is currently stopped, but should be moved to
    // a running state when handlers complete.
    pthrd_printf("Setting state of initial thread after fork in %d\n",
                 getPid());
@@ -155,7 +155,7 @@ unsigned unix_process::getTargetPageSize() {
     if( !pgSize ) pgSize = getpagesize();
     return pgSize;
 }
- 
+
 bool unix_process::plat_decodeMemoryRights(Process::mem_perm& perm,
                                            unsigned long rights) {
     switch (rights) {
@@ -173,7 +173,7 @@ bool unix_process::plat_decodeMemoryRights(Process::mem_perm& perm,
 
 bool unix_process::plat_encodeMemoryRights(Process::mem_perm perm,
                                            unsigned long& rights) {
-    if (perm.isNone()) { 
+    if (perm.isNone()) {
         rights = PROT_NONE;
     } else if (perm.isR()) {
         rights = PROT_READ;

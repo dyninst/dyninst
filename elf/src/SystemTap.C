@@ -38,14 +38,14 @@ struct OperandParser {
    ArgTree::ptr newDerefAdd(ArgTree::ptr a, ArgTree::ptr b);
    ArgTree::ptr newBaseIndexScale(ArgTree::ptr base, ArgTree::ptr index, int scale);
    ArgTree::ptr newAdd(ArgTree::ptr a, ArgTree::ptr b);
-   ArgTree::ptr newRegister(const std::vector<char> &v);   
+   ArgTree::ptr newRegister(const std::vector<char> &v);
 };
 
 struct x86OperandParser : public qi::grammar<std::string::const_iterator, ArgTree::ptr(), ascii::space_type>,
                           public OperandParser
 {
    ArgTreeRule operand, shex, reg, mem_modrm_nobase, mem_modrm, modrm;
-   
+
    void createRegisterNames(Dyninst::Architecture arch);
    x86OperandParser(Dyninst::Architecture arch);
 };
@@ -54,9 +54,18 @@ struct ppcOperandParser : public qi::grammar<std::string::const_iterator, ArgTre
                           public OperandParser
 {
    ArgTreeRule operand, shex, num, reg;
-   
+
    void createRegisterNames(Dyninst::Architecture arch);
    ppcOperandParser(Dyninst::Architecture arch);
+};
+
+struct aarch64OperandParser : public qi::grammar<std::string::const_iterator, ArgTree::ptr(), ascii::space_type>,
+                          public OperandParser
+{
+   ArgTreeRule operand, shex, num, reg;
+
+   void createRegisterNames(Dyninst::Architecture arch);
+   aarch64OperandParser(Dyninst::Architecture arch);
 };
 
 }
@@ -76,7 +85,7 @@ SystemTapEntries *SystemTapEntries::createSystemTapEntries(Elf_X *file_)
       delete st;
       st = NULL;
    }
-   
+
    all_entries.insert(make_pair(file_, st));
    return st;
 }
@@ -104,7 +113,7 @@ bool SystemTapEntries::parse() {
       case EM_PPC64:
          arch = Arch_ppc64;
          break;
-   }   
+   }
    word_size = getArchAddressWidth(arch);
 
    return parseAllNotes();
@@ -118,9 +127,9 @@ bool SystemTapEntries::parseAllNotes()
          continue;
       if (shdr.sh_type() != SHT_NOTE)
          continue;
-      
+
       bool result = parseNotes(shdr);
-      if (!result) 
+      if (!result)
          return false;
    }
 
@@ -130,7 +139,7 @@ bool SystemTapEntries::parseAllNotes()
 #if !defined(_SDT_NOTE_TYPE)
 #define SDT_NOTE_TYPE 3
 #endif
-#if !defined(_SDT_NOTE_NAME) 
+#if !defined(_SDT_NOTE_NAME)
 #define SDT_NOTE_NAME "stapsdt"
 #endif
 
@@ -204,7 +213,7 @@ bool SystemTapEntries::parseNotes(Elf_X_Shdr &shdr)
    return !parseError;
 }
 
-bool SystemTapEntries::readAddr(const unsigned char *buffer, size_t bsize, unsigned &offset, 
+bool SystemTapEntries::readAddr(const unsigned char *buffer, size_t bsize, unsigned &offset,
                                 Dyninst::Address &result, unsigned int read_size)
 {
    if (!read_size) {
@@ -222,7 +231,7 @@ bool SystemTapEntries::readAddr(const unsigned char *buffer, size_t bsize, unsig
    return true;
 }
 
-bool SystemTapEntries::readString(const unsigned char *buffer, size_t bsize, unsigned &offset, 
+bool SystemTapEntries::readString(const unsigned char *buffer, size_t bsize, unsigned &offset,
                                   std::string &result)
 {
    unsigned int start = offset;
@@ -247,7 +256,7 @@ bool SystemTapEntries::parseOperands(std::string ops, Entry &entry)
    typedef boost::tokenizer<boost::char_separator<char> > tok_t;
    boost::char_separator<char> sep(" ");
    tok_t tokens(ops, sep);
-   
+
    for (tok_t::iterator i = tokens.begin(); i != tokens.end(); i++) {
       Arg result;
       string arg = *i;
@@ -331,13 +340,13 @@ ArgTree::ptr OperandParser::getReg(std::string name) {
       return ArgTree::createRegister(Dyninst::InvalidReg);
    return ArgTree::createRegister(i->second);
 }
-   
+
 //Wrappers to fix odd compiler errors from phoenix::bind
 ArgTree::ptr OperandParser::newConstant(const signed long &i) {
    return ArgTree::createConstant(i);
 }
 
-ArgTree::ptr OperandParser::newDeref(ArgTree::ptr p) { 
+ArgTree::ptr OperandParser::newDeref(ArgTree::ptr p) {
    return ArgTree::createDeref(p);
 }
 
@@ -345,7 +354,7 @@ ArgTree::ptr OperandParser::newSegment(ArgTree::ptr a, ArgTree::ptr b) {
    return ArgTree::createSegment(a, b);
 }
 
-ArgTree::ptr OperandParser::identity(ArgTree::ptr p) { 
+ArgTree::ptr OperandParser::identity(ArgTree::ptr p) {
    return p;
 }
 
@@ -361,13 +370,13 @@ ArgTree::ptr OperandParser::newAdd(ArgTree::ptr a, ArgTree::ptr b) {
    return ArgTree::createAdd(a, b);
 }
 
-ArgTree::ptr OperandParser::newRegister(const std::vector<char> &v) { 
+ArgTree::ptr OperandParser::newRegister(const std::vector<char> &v) {
    std::string s;
    for (std::vector<char>::const_iterator i = v.begin(); i != v.end(); i++) s += *i;
-   return getReg(s); 
+   return getReg(s);
 }
-   
-x86OperandParser::x86OperandParser(Dyninst::Architecture arch) : 
+
+x86OperandParser::x86OperandParser(Dyninst::Architecture arch) :
    x86OperandParser::base_type(operand)
 {
    using namespace qi::labels;
@@ -383,34 +392,34 @@ x86OperandParser::x86OperandParser(Dyninst::Architecture arch) :
 
    createRegisterNames(arch);
 
-   shex = 
+   shex =
       lit("0x") >> hex        [qi::_val = phoenix::bind(&OperandParser::newConstant, this, qi::_1)]
       | lit("-0x") >> hex     [qi::_val = phoenix::bind(&OperandParser::newConstant, this, -1*qi::_1)]
       | int_                  [qi::_val = phoenix::bind(&OperandParser::newConstant, this, qi::_1)]
       ;
-         
+
    reg = '%' >> (+alnum)      [qi::_val = phoenix::bind(&OperandParser::newRegister, this, qi::_1)];
-         
-   mem_modrm_nobase = 
+
+   mem_modrm_nobase =
       ('(' >> reg >> ')')     [qi::_val = phoenix::bind(&OperandParser::identity, this, qi::_1)]
       | ( '(' >> reg >> ',' >> reg >> ',' >> uint_ >> ')' )
       [qi::_val = phoenix::bind(&OperandParser::newBaseIndexScale, this, qi::_1, qi::_2, qi::_3)]
       ;
 
-   mem_modrm = 
+   mem_modrm =
       (shex >> mem_modrm_nobase)  [qi::_val = phoenix::bind(&OperandParser::newDerefAdd, this, qi::_1, qi::_2)]
       | mem_modrm_nobase          [qi::_val = phoenix::bind(&OperandParser::newDeref, this, qi::_1)]
       | shex                      [qi::_val = phoenix::bind(&OperandParser::newDeref, this, qi::_1)]
 
       ;
-         
+
    modrm =
       reg             [qi::_val = phoenix::bind(&OperandParser::identity, this, qi::_1)]
       | mem_modrm     [qi::_val = phoenix::bind(&OperandParser::identity, this, qi::_1)]
       | '$' >> shex   [qi::_val = phoenix::bind(&OperandParser::identity, this, qi::_1)]
       ;
-         
-   operand = 
+
+   operand =
       modrm                    [qi::_val = phoenix::bind(&OperandParser::identity, this, qi::_1)]
       | (reg >> ':' >> modrm)  [qi::_val = phoenix::bind(&OperandParser::newSegment, this, qi::_1, qi::_2)]
       ;
@@ -420,7 +429,7 @@ void x86OperandParser::createRegisterNames(Dyninst::Architecture arch) {
    Dyninst::MachRegister::NameMap::iterator i = Dyninst::MachRegister::names()->begin();
    for (; i != Dyninst::MachRegister::names()->end(); i++) {
       Dyninst::MachRegister reg(i->first);
-            
+
       if (reg.getArchitecture() != arch) {
          continue;
       }
@@ -455,18 +464,18 @@ ppcOperandParser::ppcOperandParser(Dyninst::Architecture arch) :
 
    createRegisterNames(arch);
 
-   shex = 
+   shex =
       lit("0x") >> hex        [qi::_val = phoenix::bind(&OperandParser::newConstant, this, qi::_1)]
       | lit("-0x") >> hex     [qi::_val = phoenix::bind(&OperandParser::newConstant, this, -1*qi::_1)]
       ;
 
    num = int_                 [qi::_val = phoenix::bind(&OperandParser::newConstant, this, qi::_1)]
       ;
-         
+
    reg = 'r' >> (+alnum)      [qi::_val = phoenix::bind(&OperandParser::newRegister, this, qi::_1)];
       ;
 
-   operand = 
+   operand =
       reg                     [qi::_val = phoenix::bind(&OperandParser::identity, this, qi::_1)]
       | (num >> lit("(") >> reg >> lit(")"))
                               [qi::_val = phoenix::bind(&OperandParser::newDerefAdd, this, qi::_1, qi::_2)]
@@ -479,7 +488,7 @@ void ppcOperandParser::createRegisterNames(Dyninst::Architecture arch)
    Dyninst::MachRegister::NameMap::iterator i = Dyninst::MachRegister::names()->begin();
    for (; i != Dyninst::MachRegister::names()->end(); i++) {
       Dyninst::MachRegister reg(i->first);
-            
+
       if (reg.getArchitecture() != arch) {
          continue;
       }
@@ -535,7 +544,7 @@ ArgTree::ptr ArgTree::createConstant(const signed long &v) {
    ret->op_type = Constant;
    ret->op_data.val = v;
    return ret;
-}         
+}
 
 ArgTree::ptr ArgTree::createRegister(Dyninst::MachRegister r) {
    ArgTree::ptr ret = ArgTree::ptr(new ArgTree);

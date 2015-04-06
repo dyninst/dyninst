@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -75,43 +75,45 @@ multimap<Register, MachRegister> regToMachReg64 = map_list_of
   (registerSpace::r28, 		aarch64::x28)
   (registerSpace::r29, 		aarch64::x29)
   (registerSpace::r30, 		aarch64::x30)
-  (registerSpace::fpr0,  	aarch64::fpr0)
-  (registerSpace::fpr1,  	aarch64::fpr1)
-  (registerSpace::fpr2,  	aarch64::fpr2)
-  (registerSpace::fpr3,  	aarch64::fpr3)
-  (registerSpace::fpr4,  	aarch64::fpr4)
-  (registerSpace::fpr5,  	aarch64::fpr5)
-  (registerSpace::fpr6,  	aarch64::fpr6)
-  (registerSpace::fpr7,  	aarch64::fpr7)
-  (registerSpace::fpr8,  	aarch64::fpr8)
-  (registerSpace::fpr9,  	aarch64::fpr9)
-  (registerSpace::fpr10, 	aarch64::fpr10)
-  (registerSpace::fpr11, 	aarch64::fpr11)
-  (registerSpace::fpr12, 	aarch64::fpr12)
-  (registerSpace::fpr13, 	aarch64::fpr13)
-  (registerSpace::fpr14, 	aarch64::fpr14)
-  (registerSpace::fpr15, 	aarch64::fpr15)
-  (registerSpace::fpr16, 	aarch64::fpr16)
-  (registerSpace::fpr17, 	aarch64::fpr17)
-  (registerSpace::fpr18, 	aarch64::fpr18)
-  (registerSpace::fpr19, 	aarch64::fpr19)
-  (registerSpace::fpr20, 	aarch64::fpr20)
-  (registerSpace::fpr21, 	aarch64::fpr21)
-  (registerSpace::fpr22, 	aarch64::fpr22)
-  (registerSpace::fpr23, 	aarch64::fpr23)
-  (registerSpace::fpr24, 	aarch64::fpr24)
-  (registerSpace::fpr25, 	aarch64::fpr25)
-  (registerSpace::fpr26, 	aarch64::fpr26)
-  (registerSpace::fpr27, 	aarch64::fpr27)
-  (registerSpace::fpr28, 	aarch64::fpr28)
-  (registerSpace::fpr29, 	aarch64::fpr29)
-  (registerSpace::fpr30, 	aarch64::fpr30)
-  (registerSpace::fpr31, 	aarch64::fpr31)
-  (registerSpace::xer, 		aarch64::xer)
-  (registerSpace::lr, 		aarch64::lr)
-  (registerSpace::ctr, 		aarch64::ctr)
-  (registerSpace::mq, 		aarch64::mq)
-  (registerSpace::cr, 		aarch64::cr);
+  (registerSpace::fpr0,  	aarch64::q0)
+  (registerSpace::fpr1,  	aarch64::q1)
+  (registerSpace::fpr2,  	aarch64::q2)
+  (registerSpace::fpr3,  	aarch64::q3)
+  (registerSpace::fpr4,  	aarch64::q4)
+  (registerSpace::fpr5,  	aarch64::q5)
+  (registerSpace::fpr6,  	aarch64::q6)
+  (registerSpace::fpr7,  	aarch64::q7)
+  (registerSpace::fpr8,  	aarch64::q8)
+  (registerSpace::fpr9,  	aarch64::q9)
+  (registerSpace::fpr10, 	aarch64::q10)
+  (registerSpace::fpr11, 	aarch64::q11)
+  (registerSpace::fpr12, 	aarch64::q12)
+  (registerSpace::fpr13, 	aarch64::q13)
+  (registerSpace::fpr14, 	aarch64::q14)
+  (registerSpace::fpr15, 	aarch64::q15)
+  (registerSpace::fpr16, 	aarch64::q16)
+  (registerSpace::fpr17, 	aarch64::q17)
+  (registerSpace::fpr18, 	aarch64::q18)
+  (registerSpace::fpr19, 	aarch64::q19)
+  (registerSpace::fpr20, 	aarch64::q20)
+  (registerSpace::fpr21, 	aarch64::q21)
+  (registerSpace::fpr22, 	aarch64::q22)
+  (registerSpace::fpr23, 	aarch64::q23)
+  (registerSpace::fpr24, 	aarch64::q24)
+  (registerSpace::fpr25, 	aarch64::q25)
+  (registerSpace::fpr26, 	aarch64::q26)
+  (registerSpace::fpr27, 	aarch64::q27)
+  (registerSpace::fpr28, 	aarch64::q28)
+  (registerSpace::fpr29, 	aarch64::q29)
+  (registerSpace::fpr30, 	aarch64::q30)
+  (registerSpace::fpr31, 	aarch64::q31)
+  (registerSpace::lr, 		aarch64::x30)
+  (registerSpace::sp, 		aarch64::sp)
+  (registerSpace::pc, 		aarch64::pc)
+  (registerSpace::pstate, 	aarch64::pstate)
+  (registerSpace::fpcr, 	aarch64::fpcr)
+  (registerSpace::fpsr, 	aarch64::fpsr)
+  ;
 
 map<MachRegister, Register> reverseRegisterMap = map_list_of
   (aarch64::x0,  registerSpace::r0)
@@ -145,43 +147,45 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
   (aarch64::x28, registerSpace::r28)
   (aarch64::x29, registerSpace::r29)
   (aarch64::x30, registerSpace::r30)
-  (aarch64::fpr0, registerSpace::fpr0)
-  (aarch64::fpr1, registerSpace::fpr1)
-  (aarch64::fpr2, registerSpace::fpr2)
-  (aarch64::fpr3, registerSpace::fpr3)
-  (aarch64::fpr4, registerSpace::fpr4)
-  (aarch64::fpr5, registerSpace::fpr5)
-  (aarch64::fpr6, registerSpace::fpr6)
-  (aarch64::fpr7, registerSpace::fpr7)
-  (aarch64::fpr8, registerSpace::fpr8)
-  (aarch64::fpr9, registerSpace::fpr9)
-  (aarch64::fpr10, registerSpace::fpr10)
-  (aarch64::fpr11, registerSpace::fpr11)
-  (aarch64::fpr12, registerSpace::fpr12)
-  (aarch64::fpr13, registerSpace::fpr13)
-  (aarch64::fpr14, registerSpace::fpr14)
-  (aarch64::fpr15, registerSpace::fpr15)
-  (aarch64::fpr16, registerSpace::fpr16)
-  (aarch64::fpr17, registerSpace::fpr17)
-  (aarch64::fpr18, registerSpace::fpr18)
-  (aarch64::fpr19, registerSpace::fpr19)
-  (aarch64::fpr20, registerSpace::fpr20)
-  (aarch64::fpr21, registerSpace::fpr21)
-  (aarch64::fpr22, registerSpace::fpr22)
-  (aarch64::fpr23, registerSpace::fpr23)
-  (aarch64::fpr24, registerSpace::fpr24)
-  (aarch64::fpr25, registerSpace::fpr25)
-  (aarch64::fpr26, registerSpace::fpr26)
-  (aarch64::fpr27, registerSpace::fpr27)
-  (aarch64::fpr28, registerSpace::fpr28)
-  (aarch64::fpr29, registerSpace::fpr29)
-  (aarch64::fpr30, registerSpace::fpr30)
-  (aarch64::fpr31, registerSpace::fpr31)
-  (aarch64::xer, 		registerSpace::xer)
-  (aarch64::lr, 		registerSpace::lr)
-  (aarch64::ctr, 		registerSpace::ctr)
-  (aarch64::mq, 		registerSpace::mq)
-  (aarch64::cr, 		registerSpace::cr);
+  (aarch64::q0,   registerSpace::fpr0)
+  (aarch64::q1,   registerSpace::fpr1)
+  (aarch64::q2,   registerSpace::fpr2)
+  (aarch64::q3,   registerSpace::fpr3)
+  (aarch64::q4,   registerSpace::fpr4)
+  (aarch64::q5,   registerSpace::fpr5)
+  (aarch64::q6,   registerSpace::fpr6)
+  (aarch64::q7,   registerSpace::fpr7)
+  (aarch64::q8,   registerSpace::fpr8)
+  (aarch64::q9,   registerSpace::fpr9)
+  (aarch64::q10,  registerSpace::fpr10)
+  (aarch64::q11,  registerSpace::fpr11)
+  (aarch64::q12,  registerSpace::fpr12)
+  (aarch64::q13,  registerSpace::fpr13)
+  (aarch64::q14,  registerSpace::fpr14)
+  (aarch64::q15,  registerSpace::fpr15)
+  (aarch64::q16,  registerSpace::fpr16)
+  (aarch64::q17,  registerSpace::fpr17)
+  (aarch64::q18,  registerSpace::fpr18)
+  (aarch64::q19,  registerSpace::fpr19)
+  (aarch64::q20,  registerSpace::fpr20)
+  (aarch64::q21,  registerSpace::fpr21)
+  (aarch64::q22,  registerSpace::fpr22)
+  (aarch64::q23,  registerSpace::fpr23)
+  (aarch64::q24,  registerSpace::fpr24)
+  (aarch64::q25,  registerSpace::fpr25)
+  (aarch64::q26,  registerSpace::fpr26)
+  (aarch64::q27,  registerSpace::fpr27)
+  (aarch64::q28,  registerSpace::fpr28)
+  (aarch64::q29,  registerSpace::fpr29)
+  (aarch64::q30,  registerSpace::fpr30)
+  (aarch64::q31,  registerSpace::fpr31)
+  //(aarch64::x30,   registerSpace::lr)
+  (aarch64::sp,   registerSpace::sp)
+  (aarch64::pc,   registerSpace::pc)
+  (aarch64::pstate,   registerSpace::pstate)
+  (aarch64::fpcr,   registerSpace::fpcr)
+  (aarch64::fpsr,   registerSpace::fpsr)
+  ;
 
 Register convertRegID(MachRegister reg, bool &wasUpcast) {
     wasUpcast = false;
@@ -205,7 +209,7 @@ Register convertRegID(RegisterAST::Ptr toBeConverted, bool& wasUpcast)
 {
     return convertRegID(toBeConverted.get(), wasUpcast);
 }
-        
+
 Register convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
 {
     if(!toBeConverted) {
@@ -249,43 +253,42 @@ MachRegister convertRegID(Register r, Dyninst::Architecture arch) {
             case registerSpace::r28: 	return aarch64::x28;
             case registerSpace::r29: 	return aarch64::x29;
             case registerSpace::r30: 	return aarch64::x30;
-            case registerSpace::fpr0: return aarch64::fpr0;
-            case registerSpace::fpr1: return aarch64::fpr1;
-            case registerSpace::fpr2: return aarch64::fpr2;
-            case registerSpace::fpr3: return aarch64::fpr3;
-            case registerSpace::fpr4: return aarch64::fpr4;
-            case registerSpace::fpr5: return aarch64::fpr5;
-            case registerSpace::fpr6: return aarch64::fpr6;
-            case registerSpace::fpr7: return aarch64::fpr7;
-            case registerSpace::fpr8: return aarch64::fpr8;
-            case registerSpace::fpr9: return aarch64::fpr9;
-            case registerSpace::fpr10: return aarch64::fpr10;
-            case registerSpace::fpr11: return aarch64::fpr11;
-            case registerSpace::fpr12: return aarch64::fpr12;
-            case registerSpace::fpr13: return aarch64::fpr13;
-            case registerSpace::fpr14: return aarch64::fpr14;
-            case registerSpace::fpr15: return aarch64::fpr15;
-            case registerSpace::fpr16: return aarch64::fpr16;
-            case registerSpace::fpr17: return aarch64::fpr17;
-            case registerSpace::fpr18: return aarch64::fpr18;
-            case registerSpace::fpr19: return aarch64::fpr19;
-            case registerSpace::fpr20: return aarch64::fpr20;
-            case registerSpace::fpr21: return aarch64::fpr21;
-            case registerSpace::fpr22: return aarch64::fpr22;
-            case registerSpace::fpr23: return aarch64::fpr23;
-            case registerSpace::fpr24: return aarch64::fpr24;
-            case registerSpace::fpr25: return aarch64::fpr25;
-            case registerSpace::fpr26: return aarch64::fpr26;
-            case registerSpace::fpr27: return aarch64::fpr27;
-            case registerSpace::fpr28: return aarch64::fpr28;
-            case registerSpace::fpr29: return aarch64::fpr29;
-            case registerSpace::fpr30: return aarch64::fpr30;
-            case registerSpace::fpr31: return aarch64::fpr31;
-            case registerSpace::xer: 		return aarch64::xer;
-            case registerSpace::lr: 		return aarch64::lr;
-            case registerSpace::ctr: 		return aarch64::ctr;
-            case registerSpace::mq: 		return aarch64::mq;
-            case registerSpace::cr: 		return aarch64::cr;
+            case registerSpace::fpr0:  return aarch64::q0;
+            case registerSpace::fpr1:  return aarch64::q1;
+            case registerSpace::fpr2:  return aarch64::q2;
+            case registerSpace::fpr3:  return aarch64::q3;
+            case registerSpace::fpr4:  return aarch64::q4;
+            case registerSpace::fpr5:  return aarch64::q5;
+            case registerSpace::fpr6:  return aarch64::q6;
+            case registerSpace::fpr7:  return aarch64::q7;
+            case registerSpace::fpr8:  return aarch64::q8;
+            case registerSpace::fpr9:  return aarch64::q9;
+            case registerSpace::fpr10: return aarch64::q10;
+            case registerSpace::fpr11: return aarch64::q11;
+            case registerSpace::fpr12: return aarch64::q12;
+            case registerSpace::fpr13: return aarch64::q13;
+            case registerSpace::fpr14: return aarch64::q14;
+            case registerSpace::fpr15: return aarch64::q15;
+            case registerSpace::fpr16: return aarch64::q16;
+            case registerSpace::fpr17: return aarch64::q17;
+            case registerSpace::fpr18: return aarch64::q18;
+            case registerSpace::fpr19: return aarch64::q19;
+            case registerSpace::fpr20: return aarch64::q20;
+            case registerSpace::fpr21: return aarch64::q21;
+            case registerSpace::fpr22: return aarch64::q22;
+            case registerSpace::fpr23: return aarch64::q23;
+            case registerSpace::fpr24: return aarch64::q24;
+            case registerSpace::fpr25: return aarch64::q25;
+            case registerSpace::fpr26: return aarch64::q26;
+            case registerSpace::fpr27: return aarch64::q27;
+            case registerSpace::fpr28: return aarch64::q28;
+            case registerSpace::fpr29: return aarch64::q29;
+            case registerSpace::fpr30: return aarch64::q30;
+            case registerSpace::fpr31: return aarch64::q31;
+            case registerSpace::lr: 	return aarch64::x30;
+            case registerSpace::sp: 	return aarch64::sp;
+            case registerSpace::pc: 	return aarch64::pc;
+            case registerSpace::pstate: 	return aarch64::pstate;
             default:
                 break;
         }
