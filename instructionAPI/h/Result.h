@@ -518,7 +518,7 @@ namespace Dyninst
    case dbl128:
       return 16;
 	default:
-	  assert(!"Unknown type in Result");
+	  //assert(!"Unknown type in Result");
 	  return 0;
 	};
       }

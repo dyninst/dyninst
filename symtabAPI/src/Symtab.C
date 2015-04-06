@@ -445,6 +445,13 @@ SYMTAB_EXPORT bool Symtab::isStripped()
 #endif
 }
 
+
+SYMTAB_EXPORT Offset Symtab::preferedBase() const 
+{
+    return preferedBase_;
+}
+
+
 SYMTAB_EXPORT Offset Symtab::imageOffset() const 
 {
     return imageOffset_;
@@ -1384,7 +1391,11 @@ bool Symtab::extractInfo(Object *linkedFile)
      * members are imprecise. These members should probably be deprecated in
      * favor of the getCodeRegions and getDataRegions functions.
      */
-
+#if defined(os_windows)
+	preferedBase_ = linkedFile->getPreferedBase();
+#else
+	preferedBase_ = 0;
+#endif
     imageOffset_ = linkedFile->code_off();
     dataOffset_ = linkedFile->data_off();
 

@@ -812,6 +812,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_xorps, "xorps")
   (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
   (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
+  (e_No_Entry, "No_Entry")
         ;
 
 dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI = map_list_of
