@@ -55,6 +55,10 @@ class ParseCallbackManager;
 class CFGModifier;
 class CodeSource;
 
+typedef enum {
+    PreambleMatching, IdiomMatching
+} GapParsingType;
+
 class CodeObject {
    friend class CFGModifier;
  public:
@@ -89,7 +93,7 @@ class CodeObject {
     PARSER_EXPORT bool parseNewEdges( vector<NewEdgeToParse> & worklist ); 
 
     // `speculative' parsing
-    PARSER_EXPORT void parseGaps(CodeRegion *cr);
+    PARSER_EXPORT void parseGaps(CodeRegion *cr, GapParsingType type=IdiomMatching);
 
     /** Lookup routines **/
 

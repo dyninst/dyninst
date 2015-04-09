@@ -28,7 +28,9 @@ set (SRC_LIST
 	src/LoopAnalyzer.C
 	src/Loop.C
 	src/LoopTreeNode.C
-        ../dataflowAPI/src/ABI.C 
+	src/IdiomModelDesc.C
+	src/ProbabilisticParser.C
+	../dataflowAPI/src/ABI.C 
         ../dataflowAPI/src/Absloc.C 
         ../dataflowAPI/src/AbslocInterface.C 
         ../dataflowAPI/src/convertOpcodes.C 

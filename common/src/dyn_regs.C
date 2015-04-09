@@ -166,6 +166,7 @@ unsigned int MachRegister::size() const {
             case x86_64::BIT:
                return 0;
             default:
+	       return 0; // Xiaozhu: do not assert, but return 0 as an indication of parsing junk.
                assert(0);
          }
       case Arch_ppc32: {

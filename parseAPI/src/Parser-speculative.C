@@ -51,6 +51,8 @@ using namespace Dyninst::ParseAPI;
 
 #if defined(cap_stripped_binaries)
 
+#include "ProbabilisticParser.h"
+
 namespace hd {
     Address calc_end(Function * f) {
         Address ret = f->addr() + 1;
@@ -169,15 +171,17 @@ namespace hd {
         }
     }
 
-
     bool gap_heuristics(CodeObject *co,CodeRegion *cr,Address addr)
     {
         bool ret = false;
-#if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
-        ret = gap_heuristic_GCC(co,cr,addr);
-#elif defined(i386_unknown_nt4_0)
+#if defined(arch_x86) || defined(arch_x86_64) || defined(i386_unknown_nt4_0)
+
+  #if defined(os_windows)
         ret = gap_heuristic_MSVS(co,cr,addr);
-#endif
+  #else
+        ret = gap_heuristic_GCC(co,cr,addr);
+  #endif
+#endif  
         return ret;
     }
 };
@@ -260,9 +264,62 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
     finalize();
 }
 
+void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
+    // 0. ensure that we've parsed and finalized all vanilla parsing.
+    // We also locate all the gaps
+    if(_parse_state < COMPLETE)
+        parse();
+    finalize();
+
+    vector<pair<Address, Address> > gaps;
+    Address gapStart = 0;
+    Address gapEnd = 0;
+    Address curAddr = 0;
+    set<Function *,Function::less>::const_iterator fit = sorted_funcs.begin();
+    while(hd::compute_gap(cr,curAddr,sorted_funcs,fit,gapStart,gapEnd)) {
+	gaps.push_back(make_pair(gapStart, gapEnd));
+	curAddr = gapEnd;
+    }
+
+    string model_spec;
+    if (obj().cs()->getAddressWidth() == 8) 
+        model_spec = "64-bit";
+    else
+        model_spec = "32-bit";
+
+    // 1. Load the pre-trained idiom model:
+    hd::ProbabilityCalculator pc(cr, obj().cs(), this, model_spec);
+
+    // 2. Apply idiom match to every byte in gap and
+    // derive the first version of the probabilities of 
+    // whether a byte is a FEP or not.
+    for (size_t i = 0; i < gaps.size(); ++i) {
+        gapStart = gaps[i].first;
+	gapEnd = gaps[i].second;
+	for (curAddr = gapStart; curAddr < gapEnd; ++curAddr) {
+	    pc.calcProbByMatchingIdioms(curAddr);
+	}
+    }
+
+    // 3. Use the consistency contraints and caller-callee constraints 
+    // to calculate the final version of the probabilities.
+    // ##### Currently disabled  #########
+    // pc.calcProbByEnforcingConstraints();
+
+    // 4. Perform gap parsing at all addresses with prob higher than 
+    // the pre-defined threshold, from the address with highest prob
+    // to the address with lowest prob.
+    pc.prioritizedGapParsing();
+
+    // 5. Finalize function boundaries
+    finalize();
+}
+
 #else // cap_stripped binaries
 void Parser::parse_gap_heuristic(CodeRegion*)
 {
 
+}
+void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
 }
 #endif

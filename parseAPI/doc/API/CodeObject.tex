@@ -67,10 +67,27 @@ bool parseNewEdges( vector<NewEdgeToParse> & worklist )
 that were not included when the function was originally parsed. 
 }
 
+ParseAPI is able to speculatively parse gaps 
+(regions of binary that has not been identified as code or data yet)
+to identify function entry points and
+perform control flow traversal.
+
+\begin{center}
+\begin{tabular}{lp{10cm}}
+\toprule
+GapParsingType & Technique description \\
+\midrule
+PreambleMatching & If instruction patterns are matched at an adderss, the address is a function entry point  \\
+IdiomMatching & Based on a pre-trained model, this technique calculates the probability of an address to be a function entry point and predicts whether which addresses are function entry points\\
+\bottomrule
+\end{tabular}
+\end{center}
+
 \begin{apient}
-void parseGaps(CodeRegion *cr)
+void parseGaps(CodeRegion *cr,
+               GapParsingType type=IdiomMatching)
 \end{apient}
-\apidesc{Speculatively parse the indicated region of the binary using pattern matching to find likely function entry points. Only enabled on the x86 32-bit platform.}
+\apidesc{Speculatively parse the indicated region of the binary using the specified technique to find likely function entry points, enabled on the x86 and x86-64 platforms.}
 
 \begin{apient}
 Function * findFuncByEntry(CodeRegion * cr,

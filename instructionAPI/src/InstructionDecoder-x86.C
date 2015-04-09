@@ -379,14 +379,18 @@ namespace Dyninst
                 {
                     if(locs->modrm_rm == 5)
                     {
-                        assert(b.start + disp_pos + 4 <= b.end);
-                        return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
-                                           *((const dword_t*)(b.start + disp_pos)))));
+		        if (b.start + disp_pos + 4 <= b.end) 
+			    return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
+			                       *((const dword_t*)(b.start + disp_pos)))));
+                        else
+			    return make_shared(singleton_object_pool<Immediate>::construct(Result()));
                     }
                     else
                     {
-                        assert(b.start + disp_pos + 1 <= b.end);
-                        return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
+			if (b.start + disp_pos + 1 <= b.end)
+			    return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
+			else
+			    return make_shared(singleton_object_pool<Immediate>::construct(Result()));
                     }
                     break;
                 }
@@ -595,9 +599,7 @@ namespace Dyninst
 		        retVal = IntelRegTable(m_Arch, amd64_ext_16, intelReg);
 		    break;
 		default:
-		    fprintf(stderr, "%d\n", opType);
-		    fprintf(stderr, "%s\n",  decodedInstruction->getEntry()->name(locs));
-		    assert(0 && "opType=" && opType);
+		    retVal = InvalidReg;
 	    }
         }
         /* Promotion to 64-bit only applies to the operand types
