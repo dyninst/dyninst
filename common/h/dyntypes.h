@@ -54,8 +54,9 @@
 #if defined (_MSC_VER)
   //**************** Windows ********************
   #include <hash_map>
+  #include <hash_set>
   #define dyn_hash_map stdext::hash_map
-  #define dyn_hash_set std::hash_set
+  #define dyn_hash_set stdext::hash_set
   #define DECLTHROW(x)
 #elif defined(__GNUC__)
   #include <functional>

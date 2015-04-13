@@ -182,14 +182,21 @@ static void split(const char * str, vector<uint64_t> & terms)
         assert(e-s < 32);
 	strncpy(buf,s,e-s);
 	buf[e-s] = '\0';
-	terms.push_back(strtoull(buf,NULL,16));
+
+#if defined (os_windows)
+#define dyn_strtoull _strtoui64
+#else
+#define dyn_strtoull strtoull
+#endif
+	terms.push_back(dyn_strtoull(buf,NULL,16));
 	
 	s = e+1;
     }
     // last one
     if(strlen(s)) {
-        terms.push_back(strtoull(s,NULL,16));
+        terms.push_back(dyn_strtoull(s,NULL,16));
     }
+#undef dyn_strtoull
 }
 Idiom::Idiom(string format, double weight, bool pre): 
     w(weight), prefix(pre)
