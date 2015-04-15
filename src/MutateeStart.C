@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -99,18 +99,18 @@ static pid_t fork_mutatee() {
       return gchild_pid;
    }
    //Child
-   
+
    gchild_pid = fork();
    if (gchild_pid) {
       //Child pid, send grand child pid to parent then terminate
       result = write(filedes[1], &gchild_pid, sizeof(pid_t));
       if (result == -1) {
          perror("Couldn't write to parent");
-      }         
+      }
       close(filedes[0]);
       close(filedes[1]);
       exit(0);
-   }   
+   }
 
    //Grandchild
    close(filedes[0]);
@@ -154,14 +154,14 @@ static void AddArchAttachArgs(std::vector<std::string> &args, create_mode_t cm, 
          fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
          return;
       }
-      
+
       /* Create the argv string for the child process. */
       char fdstr[32];
       snprintf(fdstr, 32,"%d", fds[1]);
-      
+
       args.push_back("-attach");
       args.push_back(fdstr);
-      
+
       fds_set = true;
    }
    else {
@@ -174,7 +174,7 @@ extern FILE *getErrorLog();
 
 
 static std::string launchMutatee_plat(std::string exec_name, const std::vector<std::string> &args, bool needs_grand_fork)
-{   
+{
    pid_t pid;
    if (needs_grand_fork) {
       pid = fork_mutatee();
@@ -186,12 +186,12 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
    if (pid < 0) {
       return std::string("");
    }
-   else if (pid == 0) 
+   else if (pid == 0)
    {
       // child
       if (fds_set)
          close(fds[0]);
-      
+
       if (getOutputLog() != NULL) {
          int outlog_fd = fileno(getOutputLog());
          if (dup2(outlog_fd, 1) == -1) {
@@ -228,13 +228,13 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
       fprintf(stderr, "%s[%d]:  Exec failed!\n", __FILE__, __LINE__);
       exit(-1);
    }
-   else 
+   else
    {
       // parent
-      if (fds_set) 
+      if (fds_set)
       {
          close(fds[1]);  // We don't need the write side
-      
+
          // Wait for the child to write to the pipe
          char ch;
          ssize_t result = read(fds[0], &ch, sizeof(char));
@@ -247,8 +247,8 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
             fprintf(stderr, "*ERROR*: Child didn't write expected value to pipe.\n");
             return string("");
          }
-       
-         /* Random Linux-ism: it's possible to close the pipe before the 
+
+         /* Random Linux-ism: it's possible to close the pipe before the
             mutatee returns from the write() system call matching the above
             read().  In this case, rather than ignore the close() because the
             write() is on its way out the kernel, Linux sends a SIGPIPE
@@ -344,7 +344,7 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
 		  CloseHandle(mutatee_signal_pipe);
 		  return std::string("");
 	   }
-  
+
 	   char mutatee_ready = 0x0;
 	   DWORD bytes_read;
 	   BOOL read_ok = ReadFile(mutatee_signal_pipe,
@@ -420,7 +420,7 @@ std::string launchMutatee(std::string executable, std::vector<std::string> &args
    if (ret == string(""))
       return string("");
 
-   return string(group_num) + ":" + ret;   
+   return string(group_num) + ":" + ret;
 }
 
 std::string launchMutatee(std::string executable, RunGroup *group, ParameterDict &params)
@@ -429,7 +429,7 @@ std::string launchMutatee(std::string executable, RunGroup *group, ParameterDict
    vector<string> args;
 
    bool result = getMutateeParams(group, params, exec_name, args);
-   if (!result) 
+   if (!result)
       return string("");
 
    if (executable != string(""))
@@ -473,7 +473,7 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
    create_mode_t cm = (create_mode_t) params["createmode"]->getInt();
    start_state_t gs = group->state;
    AddArchAttachArgs(args, cm, gs);
-   
+
    if (cm == USEATTACH && gs == SELFATTACH) {
       args.push_back("-customattach");
    }
@@ -483,7 +483,7 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
    }
 
    test_procstate_t ps = (test_procstate_t) params["mp"]->getInt();
-   if (ps == SingleProcess) 
+   if (ps == SingleProcess)
       args.push_back("-sp");
    else if (ps == MultiProcess)
       args.push_back("-mp");
@@ -536,7 +536,7 @@ void registerMutatee(std::string mutatee_string)
       int pid;
       sscanf(mutatee_string.c_str(), "%d", &pid);
       assert(pid != -1);
-      attach_mutatees.insert(pid);      
+      attach_mutatees.insert(pid);
    }
 }
 

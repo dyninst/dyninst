@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -129,8 +129,9 @@ Process::cb_ret_t on_singlestep(Event::const_ptr ev)
       myerror = true;
       return Process::cbDefault;
    }
-   
-//	   cerr << "Singlestep @ " << hex << loc << dec << endl;
+
+   pthrd_printf("ARM-info: Singlestep @ 0x%x\n", loc);
+   //cerr << "Singlestep @ " << hex << loc << dec << endl;
 
    if (!ev->getThread()->getSingleStepMode())
    {
@@ -155,7 +156,7 @@ Process::cb_ret_t on_singlestep(Event::const_ptr ev)
       }
    }
    //logerror("Single step OK at 0x%x\n", loc);
-   
+
    return Process::cbThreadContinue;
 }
 
@@ -170,11 +171,11 @@ test_results_t pc_singlestepMutator::executeTest()
    bp = Breakpoint::newBreakpoint();
    early_bp = Breakpoint::newBreakpoint();
 
-   
+
    std::set<Thread::ptr> singlestep_threads;
    std::set<Thread::ptr> regular_threads;
 
-   for (std::vector<Process::ptr>::iterator i = comp->procs.begin(); 
+   for (std::vector<Process::ptr>::iterator i = comp->procs.begin();
         i != comp->procs.end(); i++) {
       Process::ptr proc = *i;
       bool result = proc->continueProc();
@@ -201,7 +202,7 @@ test_results_t pc_singlestepMutator::executeTest()
       Address funcs[NUM_FUNCS];
       for (unsigned j=0; j < NUM_FUNCS; j++)
       {
-         bool result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), 
+         bool result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr),
                                           proc);
          if (!result) {
             logerror("Failed to receive addr message\n");
@@ -214,7 +215,7 @@ test_results_t pc_singlestepMutator::executeTest()
          pi.func[j] = addrmsg.addr;
 		 logerror("func %d at 0x%lx\n", j, addrmsg.addr);
       }
-      
+
       result = proc->stopProc();
       if (!result) {
          logerror("Failed to stop process\n");
@@ -239,13 +240,17 @@ test_results_t pc_singlestepMutator::executeTest()
       syncloc sync_msg;
       sync_msg.code = SYNCLOC_CODE;
 	  logerror("Mutator sending sync message\n");
-      result = comp->send_message((unsigned char *) &sync_msg, sizeof(sync_msg), 
+
+	  fprintf(stderr, "Mutator sending sync message\n");
+      result = comp->send_message((unsigned char *) &sync_msg, sizeof(sync_msg),
                                        proc);
+	  fprintf(stderr, "Mutator sent sync message\n");
+
       if (!result) {
          logerror("Failed to send sync message to process\n");
          myerror = true;
       }
-      
+
       ThreadPool::iterator k;
       int count = 0;
 
@@ -269,7 +274,7 @@ test_results_t pc_singlestepMutator::executeTest()
    }
 
 
-   for (std::vector<Process::ptr>::iterator i = comp->procs.begin(); 
+   for (std::vector<Process::ptr>::iterator i = comp->procs.begin();
         i!= comp->procs.end(); i++) {
       Process::ptr proc = *i;
       bool result = proc->continueProc();

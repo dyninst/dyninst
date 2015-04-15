@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -137,8 +137,55 @@ static void createBuffer(Process::ptr proc,
          *((uint16_t *) (buffer + 46)) = (uint16_t)(tocval);
          break;
       }
-      default:
-         assert(0);
+        case(Dyninst::Arch_aarch64): {
+            //nop
+            //mov x0, <addr>
+            //blr x0
+            //brk #0
+            unsigned int addr_pos = 4;
+            char tmp_buf[] = {
+                0xd5, 0x03, 0x20, 0x1f,     // nop
+                0xd2, 0x80, 0x00, 0x00,     // mov  x0, #0           ;<addr>
+                0xf2, 0xa0, 0x00, 0x00,     // movk x0, #0, lsl #16     ;<addr>
+                0xf2, 0xc0, 0x00, 0x00,     // movk x0, #0, lsl #32     ;<addr>
+                0xf2, 0xe0, 0x00, 0x00,     // movk x0, #0, lsl #48     ;<addr>
+                0xd6, 0x3f, 0x00, 0x00,     // blr x0
+                0xd4, 0x20, 0x00, 0x00      // brk #0
+            };
+            buffer_size = sizeof(tmp_buf);
+            buffer = (unsigned char *)malloc(buffer_size);
+            start_offset = 4;
+
+            memcpy(buffer, tmp_buf, buffer_size);
+
+#define BYTE_ASSGN(POS, VAL)\
+            (*(((char *) buffer) + POS + 1)) |= ((VAL>>11)&0x1f);\
+            (*(((char *) buffer) + POS + 2)) |= ((VAL>> 3)&0xff);\
+            (*(((char *) buffer) + POS + 3)) |= ((VAL<< 5)&0xf0);
+
+            BYTE_ASSGN(addr_pos,    (uint16_t)calltarg )
+            BYTE_ASSGN(addr_pos+4,  (uint16_t)(calltarg>>16) )
+            BYTE_ASSGN(addr_pos+8,  (uint16_t)(calltarg>>32) )
+            BYTE_ASSGN(addr_pos+12, (uint16_t)(calltarg>>48) )
+
+#define SWAP4BYTE(POS) \
+            buffer[POS+3]^= buffer[POS]; \
+            buffer[POS]  ^= buffer[POS+3]; \
+            buffer[POS+3]^= buffer[POS]; \
+            buffer[POS+2]^= buffer[POS+1]; \
+            buffer[POS+1]^= buffer[POS+2]; \
+            buffer[POS+2]^= buffer[POS+1];
+
+            for(unsigned int i = 0; i < buffer_size; i+=4){
+                SWAP4BYTE(i)
+                pthrd_printf("0x%8x\n", *((unsigned int*)((char *)buffer+i)) );
+            }
+
+            break;
+        }
+        default:
+            perr_printf("Unknown architecture!");
+            assert(0);
    }
 }
 

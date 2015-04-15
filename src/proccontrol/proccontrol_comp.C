@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -112,7 +112,7 @@ struct socket_types
 		  do {
 			 result = select(nfds, &readset, &writeset, &exceptset, &timeout);
 		  } while (result == -1 && errno == EINTR);
-	      
+
 		  if (result == 0) {
 			 logerror("Timeout while waiting for communication\n");
 			 return false;
@@ -123,7 +123,7 @@ struct socket_types
 			 logerror(error_str);
 			 return false;
 		  }
-	      
+
 		  if (FD_ISSET(notification_fd, &readset)) {
 			 bool result = Process::handleEvents(true);
 			 if (!result) {
@@ -134,8 +134,8 @@ struct socket_types
 		  if (FD_ISSET(sfd, &readset)) {
 			 break;
 		  }
-	   } 
-	                          
+	   }
+
 	   result = ::recv(sfd, (char *)(msg), msg_size, MSG_WAITALL);
 	   if (result == -1) {
 		  char error_str[1024];
@@ -183,7 +183,7 @@ struct socket_types
 			wait_events[1] = notification_event;
 			// 30 second timeout
 			result = ::WaitForMultipleObjects(2, wait_events, FALSE, 30000);
-	      
+
 	if(result == WAIT_TIMEOUT) {
 		logerror("WaitForMultipleObjects timed out\n");
 		return false;
@@ -235,8 +235,8 @@ struct socket_types
 		}
 		break;
    }
-	   } 
-	                          
+	   }
+
 	}
 	static int close(SOCKET s, HANDLE winsock_event)
 	{
@@ -275,7 +275,7 @@ test_results_t ProcControlMutator::pre_init(ParameterDict &param)
    return PASSED;
 }
 
-#if defined(os_bgq_test) 
+#if defined(os_bgq_test)
 #include <unistd.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -287,7 +287,7 @@ static void onalarm(int)
 
 static void onterm(int)
 {
-   //On BGQ SIGTERM is thrown to debuggers after the debugee exits.  
+   //On BGQ SIGTERM is thrown to debuggers after the debugee exits.
    // We may be doing cleanup still, so only exit after a timeout.
    static bool hit_sigterm = false;
    if (hit_sigterm)
@@ -460,7 +460,7 @@ ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, Parameter
             }
          }
       }
-      
+
       procset = ProcessSet::attachProcessSet(ainfo);
       if (!procset) {
          logerror("Failed to attach to new mutatees\n");
@@ -588,7 +588,7 @@ bool ProcControlComponent::initializeConnectionInfo(Process::const_ptr proc)
       exec_name = lib->getName();
       exec_addr = lib->getLoadAddress();
    }
-   
+
    map<string, Offset>::iterator i = cached_ms_addrs.find(exec_name);
    if (i != cached_ms_addrs.end()) {
       sym_offset = i->second;
@@ -663,7 +663,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    assert(num_processes);
    memset(socket_buffer, 0, 4096);
    if (param.find("socket_type") != param.end() && param.find("socket_name") != param.end()) {
-      snprintf(socket_buffer, 4095, "%s %s", param["socket_type"]->getString(), 
+      snprintf(socket_buffer, 4095, "%s %s", param["socket_type"]->getString(),
                param["socket_name"]->getString());
    }
    cur_group = group;
@@ -699,7 +699,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    if (group->createmode == CREATE)
    {
       Process::ptr a_proc = *procs.begin();
-   
+
       bool support_user_threads = a_proc->supportsUserThreadEvents();
       bool support_lwps = a_proc->supportsLWPEvents();
 
@@ -888,7 +888,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
          Process::ptr p = *i;
          while (!p->isTerminated()) {
 	   logerror("Process %d not terminated, is %s, is %s, blocking for events\n",
-		    p->getPid(), 
+		    p->getPid(),
 		    p->allThreadsStopped() ? "stopped" : "running",
 		    p->isExited() ? "exited" : "not exited");
             bool result = block_for_events();
@@ -983,7 +983,7 @@ bool ProcControlComponent::setupServerSocket(ParameterDict &param)
    int result;
    for (;;) {
       result = ::bind(fd, (sockaddr *) &addr, sizeof(socket_types::sockaddr_t));
-      if (result == 0) 
+      if (result == 0)
          break;
       int error = errno;
 #if !defined(os_windows_test)
@@ -1061,16 +1061,16 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 {
    vector<int> socks;
    assert(num == 1 || !attach_sock);  //If attach_sock, then num == 1
-      
+
    while (socks.size() < num) {
       fd_set readset; FD_ZERO(&readset);
       fd_set writeset; FD_ZERO(&writeset);
       fd_set exceptset; FD_ZERO(&exceptset);
-         
+
       FD_SET(sockfd, &readset);
       FD_SET(notification_fd, &readset);
       int nfds = (sockfd > notification_fd ? sockfd : notification_fd)+1;
-         
+
       struct timeval timeout;
       timeout.tv_sec = RECV_TIMEOUT;
       timeout.tv_usec = 0;
@@ -1084,7 +1084,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
          perror("Error in select");
          return false;
       }
-         
+
       if (FD_ISSET(sockfd, &readset))
       {
          struct sockaddr_un addr;
@@ -1106,7 +1106,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
          }
       }
    }
-      
+
    for (unsigned i=0; i<num; i++) {
       send_pid msg;
       bool result;
@@ -1292,7 +1292,7 @@ bool ProcControlComponent::recv_broadcast(unsigned char *msg, unsigned msg_size)
    unsigned char *cur_pos = msg;
    for (std::map<Dyninst::PID, Process::ptr>::iterator i = process_pids.begin(); i != process_pids.end(); i++) {
       bool result = recv_message(cur_pos, msg_size, i->second);
-      if (!result) 
+      if (!result)
          return false;
       cur_pos += msg_size;
    }
@@ -1317,7 +1317,7 @@ bool ProcControlComponent::send_broadcast(unsigned char *msg, unsigned msg_size)
    unsigned char *cur_pos = msg;
    for (std::map<Dyninst::PID, Process::ptr>::iterator i = process_pids.begin(); i != process_pids.end(); i++) {
       bool result = send_message(msg, msg_size, i->second);
-      if (!result) 
+      if (!result)
          return false;
    }
    return true;
@@ -1339,7 +1339,7 @@ bool ProcControlComponent::block_for_events()
    do {
       result = select(nfds, &readset, &writeset, &exceptset, &timeout);
    } while (result == -1 && errno == EINTR);
-   
+
    if (result == 0) {
       logerror("Timeout while waiting for event\n");
       return false;
@@ -1350,7 +1350,7 @@ bool ProcControlComponent::block_for_events()
       logerror(error_str);
       return false;
    }
-      
+
    assert(result == 1 && FD_ISSET(notification_fd, &readset));
    bool bresult = Process::handleEvents(true);
    if (!bresult) {
@@ -1442,7 +1442,7 @@ bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_si
       struct timeval timeout;
       timeout.tv_sec = 0;
       timeout.tv_usec = 100000;
-      
+
       int result = select(nfds+1, &fset, NULL, NULL, &timeout);
       if (result == 0) {
          timeout_count--;
@@ -1464,7 +1464,7 @@ bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_si
          if (!result) {
             return false;
          }
-         
+
          i = cached_reads.find(j->first);
          if (i == cached_reads.end()) {
             char *newbuffer = (char *) malloc(rsize);
@@ -1504,7 +1504,7 @@ bool ProcControlComponent::open_pipe(Process::ptr p, bool open_read)
    map<Process::ptr, int> &pipe_map = open_read ? r_pipe : w_pipe;
    map<Process::ptr, string> &name_map = open_read ? pipe_read_names : pipe_write_names;
    int o_options = open_read ? O_RDONLY : O_WRONLY;
-   
+
    map<Process::ptr, int>::iterator i = pipe_map.find(p);
    assert(i == pipe_map.end());
    map<Process::ptr, string>::iterator j;
@@ -1517,7 +1517,7 @@ bool ProcControlComponent::open_pipe(Process::ptr p, bool open_read)
       fd = open(j->second.c_str(), O_NONBLOCK | o_options);
       if (fd >= 0)
          break; //Success
-      
+
       int error = errno;
       if (error == ENXIO) {
          if (timeout-- == 0) {
@@ -1531,7 +1531,7 @@ bool ProcControlComponent::open_pipe(Process::ptr p, bool open_read)
       logerror("Mutator error opening %s: %s\n", j->second.c_str(), strerror(error));
       return false;
    }
-   
+
    errno = 0;
    int fdflags = fcntl(fd, F_GETFL);
    if (fdflags < 0 || errno) {
@@ -1541,7 +1541,7 @@ bool ProcControlComponent::open_pipe(Process::ptr p, bool open_read)
    fcntl(fd, F_SETFL, fdflags | O_NONBLOCK);
 
    pipe_map.insert(make_pair(p, fd));
-   
+
    return true;
 }
 

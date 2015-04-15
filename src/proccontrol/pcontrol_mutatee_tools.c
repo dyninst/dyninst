@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -95,7 +95,7 @@ void *ThreadTrampoline(void *d)
    thread_t thread_id;
    void *data;
    int func_result;
-      
+
    datag = (datagram *) d;
    thread_id = datag->thread_id;
    func = datag->func;
@@ -115,7 +115,7 @@ void *ThreadTrampoline(void *d)
 int MultiThreadFinish() {
    int i=0;
    void *result;
-   for (i = 0; i < num_threads; i++) 
+   for (i = 0; i < num_threads; i++)
    {
       result = joinThread(threads[i]);
       thread_results[i] = (int) ((long) result);
@@ -407,13 +407,13 @@ static void createNamedPipes()
       return;
    created_named_pipes = 1;
 
-   if (strcmp(socket_type, "named_pipe") != 0) 
+   if (strcmp(socket_type, "named_pipe") != 0)
       return;
 
    unsigned int len = strlen(socket_name) + 16;
    char *rd_socketname = (char *) malloc(len);
    char *wr_socketname = (char *) malloc(len);
-   
+
    result = MPI_Comm_rank(MPI_COMM_WORLD, &id);
    if (result != MPI_SUCCESS) {
      fprintf(stderr, "Failed to get MPI_Comm_rank\n");
@@ -497,7 +497,7 @@ int initMutatorConnection()
    if (strcmp(socket_type, "named_pipe") == 0) {
       createNamedPipes();
    }
-   
+
    return 0;
 }
 
@@ -555,19 +555,42 @@ static int recv_message_socket(unsigned char *msg, size_t msg_size)
    int result = -1;
    int timeout = MESSAGE_TIMEOUT * 10;
    int no_select = 0;
+
+#if 0 //make a test on pselect
+   sigset_t emptyset, blockset;
+    sigemptyset(&blockset);         /* Block SIGINT */
+    sigaddset(&blockset, SIGTRAP);
+    sigprocmask(SIG_BLOCK, &blockset, &emptyset);
+#endif
+
    while( result != (int) msg_size && result != 0 ) {
+
       fd_set read_set;
       FD_ZERO(&read_set);
       FD_SET(sockfd, &read_set);
+
       struct timeval s_timeout;
       s_timeout.tv_sec = 1; /* 1 sec, as needed on bruckner */
       s_timeout.tv_usec = 0;
+
+      //aarch64-debug: this is stuck in aarch64 when testing singlestep
+#if 0
+      fprintf(stderr, "before select\n");
+      struct timespec p_timeout;
+        p_timeout.tv_sec = 1;
+        p_timeout.tv_nsec = 0;
+      sigemptyset(&emptyset);
+      int sresult = pselect(sockfd+1, &read_set, NULL, NULL, &p_timeout, &emptyset);
+      fprintf(stderr, "after select\n");
+#else
       int sresult = select(sockfd+1, &read_set, NULL, NULL, &s_timeout);
+#endif
       int error = errno;
+
       if (sresult == -1)
       {
          if (error == EINVAL || error == EBADF) {
-	   fprintf(stderr, "Mutatee unable to receive message during select: %d, %s\n", error, strerror(error));
+	    fprintf(stderr, "Mutatee unable to receive message during select: %d, %s\n", error, strerror(error));
             return -1;
          }
          else if (error == EINTR) {
@@ -580,7 +603,7 @@ static int recv_message_socket(unsigned char *msg, size_t msg_size)
             /* Seen as kernels with broken system call restarting during IRPC test. */
             if (error == 514) {
                // No idea what a 514 error is; it shows up on RHEL5 all the time so I'm
-               // preventing the error printout. 
+               // preventing the error printout.
                continue;
             }
 
@@ -635,7 +658,7 @@ static int recv_message_pipe(unsigned char *msg, size_t msg_size)
    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
    /**
-    * Serialize access to IO system with barriers.  
+    * Serialize access to IO system with barriers.
     * Otherwise it's easy to deadlock BlueGene.
     **/
    for (i=0; i < world_size; i++) {
@@ -667,9 +690,9 @@ static int recv_message_pipe(unsigned char *msg, size_t msg_size)
          do {
             result = read(r_pipe, msg + bytes_read, msg_size - bytes_read);
             int error = errno;
-            
-            if (result == 0 || 
-                (result == -1 && (error == EAGAIN || error == EWOULDBLOCK || error == EIO || error == EINTR))) 
+
+            if (result == 0 ||
+                (result == -1 && (error == EAGAIN || error == EWOULDBLOCK || error == EIO || error == EINTR)))
             {
                usleep(100000); /*.1 seconds*/
                if (--num_retries <= 0) {
@@ -721,14 +744,14 @@ int initMutatorConnection()
 	   return 0;
    }
    sscanf(socket_name, "/tmp/pct%d", &pid);
-   
+
    sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockfd == INVALID_SOCKET) {
 	  fprintf(stderr, "socket() failed: %d\n", WSAGetLastError());
       perror("Failed to create socket");
-      return -1; 
+      return -1;
 	}
-  
+
       memset(&server_addr, 0, sizeof(struct sockaddr_in));
       server_addr.sin_family = AF_INET;
 	  server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -740,7 +763,7 @@ int initMutatorConnection()
          perror("Failed to connect to server");
          return -1;
       }
-  
+
 
    return 0;
 }
