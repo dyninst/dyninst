@@ -130,10 +130,11 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
     slice->clearEntryNodes();
     slice->markAsEntryNode(virtualEntry);
 //    if (nodeColor.size() == 24 && jumpAddr == 0x4305ff) {
-//    if (nodeColor.size() == 5 && jumpAddr == 0x48377d) { 
+//    if (jumpAddr == 0x4db1d7 || jumpAddr == 0x4d9805) { 
 //        dyn_debug_parsing=1;
 //	slice->printDOT("slice.dot");
-//    }
+//    } else
+//        dyn_debug_parsing=0;
 
 }
 

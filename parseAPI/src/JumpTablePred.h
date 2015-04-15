@@ -17,9 +17,16 @@ class JumpTablePred : public Slicer::Predicates {
     ReachFact &rf;
     ThunkData &thunks;
     std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges;
+    std::vector<AST::Ptr> readAST;
+
     GraphPtr BuildAnalysisGraph();
     bool IsJumpTable(GraphPtr slice, BoundFactsCalculator &bfc, BoundValue &target);
     bool FillInOutEdges(BoundValue &target, std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
+
+    bool MatchReadAST(Assignment::Ptr a);
+
+    std::unordered_map<Assignment::Ptr, AST::Ptr, Assignment::AssignmentPtrHasher> expandCache;
+    std::pair<AST::Ptr, bool> ExpandAssignment(Assignment::Ptr);
 
 public:
     virtual bool endAtPoint(AssignmentPtr ap);  

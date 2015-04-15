@@ -5,6 +5,7 @@
 #include "debug_parse.h"
 #include "CodeObject.h"
 #include "JumpTablePred.h"
+#include "IndirectASTVisitor.h"
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
@@ -130,7 +131,9 @@ GraphPtr JumpTablePred::BuildAnalysisGraph() {
     }
     for (auto ait = currentAssigns.begin(); ait != currentAssigns.end(); ++ait) {
         Assignment::Ptr a = *ait;
-	if ( (AssignIsZF(a) || shouldSkip.find(a->addr()) == shouldSkip.end()) && !IsPushAndChangeSP(a)) {
+	if (   (AssignIsZF(a) || shouldSkip.find(a->addr()) == shouldSkip.end()) 
+	    && !IsPushAndChangeSP(a)
+	    && (!a->insn()->writesMemory() || MatchReadAST(a))) {
 	    SliceNode::Ptr newNode = SliceNode::create(a, a->block(), a->func());
 	    targetMap[a->block()][a] = newNode;
 	    newG->addNode(newNode);
@@ -170,17 +173,44 @@ bool JumpTablePred::endAtPoint(AssignmentPtr ap) {
 bool JumpTablePred::addNodeCallback(AssignmentPtr ap) {
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
     
-    // We only analyze zf
+    // For flags, we only analyze zf
     if (ap->out().absloc().type() == Absloc::Register && ap->out().absloc().reg().regClass() == x86::FLAG &&
        ap->out().absloc().reg() != x86::zf && ap->out().absloc().reg() != x86_64::zf) {
 	return true;
     }
+
+    pair<AST::Ptr, bool> expandRet = ExpandAssignment(ap);
+    // If we do not have semantics for this instruction,
+    // we assume it does not influence the calculation of jump targets
+    if (!expandRet.second || expandRet.first == NULL) return true;
+
+
 //    fprintf(stderr, "Adding assignment %s in instruction %s at %lx\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr());
     currentAssigns.insert(ap);
-//    if (currentAssigns.size() < 5) return true; 
+
+    // If this assignment writes memory,
+    // we only want to analyze it when it writes to 
+    // an AST we have seen before and potentially
+    // can used for aliasing
+    if (ap->insn()->writesMemory()) {
+        if (!MatchReadAST(ap)) return true;
+    }
+
+    // If this assignment reads memory,
+    // we record the AST of the read so
+    // that in the future we can match a
+    // corresponding write to identify aliasing
+    if (ap->insn()->readsMemory() && expandRet.first->getID() == AST::V_RoseAST) {
+        RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(expandRet.first);
+	if (roseAST->val().op == ROSEOperation::derefOp) {
+	    readAST.push_back(expandRet.first);
+	}
+    }
+
+    // We create the CFG based on the found nodes
     GraphPtr g = BuildAnalysisGraph();
 
-    BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, block->last());
+    BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, block->last(), expandCache);
     bfc.CalculateBoundedFacts();
 
     BoundValue target;
@@ -308,3 +338,35 @@ bool JumpTablePred::IsJumpTable(GraphPtr slice,
     }
     return false;
 }
+
+bool JumpTablePred::MatchReadAST(Assignment::Ptr a) {
+    pair<AST::Ptr, bool> expandRet = ExpandAssignment(a);
+    if (!expandRet.second || expandRet.first == NULL) return false;
+    if (a->out().generator() == NULL) return false;
+    AST::Ptr write = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, a->out().size()), a->out().generator()), a->insn()->size());
+
+    if (write == NULL) return false;
+    for (auto ait = readAST.begin(); ait != readAST.end(); ++ait) 
+        if (*write == **ait) return true;
+    return false;
+}
+
+pair<AST::Ptr, bool> JumpTablePred::ExpandAssignment(Assignment::Ptr assign) {
+    if (expandCache.find(assign) != expandCache.end()) {
+        AST::Ptr ast = expandCache[assign];
+//	if (ast) return make_pair(DeepCopyAnAST(ast), true); else return make_pair(ast, false);
+        if (ast) return make_pair(ast, true); else return make_pair(ast, false);
+
+    } else {
+        pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
+	if (expandRet.second && expandRet.first) {
+	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, assign->insn()->size());
+	    //expandCache[assign] = DeepCopyAnAST(expandRet.first);
+	    expandCache[assign] = calculation;
+	} else {
+	    expandCache[assign] = AST::Ptr();
+	}
+	return make_pair( expandCache[assign], expandRet.second );
+    }
+}
+

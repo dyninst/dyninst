@@ -1089,8 +1089,16 @@ Slicer::handleReturnDetails(
     shiftAllAbsRegions(cur,-1*stack_depth,cur.con.front().func);
 }
 
+static bool IsEqualCondJump(ParseAPI::Block *b) {
+    InstructionAPI::Instruction::Ptr insn = b->getInsn(b->last());
+    entryID id = insn->getOperation().getID();
+    if (id == e_jz || id == e_jnz) return true;
+    return false;
+}
+
 static bool EndsWithConditionalJump(ParseAPI::Block *b) {
     bool cond = false;
+    if (IsEqualCondJump(b)) return false;
     for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit)
         if ((*eit)->type() == COND_TAKEN) cond = true;
     return cond;
@@ -1149,13 +1157,13 @@ Slicer::handleDefault(
 		    if (!f_->postDominates(oit->block, cur.loc.block)) newE.push_back(*oit);
 	    }
 */	    
-	    if (!ReachableFromBothBranches(e, newE)) {
+//	    if (!ReachableFromBothBranches(e, newE)) {
 //            if (!newE.empty()) {    
 	        if (cur.loc.block->obj()->cs()->getAddressWidth() == 8)
 		    cur.active[AbsRegion(Absloc(x86_64::rip))] = newE;
 		else if  (cur.loc.block->obj()->cs()->getAddressWidth() == 4)
 		    cur.active[AbsRegion(Absloc(x86::eip))] = newE;
-	    }
+//	    }
 
 	    cur.firstCond = false;
   	    slicing_printf("\tadding tracking ip for control flow information ");
