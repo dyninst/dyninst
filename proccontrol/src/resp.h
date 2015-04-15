@@ -55,7 +55,7 @@
  * for new code.
  **/
 
-#include "proccontrol/src/int_process.h"
+#include "int_process.h"
 
 class Resp;
 typedef Resp* Resp_ptr;

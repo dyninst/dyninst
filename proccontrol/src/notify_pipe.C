@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/src/int_process.h"
+#include "int_process.h"
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>

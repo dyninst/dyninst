@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "proccontrol/h/PCErrors.h"
+#include "PCErrors.h"
 
 #include "common/src/dthread.h"
 

@@ -32,17 +32,17 @@
 
 
 #include "GeneratorWindows.h"
-#include "proccontrol/h/Event.h"
-#include "proccontrol/h/Decoder.h"
-#include "proccontrol/h/Handler.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/x86_process.h"
+#include "Event.h"
+#include "Decoder.h"
+#include "Handler.h"
+#include "int_process.h"
+#include "x86_process.h"
 #include "common/src/dthread.h"
 #include <sys/types.h>
 #include <vector>
 #include <deque>
-#include "proccontrol/src/int_handler.h"
-#include "proccontrol/src/int_event.h"
+#include "int_handler.h"
+#include "int_event.h"
 
 
 using namespace Dyninst;

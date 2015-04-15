@@ -30,15 +30,15 @@
 
 #include "common/h/dyntypes.h"
 #include "common/h/MachSyscall.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/int_handler.h"
-#include "proccontrol/src/int_event.h"
-#include "proccontrol/src/procpool.h"
-#include "proccontrol/src/irpc.h"
-#include "proccontrol/h/Event.h"
-#include "proccontrol/h/PCProcess.h"
-#include "proccontrol/h/PCErrors.h"
-#include "proccontrol/h/Generator.h"
+#include "int_process.h"
+#include "int_handler.h"
+#include "int_event.h"
+#include "procpool.h"
+#include "irpc.h"
+#include "Event.h"
+#include "PCProcess.h"
+#include "PCErrors.h"
+#include "Generator.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>

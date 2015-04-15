@@ -32,7 +32,7 @@
 #define MEMCACHE_H_
 
 #include "common/h/dyntypes.h"
-#include "proccontrol/src/response.h"
+#include "response.h"
 #include <set>
 #include <map>
 

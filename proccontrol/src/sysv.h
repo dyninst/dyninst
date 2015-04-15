@@ -32,9 +32,9 @@
 #define SYSV_H_
 
 #include "common/h/ProcReader.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/processplat.h"
-#include "proccontrol/h/Handler.h"
+#include "int_process.h"
+#include "processplat.h"
+#include "Handler.h"
 #include "common/src/addrtranslate.h"
 
 using namespace Dyninst;

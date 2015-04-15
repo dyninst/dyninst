@@ -1,7 +1,8 @@
 # CMake configuration for proccontrol directory
 
 include_directories (
-    ${PROJECT_SOURCE_DIR}/proccontrol/src
+  src
+  h
   )
 
 set (SRC_LIST
@@ -87,9 +88,10 @@ SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
 ADD_DEFINITIONS(-DPROCCONTROL_EXPORTS)
 
-add_library (pcontrol ${SRC_LIST})
-add_library (pcontrol_static STATIC ${SRC_LIST})
-target_link_private_libraries(pcontrol common)
+set (DEPS common ${SYMREADER})
+
+dyninst_library(pcontrol ${DEPS})
+
 target_link_private_libraries(pcontrol ${CMAKE_DL_LIBS})
 
 if (UNIX)
@@ -98,20 +100,3 @@ target_link_private_libraries(pcontrol ${Boost_LIBRARIES})
 target_link_private_libraries(pcontrol pthread)
 endif()
 
-if (LIGHTWEIGHT_SYMTAB)
-target_link_private_libraries(pcontrol symLite)
-else()
-target_link_private_libraries(pcontrol symtabAPI)
-endif()
-
-
-
-FILE (GLOB headers "h/*.h")
-set_target_properties (pcontrol pcontrol_static PROPERTIES PUBLIC_HEADER "${headers}")
-
-INSTALL (TARGETS pcontrol pcontrol_static
-        EXPORT DyninstTargets
-        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
-        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
-        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
-        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

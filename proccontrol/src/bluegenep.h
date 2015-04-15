@@ -31,15 +31,15 @@
 #ifndef BLUEGENE_H_
 #define BLUEGENE_H_
 
-#include "proccontrol/h/Generator.h"
-#include "proccontrol/h/Decoder.h"
-#include "proccontrol/h/PCErrors.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/sysv.h"
-#include "proccontrol/src/ppc_process.h"
-#include "proccontrol/src/procpool.h"
-#include "proccontrol/src/int_thread_db.h"
-#include "proccontrol/src/mmapalloc.h"
+#include "Generator.h"
+#include "Decoder.h"
+#include "PCErrors.h"
+#include "int_process.h"
+#include "sysv.h"
+#include "ppc_process.h"
+#include "procpool.h"
+#include "int_thread_db.h"
+#include "mmapalloc.h"
 
 #define SINGLE_STEP_SIG 32064
 #define DEBUG_REG_SIG 32066

@@ -27,9 +27,9 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "proccontrol/src/procpool.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/h/PCErrors.h"
+#include "procpool.h"
+#include "int_process.h"
+#include "PCErrors.h"
 
 #include <assert.h>
 

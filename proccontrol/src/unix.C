@@ -28,9 +28,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/src/unix.h"
-#include "proccontrol/src/snippets.h"
-#include "proccontrol/src/procpool.h"
+#include "unix.h"
+#include "snippets.h"
+#include "procpool.h"
 
 #include <stdlib.h>
 #include <string.h>

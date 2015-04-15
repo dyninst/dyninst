@@ -28,15 +28,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dwarf/h/dwarfFrameParser.h"
-#include "dwarf/h/dwarfExprParser.h"
-#include "dwarf/h/dwarfResult.h"
-#include "common/h/VariableLocation.h"
-#include "common/src/Types.h"
+#include "dwarfFrameParser.h"
+#include "dwarfExprParser.h"
+#include "dwarfResult.h"
+#include "VariableLocation.h"
+#include "Types.h"
 #include "libdwarf.h"
 #include <stdio.h>
 #include <iostream>
-#include "common/src/debug_common.h" // dwarf_printf
+#include "debug_common.h" // dwarf_printf
 
 using namespace Dyninst;
 using namespace Dwarf;

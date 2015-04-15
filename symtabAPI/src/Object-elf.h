@@ -40,26 +40,20 @@
 #if defined(cap_dwarf)
 //#include "dwarf.h"
 #include "libdwarf.h"
-#include "dwarf/h/dwarfHandle.h"
+#include "dwarfHandle.h"
 #endif
 
-#include<vector>
-#include "common/src/headers.h"
-#include "common/src/Types.h"
-#include "common/src/MappedFile.h"
-#include "common/src/IntervalTree.h"
-
-#if 0
-#include "symtabAPI/h/Symbol.h"
-#include "symtabAPI/h/Symtab.h"
-#endif
-
+#include <vector>
+#include "headers.h"
+#include "Types.h"
+#include "MappedFile.h"
+#include "IntervalTree.h"
 
 #include <elf.h>
 #include <libelf.h>
 #include <string>
 
-#include "elf/h/Elf_X.h"
+#include "Elf_X.h"
 
 #include <fcntl.h>
 #include <stdlib.h>

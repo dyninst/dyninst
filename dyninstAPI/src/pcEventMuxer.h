@@ -34,7 +34,7 @@
 #include "common/src/dthread.h"
 #include "common/src/Types.h"
 
-#include "proccontrol/h/Event.h"
+#include "Event.h"
 #include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/src/syscallNotification.h"
 

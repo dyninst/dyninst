@@ -36,7 +36,7 @@
 #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/ast.h"
 
-#include "proccontrol/h/EventType.h"
+#include "EventType.h"
 #include "dyninstAPI/src/pcEventMuxer.h"
 #include "patchAPI/h/PatchMgr.h"
 #include "patchAPI/h/Point.h"

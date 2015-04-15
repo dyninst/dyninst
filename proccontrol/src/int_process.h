@@ -31,13 +31,13 @@
 #if !defined(INT_PROCESS_H_)
 #define INT_PROCESS_H_
 
-#include "proccontrol/h/PCProcess.h"
-#include "proccontrol/h/PCErrors.h"
-#include "proccontrol/h/Event.h"
-#include "proccontrol/h/PlatFeatures.h"
+#include "PCProcess.h"
+#include "PCErrors.h"
+#include "Event.h"
+#include "PlatFeatures.h"
 
-#include "proccontrol/src/response.h"
-#include "proccontrol/src/memcache.h"
+#include "response.h"
+#include "memcache.h"
 
 #include "common/h/dyn_regs.h"
 #include "common/h/SymReader.h"

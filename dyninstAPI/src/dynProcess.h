@@ -54,7 +54,7 @@
 #include "Symtab.h"
 
 #include "symtabAPI/h/SymtabReader.h"
-#include "proccontrol/h/PCProcess.h"
+#include "PCProcess.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/framestepper.h"

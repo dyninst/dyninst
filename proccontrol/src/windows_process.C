@@ -34,7 +34,7 @@
 #include "windows_thread.h"
 #include "procpool.h"
 #include "irpc.h"
-#include "proccontrol/h/Mailbox.h"
+#include "Mailbox.h"
 #include <iostream>
 #include <psapi.h>
 #include <winNT.h>

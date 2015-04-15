@@ -28,12 +28,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/h/Event.h"
+#include "Event.h"
 
-#include "proccontrol/src/response.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/int_handler.h"
-#include "proccontrol/src/procpool.h"
+#include "response.h"
+#include "int_process.h"
+#include "int_handler.h"
+#include "procpool.h"
 
 #include <cstring>
 

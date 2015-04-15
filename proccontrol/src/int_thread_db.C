@@ -29,7 +29,7 @@
  */
 
 #include "common/src/Types.h"
-#include "proccontrol/src/int_thread_db.h"
+#include "int_thread_db.h"
 
 
 #include <cassert>
@@ -42,8 +42,8 @@
 
 #include "common/src/dthread.h"
 #include "common/h/SymReader.h"
-#include "proccontrol/src/int_event.h"
-#include "proccontrol/h/Mailbox.h"
+#include "int_event.h"
+#include "Mailbox.h"
 
 using namespace std;
 

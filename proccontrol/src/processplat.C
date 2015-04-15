@@ -28,12 +28,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/h/PlatFeatures.h"
-#include "proccontrol/h/Mailbox.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/procpool.h"
-#include "proccontrol/src/processplat.h"
-#include "proccontrol/src/int_event.h"
+#include "PlatFeatures.h"
+#include "Mailbox.h"
+#include "int_process.h"
+#include "procpool.h"
+#include "processplat.h"
+#include "int_event.h"
 
 using namespace Dyninst;
 using namespace ProcControlAPI;

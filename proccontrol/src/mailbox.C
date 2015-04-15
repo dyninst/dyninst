@@ -27,10 +27,10 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "proccontrol/h/Mailbox.h"
-#include "proccontrol/h/Event.h"
-#include "proccontrol/h/PCErrors.h"
-#include "proccontrol/src/int_process.h"
+#include "Mailbox.h"
+#include "Event.h"
+#include "PCErrors.h"
+#include "int_process.h"
 
 #include "common/src/dthread.h"
 

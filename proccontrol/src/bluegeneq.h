@@ -28,17 +28,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/h/Generator.h"
-#include "proccontrol/h/Decoder.h"
-#include "proccontrol/h/PCErrors.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/processplat.h"
-#include "proccontrol/src/sysv.h"
-#include "proccontrol/src/ppc_process.h"
-#include "proccontrol/src/procpool.h"
-#include "proccontrol/src/int_thread_db.h"
-#include "proccontrol/src/mmapalloc.h"
-#include "proccontrol/src/resp.h"
+#include "Generator.h"
+#include "Decoder.h"
+#include "PCErrors.h"
+#include "int_process.h"
+#include "processplat.h"
+#include "sysv.h"
+#include "ppc_process.h"
+#include "procpool.h"
+#include "int_thread_db.h"
+#include "mmapalloc.h"
+#include "resp.h"
 
 #include "ramdisk/include/services/MessageHeader.h"
 #include "ramdisk/include/services/ToolctlMessages.h"

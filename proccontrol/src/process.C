@@ -28,27 +28,27 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/irpc.h"
-#include "proccontrol/src/procpool.h"
-#include "proccontrol/src/int_handler.h"
-#include "proccontrol/src/response.h"
-#include "proccontrol/src/int_event.h"
-#include "proccontrol/src/processplat.h"
-#include "proccontrol/h/Mailbox.h"
-#include "proccontrol/h/PCErrors.h"
-#include "proccontrol/h/Generator.h"
-#include "proccontrol/h/Event.h"
-#include "proccontrol/h/Handler.h"
-#include "proccontrol/h/ProcessSet.h"
-#include "proccontrol/h/PlatFeatures.h"
+#include "int_process.h"
+#include "irpc.h"
+#include "procpool.h"
+#include "int_handler.h"
+#include "response.h"
+#include "int_event.h"
+#include "processplat.h"
+#include "Mailbox.h"
+#include "PCErrors.h"
+#include "Generator.h"
+#include "Event.h"
+#include "Handler.h"
+#include "ProcessSet.h"
+#include "PlatFeatures.h"
 
 #if defined(os_windows)
-#include "proccontrol/src/windows_process.h"
-#include "proccontrol/src/windows_thread.h"
+#include "windows_process.h"
+#include "windows_thread.h"
 #endif
 
-#include "proccontrol/src/loadLibrary/injector.h"
+#include "loadLibrary/injector.h"
 
 #include <climits>
 #include <cstring>

@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/src/memcache.h"
-#include "proccontrol/src/int_process.h"
+#include "memcache.h"
+#include "int_process.h"
 #include <string.h>
 
 using namespace std;

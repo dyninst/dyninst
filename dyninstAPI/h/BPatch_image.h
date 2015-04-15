@@ -246,6 +246,13 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
     
   bool getSourceLines( unsigned long addr, BPatch_Vector<BPatch_statement> & lines );
 
+  typedef std::vector<std::pair<unsigned long, unsigned long> >::iterator arange_iter;
+  typedef BPatch_Vector<BPatch_statement>::iterator statement_iter;
+  arange_iter getAddressRanges_begin(const char* fileName, unsigned int lineNo);
+  arange_iter getAddressRanges_end(const char* fileName, unsigned int lineNo);
+  statement_iter getSourceLines_begin(unsigned long addr);
+  statement_iter getSourceLines_end(unsigned long addr);
+
   //  BPatch_image::getProgramName
   //  
   //  fills provided buffer <name> with the program's name, up to <len> chars

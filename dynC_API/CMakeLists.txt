@@ -1,7 +1,11 @@
 
 file(GLOB SRC_LIST "src/*.C")
 
-include_directories(h src ../dyninstAPI/src)
+include_directories(h 
+  src 
+  ${PROJECT_SOURCE_DIR}/dyninstAPI/src
+  ${PROJECT_SOURCE_DIR}/proccontrol/h
+)
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 add_definitions(-DDYNC_EXPORTS)
@@ -14,7 +18,7 @@ set_target_properties(dynC_API dynC_API_static PROPERTIES PUBLIC_HEADER "${heade
 target_link_private_libraries (dynC_API dyninstAPI)
 
 install(TARGETS dynC_API dynC_API_static
-		EXPORT DyninstTargets
+		EXPORT DynCTargets
 		RUNTIME DESTINATION ${INSTALL_LIB_DIR}
 		LIBRARY DESTINATION ${INSTALL_LIB_DIR}		
 		ARCHIVE DESTINATION ${INSTALL_LIB_DIR}

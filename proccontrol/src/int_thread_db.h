@@ -34,16 +34,16 @@
 #error "Thread_db should not be included on Windows"
 #endif
 
-#include "proccontrol/src/int_process.h"
+#include "int_process.h"
 
 #if defined(cap_thread_db)
 
-#include "proccontrol/h/Generator.h"
-#include "proccontrol/h/Event.h"
-#include "proccontrol/h/Decoder.h"
-#include "proccontrol/h/Handler.h"
-#include "proccontrol/src/int_handler.h"
-#include "proccontrol/src/processplat.h"
+#include "Generator.h"
+#include "Event.h"
+#include "Decoder.h"
+#include "Handler.h"
+#include "int_handler.h"
+#include "processplat.h"
 
 extern "C" {
 

@@ -42,7 +42,7 @@
 
 #include <stdio.h>
 #include <signal.h>
-
+#include <boost/iterator/transform_iterator.hpp>
 // PatchAPI stuffs
 //#include "Command.h"
 
@@ -77,7 +77,7 @@ class miniTrampHandle;
 class miniTramp;
 class BPatch;
 class BPatch_image;
-
+class func_instance;
 struct batchInsertionRecord;
 class instPoint;
 class int_variable;
@@ -131,9 +131,12 @@ class BPATCH_DLL_EXPORT BPatchSnippetHandle {
   BPatch_addressSpace * getAddressSpace();
 
   BPatch_process * getProcess();
-    
-  BPatch_Vector<BPatch_thread *> & getCatchupThreads();
+  typedef BPatch_Vector<BPatch_thread*>::iterator thread_iter;
+  thread_iter getCatchupThreads_begin();
+  thread_iter getCatchupThreads_end();
 
+  BPatch_Vector<BPatch_thread *> & getCatchupThreads();
+  
 };
 
 class BPATCH_DLL_EXPORT BPatch_addressSpace {
@@ -185,7 +188,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
 
  protected:
   virtual void getAS(std::vector<AddressSpace *> &as) = 0;
-
+  
  public:
 
   BPatch_addressSpace();
@@ -303,14 +306,23 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
   //  
   //  Method that retrieves the line number and file name corresponding 
   //  to an address
-
+ 
   bool getSourceLines(unsigned long addr, BPatch_Vector< BPatch_statement > & lines );
-    
+ 
+  typedef BPatch_Vector<BPatch_statement>::const_iterator statement_iter;
+  statement_iter getSourceLines_begin(unsigned long addr);
+  statement_iter getSourceLines_end(unsigned long addr);
+
+ 
   // BPatch_addressSpace::getAddressRanges
   //
   // Method that retrieves address range(s) for a given filename and line number.
     
   bool getAddressRanges(const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges );
+
+  typedef std::vector<std::pair<unsigned long, unsigned long> >::const_iterator arange_iter;
+  statement_iter getAddressRanges_begin(const char* file, unsigned long line);
+  statement_iter getAddressRanges_end(const char* file, unsigned long line);
 
   //  DEPRECATED:
   //  BPatch_addressSpace::findFunctionByAddr
@@ -332,6 +344,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
 
   bool  findFunctionsByAddr(Dyninst::Address addr, 
 			    std::vector<BPatch_function*> &funcs);
+
 
   //  BPatch_addressSpace::getImage
   //
@@ -372,7 +385,12 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
 				       Dyninst::Address addr, 
 				       BPatch_type *type = NULL);
   bool  getRegisters(std::vector<BPatch_register> &regs);
-
+  typedef std::vector<BPatch_register>::iterator register_iter;
+  register_iter getRegisters_begin();
+  register_iter getRegisters_end();
+ private:
+  void init_registers();
+ public:
   bool  createRegister_NP(std::string regName, BPatch_register &reg); 
 
   void allowTraps(bool allowtraps);

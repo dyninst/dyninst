@@ -34,13 +34,13 @@
 
 #include <stdio.h>
 
-#include "proccontrol/h/Event.h"
-#include "proccontrol/h/Handler.h"
-#include "proccontrol/h/Mailbox.h"
-#include "proccontrol/src/bluegenep.h"
-#include "proccontrol/src/int_event.h"
-#include "proccontrol/src/int_handler.h"
-#include "proccontrol/src/irpc.h"
+#include "Event.h"
+#include "Handler.h"
+#include "Mailbox.h"
+#include "bluegenep.h"
+#include "int_event.h"
+#include "int_handler.h"
+#include "irpc.h"
 
 #include "common/h/SymReader.h"
 #if defined(WITH_SYMLITE)

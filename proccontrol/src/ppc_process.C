@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/src/ppc_process.h"
+#include "ppc_process.h"
 #include "common/src/arch-power.h"
 #include <string.h>
 #include <iostream>

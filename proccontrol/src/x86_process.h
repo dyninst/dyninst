@@ -32,7 +32,7 @@
 #if !defined(x86_process_h_)
 #define x86_process_h_
 
-#include "proccontrol/src/int_process.h"
+#include "int_process.h"
 #include "common/h/dyn_regs.h"
 
 class x86_process : virtual public int_process

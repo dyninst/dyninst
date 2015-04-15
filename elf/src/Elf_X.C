@@ -41,7 +41,7 @@
 #include <boost/assign/std/vector.hpp>
 
 #include "common/src/headers.h"
-#include "elf/h/Elf_X.h"
+#include "Elf_X.h"
 #include <iostream>
 #include <iomanip>
 #include <sstream>
