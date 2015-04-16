@@ -174,7 +174,8 @@ class Slicer {
 
     // Callback function when adding a new node to the slice.
     // Return true if we want to continue slicing
-    DATAFLOW_EXPORT virtual bool addNodeCallback(AssignmentPtr) { return true;}
+    DATAFLOW_EXPORT virtual bool addNodeCallback(AssignmentPtr,
+                                                 std::set<ParseAPI::Edge*> &) { return true;}
 
   };
 
@@ -704,6 +705,11 @@ class Slicer {
   AssignmentConverter converter;
 
   SliceNode::Ptr widen_;
+  
+  // A set of edges that have been visited during slicing,
+  // which can be used for external users to figure out
+  // which part of code has been analyzed
+  std::set<ParseAPI::Edge*> visitedEdges;
 };
 
 }

@@ -1394,7 +1394,23 @@ void BoundFact::DeleteElementFromInterval(const AST::Ptr ast, int64_t val) {
 void BoundFact::InsertRelation(AST::Ptr left, AST::Ptr right, RelationType r) {
     if (r == Equal && *left == *right) return;
     parsing_printf("\t\t\t inserting relation %s and %s, type %d\n",left->format().c_str(), right->format().c_str(), r); 
+    if (r == Equal) {
+        // We have to consider transitive relations
+	size_t n = relation.size();
+	for (size_t i = 0; i < n; ++i)
+	    if (relation[i]->type == Equal) {
+	        if (*(relation[i]->left) == *left && !(*(relation[i]->right) == *right))
+		    relation.push_back(new RelationShip(relation[i]->right, right, r));
+	        if (*(relation[i]->left) == *right && !(*(relation[i]->right) == *left))
+		    relation.push_back(new RelationShip(relation[i]->right, left, r));
+		if (*(relation[i]->right) == *left && !(*(relation[i]->left) == *right))
+		    relation.push_back(new RelationShip(relation[i]->left, right, r));
+	        if (*(relation[i]->right) == *right && !(*(relation[i]->left) == *left))
+		    relation.push_back(new RelationShip(relation[i]->left, left, r));
+	    }
+    }
     relation.push_back(new RelationShip(left, right, r));
+
 }
 
 void BoundFact::AdjustPredicate(AST::Ptr out, AST::Ptr in) {

@@ -189,7 +189,7 @@ Slicer::sliceInternal(
 
     // add to graph
     insertInitialNode(ret, dir, aP);
-    if (p.addNodeCallback(a_)) {
+    if (p.addNodeCallback(a_,visitedEdges)) {
         // initialize slice stack and set for loop detection.
         // the set may be redundant, but speeds up the loopless case.
         addrStack.push_back(initFrame.addr());
@@ -403,7 +403,7 @@ bool Slicer::updateAndLink(
         unsigned j=0;
         for( ; ait != cand.active.end(); ++ait,++j) {
             if (findMatch(g,dir,cand,(*ait).first,assns[i],matches, cache)) { // links	  
-	        if (!p.addNodeCallback(assns[i])) return false;
+	        if (!p.addNodeCallback(assns[i], visitedEdges)) return false;
 	    }
 	    killed[j] = killed[j] || kills((*ait).first,assns[i]);
             change = change || killed[j];
@@ -716,6 +716,7 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
 				   bool& err,
 				   SliceFrame& nf)
 {
+  visitedEdges.insert(e);
   switch(e->type()) 
   {
   case CALL:
@@ -1098,7 +1099,7 @@ static bool IsEqualCondJump(ParseAPI::Block *b) {
 
 static bool EndsWithConditionalJump(ParseAPI::Block *b) {
     bool cond = false;
-    if (IsEqualCondJump(b)) return false;
+//    if (IsEqualCondJump(b)) return false;
     for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit)
         if ((*eit)->type() == COND_TAKEN) cond = true;
     return cond;

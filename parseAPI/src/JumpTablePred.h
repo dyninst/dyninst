@@ -19,7 +19,7 @@ class JumpTablePred : public Slicer::Predicates {
     std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges;
     std::vector<AST::Ptr> readAST;
 
-    GraphPtr BuildAnalysisGraph();
+    GraphPtr BuildAnalysisGraph(std::set<ParseAPI::Edge*> &visitedEdges);
     bool IsJumpTable(GraphPtr slice, BoundFactsCalculator &bfc, BoundValue &target);
     bool FillInOutEdges(BoundValue &target, std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
 
@@ -30,7 +30,7 @@ class JumpTablePred : public Slicer::Predicates {
 
 public:
     virtual bool endAtPoint(AssignmentPtr ap);  
-    virtual bool addNodeCallback(AssignmentPtr ap);
+    virtual bool addNodeCallback(AssignmentPtr ap, std::set<ParseAPI::Edge*> &visitedEdges);
 
     JumpTablePred(ParseAPI::Function *f,
                   ParseAPI::Block *b,

@@ -31,7 +31,8 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 			  map<ParseAPI::Block*, map<AssignmentPtr, SliceNode::Ptr> > &targetMap,
 			  GraphPtr newG,
 			  set<ParseAPI::Block*> &visit,
-			  EdgeTypeEnum t) {			 
+			  EdgeTypeEnum t,
+			  set<ParseAPI::Edge*> allowedEdges) {			 
     if (targetMap.find(curBlock) != targetMap.end()) {
         // This block contains at least one silce node 
 	// that is reachable from the source DFS node
@@ -67,7 +68,7 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
  	// so, I should be consistent here.
 	// If the slice code considers tail calls, need to change
 	// the predicate to (*eit)->interproc()
-        if ((*eit)->type() != CALL && (*eit)->type() != RET) {
+        if ((*eit)->type() != CALL && (*eit)->type() != RET && allowedEdges.find(*eit) != allowedEdges.end()) {
 	    EdgeTypeEnum newT = t; 
 	    if (t == _edgetype_end_) {
 	        if ((*eit)->type() == COND_TAKEN || (*eit)->type() == COND_NOT_TAKEN) 
@@ -75,16 +76,17 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 		else 
 		    newT = FALLTHROUGH;
 	    } 
-	    BuildEdgesAux(srcNode, (*eit)->trg(), targetMap, newG, visit, newT);	   
+	    BuildEdgesAux(srcNode, (*eit)->trg(), targetMap, newG, visit, newT, allowedEdges);	   
 	}
 }			  
 
 
 static void BuildEdges(SliceNode::Ptr curNode,
 		       map<ParseAPI::Block*, map<AssignmentPtr, SliceNode::Ptr> > &targetMap,
-		       GraphPtr newG) {
+		       GraphPtr newG,
+		       set<ParseAPI::Edge*> &allowedEdges) {
     set<ParseAPI::Block*> visit;		     
-    BuildEdgesAux(curNode, curNode->block(), targetMap, newG, visit, _edgetype_end_);
+    BuildEdgesAux(curNode, curNode->block(), targetMap, newG, visit, _edgetype_end_, allowedEdges);
 }		       
 
 static bool AssignIsZF(Assignment::Ptr a) {
@@ -115,7 +117,7 @@ static int AdjustGraphEntryAndExit(GraphPtr gp) {
 }
 
 
-GraphPtr JumpTablePred::BuildAnalysisGraph() {
+GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
     GraphPtr newG = Graph::createGraph();
     
     NodeIterator gbegin, gend;
@@ -144,7 +146,7 @@ GraphPtr JumpTablePred::BuildAnalysisGraph() {
     newG->allNodes(gbegin, gend);
     for (; gbegin != gend; ++gbegin) {
         SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*gbegin);
-	BuildEdges(node, targetMap, newG);
+	BuildEdges(node, targetMap, newG, visitedEdges);
     }
 
     // Build a virtual exit node
@@ -167,10 +169,10 @@ GraphPtr JumpTablePred::BuildAnalysisGraph() {
 
 
 bool JumpTablePred::endAtPoint(AssignmentPtr ap) {
-        if (ap->insn()->writesMemory()) return true;
+//        if (ap->insn()->writesMemory()) return true;
 	return false;
 }
-bool JumpTablePred::addNodeCallback(AssignmentPtr ap) {
+bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
     
     // For flags, we only analyze zf
@@ -185,7 +187,7 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap) {
     if (!expandRet.second || expandRet.first == NULL) return true;
 
 
-//    fprintf(stderr, "Adding assignment %s in instruction %s at %lx\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr());
+    fprintf(stderr, "Adding assignment %s in instruction %s at %lx\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr());
     currentAssigns.insert(ap);
 
     // If this assignment writes memory,
@@ -208,7 +210,7 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap) {
     }
 
     // We create the CFG based on the found nodes
-    GraphPtr g = BuildAnalysisGraph();
+    GraphPtr g = BuildAnalysisGraph(visitedEdges);
 
     BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, block->last(), expandCache);
     bfc.CalculateBoundedFacts();
@@ -217,11 +219,11 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap) {
     bool ijt = IsJumpTable(g, bfc, target);
     if (ijt) {
         bool ret = !FillInOutEdges(target, outEdges);
-//	fprintf(stderr, "Return %s\n", ret ? "true" : "false");
+	fprintf(stderr, "Return %s\n", ret ? "true" : "false");
 //	if (dyn_debug_parsing) exit(0);
         return ret;
     } else {
-//        fprintf(stderr, "Return true\n");
+        fprintf(stderr, "Return true\n");
 //	if (dyn_debug_parsing) exit(0);
 
         return true;

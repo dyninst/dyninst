@@ -124,13 +124,13 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 	    }
 	}
     }
-//    fprintf(stderr, "%d\n", nodeColor.size());
+    fprintf(stderr, "%d\n", nodeColor.size());
 //    if (nodeColor.size() > 100) slice->printDOT("slice.dot");
 
     slice->clearEntryNodes();
     slice->markAsEntryNode(virtualEntry);
 //    if (nodeColor.size() == 24 && jumpAddr == 0x4305ff) {
-//    if (jumpAddr == 0x4db1d7 || jumpAddr == 0x4d9805) { 
+//    if (jumpAddr == 0x41b8b1 && nodeColor.size() < 25) { 
 //        dyn_debug_parsing=1;
 //	slice->printDOT("slice.dot");
 //    } else
