@@ -50,6 +50,7 @@ using namespace Dyninst::InstructionAPI;
 using namespace NS_x86;
 using namespace hd; 
 
+clock_t ProbabilityCalculator::totalClocks = 0;
 
 // Precision error allowed in double precision float number
 #define ZERO 1e-8
@@ -404,25 +405,17 @@ double ProbabilityCalculator::calcForwardWeights(int cur, Address addr, IdiomPre
 
     if (tree->isLeafNode()) return w;
     
-
-    unsigned short entry_id, len;
-    if (!getOpcode(entry_id, len, addr)) {
+    DecodeData data;
+    if (!decodeInstruction(data, addr)) {
         valid = false;
 	return 0;
     }
 
-//    printf("  decode entry_id %x\n", entry_id);
-    // Look for idioms that match the exact current instruction
-    const IdiomPrefixTree::ChildrenType* children = tree->getChildrenByEntryID(entry_id);
+    const IdiomPrefixTree::ChildrenType* children = tree->getChildrenByEntryID(data.entry_id);
     if (children != NULL) {
-        unsigned short arg1, arg2;
-	if (!getArgs(arg1, arg2, addr)) {
-	    valid = false;
-	    return 0;
-	}
 	for (auto cit = children->begin(); cit != children->end() && valid; ++cit)
-	    if (cit->first.match(IdiomTerm(cit->first.entry_id, arg1, arg2))) {
-	        w += calcForwardWeights(cur + 1, addr + len, cit->second, valid);
+	    if (cit->first.match(IdiomTerm(cit->first.entry_id, data.arg1, data.arg2))) {
+	        w += calcForwardWeights(cur + 1, addr + data.len, cit->second, valid);
 	    }
     }
     if (!valid) return 0;
@@ -431,15 +424,10 @@ double ProbabilityCalculator::calcForwardWeights(int cur, Address addr, IdiomPre
     if (children != NULL) {
         // Note that for a wildcard term,
 	// there is no need to really check whether the operands match or not,
-	// but at least we need to know that the current address can
+	// but at least we know that the current address can
 	// be decoded into a valid instruction.
-        unsigned short arg1, arg2;
-	if (!getArgs(arg1, arg2, addr)) {
-	    valid = false;
-	    return 0;
-	}
 	for (auto cit = children->begin(); cit != children->end() && valid; ++cit)
-	    w += calcForwardWeights(cur + 1, addr + len, cit->second, valid);
+	    w += calcForwardWeights(cur + 1, addr + data.len, cit->second, valid);
     }
            
     // the return value is not important if "valid" becomes false
@@ -460,25 +448,21 @@ double ProbabilityCalculator::calcBackwardWeights(int cur, Address addr, IdiomPr
     if (tree->isLeafNode()) return w;
 
     for (Address prevAddr = addr - 1; prevAddr >= cr->low() && addr - prevAddr <= 15; --prevAddr) {
-	unsigned short entry_id, len;
-	if (!getOpcode(entry_id, len, prevAddr)) continue;
-	if (prevAddr + len != addr) continue;
+	DecodeData data;
+	if (!decodeInstruction(data, prevAddr)) continue;
+	if (prevAddr + data.len != addr) continue;
 
 	// Look for idioms that match the exact current instruction
-	const IdiomPrefixTree::ChildrenType* children = tree->getChildrenByEntryID(entry_id);
+	const IdiomPrefixTree::ChildrenType* children = tree->getChildrenByEntryID(data.entry_id);
 	if (children != NULL) {
-	    unsigned short arg1, arg2;
-	    if (!getArgs(arg1, arg2, prevAddr)) continue;
 	    for (auto cit = children->begin(); cit != children->end(); ++cit)
-	        if (cit->first.match(IdiomTerm(cit->first.entry_id, arg1, arg2))) {
+	        if (cit->first.match(IdiomTerm(cit->first.entry_id, data.arg1, data.arg2))) {
 		    w += calcBackwardWeights(cur + 1, prevAddr , cit->second, matched);
 		}
 	}
         // Wildcard terms also match the current instruction
 	children = tree->getWildCardChildren();
 	if (children != NULL) {
-	    unsigned short arg1, arg2;
-	    if (!getArgs(arg1, arg2, prevAddr)) continue;
 	    for (auto cit = children->begin(); cit != children->end(); ++cit)
 	        w += calcBackwardWeights(cur + 1, prevAddr , cit->second, matched);
 	}
@@ -487,51 +471,31 @@ double ProbabilityCalculator::calcBackwardWeights(int cur, Address addr, IdiomPr
     return w;
 }
 
-bool ProbabilityCalculator::getOpcode(unsigned short &entry_id, unsigned short &len, Address addr) {
-    MatchingCache::iterator iter = opcodeCache.find(addr);
-    if (iter != opcodeCache.end()) {
-	entry_id = iter->second.first;
-	len = iter->second.second;
-	if (len == 0) return false;
+bool ProbabilityCalculator::decodeInstruction(DecodeData &data, Address addr) {
+    DecodeCache::iterator iter = decodeCache.find(addr);
+    if (iter != decodeCache.end()) {
+        data = iter->second;
+	if (data.len == 0) return false;
     } else {
-        Instruction::Ptr insn;
 	unsigned char *buf = (unsigned char*)(cs->getPtrToInstruction(addr));
 	if (buf == NULL) { 
-	    opcodeCache.insert(make_pair(addr, make_pair(JUNK_OPCODE, 0)));
+	    decodeCache.insert(make_pair(addr, DecodeData(JUNK_OPCODE, 0,0,0)));
 	    return false;
 	}
 	InstructionDecoder dec( buf ,  30, cs->getArch()); 
-        insn = dec.decode();
+        Instruction::Ptr insn = dec.decode();
 	if (!insn) {
-	    opcodeCache.insert(make_pair(addr, make_pair(JUNK_OPCODE, 0)));
+	    decodeCache.insert(make_pair(addr, DecodeData(JUNK_OPCODE, 0,0,0)));
 	    return false;
 	}
-	len = insn->size();
-	if (len == 0) {
-	    opcodeCache.insert(make_pair(addr, make_pair(JUNK_OPCODE, 0)));
+	data.len = insn->size();
+	if (data.len == 0) {
+	    decodeCache.insert(make_pair(addr, DecodeData(JUNK_OPCODE, 0,0,0)));
 	    return false;
 	}
 	
 	const Operation & op = insn->getOperation();
-	entry_id = op.getID();
-	opcodeCache.insert(make_pair(addr, make_pair(entry_id, len)));
-    }    
-    return true;
-}
-
-bool ProbabilityCalculator::getArgs(unsigned short &arg1, unsigned short &arg2, Address addr) {
-    if (operandCache.find(addr) != operandCache.end()) {
-        const pair<unsigned short, unsigned short> &val = operandCache[addr];
-	arg1 = val.first;
-	arg2 = val.second;
-    } else {
-        Instruction::Ptr insn;   
-	unsigned char *buf = (unsigned char*)(cs->getPtrToInstruction(addr));
-	assert(buf != NULL);
-	
-	InstructionDecoder dec( buf ,  30, cs->getArch()); 
-	insn = dec.decode();
-	assert(insn);
+	data.entry_id = op.getID();
 
 	vector<Operand> ops;
 	insn->getOperands(ops);
@@ -541,7 +505,7 @@ bool ProbabilityCalculator::getArgs(unsigned short &arg1, unsigned short &arg2, 
 	    if (op.getValue()->size() == 0) {
 		// This is actually an invalid instruction with valid opcode
     		// so modify the opcode cache to make it invalid
-		opcodeCache[addr] = make_pair(JUNK_OPCODE, 0);
+		decodeCache.insert(make_pair(addr, DecodeData(JUNK_OPCODE, 0,0,0)));
 		return false;
 	    }
 
@@ -565,12 +529,14 @@ bool ProbabilityCalculator::getArgs(unsigned short &arg1, unsigned short &arg2, 
 	        args[i] = MEMARG; 
             }
         }
-        arg1 = args[0];
-        arg2 = args[1];
-	operandCache[addr] = make_pair(arg1, arg2);
+        data.arg1 = args[0];
+        data.arg2 = args[1];
+	decodeCache.insert(make_pair(addr, data));
     }
     return true;
-}
+}					      
+
+
 
 bool ProbabilityCalculator::enforceOverlappingConstraints(Function *f, 
                                                           Address cur_addr, 

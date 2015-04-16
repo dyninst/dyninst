@@ -42,6 +42,8 @@
 #include <set>
 #include <map>
 
+#include <ctime>
+
 #include "common/h/dyntypes.h"
 #include "CodeSource.h"
 #include "entryIDs.h"
@@ -49,11 +51,14 @@
 #include "Parser.h"
 #include "CFG.h"
 
+#include "Instruction.h"
+
 using Dyninst::Address;
 using Dyninst::ParseAPI::CodeRegion;
 using Dyninst::ParseAPI::CodeSource;
 using Dyninst::ParseAPI::Parser;
 using Dyninst::ParseAPI::Function;
+using Dyninst::InstructionAPI::Instruction;
 
 namespace hd {
 #define WILDCARD_ENTRY_ID 0xaaaa
@@ -143,6 +148,17 @@ public:
 };
 
 class ProbabilityCalculator {
+
+    struct DecodeData {
+	unsigned short entry_id;
+	unsigned short arg1;
+	unsigned short arg2;
+	unsigned short len;
+	DecodeData(unsigned short e, unsigned short a1, unsigned short a2, unsigned short l):
+	    entry_id(e), arg1(a1), arg2(a2), len(l) {}
+        DecodeData() : entry_id(0), arg1(0), arg2(0), len(0) {}	    
+    };
+
     IdiomModel model;
     CodeRegion* cr;
     CodeSource* cs;
@@ -155,8 +171,8 @@ class ProbabilityCalculator {
     dyn_hash_set<Function *> finalized;
 
     // save the idiom extraction results for idiom matching at different addresses 
-    typedef dyn_hash_map<Address, std::pair<unsigned short, unsigned short> > MatchingCache;
-    MatchingCache opcodeCache, operandCache;
+    typedef dyn_hash_map<Address, DecodeData > DecodeCache;
+    DecodeCache decodeCache;
 
     // Recursively mathcing normal idioms and calculate weights
     double calcForwardWeights(int cur, Address addr, IdiomPrefixTree *tree, bool &valid);
@@ -171,9 +187,7 @@ class ProbabilityCalculator {
 				       dyn_hash_map<Address, double> &newFEPProb,
 				       dyn_hash_map<Address, double> &newReachingProb,
 				       dyn_hash_set<Function*> &newDiscoveredFuncs);
-
-    bool getOpcode(unsigned short &entry_id, unsigned short &len, Address addr);
-    bool getArgs(unsigned short &arg1, unsigned short &arg2, Address addr);
+    bool decodeInstruction(DecodeData &data, Address addr);
 
     void Finalize(dyn_hash_map<Address, double> &newFEPProb,
                   dyn_hash_map<Address, double> &newReachingProb,
@@ -189,6 +203,8 @@ public:
     double getFEPProb(Address addr);
     bool isFEP(Address addr);
     void prioritizedGapParsing();
+
+    static clock_t totalClocks;
 };
 
 };

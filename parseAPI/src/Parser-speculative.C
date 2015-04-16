@@ -300,6 +300,7 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
 	    pc.calcProbByMatchingIdioms(curAddr);
 	}
     }
+//    fprintf(stderr, "get opcode time: %.6lf\n", (float) pc.totalClocks / CLOCKS_PER_SEC);
 
     // 3. Use the consistency contraints and caller-callee constraints 
     // to calculate the final version of the probabilities.
