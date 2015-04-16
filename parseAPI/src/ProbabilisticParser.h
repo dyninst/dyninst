@@ -106,9 +106,9 @@ struct Idiom {
 class IdiomPrefixTree {
 public:
     typedef std::vector<std::pair<IdiomTerm, IdiomPrefixTree*> > ChildrenType;
-
+    typedef dyn_hash_map<unsigned short, ChildrenType> ChildrenByEntryID;
 private:
-    ChildrenType children;
+    ChildrenByEntryID childrenClusters;
     double w;
     bool feature;
     void addIdiom(int cur, const Idiom& idiom);
@@ -117,12 +117,13 @@ private:
 public:
     IdiomPrefixTree();
     void addIdiom(const Idiom& idiom);
-    ChildrenType findChildrenWithOpcode(unsigned short entry_id);
-    ChildrenType findChildrenWithArgs(unsigned short arg1, unsigned short arg2, ChildrenType &candidate);
+    bool findChildrenWithOpcode(unsigned short entry_id, ChildrenType &ret);
+    bool findChildrenWithArgs(unsigned short arg1, unsigned short arg2, const ChildrenType &candidate, ChildrenType &ret);
     bool isFeature() {return feature; }
-    bool isLeafNode() { return (int)children.size() == 0; }
+    bool isLeafNode() { return childrenClusters.empty(); }
     double getWeight() {return w;}
-
+    const ChildrenType* getChildrenByEntryID(unsigned short entry_id);
+    const ChildrenType* getWildCardChildren();
 };
 
 class IdiomModel {
@@ -154,7 +155,8 @@ class ProbabilityCalculator {
     dyn_hash_set<Function *> finalized;
 
     // save the idiom extraction results for idiom matching at different addresses 
-    dyn_hash_map<Address, std::pair<unsigned short, unsigned short> > opcodeCache, operandCache;
+    typedef dyn_hash_map<Address, std::pair<unsigned short, unsigned short> > MatchingCache;
+    MatchingCache opcodeCache, operandCache;
 
     // Recursively mathcing normal idioms and calculate weights
     double calcForwardWeights(int cur, Address addr, IdiomPrefixTree *tree, bool &valid);

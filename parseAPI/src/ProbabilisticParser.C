@@ -251,7 +251,12 @@ void IdiomPrefixTree::addIdiom(int cur, const Idiom& idiom) {
         feature = true;
 	w = idiom.w;
     } else {
-        auto next = children.end();
+        ChildrenByEntryID::iterator idit = childrenClusters.find(idiom.terms[cur].entry_id);
+	if (idit == childrenClusters.end()) {
+	    idit = childrenClusters.insert(make_pair(idiom.terms[cur].entry_id,ChildrenType())).first;
+	}
+	ChildrenType& children = idit->second;
+	ChildrenType::iterator next = children.end();
 	for (auto cit = children.begin(); cit != children.end(); ++cit) {
 	    if (cit->first == idiom.terms[cur]) {
 	        next = cit;
@@ -268,29 +273,50 @@ void IdiomPrefixTree::addIdiom(int cur, const Idiom& idiom) {
     }
 }
 
-IdiomPrefixTree::ChildrenType IdiomPrefixTree::findChildrenWithOpcode(unsigned short entry_id) {
-    ChildrenType ret;
-    for (auto cit = children.begin(); cit != children.end(); ++cit)
-        if (cit->first.matchOpcode(entry_id))
-	    ret.push_back(*cit);
-    return ret;
+bool IdiomPrefixTree::findChildrenWithOpcode(unsigned short entry_id, ChildrenType &ret) {
+    ChildrenByEntryID::iterator idit = childrenClusters.find(entry_id);
+    if (idit != childrenClusters.end()) {
+        ret.insert(ret.end(), idit->second.begin(), idit->second.end());
+    }
+    idit = childrenClusters.find(WILDCARD_ENTRY_ID);
+    if (idit != childrenClusters.end()) {
+        ret.insert(ret.end(), idit->second.begin(), idit->second.end());
+    } 
+    return !ret.empty();
 }
 
-IdiomPrefixTree::ChildrenType IdiomPrefixTree::findChildrenWithArgs(unsigned short arg1, unsigned short arg2, ChildrenType &candidate) {
-    ChildrenType ret;
+bool IdiomPrefixTree::findChildrenWithArgs(unsigned short arg1, unsigned short arg2, const ChildrenType &candidate, ChildrenType &ret) {
     for (auto cit = candidate.begin(); cit != candidate.end(); ++cit) {
         if (cit->first.match(IdiomTerm(cit->first.entry_id, arg1, arg2)))
 	    ret.push_back(*cit);
     }
-    return ret;
+    return !ret.empty();
 }
 
+const IdiomPrefixTree::ChildrenType* IdiomPrefixTree::getChildrenByEntryID(unsigned short entry_id) {
+    ChildrenByEntryID::iterator iter = childrenClusters.find(entry_id);
+    if (iter == childrenClusters.end())
+        return NULL;
+    else
+        return &iter->second;
+}
+const IdiomPrefixTree::ChildrenType* IdiomPrefixTree::getWildCardChildren() {
+    return getChildrenByEntryID(WILDCARD_ENTRY_ID);
+}
 ProbabilityCalculator::ProbabilityCalculator(CodeRegion *reg, CodeSource *source, Parser* p, string model_spec):
     model(model_spec), cr(reg), cs(source), parser(p) 
 {
 }
 
+static bool PassPreCheck(unsigned char *buf) {
+    if (buf == NULL) return false;
+    if (*buf == 0 || *buf == 0x90) return false;
+    return true;
+}
+
 double ProbabilityCalculator::calcProbByMatchingIdioms(Address addr) {
+    unsigned char *buf = (unsigned char*)(cs->getPtrToInstruction(addr));
+    if (!PassPreCheck(buf)) return 0;
 //    if (addr != 0x8049d68) return 0;
     double w = model.getBias();
     bool valid = true;
@@ -385,40 +411,37 @@ double ProbabilityCalculator::calcForwardWeights(int cur, Address addr, IdiomPre
 	return 0;
     }
 
-    // if the current address starts with an nop,
-    // it is definitely not a function entry point
-    if (cur == 0 && entry_id == e_nop) {
-        valid = false;
-	return 0;
-    }
-
 //    printf("  decode entry_id %x\n", entry_id);
-    IdiomPrefixTree::ChildrenType children = tree->findChildrenWithOpcode(entry_id);
-//    printf("  match entry_id to find %u candidates\n", children.size());
-    if (children.size() == 0) return 0;
-
-    unsigned short arg1, arg2;
-    if (!getArgs(arg1, arg2, addr)) {
-        valid = false;
-	return 0;
-    }
-    children = tree->findChildrenWithArgs(arg1, arg2, children);
-//    printf("  decode operands %x %x\n", arg1, arg2);
-//    printf("  match operands to find %u candidates\n", children.size());
-    if (children.size() == 0) return 0;
-
-    for (auto cit = children.begin(); cit != children.end() && valid; ++cit) {
-        w += calcForwardWeights(cur + 1, addr + len, cit->second, valid);
-	if (valid && cit->first.entry_id == WILDCARD_ENTRY_ID) {
-	    Address next = addr + len;
-	    if (!getOpcode(entry_id, len, next)) {
-	        valid = false;
-		return 0;
-	    }
-	    w += calcForwardWeights(cur + 1, next + len, cit->second, valid);
+    // Look for idioms that match the exact current instruction
+    const IdiomPrefixTree::ChildrenType* children = tree->getChildrenByEntryID(entry_id);
+    if (children != NULL) {
+        unsigned short arg1, arg2;
+	if (!getArgs(arg1, arg2, addr)) {
+	    valid = false;
+	    return 0;
 	}
+	for (auto cit = children->begin(); cit != children->end() && valid; ++cit)
+	    if (cit->first.match(IdiomTerm(cit->first.entry_id, arg1, arg2))) {
+	        w += calcForwardWeights(cur + 1, addr + len, cit->second, valid);
+	    }
     }
-            
+    if (!valid) return 0;
+    // Wildcard terms also match the current instruction
+    children = tree->getWildCardChildren();
+    if (children != NULL) {
+        // Note that for a wildcard term,
+	// there is no need to really check whether the operands match or not,
+	// but at least we need to know that the current address can
+	// be decoded into a valid instruction.
+        unsigned short arg1, arg2;
+	if (!getArgs(arg1, arg2, addr)) {
+	    valid = false;
+	    return 0;
+	}
+	for (auto cit = children->begin(); cit != children->end() && valid; ++cit)
+	    w += calcForwardWeights(cur + 1, addr + len, cit->second, valid);
+    }
+           
     // the return value is not important if "valid" becomes false
     return w;
 }
@@ -441,49 +464,57 @@ double ProbabilityCalculator::calcBackwardWeights(int cur, Address addr, IdiomPr
 	if (!getOpcode(entry_id, len, prevAddr)) continue;
 	if (prevAddr + len != addr) continue;
 
-	IdiomPrefixTree::ChildrenType children = tree->findChildrenWithOpcode(entry_id);
-	if (children.size() == 0) continue;
-	
-	unsigned short arg1, arg2;
-	if (!getArgs(arg1, arg2, prevAddr)) continue;
-	children = tree->findChildrenWithArgs(arg1, arg2, children);
-        if (children.size() == 0) continue;
-
-        for (auto cit = children.begin(); cit != children.end(); ++cit)
-	    w += calcBackwardWeights(cur + 1, prevAddr , cit->second, matched);
+	// Look for idioms that match the exact current instruction
+	const IdiomPrefixTree::ChildrenType* children = tree->getChildrenByEntryID(entry_id);
+	if (children != NULL) {
+	    unsigned short arg1, arg2;
+	    if (!getArgs(arg1, arg2, prevAddr)) continue;
+	    for (auto cit = children->begin(); cit != children->end(); ++cit)
+	        if (cit->first.match(IdiomTerm(cit->first.entry_id, arg1, arg2))) {
+		    w += calcBackwardWeights(cur + 1, prevAddr , cit->second, matched);
+		}
+	}
+        // Wildcard terms also match the current instruction
+	children = tree->getWildCardChildren();
+	if (children != NULL) {
+	    unsigned short arg1, arg2;
+	    if (!getArgs(arg1, arg2, prevAddr)) continue;
+	    for (auto cit = children->begin(); cit != children->end(); ++cit)
+	        w += calcBackwardWeights(cur + 1, prevAddr , cit->second, matched);
+	}
 
     }
     return w;
 }
 
 bool ProbabilityCalculator::getOpcode(unsigned short &entry_id, unsigned short &len, Address addr) {
-    if (opcodeCache.find(addr) != opcodeCache.end()) {
-        const pair<unsigned short, unsigned short> &val = opcodeCache[addr];
-	entry_id = val.first;
-	len = val.second;
+    MatchingCache::iterator iter = opcodeCache.find(addr);
+    if (iter != opcodeCache.end()) {
+	entry_id = iter->second.first;
+	len = iter->second.second;
 	if (len == 0) return false;
     } else {
         Instruction::Ptr insn;
 	unsigned char *buf = (unsigned char*)(cs->getPtrToInstruction(addr));
 	if (buf == NULL) { 
-	    opcodeCache[addr] = make_pair(JUNK_OPCODE, 0);
+	    opcodeCache.insert(make_pair(addr, make_pair(JUNK_OPCODE, 0)));
 	    return false;
 	}
 	InstructionDecoder dec( buf ,  30, cs->getArch()); 
         insn = dec.decode();
 	if (!insn) {
-	    opcodeCache[addr] = make_pair(JUNK_OPCODE, 0);
+	    opcodeCache.insert(make_pair(addr, make_pair(JUNK_OPCODE, 0)));
 	    return false;
 	}
 	len = insn->size();
 	if (len == 0) {
-	    opcodeCache[addr] = make_pair(JUNK_OPCODE, 0);
+	    opcodeCache.insert(make_pair(addr, make_pair(JUNK_OPCODE, 0)));
 	    return false;
 	}
 	
 	const Operation & op = insn->getOperation();
 	entry_id = op.getID();
-	opcodeCache[addr] = make_pair(entry_id, len);
+	opcodeCache.insert(make_pair(addr, make_pair(entry_id, len)));
     }    
     return true;
 }
