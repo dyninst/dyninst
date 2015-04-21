@@ -339,6 +339,17 @@ class Assignment {
   AbsRegion out_;
 };
 
+// compare assignments by value.
+// note this is a fast comparison--it checks output and address only.
+struct AssignmentPtrValueComp {
+    bool operator()(const Assignment::Ptr& a, const Assignment::Ptr& b) const {
+        if (a->addr() < b->addr()) { return true; }
+        if (b->addr() < a->addr()) { return false; }
+        if (a->out() < b->out()) { return true; }
+        return false;
+    }
+};
+
 // Dyninst namespace
 };
 

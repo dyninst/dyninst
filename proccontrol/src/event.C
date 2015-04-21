@@ -423,7 +423,7 @@ bool EventBreakpoint::procStopper() const
 
 EventSignal::EventSignal(int sig_) :
    Event(EventType(EventType::None, EventType::Signal)),
-   sig(sig_)
+   sig(sig_), addr(0), cause(Unknown), first(false)
 {
 }
 

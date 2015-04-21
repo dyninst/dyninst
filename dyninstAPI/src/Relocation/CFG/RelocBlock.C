@@ -47,7 +47,6 @@
 
 #include "boost/tuple/tuple.hpp"
 
-
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
@@ -503,6 +502,7 @@ bool RelocBlock::generate(const codeGen &templ,
 std::string RelocBlock::format() const {
     stringstream ret;
   ret << "RelocBlock(" 
+      << func()->obj()->fullName() << ": " << func()->name() << " " 
       << std::hex << origAddr() << std::dec
       << "/" << id() << "/" << label_ 
       << ") {" << endl;

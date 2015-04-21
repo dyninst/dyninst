@@ -530,6 +530,7 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
     //	if (desc.isSharedObject())
     //if(curModule->IsDll())
     //	 baseAddr = get_base_addr();
+
     if( !isForwarded( ((Offset) pSymInfo->Address) - baseAddr ) )
     {
         pFile->AddSymbol( new Object::intSymbol

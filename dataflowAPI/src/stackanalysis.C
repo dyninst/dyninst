@@ -131,7 +131,6 @@ void StackAnalysis::summarizeBlocks() {
   Function::blocklist::iterator bit = bs.begin();
   for( ; bit != bs.end(); ++bit) {
     Block *block = *bit;
-  
     // Accumulators. They have the following behavior:
     // 
     // New region: add to the end of the regions list

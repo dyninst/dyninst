@@ -192,7 +192,7 @@ Function::finalize()
     (*blk)->_func_cnt--;
   }
   _bmap.clear();
-  _retBL.clear();
+  _retBL.clear(); 
   _call_edge_list.clear();
 
     // The Parser knows how to finalize
@@ -496,7 +496,6 @@ Function::tampersStack(bool recalculate)
         _tamper = TAMPER_NONE;
         return _tamper;
     }
-	
 	bool i = _cache_valid;
     // this is above the cond'n below b/c it finalizes the function, 
     // which could in turn call this function

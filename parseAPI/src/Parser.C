@@ -1087,8 +1087,19 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             }
         } else if (work->order() == ParseWorkElem::seed_addr) {
             cur = leadersToBlock[work->target()];
+
+        // call fallthrough case where we have already checked that
+        // the target returns. this is used in defensive mode.
+        } else if (work->order() == ParseWorkElem::checked_call_ft) {
+            Edge* ce = bundle_call_edge(work->bundle());
+            if (ce != NULL) {
+                invalidateContainingFuncs(func, ce->src());
+            } else {
+                parsing_printf("[%s] unexpected missing call edge at %lx\n",
+                        FILE__,work->edge()->src()->lastInsnAddr());
+            }
         }
-                       
+        
         if (NULL == cur) {
             pair<Block*,Edge*> newedge =
                 add_edge(frame,
@@ -1747,6 +1758,12 @@ Parser::findBlocks(CodeRegion *r, Address addr, set<Block *> & blocks)
         parse();
     }
     return _parse_data->findBlocks(r,addr,blocks); 
+}
+
+// find blocks without parsing.
+int Parser::findCurrentBlocks(CodeRegion* cr, Address addr, 
+                                std::set<Block*>& blocks) {
+    return _parse_data->findBlocks(cr, addr, blocks);
 }
 
 Edge*

@@ -630,8 +630,9 @@ bool PatchFunction::consistency() const {
    if (!exit_blocks_.empty()) {
       for (Blockset::const_iterator iter = exit_blocks_.begin(); iter != exit_blocks_.end(); ++iter) {
          bool found = false;
-         for (auto iter2 = func_->returnBlocks().begin();
-              iter2 != func_->returnBlocks().end(); ++iter2) {
+         // should compare exit blocks not return blocks (fixed).
+         for (auto iter2 = func_->exitBlocks().begin();
+              iter2 != func_->exitBlocks().end(); ++iter2) {
             if ((*iter)->block() == *iter2) {
                found = true;
                break;
@@ -651,7 +652,6 @@ bool PatchFunction::consistency() const {
            llit != func_->callEdges().end(); ++llit) 
       {
           llcbs.insert((*llit)->src());
-          assert((*llit)->type() == ParseAPI::CALL);
       }
       if (call_blocks_.size() != llcbs.size()) {
          cerr << "PatchAPI call_blocks_ not same size ("<<call_blocks_.size()

@@ -249,6 +249,15 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
 
     Function* callee = _obj->findFuncByEntry(_cr, addr);
     Block* target = _obj->findBlockByEntry(_cr, addr);
+
+    // check if addr is in a block if it is not entry.
+    if (target == NULL) {
+        std::set<Block*> blocks;
+        _obj->findCurrentBlocks(_cr, addr, blocks);
+        if (blocks.size() == 1) {
+            target = *blocks.begin();
+        }
+    }
     
     if(curInsn()->getCategory() == c_BranchInsn &&
        valid &&

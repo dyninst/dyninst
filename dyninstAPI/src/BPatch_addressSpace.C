@@ -94,15 +94,17 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(Dyninst::PatchAPI::Patc
       return bpf;
    }
 
-   // Find the module that contains the function
-   if (bpmod == NULL && fi->mod() != NULL) {
-      bpmod = getImage()->findModule(fi->mod()->fileName().c_str());
+   // check to see if the func_instance refers to a different
+   // module, and that module contains a bpatch_func
+   BPatch_module* containing;
+   if (fi->mod() != NULL) {
+      containing = getImage()->findModule(fi->mod()->fileName().c_str());
    }
 
    // findModule has a tendency to make new function objects... so
    // check the map again
-   if (bpmod->func_map.count(ifunc)) {
-      BPatch_function *bpf = bpmod->func_map[ifunc];
+   if (containing->func_map.count(ifunc)) {
+      BPatch_function *bpf = containing->func_map[ifunc];
       assert(bpf);
       assert(bpf->func == ifunc);
       return bpf;
