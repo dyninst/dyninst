@@ -92,7 +92,7 @@ namespace hd {
             gapEnd = 0;
         }
 
-        //parsing_printf("addr: %lx gs: %lx ge: %lx\n",addr,gapStart,gapEnd);
+        parsing_printf("addr: %lx gs: %lx ge: %lx\n",addr,gapStart,gapEnd);
 
         while(addr >= gapEnd ||
               gapsize <= MIN_GAP_SIZE)
@@ -124,7 +124,56 @@ namespace hd {
 
         return true;
     }
+    bool compute_gap_new(
+        CodeRegion * cr,
+        Address addr,
+        set<Function *,Function::less> const& funcs,
+        set<Function *,Function::less>::const_iterator & beforeGap,
+        Address & gapStart,
+        Address & gapEnd,
+	bool &reset_iterator)
+    {
+        long MIN_GAP_SIZE = 5;      // probably too small, really
 
+        Address lowerBound = cr->offset();
+        Address upperBound = cr->offset() + cr->length();
+
+
+        if (funcs.empty()) {
+	    if (addr >= upperBound) return false;
+	    gapStart = addr + 1;
+	    if (gapStart < lowerBound) gapStart = lowerBound;
+	    gapEnd = upperBound;
+	    reset_iterator = true;
+	    return true;
+	} else if (addr < (*funcs.begin())->addr()) {
+	    gapStart = addr + 1;
+	    if (gapStart < lowerBound) gapStart = lowerBound;
+	    gapEnd = (*funcs.begin())->addr();
+	    reset_iterator = true;
+	    return true;
+	} else {
+	    reset_iterator = false;
+	    set<Function *,Function::less>::const_iterator afterGap(beforeGap);
+	    ++afterGap;
+	    while (true) {
+	        gapStart = calc_end(*beforeGap);
+		if (afterGap == funcs.end() || (*afterGap)->addr() > upperBound)
+		    gapEnd = upperBound;
+		else
+		    gapEnd = (*afterGap)->addr();
+		if (addr >= gapEnd || (long)(gapEnd - gapStart) <= MIN_GAP_SIZE) {
+		    if (afterGap == funcs.end()) return false;
+		    beforeGap = afterGap;
+		    ++afterGap;
+		} else {
+		    if (gapStart < addr + 1) gapStart = addr + 1;
+		    break;
+		}
+	    }
+	    return true;
+	}
+    }
     bool gap_heuristic_GCC(CodeObject *co,CodeRegion *cr,Address addr)
     {
         using namespace Dyninst::InstructionAPI;
@@ -267,19 +316,10 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
 void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
     // 0. ensure that we've parsed and finalized all vanilla parsing.
     // We also locate all the gaps
-    if(_parse_state < COMPLETE)
+    
+    if (_parse_state < COMPLETE)
         parse();
     finalize();
-
-    vector<pair<Address, Address> > gaps;
-    Address gapStart = 0;
-    Address gapEnd = 0;
-    Address curAddr = 0;
-    set<Function *,Function::less>::const_iterator fit = sorted_funcs.begin();
-    while(hd::compute_gap(cr,curAddr,sorted_funcs,fit,gapStart,gapEnd)) {
-	gaps.push_back(make_pair(gapStart, gapEnd));
-	curAddr = gapEnd;
-    }
 
     string model_spec;
     if (obj().cs()->getAddressWidth() == 8) 
@@ -287,30 +327,34 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
     else
         model_spec = "32-bit";
 
-    // 1. Load the pre-trained idiom model:
+    // Load the pre-trained idiom model:
     hd::ProbabilityCalculator pc(cr, obj().cs(), this, model_spec);
 
-    // 2. Apply idiom match to every byte in gap and
-    // derive the first version of the probabilities of 
-    // whether a byte is a FEP or not.
-    for (size_t i = 0; i < gaps.size(); ++i) {
-        gapStart = gaps[i].first;
-	gapEnd = gaps[i].second;
-	for (curAddr = gapStart; curAddr < gapEnd; ++curAddr) {
-	    pc.calcProbByMatchingIdioms(curAddr);
-	}
+    // Calculate and update gaps when we find new FEP
+    Address gapStart = 0;
+    Address gapEnd = 0;
+    Address curAddr = 0;
+
+    bool reset_iterator = sorted_funcs.empty();
+    set<Function *,Function::less>::const_iterator beforeGap = sorted_funcs.begin();
+
+    while(hd::compute_gap_new(cr,curAddr,sorted_funcs,beforeGap,gapStart,gapEnd, reset_iterator)) {
+        parsing_printf("[%s] scanning for FEP in [%lx,%lx)\n",
+            FILE__,gapStart,gapEnd);
+        for(curAddr=gapStart; curAddr < gapEnd; ++curAddr) {
+            if(cr->isCode(curAddr)) {
+	        pc.calcProbByMatchingIdioms(curAddr);
+		if (!pc.isFEP(curAddr)) continue;
+                parse_at(cr,curAddr,true,GAP);
+
+                if(reset_iterator && !sorted_funcs.empty()) {
+                    beforeGap = sorted_funcs.begin();
+                }
+
+                break;
+            }
+        }
     }
-//    fprintf(stderr, "get opcode time: %.6lf\n", (float) pc.totalClocks / CLOCKS_PER_SEC);
-
-    // 3. Use the consistency contraints and caller-callee constraints 
-    // to calculate the final version of the probabilities.
-    // ##### Currently disabled  #########
-    // pc.calcProbByEnforcingConstraints();
-
-    // 4. Perform gap parsing at all addresses with prob higher than 
-    // the pre-defined threshold, from the address with highest prob
-    // to the address with lowest prob.
-    pc.prioritizedGapParsing();
 
     // 5. Finalize function boundaries
     finalize();

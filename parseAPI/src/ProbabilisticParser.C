@@ -316,6 +316,8 @@ static bool PassPreCheck(unsigned char *buf) {
 }
 
 double ProbabilityCalculator::calcProbByMatchingIdioms(Address addr) {
+    if (FEPProb.find(addr) != FEPProb.end())
+        return FEPProb[addr];
     unsigned char *buf = (unsigned char*)(cs->getPtrToInstruction(addr));
     if (!PassPreCheck(buf)) return 0;
 //    if (addr != 0x8049d68) return 0;
