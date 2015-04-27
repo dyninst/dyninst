@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#warning "This file is not verified yet."
-
 #include "common/src/Types.h"
 #include "common/src/arch-aarch64.h"
 
@@ -41,30 +39,36 @@ using namespace NS_aarch64;
 
 unsigned int NS_aarch64::swapBytesIfNeeded(unsigned int i)
 {
-		assert(0);
+	assert(0);
     return i;
 }
 
+
+// i = signed int value to be extended
+// pos = the total length of signed value to be extended
 int instruction::signExtend(unsigned int i, unsigned int pos)
 {
-		assert(0);
     int ret;
-		return ret;
+    if (((i >> (--pos)) & 0x1) == 0x1) {
+        ret = i |  (~0 << pos);
+    } else {
+        ret = i & ~(~0 << pos);
+    }
+	return ret;
 }
 
 instructUnion &instruction::swapBytes(instructUnion &i)
 {
-		assert(0);
+	assert(0);
     return i;
 }
 
 instruction *instruction::copy() const {
-		assert(0);
+	assert(0);
     return new instruction(*this);
 }
 
 Address instruction::getTarget(Address addr) const {
-		assert(0);
 #if defined(os_vxworks)
     Address ret;
     // FIXME requires vxworks in Dyninst
@@ -75,10 +79,6 @@ Address instruction::getTarget(Address addr) const {
     if (isUncondBranch() || isCondBranch()) {
         return getBranchOffset() + addr;
     }
-    else if (isInsnType(Bmask, BAAmatch)) // Absolute
-        return (IFORM_LI(*this) << 2);
-    else if (isInsnType(Bmask, BCAAmatch)) // Absolute
-        return (BFORM_BD(*this) << 2);
 
     return 0;
 }
@@ -86,17 +86,6 @@ Address instruction::getTarget(Address addr) const {
 // TODO: argument _needs_ to be an int, or ABS() doesn't work.
 void instruction::setBranchOffset(Address newOffset) {
 		assert(0);
-    if (isUncondBranch()) {
-        assert(ABS((int) newOffset) < MAX_BRANCH);
-        IFORM_LI_SET(*this, newOffset >> 2);
-    }
-    else if (isCondBranch()) {
-        assert(ABS(newOffset) < MAX_CBRANCH);
-        BFORM_BD_SET(*this, newOffset >> 2);
-    }
-    else {
-        assert(0);
-    }
 }
 
 
@@ -104,8 +93,7 @@ bool instruction::isCall() const
 {
 		assert(0);
 #define CALLmatch 0x48000001 /* bl */
-
-    return(isInsnType(OPmask | AALKmask, CALLmatch));
+    return false;
 }
 
 void instruction::setInstruction(codeBuf_t *ptr, Address) {
@@ -119,19 +107,25 @@ void instruction::setInstruction(unsigned char *ptr, Address) {
 }
 
 bool instruction::isUncondBranch() const {
-		assert(0);
-    return isInsnType(Bmask, Bmatch);
+    if( CHECK_INST(UNCOND_BR.IMM ) == true ||
+        CHECK_INST(UNCOND_BR.REG ) == true )
+        return true;
+
+    return false;
 }
 
 bool instruction::isCondBranch() const {
-		assert(0);
-    return isInsnType(Bmask, BCmatch);
+    if( CHECK_INST(COND_BR.CB) == true ||
+        CHECK_INST(COND_BR.BR) == true ||
+        CHECK_INST(COND_BR.TB) == true )
+        return true;
+
+    return false;
 }
 
 unsigned instruction::jumpSize(Address from, Address to, unsigned addr_width) {
 		assert(0);
-    Address disp = ABS((long)(to - from));
-    return jumpSize(disp, addr_width);
+        return -1;
 }
 
 // -1 is infinite, don't ya know.
@@ -181,12 +175,29 @@ bool instruction::isThunk() const {
 }
 
 Address instruction::getBranchOffset() const {
-		assert(0);
     if (isUncondBranch()) {
-        return (IFORM_LI(*this) << 2);
+        if( CHECK_INST(UNCOND_BR.IMM) ){
+            return signExtend(GET_OFFSET32(UNCOND_BR.IMM), 26+2 );
+        }
+        if( CHECK_INST(UNCOND_BR.REG) ){
+            // in this case, we should retrieve the offset from the reg
+            unsigned int regNum = GET_OFFSET32(UNCOND_BR.REG)>>2;
+            // get reg value
+            //Address retAddr = getRegValue( );
+            assert(0); //not implemented for cond reg instruction
+            return -1;
+        }
     }
     else if (isCondBranch()) {
-        return (BFORM_BD(*this) << 2);
+        if( CHECK_INST(COND_BR.CB) ){
+            return signExtend(GET_OFFSET32(COND_BR.CB),19+2 );
+        }
+        if( CHECK_INST(COND_BR.TB) ){
+            return signExtend(GET_OFFSET32(COND_BR.TB),14+2 );
+        }
+        if( CHECK_INST(COND_BR.BR) ){
+            return signExtend(GET_OFFSET32(COND_BR.BR),19+2 );
+        }
     }
     return 0;
 
@@ -194,5 +205,17 @@ Address instruction::getBranchOffset() const {
 
 unsigned instruction::opcode() const {
 	assert(0);
-  return MDFORM_OP(*this);
+    return -1;
+}
+
+bool instruction::isAtomicLoad() const {
+    if( CHECK_INST(ATOMIC.LD) == true)
+        return true;
+    return false;
+}
+
+bool instruction::isAtomicStore() const {
+    if( CHECK_INST(ATOMIC.ST) == true)
+        return true;
+    return false;
 }

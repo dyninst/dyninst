@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -36,7 +36,7 @@
 using namespace NS_power;
 using namespace std;
 
-ppc_process::ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+ppc_process::ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
                          std::vector<std::string> envp, std::map<int, int> f) :
    int_process(p, e, a, envp, f)
 {
@@ -75,11 +75,11 @@ static bool atomicLoad(const instruction &insn) {
 }
 
 static bool atomicStore(const instruction &insn) {
-    return (    (XFORM_OP(insn) == STXop) 
+    return (    (XFORM_OP(insn) == STXop)
              && (XFORM_XO(insn) == STWCXxop) );
 }
 
-void clear_ss_state_cb(int_thread *thr) {
+static void clear_ss_state_cb(int_thread *thr) {
    ppc_process *proc = dynamic_cast<ppc_process *>(thr->llproc());
    proc->cleanupSSOnContinue(thr);
 }
@@ -201,9 +201,9 @@ async_ret_t ppc_process::readInsnForSS(Address pc, int_thread *, unsigned int &r
          return aret_success;
       }
    }
-      
+
    unsigned int read_size = plat_getRecommendedReadSize();
-   
+
    //Don't read over page boundarys.  Could cause problems if reading from
    // last executable page.
    unsigned int page_size = getTargetPageSize();
@@ -231,10 +231,10 @@ async_ret_t ppc_process::readInsnForSS(Address pc, int_thread *, unsigned int &r
 
 async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Address> &addrResult) {
    assert(thr->singleStep());
-   
+
    pthrd_printf("Checking for atomic instruction sequence before single step\n");
-    
-   /* 
+
+   /*
     * We need an emulated single step to single step an atomic
     * instruction sequence. The sequence looks something like this:
     *
@@ -255,7 +255,7 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
     // If it is, scan forward until the terminating stwcx.
     bool foundEnd = false;
     bool sequenceStarted = false;
-    int maxSequenceCount = 24; // arbitrary 
+    int maxSequenceCount = 24; // arbitrary
     int currentCount = 0;
     do {
         // Read the current instruction
@@ -323,7 +323,7 @@ bool ppc_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
    return true;
 }
 
-bool ppc_process::plat_needsPCSaveBeforeSingleStep() 
+bool ppc_process::plat_needsPCSaveBeforeSingleStep()
 {
    return true;
 }
