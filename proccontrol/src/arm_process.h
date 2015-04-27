@@ -32,7 +32,9 @@
 #define arm_process_h_
 
 #include <map>
+#include <vector>
 #include "int_process.h"
+
 
 class arm_process : virtual public int_process
 {
@@ -46,10 +48,15 @@ class arm_process : virtual public int_process
   virtual void plat_breakpointBytes(unsigned char *buffer);
   virtual bool plat_breakpointAdvancesPC() const;
 
-  //virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Address> &addrResult);
-  //virtual bool plat_convertToBreakpointAddress(Address &addr, int_thread *thr);
-  //virtual bool plat_needsPCSaveBeforeSingleStep();
-  //virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
+  virtual bool plat_convertToBreakpointAddress(Address &addr, int_thread *thr);
+
+  //for emulated SS
+  virtual void cleanupSSOnContinue(int_thread *thr);
+  virtual void registerSSClearCB();
+  virtual async_ret_t readPCForSS(int_thread *thr, Address &pc);
+  virtual async_ret_t readInsnForSS(Address pc, int_thread *, unsigned int &rawInsn);
+  virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Address> &addrResult);
+  virtual void plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr> resps);
 
  private:
   std::map<int_thread *, reg_response::ptr> pcs_for_ss;

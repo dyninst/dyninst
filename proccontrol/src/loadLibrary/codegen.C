@@ -10,7 +10,7 @@ using namespace ProcControlAPI;
 using namespace std;
 
 
-Codegen::Codegen(Process *proc, std::string libname) 
+Codegen::Codegen(Process *proc, std::string libname)
    : proc_(proc), libname_(libname), codeStart_(0) {}
 
 Codegen::~Codegen() {
@@ -58,7 +58,7 @@ Address Codegen::findSymbolAddr(const std::string name, bool saveTOC) {
 
       SymReader *objSymReader = proc_->llproc()->getSymReader()->openSymbolReader((*li)->getName());
       if (!objSymReader) continue;
-      
+
       Symbol_t lookupSym = objSymReader->getSymbolByName(name);
       if (!objSymReader->isValidSymbol(lookupSym)) continue;
 
@@ -71,7 +71,7 @@ Address Codegen::findSymbolAddr(const std::string name, bool saveTOC) {
    }
    return 0;
 }
- 
+
 Address Codegen::copyString(std::string name) {
    Address ret = buffer_.curAddr();
    unsigned strsize = name.length() + 1;
@@ -122,6 +122,8 @@ bool Codegen::generateCall(Address addr, const std::vector<Address> &args) {
       case Arch_ppc64:
          return generateCallPPC64(addr, args);
 #endif //!defined(os_windows)
+      case Arch_aarch64:
+         return generateCallAARCH64(addr, args);
 	  default:
          return false;
    }
@@ -129,7 +131,7 @@ bool Codegen::generateCall(Address addr, const std::vector<Address> &args) {
 
 bool Codegen::generateNoops() {
    // Linux has an annoying habit of rewinding the PC before executing code
-   // if you're in a system call; so 8-byte pad no matter what. 
+   // if you're in a system call; so 8-byte pad no matter what.
    switch(proc_->getArchitecture()) {
       case Arch_x86:
       case Arch_x86_64:
@@ -141,6 +143,8 @@ bool Codegen::generateNoops() {
          copyInt(0x60000000);
          copyInt(0x60000000);
          break;
+      case Arch_aarch64:
+         copyInt(0xd503201f);
       default:
          return false;
          break;
@@ -158,6 +162,8 @@ bool Codegen::generateTrap() {
       case Arch_ppc64:
          copyInt(0x7d821008);
          break;
+      case Arch_aarch64:
+         copyInt(0xd4200000);
       default:
          return false;
          break;
@@ -178,6 +184,8 @@ bool Codegen::generatePreamble() {
       case Arch_ppc64:
          return generatePreamblePPC64();
 #endif //!defined(os_windows)
+      case Arch_aarch64:
+         return generatePreambleAARCH64();
 	  default:
          return false;
    }

@@ -184,7 +184,7 @@ unsigned int MachRegister::size() const {
       }
       case Arch_ppc64:
 		case Arch_aarch64:
-        if(reg & 0x00ff0000 == aarch64::FPR)
+        if((reg & 0x00ff0000) == aarch64::FPR)
           return 16; //aarch64: 128bit = 16*8bit
         return 8; //aarch64: 64bit = 8*8
       case Arch_aarch32:
@@ -250,6 +250,9 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
          return aarch64::x29; //aarch64: frame pointer is X29 by convention
       case Arch_none:
          return InvalidReg;
+      default:
+         assert(0);
+         return InvalidReg;
    }
    return InvalidReg;
 }
@@ -271,6 +274,9 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
       case Arch_aarch32:
          assert(0);
       case Arch_none:
+         return InvalidReg;
+      default:
+         assert(0);
          return InvalidReg;
    }
    return InvalidReg;
@@ -294,6 +300,9 @@ MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
             assert(0);
         case Arch_none:
             return InvalidReg;
+      default:
+         assert(0);
+         return InvalidReg;
     }
     return InvalidReg;
 }
@@ -314,6 +323,9 @@ MachRegister MachRegister::getSyscallNumberOReg(Dyninst::Architecture arch)
             return aarch64::x8;
         case Arch_none:
             return InvalidReg;
+      default:
+         assert(0);
+         return InvalidReg;
     }
     return InvalidReg;
 }
@@ -334,6 +346,9 @@ MachRegister MachRegister::getSyscallReturnValueReg(Dyninst::Architecture arch)
             return aarch64::x0; //returned value is save in x0
         case Arch_none:
             return InvalidReg;
+      default:
+         assert(0);
+         return InvalidReg;
     }
     return InvalidReg;
 }
@@ -979,6 +994,9 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
       case Arch_none:
          return Dyninst::InvalidReg;
          break;
+      default:
+         assert(0);
+         return InvalidReg;
    }
    //Invalid Architecture passed
    return Dyninst::InvalidReg;
@@ -1269,6 +1287,9 @@ int MachRegister::getDwarfEnc() const
          break;
       case Arch_none:
          return -1;
+      default:
+        assert(0);
+        return -1;
    }
    //Invalid register passed
    return -1;
@@ -1286,6 +1307,9 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
       case Arch_ppc64:
       case Arch_aarch64:
          return 8;
+      default:
+         assert(0);
+         return InvalidReg;
    }
    return 0;
 }

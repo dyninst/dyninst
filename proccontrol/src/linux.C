@@ -487,6 +487,13 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             Dyninst::Address adjusted_addr;
 
             result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
+            //ARM-Debug
+#if 0
+                printf("PC: 0x%lx\n", addr);
+                char buffer_inst[4];
+                proc->plat_readMem(thread, buffer_inst, addr, 4);
+                printf("0x%8x\n", *((unsigned int*)buffer_inst) );
+#endif
 
             if (!result) {
                perr_printf("Failed to read PC address upon SIGTRAP\n");
@@ -2151,6 +2158,7 @@ static void init_dynreg_to_user()
 //Kernel value for PPC_PTRACE_SETREGS 0x99
 #define MY_PTRACE_GETREGS 12
 #elif defined(arch_aarch64)
+//leave blank
 #endif
 
 #if defined(arch_aarch64)
@@ -2362,6 +2370,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
 #if defined(PT_SETREGS)
 #define MY_PTRACE_SETREGS PT_SETREGS
 #elif defined(arch_aarch64)
+//leave blank
 //#define MY_PTRACE_SETREGS PTRACE_SETREGSET
 #else
 //Common kernel value for PTRACE_SETREGS
@@ -2897,7 +2906,6 @@ linux_ppc_thread::~linux_ppc_thread()
 {
 }
 
-//steve: added
 linux_arm_thread::linux_arm_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
    thread_db_thread(p, t, l),

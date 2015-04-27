@@ -229,44 +229,50 @@ static const unsigned int linux_ppc64_call_munmap_size = sizeof(linux_ppc64_call
 //mov
 //31-21 | 20 - 5 | 4 - 0
 //      | imm    | reg
-static const unsigned int linux_aarch64_mmap_flags_position = 36;
-static const unsigned int linux_aarch64_mmap_size_position =  20;
-static const unsigned int linux_aarch64_mmap_addr_position =  4;
 static const unsigned int linux_aarch64_mmap_start_position = 4;
+static const unsigned int linux_aarch64_mmap_addr_position =  8;
+static const unsigned int linux_aarch64_mmap_size_position =  linux_aarch64_mmap_addr_position +16;
+static const unsigned int linux_aarch64_mmap_flags_position = linux_aarch64_mmap_size_position + 16;
 static const unsigned char linux_aarch64_call_mmap[] = {
     // _NR_mmap 1058
     0xd5, 0x03, 0x20, 0x1f,         // nop              ;mmap(void *addr, size_t size, int _prot,
                                     //                  ;   int _flags, int _fd, _off_t offset)
-    0xd2, 0x80, 0x00, 0x00,         // mov x0, #0           ;<addr>
+    //0xd2, 0x80, 0x84, 0x48,       // mov x8, #d1058   ;pass sys call number
+    0xd2, 0x80, 0x1b, 0xc8,         // mov x8, #222   ;pass sys call number,
+                                    //222 is correct, 1058 can lead to invalid return val
+
+    0xd2, 0x80, 0x00, 0x00,         // mov  x0, #0           ;<addr>
     0xf2, 0xa0, 0x00, 0x00,         // movk x0, #0, lsl #16     ;<addr>
     0xf2, 0xc0, 0x00, 0x00,         // movk x0, #0, lsl #32     ;<addr>
     0xf2, 0xe0, 0x00, 0x00,         // movk x0, #0, lsl #48     ;<addr>
 
-    0xd2, 0x80, 0x00, 0x01,         // mov x1, #0               ;<size>
+    0xd2, 0x80, 0x00, 0x01,         // mov  x1, #0               ;<size>
     0xf2, 0xa0, 0x00, 0x01,         // movk x1, #0, lsl #16      ;<size>
     0xf2, 0xc0, 0x00, 0x01,         // movk x1, #0, lsl #32      ;<size>
     0xf2, 0xe0, 0x00, 0x01,         // movk x1, #0, lsl #48      ;<size>
 
     0xd2, 0x80, 0x00, 0x03,         // mov x3, #0x00            ;<flags>
     0xf2, 0xa0, 0x00, 0x03,         // movk x3, #0x00, lsl #16      ;<flags>
-    //0xf2, 0xc0, 0x00, 0x03,         // mov x3, #0x00, lsl #32      ;<flags>
-    //0xf2, 0xe0, 0x00, 0x03,         // mov x3, #0x00, lsl #48      ;<flags>
+    //0xf2, 0xc0, 0x00, 0x03,         // movk x3, #0x00, lsl #32      ;<flags>
+    //0xf2, 0xe0, 0x00, 0x03,         // movk x3, #0x00, lsl #48      ;<flags>
 
     0xd2, 0x80, 0x00, 0xe2,             // mov x2, #0x7     ;<prot>
     0xd2, 0x80, 0x00, 0x04,             // mov x4  #0       ;fd
     0xd2, 0x80, 0x00, 0x05,             // mov x5, #0       ;offset
-    0xd2, 0x80, 0x84, 0x48,             // mov x8, #d1058   ;pass sys call number
+
     0xd4, 0x00, 0x00, 0x01,             // svc #0           ;system call
     0xd4, 0x20, 0x00, 0x00,             // brk #0           ;trap?
     0xd5, 0x03, 0x20, 0x1f              // nop
 };
 static const unsigned int linux_aarch64_call_mmap_size = sizeof(linux_aarch64_call_mmap);
 
-static const unsigned int linux_aarch64_munmap_size_position = 20;
-static const unsigned int linux_aarch64_munmap_addr_position =  4;
 static const unsigned int linux_aarch64_munmap_start_position = 4;
+static const unsigned int linux_aarch64_munmap_addr_position =  8;
+static const unsigned int linux_aarch64_munmap_size_position = linux_aarch64_munmap_addr_position + 16;
 static const unsigned char linux_aarch64_call_munmap[] = {
     0xd5, 0x03, 0x20, 0x1f,             // nop              ;munmap(void *addr, int size)
+    0xd2, 0x80, 0x1a, 0xe8,         // mov x8, #d215    ;pass sys call number
+
     0xd2, 0x80, 0x00, 0x00,         // mov x0, #0       ;&addr
     0xf2, 0xa0, 0x00, 0x00,         // mov x0, #0, lsl #16     ;<addr>
     0xf2, 0xc0, 0x00, 0x00,         // mov x0, #0, lsl #32     ;<addr>
@@ -277,7 +283,6 @@ static const unsigned char linux_aarch64_call_munmap[] = {
     0xf2, 0xc0, 0x00, 0x01,         // mov x1, #0, lsl #32      ;<size>
     0xf2, 0xe0, 0x00, 0x01,         // mov x1, #0, lsl #48      ;<size>
 
-    0xd2, 0x80, 0x1a, 0xe8,         // mov x8, #d215    ;pass sys call number
     0xd4, 0x00, 0x00, 0x01,             // svc #0
     0xd4, 0x20, 0x00, 0x00,             // brk #0
     0xd5, 0x03, 0x20, 0x1f              // nop
@@ -408,7 +413,6 @@ bool mmap_alloc_process::plat_collectAllocationResult(int_thread *thr, reg_respo
         }
         case Arch_aarch64: {
             bool result = thr->getRegister(aarch64::x0, resp);
-            pthrd_printf("ARM-info: createAllocaResult... \n");
             assert(result);
 	            if(!result) return false;
             break;
@@ -612,10 +616,10 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
 
         // To avoid the matter of endianness, I decided to operate on byte.
         pthrd_printf("ARM-info: create alloc snippet...\n");
-#define BYTE_ASSGN(POS, VAL)\
-        (*(((char *) buffer) + POS + 1)) |= ((VAL>>11)&0x1f);\
-        (*(((char *) buffer) + POS + 2)) |= ((VAL>> 3)&0xff);\
-        (*(((char *) buffer) + POS + 3)) |= ((VAL<< 5)&0xf0);
+#define BYTE_ASSGN(POS, VAL) \
+            (*(((char *) buffer) + POS + 1)) |= ((VAL>>11)&0x1f);\
+            (*(((char *) buffer) + POS + 2)) |= ((VAL>> 3)&0xff);\
+            (*(((char *) buffer) + POS + 3)) |= ((VAL<< 5)&0xf0);
 
         BYTE_ASSGN(addr_pos,    (uint16_t)(addr)     )
         BYTE_ASSGN(addr_pos+4,  (uint16_t)(addr>>16) )
@@ -629,8 +633,35 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
 
         BYTE_ASSGN(flags_pos,    (uint16_t)(flags) )
         BYTE_ASSGN(flags_pos+4,  (uint16_t)(flags>>16) )
+        //BYTE_ASSGN(flags_pos+8,  (uint16_t)(flags>>32) )
+        //BYTE_ASSGN(flags_pos+12, (uint16_t)(flags>>48) )
 
-        assert(addr_size == 8);
+        //according to experiments, aarch64 is little-endian
+        //the byte order with a word should be re-arranged
+#define SWAP4BYTE(POS) \
+            ((char *)buffer)[POS+3]^= ((char*)buffer)[POS]; \
+            ((char *)buffer)[POS]  ^= ((char*)buffer)[POS+3]; \
+            ((char *)buffer)[POS+3]^= ((char*)buffer)[POS]; \
+            ((char *)buffer)[POS+2]^= ((char*)buffer)[POS+1]; \
+            ((char *)buffer)[POS+1]^= ((char*)buffer)[POS+2]; \
+            ((char *)buffer)[POS+2]^= ((char*)buffer)[POS+1];
+
+        for(unsigned int i=0; i < buffer_size ; i+=4){
+            SWAP4BYTE(i)
+        }
+
+//debug
+#if 1
+        pthrd_printf("ARM-info: dump alloc snippet...\n");
+        pthrd_printf("addr %ld, 0x%x\n", addr, addr);
+        pthrd_printf("size %ld, 0x%x\n", size, size);
+        pthrd_printf("flags 0x%x:\n", flags);
+
+        for(unsigned int i = 0; i< buffer_size ; i+=4){
+            pthrd_printf("0x%8x\n", *((unsigned int *)(((char *)buffer)+i)) );
+        }
+
+#endif
 
     }else{
         assert(0);
@@ -807,6 +838,11 @@ bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
         BYTE_ASSGN(size_pos+4,  (uint16_t)(size>>16) )
         BYTE_ASSGN(size_pos+8,  (uint16_t)(size>>32) )
         BYTE_ASSGN(size_pos+12, (uint16_t)(size>>48) )
+
+        //swap 4bytes
+        for(unsigned int i=0; i<buffer_size; i+=4){
+            SWAP4BYTE(i)
+        }
 
         // Assuming endianess of debugger and debuggee match
         assert(addr_size == 8);
