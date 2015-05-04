@@ -108,6 +108,8 @@ namespace Dyninst
 
         static MachRegister DwarfEncToReg(int encoding, Dyninst::Architecture arch);
         int getDwarfEnc() const;
+
+        static MachRegister getArchReg(unsigned int regNum, Dyninst::Architecture arch);
    };
 
    /**

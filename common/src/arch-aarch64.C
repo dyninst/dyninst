@@ -68,6 +68,14 @@ instruction *instruction::copy() const {
     return new instruction(*this);
 }
 
+unsigned instruction::getTargetReg() const {
+    if( isBranchReg() ){
+        // for this instruction, the reg contains the target address directly.
+        return getBranchTargetReg();
+    }
+    return -1;
+}
+
 Address instruction::getTarget(Address addr) const {
 #if defined(os_vxworks)
     Address ret;
@@ -106,9 +114,14 @@ void instruction::setInstruction(unsigned char *ptr, Address) {
     insn_ = *insnPtr;
 }
 
+bool instruction::isBranchReg() const{
+    return CHECK_INST(UNCOND_BR.REG );
+}
+
 bool instruction::isUncondBranch() const {
-    if( CHECK_INST(UNCOND_BR.IMM ) == true ||
-        CHECK_INST(UNCOND_BR.REG ) == true )
+    if( CHECK_INST(UNCOND_BR.IMM ) == true
+        || CHECK_INST(UNCOND_BR.REG ) == true
+      )
         return true;
 
     return false;
@@ -174,18 +187,31 @@ bool instruction::isThunk() const {
  	return true;
 }
 
+unsigned instruction::getBranchTargetReg() const{
+    // keep sure this instruction is uncond b reg.
+    assert( isUncondBranch() );
+    unsigned regNum;
+    if( CHECK_INST(UNCOND_BR.REG) ){
+        // in this case, we should retrieve the offset from the reg
+        // shift right 2 to overcome the <<2 for address values
+        regNum = GET_OFFSET32(UNCOND_BR.REG)>>2;
+
+        // be sure the reg num is in the range
+        assert( regNum >= 0 || regNum <= 30);
+
+        return regNum;
+    }
+    return -1;
+}
+
 Address instruction::getBranchOffset() const {
     if (isUncondBranch()) {
         if( CHECK_INST(UNCOND_BR.IMM) ){
             return signExtend(GET_OFFSET32(UNCOND_BR.IMM), 26+2 );
         }
         if( CHECK_INST(UNCOND_BR.REG) ){
-            // in this case, we should retrieve the offset from the reg
-            unsigned int regNum = GET_OFFSET32(UNCOND_BR.REG)>>2;
-            // get reg value
-            //Address retAddr = getRegValue( );
-            assert(0); //not implemented for cond reg instruction
-            return -1;
+            // branch reg doesn't return offset.
+            assert(0);
         }
     }
     else if (isCondBranch()) {
@@ -199,6 +225,7 @@ Address instruction::getBranchOffset() const {
             return signExtend(GET_OFFSET32(COND_BR.BR),19+2 );
         }
     }
+    assert(0); //never goes here.
     return 0;
 
 }

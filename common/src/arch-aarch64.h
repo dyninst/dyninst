@@ -37,6 +37,7 @@
 
 #include "common/src/Types.h"
 #include "common/src/Vector.h"
+#include "common/h/dyn_regs.h"
 class AddressSpace;
 
 namespace NS_aarch64 {
@@ -60,6 +61,8 @@ namespace NS_aarch64 {
 #define GET_OFFSET32(thisInst) \
     (((insn_.raw&thisInst##_OFFSET_MASK)>>thisInst##_OFFSHIFT)<<2)
 
+
+#warning "The following struct decls are compatible with lower version of gcc compilers."
 typedef const unsigned int insn_mask;
 struct {
     insn_mask LD_MASK =  (0x3f400000);
@@ -159,6 +162,7 @@ class COMMON_EXPORT instruction {
     static unsigned size() { return sizeof(instructUnion); }
 
     Address getBranchOffset() const;
+    Address getBranchTargetAddress() const;
     void setBranchOffset(Address newOffset);
 
     // And tell us how much space we'll need...
@@ -205,6 +209,7 @@ class COMMON_EXPORT instruction {
         return !(addr & 0x3);
     }
 
+    bool isBranchReg() const;
     bool isCondBranch() const;
     bool isUncondBranch() const;
     bool isThunk() const;
@@ -214,6 +219,10 @@ class COMMON_EXPORT instruction {
 
     bool isAtomicLoad( ) const;
     bool isAtomicStore( ) const;
+
+    // inferface for being called outside this class
+    unsigned getTargetReg()const ;
+    unsigned getBranchTargetReg() const;
 };
 
 }
