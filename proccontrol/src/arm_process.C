@@ -308,7 +308,29 @@ async_ret_t arm_process::plat_needsEmulatedSingleStep(int_thread *thr, std::vect
 
         // For control flow instructions, assume target is outside atomic instruction sequence
         // and place breakpoint there as well
-        Address cfTarget = insn.getTarget(pc);
+        // First check if is branch reg instruction.
+        Address cfTarget;
+        if( insn.isBranchReg() ){
+#warning "Test cases don't cover this type of instruction. Potential bugs here.\n"
+            pthrd_printf("ARM-DEBUG: find Branch Reg instruction, going to retrieve the target address.\n");
+            // get reg value from the target proc
+
+            unsigned regNum = insn.getTargetReg();
+
+            reg_response::ptr Response = reg_response::createRegResponse();
+            bool result = thr->getRegister(MachRegister::getArchReg(regNum, Arch_aarch64), Response);
+            if (!result || Response->hasError()) {
+               pthrd_printf("Error reading PC address to check for emulated single step condition\n");
+               return aret_error;
+            }
+            bool ready = Response->isReady();
+            assert(ready);
+            if(!ready) return aret_error;
+
+            cfTarget = (Address) Response->getResult();
+        }else{ // return target address by calculating the offset and pc
+            cfTarget = insn.getTarget(pc);
+        }
         if( cfTarget != 0 && sequenceStarted && !foundEnd ) {
             addrResult.push_back(cfTarget);
         }
