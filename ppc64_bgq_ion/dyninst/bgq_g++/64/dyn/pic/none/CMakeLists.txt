@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_mpi_cxx}"
 
 IF (MUTATEEmpicxx64dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
+if(TARGET dyninstAPI)
 add_executable (dyninst_cxx_group_test.dyn_bgq_g++_64_pic_none ${SOURCE_LIST_46})
 foreach (f ${SOURCE_LIST_46})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -465,5 +466,6 @@ INSTALL (TARGETS
 		test_thread_8.dyn_bgq_g++_64_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

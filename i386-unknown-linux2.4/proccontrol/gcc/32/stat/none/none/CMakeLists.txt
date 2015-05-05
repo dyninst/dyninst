@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc32statC MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
+if(TARGET pcontrol)
 add_executable (pc_breakpoint.stat_gcc_32_none_none ${SOURCE_LIST_68})
 foreach (f ${SOURCE_LIST_68})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -173,5 +174,6 @@ INSTALL (TARGETS
 		pc_tls.stat_gcc_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

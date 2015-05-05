@@ -3,6 +3,19 @@ import tuples
 import utils
 from collections import defaultdict
 
+def module_to_lib(module):
+   if(module == 'dyninst'):
+      return 'dyninstAPI'
+   if(module == 'symtab'):
+      return 'symtabAPI'
+   if(module == 'proccontrol'):
+      return 'pcontrol'
+   if(module == 'instruction'):
+      return 'instructionAPI'
+   if(module == 'stackwalker'):
+      return 'stackwalkerAPI'
+   return module
+
 
 def get_compiler_command(exe, platform, abi, info):
    compiler = info['compilers'][exe]
@@ -27,9 +40,9 @@ def is_valid_test(mutatee):
 	 groups = info['rungroups']
 	 mutatee_tests = filter(lambda g: g['mutatee'] == mutatee['name'], groups)
 	 if not mutatee_tests:
-		  return 'false'
+            return 'false'
 	 else:
-	 	  return 'true'
+            return 'true'
 
 
 	 
@@ -123,6 +136,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    out.write("IF (%s MATCHES \"1\")\n" % varname)
    
    out.write("include (${PROJECT_SOURCE_DIR}/%s/srclists.cmake)\n" % platform['name'])
+   out.write("if(TARGET %s)\n" % module_to_lib(module))
    
    # Add each mutatee executable
    for m in mlist:
@@ -162,7 +176,7 @@ def print_one_cmakefile(exe, abi, stat_dyn, pic, opt, module, path, mlist, platf
    out.write("\tDESTINATION ${INSTALL_DIR})\n\n")
    out.write("ENDIF()\n");
    out.write("ENDIF()\n");
-   
+   out.write("ENDIF()\n");
    out.close()
 
    # And include it from the top-level test suite CMakeLists.txt
@@ -187,7 +201,7 @@ def print_src_lists(mutatees, platform, info, directory):
    # Make sure this agrees with the subdirectory structure for CMakeLists 
    # as defined below in print_compiler_cmakefiles
    out.write("set (SRC ${PROJECT_SOURCE_DIR}/src)\n")
-
+   out.write("find_package (Dyninst REQUIRED COMPONENTS common OPTIONAL_COMPONENTS symtabAPI dyninstAPI instructionAPI proccontrol)\n")
    srcs_to_mutatees = {}
    preproc_to_mutatees = {}
    for m in mutatees:

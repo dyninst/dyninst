@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc32dynC MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-freebsd7.2/srclists.cmake)
+if(TARGET symtabAPI)
 add_executable (symtab_group_test.dyn_gcc_32_pic_none ${SOURCE_LIST_23})
 foreach (f ${SOURCE_LIST_23})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -33,5 +34,6 @@ INSTALL (TARGETS
 		symtab_group_test.dyn_gcc_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

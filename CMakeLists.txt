@@ -25,7 +25,9 @@ endif()
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
-find_package (Dyninst REQUIRED CONFIG)
+find_package (Dyninst REQUIRED COMPONENTS common
+  OPTIONAL_COMPONENTS symtabAPI dyninstAPI instructionAPI proccontrol)
+
 find_package (Threads)
 set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
 			      "1.50" "1.50.0" "1.51" "1.51.0" "1.52" "1.52.0"
@@ -130,33 +132,51 @@ set (PLAT_SRC src/dyninst/ParseThat.C
     src/dyninst/test_lib_test9.C)
 endif()
 
-add_library (testdyninst SHARED
-            src/dyninst/dyninst_comp.C
-            src/dyninst/test_lib_mutateeStart.C
-            src/dyninst/Callbacks.C
-            src/dyninst/Process_data.C
-	    ${PLAT_SRC})
-target_link_libraries (testdyninst testSuite dyninstAPI instructionAPI ${CMAKE_THREAD_LIBS_INIT})
-
-add_library (testsymtab SHARED
-            src/symtab/symtab_comp.C)
-target_link_libraries (testsymtab testSuite symtabAPI common ${CMAKE_THREAD_LIBS_INIT})
-
-add_library (testinstruction SHARED
-            src/instruction/instruction_comp.C)
-target_link_libraries (testinstruction testSuite instructionAPI symtabAPI common ${CMAKE_THREAD_LIBS_INIT})
-
-add_library (testproccontrol SHARED
-            src/proccontrol/proccontrol_comp.C)
-
-if(WIN32)
-target_link_libraries(testproccontrol testSuite pcontrol common ${CMAKE_THREAD_LIBS_INIT} ws2_32)
-else()
-target_link_libraries (testproccontrol testSuite pcontrol common ${CMAKE_THREAD_LIBS_INIT})
-endif()
 set (COMPLIB_DEFS TESTLIB_DLL_BUILD COMPLIB_DLL_BUILD)
-set (COMPLIB_TARGETS testdyninst testsymtab testinstruction testproccontrol)
-set_target_properties(${COMPLIB_TARGETS} PROPERTIES COMPILE_DEFINITIONS "${COMPLIB_DEFS}")
+
+if(TARGET dyninstAPI)
+  add_library (testdyninst SHARED
+    src/dyninst/dyninst_comp.C
+    src/dyninst/test_lib_mutateeStart.C
+    src/dyninst/Callbacks.C
+    src/dyninst/Process_data.C
+    ${PLAT_SRC})
+  target_link_libraries (testdyninst testSuite dyninstAPI instructionAPI ${CMAKE_THREAD_LIBS_INIT})
+  install(TARGETS testdyninst
+    DESTINATION ${INSTALL_DIR})
+  set_target_properties(testdyninst PROPERTIES COMPILE_DEFINITIONS "${COMPLIB_DEFS}")
+endif()
+if(TARGET symtabAPI)
+  add_library (testsymtab SHARED
+    src/symtab/symtab_comp.C)
+  target_link_libraries (testsymtab testSuite symtabAPI common ${CMAKE_THREAD_LIBS_INIT})
+  install(TARGETS testsymtab
+    DESTINATION ${INSTALL_DIR})
+  set_target_properties(testsymtab PROPERTIES COMPILE_DEFINITIONS "${COMPLIB_DEFS}")
+endif()
+
+if(TARGET instructionAPI)
+  add_library (testinstruction SHARED
+    src/instruction/instruction_comp.C)
+  target_link_libraries (testinstruction testSuite instructionAPI symtabAPI common ${CMAKE_THREAD_LIBS_INIT})
+  install(TARGETS testinstruction
+    DESTINATION ${INSTALL_DIR})
+  set_target_properties(testinstruction PROPERTIES COMPILE_DEFINITIONS "${COMPLIB_DEFS}")
+endif()
+
+if(TARGET pcontrol)
+  add_library (testproccontrol SHARED
+    src/proccontrol/proccontrol_comp.C)
+  
+  if(WIN32)
+    target_link_libraries(testproccontrol testSuite pcontrol common ${CMAKE_THREAD_LIBS_INIT} ws2_32)
+  else()
+    target_link_libraries (testproccontrol testSuite pcontrol common ${CMAKE_THREAD_LIBS_INIT})
+  endif()
+  install(TARGETS testproccontrol
+    DESTINATION ${INSTALL_DIR})
+  set_target_properties(testproccontrol PROPERTIES COMPILE_DEFINITIONS "${COMPLIB_DEFS}")
+endif()
 
 if(WIN32)
 set(RUNTESTS_UTILS src/runTests-utils-nt.C)
@@ -202,10 +222,6 @@ install (TARGETS
         test_driver
         runTests
 	${TESTSUITE_TESTLAUNCH_LINK}
-        testdyninst
-        testsymtab
-        testinstruction
-        testproccontrol
 	DatabaseOutputDriver
         DESTINATION ${INSTALL_DIR})
 

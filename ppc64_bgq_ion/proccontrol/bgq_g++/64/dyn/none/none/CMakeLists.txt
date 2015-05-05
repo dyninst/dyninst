@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_mpi_cxx}"
 
 IF (MUTATEEmpicxx64dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
+if(TARGET pcontrol)
 add_executable (pc_addlibrary.dyn_bgq_g++_64_none_none ${SOURCE_LIST_37})
 foreach (f ${SOURCE_LIST_37})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -153,5 +154,6 @@ INSTALL (TARGETS
 		pc_tls.dyn_bgq_g++_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

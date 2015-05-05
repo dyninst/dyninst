@@ -2742,6 +2742,7 @@ platform('power32', 'bluegene', 'bluegenep', 'ppc32_bgp_ion').
 platform('power32', 'bluegene', 'bluegenel', 'ppc32_bgl_ion').
 platform('power32', 'bluegene', 'bluegenep', 'ppc32_bgp').
 platform('power64', 'bluegene', 'bluegeneq', 'ppc64_bgq_ion').
+platform('aarch64', 'linux', 'linux', 'arm64-unknown-linux').
 
 % Platform Defns
 % platform/1
@@ -2820,6 +2821,7 @@ platform_abi('rs6000-ibm-aix64-5.2', 64).
 platform_abi('x86_64_cnl', 64).
 platform_abi('amd64-unknown-freebsd7.2', 64).
 platform_abi('ppc64_bgq_ion', 64).
+platform_abi('arm64-unknown-linux', 64).
 
 runmode_launch_params(Runmode, Platform, Mutator, Mutatee, Launchtime) :-
    runmode(Runmode),

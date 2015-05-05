@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_intel_CC}"
 
 IF (MUTATEEintelCC32dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
+if(TARGET symtabAPI)
 add_executable (symtab_group_test.dyn_icpc_32_none_none ${SOURCE_LIST_27})
 foreach (f ${SOURCE_LIST_27})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -42,5 +43,6 @@ INSTALL (TARGETS
 		test_exception.dyn_icpc_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

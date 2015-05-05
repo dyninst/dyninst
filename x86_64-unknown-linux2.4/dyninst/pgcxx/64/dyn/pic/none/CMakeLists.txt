@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
 
 IF (MUTATEEpgcxx64dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
+if(TARGET dyninstAPI)
 add_executable (amd64_7_arg_call.dyn_pgcxx_64_pic_none ${SOURCE_LIST_47})
 foreach (f ${SOURCE_LIST_47})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -564,5 +565,6 @@ INSTALL (TARGETS
 		test_thread_8.dyn_pgcxx_64_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()
