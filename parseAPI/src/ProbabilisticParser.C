@@ -320,7 +320,7 @@ double ProbabilityCalculator::calcProbByMatchingIdioms(Address addr) {
         return FEPProb[addr];
     unsigned char *buf = (unsigned char*)(cs->getPtrToInstruction(addr));
     if (!PassPreCheck(buf)) return 0;
-//    if (addr != 0x8049d68) return 0;
+//    if (addr != 0x804ca09) return 0;
     double w = model.getBias();
     bool valid = true;
 //    fprintf(stderr, "before forward matching w = %.6lf\n", w);
@@ -403,7 +403,10 @@ double ProbabilityCalculator::calcForwardWeights(int cur, Address addr, IdiomPre
 //    printf("Start matching at %lx for %dth idiom term\n", addr, cur);
 
     double w = 0;
-    if (tree->isFeature()) w = tree->getWeight();
+    if (tree->isFeature()) {
+        w = tree->getWeight();
+//	fprintf(stderr, "Match forward idiom with weight %.6lf\n", tree->getWeight());
+    }
 
     if (tree->isLeafNode()) return w;
     

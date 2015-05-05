@@ -133,8 +133,7 @@ namespace hd {
         Address & gapEnd,
 	bool &reset_iterator)
     {
-        long MIN_GAP_SIZE = 5;      // probably too small, really
-
+        long MIN_GAP_SIZE = 15;    
         Address lowerBound = cr->offset();
         Address upperBound = cr->offset() + cr->length();
 
@@ -232,6 +231,22 @@ namespace hd {
   #endif
 #endif  
         return ret;
+    }
+
+    bool IsNop(CodeObject *co, CodeRegion *cr, Address addr) {
+        using namespace Dyninst::InstructionAPI;
+    
+        const unsigned char* bufferBegin = 
+            (const unsigned char*)(cr->getPtrToInstruction(addr));
+        if(!bufferBegin)
+            return false;
+ 
+        InstructionDecoder dec(bufferBegin, 
+            cr->offset() + cr->length() - addr, 
+            cr->getArch());
+	Block * blk = NULL;
+	InstructionAdapter_t ah(dec, addr, co, cr, cr, blk);
+	return ah.isNop();
     }
 };
 
@@ -345,6 +360,7 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
             if(cr->isCode(curAddr)) {
 	        pc.calcProbByMatchingIdioms(curAddr);
 		if (!pc.isFEP(curAddr)) continue;
+		if (hd::IsNop(&_obj,cr, curAddr)) continue;
                 parse_at(cr,curAddr,true,GAP);
 
                 if(reset_iterator && !sorted_funcs.empty()) {
