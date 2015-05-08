@@ -90,6 +90,11 @@ CodeSource::non_returning_funcs =
         ("_gfortran_os_error",true)
         ("_gfortran_runtime_error",true)
         ("_gfortran_stop_numeric", true)
+        ("_gfortran_runtime_error_at", true)
+        ("_gfortran_stop_string", true)
+        ("_gfortran_abort", true)
+        ("_gfortran_exit_i8", true)
+        ("_gfortran_exit_i4", true)
         ("for_stop_core", true)
         ("__sys_exit", true);
 
