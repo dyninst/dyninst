@@ -400,6 +400,8 @@ class StackAnalysis {
     void handlePowerAddSub(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
     void handlePowerStoreUpdate(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleMov(InstructionPtr insn, TransferFuncs &xferFuncs);
+    void handleZeroExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
+    void handleSignExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleDefault(InstructionPtr insn, TransferFuncs &xferFuncs);
 
     

@@ -357,6 +357,15 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
        case e_mov:
           handleMov(insn, xferFuncs);
           break;
+       case e_movzx:
+          handleZeroExtend(insn, xferFuncs);
+          break;
+       case e_movsx:
+       case e_movsxd:
+       case e_cbw:
+       case e_cwde:
+          handleSignExtend(insn, xferFuncs);
+          break;
        default:
           handleDefault(insn, xferFuncs);
     }
@@ -823,6 +832,80 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
 	   xferFuncs.push_back(TransferFunc::bottomFunc(written));
 	   stackanalysis_printf("\t\t\t Non-register-register move: %s set to bottom\n", written.name().c_str());
    }
+}
+
+void StackAnalysis::handleZeroExtend(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
+    // This instruction zero extends the read register into the written register
+
+    if (insn->writesMemory()) return;
+    if (insn->readsMemory()) {
+        // Same as handleMov
+        handleDefault(insn, xferFuncs);
+        return;
+    }
+
+    MachRegister read;
+    MachRegister written;
+    std::set<RegisterAST::Ptr> regs;
+    RegisterAST::Ptr reg;
+
+    insn->getWriteSet(regs);
+    if (regs.size() != 1) {
+        handleDefault(insn, xferFuncs);
+        return;
+    }
+    reg = *(regs.begin());
+    written = reg->getID();
+    regs.clear();
+
+    insn->getReadSet(regs);
+    if (regs.size() != 1) {
+        handleDefault(insn, xferFuncs);
+        return;
+    }
+    reg = *(regs.begin());
+    read = reg->getID();
+
+    stackanalysis_printf("\t\t\t Alias detected: %s -> %s\n", read.name().c_str(), written.name().c_str());
+    xferFuncs.push_back(TransferFunc::aliasFunc(read, written));
+}
+
+void StackAnalysis::handleSignExtend(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
+    // This instruction sign extends the read register into the written register
+    // Aliasing insn't really correct here...sign extension is going to change the value...
+
+    if (insn->writesMemory()) return;
+    if (insn->readsMemory()) {
+        // Same as handleMov
+        handleDefault(insn, xferFuncs);
+        return;
+    }
+
+    MachRegister read;
+    MachRegister written;
+    std::set<RegisterAST::Ptr> regs;
+    RegisterAST::Ptr reg;
+
+    insn->getWriteSet(regs);
+    if (regs.size() != 1) {
+        handleDefault(insn, xferFuncs);
+        return;
+    }
+    reg = *(regs.begin());
+    written = reg->getID();
+    regs.clear();
+
+    insn->getReadSet(regs);
+    if (regs.size() != 1) {
+        handleDefault(insn, xferFuncs);
+        return;
+    }
+    reg = *(regs.begin());
+    read = reg->getID();
+
+    stackanalysis_printf("\t\t\t Sign extend insn detected: %s -> %s (must be top or bottom)\n", read.name().c_str(), written.name().c_str());
+    xferFuncs.push_back(TransferFunc::aliasFunc(read, written, true));
+    return;
 }
 
 void StackAnalysis::handleDefault(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
