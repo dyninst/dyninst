@@ -54,6 +54,8 @@ class IntervalTree {
 
   iterator begin() { return tree_.begin(); }
   iterator end() { return tree_.end(); }
+  c_r_iter rbegin() { return tree_.rbegin(); }
+  c_r_iter rend() { return tree_.rend(); }
   const_iterator begin() const { return tree_.begin(); }
   const_iterator end() const { return tree_.end(); }
 
@@ -154,6 +156,14 @@ class IntervalTree {
      Iter iter = tree_.find(lb);
      if (iter == tree_.end()) return false;
      iter->second.first = newUB;
+     return true;
+  }
+
+  bool updateValue(K lb, V newVal) {
+      Iter iter = tree_.find(lb);
+      if (iter == tree_.end()) return false;
+      iter->second.second = newVal;
+      return true;
   }
 
  private:
