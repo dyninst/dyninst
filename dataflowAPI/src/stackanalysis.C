@@ -914,8 +914,8 @@ void StackAnalysis::handleDefault(Instruction::Ptr insn, TransferFuncs &xferFunc
    for (std::set<RegisterAST::Ptr>::iterator iter = written.begin(); 
         iter != written.end(); ++iter) {
 
-      xferFuncs.push_back(TransferFunc::bottomFunc((*iter)->getID()));
-      stackanalysis_printf("\t\t\t Unhandled insn %s detected: %s set to bottom\n", insn->format().c_str(), 
+      xferFuncs.push_back(TransferFunc::aliasFunc((*iter)->getID(), (*iter)->getID(), true));
+      stackanalysis_printf("\t\t\t Unhandled insn %s detected: %s set to topBottom\n", insn->format().c_str(),
                            (*iter)->getID().name().c_str());
    }
    return;
