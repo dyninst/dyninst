@@ -33,6 +33,7 @@
 #include "../dyninstAPI/src/debug.h"
 #include "../Widgets/Widget.h"
 #include "../Widgets/RelDataWidget.h"
+#include "../Widgets/StackModWidget.h"
 #include "../Widgets/CFWidget.h"
 #include "../Widgets/PCWidget.h"
 #include "../CFG/RelocBlock.h"
@@ -41,6 +42,9 @@
 #include "../CFG/RelocGraph.h"
 #include "instructionAPI/h/Visitor.h"
 
+#include "StackMod.h"
+#include "function.h"
+#include "dataflowAPI/h/stackanalysis.h"
 
 using namespace std;
 using namespace Dyninst; 
@@ -58,6 +62,27 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
   relocation_cerr << "PCRelTrans: processing block " 
 		  << cur << " with "
 		  << elements.size() << " elements." << endl;
+
+  // Grab some stack modification data structures if we need them
+  OffsetVector* offVec;
+  TMap* tMap;
+  if (cur->func()->hasStackMod()) {
+    // Make sure we have an offset vector and transformation mapping
+    // - We shouldn't be able to get to relocation without having generated these
+    if (!cur->func()->hasOffsetVector()) {
+        cur->func()->createOffsetVector();
+    }
+    offVec = cur->func()->getOffsetVector();
+    assert(offVec);
+
+    if (!cur->func()->hasValidOffsetVector()) {
+        // We should not be able to get here, but enforce that we do don't
+        return false;
+    }
+
+    tMap = cur->func()->getTMap();
+    assert(tMap);
+  }
 
   for (RelocBlock::WidgetList::iterator iter = elements.begin();
        iter != elements.end(); ++iter) {
@@ -114,6 +139,48 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
          (*iter).swap(replacement);            
          break;
       }
+    } else {
+        // If we have stack modifications, check for sensitive instructions;
+        // we must update the displacement encoded in these instructions
+        if (cur->func()->hasStackMod() && cur->func()->getMods()->size()) {
+            const Accesses* accesses = cur->func()->getAccesses((*iter)->addr());
+            // If this function makes no stack accesses, no need to perform analysis;
+            // there won't be any sensitive instructions
+            if (!accesses) {
+                continue;
+            }
+
+            // Perform check and generate StackModWidget if necessary
+            Offset origDisp;
+            signed long delta;
+            Architecture arch = insn->getArch();
+            stackmods_printf("Checking isStackFrameSensitive @ 0x%lx = %s\n", (*iter)->addr(), insn->format().c_str());
+            if (isStackFrameSensitive(origDisp,
+                        delta,
+                        accesses, offVec, tMap,
+                        cur->block()->llb(), (*iter)->addr())) {
+
+                signed long newDisp = origDisp + delta;
+
+                stackmods_printf(" ... is Stack Frame SENSITIVE at 0x%lx\n", (*iter)->addr());
+                stackmods_printf("\t\t origDisp = %ld, delta = %ld, newDisp = %ld\n",
+                        origDisp, delta, newDisp);
+
+                relocation_cerr << " ... is Stack Frame Sensitive at "
+                    << std::hex << (*iter)->addr()
+                    << std::dec
+                    << ", origDisp = " << origDisp
+                    << ", delta = " << delta
+                    << ", newDisp = " << newDisp
+                    << endl;
+
+                Widget::Ptr replacement = StackModWidget::create(insn,
+                        (*iter)->addr(),
+                        newDisp,
+                        arch);
+                (*iter).swap(replacement);
+            }
+        }
     }
   }
   return true;
@@ -383,4 +450,125 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
      relocation_cerr << "\t Call to " << hex << target << " is not valid address, concluding not thunk" << dec << endl;
   }
   return false;
+}
+
+bool adhocMovementTransformer::isStackFrameSensitive(Offset& origDisp,
+        signed long& delta,
+        const Accesses* accesses,
+        OffsetVector*& offVec,
+        TMap*& tMap,
+        ParseAPI::Block* block,
+        Address addr)
+{
+    StackAnalysis::Height regDelta(0);
+    StackAnalysis::Height readDelta(0);
+
+    bool ret = false;
+    for (auto iter = accesses->begin(); iter != accesses->end(); ++iter) {
+        MachRegister curReg = (*iter).first;
+        StackAccess* access = (*iter).second;
+
+        origDisp = access->disp();
+
+        stackmods_printf("\t %s\n", access->format().c_str());
+
+        StackAnalysis::Height regHeightPrime = access->regHeight();
+        StackAnalysis::Height readHeightPrime = access->readHeight();
+
+        stackmods_printf("\t\t regHeight = %ld, readHeight = %ld\n", access->regHeight().height(), access->readHeight().height());
+
+        // Idea: Check for exact match first, then check for overlaps
+        // This should fix the case where we add an exact match. However, find is going to search for any match, so we need to look ourselves
+
+        bool foundReg = false;
+        bool foundRead = false;
+
+        // Find any updates to regHeight or readHeight (exact matches)
+        for (auto tIter = tMap->begin(); (!foundReg || !foundRead) && tIter != tMap->end(); ++tIter) {
+            StackLocation* src = (*tIter).first;
+            StackLocation* dest = (*tIter).second;
+
+            stackmods_printf("\t\t\t Checking %s -> %s\n", src->format().c_str(), dest->format().c_str());
+
+            if (src->isStackMemory() && dest->isStackMemory()) {
+                if (src->isRegisterHeight()) {
+                    if (src->off() == access->regHeight()) {
+
+                        int tmp;
+                        if (src->valid() && !src->valid()->find(addr, tmp)) {
+                            stackmods_printf("\t\t\t\t Matching src height not valid for this PC\n");
+                            continue;
+                        }
+
+                        if (src->reg() == curReg) {
+                            foundReg = true;
+                            if (!offVec->isSkip(curReg, access->regHeight(), block->start(), addr)) {
+                                regHeightPrime = dest->off();
+                                stackmods_printf("\t\t\t\t regHeight' = %ld\n", regHeightPrime.height());
+                            } else {
+                                stackmods_printf("\t\t\t\t Register marked as skip.\n");
+                            }
+                        }
+                    }
+                } else {
+
+                    if (src->off() == access->readHeight()) {
+
+                        int tmp;
+                        if (src->valid() && !src->valid()->find(addr, tmp)) {
+                            stackmods_printf("\t\t\t\t Matching src height not valid for this PC\n");
+                            continue;
+                        }
+
+                        foundRead = true;
+                        readHeightPrime = dest->off();
+                        stackmods_printf("\t\t\t\t readHeight' = %ld\n", readHeightPrime.height());
+                    }
+                }
+            } else if (src->isNull()) {
+                stackmods_printf("\t\t\t\t Ignoring: insertion\n");
+            } else {
+                // Shouldn't be able to get here
+                assert(0);
+            }
+        }
+
+        // Still necessary because accesses contained inside other accesses may not have an exact offset match in O
+        // Look for ranges that include the readHeight
+        for (auto tIter = tMap->begin(); !foundRead && tIter != tMap->end(); ++tIter) {
+            StackLocation* src = (*tIter).first;
+            StackLocation* dest = (*tIter).second;
+
+            stackmods_printf("\t\t\t Checking %s -> %s\n", src->format().c_str(), dest->format().c_str());
+            if (src->isStackMemory() && dest->isStackMemory()) {
+                if (src->isRegisterHeight()) {
+                    // Nothing to do
+                } else {
+                    if (src->off() < access->readHeight() && access->readHeight() < src->off() + src->size()) {
+                        int tmp;
+                        if (src->valid() && !src->valid()->find(addr, tmp)) {
+                            stackmods_printf("\t\t\t\t Matching src height not valid for this PC\n");
+                            continue;
+                        }
+                        foundRead = true;
+                        readHeightPrime = dest->off() + (access->readHeight() - src->off());
+                        stackmods_printf("\t\t\t\t readHeight' = %ld\n", readHeightPrime.height());
+                    }
+                }
+            }
+        }
+
+        regDelta += access->regHeight() - regHeightPrime;
+        readDelta += access->readHeight() - readHeightPrime;
+
+        if (regDelta != readDelta) {
+        }
+    }
+
+    if (regDelta != readDelta) {
+        ret = true;
+        delta = regDelta.height() - readDelta.height();
+    }
+
+    return ret;
 }

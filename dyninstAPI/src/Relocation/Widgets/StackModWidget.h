@@ -28,61 +28,68 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(_R_T_MOVEMENT_ADHOC_H_)
-#define _R_T_MOVEMENT_ADHOC_H_
+#ifndef _STACKMODWIDGET_H_
+#define _STACKMODWIDGE_H_
 
-class AddressSpace;
-
-#include "Transformer.h"
-
-#include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
-
-#include "dyninstAPI/src/function.h"
+#include "Widget.h"
+class block_instance;
 
 namespace Dyninst {
-   namespace InstructionAPI {
-      class Instruction;
-   };
-
 namespace Relocation {
-class RelocInsn;
-// Identify PC-relative memory accesses and replace
-// them with a dedicated Widget
-class adhocMovementTransformer : public Transformer {
-  typedef boost::shared_ptr<RelocInsn> RelocInsnPtr;
-  typedef boost::shared_ptr<InstructionAPI::Instruction> InsnPtr;
 
+class StackModWidget : public Widget {
  public:
-  virtual bool process(RelocBlock *, RelocGraph *);
+   typedef boost::shared_ptr<StackModWidget> Ptr;
 
-  adhocMovementTransformer(AddressSpace *as) : addrSpace(as) {};
+   virtual bool generate(const codeGen &, const RelocBlock *, CodeBuffer &);
 
-  virtual ~adhocMovementTransformer() {};
+   TrackerElement *tracker(const RelocBlock *t) const;
+  
+   static Ptr create(InstructionAPI::Instruction::Ptr insn,
+		     Address addr,
+             signed long newDisp,
+             Architecture arch);
+
+   virtual ~StackModWidget() {};
+
+   virtual std::string format() const;
+   virtual unsigned size() const { return insn_->size(); }
+   virtual Address addr() const { return addr_; }
 
  private:
-  bool isPCDerefCF(WidgetPtr ptr,
-                   InsnPtr insn,
-                   Address &destPtr);
-  bool isPCRelData(WidgetPtr ptr,
-                   InsnPtr insn,
-		   Address &target);
-  // Records where PC was stored
-  bool isGetPC(WidgetPtr ptr,
-               InsnPtr insn,
-	       Absloc &aloc,
-	       Address &thunkAddr);
-  bool isStackFrameSensitive(Offset& origOffset,
-          signed long& delta,
-          const Accesses* accesses,
-          OffsetVector*& offVec,
-          TMap*& tMap,
-          ParseAPI::Block* block,
-          Address addr);
+   StackModWidget(InstructionAPI::Instruction::Ptr insn,
+	       Address addr,
+           signed long newDisp,
+           Architecture arch) : 
+       insn_(insn), 
+       addr_(addr), 
+       newDisp_(newDisp),
+       arch_(arch) {};
 
-  // Used for finding call targets
-  AddressSpace *addrSpace;
+   InstructionAPI::Instruction::Ptr insn_;
+   Address addr_;
+   signed long newDisp_;
+   Architecture arch_;
 };
 
+struct StackModPatch : public Patch {
+  StackModPatch(InstructionAPI::Instruction::Ptr a, signed long d, Architecture ar, Address ad) :
+   orig_insn(a), 
+    newDisp(d),
+    arch(ar), 
+    addr(ad) {};
+  
+  virtual bool apply(codeGen &gen, CodeBuffer *buffer);
+  virtual unsigned estimate(codeGen &templ);
+  virtual ~StackModPatch() {};
+  
+  InstructionAPI::Instruction::Ptr orig_insn;
+  signed long newDisp;
+  Architecture arch;
+  Address addr;
+};
+
 };
 };
+
 #endif

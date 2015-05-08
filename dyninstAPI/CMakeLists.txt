@@ -76,6 +76,7 @@ set (SRC_LIST
      src/Relocation/Widgets/InstWidget.C 
      src/Relocation/Widgets/PCWidget.C 
      src/Relocation/Widgets/RelDataWidget.C 
+     src/Relocation/Widgets/StackModWidget.C
      src/Relocation/Transformers/Transformer.C 
      src/Relocation/Transformers/Instrumenter.C 
      src/Relocation/Transformers/Modification.C 
