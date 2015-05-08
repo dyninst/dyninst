@@ -442,9 +442,9 @@ std::string StackAnalysis::TransferFunc::format() const {
       if (isAlias())
          ret << from.name();
       if (isAbs())
-         ret << hex << abs << dec;
+         ret << abs << dec;
       if (isDelta()) 
-         ret << "+" << hex << delta << dec;
+         ret << "+" << delta << dec;
    }
    ret << "]";
    return ret.str();
@@ -988,20 +988,20 @@ void StackAnalysis::meet(const RegisterState &input, RegisterState &accum) {
    }
 }
 
-StackAnalysis::TransferFunc StackAnalysis::TransferFunc::deltaFunc(MachRegister r, Height d) {
-   return TransferFunc(Height::top, d, MachRegister(), r);
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::deltaFunc(MachRegister r, long d) {
+   return TransferFunc(uninitialized, d, MachRegister(), r);
 }
 
-StackAnalysis::TransferFunc StackAnalysis::TransferFunc::absFunc(MachRegister r, Height a) {
-   return TransferFunc(a, Height::top, MachRegister(), r);
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::absFunc(MachRegister r, long a) {
+   return TransferFunc(a, 0, MachRegister(), r);
 }
 
 StackAnalysis::TransferFunc StackAnalysis::TransferFunc::aliasFunc(MachRegister f, MachRegister t) {
-   return TransferFunc (Height::top, Height::top, f, t);
+   return TransferFunc (uninitialized, 0, f, t);
 }
 
 StackAnalysis::TransferFunc StackAnalysis::TransferFunc::bottomFunc(MachRegister r) {
-   return TransferFunc(Height::bottom, Height::bottom, MachRegister(), r);
+   return TransferFunc(notUnique, notUnique, MachRegister(), r);
 }
 
 bool StackAnalysis::TransferFunc::isBottom() const {
@@ -1021,7 +1021,7 @@ bool StackAnalysis::TransferFunc::isAbs() const {
 }
 
 bool StackAnalysis::TransferFunc::isDelta() const {
-   return (delta != uninitialized);
+   return (delta != 0);
 }
 
 // Destructive update of the input map. Assumes inputs are absolute, uninitalized, or 
@@ -1045,8 +1045,10 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(const RegisterState &in
    if (isAbs()) {
       // We cannot be an alias, as the absolute removes that. 
       assert(!isAlias());
-      // Apply the absolute 
-      input = abs;
+      // Apply the absolute
+      // NOTE: an absolute is not a stack height, set input to top
+      //input = abs;
+      input = Height::top;
    }
    if (isAlias()) {
       // Cannot be absolute
@@ -1124,12 +1126,12 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
 	  // if it's defined.
 	  //input.target is defined
 	  input.from = alias.target;
-	  input.abs = Height::top;
+	  input.abs = uninitialized;
 	  if (alias.isDelta()) {
          input.delta = alias.delta;
 	  }
 	  else {
-		  input.delta = Height::top;
+		  input.delta = 0;
 	  }
 
           // if the input was also a delta, apply this also 
@@ -1144,7 +1146,7 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
       input.delta += delta;
       return;
    }
-   assert(0);
+   // Reachable because isDelta returns false for delta = 0; this is OK
    return;
 }
 

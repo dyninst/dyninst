@@ -268,8 +268,8 @@ class StackAnalysis {
           Abs,
           Alias } Type;
        
-       static TransferFunc deltaFunc(MachRegister r, Height d);
-       static TransferFunc absFunc(MachRegister r, Height a);
+       static TransferFunc deltaFunc(MachRegister r, long d);
+       static TransferFunc absFunc(MachRegister r, long a);
        static TransferFunc aliasFunc(MachRegister f, MachRegister t);
        static TransferFunc bottomFunc(MachRegister r);
 
@@ -280,8 +280,8 @@ class StackAnalysis {
        bool isDelta() const;
 
     TransferFunc() :
-       from(MachRegister()), target(MachRegister()), delta(uninitialized), abs(uninitialized) {};
-    TransferFunc(Height a, Height d, MachRegister f, MachRegister t) : 
+       from(MachRegister()), target(MachRegister()), delta(0), abs(uninitialized) {};
+    TransferFunc(long a, long d, MachRegister f, MachRegister t) :
        from(f), target(t), delta(d), abs(a) {};
 
        Height apply(const RegisterState &inputs) const;
@@ -292,8 +292,8 @@ class StackAnalysis {
 
        MachRegister from;
        MachRegister target;
-       Height delta;
-       Height abs;
+       long delta;
+       long abs;
     };
 
     typedef std::list<TransferFunc> TransferFuncs;
