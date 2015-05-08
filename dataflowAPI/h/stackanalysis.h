@@ -98,6 +98,18 @@ class StackAnalysis {
         bool operator<(const Height &rhs) const {
             return (height_ < rhs.height_);
         }
+
+        bool operator>(const Height &rhs) const {
+            return (height_ > rhs.height_);
+        }
+
+        bool operator<=(const Height &rhs) const {
+            return (height_ <= rhs.height_);
+        }
+
+        bool operator>=(const Height &rhs) const {
+            return (height_ >= rhs.height_);
+        }
         
         Height &operator+= (const Height &other) {
             if (isBottom()) return *this;
@@ -124,6 +136,15 @@ class StackAnalysis {
             if (rhs.isTop()) return *this;
 
             return Height(height_ + rhs.height_);
+        }
+
+        const Height operator-(const Height &rhs) const {
+            if (isBottom()) return bottom;
+            if (rhs.isBottom()) return rhs;
+            if (isTop() && rhs.isTop()) return top;
+            if (isTop() || rhs.isTop()) return bottom;
+
+            return Height(height_ - rhs.height_);
         }
 
 	const Height operator+(const unsigned long &rhs) const {
