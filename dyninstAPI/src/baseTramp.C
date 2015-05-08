@@ -345,14 +345,18 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    // MUST HAPPEN BEFORE THE SAVES, and state should not
    // be reset until AFTER THE RESTORES.
    bool retval = baseTrampAST->initRegisters(gen);
-   generateSaves(gen, gen.rs());
+   if (!gen.insertNaked()) {
+       generateSaves(gen, gen.rs());
+   }
 
    if (!baseTrampAST->generateCode(gen, false)) {
       fprintf(stderr, "Gripe: base tramp creation failed\n");
       retval = false;
    }
 
-   generateRestores(gen, gen.rs());
+   if (!gen.insertNaked()) {
+       generateRestores(gen, gen.rs());
+   }
 
    // And now to clean up after us
    //if (minis) delete minis;

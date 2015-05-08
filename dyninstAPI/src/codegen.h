@@ -221,6 +221,9 @@ class codeGen {
     Emitter *codeEmitter() const;
     Emitter *emitter() const { return codeEmitter(); } // A little shorter
     bool inInstrumentation() const { return inInstrumentation_; }
+
+    bool insertNaked() const { return insertNaked_; }
+    void setInsertNaked(bool i) { insertNaked_ = i; }
     
 
     Dyninst::Architecture getArch() const;
@@ -274,6 +277,7 @@ class codeGen {
 
     bool inInstrumentation_;
 
+    bool insertNaked_;
 
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;
