@@ -147,6 +147,14 @@ class StackAnalysis {
             return Height(height_ - rhs.height_);
         }
 
+        Height &operator+=(const signed long &rhs) {
+            if (isBottom()) return *this;
+            if (isTop()) return *this;
+
+            height_ += rhs;
+            return *this;
+        }
+
 	const Height operator+(const unsigned long &rhs) const {
 	  if (isBottom()) return bottom;
 	  if (isTop()) {
