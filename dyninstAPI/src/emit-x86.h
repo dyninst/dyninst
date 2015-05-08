@@ -69,6 +69,7 @@ public:
     void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
     bool emitCallRelative(Register, Address, Register, codeGen &) {assert (0); return false; }
     bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen);
+    bool emitLoadRelativeSegReg(Register dest, Address offset, Register base, int size, codeGen &gen);
     void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local,int size, codeGen &gen, Address offset);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
@@ -120,6 +121,11 @@ public:
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
     bool emitMoveRegToReg(registerSlot* /*src*/, registerSlot* /*dest*/, codeGen& /*gen*/) { assert(0); return true; }
+
+    bool emitXorRegRM(Register dest, Register base, int disp, codeGen& gen);
+    bool emitXorRegReg(Register dest, Register base, codeGen& gen);
+    bool emitXorRegImm(Register dest, int imm, codeGen& gen);
+    bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen& gen);
 
 
  protected:
@@ -186,6 +192,7 @@ public:
     void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
     bool emitCallRelative(Register, Address, Register, codeGen &) {assert (0); return false; }
     bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen);
+    bool emitLoadRelativeSegReg(Register dest, Address offset, Register base, int size, codeGen &gen);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
 
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
@@ -234,6 +241,11 @@ public:
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
     bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
+
+    bool emitXorRegRM(Register dest, Register base, int disp, codeGen& gen);
+    bool emitXorRegReg(Register dest, Register base, codeGen& gen);
+    bool emitXorRegImm(Register dest, int imm, codeGen& gen);
+    bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen& gen);
 
  protected:
     virtual bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret) = 0;

@@ -95,6 +95,21 @@ static void emitXMMRegsSaveRestore(codeGen& gen, bool isRestore)
    SET_PTR(insn, gen);
 }
 
+static void emitSegPrefix(Register segReg, codeGen& gen)
+{
+    switch(segReg) {
+        case REGNUM_FS:
+            emitSimpleInsn(PREFIX_SEGFS, gen);
+            return;
+        case REGNUM_GS:
+            emitSimpleInsn(PREFIX_SEGGS, gen);
+            return;
+        default:
+            assert(0 && "Segment register not handled");
+            return;
+    }
+}
+
 
 bool EmitterIA32::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
    RealRegister src_r = gen.rs()->loadVirtual(src, gen);
@@ -300,6 +315,20 @@ bool EmitterIA32::emitLoadRelative(Register /*dest*/, Address /*offset*/, Regist
 {
     assert(0);
     return false;
+}
+
+bool EmitterIA32::emitLoadRelativeSegReg(Register /*dest*/, Address offset, Register base, int /*size*/, codeGen &gen)
+{
+    // WARNING: dest is hard-coded to EAX currently
+    emitSegPrefix(base, gen);
+    GET_PTR(insn, gen);
+    *insn++ = 0xa1;
+    *insn++ = offset;
+    *insn++ = 0x00;
+    *insn++ = 0x00;
+    *insn++ = 0x00;
+    SET_PTR(insn, gen);
+    return true;
 }
 
 void EmitterIA32::emitStoreRelative(Register /*src*/, Address /*offset*/, 
@@ -1048,6 +1077,18 @@ static void emitMovRMToReg64(Register dest, Register base, int disp, int size, c
     }
 }
 
+static void emitMovSegRMToReg64(Register dest, Register base, int disp, codeGen &gen)
+{
+    Register tmp_dest = dest;
+    Register tmp_base = base;
+
+    gen.markRegDefined(dest);
+
+    emitSegPrefix(base, gen);
+    emitRex(true, &tmp_dest, NULL, &tmp_base, gen);
+    emitOpSegRMReg(MOV_RM32_TO_R32, RealRegister(tmp_dest), RealRegister(tmp_base), disp, gen);
+}
+
 static void emitMovRegToRM64(Register base, int disp, Register src, int size, codeGen &gen)
 {
     Register tmp_base = base;
@@ -1507,6 +1548,13 @@ bool EmitterAMD64::emitLoadRelative(Register dest, Address offset, Register base
                     gen.addrSpace()->getAddressWidth(), gen);
    gen.markRegDefined(dest);
    return true;
+}
+
+bool EmitterAMD64::emitLoadRelativeSegReg(Register dest, Address offset, Register base, int /* size */, codeGen &gen)
+{
+    emitMovSegRMToReg64(dest, base, offset, gen);
+    gen.markRegDefined(dest);
+    return true;
 }
 
 void EmitterAMD64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
@@ -2957,6 +3005,42 @@ void EmitterIA32::emitStoreShared(Register source, const image_variable *var, bo
    gen.rs()->freeRegister(dest);
 }
 
+bool EmitterIA32::emitXorRegRM(Register dest, Register base, int disp, codeGen& gen)
+{
+    RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+    emitOpRegRM(XOR_R32_RM32/*0x33*/, dest_r, RealRegister(base), disp, gen);
+    return true;
+}
+
+bool EmitterIA32::emitXorRegReg(Register dest, Register base, codeGen& gen)
+{
+    RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+    emitOpRegReg(XOR_R32_RM32, dest_r, RealRegister(base), gen);
+    return true;
+}
+
+bool EmitterIA32::emitXorRegImm(Register dest, int imm, codeGen& gen)
+{
+    RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+    emitOpRegImm(0x6, dest_r, imm, gen);
+    return true;
+}
+
+bool EmitterIA32::emitXorRegSegReg(Register /*dest*/, Register base, int disp, codeGen& gen)
+{
+    // WARNING: dest is hard-coded to EDX currently
+    emitSegPrefix(base, gen);
+    GET_PTR(insn, gen);
+    *insn++ = 0x33;
+    *insn++ = 0x15;
+    *insn++ = disp;
+    *insn++ = 0x00;
+    *insn++ = 0x00;
+    *insn++ = 0x00;
+    SET_PTR(insn, gen);
+    return true;
+}
+
 #if defined(arch_x86_64)
 void EmitterAMD64::emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen, Address offset)
 {
@@ -3023,5 +3107,39 @@ void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, b
   
   gen.rs()->freeRegister(dest);
 }
+
+bool EmitterAMD64::emitXorRegRM(Register dest, Register base, int disp, codeGen& gen)
+{
+    emitOpRegRM64(XOR_R32_RM32, dest, base, disp, true, gen);
+    gen.markRegDefined(dest);
+    return true;
+}
+
+bool EmitterAMD64::emitXorRegReg(Register dest, Register base, codeGen& gen)
+{
+    emitOpRegReg64(XOR_R32_RM32, dest, base, true, gen);
+    gen.markRegDefined(dest);
+    return true;
+}
+
+bool EmitterAMD64::emitXorRegImm(Register dest, int imm, codeGen& gen)
+{
+    emitOpRegImm64(0x81, 6, dest, imm, false, gen);
+    gen.markRegDefined(dest);
+    return true;
+}
+
+bool EmitterAMD64::emitXorRegSegReg(Register dest, Register base, int disp, codeGen& gen)
+{
+    Register tmp_dest = dest;
+    Register tmp_base = base;
+
+    emitSegPrefix(base, gen);
+    emitRex(true, &tmp_dest, NULL, &tmp_base, gen);
+    emitOpSegRMReg(XOR_R32_RM32, RealRegister(tmp_dest), RealRegister(tmp_base), disp, gen);
+    gen.markRegDefined(dest);
+    return true;
+}
+
 
 #endif

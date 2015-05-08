@@ -864,6 +864,18 @@ void emitOpRegImm(int opcode, RealRegister dest, int imm,
    SET_PTR(insn, gen);
 }
 
+void emitOpSegRMReg(unsigned opcode, RealRegister dest, RealRegister, int disp, codeGen &gen)
+{
+    GET_PTR(insn, gen);
+    *insn++ = opcode;
+    *insn++ = makeModRMbyte(0, dest.reg(), 4);
+    *insn++ = 0x25;
+    *((int*)insn) = disp;
+    insn += sizeof(int);
+    SET_PTR(insn, gen);
+}
+
+
 // emit OP reg, r/m
 void emitOpRegRM(unsigned opcode, RealRegister dest, RealRegister base,
 		 int disp, codeGen &gen)
