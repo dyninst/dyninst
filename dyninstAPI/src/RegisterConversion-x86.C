@@ -55,7 +55,7 @@ multimap<Register, MachRegister> regToMachReg32 = map_list_of
 (REGNUM_IGNORED,x86::ds)
 (REGNUM_IGNORED,x86::es)
 (REGNUM_IGNORED,x86::fs)
-(REGNUM_IGNORED,x86::gs)
+(REGNUM_GS,x86::gs)
 (REGNUM_IGNORED,x86::ss)
 (REGNUM_IGNORED,x86::eip)
 (REGNUM_CF,x86::cf)
@@ -129,7 +129,7 @@ multimap<Register, MachRegister> regToMachReg64 = map_list_of
 (REGNUM_IGNORED,x86_64::cs)
 (REGNUM_IGNORED,x86_64::ds)
 (REGNUM_IGNORED,x86_64::es)
-(REGNUM_IGNORED,x86_64::fs)
+(REGNUM_FS,x86_64::fs)
 (REGNUM_IGNORED,x86_64::gs)
 (REGNUM_IGNORED,x86_64::ss)
 (REGNUM_RAX,x86_64::rax)
@@ -219,7 +219,7 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
         (x86_64::cs, REGNUM_IGNORED)
         (x86_64::ds, REGNUM_IGNORED)
         (x86_64::es, REGNUM_IGNORED)
-        (x86_64::fs, REGNUM_IGNORED)
+        (x86_64::fs, REGNUM_FS)
         (x86_64::gs, REGNUM_IGNORED)
         (x86_64::ss, REGNUM_IGNORED)
         (x86_64::rax, REGNUM_RAX)
@@ -366,6 +366,7 @@ map<Register, MachRegister> machRegisterMapx86_64 = map_list_of
         (REGNUM_XMM5, x86_64::xmm5)
         (REGNUM_XMM6, x86_64::xmm6)
         (REGNUM_XMM7, x86_64::xmm7)
+        (REGNUM_FS, x86_64::fs)
         ;
 
 map<Register, MachRegister> machRegisterMapx86 = map_list_of
@@ -396,6 +397,7 @@ map<Register, MachRegister> machRegisterMapx86 = map_list_of
         (REGNUM_XMM5, x86::xmm5)
         (REGNUM_XMM6, x86::xmm6)
         (REGNUM_XMM7, x86::xmm7)
+        (REGNUM_GS, x86::gs)
         ;
 
 

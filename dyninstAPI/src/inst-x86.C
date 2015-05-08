@@ -155,7 +155,14 @@ void registerSpace::initialize32() {
     // FPRs...
 
     // SPRs...
-    
+    registerSlot *gs = new registerSlot(REGNUM_GS,
+            "gs",
+            false,
+            registerSlot::liveAlways,
+            registerSlot::SPR);
+
+    registers.push_back(gs);
+
     // "Virtual" registers
     for (unsigned i = 1; i <= NUM_VIRTUAL_REGISTERS; i++) {
 		char buf[128];
@@ -496,6 +503,11 @@ void registerSpace::initialize64() {
                         registerSlot::liveAlways,
                         registerSlot::FPR));
 
+    registers.push_back(new registerSlot(REGNUM_FS,
+                        "FS",
+                        false,
+                        registerSlot::liveAlways,
+                        registerSlot::SPR));
 
 
 
