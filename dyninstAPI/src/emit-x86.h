@@ -121,6 +121,7 @@ public:
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
     bool emitMoveRegToReg(registerSlot* /*src*/, registerSlot* /*dest*/, codeGen& /*gen*/) { assert(0); return true; }
+    void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen);
 
     bool emitXorRegRM(Register dest, Register base, int disp, codeGen& gen);
     bool emitXorRegReg(Register dest, Register base, codeGen& gen);
@@ -163,7 +164,6 @@ extern EmitterIA32Stat emitterIA32Stat;
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
 void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen);
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
-void emitLEA64(Register base, Register index, unsigned int scale, int disp, Register dest, bool is_64, codeGen &gen);
 void emitPushReg64(Register src, codeGen &gen);
 void emitPopReg64(Register dest, codeGen &gen);
 void emitMovImmToRM64(Register base, int disp, int imm, codeGen &gen);
@@ -241,6 +241,7 @@ public:
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
     bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
+    void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen);
 
     bool emitXorRegRM(Register dest, Register base, int disp, codeGen& gen);
     bool emitXorRegReg(Register dest, Register base, codeGen& gen);

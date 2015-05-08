@@ -1695,10 +1695,10 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, in
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
       if (!gen.bt() || gen.bt()->alignedStack) {
           emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
-          if (imm) emitLEA(dest_r, RealRegister(Null_Register), 0, imm, dest_r, gen);
+          if (imm) ::emitLEA(dest_r, RealRegister(Null_Register), 0, imm, dest_r, gen);
       }
       else
-          emitLEA(loc.reg, RealRegister(Null_Register), 0,
+          ::emitLEA(loc.reg, RealRegister(Null_Register), 0,
                   loc.offset, dest_r, gen);
       return;
    }
@@ -1768,7 +1768,7 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, in
    else {
      dest_r = RealRegister(dest);
    }
-   emitLEA(src1_r, src2_r, sc, (long) imm, dest_r, gen);   
+   ::emitLEA(src1_r, src2_r, sc, (long) imm, dest_r, gen);
 
    if (src1 != REG_NULL) {
        gen.rs()->unKeepRegister(src1);

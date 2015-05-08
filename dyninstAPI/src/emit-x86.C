@@ -118,6 +118,16 @@ bool EmitterIA32::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
    return true;
 }
 
+void EmitterIA32::emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen)
+{
+    Register tmp_base = base;
+    Register tmp_index = index;
+    Register tmp_dest = dest;
+    ::emitLEA(RealRegister(tmp_base), RealRegister(tmp_index), scale, disp,
+            RealRegister(tmp_dest), gen);
+    gen.markRegDefined(dest);
+}
+
 codeBufIndex_t EmitterIA32::emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen)
 {
    RealRegister r = gen.rs()->loadVirtual(expr_reg, gen);
@@ -446,7 +456,7 @@ void EmitterIA32::emitGetRetVal(Register dest, bool addr_of, codeGen &gen)
    assert(eax);
 
    loc.offset += (eax->saveOffset * 4);
-   emitLEA(loc.reg, RealRegister(Null_Register), 0, loc.offset, dest_r, gen);
+   ::emitLEA(loc.reg, RealRegister(Null_Register), 0, loc.offset, dest_r, gen);
 }
 
 void EmitterIA32::emitGetRetAddr(Register dest, codeGen &gen)
@@ -504,7 +514,7 @@ void EmitterIA32::emitGetParam(Register dest, Register param_num,
    if (!addr_of)
       emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
    else
-      emitLEA(loc.reg, RealRegister(Null_Register),
+      ::emitLEA(loc.reg, RealRegister(Null_Register),
               0, loc.offset, dest_r, gen);
 }
 
@@ -553,14 +563,14 @@ void EmitterIA32::emitStackAlign(int offset, codeGen &gen)
         off += 4;           // Allocate stack space to store the flags
     }
 
-    emitLEA(esp, enull, 0, -off, esp, gen);
+    ::emitLEA(esp, enull, 0, -off, esp, gen);
     emitMovRegToRM(esp, saveSlot1, eax, gen);
     if (saveFlags) {
         emitSimpleInsn(0x9f, gen);
         emitSaveO(gen);
         emitMovRegToRM(esp, saveSlot2, eax, gen);
     }
-    emitLEA(esp, enull, 0, off, eax, gen);
+    ::emitLEA(esp, enull, 0, off, eax, gen);
     emitOpExtRegImm8(0x83, EXTENDED_0x83_AND, esp, -IA32_STACK_ALIGNMENT, gen);
     emitMovRegToRM(esp, 0, eax, gen);
     if (saveFlags) {
@@ -612,7 +622,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     } else if (funcJumpSlotSize > 0) {
         // Just move %esp to make room for the funcJump.
         // Use LEA to avoid flag modification.
-        emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
+        ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
                 -funcJumpSlotSize, RealRegister(REGNUM_ESP), gen);
         instFrameSize += funcJumpSlotSize;
     }
@@ -729,7 +739,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     }
 
     if (extra_space) {
-        emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
+        ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
                 -extra_space, RealRegister(REGNUM_ESP), gen);
         gen.rs()->incStack(extra_space);
     }
@@ -801,7 +811,7 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt,codeGen &gen)
     int extra_space = gen.rs()->getStackHeight();
     assert(extra_space == extra_space_check);
     if (!createFrame && extra_space) {
-        emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
+        ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
                 extra_space, RealRegister(REGNUM_ESP), gen);
     }
 
@@ -809,7 +819,7 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt,codeGen &gen)
        emitSimpleInsn(LEAVE, gen);
     }
     if (saveOrigAddr) {
-        emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 4,
+        ::emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 4,
                 RealRegister(REGNUM_ESP), gen);
     }
 
@@ -826,7 +836,7 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt,codeGen &gen)
           funcJumpSlotSize = bt->funcJumpSlotSize() * 4;
        }
        if (funcJumpSlotSize) {
-          emitLEA(RealRegister(REGNUM_ESP),
+          ::emitLEA(RealRegister(REGNUM_ESP),
                   RealRegister(Null_Register), 0, funcJumpSlotSize,
                   RealRegister(REGNUM_ESP), gen);
        }
@@ -1037,21 +1047,6 @@ void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen, bool 
    SET_PTR(insn, gen);
 }
 
-void emitLEA64(Register base, Register index, unsigned int scale, int disp,
-	       Register dest, bool is_64, codeGen &gen)
-{
-    Register tmp_base = base;
-    Register tmp_index = index;
-    Register tmp_dest = dest;
-    emitRex(is_64, &tmp_dest,
-	    tmp_index == Null_Register ? NULL : &tmp_index,
-	    tmp_base == Null_Register ? NULL : &tmp_base,
-	    gen);
-    emitLEA(RealRegister(tmp_base), RealRegister(tmp_index), scale, disp, 
-            RealRegister(tmp_dest), gen);
-    gen.markRegDefined(dest);
-}
-
 static void emitMovRMToReg64(Register dest, Register base, int disp, int size, codeGen &gen)
 {
     Register tmp_dest = dest;
@@ -1258,6 +1253,20 @@ bool EmitterAMD64::emitMoveRegToReg(registerSlot *source, registerSlot *dest, co
     // TODO: make this work for getting the flag register too.
 
     return emitMoveRegToReg(source->encoding(), dest->encoding(), gen);
+}
+
+void EmitterAMD64::emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen)
+{
+    Register tmp_base = base;
+    Register tmp_index = index;
+    Register tmp_dest = dest;
+    emitRex(/*is_64*/true, &tmp_dest,
+	    tmp_index == Null_Register ? NULL : &tmp_index,
+	    tmp_base == Null_Register ? NULL : &tmp_base,
+	    gen);
+   ::emitLEA(RealRegister(tmp_base), RealRegister(tmp_index), scale, disp,
+            RealRegister(tmp_dest), gen);
+    gen.markRegDefined(dest);
 }
 
 codeBufIndex_t EmitterAMD64::emitIf(Register expr_reg, Register target, RegControl, codeGen &gen)
@@ -1568,7 +1577,7 @@ void EmitterAMD64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen
       gen.markRegDefined(dest);
       return;
    }
-   emitLEA64(REGNUM_RBP, Null_Register, 0, offset, dest, true, gen);
+   emitLEA(REGNUM_RBP, Null_Register, 0, offset, dest, gen);
 }
 
 void EmitterAMD64::emitLoadOrigRegRelative(Register dest, Address offset,
@@ -1612,8 +1621,8 @@ void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destinati
       if (!gen.bt() || gen.bt()->alignedStack)
          emitMovRMToReg64(destination, loc.reg.reg(), loc.offset, 8, gen);
       else
-         emitLEA64(loc.reg.reg(), Null_Register, 0, loc.offset,
-                   destination, true, gen);
+         emitLEA(loc.reg.reg(), Null_Register, 0, loc.offset,
+                   destination, gen);
       return;
    }
 
@@ -1817,8 +1826,8 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
       alignment = AMD64_STACK_ALIGNMENT - (alignment % AMD64_STACK_ALIGNMENT);
 
    if (alignment) {
-      emitLEA64(REGNUM_RSP, Null_Register, 0, -alignment,
-                REGNUM_RSP, true, gen);
+      emitLEA(REGNUM_RSP, Null_Register, 0, -alignment,
+                REGNUM_RSP, gen);
       gen.rs()->incStack(alignment);
    }
 
@@ -1886,8 +1895,8 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
 
    if (alignment) {
       // Skip past the stack alignment.
-      emitLEA64(REGNUM_RSP, Null_Register, 0, alignment,
-                REGNUM_RSP, true, gen);
+      emitLEA(REGNUM_RSP, Null_Register, 0, alignment,
+                REGNUM_RSP, gen);
       gen.rs()->incStack(-alignment);
    }
 
@@ -2033,14 +2042,14 @@ void EmitterAMD64::emitGetRetVal(Register dest, bool addr_of, codeGen &gen)
    registerSlot *rax = (*gen.rs())[REGNUM_RAX];
    assert(rax);
    loc.offset += (rax->saveOffset * 8);
-   emitLEA64(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, true, gen);
+   emitLEA(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, gen);
 }
 
 
 void EmitterAMD64::emitGetRetAddr(Register dest, codeGen &gen)
 {
    stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-   emitLEA64(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, true, gen);
+   emitLEA(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, gen);
 }
 
 
@@ -2058,7 +2067,7 @@ void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPoint::Ty
       registerSlot *regSlot = (*gen.rs())[reg];
       assert(regSlot);
       loc.offset += (regSlot->saveOffset * 8);
-      emitLEA64(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, true, gen);
+      emitLEA(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, gen);
       return;
    }
    assert(param_num >= 6);
@@ -2091,7 +2100,7 @@ void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPoint::Ty
    if (!addr_of)
       emitMovRMToReg64(dest, loc.reg.reg(), loc.offset, 8, gen);
    else 
-      emitLEA64(loc.reg.reg(), Null_Register, 0, loc.offset, dest, true, gen);
+      emitLEA(loc.reg.reg(), Null_Register, 0, loc.offset, dest, gen);
 }
 
 // Commented out until we need it to avoid warnings
@@ -2155,14 +2164,14 @@ void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, i
          use_b = rb;
       }
    }
-   // emitLEA64 will not handle the [disp32] case properly, so
+   // emitLEA will not handle the [disp32] case properly, so
    // we special case that
    if (!havera && !haverb)
       emitMovImmToReg64(dest, imm, false, gen);
    else {
-      emitLEA64(use_a, use_b,
+      emitLEA(use_a, use_b,
                 sc, (int)imm, 
-                dest, true, gen);
+                dest, gen);
    }
 }
 
@@ -2386,14 +2395,14 @@ void EmitterAMD64::emitStackAlign(int offset, codeGen &gen)
       off += 8;           // Allocate stack space to store the flags
    }
 
-   emitLEA64(REGNUM_RSP, Null_Register, 0, -off, REGNUM_RSP, true, gen);
+   emitLEA(REGNUM_RSP, Null_Register, 0, -off, REGNUM_RSP, gen);
    emitStoreRelative(REGNUM_RAX, saveSlot1, REGNUM_RSP, 8, gen);
    if (saveFlags) {
       emitSimpleInsn(0x9f, gen);
       emitSaveO(gen);
       emitStoreRelative(REGNUM_RAX, saveSlot2, REGNUM_RSP, 8, gen);
    }
-   emitLEA64(REGNUM_RSP, Null_Register, 0, off, REGNUM_RAX, true, gen);
+   emitLEA(REGNUM_RSP, Null_Register, 0, off, REGNUM_RAX, gen);
    emitOpRegImm8_64(0x83, EXTENDED_0x83_AND, REGNUM_RSP,
                     -AMD64_STACK_ALIGNMENT, true, gen);
    emitStoreRelative(REGNUM_RAX, 0, REGNUM_RSP, 8, gen);
@@ -2466,8 +2475,8 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    } else if (skipRedZone) {
       // Just move %rsp past the red zone 
       // Use LEA to avoid flag modification.
-      emitLEA64(REGNUM_RSP, Null_Register, 0,
-                -AMD64_RED_ZONE, REGNUM_RSP, true, gen);
+      emitLEA(REGNUM_RSP, Null_Register, 0,
+                -AMD64_RED_ZONE, REGNUM_RSP, gen);
       instFrameSize += AMD64_RED_ZONE;
    }
 
@@ -2552,8 +2561,8 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    }
 
    if (extra_space) {
-      emitLEA64(REGNUM_RSP, Null_Register, 0, -extra_space,
-                REGNUM_RSP, true, gen);
+      emitLEA(REGNUM_RSP, Null_Register, 0, -extra_space,
+                REGNUM_RSP, gen);
       gen.rs()->incStack(extra_space);
    }
    extra_space_check = extra_space;
@@ -2677,8 +2686,8 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
    int extra_space = gen.rs()->getStackHeight();
    assert(extra_space == extra_space_check);
    if (!createFrame && extra_space) {
-      emitLEA64(REGNUM_RSP, Null_Register, 0, extra_space,
-                REGNUM_RSP, true, gen);
+      emitLEA(REGNUM_RSP, Null_Register, 0, extra_space,
+                REGNUM_RSP, gen);
    }
 
    if (createFrame) {
@@ -2714,8 +2723,8 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
    if (alignStack) {
       emitLoadRelative(REGNUM_RSP, 0, REGNUM_RSP, 0, gen);
    } else if (skippedRedZone) {
-      emitLEA64(REGNUM_ESP, Null_Register, 0,
-                  AMD64_RED_ZONE, REGNUM_ESP, true, gen);
+      emitLEA(REGNUM_ESP, Null_Register, 0,
+                  AMD64_RED_ZONE, REGNUM_ESP, gen);
     }
 
    gen.setInInstrumentation(false);
@@ -3064,7 +3073,7 @@ void EmitterAMD64::emitLoadShared(opCode op, Register dest, const image_variable
     int offset = addr - gen.currAddr();
     // Brutal hack for IP-relative: displacement operand on 32-bit = IP-relative on 64-bit.
     if(is_local || !var)
-      emitLEA64(Null_Register, Null_Register, 0, offset - 7, dest, true, gen);
+      emitLEA(Null_Register, Null_Register, 0, offset - 7, dest, gen);
     else
        emitMovPCRMToReg64(dest, addr - gen.currAddr(), 8, gen, true);
     
@@ -3097,7 +3106,7 @@ void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, b
   gen.markRegDefined(dest);
  
   // load register with address from jump slot
-  emitLEA64(Null_Register, Null_Register, 0, addr-gen.currAddr() - 7, dest, true, gen);
+  emitLEA(Null_Register, Null_Register, 0, addr-gen.currAddr() - 7, dest, gen);
   //emitMovPCRMToReg64(dest, addr-gen.currAddr(), gen, true);
   if(!is_local)
      emitLoadIndir(dest, dest, 8, gen);

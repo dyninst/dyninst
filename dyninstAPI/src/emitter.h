@@ -87,6 +87,7 @@ class Emitter {
 
     virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen) = 0;
     virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen) = 0;
+    virtual void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen) = 0;
 
     virtual bool emitXorRegRM(Register dest, Register base, int disp, codeGen& gen) = 0;
     virtual bool emitXorRegReg(Register dest, Register base, codeGen& gen) = 0;
