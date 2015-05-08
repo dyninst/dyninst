@@ -269,8 +269,8 @@ class StackAnalysis {
           Alias } Type;
        
        static TransferFunc deltaFunc(MachRegister r, long d);
-       static TransferFunc absFunc(MachRegister r, long a);
-       static TransferFunc aliasFunc(MachRegister f, MachRegister t);
+       static TransferFunc absFunc(MachRegister r, long a, bool i = false);
+       static TransferFunc aliasFunc(MachRegister f, MachRegister t, bool i = false);
        static TransferFunc bottomFunc(MachRegister r);
 
        bool isBottom() const;
@@ -278,11 +278,12 @@ class StackAnalysis {
        bool isAbs() const;
        bool isAlias() const;
        bool isDelta() const;
+       bool isTopBottom() const;
 
     TransferFunc() :
-       from(MachRegister()), target(MachRegister()), delta(0), abs(uninitialized) {};
-    TransferFunc(long a, long d, MachRegister f, MachRegister t) :
-       from(f), target(t), delta(d), abs(a) {};
+       from(MachRegister()), target(MachRegister()), delta(0), abs(uninitialized), topBottom(false) {};
+    TransferFunc(long a, long d, MachRegister f, MachRegister t, bool i = false) :
+       from(f), target(t), delta(d), abs(a), topBottom(i) {};
 
        Height apply(const RegisterState &inputs) const;
        void accumulate(std::map<MachRegister, TransferFunc> &inputs);
@@ -294,6 +295,16 @@ class StackAnalysis {
        MachRegister target;
        long delta;
        long abs;
+
+       // Annotate transfer functions that have the following characteristic:
+       // if target is TOP, keep as TOP
+       // else, target must be set to BOTTOM
+       // E.g., sign-extending a register:
+       //   if the register had an uninitialized stack height (TOP),
+       //       the sign-extension has no effect
+       //   if the register had a valid or notunique (BOTTOM) stack height,
+       //       the sign-extension must result in a BOTTOM stack height
+       bool topBottom;
     };
 
     typedef std::list<TransferFunc> TransferFuncs;

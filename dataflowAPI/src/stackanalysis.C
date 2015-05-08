@@ -992,12 +992,12 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::deltaFunc(MachRegister 
    return TransferFunc(uninitialized, d, MachRegister(), r);
 }
 
-StackAnalysis::TransferFunc StackAnalysis::TransferFunc::absFunc(MachRegister r, long a) {
-   return TransferFunc(a, 0, MachRegister(), r);
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::absFunc(MachRegister r, long a, bool i) {
+   return TransferFunc(a, 0, MachRegister(), r, i);
 }
 
-StackAnalysis::TransferFunc StackAnalysis::TransferFunc::aliasFunc(MachRegister f, MachRegister t) {
-   return TransferFunc (uninitialized, 0, f, t);
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::aliasFunc(MachRegister f, MachRegister t, bool i) {
+   return TransferFunc (uninitialized, 0, f, t, i);
 }
 
 StackAnalysis::TransferFunc StackAnalysis::TransferFunc::bottomFunc(MachRegister r) {
@@ -1024,6 +1024,10 @@ bool StackAnalysis::TransferFunc::isDelta() const {
    return (delta != 0);
 }
 
+bool StackAnalysis::TransferFunc::isTopBottom() const {
+    return topBottom;
+}
+
 // Destructive update of the input map. Assumes inputs are absolute, uninitalized, or 
 // bottom; no deltas.
 StackAnalysis::Height StackAnalysis::TransferFunc::apply(const RegisterState &inputs ) const {
@@ -1041,6 +1045,8 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(const RegisterState &in
 	else {
 		input = Height::top;
 	}
+
+    bool isTopBottomOrig = isTopBottom();
 
    if (isAbs()) {
       // We cannot be an alias, as the absolute removes that. 
@@ -1061,6 +1067,11 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(const RegisterState &in
    if (isDelta()) {
       input += delta;
    }
+   if (isTopBottomOrig) {
+       if (!input.isTop()) {
+           input = Height::bottom;
+       }
+   }
    return input;
 }
 
@@ -1077,9 +1088,13 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
       input = bottomFunc(target);
       return;
    }
+   bool isTopBottomOrig = isTopBottom();
+   if (!input.isTopBottom()) {
+       input.topBottom = isTopBottomOrig;
+   }
    // Absolutes override everything else
    if (isAbs()) {
-      input = absFunc(target, abs);
+      input = absFunc(target, abs, isTopBottomOrig);
       return;
    }
    // Aliases can be tricky
@@ -1091,6 +1106,7 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
 	   if (iter == inputs.end()) {
 		   // Aliasing to something we haven't seen yet; easy
 		   input = *this;
+           input.topBottom = isTopBottomOrig;
 		   return;
 	   }
 
@@ -1102,7 +1118,13 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
          // we ignore any inflow. 
          assert(!alias.isAlias());
 		 input = absFunc(input.target, alias.abs);
+         input.topBottom = isTopBottomOrig || alias.isTopBottom(); // If we got an abs from an isTopBottom, this also needs to be set
 		 assert(input.target.isValid());
+
+         // if the input was also a delta, apply this
+         if (isDelta()) {
+            input.delta += delta;
+         }
          return;
       }
       if (alias.isAlias()) {
@@ -1112,6 +1134,7 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
          assert(!alias.isAbs());
          input = alias;
          input.target = target;
+         input.topBottom = isTopBottomOrig || alias.isTopBottom();
          assert(input.target.isValid());
                    
                  // if the input was also a delta, apply this also 
@@ -1133,6 +1156,7 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
 	  else {
 		  input.delta = 0;
 	  }
+      input.topBottom = isTopBottomOrig;
 
           // if the input was also a delta, apply this also 
           if (isDelta()) {
