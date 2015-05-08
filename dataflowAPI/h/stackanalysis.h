@@ -272,18 +272,25 @@ class StackAnalysis {
        static TransferFunc absFunc(MachRegister r, long a, bool i = false);
        static TransferFunc aliasFunc(MachRegister f, MachRegister t, bool i = false);
        static TransferFunc bottomFunc(MachRegister r);
+       static TransferFunc sibFunc(std::map<MachRegister, std::pair<long,bool> > f, long d, MachRegister t);
 
        bool isBottom() const;
        bool isTop() const;
        bool isAbs() const;
        bool isAlias() const;
        bool isDelta() const;
+       bool isSIB() const;
        bool isTopBottom() const;
 
     TransferFunc() :
        from(MachRegister()), target(MachRegister()), delta(0), abs(uninitialized), topBottom(false) {};
     TransferFunc(long a, long d, MachRegister f, MachRegister t, bool i = false) :
        from(f), target(t), delta(d), abs(a), topBottom(i) {};
+    TransferFunc(std::map<MachRegister,std::pair<long,bool> > f, long d, MachRegister t) :
+        from(MachRegister()), target(t),
+        delta(d), abs(uninitialized),
+        topBottom(false),
+        fromRegs(f) {}
 
        Height apply(const RegisterState &inputs) const;
        void accumulate(std::map<MachRegister, TransferFunc> &inputs);
@@ -305,6 +312,9 @@ class StackAnalysis {
        //   if the register had a valid or notunique (BOTTOM) stack height,
        //       the sign-extension must result in a BOTTOM stack height
        bool topBottom;
+
+       // Handle complex math from SIB functions
+       std::map<MachRegister, std::pair<long, bool> > fromRegs;
     };
 
     typedef std::list<TransferFunc> TransferFuncs;
