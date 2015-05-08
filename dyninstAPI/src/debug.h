@@ -77,6 +77,7 @@ extern int dyn_stats_parse;
 extern int dyn_debug_crash;
 extern int dyn_debug_rtlib;
 extern int dyn_debug_disassemble;
+extern int dyn_debug_stackmods;
 
 extern char *dyn_debug_crash_debugger;
 
@@ -126,6 +127,7 @@ extern const std::string CODEGEN_LIVENESS_TIMER;
 #define thread_cerr       if (dyn_debug_thread) cerr
 #define infmalloc_cerr    if (dyn_debug_infmalloc) cerr
 #define crash_cerr        if (dyn_debug_crash) cerr
+#define stackmods_cerr        if (dyn_debug_stackmods) cerr
 #define ast_cerr          if (dyn_debug_ast) cerr
 
 // C prototypes for internal debugging functions
@@ -145,6 +147,7 @@ extern int ast_printf_int(const char *format, ...);
 extern int write_printf_int(const char *format, ...);
 extern int infmalloc_printf_int(const char *format, ...);
 extern int crash_printf_int(const char *format, ...);
+extern int stackmods_printf_int(const char *format, ...);
 
 #if defined(__GNUC__)
 
@@ -163,6 +166,7 @@ extern int crash_printf_int(const char *format, ...);
 #define write_printf(format, args...) do {if (dyn_debug_write) write_printf_int(format, ## args); } while(0)
 #define infmalloc_printf(format, args...) do {if (dyn_debug_infmalloc) infmalloc_printf_int(format, ## args); } while(0)
 #define crash_printf(format, args...) do {if (dyn_debug_crash) crash_printf_int(format, ## args); } while(0)
+#define stackmods_printf(format, args...) do {if (dyn_debug_stackmods) stackmods_printf_int(format, ## args); } while(0)
 
 #else
 // Non-GCC doesn't have the ## macro
@@ -181,6 +185,7 @@ extern int crash_printf_int(const char *format, ...);
 #define write_printf write_printf_int
 #define infmalloc_printf infmalloc_printf_int
 #define crash_printf crash_printf_int
+#define stackmods_printf stackmods_printf_int
 
 
 #endif

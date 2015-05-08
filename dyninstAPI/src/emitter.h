@@ -125,6 +125,7 @@ class Emitter {
 
     virtual bool emitTOCJump(block_instance *, codeGen &) { assert(0); return false; }
     virtual bool emitTOCCall(block_instance *, codeGen &) { assert(0); return false; }
+    virtual bool emitCallInstruction(codeGen &, func_instance *, Register) { assert(0); return false; }
 };
 
 #endif

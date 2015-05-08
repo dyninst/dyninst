@@ -76,7 +76,8 @@ codeGen::codeGen() :
     isPadded_(true),
     trackRegDefs_(false),
     inInstrumentation_(false), // save default
-    insertNaked_(false)
+    insertNaked_(false),
+    modifiedStackFrame_(false)
 {}
 
 // size is in bytes
@@ -99,7 +100,8 @@ codeGen::codeGen(unsigned size) :
     isPadded_(true),
     trackRegDefs_(false),
     inInstrumentation_(false),
-    insertNaked_(false)
+    insertNaked_(false),
+    modifiedStackFrame_(false)
 {
     buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
     if (!buffer_) {
@@ -129,7 +131,8 @@ codeGen::codeGen(codeBuf_t *buffer, int size) :
     isPadded_(true),
     trackRegDefs_(false),
     inInstrumentation_(false),
-    insertNaked_(false)
+    insertNaked_(false),
+    modifiedStackFrame_(false)
 {
     assert(buffer_);
     memset(buffer_, 0, size+codeGenPadding);
@@ -162,7 +165,8 @@ codeGen::codeGen(const codeGen &g) :
     isPadded_(g.isPadded_),
     trackRegDefs_(g.trackRegDefs_),
     inInstrumentation_(g.inInstrumentation_),
-    insertNaked_(g.insertNaked_)
+    insertNaked_(g.insertNaked_),
+    modifiedStackFrame_(g.modifiedStackFrame_)
 {
     if (size_ != 0) {
         assert(allocated_); 
@@ -193,6 +197,7 @@ codeGen &codeGen::operator=(const codeGen &g) {
     int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
     inInstrumentation_ = g.inInstrumentation_;
     insertNaked_ = g.insertNaked_;
+    modifiedStackFrame_ = g.modifiedStackFrame_;
 
     if (size_ != 0) {
        assert(allocated_); 
@@ -481,6 +486,7 @@ void codeGen::applyTemplate(const codeGen &c) {
   bt_ = c.bt_;
   inInstrumentation_ = c.inInstrumentation_;
   insertNaked_ = c.insertNaked_;
+  modifiedStackFrame_ = c.modifiedStackFrame_;
 }
 
 void codeGen::setAddrSpace(AddressSpace *a)

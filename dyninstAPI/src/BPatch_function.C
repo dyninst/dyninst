@@ -54,6 +54,7 @@
 #include "debug.h"
 #include "hybridAnalysis.h"
 #include "addressSpace.h"
+#include "StackMod/StackModChecker.h"
 
 #include "common/src/Types.h"
 
@@ -1100,4 +1101,9 @@ unsigned int BPatch_function::getFootprint()
     return func->footprint();
 }
 
+bool BPatch_function::addMods(std::set<StackMod*> mods)
+{
+    StackModChecker checker(this, func);
+    return checker.addModsInternal(mods);
+}
 

@@ -92,6 +92,13 @@ set (SRC_LIST
      src/Patching.C
      src/frameChecker.C
      src/BPatch_memoryAccessAdapter.C
+     src/StackMod/OffsetVector.C
+     src/StackMod/StackAccess.C
+     src/StackMod/StackLocation.C
+     src/StackMod/StackMod.C
+     src/StackMod/StackModExpr.C
+     src/StackMod/StackModChecker.C
+     src/StackMod/TMap.C
 )
 
 # This is just .. messy. Sorry.

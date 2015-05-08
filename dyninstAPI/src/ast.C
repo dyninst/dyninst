@@ -54,6 +54,7 @@ using namespace Dyninst::InstructionAPI;
 #include "dyninstAPI/h/BPatch_point.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/h/BPatch_type.h"
+#include "dyninstAPI/src/RegisterConversion.h"
 
 #include "addressSpace.h"
 #include "binaryEdit.h"
@@ -62,6 +63,7 @@ using namespace Dyninst::InstructionAPI;
 #include "inst-power.h"
 #elif defined(arch_x86) || defined (arch_x86_64)
 #include "inst-x86.h"
+#include "emit-x86.h"
 extern int tramp_pre_frame_size_32;
 extern int tramp_pre_frame_size_64;
 #else
@@ -159,6 +161,22 @@ bool AstNode::hasNameInfo(){
 
 AstNodePtr AstNode::nullNode() {
     return AstNodePtr(new AstNullNode());
+}
+
+AstNodePtr AstNode::stackInsertNode(int size, long dispFromRSP, MSpecialType type) {
+    return AstNodePtr(new AstStackInsertNode(size, dispFromRSP, type));
+}
+
+AstNodePtr AstNode::stackRemoveNode(int size, MSpecialType type) {
+    return AstNodePtr(new AstStackRemoveNode(size, type));
+}
+
+AstNodePtr AstNode::stackRemoveNode(int size, MSpecialType type, func_instance* func, bool canaryAfterPrologue, long canaryHeight) {
+    return AstNodePtr(new AstStackRemoveNode(size, type, func, canaryAfterPrologue, canaryHeight));
+}
+
+AstNodePtr AstNode::stackGenericNode() {
+    return AstNodePtr(new AstStackGenericNode());
 }
 
 AstNodePtr AstNode::labelNode(std::string &label) {
@@ -778,6 +796,9 @@ bool AstNode::generateCode_phase2(codeGen &, bool,
     fprintf(stderr, "ERROR: call to AstNode generateCode_phase2; should be handled by subclass\n");
     fprintf(stderr, "Undefined phase2 for:\n");
     if (dynamic_cast<AstNullNode *>(this)) fprintf(stderr, "nullNode\n");
+    if (dynamic_cast<AstStackInsertNode *>(this)) fprintf(stderr, "stackInsertNode\n");
+    if (dynamic_cast<AstStackRemoveNode *>(this)) fprintf(stderr, "stackRemoveNode\n");
+    if (dynamic_cast<AstStackGenericNode *>(this)) fprintf(stderr, "stackMoveNode\n");
     if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
     if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
     if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
@@ -802,6 +823,279 @@ bool AstNullNode::generateCode_phase2(codeGen &gen, bool,
     return true;
 }
 
+bool AstNode::allocateCanaryRegister(codeGen& gen,
+        bool noCost,
+        Register& reg,
+        bool& needSaveAndRestore)
+{
+    // Let's see if we can find a dead register to use!
+    instPoint* point = gen.point();
+
+    // Try to get a scratch register from the register space
+    registerSpace* regSpace = registerSpace::actualRegSpace(point);
+    bool realReg = true;
+    Register tmpReg = regSpace->getScratchRegister(gen, noCost, realReg);
+    if (tmpReg != REG_NULL) {
+        reg = tmpReg;
+        needSaveAndRestore = false;
+        if (gen.getArch() == Arch_x86) {
+            gen.rs()->noteVirtualInReal(reg, RealRegister(reg));
+        }
+        return true;
+    }
+
+    // Couldn't find a dead register to use :-(
+    registerSpace* deadRegSpace = registerSpace::optimisticRegSpace(gen.addrSpace());
+    reg = deadRegSpace->getScratchRegister(gen, noCost, realReg);
+    if (reg == REG_NULL) {
+        fprintf(stderr, "WARNING: using default allocateAndKeep in allocateCanaryRegister\n");
+        reg = allocateAndKeep(gen, noCost);
+    }
+    needSaveAndRestore = true;
+    fprintf(stderr, "allocateCanaryRegister will require save&restore at 0x%lx\n", gen.point()->addr());
+
+    return true;
+}
+
+
+bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
+        Address &,
+        Register &)
+{
+    // Turn off default basetramp instrumentation saves & restores
+    gen.setInsertNaked(true);
+    gen.setModifiedStackFrame(true);
+
+    if (type == GENERIC_AST) {
+        /* We're going to use a MOV to insert the new value, and a LEA to update the SP
+         * This is instead of using a push, which requires a free register */
+
+        /* Move stack pointer to accomodate new value */
+        if (gen.getArch() == Arch_x86) {
+            gen.codeEmitter()->emitLEA(REGNUM_ESP, Null_Register, 0, -size, REGNUM_ESP, gen);
+        } else if (gen.getArch() == Arch_x86_64) {
+            gen.codeEmitter()->emitLEA(REGNUM_RSP, Null_Register, 0, -size, REGNUM_RSP, gen);
+        }
+
+    } else if (type == CANARY_AST){
+//        gen.setCanary(true);
+
+        // Find a register to use
+        Register canaryReg = Null_Register;
+        bool needSaveAndRestore = true;
+
+        // 64-bit requires stack alignment
+        // We'll do this BEFORE we push the canary for two reasons:
+        // 1. Easier to pop the canary in the check at the end of the function
+        // 2. Ensures that the canary will get overwritten (rather than empty alignment space) in case of an overflow
+        if (gen.getArch() == Arch_x86_64) {
+            allocateCanaryRegister(gen, noCost, canaryReg, needSaveAndRestore);
+
+            int canarySize = 8;
+            int off = AMD64_STACK_ALIGNMENT - canarySize; // canary
+            gen.codeEmitter()->emitLEA(REGNUM_RSP, Null_Register, 0, -off, REGNUM_RSP, gen);
+        } else {
+            canaryReg = REGNUM_EAX;
+            needSaveAndRestore = true;
+        }
+
+        // Save canaryReg value if necessary
+        if (needSaveAndRestore) {
+            if (gen.getArch() == Arch_x86) {
+                int disp = 4;
+                gen.codeEmitter()->emitLEA(REGNUM_ESP, Null_Register, 0, -disp, REGNUM_ESP, gen);
+                gen.codeEmitter()->emitPush(gen, canaryReg);
+                gen.codeEmitter()->emitLEA(REGNUM_ESP, Null_Register, 0, 2*disp, REGNUM_ESP, gen);
+            } else if (gen.getArch() == Arch_x86_64) {
+                int disp = 8;
+                gen.codeEmitter()->emitLEA(REGNUM_RSP, Null_Register, 0, -disp, REGNUM_RSP, gen);
+                gen.codeEmitter()->emitPush(gen, canaryReg);
+                gen.codeEmitter()->emitLEA(REGNUM_RSP, Null_Register, 0, 2*disp, REGNUM_RSP, gen);
+            }
+        }
+
+        // Set up canary value
+        // CURRENT USES GLIBC-PROVIDED VALUE;
+        // from gcc/config/i386/gnu-user64.h:
+        //  #ifdef TARGET_LIBC_PROVIDES_SSP
+        //  /* i386 glibc provides __stack_chk_guard in %gs:0x14,
+        //      x32 glibc provides it in %fs:0x18.
+        //      x86_64 glibc provides it in %fs:0x28.  */
+        //  #define TARGET_THREAD_SSP_OFFSET (TARGET_64BIT ? (TARGET_X32 ? 0x18 : 0x28) : 0x14))) */
+
+        // goal:
+        //      x86:    mov %fs:0x14, canaryReg
+        //      x86_64: mov %gs:0x28, canaryReg
+        if (gen.getArch() == Arch_x86) {
+            gen.codeEmitter()->emitLoadRelativeSegReg(canaryReg, 0x14, REGNUM_GS, 4, gen);
+        } else if (gen.getArch() == Arch_x86_64) {
+            gen.codeEmitter()->emitLoadRelativeSegReg(canaryReg, 0x28, REGNUM_FS, 8, gen);
+        }
+
+        // Push the canary value
+        gen.codeEmitter()->emitPush(gen, canaryReg);
+
+        // Clear canary register to prevent info leaking
+        gen.codeEmitter()->emitXorRegReg(canaryReg, canaryReg, gen);
+
+        // Restore canaryReg value if necessary
+        if (needSaveAndRestore) {
+            if (gen.getArch() == Arch_x86) {
+                int disp = 4;
+                gen.codeEmitter()->emitLEA(REGNUM_ESP, Null_Register, 0, -disp, REGNUM_ESP, gen);
+                gen.codeEmitter()->emitPop(gen, canaryReg);
+            } else if (gen.getArch() == Arch_x86_64) {
+                int disp = 8;
+                gen.codeEmitter()->emitLEA(REGNUM_RSP, Null_Register, 0, -disp, REGNUM_RSP, gen);
+                gen.codeEmitter()->emitPop(gen, canaryReg);
+            }
+        }
+
+        // C&P from nullNode
+        decUseCount(gen);
+    }
+
+    return true;
+}
+
+bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
+        Address &,
+        Register &)
+{
+    // Turn off default basetramp instrumentation saves & restores
+    gen.setInsertNaked(true);
+    gen.setModifiedStackFrame(true);
+
+    if (type == GENERIC_AST) {
+        /* Adjust stack pointer by size */
+        int disp = size;
+        if (gen.getArch() == Arch_x86) {
+            gen.codeEmitter()->emitLEA(REGNUM_ESP, Null_Register, 0, disp, REGNUM_ESP, gen);
+        } else if (gen.getArch() == Arch_x86_64) {
+            gen.codeEmitter()->emitLEA(REGNUM_RSP, Null_Register, 0, disp, REGNUM_RSP, gen);
+        }
+    } else if (type == CANARY_AST) {
+//        gen.setCanary(true);
+
+        // Find a register to use
+        Register canaryReg = Null_Register;
+        bool needSaveAndRestore = true;
+        if (gen.getArch() == Arch_x86_64) {
+            allocateCanaryRegister(gen, noCost, canaryReg, needSaveAndRestore);
+        }
+        else {
+            canaryReg = REGNUM_EDX;
+            gen.rs()->noteVirtualInReal(canaryReg, RealRegister(canaryReg));
+            needSaveAndRestore = true;
+        }
+        // Save canaryReg value if necessary
+        if (needSaveAndRestore) {
+            if (gen.getArch() == Arch_x86) {
+                int disp = 4;
+                gen.codeEmitter()->emitPush(gen, canaryReg);
+                gen.codeEmitter()->emitLEA(REGNUM_ESP, Null_Register, 0, disp, REGNUM_ESP, gen);
+            } else if (gen.getArch() == Arch_x86_64) {
+                int disp = 8;
+                gen.codeEmitter()->emitLEA(REGNUM_RSP, Null_Register, 0, disp, REGNUM_RSP, gen);
+            }
+        }
+
+        // Retrieve canary value and verify its integrity
+        if (!canaryAfterPrologue_) {
+            gen.codeEmitter()->emitPop(gen, canaryReg);
+        } else {
+            Address canaryOffset = -1*(Address)(canaryHeight_);
+            if (gen.getArch() == Arch_x86) {
+                Register destReg = REGNUM_ESP;
+                RealRegister canaryReg_r = gen.rs()->loadVirtualForWrite(canaryReg, gen);
+                emitMovRMToReg(canaryReg_r, RealRegister(destReg), canaryOffset, gen);
+            } else if (gen.getArch() == Arch_x86_64) {
+                Register destReg = REGNUM_RSP;
+                gen.codeEmitter()->emitLoadRelative(canaryReg, canaryOffset, destReg, 0, gen);
+            }
+        }
+
+        // CURRENTLY USES GLIBC-PROVIDED VALUE;
+        //  /* i386 glibc provides __stack_chk_guard in %gs:0x14,
+        //      x32 glibc provides it in %fs:0x18.
+        //      x86_64 glibc provides it in %fs:0x28.  */
+        // goal:
+        //      x86: xor %fs:0x14, canaryReg
+        //      x86_64: xor %gs:0x28, canaryReg
+        if (gen.getArch() == Arch_x86) {
+            gen.codeEmitter()->emitXorRegSegReg(canaryReg, REGNUM_GS, 0x14, gen);
+        } else if (gen.getArch() == Arch_x86_64) {
+            gen.codeEmitter()->emitXorRegSegReg(canaryReg, REGNUM_FS, 0x28, gen);
+        }
+
+        // Restore canaryReg if necessary
+        if (needSaveAndRestore) {
+            if (gen.getArch() == Arch_x86) {
+                int disp = 4;
+                gen.codeEmitter()->emitLEA(REGNUM_ESP, Null_Register, 0, -disp, REGNUM_ESP, gen);
+                gen.codeEmitter()->emitPop(gen, canaryReg);
+            } else if (gen.getArch() == Arch_x86_64) {
+                int disp = 8;
+                gen.codeEmitter()->emitLEA(REGNUM_RSP, Null_Register, 0, -disp, REGNUM_RSP, gen);
+                gen.codeEmitter()->emitPop(gen, canaryReg);
+            }
+       }
+
+        // Fix up the stack in the canaryAfterPrologue case
+        if (canaryAfterPrologue_) {
+            if (gen.getArch() == Arch_x86) {
+                int disp = 4;
+                gen.codeEmitter()->emitLEA(REGNUM_ESP, Null_Register, 0, -1*canaryHeight_ + disp, REGNUM_ESP, gen);
+            } else if (gen.getArch() == Arch_x86_64) {
+                int disp = 8;
+                gen.codeEmitter()->emitLEA(REGNUM_RSP, Null_Register, 0, -1*canaryHeight_ + disp, REGNUM_RSP, gen);
+            }
+        }
+
+        // Re-align the stack
+        if (gen.getArch() == Arch_x86_64) {
+            // 64-bit requires stack alignment (this will include canary cleanup)
+            int canarySize = 8;
+            int off = AMD64_STACK_ALIGNMENT - canarySize;
+            gen.codeEmitter()->emitLEA(REGNUM_RSP, Null_Register, 0, off, REGNUM_RSP, gen);
+        }
+
+        // If the canary value is valid, jmp to next expected instruction
+        int condition = 0x4;
+        int offset = 1; // This is just the placeholder
+        bool willRegen = true; // This gets the longer form of the jcc, so we can patch it up
+        codeBufIndex_t jccIndex = gen.getIndex();
+        emitJcc(condition, offset, gen, willRegen);
+
+        // Otherwise, call specified failure function
+        // NOTE: Skipping saving live registers that will be clobbered by the call because this will be non-returning
+        pdvector<AstNodePtr> operands;
+        func_instance* func = func_; // c&p'd from AstCallNode
+        codeBufIndex_t preCallIndex = gen.getIndex();
+        gen.codeEmitter()->emitCallInstruction(gen, func, canaryReg);
+        codeBufIndex_t postCallIndex = gen.getIndex();
+
+        // Fix-up the jcc
+        offset = postCallIndex - preCallIndex;
+        gen.setIndex(jccIndex);
+        emitJcc(condition, offset, gen, willRegen);
+        gen.setIndex(postCallIndex);
+
+        decUseCount(gen);
+    }
+
+    return true;
+}
+
+bool AstStackGenericNode::generateCode_phase2(codeGen& gen, bool, Address&, Register&)
+{
+    gen.setInsertNaked(true);
+    gen.setModifiedStackFrame(true);
+
+    // No code generation necessary
+
+    return true;
+}
 
 bool AstLabelNode::generateCode_phase2(codeGen &gen, bool,
                                        Address &retAddr,
@@ -3048,6 +3342,21 @@ bool AstNullNode::containsFuncCall() const
    return false;
 }
 
+bool AstStackInsertNode::containsFuncCall() const
+{
+    return false;
+}
+
+bool AstStackRemoveNode::containsFuncCall() const
+{
+    return false;
+}
+
+bool AstStackGenericNode::containsFuncCall() const
+{
+    return false;
+}
+
 bool AstLabelNode::containsFuncCall() const
 {
    return false;
@@ -3138,6 +3447,21 @@ bool AstInsnMemoryNode::usesAppRegister() const {
 bool AstNullNode::usesAppRegister() const
 {
    return false;
+}
+
+bool AstStackInsertNode::usesAppRegister() const
+{
+    return false;
+}
+
+bool AstStackRemoveNode::usesAppRegister() const
+{
+    return false;
+}
+
+bool AstStackGenericNode::usesAppRegister() const
+{
+    return false;
 }
 
 bool AstLabelNode::usesAppRegister() const
@@ -3361,6 +3685,31 @@ std::string AstNullNode::format(std::string indent) {
    std::stringstream ret;
    ret << indent << "Null/" << hex << this << dec << "()" << endl;
    return ret.str();
+}
+
+std::string AstStackInsertNode::format(std::string indent) {
+    std::stringstream ret;
+    ret << indent << "StackInsert/" << hex << this;
+    ret << "(size " << size << ")";
+    if (type == CANARY_AST) ret << " (is canary)";
+    ret << endl;
+    return ret.str();
+}
+
+std::string AstStackRemoveNode::format(std::string indent) {
+    std::stringstream ret;
+    ret << indent << "StackRemove/" << hex << this;
+    ret << "(size " << size << ")";
+    if (type == CANARY_AST) ret << "(is canary)";
+    ret << endl;
+    return ret.str();
+}
+
+std::string AstStackGenericNode::format(std::string indent) {
+    std::stringstream ret;
+    ret << indent << "StackGeneric/" << hex << this;
+    ret << endl;
+    return ret.str();
 }
 
 std::string AstOperatorNode::format(std::string indent) {
