@@ -117,12 +117,15 @@ class StackAnalysis {
                 *this = bottom;
                 return *this;
             }
-            if (other.isTop()) {
+            if (isTop() && other.isTop()) {
+                // TOP + TOP = TOP
+                *this = top;
                 return *this;
             }
-            if (isTop()) { 
-               height_ = other.height_;
-               return *this;
+            if (isTop() || other.isTop()) {
+                // TOP + height = BOTTOM
+                *this = bottom;
+                return *this;
             }
             
             height_ += other.height_;
@@ -132,8 +135,8 @@ class StackAnalysis {
         const Height operator+(const Height &rhs) const {
             if (isBottom()) return bottom;
             if (rhs.isBottom()) return rhs;
-            if (isTop()) return rhs;
-            if (rhs.isTop()) return *this;
+            if (isTop() && rhs.isTop()) return top;
+            if (isTop() || rhs.isTop()) return bottom;
 
             return Height(height_ + rhs.height_);
         }
@@ -155,12 +158,10 @@ class StackAnalysis {
             return *this;
         }
 
-	const Height operator+(const unsigned long &rhs) const {
+	const Height operator+(const signed long &rhs) const {
 	  if (isBottom()) return bottom;
-	  if (isTop()) {
-	    // WTF?
-	    return Height(rhs);
-	  }
+      if (isTop()) return top;
+
 	  return Height(height_ + rhs);
 	}
 
