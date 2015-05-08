@@ -31,6 +31,7 @@
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Result.h"
 #include "instructionAPI/h/Instruction.h"
+#include "instructionAPI/h/Immediate.h"
 
 #include <queue>
 #include <vector>
@@ -833,8 +834,19 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
 	   xferFuncs.push_back(TransferFunc::aliasFunc(read, written));
    }
    else {
-	   xferFuncs.push_back(TransferFunc::bottomFunc(written));
-	   stackanalysis_printf("\t\t\t Non-register-register move: %s set to bottom\n", written.name().c_str());
+       InstructionAPI::Operand readOperand = insn->getOperand(1);
+       InstructionAPI::Expression::Ptr readExpr = readOperand.getValue();
+       stackanalysis_printf("\t\t\t\t readOperand = %s\n", readExpr->format().c_str());
+       if (typeid(*readExpr) == typeid(InstructionAPI::Immediate)) {
+           long readValue = (boost::dynamic_pointer_cast<InstructionAPI::Immediate>(readExpr))->eval().convert<long>();
+           stackanalysis_printf("\t\t\t Non-register-register move: %s set to %ld\n", written.name().c_str(), readValue);
+           xferFuncs.push_back(TransferFunc::absFunc(written, readValue));
+       } else {
+           // This case is not expected to occur
+           stackanalysis_printf("\t\t\t Non-register-register move: %s set to handleDefault\n", written.name().c_str());
+           handleDefault(insn, xferFuncs);
+       }
+       return;
    }
 }
 
