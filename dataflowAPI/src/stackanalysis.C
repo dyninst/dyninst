@@ -484,7 +484,7 @@ void StackAnalysis::findDefinedHeights(ParseAPI::Block* b, Address addr, std::ve
       i != (*intervals_)[b][addr].end();
       ++i)
   {
-    if(i->second.isTop() || i->second.isBottom())
+    if(i->second.isTop())
     {
       continue;
     }
