@@ -114,6 +114,9 @@ class insnCodeGen {
   static bool modifyData(Address target,
                          NS_x86::instruction &insn, 
                          codeGen &gen);
+  static bool modifyDisp(signed long newDisp,
+                         NS_x86::instruction &insn,
+                         codeGen &gen, Architecture arch, Address addr);
 };
 
 

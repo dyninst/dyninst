@@ -49,6 +49,8 @@
 #include "instructionAPI/h/RegisterIDs.h"
 #include "pcrel.h"
 
+#include "StackMod/StackAccess.h"
+
 #if defined(os_vxworks)
 #include "common/src/wtxKludges.h"
 #endif
@@ -1271,4 +1273,213 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
    }
 #endif
    return true;
-} 
+}
+
+bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &gen, Architecture arch, Address addr) {
+
+    relocation_cerr << "modifyDisp "
+        << std::hex << addr
+        << std::dec << ", newDisp = " << newDisp << endl;
+
+    const unsigned char* origInsn = insn.ptr();
+    unsigned insnType = insn.type();
+    unsigned insnSz = insn.size();
+    Address from = gen.currAddr();
+
+    unsigned newInsnSz = 0;
+
+    InstructionAPI::InstructionDecoder d2((unsigned char*)origInsn, insnSz, arch);
+    InstructionAPI::Instruction::Ptr origInsnPtr = d2.decode();
+
+    StackAccess* origAccess;
+    signed long origDisp;
+    if (!getMemoryOffset(NULL, NULL, origInsnPtr, addr, MachRegister(), StackAnalysis::Height(0), origAccess, arch)) {
+        assert(0);
+    } else {
+        origDisp = origAccess->disp();
+    }
+
+    GET_PTR(newInsn, gen);
+
+    const unsigned char* newInsnStart = newInsn;
+    const unsigned char* origInsnStart = origInsn;
+
+    /******************************************* prefix/opcode ****************/
+    unsigned nPrefixes;
+
+    // In other cases, we can rewrite the insn directly; in the 64-bit case, we
+    // still need to copy the insn
+    // Copy prefix bytes
+    from += copy_prefixes(origInsn, newInsn, insnType);
+    nPrefixes = count_prefixes(insnType);
+    newInsnSz += nPrefixes;
+
+    // Copy opcode bytes
+    if (*origInsn == 0x0F) {
+        *newInsn++ = *origInsn++;
+        newInsnSz++;
+        // 3-byte opcode support
+        if (*origInsn == 0x38 || *origInsn == 0x3A) {
+            *newInsn++ = *origInsn++;
+            newInsnSz++;
+        }
+    }
+    *newInsn++ = *origInsn++;
+    newInsnSz++;
+
+    /******************************************* modRM *************************/
+    // Update displacement size (mod bits in ModRM), if necessary
+    int expectedDifference = 0;
+    unsigned char modrm = *origInsn++;
+    unsigned char modrm_mod = MODRM_MOD(modrm);
+    //unsigned char modrm_reg = MODRM_REG(modrm);
+    unsigned char modrm_rm = MODRM_RM(modrm);
+
+
+    int origDispSize = -1;
+
+    if (origDisp != newDisp) {
+        if (modrm_mod == 0) {
+            if (modrm_rm == 5) {
+                origDispSize = 32;
+            } else {
+                origDispSize = -1;
+            }
+        } else if (modrm_mod == 1) {
+            origDispSize = 8;
+        } else if (modrm_mod == 2) {
+            origDispSize = 32;
+        } else {
+            origDispSize = -1;
+        }
+
+        // Switch modrm_mod if necessary
+        if (origDispSize == -1) {
+            // If we didn't have a displacement before, and we do now, need to handle it!
+            if (is_disp8(newDisp)) {
+                modrm = modrm + 0x40;
+                expectedDifference = 1;
+            } else if (is_disp32(newDisp)) {
+                modrm = modrm + 0x80;
+                expectedDifference = 4;
+            }
+
+        } else if (origDispSize == 8) {
+            if (is_disp8(newDisp)) {
+            } else if (is_disp32(newDisp)) {
+                modrm = modrm + 0x40;
+                expectedDifference = 3;
+            }
+        } else if (origDispSize == 32) {
+            if (is_disp8(newDisp)) {
+                modrm = modrm - 0x40;
+                expectedDifference = -3;
+            } else if (is_disp32(newDisp)) {
+            }
+        }
+    }
+
+    /******************************************* SIB ***************************/
+
+    // Copy the SIB byte when necessary
+    if (modrm_rm == 4) {
+
+        unsigned char sib = *origInsn++;
+        unsigned char sib_scale = MODRM_MOD(sib);
+        //unsigned char sib_index = MODRM_REG(sib);
+        unsigned char sib_base = MODRM_RM(sib);
+
+        int sib_scale_factor;
+        switch((int)sib_scale) {
+            case 0: sib_scale_factor = 1; break;
+            case 1: sib_scale_factor = 2; break;
+            case 2: sib_scale_factor = 4; break;
+            case 3: sib_scale_factor = 8; break;
+        }
+
+        // Check for displacement in the SIB
+        if (sib_base == 5 && modrm_mod == 0) {
+            origDispSize = 32;
+        }
+
+        // Copy MODRM byte
+        *newInsn++ = modrm;
+        newInsnSz++;
+
+        // Copy SIB byte
+        *newInsn++ = sib;
+        newInsnSz++;
+    } else {
+        // Copy MODRM byte
+        *newInsn++ = modrm;
+        newInsnSz++;
+
+        // Skip SIB byte
+    }
+
+    /********************************* displacement ***************************/
+
+    // Put the displacement back in
+    if (origDisp != newDisp) {
+        // Replace displacement
+        if (is_disp8(newDisp)) {
+            *((signed char *)newInsn) = (signed char)(newDisp);
+            newInsn += sizeof(signed char);
+            newInsnSz += sizeof(signed char);
+        } else if (is_disp32(newDisp)) {
+            *((int *)newInsn) = (int)(newDisp);
+            newInsn += sizeof(int);
+            newInsnSz += sizeof(int);
+        } else {
+            // Should never be reached...
+            assert(0);
+        }
+    }
+
+    if (origDispSize == -1) {
+        // Do nothing
+    } else if (origDispSize == 8) {
+        origInsn += sizeof(signed char);
+    } else if (origDispSize == 32) {
+        origInsn += sizeof(int);
+    } else {
+        // Should never be reached
+        assert(0);
+    }
+
+    /********************************* immedidate *****************************/
+
+    // there may be an immediate after the displacement
+    // so we copy over the rest of the instruction here
+    while (origInsn - origInsnStart < (int)insnSz) {
+        unsigned char nextByte = *origInsn++;
+        *newInsn++ = nextByte;
+        newInsnSz++;
+    }
+
+    /******************************** done ************************************/
+
+    InstructionAPI::InstructionDecoder d(newInsnStart, newInsnSz, arch);
+    InstructionAPI::Instruction::Ptr newInsnPtr = d.decode();
+
+    if ((insnSz + expectedDifference) != newInsnSz) {
+        return false;
+    }
+
+    // Validate
+    StackAccess* newAccess = NULL;
+    getMemoryOffset(NULL, NULL, newInsnPtr, addr, MachRegister(), StackAnalysis::Height(0), newAccess, arch);
+    if (!newAccess) {
+        if (newDisp != 0) {
+            return false;
+        }
+    } else {
+        if (newAccess->disp() != newDisp){
+            return false;
+        }
+    }
+
+    SET_PTR(newInsn, gen);
+
+    return true;
+}
