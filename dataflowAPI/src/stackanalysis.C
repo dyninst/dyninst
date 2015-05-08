@@ -614,10 +614,6 @@ void StackAnalysis::handleReturn(Instruction::Ptr insn, TransferFuncs &xferFuncs
 }
 
 void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs &xferFuncs) {
-   if(!insn->isRead(theStackPtr)) {
-      return handleDefault(insn, xferFuncs);
-   }
-
    // add reg, mem is ignored
    // add mem, reg bottoms reg
    if (insn->writesMemory()) return;
@@ -625,7 +621,15 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs 
       handleDefault(insn, xferFuncs);
       return;
    }
-   
+
+   std::set<RegisterAST::Ptr> readSet;
+   insn->getOperand(0).getReadSet(readSet);
+   if (readSet.size() != 1) {
+       fprintf(stderr, "readSet != 1\n");
+       handleDefault(insn, xferFuncs);
+       return;
+   }
+
    // Add/subtract are op0 += (or -=) op1
    Operand arg = insn->getOperand(1);
    Result res = arg.getValue()->eval();
@@ -649,7 +653,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs 
        assert(0);
      }
      stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %lx\n", delta);
-     xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));   
+     xferFuncs.push_back(TransferFunc::deltaFunc((*(readSet.begin()))->getID(), delta));
    }
    else {
      handleDefault(insn, xferFuncs);
