@@ -1212,8 +1212,9 @@ int_libraryTracking *int_process::getLibraryTracking()
 
 int_LWPTracking *int_process::getLWPTracking()
 {
-   if (LWPTracking_set)
+   if (LWPTracking_set){
       return pLWPTracking;
+   }
    LWPTracking_set = true;
    pLWPTracking = dynamic_cast<int_LWPTracking *>(this);
    if (!pLWPTracking)
@@ -1474,8 +1475,6 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
       if (!thr) {
          setLastError(err_notstopped, "A thread must be stopped to read from memory");
          perr_printf("Unable to find a stopped thread for read in process %d\n", getPid());
-         fprintf(stderr, "ARM-debug: temprorily stop the process.\n");
-         assert(0); //tmp do this
          return false;
       }
    }
