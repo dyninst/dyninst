@@ -51,11 +51,13 @@
 
 #include "Variable.h"
 #include "stackanalysis.h"
+#if defined(cap_stack_mods)
 #include "StackMod.h"
 #include "StackMod/OffsetVector.h"
 #include "StackMod/StackAccess.h"
 #include "StackMod/StackLocation.h"
 #include "StackMod/TMap.h"
+#endif
 
 class PCProcess;
 class mapped_module;
@@ -309,6 +311,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   virtual void markModified();
 
+#if defined(cap_stack_mods)
   // Stack modification
   void addParam(Dyninst::SymtabAPI::localVar* p) { _params.insert(p); }
   void addVar(Dyninst::SymtabAPI::localVar* v) { _vars.insert(v); }
@@ -339,6 +342,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void replaceTMap(TMap* newTMap) { _tMap = newTMap; }
 
   bool randomize(TMap* tMap, bool seeded = false, int seed = -1);
+#endif
 
   bool operator<(func_instance& rhs) {
       return addr() < rhs.addr();
@@ -381,6 +385,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
    Dyninst::SymtabAPI::Symbol *wrapperSym_;
 
+#if defined(cap_stack_mods)
   // Stack modification
   bool createOffsetVector_Symbols();
 
@@ -418,6 +423,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   TMap* _tMap;
   std::map<Address, Accesses*>* _accessMap;
+#endif
 };
 
 template <class OutputIterator>

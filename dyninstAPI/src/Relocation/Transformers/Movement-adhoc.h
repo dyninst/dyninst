@@ -71,6 +71,7 @@ class adhocMovementTransformer : public Transformer {
                InsnPtr insn,
 	       Absloc &aloc,
 	       Address &thunkAddr);
+#if defined(cap_stack_mods)
   bool isStackFrameSensitive(Offset& origOffset,
           signed long& delta,
           const Accesses* accesses,
@@ -78,6 +79,7 @@ class adhocMovementTransformer : public Transformer {
           TMap*& tMap,
           ParseAPI::Block* block,
           Address addr);
+#endif
 
   // Used for finding call targets
   AddressSpace *addrSpace;

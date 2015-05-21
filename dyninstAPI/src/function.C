@@ -916,6 +916,7 @@ bool func_instance::getLiveCallerBlocks
    return stubs.end() != stubs.find(addr()) && !stubs[addr()].empty();
 }
 
+#if defined(cap_stack_mods)
 // Stack modifications
 void func_instance::addMod(StackMod* mod, TMap* tMap)
 {
@@ -1657,3 +1658,4 @@ void func_instance::createTMap_internal(StackMod* mod, TMap* tMap)
         }
     }
 }
+#endif

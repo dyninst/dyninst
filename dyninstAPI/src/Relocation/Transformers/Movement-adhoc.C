@@ -63,6 +63,7 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
 		  << cur << " with "
 		  << elements.size() << " elements." << endl;
 
+#if defined(cap_stack_mods)
   // Grab some stack modification data structures if we need them
   OffsetVector* offVec;
   TMap* tMap;
@@ -83,6 +84,7 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
     tMap = cur->func()->getTMap();
     assert(tMap);
   }
+#endif
 
   for (RelocBlock::WidgetList::iterator iter = elements.begin();
        iter != elements.end(); ++iter) {
@@ -139,7 +141,9 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
          (*iter).swap(replacement);            
          break;
       }
-    } else {
+    }
+#if defined(cap_stack_mods)
+    else {
         // If we have stack modifications, check for sensitive instructions;
         // we must update the displacement encoded in these instructions
         if (cur->func()->hasStackMod() && cur->func()->getMods()->size()) {
@@ -182,6 +186,7 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
             }
         }
     }
+#endif
   }
   return true;
 }
@@ -452,6 +457,7 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
   return false;
 }
 
+#if defined(cap_stack_mods)
 bool adhocMovementTransformer::isStackFrameSensitive(Offset& origDisp,
         signed long& delta,
         const Accesses* accesses,
@@ -572,3 +578,4 @@ bool adhocMovementTransformer::isStackFrameSensitive(Offset& origDisp,
 
     return ret;
 }
+#endif
