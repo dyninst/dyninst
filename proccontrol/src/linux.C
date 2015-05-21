@@ -98,6 +98,10 @@ using namespace ProcControlAPI;
 #define PTRACE_SETREGS PPC_PTRACE_SETREGS
 #endif
 
+#if defined(arch_aarch64)
+#define SYSCALL_EXIT_BREAKPOINT
+#endif
+
 static pid_t P_gettid();
 static bool t_kill(int pid, int sig);
 
@@ -484,8 +488,16 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 #if defined(arch_aarch64)
 #define DISABLE_POSTPONE
 #endif
+
+#if defined(DISABLE_POSTPONE)
+  #if defined(SYSCALL_EXIT_BREAKPOINT)
+  #undef DISABLE_POSTPONE
+  #endif
+#endif
+
                if (postpone) {
                   archevent->event_ext = ext;
+
 #if !defined(DISABLE_POSTPONE)
                   pthrd_printf("Postponing event until syscall exit on %d/%d\n",
                                proc->getPid(), thread->getLWP());
@@ -531,8 +543,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             Dyninst::Address adjusted_addr;
 
             result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
-            //ARM-Debug
 #if 0
+            //ARM-Debug
             pthrd_printf("ARM-debug: PC = 0x%lx\n", addr);
             char buffer_inst[4];
             proc->plat_readMem(thread, buffer_inst, addr, 4);
@@ -544,6 +556,40 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                return false;
             }
             adjusted_addr = adjustTrapAddr(addr, proc->getTargetArch());
+
+#if defined(SYSCALL_EXIT_BREAKPOINT)
+            if( lthread->addr_fakeSyscallExitBp == adjusted_addr
+                && lthread->isSet_fakeSyscallExitBp){
+                //do the same as syscall_exit_stop signal
+                if (lthread->hasPostponedSyscallEvent()) {
+                    delete archevent;
+                    archevent = lthread->getPostponedSyscallEvent();
+                    ext = archevent->event_ext;
+                    switch (ext) {
+                       case PTRACE_EVENT_FORK:
+                       case PTRACE_EVENT_CLONE:
+                          pthrd_printf("Resuming %s event after syscall exit on %d/%d\n",
+                                       ext == PTRACE_EVENT_FORK ? "fork" : "clone",
+                                       proc->getPid(), thread->getLWP());
+                          if (!archevent->findPairedEvent(parent, child)) {
+                             pthrd_printf("Parent half of paired event, postponing decode "
+                                          "until child arrives\n");
+                             archevent->postponePairedEvent();
+                             return true;
+                          }
+                          break;
+                       case PTRACE_EVENT_EXEC:
+                          pthrd_printf("Resuming exec event after syscall exit on %d/%d\n",
+                                       proc->getPid(), thread->getLWP());
+                          event = Event::ptr(new EventExec(EventType::Post));
+                          event->setSyncType(Event::sync_process);
+                          break;
+                    }
+                    break;
+                }
+            }
+#endif
+
             if (rpcMgr()->isRPCTrap(thread, adjusted_addr)) {
                pthrd_printf("Decoded event to rpc completion on %d/%d at %lx\n",
                             proc->getPid(), thread->getLWP(), adjusted_addr);
@@ -1418,6 +1464,27 @@ bool linux_thread::plat_cont()
    int result;
    if (hasPostponedSyscallEvent())
    {
+#if defined(arch_aarch64) && defined(SYSCALL_EXIT_BREAKPOINT)
+       if( postponed_syscall_event->event_ext == PTRACE_EVENT_FORK ||
+           postponed_syscall_event->event_ext == PTRACE_EVENT_CLONE ){
+            //install bp
+            Dyninst::MachRegisterVal addr;
+            result = plat_getRegister(MachRegister::getPC(this->llproc()->getTargetArch()), addr);
+            if (!result) {
+               fprintf(stderr, "Failed to read PC address upon crash\n");
+            }
+            pthrd_printf("Got SIGTRAP at %lx\n", addr);
+            pthrd_printf("Installing breakpoint for postpone syscall at %lx\n", addr);
+
+            int_breakpoint *fakeSyscallExitBp = new int_breakpoint(Breakpoint::ptr());
+            fakeSyscallExitBp->setThreadSpecific(this->thread());
+            fakeSyscallExitBp->setOneTimeBreakpoint(true);
+            this->llproc()->addBreakpoint(addr, fakeSyscallExitBp);
+            this->addr_fakeSyscallExitBp = addr;
+            this->isSet_fakeSyscallExitBp = true;
+       }
+#endif
+
       pthrd_printf("Calling PTRACE_SYSCALL on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SYSCALL, lwp, NULL, data);
    }

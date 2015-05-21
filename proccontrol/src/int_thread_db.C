@@ -816,8 +816,6 @@ async_ret_t thread_db_process::initThreadDB() {
       Address addr = (Address) notifyResult.u.bptaddr;
       pthrd_printf("Received address of 0x%lx for breakpoint, checking platform conversion\n",
 		   addr);
-      fprintf(stdout, "ARM-DEBUG: [%d]Received address of 0x%lx for breakpoint, checking platform conversion\n", getPid(), addr);
-
       if( !plat_convertToBreakpointAddress(addr, triggerThread()) ) {
          perr_printf("Failed to determine breakpoint address\n");
          setLastError(err_internal, "Failed to install new thread_db event breakpoint");
