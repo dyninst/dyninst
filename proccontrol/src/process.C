@@ -8778,3 +8778,19 @@ void int_thread::plat_terminate() {
 	assert(0 && "Unimplemented!");
 }
 
+/*
+ * non-thread specific solution to arm kernel bug.
+ * not used.
+syscall_exit_breakpoints::syscall_exit_breakpoints(){
+    enabled = false;
+    bp = NULL;
+}
+
+bool syscall_exit_breakpoints::contains_breakpoints(Address addr) const{
+    return addrs.find(addr) != addrs.end();
+}
+
+bool syscall_exit_breakpoints::is_enabled() const{
+    return enabled;
+}
+*/

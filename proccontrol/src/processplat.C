@@ -804,7 +804,6 @@ bool int_LWPTracking::plat_lwpChangeTracking(bool)
 
 bool int_LWPTracking::lwp_getTracking()
 {
-    pthrd_printf("ARM-debug: HERE\n");
    return lwp_tracking;
 }
 
