@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -106,7 +106,7 @@ unsigned registerSpace::SPR(Register x) {
 	assert(0); //Not implemented
 
 }
-            
+
 void saveSPR(codeGen &gen,     //Instruction storage pointer
              Register    scratchReg, //Scratch register
              int         sprnum,     //SPR number
@@ -121,7 +121,7 @@ void saveSPR(codeGen &gen,     //Instruction storage pointer
     //the stack.
     //  Returns the number of bytes needed to store the generated
     //    instructions.
-    //  The instruction storage pointer is advanced the number of 
+    //  The instruction storage pointer is advanced the number of
     //    instructions generated.
     //
 void restoreSPR(codeGen &gen,       //Instruction storage pointer
@@ -137,7 +137,7 @@ void restoreSPR(codeGen &gen,       //Instruction storage pointer
 	   //Generates instructions to save link register onto stack.
 	   //  Returns the number of bytes needed to store the generated
 	   //    instructions.
-	   //  The instruction storage pointer is advanced the number of 
+	   //  The instruction storage pointer is advanced the number of
 	   //    instructions generated.
 void saveLR(codeGen &gen,       //Instruction storage pointer
             Register      scratchReg, //Scratch register
@@ -151,7 +151,7 @@ void saveLR(codeGen &gen,       //Instruction storage pointer
            //Generates instructions to restore link register from stack.
            //  Returns the number of bytes needed to store the generated
 	   //    instructions.
-	   //  The instruction storage pointer is advanced the number of 
+	   //  The instruction storage pointer is advanced the number of
 	   //    instructions generated.
 	   //
 void restoreLR(codeGen &gen,       //Instruction storage pointer
@@ -168,7 +168,7 @@ void restoreLR(codeGen &gen,       //Instruction storage pointer
 	   //    instructions followed by a given (tail) instruction.
 	   //  Returns the number of bytes needed to store the entire
 	   //    instruction sequence.
-	   //  The instruction storage pointer is advanced the number of 
+	   //  The instruction storage pointer is advanced the number of
 	   //    instructions in the sequence.
 	   //
 void setBRL(codeGen &gen,        //Instruction storage pointer
@@ -197,7 +197,7 @@ void resetBRL(AddressSpace  *p,   //Process to write instructions into
     //Generates instructions to save the condition codes register onto stack.
     //  Returns the number of bytes needed to store the generated
     //    instructions.
-    //  The instruction storage pointer is advanced the number of 
+    //  The instruction storage pointer is advanced the number of
     //    instructions generated.
     //
 void saveCR(codeGen &gen,       //Instruction storage pointer
@@ -212,7 +212,7 @@ void saveCR(codeGen &gen,       //Instruction storage pointer
     //Generates instructions to restore the condition codes register from stack.
     //  Returns the number of bytes needed to store the generated
     //    instructions.
-    //  The instruction storage pointer is advanced the number of 
+    //  The instruction storage pointer is advanced the number of
     //    instructions generated.
     //
 void restoreCR(codeGen &gen,       //Instruction storage pointer
@@ -228,7 +228,7 @@ void restoreCR(codeGen &gen,       //Instruction storage pointer
     //register on the stack.
     //  Returns the number of bytes needed to store the generated
     //    instructions.
-    //  The instruction storage pointer is advanced the number of 
+    //  The instruction storage pointer is advanced the number of
     //    instructions generated.
     //
 void saveFPSCR(codeGen &gen,       //Instruction storage pointer
@@ -244,7 +244,7 @@ void saveFPSCR(codeGen &gen,       //Instruction storage pointer
     //register from the stack.
     //  Returns the number of bytes needed to store the generated
     //    instructions.
-    //  The instruction storage pointer is advanced the number of 
+    //  The instruction storage pointer is advanced the number of
     //    instructions generated.
     //
 void restoreFPSCR(codeGen &gen,       //Instruction storage pointer
@@ -293,7 +293,7 @@ void restoreRegisterAtOffset(codeGen &gen,
 // Dest != reg : optimizate away a load/move pair
 void restoreRegister(codeGen &gen,
                      Register source,
-                     Register dest, 
+                     Register dest,
                      int saved_off)
 {
 	assert(0); //Not implemented
@@ -307,7 +307,7 @@ void restoreRegister(codeGen &gen,
 	assert(0); //Not implemented
 }
 
-void saveFPRegister(codeGen &gen, 
+void saveFPRegister(codeGen &gen,
                     Register reg,
                     int save_off)
 {
@@ -327,7 +327,7 @@ void restoreFPRegister(codeGen &gen,
                        int save_off)
 {
 	assert(0); //Not implemented
-}	
+}
 
 /*
  * Emit code to push down the stack, AST-generate style
@@ -346,7 +346,7 @@ void popStack(codeGen &gen)
  * Save necessary registers on the stack
  * insn, base: for code generation. Offset: regs saved at offset + reg
  * Returns: number of registers saved.
- * Side effects: instruction pointer and base param are shifted to 
+ * Side effects: instruction pointer and base param are shifted to
  *   next free slot.
  */
 unsigned saveGPRegisters(codeGen &gen,
@@ -360,7 +360,7 @@ unsigned saveGPRegisters(codeGen &gen,
  * Restore necessary registers from the stack
  * insn, base: for code generation. Offset: regs restored from offset + reg
  * Returns: number of registers restored.
- * Side effects: instruction pointer and base param are shifted to 
+ * Side effects: instruction pointer and base param are shifted to
  *   next free slot.
  */
 
@@ -384,7 +384,7 @@ unsigned saveFPRegisters(codeGen &gen,
 {
 	assert(0); //Not implemented
   unsigned numRegs = 0;
-  
+
   return numRegs;
 }
 
@@ -394,13 +394,13 @@ unsigned saveFPRegisters(codeGen &gen,
  * Returns: number of regs restored.
  */
 
-unsigned restoreFPRegisters(codeGen &gen, 
+unsigned restoreFPRegisters(codeGen &gen,
                             registerSpace *theRegSpace,
                             int save_off)
 {
 	assert(0); //Not implemented
   unsigned numRegs = 0;
-  
+
   return numRegs;
 }
 
@@ -450,7 +450,7 @@ bool baseTramp::generateRestores(codeGen &gen,
 }
 
 
-void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
+void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
              codeGen &gen, bool noCost, registerSpace * /* rs */)
 {
 	assert(0); //Not implemented
@@ -462,12 +462,12 @@ void cleanUpAndExit(int status);
 to figure out what registers are clobbered there, and in any function
 that it calls, to a certain depth ... at which point we clobber everything
 
-Update-12/06, njr, since we're going to a cached system we are just going to 
+Update-12/06, njr, since we're going to a cached system we are just going to
 look at the first level and not do recursive, since we would have to also
 store and reexamine every call out instead of doing it on the fly like before*/
 bool EmitterAARCH64::clobberAllFuncCall( registerSpace *rs,
                                        func_instance * callee)
-		   
+
 {
 	assert(0); //Not implemented
   return false;
@@ -480,7 +480,7 @@ bool EmitterAARCH64::clobberAllFuncCall( registerSpace *rs,
 // Emit a function call.
 //   It saves registers as needed.
 //   copy the passed arguments into the canonical argument registers (r3-r10)
-//   64-bit ELF Linux ONLY: 
+//   64-bit ELF Linux ONLY:
 //     Locate the TOC entry of the callee module and copy it into R2
 //   generate a branch and link the destination
 //   64-bit ELF Linux ONLY:
@@ -490,7 +490,7 @@ bool EmitterAARCH64::clobberAllFuncCall( registerSpace *rs,
 // Parameters:
 //   op - unused parameter (to be compatible with sparc)
 //   srcs - vector of ints indicating the registers that contain the parameters
-//   dest - the destination address (should be Address not reg). 
+//   dest - the destination address (should be Address not reg).
 //   insn - pointer to the code we are generating
 //   based - offset into the code generated.
 //
@@ -517,9 +517,9 @@ Register EmitterAARCH64::emitCallReplacement(opCode ocode,
 }
 
 // There are four "axes" going on here:
-// 32 bit vs 64 bit  
+// 32 bit vs 64 bit
 // Instrumentation vs function call replacement
-// Static vs. dynamic 
+// Static vs. dynamic
 
 Register EmitterAARCH64::emitCall(opCode ocode,
                                 codeGen &gen,
@@ -530,7 +530,7 @@ Register EmitterAARCH64::emitCall(opCode ocode,
     return NULL;
 }
 
- 
+
 codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
 	      codeGen &gen, RegControl, bool /*noCost*/)
 {
@@ -585,7 +585,7 @@ static inline void moveGPR2531toGPR(codeGen &gen,
 // VG(11/16/01): Emit code to add the original value of a register to
 // another. The original value may need to be restored from stack...
 // VG(03/15/02): Made functionality more obvious by adding the above functions
-static inline void emitAddOriginal(Register src, Register acc, 
+static inline void emitAddOriginal(Register src, Register acc,
                                    codeGen &gen, bool noCost)
 {
 	assert(0); //Not implemented
@@ -600,14 +600,14 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
 	assert(0); //Not implemented
 }
 
-void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,               
+void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
 		bool noCost)
 {
 	assert(0); //Not implemented
 }
 
 void emitVload(opCode op, Address src1, Register src2, Register dest,
-               codeGen &gen, bool /*noCost*/, 
+               codeGen &gen, bool /*noCost*/,
                registerSpace * /*rs*/, int size,
                const instPoint * /* location */, AddressSpace *proc)
 {
@@ -615,7 +615,7 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
-		codeGen &gen, bool noCost, 
+		codeGen &gen, bool noCost,
                 registerSpace * /* rs */, int size,
                 const instPoint * /* location */, AddressSpace *proc)
 {
@@ -633,7 +633,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 }
 
 //
-// I don't know how to compute cycles for AARCH64 instructions due to 
+// I don't know how to compute cycles for AARCH64 instructions due to
 //   multiple functional units.  However, we can compute the number of
 //   instructions and hope that is fairly close. - jkh 1/30/96
 //
@@ -653,11 +653,11 @@ void registerSpace::saveClobberInfo(const instPoint *location)
     return;
   if (location->actualGPRLiveSet_ != NULL && location->actualFPRLiveSet_ != NULL)
     {
-      
+
       // REG guard registers, if live, must be saved
       if (location->actualGPRLiveSet_[ REG_GUARD_ADDR ] == LIVE_REG)
 	location->actualGPRLiveSet_[ REG_GUARD_ADDR ] = LIVE_CLOBBERED_REG;
-      
+
       if (location->actualGPRLiveSet_[ REG_GUARD_OFFSET ] == LIVE_REG)
 	location->actualGPRLiveSet_[ REG_GUARD_OFFSET ] = LIVE_CLOBBERED_REG;
 
@@ -674,7 +674,7 @@ void registerSpace::saveClobberInfo(const instPoint *location)
       if (location->actualGPRLiveSet_[ 3 ] == LIVE_REG)
 	location->actualGPRLiveSet_[ 3 ] = LIVE_CLOBBERED_REG;
 
-    
+
       for (u_int i = 0; i < getRegisterCount(); i++)
 	{
 	  regSlot = getRegSlot(i);
@@ -688,17 +688,17 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 	    }
 
 
-	  if (  location->actualGPRLiveSet_[ (int) registers[i].number ] == LIVE_UNCLOBBERED_REG ) 
+	  if (  location->actualGPRLiveSet_[ (int) registers[i].number ] == LIVE_UNCLOBBERED_REG )
 	    {
 	      if (registers[i].beenClobbered)
 		location->actualGPRLiveSet_[ (int) registers[i].number ] = LIVE_CLOBBERED_REG;
 	    }
 	}
-	  
+
       for (u_int i = 0; i < getFPRegisterCount(); i++)
 	{
 	  regFPSlot = getFPRegSlot(i);
-	  
+
 	  if (  location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] == LIVE_REG )
 	    {
 	      if (!fpRegisters[i].beenClobbered)
@@ -706,7 +706,7 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 	      else
 		location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] = LIVE_CLOBBERED_REG;
 	    }
-	  
+
 	  if (  location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] == LIVE_UNCLOBBERED_REG )
 	    {
 	      if (fpRegisters[i].beenClobbered)
@@ -729,10 +729,10 @@ bool doNotOverflow(int value)
 #if !defined(os_vxworks)
 // hasBeenBound: returns true if the runtime linker has bound the
 // function symbol corresponding to the relocation entry in at the address
-// specified by entry and base_addr.  If it has been bound, then the callee 
+// specified by entry and base_addr.  If it has been bound, then the callee
 // function is returned in "target_pdf", else it returns false.
-bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry, 
-		func_instance *&target_pdf, Address base_addr) 
+bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
+		func_instance *&target_pdf, Address base_addr)
 {
 	assert(0); //Not implemented
 	return false;
@@ -740,13 +740,13 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 
 #endif
 
-bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address, 
+bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address,
                            func_instance *, Address) {
 	assert(0); //Not implemented
    assert(0 && "TODO!");
    return false;
 }
-void emitLoadPreviousStackFrameRegister(Address register_num, 
+void emitLoadPreviousStackFrameRegister(Address register_num,
                                         Register dest,
                                         codeGen &gen,
                                         int /*size*/,
@@ -763,9 +763,9 @@ void emitStorePreviousStackFrameRegister(Address,
     assert(0);
 }
 
-using namespace Dyninst::InstructionAPI; 
+using namespace Dyninst::InstructionAPI;
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr i,
-					  Address addr, 
+					  Address addr,
 					  pdvector<AstNodePtr> &args)
 {
 	assert(0); //Not implemented
@@ -778,7 +778,7 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 	return false;
 }
 
-Emitter *AddressSpace::getEmitter() 
+Emitter *AddressSpace::getEmitter()
 {
     assert(0);
     return NULL;
@@ -815,7 +815,7 @@ bool EmitterAARCH64::emitCallRelative(Register dest, Address offset, Register ba
     return true;
 }
 
-bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen){ 
+bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen){
 	assert(0); //Not implemented
   return true;
 }
@@ -869,8 +869,8 @@ bool EmitterAARCH6432Stat::emitPIC(codeGen& gen, Address origAddr, Address reloc
 	      relocAddr = relocAddr + ((stack_size + 1)*(gen.width()));
               //fprintf(stderr, " emitPIC origAddr 0x%lx reloc 0x%lx stack size %d Registers PC %d scratch %d \n", origAddr, relocAddr, stack_size, scratchPCReg, scratchReg);
 
-	} 
-	emitMovePCToReg(scratchPCReg, gen);	
+	}
+	emitMovePCToReg(scratchPCReg, gen);
 	Address varOffset = origAddr - relocAddr;
 	emitCallRelative(scratchReg, varOffset, scratchPCReg, gen);
       	insnCodeGen::generateMoveToLR(gen, scratchReg);
@@ -918,16 +918,16 @@ bool EmitterAARCH64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   // necessary.
   //
   // So here's a brief sketch of the code this function generates:
-  // 
+  //
   //   Set up new branch target in LR from function descriptor
   //   Set up new TOC in R2 from function descriptor + 8
   //   Call
   bool isStaticBinary = false;
-  
+
   if(gen.addrSpace()->edit()->getMappedObject()->parse_img()->getObject()->isStaticBinary()) {
     isStaticBinary = true;
   }
-  
+
   const unsigned TOCreg = 2;
   const unsigned wordsize = gen.width();
   assert(wordsize == 8);
@@ -944,13 +944,13 @@ bool EmitterAARCH64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   else {
     // Don't need it, and this might be an iRPC
   }
-  
+
   if(isStaticBinary)
     caller_toc = 0;
-  
+
   //Offset destOff = dest - gen.currAddr();
   Offset destOff = dest - caller_toc;
-  
+
   //    insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
   // Broken to see if any of this generates intellible code.
 
@@ -967,22 +967,22 @@ bool EmitterAARCH64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
 
   if(!isStaticBinary) {
     insnCodeGen::generateLoadReg64(gen, scratchReg, scratchReg, TOCreg);
-    
+
     insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
 				     TOCreg, scratchReg, 8);
-  } 
+  }
   insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
 				   scratchReg, scratchReg, 0);
-  
+
   insnCodeGen::generateMoveToCR(gen, scratchReg);
 
   if (stackSize > 0)
     insnCodeGen::removeStackFrame(gen);
-  
-  
+
+
   instruction branch_insn(call ? BCTRLraw : BCTRraw);
   insnCodeGen::generate(gen, branch_insn);
-  
+
   return true;
 }
 #endif
@@ -992,7 +992,7 @@ bool EmitterAARCH64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen 
   return true;
 }
 
-// TODO 32/64-bit? 
+// TODO 32/64-bit?
 bool EmitterAARCH64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
 	assert(0); //Not implemented
   return emitPLTCommon(callee, true, gen);
