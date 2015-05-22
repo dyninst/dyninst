@@ -80,6 +80,7 @@ func_instance::func_instance(parse_func *f,
 
     parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
                    symTabName().c_str(), addr_);
+#if defined(cap_stack_mods)
     _hasStackMod = false ;
     _processedOffsetVector = false;
     _hasDebugSymbols = false;
@@ -92,6 +93,7 @@ func_instance::func_instance(parse_func *f,
     _tMap = new TMap();
     _accessMap = new std::map<Address, Accesses*>();
     assert(_modifications && _offVec && _tMap && _accessMap);
+#endif
 }
 
 unsigned func_instance::footprint() {
@@ -123,6 +125,7 @@ func_instance::func_instance(const func_instance *parFunc,
    // Do we duplicate the parent or wait? I'm
    // tempted to wait, just because of the common
    // fork/exec case.
+#if defined(cap_stack_mods)
    _hasStackMod = false ;
    _processedOffsetVector = false;
    _hasDebugSymbols = false;
@@ -135,6 +138,7 @@ func_instance::func_instance(const func_instance *parFunc,
    _tMap = new TMap();
    _accessMap = new std::map<Address, Accesses*>();
    assert(_modifications && _offVec && _tMap && _accessMap);
+#endif
 }
 
 func_instance::~func_instance() { 
@@ -916,6 +920,7 @@ bool func_instance::getLiveCallerBlocks
    return stubs.end() != stubs.find(addr()) && !stubs[addr()].empty();
 }
 
+#if defined(cap_stack_mods)
 // Stack modifications
 void func_instance::addMod(StackMod* mod, TMap* tMap)
 {
@@ -1657,3 +1662,4 @@ void func_instance::createTMap_internal(StackMod* mod, TMap* tMap)
         }
     }
 }
+#endif

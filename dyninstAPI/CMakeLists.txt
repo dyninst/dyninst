@@ -93,6 +93,14 @@ set (SRC_LIST
      src/Patching.C
      src/frameChecker.C
      src/BPatch_memoryAccessAdapter.C
+)
+
+# This is just .. messy. Sorry.
+
+get_directory_property(local_comp_defs COMPILE_DEFINITIONS)
+list (FIND local_comp_defs cap_stack_mods cap_stack_mods_found)
+if (cap_stack_mods_found GREATER -1)
+set (SRC_LIST ${SRC_LIST}
      src/StackMod/OffsetVector.C
      src/StackMod/StackAccess.C
      src/StackMod/StackLocation.C
@@ -101,9 +109,7 @@ set (SRC_LIST
      src/StackMod/StackModChecker.C
      src/StackMod/TMap.C
 )
-
-# This is just .. messy. Sorry.
-
+endif ()
 
 if (PLATFORM MATCHES i386 OR PLATFORM MATCHES amd64 OR PLATFORM MATCHES x86_64)
 set (SRC_LIST ${SRC_LIST}

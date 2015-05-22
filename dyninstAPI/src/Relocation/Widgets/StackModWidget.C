@@ -74,6 +74,7 @@ string StackModWidget::format() const {
 }
 
 bool StackModPatch::apply(codeGen &gen, CodeBuffer *) {
+#if defined(cap_stack_mods)
     instruction ugly_insn(orig_insn->ptr());
     if (gen.modifiedStackFrame()) {
         relocation_cerr << "  Calling modifyDisp" << endl;
@@ -90,6 +91,9 @@ bool StackModPatch::apply(codeGen &gen, CodeBuffer *) {
         SET_PTR(newInsn, gen);
     }
     return true;
+#else
+    return false;
+#endif
 }
 
 unsigned StackModPatch::estimate(codeGen &) {
