@@ -67,7 +67,6 @@ class Emitter {
     virtual void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen) = 0;
     virtual bool emitCallRelative(Register, Address, Register, codeGen &) = 0;
     virtual bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen) = 0;
-    virtual bool emitLoadRelativeSegReg(Register dest, Address offset, Register base, int size, codeGen &gen) = 0;
     virtual void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen, Address offset) = 0;
 
     virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen) = 0;
@@ -87,12 +86,6 @@ class Emitter {
 
     virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen) = 0;
     virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen) = 0;
-    virtual void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen) = 0;
-
-    virtual bool emitXorRegRM(Register dest, Register base, int disp, codeGen& gen) = 0;
-    virtual bool emitXorRegReg(Register dest, Register base, codeGen& gen) = 0;
-    virtual bool emitXorRegImm(Register dest, int imm, codeGen& gen) = 0;
-    virtual bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen& gen) = 0;
 
     virtual Register emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
 			      bool noCost, func_instance *callee) = 0;
@@ -125,7 +118,6 @@ class Emitter {
 
     virtual bool emitTOCJump(block_instance *, codeGen &) { assert(0); return false; }
     virtual bool emitTOCCall(block_instance *, codeGen &) { assert(0); return false; }
-    virtual bool emitCallInstruction(codeGen &, func_instance *, Register) { assert(0); return false; }
 };
 
 #endif

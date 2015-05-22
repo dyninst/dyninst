@@ -869,6 +869,9 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
 
     bool ignored;
     Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()), ignored);
+    
+    Emitterx86* emitter = dynamic_cast<Emitterx86*>(gen.codeEmitter());
+    assert(emitter);
 
     if (type == GENERIC_AST) {
         /* We're going to use a MOV to insert the new value, and a LEA to update the SP
@@ -876,9 +879,9 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
 
         /* Move stack pointer to accomodate new value */
         if (gen.getArch() == Arch_x86) {
-            gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, -size, reg_sp, gen);
+            emitter->emitLEA(reg_sp, Null_Register, 0, -size, reg_sp, gen);
         } else if (gen.getArch() == Arch_x86_64) {
-            gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, -size, reg_sp, gen);
+            emitter->emitLEA(reg_sp, Null_Register, 0, -size, reg_sp, gen);
         }
 
     } else if (type == CANARY_AST){
@@ -897,7 +900,7 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
 
             int canarySize = 8;
             int off = AMD64_STACK_ALIGNMENT - canarySize; // canary
-            gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, -off, reg_sp, gen);
+            emitter->emitLEA(reg_sp, Null_Register, 0, -off, reg_sp, gen);
         } else {
             canaryReg = REGNUM_EAX;
             needSaveAndRestore = true;
@@ -907,14 +910,14 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
         if (needSaveAndRestore) {
             if (gen.getArch() == Arch_x86) {
                 int disp = 4;
-                gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
                 gen.codeEmitter()->emitPush(gen, canaryReg);
-                gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, 2*disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Null_Register, 0, 2*disp, reg_sp, gen);
             } else if (gen.getArch() == Arch_x86_64) {
                 int disp = 8;
-                gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
                 gen.codeEmitter()->emitPush(gen, canaryReg);
-                gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, 2*disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Null_Register, 0, 2*disp, reg_sp, gen);
             }
         }
 
@@ -931,27 +934,27 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
         //      x86:    mov %fs:0x14, canaryReg
         //      x86_64: mov %gs:0x28, canaryReg
         if (gen.getArch() == Arch_x86) {
-            gen.codeEmitter()->emitLoadRelativeSegReg(canaryReg, 0x14, REGNUM_GS, 4, gen);
+            emitter->emitLoadRelativeSegReg(canaryReg, 0x14, REGNUM_GS, 4, gen);
         } else if (gen.getArch() == Arch_x86_64) {
-            gen.codeEmitter()->emitLoadRelativeSegReg(canaryReg, 0x28, REGNUM_FS, 8, gen);
+            emitter->emitLoadRelativeSegReg(canaryReg, 0x28, REGNUM_FS, 8, gen);
         }
 
         // Push the canary value
         gen.codeEmitter()->emitPush(gen, canaryReg);
 
         // Clear canary register to prevent info leaking
-        gen.codeEmitter()->emitXorRegReg(canaryReg, canaryReg, gen);
+        emitter->emitXorRegReg(canaryReg, canaryReg, gen);
 
         // Restore canaryReg value if necessary
         if (needSaveAndRestore) {
             if (gen.getArch() == Arch_x86) {
                 int disp = 4;
-                gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
                 gen.codeEmitter()->emitPop(gen, canaryReg);
             } else if (gen.getArch() == Arch_x86_64) {
                 int disp = 8;
-                gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
-                gen.codeEmitter()->emitPop(gen, canaryReg);
+                emitter->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
+                emitter->emitPop(gen, canaryReg);
             }
         }
 
@@ -972,14 +975,17 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
     
     bool ignored;
     Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()), ignored);
+   
+    Emitterx86* emitter = dynamic_cast<Emitterx86*>(gen.codeEmitter());
+    assert(emitter);
 
     if (type == GENERIC_AST) {
         /* Adjust stack pointer by size */
         int disp = size;
         if (gen.getArch() == Arch_x86) {
-            gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, disp, reg_sp, gen);
+            emitter->emitLEA(reg_sp, Null_Register, 0, disp, reg_sp, gen);
         } else if (gen.getArch() == Arch_x86_64) {
-            gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, disp, reg_sp, gen);
+            emitter->emitLEA(reg_sp, Null_Register, 0, disp, reg_sp, gen);
         }
     } else if (type == CANARY_AST) {
 //        gen.setCanary(true);
@@ -1000,10 +1006,10 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
             if (gen.getArch() == Arch_x86) {
                 int disp = 4;
                 gen.codeEmitter()->emitPush(gen, canaryReg);
-                gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Null_Register, 0, disp, reg_sp, gen);
             } else if (gen.getArch() == Arch_x86_64) {
                 int disp = 8;
-                gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Null_Register, 0, disp, reg_sp, gen);
             }
         }
 
@@ -1030,20 +1036,20 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
         //      x86: xor %fs:0x14, canaryReg
         //      x86_64: xor %gs:0x28, canaryReg
         if (gen.getArch() == Arch_x86) {
-            gen.codeEmitter()->emitXorRegSegReg(canaryReg, REGNUM_GS, 0x14, gen);
+            emitter->emitXorRegSegReg(canaryReg, REGNUM_GS, 0x14, gen);
         } else if (gen.getArch() == Arch_x86_64) {
-            gen.codeEmitter()->emitXorRegSegReg(canaryReg, REGNUM_FS, 0x28, gen);
+            emitter->emitXorRegSegReg(canaryReg, REGNUM_FS, 0x28, gen);
         }
 
         // Restore canaryReg if necessary
         if (needSaveAndRestore) {
             if (gen.getArch() == Arch_x86) {
                 int disp = 4;
-                gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
                 gen.codeEmitter()->emitPop(gen, canaryReg);
             } else if (gen.getArch() == Arch_x86_64) {
                 int disp = 8;
-                gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
                 gen.codeEmitter()->emitPop(gen, canaryReg);
             }
        }
@@ -1052,10 +1058,10 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
         if (canaryAfterPrologue_) {
             if (gen.getArch() == Arch_x86) {
                 int disp = 4;
-                gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, -1*canaryHeight_ + disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Null_Register, 0, -1*canaryHeight_ + disp, reg_sp, gen);
             } else if (gen.getArch() == Arch_x86_64) {
                 int disp = 8;
-                gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, -1*canaryHeight_ + disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Null_Register, 0, -1*canaryHeight_ + disp, reg_sp, gen);
             }
         }
 
@@ -1064,7 +1070,7 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
             // 64-bit requires stack alignment (this will include canary cleanup)
             int canarySize = 8;
             int off = AMD64_STACK_ALIGNMENT - canarySize;
-            gen.codeEmitter()->emitLEA(reg_sp, Null_Register, 0, off, reg_sp, gen);
+            emitter->emitLEA(reg_sp, Null_Register, 0, off, reg_sp, gen);
         }
 
         // If the canary value is valid, jmp to next expected instruction
@@ -1079,7 +1085,7 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
         pdvector<AstNodePtr> operands;
         func_instance* func = func_; // c&p'd from AstCallNode
         codeBufIndex_t preCallIndex = gen.getIndex();
-        gen.codeEmitter()->emitCallInstruction(gen, func, canaryReg);
+        emitter->emitCallInstruction(gen, func, canaryReg);
         codeBufIndex_t postCallIndex = gen.getIndex();
 
         // Fix-up the jcc
