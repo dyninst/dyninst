@@ -97,7 +97,7 @@ set (SRC_LIST
 
 # This is just .. messy. Sorry.
 
-get_directory_property(COMPILE_DEFINITIONS local_comp_defs)
+get_directory_property(local_comp_defs COMPILE_DEFINITIONS)
 list (FIND local_comp_defs cap_stack_mods cap_stack_mods_found)
 if (cap_stack_mods_found GREATER -1)
 set (SRC_LIST ${SRC_LIST}
