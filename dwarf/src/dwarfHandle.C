@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -90,7 +90,7 @@ bool DwarfHandle::init_dbg()
       return false;
    }
 
-   status = dwarf_elf_init(file->e_elfp(), DW_DLC_READ, 
+   status = dwarf_elf_init(file->e_elfp(), DW_DLC_READ,
                            err_func, err_data, &file_data, &err);
    if (status != DW_DLV_OK) {
       init_dwarf_status = dwarf_status_error;
@@ -98,7 +98,7 @@ bool DwarfHandle::init_dbg()
    }
 
    if (dbg_file) {
-      status = dwarf_elf_init(dbg_file->e_elfp(), DW_DLC_READ, 
+      status = dwarf_elf_init(dbg_file->e_elfp(), DW_DLC_READ,
                               err_func, err_data, &dbg_file_data, &err);
       if (status != DW_DLV_OK) {
          init_dwarf_status = dwarf_status_error;
@@ -120,7 +120,7 @@ bool DwarfHandle::init_dbg()
       type_data = &file_data;
       frame_data = &file_data;
    }
-   
+
    Dyninst::Architecture arch;
    switch (file->e_machine()) {
       case EM_386:
@@ -135,13 +135,15 @@ bool DwarfHandle::init_dbg()
       case EM_PPC64:
          arch = Arch_ppc64;
          break;
-			//steve: added, defination found: /usr/include/linux/elf-em.h
-			case EM_ARM:
-					arch = Arch_aarch32;
-					break;
+	  //steve: added, defination found: /usr/include/linux/elf-em.h
+	  case EM_ARM:
+		 arch = Arch_aarch32;
+		 break;
+#if defined(arch_aarch64)
       case EM_AARCH64:
       		arch = Arch_aarch64;
          	break;
+#endif
       default:
          assert(0 && "Unsupported archiecture in ELF file.");
 	 return false;
@@ -193,21 +195,21 @@ Elf_X *DwarfHandle::debugLinkFile()
 
 Dwarf_Debug *DwarfHandle::line_dbg()
 {
-   if (!init_dbg()) 
+   if (!init_dbg())
       return NULL;
    return line_data;
 }
 
 Dwarf_Debug *DwarfHandle::type_dbg()
 {
-   if (!init_dbg()) 
+   if (!init_dbg())
       return NULL;
    return type_data;
 }
 
 Dwarf_Debug *DwarfHandle::frame_dbg()
 {
-   if (!init_dbg()) 
+   if (!init_dbg())
       return NULL;
    return frame_data;
 }
@@ -215,7 +217,7 @@ Dwarf_Debug *DwarfHandle::frame_dbg()
 
 DwarfHandle::~DwarfHandle()
 {
-   if (init_dwarf_status != dwarf_status_ok) 
+   if (init_dwarf_status != dwarf_status_ok)
       return;
 
    Dwarf_Error err;
@@ -226,20 +228,20 @@ DwarfHandle::~DwarfHandle()
 }
 
 map<std::string, DwarfHandle::ptr> DwarfHandle::all_dwarf_handles;
-DwarfHandle::ptr DwarfHandle::createDwarfHandle(string filename_, Elf_X *file_, 
+DwarfHandle::ptr DwarfHandle::createDwarfHandle(string filename_, Elf_X *file_,
                                                 Dwarf_Handler err_func_, Dwarf_Ptr err_data_)
-{   
+{
    map<string, DwarfHandle::ptr>::iterator i;
    i = all_dwarf_handles.find(filename_);
    if (i != all_dwarf_handles.end()) {
       return i->second;
    }
-   
+
    DwarfHandle::ptr ret = DwarfHandle::ptr(new DwarfHandle(filename_, file_, err_func_, err_data_));
    all_dwarf_handles.insert(make_pair(filename_, ret));
    return ret;
 }
 
-DwarfFrameParserPtr DwarfHandle::frameParser() { 
+DwarfFrameParserPtr DwarfHandle::frameParser() {
    return sw;
 }

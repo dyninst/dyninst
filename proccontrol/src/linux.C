@@ -2921,6 +2921,7 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
          break;
       }
       case Arch_aarch64:{
+#if defined(arch_aarch64)
          struct iovec iovec;
          uint64_t reg;
 
@@ -2938,6 +2939,9 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
             return false;
          }
          addr = (Dyninst::Address) (reg-val);
+#else
+         assert(0);
+#endif
          break;
       }
       default:

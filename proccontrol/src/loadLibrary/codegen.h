@@ -60,11 +60,8 @@ class Codegen {
    void generatePPC32(Address val, unsigned reg);
    void generatePPC64(Address val, unsigned reg);
 
-#if defined(arch_aarch64)
    bool generatePreambleAARCH64();
    bool generateCallAARCH64(Address addr, const std::vector<Address> &args);
-#endif
-
 
    bool generateTrap();
    bool generateNoops();

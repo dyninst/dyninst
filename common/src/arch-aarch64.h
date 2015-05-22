@@ -64,8 +64,6 @@ namespace NS_aarch64 {
 #define GET_OFFSET32(thisInst) \
     (((insn_.raw&thisInst##_OFFSET_MASK)>>thisInst##_OFFSHIFT)<<2)
 
-
-#warning "The following struct decls are compatible with lower version of gcc compilers."
 typedef const unsigned int insn_mask;
 struct {
     insn_mask LD_MASK =  (0x3f400000);

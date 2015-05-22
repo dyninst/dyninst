@@ -44,14 +44,14 @@ bool Codegen::generateCallAARCH64(Address addr, const std::vector<Address> &args
         return false;
 
     char movLong_buf[] = {
-        0xd2, 0x80, 0x00, 0x00,     // mov  x0, #0
-        0xf2, 0xa0, 0x00, 0x00,     // movk x0, #0, lsl #16
-        0xf2, 0xc0, 0x00, 0x00,     // movk x0, #0, lsl #32
-        0xf2, 0xe0, 0x00, 0x00,     // movk x0, #0, lsl #48
+        (char)0xd2, (char)0x80, (char)0x00, (char)0x00,     // mov  x0, #0
+        (char)0xf2, (char)0xa0, (char)0x00, (char)0x00,     // movk x0, #0, lsl #16
+        (char)0xf2, (char)0xc0, (char)0x00, (char)0x00,     // movk x0, #0, lsl #32
+        (char)0xf2, (char)0xe0, (char)0x00, (char)0x00,     // movk x0, #0, lsl #48
     };
 
     char blr_buf[] = {
-        0xd6, 0x3f, 0x00, 0x00,     // blr x0
+        (char)0xd6, (char)0x3f, (char)0x00, (char)0x00,     // blr x0
     };
 
     char* _buf;
