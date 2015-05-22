@@ -5425,13 +5425,8 @@ int_library::int_library(int_library *l) :
    has_data_load(l->has_data_load),
    marked(l->marked),
    user_data(NULL),
-<<<<<<< HEAD
    is_shared_lib(l->is_shared_lib),
    memory(NULL)
-=======
-   is_shared_lib(l->is_shared_lib)
-
->>>>>>> 	new file:   .syntastic_cpp_config
 {
    up_lib = Library::ptr(new Library());
    up_lib->lib = this;
