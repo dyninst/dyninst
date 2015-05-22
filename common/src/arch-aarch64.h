@@ -65,42 +65,45 @@ namespace NS_aarch64 {
     (((insn_.raw&thisInst##_OFFSET_MASK)>>thisInst##_OFFSHIFT)<<2)
 
 typedef const unsigned int insn_mask;
-struct {
-    insn_mask LD_MASK =  (0x3f400000);
-    insn_mask ST_MASK =  (0x3f400000);
-    insn_mask LD =    (0x08400000);
-    insn_mask ST =    (0x08000000);
-}ATOMIC;
+class ATOMIC_t {
+public:
+    static insn_mask LD_MASK =  (0x3f400000);
+    static insn_mask ST_MASK =  (0x3f400000);
+    static insn_mask LD =    (0x08400000);
+    static insn_mask ST =    (0x08000000);
+};
 
-struct {
-    insn_mask IMM_MASK  =(0x7c000000);
-    insn_mask IMM       =(0x14000000);
-    insn_mask IMM_OFFSET_MASK   =(0x03ffffff);
-    insn_mask IMM_OFFSHIFT   = 0;
-    insn_mask REG_MASK  =(0xfe000000);
-    insn_mask REG       =(0xd6000000);
-    insn_mask REG_OFFSET_MASK   =(0x000001e0);
-    insn_mask REG_OFFSHIFT   =5;
-}UNCOND_BR;
+class UNCOND_BR_t {
+public:
+    static insn_mask IMM_MASK  =(0x7c000000);
+    static insn_mask IMM       =(0x14000000);
+    static insn_mask IMM_OFFSET_MASK   =(0x03ffffff);
+    static insn_mask IMM_OFFSHIFT   = 0;
+    static insn_mask REG_MASK  =(0xfe000000);
+    static insn_mask REG       =(0xd6000000);
+    static insn_mask REG_OFFSET_MASK   =(0x000001e0);
+    static insn_mask REG_OFFSHIFT   =5;
+};
 
 
-struct {
-    insn_mask BR_MASK = 0xfe000000; // conditional br mask
-    insn_mask CB_MASK = 0x7e000000; // comp&B
-    insn_mask TB_MASK = 0x7e000000; // test&B
+class COND_BR_t {
+public:
+    static insn_mask BR_MASK = 0xfe000000; // conditional br mask
+    static insn_mask CB_MASK = 0x7e000000; // comp&B
+    static insn_mask TB_MASK = 0x7e000000; // test&B
 
-    insn_mask CB =      0x34000000; // Compare & B
-    insn_mask TB =      0x36000000; // Test & B
-    insn_mask BR  =     0x54000000; // Conditional B
+    static insn_mask CB =      0x34000000; // Compare & B
+    static insn_mask TB =      0x36000000; // Test & B
+    static insn_mask BR  =     0x54000000; // Conditional B
 
-    insn_mask CB_OFFSET_MASK = 0x07fffff0;
-    insn_mask TB_OFFSET_MASK = 0x0007fff0;
-    insn_mask BR_OFFSET_MASK = 0x07fffff0;
+    static insn_mask CB_OFFSET_MASK = 0x07fffff0;
+    static insn_mask TB_OFFSET_MASK = 0x0007fff0;
+    static insn_mask BR_OFFSET_MASK = 0x07fffff0;
 
-    insn_mask CB_OFFSHIFT = 4;
-    insn_mask TB_OFFSHIFT = 4;
-    insn_mask BR_OFFSHIFT = 4;
-}COND_BR;
+    static insn_mask CB_OFFSHIFT = 4;
+    static insn_mask TB_OFFSHIFT = 4;
+    static insn_mask BR_OFFSHIFT = 4;
+};
 
 typedef union {
     unsigned char byte[4];

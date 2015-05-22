@@ -37,6 +37,10 @@
 
 using namespace NS_aarch64;
 
+ATOMIC_t ATOMIC;
+UNCOND_BR_t UNCOND_BR;
+COND_BR_t COND_BR;
+
 unsigned int NS_aarch64::swapBytesIfNeeded(unsigned int i)
 {
 	assert(0);
@@ -92,7 +96,7 @@ Address instruction::getTarget(Address addr) const {
 }
 
 // TODO: argument _needs_ to be an int, or ABS() doesn't work.
-void instruction::setBranchOffset(Address newOffset) {
+void instruction::setBranchOffset(Address /*newOffset*/) {
 		assert(0);
 }
 
