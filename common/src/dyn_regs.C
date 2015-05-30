@@ -1247,9 +1247,8 @@ int MachRegister::getDwarfEnc() const
          }
          break;
       case Arch_aarch64:
-         assert(0);
          switch (val()) {
-						/*
+             /*
             case Dyninst::aarch64::x0: 	return 0;
             case Dyninst::aarch64::x1: 	return 1;
             case Dyninst::aarch64::x2: 	return 2;
@@ -1281,11 +1280,17 @@ int MachRegister::getDwarfEnc() const
             case Dyninst::aarch64::x28: 	return 28;
             case Dyninst::aarch64::x29: 	return 29;
             case Dyninst::aarch64::x30: 	return 30;
-						*/
+
+            case Dyninst::aarch64::sp       return 100;
+            case Dyninst::aarch64::pc       return 101;
+            case Dyninst::aarch64::pstate   return 102;
+
+            */
             default: return -1;
          }
          break;
       case Arch_none:
+         assert(0);
          return -1;
       default:
         assert(0);
@@ -1349,6 +1354,10 @@ MachRegister MachRegister::getArchReg(unsigned int regNum, Dyninst::Architecture
             case 28: return Dyninst::aarch64::x28;
             case 29: return Dyninst::aarch64::x29;
             case 30: return Dyninst::aarch64::x30;
+
+            case 100: return Dyninst::aarch64::sp;
+            case 101: return Dyninst::aarch64::pc;
+            case 102: return Dyninst::aarch64::pstate;
          }
       default:
          return InvalidReg;

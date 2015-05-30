@@ -557,6 +557,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             }
             adjusted_addr = adjustTrapAddr(addr, proc->getTargetArch());
 
+            // handle the fake syscall exit stop bp.
 #if defined(SYSCALL_EXIT_BREAKPOINT)
             if( lthread->addr_fakeSyscallExitBp == adjusted_addr
                 && lthread->isSet_fakeSyscallExitBp){
@@ -1464,6 +1465,10 @@ bool linux_thread::plat_cont()
    int result;
    if (hasPostponedSyscallEvent())
    {
+/* This should be turned on to solve the arm kernel bug.
+ * When it recognize the syscall enter event, insert a bp as the fake
+ * syscall exit stop.
+ */
 #if defined(arch_aarch64) && defined(SYSCALL_EXIT_BREAKPOINT)
        if( postponed_syscall_event->event_ext == PTRACE_EVENT_FORK ||
            postponed_syscall_event->event_ext == PTRACE_EVENT_CLONE ){
