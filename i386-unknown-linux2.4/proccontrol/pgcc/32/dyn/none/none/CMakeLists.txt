@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_pg_cc}"
 
 IF (MUTATEEpgcc32dynC MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
+if(TARGET pcontrol)
 add_executable (pc_exec_targ.dyn_pgcc_32_none_none ${SOURCE_LIST_11})
 foreach (f ${SOURCE_LIST_11})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -32,5 +33,6 @@ INSTALL (TARGETS
 		pc_exec_targ.dyn_pgcc_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

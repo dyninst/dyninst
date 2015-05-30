@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_pg_cxx}"
 
 IF (MUTATEEpgcxx64dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
+if(TARGET symtabAPI)
 add_executable (symtab_group_test.dyn_pgcxx_64_pic_none ${SOURCE_LIST_35})
 foreach (f ${SOURCE_LIST_35})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -33,5 +34,6 @@ INSTALL (TARGETS
 		symtab_group_test.dyn_pgcxx_64_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

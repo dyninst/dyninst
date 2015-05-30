@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc64statC MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_linux/srclists.cmake)
+if(TARGET dyninstAPI)
 add_executable (dyninst_group_test.stat_gcc_64_none_none ${SOURCE_LIST_14})
 foreach (f ${SOURCE_LIST_14})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -51,5 +52,6 @@ INSTALL (TARGETS
 		test1_29.stat_gcc_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

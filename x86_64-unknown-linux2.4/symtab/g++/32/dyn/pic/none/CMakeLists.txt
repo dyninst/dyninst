@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 
 IF (MUTATEEgnucxx32dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
+if(TARGET symtabAPI)
 add_executable (symtab_group_test.dyn_g++_32_pic_none ${SOURCE_LIST_35})
 foreach (f ${SOURCE_LIST_35})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -42,5 +43,6 @@ INSTALL (TARGETS
 		test_exception.dyn_g++_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

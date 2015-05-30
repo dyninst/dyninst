@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc32dynC MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-freebsd7.2/srclists.cmake)
+if(TARGET pcontrol)
 add_executable (pc_addlibrary.dyn_gcc_32_pic_none ${SOURCE_LIST_46})
 foreach (f ${SOURCE_LIST_46})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -173,5 +174,6 @@ INSTALL (TARGETS
 		pc_tls.dyn_gcc_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 
 IF (MUTATEEgnucxx32dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-freebsd7.2/srclists.cmake)
+if(TARGET dyninstAPI)
 add_executable (dyninst_cxx_group_test.dyn_g++_32_pic_none ${SOURCE_LIST_70})
 foreach (f ${SOURCE_LIST_70})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -552,5 +553,6 @@ INSTALL (TARGETS
 		test_thread_8.dyn_g++_32_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

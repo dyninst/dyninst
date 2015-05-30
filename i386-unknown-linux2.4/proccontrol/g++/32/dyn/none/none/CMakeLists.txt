@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 
 IF (MUTATEEgnucxx32dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
+if(TARGET pcontrol)
 add_executable (pc_addlibrary.dyn_g++_32_none_none ${SOURCE_LIST_51})
 foreach (f ${SOURCE_LIST_51})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -212,5 +213,6 @@ INSTALL (TARGETS
 		pc_tls.dyn_g++_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()
