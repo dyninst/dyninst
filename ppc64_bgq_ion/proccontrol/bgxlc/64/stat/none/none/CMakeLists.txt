@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_mpi_xlc}"
 
 IF (MUTATEEmpixlc64statC MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/ppc64_bgq_ion/srclists.cmake)
+if(TARGET pcontrol)
 add_executable (pc_tls.stat_bgxlc_64_none_none ${SOURCE_LIST_51})
 foreach (f ${SOURCE_LIST_51})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -33,5 +34,6 @@ INSTALL (TARGETS
 		pc_tls.stat_bgxlc_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

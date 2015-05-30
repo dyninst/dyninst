@@ -367,15 +367,19 @@ set (MUTATOR_SOURCE_LIST
 foreach (val RANGE 107)
 	list (GET MUTATOR_NAME_LIST ${val} lib)
 	list (GET MUTATOR_SOURCE_LIST ${val} source)
-	add_library (${lib} ${source})
-endforeach()
-
-foreach (val RANGE 107)
-	list (GET MUTATOR_NAME_LIST ${val} lib)
 	list (GET MUTATOR_MODULE_LIB_LIST ${val} comp_dep)
-	target_link_libraries (${lib} ${comp_dep} ${LIBTESTSUITE})
+	set(SKIP FALSE)
+	foreach (dep ${comp_dep})
+		if(NOT TARGET ${dep})
+			set(SKIP TRUE)
+		endif()
+	endforeach()
+	if(NOT SKIP)
+		add_library (${lib} ${source})
+		target_link_libraries (${lib} ${comp_dep} ${LIBTESTSUITE})
+		install (TARGETS ${lib} 
+		         RUNTIME DESTINATION ${INSTALL_DIR}
+		         LIBRARY DESTINATION ${INSTALL_DIR})
+	endif()
 endforeach()
 
-install (TARGETS ${MUTATOR_NAME_LIST}
-         RUNTIME DESTINATION ${INSTALL_DIR}
-         LIBRARY DESTINATION ${INSTALL_DIR})

@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_fc}"
 
 IF (MUTATEEgnufc32dynFortran MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
+if(TARGET dyninstAPI)
 add_executable (test1_10F.dyn_gfortran_32_none_none ${SOURCE_LIST_20})
 foreach (f ${SOURCE_LIST_20})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -248,5 +249,6 @@ INSTALL (TARGETS
 		test1_9F.dyn_gfortran_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

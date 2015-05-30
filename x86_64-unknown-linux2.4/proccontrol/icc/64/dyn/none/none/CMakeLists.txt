@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_intel_cc}"
 
 IF (MUTATEEintelcc64dynC MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/x86_64-unknown-linux2.4/srclists.cmake)
+if(TARGET pcontrol)
 add_executable (pc_exec_targ.dyn_icc_64_none_none ${SOURCE_LIST_28})
 foreach (f ${SOURCE_LIST_28})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -42,5 +43,6 @@ INSTALL (TARGETS
 		pc_tls.dyn_icc_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

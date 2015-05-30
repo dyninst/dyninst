@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 
 IF (MUTATEEgnucxx32statCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-linux2.4/srclists.cmake)
+if(TARGET dyninstAPI)
 add_executable (dyninst_cxx_group_test.stat_g++_32_none_none ${SOURCE_LIST_92})
 foreach (f ${SOURCE_LIST_92})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -69,5 +70,6 @@ INSTALL (TARGETS
 		test1_35.stat_g++_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

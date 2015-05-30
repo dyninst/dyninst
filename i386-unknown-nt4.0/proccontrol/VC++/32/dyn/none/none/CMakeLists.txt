@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_native_cc}"
 
 IF (MUTATEEnativecc32dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-nt4.0/srclists.cmake)
+if(TARGET pcontrol)
 add_executable (pc_addlibrary.dyn_VC++_32_none_none ${SOURCE_LIST_28})
 foreach (f ${SOURCE_LIST_28})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -173,5 +174,6 @@ INSTALL (TARGETS
 		pc_thread_cont.dyn_VC++_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

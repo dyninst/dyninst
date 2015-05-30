@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_native_cc}"
 
 IF (MUTATEEnativecc32dynC MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-nt4.0/srclists.cmake)
+if(TARGET dyninstAPI)
 add_executable (dyninst_group_test.dyn_VC_32_none_none ${SOURCE_LIST_41})
 foreach (f ${SOURCE_LIST_41})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -267,5 +268,6 @@ INSTALL (TARGETS
 		test_thread_8.dyn_VC_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

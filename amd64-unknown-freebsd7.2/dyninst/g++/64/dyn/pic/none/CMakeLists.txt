@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 
 IF (MUTATEEgnucxx64dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/amd64-unknown-freebsd7.2/srclists.cmake)
+if(TARGET dyninstAPI)
 add_executable (amd64_7_arg_call.dyn_g++_64_pic_none ${SOURCE_LIST_44})
 foreach (f ${SOURCE_LIST_44})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -561,5 +562,6 @@ INSTALL (TARGETS
 		test_thread_8.dyn_g++_64_pic_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

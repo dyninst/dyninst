@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 
 IF (MUTATEEgnucxx32statCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/i386-unknown-freebsd7.2/srclists.cmake)
+if(TARGET pcontrol)
 add_executable (pc_breakpoint.stat_g++_32_none_none ${SOURCE_LIST_37})
 foreach (f ${SOURCE_LIST_37})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -153,5 +154,6 @@ INSTALL (TARGETS
 		pc_tls.stat_g++_32_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

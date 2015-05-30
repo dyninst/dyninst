@@ -71,22 +71,23 @@ def print_mutators_list(out, mutator_dict, test_dict, info, platform):
         out.write("foreach (val RANGE %d)\n" % (len(mutator_dict) - 1))
         out.write("\tlist (GET MUTATOR_NAME_LIST ${val} lib)\n")
         out.write("\tlist (GET MUTATOR_SOURCE_LIST ${val} source)\n")
-        out.write("\tadd_library (${lib} ${source})\n")
+        out.write("\tlist (GET MUTATOR_MODULE_LIB_LIST ${val} comp_dep)\n")
+	out.write("\tset(SKIP FALSE)\n")
+	out.write("\tforeach (dep ${comp_dep})\n")
+	out.write("\t\tif(NOT TARGET ${dep})\n")
+	out.write("\t\t\tset(SKIP TRUE)\n")
+	out.write("\t\tendif()\n")
+	out.write("\tendforeach()\n")
+	out.write("\tif(NOT SKIP)\n")
+        out.write("\t\tadd_library (${lib} ${source})\n")
+        out.write("\t\ttarget_link_libraries (${lib} ${comp_dep} ${LIBTESTSUITE})\n")
+	out.write("\t\tinstall (TARGETS ${lib} \n")
+	out.write("\t\t         RUNTIME DESTINATION ${INSTALL_DIR}\n")
+	out.write("\t\t         LIBRARY DESTINATION ${INSTALL_DIR})\n")
+	out.write("\tendif()\n")
         out.write("endforeach()\n\n")
 
-        # We still have library dependencies; get those with another iterated
-        # target_link_libraries directive
-        out.write("foreach (val RANGE %d)\n" % (len(mutator_dict) - 1))
-        out.write("\tlist (GET MUTATOR_NAME_LIST ${val} lib)\n")
-        out.write("\tlist (GET MUTATOR_MODULE_LIB_LIST ${val} comp_dep)\n")
-        out.write("\ttarget_link_libraries (${lib} ${comp_dep} ${LIBTESTSUITE})\n")
-        out.write("endforeach()\n\n")
-        
-        # And install
-        out.write("install (TARGETS ${MUTATOR_NAME_LIST}\n")
-	out.write("         RUNTIME DESTINATION ${INSTALL_DIR}\n")
-	out.write("         LIBRARY DESTINATION ${INSTALL_DIR})\n")
-#
+
 
 def write_mutator_cmakelists(directory, info, platform):
    mutator_dict = info['mutators']
