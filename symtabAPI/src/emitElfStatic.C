@@ -1743,7 +1743,7 @@ Offset emitElfStatic::allocatePLTEntries(std::map<Symbol *, std::pair<Offset, Of
 	unsigned entry_size = 0;
 //#warning "AArch64:"
 //#warning "steve: entry_size is tmp 0, need to be defined later"
-#error "Unknown architecture"
+//#error "Unknown architecture"
 #endif
 
   Offset cur = pltOffset;
