@@ -41,7 +41,6 @@
 #include "common/src/wtxKludges.h"
 #endif
 
-#warning "This file is not implemented yet!"
 
 // "Casting" methods. We use a "base + offset" model, but often need to
 // turn that into "current instruction pointer".
