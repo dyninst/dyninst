@@ -41,7 +41,6 @@
 #include <errno.h>
 #include <string.h>
 
-
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 

@@ -28,8 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#warning "This file is not implemented yet!"
-
+//#warning "This file is not implemented yet!"
 
 #include "common/src/headers.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"

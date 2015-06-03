@@ -311,7 +311,7 @@ async_ret_t arm_process::plat_needsEmulatedSingleStep(int_thread *thr, std::vect
         // First check if is branch reg instruction.
         Address cfTarget;
         if( insn.isBranchReg() ){
-#warning "Test cases don't cover this type of instruction. Potential bugs here.\n"
+//#warning "Test cases don't cover this type of instruction. Potential bugs here.\n"
             pthrd_printf("ARM-DEBUG: find Branch Reg instruction, going to retrieve the target address.\n");
             // get reg value from the target proc
 
@@ -382,7 +382,7 @@ arm_thread::~arm_thread()
 {
 }
 
-#warning "HWBreakpoint is not supported now."
+//#warning "HWBreakpoint is not supported now."
 bool arm_thread::rmHWBreakpoint(hw_breakpoint *,
                                 bool,
                                 std::set<response::ptr> &,

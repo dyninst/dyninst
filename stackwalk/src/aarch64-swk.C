@@ -63,28 +63,27 @@ typedef struct{
 bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegisterVal &val)
 {
   uint64_t *sp;
-  uint64_t *framePointer;
+  ra_fp_pair_t *framePointer;
   uint64_t *retAddr;
 
   bool found_reg = false;
   GET_FRAME_BASE(framePointer);
 
   if (reg.isStackPointer()) {
-      //assert(0); //currently problems here, the old stack top is obtained by calculating
-    fprintf(stderr,"ARM-debug: assuming fp = sp\n");
-    val = (Dyninst::MachRegisterVal) framePointer;
+    GET_STACK_POINTER(sp);
+    val = (Dyninst::MachRegisterVal) sp;
     found_reg = false;
   }
 
   if (reg.isFramePointer()) {
      //GET_FRAME_BASE(framePointer);
-     val = (Dyninst::MachRegisterVal) framePointer[0];
+     val = (Dyninst::MachRegisterVal) framePointer->FP;
      found_reg = true;
   }
 
   if (reg.isPC() || reg == Dyninst::ReturnAddr) {
      if (getAddressWidth() == sizeof(uint64_t)) {
-        val = (Dyninst::MachRegisterVal) framePointer[1];
+        val = (Dyninst::MachRegisterVal) framePointer->LR;
      }
      else {
          assert(0);

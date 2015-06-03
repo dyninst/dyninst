@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -60,7 +60,7 @@
 #include "function.h"
 #include "baseTramp.h"
 
-#warning "This file is not implemented yet!"
+//#warning "This file is not implemented yet!"
 using namespace Dyninst::SymtabAPI;
 
 static const std::string LIBC_CTOR_HANDLER("__do_global_ctors_aux");
@@ -72,7 +72,7 @@ static const std::string DYNINST_DTOR_LIST("DYNINSTdtors_addr");
 static const std::string SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
 static const std::string SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
 
-static bool replaceHandler(func_instance *origHandler, func_instance *newHandler, 
+static bool replaceHandler(func_instance *origHandler, func_instance *newHandler,
         int_symbol *newList, const std::string &listRelName)
 {
 	assert(0);
@@ -89,7 +89,7 @@ bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/, 
 
 
 
-	
+
 std::string parse_func::calcParentFunc(const parse_func * imf,
                                     pdvector<image_parRegion *> &/*pR*/)
 {
@@ -98,14 +98,14 @@ std::string parse_func::calcParentFunc(const parse_func * imf,
 
 
 void parse_func::parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum)
-{  
+{
 	assert(0);
-}	  
+}
 
 void parse_func::parseOMPFunc(bool /*hasLoop*/)
 {
 	assert(0);
-  
+
 #if 0//!defined(cap_instruction_api)
    Address funcBegin = getOffset();
    InstrucIter ah(funcBegin, this);
@@ -117,9 +117,9 @@ void parse_func::parseOMPFunc(bool /*hasLoop*/)
       else if( hasLoop && ah.isACondBDZInstruction())
       {
          InstrucIter ah2(ah.getCurrentAddress(), this);
-	  
+
          Address startLoop = ah.getCurrentAddress() + 4;
-	  
+
          while (ah2.hasMore())
          {
             if (ah2.isACondBDNInstruction())
@@ -136,12 +136,12 @@ void parse_func::parseOMPFunc(bool /*hasLoop*/)
       {
          bool isAbsolute = false;
          Address target = ah.getBranchTargetAddress(&isAbsolute);
-	  
-	  
+
+
          /* Finding Out if the call is to OpenMP Functions */
-	  
-         /* Return one of the following 
-            OMP_PARALLEL, OMP_DO_FOR, OMP_SECTIONS, OMP_SINGLE, 
+
+         /* Return one of the following
+            OMP_PARALLEL, OMP_DO_FOR, OMP_SECTIONS, OMP_SINGLE,
             OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
             OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED */
          image * im = img();
@@ -158,7 +158,7 @@ void parse_func::parseOMPFunc(bool /*hasLoop*/)
                /* Section begins with "BeginOrdered, ends with EndOrdered" */
                else if(strstr(ppdf->symTabName().c_str(), "BeginOrdered") !=NULL)
                {
-		      
+
                   InstrucIter ah2(ah.getCurrentAddress(), this);
                   while (ah2.hasMore())
                   {
@@ -166,7 +166,7 @@ void parse_func::parseOMPFunc(bool /*hasLoop*/)
                          ah2.isADynamicCallInstruction() )
                      {
                         Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
-			      
+
                         parse_func *ppdf2 = im->findFuncByEntry(target2);
                         if (ppdf2 != NULL)
                         {
@@ -199,7 +199,7 @@ void parse_func::parseOMPFunc(bool /*hasLoop*/)
                          ah2.isADynamicCallInstruction() )
                      {
                         Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
-			      
+
                         parse_func *ppdf2 = im->findFuncByEntry(target2);
                         if (ppdf2 != NULL)
                         {
@@ -224,7 +224,7 @@ void parse_func::parseOMPFunc(bool /*hasLoop*/)
                          ah2.isADynamicCallInstruction() )
                      {
                         Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
-			      
+
                         parse_func *ppdf2 = im->findFuncByEntry(target2);
                         if (ppdf2 != NULL)
                         {
@@ -235,16 +235,16 @@ void parse_func::parseOMPFunc(bool /*hasLoop*/)
                      ah2++;
                   }
                   iPar->setLastInsn(ah2.getCurrentAddress());
-		      
+
                   iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
                   iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
-		      
+
 		  parRegionsList.push_back(iPar);
                }
                else
                {
                }/* End Checking Different Directive Types */
-		 
+
             }
          }
       }
