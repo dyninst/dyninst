@@ -1,33 +1,32 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#warning "This file is not implemented yet!"
 
 #include "IA_IAPI.h"
 #include "IA_aarch64.h"
@@ -53,7 +52,7 @@ using namespace InstructionAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InsnAdapter;
 
-#warning "The reg defines are not correct now!"
+//#warning "The reg defines are not correct now!"
 static RegisterAST::Ptr aarch64_R11 (new RegisterAST (aarch64::x11));
 static RegisterAST::Ptr aarch64_LR  (new RegisterAST (aarch64::x30));
 //SP is an independent reg in aarch64
@@ -211,7 +210,7 @@ linker_stub_t checkLinkerStub(void *insn_buf, Offset &off)
         off = (DFORM_SI(insn[0]) << 16) + DFORM_SI(insn[2]);
         return STUB_PLT_CALL;
     }
-    
+
     if (    insn[1].asInt()               == STD_R2_40R1
         && (insn[2].asInt() & 0xffff0000) == LD_R11_0R2
         && (insn[2].asInt() & 0xffff0000) == ADDI_R2_R2
@@ -447,14 +446,14 @@ linker_stub_t checkLinkerStub(void *insn_buf, Offset &off)
 bool IA_IAPI::isLinkerStub() const
 {
   // Disabling this code because it ends with an
-  // incorrect CFG. 
+  // incorrect CFG.
 
   return false;
 }
 
 AST::Ptr AARCH64_BLR_Visitor::visit(AST *a) {
 	assert(0);
-  return a->ptr(); 
+  return a->ptr();
 }
 
 AST::Ptr AARCH64_BLR_Visitor::visit(DataflowAPI::BottomAST *b) {
@@ -484,7 +483,7 @@ AST::Ptr AARCH64_BLR_Visitor::visit(DataflowAPI::RoseAST *r) {
 	assert(0);
   return r->ptr();
 }
-      
+
 #if 0
 ParseAPI::StackTamper
 IA_IAPI::tampersStack(ParseAPI::Function *, Address &) const

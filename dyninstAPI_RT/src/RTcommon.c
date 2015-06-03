@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -50,12 +50,12 @@ DLLEXPORT int DYNINSTstaticMode = 1;
 
 /**
  * Allocate the Dyninst heaps
- * 
- * The IA-64 requires that instruction be 16-byte aligned, so we have to 
- * align the heaps if we want to use them for inferior RPCs. 
+ *
+ * The IA-64 requires that instruction be 16-byte aligned, so we have to
+ * align the heaps if we want to use them for inferior RPCs.
  **/
 #define HEAP_TYPE double
-#define ALIGN_ATTRIB 
+#define ALIGN_ATTRIB
 
 #if defined(os_linux) || defined(os_freebsd)
 #define HEAP_LOCAL extern
@@ -80,8 +80,8 @@ const unsigned long sizeOfAnyHeap1 = sizeof( DYNINSTstaticHeap_32K_anyHeap_1 );
 #endif
 
 /**
- * One some platforms we can tell when a fork or exec is occurring through 
- * system-provided events. On others we do it ourselves.  Enumerated type 
+ * One some platforms we can tell when a fork or exec is occurring through
+ * system-provided events. On others we do it ourselves.  Enumerated type
  * defined in header file
  **/
 DLLEXPORT DYNINST_synch_event_t DYNINST_synch_event_id = DSE_undefined;
@@ -96,7 +96,7 @@ DLLEXPORT int DYNINST_break_point_event = 0;
 
 /**
  * These variables are used to pass arguments into DYNINSTinit
- * when it is called as an _init function 
+ * when it is called as an _init function
  **/
 int libdyninstAPI_RT_init_localCause=-1;
 int libdyninstAPI_RT_init_localPid=-1;
@@ -107,7 +107,7 @@ int DYNINST_mutatorPid;
 int DYNINSTdebugPrintRT = 0;
 int isMutatedExec = 0;
 
-// stopThread cache variables 
+// stopThread cache variables
 char cacheLRUflags[TARGET_CACHE_WIDTH];
 DLLEXPORT void *DYNINST_target_cache[TARGET_CACHE_WIDTH][TARGET_CACHE_WAYS];
 FILE *stOut;
@@ -140,12 +140,12 @@ void DYNINSTlinuxBreakPoint();
 DECLARE_DYNINST_LOCK(DYNINST_trace_lock);
 
 /**
- * Init the FPU.  We've seen bugs with Linux (e.g., Redhat 6.2 stock kernel on 
- * PIIIs) where processes started by Paradyn started with FPU uninitialized. 
+ * Init the FPU.  We've seen bugs with Linux (e.g., Redhat 6.2 stock kernel on
+ * PIIIs) where processes started by Paradyn started with FPU uninitialized.
  * DYNINSTdummydouble is global so the compiler won't optimize away FP code
  * in initFPU
  **/
-double DYNINSTdummydouble = 4321.71;                                    
+double DYNINSTdummydouble = 4321.71;
 static void initFPU()
 {
    double x = 17.1234;
@@ -181,7 +181,7 @@ void DYNINSTBaseInit()
  **/
 void DYNINSTinit()
 {
-#warning "This function is not implemented for AARCH64 yet!"
+//#warning "This function is not implemented for AARCH64 yet!"
 #if !defined(arch_aarch64)
    rtdebug_printf("%s[%d]:  DYNINSTinit:  welcome to DYNINSTinit()\n", __FILE__, __LINE__);
    initFPU();
@@ -194,10 +194,10 @@ void DYNINSTinit()
    /* sanity check */
    assert(sizeof(int64_t) == 8);
    assert(sizeof(int32_t) == 4);
-   
+
    /* defensive stuff */
-   memset(DYNINST_target_cache, 
-          0, 
+   memset(DYNINST_target_cache,
+          0,
           sizeof(void*) * TARGET_CACHE_WIDTH * TARGET_CACHE_WAYS);
    memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_WIDTH);
    // stOut = fopen("rtdump.txt","w");
@@ -209,9 +209,9 @@ void DYNINSTinit()
 	assert(0);
 #endif
 }
- 
+
 /**
- * Does what it's called. Used by the paradyn daemon as a default in certain 
+ * Does what it's called. Used by the paradyn daemon as a default in certain
  * cases (MT in particular)
  **/
 int DYNINSTreturnZero()
@@ -221,7 +221,7 @@ int DYNINSTreturnZero()
 
 /* Used to by dyninst breakpoint snippet */
 void DYNINST_snippetBreakpoint() {
-#warning "This function is not implemented for AARCH64 yet!"
+//#warning "This function is not implemented for AARCH64 yet!"
 #if !defined(arch_aarch64)
    tc_lock_lock(&DYNINST_trace_lock);
 
@@ -241,7 +241,7 @@ void DYNINST_snippetBreakpoint() {
 
 /* Used to instrument (and report) the entry of fork */
 DLLEXPORT void DYNINST_instForkEntry() {
-#warning "This function is not implemented for AARCH64 yet!"
+//#warning "This function is not implemented for AARCH64 yet!"
 #if !defined(arch_aarch64)
    tc_lock_lock(&DYNINST_trace_lock);
 
@@ -260,17 +260,17 @@ DLLEXPORT void DYNINST_instForkEntry() {
 #endif
 }
 
-       
+
 /* Used to instrument (and report) the exit of fork */
 /* We use the safe breakpoint on the child side of fork
    as we may not be attached at that point. The parent
    side uses the normal version. */
 DLLEXPORT void DYNINST_instForkExit(void *arg1) {
-#warning "This function is not implemented for AARCH64 yet!"
+//#warning "This function is not implemented for AARCH64 yet!"
 #if !defined(arch_aarch64)
    tc_lock_lock(&DYNINST_trace_lock);
 
-   /* Set the state so the mutator knows what's up */    
+   /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_forkExit;
    DYNINST_synch_event_arg1 = arg1;
    /* Stop ourselves */
@@ -291,10 +291,10 @@ DLLEXPORT void DYNINST_instForkExit(void *arg1) {
 #endif
 }
 
-       
+
 /* Used to instrument (and report) the entry of exec */
 DLLEXPORT void DYNINST_instExecEntry(void *arg1) {
-#warning "This function is not implemented for AARCH64 yet!"
+//#warning "This function is not implemented for AARCH64 yet!"
 #if !defined(arch_aarch64)
    tc_lock_lock(&DYNINST_trace_lock);
 
@@ -315,7 +315,7 @@ DLLEXPORT void DYNINST_instExecEntry(void *arg1) {
 #endif
 }
 
-       
+
 /* Used to instrument (and report) the exit of exec */
 DLLEXPORT void DYNINST_instExecExit(void *arg1) {
    tc_lock_lock(&DYNINST_trace_lock);
@@ -332,7 +332,7 @@ DLLEXPORT void DYNINST_instExecExit(void *arg1) {
    tc_lock_unlock(&DYNINST_trace_lock);
 }
 
-       
+
 /* Used to instrument (and report) the entry of exit */
 DLLEXPORT void DYNINST_instExitEntry(void *arg1) {
    tc_lock_lock(&DYNINST_trace_lock);
@@ -377,7 +377,7 @@ DLLEXPORT void DYNINST_instLwpExit(void) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
-    
+
    tc_lock_unlock(&DYNINST_trace_lock);
 }
 
@@ -387,7 +387,7 @@ DLLEXPORT void DYNINST_instLwpExit(void) {
 // the cache contains valid addresses
 // add to the cache when an instrumented instruction misses in the cache
 // update flags for the cache when an instrumented instruction hits in the cache
-// instrumentation will take the form of a call to cache check  
+// instrumentation will take the form of a call to cache check
 RT_Boolean cacheLookup(void *calculation)
 {
     int index = ((unsigned long) calculation) % TARGET_CACHE_WIDTH;
@@ -409,38 +409,38 @@ RT_Boolean cacheLookup(void *calculation)
     }
 }
 
-/** 
+/**
  * Receives two snippets as arguments and stops the mutatee
- * while the mutator reads the arguments, saved to 
- * DYNINST_synch_event... global variables. 
+ * while the mutator reads the arguments, saved to
+ * DYNINST_synch_event... global variables.
  *
  * if flag useCache==1, does a cache lookup and stops only
  * if there is a cache miss
- * 
- * The flags are: 
+ *
+ * The flags are:
  * bit 0: useCache
  * bit 1: true if interpAsTarget
  * bit 2: true if interpAsReturnAddr
- **/     
+ **/
 //#define STACKDUMP
-void DYNINST_stopThread (void * pointAddr, void *callBackID, 
+void DYNINST_stopThread (void * pointAddr, void *callBackID,
                          void *flags, void *calculation)
 {
 	static int reentrant = 0;
 
     RT_Boolean isInCache = RT_FALSE;
-    
+
 
 	if (reentrant == 1) {
 		return;
 	}
 	reentrant = 1;
     tc_lock_lock(&DYNINST_trace_lock);
-    rtdebug_printf("RT_st: pt[%lx] flags[%lx] calc[%lx] ", 
+    rtdebug_printf("RT_st: pt[%lx] flags[%lx] calc[%lx] ",
                    (long)pointAddr, (long)flags, (long)calculation);
 
 #if 0 && defined STACKDUMP
-    //if (0 && ((unsigned long)calculation == 0x9746a3 || 
+    //if (0 && ((unsigned long)calculation == 0x9746a3 ||
     //          (unsigned long)calculation == 0x77dd761b))
     //{
         fprintf(stOut,"RT_st: %lx(%lx)\n", (long)pointAddr,&calculation);
@@ -454,25 +454,25 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
             fprintf(stOut,"\n");
         }
     //}
-    // fsg: read from 40a4aa, how did it become 40a380? 
+    // fsg: read from 40a4aa, how did it become 40a380?
 #endif
 
-    if ((((long)flags) & 0x04) ) { 
+    if ((((long)flags) & 0x04) ) {
         rtdebug_printf("ret-addr stopThread yields %lx", (long)calculation);
         //fprintf(stderr,"[$0x%lx]\n", (long)calculation);
     }
 
     if (0 != (((long)flags) & 0x03)) {
-        // do the lookup if the useCache bit is set, or if it represents 
-        // the address of real code, so that we add the address to the cache 
+        // do the lookup if the useCache bit is set, or if it represents
+        // the address of real code, so that we add the address to the cache
         // even if we will stop the thread if there's a cache hit
         isInCache = cacheLookup(calculation);
     }
 
-    // if the cache flag bit is not set, or if we get a cache miss, 
+    // if the cache flag bit is not set, or if we get a cache miss,
     // stop the thread so that we can call back to the mutatee
-    if (0 == (((long)flags) & 0x01) || 
-        ! isInCache ) 
+    if (0 == (((long)flags) & 0x01) ||
+        ! isInCache )
     {
         /* Set vars for Dyninst to read */
         DYNINST_synch_event_id = DSE_stopThread;
@@ -480,11 +480,11 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
         DYNINST_synch_event_arg2 = callBackID;
         DYNINST_synch_event_arg3 = calculation;
 
-        // encode interp as target or as return addr by making 
+        // encode interp as target or as return addr by making
         // callback ID negative
-        if (0 != (((long)flags) & 0x06)) 
-        { 
-            DYNINST_synch_event_arg2 = 
+        if (0 != (((long)flags) & 0x06))
+        {
+            DYNINST_synch_event_arg2 =
                 (void*) (-1 * (long)DYNINST_synch_event_arg2);
         }
 
@@ -506,7 +506,7 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
 }
 
 // zeroes out the useCache flag if the call is interprocedural
-void DYNINST_stopInterProc(void * pointAddr, void *callBackID, 
+void DYNINST_stopInterProc(void * pointAddr, void *callBackID,
                            void *flags, void *calculation,
                            void *objStart, void *objEnd)
 {
@@ -522,7 +522,7 @@ void DYNINST_stopInterProc(void * pointAddr, void *callBackID,
 }
 
 // boundsArray is a sequence of (blockStart,blockEnd) pairs
-DLLEXPORT RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_, 
+DLLEXPORT RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
                                          void *writeTarget_)
 {
     RT_Boolean callStopThread = RT_FALSE;
@@ -530,7 +530,7 @@ DLLEXPORT RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
     const long arrayLen = (long)arrayLen_;
     unsigned long *boundsArray = (unsigned long*)boundsArray_;
     // set idx to halfway into the array, ensuring we use a blockStart address
-    int idx = (int)arrayLen / 4 * 2; 
+    int idx = (int)arrayLen / 4 * 2;
     int lowIdx = 0;
     int highIdx = (int)arrayLen;
     //fprintf(stderr,"D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
@@ -539,7 +539,7 @@ DLLEXPORT RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
         printf("D_bc: boundsArray_ = %lx, returning false\n",(unsigned long) boundsArray);
         return RT_FALSE;
     }
-    while (lowIdx < highIdx) 
+    while (lowIdx < highIdx)
     {
         if (idx > arrayLen || idx < 0)
             rtdebug_printf("ERROR: out of bounds idx=%d, arrayLen = %d [%d]\n", idx, arrayLen, __LINE__);
@@ -548,12 +548,12 @@ DLLEXPORT RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
             rtdebug_printf("D_bc: [%d]\n", __LINE__);
             highIdx = idx;
             idx = (highIdx - lowIdx) / 4 * 2 + lowIdx;
-        } 
+        }
         else if (boundsArray[idx+1] <= writeTarget) {
             rtdebug_printf("D_bc: [%d]\n", __LINE__);
             lowIdx = idx+2;
             idx = (highIdx - lowIdx) / 4 * 2 + lowIdx;
-        } 
+        }
         else {
             rtdebug_printf("D_bc: callST=true [%d]\n", __LINE__);
             callStopThread = RT_TRUE;
@@ -566,8 +566,8 @@ DLLEXPORT RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
 
 
 /**
- * Used to report addresses of functions called at dynamic call sites 
- **/     
+ * Used to report addresses of functions called at dynamic call sites
+ **/
 DLLEXPORT int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr) {
     if (DYNINSTstaticMode) return 0;
 
@@ -591,7 +591,7 @@ DLLEXPORT int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr) {
 
 int DYNINSTuserMessage(void *msg, unsigned int msg_size) {
     unsigned long msg_size_long = (unsigned long)msg_size;
-    if (DYNINSTstaticMode) 
+    if (DYNINSTstaticMode)
 	{
 		return 0;
 	}
@@ -628,7 +628,7 @@ int tc_lock_unlock(tc_lock_t *t)
   t->mutex = 0;
   return 0;
 }
-    
+
 int tc_lock_destroy(tc_lock_t *t)
 {
   t->tid = (dyntid_t) DYNINST_INITIAL_LOCK_PID;
@@ -663,12 +663,12 @@ int rtdebug_printf(char *format, ...)
   va_list va;
   if (!DYNINSTdebugRTlib) return 0;
   if (NULL == format) return DYNINST_PRINTF_ERRVAL;
-   
+
   fprintf(stderr, "[RTLIB]");
   va_start(va, format);
   ret = vfprintf(stderr, format, va);
   va_end(va);
-   
+
   return ret;
 }
 
@@ -688,14 +688,14 @@ char *asyncEventType2str(rtBPatch_asyncEventType t)
   CASE_RETURN_STR(rtBPatch_userEvent);
   default: return "bad_async_event_type";
   }
-} 
+}
 
 DLLEXPORT volatile unsigned long dyninstTrapTableUsed;
 DLLEXPORT volatile unsigned long dyninstTrapTableVersion;
 DLLEXPORT volatile trapMapping_t *dyninstTrapTable;
 DLLEXPORT volatile unsigned long dyninstTrapTableIsSorted;
 
-void* dyninstTrapTranslate(void *source, 
+void* dyninstTrapTranslate(void *source,
                            volatile unsigned long *table_used,
                            volatile unsigned long *table_version,
                            volatile trapMapping_t **trap_table,
@@ -709,13 +709,13 @@ void* dyninstTrapTranslate(void *source,
       local_version = *table_version;
       target = NULL;
 
-      if (*is_sorted) 
+      if (*is_sorted)
       {
          unsigned min = 0;
          unsigned mid = 0;
          unsigned max = *table_used;
          unsigned prev = max+1;
-         
+
          for (;;) {
             mid = (min + max) / 2;
             if (mid == prev) {
@@ -725,7 +725,7 @@ void* dyninstTrapTranslate(void *source,
                break;
             }
             prev = mid;
-            
+
             if ((*trap_table)[mid].source < source)
                min = mid;
             else if ((*trap_table)[mid].source > source)
@@ -735,7 +735,7 @@ void* dyninstTrapTranslate(void *source,
                break;
             }
          }
-      } 
+      }
       else { /*!dyninstTrapTableIsSorted*/
          for (i = 0; i<*table_used; i++) {
             if ((*trap_table)[i].source == source) {
@@ -743,7 +743,7 @@ void* dyninstTrapTranslate(void *source,
                break;
             }
          }
-      }         
+      }
    } while (local_version != *table_version);
 
    return target;
