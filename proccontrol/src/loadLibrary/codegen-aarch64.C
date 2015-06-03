@@ -31,7 +31,7 @@ using namespace std;
 
 bool Codegen::generatePreambleAARCH64(){
     //temporily I make 256byte space
-#warning "This needs to be verified!"
+//#warning "This needs to be verified!"
     //sub sp, sp, #48   ;#48 in decimal
     unsigned long addr = copyInt(0xd100c3ff); //#48
     pthrd_printf("generate Preamble:\n");

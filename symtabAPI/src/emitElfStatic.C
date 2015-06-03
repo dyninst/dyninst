@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -93,7 +93,7 @@ emitElfStatic::emitElfStatic(unsigned addressWidth, bool isStripped) :
  */
 
 /**
- * Statically links relocatable files into the specified Symtab object, 
+ * Statically links relocatable files into the specified Symtab object,
  * as specified by state in the Symtab object
  *
  * target       relocatable files will be linked into this Symtab
@@ -101,17 +101,17 @@ emitElfStatic::emitElfStatic(unsigned addressWidth, bool isStripped) :
  * Returns a pointer to a block of data containing the results of the link
  * The caller is responsible for delete'ing this block of data
  */
-char *emitElfStatic::linkStatic(Symtab *target, 
-        StaticLinkError &err, string &errMsg) 
+char *emitElfStatic::linkStatic(Symtab *target,
+        StaticLinkError &err, string &errMsg)
 {
-    /* 
+    /*
      * Basic algorithm is:
-     * - locate defined versions of symbols for undefined symbols in 
+     * - locate defined versions of symbols for undefined symbols in
      *   either the target or relocatable code, produces a list
      *   of Symtab objects that contain the defined versions
      *
-     * - Allocate space for all new code and data to be linked into 
-     *   the target, populates a LinkMap with all allocation 
+     * - Allocate space for all new code and data to be linked into
+     *   the target, populates a LinkMap with all allocation
      *   information
      *
      * - Compute relocations and set their targets to these values
@@ -121,7 +121,7 @@ char *emitElfStatic::linkStatic(Symtab *target,
     LinkMap lmap;
 
     rewrite_printf("START link map output\n");
-    
+
     // Determine starting location of new Regions
     Offset globalOffset = 0;
     vector<Region *> newRegs;
@@ -180,7 +180,7 @@ char *emitElfStatic::linkStatic(Symtab *target,
     if (!buildPLT(target, globalOffset, lmap, err, errMsg)) {
       if (lmap.allocatedData) delete lmap.allocatedData;
       return NULL;
-    } 
+    }
 
     if (!buildRela(target, globalOffset, lmap, err, errMsg)) {
       if (lmap.allocatedData) delete lmap.allocatedData;
@@ -218,7 +218,7 @@ char *emitElfStatic::linkStatic(Symtab *target,
  * Resolves undefined symbols in the specified Symtab object, usually due
  * to the addition of new Symbols to the Symtab object. The target Symtab
  * object must have a collection of Archives associated with it. These
- * Archives will be searched for the defined versions of the undefined 
+ * Archives will be searched for the defined versions of the undefined
  * symbols in the specified Symtab objects.
  *
  * target               the Symtab containing the undefined symbols
@@ -226,10 +226,10 @@ char *emitElfStatic::linkStatic(Symtab *target,
  *                      all the Symtabs needed to ensure that the target has
  *                      no undefined Symbols once the link is performed
  */
-bool emitElfStatic::resolveSymbols(Symtab *target, 
+bool emitElfStatic::resolveSymbols(Symtab *target,
         vector<Symtab *> &relocatableObjects,
         LinkMap &lmap,
-        StaticLinkError &err, string &errMsg) 
+        StaticLinkError &err, string &errMsg)
 {
     // Collection of Symtabs that currently need their symbols resolved
     set<Symtab *> workSet;
@@ -252,7 +252,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
 
     set<Symtab *>::iterator expObj_it;
     for(expObj_it = explicitRefs.begin(); expObj_it != explicitRefs.end();
-            ++expObj_it) 
+            ++expObj_it)
     {
         relocatableObjects.push_back(*expObj_it);
         workSet.insert(*expObj_it);
@@ -291,7 +291,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
 
         vector<Symbol *>::iterator undefSym_it;
         for(undefSym_it = undefSyms.begin(); undefSym_it != undefSyms.end();
-                ++undefSym_it) 
+                ++undefSym_it)
         {
             Symbol *curUndefSym = *undefSym_it;
 
@@ -315,7 +315,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
                  {
                     if( foundSyms.size() > 1 ) {
                         err = Symbol_Resolution_Failure;
-                        errMsg = "ambiguous symbol definition: " + 
+                        errMsg = "ambiguous symbol definition: " +
                             curUndefSym->getMangledName();
                         return false;
                     }
@@ -342,7 +342,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
                 // 3) Multiple strong symbols: fail
                 // 4) ... no symbols. Also fail.
 
-                for (auto iter = possibleSymtabs.begin(); iter != possibleSymtabs.end(); ++iter) {                   
+                for (auto iter = possibleSymtabs.begin(); iter != possibleSymtabs.end(); ++iter) {
                    std::vector<Symbol *> syms;
                    (*iter)->findSymbol(syms, curUndefSym->getMangledName(), curUndefSym->getType());
                    if (syms.empty()) {
@@ -354,7 +354,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
 
                    for (auto iter2 = syms.begin(); iter2 != syms.end(); ++iter2) {
 		     // We include UNKNOWN symbols in the find; unfortunately that's
-		     // not what we want here. Skip. 
+		     // not what we want here. Skip.
 		     if ((*iter2)->getType() == Symbol::ST_UNKNOWN) {
 		       continue;
 		     }
@@ -368,19 +368,19 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
                       else {
                          // Two strong symbols: bad
                          err = Symbol_Resolution_Failure;
-                         errMsg = "ambiguous symbol definition: " + 
+                         errMsg = "ambiguous symbol definition: " +
                             curUndefSym->getMangledName();
                          return false;
                       }
                    }
                 }
-                
+
                 if( extSymbol == NULL ) {
                    // If it is a weak symbol, it isn't an error that the symbol wasn't resolved
                    if( curUndefSym->getLinkage() == Symbol::SL_WEAK ) {
                       continue;
                    }
-                   
+
                    err = Symbol_Resolution_Failure;
                    errMsg = "failed to locate symbol '" + curUndefSym->getMangledName()
                       + "' for object '" + curObjFile->memberName() + "'";
@@ -390,7 +390,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
                 Symtab *containingSymtab = extSymbol->getSymtab();
 
                 if( !linkedSet.count(containingSymtab) ) {
-                   // Consistency check                                                                                            
+                   // Consistency check
                    if( containingSymtab->getAddressWidth() != addressWidth_ ) {
                       err = Symbol_Resolution_Failure;
                       errMsg = "symbol (" + curUndefSym->getMangledName() +
@@ -398,16 +398,16 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
                          + " with the target binary";
                       return false;
                    }
-                   
+
                    relocatableObjects.push_back(containingSymtab);
-                   
-                   // Resolve all symbols for this new Symtab, if it hasn't already                                                
-                   // been done                                                                                                    
-                   
+
+                   // Resolve all symbols for this new Symtab, if it hasn't already
+                   // been done
+
                    workSet.insert(containingSymtab);
                    linkedSet.insert(containingSymtab);
                 }
-		                
+
                 rewrite_printf("Found external symbol %s in object %s(%s)\n",
                                extSymbol->getPrettyName().c_str(),
                                containingSymtab->getParentArchive()->name().c_str(),
@@ -417,7 +417,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
 	    if (extSymbol->getType() == Symbol::ST_INDIRECT) {
 	      addIndirectSymbol(extSymbol, lmap);
 	    }
-	    
+
             // Store the found symbol with the related relocations
             map<Symbol *, vector<relocationEntry *> >::iterator relMap_it;
             relMap_it = symToRels.find(curUndefSym);
@@ -439,7 +439,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
 
         curObjFilePtr = workSet.begin();
     }
-    
+
     return true;
 }
 
@@ -447,7 +447,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
  * Given a collection of Symtab objects, combines the code, data, bss and
  * other miscellaneous Regions into groups and places them in a new block
  * of data.
- * 
+ *
  * Allocates COMMON symbols in the collection of Symtab objects
  * as bss
  *
@@ -466,10 +466,10 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
  * lmap                 The LinkMap to be populated by this function
  */
 bool emitElfStatic::createLinkMap(Symtab *target,
-        vector<Symtab *> &relocatableObjects, 
-        Offset & globalOffset, 
+        vector<Symtab *> &relocatableObjects,
+        Offset & globalOffset,
         LinkMap &lmap,
-        StaticLinkError &err, string &errMsg) 
+        StaticLinkError &err, string &errMsg)
 {
     rewrite_printf("\n*** Allocating storage for relocatable objects\n\n");
 
@@ -566,22 +566,22 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                    // Get data of the region and split it into symbols
                    char *rawRegionData = reinterpret_cast<char *>((*reg_it)->getPtrToRawData());
                    unsigned long numSymbols = (*reg_it)->getMemSize()/8;
-                   for (Offset entry = 0; entry < numSymbols; entry++ ) {	
-                      // If symbol has relocation, add that 
+                   for (Offset entry = 0; entry < numSymbols; entry++ ) {
+                      // If symbol has relocation, add that
                       bool relExist = false;
                       vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
                       vector<relocationEntry>::iterator rel_it;
                       for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
                          if(entry*8 == rel_it->rel_addr()) {
-                            lmap.gotSymbolTable.push_back(make_pair(rel_it->getDynSym(), rel_it->addend()));  
+                            lmap.gotSymbolTable.push_back(make_pair(rel_it->getDynSym(), rel_it->addend()));
                             lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), rel_it->addend()));
                             relExist = true;
-                            
+
                             break;
                          }
                       }
                       if(!relExist) {
-                         // else create a new symbol 
+                         // else create a new symbol
                          // Offset and name is all we care - offset should be value of the symbol
                          Offset soffset = *((unsigned long *) (rawRegionData + entry*8));
                          Symbol *newsym = new Symbol("dyntoc_entry",
@@ -589,35 +589,35 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                                                      Symbol::SL_UNKNOWN,
                                                      Symbol::SV_UNKNOWN,
                                                      soffset);
-                         
-                         lmap.gotSymbolTable.push_back(make_pair(newsym, 0));  
+
+                         lmap.gotSymbolTable.push_back(make_pair(newsym, 0));
                          lmap.gotSymbols.insert(make_pair(newsym, 0));
-                         
+
                       }
                    }
-                   
+
                 }
 #endif
                 vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
                 vector<relocationEntry>::iterator rel_it;
                 for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
-		  
+
 		  if(isGOTRelocation(rel_it->getRelType()) ) {
 		    lmap.gotSymbolTable.push_back(make_pair(rel_it->getDynSym(), rel_it->addend()));
 		    lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), 0));
-		    
+
 		  }
-		  
+
                 }
             } // isLoadable
-           
+
         } //for regions
 
         vector<Symbol *> definedSyms;
         if( (*obj_it)->getAllDefinedSymbols(definedSyms) ) {
             vector<Symbol *>::iterator sym_it;
             for(sym_it = definedSyms.begin(); sym_it != definedSyms.end(); ++sym_it) {
-                // Note: the assumption is made that a Symbol cannot 
+                // Note: the assumption is made that a Symbol cannot
                 // be both TLS and COMMON
                 if( (*sym_it)->isCommonStorage() ) {
                     // For a symbol in common storage, the offset/value is the alignment
@@ -635,15 +635,15 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         }
     }
 
-    // Determine how all the Regions in the relocatable objects will be 
+    // Determine how all the Regions in the relocatable objects will be
     // placed in the rewritten target
     Offset currentOffset = 0;
 
-    // Allocate code regions 
+    // Allocate code regions
 
-    // Since this is the first new Region, the actual globalOffset should be 
+    // Since this is the first new Region, the actual globalOffset should be
     // the passed globalOffset plus the padding for this Region
-    
+
     Offset maxAlign = getGOTAlign(lmap);
     if(maxAlign < lmap.codeRegionAlign) maxAlign = lmap.codeRegionAlign;
 
@@ -676,18 +676,18 @@ bool emitElfStatic::createLinkMap(Symtab *target,
     lmap.gotSize = getGOTSize(target, lmap, gotLayoutOffset);
     if( lmap.gotSize > 0 ) {
       // We may copy the original GOT over; in this case, we have to be sure we skip it
-      // when we lay out new GOT entries. That's the gotLayoutOffset value. 
+      // when we lay out new GOT entries. That's the gotLayoutOffset value.
 	lmap.gotRegionAlign = getGOTAlign(lmap);
         lmap.gotRegionOffset = currentOffset;
         currentOffset += lmap.gotSize;
         layoutRegions(lmap.gotRegions, lmap.regionAllocs,
 		      lmap.gotRegionOffset + gotLayoutOffset, globalOffset);
 	calculateTOCs(target, lmap.gotRegions, lmap.gotRegionOffset, gotLayoutOffset, globalOffset);
-    } 
+    }
 
     // Calculate the space necessary for stub code; normally this will be 0,
-    // but we may need to add code later on. Make room for it now. 
-    // Note we use code region alignment here. 
+    // but we may need to add code later on. Make room for it now.
+    // Note we use code region alignment here.
     lmap.stubRegionOffset = currentOffset;
     lmap.stubRegionOffset += computePadding(globalOffset + lmap.stubRegionOffset,
 					    lmap.codeRegionAlign);
@@ -713,11 +713,11 @@ bool emitElfStatic::createLinkMap(Symtab *target,
     }
     lmap.codeSize = currentOffset - lmap.codeRegionOffset;
 
-    // Allocate data regions 
+    // Allocate data regions
     lmap.dataRegionOffset = currentOffset;
     lmap.dataRegionOffset += computePadding(globalOffset + lmap.dataRegionOffset,
             lmap.dataRegionAlign);
-    currentOffset = layoutRegions(lmap.dataRegions, lmap.regionAllocs, 
+    currentOffset = layoutRegions(lmap.dataRegions, lmap.regionAllocs,
             lmap.dataRegionOffset, globalOffset);
     if( currentOffset == ~0UL ) {
         err = Storage_Allocation_Failure;
@@ -726,7 +726,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
     }
     lmap.dataSize = currentOffset - lmap.dataRegionOffset;
 
-    /* 
+    /*
      * Find current TLS Regions in target, also check for multiple TLS Regions
      * of the same type => knowing how to construct the TLS image would be
      * undefined for multiple TLS Regions of the same type
@@ -735,14 +735,14 @@ bool emitElfStatic::createLinkMap(Symtab *target,
      */
     Region *dataTLS = NULL, *bssTLS = NULL;
     lmap.tlsSize = 0;
-    
+
     vector<Region *> regions;
     if( !target->getAllRegions(regions) ) {
         err = Storage_Allocation_Failure;
         errMsg = "failed to retrieve regions from target";
         return false;
     }
-    
+
     vector<Region *>::iterator reg_it;
     for(reg_it = regions.begin(); reg_it != regions.end(); ++reg_it) {
         if( (*reg_it)->isTLS() ) {
@@ -884,7 +884,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
 
     /* Combine all COMMON symbols into a single block */
     if( commonAlignments.size() > 0 ) {
-        // The alignment of the COMMON Region could be the alignment 
+        // The alignment of the COMMON Region could be the alignment
         // for the bss Region
         if( commonRegionAlign > lmap.bssRegionAlign ) {
             lmap.bssRegionAlign = commonRegionAlign;
@@ -899,7 +899,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         Offset commonStartOffset = commonOffset;
 
         multimap<Offset, Symbol *>::iterator align_it;
-        for(align_it = commonAlignments.begin(); 
+        for(align_it = commonAlignments.begin();
             align_it != commonAlignments.end(); ++align_it)
         {
             commonOffset += computePadding(commonOffset, align_it->first);
@@ -914,7 +914,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         if( commonAlignments.size() > 0 ) {
             // A COMMON region is not really complete
             lmap.commonStorage = Region::createRegion(0, Region::RP_RW,
-                    Region::RT_BSS, commonOffset - commonStartOffset, 0, 
+                    Region::RT_BSS, commonOffset - commonStartOffset, 0,
                     commonOffset - commonStartOffset,
                     DEFAULT_COM_NAME, NULL, true, false, commonRegionAlign);
             lmap.bssRegions.push_front(lmap.commonStorage);
@@ -941,8 +941,8 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         if( (*obj_it)->getAllDefinedSymbols(definedSyms) ) {
             vector<Symbol *>::iterator sym_it;
             for(sym_it = definedSyms.begin(); sym_it != definedSyms.end(); ++sym_it) {
-                if(    !(*sym_it)->isCommonStorage() 
-                    && (*sym_it)->getType() != Symbol::ST_TLS) 
+                if(    !(*sym_it)->isCommonStorage()
+                    && (*sym_it)->getType() != Symbol::ST_TLS)
                 {
                     map<Region *, LinkMap::AllocPair>::iterator result;
                     result = lmap.regionAllocs.find((*sym_it)->getRegion());
@@ -952,17 +952,17 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                         lmap.origSymbols.push_back(make_pair(*sym_it, symbolOffset));
 
                         symbolOffset += globalOffset + regionOffset;
-// If region has relocations, set offset to got 
+// If region has relocations, set offset to got
 			vector<relocationEntry> region_rels = result->first->getRelocations();
 			if(region_rels.size() > 0) {
-//			printf(" region %s has relocations %d \n", result->first->getRegionName().c_str(), region_rels.size()); 
+//			printf(" region %s has relocations %d \n", result->first->getRegionName().c_str(), region_rels.size());
 /*
                     		result = lmap.regionAllocs.find((*sym_it)->getRegion());
                         	regionOffset = result->second.second;
 */
 			}
-			
-		
+
+
                         (*sym_it)->setOffset(symbolOffset);
                     }
                 }
@@ -986,7 +986,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
 }
 
 /**
- * Lays out the specified regions, storing the layout info in the 
+ * Lays out the specified regions, storing the layout info in the
  * passed map.
  *
  * regions              A collection of Regions to layout
@@ -996,9 +996,9 @@ bool emitElfStatic::createLinkMap(Symtab *target,
  * globalOffset         The location of the new storage space in the
  *                      target (used for padding calculation)
  */
-Offset emitElfStatic::layoutRegions(deque<Region *> &regions, 
+Offset emitElfStatic::layoutRegions(deque<Region *> &regions,
                                     map<Region *, LinkMap::AllocPair> &regionAllocs,
-                                    Offset currentOffset, Offset globalOffset) 
+                                    Offset currentOffset, Offset globalOffset)
 {
     Offset retOffset = currentOffset;
 
@@ -1020,7 +1020,7 @@ Offset emitElfStatic::layoutRegions(deque<Region *> &regions,
             retOffset = ~0UL;
             break;
         }
-                       
+
         retOffset += (*copyReg_it)->getMemSize();
     }
 
@@ -1036,7 +1036,7 @@ Offset emitElfStatic::layoutRegions(deque<Region *> &regions,
  */
 bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &lmap) {
     char *newTargetData = lmap.allocatedData;
- 
+
 #if defined(arch_x86) || defined(arch_x86_64)  || (defined(arch_power) && defined(arch_64bit))
     if( lmap.gotSize > 0 ) {
        buildGOT(target, lmap);
@@ -1044,14 +1044,14 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 reinterpret_cast<void *>(&newTargetData[lmap.gotRegionOffset]),
                 static_cast<unsigned int>(lmap.gotSize),
                 GOT_NAME, Region::RT_DATA, true, lmap.gotRegionAlign);
-    }   
+    }
 #endif
     if( lmap.pltSize > 0 ) {
       target->addRegion(globalOffset + lmap.pltRegionOffset,
 			reinterpret_cast<void *>(&newTargetData[lmap.pltRegionOffset]),
 			static_cast<unsigned int>(lmap.pltSize),
 			PLT_NAME, Region::RT_TEXTDATA, true, lmap.pltRegionAlign);
-    } 
+    }
 
     if (lmap.relSize > 0) {
       Region::RegionType type;
@@ -1065,7 +1065,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
 			reinterpret_cast<void *>(&newTargetData[lmap.relRegionOffset]),
 			static_cast<unsigned int>(lmap.relSize),
 			REL_NAME, type, true, lmap.relRegionAlign);
-      
+
     }
 
     if (lmap.relGotSize > 0) {
@@ -1073,7 +1073,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
 			reinterpret_cast<void *>(&newTargetData[lmap.relGotRegionOffset]),
 			static_cast<unsigned int>(lmap.relGotSize),
 			REL_GOT_NAME, Region::RT_TEXTDATA, true, lmap.relGotRegionAlign);
-    }    
+    }
 
     if( lmap.codeSize > 0 ) {
         target->addRegion(globalOffset + lmap.codeRegionOffset,
@@ -1086,16 +1086,16 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
 			  reinterpret_cast<void *>(&newTargetData[lmap.stubRegionOffset]),
 			  static_cast<unsigned int>(lmap.stubSize),
 			  STUB_NAME, Region::RT_TEXTDATA, true, lmap.codeRegionAlign);
-    }      
+    }
 
     if( lmap.dataSize > 0 ) {
-        target->addRegion(globalOffset + lmap.dataRegionOffset, 
+        target->addRegion(globalOffset + lmap.dataRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.dataRegionOffset]),
                 static_cast<unsigned int>(lmap.dataSize),
                 DATA_NAME, Region::RT_DATA, true, lmap.dataRegionAlign);
     }
 
-#if defined(arch_x86) || defined(arch_x86_64)  || defined(arch_power) 
+#if defined(arch_x86) || defined(arch_x86_64)  || defined(arch_power)
     if( lmap.tlsSize > 0 ) {
         target->addRegion(globalOffset + lmap.tlsRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.tlsRegionOffset]),
@@ -1111,7 +1111,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
         target->addRegion(globalOffset + lmap.ctorRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.ctorRegionOffset]),
                 static_cast<unsigned int>(lmap.ctorSize),
-                CTOR_NAME, Region::RT_DATA, true, 
+                CTOR_NAME, Region::RT_DATA, true,
                 lmap.ctorRegionAlign);
     }
 
@@ -1128,7 +1128,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
     }
 
     if( lmap.bssSize > 0 ) {
-        target->addRegion(globalOffset + lmap.bssRegionOffset, 
+        target->addRegion(globalOffset + lmap.bssRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.bssRegionOffset]),
                 static_cast<unsigned int>(lmap.bssSize),
                 BSS_NAME, Region::RT_BSS, true, lmap.bssRegionAlign);
@@ -1180,7 +1180,7 @@ Offset emitElfStatic::computePadding(Offset candidateOffset, Offset alignment) {
 }
 
 /**
- * Given a collection of newly allocated regions in the specified storage space, 
+ * Given a collection of newly allocated regions in the specified storage space,
  * computes relocations and places the values at the location specified by the
  * relocation entry (stored with the Regions)
  *
@@ -1191,7 +1191,7 @@ Offset emitElfStatic::computePadding(Offset candidateOffset, Offset alignment) {
  */
 bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatableObjects,
 				     Offset globalOffset, LinkMap &lmap,
-				     StaticLinkError &err, string &errMsg) 
+				     StaticLinkError &err, string &errMsg)
 {
     // Iterate over all relocations in all relocatable files
     vector<Symtab *>::iterator depObj_it;
@@ -1207,9 +1207,9 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
            bool isText = ((*region_it)->getRegionType() == Region::RT_TEXT);
            bool isTOC = false;
 
-           string regionName = (*region_it)->getRegionName();           
+           string regionName = (*region_it)->getRegionName();
            if (regionName.compare(0, 4, ".toc") == 0) isTOC = true;
-	   
+
            if (!isText && !isTOC) {
 	     // Just process all regions; if there are still relocations lurking it had
 	     // better be because something got modified...
@@ -1217,7 +1217,7 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
            }
         map<Region *, LinkMap::AllocPair>::iterator result;
         result = lmap.regionAllocs.find(*region_it);
-	if( result != lmap.regionAllocs.end() ) { 
+	if( result != lmap.regionAllocs.end() ) {
 
 		Offset regionOffset = result->second.second;
                 vector<relocationEntry> region_rels = (*region_it)->getRelocations();
@@ -1229,19 +1229,19 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
                     Offset relOffset = globalOffset + dest;
 
 		    rewrite_printf("Computing relocations to apply to region: %s (%s) @ 0x%lx reloffset 0x%lx dest 0x%lx  \n\n",
-				   (*region_it)->getRegionName().c_str(), 
+				   (*region_it)->getRegionName().c_str(),
 				   (*region_it)->symtab()->file().c_str(),
-				   regionOffset, 
+				   regionOffset,
 				   relOffset,
 				   dest);
 		    rewrite_printf("\t RelOffset computed as region 0x%lx + rel_addr 0x%lx + globalOffset 0x%lx\n",
 				   regionOffset, rel_it->rel_addr(), globalOffset);
-		    
+
                     char *targetData = lmap.allocatedData;
-		    
-                    if( !archSpecificRelocation(target, *depObj_it, 
-						targetData, *rel_it, dest, 
-						relOffset, globalOffset, lmap, errMsg) ) 
+
+                    if( !archSpecificRelocation(target, *depObj_it,
+						targetData, *rel_it, dest,
+						relOffset, globalOffset, lmap, errMsg) )
                     {
                         err = Relocation_Computation_Failure;
                         errMsg = "Failed to compute relocation: " + errMsg;
@@ -1249,24 +1249,24 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
                     }
 /*
 		   if((*region_it)->getRegionName().compare(".toc") == 0){
-			Offset regOffset = lmap.gotRegionOffset; 
+			Offset regOffset = lmap.gotRegionOffset;
                         dest = regOffset + rel_it->rel_addr();
                         relOffset = globalOffset + dest;
 
-		    if((*rel_it).name().compare("__SYMTABAPI_CTOR_LIST__") == 0) 
+		    if((*rel_it).name().compare("__SYMTABAPI_CTOR_LIST__") == 0)
 			{
                    	printf("\n\tComputing relocations to apply to region: %s @ 0x%lx reloffset %d 0x%lx dest %d 0x%lx  \n\n",
                         (*region_it)->getRegionName().c_str(), regOffset, relOffset,relOffset, dest,dest);
-                    if( !archSpecificRelocation(target, *depObj_it, targetData, *rel_it, dest, 
-                                relOffset, globalOffset, lmap, errMsg) ) 
+                    if( !archSpecificRelocation(target, *depObj_it, targetData, *rel_it, dest,
+                                relOffset, globalOffset, lmap, errMsg) )
                     {
                         err = Relocation_Computation_Failure;
                         errMsg = "Failed to compute relocation: " + errMsg;
                         return false;
                     }
 			}
-		
-		   }  
+
+		   }
 */
                 }
             }
@@ -1275,15 +1275,15 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
 
     rewrite_printf("\n*** Computing relocations added to target.\n\n");
 
-    // Compute relocations added to target 
+    // Compute relocations added to target
     vector<Region *> allRegions;
     target->getAllRegions(allRegions);
 
     vector<Region *>::iterator reg_it;
     for(reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
-          
+
         char *regionData = reinterpret_cast<char *>((*reg_it)->getPtrToRawData());
-        
+
         vector<relocationEntry>::iterator rel_it;
         for(rel_it = (*reg_it)->getRelocations().begin();
             rel_it != (*reg_it)->getRelocations().end();
@@ -1335,8 +1335,8 @@ bool emitElfStatic::hasRewrittenTLS() const {
  * TLS handling is pseudo-architecture dependent. The implementation of the TLS
  * functions depend on the implementation of TLS on a specific architecture.
  *
- * The following material is documented in more detail in the 
- * "ELF Handling For TLS" white paper. According to this paper, their are 
+ * The following material is documented in more detail in the
+ * "ELF Handling For TLS" white paper. According to this paper, their are
  * two variants w.r.t. creating a TLS initialization image.
  *
  * ======================
@@ -1351,15 +1351,15 @@ bool emitElfStatic::hasRewrittenTLS() const {
  * +----+---- +----------+---------+---------+
  *
  * where TCB = thread control block, and each image is the
- * TLS initialization image for an object (in this context an executable or 
+ * TLS initialization image for an object (in this context an executable or
  * shared library).
  *
  * ========================
  *
  * The second is:
- * 
+ *
  * beginning of image
- * | 
+ * |
  * V                                        high address
  * +---------+----------+---------+---------+
  * | image 3 | image 2  | image 1 |  TCB    |
@@ -1381,7 +1381,7 @@ bool emitElfStatic::hasRewrittenTLS() const {
  * This ensures that the modifications to the TLS image are safe.
  *
  * ==========================
- * 
+ *
  * These are the two variants one would see when working with ELF files. So, an
  * architecture either uses variant 1 or 2.
  *
@@ -1502,22 +1502,22 @@ Offset emitElfStatic::tlsAdjustVariant2(Offset curOffset, Offset tlsSize) {
 }
 
 void emitElfStatic::tlsCleanupVariant1(map<Region *, LinkMap::AllocPair> &regionAllocs,
-        Region *, Region *bssTLS) 
+        Region *, Region *bssTLS)
 {
     // Existing BSS TLS region is not copied to the new target data
     if( bssTLS != NULL ) regionAllocs.erase(bssTLS);
 }
 
 void emitElfStatic::tlsCleanupVariant2(map<Region *, LinkMap::AllocPair> &regionAllocs,
-        Region *, Region *bssTLS) 
+        Region *, Region *bssTLS)
 {
     // Existing BSS TLS region is not copied to the new target data
     if( bssTLS != NULL ) regionAllocs.erase(bssTLS);
 }
 
-bool 
+bool
 emitElfUtils::sort_reg(const Region* a, const Region* b)
-{   
+{
     if (a->getMemOffset() == b->getMemOffset())
         return a->getMemSize() < b->getMemSize();
     return a->getMemOffset() < b->getMemOffset();
@@ -1538,7 +1538,7 @@ emitElfUtils::sort_reg(const Region* a, const Region* b)
  * it needs to be clear up to the next page boundary to avoid
  * potentially clobbering other loadable segments.
  */
-Address 
+Address
 emitElfUtils::orderLoadableSections(Symtab *obj, vector<Region*> & sections)
 {
     Address ret = 0;
@@ -1571,7 +1571,7 @@ emitElfUtils::orderLoadableSections(Symtab *obj, vector<Region*> & sections)
     return ret;
 }
 
-// There are also some known variables that point to the heap 
+// There are also some known variables that point to the heap
 bool emitElfUtils::updateHeapVariables(Symtab *obj, unsigned long newSecsEndAddress ) {
     unsigned pgSize = (unsigned)getpagesize();
     const std::string minbrk(".minbrk");
@@ -1586,7 +1586,7 @@ bool emitElfUtils::updateHeapVariables(Symtab *obj, unsigned long newSecsEndAddr
       ++heapSymsIter)
     {
         Region *symRegion = (*heapSymsIter)->getRegion();
-        Offset symOffset = (*heapSymsIter)->getOffset(); 
+        Offset symOffset = (*heapSymsIter)->getOffset();
         if( symOffset < symRegion->getDiskOffset() ) continue;
 
         Offset regOffset = symOffset - symRegion->getDiskOffset();
@@ -1633,7 +1633,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
                 rel.setAddend(rel.addend() + library_adjust);
                 break;
             case R_X86_64_JUMP_SLOT:
-                if( !adjustValInRegion(targetRegion, 
+                if( !adjustValInRegion(targetRegion,
                            rel.rel_addr() - targetRegion->getDiskOffset(),
                            addressWidth, library_adjust) )
                 {
@@ -1649,7 +1649,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
         switch(rel.getRelType()) {
             case R_386_RELATIVE:
                 // On x86, addends are stored in their target location
-                if( !adjustValInRegion(targetRegion, 
+                if( !adjustValInRegion(targetRegion,
                            rel.rel_addr() - targetRegion->getDiskOffset(),
                            addressWidth, library_adjust) )
                 {
@@ -1658,7 +1658,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
                 }
                 break;
             case R_386_JMP_SLOT:
-                if( !adjustValInRegion(targetRegion, 
+                if( !adjustValInRegion(targetRegion,
                            rel.rel_addr() - targetRegion->getDiskOffset(),
                            addressWidth, library_adjust) )
                 {
@@ -1674,7 +1674,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
 
     // XXX The GOT also holds a pointer to the DYNAMIC segment -- this is currently not
     // updated. However, this appears to be unneeded for regular shared libraries.
-    
+
     // From the SYS V ABI x86 supplement
     // "The table's entry zero is reserved to hold the address of the dynamic structure,
     // referenced with the symbol _DYNAMIC. This allows a program, such as the
@@ -1682,7 +1682,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
     // its relocation entries. This is especially important for the dynamic linker, because
     // it must initialize itself without relying on other programs to relocate its memory
     // image."
-    
+
     // In order to implement this, would have determine the final address of a new .dynamic
     // section before outputting the patched GOT data -- this will require some refactoring.
 #else
@@ -1694,7 +1694,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
 }
 
 bool emitElfStatic::calculateTOCs(Symtab *target, deque<Region *> &regions, Offset GOTstart, Offset newStart, Offset globalOffset) {
-  rewrite_printf("Calculating TOCs for merged GOT sections, base is 0x%lx, new regions at 0x%lx\n", 
+  rewrite_printf("Calculating TOCs for merged GOT sections, base is 0x%lx, new regions at 0x%lx\n",
 		 GOTstart + globalOffset,
 		 GOTstart + newStart + globalOffset);
 
@@ -1706,11 +1706,11 @@ bool emitElfStatic::calculateTOCs(Symtab *target, deque<Region *> &regions, Offs
   for (deque<Region *>::iterator iter = regions.begin(); iter != regions.end(); ++iter) {
     Region *reg = *iter;
     Symtab *symtab = reg->symtab();
-    
+
     Offset end = current + reg->getDiskSize();
 
     // We'd like the TOC to be GOTbase + 0x8000, so long as that can address the end of the current
-    // region. 
+    // region.
     if ((currentTOC + 0x7ff0) < end) {
       // Crud...
       // OTOH, we can't reference anything outside the current GOT, so just rebase it
@@ -1741,9 +1741,9 @@ Offset emitElfStatic::allocatePLTEntries(std::map<Symbol *, std::pair<Offset, Of
   unsigned entry_size = 0;
 #else
 	unsigned entry_size = 0;
-#warning "AArch64:"
-#warning "steve: entry_size is tmp 0, need to be defined later"
-//#error "Unknown architecture"
+//#warning "AArch64:"
+//#warning "steve: entry_size is tmp 0, need to be defined later"
+#error "Unknown architecture"
 #endif
 
   Offset cur = pltOffset;
@@ -1762,8 +1762,8 @@ bool emitElfStatic::addIndirectSymbol(Symbol *sym, LinkMap &lmap) {
   return true;
 }
 
-  
-bool emitElfStatic::buildPLT(Symtab *target, Offset globalOffset, 
+
+bool emitElfStatic::buildPLT(Symtab *target, Offset globalOffset,
 			     LinkMap &lmap, StaticLinkError &err,
 			     string &errMsg) {
   (void)target; (void)globalOffset; (void)err; (void)errMsg; // unused
@@ -1852,7 +1852,7 @@ Offset emitElfStatic::allocateRelGOTSection(const std::map<Symbol *, std::pair<O
 #define R_386_IRELATIVE 42
 #endif
 
-bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset, 
+bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset,
 			     LinkMap &lmap, StaticLinkError &err,
 			     string &errMsg) {
   (void)err; (void)errMsg; // unused
@@ -1866,10 +1866,10 @@ bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset,
   if (addressWidth_ == 8) {
     // 64-bit uses RELA
     unsigned copied = 0;
-    
+
     char *data = lmap.allocatedData;
     Elf64_Rela *relas = (Elf64_Rela *) &(data[lmap.relRegionOffset]);
-    
+
     Region *rela = NULL;
     target->findRegion(rela, ".rela.plt");
     if (rela) {
@@ -1877,7 +1877,7 @@ bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset,
       copied += rela->getDiskSize();
       relas = (Elf64_Rela *) &(data[lmap.relRegionOffset + rela->getDiskSize()]);
     }
-    
+
     unsigned index = 0;
     for (auto iter = lmap.pltEntries.begin(); iter != lmap.pltEntries.end(); ++iter) {
       // Grab a GOT location
@@ -1892,10 +1892,10 @@ bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset,
   else {
     // 32 bit uses REL
     unsigned copied = 0;
-    
+
     char *data = lmap.allocatedData;
     Elf32_Rel *rels = (Elf32_Rel *) &(data[lmap.relRegionOffset]);
-    
+
     Region *rel = NULL;
     target->findRegion(rel, ".rel.plt");
     if (rel) {
@@ -1903,19 +1903,19 @@ bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset,
       copied += rel->getDiskSize();
       rels = (Elf32_Rel *) &(data[lmap.relRegionOffset + rel->getDiskSize()]);
     }
-    
+
     unsigned index = 0;
     for (auto iter = lmap.pltEntries.begin(); iter != lmap.pltEntries.end(); ++iter) {
       // Grab a GOT location
       rels[index].r_offset = iter->second.second;
       rels[index].r_info = ELF32_R_INFO((unsigned long) STN_UNDEF, R_386_IRELATIVE);
-      // For a REL relocation, the addend goes in *offset instead of its own 
+      // For a REL relocation, the addend goes in *offset instead of its own
       // slot...
 
       // So find the data address for rels[index].r_offset
       // and set it to iter->first->getOffset(), AKA the symbol address
 
-      // We should be writing into .dyninstRELAgot; just have to figure out how. 
+      // We should be writing into .dyninstRELAgot; just have to figure out how.
       long *got = (long *) &(data[rels[index].r_offset - globalOffset]);
       *got = iter->first->getOffset();
 

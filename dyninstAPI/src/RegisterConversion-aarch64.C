@@ -42,7 +42,7 @@ using namespace Dyninst::InstructionAPI;
 using namespace std;
 using namespace boost::assign;
 
-#warning "This file is not verified yet!"
+//#warning "This file is not verified yet!"
 multimap<Register, MachRegister> regToMachReg64 = map_list_of
   (registerSpace::r0,  		aarch64::x0)
   (registerSpace::r1,  		aarch64::x1)
