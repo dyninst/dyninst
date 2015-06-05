@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -36,20 +36,20 @@
 using namespace boost::assign;
 
 // We use the singleton approach, rather than static construction, to ensure the
-// register maps are created correctly. In at least one case (Ubuntu 12.04) they 
-// weren't. 
+// register maps are created correctly. In at least one case (Ubuntu 12.04) they
+// weren't.
 
 namespace Dyninst {
 namespace DataflowAPI {
 
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows)
-   // This fails on VS2010; revisit when we move to VS2012. 
+   // This fails on VS2010; revisit when we move to VS2012.
    // Also on gcc 4.3.
 
 RegisterMap &machRegIndex_x86() {
    static RegisterMap mrmap;
    if (mrmap.empty()) {
-      mrmap = { 
+      mrmap = {
          {x86::eax, 0},
          {x86::ecx, 1},
          {x86::edx, 2},
@@ -203,7 +203,7 @@ RegisterMap &machRegIndex_x86_64() {
          {x86_64::tr4, 74},
          {x86_64::tr5, 75},
          {x86_64::tr6, 76},
-         {x86_64::tr7, 77} 
+         {x86_64::tr7, 77}
       };
    }
    return mrmap;
@@ -1096,37 +1096,37 @@ RegisterMap &machRegIndex_aarch64() {
    static RegisterMap mrmap;
    if (mrmap.empty()) {
       mrmap =  map_list_of
-				(aarch64::r0, 0)  	
-        (aarch64::r1, 1)
-        (aarch64::r2, 2)
-        (aarch64::r3, 3)
-        (aarch64::r4, 4)
-        (aarch64::r5, 5)
-        (aarch64::r6, 6)
-        (aarch64::r7, 7)
-        (aarch64::r8, 8)
-        (aarch64::r9, 9)
-        (aarch64::r10, 10)
-        (aarch64::r11, 11)
-        (aarch64::r12, 12)
-        (aarch64::r13, 13)
-        (aarch64::r14, 14)
-        (aarch64::r15, 15)
-        (aarch64::r16, 16)
-        (aarch64::r17, 17)
-        (aarch64::r18, 18)
-        (aarch64::r19, 19)
-        (aarch64::r20, 20)
-        (aarch64::r21, 21)
-        (aarch64::r22, 22)
-        (aarch64::r23, 23)
-        (aarch64::r24, 24)
-        (aarch64::r25, 25)
-        (aarch64::r26, 26)
-        (aarch64::r27, 27)
-        (aarch64::r28, 28)
-        (aarch64::r29, 29)
-        (aarch64::r30, 30);
+		(aarch64::x0, 0)
+        (aarch64::x1, 1)
+        (aarch64::x2, 2)
+        (aarch64::x3, 3)
+        (aarch64::x4, 4)
+        (aarch64::x5, 5)
+        (aarch64::x6, 6)
+        (aarch64::x7, 7)
+        (aarch64::x8, 8)
+        (aarch64::x9, 9)
+        (aarch64::x10, 10)
+        (aarch64::x11, 11)
+        (aarch64::x12, 12)
+        (aarch64::x13, 13)
+        (aarch64::x14, 14)
+        (aarch64::x15, 15)
+        (aarch64::x16, 16)
+        (aarch64::x17, 17)
+        (aarch64::x18, 18)
+        (aarch64::x19, 19)
+        (aarch64::x20, 20)
+        (aarch64::x21, 21)
+        (aarch64::x22, 22)
+        (aarch64::x23, 23)
+        (aarch64::x24, 24)
+        (aarch64::x25, 25)
+        (aarch64::x26, 26)
+        (aarch64::x27, 27)
+        (aarch64::x28, 28)
+        (aarch64::x29, 29)
+        (aarch64::x30, 30);
 	 }
 	return mrmap;
 }
