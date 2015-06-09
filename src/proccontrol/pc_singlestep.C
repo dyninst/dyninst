@@ -30,6 +30,8 @@
 #include "proccontrol_comp.h"
 #include "communication.h"
 
+//this should be changed after adding compile flag
+
 using namespace std;
 
 class pc_singlestepMutator : public ProcControlMutator {
@@ -49,6 +51,7 @@ extern "C" DLLEXPORT TestMutator* pc_singlestep_factory()
 struct proc_info_ss {
    Address func[NUM_FUNCS];
    Address start;
+   //Address SSbp;
    proc_info_ss()
    {
 	   start = 0x0;
@@ -78,8 +81,10 @@ static std::map<Thread::const_ptr, thread_info> tinfo;
 static std::map<Process::const_ptr, proc_info_ss> pinfo;
 Breakpoint::ptr bp;
 Breakpoint::ptr early_bp;
+Breakpoint::ptr ss_bp;
 
 static bool myerror;
+static bool goingToSS = false;
 
 Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
 {
@@ -117,6 +122,8 @@ Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
 	return Process::cbProcContinue;
 }
 
+static int instCount = 0;
+
 Process::cb_ret_t on_singlestep(Event::const_ptr ev)
 {
    MachRegister pc = MachRegister::getPC(ev->getProcess()->getArchitecture());
@@ -130,8 +137,9 @@ Process::cb_ret_t on_singlestep(Event::const_ptr ev)
       return Process::cbDefault;
    }
 
-   pthrd_printf("ARM-info: Singlestep @ 0x%x\n", loc);
-   //cerr << "Singlestep @ " << hex << loc << dec << endl;
+   // for debugging
+   char buffer_inst[4];
+   ev->getProcess()->readMemory(buffer_inst, loc, 4);
 
    if (!ev->getThread()->getSingleStepMode())
    {
@@ -170,7 +178,7 @@ test_results_t pc_singlestepMutator::executeTest()
    pinfo.clear();
    bp = Breakpoint::newBreakpoint();
    early_bp = Breakpoint::newBreakpoint();
-
+   ss_bp = Breakpoint::newBreakpoint();
 
    std::set<Thread::ptr> singlestep_threads;
    std::set<Thread::ptr> regular_threads;
@@ -241,15 +249,19 @@ test_results_t pc_singlestepMutator::executeTest()
       sync_msg.code = SYNCLOC_CODE;
 	  logerror("Mutator sending sync message\n");
 
-	  fprintf(stderr, "Mutator sending sync message\n");
       result = comp->send_message((unsigned char *) &sync_msg, sizeof(sync_msg),
                                        proc);
-	  fprintf(stderr, "Mutator sent sync message\n");
 
       if (!result) {
          logerror("Failed to send sync message to process\n");
          myerror = true;
       }
+
+// move the setting SS later after the mutatee recv and then send the
+// msg, in order to avoid the mutatee stepping into SS mode via recv
+// and send.
+// we use a different testing stragedy for now
+//
 
       ThreadPool::iterator k;
       int count = 0;
@@ -273,7 +285,6 @@ test_results_t pc_singlestepMutator::executeTest()
       }
    }
 
-
    for (std::vector<Process::ptr>::iterator i = comp->procs.begin();
         i!= comp->procs.end(); i++) {
       Process::ptr proc = *i;
@@ -283,6 +294,7 @@ test_results_t pc_singlestepMutator::executeTest()
          myerror = true;
       }
    }
+
    logerror("Mutator waiting for sync message\n");
 
    syncloc loc[NUM_PARALLEL_PROCS];

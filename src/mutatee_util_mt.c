@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -39,7 +39,7 @@
 
 thread_t spawnNewThread(void *initial_func, void *param) {
     thread_t newthr;
-    newthr.hndl = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) initial_func, 
+    newthr.hndl = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) initial_func,
                                param, 0, (LPDWORD) &(newthr.threadid));
     return newthr;
 }
@@ -115,14 +115,15 @@ thread_t spawnNewThread(void *initial_func, void *param) {
     pthread_t new_thread;
     int result;
 
+
     if (!initialized) {
         initialized = 1;
         pthread_attr_init(&attr);
         pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
     }
-    
-    result = pthread_create(&new_thread, &attr, 
-                            (void*(*)(void*)) initial_func, 
+
+    result = pthread_create(&new_thread, &attr,
+                            (void*(*)(void*)) initial_func,
                             param);
     if (result != 0) {
         return 0;
@@ -154,7 +155,7 @@ void testUnlock(testlock_t *lck) {
 
 #if defined(os_aix_test)
 void initBarrier(testbarrier_t *barrier, unsigned int count) {
-    assert(0); // XXX What to do if missing pthread_barrier_t? 
+    assert(0); // XXX What to do if missing pthread_barrier_t?
 }
 
 void waitTestBarrier(testbarrier_t *barrier) {

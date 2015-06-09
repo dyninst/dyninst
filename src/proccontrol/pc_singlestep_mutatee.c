@@ -101,7 +101,6 @@ static testlock_t init_lock;
 
 static int threadFunc(int myid, void *data)
 {
-    printf("threadFunc...\n");
    data = NULL;
 
    testLock(&init_lock);
@@ -122,7 +121,6 @@ int pc_singlestep_mutatee()
    myerror = 0;
    initLock(&init_lock);
    testLock(&init_lock);
-    //fprintf(stderr, "pc_singlestep_mutatee acquired init_lock\n");
 
    result = initProcControlTest(threadFunc, NULL);
    if (result != 0) {
@@ -157,18 +155,15 @@ int pc_singlestep_mutatee()
       }
    }
 
-#if 1
+   //mutatee stops here
    //this is the dead code in aarch64
-   fprintf(stderr, "before recv_message: SYNCLOC_CODE is expected\n");
    result = recv_message((unsigned char *) &msg, sizeof(syncloc));
    if (result == -1) {
       output->log(STDERR, "Failed to recv sync message\n");
       testUnlock(&init_lock);
       return -1;
    }
-#else
-   msg.code = SYNCLOC_CODE;
-#endif
+
    if (msg.code != SYNCLOC_CODE) {
       output->log(STDERR, "Received unexpected sync message (singlestep)\n");
       testUnlock(&init_lock);

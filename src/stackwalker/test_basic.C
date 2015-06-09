@@ -34,15 +34,15 @@ void walk_stack1(Walker *walker);
 void parse_args(std::vector<Walker *> &walkers, int argc, char *argv[]);
 void usage();
 
-void *a = NULL;
+void *a = 0;
 
 /**
- * An example and test showing how to build a stackwalker object, how to 
+ * An example and test showing how to build a stackwalker object, how to
  * handle the debugging aspects of the stackwalker, and finally how to collect
  * a stackwalk.
  *
  * This tool takes a collection of processess on the command line that may include
- * attached processes, created processes, or the current process.  Once every 
+ * attached processes, created processes, or the current process.  Once every
  * five seconds, or when input is available on stdin, a stackwalk is taken.
  **/
 int main(int argc, char *argv[])
@@ -52,10 +52,12 @@ int main(int argc, char *argv[])
   if (!walkers.size())
      usage();
 
+    printf("walker size %d\n",walkers.size());
+
 
   /**
    * The notification FD is used by third party stackwalkers (debuggers) to tell
-   * the user tool when control needs to be given to StackwalkerAPI to handle a 
+   * the user tool when control needs to be given to StackwalkerAPI to handle a
    * debug event.  If data is available on the notificationFD then the user
    * should call handleDebugEvent.
    **/
@@ -74,7 +76,7 @@ int main(int argc, char *argv[])
   struct timeval timeout;
   timeout.tv_sec = 5;
   timeout.tv_usec = 0;
-  
+
   while (walkers.size())
   {
     //Set up the select call.  Wait for input on stdin or the notificationFD.
@@ -88,7 +90,7 @@ int main(int argc, char *argv[])
        FD_SET(notification_fd, &readfds);
        max = notification_fd + 1;
     }
-       
+
     /**
      * Wait for one of:
      *  5 seconds                     - Then do a stackwalk
@@ -128,7 +130,7 @@ int main(int argc, char *argv[])
        printf("Last walker exited.  Terminating\n");
        exit(0);
     }
-        
+
     if (FD_ISSET(0, &readfds))
     {
       //Input was available on stdin.  If it's 'q', then quit.
@@ -146,7 +148,7 @@ int main(int argc, char *argv[])
     {
       //Either the five seconds timed out (result == 0) or we have input
       // on stdin (result == 1).  Perform a stackwalk.
-      for (unsigned i=0; i<walkers.size(); i++) 
+      for (unsigned i=0; i<walkers.size(); i++)
       {
          if (!walkers[i])
             continue;
@@ -155,7 +157,7 @@ int main(int argc, char *argv[])
       }
       timeout.tv_sec = 5;
     }
-  }  
+  }
   return 0;
 }
 
@@ -207,7 +209,7 @@ void parse_args(std::vector<Walker *> &walkers, int argc, char *argv[])
     }
     if (!walker)
     {
-      fprintf(stderr, "Couldn't creating walker: %s\n", 
+      fprintf(stderr, "Couldn't creating walker: %s\n",
               getLastErrorMsg());
       continue;
     }
@@ -248,18 +250,23 @@ void walk_stack3(Walker *walker)
   }
   walker->getAvailableThreads(threads);
 
-  printf("Stack for process %d\n", 
+  printf("Stack for process %d\n",
             walker->getProcessState()->getProcessId());
   for (unsigned j=0; j<threads.size(); j++) {
      swalk.clear();
      walker->walkStack(swalk, threads[j]);
      printf("   Stack for thread %d\n", threads[j]);
+     if(swalk.size() == 0){
+         printf(" swalk is blank.\n");
+         assert(0);
+     }
+
      for (unsigned i=0; i<swalk.size(); i++) {
         std::string name;
         swalk[i].getName(name);
-        printf("   %s @ 0x%lx, FP = 0x%lx    ", 
-               name.c_str(), 
-               (unsigned long) swalk[i].getRA(), 
+        printf("   %s @ 0x%lx, FP = 0x%lx    ",
+               name.c_str(),
+               (unsigned long) swalk[i].getRA(),
                (unsigned long) swalk[i].getFP());
 #if defined(use_symtab)
         getVariables(swalk, i);
@@ -274,7 +281,7 @@ void walk_stack3(Walker *walker)
         printf("\n");
      }
   }
-  if (dbg) 
+  if (dbg)
      dbg->resume();
 }
 
@@ -289,7 +296,7 @@ bool getVariables(std::vector<Frame> &swalk, unsigned frame)
    std::vector<localVar *> vars;
    bool result = f->getLocalVariables(vars);
    if (!result) {
-      printf("<no vars>\n", 
+      printf("<no vars>\n",
               f->getAllMangledNames()[0].c_str());
       return false;
    }
@@ -302,7 +309,7 @@ bool getVariables(std::vector<Frame> &swalk, unsigned frame)
       int result = getLocalVariableValue(*i, swalk, frame, buffer, 1024);
       if (count % 4 == 0 && count != 0)
          printf("\n      ");
-      else 
+      else
          printf(" ");
 
       if (result != glvv_Success) {
@@ -318,9 +325,9 @@ bool getVariables(std::vector<Frame> &swalk, unsigned frame)
          printf("<%s = %u>", var->getName().c_str(), *((unsigned int *) buffer));
       }
       else {
-         printf("<%s = Unprintable Size>", var->getName().c_str()); 
+         printf("<%s = Unprintable Size>", var->getName().c_str());
       }
-   } 
+   }
    return true;
 }
 #endif
@@ -329,7 +336,7 @@ void walk_stack2(Walker *walker)
 {
    if (a) {
       printf("I'm an a\n");
-   } 
+   }
    walk_stack3(walker);
    if (a) {
       printf("I'm an\n");
@@ -340,7 +347,7 @@ void walk_stack1(Walker *walker)
 {
    if (a) {
       printf("I'm no walker\n");
-   } 
+   }
    walk_stack2(walker);
    if (a) {
       printf("I'm no walker\n");
