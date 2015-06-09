@@ -2460,10 +2460,10 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    iovec.iov_base = &regs;
    iovec.iov_len = sizeof(regs);
    long ret = do_ptrace((pt_req)PTRACE_GETREGSET, lwp, (void *)NT_PRSTATUS, &iovec);
-   if( ret < 0){
-       perr_printf("ERROR-ARM: Unable to fetch registers!\n");
-       return false;
-   }
+   //if( ret < 0){
+   //    perr_printf("ERROR-ARM: Unable to fetch registers!\n");
+   //    return false;
+   //}
    result = regs[(int)(offset/8)]; //30, 31(sp), 32(pc), 33(pstate)
 #else
    result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);

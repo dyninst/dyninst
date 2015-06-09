@@ -955,14 +955,10 @@ namespace Dyninst
       DEF_REGISTER(q31,     31 | Q_REG |FPR | Arch_aarch64, "aarch64");
 
       //GPRs aliases:
-      //by convention x29 is used as frame pointer
+      //by convention
+      //x29 is used as frame pointer
 	  //x30 is the linking register
       //x31 can be sp or zero register depending on the context
-      //DEF_REGISTER(zr,      31 | FULL  |GPR | Arch_aarch64, "aarch64");
-      //DEF_REGISTER(wzr,     31 | W_REG |GPR | Arch_aarch64, "aarch64");
-      //DEF_REGISTER(lr,      30 | FULL  |GPR | Arch_aarch64, "aarch64");
-      //DEF_REGISTER(fp,      29 | FULL  |GPR | Arch_aarch64, "aarch64");
-      //DEF_REGISTER(wsp,     31 | W_REG |GPR | Arch_aarch64, "aarch64");
 
       //special registers
 	  //PC is not writable in aarch64

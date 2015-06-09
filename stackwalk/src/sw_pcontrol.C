@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -73,7 +73,7 @@ public:
    virtual void notifyOfUpdate();
    virtual Address getLibTrapAddress();
    virtual bool getAOut(LibAddrPair &ao);
-  
+
    bool updateLibraries();
    bool cacheLibraryRanges(Library::ptr lib);
    bool memoryScan(Process::ptr proc, Address addr, LibAddrPair &lib);
@@ -95,7 +95,7 @@ ProcDebug *ProcDebug::newProcDebug(PID pid, std::string executable)
       sw_printf("[%s:%u] - ProcControl error creating process\n", FILE__, __LINE__);
       return NULL;
    }
-   
+
    return newProcDebug(proc);
 }
 
@@ -119,7 +119,7 @@ bool ProcDebug::newProcDebugSet(const std::vector<PID> &pids,
    return true;
 }
 
-ProcDebug *ProcDebug::newProcDebug(std::string executable, 
+ProcDebug *ProcDebug::newProcDebug(std::string executable,
                                    const std::vector<std::string> &argv)
 {
    Process::ptr proc = Process::createProcess(executable, argv);
@@ -131,7 +131,7 @@ ProcDebug *ProcDebug::newProcDebug(std::string executable,
 
    ProcDebug *pd = new ProcDebug(proc);
    pd->library_tracker = new PCLibraryState(pd);
-   
+
    return pd;
 }
 
@@ -152,7 +152,7 @@ ProcDebug::~ProcDebug()
    } while (0)
 #define CHECK_PROC_LIVE CHECK_PROC_LIVE_RET(false)
 
-bool ProcDebug::getRegValue(MachRegister reg, THR_ID thread, 
+bool ProcDebug::getRegValue(MachRegister reg, THR_ID thread,
                             MachRegisterVal &val)
 {
    CHECK_PROC_LIVE;
@@ -208,7 +208,7 @@ bool ProcDebug::getDefaultThread(THR_ID &default_tid)
    return true;
 }
 
-unsigned ProcDebug::getAddressWidth() 
+unsigned ProcDebug::getAddressWidth()
 {
    CHECK_PROC_LIVE;
    return getArchAddressWidth(proc->getArchitecture());
@@ -220,12 +220,12 @@ bool ProcDebug::preStackwalk(THR_ID tid)
    if (tid == NULL_THR_ID)
       getDefaultThread(tid);
    sw_printf("[%s:%u] - Calling preStackwalk for thread %d\n", FILE__, __LINE__, tid);
-   
+
    ThreadPool::iterator thread_iter = proc->threads().find(tid);
    if (thread_iter == proc->threads().end()) {
       sw_printf("[%s:%u] - Stackwalk on non-existant thread\n", FILE__, __LINE__);
       Stackwalker::setLastError(err_badparam, "Invalid thread ID\n");
-      return false;     
+      return false;
    }
    Thread::ptr active_thread = *thread_iter;
 
@@ -240,7 +240,7 @@ bool ProcDebug::preStackwalk(THR_ID tid)
       needs_resume.insert(active_thread);
    }
    return true;
-}   
+}
 
 bool ProcDebug::postStackwalk(THR_ID tid)
 {
@@ -248,15 +248,15 @@ bool ProcDebug::postStackwalk(THR_ID tid)
    if (tid == NULL_THR_ID)
       getDefaultThread(tid);
    sw_printf("[%s:%u] - Calling postStackwalk for thread %d\n", FILE__, __LINE__, tid);
-   
+
    ThreadPool::iterator thread_iter = proc->threads().find(tid);
    if (thread_iter == proc->threads().end()) {
       sw_printf("[%s:%u] - Stackwalk on non-existant thread\n", FILE__, __LINE__);
       Stackwalker::setLastError(err_badparam, "Invalid thread ID\n");
-      return false;     
+      return false;
    }
    Thread::ptr active_thread = *thread_iter;
-   
+
    set<Thread::ptr>::iterator i = needs_resume.find(active_thread);
    if (i != needs_resume.end()) {
       sw_printf("[%s:%u] - Resuming thread %d after stackwalk\n", FILE__, __LINE__, tid);
@@ -270,7 +270,7 @@ bool ProcDebug::postStackwalk(THR_ID tid)
    }
    return true;
 }
-  
+
 bool ProcDebug::pause(THR_ID tid)
 {
    CHECK_PROC_LIVE;
@@ -279,7 +279,7 @@ bool ProcDebug::pause(THR_ID tid)
 
       bool result = proc->stopProc();
       if (!result) {
-         sw_printf("[%s:%u] - Error stopping process %d\n", 
+         sw_printf("[%s:%u] - Error stopping process %d\n",
                    FILE__, __LINE__, proc->getPid());
          Stackwalker::setLastError(err_proccontrol, ProcControlAPI::getLastErrorMsg());
          return false;
@@ -291,7 +291,7 @@ bool ProcDebug::pause(THR_ID tid)
    if (thread_iter == proc->threads().end()) {
       sw_printf("[%s:%u] - stop on non-existant thread\n", FILE__, __LINE__);
       Stackwalker::setLastError(err_badparam, "Invalid thread ID\n");
-      return false;     
+      return false;
    }
    Thread::ptr thread = *thread_iter;
    sw_printf("[%s:%u] - Stopping thread %d\n", FILE__, __LINE__, tid);
@@ -307,7 +307,7 @@ bool ProcDebug::pause(THR_ID tid)
       Stackwalker::setLastError(err_proccontrol, ProcControlAPI::getLastErrorMsg());
       return false;
    }
-   
+
    return true;
 }
 
@@ -319,7 +319,7 @@ bool ProcDebug::resume(THR_ID tid)
 
       bool result = proc->continueProc();
       if (!result) {
-         sw_printf("[%s:%u] - Error running process %d\n", 
+         sw_printf("[%s:%u] - Error running process %d\n",
                    FILE__, __LINE__, proc->getPid());
          Stackwalker::setLastError(err_proccontrol, ProcControlAPI::getLastErrorMsg());
          return false;
@@ -331,7 +331,7 @@ bool ProcDebug::resume(THR_ID tid)
    if (thread_iter == proc->threads().end()) {
       sw_printf("[%s:%u] - continue on non-existant thread\n", FILE__, __LINE__);
       Stackwalker::setLastError(err_badparam, "Invalid thread ID\n");
-      return false;     
+      return false;
    }
    Thread::ptr thread = *thread_iter;
    sw_printf("[%s:%u] - Running thread %d\n", FILE__, __LINE__, tid);
@@ -347,7 +347,7 @@ bool ProcDebug::resume(THR_ID tid)
       Stackwalker::setLastError(err_proccontrol, ProcControlAPI::getLastErrorMsg());
       return false;
    }
-   
+
    return true;
 }
 
@@ -358,10 +358,10 @@ bool ProcDebug::isTerminated()
 
 bool ProcDebug::detach(bool leave_stopped)
 {
-   CHECK_PROC_LIVE;   
+   CHECK_PROC_LIVE;
    bool result = proc->detach(leave_stopped);
    if (!result) {
-      sw_printf("[%s:%u] - Error detaching from process %d\n", FILE__, __LINE__, 
+      sw_printf("[%s:%u] - Error detaching from process %d\n", FILE__, __LINE__,
                 proc->getPid());
       Stackwalker::setLastError(err_proccontrol, ProcControlAPI::getLastErrorMsg());
       return false;
@@ -411,11 +411,11 @@ PCLibraryState::PCLibraryState(ProcessState *pd) :
 {
    pdebug = static_cast<ProcDebug *>(pd);
 }
-   
+
 PCLibraryState::~PCLibraryState()
 {
 }
- 
+
 bool PCLibraryState::cacheLibraryRanges(Library::ptr lib)
 {
    std::string filename = lib->getName();
@@ -424,7 +424,7 @@ bool PCLibraryState::cacheLibraryRanges(Library::ptr lib)
    SymbolReaderFactory *fact = getDefaultSymbolReader();
    SymReader *reader = fact->openSymbolReader(filename);
    if (!reader) {
-      sw_printf("[%s:%u] - Error could not open expected file %s\n", 
+      sw_printf("[%s:%u] - Error could not open expected file %s\n",
                 FILE__, __LINE__, filename.c_str());
       return false;
    }
@@ -437,9 +437,9 @@ bool PCLibraryState::cacheLibraryRanges(Library::ptr lib)
       Address segment_start = segment.mem_addr + base;
       Address segment_end = segment_start + segment.mem_size;
 
-      loadedLibs.insert(segment_start, segment_end, 
-                        makeCache(LibAddrPair(lib->getName(), 
-                                              lib->getLoadAddress()), 
+      loadedLibs.insert(segment_start, segment_end,
+                        makeCache(LibAddrPair(lib->getName(),
+                                              lib->getLoadAddress()),
                                   lib));
    }
    return true;
@@ -448,9 +448,9 @@ bool PCLibraryState::cacheLibraryRanges(Library::ptr lib)
 bool PCLibraryState::findInCache(Process::ptr proc, Address addr, LibAddrPair &lib) {
    cache_t tmp;
 
-   if (!loadedLibs.find(addr, tmp)) { 
+   if (!loadedLibs.find(addr, tmp)) {
       return false;
-   }   
+   }
 
    Library::ptr lib_ptr = tmp.second;
    if (proc->libraries().find(lib_ptr) != proc->libraries().end()) {
@@ -458,7 +458,7 @@ bool PCLibraryState::findInCache(Process::ptr proc, Address addr, LibAddrPair &l
       return true;
    }
    removeLibFromCache(tmp);
-   
+
    return false;
 }
 
@@ -494,12 +494,12 @@ bool PCLibraryState::checkLibraryContains(Address addr, Library::ptr lib)
 
 void PCLibraryState::checkForNewLib(Library::ptr lib)
 {
-   
+
    if (lib->getData())
       return;
    sw_printf("[%s:%u] - Detected new library %s at %lx, notifying\n",
              FILE__, __LINE__, lib->getName().c_str(), lib->getLoadAddress());
-   
+
    lib->setData((void *) 0x1);
 
    StepperGroup *group = pdebug->getWalker()->getStepperGroup();
@@ -531,7 +531,7 @@ addr.
 
 If, for some reason, we fail to get a DYNAMIC section then we'll stash
 that library away in 'zero_dynamic_libs' and check it when done.
-*/ 
+*/
 
 bool PCLibraryState::getLibraryAtAddr(Address addr, LibAddrPair &lib)
 {
@@ -541,7 +541,7 @@ bool PCLibraryState::getLibraryAtAddr(Address addr, LibAddrPair &lib)
    /**
     * An OS can have a list of platform-special libs (currently only the
     * vsyscall DSO on Linux).  Those don't appear in the normal link_map
-    * and thus won't have dynamic addresses.  Check their library range 
+    * and thus won't have dynamic addresses.  Check their library range
     * manually.
     **/
 
@@ -584,7 +584,7 @@ bool PCLibraryState::getLibraryAtAddr(Address addr, LibAddrPair &lib)
 }
 
 bool PCLibraryState::memoryScan(Process::ptr proc, Address addr, LibAddrPair &lib) {
-   
+
    LibraryPool::iterator i;
    Library::ptr nearest_predecessor = Library::ptr();
    signed int pred_distance = 0;
@@ -597,7 +597,7 @@ bool PCLibraryState::memoryScan(Process::ptr proc, Address addr, LibAddrPair &li
     * directly before and after our target address (nearest_predecessor
     * and nearest_successor).
     *
-    * They dynamic linker (and who-knows-what on future systems) can have a 
+    * They dynamic linker (and who-knows-what on future systems) can have a
     * dynamic address of zero.  Remember any library with a zero dynamic
     * address with zero_dynamic_libs, and manually check those if the
     * nearest_successor and nearest_predecessor.
@@ -645,7 +645,7 @@ bool PCLibraryState::memoryScan(Process::ptr proc, Address addr, LibAddrPair &li
    }
 
    /**
-    * Check if predessor contains our address first--this should be the typical case 
+    * Check if predessor contains our address first--this should be the typical case
     **/
    if (nearest_predecessor && checkLibraryContains(addr, nearest_predecessor)) {
       lib.first = nearest_predecessor->getName();
@@ -679,15 +679,15 @@ bool PCLibraryState::memoryScan(Process::ptr proc, Address addr, LibAddrPair &li
    }
    if(checkLibraryContains(addr, proc->libraries().getExecutable()))
    {
-     
+
      lib.first = proc->libraries().getExecutable()->getName();
      lib.second = proc->libraries().getExecutable()->getLoadAddress();
      sw_printf("[%s:%u] - Found executable %s contains address %lx\n", FILE__,
 	       __LINE__, lib.first.c_str(), addr);
      return true;
    }
-   
-   sw_printf("[%s:%u] - Could not find library for addr %lx\n", 
+
+   sw_printf("[%s:%u] - Could not find library for addr %lx\n",
              FILE__, __LINE__, addr);
    return false;
 }
@@ -697,7 +697,7 @@ bool PCLibraryState::getLibraries(std::vector<LibAddrPair> &libs, bool allow_ref
    Process::ptr proc = pdebug->getProc();
    CHECK_PROC_LIVE;
 
-   LibraryPool::iterator i;   
+   LibraryPool::iterator i;
    for (i = proc->libraries().begin(); i != proc->libraries().end(); i++)
    {
       if (allow_refresh)
@@ -720,7 +720,7 @@ bool PCLibraryState::updateLibraries()
    Process::ptr proc = pdebug->getProc();
    CHECK_PROC_LIVE;
 
-   LibraryPool::iterator i;   
+   LibraryPool::iterator i;
    for (i = proc->libraries().begin(); i != proc->libraries().end(); i++)
    {
       checkForNewLib(*i);
@@ -793,7 +793,7 @@ private:
 public:
    StackCallback(CallTree &t);
    virtual ~StackCallback();
-   
+
    virtual bool beginStackWalk(Thread::ptr thr);
    virtual bool addStackFrame(Thread::ptr thr, Dyninst::Address ra, Dyninst::Address sp, Dyninst::Address fp);
    virtual void endStackWalk(Thread::ptr thr);
@@ -817,7 +817,7 @@ bool StackCallback::beginStackWalk(Thread::ptr thr)
    Process::ptr proc = thr->getProcess();
    ProcessState *pstate = ProcessState::getProcessStateByPid(proc->getPid());
    if (!pstate) {
-      sw_printf("[%s:%u] - Error, unknown process state for %d while starting stackwalk\n", 
+      sw_printf("[%s:%u] - Error, unknown process state for %d while starting stackwalk\n",
                 FILE__, __LINE__, proc->getPid());
       return false;
    }
@@ -836,7 +836,7 @@ bool StackCallback::addStackFrame(Thread::ptr thr,
    f.setSP(sp);
    f.setFP(fp);
    f.setThread(thr->getLWP());
-   
+
    cur = tree.addFrame(f, cur);
    return true;
 }

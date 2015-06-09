@@ -45,9 +45,9 @@ using namespace Dyninst::Stackwalker;
 #if defined(os_linux) || defined(os_bg)
 
 //get fp value
-#define GET_FRAME_BASE(spr)     __asm__("mov x0, x29\n" : "=r"(spr))
-#define GET_RET_ADDR(spr)       __asm__("mov x0, x30\n" : "=r"(spr))
-#define GET_STACK_POINTER(spr)  __asm__("mov x0, sp\n" : "=r"(spr))
+#define GET_FRAME_BASE(spr)     __asm__("mov x0, x29;" : "=r"(spr))
+//#define GET_RET_ADDR(spr)       __asm__("mov x0, x30;" : "=r"(spr))
+#define GET_STACK_POINTER(spr)  __asm__("mov x0, sp;" : "=r"(spr))
 
 #else
 
@@ -55,30 +55,33 @@ using namespace Dyninst::Stackwalker;
 
 #endif
 
-typedef struct{
+typedef struct {
     uint64_t FP;
     uint64_t LR;
-} ra_fp_pair_t;
+}ra_fp_pair_t;
 
 bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegisterVal &val)
 {
+  sw_printf("ARM-debug: getRegValue...\n");
   uint64_t *sp;
+  uint64_t *fp;
   ra_fp_pair_t *framePointer;
-  uint64_t *retAddr;
 
   bool found_reg = false;
-  GET_FRAME_BASE(framePointer);
 
-  if (reg.isStackPointer()) {
-    GET_STACK_POINTER(sp);
-    val = (Dyninst::MachRegisterVal) sp;
-    found_reg = false;
+  //GET_FRAME_BASE(fp);
+  GET_STACK_POINTER(sp);
+  //framePointer = (ra_fp_pair_t *) fp;
+  framePointer = (ra_fp_pair_t *) *sp;
+
+  if (reg.isStackPointer() || reg == Dyninst::StackTop) {
+    val = (Dyninst::MachRegisterVal) framePointer;
+    if(val != 0) found_reg = true;
   }
 
   if (reg.isFramePointer()) {
-     //GET_FRAME_BASE(framePointer);
      val = (Dyninst::MachRegisterVal) framePointer->FP;
-     found_reg = true;
+     if( val != 0) found_reg = true;
   }
 
   if (reg.isPC() || reg == Dyninst::ReturnAddr) {
@@ -88,9 +91,10 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
      else {
          assert(0);
      }
-     found_reg = true;
+     if( val != 0) found_reg = true;
   }
 
+  //sw_printf("sp (%lx), fp (%lx)\n", sp, fp);
   sw_printf("[%s:%u] - Returning value %lx for reg %s\n",
             FILE__, __LINE__, val, reg.name().c_str());
   return found_reg;
@@ -161,6 +165,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
     return gcf_error;
   }
 
+  sw_printf("ARM-debug: in_fp (%lx)\n",this_frame_pair.FP);
   // Read the previous frame
   if (sizeof(uint64_t) == addrWidth) {
     result = getProcessState()->readMem(&last_frame_pair, this_frame_pair.FP,
