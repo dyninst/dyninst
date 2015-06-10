@@ -49,8 +49,24 @@ class registerSlot;
 
 // Emitter moved to emitter.h - useful on other platforms as well
 
+class Emitterx86 : public Emitter {
+    public:
+        virtual ~Emitterx86() {};
+
+        virtual bool emitLoadRelativeSegReg(Register dest, Address offset, Register base, int size, codeGen &gen) = 0;
+
+        virtual bool emitXorRegRM(Register dest, Register base, int disp, codeGen& gen) = 0;
+        virtual bool emitXorRegReg(Register dest, Register base, codeGen& gen) = 0;
+        virtual bool emitXorRegImm(Register dest, int imm, codeGen& gen) = 0;
+        virtual bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen& gen) = 0;
+
+        virtual void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen) = 0;
+
+        virtual bool emitCallInstruction(codeGen &, func_instance *, Register) = 0;
+};
+
 // 32-bit class declared here since its implementation is in both inst-x86.C and emit-x86.C
-class EmitterIA32 : public Emitter {
+class EmitterIA32 : public Emitterx86 {
 
 public:
     virtual ~EmitterIA32() {};
@@ -69,6 +85,7 @@ public:
     void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
     bool emitCallRelative(Register, Address, Register, codeGen &) {assert (0); return false; }
     bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen);
+    bool emitLoadRelativeSegReg(Register dest, Address offset, Register base, int size, codeGen &gen);
     void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local,int size, codeGen &gen, Address offset);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
@@ -120,6 +137,12 @@ public:
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
     bool emitMoveRegToReg(registerSlot* /*src*/, registerSlot* /*dest*/, codeGen& /*gen*/) { assert(0); return true; }
+    void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen);
+
+    bool emitXorRegRM(Register dest, Register base, int disp, codeGen& gen);
+    bool emitXorRegReg(Register dest, Register base, codeGen& gen);
+    bool emitXorRegImm(Register dest, int imm, codeGen& gen);
+    bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen& gen);
 
 
  protected:
@@ -157,7 +180,6 @@ extern EmitterIA32Stat emitterIA32Stat;
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
 void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen);
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
-void emitLEA64(Register base, Register index, unsigned int scale, int disp, Register dest, bool is_64, codeGen &gen);
 void emitPushReg64(Register src, codeGen &gen);
 void emitPopReg64(Register dest, codeGen &gen);
 void emitMovImmToRM64(Register base, int disp, int imm, codeGen &gen);
@@ -167,7 +189,7 @@ void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int i
 		    bool is_64, codeGen &gen);
 
 #if defined(arch_x86_64)
-class EmitterAMD64 : public Emitter {
+class EmitterAMD64 : public Emitterx86 {
 
 public:
     virtual ~EmitterAMD64() {};
@@ -186,6 +208,7 @@ public:
     void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
     bool emitCallRelative(Register, Address, Register, codeGen &) {assert (0); return false; }
     bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen);
+    bool emitLoadRelativeSegReg(Register dest, Address offset, Register base, int size, codeGen &gen);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
 
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
@@ -234,6 +257,12 @@ public:
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
     bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
+    void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen);
+
+    bool emitXorRegRM(Register dest, Register base, int disp, codeGen& gen);
+    bool emitXorRegReg(Register dest, Register base, codeGen& gen);
+    bool emitXorRegImm(Register dest, int imm, codeGen& gen);
+    bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen& gen);
 
  protected:
     virtual bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret) = 0;

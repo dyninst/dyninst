@@ -246,6 +246,15 @@ BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreads()
    return catchup_threads;
 }
 
+BPatchSnippetHandle::thread_iter BPatchSnippetHandle::getCatchupThreads_begin()
+{
+    return catchup_threads.begin();
+}
+BPatchSnippetHandle::thread_iter BPatchSnippetHandle::getCatchupThreads_end()
+{
+    return catchup_threads.end();
+}
+
 // Return true if any sub-minitramp uses a trap? Other option
 // is "if all"...
 bool BPatchSnippetHandle::usesTrap() {
@@ -532,18 +541,20 @@ bool BPatch_addressSpace::getAddressRanges( const char * fileName,
       std::vector< std::pair< unsigned long, unsigned long > > & ranges )
 {
    unsigned int originalSize = ranges.size();
-   BPatch_Vector< BPatch_module * > * modules = image->getModules();
+   image->getAddressRanges(fileName, lineNo, ranges);
+
+   //   BPatch_Vector< BPatch_module * > * modules = image->getModules();
 
    /* Iteratate over the modules, looking for addr in each. */
-   for ( unsigned int i = 0; i < modules->size(); i++ ) {
-      BPatch_module *m = (*modules)[i];
-      m->getAddressRanges(fileName, lineNo, ranges);
-   }
-
+   //for ( unsigned int i = 0; i < modules->size(); i++ ) {
+   //   BPatch_module *m = (*modules)[i];
+   //   m->getAddressRanges(fileName, lineNo, ranges);
+   //}
    if ( ranges.size() != originalSize ) { return true; }
 
    return false;
 } /* end getAddressRanges() */
+
 
 bool BPatch_addressSpace::getSourceLines( unsigned long addr,
       BPatch_Vector< BPatch_statement > & lines )
@@ -1004,43 +1015,67 @@ bool BPatch_addressSpace::isStaticExecutable() {
 #include "registerSpace.h"
 
 #if defined(cap_registers)
-bool BPatch_addressSpace::getRegisters(std::vector<BPatch_register> &regs) {
-   if (registers_.size()) {
-       regs = registers_;
-       return true;
-   }
-
-   std::vector<AddressSpace *> as;
-
-   getAS(as);
-   assert(as.size());
-
-   registerSpace *rs = registerSpace::getRegisterSpace(as[0]);
-
-   for (unsigned i = 0; i < rs->realRegs().size(); i++) {
-       // Let's do just GPRs for now
-       registerSlot *regslot = rs->realRegs()[i];
-       registers_.push_back(BPatch_register(regslot->name, regslot->number));
-   }
-
-// Temporary override: also return EFLAGS though it's certainly not a 
+void BPatch_addressSpace::init_registers()
+{
+    if(registers_.size()) return;
+    std::vector<AddressSpace *> as;
+    
+    getAS(as);
+    assert(as.size());
+    
+    registerSpace *rs = registerSpace::getRegisterSpace(as[0]);
+    
+    for (unsigned i = 0; i < rs->realRegs().size(); i++) {
+	// Let's do just GPRs for now
+	registerSlot *regslot = rs->realRegs()[i];
+	registers_.push_back(BPatch_register(regslot->name, regslot->number));
+    }
+    
+    // Temporary override: also return EFLAGS though it's certainly not a 
 #if defined(arch_x86) || defined(arch_x86_64)
-   for (unsigned i = 0; i < rs->SPRs().size(); ++i) {
-      if (rs->SPRs()[i]->name == "eflags") {
-         registers_.push_back(BPatch_register(rs->SPRs()[i]->name, 
-                                              rs->SPRs()[i]->number));
-      }
-   }
+    for (unsigned i = 0; i < rs->SPRs().size(); ++i) {
+	if (rs->SPRs()[i]->name == "eflags") {
+	    registers_.push_back(BPatch_register(rs->SPRs()[i]->name, 
+						 rs->SPRs()[i]->number));
+	}
+    }
 #endif
+}
+
+bool BPatch_addressSpace::getRegisters(std::vector<BPatch_register> &regs) {
+   init_registers();
+   regs = registers_;
+   return true;
 
    regs = registers_;
    return true;
 }
+BPatch_addressSpace::register_iter BPatch_addressSpace::getRegisters_begin()
+{
+    init_registers();
+    return registers_.begin();
+}
+BPatch_addressSpace::register_iter BPatch_addressSpace::getRegisters_end()
+{
+    init_registers();
+    return registers_.end();
+}
 #else
+void BPatch_addressSpace::init_registers() {}
 bool BPatch_addressSpace::getRegisters(std::vector<BPatch_register> &) {
     // Empty vector since we're not supporting register objects on
     // these platforms (yet)
    return false;
+}
+BPatch_addressSpace::register_iter BPatch_addressSpace::getRegisters_begin()
+{
+    init_registers();
+    return registers_.begin();
+}
+BPatch_addressSpace::register_iter BPatch_addressSpace::getRegisters_end()
+{
+    init_registers();
+    return registers_.end();
 }
 #endif
 

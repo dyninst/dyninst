@@ -29,10 +29,10 @@
  */
 
 #include "libdwarf.h"
-#include "elf/h/Elf_X.h"
-#include "dwarf/h/dwarfHandle.h"
-#include "dwarf/h/dwarfFrameParser.h"
-#include "common/src/debug_common.h"
+#include "Elf_X.h"
+#include "dwarfHandle.h"
+#include "dwarfFrameParser.h"
+#include "debug_common.h"
 #include <cstring>
 
 using namespace Dyninst;

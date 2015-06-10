@@ -31,7 +31,7 @@
 #ifndef RESPONSE_H_
 #define RESPONSE_H_
 
-#include "proccontrol/h/Event.h"
+#include "Event.h"
 #include "common/src/dthread.h"
 #include <map>
 #include <vector>

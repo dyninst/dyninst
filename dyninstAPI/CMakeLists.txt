@@ -1,7 +1,9 @@
 # CMake configuration for dyninstAPI directory
 
 include_directories (
-    ${PROJECT_SOURCE_DIR}/dyninstAPI/src
+  src
+  h
+  ${PROJECT_SOURCE_DIR}/proccontrol/h
   )
 
 set (SRC_LIST
@@ -74,6 +76,7 @@ set (SRC_LIST
      src/Relocation/Widgets/InstWidget.C 
      src/Relocation/Widgets/PCWidget.C 
      src/Relocation/Widgets/RelDataWidget.C 
+     src/Relocation/Widgets/StackModWidget.C
      src/Relocation/Transformers/Transformer.C 
      src/Relocation/Transformers/Instrumenter.C 
      src/Relocation/Transformers/Modification.C 
@@ -94,6 +97,19 @@ set (SRC_LIST
 
 # This is just .. messy. Sorry.
 
+get_directory_property(local_comp_defs COMPILE_DEFINITIONS)
+list (FIND local_comp_defs cap_stack_mods cap_stack_mods_found)
+if (cap_stack_mods_found GREATER -1)
+set (SRC_LIST ${SRC_LIST}
+     src/StackMod/OffsetVector.C
+     src/StackMod/StackAccess.C
+     src/StackMod/StackLocation.C
+     src/StackMod/StackMod.C
+     src/StackMod/StackModExpr.C
+     src/StackMod/StackModChecker.C
+     src/StackMod/TMap.C
+)
+endif ()
 
 if (PLATFORM MATCHES i386 OR PLATFORM MATCHES amd64 OR PLATFORM MATCHES x86_64)
 set (SRC_LIST ${SRC_LIST}
@@ -165,30 +181,14 @@ set (SRC_LIST ${SRC_LIST} src/cpuid-x86.S)
 set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE C)
 endif ()
 
-add_library (dyninstAPI ${SRC_LIST})
-add_library (dyninstAPI_static STATIC ${SRC_LIST})
-
-
-target_link_private_libraries (dyninstAPI common)
-target_link_private_libraries (dyninstAPI instructionAPI)
-target_link_private_libraries (dyninstAPI stackwalk)
-target_link_private_libraries (dyninstAPI pcontrol)
-target_link_private_libraries (dyninstAPI patchAPI)
-target_link_private_libraries (dyninstAPI parseAPI)
-target_link_private_libraries (dyninstAPI symtabAPI)
+dyninst_library(dyninstAPI common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI)
 
 if (UNIX)
-# Boost auto-links on Windows; don't double-link
-target_link_private_libraries(dyninstAPI ${Boost_LIBRARIES})
-target_link_private_libraries (dyninstAPI pthread)
+  # Boost auto-links on Windows; don't double-link
+  target_link_private_libraries(dyninstAPI ${Boost_LIBRARIES})
+  target_link_private_libraries (dyninstAPI pthread)
+else()
+  target_link_private_libraries(dyninstAPI dbghelp WS2_32)
 endif()
 
-FILE (GLOB headers "h/*.h")
-set_target_properties (dyninstAPI dyninstAPI_static PROPERTIES PUBLIC_HEADER "${headers}")
-
-INSTALL (TARGETS dyninstAPI dyninstAPI_static
-        EXPORT DyninstTargets
-        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
-        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
-        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
-        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
+install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")

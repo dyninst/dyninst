@@ -30,8 +30,8 @@
 #if !defined(DECODER_WINDOWS_H)
 #define DECODER_WINDOWS_H
 
-#include "proccontrol/h/Decoder.h"
-#include "proccontrol/h/Event.h"
+#include "Decoder.h"
+#include "Event.h"
 #include "int_process.h"
 
 using namespace Dyninst;

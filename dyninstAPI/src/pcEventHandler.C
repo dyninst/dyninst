@@ -37,8 +37,8 @@
 #include "RegisterConversion.h"
 #include "function.h"
 
-#include "proccontrol/h/Mailbox.h"
-#include "proccontrol/h/PCErrors.h"
+#include "Mailbox.h"
+#include "PCErrors.h"
 #include "pcEventMuxer.h"
 #include <set>
 #include <queue>

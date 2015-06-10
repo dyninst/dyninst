@@ -5,7 +5,8 @@ if (NOT UNIX)
 endif()
 
 include_directories (
-  ${PROJECT_SOURCE_DIR}/symlite/src
+  src
+  ${PROJECT_SOURCE_DIR}/elf/h
   )
 
 set (SRC_LIST

@@ -30,7 +30,7 @@
 
 #include "common/src/Time.h"
 #include <iostream>
-#include <time.h>
+#include <ctime>
 #include <string.h>
 #include <iomanip>
 #include <stdio.h>

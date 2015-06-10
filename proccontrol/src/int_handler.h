@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/h/Handler.h"
-#include "proccontrol/h/PCProcess.h"
+#include "Handler.h"
+#include "PCProcess.h"
 #include <map>
 #include <vector>
 

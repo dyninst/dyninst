@@ -28,18 +28,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/h/PCProcess.h"
-#include "proccontrol/h/ProcessSet.h"
-#include "proccontrol/h/PlatFeatures.h"
-#include "proccontrol/h/Mailbox.h"
-#include "proccontrol/h/Generator.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/procpool.h"
-#include "proccontrol/src/int_handler.h"
-#include "proccontrol/src/irpc.h"
-#include "proccontrol/src/response.h"
-#include "proccontrol/src/processplat.h"
-#include "proccontrol/src/int_event.h"
+#include "PCProcess.h"
+#include "ProcessSet.h"
+#include "PlatFeatures.h"
+#include "Mailbox.h"
+#include "Generator.h"
+#include "int_process.h"
+#include "procpool.h"
+#include "int_handler.h"
+#include "irpc.h"
+#include "response.h"
+#include "processplat.h"
+#include "int_event.h"
 #include "common/src/Types.h"
 #include <stdlib.h>
 #include <map>

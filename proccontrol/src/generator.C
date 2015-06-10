@@ -27,12 +27,12 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "proccontrol/h/Generator.h"
-#include "proccontrol/h/Event.h"
-#include "proccontrol/h/Mailbox.h"
-#include "proccontrol/h/PCProcess.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/procpool.h"
+#include "Generator.h"
+#include "Event.h"
+#include "Mailbox.h"
+#include "PCProcess.h"
+#include "int_process.h"
+#include "procpool.h"
 
 #include "common/src/dthread.h"
 

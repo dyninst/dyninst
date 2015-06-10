@@ -49,13 +49,13 @@
 #include <execinfo.h>
 #include <unistd.h>
 
-#include "proccontrol/src/bluegeneq.h"
-#include "proccontrol/src/int_event.h"
-#include "proccontrol/src/irpc.h"
-#include "proccontrol/h/PCProcess.h"
-#include "proccontrol/h/PlatFeatures.h"
-#include "proccontrol/h/PCErrors.h"
-#include "proccontrol/h/Mailbox.h"
+#include "bluegeneq.h"
+#include "int_event.h"
+#include "irpc.h"
+#include "PCProcess.h"
+#include "PlatFeatures.h"
+#include "PCErrors.h"
+#include "Mailbox.h"
 
 #define USE_THREADED_IO
 

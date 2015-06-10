@@ -32,20 +32,20 @@
 
 //#define debug_async_simulate
 
-#include "proccontrol/h/Generator.h"
-#include "proccontrol/h/Event.h"
-#include "proccontrol/h/Decoder.h"
-#include "proccontrol/h/Handler.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/int_thread_db.h"
+#include "Generator.h"
+#include "Event.h"
+#include "Decoder.h"
+#include "Handler.h"
+#include "int_process.h"
+#include "int_thread_db.h"
 
-#include "proccontrol/src/sysv.h"
-#include "proccontrol/src/unix.h"
+#include "sysv.h"
+#include "unix.h"
 
-#include "proccontrol/src/x86_process.h"
-#include "proccontrol/src/ppc_process.h"
-#include "proccontrol/src/mmapalloc.h"
-#include "proccontrol/src/processplat.h"
+#include "x86_process.h"
+#include "ppc_process.h"
+#include "mmapalloc.h"
+#include "processplat.h"
 #include "common/src/dthread.h"
 #include <sys/types.h>
 #include <sys/ptrace.h>

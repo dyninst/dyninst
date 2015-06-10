@@ -1329,7 +1329,8 @@ bool BPatch::waitForStatusChange() {
     bool processRunning = false;
     for(auto i = info->procsByPid.begin(); i != info->procsByPid.end(); ++i) 
     {
-       if( !i->second->isStopped() ) {
+       if( !i->second->isStopped() &&
+	   !i->second->isTerminated()) {
           processRunning = true;
           break;
        }

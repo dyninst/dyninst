@@ -36,9 +36,9 @@
 #include <set>
 
 #include "common/h/dyntypes.h"
-#include "proccontrol/h/Handler.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/response.h"
+#include "Handler.h"
+#include "int_process.h"
+#include "response.h"
 #include <stdlib.h>
 
 using namespace Dyninst;

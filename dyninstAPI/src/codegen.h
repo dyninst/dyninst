@@ -221,7 +221,12 @@ class codeGen {
     Emitter *codeEmitter() const;
     Emitter *emitter() const { return codeEmitter(); } // A little shorter
     bool inInstrumentation() const { return inInstrumentation_; }
+
+    bool insertNaked() const { return insertNaked_; }
+    void setInsertNaked(bool i) { insertNaked_ = i; }
     
+    bool modifiedStackFrame() const { return modifiedStackFrame_; }
+    void setModifiedStackFrame(bool i) { modifiedStackFrame_ = i; }
 
     Dyninst::Architecture getArch() const;
 
@@ -274,6 +279,8 @@ class codeGen {
 
     bool inInstrumentation_;
 
+    bool insertNaked_;
+    bool modifiedStackFrame_;
 
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;

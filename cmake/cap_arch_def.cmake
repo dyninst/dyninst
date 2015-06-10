@@ -19,6 +19,7 @@ set (CAP_DEFINES ${CAP_DEFINES}
              -Dcap_stripped_binaries 
              -Dcap_tramp_liveness 
              -Dcap_virtual_registers
+             -Dcap_stack_mods
     )
 
 elseif (PLATFORM MATCHES x86_64 OR PLATFORM MATCHES amd64)
@@ -29,7 +30,8 @@ set (CAP_DEFINES ${CAP_DEFINES}
              -Dcap_noaddr_gen
              -Dcap_registers
              -Dcap_stripped_binaries 
-             -Dcap_tramp_liveness 
+             -Dcap_tramp_liveness
+             -Dcap_stack_mods
     )
 
 elseif (PLATFORM MATCHES ppc32)

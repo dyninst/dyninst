@@ -310,6 +310,7 @@ void localVar::expandLocation(const VariableLocation &loc,
       newloc.refClass = loc.refClass;
       newloc.mr_reg = i->mr_reg;
       newloc.frameOffset = loc.frameOffset + i->frameOffset;
+      newloc.frameOffsetAbs = loc.frameOffset;
       newloc.lowPC = low;
       newloc.hiPC = high;
 

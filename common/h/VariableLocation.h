@@ -78,6 +78,7 @@ class VariableLocation  {
 	storageRefClass refClass;
         MachRegister mr_reg;
 	long frameOffset;
+    long frameOffsetAbs;
 	Address lowPC;
 	Address hiPC;
    
@@ -85,6 +86,7 @@ VariableLocation() :
    stClass(storageUnset),
       refClass(storageRefUnset),
       frameOffset(0),
+      frameOffsetAbs(0),
       lowPC(0),
       hiPC(0) {}
 
@@ -93,6 +95,7 @@ VariableLocation() :
               (refClass == rhs.refClass) &&
               (mr_reg == rhs.mr_reg) &&
               (frameOffset == rhs.frameOffset) &&
+              (frameOffsetAbs == rhs.frameOffsetAbs) &&
               (lowPC == rhs.lowPC) &&
               (hiPC == rhs.hiPC));
    }

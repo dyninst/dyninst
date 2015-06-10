@@ -80,6 +80,20 @@ func_instance::func_instance(parse_func *f,
 
     parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
                    symTabName().c_str(), addr_);
+#if defined(cap_stack_mods)
+    _hasStackMod = false ;
+    _processedOffsetVector = false;
+    _hasDebugSymbols = false;
+    _seeded = false;
+    _randomizeStackFrame = false;
+    _hasCanary = false;
+    _modifications = new std::set<StackMod*>();
+    _offVec = new OffsetVector();
+    _tmpObjects = new set<tmpObject, less_tmpObject>();
+    _tMap = new TMap();
+    _accessMap = new std::map<Address, Accesses*>();
+    assert(_modifications && _offVec && _tMap && _accessMap);
+#endif
 }
 
 unsigned func_instance::footprint() {
@@ -111,6 +125,20 @@ func_instance::func_instance(const func_instance *parFunc,
    // Do we duplicate the parent or wait? I'm
    // tempted to wait, just because of the common
    // fork/exec case.
+#if defined(cap_stack_mods)
+   _hasStackMod = false ;
+   _processedOffsetVector = false;
+   _hasDebugSymbols = false;
+   _seeded = false;
+   _randomizeStackFrame = false;
+   _hasCanary = false;
+   _modifications = new std::set<StackMod*>();
+   _offVec = new OffsetVector();
+   _tmpObjects = new set<tmpObject, less_tmpObject>();
+   _tMap = new TMap();
+   _accessMap = new std::map<Address, Accesses*>();
+   assert(_modifications && _offVec && _tMap && _accessMap);
+#endif
 }
 
 func_instance::~func_instance() { 
@@ -891,3 +919,747 @@ bool func_instance::getLiveCallerBlocks
    }
    return stubs.end() != stubs.find(addr()) && !stubs[addr()].empty();
 }
+
+#if defined(cap_stack_mods)
+// Stack modifications
+void func_instance::addMod(StackMod* mod, TMap* tMap)
+{
+    _modifications->insert(mod);
+
+    // Update the transformation mapping
+    createTMap_internal(mod, tMap);
+}
+
+void func_instance::removeMod(StackMod* mod)
+{
+    _modifications->erase(mod);
+}
+
+void func_instance::printMods() const
+{
+    stackmods_printf("Modifications for %s\n", prettyName().c_str());
+    for (auto modIter = _modifications->begin(); modIter != _modifications->end(); ++modIter) {
+        StackMod* mod = *modIter;
+        stackmods_printf("\t %s\n", mod->format().c_str());
+    }
+}
+
+Accesses* func_instance::getAccesses(Address addr)
+{
+    if (!_processedOffsetVector) {
+        createOffsetVector();
+    }
+    auto found = _accessMap->find(addr);
+    if (found != _accessMap->end()) {
+        return found->second;
+    } else {
+        return NULL;
+    }
+}
+
+bool func_instance::createOffsetVector()
+{
+    if (_processedOffsetVector) {
+        return _validOffsetVector;
+    }
+
+    bool ret = true;
+
+    stackmods_printf("createOffsetVector for %s\n", prettyName().c_str());
+
+    // 2-tiered approach:
+    //      1. If symbols (DWARF, PDB), use this
+    //          Need to get BPatch_localVar info from the BPatch_function
+    //      2. Derive from instructions (even with symbols, check for consistency)
+
+    // Use symbols to update the offset vector
+    if (!createOffsetVector_Symbols()) {
+        ret = false;
+    }
+
+    // Use binary analysis to update offset vector
+    stackmods_printf("\t using analysis:\n");
+    ParseAPI::Function* func = ifunc();
+    const ParseAPI::Function::blocklist& blocks = func->blocks();
+    for (auto blockIter = blocks.begin(); blockIter != blocks.end(); ++blockIter) {
+        if (!ret) break;
+        ParseAPI::Block* block = *blockIter;
+        ParseAPI::Block::Insns insns;
+        block->getInsns(insns);
+
+        for (auto insnIter = insns.begin(); insnIter != insns.end(); ++insnIter) {
+            Address addr = (*insnIter).first;
+            InstructionAPI::Instruction::Ptr insn = (*insnIter).second;
+            if (!createOffsetVector_Analysis(func, block, insn, addr)) {
+                ret = false;
+                break;
+            }
+        }
+    }
+
+    // Populate offset vector
+    for (auto iter = _tmpObjects->begin(); iter != _tmpObjects->end(); ++iter) {
+        if (!addToOffsetVector((*iter).offset(), (*iter).size(), (*iter).type(), false, (*iter).valid())) {
+            stackmods_printf("INVALID: addToOffsetVector failed (5)\n");
+            ret = false;
+        }
+    }
+
+    _processedOffsetVector = true;
+    if (ret) {
+        _validOffsetVector = true;
+        stackmods_printf("Function %s has FINE OFFSET VECTOR\n", prettyName().c_str());
+    } else {
+        _validOffsetVector = false;
+        stackmods_printf("Function %s has INCONSISTENT OFFSET VECTOR (FUNCTION WILL BE SKIPPED)\n",  prettyName().c_str());
+    }
+
+    delete _tmpObjects;
+
+    return ret;
+}
+
+static int randomNumGenerator (int i) { return std::rand()%i; }
+
+static bool matchRanges(ValidPCRange* a, ValidPCRange* b)
+{
+    auto aIter = a->begin();
+    auto bIter = b->begin();
+
+    while ( (aIter != a->end()) && (bIter != b->end())) {
+        if ( ((*aIter).first == (*bIter).first) && ((*aIter).second.first == (*aIter).second.first)) {
+            aIter++;
+            bIter++;
+        } else {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool func_instance::randomize(TMap* tMap, bool seeded, int seed)
+{
+    if (seeded) {
+        _seeded = true;
+        _seed = seed;
+    }
+
+    if (_seeded) {
+        stackmods_printf("randomize: using seed %d\n", _seed);
+        srand(_seed);
+    } else {
+        stackmods_printf("randomize: using NULL seed\n");
+        srand(unsigned(time(NULL)));
+    }
+
+    // Grab the locals
+    // Find the lowest in offVec that's not a StackAccess::REGHEIGHT
+    bool foundBottom = false;
+
+    IntervalTree<OffsetVector::K,OffsetVector::V> stack = _offVec->stack();
+
+    if (stack.empty()) {
+        stackmods_printf("\t no stack variables to randomize\n");
+        return false;
+    }
+
+    StackAnalysis::Height curLB = stack.lowest();
+    IntervalTree<StackAnalysis::Height, int> localsRanges;
+    map<int, vector<StackLocation*> >* locals = new map<int, vector<StackLocation*> >();
+    assert(locals);
+
+    Architecture arch = ifunc()->isrc()->getArch();
+    int raLoc;
+    if (arch == Arch_x86_64) {
+        raLoc = -8;
+    } else if (arch == Arch_x86) {
+        raLoc = -4;
+    } else {
+        assert(0);
+    }
+    StackLocation* curLoc;
+    int counter = -1;
+    for (auto iter = stack.begin(); iter != stack.end(); ) {
+        curLoc = (*iter).second.second;
+        while ( /* Stop at the end */
+                (iter != stack.end()) &&
+                /* Stop at/above the RA (i.e., in the caller) */
+                (curLoc->off() < raLoc) &&
+                (curLoc->off()+curLoc->size() < raLoc) &&
+                /* Skip non-debug */
+                ((curLoc->type() != StackAccess::DEBUGINFO_LOCAL) && (curLoc->type() != StackAccess::DEBUGINFO_PARAM))) {
+            ++iter;
+            if (iter == stack.end()) {
+                break;
+            }
+            curLoc = (*iter).second.second;
+
+            // Start a new range
+            curLB = curLoc->off();
+        }
+
+        // Want to always create *contiguous* ranges
+        curLB = curLoc->off()-1;
+
+        // Bail if we've reached the end of the stack objects, or gone above the RA
+        if ( (iter == stack.end()) || (curLoc->off() >= raLoc) ) {
+            break;
+        }
+
+        if ((curLoc->type() != StackAccess::DEBUGINFO_LOCAL) && (curLoc->type() != StackAccess::DEBUGINFO_PARAM)) {
+            break;
+        }
+
+        if (!foundBottom) {
+            foundBottom = true;
+        }
+
+        StackAnalysis::Height lb, ub;
+        int tmp;
+        if (localsRanges.find(curLB, lb, ub, tmp) && matchRanges(locals->at(counter).back()->valid(), curLoc->valid())) {
+            // If there already exists a range for the current LB, update
+            localsRanges.update(lb, max(ub, curLoc->off() + curLoc->size()));
+            stackmods_printf("%s in range %d\n", curLoc->format().c_str(), counter);
+            locals->at(counter).push_back(curLoc);
+        } else {
+            // Otherwise, start a new range
+            counter++;
+            curLB = curLoc->off();
+            localsRanges.insert(curLoc->off(), curLoc->off() + curLoc->size(), counter);
+            stackmods_printf("%s in range %d\n", curLoc->format().c_str(), counter);
+            vector<StackLocation*> nextvec;
+            locals->insert(make_pair(counter, nextvec));
+            locals->at(counter).push_back(curLoc);
+        }
+        ++iter;
+    }
+
+    if (locals->size() == 0) {
+        stackmods_printf("\t no locals to randomize\n");
+        return false;
+    }
+
+    bool randomizedRange = false;
+
+    stackmods_printf("Found locals ranges:\n");
+    for (auto iter = localsRanges.begin(); iter != localsRanges.end(); ++iter) {
+        stackmods_printf("\t %d: [%ld, %ld)\n", (*iter).second.second, (*iter).first.height(), (*iter).second.first.height());
+        vector<StackLocation*> vec = locals->at((*iter).second.second);
+        for (auto viter = vec.begin(); viter != vec.end(); ++viter) {
+            stackmods_printf("\t\t %s\n", (*viter)->format().c_str());
+        }
+        if (vec.size() == 1) {
+            stackmods_printf("\t skipping range %d: [%ld, %ld), only one local\n", (*iter).second.second, (*iter).first.height(), (*iter).second.first.height());
+            continue;
+        }
+
+        randomizedRange = true;
+        std::random_shuffle(vec.begin(), vec.end(), randomNumGenerator);
+        StackAnalysis::Height nextLoc = (*iter).first.height();
+
+        for (auto viter = vec.begin(); viter != vec.end(); ++viter) {
+            StackLocation* cur = *viter;
+            Move* tmp = new Move(cur->off().height(), cur->off().height()+cur->size(), nextLoc.height());
+            addMod(tmp, tMap);
+            nextLoc += cur->size();
+        }
+    }
+
+    if (randomizedRange) {
+        stackmods_printf("\t After randomize:\n");
+        printMods();
+    }
+
+    delete locals;
+
+    _randomizeStackFrame = true;
+
+    return randomizedRange;
+}
+
+bool func_instance::createOffsetVector_Symbols()
+{
+    bool ret = true;
+
+    if (_vars.size() == 0 && _params.size() == 0) {
+        // No DWARF or no locals
+        // Is there another way to check for DWARF?
+        stackmods_printf("\t No symbols\n");
+        return ret;
+    }
+
+    stackmods_printf("\t using symbols:\n");
+    _hasDebugSymbols = true;
+
+    // Calculate base pointer height for locals; the frame offset is relative to this
+    int width;
+    Architecture arch = ifunc()->isrc()->getArch();
+    if (arch == Arch_x86) { width = 4; }
+    else if (arch == Arch_x86_64) { width = 8; }
+    else { assert(0); }
+    int base = -width;
+    if (!ifunc()->hasNoStackFrame()) {
+        base -= width; // account for BP save
+    }
+    MachRegister bp = MachRegister::getFramePointer(arch);
+
+    for (auto vIter = _vars.begin(); vIter != _vars.end(); ++vIter) {
+        SymtabAPI::localVar* var = *vIter;
+        vector<VariableLocation> locs = var->getLocationLists();
+        if (locs.empty()) {
+            continue;
+        }
+
+        ValidPCRange* valid = new ValidPCRange();
+
+        bool found = false;
+        long offset = 0;
+        for (auto locIter = locs.begin(); locIter != locs.end(); ++locIter) {
+            VariableLocation curLoc = *locIter;
+            if (curLoc.mr_reg == MachRegister::getFramePointer(arch)) {
+                found = true;
+                valid->insert(curLoc.lowPC, curLoc.hiPC+1, 0);
+                offset = curLoc.frameOffsetAbs;
+            }
+        }
+
+        if (!found || !offset) {
+            continue;
+        }
+
+        stackmods_printf("\t\t\t Found %s (type %s) @ %ld, size = %d\n", var->getName().c_str(), var->getType()->getName().c_str(), offset, var->getType()->getSize());
+        for (auto locIter = locs.begin(); locIter != locs.end(); ++locIter) {
+            VariableLocation curLoc = *locIter;
+            if (curLoc.mr_reg == MachRegister::getFramePointer(arch)) {
+                stackmods_printf("\t\t\t\t Range = [0x%lx, 0x%lx)\n", curLoc.lowPC, curLoc.hiPC);
+            } else {
+                stackmods_printf("\t\t\t\t SKIPPED Range = [0x%lx, 0x%lx)\n", curLoc.lowPC, curLoc.hiPC);
+            }
+        }
+
+        StackAccess::StackAccessType sat = StackAccess::DEBUGINFO_LOCAL;
+        if (var->getType()->getSize() == 0) {
+            _tmpObjects->insert(tmpObject(offset, 4, sat, valid));
+        } else {
+            _tmpObjects->insert(tmpObject(offset, var->getType()->getSize(), sat, valid));
+        }
+    }
+
+    for (auto vIter = _params.begin(); vIter != _params.end(); ++vIter) {
+        SymtabAPI::localVar* var = *vIter;
+        vector<VariableLocation> locs = var->getLocationLists();
+        if (locs.empty()) {
+            continue;
+        }
+
+        ValidPCRange* valid = new ValidPCRange();
+
+        bool found = false;
+        long offset = 0;
+        for (auto locIter = locs.begin(); locIter != locs.end(); ++locIter) {
+            VariableLocation curLoc = *locIter;
+            if (curLoc.mr_reg == MachRegister::getFramePointer(arch)) {
+                found = true;
+                valid->insert(curLoc.lowPC, curLoc.hiPC+1, 0);
+                offset = curLoc.frameOffsetAbs;
+            }
+        }
+
+        if (!found || !offset) {
+            continue;
+        }
+
+        stackmods_printf("\t\t\t Found %s (type %s) @ %ld, size = %d\n", var->getName().c_str(), var->getType()->getName().c_str(), offset, var->getType()->getSize());
+
+        for (auto locIter = locs.begin(); locIter != locs.end(); ++locIter) {
+            VariableLocation curLoc = *locIter;
+            if (curLoc.mr_reg == MachRegister::getFramePointer(arch)) {
+                stackmods_printf("\t\t\t\t Range = [0x%lx, 0x%lx)\n", curLoc.lowPC, curLoc.hiPC);
+            } else {
+                stackmods_printf("\t\t\t\t SKIPPED Range = [0x%lx, 0x%lx)\n", curLoc.lowPC, curLoc.hiPC);
+            }
+        }
+
+        StackAccess::StackAccessType sat = StackAccess::DEBUGINFO_PARAM;
+        if (var->getType()->getSize() == 0) {
+            _tmpObjects->insert(tmpObject(offset, 4, sat, valid));
+        } else {
+            _tmpObjects->insert(tmpObject(offset, var->getType()->getSize(), sat, valid));
+        }
+    }
+
+    return ret;
+}
+
+
+bool func_instance::createOffsetVector_Analysis(ParseAPI::Function* func,
+        ParseAPI::Block* block,
+        InstructionAPI::Instruction::Ptr insn,
+        Address addr)
+{
+    bool ret = true;
+
+    stackmods_printf("\t Processing %lx: %s\n", addr, insn->format().c_str());
+
+    int accessSize = getAccessSize(insn);
+    Accesses* accesses = new Accesses();
+    assert(accesses);
+    if (::getAccesses(func, block, addr, insn, accesses)) {
+        _accessMap->insert(make_pair(addr, accesses));
+
+        for (auto accessIter = accesses->begin(); accessIter != accesses->end(); ++accessIter) {
+            StackAccess* access = (*accessIter).second;
+
+            stackmods_printf("\t\t Processing %s, size %d\n", access->format().c_str(), accessSize);
+
+            if (access->disp()) {
+                if (access->skipReg()) {
+                    stackmods_printf("\t\t\t Skipping (1).\n");
+                    _offVec->addSkip(access->reg(), access->regHeight(), block->start(), addr);
+                    // Skip
+                    if (!addToOffsetVector(access->regHeight(), 1, StackAccess::REGHEIGHT, true, NULL, access->reg())) {
+                        stackmods_printf("\t\t\t INVALID: addToOffsetVector failed (1)\n");
+                        return false;
+                    }
+                } else {
+                    if (!addToOffsetVector(access->regHeight(), 1, StackAccess::REGHEIGHT, true, NULL, access->reg())) {
+                        stackmods_printf("\t\t\t INVALID: addToOffsetVector failed (2)\n");
+                        return false;
+                    }
+                }
+                _tmpObjects->insert(tmpObject(access->readHeight().height(), accessSize, access->type()));
+            } else {
+                if (access->skipReg()) {
+                    _offVec->addSkip(access->reg(), access->regHeight(), block->start(), addr);
+                    stackmods_printf("\t\t\t Skipping (2).\n");
+                    if (!addToOffsetVector(access->regHeight(), 1, StackAccess::REGHEIGHT, true, NULL, access->reg())) {
+                        stackmods_printf("\t\t\t INVALID: addToOffsetVector failed (3)\n");
+                        return false;
+                    }
+                } else {
+                    if (!addToOffsetVector(access->regHeight(), 1, StackAccess::REGHEIGHT, true, NULL, access->reg())) {
+                        stackmods_printf("\t\t\t INVALID: addToOffsetVector failed (4)\n");
+                        return false;
+                    }
+                }
+                _tmpObjects->insert(tmpObject(access->readHeight().height(), accessSize, access->type()));
+            }
+        }
+    } else {
+        stackmods_printf("\t\t\t INVALID: getAccessses failed\n");
+        // Once we've found a bad access, stop looking!
+        return false;
+    }
+
+    return ret;
+}
+
+bool func_instance::addToOffsetVector(StackAnalysis::Height off, int size, StackAccess::StackAccessType type, bool isRegisterHeight, ValidPCRange* valid, MachRegister reg)
+{
+    bool ret = true;
+
+    bool skip_misunderstood = false;
+
+    if (isRegisterHeight) {
+        StackLocation* existingLoc = NULL;
+        if (_offVec->find(off, reg, existingLoc)) {
+            if (existingLoc->isRegisterHeight() && existingLoc->reg() == reg) {
+                return ret;
+            } else {
+                stackmods_printf("\t\t\t loc %s is not a match\n", existingLoc->format().c_str());
+            }
+        }
+
+        stackmods_printf("\t\t\t addToOffsetVector: added %s %d\n", StackAccess::printStackAccessType(type).c_str(), off.height());
+        StackLocation* tmp = new StackLocation(off, type, reg);
+        _offVec->insert(off, off+size, tmp, isRegisterHeight);
+        return ret;
+    }
+
+    if (size == 0) {
+        stackmods_printf("\t\t\t addToOffsetVector: trying to add non-StackAccess::REGHEIGHT of size 0. Skipping.\n");
+        return ret;
+    }
+
+    bool found = false;
+    stackmods_printf("\t\t\t Adding %ld, size %d, type %s\n", off.height(), size, StackAccess::printStackAccessType(type).c_str());
+
+    // If the access is inside the expected space for the return address, declare INCONSISTENT
+    Architecture arch = ifunc()->isrc()->getArch();
+    int raLoc;
+    if (arch == Arch_x86_64) {
+        raLoc = -8;
+    } else if (arch == Arch_x86) {
+        raLoc = -4;
+    } else {
+        assert(0);
+    }
+
+    if ( ( (raLoc <= off.height()) && (off.height() < 0) ) ||
+         ( (raLoc <  off.height() + size) && (off.height() + size <= 0) ) ||
+         ( (off.height() < raLoc) && (off.height() + size > 0)) ) {
+        stackmods_printf("\t\t\t\t This stack access interferes with the RA. We may be confused. Skipping.\n");
+        if (isDebugType(type)) {
+            // Silently skip; doesn't hurt--if there's an actual access, the others will catch it.
+            // Okay to skip here because getAccesses won't return this one because it came from the DWARF.
+            type = StackAccess::MISUNDERSTOOD;
+        } else {
+            return false;
+        }
+    }
+
+    StackAnalysis::Height lb, ub;
+    StackLocation* existing;
+    if (_offVec->find(off, lb, ub, existing)) {
+        found = true;
+        stackmods_printf("\t\t\t\t Found existing offset range %s\n", existing->format().c_str());
+        if (lb == off) {
+            int existingSize = existing->size();
+            stackmods_printf("\t\t\t\t\t Existing has same lb.\n");
+            if (size == existingSize) {
+                stackmods_printf("\t\t\t\t\t Existing has same size. Skip adding.\n");
+                // Merge intervals
+                if (isDebugType(type)) {
+                    for (auto vIter = valid->begin(); vIter != valid->end(); ++vIter) {
+                        existing->valid()->insert((*vIter).first, (*vIter).second.first, (*vIter).second.second);
+                    }
+                }
+            } else if (size < existingSize) {
+                stackmods_printf("\t\t\t\t\t Existing has larger size. Skip adding.\n");
+            } else {
+                stackmods_printf("\t\t\t\t\t Existing has smaller size. Checking whether to update.\n");
+                bool skip = false;
+
+                // Iterate through update offsets to make sure no conflict that overlaps or is contained in the region
+                for (int i = 0; i < size; i++) {
+
+                    StackAnalysis::Height lb2, ub2;
+                    StackLocation* existing2;
+                    // Is there an existing range at the potential update size?
+                    if (_offVec->find(off+i, lb2, ub2, existing2)) {
+
+                        // If we find a different range at the potential update size, skip!
+                        if (existing2 != existing) {
+                            stackmods_printf("\t\t\t\t\t\t\t\t WARNING: updating size would conflict with different existing range.\n");
+                            skip = true;
+
+                            if (skip_misunderstood) {
+                                ret = false;
+                                break;
+                            } else {
+                                // We know the new one overlaps with existing
+                                existing->setType(StackAccess::MISUNDERSTOOD);
+
+                                // But, it also overlaps with existing2
+                                existing2->setType(StackAccess::MISUNDERSTOOD);
+
+                                StackLocation* tmp = new StackLocation(off, size, StackAccess::MISUNDERSTOOD, isRegisterHeight, valid);
+                                assert(tmp);
+                                _offVec->insert(off, off+size, tmp, isRegisterHeight);
+                            }
+                        }
+                    }
+                }
+
+                // Safe to update existing to a new larger size!
+                if (!skip) {
+                    stackmods_printf("\t\t\t\t\t\t Updating size to %d. Added\n", size);
+                    existing->setSize(size);
+                    _offVec->update(existing->off(), existing->off() + existing->size());
+                }
+            }
+        } else if (lb < off && off < ub) {
+            stackmods_printf("\t\t\t\t Found overlapping offset range (lb < off < ub): %s\n", existing->format().c_str());
+
+            int existingUpperBound = existing->off().height() + existing->size();
+            int newUpperBound = off.height() + size;
+
+            if (existingUpperBound == newUpperBound) {
+                stackmods_printf("\t\t\t\t\t Existing and new upper bounds are the same. Skip adding.\n");
+            } else if (existingUpperBound > newUpperBound) {
+                stackmods_printf("\t\t\t\t\t Existing upper bound is greater than what we're adding. Skip adding.\n");
+            } else {
+                stackmods_printf("\t\t\t\t\t WARNING: conflict because existing upper bound is less than what we're adding.\n");
+
+                // Goal: figure out what other range(s) we're in conflict with
+                if (skip_misunderstood) {
+                    ret = false;
+                } else {
+                    for (int i = 0; i < size; i++) {
+                        StackAnalysis::Height lb2, ub2;
+                        StackLocation* existing2;
+                        if (_offVec->find(off+i, lb2, ub2, existing2)) {
+                            if (existing2 != existing) {
+                                stackmods_printf("\t\t\t\t\t\t Range overlaps with another existing range %s\n", existing2->format().c_str());
+                                existing2->setType(StackAccess::MISUNDERSTOOD);
+                            }
+                        }
+                    }
+
+                    // We know we're in conflict with the existing range, since lb != off
+                    existing->setType(StackAccess::MISUNDERSTOOD);
+
+                    // Add new range as misunderstood
+                    StackLocation* tmp = new StackLocation(off, size, StackAccess::MISUNDERSTOOD, isRegisterHeight, valid);
+                    assert(tmp);
+                    _offVec->insert(off, off+size, tmp, isRegisterHeight);
+                }
+            }
+        } else if (off == ub) {
+            // Not a match! Adjacent ranges. Continue searching.
+            found = false;
+        } else {
+            assert(0);
+        }
+    }
+
+    if (!found) {
+            stackmods_printf("\t\t\t\t ... created new\n");
+            StackLocation* tmp = new StackLocation(off, size, type, isRegisterHeight, valid);
+            assert(tmp);
+            _offVec->insert(off, off+size, tmp, isRegisterHeight);
+    }
+
+    return ret;
+}
+
+void func_instance::createTMap_internal(StackMod* mod, StackLocation* loc, TMap* tMap)
+{
+    StackAnalysis::Height off = loc->off();
+    StackAnalysis::Height size = loc->size();
+    switch(mod->type()) {
+        case(StackMod::INSERT): {
+                          /* Model:
+                           * o < d: o' = o + (c-d)
+                           */
+
+                          Insert* insertMod = dynamic_cast<Insert*>(mod);
+                          StackAnalysis::Height c(insertMod->low());
+                          StackAnalysis::Height d(insertMod->high());
+
+                          if (!loc->isRegisterHeight()) {
+                              if (off < d || off == d) {
+                                  stackmods_printf("\t\t Processing interaction with %s\n", loc->format().c_str());
+                                  int delta = c.height() - d.height();
+                                tMap->update(loc, delta);
+                              }
+                          } else {
+                              if (off < d || off == d) {
+                                  stackmods_printf("\t\t Processing interaction with %s\n", loc->format().c_str());
+                                  int delta = c.height() - d.height();
+                                  tMap->update(loc, delta);
+                              }
+                          }
+                          break;
+                      }
+        case(StackMod::REMOVE): {
+                          /* Model:
+                           * O' = O - [c,d)
+                           * o < d: o' = o - (c-d)
+                           */
+
+                          Remove* removeMod = dynamic_cast<Remove*>(mod);
+                          StackAnalysis::Height c(removeMod->low());
+                          StackAnalysis::Height d(removeMod->high());
+
+                          // Remove existing element
+                          if ((c == off || c < off) &&
+                                  (off < c + (d-c))) {
+                              stackmods_printf("\t\t Processing interaction with %s\n", loc->format().c_str());
+                              StackLocation* tmp = new StackLocation();
+                              tMap->insert(make_pair(loc, tmp));
+                              stackmods_printf("\t\t Adding to tMap %s -> %s\n", loc->format().c_str(), tmp->format().c_str());
+                          }
+
+                          // Shift other elements
+                          if (off < d) {
+                              stackmods_printf("\t\t Processing interaction with %s\n", loc->format().c_str());
+                              int delta = d.height() - c.height();
+                              tMap->update(loc, delta);
+                          }
+
+
+                          break;
+                      }
+        case(StackMod::MOVE): {
+                        /* Model:
+                         * o in [c,d): o' = o + (m-c)
+                         */
+
+                        Move* moveMod = dynamic_cast<Move*>(mod);
+                        StackAnalysis::Height c(moveMod->srcLow());
+                        int size = moveMod->size();
+
+                        // Future: could check the DWARF and use the vailD PC range if we have one
+                        ValidPCRange* valid = NULL;
+                        StackLocation* found = NULL;
+                        _offVec->find(c, found);
+                        if (found) {
+                            valid = found->valid();
+                        }
+
+                        StackAnalysis::Height m(moveMod->destLow());
+
+                        if (    (c == off || c < off) &&
+                                (off < c+size) ) {
+                            stackmods_printf("\t\t Processing interaction with %s\n", loc->format().c_str());
+                            // This does not go through the updateTMap because it's a fixed change
+                            StackLocation* src;
+                            StackLocation* tmp;
+                            if (loc->isRegisterHeight()) {
+                                src = new StackLocation(loc->off(), loc->type(), loc->reg(), valid);
+                                tmp = new StackLocation(off + (m-c), loc->type(), loc->reg(), valid);
+                            } else {
+                                src = loc;
+                                tmp = new StackLocation(off + (m-c), size-(off.height()-c.height()), loc->type(), false, loc->valid());
+                            }
+                            auto res = tMap->insert(make_pair(src, tmp));
+                            stackmods_printf("\t\t\t Adding to tMap: %s -> %s\n", loc->format().c_str(), tmp->format().c_str());
+                            if (res.second) {
+                                stackmods_printf("\t\t\t\t Added.\n");
+                            } else {
+                                stackmods_printf("\t\t\t\t Not added. Found  %s -> %s already existed\n", res.first->first->format().c_str(), res.first->second->format().c_str());
+                            }
+                            // Update size
+                            loc->setSize(size - (off.height() - c.height()));
+                        }
+                        break;
+                    }
+        default:
+                    assert(0 && "unknown modification type");
+    }
+}
+
+void func_instance::createTMap_internal(StackMod* mod, TMap* tMap)
+{
+
+    stackmods_printf("\t Processing %s\n", mod->format().c_str());
+
+    // Handle insert/add side effects
+    if (mod->type() == StackMod::INSERT) {
+        Insert* insertMod = dynamic_cast<Insert*>(mod);
+        StackAnalysis::Height c(insertMod->low());
+        StackAnalysis::Height d(insertMod->high());
+        StackLocation* tmpSrc = new StackLocation();
+        StackLocation* tmpDest = new StackLocation(c, (d-c).height(), StackAccess::UNKNOWN, false);
+        tMap->insert(make_pair(tmpSrc, tmpDest));
+        stackmods_printf("\t\t\t Adding to tMap: %s -> %s\n", tmpSrc->format().c_str(), tmpDest->format().c_str());
+    }
+
+    if (!_offVec->stack().empty()) {
+        IntervalTree<OffsetVector::K,OffsetVector::V> stack = _offVec->stack();
+        for (auto offIter = stack.begin(); offIter != stack.end(); ++offIter) {
+            StackLocation* loc = (*offIter).second.second;
+            createTMap_internal(mod, loc, tMap);
+        }
+    }
+    if (!_offVec->definedRegs().empty()) {
+        std::map<MachRegister,IntervalTree<OffsetVector::K,OffsetVector::V> > definedRegs = _offVec->definedRegs();
+        for (auto offIter = definedRegs.begin(); offIter != definedRegs.end(); ++offIter) {
+            for (auto iter2 = (*offIter).second.begin(); iter2 != (*offIter).second.end(); ++iter2) {
+                createTMap_internal(mod, (*iter2).second.second, tMap);
+            }
+        }
+    }
+}
+#endif

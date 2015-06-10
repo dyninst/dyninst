@@ -31,7 +31,7 @@
 #ifndef PCEVENTHANDLER_H
 #define PCEVENTHANDLER_H
 
-#include "proccontrol/h/Event.h"
+#include "Event.h"
 #include "dyninstAPI/h/BPatch_process.h"
 
 #include <unordered_map>

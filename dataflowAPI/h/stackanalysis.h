@@ -98,6 +98,18 @@ class StackAnalysis {
         bool operator<(const Height &rhs) const {
             return (height_ < rhs.height_);
         }
+
+        bool operator>(const Height &rhs) const {
+            return (height_ > rhs.height_);
+        }
+
+        bool operator<=(const Height &rhs) const {
+            return (height_ <= rhs.height_);
+        }
+
+        bool operator>=(const Height &rhs) const {
+            return (height_ >= rhs.height_);
+        }
         
         Height &operator+= (const Height &other) {
             if (isBottom()) return *this;
@@ -105,12 +117,15 @@ class StackAnalysis {
                 *this = bottom;
                 return *this;
             }
-            if (other.isTop()) {
+            if (isTop() && other.isTop()) {
+                // TOP + TOP = TOP
+                *this = top;
                 return *this;
             }
-            if (isTop()) { 
-               height_ = other.height_;
-               return *this;
+            if (isTop() || other.isTop()) {
+                // TOP + height = BOTTOM
+                *this = bottom;
+                return *this;
             }
             
             height_ += other.height_;
@@ -120,18 +135,33 @@ class StackAnalysis {
         const Height operator+(const Height &rhs) const {
             if (isBottom()) return bottom;
             if (rhs.isBottom()) return rhs;
-            if (isTop()) return rhs;
-            if (rhs.isTop()) return *this;
+            if (isTop() && rhs.isTop()) return top;
+            if (isTop() || rhs.isTop()) return bottom;
 
             return Height(height_ + rhs.height_);
         }
 
-	const Height operator+(const unsigned long &rhs) const {
+        const Height operator-(const Height &rhs) const {
+            if (isBottom()) return bottom;
+            if (rhs.isBottom()) return rhs;
+            if (isTop() && rhs.isTop()) return top;
+            if (isTop() || rhs.isTop()) return bottom;
+
+            return Height(height_ - rhs.height_);
+        }
+
+        Height &operator+=(const signed long &rhs) {
+            if (isBottom()) return *this;
+            if (isTop()) return *this;
+
+            height_ += rhs;
+            return *this;
+        }
+
+	const Height operator+(const signed long &rhs) const {
 	  if (isBottom()) return bottom;
-	  if (isTop()) {
-	    // WTF?
-	    return Height(rhs);
-	  }
+      if (isTop()) return top;
+
 	  return Height(height_ + rhs);
 	}
 
@@ -238,21 +268,29 @@ class StackAnalysis {
           Abs,
           Alias } Type;
        
-       static TransferFunc deltaFunc(MachRegister r, Height d);
-       static TransferFunc absFunc(MachRegister r, Height a);
-       static TransferFunc aliasFunc(MachRegister f, MachRegister t);
+       static TransferFunc deltaFunc(MachRegister r, long d);
+       static TransferFunc absFunc(MachRegister r, long a, bool i = false);
+       static TransferFunc aliasFunc(MachRegister f, MachRegister t, bool i = false);
        static TransferFunc bottomFunc(MachRegister r);
+       static TransferFunc sibFunc(std::map<MachRegister, std::pair<long,bool> > f, long d, MachRegister t);
 
        bool isBottom() const;
        bool isTop() const;
        bool isAbs() const;
        bool isAlias() const;
        bool isDelta() const;
+       bool isSIB() const;
+       bool isTopBottom() const;
 
     TransferFunc() :
-       from(MachRegister()), target(MachRegister()), delta(uninitialized), abs(uninitialized) {};
-    TransferFunc(Height a, Height d, MachRegister f, MachRegister t) : 
-       from(f), target(t), delta(d), abs(a) {};
+       from(MachRegister()), target(MachRegister()), delta(0), abs(uninitialized), topBottom(false) {};
+    TransferFunc(long a, long d, MachRegister f, MachRegister t, bool i = false) :
+       from(f), target(t), delta(d), abs(a), topBottom(i) {};
+    TransferFunc(std::map<MachRegister,std::pair<long,bool> > f, long d, MachRegister t) :
+        from(MachRegister()), target(t),
+        delta(d), abs(uninitialized),
+        topBottom(false),
+        fromRegs(f) {}
 
        Height apply(const RegisterState &inputs) const;
        void accumulate(std::map<MachRegister, TransferFunc> &inputs);
@@ -262,8 +300,21 @@ class StackAnalysis {
 
        MachRegister from;
        MachRegister target;
-       Height delta;
-       Height abs;
+       long delta;
+       long abs;
+
+       // Annotate transfer functions that have the following characteristic:
+       // if target is TOP, keep as TOP
+       // else, target must be set to BOTTOM
+       // E.g., sign-extending a register:
+       //   if the register had an uninitialized stack height (TOP),
+       //       the sign-extension has no effect
+       //   if the register had a valid or notunique (BOTTOM) stack height,
+       //       the sign-extension must result in a BOTTOM stack height
+       bool topBottom;
+
+       // Handle complex math from SIB functions
+       std::map<MachRegister, std::pair<long, bool> > fromRegs;
     };
 
     typedef std::list<TransferFunc> TransferFuncs;
@@ -359,6 +410,8 @@ class StackAnalysis {
     void handlePowerAddSub(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
     void handlePowerStoreUpdate(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleMov(InstructionPtr insn, TransferFuncs &xferFuncs);
+    void handleZeroExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
+    void handleSignExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleDefault(InstructionPtr insn, TransferFuncs &xferFuncs);
 
     

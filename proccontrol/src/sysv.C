@@ -37,12 +37,12 @@
 #include "common/src/freebsdKludges.h"
 #endif
 
-#include "proccontrol/h/Handler.h"
-#include "proccontrol/h/PlatFeatures.h"
+#include "Handler.h"
+#include "PlatFeatures.h"
 
-#include "proccontrol/src/sysv.h"
-#include "proccontrol/src/response.h"
-#include "proccontrol/src/int_handler.h"
+#include "sysv.h"
+#include "response.h"
+#include "int_handler.h"
 
 #include <algorithm>
 #include <cstring>

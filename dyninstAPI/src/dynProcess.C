@@ -45,7 +45,7 @@
 
 #include "common/src/pathName.h"
 
-#include "proccontrol/h/PCErrors.h"
+#include "PCErrors.h"
 #include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 

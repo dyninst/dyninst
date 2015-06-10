@@ -31,8 +31,8 @@
 #if !defined(PROCESSPLAT_H_)
 #define PROCESSPLAT_H_
 
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/resp.h"
+#include "int_process.h"
+#include "resp.h"
 
 class int_libraryTracking : virtual public int_process
 {

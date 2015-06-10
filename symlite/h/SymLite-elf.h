@@ -29,7 +29,7 @@
  */
 
 #include "common/h/SymReader.h"
-#include "elf/h/Elf_X.h"
+#include "Elf_X.h"
 #include "common/src/headers.h"
 
 #include <map>

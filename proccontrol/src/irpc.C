@@ -28,20 +28,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/h/PCErrors.h"
-#include "proccontrol/h/Event.h"
+#include "PCErrors.h"
+#include "Event.h"
 
-#include "proccontrol/src/irpc.h"
-#include "proccontrol/src/response.h"
-#include "proccontrol/src/int_process.h"
-#include "proccontrol/src/int_event.h"
-#include "proccontrol/src/int_handler.h"
-#include "proccontrol/h/Mailbox.h"
-#include "proccontrol/src/procpool.h"
+#include "irpc.h"
+#include "response.h"
+#include "int_process.h"
+#include "int_event.h"
+#include "int_handler.h"
+#include "Mailbox.h"
+#include "procpool.h"
 
 // CLEANUP
 #if defined(os_windows)
-#include "proccontrol/src/windows_process.h"
+#include "windows_process.h"
 #endif
 
 #include <cstring>

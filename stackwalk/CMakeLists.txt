@@ -1,7 +1,11 @@
 # CMake configuration for proccontrol directory
 
 include_directories (
-    ${PROJECT_SOURCE_DIR}/stackwalk/src
+  ${PROJECT_SOURCE_DIR}/proccontrol/h
+  ${PROJECT_SOURCE_DIR}/elf/h
+  ${PROJECT_SOURCE_DIR}/dwarf/h
+  src
+  h
   )
 
 set (SRC_LIST
@@ -84,34 +88,17 @@ ADD_DEFINITIONS(-DSTACKWALKER_EXPORTS)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FORCE_FRAME_POINTER}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FORCE_FRAME_POINTER}")
 
-add_library (stackwalk ${SRC_LIST})
-add_library (stackwalk_static STATIC ${SRC_LIST})
-
-target_link_private_libraries (stackwalk common)
-target_link_private_libraries (stackwalk instructionAPI)
-target_link_private_libraries (stackwalk pcontrol)
-
+set(DEPS common instructionAPI pcontrol)
 if (UNIX)
-target_link_private_libraries (stackwalk dynDwarf)
-target_link_private_libraries (stackwalk dynElf)
+set (DEPS ${DEPS} dynDwarf dynElf)
 endif()
 
-if (LIGHTWEIGHT_SYMTAB)
-target_link_private_libraries(stackwalk symLite)
-else()
-target_link_private_libraries(stackwalk symtabAPI)
-endif()
+set (DEPS ${DEPS} ${SYMREADER})
 
 if (SW_ANALYSIS_STEPPER)
-target_link_private_libraries(stackwalk parseAPI)
+set (DEPS ${DEPS} parseAPI)
 endif()
 
-FILE (GLOB headers "h/*.h")
-set_target_properties (stackwalk stackwalk_static PROPERTIES PUBLIC_HEADER "${headers}")
 
-INSTALL (TARGETS stackwalk stackwalk_static
-        EXPORT DyninstTargets
-        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
-        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
-        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
-        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
+dyninst_library(stackwalk ${DEPS})
+

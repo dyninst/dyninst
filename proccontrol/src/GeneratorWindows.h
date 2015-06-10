@@ -30,8 +30,8 @@
 #if !defined(GENERATOR_WINDOWS_H)
 #define GENERATOR_WINDOWS_H
 
-#include "proccontrol/h/Generator.h"
-#include "proccontrol/h/Event.h"
+#include "Generator.h"
+#include "Event.h"
 #include "int_process.h"
 #include <sys/types.h>
 #include <vector>

@@ -48,7 +48,7 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include "elf/h/Elf_X.h"
+#include "Elf_X.h"
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;

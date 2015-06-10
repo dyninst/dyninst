@@ -46,7 +46,7 @@
 
 #include "debug.h"
 
-#include "dwarf/h/dwarfHandle.h"
+#include "dwarfHandle.h"
 
 #if defined(x86_64_unknown_linux2_4) ||		\
   defined(ppc64_linux) ||			\
@@ -89,7 +89,7 @@ using namespace std;
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
 
-#include "common/h/SymReader.h"
+#include "SymReader.h"
 
 using namespace boost::assign;
 

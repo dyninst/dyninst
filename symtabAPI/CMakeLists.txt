@@ -1,8 +1,16 @@
 # CMake configuration for symtabAPI directory
 
 include_directories (
-    ${PROJECT_SOURCE_DIR}/symtabAPI/src
+  src
+  h
+  ${PROJECT_SOURCE_DIR}/dwarf/h
+  ${PROJECT_SOURCE_DIR}/elf/h
   )
+
+if(NOT WIN32)
+  include_directories(${PROJECT_SOURCE_DIR}/common/src)
+endif()
+
 
 
 set (SRC_LIST
@@ -80,24 +88,17 @@ endif()
 SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
 ADD_DEFINITIONS(-DSYMTAB_LIB)
-  
 
-add_library (symtabAPI ${SRC_LIST})
-add_library (symtabAPI_static STATIC  ${SRC_LIST})
-target_link_private_libraries (symtabAPI common)
+set (DEPS common)
 
-FILE (GLOB headers "h/*.h")
-set_target_properties (symtabAPI symtabAPI_static PROPERTIES PUBLIC_HEADER "${headers}")
-
-if (UNIX)
-  target_link_private_libraries (symtabAPI dynElf ${LIBELF_LIBRARIES})
-  target_link_private_libraries (symtabAPI dynDwarf ${LIBDWARF_LIBRARIES})
+if(UNIX)
+  set (DEPS ${DEPS}
+    dynElf ${LIBELF_LIBRARIES}
+    dynDwarf ${LIBDWARF_LIBRARIES}
+    )
+else()
+  set (DEPS ${DEPS} dbghelp)
 endif()
 
-INSTALL (TARGETS symtabAPI symtabAPI_static
-        EXPORT DyninstTargets
-        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
-        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
-        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
-        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
+dyninst_library(symtabAPI ${DEPS})
 

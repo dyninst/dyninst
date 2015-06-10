@@ -33,10 +33,10 @@
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/steppergroup.h"
 
-#include "proccontrol/h/PCProcess.h"
-#include "proccontrol/h/ProcessSet.h"
-#include "proccontrol/h/PlatFeatures.h"
-#include "proccontrol/h/PCErrors.h"
+#include "PCProcess.h"
+#include "ProcessSet.h"
+#include "PlatFeatures.h"
+#include "PCErrors.h"
 
 #include "common/h/dyn_regs.h"
 #include "common/h/SymReader.h"

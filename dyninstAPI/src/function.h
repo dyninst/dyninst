@@ -49,6 +49,16 @@
 #include "PatchCFG.h"
 #include "Point.h"
 
+#include "Variable.h"
+#include "stackanalysis.h"
+#if defined(cap_stack_mods)
+#include "StackMod.h"
+#include "StackMod/OffsetVector.h"
+#include "StackMod/StackAccess.h"
+#include "StackMod/StackLocation.h"
+#include "StackMod/TMap.h"
+#endif
+
 class PCProcess;
 class mapped_module;
 class mapped_object;
@@ -301,6 +311,43 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   virtual void markModified();
 
+#if defined(cap_stack_mods)
+  // Stack modification
+  void addParam(Dyninst::SymtabAPI::localVar* p) { _params.insert(p); }
+  void addVar(Dyninst::SymtabAPI::localVar* v) { _vars.insert(v); }
+  std::set<Dyninst::SymtabAPI::localVar*> getParams() const { return _params; }
+  std::set<Dyninst::SymtabAPI::localVar*> getVars() const { return _vars; }
+
+  void setStackMod(bool b) { _hasStackMod = b; }
+  bool hasStackMod() const { return _hasStackMod; }
+
+  void addMod(StackMod* m, TMap* tMap);
+  void removeMod(StackMod* m);
+  std::set<StackMod*>* getMods() const { return _modifications; }
+  void printMods() const;
+
+  Accesses* getAccesses(Address addr);
+
+  void setCanary(bool b) { _hasCanary = b; }
+  bool hasCanary() { return _hasCanary; }
+
+  bool hasRandomize() { return _randomizeStackFrame; }
+
+  bool hasOffsetVector() const { return _processedOffsetVector; }
+  bool hasValidOffsetVector() const { return _validOffsetVector; }
+  bool createOffsetVector();
+  OffsetVector* getOffsetVector() const { return _offVec; }
+
+  TMap* getTMap() const { return _tMap; }
+  void replaceTMap(TMap* newTMap) { _tMap = newTMap; }
+
+  bool randomize(TMap* tMap, bool seeded = false, int seed = -1);
+#endif
+
+  bool operator<(func_instance& rhs) {
+      return addr() < rhs.addr();
+  }
+
  private:
 
   // helper func for block_instance::setNotAbruptEnd(), do not call directly 
@@ -337,6 +384,46 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 #endif
 
    Dyninst::SymtabAPI::Symbol *wrapperSym_;
+
+#if defined(cap_stack_mods)
+  // Stack modification
+  bool createOffsetVector_Symbols();
+
+  bool createOffsetVector_Analysis(ParseAPI::Function* func,
+          ParseAPI::Block* block,
+          InstructionAPI::Instruction::Ptr insn,
+          Address addr);
+
+  bool addToOffsetVector(StackAnalysis::Height off,
+          int size,
+          StackAccess::StackAccessType type,
+          bool isRegisterHeight,
+          ValidPCRange* valid,
+          MachRegister reg = MachRegister());
+
+  void createTMap_internal(StackMod* mod, StackLocation* loc, TMap* tMap);
+  void createTMap_internal(StackMod* mod, TMap* tMap);
+
+  std::set<Dyninst::SymtabAPI::localVar*> _params;
+  std::set<Dyninst::SymtabAPI::localVar*> _vars;
+  bool _hasDebugSymbols;
+
+  bool _hasStackMod;
+  std::set<StackMod*>* _modifications;
+
+  bool _seeded;
+  int _seed;
+  bool _randomizeStackFrame;
+  bool _hasCanary;
+
+  bool _processedOffsetVector;
+  bool _validOffsetVector;
+  OffsetVector* _offVec;
+  set<tmpObject, less_tmpObject >* _tmpObjects;
+
+  TMap* _tMap;
+  std::map<Address, Accesses*>* _accessMap;
+#endif
 };
 
 template <class OutputIterator>
@@ -370,6 +457,5 @@ void func_instance::getCallerFuncs(OutputIterator result)
     (*iter)->getFuncs(result);
   }
 }
-
 
 #endif /* FUNCTION_H */

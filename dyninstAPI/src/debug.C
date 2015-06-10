@@ -239,6 +239,7 @@ int dyn_debug_ast = 0;
 int dyn_debug_write = 0;
 int dyn_debug_infmalloc = 0;
 int dyn_debug_crash = 0;
+int dyn_debug_stackmods = 0;
 char *dyn_debug_crash_debugger = NULL;
 int dyn_debug_disassemble = 0;
 
@@ -358,6 +359,10 @@ bool init_debug() {
      fprintf(stderr, "Enable DyninstAPI crash debugging\n");
      dyn_debug_crash = 1;
      dyn_debug_crash_debugger = p;
+  }
+  if ((p=getenv("DYNINST_DEBUG_STACKMODS"))) {
+     fprintf(stderr, "Enable DyninstAPI stackmods debugging\n");
+     dyn_debug_stackmods = 1;
   }
   if (check_env_value("DYNINST_DEBUG_DISASS")) {
       fprintf(stderr, "Enabling DyninstAPI instrumentation disassembly debugging\n");
@@ -703,6 +708,22 @@ int infmalloc_printf_int(const char *format, ...)
   return ret;
 }
 
+int stackmods_printf_int(const char *format, ...)
+{
+  if (!dyn_debug_stackmods) return 0;
+  if (NULL == format) return -1;
+
+  debugPrintLock->lock();
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  debugPrintLock->unlock();
+
+  return ret;
+}
 
 StatContainer stats_instru;
 StatContainer stats_ptrace;

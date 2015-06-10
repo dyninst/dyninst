@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/h/Generator.h"
+#include "Generator.h"
 #include "GeneratorWindows.h"
 #include "DecoderWindows.h"
 #include "Mailbox.h"

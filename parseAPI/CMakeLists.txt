@@ -91,25 +91,17 @@ SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 ADD_DEFINITIONS(-DPARSER_LIB)
 ADD_DEFINITIONS(-DDATAFLOW_LIB)
 
-add_library (parseAPI ${SRC_LIST})
-add_library (parseAPI_static STATIC ${SRC_LIST})
-target_link_private_libraries(parseAPI common)
-target_link_private_libraries(parseAPI instructionAPI)
-
-if (LIGHTWEIGHT_SYMTAB)
-target_link_private_libraries(parseAPI symLite)
-else()
-target_link_private_libraries(parseAPI symtabAPI)
-endif()
+dyninst_library(parseAPI common instructionAPI ${SYMREADER})
 
 FILE (GLOB headers "h/*.h")
 FILE (GLOB dataflowheaders "../dataflowAPI/h/*.h")
-set_target_properties (parseAPI parseAPI_static PROPERTIES PUBLIC_HEADER "${headers};${dataflowheaders}")
+set_target_properties (parseAPI PROPERTIES PUBLIC_HEADER "${headers};${dataflowheaders}")
+if(${ENABLE_STATIC_LIBS})
+  set_target_properties (parseAPI_static PROPERTIES PUBLIC_HEADER "${headers};${dataflowheaders}")
+endif()
 
-
-INSTALL (TARGETS parseAPI parseAPI_static
-        EXPORT DyninstTargets
-        RUNTIME DESTINATION ${INSTALL_LIB_DIR}
-        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
-        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
-        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
+install (TARGETS parseAPI
+    RUNTIME DESTINATION ${INSTALL_LIB_DIR}
+    LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+    ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
+    PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

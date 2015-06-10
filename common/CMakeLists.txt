@@ -1,5 +1,6 @@
 # CMake configuration for common directory
 
+
 if(NOT WIN32)
 include_directories (
     ${PROJECT_SOURCE_DIR}/common/h 
@@ -104,22 +105,14 @@ SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
 ADD_DEFINITIONS(-DCOMMON_LIB)
 
-add_library (common ${SRC_LIST})
-add_library (common_static STATIC ${SRC_LIST})
-FILE (GLOB headers "h/*.h")
-set_target_properties (common common_static PROPERTIES PUBLIC_HEADER "${headers}")
-
+set (DEPS "")
 if (IBERTY_FOUND)
-target_link_private_libraries (common ${IBERTY_LIBRARIES})
+set(DEPS "${DEPS};${IBERTY_LIBRARIES}")
 endif()
+
+dyninst_library(common ${DEPS})
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
-  target_link_libraries (common Psapi WS2_32 dbghelp)
+  target_link_libraries(common Psapi WS2_32 dbghelp)
 endif()
 
-INSTALL (TARGETS common common_static
-        EXPORT DyninstTargets
-	RUNTIME DESTINATION ${INSTALL_LIB_DIR}
-        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
-        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
-        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})

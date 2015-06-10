@@ -37,6 +37,7 @@ class AddressSpace;
 
 #include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
 
+#include "dyninstAPI/src/function.h"
 
 namespace Dyninst {
    namespace InstructionAPI {
@@ -70,6 +71,15 @@ class adhocMovementTransformer : public Transformer {
                InsnPtr insn,
 	       Absloc &aloc,
 	       Address &thunkAddr);
+#if defined(cap_stack_mods)
+  bool isStackFrameSensitive(Offset& origOffset,
+          signed long& delta,
+          const Accesses* accesses,
+          OffsetVector*& offVec,
+          TMap*& tMap,
+          ParseAPI::Block* block,
+          Address addr);
+#endif
 
   // Used for finding call targets
   AddressSpace *addrSpace;

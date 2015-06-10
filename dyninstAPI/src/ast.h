@@ -170,6 +170,11 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
       EffectiveAddr,
       BytesAccessed };
 
+   enum MSpecialType{
+       GENERIC_AST,
+       CANARY_AST
+   };
+
    //Error reporting for dynC_API
   protected:
    int lineNum;
@@ -201,6 +206,12 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
    // Factory methods....
    static AstNodePtr nullNode();
+
+   static AstNodePtr stackInsertNode(int size, long dispFromRSP = 0, MSpecialType type = GENERIC_AST);
+   static AstNodePtr stackRemoveNode(int size, MSpecialType type);
+   static AstNodePtr stackRemoveNode(int size, MSpecialType type, func_instance* func, bool canaryAfterPrologue, long canaryHeight);
+   static AstNodePtr stackGenericNode();
+   bool allocateCanaryRegister(codeGen& gen, bool noCost, Register& reg, bool& needSaveAndRestore);
 
    static AstNodePtr labelNode(std::string &label);
 
@@ -429,6 +440,80 @@ class AstNullNode : public AstNode {
                                      bool noCost,
                                      Address &retAddr,
                                      Register &retReg);
+};
+
+/* Stack Frame Modification */
+class AstStackInsertNode : public AstNode {
+    public:
+        AstStackInsertNode(int s, long d, MSpecialType t) : AstNode(),
+        size(s),
+        dispFromRSP(d),
+        type(t) {};
+
+        virtual std::string format(std::string indent);
+        virtual bool containsFuncCall() const;
+        virtual bool usesAppRegister() const;
+
+        bool canBeKept() const { return true; }
+
+    private:
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     Address &retAddr,
+                                     Register &retReg);
+
+    int size;
+    long dispFromRSP;
+    MSpecialType type;
+};
+
+class AstStackRemoveNode : public AstNode {
+    public:
+        AstStackRemoveNode(int s, MSpecialType t = GENERIC_AST) : AstNode(),
+        size(s),
+        type(t) {};
+
+        AstStackRemoveNode(int s, MSpecialType t, func_instance* func, bool canaryAfterPrologue, long canaryHeight) :
+            AstNode(),
+            size(s),
+            type(t),
+            func_(func),
+            canaryAfterPrologue_(canaryAfterPrologue),
+            canaryHeight_(canaryHeight)
+    {};
+
+        virtual std::string format(std::string indent);
+        virtual bool containsFuncCall() const;
+        virtual bool usesAppRegister() const;
+
+        bool canBeKept() const { return true; }
+
+    private:
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     Address &retAddr,
+                                     Register &retReg);
+
+    int size;
+    MSpecialType type;
+
+    func_instance* func_;
+    bool canaryAfterPrologue_;
+    long canaryHeight_;
+};
+
+class AstStackGenericNode : public AstNode {
+    public: AstStackGenericNode() : AstNode() {};
+            virtual std::string format(std::string indent);
+            virtual bool containsFuncCall() const;
+            virtual bool usesAppRegister() const;
+
+            bool canBeKept() const { return true; }
+    private:
+            virtual bool generateCode_phase2(codeGen &gen,
+                    bool noCost,
+                    Address &retAddr,
+                    Register &retReg);
 };
 
 class AstLabelNode : public AstNode {
