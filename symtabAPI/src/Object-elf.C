@@ -98,7 +98,7 @@ using namespace boost::assign;
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
 
-bool Object::truncateLineFilenames = true;
+bool Object::truncateLineFilenames = false;
     
 string symt_current_func_name;
 string symt_current_mangled_func_name;

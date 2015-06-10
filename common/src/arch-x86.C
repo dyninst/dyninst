@@ -983,7 +983,9 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable[e_pcmpistri] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable[e_pcmpistrm] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable[e_popcnt] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::cf)(x86::pf), vector<Dyninst::MachRegister>());
-  flagTable[e_ptest] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::cf)(x86::pf), vector<Dyninst::MachRegister>());
+  flagTable[e_ptest] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+
+//  flagTable[e_ptest] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::cf)(x86::pf), vector<Dyninst::MachRegister>());
 }
 
 bool ia32_entry::flagsUsed(std::set<MachRegister>& flagsRead, std::set<MachRegister>& flagsWritten, ia32_locations* locs)

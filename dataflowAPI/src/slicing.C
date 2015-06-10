@@ -36,8 +36,10 @@
 #include "Instruction.h"
 
 #include "dataflowAPI/h/stackanalysis.h"
-
 #include "dataflowAPI/h/slicing.h"
+#include "ABI.h"
+#include "bitArray.h"
+
 
 #include "common/h/Graph.h"
 #include "instructionAPI/h/Instruction.h"
@@ -50,6 +52,8 @@
 #include "parseAPI/h/CodeObject.h"
 
 #include <boost/bind.hpp>
+
+#include <ctime>
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -148,6 +152,10 @@ Slicer::sliceInternal(
     Direction dir,
     Predicates &p)
 {
+    static clock_t sliceInternalTime = 0, 
+                   recursiveSliceTime = 0,
+		   t, t0;
+//    t = clock();
     Graph::Ptr ret;
     SliceNode::Ptr aP;
     SliceFrame initFrame;
@@ -181,20 +189,28 @@ Slicer::sliceInternal(
 
     // add to graph
     insertInitialNode(ret, dir, aP);
+    if (p.addNodeCallback(a_,visitedEdges)) {
+        // initialize slice stack and set for loop detection.
+        // the set may be redundant, but speeds up the loopless case.
+        addrStack.push_back(initFrame.addr());
+        addrSet.insert(initFrame.addr());
+	
+	slicing_printf("Starting recursive slicing\n");
+	sliceInternalAux(ret,dir,p,initFrame,true,visited, singleCache, cache);
+	slicing_printf("Finished recursive slicing\n");
+    }
 
-    // initialize slice stack and set for loop detection.
-    // the set may be redundant, but speeds up the loopless case.
-    addrStack.push_back(initFrame.addr());
-    addrSet.insert(initFrame.addr());
-
-    slicing_printf("Starting recursive slicing\n");
-    sliceInternalAux(ret,dir,p,initFrame,true,visited, singleCache, cache);
-    slicing_printf("Finished recursive slicing\n");
 
     // promote any remaining plausible nodes.
     promotePlausibleNodes(ret, dir); 
 
     cleanGraph(ret);
+//    sliceInternalTime += clock() - t;
+   
+//    fprintf(stderr, "sliceInternal: %.3lf\n", (float)sliceInternalTime / CLOCKS_PER_SEC);
+//    fprintf(stderr, "recursiveSlice: %.3lf\n", (float)recursiveSliceTime / CLOCKS_PER_SEC);
+
+//    fprintf(stderr, "visited: %d, in slice %d, entry visited %d %d\n", cache.size(), ret->size(), cache.find(f_->addr()) != cache.end() , cache.find(f_->entry()->last()) != cache.end());
     return ret;
 }
 
@@ -222,7 +238,7 @@ void Slicer::sliceInternalAux(
     // `false' otherwise.
 
     if (!skip) {
-        updateAndLink(g,dir,cand, mydefs, p);
+        if (!updateAndLink(g,dir,cand, mydefs, p)) return;
 	    slicing_printf("\t\tfinished udpateAndLink, active.size: %ld\n",
                        cand.active.size());
     }
@@ -280,7 +296,9 @@ void Slicer::sliceInternalAux(
         // If the control flow search has run
         // off the rails somehow, widen;
         // otherwise search down this new path
-        if(!f.valid || visited.size() > 50*g->size()) {
+	// Xiaozhu: change from 50 to 100 changes my problem,
+	// but it is still adhoc.
+        if(!f.valid || visited.size() > 100*g->size()) {
             widenAll(g,dir,cand);
 	    }
         else {
@@ -358,6 +376,11 @@ bool Slicer::updateAndLink(
     DefCache& cache,
     Predicates &p)
 {
+    static clock_t updateAndLinkTime = 0, 
+                   convertInsnTime = 0,
+		   t,tc;
+//    t = clock();
+
     vector<Assignment::Ptr> assns;
     vector<bool> killed;
     vector<Element> matches;
@@ -372,14 +395,17 @@ bool Slicer::updateAndLink(
     else
         insn = cand.loc.rcurrent->first;
 
+//    tc = clock();
     convertInstruction(insn,cand.addr(),cand.loc.func, cand.loc.block, assns);
     // iterate over assignments and link matching elements.
     for(unsigned i=0; i<assns.size(); ++i) {
         SliceFrame::ActiveMap::iterator ait = cand.active.begin();
         unsigned j=0;
         for( ; ait != cand.active.end(); ++ait,++j) {
-            findMatch(g,dir,cand,(*ait).first,assns[i],matches, cache); // links
-            killed[j] = killed[j] || kills((*ait).first,assns[i]);
+            if (findMatch(g,dir,cand,(*ait).first,assns[i],matches, cache)) { // links	  
+	        if (!p.addNodeCallback(assns[i], visitedEdges)) return false;
+	    }
+	    killed[j] = killed[j] || kills((*ait).first,assns[i]);
             change = change || killed[j];
         }
         // Record the *potential* of this instruction to interact
@@ -387,8 +413,11 @@ bool Slicer::updateAndLink(
         cachePotential(dir,assns[i],cache);
     }
 
-    if(!change && matches.empty()) // no change -- nothing killed, nothing added
-        return false;
+    if(!change && matches.empty()) {// no change -- nothing killed, nothing added
+//        updateAndLinkTime += clock() - t;
+//	fprintf(stderr, "updateAndLink: %.3lf\n", (float)updateAndLinkTime / CLOCKS_PER_SEC);
+        return true;
+    }
 
     // update of active set -- matches + anything not killed
     SliceFrame::ActiveMap::iterator ait = cand.active.begin();
@@ -427,6 +456,8 @@ bool Slicer::updateAndLink(
           cand.active[matches[i].reg].push_back(matches[i]);
        }
     }
+//    updateAndLinkTime += clock() - t;
+//    fprintf(stderr, "updateAndLink: %.3lf\n", (float)updateAndLinkTime / CLOCKS_PER_SEC);
 
     return true;
 }
@@ -491,9 +522,10 @@ Slicer::cachePotential(
  * and see whether they match, for the direction-appropriate
  * definition of "match". If so, generate new slice elements
  * and return them in the `match' vector, after linking them
- * to the elements associated with the region `cur'
+ * to the elements associated with the region `cur'.
+ * Return true if these exists at least a match.
  */
-void
+bool
 Slicer::findMatch(
     Graph::Ptr g,
     Direction dir,
@@ -503,10 +535,10 @@ Slicer::findMatch(
     vector<Element> & matches,
     DefCache& cache)
 {
+    bool hadmatch = false;
     if(dir == forward) {
 		slicing_cerr << "\t\tComparing candidate assignment " << assn->format() << " to input region " << reg.format() << endl;
         vector<AbsRegion> const& inputs = assn->inputs();
-        bool hadmatch = false;
         for(unsigned i=0;i<inputs.size();++i) {
             if(reg.contains(inputs[i])) {
                 hadmatch = true;    
@@ -535,6 +567,7 @@ Slicer::findMatch(
         slicing_printf("\t\t\t\t\tComparing current %s to candidate %s\n",
             reg.format().c_str(),assn->out().format().c_str());
         if(reg.contains(assn->out())) {
+	    hadmatch = true;
             slicing_printf("\t\t\t\t\t\tMatch!\n");
 
             // Link the assignments associated with this
@@ -569,6 +602,8 @@ Slicer::findMatch(
             }
         }
     }
+
+    return hadmatch;
 }
 
 
@@ -681,6 +716,7 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
 				   bool& err,
 				   SliceFrame& nf)
 {
+  visitedEdges.insert(e);
   switch(e->type()) 
   {
   case CALL:
@@ -725,12 +761,16 @@ Slicer::getPredecessors(
     SliceFrame const& cand,
     vector<SliceFrame> & newCands)
 {
+    static clock_t getPredecessorsIntraTime = 0, 
+                   getPredecessorsInterTime = 0,
+		   t;
+//    t = clock();
     InsnVec::reverse_iterator prev = cand.loc.rcurrent;
     ++prev;
 
     // Case 1: intra-block
     if(prev != cand.loc.rend) {
-        SliceFrame nf(cand.loc,cand.con);
+        SliceFrame nf(cand.loc,cand.con, cand.firstCond);
         nf.loc.rcurrent = prev;
 
         // Slightly more complicated than the forward case; check
@@ -765,6 +805,8 @@ Slicer::getPredecessors(
     
             newCands.push_back(nf);
         }
+//	getPredecessorsIntraTime += clock() - t;
+//	fprintf(stderr, "getPredecessors (intra): %.3lf\n", (float)getPredecessorsIntraTime / CLOCKS_PER_SEC);
         return true;
     }
 
@@ -786,7 +828,9 @@ Slicer::getPredecessors(
 				    boost::ref(err),
 				    boost::ref(nf)
 				    ));
-   
+//    getPredecessorsInterTime += clock() - t;
+//    fprintf(stderr, "getPredecessors (inter): %.3lf\n", (float)getPredecessorsInterTime / CLOCKS_PER_SEC);
+
     return !err; 
 }
 
@@ -1046,6 +1090,47 @@ Slicer::handleReturnDetails(
     shiftAllAbsRegions(cur,-1*stack_depth,cur.con.front().func);
 }
 
+static bool IsEqualCondJump(ParseAPI::Block *b) {
+    InstructionAPI::Instruction::Ptr insn = b->getInsn(b->last());
+    entryID id = insn->getOperation().getID();
+    if (id == e_jz || id == e_jnz) return true;
+    return false;
+}
+
+static bool EndsWithConditionalJump(ParseAPI::Block *b) {
+    bool cond = false;
+//    if (IsEqualCondJump(b)) return false;
+    for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit)
+        if ((*eit)->type() == COND_TAKEN) cond = true;
+    return cond;
+}
+
+static void DFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visit, ParseAPI::Edge *ban, set<ParseAPI::Block*> &targets) {
+    if (visit.find(cur) != visit.end()) return;    
+    visit.insert(cur);
+    targets.erase(cur);
+    if (targets.empty()) return;
+    for (auto eit = cur->targets().begin(); eit != cur->targets().end(); ++eit)
+        if ((*eit) != ban && (*eit)->type() != CALL && (*eit)->type() != RET)
+	    DFS((*eit)->trg(), visit, ban, targets);
+}
+bool Slicer::ReachableFromBothBranches(ParseAPI::Edge *e, vector<Element> &newE) {
+    static clock_t t1 = 0, t2;
+//    t2 = clock();
+
+    ParseAPI::Block *start;
+    start = e->src();
+    set<ParseAPI::Block*> visited , targets;
+    for (auto eit = newE.begin(); eit != newE.end(); ++eit)
+        targets.insert(eit->block);
+    DFS(start, visited, e, targets);
+//    t1 += clock() - t2;
+//    fprintf(stderr, "check control flow dependency %.3lf\n", (float)t1 / CLOCKS_PER_SEC);
+//    fprintf(stderr, "%d %d\n", visited.size(), targets.size());
+    return targets.empty();
+}
+
+
 bool
 Slicer::handleDefault(
     Direction dir,
@@ -1060,6 +1145,30 @@ Slicer::handleDefault(
     } else {
         cur.loc.block = e->src();
         getInsnsBackward(cur.loc);
+	if ((true || cur.firstCond) && EndsWithConditionalJump(e->src())) {
+	    vector<Element> newE;	 
+	    
+	    for (auto ait = cur.active.begin(); ait != cur.active.end(); ++ait) {	        
+	        newE.insert(newE.end(), ait->second.begin(), ait->second.end());
+	    }	    
+/*
+            for (auto ait = cur.active.begin(); ait != cur.active.end(); ++ait) {
+	        vector<Element> & oldE = ait->second; 
+		for (auto oit = oldE.begin(); oit != oldE.end(); ++oit)
+		    if (!f_->postDominates(oit->block, cur.loc.block)) newE.push_back(*oit);
+	    }
+*/	    
+//	    if (!ReachableFromBothBranches(e, newE)) {
+//            if (!newE.empty()) {    
+	        if (cur.loc.block->obj()->cs()->getAddressWidth() == 8)
+		    cur.active[AbsRegion(Absloc(x86_64::rip))] = newE;
+		else if  (cur.loc.block->obj()->cs()->getAddressWidth() == 4)
+		    cur.active[AbsRegion(Absloc(x86::eip))] = newE;
+//	    }
+
+	    cur.firstCond = false;
+  	    slicing_printf("\tadding tracking ip for control flow information ");
+	}
     }
     return true;
 }
@@ -1100,7 +1209,7 @@ Slicer::handleCallBackward(
         ParseAPI::Function * f = (*mit).first;
         SliceFrame::ActiveMap & act = (*mit).second;
     
-        SliceFrame nf(cand.loc,cand.con);
+        SliceFrame nf(cand.loc,cand.con, cand.firstCond);
         nf.active = act;
 
         nf.con.push_back(ContextElement(f));
@@ -1211,8 +1320,7 @@ Slicer::handleReturnBackward(
             return false;
         }
         return true;
-    }
-
+    } 
     return false;
 }
 
@@ -1323,7 +1431,9 @@ Slicer::Slicer(Assignment::Ptr a,
   a_(a),
   b_(block),
   f_(func),
-  converter(true) {
+  // Xiaozhu: Temporarily disable stackanalysis, should be able to
+  // specify it 
+  converter(false, false) {
   df_init_debug();
 };
 
@@ -1428,12 +1538,17 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
   // TBD: overlaps ins't quite the right thing here. "contained
   // by" would be better, but we need to get the AND/OR
   // of abslocs hammered out.
-
+  
   if (assign->out().type() != Absloc::Unknown) {
     // A region assignment can never kill
     return false; 
   }
 
+  if (assign->insn()->getOperation().getID() == e_call && reg.absloc().type() == Absloc::Register) {
+      const MachRegister &r = reg.absloc().reg();
+      ABI* abi = ABI::getABI(b_->obj()->cs()->getAddressWidth());
+      if (abi->getCallWrittenRegisters()[abi->getIndex(r)]) return true;
+  }
   return reg.contains(assign->out());
 }
 
@@ -1465,6 +1580,9 @@ std::string SliceNode::format() const {
 // converts an instruction to a vector of assignments. if this slicer has
 // already converted this instruction, this function returns the same
 // assignments.
+// Note that we CANNOT use a global cache based on the address
+// of the instruction to convert because the block that contains
+// the instructino may change during parsing.
 void Slicer::convertInstruction(Instruction::Ptr insn,
 				Address addr,
 				ParseAPI::Function *func,

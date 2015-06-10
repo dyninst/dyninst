@@ -640,7 +640,7 @@ Parser::finalize(Function *f)
 		// functions called from within, e.g. parse_frame from setting
 		// the caching flag and preventing later updates to the blocks()
 		// vector during finalization.
-		cache_value = false;
+	//	cache_value = false;
 	}
 
     parsing_printf("[%s] finalizing %s (%lx)\n",
@@ -884,7 +884,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         
         Block * cur = NULL;
         ParseWorkElem * work = frame.popWork();
-
         if (work->order() == ParseWorkElem::call) {
             Function * ct = NULL;
             Edge * ce = NULL;
@@ -1086,7 +1085,22 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             }
         } else if (work->order() == ParseWorkElem::seed_addr) {
             cur = leadersToBlock[work->target()];
-        }
+        } else if (work->order() == ParseWorkElem::resolve_jump_table) {
+	    // resume to resolve jump table 
+	    parsing_printf("... continue parse indirect jump at %lx\n", work->ah()->getAddr());
+	    Block *nextBlock = work->cur();
+	    if (nextBlock->last() != work->ah()->getAddr()) {
+	        // The block has been split
+	        region_data * rd = _parse_data->findRegion(frame.codereg);
+		set<Block*> blocks;
+		rd->blocksByRange.find(work->ah()->getAddr(), blocks);
+//		assert(blocks.size() == 1);
+		nextBlock = *(blocks.begin());
+
+	    }
+	    ProcessCFInsn(frame,nextBlock,*work->ah());
+            continue;
+	}
                        
         if (NULL == cur) {
             pair<Block*,Edge*> newedge =
@@ -1271,7 +1285,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             ++num_insns; 
 
             if(ah.hasCFT()) {
-               ProcessCFInsn(frame,cur,ah);
+//	       if (false) {
+	       if (ah.isIndirectJump()) {
+	           // Create a work element to represent that
+		   // we will resolve the jump table later
+                   end_block(cur,ah);
+                   frame.pushWork( frame.mkWork( work->bundle(), cur, ah));
+	       } else {
+	           ProcessCFInsn(frame,cur,ah);
+	       }
                break;
             } else if (func->_saves_fp &&
                        func->_no_stack_frame &&
@@ -1392,7 +1414,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
     /** parsing complete **/
     if (HASHDEF(plt_entries,frame.func->addr())) {
-        if (obj().cs()->nonReturning(frame.func->addr())) {
+//        if (obj().cs()->nonReturning(frame.func->addr())) {
+        if (obj().cs()->nonReturning(plt_entries[frame.func->addr()])) {        
             frame.func->set_retstatus(NORETURN);
         } else {
             frame.func->set_retstatus(UNKNOWN);

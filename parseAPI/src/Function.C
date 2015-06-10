@@ -187,6 +187,7 @@ Function::finalize()
 {
   _extents.clear();
   _exitBL.clear();
+
   // for each block, decrement its refcount
   for (auto blk = blocks_begin(); blk != blocks_end(); blk++) {
     (*blk)->_func_cnt--;
@@ -226,6 +227,40 @@ Function::blocks_int()
         worklist.push_back(_entry);
         visited[_entry->start()] = 1;
         add_block(_entry);
+    }
+
+    // We need to revalidate that the exit blocks we found before are still exit blocks
+    blockmap::iterator nextIt, curIt;
+    for (curIt = _exitBL.begin(); curIt != _exitBL.end(); ) {
+        Block *cur = curIt->second;
+	bool exit_func = false;
+        bool found_call = false;
+        bool found_call_ft = false;
+
+	if (cur->targets().empty()) exit_func = true;
+	for (auto eit = cur->targets().begin(); eit != cur->targets().end(); ++eit) {
+	    Edge *e = *eit;
+	    Block *t = e->trg();
+            if(e->type() == CALL || e->interproc()) {
+	        found_call = true;
+	    }
+            if (e->type() == CALL_FT) {
+                found_call_ft = true;
+            }
+
+	    if (e->type() == RET || t->obj() != cur->obj()) {
+	        exit_func = true;
+		break;
+	    }
+	}
+	if (found_call && !found_call_ft && !obj()->defensiveMode()) exit_func = true;
+
+	if (!exit_func) { 
+	    nextIt = curIt;
+	    ++nextIt;
+	    _exitBL.erase(curIt);
+	    curIt = nextIt;
+	} else ++curIt;
     }
 
     // avoid adding duplicate return blocks
@@ -305,7 +340,7 @@ Function::blocks_int()
             }
 
             if(!HASHDEF(visited,t->start())) {
-               parsing_printf("\t Adding target block to worklist\n");
+               parsing_printf("\t Adding target block [%lx,%lx) to worklist according to edge from %lx, type %d\n", t->start(), t->end(), e->src()->last(), e->type());
                 worklist.push_back(t);
                 visited[t->start()] = true;
                 add_block(t);
@@ -332,6 +367,7 @@ Function::blocks_int()
            }
         }
     }
+
     return blocklist(blocks_begin(), blocks_end());
 }
 

@@ -638,6 +638,7 @@ SymtabCodeSource::isCode(const Address addr) const
     overlapping_warn(FILE__,__LINE__);
 
     CodeRegion * cr = lookup_region(addr);
+
     if(cr)
         return cr->isCode(addr);
     else

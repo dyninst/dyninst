@@ -24,6 +24,13 @@ set (SRC_LIST
         src/IA_platformDetailsFactory.C 
         src/CFGModifier.C
         src/StackTamperVisitor.C
+	src/JumpTablePred.C
+	src/BoundFactCalculator.C
+	src/BoundFactData.C
+	src/IndirectAnalyzer.C
+	src/IndirectASTVisitor.C
+	src/ThunkData.C
+	../dataflowAPI/src/ABI.C 
 	src/dominator.C
 	src/LoopAnalyzer.C
 	src/Loop.C

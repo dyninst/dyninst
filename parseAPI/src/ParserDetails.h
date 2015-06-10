@@ -30,7 +30,7 @@
 #ifndef _PARSER_DETAILS_H_
 #define _PARSER_DETAILS_H_
 
-
+#include "IA_IAPI.h"
 
 namespace Dyninst {
 namespace ParseAPI {
@@ -72,6 +72,7 @@ class ParseWorkElem
         catch_block,
         call,
         call_fallthrough,
+	resolve_jump_table, // We want to finish all possible parsing work before parsing jump tables
         __parse_work_end__
     };
 
@@ -87,7 +88,10 @@ class ParseWorkElem
           _can_resolve(resolvable),
           _tailcall(tailcall),
           _order(__parse_work_end__),
-          _call_processed(false)
+          _call_processed(false),
+	  _cur(NULL),
+	  _ah(NULL)
+
     { 
       if(e) {
         switch(e->type()) {
@@ -130,8 +134,30 @@ class ParseWorkElem
           _can_resolve(false),
           _tailcall(false),
           _order(__parse_work_end__),
-          _call_processed(false)
+          _call_processed(false),
+	  _cur(NULL),
+	  _ah(NULL)
     { } 
+
+    // This work element is a continuation of
+    // parsing jump tables
+    ParseWorkElem(ParseWorkBundle *bundle, Block *b, const InsnAdapter::IA_IAPI& ah)
+         : _bundle(bundle),
+          _edge(NULL),
+          _targ((Address)-1),
+          _can_resolve(false),
+          _tailcall(false),
+          _order(resolve_jump_table),
+          _call_processed(false),
+	  _cur(b) {	      
+	      _ah = new InsnAdapter::IA_IAPI(ah);
+	  }
+
+    ~ParseWorkElem() {
+        if (_ah != NULL) delete _ah;
+    }
+
+      
 
     ParseWorkBundle *   bundle()        const { return _bundle; }
     Edge *              edge()          const { return _edge; }
@@ -143,6 +169,9 @@ class ParseWorkElem
     bool                tailcall()      const { return _tailcall; }
     bool                callproc()      const { return _call_processed; }
     void                mark_call()     { _call_processed = true; }
+
+    Block *             cur()           const { return _cur; }
+    InsnAdapter::IA_IAPI *  ah()        const { return _ah; }
 
     /* 
      * Note that compare treats the parse_work_order as `lowest is
@@ -177,6 +206,10 @@ class ParseWorkElem
     bool _tailcall;
     parse_work_order _order;
     bool _call_processed;
+
+    // Data for continuing parsing jump tables
+    Block * _cur;
+    InsnAdapter::IA_IAPI * _ah;
 };
 
 // ParseWorkElem container

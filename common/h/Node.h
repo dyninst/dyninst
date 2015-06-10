@@ -33,6 +33,7 @@
 
 #include <set>
 #include <string>
+#include "Edge.h"
 #include "Annotatable.h"
 
 #include "dyntypes.h"
@@ -58,10 +59,15 @@ class COMMON_EXPORT Node  {
     
 	typedef boost::shared_ptr<Edge> EdgePtr;
 	typedef boost::shared_ptr<Graph> GraphPtr;
-    typedef std::set<EdgePtr> EdgeSet;
+    typedef std::unordered_set<EdgePtr, Edge::EdgePtrHasher> EdgeSet;
 
  public:
 	 typedef boost::shared_ptr<Node> Ptr;
+	 struct NodePtrHasher {
+	     size_t operator() (const Ptr &n) const {
+	         return (size_t)n.get();
+	     }
+	 };
 
     void ins(EdgeIterator &begin, EdgeIterator &end);
     void outs(EdgeIterator &begin, EdgeIterator &end);

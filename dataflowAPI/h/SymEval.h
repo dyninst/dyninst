@@ -329,7 +329,7 @@ public:
   // static const AST::Ptr Placeholder;
   //
   // Single version: hand in an Assignment, get an AST
-    DATAFLOW_EXPORT static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment);
+    DATAFLOW_EXPORT static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment, bool applyVisitors = true);
 
   // Hand in a set of Assignments
   // get back a map of Assignments->ASTs

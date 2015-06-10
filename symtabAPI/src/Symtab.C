@@ -445,12 +445,10 @@ SYMTAB_EXPORT bool Symtab::isStripped()
 #endif
 }
 
-
 SYMTAB_EXPORT Offset Symtab::preferedBase() const 
 {
     return preferedBase_;
 }
-
 
 SYMTAB_EXPORT Offset Symtab::imageOffset() const 
 {
@@ -1398,6 +1396,12 @@ bool Symtab::extractInfo(Object *linkedFile)
 #endif
     imageOffset_ = linkedFile->code_off();
     dataOffset_ = linkedFile->data_off();
+
+#if defined(os_windows)
+	preferedBase_ = linkedFile->getPreferedBase();
+#else
+	preferedBase_ = 0;
+#endif
 
     imageLen_ = linkedFile->code_len();
     dataLen_ = linkedFile->data_len();

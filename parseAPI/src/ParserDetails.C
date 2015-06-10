@@ -60,46 +60,45 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
     switch(curEdge->second)
     {
         case CALL:
-            parsing_printf("%s[%d]: adding call edge %x->%x\n",
+            parsing_printf("%s[%d]: adding call edge %lx->%lx\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
 	    break;
         case CALL_FT:
-            parsing_printf("%s[%d]: adding function fallthrough edge %x->%x\n",
+            parsing_printf("%s[%d]: adding function fallthrough edge %lx->%lx\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
         case FALLTHROUGH:
-            parsing_printf("%s[%d]: adding fallthrough edge %x->%x\n",
+            parsing_printf("%s[%d]: adding fallthrough edge %lx->%lx\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
         case COND_TAKEN:
-            parsing_printf("%s[%d]: adding conditional taken edge %x->%x\n",
+            parsing_printf("%s[%d]: adding conditional taken edge %lx->%lx\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
         case COND_NOT_TAKEN:
-            parsing_printf("%s[%d]: adding conditional not taken edge %x->%x\n",
+            parsing_printf("%s[%d]: adding conditional not taken edge %lx->%lx\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
         case INDIRECT:
-            parsing_printf("%s[%d]: adding indirect edge %x->%x\n",
+            parsing_printf("%s[%d]: adding indirect edge %lx->%lx\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
         case DIRECT:
-            parsing_printf("%s[%d]: adding direct edge %x->%x\n",
+            parsing_printf("%s[%d]: adding direct edge %lx->%lx\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
         case CATCH:
-            parsing_printf("%s[%d]: adding catch block edge %x->%x\n",
+            parsing_printf("%s[%d]: adding catch block edge %lx->%lx\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
         default:
-            parsing_printf("%s[%d]: adding unknown edge type %d edge %x->%x\n",
+            parsing_printf("%s[%d]: adding unknown edge type %d edge %lx->%lx\n",
                            FILE__, __LINE__, curEdge->second, currAddr, curEdge->first);
             break;
     }
 #endif // VERBOSE_EDGE_LOG
 }
 } // anonymous namespace
-
 
 static void 
 getBlockInsns(Block &blk, std::set<Address> &addrs)
@@ -570,7 +569,7 @@ void Parser::ProcessCFInsn(
         }
 
         verbose_log(ah.getAddr(),curEdge);
-
+	parsing_printf("resolveable_edge: %d, tailcall: %d, target: %lx\n", resolvable_edge, tailcall, curEdge->first);
         ParseWorkElem * we = 
           bundle->add(
             new ParseWorkElem(

@@ -126,6 +126,7 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, 
    if (blockLiveInfo.find(block) != blockLiveInfo.end()){
    	return;
    }
+   liveness_printf("\tsummarize block info at block %lx\n", block->start());
  
    livenessData &data = blockLiveInfo[block];
    data.use = data.def = data.in = abi->getBitArray();
@@ -217,6 +218,8 @@ bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block, bitArray &allRegsDe
 
 void LivenessAnalyzer::analyze(Function *func) {
     if (liveFuncCalculated.find(func) != liveFuncCalculated.end()) return;
+    liveness_printf("Caculate basic block level liveness information for function %s (%lx)\n", func->name().c_str(), func->addr());
+
     // Step 0: initialize the "registers this function has defined" bitarray
     assert(funcRegsDefined.find(func) == funcRegsDefined.end());
     // Let's assume the regs that are normally live at the entry to a function

@@ -100,7 +100,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate* immed) {
 void ExpressionConversionVisitor::visit(RegisterAST* regast) {
   // has no children
   
-  m_stack.push_front(archSpecificRegisterProc(regast, addr));
+  m_stack.push_front(archSpecificRegisterProc(regast, addr, size));
   roseExpression = m_stack.front();
   return;
 }
@@ -154,13 +154,14 @@ void ExpressionConversionVisitor::visit(Dereference* deref) {
   roseExpression = result;
 }
 
-SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast, uint64_t addr)
+SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast, uint64_t addr, uint64_t size)
 {
-  MachRegister machReg = regast->getID();
-  if(machReg.isPC()) return NULL;
+
+  MachRegister machReg = regast->getID();  
 
   switch(arch) {
-  case Arch_x86: {
+  case Arch_x86:
+  case Arch_x86_64: {
     int regClass;
     int regNum;
     int regPos;
@@ -168,7 +169,14 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
     MachRegister machReg = regast->getID();
     if(machReg.isPC()) {
       // ideally this would be symbolic
-      SgAsmExpression *constAddrExpr = new SgAsmDoubleWordValueExpression(addr);
+      // When ip is read, the value read is not the address of the current instruction,
+      // but the address of the next instruction.
+      SgAsmExpression *constAddrExpr;
+      if (arch == Arch_x86) 
+          constAddrExpr = new SgAsmDoubleWordValueExpression(addr + size);
+      else
+          constAddrExpr = new SgAsmQuadWordValueExpression(addr + size);
+
       return constAddrExpr;
     } 
     machReg.getROSERegister(regClass, regNum, regPos);
@@ -198,7 +206,7 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
 
 SgAsmExpression* ExpressionConversionVisitor::makeSegRegExpr()
 {
-  if (arch == Arch_x86) {
+  if (arch == Arch_x86 || arch == Arch_x86_64) {
     return new SgAsmx86RegisterReferenceExpression(x86_regclass_segment,
 						   x86_segreg_none, x86_regpos_all);
   }

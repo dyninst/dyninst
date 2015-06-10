@@ -37,7 +37,9 @@
 #include "dyntypes.h"
 #include <queue>
 #include <set>
+#include <unordered_set>
 #include <map>
+#include <unordered_map>
 #include <list>
 #include <stack>
 
@@ -47,6 +49,7 @@
 
 #include "AbslocInterface.h"
 
+#include <boost/functional/hash.hpp>
 
 namespace Dyninst {
 
@@ -168,6 +171,12 @@ class Slicer {
        return false; 
     }
     DATAFLOW_EXPORT virtual ~Predicates() {};
+
+    // Callback function when adding a new node to the slice.
+    // Return true if we want to continue slicing
+    DATAFLOW_EXPORT virtual bool addNodeCallback(AssignmentPtr,
+                                                 std::set<ParseAPI::Edge*> &) { return true;}
+
   };
 
   DATAFLOW_EXPORT GraphPtr forwardSlice(Predicates &predicates);
@@ -285,19 +294,22 @@ class Slicer {
     AbsRegion reg;
     Assignment::Ptr ptr;
   };
+  bool ReachableFromBothBranches(ParseAPI::Edge *e, std::vector<Element> &newE);
 
   // State for recursive slicing is a context, location pair
   // and a list of AbsRegions that are being searched for.
   struct SliceFrame {
     SliceFrame(
         Location const& l,
-        Context const& c)
+        Context const& c,
+	bool f)
       : loc(l),
         con(c),
-        valid(true)
+        valid(true),
+	firstCond(f)
     { }
-    SliceFrame() : valid(true) { }
-    SliceFrame(bool v) : valid(v) { }
+    SliceFrame() : valid(true), firstCond(true) { }
+    SliceFrame(bool v) : valid(v), firstCond(true) { }
 
     // Active slice nodes -- describe regions
     // that are currently under scrutiny
@@ -307,6 +319,7 @@ class Slicer {
     Location loc;
     Context con;
     bool valid;
+    bool firstCond;
 
     Address addr() const { return loc.addr(); }
   };
@@ -345,7 +358,12 @@ class Slicer {
       Def(Element const& e, AbsRegion const& r) : ele(e), data(r) { } 
       Element ele;
       AbsRegion data;
-  
+ 
+      struct DefHasher {
+          size_t operator() (const Def &o) const {
+	      return Assignment::AssignmentPtrHasher()(o.ele.ptr);
+	  }
+      };
       // only the Assignment::Ptr of an Element matters
       // for comparison
       bool operator<(Def const& o) const {
@@ -357,6 +375,11 @@ class Slicer {
               return true;
           else 
               return false;
+      }
+
+      bool operator==(Def const &o) const {
+          if (ele.ptr != o.ele.ptr) return false;
+	  return data == o.data;
       }
     };
 
@@ -415,6 +438,11 @@ class Slicer {
             else
                 return false;
         }
+	bool operator == (EdgeTuple const &o) const {
+	    if (s != o.s) return false;
+	    if (d != o.d) return false;
+	    return r == o.r;
+	}
         SliceNode::Ptr s;
         SliceNode::Ptr d;
         AbsRegion r;
@@ -482,7 +510,7 @@ class Slicer {
             Assignment::Ptr assn,
             DefCache & cache);
 
-    void findMatch(
+    bool findMatch(
             GraphPtr g,
             Direction dir,
             SliceFrame const& cand,
@@ -648,11 +676,19 @@ class Slicer {
   ParseAPI::Block *b_;
   ParseAPI::Function *f_;
 
+
   // Assignments map to unique slice nodes
-  std::map<AssignmentPtr, SliceNode::Ptr> created_;
+  std::unordered_map<AssignmentPtr, SliceNode::Ptr, Assignment::AssignmentPtrHasher> created_;
 
   // cache to prevent edge duplication
-  std::map<EdgeTuple, int> unique_edges_;
+  struct EdgeTupleHasher {
+    size_t operator() (const EdgeTuple& et) const {
+        size_t seed = (size_t)(et.s.get());
+        boost::hash_combine( seed , (size_t)(et.d.get()));
+	return seed;
+    }
+  };
+  std::unordered_map<EdgeTuple, int, EdgeTupleHasher> unique_edges_;
 
   // map of previous active maps. these are used to end recursion.
   typedef std::map<AbsRegion, std::set<Element> > PrevMap;
@@ -669,6 +705,11 @@ class Slicer {
   AssignmentConverter converter;
 
   SliceNode::Ptr widen_;
+  
+  // A set of edges that have been visited during slicing,
+  // which can be used for external users to figure out
+  // which part of code has been analyzed
+  std::set<ParseAPI::Edge*> visitedEdges;
 };
 
 }

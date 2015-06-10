@@ -272,6 +272,12 @@ class AbsRegion {
 class Assignment {
  public:
   typedef boost::shared_ptr<Assignment> Ptr;
+  struct AssignmentPtrHasher {
+    size_t operator() (const Ptr& ap) const {
+      return (size_t)ap.get();
+    }
+  };
+
   typedef std::set<AbsRegion> Aliases;
 
   DATAFLOW_EXPORT const std::vector<AbsRegion> &inputs() const { return inputs_; }
@@ -315,6 +321,20 @@ class Assignment {
        func_(f),
        block_(b),
        out_(o) {};
+
+  DATAFLOW_EXPORT static Assignment::Ptr makeAssignment(const InstructionAPI::Instruction::Ptr i,
+                             const Address a,
+                             ParseAPI::Function *f,
+                             ParseAPI::Block *b,
+                             const std::vector<AbsRegion> &ins,
+                             const AbsRegion &o);
+
+  DATAFLOW_EXPORT static Assignment::Ptr makeAssignment(const InstructionAPI::Instruction::Ptr i,
+                             const Address a,
+                             ParseAPI::Function *f,
+                             ParseAPI::Block *b,
+                             const AbsRegion &o);
+
 
   // Internally used method; add a dependence on 
   // a new abstract region. If this is a new region
