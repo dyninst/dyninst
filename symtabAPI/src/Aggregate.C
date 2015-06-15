@@ -200,7 +200,6 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
       newSym->isDynamic_ = true;
       module_->exec()->addSymbol(newSym);
     }
-
     return true;
  }
 

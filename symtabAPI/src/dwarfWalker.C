@@ -311,8 +311,17 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       switch(tag()) {
          case DW_TAG_subprogram:
          case DW_TAG_entry_point:
-            ret = parseSubprogram(NormalFunc);
-            break;
+	     {
+		 Dwarf_Bool isInline = false;
+		 dwarf_hasattr(e, DW_AT_inline, &isInline, NULL);
+		 if(isInline) {
+		     ret = parseSubprogram(InlinedFunc);
+		 } else {
+		     ret = parseSubprogram(NormalFunc);
+		 }
+	     }
+	     break;
+
          case DW_TAG_inlined_subroutine:
             ret = parseSubprogram(InlinedFunc);
             break;
@@ -555,16 +564,23 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
 
    if (parsedFuncs.find(func) != parsedFuncs.end()) {
       dwarf_printf("(0x%lx) parseSubprogram not parsing children b/c curFunc() not in parsedFuncs\n", id());
+      if(name_result) {
+	  dwarf_printf("\tname is %s\n", curName().c_str());
+      }
       setParseChild(false);
       return true;
    }
 
    if (name_result && !curName().empty()) {
       dwarf_printf("(0x%lx) Identified function name as %s\n", id(), curName().c_str());
-      if (isMangledName())
-         func->addMangledNameInternal(curName(), true, true);
-      //      else
-      // func->addPrettyName(curName(), true);
+      if (isMangledName()) {
+	  func->addMangledName(curName(), true);
+      }
+      // Only keep pretty names around for inlines, which probably don't have mangled names
+      else {
+	  dwarf_printf("(0x%lx) Adding as pretty name to inline\n", id());
+	  func->addPrettyName(curName(), true);
+      }
    }
 
    //Collect callsite information for inlined functions.
@@ -581,21 +597,22 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    }
 
    // Get range information
-   if (hasRanges() && func->ranges.empty()) {
-      Address last_low = 0, last_high = 0;
-      func->ranges.reserve(rangesSize());
-      for (range_set_t::iterator i = ranges_begin(); i != ranges_end(); i++) {
-         Address low = i->first;
-         Address high = i->second;
-         if (last_low == low && last_high == high)
-            continue;
-         last_low = low;
-         last_high = high;
-
-         func->ranges.push_back(FuncRange(low, high - low, func));         
-      }
+   if (hasRanges()) {
+       if(func->ranges.empty()) {
+	   Address last_low = 0, last_high = 0;
+	   func->ranges.reserve(rangesSize());
+	   for (range_set_t::iterator i = ranges_begin(); i != ranges_end(); i++) {
+	       Address low = i->first;
+	       Address high = i->second;
+	       if (last_low == low && last_high == high)
+		   continue;
+	       last_low = low;
+	       last_high = high;
+	       
+	       func->ranges.push_back(FuncRange(low, high - low, func));         
+	   }
+       }
    }
-
    // Dwarf outlines some function information. You have the base entry, which contains
    // address ranges, frame base information, and optionally a "abstract origin"
    // or "specification" entry that points to more information. 

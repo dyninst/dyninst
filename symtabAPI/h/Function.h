@@ -76,7 +76,7 @@ typedef std::vector<FuncRange> FuncRangeCollection;
 typedef std::vector<FunctionBase *> InlineCollection;
 typedef std::vector<FuncRange> FuncRangeCollection;
 
-class SYMTAB_EXPORT FunctionBase : public Aggregate
+class SYMTAB_EXPORT FunctionBase 
 {
    friend class InlinedFunction;
    friend class Function;
@@ -102,6 +102,11 @@ class SYMTAB_EXPORT FunctionBase : public Aggregate
    std::vector<VariableLocation> &getFramePtrRefForInit();
    std::vector<VariableLocation> &getFramePtr();   
 
+   /***** Primary name *****/
+   virtual std::string getName() const = 0;
+   virtual bool addMangledName(std::string name, bool isPrimary) = 0;
+   virtual bool addPrettyName(std::string name, bool isPrimary) = 0;
+
    /***** Opaque data object pointers, usable by user ****/
    void *getData();
    void setData(void *d);
@@ -110,6 +115,10 @@ class SYMTAB_EXPORT FunctionBase : public Aggregate
    bool addLocalVar(localVar *);
    bool addParam(localVar *);
    bool	setReturnType(Type *);
+
+   virtual Offset getOffset() const = 0;
+   virtual unsigned getSize() const = 0;
+   virtual Module* getModule() const = 0;
 
   protected:
    FunctionBase(Symbol *);
@@ -120,8 +129,8 @@ class SYMTAB_EXPORT FunctionBase : public Aggregate
    localVarCollection *locals;
    localVarCollection *params;
 
+   mutable unsigned functionSize_;
    Type          *retType_;
-   unsigned functionSize_;
 
    InlineCollection inlines;
    FunctionBase *inline_parent;
@@ -130,12 +139,11 @@ class SYMTAB_EXPORT FunctionBase : public Aggregate
    std::vector<VariableLocation> frameBase_;
    bool frameBaseExpanded_;
    void *data;
-
    void expandLocation(const VariableLocation &loc,
                        std::vector<VariableLocation> &ret);
 };
 
-class SYMTAB_EXPORT Function : public FunctionBase
+ class SYMTAB_EXPORT Function : public FunctionBase, public Aggregate
 {
    friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
@@ -162,7 +170,14 @@ class SYMTAB_EXPORT Function : public FunctionBase
    Serializable * serialize_impl(SerializerBase *sb, 
                                 const char *tag = "Function") THROW_SPEC (SerializerError);
 
-   unsigned getSize();
+   virtual unsigned getSize() const;
+   virtual std::string getName() const;
+   virtual Offset getOffset() const { return Aggregate::getOffset(); }
+   virtual bool addMangledName(std::string name, bool isPrimary) 
+   {return Aggregate::addMangledName(name, isPrimary);}
+   virtual bool addPrettyName(std::string name, bool isPrimary)
+   {return Aggregate::addPrettyName(name, isPrimary);}
+   virtual Module* getModule() const { return module_; }
 };
 
 class SYMTAB_EXPORT InlinedFunction : public FunctionBase
@@ -172,12 +187,22 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
   protected:
    InlinedFunction(FunctionBase *parent);
    ~InlinedFunction();
+   virtual Module* getModule() const { return module_; }
   public:
+   typedef vector<std::string>::const_iterator name_iter;
    std::pair<std::string, Dyninst::Offset> getCallsite();
    virtual bool removeSymbol(Symbol *sym);
+   virtual bool addMangledName(std::string name, bool isPrimary);
+   virtual bool addPrettyName(std::string name, bool isPrimary);
+   virtual std::string getName() const;
+   virtual Offset getOffset() const;
+   virtual unsigned getSize() const;
   private:
    std::string callsite_file;
    Dyninst::Offset callsite_line;
+   std::string name_;
+   Module* module_;
+   Dyninst::Offset offset_;
 };
 
 }
