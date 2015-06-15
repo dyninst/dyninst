@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -45,12 +45,12 @@ using namespace Dyninst::Stackwalker;
 FrameStepper::FrameStepper(Walker *w) :
   walker(w)
 {
-  sw_printf("[%s:%u] - Creating FrameStepper %p with walker %p\n", 
+  sw_printf("[%s:%u] - Creating FrameStepper %p with walker %p\n",
 	    FILE__, __LINE__, this, walker);
   assert(walker);
 }
 
-FrameStepper::~FrameStepper() 
+FrameStepper::~FrameStepper()
 {
   walker = NULL;
   sw_printf("[%s:%u] - Deleting FrameStepper %p\n", FILE__, __LINE__, this);
@@ -62,7 +62,7 @@ Walker *FrameStepper::getWalker()
   return walker;
 }
 
-ProcessState *FrameStepper::getProcessState() 
+ProcessState *FrameStepper::getProcessState()
 {
   return getWalker()->getProcessState();
 }
@@ -155,7 +155,7 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &ou
 		FILE__, __LINE__, s);
      return gcf_not_me;
    }
-    
+
    sw_printf("[%s:%u] - Current function %s is baseTramp\n",
 	      FILE__, __LINE__, s);
    Address base;
@@ -167,7 +167,7 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &ou
                 FILE__, __LINE__);
      return gcf_not_me;
    }
-     
+
    return getCallerFrameArch(in, out, base, lib.second, size, stack_height);
 }
 
@@ -207,8 +207,8 @@ BottomOfStackStepperImpl::BottomOfStackStepperImpl(Walker *w, BottomOfStackStepp
 gcframe_ret_t BottomOfStackStepperImpl::getCallerFrame(const Frame &in, Frame & /*out*/)
 {
    /**
-    * This stepper never actually returns an 'out' frame.  It simply 
-    * tries to tell if we've reached the top of a stack and returns 
+    * This stepper never actually returns an 'out' frame.  It simply
+    * tries to tell if we've reached the top of a stack and returns
     * either gcf_stackbottom or gcf_not_me.
     **/
    std::vector<std::pair<Address, Address> >::iterator i;
@@ -285,10 +285,10 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrame(const Frame &in, Frame &
    {
       bool instResult = helper->isInstrumentation(in.getRA(), &orig_ra, &stack_height, &aligned, &entryExit);
       bool pEntryExit = prevEntryExit;
-       
+
       // remember that this frame was entry/exit instrumentation
       prevEntryExit = entryExit;
-      
+
       if (pEntryExit || instResult) {
          out.setNonCall();
          return getCallerFrameArch(in, out, 0, 0, 0, stack_height, aligned, orig_ra, pEntryExit);

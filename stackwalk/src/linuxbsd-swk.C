@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -199,7 +199,7 @@ static void registerLibSpotterSelf(ProcSelf *pself)
                 "to get library load address\n", FILE__, __LINE__);
       lib_trap_addr_self_err = true;
       return;
-   }   
+   }
    lib_trap_addr_self = libs->getLibTrapAddress();
    if (!lib_trap_addr_self) {
       sw_printf("[%s:%u] - Error getting trap address, can't install lib tracker",
@@ -220,7 +220,7 @@ static void registerLibSpotterSelf(ProcSelf *pself)
 
    bool found = false;
    for (unsigned i=0; i<maps_size; i++) {
-      if (maps[i].start <= lib_trap_addr_self && 
+      if (maps[i].start <= lib_trap_addr_self &&
           maps[i].end > lib_trap_addr_self)
       {
          found = true;
@@ -233,12 +233,12 @@ static void registerLibSpotterSelf(ProcSelf *pself)
          if (first_page + size < lib_trap_addr_self+MAX_TRAP_LEN)
             size += pgsize;
          int result = mprotect((void*) first_page,
-                               size, 
+                               size,
                                PROT_READ|PROT_WRITE|PROT_EXEC);
          if (result == -1) {
             int errnum = errno;
             sw_printf("[%s:%u] - Error setting premissions for page containing %lx. "
-                      "Can't install lib tracker: %s\n", FILE__, __LINE__, 
+                      "Can't install lib tracker: %s\n", FILE__, __LINE__,
                       lib_trap_addr_self, strerror(errnum));
             free(maps);
             lib_trap_addr_self_err = true;
@@ -261,7 +261,7 @@ static void registerLibSpotterSelf(ProcSelf *pself)
    local_lib_state = libs;
    signal(SIGTRAP, lib_trap_handler);
 
-   memcpy((void*) lib_trap_addr_self, trap_buffer, actual_len);   
+   memcpy((void*) lib_trap_addr_self, trap_buffer, actual_len);
    sw_printf("[%s:%u] - Successfully install lib tracker at 0x%lx\n",
             FILE__, __LINE__, lib_trap_addr_self);
 }
@@ -280,7 +280,11 @@ void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_
    }
 }
 
+#if defined(arch_aarch64)
+static const Dyninst::Address START_HEURISTIC_LENGTH = 44;
+#else
 static const Dyninst::Address START_HEURISTIC_LENGTH = 43;
+#endif
 
 void BottomOfStackStepperImpl::initialize()
 {
@@ -288,7 +292,7 @@ void BottomOfStackStepperImpl::initialize()
    assert(proc);
 
    sw_printf("[%s:%u] - Initializing BottomOfStackStepper\n", FILE__, __LINE__);
-   
+
    LibraryState *libs = proc->getLibraryTracker();
    if (!libs) {
       sw_printf("[%s:%u] - Error initing StackBottom.  No library state for process.\n",
@@ -321,7 +325,7 @@ void BottomOfStackStepperImpl::initialize()
                        FILE__, __LINE__, START_FUNC_NAME, START_HEURISTIC_LENGTH);
                end = start + START_HEURISTIC_LENGTH;
             }
-            sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for start\n", 
+            sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for start\n",
                       FILE__, __LINE__, start, end);
             ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
          }
@@ -341,19 +345,19 @@ void BottomOfStackStepperImpl::initialize()
       if (libthread) {
          clone_sym = libthread->getSymbolByName(CLONE_FUNC_NAME);
          if (libthread->isValidSymbol(clone_sym)) {
-            Dyninst::Address start = libthread->getSymbolOffset(clone_sym) + 
+            Dyninst::Address start = libthread->getSymbolOffset(clone_sym) +
                libthread_addr.second;
             Dyninst::Address end = libthread->getSymbolSize(clone_sym) + start;
-            sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for clone\n", 
+            sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for clone\n",
                       FILE__, __LINE__, start, end);
             ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
          }
          startthread_sym = libthread->getSymbolByName(START_THREAD_FUNC_NAME);
          if (libthread->isValidSymbol(startthread_sym)) {
-            Dyninst::Address start = libthread->getSymbolOffset(startthread_sym) + 
+            Dyninst::Address start = libthread->getSymbolOffset(startthread_sym) +
                libthread_addr.second;
             Dyninst::Address end = libthread->getSymbolSize(startthread_sym) + start;
-            sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for start_thread\n", 
+            sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for start_thread\n",
                       FILE__, __LINE__, start, end);
             ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
          }

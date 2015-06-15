@@ -72,8 +72,10 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
   //GET_FRAME_BASE(fp);
   GET_STACK_POINTER(sp);
   //framePointer = (ra_fp_pair_t *) fp;
+
   framePointer = (ra_fp_pair_t *) *sp;
 
+  sw_printf("ARM-debug: about to get values...\n");
   if (reg.isStackPointer() || reg == Dyninst::StackTop) {
     val = (Dyninst::MachRegisterVal) framePointer;
     if(val != 0) found_reg = true;

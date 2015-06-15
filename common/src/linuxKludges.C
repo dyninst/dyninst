@@ -579,7 +579,8 @@ bool AuxvParser::readAuxvInfo()
      free(buffer64);
   if (!page_size)
      page_size = getpagesize();
-#if !defined(arch_x86) && !defined(arch_x86_64)
+//#if !defined(arch_x86) && !defined(arch_x86_64)
+#if !defined(arch_x86) && !defined(arch_x86_64) && !defined(arch_aarch64)
   //No vsyscall page needed or present
   return true;
 #endif
