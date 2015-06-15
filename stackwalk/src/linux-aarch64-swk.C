@@ -57,6 +57,31 @@ bool Walker::createDefaultSteppers()
     return false;
   }
 
+  /*
+  stepper = new SigHandlerStepper(this);
+  result = addStepper(stepper);
+  if (!result){
+    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+	      stepper);
+    return false;
+  }else{
+    sw_printf("[%s:%u] - Stepper %p is SignalHandlerStepper\n",
+            FILE__, __LINE__, stepper);
+  }
+  */
+
+  // ARM: try
+  stepper = new BottomOfStackStepper(this);
+  result = addStepper(stepper);
+  if (!result){
+    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+	      stepper);
+    return false;
+  }else{
+    sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
+            FILE__, __LINE__, stepper);
+  }
+
   return true;
 }
 
