@@ -933,16 +933,16 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
         //      x86:    mov %fs:0x14, canaryReg
         //      x86_64: mov %gs:0x28, canaryReg
         if (gen.getArch() == Arch_x86) {
-            gen.codeEmitter()->emitLoadRelativeSegReg(canaryReg, 0x14, REGNUM_GS, 4, gen);
+            emitter->emitLoadRelativeSegReg(canaryReg, 0x14, REGNUM_GS, 4, gen);
         } else if (gen.getArch() == Arch_x86_64) {
-            gen.codeEmitter()->emitLoadRelativeSegReg(canaryReg, 0x28, REGNUM_FS, 8, gen);
+            emitter->emitLoadRelativeSegReg(canaryReg, 0x28, REGNUM_FS, 8, gen);
         }
 
         // Push the canary value
         gen.codeEmitter()->emitPush(gen, canaryReg);
 
         // Clear canary register to prevent info leaking
-        gen.codeEmitter()->emitXorRegReg(canaryReg, canaryReg, gen);
+        emitter->emitXorRegReg(canaryReg, canaryReg, gen);
 
         // Restore canaryReg value if necessary
         if (needSaveAndRestore) {
@@ -972,8 +972,11 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
     gen.setInsertNaked(true);
     gen.setModifiedStackFrame(true);
 
-    bool upcast;
-    Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()), upcast);
+    bool ignored;
+    Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()), ignored);
+
+    Emitterx86* emitter = dynamic_cast<Emitterx86*>(gen.codeEmitter());
+    assert(emitter);
 
     if (type == GENERIC_AST) {
         /* Adjust stack pointer by size */
@@ -1032,9 +1035,9 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
         //      x86: xor %fs:0x14, canaryReg
         //      x86_64: xor %gs:0x28, canaryReg
         if (gen.getArch() == Arch_x86) {
-            gen.codeEmitter()->emitXorRegSegReg(canaryReg, REGNUM_GS, 0x14, gen);
+            emitter->emitXorRegSegReg(canaryReg, REGNUM_GS, 0x14, gen);
         } else if (gen.getArch() == Arch_x86_64) {
-            gen.codeEmitter()->emitXorRegSegReg(canaryReg, REGNUM_FS, 0x28, gen);
+            emitter->emitXorRegSegReg(canaryReg, REGNUM_FS, 0x28, gen);
         }
 
         // Restore canaryReg if necessary
@@ -1081,7 +1084,7 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
         pdvector<AstNodePtr> operands;
         func_instance* func = func_; // c&p'd from AstCallNode
         codeBufIndex_t preCallIndex = gen.getIndex();
-        gen.codeEmitter()->emitCallInstruction(gen, func, canaryReg);
+        emitter->emitCallInstruction(gen, func, canaryReg);
         codeBufIndex_t postCallIndex = gen.getIndex();
 
         // Fix-up the jcc
