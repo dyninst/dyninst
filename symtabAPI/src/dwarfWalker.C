@@ -311,17 +311,8 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       switch(tag()) {
          case DW_TAG_subprogram:
          case DW_TAG_entry_point:
-	     {
-		 Dwarf_Bool isInline = false;
-		 dwarf_hasattr(e, DW_AT_inline, &isInline, NULL);
-		 if(isInline) {
-		     ret = parseSubprogram(InlinedFunc);
-		 } else {
-		     ret = parseSubprogram(NormalFunc);
-		 }
-	     }
+	     ret = parseSubprogram(NormalFunc);
 	     break;
-
          case DW_TAG_inlined_subroutine:
             ret = parseSubprogram(InlinedFunc);
             break;

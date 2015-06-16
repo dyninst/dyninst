@@ -491,5 +491,5 @@ Offset InlinedFunction::getOffset() const
 
 unsigned InlinedFunction::getSize() const
 {
-    return inline_parent->getSize();
+    return functionSize_;//inline_parent->getSize();
 }
