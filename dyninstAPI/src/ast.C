@@ -981,9 +981,6 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
     Emitterx86* emitter = dynamic_cast<Emitterx86*>(gen.codeEmitter());
     assert(emitter);
 
-    bool upcast;
-    Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()), upcast);
-
     if (type == GENERIC_AST) {
         /* Adjust stack pointer by size */
         int disp = size;
