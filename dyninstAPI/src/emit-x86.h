@@ -49,8 +49,24 @@ class registerSlot;
 
 // Emitter moved to emitter.h - useful on other platforms as well
 
+class Emitterx86 : public Emitter {
+    public:
+        virtual ~Emitterx86() {};
+
+        virtual bool emitLoadRelativeSegReg(Register dest, Address offset, Register base, int size, codeGen &gen) = 0;
+
+        virtual bool emitXorRegRM(Register dest, Register base, int disp, codeGen& gen) = 0;
+        virtual bool emitXorRegReg(Register dest, Register base, codeGen& gen) = 0;
+        virtual bool emitXorRegImm(Register dest, int imm, codeGen& gen) = 0;
+        virtual bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen& gen) = 0;
+
+        virtual void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen) = 0;
+
+        virtual bool emitCallInstruction(codeGen &, func_instance *, Register) = 0;
+};
+
 // 32-bit class declared here since its implementation is in both inst-x86.C and emit-x86.C
-class EmitterIA32 : public Emitter {
+class EmitterIA32 : public Emitterx86 {
 
 public:
     virtual ~EmitterIA32() {};
@@ -173,7 +189,7 @@ void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int i
 		    bool is_64, codeGen &gen);
 
 #if defined(arch_x86_64)
-class EmitterAMD64 : public Emitter {
+class EmitterAMD64 : public Emitterx86 {
 
 public:
     virtual ~EmitterAMD64() {};
