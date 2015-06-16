@@ -123,8 +123,11 @@ FrameFuncStepperImpl::FrameFuncStepperImpl(Walker *w, FrameStepper *parent_,
 gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 {
   // TODO set RA location
+  sw_printf("ARM-debug+++++++++++++++++++\n");
 
   Address in_fp, out_sp, out_ra;
+  location_t fp_loc, sp_loc, ra_loc;
+
   bool result;
 
   unsigned addrWidth;
@@ -133,6 +136,8 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   ra_fp_pair_t this_frame_pair;
   ra_fp_pair_t last_frame_pair;
   ra_fp_pair_t *actual_frame_pair_p;
+
+  Address actual_fp;
 
   // Assume a standard frame layout if no analysis is available
   FrameFuncHelper::alloc_frame_t alloc_frame =  make_pair(FrameFuncHelper::standard_frame,
@@ -167,7 +172,6 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
     return gcf_error;
   }
 
-  sw_printf("ARM-debug: in_fp (%lx)\n",this_frame_pair.FP);
   // Read the previous frame
   if (sizeof(uint64_t) == addrWidth) {
     result = getProcessState()->readMem(&last_frame_pair, this_frame_pair.FP,
@@ -187,15 +191,19 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   if (FrameFuncHelper::no_frame == alloc_frame.first)
   {
     actual_frame_pair_p = &this_frame_pair;
+    actual_fp = in_fp;
   }
   else
   {
     actual_frame_pair_p = &last_frame_pair;
+    actual_fp = this_frame_pair.FP;
   }
 
   // Handle leaf functions
   if (FrameFuncHelper::unset_frame == alloc_frame.second)
   {
+    ra_loc.location = loc_register;
+    ra_loc.val.reg = aarch64::x30;
     // Leaf function - does not save return address
     // Get the RA from the PC register
     if (sizeof(uint64_t) == addrWidth)
@@ -216,6 +224,8 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   }
   else
   {
+    ra_loc.location = loc_address;
+    ra_loc.val.addr = actual_fp + sizeof(uint64_t); //&(actual_frame_pair_p->LR)
     // Function saves return address
     if (sizeof(uint64_t) == addrWidth)
     {
@@ -232,24 +242,35 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   {
     // frame pointer stays the same
     out.setFP(in_fp);
+    fp_loc.location = loc_register;
+    fp_loc.val.reg = aarch64::x29;
   }
   else
   {
+    fp_loc.location = loc_address;
+    fp_loc.val.addr = actual_fp;
+
     if (sizeof(uint64_t) == addrWidth) {
         out.setFP(this_frame_pair.FP);
     }
     else {
-		//aarch32 is not supported now
 	    assert(0);
-        //out.setFP(this_frame_pair.pair32.out_fp);
     }
   }
 
+  //on ARM, the ra of the bottom stack is not NULL
+  //the following code dosen't work
   if (!out_ra) {
     return gcf_stackbottom;
   }
 
   out.setRA(out_ra);
+  //try to set loc
+  sp_loc.location = loc_address;
+
+  //out.setRALocation(ra_loc);
+  //out.setFPLocation(fp_loc);
+
   return gcf_success;
 }
 
