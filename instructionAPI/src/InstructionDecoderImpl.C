@@ -79,14 +79,14 @@ namespace Dyninst
         Expression::Ptr InstructionDecoderImpl::makeAddExpression(Expression::Ptr lhs,
                 Expression::Ptr rhs, Result_Type resultType)
         {
-            static BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
+            BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
 
             return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, adder));
         }
         Expression::Ptr InstructionDecoderImpl::makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
-            static BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
+            BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
             return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, multiplier));
         }
         Expression::Ptr InstructionDecoderImpl::makeDereferenceExpression(Expression::Ptr addrToDereference,
