@@ -152,9 +152,6 @@ namespace Dyninst
       arch_decoded_from(o.arch_decoded_from)
     {
         m_Operands = o.m_Operands;
-      //m_Operands.reserve(o.m_Operands.size());
-      //std::copy(o.m_Operands.begin(), o.m_Operands.end(), std::back_inserter(m_Operands));
-      
       m_size = o.m_size;
       if(o.m_size > sizeof(m_RawInsn.small_insn))
       {
@@ -559,12 +556,7 @@ memAccessors.begin()));
               ++cft)
           {
              if(cft->isCall)
-             {/*
-                static RegisterAST* thePC = new RegisterAST(MachRegister::getPC(arch_decoded_from));
-		long offset;
-		cft->target->bind(thePC, Result(u32, 0));
-		offset = cft->target->eval().convert<long>();
-                if(offset != (int)(size()))*/
+             {
                 return c_CallInsn;
              }
           }
