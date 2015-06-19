@@ -1,6 +1,6 @@
 
 #TO_CORE = ../../..
-TO_CORE = /home/xi/dyninst
+TO_CORE = ../../../dyninst
 
 IFLAGS += -I $(TO_CORE)/stackwalk/h
 IFLAGS += -I $(TO_CORE)/dynutil/h
