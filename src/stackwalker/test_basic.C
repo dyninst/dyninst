@@ -36,6 +36,8 @@ void usage();
 
 void *a = 0;
 
+bool isSelfSW = false;
+
 /**
  * An example and test showing how to build a stackwalker object, how to
  * handle the debugging aspects of the stackwalker, and finally how to collect
@@ -187,8 +189,10 @@ void parse_args(std::vector<Walker *> &walkers, int argc, char *argv[])
     else if (strcmp(argv[i], "-self") == 0) {
        //First party stack walker
       walker = Walker::newWalker();
+      isSelfSW = true;
     }
     else if (strcmp(argv[i], "-create") == 0 && i+1 < argc) {
+        isSelfSW = false;
        //Thread party stackwalker, creates an executable
        string exec_name(argv[++i]);
        vector<string> args;
@@ -221,8 +225,9 @@ void print_loc(location_t loc)
 {
    switch (loc.location) {
       case loc_address:
+        isSelfSW?
+         printf("Addr: 0x%lx (0x%lx)", loc.val.addr, *((unsigned long *) loc.val.addr)) :
          printf("Addr: 0x%lx ", loc.val.addr);
-         //printf("Addr: 0x%lx (0x%lx)", loc.val.addr, *((unsigned long *) loc.val.addr));
          break;
       case loc_register:
          printf("Register: %d", (int) loc.val.reg);
