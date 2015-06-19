@@ -221,7 +221,8 @@ void print_loc(location_t loc)
 {
    switch (loc.location) {
       case loc_address:
-         printf("Addr: 0x%lx (0x%lx)", loc.val.addr, *((unsigned long *) loc.val.addr));
+         printf("Addr: 0x%lx ", loc.val.addr);
+         //printf("Addr: 0x%lx (0x%lx)", loc.val.addr, *((unsigned long *) loc.val.addr));
          break;
       case loc_register:
          printf("Register: %d", (int) loc.val.reg);
@@ -256,10 +257,6 @@ void walk_stack3(Walker *walker)
      swalk.clear();
      walker->walkStack(swalk, threads[j]);
      printf("   Stack for thread %d\n", threads[j]);
-     if(swalk.size() == 0){
-         printf(" swalk is blank.\n");
-         assert(0);
-     }
 
      for (unsigned i=0; i<swalk.size(); i++) {
         std::string name;
