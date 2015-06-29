@@ -7690,7 +7690,7 @@ bool Thread::writeThreadLocalMemory(Library::const_ptr lib, Dyninst::Offset tls_
    return true;
 }
 
-bool Thread::getThreadLocalAddress(Library::const_ptr lib, Dyninst::Offset tls_symbol_offset, Dyninst::Address &result_addr)
+bool Thread::getThreadLocalAddress(Library::const_ptr lib, Dyninst::Offset tls_symbol_offset, Dyninst::Address &result_addr) const
 {
    MTLock lock_this_func;
    THREAD_EXIT_DETACH_STOP_TEST("getThreadLocalAddress", false);
