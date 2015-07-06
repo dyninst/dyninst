@@ -475,7 +475,7 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
             mapped_object* obj = evProc->findObject(addr);
 
             // retry finding object by its original address.
-            if (obj == nullptr && evProc->isMemoryEmulated()) {
+            if (obj == NULL && evProc->isMemoryEmulated()) {
                 std::pair<bool, Address> trans = 
                     evProc->getMemEm()->translateBackwards(addr);
                 if (trans.first) { 
@@ -485,10 +485,10 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
             }
 
             // change permissions if we can find this originally writable region
-            if (obj != nullptr) {
+            if (obj != NULL) {
                 SymtabAPI::Region* reg = 
                     obj->parse_img()->getObject()->findEnclosingRegion(addr - obj->codeBase());
-                if (reg != nullptr && reg->getRegionPermissions() == SymtabAPI::Region::RP_RW
+                if (reg != NULL && reg->getRegionPermissions() == SymtabAPI::Region::RP_RW
                     || reg->getRegionPermissions() == SymtabAPI::Region::RP_RWX) {
                         // change back permissions.
                         PCProcess::PCMemPerm rights(true, true, true);

@@ -504,7 +504,9 @@ Function::tampersStack(bool recalculate)
         _tamper = TAMPER_NONE;
         return _tamper;
     }
-	//_cache_valid = false; [ACHIN - changing cache - 10/21/2014]
+        // The following line leads to dangling pointers, but leaving
+        // in until we understand why it was originally there.
+	//_cache_valid = false;
 
     // if we want to re-calculate the tamper address
     if (!recalculate && TAMPER_UNSET != _tamper) {
@@ -548,13 +550,6 @@ Function::tampersStack(bool recalculate)
 
                 Slicer slicer(*ait,*bit,this);
                 Graph::Ptr slGraph = slicer.backwardSlice(preds);
-                if (dyn_debug_malware) {
-                    stringstream graphDump;
-                    graphDump << "sliceDump_" << this->name() << "_" 
-                              << hex << retnAddr << dec << ".dot";
-					//[ACHIN] - UNCOMMENTED TO PRINT GRAPH STRUCTURE 11/24/2014
-                    slGraph->printDOT(graphDump.str());
-                }
                 DataflowAPI::Result_t slRes;
                 DataflowAPI::SymEval::expand(slGraph,slRes);
                 sliceAtRet = slRes[*ait];

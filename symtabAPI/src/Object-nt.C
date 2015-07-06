@@ -807,19 +807,7 @@ map<string, map<string, WORD> > & Object::getHintNameTable()
    
    return hnt_;
 }
-/*Achin's code [12-9-2014]*
-struct ImageSectionInfo
-{
-      char SectionName[IMAGE_SIZEOF_SHORT_NAME];//the macro is defined WinNT.h
-      char *SectionAddress;
-      int SectionSize;
-      ImageSectionInfo(const char* name)
-      {
-            strcpy(SectionName, name); 
-       }
-};
 
-*/
 void Object::FindInterestingSections(bool alloc_syms, bool defensive)
 {
    // now that we have the file mapped, look for 
@@ -827,29 +815,6 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
    assert( peHdr == NULL );
    HANDLE mapAddr = mf->base_addr();
    peHdr = ImageNtHeader( mapAddr );
-   /*Achin code 12-9-2014
-   MAGE_SECTION_HEADER *pSectionHdr = (IMAGE_SECTION_HEADER *) (pNtHdr + 1);
-
-	ImageSectionInfo *pSectionInfo = NULL;
-
-	//iterate through the list of all sections, and check the section name in the if conditon. etc
-	for ( int i = 0 ; i < pNtHdr->FileHeader.NumberOfSections ; i++ )
-	{
-		 char *name = (char*) pSectionHdr->Name;
-		 if ( memcmp(name, ".rdata", 5) == 0 )
-		 {
-			  pSectionInfo = new ImageSectionInfo(".rdata");
-			  pSectionInfo->SectionAddress = dllImageBase + pSectionHdr->VirtualAddress;
-
-			  range of the data segment - something you're looking for**
-			  pSectionInfo->SectionSize = pSectionHdr->Misc.VirtualSize;
-			  break;
-		  }
-		 
-		  pSectionHdr++;
-	}
-	*/
-
 
    if (peHdr == NULL) {
       code_ptr_ = (char*)mapAddr;

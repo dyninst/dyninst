@@ -39,18 +39,10 @@ using namespace std;
  
 bool Graph::printDOT(const std::string& fileName) {
 	
-    //[ACHIN] added code to print the graph in a different location, I wasn't able to print this
-	char buffer[32];
-	static int k=0;
-	snprintf(buffer, sizeof(char) * 32, "c:/achin-work/dot/file%i.dot", k);
-	FILE *file = fopen(buffer,"w");
-	//[ACHIN] code ends here
-	//FILE *file = fopen(fileName.c_str(), "w");
+    FILE *file = fopen(fileName.c_str(), "w");
     if (file == NULL) {
         return false;
     }
-	k++;
-	fprintf(stderr, "Graph DOT Filename %s\n", fileName.c_str());
     fprintf(file, "digraph G {\n");
 
     NodeSet visited;

@@ -54,7 +54,7 @@ AST::Ptr AST::accept(ASTVisitor *v) {
   return v->visit(this);
 }
 
-//[ACHIN - added the cycle detection code 11/17/2014]
+// AST cycle detector.
 
 void AST::hasCycle(AST::Ptr in,std::map<AST::Ptr, int> &visited) {
 if(!in)
@@ -86,24 +86,3 @@ if(!in)
 }
 
 
-/*
-void AST::hasCycle(AST::Ptr in,std::map<AST::Ptr, int> &visited) {
-  
-  if (!in) return;
-  
-  std::map<AST::Ptr, int>::iterator ssit = visited.find(in);
-
-  if(ssit == visited.end()) {
-  visited.insert(std::pair<AST::Ptr, int>(in,1));
-  }
-  else{
-	(*ssit).second++;
-  }
- 
- 
-  for (unsigned i = 0; i < in->numChildren(); ++i) {
-		hasCycle(in->child(i),visited);
-  }
-  return;
-}
-*/

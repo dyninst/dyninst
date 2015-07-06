@@ -634,7 +634,8 @@ Parser::finalize(Function *f)
     }
 
 	bool cache_value = true;
-	/* Made Change to fix the cache_valid= false assert error - ACHIN - 10/30/2014
+	/* this is commented out to prevent a failure in tampersStack, but
+           this may be an incorrect approach to fixing the problem.
 	if(frame_status(f->region(), f->addr()) < ParseFrame::PARSED) {
 		// XXX prevent caching of blocks, extents for functions that
 		// are actively being parsed. This prevents callbacks and other
@@ -1340,9 +1341,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     _pcb.abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
                     _pcb.foundWeirdInsns(func);
                     end_block(cur,ah);
-					/*Achin added code to allow invalid instructions to end up as a sink node 12/15/2014*/
-					link(cur, _sink, DIRECT, true);
-					/*Achin added code ends*/
+                    // allow invalid instructions to end up as a sink node.
+		    link(cur, _sink, DIRECT, true);
                     break;
                 } else if (ah.isNopJump()) {
                     // patch the jump to make it a nop, and re-set the 
