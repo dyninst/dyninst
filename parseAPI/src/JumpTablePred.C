@@ -174,7 +174,7 @@ bool JumpTablePred::endAtPoint(AssignmentPtr ap) {
 }
 bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
-    
+    if (currentAssigns.size() > 200) return false; 
     // For flags, we only analyze zf
     if (ap->out().absloc().type() == Absloc::Register && ap->out().absloc().reg().regClass() == x86::FLAG &&
        ap->out().absloc().reg() != x86::zf && ap->out().absloc().reg() != x86_64::zf) {
@@ -362,6 +362,8 @@ pair<AST::Ptr, bool> JumpTablePred::ExpandAssignment(Assignment::Ptr assign) {
     } else {
         pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
 	if (expandRet.second && expandRet.first) {
+parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
+
 	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, assign->insn()->size());
 	    //expandCache[assign] = DeepCopyAnAST(expandRet.first);
 	    expandCache[assign] = calculation;

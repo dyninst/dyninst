@@ -455,6 +455,14 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     else
         outAST = VariableAST::create(Variable(ar));
 
+    if (id == e_bsf || id == e_bsr) {
+	int size = node->assign()->insn()->getOperand(0).getValue()->size();
+	newFact->GenFact(outAST, new BoundValue(StridedInterval(1,0, size * 8)), false);
+        parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
+	newFact->Print();
+	return;
+
+    }
 
     if (id == e_push) {
          if (calculation->getID() == AST::V_ConstantAST) {
@@ -542,6 +550,7 @@ pair<AST::Ptr, bool> BoundFactsCalculator::ExpandAssignment(Assignment::Ptr assi
     } else {
         pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
 	if (expandRet.second && expandRet.first) {
+	    parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
 	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, assign->insn()->size());
 	    //expandCache[assign] = DeepCopyAnAST(expandRet.first);
 	    expandCache[assign] = calculation;

@@ -206,6 +206,8 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	            bound.insert(make_pair(ast, val));
 	    } else if (ast->val().size == 8) {
 	        // Any 8-bit value is bounded in [0,255]
+		// But I should only do this when I know the read 
+		// itself is not a jump table
 	        bound.insert(make_pair(ast, new BoundValue(StridedInterval(1,0,255))));
 	    }
 	    break;

@@ -1735,7 +1735,7 @@ struct X86_64InstructionSemantics {
                 }
                 break;
             }
-
+	    */
             case x86_bsf: {
                 policy.writeFlag(x86_flag_of, policy.undefined_());
                 policy.writeFlag(x86_flag_sf, policy.undefined_());
@@ -1761,6 +1761,15 @@ struct X86_64InstructionSemantics {
                         write32(operands[0], result);
                         break;
                     }
+		    case 8: {
+                        Word(64) op = read64(operands[1]);
+                        policy.writeFlag(x86_flag_zf, policy.equalToZero(op));
+                        Word(64) result = policy.ite(policy.readFlag(x86_flag_zf),
+                                                     read64(operands[0]),
+                                                     policy.leastSignificantSetBit(op));
+                        write64(operands[0], result);
+			break;
+		    }
                     default:
                         ROSE_ASSERT(!"Bad size");
                 }
@@ -1792,12 +1801,21 @@ struct X86_64InstructionSemantics {
                         write32(operands[0], result);
                         break;
                     }
+		    case 8: {
+                        Word(64) op = read64(operands[1]);
+                        policy.writeFlag(x86_flag_zf, policy.equalToZero(op));
+                        Word(64) result = policy.ite(policy.readFlag(x86_flag_zf),
+                                                     read64(operands[0]),
+                                                     policy.mostSignificantSetBit(op));
+                        write64(operands[0], result);
+			break;
+		    }
                     default:
                         ROSE_ASSERT(!"Bad size");
                 }
                 break;
             }
-
+	    /*
             case x86_bts: {
                 ROSE_ASSERT(operands.size() == 2);
                 // All flags except CF are undefined 
