@@ -302,7 +302,8 @@ class SliceNode;
 
 namespace DataflowAPI {
 
-typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
+// compare assignment shared pointers by value.
+typedef std::map<Assignment::Ptr, AST::Ptr, AssignmentPtrValueComp> Result_t;
     
 DEF_AST_LEAF_TYPE(BottomAST, bool);
 DEF_AST_LEAF_TYPE(ConstantAST, Constant);

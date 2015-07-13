@@ -53,7 +53,7 @@ include_directories (
   ${DYNINST_ROOT}
   ${DYNINST_ROOT}/external
   )
-
+set(Boost_USE_STATIC_LIBS OFF)
 # Component time
 add_subdirectory (common)
 if(NOT ${PLATFORM} MATCHES nt)

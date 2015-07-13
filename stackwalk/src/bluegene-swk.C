@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -71,7 +71,7 @@ namespace Dyninst {
       result = poll(&fds, 1, 0);
       if (result == -1) {
         int errnum = errno;
-        sw_printf("[%s:%u] - Unable to poll fd %d: %s\n", FILE__, __LINE__, 
+        sw_printf("[%s:%u] - Unable to poll fd %d: %s\n", FILE__, __LINE__,
                   fd, strerror(errnum));
         return false;
       }
@@ -138,7 +138,7 @@ namespace Dyninst {
         setLastError(err_internal, msg);
         return NULL;
       }
-  
+
       bool result = pd->attach();
       if (!result || (pd->state() != ps_running && pd->state() != ps_attached))
       {
@@ -149,7 +149,7 @@ namespace Dyninst {
         setLastError(err_noproc, msg);
         return NULL;
       }
-  
+
       return pd.release();
     }
 
@@ -173,7 +173,7 @@ namespace Dyninst {
 
 
     DebugEvent ProcDebug::debug_get_event(bool block) {
-      DebugEvent ev;   
+      DebugEvent ev;
       BG_Debugger_Msg msg;
 
       if (!block && !bg_fdHasData(BG_DEBUGGER_READ_PIPE)) {
@@ -202,12 +202,12 @@ namespace Dyninst {
         // Print out a message if we get a return code we don't expect.  Consult the debugger header
         // for the meanings of these.
         sw_printf("[%s:%u] - WARNING: return code for %s on pid %d, tid %d was non-zero: %d\n",
-                  FILE__, __LINE__, 
+                  FILE__, __LINE__,
                   BG_Debugger_Msg::getMessageName(msg.header.messageType), pid, tid,
                   msg.header.returnCode);
       }
 
-      // Look up the ProcDebugBG from which the event originated.      
+      // Look up the ProcDebugBG from which the event originated.
       std::map<PID, ProcessState *>::iterator i = proc_map.find(pid);
       if (i == proc_map.end()) {
         sw_printf("[%s:%u] - Error, received unknown pid %d\n", FILE__, __LINE__, pid);
@@ -218,8 +218,8 @@ namespace Dyninst {
       ProcDebugBG *procbg = dynamic_cast<ProcDebugBG*>(i->second);
       assert(procbg);
       ev.proc = procbg;
-      
-      // below is some (somewhat nasty) magic to allow stackwalker to discover the 
+
+      // below is some (somewhat nasty) magic to allow stackwalker to discover the
       // initial thread's id after it attaches.
       thread_map_t::iterator t = procbg->threads.find(tid);
       if (t == procbg->threads.end()) {
@@ -236,7 +236,7 @@ namespace Dyninst {
             ev.dbg = dbg_err;
             return ev;
           }
-          
+
           // if we see a threadid we don't know about, it's because we got a SIGNAL_ENCOUNTERED
           // from the main thread.  We default the initial thread id to zero, but this is only because
           // we need to start somewhere to attach.  This sets the main thread id to the real thread id
@@ -257,7 +257,7 @@ namespace Dyninst {
       ThreadState *ts = t->second;
       assert(ts);
       ev.thr = ts;
-      
+
       procbg->translate_event(msg, ev);
       return ev;
     }
@@ -287,12 +287,12 @@ namespace Dyninst {
           } else {
             ev.dbg = dbg_err;
             sw_printf("[%s:%u] - WARNING: Unknown exit type (%d) on process %d. "
-                      "May be using outdated BG Debugger Interface!\n", FILE__, __LINE__, 
+                      "May be using outdated BG Debugger Interface!\n", FILE__, __LINE__,
                       msg.dataArea.PROGRAM_EXITED.type, pid);
           }
         }
         break;
-        
+
       case SIGNAL_ENCOUNTERED:
         ev.dbg = dbg_stopped;
         ev.data.idata = msg.dataArea.SIGNAL_ENCOUNTERED.signal;
@@ -341,7 +341,7 @@ namespace Dyninst {
         ev.data.pdata = new unsigned char[msg.header.dataLength];
         if (!ev.data.pdata) {
           ev.dbg = dbg_err;
-          sw_printf("[%s:%u] - FATAL: Couldn't allocate enough space for memory read on pid %d\n", 
+          sw_printf("[%s:%u] - FATAL: Couldn't allocate enough space for memory read on pid %d\n",
                     FILE__, __LINE__, pid);
         } else {
           memcpy(ev.data.pdata, &msg.dataArea, msg.header.dataLength);
@@ -352,12 +352,12 @@ namespace Dyninst {
     case SET_MEM_ACK:
         ev.dbg = dbg_setmem_ack;
         ev.size = msg.dataArea.SET_MEM_ACK.len;
-        sw_printf("[%s:%u] - Memory write ACK on pid %d ($d bytes at %x).  \n", FILE__, __LINE__, 
+        sw_printf("[%s:%u] - Memory write ACK on pid %d ($d bytes at %x).  \n", FILE__, __LINE__,
                   msg.dataArea.SET_MEM_ACK.len, msg.dataArea.SET_MEM_ACK.addr);
         break;
 
       case SINGLE_STEP_ACK:
-        // single step ack is just an ack (like KILL_ACK). We ignore this event and 
+        // single step ack is just an ack (like KILL_ACK). We ignore this event and
         // handle SINGLE_STEP_SIG specially in debug_handle_signal().
         ev.dbg = dbg_other;
         sw_printf("[%s:%u] - Process %d received SINGLE_STEP\n", FILE__, __LINE__, pid, ev.data);
@@ -365,7 +365,7 @@ namespace Dyninst {
 
       default:
         sw_printf("[%s:%u] - Unknown debug message: %s (%d)\n",
-                  FILE__, __LINE__, 
+                  FILE__, __LINE__,
                   BG_Debugger_Msg::getMessageName(msg.header.messageType),
                   msg.header.messageType);
         ev.dbg = dbg_noevent;
@@ -428,7 +428,7 @@ namespace Dyninst {
     }
 
 
-    bool ProcDebugBG::debug_create(std::string, const std::vector<std::string> &) 
+    bool ProcDebugBG::debug_create(std::string, const std::vector<std::string> &)
     {
       setLastError(err_unsupported, "Create mode not supported on BlueGene");
       return false;
@@ -459,7 +459,7 @@ namespace Dyninst {
         sw_printf("[%s:%u] - Could not version msg debugee %d\n", FILE__, __LINE__, pid);
         return false;
       }
-   
+
       result = debug_waitfor_version_msg();
       if (state() == ps_exited) {
         setLastError(err_procexit, "Process exited unexpectedly during version_msg");
@@ -469,7 +469,7 @@ namespace Dyninst {
         sw_printf("[%s:%u] - Error during process version_msg for %d\n",
                   FILE__, __LINE__, pid);
         return false;
-      }   
+      }
       return true;
     }
 
@@ -477,7 +477,7 @@ namespace Dyninst {
     bool ProcDebugBG::debug_waitfor_version_msg() {
       sw_printf("[%s:%u] - At debug_waitfor_Version_msg.\n", FILE__, __LINE__);
       bool handled, result;
-   
+
       result = debug_wait_and_handle(true, false, handled);
       if (!result || state() == ps_errorstate) {
         sw_printf("[%s:%u] - Error,  Process %d errored during version_msg\n",
@@ -491,7 +491,7 @@ namespace Dyninst {
       }
       sw_printf("[%s:%u] - Successfully version_msg %d\n",
                 FILE__, __LINE__, pid);
-      return true;      
+      return true;
     }
 
 
@@ -502,7 +502,7 @@ namespace Dyninst {
 
       switch (ev.dbg) {
       case dbg_stopped:
-        // we got a signal from the process.  Stop all the threads and let 
+        // we got a signal from the process.  Stop all the threads and let
         // debug_handle_signal() take care of things.
         for_all_threads(set_stopped(true));
         return debug_handle_signal(&ev);
@@ -536,21 +536,21 @@ namespace Dyninst {
 	break;
 
       case dbg_mem_ack:
-        sw_printf("[%s:%u] - Process %d returned a memory chunk of size %u\n", 
+        sw_printf("[%s:%u] - Process %d returned a memory chunk of size %u\n",
                   FILE__, __LINE__, pid, ev.size);
         assert(!mem_data);
         mem_data = static_cast<BG_Debugger_Msg::DataArea*>(ev.data.pdata);
         break;
 
       case dbg_setmem_ack:
-        sw_printf("[%s:%u] - Process %d set a chunk of memory of size %u\n", 
+        sw_printf("[%s:%u] - Process %d set a chunk of memory of size %u\n",
                   FILE__, __LINE__, pid, ev.size);
 	write_ack = true;
         break;
 
       case dbg_allregs_ack:
         {
-          sw_printf("[%s:%u] - Process %d returned a register chunk of size %u\n", 
+          sw_printf("[%s:%u] - Process %d returned a register chunk of size %u\n",
                     FILE__, __LINE__, pid, ev.size);
           BG_GPRSet_t *data = static_cast<BG_GPRSet_t*>(ev.data.pdata);
           thr->gprs = *data;
@@ -561,7 +561,7 @@ namespace Dyninst {
         break;
       case dbg_setreg_ack:
 	{
-	  sw_printf("[%s:%u] - Handling set reg ack on process %d\n", 
+	  sw_printf("[%s:%u] - Handling set reg ack on process %d\n",
 		    FILE__, __LINE__, pid);
 	  thr->write_ack = true;
 	  break;
@@ -571,9 +571,9 @@ namespace Dyninst {
         break;
 
       case dbg_err:
-      case dbg_noevent:       
+      case dbg_noevent:
       default:
-        sw_printf("[%s:%u] - Unexpectedly handling an error event %d on %d\n", 
+        sw_printf("[%s:%u] - Unexpectedly handling an error event %d on %d\n",
                   FILE__, __LINE__, ev.dbg, pid);
         setLastError(err_internal, "Told to handle an unexpected event.");
         return false;
@@ -584,7 +584,7 @@ namespace Dyninst {
 
 
     bool ProcDebugBG::debug_handle_signal(DebugEvent *ev) {
-      assert(ev->dbg == dbg_stopped); 
+      assert(ev->dbg == dbg_stopped);
       // PRE: we got a signal event, and things are stopped.
 
       sw_printf("[%s:%u] - Handling signal for pid %d\n", FILE__, __LINE__, pid);
@@ -599,7 +599,7 @@ namespace Dyninst {
         }
         // if we're not attaching, do nothing.  leave the thread stopped.
         break;
-        
+
       case SINGLE_STEP_SIG:
         // BG uses this special signal to indicate completion of a single step.
         // Ignore the event and continue if the user didn't stop. TODO: why?
@@ -607,18 +607,18 @@ namespace Dyninst {
         clear_cache();  // took a step, need to clear cache.
         return thr->userIsStopped() ? true : debug_continue_with(thr, 0);
         break;
-        
+
       default:
         // by default, pass the signal back to the process being debugged.
         if (sigfunc) {
            bool user_stopped = ev->thr->userIsStopped();
            ev->thr->setUserStopped(true);
            sigfunc(ev->data.idata, ev->thr);
-           ev->thr->setUserStopped(user_stopped);           
+           ev->thr->setUserStopped(user_stopped);
         }
         return debug_continue_with(thr, ev->data.idata);
       }
-      
+
       return true;
     }
 
@@ -628,7 +628,7 @@ namespace Dyninst {
       THR_ID tid = ts->getTid();
       BG_Debugger_Msg msg(ATTACH, pid, tid, 0, 0);
       msg.header.dataLength = sizeof(msg.dataArea.ATTACH);
-      
+
       // send attach message
       sw_printf("[%s:%u] - Attaching to pid %d, thread %d\n", FILE__, __LINE__, pid, tid);
       bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
@@ -636,7 +636,7 @@ namespace Dyninst {
         sw_printf("[%s:%u] - Error sending attach to process %d, thread %d\n",
                   FILE__, __LINE__, pid, tid);
       }
-       
+
       return result;
     }
 
@@ -647,15 +647,15 @@ namespace Dyninst {
 
     bool ProcDebugBG::detach(bool /*leave_stopped*/) {
       // TODO: send detach message
-      sw_printf("[%s:%u] - Detaching from process %d\n", FILE__, __LINE__, 
+      sw_printf("[%s:%u] - Detaching from process %d\n", FILE__, __LINE__,
 		pid);
       bool result = cleanOnDetach();
       if (!result) {
-	sw_printf("[%s:%u] - Failed to clean process %d\n", 
+	sw_printf("[%s:%u] - Failed to clean process %d\n",
 		  FILE__, __LINE__, pid);
 	return false;
       }
-      
+
       result = resume();
       if (!result) {
 	sw_printf("[%s:%u] - Error resuming process before detach\n");
@@ -674,7 +674,7 @@ namespace Dyninst {
 	bool handled;
 	bool result = debug_wait_and_handle(true, false, handled);
 	if (!result) {
-	  sw_printf("[%s:%u] - Error while waiting for detach\n", 
+	  sw_printf("[%s:%u] - Error while waiting for detach\n",
 		    FILE__, __LINE__);
 	    return false;
 	}
@@ -691,7 +691,7 @@ namespace Dyninst {
       BG_Debugger_Msg msg(KILL, pid, tid, 0, 0);
       msg.dataArea.KILL.signal = SIGSTOP;
       msg.header.dataLength = sizeof(msg.dataArea.KILL);
-      
+
       sw_printf("[%s:%u] - Sending SIGSTOP to pid %d, thread %d\n", FILE__, __LINE__, pid, tid);
       bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
       if (!result) {
@@ -737,11 +737,11 @@ namespace Dyninst {
                     FILE__, __LINE__, pid, tid);
           return true;
         }
-      
+
         //Wait for the read to return
         sw_printf("[%s:%u] - Waiting for read to return on pid %d, tid %d\n",
                   FILE__, __LINE__, pid, tid);
-        
+
         do {
           bool handled, result;
           result = debug_wait_and_handle(true, false, handled);
@@ -753,7 +753,7 @@ namespace Dyninst {
           }
         } while (!thr->gprs_set);
       }
-   
+
       switch(reg.val())
       {
          case Dyninst::iReturnAddr:
@@ -771,7 +771,7 @@ namespace Dyninst {
             sw_printf("[%s:%u] - Request for unsupported register %d\n", FILE__, __LINE__, reg.name().c_str());
             setLastError(err_badparam, "Unknown register passed in reg field");
             return false;
-      }   
+      }
       return true;
     }
 
@@ -798,7 +798,7 @@ namespace Dyninst {
             sw_printf("[%s:%u] - Request for unsupported register %s\n", FILE__, __LINE__, reg.name().c_str());
             setLastError(err_badparam, "Unknown register passed in reg field");
             return false;
-      }  
+      }
       thr->write_ack = false;
       bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
       if (!result) {
@@ -806,11 +806,11 @@ namespace Dyninst {
 		  FILE__, __LINE__, pid, tid);
 	return true;
       }
-      
+
       //Wait for the read to return
       sw_printf("[%s:%u] - Waiting for set reg to return on pid %d, tid %d\n",
 		FILE__, __LINE__, pid, tid);
-        
+
       do {
 	bool handled, result;
 	result = debug_wait_and_handle(true, false, handled);
@@ -821,7 +821,7 @@ namespace Dyninst {
             return false;
           }
       } while (!thr->write_ack);
-   
+
       return true;
     }
 
@@ -837,7 +837,7 @@ namespace Dyninst {
 
         sw_printf("[%s:%u] - Reading memory from 0x%lx to 0x%lx (into %p)\n",
                   FILE__, __LINE__, source, source+size, ucdest);
-        if (source >= read_cache_start && 
+        if (source >= read_cache_start &&
             source+size < read_cache_start + read_cache_size)
         {
           //Lucky us, we have everything cached.
@@ -877,7 +877,7 @@ namespace Dyninst {
           memcpy(dest_start, read_cache, read_cache_size);
           //Use actual recursion here, as we need to queue up two reads
           // First read out of the high memory with recursion
-          result = readMem(dest_start + read_cache_size, 
+          result = readMem(dest_start + read_cache_size,
                            read_cache_start+read_cache_size,
                            source+size - read_cache_start+read_cache_size);
           if (!result) {
@@ -888,9 +888,9 @@ namespace Dyninst {
           continue;
         }
         //The memory isn't cached, read a new cache'd page.
-        assert(source < read_cache_start || 
+        assert(source < read_cache_start ||
                source >= read_cache_start+read_cache_size);
-      
+
         if (!read_cache) {
           read_cache = new unsigned char[BG_READCACHE_SIZE];
           assert(read_cache);
@@ -899,9 +899,9 @@ namespace Dyninst {
         read_cache_size = BG_READCACHE_SIZE;
         read_cache_start = source - (source % read_cache_size);
         sw_printf("[%s:%u] - Caching memory from 0x%lx to 0x%lx\n",
-                  FILE__, __LINE__, read_cache_start, 
+                  FILE__, __LINE__, read_cache_start,
                   read_cache_start+read_cache_size);
-                    
+
         //Read read_cache_start to read_cache_start+read_cache_size into our
         // cache.
         assert(!mem_data);
@@ -916,7 +916,7 @@ namespace Dyninst {
           sw_printf("[%s:%u] - Unable to write to process %d\n", FILE__, __LINE__, pid);
           return true;
         }
-      
+
         //Wait for the read to return
         sw_printf("[%s:%u] - Waiting for read to return on pid %d\n", FILE__, __LINE__);
 
@@ -929,12 +929,12 @@ namespace Dyninst {
         assert(mem_data->GET_MEM_ACK.addr == read_cache_start);
         assert(mem_data->GET_MEM_ACK.len == read_cache_size);
         memcpy(read_cache, mem_data->GET_MEM_ACK.data, read_cache_size);
-      
+
         //Free up the memory data
         delete mem_data;
         mem_data = NULL;
       }
-    }   
+    }
 
 
     bool ProcDebugBG::debug_version_msg()
@@ -991,7 +991,7 @@ namespace Dyninst {
            initialize();
         }
      }
-     
+
      SymbolReaderFactory *getDefaultSymbolReader()
      {
         static SymElfFactory symelffact;

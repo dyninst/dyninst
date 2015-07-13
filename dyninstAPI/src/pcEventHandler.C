@@ -36,6 +36,7 @@
 #include "registerSpace.h"
 #include "RegisterConversion.h"
 #include "function.h"
+#include "MemoryEmulator/memEmulator.h"
 
 #include "Mailbox.h"
 #include "PCErrors.h"
@@ -461,6 +462,46 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         // related logic in one place
         proccontrol_printf("%s[%d]: signal came from RT library\n", FILE__, __LINE__);
         return true;
+    }
+
+    // check if windows access violation, defensive mode, and write permissions.
+    // unprotect pages if necessary.
+    if (evProc->getHybridMode() == BPatch_defensiveMode 
+        && ev->isFirst() 
+        && ev->getCause() == EventSignal::WriteViolation) {
+            malware_cerr << "Write to protected address 0x" << std::hex 
+                << ev->getAddress() << std::dec << std::endl;
+            Address addr = ev->getAddress();
+            mapped_object* obj = evProc->findObject(addr);
+
+            // retry finding object by its original address.
+            if (obj == NULL && evProc->isMemoryEmulated()) {
+                std::pair<bool, Address> trans = 
+                    evProc->getMemEm()->translateBackwards(addr);
+                if (trans.first) { 
+                    addr = trans.second;
+                    obj = evProc->findObject(addr);
+                }
+            }
+
+            // change permissions if we can find this originally writable region
+            if (obj != NULL) {
+                SymtabAPI::Region* reg = 
+                    obj->parse_img()->getObject()->findEnclosingRegion(addr - obj->codeBase());
+                if (reg != NULL && reg->getRegionPermissions() == SymtabAPI::Region::RP_RW
+                    || reg->getRegionPermissions() == SymtabAPI::Region::RP_RWX) {
+                        // change back permissions.
+                        PCProcess::PCMemPerm rights(true, true, true);
+                        evProc->changeMemoryProtections(
+                            addr - (addr % evProc->getMemoryPageSize()), 
+                            evProc->getMemoryPageSize(), 
+                            rights /* PAGE_EXECUTE_READWRITE */ , 
+                            false);
+                        return true;
+                }
+            }
+
+            // else fall through to forwarding.
     }
 
     bool shouldForwardSignal = true;

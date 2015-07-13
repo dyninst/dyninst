@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -61,6 +61,9 @@
 #elif defined(arch_x86) || defined(arch_x86_64)
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
+#elif defined (arch_aarch64)
+#include "dyninstAPI/src/inst-aarch64.h"
+#include "dyninstAPI/src/emit-aarch64.h"
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
@@ -149,19 +152,19 @@ registerSpace *registerSpace::savedRegSpace(AddressSpace *proc) {
     return ret;
 }
 
-registerSpace *registerSpace::actualRegSpace(instPoint *iP) 
+registerSpace *registerSpace::actualRegSpace(instPoint *iP)
 {
-    // We just can't trust liveness in defensive mode. 
+    // We just can't trust liveness in defensive mode.
     if (BPatch_defensiveMode == iP->func()->obj()->hybridMode()) {
         return conservativeRegSpace(iP->proc());
     }
    if (BPatch::bpatch->livenessAnalysisOn()) {
       assert(iP);
       registerSpace *ret = NULL;
-      
+
       ret = getRegisterSpace(iP->proc());
       ret->specializeSpace(iP->liveRegisters());
-      
+
       ret->cleanSpace();
       ret->initRealRegSpace();
       return ret;
@@ -174,7 +177,7 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP)
         return optimisticRegSpace(iP->proc());
     if (iP->getPointType() == callSite)
     return optimisticRegSpace(iP->proc());*/
-    
+
     return conservativeRegSpace(iP->proc());
 }
 
@@ -221,7 +224,7 @@ void registerSpace::createRegisterSpace64(pdvector<registerSlot *> &registers) {
     globalRegSpace64_ = new registerSpace();
     globalRegSpace64_->addr_width = 8;
     createRegSpaceInt(registers, globalRegSpace64_);
-    
+
 }
 
 void registerSpace::createRegSpaceInt(pdvector<registerSlot *> &registers,
@@ -264,13 +267,13 @@ void registerSpace::createRegSpaceInt(pdvector<registerSlot *> &registers,
 
 }
 
-bool registerSpace::trySpecificRegister(codeGen &gen, Register num, 
+bool registerSpace::trySpecificRegister(codeGen &gen, Register num,
 					bool noCost)
 {
   auto iter = registers_.find(num);
   if (iter == registers_.end()) return false;
   registerSlot *reg = iter->second;
-  
+
   if (reg->offLimits) return false;
   else if (reg->refCount > 0) return false;
   else if (reg->liveState == registerSlot::live) {
@@ -281,16 +284,16 @@ bool registerSpace::trySpecificRegister(codeGen &gen, Register num,
   else if (reg->keptValue) {
      return false;
   }
-  
+
   reg->markUsed(true);
-  
+
   regalloc_printf("Allocated register %d\n", num);
-  
+
   return true;
 }
 
 bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
-					     bool noCost) 
+					     bool noCost)
 {
   regalloc_printf("Allocating specific register %d\n", num);
 
@@ -301,7 +304,7 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
      regalloc_printf("Error: register does not exist!\n");
      return false;
   }
-  
+
   registerSlot *reg = iter->second;
     if (reg->offLimits) {
       regalloc_printf("Error: register off limits!\n");
@@ -312,7 +315,7 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
       return false;
     }
     else if (reg->liveState == registerSlot::live) {
-      if (!spillRegister(num, gen, noCost)) { 
+      if (!spillRegister(num, gen, noCost)) {
 	regalloc_printf("Error: specific register could not be spilled!\n");
 	return false;
       }
@@ -323,10 +326,10 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
 	return false;
       }
     }
-    
+
     reg->markUsed(true);
     gen.markRegDefined(reg->number);
-      
+
 
     regalloc_printf("Allocated register %d\n", num);
 
@@ -340,10 +343,10 @@ Register registerSpace::getScratchRegister(codeGen &gen, bool noCost, bool realR
 
 Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost, bool realReg) {
   static int num_allocs = 0;
-  
+
   pdvector<registerSlot *> couldBeStolen;
   pdvector<registerSlot *> couldBeSpilled;
-  
+
   debugPrint();
 
   registerSlot *toUse = NULL;
@@ -356,7 +359,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
 
   for (unsigned i = 0; i < regs.size(); i++) {
     registerSlot *reg = regs[i];
-      
+
     regalloc_printf("%s[%d]: getting scratch register, examining %d of %d: reg %d (%s), offLimits %d, refCount %d, liveState %s, keptValue %d\n",
 		    FILE__, __LINE__, i, regs.size(),
 		    reg->number,
@@ -365,7 +368,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
 		    reg->refCount,
 		    (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::dead) ? "dead" : "spilled"),
 		    reg->keptValue);
-      
+
     bool found = false;
     for (unsigned int i = 0; i < excluded.size(); ++i) {
       Register &ex_reg = excluded[i];
@@ -403,7 +406,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
             }
         }
     }
-    
+
     // Still?
     if (toUse == NULL) {
         for (unsigned i = 0; i < couldBeStolen.size(); i++) {
@@ -430,9 +433,9 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
   return toUse->number;
 }
 
-Register registerSpace::allocateRegister(codeGen &gen, 
+Register registerSpace::allocateRegister(codeGen &gen,
                                          bool noCost,
-					 bool realReg) 
+					 bool realReg)
 {
   regalloc_printf("Allocating and retaining register...\n");
   Register reg = getScratchRegister(gen, noCost, realReg);
@@ -466,7 +469,7 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
     // Let the AST know it just lost...
     if (!gen.tracker()->stealKeptRegister(registers_[reg]->number)) return false;
     registers_[reg]->keptValue = false;
-    
+
     return true;
 }
 
@@ -474,7 +477,7 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 // This might mean something different later, but for now means
 // "Save special purpose registers". We may want to define a "volatile"
 // later - something like "can be unintentionally nuked". For example,
-// x86 flags register. 
+// x86 flags register.
 #if defined(arch_x86_64) || defined(arch_x86)
 bool registerSpace::checkVolatileRegisters(codeGen & /*gen*/,
                                            registerSlot::livenessState_t state)
@@ -490,7 +493,7 @@ bool registerSpace::checkVolatileRegisters(codeGen & /*gen*/,
       }
       return false;
    }
-   
+
    assert(addr_width == 4);
    return (registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState == state);
 }
@@ -549,7 +552,7 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen)
         //emitSimpleInsn(PUSHFD, gen);
         registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState =
             registerSlot::spilled;
- 
+
     }
 
     savedFlagSize = addr_width;
@@ -601,7 +604,7 @@ bool registerSpace::restoreVolatileRegisters(codeGen &) {
 #endif
 
 // Free the specified register (decrement its refCount)
-void registerSpace::freeRegister(Register num) 
+void registerSpace::freeRegister(Register num)
 {
     registerSlot *reg = findRegister(num);
     if (!reg) return;
@@ -626,7 +629,7 @@ void registerSpace::freeRegister(Register num)
 }
 
 // Free the register even if its refCount is greater that 1
-void registerSpace::forceFreeRegister(Register num) 
+void registerSpace::forceFreeRegister(Register num)
 {
     registerSlot *reg = findRegister(num);
     if (!reg) return;
@@ -643,8 +646,8 @@ bool registerSpace::isFreeRegister(Register num) {
     if (!reg) return false;
 
     if (reg->refCount > 0)
-        return false; 
-    if (reg->keptValue) 
+        return false;
+    if (reg->keptValue)
       return false;
     return true;
 }
@@ -674,7 +677,7 @@ bool registerSpace::restoreAllRegisters(codeGen &, bool) {
     return true;
 }
 
-bool registerSpace::restoreRegister(Register, codeGen &, bool /*noCost*/) 
+bool registerSpace::restoreRegister(Register, codeGen &, bool /*noCost*/)
 {
     assert(0);
     return true;
@@ -693,11 +696,11 @@ bool registerSpace::markReadOnly(Register) {
 bool registerSpace::readProgramRegister(codeGen &gen,
                                         Register source,
                                         Register destination,
-                                        unsigned 
+                                        unsigned
 #if !defined(arch_power)
                                         size
-#endif  
-) 
+#endif
+)
 {
 #if !defined(arch_power)
     emitLoadPreviousStackFrameRegister((Address)source,
@@ -706,6 +709,10 @@ bool registerSpace::readProgramRegister(codeGen &gen,
                                        size,
                                        true);
     return true;
+#elif defined(arch_aarch64)
+//#warning "This fucntion is not implemented yet!"
+		assert(0);
+		return false;
 #else
     // Real version that uses stored information
 
@@ -713,10 +720,10 @@ bool registerSpace::readProgramRegister(codeGen &gen,
     // about the source register.
     // cap_emitter
 
-    
+
     registerSlot *src = registers_[source];
     // If we didn't find src we just corrupted registers_; assert fail.
-    // AND FIX THE STRUCTURE. 
+    // AND FIX THE STRUCTURE.
     assert(src);
     registerSlot *dest = registers_[destination];
     assert(dest);
@@ -724,7 +731,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
     // Okay. We need to know where the register is compared with our
     // current location vis-a-vis the stack pointer. Now, on most
     // platforms this doesn't matter, as the SP never moves. Well, not
-    // so x86. 
+    // so x86.
     switch (src->spilledState) {
     case registerSlot::unspilled:
 
@@ -737,7 +744,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
 
         // We can't use existing mechanisms because they're all built
         // off the "non-instrumented" case - emit a load from the
-        // "original" frame pointer, whereas we want the current one. 
+        // "original" frame pointer, whereas we want the current one.
         gen.codeEmitter()->emitLoadRelative(destination, src->saveOffset, framePointer(),  gen.addrSpace()->getAddressWidth(), gen);
         return true;
         break;
@@ -747,13 +754,17 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         return false;
         break;
     }
-#endif         
-    
+#endif
+
 }
 bool registerSpace::writeProgramRegister(codeGen &gen,
                                          Register destination,
                                          Register source,
                                          unsigned) {
+#if defined(arch_aarch64)
+		//not implemented yet
+		return false;
+#else
     registerSlot *src = registers_[source];
     assert(source);
     registerSlot *dest = registers_[destination];
@@ -762,7 +773,7 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
     // Okay. We need to know where the register is compared with our
     // current location vis-a-vis the stack pointer. Now, on most
     // platforms this doesn't matter, as the SP never moves. Well, not
-    // so x86. 
+    // so x86.
 
     switch (src->spilledState) {
     case registerSlot::unspilled:
@@ -775,7 +786,7 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
         assert(frame);
 
         // When this register was saved we stored its offset from the base pointer.
-        // Use that to load it. 
+        // Use that to load it.
         gen.codeEmitter()->emitStoreRelative(source, dest->saveOffset, framePointer(), gen.addrSpace()->getAddressWidth(), gen);
         return true;
         break;
@@ -785,6 +796,7 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
         return false;
         break;
     }
+#endif
 }
 
 
@@ -806,7 +818,7 @@ bool registerSpace::markSavedRegister(RealRegister num, int offsetFromFP) {
    regalloc_printf("Marking register %d as saved, %d from frame pointer\n",
                    num.reg(), offsetFromFP);
    registerSlot *s = findRegister(num);
-   return markSavedRegister(s, offsetFromFP);   
+   return markSavedRegister(s, offsetFromFP);
 }
 
 bool registerSpace::markSavedRegister(Register num, int offsetFromFP) {
@@ -828,7 +840,7 @@ bool registerSpace::markSavedRegister(registerSlot *s, int offsetFromFP) {
     if (s->spilledState != registerSlot::unspilled) {
         // Things to do... add this check in, yo. Right now we don't clean
         // properly.
-        
+
 //        assert(0);
     }
 
@@ -844,24 +856,24 @@ void registerSlot::debugPrint(const char *prefix) {
 
 	if (prefix) fprintf(stderr, "%s", prefix);
 	fprintf(stderr, "Num: %d, name %s, type %s, refCount %d, liveState %s, beenUsed %d, initialState %s, offLimits %d, keptValue %d, alloc %d\n",
-                number, 
+                number,
                 name.c_str(),
                 (type == GPR) ? "GPR" : ((type == FPR) ? "FPR" : "SPR"),
-                refCount, 
+                refCount,
                 (liveState == live ) ? "live" : ((liveState == spilled) ? "spilled" : "dead"),
-                beenUsed, 
+                beenUsed,
                 (initialState == deadAlways) ? "always dead" : ((initialState == deadABI) ? "ABI dead" : "always live"),
-                offLimits, 
+                offLimits,
                 keptValue,
                 alloc_num);
 }
 
 void registerSpace::debugPrint() {
   if (!dyn_debug_regalloc) return;
-  
+
   // Dump out our data
   fprintf(stderr, "Beginning debug print of registerSpace at %p...", this);
-  fprintf(stderr, "GPRs: %ld, FPRs: %ld, SPRs: %ld\n", 
+  fprintf(stderr, "GPRs: %ld, FPRs: %ld, SPRs: %ld\n",
 	  (long) GPRs_.size(), (long) FPRs_.size(), (long) SPRs_.size());
   fprintf(stderr, "Stack pointer is at %d\n",
 	  currStackPointer);
@@ -983,8 +995,8 @@ std::string registerSpace::getRegByNumber(Register reg) {
     return registers_[reg]->name;
 }
 
-// If we have defined realRegisters_ (IA-32 and 32-bit mode AMD-64) 
-// return that. Otherwise return GPRs. 
+// If we have defined realRegisters_ (IA-32 and 32-bit mode AMD-64)
+// return that. Otherwise return GPRs.
 pdvector<registerSlot *> &registerSpace::realRegs() {
     if (realRegisters_.size())
        return realRegisters_;
@@ -995,12 +1007,12 @@ pdvector<registerSlot *> &registerSpace::realRegs() {
 RealRegister registerSpace::findReal(registerSlot *virt_r, bool &already_setup)
 {
    assert(virt_r);
-   
+
    int oldest_reg = -1;
    int oldest_free_reg = -1;
    int used_free_reg = -1;
    already_setup = false;
-   
+
    for (unsigned i=0; i<regState().size(); i++) {
       RealRegsState &real_reg = regState()[i];
       if (!real_reg.is_allocatable)
@@ -1018,14 +1030,14 @@ RealRegister registerSpace::findReal(registerSlot *virt_r, bool &already_setup)
       {
          used_free_reg = i;
       }
-      if (!real_reg.contains && 
-          (oldest_free_reg == -1 || 
-           real_reg.last_used < regState()[oldest_free_reg].last_used)) 
+      if (!real_reg.contains &&
+          (oldest_free_reg == -1 ||
+           real_reg.last_used < regState()[oldest_free_reg].last_used))
       {
          //There's a free register, remember it.
          oldest_free_reg = i;
       }
-      if (real_reg.contains && 
+      if (real_reg.contains &&
           (oldest_reg == -1 ||
            real_reg.last_used < regState()[oldest_reg].last_used))
       {
@@ -1067,7 +1079,7 @@ void registerSpace::spillReal(RealRegister r, codeGen &gen)
 
 void registerSpace::loadReal(RealRegister r, registerSlot *virt_r, codeGen &gen)
 {
-   
+
    assert(!regState()[r.reg()].contains);
    if (regs_been_spilled.count(virt_r)) {
       movVRegToReal(virt_r, r, gen);
@@ -1202,7 +1214,7 @@ bool registerSpace::spilledAnything()
 /**
  * This handles merging register states at merges
  * in the generated code CFG.  Used for things like
- * 'if' statements.  
+ * 'if' statements.
  * Takes the top level registerState (e.g, the code that was
  * generated in an 'if') and emits the saves/restores such to
  * takes us back to the preceding registerState (e.g, the code
@@ -1221,7 +1233,7 @@ void registerSpace::unifyTopRegStates(codeGen &gen)
    regState_t *dest = regStateStack[regStateStack.size() - 2];
 
    assert(src->registerStates.size() == dest->registerStates.size());
-   
+
    //Make a map of loaded dest virtuals -> reals
    std::map<registerSlot*, unsigned> dest_virts;
    for (unsigned i=0; i<dest->registerStates.size(); i++) {
@@ -1231,7 +1243,7 @@ void registerSpace::unifyTopRegStates(codeGen &gen)
       dest_virts[rrs.contains] = i;
    }
 
-   //For any loaded virtual in src that's not loaded or not loaded in the 
+   //For any loaded virtual in src that's not loaded or not loaded in the
    // proper place in dest,  unload that virtual in src.
    for (unsigned i=0; i<src->registerStates.size(); i++) {
       RealRegsState &rrs = src->registerStates[i];
@@ -1256,8 +1268,8 @@ void registerSpace::unifyTopRegStates(codeGen &gen)
       src_virts[rrs.contains] = i;
    }
 
-   //For any loaded virtual in dest that's not loaded in src, 
-   // load that virtual in src. 
+   //For any loaded virtual in dest that's not loaded in src,
+   // load that virtual in src.
    for (unsigned i=0; i<dest->registerStates.size(); i++) {
       RealRegsState &rrs = dest->registerStates[i];
       if (!rrs.is_allocatable || !rrs.contains) {
@@ -1357,13 +1369,13 @@ void registerSpace::initRealRegSpace()
 {
 }
 
-void registerSpace::spillToVReg(RealRegister /*reg*/, registerSlot * /*v_reg*/, 
+void registerSpace::spillToVReg(RealRegister /*reg*/, registerSlot * /*v_reg*/,
                                 codeGen & /*gen*/)
 {
    assert(0);
 }
 
-void registerSpace::movVRegToReal(registerSlot * /*v_reg*/, RealRegister /*r*/, 
+void registerSpace::movVRegToReal(registerSlot * /*v_reg*/, RealRegister /*r*/,
                                   codeGen & /*gen*/)
 {
    assert(0);
@@ -1413,8 +1425,8 @@ int registerSpace::getStackHeight()
 void registerSpace::specializeSpace(const bitArray &liveRegs) {
     // Liveness info is stored as a single bitarray for all registers.
 
-#if defined(arch_x86) || defined(arch_x86_64) 
-    // We use "virtual" registers on the IA-32 platform (or AMD-64 in 
+#if defined(arch_x86) || defined(arch_x86_64)
+    // We use "virtual" registers on the IA-32 platform (or AMD-64 in
     // 32-bit mode), and thus the registerSlot objects have _no_ relation
     // to the liveRegs input set. We handle this as a special case, and
     // look only for the flags representation (which is used to set
@@ -1430,14 +1442,14 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
             break;
          }
       }
-      
+
       for (unsigned i = 0; i < realRegisters_.size(); ++i) {
          if (checkLive(realRegisters_[i]->number, liveRegs))
 	    realRegisters_[i]->liveState = registerSlot::live;
          else
 	    realRegisters_[i]->liveState = registerSlot::dead;
       }
-      
+
       // All we care about for now.
       return;
    }
@@ -1458,8 +1470,13 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 	std::pair<std::multimap<Register, MachRegister>::iterator, std::multimap<Register, MachRegister>::iterator> range;
 	LivenessAnalyzer *live;
 	if (addr_width == 4){
+#if defined(arch_aarch64)
+	assert(0);
+	//#error "aarch64 should not be 32bit long"
+#else
 		range = regToMachReg32.equal_range(reg);
 		live = &live1;
+#endif
 	}
 	else {
 		range = regToMachReg64.equal_range(reg);
@@ -1468,6 +1485,6 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 	if (range.first == range.second) assert(0);
 	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter)
 		if (liveRegs[live->getIndex(iter->second)]) return true;
-	
+
 	return false;
 }

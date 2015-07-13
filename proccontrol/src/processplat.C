@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -103,7 +103,7 @@ ThreadTracking::~ThreadTracking()
    proc = Process::weak_ptr();
 }
 
-void ThreadTracking::setDefaultTrackThreads(bool b) 
+void ThreadTracking::setDefaultTrackThreads(bool b)
 {
    MTLock lock_this_func(MTLock::allow_init);
    default_track_threads = b;
@@ -175,7 +175,7 @@ void LWPTracking::setTrackLWPs(bool b) const
       globalSetLastError(err_exited, "Process is exited\n");
       return;
    }
-   int_LWPTracking *llproc = p->llproc()->getLWPTracking();;   
+   int_LWPTracking *llproc = p->llproc()->getLWPTracking();;
    llproc->lwp_setTracking(b);
 }
 
@@ -184,7 +184,7 @@ bool LWPTracking::getTrackLWPs() const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getTrackLWPs", false);
-   int_LWPTracking *llproc = p->llproc()->getLWPTracking();;   
+   int_LWPTracking *llproc = p->llproc()->getLWPTracking();;
    return llproc->lwp_getTracking();
 }
 
@@ -193,7 +193,7 @@ bool LWPTracking::refreshLWPs()
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "refreshLWPs", false);
-   int_LWPTracking *llproc = p->llproc()->getLWPTracking();;   
+   int_LWPTracking *llproc = p->llproc()->getLWPTracking();;
    return llproc->lwp_refresh();
 }
 
@@ -282,7 +282,7 @@ MultiToolControl::~MultiToolControl()
    proc = Process::weak_ptr();
 }
 
-void MultiToolControl::setDefaultToolName(string name) 
+void MultiToolControl::setDefaultToolName(string name)
 {
    MTLock lock_this_func(MTLock::allow_init);
    default_tool_name = name;
@@ -341,14 +341,14 @@ bool MemoryUsage::sharedUsed(unsigned long &used) const
    PTR_EXIT_TEST(p, "sharedUsed", false);
    int_memUsage *llproc = p->llproc()->getMemUsage();
    unsigned long val;
-   
+
    MemUsageResp_t mem_response(&val, llproc);
    bool result = llproc->plat_getSharedUsage(&mem_response);
    if (!result) {
       perr_printf("Error getting shared usage\n");
       return false;
    }
-   
+
    llproc->waitForEvent(&mem_response);
    used = *mem_response.get();
    return true;
@@ -361,14 +361,14 @@ bool MemoryUsage::heapUsed(unsigned long &used) const
    PTR_EXIT_TEST(p, "heapUsed", false);
    int_memUsage *llproc = p->llproc()->getMemUsage();
    unsigned long val;
-   
+
    MemUsageResp_t mem_response(&val, llproc);
    bool result = llproc->plat_getHeapUsage(&mem_response);
    if (!result) {
       perr_printf("Error getting heap usage\n");
       return false;
    }
-   
+
    llproc->waitForEvent(&mem_response);
    used = *mem_response.get();
    return true;
@@ -381,14 +381,14 @@ bool MemoryUsage::stackUsed(unsigned long &used) const
    PTR_EXIT_TEST(p, "stackUsed", false);
    int_memUsage *llproc = p->llproc()->getMemUsage();
    unsigned long val;
-   
+
    MemUsageResp_t mem_response(&val, llproc);
    bool result = llproc->plat_getStackUsage(&mem_response);
    if (!result) {
       perr_printf("Error getting stack usage\n");
       return false;
    }
-   
+
    llproc->waitForEvent(&mem_response);
    used = *mem_response.get();
    return true;
@@ -400,7 +400,7 @@ bool MemoryUsage::resident(unsigned long &resident) const
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "resident", false);
    int_memUsage *llproc = p->llproc()->getMemUsage();
-   
+
    if (!llproc->plat_residentNeedsMemVals()) {
       unsigned long val;
       MemUsageResp_t mem_response(&val, llproc);
@@ -410,7 +410,7 @@ bool MemoryUsage::resident(unsigned long &resident) const
          perr_printf("Error getting resident usage\n");
          return false;
       }
-      
+
       llproc->waitForEvent(&mem_response);
       resident = *mem_response.get();
       return true;
@@ -523,7 +523,7 @@ void BGQData::setBlockForControlAuthority(bool block)
 {
    int_BGQData::block_for_ca = block;
 }
-   
+
 bool BGQData::getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const
 {
    MTLock lock_this_func;
@@ -580,7 +580,7 @@ FileInfo::FileInfo(std::string f)
 }
 
 FileInfo::FileInfo()
-{   
+{
 }
 
 FileInfo::FileInfo(const FileInfo &fi)
@@ -588,7 +588,7 @@ FileInfo::FileInfo(const FileInfo &fi)
    info = fi.info;
 }
 
-FileInfo::~FileInfo() 
+FileInfo::~FileInfo()
 {
 }
 
@@ -638,7 +638,7 @@ FileSet *RemoteIO::getFileSet(const set<string> &filenames) const
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getFielSet", NULL);
    FileSet *new_fs = new FileSet();
-   
+
    for (set<string>::const_iterator i = filenames.begin(); i != filenames.end(); i++) {
       new_fs->insert(make_pair(static_cast<Process::const_ptr>(p), FileInfo(*i)));
    }
@@ -681,7 +681,7 @@ bool RemoteIO::readFileContents(const FileSet *fset)
    return proc->getFileDataAsync(*fset);
 }
 
-RemoteIOSet::RemoteIOSet(ProcessSet::ptr procs_) 
+RemoteIOSet::RemoteIOSet(ProcessSet::ptr procs_)
 {
    pset = procs_;
 }
@@ -743,7 +743,7 @@ bool RemoteIOSet::addToFileSet(string filename, FileSet *fs)
    return true;
 }
 
-int_libraryTracking::int_libraryTracking(Dyninst::PID p, string e, vector<string> a, 
+int_libraryTracking::int_libraryTracking(Dyninst::PID p, string e, vector<string> a,
                                          vector<string> envp, map<int,int> f) :
    int_process(p, e, a, envp, f),
    up_ptr(NULL)
@@ -825,10 +825,10 @@ bool int_LWPTracking::lwp_refresh()
       pthrd_printf("Failed to check for new LWPs");
       return false;
    }
-   
+
    if (!change)
       return true;
-   
+
    setForceGeneratorBlock(true);
    ProcPool()->condvar()->lock();
    ProcPool()->condvar()->broadcast();
@@ -849,11 +849,11 @@ bool int_LWPTracking::lwp_refreshPost(result_response::ptr &resp)
       resp = result_response::ptr();
       return true;
    }
-   
+
    resp = result_response::createResultResponse();
    resp->setProcess(this);
    resp->markSyncHandled();
-   
+
    getResponses().lock();
    bool result = plat_lwpRefresh(resp);
    if (result) {
@@ -864,7 +864,7 @@ bool int_LWPTracking::lwp_refreshPost(result_response::ptr &resp)
    }
    getResponses().unlock();
    getResponses().noteResponse();
-   
+
    return true;
 }
 
@@ -877,7 +877,7 @@ bool int_LWPTracking::lwp_refreshCheck(bool &change)
       pthrd_printf("Error calling getThreadLWPs during refresh\n");
       return false;
    }
-   
+
    //Look for added LWPs
    int_threadPool *pool = threadPool();
    int new_lwps_found = 0;
@@ -892,9 +892,9 @@ bool int_LWPTracking::lwp_refreshCheck(bool &change)
       change = true;
       plat_lwpRefreshNoteNewThread(thr);
    }
-   
+
    //Look for removed LWPs
-   if (lwps.size() - new_lwps_found != pool->size()) {     
+   if (lwps.size() - new_lwps_found != pool->size()) {
       for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
          int_thread *thr = *i;
          bool found = false;
@@ -994,7 +994,7 @@ int_signalMask::int_signalMask(Dyninst::PID p, string e, vector<string> a,
    int_process(p, e, a, envp, f),
    sigset(SignalMask::getDefaultSigMask()),
    up_ptr(NULL)
-{   
+{
 }
 
 int_signalMask::int_signalMask(Dyninst::PID pid_, int_process *p) :
@@ -1114,9 +1114,9 @@ bool int_remoteIO::getFileNames(FileSet *fset)
       setLastError(err_badparam, "Unexpected NULL parameter");
       return false;
    }
-   
+
    FileSetResp_t resp(fset, this);
-   
+
    bool result = plat_getFileNames(&resp);
    if (!result) {
       perr_printf("Error requesting filenames");
@@ -1149,7 +1149,7 @@ bool int_remoteIO::getFileStatData(FileSet &files)
          had_error = true;
          continue;
       }
-      
+
       bool result = plat_getFileStatData(info->filename, &info->stat_results, resps);
       if (!result) {
          pthrd_printf("Error while requesting file data stat on %d\n", getPid());

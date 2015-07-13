@@ -108,9 +108,12 @@ class int_variable {
 struct edgeStub {
     edgeStub(block_instance *s, Address t, EdgeTypeEnum y)
     { src = s; trg = t; type = y; }
+    edgeStub(block_instance* s, Address t, EdgeTypeEnum y, bool b) :
+        src(s), trg(t), type(y), checked(b) { }
     block_instance* src;
     Address trg;
     EdgeTypeEnum type;
+    bool checked;
 };
 
 

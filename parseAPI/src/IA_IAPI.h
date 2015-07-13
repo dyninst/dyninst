@@ -50,6 +50,7 @@ class IA_IAPI : public InstructionAdapter {
     friend class IA_platformDetails;
     friend class IA_x86Details;
     friend class IA_powerDetails;
+    friend class IA_aarch64Details;
     public:
         IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
                 Address start_, 

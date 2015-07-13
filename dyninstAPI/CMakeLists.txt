@@ -132,6 +132,15 @@ set (SRC_LIST ${SRC_LIST}
      src/stackwalk-ppc.C
      src/Relocation/Widgets/CFWidget-ppc.C
 )
+elseif (PLATFORM MATCHES aarch64)
+set (SRC_LIST ${SRC_LIST}
+     src/inst-aarch64.C 
+     src/codegen-aarch64.C 
+     src/parse-aarch64.C 
+     src/RegisterConversion-aarch64.C 
+     src/stackwalk-aarch64.C
+     src/Relocation/Widgets/CFWidget-aarch64.C
+)
 endif ()
 
 if (PLATFORM MATCHES freebsd)
@@ -154,6 +163,8 @@ set (SRC_LIST ${SRC_LIST}
     set (SRC_LIST ${SRC_LIST} src/linux-x86.C)
   elseif (PLATFORM MATCHES ppc)
     set (SRC_LIST ${SRC_LIST} src/linux-power.C)
+  elseif (PLATFORM MATCHES aarch64)
+    set (SRC_LIST ${SRC_LIST} src/linux-aarch64.C)
   endif()
 elseif(PLATFORM MATCHES windows OR PLATFORM MATCHES nt)
     set (SRC_LIST ${SRC_LIST}

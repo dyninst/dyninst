@@ -38,11 +38,11 @@ using namespace Dyninst;
 using namespace std;
  
 bool Graph::printDOT(const std::string& fileName) {
+	
     FILE *file = fopen(fileName.c_str(), "w");
     if (file == NULL) {
         return false;
     }
-
     fprintf(file, "digraph G {\n");
 
     NodeSet visited;

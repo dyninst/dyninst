@@ -1223,7 +1223,6 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
             // And we don't know what type of edge this is. Lovely. Let's
             // figure it out from the instruction class, since that's
             // the easy way to do things.
-
             block_instance::Insns insns;
             stubs[idx].src->getInsns(insns);
             InstructionAPI::Instruction::Ptr cf = insns[stubs[idx].src->last()];
@@ -1271,6 +1270,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
 		/* 1. Parse from target address, add new edge at image layer  */
 		CodeObject::NewEdgeToParse newEdge(stubs[idx].src->llb(),
             stubs[idx].trg - targ_obj->codeBase(),
+            stubs[idx].checked, 
             edgeType);
 		if (this != targ_obj) {
 			std::vector<ParseAPI::CodeObject::NewEdgeToParse> newEdges;
@@ -1983,7 +1983,9 @@ void mapped_object::setCodeBytesUpdated(bool newval)
 }
 
 #if !( (defined(os_linux) || defined(os_freebsd)) && \
-       (defined(arch_x86) || defined(arch_x86_64) || defined(arch_power)) )
+       (defined(arch_x86) || defined(arch_x86_64) || defined(arch_power)\
+        ||defined(arch_aarch64)\
+       ) )
 func_instance *mapped_object::findGlobalConstructorFunc(const std::string &) {
     assert(!"Not implemented");
     return NULL;

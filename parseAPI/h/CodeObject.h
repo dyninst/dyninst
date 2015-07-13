@@ -87,7 +87,9 @@ class CodeObject {
 		Block *source;
 		Address target;
 		EdgeTypeEnum edge_type;
-		NewEdgeToParse(Block *a, Address b, EdgeTypeEnum c) : source(a), target(b), edge_type(c) {};
+        bool checked; // true if call_ft edges have already had their callees checked
+		NewEdgeToParse(Block *a, Address b, EdgeTypeEnum c) : source(a), target(b), edge_type(c), checked(false) {};
+        NewEdgeToParse(Block* a, Address b, bool c, EdgeTypeEnum d) : source(a), target(b), edge_type(d), checked(c) { }
 	};
 
     PARSER_EXPORT bool parseNewEdges( vector<NewEdgeToParse> & worklist ); 
@@ -111,6 +113,9 @@ class CodeObject {
     // blocks
     PARSER_EXPORT Block * findBlockByEntry(CodeRegion * cr, Address entry);
     PARSER_EXPORT int findBlocks(CodeRegion * cr, 
+        Address addr, std::set<Block*> & blocks);
+    // finds blocks without parsing. 
+    PARSER_EXPORT int findCurrentBlocks(CodeRegion * cr, 
         Address addr, std::set<Block*> & blocks);
     PARSER_EXPORT Block * findNextBlock(CodeRegion * cr, Address addr);
 

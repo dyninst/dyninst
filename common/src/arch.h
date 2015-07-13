@@ -46,6 +46,9 @@ using namespace NS_power;
 #include "arch-x86.h"
 using namespace NS_x86;
 
+#elif defined(arch_aarch64)
+#include "arch-aarch64.h"
+using namespace NS_aarch64;
 #else
 #error "unknown architecture"
 

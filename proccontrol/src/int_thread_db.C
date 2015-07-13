@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -49,11 +49,11 @@ using namespace std;
 
 #if defined(cap_thread_db)
 
-/* 
+/*
  * proc_service interface implementation, needed by libthread_db
  */
 
-ps_err_e ps_pglobal_lookup(struct ps_prochandle *handle, const char *objName, 
+ps_err_e ps_pglobal_lookup(struct ps_prochandle *handle, const char *objName,
         const char *symName, psaddr_t *symbolAddr)
 {
     pthrd_printf("Looking up symbol %s in %s\n", symName, objName);
@@ -69,7 +69,7 @@ ps_err_e ps_pread(struct ps_prochandle *handle, psaddr_t remote, void *local, si
    async_ret_t result = llproc->getMemCache()->readMemory(local, (Address) remote, size,
                                                           llproc->resps,
                                                           llproc->triggerThread());
-   
+
 
    switch (result) {
       case aret_success:
@@ -102,10 +102,10 @@ ps_err_e ps_pwrite(struct ps_prochandle *handle, psaddr_t remote, const void *lo
 
     thread_db_process *proc = handle->thread_db_proc;
 
-    async_ret_t result = proc->getMemCache()->writeMemory((Address) remote, 
-                                                          const_cast<void *>(local), 
-                                                          size, 
-                                                          proc->res_resps, 
+    async_ret_t result = proc->getMemCache()->writeMemory((Address) remote,
+                                                          const_cast<void *>(local),
+                                                          size,
+                                                          proc->res_resps,
                                                           proc->triggerThread());
     switch (result) {
       case aret_success:
@@ -152,7 +152,7 @@ ps_err_e ps_lstop(struct ps_prochandle *handle, lwpid_t lwp) {
       return PS_ERR;
    }
    pthrd_printf("ps_lstop on %d/%d\n", proc->getPid(), thr->getLWP());
-   
+
    if (thr->getInternalState().getState() == int_thread::stopped) {
       return PS_OK;
    }
@@ -162,7 +162,7 @@ ps_err_e ps_lstop(struct ps_prochandle *handle, lwpid_t lwp) {
    }
 
    thr->getInternalState().setState(int_thread::stopped);
-   
+
    return PS_OK;
 }
 
@@ -177,7 +177,7 @@ ps_err_e ps_lcontinue(struct ps_prochandle *handle, lwpid_t lwp) {
       return PS_ERR;
    }
    pthrd_printf("ps_lcontinue on %d/%d\n", proc->getPid(), thr->getLWP());
-   
+
    if (thr->getInternalState().getState() == int_thread::running) {
       return PS_OK;
    }
@@ -185,7 +185,7 @@ ps_err_e ps_lcontinue(struct ps_prochandle *handle, lwpid_t lwp) {
       perr_printf("Error, ps_lcontinue on thread in bad state\n");
       return PS_ERR;
    }
-   
+
    thr->getInternalState().setState(int_thread::stopped);
    return PS_OK;
 }
@@ -202,10 +202,10 @@ ps_err_e ps_lgetregs(struct ps_prochandle *handle, lwpid_t lwp, prgregset_t regs
    }
 
    thread_db_thread *thr = dynamic_cast<thread_db_thread *>(llthr);
-   
+
    pthrd_printf("thread_db reading registers on thread %d/%d\n",
                 proc->getPid(), thr->getLWP());
-   
+
    int_registerPool pool;
    async_ret_t result = proc->getMemCache()->getRegisters(llthr, pool);
    if (result == aret_async) {
@@ -294,7 +294,7 @@ ps_err_e ps_get_thread_area(const struct ps_prochandle *phandle, lwpid_t lwp, in
    bool result = tdb_thread->thrdb_getThreadArea(val, daddr);
    if (addr && result)
       *addr = (psaddr_t) daddr;
-      
+
    pthrd_printf("thread_db called ps_get_thread_area.  Returning %s\n", result ? "PS_OK" : "PS_ERR");
    return result ? PS_OK : PS_ERR;
 }
@@ -392,7 +392,7 @@ bool thread_db_process::loadedThreadDBLibrary()
    if (tdb_loaded)
       return tdb_loaded_result;
    tdb_loaded = true;
-   
+
    void *libhandle = dlopenThreadDB(THREAD_DB_PATH_STR);
    if (!libhandle)
       return false;
@@ -471,7 +471,7 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
       return Event::ptr();
    }
    Dyninst::LWP lwp = (Dyninst::LWP) info.ti_lid;
-   int_thread *thr = threadPool()->findThreadByLWP(lwp); //thr may be NULL if OS doesn't support LWP events (BG/P) 
+   int_thread *thr = threadPool()->findThreadByLWP(lwp); //thr may be NULL if OS doesn't support LWP events (BG/P)
    switch(eventMsg->event) {
       case TD_CREATE:
       {
@@ -545,7 +545,7 @@ thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<
 
 thread_db_process::thread_db_process(Dyninst::PID pid_, int_process *p) :
   int_process(pid_, p),
-  int_threadTracking(pid_, p), 
+  int_threadTracking(pid_, p),
   thread_db_proc_initialized(false),
   threadAgent(NULL),
   createdThreadAgent(false),
@@ -564,7 +564,7 @@ thread_db_process::thread_db_process(Dyninst::PID pid_, int_process *p) :
    self->thread_db_proc = this;
 }
 
-thread_db_process::~thread_db_process() 
+thread_db_process::~thread_db_process()
 {
     // Free the breakpoints allocated for events
     map<Dyninst::Address, pair<int_breakpoint *, EventType> >::iterator brkptIter;
@@ -635,7 +635,7 @@ async_ret_t thread_db_process::handleThreadAttach(td_thrhandle_t *thr, Dyninst::
 }
 
 async_ret_t thread_db_process::initThreadDB() {
-    // Q: Why isn't this in the constructor? 
+    // Q: Why isn't this in the constructor?
     // A: This function depends on the corresponding thread library being loaded
     // and this event occurs some time after process creation.
 
@@ -669,7 +669,7 @@ async_ret_t thread_db_process::initThreadDB() {
       return aret_success;
    }
 
-   getMemCache()->markToken(token_init);   
+   getMemCache()->markToken(token_init);
    // Create the thread agent
    td_err_e errVal;
    if (!createdThreadAgent)
@@ -703,17 +703,17 @@ async_ret_t thread_db_process::initThreadDB() {
    set<pair<td_thrhandle_t *, LWP> > all_handles;
    for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
       thread_db_thread *tdb_thread = dynamic_cast<thread_db_thread *>(*i);
-      
+
       if (tdb_thread->threadHandle_alloced) {
          all_handles.insert(pair<td_thrhandle_t *, LWP>(tdb_thread->threadHandle, tdb_thread->getLWP()));
          continue;
       }
-      
+
       if (!tdb_thread->threadHandle) {
          tdb_thread->threadHandle = new td_thrhandle_t;
          memset(tdb_thread->threadHandle, 0, sizeof(td_thrhandle_t));
       }
-      
+
       pthrd_printf("lwp2thr on %d/%d\n", getPid(), tdb_thread->getLWP());
       errVal = p_td_ta_map_lwp2thr(getThreadDBAgent(), tdb_thread->getLWP(), tdb_thread->threadHandle);
       if (errVal != TD_OK) {
@@ -751,7 +751,7 @@ async_ret_t thread_db_process::initThreadDB() {
          return aret_async;
       }
    }
-   
+
    // Enable all events
    td_thr_events_t eventMask;
 #if defined(td_event_fillset)
@@ -792,12 +792,12 @@ async_ret_t thread_db_process::initThreadDB() {
    for(unsigned i = 0; i < (sizeof(allEvents)/sizeof(td_event_e)); ++i) {
       td_notify_t notifyResult;
       errVal = p_td_ta_event_addr(threadAgent, allEvents[i], &notifyResult);
-      
+
       // This indicates that the event isn't supported
       if( TD_OK != errVal ) continue;
-      
+
       assert( notifyResult.type == NOTIFY_BPT && "Untested notify type" );
-      
+
       EventType newEvent;
       switch(allEvents[i]) {
          case TD_CREATE:
@@ -812,7 +812,7 @@ async_ret_t thread_db_process::initThreadDB() {
             pthrd_printf("Unimplemented libthread_db event encountered. Skipping for now.\n");
             continue;
       }
-      
+
       Address addr = (Address) notifyResult.u.bptaddr;
       pthrd_printf("Received address of 0x%lx for breakpoint, checking platform conversion\n",
 		   addr);
@@ -827,7 +827,7 @@ async_ret_t thread_db_process::initThreadDB() {
       notifyResult.u.bptaddr = (psaddr_t) addr;
 #else
       notifyResult.u.bptaddr = (void *) addr;
-#endif 
+#endif
       int_breakpoint *newEventBrkpt = new int_breakpoint(Breakpoint::ptr());
       newEventBrkpt->setProcessStopper(true);
       if( !addBreakpoint(addr, newEventBrkpt))
@@ -838,13 +838,13 @@ async_ret_t thread_db_process::initThreadDB() {
          thread_db_proc_initialized = true;
          return aret_error;
          }
-      
+
       pair<map<Dyninst::Address, pair<int_breakpoint *, EventType> >::iterator, bool> insertIter;
       insertIter = addr2Event.insert(make_pair(addr, make_pair(newEventBrkpt, newEvent)));
 
       assert( insertIter.second && "event breakpoint address not unique" );
    }
-   
+
    thread_db_proc_initialized = true;
    return aret_success;
 }
@@ -857,7 +857,7 @@ void thread_db_process::freeThreadDBAgent() {
     // A possible, better solution would be to make the functions static
     // but we lose all the convenience of pure virtual functions
     //
-    // At any rate, this function should be called from a derived class' 
+    // At any rate, this function should be called from a derived class'
     // destructor for the time being.
 
     if( thread_db_initialized && threadAgent ) {
@@ -880,7 +880,7 @@ bool thread_db_process::decodeTdbLWPExit(EventLWPDestroy::ptr lwp_ev)
 {
    thread_db_thread *db_thread = dynamic_cast<thread_db_thread *>(lwp_ev->getThread()->llthrd());
    assert(db_thread);
-   
+
    if (db_thread->destroyed || !db_thread->thread_initialized)
       return false;
 
@@ -897,7 +897,7 @@ bool thread_db_process::decodeTdbLWPExit(EventLWPDestroy::ptr lwp_ev)
 }
 
 async_ret_t thread_db_process::decodeTdbBreakpoint(EventBreakpoint::ptr bp)
-{ 
+{
     // Decoding thread_db events needs to be a two-step process:
     // 1) Create events depending on the breakpoint address
     //    Don't get events from thread_db as this can write to memory
@@ -911,11 +911,11 @@ async_ret_t thread_db_process::decodeTdbBreakpoint(EventBreakpoint::ptr bp)
     //    memory because the parent event is a breakpoint and requires
     //    that all threads are stopped
     Dyninst::Address addr = bp->getAddress();
-    
+
     // Determine what type of event occurs at the specified address
     map<Dyninst::Address, pair<int_breakpoint *, EventType> >::iterator addrIter;
     addrIter = addr2Event.find(addr);
-    if (addrIter == addr2Event.end()) 
+    if (addrIter == addr2Event.end())
        return aret_error;
 
     vector<Event::ptr> threadEvents;
@@ -935,9 +935,9 @@ async_ret_t thread_db_process::decodeTdbBreakpoint(EventBreakpoint::ptr bp)
 
     for (vector<Event::ptr>::iterator i = threadEvents.begin(); i != threadEvents.end(); i++) {
        Event::ptr ev = *i;
-       if (!ev->getThread()) 
+       if (!ev->getThread())
           ev->setThread(bp->getThread());
-       if (!ev->getProcess()) 
+       if (!ev->getProcess())
           ev->setProcess(proc());
        if (ev->getSyncType() == Event::unset)
           ev->setSyncType(Event::sync_process);
@@ -956,11 +956,11 @@ static string stripLibraryName(const char *libname)
    const char *filename_c = strrchr(libname, '/');
    if (!filename_c)
       filename_c = strrchr(libname, '\\');
-   if (!filename_c) 
+   if (!filename_c)
       filename_c = libname;
-   else 
+   else
       filename_c++;
-   
+
    const char *lesser_ext = NULL;
    const char *dot_ext = strchr(filename_c, '.');
    if (dot_ext)
@@ -980,10 +980,10 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
 {
     SymReader *objSymReader = NULL;
     int_library *lib = NULL;
-    
+
     if (plat_isStaticBinary()) {
        // For static executables, we need to search the executable instead of the
-       // thread library. 
+       // thread library.
        assert(memory()->libs.size() == 1);
        lib = *memory()->libs.begin();
     }
@@ -992,7 +992,7 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
        // FreeBSD implementation doesn't set objName
        const char *name_c = objName ? objName : getThreadLibName(symName);
        std::string name = stripLibraryName(name_c);
-       
+
        for (set<int_library *>::iterator i = memory()->libs.begin(); i != memory()->libs.end(); i++) {
           int_library *l = *i;
           if (strstr(l->getName().c_str(), name.c_str())) {
@@ -1018,19 +1018,19 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
     Symbol_t lookupSym = objSymReader->getSymbolByName(string(symName));
 
     if( !objSymReader->isValidSymbol(lookupSym) ) {
-       pthrd_printf("thread_db getSymbolAddr(%s, %s) = none\n", objName ? objName : "NULL", 
+       pthrd_printf("thread_db getSymbolAddr(%s, %s) = none\n", objName ? objName : "NULL",
                     symName ? symName : "NULL");
        return PS_NOSYM;
     }
-    
+
     Address tmp = lib->getAddr() + objSymReader->getSymbolOffset(lookupSym);
     if (getAddressWidth() == 4) {
        tmp &= 0xffffffff;
     }
-    
+
     *symbolAddr = (psaddr_t) tmp;
 
-    pthrd_printf("thread_db getSymbolAddr(%s, %s) = %p\n", objName ? objName : "NULL", 
+    pthrd_printf("thread_db getSymbolAddr(%s, %s) = %p\n", objName ? objName : "NULL",
                  symName ? symName : "NULL", (void *) *symbolAddr);
     return PS_OK;
 }
@@ -1071,7 +1071,7 @@ async_ret_t thread_db_process::post_attach(bool wasDetached, set<response::ptr> 
          return result;
       completed_post = true;
    }
-   
+
    err_t last_error = getLastError();
    const char *last_err_msg = getLastErrorMsg();
 
@@ -1152,7 +1152,7 @@ void thread_db_process::addThreadDBHandlers(HandlerPool *hpool) {
    hpool->addHandler(dispatchHandler);
 }
 
-bool thread_db_process::plat_getLWPInfo(lwpid_t, void *) 
+bool thread_db_process::plat_getLWPInfo(lwpid_t, void *)
 {
    perr_printf("Attempt to use unsupported plat_getLWPInfo\n");
    return false;
@@ -1212,7 +1212,7 @@ Handler::handler_ret_t ThreadDBDispatchHandler::handleEvent(Event::ptr ev)
     * All we know is that we got a thread_db breakpoint, but we don't
     * know whether that was a thread create/destroy, or any information
     * about those events.  We'll collect that info here, then add
-    * UserThreadCreate or UserThreadDestroy events as 'late' events 
+    * UserThreadCreate or UserThreadDestroy events as 'late' events
     * (means they were generated at handle time) to this event.
     **/
    pthrd_printf("At top of ThreadDB Dispatch handler\n");
@@ -1281,7 +1281,7 @@ Handler::handler_ret_t ThreadDBDispatchHandler::handleEvent(Event::ptr ev)
          std::set<response::ptr> resps;
          proc->getMemCache()->getPendingAsyncs(resps);
          proc->handlerPool()->notifyOfPendingAsyncs(resps, ev);
-         return Handler::ret_async;         
+         return Handler::ret_async;
       }
       if (result == aret_error) {
          pthrd_printf("Error return during ll_fetchThreadInfo for main thread\n");
@@ -1293,7 +1293,7 @@ Handler::handler_ret_t ThreadDBDispatchHandler::handleEvent(Event::ptr ev)
          thrdata->thr_handle = main_thread->threadHandle;
          thrdata->thr_info = tinfo;
          thrdata->threadHandle_alloced = main_thread->threadHandle_alloced;
-         
+
          EventNewUserThread::ptr new_ev = EventNewUserThread::ptr(new EventNewUserThread());
          new_ev->setProcess(proc->proc());
          new_ev->setThread(main_thread->thread());
@@ -1327,7 +1327,7 @@ ThreadDBLibHandler::ThreadDBLibHandler() :
 {
 }
 
-ThreadDBLibHandler::~ThreadDBLibHandler() 
+ThreadDBLibHandler::~ThreadDBLibHandler()
 {
 }
 
@@ -1365,11 +1365,11 @@ Handler::handler_ret_t ThreadDBLibHandler::handleEvent(Event::ptr ev) {
    for( libIter = addLibs.begin(); libIter != addLibs.end(); ++libIter ) {
       if( ! proc->isSupportedThreadLib((*libIter)->getName()) )
          continue;
-      
+
       pthrd_printf("Enabling thread_db support for pid %d\n",
                    proc->getPid());
       async_ret_t ret = proc->initThreadDB();
- 
+
       if (ret == aret_error) {
          pthrd_printf("Failed to initialize thread_db for pid %d\n",
                       proc->getPid());
@@ -1385,7 +1385,7 @@ Handler::handler_ret_t ThreadDBLibHandler::handleEvent(Event::ptr ev) {
          return Handler::ret_async;
       }
    }
-   
+
    return Handler::ret_success;
 }
 
@@ -1402,7 +1402,7 @@ ThreadDBCreateHandler::ThreadDBCreateHandler() :
 {
 }
 
-ThreadDBCreateHandler::~ThreadDBCreateHandler() 
+ThreadDBCreateHandler::~ThreadDBCreateHandler()
 {
 }
 
@@ -1429,7 +1429,7 @@ Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
                    tdb_proc->getPid(), tdb_thread->getLWP());
       assert(tdb_proc);
       new_thread_data_t *thrdata = (new_thread_data_t *) threadEv->getInternalEvent()->raw_data;
-      
+
       async_ret_t result = tdb_proc->initThreadWithHandle(thrdata->thr_handle, &thrdata->thr_info, NULL_LWP);
       if (result == aret_error) {
          pthrd_printf("ThreadDBCreateHandler returning error\n");
@@ -1441,7 +1441,7 @@ Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
       }
       if (thrdata->threadHandle_alloced) tdb_thread->threadHandle_alloced = true;
    }
-   
+
    return Handler::ret_success;
 }
 
@@ -1493,7 +1493,7 @@ thread_db_thread::thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::L
    memset(&tinfo, 0, sizeof(tinfo));
 }
 
-thread_db_thread::~thread_db_thread() 
+thread_db_thread::~thread_db_thread()
 {
    if (threadHandle_alloced)
       delete threadHandle;
@@ -1527,7 +1527,7 @@ async_ret_t thread_db_process::getEventForThread(int_eventThreadDB *iev) {
    // and can introduce some race conditions if the platform allows memory reads
    // while some threads are running
    assert( threadPool()->allHandlerStopped() );
-  
+
    // We need to save thread_db generated events because we need to use the
    // process-level event retrieval call to get thread creation events (at
    // least on some platforms).
@@ -1586,7 +1586,7 @@ async_ret_t thread_db_process::getEventForThread(int_eventThreadDB *iev) {
       iev->msgs.pop_back();
       iev->handles.pop_back();
    }
-  
+
    return aret_success;
 }
 
@@ -1599,7 +1599,7 @@ bool thread_db_process::setTrackThreads(bool b, std::set<std::pair<int_breakpoin
       return true;
    }
    track_threads = b;
-   
+
    std::map<Address, pair<int_breakpoint *, EventType> >::iterator i;
    for (i = addr2Event.begin(); i != addr2Event.end(); i++) {
       Address addr = i->first;
@@ -1648,7 +1648,7 @@ async_ret_t thread_db_process::plat_calcTLSAddress(int_thread *thread, int_libra
       setLastError(err_unsupported, "TLS Operations not supported on this system\n");
       return aret_error;
    }
-   
+
    map<int_library *, Address>::iterator i = thrd->cached_tls_areas.find(lib);
    if (i != thrd->cached_tls_areas.end()) {
       outaddr = i->second + off;
@@ -1675,7 +1675,7 @@ async_ret_t thread_db_process::plat_calcTLSAddress(int_thread *thread, int_libra
       perr_printf("Error return from td_thr_tls_get_addr from thread_db\n");
       return aret_error;
    }
-   
+
    Address tls_base_addr = (Address) tls_base;
    thrd->cached_tls_areas[lib] = tls_base_addr;
    libs_with_cached_tls_areas.insert(lib);
@@ -1816,7 +1816,7 @@ bool thread_db_thread::getTLSPtr(Dyninst::Address &addr)
 
 //Empty place holder functions in-case we're built on a machine without libthread_db.so
 
-thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int, int> f) : 
+thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int, int> f) :
    int_threadTracking(p, e, a, envp, f)
 {
   cerr << "Thread DB process constructor" << endl;
@@ -1845,7 +1845,7 @@ void thread_db_process::addThreadDBHandlers(HandlerPool *)
 {
 }
 
-thread_db_thread::thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) : 
+thread_db_thread::thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l)
 {
 }
@@ -1926,7 +1926,7 @@ const char *thread_db_process::getThreadLibName(const char *)
 void thread_db_process::freeThreadDBAgent() {
 }
 
-async_ret_t thread_db_process::getEventForThread(int_eventThreadDB *) 
+async_ret_t thread_db_process::getEventForThread(int_eventThreadDB *)
 {
    return aret_error;
 }
@@ -1954,7 +1954,7 @@ bool thread_db_process::isTrackingThreads()
    return false;
 }
 
-ThreadTracking *thread_db_process::threaddb_getThreadTracking() 
+ThreadTracking *thread_db_process::threaddb_getThreadTracking()
 {
    perr_printf("Error. thread_db not installed on this platform.\n");
    setLastError(err_unsupported, "Cannot perform thread operations without thread_db\n");

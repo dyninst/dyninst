@@ -72,9 +72,26 @@ class ParseWorkElem
         catch_block,
         call,
         call_fallthrough,
+        checked_call_ft,
 	resolve_jump_table, // We want to finish all possible parsing work before parsing jump tables
         __parse_work_end__
     };
+
+    // allow direct access to setting order/frame type..
+    ParseWorkElem(
+            ParseWorkBundle *b, 
+            parse_work_order o,
+            Edge *e, 
+            Address target, 
+            bool resolvable,
+            bool tailcall)
+        : _bundle(b),
+          _edge(e),
+          _targ(target),
+          _can_resolve(resolvable),
+          _tailcall(tailcall),
+          _order(o),
+          _call_processed(false) { }
 
     ParseWorkElem(
             ParseWorkBundle *b, 

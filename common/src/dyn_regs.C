@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -40,21 +40,21 @@ using namespace Dyninst;
 
 boost::shared_ptr<MachRegister::NameMap> MachRegister::names()
 {
-    static boost::shared_ptr<MachRegister::NameMap> store = 
+    static boost::shared_ptr<MachRegister::NameMap> store =
        boost::shared_ptr<MachRegister::NameMap>(new MachRegister::NameMap);
     return store;
 }
 
 MachRegister::MachRegister() :
    reg(0)
-{ 
+{
 }
 
 MachRegister::MachRegister(signed int r) :
    reg(r)
 {
 }
- 
+
 MachRegister::MachRegister(signed int r, const char *n) :
    reg(r)
 {
@@ -72,7 +72,7 @@ unsigned int MachRegister::regClass() const
     return reg & 0x00ff0000;
 }
 
-MachRegister MachRegister::getBaseRegister() const { 
+MachRegister MachRegister::getBaseRegister() const {
    switch (getArchitecture()) {
       case Arch_x86:
          if (reg & x86::GPR) return MachRegister(reg & 0xfffff0ff);
@@ -84,11 +84,15 @@ MachRegister MachRegister::getBaseRegister() const {
       case Arch_ppc64:
       case Arch_none:
          return *this;
+		case Arch_aarch32:
+		case Arch_aarch64:
+				  //not verified
+		   return *this;
    }
    return InvalidReg;
 }
-   
-Architecture MachRegister::getArchitecture() const { 
+
+Architecture MachRegister::getArchitecture() const {
    return (Architecture) (reg & 0xff000000);
 }
 
@@ -96,10 +100,14 @@ bool MachRegister::isValid() const {
    return (reg != InvalidReg.reg);
 }
 
-MachRegisterVal MachRegister::getSubRegValue(const MachRegister& subreg, 
+MachRegisterVal MachRegister::getSubRegValue(const MachRegister& subreg,
                                              MachRegisterVal &orig) const
 {
-   if (subreg.reg == reg || 
+  if( getArchitecture() == Arch_aarch64 ){
+    assert(0);//this is not implemented
+  }
+
+   if (subreg.reg == reg ||
        getArchitecture() == Arch_ppc32 ||
        getArchitecture() == Arch_ppc64)
       return orig;
@@ -108,14 +116,14 @@ MachRegisterVal MachRegister::getSubRegValue(const MachRegister& subreg,
    switch ((subreg.reg & 0x00000f00) >> 8) {
       case 0x0: return orig;
       case 0x1: return (orig & 0xff);
-      case 0x2: return (orig & 0xff00) >> 8;              
+      case 0x2: return (orig & 0xff00) >> 8;
       case 0x3: return (orig & 0xffff);
       case 0xf: return (orig & 0xffffffff);
       default: assert(0); return orig;
    }
 }
 
-std::string MachRegister::name() const { 
+std::string MachRegister::name() const {
 	assert(names() != NULL);
 	NameMap::const_iterator iter = names()->find(reg);
 	if (iter != names()->end()) {
@@ -176,21 +184,26 @@ unsigned int MachRegister::size() const {
          return 4;
       }
       case Arch_ppc64:
-         return 8;
+		case Arch_aarch64:
+        if((reg & 0x00ff0000) == aarch64::FPR)
+          return 16; //aarch64: 128bit = 16*8bit
+        return 8; //aarch64: 64bit = 8*8
+      case Arch_aarch32:
+        assert(0);
       case Arch_none:
          return 0;
    }
    return 0; //Unreachable, but disable warnings
 }
-   
-bool MachRegister::operator<(const MachRegister &a) const { 
+
+bool MachRegister::operator<(const MachRegister &a) const {
    return (reg < a.reg);
 }
- 
-bool MachRegister::operator==(const MachRegister &a) const { 
+
+bool MachRegister::operator==(const MachRegister &a) const {
    return (reg == a.reg);
 }
- 
+
 MachRegister::operator signed int() const {
    return reg;
 }
@@ -212,6 +225,10 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
          return ppc32::pc;
       case Arch_ppc64:
          return ppc64::pc;
+      case Arch_aarch64:  //aarch64: pc is not writable
+         return aarch64::pc;
+      case Arch_aarch32:
+         assert(0);
       case Arch_none:
          return InvalidReg;
    }
@@ -230,7 +247,12 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
          return ppc32::r1;
       case Arch_ppc64:
          return ppc64::r1;
+      case Arch_aarch64:
+         return aarch64::x29; //aarch64: frame pointer is X29 by convention
       case Arch_none:
+         return InvalidReg;
+      default:
+         assert(0);
          return InvalidReg;
    }
    return InvalidReg;
@@ -248,7 +270,14 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
          return ppc32::r1;
       case Arch_ppc64:
          return ppc64::r1;
+      case Arch_aarch64:
+         return aarch64::sp; //aarch64: stack pointer is an independent register
+      case Arch_aarch32:
+         assert(0);
       case Arch_none:
+         return InvalidReg;
+      default:
+         assert(0);
          return InvalidReg;
    }
    return InvalidReg;
@@ -266,8 +295,15 @@ MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
             return ppc32::r0;
         case Arch_ppc64:
             return ppc64::r0;
+        case Arch_aarch64:
+            return aarch64::x8;
+        case Arch_aarch32:
+            assert(0);
         case Arch_none:
             return InvalidReg;
+      default:
+         assert(0);
+         return InvalidReg;
     }
     return InvalidReg;
 }
@@ -280,12 +316,17 @@ MachRegister MachRegister::getSyscallNumberOReg(Dyninst::Architecture arch)
             return x86::oeax;
         case Arch_x86_64:
             return x86_64::orax;
-        case Arch_ppc32: 
+        case Arch_ppc32:
             return ppc32::r0;
         case Arch_ppc64:
             return ppc64::r0;
+        case Arch_aarch64:
+            return aarch64::x8;
         case Arch_none:
             return InvalidReg;
+      default:
+         assert(0);
+         return InvalidReg;
     }
     return InvalidReg;
 }
@@ -298,12 +339,17 @@ MachRegister MachRegister::getSyscallReturnValueReg(Dyninst::Architecture arch)
             return x86::eax;
         case Arch_x86_64:
             return x86_64::rax;
-        case Arch_ppc32: 
+        case Arch_ppc32:
             return ppc32::r3;
         case Arch_ppc64:
             return ppc64::r3;
+        case Arch_aarch64:
+            return aarch64::x0; //returned value is save in x0
         case Arch_none:
             return InvalidReg;
+      default:
+         assert(0);
+         return InvalidReg;
     }
     return InvalidReg;
 }
@@ -311,31 +357,40 @@ MachRegister MachRegister::getSyscallReturnValueReg(Dyninst::Architecture arch)
 bool MachRegister::isPC() const
 {
    return (*this == x86_64::rip || *this == x86::eip ||
-           *this == ppc32::pc || *this == ppc64::pc);
+           *this == ppc32::pc || *this == ppc64::pc ||
+           *this == aarch64::pc );
 }
 
 bool MachRegister::isFramePointer() const
 {
    return (*this == x86_64::rbp || *this == x86::ebp ||
-           *this == FrameBase);
+           *this == FrameBase ||
+           *this == aarch64::x29);
 }
 
 bool MachRegister::isStackPointer() const
 {
    return (*this == x86_64::rsp || *this == x86::esp ||
-           *this == ppc32::r1 || *this == ppc64::r1);
+           *this == ppc32::r1   || *this == ppc64::r1 ||
+           *this == aarch64::sp);
 }
 
 bool MachRegister::isSyscallNumberReg() const
 {
-    return (*this == x86_64::orax || *this == x86::oeax ||
-            *this == ppc32::r1 || *this == ppc64::r1);
+   return ( *this == x86_64::orax || *this == x86::oeax ||
+            *this == ppc32::r1    || *this == ppc64::r1 ||
+            *this == aarch64::x8
+            );
 }
 
 bool MachRegister::isSyscallReturnValueReg() const
 {
+   if(getArchitecture() == Arch_aarch64)
+      assert(0);
     return (*this == x86_64::rax || *this == x86::eax ||
-            *this == ppc32::r1 || *this == ppc64::r1);
+            *this == ppc32::r1   || *this == ppc64::r1 ||
+            *this == aarch64::x0
+            );
 }
 
 COMMON_EXPORT bool Dyninst::isSegmentRegister(int regClass)
@@ -416,74 +471,74 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
             case x86::FLAG:
                c = x86_regclass_flags;
 	       switch(baseID) {
-	       case x86::CF:
-		 n = x86_flag_cf;
-		 break;
-	       case x86::PF:
-		 n = x86_flag_pf;
-		 break;
-	       case x86::AF:
-		 n = x86_flag_af;
-		 break;
-	       case x86::ZF:
-		 n = x86_flag_zf;
-		 break;
-	       case x86::SF:
-		 n = x86_flag_sf;
-		 break;
-	       case x86::TF:
-		 n = x86_flag_tf;
-		 break;
-	       case x86::IF:
-		 n = x86_flag_if;
-		 break;
-	       case x86::DF:
-		 n = x86_flag_df;
-		 break;
-	       case x86::OF:
-		 n = x86_flag_of;
-		 break;
-	       default:
-		 assert(0);
-		 break;
-	       }
-               break;
-            case x86::MISC:
-               c = x86_regclass_unknown;
-               break;
-            case x86::XMM:
-               c = x86_regclass_xmm;
-               n = baseID;
-               break;
-            case x86::MMX:
-               c = x86_regclass_mm;
-               n = baseID;
-               break;
-            case x86::CTL:
-               c = x86_regclass_cr;
-               n = baseID;
-               break;
-            case x86::DBG:
-               c = x86_regclass_dr;
-               n = baseID;
-               break;
-            case x86::TST:
-               c = x86_regclass_unknown;
-               break;
-            case 0:
-               switch (baseID) {
-                  case 0x10:
-                     c = x86_regclass_ip;
-                     n = 0;
-                     break;
-                  default:
-                     c = x86_regclass_unknown;
-                     break;
-               }
-               break;
-         }
+	         case x86::CF:
+		         n = x86_flag_cf;
+		         break;
+	         case x86::PF:
+		         n = x86_flag_pf;
+		         break;
+	         case x86::AF:
+		         n = x86_flag_af;
+		         break;
+	         case x86::ZF:
+		         n = x86_flag_zf;
+		         break;
+	         case x86::SF:
+		         n = x86_flag_sf;
+		         break;
+	         case x86::TF:
+		         n = x86_flag_tf;
+		         break;
+	         case x86::IF:
+		         n = x86_flag_if;
+		         break;
+	         case x86::DF:
+		         n = x86_flag_df;
+		         break;
+	         case x86::OF:
+		         n = x86_flag_of;
+		         break;
+	         default:
+		         assert(0);
+		         break;
+	         }
          break;
-     case Arch_x86_64:
+         case x86::MISC:
+               c = x86_regclass_unknown;
+               break;
+         case x86::XMM:
+            c = x86_regclass_xmm;
+            n = baseID;
+            break;
+         case x86::MMX:
+            c = x86_regclass_mm;
+            n = baseID;
+            break;
+         case x86::CTL:
+            c = x86_regclass_cr;
+            n = baseID;
+            break;
+         case x86::DBG:
+            c = x86_regclass_dr;
+            n = baseID;
+            break;
+         case x86::TST:
+            c = x86_regclass_unknown;
+            break;
+         case 0:
+           switch (baseID) {
+              case 0x10:
+                 c = x86_regclass_ip;
+                 n = 0;
+                 break;
+              default:
+                 c = x86_regclass_unknown;
+                 break;
+           }
+         break;
+         }
+      break;
+    case Arch_x86_64: 
          switch (category) {
             case x86_64::GPR:
                c = x86_regclass_gpr;
@@ -637,7 +692,6 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                break;
          }
          break;
- 
        case Arch_ppc32:
        case Arch_ppc64: // 64-bit not supported in ROSE
        {
@@ -677,7 +731,13 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
            }
            return;
        }
-       default:
+       break;
+      case Arch_aarch64:
+      {
+        assert(0);
+        return;
+      }
+      default:
          c = x86_regclass_unknown;
          n = 0;
          break;
@@ -728,11 +788,15 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
             case x86_64::D_REG:
                p = x86_regpos_dword;
                break;
-	    case x86::BIT:
-     	       p = x86_regpos_all;
-	       break;
+	         case x86::BIT:
+     	         p = x86_regpos_all;
+	         break;
          }
-         break;
+      break;
+      case Arch_aarch64:
+      {
+          assert(0);
+        }
       default:
         p = x86_regpos_unknown;
    }
@@ -859,8 +923,8 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
             case 57: return Dyninst::InvalidReg;
             case 58: return Dyninst::x86_64::fsbase;
             case 59: return Dyninst::x86_64::gsbase;
-            case 60: return Dyninst::InvalidReg; 
-            case 61: return Dyninst::InvalidReg; 
+            case 60: return Dyninst::InvalidReg;
+            case 61: return Dyninst::InvalidReg;
             case 62: return Dyninst::InvalidReg; //tr
             case 63: return Dyninst::InvalidReg; //ldtr
             case 64: return Dyninst::InvalidReg; //mxcsr
@@ -937,7 +1001,7 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
             case 64: return Dyninst::ppc32::cr;
             case 65: return Dyninst::InvalidReg; //FPSCR
          }
-         //Seperate switch statements to give compilers an easier time of 
+         //Seperate switch statements to give compilers an easier time of
          // optimizing
          switch (encoding) {
             case 100: return Dyninst::ppc32::mq;
@@ -1022,7 +1086,7 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
             case 64: return Dyninst::ppc64::cr;
             case 65: return Dyninst::InvalidReg; //FPSCR
          }
-         //Seperate switch statements to give compilers an easier time of 
+         //Seperate switch statements to give compilers an easier time of
          // optimizing
          switch (encoding) {
             case 100: return Dyninst::ppc64::mq;
@@ -1038,9 +1102,81 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
             default: return Dyninst::InvalidReg;
          }
          break;
+      case Arch_aarch64:
+         assert(0); //not verified
+         switch(encoding){
+            case 0:  return Dyninst::aarch64::x0;
+            case 1:  return Dyninst::aarch64::x1;
+            case 2:  return Dyninst::aarch64::x2;
+            case 3:  return Dyninst::aarch64::x3;
+            case 4:  return Dyninst::aarch64::x4;
+            case 5:  return Dyninst::aarch64::x5;
+            case 6:  return Dyninst::aarch64::x6;
+            case 7:  return Dyninst::aarch64::x7;
+            case 8:  return Dyninst::aarch64::x8;
+            case 9:  return Dyninst::aarch64::x9;
+            case 10: return Dyninst::aarch64::x10;
+            case 11: return Dyninst::aarch64::x11;
+            case 12: return Dyninst::aarch64::x12;
+            case 13: return Dyninst::aarch64::x13;
+            case 14: return Dyninst::aarch64::x14;
+            case 15: return Dyninst::aarch64::x15;
+            case 16: return Dyninst::aarch64::x16;
+            case 17: return Dyninst::aarch64::x17;
+            case 18: return Dyninst::aarch64::x18;
+            case 19: return Dyninst::aarch64::x19;
+            case 20: return Dyninst::aarch64::x20;
+            case 21: return Dyninst::aarch64::x21;
+            case 22: return Dyninst::aarch64::x22;
+            case 23: return Dyninst::aarch64::x23;
+            case 24: return Dyninst::aarch64::x24;
+            case 25: return Dyninst::aarch64::x25;
+            case 26: return Dyninst::aarch64::x26;
+            case 27: return Dyninst::aarch64::x27;
+            case 28: return Dyninst::aarch64::x28;
+            case 29: return Dyninst::aarch64::x29;
+            case 30: return Dyninst::aarch64::x30;
+            case 32: return Dyninst::aarch64::q0;
+            case 33: return Dyninst::aarch64::q1;
+            case 34: return Dyninst::aarch64::q2;
+            case 35: return Dyninst::aarch64::q3;
+            case 36: return Dyninst::aarch64::q4;
+            case 37: return Dyninst::aarch64::q5;
+            case 38: return Dyninst::aarch64::q6;
+            case 39: return Dyninst::aarch64::q7;
+            case 40: return Dyninst::aarch64::q8;
+            case 41: return Dyninst::aarch64::q9;
+            case 42: return Dyninst::aarch64::q10;
+            case 43: return Dyninst::aarch64::q11;
+            case 44: return Dyninst::aarch64::q12;
+            case 45: return Dyninst::aarch64::q13;
+            case 46: return Dyninst::aarch64::q14;
+            case 47: return Dyninst::aarch64::q15;
+            case 48: return Dyninst::aarch64::q16;
+            case 49: return Dyninst::aarch64::q17;
+            case 50: return Dyninst::aarch64::q18;
+            case 51: return Dyninst::aarch64::q19;
+            case 52: return Dyninst::aarch64::q20;
+            case 53: return Dyninst::aarch64::q21;
+            case 54: return Dyninst::aarch64::q22;
+            case 55: return Dyninst::aarch64::q23;
+            case 56: return Dyninst::aarch64::q24;
+            case 57: return Dyninst::aarch64::q25;
+            case 58: return Dyninst::aarch64::q26;
+            case 59: return Dyninst::aarch64::q27;
+            case 60: return Dyninst::aarch64::q28;
+            case 61: return Dyninst::aarch64::q29;
+            case 62: return Dyninst::aarch64::q30;
+            case 63: return Dyninst::aarch64::q31;
+            default: return Dyninst::InvalidReg;
+            break;
+         }
       case Arch_none:
          return Dyninst::InvalidReg;
          break;
+      default:
+         assert(0);
+         return InvalidReg;
    }
    //Invalid Architecture passed
    return Dyninst::InvalidReg;
@@ -1290,8 +1426,55 @@ int MachRegister::getDwarfEnc() const
             default: return -1;
          }
          break;
+      case Arch_aarch64:
+         switch (val()) {
+             /*
+            case Dyninst::aarch64::x0: 	return 0;
+            case Dyninst::aarch64::x1: 	return 1;
+            case Dyninst::aarch64::x2: 	return 2;
+            case Dyninst::aarch64::x3: 	return 3;
+            case Dyninst::aarch64::x4: 	return 4;
+            case Dyninst::aarch64::x5: 	return 5;
+            case Dyninst::aarch64::x6: 	return 6;
+            case Dyninst::aarch64::x7: 	return 7;
+            case Dyninst::aarch64::x8: 	return 8;
+            case Dyninst::aarch64::x9: 	return 9;
+            case Dyninst::aarch64::x10: 	return 10;
+            case Dyninst::aarch64::x11: 	return 11;
+            case Dyninst::aarch64::x12: 	return 12;
+            case Dyninst::aarch64::x13: 	return 13;
+            case Dyninst::aarch64::x14: 	return 14;
+            case Dyninst::aarch64::x15: 	return 15;
+            case Dyninst::aarch64::x16: 	return 16;
+            case Dyninst::aarch64::x17: 	return 17;
+            case Dyninst::aarch64::x18: 	return 18;
+            case Dyninst::aarch64::x19: 	return 19;
+            case Dyninst::aarch64::x20: 	return 20;
+            case Dyninst::aarch64::x21: 	return 21;
+            case Dyninst::aarch64::x22: 	return 22;
+            case Dyninst::aarch64::x23: 	return 23;
+            case Dyninst::aarch64::x24: 	return 24;
+            case Dyninst::aarch64::x25: 	return 25;
+            case Dyninst::aarch64::x26: 	return 26;
+            case Dyninst::aarch64::x27: 	return 27;
+            case Dyninst::aarch64::x28: 	return 28;
+            case Dyninst::aarch64::x29: 	return 29;
+            case Dyninst::aarch64::x30: 	return 30;
+
+            case Dyninst::aarch64::sp       return 100;
+            case Dyninst::aarch64::pc       return 101;
+            case Dyninst::aarch64::pstate   return 102;
+
+            */
+            default: return -1;
+         }
+         break;
       case Arch_none:
+         assert(0);
          return -1;
+      default:
+        assert(0);
+        return -1;
    }
    //Invalid register passed
    return -1;
@@ -1300,15 +1483,64 @@ int MachRegister::getDwarfEnc() const
 unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
 {
    switch (arch) {
-      case Arch_none: 
+      case Arch_none:
          return 0;
       case Arch_x86:
       case Arch_ppc32:
          return 4;
       case Arch_x86_64:
       case Arch_ppc64:
+      case Arch_aarch64:
          return 8;
+      default:
+         assert(0);
+         return InvalidReg;
    }
    return 0;
 }
 
+MachRegister MachRegister::getArchReg(unsigned int regNum, Dyninst::Architecture arch){
+    switch(arch){
+      case Arch_aarch64:
+         switch(regNum){
+            case 0:  return Dyninst::aarch64::x0;
+            case 1:  return Dyninst::aarch64::x1;
+            case 2:  return Dyninst::aarch64::x2;
+            case 3:  return Dyninst::aarch64::x3;
+            case 4:  return Dyninst::aarch64::x4;
+            case 5:  return Dyninst::aarch64::x5;
+            case 6:  return Dyninst::aarch64::x6;
+            case 7:  return Dyninst::aarch64::x7;
+            case 8:  return Dyninst::aarch64::x8;
+            case 9:  return Dyninst::aarch64::x9;
+            case 10: return Dyninst::aarch64::x10;
+            case 11: return Dyninst::aarch64::x11;
+            case 12: return Dyninst::aarch64::x12;
+            case 13: return Dyninst::aarch64::x13;
+            case 14: return Dyninst::aarch64::x14;
+            case 15: return Dyninst::aarch64::x15;
+            case 16: return Dyninst::aarch64::x16;
+            case 17: return Dyninst::aarch64::x17;
+            case 18: return Dyninst::aarch64::x18;
+            case 19: return Dyninst::aarch64::x19;
+            case 20: return Dyninst::aarch64::x20;
+            case 21: return Dyninst::aarch64::x21;
+            case 22: return Dyninst::aarch64::x22;
+            case 23: return Dyninst::aarch64::x23;
+            case 24: return Dyninst::aarch64::x24;
+            case 25: return Dyninst::aarch64::x25;
+            case 26: return Dyninst::aarch64::x26;
+            case 27: return Dyninst::aarch64::x27;
+            case 28: return Dyninst::aarch64::x28;
+            case 29: return Dyninst::aarch64::x29;
+            case 30: return Dyninst::aarch64::x30;
+
+            case 100: return Dyninst::aarch64::sp;
+            case 101: return Dyninst::aarch64::pc;
+            case 102: return Dyninst::aarch64::pstate;
+         }
+      default:
+         return InvalidReg;
+    }
+    return InvalidReg;
+}

@@ -607,7 +607,7 @@ class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
 
    bool readThreadLocalMemory(void *buffer, Library::const_ptr lib, Dyninst::Offset tls_symbol_offset, size_t size) const;
    bool writeThreadLocalMemory(Library::const_ptr lib, Dyninst::Offset tls_symbol_offset, const void *buffer, size_t size) const;
-   bool getThreadLocalAddress(Library::const_ptr lib, Dyninst::Offset tls_offset, Dyninst::Address &result_addr);
+   bool getThreadLocalAddress(Library::const_ptr lib, Dyninst::Offset tls_offset, Dyninst::Address &result_addr) const;
 
    /**
     * User level thread info.  Only available after a UserThreadCreate event

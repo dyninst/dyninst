@@ -634,14 +634,16 @@ Parser::finalize(Function *f)
     }
 
 	bool cache_value = true;
+	/* this is commented out to prevent a failure in tampersStack, but
+           this may be an incorrect approach to fixing the problem.
 	if(frame_status(f->region(), f->addr()) < ParseFrame::PARSED) {
 		// XXX prevent caching of blocks, extents for functions that
 		// are actively being parsed. This prevents callbacks and other
 		// functions called from within, e.g. parse_frame from setting
 		// the caching flag and preventing later updates to the blocks()
 		// vector during finalization.
-	//	cache_value = false;
-	}
+		cache_value = false;
+	}*/
 
     parsing_printf("[%s] finalizing %s (%lx)\n",
         FILE__,f->name().c_str(),f->addr());
@@ -1101,7 +1103,18 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 	    ProcessCFInsn(frame,nextBlock,*work->ah());
             continue;
 	}
-                       
+        // call fallthrough case where we have already checked that
+        // the target returns. this is used in defensive mode.
+        else if (work->order() == ParseWorkElem::checked_call_ft) {
+            Edge* ce = bundle_call_edge(work->bundle());
+            if (ce != NULL) {
+                invalidateContainingFuncs(func, ce->src());
+            } else {
+                parsing_printf("[%s] unexpected missing call edge at %lx\n",
+                        FILE__,work->edge()->src()->lastInsnAddr());
+            }
+        }
+        
         if (NULL == cur) {
             pair<Block*,Edge*> newedge =
                 add_edge(frame,
@@ -1350,6 +1363,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     _pcb.abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
                     _pcb.foundWeirdInsns(func);
                     end_block(cur,ah);
+                    // allow invalid instructions to end up as a sink node.
+		    link(cur, _sink, DIRECT, true);
                     break;
                 } else if (ah.isNopJump()) {
                     // patch the jump to make it a nop, and re-set the 
@@ -1766,6 +1781,12 @@ Parser::findBlocks(CodeRegion *r, Address addr, set<Block *> & blocks)
         parse();
     }
     return _parse_data->findBlocks(r,addr,blocks); 
+}
+
+// find blocks without parsing.
+int Parser::findCurrentBlocks(CodeRegion* cr, Address addr, 
+                                std::set<Block*>& blocks) {
+    return _parse_data->findBlocks(cr, addr, blocks);
 }
 
 Edge*

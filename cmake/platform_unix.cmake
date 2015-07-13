@@ -1,5 +1,5 @@
 set (PLATFORM $ENV{PLATFORM})
-
+message(STATUS "-- Input platform: ${PLATFORM}")
 set (VALID_PLATFORMS
     amd64-unknown-freebsd7.2 
     i386-unknown-freebsd7.2 
@@ -8,6 +8,7 @@ set (VALID_PLATFORMS
     ppc64_linux 
     x86_64-unknown-linux2.4
     ppc64_bgq_ion
+    aarch64-unknown-linux
     )
 
 if (NOT PLATFORM)
@@ -29,7 +30,7 @@ execute_process (COMMAND ${DYNINST_ROOT}/scripts/dynsysname ${SYSNAME_OUT}
                  OUTPUT_VARIABLE DYNSYSNAME_OUT
                  )
 string (REPLACE "\n" "" PLATFORM ${DYNSYSNAME_OUT})
-message ("-- Attempting to automatically identify platform: ${PLATFORM}")
+message (STATUS "-- Attempting to automatically identify platform: ${PLATFORM}")
 endif()
 
 list (FIND VALID_PLATFORMS ${PLATFORM} PLATFORM_FOUND)

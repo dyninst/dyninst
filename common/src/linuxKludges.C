@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -40,6 +40,7 @@
 #include <sstream>
 #include <algorithm>
 #include <sys/types.h>
+#include <sys/ptrace.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <string.h>
@@ -164,7 +165,7 @@ using namespace abi;
 #endif
 
 char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
-				bool includeTypes ) 
+				bool includeTypes )
 {
   static char* last_symbol = NULL, *last_typed = NULL, *last_pretty = NULL;
 
@@ -212,8 +213,8 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
    last_symbol = strdup(symbol);
    last_typed = strdup(demangled);
    if( ! includeTypes ) {
-        /* de-demangling never increases the length */   
-        char * dedemangled = strdup( demangled );   
+        /* de-demangling never increases the length */
+        char * dedemangled = strdup( demangled );
         assert( dedemangled != NULL );
         dedemangle( demangled, dedemangled );
         assert( dedemangled != NULL );
@@ -228,12 +229,12 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
 
 bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid)
 {
-   const unsigned char *ap = (const unsigned char*) inTraced; 
+   const unsigned char *ap = (const unsigned char*) inTraced;
    unsigned char *dp = (unsigned char *) const_cast<void *>(inSelf);
    Address w = 0x0;               /* ptrace I/O buffer */
    int len = sizeof(void *);
    unsigned cnt;
-   
+
    if (0 == size) {
       return true;
    }
@@ -242,21 +243,23 @@ bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid
    if (cnt) {
       /* Start of request is not aligned. */
       unsigned char *p = (unsigned char*) &w;
-      
+
       /* Read the segment containing the unaligned portion, and
          copy what was requested to DP. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), w, len);
+      w = P_ptrace(PTRACE_PEEKDATA, pid, (Address) (ap-cnt), w, len);
       if (errno) {
+          fprintf(stderr, "[%s:%d]ERROR: ptrace PEEKTEXT failed!\n",FILE__, __LINE__);
+          fprintf(stderr, "ERROR: %s\n", strerror(errno) );
          return false;
       }
       for (unsigned i = 0; i < len-cnt && i < size; i++)
          dp[i] = p[cnt+i];
-      
+
       if (len-cnt >= size) {
          return true; /* done */
       }
-      
+
       dp += len-cnt;
       ap += len-cnt;
       size -= len-cnt;
@@ -266,6 +269,8 @@ bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid
       errno = 0;
       w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
       if (errno) {
+          fprintf(stderr, "[%s:%d]ERROR: ptrace PEEKTEXT failed!\n",FILE__, __LINE__);
+          fprintf(stderr, "ERROR: %s\n", strerror(errno) );
          return false;
       }
       memcpy(dp, &w, len);
@@ -273,16 +278,18 @@ bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid
       ap += len;
       size -= len;
    }
-   
+
    if (size > 0) {
       /* Some unaligned data remains */
       unsigned char *p = (unsigned char *) &w;
-      
+
       /* Read the segment containing the unaligned portion, and
          copy what was requested to DP. */
       errno = 0;
       w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
       if (errno) {
+          fprintf(stderr, "[%s:%d]ERROR: ptrace PEEKTEXT failed!\n", FILE__,__LINE__);
+          fprintf(stderr, "ERROR: %s\n", strerror(errno) );
          return false;
       }
       for (unsigned i = 0; i < size; i++)
@@ -292,7 +299,7 @@ bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid
 
 }
 
-bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes, 
+bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
                      const void *inSelf, int pid)
 {
    unsigned char *ap = (unsigned char*) inTraced;
@@ -300,15 +307,15 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
    Address w = 0x0;               /* ptrace I/O buffer */
    int len = sizeof(Address); /* address alignment of ptrace I/O requests */
    unsigned cnt;
-   
+
    if (0 == nbytes) {
       return true;
    }
-   
+
    if ((cnt = ((Address)ap) % len)) {
       /* Start of request is not aligned. */
       unsigned char *p = (unsigned char*) &w;
-      
+
       /* Read the segment containing the unaligned portion, edit
          in the data from DP, and write the segment back. */
       errno = 0;
@@ -320,7 +327,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
 
       for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
          p[cnt+i] = dp[i];
-      
+
       if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) (ap-cnt), w)) {
          return false;
       }
@@ -333,7 +340,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       ap += len-cnt;
       nbytes -= len-cnt;
    }
-   
+
    /* Copy aligned portion */
    while (nbytes >= (u_int)len) {
       assert(0 == ((Address)ap) % len);
@@ -453,7 +460,7 @@ bool AuxvParser::readAuxvInfo()
         auxv_entry.value = (unsigned long) buffer64[pos];
         pos++;
      }
- 
+
      switch(auxv_entry.type) {
         case AT_SYSINFO:
            text_start = auxv_entry.value;
@@ -471,7 +478,7 @@ bool AuxvParser::readAuxvInfo()
            phdr = auxv_entry.value;
            break;
      }
-    
+
   } while (auxv_entry.type != AT_NULL);
 
 
@@ -490,19 +497,19 @@ bool AuxvParser::readAuxvInfo()
    * for known, default, or guessed start address(es).
    **/
   std::vector<Address> guessed_addrs;
-  
+
   /* The first thing to check is the auxvinfo, if we have any. */
-  if( dso_start != 0x0 ) 
+  if( dso_start != 0x0 )
      guessed_addrs.push_back( dso_start );
-    
+
   /**
    * We'll make several educatbed attempts at guessing an address
    * for the vsyscall page.  After deciding on a guess, we'll try to
    * verify that using /proc/pid/maps.
    **/
-  
+
   // Guess some constants that we've seen before.
-#if defined(arch_x86) 
+#if defined(arch_x86)
   guessed_addrs.push_back(0xffffe000); //Many early 2.6 systems
   guessed_addrs.push_back(0xffffd000); //RHEL4
 #endif
@@ -511,7 +518,7 @@ bool AuxvParser::readAuxvInfo()
 #endif
 
   /**
-   * Look through every entry in /proc/maps, and compare it to every 
+   * Look through every entry in /proc/maps, and compare it to every
    * entry in guessed_addrs.  If a guessed_addr looks like the right
    * thing, then we'll go ahead and call it the vsyscall page.
    **/
@@ -527,7 +534,7 @@ bool AuxvParser::readAuxvInfo()
 
         if (dso_start == entry->start ||
             couldBeVsyscallPage(entry, true, page_size)) {
-           //We found a possible page using a strict check. 
+           //We found a possible page using a strict check.
            // This is really likely to be it.
            vsyscall_base = entry->start;
            vsyscall_end = entry->end;
@@ -539,16 +546,16 @@ bool AuxvParser::readAuxvInfo()
 
         if (couldBeVsyscallPage(entry, false, page_size)) {
            //We found an entry that loosely looks like the
-           // vsyscall page.  Let's hang onto this and return 
+           // vsyscall page.  Let's hang onto this and return
            // it if we find nothing else.
            secondary_match = entry;
         }
-     }  
+     }
   }
 
   /**
    * There were no hits using our guessed_addrs scheme.  Let's
-   * try to look at every entry in the maps table (not just the 
+   * try to look at every entry in the maps table (not just the
    * guessed addresses), and see if any of those look like a vsyscall page.
    **/
   for (unsigned i=0; i<num_maps; i++) {
@@ -590,14 +597,14 @@ bool AuxvParser::readAuxvInfo()
  * The gwa_* global variables are basically parameters to get_word_at
  * and should be reset before every call
  *
- * gwa_buffer is a cache of data we've read before.  It's backwards 
+ * gwa_buffer is a cache of data we've read before.  It's backwards
  * for convience, higher addresses are cached towards the base of gwa_buffer
  * and lower addresses are cached at the top.  This is because we read from
  * high addresses to low ones, but we want to start caching at the start of
  * gwa_buffer.
  **/
 static unsigned long *gwa_buffer = NULL;
-static unsigned gwa_size = 0; 
+static unsigned gwa_size = 0;
 static unsigned gwa_pos = 0;
 static unsigned long gwa_base_addr = 0;
 
@@ -675,7 +682,7 @@ static unsigned long get_word_at(process *p, unsigned long addr, bool &err) {
 /**
  * Another helper function for readAuxvInfoFromStack.  We want to know
  * the top byte of the stack.  Unfortunately, if we're running this it's
- * probably because /proc/PID/ isn't reliable, so we can't use maps.  
+ * probably because /proc/PID/ isn't reliable, so we can't use maps.
  * Check the machine's stack pointer, page align it, and start walking
  * back looking for an unaccessible page.
  **/
@@ -700,13 +707,13 @@ static Address getStackTop(AddrSpaceReader *proc, bool &err) {
       err = true;
       return 0x0;
    }
-   
+
    //Align sp to pagesize
    stack_pointer = (stack_pointer & ~(pagesize - 1)) + pagesize;
-   
+
    //Read pages until we get to an unmapped page
    for (;;) {
-      result = proc->readDataSpace((void *) stack_pointer, sizeof(long), &word, 
+      result = proc->readDataSpace((void *) stack_pointer, sizeof(long), &word,
                                    false);
       if (!result) {
          break;
@@ -717,11 +724,11 @@ static Address getStackTop(AddrSpaceReader *proc, bool &err) {
    //The vsyscall page sometimes hangs out above the stack.  Test if this
    // page is it, then move back down one if it is.
    char pagestart[4];
-   result = proc->readDataSpace((void *) (stack_pointer - pagesize), 4, pagestart, 
+   result = proc->readDataSpace((void *) (stack_pointer - pagesize), 4, pagestart,
                                 false);
    if (result) {
-      if (pagestart[0] == 0x7F && pagestart[1] == 'E' && 
-          pagestart[2] == 'L' &&  pagestart[3] == 'F') 
+      if (pagestart[0] == 0x7F && pagestart[1] == 'E' &&
+          pagestart[2] == 'L' &&  pagestart[3] == 'F')
       {
          stack_pointer -= pagesize;
       }
@@ -745,9 +752,9 @@ static Address getStackTop(AddrSpaceReader *proc, bool &err) {
  *          |               envp[n]             |
  *          |                NULL               |
  *          |                                   |
- *          |  { auxv[0].type, auxv[0].value }  |   
+ *          |  { auxv[0].type, auxv[0].value }  |
  *          |                ...                |
- *          |  { auxv[n].type, auxv[n].value }  | 
+ *          |  { auxv[n].type, auxv[n].value }  |
  *          |  {      NULL   ,     NULL      }  |
  *          |                                   |
  *          |      Some number of NULL words    |
@@ -771,13 +778,13 @@ void *AuxvParser::readAuxvFromStack(process *proc) {
    bool err = false;
 
    // Get the base address of the mutatee's stack.  For example,
-   //  on many standard linux/x86 machines this will return 
+   //  on many standard linux/x86 machines this will return
    //  0xc0000000
    gwa_base_addr = getStackTop(proc, err);
-   if (err) 
+   if (err)
       return NULL;
    gwa_base_addr -= word_size;
-   
+
    unsigned long current = gwa_base_addr;
    unsigned long strings_start, strings_end;
    unsigned long l1, l2, auxv_start, word;
@@ -797,8 +804,8 @@ void *AuxvParser::readAuxvFromStack(process *proc) {
       current -= word_size;
    }
    strings_start = current + word_size;
-   
-   //Read until we find a pair of pointers into the strings 
+
+   //Read until we find a pair of pointers into the strings
    // section, this should mean we're now above the auxv vector
    // and in envp or argv
    for (;;) {
@@ -806,7 +813,7 @@ void *AuxvParser::readAuxvFromStack(process *proc) {
       if (err) goto done_err;
       l2 = get_word_at(proc, current - word_size, err);
       if (err) goto done_err;
-      if (l1 >= strings_start && l1 < strings_end && 
+      if (l1 >= strings_start && l1 < strings_end &&
           l2 >= strings_start && l2 < strings_end)
          break;
       current -= word_size;
@@ -830,7 +837,7 @@ void *AuxvParser::readAuxvFromStack(process *proc) {
    bytes_to_read = strings_start - auxv_start;
    buffer = (unsigned char *) malloc(bytes_to_read + word_size*2);
    if (!buffer)
-      goto done_err;   
+      goto done_err;
    for (unsigned pos = 0; pos < bytes_to_read; pos += word_size) {
       word = get_word_at(proc, auxv_start + pos, err);
       if (err) goto done_err;
@@ -913,7 +920,7 @@ void *AuxvParser::readAuxvFromProc() {
          goto done_err;
       }
    }
-      
+
    done_err:
       if (buffer)
          free(buffer);
@@ -996,7 +1003,7 @@ bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps)
       //Only works on Linux 2.6
       while((direntry = readdir(dirhandle)) != NULL) {
          unsigned lwp_id = atoi(direntry->d_name);
-         if (lwp_id) 
+         if (lwp_id)
             lwps.push_back(lwp_id);
       }
       closedir(dirhandle);
@@ -1014,7 +1021,7 @@ bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps)
    {
       //No /proc directory.  I give up.  No threads for you.
       return false;
-   } 
+   }
    while ((direntry = readdir(dirhandle)) != NULL)
    {
       if (direntry->d_name[0] != '.') {
@@ -1023,7 +1030,7 @@ bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps)
       }
       unsigned lwp_id = atoi(direntry->d_name+1);
       int lwp_ppid = 0;
-      if (!lwp_id) 
+      if (!lwp_id)
          continue;
       sprintf(name, "/proc/%d/status", lwp_id);
       FILE *fd = P_fopen(name, "r");
@@ -1047,6 +1054,6 @@ bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps)
   }
   closedir(dirhandle);
   lwps.push_back(pid);
-  
+
   return true;
 }

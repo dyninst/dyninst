@@ -94,7 +94,7 @@ BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace,
 	varsAndParamsValid(false)
 {
    _srcType = BPatch_sourceFunction;
-   
+
    localVariables = new BPatch_localVarCollection;
    funcParameters = new BPatch_localVarCollection;
    retType = NULL;
@@ -371,7 +371,7 @@ bool BPatch_function::parseNewEdge(Dyninst::Address source,
     block_instance *sblock = func->obj()->findBlockByEntry(source);
     assert(sblock);
     vector<edgeStub> stubs;
-    stubs.push_back(edgeStub(sblock, target, ParseAPI::NOEDGE));
+    stubs.push_back(edgeStub(sblock, target, ParseAPI::NOEDGE, true));
     func->obj()->parseNewEdges(stubs);
 
     // Correct missing elements in BPatch-level datastructures

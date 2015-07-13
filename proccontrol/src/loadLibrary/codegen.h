@@ -15,7 +15,7 @@ namespace ProcControlAPI {
 
 class Codegen {
   public:
-   Codegen(ProcControlAPI::Process *proc, 
+   Codegen(ProcControlAPI::Process *proc,
            std::string libname);
    ~Codegen();
 
@@ -26,7 +26,7 @@ class Codegen {
    unsigned startOffset() const;
 
   private:
-   
+
    unsigned estimateSize();
    bool generateInt();
    Address findSymbolAddr(const std::string name, bool saveTOC = false);
@@ -60,6 +60,8 @@ class Codegen {
    void generatePPC32(Address val, unsigned reg);
    void generatePPC64(Address val, unsigned reg);
 
+   bool generatePreambleAARCH64();
+   bool generateCallAARCH64(Address addr, const std::vector<Address> &args);
 
    bool generateTrap();
    bool generateNoops();
@@ -68,7 +70,7 @@ class Codegen {
    std::string libname_;
 
    Address codeStart_;
-   Buffer buffer_;   
+   Buffer buffer_;
 
    // PPC64 only, but it's handy to stash it here
    std::map<Address, Address> toc_;

@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -41,77 +41,85 @@
 
 namespace Dyninst
 {
-   struct x86OperandParser;
-   struct ppcOperandParser;
-   typedef unsigned long MachRegisterVal;
+    struct x86OperandParser;
+    struct ppcOperandParser;
+    struct aarch64OperandParser;
 
-   typedef enum
-   {
-      Arch_none   = 0x00000000,
-      Arch_x86    = 0x14000000,
-      Arch_x86_64 = 0x18000000,
-      Arch_ppc32  = 0x24000000,
-      Arch_ppc64  = 0x28000000
-   } Architecture;
+    typedef unsigned long MachRegisterVal;
+
+    //0xff000000 is used to encode architecture
+    typedef enum
+    {
+        Arch_none   = 0x00000000,
+        Arch_x86    = 0x14000000,
+        Arch_x86_64 = 0x18000000,
+        Arch_ppc32  = 0x24000000,
+        Arch_ppc64  = 0x28000000,
+		Arch_aarch32 = 0x44000000, //for later use
+		Arch_aarch64 = 0x48000000
+    } Architecture;
 
 
-   COMMON_EXPORT bool isSegmentRegister(int regClass);
-   COMMON_EXPORT unsigned getArchAddressWidth(Dyninst::Architecture arch);
-   class COMMON_EXPORT MachRegister {
-      friend struct ::Dyninst::x86OperandParser;
-      friend struct ::Dyninst::ppcOperandParser;
-     private:
-      signed int reg;
+    COMMON_EXPORT bool isSegmentRegister(int regClass);
+    COMMON_EXPORT unsigned getArchAddressWidth(Dyninst::Architecture arch);
+    class COMMON_EXPORT MachRegister {
+        friend struct ::Dyninst::x86OperandParser;
+        friend struct ::Dyninst::ppcOperandParser;
+        friend struct ::Dyninst::aarch64OperandParser;
+    private:
+        signed int reg;
 
-      typedef std::map<signed int, std::string> NameMap;
-      static boost::shared_ptr<MachRegister::NameMap> names();
-      void init_names();
-   public:
+        typedef std::map<signed int, std::string> NameMap;
+        static boost::shared_ptr<MachRegister::NameMap> names();
+        void init_names();
+    public:
 
-	  MachRegister();
-     explicit MachRegister(signed int r);
-     explicit MachRegister(signed int r, const char *n);
-     explicit MachRegister(signed int r, std::string n);
+        MachRegister();
+        explicit MachRegister(signed int r);
+        explicit MachRegister(signed int r, const char *n);
+        explicit MachRegister(signed int r, std::string n);
 
-      MachRegister getBaseRegister() const;
-      Architecture getArchitecture() const;
-      bool isValid() const;
-      MachRegisterVal getSubRegValue(const MachRegister& subreg, MachRegisterVal &orig) const;
+        MachRegister getBaseRegister() const;
+        Architecture getArchitecture() const;
+        bool isValid() const;
+        MachRegisterVal getSubRegValue(const MachRegister& subreg, MachRegisterVal &orig) const;
 
-      std::string name() const;
-      unsigned int size() const;
-      bool operator<(const MachRegister &a) const;
-      bool operator==(const MachRegister &a) const;
-      operator signed int() const;
-      signed int val() const;
-      unsigned int regClass() const;
+        std::string name() const;
+        unsigned int size() const;
+        bool operator<(const MachRegister &a) const;
+        bool operator==(const MachRegister &a) const;
+        operator signed int() const;
+        signed int val() const;
+        unsigned int regClass() const;
 
-      static MachRegister getPC(Dyninst::Architecture arch);
-      static MachRegister getFramePointer(Dyninst::Architecture arch);
-      static MachRegister getStackPointer(Dyninst::Architecture arch);
-      static MachRegister getSyscallNumberReg(Dyninst::Architecture arch);
-      static MachRegister getSyscallNumberOReg(Dyninst::Architecture arch);
-      static MachRegister getSyscallReturnValueReg(Dyninst::Architecture arch);
-      bool isPC() const;
-      bool isFramePointer() const;
-      bool isStackPointer() const;
-      bool isSyscallNumberReg() const;
-      bool isSyscallReturnValueReg() const;
+        static MachRegister getPC(Dyninst::Architecture arch);
+        static MachRegister getFramePointer(Dyninst::Architecture arch);
+        static MachRegister getStackPointer(Dyninst::Architecture arch);
+        static MachRegister getSyscallNumberReg(Dyninst::Architecture arch);
+        static MachRegister getSyscallNumberOReg(Dyninst::Architecture arch);
+        static MachRegister getSyscallReturnValueReg(Dyninst::Architecture arch);
+        bool isPC() const;
+        bool isFramePointer() const;
+        bool isStackPointer() const;
+        bool isSyscallNumberReg() const;
+        bool isSyscallReturnValueReg() const;
 
-      void getROSERegister(int &c, int &n, int &p);
+        void getROSERegister(int &c, int &n, int &p);
 
-      static MachRegister DwarfEncToReg(int encoding, Dyninst::Architecture arch);
-      int getDwarfEnc() const;
+        static MachRegister DwarfEncToReg(int encoding, Dyninst::Architecture arch);
+        int getDwarfEnc() const;
+
+        static MachRegister getArchReg(unsigned int regNum, Dyninst::Architecture arch);
    };
 
    /**
     * DEF_REGISTER will define its first parameter as the name of the object
     * it's declaring, and 'i<name>' as the integer value representing that object.
-    * As an example, the name of a register may be 
+    * As an example, the name of a register may be
     *  x86::EAX
     * with that register having a value of
     *  x86::iEAX
-    * 
+    *
     * The value is mostly useful in the 'case' part switch statements.
     **/
 #if defined(DYN_DEFINE_REGS)
@@ -141,7 +149,7 @@ namespace Dyninst
     *  Next 16 bits (0x00ff0000) are the register category, GPR/FPR/MMX/...
     *  Top 16 bits (0xff000000) are the architecture.
     *
-    *  These values/layout are not guaranteed to remain the same as part of the 
+    *  These values/layout are not guaranteed to remain the same as part of the
     *  public interface, and may change.
     **/
 
@@ -181,7 +189,7 @@ namespace Dyninst
       const signed int BASESI = 0x6;
       const signed int BASEDI = 0x7;
       const signed int FLAGS = 0x0;
-      
+
       const signed int CF = 0x0;
       const signed int FLAG1 = 0x1;
       const signed int PF = 0x2;
@@ -503,7 +511,7 @@ namespace Dyninst
       const signed int FPR   = 0x00020000;
       const signed int FSR   = 0x00040000;
       const signed int SPR   = 0x00080000;
-      
+
       DEF_REGISTER(r0,       0 | GPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(r1,       1 | GPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(r2,       2 | GPR | Arch_ppc32, "ppc32");
@@ -679,14 +687,14 @@ namespace Dyninst
       DEF_REGISTER(cr7,    628 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(cr,     629 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(or3,    630 | SPR | Arch_ppc32, "ppc32");
-      DEF_REGISTER(trap,   631 | SPR | Arch_ppc32, "ppc32");      
+      DEF_REGISTER(trap,   631 | SPR | Arch_ppc32, "ppc32");
    }
    namespace ppc64 {
       const signed int GPR   = 0x00010000;
       const signed int FPR   = 0x00020000;
       const signed int FSR   = 0x00040000;
       const signed int SPR   = 0x00080000;
-      
+
       DEF_REGISTER(r0,       0 | GPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(r1,       1 | GPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(r2,       2 | GPR | Arch_ppc64, "ppc64");
@@ -860,8 +868,108 @@ namespace Dyninst
       DEF_REGISTER(cr7,    628 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(cr,     629 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(or3,    630 | SPR | Arch_ppc64, "ppc64");
-      DEF_REGISTER(trap,   631 | SPR | Arch_ppc64, "ppc64");      
+      DEF_REGISTER(trap,   631 | SPR | Arch_ppc64, "ppc64");
    }
+
+	namespace aarch64{
+      //0xff000000  0x00ff0000      0x0000ff00      0x000000ff
+      //arch        reg cat:GPR     alias&subrange  reg ID
+      const signed int GPR   = 0x00010000;
+      const signed int FPR   = 0x00020000;
+      const signed int FSR   = 0x00040000;
+      const signed int SPR   = 0x00080000;
+
+      const signed int B_REG = 0x00000100;      //8bit  byte reg
+      const signed int H_REG = 0x00000200;      //16bit half-word reg
+      const signed int W_REG = 0x00000f00;      //32bit word reg
+      const signed int FULL  = 0x00000000;      //64bit double-word reg
+      const signed int Q_REG = 0x00000f00;      //128bit quad-word reg
+
+      //31 GPRs, double word long registers
+      //          (name   regID| alias | cat | arch           arch    )
+      DEF_REGISTER(x0,       0 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x1,       1 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x2,       2 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x3,       3 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x4,       4 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x5,       5 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x6,       6 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x7,       7 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x8,       8 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x9,       9 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x10,     10 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x11,     11 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x12,     12 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x13,     13 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x14,     14 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x15,     15 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x16,     16 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x17,     17 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x18,     18 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x19,     19 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x20,     20 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x21,     21 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x22,     22 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x23,     23 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x24,     24 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x25,     25 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x26,     26 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x27,     27 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x28,     28 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x29,     29 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x30,     30 | FULL  |GPR | Arch_aarch64, "aarch64");
+
+      //32 FPRs-----------q-d-s-h-b
+      //128 bit
+      DEF_REGISTER(q0,       0 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q1,       1 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q2,       2 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q3,       3 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q4,       4 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q5,       5 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q6,       6 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q7,       7 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q8,       8 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q9,       9 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q10,     10 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q11,     11 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q12,     12 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q13,     13 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q14,     14 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q15,     15 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q16,     16 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q17,     17 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q18,     18 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q19,     19 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q20,     20 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q21,     21 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q22,     22 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q23,     23 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q24,     24 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q25,     25 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q26,     26 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q27,     27 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q28,     28 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q29,     29 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q30,     30 | Q_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(q31,     31 | Q_REG |FPR | Arch_aarch64, "aarch64");
+
+      //GPRs aliases:
+      //by convention
+      //x29 is used as frame pointer
+	  //x30 is the linking register
+      //x31 can be sp or zero register depending on the context
+
+      //special registers
+	  //PC is not writable in aarch64
+      DEF_REGISTER(sp,       0 | FULL  |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pc,       1 | FULL  |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pstate,   2 | FULL  |SPR | Arch_aarch64, "aarch64");
+      //the base value is not sure
+      DEF_REGISTER(fpcr,     0 | W_REG |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(fpsr,     1 | W_REG |SPR | Arch_aarch64, "aarch64");
+
+	}	//end of aarch64 namespace
 }
 
 #endif

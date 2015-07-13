@@ -72,8 +72,8 @@ class SYMTAB_EXPORT Aggregate
       
       virtual ~Aggregate() {};
 
-      Offset   getOffset() const;
-      unsigned getSize() const;
+      virtual Offset   getOffset() const;
+      virtual unsigned getSize() const;
       Module * getModule() const { return module_; }
       Region * getRegion() const;
 

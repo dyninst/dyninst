@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -90,7 +90,7 @@ unsigned int x86_thread::spaceAvail()
    unsigned int avail = 0;
    for (int i=0; i<max_dr_regs; i++) {
       if (!active[i]) avail++;
-   } 
+   }
    return avail;
 }
 
@@ -125,7 +125,7 @@ bool x86_thread::rmHWBreakpoint(hw_breakpoint *bp,
 
       //Unset size and type bits
       new_dr7 &= ~(0xfUL << (16+4*i));
- 
+
       if (!suspend)
          active[i] = NULL;
    }
@@ -193,7 +193,7 @@ bool x86_thread::addHWBreakpoint(hw_breakpoint *bp,
       }
       else
          continue;
-      
+
       //Figure out the size code:
       // 1 byte or PERM_X = 0
       // 2 bytes = 1
@@ -219,10 +219,10 @@ bool x86_thread::addHWBreakpoint(hw_breakpoint *bp,
          cur = getAvailDR();
       assert(cur != -1);
       active[cur] = bp;
-      
+
       //Enable local hw breakpoint in bits 0,2,4 or 6
       new_dr7 |= 1 << (cur * 2);
-      
+
       //Set bits 16-17, 20-21, 24-25, or 28-29 to permissions
       unsigned int offset = cur*4+16;
       new_dr7 &= ~((unsigned long) (3 << offset));
@@ -262,7 +262,7 @@ bool x86_thread::addHWBreakpoint(hw_breakpoint *bp,
             default: assert(0);
          }
       }
-      
+
       pthrd_printf("Setting register %s to %lx for HWBP\n",
                    reg.name().c_str(), addr);
       result_response::ptr resp = result_response::createResultResponse();
@@ -275,7 +275,7 @@ bool x86_thread::addHWBreakpoint(hw_breakpoint *bp,
       }
       resps.insert(resp);
    }
-   
+
    if (new_dr7 != dr7_val) {
       MachRegister reg = (addr_width == 8 ? x86_64::dr7 : x86::dr7);
       result_response::ptr resp = result_response::createResultResponse();
@@ -329,7 +329,7 @@ EventBreakpoint::ptr x86_thread::decodeHWBreakpoint(response::ptr &,
    unsigned bps_triggered = regval & 0xf;
    if (!bps_triggered) {
       pthrd_printf("dr6 does not have any low bits set, not a HW breakpoint\n");
-      return EventBreakpoint::ptr();      
+      return EventBreakpoint::ptr();
    }
 
    EventBreakpoint::ptr result;

@@ -29,10 +29,13 @@
  */
 
 #include "DynAST.h"
-
+#include "../../dyninstAPI/src/debug.h"
 #include "../../common/src/singleton_object_pool.h"
 
 using namespace Dyninst; 
+const int NOT_VISITED = 0;
+const int BEING_VISITED = 1;
+const int DONE_VISITED = 2;
 
 AST::Ptr AST::substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b) {
   if (!in) return in;
@@ -50,4 +53,36 @@ AST::Ptr AST::substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b) {
 AST::Ptr AST::accept(ASTVisitor *v) {
   return v->visit(this);
 }
+
+// AST cycle detector.
+
+void AST::hasCycle(AST::Ptr in,std::map<AST::Ptr, int> &visited) {
+if(!in)
+	return;
+  std::map<AST::Ptr, int>::iterator ssit = visited.find(in);
+  if(ssit != visited.end() && (*ssit).second == BEING_VISITED) {
+	//printf("Cycle Detected %p \n", (*ssit));
+	  fprintf(stderr,"\nCycle detected haha\n");
+	// printf("Cycle detected <- %s\n",((*ssit).first)->format());
+	//assert(0);
+  }
+  if (ssit != visited.end() && (*ssit).second == DONE_VISITED) return;
+   
+  if(ssit == visited.end() || (*ssit).second == NOT_VISITED) {
+	  visited.insert(std::pair<AST::Ptr, int>(in,BEING_VISITED));
+	  ssit=visited.find(in);
+	   for (unsigned i = 0; i < in->numChildren(); ++i) {
+		hasCycle(in->child(i),visited);
+		if(in->child(i)){
+		//printf(" <- %p", in->child(i));
+		 // printf(" <- %s\n", in->child(i)->getID());
+	  }
+	
+	}
+     (*ssit).second = DONE_VISITED;
+    }
+  
+  return;
+}
+
 

@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -54,7 +54,7 @@
 #include <link.h>
 
 #if defined(DYNINST_RT_STATIC_LIB)
-/* 
+/*
  * The weak symbol here removes the dependence of the static version of this
  * library on pthread_self. If pthread_self is available, then it will be
  * linked.  Otherwise, the linker will ignore it.
@@ -106,7 +106,7 @@ int t_kill(int pid, int sig) {
 void DYNINSTbreakPoint()
 {
    /* We set a global flag here so that we can tell
-      if we're ever in a call to this when we get a 
+      if we're ever in a call to this when we get a
       SIGBUS */
    if (DYNINSTstaticMode)
       return;
@@ -129,7 +129,7 @@ void DYNINSTlinuxBreakPoint()
 {
    struct sigaction act, oldact;
    int result;
-   
+
    if (DYNINSTstaticMode)
       return;
 
@@ -254,7 +254,7 @@ int DYNINSTloadLibrary(char *libname)
    {
       return 1;
    }
- 
+
    get_dlopen_error();
 #if defined(arch_x86)
    /* dlopen on recent glibcs has a "security check" so that
@@ -272,8 +272,8 @@ int DYNINSTloadLibrary(char *libname)
       args.result = 0;
       args.caller = (void *)DYNINST_do_dlopen;
       // There's a do_dlopen function in glibc. However, it's _not_
-      // exported; thus, getting the address is a bit of a pain. 
-      
+      // exported; thus, getting the address is a bit of a pain.
+
       (*DYNINST_do_dlopen)(&args);
       // Duplicate the above
       if (args.result != NULL)
@@ -314,7 +314,7 @@ int dyn_lwp_self()
       gettid_not_valid = 1;
       return getpid();
    }
-   return result;  
+   return result;
 }
 
 int dyn_pid_self()
@@ -346,10 +346,10 @@ dyntid_t dyn_pthread_self()
    return (dyntid_t) me;
 }
 
-/* 
+/*
    We reserve index 0 for the initial thread. This value varies by
    platform but is always constant for that platform. Wrap that
-   platform-ness here. 
+   platform-ness here.
 */
 int DYNINST_am_initial_thread( dyntid_t tid ) {
 	(void)tid; /* unused parameter */
@@ -379,6 +379,10 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
   #else // 32-bit
     #define UC_PC(x) x->uc_mcontext.uc_regs->gregs[32]
   #endif // power
+#elif defined(arch_aarch64)
+	//#warning "UC_PC: in aarch64, pc is not directly accessable."
+	//aarch64 pc is not one of 31 GPRs, but an independent reg
+	#define UC_PC(x) x->uc_mcontext.pc
 #endif // UC_PC
 
 extern volatile unsigned long dyninstTrapTableUsed;
@@ -389,14 +393,14 @@ extern volatile unsigned long dyninstTrapTableIsSorted;
 /**
  * This comment is now obsolete, left for historic purposes
  *
- * Called by the SIGTRAP handler, dyninstTrapHandler.  This function is 
- * closly intwined with dyninstTrapHandler, don't modify one without 
+ * Called by the SIGTRAP handler, dyninstTrapHandler.  This function is
+ * closly intwined with dyninstTrapHandler, don't modify one without
  * understanding the other.
  *
  * This function sets up the calling context that was passed to the
  * SIGTRAP handler so that control will be redirected to our instrumentation
  * when we do the setcontext call.
- * 
+ *
  * There are a couple things that make this more difficult than it should be:
  *   1. The OS provided calling context is similar to the GLIBC calling context,
  *      but not compatible.  We'll create a new GLIBC compatible context and
@@ -428,18 +432,18 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
       assert(hdr);
       volatile trapMapping_t *mapping = &(hdr->traps[0]);
       trap_to = dyninstTrapTranslate(orig_ip,
-                                     (unsigned long *) &hdr->num_entries, 
-                                     &zero, 
+                                     (unsigned long *) &hdr->num_entries,
+                                     &zero,
                                      &mapping,
                                      &one);
    }
    else {
-      trap_to = dyninstTrapTranslate(orig_ip, 
+      trap_to = dyninstTrapTranslate(orig_ip,
                                      &dyninstTrapTableUsed,
                                      &dyninstTrapTableVersion,
                                      &dyninstTrapTable,
                                      &dyninstTrapTableIsSorted);
-                                     
+
    }
    UC_PC(context) = (long) trap_to;
 }
@@ -483,9 +487,10 @@ static tc_lock_t trap_mapping_lock;
 
 static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
 {
+#if !defined (arch_aarch64)
    struct trap_mapping_header *header;
    int i;
-   
+
    tc_lock_lock(&trap_mapping_lock);
    parse_libs();
 
@@ -502,10 +507,14 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
       if (addr >= header->low_entry && addr <= header->high_entry) {
          goto done;
       }
-   }  
+   }
  done:
    tc_lock_unlock(&trap_mapping_lock);
    return header;
+#else
+	assert(0);
+	return NULL;
+#endif
 }
 
 static int parse_libs()
@@ -534,7 +543,7 @@ static int parse_libs()
 #define ALREADY_PARSED 2
 #define ERROR_INTERNAL -1
 #define ERROR_FULL -2
-static int parse_link_map(struct link_map *l) 
+static int parse_link_map(struct link_map *l)
 {
    ElfX_Dyn *dynamic_ptr;
    struct trap_mapping_header *header;
@@ -551,7 +560,7 @@ static int parse_link_map(struct link_map *l)
    }
 
    header = (struct trap_mapping_header *) (dynamic_ptr->d_un.d_val + l->l_addr);
-   
+
    if (header->signature != TRAP_HEADER_SIG)
       return ERROR_INTERNAL;
    if (header->pos != -1) {
@@ -559,7 +568,7 @@ static int parse_link_map(struct link_map *l)
       assert(all_headers[header->pos] == header);
       return ALREADY_PARSED;
    }
- 
+
    for (i = 0; i < header->num_entries; i++)
    {
       header->traps[i].source = (void *) (((unsigned long) header->traps[i].source) + l->l_addr);
@@ -679,7 +688,7 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
  * special constructor handler that processes all the global constructors in
  * the binary. Leaving this code in would create a global constructor for the
  * function runDYNINSTBaseInit(). See DYNINSTglobal_ctors_handler.
- */ 
+ */
 extern void r_debugCheck();
 extern void DYNINSTBaseInit();
 void runDYNINSTBaseInit() __attribute__((constructor));
@@ -715,7 +724,7 @@ void *foo(void *f) {
   pid = getpid();
   tid = gettid();
   start_func = foo;
-  //x86 only.  
+  //x86 only.
   asm("movl %%ebp,%0" : "=r" (stack_addr));
   p = (int *) pthread_self();
   while (i < 1000)
@@ -733,7 +742,7 @@ void *foo(void *f) {
       printf("func @ %d\n", i);
     i += sizeof(int);
     p++;
-  }  
+  }
   printf("stack @ %d\n", best_stack_pos);
   return NULL;
 }

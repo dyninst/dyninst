@@ -126,7 +126,6 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
 bool InstalledSpringboards::addFunc(func_instance* func)
 {
   if(!addBlocks(func, func->blocks().begin(), func->blocks().end())) return false;
-  nextFuncID_++;
   return true;
 }
 
@@ -190,7 +189,7 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
         co->findBlocks(cr, end, blocks);
     }
 
-    SpringboardInfo* info = new SpringboardInfo(nextFuncID_, func);
+    SpringboardInfo* info = new SpringboardInfo(func->addr(), func);
 
     // If we extended the block, remember that range
     if (end > bbl->end()) {

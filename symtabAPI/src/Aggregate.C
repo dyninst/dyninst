@@ -161,8 +161,8 @@ bool Aggregate::addMangledNameInternal(std::string name, bool /*isPrimary*/, boo
        i != mangled_names_end();
        ++i) 
   {
-    if ((*i) == name)
-      return false;
+      if (i->find(name) != string::npos)
+	  return false;
   }
   return true;
 }
@@ -200,7 +200,6 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
       newSym->isDynamic_ = true;
       module_->exec()->addSymbol(newSym);
     }
-
     return true;
  }
 
@@ -210,8 +209,8 @@ SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary)
    for (auto i = pretty_names_begin(); 
 	i != pretty_names_end();
 	i++) {
-     if ((*i) == name)
-       return false;
+       if (i->find(name) != string::npos)
+	   return false;
    }
    return addMangledName(name, isPrimary);
 }
@@ -222,8 +221,8 @@ SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary)
    for (auto i = typed_names_begin(); 
 	i != typed_names_end();
 	i++) {
-     if ((*i) == name)
-       return false;
+       if (i->find(name) != string::npos)
+	   return false;
    }
    return addMangledName(name, isPrimary);
 }

@@ -530,6 +530,7 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
     //	if (desc.isSharedObject())
     //if(curModule->IsDll())
     //	 baseAddr = get_base_addr();
+
     if( !isForwarded( ((Offset) pSymInfo->Address) - baseAddr ) )
     {
         pFile->AddSymbol( new Object::intSymbol
@@ -854,6 +855,8 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
       is_aout_ = true;
 
    getImportDescriptorTable(); //save the binary's original table, we may change it later
+   
+
 
    //get exported functions
    // note: there is an error in the PE specification regarding the export 
@@ -872,6 +875,16 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
 			if (funcNamePtrs && funcAddrs && funcAddrNameMap) {
 				for (unsigned i = 0; i < eT2->NumberOfNames; ++i) {
 					char *name = (char *) ::ImageRvaToVa(ImageNtHeader(mapAddr), mapAddr, funcNamePtrs[i], NULL);
+					
+					if (!strcmp(name,"??_7__non_rtti_object@@6B@") || !strcmp(name,"??_7bad_cast@@6B@") || !strcmp(name,"??_7bad_typeid@@6B@") || !strcmp(name,"??_7exception@@6B@") || !strcmp(name,"sys_errlist"))
+					{
+					continue;
+					}
+					if (!strcmp(name,"??_7__non_rtti_object@std@@6B@") || !strcmp(name,"??_7bad_cast@std@@6B@") || !strcmp(name,"??_7bad_typeid@std@@6B@") || !strcmp(name,"??_7exception@std@@6B@"))
+					{
+					continue;
+					}
+					fprintf(stderr, "The export sym function name - %s\n",name);
 					int funcIndx = funcAddrNameMap[i];
 					Address funcAddr = funcAddrs[funcIndx];
 					if ((funcAddr >= (Address) eT2) &&

@@ -139,6 +139,12 @@ CodeObject::findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
     return parser->findBlocks(cr,addr,blocks);
 }
 
+// find without parsing.
+int CodeObject::findCurrentBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
+{
+    return parser->findCurrentBlocks(cr,addr,blocks);
+}
+
 void
 CodeObject::parse() {
     if(!parser) {
@@ -264,12 +270,25 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
             // wrong ignore my warning. --nate
             //
             ParseWorkBundle *bundle = new ParseWorkBundle(); //parse_frames will delete when done
-            ParseWorkElem *elem = bundle->add(new ParseWorkElem
+            ParseWorkElem *elem;
+            // created checked_call_ft frames if appropriate.
+            if (worklist[idx].checked && worklist[idx].edge_type == CALL_FT) {
+                elem = bundle->add(new ParseWorkElem
+                ( bundle, 
+                  ParseWorkElem::checked_call_ft,
+                  parser->link_tempsink(worklist[idx].source, worklist[idx].edge_type),
+                  worklist[idx].target,
+                  true,
+                  false ));
+            } else {
+                elem = bundle->add(new ParseWorkElem
                 ( bundle, 
                   parser->link_tempsink(worklist[idx].source, worklist[idx].edge_type),
                   worklist[idx].target,
                   true,
                   false ));
+            }
+            
             work_elems.push_back(elem);
         }
     }

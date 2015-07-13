@@ -564,7 +564,6 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
 			  // Can happen if we're expanding out of order, and is generally harmless.
 			  continue;
 		  }
-
 		  expand_cerr << "Before substitution: " << (ast ? ast->format() : "<NULL AST>") << endl;
 
 		  if (!ast) {

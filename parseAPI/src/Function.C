@@ -193,7 +193,7 @@ Function::finalize()
     (*blk)->_func_cnt--;
   }
   _bmap.clear();
-  _retBL.clear();
+  _retBL.clear(); 
   _call_edge_list.clear();
 
     // The Parser knows how to finalize
@@ -532,7 +532,7 @@ Function::tampersStack(bool recalculate)
         _tamper = TAMPER_NONE;
         return _tamper;
     }
-
+	bool i = _cache_valid;
     // this is above the cond'n below b/c it finalizes the function, 
     // which could in turn call this function
     Function::const_blocklist retblks(returnBlocks());
@@ -540,18 +540,21 @@ Function::tampersStack(bool recalculate)
         _tamper = TAMPER_NONE;
         return _tamper;
     }
-	_cache_valid = false;
+        // The following line leads to dangling pointers, but leaving
+        // in until we understand why it was originally there.
+	//_cache_valid = false;
 
     // if we want to re-calculate the tamper address
     if (!recalculate && TAMPER_UNSET != _tamper) {
         return _tamper;
     }
-
+	assert(_cache_valid);
     AssignmentConverter converter(true);
     vector<Assignment::Ptr> assgns;
     ST_Predicates preds;
     _tamper = TAMPER_UNSET;
     for (auto bit = retblks.begin(); retblks.end() != bit; ++bit) {
+		assert(_cache_valid);
         Address retnAddr = (*bit)->lastInsnAddr();
         InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 
                                   InstructionDecoder::maxInstructionLength, 
@@ -583,12 +586,6 @@ Function::tampersStack(bool recalculate)
 
                 Slicer slicer(*ait,*bit,this);
                 Graph::Ptr slGraph = slicer.backwardSlice(preds);
-                if (dyn_debug_malware) {
-                    stringstream graphDump;
-                    graphDump << "sliceDump_" << this->name() << "_" 
-                              << hex << retnAddr << dec << ".dot";
-                    //slGraph->printDOT(graphDump.str());
-                }
                 DataflowAPI::Result_t slRes;
                 DataflowAPI::SymEval::expand(slGraph,slRes);
                 sliceAtRet = slRes[*ait];

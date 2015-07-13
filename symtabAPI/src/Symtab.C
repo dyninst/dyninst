@@ -993,11 +993,21 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
 // uses outlined locking primitives. These are named _L_lock_<num>
 // and _L_unlock_<num> and labelled as functions. We explicitly do
 // not include them in function scope.
-bool Symtab::doNotAggregate(const Symbol *sym) {
-  if (sym->getMangledName().compare(0, strlen("_L_lock_"), "_L_lock_") == 0) {
+//
+// Also, exclude symbols that begin with _imp_ in defensive mode.
+// These symbols are entries in the IAT and shouldn't be treated
+// as functions.
+bool Symtab::doNotAggregate(const Symbol* sym) {
+    const std::string& mangled = sym->getMangledName();
+
+    if (isDefensiveBinary() && mangled.compare(0, 5, "_imp_", 5) == 0) {
+        return true;
+    }
+
+  if (mangled.compare(0, strlen("_L_lock_"), "_L_lock_") == 0) {
     return true;
   }
-  if (sym->getMangledName().compare(0, strlen("_L_unlock_"), "_L_unlock_") == 0) {
+  if (mangled.compare(0, strlen("_L_unlock_"), "_L_unlock_") == 0) {
     return true;
   }
 

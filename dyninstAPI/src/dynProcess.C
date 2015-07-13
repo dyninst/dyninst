@@ -2131,7 +2131,7 @@ bool PCProcess::postIRPC_internal(void *buf,
 
 
 BPatch_hybridMode PCProcess::getHybridMode() {
-    return BPatch_normalMode;
+    return analysisMode_;
 }
 
 bool PCProcess::isExploratoryModeOn() const {

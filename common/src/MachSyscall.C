@@ -14,28 +14,31 @@ class SyscallInformation
 {
     public:
         static SyscallInformation * getInstance();
-       
+
         MachSyscall::SyscallName findName(Platform, MachSyscall::SyscallIDPlatform);
         MachSyscall::SyscallIDPlatform findIDPlatform(Platform, MachSyscall::SyscallIDIndependent);
 
     private:
         SyscallInformation();
         static SyscallInformation * theInstance;
-        
+
         typedef dyn_hash_map<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform> syscallNumbersMap;
         typedef dyn_hash_map<MachSyscall::SyscallIDPlatform, MachSyscall::SyscallName> syscallNamesMap;
 
         syscallNumbersMap Linux_Arch_x86_syscallNumbers;
         syscallNamesMap Linux_Arch_x86_syscallNames;
-        
+
         syscallNumbersMap Linux_Arch_x86_64_syscallNumbers;
         syscallNamesMap Linux_Arch_x86_64_syscallNames;
-        
+
         syscallNumbersMap Linux_Arch_ppc32_syscallNumbers;
         syscallNamesMap Linux_Arch_ppc32_syscallNames;
-        
+
         syscallNumbersMap Linux_Arch_ppc64_syscallNumbers;
         syscallNamesMap Linux_Arch_ppc64_syscallNames;
+
+        syscallNumbersMap Linux_Arch_aarch64_syscallNumbers;
+        syscallNamesMap Linux_Arch_aarch64_syscallNames;
 };
 
 SyscallInformation * SyscallInformation::theInstance = NULL;
@@ -59,14 +62,18 @@ MachSyscall::SyscallName SyscallInformation::findName(Platform plat, MachSyscall
         curMap = Linux_Arch_ppc32_syscallNames;
     } else if (plat == Platform(Arch_ppc64, Linux)) {
         curMap = Linux_Arch_ppc64_syscallNames;
+    } else if (plat == Platform(Arch_aarch64, Linux)) {
+        curMap = Linux_Arch_aarch64_syscallNames;
     } else {
         // We don't know anything about this platform
+        assert(0);
         return "unknownSyscall";
     }
 
     auto found = curMap.find(id);
     if (found == curMap.end()) {
         // Well, crap
+        assert(0);
         return "unknownSyscall";
     }
     return found->second;
@@ -83,6 +90,8 @@ MachSyscall::SyscallIDPlatform SyscallInformation::findIDPlatform(Platform plat,
         curMap = Linux_Arch_ppc32_syscallNumbers;
     } else if (plat == Platform(Arch_ppc64, Linux)) {
         curMap = Linux_Arch_ppc64_syscallNumbers;
+    } else if (plat == Platform(Arch_aarch64, Linux)) {
+        curMap = Linux_Arch_aarch64_syscallNumbers;
     } else {
         // We don't know anything about this platform
         return -1;
@@ -92,12 +101,12 @@ MachSyscall::SyscallIDPlatform SyscallInformation::findIDPlatform(Platform plat,
     if (found == curMap.end()) {
         // Well, crap
         return -1;
-    } 
+    }
     return found->second;
 }
 
 /* This file is auto-generated from syscalls/generateSyscallInformation.py */
-#include "SyscallInformation.C" 
+#include "SyscallInformation.C"
 
 /* Lookup the system call string name based on platform-specific ID */
 MachSyscall::SyscallName MachSyscall::nameLookup(Platform plat, SyscallIDPlatform id)

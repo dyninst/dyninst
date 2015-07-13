@@ -214,6 +214,9 @@ class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
 
   static AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b); 
 
+  // breaks execution if the tree has a cycle. visited should be an empty map.
+  static void hasCycle(AST::Ptr in,std::map<AST::Ptr, int> &visited);
+  
   virtual ID getID() const { return V_AST; };
 
   // VISITOR wooo....

@@ -189,6 +189,11 @@ bool windows_process::plat_create_int()
 		windows_thread* wThread = dynamic_cast<windows_thread*>(initialThread);
 		wThread->setHandle(procInfo.hThread);
 	}
+	else
+	{
+		printf("Create process failed (%d) \n", GetLastError());
+	}
+	
 	return result ? true : false;
 }
 bool windows_process::plat_attach(bool, bool &)
