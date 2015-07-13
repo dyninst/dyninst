@@ -174,7 +174,7 @@ bool JumpTablePred::endAtPoint(AssignmentPtr ap) {
 }
 bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
-    if (currentAssigns.size() > 200) return false; 
+    if (currentAssigns.size() > 150) return false; 
     // For flags, we only analyze zf
     if (ap->out().absloc().type() == Absloc::Register && ap->out().absloc().reg().regClass() == x86::FLAG &&
        ap->out().absloc().reg() != x86::zf && ap->out().absloc().reg() != x86_64::zf) {
@@ -187,7 +187,7 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
     if (!expandRet.second || expandRet.first == NULL) return true;
 
 
-    fprintf(stderr, "Adding assignment %s in instruction %s at %lx\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr());
+//    fprintf(stderr, "Adding assignment %s in instruction %s at %lx\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr());
     currentAssigns.insert(ap);
 
     // If this assignment writes memory,
@@ -212,18 +212,18 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
     // We create the CFG based on the found nodes
     GraphPtr g = BuildAnalysisGraph(visitedEdges);
 
-    BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, block->last(), expandCache);
+    BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, block->last(), false, expandCache);
     bfc.CalculateBoundedFacts();
 
     BoundValue target;
     bool ijt = IsJumpTable(g, bfc, target);
     if (ijt) {
         bool ret = !FillInOutEdges(target, outEdges);
-	fprintf(stderr, "Return %s\n", ret ? "true" : "false");
+//	fprintf(stderr, "Return %s\n", ret ? "true" : "false");
 //	if (dyn_debug_parsing) exit(0);
         return ret;
     } else {
-        fprintf(stderr, "Return true\n");
+//        fprintf(stderr, "Return true\n");
 //	if (dyn_debug_parsing) exit(0);
 
         return true;

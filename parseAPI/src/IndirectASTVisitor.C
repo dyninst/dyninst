@@ -204,7 +204,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 		val->MemoryRead(block, ast->val().size / 8);
 	        if (*val != BoundValue::top)
 	            bound.insert(make_pair(ast, val));
-	    } else if (ast->val().size == 8) {
+	    } else if (handleOneByteRead && ast->val().size == 8) {
 	        // Any 8-bit value is bounded in [0,255]
 		// But I should only do this when I know the read 
 		// itself is not a jump table

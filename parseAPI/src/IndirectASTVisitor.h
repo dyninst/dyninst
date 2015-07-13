@@ -33,8 +33,10 @@ public:
     map<AST*, BoundValue*> bound;
     BoundFact &boundFact;
     ParseAPI::Block *block;
+    bool handleOneByteRead;
 
-    BoundCalcVisitor(BoundFact &bf, ParseAPI::Block* b): boundFact(bf), block(b) {}
+    BoundCalcVisitor(BoundFact &bf, ParseAPI::Block* b, bool handle): 
+        boundFact(bf), block(b), handleOneByteRead(handle) {}
     ~BoundCalcVisitor();
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
     virtual ASTPtr visit(DataflowAPI::ConstantAST *ast);

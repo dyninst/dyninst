@@ -705,7 +705,7 @@ class Slicer {
   AssignmentConverter converter;
 
   SliceNode::Ptr widen_;
-  
+ public: 
   // A set of edges that have been visited during slicing,
   // which can be used for external users to figure out
   // which part of code has been analyzed

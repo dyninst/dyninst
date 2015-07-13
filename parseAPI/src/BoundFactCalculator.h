@@ -26,7 +26,7 @@ class BoundFactsCalculator {
     ReachFact &rf;
     ThunkData &thunks;
     Address jumpAddr;
-
+    bool handleOneByteRead;
     std::unordered_map<Assignment::Ptr, AST::Ptr, Assignment::AssignmentPtrHasher> &expandCache;
 
     void ThunkBound(BoundFact*& curFact, Node::Ptr src, Node::Ptr trg, bool &newCopy);
@@ -47,8 +47,15 @@ class BoundFactsCalculator {
 public:
     bool CalculateBoundedFacts(); 
 
-    BoundFactsCalculator(ParseAPI::Function *f, GraphPtr s, bool first, ReachFact &r, ThunkData &t, Address addr, std::unordered_map<Assignment::Ptr, AST::Ptr, Assignment::AssignmentPtrHasher>& cache): 
-        func(f), slice(s), firstBlock(first), rf(r), thunks(t), jumpAddr(addr), expandCache(cache) {} 
+    BoundFactsCalculator(ParseAPI::Function *f, 
+                         GraphPtr s, 
+			 bool first, 
+			 ReachFact &r, 
+			 ThunkData &t, 
+			 Address addr, 
+			 bool oneByteRead,
+			 std::unordered_map<Assignment::Ptr, AST::Ptr, Assignment::AssignmentPtrHasher>& cache): 
+        func(f), slice(s), firstBlock(first), rf(r), thunks(t), jumpAddr(addr), handleOneByteRead(oneByteRead), expandCache(cache) {} 
 
     BoundFact *GetBoundFactIn(Node::Ptr node);
     BoundFact *GetBoundFactOut(Node::Ptr node);

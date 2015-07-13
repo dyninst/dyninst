@@ -124,7 +124,7 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 	    }
 	}
     }
-    fprintf(stderr, "%d\n", nodeColor.size());
+    //fprintf(stderr, "%d\n", nodeColor.size());
 //    if (nodeColor.size() > 100) slice->printDOT("slice.dot");
 
     slice->clearEntryNodes();
@@ -440,7 +440,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     }
     
     AST::Ptr calculation = expandRet.first;	
-    BoundCalcVisitor bcv(*newFact, node->block());
+    BoundCalcVisitor bcv(*newFact, node->block(), handleOneByteRead);
     calculation->accept(&bcv);
     AST::Ptr outAST;
     // If the instruction writes memory,

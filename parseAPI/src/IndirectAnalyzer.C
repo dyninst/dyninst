@@ -19,8 +19,7 @@ using namespace Dyninst::InstructionAPI;
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
 
 //    if (block->last() != 0x80a922d) return false;
-//    parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
-      fprintf(stderr,"Apply indirect control flow analysis at %lx\n", block->last());
+    parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
 
 //    parsing_printf("Calculate backward slice\n");
 
@@ -50,6 +49,22 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     JumpTablePred jtp(func, block, rf, thunks, outEdges);
     GraphPtr slice = s.backwardSlice(jtp);
 
+    // After the slicing is done, we do one last check to 
+    // see if we can resolve the indirect jump by assuming 
+    // one byte read is in bound [0,255]
+    if (outEdges.empty()) {
+        GraphPtr g = jtp.BuildAnalysisGraph(s.visitedEdges);
+	
+	BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, block->last(), true, jtp.expandCache);
+	bfc.CalculateBoundedFacts();
+	
+	BoundValue target;
+	bool ijt = jtp.IsJumpTable(g, bfc, target);
+	if (ijt) {
+	    bool ret = !jtp.FillInOutEdges(target, outEdges);
+        } 
+
+    }
     return !outEdges.empty();
 }						       
 
