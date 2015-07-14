@@ -32,7 +32,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     GetAllReachableBlock();
 //  Now we try to find all thunks in this function.
 //  We pass in the slice because we may need to add new ndoes.
-//    FindAllThunks(slice);
+    FindAllThunks();
 //  Calculates all blocks that can reach
 //  and be reachable from thunk blocks
     ReachFact rf(thunks);
@@ -89,23 +89,11 @@ void IndirectControlFlowAnalyzer::GetAllReachableBlock() {
 }
 
 
-static Address ThunkAdjustment(Address afterThunk, MachRegister reg, GraphPtr slice, ParseAPI::Block *b) {
+static Address ThunkAdjustment(Address afterThunk, MachRegister reg, ParseAPI::Block *b) {
     // After the call to thunk, there is usually
     // an add insturction like ADD ebx, OFFSET to adjust
     // the value coming out of thunk.
-    // This add instruction may not be in the slice.
-    // Here assume that if the next instruction after thunk
-    // is to add a constant value to the thunk register,
-    // we then adjust the value.
-    NodeIterator nbegin, nend;
-    slice->allNodes(nbegin, nend);
-    for (; nbegin != nend; ++nbegin) {
-        SliceNode::Ptr cur = boost::static_pointer_cast<SliceNode>(*nbegin);
-	// If the next instruction is already in the slice,
-	// there is no need to adjust
-	if (cur->addr() == afterThunk) return 0;
-    }
-    
+   
     const unsigned char* buf = (const unsigned char*) (b->obj()->cs()->getPtrToInstruction(afterThunk));
     InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());
     Instruction::Ptr nextInsn = dec.decode();
@@ -124,7 +112,7 @@ static Address ThunkAdjustment(Address afterThunk, MachRegister reg, GraphPtr sl
     return res.convert<Address>();
 }
 
-void IndirectControlFlowAnalyzer::FindAllThunks(GraphPtr slice) {
+void IndirectControlFlowAnalyzer::FindAllThunks() {
     // Enumuerate every block to find thunk
     for (auto bit = reachable.begin(); bit != reachable.end(); ++bit) {
         // We intentional treat a getting PC call as a special case that does not
@@ -154,7 +142,7 @@ void IndirectControlFlowAnalyzer::FindAllThunks(GraphPtr slice) {
 		    ThunkInfo t;
 		    t.reg = (*curReg)->getID();
 		    t.value = block.getAddr() + block.getInstruction()->size();
-		    t.value += ThunkAdjustment(t.value, t.reg, slice, b);
+		    t.value += ThunkAdjustment(t.value, t.reg, b);
 		    t.block = b;
 		    thunks.insert(make_pair(block.getAddr(), t));
 		    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", block.getAddr(), t.value , t.reg.name().c_str());

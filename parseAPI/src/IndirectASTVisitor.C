@@ -135,7 +135,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
     switch (ast->val().op) {
         case ROSEOperation::addOp:
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {	    
-		BoundValue* val = new BoundValue(*GetResultBound(ast->child(0)));
+		BoundValue* val = new BoundValue(*GetResultBound(ast->child(0)));		
 		val->Add(*GetResultBound(ast->child(1)));
 		if (*val != BoundValue::top)
 		    bound.insert(make_pair(ast, val));
@@ -231,7 +231,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::ConstantAST *ast) {
     const Constant &v = ast->val();
     int64_t value = v.val;
-    if (v.size != 64 && (value & (1ULL << (v.size - 1)))) {
+    if (v.size != 1 && v.size != 64 && (value & (1ULL << (v.size - 1)))) {
         // Compute the two complements in bits of v.size
 	// and change it to a negative number
         value = -(((~value) & ((1ULL << v.size) - 1)) + 1);

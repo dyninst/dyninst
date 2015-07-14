@@ -1545,7 +1545,7 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
   }
 
   if (assign->insn()->getOperation().getID() == e_call && reg.absloc().type() == Absloc::Register) {
-      const MachRegister &r = reg.absloc().reg();
+      MachRegister r = reg.absloc().reg();
       ABI* abi = ABI::getABI(b_->obj()->cs()->getAddressWidth());
       if (abi->getCallWrittenRegisters()[abi->getIndex(r)]) return true;
   }
