@@ -1096,8 +1096,12 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 	        region_data * rd = _parse_data->findRegion(frame.codereg);
 		set<Block*> blocks;
 		rd->blocksByRange.find(work->ah()->getAddr(), blocks);
-//		assert(blocks.size() == 1);
-		nextBlock = *(blocks.begin());
+		for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
+		    if ((*bit)->last() == work->ah()->getAddr()) {
+		        nextBlock = *bit;
+			break;
+		    }
+		}
 
 	    }
 	    ProcessCFInsn(frame,nextBlock,*work->ah());
