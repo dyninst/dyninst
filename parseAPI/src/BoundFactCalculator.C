@@ -457,11 +457,18 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 
     if (id == e_bsf || id == e_bsr) {
 	int size = node->assign()->insn()->getOperand(0).getValue()->size();
-	newFact->GenFact(outAST, new BoundValue(StridedInterval(1,0, size * 8)), false);
+	newFact->GenFact(outAST, new BoundValue(StridedInterval(1,0, size * 8 - 1)), false);
         parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
 	newFact->Print();
 	return;
 
+    }
+
+    if (id == e_xchg) {
+        newFact->SwapFact(calculation, outAST);
+        parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
+	newFact->Print();
+	return;
     }
 
     if (id == e_push) {
@@ -509,6 +516,13 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     // Now try to track all aliasing
     newFact->TrackAlias(DeepCopyAnAST(calculation), ar);
 
+    // Apply tracking relations to the calculation to generate a
+    // potentially stricter bound
+    BoundValue *strictValue = newFact->ApplyRelations(ar);
+    if (strictValue != NULL) {
+        parsing_printf("\t\t\tGenerate stricter bound fact for %s\n", outAST->format().c_str());
+	newFact->GenFact(outAST, strictValue, false);
+    }
     parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
     newFact->Print();
 

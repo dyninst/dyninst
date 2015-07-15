@@ -222,8 +222,11 @@ struct BoundFact {
     void InsertRelation(AST::Ptr left, AST::Ptr right, RelationType);
     void TrackAlias(AST::Ptr expr, AbsRegion ar);
 
+    BoundValue *ApplyRelations(AbsRegion ar);
     void PushAConst(int64_t value);
     bool PopAConst(AST::Ptr ast);
+    
+    void SwapFact(AST::Ptr a, AST::Ptr b);
 
     BoundFact();
     ~BoundFact();

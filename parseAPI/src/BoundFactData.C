@@ -684,11 +684,19 @@ void BoundFact::Meet(BoundFact &bf) {
 	// Meet the relation vector 	
 	for (auto rit = relation.begin(); rit != relation.end();) {
 	    bool find = false;
-	    for (auto it = bf.relation.begin(); it != bf.relation.end(); ++it)
+	    for (auto it = bf.relation.begin(); it != bf.relation.end(); ++it) {
 	        if (*((*rit)->left) == *((*it)->left) && *((*rit)->right) == *((*it)->right) && (*rit)->type == (*it)->type) {
 		    find = true;
 		    break;
 		}
+		if (*((*rit)->right) == *((*it)->left) && *((*rit)->left) == *((*it)->right)) {
+		   if (((*rit)->type ^ (*it)->type) == 1 && (*it)->type != Equal && (*it)->type != NotEqual) {
+		       find = true;
+		       break;
+		   }
+		}
+
+            }
 	    if (!find) {
 		if (*rit != NULL) delete *rit;
 	        rit = relation.erase(rit);
@@ -1408,6 +1416,37 @@ void BoundFact::InsertRelation(AST::Ptr left, AST::Ptr right, RelationType r) {
 	        if (*(relation[i]->right) == *right && !(*(relation[i]->left) == *left))
 		    relation.push_back(new RelationShip(relation[i]->left, left, r));
 	    }
+    } else if (r == NotEqual) {
+       // The new added NotEqual relation with an existing relation like UnsignedLessThanOrEqual 
+       // can be combined to a more strict relation like UnsignedLessThan
+       for (auto rit = relation.begin(); rit != relation.end(); ++rit) {
+           RelationShip * re = *rit;
+	   if ((*(re->left) == *left && *(re->right) == *right) || 
+	       (*(re->left) == *right && *(re->right) == *left)) {
+	           if (re->type == UnsignedLessThanOrEqual) re->type = UnsignedLessThan;
+		   else if (re->type == UnsignedLargerThanOrEqual) re->type = UnsignedLargerThan;
+		   else if (re->type == SignedLessThanOrEqual) re->type = SignedLessThan;
+		   else if (re->type == SignedLargerThanOrEqual) re->type = SignedLargerThan;
+		   else continue;
+		   // If the current relation is combined with an existing one,
+		   // we can return without inserting a new relation
+		   return; 
+	   }
+       }
+    } else if (r == UnsignedLessThanOrEqual || r == UnsignedLargerThanOrEqual || 
+               r == SignedLessThanOrEqual || r == SignedLargerThanOrEqual) {
+        // Similar to the above case
+       for (auto rit = relation.begin(); rit != relation.end(); ++rit) {
+           RelationShip * re = *rit;
+	   if ((*(re->left) == *left && *(re->right) == *right) || 
+	       (*(re->left) == *right && *(re->right) == *left)) {
+	       if (re->type == NotEqual) {
+	           r = (RelationType)((int)r - 2);
+		   relation.erase(rit);
+		   break;
+	       }
+           }
+       }          
     }
     relation.push_back(new RelationShip(left, right, r));
 
@@ -1465,4 +1504,66 @@ bool BoundFact::PopAConst(AST::Ptr ast) {
     GenFact(ast, new BoundValue(stackTop.value), false);
     stackTop.valid = false;
     return true;
+}
+
+BoundValue * BoundFact::ApplyRelations(AbsRegion ar) {
+    AST::Ptr cal = aliasMap[ar];
+    parsing_printf("\t\tApply relations to %s\n", cal->format().c_str());
+    if (cal->getID() != AST::V_RoseAST) return NULL;
+    RoseAST::Ptr root = boost::static_pointer_cast<RoseAST>(cal);
+    if (root->val().op != ROSEOperation::addOp) return NULL;
+    if (root->child(0)->getID() != AST::V_RoseAST || root->child(1)->getID() != AST::V_RoseAST) return NULL;
+    RoseAST::Ptr leftChild = boost::static_pointer_cast<RoseAST>(root->child(0));
+    RoseAST::Ptr rightChild = boost::static_pointer_cast<RoseAST>(root->child(1));
+    if (leftChild->val().op != ROSEOperation::addOp || rightChild->val().op != ROSEOperation::addOp) return NULL;
+    AST::Ptr leftOp = leftChild->child(0);
+    if (leftChild->child(1)->getID() != AST::V_ConstantAST) return NULL;
+    ConstantAST::Ptr baseAST = boost::static_pointer_cast<ConstantAST>(leftChild->child(1));
+    int baseValue = baseAST->val().val;
+    if (rightChild->child(0)->getID() != AST::V_RoseAST || rightChild->child(1)->getID() != AST::V_ConstantAST) return NULL;
+    RoseAST::Ptr invertAST = boost::static_pointer_cast<RoseAST>(rightChild->child(0));
+    if (invertAST->val().op != ROSEOperation::invertOp) return NULL;
+    ConstantAST::Ptr subAST = boost::static_pointer_cast<ConstantAST>(rightChild->child(1));
+    if (subAST->val().val != 1) return NULL;
+    AST::Ptr rightOp = invertAST->child(0);
+    bool matched = false;
+    for (auto rit = relation.begin(); rit != relation.end(); ++rit) {
+        if ( (*((*rit)->left) == *(leftOp) && *((*rit)->right) == *(rightOp))
+	   ||(*((*rit)->right) == *(leftOp) && *((*rit)->left) == *(rightOp)))
+	      if ((*rit)->type != Equal || (*rit)->type != NotEqual) {
+	          matched = true;
+		  break;
+	      }
+    }
+    parsing_printf("\t\tApply relation matched: %d\n", matched);
+    if (matched) return new BoundValue(StridedInterval(1,0,baseValue-1));
+    return NULL;
+}
+
+void BoundFact::SwapFact(AST::Ptr a, AST::Ptr b) {
+    auto aIter = fact.end();
+    auto bIter = fact.end();
+    for (auto fit = fact.begin(); fit != fact.end(); ++fit) {
+        if (*(fit->first) == *a) aIter = fit;
+	if (*(fit->first) == *b) bIter = fit;
+    }
+
+    if (aIter != fact.end() && bIter != fact.end()) {
+        BoundValue * tmp = aIter->second;
+        aIter->second = bIter->second;
+	bIter->second = tmp;
+    } else if (aIter != fact.end() && bIter == fact.end()) {
+        fact.insert(make_pair(b, aIter->second));
+	fact.erase(aIter);
+    } else if (aIter == fact.end() && bIter != fact.end()) {
+        fact.insert(make_pair(a, bIter->second));
+	fact.erase(bIter);
+    }
+    for (auto rit = relation.begin(); rit != relation.end(); ++rit)
+        if ( (*((*rit)->left) == *a && *((*rit)->right) == *b)
+	   ||(*((*rit)->left) == *b && *((*rit)->right) == *a)) {
+	       AST::Ptr tmp = (*rit)->left;
+	       (*rit)->left = (*rit)->right;
+	       (*rit)->right = tmp;
+	   }
 }

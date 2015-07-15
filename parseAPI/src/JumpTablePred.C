@@ -131,11 +131,23 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 	if (AssignIsZF(*ait))
 	    shouldSkip.insert((*ait)->addr());
     }
+    // We only need one assignment from xchg instruction at each address
+    set<Address> xchgCount;
+    set<Assignment::Ptr> xchgAssign;
+    for (auto ait = currentAssigns.begin(); ait != currentAssigns.end(); ++ait) {
+        if ((*ait)->insn()->getOperation().getID() == e_xchg) {
+	    if (xchgCount.find( (*ait)->addr() ) != xchgCount.end() ) continue;
+	    xchgCount.insert((*ait)->addr());
+	    xchgAssign.insert(*ait);
+	}
+    }
+    
     for (auto ait = currentAssigns.begin(); ait != currentAssigns.end(); ++ait) {
         Assignment::Ptr a = *ait;
 	if (   (AssignIsZF(a) || shouldSkip.find(a->addr()) == shouldSkip.end()) 
 	    && !IsPushAndChangeSP(a)
 	    && (!a->insn()->writesMemory() || MatchReadAST(a))) {
+	    if (a->insn()->getOperation().getID() == e_xchg && xchgAssign.find(a) == xchgAssign.end()) continue;
 	    SliceNode::Ptr newNode = SliceNode::create(a, a->block(), a->func());
 	    targetMap[a->block()][a] = newNode;
 	    newG->addNode(newNode);
