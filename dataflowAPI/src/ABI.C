@@ -53,8 +53,7 @@ ABI* ABI::globalABI64_ = NULL;
 
 int ABI::getIndex(MachRegister machReg){
 	if (index->find(machReg) == index->end()){
-		fprintf(stderr,"cannot find %s\n", machReg.name().c_str());
-		assert(0);
+	    return -1;
 	}
     	return (*index)[machReg];
 }
