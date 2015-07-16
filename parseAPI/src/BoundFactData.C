@@ -111,8 +111,8 @@ void StridedInterval::Not() {
     // calculates its two's complement to 
     // do a subtraction
     int64_t tmpLow = low;
-    low = -high+1;
-    high = -tmpLow+1;
+    low = -high-1;
+    high = -tmpLow-1;
 
 }
 
