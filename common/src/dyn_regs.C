@@ -234,6 +234,29 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
    return InvalidReg;
 }
 
+
+MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
+{
+   switch (arch)
+   {
+      case Arch_x86:
+          assert(0); //not implemented
+      case Arch_x86_64:
+          assert(0); //not implemented
+      case Arch_ppc32:
+          assert(0); //not implemented
+      case Arch_ppc64:
+          assert(0); //not implemented
+      case Arch_aarch64:  //aarch64: x30 stores the RA for current frame
+         return aarch64::x30;
+      case Arch_aarch32:
+         assert(0);
+      case Arch_none:
+         return InvalidReg;
+   }
+   return InvalidReg;
+}
+
 MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
 {
    switch (arch)
@@ -923,7 +946,9 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
          }
          break;
       case Arch_aarch64:
-         assert(0); //not verified
+         {
+         // this info can be found in
+         // DWARF for the ARM ® 64-bit Architecture (AArch64)
          switch(encoding){
             case 0:  return Dyninst::aarch64::x0;
             case 1:  return Dyninst::aarch64::x1;
@@ -956,40 +981,47 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
             case 28: return Dyninst::aarch64::x28;
             case 29: return Dyninst::aarch64::x29;
             case 30: return Dyninst::aarch64::x30;
-            case 32: return Dyninst::aarch64::q0;
-            case 33: return Dyninst::aarch64::q1;
-            case 34: return Dyninst::aarch64::q2;
-            case 35: return Dyninst::aarch64::q3;
-            case 36: return Dyninst::aarch64::q4;
-            case 37: return Dyninst::aarch64::q5;
-            case 38: return Dyninst::aarch64::q6;
-            case 39: return Dyninst::aarch64::q7;
-            case 40: return Dyninst::aarch64::q8;
-            case 41: return Dyninst::aarch64::q9;
-            case 42: return Dyninst::aarch64::q10;
-            case 43: return Dyninst::aarch64::q11;
-            case 44: return Dyninst::aarch64::q12;
-            case 45: return Dyninst::aarch64::q13;
-            case 46: return Dyninst::aarch64::q14;
-            case 47: return Dyninst::aarch64::q15;
-            case 48: return Dyninst::aarch64::q16;
-            case 49: return Dyninst::aarch64::q17;
-            case 50: return Dyninst::aarch64::q18;
-            case 51: return Dyninst::aarch64::q19;
-            case 52: return Dyninst::aarch64::q20;
-            case 53: return Dyninst::aarch64::q21;
-            case 54: return Dyninst::aarch64::q22;
-            case 55: return Dyninst::aarch64::q23;
-            case 56: return Dyninst::aarch64::q24;
-            case 57: return Dyninst::aarch64::q25;
-            case 58: return Dyninst::aarch64::q26;
-            case 59: return Dyninst::aarch64::q27;
-            case 60: return Dyninst::aarch64::q28;
-            case 61: return Dyninst::aarch64::q29;
-            case 62: return Dyninst::aarch64::q30;
-            case 63: return Dyninst::aarch64::q31;
+            case 31: return Dyninst::aarch64::sp;
+            case 32: return Dyninst::InvalidReg;
+         }
+         switch(encoding){
+            case 64: return Dyninst::aarch64::q0;
+            case 65: return Dyninst::aarch64::q1;
+            case 66: return Dyninst::aarch64::q2;
+            case 67: return Dyninst::aarch64::q3;
+            case 68: return Dyninst::aarch64::q4;
+            case 69: return Dyninst::aarch64::q5;
+            case 70: return Dyninst::aarch64::q6;
+            case 71: return Dyninst::aarch64::q7;
+            case 72: return Dyninst::aarch64::q8;
+            case 73: return Dyninst::aarch64::q9;
+            case 74: return Dyninst::aarch64::q10;
+            case 75: return Dyninst::aarch64::q11;
+            case 76: return Dyninst::aarch64::q12;
+            case 77: return Dyninst::aarch64::q13;
+            case 78: return Dyninst::aarch64::q14;
+            case 79: return Dyninst::aarch64::q15;
+            case 80: return Dyninst::aarch64::q16;
+            case 81: return Dyninst::aarch64::q17;
+            case 82: return Dyninst::aarch64::q18;
+            case 83: return Dyninst::aarch64::q19;
+            case 84: return Dyninst::aarch64::q20;
+            case 85: return Dyninst::aarch64::q21;
+            case 86: return Dyninst::aarch64::q22;
+            case 87: return Dyninst::aarch64::q23;
+            case 88: return Dyninst::aarch64::q24;
+            case 89: return Dyninst::aarch64::q25;
+            case 90: return Dyninst::aarch64::q26;
+            case 91: return Dyninst::aarch64::q27;
+            case 92: return Dyninst::aarch64::q28;
+            case 93: return Dyninst::aarch64::q29;
+            case 94: return Dyninst::aarch64::q30;
+            case 95: return Dyninst::aarch64::q31;
+
             default: return Dyninst::InvalidReg;
             break;
+         }
+         return Dyninst::InvalidReg;
          }
       case Arch_none:
          return Dyninst::InvalidReg;
@@ -1248,44 +1280,72 @@ int MachRegister::getDwarfEnc() const
          break;
       case Arch_aarch64:
          switch (val()) {
-             /*
-            case Dyninst::aarch64::x0: 	return 0;
-            case Dyninst::aarch64::x1: 	return 1;
-            case Dyninst::aarch64::x2: 	return 2;
-            case Dyninst::aarch64::x3: 	return 3;
-            case Dyninst::aarch64::x4: 	return 4;
-            case Dyninst::aarch64::x5: 	return 5;
-            case Dyninst::aarch64::x6: 	return 6;
-            case Dyninst::aarch64::x7: 	return 7;
-            case Dyninst::aarch64::x8: 	return 8;
-            case Dyninst::aarch64::x9: 	return 9;
-            case Dyninst::aarch64::x10: 	return 10;
-            case Dyninst::aarch64::x11: 	return 11;
-            case Dyninst::aarch64::x12: 	return 12;
-            case Dyninst::aarch64::x13: 	return 13;
-            case Dyninst::aarch64::x14: 	return 14;
-            case Dyninst::aarch64::x15: 	return 15;
-            case Dyninst::aarch64::x16: 	return 16;
-            case Dyninst::aarch64::x17: 	return 17;
-            case Dyninst::aarch64::x18: 	return 18;
-            case Dyninst::aarch64::x19: 	return 19;
-            case Dyninst::aarch64::x20: 	return 20;
-            case Dyninst::aarch64::x21: 	return 21;
-            case Dyninst::aarch64::x22: 	return 22;
-            case Dyninst::aarch64::x23: 	return 23;
-            case Dyninst::aarch64::x24: 	return 24;
-            case Dyninst::aarch64::x25: 	return 25;
-            case Dyninst::aarch64::x26: 	return 26;
-            case Dyninst::aarch64::x27: 	return 27;
-            case Dyninst::aarch64::x28: 	return 28;
-            case Dyninst::aarch64::x29: 	return 29;
-            case Dyninst::aarch64::x30: 	return 30;
+            case Dyninst::aarch64::ix0: 	    return 0;
+            case Dyninst::aarch64::ix1: 	    return 1;
+            case Dyninst::aarch64::ix2: 	    return 2;
+            case Dyninst::aarch64::ix3: 	    return 3;
+            case Dyninst::aarch64::ix4: 	    return 4;
+            case Dyninst::aarch64::ix5: 	    return 5;
+            case Dyninst::aarch64::ix6: 	    return 6;
+            case Dyninst::aarch64::ix7: 	    return 7;
+            case Dyninst::aarch64::ix8: 	    return 8;
+            case Dyninst::aarch64::ix9: 	    return 9;
+            case Dyninst::aarch64::ix10: 	return 10;
+            case Dyninst::aarch64::ix11: 	return 11;
+            case Dyninst::aarch64::ix12: 	return 12;
+            case Dyninst::aarch64::ix13: 	return 13;
+            case Dyninst::aarch64::ix14: 	return 14;
+            case Dyninst::aarch64::ix15: 	return 15;
+            case Dyninst::aarch64::ix16: 	return 16;
+            case Dyninst::aarch64::ix17: 	return 17;
+            case Dyninst::aarch64::ix18: 	return 18;
+            case Dyninst::aarch64::ix19: 	return 19;
+            case Dyninst::aarch64::ix20: 	return 20;
+            case Dyninst::aarch64::ix21: 	return 21;
+            case Dyninst::aarch64::ix22: 	return 22;
+            case Dyninst::aarch64::ix23: 	return 23;
+            case Dyninst::aarch64::ix24: 	return 24;
+            case Dyninst::aarch64::ix25: 	return 25;
+            case Dyninst::aarch64::ix26: 	return 26;
+            case Dyninst::aarch64::ix27: 	return 27;
+            case Dyninst::aarch64::ix28: 	return 28;
+            case Dyninst::aarch64::ix29: 	return 29;
+            case Dyninst::aarch64::ix30: 	return 30;
+            case Dyninst::aarch64::isp:      return 31;
 
-            case Dyninst::aarch64::sp       return 100;
-            case Dyninst::aarch64::pc       return 101;
-            case Dyninst::aarch64::pstate   return 102;
+            case Dyninst::aarch64::iq0:      return 64;
+            case Dyninst::aarch64::iq1:      return 65;
+            case Dyninst::aarch64::iq2:      return 66;
+            case Dyninst::aarch64::iq3:      return 67;
+            case Dyninst::aarch64::iq4:      return 68;
+            case Dyninst::aarch64::iq5:      return 69;
+            case Dyninst::aarch64::iq6:      return 70;
+            case Dyninst::aarch64::iq7:      return 71;
+            case Dyninst::aarch64::iq8:      return 72;
+            case Dyninst::aarch64::iq9:      return 73;
+            case Dyninst::aarch64::iq10:     return 74;
+            case Dyninst::aarch64::iq11:     return 75;
+            case Dyninst::aarch64::iq12:     return 76;
+            case Dyninst::aarch64::iq13:     return 77;
+            case Dyninst::aarch64::iq14:     return 78;
+            case Dyninst::aarch64::iq15:     return 79;
+            case Dyninst::aarch64::iq16:     return 80;
+            case Dyninst::aarch64::iq17:     return 81;
+            case Dyninst::aarch64::iq18:     return 82;
+            case Dyninst::aarch64::iq19:     return 83;
+            case Dyninst::aarch64::iq20:     return 84;
+            case Dyninst::aarch64::iq21:     return 85;
+            case Dyninst::aarch64::iq22:     return 86;
+            case Dyninst::aarch64::iq23:     return 87;
+            case Dyninst::aarch64::iq24:     return 88;
+            case Dyninst::aarch64::iq25:     return 89;
+            case Dyninst::aarch64::iq26:     return 90;
+            case Dyninst::aarch64::iq27:     return 91;
+            case Dyninst::aarch64::iq28:     return 92;
+            case Dyninst::aarch64::iq29:     return 93;
+            case Dyninst::aarch64::iq30:     return 94;
+            case Dyninst::aarch64::iq31:     return 95;
 
-            */
             default: return -1;
          }
          break;

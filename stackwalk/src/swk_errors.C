@@ -39,7 +39,11 @@ using namespace Dyninst::Stackwalker;
 static err_t last_err;
 static const char *last_msg;
 
+#if 1
 int Dyninst::Stackwalker::dyn_debug_stackwalk = 1;
+#else
+int Dyninst::Stackwalker::dyn_debug_stackwalk = 0;
+#endif
 static FILE *debug_out = NULL;
 
 err_t Dyninst::Stackwalker::getLastError() {

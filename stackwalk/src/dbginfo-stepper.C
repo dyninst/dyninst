@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -61,11 +61,11 @@ static std::map<std::string, DwarfFrameParser::Ptr> dwarf_info;
 static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
 {
    static std::map<std::string, DwarfFrameParser::Ptr > dwarf_aux_info;
-   
+
    std::map<std::string, DwarfFrameParser::Ptr >::iterator i = dwarf_aux_info.find(s);
    if (i != dwarf_aux_info.end())
       return i->second;
-   
+
    SymReader *orig_reader = LibraryWrapper::getLibrary(s);
    if (!orig_reader) {
       sw_printf("[%s:%u] - Error.  Could not find elf handle for %s\n",
@@ -82,13 +82,17 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
 
    DwarfHandle::ptr dwarf = DwarfHandle::createDwarfHandle(s, orig_elf);
    assert(dwarf);
-   
+
    // FIXME for ppc, if we ever support debug walking on ppc
    Architecture arch;
+#if defined(arch_x86) || defined(arch_x86_64)
    if (orig_elf->wordSize() == 4)
       arch = Dyninst::Arch_x86;
    else
       arch = Dyninst::Arch_x86_64;
+#elif defined(arch_aarch64)
+    arch = Dyninst::Arch_aarch64;
+#endif
 
    DwarfFrameParser::Ptr dresult = DwarfFrameParser::create(*dwarf->frame_dbg(), arch);
    dwarf_aux_info[s] = dresult;
@@ -110,13 +114,13 @@ DebugStepperImpl::DebugStepperImpl(Walker *w, DebugStepper *parent) :
 bool DebugStepperImpl::ReadMem(Address addr, void *buffer, unsigned size)
 {
    bool result = getProcessState()->readMem(buffer, addr, size);
-   
+
    last_addr_read = 0;
    if (!result)
       return false;
    if (size != addr_width)
       return false;
-   
+
    last_addr_read = addr;
    if (addr_width == 4) {
       uint32_t v = *((uint32_t *) buffer);
@@ -240,7 +244,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
    /**
     * Some system libraries on some systems have their debug info split
-    * into separate files, usually in /usr/lib/debug/.  Check these 
+    * into separate files, usually in /usr/lib/debug/.  Check these
     * for DWARF debug info
     **/
    DwarfFrameParser::Ptr dauxinfo = getAuxDwarfInfo(lib.first);
@@ -252,24 +256,27 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
    bool isVsyscallPage = false;
 #if defined(os_linux)
+   sw_printf("ARM-debug: dump lib========================\n");
+   sw_printf("%s\n", lib.first.c_str());
+   sw_printf("ARM-debug: dump lib========================\n");
    isVsyscallPage = (strstr(lib.first.c_str(), "[vsyscall-") != NULL);
 #endif
 
-   sw_printf("[%s:%u] - Using DWARF debug file info for %s\n", 
+   sw_printf("[%s:%u] - Using DWARF debug file info for %s\n",
                    FILE__, __LINE__, lib.first.c_str());
    cur_frame = &in;
    gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo, isVsyscallPage);
    cur_frame = NULL;
-   
+
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(out.getRA(), lib);
    if (!result) return gcf_not_me;
-   
+
    if (gcresult == gcf_success) {
       sw_printf("[%s:%u] - Success walking with DWARF aux file\n",
                 FILE__, __LINE__);
       return gcf_success;
    }
-   
+
    return gcresult;
 }
 
@@ -296,7 +303,7 @@ DebugStepperImpl::~DebugStepperImpl()
 }
 
 #if defined(arch_x86) || defined(arch_x86_64)
-gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in, 
+gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                                                    Frame &out, DwarfFrameParser::Ptr dinfo,
                                                    bool isVsyscallPage)
 {
@@ -314,7 +321,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    if (!result && frame_error == FE_No_Frame_Entry && isVsyscallPage) {
       //Work-around kernel bug.  The vsyscall page location was randomized, but
       // the debug info still has addresses from the old, pre-randomized days.
-      // See if we get any hits by assuming the address corresponds to the 
+      // See if we get any hits by assuming the address corresponds to the
       // old PC.
       pc += 0xffffe000;
       result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
@@ -326,7 +333,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
       return gcf_not_me;
    }
    location_t ra_loc = getLastComputedLocation(ret_value);
-   
+
    Dyninst::MachRegister frame_reg;
    if (addr_width == 4)
       frame_reg = x86::ebp;
@@ -349,7 +356,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                  FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
-   location_t sp_loc = getLastComputedLocation(stack_value);   
+   location_t sp_loc = getLastComputedLocation(stack_value);
 
    if (isVsyscallPage) {
       // RHEL6 has broken DWARF in the vsyscallpage; it has
@@ -360,16 +367,16 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
          sp_loc.location = loc_unknown;
       }
    }
-    
+
    Address MAX_ADDR;
    if (addr_width == 4) {
        MAX_ADDR = 0xffffffff;
-   } 
+   }
 #if defined(arch_64bit)
    else if (addr_width == 8){
        MAX_ADDR = 0xffffffffffffffff;
    }
-#endif 
+#endif
    else {
        assert(0 && "Unknown architecture word size");
    }
@@ -394,7 +401,7 @@ void DebugStepperImpl::addToCache(const Frame &cur, const Frame &caller) {
   const location_t &calFP = caller.getFPLocation();
 
   unsigned raDelta = (unsigned) -1;
-  unsigned fpDelta = (unsigned) -1;  
+  unsigned fpDelta = (unsigned) -1;
   unsigned spDelta = (unsigned) -1;
 
   if (calRA.location == loc_address) {
@@ -406,7 +413,7 @@ void DebugStepperImpl::addToCache(const Frame &cur, const Frame &caller) {
   }
 
   spDelta = caller.getSP() - cur.getSP();
-  
+
   cache_[cur.getRA()] = cache_t(raDelta, fpDelta, spDelta);
 }
 
@@ -425,16 +432,16 @@ bool DebugStepperImpl::lookupInCache(const Frame &cur, Frame &caller) {
     return false;
   }
   assert(iter->second.sp_delta != (unsigned) -1);
-  
+
   Address MAX_ADDR;
    if (addr_width == 4) {
        MAX_ADDR = 0xffffffff;
-   } 
+   }
 #if defined(arch_64bit)
    else if (addr_width == 8){
        MAX_ADDR = 0xffffffffffffffff;
    }
-#endif 
+#endif
    else {
        assert(0 && "Unknown architecture word size");
        return false;
@@ -456,7 +463,7 @@ bool DebugStepperImpl::lookupInCache(const Frame &cur, Frame &caller) {
   ReadMem(RA.val.addr, buffer, addr_width);
   caller.setRA(last_val_read);
 
-  caller.setFPLocation(FP);  
+  caller.setFPLocation(FP);
   ReadMem(FP.val.addr, buffer, addr_width);
   caller.setFP(last_val_read);
 
@@ -466,4 +473,177 @@ bool DebugStepperImpl::lookupInCache(const Frame &cur, Frame &caller) {
 }
 
 #endif
+
+// for aarch64 architecure specifically
+#if defined(arch_aarch64)
+gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
+                                                   Frame &out, DwarfFrameParser::Ptr dinfo,
+                                                   bool isVsyscallPage)
+{
+   MachRegisterVal frame_value, stack_value, ret_value;
+   bool result;
+   FrameErrors_t frame_error = FE_No_Error;
+
+   addr_width = getProcessState()->getAddressWidth();
+
+   depth_frame = cur_frame;
+
+   sw_printf("======================\n");
+   result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
+                                      ret_value, this, frame_error);
+
+   if (!result && frame_error == FE_No_Frame_Entry && isVsyscallPage) {
+      //Work-around kernel bug.  The vsyscall page location was randomized, but
+      // the debug info still has addresses from the old, pre-randomized days.
+      // See if we get any hits by assuming the address corresponds to the
+      // old PC.
+      pc += 0xffffe000;
+      result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
+                                         ret_value, this, frame_error);
+   }
+   if (!result) {
+      sw_printf("[%s:%u] - Couldn't get return debug info at %lx, error: %u\n",
+                FILE__, __LINE__, in.getRA(), frame_error);
+      return gcf_not_me;
+   }
+   location_t ra_loc = getLastComputedLocation(ret_value);
+
+   Dyninst::MachRegister frame_reg;
+   frame_reg = Dyninst::aarch64::x29;
+
+   sw_printf("======================\n");
+   result = dinfo->getRegValueAtFrame(pc, frame_reg,
+                                      frame_value, this, frame_error);
+   if (!result) {
+      sw_printf("[%s:%u] - Couldn't get frame debug info at %lx\n",
+                 FILE__, __LINE__, in.getRA());
+      return gcf_not_me;
+   }
+   location_t fp_loc = getLastComputedLocation(frame_value);
+
+   sw_printf("======================\n");
+   //result = dinfo->getRegValueAtFrame(pc, Dyninst::aarch64::sp,
+   result = dinfo->getRegValueAtFrame(pc, Dyninst::FrameBase,
+                                      stack_value, this, frame_error);
+   if (!result) {
+      sw_printf("[%s:%u] - Couldn't get stack debug info at %lx\n",
+                 FILE__, __LINE__, in.getRA());
+      return gcf_not_me;
+   }
+   location_t sp_loc = getLastComputedLocation(stack_value);
+
+   if (isVsyscallPage) {
+      // RHEL6 has broken DWARF in the vsyscallpage; it has
+      // a double deref for the stack pointer. We detect this
+      // (as much as we can...) and ignore it
+      if (stack_value < in.getSP()) {
+         stack_value = 0;
+         sp_loc.location = loc_unknown;
+      }
+   }
+
+   Address MAX_ADDR;
+   if (addr_width == 4) {
+       MAX_ADDR = 0xffffffff;
+   }
+   else if (addr_width == 8){
+       MAX_ADDR = 0xffffffffffffffff;
+   }
+   else {
+       assert(0 && "Unknown architecture word size");
+   }
+
+   if(ra_loc.val.addr > MAX_ADDR || fp_loc.val.addr > MAX_ADDR || sp_loc.val.addr > MAX_ADDR) return gcf_not_me;
+
+   out.setRA(ret_value);
+   out.setFP(frame_value);
+   out.setSP(stack_value);
+   out.setRALocation(ra_loc);
+   out.setFPLocation(fp_loc);
+   out.setSPLocation(sp_loc);
+
+   addToCache(in, out);
+
+   return gcf_success;
+}
+
+void DebugStepperImpl::addToCache(const Frame &cur, const Frame &caller) {
+  const location_t &calRA = caller.getRALocation();
+
+  const location_t &calFP = caller.getFPLocation();
+
+  unsigned raDelta = (unsigned) -1;
+  unsigned fpDelta = (unsigned) -1;
+  unsigned spDelta = (unsigned) -1;
+
+  if (calRA.location == loc_address) {
+    raDelta = calRA.val.addr - cur.getSP();
+  }
+
+  if (calFP.location == loc_address) {
+    fpDelta = calFP.val.addr - cur.getSP();
+  }
+
+  spDelta = caller.getSP() - cur.getSP();
+
+  cache_[cur.getRA()] = cache_t(raDelta, fpDelta, spDelta);
+}
+
+bool DebugStepperImpl::lookupInCache(const Frame &cur, Frame &caller) {
+  dyn_hash_map<Address,cache_t>::iterator iter = cache_.find(cur.getRA());
+  if (iter == cache_.end()) {
+      return false;
+  }
+
+  addr_width = getProcessState()->getAddressWidth();
+
+  if (iter->second.ra_delta == (unsigned) -1) {
+      return false;
+  }
+  if (iter->second.fp_delta == (unsigned) -1) {
+    return false;
+  }
+  assert(iter->second.sp_delta != (unsigned) -1);
+
+  Address MAX_ADDR;
+   if (addr_width == 4) {
+       assert(0);
+       MAX_ADDR = 0xffffffff;
+   }
+#if defined(arch_64bit)
+   else if (addr_width == 8){
+       MAX_ADDR = 0xffffffffffffffff;
+   }
+#endif
+   else {
+       assert(0 && "Unknown architecture word size");
+       return false;
+   }
+
+  location_t RA;
+  RA.location = loc_address;
+  RA.val.addr = cur.getSP() + iter->second.ra_delta;
+  RA.val.addr %= MAX_ADDR;
+
+  location_t FP;
+  FP.location = loc_address;
+  FP.val.addr = cur.getSP() + iter->second.fp_delta;
+
+  FP.val.addr %= MAX_ADDR;
+  int buffer[10];
+
+  caller.setRALocation(RA);
+  ReadMem(RA.val.addr, buffer, addr_width);
+  caller.setRA(last_val_read);
+
+  caller.setFPLocation(FP);
+  ReadMem(FP.val.addr, buffer, addr_width);
+  caller.setFP(last_val_read);
+
+  caller.setSP(cur.getSP() + iter->second.sp_delta);
+
+  return true;
+}
+#endif
+//end if defined aarch64
 

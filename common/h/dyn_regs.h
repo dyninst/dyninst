@@ -93,6 +93,7 @@ namespace Dyninst
         unsigned int regClass() const;
 
         static MachRegister getPC(Dyninst::Architecture arch);
+        static MachRegister getReturnAddress(Dyninst::Architecture arch);
         static MachRegister getFramePointer(Dyninst::Architecture arch);
         static MachRegister getStackPointer(Dyninst::Architecture arch);
         static MachRegister getSyscallNumberReg(Dyninst::Architecture arch);
