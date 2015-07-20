@@ -28,7 +28,7 @@ using namespace Dyninst::Stackwalker;
 using namespace std;
 
 bool getVariables(std::vector<Frame> &swalk, unsigned frame);
-
+bool isSignTst;
 
 void walk_stack1(Walker *walker);
 void parse_args(std::vector<Walker *> &walkers, int argc, char *argv[]);
@@ -195,6 +195,9 @@ void parse_args(std::vector<Walker *> &walkers, int argc, char *argv[])
         isSelfSW = false;
        //Thread party stackwalker, creates an executable
        string exec_name(argv[++i]);
+       if( strcmp(exec_name.c_str(), "stack_signal") ){
+            isSignTst = true;
+       }
        vector<string> args;
        while ((i < argc) && (strcmp(argv[i], "--") != 0))
        {

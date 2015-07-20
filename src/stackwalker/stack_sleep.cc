@@ -2,9 +2,10 @@
 #include <execinfo.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include<unistd.h>
 
 /* Obtain a backtrace and print it to stdout. */
-inline void
+void
 print_trace (void)
 {
     void *array[10];
@@ -25,9 +26,9 @@ print_trace (void)
 
 void func3(int i){
     printf("func3 %d\n",i);
-    print_trace();
-    while(1);
+//    print_trace();
     if( i > 5 ) {
+        sleep(7);
         while(1){
         };
         return ;
@@ -39,6 +40,7 @@ void func3(int i){
 
 void func2(int i){
     printf("func2 %d\n",i);
+    sleep(3);
     func3(++i);
     return ;
 }
@@ -50,6 +52,7 @@ void func1(int i){
 }
 
 int main(){
+    printf("pid %d\n", getpid());
     printf("call func1\n");
     func1(0);
     return 0;

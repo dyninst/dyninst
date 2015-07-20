@@ -46,4 +46,4 @@ clean:
 	rm stack_sampler stack_sampler.o
 
 test_basic: test_basic.C
-	g++ test_basic.C -o test_basic $(LDFLAGS) $(IFLAGS) -DWITHOUT_SYMTAB -lpthread
+	g++ test_basic.C -o test_basic $(LDFLAGS) $(IFLAGS) -DWITHOUT_SYMTAB -lpthread -g
