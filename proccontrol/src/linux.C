@@ -324,6 +324,26 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                delete archevent;
                archevent = lthread->getPostponedSyscallEvent();
                ext = archevent->event_ext;
+
+               // in case of a fake syscall exit BP is inserted,
+               // it should be cleared when the actual stop is received.
+               Dyninst::MachRegisterVal addr;
+               int result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
+               if (!result) {
+                   perr_printf("Failed to read PC address upon SIGTRAP|0x80\n");
+                   return false;
+               }
+               if( lthread->isSet_fakeSyscallExitBp &&
+                   lthread->addr_fakeSyscallExitBp == addr){
+                   // do not handle the bp and clear the bp.
+                    bool rst = lthread->proc()->rmBreakpoint(addr, lthread->BPptr_fakeSyscallExitBp );
+                    if( !rst){
+                        perr_printf("ARM-error: Failed to remove inserted BP, addr %p.\n",
+                                addr);
+                    }
+                    lthread->isSet_fakeSyscallExitBp = false;
+               }
+
                switch (ext) {
                   case PTRACE_EVENT_FORK:
                   case PTRACE_EVENT_CLONE:
@@ -1481,10 +1501,13 @@ bool linux_thread::plat_cont()
             pthrd_printf("Got SIGTRAP at %lx\n", addr);
             pthrd_printf("Installing breakpoint for postpone syscall at %lx\n", addr);
 
-            int_breakpoint *fakeSyscallExitBp = new int_breakpoint(Breakpoint::ptr());
+            this->BPptr_fakeSyscallExitBp = Breakpoint::ptr();
+            //int_breakpoint *fakeSyscallExitBp = new int_breakpoint(Breakpoint::ptr());
+            int_breakpoint *fakeSyscallExitBp = new int_breakpoint(this->BPptr_fakeSyscallExitBp);
             fakeSyscallExitBp->setThreadSpecific(this->thread());
             fakeSyscallExitBp->setOneTimeBreakpoint(true);
-            this->llproc()->addBreakpoint(addr, fakeSyscallExitBp);
+            //this->llproc()->addBreakpoint(addr, fakeSyscallExitBp);
+            this->proc()->addBreakpoint(addr, this->BPptr_fakeSyscallExitBp);
             this->addr_fakeSyscallExitBp = addr;
             this->isSet_fakeSyscallExitBp = true;
        }

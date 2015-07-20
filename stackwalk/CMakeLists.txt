@@ -48,6 +48,7 @@ elseif (PLATFORM MATCHES linux OR PLATFORM MATCHES freebsd)
         set (SRC_LIST ${SRC_LIST}
             src/linux-aarch64-swk.C 
             src/aarch64-swk.C
+            src/dbginfo-stepper.C 
         )
 
     elseif (PLATFORM MATCHES i386 OR PLATFORM MATCHES x86_64)

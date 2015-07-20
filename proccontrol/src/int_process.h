@@ -1133,6 +1133,7 @@ public:
  public:
    Address addr_fakeSyscallExitBp;
    bool isSet_fakeSyscallExitBp;
+   Breakpoint::ptr BPptr_fakeSyscallExitBp;
 };
 
 /**

@@ -33,13 +33,19 @@
 #include "stackwalk/h/basetypes.h"
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/h/framestepper.h"
+
 #include "stackwalk/src/linuxbsd-swk.h"
+#include "stackwalk/src/dbgstepper-impl.h"
+
 #include "common/h/dyn_regs.h"
+
 #include <sys/user.h>
 #include <sys/ptrace.h>
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
+
+#define TEST_DEBUGINFO_ALONE 1
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
@@ -49,6 +55,7 @@ bool Walker::createDefaultSteppers()
   FrameStepper *stepper;
   bool result;
 
+#if !TEST_DEBUGINFO_ALONE
   stepper = new FrameFuncStepper(this);
   result = addStepper(stepper);
   if (!result) {
@@ -57,20 +64,8 @@ bool Walker::createDefaultSteppers()
     return false;
   }
 
-  /*
-  stepper = new SigHandlerStepper(this);
-  result = addStepper(stepper);
-  if (!result){
-    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-	      stepper);
-    return false;
-  }else{
-    sw_printf("[%s:%u] - Stepper %p is SignalHandlerStepper\n",
-            FILE__, __LINE__, stepper);
-  }
-  */
-
-  // ARM: try
+  // ARM: this works on ARM.
+  // Need to adjust a variable that stores the length of _start
   stepper = new BottomOfStackStepper(this);
   result = addStepper(stepper);
   if (!result){
@@ -82,26 +77,45 @@ bool Walker::createDefaultSteppers()
             FILE__, __LINE__, stepper);
   }
 
-  /*
-  stepper = new AnalysisStepper(this);
+#else
+  stepper = new DebugStepper(this);
   result = addStepper(stepper);
   if (!result){
     sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
 	      stepper);
     return false;
   }else{
-    sw_printf("[%s:%u] - Stepper %p is AnalysisStepper\n",
+    sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
             FILE__, __LINE__, stepper);
   }
-  */
+#endif
 
   return true;
+}
+
+bool DebugStepperImpl::isFrameRegister(MachRegister reg)
+{
+   if (getProcessState()->getAddressWidth() == 4){
+       assert(0);
+      return (reg == aarch64::x29);
+   }
+   else
+      return (reg == aarch64::x29);
+}
+
+bool DebugStepperImpl::isStackRegister(MachRegister reg)
+{
+   if (getProcessState()->getAddressWidth() == 4){
+       assert(0);
+      return (reg == aarch64::sp);
+   }
+   else
+      return (reg == aarch64::sp);
 }
 
 gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &/*in*/,
                                                     Frame &/*out*/)
 {
-	assert(0);
    /**
     * TODO: Implement me on non-x86 platforms.
     **/
