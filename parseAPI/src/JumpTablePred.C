@@ -186,7 +186,7 @@ bool JumpTablePred::endAtPoint(AssignmentPtr ap) {
 }
 bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
-    if (currentAssigns.size() > 150) return false; 
+    if (currentAssigns.size() > 30) return false; 
     // For flags, we only analyze zf
     if (ap->out().absloc().type() == Absloc::Register && ap->out().absloc().reg().regClass() == x86::FLAG &&
        ap->out().absloc().reg() != x86::zf && ap->out().absloc().reg() != x86_64::zf) {
@@ -197,7 +197,7 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 
     currentAssigns.insert(ap);
 
-//    fprintf(stderr, "Adding assignment %s in instruction %s at %lx, total %d\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr(), currentAssigns.size());
+    //fprintf(stderr, "Adding assignment %s in instruction %s at %lx, total %d\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr(), currentAssigns.size());
 
     if (!expandRet.second || expandRet.first == NULL) return true;
 

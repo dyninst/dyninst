@@ -150,7 +150,7 @@ struct BoundFact {
 
     vector<RelationShip*> relation;
 
-    typedef std::map<AbsRegion, AST::Ptr> AliasMap;
+    typedef std::map<AST::Ptr, AST::Ptr> AliasMap;
     AliasMap aliasMap;
 
     struct FlagPredicate {
@@ -221,9 +221,9 @@ struct BoundFact {
     void IntersectInterval(const AST::Ptr ast, StridedInterval si);
     void DeleteElementFromInterval(const AST::Ptr ast, int64_t val);
     void InsertRelation(AST::Ptr left, AST::Ptr right, RelationType);
-    void TrackAlias(AST::Ptr expr, AbsRegion ar);
+    void TrackAlias(AST::Ptr expr, AST::Ptr outAST);
 
-    BoundValue *ApplyRelations(AbsRegion ar);
+    BoundValue *ApplyRelations(AST::Ptr outAST);
     void PushAConst(int64_t value);
     bool PopAConst(AST::Ptr ast);
     

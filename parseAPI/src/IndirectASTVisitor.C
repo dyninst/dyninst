@@ -318,21 +318,16 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 }
 
 AST::Ptr SubstituteAnAST(AST::Ptr ast, const BoundFact::AliasMap &aliasMap) {
-    if (ast->getID() == AST::V_RoseAST) {
-        unsigned totalChildren = ast->numChildren();
-	for (unsigned i = 0 ; i < totalChildren; ++i) {
-	    ast->setChild(i, SubstituteAnAST(ast->child(i), aliasMap));
+    for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait)
+        if (*ast == *(ait->first)) {
+	    return ait->second;
 	}
-	return ast;
-    } else if (ast->getID() == AST::V_VariableAST) {
-        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
-	const AbsRegion &ar = varAST->val().reg;
-	auto findIt = aliasMap.find(ar);
-	if (findIt == aliasMap.end()) return ast;
-	else return findIt->second;
+    unsigned totalChildren = ast->numChildren();
+    for (unsigned i = 0 ; i < totalChildren; ++i) {
+        ast->setChild(i, SubstituteAnAST(ast->child(i), aliasMap));
+    }
+    return ast;
 
-    } else
-        return ast;
 }
 
 

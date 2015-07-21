@@ -458,6 +458,15 @@ void BoundValue::DeleteElementFromInterval(int64_t val) {
 }
 
 void BoundValue::Join(BoundValue &bv) {
+    // If one is a table read and the other is a constant,
+    // assume that the constant appears in the table read.
+    if (tableReadSize > 0 && bv.interval.stride == 0) {
+        return;
+    }
+    if (bv.tableReadSize > 0 && interval.stride == 0) {
+        *this = bv;
+	return;
+    }
     if (tableReadSize != bv.tableReadSize) {
         // Unless boths are table reads, we stop trakcing
 	// how the read is used.
@@ -739,7 +748,7 @@ void BoundFact::Print() {
     }
     parsing_printf("\t\t\tAliasing:\n");
     for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait) {
-        parsing_printf("\t\t\t\t%s = %s\n", ait->first.format().c_str(), ait->second->format().c_str());
+        parsing_printf("\t\t\t\t%s = %s\n", ait->first->format().c_str(), ait->second->format().c_str());
     }
     if (stackTop.valid) {
         parsing_printf("\t\t\tStack top is %lld\n", stackTop.value);
@@ -1485,12 +1494,22 @@ void BoundFact::AdjustPredicate(AST::Ptr out, AST::Ptr in) {
     }
 }
 
-void BoundFact::TrackAlias(AST::Ptr expr, AbsRegion ar) {
+void BoundFact::TrackAlias(AST::Ptr expr, AST::Ptr outAST) {
     expr = SubstituteAnAST(expr, aliasMap);
-    aliasMap[ar] = expr;
+    bool find = false;
+    for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait) {
+        if (*(ait->first) == *outAST) {
+	    ait->second = expr;
+	    find = true;
+	    break;
+	}
+    }
+    if (!find) {
+        aliasMap.insert(make_pair(outAST, expr));
+    }
     BoundValue *substiBound = GetBound(expr);
     if (substiBound != NULL) {
-        GenFact(VariableAST::create(Variable(ar)), new BoundValue(*substiBound), false);
+        GenFact(outAST, new BoundValue(*substiBound), false);
     }
 }
 
@@ -1506,8 +1525,13 @@ bool BoundFact::PopAConst(AST::Ptr ast) {
     return true;
 }
 
-BoundValue * BoundFact::ApplyRelations(AbsRegion ar) {
-    AST::Ptr cal = aliasMap[ar];
+BoundValue * BoundFact::ApplyRelations(AST::Ptr outAST) {
+    AST::Ptr cal;
+    for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait)
+        if ( *(ait->first) == *outAST) {
+	    cal = ait->second;
+	    break;
+	}
     parsing_printf("\t\tApply relations to %s\n", cal->format().c_str());
     if (cal->getID() != AST::V_RoseAST) return NULL;
     RoseAST::Ptr root = boost::static_pointer_cast<RoseAST>(cal);

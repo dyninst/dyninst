@@ -453,7 +453,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
         outAST = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, ar.size()), ar.generator()), node->assign()->insn()->size());
     else
         outAST = VariableAST::create(Variable(ar));
-
+/*
     if (id == e_bsf || id == e_bsr) {
 	int size = node->assign()->insn()->getOperand(0).getValue()->size();
 	newFact->GenFact(outAST, new BoundValue(StridedInterval(1,0, size * 8 - 1)), false);
@@ -462,7 +462,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	return;
 
     }
-
+*/
     if (id == e_xchg) {
         newFact->SwapFact(calculation, outAST);
         parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
@@ -513,11 +513,11 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     newFact->AdjustPredicate(outAST, calculation);
 
     // Now try to track all aliasing
-    newFact->TrackAlias(DeepCopyAnAST(calculation), ar);
+    newFact->TrackAlias(DeepCopyAnAST(calculation), outAST);
 
     // Apply tracking relations to the calculation to generate a
     // potentially stricter bound
-    BoundValue *strictValue = newFact->ApplyRelations(ar);
+    BoundValue *strictValue = newFact->ApplyRelations(outAST);
     if (strictValue != NULL) {
         parsing_printf("\t\t\tGenerate stricter bound fact for %s\n", outAST->format().c_str());
 	newFact->GenFact(outAST, strictValue, false);

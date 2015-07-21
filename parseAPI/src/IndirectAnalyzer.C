@@ -66,6 +66,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
         } 
 
     }
+//    fprintf(stderr, "Find %d edges\n", outEdges.size());
     return !outEdges.empty();
 }						       
 
