@@ -144,9 +144,12 @@ class Slicer {
   DATAFLOW_EXPORT static bool isWidenNode(Node::Ptr n);
 
   class Predicates {
+    bool cache;
   public:
     typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
     typedef std::stack<StackDepth_t> CallStack_t;
+    DATAFLOW_EXPORT bool useCache() { return cache; }
+    DATAFLOW_EXPORT void setCache(bool val) { cache = val; }
 
     DATAFLOW_EXPORT virtual bool allowImprecision() { return false; }
     DATAFLOW_EXPORT virtual bool widenAtPoint(AssignmentPtr) { return false; }
@@ -176,6 +179,7 @@ class Slicer {
     // Return true if we want to continue slicing
     DATAFLOW_EXPORT virtual bool addNodeCallback(AssignmentPtr,
                                                  std::set<ParseAPI::Edge*> &) { return true;}
+    DATAFLOW_EXPORT Predicates() : cache(true) {}						
 
   };
 

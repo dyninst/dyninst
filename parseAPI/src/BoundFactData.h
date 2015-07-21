@@ -168,7 +168,8 @@ struct BoundFact {
 	    if (!valid && !fp.valid) return false;
 	    if (valid != fp.valid) return true;
 	    if (id != fp.id) return true;
-	    return !(*e1 == *e2);
+	    if ((!(*e1 == *fp.e1) || !(*e2 == *fp.e2)) && (!(*e1 == *fp.e2) || !(*e2 == *fp.e1))) return true;
+	    return false;
 	}
 
 	FlagPredicate& operator = (const FlagPredicate &fp) {

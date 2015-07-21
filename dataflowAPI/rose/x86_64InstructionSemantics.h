@@ -770,7 +770,8 @@ struct X86_64InstructionSemantics {
                                 break;
                             }
                             default:
-                                ROSE_ASSERT(!"Bad size");
+			        break;
+//                                ROSE_ASSERT(!"Bad size");
                         }
                         break;
                     }

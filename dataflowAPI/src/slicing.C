@@ -270,7 +270,7 @@ void Slicer::sliceInternalAux(
         slicing_printf("\t\t candidate %d is at %lx, %ld active\n",
                        i,f.addr(),f.active.size());
 
-        if (visited.find(e) != visited.end()) {
+        if (p.useCache() && visited.find(e) != visited.end()) {
             // attempt to resolve the current active set
             // via cached values from down-slice, eliminating
             // those elements of the active set that can be

@@ -19,6 +19,8 @@ using namespace Dyninst::InstructionAPI;
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
 //    if (block->last() != 0x428156) return false;
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
+//     fprintf(stderr,"Apply indirect control flow analysis at %lx\n", block->last());
+   
 
 //    parsing_printf("Calculate backward slice\n");
 

@@ -428,12 +428,11 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     pair<AST::Ptr, bool> expandRet = ExpandAssignment(node->assign());
 	
     if (expandRet.first == NULL) {
-        // If the instruction is outside the set of instrutions we
-        // add instruction semantics. We assume this instruction
-        // kills all bound fact.
-//      parsing_printf("\t\t\t No semantic support for this instruction. Kill all bound fact\n");
-//	newFact->SetToBottom();
-        parsing_printf("\t\t\t No semantic support for this instruction. Assume it does not affect jump target calculation. Ignore it (Treat as identity function)\n");	
+        parsing_printf("\t\t\t No semantic support for this instruction. Assume it does not affect jump target calculation. Ignore it (Treat as identity function) except for ptest. ptest should kill the current predicate\n");	
+	if (id == e_ptest) {
+	    parsing_printf("\t\t\t\tptest instruction, kill predciate.\n");
+	    newFact->pred.valid = false;
+	}
 	return;
     } else {
         parsing_printf("\tAST: %s\n", expandRet.first->format().c_str());

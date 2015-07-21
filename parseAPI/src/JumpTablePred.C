@@ -194,13 +194,12 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
     }
 
     pair<AST::Ptr, bool> expandRet = ExpandAssignment(ap);
-    // If we do not have semantics for this instruction,
-    // we assume it does not influence the calculation of jump targets
-    if (!expandRet.second || expandRet.first == NULL) return true;
 
-
-//    fprintf(stderr, "Adding assignment %s in instruction %s at %lx\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr());
     currentAssigns.insert(ap);
+
+//    fprintf(stderr, "Adding assignment %s in instruction %s at %lx, total %d\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr(), currentAssigns.size());
+
+    if (!expandRet.second || expandRet.first == NULL) return true;
 
     // If this assignment writes memory,
     // we only want to analyze it when it writes to 
@@ -230,8 +229,9 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
     BoundValue target;
     bool ijt = IsJumpTable(g, bfc, target);
     if (ijt) {
-        bool ret = !FillInOutEdges(target, outEdges);
-//	fprintf(stderr, "Return %s\n", ret ? "true" : "false");
+        bool ret = !FillInOutEdges(target, outEdges) || outEdges.empty();
+	if (!ret) setCache(false);
+	//	fprintf(stderr, "Return %s\n", ret ? "true" : "false");
 //	if (dyn_debug_parsing) exit(0);
         return ret;
     } else {
