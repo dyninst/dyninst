@@ -1134,7 +1134,7 @@ bool Slicer::ReachableFromBothBranches(ParseAPI::Edge *e, vector<Element> &newE)
 bool
 Slicer::handleDefault(
     Direction dir,
-    Predicates & /*p*/,
+    Predicates & p,
     ParseAPI::Edge * e,
     SliceFrame & cur,
     bool & /* err */)
@@ -1160,11 +1160,12 @@ Slicer::handleDefault(
 */	    
 //	    if (!ReachableFromBothBranches(e, newE)) {
 //            if (!newE.empty()) {    
+	    if (p.searchForControlFlowDep()) {
 	        if (cur.loc.block->obj()->cs()->getAddressWidth() == 8)
 		    cur.active[AbsRegion(Absloc(x86_64::rip))] = newE;
 		else if  (cur.loc.block->obj()->cs()->getAddressWidth() == 4)
 		    cur.active[AbsRegion(Absloc(x86::eip))] = newE;
-//	    }
+	    }
 
 	    cur.firstCond = false;
   	    slicing_printf("\tadding tracking ip for control flow information ");
@@ -1427,13 +1428,15 @@ ParseAPI::Function *getEntryFunc(ParseAPI::Block *block) {
 // stack analysis for a loop, but is generally doable...
 Slicer::Slicer(Assignment::Ptr a,
                ParseAPI::Block *block,
-               ParseAPI::Function *func) : 
+               ParseAPI::Function *func,
+	       bool cache,
+	       bool stackAnalysis) : 
   a_(a),
   b_(block),
   f_(func),
   // Xiaozhu: Temporarily disable stackanalysis, should be able to
   // specify it 
-  converter(false, false) {
+  converter(cache, stackAnalysis) {
   df_init_debug();
 };
 

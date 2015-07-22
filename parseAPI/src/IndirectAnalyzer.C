@@ -45,9 +45,10 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     AssignmentConverter ac(true, false);
     vector<Assignment::Ptr> assignments;
     ac.convert(insn, block->last(), func, block, assignments);
-    Slicer s(assignments[0], block, func);
+    Slicer s(assignments[0], block, func, false, false);
     
     JumpTablePred jtp(func, block, rf, thunks, outEdges);
+    jtp.setSearchForControlFlowDep(true);
     GraphPtr slice = s.backwardSlice(jtp);
 
     // After the slicing is done, we do one last check to 
