@@ -37,6 +37,7 @@
 
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Function.h"
+#include "symtabAPI/h/Symbol.h"
 
 #include "CodeSource.h"
 #include "debug_parse.h"
@@ -60,6 +61,12 @@ SymtabCodeRegion::SymtabCodeRegion(
     _symtab(st),
     _region(reg)
 {
+    vector<SymtabAPI::Symbol*> symbols;
+    st->getAllSymbols(symbols);
+    for (auto sit = symbols.begin(); sit != symbols.end(); ++sit)
+        if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION) {
+	    knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
+	}
 }
 
 void
@@ -160,7 +167,11 @@ bool
 SymtabCodeRegion::isCode(const Address addr) const
 {
     if(!contains(addr)) return false;
-
+    map<Address, Address>::const_iterator dit = knownData.upper_bound(addr);
+    if (dit != knownData.begin()) {
+        --dit;
+	if (dit->first <= addr && dit->second > addr) return false;
+    }
     // XXX this is the predicate from Symtab::isCode(a) +
     //     the condition by which Symtab::codeRegions_ is filled
     return !_region->isBSS() && 

@@ -316,12 +316,12 @@ static bool PassPreCheck(unsigned char *buf) {
 }
 
 double ProbabilityCalculator::calcProbByMatchingIdioms(Address addr) {
+    if (addr != 0x404720) return 0;
     if (FEPProb.find(addr) != FEPProb.end())
         return FEPProb[addr];
     unsigned char *buf = (unsigned char*)(cs->getPtrToInstruction(addr));
     if (!PassPreCheck(buf)) return 0;
-//    if (addr != 0x804ca09) return 0;
-    double w = model.getBias();
+    double w = model.getBias();  
     bool valid = true;
 //    fprintf(stderr, "before forward matching w = %.6lf\n", w);
     w += calcForwardWeights(0, addr, model.getNormalIdiomTreeRoot(), valid);
@@ -401,7 +401,6 @@ bool ProbabilityCalculator::isFEP(Address addr) {
 double ProbabilityCalculator::calcForwardWeights(int cur, Address addr, IdiomPrefixTree *tree, bool &valid) {
     if (addr >= cr->high()) return 0;
 //    printf("Start matching at %lx for %dth idiom term\n", addr, cur);
-
     double w = 0;
     if (tree->isFeature()) {
         w = tree->getWeight();

@@ -204,6 +204,7 @@ class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
  private:
     SymtabAPI::Symtab * _symtab;
     SymtabAPI::Region * _region;
+    std::map<Address, Address> knownData;
  public:
     SymtabCodeRegion(SymtabAPI::Symtab *, SymtabAPI::Region *);
     ~SymtabCodeRegion();
