@@ -884,7 +884,6 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
 					{
 					continue;
 					}
-					fprintf(stderr, "The export sym function name - %s\n",name);
 					int funcIndx = funcAddrNameMap[i];
 					Address funcAddr = funcAddrs[funcIndx];
 					if ((funcAddr >= (Address) eT2) &&

@@ -65,13 +65,13 @@ class ParseWorkElem
     enum parse_work_order {
         seed_addr = 0,
         ret_fallthrough, /* conditional returns */
+        call_fallthrough,
         cond_taken,
         cond_not_taken,
         br_direct,
         br_indirect,
         catch_block,
         call,
-        call_fallthrough,
         checked_call_ft,
 	resolve_jump_table, // We want to finish all possible parsing work before parsing jump tables
         __parse_work_end__
