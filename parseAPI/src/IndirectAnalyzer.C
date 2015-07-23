@@ -17,16 +17,7 @@ using namespace Dyninst::InstructionAPI;
 
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-//    if (block->last() != 0x428156) return false;
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
-//     fprintf(stderr,"Apply indirect control flow analysis at %lx\n", block->last());
-   
-
-//    parsing_printf("Calculate backward slice\n");
-
-//    BackwardSlicer bs(func, block, block->last());
-//    GraphPtr slice =  bs.CalculateBackwardSlicing();
-
     parsing_printf("Looking for thunk\n");
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
@@ -37,8 +28,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 //  Calculates all blocks that can reach
 //  and be reachable from thunk blocks
     ReachFact rf(thunks);
-
-    
+ 
     const unsigned char * buf = (const unsigned char*) block->obj()->cs()->getPtrToInstruction(block->last());
     InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
     Instruction::Ptr insn = dec.decode();
@@ -62,12 +52,8 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 	
 	BoundValue target;
 	bool ijt = jtp.IsJumpTable(g, bfc, target);
-	if (ijt) {
-	    bool ret = !jtp.FillInOutEdges(target, outEdges);
-        } 
-
+	if (ijt) jtp.FillInOutEdges(target, outEdges);
     }
-//    fprintf(stderr, "Find %d edges\n", outEdges.size());
     return !outEdges.empty();
 }						       
 

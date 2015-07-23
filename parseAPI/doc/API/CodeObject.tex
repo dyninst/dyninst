@@ -35,7 +35,9 @@ void parse()
 \apidesc{Recursively parses the binary represented by this CodeObject from all
 known function entry points (i.e., the hints provided by the CodeSource). This
 method and the following parsing methods may safely be invoked repeatedly if
-new information about function locations is provided through the CodeSource.}
+new information about function locations is provided through the CodeSource.
+Note that these parsing methods do not automatically perform speculative gap parsing.
+parseGaps should be used for this purpose.}
 
 \begin{apient}
 void parse(Address target,

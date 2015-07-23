@@ -26,7 +26,6 @@ class JumpTablePred : public Slicer::Predicates {
 public:
 std::unordered_map<Assignment::Ptr, AST::Ptr, Assignment::AssignmentPtrHasher> expandCache;
 
-    virtual bool endAtPoint(AssignmentPtr ap);  
     virtual bool addNodeCallback(AssignmentPtr ap, std::set<ParseAPI::Edge*> &visitedEdges);
 GraphPtr BuildAnalysisGraph(std::set<ParseAPI::Edge*> &visitedEdges);
     bool IsJumpTable(GraphPtr slice, BoundFactsCalculator &bfc, BoundValue &target);

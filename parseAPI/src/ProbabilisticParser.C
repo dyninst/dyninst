@@ -249,9 +249,12 @@ void IdiomPrefixTree::addIdiom(const Idiom& idiom) {
 
 void IdiomPrefixTree::addIdiom(int cur, const Idiom& idiom) {
     if (cur == (int)idiom.terms.size()) {
+        // If we reach the last term of the idiom, 
+        // we set the weight and 
         feature = true;
 	w = idiom.w;
     } else {
+        // We add the current idiom term.
         ChildrenByEntryID::iterator idit = childrenClusters.find(idiom.terms[cur].entry_id);
 	if (idit == childrenClusters.end()) {
 	    idit = childrenClusters.insert(make_pair(idiom.terms[cur].entry_id,ChildrenType())).first;
@@ -266,6 +269,8 @@ void IdiomPrefixTree::addIdiom(int cur, const Idiom& idiom) {
 	}
 
 	if (next == children.end()) {
+	    // If the current term has an opcode that has not been seen before,
+	    // we create a new child to present this opcode.
 	    children.push_back(make_pair(idiom.terms[cur], new IdiomPrefixTree() ) );
 	    next = children.end();
 	    --next;
@@ -316,22 +321,20 @@ static bool PassPreCheck(unsigned char *buf) {
 }
 
 double ProbabilityCalculator::calcProbByMatchingIdioms(Address addr) {
-    if (addr != 0x404720) return 0;
     if (FEPProb.find(addr) != FEPProb.end())
         return FEPProb[addr];
     unsigned char *buf = (unsigned char*)(cs->getPtrToInstruction(addr));
     if (!PassPreCheck(buf)) return 0;
     double w = model.getBias();  
     bool valid = true;
-//    fprintf(stderr, "before forward matching w = %.6lf\n", w);
+    parsing_printf("Idiom matching at %lx, before forward matching w = %.6lf\n", addr, w);
     w += calcForwardWeights(0, addr, model.getNormalIdiomTreeRoot(), valid);
-//    fprintf(stderr, "after forward matching w = %.6lf\n", w);
+    parsing_printf("after forward matching w = %.6lf\n", w);
 
     if (valid) {
 	set<IdiomPrefixTree*> matched;
 	w += calcBackwardWeights(0, addr, model.getPrefixIdiomTreeRoot(), matched);
-//	fprintf(stderr, "after backward matching w = %.6lf\n", w);
-
+	parsing_printf("after backward matching w = %.6lf\n", w);
         double prob = ((double)1) / (1 + exp(-w));
         return FEPProb[addr] = reachingProb[addr] = prob;	
     } else return FEPProb[addr] = reachingProb[addr] = 0;
@@ -400,11 +403,11 @@ bool ProbabilityCalculator::isFEP(Address addr) {
 
 double ProbabilityCalculator::calcForwardWeights(int cur, Address addr, IdiomPrefixTree *tree, bool &valid) {
     if (addr >= cr->high()) return 0;
-//    printf("Start matching at %lx for %dth idiom term\n", addr, cur);
+    parsing_printf("\tStart matching at %lx for %dth idiom term\n", addr, cur);
     double w = 0;
     if (tree->isFeature()) {
         w = tree->getWeight();
-//	fprintf(stderr, "Match forward idiom with weight %.6lf\n", tree->getWeight());
+	parsing_printf("\t\tMatch forward idiom with weight %.6lf\n", tree->getWeight());
     }
 
     if (tree->isLeafNode()) return w;
@@ -444,10 +447,10 @@ double ProbabilityCalculator::calcBackwardWeights(int cur, Address addr, IdiomPr
         if (matched.find(tree) == matched.end()) {
 	    matched.insert(tree);
 	    w += tree->getWeight();
-//	    fprintf(stderr, "Backward match idiom with weight %.6lf\n", tree->getWeight());
+	    parsing_printf("\t\tBackward match idiom with weight %.6lf\n", tree->getWeight());
 	}
     }
-//    printf("Start matching at %lx for %dth idiom term\n", addr, cur);
+    parsing_printf("\tStart matching at %lx for %dth idiom term\n", addr, cur);
 
     if (tree->isLeafNode()) return w;
 

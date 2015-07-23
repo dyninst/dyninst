@@ -124,18 +124,9 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 	    }
 	}
     }
-    //fprintf(stderr, "%d\n", nodeColor.size());
-//    if (nodeColor.size() > 100) slice->printDOT("slice.dot");
 
     slice->clearEntryNodes();
     slice->markAsEntryNode(virtualEntry);
-//    if (nodeColor.size() == 24 && jumpAddr == 0x4305ff) {
-//    if (jumpAddr == 0x41b8b1 && nodeColor.size() < 25) { 
-//        dyn_debug_parsing=1;
-//	slice->printDOT("slice.dot");
-//    } else
-//        dyn_debug_parsing=0;
-
 }
 
 bool BoundFactsCalculator::HasIncomingEdgesFromLowerLevel(int curOrder, vector<Node::Ptr>& curNodes) {
@@ -226,7 +217,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    if (oldFactIn == NULL) parsing_printf("\t\t do not exist\n"); else oldFactIn->Print();
 
 	    // We find all predecessors of the current node
-	    // and calculates the meet of the analysis results
+	    // and calculates the union of the analysis results
 	    // from the predecessors
 	    BoundFact* newFactIn = Meet(curNode);
 	    parsing_printf("\tNew fact at %lx\n", node->addr());
@@ -454,6 +445,18 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     else
         outAST = VariableAST::create(Variable(ar));
 /*
+ * Naively, bsf and bsr produces a bound from 0 to the number of bits of the source operands.
+ * In pratice, especially in libc, the real bound is usually smaller than the size of the source operand.
+ * Ex 1: shl    %cl,%edx
+ *       bsf    %rdx,%rcx
+ * Here rcx is in range [0,31] rather than [0,63] even though rdx has 64 bits.
+ *
+ * Ex 2: pmovmskb %xmm0,%edx
+ *       bsf    %rdx, %rdx
+ * Here rdx is in range[0,15] because pmovmskb only sets the least significat 16 bits
+ * In addition, overapproximation of the bound can lead to bogus control flow
+ * that causes overlapping blocks or function.
+ * It is important to further anaylze the operand in bsf rather than directly conclude the bound
     if (id == e_bsf || id == e_bsr) {
 	int size = node->assign()->insn()->getOperand(0).getValue()->size();
 	newFact->GenFact(outAST, new BoundValue(StridedInterval(1,0, size * 8 - 1)), false);
@@ -512,7 +515,10 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     }
     newFact->AdjustPredicate(outAST, calculation);
 
-    // Now try to track all aliasing
+    // Now try to track all aliasing.
+    // Currently, all variables in the slice are presented as an AST 
+    // consists of input variables to the slice (the variables that 
+    // we do not the sources of their values).
     newFact->TrackAlias(DeepCopyAnAST(calculation), outAST);
 
     // Apply tracking relations to the calculation to generate a
@@ -557,7 +563,6 @@ pair<AST::Ptr, bool> BoundFactsCalculator::ExpandAssignment(Assignment::Ptr assi
     parsing_printf("Expand assignment : %s Instruction: %s\n", assign->format().c_str(), assign->insn()->format().c_str());
     if (expandCache.find(assign) != expandCache.end()) {
         AST::Ptr ast = expandCache[assign];
-//	if (ast) return make_pair(DeepCopyAnAST(ast), true); else return make_pair(ast, false);
         if (ast) return make_pair(ast, true); else return make_pair(ast, false);
 
     } else {
@@ -565,7 +570,6 @@ pair<AST::Ptr, bool> BoundFactsCalculator::ExpandAssignment(Assignment::Ptr assi
 	if (expandRet.second && expandRet.first) {
 	    parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
 	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, assign->insn()->size());
-	    //expandCache[assign] = DeepCopyAnAST(expandRet.first);
 	    expandCache[assign] = calculation;
 	} else {
 	    expandCache[assign] = AST::Ptr();

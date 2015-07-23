@@ -310,15 +310,13 @@ class Slicer {
   struct SliceFrame {
     SliceFrame(
         Location const& l,
-        Context const& c,
-	bool f)
+        Context const& c)
       : loc(l),
         con(c),
-        valid(true),
-	firstCond(f)
+        valid(true)
     { }
-    SliceFrame() : valid(true), firstCond(true) { }
-    SliceFrame(bool v) : valid(v), firstCond(true) { }
+    SliceFrame() : valid(true) { }
+    SliceFrame(bool v) : valid(v) { }
 
     // Active slice nodes -- describe regions
     // that are currently under scrutiny
@@ -328,7 +326,6 @@ class Slicer {
     Location loc;
     Context con;
     bool valid;
-    bool firstCond;
 
     Address addr() const { return loc.addr(); }
   };

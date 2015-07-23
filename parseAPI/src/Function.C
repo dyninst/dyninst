@@ -532,7 +532,6 @@ Function::tampersStack(bool recalculate)
         _tamper = TAMPER_NONE;
         return _tamper;
     }
-	bool i = _cache_valid;
     // this is above the cond'n below b/c it finalizes the function, 
     // which could in turn call this function
     Function::const_blocklist retblks(returnBlocks());

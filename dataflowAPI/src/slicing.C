@@ -152,10 +152,6 @@ Slicer::sliceInternal(
     Direction dir,
     Predicates &p)
 {
-    static clock_t sliceInternalTime = 0, 
-                   recursiveSliceTime = 0,
-		   t, t0;
-//    t = clock();
     Graph::Ptr ret;
     SliceNode::Ptr aP;
     SliceFrame initFrame;
@@ -205,12 +201,6 @@ Slicer::sliceInternal(
     promotePlausibleNodes(ret, dir); 
 
     cleanGraph(ret);
-//    sliceInternalTime += clock() - t;
-   
-//    fprintf(stderr, "sliceInternal: %.3lf\n", (float)sliceInternalTime / CLOCKS_PER_SEC);
-//    fprintf(stderr, "recursiveSlice: %.3lf\n", (float)recursiveSliceTime / CLOCKS_PER_SEC);
-
-//    fprintf(stderr, "visited: %d, in slice %d, entry visited %d %d\n", cache.size(), ret->size(), cache.find(f_->addr()) != cache.end() , cache.find(f_->entry()->last()) != cache.end());
     return ret;
 }
 
@@ -270,6 +260,11 @@ void Slicer::sliceInternalAux(
         slicing_printf("\t\t candidate %d is at %lx, %ld active\n",
                        i,f.addr(),f.active.size());
 
+        // If the analysis that uses the slicing can stop for 
+	// analysis specifc reasons on a path, the cache
+	// may or may not contain the complete dependence for a
+	// visited edge. The analysis should decide whether to use
+	// the cache or not.
         if (p.useCache() && visited.find(e) != visited.end()) {
             // attempt to resolve the current active set
             // via cached values from down-slice, eliminating
@@ -376,10 +371,6 @@ bool Slicer::updateAndLink(
     DefCache& cache,
     Predicates &p)
 {
-    static clock_t updateAndLinkTime = 0, 
-                   convertInsnTime = 0,
-		   t,tc;
-//    t = clock();
 
     vector<Assignment::Ptr> assns;
     vector<bool> killed;
@@ -395,7 +386,6 @@ bool Slicer::updateAndLink(
     else
         insn = cand.loc.rcurrent->first;
 
-//    tc = clock();
     convertInstruction(insn,cand.addr(),cand.loc.func, cand.loc.block, assns);
     // iterate over assignments and link matching elements.
     for(unsigned i=0; i<assns.size(); ++i) {
@@ -414,8 +404,6 @@ bool Slicer::updateAndLink(
     }
 
     if(!change && matches.empty()) {// no change -- nothing killed, nothing added
-//        updateAndLinkTime += clock() - t;
-//	fprintf(stderr, "updateAndLink: %.3lf\n", (float)updateAndLinkTime / CLOCKS_PER_SEC);
         return true;
     }
 
@@ -456,9 +444,6 @@ bool Slicer::updateAndLink(
           cand.active[matches[i].reg].push_back(matches[i]);
        }
     }
-//    updateAndLinkTime += clock() - t;
-//    fprintf(stderr, "updateAndLink: %.3lf\n", (float)updateAndLinkTime / CLOCKS_PER_SEC);
-
     return true;
 }
 
@@ -761,16 +746,12 @@ Slicer::getPredecessors(
     SliceFrame const& cand,
     vector<SliceFrame> & newCands)
 {
-    static clock_t getPredecessorsIntraTime = 0, 
-                   getPredecessorsInterTime = 0,
-		   t;
-//    t = clock();
     InsnVec::reverse_iterator prev = cand.loc.rcurrent;
     ++prev;
 
     // Case 1: intra-block
     if(prev != cand.loc.rend) {
-        SliceFrame nf(cand.loc,cand.con, cand.firstCond);
+        SliceFrame nf(cand.loc,cand.con);
         nf.loc.rcurrent = prev;
 
         // Slightly more complicated than the forward case; check
@@ -805,8 +786,6 @@ Slicer::getPredecessors(
     
             newCands.push_back(nf);
         }
-//	getPredecessorsIntraTime += clock() - t;
-//	fprintf(stderr, "getPredecessors (intra): %.3lf\n", (float)getPredecessorsIntraTime / CLOCKS_PER_SEC);
         return true;
     }
 
@@ -828,8 +807,6 @@ Slicer::getPredecessors(
 				    boost::ref(err),
 				    boost::ref(nf)
 				    ));
-//    getPredecessorsInterTime += clock() - t;
-//    fprintf(stderr, "getPredecessors (inter): %.3lf\n", (float)getPredecessorsInterTime / CLOCKS_PER_SEC);
 
     return !err; 
 }
@@ -1090,44 +1067,11 @@ Slicer::handleReturnDetails(
     shiftAllAbsRegions(cur,-1*stack_depth,cur.con.front().func);
 }
 
-static bool IsEqualCondJump(ParseAPI::Block *b) {
-    InstructionAPI::Instruction::Ptr insn = b->getInsn(b->last());
-    entryID id = insn->getOperation().getID();
-    if (id == e_jz || id == e_jnz) return true;
-    return false;
-}
-
 static bool EndsWithConditionalJump(ParseAPI::Block *b) {
     bool cond = false;
-//    if (IsEqualCondJump(b)) return false;
     for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit)
         if ((*eit)->type() == COND_TAKEN) cond = true;
     return cond;
-}
-
-static void DFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visit, ParseAPI::Edge *ban, set<ParseAPI::Block*> &targets) {
-    if (visit.find(cur) != visit.end()) return;    
-    visit.insert(cur);
-    targets.erase(cur);
-    if (targets.empty()) return;
-    for (auto eit = cur->targets().begin(); eit != cur->targets().end(); ++eit)
-        if ((*eit) != ban && (*eit)->type() != CALL && (*eit)->type() != RET)
-	    DFS((*eit)->trg(), visit, ban, targets);
-}
-bool Slicer::ReachableFromBothBranches(ParseAPI::Edge *e, vector<Element> &newE) {
-    static clock_t t1 = 0, t2;
-//    t2 = clock();
-
-    ParseAPI::Block *start;
-    start = e->src();
-    set<ParseAPI::Block*> visited , targets;
-    for (auto eit = newE.begin(); eit != newE.end(); ++eit)
-        targets.insert(eit->block);
-    DFS(start, visited, e, targets);
-//    t1 += clock() - t2;
-//    fprintf(stderr, "check control flow dependency %.3lf\n", (float)t1 / CLOCKS_PER_SEC);
-//    fprintf(stderr, "%d %d\n", visited.size(), targets.size());
-    return targets.empty();
 }
 
 
@@ -1145,29 +1089,16 @@ Slicer::handleDefault(
     } else {
         cur.loc.block = e->src();
         getInsnsBackward(cur.loc);
-	if ((true || cur.firstCond) && EndsWithConditionalJump(e->src())) {
+	// We only track control flow dependencies when the user wants to
+	if (p.searchForControlFlowDep() && EndsWithConditionalJump(e->src())) {
 	    vector<Element> newE;	 
-	    
 	    for (auto ait = cur.active.begin(); ait != cur.active.end(); ++ait) {	        
 	        newE.insert(newE.end(), ait->second.begin(), ait->second.end());
-	    }	    
-/*
-            for (auto ait = cur.active.begin(); ait != cur.active.end(); ++ait) {
-	        vector<Element> & oldE = ait->second; 
-		for (auto oit = oldE.begin(); oit != oldE.end(); ++oit)
-		    if (!f_->postDominates(oit->block, cur.loc.block)) newE.push_back(*oit);
-	    }
-*/	    
-//	    if (!ReachableFromBothBranches(e, newE)) {
-//            if (!newE.empty()) {    
-	    if (p.searchForControlFlowDep()) {
-	        if (cur.loc.block->obj()->cs()->getAddressWidth() == 8)
-		    cur.active[AbsRegion(Absloc(x86_64::rip))] = newE;
-		else if  (cur.loc.block->obj()->cs()->getAddressWidth() == 4)
-		    cur.active[AbsRegion(Absloc(x86::eip))] = newE;
-	    }
-
-	    cur.firstCond = false;
+	    }	
+	    if (cur.loc.block->obj()->cs()->getAddressWidth() == 8)
+	        cur.active[AbsRegion(Absloc(x86_64::rip))] = newE;
+	    else if  (cur.loc.block->obj()->cs()->getAddressWidth() == 4)
+	        cur.active[AbsRegion(Absloc(x86::eip))] = newE;
   	    slicing_printf("\tadding tracking ip for control flow information ");
 	}
     }
@@ -1210,7 +1141,7 @@ Slicer::handleCallBackward(
         ParseAPI::Function * f = (*mit).first;
         SliceFrame::ActiveMap & act = (*mit).second;
     
-        SliceFrame nf(cand.loc,cand.con, cand.firstCond);
+        SliceFrame nf(cand.loc,cand.con);
         nf.active = act;
 
         nf.con.push_back(ContextElement(f));
@@ -1434,8 +1365,6 @@ Slicer::Slicer(Assignment::Ptr a,
   a_(a),
   b_(block),
   f_(func),
-  // Xiaozhu: Temporarily disable stackanalysis, should be able to
-  // specify it 
   converter(cache, stackAnalysis) {
   df_init_debug();
 };

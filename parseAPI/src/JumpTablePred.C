@@ -180,15 +180,11 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 }
 
 
-bool JumpTablePred::endAtPoint(AssignmentPtr ap) {
-//        if (ap->insn()->writesMemory()) return true;
-	return false;
-}
 bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
     if (currentAssigns.size() > 30) return false; 
     // For flags, we only analyze zf
-    if (ap->out().absloc().type() == Absloc::Register && ap->out().absloc().reg().regClass() == x86::FLAG &&
+    if (ap->out().absloc().type() == Absloc::Register && ap->out().absloc().reg().regClass() == (unsigned int)x86::FLAG &&
        ap->out().absloc().reg() != x86::zf && ap->out().absloc().reg() != x86_64::zf) {
 	return true;
     }
@@ -197,7 +193,7 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 
     currentAssigns.insert(ap);
 
-    //fprintf(stderr, "Adding assignment %s in instruction %s at %lx, total %d\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr(), currentAssigns.size());
+    parsing_printf("Adding assignment %s in instruction %s at %lx, total %d\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr(), currentAssigns.size());
 
     if (!expandRet.second || expandRet.first == NULL) return true;
 
@@ -219,6 +215,9 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 	    readAST.push_back(expandRet.first);
 	}
     }
+    // I really do not want to redo the analysis from scratch,
+    // but it seems like with newly added edges and nodes,
+    // it is necessary to redo.
 
     // We create the CFG based on the found nodes
     GraphPtr g = BuildAnalysisGraph(visitedEdges);
@@ -230,14 +229,10 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
     bool ijt = IsJumpTable(g, bfc, target);
     if (ijt) {
         bool ret = !FillInOutEdges(target, outEdges) || outEdges.empty();
+	// Now we have stopped slicing in advance, so the cache contents are not complete any more.
 	if (!ret) setCache(false);
-	//	fprintf(stderr, "Return %s\n", ret ? "true" : "false");
-//	if (dyn_debug_parsing) exit(0);
         return ret;
     } else {
-//        fprintf(stderr, "Return true\n");
-//	if (dyn_debug_parsing) exit(0);
-
         return true;
     }	
 
@@ -368,7 +363,6 @@ bool JumpTablePred::MatchReadAST(Assignment::Ptr a) {
 pair<AST::Ptr, bool> JumpTablePred::ExpandAssignment(Assignment::Ptr assign) {
     if (expandCache.find(assign) != expandCache.end()) {
         AST::Ptr ast = expandCache[assign];
-//	if (ast) return make_pair(DeepCopyAnAST(ast), true); else return make_pair(ast, false);
         if (ast) return make_pair(ast, true); else return make_pair(ast, false);
 
     } else {
@@ -377,7 +371,6 @@ pair<AST::Ptr, bool> JumpTablePred::ExpandAssignment(Assignment::Ptr assign) {
 parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
 
 	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, assign->insn()->size());
-	    //expandCache[assign] = DeepCopyAnAST(expandRet.first);
 	    expandCache[assign] = calculation;
 	} else {
 	    expandCache[assign] = AST::Ptr();
