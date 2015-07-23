@@ -488,8 +488,8 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
 
    depth_frame = cur_frame;
 
-   sw_printf("======================\n");
    result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
+   //result = dinfo->getRegValueAtFrame(pc, Dyninst::aarch64::x30,
                                       ret_value, this, frame_error);
 
    if (!result && frame_error == FE_No_Frame_Entry && isVsyscallPage) {
@@ -511,7 +511,6 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    Dyninst::MachRegister frame_reg;
    frame_reg = Dyninst::aarch64::x29;
 
-   sw_printf("======================\n");
    result = dinfo->getRegValueAtFrame(pc, frame_reg,
                                       frame_value, this, frame_error);
    if (!result) {
@@ -521,8 +520,6 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    }
    location_t fp_loc = getLastComputedLocation(frame_value);
 
-   sw_printf("======================\n");
-   //result = dinfo->getRegValueAtFrame(pc, Dyninst::aarch64::sp,
    result = dinfo->getRegValueAtFrame(pc, Dyninst::FrameBase,
                                       stack_value, this, frame_error);
    if (!result) {

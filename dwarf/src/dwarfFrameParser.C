@@ -482,6 +482,7 @@ bool DwarfFrameParser::getDwarfReg(Dyninst::MachRegister reg,
       Dwarf_Cie cie;
       int result = dwarf_get_cie_of_fde(fde, &cie, &err);
       if (result != DW_DLV_OK) {
+          dwarf_printf("ARM-ERROR: bad return value.\n");
          err_result = FE_Bad_Frame_Data;
          return false;
       }
@@ -490,6 +491,7 @@ bool DwarfFrameParser::getDwarfReg(Dyninst::MachRegister reg,
       result = dwarf_get_cie_info(cie, &bytes_in_cie, NULL, NULL, NULL, NULL,
                                   &dwarf_reg, NULL, NULL, &err);
       if (result != DW_DLV_OK) {
+          dwarf_printf("ARM-ERROR: bad return value.\n");
          err_result = FE_Bad_Frame_Data;
          return false;
       }
@@ -527,7 +529,10 @@ bool DwarfFrameParser::handleExpression(Address pc,
          break;
       case DW_FRAME_SAME_VAL:
 	dwarf_printf("\t Getting %s\n", origReg.name().c_str());
-
+#if defined(arch_aarch64)
+         if(origReg == Dyninst::ReturnAddr)
+             origReg = Dyninst::aarch64::x30;
+#endif
          cons.readReg(origReg);
          done = true;
          break;
