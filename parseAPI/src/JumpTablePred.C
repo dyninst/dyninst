@@ -230,7 +230,7 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
     if (ijt) {
         bool ret = !FillInOutEdges(target, outEdges) || outEdges.empty();
 	// Now we have stopped slicing in advance, so the cache contents are not complete any more.
-	if (!ret) setCache(false);
+	if (!ret) setClearCache(true);
         return ret;
     } else {
         return true;

@@ -231,6 +231,13 @@ void Slicer::sliceInternalAux(
         if (!updateAndLink(g,dir,cand, mydefs, p)) return;
 	    slicing_printf("\t\tfinished udpateAndLink, active.size: %ld\n",
                        cand.active.size());
+        // If the analysis that uses the slicing can stop for 
+	// analysis specifc reasons on a path, the cache
+	// may or may not contain the complete dependence for a
+	// visited edge. The analysis should decide whether to use
+	// the cache or not.
+
+        if (p.performCacheClear()) cache.clear();
     }
 
     if (cand.active.empty()) {
@@ -260,12 +267,7 @@ void Slicer::sliceInternalAux(
         slicing_printf("\t\t candidate %d is at %lx, %ld active\n",
                        i,f.addr(),f.active.size());
 
-        // If the analysis that uses the slicing can stop for 
-	// analysis specifc reasons on a path, the cache
-	// may or may not contain the complete dependence for a
-	// visited edge. The analysis should decide whether to use
-	// the cache or not.
-        if (p.useCache() && visited.find(e) != visited.end()) {
+        if (visited.find(e) != visited.end()) {
             // attempt to resolve the current active set
             // via cached values from down-slice, eliminating
             // those elements of the active set that can be

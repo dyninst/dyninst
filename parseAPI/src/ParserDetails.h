@@ -62,6 +62,20 @@ class ParseWorkBundle;
 class ParseWorkElem
 {
  public:
+    /*
+     * NOTE: The order of elements in this enum is critical to parsing order.
+     * The earier an element appear in the enum, the sooner the corresponding 
+     * edges are going to be parsed.
+     *
+     * The general rules are to first parse direct edges, then indirect edges;
+     * first parse intraprocedural edges, then interprocedural edges.
+     * The intuitions of the rules are that resolving jump tables and
+     * identifying tail calls work better when we have a better knowledge of this function. 
+     *
+     * Please make sure to update this comment 
+     * if you change the order of the things appearing in the enum
+     *
+     */
     enum parse_work_order {
         seed_addr = 0,
         ret_fallthrough, /* conditional returns */
