@@ -800,16 +800,16 @@ Slicer::getPredecessors(
     const Block::edgelist & sources = cand.loc.block->sources();
     std::for_each(boost::make_filter_iterator(epred, sources.begin(), sources.end()),
 		  boost::make_filter_iterator(epred, sources.end(), sources.end()),
-		  boost::bind<void>(&Slicer::handlePredecessorEdge,
-				    this,
-				    _1,
-				    boost::ref(p),
-				    boost::ref(cand),
-				    boost::ref(newCands),
-				    boost::ref(err),
-				    boost::ref(nf)
-				    ));
-
+		  boost::bind(&Slicer::handlePredecessorEdge,
+			      this,
+			      _1,
+			      boost::ref(p),
+			      boost::ref(cand),
+			      boost::ref(newCands),
+			      boost::ref(err),
+			      boost::ref(nf)
+			      ));
+   
     return !err; 
 }
 
@@ -1864,7 +1864,7 @@ Slicer::DefCache::print() const {
 // merges all single caches that have occured single addr in the
 // recursion into the appropriate unified caches.
 void Slicer::mergeRecursiveCaches(std::map<Address, DefCache>& single, 
-                                  std::map<Address, DefCache>& unified, Address addr) {
+                                  std::map<Address, DefCache>& unified, Address) {
 
 
     for (auto first = addrStack.rbegin(), last = addrStack.rend();
