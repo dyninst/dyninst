@@ -30,3 +30,9 @@ Address high()
 bool contains(Address addr)
 \end{apient}
 \apidesc{Returns {\scshape true} if $\code{addr} \in [\code{low()},\code{high()})$, {\scshape false} otherwise.}
+
+\begin{apient}
+virtual bool wasUserAdded() const
+\end{apient}
+\apidesc{Return {\scshape true} if this region was added by the user, {\scshape
+false} otherwise.}

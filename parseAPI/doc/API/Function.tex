@@ -14,6 +14,7 @@ HINT & specified in CodeSource hints \\
 GAP & speculative parsing heuristics \\
 GAPRT & recursive traversal from speculative parse \\
 ONDEMAND & dynamically discovered at runtime \\
+MODIFICATION & Added via user modification \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -34,7 +35,10 @@ RETURN & may return \\
 \end{center}
 
 \begin{apient}
-typedef std::vector<Block*> blocklist
+typedef boost::transform_iterator<selector, blockmap::iterator> bmap_iterator
+typedef boost::transform_iterator<selector, blockmap::const_iterator> bmap_const_iterator
+typedef boost::iterator_range<bmap_iterator> blocklist
+typedef boost::iterator_range<bmap_const_iterator> const_blocklist
 typedef std::set<Edge*> edgelist
 \end{apient}
 \apidesc{Containers for block and edge access. Library users \emph{must not} rely on the underlying container type of std::set/std::vector lists, as it is subject to change.}

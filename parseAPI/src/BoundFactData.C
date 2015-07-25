@@ -601,7 +601,7 @@ void BoundValue::Invert() {
 
 }
 
-static bool IsInReadOnlyRegion(Block *, Address low, Address high) {	
+static bool IsInReadOnlyRegion(Block *b, Address low, Address high) {	
 #if defined(os_windows)
     low -= b->obj()->cs()->loadAddress();
     high -= b->obj()->cs()->loadAddress();

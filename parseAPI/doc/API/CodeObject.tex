@@ -168,6 +168,17 @@ void finishCallbackBatch()
 \apidesc{Completes all callbacks in the current batch.}
 
 \begin{apient}
+void registerCallback(ParseCallback *cb);
+\end{apient}
+\apidesc{Register a callback \code{cb}}
+
+\begin{apient}
+void unregisterCallback(ParseCallback *cb);
+\end{apient}
+\apidesc{Unregister an existing callback \code{cb}}
+
+
+\begin{apient}
 void finalize()
 \end{apient}
 \apidesc{Force complete parsing of the CodeObject; parsing operations are otherwise completed only as needed to answer queries.}
