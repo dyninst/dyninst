@@ -158,6 +158,13 @@ void set_retstatus(FuncReturnStatus rs)
 \apidesc{Set the return status for the function to \code{rs}.}
 
 \begin{apient}
+bool contains(Block *b)
+\end{apient}
+\apidesc{Return true if this function contains the given block \code{b};
+otherwise false.}
+
+
+\begin{apient}
 void removeBlock(Block *)
 \end{apient}
 \apidesc{Remove a basic block from the function.}

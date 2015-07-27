@@ -17,6 +17,12 @@ virtual bool nonReturning(std::string func_name)
 \apidesc{Looks up whether a function returns (by name or location). This information may be statically known for some code sources, and can lead to better parsing accuracy.}
 
 \begin{apient}
+virtual bool nonReturningSyscall(int /*number*/)
+\end{apient}
+\apidesc{Looks up whether a system call returns (by system call number). This information may be statically known for some code sources, and can lead to better parsing accuracy.}
+
+
+\begin{apient}
 virtual Address baseAddress()
 virtual Address loadAddress()
 \end{apient}
