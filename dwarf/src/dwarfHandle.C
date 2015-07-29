@@ -39,6 +39,17 @@ using namespace Dyninst;
 using namespace Dwarf;
 using namespace std;
 
+// Add definitions that may not be in all elf.h files
+#if !defined(EM_K10M)
+#define EM_K10M 180
+#endif
+#if !defined(EM_L10M)
+#define EM_L10M 181
+#endif
+#if !defined(EM_AARCH64)
+#define EM_AARCH64 183
+#endif
+
 void DwarfHandle::defaultDwarfError(Dwarf_Error , Dwarf_Ptr) {
 
 }
@@ -127,6 +138,8 @@ bool DwarfHandle::init_dbg()
          arch = Arch_x86;
          break;
       case EM_X86_64:
+      case EM_K10M:
+      case EM_L10M:
          arch = Arch_x86_64;
          break;
       case EM_PPC:
@@ -135,15 +148,12 @@ bool DwarfHandle::init_dbg()
       case EM_PPC64:
          arch = Arch_ppc64;
          break;
-	  //steve: added, defination found: /usr/include/linux/elf-em.h
-	  case EM_ARM:
-		 arch = Arch_aarch32;
-		 break;
-#if defined(arch_aarch64)
+      case EM_ARM:
+	  arch = Arch_aarch32;
+	  break;
       case EM_AARCH64:
       		arch = Arch_aarch64;
          	break;
-#endif
       default:
          assert(0 && "Unsupported archiecture in ELF file.");
 	 return false;
