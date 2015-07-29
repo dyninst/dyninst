@@ -302,7 +302,7 @@ DebugStepperImpl::~DebugStepperImpl()
 {
 }
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(arch_x86) || defined(arch_x86_64) || defined(arch_aarch64)
 gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                                                    Frame &out, DwarfFrameParser::Ptr dinfo,
                                                    bool isVsyscallPage)

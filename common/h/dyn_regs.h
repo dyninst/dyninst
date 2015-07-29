@@ -108,6 +108,7 @@ namespace Dyninst
         void getROSERegister(int &c, int &n, int &p);
 
         static MachRegister DwarfEncToReg(int encoding, Dyninst::Architecture arch);
+        static MachRegister getArchRegFromAbstractReg(MachRegister abstract, Dyninst::Architecture arch);
         int getDwarfEnc() const;
 
         static MachRegister getArchReg(unsigned int regNum, Dyninst::Architecture arch);
