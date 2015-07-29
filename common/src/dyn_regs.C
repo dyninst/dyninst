@@ -377,6 +377,26 @@ MachRegister MachRegister::getSyscallReturnValueReg(Dyninst::Architecture arch)
     return InvalidReg;
 }
 
+MachRegister MachRegister::getArchRegFromAbstractReg(MachRegister abstract,
+        Dyninst::Architecture arch) {
+    switch(arch){
+        case Arch_aarch64:
+            if( abstract == ReturnAddr)
+                    return aarch64::x30;
+            if( abstract == FrameBase)
+                    return aarch64::x29;
+            if( abstract == StackTop)
+                    return aarch64::sp;
+            if( abstract == CFA)
+                assert(0); //don't know what to do
+            //not abstract, return arch reg
+            return abstract;
+        default:
+            assert(0);
+    }
+    return Dyninst::InvalidReg;
+}
+
 bool MachRegister::isPC() const
 {
    return (*this == x86_64::rip || *this == x86::eip ||

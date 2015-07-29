@@ -530,8 +530,9 @@ bool DwarfFrameParser::handleExpression(Address pc,
       case DW_FRAME_SAME_VAL:
 	dwarf_printf("\t Getting %s\n", origReg.name().c_str());
 #if defined(arch_aarch64)
-         if(origReg == Dyninst::ReturnAddr)
-             origReg = Dyninst::aarch64::x30;
+         //if(origReg == Dyninst::ReturnAddr)
+         //    origReg = Dyninst::aarch64::x30;
+         origReg = MachRegister::getArchRegFromAbstractReg(origReg, arch);
 #endif
          cons.readReg(origReg);
          done = true;
