@@ -167,29 +167,16 @@ using namespace abi;
 char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
 				bool includeTypes )
 {
-  static char* last_symbol = NULL, *last_typed = NULL, *last_pretty = NULL;
+  static char* last_symbol = NULL;
+  static bool last_native = false;
+  static bool last_typed = false;
+  static char* last_demangled = NULL;
 
-  if(last_symbol && (strcmp(symbol, last_symbol) == 0))
+  if(last_symbol && last_demangled && (nativeCompiler == last_native)
+      && (includeTypes == last_typed) && (strcmp(symbol, last_symbol) == 0))
   {
-    if(includeTypes && last_typed)
-    {
-      return strdup(last_typed);
-    }
-    else if(last_pretty)
-    {
-      return strdup(last_pretty);
-    }
+      return strdup(last_demangled);
   }
-
-
-
-   int opts = 0;
-   opts |= includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0;
-   //   [ pgcc/CC are the "native" compilers on Linux. Go figure. ]
-   // pgCC's mangling scheme most closely resembles that of the Annotated
-   // C++ Reference Manual, only with "some exceptions" (to quote the PGI
-   // documentation). I guess we'll demangle names with "some exceptions".
-   opts |= nativeCompiler ? DMGL_ARM : 0;
 
 #if defined(cap_gnu_demangler)
    int status;
@@ -204,14 +191,18 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
    }
    assert(status == 0); //Success
 #else
+   int opts = 0;
+   opts |= includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0;
+   //   [ pgcc/CC are the "native" compilers on Linux. Go figure. ]
+   // pgCC's mangling scheme most closely resembles that of the Annotated
+   // C++ Reference Manual, only with "some exceptions" (to quote the PGI
+   // documentation). I guess we'll demangle names with "some exceptions".
+   opts |= nativeCompiler ? DMGL_ARM : 0;
    char * demangled = cplus_demangle( const_cast< char *>(symbol), opts);
 #endif
+
    if( demangled == NULL ) { return NULL; }
-   free(last_typed);
-   free(last_symbol);
-   free(last_pretty);
-   last_symbol = strdup(symbol);
-   last_typed = strdup(demangled);
+
    if( ! includeTypes ) {
         /* de-demangling never increases the length */
         char * dedemangled = strdup( demangled );
@@ -220,10 +211,16 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
         assert( dedemangled != NULL );
 
         free( demangled );
-	last_pretty = strdup(dedemangled);
-        return dedemangled;
-        }
-   last_pretty = NULL;
+        demangled = dedemangled;
+   }
+
+   free(last_symbol);
+   free(last_demangled);
+   last_native = nativeCompiler;
+   last_typed = includeTypes;
+   last_symbol = strdup(symbol);
+   last_demangled = strdup(demangled);
+
    return demangled;
 } /* end P_cplus_demangle() */
 
