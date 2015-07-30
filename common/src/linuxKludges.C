@@ -41,9 +41,49 @@
 #include <algorithm>
 #include <sys/types.h>
 #include <sys/ptrace.h>
+#include <sys/syscall.h>
+#include <sys/uio.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <string.h>
+
+
+/**** process_vm_readv / process_vm_writev
+ * Added in kernel 3.2 and some backports -- try it and check ENOSYS.
+ * The wrappers are defined in glibc 2.15, otherwise make our own.
+ */
+#if !__GLIBC_PREREQ(2,15)
+
+static ssize_t process_vm_readv(pid_t pid,
+    const struct iovec *local_iov, unsigned long liovcnt,
+    const struct iovec *remote_iov, unsigned long riovcnt,
+    unsigned long flags)
+{
+#ifdef SYS_process_vm_readv
+  return syscall(SYS_process_vm_readv,
+      pid, local_iov, liovcnt, remote_iov, riovcnt, flags);
+#else
+  errno = ENOSYS;
+  return -1;
+#endif
+}
+
+static ssize_t process_vm_writev(pid_t pid,
+    const struct iovec *local_iov, unsigned long liovcnt,
+    const struct iovec *remote_iov, unsigned long riovcnt,
+    unsigned long flags)
+{
+#ifdef SYS_process_vm_writev
+  return syscall(SYS_process_vm_writev,
+      pid, local_iov, liovcnt, remote_iov, riovcnt, flags);
+#else
+  errno = ENOSYS;
+  return -1;
+#endif
+}
+
+#endif /* !__GLIBC_PREREQ(2,15) */
+
 
 typedef int (*intKludge)();
 
@@ -224,16 +264,44 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
    return demangled;
 } /* end P_cplus_demangle() */
 
-bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid)
+bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid)
 {
+   static bool have_process_vm_readv = true;
+
    const unsigned char *ap = (const unsigned char*) inTraced;
-   unsigned char *dp = (unsigned char *) const_cast<void *>(inSelf);
+   unsigned char *dp = (unsigned char *) inSelf;
    Address w = 0x0;               /* ptrace I/O buffer */
    int len = sizeof(void *);
    unsigned cnt;
 
    if (0 == size) {
       return true;
+   }
+
+   /* If process_vm_readv is available, we may be able to read it all in one syscall. */
+   if (have_process_vm_readv) {
+      struct iovec local_iov = { inSelf, size };
+      struct iovec remote_iov = { (void*)inTraced, size };
+      ssize_t ret = process_vm_readv(pid, &local_iov, 1, &remote_iov, 1, 0);
+      if (ret == -1) {
+         if (errno == ENOSYS) {
+            have_process_vm_readv = false;
+         } else if (errno == EFAULT) {
+            /* Could be a no-read page -- ptrace may be allowed to
+             * peek anyway, so fallthrough and let ptrace try.  */
+         } else {
+            fprintf(stderr, "[%s:%d]ERROR: process_vm_readv failed!\n", FILE__, __LINE__);
+            fprintf(stderr, "ERROR: %s\n", strerror(errno) );
+            return false;
+         }
+      } else if (ret < size) {
+         /* partial reads won't split an iovec, but we only have one... huh?! */
+         fprintf(stderr, "[%s:%d]ERROR: process_vm_readv incomplete!\n", FILE__, __LINE__);
+         fprintf(stderr, "ERROR: only %zi bytes of %u copied!\n", ret, size );
+         return false;
+      } else {
+         return true;
+      }
    }
 
    cnt = inTraced % len;
@@ -299,6 +367,8 @@ bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid
 bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
                      const void *inSelf, int pid)
 {
+   static bool have_process_vm_writev = true;
+
    unsigned char *ap = (unsigned char*) inTraced;
    const unsigned char *dp = (const unsigned char*) inSelf;
    Address w = 0x0;               /* ptrace I/O buffer */
@@ -307,6 +377,32 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
 
    if (0 == nbytes) {
       return true;
+   }
+
+   /* If process_vm_writev is available, we may be able to write it all in one syscall. */
+   if (have_process_vm_writev) {
+      struct iovec local_iov = { const_cast<void*>(inSelf), nbytes };
+      struct iovec remote_iov = { (void*)inTraced, nbytes };
+      ssize_t ret = process_vm_writev(pid, &local_iov, 1, &remote_iov, 1, 0);
+      if (ret == -1) {
+         if (errno == ENOSYS) {
+            have_process_vm_writev = false;
+         } else if (errno == EFAULT) {
+            /* Could be a read-only page -- ptrace may be allowed to
+             * poke anyway, so fallthrough and let ptrace try.  */
+         } else {
+            fprintf(stderr, "[%s:%d]ERROR: process_vm_writev failed!\n", FILE__, __LINE__);
+            fprintf(stderr, "ERROR: %s\n", strerror(errno) );
+            return false;
+         }
+      } else if (ret < nbytes) {
+         /* partial writes won't split an iovec, but we only have one... huh?! */
+         fprintf(stderr, "[%s:%d]ERROR: process_vm_writev incomplete!\n", FILE__, __LINE__);
+         fprintf(stderr, "ERROR: only %zi bytes of %u copied!\n", ret, nbytes );
+         return false;
+      } else {
+         return true;
+      }
    }
 
    if ((cnt = ((Address)ap) % len)) {
