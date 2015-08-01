@@ -67,10 +67,16 @@ class ParseWorkElem
      * The earier an element appear in the enum, the sooner the corresponding 
      * edges are going to be parsed.
      *
-     * The general rules are to first parse direct edges, then indirect edges;
-     * first parse intraprocedural edges, then interprocedural edges.
-     * The intuitions of the rules are that resolving jump tables and
-     * identifying tail calls work better when we have a better knowledge of this function. 
+     * 1. Our current implementation of non-returning function analysis 
+     * WORK IFF call is prioritized over call_fallthrough.
+     *
+     * 2. We have a tail call heuristics that a jump to its own block is not a tail call.
+     * For this heuristics to be more effective, we want to traverse 
+     * certain intraprocedural edges such as call_fallthrough and cond_not_taken
+     * over potential tail call edges such as cond_taken, br_direct, and br_indirect.
+     *
+     * 3. Jump table analysis would like to have as much intraprocedural control flow
+     * as possible to resolve an indirect jump. So resolve_jump_table is delayed.
      *
      * Please make sure to update this comment 
      * if you change the order of the things appearing in the enum
@@ -79,13 +85,13 @@ class ParseWorkElem
     enum parse_work_order {
         seed_addr = 0,
         ret_fallthrough, /* conditional returns */
+        call,
         call_fallthrough,
         cond_taken,
         cond_not_taken,
         br_direct,
         br_indirect,
         catch_block,
-        call,
         checked_call_ft,
 	resolve_jump_table, // We want to finish all possible parsing work before parsing jump tables
         __parse_work_end__
