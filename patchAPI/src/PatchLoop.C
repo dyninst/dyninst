@@ -67,7 +67,7 @@ PatchLoop::PatchLoop(PatchObject *obj, ParseAPI::Loop *loop): loop_(loop) {
     //set entries;
     vector<ParseAPI::Block*> eb;
     loop->getLoopEntries(eb);
-    for (auto bit = b.begin(); bit != b.end(); ++bit)
+    for (auto bit = eb.begin(); bit != eb.end(); ++bit)
         entries.insert(obj->getBlock(*bit));
 
 }
