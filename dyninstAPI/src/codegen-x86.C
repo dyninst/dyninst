@@ -1288,7 +1288,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
 
     unsigned newInsnSz = 0;
 
-    InstructionAPI::InstructionDecoder d2((unsigned char*)origInsn, insnSz, arch);
+    InstructionAPI::InstructionDecoder d2(origInsn, insnSz, arch);
     InstructionAPI::Instruction::Ptr origInsnPtr = d2.decode();
 
     StackAccess* origAccess;
