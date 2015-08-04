@@ -164,7 +164,7 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
                          (definedRegs[reg->encoding()] ? 1 : 0),
                          reg->offLimits);
       }
-      if (!reg->liveState == registerSlot::spilled &&
+      if (reg->liveState != registerSlot::spilled &&
           definedRegs[reg->encoding()])
       {
          regalloc_printf("[%s:%u] - Decided not to save a defined register %d. "

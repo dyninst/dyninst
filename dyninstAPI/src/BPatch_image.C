@@ -1020,7 +1020,7 @@ bool BPatch_image::parseNewFunctions(BPatch_Vector<BPatch_module*> &affectedModu
 				     const BPatch_Vector<Dyninst::Address> &funcEntryAddrs)
 {
     using namespace SymtabAPI;
-    if (!addSpace->getType() == TRADITIONAL_PROCESS) {
+    if (addSpace->getType() != TRADITIONAL_PROCESS) {
         fprintf(stderr,"%s[%d] ERROR: parseNewFunctions has only been "
                 "implemented for live processes\n", __FILE__, __LINE__);
         return false;
