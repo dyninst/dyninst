@@ -900,11 +900,11 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
       BPatch_function *f;
       for (unsigned i=0; i<points.size(); i++) {
          f = points[i]->getFunction();
-         const char *sname = f->func->prettyName().c_str();
+         const string sname = f->func->prettyName();
          inst_printf("[%s:%u] - %d. Insert instrumentation at function %s, "
                "address %p, when %d, order %d\n",
                FILE__, __LINE__, i,
-               sname, points[i]->getAddress(), (int) when, (int) order);
+               sname.c_str(), points[i]->getAddress(), (int) when, (int) order);
 
       }
   }

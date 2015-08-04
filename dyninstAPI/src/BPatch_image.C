@@ -940,10 +940,10 @@ char *BPatch_image::getProgramFileName(char *name, unsigned int len)
       strncpy(name, "<no program defined>", len);
    }
 
-   const char *imname =  aout->getAOut()->fileName().c_str();
-   if (NULL == imname) imname = "<unnamed image file>";
+   string imname =  aout->getAOut()->fileName();
+   if (imname.empty()) imname = "<unnamed image file>";
 
-   strncpy(name, imname, len);
+   strncpy(name, imname.c_str(), len);
    return name;
 }
 
