@@ -488,8 +488,8 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
             if (obj != NULL) {
                 SymtabAPI::Region* reg = 
                     obj->parse_img()->getObject()->findEnclosingRegion(addr - obj->codeBase());
-                if (reg != NULL && reg->getRegionPermissions() == SymtabAPI::Region::RP_RW
-                    || reg->getRegionPermissions() == SymtabAPI::Region::RP_RWX) {
+                if (reg != NULL && (reg->getRegionPermissions() == SymtabAPI::Region::RP_RW
+                            || reg->getRegionPermissions() == SymtabAPI::Region::RP_RWX)) {
                         // change back permissions.
                         PCProcess::PCMemPerm rights(true, true, true);
                         evProc->changeMemoryProtections(
