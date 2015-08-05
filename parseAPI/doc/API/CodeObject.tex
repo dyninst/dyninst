@@ -113,9 +113,9 @@ int findFuncs(CodeRegion * cr,
 \apidesc{Finds all functions overlapping the range \code{[start,end)} in the code region, adding each to \code{funcs}. The number of results of this stabbing query are returned.}
 
 \begin{apient}
-funclist & funcs()
+const funclist & funcs()
 \end{apient}
-\apidesc{Returns a reference to a container of all functions in the binary. Refer to Section \ref{sec:containers} for container access details.}
+\apidesc{Returns a const reference to a container of all functions in the binary. Refer to Section \ref{sec:containers} for container access details.}
 
 \begin{apient}
 Block * findBlockByEntry(CodeRegion * cr,

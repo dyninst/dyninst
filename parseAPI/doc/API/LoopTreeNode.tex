@@ -4,16 +4,18 @@ The LoopTreeNode class provides a tree interface to a collection of instances of
 Loop contained in a function. The structure of the tree 
 follows the nesting relationship of the loops in a function. 
 Each LoopTreeNode contains a pointer to a loop (represented by Loop), and a set
-of sub-loops (represented by other LoopTreeNode objects). The root 
-LoopTreeNode instance has a null loop member since a function may contain multiple outer 
-loops. The outer loops are contained in the vector of \code{children} of the root. 
+of sub-loops (represented by other LoopTreeNode objects). The \code{loop} field
+at the root node is always \code{NULL} since a function may contain multiple outer 
+loops. The \code{loop} field is never \code{NULL} at any other node since it
+always corresponds to a real loop.
+Therefore, the outer most loops in the function are contained in the vector of \code{children} of the root. 
 
 Each instance of LoopTreeNode is given a name that indicates its position in the hierarchy of loops.
 The name of each outermost loop takes the form of \code{loop\_x}, 
 where \code{x} is an integer from 1 to n,
 where n is the number of outer loops in the function.
 Each sub-loop has the name of its parent,
-followed by a \code{\_y}, where \code{y} is 1 to m, where m is the number of sub-loops under the outer loop.  
+followed by a \code{.y}, where \code{y} is 1 to m, where m is the number of sub-loops under the outer loop.  
 For example, consider the following C function:
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
@@ -38,8 +40,9 @@ void foo() {
 The \code{foo} function will have a root LoopTreeNode, containing a NULL loop entry and 
 two LoopTreeNode children representing the functions outermost loops. These children 
 would have names \code{loop\_1} and \code{loop\_2}, respectively representing the \code{x} and \code{i} loops. \code{loop\_2} has 
-no children. \code{loop\_1} has two child LoopTreeNode objects, named \code{loop\_1\_1} and 
-\code{loop\_1\_2}, respectively representing the \code{y} and \code{z} loops. 
+no children. \code{loop\_1} has two child LoopTreeNode objects, named
+\code{loop\_1.1} and 
+\code{loop\_1.2}, respectively representing the \code{y} and \code{z} loops. 
 
 \begin{apient}
 Loop *loop;

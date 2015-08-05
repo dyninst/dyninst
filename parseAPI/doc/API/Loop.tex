@@ -30,7 +30,7 @@ bool containsAddressInclusive(Address addr)
 \apidesc{Returns true if the given address is within the range of this loop's basic blocks or its children.}
 
 \begin{apient}
-int getLoopEntries(set<Block*>& entries);
+int getLoopEntries(vector<Block*>& entries);
 \end{apient}
 \apidesc{Fills \code{entries} with the set of entry basic blocks of the loop. Return the number of the entries that this loop has}
         

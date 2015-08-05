@@ -52,9 +52,9 @@ addr & Address & Entry address of the function.  \\
 entry & Block * & Entry block of the function. \\
 parsed & bool & Whether the function has been parsed. \\
 blocks & blocklist \& & List of blocks contained by this function sorted by entry address. \\
-callEdges & edgelist \& & List of outgoing call edges from this function. \\
-returnBlocks & blocklist \& & List of all blocks ending in return edges. \\
-exitBlocks & blocklist \& & List of all blocks that end the function, including blocks with no out-edges. \\
+callEdges & const edgelist \& & List of outgoing call edges from this function. \\
+returnBlocks & const\_blocklist \& & List of all blocks ending in return edges. \\
+exitBlocks & const\_blocklist \& & List of all blocks that end the function, including blocks with no out-edges. \\
 hasNoStackFrame & bool & True if the function does not create a stack frame. \\
 savesFramePointer & bool & True if the function saves a frame pointer (e.g. \%ebp). \\
 cleansOwnStack & bool & True if the function tears down stack-passed arguments upon return. \\
