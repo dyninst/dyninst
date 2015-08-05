@@ -32,7 +32,7 @@ fill=white, draw=white]
     \node [class, below of=ProgramCounter] (StackPointer) {StackPointer};
 
     % Left labels
-    \node [code, left=3cm of dots,anchor=north] (main) {void main() \{\\
+    \node [code, left=6cm of dots,anchor=north] (main) {void main() \{\\
         \hspace{1cm}int a;\\
         \hspace{1cm}foo(0);\\
         \hspace{1cm}...\\
@@ -52,41 +52,42 @@ fill=white, draw=white]
     \}
     };
 
-    % Callstack->source code labels
-    \path [line] (mainRA.west) -- ($(main.south east) + (-.75cm, 2em)$);
-    \path [line] (fooRA.west) -- ($(foo.south east) + (-1.5cm, 2em)$);
-    \path [line] (ProgramCounter.west) -- ($(bar.south east) + (0, 2em)$);
-
     % Callstack->callstack labels
-    \path [line] (mainFP.west) [bend left=20] to (dots.west);
-    \path [line] (fooFP.west) [bend left=40] to (mainFP.west);
-    \path [line] (FramePointer.west) [bend left=40] to (fooFP.west);
-    \path [line] (StackPointer.west) [bend left=40] to (d.west);
+    \path [line] (mainFP.east) [bend right=20] to (dots.east);
+    \path [line] (fooFP.east) [bend right=40] to (mainFP.east);
+    \path [line] (FramePointer.east) [bend right=40] to (fooFP.east);
+    \path [line] (StackPointer.east) [bend right=40] to (d.east);
 
     % Right labels
-    \node [code, right=3cm of dots,anchor=south] (mainFO) {main\textnormal{'s}\\ Frame Object};
+    \node [code, left=2.5cm of dots,anchor=south] (mainFO) {main\textnormal{'s}\\ Frame Object};
     \node [code, below=.25em of mainFO] (mainFPlabel) {FP};
-    \path [line] (mainFPlabel) -- (a.east);
+    \path [line] (mainFPlabel) -- (a.west);
     \node [code, below=.25em of mainFPlabel] (mainRAlabel) {RA};
-    \path [line, dashed] (mainRAlabel) -- (mainRA.east);
+    \path [line, dashed] (mainRAlabel) -- (mainRA.west);
     \node [code, below=.25em of mainRAlabel] (mainSPlabel) {SP};
-    \path [line] (mainSPlabel) -- (mainFP.east);
+    \path [line] (mainSPlabel) -- (mainFP.west);
 
     \node [code, below=2.5cm of mainFO] (fooFO) {foo\textnormal{'s}\\ Frame Object};
     \node [code, below=.25em of fooFO] (fooFPlabel) {FP};
-    \path [line] (fooFPlabel) -- (c.east);
+    \path [line] (fooFPlabel) -- (c.west);
     \node [code, below=.25em of fooFPlabel] (fooRAlabel) {RA};
-    \path [line, dashed] (fooRAlabel) -- (fooRA.east);
+    \path [line, dashed] (fooRAlabel) -- (fooRA.west);
     \node [code, below=.25em of fooRAlabel] (fooSPlabel) {SP};
-    \path [line] (fooSPlabel) -- (fooFP.east);
+    \path [line] (fooSPlabel) -- (fooFP.west);
 
     \node [code, below=2.5cm of fooFO] (barFO) {bar\textnormal{'s}\\ Frame Object};
     \node [code, below=.25em of barFO] (barFPlabel) {FP};
-    \path [line, dashed] (barFPlabel) -- (FramePointer.east);
+    \path [line, dashed] (barFPlabel) -- (FramePointer.west);
     \node [code, below=.25em of barFPlabel] (barRAlabel) {RA};
-    \path [line, dashed] (barRAlabel) -- (ProgramCounter.east);
+    \path [line, dashed] (barRAlabel) -- (ProgramCounter.west);
     \node [code, below=.25em of barRAlabel] (barSPlabel) {SP};
-    \path [line, dashed] (barSPlabel) -- (StackPointer.east);
+    \path [line, dashed] (barSPlabel) -- (StackPointer.west);
+
+    % Callstack->source code labels
+    \path [line] (mainRAlabel.west) -- ($(main.south east) + (-.75cm, 2em)$);
+    \path [line] (fooRAlabel.west) -- ($(foo.south east) + (-1.5cm, 2em)$);
+    \path [line] (barRAlabel.west) -- ($(bar.south east) + (0, 2em)$);
+
 
 \end{tikzpicture}
 
