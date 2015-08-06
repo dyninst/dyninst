@@ -35,7 +35,7 @@ bool Codegen::generatePreambleAARCH64(){
     //sub sp, sp, #48   ;#48 in decimal
     unsigned long addr = copyInt(0xd100c3ff); //#48
     pthrd_printf("generate Preamble:\n");
-    pthrd_printf("0x%8x: 0x%8x\n",addr, 0xd10403ff);
+    pthrd_printf("0x%8lx: 0x%8x\n",addr, 0xd10403ff);
     return true;
 }
 
@@ -72,7 +72,7 @@ bool Codegen::generateCallAARCH64(Address addr, const std::vector<Address> &args
             BYTE_ASSGN(_buf, i,  (uint16_t)(val>>(i*4)) )
             SWAP4BYTE(_buf, i)
             retAddr = copyInt( *(unsigned int*)(_buf+i) + regIndex);
-            pthrd_printf("0x%8x: 0x%8x\n", retAddr, *(unsigned int*)(_buf+i) + regIndex);
+            pthrd_printf("0x%8lx: 0x%8x\n", retAddr, *(unsigned int*)(_buf+i) + regIndex);
         }
         regIndex ++;
     }
@@ -83,13 +83,13 @@ bool Codegen::generateCallAARCH64(Address addr, const std::vector<Address> &args
         BYTE_ASSGN(_buf, i,  (uint16_t)(addr>>(i*4)) )
         SWAP4BYTE(_buf, i)
         retAddr = copyInt( *(unsigned int*)(_buf+i) + X8); //x8 = 8
-        pthrd_printf("0x%8x: 0x%8x\n", retAddr, *(unsigned int*)(_buf+i) + X8);
+        pthrd_printf("0x%8lx: 0x%8x\n", retAddr, *(unsigned int*)(_buf+i) + X8);
     }
 
     //blr x8
     unsigned int blrInst = 0xd63f0100 ;
     retAddr = copyInt( blrInst ); //x8 = 8
-    pthrd_printf("0x%8x: 0x%8x\n", retAddr, blrInst);
+    pthrd_printf("0x%8lx: 0x%8x\n", retAddr, blrInst);
 
     return true;
 }

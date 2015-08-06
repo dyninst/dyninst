@@ -264,8 +264,8 @@ void EmitterIA32::emitDivImm(Register dest, Register src1, RegValue src2imm, cod
       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
 
       if (src1 != dest)
-         emitMovRegToReg(src1_r, dest_r, gen);
-      emitOpExtRegImm8(0xC1, 4, dest_r, static_cast<unsigned char>(result), gen);
+         emitMovRegToReg(dest_r, src1_r, gen);
+      emitOpExtRegImm8(0xC1, 7, dest_r, static_cast<unsigned char>(result), gen);
    }
    else {
       Register src2 = gen.rs()->allocateRegister(gen, true);

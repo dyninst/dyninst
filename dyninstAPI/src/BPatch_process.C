@@ -1126,7 +1126,7 @@ BPatch_thread *BPatch_process::getThreadByIndex(unsigned index)
    return NULL;
 }
 
-bool BPatch_process::getType()
+processType BPatch_process::getType()
 {
   return TRADITIONAL_PROCESS;
 }

@@ -366,7 +366,7 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     friend class BPatch_image;
     friend class BPatch_function;
 
-    const char		*name;
+    string		name;
     BPatch_addressSpace     *appAddSpace;
     AddressSpace *lladdrSpace;
     void		*address;
@@ -380,7 +380,7 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     AddressSpace *getAS();
     // Used to get expressions for the components of a structure
     // Used to get function pointers
-    BPatch_variableExpr(char *in_name, 
+    BPatch_variableExpr(const char *in_name, 
                         BPatch_addressSpace *in_addSpace,
                         AddressSpace *as,
                         AstNodePtr ast_wrapper_,

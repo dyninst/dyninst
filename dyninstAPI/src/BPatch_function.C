@@ -929,7 +929,7 @@ char *BPatch_function::getModuleName(char *name, int maxLen) {
 BPatch_variableExpr *BPatch_function::getFunctionRef() 
 {
   Address remoteAddress = (Address)getBaseAddr();
-  char *fname = const_cast<char *>(func->prettyName().c_str());
+  string fname = func->prettyName();
 
   //  Need to figure out the type for this effective function pointer,
   //  of the form <return type> (*)(<arg1 type>, ... , <argn type>)
@@ -967,7 +967,7 @@ BPatch_variableExpr *BPatch_function::getFunctionRef()
   AstNodePtr ast(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
   
   // the variableExpr owns the ast now.
-  return new BPatch_variableExpr(fname, addSpace, lladdSpace, ast, 
+  return new BPatch_variableExpr(fname.c_str(), addSpace, lladdSpace, ast, 
                                  type, (void *) remoteAddress);
   
 

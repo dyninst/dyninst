@@ -97,7 +97,7 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     BinaryEdit *lowlevel_edit() const { return origBinEdit; }
 
     bool isMultiThreadCapable() const;
-    bool getType();
+    processType getType();
     bool getTerminated() {return false;}
     bool getMutationsActive() {return true;}
 

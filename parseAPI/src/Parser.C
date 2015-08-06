@@ -393,14 +393,8 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
 {
     ParseFrame * pf;
 
-    static int length = 0;
-
     /* Recursive traversal parsing */ 
     while(!work.empty()) {
-        if (work.size() > length) {
-	    length = work.size();
-	    printf("Length = %d\n", length);
-	}
 	
         pf = work.back();
         work.pop_back();
@@ -408,7 +402,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
         if(pf->status() == ParseFrame::PARSED)
             continue;
 
-        parse_frame(*pf,re;cursive);
+        parse_frame(*pf,recursive);
         switch(pf->status()) {
             case ParseFrame::CALL_BLOCKED: {
                 parsing_printf("[%s] frame %lx blocked at %lx\n",

@@ -244,7 +244,7 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
    return ret;
 }
 
-bool BPatch_binaryEdit::getType()
+processType BPatch_binaryEdit::getType()
 {
   return STATIC_EDITOR;
 }

@@ -940,10 +940,10 @@ char *BPatch_image::getProgramFileName(char *name, unsigned int len)
       strncpy(name, "<no program defined>", len);
    }
 
-   const char *imname =  aout->getAOut()->fileName().c_str();
-   if (NULL == imname) imname = "<unnamed image file>";
+   string imname =  aout->getAOut()->fileName();
+   if (imname.empty()) imname = "<unnamed image file>";
 
-   strncpy(name, imname, len);
+   strncpy(name, imname.c_str(), len);
    return name;
 }
 
@@ -1020,7 +1020,7 @@ bool BPatch_image::parseNewFunctions(BPatch_Vector<BPatch_module*> &affectedModu
 				     const BPatch_Vector<Dyninst::Address> &funcEntryAddrs)
 {
     using namespace SymtabAPI;
-    if (!addSpace->getType() == TRADITIONAL_PROCESS) {
+    if (addSpace->getType() != TRADITIONAL_PROCESS) {
         fprintf(stderr,"%s[%d] ERROR: parseNewFunctions has only been "
                 "implemented for live processes\n", __FILE__, __LINE__);
         return false;

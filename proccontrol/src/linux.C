@@ -305,7 +305,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                 thread ? thread->getLWP() : -1);
 
    const int status = archevent->status;
-   pthrd_printf("ARM-debug: status 0x%lx\n",status);
+   pthrd_printf("ARM-debug: status 0x%x\n",status);
    if (WIFSTOPPED(status))
    {
       const int stopsig = WSTOPSIG(status);

@@ -197,7 +197,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
   virtual ~BPatch_addressSpace();
 
   // Distinguishes between BPatch_process and BPatch_binaryEdit
-  virtual bool getType() = 0;  
+  virtual processType getType() = 0;
 
   // Returns back bools for variables that are BPatch_process member variables,
   //   the return value is hardcoded for BPatch_binaryEdit
