@@ -108,10 +108,10 @@ test_results_t test1_6_Mutator::executeTest()
 		return FAILED;
 	}
 
-	BPatch_variableExpr *expr6_1, *expr6_2, *expr6_3, *expr6_4, *expr6_5, *expr6_6,
-						*expr6_1a, *expr6_2a, *expr6_3a, *expr6_4a, *expr6_5a, *expr6_6a,
-						*constVar1, *constVar2, *constVar3, *constVar5, *constVar6,
-						*constVar10, *constVar60, *constVar64, *constVar66, *constVar67;
+	BPatch_variableExpr *expr6_1, *expr6_2, *expr6_3, *expr6_4, *expr6_5, *expr6_6, *expr6_7,
+		    *expr6_1a, *expr6_2a, *expr6_3a, *expr6_4a, *expr6_5a, *expr6_6a, *expr6_7a,
+		    *constVar1, *constVar2, *constVar3, *constVar5, *constVar6,
+		    *constVar10, *constVar60, *constVar64, *constVar66, *constVar67;
 
 	expr6_1 = findVariable(appImage, "test1_6_globalVariable1", point6_2);
 	expr6_2 = findVariable(appImage, "test1_6_globalVariable2", point6_2);
@@ -119,12 +119,14 @@ test_results_t test1_6_Mutator::executeTest()
 	expr6_4 = findVariable(appImage, "test1_6_globalVariable4", point6_2);
 	expr6_5 = findVariable(appImage, "test1_6_globalVariable5", point6_2);
 	expr6_6 = findVariable(appImage, "test1_6_globalVariable6", point6_2);
+	expr6_7 = findVariable(appImage, "test1_6_globalVariable7", point6_2);
 	expr6_1a = findVariable(appImage, "test1_6_globalVariable1a", point6_2);
 	expr6_2a = findVariable(appImage, "test1_6_globalVariable2a", point6_2);
 	expr6_3a = findVariable(appImage, "test1_6_globalVariable3a", point6_2);
 	expr6_4a = findVariable(appImage, "test1_6_globalVariable4a", point6_2);
 	expr6_5a = findVariable(appImage, "test1_6_globalVariable5a", point6_2);
 	expr6_6a = findVariable(appImage, "test1_6_globalVariable6a", point6_2);
+	expr6_7a = findVariable(appImage, "test1_6_globalVariable7a", point6_2);
 
 	constVar1 = findVariable(appImage, "test1_6_constVar1", point6_2);
 	constVar2 = findVariable(appImage, "test1_6_constVar2", point6_2);
@@ -137,9 +139,10 @@ test_results_t test1_6_Mutator::executeTest()
 	constVar66 = findVariable(appImage, "test1_6_constVar66", point6_2);
 	constVar67 = findVariable(appImage, "test1_6_constVar67", point6_2);
 
-	if (!expr6_1 || !expr6_2 || !expr6_3 || !expr6_4 ||
-			!expr6_5 || !expr6_6 || !expr6_1a || !expr6_2a || !expr6_3a ||
-			!expr6_4a || !expr6_5a || !expr6_6a) 
+	if (!expr6_1 || !expr6_2 || !expr6_3 || !expr6_4 || !expr6_5 ||
+			!expr6_6 || !expr6_7 || !expr6_1a || !expr6_2a ||
+			!expr6_3a || !expr6_4a || !expr6_5a || !expr6_6a ||
+			!expr6_7a)
 	{
 		logerror("**Failed** test #6 (arithmetic operators)\n");
 		logerror("    Unable to locate one of test1_6_globalVariable?\n");
@@ -189,6 +192,11 @@ test_results_t test1_6_Mutator::executeTest()
 			BPatch_arithExpr(BPatch_seq,BPatch_constExpr(10),BPatch_constExpr(3)));
 	vect6_1.push_back(&arith6_6);
 
+	// test1_6_globalVariable7 = 10 / 2
+	BPatch_arithExpr arith6_7 (BPatch_assign, *expr6_7,
+			BPatch_arithExpr(BPatch_divide,BPatch_constExpr(10),BPatch_constExpr(2)));
+	vect6_1.push_back(&arith6_7);
+
 	// test1_6_globalVariable1a = 60 + 2
 	BPatch_arithExpr arith6_1a (BPatch_assign, *expr6_1a, 
 			BPatch_arithExpr(BPatch_plus, *constVar60, *constVar2));
@@ -220,6 +228,11 @@ test_results_t test1_6_Mutator::executeTest()
 	BPatch_arithExpr arith6_6a (BPatch_assign, *expr6_6a,
 			BPatch_arithExpr(BPatch_seq, *constVar10, *constVar3));
 	vect6_1.push_back(&arith6_6a);
+
+	// test1_6_globalVariable7a = 10 / 2
+	BPatch_arithExpr arith6_7a (BPatch_assign, *expr6_7a, BPatch_arithExpr(
+				BPatch_divide, *constVar10, *constVar2));
+	vect6_1.push_back(&arith6_7a);
 
 	checkCost(BPatch_sequence(vect6_1));
 	appAddrSpace->insertSnippet( BPatch_sequence(vect6_1), *point6_1);
