@@ -62,6 +62,7 @@ The following three definitions deal with fields in a Frame object.
 \end{description}
 
 \input{fig/layout}
+\input{fig/layout-armv8}
 
 Figure~\ref{fig:layout} shows the relationship between application code, stack
 frames, and Frame objects. In the figure, the source code on the left has run
@@ -75,7 +76,8 @@ the stack frames found in the call stack or application registers.
 The call stack in Figure~\ref{fig:layout} is similar to one that would be found
 on the x86 architecture. Details about how the call stack is laid out may be
 different on other architectures, but the meanings of the FP, SP, and RA fields
-in the Frame objects will remain the same. 
+in the Frame objects will remain the same. The layout of the ARM64 stack may be found in Figure~\ref{fig:layout-armv8} as an example of the scope of architectural variations.
+
 
 The following four definitions deal with processes involved in StackwalkerAPI.
 \begin{description}
