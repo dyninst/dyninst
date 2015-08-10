@@ -1,8 +1,9 @@
 \documentclass{article}
-\newcommand{\ManualName}{StackwalkerAPI}
+
+\newcommand{\ManualName}{ParseAPI}
 
 \usepackage{pgf}
-\pgfrealjobname{stackwalkerapi}
+\pgfrealjobname{parseAPI}
 
 \input{../../common/doc/manual_commands.tex}
 
@@ -12,11 +13,15 @@
 \tableofcontents
 \clearpage
 
-\setcounter{secnumdepth}{5}
+\input{1-Intro}
+\input{2-Abstractions}
+\input{3-Example}
+\newpage
+\input{4-ParseAPI}
+\appendix
+\input{5-Extending}
+\input{6-Defensive}
 
-\input{1-Introduction.tex}
-\input{2-Abstractions.tex}
-\input{3-API.tex}
-\input{4-Callbacks.tex}
+
 
 \end{document}

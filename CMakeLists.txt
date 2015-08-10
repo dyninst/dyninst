@@ -113,6 +113,64 @@ add_custom_target(DyninstRT
 
 install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
 
+set (VERSION_STRING "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}.${DYNINST_PATCH_VERSION}")
+set (DYNINST_NAME "DyninstAPI-${VERSION_STRING}")
+
+find_package(Git)
+if(GIT_FOUND)
+add_custom_target(package ALL)
+add_custom_command(TARGET package
+  COMMAND ${GIT_EXECUTABLE} archive --prefix="${DYNINST_NAME}/" -o "${CMAKE_BINARY_DIR}/${DYNINST_NAME}.tgz" HEAD
+  WORKING_DIRECTORY ${DYNINST_ROOT}
+  COMMENT "Packaging Dyninst")
+install(FILES "${CMAKE_BINARY_DIR}/${DYNINST_NAME}.tgz"
+  DESTINATION ${CMAKE_INSTALL_PREFIX})
+endif()
+
+add_custom_target(doc)
+set(LATEX_DOCS dynC_API instructionAPI parseAPI patchAPI symtabAPI stackwalk)
+set(WORD_DOCS proccontrol dyninstAPI)
+add_custom_target(proccontrol-doc
+  DEPENDS ${CMAKE_SOURCE_DIR}/proccontrol/doc/proccontrol.pdf)
+add_custom_target(dyninstAPI-doc
+  DEPENDS ${CMAKE_SOURCE_DIR}/dyninstAPI/doc/dyninstAPI.pdf)
+add_dependencies(dyninstAPI dyninstAPI-doc)
+add_dependencies(pcontrol proccontrol-doc)
+foreach(COMPONENT ${WORD_DOCS})
+  add_dependencies(doc ${COMPONENT}-doc)
+  install(FILES ${CMAKE_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
+    DESTINATION ${INSTALL_DOC_DIR}
+    RENAME ${COMPONENT}-${VERSION_STRING}.pdf
+    )
+endforeach()
+
+find_package(LATEX)
+if(PDFLATEX_COMPILER)
+  foreach(COMPONENT ${LATEX_DOCS})
+    add_custom_target(${COMPONENT}-doc
+      DEPENDS ${CMAKE_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.tex
+      )
+    add_custom_command(TARGET ${COMPONENT}-doc
+      COMMAND ${PDFLATEX_COMPILER} ${COMPONENT}.tex
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/${COMPONENT}/doc
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf ${CMAKE_BINARY_DIR}/${COMPONENT}.pdf
+      COMMENT "Building ${COMPONENT} manual"
+      )
+
+    add_dependencies(doc ${COMPONENT}-doc)
+    add_dependencies(${COMPONENT} ${COMPONENT}-doc)
+    install(FILES  ${CMAKE_BINARY_DIR}/${COMPONENT}.pdf
+      DESTINATION ${INSTALL_DOC_DIR}
+      RENAME ${COMPONENT}-${VERSION_STRING}.pdf
+      )
+      
+      
+  endforeach()
+else()
+  message(STATUS "LaTeX not found")
+endif()
+
+
 if(UNIX)
   message(STATUS "Adding Unix-specific dependencies")
   add_dependencies(dynDwarf libdwarf_imp)
