@@ -1,3 +1,6 @@
+#if defined(cap_stripped_binaries)
+
+
 #include "ProbabilisticParser.h"
 #include "util.h"
 
@@ -1203,3 +1206,5 @@ IdiomModel::IdiomModel(string model_spec) {
   #endif
 #endif
 }
+
+#endif
