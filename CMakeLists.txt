@@ -144,7 +144,7 @@ foreach(COMPONENT ${WORD_DOCS})
     )
 endforeach()
 
-set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
+#set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 find_package(LATEX)
 if(PDFLATEX_COMPILER)
   file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/common/doc
@@ -176,7 +176,7 @@ if(PDFLATEX_COMPILER)
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.log
       )
     add_dependencies(doc ${COMPONENT}-doc)
-    add_dependencies(${COMPONENT} ${COMPONENT}-doc)
+    #add_dependencies(${COMPONENT} ${COMPONENT}-doc)
     install(FILES  ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
       DESTINATION ${INSTALL_DOC_DIR}
       RENAME ${COMPONENT}-${VERSION_STRING}.pdf
