@@ -134,13 +134,12 @@ add_custom_target(proccontrol-doc
   DEPENDS ${CMAKE_SOURCE_DIR}/proccontrol/doc/proccontrol.pdf)
 add_custom_target(dyninstAPI-doc
   DEPENDS ${CMAKE_SOURCE_DIR}/dyninstAPI/doc/dyninstAPI.pdf)
-add_dependencies(dyninstAPI dyninstAPI-doc)
-add_dependencies(pcontrol proccontrol-doc)
 foreach(COMPONENT ${WORD_DOCS})
   add_dependencies(doc ${COMPONENT}-doc)
   install(FILES ${CMAKE_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
     DESTINATION ${INSTALL_DOC_DIR}
     RENAME ${COMPONENT}-${VERSION_STRING}.pdf
+    OPTIONAL
     )
 endforeach()
 
