@@ -144,6 +144,7 @@ foreach(COMPONENT ${WORD_DOCS})
     )
 endforeach()
 
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 find_package(LATEX)
 if(PDFLATEX_COMPILER)
   file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/common/doc
@@ -152,7 +153,7 @@ if(PDFLATEX_COMPILER)
     file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc
       DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT})
     add_custom_command(
-#      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
+      #      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
       DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.tex
       COMMAND ${PDFLATEX_COMPILER}
@@ -163,15 +164,15 @@ if(PDFLATEX_COMPILER)
     add_custom_command(
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.log
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
-#      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.log
-#      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
+      #      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.log
+      #      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
       COMMAND ${PDFLATEX_COMPILER}
       ARGS -interaction=batchmode ${COMPONENT}.tex
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc
       COMMENT "Latex (second pass)"
       )
-    add_custom_target(${COMPONENT}-doc ALL echo
-#      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.log
+    add_custom_target(${COMPONENT}-doc echo
+      #      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.log
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.log
       )
     add_dependencies(doc ${COMPONENT}-doc)
@@ -179,14 +180,12 @@ if(PDFLATEX_COMPILER)
     install(FILES  ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
       DESTINATION ${INSTALL_DOC_DIR}
       RENAME ${COMPONENT}-${VERSION_STRING}.pdf
+      OPTIONAL
       )
-      
-      
   endforeach()
 else()
   message(STATUS "LaTeX not found")
 endif()
-
 
 if(UNIX)
   message(STATUS "Adding Unix-specific dependencies")
