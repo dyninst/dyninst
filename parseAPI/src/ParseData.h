@@ -106,6 +106,7 @@ class ParseFrame {
     void cleanup();
 
     worklist_t worklist;
+    std::set<Address> knownTargets; // This set contains known potential targets in this function 
    
     // Delayed work elements 
     std::map<ParseWorkElem *, Function *> delayedWork;

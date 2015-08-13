@@ -537,7 +537,8 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
 			  Function* context,
 			  Block* currBlk,
 			  unsigned int num_insns,
-			  dyn_hash_map<Address, std::string> *plt_entries) const
+			  dyn_hash_map<Address, std::string> *plt_entries,
+			  const set<Address>& knownTargets) const
 {
     Instruction::Ptr ci = curInsn();
 
@@ -603,7 +604,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 outEdges.push_back(std::make_pair(catchStart, CATCH));
             }
 
-            if(!isTailCall(context, DIRECT, num_insns))
+            if(!isTailCall(context, DIRECT, num_insns, knownTargets))
             {
                 if(plt_entries->find(target) == plt_entries->end())
                 {
@@ -651,7 +652,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 return;
 	      }
             }
-            if(isTailCall(context, INDIRECT, num_insns)) {
+            if(isTailCall(context, INDIRECT, num_insns, knownTargets)) {
                 parsing_printf("%s[%d]: indirect tail call %s at 0x%lx\n", FILE__, __LINE__,
                                ci->format().c_str(), current);
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));

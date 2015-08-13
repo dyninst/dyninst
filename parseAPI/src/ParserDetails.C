@@ -422,7 +422,7 @@ void Parser::ProcessCFInsn(
     
     // Instruction adapter provides edge estimates from an instruction
     parsing_printf("Getting edges\n");
-    ah.getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries); 
+    ah.getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries, frame.knownTargets); 
     parsing_printf("Returned %d edges\n", edges_out.size());
     if (unlikely(_obj.defensiveMode() && !ah.isCall() && edges_out.size())) {
         // only parse branch edges that align with existing blocks
@@ -554,7 +554,7 @@ void Parser::ProcessCFInsn(
                 newedge = link(cur,_sink,curEdge->second,true);
         }
 
-        if (ah.isTailCall(frame.func, curEdge->second, frame.num_insns)) {
+        if (ah.isTailCall(frame.func, curEdge->second, frame.num_insns, frame.knownTargets)) {
             tailcall = true; 
             parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc (tail call)\n",
                           newedge,
@@ -579,6 +579,7 @@ void Parser::ProcessCFInsn(
                 resolvable_edge,
                 tailcall)
           );
+	frame.knownTargets.insert(curEdge->first);
 
         // We will not attempt to further process
         // unresolvable edges; they stay sinks

@@ -84,11 +84,11 @@ class ParseWorkElem
      */
     enum parse_work_order {
         seed_addr = 0,
+        cond_not_taken,
         ret_fallthrough, /* conditional returns */
         call,
         call_fallthrough,
         cond_taken,
-        cond_not_taken,
         br_direct,
         br_indirect,
         catch_block,

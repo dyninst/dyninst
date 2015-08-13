@@ -82,7 +82,8 @@ class IA_IAPI : public InstructionAdapter {
                 Dyninst::ParseAPI::Function * context,
                 Dyninst::ParseAPI::Block * currBlk,
                 unsigned int num_insns,
-                dyn_hash_map<Address, std::string> *pltFuncs) const;
+                dyn_hash_map<Address, std::string> *pltFuncs,
+		const set<Address>& knownTargets) const;
         virtual InstrumentableLevel getInstLevel(Dyninst::ParseAPI::Function *, unsigned int num_insns ) const;
         virtual bool isDynamicCall() const;
         virtual bool isAbsoluteCall() const;
@@ -93,7 +94,10 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool isLeave() const;
         virtual bool isDelaySlot() const;
         virtual bool isRelocatable(InstrumentableLevel lvl) const;
-        virtual bool isTailCall(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::EdgeTypeEnum, unsigned int) const;
+        virtual bool isTailCall(Dyninst::ParseAPI::Function *, 
+	                        Dyninst::ParseAPI::EdgeTypeEnum, 
+				unsigned int,
+				const std::set<Address> &) const;
         virtual std::pair<bool, Address> getCFT() const;
         virtual bool isStackFramePreamble() const;
         virtual bool savesFP() const;

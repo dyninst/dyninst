@@ -30,7 +30,6 @@
 
 
 #include "IA_IAPI.h"
-
 #include "Register.h"
 #include "Dereference.h"
 #include "Immediate.h"
@@ -215,7 +214,7 @@ bool IA_IAPI::isThunk() const {
     return false;
 }
 
-bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) const
+bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, const set<Address>& knownTargets) const
 {
    // Collapse down to "branch" or "fallthrough"
     switch(type) {
@@ -273,11 +272,16 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int) co
 
     if (curInsn()->getCategory() == c_BranchInsn &&
             valid &&
-            !callee &&
-            target) {
-        parsing_printf("\tjump to 0x%lx is known block, but not func entry, NOT TAIL CALL\n", addr);
-        tailCalls[type] = false;
-        return false;
+            !callee) {
+	if (target) {
+	    parsing_printf("\tjump to 0x%lx is known block, but not func entry, NOT TAIL CALL\n", addr);
+	    tailCalls[type] = false;
+	    return false;
+	} else if (knownTargets.find(addr) != knownTargets.end()) {
+	    parsing_printf("\tjump to 0x%lx is known target in this function, NOT TAIL CALL\n", addr);
+	    tailCalls[type] = false;
+	    return false;
+	}
     }
 
     if(allInsns.size() < 2) {

@@ -990,12 +990,11 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     if (!getSyscallNumber(func, edge->src(), src, frame.codereg->getArch(), syscallNumber)) {
                         // If we cannot retrieve a syscall number, assume the syscall returns
                         parsing_printf("[%s] could not retrieve syscall edge, assuming returns\n", FILE__);
-                        continue;
-                    }
-
-                    if (obj().cs()->nonReturningSyscall(syscallNumber)) {
-                        is_nonret = true;
-                    }
+                    } else {
+		        if (obj().cs()->nonReturningSyscall(syscallNumber)) {
+			    is_nonret = true;
+			}
+		    }
 
                     if (is_nonret) {
                         parsing_printf("[%s] no fallthrough for non-returning syscall\n",

@@ -81,7 +81,8 @@ class InstructionAdapter
             ParseAPI::Function* context,
             ParseAPI::Block* currBlk,
             unsigned int num_insns,
-            dyn_hash_map<Address, std::string> *pltFuncs) const =
+            dyn_hash_map<Address, std::string> *pltFuncs,
+	    const std::set<Address> &) const =
 0;
     virtual bool isDynamicCall() const = 0;
     virtual bool isAbsoluteCall() const = 0;
@@ -109,7 +110,7 @@ const;
     virtual bool isInterruptOrSyscall() const = 0;
     virtual bool isCall() const = 0;
     virtual bool isReturnAddrSave(Address &ret_addr) const = 0; // ret_addr holds the return address pushed in the stack using mflr at function entry 
-    virtual bool isTailCall(ParseAPI::Function *, ParseAPI::EdgeTypeEnum type, unsigned int num_insns) const = 0;
+    virtual bool isTailCall(ParseAPI::Function *, ParseAPI::EdgeTypeEnum type, unsigned int num_insns, const std::set<Address>&) const = 0;
     protected:
     	// Uses pattern heuristics or backward slicing to determine if a blr instruction is a return or jump table
         virtual bool isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const = 0;

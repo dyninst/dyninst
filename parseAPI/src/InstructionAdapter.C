@@ -120,7 +120,7 @@ FuncReturnStatus InstructionAdapter::getReturnStatus(Function * context ,
         {
             return UNKNOWN;
         }
-        if(isTailCall(context, INDIRECT, num_insns))
+        if(isTailCall(context, INDIRECT, num_insns, set<Address>()))
         {
             return UNKNOWN;
         }
@@ -166,7 +166,7 @@ InstrumentableLevel InstructionAdapter::getInstLevel(Function * context, unsigne
         {
             return UNINSTRUMENTABLE;
         }
-        else if(isTailCall(context, INDIRECT, num_insns))
+        else if(isTailCall(context, INDIRECT, num_insns, set<Address>()))
         {
             return NORMAL;
         }
