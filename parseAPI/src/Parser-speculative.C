@@ -361,6 +361,8 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
 	        pc.calcProbByMatchingIdioms(curAddr);
 		if (!pc.isFEP(curAddr)) continue;
 		if (hd::IsNop(&_obj,cr, curAddr)) continue;
+		Block* parsed = _obj.findBlockByEntry(cr, curAddr);
+		if (parsed) continue;
                 parse_at(cr,curAddr,true,GAP);
 
                 if(reset_iterator && !sorted_funcs.empty()) {
