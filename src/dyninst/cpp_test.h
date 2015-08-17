@@ -75,7 +75,7 @@ class arg_test : public cpp_test_util
    private :
 
      void dummy();
-     void arg_pass(int test);
+     void __stdcall arg_pass(int test);
      void call_cpp(const int test, int & arg2, int arg3 = CPP_DEFLT_ARG_VAL);
 };
 
@@ -99,7 +99,7 @@ class overload_op_test : public cpp_test_util
 
       overload_op_test():cpp_test_util(3){};
       void func_cpp();
-      void call_cpp(int arg);
+      void __stdcall  call_cpp(int arg);
       int operator++(); 
 };
 
@@ -183,7 +183,7 @@ class decl_test : public cpp_test_util
 
    private :
 
-      void call_cpp(int test);
+      void __stdcall call_cpp(int test);
 
 };
 
