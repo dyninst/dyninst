@@ -97,5 +97,7 @@ libdwarf
 *.aux
 *.dvi
 *.toc
+*.out
 CHANGELOG
 *.bak
+massif.out.*
