@@ -592,17 +592,33 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             outEdges.push_back(std::make_pair(getNextAddr(), COND_NOT_TAKEN));
             return;
         }
+
+        // Catch blocks can appear after either direct jumps or indirect jumps
+	// There may be nops between this jump and the catch block and
+	// there is possibility that the exception table entry points a nop.
+	// Therefore, we need to check for every nop and first non-nop instruction after the jump for catch blocks
+        IA_IAPI tmp_ah(*this);
+	tmp_ah.advance();
+	Address catchStart;
+	bool found = false;
+	while (tmp_ah.curInsn() && tmp_ah.isNop()) {
+	    if(_cr->findCatchBlock(tmp_ah.getAddr(),catchStart))  {
+	        found = true;
+		break;
+	    }
+	    tmp_ah.advance();
+	}
+	if(found || (tmp_ah.curInsn() &&_cr->findCatchBlock(tmp_ah.getAddr(),catchStart)))
+	{
+	    outEdges.push_back(std::make_pair(catchStart, CATCH));
+	}
+
         bool valid;
         Address target;
         boost::tie(valid, target) = getCFT(); 
         // Direct jump
         if (valid) 
         {
-            Address catchStart;
-            if(_cr->findCatchBlock(getNextAddr(),catchStart))
-            {
-                outEdges.push_back(std::make_pair(catchStart, CATCH));
-            }
 
             if(!isTailCall(context, DIRECT, num_insns, knownTargets))
             {
@@ -693,6 +709,28 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
             }
 	}
+	
+	// Check potential catch blocks after return instructions
+	// There may be nops between this return instruction and the catch block and
+	// there is possibility that the exception table entry points a nop.
+	// Therefore, we need to check for every nop and first non-nop instruction after the return for catch blocks
+
+        IA_IAPI tmp_ah(*this);
+	tmp_ah.advance();
+	Address catchStart;
+	bool found = false;
+	while (tmp_ah.curInsn() && tmp_ah.isNop()) {
+	    if(_cr->findCatchBlock(tmp_ah.getAddr(),catchStart))  {
+	        found = true;
+		break;
+	    }
+	    tmp_ah.advance();
+	}
+	if(found || (tmp_ah.curInsn() &&_cr->findCatchBlock(tmp_ah.getAddr(),catchStart)))
+	{
+	    outEdges.push_back(std::make_pair(catchStart, CATCH));
+	}
+
 	parsing_printf("Returning from parse out edges\n");
 	return;
     }

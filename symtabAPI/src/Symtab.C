@@ -1386,6 +1386,10 @@ bool sort_reg_by_addr(const Region* a, const Region* b)
 extern void print_symbols( std::vector< Symbol *>& allsymbols );
 extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
 
+static bool ExceptionBlockCmp(ExceptionBlock *a, ExceptionBlock *b) {
+    return a->catchStart() < b->catchStart();
+}
+
 bool Symtab::extractInfo(Object *linkedFile)
 {
 #if defined(TIMED_PARSE)
@@ -1610,6 +1614,7 @@ bool Symtab::extractInfo(Object *linkedFile)
     
     //addSymtabVariables();
     linkedFile->getAllExceptions(excpBlocks);
+    sort(excpBlocks.begin(), excpBlocks.end(), ExceptionBlockCmp);
 
     vector<relocationEntry >fbt;
     linkedFile->get_func_binding_table(fbt);
@@ -1679,7 +1684,7 @@ Symtab::Symtab(const Symtab& obj) :
       relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
    }
 
-   for (i=0;i<excpBlocks.size();i++)
+   for (i=0;i<obj.excpBlocks.size();i++)
    {
       excpBlocks.push_back(new ExceptionBlock(*(obj.excpBlocks[i])));
    }
