@@ -27,7 +27,7 @@ LIBELF_INCLUDE_DIR: location of elf.h and libelf.h
 LIBELF_LIBRARIES: full path of libelf.so
 LIBDWARF_INCLUDE_DIR: location of libdwarf.h
 LIBDWARF_LIBRARIES: full path of libdwarf.so
-IBERTY_LIBRARY: full path of libiberty.[a|so]; libiberty.a must be built with -fPIC
+IBERTY_LIBRARIES: full path of libiberty.[a|so]; libiberty.a must be built with -fPIC
 CMAKE_[C|CXX]_COMPILER_FLAGS: additional C/C++ compiler flags to use
 CMAKE_BUILD_TYPE: may be set to Debug, Release, or RelWithDebInfo for unoptimized, optimized, and optimized with debug information builds respectively. This replaces the NO_OPT_FLAG environment variable previously used by Dyninst. Note that Debug is the default; previously, the equivalent of Release was the default.
 CMAKE_INSTALL_PREFIX: like PREFIX for autotools-based systems. Where to install things.

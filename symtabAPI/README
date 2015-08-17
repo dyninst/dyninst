@@ -1,6 +1,6 @@
-        *** Symtab 8.0 Release Notes ***
+        *** Symtab 9.0 Release Notes ***
 
-This is the version 8.0 release of the SymtabAPI.  Currently, the API
+This is the version 9.0 release of the SymtabAPI.  Currently, the API
 library is available for ELF platforms (Linux, BlueGene), and PE
 platforms (Windows).
 
@@ -16,29 +16,18 @@ On Linux, Symtab requires some libraries that are not installed by default
 in most distributions.  The first is libelf, which is included with most
 distributions and can be installed using the distribution's package manager.
 The second is libdwarf.  You can get the latest source code distribution
-of libdwarf from http://reality.sgiweb.org/davea/.  RPM files for libdwarf
+of libdwarf from http://sourceforge.net/projects/libdwarf/.  RPM files for libdwarf
 are also available from various sites.  
 
 Building the SymtabAPI from source
 ------------------------------------
 
-If you downloaded the source distribution of this package, you can
-build the SymtabAPI libraries by running "make" in the core directory
-(one level up from where this README file is located).  On Unix
-platforms, you must use GNU make.  The top-level makefile contains
-directives for compiling the Paradyn parallel performance tool, from
-which the SymtabAPI was derived.  If you have downloaded only the
-SymtabAPI, you will see a number of messages about missing
-directories.  These directories are needed only for making Paradyn, so
-you should ignore these messages.  If you downloaded the entire
-Paradyn distribution, you can make only the API libraries by running
-"make SymtabAPI" in the core directory.
+See the top-level INSTALL file for how to build.
 
-
-Changes since 6.1
+Changes since 8.2
 -----------------
-- Support for rewriting dynamic binaries on PowerPC/32, PowerPC/64 and BlueGene/P platforms
-- Support for rewriting static binaries on x86 and x86_64 platforms
+- Support for reading binaries on ARM64
+- Support for reading inline function information
 - Speed and space optimizations
 
 
@@ -48,7 +37,7 @@ the same copyright.  A copy of the Paradyn copyright appears at the end of
 this file.
 
    The Dyninst API Team
-   5/17/2011
+   8/17/2015
 
 ----------------------- Start of Paradyn Copyright --------------------------
 See the dyninst/COPYRIGHT file for copyright information.

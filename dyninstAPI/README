@@ -1,5 +1,5 @@
 
-This is the version 8.0 release of the Dyninst API.  Currently, the API
+This is the version 9.0 release of the Dyninst API.  Currently, the API
 library is available for the POWER/Linux, x86/Linux, x86_64/Linux, and
 x86/Windows XP/2000/2003 platforms.
 
@@ -15,29 +15,12 @@ rebuild them.
 Setting up the environment
 --------------------------
 
-Before compiling or using the Dyninst API library, you should set the
-environment variables PLATFORM and DYNINST_ROOT.  PLATFORM should be set to
-one of the following values depending upon what operating system you are
-running on:
-
-    i386-unknown-linux2.4	Linux 2.4/2.6 on an Intel x86 processor
-    i386-unknown-nt4.0		Windows XP/2000/2003 on an Intel x86 processor
-    x86_64-unknown-linux2.4     Linux 2.4/2.6 on an AMD-64 processor
-
-DYNINST_ROOT should be set to the pathname of the top of the library
-directory tree (dyninstAPI-v5.0).
-
 DYNINSTAPI_RT_LIB should be set to the full pathname of the file
-libdyninstAPI_RT.so.1 (on Windows, libdyninstAPI_RT.dll).  If you have
-correctly set the DYNINST_ROOT and PLATFORM environment variables, then the
-proper pathname is:
+libdyninstAPI_RT.so (on Windows, libdyninstAPI_RT.dll). 
 
-    $DYNINST_ROOT/$PLATFORM/lib/libdyninstAPI_RT.so.1 (UNIX)
-    %DYNINST_ROOT%/i386-unknown-nt4.0/lib/libdyninstAPI_RT.dll (Windows)
-
-On Unix-based systems, you will also need to add $DYNINST_ROOT/$PLATFORM/lib
+On Unix-based systems, you will also need to add $CMAKE_INSTALL_PREFIX/lib
 to your LD_LIBRARY_PATH environment variable.  On Windows, you will instead
-need to add %DYNINST_ROOT%/i386-unknown-nt4.0/lib to your PATH environment
+need to add %CMAKE_INSTALL_PREFIX%/lib to your PATH environment
 variable.  This is so that mutator applications can be linked dynamically with
 the Dyninst library.
 
@@ -48,23 +31,13 @@ On Linux, Dyninst requires some libraries that are not installed by default
 in most distributions.  The first is libelf, which is included with most
 distributions and can be installed using the distribution's package manager.
 The second is libdwarf.  You can get the latest source code distribution
-of libdwarf from http://reality.sgiweb.org/davea/.  RPM files for libdwarf
+of libdwarf from http://sourceforge.net/projects/libdwarf/.  RPM files for libdwarf
 are also available from various sites.
 
 Building the Dyninst API from source
 ------------------------------------
 
-If you downloaded the source distribution of this package, you can build the
-Dyninst API libraries by running "make" in the dyninst directory (one level up
-from where this README file is located), assuming your environment is set up
-as described above.  On Unix platforms, you must use GNU make.  The top-level
-makefile contains directives for compiling the Paradyn parallel performance
-tool, from which the Dyninst API was derived.  If you have downloaded only the
-Dyninst API, you will see a number of messages about missing directories.
-These directories are needed only for making Paradyn, so you should ignore
-these messages.  If you downloaded the entire Paradyn distribution, you can
-make only the API libraries by running "make DyninstAPI" in the dyninst  
-directory.
+See the top-level INSTALL file for build information.
 
 -----------------------------------------------------------------------------
 
@@ -73,7 +46,7 @@ the same copyright.  A copy of the Paradyn copyright appears at the end of
 this file.
 
 	The Dyninst API Team
-	6/23/2006
+	8/17/2105
 
 ----------------------- Start of Paradyn Copyright --------------------------
 See the dyninst/COPYRIGHT file for copyright information.
@@ -104,4 +77,3 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-// this comment should be removed
