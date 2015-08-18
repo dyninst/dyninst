@@ -164,7 +164,7 @@ bool Loop::hasBlock(Block* block)
     vector<Block*> blks;
     getLoopBasicBlocks(blks);
 
-    for(unsigned i = 0; i < basicBlocks.size(); i++)
+    for(unsigned i = 0; i < blks.size(); i++)
         if (blks[i]->start() == block->start())
             return true;
     return false;
@@ -176,7 +176,7 @@ bool Loop::hasBlockExclusive(Block*block)
     vector<Block*> blks;
     getLoopBasicBlocksExclusive(blks);
 
-    for(unsigned i = 0; i < basicBlocks.size(); i++)
+    for(unsigned i = 0; i < blks.size(); i++)
         if (blks[i]->start() == block->start())
             return true;
     return false;
