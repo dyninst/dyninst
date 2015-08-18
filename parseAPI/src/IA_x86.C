@@ -332,14 +332,27 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, co
             }
         }
         else if(prevInsn->getOperation().getID() == e_add)
-        {
+        {			
             if(prevInsn->isWritten(stackPtr[_isrc->getArch()]))
             {
-                parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
-                tailCalls[type] = true;
-                return true;
-            }
-            parsing_printf("\tprev insn was %s, not tail call\n", prevInsn->format().c_str());
+				bool call_fallthrough = false;
+				if (_curBlk->start() == prevIter->first) {				
+					for (auto eit = _curBlk->sources().begin(); eit != _curBlk->sources().end(); ++eit) {						
+						if ((*eit)->type() == CALL_FT) {
+							call_fallthrough = true;
+							break;
+						}
+					}
+				}
+				if (call_fallthrough) {
+					parsing_printf("\tprev insn was %s, but it is the next instruction of a function call, not a tail call %x %x\n", prevInsn->format().c_str()); 
+				}	else {
+					parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
+					tailCalls[type] = true;
+					return true;
+				}
+			} else
+				parsing_printf("\tprev insn was %s, not tail call\n", prevInsn->format().c_str());
         }
     }
 
