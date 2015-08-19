@@ -121,5 +121,7 @@ if (NOT CMAKE_BUILD_TYPE)
        "Choose the build type (None, Debug, Release, RelWithDebInfo, MinSizeRel)" FORCE)
 endif()
 
-
+add_definitions(-DDYNINST_MAJOR_VERSION=${DYNINST_MAJOR_VERSION})
+add_definitions(-DDYNINST_MINOR_VERSION=${DYNINST_MINOR_VERSION})
+add_definitions(-DDYNINST_PATCH_VERSION=${DYNINST_PATCH_VERSION})
 
