@@ -45,7 +45,7 @@ using namespace Dyninst::PatchAPI;
 //internal use only
 
 
-PatchLoop::PatchLoop(PatchObject *obj, ParseAPI::Loop *loop): loop_(loop) {
+PatchLoop::PatchLoop(PatchObject *obj, ParseAPI::Loop *loop): loop_(loop), parent(NULL) {
     //parent pointer and containedLoops vectors are set in PatchFunction::createLoops
     
     //set backEdges
