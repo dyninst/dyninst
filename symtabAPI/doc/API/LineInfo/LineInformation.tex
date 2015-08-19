@@ -20,7 +20,7 @@ bool getSourceLines(Offset addressInRange,
 \end{apient}
 \apidesc{
 These methods returns the source file names and line numbers corresponding to the given address \code{addressInRange}. Searches within this line map. 
-Return \code{true} if at least one tuple corresponding to the offset was found and returns \code{false} if none found.
+Return \code{true} if at least one tuple corresponding to the offset was found and returns \code{false} if none found. Note that the order of arguments is reversed from the corresponding interfaces in \code{Module} and \code{Symtab}.
 }
 
 \begin{apient}
