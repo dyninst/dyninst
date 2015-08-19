@@ -495,6 +495,7 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
                 cr->offset()+cr->length());
         }
     }
+    sort(_hints.begin(), _hints.end());
 }
 
 void

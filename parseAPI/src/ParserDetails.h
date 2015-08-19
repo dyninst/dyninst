@@ -226,12 +226,8 @@ class ParseWorkElem
                 return true;
             else if(o1 < o2)
                 return false;
-            else {
-                if(e1->bundle() == e2->bundle()) 
-                    return e1->target() > e2->target();
-                else
-                    return e1->bundle() > e2->bundle();
-            }
+            else 
+	        return e1->target() > e2->target();
         }
     };
 

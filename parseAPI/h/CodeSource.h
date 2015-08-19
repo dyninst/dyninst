@@ -92,6 +92,10 @@ struct Hint {
     Address _addr;
     CodeRegion * _reg;
     std::string _name;
+
+    bool operator < (const Hint &h) const {
+        return _addr < h._addr;
+    }
 };
 
 class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
