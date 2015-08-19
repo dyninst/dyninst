@@ -62,9 +62,9 @@ using boost::multi_index::member;
 
 class MappedFile;
 
-#define SYM_MAJOR 9
-#define SYM_MINOR 0
-#define SYM_BETA  0
+#define SYM_MAJOR DYNINST_MAJOR_VERSION
+#define SYM_MINOR DYNINST_MINOR_VERSION
+#define SYM_BETA  DYNINST_PATCH_VERSION
  
 namespace Dyninst {
 

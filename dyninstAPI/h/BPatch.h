@@ -64,10 +64,11 @@ class func_instance;
 #define DYNINST_8_1_1
 #define DYNINST_8_1_2
 #define DYNINST_8_2
+#define DYNINST_9_0
 
-#define DYNINST_MAJOR 8
-#define DYNINST_MINOR 2
-#define DYNINST_SUBMINOR 0
+#define DYNINST_MAJOR DYNINST_MAJOR_VERSION
+#define DYNINST_MINOR DYNINST_MINOR_VERSION
+#define DYNINST_SUBMINOR DYNINST_PATCH_VERSION
 
 #ifdef IBM_BPATCH_COMPAT
 typedef void *BPatch_Address;

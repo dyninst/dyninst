@@ -38,10 +38,11 @@
 #include <string>
 #include <utility>
 
-#define SW_MAJOR 8
-#define SW_MINOR 2
-#define SW_BETA  0
+#define SW_MAJOR DYNINST_MAJOR_VERSION
+#define SW_MINOR DYNINST_MINOR_VERSION
+#define SW_BETA  DYNINST_PATCH_VERSION
 
+#define SW_VERSION_9_0_0
 #define SW_VERSION_8_2_0
 #define SW_VERSION_8_1_2
 #define SW_VERSION_8_1_1
