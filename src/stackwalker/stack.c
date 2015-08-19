@@ -25,8 +25,8 @@ print_trace (void)
 
 void func3(int i){
     printf("func3 %d\n",i);
-    print_trace();
-    while(1);
+    //print_trace();
+    //while(1);
     if( i > 5 ) {
         while(1){
         };

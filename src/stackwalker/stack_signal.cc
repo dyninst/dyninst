@@ -42,7 +42,7 @@ void func2(int i){
 
 void func1(int i){
     printf("func1 %d\n",i);
-    sleep(7);
+    //sleep(7);
     //raise(SIGINT);
     raise(SIGUSR1);
 

@@ -1,12 +1,12 @@
+/home/xi/dyninst-install/bin/testsuite/libtestdyninst.so
+/home/xi/dyninst-install/bin/testsuite/libtestsymtab.so
+/home/xi/dyninst-install/bin/testsuite/libtestinstruction.so
+/home/xi/dyninst-install/bin/testsuite/libtestproccontrol.so
 /home/xi/dyninst-install/bin/testsuite/testdriver_wrapper
 /home/xi/dyninst-install/bin/testsuite/test_driver
 /home/xi/dyninst-install/bin/testsuite/runTests
 /home/xi/dyninst-install/bin/testsuite/libtestSuite.so
 /home/xi/dyninst-install/bin/testsuite/libtestlaunch.so
-/home/xi/dyninst-install/bin/testsuite/libtestdyninst.so
-/home/xi/dyninst-install/bin/testsuite/libtestsymtab.so
-/home/xi/dyninst-install/bin/testsuite/libtestinstruction.so
-/home/xi/dyninst-install/bin/testsuite/libtestproccontrol.so
 /home/xi/dyninst-install/bin/testsuite/DatabaseOutputDriver.so
 /home/xi/dyninst-install/bin/testsuite/libpc_addlibrary.so
 /home/xi/dyninst-install/bin/testsuite/libpc_breakpoint.so
