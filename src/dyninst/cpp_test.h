@@ -38,7 +38,7 @@
 
 extern int CPP_DEFLT_ARG;
 
-#if defined(os_windows_test)
+#if defined(_MSVC)
   #define STDCALL __stdcall
 #else
   #define STDCALL
