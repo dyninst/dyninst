@@ -1516,10 +1516,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     is_eel_ = linkedFile->isEEL();
     linkedFile->getSegments(segments_);
 
-#if !defined(os_windows)
-    linkedFile->getDependencies(deps_);
-#endif
-
 #if defined(os_linux) || defined(os_freebsd)
     // make sure we're using the right demangler
     
@@ -1611,6 +1607,10 @@ bool Symtab::extractInfo(Object *linkedFile)
     // determined before this step).
     
     // Also identifies aliases (multiple names with equal addresses)
+#if !defined(os_windows)
+    linkedFile->getDependencies(deps_);
+#endif
+
     
     //addSymtabVariables();
     linkedFile->getAllExceptions(excpBlocks);
