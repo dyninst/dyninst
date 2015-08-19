@@ -71,7 +71,7 @@ set (SRC_LIST_ppc64
 )
 set (SRC_LIST_aarch64
     src/RTthread-aarch64.c
-    src/RTthread-aarch64-asm.S
+    #src/RTthread-aarch64-asm.S
     src/RTstatic_ctors_dtors-aarch64.c                                                                                         
 )
 
