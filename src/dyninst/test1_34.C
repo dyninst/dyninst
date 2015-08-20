@@ -71,7 +71,6 @@ static int numContainedLoops(BPatch_basicBlockLoop *loop)
 
 test_results_t test1_34_Mutator::executeTest() 
 {
-#if !defined(os_windows_test)
 	unsigned int i;
 
 	BPatch_Vector<BPatch_function *> bpfv;
@@ -237,7 +236,4 @@ test_results_t test1_34_Mutator::executeTest()
     }
 
     return PASSED;
-#else // Windows or AIX
-    return SKIPPED;
-#endif    
 }
