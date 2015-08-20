@@ -118,6 +118,8 @@ set (DYNINST_NAME "DyninstAPI-${VERSION_STRING}")
 
 find_package(Git)
 if(GIT_FOUND)
+if(EXISTS "${DYNINST_ROOT}/.git/")
+message(STATUS "Source tree is repository, building archive target")
 add_custom_target(package ALL)
 add_custom_command(TARGET package
   COMMAND ${GIT_EXECUTABLE} archive --prefix="${DYNINST_NAME}/" -o "${CMAKE_BINARY_DIR}/${DYNINST_NAME}.tgz" HEAD
@@ -125,6 +127,7 @@ add_custom_command(TARGET package
   COMMENT "Packaging Dyninst")
 install(FILES "${CMAKE_BINARY_DIR}/${DYNINST_NAME}.tgz"
   DESTINATION ${CMAKE_INSTALL_PREFIX})
+endif()
 endif()
 
 add_custom_target(doc)
