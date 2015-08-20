@@ -143,7 +143,7 @@ static void createBuffer(Process::ptr proc,
             //blr x0
             //brk #0
             unsigned int addr_pos = 4;
-            char tmp_buf[] = {
+            unsigned char tmp_buf[] = {
                 0xd5, 0x03, 0x20, 0x1f,     // nop
                 0xd2, 0x80, 0x00, 0x00,     // mov  x0, #0           ;<addr>
                 0xf2, 0xa0, 0x00, 0x00,     // movk x0, #0, lsl #16     ;<addr>
@@ -159,9 +159,9 @@ static void createBuffer(Process::ptr proc,
             memcpy(buffer, tmp_buf, buffer_size);
 
 #define BYTE_ASSGN(POS, VAL)\
-            (*(((char *) buffer) + POS + 1)) |= ((VAL>>11)&0x1f);\
-            (*(((char *) buffer) + POS + 2)) |= ((VAL>> 3)&0xff);\
-            (*(((char *) buffer) + POS + 3)) |= ((VAL<< 5)&0xf0);
+            (*(((unsigned char *) buffer) + POS + 1)) |= ((VAL>>11)&0x1f);\
+            (*(((unsigned char *) buffer) + POS + 2)) |= ((VAL>> 3)&0xff);\
+            (*(((unsigned char *) buffer) + POS + 3)) |= ((VAL<< 5)&0xf0);
 
             BYTE_ASSGN(addr_pos,    (uint16_t)calltarg )
             BYTE_ASSGN(addr_pos+4,  (uint16_t)(calltarg>>16) )
@@ -178,7 +178,7 @@ static void createBuffer(Process::ptr proc,
 
             for(unsigned int i = 0; i < buffer_size; i+=4){
                 SWAP4BYTE(i)
-                pthrd_printf("0x%8x\n", *((unsigned int*)((char *)buffer+i)) );
+                pthrd_printf("0x%8x\n", *((unsigned int*)((unsigned char *)buffer+i)) );
             }
 
             break;
