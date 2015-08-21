@@ -75,7 +75,7 @@ bool IA_IAPI::isThunk() const {
     return false;
 }
 
-bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum type, unsigned int) const
+bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum type, unsigned int, const set<Address>& knownTargets) const
 {
    // Collapse down to "branch" or "fallthrough"
     switch(type) {
