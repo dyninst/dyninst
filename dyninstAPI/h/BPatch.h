@@ -42,6 +42,8 @@
 #include "BPatch_callbacks.h"
 #include <set>
 
+#include "version.h"
+
 class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;

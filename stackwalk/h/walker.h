@@ -38,6 +38,8 @@
 #include <string>
 #include <utility>
 
+#include "version.h"
+
 #define SW_MAJOR DYNINST_MAJOR_VERSION
 #define SW_MINOR DYNINST_MINOR_VERSION
 #define SW_BETA  DYNINST_PATCH_VERSION
