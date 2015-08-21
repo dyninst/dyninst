@@ -32,6 +32,7 @@
 #include "common/src/singleton_object_pool.h"
 #include "InstructionDecoder-x86.h"
 #include "InstructionDecoder-power.h"
+#include "InstructionDecoder-aarch64.h"
 #include "BinaryFunction.h"
 #include "Dereference.h"
 
@@ -68,9 +69,7 @@ namespace Dyninst
                 impls[Arch_x86_64] = Ptr(new InstructionDecoder_x86(Arch_x86_64));
                 impls[Arch_ppc32] = Ptr(new InstructionDecoder_power(Arch_ppc32));
                 impls[Arch_ppc64] = Ptr(new InstructionDecoder_power(Arch_ppc64));
-#if defined(aarch_aarch64)
                 impls[Arch_aarch64] = Ptr(new InstructionDecoder_aarch64(Arch_aarch64));
-#endif
             }
             std::map<Architecture, Ptr>::const_iterator foundImpl = impls.find(a);
             if(foundImpl == impls.end())
