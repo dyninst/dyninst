@@ -92,7 +92,7 @@ set (BUILD_SHARED_LIBS ON)
 set (INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
 set (INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
 set (INSTALL_CMAKE_DIR lib/cmake/${PROJECT_NAME} CACHE PATH "Installation directory for CMake files")
-set (INSTALL_DOC_DIR doc CACHE PATH "Installation directory for manuals")
+set (INSTALL_DOC_DIR share/doc CACHE PATH "Installation directory for manuals")
 
 # Make the above absolute paths if necessary
 foreach (p LIB INCLUDE CMAKE)
