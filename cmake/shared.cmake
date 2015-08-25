@@ -1,6 +1,6 @@
 set (DYNINST_MAJOR_VERSION 9)
 set (DYNINST_MINOR_VERSION 0)
-set (DYNINST_PATCH_VERSION 1)
+set (DYNINST_PATCH_VERSION 2)
 
 # Debugging
 # set(Boost_DEBUG 1)
@@ -92,7 +92,7 @@ set (BUILD_SHARED_LIBS ON)
 set (INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
 set (INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
 set (INSTALL_CMAKE_DIR lib/cmake/${PROJECT_NAME} CACHE PATH "Installation directory for CMake files")
-set (INSTALL_DOC_DIR doc CACHE PATH "Installation directory for manuals")
+set (INSTALL_DOC_DIR share/doc CACHE PATH "Installation directory for manuals")
 
 # Make the above absolute paths if necessary
 foreach (p LIB INCLUDE CMAKE)
@@ -120,8 +120,4 @@ if (NOT CMAKE_BUILD_TYPE)
    set (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING 
        "Choose the build type (None, Debug, Release, RelWithDebInfo, MinSizeRel)" FORCE)
 endif()
-
-add_definitions(-DDYNINST_MAJOR_VERSION=${DYNINST_MAJOR_VERSION})
-add_definitions(-DDYNINST_MINOR_VERSION=${DYNINST_MINOR_VERSION})
-add_definitions(-DDYNINST_PATCH_VERSION=${DYNINST_PATCH_VERSION})
 

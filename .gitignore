@@ -102,3 +102,4 @@ CHANGELOG
 *.bak
 massif.out.*
 DyninstAPI*.tgz
+common/h/version.h

@@ -16,6 +16,8 @@ set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
 include (${DYNINST_ROOT}/cmake/shared.cmake)
 
+configure_file(cmake/version.h.in common/h/version.h)
+
 if(${PLATFORM} MATCHES nt)
   set (HEADER_DIRS common
     dataflowAPI
