@@ -34,7 +34,7 @@
 
 #include "common/src/debug_common.h"
 
-int common_debug_dwarf = 1;
+int common_debug_dwarf = 0;
 int common_debug_addrtranslate = 0;
 
 #if defined(_MSC_VER)
