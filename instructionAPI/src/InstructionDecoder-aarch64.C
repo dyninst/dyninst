@@ -61,6 +61,30 @@ namespace Dyninst
       b.start += 4;
     }
 
+    Instruction::Ptr InstructionDecoder_aarch64::decode(InstructionDecoder::buffer& b)
+    {
+        return Instruction::Ptr();
+    }
+
+    void InstructionDecoder_aarch64::setMode(bool )
+    {
+    }
+
+    bool InstructionDecoder_aarch64::decodeOperands(const Instruction *)
+    {
+        return false;
+    }
+
+    void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *)
+    {
+    }
+
+    Result_Type InstructionDecoder_aarch64::makeSizeType(unsigned int)
+    {
+        assert(0); //not implemented
+        return u32;
+    }
+
     void InstructionDecoder_aarch64::mainDecode()
     {
         assert(0);
