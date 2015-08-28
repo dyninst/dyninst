@@ -37,6 +37,8 @@ namespace Dyninst {
     namespace InstructionAPI
     {
 
+        struct aarch64_entry;
+
         class InstructionDecoder_aarch64 : public InstructionDecoderImpl
         {
             public:
@@ -49,12 +51,21 @@ namespace Dyninst {
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
 
+                static bool foundDoubleHummerInsn;
+                static bool foundQuadInsn;
+
                 using InstructionDecoderImpl::makeRegisterExpression;
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
 
                 template <int start, int end>
-                int field(unsigned int raw) ;
+                int field(unsigned int raw) {
+#if defined DEBUG_FIELD
+                    std::cerr << start << "-" << end << ":" << std::dec << (raw >> (31 - (end)) &
+                            (0xFFFFFFFF >> (31 - (end - start)))) << " ";
+#endif
+                    return (raw >> (31 - (end)) & (0xFFFFFFFF >> (31 - (end - start))));
+                }
 
                 template <int size>
                 int sign_extend(int in)

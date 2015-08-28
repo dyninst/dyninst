@@ -39,7 +39,55 @@ namespace Dyninst
   {
     typedef void (InstructionDecoder_aarch64::*operandFactory)();
     typedef std::vector< operandFactory > operandSpec;
+    typedef const aarch64_entry&(InstructionDecoder_aarch64::*nextTableFunc)();
+    typedef std::map<unsigned int, aarch64_entry> aarch64_table;
 
+    // steve note: what are these used for?
+    bool InstructionDecoder_aarch64::foundDoubleHummerInsn = false;
+    bool InstructionDecoder_aarch64::foundQuadInsn = false;
+
+    struct aarch64_entry
+    {
+      aarch64_entry(entryID o, const char* m, nextTableFunc next, operandSpec ops) :
+              op(o), mnemonic(m), next_table(next), operands(ops)
+              {}
+
+      aarch64_entry() :
+              op(aarch64_op_INVALID), mnemonic("INVALID"), next_table(NULL)
+              {
+                          operands.reserve(5);
+              }
+
+      aarch64_entry(const aarch64_entry& o) :
+              op(o.op), mnemonic(o.mnemonic), next_table(o.next_table), operands(o.operands)
+              {}
+
+      const aarch64_entry& operator=(const aarch64_entry& rhs)
+              {
+                  operands.reserve(rhs.operands.size());
+                  op = rhs.op;
+                  mnemonic = rhs.mnemonic;
+                  next_table = rhs.next_table;
+                  operands = rhs.operands;
+                  return *this;
+              }
+
+      entryID op;
+      const char* mnemonic;
+      nextTableFunc next_table;
+      operandSpec operands;
+      static void buildTables();
+      static bool built_tables;
+      static std::vector<aarch64_entry> main_opcode_table;
+      static aarch64_table extended_op_0;
+      static aarch64_table extended_op_4;
+      static aarch64_table extended_op_19;
+      static aarch64_table extended_op_30;
+      static aarch64_table extended_op_31;
+      static aarch64_table extended_op_58;
+      static aarch64_table extended_op_59;
+      static aarch64_table extended_op_63;
+    };
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
       : InstructionDecoderImpl(a),
@@ -50,6 +98,7 @@ namespace Dyninst
         isFPInsn(false),
         bcIsConditional(false)
     {
+        aarch64_entry::buildTables();
     }
 
     InstructionDecoder_aarch64::~InstructionDecoder_aarch64()
@@ -61,9 +110,25 @@ namespace Dyninst
       b.start += 4;
     }
 
+    using namespace std;
     Instruction::Ptr InstructionDecoder_aarch64::decode(InstructionDecoder::buffer& b)
     {
-        return Instruction::Ptr();
+        if(b.start > b.end) return Instruction::Ptr();
+        isRAWritten = false;
+        isFPInsn = false;
+        bcIsConditional = false;
+        insn = b.start[0] << 24 | b.start[1] << 16 |
+        b.start[2] << 8 | b.start[3];
+#if defined(DEBUG_RAW_INSN)
+        cout.width(0);
+        cout << "0x";
+        cout.width(8);
+        cout.fill('0');
+        cout << hex << insn << "\t";
+#endif
+        mainDecode();
+        b.start += 4;
+        return make_shared(insn_in_progress);
     }
 
     void InstructionDecoder_aarch64::setMode(bool )
@@ -77,6 +142,7 @@ namespace Dyninst
 
     void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *)
     {
+        assert(0); //not implemented yet
     }
 
     Result_Type InstructionDecoder_aarch64::makeSizeType(unsigned int)
@@ -85,9 +151,35 @@ namespace Dyninst
         return u32;
     }
 
+#define fn(x) (&InstructionDecoder_aarch64::x)
+
+using namespace boost::assign;
+
+#include "aarch64_opcode_tables.C"
+
     void InstructionDecoder_aarch64::mainDecode()
     {
-        assert(0);
+        const aarch64_entry* current = &aarch64_entry::main_opcode_table[field<0,5>(insn)];
+        while(current->next_table)
+        {
+            current = &(std::mem_fun(current->next_table)(this));
+        }
+        insn_in_progress = makeInstruction(current->op, current->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));
+
+        // control flow operations?
+        /* tmp commented this part
+        if(current->op == power_op_b ||
+          current->op == power_op_bc ||
+          current->op == power_op_bclr ||
+          current->op == power_op_bcctr)
+        {
+            // decode control-flow operands immediately; we're all but guaranteed to need them
+            doDelayedDecode(insn_in_progress);
+        }
+        */
+
+        //insn_in_progress->arch_decoded_from = m_Arch;
+        insn_in_progress->arch_decoded_from = Arch_aarch64;
         return;
     }
   };
