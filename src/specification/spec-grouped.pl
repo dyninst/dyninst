@@ -2351,6 +2351,21 @@ test_runmode('power_decode', 'disk').
 test_start_state('power_decode', 'stopped').
 tests_module('power_decode', 'instruction').
 
+test('aarch64_decode', 'aarch64_decode', none).
+test_description('aarch64_decode', 'Tests the read & write sets of AARCH64 instructions.').
+test_platform('aarch64_decode', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('power32', _, _, Platform);
+        platform('power64', _, _, Platform);
+        platform('powerpc', _, _, Platform);
+        platform('aarch64', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('aarch64_decode', ['aarch64_decode.C']).
+test_runmode('aarch64_decode', 'disk').
+test_start_state('aarch64_decode', 'stopped').
+tests_module('aarch64_decode', 'instruction').
+
 test('power_cft', 'power_cft', none).
 test_description('power_cft', 'Tests the control flow targets of POWER instructions.').
 test_platform('power_cft', Platform) :-
