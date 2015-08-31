@@ -37,10 +37,18 @@ namespace Dyninst {
     namespace InstructionAPI
     {
 
+#if defined(__GNUC__)
+#define insn_printf(format, ...) \
+        do{ \
+            printf("[%s:%u]insn_debug " format, FILE__, __LINE__, ## __VA_ARGS__); \
+        }while(0)
+#endif
+
         struct aarch64_entry;
 
         class InstructionDecoder_aarch64 : public InstructionDecoderImpl
         {
+            friend struct aarch64_entry;
             public:
                 InstructionDecoder_aarch64(Architecture a);
                 virtual ~InstructionDecoder_aarch64();
@@ -70,15 +78,21 @@ namespace Dyninst {
                 template <int size>
                 int sign_extend(int in)
                 {
-                    assert(0);
+                    assert(0); //not verified
                     return (in << (32 - size)) >> (32 - size);
                 }
 
+                // operands
+                void Rd();
+                void Rn();
+                void Imm12();
+
+                // opcodes
+                const aarch64_entry& ext_op_DiBSys();
                 void mainDecode();
 
                 template< int lowBit, int highBit>
                 Expression::Ptr makeBranchTarget();
-
                 Expression::Ptr makeFallThroughExpr();
 
                 unsigned int insn;

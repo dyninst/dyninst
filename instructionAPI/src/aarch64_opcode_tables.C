@@ -27,13 +27,28 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#define INVALID_ENTRY aarch64_entry(aarch64_op_INVALID, "INVALID", NULL, operandSpec())
+
 bool aarch64_entry::built_tables = false;
 
-std::vector<aarch64_entry> aarch64_entry::main_opcode_table;
+aarch64_table aarch64_entry::main_opcode_table;
+aarch64_table aarch64_entry::ext_op_GroupDiBSys;
 
 void aarch64_entry::buildTables()
 {
     if(built_tables) return;
+    main_opcode_table[0] = INVALID_ENTRY; //00
+    // TMP invalid for now
+    main_opcode_table[1] = INVALID_ENTRY; //01
+    main_opcode_table[3] = INVALID_ENTRY; //11
+    // end TMP
+    main_opcode_table[2] = aarch64_entry(aarch64_op_extended, "DataImm_Branch_Sys", fn(ext_op_DiBSys), operandSpec()); //10, Data imm, Branch, Exception and System insns
+
+
+    // Groups:
+    // Group for Data imm, Branch, and System
+    ext_op_GroupDiBSys[0] = aarch64_entry(aarch64_op_add, "add", NULL, list_of(fn(Rd))(fn(Rn))(fn(Imm12)));
+
 
     built_tables = true;
 }

@@ -48,29 +48,30 @@ namespace Dyninst
 
     struct aarch64_entry
     {
-      aarch64_entry(entryID o, const char* m, nextTableFunc next, operandSpec ops) :
-              op(o), mnemonic(m), next_table(next), operands(ops)
-              {}
+        aarch64_entry(entryID o, const char* m, nextTableFunc next, operandSpec ops) :
+            op(o), mnemonic(m), next_table(next), operands(ops)
+            {}
 
       aarch64_entry() :
-              op(aarch64_op_INVALID), mnemonic("INVALID"), next_table(NULL)
-              {
-                          operands.reserve(5);
-              }
+            op(aarch64_op_INVALID), mnemonic("INVALID"), next_table(NULL)
+            {
+                // TODO: why 5?
+                operands.reserve(5);
+            }
 
       aarch64_entry(const aarch64_entry& o) :
-              op(o.op), mnemonic(o.mnemonic), next_table(o.next_table), operands(o.operands)
-              {}
+            op(o.op), mnemonic(o.mnemonic), next_table(o.next_table), operands(o.operands)
+            {}
 
       const aarch64_entry& operator=(const aarch64_entry& rhs)
-              {
-                  operands.reserve(rhs.operands.size());
-                  op = rhs.op;
-                  mnemonic = rhs.mnemonic;
-                  next_table = rhs.next_table;
-                  operands = rhs.operands;
-                  return *this;
-              }
+            {
+                operands.reserve(rhs.operands.size());
+                op = rhs.op;
+                mnemonic = rhs.mnemonic;
+                next_table = rhs.next_table;
+                operands = rhs.operands;
+                return *this;
+            }
 
       entryID op;
       const char* mnemonic;
@@ -78,15 +79,10 @@ namespace Dyninst
       operandSpec operands;
       static void buildTables();
       static bool built_tables;
-      static std::vector<aarch64_entry> main_opcode_table;
-      static aarch64_table extended_op_0;
-      static aarch64_table extended_op_4;
-      static aarch64_table extended_op_19;
-      static aarch64_table extended_op_30;
-      static aarch64_table extended_op_31;
-      static aarch64_table extended_op_58;
-      static aarch64_table extended_op_59;
-      static aarch64_table extended_op_63;
+
+      // more tables for diff insn classes
+      static aarch64_table main_opcode_table;
+      static aarch64_table ext_op_GroupDiBSys;
     };
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
@@ -151,20 +147,49 @@ namespace Dyninst
         return u32;
     }
 
+    // *****************
+    // decoding operands
+    // *****************
+
+    void InstructionDecoder_aarch64::Rd(){
+        assert(0);
+    }
+
+    void InstructionDecoder_aarch64::Rn(){
+        assert(0);
+    }
+
+    void InstructionDecoder_aarch64::Imm12(){
+        assert(0);
+    }
+
+    // ****************
+    // decoding opcodes
+    // ****************
+
 #define fn(x) (&InstructionDecoder_aarch64::x)
 
 using namespace boost::assign;
 
 #include "aarch64_opcode_tables.C"
 
+    // TODO this is a tmp experiment
+    const aarch64_entry& InstructionDecoder_aarch64::ext_op_DiBSys()
+    {
+        return aarch64_entry::ext_op_GroupDiBSys[field<26,26>(insn)];
+    }
+
+
     void InstructionDecoder_aarch64::mainDecode()
     {
-        const aarch64_entry* current = &aarch64_entry::main_opcode_table[field<0,5>(insn)];
+        // the 27, 28 bit indicate which op class the insn is
+        const aarch64_entry* current = &aarch64_entry::main_opcode_table[field<27,28>(insn)];
         while(current->next_table)
         {
             current = &(std::mem_fun(current->next_table)(this));
         }
         insn_in_progress = makeInstruction(current->op, current->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));
+        insn_printf("ARM: %s\n", current->mnemonic);
 
         // control flow operations?
         /* tmp commented this part
