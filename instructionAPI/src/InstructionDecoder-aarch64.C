@@ -109,6 +109,7 @@ namespace Dyninst
     using namespace std;
     Instruction::Ptr InstructionDecoder_aarch64::decode(InstructionDecoder::buffer& b)
     {
+        insn_printf("### decoding\n");
         if(b.start > b.end) return Instruction::Ptr();
         isRAWritten = false;
         isFPInsn = false;
