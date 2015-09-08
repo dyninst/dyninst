@@ -66,13 +66,14 @@ namespace Dyninst {
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
 
+                // inherit from ppc is not sematically consistent with aarch64 manual
                 template <int start, int end>
                 int field(unsigned int raw) {
 #if defined DEBUG_FIELD
-                    std::cerr << start << "-" << end << ":" << std::dec << (raw >> (31 - (end)) &
+                    std::cerr << start << "-" << end << ":" << std::dec << (raw >> (start) &
                             (0xFFFFFFFF >> (31 - (end - start)))) << " ";
 #endif
-                    return (raw >> (31 - (end)) & (0xFFFFFFFF >> (31 - (end - start))));
+                    return (raw >> (start) & (0xFFFFFFFF >> (31 - (end - start))));
                 }
 
                 template <int size>

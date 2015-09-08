@@ -177,14 +177,16 @@ using namespace boost::assign;
     // TODO this is a tmp experiment
     const aarch64_entry& InstructionDecoder_aarch64::ext_op_DiBSys()
     {
-        return aarch64_entry::ext_op_GroupDiBSys[field<26,26>(insn)];
+        //insn_printf("dibsys field %d\n", field<30,30>(insn));
+        return aarch64_entry::ext_op_GroupDiBSys[field<30,30>(insn)];
     }
 
 
     void InstructionDecoder_aarch64::mainDecode()
     {
         // the 27, 28 bit indicate which op class the insn is
-        const aarch64_entry* current = &aarch64_entry::main_opcode_table[field<27,28>(insn)];
+        const aarch64_entry* current = &aarch64_entry::main_opcode_table[field<27, 28>(insn)];
+        insn_printf("field %d 0x%x\n", field<27, 28>(insn), insn);
         while(current->next_table)
         {
             current = &(std::mem_fun(current->next_table)(this));

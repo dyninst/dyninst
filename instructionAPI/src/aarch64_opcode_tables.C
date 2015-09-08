@@ -48,6 +48,7 @@ void aarch64_entry::buildTables()
     // Groups:
     // Group for Data imm, Branch, and System
     ext_op_GroupDiBSys[0] = aarch64_entry(aarch64_op_add, "add", NULL, list_of(fn(Rd))(fn(Rn))(fn(Imm12)));
+    ext_op_GroupDiBSys[1] = aarch64_entry(aarch64_op_sub, "sub", NULL, list_of(fn(Rd))(fn(Rn))(fn(Imm12)));
 
 
     built_tables = true;
