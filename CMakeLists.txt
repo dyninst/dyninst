@@ -62,22 +62,24 @@ add_subdirectory (common)
 if(NOT ${PLATFORM} MATCHES nt)
   add_subdirectory (elf)
   add_subdirectory (dwarf)
-if(SYMREADER MATCHES symLite)
   add_subdirectory (symlite)
-endif()
 # DynC is not compatible with Windows when
 # we use bison on linux to generate source
 # TODO: generate with bison configured for
 # MSVC?
+if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (dynC_API)
+endif()
 endif()
 add_subdirectory (instructionAPI)
 add_subdirectory (symtabAPI)
 add_subdirectory (parseAPI)
-add_subdirectory (patchAPI)
 add_subdirectory (proccontrol)
 add_subdirectory (stackwalk)
-add_subdirectory (dyninstAPI)
+add_subdirectory (patchAPI)
+if(${SYMREADER} MATCHES symtabAPI)
+  add_subdirectory (dyninstAPI)
+endif()
 
 #Build the RT library as a seperate project so we can change compilers
 message(STATUS "Configuring DyninstAPI_RT")
@@ -125,11 +127,9 @@ if(EXISTS "${DYNINST_ROOT}/.git/")
 message(STATUS "Source tree is repository, building archive target")
 add_custom_target(package ALL)
 add_custom_command(TARGET package
-  COMMAND ${GIT_EXECUTABLE} archive --prefix="${DYNINST_NAME}/" -o "${CMAKE_BINARY_DIR}/${DYNINST_NAME}.tgz" HEAD
+  COMMAND ${GIT_EXECUTABLE} archive --prefix="${DYNINST_NAME}/" --format=tar.gz -o "${CMAKE_BINARY_DIR}/${DYNINST_NAME}.tgz" HEAD
   WORKING_DIRECTORY ${DYNINST_ROOT}
   COMMENT "Packaging Dyninst")
-install(FILES "${CMAKE_BINARY_DIR}/${DYNINST_NAME}.tgz"
-  DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif()
 endif()
 
