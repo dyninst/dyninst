@@ -5,8 +5,8 @@ from sets import Set
 #from bitarray import BAarray
 
 #MACRO used as a flag for vector and floating points
-#VEC_SIMD_SWITCH = False
-VEC_SIMD_SWITCH = True#
+VEC_SIMD_SWITCH = False
+#VEC_SIMD_SWITCH = True
 
 # dir to store aarch64 ISA xml files
 ISA_dir = "../../ISA_xml_v2_00rel11/"
@@ -95,7 +95,10 @@ def getOpTable():
 
                 startDiagram = False
                 maskBitArray = list('0'*32)
-                bit = 31
+                maskBitArrayNew = list('0'*32)
+                encodingArray = list('0'*32)
+                maskStartBit = 31
+                startBox = False
 
                 # to analyze lines
                 for line in curFile:
@@ -105,6 +108,7 @@ def getOpTable():
                     if line.find('</regdiagram')!=-1:
                         break
 
+                    #diagram starts
                     if startDiagram == True and line.find('<box')!=-1:
 
                         not_control_field = False
@@ -118,14 +122,9 @@ def getOpTable():
                                     # if this is control field
                                     if control_field not in control_field_set:
                                         not_control_field = True
-                                        break
-
                                     break
 
-                        if not_control_field == True:
-                            continue
-
-                        maskStartBit = 31
+                        #maskStartBit = 31
                         for x in line.split(' '):
                             if x.find('hibit') != -1:
                                 maskStartBit = int(x.split('\"')[1])
@@ -137,19 +136,42 @@ def getOpTable():
                                 maskLen = int(i.split('\"')[1])
                                 break
 
-                        for s in range(1, maskLen+1):
-                            maskBitArray[(31-maskStartBit)+s-1] = '1'
+                        if not_control_field == False:
+                            for s in range(1, maskLen+1):
+                                maskBitArray[(31-maskStartBit)+s-1] = '1'
+
+                        startBox = True
+
+                    if line.find('</box') != -1:
+                        startBox = False
+
+                    # read box content
+                    if startBox == True:
+                        if line.find('<c>') != -1:
+                            encodeBit = line.split('>')[1].split('<')[0]
+                            if encodeBit == '1' or encodeBit == '0':
+                                maskBitArrayNew[31-maskStartBit] = '1'
+                                encodingArray[31-maskStartBit] = encodeBit
+                            else:
+                                maskBitArrayNew[31-maskStartBit] = '0'
+                                encodingArray[31-maskStartBit] = '0'
+                            maskStartBit = maskStartBit - 1
                     # end of <box line>
+
+                # end of each line
+
 
                 # print instruction and encoding mask per file
                 maskBitInt = int(''.join(maskBitArray), 2)
-                commonBits = commonBits & maskBitInt
-                print instruction, '\t\t', ''.join(maskBitArray), '\t', hex(maskBitInt)
-    insn_unallocated = (2**28+2**27)
-    commonBits = commonBits & insn_unallocated
-    print 'unallocated', '\t\t', bin(insn_unallocated), '\t', hex(insn_unallocated)
+                maskBitNewInt = int(''.join(maskBitArrayNew), 2)
 
-    print 'mask: ',  bin(commonBits), hex(commonBits)
+                #print "%22s"%instruction, '\t\t', ''.join(maskBitArray), '\t', ''.join(maskBitArrayNew), '\t', ''.join(encodingArray)
+                print "%22s"%instruction, '\t\t', ''.join(maskBitArrayNew), '\t', ''.join(encodingArray)
+
+    insn_unallocated = (2**28+2**27)
+
+    commonBits = commonBits & insn_unallocated
+    print "%22s"%'unallocated', '\t\t', bin(insn_unallocated), '\t', hex(insn_unallocated)
 
 
 getOpcodes()
