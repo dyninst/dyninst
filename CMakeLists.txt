@@ -121,6 +121,7 @@ install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
 set (VERSION_STRING "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}.${DYNINST_PATCH_VERSION}")
 set (DYNINST_NAME "DyninstAPI-${VERSION_STRING}")
 
+if(BUILD_TARBALLS)
 find_package(Git)
 if(GIT_FOUND)
 if(EXISTS "${DYNINST_ROOT}/.git/")
@@ -130,6 +131,7 @@ add_custom_command(TARGET package
   COMMAND ${GIT_EXECUTABLE} archive --prefix="${DYNINST_NAME}/" --format=tar.gz -o "${CMAKE_BINARY_DIR}/${DYNINST_NAME}.tgz" HEAD
   WORKING_DIRECTORY ${DYNINST_ROOT}
   COMMENT "Packaging Dyninst")
+endif()
 endif()
 endif()
 
