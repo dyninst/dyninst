@@ -31,6 +31,7 @@
 
 bool aarch64_entry::built_tables = false;
 
+std::vector<aarch64_entry> aarch64_entry::aarch64_insn_table;
 aarch64_table aarch64_entry::main_opcode_table;
 aarch64_table aarch64_entry::ext_op_GroupDiBSys;
 

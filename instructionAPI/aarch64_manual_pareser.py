@@ -96,7 +96,14 @@ insnArray = list()
 def getOpTable():
 
     # open all op files
-    commonBits = int(str('1'*32), 2)
+
+    insn_unallocated = (2**28+2**27)
+    masksArray.append(insn_unallocated)
+    encodingsArray.append(int(0))
+    insnArray.append('unallocated')
+
+    print 0, '%22s'%'unallocated',  '%34s'%bin(insn_unallocated), '(', hex(insn_unallocated), ')'
+    index = 1
     for files in sorted(files_dir):
         if files.endswith('.xml'):
             instruction = files.split('.xml')[0]
@@ -155,16 +162,9 @@ def getOpTable():
                 encodingsArray.append(encodingBitInt)
                 insnArray.append(instruction)
 
-                print "%22s"%instruction, '\t', ''.join(maskBitArrayNew),'(', hex(maskBitInt),')', '\t', ''.join(encodingArray), '(', hex(encodingBitInt), ')'
+                print index, "%22s"%instruction, '\t', ''.join(maskBitArrayNew),'(', hex(maskBitInt),')', '\t', ''.join(encodingArray), '(', hex(encodingBitInt), ')'
+                index += 1
 
-    insn_unallocated = (2**28+2**27)
-
-    commonBits = commonBits & insn_unallocated
-    masksArray.append(insn_unallocated)
-    encodingsArray.append(int(0))
-    insnArray.append('unallocated')
-
-    print "%22s"%'unallocated', '\t', bin(insn_unallocated), '(', hex(insn_unallocated), ')'
 
 def buildInsnTable():
     assert len(masksArray) == len(encodingsArray) ==len(insnArray)
@@ -174,12 +174,17 @@ def buildInsnTable():
 
 
 numOfLeafNodes=0
+processedIndex = Set()
+notProcessedIndex = Set()
+numNotProcNodes = 0
 # need to initialize the mask_table with unallocated entries
 
 def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     global numOfLeafNodes
+    global numNotProcNodes
 
-    # guards
+    # guards, redundant
+    '''
     if entryToPlace > 2**32:
         #numOfLeafNodes +=1
         return
@@ -187,32 +192,74 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     if processedMask == 0xffffffff:
         #numOfLeafNodes +=1
         return
+    '''
 
     # terminated condition 1
-    if len(inInsnIndex) <=1:
+    if len(inInsnIndex) < 1:
+        #numOfLeafNodes +=1
+        return
+
+    if len(inInsnIndex) ==1:
+        print 'mask_table['+str(entryToPlace)+']=mask_entry( 0, '+'-1'+', '+'-1'+','+str(inInsnIndex[0])+');'
+        #print insnArray[inInsnIndex[0]]
+        if inInsnIndex[0] in processedIndex:
+            print '[WARN] index processed, repeated index is ', inInsnIndex[0]
+
+        processedIndex.add(inInsnIndex[0])
         numOfLeafNodes +=1
         return
 
     validMaskBits = int(''.join('1'*32), 2)
+
     for i in inInsnIndex:
         validMaskBits = validMaskBits & masksArray[i]
+
     validMaskBits = validMaskBits&(~processedMask)
     #print hex(validMaskBits), bin(validMaskBits)
+
+    # terminated condition 2
+    addMask = 0
+    if validMaskBits == 0:
+        #print '[WARN] all mask bits have been processed', len(inInsnIndex)
+        #print '%25s'%'processed mask'+'%34s'%bin(processedMask)
+        for i in inInsnIndex:
+            #print '%3d'%i+'%22s'%insnArray[i]+'%34s'%bin(masksArray[i])+'%34s'%bin(encodingsArray[i])
+            addMask ^= encodingsArray[i] &(~processedMask)
+        # handle alias, merge them into one node
+        if addMask == 0:
+            numOfLeafNodes += len(inInsnIndex)
+            for i in inInsnIndex:
+                processedIndex.add(i)
+            print 'mask_table['+str(entryToPlace)+']=mask_entry( 0, '+'-1'+', '+'-1'+','+str(inInsnIndex[0])+');'
+            return
+        # handle more mask bits
+        else:
+            validMaskBits = addMask
+            #print bin(addMask)
+            #assert(False)
+            #return
 
     # till here we should have got the mask bits
     MSBmask = 0x80000000
     curMask = 0
-    for bit in range(0, 31):
+    preValid = validMaskBits
+    for bit in range(0, 32):
         if (MSBmask & validMaskBits) == 0 :
             validMaskBits = validMaskBits << 1
         else:
             curMask = 1<<(31-bit)
             break
 
-    # terminated condition 2
     if curMask == 0:
-        numOfLeafNodes+=1
+        print '%25s'%'valid mask'+'%35s'%bin(preValid)
+        print '%25s'%'processed mask'+'%35s'%bin(processedMask)
+        for i in inInsnIndex:
+            print '%3d'%i+'%22s'%insnArray[i]+'%35s'%bin(masksArray[i])+'%35s'%bin(encodingsArray[i])
+        numOfLeafNodes+=len(inInsnIndex)
         return
+
+    processedMask0 = processedMask | curMask
+    processedMask1 = processedMask | curMask
 
     #print hex(curMask)
     zeroIndexes = list()
@@ -242,9 +289,6 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     for i in oneIndexes:
         print '%34s'%bin(encodingsArray[i])
     """
-    processedMask0 = processedMask | curMask
-    processedMask1 = processedMask | curMask
-
     buildDecodeTable(zeroIndexes, processedMask0, zeroEntryToPlace)
     buildDecodeTable(oneIndexes, processedMask1, oneEntryToPlace)
 
@@ -258,5 +302,10 @@ buildInsnTable()
 validInsnIndex = list( range(0, len(insnArray) ) )
 #print validInsnIndex
 buildDecodeTable(validInsnIndex, 0 , 0)
-print numOfLeafNodes
+print 'num of vaild leaves', numOfLeafNodes
+allIndex = Set(range(0, len(insnArray)) )
+#print allIndex
+print processedIndex, len(processedIndex), numNotProcNodes
+print 'missing indexes:', sorted(allIndex - processedIndex), len(allIndex-processedIndex)
+
 

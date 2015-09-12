@@ -50,20 +50,27 @@ namespace Dyninst
     {
         aarch64_entry(entryID o, const char* m, nextTableFunc next, operandSpec ops) :
             op(o), mnemonic(m), next_table(next), operands(ops)
-            {}
+        {
+        }
 
-      aarch64_entry() :
+        aarch64_entry(entryID o, const char* m, operandSpec ops):
+            op(o), mnemonic(m), next_table(NULL), operands(ops)
+        {
+        }
+
+        aarch64_entry() :
             op(aarch64_op_INVALID), mnemonic("INVALID"), next_table(NULL)
-            {
-                // TODO: why 5?
-                operands.reserve(5);
-            }
+        {
+            // TODO: why 5?
+            operands.reserve(5);
+        }
 
-      aarch64_entry(const aarch64_entry& o) :
+        aarch64_entry(const aarch64_entry& o) :
             op(o.op), mnemonic(o.mnemonic), next_table(o.next_table), operands(o.operands)
-            {}
+        {
+        }
 
-      const aarch64_entry& operator=(const aarch64_entry& rhs)
+        const aarch64_entry& operator=(const aarch64_entry& rhs)
             {
                 operands.reserve(rhs.operands.size());
                 op = rhs.op;
@@ -73,16 +80,17 @@ namespace Dyninst
                 return *this;
             }
 
-      entryID op;
-      const char* mnemonic;
-      nextTableFunc next_table;
-      operandSpec operands;
-      static void buildTables();
-      static bool built_tables;
+        entryID op;
+        const char* mnemonic;
+        nextTableFunc next_table;
+        operandSpec operands;
+        static void buildTables();
+        static bool built_tables;
 
-      // more tables for diff insn classes
-      static aarch64_table main_opcode_table;
-      static aarch64_table ext_op_GroupDiBSys;
+        // more tables for diff insn classes
+        static aarch64_table main_opcode_table;
+        static aarch64_table ext_op_GroupDiBSys;
+        static std::vector<aarch64_entry> aarch64_insn_table;
     };
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
