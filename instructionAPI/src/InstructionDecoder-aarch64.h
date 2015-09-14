@@ -45,22 +45,22 @@ namespace Dyninst {
 #endif
 
         struct aarch64_entry;
+		struct aarch64_mask_entry;	
 
         class InstructionDecoder_aarch64 : public InstructionDecoderImpl
         {
-            friend struct aarch64_entry;
+            friend struct aarch64_insn_entry;
+			friend struct aarch64_mask_entry;
+
             public:
                 InstructionDecoder_aarch64(Architecture a);
                 virtual ~InstructionDecoder_aarch64();
                 virtual void decodeOpcode(InstructionDecoder::buffer& b);
                 virtual Instruction::Ptr decode(InstructionDecoder::buffer& b);
-		        virtual void setMode(bool);
+				virtual void setMode(bool);
 
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
-
-                static bool foundDoubleHummerInsn;
-                static bool foundQuadInsn;
 
                 using InstructionDecoderImpl::makeRegisterExpression;
             private:
@@ -68,7 +68,8 @@ namespace Dyninst {
 
                 // inherit from ppc is not sematically consistent with aarch64 manual
                 template <int start, int end>
-                int field(unsigned int raw) {
+                int field(unsigned int raw) 
+                {
 #if defined DEBUG_FIELD
                     std::cerr << start << "-" << end << ":" << std::dec << (raw >> (start) &
                             (0xFFFFFFFF >> (31 - (end - start)))) << " ";
@@ -83,25 +84,21 @@ namespace Dyninst {
                     return (in << (32 - size)) >> (32 - size);
                 }
 
-                // operands
-                void Rd();
-                void Rn();
-                void Imm12();
-
                 // opcodes
-                const aarch64_entry& ext_op_DiBSys();
+                const aarch64_insn_entry& ext_op_DiBSys();
                 void mainDecode();
-
-                template< int lowBit, int highBit>
-                Expression::Ptr makeBranchTarget();
-                Expression::Ptr makeFallThroughExpr();
 
                 unsigned int insn;
                 Instruction* insn_in_progress;
-                bool isRAWritten;
+                
+				//TODO: Following needed?
+				bool isRAWritten;
                 bool invertBranchCondition;
                 bool isFPInsn;
                 bool bcIsConditional;
+                template< int lowBit, int highBit>
+                Expression::Ptr makeBranchTarget();
+                Expression::Ptr makeFallThroughExpr();
         };
     }
 }

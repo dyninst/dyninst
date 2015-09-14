@@ -38,60 +38,94 @@ namespace Dyninst
   namespace InstructionAPI
   {
     typedef void (InstructionDecoder_aarch64::*operandFactory)();
-    typedef std::vector< operandFactory > operandSpec;
-    typedef const aarch64_entry&(InstructionDecoder_aarch64::*nextTableFunc)();
-    typedef std::map<unsigned int, aarch64_entry> aarch64_table;
+    typedef std::vector<operandFactory> operandSpec;
+    typedef std::vector<aarch64_insn_entry> aarch64_insn_table;
+    typedef std::map<aarch64_mask_entry> aarch64_decoder_table;
 
-    // steve note: what are these used for?
+    //TODO: what are these used for?
     bool InstructionDecoder_aarch64::foundDoubleHummerInsn = false;
     bool InstructionDecoder_aarch64::foundQuadInsn = false;
 
-    struct aarch64_entry
+    struct aarch64_insn_entry
     {
-        aarch64_entry(entryID o, const char* m, nextTableFunc next, operandSpec ops) :
-            op(o), mnemonic(m), next_table(next), operands(ops)
+        aarch64_insn_entry(entryID o, const char* m, operandSpec ops):
+        op(o), mnemonic(m), operands(ops)
         {
         }
 
-        aarch64_entry(entryID o, const char* m, operandSpec ops):
-            op(o), mnemonic(m), next_table(NULL), operands(ops)
-        {
-        }
-
-        aarch64_entry() :
-            op(aarch64_op_INVALID), mnemonic("INVALID"), next_table(NULL)
+        aarch64_insn_entry():
+        op(aarch64_op_INVALID), mnemonic("INVALID")
         {
             // TODO: why 5?
+            // TODO: Is this needed here?
             operands.reserve(5);
         }
 
-        aarch64_entry(const aarch64_entry& o) :
-            op(o.op), mnemonic(o.mnemonic), next_table(o.next_table), operands(o.operands)
+        aarch64_insn_entry(const aarch64_insn_entry& o) :
+        op(o.op), mnemonic(o.mnemonic), operands(o.operands)
         {
         }
 
-        const aarch64_entry& operator=(const aarch64_entry& rhs)
-            {
-                operands.reserve(rhs.operands.size());
-                op = rhs.op;
-                mnemonic = rhs.mnemonic;
-                next_table = rhs.next_table;
-                operands = rhs.operands;
-                return *this;
-            }
+        const aarch64_insn_entry& operator=(const aarch64_insn_entry& rhs)
+        {
+            operands.reserve(rhs.operands.size());
+            op = rhs.op;
+            mnemonic = rhs.mnemonic;
+            operands = rhs.operands;
+        
+            return *this;
+        }
 
         entryID op;
         const char* mnemonic;
-        nextTableFunc next_table;
         operandSpec operands;
-        static void buildTables();
-        static bool built_tables;
+        
+        static void buildInsnTable();
+        static bool built_insn_table;
 
         // more tables for diff insn classes
-        static aarch64_table main_opcode_table;
         static aarch64_table ext_op_GroupDiBSys;
-        static std::vector<aarch64_entry> aarch64_insn_table;
+        // TODO: what is the above?
+        
+        static aarch64_insn_table main_insn_table;
     };
+    
+    struct aarch64_mask_entry
+    {
+		aarch64_mask_entry(unsigned int m, int zIndex, int oIndex, int tabIndex):
+		mask(m), bitZeroIndex(zIndex), bitOneIndex(oIndex), insnTableIndex(tabIndex)
+		{
+		}
+		
+		aarch64_mask_entry():
+		mask(0), bitZeroIndex(-1), bitOneIndex(-1), insnTableIndex(-1)
+		{
+		}
+		
+		aarch64_mask_entry(const aarch64_mask_entry& e):
+		mask(e.mask), bitZeroIndex(e.bitZeroIndex), bitOneIndex(e.bitOneIndex), insnTableIndex(e.insnTableIndex)
+		{
+		}
+		
+		const aarch64_mask_entry& operator=(const aarch64_mask_entry& rhs)
+		{
+			mask = rhs.mask;
+			bitZeroIndex = rhs.bitZeroIndex;
+			bitOndeIndex = rhs.bitOneIndex;
+			insnTableIndex = rhs.insnTableIndex;
+			
+			return *this;
+		}
+		
+		unsigned int mask;
+		int bitZeroIndex;
+		int bitOneIndex;
+		int insnTableIndex;
+		
+		static void buildDecoderTable();
+		static bool built_decoder_table;
+		aarch64_decoder_table main_decoder_table;
+	};
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
       : InstructionDecoderImpl(a),
@@ -102,7 +136,8 @@ namespace Dyninst
         isFPInsn(false),
         bcIsConditional(false)
     {
-        aarch64_entry::buildTables();
+        aarch64_insn_entry::buildInsnTable();
+        aarch64_mask_entry::buildDecoderTable();
     }
 
     InstructionDecoder_aarch64::~InstructionDecoder_aarch64()
@@ -183,17 +218,17 @@ using namespace boost::assign;
 #include "aarch64_opcode_tables.C"
 
     // TODO this is a tmp experiment
-    const aarch64_entry& InstructionDecoder_aarch64::ext_op_DiBSys()
+    const aarch64_insn_entry& InstructionDecoder_aarch64::ext_op_DiBSys()
     {
         //insn_printf("dibsys field %d\n", field<30,30>(insn));
-        return aarch64_entry::ext_op_GroupDiBSys[field<30,30>(insn)];
+        return aarch64_insn_entry::ext_op_GroupDiBSys[field<30,30>(insn)];
     }
 
 
     void InstructionDecoder_aarch64::mainDecode()
     {
         // the 27, 28 bit indicate which op class the insn is
-        const aarch64_entry* current = &aarch64_entry::main_opcode_table[field<27, 28>(insn)];
+        const aarch64_insn_entry* current = &aarch64_insn_entry::main_opcode_table[field<27, 28>(insn)];
         insn_printf("field %d 0x%x\n", field<27, 28>(insn), insn);
         while(current->next_table)
         {
