@@ -169,8 +169,9 @@ def getOpTable():
 def buildInsnTable():
     assert len(masksArray) == len(encodingsArray) ==len(insnArray)
     print len(insnArray)
+    print '*** instruction table ***'
     for i in range(1, len(insnArray)):
-        print '\taarch64_insn_table.push_back(aarch64_entry(aarch64_op_'+insnArray[i]+', \t\"'+insnArray[i].split('_')[0]+'\t\", list_of() ));'
+        print '\taarch64_insn_table.push_back(aarch64_insn_entry(aarch64_op_'+insnArray[i]+', \t\"'+insnArray[i].split('_')[0]+'\t\", list_of() ));'
 
 
 numOfLeafNodes=0
@@ -178,6 +179,8 @@ processedIndex = Set()
 notProcessedIndex = Set()
 numNotProcNodes = 0
 # need to initialize the mask_table with unallocated entries
+def printDecodertable(entryToPlace, curMask=0, zeroEntryToPlace=-1, oneEntryToPlace=-1, index=-1 ):
+    print '\taarch_decoder_table['+str(entryToPlace)+']=aarch64_mask_entry('+str(hex(curMask))+', '+str(zeroEntryToPlace)+', '+str(oneEntryToPlace)+','+str(index)+');'
 
 def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     global numOfLeafNodes
@@ -200,7 +203,8 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
         return
 
     if len(inInsnIndex) ==1:
-        print 'mask_table['+str(entryToPlace)+']=mask_entry( 0, '+'-1'+', '+'-1'+','+str(inInsnIndex[0])+');'
+        printDecodertable(entryToPlace, 0, -1, -1, inInsnIndex[0]);
+        #print 'aarch64_decoder_table['+str(entryToPlace)+']=aarch64_mask_entry( 0, '+'-1'+', '+'-1'+','+str(inInsnIndex[0])+');'
         #print insnArray[inInsnIndex[0]]
         if inInsnIndex[0] in processedIndex:
             print '[WARN] index processed, repeated index is ', inInsnIndex[0]
@@ -230,7 +234,8 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
             numOfLeafNodes += len(inInsnIndex)
             for i in inInsnIndex:
                 processedIndex.add(i)
-            print 'mask_table['+str(entryToPlace)+']=mask_entry( 0, '+'-1'+', '+'-1'+','+str(inInsnIndex[0])+');'
+            printDecodertable(entryToPlace, 0, -1, -1, inInsnIndex[0]);
+            #print 'mask_table['+str(entryToPlace)+']=mask_entry( 0, '+'-1'+', '+'-1'+','+str(inInsnIndex[0])+');'
             return
         # handle more mask bits
         else:
@@ -251,8 +256,8 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
             break
 
     if curMask == 0:
-        print '%25s'%'valid mask'+'%35s'%bin(preValid)
-        print '%25s'%'processed mask'+'%35s'%bin(processedMask)
+        #print '%25s'%'valid mask'+'%35s'%bin(preValid)
+        #print '%25s'%'processed mask'+'%35s'%bin(processedMask)
         for i in inInsnIndex:
             print '%3d'%i+'%22s'%insnArray[i]+'%35s'%bin(masksArray[i])+'%35s'%bin(encodingsArray[i])
         numOfLeafNodes+=len(inInsnIndex)
@@ -270,7 +275,8 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     oneEntryToPlace = entryToPlace*2+2;
 
     #TODO
-    print 'mask_table['+str(entryToPlace)+']=mask_entry('+str(hex(curMask))+', '+str(zeroEntryToPlace)+', '+str(oneEntryToPlace)+',0'+');'
+    printDecodertable(entryToPlace, curMask, zeroEntryToPlace, oneEntryToPlace, -1);
+    #print 'mask_table['+str(entryToPlace)+']=mask_entry('+str(hex(curMask))+', '+str(zeroEntryToPlace)+', '+str(oneEntryToPlace)+',0'+');'
 
     #print hex(curMask)
     for index in inInsnIndex:
@@ -300,12 +306,13 @@ getOpTable()
 
 buildInsnTable()
 validInsnIndex = list( range(0, len(insnArray) ) )
-#print validInsnIndex
+
+print '*** decoder table ***'
 buildDecodeTable(validInsnIndex, 0 , 0)
 print 'num of vaild leaves', numOfLeafNodes
 allIndex = Set(range(0, len(insnArray)) )
 #print allIndex
-print processedIndex, len(processedIndex), numNotProcNodes
+print 'processed indexex: ', processedIndex, len(processedIndex)
 print 'missing indexes:', sorted(allIndex - processedIndex), len(allIndex-processedIndex)
 
 
