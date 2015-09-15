@@ -40,7 +40,7 @@ namespace Dyninst
     typedef void (InstructionDecoder_aarch64::*operandFactory)();
     typedef std::vector<operandFactory> operandSpec;
     typedef std::vector<aarch64_insn_entry> aarch64_insn_table;
-    typedef std::map<aarch64_mask_entry> aarch64_decoder_table;
+    typedef std::map<long long int, aarch64_mask_entry> aarch64_decoder_table;
 
     //TODO: what are these used for?
     bool InstructionDecoder_aarch64::foundDoubleHummerInsn = false;
@@ -82,44 +82,40 @@ namespace Dyninst
         
         static void buildInsnTable();
         static bool built_insn_table;
-
-        // more tables for diff insn classes
-        static aarch64_table ext_op_GroupDiBSys;
-        // TODO: what is the above?
         
         static aarch64_insn_table main_insn_table;
     };
     
     struct aarch64_mask_entry
     {
-		aarch64_mask_entry(unsigned int m, int zIndex, int oIndex, int tabIndex):
-		mask(m), bitZeroIndex(zIndex), bitOneIndex(oIndex), insnTableIndex(tabIndex)
+		aarch64_mask_entry(unsigned int m, long long int zKey, long long int oKey, int tabIndex):
+		mask(m), bitZeroKey(zKey), bitOneKey(oKey), insnTableIndex(tabIndex)
 		{
 		}
 		
 		aarch64_mask_entry():
-		mask(0), bitZeroIndex(-1), bitOneIndex(-1), insnTableIndex(-1)
+		mask(0), bitZeroKey(-1), bitOneKey(-1), insnTableIndex(-1)
 		{
 		}
 		
 		aarch64_mask_entry(const aarch64_mask_entry& e):
-		mask(e.mask), bitZeroIndex(e.bitZeroIndex), bitOneIndex(e.bitOneIndex), insnTableIndex(e.insnTableIndex)
+		mask(e.mask), bitZeroKey(e.bitZeroKey), bitOneKey(e.bitOneKey), insnTableIndex(e.insnTableIndex)
 		{
 		}
 		
 		const aarch64_mask_entry& operator=(const aarch64_mask_entry& rhs)
 		{
 			mask = rhs.mask;
-			bitZeroIndex = rhs.bitZeroIndex;
-			bitOndeIndex = rhs.bitOneIndex;
+			bitZeroKey = rhs.bitZeroKey;
+			bitOneKey = rhs.bitOneKey;
 			insnTableIndex = rhs.insnTableIndex;
 			
 			return *this;
 		}
 		
 		unsigned int mask;
-		int bitZeroIndex;
-		int bitOneIndex;
+		long long int bitZeroKey;
+		long long int bitOneKey;
 		int insnTableIndex;
 		
 		static void buildDecoderTable();
@@ -177,7 +173,7 @@ namespace Dyninst
 
     bool InstructionDecoder_aarch64::decodeOperands(const Instruction *)
     {
-        return false;
+		//TODO: Operand decoding
     }
 
     void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *)
@@ -217,25 +213,30 @@ using namespace boost::assign;
 
 #include "aarch64_opcode_tables.C"
 
-    // TODO this is a tmp experiment
-    const aarch64_insn_entry& InstructionDecoder_aarch64::ext_op_DiBSys()
-    {
-        //insn_printf("dibsys field %d\n", field<30,30>(insn));
-        return aarch64_insn_entry::ext_op_GroupDiBSys[field<30,30>(insn)];
-    }
-
+	long long int InstructionDecoder_aarch64::findInsnTableIndex(long long int decoder_table_index)
+	{
+		aarch64_mask_entry cur_decoder_table_entry = main_decoder_table[decoder_table_index];
+		
+		if(cur_decoder_table_entry.mask == 0)
+			return cur_decoder_table_entry.insnTableIndex - 1;
+		
+		int masked_insn = insn&(cur_decoder_table_entry.mask);
+		if(masked_insn == 0)
+			return findInsnTableIndex(cur_decoder_table_entry.bitZeroKey);
+		else
+			return findInsnTableIndex(cur_decoder_table_entry.bitOneKey);
+	}
 
     void InstructionDecoder_aarch64::mainDecode()
     {
-        // the 27, 28 bit indicate which op class the insn is
-        const aarch64_insn_entry* current = &aarch64_insn_entry::main_opcode_table[field<27, 28>(insn)];
-        insn_printf("field %d 0x%x\n", field<27, 28>(insn), insn);
-        while(current->next_table)
-        {
-            current = &(std::mem_fun(current->next_table)(this));
-        }
-        insn_in_progress = makeInstruction(current->op, current->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));
-        insn_printf("ARM: %s\n", current->mnemonic);
+		long long int insn_table_index = findInsnTableIndex(0);
+		
+		assert(insn_table_index != -1);
+		
+		aarch64_insn_entry insn_table_entry = main_insn_table[insn_table_index];
+		
+        insn_in_progress = makeInstruction(insn_table_entry->op, insn_table_entry->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));
+        insn_printf("ARM: %s\n", insn_table_entry->mnemonic);
 
         // control flow operations?
         /* tmp commented this part
@@ -248,6 +249,8 @@ using namespace boost::assign;
             doDelayedDecode(insn_in_progress);
         }
         */
+        
+        decodeOperands(insn_in_progress);
 
         //insn_in_progress->arch_decoded_from = m_Arch;
         insn_in_progress->arch_decoded_from = Arch_aarch64;

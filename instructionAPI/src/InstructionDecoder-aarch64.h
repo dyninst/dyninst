@@ -87,6 +87,7 @@ namespace Dyninst {
                 // opcodes
                 const aarch64_insn_entry& ext_op_DiBSys();
                 void mainDecode();
+                long long int findInsnTableIndex;
 
                 unsigned int insn;
                 Instruction* insn_in_progress;
