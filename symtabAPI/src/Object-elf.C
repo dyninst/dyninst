@@ -4984,6 +4984,11 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
       else
 	moduleName = cuName;
     }
+    if(cuName && modules_parsed_for_line_info.find(cuName) != modules_parsed_for_line_info.end())
+    {
+	dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
+	continue;
+    }
     // Parse line info for each CU once, completely, if a user has asked for something within
     // that CU
     if(!addrInCU(obj, dbg, cuDIE, addr_to_find))
@@ -5016,7 +5021,8 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
     parseLineInfoForCU(cuDIE, li_for_module);
     if (cuName) 
     {
-      dwarf_dealloc( dbg, cuName, DW_DLA_STRING );  
+	modules_parsed_for_line_info.insert(cuName);
+	dwarf_dealloc( dbg, cuName, DW_DLA_STRING );  
     }
     
     /* Free this CU's DIE. */
