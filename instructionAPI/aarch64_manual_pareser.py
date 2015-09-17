@@ -170,7 +170,7 @@ def buildInsnTable():
     assert len(masksArray) == len(encodingsArray) ==len(insnArray)
     print len(insnArray)
     print '*** instruction table ***'
-    for i in range(1, len(insnArray)):
+    for i in range(0, len(insnArray)):
         print '\taarch64_insn_table.push_back(aarch64_insn_entry(aarch64_op_'+insnArray[i]+', \t\"'+insnArray[i].split('_')[0]+'\t\", list_of() ));'
 
 
@@ -178,13 +178,40 @@ numOfLeafNodes=0
 processedIndex = Set()
 notProcessedIndex = Set()
 numNotProcNodes = 0
+numNodes = 0
+
 # need to initialize the mask_table with unallocated entries
-def printDecodertable(entryToPlace, curMask=0, zeroEntryToPlace=-1, oneEntryToPlace=-1, index=-1 ):
-    print '\taarch_decoder_table['+str(entryToPlace)+']=aarch64_mask_entry('+str(hex(curMask))+', '+str(zeroEntryToPlace)+', '+str(oneEntryToPlace)+','+str(index)+');'
+#def printDecodertable(entryToPlace, curMask=0, zeroEntryToPlace=-1, oneEntryToPlace=-1, index=-1 ):
+    #print '\taarch_decoder_table['+str(entryToPlace)+']=aarch64_mask_entry('+str(hex(curMask))+', '+str(zeroEntryToPlace)+', '+str(oneEntryToPlace)+','+str(index)+');'
+
+def clapseMask(encoding, curMask):
+    ret = 0
+    while curMask!=0:
+        if curMask & 0x80000000 != 0:
+            ret = (ret<<1)|((encoding & 0x80000000)>>31)
+        curMask = (curMask << 1)&0xffffffff
+        encoding = (encoding << 1)&0xffffffff
+    return ret
+
+
+def printDecodertable(entryToPlace, curMask=0, entryList=list(), index=-1 ):
+    entries = 'map_list_of'
+    if len(entryList) == 0:
+        entries = 'NULL'
+    else:
+        for ent in entryList:
+            entries += '('+str(ent[0])+','+str(ent[1])+')'
+
+    print '\taarch_decoder_table['+str(entryToPlace)+']=aarch64_mask_entry('+str(hex(curMask))+', '+entries+','+str(index)+');'
+
+entryAvailable = 1
 
 def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     global numOfLeafNodes
     global numNotProcNodes
+    global numNodes
+    global entryAvailable
+
 
     # guards, redundant
     '''
@@ -203,8 +230,9 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
         return
 
     if len(inInsnIndex) ==1:
-        printDecodertable(entryToPlace, 0, -1, -1, inInsnIndex[0]);
-        #print 'aarch64_decoder_table['+str(entryToPlace)+']=aarch64_mask_entry( 0, '+'-1'+', '+'-1'+','+str(inInsnIndex[0])+');'
+        #printDecodertable(entryToPlace, 0, -1, -1, inInsnIndex[0]);
+        printDecodertable(entryToPlace, 0, list() , inInsnIndex[0]);
+        numNodes += 1
         #print insnArray[inInsnIndex[0]]
         if inInsnIndex[0] in processedIndex:
             print '[WARN] index processed, repeated index is ', inInsnIndex[0]
@@ -234,58 +262,78 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
             numOfLeafNodes += len(inInsnIndex)
             for i in inInsnIndex:
                 processedIndex.add(i)
-            printDecodertable(entryToPlace, 0, -1, -1, inInsnIndex[0]);
-            #print 'mask_table['+str(entryToPlace)+']=mask_entry( 0, '+'-1'+', '+'-1'+','+str(inInsnIndex[0])+');'
+            #printDecodertable(entryToPlace, 0, -1, -1, inInsnIndex[0]);
+            printDecodertable(entryToPlace, 0, list(), inInsnIndex[0]);
+            numNodes += 1
             return
         # handle more mask bits
         else:
             validMaskBits = addMask
             #print bin(addMask)
-            #assert(False)
-            #return
 
     # till here we should have got the mask bits
     MSBmask = 0x80000000
     curMask = 0
-    preValid = validMaskBits
+    numCurMaskBit = 0
+
+    print hex(validMaskBits)
+
     for bit in range(0, 32):
         if (MSBmask & validMaskBits) == 0 :
-            validMaskBits = validMaskBits << 1
+            validMaskBits = (validMaskBits << 1)
         else:
-            curMask = 1<<(31-bit)
-            break
+            curMask |= 1<<(31-bit)
+            validMaskBits = (validMaskBits << 1)
+            numCurMaskBit += 1
+            #break
+
+    print 'cur mask', hex(curMask)
 
     if curMask == 0:
-        #print '%25s'%'valid mask'+'%35s'%bin(preValid)
         #print '%25s'%'processed mask'+'%35s'%bin(processedMask)
         for i in inInsnIndex:
             print '%3d'%i+'%22s'%insnArray[i]+'%35s'%bin(masksArray[i])+'%35s'%bin(encodingsArray[i])
         numOfLeafNodes+=len(inInsnIndex)
         return
 
-    processedMask0 = processedMask | curMask
-    processedMask1 = processedMask | curMask
+
+    #processedMaskList = [processedMask|curMask]*numCurMaskBit
+    #processedMask0 = processedMask | curMask
+    #processedMask1 = processedMask | curMask
+    processedMask = processedMask | curMask
+
+    indexList = [ ]
+    for i in range(0, 2**numCurMaskBit):
+        indexList.append([])
+    #zeroIndexes = list()
+    #oneIndexes = list()
 
     #print hex(curMask)
-    zeroIndexes = list()
-    oneIndexes = list()
+    #print indexList
+    for index in inInsnIndex:
+        branchNo = clapseMask(encodingsArray[index] & curMask, curMask)
+        print 'branchNo' ,branchNo
+        indexList[branchNo].append(index)
+
+    numBranch = 0
+    validIndexList = []
+    for i in indexList:
+        if len(i)!=0:
+            numBranch+=1
+            validIndexList.append(i)
 
     # typedef mask_table vector<mask_entry>;
-    zeroEntryToPlace = entryToPlace*2+1;
-    oneEntryToPlace = entryToPlace*2+2;
+    entryList = []
+    #entryAvailable += 1
+    for i in range(0, numBranch):
+        entryList.append( (validInsnIndex[i], entryAvailable + i) )
+
+    entryAvailable += numBranch
 
     #TODO
-    printDecodertable(entryToPlace, curMask, zeroEntryToPlace, oneEntryToPlace, -1);
-    #print 'mask_table['+str(entryToPlace)+']=mask_entry('+str(hex(curMask))+', '+str(zeroEntryToPlace)+', '+str(oneEntryToPlace)+',0'+');'
+    printDecodertable(entryToPlace, curMask, entryList, -1);
+    numNodes += 1
 
-    #print hex(curMask)
-    for index in inInsnIndex:
-        if encodingsArray[index] & curMask == 0:
-            zeroIndexes.append(index)
-            #print index, bin(encodingsArray[index]), encodingsArray[index]&curMask
-        else:
-            oneIndexes.append(index)
-            #print '\t\t', index, bin(encodingsArray[index]), encodingsArray[index]&curMask
 
     """
     print '%34s'%bin(curMask)
@@ -295,9 +343,10 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     for i in oneIndexes:
         print '%34s'%bin(encodingsArray[i])
     """
-    buildDecodeTable(zeroIndexes, processedMask0, zeroEntryToPlace)
-    buildDecodeTable(oneIndexes, processedMask1, oneEntryToPlace)
-
+    print validIndexList
+    #assert(False)
+    for i in range(0, numBranch):
+        buildDecodeTable( validIndexList[i], processedMask, entryList[i][1])
 
 
 getOpcodes()
@@ -311,8 +360,9 @@ print '*** decoder table ***'
 buildDecodeTable(validInsnIndex, 0 , 0)
 print 'num of vaild leaves', numOfLeafNodes
 allIndex = Set(range(0, len(insnArray)) )
+
 #print allIndex
 print 'processed indexex: ', processedIndex, len(processedIndex)
 print 'missing indexes:', sorted(allIndex - processedIndex), len(allIndex-processedIndex)
-
+print 'number of total nodes in the tree:', numNodes
 
