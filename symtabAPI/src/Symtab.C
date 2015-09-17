@@ -788,7 +788,7 @@ bool Symtab::fixSymModule(Symbol *&sym)
     // else. This is enforced here, although the Object-* files might
     // do it as well.
     Module *mod = NULL;
-    if (getObjectType() == obj_SharedLib) {
+    if (0 && (getObjectType() == obj_SharedLib)) {
        mod = getDefaultModule();
     }
     else {
@@ -1137,7 +1137,7 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
 
 void Symtab::createDefaultModule() {
     Module *mod = NULL;
-    if (getObjectType() == obj_SharedLib) {
+    if (1 || getObjectType() == obj_SharedLib) {
         mod = new Module(lang_Unknown, 
                          imageOffset_,
                          name(),
