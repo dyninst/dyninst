@@ -295,6 +295,7 @@ bool getMemoryOffset(ParseAPI::Function* func,
     signed long offset = 0;
     bool isOffsetSet = false;
 
+    // Determine how memory is accessed
     StackAccess::StackAccessType type = StackAccess::UNKNOWN;
     if (insn->readsMemory() && insn->writesMemory()) {
         type = StackAccess::READWRITE;
@@ -304,11 +305,16 @@ bool getMemoryOffset(ParseAPI::Function* func,
         type = StackAccess::WRITE;
     }
 
+    // If memory is not accessed, no need to find an offset
+    if (type == StackAccess::UNKNOWN) {
+        return false;
+    }
+
     for (unsigned i = 0; i < operands.size(); i++) {
 
         stackmods_printf("\t\t\t\t operand[%d] = %s\n", i, operands[i].getValue()->format().c_str());
 
-        // Get the read/written sets
+        // Get the read/written register sets
         bool match = false;
         if (reg.isValid()) {
             std::set<InstructionAPI::RegisterAST::Ptr> regsRead;
@@ -331,6 +337,7 @@ bool getMemoryOffset(ParseAPI::Function* func,
             }
         }
 
+        // If at least one register is read/written...
         if (match || !reg.isValid()) {
             InstructionAPI::Expression::Ptr val = operands[i].getValue();
             if (!val) break;
