@@ -88,10 +88,29 @@ def shifting(bitlist):
         out = (out<<1) | (bit=='1' )
     return out
 
+def getOperandValues(line):
+    #operandValues #= {'name':'', 'bit':32, 'width':0}
+    if line.find(' name') != -1:
+        tokens = line.split(' ')
+        for token in tokens:
+            if token.find('name')!=-1 and token.find('usename')== -1:
+                name = token.split('\"')[1]
+            if token.find('hibit')!=-1:
+                bit = int(token.split('\"')[1])
+            if token.find('width') != -1:
+                width = int(token.split('\"')[1])
+            else:
+                width = 1
+    else:
+        return ret('', 0, 0)
+
+    return ([name], [bit], [width])
+
 # to get the encoding table
 masksArray = list()
 encodingsArray = list()
 insnArray = list()
+operandSet= Set()
 
 def getOpTable():
 
@@ -120,14 +139,16 @@ def getOpTable():
                 # to analyze lines
                 for line in curFile:
 
+                    #diagram starts
                     if line.find('<regdiagram')!=-1:
                         startDiagram = True
                     if line.find('</regdiagram')!=-1:
                         break
 
-                    #diagram starts
+                    #analyze each box
                     if startDiagram == True and line.find('<box')!=-1:
-                        #maskStartBit = 31
+                        #name, start bit, length
+                        #operandValues = getOperandValues(line)
                         for x in line.split(' '):
                             if x.find('hibit') != -1:
                                 maskStartBit = int(x.split('\"')[1])
@@ -149,6 +170,11 @@ def getOpTable():
                                 maskBitArrayNew[31-maskStartBit] = '0'
                                 encodingArray[31-maskStartBit] = '0'
                             maskStartBit = maskStartBit - 1
+                        '''
+                        if line.find('<c') != -1:
+                            if line.split('>')[1].split('<')[0] =='':
+                                operandSet.add(operandValues)
+                        '''
                     # end of <box line>
 
                 # end of each line
@@ -197,7 +223,7 @@ def clapseMask(encoding, curMask):
 def printDecodertable(entryToPlace, curMask=0, entryList=list(), index=-1 ):
     entries = 'map_list_of'
     if len(entryList) == 0:
-        entries = 'NULL'
+        entries = 'map_list_of()'
     else:
         for ent in entryList:
             entries += '('+str(ent[0])+','+str(ent[1])+')'
@@ -276,7 +302,7 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     curMask = 0
     numCurMaskBit = 0
 
-    print hex(validMaskBits)
+    #print hex(validMaskBits)
 
     for bit in range(0, 32):
         if (MSBmask & validMaskBits) == 0 :
@@ -287,7 +313,7 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
             numCurMaskBit += 1
             #break
 
-    print 'cur mask', hex(curMask)
+    #print 'cur mask', hex(curMask)
 
     if curMask == 0:
         #print '%25s'%'processed mask'+'%35s'%bin(processedMask)
@@ -297,22 +323,17 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
         return
 
 
-    #processedMaskList = [processedMask|curMask]*numCurMaskBit
-    #processedMask0 = processedMask | curMask
-    #processedMask1 = processedMask | curMask
     processedMask = processedMask | curMask
 
     indexList = [ ]
     for i in range(0, 2**numCurMaskBit):
         indexList.append([])
-    #zeroIndexes = list()
-    #oneIndexes = list()
 
     #print hex(curMask)
     #print indexList
     for index in inInsnIndex:
         branchNo = clapseMask(encodingsArray[index] & curMask, curMask)
-        print 'branchNo' ,branchNo
+        #print 'branchNo' ,branchNo
         indexList[branchNo].append(index)
 
     numBranch = 0
@@ -324,7 +345,6 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
 
     # typedef mask_table vector<mask_entry>;
     entryList = []
-    #entryAvailable += 1
     for i in range(0, numBranch):
         entryList.append( (validInsnIndex[i], entryAvailable + i) )
 
@@ -343,10 +363,47 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     for i in oneIndexes:
         print '%34s'%bin(encodingsArray[i])
     """
-    print validIndexList
-    #assert(False)
+    #print validIndexList
     for i in range(0, numBranch):
         buildDecodeTable( validIndexList[i], processedMask, entryList[i][1])
+
+
+def analyzeOperands():
+    for files in sorted(files_dir):
+        if files.endswith('.xml'):
+            instruction = files.split('.xml')[0]
+            if instruction in insn_set:
+                #print files
+                curFile = open(ISA_dir+files)
+
+                startDiagram = False
+                startBox = False
+
+                # to analyze lines
+                for line in curFile:
+
+                    #diagram starts
+                    if line.find('<regdiagram')!=-1:
+                        startDiagram = True
+                    if line.find('</regdiagram')!=-1:
+                        break
+
+                    #analyze each box
+                    if startDiagram == True and line.find('<box')!=-1:
+                        #name, start bit, length
+                        #operandValues = getOperandValues(line)
+                        startBox = True
+
+                    if line.find('</box') != -1:
+                        startBox = False
+
+                    # read box content
+                    if startBox == True:
+                        if line.find('<c') != -1:
+                            if line.split('>')[1].split('<')[0] =='':
+                                #operandSet.add(operandValues)
+                                #print line
+                                continue
 
 
 getOpcodes()
@@ -366,3 +423,4 @@ print 'processed indexex: ', processedIndex, len(processedIndex)
 print 'missing indexes:', sorted(allIndex - processedIndex), len(allIndex-processedIndex)
 print 'number of total nodes in the tree:', numNodes
 
+analyzeOperands()
