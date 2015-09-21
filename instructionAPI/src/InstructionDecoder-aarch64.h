@@ -44,7 +44,9 @@ namespace Dyninst {
         }while(0)
 #endif
 
-        struct aarch64_entry;
+#define AARCH64_INSN_LENGTH	32
+
+        struct aarch64_insn_entry;
 		struct aarch64_mask_entry;	
 
         class InstructionDecoder_aarch64 : public InstructionDecoderImpl
@@ -85,9 +87,8 @@ namespace Dyninst {
                 }
 
                 // opcodes
-                const aarch64_insn_entry& ext_op_DiBSys();
                 void mainDecode();
-                long long int findInsnTableIndex;
+                int findInsnTableIndex(unsigned int);
 
                 unsigned int insn;
                 Instruction* insn_in_progress;

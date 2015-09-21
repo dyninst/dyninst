@@ -27,30 +27,30 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#define INVALID_ENTRY aarch64_entry(aarch64_op_INVALID, "INVALID", NULL, operandSpec())
+#define INVALID_ENTRY aarch64_insn_entry(aarch64_op_INVALID, "INVALID", branchMap(), operandSpec())
 
-bool aarch64_entry::built_tables = false;
+bool aarch64_insn_entry::built_insn_table = false;
+bool aarch64_mask_entry::built_decoder_table = false;
 
-std::vector<aarch64_entry> aarch64_entry::aarch64_insn_table;
-aarch64_table aarch64_entry::main_opcode_table;
-aarch64_table aarch64_entry::ext_op_GroupDiBSys;
+aarch64_insn_table aarch64_insn_entry::main_insn_table;
+aarch64_decoder_table aarch64_mask_entry::main_decoder_table;
 
-void aarch64_entry::buildTables()
+void aarch64_insn_entry::buildInsnTable()
 {
-    if(built_tables) return;
-    main_opcode_table[0] = INVALID_ENTRY; //00
-    // TMP invalid for now
-    main_opcode_table[1] = INVALID_ENTRY; //01
-    main_opcode_table[3] = INVALID_ENTRY; //11
-    // end TMP
-    main_opcode_table[2] = aarch64_entry(aarch64_op_extended, "DataImm_Branch_Sys", fn(ext_op_DiBSys), operandSpec()); //10, Data imm, Branch, Exception and System insns
+    if(aarch64_insn_entry::built_insn_table)
+		return;
+	
+	//
+	
+	built_insn_table = true;
+}
 
-
-    // Groups:
-    // Group for Data imm, Branch, and System
-    ext_op_GroupDiBSys[0] = aarch64_entry(aarch64_op_add, "add", NULL, list_of(fn(Rd))(fn(Rn))(fn(Imm12)));
-    ext_op_GroupDiBSys[1] = aarch64_entry(aarch64_op_sub, "sub", NULL, list_of(fn(Rd))(fn(Rn))(fn(Imm12)));
-
-
-    built_tables = true;
+void aarch64_mask_entry::buildDecoderTable()
+{
+	if(aarch64_mask_entry::built_decoder_table)
+		return;
+	
+    //
+    
+    built_decoder_table = true;
 }
