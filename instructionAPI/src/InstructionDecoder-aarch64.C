@@ -40,11 +40,8 @@ namespace Dyninst
     typedef void (InstructionDecoder_aarch64::*operandFactory)();
     typedef std::vector<operandFactory> operandSpec;
     typedef std::vector<aarch64_insn_entry> aarch64_insn_table;
-    typedef std::map<long long int, aarch64_mask_entry> aarch64_decoder_table;
-
-    //TODO: what are these used for?
-    bool InstructionDecoder_aarch64::foundDoubleHummerInsn = false;
-    bool InstructionDecoder_aarch64::foundQuadInsn = false;
+    typedef std::map<unsigned int, aarch64_mask_entry> aarch64_decoder_table;
+    typedef std::map<unsigned int, unsigned int> branchMap;
 
     struct aarch64_insn_entry
     {
@@ -85,42 +82,40 @@ namespace Dyninst
         
         static aarch64_insn_table main_insn_table;
     };
-    
+
     struct aarch64_mask_entry
-    {
-		aarch64_mask_entry(unsigned int m, long long int zKey, long long int oKey, int tabIndex):
-		mask(m), bitZeroKey(zKey), bitOneKey(oKey), insnTableIndex(tabIndex)
+    {	
+		aarch64_mask_entry(unsigned int m, branchMap bm, int tabIndex):
+		mask(m), nodeBranches(bm), insnTableIndex(tabIndex)
 		{
 		}
 		
 		aarch64_mask_entry():
-		mask(0), bitZeroKey(-1), bitOneKey(-1), insnTableIndex(-1)
+		mask(0), nodeBranches(branchMap()), insnTableIndex(-1)
 		{
 		}
 		
 		aarch64_mask_entry(const aarch64_mask_entry& e):
-		mask(e.mask), bitZeroKey(e.bitZeroKey), bitOneKey(e.bitOneKey), insnTableIndex(e.insnTableIndex)
+		mask(e.mask), nodeBranches(e.nodeBranches), insnTableIndex(e.insnTableIndex)
 		{
 		}
 		
 		const aarch64_mask_entry& operator=(const aarch64_mask_entry& rhs)
 		{
 			mask = rhs.mask;
-			bitZeroKey = rhs.bitZeroKey;
-			bitOneKey = rhs.bitOneKey;
+			nodeBranches = rhs.nodeBranches;
 			insnTableIndex = rhs.insnTableIndex;
 			
 			return *this;
 		}
 		
 		unsigned int mask;
-		long long int bitZeroKey;
-		long long int bitOneKey;
+		branchMap nodeBranches;
 		int insnTableIndex;
 		
 		static void buildDecoderTable();
 		static bool built_decoder_table;
-		aarch64_decoder_table main_decoder_table;
+		static aarch64_decoder_table main_decoder_table;
 	};
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
@@ -173,7 +168,7 @@ namespace Dyninst
 
     bool InstructionDecoder_aarch64::decodeOperands(const Instruction *)
     {
-		//TODO: Operand decoding
+		return false;
     }
 
     void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *)
@@ -187,22 +182,6 @@ namespace Dyninst
         return u32;
     }
 
-    // *****************
-    // decoding operands
-    // *****************
-
-    void InstructionDecoder_aarch64::Rd(){
-        assert(0);
-    }
-
-    void InstructionDecoder_aarch64::Rn(){
-        assert(0);
-    }
-
-    void InstructionDecoder_aarch64::Imm12(){
-        assert(0);
-    }
-
     // ****************
     // decoding opcodes
     // ****************
@@ -213,27 +192,35 @@ using namespace boost::assign;
 
 #include "aarch64_opcode_tables.C"
 
-	long long int InstructionDecoder_aarch64::findInsnTableIndex(long long int decoder_table_index)
+	int InstructionDecoder_aarch64::findInsnTableIndex(unsigned int decoder_table_index)
 	{
-		aarch64_mask_entry cur_decoder_table_entry = main_decoder_table[decoder_table_index];
+		aarch64_mask_entry cur_entry = aarch64_mask_entry::main_decoder_table[decoder_table_index];
 		
-		if(cur_decoder_table_entry.mask == 0)
-			return cur_decoder_table_entry.insnTableIndex - 1;
+		int cur_mask = cur_entry.mask;
+		branchMap cur_branches = cur_entry.nodeBranches;
 		
-		int masked_insn = insn&(cur_decoder_table_entry.mask);
-		if(masked_insn == 0)
-			return findInsnTableIndex(cur_decoder_table_entry.bitZeroKey);
-		else
-			return findInsnTableIndex(cur_decoder_table_entry.bitOneKey);
+		if(cur_mask == 0)
+			return cur_entry.insnTableIndex;
+		
+		unsigned int insn_iter_index = 0, branch_map_key = 0, map_key_index = 0;
+		
+		while(insn_iter_index >= AARCH64_INSN_LENGTH)
+		{
+			while((cur_mask>>insn_iter_index) == 0)
+				insn_iter_index++;
+			
+			branch_map_key |= (insn & (1<<insn_iter_index))<<map_key_index;
+			map_key_index++;
+		}
+		
+		return findInsnTableIndex(branch_map_key);
 	}
 
     void InstructionDecoder_aarch64::mainDecode()
     {
-		long long int insn_table_index = findInsnTableIndex(0);
+		int insn_table_index = findInsnTableIndex(0);
 		
-		assert(insn_table_index != -1);
-		
-		aarch64_insn_entry insn_table_entry = main_insn_table[insn_table_index];
+		aarch64_insn_entry *insn_table_entry = &aarch64_insn_entry::main_insn_table[insn_table_index];
 		
         insn_in_progress = makeInstruction(insn_table_entry->op, insn_table_entry->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));
         insn_printf("ARM: %s\n", insn_table_entry->mnemonic);
@@ -258,7 +245,6 @@ using namespace boost::assign;
     }
   };
 };
-
 
 
 
