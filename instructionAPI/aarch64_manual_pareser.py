@@ -88,29 +88,10 @@ def shifting(bitlist):
         out = (out<<1) | (bit=='1' )
     return out
 
-def getOperandValues(line):
-    #operandValues #= {'name':'', 'bit':32, 'width':0}
-    if line.find(' name') != -1:
-        tokens = line.split(' ')
-        for token in tokens:
-            if token.find('name')!=-1 and token.find('usename')== -1:
-                name = token.split('\"')[1]
-            if token.find('hibit')!=-1:
-                bit = int(token.split('\"')[1])
-            if token.find('width') != -1:
-                width = int(token.split('\"')[1])
-            else:
-                width = 1
-    else:
-        return ret('', 0, 0)
-
-    return ([name], [bit], [width])
-
 # to get the encoding table
 masksArray = list()
 encodingsArray = list()
 insnArray = list()
-operandSet= Set()
 
 def getOpTable():
 
@@ -148,7 +129,6 @@ def getOpTable():
                     #analyze each box
                     if startDiagram == True and line.find('<box')!=-1:
                         #name, start bit, length
-                        #operandValues = getOperandValues(line)
                         for x in line.split(' '):
                             if x.find('hibit') != -1:
                                 maskStartBit = int(x.split('\"')[1])
@@ -223,7 +203,7 @@ def clapseMask(encoding, curMask):
 def printDecodertable(entryToPlace, curMask=0, entryList=list(), index=-1 ):
     entries = 'map_list_of'
     if len(entryList) == 0:
-        entries = 'map_list_of()'
+        entries = 'branchMap()'
     else:
         for ent in entryList:
             entries += '('+str(ent[0])+','+str(ent[1])+')'
@@ -338,15 +318,19 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
 
     numBranch = 0
     validIndexList = []
+    brNoinIndexList = 0
+    posToBrNo = list()
     for i in indexList:
         if len(i)!=0:
             numBranch+=1
             validIndexList.append(i)
+            posToBrNo.append(brNoinIndexList)
+        brNoinIndexList += 1
 
     # typedef mask_table vector<mask_entry>;
     entryList = []
     for i in range(0, numBranch):
-        entryList.append( (validInsnIndex[i], entryAvailable + i) )
+        entryList.append( (posToBrNo[i], entryAvailable + i) )
 
     entryAvailable += numBranch
 
@@ -367,6 +351,30 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     for i in range(0, numBranch):
         buildDecodeTable( validIndexList[i], processedMask, entryList[i][1])
 
+"""
+the following section is for parsing and generating operands.
+"""
+
+def getOperandValues(line):
+    #operandValues #= {'name':'', 'bit':32, 'width':0}
+    if line.find(' name') != -1:
+        tokens = line.split(' ')
+        for token in tokens:
+            if token.find('name')!=-1 and token.find('usename')== -1:
+                name = token.split('\"')[1]
+            if token.find('hibit')!=-1:
+                bit = int(token.split('\"')[1])
+            if token.find('width') != -1:
+                width = int(token.split('\"')[1])
+            else:
+                width = 1
+    else:
+        return ('', [(0, 0)])
+
+    return (name, [(bit, width)])
+
+operandList = list()
+operandDict = {}
 
 def analyzeOperands():
     for files in sorted(files_dir):
@@ -391,7 +399,7 @@ def analyzeOperands():
                     #analyze each box
                     if startDiagram == True and line.find('<box')!=-1:
                         #name, start bit, length
-                        #operandValues = getOperandValues(line)
+                        operandValues = getOperandValues(line)
                         startBox = True
 
                     if line.find('</box') != -1:
@@ -401,8 +409,14 @@ def analyzeOperands():
                     if startBox == True:
                         if line.find('<c') != -1:
                             if line.split('>')[1].split('<')[0] =='':
+                                '''
+                                print type(operandDict)
+                                print operandValues
+                                #operandDict[operandValues[0]].append(operandValues[1])
+                                #operandList.append(operandValues)
                                 #operandSet.add(operandValues)
                                 #print line
+                                '''
                                 continue
 
 
@@ -424,3 +438,4 @@ print 'missing indexes:', sorted(allIndex - processedIndex), len(allIndex-proces
 print 'number of total nodes in the tree:', numNodes
 
 analyzeOperands()
+print 'operands:', operandDict
