@@ -194,26 +194,27 @@ using namespace boost::assign;
 
 	int InstructionDecoder_aarch64::findInsnTableIndex(unsigned int decoder_table_index)
 	{
-		aarch64_mask_entry cur_entry = aarch64_mask_entry::main_decoder_table[decoder_table_index];
+		aarch64_mask_entry *cur_entry = &aarch64_mask_entry::main_decoder_table[decoder_table_index];
 		
-		int cur_mask = cur_entry.mask;
-		branchMap cur_branches = cur_entry.nodeBranches;
+		unsigned int cur_mask = cur_entry->mask;
 		
 		if(cur_mask == 0)
-			return cur_entry.insnTableIndex;
+			return cur_entry->insnTableIndex;
 		
-		unsigned int insn_iter_index = 0, branch_map_key = 0, map_key_index = 0;
+		unsigned int insn_iter_index = 0, map_key_index = 0, branch_map_key = 0;
+		branchMap cur_branches = cur_entry->nodeBranches;
 		
-		while(insn_iter_index >= AARCH64_INSN_LENGTH)
+		while(insn_iter_index <= 31)
 		{
-			while((cur_mask>>insn_iter_index) == 0)
-				insn_iter_index++;
-			
-			branch_map_key |= (insn & (1<<insn_iter_index))<<map_key_index;
-			map_key_index++;
+			if(((cur_mask>>insn_iter_index) & 1) == 1)
+			{		
+				branch_map_key = branch_map_key | (((insn>>insn_iter_index) & 1)<<map_key_index);
+				map_key_index++;
+			}
+			insn_iter_index++;
 		}
 		
-		return findInsnTableIndex(branch_map_key);
+		return findInsnTableIndex(cur_branches[branch_map_key]);
 	}
 
     void InstructionDecoder_aarch64::mainDecode()
