@@ -44,6 +44,7 @@ using std::vector;
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 #include "BPatch_point.h"
+#include "BPatch_object.h"
 
 #include "test_lib.h"
 #include "test12.h"
@@ -278,7 +279,16 @@ test_results_t test_thread_5_Mutator::executeTest() {
 
   //  instrument events having to do with mutex init, lock, unlock, destroy
   //  with messaging functions in libtest12.so
-  BPatch_module *libpthread = appImage->findModule(threadLibName,true);
+  BPatch_object *libpthread = NULL;
+  vector<BPatch_object*> objs;
+  appImage->getObjects(objs);
+  for(auto i = objs.begin(); i != objs.end(); ++i)
+  {
+      if((*i)->name().find(threadLibName) != std::string::npos)
+      {
+	  libpthread = *i;
+      }
+  }
   assert(libpthread);
 
   BPatch_function *mutInit = findFunction("createLock", appImage,TESTNO, TESTDESC);

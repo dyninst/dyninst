@@ -33,6 +33,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "BPatch_object.h"
 
 #include "test_lib.h"
 #include "dyninst_comp.h"
@@ -114,8 +115,8 @@ test_results_t init_fini_callback_Mutator::executeTest()
         return FAILED;
     }
 
-    BPatch_Vector<BPatch_module*> appModules;
-    appImage->getModules(appModules);
+    BPatch_Vector<BPatch_object*> appModules;
+    appImage->getObjects(appModules);
     char buffer[80];
     test_results_t pass_fail = PASSED;
     
@@ -129,15 +130,13 @@ test_results_t init_fini_callback_Mutator::executeTest()
     {
        // We want libTestA and the a.out
 
-        appModules[i]->getName(buffer, 80);
-        
         bool testa = false;
         bool aout = false;
-        if (strstr(buffer, libNameA)) {
+        if (appModules[i]->name().find(libNameA) != std::string::npos) {
            testa = true;
         }
-        if ((strcmp(buffer, "DEFAULT_MODULE") == 0) ||
-            !appModules[i]->isSharedLib()) {
+        if ((appModules[i]->name().find("init_fini_callback") != std::string::npos) &&
+	    (appModules[i]->name().find(".o") == std::string::npos)) {
            aout = true;
         }
         if (!testa && !aout) continue;
@@ -148,21 +147,21 @@ test_results_t init_fini_callback_Mutator::executeTest()
         BPatch_funcCallExpr callFiniExpr(*callfini_func, nameArgs);
 
         if(appModules[i]->insertInitCallback(callInitExpr)) {
-           logerror("**Succeeded** inserting init callback in module %s\n", buffer);
+	    logerror("**Succeeded** inserting init callback in module %s\n", appModules[i]->name().c_str());
            if (testa) init_libtesta = true;
            if (aout) init_aout = true;
         }
         else {
-           logerror("Warning: failed to insert init callback in module %s\n", buffer);
+           logerror("Warning: failed to insert init callback in module %s\n", appModules[i]->name().c_str());
         }
 
         if(appModules[i]->insertFiniCallback(callFiniExpr)) {
-           logerror("**Succeeded** inserting init callback in module %s\n", buffer);
+           logerror("**Succeeded** inserting init callback in module %s\n", appModules[i]->name().c_str() );
            if (testa) fini_libtesta = true;
            if (aout) fini_aout = true;
         }
         else {
-           logerror("Warning: failed to insert fini callback in module %s\n", buffer);
+           logerror("Warning: failed to insert fini callback in module %s\n", appModules[i]->name().c_str());
         }
         
     }

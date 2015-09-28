@@ -42,6 +42,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "BPatch_object.h"
 
 #include "test_lib.h"
 
@@ -94,27 +95,26 @@ test_results_t test1_21_Mutator::mutatorTest21()
 
 	// Lookup the libtestA.so and libtestB.so modules that we've just loaded
 
-	BPatch_module *modA = NULL;
-	BPatch_module *modB = NULL;
-	BPatch_Vector<BPatch_module *> *mods = appImage->getModules();
+	BPatch_object *modA = NULL;
+	BPatch_object *modB = NULL;
+	BPatch_Vector<BPatch_object *> mods;
+	appImage->getObjects(mods);
 
-	if (!mods || mods->size() == 0) 
+	if (mods.empty()) 
 	{
 		logerror("**Failed test #21 (findFunction in module)\n");
 		logerror("  Mutator couldn't search modules of mutatee\n");
 		return FAILED;
 	}
 
-	for (unsigned int i = 0; i < mods->size() && !(modA && modB); i++) 
+	for (unsigned int i = 0; i < mods.size() && !(modA && modB); i++) 
 	{
-		char buf[1024];
-		BPatch_module *m = (*mods)[i];
-		m->getName(buf, 1024);
+		BPatch_object *m = mods[i];
 
 		// module names sometimes have "_module" appended
-                if( std::string(buf).find(libNameAroot) != std::string::npos )
+                if( m->name().find(libNameAroot) != std::string::npos )
 			modA = m;
-		else if ( std::string(buf).find(libNameBroot) != std::string::npos ) 
+		else if ( m->name().find(libNameBroot) != std::string::npos ) 
 			modB = m;
 	}
 

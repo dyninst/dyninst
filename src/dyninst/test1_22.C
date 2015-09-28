@@ -42,6 +42,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "BPatch_object.h"
 
 #include "test_lib.h"
 #include "dyninst_comp.h"
@@ -89,15 +90,16 @@ extern "C" DLLEXPORT  TestMutator *test1_22_factory()
 test_results_t test1_22_Mutator::mutatorTest22() 
 {
 	char errbuf[1024]; errbuf[0] = '\0';
-	BPatch_module *modA = NULL;
-	BPatch_module *modB = NULL;
+	BPatch_object *modA = NULL;
+	BPatch_object *modB = NULL;
 
 	// Assume that a prior test (mutatorTest21) has loaded the
 	// libraries libtestA.so and libtestB.so into the mutator.
 
-	BPatch_Vector<BPatch_module *> *mods = appImage->getModules();
+	BPatch_Vector<BPatch_object *> mods; 
+	appImage->getObjects(mods);
 
-	if (!mods || mods->size() == 0) 
+	if(mods.empty())
 	{
 		logerror("**Failed test #22 (replace function)\n");
 		logerror("  Mutator couldn't find shlib in mutatee\n");
@@ -105,15 +107,13 @@ test_results_t test1_22_Mutator::mutatorTest22()
 	}
 
 	// Lookup the libtestA.so and libtestB.so modules
-	for (unsigned int i = 0; i < mods->size() && !(modA && modB); i++) 
+	for (unsigned int i = 0; i < mods.size() && !(modA && modB); i++) 
 	{
-		char buf[1024];
-		BPatch_module *m = (*mods)[i];
-		m->getName(buf, 1024);
+		BPatch_object *m = mods[i];
 		// module names sometimes have "_module" appended
-                if( std::string(buf).find(libNameAroot) != std::string::npos )
+                if( m->name().find(libNameAroot) != std::string::npos )
 			modA = m;
-		else if ( std::string(buf).find(libNameBroot) != std::string::npos )
+		else if ( m->name().find(libNameBroot) != std::string::npos )
 			modB = m;
 	}
 
