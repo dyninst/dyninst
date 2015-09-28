@@ -1360,7 +1360,7 @@ image::image(fileDescriptor &desc,
        interested **/
    struct filt_heap : SymtabCodeSource::hint_filt {
         bool operator()(SymtabAPI::Function * f) {
-            return f->getModule()->fullName() == "DYNINSTheap";
+            return f && f->getModule() && f->getModule()->fullName() == "DYNINSTheap";
         }
     } nuke_heap;
     filt = &nuke_heap;
@@ -1523,7 +1523,10 @@ parse_func *image::addFunction(Address functionEntryAddr, const char *fName)
      }
      region = *(regions.begin()); // XXX pick one, throwing up hands. 
 
-     pdmodule *mod = getOrCreateModule(linkedFile->getDefaultModule());
+     Module* st_mod;
+     linkedFile->findModuleByOffset(st_mod, functionEntryAddr);
+     
+     pdmodule *mod = getOrCreateModule(st_mod);
 
      // copy or create function name
      char funcName[32];

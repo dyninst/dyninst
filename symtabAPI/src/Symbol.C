@@ -151,6 +151,7 @@ bool Symbol::setLocalTOC(Offset toc)
 
 SYMTAB_EXPORT bool Symbol::setModule(Module *mod) 
 {
+    assert(mod);
     module_ = mod; 
     return true;
 }

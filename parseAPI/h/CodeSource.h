@@ -74,14 +74,21 @@ class PARSER_EXPORT CodeRegion : public Dyninst::InstructionSource, public Dynin
     { return false; }
 
     /** interval implementation **/
-    Address low() const =0;
-    Address high() const =0;
+    virtual Address low() const =0;
+    virtual Address high() const =0;
 
     bool contains(Address) const;
 
     virtual bool wasUserAdded() const { return false; }
 
 };
+
+template <typename OS>
+ OS& operator<< (OS& stream, const CodeRegion& cr)
+ {
+     stream << "[" << cr.low() << ", " << cr.high() << ")";
+     return stream;
+ }
 
 /* A starting point for parsing */
 struct Hint {
