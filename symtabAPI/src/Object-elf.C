@@ -4707,7 +4707,7 @@ void Object::parseStabFileLineInfo(Symtab *st)
   //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
 
-bool Object::addrInCU(Symtab* /*obj*/, Dwarf_Debug dbg, Dwarf_Die cu, Address to_check)
+bool Object::addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_check)
 {
   Dwarf_Addr tempLow = 0, tempHigh = -1;
   Address low = 0, high = -1;
@@ -4946,7 +4946,20 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
 {
   Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
   if (!dbg_ptr)
-    return; 
+    return;
+  Module* mod_for_offset = NULL;
+  obj->findModuleByOffset(mod_for_offset, addr_to_find);
+  std::string mod_to_check;
+  if(mod_for_offset)
+      
+  {
+      if(mod_for_offset->hasLineInformation())      // already parsed
+      {
+	  return;
+      }
+      mod_to_check = mod_for_offset->fileName();
+  }
+
   Dwarf_Debug &dbg = *dbg_ptr;
 
   /* Only .debug_info for now, not .debug_types */
@@ -4985,6 +4998,11 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
 	moduleName = cuName;
     }
     if(cuName && modules_parsed_for_line_info.find(cuName) != modules_parsed_for_line_info.end())
+    {
+	dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
+	continue;
+    }
+    if(mod_to_check != "" && strcmp(moduleName, mod_to_check.c_str()) != 0)
     {
 	dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
 	continue;

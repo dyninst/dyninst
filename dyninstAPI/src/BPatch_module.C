@@ -914,41 +914,6 @@ Address BPatch_module::getLoadAddr()
    return mod->obj()->codeBase();
 }
 
-BPatchSnippetHandle* BPatch_module::insertInitCallback(BPatch_snippet& callback)
-{
-    BPatch_Vector<BPatch_function*> init_funcs;
-    findFunction("_init", init_funcs);    
-    if(!init_funcs.empty())
-    {
-        assert(init_funcs[0]);
-        BPatch_Vector<BPatch_point*>* init_entry = init_funcs[0]->findPoint(BPatch_entry);
-        if(init_entry && !init_entry->empty() && (*init_entry)[0])
-        {
-            startup_printf("\tinserting init snippet at 0x%lx\n", (*init_entry)[0]->getAddress());
-            return addSpace->insertSnippet(callback, *((*init_entry)[0]));
-        }
-    }
-    
-    return NULL;
-}
-
-BPatchSnippetHandle* BPatch_module::insertFiniCallback(BPatch_snippet& callback)
-{
-    BPatch_Vector<BPatch_function*> fini_funcs;
-    findFunction("_fini", fini_funcs);
-    if(!fini_funcs.empty())
-    {
-        assert(fini_funcs[0]);
-        BPatch_Vector<BPatch_point*>* fini_exit = fini_funcs[0]->findPoint(BPatch_exit);
-        if(fini_exit && !fini_exit->empty() && (*fini_exit)[0])
-        {
-            startup_printf("\tinserting fini snippet at 0x%lx\n", (*fini_exit)[0]->getAddress());
-            return addSpace->insertSnippet(callback, *((*fini_exit)[0]));
-        }
-    }
-    return NULL;
-}
-
 BPatch_function *BPatch_module::findFunctionByEntry(Dyninst::Address entry)
 {
     BPatch_function* func = addSpace->findFunctionByEntry(entry);

@@ -264,9 +264,6 @@ public:
     // returns the hybrid Analysis mode: normal, exploratory, defensive
     BPatch_hybridMode getHybridMode();
     
-    BPatchSnippetHandle*  insertInitCallback(BPatch_snippet& callback);
-
-    BPatchSnippetHandle*  insertFiniCallback(BPatch_snippet& callback);
 
 #ifdef IBM_BPATCH_COMPAT
     bool getLineNumbers(unsigned int &start, unsigned int &end);

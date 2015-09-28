@@ -590,6 +590,7 @@ SymtabCodeSource::lookup_region(const Address addr) const
 inline void 
 SymtabCodeSource::overlapping_warn(const char * file, unsigned line) const
 {
+    
     if(regionsOverlap()) {
         fprintf(stderr,"Invocation of routine at %s:%d is ambiguous for "
                        "binaries with overlapping code regions\n",

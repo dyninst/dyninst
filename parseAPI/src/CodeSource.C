@@ -30,7 +30,7 @@
  */
 #include <vector>
 #include <map>
-
+#include <iostream>
 #include <boost/assign/list_of.hpp>
 
 #include "dyntypes.h"
@@ -53,8 +53,15 @@ CodeSource::addRegion(CodeRegion * cr)
     if(!_regions_overlap) {
         set<CodeRegion *> exist;
         _region_tree.find(cr,exist);
-        if(!exist.empty())
+        if(!exist.empty()) {
+	    // for(auto i = exist.begin();
+	    // 	i != exist.end();
+	    // 	++i)
+	    // {
+	    // 	std::cerr << "Region " << **i << " overlaps " << *cr << std::endl;
+	    // }
             _regions_overlap = true;
+	}
     }
 
     _region_tree.insert(cr);

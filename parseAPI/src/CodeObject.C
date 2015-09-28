@@ -47,9 +47,9 @@ namespace {
     }
 }
 
-static const int ParseAPI_major_version = 8;
-static const int ParseAPI_minor_version = 2;
-static const int ParseAPI_maintenance_version = 0;
+static const int ParseAPI_major_version = 9;
+static const int ParseAPI_minor_version = 0;
+static const int ParseAPI_maintenance_version = 4;
 
 void CodeObject::version(int& major, int& minor, int& maintenance)
 {
