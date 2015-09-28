@@ -33,13 +33,28 @@ set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
 			      "1.50" "1.50.0" "1.51" "1.51.0" "1.52" "1.52.0"
 			      "1.53" "1.53.0" "1.54" "1.54.0" "1.55" "1.55.0")
 
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+
+if (NOT ("${Boost_NO_BOOST_CMAKE}" STREQUAL "OFF"))
+  message(STATUS "Disabling Boost's own CMake--known buggy in many cases")
+  set(Boost_NO_BOOST_CMAKE ON)
+endif()
+if (NOT ("${PATH_BOOST}" STREQUAL ""))
+  set (CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${PATH_BOOST}/lib ${PATH_BOOST}/lib64)
+  set (CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${PATH_BOOST}/include)
+endif()
+
 find_package (Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
+
 
 message (STATUS "Dyninst includes: ${DYNINST_INCLUDE_DIR}")
 include_directories (${DYNINST_INCLUDE_DIR})
 message (STATUS "Project source dir: ${PROJECT_SOURCE_DIR}")
 set (BUILD_SHARED_LIBS ON)
+
+
 
 if ("${DYNINST_PLATFORM}" MATCHES "bgq")
 find_package( LaunchMON REQUIRED )
