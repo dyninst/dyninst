@@ -61,11 +61,11 @@
 
 #if !defined(os_windows_test)
 #include <poll.h>
-#endif
 
 static unsigned int gettid(){
     return (unsigned int)pthread_self();
 }
+#endif
 
 thread_t threads[MAX_POSSIBLE_THREADS];
 int thread_results[MAX_POSSIBLE_THREADS];
