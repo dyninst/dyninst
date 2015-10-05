@@ -274,9 +274,9 @@ def buildInsnTable():
             operands = 'list_of'
             for operand in operandsArray[i]:
                 if len(operand) != 1:
-                    operands += '('+operand[0]+'<'+ str(operand[1][0])+',' + str(operand[1][1])+'>)'
+                    operands += '(fn('+operand[0]+'<'+ str(operand[1][0])+',' + str(operand[1][1])+'>))'
                 else:
-                    operands += '('+operand[0]+')'
+                    operands += '(fn('+operand[0]+'))'
 
         print '\tmain_insn_table.push_back(aarch64_insn_entry(aarch64_op_'+insnArray[i]+', \t\"'+insnArray[i].split('_')[0]+'\",\t'+ operands +' ));'
 
