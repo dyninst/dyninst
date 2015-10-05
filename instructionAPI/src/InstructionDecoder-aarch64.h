@@ -47,7 +47,7 @@ namespace Dyninst {
 #define AARCH64_INSN_LENGTH	32
 
         struct aarch64_insn_entry;
-		struct aarch64_mask_entry;	
+		struct aarch64_mask_entry;
 
         class InstructionDecoder_aarch64 : public InstructionDecoderImpl
         {
@@ -67,10 +67,36 @@ namespace Dyninst {
                 using InstructionDecoderImpl::makeRegisterExpression;
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
+                template<unsigned int startBit, unsigned int endBit>void imm(){ }
+                template<unsigned int startBit, unsigned int endBit>void N(){ }
+                template<unsigned int startBit, unsigned int endBit>void S(){ }
+                template<unsigned int startBit, unsigned int endBit>void option(){ }
+                template<unsigned int startBit, unsigned int endBit>void cond(){ }
+
+                void Rd(){ }
+                void Ra(){ }
+                void Rm(){ }
+                void Rn(){ }
+                void Rt(){ }
+                void Rs(){ }
+                void Rt2(){ }
+                void op1(){ }
+                void op2(){ }
+                void b5(){ }
+                void b40(){ }
+                void CRn(){ }
+                void CRm(){ }
+                void o0(){ }
+                void hw(){ }
+                void sz(){ }
+                void shift(){ }
+                void nzcv(){ }
+                void sf(){ }
+
 
                 // inherit from ppc is not sematically consistent with aarch64 manual
                 template <int start, int end>
-                int field(unsigned int raw) 
+                int field(unsigned int raw)
                 {
 #if defined DEBUG_FIELD
                     std::cerr << start << "-" << end << ":" << std::dec << (raw >> (start) &
@@ -92,7 +118,7 @@ namespace Dyninst {
 
                 unsigned int insn;
                 Instruction* insn_in_progress;
-                
+
 				//TODO: Following needed?
 				bool isRAWritten;
                 bool invertBranchCondition;
