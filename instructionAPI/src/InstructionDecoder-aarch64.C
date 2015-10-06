@@ -144,12 +144,16 @@ namespace Dyninst
     Instruction::Ptr InstructionDecoder_aarch64::decode(InstructionDecoder::buffer& b)
     {
         insn_printf("### decoding\n");
-        if(b.start > b.end) return Instruction::Ptr();
-        isRAWritten = false;
+     
+     	if(b.start > b.end)
+	    return Instruction::Ptr();
+        
+	isRAWritten = false;
         isFPInsn = false;
         bcIsConditional = false;
         insn = b.start[0] << 24 | b.start[1] << 16 |
         b.start[2] << 8 | b.start[3];
+
 #if defined(DEBUG_RAW_INSN)
         cout.width(0);
         cout << "0x";
@@ -157,18 +161,21 @@ namespace Dyninst
         cout.fill('0');
         cout << hex << insn << "\t";
 #endif
-        mainDecode();
+
+	mainDecode();
         b.start += 4;
-        return make_shared(insn_in_progress);
+
+	return make_shared(insn_in_progress);
     }
 
-    void InstructionDecoder_aarch64::setMode(bool )
+    void InstructionDecoder_aarch64::setFPMode(bool )
     {
+	isFPInsn = true;
     }
 
     bool InstructionDecoder_aarch64::decodeOperands(const Instruction *)
     {
-		return false;
+	return false;
     }
 
     void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *)
@@ -188,14 +195,121 @@ namespace Dyninst
 
 #define fn(x) (&InstructionDecoder_aarch64::x)
 
+MachRegister InstructionDecoder_aarch64::makePowerRegID(MachRegister base, unsigned int encoding)
+{
+    return MachRegister(base.val() + encoding);
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
+{
+    return makeRegisterExpression(makeAarch64RegID(aarch64::x0, field<0, 4>(insn)));
+}
+
+void InstructionDecoder_aarch64::Rd()
+{
+    insn_in_progress->appendOperand(makeRdExpr(), false, true);    
+}
+
+void InstructionDecoder_aarch64::Rn()
+{
+}
+
+void InstructionDecoder_aarch64::Rm()
+{
+}
+
+void InstructionDecoder_aarch64::sf()
+{
+}
+
+void InstructionDecoder_aarch64::option()
+{
+}
+
+void InstructionDecoder_aarch64::shift()
+{
+}
+
+void InstructionDecoder_aarch64::N()
+{
+}
+
+void InstructionDecoder_aarch64::Rt()
+{
+}
+
+void InstructionDecoder_aarch64::op1()
+{
+}
+
+void InstructionDecoder_aarch64::op2()
+{
+}
+
+void InstructionDecoder_aarch64::cond()
+{
+}
+
+void InstructionDecoder_aarch64::nzcv()
+{
+}
+
+void InstructionDecoder_aarch64::CRm()
+{
+}
+
+void InstructionDecoder_aarch64::CRn()
+{
+}
+
+void InstructionDecoder_aarch64::Rt2()
+{
+}
+
+void InstructionDecoder_aarch64::S()
+{
+}
+
+void InstructionDecoder_aarch64::Ra()
+{
+}
+
+void InstructionDecoder_aarch64::hw()
+{
+}
+
+void InstructionDecoder_aarch64::o0()
+{
+}
+
+void InstructionDecoder_aarch64::b5()
+{
+}
+
+void InstructionDecoder_aarch64::b40()
+{
+}
+
+void InstructionDecoder_aarch64::sz()
+{
+}
+
+void InstructionDecoder_aarch64::Rs()
+{
+}
+
+void InstructionDecoder_aarch64::imm()
+{
+}
+
+
 using namespace boost::assign;
 
 #include "aarch64_opcode_tables.C"
 
 	int InstructionDecoder_aarch64::findInsnTableIndex(unsigned int decoder_table_index)
 	{
-		aarch64_mask_entry *cur_entry = &aarch64_mask_entry::main_decoder_table[decoder_table_index];
-		
+		aarch64_mask_entry *cur_entry = &aarch64_mask_entry::main_decoder_table[decoder_table_index];		
 		unsigned int cur_mask = cur_entry->mask;
 		
 		if(cur_mask == 0)
