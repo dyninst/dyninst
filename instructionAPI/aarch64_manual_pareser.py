@@ -109,7 +109,10 @@ def getOperand_Insn(line):
     '''
     for field in line.split(' '):
         if field.find('name') != -1 and field.find('usename') == -1:
-            return field.split('\"')[1]
+            opname = field.split('\"')[1]
+            if opname.find('imm') !=-1:
+                opname = 'imm'
+            return opname
 
 
 ###########################
@@ -211,10 +214,9 @@ def getOpTable( filename = 'NULL' ):
                             if encodeBit == '':
                                 operands_Insn.append(reserve_operand)
                                 operands_pos_Insn.append(reserve_operand_pos)
-                                '''
+
                                 if reserve_operand not in operandsSet:
                                     operandsSet.add(reserve_operand)
-                                    '''
 
                             maskStartBit = maskStartBit - 1
                     # end of <box line> ################################
@@ -538,6 +540,7 @@ def analyzeOperands():
                             '''
 
 def printOperandFuncs(operandsSet):
+    print 'operand function declares'
     for operand in operandsSet:
         print 'void '+operand + '(){ }'
 
