@@ -1,9 +1,10 @@
 # Use SymtabAPI or SymLite?
-option (LIGHTWEIGHT_SYMTAB "Use lightweight symtab interface for ParseAPI, ProcControl, and Stackwalker" OFF)
+option (LIGHTWEIGHT_SYMTAB "Use lightweight symtab interface for ParseAPI, ProcControl, and Stackwalker; disables DyninstAPI build" OFF)
 
 # Use ParseAPI analysis in Stackwalker?
 option (SW_ANALYSIS_STEPPER "Use ParseAPI-based analysis stepper in Stackwalker" ON)
 
+option (BUILD_TARBALLS "Build Dyninst package tarballs. Requires git archive, tar, gzip." OFF)
 #option (BUILD_RTLIB_32 "Build 32-bit runtime library on mixed 32/64 systems" ON)
 
 # Some global on/off switches
