@@ -14,8 +14,8 @@ from array import *
 #######################################
 # a flag for vector and floating points
 #######################################
-VEC_SIMD_SWITCH = False
-#VEC_SIMD_SWITCH = True
+#VEC_SIMD_SWITCH = False
+VEC_SIMD_SWITCH = True
 
 ####################################
 # dir to store aarch64 ISA xml files
@@ -276,9 +276,9 @@ def buildInsnTable():
             operands = 'list_of'
             for operand in operandsArray[i]:
                 if len(operand) != 1:
-                    operands += '(fn('+operand[0]+'<'+ str(operand[1][0])+',' + str(operand[1][1])+'>))'
+                    operands += '(fn( ( OPR'+operand[0]+'<'+ str(operand[1][0])+',' + str(operand[1][1])+'>) ))'
                 else:
-                    operands += '(fn('+operand[0]+'))'
+                    operands += '(fn( OPR'+operand[0]+'))'
 
         print '\tmain_insn_table.push_back(aarch64_insn_entry(aarch64_op_'+insnArray[i]+', \t\"'+insnArray[i].split('_')[0]+'\",\t'+ operands +' ));'
 
@@ -542,7 +542,7 @@ def analyzeOperands():
 def printOperandFuncs(operandsSet):
     print 'operand function declares'
     for operand in operandsSet:
-        print 'void '+operand + '(){ }'
+        print 'void '+ 'OPR'+operand + '(){ }'
 
 
 #####################
