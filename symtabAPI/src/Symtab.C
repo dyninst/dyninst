@@ -2927,12 +2927,12 @@ SYMTAB_EXPORT std::string Symtab::memberName() const
     return member_name_;
 }
 
-SYMTAB_EXPORT unsigned Symtab::getNumberofRegions() const 
+SYMTAB_EXPORT unsigned Symtab::getNumberOfRegions() const 
 {
    return no_of_sections; 
 }
 
-SYMTAB_EXPORT unsigned Symtab::getNumberofSymbols() const 
+SYMTAB_EXPORT unsigned Symtab::getNumberOfSymbols() const 
 {
    return no_of_symbols; 
 }
