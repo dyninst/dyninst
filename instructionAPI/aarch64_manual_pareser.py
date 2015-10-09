@@ -14,8 +14,8 @@ from array import *
 #######################################
 # a flag for vector and floating points
 #######################################
-VEC_SIMD_SWITCH = False
-#VEC_SIMD_SWITCH = True
+#VEC_SIMD_SWITCH = False
+VEC_SIMD_SWITCH = True
 
 ####################################
 # dir to store aarch64 ISA xml files
@@ -29,30 +29,37 @@ files_dir = os.listdir(ISA_dir)
 ##############################
 op_set = Set()
 insn_set = Set()
+fp_insn_set =Set()
 
 # to get op IDs
 def printP(op):
     print '  aarch64_op_'+op+','
 
 def getOpcodes():
-    base_insn_file = open(ISA_dir+'index.xml')
 
+    # for general purpose instructions
+    base_insn_file = open(ISA_dir+'index.xml')
     for lines in base_insn_file:
         if lines.startswith("    <iform"):
             op_set.add(lines.split('"')[1].split('.xml')[0].split('_')[0])
             insn_set.add(lines.split('"')[1].split('.xml')[0])
+        # else do nothing
 
+    # for vector and fp instructions
     if VEC_SIMD_SWITCH == True:
         vec_FP_insn_file = open(ISA_dir+'fpsimdindex.xml')
         for lines in vec_FP_insn_file:
             if lines.startswith("    <iform"):
                 op_set.add(lines.split('"')[1].split('.xml')[0].split('_')[0])
                 insn_set.add(lines.split('"')[1].split('.xml')[0])
+                fp_insn_set.add(lines.split('"')[1].split('.xml')[0])
+            # else do nothing
+
 
     print('enum {')
     printP('INVALID')
     printP('extended')
-    #for ele in op_set:
+
     for ele in sorted(insn_set):
         printP(ele)
 
@@ -113,6 +120,7 @@ def getOperand_Insn(line):
             if opname.find('imm') !=-1:
                 opname = 'imm'
             return opname
+        # else continue do nothing
 
 
 ###########################
@@ -198,7 +206,7 @@ def getOpTable( filename = 'NULL' ):
                     # read box content #################################
                     if startBox == True:
                         # start of <c>
-                        #if line.find('<c>') != -1:
+                        # if line.find('<c>') != -1:
                         if line.find('<c') != -1:
                             encodeBit = line.split('>')[1].split('<')[0]
 
@@ -274,11 +282,16 @@ def buildInsnTable():
             operands = 'operandSpec()'
         else:
             operands = 'list_of'
+            if insnArray[i] in fp_insn_set:
+                operands += '( fn(setFPMode()) )'
             for operand in operandsArray[i]:
+                operands += '( fn('
                 if len(operand) != 1:
-                    operands += '(fn('+operand[0]+'<'+ str(operand[1][0])+',' + str(operand[1][1])+'>))'
+                    operands += '(OPR'+operand[0]+'<'+ str(operand[1][0])+',' + str(operand[1][1])+'>)'
                 else:
-                    operands += '(fn('+operand[0]+'))'
+                    operands += 'OPR'+operand[0]
+                operands += ') )'
+            #operands += ' )'
 
         print '\tmain_insn_table.push_back(aarch64_insn_entry(aarch64_op_'+insnArray[i]+', \t\"'+insnArray[i].split('_')[0]+'\",\t'+ operands +' ));'
 
@@ -542,7 +555,7 @@ def analyzeOperands():
 def printOperandFuncs(operandsSet):
     print 'operand function declares'
     for operand in operandsSet:
-        print 'void '+operand + '(){ }'
+        print 'void '+ 'OPR'+operand + '(){ }'
 
 
 #####################
