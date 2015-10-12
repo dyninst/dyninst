@@ -122,6 +122,11 @@ def getOperand_Insn(line):
             return opname
         # else continue do nothing
 
+def isRnUpdated(line):
+    if line.find('post-idx') != -1 or line.find('pre-idx') !=-1:
+        return True;
+    return False;
+
 
 ###########################
 # to store all masks
@@ -142,7 +147,7 @@ def getOpTable( filename = 'NULL' ):
     global insnArray
     global operandsSet
 
-    #### some init ####
+    # some init #
     insn_unallocated = (2**28+2**27)
     masksArray.append(insn_unallocated)
     encodingsArray.append(int(0))
@@ -153,8 +158,10 @@ def getOpTable( filename = 'NULL' ):
     print 0, '%22s'%'unallocated',  '%34s'%bin(insn_unallocated), '(', hex(insn_unallocated), ')'
 
     for file in sorted(files_dir):
+
         if file.endswith('.xml'):
             instruction = file.split('.xml')[0]
+
             if instruction in insn_set:
                 #print file
                 curFile = open(ISA_dir+file)
@@ -163,30 +170,34 @@ def getOpTable( filename = 'NULL' ):
                 startBox = False
                 maskBit = list('0'*32)
                 encodingArray = list('0'*32)
-                operands_Insn = list()
                 operands_pos_Insn = list()
-                reserve_operand = list()
                 reserve_operand_pos = list()
                 maskStartBit = 31
+                isRnUp = False
 
-                foundOneEncoding = False
-
-                # to analyze lines
+                # to analyze lines #
                 for line in curFile:
 
-                    #diagram starts ##
+                    # diagram starts #
                     if line.find('<regdiagram')!=-1:
                         startDiagram = True
+                        isRnUp = isRnUpdated(line)
                         continue
 
                     if line.find('</regdiagram')!=-1:
                         startDiagram = False
-                        foundOneEncoding = True
-                        continue
-                        #break
-                    # end of diagram
+                        printInstnEntry(maskBit, encodingArray, indexOfInsn, instruction, operands_pos_Insn)
 
-                    #analyze each box ##
+                        maskBit = list('0'*32)
+                        encodingArray = list('0'*32)
+                        operands_pos_Insn = list()
+
+                        indexOfInsn +=1
+
+                        continue
+                    # end of diagram #
+
+                    # analyze each box #
                     if startDiagram == True and line.find('<box') != -1:
                         #name, start bit, length
                         for x in line.split(' '):
@@ -194,16 +205,15 @@ def getOpTable( filename = 'NULL' ):
                                 maskStartBit = int(x.split('\"')[1])
                                 break
 
-                        reserve_operand = getOperand_Insn(line)
-                        reserve_operand_pos = getOperandValues(line)
+                        reserve_operand_pos = getOperandValues(line, instruction, isRnUp)
                         startBox = True
 
                     if line.find('</box') != -1:
                         startBox = False
                         continue
-                    # end of box #######
+                    # end of box #
 
-                    # read box content #################################
+                    # read box content #
                     if startBox == True:
                         # start of <c>
                         # if line.find('<c>') != -1:
@@ -219,32 +229,23 @@ def getOpTable( filename = 'NULL' ):
                                     maskBit[31-maskStartBit] = '0'
                                     encodingArray[31-maskStartBit] = '0'
 
-                            if encodeBit == '':
-                                operands_Insn.append(reserve_operand)
+                            elif encodeBit == 'x':
+                                continue
+
+                            # if it is blank, do late operand adding
+                            elif encodeBit == '':
                                 operands_pos_Insn.append(reserve_operand_pos)
 
-                                if reserve_operand not in operandsSet:
-                                    operandsSet.add(reserve_operand)
+                                if reserve_operand_pos[0] not in operandsSet:
+                                    operandsSet.add(reserve_operand_pos[0])
+
+                            else:
+                                print '[WARN] something not has been analyzed:' + encodeBit
 
                             maskStartBit = maskStartBit - 1
-                    # end of <box line> ################################
+                    # end of <box line> #
 
-                    #print instruction in file. Might be multiples in one file
-                    if foundOneEncoding == True:
-                        #printInstnEntry(maskBit, encodingArray, indexOfInsn, instruction, operands_Insn)
-                        printInstnEntry(maskBit, encodingArray, indexOfInsn, instruction, operands_pos_Insn)
-
-                        maskBit = list('0'*32)
-                        encodingArray = list('0'*32)
-                        operands_Insn = list()
-                        operands_pos_Insn = list()
-
-                        foundOneEncoding = False
-                        indexOfInsn +=1
-
-                    #end of print instruction
-
-                # end of each line
+                # end of each line #
 
 ####################################
 # generate instructions
@@ -277,32 +278,50 @@ def buildInsnTable():
     print '*** instruction table ***'
 
     for i in range(0, len(insnArray)):
+        instruction = insnArray[i]
 
         if len(operandsArray[i]) == 0:
             operands = 'operandSpec()'
         else:
             operands = 'list_of'
-            if insnArray[i] in fp_insn_set:
-                operands += '( fn(setFPMode()) )'
+            if instruction in fp_insn_set:
+                operands += '( fn(setFPMode) )'
+
             for operand in operandsArray[i]:
                 operands += '( fn('
+
                 if len(operand) != 1:
                     operands += '(OPR'+operand[0]+'<'+ str(operand[1][0])+',' + str(operand[1][1])+'>)'
                 else:
-                    operands += 'OPR'+operand[0]
+                    curOperandName = operand[0]
+                    '''
+                    if instruction.startswith('ld'):
+                        if curOperandName.find('Rt') != -1:
+                            curOperandName += 'L'
+
+                    if instruction.startswith('st'):
+                        if curOperandName.find('Rt') != -1:
+                            curOperandName += 'S'
+                            '''
+
+                    operands += 'OPR'+ curOperandName
                 operands += ') )'
-            #operands += ' )'
 
         print '\tmain_insn_table.push_back(aarch64_insn_entry(aarch64_op_'+insnArray[i]+', \t\"'+insnArray[i].split('_')[0]+'\",\t'+ operands +' ));'
 
-
-# generate decoding tree ####
+##########################
+# generate decoding tree #
+##########################
 numOfLeafNodes=0
 processedIndex = Set()
 notProcessedIndex = Set()
 numNotProcNodes = 0
 numNodes = 0
 
+##################
+# a helper function
+# clapse(1001, 1101) => (101 & 111) => 101 => 5
+##################
 def clapseMask(encoding, curMask):
     ret = 0
     while curMask!=0:
@@ -327,8 +346,16 @@ def printDecodertable(entryToPlace, curMask=0, entryList=list(), index=-1 ):
 
     print '\tmain_decoder_table['+str(entryToPlace)+']=aarch64_mask_entry('+str(hex(curMask))+', '+entries+','+str(index)+');'
 
+# global var
 entryAvailable = 1
 
+###########################################
+# arg0 is the range of indexes in the instruction array
+#   that you want to analyze
+# arg1 is the bit mask that has been processed
+# arg2 is the entry of the decoding table
+#   where the current call should place for one decision node
+###########################################
 def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     global numOfLeafNodes
     global numNotProcNodes
@@ -336,23 +363,18 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     global entryAvailable
 
     # guards, redundant
-    '''
     if entryToPlace > 2**32:
-        #numOfLeafNodes +=1
+        print '*** [WARN] should not reach here ***'
         return
-
-    if processedMask == 0xffffffff:
-        #numOfLeafNodes +=1
-        return
-    '''
 
     # terminated condition 1
     if len(inInsnIndex) < 1:
+        print '*** [WARN] should not reach here ***'
         #numOfLeafNodes +=1
         return
 
+    # size of inInsnIndex is 1. This means we should generate a leaf node
     if len(inInsnIndex) ==1:
-        #printDecodertable(entryToPlace, 0, -1, -1, inInsnIndex[0]);
         printDecodertable(entryToPlace, 0, list() , inInsnIndex[0]);
         numNodes += 1
         #print insnArray[inInsnIndex[0]]
@@ -365,18 +387,23 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
 
     validMaskBits = int(''.join('1'*32), 2)
 
+    # find the minimum common mask bit field
     for i in inInsnIndex:
         validMaskBits = validMaskBits & masksArray[i]
 
+    # eliminate the processed mask bit field
     validMaskBits = validMaskBits&(~processedMask)
     #print hex(validMaskBits), bin(validMaskBits)
 
+    # if the mask we get is 0, this means a bunch of instructions
+    # share the same opcode. They are aliases actually.
+    # Group them together.
     # terminated condition 2
     addMask = 0
     if validMaskBits == 0:
         #print '[WARN] all mask bits have been processed', len(inInsnIndex)
 
-        # relaxed solution to alias
+        # weak solution to aliases
         numOfLeafNodes += len(inInsnIndex)
         for i in inInsnIndex:
             processedIndex.add(i)
@@ -411,6 +438,8 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
 
     #print hex(validMaskBits)
 
+    # get currrent valid mask
+    # check bit one by one from MSB
     for bit in range(0, 32):
         if (MSBmask & validMaskBits) == 0 :
             validMaskBits = (validMaskBits << 1)
@@ -422,7 +451,9 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
 
     #print 'cur mask', hex(curMask)
 
+    # should not be 0
     if curMask == 0:
+        print "[WARN] mask is 0"
         #print '%25s'%'processed mask'+'%35s'%bin(processedMask)
         for i in inInsnIndex:
             print '%3d'%i+'%22s'%insnArray[i]+'%35s'%bin(masksArray[i])+'%35s'%bin(encodingsArray[i])
@@ -430,19 +461,22 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
         return
 
 
+    # update processed mask
     processedMask = processedMask | curMask
 
     indexList = [ ]
     for i in range(0, 2**numCurMaskBit):
         indexList.append([])
 
-    #print hex(curMask)
-    #print indexList
+    # generate the branches
+    # glue instructions to that branch
     for index in inInsnIndex:
         branchNo = clapseMask(encodingsArray[index] & curMask, curMask)
         #print 'branchNo' ,branchNo
         indexList[branchNo].append(index)
 
+    # get number of branches
+    # a trick to eliminate null branches
     numBranch = 0
     validIndexList = []
     brNoinIndexList = 0
@@ -455,16 +489,17 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
         brNoinIndexList += 1
 
     # typedef mask_table vector<mask_entry>;
+    # assign entry number to that branch
     entryList = []
     for i in range(0, numBranch):
         entryList.append( (posToBrNo[i], entryAvailable + i) )
 
+    # reserve room
     entryAvailable += numBranch
 
     #TODO
     printDecodertable(entryToPlace, curMask, entryList, -1);
     numNodes += 1
-
 
     """
     print '%34s'%bin(curMask)
@@ -478,11 +513,11 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
     for i in range(0, numBranch):
         buildDecodeTable( validIndexList[i], processedMask, entryList[i][1])
 
-"""
-the following section is for parsing and generating operands.
-"""
+###############################################################
+# the following section is for parsing and generating operands.
+###############################################################
 
-def getOperandValues(line):
+def getOperandValues(line, instruction, isRnUp):
     multiOperandSet = set(['S', 'imm', 'option', 'opt', 'N', 'cond'])
 
     #operandValues #= {'name':'', 'bit':32, 'width':0}
@@ -499,7 +534,19 @@ def getOperandValues(line):
             if token.find('width') != -1:
                 width = int(token.split('\"')[1])
     else:
+        #print '*** [WARN] Blank operand field ***'
         return ('', [0, 0])
+
+    if name == 'Rt':
+        if instruction.startswith('ld'):
+            name += 'L'
+
+        if instruction.startswith('st'):
+            name += 'S'
+
+    if instruction.startswith('ld') or instruction.startswith('st'):
+        if name == 'Rn' and isRnUp == True:
+            name += 'U'
 
     endbit = bit - (width-1)
     #return (name, [bit, width])
@@ -508,49 +555,6 @@ def getOperandValues(line):
     else:
         return (name,)
 
-'''
-operandList = list()
-operandDict = {}
-
-def analyzeOperands():
-    for files in sorted(files_dir):
-        if files.endswith('.xml'):
-            instruction = files.split('.xml')[0]
-            if instruction in insn_set:
-                #print files
-                curFile = open(ISA_dir+files)
-
-                startDiagram = False
-                startBox = False
-
-                # to analyze lines
-                for line in curFile:
-
-                    #diagram starts
-                    if line.find('<regdiagram')!=-1:
-                        startDiagram = True
-                    if line.find('</regdiagram')!=-1:
-                        break
-
-                    #analyze each box
-                    if startDiagram == True and line.find('<box')!=-1:
-                        #name, start bit, length
-                        operandValues = getOperandValues(line)
-                        startBox = True
-
-                    if line.find('</box') != -1:
-                        startBox = False
-
-                    # read box content
-                    if startBox == True:
-                        if line.find('<c') != -1:
-                            if line.split('>')[1].split('<')[0] =='':
-                                #print type(operandDict)
-                                print operandValues
-                                #operandDict[operandValues[0]].append(operandValues[1])
-                                #operandList.append(operandValues)
-                                continue
-                            '''
 
 def printOperandFuncs(operandsSet):
     print 'operand function declares'
@@ -562,31 +566,59 @@ def printOperandFuncs(operandsSet):
 ####### main ########
 #####################
 
+######################################
+# get opcodes of GP instructions
+# and FP/VEC instructions respectively
+######################################
 getOpcodes()
-#getDecodeFieldNames()
+
+#################################################################
+# get instructions, opcodes, lists of operands
+# each set is stored in an array
+# indexes in the arrays are used to find the instruction you want
+#################################################################
 getOpTable()
 
-#instruction table
+###############################################
+# instruction table
+# generate C++ code to build instruction tables
+###############################################
 buildInsnTable()
 
-#operands
+#########################################
+# generate C++ code of operands functions
+#########################################
 print '*** operands ***'
 print operandsSet
 printOperandFuncs(operandsSet)
 
-#decoder table
+###########################################
+# Decoder table.
+# Generate C++ code to build decoding table.
+# Basically, the generated stuff is a decision tree, which is represented in a map.
+#
+# Each entry stands for a decision node in the decision tree with a few or zero
+#   branches. One branch contains a {Key, Value} pair. Key is used to index. Value is
+#   the next entry number in the map, like a pointer.
+#
+# Binaries are passed to the root node first, and compared with the decision mask in
+#   that node. Instrution binary does bit operation AND over the mask. The result of it
+#   will be compared with the Key of the branches. Once matched to the Key, the instruction
+#   will be passed to next decision node pointed by the branch.
+#   Recursively do this, until to the leaf node.
+#
+# Each leaf node contains the index of the instruction array in the last field,
+#   which holds the instruction entry.
+###########################################
 print '*** decoder table ***'
 validInsnIndex = list( range(0, len(insnArray) ) )
 buildDecodeTable(validInsnIndex, 0 , 0)
+
+###############################
+# some statistics for debugging
+###############################
 print 'num of vaild leaves', numOfLeafNodes
 allIndex = Set(range(0, len(insnArray)) )
-
-#print allIndex
 print 'processed indexex: ', processedIndex, len(processedIndex)
 print 'missing indexes:', sorted(allIndex - processedIndex), len(allIndex-processedIndex)
 print 'number of total nodes in the tree:', numNodes
-
-'''
-analyzeOperands()
-print 'operands:', operandDict
-'''
