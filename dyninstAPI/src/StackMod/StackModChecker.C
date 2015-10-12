@@ -1224,23 +1224,19 @@ bool StackModChecker::findCanaryPoints(std::vector<BPatch_point*>*& insertPoints
     // Build set of check points by finding all function returns and tailcalls
     // Non-returning calls ARE NOT check points
     std::set<Address> checkAddrs;
-    ParseAPI::Function::const_blocklist retBlocks = func->ifunc()->returnBlocks();
-    // Accumulate returns
-    for (auto iter = retBlocks.begin(); iter != retBlocks.end(); ++iter) {
-        Address addr = (*iter)->lastInsnAddr();
-        checkAddrs.insert(addr);
-    }
-    // Accumulate tailcalls
-    ParseAPI::Function::edgelist callEdges = func->ifunc()->callEdges();
-    for (auto iter = callEdges.begin(); iter != callEdges.end(); ++iter) {
-        ParseAPI::Edge* edge = *iter;
-        if ( ( (edge->type() == ParseAPI::DIRECT) || (edge->type() == ParseAPI::INDIRECT)) &&
-                (edge->interproc())) {
-            ParseAPI::Block* block = edge->src();
-            Address addr = block->lastInsnAddr();
-            checkAddrs.insert(addr);
+
+    ParseAPI::Function::const_blocklist exitBlocks = func->ifunc()->exitBlocks();
+    for (auto iter = exitBlocks.begin(); iter != exitBlocks.end(); iter++) {
+        ParseAPI::Block::edgelist exitEdges = (*iter)->targets();
+        for (auto eiter = exitEdges.begin(); eiter != exitEdges.end(); eiter++) {
+            if ((*eiter)->interproc() && ((*eiter)->type() == ParseAPI::RET ||
+                (*eiter)->type() == ParseAPI::DIRECT ||
+                (*eiter)->type() == ParseAPI::INDIRECT)) {
+                checkAddrs.insert((*iter)->last());
+            }
         }
     }
+
     // Add points corresponding to this accumulated set of check addrs
     std::vector<BPatch_point*>* exitPoints = bfunc->findPoint(BPatch_exit);
     if (!exitPoints || !exitPoints->size()) return false;
