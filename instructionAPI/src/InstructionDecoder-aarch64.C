@@ -119,13 +119,12 @@ namespace Dyninst
 	};
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
-      : InstructionDecoderImpl(a),
-        insn(0),
-        insn_in_progress(NULL),
-	    isRAWritten(false),
-        invertBranchCondition(false),
-        isFPInsn(false),
-        bcIsConditional(false)
+      : InstructionDecoderImpl(a), insn(0), insn_in_progress(NULL),
+	    isRAWritten(false), invertBranchCondition(false),
+        isFPInsn(false), is64Bit(false),
+        shiftAmount(0), shiftLen(0), shiftTargetAmount(0), shiftTargetLen(0),
+        isSystemInsn(false), hasHw(false), hasShift(false), hasOption(false),
+        sField(0), bcIsConditional(false)
     {
         aarch64_insn_entry::buildInsnTable();
         aarch64_mask_entry::buildDecoderTable();
@@ -148,9 +147,25 @@ namespace Dyninst
      	if(b.start > b.end)
 	    return Instruction::Ptr();
         
-	isRAWritten = false;
+		isRAWritten = false;
         isFPInsn = false;
         bcIsConditional = false;
+        is64Bit = false;
+        
+        hasHw = false;
+        hw = 0;        
+        
+        hasShift = false;
+        shiftField = shiftAmount = shiftLen = shiftTargetAmount = shiftTargetLen = 0;
+        
+        hasOption = false;
+        optionField = 0;
+        
+        sField = 0;
+        
+        isSystemInsn = false;
+        op0 = op1 = op2 = crn = crm = 0;
+        
         insn = b.start[0] << 24 | b.start[1] << 16 |
         b.start[2] << 8 | b.start[3];
 
@@ -170,17 +185,222 @@ namespace Dyninst
 
     void InstructionDecoder_aarch64::setFPMode(bool )
     {
-	isFPInsn = true;
+		isFPInsn = true;
     }
 
     bool InstructionDecoder_aarch64::decodeOperands(const Instruction *)
     {
-	return false;
+		return false;
     }
+	
+	void processHwFieldInsn()
+	{
+		Result_Type rT = is64Bit?u64:u32;
+				
+		Expression::Ptr lhs = Immediate::makeImmediate(Result(rT, rT==u32?unsign_extend32<shiftTargetLen>(shiftTargetAmount):unsign_extend64<shiftTargetLen>(shiftTargetAmount)));
+		Expression::Ptr rhs = Immediate::makeImmediate(Result(rT, 1<<(hw*16)));
+		
+		insn_in_progress->appendOperand(makeMultiplyExpression(lhs, rhs, rT), true, false);
+	}
+	
+	void processShiftFieldShiftedInsn()
+	{
+		switch(shiftField)											//add-sub (shifted) and logical (shifted)
+		{
+			case 0:Result_Type rT = is64Bit?u64:u32;
+			
+				   Expression::Ptr lhs = makeRmExpr();
+				   Expression::Ptr rhs = Immediate::makeImmediate(Result(rT, rT==u32?unsign_extend32<shiftLen>(shiftAmount):unsign_extend64<shiftLen>(shiftAmount)));
+			
+				   insn_in_progress->appendOperand(makeMultiplyExpression(lhs, rhs, rT), true, false);
+				   break;
+			case 1://LSR #shiftAmount
+				   break;
+			case 2://ASR #shiftAmount
+				   break;
+			case 3:if(field<24, 28>(insn) == 0x0A)					//logical (shifted) -- not applicable to add-sub (shifted)
+						//ROR #shiftAmount
+				   else
+						//throw error
+				   break;
+		}
+	}
+	
+	void processShiftFieldImmInsn()
+	{
+		if(shiftField == 0 || shiftField == 1)						//add-sub (immediate)
+		{
+			Result_Type rT = is64Bit?u64:u32;
+			
+			Expression::Ptr lhs = Immediate::makeImmediate(Result(rT, rT==u32?unsign_extend32<shiftTargetLen>(shiftTargetAmount):unsign_extend64<shiftTargetLen>(shiftTargetAmount)));
+			Expression::Ptr rhs = Immediate::makeImmediate(Result(u32, 1<<(shiftField*12)));
+			
+			insn_in_progress->appendOperand(makeMultiplyExpression(lhs, rhs, rT), true, false);
+		}
+		else
+		{
+			//throw error
+		}
 
-    void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *)
+	}
+	
+	void processOptionFieldExtendedInsn()
+	{
+		switch(optionField)
+		{
+			case 0://UXTB
+					break;
+			case 1://UXTH
+					break;
+			case 2://LSL(32) | UXTW
+					break;
+			case 3://LSL(64) | UXTX
+					break;
+			case 4://SXTB
+					break;
+			case 5://SXTH
+					break;
+			case 6://SXTW
+					break;
+			case 7://SXTX
+					break;
+		}
+	}
+	
+	void processOptionFieldLSRegOffsetInsn()
+	{
+		if(optionField == 0x3)			//option = LSL
+		{
+			int sizeVal = field<30, 31>(insn), extend;
+			
+			if(field<23, 23>(insn) == 1)
+				sizeVal = 4;
+			
+			extend = sField * sizeVal;
+			int extendSize = 31;
+			while(((extend << (31 - extendSize)) & 0x80000000) == 0)
+				extendSize--;
+			
+			Result_Type rT = (optionVal&3)==2?u32:u64;
+			
+			Expression::Ptr lhs = makeRmExpr();
+			Expression::Ptr rhs = Immediate::makeImmediate(u32, Result(unsign_extend32<extendSize+1>(extend)));
+			
+			//insn_in_progress->appendOperand(makeMultiplyExpression(lhs, rhs, rT), true, false);		--- *(this + Rn)
+		}
+		else
+		{
+			//sign-extend
+			switch(optionField)
+			{
+				case 0x2://UXTW
+						 break;
+				case 0x6://SXTW
+						 break;
+				case 0x7://SXTX
+						 break;
+				default://throw error
+						break;
+			}
+		}	
+	}
+	
+	void processSystemInsn()
+	{
+		if(op0 == 0)
+		{
+			if(crn == 3)			//clrex, dsb, dmb, isb
+			{
+				Expression::Ptr CRm = Immediate::makeImmediate(Result(u32, unsign_extend32<4>(crm)));
+				
+				insn_in_progress->appendOperand(CRm, true, false);
+			}
+			else if(crn == 2)
+			{
+				int immVal = (crm << 3)|(op2 & 7);		//hint
+				
+				Expression::Ptr imm = Immediate::makeImmediate(Result(u32, unsign_extend32<7>(immVal)));
+				
+				insn_in_progress->appendOperand(imm, true, false);
+			}
+			else if(crn == 4)
+			{
+				//msr immediate
+				//affects pstate
+			}
+			else
+			{
+				//throw error
+			}
+		}
+		else                  //sys, sysl, mrs, msr register
+		{
+			int immVal = op2 | (crm << 3) | (crn << 7) | (op1 << 11);
+			immVal = (op0 >= 2)?(immVal << 1)|(op0 & 1):immVal;
+			
+			int immValLen = 14 + (op0 & 2);
+			
+			Expression::Ptr imm = Immediate::makeImmediate(Result(u32, unsign_extend32<immValLen>(immVal)));
+				
+			insn_in_progress->appendOperand(imm, true, false);
+		}
+	}
+	
+    void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *insn_to_complete)
     {
-        assert(0); //not implemented yet
+        for(operandSpec::const_iterator fn = operands.begin(); fn != operands.end(); fn++)
+        {
+			std::mem_fun(*fn)(this);
+		}
+		
+		if(hasHw)
+		{
+			if(IS_INSN_MOVEWIDE_IMM(insn))		//movewide (immediate)
+			{
+				processHwFieldInsn();
+			}
+			else
+			{
+				//throw error
+			}
+		}
+		
+		if(hasShift)
+		{
+			if(IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_LOGICAL_SHIFT(insn))	//add-sub shifted | logical shifted
+			{
+				processShiftFieldShiftedInsn();
+			}
+			else if(IS_INSN_ADDSUB_IMM(insn))		//add-sub (immediate)
+			{
+				processShiftFieldImmInsn();
+			}
+			else
+			{
+				//throw error
+			}
+		}
+		
+		if(hasOption)
+		{
+			if(IS_INSN_ADDSUB_EXT(insn))										//add-sub extended
+			{
+				processOptionFieldExtendedInsn();
+			}
+			else if(IS_INSN_LOADSTORE_REG(insn))	//load-store register offset
+			{
+				processOptionFieldLSRegOffsetInsn();
+			}
+			else
+			{
+				//throw error
+			}
+		}
+		
+		if(isSystemInsn)
+		{
+			processSystemInsn();
+		}
     }
 
     Result_Type InstructionDecoder_aarch64::makeSizeType(unsigned int)
@@ -195,14 +415,16 @@ namespace Dyninst
 
 #define fn(x) (&InstructionDecoder_aarch64::x)
 
-MachRegister InstructionDecoder_aarch64::makePowerRegID(MachRegister base, unsigned int encoding)
+MachRegister InstructionDecoder_aarch64::makeAarch64RegID(MachRegister base, unsigned int encoding)
 {
     return MachRegister(base.val() + encoding);
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 {
-    return makeRegisterExpression(makeAarch64RegID(aarch64::x0, field<0, 4>(insn)));
+	MachRegister baseReg = isFPinsn?aarch64::q0:aarch64::x0;
+	
+    return makeRegisterExpression(makeAarch64RegID(baseReg, field<0, 4>(insn)));
 }
 
 void InstructionDecoder_aarch64::Rd()
@@ -210,42 +432,74 @@ void InstructionDecoder_aarch64::Rd()
     insn_in_progress->appendOperand(makeRdExpr(), false, true);    
 }
 
+Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
+{
+	MachRegister baseReg = isFPinsn?aarch64::q0:aarch64::x0;
+	
+	return makeRegisterExpression(makeAarch64RegID(baseReg, field<5, 9>(insn)));
+}
+
 void InstructionDecoder_aarch64::Rn()
 {
+	insn_in_progress->appendOperand(makeRnExpr(), true, false);
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
+{
+	MachRegister baseReg = isFPinsn?aarch64::q0:aarch64::x0;
+	
+	return MakeRegisterExpression(makeAarch64RegID(baseReg, field<16, 20>(insn)));
 }
 
 void InstructionDecoder_aarch64::Rm()
 {
+	if(IS_INSN_LOADSTORE_REG(insn) || IS_INSN_ADDSUB_EXT(insn) || IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_LOGICAL_SHIFT(insn))
+		return;
+		
+	insn_in_progress->appendOperand(makeRmExpr(), true, false);
 }
 
 void InstructionDecoder_aarch64::sf()
 {
+	if(field<31>(insn) == 1)
+		is64Bit = true;
 }
 
+template<unsigned int startBit, unsigned int endBit>
 void InstructionDecoder_aarch64::option()
 {
+	hasOption = true;
+	optionField = field<startBit, endBit>(insn);
 }
 
 void InstructionDecoder_aarch64::shift()
 {
+	hasShift = true;
+	shiftField = field<22, 23>(insn);
 }
 
+void InstructionDecoder_aarch64::hw()
+{
+	hasHw = true;
+	hw = field<21, 22>(insn);
+}
+
+/*template<unsigned int startBit, unsigned int endBit>
 void InstructionDecoder_aarch64::N()
 {
-}
+}*/
 
 void InstructionDecoder_aarch64::Rt()
 {
+	//sys, sysl, msr reg, mrs
+	//others
 }
 
-void InstructionDecoder_aarch64::op1()
+void InstructionDecoder_aarch64::Rt2()
 {
 }
 
-void InstructionDecoder_aarch64::op2()
-{
-}
-
+template<unsigned int startBit, unsigned int endBit>
 void InstructionDecoder_aarch64::cond()
 {
 }
@@ -254,52 +508,99 @@ void InstructionDecoder_aarch64::nzcv()
 {
 }
 
+void InstructionDecoder_aarch64::op1()
+{
+	op1 = field<16, 18>(insn);
+}
+
+void InstructionDecoder_aarch64::op2()
+{
+	op2 = field<5, 7>(insn);
+}
+
 void InstructionDecoder_aarch64::CRm()
 {
+	isSystemInsn = true;
+	crm = field<8 ,11>(insn);
 }
 
 void InstructionDecoder_aarch64::CRn()
 {
+	crn = field<12, 15>(insn);
 }
 
-void InstructionDecoder_aarch64::Rt2()
-{
-}
-
+template<unsigned int startBit, unsigned int endBit>
 void InstructionDecoder_aarch64::S()
 {
+	sField = field<startBit, endBit>(insn);
+}
+
+Expression::Ptr makeRaExpr()
+{
+	MachRegister baseReg = isFPinsn?aarch64::q0:aarch64::x0;
+	
+	return makeRegisterExpression(makeAarch64RegID(baseReg, field<10, 14>(insn)));
 }
 
 void InstructionDecoder_aarch64::Ra()
 {
-}
-
-void InstructionDecoder_aarch64::hw()
-{
+	insn_in_progress->appendOperand(makeRaExpr(), true, false);
 }
 
 void InstructionDecoder_aarch64::o0()
 {
+	op0 = field<19, 20>(insn);
 }
 
 void InstructionDecoder_aarch64::b5()
 {
+	sf();
 }
 
 void InstructionDecoder_aarch64::b40()
 {
 }
 
-void InstructionDecoder_aarch64::sz()
+/*void InstructionDecoder_aarch64::sz()
 {
+}*/
+
+Expression::Ptr makeRsExpr()
+{
+	MachRegister baseReg = isFPinsn?aarch64::q0:aarch64::x0;
+	
+	return makeRegisterExpression(makeAarch64RegID(baseReg, field<16, 20>(insn)));
 }
 
 void InstructionDecoder_aarch64::Rs()
 {
+	insn_in_progress->appendOperand(makeRsExpr(), false, true);
 }
 
+template<unsigned int startBit, unsigned int endBit>
 void InstructionDecoder_aarch64::imm()
 {
+	if(IS_INSN_ADDSUB_EXT(insn) || IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_LOGICAL_SHIFT(insn))
+	{
+		shiftAmount = field<startBit, endBit>(insn);
+		shiftLen = endBit - startBit + 1;
+	}
+	else if(IS_INSN_ADDSUB_IMM(insn) || IS_INSN_MOVEWIDE_IMM(insn))
+	{
+		 shiftTargetAmount = field<startBit, endBit>(insn);
+		 shiftTargetLen = endBit - startBit + 1;
+	}
+	else
+	{
+		//exception, conditional compare (immediate), extract
+		int imm = field<startBit, endBit>(insn);
+		int immLen = endBi - startBit + 1;
+		
+		Result_Type rT = is64Bit?u64:u32;
+		
+		Expression::Ptr operand = Immediate::makeImmediate(Result(rT, unsign_extend32<immLen>(imm)));
+		insn_in_progress->appendOperand(operand, true, false);
+	}
 }
 
 
@@ -328,6 +629,9 @@ using namespace boost::assign;
 			insn_iter_index++;
 		}
 		
+		if(cur_branches.count(branch_map_key) <= 0)
+			branch_map_key = 0;
+		
 		return findInsnTableIndex(cur_branches[branch_map_key]);
 	}
 
@@ -352,8 +656,6 @@ using namespace boost::assign;
         }
         */
         
-        decodeOperands(insn_in_progress);
-
         //insn_in_progress->arch_decoded_from = m_Arch;
         insn_in_progress->arch_decoded_from = Arch_aarch64;
         return;

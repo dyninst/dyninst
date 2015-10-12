@@ -65,34 +65,17 @@ namespace Dyninst {
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
 
                 using InstructionDecoderImpl::makeRegisterExpression;
+                
+                #define	IS_INSN_ADDSUB_EXT(I)		(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 1)
+                #define	IS_INSN_ADDSUB_SHIFT(I)		(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 0)
+                #define	IS_INSN_ADDSUB_IMM(I)		(field<24, 28>(I) == 0x11)
+                #define	IS_INSN_MOVEWIDE_IMM(I)		(field<23, 28>(I) == 0x25)
+                #define	IS_INSN_LOGICAL_SHIFT(I)	(field<24, 28>(I) == 0x0A)
+                #define	IS_INSN_LOADSTORE_REG(I)	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1)
+                #define	IS_INSN_LOGICAL_IMM(I)		(field<23, 28>(I) == 0x24)
+                
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
-                template<unsigned int startBit, unsigned int endBit>void imm(){ }
-                template<unsigned int startBit, unsigned int endBit>void N(){ }
-                template<unsigned int startBit, unsigned int endBit>void S(){ }
-                template<unsigned int startBit, unsigned int endBit>void option(){ }
-                template<unsigned int startBit, unsigned int endBit>void cond(){ }
-
-                void Rd(){ }
-                void Ra(){ }
-                void Rm(){ }
-                void Rn(){ }
-                void Rt(){ }
-                void Rs(){ }
-                void Rt2(){ }
-                void op1(){ }
-                void op2(){ }
-                void b5(){ }
-                void b40(){ }
-                void CRn(){ }
-                void CRm(){ }
-                void o0(){ }
-                void hw(){ }
-                void sz(){ }
-                void shift(){ }
-                void nzcv(){ }
-                void sf(){ }
-
 
                 // inherit from ppc is not sematically consistent with aarch64 manual
                 template <int start, int end>
@@ -106,23 +89,110 @@ namespace Dyninst {
                 }
 
                 template <int size>
-                int sign_extend(int in)
-                {
-                    assert(0); //not verified
-                    return (in << (32 - size)) >> (32 - size);
+                s32val sign_extend32(int in)
+                {	
+					s32val val = 0|in;
+								
+                    return (val << (32 - size)) >> (32 - size);
                 }
-
+                
+                template <int size>
+                s64val sign_extend64(int in)
+                {					
+					s64val val = 0|in;
+					
+                    return (val << (64 - size)) >> (64 - size);
+                }
+                
+                template<int size>
+                u32val unsign_extend32(int in)
+                {	
+					u32val mask = (!0);
+								
+                    return (mask>>(32-size)) & in;
+				}
+				
+				template<int size>
+                u64val unsign_extend32(int in)
+                {	
+					u64val mask = (!0);
+								
+                    return (mask>>(64-size)) & in;
+				}
+				
                 // opcodes
                 void mainDecode();
                 int findInsnTableIndex(unsigned int);
 
                 unsigned int insn;
                 Instruction* insn_in_progress;
+                				
+				bool hasHw;
+				int hw;
+				void processHwFieldInsn();
+				
+				bool hasShift;
+				int shiftField;
+				int shiftTargetVal;
+				int shiftTargetLen;
+                int shiftAmount;
+				int shiftLen;
+				void processShiftFieldShiftedInsn();
+				void processShiftFieldImmInsn();				
+				
+				bool hasOption;
+				int optionField;
+				void processOptionFieldExtendedInsn();
+				void processOptionFieldLSRegOffsetInsn();
+				
+				bool isSystemInsn;
+				int op0, op1, op2, crn, crm;
+				void processSystemInsn();
+				
+				int sField;
+				
+				MachRegister makeAarch64RegID(MachRegister, unsigned int);
+				Expression::Ptr makeRdExpr();
+				Expression::Ptr makeRnExpr();
+				Expression::Ptr makeRmExpr();
+				Expression::Ptr makeRaExpr();
+				Expression::Ptr makeRsExpr();
+				
+				void Rd();
+				void Rn();
+				void Rm();
+				void sf();
+				template<unsigned int startBit, unsigned int endBit> void option();
+				void shift();
+				void hw();
+				/*template<unsigned int startBit, unsigned int endBit>
+				void N()
+				{
+				}*/
+				void Rt();
+				void Rt2();
+				void op1();
+				void op2();
+				template<unsigned int startBit, unsigned int endBit> void cond();
+				void nzcv();
+				void CRm();
+				void CRn();
+				template<unsigned int startBit, unsigned int endBit> void S();
+				void Ra();
+				void o0();
+				void b5();
+				void b40();
+				/*void sz()
+				{
+				}*/
+				void Rs();
+				template<unsigned int startBit, unsigned int endBit> void imm();
 
 				//TODO: Following needed?
 				bool isRAWritten;
                 bool invertBranchCondition;
                 bool isFPInsn;
+                bool is64Bit;
                 bool bcIsConditional;
                 template< int lowBit, int highBit>
                 Expression::Ptr makeBranchTarget();
