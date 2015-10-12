@@ -1,6 +1,6 @@
 set (DYNINST_MAJOR_VERSION 9)
 set (DYNINST_MINOR_VERSION 0)
-set (DYNINST_PATCH_VERSION 2)
+set (DYNINST_PATCH_VERSION 3)
 
 # Debugging
 # set(Boost_DEBUG 1)
@@ -29,7 +29,7 @@ set(ALL_DYNINST_TARGETS "" CACHE INTERNAL "")
 function (dyninst_library target)
   add_library (${target} ${SRC_LIST})
   target_link_private_libraries (${target} ${ARGN})
-  FILE (GLOB headers "h/*.h")
+  FILE (GLOB headers "h/*.h" "${CMAKE_CURRENT_BINARY_DIR}/h/*.h")
   set (ACTUAL_TARGETS ${target})
   set (ALL_TARGETS "${ARGN};${target}")
   if(${ENABLE_STATIC_LIBS})
