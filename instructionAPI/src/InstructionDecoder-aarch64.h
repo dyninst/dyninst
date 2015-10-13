@@ -79,6 +79,7 @@ namespace Dyninst {
                 
                 bool isFPInsn;
                 bool is64Bit;
+                bool isValid;
 
                 // inherit from ppc is not sematically consistent with aarch64 manual
                 template <int start, int end>

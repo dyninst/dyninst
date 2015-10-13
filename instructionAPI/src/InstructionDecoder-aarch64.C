@@ -120,7 +120,7 @@ namespace Dyninst
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
       : InstructionDecoderImpl(a), insn(0), insn_in_progress(NULL),
-	    isRAWritten(false), invertBranchCondition(false),
+	    isRAWritten(false), invertBranchCondition(false), isValid(true),
         isFPInsn(false), is64Bit(false),
         shiftAmount(0), shiftLen(0), shiftTargetAmount(0), shiftTargetLen(0),
         isSystemInsn(false), hasHw(false), hasShift(false), hasOption(false),
@@ -151,6 +151,7 @@ namespace Dyninst
 		isRAWritten = false;
         isFPInsn = false;
         bcIsConditional = false;
+        isValid = true;
         is64Bit = false;
         
         hasHw = false;
@@ -223,7 +224,7 @@ namespace Dyninst
 			case 3:if(field<24, 28>(insn) == 0x0A)					//logical (shifted) -- not applicable to add-sub (shifted)
 						//ROR #shiftAmount
 				   else
-						//throw error
+						isValid = false;
 				   break;
 		}
 	}
@@ -241,7 +242,7 @@ namespace Dyninst
 		}
 		else
 		{
-			//throw error
+			isValid = false;
 		}
 
 	}
@@ -296,7 +297,7 @@ namespace Dyninst
 						 break;
 				case 0x7://SXTX
 						 break;
-				default://throw error
+				default:isValid = false;
 						break;
 			}
 		}	
@@ -327,7 +328,7 @@ namespace Dyninst
 			}
 			else
 			{
-				//throw error
+				isValid = false;
 			}
 		}
 		else                  //sys, sysl, mrs, msr register
@@ -361,7 +362,7 @@ namespace Dyninst
 			}
 			else
 			{
-				//throw error
+				isValid = false;
 			}
 		}
 		else if(hasShift)
@@ -376,7 +377,7 @@ namespace Dyninst
 			}
 			else
 			{
-				//throw error
+				isValid = false;
 			}
 		}
 		else if(hasOption)
@@ -391,7 +392,7 @@ namespace Dyninst
 			}
 			else
 			{
-				//throw error
+				isValid = false;
 			}
 		}
 		else if(IS_INSN_LOGICAL_IMM(insn))
@@ -409,6 +410,11 @@ namespace Dyninst
 		else if(isSystemInsn)
 		{
 			processSystemInsn();
+		}
+		
+		if(!isValid)
+		{
+			insn_in_progress = makeInstruction(aarch64_op_unallocated, "unallocated", 4, reinterpret_cast<unsigned char*>(0));
 		}
     }
 
@@ -618,7 +624,7 @@ void InstructionDecoder_aarch64::imm()
 		}
 		else
 		{
-			//throw error
+			isValid = false;
 		}
 	}
 	else
