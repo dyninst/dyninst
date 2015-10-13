@@ -124,7 +124,8 @@ namespace Dyninst
         isFPInsn(false), is64Bit(false),
         shiftAmount(0), shiftLen(0), shiftTargetAmount(0), shiftTargetLen(0),
         isSystemInsn(false), hasHw(false), hasShift(false), hasOption(false),
-        sField(0), bcIsConditional(false)
+        sField(0), nField(0), nLen(0), immr(0), imms(0), immrLen(0), immsLen(0),
+        bcIsConditional(false)
     {
         aarch64_insn_entry::buildInsnTable();
         aarch64_mask_entry::buildDecoderTable();
@@ -161,7 +162,8 @@ namespace Dyninst
         hasOption = false;
         optionField = 0;
         
-        sField = 0;
+        sField = nField = nLen = 0;
+        immr = imms = immrLen = immsLen = 0;
         
         isSystemInsn = false;
         op0 = op1 = op2 = crn = crm = 0;
@@ -198,7 +200,7 @@ namespace Dyninst
 		Result_Type rT = is64Bit?u64:u32;
 				
 		Expression::Ptr lhs = Immediate::makeImmediate(Result(rT, rT==u32?unsign_extend32<shiftTargetLen>(shiftTargetAmount):unsign_extend64<shiftTargetLen>(shiftTargetAmount)));
-		Expression::Ptr rhs = Immediate::makeImmediate(Result(rT, 1<<(hw*16)));
+		Expression::Ptr rhs = Immediate::makeImmediate(Result(u32, 1<<(hw*16)));
 		
 		insn_in_progress->appendOperand(makeMultiplyExpression(lhs, rhs, rT), true, false);
 	}
@@ -210,7 +212,7 @@ namespace Dyninst
 			case 0:Result_Type rT = is64Bit?u64:u32;
 			
 				   Expression::Ptr lhs = makeRmExpr();
-				   Expression::Ptr rhs = Immediate::makeImmediate(Result(rT, rT==u32?unsign_extend32<shiftLen>(shiftAmount):unsign_extend64<shiftLen>(shiftAmount)));
+				   Expression::Ptr rhs = Immediate::makeImmediate(Result(u32, unsign_extend32<shiftLen>(shiftAmount))));
 			
 				   insn_in_progress->appendOperand(makeMultiplyExpression(lhs, rhs, rT), true, false);
 				   break;
@@ -284,7 +286,7 @@ namespace Dyninst
 			Result_Type rT = (optionVal&3)==2?u32:u64;
 			
 			Expression::Ptr lhs = makeRmExpr();
-			Expression::Ptr rhs = Immediate::makeImmediate(u32, Result(unsign_extend32<extendSize+1>(extend)));
+			Expression::Ptr rhs = Immediate::makeImmediate(Result(u32, unsign_extend32<extendSize+1>(extend)));
 			
 			//insn_in_progress->appendOperand(makeMultiplyExpression(lhs, rhs, rT), true, false);		--- *(this + Rn)
 		}
@@ -364,8 +366,7 @@ namespace Dyninst
 				//throw error
 			}
 		}
-		
-		if(hasShift)
+		else if(hasShift)
 		{
 			if(IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_LOGICAL_SHIFT(insn))	//add-sub shifted | logical shifted
 			{
@@ -380,8 +381,7 @@ namespace Dyninst
 				//throw error
 			}
 		}
-		
-		if(hasOption)
+		else if(hasOption)
 		{
 			if(IS_INSN_ADDSUB_EXT(insn))										//add-sub extended
 			{
@@ -396,8 +396,19 @@ namespace Dyninst
 				//throw error
 			}
 		}
-		
-		if(isSystemInsn)
+		else if(IS_INSN_LOGICAL_IMM(insn))
+		{
+			int immVal = imms;
+			immVal |= (immr << immsLen);
+			immVal |= (nField << (immsLen + immrLen));
+			
+			int immLen = nLen + immrLen + immsLen;
+			
+			Result_Type rT = is64Bit?u64:u32;
+			Expression::Ptr imm = Immediate::makeImmediate(Result(rT, rT==u32?unsign_extend32<immLen>(immVal):unsign_extend64<immLen>(immVal)));
+			insn_in_progress->appendOperand(imm, true, false);
+		}
+		else if(isSystemInsn)
 		{
 			processSystemInsn();
 		}
@@ -484,10 +495,12 @@ void InstructionDecoder_aarch64::hw()
 	hw = field<21, 22>(insn);
 }
 
-/*template<unsigned int startBit, unsigned int endBit>
+template<unsigned int startBit, unsigned int endBit>
 void InstructionDecoder_aarch64::N()
 {
-}*/
+	nField = field<startBit, endBit>(insn);
+	nLen = endBit - startBit + 1;
+}
 
 void InstructionDecoder_aarch64::Rt()
 {
@@ -590,16 +603,42 @@ void InstructionDecoder_aarch64::imm()
 		 shiftTargetAmount = field<startBit, endBit>(insn);
 		 shiftTargetLen = endBit - startBit + 1;
 	}
+	else if(IS_INSN_LOGICAL_IMM(insn))
+	{
+		int immVal = field(startBit, endBit>(insn);
+		int immLen = endBit - startBit + 1;
+		
+		if(IS_FIELD_IMMR(startBit, endBit))
+		{
+			immr = immVal;
+			immrLen = immLen;
+		}
+		else if(IS_FIELD_IMMS(startBit, endBit))
+		{
+			imms = immVal;
+			immsLen = immLen;
+		}
+		else
+		{
+			//throw error
+		}
+	}
 	else
 	{
-		//exception, conditional compare (immediate), extract
-		int imm = field<startBit, endBit>(insn);
-		int immLen = endBi - startBit + 1;
+		int immVal = field<startBit, endBit>(insn);
+		int immLen = endBit - startBit + 1;
 		
-		Result_Type rT = is64Bit?u64:u32;
-		
-		Expression::Ptr operand = Immediate::makeImmediate(Result(rT, unsign_extend32<immLen>(imm)));
-		insn_in_progress->appendOperand(operand, true, false);
+		if(IS_FP_IMM(insn))
+		{
+			
+		}
+		else                                                            //exception, conditional compare (immediate), extract
+		{
+			Result_Type rT = is64Bit?u64:u32;
+			
+			Expression::Ptr imm = Immediate::makeImmediate(Result(rT, rT==u32?unsign_extend32<immLen>(immVal):unsign_extend64<immLen>(immVal)));
+			insn_in_progress->appendOperand(imm, true, false);
+		}
 	}
 }
 
