@@ -195,7 +195,7 @@ namespace Dyninst
 		return false;
     }
 	
-	void processHwFieldInsn()
+	void InstructionDecoder_aarch64::processHwFieldInsn()
 	{
 		Result_Type rT = is64Bit?u64:u32;
 				
@@ -205,7 +205,7 @@ namespace Dyninst
 		insn_in_progress->appendOperand(makeMultiplyExpression(lhs, rhs, rT), true, false);
 	}
 	
-	void processShiftFieldShiftedInsn()
+	void InstructionDecoder_aarch64::processShiftFieldShiftedInsn()
 	{
 		switch(shiftField)											//add-sub (shifted) and logical (shifted)
 		{
@@ -228,7 +228,7 @@ namespace Dyninst
 		}
 	}
 	
-	void processShiftFieldImmInsn()
+	void InstructionDecoder_aarch64::processShiftFieldImmInsn()
 	{
 		if(shiftField == 0 || shiftField == 1)						//add-sub (immediate)
 		{
@@ -246,7 +246,7 @@ namespace Dyninst
 
 	}
 	
-	void processOptionFieldExtendedInsn()
+	void InstructionDecoder_aarch64::processOptionFieldExtendedInsn()
 	{
 		switch(optionField)
 		{
@@ -269,7 +269,7 @@ namespace Dyninst
 		}
 	}
 	
-	void processOptionFieldLSRegOffsetInsn()
+	void InstructionDecoder_aarch64::processOptionFieldLSRegOffsetInsn()
 	{
 		if(optionField == 0x3)			//option = LSL
 		{
@@ -282,13 +282,8 @@ namespace Dyninst
 			int extendSize = 31;
 			while(((extend << (31 - extendSize)) & 0x80000000) == 0)
 				extendSize--;
-			
-			Result_Type rT = (optionVal&3)==2?u32:u64;
-			
-			Expression::Ptr lhs = makeRmExpr();
-			Expression::Ptr rhs = Immediate::makeImmediate(Result(u32, unsign_extend32<extendSize+1>(extend)));
-			
-			//insn_in_progress->appendOperand(makeMultiplyExpression(lhs, rhs, rT), true, false);		--- *(this + Rn)
+				
+			//above values need to be used in a dereference expression
 		}
 		else
 		{
@@ -307,7 +302,7 @@ namespace Dyninst
 		}	
 	}
 	
-	void processSystemInsn()
+	void InstructionDecoder_aarch64::processSystemInsn()
 	{
 		if(op0 == 0)
 		{
@@ -350,6 +345,9 @@ namespace Dyninst
 	
     void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *insn_to_complete)
     {
+		insn = insn_to_complete->m_RawInsn.small_insn;
+		insn_in_progress = const_cast<Instruction*>(insn_to_complete);
+		 
         for(operandSpec::const_iterator fn = operands.begin(); fn != operands.end(); fn++)
         {
 			std::mem_fun(*fn)(this);
@@ -389,7 +387,7 @@ namespace Dyninst
 			}
 			else if(IS_INSN_LOADSTORE_REG(insn))	//load-store register offset
 			{
-				processOptionFieldLSRegOffsetInsn();
+				//STEVE: You can handle load store here by calling processOptionFieldLSRegOffset, or modify it as required
 			}
 			else
 			{

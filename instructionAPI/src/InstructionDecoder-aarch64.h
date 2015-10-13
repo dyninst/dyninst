@@ -76,6 +76,9 @@ namespace Dyninst {
                 
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
+                
+                bool isFPInsn;
+                bool is64Bit;
 
                 // inherit from ppc is not sematically consistent with aarch64 manual
                 template <int start, int end>
@@ -165,10 +168,7 @@ namespace Dyninst {
 				template<unsigned int startBit, unsigned int endBit> void option();
 				void shift();
 				void hw();
-				/*template<unsigned int startBit, unsigned int endBit>
-				void N()
-				{
-				}*/
+				template<unsigned int startBit, unsigned int endBit> void N();
 				void Rt();
 				void Rt2();
 				void op1();
@@ -191,8 +191,6 @@ namespace Dyninst {
 				//TODO: Following needed?
 				bool isRAWritten;
                 bool invertBranchCondition;
-                bool isFPInsn;
-                bool is64Bit;
                 bool bcIsConditional;
                 template< int lowBit, int highBit>
                 Expression::Ptr makeBranchTarget();
