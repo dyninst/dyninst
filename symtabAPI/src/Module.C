@@ -139,6 +139,10 @@ bool Module::getSourceLines(std::vector<Statement *> &lines, Offset addressInRan
    unsigned int originalSize = lines.size();
 
    LineInformation *lineInformation = getLineInformation();
+   if(!lineInformation) {
+     exec_->parseLineInformation();
+     lineInformation = getLineInformation();
+   }
    if (lineInformation)
       lineInformation->getSourceLines( addressInRange, lines );
 
