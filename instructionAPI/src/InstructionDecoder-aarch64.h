@@ -65,7 +65,7 @@ namespace Dyninst {
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
 
                 using InstructionDecoderImpl::makeRegisterExpression;
-                
+
                 #define	IS_INSN_ADDSUB_EXT(I)		(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 1)
                 #define	IS_INSN_ADDSUB_SHIFT(I)		(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 0)
                 #define	IS_INSN_ADDSUB_IMM(I)		(field<24, 28>(I) == 0x11)
@@ -73,7 +73,7 @@ namespace Dyninst {
                 #define	IS_INSN_LOGICAL_SHIFT(I)	(field<24, 28>(I) == 0x0A)
                 #define	IS_INSN_LOADSTORE_REG(I)	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1)
                 #define	IS_INSN_LOGICAL_IMM(I)		(field<23, 28>(I) == 0x24)
-                
+
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
 
@@ -90,47 +90,47 @@ namespace Dyninst {
 
                 template <int size>
                 s32val sign_extend32(int in)
-                {	
+                {
 					s32val val = 0|in;
-								
+
                     return (val << (32 - size)) >> (32 - size);
                 }
-                
+
                 template <int size>
                 s64val sign_extend64(int in)
-                {					
+                {
 					s64val val = 0|in;
-					
+
                     return (val << (64 - size)) >> (64 - size);
                 }
-                
+
                 template<int size>
                 u32val unsign_extend32(int in)
-                {	
+                {
 					u32val mask = (!0);
-								
+
                     return (mask>>(32-size)) & in;
 				}
-				
+
 				template<int size>
                 u64val unsign_extend32(int in)
-                {	
+                {
 					u64val mask = (!0);
-								
+
                     return (mask>>(64-size)) & in;
 				}
-				
+
                 // opcodes
                 void mainDecode();
                 int findInsnTableIndex(unsigned int);
 
                 unsigned int insn;
                 Instruction* insn_in_progress;
-                				
+
 				bool hasHw;
 				int hw;
 				void processHwFieldInsn();
-				
+
 				bool hasShift;
 				int shiftField;
 				int shiftTargetVal;
@@ -138,28 +138,29 @@ namespace Dyninst {
                 int shiftAmount;
 				int shiftLen;
 				void processShiftFieldShiftedInsn();
-				void processShiftFieldImmInsn();				
-				
+				void processShiftFieldImmInsn();
+
 				bool hasOption;
 				int optionField;
 				void processOptionFieldExtendedInsn();
 				void processOptionFieldLSRegOffsetInsn();
-				
+
 				bool isSystemInsn;
 				int op0, op1, op2, crn, crm;
 				void processSystemInsn();
-				
+
 				int sField;
-				
+
 				MachRegister makeAarch64RegID(MachRegister, unsigned int);
 				Expression::Ptr makeRdExpr();
 				Expression::Ptr makeRnExpr();
 				Expression::Ptr makeRmExpr();
 				Expression::Ptr makeRaExpr();
 				Expression::Ptr makeRsExpr();
-				
+
 				void Rd();
 				void Rn();
+				void RnU();
 				void Rm();
 				void sf();
 				template<unsigned int startBit, unsigned int endBit> void option();
@@ -170,7 +171,11 @@ namespace Dyninst {
 				{
 				}*/
 				void Rt();
+				void RtL();
+				void RtS();
 				void Rt2();
+				void Rt2L();
+				void Rt2S();
 				void op1();
 				void op2();
 				template<unsigned int startBit, unsigned int endBit> void cond();
