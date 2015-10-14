@@ -120,7 +120,7 @@ namespace Dyninst
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
       : InstructionDecoderImpl(a), insn(0), insn_in_progress(NULL),
-	    isRAWritten(false), invertBranchCondition(false),
+	    isRAWritten(false), invertBranchCondition(false), isValid(true),
         isFPInsn(false), is64Bit(false),
         shiftAmount(0), shiftLen(0), shiftTargetAmount(0), shiftTargetLen(0),
         isSystemInsn(false), hasHw(false), hasShift(false), hasOption(false),
@@ -151,6 +151,7 @@ namespace Dyninst
 		isRAWritten = false;
         isFPInsn = false;
         bcIsConditional = false;
+        isValid = true;
         is64Bit = false;
 
         hasHw = false;
@@ -195,7 +196,7 @@ namespace Dyninst
 		return false;
     }
 
-	void processHwFieldInsn()
+	void InstructionDecoder_aarch64::processHwFieldInsn()
 	{
 		Result_Type rT = is64Bit?u64:u32;
 
@@ -205,7 +206,7 @@ namespace Dyninst
 		insn_in_progress->appendOperand(makeMultiplyExpression(lhs, rhs, rT), true, false);
 	}
 
-	void processShiftFieldShiftedInsn()
+	void InstructionDecoder_aarch64::processShiftFieldShiftedInsn()
 	{
 		switch(shiftField)											//add-sub (shifted) and logical (shifted)
 		{
@@ -223,12 +224,12 @@ namespace Dyninst
 			case 3:if(field<24, 28>(insn) == 0x0A)					//logical (shifted) -- not applicable to add-sub (shifted)
 						//ROR #shiftAmount
 				   else
-						//throw error
+						isValid = false;
 				   break;
 		}
 	}
 
-	void processShiftFieldImmInsn()
+	void InstructionDecoder_aarch64::processShiftFieldImmInsn()
 	{
 		if(shiftField == 0 || shiftField == 1)						//add-sub (immediate)
 		{
@@ -241,12 +242,12 @@ namespace Dyninst
 		}
 		else
 		{
-			//throw error
+			isValid = false;
 		}
 
 	}
 
-	void processOptionFieldExtendedInsn()
+	void InstructionDecoder_aarch64::processOptionFieldExtendedInsn()
 	{
 		switch(optionField)
 		{
@@ -269,7 +270,7 @@ namespace Dyninst
 		}
 	}
 
-	void processOptionFieldLSRegOffsetInsn()
+	void InstructionDecoder_aarch64::processOptionFieldLSRegOffsetInsn()
 	{
 		if(optionField == 0x3)			//option = LSL
 		{
@@ -283,12 +284,7 @@ namespace Dyninst
 			while(((extend << (31 - extendSize)) & 0x80000000) == 0)
 				extendSize--;
 
-			Result_Type rT = (optionVal&3)==2?u32:u64;
-
-			Expression::Ptr lhs = makeRmExpr();
-			Expression::Ptr rhs = Immediate::makeImmediate(Result(u32, unsign_extend32<extendSize+1>(extend)));
-
-			//insn_in_progress->appendOperand(makeMultiplyExpression(lhs, rhs, rT), true, false);		--- *(this + Rn)
+			//above values need to be used in a dereference expression
 		}
 		else
 		{
@@ -301,13 +297,13 @@ namespace Dyninst
 						 break;
 				case 0x7://SXTX
 						 break;
-				default://throw error
+				default:isValid = false;
 						break;
 			}
 		}
 	}
 
-	void processSystemInsn()
+	void InstructionDecoder_aarch64::processSystemInsn()
 	{
 		if(op0 == 0)
 		{
@@ -332,7 +328,7 @@ namespace Dyninst
 			}
 			else
 			{
-				//throw error
+				isValid = false;
 			}
 		}
 		else                  //sys, sysl, mrs, msr register
@@ -350,6 +346,9 @@ namespace Dyninst
 
     void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *insn_to_complete)
     {
+		insn = insn_to_complete->m_RawInsn.small_insn;
+		insn_in_progress = const_cast<Instruction*>(insn_to_complete);
+
         for(operandSpec::const_iterator fn = operands.begin(); fn != operands.end(); fn++)
         {
 			std::mem_fun(*fn)(this);
@@ -363,7 +362,7 @@ namespace Dyninst
 			}
 			else
 			{
-				//throw error
+				isValid = false;
 			}
 		}
 		else if(hasShift)
@@ -378,7 +377,7 @@ namespace Dyninst
 			}
 			else
 			{
-				//throw error
+				isValid = false;
 			}
 		}
 		else if(hasOption)
@@ -389,11 +388,11 @@ namespace Dyninst
 			}
 			else if(IS_INSN_LOADSTORE_REG(insn))	//load-store register offset
 			{
-				processOptionFieldLSRegOffsetInsn();
+				//STEVE: You can handle load store here by calling processOptionFieldLSRegOffset, or modify it as required
 			}
 			else
 			{
-				//throw error
+				isValid = false;
 			}
 		}
 		else if(IS_INSN_LOGICAL_IMM(insn))
@@ -411,6 +410,11 @@ namespace Dyninst
 		else if(isSystemInsn)
 		{
 			processSystemInsn();
+		}
+
+		if(!isValid)
+		{
+			insn_in_progress = makeInstruction(aarch64_op_unallocated, "unallocated", 4, reinterpret_cast<unsigned char*>(0));
 		}
     }
 
@@ -664,7 +668,7 @@ void InstructionDecoder_aarch64::imm()
 		}
 		else
 		{
-			//throw error
+			isValid = false;
 		}
 	}
 	else
