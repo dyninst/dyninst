@@ -199,7 +199,7 @@ if (UNIX)
   target_link_private_libraries(dyninstAPI ${Boost_LIBRARIES})
   target_link_private_libraries (dyninstAPI pthread)
 else()
-  target_link_private_libraries(dyninstAPI dbghelp WS2_32)
+  target_link_private_libraries(dyninstAPI dbghelp WS2_32 imagehlp)
 endif()
 
 install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
