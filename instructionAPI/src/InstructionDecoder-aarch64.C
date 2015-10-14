@@ -442,10 +442,6 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
     return makeRegisterExpression(makeAarch64RegID(baseReg, field<0, 4>(insn)));
 }
 
-Expression::Ptr InstructionDecoder_power::makeMemRefIndex(Result_Type size)
-{
-  return makeDereferenceExpression(makeAddExpression(makeRAorZeroExpr(), makeRBExpr(), s32), size);
-}
 
 void InstructionDecoder_aarch64::Rd()
 {
@@ -459,13 +455,95 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 	return makeRegisterExpression(makeAarch64RegID(baseReg, field<5, 9>(insn)));
 }
 
+Expression::Ptr InstructionDecoder_aarch64::makePCExpr()
+{
+	MachRegister baseReg = aarch64::pc;
+
+	return makeRegisterExpression(makeAarch64RegID(baseReg, 0));
+}
+
+// load/store literal
+// eg: load Xt, <literal>
+// => offset = signextend(<literal>:00, 64)
+// load from PC + offset
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexLiteral(Result_Type size)
+{
+
+    // TODO: Sunny what does size in sign_extend64 mean? how much should I pass?
+    int immVal = field<5, 23>(insn);
+    Expression::Ptr imm = Immediate::makeImmediate(Result(s64, sign_extend64<64>(immVal<<2)));
+
+    return makeDereferenceExpression(makeAddExpression(makePCExpr(), imm, s64), size);
+}
+
+template <Result_Type size>
+void InstructionDecoder_aarch64::LIndex()
+{
+    if( IS_INSN_LOADSTORE_LITERAL(insn))
+        insn_in_progress->appendOperand(makeMemRefIndexLiteral(size), true, false);
+    // TODO if load  reg
+    // TODO if load  imm
+}
+
+template <Result_Type size>
+void InstructionDecoder_aarch64::STIndex()
+{
+    if( IS_INSN_LOADSTORE_LITERAL(insn))
+        insn_in_progress->appendOperand(makeMemRefIndexLiteral(size), false, true);
+    // TODO if store reg
+    // TODO if store imm
+}
+
+// This function is for non-writeback
+template<Result_Type size = u64>
 void InstructionDecoder_aarch64::Rn()
 {
+    assert(0);
+    /* this functions is useless
+	insn_in_progress->appendOperand(makeRnExpr(), true, false);
+    */
+}
+
+template<Result_Type size = u64>
+void InstructionDecoder_aarch64::RnL()
+{
+    // TODO make a mem ref here
+    // need to know the size of the mem ref
+    LIndex<size>();
 	insn_in_progress->appendOperand(makeRnExpr(), true, false);
 }
 
+template<Result_Type size = u64>
+void InstructionDecoder_aarch64::RnS()
+{
+    // TODO make a mem ref here
+    // need to know the size of the mem ref
+    STIndex<size>();
+	insn_in_progress->appendOperand(makeRnExpr(), true, false);
+}
+
+template<Result_Type size = u64>
 void InstructionDecoder_aarch64::RnU()
 {
+    assert(0);
+    /* this functions is useless
+	insn_in_progress->appendOperand(makeRnExpr(), true, true);
+    */
+}
+
+template<Result_Type size = u64>
+void InstructionDecoder_aarch64::RnLU()
+{
+    // TODO make a mem ref here
+    LIndex<size>();
+	insn_in_progress->appendOperand(makeRnExpr(), true, true);
+}
+
+template<Result_Type size = u64>
+void InstructionDecoder_aarch64::RnSU()
+{
+    // TODO make a mem ref here
+    STIndex<size>();
 	insn_in_progress->appendOperand(makeRnExpr(), true, true);
 }
 
@@ -548,16 +626,17 @@ Expression::Ptr InstructionDecoder_aarch64::makeRt2Expr()
 
 void InstructionDecoder_aarch64::Rt2()
 {
+    assert(0);
 }
 
 void InstructionDecoder_aarch64::Rt2L()
 {
-	insn_in_progress->appendOperand(makeRtExpr(), false, true);
+	insn_in_progress->appendOperand(makeRt2Expr(), false, true);
 }
 
 void InstructionDecoder_aarch64::Rt2S()
 {
-	insn_in_progress->appendOperand(makeRtExpr(), true, false);
+	insn_in_progress->appendOperand(makeRt2Expr(), true, false);
 }
 
 template<unsigned int startBit, unsigned int endBit>
