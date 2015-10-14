@@ -3645,10 +3645,10 @@ unsigned AstNode::getTreeSize() {
 int_variable* AstOperandNode::lookUpVar(AddressSpace* as)
 {
   mapped_module *mod = as->findModule(oVar->pdmod()->fileName());
-  if(mod && (oVar->pdmod() == mod->pmod()))
+  if(mod && mod->obj())// && (oVar->pdmod() == mod->pmod()))
   {
-    int_variable* tmp = mod->obj()->findVariable(const_cast<image_variable*>(oVar));
-    return tmp;
+      int_variable* tmp = mod->obj()->findVariable(const_cast<image_variable*>(oVar));
+      return tmp;
   }
   return NULL;
 }
