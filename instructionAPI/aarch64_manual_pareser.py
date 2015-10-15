@@ -537,7 +537,7 @@ def getOperandValues(line, instruction, isRnUp):
         #print '*** [WARN] Blank operand field ***'
         return ('', [0, 0])
 
-    if name == 'Rt':
+    if name == 'Rt' or name == 'Rt2':
         if instruction.startswith('ld'):
             name += 'L'
 

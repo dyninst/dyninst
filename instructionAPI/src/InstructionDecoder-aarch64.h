@@ -71,7 +71,9 @@ namespace Dyninst {
                 #define	IS_INSN_ADDSUB_SHIFT(I)		(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 0)
                 #define	IS_INSN_ADDSUB_IMM(I)		(field<24, 28>(I) == 0x11)
                 #define	IS_INSN_ADDSUB_CARRY(I)		(field<21, 28>(I) == 0xD0)
+                // TODO: Sunny is the macro below correct?
                 #define	IS_INSN_LOADSTORE_REG(I)	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1)
+                #define IS_INSN_LOADSTORE_LITERAL(I) (field<27,29>(I) == 0x03 && field<24, 25>(I) == 0)
                 #define	IS_INSN_LOGICAL_IMM(I)		(field<23, 28>(I) == 0x24)
                 #define	IS_INSN_MOVEWIDE_IMM(I)		(field<23, 28>(I) == 0x25)
                 #define	IS_INSN_BITFIELD(I)			(field<23, 28>(I) == 0x26)
@@ -83,7 +85,7 @@ namespace Dyninst {
                 
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
-                
+
                 bool isFPInsn;
                 bool is64Bit;
                 bool isValid;
@@ -101,45 +103,46 @@ namespace Dyninst {
 
                 template <int size>
                 s32val sign_extend32(int in)
-                {	
+                {
 					s32val val = 0|in;
-								
+
                     return (val << (32 - size)) >> (32 - size);
                 }
-                
+
                 template <int size>
                 s64val sign_extend64(int in)
-                {					
+                {
 					s64val val = 0|in;
-					
+
                     return (val << (64 - size)) >> (64 - size);
                 }
-                
+
                 template<int size>
                 u32val unsign_extend32(int in)
-                {	
+                {
 					u32val mask = (!0);
-								
+
                     return (mask>>(32-size)) & in;
 				}
-				
+
 				template<int size>
                 u64val unsign_extend32(int in)
-                {	
+                {
 					u64val mask = (!0);
-								
+
                     return (mask>>(64-size)) & in;
 				}
-				
+
                 // opcodes
                 void mainDecode();
                 int findInsnTableIndex(unsigned int);
 
                 unsigned int insn;
                 Instruction* insn_in_progress;
-                				
+
 				bool hasHw;
 				int hw;
+<<<<<<< HEAD
 				void processHwFieldInsn(int, int);
 				
 				bool hasShift;
@@ -151,11 +154,11 @@ namespace Dyninst {
 				int optionField;
 				void processOptionFieldExtendedInsn(int, int);
 				void processOptionFieldLSRegOffsetInsn();
-				
+
 				bool isSystemInsn;
 				int op0, op1, op2, crn, crm;
 				void processSystemInsn();
-				
+
 				int sField;
 				
 				bool hasN;
@@ -168,17 +171,44 @@ namespace Dyninst {
 				Expression::Ptr makeRmExpr();
 				Expression::Ptr makeRaExpr();
 				Expression::Ptr makeRsExpr();
-				
+
+                Expression::Ptr makePCExpr()
+                Expression::Ptr makeRtExpr();
+                Expression::Ptr makeRt2Expr();
+                Expression::Ptr makeMemRefIndexLiteral(Result_Type size);
+
 				void Rd();
-				void Rn();
-				void Rm();
 				void sf();
 				template<unsigned int startBit, unsigned int endBit> void option();
 				void shift();
 				void hw();
 				template<unsigned int startBit, unsigned int endBit> void N();
+
+                //for load store
+                template <Result_Type size = u64>
+                void LIndex();
+                template <Result_Type size = u64>
+                void STIndex();
+                template<Result_Type size = u64>
+				void Rn();
+                template<Result_Type size = u64>
+                void RnL();
+                template<Result_Type size = u64>
+                void RnLU();
+                template<Result_Type size = u64>
+                void RnSU();
+                template<Result_Type size = u64>
+                void RnS();
+                template<Result_Type size = u64>
+				void RnU();
+				void Rm();
 				void Rt();
+				void RtL();
+				void RtS();
 				void Rt2();
+				void Rt2L();
+				void Rt2S();
+
 				void op1();
 				void op2();
 				template<unsigned int startBit, unsigned int endBit> void cond();
