@@ -462,10 +462,12 @@ Expression::Ptr InstructionDecoder_aarch64::makePCExpr()
 	return makeRegisterExpression(makeAarch64RegID(baseReg, 0));
 }
 
+// ****************************************
 // load/store literal
 // eg: load Xt, <literal>
 // => offset = signextend(<literal>:00, 64)
-// load from PC + offset
+// load from [PC + offset] to Xt
+// ****************************************
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexLiteral(Result_Type size)
 {
 
@@ -476,13 +478,42 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexLiteral(Result_Type s
     return makeDereferenceExpression(makeAddExpression(makePCExpr(), imm, s64), size);
 }
 
+// ****************************************
+// load/store unsigned imm
+// eg: load Xt, [Xn, #imm]
+// => offset = unsignextend( imm , 64)
+// load from [PC + offset] to Xt
+// ****************************************
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexLiteral(Result_Type size)
+{
+
+    int immVal = field<10, 21>(insn);
+
+    /*
+    if( 32bit)
+        immVal << = 2;
+    else (64bi)
+        immVal << = 3;
+        */
+    Expression::Ptr imm = Immediate::makeImmediate(Result(u64, unsign_extend64<64>(immVal)));
+
+    // TODO: LSL tree
+    assert(0);
+    Expression::Ptr offset; // = makeLSLExpression(imm, scaleForUImm, u64);
+    return makeDereferenceExpression(makeAddExpression(makeRnExpr(), offset, s64), size);
+}
+
 template <Result_Type size>
 void InstructionDecoder_aarch64::LIndex()
 {
     if( IS_INSN_LOADSTORE_LITERAL(insn))
         insn_in_progress->appendOperand(makeMemRefIndexLiteral(size), true, false);
     // TODO if load  reg
-    // TODO if load  imm
+
+    if( IS_INSN_LOADSTORE_UIMM(insn))
+        insn_in_progress->appendOperand(makeMemRefIndexUImm(size), true, false);
+
+    // TODO if store imm: post and pre
 }
 
 template <Result_Type size>
@@ -491,7 +522,11 @@ void InstructionDecoder_aarch64::STIndex()
     if( IS_INSN_LOADSTORE_LITERAL(insn))
         insn_in_progress->appendOperand(makeMemRefIndexLiteral(size), false, true);
     // TODO if store reg
-    // TODO if store imm
+
+    if( IS_INSN_LOADSTORE_UIMM(insn))
+        insn_in_progress->appendOperand(makeMemRefIndexUImm(size), true, false);
+
+    // TODO if store imm: post and pre
 }
 
 // This function is for non-writeback

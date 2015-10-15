@@ -74,6 +74,7 @@ namespace Dyninst {
                 // TODO: Sunny is the macro below correct?
                 #define	IS_INSN_LOADSTORE_REG(I)	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1)
                 #define IS_INSN_LOADSTORE_LITERAL(I) (field<27,29>(I) == 0x03 && field<24, 25>(I) == 0)
+                #define IS_INSN_LOADSTORE_UIMM(I)   (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 1)
                 #define	IS_INSN_LOGICAL_IMM(I)		(field<23, 28>(I) == 0x24)
 
             private:
