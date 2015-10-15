@@ -65,18 +65,25 @@ namespace Dyninst {
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
 
                 using InstructionDecoderImpl::makeRegisterExpression;
-
+                
+                #define	IS_INSN_LOGICAL_SHIFT(I)	(field<24, 28>(I) == 0x0A)
                 #define	IS_INSN_ADDSUB_EXT(I)		(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 1)
                 #define	IS_INSN_ADDSUB_SHIFT(I)		(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 0)
                 #define	IS_INSN_ADDSUB_IMM(I)		(field<24, 28>(I) == 0x11)
-                #define	IS_INSN_MOVEWIDE_IMM(I)		(field<23, 28>(I) == 0x25)
-                #define	IS_INSN_LOGICAL_SHIFT(I)	(field<24, 28>(I) == 0x0A)
+                #define	IS_INSN_ADDSUB_CARRY(I)		(field<21, 28>(I) == 0xD0)
                 // TODO: Sunny is the macro below correct?
                 #define	IS_INSN_LOADSTORE_REG(I)	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1)
                 #define IS_INSN_LOADSTORE_LITERAL(I) (field<27,29>(I) == 0x03 && field<24, 25>(I) == 0)
                 #define IS_INSN_LOADSTORE_UIMM(I)   (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 1)
                 #define	IS_INSN_LOGICAL_IMM(I)		(field<23, 28>(I) == 0x24)
-
+                #define	IS_INSN_MOVEWIDE_IMM(I)		(field<23, 28>(I) == 0x25)
+                #define	IS_INSN_BITFIELD(I)			(field<23, 28>(I) == 0x26)
+                #define	IS_INSN_EXTRACT(I)			(field<23, 28>(I) == 0x27)
+                #define	IS_INSN_FP_COMPARE			(field<24, 28>(I) == 0x1E && field<30, 30>(I) == 0)
+                
+                #define	IS_FIELD_IMMR(S, E)			(S == 16 && E == 21)
+                #define	IS_FIELD_IMMS(S, E)			(S == 10 && E == 15)
+                
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
 
@@ -136,20 +143,16 @@ namespace Dyninst {
 
 				bool hasHw;
 				int hw;
-				void processHwFieldInsn();
-
+				void processHwFieldInsn(int, int);
+				
 				bool hasShift;
 				int shiftField;
-				int shiftTargetVal;
-				int shiftTargetLen;
-                int shiftAmount;
-				int shiftLen;
-				void processShiftFieldShiftedInsn();
-				void processShiftFieldImmInsn();
-
+				void processShiftFieldShiftedInsn(int, int);
+				void processShiftFieldImmInsn(int, int);				
+				
 				bool hasOption;
 				int optionField;
-				void processOptionFieldExtendedInsn();
+				void processOptionFieldExtendedInsn(int, int);
 				void processOptionFieldLSRegOffsetInsn();
 
 				bool isSystemInsn;
@@ -157,7 +160,11 @@ namespace Dyninst {
 				void processSystemInsn();
 
 				int sField;
-
+				
+				bool hasN;
+				int immr, immrLen;
+				int nField, nLen;
+				
 				MachRegister makeAarch64RegID(MachRegister, unsigned int);
 				Expression::Ptr makeRdExpr();
 				Expression::Ptr makeRnExpr();
@@ -218,6 +225,7 @@ namespace Dyninst {
 				}*/
 				void Rs();
 				template<unsigned int startBit, unsigned int endBit> void imm();
+				void scale();
 
 				//TODO: Following needed?
 				bool isRAWritten;
