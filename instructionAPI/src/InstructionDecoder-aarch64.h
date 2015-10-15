@@ -142,7 +142,6 @@ namespace Dyninst {
 
 				bool hasHw;
 				int hw;
-<<<<<<< HEAD
 				void processHwFieldInsn(int, int);
 				
 				bool hasShift;

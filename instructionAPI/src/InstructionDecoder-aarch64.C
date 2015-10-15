@@ -195,7 +195,6 @@ namespace Dyninst
     {
 		return false;
     }
-<<<<<<< HEAD
 	
 	void InstructionDecoder_aarch64::processHwFieldInsn(int len, int val)
 	{
