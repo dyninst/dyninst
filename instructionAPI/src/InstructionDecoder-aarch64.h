@@ -83,10 +83,17 @@ namespace Dyninst {
                 #define	IS_INSN_BITFIELD(I)			(field<23, 28>(I) == 0x26)
                 #define	IS_INSN_EXTRACT(I)			(field<23, 28>(I) == 0x27)
                 #define	IS_INSN_FP_COMPARE(I)		(field<24, 28>(I) == 0x1E && field<30, 30>(I) == 0)
+				#define	IS_INSN_B_UNCOND(I)			(field<26, 30>(I) == 0x05)
+                #define	IS_INSN_B_UNCOND_REG(I)		(field<25, 31>(I) == 0x6B)
+                #define	IS_INSN_B_COMPARE(I)		(field<25, 30>(I) == 0x1A)
+                #define	IS_INSN_B_COND(I)			(field<25, 31>(I) == 0x2A)
+                #define	IS_INSN_PCREL_ADDR(I)		(field<24, 28>(I) == 0x10)
 
                 #define	IS_FIELD_IMMR(S, E)			(S == 16 && E == 21)
                 #define	IS_FIELD_IMMS(S, E)			(S == 10 && E == 15)
-
+                #define	IS_FIELD_IMMLO(S, E)		(S == 29 && E == 30)
+                #define	IS_FIELD_IMMHI(S, E)		(S == 5 && E == 23)
+ 
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
 
@@ -231,7 +238,12 @@ namespace Dyninst {
 				template<unsigned int startBit, unsigned int endBit> void imm();
 				void scale();
 
-                Expression::Ptr makeBranchTarget();
+								
+				bool isTestAndBr;
+        		int immlo, immloLen;
+				void makeBranchTarget(bool, bool, int, int);
+				void makeLinkForBranch();
+				
                 Expression::Ptr makeFallThroughExpr();
         };
     }

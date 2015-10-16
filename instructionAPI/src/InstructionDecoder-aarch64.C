@@ -121,7 +121,8 @@ namespace Dyninst
       : InstructionDecoderImpl(a), isRAWritten(false), isFPInsn(false), 
 	    is64Bit(false), isValid(true), insn(0), insn_in_progress(NULL), isSystemInsn(false),
         hasHw(false), hasShift(false), hasOption(false), hasN(false),
-        immr(0), immrLen(0), sField(0), nField(0), nLen(0)
+        immr(0), immrLen(0), sField(0), nField(0), nLen(0),
+        isTestAndBr(false), immlo(0), immloLen(0)
     {
         aarch64_insn_entry::buildInsnTable();
         aarch64_mask_entry::buildDecoderTable();
@@ -164,6 +165,9 @@ namespace Dyninst
 
         isSystemInsn = false;
         op0Field = op1Field = op2Field = crnField = crmField = 0;
+        
+        isTestAndBr = false;
+        immlo = immloLen = 0;
 
         insn = b.start[0] << 24 | b.start[1] << 16 |
         b.start[2] << 8 | b.start[3];
@@ -616,10 +620,22 @@ void InstructionDecoder_aarch64::STIndex()
 // This function is for non-writeback
 void InstructionDecoder_aarch64::Rn()
 {
-    assert(0);
-    /* this functions is useless
-	insn_in_progress->appendOperand(makeRnExpr(), true, false);
-    */
+	if(IS_INSN_B_UNCOND_REG(insn))										//unconditional branch (register)
+	{
+		int branchType = field<21, 22>(insn);
+		bool branchIsCall = false;
+		
+		if(branchType == 0x1)
+		{
+			branchIsCall = true;
+			makeLinkForBranch();
+		}
+		
+		insn_in_progress->appendOperand(makePCExpr(), false, true);
+		insn_in_progress->addSuccessor(makeRnExpr(), branchIsCall, false, false, false);
+	}
+	else
+		insn_in_progress->appendOperand(makeRnExpr(), true, false);
 }
 
 void InstructionDecoder_aarch64::RnL()
@@ -840,7 +856,11 @@ void InstructionDecoder_aarch64::b5()
 }
 
 void InstructionDecoder_aarch64::b40()
-{
+{	
+	int b40Val = field<19, 23>(insn);
+	int bitpos = ((is64Bit?1:0)<<5) | b40Val;
+	
+	insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, unsign_extend32(6, bitpos))), true, false);
 }
 
 /*void InstructionDecoder_aarch64::sz()
@@ -857,6 +877,31 @@ Expression::Ptr InstructionDecoder_aarch64::makeRsExpr()
 void InstructionDecoder_aarch64::Rs()
 {
 	insn_in_progress->appendOperand(makeRsExpr(), false, true);
+}
+
+void InstructionDecoder_aarch64::makeLinkForBranch()
+{
+	insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::x30, 0)), false, true);
+}
+
+void InstructionDecoder_aarch64::makeBranchTarget(bool branchIsCall, bool bIsConditional, int immVal, int immLen)
+{
+	Expression::Ptr lhs = makePCExpr();
+		
+	int offset = sign_extend64(immLen + 2, immVal*4);
+	Expression::Ptr rhs = Immediate::makeImmediate(Result(s64, offset));
+	
+	if(branchIsCall)
+	{
+		makeLinkForBranch();
+	}
+	
+	insn_in_progress->addSuccessor(makeAddExpression(lhs, rhs, s64), branchIsCall, false, bIsConditional, false);
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makeFallThroughExpr()
+{
+	return makeAddExpression(makeRegisterExpression(makeAarch64RegID(aarch64::pc, 0)), Immediate::makeImmediate(Result(u32, 4)), u64);
 }
 
 template<unsigned int startBit, unsigned int endBit>
@@ -939,12 +984,54 @@ void InstructionDecoder_aarch64::imm()
 			isValid = false;
 		}
 	}
+	else if(IS_INSN_B_UNCOND(insn) || IS_INSN_B_COMPARE(insn) || isTestAndBr || IS_INSN_B_COND(insn))
+	{		//unconditional branch (immediate), test and branch, compare and branch, conditional branch
+		bool bIsConditional = false;
+		if(isTestAndBr || IS_INSN_B_COMPARE(insn) || IS_INSN_B_COND(insn))
+			bIsConditional = true;
+			
+		bool branchIsCall = bIsConditional?false:(field<31, 31>(insn) == 1);
+		
+		insn_in_progress->appendOperand(makePCExpr(), false, true);
+		makeBranchTarget(branchIsCall, bIsConditional, immVal, immLen);
+		
+		if(bIsConditional)
+			insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+		
+		if(IS_INSN_B_COND(insn))
+			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::pstate, 0)), true, false);
+	}
+	else if(IS_INSN_PCREL_ADDR(insn))									//pc-relative addressing
+	{
+		if(IS_FIELD_IMMLO(startBit, endBit))
+		{
+			immlo = immVal;
+			immloLen = endBit - startBit + 1;
+		}
+		else if(IS_FIELD_IMMHI(startBit, endBit))
+		{
+			bool page = (field<31, 31>(insn) == 1);
+			int offset = (immVal<<immloLen) | immlo;
+			
+			Expression::Ptr lhs, rhs;
+			
+			lhs = makePCExpr();
+			if(page)
+				rhs = Immediate::makeImmediate(Result(s64, sign_extend64(immloLen + immLen + 12, offset*(1<<12))));
+			else
+				rhs = Immediate::makeImmediate(Result(s64, sign_extend64(immloLen + immLen, offset)));
+			
+			insn_in_progress->appendOperand(makeAddExpression(lhs, rhs, s64), true, false);
+		}
+		else
+			isValid = false;
+	}
 	else
 	{
 		//if(IS_INSN_FP_IMM(insn))
 		if(false)
 		{
-
+			//TODO
 		}
 		else                                                            //exception, conditional compare (immediate)
 		{
