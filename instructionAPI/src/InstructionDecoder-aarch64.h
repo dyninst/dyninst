@@ -82,7 +82,7 @@ namespace Dyninst {
                 #define	IS_INSN_MOVEWIDE_IMM(I)		(field<23, 28>(I) == 0x25)
                 #define	IS_INSN_BITFIELD(I)			(field<23, 28>(I) == 0x26)
                 #define	IS_INSN_EXTRACT(I)			(field<23, 28>(I) == 0x27)
-                #define	IS_INSN_FP_COMPARE			(field<24, 28>(I) == 0x1E && field<30, 30>(I) == 0)
+                #define	IS_INSN_FP_COMPARE(I)		(field<24, 28>(I) == 0x1E && field<30, 30>(I) == 0)
 
                 #define	IS_FIELD_IMMR(S, E)			(S == 16 && E == 21)
                 #define	IS_FIELD_IMMS(S, E)			(S == 10 && E == 15)
@@ -90,6 +90,7 @@ namespace Dyninst {
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
 
+				bool isRAWritten;
                 bool isFPInsn;
                 bool is64Bit;
                 bool isValid;
@@ -105,34 +106,30 @@ namespace Dyninst {
                     return (raw >> (start) & (0xFFFFFFFF >> (31 - (end - start))));
                 }
 
-                template <int size>
-                s32val sign_extend32(int in)
+                int32_t sign_extend32(int size, int in)
                 {
-					s32val val = 0|in;
+					int32_t val = 0|in;
 
                     return (val << (32 - size)) >> (32 - size);
                 }
 
-                template <int size>
-                s64val sign_extend64(int in)
+                int64_t sign_extend64(int size, int in)
                 {
-					s64val val = 0|in;
+					int64_t val = 0|in;
 
                     return (val << (64 - size)) >> (64 - size);
                 }
 
-                template<int size>
-                u32val unsign_extend32(int in)
+                uint32_t unsign_extend32(int size, int in)
                 {
-					u32val mask = (!0);
+					uint32_t mask = (!0);
 
                     return (mask>>(32-size)) & in;
 				}
 
-				template<int size>
-                u64val unsign_extend32(int in)
+                uint64_t unsign_extend64(int size, int in)
                 {
-					u64val mask = (!0);
+					uint64_t mask = (!0);
 
                     return (mask>>(64-size)) & in;
 				}
@@ -143,9 +140,13 @@ namespace Dyninst {
 
                 unsigned int insn;
                 Instruction* insn_in_progress;
+                
+                bool isSystemInsn;
+				int op0Field, op1Field, op2Field, crnField, crmField;
+				void processSystemInsn();
 
 				bool hasHw;
-				int hw;
+				int hwField;
 				void processHwFieldInsn(int, int);
 
 				bool hasShift;
@@ -158,15 +159,11 @@ namespace Dyninst {
 				void processOptionFieldExtendedInsn(int, int);
 				void processOptionFieldLSRegOffsetInsn();
 
-				bool isSystemInsn;
-				int op0, op1, op2, crn, crm;
-				void processSystemInsn();
-
-				int sField;
-
 				bool hasN;
 				int immr, immrLen;
-				int nField, nLen;
+				int sField, nField, nLen;
+				
+				void setFPMode();
 
 				MachRegister makeAarch64RegID(MachRegister, unsigned int);
 				Expression::Ptr makeRdExpr();
@@ -175,7 +172,7 @@ namespace Dyninst {
 				Expression::Ptr makeRaExpr();
 				Expression::Ptr makeRsExpr();
 
-                Expression::Ptr makePCExpr()
+                Expression::Ptr makePCExpr();
                 Expression::Ptr makeRtExpr();
                 Expression::Ptr makeRt2Expr();
                 Expression::Ptr makeMemRefIndexLiteral();
@@ -183,11 +180,14 @@ namespace Dyninst {
                 Expression::Ptr makeMemRefIndexPre();
                 Expression::Ptr makeMemRefIndexPost();
                 Expression::Ptr makeMemRefIndex_addOffset9();
-                Expression::Ptr makeMemRefIndex_offset9(){
+                Expression::Ptr makeMemRefIndex_offset9();
 
-                void getMemRefIndexLiteral_OffsetLen(int &immVal, int &immLen);
-                void getMemRefIndexLiteral_RT(Result_Type &rt);
-                void getMemRefIndexUImm_RT(Result_Type &rt);
+                void getMemRefIndexLiteral_OffsetLen(int &, int &);
+                void getMemRefIndexLiteral_RT(Result_Type &);
+                void getMemRefIndexUImm_RT(Result_Type &);
+                void getMemRefIndex_RT(Result_Type &);
+                void getMemRefIndex_SizeSizelen(int &, int &);
+                void getMemRefIndexPrePost_ImmImmlen(int , int );
 
 				void Rd();
 				void sf();
@@ -231,11 +231,6 @@ namespace Dyninst {
 				template<unsigned int startBit, unsigned int endBit> void imm();
 				void scale();
 
-				//TODO: Following needed?
-				bool isRAWritten;
-                bool invertBranchCondition;
-                bool bcIsConditional;
-                template< int lowBit, int highBit>
                 Expression::Ptr makeBranchTarget();
                 Expression::Ptr makeFallThroughExpr();
         };
