@@ -67,28 +67,26 @@ namespace Dyninst {
 
                 using InstructionDecoderImpl::makeRegisterExpression;
 
-                #define	IS_INSN_LOGICAL_SHIFT(I)	(field<24, 28>(I) == 0x0A)
-                #define	IS_INSN_ADDSUB_EXT(I)		(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 1)
-                #define	IS_INSN_ADDSUB_SHIFT(I)		(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 0)
-                #define	IS_INSN_ADDSUB_IMM(I)		(field<24, 28>(I) == 0x11)
-                #define	IS_INSN_ADDSUB_CARRY(I)		(field<21, 28>(I) == 0xD0)
-
-                #define	IS_INSN_LOADSTORE_REG(I)	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1)
-                #define IS_INSN_LOADSTORE_LITERAL(I) (field<27,29>(I) == 0x03 && field<24, 25>(I) == 0)
-                #define IS_INSN_LOADSTORE_UIMM(I)   (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 1)
-                #define IS_INSN_LOADSTORE_PRE(I)   (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x03)
-                #define IS_INSN_LOADSTORE_POST(I)   (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x01)
-
-                #define	IS_INSN_LOGICAL_IMM(I)		(field<23, 28>(I) == 0x24)
-                #define	IS_INSN_MOVEWIDE_IMM(I)		(field<23, 28>(I) == 0x25)
-                #define	IS_INSN_BITFIELD(I)			(field<23, 28>(I) == 0x26)
-                #define	IS_INSN_EXTRACT(I)			(field<23, 28>(I) == 0x27)
-                #define	IS_INSN_FP_COMPARE(I)		(field<24, 28>(I) == 0x1E && field<30, 30>(I) == 0)
-				#define	IS_INSN_B_UNCOND(I)			(field<26, 30>(I) == 0x05)
-                #define	IS_INSN_B_UNCOND_REG(I)		(field<25, 31>(I) == 0x6B)
-                #define	IS_INSN_B_COMPARE(I)		(field<25, 30>(I) == 0x1A)
-                #define	IS_INSN_B_COND(I)			(field<25, 31>(I) == 0x2A)
-                #define	IS_INSN_PCREL_ADDR(I)		(field<24, 28>(I) == 0x10)
+                #define	IS_INSN_LOGICAL_SHIFT(I)		(field<24, 28>(I) == 0x0A)
+                #define	IS_INSN_ADDSUB_EXT(I)			(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 1)
+                #define	IS_INSN_ADDSUB_SHIFT(I)			(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 0)
+                #define	IS_INSN_ADDSUB_IMM(I)			(field<24, 28>(I) == 0x11)
+                #define	IS_INSN_ADDSUB_CARRY(I)			(field<21, 28>(I) == 0xD0)
+                #define	IS_INSN_LOADSTORE_REG(I)		(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1)
+                #define IS_INSN_LOADSTORE_LITERAL(I) 	(field<27, 29>(I) == 0x03 && field<24, 25>(I) == 0)
+                #define IS_INSN_LOADSTORE_UIMM(I)   	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 1)
+                #define IS_INSN_LOADSTORE_PRE(I)   		(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x03)
+                #define IS_INSN_LOADSTORE_POST(I)   	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x01)
+                #define	IS_INSN_LOGICAL_IMM(I)			(field<23, 28>(I) == 0x24)
+                #define	IS_INSN_MOVEWIDE_IMM(I)			(field<23, 28>(I) == 0x25)
+                #define	IS_INSN_BITFIELD(I)				(field<23, 28>(I) == 0x26)
+                #define	IS_INSN_EXTRACT(I)				(field<23, 28>(I) == 0x27)
+                #define	IS_INSN_FP_COMPARE(I)			(field<24, 28>(I) == 0x1E && field<30, 30>(I) == 0)
+				#define	IS_INSN_B_UNCOND(I)				(field<26, 30>(I) == 0x05)
+                #define	IS_INSN_B_UNCOND_REG(I)			(field<25, 31>(I) == 0x6B)
+                #define	IS_INSN_B_COMPARE(I)			(field<25, 30>(I) == 0x1A)
+                #define	IS_INSN_B_COND(I)				(field<25, 31>(I) == 0x2A)
+                #define	IS_INSN_PCREL_ADDR(I)			(field<24, 28>(I) == 0x10)
 
                 #define	IS_FIELD_IMMR(S, E)			(S == 16 && E == 21)
                 #define	IS_FIELD_IMMS(S, E)			(S == 10 && E == 15)
@@ -98,7 +96,7 @@ namespace Dyninst {
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
 
-				bool isRAWritten;
+				bool isPstateRead, isPstateWritten;
                 bool isFPInsn;
                 bool is64Bit;
                 bool isValid;
@@ -171,6 +169,12 @@ namespace Dyninst {
 				int immr, immrLen;
 				int sField, nField, nLen;
 
+				bool isTestAndBr;
+        		int immlo, immloLen;
+				void makeBranchTarget(bool, bool, int, int);
+				void makeLinkForBranch();		
+				Expression::Ptr makeFallThroughExpr();
+
 				void setFPMode();
 
 				MachRegister makeAarch64RegID(MachRegister, unsigned int);
@@ -179,7 +183,7 @@ namespace Dyninst {
 				Expression::Ptr makeRmExpr();
 				Expression::Ptr makeRaExpr();
 				Expression::Ptr makeRsExpr();
-
+				Expression::Ptr makePstateExpr();
                 Expression::Ptr makePCExpr();
                 Expression::Ptr makeRtExpr();
                 Expression::Ptr makeRt2Expr();
@@ -238,14 +242,6 @@ namespace Dyninst {
 				void Rs();
 				template<unsigned int startBit, unsigned int endBit> void imm();
 				void scale();
-
-
-				bool isTestAndBr;
-        		int immlo, immloLen;
-				void makeBranchTarget(bool, bool, int, int);
-				void makeLinkForBranch();
-
-                Expression::Ptr makeFallThroughExpr();
         };
     }
 }

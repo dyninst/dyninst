@@ -118,7 +118,7 @@ namespace Dyninst
 	};
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
-      : InstructionDecoderImpl(a), isRAWritten(false), isFPInsn(false),
+      : InstructionDecoderImpl(a), isPstateread(false), isPstateWritten(false), isFPInsn(false), 
 	    is64Bit(false), isValid(true), insn(0), insn_in_progress(NULL), isSystemInsn(false),
         hasHw(false), hasShift(false), hasOption(false), hasN(false),
         immr(0), immrLen(0), sField(0), nField(0), nLen(0),
@@ -145,7 +145,7 @@ namespace Dyninst
      	if(b.start > b.end)
 	    return Instruction::Ptr();
 
-		isRAWritten = false;
+		isPstateRead = isPstateWritten = false;
         isFPInsn = false;
         isValid = true;
         is64Bit = false;
@@ -365,14 +365,16 @@ namespace Dyninst
 			 && field<29, 30>(insn) == 0x3) ||
 		   (IS_INSN_FP_COMPARE(insn))
             )
-            // TODO : Sunny you forgot to add bracket above
-		   insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::pstate, 0)), false, true);
+		   isPstateWritten = true;
 
 
         for(operandSpec::const_iterator fn = insn_table_entry->operands.begin(); fn != insn_table_entry->operands.end(); fn++)
         {
 			std::mem_fun(*fn)(this);
 		}
+		
+		if(isPstateWritten || isPstateRead)
+			insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten);
 
 		if(isSystemInsn)
 		{
@@ -434,6 +436,13 @@ Expression::Ptr InstructionDecoder_aarch64::makePCExpr()
 {
 	MachRegister baseReg = aarch64::pc;
 
+	return makeRegisterExpression(makeAarch64RegID(baseReg, 0));
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makePstateExpr()
+{
+	MAchRegister baseReg = aarch64::pstate;
+	
 	return makeRegisterExpression(makeAarch64RegID(baseReg, 0));
 }
 
@@ -791,16 +800,16 @@ void InstructionDecoder_aarch64::Rt2S()
 template<unsigned int startBit, unsigned int endBit>
 void InstructionDecoder_aarch64::cond()
 {
+	isPstateRead = true;
 }
 
 void InstructionDecoder_aarch64::nzcv()
-{
-	MachRegister baseReg = makeAarch64RegID(aarch64::pstate, 0);
-	insn_in_progress->appendOperand(makeRegisterExpression(baseReg), true, true);
-
+{	
 	unsigned char nzcvVal = static_cast<unsigned char>(field<0, 3>(insn) & 0xF);
-	Expression::Ptr nzcv = Immediate::makeImmediate(Result(u8, nzcvVal));
+	Expression::Ptr nzcv = Immediate::makeImmediate(Result(u32, nzcvVal));
 	insn_in_progress->appendOperand(nzcv, true, false);
+	
+	isPstateWritten = true;	
 }
 
 void InstructionDecoder_aarch64::op1()
@@ -992,7 +1001,7 @@ void InstructionDecoder_aarch64::imm()
 	else if(IS_INSN_B_UNCOND(insn) || IS_INSN_B_COMPARE(insn) || isTestAndBr || IS_INSN_B_COND(insn))
 	{		//unconditional branch (immediate), test and branch, compare and branch, conditional branch
 		bool bIsConditional = false;
-		if(isTestAndBr || IS_INSN_B_COMPARE(insn) || IS_INSN_B_COND(insn))
+		if(!(IS_INSN_B_UNCOND(insn))
 			bIsConditional = true;
 
 		bool branchIsCall = bIsConditional?false:(field<31, 31>(insn) == 1);
@@ -1002,9 +1011,6 @@ void InstructionDecoder_aarch64::imm()
 
 		if(bIsConditional)
 			insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
-
-		if(IS_INSN_B_COND(insn))
-			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::pstate, 0)), true, false);
 	}
 	else if(IS_INSN_PCREL_ADDR(insn))									//pc-relative addressing
 	{
