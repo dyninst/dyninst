@@ -500,6 +500,8 @@ void InstructionDecoder_aarch64::getMemRefIndex_RT(Result_Type &rt){
                 rt = s32;
                 break;
             case 3:
+                rt = s64;
+                break;
             default:
                 assert(0);
                 //should only be 2 or 3
@@ -507,6 +509,12 @@ void InstructionDecoder_aarch64::getMemRefIndex_RT(Result_Type &rt){
         }
     }else{
         switch(size){
+            case 0:
+                rt = u8;
+                break;
+            case 1:
+                rt = u16;
+                break;
             case 2:
                 rt = u32;
                 break;
@@ -655,10 +663,36 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPre(){
     return makeDereferenceExpression(makeMemRefPair_addOffset7(), rt);
 }
 
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPre2(){
+    // datasize = 64/32 /8;
+    unsigned int opc1 = field<31, 31>(insn);
+    unsigned int sizeVal = 1<<(2+opc1); //4 or 8 bytes
+
+    Expression::Ptr dataSize = Immediate::makeImmediate(Result(u32, unsign_extend32( 32, sizeVal ) ) );
+    Expression::Ptr pair2 = makeAddExpression( makeMemRefPair_addOffset7(), dataSize, u64);
+
+    Result_Type rt;
+    getMemRefPair_RT(rt);
+    return makeDereferenceExpression(pair2, rt);
+}
+
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPost(){
     Result_Type rt;
     getMemRefPair_RT(rt);
     return makeDereferenceExpression(makeRnExpr(), rt);
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPost2(){
+    // datasize = 64/32 /8;
+    unsigned int opc1 = field<31, 31>(insn);
+    unsigned int sizeVal = 1<<(2+opc1); //4 or 8 bytes
+
+    Expression::Ptr dataSize = Immediate::makeImmediate(Result(u32, unsign_extend32( 32, sizeVal ) ) );
+    Expression::Ptr pair2 = makeAddExpression( makeRnExpr(), dataSize, u64);
+
+    Result_Type rt;
+    getMemRefPair_RT(rt);
+    return makeDereferenceExpression(pair2, rt);
 }
 
 void InstructionDecoder_aarch64::LIndex()
@@ -670,29 +704,41 @@ void InstructionDecoder_aarch64::LIndex()
 
     // TODO if load reg
 
+    // ******************
+    // ld/st unsigned imm
+    // ******************
     if( IS_INSN_LDST_UIMM(insn)){
         insn_in_progress->appendOperand(makeMemRefIndexUImm(), true, false);
         return;
     }
 
-    // ld/st pre and post
+    // ******************
+    // ld/st pre and post, unscaled and unprivlidged
+    // ******************
     if( IS_INSN_LDST_PRE(insn) ){
         insn_in_progress->appendOperand(makeMemRefIndexPre(), true, false);
         return;
     }
 
-    if( IS_INSN_LDST_POST(insn) ){
+    if( IS_INSN_LDST_POST(insn) || IS_INSN_LDST_UNPRIV(insn)
+            || IS_INSN_LDST_UNSCALED(insn) ){
         insn_in_progress->appendOperand(makeMemRefIndexPost(), true, false);
         return;
     }
 
+    // ****************************
+    // ld/st PAIR pre, post, offset
+    // ****************************
     if( IS_INSN_LDST_PRE(insn) ){
         insn_in_progress->appendOperand(makeMemRefPairPre(), true, false);
+	    insn_in_progress->appendOperand(makeMemRefPairPre2(), true, false);
         return;
     }
 
-    if( IS_INSN_LDST_POST(insn) ){
+    if( IS_INSN_LDST_PAIR_POST(insn) || IS_INSN_LDST_PAIR_OFFSET(insn)
+        || IS_INSN_LDST_PAIR_NOALLOC(insn) ){
         insn_in_progress->appendOperand(makeMemRefPairPost(), true, false);
+        insn_in_progress->appendOperand(makeMemRefPairPost2(), true, false);
         return;
     }
 
@@ -708,21 +754,39 @@ void InstructionDecoder_aarch64::STIndex()
 
     // TODO if store reg
 
-    if( IS_INSN_LDST_UIMM(insn))
+    if( IS_INSN_LDST_UIMM(insn)){
         insn_in_progress->appendOperand(makeMemRefIndexUImm(), false, true);
+        return;
+    }
 
-    if( IS_INSN_LDST_PRE(insn) )
+    // ******************
+    // ld/st pre and post, unscaled and unprivilidged
+    // ******************
+    if( IS_INSN_LDST_PRE(insn) ){
         insn_in_progress->appendOperand(makeMemRefIndexPre(), false, true);
+        return;
+    }
 
-    if( IS_INSN_LDST_POST(insn) )
+    if( IS_INSN_LDST_POST(insn) ){
         insn_in_progress->appendOperand(makeMemRefIndexPost(), false, true);
+        return;
+    }
 
-    // TODO: ld/st pair
-    if( IS_INSN_LDST_PAIR_PRE(insn) )
+    // ****************************
+    // ld/st PAIR pre, post, offset
+    // ****************************
+    if( IS_INSN_LDST_PAIR_PRE(insn) ){
         insn_in_progress->appendOperand(makeMemRefPairPre(), false, true);
+	    insn_in_progress->appendOperand(makeMemRefPairPre2(), false, true);
+        return;
+    }
 
-    if( IS_INSN_LDST_PAIR_POST(insn) )
+    if( IS_INSN_LDST_PAIR_POST(insn) || IS_INSN_LDST_PAIR_OFFSET(insn)
+        || IS_INSN_LDST_PAIR_NOALLOC(insn) ){
         insn_in_progress->appendOperand(makeMemRefPairPost(), false, true);
+        insn_in_progress->appendOperand(makeMemRefPairPost2(), false, true);
+        return;
+    }
 
     assert(0); //un-handled case
 
@@ -751,14 +815,14 @@ void InstructionDecoder_aarch64::Rn()
 
 void InstructionDecoder_aarch64::RnL()
 {
-    LIndex();
 	insn_in_progress->appendOperand(makeRnExpr(), true, false);
+    LIndex();
 }
 
 void InstructionDecoder_aarch64::RnS()
 {
-    STIndex();
 	insn_in_progress->appendOperand(makeRnExpr(), true, false);
+    STIndex();
 }
 
 void InstructionDecoder_aarch64::RnU()
@@ -794,6 +858,7 @@ void InstructionDecoder_aarch64::RnLU()
 	    insn_in_progress->appendOperand(makeMemRefPair_addOffset7(), true, true);
         return;
     }
+
 }
 
 void InstructionDecoder_aarch64::RnSU()

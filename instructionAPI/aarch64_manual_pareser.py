@@ -20,7 +20,8 @@ VEC_SIMD_SWITCH = True
 ####################################
 # dir to store aarch64 ISA xml files
 ####################################
-ISA_dir = "../../ISA_xml_v2_00rel11/"
+#ISA_dir = "../../ISA_xml_v2_00rel11/"
+ISA_dir = '/p/paradyn/arm/arm-download-1350222/AR100-DA-70000-r0p0-00rel10/AR100-DA-70000-r0p0-00rel10/ISA_xml/ISA_xml_v2_00rel11/'
 files_dir = os.listdir(ISA_dir)
 
 ##############################
