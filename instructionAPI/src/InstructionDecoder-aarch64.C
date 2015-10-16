@@ -472,7 +472,6 @@ void InstructionDecoder_aarch64::getMemRefIndexLiteral_RT(Result_Type &rt){
 // ****************************************
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexLiteral()
 {
-
     int immVal, immLen;
     getMemRefIndexLiteral_OffsetLen(immVal, immLen);
 
@@ -493,10 +492,13 @@ void InstructionDecoder_aarch64::getMemRefIndex_RT(Result_Type &rt){
         switch(size){
             case 0:
                 rt = s8;
+                break;
             case 1:
                 rt = s16;
+                break;
             case 2:
                 rt = s32;
+                break;
             case 3:
             default:
                 assert(0);
@@ -507,13 +509,51 @@ void InstructionDecoder_aarch64::getMemRefIndex_RT(Result_Type &rt){
         switch(size){
             case 2:
                 rt = u32;
+                break;
             case 3:
                 rt = u64;
+                break;
             default:
                 assert(0);
                 //should only be 2 or 3
                 break;
         }
+    }
+
+    return;
+}
+
+void InstructionDecoder_aarch64::getMemRefPair_RT(Result_Type &rt){
+    unsigned int isSigned = field<30,30>(insn);
+    unsigned int size = field<31, 31>(insn);
+
+    //signed
+    switch(isSigned){
+        case 0:
+            switch(size){
+                case 0:
+                    rt = u32;
+                    break;
+                case 1:
+                    rt = u64;
+                    break;
+                default:
+                    assert(0);
+            }
+            break;
+        case 1:
+            switch(size){
+                case 0:
+                    rt = s32;
+                    break;
+                case 1:
+                default:
+                    assert(0);
+            }
+            break;
+        default:
+            assert(0);
+            break;
     }
 
     return;
@@ -531,6 +571,12 @@ void InstructionDecoder_aarch64::getMemRefIndexPrePost_ImmImmlen(unsigned int &i
     return;
 }
 
+void InstructionDecoder_aarch64::getMemRefPair_ImmImmlen(unsigned int &immVal, unsigned int &immLen){
+    immVal = field<15, 21>(insn);
+    immLen = 21-15 + 1;
+    return;
+}
+
 // ****************************************
 // load/store unsigned imm
 // eg: load Xt, [Xn, #imm]
@@ -539,7 +585,7 @@ void InstructionDecoder_aarch64::getMemRefIndexPrePost_ImmImmlen(unsigned int &i
 // ****************************************
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexUImm()
 {
-    if( !IS_INSN_LOADSTORE_UIMM(insn) ) assert(0);
+    if( !IS_INSN_LDST_UIMM(insn) ) assert(0);
 
     unsigned int immVal = field<10, 21>(insn);
     unsigned int immLen = 21-10+1;
@@ -565,8 +611,29 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndex_offset9(){
     return Immediate::makeImmediate(Result(u64, sign_extend64(immLen, immVal)));
 }
 
+// LSL(sign_ex(imm7 , 64), scale)
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefPair_offset7(){
+    unsigned int scaleVal = field<31, 31>(insn);
+    unsigned int scaleLen = 1;
+    scaleVal += 2;
+
+    Expression::Ptr scale = Immediate::makeImmediate(Result(u32, unsign_extend32(scaleLen, 1<<scaleVal)));
+
+    unsigned int immVal = 0, immLen = 0;
+    getMemRefPair_ImmImmlen(immVal, immLen);
+
+    Expression::Ptr imm7 = Immediate::makeImmediate(Result(u64, sign_extend64(immLen, immVal)));
+
+    return makeMultiplyExpression(imm7, scale, s64);
+}
+
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndex_addOffset9(){
     Expression::Ptr offset = makeMemRefIndex_offset9();
+    return makeAddExpression(makeRnExpr(), offset, u64);
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefPair_addOffset7(){
+    Expression::Ptr offset = makeMemRefPair_offset7();
     return makeAddExpression(makeRnExpr(), offset, u64);
 }
 
@@ -582,40 +649,82 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexPost(){
     return makeDereferenceExpression(makeRnExpr(), rt);
 }
 
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPre(){
+    Result_Type rt;
+    getMemRefPair_RT(rt);
+    return makeDereferenceExpression(makeMemRefPair_addOffset7(), rt);
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPost(){
+    Result_Type rt;
+    getMemRefPair_RT(rt);
+    return makeDereferenceExpression(makeRnExpr(), rt);
+}
+
 void InstructionDecoder_aarch64::LIndex()
 {
-    if( IS_INSN_LOADSTORE_LITERAL(insn))
+    if( IS_INSN_LD_LITERAL(insn)){
         insn_in_progress->appendOperand(makeMemRefIndexLiteral(), true, false);
+        return;
+    }
 
     // TODO if load reg
 
-    if( IS_INSN_LOADSTORE_UIMM(insn))
+    if( IS_INSN_LDST_UIMM(insn)){
         insn_in_progress->appendOperand(makeMemRefIndexUImm(), true, false);
+        return;
+    }
 
-    if( IS_INSN_LOADSTORE_PRE(insn) )
+    // ld/st pre and post
+    if( IS_INSN_LDST_PRE(insn) ){
         insn_in_progress->appendOperand(makeMemRefIndexPre(), true, false);
+        return;
+    }
 
-    if( IS_INSN_LOADSTORE_POST(insn) )
+    if( IS_INSN_LDST_POST(insn) ){
         insn_in_progress->appendOperand(makeMemRefIndexPost(), true, false);
+        return;
+    }
+
+    if( IS_INSN_LDST_PRE(insn) ){
+        insn_in_progress->appendOperand(makeMemRefPairPre(), true, false);
+        return;
+    }
+
+    if( IS_INSN_LDST_POST(insn) ){
+        insn_in_progress->appendOperand(makeMemRefPairPost(), true, false);
+        return;
+    }
+
+    assert(0); //un-handled case
 
 }
 
 void InstructionDecoder_aarch64::STIndex()
 {
-    if( !IS_INSN_LOADSTORE_LITERAL(insn))
+    if( IS_INSN_LD_LITERAL(insn))
         assert(0); // only load literal, no store literal
         //insn_in_progress->appendOperand(makeMemRefIndexLiteral(), false, true);
 
     // TODO if store reg
 
-    if( IS_INSN_LOADSTORE_UIMM(insn))
+    if( IS_INSN_LDST_UIMM(insn))
         insn_in_progress->appendOperand(makeMemRefIndexUImm(), false, true);
 
-    if( IS_INSN_LOADSTORE_PRE(insn) )
+    if( IS_INSN_LDST_PRE(insn) )
         insn_in_progress->appendOperand(makeMemRefIndexPre(), false, true);
 
-    if( IS_INSN_LOADSTORE_POST(insn) )
+    if( IS_INSN_LDST_POST(insn) )
         insn_in_progress->appendOperand(makeMemRefIndexPost(), false, true);
+
+    // TODO: ld/st pair
+    if( IS_INSN_LDST_PAIR_PRE(insn) )
+        insn_in_progress->appendOperand(makeMemRefPairPre(), false, true);
+
+    if( IS_INSN_LDST_PAIR_POST(insn) )
+        insn_in_progress->appendOperand(makeMemRefPairPost(), false, true);
+
+    assert(0); //un-handled case
 
 }
 
@@ -662,30 +771,54 @@ void InstructionDecoder_aarch64::RnU()
 
 void InstructionDecoder_aarch64::RnLU()
 {
-    if( IS_INSN_LOADSTORE_PRE(insn) ){
+    if( IS_INSN_LDST_PRE(insn) ){
 	    insn_in_progress->appendOperand(makeMemRefIndex_addOffset9(), true, true);
         LIndex();
         return;
     }
 
-    if( IS_INSN_LOADSTORE_POST(insn) ){
+    if( IS_INSN_LDST_POST(insn) ){
         LIndex();
 	    insn_in_progress->appendOperand(makeMemRefIndex_addOffset9(), true, true);
+        return;
+    }
+
+    if( IS_INSN_LDST_PAIR_PRE(insn) ){
+	    insn_in_progress->appendOperand(makeMemRefPair_addOffset7(), true, true);
+        LIndex();
+        return;
+    }
+
+    if( IS_INSN_LDST_PAIR_POST(insn) ){
+        LIndex();
+	    insn_in_progress->appendOperand(makeMemRefPair_addOffset7(), true, true);
         return;
     }
 }
 
 void InstructionDecoder_aarch64::RnSU()
 {
-    if( IS_INSN_LOADSTORE_PRE(insn) ){
+    if( IS_INSN_LDST_PRE(insn) ){
 	    insn_in_progress->appendOperand(makeMemRefIndex_addOffset9(), true, true);
         STIndex();
         return;
     }
 
-    if( IS_INSN_LOADSTORE_POST(insn) ){
+    if( IS_INSN_LDST_POST(insn) ){
         STIndex();
 	    insn_in_progress->appendOperand(makeMemRefIndex_addOffset9(), true, true);
+        return;
+    }
+
+    if( IS_INSN_LDST_PAIR_PRE(insn) ){
+	    insn_in_progress->appendOperand(makeMemRefPair_addOffset7(), true, true);
+        STIndex();
+        return;
+    }
+
+    if( IS_INSN_LDST_PAIR_POST(insn) ){
+        STIndex();
+	    insn_in_progress->appendOperand(makeMemRefPair_addOffset7(), true, true);
         return;
     }
 }
@@ -699,7 +832,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
 
 void InstructionDecoder_aarch64::Rm()
 {
-	if(IS_INSN_LOADSTORE_REG(insn) ||
+	if(IS_INSN_LDST_REG(insn) ||
 	   IS_INSN_ADDSUB_EXT(insn) ||
 	   IS_INSN_ADDSUB_SHIFT(insn) ||
 	   IS_INSN_LOGICAL_SHIFT(insn))
@@ -980,7 +1113,7 @@ void InstructionDecoder_aarch64::imm()
 		{
 			processOptionFieldExtendedInsn(immLen, immVal);
 		}
-		else if(IS_INSN_LOADSTORE_REG(insn))	//load-store register offset
+		else if(IS_INSN_LDST_REG(insn))	//load-store register offset
 		{
 			//STEVE: You can handle load store here by calling processOptionFieldLSRegOffset, or modify it as required
 		}

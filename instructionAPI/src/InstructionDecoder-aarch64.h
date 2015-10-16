@@ -73,11 +73,14 @@ namespace Dyninst {
                 #define	IS_INSN_ADDSUB_IMM(I)		(field<24, 28>(I) == 0x11)
                 #define	IS_INSN_ADDSUB_CARRY(I)		(field<21, 28>(I) == 0xD0)
 
-                #define	IS_INSN_LOADSTORE_REG(I)	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1)
-                #define IS_INSN_LOADSTORE_LITERAL(I) (field<27,29>(I) == 0x03 && field<24, 25>(I) == 0)
-                #define IS_INSN_LOADSTORE_UIMM(I)   (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 1)
-                #define IS_INSN_LOADSTORE_PRE(I)   (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x03)
-                #define IS_INSN_LOADSTORE_POST(I)   (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x01)
+                #define	IS_INSN_LDST_REG(I)	        (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1)
+                #define IS_INSN_LD_LITERAL(I)       (field<27,29>(I) == 0x03 && field<24, 25>(I) == 0)
+                #define IS_INSN_LDST_UIMM(I)        (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 1)
+                #define IS_INSN_LDST_PRE(I)         (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x03)
+                #define IS_INSN_LDST_POST(I)        (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x01)
+                #define IS_INSN_LDST_PAIR(I)        (field<27, 29>(I) == 0x05)
+                #define IS_INSN_LDST_PAIR_PRE(I)    (field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x03)
+                #define IS_INSN_LDST_PAIR_POST(I)   (field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x01)
 
                 #define	IS_INSN_LOGICAL_IMM(I)		(field<23, 28>(I) == 0x24)
                 #define	IS_INSN_MOVEWIDE_IMM(I)		(field<23, 28>(I) == 0x25)
@@ -183,6 +186,7 @@ namespace Dyninst {
                 Expression::Ptr makePCExpr();
                 Expression::Ptr makeRtExpr();
                 Expression::Ptr makeRt2Expr();
+
                 Expression::Ptr makeMemRefIndexLiteral();
                 Expression::Ptr makeMemRefIndexUImm();
                 Expression::Ptr makeMemRefIndexPre();
@@ -190,12 +194,20 @@ namespace Dyninst {
                 Expression::Ptr makeMemRefIndex_addOffset9();
                 Expression::Ptr makeMemRefIndex_offset9();
 
+                Expression::Ptr makeMemRefPairPre();
+                Expression::Ptr makeMemRefPairPost();
+                Expression::Ptr makeMemRefPair_offset7();
+                Expression::Ptr makeMemRefPair_addOffset7();
+
                 void getMemRefIndexLiteral_OffsetLen(int &, int &);
                 void getMemRefIndexLiteral_RT(Result_Type &);
                 void getMemRefIndexUImm_RT(Result_Type &);
                 void getMemRefIndex_RT(Result_Type &);
                 void getMemRefIndex_SizeSizelen(unsigned int &, unsigned int &);
                 void getMemRefIndexPrePost_ImmImmlen(unsigned int& , unsigned int& );
+
+                void getMemRefPair_RT(Result_Type &rt);
+                void getMemRefPair_ImmImmlen(unsigned int &immVal, unsigned int &immLen);
 
 				void Rd();
 				void sf();
