@@ -1053,7 +1053,7 @@ inferiorHeapType PCProcess::getDynamicHeapType() const
 }
 
 
-void OS::get_sigaction_names(std::vector<std::string> &)
+void OS::get_sigaction_names(std::vector<std::string> &names)
 {
-	assert(0 && "Unimplemented");
+	//names.push_back("signal");
 }
