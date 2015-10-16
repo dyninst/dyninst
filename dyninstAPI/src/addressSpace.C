@@ -1855,6 +1855,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
              orig = curAddr;
              mapped_object *obj = findObject(curAddr);
              if (!obj) break;
+			 if(!(obj->parse_img()->isParsed())) break;
              block = obj->findOneBlockByAddr(curAddr);
              func = tframe.getFunc();
              offset = 0;
