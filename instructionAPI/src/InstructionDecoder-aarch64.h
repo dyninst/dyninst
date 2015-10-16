@@ -59,7 +59,8 @@ namespace Dyninst {
                 virtual ~InstructionDecoder_aarch64();
                 virtual void decodeOpcode(InstructionDecoder::buffer& b);
                 virtual Instruction::Ptr decode(InstructionDecoder::buffer& b);
-				virtual void setMode(bool);
+				virtual void setMode(bool){
+                }
 
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
@@ -93,7 +94,7 @@ namespace Dyninst {
                 #define	IS_FIELD_IMMS(S, E)			(S == 10 && E == 15)
                 #define	IS_FIELD_IMMLO(S, E)		(S == 29 && E == 30)
                 #define	IS_FIELD_IMMHI(S, E)		(S == 5 && E == 23)
- 
+
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
 
@@ -147,7 +148,7 @@ namespace Dyninst {
 
                 unsigned int insn;
                 Instruction* insn_in_progress;
-                
+
                 bool isSystemInsn;
 				int op0Field, op1Field, op2Field, crnField, crmField;
 				void processSystemInsn();
@@ -169,7 +170,7 @@ namespace Dyninst {
 				bool hasN;
 				int immr, immrLen;
 				int sField, nField, nLen;
-				
+
 				void setFPMode();
 
 				MachRegister makeAarch64RegID(MachRegister, unsigned int);
@@ -193,8 +194,8 @@ namespace Dyninst {
                 void getMemRefIndexLiteral_RT(Result_Type &);
                 void getMemRefIndexUImm_RT(Result_Type &);
                 void getMemRefIndex_RT(Result_Type &);
-                void getMemRefIndex_SizeSizelen(int &, int &);
-                void getMemRefIndexPrePost_ImmImmlen(int , int );
+                void getMemRefIndex_SizeSizelen(unsigned int &, unsigned int &);
+                void getMemRefIndexPrePost_ImmImmlen(unsigned int& , unsigned int& );
 
 				void Rd();
 				void sf();
@@ -238,12 +239,12 @@ namespace Dyninst {
 				template<unsigned int startBit, unsigned int endBit> void imm();
 				void scale();
 
-								
+
 				bool isTestAndBr;
         		int immlo, immloLen;
 				void makeBranchTarget(bool, bool, int, int);
 				void makeLinkForBranch();
-				
+
                 Expression::Ptr makeFallThroughExpr();
         };
     }

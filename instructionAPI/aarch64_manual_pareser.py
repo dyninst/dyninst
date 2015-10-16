@@ -520,7 +520,6 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
 def getOperandValues(line, instruction, isRnUp):
     multiOperandSet = set(['S', 'imm', 'option', 'opt', 'N', 'cond'])
 
-    #operandValues #= {'name':'', 'bit':32, 'width':0}
     if line.find(' name') != -1:
         width = 1
         tokens = line.split(' ')
@@ -537,7 +536,8 @@ def getOperandValues(line, instruction, isRnUp):
         #print '*** [WARN] Blank operand field ***'
         return ('', [0, 0])
 
-    if name == 'Rt' or name == 'Rt2':
+    if name.find('Rt') != -1 or name.find('Rt2') != -1 or name.find('Rn') !=-1:
+    #if name == 'Rt' or name == 'Rt2' or name == 'Rn':
         if instruction.startswith('ld'):
             name += 'L'
 
@@ -545,8 +545,33 @@ def getOperandValues(line, instruction, isRnUp):
             name += 'S'
 
     if instruction.startswith('ld') or instruction.startswith('st'):
-        if name == 'Rn' and isRnUp == True:
-            name += 'U'
+        if name.startswith('Rn'):
+            if isRnUp == True:
+                name += 'U'
+
+            # the following commented section is useless
+            '''
+            insnMnemonic = instruction.split('_')[0]
+            # ld/st register, do nothing
+            if insnMnemonic.endswith('b') and not insnMnemonic.endswith('sb'):
+                name += '<u8>'
+            elif insnMnemonic.endswith('h') and not insnMnemonic.endswith('sh'):
+                name += '<u16>'
+            elif insnMnemonic.endswith('w') and not insnMnemonic.endswith('sw'):
+                name += '<u32>'
+            elif insnMnemonic.endswith('sb'):
+                name += '<s8>'
+            elif insnMnemonic.endswith('sh'):
+                name += '<s16>'
+            elif insnMnemonic.endswith('sw'):
+                name += '<s32>'
+            # TODO: need to handle ld/st pair
+            #if instruction.endswith('p'):
+            else :
+                if not insnMnemonic.endswith('r') and not insnMnemonic.endswith('p'):
+                    print '[WARN] not recognized instruction:', instruction
+                    '''
+
 
     endbit = bit - (width-1)
     #return (name, [bit, width])
@@ -589,7 +614,7 @@ buildInsnTable()
 # generate C++ code of operands functions
 #########################################
 print '*** operands ***'
-print operandsSet
+print sorted(operandsSet)
 printOperandFuncs(operandsSet)
 
 ###########################################

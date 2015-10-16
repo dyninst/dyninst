@@ -118,7 +118,7 @@ namespace Dyninst
 	};
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
-      : InstructionDecoderImpl(a), isRAWritten(false), isFPInsn(false), 
+      : InstructionDecoderImpl(a), isRAWritten(false), isFPInsn(false),
 	    is64Bit(false), isValid(true), insn(0), insn_in_progress(NULL), isSystemInsn(false),
         hasHw(false), hasShift(false), hasOption(false), hasN(false),
         immr(0), immrLen(0), sField(0), nField(0), nLen(0),
@@ -165,7 +165,7 @@ namespace Dyninst
 
         isSystemInsn = false;
         op0Field = op1Field = op2Field = crnField = crmField = 0;
-        
+
         isTestAndBr = false;
         immlo = immloLen = 0;
 
@@ -487,6 +487,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexLiteral()
 
 void InstructionDecoder_aarch64::getMemRefIndex_RT(Result_Type &rt){
     unsigned int opc1 = field<23, 23>(insn);
+    unsigned int size = field<30, 31>(insn);
 
     if(opc1 == 1){
         switch(size){
@@ -495,7 +496,7 @@ void InstructionDecoder_aarch64::getMemRefIndex_RT(Result_Type &rt){
             case 1:
                 rt = s16;
             case 2:
-                rt = w32;
+                rt = s32;
             case 3:
             default:
                 assert(0);
@@ -518,13 +519,13 @@ void InstructionDecoder_aarch64::getMemRefIndex_RT(Result_Type &rt){
     return;
 }
 
-void InstructionDecoder_aarch64::getMemRefIndex_SizeSizelen(int &size, int &sizeLen){
+void InstructionDecoder_aarch64::getMemRefIndex_SizeSizelen(unsigned int &size, unsigned int &sizeLen){
     size = field<30, 31>(insn);
     sizeLen = 31-30+1;
     return;
 }
 
-void InstructionDecoder_aarch64::getMemRefIndexPrePost_ImmImmlen(int immVal, int immLen){
+void InstructionDecoder_aarch64::getMemRefIndexPrePost_ImmImmlen(unsigned int &immVal, unsigned int &immLen){
     immVal = field<12, 20>(insn);
     immLen = 20 - 12 + 1;
     return;
@@ -559,7 +560,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexUImm()
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndex_offset9(){
-    int immVal, immLen;
+    unsigned int immVal = 0, immLen = 0;
     getMemRefIndexPrePost_ImmImmlen(immVal, immLen);
     return Immediate::makeImmediate(Result(u64, sign_extend64(immLen, immVal)));
 }
@@ -601,8 +602,9 @@ void InstructionDecoder_aarch64::LIndex()
 
 void InstructionDecoder_aarch64::STIndex()
 {
-    if( IS_INSN_LOADSTORE_LITERAL(insn))
-        insn_in_progress->appendOperand(makeMemRefIndexLiteral(), false, true);
+    if( !IS_INSN_LOADSTORE_LITERAL(insn))
+        assert(0); // only load literal, no store literal
+        //insn_in_progress->appendOperand(makeMemRefIndexLiteral(), false, true);
 
     // TODO if store reg
 
@@ -624,13 +626,13 @@ void InstructionDecoder_aarch64::Rn()
 	{
 		int branchType = field<21, 22>(insn);
 		bool branchIsCall = false;
-		
+
 		if(branchType == 0x1)
 		{
 			branchIsCall = true;
 			makeLinkForBranch();
 		}
-		
+
 		insn_in_progress->appendOperand(makePCExpr(), false, true);
 		insn_in_progress->addSuccessor(makeRnExpr(), branchIsCall, false, false, false);
 	}
@@ -663,12 +665,13 @@ void InstructionDecoder_aarch64::RnLU()
     if( IS_INSN_LOADSTORE_PRE(insn) ){
 	    insn_in_progress->appendOperand(makeMemRefIndex_addOffset9(), true, true);
         LIndex();
+        return;
     }
-
 
     if( IS_INSN_LOADSTORE_POST(insn) ){
         LIndex();
 	    insn_in_progress->appendOperand(makeMemRefIndex_addOffset9(), true, true);
+        return;
     }
 }
 
@@ -677,11 +680,13 @@ void InstructionDecoder_aarch64::RnSU()
     if( IS_INSN_LOADSTORE_PRE(insn) ){
 	    insn_in_progress->appendOperand(makeMemRefIndex_addOffset9(), true, true);
         STIndex();
+        return;
     }
 
     if( IS_INSN_LOADSTORE_POST(insn) ){
         STIndex();
 	    insn_in_progress->appendOperand(makeMemRefIndex_addOffset9(), true, true);
+        return;
     }
 }
 
@@ -856,10 +861,10 @@ void InstructionDecoder_aarch64::b5()
 }
 
 void InstructionDecoder_aarch64::b40()
-{	
+{
 	int b40Val = field<19, 23>(insn);
 	int bitpos = ((is64Bit?1:0)<<5) | b40Val;
-	
+
 	insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, unsign_extend32(6, bitpos))), true, false);
 }
 
@@ -887,15 +892,15 @@ void InstructionDecoder_aarch64::makeLinkForBranch()
 void InstructionDecoder_aarch64::makeBranchTarget(bool branchIsCall, bool bIsConditional, int immVal, int immLen)
 {
 	Expression::Ptr lhs = makePCExpr();
-		
+
 	int offset = sign_extend64(immLen + 2, immVal*4);
 	Expression::Ptr rhs = Immediate::makeImmediate(Result(s64, offset));
-	
+
 	if(branchIsCall)
 	{
 		makeLinkForBranch();
 	}
-	
+
 	insn_in_progress->addSuccessor(makeAddExpression(lhs, rhs, s64), branchIsCall, false, bIsConditional, false);
 }
 
@@ -989,15 +994,15 @@ void InstructionDecoder_aarch64::imm()
 		bool bIsConditional = false;
 		if(isTestAndBr || IS_INSN_B_COMPARE(insn) || IS_INSN_B_COND(insn))
 			bIsConditional = true;
-			
+
 		bool branchIsCall = bIsConditional?false:(field<31, 31>(insn) == 1);
-		
+
 		insn_in_progress->appendOperand(makePCExpr(), false, true);
 		makeBranchTarget(branchIsCall, bIsConditional, immVal, immLen);
-		
+
 		if(bIsConditional)
 			insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
-		
+
 		if(IS_INSN_B_COND(insn))
 			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::pstate, 0)), true, false);
 	}
@@ -1012,15 +1017,15 @@ void InstructionDecoder_aarch64::imm()
 		{
 			bool page = (field<31, 31>(insn) == 1);
 			int offset = (immVal<<immloLen) | immlo;
-			
+
 			Expression::Ptr lhs, rhs;
-			
+
 			lhs = makePCExpr();
 			if(page)
 				rhs = Immediate::makeImmediate(Result(s64, sign_extend64(immloLen + immLen + 12, offset*(1<<12))));
 			else
 				rhs = Immediate::makeImmediate(Result(s64, sign_extend64(immloLen + immLen, offset)));
-			
+
 			insn_in_progress->appendOperand(makeAddExpression(lhs, rhs, s64), true, false);
 		}
 		else
