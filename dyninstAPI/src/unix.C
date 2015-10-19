@@ -375,7 +375,7 @@ bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileNa
         while( environ[i] != NULL ) {
             std::string envVar(environ[i]);
             if( envVar.find("LD_PRELOAD=") == 0 ) {
-                ld_preload_orig = environ[i];
+                ld_preload_orig = environ[i]+11;
             }else{
                 envp.push_back(envVar);
             }
