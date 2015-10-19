@@ -91,6 +91,48 @@ namespace Dyninst
             BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
             return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, multiplier));
         }
+        Expression::Ptr InstructionDecoderImpl::makeLeftShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
+                Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr leftShifter(new BinaryFunction::leftShiftResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, leftShifter));
+        }
+        Expression::Ptr InstructionDecoderImpl::makeRightArithmeticShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
+                Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr rightArithmeticShifter(new BinaryFunction::rightArithmeticShiftResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightArithmeticShifter));
+        }
+        Expression::Ptr InstructionDecoderImpl::makeAndExpression(Expression::Ptr lhs, Expression::Ptr rhs,
+                Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr ander(new BinaryFunction::andResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, ander));
+        }
+        Expression::Ptr InstructionDecoderImpl::makeOrExpression(Expression::Ptr lhs, Expression::Ptr rhs,
+                Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr orrer(new BinaryFunction::orResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, orrer));
+        }
+        Expression::Ptr InstructionDecoderImpl::makeRightLogicalShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
+                Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr rightLogicalShifter(new BinaryFunction::rightLogicalShiftResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightLogicalShifter));
+        }
+        Expression::Ptr InstructionDecoderImpl::makeRightRotateExpression(Expression::Ptr lhs, Expression::Ptr rhs,
+                Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr rightRotator(new BinaryFunction::rightRotateResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightRotator));
+        }
+        Expression::Ptr InstructionDecoderImpl::makeExtendExpression(Expression::Ptr lhs, Expression::Ptr rhs,
+                Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr extender(new BinaryFunction::extendResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, extender));
+        }
         Expression::Ptr InstructionDecoderImpl::makeDereferenceExpression(Expression::Ptr addrToDereference,
                 Result_Type resultType)
         {

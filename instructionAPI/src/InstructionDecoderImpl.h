@@ -62,6 +62,13 @@ class InstructionDecoderImpl
       
         virtual Expression::Ptr makeAddExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
         virtual Expression::Ptr makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
+        virtual Expression::Ptr makeLeftShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
+        virtual Expression::Ptr makeRightArithmeticShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
+        virtual Expression::Ptr makeAndExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
+        virtual Expression::Ptr makeOrExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
+        virtual Expression::Ptr makeRightLogicalShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
+		virtual Expression::Ptr makeRightRotateExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
+		virtual Expression::Ptr makeExtendExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
         virtual Expression::Ptr makeDereferenceExpression(Expression::Ptr addrToDereference, Result_Type resultType);
         virtual Expression::Ptr makeRegisterExpression(MachRegister reg);
         virtual Result_Type makeSizeType(unsigned int opType) = 0;
