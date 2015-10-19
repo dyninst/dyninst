@@ -112,10 +112,11 @@ SYMTAB_EXPORT string Symbol::getTypedName() const
   std::string working_name = mangledName_;
   #if !defined(os_windows)        
   //Remove extra stabs information
-  const char *p = strchr(working_name.c_str(), ':');
-  if( p ) {
-    unsigned nchars = p - mangledName_.c_str();
-    working_name = std::string(mangledName_.c_str(), nchars);
+  size_t colon;
+  colon = working_name.find(":");
+  if(colon != string::npos) 
+  {
+    working_name = working_name.substr(0, colon);
   }
 #endif     
   // Assume not native (ie GNU) if we don't have an associated Symtab for some reason
