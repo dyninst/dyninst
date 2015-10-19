@@ -222,16 +222,22 @@ def getOpTable( filename = 'NULL' ):
                             encodeBit = line.split('>')[1].split('<')[0]
 
                             # control field
-                            if encodeBit != '' and encodeBit != 'x':
-                                if encodeBit == '1' or encodeBit == '0':
-                                    maskBit[31-maskStartBit] = '1'
-                                    encodingArray[31-maskStartBit] = encodeBit
-                                else:
-                                    maskBit[31-maskStartBit] = '0'
-                                    encodingArray[31-maskStartBit] = '0'
+                            #if encodeBit != '' and encodeBit != 'x':
+                            if encodeBit == '1' or encodeBit == '0':
+                                maskBit[31-maskStartBit] = '1'
+                                encodingArray[31-maskStartBit] = encodeBit
+
+                            elif encodeBit == '(1)':
+                                maskBit[31-maskStartBit] = '1'
+                                encodingArray[31-maskStartBit] = '1'
+
+                            elif encodeBit == '(0)':
+                                maskBit[31-maskStartBit] = '1'
+                                encodingArray[31-maskStartBit] = '0'
 
                             elif encodeBit == 'x':
-                                continue
+                                maskBit[31-maskStartBit] = '0'
+                                encodingArray[31-maskStartBit] = '0'
 
                             # if it is blank, do late operand adding
                             elif encodeBit == '':
@@ -241,7 +247,8 @@ def getOpTable( filename = 'NULL' ):
                                     operandsSet.add(reserve_operand_pos[0])
 
                             else:
-                                print '[WARN] something not has been analyzed:' + encodeBit
+                                if not encodeBit.startswith('!='):
+                                    print '[WARN] something not has been analyzed:'+ encodeBit
 
                             maskStartBit = maskStartBit - 1
                     # end of <box line> #
