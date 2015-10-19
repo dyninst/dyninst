@@ -211,21 +211,21 @@ namespace Dyninst
 		Result_Type rT;
 		Expression::Ptr lhs, rhs;
 
+		rT = is64Bit?u64:u32;
+
+  	    lhs = makeRmExpr();
+	    rhs = Immediate::makeImmediate(Result(u32, unsign_extend32(len, val)));
+
 		switch(shiftField)											//add-sub (shifted) and logical (shifted)
 		{
-			case 0:rT = is64Bit?u64:u32;
-
-				   lhs = makeRmExpr();
-				   rhs = Immediate::makeImmediate(Result(u32, unsign_extend32(len, val)));
-
-				   insn_in_progress->appendOperand(makeMultiplyExpression(lhs, rhs, rT), true, false);
+			case 0:insn_in_progress->appendOperand(makeLeftShiftExpression(lhs, rhs, rT), true, false);
 				   break;
-			case 1://LSR #shiftAmount
+			case 1:insn_in_progress->appendOperand(makeRightLogicalShiftExpression(lhs, rhs, rT), true, false);
 				   break;
-			case 2://ASR #shiftAmount
+			case 2:insn_in_progress->appendOperand(makeRightArithmeticShiftExpression(lhs, rhs, rT), true, false);
 				   break;
 			case 3:if(IS_INSN_LOGICAL_SHIFT(insn));					//logical (shifted) -- not applicable to add-sub (shifted)
-						//ROR #shiftAmount
+						insn_in_progress->appendOperand(makeRightRotateExpression(lhs, rhs, rT), true, false);
 				   else
 						isValid = false;
 				   break;
