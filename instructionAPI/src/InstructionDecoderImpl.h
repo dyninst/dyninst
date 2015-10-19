@@ -64,8 +64,6 @@ class InstructionDecoderImpl
         virtual Expression::Ptr makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
         virtual Expression::Ptr makeLeftShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
         virtual Expression::Ptr makeRightArithmeticShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
-        virtual Expression::Ptr makeAndExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
-        virtual Expression::Ptr makeOrExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
         virtual Expression::Ptr makeRightLogicalShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
 		virtual Expression::Ptr makeRightRotateExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
 		virtual Expression::Ptr makeExtendExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
@@ -74,6 +72,7 @@ class InstructionDecoderImpl
         virtual Result_Type makeSizeType(unsigned int opType) = 0;
         Instruction* makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
                                      const unsigned char* raw);
+	virtual Expression::Ptr makeEmptyExpressionWithType(Result_Type rT);
       
     protected:
         Operation::Ptr m_Operation;

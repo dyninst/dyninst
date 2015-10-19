@@ -173,7 +173,6 @@ namespace Dyninst {
 
 				bool hasOption;
 				int optionField;
-				void processOptionFieldExtendedInsn(int, int);
 				void processOptionFieldLSRegOffsetInsn();
 
 				bool hasN;
@@ -196,6 +195,7 @@ namespace Dyninst {
 				Expression::Ptr makeRsExpr();
 				Expression::Ptr makePstateExpr();
                 Expression::Ptr makePCExpr();
+ 		Expression::Ptr makeOptionExpression(Expression::Ptr, int, int);
                 Expression::Ptr makeRtExpr();
                 Expression::Ptr makeRt2Expr();
 
