@@ -59,9 +59,7 @@ namespace Dyninst {
                 virtual ~InstructionDecoder_aarch64();
                 virtual void decodeOpcode(InstructionDecoder::buffer& b);
                 virtual Instruction::Ptr decode(InstructionDecoder::buffer& b);
-				virtual void setMode(bool){
-                }
-
+				virtual void setMode(bool) {}
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
 
@@ -73,20 +71,20 @@ namespace Dyninst {
                 #define	IS_INSN_ADDSUB_IMM(I)			(field<24, 28>(I) == 0x11)
                 #define	IS_INSN_ADDSUB_CARRY(I)			(field<21, 28>(I) == 0xD0)
 
-                #define	IS_INSN_LDST_REG(I)	        (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1)
-                #define IS_INSN_LD_LITERAL(I)       (field<27,29>(I) == 0x03 && field<24, 25>(I) == 0)
+                #define	IS_INSN_LDST_REG(I)	        	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1)
+                #define IS_INSN_LD_LITERAL(I)       	(field<27,29>(I) == 0x03 && field<24, 25>(I) == 0)
 
-                #define IS_INSN_LDST_UIMM(I)        (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 1)
-                #define IS_INSN_LDST_PRE(I)         (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x03)
-                #define IS_INSN_LDST_UNPRIV(I)      (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x02)
-                #define IS_INSN_LDST_POST(I)        (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x01)
-                #define IS_INSN_LDST_UNSCALED(I)    (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x00)
+                #define IS_INSN_LDST_UIMM(I)        	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 1)
+                #define IS_INSN_LDST_PRE(I)         	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x03)
+                #define IS_INSN_LDST_UNPRIV(I)      	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x02)
+                #define IS_INSN_LDST_POST(I)        	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x01)
+                #define IS_INSN_LDST_UNSCALED(I)    	(field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 0 && field<10, 11>(I) == 0x00)
 
-                #define IS_INSN_LDST_PAIR(I)        (field<27, 29>(I) == 0x05)
-                #define IS_INSN_LDST_PAIR_PRE(I)    (field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x03)
-                #define IS_INSN_LDST_PAIR_OFFSET(I) (field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x02)
-                #define IS_INSN_LDST_PAIR_POST(I)   (field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x01)
-                #define IS_INSN_LDST_PAIR_NOALLOC(I) (field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x00)
+                #define IS_INSN_LDST_PAIR(I)        	(field<27, 29>(I) == 0x05)
+                #define IS_INSN_LDST_PAIR_PRE(I)    	(field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x03)
+                #define IS_INSN_LDST_PAIR_OFFSET(I) 	(field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x02)
+                #define IS_INSN_LDST_PAIR_POST(I)   	(field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x01)
+                #define IS_INSN_LDST_PAIR_NOALLOC(I) 	(field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x00)
 
                 #define	IS_INSN_LOGICAL_IMM(I)			(field<23, 28>(I) == 0x24)
                 #define	IS_INSN_MOVEWIDE_IMM(I)			(field<23, 28>(I) == 0x25)
@@ -99,10 +97,10 @@ namespace Dyninst {
                 #define	IS_INSN_B_COND(I)				(field<25, 31>(I) == 0x2A)
                 #define	IS_INSN_PCREL_ADDR(I)			(field<24, 28>(I) == 0x10)
 
-                #define	IS_FIELD_IMMR(S, E)			(S == 16 && E == 21)
-                #define	IS_FIELD_IMMS(S, E)			(S == 10 && E == 15)
-                #define	IS_FIELD_IMMLO(S, E)		(S == 29 && E == 30)
-                #define	IS_FIELD_IMMHI(S, E)		(S == 5 && E == 23)
+                #define	IS_FIELD_IMMR(S, E)				(S == 16 && E == 21)
+                #define	IS_FIELD_IMMS(S, E)				(S == 10 && E == 15)
+                #define	IS_FIELD_IMMLO(S, E)			(S == 29 && E == 30)
+                #define	IS_FIELD_IMMHI(S, E)			(S == 5 && E == 23)
 
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
@@ -111,6 +109,11 @@ namespace Dyninst {
                 bool isFPInsn;
                 bool is64Bit;
                 bool isValid;
+                
+                void mainDecode();
+                int findInsnTableIndex(unsigned int);
+                unsigned int insn;
+                Instruction* insn_in_progress;
 
                 // inherit from ppc is not sematically consistent with aarch64 manual
                 template <int start, int end>
@@ -151,13 +154,6 @@ namespace Dyninst {
                     return (mask>>(64-size)) & in;
 				}
 
-                // opcodes
-                void mainDecode();
-                int findInsnTableIndex(unsigned int);
-
-                unsigned int insn;
-                Instruction* insn_in_progress;
-
                 bool isSystemInsn;
 				int op0Field, op1Field, op2Field, crnField, crmField;
 				void processSystemInsn();
@@ -195,7 +191,7 @@ namespace Dyninst {
 				Expression::Ptr makeRsExpr();
 				Expression::Ptr makePstateExpr();
                 Expression::Ptr makePCExpr();
- 		Expression::Ptr makeOptionExpression(Expression::Ptr, int, int);
+				Expression::Ptr makeOptionExpression(Expression::Ptr, int, int);
                 Expression::Ptr makeRtExpr();
                 Expression::Ptr makeRt2Expr();
 
