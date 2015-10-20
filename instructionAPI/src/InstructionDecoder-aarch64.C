@@ -118,7 +118,7 @@ namespace Dyninst
 	};
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
-      : InstructionDecoderImpl(a), isPstateread(false), isPstateWritten(false), isFPInsn(false), 
+      : InstructionDecoderImpl(a), isPstateread(false), isPstateWritten(false), isFPInsn(false),
 	    is64Bit(false), isValid(true), insn(0), insn_in_progress(NULL), isSystemInsn(false),
         hasHw(false), hasShift(false), hasOption(false), hasN(false),
         immr(0), immrLen(0), sField(0), nField(0), nLen(0),
@@ -372,7 +372,7 @@ namespace Dyninst
         {
 			std::mem_fun(*fn)(this);
 		}
-		
+
 		if(isPstateWritten || isPstateRead)
 			insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten);
 
@@ -442,7 +442,7 @@ Expression::Ptr InstructionDecoder_aarch64::makePCExpr()
 Expression::Ptr InstructionDecoder_aarch64::makePstateExpr()
 {
 	MAchRegister baseReg = aarch64::pstate;
-	
+
 	return makeRegisterExpression(makeAarch64RegID(baseReg, 0));
 }
 
@@ -628,6 +628,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndex_offset9(){
     return Immediate::makeImmediate(Result(u64, sign_extend64(immLen, immVal)));
 }
 
+// scale = 2 + opc<1>
+// scale = 1<<scale
 // LSL(sign_ex(imm7 , 64), scale)
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefPair_offset7(){
     unsigned int scaleVal = field<31, 31>(insn);
@@ -704,6 +706,47 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPost2(){
     return makeDereferenceExpression(pair2, rt);
 }
 
+void InstructionDecoder_aarch64::getMemRefPair_RT(Result_Type &rt){
+    unsigned int sz = field<30, 31>(insn);
+    switch(sz){
+        case 0x00: //B
+            rt = u8;
+            break;
+        case 0x01: //H
+            rt = u16;
+            break;
+        case 0x10: //32b
+            rt = u32;
+            break;
+        case 0x11: //64b
+            rt = u64;
+            break;
+        default:
+            assert(0);// shouldn't reach here;
+    }
+    return;
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefEx(){
+    Result_Type rt;
+    getMemRefEx_RT(rt);
+    return makeDereferenceExpression(makeRnExpr(), rt);
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair(){
+    return makeDereferenceExpression(makeRnExpr(), u64);
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair16B(){
+    return makeDereferenceExpression(makeRnExpr(), u128);
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
+    unsigned int immLen = 4, immVal = 8;
+    Expression::Ptr offset = Immediate::makeImmediate(Result(u32, unsign_extend32(immLen, immVal)));
+    return makeDereferenceExpression(makeAddExpression(makeRnExpr(), offset, u64) , u64);
+}
+
 void InstructionDecoder_aarch64::LIndex()
 {
     if( IS_INSN_LD_LITERAL(insn)){
@@ -724,13 +767,14 @@ void InstructionDecoder_aarch64::LIndex()
     // ******************
     // ld/st pre and post, unscaled and unprivlidged
     // ******************
-    if( IS_INSN_LDST_PRE(insn) ){
+    if( IS_INSN_LDST_PRE(insn)
+        || IS_INSN_LDST_UNPRIV(insn)
+        || IS_INSN_LDST_UNSCALED(insn) ){
         insn_in_progress->appendOperand(makeMemRefIndexPre(), true, false);
         return;
     }
 
-    if( IS_INSN_LDST_POST(insn) || IS_INSN_LDST_UNPRIV(insn)
-            || IS_INSN_LDST_UNSCALED(insn) ){
+    if( IS_INSN_LDST_POST(insn) ){
         insn_in_progress->appendOperand(makeMemRefIndexPost(), true, false);
         return;
     }
@@ -738,16 +782,35 @@ void InstructionDecoder_aarch64::LIndex()
     // ****************************
     // ld/st PAIR pre, post, offset
     // ****************************
-    if( IS_INSN_LDST_PRE(insn) ){
+    if( IS_INSN_LDST_PAIR_PRE(insn) ){
         insn_in_progress->appendOperand(makeMemRefPairPre(), true, false);
 	    insn_in_progress->appendOperand(makeMemRefPairPre2(), true, false);
         return;
     }
 
-    if( IS_INSN_LDST_PAIR_POST(insn) || IS_INSN_LDST_PAIR_OFFSET(insn)
+    if( IS_INSN_LDST_PAIR_POST(insn)
+        || IS_INSN_LDST_PAIR_OFFSET(insn)
         || IS_INSN_LDST_PAIR_NOALLOC(insn) ){
         insn_in_progress->appendOperand(makeMemRefPairPost(), true, false);
         insn_in_progress->appendOperand(makeMemRefPairPost2(), true, false);
+        return;
+    }
+
+    // ****************************
+    // ld/st exclusive instructions
+    // ****************************
+    if( IS_INSN_LDST_EX(insn) ){
+        if( !IS_INSN_LDST_EX_PAIR(insn) ){ // Rt2 field == 31, non-pair op
+            insn_in_progress->appendOperand( makeMemRefEx(), true, false);
+        } else { // pair
+            if( field<30, 30>(insn) == 0 ){ //  32bit
+                insn_in_progress->appendOperand( makeMemRefExPair(), true, false);
+            }
+            else{
+                insn_in_progress->appendOperand( makeMemRefExPair(), true, false);
+                insn_in_progress->appendOperand( makeMemRefExPair2(), true, false);
+            }
+        }
         return;
     }
 
@@ -759,7 +822,6 @@ void InstructionDecoder_aarch64::STIndex()
 {
     if( IS_INSN_LD_LITERAL(insn))
         assert(0); // only load literal, no store literal
-        //insn_in_progress->appendOperand(makeMemRefIndexLiteral(), false, true);
 
     // TODO if store reg
 
@@ -771,7 +833,9 @@ void InstructionDecoder_aarch64::STIndex()
     // ******************
     // ld/st pre and post, unscaled and unprivilidged
     // ******************
-    if( IS_INSN_LDST_PRE(insn) ){
+    if( IS_INSN_LDST_PRE(insn)
+        || IS_INSN_LDST_UNPRIV(insn)
+        || IS_INSN_LDST_UNSCALED(insn) ){
         insn_in_progress->appendOperand(makeMemRefIndexPre(), false, true);
         return;
     }
@@ -790,10 +854,27 @@ void InstructionDecoder_aarch64::STIndex()
         return;
     }
 
-    if( IS_INSN_LDST_PAIR_POST(insn) || IS_INSN_LDST_PAIR_OFFSET(insn)
+    if( IS_INSN_LDST_PAIR_POST(insn)
+        || IS_INSN_LDST_PAIR_OFFSET(insn)
         || IS_INSN_LDST_PAIR_NOALLOC(insn) ){
         insn_in_progress->appendOperand(makeMemRefPairPost(), false, true);
         insn_in_progress->appendOperand(makeMemRefPairPost2(), false, true);
+        return;
+    }
+
+    // ****************************
+    // ld/st exclusive instructions
+    // ****************************
+    if( IS_INSN_LDST_EX(insn) ){
+        if( !IS_INSN_LDST_EX_PAIR(insn) ){ // Rt2 field == 31, non-pair op
+            insn_in_progress->appendOperand( makeMemRefEx(), false, true);
+        } else { // pair
+            if( field<30, 30>(insn) == 0 ){ //  32bit
+                insn_in_progress->appendOperand( makeMemRefExPair(), false, true);
+            }else{// 64
+                insn_in_progress->appendOperand( makeMemRefExPair16B(), false, true);
+            }
+        }
         return;
     }
 
@@ -1002,12 +1083,12 @@ void InstructionDecoder_aarch64::cond()
 }
 
 void InstructionDecoder_aarch64::nzcv()
-{	
+{
 	unsigned char nzcvVal = static_cast<unsigned char>(field<0, 3>(insn) & 0xF);
 	Expression::Ptr nzcv = Immediate::makeImmediate(Result(u32, nzcvVal));
 	insn_in_progress->appendOperand(nzcv, true, false);
-	
-	isPstateWritten = true;	
+
+	isPstateWritten = true;
 }
 
 void InstructionDecoder_aarch64::op1()
