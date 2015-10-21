@@ -256,29 +256,18 @@ namespace Dyninst
 
 	Expression::Ptr InstructionDecoder_aarch64::makeOptionExpression(Expression::Ptr lhs, int len, int val)
 	{
-		Expression::Ptr rhs;
-
 		switch(optionField)
 		{
-			case 0:rhs = makeEmptyExpressionWithType(u8);
-					break;
-			case 1:rhs = makeEmptyExpressionWithType(u16);
-					break;
-			case 2:rhs = makeEmptyExpressionWithType(u32);
-					break;
-			case 3:rhs = makeEmptyExpressionWithType(u64);
-					break;
-			case 4:rhs = makeEmptyExpressionWithType(s8);
-					break;
-			case 5:rhs = makeEmptyExpressionWithType(s16);
-					break;
-			case 6:rhs = makeEmptyExpressionWithType(s32);
-					break;
-			case 7:rhs = makeEmptyExpressionWithType(s64);
-					break;
+			case 0:return makeRegisterExpression(lhs, u8);
+			case 1:return makeRegisterExpression(lhs, u16);
+			case 2:return makeRegisterExpression(lhs, u32);
+			case 3:return makeRegisterExpression(lhs, u64);
+			case 4:return makeRegisterExpression(lhs, s8);
+			case 5:return makeRegisterExpression(lhs, s16);
+			case 6:return makeRegisterExpression(lhs, s32);
+			case 7:return makeRegisterExpression(lhs, s64);
+			default: assert(!"invalid option field value");
 		}
-
-		return makeExtendExpression(lhs, rhs, u64);
 	}
 
 	void InstructionDecoder_aarch64::processOptionFieldLSRegOffsetInsn()
@@ -357,44 +346,6 @@ namespace Dyninst
 		}
 	}
 
-    void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *insn_to_complete)
-    {
-		int insn_table_index = findInsnTableIndex(0);
-		aarch64_insn_entry *insn_table_entry = &aarch64_insn_entry::main_insn_table[insn_table_index];
-
-		insn = insn_to_complete->m_RawInsn.small_insn;
-		insn_in_progress = const_cast<Instruction*>(insn_to_complete);
-
-		//only a small subset of instructions modify pstate and the following are the ones for whom it cannot be detected from any operand that they do modify pstate
-		//it thus needs to be read from the manual..yay
-		if(((IS_INSN_ADDSUB_EXT(insn) || IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_CARRY(insn))
-			 && field<29, 29>(insn) == 0x1) ||
-		   ((IS_INSN_LOGICAL_SHIFT(insn) || IS_INSN_LOGICAL_IMM(insn))
-			 && field<29, 30>(insn) == 0x3) ||
-		   (IS_INSN_FP_COMPARE(insn))
-            )
-		   isPstateWritten = true;
-
-
-        for(operandSpec::const_iterator fn = insn_table_entry->operands.begin(); fn != insn_table_entry->operands.end(); fn++)
-        {
-			std::mem_fun(*fn)(this);
-		}
-		
-		if(isPstateWritten || isPstateRead)
-			insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten);
-
-		if(isSystemInsn)
-		{
-			processSystemInsn();
-		}
-
-		if(!isValid)
-		{
-			insn_in_progress = INVALID_ENTRY;
-		}
-    }
-
     Result_Type InstructionDecoder_aarch64::makeSizeType(unsigned int)
     {
         assert(0); //not implemented
@@ -414,7 +365,7 @@ MachRegister InstructionDecoder_aarch64::makeAarch64RegID(MachRegister base, uns
 
 Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 {
-	MachRegister baseReg = (isFPInsn?aarch64 && !IS_INSN_FP_CONV_INT(insn))::q0:(is64Bit?aarch64::x0:aarch64::w0);
+	MachRegister baseReg = (isFPInsn && !IS_INSN_FP_CONV_INT(insn))?aarch64::q0:(is64Bit?aarch64::x0:aarch64::w0);
 
     int encoding = field<0, 4>(insn);
 	if(encoding == 31)
@@ -1007,13 +958,17 @@ void InstructionDecoder_aarch64::Rt2S()
 template<unsigned int startBit, unsigned int endBit>
 void InstructionDecoder_aarch64::cond()
 {
+	unsigned char condVal = static_cast<unsigned char>(field<startBit, endBit>(insn));
+	Expression::Ptr cond = Immediate::makeImmediate(Result(u8, condval));
+	insn_in_progress->appendOperand(cond, true, false);	
+	
 	isPstateRead = true;
 }
 
 void InstructionDecoder_aarch64::nzcv()
 {	
-	unsigned char nzcvVal = static_cast<unsigned char>(field<0, 3>(insn) & 0xF);
-	Expression::Ptr nzcv = Immediate::makeImmediate(Result(u64, unsign_extend64(4, nzcvVal)));
+	uint64_t nzcvVal = (static_cast<unsigned char>(field<0, 3>(insn)))<<60;
+	Expression::Ptr nzcv = Immediate::makeImmediate(Result(u64, nzcvVal));
 	insn_in_progress->appendOperand(nzcv, true, false);
 	
 	isPstateWritten = true;	
@@ -1269,6 +1224,44 @@ void InstructionDecoder_aarch64::imm()
 using namespace boost::assign;
 
 #include "aarch64_opcode_tables.C"
+
+	void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *insn_to_complete)
+    {
+		int insn_table_index = findInsnTableIndex(0);
+		aarch64_insn_entry *insn_table_entry = &aarch64_insn_entry::main_insn_table[insn_table_index];
+
+		insn = insn_to_complete->m_RawInsn.small_insn;
+		insn_in_progress = const_cast<Instruction*>(insn_to_complete);
+
+		//only a small subset of instructions modify nzcv and the following are the ones for whom it cannot be detected from any operand that they do modify pstate
+		//it thus needs to be read from the manual..yay
+		if(((IS_INSN_ADDSUB_EXT(insn) || IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_CARRY(insn))
+			 && field<29, 29>(insn) == 0x1) ||
+		   ((IS_INSN_LOGICAL_SHIFT(insn) || IS_INSN_LOGICAL_IMM(insn))
+			 && field<29, 30>(insn) == 0x3) ||
+		   (IS_INSN_FP_COMPARE(insn))
+            )
+		   isPstateWritten = true;
+
+
+        for(operandSpec::const_iterator fn = insn_table_entry->operands.begin(); fn != insn_table_entry->operands.end(); fn++)
+        {
+			std::mem_fun(*fn)(this);
+		}
+		
+		if(isPstateWritten || isPstateRead)
+			insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten);
+
+		if(isSystemInsn)
+		{
+			processSystemInsn();
+		}
+
+		if(!isValid)
+		{
+			insn_in_progress = INVALID_ENTRY;
+		}
+    }
 
 	int InstructionDecoder_aarch64::findInsnTableIndex(unsigned int decoder_table_index)
 	{

@@ -48,15 +48,21 @@ namespace Dyninst
   namespace InstructionAPI
   {
     RegisterAST::RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit) :
-            Expression(r), m_Reg(r), m_Low(lowbit), m_High(highbit)
+            Expression(r), m_Reg(r), m_Low(lowbit), m_High(highbit), extendRequired(false)
     {
     }
     RegisterAST::RegisterAST(MachRegister r) :
-            Expression(r), m_Reg(r), m_Low(0)
+            Expression(r), m_Reg(r), m_Low(0), extendRequired(false)
     {
       
         m_High = r.size() * 8;
     }
+    
+    RegisterAST::RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType)
+			Expression(regType), m_Reg(r), m_Low(0), m_High(highBit), extendRequired(true)
+    {
+	}
+    
     RegisterAST::~RegisterAST()
     {
     }

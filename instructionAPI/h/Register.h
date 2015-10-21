@@ -55,6 +55,7 @@ namespace Dyninst
       /// Construct a register, assigning it the ID \c id.
       RegisterAST(MachRegister r);
       RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit);
+      RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType);
   
       virtual ~RegisterAST();
       
@@ -89,6 +90,11 @@ namespace Dyninst
           return m_Low; }
     unsigned int highBit() const {
         return m_High; }
+       
+       bool extend() const
+       {
+		   return extendRequired;
+	   }
 
       /// Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part 
       /// or all of a register
@@ -109,6 +115,7 @@ namespace Dyninst
       MachRegister m_Reg;
       unsigned int m_Low;
       unsigned int m_High;
+      bool extendRequired;
     };
     
   };
