@@ -212,6 +212,7 @@ namespace Dyninst
 							case s64:
 							case u64:mask = Result(u64, ~0);
 									break;
+							default: assert(!"not valid");
 							
 						}
 						
@@ -232,33 +233,34 @@ namespace Dyninst
 	
 					Result operator()(const Result& arg1, const Result& arg2) const
 					{
-						Result_Type oneType;
-						
+						Result leftShiftAmount;
+						uint64_t arg2val = arg2.convert<Result_type2type<u64>::type >();
+										
 						switch(arg1.type)
 						{
 							case s8:
-							case u8:oneType = u8;
+							case u8:leftShiftAmount = Result(arg2.type, 8 - arg2val);
 									break;
 							case s16:
-							case u16:oneType = u16;
+							case u16:leftShiftAmount = Result(arg2.type, 16- arg2val);
 									 break;
 							case s32:
-							case u32:oneType = u32;
+							case u32:leftShiftAmount = Result(arg2.type, 32- arg2val);
 									 break;
 							case s48:
-							case u48:oneType = u48;
+							case u48:leftShiftAmount = Result(arg2.type, 48- arg2val);
 									 break;
 							case s64:
-							case u64:oneType = u64;
+							case u64:leftShiftAmount = Result(arg2.type, 64- arg2val);
 									 break;
+							default: assert(!"not valid");
 						}
 						
-						Result one(oneType, 1);
-						Result rot = arg1 & ((one << arg2) - one);
-						Result bits = Result(arg2.type, sizeof(Result_type2type<arg1.type>::type));
+						Result one(u64, 1);
+						Result rot = arg1 & (Result(u64, (1<<arg2val) - 1));
 						
 						rightLogicalShiftResult lhsRightShift;
-						return lhsRightShift(arg1, arg2) | (rot << (bits - arg2));
+						return lhsRightShift(arg1, arg2) | (rot << leftShiftAmount);
 					}
 			};
 			
@@ -275,10 +277,19 @@ namespace Dyninst
 	
 					Result operator()(const Result& arg1, const Result& arg2) const
 					{
-						Result_Type rT = arg1.type;
+						Result max(u64, ~0);
 						
-						Result sixtyFour(u8, 64), bits(u8, sizeof(Result_type2type<arg2.type>::type)), max(u64, ~0);
-						Result shift = sixtyFour - bits;
+						Result shift;
+						if(arg2.type == s8 || arg2.type == u8)
+							shift = Result(u8, 64 - 8);
+						else if(arg2.type == s16 || arg2.type == u16)
+							shift = Result(u8, 64 - 16);
+						else if(arg2.type == s32 || arg2.type == u32)
+							shift = Result(u8, 64 - 32);
+						else if(arg2.type == s48 || arg2.type == u48)
+							shift = Result(u8, 64 - 48);
+						else
+						{ /*nothing to do*/ }
 						
 						switch(arg2.type)
 						{
@@ -292,6 +303,9 @@ namespace Dyninst
 							case u32:
 							case u48:return ((max >> shift) & arg1);
 									 break;
+							case s64:
+							case u64:return arg1;
+							default: assert(!"not valid");
 						}
 					}
 			};

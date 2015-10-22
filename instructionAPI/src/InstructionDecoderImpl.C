@@ -103,18 +103,6 @@ namespace Dyninst
             BinaryFunction::funcT::Ptr rightArithmeticShifter(new BinaryFunction::rightArithmeticShiftResult());
             return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightArithmeticShifter));
         }
-        Expression::Ptr InstructionDecoderImpl::makeAndExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr ander(new BinaryFunction::andResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, ander));
-        }
-        Expression::Ptr InstructionDecoderImpl::makeOrExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr orrer(new BinaryFunction::orResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, orrer));
-        }
         Expression::Ptr InstructionDecoderImpl::makeRightLogicalShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
@@ -146,6 +134,11 @@ namespace Dyninst
             MachRegister converted(convertedID);
             return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8));
         }
+	Expression::Ptr makeEmptyExpressionWithType(Result_Type rT)
+	{
+	    return make_shared(singleton_object_pool<Expression>::construct(rT));
+	}
+
     };
 };
 

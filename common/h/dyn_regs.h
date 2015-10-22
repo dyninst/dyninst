@@ -967,6 +967,7 @@ namespace Dyninst
       DEF_REGISTER(sp,       0 | FULL  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(pc,       1 | FULL  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(pstate,   2 | FULL  |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(zr,		 3 | FULL  |SPR | Arch_aarch64, "aarch64");
       //the base value is not sure
       DEF_REGISTER(fpcr,     0 | W_REG |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(fpsr,     1 | W_REG |SPR | Arch_aarch64, "aarch64");
