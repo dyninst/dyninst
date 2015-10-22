@@ -391,6 +391,11 @@ enum {
 #define PREFIX_SEGFS  (unsigned char)(0x64)
 #define PREFIX_SEGGS  (unsigned char)(0x65)
 
+#define PREFIX_MVEX (unsigned char)(0x62)
+#define PREFIX_VEX2 (unsigned char)(0xC5)
+#define PREFIX_VEX3 (unsigned char)(0xC4)
+#define PREFIX_XOP  (unsigned char)(0x8F)
+
 #define PREFIX_BRANCH0 (unsigned char)(0x2E)
 #define PREFIX_BRANCH1 (unsigned char)(0x3E)
 
@@ -492,6 +497,7 @@ class ia32_prefixes
   // so this array is extended to 5 elements
   unsigned char prfx[5];
   unsigned char opcode_prefix;
+  
  public:
   unsigned int getCount() const { return count; }
   unsigned char getPrefix(unsigned char group) const { assert(group <= 4); return prfx[group]; }
@@ -502,6 +508,7 @@ class ia32_prefixes
   unsigned char getOpcodePrefix() const { return opcode_prefix; }
   unsigned char getAddrSzPrefix() const { return prfx[3]; }
   unsigned char getOperSzPrefix() const { return prfx[2]; }
+  unsigned char vex_prefix[3];
 };
 
 // helper routine to tack-on rex bit when needed
