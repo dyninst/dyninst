@@ -103,10 +103,6 @@ bool MachRegister::isValid() const {
 MachRegisterVal MachRegister::getSubRegValue(const MachRegister& subreg,
                                              MachRegisterVal &orig) const
 {
-  if( getArchitecture() == Arch_aarch64 ){
-    assert(0);//this is not implemented
-  }
-
    if (subreg.reg == reg ||
        getArchitecture() == Arch_ppc32 ||
        getArchitecture() == Arch_ppc64)
@@ -184,12 +180,23 @@ unsigned int MachRegister::size() const {
          return 4;
       }
       case Arch_ppc64:
-		case Arch_aarch64:
         if((reg & 0x00ff0000) == aarch64::FPR)
-          return 16; //aarch64: 128bit = 16*8bit
-        return 8; //aarch64: 64bit = 8*8
+          return 16; 
+        return 8; 
       case Arch_aarch32:
         assert(0);
+      case Arch_aarch64:
+		if((reg & 0x00ff0000) == aarch64::FPR)
+			return 16;
+		else if((reg & 0x00ff0000) == aarch64::GPR || (reg & 0x00ff0000) == aarch64::SPR)
+			switch(reg & 0x0000ff00)
+			{
+				case aarch64::FULL : return 8;
+				case aarch64::W_REG: return 4;
+				default: return 0;
+			}
+		else
+			return 4;
       case Arch_none:
          return 0;
    }

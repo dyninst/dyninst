@@ -93,7 +93,9 @@ namespace Dyninst {
                 #define	IS_INSN_MOVEWIDE_IMM(I)			(field<23, 28>(I) == 0x25)
                 #define	IS_INSN_BITFIELD(I)				(field<23, 28>(I) == 0x26)
                 #define	IS_INSN_EXTRACT(I)				(field<23, 28>(I) == 0x27)
-                #define	IS_INSN_FP_COMPARE(I)			(field<24, 28>(I) == 0x1E && field<30, 30>(I) == 0)
+                #define	IS_INSN_FP_COMPARE(I)			(field<24, 28>(I) == 0x1E && field<10, 13>(I) == 0x8)
+                #define	IS_INSN_FP_CONV_FIX(I)			(field<24, 28>(I) == 0x1E && field<21, 21>(I) == 0x0)
+                #define	IS_INSN_FP_CONV_INT(I)			(field<24, 28>(I) == 0x1E && field<10, 15>(I) == 0x0)
 				#define	IS_INSN_B_UNCOND(I)				(field<26, 30>(I) == 0x05)
                 #define	IS_INSN_B_UNCOND_REG(I)			(field<25, 31>(I) == 0x6B)
                 #define	IS_INSN_B_COMPARE(I)			(field<25, 30>(I) == 0x1A)
@@ -206,11 +208,15 @@ namespace Dyninst {
                 Expression::Ptr makeMemRefIndex_offset9();
 
                 Expression::Ptr makeMemRefPairPre();
-                Expression::Ptr makeMemRefPairPre2();
                 Expression::Ptr makeMemRefPairPost();
-                Expression::Ptr makeMemRefPairPost2();
                 Expression::Ptr makeMemRefPair_offset7();
                 Expression::Ptr makeMemRefPair_addOffset7();
+                Expression::Ptr makeMemRefEx();
+                Expression::Ptr makeMemRefExPair();
+                //Expression::Ptr makeMemRefPairPre2();
+                //Expression::Ptr makeMemRefPairPost2();
+                //Expression::Ptr makeMemRefExPair16B();
+
 
                 void getMemRefIndexLiteral_OffsetLen(int &, int &);
                 void getMemRefIndexLiteral_RT(Result_Type &);
@@ -220,6 +226,8 @@ namespace Dyninst {
                 void getMemRefIndexPrePost_ImmImmlen(unsigned int& , unsigned int& );
 
                 void getMemRefPair_RT(Result_Type &rt);
+                void getMemRefEx_RT(Result_Type &rt);
+                void getMemRefExPair_RT(Result_Type &rt);
                 void getMemRefPair_ImmImmlen(unsigned int &immVal, unsigned int &immLen);
 
 				void Rd();

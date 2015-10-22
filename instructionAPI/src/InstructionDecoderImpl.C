@@ -134,6 +134,14 @@ namespace Dyninst
             MachRegister converted(convertedID);
             return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8));
         }
+        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, Result_Type extendFrom)
+        {
+            int newID = registerID.val();
+            int minusArch = newID & ~(registerID.getArchitecture());
+            int convertedID = minusArch | m_Arch;
+            MachRegister converted(convertedID);
+            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8, extendFrom));
+        }
 	Expression::Ptr makeEmptyExpressionWithType(Result_Type rT)
 	{
 	    return make_shared(singleton_object_pool<Expression>::construct(rT));
