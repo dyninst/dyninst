@@ -90,11 +90,6 @@ namespace Dyninst
           return m_Low; }
     unsigned int highBit() const {
         return m_High; }
-       
-       bool extend() const
-       {
-		   return extendRequired;
-	   }
 
       /// Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part 
       /// or all of a register
@@ -115,7 +110,6 @@ namespace Dyninst
       MachRegister m_Reg;
       unsigned int m_Low;
       unsigned int m_High;
-      bool extendRequired;
     };
     
   };
