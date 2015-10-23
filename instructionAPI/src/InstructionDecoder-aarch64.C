@@ -122,7 +122,7 @@ namespace Dyninst
 	    is64Bit(true), isValid(true), insn(0), insn_in_progress(NULL), isSystemInsn(false),
         hasHw(false), hasShift(false), hasOption(false), hasN(false),
         immr(0), immrLen(0), sField(0), nField(0), nLen(0),
-        isTestAndBr(false), immlo(0), immloLen(0)
+        immlo(0), immloLen(0)
     {
         aarch64_insn_entry::buildInsnTable();
         aarch64_mask_entry::buildDecoderTable();
@@ -168,7 +168,6 @@ namespace Dyninst
         isSystemInsn = false;
         op0Field = op1Field = op2Field = crnField = crmField = 0;
 
-        isTestAndBr = false;
         immlo = immloLen = 0;
 
         insn = b.start[0] << 24 | b.start[1] << 16 |
@@ -1265,7 +1264,7 @@ void InstructionDecoder_aarch64::imm()
 			isValid = false;
 		}
 	}
-	else if(IS_INSN_B_UNCOND(insn) || IS_INSN_B_COMPARE(insn) || isTestAndBr || IS_INSN_B_COND(insn))
+	else if(IS_INSN_BRANCHING(insn) && !IS_INSN_B_UNCOND_REG(insn))
 	{		//unconditional branch (immediate), test and branch, compare and branch, conditional branch
 		bool bIsConditional = false;
 		if(!(IS_INSN_B_UNCOND(insn)))
@@ -1401,17 +1400,11 @@ using namespace boost::assign;
         insn_in_progress = makeInstruction(insn_table_entry->op, insn_table_entry->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));
         insn_printf("ARM: %s\n", insn_table_entry->mnemonic);
 
-        // control flow operations?
-        /* tmp commented this part
-        if(current->op == power_op_b ||
-          current->op == power_op_bc ||
-          current->op == power_op_bclr ||
-          current->op == power_op_bcctr)
+        if(IS_INSN_BRANCHING(insn))
         {
             // decode control-flow operands immediately; we're all but guaranteed to need them
             doDelayedDecode(insn_in_progress);
         }
-        */
 
         //insn_in_progress->arch_decoded_from = m_Arch;
         insn_in_progress->arch_decoded_from = Arch_aarch64;
