@@ -842,9 +842,15 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
  (e_vbroadcastss, "vbroadcastss")
  (e_vbroadcastsd, "vbroadcastsd")
  (e_vbroadcastf, "vbroadcastf")
-  (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
-  (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
-  (e_No_Entry, "No_Entry")
+ (e_vpmovswb, "vpmovswb")
+ (e_vpmovsdb, "vpmovsdb")
+ (e_vpmovsqb, "vpmovsqb")
+ (e_vpmovsdw, "vpmovsdw")
+ (e_vpmovsqw, "vpmovsqw")
+ (e_vpmovsqd, "vpmovsqd")
+ (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
+ (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
+ (e_No_Entry, "No_Entry")
         ;
 
 dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI = map_list_of
@@ -3560,42 +3566,42 @@ static ia32_entry sseMapBis[][5] = {
 		},
 		{ /* SSEB20 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+				{ e_vpmovswb,  t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R },
 				{ e_pmovsxbw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
 		{ /* SSEB21 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+				{ e_vpmovsdb,  t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R },
 				{ e_pmovsxbd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
 		{ /* SSEB22 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+				{ e_vpmovsqb,  t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R },
 				{ e_pmovsxbq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
 		{ /* SSEB23 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+				{ e_vpmovsdw, t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R },
 				{ e_pmovsxwd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
 		{ /* SSEB24 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+				{ e_vpmovsqw, t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R },
 				{ e_pmovsxwq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
 		{ /* SSEB25 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+				{ e_vpmovsqd, t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R },
 				{ e_pmovsxdq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
@@ -3838,18 +3844,18 @@ static ia32_entry sseMapTer[][3] = {
 		},
 		{ /* SSET20 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_pinsrb, t_done, 0, true, { Vdq, RMb, Ib }, 0, s1W2R3R }, 
+				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		},
 		{ /* SSET21 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_insertps, t_done, 0, true, { Vdq, UMd, Ib }, 0, s1W2R3R },
+				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		},
 		{ /* SSET22 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_pinsrd_pinsrq, t_done, 0, true, { Vdq, Ey, Ib }, 0, s1W2R3R },
+				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		},
 		{ /* SSET40 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -4043,15 +4049,14 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       idx = addr[0];
       instruct.size += 1;
       addr += 1;
+      sseidx = oneByteMap[pref.getOpcodePrefix()].tabidx;
       // VEX instruction or xop. If there's only one prefix, table is two-byte.
       if(pref.vex_prefix[1] == 0)
       {
 	  gotit = &twoByteMap[idx];
-	  sseidx = pref.vex_prefix[0] & 0x03;
       }
       else
       {
-	  sseidx = pref.vex_prefix[1] & 0x03;
 	  // FIXME: not handling xop separately yet
 	  switch(pref.vex_prefix[0] & 0x03)
 	  {
@@ -4067,26 +4072,16 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 	      break;
 	  case 3:
 	      gotit = &threeByteMap2[idx];
+	      if(sseidx) sseidx--; // mapping none/f3/66/f2 to none/66/f2
 	      break;
 	  default:
 	      assert(!"Can't happen: prefix & 0x03 outside 0-3 range");
 	      
 	  }
       }
-      // Intel, being inconsistent. Match these (none, 66, F3, F2) with
-      // the existing SSE tables (none, F3, 66, F2). Argh.
-      switch(sseidx)
-      {
-      case 2:
-	  sseidx = 1;
-	  break;
-      case 1:
-	  sseidx = 2;
-	  break;
-      }
       nxtab = gotit->otable;
-      cerr << "\nVEX decode: idx = " << hex << (int) idx << ", sseidx = " << (int) sseidx 
-	   << ", num_prefixes = " << pref.getCount() << endl;
+      //cerr << "\nVEX decode: idx = " << hex << (int) idx << ", sseidx = " << (int) sseidx 
+      //	   << ", num_prefixes = " << pref.getCount() << ", opcode prefix = " << (int)pref.getOpcodePrefix() << endl;
   }
   else
   {
@@ -4138,6 +4133,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       addr += 1;
       if(capa & IA32_DECODE_CONDITION)
     	condbits = idx & 0x0F;
+      //if(sseidx) sseidx--;
       break;
     case t_prefixedSSE:
       sseidx = gotit->tabidx;
