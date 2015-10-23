@@ -100,8 +100,10 @@ namespace Dyninst {
 				#define	IS_INSN_B_UNCOND(I)				(field<26, 30>(I) == 0x05)
                 #define	IS_INSN_B_UNCOND_REG(I)			(field<25, 31>(I) == 0x6B)
                 #define	IS_INSN_B_COMPARE(I)			(field<25, 30>(I) == 0x1A)
+                #define	IS_INSN_B_TEST(I)				(field<25, 30>(I) == 0x1B)
                 #define	IS_INSN_B_COND(I)				(field<25, 31>(I) == 0x2A)
                 #define	IS_INSN_PCREL_ADDR(I)			(field<24, 28>(I) == 0x10)
+                #define	IS_INSN_BRANCHING(I)			(IS_INSN_B_COND(I) || IS_INSN_B_UNCOND(I) || IS_INSN_B_UNCOND_REG(I) || IS_INSN_B_TEST(I) || 			IS_INSN_B_COMPARE(I))
 
                 #define	IS_FIELD_IMMR(S, E)				(S == 16 && E == 21)
                 #define	IS_FIELD_IMMS(S, E)				(S == 10 && E == 15)
@@ -120,6 +122,7 @@ namespace Dyninst {
                 int findInsnTableIndex(unsigned int);
                 unsigned int insn;
                 Instruction* insn_in_progress;
+                Instruction* invalid_insn;
 
                 // inherit from ppc is not sematically consistent with aarch64 manual
                 template <int start, int end>
@@ -181,7 +184,6 @@ namespace Dyninst {
 				int immr, immrLen;
 				int sField, nField, nLen;
 
-				bool isTestAndBr;
         		int immlo, immloLen;
 				void makeBranchTarget(bool, bool, int, int);
 				void makeLinkForBranch();
@@ -197,7 +199,7 @@ namespace Dyninst {
 				Expression::Ptr makeRsExpr();
 				Expression::Ptr makePstateExpr();
                 Expression::Ptr makePCExpr();
-				Expression::Ptr makeOptionExpression(Expression::Ptr, int, int);
+				Expression::Ptr makeOptionExpression(int, int);
                 Expression::Ptr makeRtExpr();
                 Expression::Ptr makeRt2Expr();
 
@@ -214,6 +216,7 @@ namespace Dyninst {
                 Expression::Ptr makeMemRefPair_addOffset7();
                 Expression::Ptr makeMemRefEx();
                 Expression::Ptr makeMemRefExPair();
+                Expression::Ptr makeMemRefExPair2();
                 //Expression::Ptr makeMemRefPairPre2();
                 //Expression::Ptr makeMemRefPairPost2();
                 //Expression::Ptr makeMemRefExPair16B();

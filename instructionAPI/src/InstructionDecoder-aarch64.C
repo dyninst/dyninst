@@ -122,10 +122,12 @@ namespace Dyninst
 	    is64Bit(true), isValid(true), insn(0), insn_in_progress(NULL), isSystemInsn(false),
         hasHw(false), hasShift(false), hasOption(false), hasN(false),
         immr(0), immrLen(0), sField(0), nField(0), nLen(0),
-        isTestAndBr(false), immlo(0), immloLen(0)
+        immlo(0), immloLen(0)
     {
         aarch64_insn_entry::buildInsnTable();
         aarch64_mask_entry::buildDecoderTable();
+        
+        invalid_insn = makeInstruction(aarch64_op_INVALID, "INVALID", 4, reinterpret_cast<unsigned char*>(&insn));
     }
 
     InstructionDecoder_aarch64::~InstructionDecoder_aarch64()
@@ -167,7 +169,6 @@ namespace Dyninst
         isSystemInsn = false;
         op0Field = op1Field = op2Field = crnField = crmField = 0;
 
-        isTestAndBr = false;
         immlo = immloLen = 0;
 
         insn = b.start[0] << 24 | b.start[1] << 16 |
@@ -265,18 +266,26 @@ namespace Dyninst
 
 	}
 
-	Expression::Ptr InstructionDecoder_aarch64::makeOptionExpression(Expression::Ptr lhs, int len, int val)
+	Expression::Ptr InstructionDecoder_aarch64::makeOptionExpression(int len, int val)
 	{
+		MachRegister baseReg = isFPInsn?aarch64::q0:(is64Bit?aarch64::x0:aarch64::w0);
+
+		int encoding = field<16, 20>(insn);
+		if(!isFPInsn && field<16, 20>(insn) == 31)							
+			baseReg = aarch64::zr;
+		else
+			baseReg = MachRegister(baseReg.val() + encoding);
+		
 		switch(optionField)
 		{
-			case 0:return makeRegisterExpression(lhs, u8);
-			case 1:return makeRegisterExpression(lhs, u16);
-			case 2:return makeRegisterExpression(lhs, u32);
-			case 3:return makeRegisterExpression(lhs, u64);
-			case 4:return makeRegisterExpression(lhs, s8);
-			case 5:return makeRegisterExpression(lhs, s16);
-			case 6:return makeRegisterExpression(lhs, s32);
-			case 7:return makeRegisterExpression(lhs, s64);
+			case 0:return makeRegisterExpression(baseReg, u8);
+			case 1:return makeRegisterExpression(baseReg, u16);
+			case 2:return makeRegisterExpression(baseReg, u32);
+			case 3:return makeRegisterExpression(baseReg, u64);
+			case 4:return makeRegisterExpression(baseReg, s8);
+			case 5:return makeRegisterExpression(baseReg, s16);
+			case 6:return makeRegisterExpression(baseReg, s32);
+			case 7:return makeRegisterExpression(baseReg, s64);
 			default: assert(!"invalid option field value");
 		}
 	}
@@ -1124,7 +1133,7 @@ template<unsigned int startBit, unsigned int endBit>
 void InstructionDecoder_aarch64::cond()
 {
 	unsigned char condVal = static_cast<unsigned char>(field<startBit, endBit>(insn));
-	Expression::Ptr cond = Immediate::makeImmediate(Result(u8, condval));
+	Expression::Ptr cond = Immediate::makeImmediate(Result(u8, condVal));
 	insn_in_progress->appendOperand(cond, true, false);
 
 	isPstateRead = true;
@@ -1132,7 +1141,7 @@ void InstructionDecoder_aarch64::cond()
 
 void InstructionDecoder_aarch64::nzcv()
 {
-	uint64_t nzcvVal = (static_cast<unsigned char>(field<0, 3>(insn)))<<60;
+	uint64_t nzcvVal = (static_cast<uint64_t>(field<0, 3>(insn)))<<60;
 	Expression::Ptr nzcv = Immediate::makeImmediate(Result(u64, nzcvVal));
 	insn_in_progress->appendOperand(nzcv, true, false);
 
@@ -1314,10 +1323,9 @@ void InstructionDecoder_aarch64::imm()
 	{
 		if(IS_INSN_ADDSUB_EXT(insn))										//add-sub extended
 		{
-		    Expression::Ptr lhs = makeRmExpr();
-		    Expression::Ptr rhs = makeOptionExpression(lhs, immLen, immVal);
+		    Expression::Ptr expr = makeOptionExpression(immLen, immVal);
 
-		    insn_in_progress->appendOperand(rhs, true, false);
+		    insn_in_progress->appendOperand(expr, true, false);
 		}
 		else if(IS_INSN_LDST_REG(insn))	//load-store register offset
 		{
@@ -1328,7 +1336,7 @@ void InstructionDecoder_aarch64::imm()
 			isValid = false;
 		}
 	}
-	else if(IS_INSN_B_UNCOND(insn) || IS_INSN_B_COMPARE(insn) || isTestAndBr || IS_INSN_B_COND(insn))
+	else if(IS_INSN_BRANCHING(insn) && !IS_INSN_B_UNCOND_REG(insn))
 	{		//unconditional branch (immediate), test and branch, compare and branch, conditional branch
 		bool bIsConditional = false;
 		if(!(IS_INSN_B_UNCOND(insn)))
@@ -1424,7 +1432,7 @@ using namespace boost::assign;
 
 		if(!isValid)
 		{
-			insn_in_progress = INVALID_ENTRY;
+			insn_in_progress = invalid_insn;
 		}
     }
 
@@ -1464,17 +1472,11 @@ using namespace boost::assign;
         insn_in_progress = makeInstruction(insn_table_entry->op, insn_table_entry->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));
         insn_printf("ARM: %s\n", insn_table_entry->mnemonic);
 
-        // control flow operations?
-        /* tmp commented this part
-        if(current->op == power_op_b ||
-          current->op == power_op_bc ||
-          current->op == power_op_bclr ||
-          current->op == power_op_bcctr)
+        if(IS_INSN_BRANCHING(insn))
         {
             // decode control-flow operands immediately; we're all but guaranteed to need them
             doDelayedDecode(insn_in_progress);
         }
-        */
 
         //insn_in_progress->arch_decoded_from = m_Arch;
         insn_in_progress->arch_decoded_from = Arch_aarch64;

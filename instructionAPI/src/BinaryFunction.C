@@ -329,7 +329,7 @@ namespace Dyninst
 		return doLeftShift(arg1, arg2, ResultT);
 	}
 	
-	Result operator>>(const Result& arg1, Result& arg2)
+	Result operator>>(const Result& arg1, const Result& arg2)
 	{
 		Result_Type ResultT = arg1.type;
 		
@@ -341,7 +341,7 @@ namespace Dyninst
 		return doRightArithmeticShift(arg1, arg2, ResultT);
 	}
 	
-	Result operator&(const Result& arg1, Result& arg2)
+	Result operator&(const Result& arg1, const Result& arg2)
 	{
 		Result_Type ResultT = arg1.type < arg2.type ? arg1.type : arg2.type;
 		
@@ -353,7 +353,7 @@ namespace Dyninst
 		return doOr(arg1, arg2, ResultT);
 	}
 	
-	Result operator|(const Result& arg1, Result& arg2)
+	Result operator|(const Result& arg1, const Result& arg2)
 	{
 		Result_Type ResultT = arg1.type < arg2.type ? arg1.type : arg2.type;
 		
@@ -450,11 +450,6 @@ namespace Dyninst
 	bool BinaryFunction::isRightRotate() const
 	{
 		return typeid(*m_funcPtr) == typeid(rightRotateResult);
-	}
-	
-	bool BinaryFunction::isExtend() const
-	{
-		return typeid(*m_funcPtr) == typeid(extendResult);
 	}
   };
 };

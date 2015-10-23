@@ -115,12 +115,6 @@ namespace Dyninst
             BinaryFunction::funcT::Ptr rightRotator(new BinaryFunction::rightRotateResult());
             return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightRotator));
         }
-        Expression::Ptr InstructionDecoderImpl::makeExtendExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr extender(new BinaryFunction::extendResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, extender));
-        }
         Expression::Ptr InstructionDecoderImpl::makeDereferenceExpression(Expression::Ptr addrToDereference,
                 Result_Type resultType)
         {
@@ -142,10 +136,6 @@ namespace Dyninst
             MachRegister converted(convertedID);
             return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8, extendFrom));
         }
-	Expression::Ptr makeEmptyExpressionWithType(Result_Type rT)
-	{
-	    return make_shared(singleton_object_pool<Expression>::construct(rT));
-	}
 
     };
 };
