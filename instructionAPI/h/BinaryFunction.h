@@ -264,52 +264,6 @@ namespace Dyninst
 					}
 			};
 			
-			class INSTRUCTION_EXPORT extendResult : public funcT
-			{
-				public:
-					extendResult() : funcT("extend")
-					{
-					}
-	
-					virtual ~extendResult()
-					{
-					}
-	
-					Result operator()(const Result& arg1, const Result& arg2) const
-					{
-						Result max(u64, ~0);
-						
-						Result shift;
-						if(arg2.type == s8 || arg2.type == u8)
-							shift = Result(u8, 64 - 8);
-						else if(arg2.type == s16 || arg2.type == u16)
-							shift = Result(u8, 64 - 16);
-						else if(arg2.type == s32 || arg2.type == u32)
-							shift = Result(u8, 64 - 32);
-						else if(arg2.type == s48 || arg2.type == u48)
-							shift = Result(u8, 64 - 48);
-						else
-						{ /*nothing to do*/ }
-						
-						switch(arg2.type)
-						{
-							case s8: 
-							case s16:
-							case s32:
-							case s48:return ((arg1 << shift) >> shift);
-									 break;
-							case u8:
-							case u16:
-							case u32:
-							case u48:return ((max >> shift) & arg1);
-									 break;
-							case s64:
-							case u64:return arg1;
-							default: assert(!"not valid");
-						}
-					}
-			};
-            
 			/// \param arg1 first input to function
 			/// \param arg2 second input to function
 			/// \param result_type type of the function's result
@@ -410,7 +364,6 @@ namespace Dyninst
 			bool isOrResult() const;
 			bool isRightLogicalShift() const;
 			bool isRightRotate() const;
-			bool isExtend() const;
 			
 		protected:
 			virtual bool isStrictEqual(const InstructionAST& rhs) const

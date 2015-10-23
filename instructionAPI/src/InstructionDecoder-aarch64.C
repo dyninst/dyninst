@@ -126,6 +126,8 @@ namespace Dyninst
     {
         aarch64_insn_entry::buildInsnTable();
         aarch64_mask_entry::buildDecoderTable();
+        
+        invalid_insn = makeInstruction(aarch64_op_INVALID, "INVALID", 4, reinterpret_cast<unsigned char*>(&insn));
     }
 
     InstructionDecoder_aarch64::~InstructionDecoder_aarch64()
@@ -254,18 +256,26 @@ namespace Dyninst
 
 	}
 
-	Expression::Ptr InstructionDecoder_aarch64::makeOptionExpression(Expression::Ptr lhs, int len, int val)
+	Expression::Ptr InstructionDecoder_aarch64::makeOptionExpression(int len, int val)
 	{
+		MachRegister baseReg = isFPInsn?aarch64::q0:(is64Bit?aarch64::x0:aarch64::w0);
+
+		int encoding = field<16, 20>(insn);
+		if(!isFPInsn && field<16, 20>(insn) == 31)							
+			baseReg = aarch64::zr;
+		else
+			baseReg = MachRegister(baseReg.val() + encoding);
+		
 		switch(optionField)
 		{
-			case 0:return makeRegisterExpression(lhs, u8);
-			case 1:return makeRegisterExpression(lhs, u16);
-			case 2:return makeRegisterExpression(lhs, u32);
-			case 3:return makeRegisterExpression(lhs, u64);
-			case 4:return makeRegisterExpression(lhs, s8);
-			case 5:return makeRegisterExpression(lhs, s16);
-			case 6:return makeRegisterExpression(lhs, s32);
-			case 7:return makeRegisterExpression(lhs, s64);
+			case 0:return makeRegisterExpression(baseReg, u8);
+			case 1:return makeRegisterExpression(baseReg, u16);
+			case 2:return makeRegisterExpression(baseReg, u32);
+			case 3:return makeRegisterExpression(baseReg, u64);
+			case 4:return makeRegisterExpression(baseReg, s8);
+			case 5:return makeRegisterExpression(baseReg, s16);
+			case 6:return makeRegisterExpression(baseReg, s32);
+			case 7:return makeRegisterExpression(baseReg, s64);
 			default: assert(!"invalid option field value");
 		}
 	}
@@ -1052,7 +1062,7 @@ template<unsigned int startBit, unsigned int endBit>
 void InstructionDecoder_aarch64::cond()
 {
 	unsigned char condVal = static_cast<unsigned char>(field<startBit, endBit>(insn));
-	Expression::Ptr cond = Immediate::makeImmediate(Result(u8, condval));
+	Expression::Ptr cond = Immediate::makeImmediate(Result(u8, condVal));
 	insn_in_progress->appendOperand(cond, true, false);
 
 	isPstateRead = true;
@@ -1060,7 +1070,7 @@ void InstructionDecoder_aarch64::cond()
 
 void InstructionDecoder_aarch64::nzcv()
 {
-	uint64_t nzcvVal = (static_cast<unsigned char>(field<0, 3>(insn)))<<60;
+	uint64_t nzcvVal = (static_cast<uint64_t>(field<0, 3>(insn)))<<60;
 	Expression::Ptr nzcv = Immediate::makeImmediate(Result(u64, nzcvVal));
 	insn_in_progress->appendOperand(nzcv, true, false);
 
@@ -1242,10 +1252,9 @@ void InstructionDecoder_aarch64::imm()
 	{
 		if(IS_INSN_ADDSUB_EXT(insn))										//add-sub extended
 		{
-		    Expression::Ptr lhs = makeRmExpr();
-		    Expression::Ptr rhs = makeOptionExpression(lhs, immLen, immVal);
+		    Expression::Ptr expr = makeOptionExpression(immLen, immVal);
 
-		    insn_in_progress->appendOperand(rhs, true, false);
+		    insn_in_progress->appendOperand(expr, true, false);
 		}
 		else if(IS_INSN_LDST_REG(insn))	//load-store register offset
 		{
@@ -1352,7 +1361,7 @@ using namespace boost::assign;
 
 		if(!isValid)
 		{
-			insn_in_progress = INVALID_ENTRY;
+			insn_in_progress = invalid_insn;
 		}
     }
 

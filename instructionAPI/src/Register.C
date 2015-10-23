@@ -59,7 +59,7 @@ namespace Dyninst
     }
 
     RegisterAST::RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType):
-			Expression(regType), m_Reg(r), m_Low(0), m_High(highBit)
+			Expression(regType), m_Reg(r), m_Low(lowbit), m_High(highbit)
     {
 	}
 

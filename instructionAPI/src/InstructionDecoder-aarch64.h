@@ -119,6 +119,7 @@ namespace Dyninst {
                 int findInsnTableIndex(unsigned int);
                 unsigned int insn;
                 Instruction* insn_in_progress;
+                Instruction* invalid_insn;
 
                 // inherit from ppc is not sematically consistent with aarch64 manual
                 template <int start, int end>
@@ -196,7 +197,7 @@ namespace Dyninst {
 				Expression::Ptr makeRsExpr();
 				Expression::Ptr makePstateExpr();
                 Expression::Ptr makePCExpr();
-				Expression::Ptr makeOptionExpression(Expression::Ptr, int, int);
+				Expression::Ptr makeOptionExpression(int, int);
                 Expression::Ptr makeRtExpr();
                 Expression::Ptr makeRt2Expr();
 
@@ -213,6 +214,7 @@ namespace Dyninst {
                 Expression::Ptr makeMemRefPair_addOffset7();
                 Expression::Ptr makeMemRefEx();
                 Expression::Ptr makeMemRefExPair();
+                Expression::Ptr makeMemRefExPair2();
                 //Expression::Ptr makeMemRefPairPre2();
                 //Expression::Ptr makeMemRefPairPost2();
                 //Expression::Ptr makeMemRefExPair16B();
