@@ -335,12 +335,11 @@ def buildInsnTable():
                     '''
 
             if isLDST(instruction) == True:
-                if getRegWidth(instruction) == 32:
-                    operands += '( fn(set32BitMode) )'
-                '''
-                if getRegWidth(instruction) == 128:
-                    operands += '( fn(set128BitMode) )'
-                    '''
+                if getRegWidth(instruction) == 32 or getRegWidth(instruction) == 64:
+                    operands += '( fn(setRegWidth) )'
+                else:
+                    if getRegWidth(instruction) != 128:
+                        print '[WARN] unknown width'
 
             for operand in operandsArray[i]:
                 operands += '( fn('
