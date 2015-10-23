@@ -276,6 +276,40 @@ def printInstnEntry( maskBit, encodingArray, index, instruction, operands):
     print index, "%22s"%instruction, '\t', ''.join(maskBit),'(', hex(maskBitInt),')', '\t', ''.join(encodingArray), '(', hex(encodingBitInt), ')', operands
 
 
+def isLDST(insn):
+    if insn.startswith('ld') or insn.startswith('st'):
+        return True
+    return False
+
+def getRegWidth(insn):
+
+    insnMnemonic = insn.split('_')[0]
+    # ld/st register, do nothing
+    if insnMnemonic.endswith('b') and not insnMnemonic.endswith('sb'):
+        return 32
+    elif insnMnemonic.endswith('h') and not insnMnemonic.endswith('sh'):
+        return 32
+    elif insnMnemonic.endswith('sb'):
+        return 64
+    elif insnMnemonic.endswith('sh'):
+        return 64
+    elif insnMnemonic.endswith('sw'):
+        return 64
+    elif insnMnemonic.endswith('r'):
+        return 64
+    elif insnMnemonic.endswith('p'):
+        return 64
+    else :
+        return 128
+        #print '[WARN] not recognized instruction:', insn
+    return 64
+
+def isSIMD(insn):
+    if insn.find('simd') != -1:
+        return True
+    return False
+
+
 ####################################
 # generate the c++ code
 # which builds the instruction table
@@ -293,7 +327,20 @@ def buildInsnTable():
         else:
             operands = 'list_of'
             if instruction in fp_insn_set:
-                operands += '( fn(setFPMode) )'
+                if isSIMD(instruction) == False:
+                    operands += '( fn(setFPMode) )'
+                '''
+                else:
+                    operands += '( fn(setSIMDMode) )'
+                    '''
+
+            if isLDST(instruction) == True:
+                if getRegWidth(instruction) == 32:
+                    operands += '( fn(set32BitMode) )'
+                '''
+                if getRegWidth(instruction) == 128:
+                    operands += '( fn(set128BitMode) )'
+                    '''
 
             for operand in operandsArray[i]:
                 operands += '( fn('
@@ -302,15 +349,6 @@ def buildInsnTable():
                     operands += '(OPR'+operand[0]+'<'+ str(operand[1][0])+',' + str(operand[1][1])+'>)'
                 else:
                     curOperandName = operand[0]
-                    '''
-                    if instruction.startswith('ld'):
-                        if curOperandName.find('Rt') != -1:
-                            curOperandName += 'L'
-
-                    if instruction.startswith('st'):
-                        if curOperandName.find('Rt') != -1:
-                            curOperandName += 'S'
-                            '''
 
                     operands += 'OPR'+ curOperandName
                 operands += ') )'
@@ -552,6 +590,7 @@ def getOperandValues(line, instruction, isRnUp):
         if instruction.startswith('st'):
             name += 'S'
 
+    # ld/st class
     if instruction.startswith('ld') or instruction.startswith('st'):
         if name.startswith('Rn'):
             if isRnUp == True:

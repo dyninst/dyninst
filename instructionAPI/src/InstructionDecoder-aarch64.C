@@ -118,7 +118,7 @@ namespace Dyninst
 	};
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
-      : InstructionDecoderImpl(a), isPstateRead(false), isPstateWritten(false), isFPInsn(false),
+      : InstructionDecoderImpl(a), isPstateRead(false), isPstateWritten(false), isFPInsn(false),isSIMDInsn(false)
 	    is64Bit(true), isValid(true), insn(0), insn_in_progress(NULL), isSystemInsn(false),
         hasHw(false), hasShift(false), hasOption(false), hasN(false),
         immr(0), immrLen(0), sField(0), nField(0), nLen(0),
@@ -147,6 +147,7 @@ namespace Dyninst
 
 		isPstateRead = isPstateWritten = false;
         isFPInsn = false;
+        isSIMDInsn = false;
         isValid = true;
         is64Bit = true;
 
@@ -186,7 +187,17 @@ namespace Dyninst
 	return make_shared(insn_in_progress);
     }
 
+    void InstructionDecoder_aarch64::set32Bit()
+    {
+		is64Bit = false;
+    }
+
     void InstructionDecoder_aarch64::setFPMode()
+    {
+		isFPInsn = true;
+    }
+
+    void InstructionDecoder_aarch64::setSIMDMode()
     {
 		isFPInsn = true;
     }
@@ -1003,9 +1014,69 @@ void InstructionDecoder_aarch64::N()
 	nLen = endBit - startBit + 1;
 }
 
+// the function will be called by ld/st Rt/Rt2 reg
+void InstructionDecoder_aarch64::RegWidth(){
+    //is64Bit is by default set to TRUE
+    if(IS_INSN_LDST(insn)){
+        if(IS_INSN_LDST_EX(insn)){
+            switch(field<30,31>(insn)){
+                case 2:
+                    is64Bit = false;
+                    break;
+                case 0:
+                case 1:
+                case 3:
+                default:
+                    return;
+        }
+        else if(IS_INSN_LDST_PAIR(insn)){
+            switch(field<30,31>(insn)){
+                case 0:
+                    is64Bit = false;
+                    break;
+                case 1:
+                case 2:
+                case 3:
+                default:
+                    return;
+            }
+        }
+        else if(IS_INSN_LD_LITERAL(insn)){
+            switch(field<30, 31>(insn)){
+                case 0:
+                    is64Bit = false;
+                case 1:
+                case 2:
+                case 3:
+                default:
+                    return;
+            }
+        }
+        else if(   IS_INSN_LDST_UIMM(insn)   || IS_INSN_LDST_UNSCALED(insn)
+                || IS_INSN_LDST_UNPRIV(insn) || IS_INSN_LDST_POST(insn)
+                || IS_INSN_LDST_PRE(insn)    || IS_INSN_LDST_REG(insn)){
+                if(field<23, 23>(insn) == 0){
+                    if(field<30, 31>(insn) != 3)
+                        is64Bit = false;
+                    return;
+                }else{
+                    if(field<22, 22>(insn) == 1)
+                        is64Bit == false;
+                    return;
+                }
+            }
+        }
+        else{
+            assert(!"not implemented for SIMD");
+        }
+    }
+    return;
+}
+
 Expression::Ptr InstructionDecoder_aarch64::makeRtExpr()
 {
-	MachRegister baseReg = isFPInsn?aarch64::q0:aarch64::x0;
+    RegWidth();
+	MachRegister baseReg = isFPInsn?aarch64::q0:(is64Bit?aarch64::x0:aarch64:w0);
 
 	return makeRegisterExpression(makeAarch64RegID(baseReg, field<0, 4>(insn)));
 }
@@ -1028,7 +1099,8 @@ void InstructionDecoder_aarch64::RtS()
 
 Expression::Ptr InstructionDecoder_aarch64::makeRt2Expr()
 {
-	MachRegister baseReg = isFPInsn?aarch64::q0:aarch64::x0;
+    RegWidth();
+	MachRegister baseReg = isFPInsn?aarch64::q0:(is64Bit?aarch64::x0 : aarch64:w0);
 
 	return makeRegisterExpression(makeAarch64RegID(baseReg, field<10, 14>(insn)));
 }

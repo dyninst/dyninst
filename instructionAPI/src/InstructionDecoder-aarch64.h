@@ -71,6 +71,7 @@ namespace Dyninst {
                 #define	IS_INSN_ADDSUB_IMM(I)			(field<24, 28>(I) == 0x11)
                 #define	IS_INSN_ADDSUB_CARRY(I)			(field<21, 28>(I) == 0xD0)
 
+                #define IS_INSN_LDST(I)                 (field<25, 25>(I) == 0x00 && field<27, 27>(I) == 1)
                 #define	IS_INSN_LDST_REG(I)	            (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1)
                 #define IS_INSN_LD_LITERAL(I)           (field<27, 29>(I) == 0x03 && field<24, 25>(I) == 0)
 
