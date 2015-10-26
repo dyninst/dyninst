@@ -350,7 +350,7 @@ namespace Dyninst
 			return Result(ResultT);
 		}
 		
-		return doOr(arg1, arg2, ResultT);
+		return doAnd(arg1, arg2, ResultT);
 	}
 	
 	Result operator|(const Result& arg1, const Result& arg2)
@@ -362,7 +362,7 @@ namespace Dyninst
 			return Result(ResultT);
 		}
 		
-		return doAnd(arg1, arg2, ResultT);
+		return doOr(arg1, arg2, ResultT);
 	}
 	 
     const Result& BinaryFunction::eval() const
