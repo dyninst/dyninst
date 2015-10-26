@@ -239,7 +239,7 @@ namespace Dyninst
 						switch(arg1.type)
 						{
 							case s8:
-							case u8:arg3val %= 8;
+							case u8:arg2val %= 8;
 									leftShiftAmount = Result(arg2.type, 8 - arg2val);
 									break;
 							case s16:

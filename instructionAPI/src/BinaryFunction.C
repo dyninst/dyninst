@@ -350,7 +350,7 @@ namespace Dyninst
 			return Result(ResultT);
 		}
 		
-		return doOAnd(arg1, arg2, ResultT);
+		return doAnd(arg1, arg2, ResultT);
 	}
 	
 	Result operator|(const Result& arg1, const Result& arg2)

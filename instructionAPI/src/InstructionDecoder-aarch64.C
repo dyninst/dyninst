@@ -287,8 +287,14 @@ namespace Dyninst
 		{
 			case 0:return makeRegisterExpression(baseReg, u8);
 			case 1:return makeRegisterExpression(baseReg, u16);
-			case 2:return makeRegisterExpression(baseReg, u32);
-			case 3:return makeRegisterExpression(baseReg, u64);
+			case 2:if(!is64Bit && (field<0, 4>(insn) == 31 || field<5, 9>(insn) == 31) && val != 0)
+					   return makeLeftShiftExpression(makeRegisterExpression(baseReg), Immediate::makeImmediate(Result(u32, unsign_extend32(len, val))), u32);
+				   else
+				   	   return makeRegisterExpression(baseReg, u32);
+			case 3:if(is64Bit && (field<0, 4>(insn) == 31 || field<5, 9>(insn) == 31) && val != 0)
+					   return makeLeftShiftExpression(makeRegisterExpression(baseReg), Immediate::makeImmediate(Result(u32, unsign_extend32(len, val))), u64);
+				   else
+					   return makeRegisterExpression(baseReg, u64);
 			case 4:return makeRegisterExpression(baseReg, s8);
 			case 5:return makeRegisterExpression(baseReg, s16);
 			case 6:return makeRegisterExpression(baseReg, s32);
