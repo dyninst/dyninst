@@ -61,11 +61,12 @@ test_results_t aarch64_decode_Mutator::executeTest()
   const unsigned char buffer[] =
   {
     0x91, 0x00, 0x1c, 0x21,     // add x1, x1, #0x7;  0x91001c21
-    0xcb, 0x00, 0x00, 0x21,     // sub x1, x1, x0
+    0xd1, 0x00, 0x04, 0x41,     // sub x1, x2, #0x1;
+    0x00, 0x00, 0x00, 0x00,     // invalid op
   };
 
-  unsigned int expectedInsns = 2;
-  unsigned int size = expectedInsns * 4;
+  unsigned int size = sizeof(buffer);
+  unsigned int expectedInsns = size/4;
 
   ++expectedInsns;
   InstructionDecoder d(buffer, size, Dyninst::Arch_aarch64);
@@ -151,6 +152,7 @@ test_results_t aarch64_decode_Mutator::executeTest()
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
+  //****************
 
   // sub x1, x1, x0
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
@@ -165,13 +167,14 @@ test_results_t aarch64_decode_Mutator::executeTest()
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
+  //****************
 
   decodedInsns.pop_back();
   while(!decodedInsns.empty())
   {
       retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead.front(),
                                    expectedWritten.front()));
-      // TEMP
+      // TEMP commented out
       /*
       if(decodedInsns.size() == 1)
       {
