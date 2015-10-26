@@ -239,19 +239,24 @@ namespace Dyninst
 						switch(arg1.type)
 						{
 							case s8:
-							case u8:leftShiftAmount = Result(arg2.type, 8 - arg2val);
+							case u8:arg3val %= 8;
+									leftShiftAmount = Result(arg2.type, 8 - arg2val);
 									break;
 							case s16:
-							case u16:leftShiftAmount = Result(arg2.type, 16- arg2val);
+							case u16:arg2val %= 16;
+									 leftShiftAmount = Result(arg2.type, 16- arg2val);
 									 break;
 							case s32:
-							case u32:leftShiftAmount = Result(arg2.type, 32- arg2val);
+							case u32:arg2val %= 32;
+									 leftShiftAmount = Result(arg2.type, 32- arg2val);
 									 break;
 							case s48:
-							case u48:leftShiftAmount = Result(arg2.type, 48- arg2val);
+							case u48:arg2val %= 48;
+									 leftShiftAmount = Result(arg2.type, 48- arg2val);
 									 break;
 							case s64:
-							case u64:leftShiftAmount = Result(arg2.type, 64- arg2val);
+							case u64:arg2val %= 64;
+									 leftShiftAmount = Result(arg2.type, 64- arg2val);
 									 break;
 							default: assert(!"not valid");
 						}
@@ -260,7 +265,8 @@ namespace Dyninst
 						Result rot = arg1 & (Result(u64, (1<<arg2val) - 1));
 						
 						rightLogicalShiftResult lhsRightShift;
-						return lhsRightShift(arg1, arg2) | (rot << leftShiftAmount);
+						Result arg2mod = Result(arg2.type, arg2val);
+						return lhsRightShift(arg1, arg2mod) | (rot << leftShiftAmount);
 					}
 			};
 			
