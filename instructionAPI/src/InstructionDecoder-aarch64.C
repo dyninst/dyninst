@@ -122,7 +122,7 @@ namespace Dyninst
 	    is64Bit(true), isValid(true), insn(0), insn_in_progress(NULL), isSystemInsn(false),
         hasHw(false), hasShift(false), hasOption(false), hasN(false),
         immr(0), immrLen(0), sField(0), nField(0), nLen(0),
-        immlo(0), immloLen(0)
+        immlo(0), immloLen(0), _szField(-1)
     {
         aarch64_insn_entry::buildInsnTable();
         aarch64_mask_entry::buildDecoderTable();
@@ -171,6 +171,8 @@ namespace Dyninst
 
         immlo = immloLen = 0;
 
+        _szField = -1;
+
         insn = b.start[0] << 24 | b.start[1] << 16 |
         b.start[2] << 8 | b.start[3];
 
@@ -208,6 +210,11 @@ namespace Dyninst
         // NOTE: if it is SIMD insn, both isFP and isSIMD are set.
 		isFPInsn = true;
 		isSIMDInsn = true;
+    }
+
+	template<unsigned int startBit, unsigned int endBit>
+    void InstructionDecoder_aarch64::OPRtype(){
+        _typeField = field<startBit, endBit>(insn);
     }
 
     bool InstructionDecoder_aarch64::decodeOperands(const Instruction *)
@@ -275,7 +282,9 @@ namespace Dyninst
 
 	Expression::Ptr InstructionDecoder_aarch64::makeOptionExpression(int len, int val)
 	{
-		MachRegister baseReg = isFPInsn?aarch64::q0:(is64Bit?aarch64::x0:aarch64::w0);
+		MachRegister baseReg = isFPInsn?
+            (isSinglePrec()?aarch64::d0:aarch64::q0):
+            (is64Bit?aarch64::x0:aarch64::w0);
 
 		int encoding = field<16, 20>(insn);
 		if(!isFPInsn && field<16, 20>(insn) == 31)
@@ -392,7 +401,9 @@ MachRegister InstructionDecoder_aarch64::makeAarch64RegID(MachRegister base, uns
 
 Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 {
-	MachRegister baseReg = (isFPInsn && !IS_INSN_FP_CONV_INT(insn))?aarch64::q0:(is64Bit?aarch64::x0:aarch64::w0);
+	MachRegister baseReg = (isFPInsn && !IS_INSN_FP_CONV_INT(insn))?
+        (isSinglePrec()?aarch64::d0:aarch64::q0):
+        (is64Bit?aarch64::x0:aarch64::w0);
 
     int encoding = field<0, 4>(insn);
 	if(encoding == 31)
@@ -402,14 +413,16 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 }
 
 
-void InstructionDecoder_aarch64::Rd()
+void InstructionDecoder_aarch64::OPRRd()
 {
     insn_in_progress->appendOperand(makeRdExpr(), false, true);
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 {
-	MachRegister baseReg = (isFPInsn && !IS_INSN_FP_CONV_FIX(insn))?aarch64::q0:(is64Bit?aarch64::x0:aarch64::w0);
+	MachRegister baseReg = (isFPInsn && !IS_INSN_FP_CONV_FIX(insn))?
+        (isSinglePrec()?aarch64::d0:aarch64::q0):
+        (is64Bit?aarch64::x0:aarch64::w0);
 
 	int encoding = field<5, 9>(insn);
 	if(encoding == 31)
@@ -686,6 +699,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPost(){
     getMemRefPair_RT(rt);
     return makeDereferenceExpression(makeRnExpr(), rt);
 }
+
 /*
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPost2(){
     // datasize = 64/32 /8;
@@ -785,12 +799,26 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefReg_amount(){
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefReg_ext(){
-    Expression::Ptr rm = makeMemRefReg_Rm();
-    Expression::Ptr amount = makeMemRefReg_amount();
+    //Expression::Ptr rm = makeMemRefReg_Rm();
+    //Expression::Ptr amount = makeMemRefReg_amount();
 
-    Expression::Ptr ext;
-    //TODO
-    assert(0);
+    int immLen = 2;
+    int immVal = 0; //for amount
+
+    int S = field<12,12>(insn);
+    int size = field<30,31>(insn);
+
+    if( size == 2 ){ //32bit
+        immVal = S==0?0:(S==1?2:-1);
+        if( immVal==-1 ) assert(0);
+    }else if( size == 3 ){ //64bit
+        immVal = S==0?0:(S==1?3:-1);
+        if( immVal==-1) assert(0);
+    }else{
+        assert(0); //unregconized val
+    }
+
+    Expression::Ptr ext = makeOptionExpression(immLen, immVal);
     return ext; /*extended ptr*/
 }
 
@@ -949,7 +977,7 @@ void InstructionDecoder_aarch64::STIndex()
 }
 
 // This function is for non-writeback
-void InstructionDecoder_aarch64::Rn()
+void InstructionDecoder_aarch64::OPRRn()
 {
 	if(IS_INSN_B_UNCOND_REG(insn))										//unconditional branch (register)
 	{
@@ -969,19 +997,19 @@ void InstructionDecoder_aarch64::Rn()
 		insn_in_progress->appendOperand(makeRnExpr(), true, false);
 }
 
-void InstructionDecoder_aarch64::RnL()
+void InstructionDecoder_aarch64::OPRRnL()
 {
 	insn_in_progress->appendOperand(makeRnExpr(), true, false);
     LIndex();
 }
 
-void InstructionDecoder_aarch64::RnS()
+void InstructionDecoder_aarch64::OPRRnS()
 {
 	insn_in_progress->appendOperand(makeRnExpr(), true, false);
     STIndex();
 }
 
-void InstructionDecoder_aarch64::RnU()
+void InstructionDecoder_aarch64::OPRRnU()
 {
     assert(0);
     /* this functions is useless
@@ -989,7 +1017,7 @@ void InstructionDecoder_aarch64::RnU()
     */
 }
 
-void InstructionDecoder_aarch64::RnLU()
+void InstructionDecoder_aarch64::OPRRnLU()
 {
     if( IS_INSN_LDST_PRE(insn) ){
 	    insn_in_progress->appendOperand(makeRnExpr(), true, true);
@@ -1017,7 +1045,7 @@ void InstructionDecoder_aarch64::RnLU()
 
 }
 
-void InstructionDecoder_aarch64::RnSU()
+void InstructionDecoder_aarch64::OPRRnSU()
 {
     if( IS_INSN_LDST_PRE(insn) ){
 	    insn_in_progress->appendOperand(makeRnExpr(), true, true);
@@ -1046,7 +1074,9 @@ void InstructionDecoder_aarch64::RnSU()
 
 Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
 {
-	MachRegister baseReg = isFPInsn?aarch64::q0:(is64Bit?aarch64::x0:aarch64::w0);
+	MachRegister baseReg = isFPInsn?
+        (isSinglePrec()?aarch64::d0:aarch64::q0):
+        (is64Bit?aarch64::x0:aarch64::w0);
 
 	int encoding = field<16, 20>(insn);
 	if(!isFPInsn && field<16, 20>(insn) == 31)							//zero register applicable only for non-floating point instructions
@@ -1055,7 +1085,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
 		return makeRegisterExpression(makeAarch64RegID(baseReg, encoding));
 }
 
-void InstructionDecoder_aarch64::Rm()
+void InstructionDecoder_aarch64::OPRRm()
 {
 	if(IS_INSN_LDST_REG(insn) ||
 	   IS_INSN_ADDSUB_EXT(insn) ||
@@ -1066,33 +1096,33 @@ void InstructionDecoder_aarch64::Rm()
 	insn_in_progress->appendOperand(makeRmExpr(), true, false);
 }
 
-void InstructionDecoder_aarch64::sf()
+void InstructionDecoder_aarch64::OPRsf()
 {
 	if(field<31, 31>(insn) == 0)
 		is64Bit = false;
 }
 
 template<unsigned int startBit, unsigned int endBit>
-void InstructionDecoder_aarch64::option()
+void InstructionDecoder_aarch64::OPRoption()
 {
 	hasOption = true;
 	optionField = field<startBit, endBit>(insn);
 }
 
-void InstructionDecoder_aarch64::shift()
+void InstructionDecoder_aarch64::OPRshift()
 {
 	hasShift = true;
 	shiftField = field<22, 23>(insn);
 }
 
-void InstructionDecoder_aarch64::hw()
+void InstructionDecoder_aarch64::OPRhw()
 {
 	hasHw = true;
 	hwField = field<21, 22>(insn);
 }
 
 template<unsigned int startBit, unsigned int endBit>
-void InstructionDecoder_aarch64::N()
+void InstructionDecoder_aarch64::OPRN()
 {
 	nField = field<startBit, endBit>(insn);
 	nLen = endBit - startBit + 1;
@@ -1173,52 +1203,55 @@ void InstructionDecoder_aarch64::setRegWidth(){
 
 Expression::Ptr InstructionDecoder_aarch64::makeRtExpr()
 {
-	MachRegister baseReg = isFPInsn?aarch64::q0:(is64Bit ? aarch64::x0 : aarch64::w0);
+	MachRegister baseReg = isFPInsn?
+        (isSinglePrec()?aarch64::d0:aarch64::q0):
+        (is64Bit ? aarch64::x0 : aarch64::w0);
 
 	return makeRegisterExpression(makeAarch64RegID(baseReg, field<0, 4>(insn)));
 }
 
-void InstructionDecoder_aarch64::Rt()
+void InstructionDecoder_aarch64::OPRRt()
 {
 	//sys, sysl, msr reg, mrs
 	//others
 }
 
-void InstructionDecoder_aarch64::RtL()
+void InstructionDecoder_aarch64::OPRRtL()
 {
 	insn_in_progress->appendOperand(makeRtExpr(), false, true);
 }
 
-void InstructionDecoder_aarch64::RtS()
+void InstructionDecoder_aarch64::OPRRtS()
 {
 	insn_in_progress->appendOperand(makeRtExpr(), true, false);
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeRt2Expr()
 {
-    //RegWidth();
-	MachRegister baseReg = isFPInsn?aarch64::q0:(is64Bit?aarch64::x0 : aarch64::w0);
+	MachRegister baseReg = isFPInsn?
+        (isSinglePrec()?aarch64::d0:aarch64::q0):
+        (is64Bit?aarch64::x0 : aarch64::w0);
 
 	return makeRegisterExpression(makeAarch64RegID(baseReg, field<10, 14>(insn)));
 }
 
-void InstructionDecoder_aarch64::Rt2()
+void InstructionDecoder_aarch64::OPRRt2()
 {
     assert(0);
 }
 
-void InstructionDecoder_aarch64::Rt2L()
+void InstructionDecoder_aarch64::OPRRt2L()
 {
 	insn_in_progress->appendOperand(makeRt2Expr(), false, true);
 }
 
-void InstructionDecoder_aarch64::Rt2S()
+void InstructionDecoder_aarch64::OPRRt2S()
 {
 	insn_in_progress->appendOperand(makeRt2Expr(), true, false);
 }
 
 template<unsigned int startBit, unsigned int endBit>
-void InstructionDecoder_aarch64::cond()
+void InstructionDecoder_aarch64::OPRcond()
 {
 	unsigned char condVal = static_cast<unsigned char>(field<startBit, endBit>(insn));
 	Expression::Ptr cond = Immediate::makeImmediate(Result(u8, condVal));
@@ -1227,7 +1260,7 @@ void InstructionDecoder_aarch64::cond()
 	isPstateRead = true;
 }
 
-void InstructionDecoder_aarch64::nzcv()
+void InstructionDecoder_aarch64::OPRnzcv()
 {
 	uint64_t nzcvVal = (static_cast<uint64_t>(field<0, 3>(insn)))<<60;
 	Expression::Ptr nzcv = Immediate::makeImmediate(Result(u64, nzcvVal));
@@ -1236,34 +1269,34 @@ void InstructionDecoder_aarch64::nzcv()
 	isPstateWritten = true;
 }
 
-void InstructionDecoder_aarch64::op1()
+void InstructionDecoder_aarch64::OPRop1()
 {
 	op1Field = field<16, 18>(insn);
 }
 
-void InstructionDecoder_aarch64::op2()
+void InstructionDecoder_aarch64::OPRop2()
 {
 	op2Field = field<5, 7>(insn);
 }
 
-void InstructionDecoder_aarch64::CRm()
+void InstructionDecoder_aarch64::OPRCRm()
 {
 	isSystemInsn = true;
 	crmField = field<8 ,11>(insn);
 }
 
-void InstructionDecoder_aarch64::CRn()
+void InstructionDecoder_aarch64::OPRCRn()
 {
 	crnField = field<12, 15>(insn);
 }
 
 template<unsigned int startBit, unsigned int endBit>
-void InstructionDecoder_aarch64::S()
+void InstructionDecoder_aarch64::OPRS()
 {
 	sField = field<startBit, endBit>(insn);
 }
 
-void InstructionDecoder_aarch64::scale()
+void InstructionDecoder_aarch64::OPRscale()
 {
 	int scaleVal = 64 - field<10, 15>(insn);
 
@@ -1273,27 +1306,29 @@ void InstructionDecoder_aarch64::scale()
 
 Expression::Ptr InstructionDecoder_aarch64::makeRaExpr()
 {
-	MachRegister baseReg = isFPInsn?aarch64::q0:(is64Bit?aarch64::x0:aarch64::w0);
+	MachRegister baseReg = isFPInsn?
+        (isSinglePrec()?aarch64::d0:aarch64::q0):
+        (is64Bit?aarch64::x0:aarch64::w0);
 
 	return makeRegisterExpression(makeAarch64RegID(baseReg, field<10, 14>(insn)));
 }
 
-void InstructionDecoder_aarch64::Ra()
+void InstructionDecoder_aarch64::OPRRa()
 {
 	insn_in_progress->appendOperand(makeRaExpr(), true, false);
 }
 
-void InstructionDecoder_aarch64::o0()
+void InstructionDecoder_aarch64::OPRo0()
 {
 	op0Field = field<19, 20>(insn);
 }
 
-void InstructionDecoder_aarch64::b5()
+void InstructionDecoder_aarch64::OPRb5()
 {
-	sf();
+	OPRsf();
 }
 
-void InstructionDecoder_aarch64::b40()
+void InstructionDecoder_aarch64::OPRb40()
 {
 	int b40Val = field<19, 23>(insn);
 	int bitpos = ((is64Bit?1:0)<<5) | b40Val;
@@ -1301,18 +1336,36 @@ void InstructionDecoder_aarch64::b40()
 	insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, unsign_extend32(6, bitpos))), true, false);
 }
 
-/*void InstructionDecoder_aarch64::sz()
+template<unsigned int startBit, unsigned int endBit>
+void InstructionDecoder_aarch64::OPRsz()
 {
-}*/
+    _szField = field<startBit, endBit>(insn);
+}
+
+bool InstructionDecoder_aarch64::isSinglePrec() {
+    if( isFPInsn && !isSIMDInsn ){
+        if(_typeField!=-1){
+            return _typeField==0?true:false;
+        }else{
+            //TODO if the type field is not set, do sth else
+            assert(0);
+        }
+    }else if( isSIMDInsn ){
+        assert(0); //not implemeted yet
+    }
+    return false;
+}
 
 Expression::Ptr InstructionDecoder_aarch64::makeRsExpr()
 {
-	MachRegister baseReg = isFPInsn?aarch64::q0:(is64Bit?aarch64::x0:aarch64::w0);
+	MachRegister baseReg = isFPInsn?
+        (isSinglePrec()?aarch64::d0:aarch64::q0):
+        (is64Bit?aarch64::x0:aarch64::w0);
 
 	return makeRegisterExpression(makeAarch64RegID(baseReg, field<16, 20>(insn)));
 }
 
-void InstructionDecoder_aarch64::Rs()
+void InstructionDecoder_aarch64::OPRRs()
 {
 	insn_in_progress->appendOperand(makeRsExpr(), false, true);
 }
@@ -1343,7 +1396,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeFallThroughExpr()
 }
 
 template<unsigned int startBit, unsigned int endBit>
-void InstructionDecoder_aarch64::imm()
+void InstructionDecoder_aarch64::OPRimm()
 {
 	int immVal = field<startBit, endBit>(insn);
 	int immLen = endBit - startBit + 1;

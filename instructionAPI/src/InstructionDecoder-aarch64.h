@@ -193,10 +193,15 @@ namespace Dyninst {
 				void makeLinkForBranch();
 				Expression::Ptr makeFallThroughExpr();
 
+                int _szField;
+                int _typeField;
+
                 void set32Mode();
 				void setRegWidth();
 				void setFPMode();
 				void setSIMDMode();
+
+                bool isSinglePrec();
 
 				MachRegister makeAarch64RegID(MachRegister, unsigned int);
 				Expression::Ptr makeRdExpr();
@@ -246,47 +251,53 @@ namespace Dyninst {
                 void getMemRefIndex_RT(Result_Type &);
                 void getMemRefIndexUImm_RT(Result_Type &);
 
-				void Rd();
-				void sf();
-				template<unsigned int startBit, unsigned int endBit> void option();
-				void shift();
-				void hw();
-				template<unsigned int startBit, unsigned int endBit> void N();
+				void OPRRd();
+				void OPRsf();
+				template<unsigned int startBit, unsigned int endBit>
+                void OPRoption();
+				void OPRshift();
+				void OPRhw();
+				template<unsigned int startBit, unsigned int endBit>
+                void OPRN();
 
                 //for load store
                 void LIndex();
                 void STIndex();
-				void Rn();
-                void RnL();
-                void RnLU();
-                void RnSU();
-                void RnS();
-				void RnU();
-				void Rm();
-				void Rt();
-				void RtL();
-				void RtS();
-				void Rt2();
-				void Rt2L();
-				void Rt2S();
+				void OPRRn();
+                void OPRRnL();
+                void OPRRnLU();
+                void OPRRnSU();
+                void OPRRnS();
+				void OPRRnU();
+				void OPRRm();
+				void OPRRt();
+				void OPRRtL();
+				void OPRRtS();
+				void OPRRt2();
+				void OPRRt2L();
+				void OPRRt2S();
 
-				void op1();
-				void op2();
-				template<unsigned int startBit, unsigned int endBit> void cond();
-				void nzcv();
-				void CRm();
-				void CRn();
-				template<unsigned int startBit, unsigned int endBit> void S();
-				void Ra();
-				void o0();
-				void b5();
-				void b40();
-				/*void sz()
-				{
-				}*/
-				void Rs();
-				template<unsigned int startBit, unsigned int endBit> void imm();
-				void scale();
+				void OPRop1();
+				void OPRop2();
+				template<unsigned int startBit, unsigned int endBit>
+                void OPRcond();
+				void OPRnzcv();
+				void OPRCRm();
+				void OPRCRn();
+				template<unsigned int startBit, unsigned int endBit>
+                void OPRS();
+				void OPRRa();
+				void OPRo0();
+				void OPRb5();
+				void OPRb40();
+				template<unsigned int startBit, unsigned int endBit>
+				void OPRsz();
+				void OPRRs();
+				template<unsigned int startBit, unsigned int endBit>
+                void OPRimm();
+				void OPRscale();
+				template<unsigned int startBit, unsigned int endBit>
+                void OPRtype();
         };
     }
 }

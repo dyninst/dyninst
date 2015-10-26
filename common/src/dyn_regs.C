@@ -181,18 +181,28 @@ unsigned int MachRegister::size() const {
       }
       case Arch_ppc64:
         if((reg & 0x00ff0000) == aarch64::FPR)
-          return 16; 
-        return 8; 
+          return 16;
+        return 8;
       case Arch_aarch32:
         assert(0);
       case Arch_aarch64:
-		if((reg & 0x00ff0000) == aarch64::FPR)
-			return 16;
+		if((reg & 0x00ff0000) == aarch64::FPR){
+			switch(reg & 0x0000ff00){
+                case aarch64::B_REG: return 1;
+                case aarch64::H_REG: return 2;
+                case aarch64::S_REG: return 4;
+                case aarch64::FULL:  return 8;
+                case aarch64::Q_REG: return 16;
+                default:
+                    assert(0);
+                    return 0;
+            }
+        }
 		else if((reg & 0x00ff0000) == aarch64::GPR || (reg & 0x00ff0000) == aarch64::SPR)
 			switch(reg & 0x0000ff00)
 			{
 				case aarch64::FULL : return 8;
-				case aarch64::W_REG: return 4;
+				case aarch64::S_REG: return 4;
 				default: return 0;
 			}
 		else
@@ -588,7 +598,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
          break;
          }
       break;
-    case Arch_x86_64: 
+    case Arch_x86_64:
          switch (category) {
             case x86_64::GPR:
                c = x86_regclass_gpr;
@@ -761,7 +771,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                    if(baseID < 613) {
                        c = powerpc_regclass_spr;
                    } else if(baseID < 621 ) {
-                       c = powerpc_regclass_sr; 
+                       c = powerpc_regclass_sr;
                    } else {
                        c = powerpc_regclass_cr;
                        n = baseID - 621;
