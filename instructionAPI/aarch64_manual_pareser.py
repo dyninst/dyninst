@@ -341,10 +341,8 @@ def buildInsnTable():
             if instruction in fp_insn_set:
                 if isSIMD(instruction) == False:
                     operands += '( fn(setFPMode) )'
-                '''
                 else:
                     operands += '( fn(setSIMDMode) )'
-                    '''
 
             if isLDST(instruction) == True:
                 if getRegWidth(instruction) == 32 or getRegWidth(instruction) == 64:
@@ -357,7 +355,7 @@ def buildInsnTable():
                 operands += '( fn('
 
                 if len(operand) != 1:
-                    operands += '(OPR'+operand[0]+'<'+ str(operand[1][0])+',' + str(operand[1][1])+'>)'
+                    operands += 'OPR'+operand[0]+'<'+ str(operand[1][0])+' COMMA ' + str(operand[1][1])+'>'
                 else:
                     curOperandName = operand[0]
 
