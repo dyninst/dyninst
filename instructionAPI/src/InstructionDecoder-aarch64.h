@@ -99,7 +99,8 @@ namespace Dyninst {
                 #define	IS_INSN_EXTRACT(I)				(field<23, 28>(I) == 0x27)
                 #define	IS_INSN_FP_COMPARE(I)			(field<24, 28>(I) == 0x1E && field<10, 13>(I) == 0x8)
                 #define	IS_INSN_FP_CONV_FIX(I)			(field<24, 28>(I) == 0x1E && field<21, 21>(I) == 0x0)
-                #define	IS_INSN_FP_CONV_INT(I)			(field<24, 28>(I) == 0x1E && field<10, 15>(I) == 0x0)
+                #define	IS_INSN_FP_CONV_INT(I)			(field<24, 28>(I) == 0x1E && field<21, 21>(I) == 0x1 && field<10, 15>(I) == 0x0)
+                #define	IS_INSN_FP_IMM(I)				(field<24, 28>(I) == 0x1E && field<10, 15>(I) == 0x0 && field<10, 12>(I) == 0x4)
 				#define	IS_INSN_B_UNCOND(I)				(field<26, 30>(I) == 0x05)
                 #define	IS_INSN_B_UNCOND_REG(I)			(field<25, 31>(I) == 0x6B)
                 #define	IS_INSN_B_COMPARE(I)			(field<25, 30>(I) == 0x1A)
@@ -212,6 +213,8 @@ namespace Dyninst {
 				Expression::Ptr makePstateExpr();
                 Expression::Ptr makePCExpr();
 				Expression::Ptr makeOptionExpression(int, int);
+				template<typename T, Result_Type rT>
+				Expression::Ptr fpExpand(int);
                 Expression::Ptr makeRtExpr();
                 Expression::Ptr makeRt2Expr();
 
