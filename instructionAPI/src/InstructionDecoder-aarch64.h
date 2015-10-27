@@ -256,11 +256,11 @@ namespace Dyninst {
 
 				void OPRRd();
 				void OPRsf();
-				template<unsigned int startBit, unsigned int endBit>
+				template<unsigned int endBit, unsigned int startBit>
                 void OPRoption();
 				void OPRshift();
 				void OPRhw();
-				template<unsigned int startBit, unsigned int endBit>
+				template<unsigned int endBit, unsigned int startBit>
                 void OPRN();
 
                 //for load store
@@ -282,25 +282,46 @@ namespace Dyninst {
 
 				void OPRop1();
 				void OPRop2();
-				template<unsigned int startBit, unsigned int endBit>
+				template<unsigned int endBit, unsigned int startBit>
                 void OPRcond();
 				void OPRnzcv();
 				void OPRCRm();
 				void OPRCRn();
-				template<unsigned int startBit, unsigned int endBit>
+				template<unsigned int endBit, unsigned int startBit>
                 void OPRS();
 				void OPRRa();
 				void OPRo0();
 				void OPRb5();
 				void OPRb40();
-				template<unsigned int startBit, unsigned int endBit>
+				template<unsigned int endBit, unsigned int startBit>
 				void OPRsz();
 				void OPRRs();
-				template<unsigned int startBit, unsigned int endBit>
+				template<unsigned int endBit, unsigned int startBit>
                 void OPRimm();
 				void OPRscale();
-				template<unsigned int startBit, unsigned int endBit>
+				template<unsigned int endBit, unsigned int startBit>
                 void OPRtype();
+                
+                void OPRH() {}
+                void OPRL() {}
+                void OPRM() {}
+                void OPRQ() {}
+                void OPRa() {}
+                void OPRb() {}
+                void OPRc() {}
+                void OPRd() {}
+                void OPRe() {}
+                void OPRf() {}
+                void OPRg() {}
+                void OPRh() {}
+                void OPRopc() {}
+                void OPRopcode() {}
+                void OPRlen() {}
+                template<unsigned int endBit, unsigned int startBit>
+                void OPRsize() {}
+                void OPRcmode() {}
+                void OPRrmode() {}
+                void OPRop() {}
         };
     }
 }
