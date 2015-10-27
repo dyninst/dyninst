@@ -146,7 +146,7 @@ namespace Dyninst
 
      	if(b.start > b.end)
 	    return Instruction::Ptr();
-
+	   
 		isPstateRead = isPstateWritten = false;
         isFPInsn = false;
         isSIMDInsn = false;
@@ -175,7 +175,7 @@ namespace Dyninst
 
         insn = b.start[0] << 24 | b.start[1] << 16 |
         b.start[2] << 8 | b.start[3];
-
+        
 #if defined(DEBUG_RAW_INSN)
         cout.width(0);
         cout << "0x";
@@ -184,7 +184,7 @@ namespace Dyninst
         cout << hex << insn << "\t";
 #endif
 
-	mainDecode();
+		mainDecode();
         b.start += 4;
 
 	return make_shared(insn_in_progress);
@@ -212,7 +212,7 @@ namespace Dyninst
 		isSIMDInsn = true;
     }
 
-	template<unsigned int startBit, unsigned int endBit>
+	template<unsigned int endBit, unsigned int startBit>
     void InstructionDecoder_aarch64::OPRtype(){
         _typeField = field<startBit, endBit>(insn);
     }
@@ -349,7 +349,7 @@ namespace Dyninst
 	{
 		if(op0Field == 0)
 		{
-			if(crnField == 3)			//clrex, dsb, dmb, isb
+			if(crnField == 3)			//clrex, dendBit, dmb, iendBit
 			{
 				Expression::Ptr CRm = Immediate::makeImmediate(Result(u32, unsign_extend32(4, crmField)));
 
@@ -399,6 +399,7 @@ namespace Dyninst
     // ****************
 
 #define fn(x) (&InstructionDecoder_aarch64::x)
+#define	COMMA	,
 
 MachRegister InstructionDecoder_aarch64::makeAarch64RegID(MachRegister base, unsigned int encoding)
 {
@@ -1108,7 +1109,7 @@ void InstructionDecoder_aarch64::OPRsf()
 		is64Bit = false;
 }
 
-template<unsigned int startBit, unsigned int endBit>
+template<unsigned int endBit, unsigned int startBit>
 void InstructionDecoder_aarch64::OPRoption()
 {
 	hasOption = true;
@@ -1127,7 +1128,7 @@ void InstructionDecoder_aarch64::OPRhw()
 	hwField = field<21, 22>(insn);
 }
 
-template<unsigned int startBit, unsigned int endBit>
+template<unsigned int endBit, unsigned int startBit>
 void InstructionDecoder_aarch64::OPRN()
 {
 	nField = field<startBit, endBit>(insn);
@@ -1256,7 +1257,7 @@ void InstructionDecoder_aarch64::OPRRt2S()
 	insn_in_progress->appendOperand(makeRt2Expr(), true, false);
 }
 
-template<unsigned int startBit, unsigned int endBit>
+template<unsigned int endBit, unsigned int startBit>
 void InstructionDecoder_aarch64::OPRcond()
 {
 	unsigned char condVal = static_cast<unsigned char>(field<startBit, endBit>(insn));
@@ -1296,7 +1297,7 @@ void InstructionDecoder_aarch64::OPRCRn()
 	crnField = field<12, 15>(insn);
 }
 
-template<unsigned int startBit, unsigned int endBit>
+template<unsigned int endBit, unsigned int startBit>
 void InstructionDecoder_aarch64::OPRS()
 {
 	sField = field<startBit, endBit>(insn);
@@ -1342,7 +1343,7 @@ void InstructionDecoder_aarch64::OPRb40()
 	insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, unsign_extend32(6, bitpos))), true, false);
 }
 
-template<unsigned int startBit, unsigned int endBit>
+template<unsigned int endBit, unsigned int startBit>
 void InstructionDecoder_aarch64::OPRsz()
 {
     _szField = field<startBit, endBit>(insn);
@@ -1423,11 +1424,11 @@ Expression::Ptr InstructionDecoder_aarch64::fpExpand(int val)
 	return Immediate::makeImmediate(Result(rT, expandedImm));
 }
 
-template<unsigned int startBit, unsigned int endBit>
+template<unsigned int endBit, unsigned int startBit>
 void InstructionDecoder_aarch64::OPRimm()
 {
 	int immVal = field<startBit, endBit>(insn);
-	int immLen = endBit - startBit + 1;
+	unsigned int immLen = endBit - startBit + 1;
 
 	if(hasHw)
 	{
@@ -1495,10 +1496,6 @@ void InstructionDecoder_aarch64::OPRimm()
 		    Expression::Ptr expr = makeOptionExpression(immLen, immVal);
 
 		    insn_in_progress->appendOperand(expr, true, false);
-		}
-		else if(IS_INSN_LDST_REG(insn))	//load-store register offset
-		{
-			//STEVE: You can handle load store here by calling processOptionFieldLSRegOffset, or modify it as required
 		}
 		else
 		{
