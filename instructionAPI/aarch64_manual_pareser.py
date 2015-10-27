@@ -341,10 +341,8 @@ def buildInsnTable():
             if instruction in fp_insn_set:
                 if isSIMD(instruction) == False:
                     operands += '( fn(setFPMode) )'
-                '''
                 else:
                     operands += '( fn(setSIMDMode) )'
-                    '''
 
             if isLDST(instruction) == True:
                 if getRegWidth(instruction) == 32 or getRegWidth(instruction) == 64:
