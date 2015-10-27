@@ -153,11 +153,11 @@ def getOpTable( filename = 'NULL' ):
     insn_unallocated = (2**28+2**27)
     masksArray.append(insn_unallocated)
     encodingsArray.append(int(0))
-    insnArray.append('unallocated')
+    insnArray.append('INVALID')
     operandsArray.append('')
     indexOfInsn = 1
 
-    print 0, '%22s'%'unallocated',  '%34s'%bin(insn_unallocated), '(', hex(insn_unallocated), ')'
+    print 0, '%22s'%'INVALID',  '%34s'%bin(insn_unallocated), '(', hex(insn_unallocated), ')'
 
     for file in sorted(files_dir):
 
