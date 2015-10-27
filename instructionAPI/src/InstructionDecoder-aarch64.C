@@ -1401,6 +1401,28 @@ Expression::Ptr InstructionDecoder_aarch64::makeFallThroughExpr()
 	return makeAddExpression(makePCExpr(), Immediate::makeImmediate(Result(u64, unsign_extend64(3, 4))), u64);
 }
 
+template<typename T, Result_Type rT>
+Expression::Ptr InstructionDecoder_aarch64::fpExpand(int val)
+{
+	int N, E, F, sign, exp;
+	T frac, expandedImm;
+	
+	N = (rT == s32)?32:64;
+	E = (N == 32)?8:11;
+	F = N - E - 1;
+	
+	sign = (val & 0x80) >> 7;
+	
+	int val6 = ((~val) & 0x40) >> 6, val6mask = (1 << (E - 3)) - 1;
+	exp = (val6 << (E - 1)) | ((val6?val6mask:0) << 2) | ((val & 0x30) >> 4);
+	
+	frac = (val & 0xF) << (F - 4);
+	
+	expandedImm = (sign << (E + F)) | (exp << F) | frac;
+		
+	return Immediate::makeImmediate(Result(rT, expandedImm));
+}
+
 template<unsigned int startBit, unsigned int endBit>
 void InstructionDecoder_aarch64::OPRimm()
 {
@@ -1525,10 +1547,12 @@ void InstructionDecoder_aarch64::OPRimm()
 	}
 	else
 	{
-		//if(IS_INSN_FP_IMM(insn))
-		if(false)
+		if(IS_INSN_FP_IMM(insn))
 		{
-			//TODO
+			if(isSinglePrec())
+				insn_in_progress->appendOperand(fpExpand<uint32_t, s32>(immVal), true, false);
+			else
+				insn_in_progress->appendOperand(fpExpand<uint64_t, s64>(immVal), true, false);
 		}
 		else                                                            //exception, conditional compare (immediate)
 		{
