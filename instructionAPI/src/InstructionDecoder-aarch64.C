@@ -146,7 +146,7 @@ namespace Dyninst
 
      	if(b.start > b.end)
 	    return Instruction::Ptr();
-	   
+
 		isPstateRead = isPstateWritten = false;
         isFPInsn = false;
         isSIMDInsn = false;
@@ -175,7 +175,7 @@ namespace Dyninst
 
         insn = b.start[0] << 24 | b.start[1] << 16 |
         b.start[2] << 8 | b.start[3];
-        
+
 #if defined(DEBUG_RAW_INSN)
         cout.width(0);
         cout << "0x";
@@ -808,6 +808,19 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefReg_amount(){
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefReg_ext(){
     //Expression::Ptr rm = makeMemRefReg_Rm();
     //Expression::Ptr amount = makeMemRefReg_amount();
+    //TODO
+    /*
+			int sizeVal = field<30, 31>(insn), extend;
+
+			if(field<23, 23>(insn) == 1)
+				sizeVal = 4;
+
+			extend = sField * sizeVal;
+			int extendSize = 31;
+			while(((extend << (31 - extendSize)) & 0x80000000) == 0)
+				extendSize--;
+                */
+
 
     int immLen = 2;
     int immVal = 0; //for amount
@@ -1407,20 +1420,20 @@ Expression::Ptr InstructionDecoder_aarch64::fpExpand(int val)
 {
 	int N, E, F, sign, exp;
 	T frac, expandedImm;
-	
+
 	N = (rT == s32)?32:64;
 	E = (N == 32)?8:11;
 	F = N - E - 1;
-	
+
 	sign = (val & 0x80) >> 7;
-	
+
 	int val6 = ((~val) & 0x40) >> 6, val6mask = (1 << (E - 3)) - 1;
 	exp = (val6 << (E - 1)) | ((val6?val6mask:0) << 2) | ((val & 0x30) >> 4);
-	
+
 	frac = (val & 0xF) << (F - 4);
-	
+
 	expandedImm = (sign << (E + F)) | (exp << F) | frac;
-		
+
 	return Immediate::makeImmediate(Result(rT, expandedImm));
 }
 
