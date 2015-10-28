@@ -414,13 +414,29 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_extrq, "extrq")
   (e_fadd, "fadd")
   (e_faddp, "faddp")
+ (e_f2xm1, "f2xm1")
   (e_fbld, "fbld")
   (e_fbstp, "fbstp")
+ (e_fchs, "fchs")
+ (e_fcmovb, "fcmovb")
+ (e_fcmovbe, "fcmovbe")
+ (e_fcmove, "fcmove")
+ (e_fcmovne, "fcmovne")
+ (e_fcmovu, "fcmovu")
+ (e_fcmovnu, "fcmovnu")
+ (e_fcmovnb, "fcmovnb")
+ (e_fcmovnbe, "fcmovnbe")
   (e_fcom, "fcom")
+  (e_fcomi, "fcomi")
+  (e_fcomip, "fcomip")
   (e_fcomp, "fcomp")
+  (e_fcompp, "fcompp")
   (e_fdiv, "fdiv")
+  (e_fdivp, "fdivp")
   (e_fdivr, "fdivr")
+  (e_fdivrp, "fdivrp")
   (e_femms, "femms")
+ (e_ffree, "ffree")
   (e_fiadd, "fiadd")
   (e_ficom, "ficom")
   (e_ficomp, "ficomp")
@@ -434,10 +450,13 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_fisub, "fisub")
   (e_fisubr, "fisubr")
   (e_fld, "fld")
+ (e_fld1, "fld1")
   (e_fldcw, "fldcw")
   (e_fldenv, "fldenv")
   (e_fmul, "fmul")
+  (e_fmulp, "fmulp")
   (e_fnop, "fnop")
+ (e_fprem, "fprem")
   (e_frstor, "frstor")
   (e_fsave, "fsave")
   (e_fst, "fst")
@@ -446,9 +465,15 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_fstp, "fstp")
   (e_fstsw, "fstsw")
   (e_fsub, "fsub")
+  (e_fsubp, "fsubp")
   (e_fsubr, "fsubr")
+  (e_fsubrp, "fsubrp")
+  (e_fucom, "fucom")
   (e_fucomp, "fucomp")
+  (e_fucomi, "fucomi")
+  (e_fucomip, "fucomip")
   (e_fucompp, "fucompp")
+ (e_fxch, "fxch")
   (e_fxrstor, "fxrstor")
   (e_fxsave, "fxsave")
   (e_haddpd, "haddpd")
@@ -474,14 +499,14 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_invlpg, "invlpg")
   (e_iret, "iret")
   (e_jb, "jb")
-  (e_jb_jnaej_j, "jb/jnaej/j")
+  (e_jb_jnaej_j, "jb")
   (e_jbe, "jbe")
-  (e_jcxz_jec, "jcxz/jec")
+  (e_jcxz_jec, "jcxz")
   (e_jl, "jl")
   (e_jle, "jle")
   (e_jmp, "jmp")
   (e_jnb, "jnb")
-  (e_jnb_jae_j, "jnb/jae/j")
+  (e_jnb_jae_j, "jnb")
   (e_jnbe, "jnbe")
   (e_jnl, "jnl")
   (e_jnle, "jnle")
@@ -1027,7 +1052,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { e_or,   t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
+  { e_or,   t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
   { e_push, t_done, 0, false, { CS, eSP, Zz }, 0, s1R2RW },
   { e_No_Entry,      t_twoB, 0, false, { Zz, Zz, Zz }, 0, 0 },
   /* 10 */
@@ -1036,7 +1061,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { e_adc,  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
+  { e_adc,  t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
   { e_push, t_done, 0, false, { SS, eSP, Zz }, 0, s1R2RW },
   { e_pop,  t_done, 0, false, { SS, eSP, Zz }, 0, s1W2RW },
   /* 18 */
@@ -1045,7 +1070,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { e_sbb,  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
+  { e_sbb,  t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
   { e_push, t_done, 0, false, { DS, eSP, Zz }, 0, s1R2RW },
   { e_pop , t_done, 0, false, { DS, eSP, Zz }, 0, s1W2RW },
   /* 20 */
@@ -1054,7 +1079,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_and, t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { e_and, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_and, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { e_and, t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
+  { e_and, t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
   { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { e_daa, t_done, 0, false, { AL, Zz, Zz }, 0, s1RW },
   /* 28 */
@@ -1195,9 +1220,9 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_lahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
   /* A0 */
   { e_mov,   t_done, 0, false, { AL, Ob, Zz },  0, s1W2R },
-  { e_mov,   t_done, 0, false, { eAX, Ov, Zz }, 0, s1W2R },
+  { e_mov,   t_done, 0, false, { rAX, Ov, Zz }, 0, s1W2R },
   { e_mov,   t_done, 0, false, { Ob, AL, Zz },  0, s1W2R },
-  { e_mov,   t_done, 0, false, { Ov, eAX, Zz }, 0, s1W2R },
+  { e_mov,   t_done, 0, false, { Ov, rAX, Zz }, 0, s1W2R },
   // XXX: Xv is source, Yv is destination for movs, so they're swapped!
   { e_movsb, t_done, 0, false, { Yb, Xb, Zz },  0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
   { e_movsd, t_done, 0, false, { Yv, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
@@ -1205,13 +1230,13 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_cmpsw, t_done, 0, false, { Xv, Yv, Zz },  0, s1R2R | (fCMPS << FPOS) },
   /* A8 */
   { e_test,     t_done, 0, false, { AL, Ib, Zz },  0, s1R2R },
-  { e_test,     t_done, 0, false, { eAX, Iz, Zz }, 0, s1R2R },
+  { e_test,     t_done, 0, false, { rAX, Iz, Zz }, 0, s1R2R },
   { e_stosb,    t_done, 0, false, { Yb, AL, Zz },  0, s1W2R | (fREP << FPOS) },
-  { e_stosd,  t_done, 0, false, { Yv, eAX, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_stosd,  t_done, 0, false, { Yv, rAX, Zz }, 0, s1W2R | (fREP << FPOS) },
   { e_lodsb,    t_done, 0, false, { AL, Xb, Zz },  0, s1W2R | (fREP << FPOS) },
-  { e_lodsd,    t_done, 0, false, { eAX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_lodsd,    t_done, 0, false, { rAX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
   { e_scasb,    t_done, 0, false, { AL, Yb, Zz },  0, s1R2R | (fSCAS << FPOS) },
-  { e_scasd,  t_done, 0, false, { eAX, Yv, Zz }, 0, s1R2R | (fSCAS << FPOS) },
+  { e_scasd,  t_done, 0, false, { rAX, Yv, Zz }, 0, s1R2R | (fSCAS << FPOS) },
   /* B0 */
   { e_mov, t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, false, { CL, Ib, Zz }, 0, s1W2R },
@@ -2419,7 +2444,7 @@ static ia32_entry groupMap[][8] = {
   { e_rcr, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
   { e_shl_sal, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
   { e_shr, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_shl_sal, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
   { e_sar, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 }
  },
 
