@@ -24,7 +24,7 @@ VEC_SIMD_SWITCH = True
 ISA_dir = '/p/paradyn/arm/arm-download-1350222/AR100-DA-70000-r0p0-00rel10/AR100-DA-70000-r0p0-00rel10/ISA_xml/ISA_xml_v2_00rel11/'
 files_dir = os.listdir(ISA_dir)
 
-flagFieldsSet = set(['S', 'imm', 'option', 'opt', 'N', 'cond', 'sz','size'])
+flagFieldsSet = set(['S', 'imm', 'option', 'opt', 'N', 'cond', 'sz', 'size', 'type'])
 forwardFieldsSet = set(['type', ])
 ##############################
 # parse xml files
