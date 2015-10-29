@@ -24,7 +24,8 @@ VEC_SIMD_SWITCH = True
 ISA_dir = '/p/paradyn/arm/arm-download-1350222/AR100-DA-70000-r0p0-00rel10/AR100-DA-70000-r0p0-00rel10/ISA_xml/ISA_xml_v2_00rel11/'
 files_dir = os.listdir(ISA_dir)
 
-flagFieldsSet = set(['S', 'imm', 'option', 'opt', 'N', 'cond', 'type', 'sz','size'])
+flagFieldsSet = set(['S', 'imm', 'option', 'opt', 'N', 'cond', 'sz','size'])
+forwardFieldsSet = set(['type', ])
 ##############################
 # parse xml files
 # get opcodes
@@ -240,7 +241,7 @@ def getOpTable( filename = 'NULL' ):
                                 maskBit[31-maskStartBit] = '0'
                                 encodingArray[31-maskStartBit] = '0'
 
-                                if reserve_operand_pos[0] in flagFieldsSet:
+                                if reserve_operand_pos[0] in forwardFieldsSet:
                                     operands_pos_Insn.insert(0, reserve_operand_pos)
                                 else:
                                     operands_pos_Insn.append(reserve_operand_pos)
@@ -250,7 +251,7 @@ def getOpTable( filename = 'NULL' ):
 
                             # if it is blank, do late operand adding
                             elif encodeBit == '':
-                                if reserve_operand_pos[0] in flagFieldsSet:
+                                if reserve_operand_pos[0] in forwardFieldsSet:
                                     operands_pos_Insn.insert(0, reserve_operand_pos)
                                 else:
                                     operands_pos_Insn.append(reserve_operand_pos)
