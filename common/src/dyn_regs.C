@@ -189,8 +189,8 @@ unsigned int MachRegister::size() const {
 		if((reg & 0x00ff0000) == aarch64::FPR){
 			switch(reg & 0x0000ff00){
                 case aarch64::B_REG: return 1;
-                case aarch64::H_REG: return 2;
-                case aarch64::S_REG: return 4;
+                case aarch64::W_REG: return 2;
+                case aarch64::D_REG: return 4;
                 case aarch64::FULL:  return 8;
                 case aarch64::Q_REG: return 16;
                 default:
@@ -202,7 +202,7 @@ unsigned int MachRegister::size() const {
 			switch(reg & 0x0000ff00)
 			{
 				case aarch64::FULL : return 8;
-				case aarch64::S_REG: return 4;
+				case aarch64::D_REG: return 4;
 				default: return 0;
 			}
 		else
