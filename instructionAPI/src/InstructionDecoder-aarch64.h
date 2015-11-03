@@ -156,6 +156,7 @@ namespace Dyninst {
 
                 uint32_t unsign_extend32(int size, int in)
                 {
+                    //TODO probably the same here, see next function
 					uint32_t mask = (!0);
 
                     return (mask>>(32-size)) & in;
@@ -163,7 +164,8 @@ namespace Dyninst {
 
                 uint64_t unsign_extend64(int size, int in)
                 {
-					uint64_t mask = (!0);
+                    //TODO Sunny the way you init the var is not correct ...
+					uint64_t mask = -1;
 
                     return (mask>>(64-size)) & in;
 				}
@@ -301,7 +303,7 @@ namespace Dyninst {
 				void OPRscale();
 				template<unsigned int endBit, unsigned int startBit>
                 void OPRtype();
-                
+
                 void OPRH() {}
                 void OPRL() {}
                 void OPRM() {}
