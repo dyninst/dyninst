@@ -204,7 +204,8 @@ namespace Dyninst
 		isFPInsn = true;
     }
 
-    void InstructionDecoder_aarch64::setSIMDMode()
+     //TODO: consistency issue
+     void InstructionDecoder_aarch64::setSIMDMode()
     {
         // NOTE: if it is SIMD insn, both isFP and isSIMD are set.
 		isFPInsn = true;
@@ -407,17 +408,41 @@ MachRegister InstructionDecoder_aarch64::makeAarch64RegID(MachRegister base, uns
 
 Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 {
-	MachRegister baseReg = (isFPInsn && !IS_INSN_FP_CONV_INT(insn))?
-        (isSinglePrec()?aarch64::s0:aarch64::d0):
-        (is64Bit?aarch64::x0:aarch64::w0);
+        int encoding  = field<0, 4>(insn);
+	MachRegister reg;
+	
+	if(isFPInsn && !IS_INSN_FP_CONV_INT(insn))
+	{
+		
+		if(IS_INSN_FP_DATAPROC_ONESRC(insn))
+		{
+			int opc = field<15, 16>(insn);
+			switch(opc)
+			{
+				case 0: reg = aarch64::s0;
+						break;
+				case 1: reg = aarch64::d0;
+						break;
+				case 3: reg = aarch64::h0;
+						break;
+				default: assert(!"invalid destination register size");
+			}
+		}
+		else
+			reg = isSinglePrec()?aarch64::s0:aarch64::d0;
 
-    int encoding = field<0, 4>(insn);
-	if(encoding == 31)
-		return makeRegisterExpression(makeAarch64RegID(is64Bit?aarch64::sp:aarch64::wsp, 0));
+		
+		reg = makeAarch64RegID(reg, encoding);
+	}
 	else
-		return makeRegisterExpression(makeAarch64RegID(baseReg, encoding));
-}
+	{
+		reg = is64Bit?((encoding == 31)?aarch64::sp:aarch64::x0):((encoding == 31)?aarch64::wsp:aarch64::w0);
+		if(encoding != 31)
+			reg = makeAarch64RegID(reg, encoding);
+	}
 
+	return makeRegisterExpression(reg);
+}
 
 void InstructionDecoder_aarch64::OPRRd()
 {
@@ -426,15 +451,31 @@ void InstructionDecoder_aarch64::OPRRd()
 
 Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 {
-	MachRegister baseReg = (isFPInsn && !IS_INSN_FP_CONV_FIX(insn))?
-        (isSinglePrec()?aarch64::s0:aarch64::d0):
-        (is64Bit?aarch64::x0:aarch64::w0);
-
-	int encoding = field<5, 9>(insn);
-	if(encoding == 31)
-		return makeRegisterExpression(makeAarch64RegID(is64Bit?aarch64::sp:aarch64::wsp, 0));
+        int encoding  = field<5, 9>(insn);
+	MachRegister reg;
+	
+	if(isFPInsn && !IS_INSN_FP_CONV_FIX(insn))
+	{
+		switch(_typeField)
+		{
+		    case 0: reg = aarch64::s0;
+		       	break;
+		    case 1: reg = aarch64::d0;
+			break;
+		    case 3: reg = aarch64::h0;
+			break;
+		    default: assert(!"invalid source register size");
+		}
+		reg = makeAarch64RegID(reg, encoding);
+	}
 	else
-		return makeRegisterExpression(makeAarch64RegID(baseReg, encoding));
+	{
+		reg = is64Bit?((encoding == 31)?aarch64::sp:aarch64::x0):((encoding == 31)?aarch64::wsp:aarch64::w0);
+		if(encoding != 31)
+			reg = makeAarch64RegID(reg, encoding);
+	}
+
+	return makeRegisterExpression(reg);
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makePCExpr()
@@ -1094,15 +1135,22 @@ void InstructionDecoder_aarch64::OPRRnSU()
 
 Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
 {
-	MachRegister baseReg = isFPInsn?
-        (isSinglePrec()?aarch64::s0:aarch64::d0):
-        (is64Bit?aarch64::x0:aarch64::w0);
-
-	int encoding = field<16, 20>(insn);
-	if(!isFPInsn && field<16, 20>(insn) == 31)							//zero register applicable only for non-floating point instructions
-		return makeRegisterExpression(makeAarch64RegID(aarch64::zr, 0));
+        int encoding  = field<16, 20>(insn);
+	MachRegister reg;
+	
+	if(isFPInsn)
+	{
+		reg = isSinglePrec()?aarch64::s0:aarch64::d0;
+		reg = makeAarch64RegID(reg, encoding);
+	}
 	else
-		return makeRegisterExpression(makeAarch64RegID(baseReg, encoding));
+	{
+		reg = is64Bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
+		if(encoding != 31)
+			reg = makeAarch64RegID(reg, encoding);
+	}
+
+	return makeRegisterExpression(reg);
 }
 
 void InstructionDecoder_aarch64::OPRRm()
@@ -1113,7 +1161,10 @@ void InstructionDecoder_aarch64::OPRRm()
 	   IS_INSN_LOGICAL_SHIFT(insn))
 		return;
 
-	insn_in_progress->appendOperand(makeRmExpr(), true, false);
+	if(IS_INSN_FP_COMPARE(insn) && field<3, 3>(insn) == 1)
+		insn_in_progress->appendOperand(Immediate::makeImmediate(Result(isSinglePrec()?sp_float:dp_float, 0.0)), true, false);
+	else
+		insn_in_progress->appendOperand(makeRmExpr(), true, false);
 }
 
 void InstructionDecoder_aarch64::OPRsf()
@@ -1144,6 +1195,7 @@ void InstructionDecoder_aarch64::OPRhw()
 template<unsigned int endBit, unsigned int startBit>
 void InstructionDecoder_aarch64::OPRN()
 {
+        hasN = true;
 	nField = field<startBit, endBit>(insn);
 	nLen = endBit - startBit + 1;
 }
@@ -1232,8 +1284,16 @@ Expression::Ptr InstructionDecoder_aarch64::makeRtExpr()
 
 void InstructionDecoder_aarch64::OPRRt()
 {
-	//sys, sysl, msr reg, mrs
-	//others
+	if(IS_INSN_BRANCHING(insn))
+	{
+		MachRegister reg;
+		int encoding = field<0, 4>(insn);
+		
+		if(encoding == 31)
+			insn_in_progress->appendOperand(makeRegisterExpression(is64Bit?aarch64::zr:aarch64::wzr), true, false);
+		else
+			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(is64Bit?aarch64::x0:aarch64::w0, encoding)), true, false);
+	}
 }
 
 void InstructionDecoder_aarch64::OPRRtL()
@@ -1282,8 +1342,8 @@ void InstructionDecoder_aarch64::OPRcond()
 
 void InstructionDecoder_aarch64::OPRnzcv()
 {
-	uint64_t nzcvVal = (static_cast<uint64_t>(field<0, 3>(insn)))<<60;
-	Expression::Ptr nzcv = Immediate::makeImmediate(Result(u64, nzcvVal));
+	unsigned int nzcvVal = field<0, 3>(insn)<<28;
+	Expression::Ptr nzcv = Immediate::makeImmediate(Result(u32, nzcvVal));
 	insn_in_progress->appendOperand(nzcv, true, false);
 
 	isPstateWritten = true;
@@ -1444,14 +1504,7 @@ void InstructionDecoder_aarch64::OPRimm()
 
 	if(hasHw)
 	{
-		if(IS_INSN_MOVEWIDE_IMM(insn))		//movewide (immediate)
-		{
-			processHwFieldInsn(immLen, immVal);
-		}
-		else
-		{
-			isValid = false;
-		}
+		processHwFieldInsn(immLen, immVal);
 	}
 	else if(hasN)		//logical (immediate), bitfield, extract
 	{
@@ -1537,47 +1590,39 @@ void InstructionDecoder_aarch64::OPRimm()
 		}
 		else if(IS_FIELD_IMMHI(startBit, endBit))
 		{
-			bool page = (field<31, 31>(insn) == 1);
+			int page = field<31, 31>(insn);
 			int offset = (immVal<<immloLen) | immlo;
 
-			Expression::Ptr imm;
-
 			insn_in_progress->appendOperand(makePCExpr(), true, false);
-			if(page)
-				imm = makeLeftShiftExpression(Immediate::makeImmediate(Result(s64, sign_extend64(immloLen + immLen, offset))),
-											  Immediate::makeImmediate(Result(u32, unsign_extend32(4, 12))), s64);
-			else
-				imm = Immediate::makeImmediate(Result(s64, sign_extend64(immloLen + immLen, offset)));
+			Expression::Ptr imm = Immediate::makeImmediate(Result(s64, sign_extend64(immloLen + immLen + page*12, offset<<(page*12))));
 
 			insn_in_progress->appendOperand(imm, true, false);
 		}
 		else
 			isValid = false;
 	}
-    // STEVE added for ld literal
-    else if( IS_INSN_LD_LITERAL(insn) ){
-			Expression::Ptr imm = Immediate::makeImmediate(Result(u32, sign_extend32(immLen+2, immVal<<2) ));
-			insn_in_progress->appendOperand(imm, true, false);
-    }
-    // TODO: Sunny need a default final else do nothing for ld/st imm fields
-    // ld/st will call OPRimm and should do nothing.
-    // However, now it will fall into the final else for exception and Cbranch
-	else
+	else if(IS_INSN_FP_IMM(insn))
 	{
-		if(IS_INSN_FP_IMM(insn))
-		{
-			if(isSinglePrec())
-				insn_in_progress->appendOperand(fpExpand<uint32_t, s32>(immVal), true, false);
-			else
-				insn_in_progress->appendOperand(fpExpand<uint64_t, s64>(immVal), true, false);
-		}
-		else                                                            //exception, conditional compare (immediate)
-		{
-			Result_Type rT = is64Bit?u64:u32;
+		if(isSinglePrec())
+			insn_in_progress->appendOperand(fpExpand<uint32_t, s32>(immVal), true, false);
+		else
+			insn_in_progress->appendOperand(fpExpand<uint64_t, s64>(immVal), true, false);
+	}
+	else if(IS_INSN_EXCEPTION(insn))
+	{
+		insn_printf("%d\n", immVal);
+		Expression::Ptr imm = Immediate::makeImmediate(Result(u16, immVal));
+		insn_in_progress->appendOperand(imm, true, false);
+		insn_printf("mid\n");
+		isPstateRead = true;
+		insn_printf("end\n");
+	}
+	else                                                            //conditional compare (immediate)
+	{
+		Result_Type rT = is64Bit?u64:u32;
 
-			Expression::Ptr imm = Immediate::makeImmediate(Result(rT, rT==u32?unsign_extend32(immLen, immVal):unsign_extend64(immLen, immVal)));
-			insn_in_progress->appendOperand(imm, true, false);
-		}
+		Expression::Ptr imm = Immediate::makeImmediate(Result(rT, rT==u32?unsign_extend32(immLen, immVal):unsign_extend64(immLen, immVal)));
+		insn_in_progress->appendOperand(imm, true, false);
 	}
 }
 
@@ -1604,7 +1649,6 @@ using namespace boost::assign;
             )
 		   isPstateWritten = true;
 
-
         for(operandSpec::const_iterator fn = insn_table_entry->operands.begin(); fn != insn_table_entry->operands.end(); fn++)
         {
 			std::mem_fun(*fn)(this);
@@ -1623,7 +1667,6 @@ using namespace boost::assign;
 			insn_in_progress = invalid_insn;
 		}
     }
-
 	int InstructionDecoder_aarch64::findInsnTableIndex(unsigned int decoder_table_index)
 	{
 		aarch64_mask_entry *cur_entry = &aarch64_mask_entry::main_decoder_table[decoder_table_index];
@@ -1654,7 +1697,6 @@ using namespace boost::assign;
     void InstructionDecoder_aarch64::mainDecode()
     {
 		int insn_table_index = findInsnTableIndex(0);
-
 		aarch64_insn_entry *insn_table_entry = &aarch64_insn_entry::main_insn_table[insn_table_index];
 
         insn_in_progress = makeInstruction(insn_table_entry->op, insn_table_entry->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));

@@ -94,13 +94,13 @@ namespace Dyninst {
 
 
                 #define	IS_INSN_LOGICAL_IMM(I)			(field<23, 28>(I) == 0x24)
-                #define	IS_INSN_MOVEWIDE_IMM(I)			(field<23, 28>(I) == 0x25)
                 #define	IS_INSN_BITFIELD(I)				(field<23, 28>(I) == 0x26)
-                #define	IS_INSN_EXTRACT(I)				(field<23, 28>(I) == 0x27)
+                #define	IS_INSN_EXCEPTION(I)			(field<24, 31>(I) == 0xD4)
                 #define	IS_INSN_FP_COMPARE(I)			(field<24, 28>(I) == 0x1E && field<10, 13>(I) == 0x8)
                 #define	IS_INSN_FP_CONV_FIX(I)			(field<24, 28>(I) == 0x1E && field<21, 21>(I) == 0x0)
                 #define	IS_INSN_FP_CONV_INT(I)			(field<24, 28>(I) == 0x1E && field<21, 21>(I) == 0x1 && field<10, 15>(I) == 0x0)
                 #define	IS_INSN_FP_IMM(I)				(field<24, 28>(I) == 0x1E && field<10, 15>(I) == 0x0 && field<10, 12>(I) == 0x4)
+		#define	IS_INSN_FP_DATAPROC_ONESRC(I)	(field<24, 31>(I) == 0x1E && field<10, 14>(I) == 0x10)
 				#define	IS_INSN_B_UNCOND(I)				(field<26, 30>(I) == 0x05)
                 #define	IS_INSN_B_UNCOND_REG(I)			(field<25, 31>(I) == 0x6B)
                 #define	IS_INSN_B_COMPARE(I)			(field<25, 30>(I) == 0x1A)
@@ -156,16 +156,14 @@ namespace Dyninst {
 
                 uint32_t unsign_extend32(int size, int in)
                 {
-                    //TODO probably the same here, see next function
-					uint32_t mask = (!0);
+					uint32_t mask = ~0;
 
                     return (mask>>(32-size)) & in;
 				}
 
                 uint64_t unsign_extend64(int size, int in)
                 {
-                    //TODO Sunny the way you init the var is not correct ...
-					uint64_t mask = -1;
+					uint64_t mask = ~0;
 
                     return (mask>>(64-size)) & in;
 				}
