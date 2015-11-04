@@ -495,7 +495,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexLiteral()
     Result_Type rt;
     getMemRefIndexLiteral_RT(rt);
 
-    return makeDereferenceExpression(makeAddExpression(makePCExpr(), label, u64), rt);
+    return makeDereferenceExpression(makeAddExpression(label, makePCExpr(), u64), rt);
 }
 
 // TODO potential bug: do we need to distinguish signed and unsigned here?
@@ -882,7 +882,6 @@ void InstructionDecoder_aarch64::LIndex()
     // ld/st unsigned imm
     // ******************
     else if( IS_INSN_LDST_UIMM(insn)){
-        //insn_printf("ldst uimm\n");
         insn_in_progress->appendOperand(makeMemRefIndexUImm(), true, false);
         return;
     }
@@ -1020,13 +1019,13 @@ void InstructionDecoder_aarch64::OPRRn()
 
 void InstructionDecoder_aarch64::OPRRnL()
 {
-	insn_in_progress->appendOperand(makeRnExpr(), true, false);
+	//insn_in_progress->appendOperand(makeRnExpr(), true, false);
     LIndex();
 }
 
 void InstructionDecoder_aarch64::OPRRnS()
 {
-	insn_in_progress->appendOperand(makeRnExpr(), true, false);
+	//insn_in_progress->appendOperand(makeRnExpr(), true, false);
     STIndex();
 }
 
@@ -1041,26 +1040,26 @@ void InstructionDecoder_aarch64::OPRRnU()
 void InstructionDecoder_aarch64::OPRRnLU()
 {
     if( IS_INSN_LDST_PRE(insn) ){
-	    insn_in_progress->appendOperand(makeRnExpr(), true, true);
+	    //insn_in_progress->appendOperand(makeRnExpr(), true, true);
         LIndex();
         return;
     }
 
     if( IS_INSN_LDST_POST(insn) ){
         LIndex();
-	    insn_in_progress->appendOperand(makeRnExpr(), true, true);
+	    //insn_in_progress->appendOperand(makeRnExpr(), true, true);
         return;
     }
 
     if( IS_INSN_LDST_PAIR_PRE(insn) ){
-	    insn_in_progress->appendOperand(makeRnExpr(), true, true);
+	    //insn_in_progress->appendOperand(makeRnExpr(), true, true);
         LIndex();
         return;
     }
 
     if( IS_INSN_LDST_PAIR_POST(insn) ){
         LIndex();
-	    insn_in_progress->appendOperand(makeRnExpr(), true, true);
+	    //insn_in_progress->appendOperand(makeRnExpr(), true, true);
         return;
     }
 
@@ -1069,26 +1068,26 @@ void InstructionDecoder_aarch64::OPRRnLU()
 void InstructionDecoder_aarch64::OPRRnSU()
 {
     if( IS_INSN_LDST_PRE(insn) ){
-	    insn_in_progress->appendOperand(makeRnExpr(), true, true);
+	    //insn_in_progress->appendOperand(makeRnExpr(), true, true);
         STIndex();
         return;
     }
 
     if( IS_INSN_LDST_POST(insn) ){
         STIndex();
-	    insn_in_progress->appendOperand(makeRnExpr(), true, true);
+	    //insn_in_progress->appendOperand(makeRnExpr(), true, true);
         return;
     }
 
     if( IS_INSN_LDST_PAIR_PRE(insn) ){
-	    insn_in_progress->appendOperand(makeRnExpr(), true, true);
+	    //insn_in_progress->appendOperand(makeRnExpr(), true, true);
         STIndex();
         return;
     }
 
     if( IS_INSN_LDST_PAIR_POST(insn) ){
         STIndex();
-	    insn_in_progress->appendOperand(makeRnExpr(), true, true);
+	    //insn_in_progress->appendOperand(makeRnExpr(), true, true);
         return;
     }
 }
