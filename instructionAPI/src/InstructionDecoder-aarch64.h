@@ -197,6 +197,8 @@ namespace Dyninst {
                 int _szField;
                 int _typeField;
 
+                void NOTHING();
+
                 void set32Mode();
 				void setRegWidth();
 				void setFPMode();

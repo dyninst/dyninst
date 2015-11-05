@@ -142,8 +142,6 @@ namespace Dyninst
     using namespace std;
     Instruction::Ptr InstructionDecoder_aarch64::decode(InstructionDecoder::buffer& b)
     {
-        //insn_printf("### decoding\n");
-
      	if(b.start > b.end)
 	    return Instruction::Ptr();
 
@@ -197,6 +195,8 @@ namespace Dyninst
 		is64Bit = false;
     }
     */
+    void InstructionDecoder_aarch64::NOTHING(){
+    }
 
     void InstructionDecoder_aarch64::setFPMode()
     {
@@ -410,10 +410,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 {
         int encoding  = field<0, 4>(insn);
 	MachRegister reg;
-	
+
 	if(isFPInsn && !IS_INSN_FP_CONV_INT(insn))
 	{
-		
+
 		if(IS_INSN_FP_DATAPROC_ONESRC(insn))
 		{
 			int opc = field<15, 16>(insn);
@@ -431,7 +431,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 		else
 			reg = isSinglePrec()?aarch64::s0:aarch64::d0;
 
-		
+
 		reg = makeAarch64RegID(reg, encoding);
 	}
 	else
@@ -453,7 +453,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 {
         int encoding  = field<5, 9>(insn);
 	MachRegister reg;
-	
+
 	if(isFPInsn && !IS_INSN_FP_CONV_FIX(insn))
 	{
 		switch(_typeField)
@@ -1137,7 +1137,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
 {
         int encoding  = field<16, 20>(insn);
 	MachRegister reg;
-	
+
 	if(isFPInsn)
 	{
 		reg = isSinglePrec()?aarch64::s0:aarch64::d0;
@@ -1232,10 +1232,10 @@ void InstructionDecoder_aarch64::setRegWidth(){
         else if(IS_INSN_LDST_EX(insn)){
             switch(sz){
                 case 2:
-                    is64Bit = false;
-                    break;
                 case 0:
                 case 1:
+                    is64Bit = false;
+                    break;
                 case 3:
                 default:
                     return;
@@ -1288,7 +1288,7 @@ void InstructionDecoder_aarch64::OPRRt()
 	{
 		MachRegister reg;
 		int encoding = field<0, 4>(insn);
-		
+
 		if(encoding == 31)
 			insn_in_progress->appendOperand(makeRegisterExpression(is64Bit?aarch64::zr:aarch64::wzr), true, false);
 		else
