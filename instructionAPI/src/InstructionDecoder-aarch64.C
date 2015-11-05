@@ -451,19 +451,19 @@ void InstructionDecoder_aarch64::OPRRd()
 
 Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 {
-        int encoding  = field<5, 9>(insn);
+    int encoding  = field<5, 9>(insn);
 	MachRegister reg;
 
-	if(isFPInsn && !IS_INSN_FP_CONV_FIX(insn))
+	if(isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && IS_SOURCE_GP(insn)))
 	{
 		switch(_typeField)
 		{
 		    case 0: reg = aarch64::s0;
 		       	break;
 		    case 1: reg = aarch64::d0;
-			break;
+				break;
 		    case 3: reg = aarch64::h0;
-			break;
+				break;
 		    default: assert(!"invalid source register size");
 		}
 		reg = makeAarch64RegID(reg, encoding);
@@ -1336,6 +1336,11 @@ void InstructionDecoder_aarch64::OPRcond()
 	unsigned char condVal = static_cast<unsigned char>(field<startBit, endBit>(insn));
 	Expression::Ptr cond = Immediate::makeImmediate(Result(u8, condVal));
 	insn_in_progress->appendOperand(cond, true, false);
+	if(IS_INSN_B_COND(insn))
+	{
+		insn_in_progress->getOperation().mnemonic += ".";
+		insn_in_progress->getOperation().mnemonic += condStringMap[condVal];
+	}
 
 	isPstateRead = true;
 }
@@ -1386,11 +1391,22 @@ void InstructionDecoder_aarch64::OPRscale()
 
 Expression::Ptr InstructionDecoder_aarch64::makeRaExpr()
 {
-	MachRegister baseReg = isFPInsn?
-        (isSinglePrec()?aarch64::s0:aarch64::d0):
-        (is64Bit?aarch64::x0:aarch64::w0);
+	int encoding  = field<10, 14>(insn);
+	MachRegister reg;
 
-	return makeRegisterExpression(makeAarch64RegID(baseReg, field<10, 14>(insn)));
+	if(isFPInsn)
+	{
+		reg = makeAarch64RegID(isSinglePrec()?aarch64::s0:aarch64::d0, encoding);
+	}
+	else
+	{
+		reg = is64Bit?((encoding == 31)?aarch64::sp:aarch64::x0):((encoding == 31)?aarch64::wsp:aarch64::w0);
+		if(encoding != 31)
+			reg = makeAarch64RegID(reg, encoding);
+	}
+
+	return makeRegisterExpression(reg);
+
 }
 
 void InstructionDecoder_aarch64::OPRRa()
@@ -1477,8 +1493,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeFallThroughExpr()
 template<typename T, Result_Type rT>
 Expression::Ptr InstructionDecoder_aarch64::fpExpand(int val)
 {
-	int N, E, F, sign, exp;
-	T frac, expandedImm;
+	int N, E, F;
+	T frac, expandedImm, sign, exp;
 
 	N = (rT == s32)?32:64;
 	E = (N == 32)?8:11;
@@ -1499,6 +1515,8 @@ Expression::Ptr InstructionDecoder_aarch64::fpExpand(int val)
 template<unsigned int endBit, unsigned int startBit>
 void InstructionDecoder_aarch64::OPRimm()
 {
+	if(IS_INSN_LDST(insn))
+		return;
 	int immVal = field<startBit, endBit>(insn);
 	unsigned int immLen = endBit - startBit + 1;
 
@@ -1604,18 +1622,15 @@ void InstructionDecoder_aarch64::OPRimm()
 	else if(IS_INSN_FP_IMM(insn))
 	{
 		if(isSinglePrec())
-			insn_in_progress->appendOperand(fpExpand<uint32_t, s32>(immVal), true, false);
+			insn_in_progress->appendOperand(fpExpand<int32_t, s32>(immVal), true, false);
 		else
-			insn_in_progress->appendOperand(fpExpand<uint64_t, s64>(immVal), true, false);
+			insn_in_progress->appendOperand(fpExpand<int64_t, s64>(immVal), true, false);
 	}
 	else if(IS_INSN_EXCEPTION(insn))
 	{
-		insn_printf("%d\n", immVal);
 		Expression::Ptr imm = Immediate::makeImmediate(Result(u16, immVal));
 		insn_in_progress->appendOperand(imm, true, false);
-		insn_printf("mid\n");
 		isPstateRead = true;
-		insn_printf("end\n");
 	}
 	else                                                            //conditional compare (immediate)
 	{
@@ -1678,7 +1693,7 @@ using namespace boost::assign;
 		unsigned int insn_iter_index = 0, map_key_index = 0, branch_map_key = 0;
 		branchMap cur_branches = cur_entry->nodeBranches;
 
-		while(insn_iter_index <= AARCH64_INSN_LENGTH)
+		while(insn_iter_index < AARCH64_INSN_LENGTH)
 		{
 			if(((cur_mask>>insn_iter_index) & 1) == 1)
 			{
@@ -1701,7 +1716,6 @@ using namespace boost::assign;
 
         insn_in_progress = makeInstruction(insn_table_entry->op, insn_table_entry->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));
         //insn_printf("ARM: %s\n", insn_table_entry->mnemonic);
-        cout << insn_in_progress->format() << endl;
 
         if(IS_INSN_BRANCHING(insn))
         {

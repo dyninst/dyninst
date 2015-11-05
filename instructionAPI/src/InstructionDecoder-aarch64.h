@@ -65,6 +65,8 @@ namespace Dyninst {
 
                 using InstructionDecoderImpl::makeRegisterExpression;
 
+                std::vector<std::string> condStringMap = {"eq","ne","cs","cc","mi","pl","vs","vc","hi","ls","ge","lt","gt","le","al","nv"};
+
                 #define	IS_INSN_LOGICAL_SHIFT(I)		(field<24, 28>(I) == 0x0A)
                 #define	IS_INSN_ADDSUB_EXT(I)			(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 1)
                 #define	IS_INSN_ADDSUB_SHIFT(I)			(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 0)
@@ -99,6 +101,7 @@ namespace Dyninst {
                 #define	IS_INSN_FP_COMPARE(I)			(field<24, 28>(I) == 0x1E && field<10, 13>(I) == 0x8)
                 #define	IS_INSN_FP_CONV_FIX(I)			(field<24, 28>(I) == 0x1E && field<21, 21>(I) == 0x0)
                 #define	IS_INSN_FP_CONV_INT(I)			(field<24, 28>(I) == 0x1E && field<21, 21>(I) == 0x1 && field<10, 15>(I) == 0x0)
+                #define	IS_SOURCE_GP(I)					(field<16, 18>(I) == 0x2  || field<16, 18>(I) == 0x3 || field<16, 18>(I) == 0x7)
                 #define	IS_INSN_FP_IMM(I)				(field<24, 28>(I) == 0x1E && field<10, 15>(I) == 0x0 && field<10, 12>(I) == 0x4)
 		#define	IS_INSN_FP_DATAPROC_ONESRC(I)	(field<24, 31>(I) == 0x1E && field<10, 14>(I) == 0x10)
 				#define	IS_INSN_B_UNCOND(I)				(field<26, 30>(I) == 0x05)
