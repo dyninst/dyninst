@@ -262,10 +262,18 @@ def getOpTable( filename = 'NULL' ):
                                 if reserve_operand_pos[0] not in operandsSet:
                                     operandsSet.add(reserve_operand_pos[0])
 
+                            elif encodeBit.startswith('!=') != -1:
+                                if reserve_operand_pos[0] in forwardFieldsSet:
+                                    operands_pos_Insn.insert(0, reserve_operand_pos)
+                                else:
+                                    operands_pos_Insn.append(reserve_operand_pos)
+
+                                if reserve_operand_pos[0] not in operandsSet:
+                                    operandsSet.add(reserve_operand_pos[0])
+
                             else:
-                                # we currently ignore '!=' fields, since it should always be correct and garuanteed by compilers
-                                if not encodeBit.startswith('!='):
-                                    print '[WARN] something not has been analyzed:'+ encodeBit
+                                #if not encodeBit.startswith('!='):
+                                print '[WARN] something not has been analyzed:'+ encodeBit
 
                             maskStartBit = maskStartBit - 1
                     # end of <box line> #
@@ -490,7 +498,7 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
 
         for i in inInsnIndex:
             processedIndex.add(i)
-            #print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
+            print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
         printDecodertable(entryToPlace, 0, list(), inInsnIndex[0]);
         numNodes += 1
         return
