@@ -39,7 +39,7 @@ void aarch64_insn_entry::buildInsnTable()
 {
     if(aarch64_insn_entry::built_insn_table)
 		return;
-    
+
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_INVALID, 	"INVALID",	operandSpec() ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_abs_advsimd, 	"abs",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ) ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_abs_advsimd, 	"abs",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ) ));
@@ -443,7 +443,7 @@ void aarch64_insn_entry::buildInsnTable()
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_negs_subs_addsub_shift, 	"negs",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRd) ) ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ngc_sbc, 	"ngc",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRd) ) ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ngcs_sbcs, 	"ngcs",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRd) ) ));
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_nop_hint, 	"nop",	operandSpec() ));
+	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_nop_hint, 	"nop",	list_of( operandSpec() ) ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_not_advsimd, 	"not",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRn) )( fn(OPRRd) ) ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_orn_advsimd, 	"orn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ) ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_orn_log_shift, 	"orn",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ) ));
@@ -777,8 +777,8 @@ void aarch64_mask_entry::buildDecoderTable()
 {
 	if(aarch64_mask_entry::built_decoder_table)
 		return;
-	
-	main_decoder_table[0]=aarch64_mask_entry(0x18000000, map_list_of(0,1)(1,2)(2,3)(3,4),-1);
+
+    main_decoder_table[0]=aarch64_mask_entry(0x18000000, map_list_of(0,1)(1,2)(2,3)(3,4),-1);
 	main_decoder_table[1]=aarch64_mask_entry(0x0, branchMap(),0);
 	main_decoder_table[2]=aarch64_mask_entry(0x7000000, map_list_of(0,5)(1,6)(2,7)(3,8)(4,9)(5,10)(6,11)(7,12),-1);
 	main_decoder_table[5]=aarch64_mask_entry(0x20c00000, map_list_of(0,13)(1,14)(2,15)(3,16)(4,17)(5,18)(6,19)(7,20),-1);
@@ -1608,6 +1608,6 @@ void aarch64_mask_entry::buildDecoderTable()
 	main_decoder_table[823]=aarch64_mask_entry(0x0, branchMap(),655);
 	main_decoder_table[824]=aarch64_mask_entry(0x0, branchMap(),184);
 	main_decoder_table[825]=aarch64_mask_entry(0x0, branchMap(),228);
-    
+
     built_decoder_table = true;
 }
