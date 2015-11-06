@@ -63,9 +63,7 @@ namespace Dyninst {
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
 
-                using InstructionDecoderImpl::makeRegisterExpression;
-
-                std::vector<std::string> condStringMap = {"eq","ne","cs","cc","mi","pl","vs","vc","hi","ls","ge","lt","gt","le","al","nv"};
+                std::vector<std::string> condStringMap;
 
                 #define	IS_INSN_LOGICAL_SHIFT(I)		(field<24, 28>(I) == 0x0A)
                 #define	IS_INSN_ADDSUB_EXT(I)			(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 1)
@@ -103,14 +101,14 @@ namespace Dyninst {
                 #define	IS_INSN_FP_CONV_INT(I)			(field<24, 28>(I) == 0x1E && field<21, 21>(I) == 0x1 && field<10, 15>(I) == 0x0)
                 #define	IS_SOURCE_GP(I)					(field<16, 18>(I) == 0x2  || field<16, 18>(I) == 0x3 || field<16, 18>(I) == 0x7)
                 #define	IS_INSN_FP_IMM(I)				(field<24, 28>(I) == 0x1E && field<10, 15>(I) == 0x0 && field<10, 12>(I) == 0x4)
-		#define	IS_INSN_FP_DATAPROC_ONESRC(I)	(field<24, 31>(I) == 0x1E && field<10, 14>(I) == 0x10)
+				#define	IS_INSN_FP_DATAPROC_ONESRC(I)	(field<24, 31>(I) == 0x1E && field<10, 14>(I) == 0x10)
 				#define	IS_INSN_B_UNCOND(I)				(field<26, 30>(I) == 0x05)
                 #define	IS_INSN_B_UNCOND_REG(I)			(field<25, 31>(I) == 0x6B)
                 #define	IS_INSN_B_COMPARE(I)			(field<25, 30>(I) == 0x1A)
                 #define	IS_INSN_B_TEST(I)				(field<25, 30>(I) == 0x1B)
                 #define	IS_INSN_B_COND(I)				(field<25, 31>(I) == 0x2A)
                 #define	IS_INSN_PCREL_ADDR(I)			(field<24, 28>(I) == 0x10)
-                #define	IS_INSN_BRANCHING(I)			(IS_INSN_B_COND(I) || IS_INSN_B_UNCOND(I) || IS_INSN_B_UNCOND_REG(I) || IS_INSN_B_TEST(I) || 			IS_INSN_B_COMPARE(I))
+                #define	IS_INSN_BRANCHING(I)			(IS_INSN_B_COND(I) || IS_INSN_B_UNCOND(I) || IS_INSN_B_UNCOND_REG(I) || IS_INSN_B_TEST(I) 										 || IS_INSN_B_COMPARE(I))
 
                 #define	IS_FIELD_IMMR(S, E)				(S == 16 && E == 21)
                 #define	IS_FIELD_IMMS(S, E)				(S == 10 && E == 15)

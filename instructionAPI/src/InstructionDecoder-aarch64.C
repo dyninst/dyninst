@@ -41,7 +41,7 @@ namespace Dyninst
     typedef std::vector<aarch64_insn_entry> aarch64_insn_table;
     typedef std::map<unsigned int, aarch64_mask_entry> aarch64_decoder_table;
     typedef std::map<unsigned int, unsigned int> branchMap;
-
+    
     struct aarch64_insn_entry
     {
         aarch64_insn_entry(entryID o, const char* m, operandSpec ops):
@@ -126,7 +126,10 @@ namespace Dyninst
     {
         aarch64_insn_entry::buildInsnTable();
         aarch64_mask_entry::buildDecoderTable();
-
+        
+        std::string condArray[16] = {"eq","ne","cs","cc","mi","pl","vs","vc","hi","ls","ge","lt","gt","le","al","nv"};
+        condStringMap.assign(&condArray[0], &condArray[0] + 16);
+        
         invalid_insn = makeInstruction(aarch64_op_INVALID, "INVALID", 4, reinterpret_cast<unsigned char*>(&insn));
     }
 
@@ -285,36 +288,36 @@ namespace Dyninst
 		MachRegister reg;
 		int encoding = field<16, 20>(insn);
 		
-		reg = is64bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
+		reg = is64Bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
 		if(encoding != 31)
-			reg = makeaarch64regid(reg, encoding);
+			reg = makeAarch64RegID(reg, encoding);
 			
-		expression::ptr lhs;
+		Expression::Ptr lhs;
 
-		switch(optionfield)
+		switch(optionField)
 		{
-			case 0:lhs = makeregisterexpression(reg, u8);
+			case 0:lhs = makeRegisterExpression(reg, u8);
 					break;
-			case 1:lhs = makeregisterexpression(reg, u16);
+			case 1:lhs = makeRegisterExpression(reg, u16);
 					break;
-			case 2:lhs = makeregisterexpression(reg, u32);
+			case 2:lhs = makeRegisterExpression(reg, u32);
 					break;
-			case 3:lhs = makeregisterexpression(reg, u64);
+			case 3:lhs = makeRegisterExpression(reg, u64);
 					break;
-			case 4:lhs = makeregisterexpression(reg, s8);
+			case 4:lhs = makeRegisterExpression(reg, s8);
 					break;
-			case 5:lhs = makeregisterexpression(reg, s16);
+			case 5:lhs = makeRegisterExpression(reg, s16);
 					break;
-			case 6:lhs = makeregisterexpression(reg, s32);
+			case 6:lhs = makeRegisterExpression(reg, s32);
 					break;
-			case 7:lhs = makeregisterexpression(reg, s64);
+			case 7:lhs = makeRegisterExpression(reg, s64);
 					break;
 			default: assert(!"invalid option field value");
 		}
 		
-		result_type rt = is64bit?(optionfield<4?u64:s64):(optionfield<4?u32:s32);
+		Result_Type rT = is64Bit?(optionField<4?u64:s64):(optionField<4?u32:s32);
 		
-		return makeleftshiftexpression(lhs, immediate::makeimmediate(result(u32, unsign_extend32(len, val))), rt);
+		return makeLeftShiftExpression(lhs, Immediate::makeImmediate(Result(u32, unsign_extend32(len, val))), rT);
 	}
 
 	void InstructionDecoder_aarch64::processOptionFieldLSRegOffsetInsn()
