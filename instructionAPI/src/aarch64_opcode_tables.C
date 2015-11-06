@@ -443,7 +443,7 @@ void aarch64_insn_entry::buildInsnTable()
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_negs_subs_addsub_shift, 	"negs",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRd) ) ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ngc_sbc, 	"ngc",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRd) ) ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ngcs_sbcs, 	"ngcs",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRd) ) ));
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_nop_hint, 	"nop",	list_of( operandSpec() ) ));
+	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_nop_hint, 	"nop",	operandSpec()));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_not_advsimd, 	"not",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRn) )( fn(OPRRd) ) ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_orn_advsimd, 	"orn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ) ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_orn_log_shift, 	"orn",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ) ));
