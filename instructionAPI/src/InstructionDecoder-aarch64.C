@@ -282,34 +282,39 @@ namespace Dyninst
 
 	Expression::Ptr InstructionDecoder_aarch64::makeOptionExpression(int len, int val)
 	{
-		MachRegister baseReg = isFPInsn?
-            (isSinglePrec()?aarch64::s0:aarch64::d0):
-            (is64Bit?aarch64::x0:aarch64::w0);
-
+		MachRegister reg;
 		int encoding = field<16, 20>(insn);
-		if(!isFPInsn && field<16, 20>(insn) == 31)
-			baseReg = aarch64::zr;
-		else
-			baseReg = MachRegister(baseReg.val() + encoding);
+		
+		reg = is64bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
+		if(encoding != 31)
+			reg = makeaarch64regid(reg, encoding);
+			
+		expression::ptr lhs;
 
-		switch(optionField)
+		switch(optionfield)
 		{
-			case 0:return makeRegisterExpression(baseReg, u8);
-			case 1:return makeRegisterExpression(baseReg, u16);
-			case 2:if(!is64Bit && (field<0, 4>(insn) == 31 || field<5, 9>(insn) == 31) && val != 0)
-					   return makeLeftShiftExpression(makeRegisterExpression(baseReg), Immediate::makeImmediate(Result(u32, unsign_extend32(len, val))), u32);
-				   else
-				   	   return makeRegisterExpression(baseReg, u32);
-			case 3:if(is64Bit && (field<0, 4>(insn) == 31 || field<5, 9>(insn) == 31) && val != 0)
-					   return makeLeftShiftExpression(makeRegisterExpression(baseReg), Immediate::makeImmediate(Result(u32, unsign_extend32(len, val))), u64);
-				   else
-					   return makeRegisterExpression(baseReg, u64);
-			case 4:return makeRegisterExpression(baseReg, s8);
-			case 5:return makeRegisterExpression(baseReg, s16);
-			case 6:return makeRegisterExpression(baseReg, s32);
-			case 7:return makeRegisterExpression(baseReg, s64);
+			case 0:lhs = makeregisterexpression(reg, u8);
+					break;
+			case 1:lhs = makeregisterexpression(reg, u16);
+					break;
+			case 2:lhs = makeregisterexpression(reg, u32);
+					break;
+			case 3:lhs = makeregisterexpression(reg, u64);
+					break;
+			case 4:lhs = makeregisterexpression(reg, s8);
+					break;
+			case 5:lhs = makeregisterexpression(reg, s16);
+					break;
+			case 6:lhs = makeregisterexpression(reg, s32);
+					break;
+			case 7:lhs = makeregisterexpression(reg, s64);
+					break;
 			default: assert(!"invalid option field value");
 		}
+		
+		result_type rt = is64bit?(optionfield<4?u64:s64):(optionfield<4?u32:s32);
+		
+		return makeleftshiftexpression(lhs, immediate::makeimmediate(result(u32, unsign_extend32(len, val))), rt);
 	}
 
 	void InstructionDecoder_aarch64::processOptionFieldLSRegOffsetInsn()
@@ -411,7 +416,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
         int encoding  = field<0, 4>(insn);
 	MachRegister reg;
 	
-	if(isFPInsn && !IS_INSN_FP_CONV_INT(insn))
+	if(isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && !IS_SOURCE_GP(insn)))
 	{
 		
 		if(IS_INSN_FP_DATAPROC_ONESRC(insn))
