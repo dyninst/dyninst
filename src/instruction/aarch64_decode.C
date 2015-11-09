@@ -59,80 +59,6 @@ extern "C" DLLEXPORT TestMutator* aarch64_decode_factory()
    return new aarch64_decode_Mutator();
 }
 
-void aarch64_decode_Mutator::setupRegisters()
-{
-	  RegisterAST::Ptr x0 (new RegisterAST(aarch64::x0));
-	  RegisterAST::Ptr x1 (new RegisterAST(aarch64::x1));
-	  RegisterAST::Ptr x2 (new RegisterAST(aarch64::x2));
-	  RegisterAST::Ptr x3 (new RegisterAST(aarch64::x3));
-	  RegisterAST::Ptr x4 (new RegisterAST(aarch64::x4));
-	  RegisterAST::Ptr x5 (new RegisterAST(aarch64::x5));
-	  RegisterAST::Ptr x6 (new RegisterAST(aarch64::x6));
-	  RegisterAST::Ptr x7 (new RegisterAST(aarch64::x7));
-	  RegisterAST::Ptr x8 (new RegisterAST(aarch64::x8));
-	  RegisterAST::Ptr x9 (new RegisterAST(aarch64::x9));
-	  RegisterAST::Ptr x10(new RegisterAST(aarch64::x10));
-	  RegisterAST::Ptr x11(new RegisterAST(aarch64::x11));
-	  RegisterAST::Ptr x12(new RegisterAST(aarch64::x12));
-	  RegisterAST::Ptr x13(new RegisterAST(aarch64::x13));
-	  RegisterAST::Ptr x14(new RegisterAST(aarch64::x14));
-	  RegisterAST::Ptr x15(new RegisterAST(aarch64::x15));
-	  RegisterAST::Ptr x16(new RegisterAST(aarch64::x16));
-	  RegisterAST::Ptr x17(new RegisterAST(aarch64::x17));
-	  RegisterAST::Ptr x18(new RegisterAST(aarch64::x18));
-	  RegisterAST::Ptr x19(new RegisterAST(aarch64::x19));
-	  RegisterAST::Ptr x20(new RegisterAST(aarch64::x20));
-	  RegisterAST::Ptr x21(new RegisterAST(aarch64::x21));
-	  RegisterAST::Ptr x22(new RegisterAST(aarch64::x22));
-	  RegisterAST::Ptr x23(new RegisterAST(aarch64::x23));
-	  RegisterAST::Ptr x24(new RegisterAST(aarch64::x24));
-	  RegisterAST::Ptr x25(new RegisterAST(aarch64::x25));
-	  RegisterAST::Ptr x26(new RegisterAST(aarch64::x26));
-	  RegisterAST::Ptr x27(new RegisterAST(aarch64::x27));
-	  RegisterAST::Ptr x28(new RegisterAST(aarch64::x28));
-	  RegisterAST::Ptr x29(new RegisterAST(aarch64::x29));
-	  RegisterAST::Ptr x30(new RegisterAST(aarch64::x30));
-	  
-	  RegisterAST::Ptr w0 (new RegisterAST(aarch64::w0));
-	  RegisterAST::Ptr w1 (new RegisterAST(aarch64::w1));
-	  RegisterAST::Ptr w2 (new RegisterAST(aarch64::w2));
-	  RegisterAST::Ptr w3 (new RegisterAST(aarch64::w3));
-	  RegisterAST::Ptr w4 (new RegisterAST(aarch64::w4));
-	  RegisterAST::Ptr w5 (new RegisterAST(aarch64::w5));
-	  RegisterAST::Ptr w6 (new RegisterAST(aarch64::w6));
-	  RegisterAST::Ptr w7 (new RegisterAST(aarch64::w7));
-	  RegisterAST::Ptr w8 (new RegisterAST(aarch64::w8));
-	  RegisterAST::Ptr w9 (new RegisterAST(aarch64::w9));
-	  RegisterAST::Ptr w10(new RegisterAST(aarch64::w10));
-	  RegisterAST::Ptr w11(new RegisterAST(aarch64::w11));
-	  RegisterAST::Ptr w12(new RegisterAST(aarch64::w12));
-	  RegisterAST::Ptr w13(new RegisterAST(aarch64::w13));
-	  RegisterAST::Ptr w14(new RegisterAST(aarch64::w14));
-	  RegisterAST::Ptr w15(new RegisterAST(aarch64::w15));
-	  RegisterAST::Ptr w16(new RegisterAST(aarch64::w16));
-	  RegisterAST::Ptr w17(new RegisterAST(aarch64::w17));
-	  RegisterAST::Ptr w18(new RegisterAST(aarch64::w18));
-	  RegisterAST::Ptr w19(new RegisterAST(aarch64::w19));
-	  RegisterAST::Ptr w20(new RegisterAST(aarch64::w20));
-	  RegisterAST::Ptr w21(new RegisterAST(aarch64::w21));
-	  RegisterAST::Ptr w22(new RegisterAST(aarch64::w22));
-	  RegisterAST::Ptr w23(new RegisterAST(aarch64::w23));
-	  RegisterAST::Ptr w24(new RegisterAST(aarch64::w24));
-	  RegisterAST::Ptr w25(new RegisterAST(aarch64::w25));
-	  RegisterAST::Ptr w26(new RegisterAST(aarch64::w26));
-	  RegisterAST::Ptr w27(new RegisterAST(aarch64::w27));
-	  RegisterAST::Ptr w28(new RegisterAST(aarch64::w28));
-	  RegisterAST::Ptr w29(new RegisterAST(aarch64::w29));
-	  RegisterAST::Ptr w30(new RegisterAST(aarch64::w30)); 
-	   
-	  RegisterAST::Ptr zr (new RegisterAST(aarch64::zr));
-	  RegisterAST::Ptr wzr (new RegisterAST(aarch64::wzr));
-	  RegisterAST::Ptr sp (new RegisterAST(aarch64::sp));
-	  RegisterAST::Ptr wsp (new RegisterAST(aarch64::wsp));
-	  RegisterAST::Ptr pc (new RegisterAST(aarch64::pc));
-	  RegisterAST::Ptr pstate (new RegisterAST(aarch64::pstate));
-}
-
 test_results_t aarch64_decode_Mutator::executeTest()
 {
   const unsigned char buffer[] =
@@ -140,7 +66,6 @@ test_results_t aarch64_decode_Mutator::executeTest()
 	0x0B, 0x0C, 0x01, 0x41,		// ADD W1, W10, W12
 	0x0B, 0x08, 0x14, 0xA0,		// ADD W0, W5, W8, LSL #5
 	0x8B, 0x49, 0x28, 0xE4,		// ADD X4, X7, X9, LSR #10
-	0x8B, 0xC9, 0x28, 0xE4,		// ADD X4, X7, X9, ROR #10 (invalid)
 	0x4B, 0x04, 0x00, 0x40,		// SUB W0, W2, W4
 	0xCB, 0x8B, 0x1D, 0x06,		// SUB X6, X8, X11, ASR #7
 	0x2B, 0x08, 0x14, 0xA0,		// ADDS W0, W5, W8, LSL #5
@@ -154,9 +79,9 @@ test_results_t aarch64_decode_Mutator::executeTest()
 	0x3A, 0x4A, 0x10, 0xA7,		// CCMN W5, W10, #7, 1
 	0xFA, 0x42, 0xA0, 0x84,		// CCMP X2, X4, #4, 10
 	0x1A, 0x8F, 0x11, 0x45,		// CSEL W5, W10, W15, 1
-	0x9A, 0x84, 0x54, 0x40, 	// CSINC X0, X2, X4, 5
+	/*0x9A, 0x84, 0x54, 0x40, 	// CSINC X0, X2, X4, 5
 	0xDA, 0x96, 0x72, 0xB4,		// CSINV X20, X21, X22, 7
-	0x5A, 0x8A, 0xA4, 0xA1,		// CSNEG W1, W5, W9, 10
+	0x5A, 0x8A, 0xA4, 0xA1,		// CSNEG W1, W5, W9, 10*/
 	0x5A, 0xC0, 0x00, 0x41,		// RBIT W1, W2
 	0xDA, 0xC0, 0x0E, 0x8A,		// REV X10, X20
 	0x5A, 0xC0, 0x13, 0xBE,		// CLZ W30, W29
@@ -181,20 +106,20 @@ test_results_t aarch64_decode_Mutator::executeTest()
 	0xD1, 0x40, 0x31, 0x5F,		// SUB SP, X10, #12
 	0x13, 0x19, 0x29, 0xCC,		// SBFM W12, W14, #25, #10
 	0xB3, 0x40, 0x07, 0xC0,		// BFM X0, X30, #63, #0
-	0xD3, 0x41, 0x20, 0x14,		// UBFM X20, X0, #8, #1
+	//0xD3, 0x41, 0x20, 0x14,		// UBFM X20, X0, #8, #1
 	0x13, 0x9E, 0x16, 0x8A,		// EXTR W10, W20, W30, #5
 	0x93, 0xD0, 0xFD, 0x00,		// EXTR X0, X8, X16, #63
 	0x12, 0x00, 0xFF, 0xFF,		// AND WSP, WSP, #63
 	0xB2, 0x00, 0x03, 0xDF,		// ORR SP, X30, #0
 	0xD2, 0x7F, 0xFF, 0x34,		// EOR X20, X25, #
 	0x72, 0x00, 0x25, 0x45,		// ANDS W5, W10, #9
-	0x12, 0xA0, 0x02, 0xE4,		// MOVN W4, #23, LSL #1
-	0xD2, 0xC0, 0x02, 0x54,		// MOVZ X20, #18, LSL #2
+	//0x12, 0xA0, 0x02, 0xE4,		// MOVN W4, #23, LSL #1
+	//0xD2, 0xC0, 0x02, 0x54,		// MOVZ X20, #18, LSL #2
 	0xF2, 0xE0, 0x20, 0x01,		// MOVK X1, #256, LSL #3
-	0x12, 0x80, 0x01, 0x08,		// MOVN W8, #8
+	//0x12, 0x80, 0x01, 0x08,		// MOVN W8, #8
 	0x10, 0x80, 0x00, 0x00,		// ADR X0, #
 	0xF0, 0x00, 0x00, 0x3E,		// ADRP X30, #7
-	0x34, 0xFF, 0xFF, 0xEF,		// CBZ W15, #
+	/*0x34, 0xFF, 0xFF, 0xEF,		// CBZ W15, #
 	0xB5, 0x00, 0x00, 0x3E,		// CBNZ X30, #1
 	0x54, 0xFF, 0xFF, 0xE1,		// B.NE #
 	0x54, 0x00, 0x07, 0xEC,		// B.GT #63
@@ -207,8 +132,8 @@ test_results_t aarch64_decode_Mutator::executeTest()
 	0xD6, 0x3F, 0x03, 0xC0,		// BLR X30
 	0xD6, 0x5F, 0x00, 0x00,		// RET X0
 	0xD6, 0x9F, 0x03, 0xE0,		// ERET
-	0xD6, 0xBF, 0x03, 0xE0,		// DRPS
-	0x1E, 0x3F, 0x20, 0x00,		// FCMP S0, S32
+	0xD6, 0xBF, 0x03, 0xE0,		// DRPS*/
+	0x1E, 0x3F, 0x20, 0x00,		// FCMP S0, S31
 	0x1E, 0x30, 0x21, 0x08,		// FCMP D16, #0.0
 	0x1E, 0x7F, 0x23, 0xC0,		// FCMP D31, D32	
 	0x1E, 0x3F, 0xA6, 0x88,		// FCCMP S20, S31, #8, 10
@@ -263,8 +188,9 @@ test_results_t aarch64_decode_Mutator::executeTest()
   do
   {
     i = d.decode();
-    cout<<i->format().c_str()<<endl;
     decodedInsns.push_back(i);
+    if(i != NULL)
+		decodedInsns.back()->format();
   }
   while(i && i->isValid());
 
@@ -280,40 +206,1265 @@ test_results_t aarch64_decode_Mutator::executeTest()
 
     return FAILED;
   }
-
+  
   if(decodedInsns.back() && decodedInsns.back()->isValid())
   {
     logerror("FAILED: Expected instructions to end with an invalid instruction, but they didn't");
     return FAILED;
   }
 
-  setupRegisters();
+  RegisterAST::Ptr x0 (new RegisterAST(aarch64::x0));
+  RegisterAST::Ptr x1 (new RegisterAST(aarch64::x1));
+  RegisterAST::Ptr x2 (new RegisterAST(aarch64::x2));
+  RegisterAST::Ptr x3 (new RegisterAST(aarch64::x3));
+  RegisterAST::Ptr x4 (new RegisterAST(aarch64::x4));
+  RegisterAST::Ptr x5 (new RegisterAST(aarch64::x5));
+  RegisterAST::Ptr x6 (new RegisterAST(aarch64::x6));
+  RegisterAST::Ptr x7 (new RegisterAST(aarch64::x7));
+  RegisterAST::Ptr x8 (new RegisterAST(aarch64::x8));
+  RegisterAST::Ptr x9 (new RegisterAST(aarch64::x9));
+  RegisterAST::Ptr x10(new RegisterAST(aarch64::x10));
+  RegisterAST::Ptr x11(new RegisterAST(aarch64::x11));
+  RegisterAST::Ptr x12(new RegisterAST(aarch64::x12));
+  RegisterAST::Ptr x13(new RegisterAST(aarch64::x13));
+  RegisterAST::Ptr x14(new RegisterAST(aarch64::x14));
+  RegisterAST::Ptr x15(new RegisterAST(aarch64::x15));
+  RegisterAST::Ptr x16(new RegisterAST(aarch64::x16));
+  RegisterAST::Ptr x17(new RegisterAST(aarch64::x17));
+  RegisterAST::Ptr x18(new RegisterAST(aarch64::x18));
+  RegisterAST::Ptr x19(new RegisterAST(aarch64::x19));
+  RegisterAST::Ptr x20(new RegisterAST(aarch64::x20));
+  RegisterAST::Ptr x21(new RegisterAST(aarch64::x21));
+  RegisterAST::Ptr x22(new RegisterAST(aarch64::x22));
+  RegisterAST::Ptr x23(new RegisterAST(aarch64::x23));
+  RegisterAST::Ptr x24(new RegisterAST(aarch64::x24));
+  RegisterAST::Ptr x25(new RegisterAST(aarch64::x25));
+  RegisterAST::Ptr x26(new RegisterAST(aarch64::x26));
+  RegisterAST::Ptr x27(new RegisterAST(aarch64::x27));
+  RegisterAST::Ptr x28(new RegisterAST(aarch64::x28));
+  RegisterAST::Ptr x29(new RegisterAST(aarch64::x29));
+  RegisterAST::Ptr x30(new RegisterAST(aarch64::x30));
+  
+  RegisterAST::Ptr w0 (new RegisterAST(aarch64::w0));
+  RegisterAST::Ptr w1 (new RegisterAST(aarch64::w1));
+  RegisterAST::Ptr w2 (new RegisterAST(aarch64::w2));
+  RegisterAST::Ptr w3 (new RegisterAST(aarch64::w3));
+  RegisterAST::Ptr w4 (new RegisterAST(aarch64::w4));
+  RegisterAST::Ptr w5 (new RegisterAST(aarch64::w5));
+  RegisterAST::Ptr w6 (new RegisterAST(aarch64::w6));
+  RegisterAST::Ptr w7 (new RegisterAST(aarch64::w7));
+  RegisterAST::Ptr w8 (new RegisterAST(aarch64::w8));
+  RegisterAST::Ptr w9 (new RegisterAST(aarch64::w9));
+  RegisterAST::Ptr w10(new RegisterAST(aarch64::w10));
+  RegisterAST::Ptr w11(new RegisterAST(aarch64::w11));
+  RegisterAST::Ptr w12(new RegisterAST(aarch64::w12));
+  RegisterAST::Ptr w13(new RegisterAST(aarch64::w13));
+  RegisterAST::Ptr w14(new RegisterAST(aarch64::w14));
+  RegisterAST::Ptr w15(new RegisterAST(aarch64::w15));
+  RegisterAST::Ptr w16(new RegisterAST(aarch64::w16));
+  RegisterAST::Ptr w17(new RegisterAST(aarch64::w17));
+  RegisterAST::Ptr w18(new RegisterAST(aarch64::w18));
+  RegisterAST::Ptr w19(new RegisterAST(aarch64::w19));
+  RegisterAST::Ptr w20(new RegisterAST(aarch64::w20));
+  RegisterAST::Ptr w21(new RegisterAST(aarch64::w21));
+  RegisterAST::Ptr w22(new RegisterAST(aarch64::w22));
+  RegisterAST::Ptr w23(new RegisterAST(aarch64::w23));
+  RegisterAST::Ptr w24(new RegisterAST(aarch64::w24));
+  RegisterAST::Ptr w25(new RegisterAST(aarch64::w25));
+  RegisterAST::Ptr w26(new RegisterAST(aarch64::w26));
+  RegisterAST::Ptr w27(new RegisterAST(aarch64::w27));
+  RegisterAST::Ptr w28(new RegisterAST(aarch64::w28));
+  RegisterAST::Ptr w29(new RegisterAST(aarch64::w29));
+  RegisterAST::Ptr w30(new RegisterAST(aarch64::w30)); 
+  
+  RegisterAST::Ptr q0 (new RegisterAST(aarch64::q0));
+  RegisterAST::Ptr q1 (new RegisterAST(aarch64::q1));
+  RegisterAST::Ptr q2 (new RegisterAST(aarch64::q2));
+  RegisterAST::Ptr q3 (new RegisterAST(aarch64::q3));
+  RegisterAST::Ptr q4 (new RegisterAST(aarch64::q4));
+  RegisterAST::Ptr q5 (new RegisterAST(aarch64::q5));
+  RegisterAST::Ptr q6 (new RegisterAST(aarch64::q6));
+  RegisterAST::Ptr q7 (new RegisterAST(aarch64::q7));
+  RegisterAST::Ptr q8 (new RegisterAST(aarch64::q8));
+  RegisterAST::Ptr q9 (new RegisterAST(aarch64::q9));
+  RegisterAST::Ptr q10(new RegisterAST(aarch64::q10));
+  RegisterAST::Ptr q11(new RegisterAST(aarch64::q11));
+  RegisterAST::Ptr q12(new RegisterAST(aarch64::q12));
+  RegisterAST::Ptr q13(new RegisterAST(aarch64::q13));
+  RegisterAST::Ptr q14(new RegisterAST(aarch64::q14));
+  RegisterAST::Ptr q15(new RegisterAST(aarch64::q15));
+  RegisterAST::Ptr q16(new RegisterAST(aarch64::q16));
+  RegisterAST::Ptr q17(new RegisterAST(aarch64::q17));
+  RegisterAST::Ptr q18(new RegisterAST(aarch64::q18));
+  RegisterAST::Ptr q19(new RegisterAST(aarch64::q19));
+  RegisterAST::Ptr q20(new RegisterAST(aarch64::q20));
+  RegisterAST::Ptr q21(new RegisterAST(aarch64::q21));
+  RegisterAST::Ptr q22(new RegisterAST(aarch64::q22));
+  RegisterAST::Ptr q23(new RegisterAST(aarch64::q23));
+  RegisterAST::Ptr q24(new RegisterAST(aarch64::q24));
+  RegisterAST::Ptr q25(new RegisterAST(aarch64::q25));
+  RegisterAST::Ptr q26(new RegisterAST(aarch64::q26));
+  RegisterAST::Ptr q27(new RegisterAST(aarch64::q27));
+  RegisterAST::Ptr q28(new RegisterAST(aarch64::q28));
+  RegisterAST::Ptr q29(new RegisterAST(aarch64::q29));
+  RegisterAST::Ptr q30(new RegisterAST(aarch64::q30)); 
+  RegisterAST::Ptr q31(new RegisterAST(aarch64::q31));
+  
+  RegisterAST::Ptr s0 (new RegisterAST(aarch64::s0));
+  RegisterAST::Ptr s1 (new RegisterAST(aarch64::s1));
+  RegisterAST::Ptr s2 (new RegisterAST(aarch64::s2));
+  RegisterAST::Ptr s3 (new RegisterAST(aarch64::s3));
+  RegisterAST::Ptr s4 (new RegisterAST(aarch64::s4));
+  RegisterAST::Ptr s5 (new RegisterAST(aarch64::s5));
+  RegisterAST::Ptr s6 (new RegisterAST(aarch64::s6));
+  RegisterAST::Ptr s7 (new RegisterAST(aarch64::s7));
+  RegisterAST::Ptr s8 (new RegisterAST(aarch64::s8));
+  RegisterAST::Ptr s9 (new RegisterAST(aarch64::s9));
+  RegisterAST::Ptr s10(new RegisterAST(aarch64::s10));
+  RegisterAST::Ptr s11(new RegisterAST(aarch64::s11));
+  RegisterAST::Ptr s12(new RegisterAST(aarch64::s12));
+  RegisterAST::Ptr s13(new RegisterAST(aarch64::s13));
+  RegisterAST::Ptr s14(new RegisterAST(aarch64::s14));
+  RegisterAST::Ptr s15(new RegisterAST(aarch64::s15));
+  RegisterAST::Ptr s16(new RegisterAST(aarch64::s16));
+  RegisterAST::Ptr s17(new RegisterAST(aarch64::s17));
+  RegisterAST::Ptr s18(new RegisterAST(aarch64::s18));
+  RegisterAST::Ptr s19(new RegisterAST(aarch64::s19));
+  RegisterAST::Ptr s20(new RegisterAST(aarch64::s20));
+  RegisterAST::Ptr s21(new RegisterAST(aarch64::s21));
+  RegisterAST::Ptr s22(new RegisterAST(aarch64::s22));
+  RegisterAST::Ptr s23(new RegisterAST(aarch64::s23));
+  RegisterAST::Ptr s24(new RegisterAST(aarch64::s24));
+  RegisterAST::Ptr s25(new RegisterAST(aarch64::s25));
+  RegisterAST::Ptr s26(new RegisterAST(aarch64::s26));
+  RegisterAST::Ptr s27(new RegisterAST(aarch64::s27));
+  RegisterAST::Ptr s28(new RegisterAST(aarch64::s28));
+  RegisterAST::Ptr s29(new RegisterAST(aarch64::s29));
+  RegisterAST::Ptr s30(new RegisterAST(aarch64::s30)); 
+  RegisterAST::Ptr s31(new RegisterAST(aarch64::s31));
+ 
+  RegisterAST::Ptr h0 (new RegisterAST(aarch64::h0));
+  RegisterAST::Ptr h1 (new RegisterAST(aarch64::h1));
+  RegisterAST::Ptr h2 (new RegisterAST(aarch64::h2));
+  RegisterAST::Ptr h3 (new RegisterAST(aarch64::h3));
+  RegisterAST::Ptr h4 (new RegisterAST(aarch64::h4));
+  RegisterAST::Ptr h5 (new RegisterAST(aarch64::h5));
+  RegisterAST::Ptr h6 (new RegisterAST(aarch64::h6));
+  RegisterAST::Ptr h7 (new RegisterAST(aarch64::h7));
+  RegisterAST::Ptr h8 (new RegisterAST(aarch64::h8));
+  RegisterAST::Ptr h9 (new RegisterAST(aarch64::h9));
+  RegisterAST::Ptr h10(new RegisterAST(aarch64::h10));
+  RegisterAST::Ptr h11(new RegisterAST(aarch64::h11));
+  RegisterAST::Ptr h12(new RegisterAST(aarch64::h12));
+  RegisterAST::Ptr h13(new RegisterAST(aarch64::h13));
+  RegisterAST::Ptr h14(new RegisterAST(aarch64::h14));
+  RegisterAST::Ptr h15(new RegisterAST(aarch64::h15));
+  RegisterAST::Ptr h16(new RegisterAST(aarch64::h16));
+  RegisterAST::Ptr h17(new RegisterAST(aarch64::h17));
+  RegisterAST::Ptr h18(new RegisterAST(aarch64::h18));
+  RegisterAST::Ptr h19(new RegisterAST(aarch64::h19));
+  RegisterAST::Ptr h20(new RegisterAST(aarch64::h20));
+  RegisterAST::Ptr h21(new RegisterAST(aarch64::h21));
+  RegisterAST::Ptr h22(new RegisterAST(aarch64::h22));
+  RegisterAST::Ptr h23(new RegisterAST(aarch64::h23));
+  RegisterAST::Ptr h24(new RegisterAST(aarch64::h24));
+  RegisterAST::Ptr h25(new RegisterAST(aarch64::h25));
+  RegisterAST::Ptr h26(new RegisterAST(aarch64::h26));
+  RegisterAST::Ptr h27(new RegisterAST(aarch64::h27));
+  RegisterAST::Ptr h28(new RegisterAST(aarch64::h28));
+  RegisterAST::Ptr h29(new RegisterAST(aarch64::h29));
+  RegisterAST::Ptr h30(new RegisterAST(aarch64::h30)); 
+  RegisterAST::Ptr h31(new RegisterAST(aarch64::h31));
+  
+  RegisterAST::Ptr d0 (new RegisterAST(aarch64::d0));
+  RegisterAST::Ptr d1 (new RegisterAST(aarch64::d1));
+  RegisterAST::Ptr d2 (new RegisterAST(aarch64::d2));
+  RegisterAST::Ptr d3 (new RegisterAST(aarch64::d3));
+  RegisterAST::Ptr d4 (new RegisterAST(aarch64::d4));
+  RegisterAST::Ptr d5 (new RegisterAST(aarch64::d5));
+  RegisterAST::Ptr d6 (new RegisterAST(aarch64::d6));
+  RegisterAST::Ptr d7 (new RegisterAST(aarch64::d7));
+  RegisterAST::Ptr d8 (new RegisterAST(aarch64::d8));
+  RegisterAST::Ptr d9 (new RegisterAST(aarch64::d9));
+  RegisterAST::Ptr d10(new RegisterAST(aarch64::d10));
+  RegisterAST::Ptr d11(new RegisterAST(aarch64::d11));
+  RegisterAST::Ptr d12(new RegisterAST(aarch64::d12));
+  RegisterAST::Ptr d13(new RegisterAST(aarch64::d13));
+  RegisterAST::Ptr d14(new RegisterAST(aarch64::d14));
+  RegisterAST::Ptr d15(new RegisterAST(aarch64::d15));
+  RegisterAST::Ptr d16(new RegisterAST(aarch64::d16));
+  RegisterAST::Ptr d17(new RegisterAST(aarch64::d17));
+  RegisterAST::Ptr d18(new RegisterAST(aarch64::d18));
+  RegisterAST::Ptr d19(new RegisterAST(aarch64::d19));
+  RegisterAST::Ptr d20(new RegisterAST(aarch64::d20));
+  RegisterAST::Ptr d21(new RegisterAST(aarch64::d21));
+  RegisterAST::Ptr d22(new RegisterAST(aarch64::d22));
+  RegisterAST::Ptr d23(new RegisterAST(aarch64::d23));
+  RegisterAST::Ptr d24(new RegisterAST(aarch64::d24));
+  RegisterAST::Ptr d25(new RegisterAST(aarch64::d25));
+  RegisterAST::Ptr d26(new RegisterAST(aarch64::d26));
+  RegisterAST::Ptr d27(new RegisterAST(aarch64::d27));
+  RegisterAST::Ptr d28(new RegisterAST(aarch64::d28));
+  RegisterAST::Ptr d29(new RegisterAST(aarch64::d29));
+  RegisterAST::Ptr d30(new RegisterAST(aarch64::d30)); 
+  RegisterAST::Ptr d31(new RegisterAST(aarch64::d31));
+  
+  RegisterAST::Ptr b0 (new RegisterAST(aarch64::b0));
+  RegisterAST::Ptr b1 (new RegisterAST(aarch64::b1));
+  RegisterAST::Ptr b2 (new RegisterAST(aarch64::b2));
+  RegisterAST::Ptr b3 (new RegisterAST(aarch64::b3));
+  RegisterAST::Ptr b4 (new RegisterAST(aarch64::b4));
+  RegisterAST::Ptr b5 (new RegisterAST(aarch64::b5));
+  RegisterAST::Ptr b6 (new RegisterAST(aarch64::b6));
+  RegisterAST::Ptr b7 (new RegisterAST(aarch64::b7));
+  RegisterAST::Ptr b8 (new RegisterAST(aarch64::b8));
+  RegisterAST::Ptr b9 (new RegisterAST(aarch64::b9));
+  RegisterAST::Ptr b10(new RegisterAST(aarch64::b10));
+  RegisterAST::Ptr b11(new RegisterAST(aarch64::b11));
+  RegisterAST::Ptr b12(new RegisterAST(aarch64::b12));
+  RegisterAST::Ptr b13(new RegisterAST(aarch64::b13));
+  RegisterAST::Ptr b14(new RegisterAST(aarch64::b14));
+  RegisterAST::Ptr b15(new RegisterAST(aarch64::b15));
+  RegisterAST::Ptr b16(new RegisterAST(aarch64::b16));
+  RegisterAST::Ptr b17(new RegisterAST(aarch64::b17));
+  RegisterAST::Ptr b18(new RegisterAST(aarch64::b18));
+  RegisterAST::Ptr b19(new RegisterAST(aarch64::b19));
+  RegisterAST::Ptr b20(new RegisterAST(aarch64::b20));
+  RegisterAST::Ptr b21(new RegisterAST(aarch64::b21));
+  RegisterAST::Ptr b22(new RegisterAST(aarch64::b22));
+  RegisterAST::Ptr b23(new RegisterAST(aarch64::b23));
+  RegisterAST::Ptr b24(new RegisterAST(aarch64::b24));
+  RegisterAST::Ptr b25(new RegisterAST(aarch64::b25));
+  RegisterAST::Ptr b26(new RegisterAST(aarch64::b26));
+  RegisterAST::Ptr b27(new RegisterAST(aarch64::b27));
+  RegisterAST::Ptr b28(new RegisterAST(aarch64::b28));
+  RegisterAST::Ptr b29(new RegisterAST(aarch64::b29));
+  RegisterAST::Ptr b30(new RegisterAST(aarch64::b30)); 
+  RegisterAST::Ptr b31(new RegisterAST(aarch64::b31));     
+   
+  RegisterAST::Ptr zr (new RegisterAST(aarch64::zr));
+  RegisterAST::Ptr wzr (new RegisterAST(aarch64::wzr));
+  RegisterAST::Ptr sp (new RegisterAST(aarch64::sp));
+  RegisterAST::Ptr wsp (new RegisterAST(aarch64::wsp));
+  RegisterAST::Ptr pc (new RegisterAST(aarch64::pc));
+  RegisterAST::Ptr pstate (new RegisterAST(aarch64::pstate));
 
   std::deque<registerSet> expectedRead, expectedWritten;
   registerSet tmpRead, tmpWritten;
 
   test_results_t retVal = PASSED;
+    
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w12,w10};
+	tmpWritten = {w1};
+#else
+	tmpRead = list_of(w12)(w10);
+	tmpWritten = list_of(w1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w8,w5};
+	tmpWritten = {w0};
+#else
+	tmpRead = list_of(w8)(w5);
+	tmpWritten = list_of(w0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x9,x7};
+	tmpWritten = {x4};
+#else
+	tmpRead = list_of(x9)(x7);
+	tmpWritten = list_of(x4);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w4,w2};
+	tmpWritten = {w0};
+#else
+	tmpRead = list_of(w4)(w2);
+	tmpWritten = list_of(w0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x11,x8};
+	tmpWritten = {x6};
+#else
+	tmpRead = list_of(x11)(x8);
+	tmpWritten = list_of(x6);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w8,w5};
+	tmpWritten = {w0,pstate};
+#else
+	tmpRead = list_of(w8)(w5);
+	tmpWritten = list_of(w0)(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x15,w10};
+	tmpWritten = {w5};
+#else
+	tmpRead = list_of(x15)(w10);
+	tmpWritten = list_of(w5);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w1,x1};
+	tmpWritten = {x0};
+#else
+	tmpRead = list_of(w1)(x1);
+	tmpWritten = list_of(x0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x2,x2};
+	tmpWritten = {x2,pstate};
+#else
+	tmpRead = list_of(x2)(x2);
+	tmpWritten = list_of(x2)(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w25,w22};
+	tmpWritten = {w5};
+#else
+	tmpRead = list_of(w25)(w22);
+	tmpWritten = list_of(w5);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x2,x1};
+	tmpWritten = {x0};
+#else
+	tmpRead = list_of(x2)(x1);
+	tmpWritten = list_of(x0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w7,pstate};
+	tmpWritten = {pstate};
+#else
+	tmpRead = list_of(w7)(pstate);
+	tmpWritten = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x20,pstate};
+	tmpWritten = {pstate};
+#else
+	tmpRead = list_of(x20)(pstate);
+	tmpWritten = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w10,w5,pstate};
+	tmpWritten = {pstate};
+#else
+	tmpRead = list_of(w10)(w5)(pstate);
+	tmpWritten = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x2,x4,pstate};
+	tmpWritten = {pstate};
+#else
+	tmpRead = list_of(x2)(x4)(pstate);
+	tmpWritten = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w15,w10,pstate};
+	tmpWritten = {w5};
+#else
+	tmpRead = list_of(w15)(w10)(pstate);
+	tmpWritten = list_of(w5);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+/*#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x0};	
+#else
+	tmpRead = list_of(x0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x20};
+#else
+	tmpRead = list_of(x20);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();*/
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w2};
+	tmpWritten = {w1};
+#else
+	tmpRead = list_of(w2);
+	tmpWritten = list_of(w1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x20};
+	tmpWritten = {x10};
+#else
+	tmpRead = list_of(x20);
+	tmpWritten = list_of(x10);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w29};
+	tmpWritten = {w30};
+#else
+	tmpRead = list_of(w29);
+	tmpWritten = list_of(w30);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x12};
+	tmpWritten = {x11};
+#else
+	tmpRead = list_of(x12);
+	tmpWritten = list_of(x11);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w12};
+	tmpWritten = {w0};
+#else
+	tmpRead = list_of(w12);
+	tmpWritten = list_of(w0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w4,w2};
+	tmpWritten = {w0};
+#else
+	tmpRead = list_of(w4)(w2);
+	tmpWritten = list_of(w0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x25,x20};
+	tmpWritten = {x15};
+#else
+	tmpRead = list_of(x25)(x20);
+	tmpWritten = list_of(x15);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w11,w8};
+	tmpWritten = {w5};
+#else
+	tmpRead = list_of(w11)(w8);
+	tmpWritten = list_of(w5);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x11,x9};
+	tmpWritten = {x7};
+#else
+	tmpRead = list_of(x11)(x9);
+	tmpWritten = list_of(x7);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w4,w0};
+	tmpWritten = {w16};
+#else
+	tmpRead = list_of(w4)(w0);
+	tmpWritten = list_of(w16);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w2,w0,w3};
+	tmpWritten = {w1};
+#else
+	tmpRead = list_of(w2)(w0)(w3);
+	tmpWritten = list_of(w1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x16,x30,x8};
+	tmpWritten = {x4};
+#else
+	tmpRead = list_of(x16)(x30)(x8);
+	tmpWritten = list_of(x4);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x1,x1,x0};
+	tmpWritten = {x0};
+#else
+	tmpRead = list_of(x1)(x1)(x0);
+	tmpWritten = list_of(x0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x10,x5};
+	tmpWritten = {x5};
+#else
+	tmpRead = list_of(x10)(x5);
+	tmpWritten = list_of(x5);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w3,w2};
+	tmpWritten = {w1};
+#else
+	tmpRead = list_of(w3)(w2);
+	tmpWritten = list_of(w1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x10,x5};
+	tmpWritten = {x0};
+#else
+	tmpRead = list_of(x10)(x5);
+	tmpWritten = list_of(x0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w2,w0};
+	tmpWritten = {w0};
+#else
+	tmpRead = list_of(w2)(w0);
+	tmpWritten = list_of(w0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x22,x21};
+	tmpWritten = {x20};
+#else
+	tmpRead = list_of(x22)(x21);
+	tmpWritten = list_of(x20);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x1,x1};
+	tmpWritten = {x1,pstate};
+#else
+	tmpRead = list_of(x1)(x1);
+	tmpWritten = list_of(x1)(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {wsp};
+	tmpWritten = {w0};
+#else
+	tmpRead = list_of(wsp);
+	tmpWritten = list_of(w0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w10};
+	tmpWritten = {w5,pstate};
+#else
+	tmpRead = list_of(w10);
+	tmpWritten = list_of(w5)(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x10};
+	tmpWritten = {sp};
+#else
+	tmpRead = list_of(x10);
+	tmpWritten = list_of(sp);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w14};
+	tmpWritten = {w12};
+#else
+	tmpRead = list_of(w14);
+	tmpWritten = list_of(w12);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x30};
+	tmpWritten = {x0};
+#else
+	tmpRead = list_of(x30);
+	tmpWritten = list_of(x0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w30,w20};
+	tmpWritten = {w10};
+#else
+	tmpRead = list_of(w30)(w20);
+	tmpWritten = list_of(w10);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x16,x8};
+	tmpWritten = {x0};
+#else
+	tmpRead = list_of(x16)(x8);
+	tmpWritten = list_of(x0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {wsp};
+	tmpWritten = {wsp};
+#else
+	tmpRead = list_of(wsp);
+	tmpWritten = list_of(wsp);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x30};
+	tmpWritten = {sp};
+#else
+	tmpRead = list_of(x30);
+	tmpWritten = list_of(sp);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x25};
+	tmpWritten = {x20};
+#else
+	tmpRead = list_of(x25);
+	tmpWritten = list_of(x20);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w10};
+	tmpWritten = {w5,pstate};
+#else
+	tmpRead = list_of(w10);
+	tmpWritten = list_of(w5)(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpWritten = {x1};
+#else
+	tmpWritten = list_of(x1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {pc};
+	tmpWritten = {x0};
+#else
+	tmpRead = list_of(pc);
+	tmpWritten = list_of(x0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {pc};
+	tmpWritten = {x30};
+#else
+	tmpRead = list_of(pc);
+	tmpWritten = list_of(x30);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s31,s0};
+	tmpWritten = {pstate};
+#else
+	tmpRead = list_of(s31)(s0);
+	tmpWritten = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s8};
+	tmpWritten = {pstate};
+#else
+	tmpRead = list_of(s8);
+	tmpWritten = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d31,d30};
+	tmpWritten = {pstate};
+#else
+	tmpRead = list_of(d31)(d30);
+	tmpWritten = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s31,s20,pstate};
+	tmpWritten = {pstate};
+#else
+	tmpRead = list_of(s31)(s20)(pstate);
+	tmpWritten = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d2,d1,pstate};
+	tmpWritten = {pstate};
+#else
+	tmpRead = list_of(d2)(d1)(pstate);
+	tmpWritten = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d11,d10,pstate};
+	tmpWritten = {pstate};
+#else
+	tmpRead = list_of(d11)(d10)(pstate);
+	tmpWritten = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s3,s2,pstate};
+	tmpWritten = {s1};
+#else
+	tmpRead = list_of(s3)(s2)(pstate);
+	tmpWritten = list_of(s1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s10};
+	tmpWritten = {s5};
+#else
+	tmpRead = list_of(s10);
+	tmpWritten = list_of(s5);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d31};
+	tmpWritten = {d31};
+#else
+	tmpRead = list_of(d31);
+	tmpWritten = list_of(d31);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d2};
+	tmpWritten = {d0};
+#else
+	tmpRead = list_of(d2);
+	tmpWritten = list_of(d0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {h5};
+	tmpWritten = {s4};
+#else
+	tmpRead = list_of(h5);
+	tmpWritten = list_of(s4);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {h31};
+	tmpWritten = {d0};
+#else
+	tmpRead = list_of(h31);
+	tmpWritten = list_of(d0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s0};
+	tmpWritten = {d2};
+#else
+	tmpRead = list_of(s0);
+	tmpWritten = list_of(d2);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d31};
+	tmpWritten = {h31};
+#else
+	tmpRead = list_of(d31);
+	tmpWritten = list_of(h31);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d1};
+	tmpWritten = {s1};
+#else
+	tmpRead = list_of(d1);
+	tmpWritten = list_of(s1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s16};
+	tmpWritten = {h8};
+#else
+	tmpRead = list_of(s16);
+	tmpWritten = list_of(h8);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s2,s1};
+	tmpWritten = {s0};
+#else
+	tmpRead = list_of(s2)(s1);
+	tmpWritten = list_of(s0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d31,d30};
+	tmpWritten = {d29};
+#else
+	tmpRead = list_of(d31)(d30);
+	tmpWritten = list_of(d29);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d15,d10};
+	tmpWritten = {d5};
+#else
+	tmpRead = list_of(d15)(d10);
+	tmpWritten = list_of(d5);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s0,s16};
+	tmpWritten = {s8};
+#else
+	tmpRead = list_of(s0)(s16);
+	tmpWritten = list_of(s8);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s1,s1};
+	tmpWritten = {s1};
+#else
+	tmpRead = list_of(s1)(s1);
+	tmpWritten = list_of(s1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s2,s3,s1};
+	tmpWritten = {s0};
+#else
+	tmpRead = list_of(s2)(s3)(s1);
+	tmpWritten = list_of(s0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d8,d16,d4};
+	tmpWritten = {d2};
+#else
+	tmpRead = list_of(d8)(d16)(d4);
+	tmpWritten = list_of(d2);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s11,s13,s11};
+	tmpWritten = {s10};
+#else
+	tmpRead = list_of(s11)(s13)(s11);
+	tmpWritten = list_of(s10);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d2,d1,d4};
+	tmpWritten = {d8};
+#else
+	tmpRead = list_of(d2)(d1)(d4);
+	tmpWritten = list_of(d8);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {};
+	tmpWritten = {s0};
+#else
+	tmpRead = list_of();
+	tmpWritten = list_of(s0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {};
+	tmpWritten = {d31};
+#else
+	tmpRead = list_of();
+	tmpWritten = list_of(d31);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w30};
+	tmpWritten = {s0};
+#else
+	tmpRead = list_of(w30);
+	tmpWritten = list_of(s0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x0};
+	tmpWritten = {d1};
+#else
+	tmpRead = list_of(x0);
+	tmpWritten = list_of(d1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w10};
+	tmpWritten = {s5};
+#else
+	tmpRead = list_of(w10);
+	tmpWritten = list_of(s5);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w2};
+	tmpWritten = {d8};
+#else
+	tmpRead = list_of(w2);
+	tmpWritten = list_of(d8);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s0};
+	tmpWritten = {w11};
+#else
+	tmpRead = list_of(s0);
+	tmpWritten = list_of(w11);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d31};
+	tmpWritten = {x30};
+#else
+	tmpRead = list_of(d31);
+	tmpWritten = list_of(x30);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s10};
+	tmpWritten = {x1};
+#else
+	tmpRead = list_of(s10);
+	tmpWritten = list_of(x1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d9};
+	tmpWritten = {w9};
+#else
+	tmpRead = list_of(d9);
+	tmpWritten = list_of(w9);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s5};
+	tmpWritten = {w8};
+#else
+	tmpRead = list_of(s5);
+	tmpWritten = list_of(w8);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w30};
+	tmpWritten = {s1};
+#else
+	tmpRead = list_of(w30);
+	tmpWritten = list_of(s1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {pstate};
+#else
+	tmpRead = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {pstate};
+#else
+	tmpRead = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {pstate};
+#else
+	tmpRead = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {pstate};
+#else
+	tmpRead = list_of(pstate);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
 
   decodedInsns.pop_back();
   while(!decodedInsns.empty())
   {
       retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead.front(),
                                    expectedWritten.front()));
-      // TEMP commented out
-      /*
-      if(decodedInsns.size() == 1)
-      {
-          if(!decodedInsns.front()->readsMemory())
-          {
-              logerror("**FAILED**: insn %s did not read memory, expected lhzux r5, r7, r9\n",
-                       decodedInsns.front()->format().c_str());
-              return FAILED;
-          }
-      }
-      */
       decodedInsns.pop_front();
 
-      expectedRead.pop_front();
+  	  expectedRead.pop_front();
       expectedWritten.pop_front();
   }
 
