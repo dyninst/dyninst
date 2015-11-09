@@ -380,9 +380,9 @@ namespace Dyninst
 			else if(crnField == 4)
 			{
 				int pstatefield = (op1Field << 3) | (op2Field & 7);
-				insn_in_progress->appendOperand(Immediate::makeImmediate(u8, unsign_extend32(6, pstatefield)), true, false);
+				insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(6, pstatefield))), true, false);
 				
-				insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(4, crmField))));
+				insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(4, crmField))), true, false);
 				
 				isPstateWritten = true;
 			}
