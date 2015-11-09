@@ -168,7 +168,7 @@ namespace Dyninst
         immr = immrLen = 0;
 
         isSystemInsn = false;
-        op0Field = op1Field = op2Field = crnField = crmField = 0;
+        op1Field = op2Field = crnField = crmField = 0;
 
         immlo = immloLen = 0;
 
@@ -288,7 +288,11 @@ namespace Dyninst
 		MachRegister reg;
 		int encoding = field<16, 20>(insn);
 		
-		reg = is64Bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
+		if(IS_INSN_ADDSUB_EXT(insn))
+			reg = ((optionField & 0x3) == 0x3)?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
+		else
+			reg = is64Bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
+		
 		if(encoding != 31)
 			reg = makeAarch64RegID(reg, encoding);
 			
@@ -355,11 +359,13 @@ namespace Dyninst
 
 	void InstructionDecoder_aarch64::processSystemInsn()
 	{
+		int op0Field = field<19, 20>(insn);
+		
 		if(op0Field == 0)
 		{
 			if(crnField == 3)			//clrex, dendBit, dmb, iendBit
 			{
-				Expression::Ptr CRm = Immediate::makeImmediate(Result(u32, unsign_extend32(4, crmField)));
+				Expression::Ptr CRm = Immediate::makeImmediate(Result(u8, unsign_extend32(4, crmField)));
 
 				insn_in_progress->appendOperand(CRm, true, false);
 			}
@@ -367,14 +373,18 @@ namespace Dyninst
 			{
 				int immVal = (crmField << 3)|(op2Field & 7);		//hint
 
-				Expression::Ptr imm = Immediate::makeImmediate(Result(u32, unsign_extend32(7, immVal)));
+				Expression::Ptr imm = Immediate::makeImmediate(Result(u8, unsign_extend32(7, immVal)));
 
 				insn_in_progress->appendOperand(imm, true, false);
 			}
 			else if(crnField == 4)
 			{
-				//msr immediate
-				//affects pstate
+				int pstatefield = (op1Field << 3) | (op2Field & 7);
+				insn_in_progress->appendOperand(Immediate::makeImmediate(u8, unsign_extend32(6, pstatefield)), true, false);
+				
+				insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(4, crmField))));
+				
+				isPstateWritten = true;
 			}
 			else
 			{
@@ -1424,7 +1434,7 @@ void InstructionDecoder_aarch64::OPRRa()
 
 void InstructionDecoder_aarch64::OPRo0()
 {
-	op0Field = field<19, 20>(insn);
+	
 }
 
 void InstructionDecoder_aarch64::OPRb5()
