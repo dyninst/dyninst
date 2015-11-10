@@ -41,7 +41,7 @@ namespace Dyninst
     typedef std::vector<aarch64_insn_entry> aarch64_insn_table;
     typedef std::map<unsigned int, aarch64_mask_entry> aarch64_decoder_table;
     typedef std::map<unsigned int, unsigned int> branchMap;
-    
+
     struct aarch64_insn_entry
     {
         aarch64_insn_entry(entryID o, const char* m, operandSpec ops):
@@ -126,10 +126,10 @@ namespace Dyninst
     {
         aarch64_insn_entry::buildInsnTable();
         aarch64_mask_entry::buildDecoderTable();
-        
+
         std::string condArray[16] = {"eq","ne","cs","cc","mi","pl","vs","vc","hi","ls","ge","lt","gt","le","al","nv"};
         condStringMap.assign(&condArray[0], &condArray[0] + 16);
-        
+
         invalid_insn = makeInstruction(aarch64_op_INVALID, "INVALID", 4, reinterpret_cast<unsigned char*>(&insn));
     }
 
@@ -287,15 +287,15 @@ namespace Dyninst
 	{
 		MachRegister reg;
 		int encoding = field<16, 20>(insn);
-		
+
 		if(IS_INSN_ADDSUB_EXT(insn))
 			reg = ((optionField & 0x3) == 0x3)?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
 		else
 			reg = is64Bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
-		
+
 		if(encoding != 31)
 			reg = makeAarch64RegID(reg, encoding);
-			
+
 		Expression::Ptr lhs;
 
 		switch(optionField)
@@ -318,9 +318,9 @@ namespace Dyninst
 					break;
 			default: assert(!"invalid option field value");
 		}
-		
+
 		Result_Type rT = is64Bit?(optionField<4?u64:s64):(optionField<4?u32:s32);
-		
+
 		return makeLeftShiftExpression(lhs, Immediate::makeImmediate(Result(u32, unsign_extend32(len, val))), rT);
 	}
 
@@ -360,7 +360,7 @@ namespace Dyninst
 	void InstructionDecoder_aarch64::processSystemInsn()
 	{
 		int op0Field = field<19, 20>(insn);
-		
+
 		if(op0Field == 0)
 		{
 			if(crnField == 3)			//clrex, dendBit, dmb, iendBit
@@ -381,9 +381,9 @@ namespace Dyninst
 			{
 				int pstatefield = (op1Field << 3) | (op2Field & 7);
 				insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(6, pstatefield))), true, false);
-				
+
 				insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(4, crmField))), true, false);
-				
+
 				isPstateWritten = true;
 			}
 			else
@@ -428,7 +428,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 {
         int encoding  = field<0, 4>(insn);
 	MachRegister reg;
-	
+
 	if(isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && !IS_SOURCE_GP(insn)))
 	{
 
@@ -789,10 +789,10 @@ void InstructionDecoder_aarch64::getMemRefEx_RT(Result_Type &rt){
         case 0x01: //H
             rt = u16;
             break;
-        case 0x10: //32b
+        case 0x02: //32b
             rt = u32;
             break;
-        case 0x11: //64b
+        case 0x03: //64b
             rt = u64;
             break;
         default:
@@ -1434,7 +1434,7 @@ void InstructionDecoder_aarch64::OPRRa()
 
 void InstructionDecoder_aarch64::OPRo0()
 {
-	
+
 }
 
 void InstructionDecoder_aarch64::OPRb5()
