@@ -119,7 +119,7 @@ namespace Dyninst
 
     InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
       : InstructionDecoderImpl(a), isPstateRead(false), isPstateWritten(false), isFPInsn(false),isSIMDInsn(false),
-	    is64Bit(true), isValid(true), insn(0), insn_in_progress(NULL), isSystemInsn(false),
+	    is64Bit(true), isValid(true), insn(0), insn_in_progress(NULL),
         hasHw(false), hasShift(false), hasOption(false), hasN(false),
         immr(0), immrLen(0), sField(0), nField(0), nLen(0),
         immlo(0), immloLen(0), _szField(-1)
@@ -167,8 +167,7 @@ namespace Dyninst
         sField = nField = nLen = 0;
         immr = immrLen = 0;
 
-        isSystemInsn = false;
-        op1Field = op2Field = crnField = crmField = 0;
+        op1Field = op2Field = crmField = 0;
 
         immlo = immloLen = 0;
 
@@ -288,11 +287,7 @@ namespace Dyninst
 		MachRegister reg;
 		int encoding = field<16, 20>(insn);
 		
-		if(IS_INSN_ADDSUB_EXT(insn))
-			reg = ((optionField & 0x3) == 0x3)?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
-		else
-			reg = is64Bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
-		
+		reg = ((optionField & 0x3) == 0x3)?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
 		if(encoding != 31)
 			reg = makeAarch64RegID(reg, encoding);
 			
@@ -335,7 +330,7 @@ namespace Dyninst
 
 			extend = sField * sizeVal;
 			int extendSize = 31;
-			while(((extend << (31 - extendSize)) & 0x80000000) == 0)
+			while(extendSize >= 0  && ((extend << (31 - extendSize)) & 0x80000000) == 0)
 				extendSize--;
 
 			//above values need to be used in a dereference expression
@@ -359,8 +354,9 @@ namespace Dyninst
 
 	void InstructionDecoder_aarch64::processSystemInsn()
 	{
-		int op0Field = field<19, 20>(insn);
+		int op0Field = field<19, 20>(insn), crnField = field<12, 15>(insn);
 		
+		isPstateRead = true;
 		if(op0Field == 0)
 		{
 			if(crnField == 3)			//clrex, dendBit, dmb, iendBit
@@ -368,16 +364,20 @@ namespace Dyninst
 				Expression::Ptr CRm = Immediate::makeImmediate(Result(u8, unsign_extend32(4, crmField)));
 
 				insn_in_progress->appendOperand(CRm, true, false);
+				
+				isPstateRead = false;
 			}
-			else if(crnField == 2)
+			else if(crnField == 2)                    //hint
 			{
-				int immVal = (crmField << 3)|(op2Field & 7);		//hint
+				int immVal = (crmField << 3)|(op2Field & 7);		
 
 				Expression::Ptr imm = Immediate::makeImmediate(Result(u8, unsign_extend32(7, immVal)));
 
 				insn_in_progress->appendOperand(imm, true, false);
+				
+				isPstateRead = false;
 			}
-			else if(crnField == 4)
+			else if(crnField == 4)				//msr (immediate)
 			{
 				int pstatefield = (op1Field << 3) | (op2Field & 7);
 				insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(6, pstatefield))), true, false);
@@ -391,19 +391,20 @@ namespace Dyninst
 				isValid = false;
 			}
 		}
-		else                  //sys, sysl, mrs, msr register
+		else if(op0Field == 1)                  //sys, sysl
 		{
-			/*int immVal = op2 | (crm << 3) | (crn << 7) | (op1 << 11);
-			immVal = (op0 >= 2)?(immVal << 1)|(op0 & 1):immVal;
-
-			int immValLen = 14 + (op0 & 2);
-
-			Expression::Ptr imm = Immediate::makeImmediate(Result(u32, unsign_extend32<immValLen>(immVal)));
-
-			insn_in_progress->appendOperand(imm, true, false);*/
-			assert(!"not implemented");
-
+			insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(3, op1Field))), true, false);
+			insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(4, crnField))), true, false);
+			insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(4, crmField))), true, false);
+			insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(3, op2Field))), true, false);
+			
+			int encoding = field<0, 4>(insn);
+			MachRegister reg = (encoding == 31)?aarch64::zr:makeAarch64RegID(aarch64::x0, encoding);
+			bool isRtRead = (field<21, 21>(insn) == 0);
+			insn_in_progress->appendOperand(makeRegisterExpression(reg), isRtRead, !isRtRead);
 		}
+		else
+			assert(!"msr(register) and mrs not implemented");
 	}
 
     Result_Type InstructionDecoder_aarch64::makeSizeType(unsigned int)
@@ -1384,13 +1385,11 @@ void InstructionDecoder_aarch64::OPRop2()
 
 void InstructionDecoder_aarch64::OPRCRm()
 {
-	isSystemInsn = true;
 	crmField = field<8 ,11>(insn);
 }
 
 void InstructionDecoder_aarch64::OPRCRn()
 {
-	crnField = field<12, 15>(insn);
 }
 
 template<unsigned int endBit, unsigned int startBit>
@@ -1687,17 +1686,20 @@ using namespace boost::assign;
 			std::mem_fun(*fn)(this);
 		}
 
-		if(isPstateWritten || isPstateRead)
-			insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten);
-
-		if(isSystemInsn)
+		if(IS_INSN_SYSTEM(insn))
 		{
 			processSystemInsn();
 		}
+		
+		if(isPstateWritten || isPstateRead)
+			insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten);
 
 		if(!isValid)
 		{
-			insn_in_progress = invalid_insn;
+			insn_in_progress->getOperation().mnemonic = INVALID_ENTRY.mnemonic;
+			insn_in_progress->getOperation().operationID = INVALID_ENTRY.op;
+			insn_in_progress->m_Operands.clear();
+			insn_in_progress->m_Successors.clear();
 		}
     }
 	int InstructionDecoder_aarch64::findInsnTableIndex(unsigned int decoder_table_index)
