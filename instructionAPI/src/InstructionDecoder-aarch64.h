@@ -108,6 +108,7 @@ namespace Dyninst {
                 #define	IS_INSN_B_TEST(I)				(field<25, 30>(I) == 0x1B)
                 #define	IS_INSN_B_COND(I)				(field<25, 31>(I) == 0x2A)
                 #define	IS_INSN_PCREL_ADDR(I)			(field<24, 28>(I) == 0x10)
+                #define	IS_INSN_SYSTEM(I)				(field<22, 31>(I) == 0x354)
                 #define	IS_INSN_BRANCHING(I)			(IS_INSN_B_COND(I) || IS_INSN_B_UNCOND(I) || IS_INSN_B_UNCOND_REG(I) || IS_INSN_B_TEST(I) 										 || IS_INSN_B_COMPARE(I))
 
                 #define	IS_FIELD_IMMR(S, E)				(S == 16 && E == 21)
@@ -169,8 +170,7 @@ namespace Dyninst {
                     return (mask>>(64-size)) & in;
 				}
 
-                bool isSystemInsn;
-				int op1Field, op2Field, crnField, crmField;
+				int op1Field, op2Field, crmField;
 				void processSystemInsn();
 
 				bool hasHw;

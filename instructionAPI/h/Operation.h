@@ -139,7 +139,7 @@ namespace Dyninst
       mutable VCSet otherEffAddrsRead;
       mutable VCSet otherEffAddrsWritten;
       mutable std::string mnemonic;
-      entryID operationID;
+      mutable entryID operationID;
       mutable bool doneOtherSetup;
       mutable bool doneFlagsSetup;
       Architecture archDecodedFrom;

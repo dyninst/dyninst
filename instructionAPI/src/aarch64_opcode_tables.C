@@ -27,13 +27,13 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#define INVALID_ENTRY aarch64_insn_entry(aarch64_op_INVALID, "INVALID", branchMap(), operandSpec())
-
 bool aarch64_insn_entry::built_insn_table = false;
 bool aarch64_mask_entry::built_decoder_table = false;
 
 aarch64_insn_table aarch64_insn_entry::main_insn_table;
 aarch64_decoder_table aarch64_mask_entry::main_decoder_table;
+
+#define INVALID_ENTRY aarch64_insn_entry::main_insn_table[0]
 
 void aarch64_insn_entry::buildInsnTable()
 {
