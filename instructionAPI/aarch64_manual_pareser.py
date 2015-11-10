@@ -498,7 +498,7 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
 
         for i in inInsnIndex:
             processedIndex.add(i)
-            print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
+            #print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
         printDecodertable(entryToPlace, 0, list(), inInsnIndex[0]);
         numNodes += 1
         return
