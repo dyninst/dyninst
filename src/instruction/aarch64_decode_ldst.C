@@ -200,12 +200,12 @@ test_results_t aarch64_decode_ldst_Mutator::executeTest()
     0xc8,   0x00,   0xfc,   0x61,        //stlxr   w0, x1, [x3]
     0x48,   0x00,   0xfc,   0x61,        //stlxrh  w0, w1, [x3]
 
-    /*0xf8,   0x63,   0x68,   0x41,        //ldr     x1, [x2,x3]
+    0xf8,   0x63,   0x68,   0x41,        //ldr     x1, [x2,x3]
     0xf8,   0x63,   0x78,   0x41,        //ldr     x1, [x2,x3,lsl #3]
     0xb8,   0x63,   0x78,   0x41,        //ldr     w1, [x2,x3,lsl #2]
     0xf8,   0x63,   0x48,   0x41,        //ldr     x1, [x2,w3,uxtw]
 
-    0xf8,   0x63,   0xe8,   0x41,        //ldr     x1, [x2,x3,sxtx]*/
+    0xf8,   0x63,   0xe8,   0x41,        //ldr     x1, [x2,x3,sxtx]
     0x9a,   0x82,   0x04,   0x20,        //csinc   x0, x1, x2, eq
     0xda,   0x82,   0x00,   0x20,        //csinv   x0, x1, x2, eq
     0xda,   0x82,   0x04,   0x20,        //csneg   x0, x1, x2, eq
@@ -236,10 +236,8 @@ test_results_t aarch64_decode_ldst_Mutator::executeTest()
   {
     i = d.decode();
     decodedInsns.push_back(i);
-    /*
     if(i != NULL)
-        cout<< i->format()<<endl;
-        */
+        /*cout<<*/ i->format()/*<<endl*/;
   }
   while(i && i->isValid());
 
@@ -715,10 +713,10 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {x2, w3};
+	tmpRead = {x2, x3};
 	tmpWritten = {w1};
 #else
-	tmpRead = list_of(x2)(w3);
+	tmpRead = list_of(x2)(x3);
 	tmpWritten = list_of(w1);
 #endif
 expectedRead.push_back(tmpRead);
@@ -726,10 +724,10 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {x2, w3};
+	tmpRead = {x2, x3};
 	tmpWritten = {w1};
 #else
-	tmpRead = list_of(x2)(w3);
+	tmpRead = list_of(x2)(x3);
 	tmpWritten = list_of(w1);
 #endif
 expectedRead.push_back(tmpRead);
@@ -737,10 +735,10 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {x2, w3};
+	tmpRead = {x2, x3};
 	tmpWritten = {w1};
 #else
-	tmpRead = list_of(x2)(w3);
+	tmpRead = list_of(x2)(x3);
 	tmpWritten = list_of(w1);
 #endif
 expectedRead.push_back(tmpRead);
@@ -748,10 +746,10 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {x2, w3};
+	tmpRead = {x2, x3};
 	tmpWritten = {w1};
 #else
-	tmpRead = list_of(x2)(w3);
+	tmpRead = list_of(x2)(x3);
 	tmpWritten = list_of(w1);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1250,7 +1248,7 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 
-// store
+// store 155
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
 	tmpRead = {x2, x1};
 	tmpWritten = {};
@@ -1366,10 +1364,10 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {x2, w1, w3};
+	tmpRead = {x2, w1, x3};
 	tmpWritten = {};
 #else
-	tmpRead = list_of(x2)(w1)(w3);
+	tmpRead = list_of(x2)(w1)(x3);
 	tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
@@ -1377,10 +1375,10 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {x2, w1, w3};
+	tmpRead = {x2, w1, x3};
 	tmpWritten = {};
 #else
-	tmpRead = list_of(x2)(w1)(w3);
+	tmpRead = list_of(x2)(w1)(x3);
 	tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
@@ -1689,7 +1687,6 @@ tmpRead.clear();
 tmpWritten.clear();
 
 //203
-/*
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
 	tmpRead = {x3, x2};
 	tmpWritten = {x1};
@@ -1725,10 +1722,10 @@ tmpRead.clear();
 tmpWritten.clear();
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
 	tmpRead = {w3, x2};
-	tmpWritten = {w1};
+	tmpWritten = {x1};
 #else
 	tmpRead = list_of(x2)(w3);
-	tmpWritten = list_of(w1);
+	tmpWritten = list_of(x1);
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1747,7 +1744,6 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-*/
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
 	tmpRead = {x1, x2, pstate};
 	tmpWritten = {x0};
