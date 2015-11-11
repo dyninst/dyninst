@@ -199,6 +199,7 @@ enum entryID {
   e_fdivrp,
   e_femms,
   e_ffree,
+  e_ffreep,
   e_fiadd,
   e_ficom,
   e_ficomp,

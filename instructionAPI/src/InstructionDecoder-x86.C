@@ -276,7 +276,7 @@ namespace Dyninst
                 return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(immStart)));
                 break;
             case op_v:
-                if (locs->rex_w) {
+                if (locs->rex_w || isDefault64Insn()) {
                     return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(immStart)));
                 }
                 //FALLTHROUGH
@@ -863,8 +863,11 @@ namespace Dyninst
                                 pseudoOpType = op_d;
                                 break;
                             case 0:
-                                // closest I can get to "will be address size by default"
-                                pseudoOpType = op_v;
+				if(m_Arch == Arch_x86_64) {
+				    pseudoOpType = op_q;
+				} else {
+				    pseudoOpType = op_v;
+				}
                                 break;
                             default:
                                 assert(!"Bad address size, should be 0, 1, 2, or 4!");
@@ -1069,21 +1072,37 @@ namespace Dyninst
                     case am_reg:
                     {
                         MachRegister r(optype);
-                        r = MachRegister((r.val() & ~r.getArchitecture()) | m_Arch);
-                        entryID entryid = decodedInstruction->getEntry()->getID(locs);
-                        if(locs->rex_b && insn_to_complete->m_Operands.empty() && 
-			    (entryid == e_push || entryid == e_pop || entryid == e_xchg || ((*(b.start + locs->opcode_position) & 0xf0) == 0xb0) ) )
-                        {
-                            // FP stack registers are not affected by the rex_b bit in AM_REG.
-                           if(r.regClass() != (unsigned) x86::MMX)
-                            {
-                                r = MachRegister((r.val()) | x86_64::r8.val());
-                            }
-                        }
-                        if(sizePrefixPresent)
-                        {
-                            r = MachRegister((r.val() & ~x86::FULL) | x86::W_REG);
-                        }
+			if((m_Arch == Arch_x86_64) && (r.regClass() == x86::GPR) && (r.size() == 4))
+			{
+			    int reg_size = isDefault64Insn() ? op_q : op_v;
+			    // implicit regs are not extended
+			    r = makeRegisterID((r.val() & 0xFF), reg_size, false);
+			    entryID entryid = decodedInstruction->getEntry()->getID(locs);
+			    if(locs->rex_b && insn_to_complete->m_Operands.empty() &&
+			       (entryid == e_push || entryid == e_pop || entryid == e_xchg || ((*(b.start + locs->opcode_position) & 0xf0) == 0xb0)))
+			    {
+				r = MachRegister((r.val()) | x86_64::r8.val());
+			    }
+			}
+			else 
+			{
+			    r = MachRegister((r.val() & ~r.getArchitecture()) | m_Arch);
+			    
+			    entryID entryid = decodedInstruction->getEntry()->getID(locs);
+			    if(locs->rex_b && insn_to_complete->m_Operands.empty() && 
+			       (entryid == e_push || entryid == e_pop || entryid == e_xchg || ((*(b.start + locs->opcode_position) & 0xf0) == 0xb0) ) )
+			    {
+				// FP stack registers are not affected by the rex_b bit in AM_REG.
+				if(r.regClass() != (unsigned) x86::MMX)
+				{
+				    r = MachRegister((r.val()) | x86_64::r8.val());
+				}
+			    }
+			    if(sizePrefixPresent)
+			    {
+				r = MachRegister((r.val() & ~x86::FULL) | x86::W_REG);
+			    }
+			}
                         Expression::Ptr op(makeRegisterExpression(r));
                         insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
