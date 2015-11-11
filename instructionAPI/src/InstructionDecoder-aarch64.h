@@ -192,7 +192,6 @@ namespace Dyninst {
 
         		int immlo, immloLen;
 				void makeBranchTarget(bool, bool, int, int);
-				void makeLinkForBranch();
 				Expression::Ptr makeFallThroughExpr();
 
                 int _szField;

@@ -1070,16 +1070,14 @@ void InstructionDecoder_aarch64::OPRRn()
 	if(IS_INSN_B_UNCOND_REG(insn))										//unconditional branch (register)
 	{
 		int branchType = field<21, 22>(insn);
-		bool branchIsCall = false;
-
-		if(branchType == 0x1)
-		{
-			branchIsCall = true;
-			makeLinkForBranch();
-		}
 
 		insn_in_progress->appendOperand(makePCExpr(), false, true);
-		insn_in_progress->addSuccessor(makeRnExpr(), branchIsCall, false, false, false);
+		insn_in_progress->addSuccessor(makeRnExpr(), field<21, 21>(insn) == 1, true, false, false);
+		
+		if(branchType == 0x1)
+		{
+			insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+		}
 	}
 	else
 		insn_in_progress->appendOperand(makeRnExpr(), true, false);
@@ -1487,11 +1485,6 @@ void InstructionDecoder_aarch64::OPRRs()
 	insn_in_progress->appendOperand(makeRsExpr(), false, true);
 }
 
-void InstructionDecoder_aarch64::makeLinkForBranch()
-{
-	insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::x30, 0)), false, true);
-}
-
 void InstructionDecoder_aarch64::makeBranchTarget(bool branchIsCall, bool bIsConditional, int immVal, int immLen)
 {
 	Expression::Ptr lhs = makePCExpr();
@@ -1499,12 +1492,12 @@ void InstructionDecoder_aarch64::makeBranchTarget(bool branchIsCall, bool bIsCon
 	int offset = sign_extend64(immLen + 2, immVal*4);
 	Expression::Ptr rhs = Immediate::makeImmediate(Result(s64, offset));
 
+	insn_in_progress->addSuccessor(makeAddExpression(lhs, rhs, s64), branchIsCall, false, bIsConditional, false);
 	if(branchIsCall)
 	{
-		makeLinkForBranch();
+		insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
 	}
 
-	insn_in_progress->addSuccessor(makeAddExpression(lhs, rhs, s64), branchIsCall, false, bIsConditional, false);
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeFallThroughExpr()
@@ -1634,7 +1627,7 @@ void InstructionDecoder_aarch64::OPRimm()
 		makeBranchTarget(branchIsCall, bIsConditional, immVal, immLen);
 
 		if(bIsConditional)
-			insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+			insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, true, true);
 	}
 	else if(IS_INSN_PCREL_ADDR(insn))									//pc-relative addressing
 	{
