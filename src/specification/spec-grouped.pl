@@ -2366,6 +2366,21 @@ test_runmode('aarch64_decode', 'disk').
 test_start_state('aarch64_decode', 'stopped').
 tests_module('aarch64_decode', 'instruction').
 
+test('aarch64_cft', 'aarch64_cft', none).
+test_description('aarch64_cft', 'Tests the read & write sets of AARCH64 instructions.').
+test_platform('aarch64_cft', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('power32', _, _, Platform);
+        platform('power64', _, _, Platform);
+        platform('powerpc', _, _, Platform);
+        platform('aarch64', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('aarch64_cft', ['aarch64_cft.C']).
+test_runmode('aarch64_cft', 'disk').
+test_start_state('aarch64_cft', 'stopped').
+tests_module('aarch64_cft', 'instruction').
+
 test('aarch64_decode_ldst', 'aarch64_decode_ldst', none).
 test_description('aarch64_decode_ldst', 'Tests the read & write sets of AARCH64 load/store instructions.').
 test_platform('aarch64_decode_ldst', Platform) :-
