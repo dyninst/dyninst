@@ -324,6 +324,7 @@ namespace Dyninst {
                 void OPRcmode() {}
                 void OPRrmode() {}
                 void OPRop() {}
+                void setFlags(){}
         };
     }
 }
