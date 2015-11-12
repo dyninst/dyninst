@@ -229,6 +229,9 @@ def getOpTable( filename = 'NULL' ):
                             if encodeBit == '1' or encodeBit == '0':
                                 maskBit[31-maskStartBit] = '1'
                                 encodingArray[31-maskStartBit] = encodeBit
+                                if encodeBit == '1':
+                                    if reserve_operand_pos[0] == 'S':
+                                        operands_pos_Insn.append( ('setFlags',) )
 
                             elif encodeBit == '(1)':
                                 maskBit[31-maskStartBit] = '1'
@@ -373,8 +376,10 @@ def buildInsnTable():
                     operands += 'OPR'+operand[0]+'<'+ str(operand[1][0])+' COMMA ' + str(operand[1][1])+'>'
                 else:
                     curOperandName = operand[0]
-
-                    operands += 'OPR'+ curOperandName
+                    if curOperandName == 'setFlags':
+                        operands+= curOperandName
+                    else:
+                        operands += 'OPR'+ curOperandName
 
                 operands += ') )'
 
@@ -498,7 +503,7 @@ def buildDecodeTable(inInsnIndex , processedMask, entryToPlace):
 
         for i in inInsnIndex:
             processedIndex.add(i)
-            #print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
+            print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
         printDecodertable(entryToPlace, 0, list(), inInsnIndex[0]);
         numNodes += 1
         return
