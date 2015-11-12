@@ -41,6 +41,9 @@ namespace Dyninst
     typedef std::vector<aarch64_insn_entry> aarch64_insn_table;
     typedef std::map<unsigned int, aarch64_mask_entry> aarch64_decoder_table;
     typedef std::map<unsigned int, unsigned int> branchMap;
+    
+    std::vector<std::string> InstructionDecoder_aarch64::condStringMap;
+    std::map<unsigned int, MachRegister> InstructionDecoder_aarch64::sysRegMap;
 
     struct aarch64_insn_entry
     {
@@ -126,11 +129,10 @@ namespace Dyninst
     {
         aarch64_insn_entry::buildInsnTable();
         aarch64_mask_entry::buildDecoderTable();
+        InstructionDecoder_aarch64::buildSysRegMap();
 
         std::string condArray[16] = {"eq","ne","cs","cc","mi","pl","vs","vc","hi","ls","ge","lt","gt","le","al","nv"};
-        condStringMap.assign(&condArray[0], &condArray[0] + 16);
-
-        invalid_insn = makeInstruction(aarch64_op_INVALID, "INVALID", 4, reinterpret_cast<unsigned char*>(&insn));
+        InstructionDecoder_aarch64::condStringMap.assign(&condArray[0], &condArray[0] + 16);
     }
 
     InstructionDecoder_aarch64::~InstructionDecoder_aarch64()
@@ -356,7 +358,6 @@ namespace Dyninst
 	{
 		int op0Field = field<19, 20>(insn), crnField = field<12, 15>(insn);
 
-		isPstateRead = true;
 		if(op0Field == 0)
 		{
 			if(crnField == 3)			//clrex, dendBit, dmb, iendBit
@@ -364,8 +365,6 @@ namespace Dyninst
 				Expression::Ptr CRm = Immediate::makeImmediate(Result(u8, unsign_extend32(4, crmField)));
 
 				insn_in_progress->appendOperand(CRm, true, false);
-
-				isPstateRead = false;
 			}
 			else if(crnField == 2)                    //hint
 			{
@@ -374,8 +373,6 @@ namespace Dyninst
 				Expression::Ptr imm = Immediate::makeImmediate(Result(u8, unsign_extend32(7, immVal)));
 
 				insn_in_progress->appendOperand(imm, true, false);
-
-				isPstateRead = false;
 			}
 			else if(crnField == 4)				//msr (immediate)
 			{
@@ -398,13 +395,20 @@ namespace Dyninst
 			insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(4, crmField))), true, false);
 			insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, unsign_extend32(3, op2Field))), true, false);
 
-			int encoding = field<0, 4>(insn);
-			MachRegister reg = (encoding == 31)?aarch64::zr:makeAarch64RegID(aarch64::x0, encoding);
 			bool isRtRead = (field<21, 21>(insn) == 0);
-			insn_in_progress->appendOperand(makeRegisterExpression(reg), isRtRead, !isRtRead);
+			insn_in_progress->appendOperand(makeRtExpr(), isRtRead, !isRtRead);
 		}
-		else
-			assert(!"msr(register) and mrs not implemented");
+		else                   //mrs (register), msr
+		{
+			bool isRtRead = (field<21, 21>(insn) == 0);
+			
+			unsigned int systemRegEncoding = (op0Field << 14) | (op1Field << 11) | (crnField << 7) | (crmField << 3) | op2Field;
+			if(InstructionDecoder_aarch64::sysRegMap.count(systemRegEncoding) <= 0)
+				assert(!"tried to access system register not accessible in EL0");
+				
+			insn_in_progress->appendOperand(makeRegisterExpression(InstructionDecoder_aarch64::sysRegMap[systemRegEncoding]), !isRtRead, isRtRead);
+			insn_in_progress->appendOperand(makeRtExpr(), isRtRead, !isRtRead);
+		}
 	}
 
     Result_Type InstructionDecoder_aarch64::makeSizeType(unsigned int)
@@ -1154,7 +1158,7 @@ void InstructionDecoder_aarch64::OPRRnSU()
 
 Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
 {
-        int encoding  = field<16, 20>(insn);
+    int encoding  = field<16, 20>(insn);
 	MachRegister reg;
 
 	if(isFPInsn)
@@ -1294,11 +1298,21 @@ void InstructionDecoder_aarch64::setRegWidth(){
 
 Expression::Ptr InstructionDecoder_aarch64::makeRtExpr()
 {
-	MachRegister baseReg = isFPInsn?
-        (isSinglePrec()?aarch64::s0:aarch64::d0):
-        (is64Bit ? aarch64::x0 : aarch64::w0);
+	int encoding  = field<0, 4>(insn);
+	MachRegister reg;
 
-	return makeRegisterExpression(makeAarch64RegID(baseReg, field<0, 4>(insn)));
+	if(isFPInsn)
+	{
+		reg = makeAarch64RegID(isSinglePrec()?aarch64::s0:aarch64::d0, encoding);
+	}
+	else
+	{
+		reg = is64Bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
+		if(encoding != 31)
+			reg = makeAarch64RegID(reg, encoding);
+	}
+
+	return makeRegisterExpression(reg);
 }
 
 void InstructionDecoder_aarch64::OPRRt()

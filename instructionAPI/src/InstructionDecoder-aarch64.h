@@ -63,7 +63,8 @@ namespace Dyninst {
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
 
-                std::vector<std::string> condStringMap;
+                static std::vector<std::string> condStringMap;
+                static std::map<unsigned int, MachRegister> sysRegMap;
 
                 #define	IS_INSN_LOGICAL_SHIFT(I)		(field<24, 28>(I) == 0x0A)
                 #define	IS_INSN_ADDSUB_EXT(I)			(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 1)
@@ -127,11 +128,10 @@ namespace Dyninst {
 
                 void mainDecode();
                 int findInsnTableIndex(unsigned int);
+                static void buildSysRegMap();
                 unsigned int insn;
                 Instruction* insn_in_progress;
-                Instruction* invalid_insn;
 
-                // inherit from ppc is not sematically consistent with aarch64 manual
                 template <int start, int end>
                 int field(unsigned int raw)
                 {

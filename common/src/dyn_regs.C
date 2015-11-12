@@ -198,7 +198,7 @@ unsigned int MachRegister::size() const {
                     return 0;
             }
         }
-		else if((reg & 0x00ff0000) == aarch64::GPR || (reg & 0x00ff0000) == aarch64::SPR)
+		else if((reg & 0x00ff0000) == aarch64::GPR || (reg & 0x00ff0000) == aarch64::SPR || (reg & 0x00ff0000) == aarch64::SYSREG)
 			switch(reg & 0x0000ff00)
 			{
 				case aarch64::FULL : return 8;
