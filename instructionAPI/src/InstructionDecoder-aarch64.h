@@ -70,7 +70,6 @@ namespace Dyninst {
                 #define	IS_INSN_ADDSUB_EXT(I)			(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 1)
                 #define	IS_INSN_ADDSUB_SHIFT(I)			(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 0)
                 #define	IS_INSN_ADDSUB_IMM(I)			(field<24, 28>(I) == 0x11)
-                #define	IS_INSN_ADDSUB_CARRY(I)			(field<21, 28>(I) == 0xD0)
 
                 //----ld/st-----
                 #define IS_INSN_LDST(I)                 (field<25, 25>(I) == 0x00 && field<27, 27>(I) == 1)
@@ -127,7 +126,11 @@ namespace Dyninst {
 
                 void mainDecode();
                 int findInsnTableIndex(unsigned int);
+		
+		/*members for handling operand re-ordering, will be removed later once a generic operand ordering method is incorporated*/
+		int oprRotateAmt;
 		void reorderOperands();
+
                 static void buildSysRegMap();
                 unsigned int insn;
                 Instruction* insn_in_progress;

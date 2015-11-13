@@ -175,6 +175,8 @@ namespace Dyninst
 
         _szField = -1;
 
+	oprRotateAmt = 0;
+
         insn = b.start[0] << 24 | b.start[1] << 16 |
         b.start[2] << 8 | b.start[3];
 
@@ -408,6 +410,8 @@ namespace Dyninst
 
 			insn_in_progress->appendOperand(makeRegisterExpression(InstructionDecoder_aarch64::sysRegMap[systemRegEncoding]), !isRtRead, isRtRead);
 			insn_in_progress->appendOperand(makeRtExpr(), isRtRead, !isRtRead);
+			if(!isRtRead)
+			    insn_in_progress->m_Operands.reverse();
 		}
 	}
 
@@ -1367,12 +1371,16 @@ template<unsigned int endBit, unsigned int startBit>
 void InstructionDecoder_aarch64::OPRcond()
 {
 	unsigned char condVal = static_cast<unsigned char>(field<startBit, endBit>(insn));
-	Expression::Ptr cond = Immediate::makeImmediate(Result(u8, condVal));
-	insn_in_progress->appendOperand(cond, true, false);
 	if(IS_INSN_B_COND(insn))
 	{
 		insn_in_progress->getOperation().mnemonic += ".";
 		insn_in_progress->getOperation().mnemonic += condStringMap[condVal];
+	}
+	else
+	{
+		Expression::Ptr cond = Immediate::makeImmediate(Result(u8, condVal));
+		insn_in_progress->appendOperand(cond, true, false);
+		oprRotateAmt++;
 	}
 
 	isPstateRead = true;
@@ -1385,6 +1393,7 @@ void InstructionDecoder_aarch64::OPRnzcv()
 	insn_in_progress->appendOperand(nzcv, true, false);
 
 	isPstateWritten = true;
+	oprRotateAmt++;
 }
 
 void InstructionDecoder_aarch64::OPRop1()
@@ -1443,6 +1452,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeRaExpr()
 void InstructionDecoder_aarch64::OPRRa()
 {
 	insn_in_progress->appendOperand(makeRaExpr(), true, false);
+
+	oprRotateAmt++;
 }
 
 void InstructionDecoder_aarch64::OPRo0()
@@ -1574,12 +1585,6 @@ void InstructionDecoder_aarch64::OPRimm()
 		{
 			immr = immVal;
 			immrLen = immLen;
-
-			if(IS_INSN_BITFIELD(insn))
-			{
-				Expression::Ptr imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immrLen, immr)));
-				insn_in_progress->appendOperand(imm, true, false);
-			}
 		}
 		else if(IS_FIELD_IMMS(startBit, endBit))
 		{
@@ -1596,10 +1601,21 @@ void InstructionDecoder_aarch64::OPRimm()
 				imm = Immediate::makeImmediate(Result(rT, rT==u32?unsign_extend32(immLen, immVal):unsign_extend64(immLen, immVal)));
 			}
 			else
+			{
 				imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immLen, immVal)));
+				oprRotateAmt++;
+			}
 
 			insn_in_progress->appendOperand(imm, true, false);
+			if(IS_INSN_BITFIELD(insn))
+			{
+				imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immrLen, immr)));
+				insn_in_progress->appendOperand(imm, true, false);
+				oprRotateAmt--;
+			}
 		}
+		else
+		    isValid = false;
 	}
 	else if(hasShift)
 	{
@@ -1612,9 +1628,7 @@ void InstructionDecoder_aarch64::OPRimm()
 			processShiftFieldImmInsn(immLen, immVal);
 		}
 		else
-		{
 			isValid = false;
-		}
 	}
 	else if(hasOption)
 	{
@@ -1687,12 +1701,19 @@ void InstructionDecoder_aarch64::OPRimm()
     
 	void InstructionDecoder_aarch64::reorderOperands()
 	{
-	    std::vector<Operand> curOperands;
-	    insn_in_progress->getOperands(curOperands);
+	    if(oprRotateAmt)
+	    {
+		std::vector<Operand> curOperands;
+		insn_in_progress->getOperands(curOperands);
+		std::swap(curOperands[1], curOperands[3]);
+		
+		while(oprRotateAmt--)
+			std::rotate(curOperands.begin(), curOperands.begin()+1, curOperands.begin()+3);
 
-	    //re-order operands in the vector here
-	    
-	    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
+		insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
+	    }
+	    else
+		insn_in_progress->m_Operands.reverse();
 	}
 
 
@@ -1709,24 +1730,15 @@ using namespace boost::assign;
 		insn_in_progress = const_cast<Instruction*>(insn_to_complete);
 
 		//only a small subset of instructions modify nzcv and the following are the ones for whom it cannot be detected from any operand that they do modify pstate
-		//it thus needs to be read from the manual..yay
-		/*if(((IS_INSN_ADDSUB_EXT(insn) || IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_CARRY(insn))
-			 && field<29, 29>(insn) == 0x1) ||
-		   ((IS_INSN_LOGICAL_SHIFT(insn) || IS_INSN_LOGICAL_IMM(insn))
-			 && field<29, 30>(insn) == 0x3) ||
-		   (IS_INSN_FP_COMPARE(insn))
-            )
-		   isPstateWritten = true;*/
+		if (IS_INSN_FP_COMPARE(insn))
+		   isPstateWritten = true;
 
         for(operandSpec::const_iterator fn = insn_table_entry->operands.begin(); fn != insn_table_entry->operands.end(); fn++)
         {
 			std::mem_fun(*fn)(this);
 		}
 
-		if(/*reversal conditions met*/)
-		{
-		    reorderOperands();
-		}
+		reorderOperands();
 
 		if(IS_INSN_SYSTEM(insn))
 		{
