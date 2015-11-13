@@ -1712,18 +1712,22 @@ void InstructionDecoder_aarch64::OPRimm()
 	{
 	    if(oprRotateAmt)
 	    {
-		    std::vector<Operand> curOperands;
-		    insn_in_progress->getOperands(curOperands);
-		    std::swap(curOperands[1], curOperands[3]);
+			std::vector<Operand> curOperands;
+			insn_in_progress->getOperands(curOperands);
 
-		    while(oprRotateAmt--)
-		    	std::rotate(curOperands.begin(), curOperands.begin()+1, curOperands.begin()+3);
+			if(curOperands.empty())
+				assert(!"empty operand list found while re-ordering operands");
 
-		    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
+			std::swap(curOperands[1], curOperands[3]);
+
+			while(oprRotateAmt--)
+				std::rotate(curOperands.begin(), curOperands.begin()+1, curOperands.begin()+3);
+
+			insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
 	    }
         else if( IS_INSN_LDST_POST(insn) || IS_INSN_LDST_PAIR_POST(insn) ){
-		    std::vector<Operand> curOperands;
-		    insn_in_progress->getOperands(curOperands);
+	        std::vector<Operand> curOperands;
+	        insn_in_progress->getOperands(curOperands);
             std::iter_swap( curOperands.begin(), curOperands.end()-1 );
 		    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
         }
