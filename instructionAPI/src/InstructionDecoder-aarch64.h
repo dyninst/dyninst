@@ -76,6 +76,7 @@ namespace Dyninst {
                 #define IS_INSN_LDST(I)                 (field<25, 25>(I) == 0x00 && field<27, 27>(I) == 1)
 
                 #define IS_INSN_LDST_EX(I)              (field<24, 29>(I) == 0x08)
+                #define IS_INSN_ST_EX(I)                (field<24, 29>(I) == 0x08 && field<22, 22>(I) == 0)
                 #define IS_INSN_LDST_EX_PAIR(I)         (field<24, 29>(I) == 0x08 && field<15, 15>(I) == 0x01 && field<21, 21>(I) ==0x01)
 
                 #define IS_INSN_LD_LITERAL(I)           (field<27, 29>(I) == 0x03 && field<24, 25>(I) == 0)
@@ -127,7 +128,7 @@ namespace Dyninst {
 
                 void mainDecode();
                 int findInsnTableIndex(unsigned int);
-		void reorderOperands();
+		        void reorderOperands();
                 static void buildSysRegMap();
                 unsigned int insn;
                 Instruction* insn_in_progress;

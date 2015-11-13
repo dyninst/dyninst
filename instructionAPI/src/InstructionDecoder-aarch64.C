@@ -1684,15 +1684,47 @@ void InstructionDecoder_aarch64::OPRimm()
 		insn_in_progress->appendOperand(imm, true, false);
 	}
 }
-    
+
 	void InstructionDecoder_aarch64::reorderOperands()
 	{
+        /*
 	    std::vector<Operand> curOperands;
 	    insn_in_progress->getOperands(curOperands);
 
-	    //re-order operands in the vector here
-	    
+        // Steve: make do a switch-case here, by default, it is reversed.
+        // Otherwise reorder it for exceptions
+        if( IS_INSN_LDST_POST(insn) || IS_INSN_LDST_PAIR_POST(insn) ){
+            std::iter_swap( curOperands.begin(), curOperands.end()-1 );
+        }
+        else if( IS_INSN_LDST_PAIR(insn) ){
+            assert(curOperands.size() == 4 || curOperands.size() == 3);
+            curOperands.insert(curOperands.begin(), curOperands.back());
+            curOperands.pop_back();
+        }
+        else if( IS_INSN_LDST_EX_PAIR(insn) ){
+            if(curOperands.size() == 3) {
+                curOperands.insert(curOperands.begin(), curOperands.back());
+                curOperands.pop_back();
+            }
+            else if( curOperands.size() == 4) {
+                curOperands.insert(curOperands.begin()+1, curOperands.back());
+                curOperands.pop_back();
+            }
+            else
+                insn_printf("[WARN] Case not handled\n");
+        }
+        else if( IS_INSN_ST_EX(insn) ){
+            assert(curOperands.size() == 3);
+            curOperands.insert(curOperands.begin()+1, curOperands.back());
+            curOperands.pop_back();
+        }
+        else
+	        //re-order operands in the vector here
+            std::reverse(curOperands.begin(), curOperands.end());
+
 	    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
+        */
+	    insn_in_progress->m_Operands.reverse();
 	}
 
 
@@ -1723,7 +1755,9 @@ using namespace boost::assign;
 			std::mem_fun(*fn)(this);
 		}
 
-		if(/*reversal conditions met*/)
+        /*reversal conditions met*/
+        // Steve: we temporaly make it an always true pass
+		if( true )
 		{
 		    reorderOperands();
 		}
@@ -1770,7 +1804,7 @@ using namespace boost::assign;
 
 		return findInsnTableIndex(cur_branches[branch_map_key]);
 	}
-	
+
 	void InstructionDecoder_aarch64::setFlags()
 	{
 		isPstateWritten = true;
