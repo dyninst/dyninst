@@ -575,6 +575,7 @@ enum entryID {
   e_xorps,
   e_fp_generic,
   e_3dnow_generic,
+  e_getsec,
 
   power_op_INVALID,
   power_op_extended,

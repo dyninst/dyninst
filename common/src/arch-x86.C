@@ -1400,7 +1400,7 @@ static ia32_entry twoByteMap[256] = {
   { e_sysenter, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // XXX: fixme for kernel work
   { e_sysexit,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // XXX: fixme for kernel work
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, 
-  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { e_getsec, t_done, 0, false, { Zz, Zz, Zz }, 0 , sNONE },
   /* 38 */
   { e_No_Entry, t_threeB, 0, 0, { Zz, Zz, Zz }, 0, 0 }, //3-Byte escape (Book Table A-4)
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
@@ -2256,7 +2256,7 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fstp,  t_done, 0, true, { Ef,  ST0, Zz }, 0, sNONE },
         { e_fchs,    t_done, 0, true, { ST0, Zz, Zz }, 0, s1RW }, // FIXME: using first of group as placeholder
         { e_fld1, t_done, 0, true, { ST0, Zz, Zz }, 0, s1RW }, // FIXME: using first of group
-        { e_f2xm1,   t_done, 0, true, { ST0, ST1, Zz }, 0, s1RW2R }, // FIXME: using first of group as placeholder
+        { e_f2xm1,   t_done, 0, true, { ST0, Zz, Zz }, 0, s1RW }, // FIXME: using first of group as placeholder
         { e_fprem,  t_done, 0, true, { ST0, ST1, Zz }, 0, s1RW2R } // FIXME: using first of group
     },
 },
@@ -2316,14 +2316,14 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fdivr, t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R }
     },
     { // DC
-        { e_fadd,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
-        { e_fmul,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
-        { e_fcom,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_fadd,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
+        { e_fmul,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
+        { e_fcom,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
         { e_fcomp,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
-        { e_fsubr,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
-        { e_fsub,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
-        { e_fdivr,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
-        { e_fdiv,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_fsubr,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
+        { e_fsub,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
+        { e_fdivr,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
+        { e_fdiv,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
     },
 },
 {
@@ -2339,7 +2339,7 @@ static ia32_entry fpuMap[][2][8] = {
     },
     { // DD TODO semantics check
         { e_ffree,    t_done, 0, true, { Efd, Zz, Zz }, 0, s1W },
-        { e_fxch,  t_done, 0, true, { ST0, ST1, Zz }, 0, s1RW2RW },
+        { e_fxch,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2RW },
         { e_fst, t_done, 0, true, { Efd, ST0, Zz }, 0, s1W2R },
         { e_fstp, t_done, 0, true, { Efd, ST0, Zz }, 0, s1W2RW },
         { e_fucom,    t_done, 0, true, { ST0, Efd, Zz }, 0, s1R2R },
@@ -2360,14 +2360,14 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fidivr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R }
     },
     { // DE
-        { e_faddp,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fmulp,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_faddp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R },
+        { e_fmulp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R },
         { e_fcomp,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcompp, t_done, 0, true, { ST0, ST1, Zz }, 0, s1RW2R },
-        { e_fsubrp,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fsubp,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fdivrp, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R }, // stack pop
-        { e_fdivp, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R }
+        { e_fcompp, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_fsubrp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R },
+        { e_fsubp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R },
+        { e_fdivrp, t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R }, // stack pop
+        { e_fdivp, t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R }
     },
 },
 {
@@ -2382,8 +2382,8 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fistp,  t_done, 0, true, { Ev, ST0, Zz }, 0, s1W2R }
     },
     { // DF TODO semantics/operand sizes
-        { e_ffreep,  t_done, 0, true, { Ef, ST0, Zz }, 0, sNONE },
-        { e_fxch,  t_done, 0, true, { Ef, ST0, Zz }, 0, sNONE },
+        { e_ffreep,  t_done, 0, true, { Ef, Zz, Zz }, 0, sNONE },
+        { e_fxch,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2RW },
         { e_fstp,  t_done, 0, true, { Ef, ST0, Zz }, 0, sNONE },
         { e_fstp,  t_done, 0, true, { Ef, ST0, Zz }, 0, sNONE },
         { e_fstsw,   t_done, 0, true, { AX, Zz, Zz }, 0, s1W },
