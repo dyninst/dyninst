@@ -41,7 +41,7 @@ namespace Dyninst
     typedef std::vector<aarch64_insn_entry> aarch64_insn_table;
     typedef std::map<unsigned int, aarch64_mask_entry> aarch64_decoder_table;
     typedef std::map<unsigned int, unsigned int> branchMap;
-    
+
     std::vector<std::string> InstructionDecoder_aarch64::condStringMap;
     std::map<unsigned int, MachRegister> InstructionDecoder_aarch64::sysRegMap;
 
@@ -401,11 +401,11 @@ namespace Dyninst
 		else                   //mrs (register), msr
 		{
 			bool isRtRead = (field<21, 21>(insn) == 0);
-			
+
 			unsigned int systemRegEncoding = (op0Field << 14) | (op1Field << 11) | (crnField << 7) | (crmField << 3) | op2Field;
 			if(InstructionDecoder_aarch64::sysRegMap.count(systemRegEncoding) <= 0)
 				assert(!"tried to access system register not accessible in EL0");
-				
+
 			insn_in_progress->appendOperand(makeRegisterExpression(InstructionDecoder_aarch64::sysRegMap[systemRegEncoding]), !isRtRead, isRtRead);
 			insn_in_progress->appendOperand(makeRtExpr(), isRtRead, !isRtRead);
 		}
@@ -559,7 +559,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexLiteral()
     int immVal, immLen;
     getMemRefIndexLiteral_OffsetLen(immVal, immLen);
 
-    Expression::Ptr label = Immediate::makeImmediate(Result(s64, sign_extend64(immLen, immVal)));
+    Expression::Ptr label = Immediate::makeImmediate(Result(s32, sign_extend32(immLen, immVal)));
+    insn_printf("%x\n", sign_extend32(immLen, immVal));
 
     Result_Type rt;
     getMemRefIndexLiteral_RT(rt);
@@ -705,25 +706,28 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexUImm()
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndex_offset9(){
     unsigned int immVal = 0, immLen = 0;
     getMemRefIndexPrePost_ImmImmlen(immVal, immLen);
-    return Immediate::makeImmediate(Result(u64, sign_extend64(immLen, immVal)));
+    return Immediate::makeImmediate(Result(u32, sign_extend32(immLen, immVal)));
 }
 
 // scale = 2 + opc<1>
 // scale = 1<<scale
 // LSL(sign_ex(imm7 , 64), scale)
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefPair_offset7(){
+    /*
     unsigned int scaleVal = field<31, 31>(insn);
     unsigned int scaleLen = 8;
     scaleVal += 2;
-
     Expression::Ptr scale = Immediate::makeImmediate(Result(u32, unsign_extend32(scaleLen, 1<<scaleVal)));
+    */
 
     unsigned int immVal = 0, immLen = 0;
     getMemRefPair_ImmImmlen(immVal, immLen);
 
+    immVal = is64Bit?immVal<<3:immVal<<2;
     Expression::Ptr imm7 = Immediate::makeImmediate(Result(u64, sign_extend64(immLen, immVal)));
 
-    return makeMultiplyExpression(imm7, scale, s64);
+    //return makeMultiplyExpression(imm7, scale, s64);
+    return imm7;
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndex_addOffset9(){
@@ -1077,7 +1081,7 @@ void InstructionDecoder_aarch64::OPRRn()
 
 		insn_in_progress->appendOperand(makePCExpr(), false, true);
 		insn_in_progress->addSuccessor(makeRnExpr(), field<21, 21>(insn) == 1, true, false, false);
-		
+
 		if(branchType == 0x1)
 		{
 			insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
@@ -1132,26 +1136,22 @@ void InstructionDecoder_aarch64::OPRRnLU()
 void InstructionDecoder_aarch64::OPRRnSU()
 {
     if( IS_INSN_LDST_PRE(insn) ){
-	    //insn_in_progress->appendOperand(makeRnExpr(), true, true);
         STIndex();
         return;
     }
 
     if( IS_INSN_LDST_POST(insn) ){
         STIndex();
-	    //insn_in_progress->appendOperand(makeRnExpr(), true, true);
         return;
     }
 
     if( IS_INSN_LDST_PAIR_PRE(insn) ){
-	    //insn_in_progress->appendOperand(makeRnExpr(), true, true);
         STIndex();
         return;
     }
 
     if( IS_INSN_LDST_PAIR_POST(insn) ){
         STIndex();
-	    //insn_in_progress->appendOperand(makeRnExpr(), true, true);
         return;
     }
 }
