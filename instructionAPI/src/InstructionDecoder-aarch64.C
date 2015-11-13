@@ -564,7 +564,6 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexLiteral()
     getMemRefIndexLiteral_OffsetLen(immVal, immLen);
 
     Expression::Ptr label = Immediate::makeImmediate(Result(s32, sign_extend32(immLen, immVal)));
-    insn_printf("%x\n", sign_extend32(immLen, immVal));
 
     Result_Type rt;
     getMemRefIndexLiteral_RT(rt);
@@ -1698,7 +1697,7 @@ void InstructionDecoder_aarch64::OPRimm()
 		insn_in_progress->appendOperand(imm, true, false);
 	}
 }
-    
+
 	void InstructionDecoder_aarch64::reorderOperands()
 	{
 	    if(oprRotateAmt)
@@ -1714,6 +1713,43 @@ void InstructionDecoder_aarch64::OPRimm()
 	    }
 	    else
 		insn_in_progress->m_Operands.reverse();
+        /*
+	    std::vector<Operand> curOperands;
+	    insn_in_progress->getOperands(curOperands);
+
+        // Steve: make do a switch-case here, by default, it is reversed.
+        // Otherwise reorder it for exceptions
+        if( IS_INSN_LDST_POST(insn) || IS_INSN_LDST_PAIR_POST(insn) ){
+            std::iter_swap( curOperands.begin(), curOperands.end()-1 );
+        }
+        else if( IS_INSN_LDST_PAIR(insn) ){
+            assert(curOperands.size() == 4 || curOperands.size() == 3);
+            curOperands.insert(curOperands.begin(), curOperands.back());
+            curOperands.pop_back();
+        }
+        else if( IS_INSN_LDST_EX_PAIR(insn) ){
+            if(curOperands.size() == 3) {
+                curOperands.insert(curOperands.begin(), curOperands.back());
+                curOperands.pop_back();
+            }
+            else if( curOperands.size() == 4) {
+                curOperands.insert(curOperands.begin()+1, curOperands.back());
+                curOperands.pop_back();
+            }
+            else
+                insn_printf("[WARN] Case not handled\n");
+        }
+        else if( IS_INSN_ST_EX(insn) ){
+            assert(curOperands.size() == 3);
+            curOperands.insert(curOperands.begin()+1, curOperands.back());
+            curOperands.pop_back();
+        }
+        else
+	        //re-order operands in the vector here
+            std::reverse(curOperands.begin(), curOperands.end());
+
+	    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
+        */
 	}
 
 
@@ -1782,7 +1818,7 @@ using namespace boost::assign;
 
 		return findInsnTableIndex(cur_branches[branch_map_key]);
 	}
-	
+
 	void InstructionDecoder_aarch64::setFlags()
 	{
 		isPstateWritten = true;
