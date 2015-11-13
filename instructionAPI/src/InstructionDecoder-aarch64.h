@@ -127,15 +127,11 @@ namespace Dyninst {
 
                 void mainDecode();
                 int findInsnTableIndex(unsigned int);
-<<<<<<< HEAD
-		
-		/*members for handling operand re-ordering, will be removed later once a generic operand ordering method is incorporated*/
-		int oprRotateAmt;
-		void reorderOperands();
+				
+				/*members for handling operand re-ordering, will be removed later once a generic operand ordering method is incorporated*/
+				int oprRotateAmt;
+				void reorderOperands();
 
-=======
-		        void reorderOperands();
->>>>>>> cbec218c639ca74a46646a716834b31590ff21cc
                 static void buildSysRegMap();
                 unsigned int insn;
                 Instruction* insn_in_progress;
