@@ -133,7 +133,7 @@ namespace Dyninst
 			class INSTRUCTION_EXPORT rightArithmeticShiftResult : public funcT
 			{
 				public:
-					rightArithmeticShiftResult() : funcT(">>")
+					rightArithmeticShiftResult() : funcT("ASR")
 					{
 					}
 	
@@ -184,7 +184,7 @@ namespace Dyninst
 			class INSTRUCTION_EXPORT rightLogicalShiftResult : public funcT
 			{
 				public:
-					rightLogicalShiftResult() : funcT("rightLogicalShift")
+					rightLogicalShiftResult() : funcT("LSR")
 					{
 					}
 	
@@ -223,7 +223,7 @@ namespace Dyninst
 			class INSTRUCTION_EXPORT rightRotateResult : public funcT
 			{
 				public:
-					rightRotateResult() : funcT("rightRotate")
+					rightRotateResult() : funcT("ROR")
 					{
 					}
 	

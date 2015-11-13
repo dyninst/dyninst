@@ -1712,17 +1712,21 @@ void InstructionDecoder_aarch64::OPRimm()
 	{
 	    if(oprRotateAmt)
 	    {
-		std::vector<Operand> curOperands;
-		insn_in_progress->getOperands(curOperands);
-		std::swap(curOperands[1], curOperands[3]);
-		
-		while(oprRotateAmt--)
-			std::rotate(curOperands.begin(), curOperands.begin()+1, curOperands.begin()+3);
+			std::vector<Operand> curOperands;
+			insn_in_progress->getOperands(curOperands);
+			
+			if(curOperands.empty())
+				assert(!"empty operand list found while re-ordering operands");
+			
+			std::swap(curOperands[1], curOperands[3]);
+			
+			while(oprRotateAmt--)
+				std::rotate(curOperands.begin(), curOperands.begin()+1, curOperands.begin()+3);
 
-		insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
+			insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
 	    }
 	    else
-		insn_in_progress->m_Operands.reverse();
+			insn_in_progress->m_Operands.reverse();
         /*
 	    std::vector<Operand> curOperands;
 	    insn_in_progress->getOperands(curOperands);
