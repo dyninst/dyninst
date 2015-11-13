@@ -175,7 +175,8 @@ namespace Dyninst
 
         _szField = -1;
 
-	oprRotateAmt = 0;
+		oprRotateAmt = 0;
+		hasb5 = false;
 
         insn = b.start[0] << 24 | b.start[1] << 16 |
         b.start[2] << 8 | b.start[3];
@@ -1463,14 +1464,20 @@ void InstructionDecoder_aarch64::OPRo0()
 void InstructionDecoder_aarch64::OPRb5()
 {
 	OPRsf();
+	hasb5 = true;
 }
 
 void InstructionDecoder_aarch64::OPRb40()
 {
+
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makeb40Expr()
+{
 	int b40Val = field<19, 23>(insn);
 	int bitpos = ((is64Bit?1:0)<<5) | b40Val;
 
-	insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, unsign_extend32(6, bitpos))), true, false);
+	return Immediate::makeImmediate(Result(u32, unsign_extend32(6, bitpos)));
 }
 
 template<unsigned int endBit, unsigned int startBit>
@@ -1652,6 +1659,9 @@ void InstructionDecoder_aarch64::OPRimm()
 
 		insn_in_progress->appendOperand(makePCExpr(), false, true);
 		makeBranchTarget(branchIsCall, bIsConditional, immVal, immLen);
+		
+		if(hasb5)
+			insn_in_progress->appendOperand(makeb40Expr(), true, false);
 
 		if(bIsConditional)
 			insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, true, true);
@@ -1676,7 +1686,7 @@ void InstructionDecoder_aarch64::OPRimm()
 		else
 			isValid = false;
 	}
-	else if(IS_INSN_FP_IMM(insn))
+	else if(isFPInsn)
 	{
 		if(isSinglePrec())
 			insn_in_progress->appendOperand(fpExpand<int32_t, s32>(immVal), true, false);
@@ -1764,10 +1774,6 @@ using namespace boost::assign;
 
 		insn = insn_to_complete->m_RawInsn.small_insn;
 		insn_in_progress = const_cast<Instruction*>(insn_to_complete);
-
-		//only a small subset of instructions modify nzcv and the following are the ones for whom it cannot be detected from any operand that they do modify pstate
-		if (IS_INSN_FP_COMPARE(insn))
-		   isPstateWritten = true;
 
         for(operandSpec::const_iterator fn = insn_table_entry->operands.begin(); fn != insn_table_entry->operands.end(); fn++)
         {

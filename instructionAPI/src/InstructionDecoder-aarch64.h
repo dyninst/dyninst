@@ -101,7 +101,6 @@ namespace Dyninst {
                 #define	IS_INSN_FP_CONV_FIX(I)			(field<24, 28>(I) == 0x1E && field<21, 21>(I) == 0x0)
                 #define	IS_INSN_FP_CONV_INT(I)			(field<24, 28>(I) == 0x1E && field<21, 21>(I) == 0x1 && field<10, 15>(I) == 0x0)
                 #define	IS_SOURCE_GP(I)					(field<16, 18>(I) == 0x2  || field<16, 18>(I) == 0x3 || field<16, 18>(I) == 0x7)
-                #define	IS_INSN_FP_IMM(I)				(field<24, 28>(I) == 0x1E && field<21, 21>(I) == 0x1 && field<10, 12>(I) == 0x4)
 				#define	IS_INSN_FP_DATAPROC_ONESRC(I)	(field<24, 28>(I) == 0x1E && field<21, 21>(I) == 0x1 && field<10, 14>(I) == 0x10)
 				#define	IS_INSN_B_UNCOND(I)				(field<26, 30>(I) == 0x05)
                 #define	IS_INSN_B_UNCOND_REG(I)			(field<25, 31>(I) == 0x6B)
@@ -130,6 +129,7 @@ namespace Dyninst {
 				
 				/*members for handling operand re-ordering, will be removed later once a generic operand ordering method is incorporated*/
 				int oprRotateAmt;
+				bool hasb5;
 				void reorderOperands();
 
                 static void buildSysRegMap();
@@ -218,6 +218,7 @@ namespace Dyninst {
 				Expression::Ptr makeRsExpr();
 				Expression::Ptr makePstateExpr();
                 Expression::Ptr makePCExpr();
+                Expression::Ptr makeb40Expr();
 				Expression::Ptr makeOptionExpression(int, int);
 				template<typename T, Result_Type rT>
 				Expression::Ptr fpExpand(int);
