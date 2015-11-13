@@ -560,7 +560,6 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexLiteral()
     getMemRefIndexLiteral_OffsetLen(immVal, immLen);
 
     Expression::Ptr label = Immediate::makeImmediate(Result(s32, sign_extend32(immLen, immVal)));
-    insn_printf("%x\n", sign_extend32(immLen, immVal));
 
     Result_Type rt;
     getMemRefIndexLiteral_RT(rt);
