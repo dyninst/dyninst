@@ -1659,7 +1659,7 @@ void InstructionDecoder_aarch64::OPRimm()
 
 		insn_in_progress->appendOperand(makePCExpr(), false, true);
 		makeBranchTarget(branchIsCall, bIsConditional, immVal, immLen);
-		
+
 		if(hasb5)
 			insn_in_progress->appendOperand(makeb40Expr(), true, false);
 
@@ -1712,32 +1712,36 @@ void InstructionDecoder_aarch64::OPRimm()
 	{
 	    if(oprRotateAmt)
 	    {
-		std::vector<Operand> curOperands;
-		insn_in_progress->getOperands(curOperands);
-		std::swap(curOperands[1], curOperands[3]);
-		
-		while(oprRotateAmt--)
-			std::rotate(curOperands.begin(), curOperands.begin()+1, curOperands.begin()+3);
+		    std::vector<Operand> curOperands;
+		    insn_in_progress->getOperands(curOperands);
+		    std::swap(curOperands[1], curOperands[3]);
 
-		insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
+		    while(oprRotateAmt--)
+		    	std::rotate(curOperands.begin(), curOperands.begin()+1, curOperands.begin()+3);
+
+		    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
 	    }
-	    else
-		insn_in_progress->m_Operands.reverse();
-        /*
-	    std::vector<Operand> curOperands;
-	    insn_in_progress->getOperands(curOperands);
-
-        // Steve: make do a switch-case here, by default, it is reversed.
-        // Otherwise reorder it for exceptions
-        if( IS_INSN_LDST_POST(insn) || IS_INSN_LDST_PAIR_POST(insn) ){
+        else if( IS_INSN_LDST_POST(insn) || IS_INSN_LDST_PAIR_POST(insn) ){
+		    std::vector<Operand> curOperands;
+		    insn_in_progress->getOperands(curOperands);
             std::iter_swap( curOperands.begin(), curOperands.end()-1 );
+		    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
         }
         else if( IS_INSN_LDST_PAIR(insn) ){
+		    std::vector<Operand> curOperands;
+		    insn_in_progress->getOperands(curOperands);
             assert(curOperands.size() == 4 || curOperands.size() == 3);
-            curOperands.insert(curOperands.begin(), curOperands.back());
-            curOperands.pop_back();
+            if(curOperands.size() == 3){
+                curOperands.insert(curOperands.begin(), curOperands.back());
+                curOperands.pop_back();
+            }else if(curOperands.size() == 4){
+                std::iter_swap( curOperands.begin(), curOperands.end()-1 );
+            }
+		    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
         }
         else if( IS_INSN_LDST_EX_PAIR(insn) ){
+		    std::vector<Operand> curOperands;
+		    insn_in_progress->getOperands(curOperands);
             if(curOperands.size() == 3) {
                 curOperands.insert(curOperands.begin(), curOperands.back());
                 curOperands.pop_back();
@@ -1748,18 +1752,21 @@ void InstructionDecoder_aarch64::OPRimm()
             }
             else
                 insn_printf("[WARN] Case not handled\n");
+		    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
         }
         else if( IS_INSN_ST_EX(insn) ){
-            assert(curOperands.size() == 3);
-            curOperands.insert(curOperands.begin()+1, curOperands.back());
-            curOperands.pop_back();
+		    std::vector<Operand> curOperands;
+		    insn_in_progress->getOperands(curOperands);
+            if(curOperands.size() == 3){
+                curOperands.insert(curOperands.begin()+1, curOperands.back());
+                curOperands.pop_back();
+		        insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
+            }
+            else
+		        insn_in_progress->m_Operands.reverse();
         }
-        else
-	        //re-order operands in the vector here
-            std::reverse(curOperands.begin(), curOperands.end());
-
-	    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
-        */
+	    else
+		    insn_in_progress->m_Operands.reverse();
 	}
 
 

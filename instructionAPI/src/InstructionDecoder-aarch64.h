@@ -76,7 +76,7 @@ namespace Dyninst {
 
                 #define IS_INSN_LDST_EX(I)              (field<24, 29>(I) == 0x08)
                 #define IS_INSN_ST_EX(I)                (field<24, 29>(I) == 0x08 && field<22, 22>(I) == 0)
-                #define IS_INSN_LDST_EX_PAIR(I)         (field<24, 29>(I) == 0x08 && field<15, 15>(I) == 0x01 && field<21, 21>(I) ==0x01)
+                #define IS_INSN_LDST_EX_PAIR(I)         (field<24, 29>(I) == 0x08 && field<21, 21>(I) ==0x01)
 
                 #define IS_INSN_LD_LITERAL(I)           (field<27, 29>(I) == 0x03 && field<24, 25>(I) == 0)
 
@@ -126,7 +126,7 @@ namespace Dyninst {
 
                 void mainDecode();
                 int findInsnTableIndex(unsigned int);
-				
+
 				/*members for handling operand re-ordering, will be removed later once a generic operand ordering method is incorporated*/
 				int oprRotateAmt;
 				bool hasb5;
