@@ -131,6 +131,18 @@ def isRnUpdated(line):
         return True;
     return False;
 
+def ifNeedToSetFlags(line):
+    if line.find('<iclass ') != -1 :
+        for field in line.split(' '):
+            if field.find('id=') !=-1:
+                if field.split('\"')[1] == 's':
+                    return True
+
+    if line.find('<regdiagram') != -1:
+        if line.find('float/compare') != -1:
+            return True
+    return False
+
 
 ###########################
 # to store all masks
@@ -178,27 +190,34 @@ def getOpTable( filename = 'NULL' ):
                 reserve_operand_pos = list()
                 maskStartBit = 31
                 isRnUp = False
+                needToSetFlags = False
 
                 # to analyze lines , do iterative passes#
                 for line in curFile:
 
+                    if line.find('<iclass ') != -1 :
+                        needToSetFlags = ifNeedToSetFlags(line)
+
                     # diagram starts #
                     if line.find('<regdiagram')!=-1:
-                        startDiagram = True
                         isRnUp = isRnUpdated(line)
+                        if needToSetFlags == False:
+                            needToSetFlags = ifNeedToSetFlags(line)
+                        startDiagram = True
                         continue
 
                     # end of diagram #
                     if line.find('</regdiagram')!=-1:
-                        startDiagram = False
+                        if needToSetFlags == True:
+                            operands_pos_Insn.insert(0, ('setFlags',) )
                         printInstnEntry(maskBit, encodingArray, indexOfInsn, instruction, operands_pos_Insn)
 
+                        startDiagram = False
                         maskBit = list('0'*32)
                         encodingArray = list('0'*32)
                         operands_pos_Insn = list()
 
                         indexOfInsn +=1
-
                         continue
 
                     # analyze each box #
@@ -229,9 +248,11 @@ def getOpTable( filename = 'NULL' ):
                             if encodeBit == '1' or encodeBit == '0':
                                 maskBit[31-maskStartBit] = '1'
                                 encodingArray[31-maskStartBit] = encodeBit
+                                '''
                                 if encodeBit == '1':
                                     if reserve_operand_pos[0] == 'S':
                                         operands_pos_Insn.append( ('setFlags',) )
+                                '''
 
                             elif encodeBit == '(1)':
                                 maskBit[31-maskStartBit] = '1'
