@@ -121,13 +121,13 @@ namespace Dyninst {
                 virtual Result_Type makeSizeType(unsigned int opType);
 
 				bool isPstateRead, isPstateWritten;
-                bool isFPInsn;
-                bool isSIMDInsn;
+                bool isFPInsn, isSIMDInsn;
                 bool is64Bit;
                 bool isValid;
 
                 void mainDecode();
                 int findInsnTableIndex(unsigned int);
+		void reorderOperands();
                 static void buildSysRegMap();
                 unsigned int insn;
                 Instruction* insn_in_progress;
@@ -324,7 +324,7 @@ namespace Dyninst {
                 void OPRcmode() {}
                 void OPRrmode() {}
                 void OPRop() {}
-                void setFlags(){}
+                void setFlags();
         };
     }
 }

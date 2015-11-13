@@ -1684,6 +1684,16 @@ void InstructionDecoder_aarch64::OPRimm()
 		insn_in_progress->appendOperand(imm, true, false);
 	}
 }
+    
+	void InstructionDecoder_aarch64::reorderOperands()
+	{
+	    std::vector<Operand> curOperands;
+	    insn_in_progress->getOperands(curOperands);
+
+	    //re-order operands in the vector here
+	    
+	    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
+	}
 
 
 using namespace boost::assign;
@@ -1700,17 +1710,22 @@ using namespace boost::assign;
 
 		//only a small subset of instructions modify nzcv and the following are the ones for whom it cannot be detected from any operand that they do modify pstate
 		//it thus needs to be read from the manual..yay
-		if(((IS_INSN_ADDSUB_EXT(insn) || IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_CARRY(insn))
+		/*if(((IS_INSN_ADDSUB_EXT(insn) || IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_CARRY(insn))
 			 && field<29, 29>(insn) == 0x1) ||
 		   ((IS_INSN_LOGICAL_SHIFT(insn) || IS_INSN_LOGICAL_IMM(insn))
 			 && field<29, 30>(insn) == 0x3) ||
 		   (IS_INSN_FP_COMPARE(insn))
             )
-		   isPstateWritten = true;
+		   isPstateWritten = true;*/
 
         for(operandSpec::const_iterator fn = insn_table_entry->operands.begin(); fn != insn_table_entry->operands.end(); fn++)
         {
 			std::mem_fun(*fn)(this);
+		}
+
+		if(/*reversal conditions met*/)
+		{
+		    reorderOperands();
 		}
 
 		if(IS_INSN_SYSTEM(insn))
@@ -1754,6 +1769,11 @@ using namespace boost::assign;
 			branch_map_key = 0;
 
 		return findInsnTableIndex(cur_branches[branch_map_key]);
+	}
+	
+	void InstructionDecoder_aarch64::setFlags()
+	{
+		isPstateWritten = true;
 	}
 
     void InstructionDecoder_aarch64::mainDecode()
