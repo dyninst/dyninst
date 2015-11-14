@@ -5,7 +5,7 @@ option (LIGHTWEIGHT_SYMTAB "Use lightweight symtab interface for ParseAPI, ProcC
 option (SW_ANALYSIS_STEPPER "Use ParseAPI-based analysis stepper in Stackwalker" ON)
 
 option (BUILD_TARBALLS "Build Dyninst package tarballs. Requires git archive, tar, gzip." OFF)
-#option (BUILD_RTLIB_32 "Build 32-bit runtime library on mixed 32/64 systems" ON)
+option (BUILD_RTLIB_32 "Build 32-bit runtime library on mixed 32/64 systems" OFF)
 
 # Some global on/off switches
 if (LIGHTWEIGHT_SYMTAB)

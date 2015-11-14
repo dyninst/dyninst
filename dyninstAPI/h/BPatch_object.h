@@ -44,7 +44,8 @@ class BPatch_module;
 class BPatch_object;
 class BPatch_function;
 class BPatch_point;
-
+class BPatchSnippetHandle;
+class BPatch_snippet;
 namespace Dyninst { 
    namespace ParseAPI { 
       class CodeObject; 
@@ -145,6 +146,10 @@ class BPATCH_DLL_EXPORT BPatch_object {
     //  per function that includes an instruction at that address. Will have one element
     //  if there is not overlapping code. 
     bool findPoints(Dyninst::Address addr, std::vector<BPatch_point *> &points);
+
+    BPatchSnippetHandle*  insertInitCallback(BPatch_snippet& callback);
+
+    BPatchSnippetHandle*  insertFiniCallback(BPatch_snippet& callback);
 
 };
 

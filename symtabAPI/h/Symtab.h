@@ -363,8 +363,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    std::string getDefaultNamespacePrefix() const;
 
-   unsigned getNumberofRegions() const;
-   unsigned getNumberofSymbols() const;
+   unsigned getNumberOfRegions() const;
+   unsigned getNumberOfSymbols() const;
 
    std::vector<std::string> &getDependencies();
    bool removeLibraryDependency(std::string lib);

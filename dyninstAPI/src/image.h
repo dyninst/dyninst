@@ -298,7 +298,7 @@ class image : public codeRange {
          bool parseGaps);
 
    void analyzeIfNeeded();
-
+   bool isParsed() { return parseState_ == analyzed; }
    parse_func* addFunction(Address functionEntryAddr, const char *name=NULL);
 
    // creates the module if it does not exist

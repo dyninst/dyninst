@@ -875,7 +875,7 @@ Module *Symtab::getDefaultModule() {
     if (_mods.size() == 1)
         return _mods[0];
     else {
-        if (!findModuleByName(mod, "DEFAULT_MODULE"))
+        if (!findModuleByName(mod, name()))
             return NULL;
     }
     return mod;

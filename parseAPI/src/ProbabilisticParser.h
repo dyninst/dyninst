@@ -198,6 +198,11 @@ class ProbabilityCalculator {
 
 public:
     ProbabilityCalculator(CodeRegion *reg, CodeSource *source, Parser *parser, std::string model_spec);
+	virtual ~ProbabilityCalculator() {
+		FEPProb.clear();
+	    reachingProb.clear();
+		finalized.clear();
+	}
     double calcProbByMatchingIdioms(Address addr);
     void calcProbByEnforcingConstraints();
     double getFEPProb(Address addr);

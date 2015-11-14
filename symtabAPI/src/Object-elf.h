@@ -574,11 +574,13 @@ class Object : public AObject {
   bool find_catch_blocks(Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
                          Address textaddr, Address dataaddr,
                          std::vector<ExceptionBlock> &catch_addrs);
-
+  // Line info: CUs to skip
+  std::set<std::string> modules_parsed_for_line_info;
 #if defined(cap_dwarf)
   std::string find_symbol(std::string name); 
   bool fixSymbolsInModule(Dwarf_Debug dbg, std::string & moduleName, Dwarf_Die dieEntry);
   unsigned fixSymbolsInModuleByRange(IntervalTree<Dwarf_Addr, std::string> &module_ranges);
+
 #endif
 
  public:

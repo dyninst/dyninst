@@ -35,9 +35,9 @@ std::map< Address, std::string > & linkage()
 
 \begin{apient}
 struct Hint {
-    Address addr;
-    CodeRegion *region;
-    std::string name;
+    Address _addr;
+    CodeRegion *_region;
+    std::string _name;
     Hint(Addr, CodeRegion *, std::string);
 }
 std::vector< Hint > const& hints()

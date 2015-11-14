@@ -67,6 +67,8 @@ Region::Region(unsigned regnum, std::string name, Offset diskOff,
     isDirty_(false), buffer_(NULL), isLoadable_(isLoadable), isTLS_(isThreadLocal),
     memAlign_(memAlignment), symtab_(NULL)
 {
+    //cerr << "Region " << name << ": [" << diskOff << ", " << diskOff + diskSize << ") (disk), ";
+    //cerr << "[" << memOff << ", " << memOff+memSize << ") (memory)" << endl;
    if (memOff)
       isLoadable_ = true;
 }

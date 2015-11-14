@@ -134,19 +134,21 @@ bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
  **/
 static void findThreadFuncs(PCProcess *p, std::string func,
                             pdvector<func_instance *> &result) {
-    bool found = false;
-    mapped_module *lpthread = p->findModule("libpthread*", true);
+    const pdvector<func_instance*>* found = NULL;
+    mapped_object *lpthread = p->findObject("libpthread*", true);
     if (lpthread)
-        found = lpthread->findFuncVectorByPretty(func, result);
-    if (found)
+        found = lpthread->findFuncVectorByMangled(func);
+    if (found) {
+	result = *found;
         return;
-
-    mapped_module *lc = p->findModule("libc.so*", true);
+    }
+    mapped_object *lc = p->findObject("libc.so*", true);
     if (lc)
-        found = lc->findFuncVectorByPretty(func, result);
-    if (found)
+        found = lc->findFuncVectorByMangled(func);
+    if (found) {
+	result = *found;
         return;
-
+    }
     p->findFuncsByPretty(func, result);
 }
 
@@ -375,7 +377,7 @@ bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileNa
         while( environ[i] != NULL ) {
             std::string envVar(environ[i]);
             if( envVar.find("LD_PRELOAD=") == 0 ) {
-                ld_preload_orig = environ[i];
+                ld_preload_orig = environ[i]+11;
             }else{
                 envp.push_back(envVar);
             }

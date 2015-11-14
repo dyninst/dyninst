@@ -788,13 +788,14 @@ bool Symtab::fixSymModule(Symbol *&sym)
     // else. This is enforced here, although the Object-* files might
     // do it as well.
     Module *mod = NULL;
-    if (getObjectType() == obj_SharedLib) {
-       mod = getDefaultModule();
-    }
-    else {
+    //if (0 && (getObjectType() == obj_SharedLib)) {
+    //   mod = getDefaultModule();
+    //}
+    //else {
        Object *obj = getObject();
        if (!obj)
        {
+	   assert(0);
           return false;
        }
        std::string modName = obj->findModuleForSym(sym);
@@ -804,7 +805,7 @@ bool Symtab::fixSymModule(Symbol *&sym)
        else {
           mod = getOrCreateModule(modName, sym->getOffset());
        }
-    }
+       //}
 
 
     if (!mod)
@@ -1137,24 +1138,24 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
 
 void Symtab::createDefaultModule() {
     Module *mod = NULL;
-    if (getObjectType() == obj_SharedLib) {
+    //    if (1 || getObjectType() == obj_SharedLib) {
         mod = new Module(lang_Unknown, 
                          imageOffset_,
                          name(),
                          this);
-    }
-    else {
-        mod = new Module(lang_Unknown, 
-                         imageOffset_,
-#if defined(os_vxworks)
+	//    }
+	//    else {
+        //mod = new Module(lang_Unknown, 
+	//                imageOffset_,
+			 //#if defined(os_vxworks)
                          // VxWorks' kernel objects should
                          // have their own module.
-                         name(),
-#else
-                         "DEFAULT_MODULE",
-#endif
-                         this);
-    }
+			 //                         name(),
+			 //#else
+			 //                         "DEFAULT_MODULE",
+			 //#endif
+			 //                         this);
+			 //    }
     modsByFileName[mod->fileName()] = mod;
     modsByFullName[mod->fullName()] = mod;
     _mods.push_back(mod);
@@ -2926,12 +2927,12 @@ SYMTAB_EXPORT std::string Symtab::memberName() const
     return member_name_;
 }
 
-SYMTAB_EXPORT unsigned Symtab::getNumberofRegions() const 
+SYMTAB_EXPORT unsigned Symtab::getNumberOfRegions() const 
 {
    return no_of_sections; 
 }
 
-SYMTAB_EXPORT unsigned Symtab::getNumberofSymbols() const 
+SYMTAB_EXPORT unsigned Symtab::getNumberOfSymbols() const 
 {
    return no_of_symbols; 
 }
