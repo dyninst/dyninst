@@ -91,6 +91,30 @@ namespace Dyninst
             BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
             return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, multiplier));
         }
+        Expression::Ptr InstructionDecoderImpl::makeLeftShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
+                Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr leftShifter(new BinaryFunction::leftShiftResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, leftShifter));
+        }
+        Expression::Ptr InstructionDecoderImpl::makeRightArithmeticShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
+                Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr rightArithmeticShifter(new BinaryFunction::rightArithmeticShiftResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightArithmeticShifter));
+        }
+        Expression::Ptr InstructionDecoderImpl::makeRightLogicalShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
+                Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr rightLogicalShifter(new BinaryFunction::rightLogicalShiftResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightLogicalShifter));
+        }
+        Expression::Ptr InstructionDecoderImpl::makeRightRotateExpression(Expression::Ptr lhs, Expression::Ptr rhs,
+                Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr rightRotator(new BinaryFunction::rightRotateResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightRotator));
+        }
         Expression::Ptr InstructionDecoderImpl::makeDereferenceExpression(Expression::Ptr addrToDereference,
                 Result_Type resultType)
         {
@@ -104,6 +128,15 @@ namespace Dyninst
             MachRegister converted(convertedID);
             return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8));
         }
+        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, Result_Type extendFrom)
+        {
+            int newID = registerID.val();
+            int minusArch = newID & ~(registerID.getArchitecture());
+            int convertedID = minusArch | m_Arch;
+            MachRegister converted(convertedID);
+            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8, extendFrom));
+        }
+
     };
 };
 
