@@ -38,12 +38,14 @@ using namespace DataflowAPI;
 bitArray ABI::callRead_;
 bitArray ABI::callWritten_;
 bitArray ABI::returnRead_;
+bitArray ABI::returnRegs_;
 bitArray ABI::syscallRead_;
 bitArray ABI::syscallWritten_;
 
 bitArray ABI::callRead64_;
 bitArray ABI::callWritten64_;
 bitArray ABI::returnRead64_;
+bitArray ABI::returnRegs64_;
 bitArray ABI::syscallRead64_;
 bitArray ABI::syscallWritten64_;
 bitArray ABI::allRegs_;
@@ -128,6 +130,17 @@ const bitArray &ABI::getReturnReadRegisters() const {
     }
 }
 
+const bitArray &ABI::getReturnRegisters() const {
+    if (addr_width == 4)
+        return returnRegs_;
+    else if (addr_width == 8)
+        return returnRegs64_;
+    else {
+        assert(0);
+        return returnRegs_;
+    }
+}
+
 const bitArray &ABI::getSyscallReadRegisters() const {
     if (addr_width == 4)
         return syscallRead_;
@@ -166,6 +179,11 @@ bitArray ABI::getBitArray()  {
 }
 #if defined(arch_x86) || defined(arch_x86_64)
 void ABI::initialize32(){
+
+   returnRegs_ = getBitArray(machRegIndex_x86().size());
+   returnRegs_[machRegIndex_x86()[x86::eax]] = true;
+   returnRegs_[machRegIndex_x86()[x86::edx]] = true;
+
 
    returnRead_ = getBitArray(machRegIndex_x86().size());
    // Callee-save registers...
@@ -245,6 +263,11 @@ void ABI::initialize32(){
 }
 
 void ABI::initialize64(){
+
+    returnRegs64_ = getBitArray(machRegIndex_x86_64().size());
+    returnRegs64_[machRegIndex_x86_64()[x86_64::rax]] = true;
+    returnRegs64_[machRegIndex_x86_64()[x86_64::rdx]] = true;
+
 
     returnRead64_ = getBitArray(machRegIndex_x86_64().size());
     returnRead64_[machRegIndex_x86_64()[x86_64::rax]] = true;

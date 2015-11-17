@@ -272,6 +272,7 @@ class StackAnalysis {
        static TransferFunc absFunc(MachRegister r, long a, bool i = false);
        static TransferFunc aliasFunc(MachRegister f, MachRegister t, bool i = false);
        static TransferFunc bottomFunc(MachRegister r);
+       static TransferFunc topFunc(MachRegister r);
        static TransferFunc sibFunc(std::map<MachRegister, std::pair<long,bool> > f, long d, MachRegister t);
 
        bool isAbs() const;
@@ -409,12 +410,13 @@ class StackAnalysis {
     void handleLEA(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleLeave(TransferFuncs &xferFuncs);
     void handlePushPopFlags(int sign, TransferFuncs &xferFuncs);
-	void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);
+    void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);
     void handlePowerAddSub(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
     void handlePowerStoreUpdate(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleMov(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleZeroExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleSignExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
+    void handleXor(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleDefault(InstructionPtr insn, TransferFuncs &xferFuncs);
 
     
