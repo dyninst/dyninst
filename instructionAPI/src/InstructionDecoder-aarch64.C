@@ -815,7 +815,7 @@ void InstructionDecoder_aarch64::getMemRefEx_RT(Result_Type &rt){
             break;
         default:
             rt = u64;
-            insn_printf("[ERROR]: 0x%x\n", insn);
+            //insn_printf("[ERROR]: 0x%x\n", insn);
             //assert(0);// shouldn't reach here;
     }
     return;
@@ -911,8 +911,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefReg_ext(){
         immVal = S==0?0:(S==1?3:-1);
         if( immVal==-1) assert(0);
     }else{
-        //insn_printf("[WARN] unhandled case: 0x%x\n", insn);
-        //assert(0); //unregconized val
+        immVal = 0;
     }
     Expression::Ptr ext = makeOptionExpression(immLen, immVal);
 
@@ -1754,8 +1753,10 @@ void InstructionDecoder_aarch64::OPRimm()
                 curOperands.insert(curOperands.begin()+1, curOperands.back());
                 curOperands.pop_back();
             }
-            else
-                insn_printf("[WARN] Case not handled\n");
+            else{
+                assert(0);
+                //insn_printf("[WARN] Case not handled\n");
+            }
 		    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
         }
         else if( IS_INSN_ST_EX(insn) ){
