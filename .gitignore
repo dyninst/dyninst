@@ -13,3 +13,5 @@ cmake_install.cmake
 *.obj
 *.o
 *.pyc
+*.dyn_g++_64_none_none
+*.dyn_gcc_64_none_none

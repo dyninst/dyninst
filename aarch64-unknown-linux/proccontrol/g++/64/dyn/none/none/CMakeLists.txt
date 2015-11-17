@@ -18,6 +18,7 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cxx}"
 
 IF (MUTATEEgnucxx64dynCXX MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/aarch64-unknown-linux/srclists.cmake)
+if(TARGET pcontrol)
 add_executable (pc_addlibrary.dyn_g++_64_none_none ${SOURCE_LIST_40})
 foreach (f ${SOURCE_LIST_40})
 	get_source_file_property(lang ${f} LANGUAGE)
@@ -80,8 +81,8 @@ foreach (f ${SOURCE_LIST_39})
 	endforeach()
 set_target_properties(pc_groups.dyn_g++_64_none_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (pc_groups.dyn_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-add_executable (pc_irpc.dyn_g++_64_none_none ${SOURCE_LIST_66})
-foreach (f ${SOURCE_LIST_66})
+add_executable (pc_irpc.dyn_g++_64_none_none ${SOURCE_LIST_67})
+foreach (f ${SOURCE_LIST_67})
 	get_source_file_property(lang ${f} LANGUAGE)
 	if(lang MATCHES "C")
 		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
@@ -170,6 +171,15 @@ foreach (f ${SOURCE_LIST_19})
 	endforeach()
 set_target_properties(pc_thread_cont.dyn_g++_64_none_none PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries (pc_thread_cont.dyn_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+add_executable (pc_tls.dyn_g++_64_none_none ${SOURCE_LIST_56})
+foreach (f ${SOURCE_LIST_56})
+	get_source_file_property(lang ${f} LANGUAGE)
+	if(lang MATCHES "C")
+		set_source_files_properties(${f} PROPERTIES LANGUAGE CXX)
+	endif()
+	endforeach()
+set_target_properties(pc_tls.dyn_g++_64_none_none PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries (pc_tls.dyn_g++_64_none_none ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 
 INSTALL (TARGETS
@@ -190,7 +200,9 @@ INSTALL (TARGETS
 		pc_terminate_stopped.dyn_g++_64_none_none
 		pc_thread.dyn_g++_64_none_none
 		pc_thread_cont.dyn_g++_64_none_none
+		pc_tls.dyn_g++_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()
