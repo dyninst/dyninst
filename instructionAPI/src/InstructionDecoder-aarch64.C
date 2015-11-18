@@ -815,8 +815,6 @@ void InstructionDecoder_aarch64::getMemRefEx_RT(Result_Type &rt){
             break;
         default:
             rt = u64;
-            //insn_printf("[ERROR]: 0x%x\n", insn);
-            //assert(0);// shouldn't reach here;
     }
     return;
 }
@@ -910,8 +908,6 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefReg_ext(){
     }else if( size == 3 ){ //64bit
         immVal = S==0?0:(S==1?3:-1);
         if( immVal==-1) assert(0);
-    }else{
-        immVal = 0;
     }
     Expression::Ptr ext = makeOptionExpression(immLen, immVal);
 
@@ -1752,10 +1748,6 @@ void InstructionDecoder_aarch64::OPRimm()
             else if( curOperands.size() == 4) {
                 curOperands.insert(curOperands.begin()+1, curOperands.back());
                 curOperands.pop_back();
-            }
-            else{
-                assert(0);
-                //insn_printf("[WARN] Case not handled\n");
             }
 		    insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
         }

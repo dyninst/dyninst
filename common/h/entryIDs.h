@@ -199,6 +199,7 @@ enum entryID {
   e_fdivrp,
   e_femms,
   e_ffree,
+  e_ffreep,
   e_fiadd,
   e_ficom,
   e_ficomp,
@@ -574,6 +575,7 @@ enum entryID {
   e_xorps,
   e_fp_generic,
   e_3dnow_generic,
+  e_getsec,
 
   power_op_INVALID,
   power_op_extended,
