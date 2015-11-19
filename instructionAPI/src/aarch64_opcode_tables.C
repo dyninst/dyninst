@@ -40,7 +40,6 @@ void aarch64_insn_entry::buildInsnTable()
     if(aarch64_insn_entry::built_insn_table)
 		return;
 
-
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_INVALID, 	"INVALID",	operandSpec() ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_abs_advsimd, 	"abs",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ) ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_abs_advsimd, 	"abs",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ) ));
@@ -770,7 +769,6 @@ void aarch64_insn_entry::buildInsnTable()
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_yield_hint, 	"yield",	operandSpec() ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_zip1_advsimd, 	"zip1",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ) ));
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_zip2_advsimd, 	"zip2",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ) ));
-
     built_insn_table = true;
 }
 
@@ -1609,7 +1607,6 @@ void aarch64_mask_entry::buildDecoderTable()
 	main_decoder_table[823]=aarch64_mask_entry(0x0, branchMap(),655);
 	main_decoder_table[824]=aarch64_mask_entry(0x0, branchMap(),184);
 	main_decoder_table[825]=aarch64_mask_entry(0x0, branchMap(),228);
-
     built_decoder_table = true;
 }
 
