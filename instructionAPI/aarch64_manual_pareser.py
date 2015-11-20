@@ -51,21 +51,17 @@ class Opcode:
     # get opcodes
     ##############################
     def getOpcodes(self):
-        # for general purpose instructions
         for lines in self.base_insn_file:
             if lines.startswith("    <iform"):
                 self.op_set.add(lines.split('"')[1].split('.xml')[0].split('_')[0])
                 self.insn_set.add(lines.split('"')[1].split('.xml')[0])
-            # else do nothing
 
-        # for vector and fp instructions
         if self.vec_FP == True:
             for lines in self.vec_FP_insn_file:
                 if lines.startswith("    <iform"):
                     self.op_set.add(lines.split('"')[1].split('.xml')[0].split('_')[0])
                     self.insn_set.add(lines.split('"')[1].split('.xml')[0])
                     self.fp_insn_set.add(lines.split('"')[1].split('.xml')[0])
-                # else do nothing
 
     def printOpcodes(self):
         self.getOpcodes()
@@ -162,11 +158,6 @@ def ifNeedToSetFlags(line):
 class OpTable:
     global files_dir
 
-    ###########################
-    # to store all masks
-    # to store all encodings
-    # to store all instructions
-    ###########################
     def __init__(self):
         self.masksArray = list()
         self.encodingsArray = list()
@@ -178,20 +169,48 @@ class OpTable:
     def getTable(self):
         return self.masksArray, self.encodingsArray, self.insnArray, self.operandsArray
 
-    def getMasksArray(self):
-        return self.masksArray
+    def analyzeEncodeBit(self, encodeBit, maskBit, encodingArray, operands_pos_Insn, reserve_operand_pos, maskStartBit):
+        if encodeBit == '1' or encodeBit == '0':
+            maskBit[31-maskStartBit] = '1'
+            encodingArray[31-maskStartBit] = encodeBit
 
-    def getEncodingsArray(self):
-        return self.encodingsArray
+        elif encodeBit == '(1)':
+            maskBit[31-maskStartBit] = '1'
+            encodingArray[31-maskStartBit] = '1'
+
+        elif encodeBit == '(0)':
+            maskBit[31-maskStartBit] = '1'
+            encodingArray[31-maskStartBit] = '0'
+
+        # if it is 'x', we set it as not a control field
+        # and append the reserved operand to the list
+        elif encodeBit == 'x':
+            maskBit[31-maskStartBit] = '0'
+            encodingArray[31-maskStartBit] = '0'
+
+            operands_pos_Insn.append(reserve_operand_pos)
+            if reserve_operand_pos[0] not in self.operandsSet:
+                self.operandsSet.add(reserve_operand_pos[0])
+
+        # if it is blank, same as 'x', do late operand appending
+        elif encodeBit == '' or encodeBit.startswith('!=') != -1:
+            operands_pos_Insn.append(reserve_operand_pos)
+            if reserve_operand_pos[0] not in self.operandsSet:
+                self.operandsSet.add(reserve_operand_pos[0])
+
+        else:
+            #if not encodeBit.startswith('!='):
+            print '[WARN] something not has been analyzed:'+ encodeBit
+
 
     # to get the encoding table
-    def getNprintOpTable(self ):
+    def printOpTable(self ):
 
-        # some init #
         self.masksArray.append(self.insn_unallocated)
         self.encodingsArray.append(int(0))
         self.insnArray.append('INVALID')
         self.operandsArray.append('')
+
         indexOfInsn = 1
 
         print 0, '%22s'%'INVALID',  '%34s'%bin(self.insn_unallocated), '(', hex(self.insn_unallocated), ')'
@@ -205,11 +224,13 @@ class OpTable:
                     #print file
                     curFile = open(ISA_dir+file)
 
-                    startDiagram = False
                     startBox = False
+
+                    startDiagram = False
                     maskBit = list('0'*32)
                     encodingArray = list('0'*32)
                     operands_pos_Insn = list()
+
                     reserve_operand_pos = list()
                     maskStartBit = 31
                     isRnUp = False
@@ -266,42 +287,9 @@ class OpTable:
                             # start of <c>
                             if line.find('<c') != -1:
                                 encodeBit = line.split('>')[1].split('<')[0]
-
-                                # control field
-                                if encodeBit == '1' or encodeBit == '0':
-                                    maskBit[31-maskStartBit] = '1'
-                                    encodingArray[31-maskStartBit] = encodeBit
-
-                                elif encodeBit == '(1)':
-                                    maskBit[31-maskStartBit] = '1'
-                                    encodingArray[31-maskStartBit] = '1'
-
-                                elif encodeBit == '(0)':
-                                    maskBit[31-maskStartBit] = '1'
-                                    encodingArray[31-maskStartBit] = '0'
-
-                                # if it is 'x', we set it as not a control field
-                                # and append the reserved operand to the list
-                                elif encodeBit == 'x':
-                                    maskBit[31-maskStartBit] = '0'
-                                    encodingArray[31-maskStartBit] = '0'
-
-                                    operands_pos_Insn.append(reserve_operand_pos)
-                                    if reserve_operand_pos[0] not in self.operandsSet:
-                                        self.operandsSet.add(reserve_operand_pos[0])
-
-                                # if it is blank, same as 'x', do late operand appending
-                                elif encodeBit == '' or encodeBit.startswith('!=') != -1:
-                                    operands_pos_Insn.append(reserve_operand_pos)
-                                    if reserve_operand_pos[0] not in self.operandsSet:
-                                        self.operandsSet.add(reserve_operand_pos[0])
-
-                                else:
-                                    #if not encodeBit.startswith('!='):
-                                    print '[WARN] something not has been analyzed:'+ encodeBit
-
+                                self.analyzeEncodeBit(encodeBit, maskBit, encodingArray, operands_pos_Insn, reserve_operand_pos, maskStartBit)
                                 maskStartBit = maskStartBit - 1
-                        # end of <box line> #
+
 
                     # end of each line #
 
@@ -388,14 +376,19 @@ class OpTable:
                             print '[WARN] unknown width'
 
                 for operand in self.operandsArray[i]:
-                    operands += '( fn('
+                    # this is solution the compiler bug
+                    # if OPRimm<x, y> appears in the first place of the list
+                    if operand[0] == 'imm':
+                        operands += '( (operandFactory) fn('
+                    else:
+                        operands += '( fn('
 
                     if len(operand) != 1:
                         operands += 'OPR'+operand[0]+'<'+ str(operand[1][0])+' COMMA ' + str(operand[1][1])+'>'
                     else:
                         curOperandName = operand[0]
                         if curOperandName == 'setFlags':
-                            operands+= curOperandName
+                            operands += curOperandName
                         else:
                             operands += 'OPR'+ curOperandName
 
@@ -415,7 +408,6 @@ def clapseMask(encoding, curMask):
         curMask = (curMask << 1)&0xffffffff
         encoding = (encoding << 1)&0xffffffff
     return ret
-
 
 ####################################
 # generate the c++ code
@@ -464,6 +456,7 @@ class DecodeTable:
         self.entryAvailable = 1
 
     ###########################################
+    # arg-1 is self
     # arg0 is the range of indexes in the instruction array
     #   that you want to analyze
     # arg1 is the bit mask that has been processed
@@ -607,7 +600,6 @@ class DecodeTable:
         # reserve room
         self.entryAvailable += numBranch
 
-        # TODO
         printDecodertable(entryToPlace, curMask, entryList, -1);
         self.numNodes += 1
 
@@ -647,21 +639,18 @@ def getOperandValues(line, instruction, isRnUp):
         return ('', [0, 0])
 
     if name.find('Rt') != -1 or name.find('Rt2') != -1 or name.find('Rn') !=-1:
-    #if name == 'Rt' or name == 'Rt2' or name == 'Rn':
         if instruction.startswith('ld'):
             name += 'L'
 
         if instruction.startswith('st'):
             name += 'S'
 
-    # ld/st class
     if instruction.startswith('ld') or instruction.startswith('st'):
         if name.startswith('Rn'):
             if isRnUp == True:
                 name += 'U'
 
     endbit = bit - (width-1)
-    #return (name, [bit, width])
     if name in multiOperandSet:
         return (name, [bit, endbit])
     else:
@@ -674,7 +663,6 @@ def printOperandFuncs(operandsSet):
         print 'void '+ 'OPR'+operand + '(){ }'
 
 
-####### main ########
 def main():
 
     ######################################
@@ -694,13 +682,14 @@ def main():
     # indexes in the arrays are used to find the instruction you want
     #################################################################
     opTable = OpTable()
-    opTable.getNprintOpTable()
+    opTable.printOpTable()
 
     ###############################################
     # instruction table
     # generate C++ code to build instruction tables
     ###############################################
     opTable.buildInsnTable()
+
     global masksArray
     global encodingsArray
     global insnArray
