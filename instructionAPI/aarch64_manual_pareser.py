@@ -364,21 +364,21 @@ class OpTable:
                 # recognize FP and SIMD
                 if instruction in fp_insn_set:
                     if self.isSIMD(instruction) == False:
-                        operands += '( fn(setFPMode) )'
+                        self.operandsArray[i].insert(0, ('setFPMode',) )
                     else:
-                        operands += '( fn(setSIMDMode) )'
+                        self.operandsArray[i].insert(0, ('setSIMDMode',) )
 
                 if self.isLDST(instruction) == True:
                     if self.getRegWidth(instruction) == 32 or self.getRegWidth(instruction) == 64:
-                        operands += '( fn(setRegWidth) )'
+                        self.operandsArray[i].insert(0, ('setRegWidth',) )
                     else:
                         if self.getRegWidth(instruction) != 128:
                             print '[WARN] unknown width'
 
-                for operand in self.operandsArray[i]:
+                for index, operand in enumerate(self.operandsArray[i]):
                     # this is solution the compiler bug
                     # if OPRimm<x, y> appears in the first place of the list
-                    if operand[0] == 'imm':
+                    if len(operand) != 1 and index == 0:
                         operands += '( (operandFactory) fn('
                     else:
                         operands += '( fn('
@@ -387,7 +387,7 @@ class OpTable:
                         operands += 'OPR'+operand[0]+'<'+ str(operand[1][0])+' COMMA ' + str(operand[1][1])+'>'
                     else:
                         curOperandName = operand[0]
-                        if curOperandName == 'setFlags':
+                        if curOperandName.startswith('set'):
                             operands += curOperandName
                         else:
                             operands += 'OPR'+ curOperandName
