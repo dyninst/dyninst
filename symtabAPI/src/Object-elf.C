@@ -4788,6 +4788,7 @@ bool Object::addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_che
 	break;
       }
     }
+    dwarf_dealloc(dbg, off_attr, DW_DLA_ATTR);
     dwarf_ranges_dealloc(dbg, ranges, ranges_length);
   }
   return false;
