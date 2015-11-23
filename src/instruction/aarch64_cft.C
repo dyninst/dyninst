@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -92,7 +92,7 @@ test_results_t verifyTargetType(const Instruction::CFT& actual, const cftExpecte
 
 test_results_t aarch64_cft_Mutator::executeTest()
 {
-  const unsigned char buffer[] = 
+  const unsigned char buffer[] =
   {
 	  	0x17, 0xFF, 0xFF, 0xFF,		// B #-1
 		0xD6, 0x1F, 0x01, 0x80,		// BR X12
@@ -108,7 +108,7 @@ test_results_t aarch64_cft_Mutator::executeTest()
   unsigned int expectedInsns = size/4;
   ++expectedInsns;
   InstructionDecoder d(buffer, size, Dyninst::Arch_aarch64);
-  
+
   std::deque<Instruction::Ptr> decodedInsns;
   Instruction::Ptr i;
   do
@@ -126,7 +126,7 @@ test_results_t aarch64_cft_Mutator::executeTest()
     {
         if(*curInsn) logerror("\t%s\n", (*curInsn)->format().c_str());
     }
-    
+
     return FAILED;
   }
   if(decodedInsns.back() && decodedInsns.back()->isValid())
@@ -136,12 +136,12 @@ test_results_t aarch64_cft_Mutator::executeTest()
   }
 
   test_results_t retVal = PASSED;
-  
+
   decodedInsns.pop_back();
   Expression* theIP = new RegisterAST(aarch64::pc);
   Expression* link_reg = new RegisterAST(aarch64::x30);
   Expression* x_reg = new RegisterAST(aarch64::x12);
-  
+
 
   std::list<cftExpected> cfts;
   cfts.push_back(cftExpected(true, 0x3FC, false, false, false, false));
@@ -152,14 +152,14 @@ test_results_t aarch64_cft_Mutator::executeTest()
   cfts.push_back(cftExpected(true, 0x3FC, false, true, false, false));
   cfts.push_back(cftExpected(true, 0x404, false, true, false, true));
   cfts.push_back(cftExpected(true, 0x3FC, false, true, false, false));
-  cfts.push_back(cftExpected(true, 0x404, false, true, false, true));  
+  cfts.push_back(cftExpected(true, 0x404, false, true, false, true));
   cfts.push_back(cftExpected(true, 0x440, false, true, false, false));
-  cfts.push_back(cftExpected(true, 0x404, false, true, false, true)); 
-  cfts.push_back(cftExpected(true, 0x420, true, false, false, false));  
+  cfts.push_back(cftExpected(true, 0x404, false, true, false, true));
+  cfts.push_back(cftExpected(true, 0x420, true, false, false, false));
   cfts.push_back(cftExpected(true, 0x404, false, false, false, true));
-  cfts.push_back(cftExpected(true, 0x90, true, false, true, false));  
+  cfts.push_back(cftExpected(true, 0x90, true, false, true, false));
   cfts.push_back(cftExpected(true, 0x404, false, false, false, true));
-  
+
   while(!decodedInsns.empty())
   {
       (void)(decodedInsns.front()->getControlFlowTarget());
@@ -170,7 +170,7 @@ test_results_t aarch64_cft_Mutator::executeTest()
           Expression::Ptr theCFT = curCFT->target;
           if(theCFT)
           {
-			  
+
               theCFT->bind(theIP, Result(u64, 0x400));
               theCFT->bind(x_reg, Result(u64, 0x90));
               retVal = failure_accumulator(retVal, verifyCFT(theCFT, cfts.front().defined, cfts.front().expected, u64));
@@ -183,7 +183,7 @@ test_results_t aarch64_cft_Mutator::executeTest()
           }
           cfts.pop_front();
       }
-      
+
       decodedInsns.pop_front();
   }
 
