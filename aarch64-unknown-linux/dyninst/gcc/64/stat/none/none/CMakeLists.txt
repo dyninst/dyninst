@@ -18,8 +18,9 @@ CHECK_MUTATEE_COMPILER ("${M_gnu_cc}"
 
 IF (MUTATEEgnucc64statC MATCHES "1")
 include (${PROJECT_SOURCE_DIR}/aarch64-unknown-linux/srclists.cmake)
-add_executable (dyninst_group_test.stat_gcc_64_none_none ${SOURCE_LIST_58})
-foreach (f ${SOURCE_LIST_58})
+if(TARGET dyninstAPI)
+add_executable (dyninst_group_test.stat_gcc_64_none_none ${SOURCE_LIST_59})
+foreach (f ${SOURCE_LIST_59})
 	get_source_file_property(lang ${f} LANGUAGE)
 	if(lang MATCHES "C")
 		set_source_files_properties(${f} PROPERTIES LANGUAGE C)
@@ -51,5 +52,6 @@ INSTALL (TARGETS
 		test1_29.stat_gcc_64_none_none
 	DESTINATION ${INSTALL_DIR})
 
+ENDIF()
 ENDIF()
 ENDIF()

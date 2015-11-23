@@ -3628,7 +3628,7 @@ runmode_platform(P, 'binary', _) :- platform('power32', 'bluegene', _, P).
 runmode_platform(P, 'binary', _) :- platform('power64', 'bluegene', _, P).
 runmode_platform(P, 'binary', _) :- platform('i386', 'freebsd', _, P).
 runmode_platform(P, 'binary', _) :- platform('x86_64', 'freebsd', _,P).
-runmode_platform(P, 'binary', _) :- platform('i386', 'windows', _,P).
+% runmode_platform(P, 'binary', _) :- platform('i386', 'windows', _,P).
 runmode_platform(P, 'disk', _) :- platform(_, _, _, P).
 % runmode_platform(P, 'deserialize', _) :- platform(_, _, _, P).
 
