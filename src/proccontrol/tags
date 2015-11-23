@@ -1,0 +1,698 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ALLOWEXIT_CODE	communication.h	69;"	d
+BP_FUNC	pc_singlestep.C	45;"	d	file:
+COMMUNICATION_H_	communication.h	31;"	d
+DEFAULT_NUM_THREADS	communication.h	36;"	d
+DEFAULT_NUM_THREADS	communication.h	38;"	d
+ERR_CHECK	pc_tls.C	141;"	d	file:
+EXIT_CODE	pc_exec_targ_mutatee.c	34;"	d	file:
+EXIT_CODE	pc_fork.C	68;"	d	file:
+EXIT_CODE	pc_fork_exec.C	57;"	d	file:
+EXIT_CODE	pc_fork_exec_mutatee.c	40;"	d	file:
+EXIT_CODE	pc_fork_mutatee.c	44;"	d	file:
+FORKINFO_CODE	communication.h	86;"	d
+HANDSHAKE_CODE	communication.h	64;"	d
+INVALID_SOCKET	proccontrol_comp.C	77;"	d	file:
+LIBTESTA	pc_addlibrary.C	111;"	d	file:
+LIBTESTA	pc_addlibrary.C	116;"	d	file:
+LIBTESTA	pc_library_mutatee.c	41;"	d	file:
+LIBTESTA	pc_library_mutatee.c	44;"	d	file:
+LIBTESTA	pc_library_mutatee.c	65;"	d	file:
+LIBTESTA	pc_tls_mutatee.c	57;"	d	file:
+LIBTESTA	pc_tls_mutatee.c	59;"	d	file:
+LIBTESTA_32	pc_addlibrary.C	112;"	d	file:
+LIBTESTA_32	pc_addlibrary.C	117;"	d	file:
+LIBTESTB	pc_library_mutatee.c	42;"	d	file:
+LIBTESTB	pc_library_mutatee.c	45;"	d	file:
+LIBTESTB	pc_library_mutatee.c	66;"	d	file:
+MAX_ARGS	proccontrol_comp.C	482;"	d	file:
+MAX_POSSIBLE_THREADS	communication.h	33;"	d
+MESSAGE_BUFFER_SIZE	pcontrol_mutatee_tools.c	81;"	d	file:
+MESSAGE_TIMEOUT	pcontrol_mutatee_tools.c	82;"	d	file:
+MSG_WAITALL	pcontrol_mutatee_tools.c	44;"	d	file:
+MultiThreadFinish	pcontrol_mutatee_tools.c	/^int MultiThreadFinish() {$/;"	f
+MultiThreadInit	pcontrol_mutatee_tools.c	/^int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)$/;"	f
+MutatorSocket	pcontrol_mutatee_tools.c	/^volatile char MutatorSocket[4096];$/;"	v
+NUM_BPS	pc_hw_breakpoint.C	56;"	d	file:
+NUM_BREAKPOINTS	pc_breakpoint.C	51;"	d	file:
+NUM_BREAKPOINT_SPINS	pc_breakpoint.C	52;"	d	file:
+NUM_BREAKPOINT_SPINS	pc_breakpoint_mutatee.c	38;"	d	file:
+NUM_BREAKPOINT_SPINS	pc_hw_breakpoint.C	57;"	d	file:
+NUM_BREAKPOINT_SPINS	pc_hw_breakpoint_mutatee.c	42;"	d	file:
+NUM_FUNCS	pc_singlestep.C	47;"	d	file:
+NUM_FUNCS	pc_singlestep_mutatee.c	38;"	d	file:
+NUM_IRPCS	pc_irpc.C	92;"	d	file:
+NUM_ITERATIONS	pc_tls.C	37;"	d	file:
+NUM_ITERATIONS	pc_tls_mutatee.c	63;"	d	file:
+NUM_PARALLEL_PROCS	proccontrol_comp.h	51;"	d
+PC_TERMINATE	pc_terminate_common.C	/^class PC_TERMINATE(Mutator) : public ProcControlMutator {$/;"	f
+PC_TERMINATE	pc_terminate_common.C	42;"	d	file:
+PC_TERMINATE	pc_terminate_common.C	44;"	d	file:
+PERM_TOTAL	pc_mem_perm.C	32;"	d	file:
+ProcControlComponent	proccontrol_comp.C	/^ProcControlComponent::ProcControlComponent() :$/;"	f	class:ProcControlComponent
+ProcControlComponent	proccontrol_comp.h	/^class COMPLIB_DLL_EXPORT ProcControlComponent : public ComponentTester$/;"	c
+ProcControlMutator	proccontrol_comp.C	/^ProcControlMutator::ProcControlMutator()$/;"	f	class:ProcControlMutator
+ProcControlMutator	proccontrol_comp.h	/^class COMPLIB_DLL_EXPORT ProcControlMutator : public TestMutator {$/;"	c
+RECV_TIMEOUT	proccontrol_comp.h	48;"	d
+SENDADDR_CODE	communication.h	74;"	d
+SEND_PID_CODE	communication.h	58;"	d
+SOCKET	proccontrol_comp.C	/^typedef int SOCKET;$/;"	t	file:
+SOCKET_ERROR	proccontrol_comp.C	76;"	d	file:
+STOP_FUNC	pc_singlestep.C	46;"	d	file:
+STOP_TEST	pc_terminate_stopped.C	31;"	d	file:
+STR_CASE	pc_irpc.C	174;"	d	file:
+SYNCLOC_CODE	communication.h	81;"	d
+StackCallbackTest	pc_stat.C	/^   StackCallbackTest() {$/;"	f	class:StackCallbackTest
+StackCallbackTest	pc_stat.C	/^class StackCallbackTest : public CallStackCallback$/;"	c	file:
+THREADINFO_CODE	communication.h	94;"	d
+TLS_SPEC	pc_tls_mutatee.c	111;"	d	file:
+ThreadTrampoline	pcontrol_mutatee_tools.c	/^void *ThreadTrampoline(void *d)$/;"	f
+USE_SOCKETS	proccontrol_comp.C	69;"	d	file:
+VALID_TLS_RANGE	pc_thread.C	368;"	d	file:
+_GNU_SOURCE	pc_tls_mutatee.c	32;"	d	file:
+__USE_MISC	pc_groups_mutatee.c	56;"	d	file:
+_factory	pc_terminate_common.C	/^extern "C" DLLEXPORT TestMutator* PC_TERMINATE(_factory) ()$/;"	f
+a_stack_addr	communication.h	/^   uint64_t a_stack_addr;$/;"	m	struct:__anon7
+acceptConnections	proccontrol_comp.C	/^bool ProcControlComponent::acceptConnections(int num, int *attach_sock)$/;"	f	class:ProcControlComponent
+addStackFrame	pc_stat.C	/^   virtual bool addStackFrame(Thread::ptr thr, Address ra, Address sp, Address fp) {$/;"	f	class:StackCallbackTest
+addr	communication.h	/^  uint64_t addr;$/;"	m	struct:__anon4
+addrs	pc_hw_breakpoint.C	/^   Address addrs[NUM_BPS];$/;"	m	struct:__anon9	file:
+all_initial_threads	pc_thread.C	/^static set<PID> all_initial_threads;$/;"	v	file:
+all_irpcs_completed	pc_irpc.C	/^static bool all_irpcs_completed() $/;"	f	file:
+all_known_processes	pc_thread.C	/^static set<PID> all_known_processes;$/;"	v	file:
+all_lwps	pc_thread.C	/^static set<pair<PID, LWP> > all_lwps;$/;"	v	file:
+all_stack_addrs	pc_thread.C	/^static set<pair<PID, Address> > all_stack_addrs;$/;"	v	file:
+all_threads	pc_stat.C	/^   ThreadSet::ptr all_threads;$/;"	m	class:pc_statMutator	file:
+all_tids	pc_thread.C	/^static set<pair<PID, THR_ID> > all_tids;$/;"	v	file:
+all_tls	pc_thread.C	/^static set<pair<PID, Address> > all_tls;$/;"	v	file:
+allocation_mode	pc_irpc.C	/^allocation_mode_t allocation_mode;$/;"	v
+allocation_mode_t	pc_irpc.C	/^enum allocation_mode_t {$/;"	g	file:
+allow_exit	communication.h	/^} allow_exit;$/;"	t	typeref:struct:__anon3
+am_i_staticlink	pc_tls_mutatee.c	/^int am_i_staticlink()$/;"	f
+am_signaled	pc_detach_mutatee.c	/^static HANDLE am_signaled;$/;"	v	file:
+am_str	pc_irpc.C	/^const char *am_str() {$/;"	f
+assigned	pc_irpc.C	/^   bool assigned;$/;"	m	struct:rpc_data_t	file:
+auto_allocate	pc_irpc.C	/^   auto_allocate = 1$/;"	e	enum:allocation_mode_t	file:
+barrier	pc_groups_mutatee.c	/^static testbarrier_t barrier;$/;"	v	file:
+barrier	pc_hw_breakpoint_mutatee.c	/^static testbarrier_t *barrier;$/;"	v	file:
+barrier	pc_stat_mutatee.c	/^static testbarrier_t barrier;$/;"	v	file:
+barrier	pc_thread_cont_mutatee.c	/^    testbarrier_t barrier;$/;"	m	struct:local_data	file:
+beginStackWalk	pc_stat.C	/^   virtual bool beginStackWalk(Thread::ptr thr) {$/;"	f	class:StackCallbackTest
+begin_set	pc_stat.C	/^   ThreadSet::ptr begin_set;$/;"	m	class:StackCallbackTest	file:
+block_for_events	proccontrol_comp.C	/^bool ProcControlComponent::block_for_events()$/;"	f	class:ProcControlComponent
+bp	pc_fork.C	/^static Breakpoint::ptr bp;$/;"	v	file:
+bp	pc_groups.C	/^   Breakpoint::ptr bp;$/;"	m	class:pc_groupsMutator	file:
+bp	pc_singlestep.C	/^Breakpoint::ptr bp;$/;"	v
+bp0	pc_breakpoint_mutatee.c	/^void bp0(int tid)$/;"	f
+bp1	pc_breakpoint_mutatee.c	/^void bp1(int tid)$/;"	f
+bp2	pc_breakpoint_mutatee.c	/^void bp2(int tid)$/;"	f
+bp3	pc_breakpoint_mutatee.c	/^void bp3(int tid)$/;"	f
+bp_active	pc_hw_breakpoint.C	/^   bool bp_active[NUM_BPS];$/;"	m	struct:__anon9	file:
+bp_addrs	pc_breakpoint.C	/^Dyninst::Address bp_addrs[NUM_PARALLEL_PROCS][NUM_BREAKPOINTS];$/;"	v
+bp_func	pc_fork_mutatee.c	/^static void bp_func()$/;"	f	file:
+bp_func	pc_groups_mutatee.c	/^void bp_func()$/;"	f
+bp_loc	pc_groups.C	/^   AddressSet::ptr bp_loc;$/;"	m	class:pc_groupsMutator	file:
+bp_modes	pc_hw_breakpoint.C	/^static unsigned int bp_modes[NUM_BPS];$/;"	v	file:
+bp_run	pc_hw_breakpoint.C	/^   bool bp_run[NUM_BPS];$/;"	m	struct:__anon9	file:
+bp_sizes	pc_hw_breakpoint.C	/^static unsigned int bp_sizes[NUM_BPS];$/;"	v	file:
+bps	pc_breakpoint.C	/^Breakpoint::ptr bps[NUM_PARALLEL_PROCS][NUM_BREAKPOINTS];$/;"	v
+bps	pc_hw_breakpoint.C	/^static Breakpoint::ptr bps[NUM_BPS];$/;"	v	file:
+breakpoint	pc_singlestep.C	/^   int breakpoint;$/;"	m	struct:thread_info	file:
+breakpoint_func	pc_tls_mutatee.c	/^void breakpoint_func()$/;"	f
+busywait	pc_irpc.C	/^   Dyninst::Address busywait;$/;"	m	struct:proc_info_t	file:
+busywait	pc_irpc_mutatee.c	/^static int busywait = 0;$/;"	v	file:
+cb	pc_tls_mutatee.c	/^int cb(struct dl_phdr_info *info, size_t size, void *v)$/;"	f
+cb_error	pc_thread_cont.C	/^static bool cb_error = false;$/;"	v	file:
+checkThread	proccontrol_comp.C	/^bool ProcControlComponent::checkThread(const Thread &thread)$/;"	f	class:ProcControlComponent
+checkThreadMsg	pc_thread.C	/^static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)$/;"	f	file:
+check_if_threaded	pc_fork_mutatee.c	/^static int check_if_threaded()$/;"	f	file:
+check_threads_on_startup	proccontrol_comp.h	/^   bool check_threads_on_startup;$/;"	m	class:ProcControlComponent
+check_tls_write_t	pc_tls_mutatee.c	/^typedef int (*check_tls_write_t)(unsigned char);$/;"	t	file:
+check_unload	pc_library.C	/^struct check_unload$/;"	s	file:
+child	pc_fork.C	/^   Process::const_ptr child;$/;"	m	struct:proc_info_fork	file:
+cleanSocket	proccontrol_comp.C	/^bool ProcControlComponent::cleanSocket()$/;"	f	class:ProcControlComponent
+clear	pc_irpc.C	/^   void clear() {$/;"	f	struct:proc_info_t
+close	proccontrol_comp.C	/^	static int close(SOCKET s)$/;"	f	struct:socket_types
+closeLib	pc_library_mutatee.c	/^void closeLib(const char *lib, void *handle)$/;"	f
+closeLib	pc_library_mutatee.c	/^void closeLib(const char* lib, void* handle)$/;"	f
+closeLib	pc_tls_mutatee.c	/^void closeLib(const char *lib, void *handle)$/;"	f
+closesocket	proccontrol_comp.C	/^static int closesocket(int sock) {$/;"	f	file:
+code	communication.h	/^   uint32_t code;$/;"	m	struct:__anon1
+code	communication.h	/^   uint32_t code;$/;"	m	struct:__anon2
+code	communication.h	/^   uint32_t code;$/;"	m	struct:__anon3
+code	communication.h	/^   uint32_t code;$/;"	m	struct:__anon6
+code	communication.h	/^   uint64_t code;$/;"	m	struct:__anon7
+code	communication.h	/^  uint32_t code;$/;"	m	struct:__anon4
+code	communication.h	/^  uint32_t code;$/;"	m	struct:__anon5
+comp	proccontrol_comp.h	/^  ProcControlComponent *comp;$/;"	m	class:ProcControlMutator
+completed	pc_irpc.C	/^   bool completed;$/;"	m	struct:rpc_data_t	file:
+componentTesterFactory	proccontrol_comp.C	/^TEST_DLL_EXPORT ComponentTester *componentTesterFactory()$/;"	f
+createBuffer	pc_irpc_asm.h	/^static void createBuffer(Process::ptr proc,$/;"	f
+createNamedPipes	pcontrol_mutatee_tools.c	/^static void createNamedPipes()$/;"	f	file:
+create_pipes	proccontrol_comp.C	/^bool ProcControlComponent::create_pipes(ProcessSet::ptr p)$/;"	f	class:ProcControlComponent
+created_named_pipes	pcontrol_mutatee_tools.c	/^static int created_named_pipes = 0;$/;"	v	file:
+cur	pc_irpc.C	/^   int cur;$/;"	m	struct:thread_info_t	file:
+cur_group	proccontrol_comp.C	/^static RunGroup *cur_group = NULL;$/;"	v	file:
+cur_index	pc_breakpoint.C	/^unsigned cur_index;$/;"	v
+curgroup_self_cleaning	proccontrol_comp.h	/^   bool curgroup_self_cleaning;$/;"	m	class:ProcControlComponent
+data	pc_groups_mutatee.c	/^uint64_t data;$/;"	v
+data	pcontrol_mutatee_tools.c	/^   void *data;$/;"	m	struct:__anon10	file:
+data_loc	pc_groups.C	/^   AddressSet::ptr data_loc;$/;"	m	class:pc_groupsMutator	file:
+datagram	pcontrol_mutatee_tools.c	/^} datagram;$/;"	t	typeref:struct:__anon10	file:
+decodeMemPerm	pc_mem_perm.C	/^bool decodeMemPerm(Process::mem_perm rights, int& perm) {$/;"	f
+default_on_exit	proccontrol_comp.C	/^Process::cb_ret_t default_on_exit(Event::const_ptr ev)$/;"	f
+do_nothing	pc_groups_mutatee.c	/^volatile int do_nothing;$/;"	v
+done	pc_irpc_mutatee.c	/^static int done = 0;$/;"	v	file:
+dont_optimize	pc_tls_mutatee.c	/^volatile int dont_optimize = 0;$/;"	v
+dummy	communication.h	/^  uint32_t dummy;$/;"	m	struct:__anon4
+early_bp	pc_singlestep.C	/^Breakpoint::ptr early_bp;$/;"	v
+encodeMemPerm	pc_mem_perm.C	/^bool encodeMemPerm(int perm, Process::mem_perm& rights) {$/;"	f
+endStackWalk	pc_stat.C	/^   virtual void endStackWalk(Thread::ptr thr) {$/;"	f	class:StackCallbackTest
+end_set	pc_stat.C	/^   ThreadSet::ptr end_set;$/;"	m	class:StackCallbackTest	file:
+error	pc_groups.C	/^   bool error;$/;"	m	class:pc_groupsMutator	file:
+error	pc_groups_mutatee.c	/^static int error = 0;$/;"	v	file:
+error	pc_mem_perm_mutatee.c	/^static int error = 0;$/;"	v	file:
+error	pc_stat.C	/^   bool error;$/;"	m	class:pc_statMutator	file:
+error	pc_stat_mutatee.c	/^static int error = 0;$/;"	v	file:
+error	pc_terminate_common.C	/^static bool error;$/;"	v	file:
+eventCounterFunction	proccontrol_comp.C	/^static Process::cb_ret_t eventCounterFunction(Event::const_ptr ev)$/;"	f	file:
+eventSourceEventType	pc_temp_detach.C	/^static EventType::Code eventSourceEventType = EventType::Signal;$/;"	v	file:
+eventSourceEventType	pc_temp_detach.C	/^static EventType::Code eventSourceEventType = EventType::Unset;$/;"	v	file:
+event_source_error	pc_temp_detach.C	/^static bool event_source_error = false;$/;"	v	file:
+eventsRecieved	proccontrol_comp.h	/^   std::map<EventType, std::vector<Event::const_ptr>, eventtype_cmp > eventsRecieved;$/;"	m	class:ProcControlComponent
+exe_check_tls_write	pc_tls_mutatee.c	/^static int exe_check_tls_write(unsigned char expected)$/;"	f	file:
+exe_tls_read_int	pc_tls.C	/^static Dyninst::Offset exe_tls_read_int;$/;"	v	file:
+exe_tls_read_long	pc_tls.C	/^static Dyninst::Offset exe_tls_read_long;$/;"	v	file:
+exe_tls_write_char	pc_tls.C	/^static Dyninst::Offset exe_tls_write_char;$/;"	v	file:
+exe_update_tls_reads	pc_tls_mutatee.c	/^static void exe_update_tls_reads()$/;"	f	file:
+exec_name	pc_fork_exec.C	/^const char *exec_name = "pc_exec_targ";$/;"	v
+exec_name	pc_fork_exec_mutatee.c	/^static char *exec_name;$/;"	v	file:
+executable	pc_fork_exec.C	/^   std::string executable;$/;"	m	struct:proc_info_forkexec	file:
+executable	pc_tls.C	/^static std::map<Process::const_ptr, Library::const_ptr> executable;$/;"	v	file:
+executeTest	pc_addlibrary.C	/^test_results_t pc_addlibraryMutator::executeTest()$/;"	f	class:pc_addlibraryMutator
+executeTest	pc_breakpoint.C	/^test_results_t pc_breakpointMutator::executeTest()$/;"	f	class:pc_breakpointMutator
+executeTest	pc_detach.C	/^test_results_t pc_detachMutator::executeTest()$/;"	f	class:pc_detachMutator
+executeTest	pc_fork.C	/^test_results_t pc_forkMutator::executeTest()$/;"	f	class:pc_forkMutator
+executeTest	pc_fork_exec.C	/^test_results_t pc_fork_execMutator::executeTest()$/;"	f	class:pc_fork_execMutator
+executeTest	pc_groups.C	/^test_results_t pc_groupsMutator::executeTest()$/;"	f	class:pc_groupsMutator
+executeTest	pc_hw_breakpoint.C	/^test_results_t pc_hw_breakpointMutator::executeTest()$/;"	f	class:pc_hw_breakpointMutator
+executeTest	pc_irpc.C	/^test_results_t pc_irpcMutator::executeTest()$/;"	f	class:pc_irpcMutator
+executeTest	pc_launch.C	/^test_results_t pc_launchMutator::executeTest()$/;"	f	class:pc_launchMutator
+executeTest	pc_library.C	/^test_results_t pc_libraryMutator::executeTest()$/;"	f	class:pc_libraryMutator
+executeTest	pc_mem_perm.C	/^test_results_t pc_mem_permMutator::executeTest()$/;"	f	class:pc_mem_permMutator
+executeTest	pc_singlestep.C	/^test_results_t pc_singlestepMutator::executeTest()$/;"	f	class:pc_singlestepMutator
+executeTest	pc_stat.C	/^test_results_t pc_statMutator::executeTest()$/;"	f	class:pc_statMutator
+executeTest	pc_temp_detach.C	/^test_results_t pc_temp_detachMutator::executeTest()$/;"	f	class:pc_temp_detachMutator
+executeTest	pc_terminate_common.C	/^test_results_t PC_TERMINATE(Mutator::executeTest) ()$/;"	f
+executeTest	pc_thread.C	/^test_results_t pc_threadMutator::executeTest()$/;"	f	class:pc_threadMutator
+executeTest	pc_thread_cont.C	/^test_results_t pc_thread_contMutator::executeTest()$/;"	f	class:pc_thread_contMutator
+executeTest	pc_tls.C	/^test_results_t pc_tlsMutator::executeTest()$/;"	f	class:pc_tlsMutator
+exited_processes	pc_thread.C	/^static set<Process::const_ptr> exited_processes;$/;"	v	file:
+expected	pc_hw_breakpoint.C	/^unsigned expected[NUM_BPS];$/;"	v
+expected_post_lwp_exits	pc_thread_cont.C	/^static std::set<Thread::const_ptr> expected_post_lwp_exits;$/;"	v	file:
+expected_post_thread_exits	pc_thread_cont.C	/^static std::set<Thread::const_ptr> expected_post_thread_exits;$/;"	v	file:
+expected_pre_lwp_exits	pc_thread_cont.C	/^static std::set<Thread::const_ptr> expected_pre_lwp_exits;$/;"	v	file:
+expected_pre_thread_exits	pc_thread_cont.C	/^static std::set<Thread::const_ptr> expected_pre_thread_exits;$/;"	v	file:
+factory	proccontrol_comp.C	/^static SymbolReaderFactory *factory = NULL;$/;"	v	file:
+fakeStackwalk	pc_stat.C	/^bool pc_statMutator::fakeStackwalk()$/;"	f	class:pc_statMutator
+finalMessageExchange	pc_irpc.C	/^bool pc_irpcMutator::finalMessageExchange()$/;"	f	class:pc_irpcMutator
+findUnallocatedMemory	pc_groups_mutatee.c	/^static void *findUnallocatedMemory() {$/;"	f	file:
+find_by_pointer	pc_library.C	/^	find_by_pointer(Library::const_ptr lib)$/;"	f	struct:find_by_pointer
+find_by_pointer	pc_library.C	/^struct find_by_pointer$/;"	s	file:
+finiProcControlTest	pcontrol_mutatee_tools.c	/^int finiProcControlTest(int expected_ret_code)$/;"	f
+fork_lock	pc_fork_exec_mutatee.c	/^static testlock_t fork_lock;$/;"	v	file:
+fork_lock	pc_fork_mutatee.c	/^static testlock_t fork_lock;$/;"	v	file:
+fork_results	pc_fork_mutatee.c	/^fork_results_t fork_results[MAX_POSSIBLE_THREADS];$/;"	v
+fork_results_t	pc_fork_mutatee.c	/^} fork_results_t;$/;"	t	typeref:struct:__anon8	file:
+fork_test_on_exit	pc_fork.C	/^Process::cb_ret_t fork_test_on_exit(Event::const_ptr ev)$/;"	f
+forkinfo	communication.h	/^} forkinfo;$/;"	t	typeref:struct:__anon6
+found_exec	pc_library.C	/^   bool found_exec;$/;"	m	struct:proc_info_lib	file:
+found_it	pc_library.C	/^	bool found_it;$/;"	m	struct:find_by_pointer	file:
+found_libc	pc_library.C	/^   bool found_libc;$/;"	m	struct:proc_info_lib	file:
+frame_set	pc_stat.C	/^   ThreadSet::ptr frame_set;$/;"	m	class:StackCallbackTest	file:
+freeLocalData	pc_thread_cont_mutatee.c	/^void freeLocalData(struct local_data *ld) {$/;"	f	file:
+free_loc	pc_groups.C	/^   AddressSet::ptr free_loc;$/;"	m	class:pc_groupsMutator	file:
+func	pc_singlestep.C	/^   Address func[NUM_FUNCS];$/;"	m	struct:proc_info_ss	file:
+func	pcontrol_mutatee_tools.c	/^   int (*func)(int, void*);$/;"	m	struct:__anon10	file:
+func1	pc_singlestep_mutatee.c	/^int func1(int counter) {$/;"	f
+func2	pc_singlestep_mutatee.c	/^int func2(int counter) {$/;"	f
+func3	pc_singlestep_mutatee.c	/^int func3(int counter) {$/;"	f
+func4	pc_singlestep_mutatee.c	/^int func4(int counter) {$/;"	f
+func5	pc_singlestep_mutatee.c	/^int func5(int counter) {$/;"	f
+func_counts	pc_breakpoint_mutatee.c	/^int func_counts[4][MAX_POSSIBLE_THREADS];$/;"	v
+func_t	pc_singlestep_mutatee.c	/^typedef int (*func_t)(int);$/;"	t	file:
+funcs	pc_singlestep_mutatee.c	/^static func_t funcs[NUM_FUNCS];$/;"	v	file:
+getAddresses	pc_groups.C	/^AddressSet::ptr pc_groupsMutator::getAddresses(ProcessSet::ptr pset) {$/;"	f	class:pc_groupsMutator
+getAddresses	pc_stat.C	/^AddressSet::ptr pc_statMutator::getAddresses(ProcessSet::ptr pset) {$/;"	f	class:pc_statMutator
+getFreeAddresses	pc_groups.C	/^AddressSet::ptr pc_groupsMutator::getFreeAddresses(ProcessSet::ptr pset) {$/;"	f	class:pc_groupsMutator
+getFunctionPtr	pcontrol_mutatee_tools.c	/^uint64_t getFunctionPtr(unsigned long *ptr) {$/;"	f
+getLastErrorMsg	proccontrol_comp.C	/^std::string ProcControlComponent::getLastErrorMsg()$/;"	f	class:ProcControlComponent
+getSocketInfo	pcontrol_mutatee_tools.c	/^void getSocketInfo()$/;"	f
+getTOCValue	pcontrol_mutatee_tools.c	/^uint64_t getTOCValue(unsigned long *ptr) {$/;"	f
+getlwp	pc_thread_mutatee.c	/^int getlwp()$/;"	f
+global	pc_singlestep_mutatee.c	/^static volatile int global = 3;$/;"	v	file:
+got_breakpoint	pc_fork.C	/^   bool got_breakpoint;$/;"	m	struct:proc_info_fork	file:
+got_breakpoint	pc_library.C	/^static bool got_breakpoint;$/;"	v	file:
+group_setup	proccontrol_comp.C	/^test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict &params)$/;"	f	class:ProcControlComponent
+group_teardown	proccontrol_comp.C	/^test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDict &params)$/;"	f	class:ProcControlComponent
+had_error	pc_addlibrary.C	/^static bool had_error;$/;"	v	file:
+had_error	pc_hw_breakpoint.C	/^static bool had_error = false;$/;"	v	file:
+had_error	pc_hw_breakpoint_mutatee.c	/^static int had_error = 0;$/;"	v	file:
+handleError	proccontrol_comp.C	/^void handleError(const char* msg)$/;"	f
+handle_lwp_create	pc_thread.C	/^static Process::cb_ret_t handle_lwp_create(Thread::const_ptr thr)$/;"	f	file:
+handle_new_thread	pc_thread.C	/^static Process::cb_ret_t handle_new_thread(Thread::const_ptr thr)$/;"	f	file:
+handshake	communication.h	/^} handshake;$/;"	t	typeref:struct:__anon2
+handshakeWithServer	pcontrol_mutatee_tools.c	/^int handshakeWithServer()$/;"	f
+hasError	pc_tls.C	/^static bool hasError = false;$/;"	v	file:
+hasLibrary	pc_fork_exec.C	/^static bool hasLibrary(std::string lib, Process::const_ptr proc)$/;"	f	file:
+has_error	pc_thread.C	/^static bool has_error = false;$/;"	v	file:
+has_initial_func_info	pc_thread.C	/^static bool has_initial_func_info = true;$/;"	v	file:
+has_lwp	pc_thread.C	/^static bool has_lwp = false;$/;"	v	file:
+has_pending_irpcs	pc_irpc.C	/^static bool has_pending_irpcs() $/;"	f	file:
+has_stack_info	pc_thread.C	/^static bool has_stack_info = true;$/;"	v	file:
+has_thr	pc_thread.C	/^static bool has_thr = false;$/;"	v	file:
+haserror	pc_breakpoint.C	/^bool haserror = false;$/;"	v
+have_post_lwp	pc_thread_cont.C	/^bool have_post_lwp = false;$/;"	v
+have_post_thread	pc_thread_cont.C	/^bool have_post_thread = false;$/;"	v
+have_pre_lwp	pc_thread_cont.C	/^bool have_pre_lwp = false;$/;"	v
+have_pre_thread	pc_thread_cont.C	/^bool have_pre_thread = false;$/;"	v
+hit_counts	pc_breakpoint.C	/^std::map<Thread::const_ptr, unsigned> hit_counts;$/;"	v
+hit_funcs	pc_singlestep.C	/^   int hit_funcs[NUM_FUNCS];$/;"	m	struct:thread_info	file:
+indexes	pc_breakpoint.C	/^std::pair<unsigned, unsigned> indexes[NUM_PARALLEL_PROCS*NUM_BREAKPOINTS];$/;"	v
+initMutatorConnection	pcontrol_mutatee_tools.c	/^int initMutatorConnection()$/;"	f
+initProcControlTest	pcontrol_mutatee_tools.c	/^int initProcControlTest(int (*init_func)(int, void*), void *thread_data)$/;"	f
+initRanks	multitool.C	/^static bool initRanks()$/;"	f	file:
+initSymbols	pc_tls.C	/^static bool initSymbols(Process::const_ptr proc)$/;"	f	file:
+init_lock	pc_addlibrary_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+init_lock	pc_breakpoint_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+init_lock	pc_detach_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+init_lock	pc_fork_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+init_lock	pc_groups_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+init_lock	pc_hw_breakpoint_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+init_lock	pc_irpc_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+init_lock	pc_mem_perm_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+init_lock	pc_singlestep_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+init_lock	pc_stat_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+init_lock	pc_temp_detach_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+init_lock	pc_terminate_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+init_lock	pc_tls_mutatee.c	/^static testlock_t init_lock;$/;"	v	file:
+initialMessageExchange	pc_irpc.C	/^void pc_irpcMutator::initialMessageExchange()$/;"	f	class:pc_irpcMutator
+initial_func	communication.h	/^   uint64_t initial_func;$/;"	m	struct:__anon7
+initializeConnectionInfo	proccontrol_comp.C	/^bool ProcControlComponent::initializeConnectionInfo(Process::const_ptr proc)$/;"	f	class:ProcControlComponent
+initialized_symbols	pc_tls.C	/^static bool initialized_symbols;$/;"	v	file:
+irpc_calltarg	pc_irpc.C	/^   Dyninst::Address irpc_calltarg;$/;"	m	struct:proc_info_t	file:
+irpc_calltarg	pc_irpc_mutatee.c	/^int irpc_calltarg()$/;"	f
+irpc_tocval	pc_irpc.C	/^   Dyninst::Address irpc_tocval;$/;"	m	struct:proc_info_t	file:
+isAttach	pc_library.C	/^	bool isAttach;$/;"	m	class:pc_libraryMutator	file:
+is_attach	pc_thread.C	/^static bool is_attach = false;$/;"	v	file:
+is_done	communication.h	/^   uint32_t is_done;$/;"	m	struct:__anon6
+is_exited	pc_fork.C	/^   bool is_exited;$/;"	m	struct:proc_info_fork	file:
+is_exited	pc_fork_exec.C	/^   bool is_exited;$/;"	m	struct:proc_info_forkexec	file:
+is_static	pc_tls.C	/^static bool is_static;$/;"	v	file:
+is_threaded	communication.h	/^   uint32_t is_threaded;$/;"	m	struct:__anon6
+is_threaded	pc_fork.C	/^   bool is_threaded;$/;"	m	struct:proc_info_fork	file:
+is_threaded	pc_fork_mutatee.c	/^   int is_threaded;$/;"	m	struct:__anon8	file:
+lib_check_tls_write	pc_tls_mutatee.c	/^static check_tls_write_t lib_check_tls_write;$/;"	v	file:
+lib_count	pc_tls_mutatee.c	/^static unsigned int lib_count = 0;$/;"	v	file:
+lib_success	pc_addlibrary.C	/^static std::set<Process::const_ptr> lib_success;$/;"	v	file:
+lib_tls_read_int	pc_tls.C	/^static Dyninst::Offset lib_tls_read_int;$/;"	v	file:
+lib_tls_read_long	pc_tls.C	/^static Dyninst::Offset lib_tls_read_long;$/;"	v	file:
+lib_tls_write_char	pc_tls.C	/^static Dyninst::Offset lib_tls_write_char;$/;"	v	file:
+lib_update_tls_reads	pc_tls_mutatee.c	/^static update_tls_reads_t lib_update_tls_reads;$/;"	v	file:
+libtestA	pc_fork_exec.C	/^const char *libtestA = "libtestA";$/;"	v
+libtesta	pc_tls.C	/^static std::map<Process::const_ptr, Library::const_ptr> libtesta;$/;"	v	file:
+loadTestA	pc_fork_exec_mutatee.c	/^static void loadTestA()$/;"	f	file:
+loaded_libtesta	pc_library.C	/^   int loaded_libtesta;$/;"	m	struct:proc_info_lib	file:
+loaded_libtestb	pc_library.C	/^   int loaded_libtestb;$/;"	m	struct:proc_info_lib	file:
+local_data	pc_thread_cont_mutatee.c	/^struct local_data {$/;"	s	file:
+lwp	communication.h	/^   HANDLE lwp;$/;"	m	struct:__anon7
+lwp	communication.h	/^   uint64_t lwp;$/;"	m	struct:__anon7
+lwp_cb_count	pc_thread.C	/^static int lwp_cb_count = 0;$/;"	v	file:
+lwp_create	pc_thread.C	/^static Process::cb_ret_t lwp_create(Event::const_ptr ev)$/;"	f	file:
+lwp_destroy	pc_thread.C	/^static Process::cb_ret_t lwp_destroy(Event::const_ptr ev)$/;"	f	file:
+lwp_exit_cb_count	pc_thread.C	/^static int lwp_exit_cb_count = 0;$/;"	v	file:
+m_lib	pc_library.C	/^	Library::const_ptr m_lib;$/;"	m	struct:find_by_pointer	file:
+main	multitool.C	/^int main(int argc, char *argv[])$/;"	f
+make_addr	proccontrol_comp.C	/^	static sockaddr_t make_addr()$/;"	f	struct:socket_types
+make_rwx_bp	pc_hw_breakpoint_mutatee.c	/^int make_rwx_bp()$/;"	f
+malloced_addr	pc_irpc.C	/^   Address malloced_addr;$/;"	m	struct:rpc_data_t	file:
+manual_allocate	pc_irpc.C	/^   manual_allocate = 0,$/;"	e	enum:allocation_mode_t	file:
+max_forker	pc_fork_mutatee.c	/^static unsigned max_forker = 0;$/;"	v	file:
+me	proccontrol_comp.h	/^   ParamPtr me;$/;"	m	class:ProcControlComponent
+microsleep	pc_stat_mutatee.c	/^static void microsleep()$/;"	f	file:
+myLocks	pc_thread_cont_mutatee.c	/^    testlock_t *myLocks;$/;"	m	struct:local_data	file:
+my_num_processes	pc_breakpoint.C	/^unsigned my_num_processes;$/;"	v
+myerror	pc_fork.C	/^static bool myerror;$/;"	v	file:
+myerror	pc_fork_exec.C	/^static bool myerror;$/;"	v	file:
+myerror	pc_fork_exec_mutatee.c	/^static int myerror = 0;$/;"	v	file:
+myerror	pc_fork_mutatee.c	/^static int myerror = 0;$/;"	v	file:
+myerror	pc_irpc.C	/^static bool myerror;$/;"	v	file:
+myerror	pc_irpc_mutatee.c	/^static int myerror = 0;$/;"	v	file:
+myerror	pc_library.C	/^static bool myerror;$/;"	v	file:
+myerror	pc_singlestep.C	/^static bool myerror;$/;"	v	file:
+myerror	pc_singlestep_mutatee.c	/^static int myerror = 0;$/;"	v	file:
+myerror	pc_tls_mutatee.c	/^static int myerror = 0;$/;"	v	file:
+not_expecting_event	pc_temp_detach.C	/^static bool not_expecting_event = true;$/;"	v	file:
+notification_fd	proccontrol_comp.h	/^   int notification_fd;$/;"	m	class:ProcControlComponent
+num_bp_events	pc_groups.C	/^static unsigned int num_bp_events = 0;$/;"	v	file:
+num_breakpoints_hit	pc_breakpoint.C	/^unsigned num_breakpoints_hit;$/;"	v
+num_msgs_sent	pc_thread_mutatee.c	/^int num_msgs_sent = 0;$/;"	v
+num_post_crashed	pc_terminate_common.C	/^static int num_post_crashed;$/;"	v	file:
+num_post_exited	pc_terminate_common.C	/^static int num_post_exited;$/;"	v	file:
+num_pre_exited	pc_terminate_common.C	/^static int num_pre_exited;$/;"	v	file:
+num_processes	proccontrol_comp.h	/^   int num_processes;$/;"	m	class:ProcControlComponent
+num_signals	pc_detach_mutatee.c	/^static int num_signals = 0;$/;"	v	file:
+num_signals	pc_terminate_mutatee.c	/^static int num_signals = 0;$/;"	v	file:
+num_threads	pcontrol_mutatee_tools.c	/^int num_threads;$/;"	v
+num_threads	proccontrol_comp.h	/^   int num_threads;$/;"	m	class:ProcControlComponent
+on_bp	pc_groups.C	/^Process::cb_ret_t on_bp(Event::const_ptr ev) {$/;"	f
+on_breakpoint	pc_addlibrary.C	/^static Process::cb_ret_t on_breakpoint(Event::const_ptr ev)$/;"	f	file:
+on_breakpoint	pc_breakpoint.C	/^Process::cb_ret_t on_breakpoint(Event::const_ptr ev)$/;"	f
+on_breakpoint	pc_fork.C	/^Process::cb_ret_t on_breakpoint(Event::const_ptr ev)$/;"	f
+on_breakpoint	pc_hw_breakpoint.C	/^static Process::cb_ret_t on_breakpoint(Event::const_ptr ev)$/;"	f	file:
+on_breakpoint	pc_library.C	/^Process::cb_ret_t on_breakpoint(Event::const_ptr ev)$/;"	f
+on_breakpoint	pc_singlestep.C	/^Process::cb_ret_t on_breakpoint(Event::const_ptr ev)$/;"	f
+on_breakpoint	pc_tls.C	/^static Process::cb_ret_t on_breakpoint(Event::const_ptr ev)$/;"	f	file:
+on_crash	pc_terminate_common.C	/^static Process::cb_ret_t on_crash(Event::const_ptr ev) $/;"	f	file:
+on_event_source_event	pc_temp_detach.C	/^Process::cb_ret_t on_event_source_event(Event::const_ptr ev)$/;"	f
+on_exec	pc_fork_exec.C	/^Process::cb_ret_t on_exec(Event::const_ptr ev)$/;"	f
+on_exit	pc_fork_exec.C	/^Process::cb_ret_t on_exit(Event::const_ptr ev)$/;"	f
+on_exit	pc_terminate_common.C	/^static Process::cb_ret_t on_exit(Event::const_ptr ev) $/;"	f	file:
+on_exit	pc_tls.C	/^static Process::cb_ret_t on_exit(Event::const_ptr)$/;"	f	file:
+on_fork	pc_fork.C	/^Process::cb_ret_t on_fork(Event::const_ptr ev)$/;"	f
+on_fork	pc_fork_exec.C	/^Process::cb_ret_t on_fork(Event::const_ptr ev)$/;"	f
+on_irpc	pc_addlibrary.C	/^static Process::cb_ret_t on_irpc(Event::const_ptr ev)$/;"	f	file:
+on_irpc	pc_irpc.C	/^Process::cb_ret_t on_irpc(Event::const_ptr ev) $/;"	f
+on_library	pc_addlibrary.C	/^static Process::cb_ret_t on_library(Event::const_ptr ev)$/;"	f	file:
+on_library	pc_library.C	/^Process::cb_ret_t on_library(Event::const_ptr ev)$/;"	f
+on_signal	pc_detach.C	/^Process::cb_ret_t on_signal(Event::const_ptr ev)$/;"	f
+on_singlestep	pc_singlestep.C	/^Process::cb_ret_t on_singlestep(Event::const_ptr ev)$/;"	f
+on_thread_exit	pc_thread_cont.C	/^Process::cb_ret_t on_thread_exit(Event::const_ptr ev)$/;"	f
+onalarm	proccontrol_comp.C	/^static void onalarm(int)$/;"	f	file:
+onterm	proccontrol_comp.C	/^static void onterm(int)$/;"	f	file:
+openLib	pc_library_mutatee.c	/^void *openLib(const char *lib)$/;"	f
+openLib	pc_library_mutatee.c	/^void* openLib(const char* lib)$/;"	f
+openLib	pc_tls_mutatee.c	/^void *openLib(const char *lib)$/;"	f
+open_pipe	proccontrol_comp.C	/^bool ProcControlComponent::open_pipe(Process::ptr p, bool open_read)$/;"	f	class:ProcControlComponent
+operator ()	pc_library.C	/^	void operator()(Library::const_ptr L)$/;"	f	struct:find_by_pointer
+order	pc_library.C	/^   int order;$/;"	m	struct:proc_info_lib	file:
+order	pc_singlestep.C	/^   int order;$/;"	m	struct:thread_info	file:
+parent	pc_fork.C	/^   Process::const_ptr parent;$/;"	m	struct:proc_info_fork	file:
+pc_addlibraryMutator	pc_addlibrary.C	/^class pc_addlibraryMutator : public ProcControlMutator {$/;"	c	file:
+pc_addlibrary_factory	pc_addlibrary.C	/^extern "C" DLLEXPORT TestMutator* pc_addlibrary_factory()$/;"	f
+pc_addlibrary_mutatee	pc_addlibrary_mutatee.c	/^int pc_addlibrary_mutatee()$/;"	f
+pc_breakpointMutator	pc_breakpoint.C	/^class pc_breakpointMutator : public ProcControlMutator {$/;"	c	file:
+pc_breakpoint_factory	pc_breakpoint.C	/^extern "C" DLLEXPORT TestMutator* pc_breakpoint_factory()$/;"	f
+pc_breakpoint_mutatee	pc_breakpoint_mutatee.c	/^int pc_breakpoint_mutatee()$/;"	f
+pc_detachMutator	pc_detach.C	/^class pc_detachMutator : public ProcControlMutator {$/;"	c	file:
+pc_detach_factory	pc_detach.C	/^extern "C" DLLEXPORT TestMutator* pc_detach_factory()$/;"	f
+pc_detach_mutatee	pc_detach_mutatee.c	/^int pc_detach_mutatee()$/;"	f
+pc_exec_targ_mutatee	pc_exec_targ_mutatee.c	/^int pc_exec_targ_mutatee()$/;"	f
+pc_forkMutator	pc_fork.C	/^class pc_forkMutator : public ProcControlMutator {$/;"	c	file:
+pc_fork_execMutator	pc_fork_exec.C	/^class pc_fork_execMutator : public ProcControlMutator {$/;"	c	file:
+pc_fork_exec_factory	pc_fork_exec.C	/^extern "C" DLLEXPORT TestMutator* pc_fork_exec_factory()$/;"	f
+pc_fork_exec_mutatee	pc_fork_exec_mutatee.c	/^int pc_fork_exec_mutatee()$/;"	f
+pc_fork_factory	pc_fork.C	/^extern "C" DLLEXPORT TestMutator* pc_fork_factory()$/;"	f
+pc_fork_here	pc_fork_mutatee.c	/^volatile int pc_fork_here = 0;$/;"	v
+pc_fork_mutatee	pc_fork_mutatee.c	/^int pc_fork_mutatee()$/;"	f
+pc_groupsMutator	pc_groups.C	/^class pc_groupsMutator : public ProcControlMutator {$/;"	c	file:
+pc_groups_factory	pc_groups.C	/^extern "C" DLLEXPORT TestMutator* pc_groups_factory()$/;"	f
+pc_groups_mutatee	pc_groups_mutatee.c	/^int pc_groups_mutatee()$/;"	f
+pc_hw_breakpointMutator	pc_hw_breakpoint.C	/^class pc_hw_breakpointMutator : public ProcControlMutator {$/;"	c	file:
+pc_hw_breakpoint_factory	pc_hw_breakpoint.C	/^extern "C" DLLEXPORT TestMutator* pc_hw_breakpoint_factory()$/;"	f
+pc_hw_breakpoint_mutatee	pc_hw_breakpoint_mutatee.c	/^int pc_hw_breakpoint_mutatee()$/;"	f
+pc_irpcMutator	pc_irpc.C	/^class pc_irpcMutator : public ProcControlMutator {$/;"	c	file:
+pc_irpc_factory	pc_irpc.C	/^extern "C" DLLEXPORT TestMutator* pc_irpc_factory()$/;"	f
+pc_irpc_mutatee	pc_irpc_mutatee.c	/^int pc_irpc_mutatee()$/;"	f
+pc_launchMutator	pc_launch.C	/^class pc_launchMutator : public ProcControlMutator {$/;"	c	file:
+pc_launch_factory	pc_launch.C	/^extern "C" DLLEXPORT TestMutator* pc_launch_factory()$/;"	f
+pc_launch_mutatee	pc_launch_mutatee.c	/^int pc_launch_mutatee()$/;"	f
+pc_libraryMutator	pc_library.C	/^class pc_libraryMutator : public ProcControlMutator {$/;"	c	file:
+pc_library_factory	pc_library.C	/^extern "C" DLLEXPORT TestMutator* pc_library_factory()$/;"	f
+pc_library_mutatee	pc_library_mutatee.c	/^int pc_library_mutatee()$/;"	f
+pc_mem_permMutator	pc_mem_perm.C	/^class pc_mem_permMutator : public ProcControlMutator {$/;"	c	file:
+pc_mem_perm_factory	pc_mem_perm.C	/^extern "C" DLLEXPORT TestMutator* pc_mem_perm_factory()$/;"	f
+pc_mem_perm_mutatee	pc_mem_perm_mutatee.c	/^int pc_mem_perm_mutatee()$/;"	f
+pc_singlestepMutator	pc_singlestep.C	/^class pc_singlestepMutator : public ProcControlMutator {$/;"	c	file:
+pc_singlestep_factory	pc_singlestep.C	/^extern "C" DLLEXPORT TestMutator* pc_singlestep_factory()$/;"	f
+pc_singlestep_mutatee	pc_singlestep_mutatee.c	/^int pc_singlestep_mutatee()$/;"	f
+pc_statMutator	pc_stat.C	/^class pc_statMutator : public ProcControlMutator {$/;"	c	file:
+pc_stat_factory	pc_stat.C	/^extern "C" DLLEXPORT TestMutator* pc_stat_factory()$/;"	f
+pc_stat_mutatee	pc_stat_mutatee.c	/^int pc_stat_mutatee()$/;"	f
+pc_temp_detachMutator	pc_temp_detach.C	/^class pc_temp_detachMutator : public ProcControlMutator {$/;"	c	file:
+pc_temp_detach_factory	pc_temp_detach.C	/^extern "C" DLLEXPORT TestMutator* pc_temp_detach_factory()$/;"	f
+pc_temp_detach_mutatee	pc_temp_detach_mutatee.c	/^int pc_temp_detach_mutatee()$/;"	f
+pc_terminate_mutatee	pc_terminate_mutatee.c	/^int pc_terminate_mutatee()$/;"	f
+pc_terminate_stopped_mutatee	pc_terminate_stopped_mutatee.c	/^int pc_terminate_stopped_mutatee()$/;"	f
+pc_threadMutator	pc_thread.C	/^class pc_threadMutator : public ProcControlMutator {$/;"	c	file:
+pc_thread_contMutator	pc_thread_cont.C	/^class pc_thread_contMutator : public ProcControlMutator {$/;"	c	file:
+pc_thread_cont_factory	pc_thread_cont.C	/^extern "C" DLLEXPORT TestMutator* pc_thread_cont_factory()$/;"	f
+pc_thread_cont_mutatee	pc_thread_cont_mutatee.c	/^int pc_thread_cont_mutatee()$/;"	f
+pc_thread_factory	pc_thread.C	/^extern "C" DLLEXPORT TestMutator* pc_thread_factory()$/;"	f
+pc_thread_mutatee	pc_thread_mutatee.c	/^int pc_thread_mutatee()$/;"	f
+pc_tlsMutator	pc_tls.C	/^class pc_tlsMutator : public ProcControlMutator {$/;"	c	file:
+pc_tls_factory	pc_tls.C	/^extern "C" DLLEXPORT TestMutator* pc_tls_factory()$/;"	f
+pc_tls_mutatee	pc_tls_mutatee.c	/^int pc_tls_mutatee()$/;"	f
+pccomp	proccontrol_comp.C	/^static ProcControlComponent *pccomp = NULL;$/;"	v	file:
+pchw_proc_data_t	pc_hw_breakpoint.C	/^} pchw_proc_data_t;$/;"	t	typeref:struct:__anon9	file:
+pcontrol_comp_h	proccontrol_comp.h	32;"	d
+pcontrol_mutatee_tools	pcontrol_mutatee_tools.h	31;"	d
+pid	communication.h	/^   pid_t pid;$/;"	m	struct:__anon1
+pid	communication.h	/^   uint32_t pid;$/;"	m	struct:__anon6
+pid	communication.h	/^   uint64_t pid;$/;"	m	struct:__anon7
+pid	pc_fork_mutatee.c	/^   pid_t pid;$/;"	m	struct:__anon8	file:
+pid_t	communication.h	/^typedef int pid_t;$/;"	t
+pinfo	pc_fork.C	/^static std::map<Dyninst::PID, proc_info_fork> pinfo;$/;"	v	file:
+pinfo	pc_fork_exec.C	/^static std::map<Process::const_ptr, proc_info_forkexec> pinfo;$/;"	v	file:
+pinfo	pc_irpc.C	/^static std::map<Process::ptr, proc_info_t> pinfo;$/;"	v	file:
+pinfo	pc_singlestep.C	/^static std::map<Process::const_ptr, proc_info_ss> pinfo;$/;"	v	file:
+pingSignalFD	pcontrol_mutatee_tools.c	/^void pingSignalFD(int sfd)$/;"	f
+pipe_read_names	proccontrol_comp.h	/^   std::map<Process::ptr, std::string> pipe_read_names;$/;"	m	class:ProcControlComponent
+pipe_write_names	proccontrol_comp.h	/^   std::map<Process::ptr, std::string> pipe_write_names;$/;"	m	class:ProcControlComponent
+poll_for_events	proccontrol_comp.C	/^bool ProcControlComponent::poll_for_events()$/;"	f	class:ProcControlComponent
+post_all_once	pc_irpc.C	/^   post_all_once = 1,$/;"	e	enum:post_time_t	file:
+post_dead_lwps	pc_thread.C	/^static set<pair<PID, LWP> > post_dead_lwps;$/;"	v	file:
+post_dead_tids	pc_thread.C	/^static set<pair<PID, THR_ID> > post_dead_tids;$/;"	v	file:
+post_from_callback	pc_irpc.C	/^   post_from_callback = 2$/;"	e	enum:post_time_t	file:
+post_irpc	pc_irpc.C	/^static bool post_irpc(Thread::const_ptr thr)$/;"	f	file:
+post_op	pc_hw_breakpoint_mutatee.c	/^static void post_op(int myid) {$/;"	f	file:
+post_sequential	pc_irpc.C	/^   post_sequential = 0,$/;"	e	enum:post_time_t	file:
+post_time	pc_irpc.C	/^post_time_t post_time;$/;"	v
+post_time_t	pc_irpc.C	/^enum post_time_t {$/;"	g	file:
+post_to	pc_irpc.C	/^post_to_t post_to;$/;"	v
+post_to_proc	pc_irpc.C	/^   post_to_proc = 0,$/;"	e	enum:post_to_t	file:
+post_to_t	pc_irpc.C	/^enum post_to_t {$/;"	g	file:
+post_to_thread	pc_irpc.C	/^   post_to_thread = 1$/;"	e	enum:post_to_t	file:
+posted	pc_irpc.C	/^   bool posted;$/;"	m	struct:rpc_data_t	file:
+pre_dead_lwps	pc_thread.C	/^static set<pair<PID, LWP> > pre_dead_lwps;$/;"	v	file:
+pre_dead_tids	pc_thread.C	/^static set<pair<PID, THR_ID> > pre_dead_tids;$/;"	v	file:
+pre_init	pc_thread.C	/^test_results_t pc_threadMutator::pre_init(ParameterDict &param)$/;"	f	class:pc_threadMutator
+pre_init	proccontrol_comp.C	/^test_results_t ProcControlMutator::pre_init(ParameterDict &param)$/;"	f	class:ProcControlMutator
+pre_op	pc_hw_breakpoint_mutatee.c	/^static void pre_op(int myid) {$/;"	f	file:
+proc_exit	pc_thread.C	/^static Process::cb_ret_t proc_exit(Event::const_ptr ev)$/;"	f	file:
+proc_info_fork	pc_fork.C	/^   proc_info_fork() :$/;"	f	struct:proc_info_fork
+proc_info_fork	pc_fork.C	/^struct proc_info_fork {$/;"	s	file:
+proc_info_forkexec	pc_fork_exec.C	/^   proc_info_forkexec() :$/;"	f	struct:proc_info_forkexec
+proc_info_forkexec	pc_fork_exec.C	/^struct proc_info_forkexec {$/;"	s	file:
+proc_info_lib	pc_library.C	/^   proc_info_lib() :$/;"	f	struct:proc_info_lib
+proc_info_lib	pc_library.C	/^struct proc_info_lib {$/;"	s	file:
+proc_info_ss	pc_singlestep.C	/^   proc_info_ss()$/;"	f	struct:proc_info_ss
+proc_info_ss	pc_singlestep.C	/^struct proc_info_ss {$/;"	s	file:
+proc_info_t	pc_irpc.C	/^   proc_info_t() : val(0), irpc_calltarg(0) {}$/;"	f	struct:proc_info_t
+proc_info_t	pc_irpc.C	/^struct proc_info_t {$/;"	s	file:
+procdata	pc_hw_breakpoint.C	/^static std::map<Process::const_ptr, pchw_proc_data_t> procdata;$/;"	v	file:
+process_pids	proccontrol_comp.h	/^   std::map<Dyninst::PID, Process::ptr> process_pids;$/;"	m	class:ProcControlComponent
+process_socks	proccontrol_comp.h	/^   std::map<Process::ptr, int> process_socks;$/;"	m	class:ProcControlComponent
+proclibs	pc_library.C	/^static std::map<Process::const_ptr, proc_info_lib> proclibs;$/;"	v	file:
+procs	proccontrol_comp.h	/^   std::vector<Process::ptr> procs;$/;"	m	class:ProcControlComponent
+program_setup	proccontrol_comp.C	/^test_results_t ProcControlComponent::program_setup(ParameterDict &params)$/;"	f	class:ProcControlComponent
+program_teardown	proccontrol_comp.C	/^test_results_t ProcControlComponent::program_teardown(ParameterDict &params)$/;"	f	class:ProcControlComponent
+pset	pc_groups.C	/^   ProcessSet::ptr pset;   $/;"	m	class:pc_groupsMutator	file:
+pset	pc_stat.C	/^   ProcessSet::ptr pset;$/;"	m	class:pc_statMutator	file:
+pset	proccontrol_comp.h	/^   ProcessSet::ptr pset;$/;"	m	class:ProcControlComponent
+pti_str	pc_irpc.C	/^const char *pti_str() {$/;"	f
+pto_str	pc_irpc.C	/^const char *pto_str() {$/;"	f
+r2_bp	pc_hw_breakpoint_mutatee.c	/^volatile uint32_t r2_bp;$/;"	v
+r2_bp	pc_hw_breakpoint_mutatee.c	/^volatile uint64_t r2_bp;$/;"	v
+r_bp	pc_hw_breakpoint.C	/^Breakpoint::ptr r_bp;$/;"	v
+r_bp	pc_hw_breakpoint_mutatee.c	/^volatile uint32_t r_bp;$/;"	v
+r_pipe	pcontrol_mutatee_tools.c	/^int r_pipe;$/;"	v
+r_pipe	proccontrol_comp.h	/^   std::map<Process::ptr, int> r_pipe;$/;"	m	class:ProcControlComponent
+ranks	multitool.C	/^static set<int> ranks;$/;"	v	file:
+readAvail	proccontrol_comp.C	/^bool readAvail(int fd, char *buffer, size_t buffer_size, size_t *rsize_out)$/;"	f
+readMemoryTest	pc_groups.C	/^bool pc_groupsMutator::readMemoryTest(uint64_t value, AddressSet::ptr aset)$/;"	f	class:pc_groupsMutator
+readSymbol	pc_tls.C	/^static bool readSymbol(Process::const_ptr proc, Library::const_ptr lib, string symbolname, Dyninst::Offset &val)$/;"	f	file:
+recv	proccontrol_comp.C	/^	static bool recv(unsigned char *msg, unsigned msg_size, int sfd, int notification_fd)$/;"	f	struct:socket_types
+recv_broadcast	proccontrol_comp.C	/^bool ProcControlComponent::recv_broadcast(unsigned char *msg, unsigned msg_size)$/;"	f	class:ProcControlComponent
+recv_buffer	pcontrol_mutatee_tools.c	/^volatile char recv_buffer[MESSAGE_BUFFER_SIZE];$/;"	v
+recv_buffer_size	pcontrol_mutatee_tools.c	/^volatile uint32_t recv_buffer_size;$/;"	v
+recv_message	pcontrol_mutatee_tools.c	/^int recv_message(unsigned char *msg, size_t msg_size)$/;"	f
+recv_message	proccontrol_comp.C	/^bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, Process::ptr p)$/;"	f	class:ProcControlComponent
+recv_message	proccontrol_comp.C	/^bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, int sfd)$/;"	f	class:ProcControlComponent
+recv_message_pipe	pcontrol_mutatee_tools.c	/^static int recv_message_pipe(unsigned char *msg, size_t msg_size)$/;"	f	file:
+recv_message_pipe	proccontrol_comp.C	/^bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)$/;"	f	class:ProcControlComponent
+recv_message_socket	pcontrol_mutatee_tools.c	/^static int recv_message_socket(unsigned char *msg, size_t msg_size)$/;"	f	file:
+registerCB	pc_thread.C	/^void pc_threadMutator::registerCB(EventType et, Process::cb_func_t f)$/;"	f	class:pc_threadMutator
+registerEventCounter	proccontrol_comp.C	/^bool ProcControlComponent::registerEventCounter(EventType et)$/;"	f	class:ProcControlComponent
+releaseThreads	pcontrol_mutatee_tools.c	/^int releaseThreads()$/;"	f
+resetSignalFD	proccontrol_comp.C	/^void resetSignalFD(ParameterDict &param)$/;"	f
+resetTimeoutAlarm	pcontrol_mutatee_tools.c	/^void resetTimeoutAlarm()$/;"	f
+rpc	pc_irpc.C	/^   IRPC::ptr rpc;$/;"	m	struct:rpc_data_t	file:
+rpc_data_t	pc_irpc.C	/^   rpc_data_t() :$/;"	f	struct:rpc_data_t
+rpc_data_t	pc_irpc.C	/^struct rpc_data_t {$/;"	s	file:
+rpc_start_running	pc_irpc.C	/^   rpc_start_running = 1$/;"	e	enum:thread_start_t	file:
+rpc_start_stopped	pc_irpc.C	/^   rpc_start_stopped = 0,$/;"	e	enum:thread_start_t	file:
+rpc_sync	pc_irpc.C	/^rpc_sync_t rpc_sync;$/;"	v
+rpc_sync_t	pc_irpc.C	/^enum rpc_sync_t {$/;"	g	file:
+rpc_to_data	pc_irpc.C	/^static std::map<IRPC::const_ptr, rpc_data_t *> rpc_to_data;$/;"	v	file:
+rpc_use_async	pc_irpc.C	/^   rpc_use_async = 1,$/;"	e	enum:rpc_sync_t	file:
+rpc_use_postsync	pc_irpc.C	/^   rpc_use_postsync = 2$/;"	e	enum:rpc_sync_t	file:
+rpc_use_sync	pc_irpc.C	/^   rpc_use_sync = 0,$/;"	e	enum:rpc_sync_t	file:
+rpcs	pc_irpc.C	/^   std::vector<rpc_data_t *> rpcs;$/;"	m	struct:proc_info_t	file:
+rpcs	pc_irpc.C	/^   std::vector<rpc_data_t *> rpcs;$/;"	m	struct:thread_info_t	file:
+rs_str	pc_irpc.C	/^const char *rs_str() {$/;"	f
+runIRPCs	pc_irpc.C	/^void pc_irpcMutator::runIRPCs() {$/;"	f	class:pc_irpcMutator
+run_all_funcs	pc_singlestep_mutatee.c	/^void run_all_funcs()$/;"	f
+rw_bp	pc_hw_breakpoint_mutatee.c	/^volatile uint32_t rw_bp;$/;"	v
+rwx_bp	pc_hw_breakpoint_mutatee.c	/^volatile uint32_t rwx_bp[512];$/;"	v
+self_signal	pc_detach_mutatee.c	/^static void self_signal()$/;"	f	file:
+sendThreadMsg	pc_thread_mutatee.c	/^static int sendThreadMsg(int initial_thrd)$/;"	f	file:
+send_addr	communication.h	/^} send_addr;$/;"	t	typeref:struct:__anon4
+send_addrs	pc_groups_mutatee.c	/^static void send_addrs(void *a)$/;"	f	file:
+send_addrs	pc_stat_mutatee.c	/^static void send_addrs(void *a)$/;"	f	file:
+send_broadcast	proccontrol_comp.C	/^bool ProcControlComponent::send_broadcast(unsigned char *msg, unsigned msg_size)$/;"	f	class:ProcControlComponent
+send_buffer	pcontrol_mutatee_tools.c	/^volatile char send_buffer[MESSAGE_BUFFER_SIZE];$/;"	v
+send_buffer_size	pcontrol_mutatee_tools.c	/^volatile uint32_t send_buffer_size;$/;"	v
+send_message	pcontrol_mutatee_tools.c	/^int send_message(unsigned char *msg, size_t msg_size)$/;"	f
+send_message	proccontrol_comp.C	/^bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, Process::ptr p)$/;"	f	class:ProcControlComponent
+send_message	proccontrol_comp.C	/^bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, int sfd)$/;"	f	class:ProcControlComponent
+send_message_pipe	pcontrol_mutatee_tools.c	/^int send_message_pipe(unsigned char *msg, size_t msg_size)$/;"	f
+send_message_pipe	proccontrol_comp.C	/^bool ProcControlComponent::send_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)$/;"	f	class:ProcControlComponent
+send_message_socket	pcontrol_mutatee_tools.c	/^int send_message_socket(unsigned char *msg, size_t msg_size)$/;"	f
+send_pid	communication.h	/^} send_pid;$/;"	t	typeref:struct:__anon1
+sendlock	pc_thread_mutatee.c	/^testlock_t sendlock;$/;"	v
+setLibFunctions	pc_tls_mutatee.c	/^int setLibFunctions(void *handle)$/;"	f
+setSocketOnLibLoad	proccontrol_comp.C	/^Process::cb_ret_t setSocketOnLibLoad(Event::const_ptr ev)$/;"	f
+setTimeoutAlarm	pcontrol_mutatee_tools.c	/^void setTimeoutAlarm()$/;"	f
+setup	pc_library.C	/^test_results_t pc_libraryMutator::setup(ParameterDict &param)$/;"	f	class:pc_libraryMutator
+setup	proccontrol_comp.C	/^test_results_t ProcControlMutator::setup(ParameterDict &param)$/;"	f	class:ProcControlMutator
+setupNamedPipe	proccontrol_comp.C	/^bool ProcControlComponent::setupNamedPipe(Process::ptr proc, ParameterDict &param)$/;"	f	class:ProcControlComponent
+setupOutput	multitool.C	/^static void setupOutput()$/;"	f	file:
+setupServerSocket	proccontrol_comp.C	/^bool ProcControlComponent::setupServerSocket(ParameterDict &param)$/;"	f	class:ProcControlComponent
+setupSignalFD	proccontrol_comp.C	/^void setupSignalFD(ParameterDict &param)$/;"	f
+setupSigtermHandler	proccontrol_comp.C	/^void setupSigtermHandler()$/;"	f
+setupStatTest	proccontrol_comp.C	/^void ProcControlComponent::setupStatTest(std::string exec_name)$/;"	f	class:ProcControlComponent
+should_stop	pc_terminate.C	/^static bool should_stop()$/;"	f	file:
+should_stop	pc_terminate_stopped.C	/^static bool should_stop()$/;"	f	file:
+sigalarm_handler	pcontrol_mutatee_tools.c	/^void sigalarm_handler(int sig)$/;"	f
+signal_error	pc_detach.C	/^static bool signal_error = false;$/;"	v	file:
+signal_handler	pc_detach_mutatee.c	/^static void signal_handler(int sig)$/;"	f	file:
+sleep	pc_terminate_common.C	/^	void sleep(int msec)$/;"	f
+sockaddr_t	proccontrol_comp.C	/^	typedef sockaddr_un sockaddr_t;$/;"	t	struct:socket_types	file:
+socket	proccontrol_comp.C	/^	static SOCKET socket()$/;"	f	struct:socket_types
+socket_buffer	proccontrol_comp.C	/^static char socket_buffer[4096];$/;"	v	file:
+socket_name	pcontrol_mutatee_tools.c	/^char *socket_name = NULL;$/;"	v
+socket_type	pcontrol_mutatee_tools.c	/^char *socket_type = NULL;$/;"	v
+socket_types	proccontrol_comp.C	/^struct socket_types$/;"	s	file:
+sockfd	pcontrol_mutatee_tools.c	/^int sockfd;$/;"	v
+sockfd	proccontrol_comp.h	/^   int sockfd;$/;"	m	class:ProcControlComponent
+socklen_t	proccontrol_comp.C	/^	typedef ::socklen_t socklen_t;$/;"	t	struct:socket_types	file:
+sockname	proccontrol_comp.h	/^   char *sockname;$/;"	m	class:ProcControlComponent
+spin_addrs	pc_stat.C	/^static AddressSet::ptr spin_addrs;$/;"	v	file:
+spin_here	pc_stat_mutatee.c	/^static volatile uint32_t spin_here = 0;$/;"	v	file:
+stack_addr	pc_stat.C	/^   AddressSet::ptr stack_addr;$/;"	m	class:pc_statMutator	file:
+stack_pointer	pc_stat.C	/^   MachRegister stack_pointer;$/;"	m	class:pc_statMutator	file:
+start	pc_singlestep.C	/^   Address start;$/;"	m	struct:proc_info_ss	file:
+startMutatee	proccontrol_comp.C	/^Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &params)$/;"	f	class:ProcControlComponent
+startMutateeSet	proccontrol_comp.C	/^ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, ParameterDict &params)$/;"	f	class:ProcControlComponent
+startMutatees	proccontrol_comp.C	/^bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)$/;"	f	class:ProcControlComponent
+steps	pc_singlestep.C	/^   unsigned steps;$/;"	m	struct:thread_info	file:
+syncloc	communication.h	/^} syncloc;$/;"	t	typeref:struct:__anon5
+synclock	pc_thread_mutatee.c	/^testlock_t synclock;$/;"	v
+takeSample	pc_stat.C	/^bool pc_statMutator::takeSample() $/;"	f	class:pc_statMutator
+test_setup	proccontrol_comp.C	/^test_results_t ProcControlComponent::test_setup(TestInfo *test, ParameterDict &parms)$/;"	f	class:ProcControlComponent
+test_teardown	proccontrol_comp.C	/^test_results_t ProcControlComponent::test_teardown(TestInfo *test, ParameterDict &parms)$/;"	f	class:ProcControlComponent
+thread	pc_irpc.C	/^   Thread::const_ptr thread;$/;"	m	struct:rpc_data_t	file:
+threadFunc	pc_addlibrary_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_breakpoint_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_detach_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_fork_exec_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_fork_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_groups_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_hw_breakpoint_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_irpc_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_launch_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_library_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_mem_perm_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_singlestep_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_stat_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_temp_detach_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_terminate_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_thread_cont_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_thread_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+threadFunc	pc_tls_mutatee.c	/^static int threadFunc(int myid, void *data)$/;"	f	file:
+thread_id	pcontrol_mutatee_tools.c	/^   thread_t thread_id;$/;"	m	struct:__anon10	file:
+thread_info	pc_singlestep.C	/^   thread_info() :$/;"	f	struct:thread_info
+thread_info	pc_singlestep.C	/^struct thread_info {$/;"	s	file:
+thread_info_t	pc_irpc.C	/^   thread_info_t() :$/;"	f	struct:thread_info_t
+thread_info_t	pc_irpc.C	/^struct thread_info_t {$/;"	s	file:
+thread_iters	pc_tls.C	/^static map<Thread::const_ptr, int> thread_iters;$/;"	v	file:
+thread_results	pcontrol_mutatee_tools.c	/^int thread_results[MAX_POSSIBLE_THREADS];$/;"	v
+thread_start	pc_irpc.C	/^thread_start_t thread_start;$/;"	v
+thread_start_t	pc_irpc.C	/^enum thread_start_t {$/;"	g	file:
+thread_startup_lock	pcontrol_mutatee_tools.c	/^static testlock_t thread_startup_lock;$/;"	v	file:
+thread_test_tls	pc_thread_mutatee.c	/^__thread int thread_test_tls = 0;$/;"	v
+thread_test_tls	pc_thread_mutatee.c	/^int thread_test_tls = 0;$/;"	v
+threadinfo	communication.h	/^} threadinfo;$/;"	t	typeref:struct:__anon7
+threads	pcontrol_mutatee_tools.c	/^thread_t threads[MAX_POSSIBLE_THREADS];$/;"	v
+tid	communication.h	/^   uint64_t tid;$/;"	m	struct:__anon7
+timeout	pcontrol_mutatee_tools.c	/^volatile uint32_t timeout;$/;"	v
+times_hit	pc_hw_breakpoint.C	/^   unsigned times_hit[NUM_BPS];$/;"	m	struct:__anon9	file:
+tinfo	pc_irpc.C	/^static std::map<Thread::const_ptr, thread_info_t> tinfo;$/;"	v	file:
+tinfo	pc_singlestep.C	/^static std::map<Thread::const_ptr, thread_info> tinfo;$/;"	v	file:
+tls_addr	communication.h	/^   uint64_t tls_addr;$/;"	m	struct:__anon7
+tls_read_int	pc_tls_mutatee.c	/^TLS_SPEC int tls_read_int = 0;$/;"	v
+tls_read_long	pc_tls_mutatee.c	/^TLS_SPEC signed long tls_read_long = 0;$/;"	v
+tls_write_char	pc_tls_mutatee.c	/^TLS_SPEC unsigned char tls_write_char = 0x40;$/;"	v
+toc_loc	pc_groups.C	/^   AddressSet::ptr toc_loc;$/;"	m	class:pc_groupsMutator	file:
+trigger_sync	pc_groups.C	/^void pc_groupsMutator::trigger_sync() {$/;"	f	class:pc_groupsMutator
+trigger_sync	pc_groups_mutatee.c	/^static int trigger_sync(int myid) {$/;"	f	file:
+trigger_sync	pc_stat.C	/^void pc_statMutator::trigger_sync() {$/;"	f	class:pc_statMutator
+trigger_sync	pc_stat_mutatee.c	/^static int trigger_sync(int myid) {$/;"	f	file:
+ts_str	pc_irpc.C	/^const char *ts_str() {$/;"	f
+unloaded_libtesta	pc_library.C	/^   int unloaded_libtesta;$/;"	m	struct:proc_info_lib	file:
+unloaded_libtestb	pc_library.C	/^   int unloaded_libtestb;$/;"	m	struct:proc_info_lib	file:
+update_tls_reads_t	pc_tls_mutatee.c	/^typedef void (*update_tls_reads_t)();$/;"	t	file:
+user_cb_count	pc_thread.C	/^static int user_cb_count = 0;$/;"	v	file:
+user_exit_cb_count	pc_thread.C	/^static int user_exit_cb_count = 0;$/;"	v	file:
+uthr_create	pc_thread.C	/^static Process::cb_ret_t uthr_create(Event::const_ptr ev)$/;"	f	file:
+uthr_destroy	pc_thread.C	/^static Process::cb_ret_t uthr_destroy(Event::const_ptr ev)$/;"	f	file:
+val	pc_irpc.C	/^   Dyninst::Address val;$/;"	m	struct:proc_info_t	file:
+val	pc_irpc_mutatee.c	/^volatile uint32_t val = 0;$/;"	v
+val_lock	pc_irpc_mutatee.c	/^static testlock_t val_lock;$/;"	v	file:
+w2_bp	pc_hw_breakpoint_mutatee.c	/^volatile uint32_t w2_bp;$/;"	v
+w2_bp	pc_hw_breakpoint_mutatee.c	/^volatile uint64_t w2_bp;$/;"	v
+w_bp	pc_hw_breakpoint.C	/^Breakpoint::ptr w_bp;$/;"	v
+w_bp	pc_hw_breakpoint_mutatee.c	/^volatile uint32_t w_bp;$/;"	v
+w_pipe	pcontrol_mutatee_tools.c	/^int w_pipe;$/;"	v
+w_pipe	proccontrol_comp.h	/^   std::map<Process::ptr, int> w_pipe;$/;"	m	class:ProcControlComponent
+waitForEventSource	pc_temp_detach_mutatee.c	/^static void waitForEventSource() {$/;"	f	file:
+waitForSignalFD	proccontrol_comp.C	/^bool ProcControlComponent::waitForSignalFD(int signal_fd)$/;"	f	class:ProcControlComponent
+waitfor_sync	pc_groups.C	/^void pc_groupsMutator::waitfor_sync() {$/;"	f	class:pc_groupsMutator
+waitfor_sync	pc_groups_mutatee.c	/^static int waitfor_sync(int myid) {$/;"	f	file:
+waitfor_sync	pc_stat.C	/^void pc_statMutator::waitfor_sync() {$/;"	f	class:pc_statMutator
+waitfor_sync	pc_stat_mutatee.c	/^static int waitfor_sync(int myid) {$/;"	f	file:
+winsock_event	proccontrol_comp.h	/^   HANDLE winsock_event;$/;"	m	class:ProcControlComponent
+writeMemoryTest	pc_groups.C	/^bool pc_groupsMutator::writeMemoryTest(uint64_t value, AddressSet::ptr aset)$/;"	f	class:pc_groupsMutator
+x2_bp	pc_hw_breakpoint_mutatee.c	/^int x2_bp()$/;"	f
+x_bp	pc_hw_breakpoint.C	/^Breakpoint::ptr x_bp;$/;"	v
+x_bp	pc_hw_breakpoint_mutatee.c	/^int x_bp()$/;"	f
+x_func_t	pc_hw_breakpoint_mutatee.c	/^typedef int (*x_func_t)();$/;"	t	file:
+~ProcControlComponent	proccontrol_comp.C	/^ProcControlComponent::~ProcControlComponent()$/;"	f	class:ProcControlComponent
+~ProcControlMutator	proccontrol_comp.C	/^ProcControlMutator::~ProcControlMutator()$/;"	f	class:ProcControlMutator
+~StackCallbackTest	pc_stat.C	/^   ~StackCallbackTest() {$/;"	f	class:StackCallbackTest
