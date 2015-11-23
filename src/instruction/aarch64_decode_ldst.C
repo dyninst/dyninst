@@ -769,7 +769,7 @@ tmpWritten.clear();
 	tmpRead = {x2, x3};
 	tmpWritten = {x1};
 #else
-	tmpRead = list_of(x2, x3);
+	tmpRead = list_of(x2)(x3);
 	tmpWritten = list_of(x1);
 #endif
 expectedRead.push_back(tmpRead);
