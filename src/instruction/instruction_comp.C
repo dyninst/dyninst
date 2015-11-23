@@ -301,7 +301,7 @@ test_results_t InstructionMutator::verifyCFT(Expression::Ptr cft, bool expectedD
                      expectedType, cftResult.type);
             return FAILED;
         }
-        if(cftResult.convert<unsigned long>() != expectedValue)
+        if(cftResult.convert<unsigned long long int>() != expectedValue)
         {
             logerror("FAILED: CFT %s, expected result value 0x%x, actual 0x%x\n", cft->format().c_str(),
                     expectedValue, cftResult.convert<unsigned long>());
