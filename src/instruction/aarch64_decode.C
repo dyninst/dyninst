@@ -74,7 +74,7 @@ test_results_t aarch64_decode_Mutator::executeTest()
 	0xCB, 0x21, 0x80, 0x20,		// SUB X0, X1, X1, UXTB #0
 	0xEB, 0x22, 0x70, 0x42,		// SUBS X2, X2, X2, SXTW #4
 	0x1A, 0x19, 0x02, 0xC5,		// ADC W5, W22, W25
-	0xDA, 0x02, 0x00, 0x20,		// SBC X0, X1, X2	
+	0xDA, 0x02, 0x00, 0x20,		// SBC X0, X1, X2
 	0x3A, 0x5E, 0x58, 0xEB,		// CCMN W7, #30, #11, 5
 	0xFA, 0x48, 0xFA, 0x88,		// CCMP X20, #8, #0, 15
 	0x3A, 0x4A, 0x10, 0xA7,		// CCMN W5, W10, #7, 1
@@ -136,7 +136,7 @@ test_results_t aarch64_decode_Mutator::executeTest()
 	//0xD6, 0xBF, 0x03, 0xE0,		// DRPS
 	0x1E, 0x3F, 0x20, 0x00,		// FCMP S0, S31
 	0x1E, 0x30, 0x21, 0x08,		// FCMP D16, #0.0
-	0x1E, 0x7F, 0x23, 0xC0,		// FCMP D31, D32	
+	0x1E, 0x7F, 0x23, 0xC0,		// FCMP D31, D32
 	0x1E, 0x3F, 0xA6, 0x88,		// FCCMP S20, S31, #8, 10
 	0x1E, 0x62, 0x04, 0x25,		// FCCMP D1, D2, #5, 0
 	0x1E, 0x6B, 0x55, 0x59,		// FCCMPE D10, D1,, #9, 5
@@ -218,7 +218,7 @@ test_results_t aarch64_decode_Mutator::executeTest()
 
     return FAILED;
   }
-  
+
   if(decodedInsns.back() && decodedInsns.back()->isValid())
   {
     logerror("FAILED: Expected instructions to end with an invalid instruction, but they didn't");
@@ -256,7 +256,7 @@ test_results_t aarch64_decode_Mutator::executeTest()
   RegisterAST::Ptr x28(new RegisterAST(aarch64::x28));
   RegisterAST::Ptr x29(new RegisterAST(aarch64::x29));
   RegisterAST::Ptr x30(new RegisterAST(aarch64::x30));
-  
+
   RegisterAST::Ptr w0 (new RegisterAST(aarch64::w0));
   RegisterAST::Ptr w1 (new RegisterAST(aarch64::w1));
   RegisterAST::Ptr w2 (new RegisterAST(aarch64::w2));
@@ -287,8 +287,8 @@ test_results_t aarch64_decode_Mutator::executeTest()
   RegisterAST::Ptr w27(new RegisterAST(aarch64::w27));
   RegisterAST::Ptr w28(new RegisterAST(aarch64::w28));
   RegisterAST::Ptr w29(new RegisterAST(aarch64::w29));
-  RegisterAST::Ptr w30(new RegisterAST(aarch64::w30)); 
-  
+  RegisterAST::Ptr w30(new RegisterAST(aarch64::w30));
+
   RegisterAST::Ptr q0 (new RegisterAST(aarch64::q0));
   RegisterAST::Ptr q1 (new RegisterAST(aarch64::q1));
   RegisterAST::Ptr q2 (new RegisterAST(aarch64::q2));
@@ -319,9 +319,9 @@ test_results_t aarch64_decode_Mutator::executeTest()
   RegisterAST::Ptr q27(new RegisterAST(aarch64::q27));
   RegisterAST::Ptr q28(new RegisterAST(aarch64::q28));
   RegisterAST::Ptr q29(new RegisterAST(aarch64::q29));
-  RegisterAST::Ptr q30(new RegisterAST(aarch64::q30)); 
+  RegisterAST::Ptr q30(new RegisterAST(aarch64::q30));
   RegisterAST::Ptr q31(new RegisterAST(aarch64::q31));
-  
+
   RegisterAST::Ptr s0 (new RegisterAST(aarch64::s0));
   RegisterAST::Ptr s1 (new RegisterAST(aarch64::s1));
   RegisterAST::Ptr s2 (new RegisterAST(aarch64::s2));
@@ -352,9 +352,9 @@ test_results_t aarch64_decode_Mutator::executeTest()
   RegisterAST::Ptr s27(new RegisterAST(aarch64::s27));
   RegisterAST::Ptr s28(new RegisterAST(aarch64::s28));
   RegisterAST::Ptr s29(new RegisterAST(aarch64::s29));
-  RegisterAST::Ptr s30(new RegisterAST(aarch64::s30)); 
+  RegisterAST::Ptr s30(new RegisterAST(aarch64::s30));
   RegisterAST::Ptr s31(new RegisterAST(aarch64::s31));
- 
+
   RegisterAST::Ptr h0 (new RegisterAST(aarch64::h0));
   RegisterAST::Ptr h1 (new RegisterAST(aarch64::h1));
   RegisterAST::Ptr h2 (new RegisterAST(aarch64::h2));
@@ -385,9 +385,9 @@ test_results_t aarch64_decode_Mutator::executeTest()
   RegisterAST::Ptr h27(new RegisterAST(aarch64::h27));
   RegisterAST::Ptr h28(new RegisterAST(aarch64::h28));
   RegisterAST::Ptr h29(new RegisterAST(aarch64::h29));
-  RegisterAST::Ptr h30(new RegisterAST(aarch64::h30)); 
+  RegisterAST::Ptr h30(new RegisterAST(aarch64::h30));
   RegisterAST::Ptr h31(new RegisterAST(aarch64::h31));
-  
+
   RegisterAST::Ptr d0 (new RegisterAST(aarch64::d0));
   RegisterAST::Ptr d1 (new RegisterAST(aarch64::d1));
   RegisterAST::Ptr d2 (new RegisterAST(aarch64::d2));
@@ -418,9 +418,9 @@ test_results_t aarch64_decode_Mutator::executeTest()
   RegisterAST::Ptr d27(new RegisterAST(aarch64::d27));
   RegisterAST::Ptr d28(new RegisterAST(aarch64::d28));
   RegisterAST::Ptr d29(new RegisterAST(aarch64::d29));
-  RegisterAST::Ptr d30(new RegisterAST(aarch64::d30)); 
+  RegisterAST::Ptr d30(new RegisterAST(aarch64::d30));
   RegisterAST::Ptr d31(new RegisterAST(aarch64::d31));
-  
+
   RegisterAST::Ptr b0 (new RegisterAST(aarch64::b0));
   RegisterAST::Ptr b1 (new RegisterAST(aarch64::b1));
   RegisterAST::Ptr b2 (new RegisterAST(aarch64::b2));
@@ -451,16 +451,16 @@ test_results_t aarch64_decode_Mutator::executeTest()
   RegisterAST::Ptr b27(new RegisterAST(aarch64::b27));
   RegisterAST::Ptr b28(new RegisterAST(aarch64::b28));
   RegisterAST::Ptr b29(new RegisterAST(aarch64::b29));
-  RegisterAST::Ptr b30(new RegisterAST(aarch64::b30)); 
-  RegisterAST::Ptr b31(new RegisterAST(aarch64::b31));     
-   
+  RegisterAST::Ptr b30(new RegisterAST(aarch64::b30));
+  RegisterAST::Ptr b31(new RegisterAST(aarch64::b31));
+
   RegisterAST::Ptr zr (new RegisterAST(aarch64::zr));
   RegisterAST::Ptr wzr (new RegisterAST(aarch64::wzr));
   RegisterAST::Ptr sp (new RegisterAST(aarch64::sp));
   RegisterAST::Ptr wsp (new RegisterAST(aarch64::wsp));
   RegisterAST::Ptr pc (new RegisterAST(aarch64::pc));
   RegisterAST::Ptr pstate (new RegisterAST(aarch64::pstate));
-  
+
   RegisterAST::Ptr pmceid0_el0(new RegisterAST(aarch64::pmceid0_el0));
   RegisterAST::Ptr pmevcntr2_el0(new RegisterAST(aarch64::pmevcntr2_el0));
   RegisterAST::Ptr cntpct_el0(new RegisterAST(aarch64::cntpct_el0));
@@ -474,7 +474,7 @@ test_results_t aarch64_decode_Mutator::executeTest()
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
-tmpWritten.clear();    
+tmpWritten.clear();
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
 	tmpRead = {w12,w10};
 	tmpWritten = {w1};
@@ -652,7 +652,7 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {x2,x4,pstate};	
+	tmpRead = {x2,x4,pstate};
 	tmpWritten = {x0};
 #else
 	tmpRead = list_of(x2)(x4)(pstate);
@@ -1076,7 +1076,7 @@ tmpWritten.clear();
 	tmpRead = {w15,pc};
 	tmpWritten = {pc};
 #else
-	tmpRead = list_of(w15,pc);
+	tmpRead = list_of(w15)(pc);
 	tmpWritten = list_of(pc);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1087,7 +1087,7 @@ tmpWritten.clear();
 	tmpRead = {x30,pc};
 	tmpWritten = {pc};
 #else
-	tmpRead = list_of(x30,pc);
+	tmpRead = list_of(x30)(pc);
 	tmpWritten = list_of(pc);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1120,7 +1120,7 @@ tmpWritten.clear();
 	tmpRead = {w4,pc};
 	tmpWritten = {pc};
 #else
-	tmpRead = list_of(w4,pc);
+	tmpRead = list_of(w4)(pc);
 	tmpWritten = list_of(pc);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1131,7 +1131,7 @@ tmpWritten.clear();
 	tmpRead = {x25,pc};
 	tmpWritten = {pc};
 #else
-	tmpRead = list_of(x25,pc);
+	tmpRead = list_of(x25)(pc);
 	tmpWritten = list_of(pc);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1142,7 +1142,7 @@ tmpWritten.clear();
 	tmpRead = {wzr,pc};
 	tmpWritten = {pc};
 #else
-	tmpRead = list_of(wzr,pc);
+	tmpRead = list_of(wzr)(pc);
 	tmpWritten = list_of(pc);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1483,7 +1483,7 @@ tmpWritten.clear();
 	tmpRead = {};
 	tmpWritten = {s0};
 #else
-	tmpRead = list_of();
+	//tmpRead = list_of();
 	tmpWritten = list_of(s0);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1494,7 +1494,7 @@ tmpWritten.clear();
 	tmpRead = {};
 	tmpWritten = {d31};
 #else
-	tmpRead = list_of();
+	//tmpRead = list_of();
 	tmpWritten = list_of(d31);
 #endif
 expectedRead.push_back(tmpRead);

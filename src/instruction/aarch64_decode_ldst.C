@@ -1263,7 +1263,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1274,7 +1274,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1285,7 +1285,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)( w1);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1296,7 +1296,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(w1);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1309,7 +1309,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1320,7 +1320,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1331,7 +1331,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(w1);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1342,7 +1342,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(w1);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1355,7 +1355,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1366,7 +1366,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1377,7 +1377,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(w1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1388,7 +1388,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(w1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1401,7 +1401,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1412,7 +1412,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1423,7 +1423,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(w1);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1434,7 +1434,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(w1);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1493,7 +1493,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1504,7 +1504,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1515,7 +1515,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1526,7 +1526,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1537,7 +1537,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x2)(x1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1550,7 +1550,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(w1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1561,7 +1561,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1572,7 +1572,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(w1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1585,7 +1585,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1596,7 +1596,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(w1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1607,7 +1607,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(w1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1620,7 +1620,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(w1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1631,7 +1631,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(x1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1642,7 +1642,7 @@ tmpWritten.clear();
 	tmpWritten = {};
 #else
 	tmpRead = list_of(w1)(x3);
-	tmpWritten = list_of();
+	//tmpWritten = list_of();
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
@@ -1814,7 +1814,7 @@ tmpWritten.clear();
 	tmpRead = {};
 	tmpWritten = {x0};
 #else
-	tmpRead = list_of();
+	//tmpRead = list_of();
 	tmpWritten = list_of(x0);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1825,7 +1825,7 @@ tmpWritten.clear();
 	tmpRead = {};
 	tmpWritten = {x0};
 #else
-	tmpRead = list_of();
+	//tmpRead = list_of();
 	tmpWritten = list_of(x0);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1838,7 +1838,7 @@ tmpWritten.clear();
 	tmpRead = {};
 	tmpWritten = {w0};
 #else
-	tmpRead = list_of();
+	//tmpRead = list_of();
 	tmpWritten = list_of(w0);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1849,7 +1849,7 @@ tmpWritten.clear();
 	tmpRead = {};
 	tmpWritten = {x0};
 #else
-	tmpRead = list_of();
+	//tmpRead = list_of();
 	tmpWritten = list_of(x0);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1860,7 +1860,7 @@ tmpWritten.clear();
 	tmpRead = {};
 	tmpWritten = {x0};
 #else
-	tmpRead = list_of();
+	//tmpRead = list_of();
 	tmpWritten = list_of(x0);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1871,7 +1871,7 @@ tmpWritten.clear();
 	tmpRead = {};
 	tmpWritten = {w0};
 #else
-	tmpRead = list_of();
+	//tmpRead = list_of();
 	tmpWritten = list_of(w0);
 #endif
 expectedRead.push_back(tmpRead);
@@ -1953,7 +1953,7 @@ tmpWritten.clear();
 	tmpRead = {x2, zr};
 	tmpWritten = {x1};
 #else
-	tmpRead = list_of(x2, zr);
+	tmpRead = list_of(x2)(zr);
 	tmpWritten = list_of(x1);
 #endif
 expectedRead.push_back(tmpRead);
