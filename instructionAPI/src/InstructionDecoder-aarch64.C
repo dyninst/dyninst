@@ -41,6 +41,7 @@ namespace Dyninst
     typedef std::vector<aarch64_insn_entry> aarch64_insn_table;
     typedef std::map<unsigned int, aarch64_mask_entry> aarch64_decoder_table;
     typedef std::map<unsigned int, unsigned int> branchMap;
+    typedef uint32_t Bits_t;
 
     std::vector<std::string> InstructionDecoder_aarch64::condStringMap;
     std::map<unsigned int, MachRegister> InstructionDecoder_aarch64::sysRegMap;
@@ -52,16 +53,20 @@ namespace Dyninst
         {
         }
 
+        aarch64_insn_entry(entryID o, const char* m, operandSpec ops, Bits_t enb, Bits_t mb):
+        op(o), mnemonic(m), operands(ops),_encodingBits(enb), _maskBits(mb)
+        {
+        }
+
         aarch64_insn_entry():
         op(aarch64_op_INVALID), mnemonic("INVALID")
         {
-            // TODO: why 5?
-            // TODO: Is this needed here?
             operands.reserve(5);
         }
 
         aarch64_insn_entry(const aarch64_insn_entry& o) :
-        op(o.op), mnemonic(o.mnemonic), operands(o.operands)
+        op(o.op), mnemonic(o.mnemonic), operands(o.operands),
+        _encodingBits(o._encodingBits),_maskBits(o._maskBits)
         {
         }
 
@@ -71,6 +76,8 @@ namespace Dyninst
             op = rhs.op;
             mnemonic = rhs.mnemonic;
             operands = rhs.operands;
+            _encodingBits = rhs._encodingBits;
+            _maskBits = rhs._maskBits;
 
             return *this;
         }
@@ -78,6 +85,9 @@ namespace Dyninst
         entryID op;
         const char* mnemonic;
         operandSpec operands;
+
+        Bits_t _encodingBits;
+        Bits_t _maskBits;
 
         static void buildInsnTable();
         static bool built_insn_table;
@@ -87,18 +97,26 @@ namespace Dyninst
 
     struct aarch64_mask_entry
     {
+        /*
 		aarch64_mask_entry(unsigned int m, branchMap bm, int tabIndex):
 		mask(m), nodeBranches(bm), insnTableIndex(tabIndex)
 		{
 		}
+        */
+
+		aarch64_mask_entry(unsigned int m, branchMap bm, std::vector<int> tabIndex):
+		mask(m), nodeBranches(bm), _insnTableIndex(tabIndex)
+		{
+		}
 
 		aarch64_mask_entry():
-		mask(0), nodeBranches(branchMap()), insnTableIndex(-1)
+		mask(0), nodeBranches(branchMap()), insnTableIndex(-1), _insnTableIndex()
 		{
 		}
 
 		aarch64_mask_entry(const aarch64_mask_entry& e):
-		mask(e.mask), nodeBranches(e.nodeBranches), insnTableIndex(e.insnTableIndex)
+		mask(e.mask), nodeBranches(e.nodeBranches), insnTableIndex(e.insnTableIndex),
+        _insnTableIndex(e._insnTableIndex)
 		{
 		}
 
@@ -107,6 +125,7 @@ namespace Dyninst
 			mask = rhs.mask;
 			nodeBranches = rhs.nodeBranches;
 			insnTableIndex = rhs.insnTableIndex;
+			_insnTableIndex = rhs._insnTableIndex;
 
 			return *this;
 		}
@@ -114,6 +133,7 @@ namespace Dyninst
 		unsigned int mask;
 		branchMap nodeBranches;
 		int insnTableIndex;
+        std::vector<int> _insnTableIndex;
 
 		static void buildDecoderTable();
 		static bool built_decoder_table;

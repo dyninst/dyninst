@@ -376,7 +376,7 @@ class OpTable:
                             print '[WARN] unknown width'
 
                 for index, operand in enumerate(self.operandsArray[i]):
-                    # this is solution the compiler bug
+                    # this is solution to the compiler bug
                     # if OPRimm<x, y> appears in the first place of the list
                     if len(operand) != 1 and index == 0:
                         operands += '( (operandFactory) fn('
@@ -394,7 +394,9 @@ class OpTable:
 
                     operands += ') )'
 
-            print '\tmain_insn_table.push_back(aarch64_insn_entry(aarch64_op_'+ self.insnArray[i]+', \t\"'+ self.insnArray[i].split('_')[0]+'\",\t'+ operands +' ));'
+            #print '\tmain_insn_table.push_back(aarch64_insn_entry(aarch64_op_'+ self.insnArray[i]+', \t\"'+ self.insnArray[i].split('_')[0]+'\",\t'+ operands +' ));'
+            print '\tmain_insn_table.push_back(aarch64_insn_entry(aarch64_op_'+ self.insnArray[i]+', \t\"'+ self.insnArray[i].split('_')[0]+'\",\t'+ operands +', ' \
+                + str(self.encodingsArray[i]) + ', ' + str(self.masksArray[i]) + ') );'
 
 ##################
 # a helper function
@@ -423,6 +425,20 @@ def printDecodertable(entryToPlace, curMask=0, entryList=list(), index=-1 ):
 
     print '\tmain_decoder_table['+str(entryToPlace)+']=aarch64_mask_entry('+str(hex(curMask))+', '+entries+','+str(index)+');'
 
+def printDecodertable_list(entryToPlace, curMask=0, entryList=list(), index=list() ):
+    entries = 'map_list_of'
+    if len(entryList) == 0:
+        entries = 'branchMap()'
+    else:
+        for ent in entryList:
+            entries += '('+str(ent[0])+','+str(ent[1])+')'
+
+    index_list = str()
+    for i in index:
+        index_list += '('+ str(i) +')'
+
+    print '\tmain_decoder_table['+str(entryToPlace)+']=aarch64_mask_entry('+str(hex(curMask))+', '+entries+', list_of'+ index_list+');'
+
 def num1sInMask(x):
     mask = masksArray[x]
     num = 0
@@ -434,6 +450,9 @@ def num1sInMask(x):
 
 def alias_comparator( x, y ):
     return num1sInMask(x) - num1sInMask(y)
+
+def alias_comparatorRev( x, y ):
+    return num1sInMask(y) - num1sInMask(x)
 
 class DecodeTable:
     global masksArray
@@ -454,6 +473,31 @@ class DecodeTable:
         # invalid insn.
         ####################################
         self.entryAvailable = 1
+        self.debug = False
+
+    # weak solution to aliases
+    def alias_weakSolution(self, inInsnIndex, entryToPlace):
+        inInsnIndex.sort( cmp=alias_comparator )
+        for i in inInsnIndex:
+            self.processedIndex.add(i)
+            if self.debug == True:
+                print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
+
+        printDecodertable(entryToPlace, 0, list(), inInsnIndex[0]);
+
+    # strict solution to aliases
+    def alias_strictSolution(self, inInsnIndex, entryToPlace):
+        inInsnIndex.sort( cmp=alias_comparatorRev )
+
+        # for debuggging
+        for i in inInsnIndex:
+            self.processedIndex.add(i)
+            if self.debug == True:
+                print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
+
+        printDecodertable_list(entryToPlace, 0, list(), inInsnIndex);
+
+
 
     ###########################################
     # arg-1 is self
@@ -477,9 +521,11 @@ class DecodeTable:
 
         # size of inInsnIndex is 1. This means we should generate a leaf node
         if len(inInsnIndex) ==1:
-            printDecodertable(entryToPlace, 0, list() , inInsnIndex[0]);
+            #printDecodertable(entryToPlace, 0, list() , inInsnIndex[0]);
+            printDecodertable_list(entryToPlace, 0, list() , inInsnIndex[0:1]);
             self.numNodes += 1
-            #print insnArray[inInsnIndex[0]]
+            if self.debug == True:
+                print insnArray[inInsnIndex[0]]
             if inInsnIndex[0] in self.processedIndex:
                 print '[WARN] index processed, repeated index is ', inInsnIndex[0]
 
@@ -495,8 +541,10 @@ class DecodeTable:
 
         # eliminate the processed mask bit field
         validMaskBits = validMaskBits&(~processedMask)
-        #print hex(validMaskBits), bin(validMaskBits)
+        if self.debug == True:
+            print hex(validMaskBits), bin(validMaskBits)
 
+        #### ALIASING ####
         # terminated condition 2
         # if the mask we get is 0, this means we have a bunch of instructions
         # sharing the same opcode. They are aliases actually.
@@ -504,14 +552,11 @@ class DecodeTable:
         addMask = 0
         if validMaskBits == 0:
             # weak solution to aliases
+            #self.alias_weakSolution( inInsnIndex, entryToPlace)
+            # strict solution to aliases
+            self.alias_strictSolution(inInsnIndex, entryToPlace)
+
             self.numOfLeafNodes += len(inInsnIndex)
-
-            inInsnIndex.sort( cmp=alias_comparator )
-
-            for i in inInsnIndex:
-                self.processedIndex.add(i)
-                #print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
-            printDecodertable(entryToPlace, 0, list(), inInsnIndex[0]);
             self.numNodes += 1
             return
 
@@ -557,7 +602,8 @@ class DecodeTable:
         # should not be 0
         if curMask == 0:
             print "[WARN] mask is 0"
-            #print '%25s'%'processed mask'+'%35s'%bin(processedMask)
+            if self.debug == True:
+                print '%25s'%'processed mask'+'%35s'%bin(processedMask)
             for i in inInsnIndex:
                 print '%3d'%i+'%22s'%insnArray[i]+'%35s'%bin(masksArray[i])+'%35s'%bin(encodingsArray[i])
             self.numOfLeafNodes+=len(inInsnIndex)
@@ -600,7 +646,8 @@ class DecodeTable:
         # reserve room
         self.entryAvailable += numBranch
 
-        printDecodertable(entryToPlace, curMask, entryList, -1);
+        #printDecodertable(entryToPlace, curMask, entryList, -1);
+        printDecodertable_list(entryToPlace, curMask, entryList, [-1]);
         self.numNodes += 1
 
         """
@@ -611,7 +658,8 @@ class DecodeTable:
         for i in oneIndexes:
             print '%34s'%bin(encodingsArray[i])
         """
-        #print validIndexList
+        if self.debug == True:
+            print validIndexList
         for i in range(0, numBranch):
             self.buildDecodeTable( validIndexList[i], processedMask, entryList[i][1])
 
