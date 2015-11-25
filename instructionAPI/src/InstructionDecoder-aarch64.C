@@ -1833,14 +1833,14 @@ using namespace boost::assign;
 			for(std::vector<int>::iterator itr = cur_entry->insnTableIndices.begin(); itr != cur_entry->insnTableIndices.end(); itr++)
 			{
 				aarch64_insn_entry *nextEntry = &aarch64_insn_entry::main_insn_table[*itr];
-				if((insn & nextEntry->_encodingBits) == nextEntry->_maskBits)
+				if((insn & nextEntry->_maskBits) == nextEntry->_encodingBits)
 				{
 					insn_table_index = *itr;
 					break;
 				}
 			}
 			
-			if(insn_table_index != -1)
+			if(insn_table_index == -1)
 				assert(!"no instruction table entry found for current instruction");
 			else
 				return insn_table_index;
