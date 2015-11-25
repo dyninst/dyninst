@@ -4711,17 +4711,33 @@ bool Object::addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_che
 {
   Dwarf_Addr tempLow = 0, tempHigh = -1;
   Address low = 0, high = -1;
-  int status = dwarf_lowpc(cu, &tempLow, NULL);
-  if(status == DW_DLV_OK) 
+  Dwarf_Bool has_attr;
+  Dwarf_Error please_ignore; // malformed dwarf can spew errors on lowpc and highpc; we'll use this to swallow those (as they're handled safely)
+  // and not leak memory with a bad error handler.
+  if(dwarf_hasattr(cu, DW_AT_low_pc, &has_attr, NULL) != DW_DLV_OK) return false;
+  if(has_attr)
   {
-    low = (Address) tempLow;
-    status = dwarf_highpc(cu, &tempHigh, NULL);
-    if(status == DW_DLV_OK) 
-    {
-      high = (Address) tempHigh;
-      
-      if(low <= to_check && to_check < high) return true;
-    }
+      if(dwarf_hasattr(cu, DW_AT_high_pc, &has_attr, NULL) != DW_DLV_OK) return false;
+      if(has_attr)
+      {
+	  int status = dwarf_lowpc(cu, &tempLow, &please_ignore);
+	  if(status == DW_DLV_OK) 
+	  {
+	      low = (Address) tempLow;
+	      if(low > to_check) return false;
+	      status = dwarf_highpc(cu, &tempHigh, NULL);//&please_ignore);
+	      if(status == DW_DLV_OK) 
+	      {
+		  high = (Address) tempHigh;
+		  
+		  if(to_check < high) return true;
+	      }
+	      else if(status == DW_DLV_ERROR)
+	      {
+		  //		  dwarf_dealloc(dbg, please_ignore, DW_DLA_ERROR);
+	      }
+	  }
+      }
   }
 
   Dwarf_Bool hasRanges = false;
