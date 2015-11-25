@@ -50,8 +50,8 @@ using namespace std;
 #define EM_AARCH64 183
 #endif
 
-void DwarfHandle::defaultDwarfError(Dwarf_Error , Dwarf_Ptr) {
-
+void DwarfHandle::defaultDwarfError(Dwarf_Error err, Dwarf_Ptr p) {
+    dwarf_dealloc(*(Dwarf_Debug*)(p), err, DW_DLA_ERROR);
 }
 
 Dwarf_Handler DwarfHandle::defaultErrFunc = DwarfHandle::defaultDwarfError;
@@ -102,7 +102,7 @@ bool DwarfHandle::init_dbg()
    }
 
    status = dwarf_elf_init(file->e_elfp(), DW_DLC_READ,
-                           err_func, err_data, &file_data, &err);
+                           err_func, &file_data, &file_data, &err);
    if (status != DW_DLV_OK) {
       init_dwarf_status = dwarf_status_error;
       return false;
@@ -110,7 +110,7 @@ bool DwarfHandle::init_dbg()
 
    if (dbg_file) {
       status = dwarf_elf_init(dbg_file->e_elfp(), DW_DLC_READ,
-                              err_func, err_data, &dbg_file_data, &err);
+                              err_func, &dbg_file_data, &dbg_file_data, &err);
       if (status != DW_DLV_OK) {
          init_dwarf_status = dwarf_status_error;
          return false;
