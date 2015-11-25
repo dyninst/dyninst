@@ -104,19 +104,18 @@ namespace Dyninst
 		}
         */
 
-		aarch64_mask_entry(unsigned int m, branchMap bm, std::vector<int> tabIndex):
-		mask(m), nodeBranches(bm), _insnTableIndex(tabIndex)
+		aarch64_mask_entry(unsigned int m, branchMap bm, std::vector<int> tabIndices):
+		mask(m), nodeBranches(bm), insnTableIndices(tabIndices)
 		{
 		}
 
 		aarch64_mask_entry():
-		mask(0), nodeBranches(branchMap()), insnTableIndex(-1), _insnTableIndex()
+		mask(0), nodeBranches(branchMap()), insnTableIndices(std::vector<int>())
 		{
 		}
 
 		aarch64_mask_entry(const aarch64_mask_entry& e):
-		mask(e.mask), nodeBranches(e.nodeBranches), insnTableIndex(e.insnTableIndex),
-        _insnTableIndex(e._insnTableIndex)
+		mask(e.mask), nodeBranches(e.nodeBranches), insnTableIndices(e.insnTableIndices)
 		{
 		}
 
@@ -124,16 +123,14 @@ namespace Dyninst
 		{
 			mask = rhs.mask;
 			nodeBranches = rhs.nodeBranches;
-			insnTableIndex = rhs.insnTableIndex;
-			_insnTableIndex = rhs._insnTableIndex;
+			insnTableIndices = rhs.insnTableIndices;
 
 			return *this;
 		}
 
 		unsigned int mask;
 		branchMap nodeBranches;
-		int insnTableIndex;
-        std::vector<int> _insnTableIndex;
+        std::vector<int> insnTableIndices;
 
 		static void buildDecoderTable();
 		static bool built_decoder_table;
@@ -1828,7 +1825,26 @@ using namespace boost::assign;
 		unsigned int cur_mask = cur_entry->mask;
 
 		if(cur_mask == 0)
-			return cur_entry->insnTableIndex;
+		{
+			if(cur_entry->insnTableIndices.size() == 1)
+				return cur_entry->insnTableIndices[0];
+			
+			int insn_table_index = -1;
+			for(std::vector<int>::iterator itr = cur_entry->insnTableIndices.begin(); itr != cur_entry->insnTableIndices.end(); itr++)
+			{
+				aarch64_insn_entry *nextEntry = &aarch64_insn_entry::main_insn_table[*itr];
+				if((insn & nextEntry->_encodingBits) == nextEntry->_maskBits)
+				{
+					insn_table_index = *itr;
+					break;
+				}
+			}
+			
+			if(insn_table_index != -1)
+				assert(!"no instruction table entry found for current instruction");
+			else
+				return insn_table_index;
+		}
 
 		unsigned int insn_iter_index = 0, map_key_index = 0, branch_map_key = 0;
 		branchMap cur_branches = cur_entry->nodeBranches;
