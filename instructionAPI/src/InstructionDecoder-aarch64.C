@@ -456,9 +456,13 @@ MachRegister InstructionDecoder_aarch64::makeAarch64RegID(MachRegister base, uns
 
 Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 {
-        int encoding  = field<0, 4>(insn);
+    int encoding  = field<0, 4>(insn);
 	MachRegister reg;
 
+    if( isSIMDInsn ){
+        reg = aarch64::q0;
+        reg = makeAarch64RegID(reg, encoding);
+    } else
 	if(isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && !IS_SOURCE_GP(insn)))
 	{
 
@@ -478,7 +482,6 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 		}
 		else
 			reg = isSinglePrec()?aarch64::s0:aarch64::d0;
-
 
 		reg = makeAarch64RegID(reg, encoding);
 	}
@@ -502,6 +505,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
     int encoding  = field<5, 9>(insn);
 	MachRegister reg;
 
+    if( isSIMDInsn ){
+        reg = aarch64::q0;
+        reg = makeAarch64RegID(reg, encoding);
+    } else
 	if(isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && IS_SOURCE_GP(insn)))
 	{
 		switch(_typeField)
@@ -1180,6 +1187,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
     int encoding  = field<16, 20>(insn);
 	MachRegister reg;
 
+    if( isSIMDInsn ){
+        reg = aarch64::q0;
+        reg = makeAarch64RegID(reg, encoding);
+    } else
 	if(isFPInsn)
 	{
 		reg = isSinglePrec()?aarch64::s0:aarch64::d0;
