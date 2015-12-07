@@ -49,6 +49,7 @@ using namespace std;
 class aarch64_decode_Mutator : public InstructionMutator {
 private:
 	void setupRegisters();
+	void reverseBuffer(const unsigned char  *, int);
 public:
     aarch64_decode_Mutator() { };
    virtual test_results_t executeTest();
@@ -57,6 +58,20 @@ public:
 extern "C" DLLEXPORT TestMutator* aarch64_decode_factory()
 {
    return new aarch64_decode_Mutator();
+}
+
+void aarch64_decode_Mutator::reverseBuffer(const unsigned char *buffer, int bufferSize)
+{
+    int elementCount = bufferSize/4;
+    unsigned char *currentElement = const_cast<unsigned char *>(buffer);
+
+    for(int loop_index = 0; loop_index < elementCount; loop_index++)
+    {
+	std::swap(currentElement[0], currentElement[3]);
+	std::swap(currentElement[1], currentElement[2]);
+
+	currentElement += 4;
+    }	
 }
 
 test_results_t aarch64_decode_Mutator::executeTest()
@@ -107,7 +122,7 @@ test_results_t aarch64_decode_Mutator::executeTest()
 	0xD1, 0x40, 0x31, 0x5F,		// SUB SP, X10, #12
 	0x13, 0x19, 0x29, 0xCC,		// SBFM W12, W14, #25, #10
 	0xB3, 0x40, 0x07, 0xC0,		// BFM X0, X30, #63, #0
-	//0xD3, 0x41, 0x20, 0x14,		// UBFM X20, X0, #8, #1
+	0xD3, 0x41, 0x20, 0x14,		// UBFM X20, X0, #8, #1
 	0x13, 0x9E, 0x16, 0x8A,		// EXTR W10, W20, W30, #5
 	0x93, 0xD0, 0xFD, 0x00,		// EXTR X0, X8, X16, #63
 	0x12, 0x00, 0xFF, 0xFF,		// AND WSP, WSP, #63
@@ -193,6 +208,7 @@ test_results_t aarch64_decode_Mutator::executeTest()
   unsigned int expectedInsns = size/4;
 
   ++expectedInsns;
+  reverseBuffer(buffer, size);
   InstructionDecoder d(buffer, size, Dyninst::Arch_aarch64);
 
   std::deque<Instruction::Ptr> decodedInsns;
@@ -943,6 +959,17 @@ tmpWritten.clear();
 #else
 	tmpRead = list_of(x30);
 	tmpWritten = list_of(x0);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead ={x0};
+	tmpWritten = {x20};
+#else
+	tmpRead = list_of(x0);
+	tmpWritten = list_of(x20);
 #endif
 expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
