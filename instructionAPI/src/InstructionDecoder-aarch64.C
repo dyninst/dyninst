@@ -178,8 +178,8 @@ namespace Dyninst
 		oprRotateAmt = 0;
 		hasb5 = false;
 
-        insn = b.start[0] << 24 | b.start[1] << 16 |
-        b.start[2] << 8 | b.start[3];
+        insn = b.start[3] << 24 | b.start[2] << 16 |
+        b.start[1] << 8 | b.start[0];
 
 #if defined(DEBUG_RAW_INSN)
         cout.width(0);
