@@ -3729,13 +3729,11 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
   if (*value) {
       *value += base;
       if (type & DW_EH_PE_indirect) {
-	  if (size == 4) {
-	      *value = (unsigned long) *((const uint32_t *)(*value));
-	  } else if (size == 8) {
-	      *value = (unsigned long) *((const uint64_t *)(*value));
-	  } else {
-	      assert(!"Size is not 4 or 8!");
-	  }
+	  // When there is a indirect catch block,
+	  // it is often the case that the indirect pointer would point
+	  // to a dynamic section, not resolvable at static time.
+	  // We currently ignore this dynamic catch block.
+	  *value = 0;
       }
   } 
   return size;
