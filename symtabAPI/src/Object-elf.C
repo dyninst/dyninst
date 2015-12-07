@@ -3613,21 +3613,22 @@ static signed long read_sleb128(const unsigned char *data, unsigned *bytes_read)
   return result;
 }
 
-#define DW_EH_PE_absptr  0x00
-#define DW_EH_PE_uleb128 0x01
-#define DW_EH_PE_udata2  0x02
-#define DW_EH_PE_udata4  0x03
-#define DW_EH_PE_udata8  0x04
-#define DW_EH_PE_sleb128 0x09
-#define DW_EH_PE_sdata2  0x0A
-#define DW_EH_PE_sdata4  0x0B
-#define DW_EH_PE_sdata8  0x0C
-#define DW_EH_PE_pcrel   0x10
-#define DW_EH_PE_textrel 0x20
-#define DW_EH_PE_datarel 0x30
-#define DW_EH_PE_funcrel 0x40
-#define DW_EH_PE_aligned 0x50
-#define DW_EH_PE_omit    0xff
+#define DW_EH_PE_absptr      0x00
+#define DW_EH_PE_uleb128     0x01
+#define DW_EH_PE_udata2      0x02
+#define DW_EH_PE_udata4      0x03
+#define DW_EH_PE_udata8      0x04
+#define DW_EH_PE_sleb128     0x09
+#define DW_EH_PE_sdata2      0x0A
+#define DW_EH_PE_sdata4      0x0B
+#define DW_EH_PE_sdata8      0x0C
+#define DW_EH_PE_pcrel       0x10
+#define DW_EH_PE_textrel     0x20
+#define DW_EH_PE_datarel     0x30
+#define DW_EH_PE_funcrel     0x40
+#define DW_EH_PE_aligned     0x50
+#define DW_EH_PE_indirect    0x80
+#define DW_EH_PE_omit        0xff
 
 typedef struct {
   int word_size;
@@ -3653,7 +3654,7 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
    **/
   switch (type & 0x70)
   {
-  case DW_EH_PE_pcrel:
+  case DW_EH_PE_pcrel:    
     base = mi.pc;
     break;
   case DW_EH_PE_textrel:
@@ -3666,6 +3667,17 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
     base = mi.func;
     break;
   }
+
+  if ((type & 0x70) == DW_EH_PE_aligned)
+  {
+    if (mi.word_size == 4) {
+      addr = (const unsigned char*)(((unsigned long)addr + 3) & (~0x3l));
+    }
+    else if (mi.word_size == 8) {
+      addr = (const unsigned char*)(((unsigned long)addr + 7) & (~0x7l));
+    }
+  }
+
 
   switch (type & 0x0f)
   {
@@ -3680,48 +3692,52 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
     }
     break;
   case DW_EH_PE_uleb128:
-    *value = base + read_uleb128(addr, &size);
+    *value = read_uleb128(addr, &size);
     break;
   case DW_EH_PE_sleb128:
-    *value = base + read_sleb128(addr, &size);
+    *value = read_sleb128(addr, &size);
     break;
   case DW_EH_PE_udata2:
-    *value = base + *((const uint16_t *) addr);
+    *value = *((const uint16_t *) addr);
     size = 2;
     break;
   case DW_EH_PE_sdata2:         
-    *value = base + *((const int16_t *) addr);
+    *value = *((const int16_t *) addr);
     size = 2;
     break;
   case DW_EH_PE_udata4:
-    *value = base + *((const uint32_t *) addr);
+    *value = *((const uint32_t *) addr);
     size = 4;
     break;
   case DW_EH_PE_sdata4:
-    *value = base + *((const int32_t *) addr);
+    *value = *((const int32_t *) addr);
     size = 4;
     break;
   case DW_EH_PE_udata8:
-    *value = base + *((const uint64_t *) addr);
+    *value = *((const uint64_t *) addr);
     size = 8;
     break;
   case DW_EH_PE_sdata8:
-    *value = base + *((const int64_t *) addr);
+    *value = *((const int64_t *) addr);
     size = 8;
     break;
   default:
+    fprintf(stderr, "Unhandled type %d\n", type & 0x0f);
     return -1;
   }
 
-  if ((type & 0x70) == DW_EH_PE_aligned)
-  {
-    if (mi.word_size == 4) {
-      *value &= ~(0x3l);
-    }
-    else if (mi.word_size == 8) {
-      *value &= ~(0x7l);
-    }
-  }
+  if (*value) {
+      *value += base;
+      if (type & DW_EH_PE_indirect) {
+	  if (size == 4) {
+	      *value = (unsigned long) *((const uint32_t *)(*value));
+	  } else if (size == 8) {
+	      *value = (unsigned long) *((const uint64_t *)(*value));
+	  } else {
+	      assert(!"Size is not 4 or 8!");
+	  }
+      }
+  } 
   return size;
 }
 
@@ -3760,7 +3776,7 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
   int status, result, ptr_size;
   char *augmentor;
   unsigned char lpstart_format, ttype_format, table_format;
-  unsigned long value, table_end, region_start, region_size;
+  unsigned long value, table_end, region_start, region_size, landingpad_base;
   unsigned long catch_block, action, augmentor_len;
   Dwarf_Small *fde_augdata, *cie_augdata;
   Dwarf_Unsigned fde_augdata_len, cie_augdata_len;
@@ -3878,6 +3894,7 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
 	//Fruit, Someone needs to check the Linux Standard Base, 
 	// section 11.6 (as of v3.1), to see what new encodings 
 	// exist and how we should decode them in the CIE.
+	assert(!"Unhandled augmentation");
 	break;
       }
     }
@@ -3941,11 +3958,16 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
       continue;
     }
 
-    // Read some variable length header info that we don't really
-    // care about.
+    // Read the landing pad base address.
+    // If it is omitted, the base address should be
+    // the entry address of the function involved
+    // in the exception handling
     lpstart_format = datap[except_off++];
-    if (lpstart_format != DW_EH_PE_omit)
-      except_off += read_val_of_type(DW_EH_PE_uleb128, &value, datap + except_off, mi);
+    if (lpstart_format != DW_EH_PE_omit) {
+      except_off += read_val_of_type(DW_EH_PE_uleb128, &landingpad_base, datap + except_off, mi);
+    } else {
+      landingpad_base = low_pc;
+    }
     ttype_format = datap[except_off++];
     if (ttype_format != DW_EH_PE_omit)
       except_off += read_val_of_type(DW_EH_PE_uleb128, &value, datap + except_off, mi);
@@ -3954,7 +3976,12 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
     // table and the format of the table_size field.
     table_format = datap[except_off++];
     mi.pc = except_scn->sh_addr() + except_off;
-    result = read_val_of_type(table_format, &table_end, datap + except_off, mi);
+
+//  This assertion would fail:  
+//  assert(table_format == DW_EH_PE_uleb128);
+//  result = read_val_of_type(table_format, &table_end, datap + except_off, mi);
+//  This read should always be a ULEB128 read
+    result = read_val_of_type(DW_EH_PE_uleb128, &table_end, datap + except_off, mi);
     if (result == -1) {
       continue;
     }
@@ -3994,8 +4021,8 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
 
       if (catch_block == 0)
 	continue;
-      ExceptionBlock eb(region_start + low_pc, (unsigned) region_size, 
-			catch_block + low_pc);
+      ExceptionBlock eb(region_start + landingpad_base, (unsigned) region_size, 
+			catch_block + landingpad_base);
       eb.setTryStart(tryStart);
       eb.setTryEnd(tryEnd);
       eb.setCatchStart(catchStart);
