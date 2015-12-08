@@ -502,7 +502,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
     int encoding  = field<5, 9>(insn);
 	MachRegister reg;
 
-    if( isSIMDInsn ){
+    if( isSIMDInsn && !IS_INSN_LDST(insn) ){
         reg = aarch64::q0;
         reg = makeAarch64RegID(reg, encoding);
     } else
@@ -849,6 +849,25 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefEx(){
     return makeDereferenceExpression(makeRnExpr(), rt);
 }
 
+void InstructionDecoder_aarch64::OPRQ(){
+    _Q = field<30, 30>(insn);
+}
+
+void InstructionDecoder_aarch64::OPRL(){
+    _L = field<30, 30>(insn);
+}
+
+void InstructionDecoder_aarch64::getMemRefSIMD_MULT_RT(Result_Type &rt){
+    //TODO
+    rt = dbl128;
+}
+
+Expression::Ptr InstructionDecoder_aarch64::makeMemRefSIMD_MULT(){
+    Result_Type rt;
+    getMemRefSIMD_MULT_RT(rt);
+    return makeDereferenceExpression(makeRnExpr(), rt);
+}
+
 void InstructionDecoder_aarch64::getMemRefExPair_RT(Result_Type &rt){
     int size = field<30, 30>(insn);
     switch(size){
@@ -1024,6 +1043,19 @@ void InstructionDecoder_aarch64::LIndex()
             insn_in_progress->appendOperand( makeMemRefExPair(), true, false);
         }
         return;
+    }
+
+    else if( IS_INSN_LDST_SIMD_MULT(insn) ){
+
+    }
+    else if( IS_INSN_LDST_SIMD_MULT_POST(insn) ){
+        assert(0);
+    }
+    else if( IS_INSN_LDST_SIMD_SING(insn) ){
+        assert(0);
+    }
+    else if( IS_INSN_LDST_SIMD_SING_POST(insn) ){
+        assert(0);
     }
 
     assert(0); //un-handled case
@@ -1342,13 +1374,43 @@ Expression::Ptr InstructionDecoder_aarch64::makeRtExpr()
 	return makeRegisterExpression(reg);
 }
 
+void InstructionDecoder_aarch64::get_rptselem(unsigned int &rpt, unsigned int &selem){
+    unsigned opcode = field<12, 15>(insn);
+    switch(opcode){
+        case 0x0:
+            rpt = 1; selem = 4;
+            break;
+        case 0x2:
+            rpt = 4; selem = 1;
+            break;
+        case 0x4:
+            rpt = 1; selem = 3;
+            break;
+        case 0x6:
+            rpt = 3; selem = 1;
+            break;
+        case 0x7:
+            rpt = 1; selem = 1;
+            break;
+        case 0x8:
+            rpt = 1; selem = 2;
+            break;
+        case 0xa:
+            rpt = 2; selem = 1;
+            break;
+        default:
+            assert(!"unallocated encoding");
+            return;
+    }
+    assert(rpt!=0 && selem!=0);
+    return;
+}
+
 void InstructionDecoder_aarch64::OPRRt()
 {
+	int encoding = field<0, 4>(insn);
 	if(IS_INSN_BRANCHING(insn))
 	{
-		MachRegister reg;
-		int encoding = field<0, 4>(insn);
-
 		if(encoding == 31)
 			insn_in_progress->appendOperand(makeRegisterExpression(is64Bit?aarch64::zr:aarch64::wzr), true, false);
 		else
@@ -1358,12 +1420,30 @@ void InstructionDecoder_aarch64::OPRRt()
 
 void InstructionDecoder_aarch64::OPRRtL()
 {
-	insn_in_progress->appendOperand(makeRtExpr(), false, true);
+	int encoding = field<0, 4>(insn);
+    if( IS_INSN_LDST_SIMD_MULT(insn) ){
+        unsigned int rpt, selem;
+        get_rptselem(rpt, selem);
+        for(unsigned int it_rpt = 0; it_rpt < rpt; it_rpt++){
+			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::q0, encoding + it_rpt)), false, true);
+        }
+    }
+    else
+	    insn_in_progress->appendOperand(makeRtExpr(), false, true);
 }
 
 void InstructionDecoder_aarch64::OPRRtS()
 {
-	insn_in_progress->appendOperand(makeRtExpr(), true, false);
+	int encoding = field<0, 4>(insn);
+    if( IS_INSN_LDST_SIMD_MULT(insn) ){
+        unsigned int rpt, selem;
+        get_rptselem(rpt, selem);
+        for(unsigned int it_rpt = 0; it_rpt < rpt; it_rpt++){
+			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::q0, encoding + it_rpt)), true, false);
+        }
+    }
+    else
+	    insn_in_progress->appendOperand(makeRtExpr(), true, false);
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeRt2Expr()
@@ -1839,7 +1919,7 @@ using namespace boost::assign;
 		{
 			if(cur_entry->insnTableIndices.size() == 1)
 				return cur_entry->insnTableIndices[0];
-			
+
 			int insn_table_index = -1;
 			for(std::vector<int>::iterator itr = cur_entry->insnTableIndices.begin(); itr != cur_entry->insnTableIndices.end(); itr++)
 			{
@@ -1850,7 +1930,7 @@ using namespace boost::assign;
 					break;
 				}
 			}
-			
+
 			if(insn_table_index == -1)
 				assert(!"no instruction table entry found for current instruction");
 			else
