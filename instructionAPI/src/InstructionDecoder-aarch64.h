@@ -93,6 +93,10 @@ namespace Dyninst {
                 #define	IS_INSN_LDST_REG(I)	            (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1 && field<10, 11>(I) == 0x02)
                 #define IS_INSN_LDST_UIMM(I)            (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 1)
 
+                #define IS_INSN_LDST_SIMD_MULT(I)       (field<31, 31>(I) == 0x00 && field<23, 29>(I) == 0x18 && field<16, 21>(I) == 0)
+                #define IS_INSN_LDST_SIMD_MULT_POST(I)  (field<31, 31>(I) == 0x00 && field<23, 29>(I) == 0x19 && field<21, 21>(I) == 0)
+                #define IS_INSN_LDST_SIMD_SING(I)       (field<31, 31>(I) == 0x00 && field<23, 29>(I) == 0x1a && field<16, 20>(I) == 0)
+                #define IS_INSN_LDST_SIMD_SING_POST(I)  (field<31, 31>(I) == 0x00 && field<23, 29>(I) == 0x1b)
 
                 #define	IS_INSN_LOGICAL_IMM(I)			(field<23, 28>(I) == 0x24)
                 #define	IS_INSN_BITFIELD(I)				(field<23, 28>(I) == 0x26)
@@ -244,9 +248,9 @@ namespace Dyninst {
                 Expression::Ptr makeMemRefEx();
                 Expression::Ptr makeMemRefExPair();
                 Expression::Ptr makeMemRefExPair2();
-                //Expression::Ptr makeMemRefPairPre2();
-                //Expression::Ptr makeMemRefPairPost2();
-                //Expression::Ptr makeMemRefExPair16B();
+
+                Expression::Ptr makeMemRefSIMD_MULT();
+                Expression::Ptr makeMemRefSIMD_SING();
 
 
                 void getMemRefIndexLiteral_OffsetLen(int &, int &);
@@ -260,6 +264,11 @@ namespace Dyninst {
                 void getMemRefPair_RT(Result_Type &rt);
                 void getMemRefIndex_RT(Result_Type &);
                 void getMemRefIndexUImm_RT(Result_Type &);
+
+                void getMemRefSIMD_MULT_RT(Result_Type &rt);
+                void getMemRefSIMD_SING_RT(Result_Type &rt);
+                unsigned int get_SIMD_MULT_POST_imm();
+                unsigned int get_SIMD_SING_POST_imm();
 
 				void OPRRd();
 				void OPRsf();
@@ -309,10 +318,11 @@ namespace Dyninst {
 				template<unsigned int endBit, unsigned int startBit>
                 void OPRtype();
 
+                void OPRQ();
+                void OPRL();
+                //void OPRR();
                 void OPRH() {}
-                void OPRL() {}
                 void OPRM() {}
-                void OPRQ() {}
                 void OPRa() {}
                 void OPRb() {}
                 void OPRc() {}
@@ -330,6 +340,12 @@ namespace Dyninst {
                 void OPRrmode() {}
                 void OPRop() {}
                 void setFlags();
+
+                unsigned int _Q;
+                unsigned int _L;
+                unsigned int _R;
+
+                void get_rptselem(unsigned int &rpt, unsigned int &selem);
         };
     }
 }
