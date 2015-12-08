@@ -188,7 +188,10 @@ class OpTable:
             maskBit[31-maskStartBit] = '0'
             encodingArray[31-maskStartBit] = '0'
 
-            operands_pos_Insn.append(reserve_operand_pos)
+            if len(operands_pos_Insn) == 0:
+                operands_pos_Insn.append(reserve_operand_pos)
+            elif operands_pos_Insn[-1:][0] != reserve_operand_pos:
+                operands_pos_Insn.append(reserve_operand_pos)
             if reserve_operand_pos[0] not in self.operandsSet:
                 self.operandsSet.add(reserve_operand_pos[0])
 
@@ -474,6 +477,7 @@ class DecodeTable:
         ####################################
         self.entryAvailable = 1
         self.debug = False
+        self.aliasWeakSolution = True
 
     # weak solution to aliases
     def alias_weakSolution(self, inInsnIndex, entryToPlace):
@@ -492,8 +496,8 @@ class DecodeTable:
         # for debuggging
         for i in inInsnIndex:
             self.processedIndex.add(i)
-            if self.debug == True:
-                print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
+            #if self.debug == True:
+            print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
 
         printDecodertable_list(entryToPlace, 0, list(), inInsnIndex);
 
@@ -521,8 +525,10 @@ class DecodeTable:
 
         # size of inInsnIndex is 1. This means we should generate a leaf node
         if len(inInsnIndex) ==1:
-            #printDecodertable(entryToPlace, 0, list() , inInsnIndex[0]);
-            printDecodertable_list(entryToPlace, 0, list() , inInsnIndex[0:1]);
+            if self.aliasWeakSolution == True:
+                printDecodertable(entryToPlace, 0, list() , inInsnIndex[0]);
+            else:
+                printDecodertable_list(entryToPlace, 0, list() , inInsnIndex[0:1]);
             self.numNodes += 1
             if self.debug == True:
                 print insnArray[inInsnIndex[0]]
@@ -552,9 +558,9 @@ class DecodeTable:
         addMask = 0
         if validMaskBits == 0:
             # weak solution to aliases
-            #self.alias_weakSolution( inInsnIndex, entryToPlace)
+            self.alias_weakSolution( inInsnIndex, entryToPlace)
             # strict solution to aliases
-            self.alias_strictSolution(inInsnIndex, entryToPlace)
+            #self.alias_strictSolution(inInsnIndex, entryToPlace)
 
             self.numOfLeafNodes += len(inInsnIndex)
             self.numNodes += 1
@@ -646,8 +652,10 @@ class DecodeTable:
         # reserve room
         self.entryAvailable += numBranch
 
-        #printDecodertable(entryToPlace, curMask, entryList, -1);
-        printDecodertable_list(entryToPlace, curMask, entryList, [-1]);
+        if self.aliasWeakSolution == True:
+            printDecodertable(entryToPlace, curMask, entryList, -1);
+        else:
+            printDecodertable_list(entryToPlace, curMask, entryList, [-1]);
         self.numNodes += 1
 
         """

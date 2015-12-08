@@ -134,6 +134,7 @@ namespace Dyninst
 
 		static void buildDecoderTable();
 		static bool built_decoder_table;
+		static bool isAliasWeakSolution;
 		static aarch64_decoder_table main_decoder_table;
 	};
 
