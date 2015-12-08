@@ -29,6 +29,7 @@
  */
 bool aarch64_insn_entry::built_insn_table = false;
 bool aarch64_mask_entry::built_decoder_table = false;
+bool aarch64_mask_entry::isAliasWeakSolution = true;
 
 aarch64_insn_table aarch64_insn_entry::main_insn_table;
 aarch64_decoder_table aarch64_mask_entry::main_decoder_table;
