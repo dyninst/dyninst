@@ -49,6 +49,7 @@ using namespace std;
 class aarch64_decode_ldst_Mutator : public InstructionMutator {
 private:
 	void setupRegisters();
+	void reverseBuffer(const unsigned char *, int);
 public:
     aarch64_decode_ldst_Mutator() { };
    virtual test_results_t executeTest();
@@ -57,6 +58,20 @@ public:
 extern "C" DLLEXPORT TestMutator* aarch64_decode_ldst_factory()
 {
    return new aarch64_decode_ldst_Mutator();
+}
+
+void aarch64_decode_ldst_Mutator::reverseBuffer(const unsigned char *buffer, int bufferSize)
+{
+    int elementCount = bufferSize/4;
+    unsigned char *currentElement = const_cast<unsigned char *>(buffer);
+
+    for(int loop_index = 0; loop_index < elementCount; loop_index++)
+    {
+	std::swap(currentElement[0], currentElement[3]);
+	std::swap(currentElement[1], currentElement[2]);
+
+	currentElement += 4;
+    }	
 }
 
 test_results_t aarch64_decode_ldst_Mutator::executeTest()
@@ -237,6 +252,7 @@ test_results_t aarch64_decode_ldst_Mutator::executeTest()
   unsigned int expectedInsns = size/4;
 
   ++expectedInsns;
+  reverseBuffer(buffer, size);
   InstructionDecoder d(buffer, size, Dyninst::Arch_aarch64);
 
   std::deque<Instruction::Ptr> decodedInsns;
@@ -1984,7 +2000,7 @@ tmpWritten.clear();
   {
       retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead.front(),
                                    expectedWritten.front()));
-      cout<<decodedInsns.front()->format()<<" "<<retVal<<endl;
+//      cout<<decodedInsns.front()->format()<<" "<<retVal<<endl;
       decodedInsns.pop_front();
 
   	  expectedRead.pop_front();

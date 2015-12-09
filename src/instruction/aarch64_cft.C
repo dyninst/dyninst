@@ -46,6 +46,8 @@ using namespace boost::assign;
 using namespace std;
 
 class aarch64_cft_Mutator : public InstructionMutator {
+private:
+    void reverseBuffer(const unsigned char *, int);
 public:
     aarch64_cft_Mutator() { };
    virtual test_results_t executeTest();
@@ -54,6 +56,20 @@ public:
 extern "C" DLLEXPORT TestMutator* aarch64_cft_factory()
 {
    return new aarch64_cft_Mutator();
+}
+
+void aarch64_cft_Mutator::reverseBuffer(const unsigned char *buffer, int bufferSize)
+{
+    int elementCount = bufferSize/4;
+    unsigned char *currentElement = const_cast<unsigned char *>(buffer);
+
+    for(int loop_index = 0; loop_index < elementCount; loop_index++)
+    {
+	std::swap(currentElement[0], currentElement[3]);
+	std::swap(currentElement[1], currentElement[2]);
+
+	currentElement += 4;
+    }	
 }
 
 struct cftExpected
@@ -101,12 +117,13 @@ test_results_t aarch64_cft_Mutator::executeTest()
 		0x54, 0xFF, 0xFF, 0xE1,		// B.NE #-1
 		0x36, 0xF7, 0xFF, 0xE4,		// TBZ W4, #30, #-1
 		0xB7, 0x80, 0x02, 0x19,		// TBNZ X25, #0, #16
-		0x94, 0x00, 0x00, 0x08,		// BL #8
+		0x94, 0x00, 0x00, 0x05,		// BL #5
 		0xD6, 0x3F, 0x01, 0x80,		// BLR X12
   };
   unsigned int size = sizeof(buffer);
   unsigned int expectedInsns = size/4;
   ++expectedInsns;
+  reverseBuffer(buffer, size);
   InstructionDecoder d(buffer, size, Dyninst::Arch_aarch64);
 
   std::deque<Instruction::Ptr> decodedInsns;
@@ -154,8 +171,13 @@ test_results_t aarch64_cft_Mutator::executeTest()
   cfts.push_back(cftExpected(true, 0x3FC, false, true, false, false));
   cfts.push_back(cftExpected(true, 0x404, false, true, false, true));
   cfts.push_back(cftExpected(true, 0x440, false, true, false, false));
+<<<<<<< HEAD
+  cfts.push_back(cftExpected(true, 0x404, false, true, false, true)); 
+  cfts.push_back(cftExpected(true, 0x414, true, false, false, false));  
+=======
   cfts.push_back(cftExpected(true, 0x404, false, true, false, true));
   cfts.push_back(cftExpected(true, 0x420, true, false, false, false));
+>>>>>>> 86705dd66ae4b151e0167fa16ba3d26b49cdbc5f
   cfts.push_back(cftExpected(true, 0x404, false, false, false, true));
   cfts.push_back(cftExpected(true, 0x90, true, false, true, false));
   cfts.push_back(cftExpected(true, 0x404, false, false, false, true));
