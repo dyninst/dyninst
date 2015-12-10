@@ -921,15 +921,11 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
            // this point and thus the RT library is a shared library, so the
            // runtime_lib structure should be empty
            if (evProc->runtime_lib.size() == 0)
-              evProc->runtime_lib.insert(newObj);
+	       evProc->runtime_lib.insert(newObj);
            // Don't register the runtime library with the BPatch layer
-        }else{
-			assert(tmpDesc.file() != rtLibDesc.file());
-            // Register the new modules with the BPatch layer
-            const pdvector<mapped_module *> &modlist = newObj->getModules();
-            for(unsigned i = 0; i < modlist.size(); ++i) {
-                BPatch::bpatch->registerLoadedModule(evProc, modlist[i]);
-            }
+        } else {
+	    assert(tmpDesc.file() != rtLibDesc.file());
+	    BPatch::bpatch->registerLoadedModule(evProc, newObj);
         }
     }
 
@@ -957,12 +953,9 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
     // Register the deletion with the BPatch layer before removing the modules
     // from the address space
     for(unsigned i = 0; i < toDelete.size(); ++i) {
-        const pdvector<mapped_module *> &modlist = toDelete[i]->getModules();
-        for(unsigned j = 0; j < modlist.size(); ++j) {
-            BPatch::bpatch->registerUnloadedModule(evProc, modlist[j]);
-        }
-
-        proccontrol_printf("%s[%d]: removed map object: %s\n", FILE__, __LINE__, toDelete[i]->debugString().c_str());
+        proccontrol_printf("%s[%d]: removed map object: %s\n", 
+			   FILE__, __LINE__, toDelete[i]->debugString().c_str());
+	BPatch::bpatch->registerUnloadedModule(evProc, toDelete[i]);
         evProc->removeASharedObject(toDelete[i]);
     }
 

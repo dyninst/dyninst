@@ -246,8 +246,8 @@ public:
     void registerStopThreadCallback(BPatchStopThreadCallback stopCB);
     int getStopThreadCallbackID(BPatchStopThreadCallback stopCB);
 
-    void registerLoadedModule(PCProcess *process, mapped_module *mod);
-    void registerUnloadedModule(PCProcess *process, mapped_module *mod);
+    void registerLoadedModule(PCProcess *process, mapped_object *mod);
+    void registerUnloadedModule(PCProcess *process, mapped_object *mod);
 
     BPatch_thread *getThreadByPid(int pid, bool *exists = NULL);
     BPatch_process *getProcessByPid(int pid, bool *exists = NULL);

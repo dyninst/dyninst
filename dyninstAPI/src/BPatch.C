@@ -944,7 +944,7 @@ void BPatch::registerDynamicCallsiteEvent(BPatch_process *process, Address callT
  * Register a new module loaded by a process (e.g., dlopen)
  */
 
-void BPatch::registerLoadedModule(PCProcess *process, mapped_module *mod) {
+void BPatch::registerLoadedModule(PCProcess *process, mapped_object *mod) {
 
     BPatch_process *bProc = BPatch::bpatch->getProcessByPid(process->getPid());
     if (!bProc) return; // Done
@@ -955,7 +955,7 @@ void BPatch::registerLoadedModule(PCProcess *process, mapped_module *mod) {
     BPatch_image *bImage = bProc->getImage();
     assert(bImage); // This we can assert to be true
     
-    BPatch_module *bpmod = bImage->findOrCreateModule(mod);
+    BPatch_object *bpmod = bImage->findOrCreateObject(mod);
 
     if( dynLibraryCallback ) {
         dynLibraryCallback(bProc->threads[0], bpmod, true);
@@ -968,7 +968,7 @@ void BPatch::registerLoadedModule(PCProcess *process, mapped_module *mod) {
  * Register a new module loaded by a process (e.g., dlopen)
  */
 
-void BPatch::registerUnloadedModule(PCProcess *process, mapped_module *mod) {
+void BPatch::registerUnloadedModule(PCProcess *process, mapped_object *mod) {
 
     BPatch_process *bProc = BPatch::bpatch->getProcessByPid(process->getPid());
     if (!bProc) return; // Done
@@ -981,7 +981,7 @@ void BPatch::registerUnloadedModule(PCProcess *process, mapped_module *mod) {
         return;
     }
     
-    BPatch_module *bpmod = bImage->findModule(mod);
+    BPatch_object *bpmod = bImage->findObject(mod);
     if (bpmod == NULL) return;
 
     
@@ -990,7 +990,7 @@ void BPatch::registerUnloadedModule(PCProcess *process, mapped_module *mod) {
         dynLibraryCallback(bProc->threads[0], bpmod, false);
     }
 
-    bImage->removeModule(bpmod);
+    bImage->removeObject(bpmod);
 }
 
 
