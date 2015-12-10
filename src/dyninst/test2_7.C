@@ -41,6 +41,8 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "BPatch_object.h"
+
 
 #include "test_lib.h"
 #include "test2.h"
@@ -86,10 +88,11 @@ test_results_t test2_7_Mutator::executeTest() {
         std::string noext(TEST_DYNAMIC_LIB2);
         noext = noext.substr(0, noext.find_last_of("."));
 
-	BPatch_Vector<BPatch_module *> *m = appImage->getModules();
-	for (unsigned int i=0; i < m->size(); i++) {
+	BPatch_Vector<BPatch_object *> obj;
+	appImage->getObjects(obj);
+	for (auto i = obj.begin(); i != obj.end(); i++) {
 		char name[80];
-		(*m)[i]->getName(name, sizeof(name));
+		strncpy(name, (*i)->name().c_str(), 80);
 #if defined(os_windows_test)
         //Windows files don't have case sensitive names, so make
         //sure we have a consistent name.
