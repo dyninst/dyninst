@@ -114,6 +114,8 @@ class Absloc {
 
   DATAFLOW_EXPORT const Type &type() const { return type_; };
 
+  DATAFLOW_EXPORT bool isValid() const { return type_ != Unknown; };
+
   DATAFLOW_EXPORT const MachRegister &reg() const { assert(type_ == Register); return reg_; };
 
   DATAFLOW_EXPORT int off() const { assert(type_ == Stack); return off_; };

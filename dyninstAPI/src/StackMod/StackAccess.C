@@ -123,7 +123,7 @@ bool getAccesses(ParseAPI::Function* func,
 
     Architecture arch = insn->getArch();
     StackAnalysis sa(func);
-    std::vector<std::pair<MachRegister, StackAnalysis::Height> > heights;
+    std::vector<std::pair<Absloc, StackAnalysis::Height> > heights;
     sa.findDefinedHeights(block, addr, heights);
 
     if (insn->getOperation().getID() == e_ret_far || insn->getOperation().getID() == e_ret_near) {
@@ -131,7 +131,9 @@ bool getAccesses(ParseAPI::Function* func,
     }
 
     for (auto iter = heights.begin(); iter != heights.end(); ++iter) {
-        MachRegister curReg = (*iter).first;
+        // Only consider registers, not tracked memory locations
+        if (iter->first.type() != Absloc::Register) continue;
+        MachRegister curReg = iter->first.reg();
 
         unsigned int gpr;
         if (arch == Arch_x86) {

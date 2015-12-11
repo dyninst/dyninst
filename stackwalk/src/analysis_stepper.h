@@ -33,6 +33,7 @@
 
 #include "stackwalk/h/framestepper.h"
 #include "dataflowAPI/h/stackanalysis.h"
+#include "dataflowAPI/h/Absloc.h"
 #include "SymReader.h"
 
 #include <string>
@@ -60,7 +61,7 @@ class AnalysisStepperImpl : public FrameStepper
    virtual ~AnalysisStepperImpl();
 
    typedef std::pair<StackAnalysis::Height, StackAnalysis::Height> height_pair_t;
-   typedef std::pair<MachRegister, StackAnalysis::Height> registerState_t;
+   typedef std::pair<Absloc, StackAnalysis::Height> registerState_t;
    
    static const height_pair_t err_height_pair;
 
