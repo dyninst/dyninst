@@ -132,7 +132,7 @@ std::vector<BPatch_function *> *BPatch_object::findFunction(std::string name,
                                                                bool regex_case_sensitive,
                                                                bool incUninstrumentable,
                                                                bool dont_use_regex) {
-    int num_funcs_in = funcs.size();
+   size_t num_funcs_in = funcs.size();
    findFunc f(name, funcs, false, regex_case_sensitive,
               incUninstrumentable, dont_use_regex);
    std::for_each(mods.begin(), mods.end(), f);
