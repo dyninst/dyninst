@@ -983,7 +983,7 @@ void BPatch::registerUnloadedModule(PCProcess *process, mapped_object *obj) {
     }
     
     BPatch_object *bpobj = bImage->findObject(obj);
-    if (bpmod == NULL) return;
+    if (bpobj == NULL) return;
 
     
     // For now we use the same callback for load and unload of library....
