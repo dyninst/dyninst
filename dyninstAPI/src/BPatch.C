@@ -50,6 +50,7 @@
 #include "mapped_module.h"
 #include "instPoint.h"
 #include "hybridAnalysis.h"
+#include "BPatch_object.h"
 
 // ProcControlAPI interface
 #include "dynProcess.h"
