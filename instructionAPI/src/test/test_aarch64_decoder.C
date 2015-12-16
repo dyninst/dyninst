@@ -11,29 +11,33 @@ using namespace std;
 int findInsnTableIndex(unsigned int insn, unsigned int decoder_table_index)
 {
     cout << "index: "<< decoder_table_index << endl;
+
+/*    cout << " insn: "<< bitset<32>(insn) << endl;
+    cout << " mask: "<< bitset<32>(cur_mask) << endl;*/
+
 	aarch64_mask_entry *cur_entry = &aarch64_mask_entry::main_decoder_table[decoder_table_index];
+		unsigned int cur_mask = cur_entry->mask;
 
-	unsigned int cur_mask = cur_entry->mask;
-    cout << " insn: "<< bitset<32>(insn) << endl;
-    cout << " mask: "<< bitset<32>(cur_mask) << endl;
+		if(cur_mask == 0)
+			return cur_entry->insnTableIndex;
 
-	if(cur_mask == 0)
-		return cur_entry->insnTableIndex;
+		unsigned int insn_iter_index = 0, map_key_index = 0, branch_map_key = 0;
+		branchMap cur_branches = cur_entry->nodeBranches;
 
-	unsigned int insn_iter_index = 0, map_key_index = 0, branch_map_key = 0;
-	branchMap cur_branches = cur_entry->nodeBranches;
-
-	while(insn_iter_index <= 31)
-	{
-		if(((cur_mask>>insn_iter_index) & 1) == 1)
+		while(insn_iter_index < 32)
 		{
-			branch_map_key = branch_map_key | (((insn>>insn_iter_index) & 1)<<map_key_index);
-			map_key_index++;
+			if(((cur_mask>>insn_iter_index) & 1) == 1)
+			{
+				branch_map_key = branch_map_key | (((insn>>insn_iter_index) & 1)<<map_key_index);
+				map_key_index++;
+			}
+			insn_iter_index++;
 		}
-		insn_iter_index++;
-	}
 
-	return findInsnTableIndex(insn, cur_branches[branch_map_key]);
+		if(cur_branches.count(branch_map_key) <= 0)
+			return 0;
+
+		return findInsnTableIndex(insn, cur_branches[branch_map_key]);
 }
 
 int main()
