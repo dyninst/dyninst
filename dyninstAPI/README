@@ -1,7 +1,7 @@
 
-This is the version 9.0 release of the Dyninst API.  Currently, the API
+This is the version 9.1 release of the Dyninst API.  Currently, the API
 library is available for the POWER/Linux, x86/Linux, x86_64/Linux, and
-x86/Windows XP/2000/2003 platforms.
+x86/Windows XP/2000/2003/Windows 7 platforms.
 
 Documentation for the API can be found at:
 
@@ -46,7 +46,7 @@ the same copyright.  A copy of the Paradyn copyright appears at the end of
 this file.
 
 	The Dyninst API Team
-	8/17/2105
+	12/9/2015
 
 ----------------------- Start of Paradyn Copyright --------------------------
 See the dyninst/COPYRIGHT file for copyright information.

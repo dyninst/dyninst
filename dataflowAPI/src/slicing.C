@@ -723,6 +723,9 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
       slicing_printf("failed, err: %d\n",err);
     }
     break;
+  case CATCH:
+    slicing_printf("\t\t Ignore catch edges ... ");
+    break;
   default:
     nf = cand;
     slicing_printf("\t\t Handling default edge type %d... ",
@@ -795,8 +798,14 @@ Slicer::getPredecessors(
     bool err = false;
     SliceFrame nf;
     
-    SingleContextOrInterproc epred(cand.loc.func, true, true);
-
+    // The curernt function may have an invalid cache status.
+    // We may have to first finalize this function before
+    // iteratingover the src edges of the current block.
+    // Otherwise, the iterator in the for_each loop can get
+    // invalidated during the loop.
+    // We force finalizing if necessary
+    cand.loc.func->num_blocks();
+    SingleContextOrInterproc epred(cand.loc.func, true, true);       
     const Block::edgelist & sources = cand.loc.block->sources();
     std::for_each(boost::make_filter_iterator(epred, sources.begin(), sources.end()),
 		  boost::make_filter_iterator(epred, sources.end(), sources.end()),
@@ -809,7 +818,6 @@ Slicer::getPredecessors(
 			      boost::ref(err),
 			      boost::ref(nf)
 			      ));
-   
     return !err; 
 }
 

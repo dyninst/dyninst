@@ -428,25 +428,27 @@ void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi
    * Cleanup Callee cleans up the stack before returning
  **/
 callType func_instance::getCallingConvention() {
-    const char *name = symTabName().c_str();
+	std::cerr << "symtab name (c++): " << symTabName() << std::endl;
+    //const char *name = symTabName().c_str();
     const int buffer_size = 1024;
     char buffer[buffer_size];
-    const char *pos;
+    int pos;
 
     if (callingConv != unknown_call)
         return callingConv;
 
-    if (!name) {
+    if (symTabName().empty()) {
+		assert(0);
         //Umm...
         return unknown_call;
     }
-
-    switch(name[0]) {
+    switch(symTabName()[0]) {
         case '?':
             //C++ Encoded symbol. Everything is stored in the C++ name 
             // mangling scheme
-            UnDecorateSymbolName(name, buffer, buffer_size, 
+            UnDecorateSymbolName(symTabName().c_str(), buffer, buffer_size, 
                 UNDNAME_NO_ARGUMENTS | UNDNAME_NO_FUNCTION_RETURNS);
+			printf("undecorated name: %s\n", buffer);
             if (strstr(buffer, "__thiscall")) {
                 callingConv = thiscall_call;
                 return callingConv;
@@ -466,8 +468,8 @@ callType func_instance::getCallingConvention() {
             break;
         case '_':
           //Check for stdcall or cdecl
-          pos = strrchr(name, '@');
-          if (pos) {
+          pos = symTabName().find('@');
+          if (pos != std::string::npos) {
             callingConv = stdcall_call;
             return callingConv;
           }
@@ -478,8 +480,8 @@ callType func_instance::getCallingConvention() {
           break;
         case '@':
           //Should be a fast call
-          pos = strrchr(name, '@');
-          if (pos) {
+          pos = symTabName().find('@');
+          if (pos != std::string::npos) {
              callingConv = fastcall_call;
              return callingConv;
           }
@@ -496,7 +498,7 @@ callType func_instance::getCallingConvention() {
     if (!ifunc()->cleansOwnStack()) {
         callingConv = cdecl_call;
     }
-    else if (strstr(name, "::")) {
+    else if (symTabName().find("::") != std::string::npos) {
         callingConv = thiscall_call;
     }
     else {
