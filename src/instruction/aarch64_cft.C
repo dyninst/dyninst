@@ -172,7 +172,7 @@ test_results_t aarch64_cft_Mutator::executeTest()
   cfts.push_back(cftExpected(true, 0x404, false, true, false, true));
   cfts.push_back(cftExpected(true, 0x440, false, true, false, false));
   cfts.push_back(cftExpected(true, 0x404, false, true, false, true));
-  cfts.push_back(cftExpected(true, 0x420, true, false, false, false));
+  cfts.push_back(cftExpected(true, 0x414, true, false, false, false));
   cfts.push_back(cftExpected(true, 0x404, false, false, false, true));
   cfts.push_back(cftExpected(true, 0x90, true, false, true, false));
   cfts.push_back(cftExpected(true, 0x404, false, false, false, true));
