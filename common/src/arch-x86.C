@@ -258,14 +258,14 @@ enum {
 #define EDI { am_reg, x86::iedi }
 #define ECXEBX { am_tworeghack, op_ecxebx }
 #define EDXEAX { am_tworeghack, op_edxeax }
-#define rAX { am_reg, x86::ieax }
-#define rBX { am_reg, x86::iebx }
-#define rCX { am_reg, x86::iecx }
-#define rDX { am_reg, x86::iedx }
-#define rSP { am_reg, x86::iesp }
-#define rBP { am_reg, x86::iebp }
-#define rSI { am_reg, x86::iesi }
-#define rDI { am_reg, x86::iedi }
+#define rAX { am_reg, x86_64::irax }
+#define rBX { am_reg, x86_64::irbx }
+#define rCX { am_reg, x86_64::ircx }
+#define rDX { am_reg, x86_64::irdx }
+#define rSP { am_reg, x86_64::irsp }
+#define rBP { am_reg, x86_64::irbp }
+#define rSI { am_reg, x86_64::irsi }
+#define rDI { am_reg, x86_64::irdi }
 #define ST0 { am_reg, x86::ist0 }
 #define ST1 { am_reg, x86::ist1 }
 #define ST2 { am_reg, x86::ist2 }
@@ -415,30 +415,13 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_extrq, "extrq")
   (e_fadd, "fadd")
   (e_faddp, "faddp")
- (e_f2xm1, "f2xm1")
   (e_fbld, "fbld")
   (e_fbstp, "fbstp")
- (e_fchs, "fchs")
- (e_fcmovb, "fcmovb")
- (e_fcmovbe, "fcmovbe")
- (e_fcmove, "fcmove")
- (e_fcmovne, "fcmovne")
- (e_fcmovu, "fcmovu")
- (e_fcmovnu, "fcmovnu")
- (e_fcmovnb, "fcmovnb")
- (e_fcmovnbe, "fcmovnbe")
   (e_fcom, "fcom")
-  (e_fcomi, "fcomi")
-  (e_fcomip, "fcomip")
   (e_fcomp, "fcomp")
-  (e_fcompp, "fcompp")
   (e_fdiv, "fdiv")
-  (e_fdivp, "fdivp")
   (e_fdivr, "fdivr")
-  (e_fdivrp, "fdivrp")
   (e_femms, "femms")
- (e_ffree, "ffree")
- (e_ffreep, "ffreep")
   (e_fiadd, "fiadd")
   (e_ficom, "ficom")
   (e_ficomp, "ficomp")
@@ -452,13 +435,10 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_fisub, "fisub")
   (e_fisubr, "fisubr")
   (e_fld, "fld")
- (e_fld1, "fld1")
   (e_fldcw, "fldcw")
   (e_fldenv, "fldenv")
   (e_fmul, "fmul")
-  (e_fmulp, "fmulp")
   (e_fnop, "fnop")
- (e_fprem, "fprem")
   (e_frstor, "frstor")
   (e_fsave, "fsave")
   (e_fst, "fst")
@@ -467,15 +447,9 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_fstp, "fstp")
   (e_fstsw, "fstsw")
   (e_fsub, "fsub")
-  (e_fsubp, "fsubp")
   (e_fsubr, "fsubr")
-  (e_fsubrp, "fsubrp")
-  (e_fucom, "fucom")
   (e_fucomp, "fucomp")
-  (e_fucomi, "fucomi")
-  (e_fucomip, "fucomip")
   (e_fucompp, "fucompp")
- (e_fxch, "fxch")
   (e_fxrstor, "fxrstor")
   (e_fxsave, "fxsave")
   (e_haddpd, "haddpd")
@@ -501,14 +475,14 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_invlpg, "invlpg")
   (e_iret, "iret")
   (e_jb, "jb")
-  (e_jb_jnaej_j, "jb")
+  (e_jb_jnaej_j, "jb/jnaej/j")
   (e_jbe, "jbe")
-  (e_jcxz_jec, "jcxz")
+  (e_jcxz_jec, "jcxz/jec")
   (e_jl, "jl")
   (e_jle, "jle")
   (e_jmp, "jmp")
   (e_jnb, "jnb")
-  (e_jnb_jae_j, "jnb")
+  (e_jnb_jae_j, "jnb/jae/j")
   (e_jnbe, "jnbe")
   (e_jnl, "jnl")
   (e_jnle, "jnle")
@@ -848,6 +822,79 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
  (e_vpmovsdw, "vpmovsdw")
  (e_vpmovsqw, "vpmovsqw")
  (e_vpmovsqd, "vpmovsqd")
+
+ (e_vzeroall, "vzeroall")
+ (e_vzeroupper, "vzeroupper")
+ (e_vcvtph2ps, "vcvtph2ps")
+ (e_vcvtps2ph, "vcvtps2ph")
+
+ (e_vbroadcastf128, "vbroadcastf128")
+ (e_vfmadd132pd, "vfmadd132pd")
+ (e_vfmadd213pd, "vfmadd213pd")
+ (e_vfmadd231pd, "vfmadd231pd")
+ (e_vfmadd132ps, "vfmadd132ps")
+ (e_vfmadd213ps, "vfmadd213ps")
+ (e_vfmadd231ps, "vfmadd231ps")
+ (e_vfmadd132sd, "vfmadd132sd")
+ (e_vfmadd213sd, "vfmadd213sd")
+ (e_vfmadd231sd, "vfmadd231sd")
+ (e_vfmadd132ss, "vfmadd132ss")
+ (e_vfmadd213ss, "vfmadd213ss")
+ (e_vfmadd231ss, "vfmadd231ss")
+ (e_vfmaddsub132pd, "vfmaddsub132pd")
+ (e_vfmaddsub213pd, "vfmaddsub213pd")
+ (e_vfmaddsub231pd, "vfmaddsub231pd")
+ (e_vfmaddsub132ps, "vfmaddsub132ps")
+ (e_vfmaddsub213ps, "vfmaddsub213ps")
+ (e_vfmaddsub231ps, "vfmaddsub231ps")
+ (e_vfmsubadd132pd, "vfmsubadd132pd")
+ (e_vfmsubadd213pd, "vfmsubadd213pd")
+ (e_vfmsubadd231pd, "vfmsubadd231pd")
+ (e_vfmsubadd132ps, "vfmsubadd132ps")
+ (e_vfmsubadd213ps, "vfmsubadd213ps")
+ (e_vfmsubadd231ps, "vfmsubadd231ps")
+ (e_vfmsub132pd, "vfmsub132pd")
+ (e_vfmsub213pd, "vfmsub213pd")
+ (e_vfmsub231pd, "vfmsub231pd")
+ (e_vfmsub132ps, "vfmsub132ps")
+ (e_vfmsub213ps, "vfmsub213ps")
+ (e_vfmsub231ps, "vfmsub231ps")
+ (e_vfmsub132sd, "vfmsub132sd")
+ (e_vfmsub213sd, "vfmsub213sd")
+ (e_vfmsub231sd, "vfmsub231sd")
+ (e_vfmsub132ss, "vfmsub132ss")
+ (e_vfmsub213ss, "vfmsub213ss")
+ (e_vfmsub231ss, "vfmsub231ss")
+ (e_vfnmadd132pd, "vfnmadd132pd")
+ (e_vfnmadd213pd, "vfnmadd213pd")
+ (e_vfnmadd231pd, "vfnmadd231pd")
+ (e_vfnmadd132ps, "vfnmadd132ps")
+ (e_vfnmadd213ps, "vfnmadd213ps")
+ (e_vfnmadd231ps, "vfnmadd231ps")
+ (e_vfnmadd132sd, "vfnmadd132sd")
+ (e_vfnmadd213sd, "vfnmadd213sd")
+ (e_vfnmadd231sd, "vfnmadd231sd")
+ (e_vfnmadd132ss, "vfnmadd132ss")
+ (e_vfnmadd213ss, "vfnmadd213ss")
+ (e_vfnmadd231ss, "vfnmadd231ss")
+ (e_vfnmsub132pd, "vfnmsub132pd")
+ (e_vfnmsub213pd, "vfnmsub213pd")
+ (e_vfnmsub231pd, "vfnmsub231pd")
+ (e_vfnmsub132ps, "vfnmsub132ps")
+ (e_vfnmsub213ps, "vfnmsub213ps")
+ (e_vfnmsub231ps, "vfnmsub231ps")
+ (e_vfnmsub132sd, "vfnmsub132sd")
+ (e_vfnmsub213sd, "vfnmsub213sd")
+ (e_vfnmsub231sd, "vfnmsub231sd")
+ (e_vfnmsub132ss, "vfnmsub132ss")
+ (e_vfnmsub213ss, "vfnmsub213ss")
+ (e_vfnmsub231ss, "vfnmsub231ss")
+ (e_vmaskmovps, "vmaskmovps")
+ (e_vmaskmovpd, "vmaskmovpd")
+ (e_vtestps, "vtestps")
+ (e_vtestpd, "vtestpd")
+
+ (e_vextracti128, "vextracti128")
  (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
  (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
  (e_No_Entry, "No_Entry")
@@ -1065,7 +1112,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { e_or,   t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
+  { e_or,   t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { e_push, t_done, 0, false, { CS, eSP, Zz }, 0, s1R2RW },
   { e_No_Entry,      t_twoB, 0, false, { Zz, Zz, Zz }, 0, 0 },
   /* 10 */
@@ -1074,7 +1121,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { e_adc,  t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
+  { e_adc,  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { e_push, t_done, 0, false, { SS, eSP, Zz }, 0, s1R2RW },
   { e_pop,  t_done, 0, false, { SS, eSP, Zz }, 0, s1W2RW },
   /* 18 */
@@ -1083,7 +1130,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { e_sbb,  t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
+  { e_sbb,  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { e_push, t_done, 0, false, { DS, eSP, Zz }, 0, s1R2RW },
   { e_pop , t_done, 0, false, { DS, eSP, Zz }, 0, s1W2RW },
   /* 20 */
@@ -1092,7 +1139,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_and, t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { e_and, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_and, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { e_and, t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
+  { e_and, t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { e_daa, t_done, 0, false, { AL, Zz, Zz }, 0, s1RW },
   /* 28 */
@@ -1101,7 +1148,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_sub, t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { e_sub, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_sub, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { e_sub, t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
+  { e_sub, t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { e_das , t_done, 0, false, { AL, Zz, Zz }, 0, s1RW },
   /* 30 */
@@ -1110,7 +1157,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_xor, t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { e_xor, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_xor, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { e_xor, t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
+  { e_xor, t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { e_aaa, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW },
   /* 38 */
@@ -1119,7 +1166,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_cmp, t_done, 0, true, { Gb, Eb, Zz }, 0, s1R2R },
   { e_cmp, t_done, 0, true, { Gv, Ev, Zz }, 0, s1R2R },
   { e_cmp, t_done, 0, false, { AL, Ib, Zz }, 0, s1R2R },
-  { e_cmp, t_done, 0, false, { rAX, Iz, Zz }, 0, s1R2R },
+  { e_cmp, t_done, 0, false, { eAX, Iz, Zz }, 0, s1R2R },
   { e_No_Entry,     t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { e_aas, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW },
   /* 40 */
@@ -1215,27 +1262,27 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_pop, t_done, 0, true, { Ev, eSP, Zz }, 0, s1W2RW }, // or VEX XOP
   /* 90 */
   { e_nop,  t_done, 0, false, { Zz, Zz, Zz }, IS_NOP, sNONE }, // actually xchg eax,eax
-  { e_xchg, t_done, 0, false, { rCX, rAX, Zz }, 0, s1RW2RW },
-  { e_xchg, t_done, 0, false, { rDX, rAX, Zz }, 0, s1RW2RW },
-  { e_xchg, t_done, 0, false, { rBX, rAX, Zz }, 0, s1RW2RW },
-  { e_xchg, t_done, 0, false, { rSP, rAX, Zz }, 0, s1RW2RW },
-  { e_xchg, t_done, 0, false, { rBP, rAX, Zz }, 0, s1RW2RW },
-  { e_xchg, t_done, 0, false, { rSI, rAX, Zz }, 0, s1RW2RW },
-  { e_xchg, t_done, 0, false, { rDI, rAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eCX, eAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eDX, eAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eBX, eAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eSP, eAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eBP, eAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eSI, eAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eDI, eAX, Zz }, 0, s1RW2RW },
   /* 98 */
   { e_cwde, t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
   { e_cdq,  t_done, 0, false, { eDX, eAX, Zz }, 0, s1W2R },
   { e_call,     t_done, 0, false, { Ap, Zz, Zz }, IS_CALL | PTR_WX, s1R },
   { e_wait,     t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { e_pushfd, t_done, 0, false, { Fv, rSP, Zz }, 0, s1R2RW },
-  { e_popfd,  t_done, 0, false, { Fv, rSP, Zz }, 0, s1W2RW },
+  { e_pushfd, t_done, 0, false, { Fv, eSP, Zz }, 0, s1R2RW },
+  { e_popfd,  t_done, 0, false, { Fv, eSP, Zz }, 0, s1W2RW },
   { e_sahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
   { e_lahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
   /* A0 */
   { e_mov,   t_done, 0, false, { AL, Ob, Zz },  0, s1W2R },
-  { e_mov,   t_done, 0, false, { rAX, Ov, Zz }, 0, s1W2R },
+  { e_mov,   t_done, 0, false, { eAX, Ov, Zz }, 0, s1W2R },
   { e_mov,   t_done, 0, false, { Ob, AL, Zz },  0, s1W2R },
-  { e_mov,   t_done, 0, false, { Ov, rAX, Zz }, 0, s1W2R },
+  { e_mov,   t_done, 0, false, { Ov, eAX, Zz }, 0, s1W2R },
   // XXX: Xv is source, Yv is destination for movs, so they're swapped!
   { e_movsb, t_done, 0, false, { Yb, Xb, Zz },  0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
   { e_movsd, t_done, 0, false, { Yv, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
@@ -1243,13 +1290,13 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_cmpsw, t_done, 0, false, { Xv, Yv, Zz },  0, s1R2R | (fCMPS << FPOS) },
   /* A8 */
   { e_test,     t_done, 0, false, { AL, Ib, Zz },  0, s1R2R },
-  { e_test,     t_done, 0, false, { rAX, Iz, Zz }, 0, s1R2R },
+  { e_test,     t_done, 0, false, { eAX, Iz, Zz }, 0, s1R2R },
   { e_stosb,    t_done, 0, false, { Yb, AL, Zz },  0, s1W2R | (fREP << FPOS) },
-  { e_stosd,  t_done, 0, false, { Yv, rAX, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_stosd,  t_done, 0, false, { Yv, eAX, Zz }, 0, s1W2R | (fREP << FPOS) },
   { e_lodsb,    t_done, 0, false, { AL, Xb, Zz },  0, s1W2R | (fREP << FPOS) },
-  { e_lodsd,    t_done, 0, false, { rAX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_lodsd,    t_done, 0, false, { eAX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
   { e_scasb,    t_done, 0, false, { AL, Yb, Zz },  0, s1R2R | (fSCAS << FPOS) },
-  { e_scasd,  t_done, 0, false, { rAX, Yv, Zz }, 0, s1R2R | (fSCAS << FPOS) },
+  { e_scasd,  t_done, 0, false, { eAX, Yv, Zz }, 0, s1R2R | (fSCAS << FPOS) },
   /* B0 */
   { e_mov, t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, false, { CL, Ib, Zz }, 0, s1W2R },
@@ -1260,14 +1307,14 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_mov, t_done, 0, false, { DH, Ib, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, false, { BH, Ib, Zz }, 0, s1W2R },
   /* B8 */
-  { e_mov, t_done, 0, false, { rAX, Iv, Zz }, 0, s1W2R },
-  { e_mov, t_done, 0, false, { rCX, Iv, Zz }, 0, s1W2R },
-  { e_mov, t_done, 0, false, { rDX, Iv, Zz }, 0, s1W2R },
-  { e_mov, t_done, 0, false, { rBX, Iv, Zz }, 0, s1W2R },
-  { e_mov, t_done, 0, false, { rSP, Iv, Zz }, 0, s1W2R },
-  { e_mov, t_done, 0, false, { rBP, Iv, Zz }, 0, s1W2R },
-  { e_mov, t_done, 0, false, { rSI, Iv, Zz }, 0, s1W2R },
-  { e_mov, t_done, 0, false, { rDI, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eAX, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eCX, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eDX, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eBX, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eSP, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eBP, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eSI, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eDI, Iv, Zz }, 0, s1W2R },
   /* C0 */
   { e_No_Entry, t_grp, Grp2, true, { Eb, Ib, Zz }, 0, s1RW2R },
   { e_No_Entry, t_grp, Grp2, true, { Ev, Ib, Zz }, 0, s1RW2R },
@@ -1412,7 +1459,7 @@ static ia32_entry twoByteMap[256] = {
   { e_sysenter, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // XXX: fixme for kernel work
   { e_sysexit,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // XXX: fixme for kernel work
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, 
-  { e_getsec, t_done, 0, false, { Zz, Zz, Zz }, 0 , sNONE },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
   /* 38 */
   { e_No_Entry, t_threeB, 0, 0, { Zz, Zz, Zz }, 0, 0 }, //3-Byte escape (Book Table A-4)
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
@@ -1484,7 +1531,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSE74, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE75, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE76, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_emms, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_vzeroall, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   /* 78 */
   { e_No_Entry, t_sse, SSE78, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE79, 0, { Zz, Zz, Zz }, 0, 0 },
@@ -1660,8 +1707,8 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_sse_bis, SSEB0B, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_vtestps, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vtestpd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
 		/* 10 */
 		{ e_No_Entry, t_sse_bis, SSEB10, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -1813,17 +1860,17 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_vfmaddsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmsubadd132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
 		/* 98 */
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_vfmadd132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmadd132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmsub132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfnmadd132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfnmadd132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfnmsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfnmsub132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
 		/* A0 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -1831,17 +1878,17 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_vfmaddsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmsubadd213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
 		/* A8 */
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_vfmadd213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmadd213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmsub213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfnmadd213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfnmadd213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfnmsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfnmsub213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
 		/* B0 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -1849,17 +1896,17 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },	
+		{ e_vfmaddsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmsubadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },	
 		/* B8 */
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_vfmadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmadd231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmsub231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfnmadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfnmadd231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfnmsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfnmsub231sd, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		/* C0 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -2265,10 +2312,10 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fld,    t_done, 0, true, { ST0, Ef, Zz }, 0, s1W2R }, // stack push
         { e_fxch, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2RW },
         { e_fnop,   t_done, 0, true, { Zz,  Zz, Zz }, 0, sNONE },
-        { e_fstp,  t_done, 0, true, { Ef,  ST0, Zz }, 0, sNONE },
+        { e_No_Entry,  t_done, 0, true, { Zz,  Zz, Zz }, 0, sNONE },
         { e_fchs,    t_done, 0, true, { ST0, Zz, Zz }, 0, s1RW }, // FIXME: using first of group as placeholder
         { e_fld1, t_done, 0, true, { ST0, Zz, Zz }, 0, s1RW }, // FIXME: using first of group
-        { e_f2xm1,   t_done, 0, true, { ST0, Zz, Zz }, 0, s1RW }, // FIXME: using first of group as placeholder
+        { e_f2xm1,   t_done, 0, true, { ST0, ST1, Zz }, 0, s1RW2R }, // FIXME: using first of group as placeholder
         { e_fprem,  t_done, 0, true, { ST0, ST1, Zz }, 0, s1RW2R } // FIXME: using first of group
     },
 },
@@ -2328,14 +2375,14 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fdivr, t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R }
     },
     { // DC
-        { e_fadd,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
-        { e_fmul,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
-        { e_fcom,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
-        { e_fcomp,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
-        { e_fsubr,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
-        { e_fsub,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
-        { e_fdivr,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
-        { e_fdiv,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
+        { e_fadd,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_fmul,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+        { e_fsubr,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_fsub,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_fdivr,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_fdiv,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
     },
 },
 {
@@ -2351,7 +2398,7 @@ static ia32_entry fpuMap[][2][8] = {
     },
     { // DD TODO semantics check
         { e_ffree,    t_done, 0, true, { Efd, Zz, Zz }, 0, s1W },
-        { e_fxch,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2RW },
+        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
         { e_fst, t_done, 0, true, { Efd, ST0, Zz }, 0, s1W2R },
         { e_fstp, t_done, 0, true, { Efd, ST0, Zz }, 0, s1W2RW },
         { e_fucom,    t_done, 0, true, { ST0, Efd, Zz }, 0, s1R2R },
@@ -2372,14 +2419,14 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fidivr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R }
     },
     { // DE
-        { e_faddp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R },
-        { e_fmulp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R },
-        { e_fcomp,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcompp, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fsubrp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R },
-        { e_fsubp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R },
-        { e_fdivrp, t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R }, // stack pop
-        { e_fdivp, t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R }
+        { e_faddp,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_fmulp,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+        { e_fcompp, t_done, 0, true, { ST0, ST1, Zz }, 0, s1RW2R },
+        { e_fsubrp,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_fsubp,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_fdivrp, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R }, // stack pop
+        { e_fdivp, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R }
     },
 },
 {
@@ -2394,10 +2441,10 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fistp,  t_done, 0, true, { Ev, ST0, Zz }, 0, s1W2R }
     },
     { // DF TODO semantics/operand sizes
-        { e_ffreep,  t_done, 0, true, { Ef, Zz, Zz }, 0, sNONE },
-        { e_fxch,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2RW },
-        { e_fstp,  t_done, 0, true, { Ef, ST0, Zz }, 0, sNONE },
-        { e_fstp,  t_done, 0, true, { Ef, ST0, Zz }, 0, sNONE },
+        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
         { e_fstsw,   t_done, 0, true, { AX, Zz, Zz }, 0, s1W },
         { e_fucomip,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R }, // stack pop
         { e_fcomip,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R }, // stack pop
@@ -2457,7 +2504,7 @@ static ia32_entry groupMap[][8] = {
   { e_rcr, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
   { e_shl_sal, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
   { e_shr, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_shl_sal, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
   { e_sar, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 }
  },
 
@@ -3961,7 +4008,7 @@ bool ia32_is_mode_64() {
 
 ia32_entry movsxd = { e_movsxd, t_done, 0, true, { Gv, Ed, Zz }, 0, s1W2R };
 ia32_entry invalid = { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 };
-ia32_entry seg_mov = { e_mov, t_done, 0, true, {Ev, Sw, Zz}, 0, s1W2R };		       
+		       
 static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 {
     if (*gotit_ptr == &oneByteMap[0x63]) // APRL redefined to MOVSXD
@@ -3990,9 +4037,6 @@ static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 	*gotit_ptr == &oneByteMap[0xD6] || // salc
 	*gotit_ptr == &oneByteMap[0xEA]) { // jump ap
       *gotit_ptr = &invalid;
-    }
-    if(*gotit_ptr == &oneByteMap[0x8C]) {
-	*gotit_ptr = &seg_mov;
     }
     
 }
@@ -4046,58 +4090,62 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 
   if(pref.vex_prefix[0])
   {
+      printf("Decoding VEX prefixed instruction.\n");
       idx = addr[0];
+      printf("IDX: 0x%x\n", idx);
       instruct.size += 1;
+      printf("Instruction size: %d\n", instruct.size);
       addr += 1;
       sseidx = oneByteMap[pref.getOpcodePrefix()].tabidx;
+      printf("SSEIDX: %d\n", sseidx);
+
       // VEX instruction or xop. If there's only one prefix, table is two-byte.
       if(pref.vex_prefix[1] == 0)
       {
-	  gotit = &twoByteMap[idx];
-      }
-      else
-      {
-	  // FIXME: not handling xop separately yet
-	  switch(pref.vex_prefix[0] & 0x03)
-	  {
-	  case 0:
-	      gotit = &oneByteMap[idx];
-	      // generally invalid
-	      break;
-	  case 1:
+         printf("Instruction is two byte.\n");
 	      gotit = &twoByteMap[idx];
-	      break;
-	  case 2:
-	      gotit = &threeByteMap[idx];
-	      break;
-	  case 3:
-	      gotit = &threeByteMap2[idx];
-	      if(sseidx) sseidx--; // mapping none/f3/66/f2 to none/66/f2
-	      break;
-	  default:
-	      assert(!"Can't happen: prefix & 0x03 outside 0-3 range");
-	      
-	  }
+      } else {
+	      // FIXME: not handling xop separately yet
+	      switch(pref.vex_prefix[0] & 0x03)
+	      {
+	         case 0:
+               printf("Using the one byte map.\n");
+	            gotit = &oneByteMap[idx];
+	            // generally invalid
+	            break;
+	         case 1:
+               printf("Using the two byte map.\n");
+	            gotit = &twoByteMap[idx];
+	            break;
+	         case 2:
+               printf("Using the three byte map.\n");
+	            gotit = &threeByteMap[idx];
+	            break;
+	         case 3:
+               printf("Using the other three byte map.\n");
+	            gotit = &threeByteMap2[idx];
+	            if(sseidx) sseidx--; // mapping none/f3/66/f2 to none/66/f2
+	            break;
+	         default:
+	            assert(!"Can't happen: prefix & 0x03 outside 0-3 range");   
+	      }
       }
+      
       nxtab = gotit->otable;
-      //cerr << "\nVEX decode: idx = " << hex << (int) idx << ", sseidx = " << (int) sseidx 
-      //	   << ", num_prefixes = " << pref.getCount() << ", opcode prefix = " << (int)pref.getOpcodePrefix() << endl;
-  }
-  else
-  {
+      printf("nxtab: %d 0x%x\n", nxtab, nxtab);
+   } else {
       table = t_oneB;
       if(idx == 0) {
-	  // consume opcode
-	  idx = addr[0];
-	  instruct.size += 1;
-	  addr += 1;
+	      // consume opcode
+	      idx = addr[0];
+	      instruct.size += 1;
+	      addr += 1;
       } else {
-	  // opcode already consumed (prefix opcode)
+	      // opcode already consumed (prefix opcode)
       }
       gotit = &oneByteMap[idx];
       nxtab = gotit->otable;
   }
-
 
   if(capa & IA32_DECODE_CONDITION) {
     assert(instruct.cond != NULL);
@@ -5265,144 +5313,128 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
 bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                           ia32_locations *loc)
 {
-  pref.count = 0;
-  pref.prfx[0] = pref.prfx[1] = pref.prfx[2] = pref.prfx[3] = pref.prfx[4] = 0;
-  pref.vex_prefix[0] = pref.vex_prefix[1] = pref.vex_prefix[2] = 0;
-  pref.opcode_prefix = 0;
-  bool in_prefix = true;
+   pref.count = 0;
+   pref.prfx[0] = pref.prfx[1] = pref.prfx[2] = pref.prfx[3] = pref.prfx[4] = 0;
+   pref.vex_prefix[0] = pref.vex_prefix[1] = pref.vex_prefix[2] = 0;
+   pref.opcode_prefix = 0;
+   bool in_prefix = true;
 
-  while(in_prefix) {
-    switch(addr[0]) {
-    case PREFIX_REPNZ:
-    case PREFIX_REP:
-       if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4])) {
-          ++pref.count;
-          pref.opcode_prefix = addr[0];
-          break;
-       }
-       else if(is_sse_opcode(addr[1],addr[2],addr[3])) {
-          ++pref.count;
-          pref.opcode_prefix = addr[0];
-          break;
-       }
-       
-    case PREFIX_LOCK:
-       ++pref.count;
-       pref.prfx[0] = addr[0];
-       break;
-    case PREFIX_SEGCS:
-    case PREFIX_SEGSS:
-    case PREFIX_SEGDS:
-    case PREFIX_SEGES:
-    case PREFIX_SEGFS:
-    case PREFIX_SEGGS:
-       ++pref.count;
-       pref.prfx[1] = addr[0];
-       break;
-    case PREFIX_SZOPER:
-       if(is_sse_opcode(addr[1],addr[2],addr[3])) {
-          pref.opcode_prefix = addr[0];
-          break;
-       }
-       if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4])) {
-          ++pref.count;
-          pref.opcode_prefix = addr[0];
-          break;
-       }
-       ++pref.count;
-       pref.prfx[2] = addr[0];
-       break;
-    case PREFIX_SZADDR:
-       ++pref.count;
-       pref.prfx[3] = addr[0];
-       break;
-    case PREFIX_MVEX:
-    case PREFIX_XOP:
-	pref.vex_prefix[2] = addr[3];
-	++pref.count;
-	// fall through
-    case PREFIX_VEX3:
-	pref.vex_prefix[1] = addr[2];
-	++pref.count;
-	switch(pref.vex_prefix[1] & 0x03)
-	{
-	case 0:
-	    pref.opcode_prefix = 0x00;
-	    break;
-	case 1:
-	    pref.opcode_prefix = 0x66;
-	    break;
-	case 2:
-	    pref.opcode_prefix = 0xF3;
-	    break;
-	case 3:
-	    pref.opcode_prefix = 0xF2;
-	    break;
-	default:
-	    assert(!"Can't happen: value & 0x03 not in 0...3");
-	}
-	// fall through
-    case PREFIX_VEX2:
-	pref.vex_prefix[0] = addr[1];
-	if(!pref.count)
-	{
-	    switch(pref.vex_prefix[0] & 0x03)
-	    {
-	    case 0:
-		pref.opcode_prefix = 0x00;
-		break;
-	    case 1:
-		pref.opcode_prefix = 0x66;
-		break;
-	    case 2:
-		pref.opcode_prefix = 0xF3;
-		break;
-	    case 3:
-		pref.opcode_prefix = 0xF2;
-		break;
-	    default:
-		assert(!"Can't happen: value & 0x03 not in 0...3");
-	    }
-	}
-	++pref.count;
-	++pref.count;
-	in_prefix = false; // VEX prefixes exclude all others
-	break;
-    default:
-	// If we hit a REX prefix, keep going and process other potential prefixes.
-	// The only one *used* is one in the last position, but others are ignored,
-	// not illegal.
-	if(mode_64)
-	{
-	    if(ia32_decode_rex(addr, pref, loc))
-	    {
-		if(loc) loc->num_prefixes = pref.count;
-		return true;
-	    }
-	    if(!REX_ISREX(addr[0])) 
-	    {
-		in_prefix = false;
-	    }
-	    else
-	    {
-		++pref.count;
-	    }
-	}
-	else
-	{
-	    in_prefix = false;
-	}
-    }
+   while(in_prefix) {
+      switch(addr[0]) {
+         case PREFIX_REPNZ:
+         case PREFIX_REP:
+            if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4])) {
+               ++pref.count;
+               pref.opcode_prefix = addr[0];
+               break;
+            } else if(is_sse_opcode(addr[1],addr[2],addr[3])) {
+               ++pref.count;
+               pref.opcode_prefix = addr[0];
+               break;
+            }
+         case PREFIX_LOCK:
+            ++pref.count;
+            pref.prfx[0] = addr[0];
+            break;
+         case PREFIX_SEGCS:
+         case PREFIX_SEGSS:
+         case PREFIX_SEGDS:
+         case PREFIX_SEGES:
+         case PREFIX_SEGFS:
+         case PREFIX_SEGGS:
+            ++pref.count;
+            pref.prfx[1] = addr[0];
+            break;
+         case PREFIX_SZOPER:
+            if(is_sse_opcode(addr[1],addr[2],addr[3])) {
+               pref.opcode_prefix = addr[0];
+               break;
+            } 
+            if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4])) {
+               ++pref.count;
+               pref.opcode_prefix = addr[0];
+               break;
+            }
+            ++pref.count;
+            pref.prfx[2] = addr[0];
+            break;
+       case PREFIX_SZADDR:
+            ++pref.count;
+            pref.prfx[3] = addr[0];
+            break;
+       case PREFIX_MVEX:
+       case PREFIX_XOP:
+   	      pref.vex_prefix[2] = addr[3];
+   	      ++pref.count;
+   	      // fall through
+       case PREFIX_VEX3:
+   	      pref.vex_prefix[1] = addr[2];
+   	      ++pref.count;
+            printf("VEX3 prefixed instruction.\n");
+
+   	      switch(pref.vex_prefix[1] & 0x03)
+   	      {
+   	         case 0:
+   	            pref.opcode_prefix = 0x00;
+   	            break;
+   	         case 1:
+   	            pref.opcode_prefix = 0x66;
+   	            break;
+   	         case 2:
+   	            pref.opcode_prefix = 0xF3;
+   	            break;
+   	         case 3:
+   	            pref.opcode_prefix = 0xF2;
+   	            break;
+   	         default:
+   	            assert(!"Can't happen: value & 0x03 not in 0...3");
+   	      }
+
+   	      // fall through
+       case PREFIX_VEX2:
+   	      pref.vex_prefix[0] = addr[1];
+
+            if(!pref.vex_prefix[1])
+               printf("VEX2 prefixed instruction!\n");
+
+   	      if(!pref.count)
+   	      {
+   	         switch(pref.vex_prefix[0] & 0x03)
+   	         {
+   	            case 0:
+   		            pref.opcode_prefix = 0x00;
+   		            break;
+   	            case 1:
+   		            pref.opcode_prefix = 0x66;
+   		            break;
+                case 2:
+   		            pref.opcode_prefix = 0xF3;
+   		            break;
+   	            case 3:
+   		            pref.opcode_prefix = 0xF2;
+   		            break;
+   	            default:
+   		            assert(!"Can't happen: value & 0x03 not in 0...3");
+   	         }
+	         }
+
+   	      ++pref.count;
+   	      ++pref.count;
+	         in_prefix = false; // VEX prefixes exclude all others
+	         break;
+         default:
+            in_prefix=false;
+      }
     
-    ++addr;
-  }
+      ++addr;
+   }
 
-  bool result = true;
-  //if (mode_64)
-  //   result = ia32_decode_rex(addr - 1, pref, loc);
-  if (loc) loc->num_prefixes = pref.count;
+   bool result = true;
+   if (mode_64)
+      result = ia32_decode_rex(addr - 1, pref, loc);
+   if (loc) loc->num_prefixes = pref.count;
 
-  return result;
+   return result;
 }
 
 #define REX_W(x) ((x) & 0x8)
@@ -5420,27 +5452,6 @@ bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
                      ia32_locations *loc)
 {
    if (REX_ISREX(addr[0])) {
-      // it is an error to have legacy prefixes after a REX prefix
-      // in particular, ia32_decode will get confused if a prefix
-      // that could be used as an SSE opcode extension follows our
-      // REX
-       // We also must ignore all but the last REX prefix.
-       switch(addr[1])
-       {
-       case PREFIX_SZOPER:
-       case PREFIX_REPNZ:
-       case PREFIX_REP:
-       case PREFIX_SEGCS:
-       case PREFIX_SEGSS:
-       case PREFIX_SEGDS:
-       case PREFIX_SEGES:
-       case PREFIX_SEGFS:
-       case PREFIX_SEGGS:
-       case PREFIX_LOCK:
-       case PREFIX_SZADDR:
-	   return false;
-       }
-       if(REX_ISREX(addr[1])) return false;
      
       ++pref.count;
       pref.prfx[4] = addr[0];
@@ -5454,6 +5465,14 @@ bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
          loc->rex_position = pref.count - 1;
       }
       
+      // it is an error to have legacy prefixes after a REX prefix
+      // in particular, ia32_decode will get confused if a prefix
+      // that could be used as an SSE opcode extension follows our
+      // REX
+      if (addr[1] == PREFIX_SZOPER || addr[1] == PREFIX_REPNZ || addr[1] == PREFIX_REP)
+      {
+         return false;
+      }
    }
 
    return true;
