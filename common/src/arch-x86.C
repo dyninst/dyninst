@@ -1321,7 +1321,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_ret_near, t_done, 0, false, { Iw, Zz, Zz }, (IS_RET | IS_RETC), s1R | (fNEARRET << FPOS) },
   { e_ret_near, t_done, 0, false, { Zz, Zz, Zz }, (IS_RET), fNEARRET << FPOS },
   { e_les,      t_done, 0, true, { ES, Gv, Mp }, 0, s1W2W3R }, // or VEX
-  { e_lds,      t_done, 0, true, { DS, Gv, Mp }, 0, s1W2W3R }, // Or VEX
+  { e_lds,      t_done, 0, true, { DS, Gv, Mp }, 0, s1W2W3R }, // or VEX
   { e_No_Entry, t_grp, Grp11, true, { Eb, Ib, Zz }, 0, s1W2R },
   { e_No_Entry, t_grp, Grp11, true, { Ev, Iz, Zz }, 0, s1W2R },
   /* C8 */
@@ -1531,7 +1531,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSE74, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE75, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE76, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_vzeroall, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_No_Entry, t_vex2, 1, false, { Zz, Zz, Zz }, 0, 0 },
   /* 78 */
   { e_No_Entry, t_sse, SSE78, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE79, 0, { Zz, Zz, Zz }, 0, 0 },
@@ -1860,17 +1860,17 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_vfmaddsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfmsubadd132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmaddsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfmsubadd132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
 		/* 98 */
-		{ e_vfmadd132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfmadd132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfmsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfmsub132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfnmadd132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfnmadd132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfnmsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfnmsub132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmadd132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfmadd132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfmsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfmsub132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfnmadd132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfnmadd132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfnmsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfnmsub132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
 		/* A0 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -1878,17 +1878,17 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_vfmaddsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfmsubadd213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmaddsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfmsubadd213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
 		/* A8 */
-		{ e_vfmadd213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfmadd213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfmsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfmsub213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfnmadd213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfnmadd213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfnmsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfnmsub213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmadd213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfmadd213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfmsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfmsub213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfnmadd213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfnmadd213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfnmsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfnmsub213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
 		/* B0 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -1896,16 +1896,16 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_vfmaddsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfmsubadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },	
+		{ e_vfmaddsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfmsubadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },	
 		/* B8 */
-		{ e_vfmadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfmadd231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfmsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfmsub231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfnmadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfnmadd231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_vfnmsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_vfmadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfmadd231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfmsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfmsub231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfnmadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfnmadd231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
+		{ e_vfnmsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R },
 		{ e_vfnmsub231sd, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		/* C0 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -3996,6 +3996,252 @@ static ia32_entry ssegrpMap[][2] = {
   }
 };
 
+/**
+ * VEX (2 byte) prefixed instructions
+ *
+ * Instruction lookup: [index][L]
+ *    index: found by using opcode lookups in the oneByteMap.
+ *    L: The l bit of the prefix. L=1 is YMM registers, L=0 is XMM registers
+ */
+struct ia32_entry vex2Map[][2] =
+{
+    {
+      /* This entry should remain invalid. */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    }, {
+      { e_vzeroupper, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* L = 0 */
+      { e_vzeroall, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* L = 1 */
+    }
+};
+
+/**
+ * VEX (3 byte) prefixed instructions
+ *
+ * Instruction lookup (loop 1): [index][L][W]
+ *    index: found by using opcode lookups in the oneByteMap.
+ *    W: The w bit of the prefix. This can completely change the behavior
+ *        of certain VEX3 prefixed instructions.
+ */
+
+#define VEX3_ILL \
+  {{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, \
+   { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }}
+
+struct ia32_entry vex3Map[][2] =
+{
+    /* IDX 00 */
+    VEX3_ILL, VEX3_ILL,/* These 2 entry should remain invalid. */
+
+    /* MISC VEX3 instructions (NO SERIES) (00 - 1F)*/
+    VEX3_ILL, 
+
+    { /* VPBLEND (02)*/
+      { e_vpblendd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    },
+
+    { /* VEXTRACT SERIES (19, 39) */
+      { e_vextractf128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vextractf128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, 
+
+    { /* VINSERT SERIES (18, 38) */
+      { e_vinsertf128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vinserti128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }
+
+    { /* VCVT SERIES (13, 1D) */
+      { e_vcvtph2ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vcvtps2ph, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    },
+
+    { /* VMASKMOV SERIES (2C, 2D, 8C) */
+      { e_vmaskmovps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vmaskmovpd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, { 
+      { e_vpmaskmovd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpmaskmovq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }  /* W = 1 */
+    },
+
+    { /* VBROADCAST SERIES (18, 19, 1A, 78, 79, 58, 59, 5A)*/
+      { e_vbroadcastss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vbroadcastsd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vbroadcastf128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vpbroadcastb, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, { 
+      { e_vpbroadcastw, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, { 
+      { e_vpbroadcastd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vpbroadcastq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vbroadcasti128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    },
+
+    { /* VPERM SERIES (36, 01, 16, 00, 46, 0D, 0C, 06)*/
+      { e_vpermd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, { 
+      { e_vpermpd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, { 
+      { e_vpermps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, { 
+      { e_vpermq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, { 
+      { e_perm2i128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, { 
+      { e_vpermilpd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, { 
+      { e_vpermilps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, { 
+      { e_vperm2f128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    },
+  
+    /* VGATHER SERIES (90, 91, 92, 93)*/
+    { 
+      { e_vpgatherdd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */
+      { e_vpgatherdq, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */
+    }, { 
+      { e_vpgatherqd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */
+      { e_vpgatherqq, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */
+    }, {
+      { e_vgatherdps, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */
+      { e_vgatherdpd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */
+    }, {
+      { e_vgatherqps, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */
+      { e_vgatherqpd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */
+    },
+
+    /* ADD, SUB, ADDSUB, SUBADD instructions (16 entries each) (30 - 4F)*/
+    { /* IDX 20 */ /* 96, 97, 98, 99, 9A, 9B, 9C, 9D, 9E, 9F SERIES */
+      { e_vfmaddsub132ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmaddsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmsubadd132ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmsubadd132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmadd132ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmadd132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmadd132ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmadd132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmsub132ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmsub132ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmsub132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfnmadd132ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfnmadd132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfnmadd132ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfnmadd132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfnmsub132ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfnmsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfnmsub132ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfnmsub132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, VEX_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+      
+    { /* IDX 30 */ /* A6, A7, A8, A9, AA, AB, AC, AD, AE, AF SERIES */
+      { e_vfmaddsub213ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmaddsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmsubadd213ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmsubadd213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmadd213ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmadd213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmadd213ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmadd213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmsub213ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmsub213ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmsub213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfnmadd213ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfnmadd213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfnmadd213ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfnmadd213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfnmsub213ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfnmsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfnmsub213ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfnmsub213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, VEX_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+
+    { /* IDX 40 */ /* B6, B7, B8, B9, BA, BB, BC, BD, BE, BF SERIES */
+      { e_vfmaddsub231ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmaddsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmsubaddps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmsubadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmadd231ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmadd231ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmadd231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmsub231ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfmsub231ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmsub231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfnmadd231ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfnmadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfnmadd231ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfnmadd231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfnmsub231ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfnmsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, {
+      { e_vfnmsub231ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfnmsub231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
+    }, VEX_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+};
+#undef V3_ILL
+
 static bool mode_64 = false;
 
 void ia32_set_mode_64(bool mode) {
@@ -4069,7 +4315,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
   unsigned int idx = 0, sseidx = 0;
   ia32_entry *gotit = NULL;
   int condbits = 0;
-
+  
   if(capa & IA32_DECODE_MEMACCESS)
     assert(instruct.mac != NULL);
 
@@ -4088,6 +4334,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
   instruct.size = pref.getCount();
   addr += instruct.size;
 
+  /* Is there a VEX prefix for this instruction? */
   if(pref.vex_prefix[0])
   {
       printf("Decoding VEX prefixed instruction.\n");
@@ -4097,37 +4344,39 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       printf("Instruction size: %d\n", instruct.size);
       addr += 1;
       sseidx = oneByteMap[pref.getOpcodePrefix()].tabidx;
+      printf("Opcode prefix: 0x%x\n", pref.getOpcodePrefix());
+      printf("SSETABLE: %d t_done: %d  t_prefixedSSE: %d\n", oneByteMap[pref.getOpcodePrefix()].otable, t_done, t_prefixedSSE);
       printf("SSEIDX: %d\n", sseidx);
 
       // VEX instruction or xop. If there's only one prefix, table is two-byte.
       if(pref.vex_prefix[1] == 0)
       {
-         printf("Instruction is two byte.\n");
+        /* This is a VEX2 prefixed instruction */
+        printf("Instruction is two byte.\n");
 	      gotit = &twoByteMap[idx];
       } else {
 	      // FIXME: not handling xop separately yet
-	      switch(pref.vex_prefix[0] & 0x03)
+
+	      /* Select m-mmmm bits */
+	      switch(pref.vex_prefix[0] & VEX3_M)
 	      {
-	         case 0:
-               printf("Using the one byte map.\n");
-	            gotit = &oneByteMap[idx];
-	            // generally invalid
-	            break;
 	         case 1:
-               printf("Using the two byte map.\n");
+              printf("Using the two byte map. (0F PREFIXED)\n");
 	            gotit = &twoByteMap[idx];
 	            break;
 	         case 2:
-               printf("Using the three byte map.\n");
+              printf("Using the three byte map. (0f 38 PREFIXED)\n");
 	            gotit = &threeByteMap[idx];
 	            break;
 	         case 3:
-               printf("Using the other three byte map.\n");
+              printf("Using the other three byte map. (0f 3A PREFIXED)\n");
 	            gotit = &threeByteMap2[idx];
 	            if(sseidx) sseidx--; // mapping none/f3/66/f2 to none/66/f2
 	            break;
 	         default:
-	            assert(!"Can't happen: prefix & 0x03 outside 0-3 range");   
+              printf("Invalid instruction: 0x%x\n", pref.vex_prefix[0]);
+              /* This reserved for future use and will cause #UD. */
+              break;
 	      }
       }
       
@@ -4261,6 +4510,17 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       // Right now we don't care what the actual opcode is, so there's no table
       instruct.size += 1;
       nxtab = t_done;
+      break;
+    case t_vex2:
+      printf("Entering the VEX2 table!\n");
+      /* Whats the index into the vex2 table? */
+      idx = gotit->tabidx;
+      /* Set the current entry */
+      printf("IDX: %d\n", idx);
+      printf("L:   %d\n", pref.vex_l);
+      gotit = &vex2Map[idx][pref.vex_l];
+      /* Set the next table - this is almost always t_done */
+      nxtab = gotit->otable;
       break;
     case t_ill:
       instruct.legacy_type = ILLEGAL;
@@ -5317,6 +5577,8 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
    pref.prfx[0] = pref.prfx[1] = pref.prfx[2] = pref.prfx[3] = pref.prfx[4] = 0;
    pref.vex_prefix[0] = pref.vex_prefix[1] = pref.vex_prefix[2] = 0;
    pref.opcode_prefix = 0;
+   pref.vex_l = -1;
+   pref.vex_w = -1;
    bool in_prefix = true;
 
    while(in_prefix) {
@@ -5358,70 +5620,71 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
             ++pref.count;
             pref.prfx[2] = addr[0];
             break;
-       case PREFIX_SZADDR:
+          case PREFIX_SZADDR:
             ++pref.count;
             pref.prfx[3] = addr[0];
             break;
-       case PREFIX_MVEX:
-       case PREFIX_XOP:
-   	      pref.vex_prefix[2] = addr[3];
-   	      ++pref.count;
-   	      // fall through
-       case PREFIX_VEX3:
-   	      pref.vex_prefix[1] = addr[2];
-   	      ++pref.count;
-            printf("VEX3 prefixed instruction.\n");
+          case PREFIX_MVEX:
+          case PREFIX_XOP:
+   	        pref.vex_prefix[2] = addr[3];
+   	        ++pref.count;
+   	        // fall through
+          case PREFIX_VEX3:
+            pref.vex_prefix[0] = addr[1];
+   	        pref.vex_prefix[1] = addr[2];
+            pref.vex_l = addr[2] & VEX3_L;
+            if(pref.vex_l) pref.vex_l = 1;
+            pref.vex_w = addr[2] & VEX3_W;
+            if(pref.vex_w) pref.vex_w = 1;
+   	        pref.count += 3;
 
-   	      switch(pref.vex_prefix[1] & 0x03)
-   	      {
-   	         case 0:
-   	            pref.opcode_prefix = 0x00;
-   	            break;
-   	         case 1:
-   	            pref.opcode_prefix = 0x66;
-   	            break;
-   	         case 2:
-   	            pref.opcode_prefix = 0xF3;
-   	            break;
-   	         case 3:
-   	            pref.opcode_prefix = 0xF2;
-   	            break;
-   	         default:
-   	            assert(!"Can't happen: value & 0x03 not in 0...3");
-   	      }
+     	      switch(pref.vex_prefix[1] & 0x03)
+     	      {
+     	         case 0:
+     	            pref.opcode_prefix = 0x00;
+     	            break;
+     	         case 1:
+     	            pref.opcode_prefix = 0x66;
+     	            break;
+     	         case 2:
+     	            pref.opcode_prefix = 0xF3;
+     	            break;
+     	         case 3:
+     	            pref.opcode_prefix = 0xF2;
+     	            break;
+     	         default:
+     	            assert(!"Can't happen: value & 0x03 not in 0...3");
+     	      }
 
-   	      // fall through
-       case PREFIX_VEX2:
-   	      pref.vex_prefix[0] = addr[1];
+            in_prefix = false;
+     	      break;
+         case PREFIX_VEX2:
+     	      pref.vex_prefix[0] = addr[1];
+            pref.vex_l = addr[1] & VEX2_L;
+            if(pref.vex_l) pref.vex_l = 1;
+            pref.vex_w = -1;
 
-            if(!pref.vex_prefix[1])
-               printf("VEX2 prefixed instruction!\n");
+     	      switch(pref.vex_prefix[0] & 0x03)
+     	      {
+     	         case 0:
+     		         pref.opcode_prefix = 0x00;
+     		         break;
+     	         case 1:
+     		         pref.opcode_prefix = 0x66;
+     		         break;
+               case 2:
+     		         pref.opcode_prefix = 0xF3;
+     		         break;
+     	         case 3:
+     		         pref.opcode_prefix = 0xF2;
+     		         break;
+     	         default:
+     		         assert(!"Can't happen: value & 0x03 not in 0...3");
+     	      }
 
-   	      if(!pref.count)
-   	      {
-   	         switch(pref.vex_prefix[0] & 0x03)
-   	         {
-   	            case 0:
-   		            pref.opcode_prefix = 0x00;
-   		            break;
-   	            case 1:
-   		            pref.opcode_prefix = 0x66;
-   		            break;
-                case 2:
-   		            pref.opcode_prefix = 0xF3;
-   		            break;
-   	            case 3:
-   		            pref.opcode_prefix = 0xF2;
-   		            break;
-   	            default:
-   		            assert(!"Can't happen: value & 0x03 not in 0...3");
-   	         }
-	         }
-
-   	      ++pref.count;
-   	      ++pref.count;
-	         in_prefix = false; // VEX prefixes exclude all others
-	         break;
+     	      pref.count += 2;
+  	        in_prefix = false; // VEX prefixes exclude all others
+  	        break;
          default:
             in_prefix=false;
       }
