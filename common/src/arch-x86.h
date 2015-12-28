@@ -379,6 +379,31 @@ enum {
 };
 
 
+#ifndef VEX_PREFIX_MASKS
+#define VEX_PREFIX_MASKS
+
+/* Masks to help decode vex prefixes */
+
+/** VEX 3 masks (2nd byte) */
+#define VEX3_REXR   (1 << 7)
+#define VEX3_REXX   (1 << 6)
+#define VEX3_REXB   (1 << 5)
+#define VEX3_M      ((1 << 5) - 1)
+
+/* 3rd byte of VEX2 prefix */
+#define VEX3_W      (1 << 7)
+#define VEX3_VVVV   (((1 << 4) - 1) << 3)
+#define VEX3_L      (1 << 2)
+#define VEX3_PP     ((1 << 2) - 1)
+
+/** VEX 2 masks */
+#define VEX2_REXR   (1 << 7)
+#define VEX2_VVVV   (((1 << 4) - 1) << 3)
+#define VEX2_L      (1 << 2)
+#define VEX2_PP     ((1 << 2) - 1)
+
+#endif
+
 #ifndef PREFIX_LOCK
 #define PREFIX_LOCK   (unsigned char)(0xF0)
 #define PREFIX_REPNZ  (unsigned char)(0xF2)
@@ -426,7 +451,7 @@ enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9
 
 // tables and pseudotables
 enum {
-  t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, t_sse_bis, t_sse_ter, t_grpsse, t_3dnow, t_done=99
+  t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, t_sse_bis, t_sse_ter, t_grpsse, t_3dnow, t_vex2, t_done=99
 };
 
 // registers used for memory access
@@ -509,6 +534,8 @@ class ia32_prefixes
   unsigned char getAddrSzPrefix() const { return prfx[3]; }
   unsigned char getOperSzPrefix() const { return prfx[2]; }
   unsigned char vex_prefix[3];
+  unsigned char vex_l;
+  unsigned char vex_w;
 };
 
 // helper routine to tack-on rex bit when needed
