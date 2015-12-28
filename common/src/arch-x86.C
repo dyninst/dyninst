@@ -811,11 +811,112 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_xor, "xor")
   (e_xorpd, "xorpd")
   (e_xorps, "xorps")
- (e_vinsertf128, "vinsertf128")
- (e_vextractf128, "vextractf128")
- (e_vbroadcastss, "vbroadcastss")
- (e_vbroadcastsd, "vbroadcastsd")
- (e_vbroadcastf, "vbroadcastf")
+  (e_vbroadcastss, "vbroadcastss")
+  (e_vbroadcastsd, "vbroadcastsd")
+  (e_vbroadcastf128, "vbroadcastf128")
+  (e_vcvtph2ps, "vcvtph2ps")
+  (e_vcvtps2ph, "vcvtps2ph")
+  (e_vextractf128, "vextractf128")
+  (e_vextracti128, "vextracti128")
+  (e_vfmadd132pd, "vfmadd132pd")
+  (e_vfmadd213pd, "vfmadd213pd")
+  (e_vfmadd231pd, "vfmadd231pd")
+  (e_vfmadd132ps, "vfmadd132ps")
+  (e_vfmadd213ps, "vfmadd213ps")
+  (e_vfmadd231ps, "vfmadd231ps")
+  (e_vfmadd132sd, "vfmadd132sd")
+  (e_vfmadd213sd, "vfmadd213sd")
+  (e_vfmadd231sd, "vfmadd231sd")
+  (e_vfmadd132ss, "vfmadd132ss")
+  (e_vfmadd213ss, "vfmadd213ss")
+  (e_vfmadd231ss, "vfmadd231ss")
+  (e_vfmaddsub132pd, "vfmaddsub132pd")
+  (e_vfmaddsub213pd, "vfmaddsub213pd")
+  (e_vfmaddsub231pd, "vfmaddsub231pd")
+  (e_vfmaddsub132ps, "vfmaddsub132ps")
+  (e_vfmaddsub213ps, "vfmaddsub213ps")
+  (e_vfmaddsub231ps, "vfmaddsub231ps")
+  (e_vfmsubadd132pd, "vfmsubadd132pd")
+  (e_vfmsubadd213pd, "vfmsubadd213pd")
+  (e_vfmsubadd231pd, "vfmsubadd231pd")
+  (e_vfmsubadd132ps, "vfmsubadd132ps")
+  (e_vfmsubadd213ps, "vfmsubadd213ps")
+  (e_vfmsubadd231ps, "vfmsubadd231ps")
+  (e_vfmsub132pd, "vfmsub132pd")
+  (e_vfmsub213pd, "vfmsub213pd")
+  (e_vfmsub231pd, "vfmsub231pd")
+  (e_vfmsub132ps, "vfmsub132ps")
+  (e_vfmsub213ps, "vfmsub213ps")
+  (e_vfmsub231ps, "vfmsub231ps")
+  (e_vfmsub132sd, "vfmsub132sd")
+  (e_vfmsub213sd, "vfmsub213sd")
+  (e_vfmsub231sd, "vfmsub231sd")
+  (e_vfmsub132ss, "vfmsub132ss")
+  (e_vfmsub213ss, "vfmsub213ss")
+  (e_vfmsub231ss, "vfmsub231ss")
+  (e_vfnmadd132pd, "vfnmadd132pd")
+  (e_vfnmadd213pd, "vfnmadd213pd")
+  (e_vfnmadd231pd, "vfnmadd231pd")
+  (e_vfnmadd132ps, "vfnmadd132ps")
+  (e_vfnmadd213ps, "vfnmadd213ps")
+  (e_vfnmadd231ps, "vfnmadd231ps")
+  (e_vfnmadd132sd, "vfnmadd132sd")
+  (e_vfnmadd213sd, "vfnmadd213sd")
+  (e_vfnmadd231sd, "vfnmadd231sd")
+  (e_vfnmadd132ss, "vfnmadd132ss")
+  (e_vfnmadd213ss, "vfnmadd213ss")
+  (e_vfnmadd231ss, "vfnmadd231ss")
+  (e_vfnmsub132pd, "vfnmsub132pd")
+  (e_vfnmsub213pd, "vfnmsub213pd")
+  (e_vfnmsub231pd, "vfnmsub231pd")
+  (e_vfnmsub132ps, "vfnmsub132ps")
+  (e_vfnmsub213ps, "vfnmsub213ps")
+  (e_vfnmsub231ps, "vfnmsub231ps")
+  (e_vfnmsub132sd, "vfnmsub132sd")
+  (e_vfnmsub213sd, "vfnmsub213sd")
+  (e_vfnmsub231sd, "vfnmsub231sd")
+  (e_vfnmsub132ss, "vfnmsub132ss")
+  (e_vfnmsub213ss, "vfnmsub213ss")
+  (e_vfnmsub231ss, "vfnmsub231ss")
+  (e_vgatherdpd, "vgatherdpd")
+  (e_vgatherqpd, "vgatherqpd")
+  (e_vgatherdps, "vgatherdps")
+  (e_vgatherqps, "vgatherqps")
+  (e_vpgatherdd, "vpgatherdd")
+  (e_vpgatherqd, "vpgatherqd")
+  (e_vpgatherdq, "vpgatherdq")
+  (e_vpgatherqq, "vpgatherqq")
+  (e_vinsertf128, "vinsertf128")
+  (e_vinserti128, "vinserti128")
+  (e_vmaskmovps, "vmaskmovps")
+  (e_vmaskmovpd, "vmaskmovpd")
+  (e_vpmaskmovd, "vpmaskmovd")
+  (e_vpmaskmovq, "vpmaskmovq")
+  (e_vpblendd, "vpblendd")
+  (e_vpbroadcastb, "vpbroadcastb")
+  (e_vpbroadcastw, "vpbroadcastw")
+  (e_vpbroadcastd, "vpbroadcastd")
+  (e_vpbroadcastq, "vpbroadcastq")
+  (e_vbroadcasti128, "vbroadcasti128")
+  (e_vpermd, "vpermd")
+  (e_vpermpd, "vpermpd")
+  (e_vpermps, "vpermps")
+  (e_vpermq, "vpermq")
+  (e_vperm2i128, "vperm2i128")
+  (e_vpermilpd, "vpermilpd")
+  (e_vpermilps, "vpermilps")
+  (e_vperm2f128, "vperm2f128")
+  (e_vpsllvd, "vpsllvd")
+  (e_vpsllvq, "vpsllvq")
+  (e_vpsravd, "vpsravd")
+  (e_vpsrlvd, "vprlvd")
+  (e_vpsrlvq, "vprlvq")
+  (e_vtestps, "vtestps")
+  (e_vtestpd, "vtestpd")
+  (e_vzeroall, "vzeroall")
+  (e_vzeroupper, "vzeroupper")
+
+/* What are these? */
  (e_vpmovswb, "vpmovswb")
  (e_vpmovsdb, "vpmovsdb")
  (e_vpmovsqb, "vpmovsqb")
@@ -823,78 +924,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
  (e_vpmovsqw, "vpmovsqw")
  (e_vpmovsqd, "vpmovsqd")
 
- (e_vzeroall, "vzeroall")
- (e_vzeroupper, "vzeroupper")
- (e_vcvtph2ps, "vcvtph2ps")
- (e_vcvtps2ph, "vcvtps2ph")
-
- (e_vbroadcastf128, "vbroadcastf128")
- (e_vfmadd132pd, "vfmadd132pd")
- (e_vfmadd213pd, "vfmadd213pd")
- (e_vfmadd231pd, "vfmadd231pd")
- (e_vfmadd132ps, "vfmadd132ps")
- (e_vfmadd213ps, "vfmadd213ps")
- (e_vfmadd231ps, "vfmadd231ps")
- (e_vfmadd132sd, "vfmadd132sd")
- (e_vfmadd213sd, "vfmadd213sd")
- (e_vfmadd231sd, "vfmadd231sd")
- (e_vfmadd132ss, "vfmadd132ss")
- (e_vfmadd213ss, "vfmadd213ss")
- (e_vfmadd231ss, "vfmadd231ss")
- (e_vfmaddsub132pd, "vfmaddsub132pd")
- (e_vfmaddsub213pd, "vfmaddsub213pd")
- (e_vfmaddsub231pd, "vfmaddsub231pd")
- (e_vfmaddsub132ps, "vfmaddsub132ps")
- (e_vfmaddsub213ps, "vfmaddsub213ps")
- (e_vfmaddsub231ps, "vfmaddsub231ps")
- (e_vfmsubadd132pd, "vfmsubadd132pd")
- (e_vfmsubadd213pd, "vfmsubadd213pd")
- (e_vfmsubadd231pd, "vfmsubadd231pd")
- (e_vfmsubadd132ps, "vfmsubadd132ps")
- (e_vfmsubadd213ps, "vfmsubadd213ps")
- (e_vfmsubadd231ps, "vfmsubadd231ps")
- (e_vfmsub132pd, "vfmsub132pd")
- (e_vfmsub213pd, "vfmsub213pd")
- (e_vfmsub231pd, "vfmsub231pd")
- (e_vfmsub132ps, "vfmsub132ps")
- (e_vfmsub213ps, "vfmsub213ps")
- (e_vfmsub231ps, "vfmsub231ps")
- (e_vfmsub132sd, "vfmsub132sd")
- (e_vfmsub213sd, "vfmsub213sd")
- (e_vfmsub231sd, "vfmsub231sd")
- (e_vfmsub132ss, "vfmsub132ss")
- (e_vfmsub213ss, "vfmsub213ss")
- (e_vfmsub231ss, "vfmsub231ss")
- (e_vfnmadd132pd, "vfnmadd132pd")
- (e_vfnmadd213pd, "vfnmadd213pd")
- (e_vfnmadd231pd, "vfnmadd231pd")
- (e_vfnmadd132ps, "vfnmadd132ps")
- (e_vfnmadd213ps, "vfnmadd213ps")
- (e_vfnmadd231ps, "vfnmadd231ps")
- (e_vfnmadd132sd, "vfnmadd132sd")
- (e_vfnmadd213sd, "vfnmadd213sd")
- (e_vfnmadd231sd, "vfnmadd231sd")
- (e_vfnmadd132ss, "vfnmadd132ss")
- (e_vfnmadd213ss, "vfnmadd213ss")
- (e_vfnmadd231ss, "vfnmadd231ss")
- (e_vfnmsub132pd, "vfnmsub132pd")
- (e_vfnmsub213pd, "vfnmsub213pd")
- (e_vfnmsub231pd, "vfnmsub231pd")
- (e_vfnmsub132ps, "vfnmsub132ps")
- (e_vfnmsub213ps, "vfnmsub213ps")
- (e_vfnmsub231ps, "vfnmsub231ps")
- (e_vfnmsub132sd, "vfnmsub132sd")
- (e_vfnmsub213sd, "vfnmsub213sd")
- (e_vfnmsub231sd, "vfnmsub231sd")
- (e_vfnmsub132ss, "vfnmsub132ss")
- (e_vfnmsub213ss, "vfnmsub213ss")
- (e_vfnmsub231ss, "vfnmsub231ss")
- (e_vmaskmovps, "vmaskmovps")
- (e_vmaskmovpd, "vmaskmovpd")
- (e_vtestps, "vtestps")
- (e_vtestpd, "vtestpd")
-
- (e_vextracti128, "vextracti128")
  (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
  (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
  (e_No_Entry, "No_Entry")
@@ -3579,14 +3608,16 @@ static ia32_entry sseMapBis[][5] = {
 		{ /* SSEB1A */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_vbroadcastf, t_done, 0, true, { Vdq, Mq, Zz }, 0, s1RW2R },
+				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+				// { e_vbroadcastf, t_done, 0, true, { Vdq, Mq, Zz }, 0, s1RW2R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
 		{ /* SSEB1B */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_vbroadcastf, t_done, 0, true, { Vdq, Wq, Ib }, 0, s1RW2R3R },
+				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+				// { e_vbroadcastf, t_done, 0, true, { Vdq, Wq, Ib }, 0, s1RW2R3R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
@@ -4030,16 +4061,25 @@ struct ia32_entry vex2Map[][2] =
 
 struct ia32_entry vex3Map[][2] =
 {
+    /** single instructions (NO SERIES) (IDX 00 -> 0F)*/
+    
     /* IDX 00 */
-    VEX3_ILL, VEX3_ILL,/* These 2 entry should remain invalid. */
+    VEX3_ILL, /* This entry should remain invalid. */
 
-    /* MISC VEX3 instructions (NO SERIES) (00 - 1F)*/
-    VEX3_ILL, 
-
-    { /* VPBLEND (02)*/
+    { /* VPBLEND (02) */
       { e_vpblendd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     },
+
+    /* Room left for new single instructions */
+    VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+
+    /* IDX 08*/
+    VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+
+    /** 2-instruction series (IDX 10 -> 2F) */
+
+    /* IDX 10 */
 
     { /* VEXTRACT SERIES (19, 39) */
       { e_vextractf128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R }, /* W = 0 */
@@ -4047,23 +4087,34 @@ struct ia32_entry vex3Map[][2] =
     }, {
       { e_vextractf128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, 
-
-    { /* VINSERT SERIES (18, 38) */
+    }, { /* VINSERT SERIES (18, 38) */
       { e_vinsertf128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
       { e_vinserti128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }
-
-    { /* VCVT SERIES (13, 1D) */
+    }, { /* VCVT SERIES (13, 1D) */
       { e_vcvtph2ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
       { e_vcvtps2ph, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, { /* VTEST SERIES (0E, 0F) */
+      { e_vtestps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vtestpd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     },
+    
+    /* IDX 18 */
+    VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+    /* IDX 20 */
+    VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+    /* IDX 28 */
+    VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+
+    /** 4-instruction series (IDX 30 -> 50)*/
 
     { /* VMASKMOV SERIES (2C, 2D, 8C) */
       { e_vmaskmovps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
@@ -4074,62 +4125,8 @@ struct ia32_entry vex3Map[][2] =
     }, { 
       { e_vpmaskmovd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
       { e_vpmaskmovq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }  /* W = 1 */
-    },
-
-    { /* VBROADCAST SERIES (18, 19, 1A, 78, 79, 58, 59, 5A)*/
-      { e_vbroadcastss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, {
-      { e_vbroadcastsd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, {
-      { e_vbroadcastf128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, {
-      { e_vpbroadcastb, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, { 
-      { e_vpbroadcastw, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, { 
-      { e_vpbroadcastd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, {
-      { e_vpbroadcastq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, {
-      { e_vbroadcasti128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    },
-
-    { /* VPERM SERIES (36, 01, 16, 00, 46, 0D, 0C, 06)*/
-      { e_vpermd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, { 
-      { e_vpermpd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, { 
-      { e_vpermps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, { 
-      { e_vpermq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, { 
-      { e_perm2i128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, { 
-      { e_vpermilpd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, { 
-      { e_vpermilps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    }, { 
-      { e_vperm2f128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
-    },
-  
-    /* VGATHER SERIES (90, 91, 92, 93)*/
-    { 
+    }, VEX3_ILL, /* Keep 4 entry alignment */
+    { /* VGATHER SERIES (90, 91, 92, 93)*/
       { e_vpgatherdd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */
       { e_vpgatherdq, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */
     }, { 
@@ -4143,8 +4140,96 @@ struct ia32_entry vex3Map[][2] =
       { e_vgatherqpd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */
     },
 
-    /* ADD, SUB, ADDSUB, SUBADD instructions (16 entries each) (30 - 4F)*/
-    { /* IDX 20 */ /* 96, 97, 98, 99, 9A, 9B, 9C, 9D, 9E, 9F SERIES */
+    /* IDX 38 */
+
+    { /* VPS SERIES (45, 46, 47) */
+      { e_vpsrlvd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpsrlvq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }  /* W = 1 */
+    }, {
+      { e_vpsrlvd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vpsllvd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpsllvq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }  /* W = 1 */
+    }, VEX3_ILL, /* Keep 4 entry alignment */
+    
+    VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+    /* IDX 40 */
+    VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+    /* IDX 48 */
+    VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+
+    /** 8-instruction series (IDX 50 -> 80) */
+
+    /* IDX 50*/
+
+    { /* VPERM SERIES (36, 01, 16, 00, 46, 0D, 0C, 06)*/
+      { e_vpermd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vpermpd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vpermps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vpermq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vperm2i128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vpermilpd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vpermilps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vperm2f128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    },
+
+    /* IDX 58 */
+
+    { /* VBROADCAST SERIES (18, 19, 1A, 78, 79, 58, 59, 5A)*/
+      { e_vbroadcastss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vbroadcastsd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vbroadcastf128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vpbroadcastb, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vpbroadcastw, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vpbroadcastd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vpbroadcastq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    }, {
+      { e_vbroadcasti128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+    },
+
+    /* IDX 60 */
+    VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+    /* IDX 68 */
+    VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+    /* IDX 70 */
+    VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+
+    /* 16-instruction series (IDX 80 -> 120) */
+
+    /* IDX 80 */
+    
+    /* ADD, SUB, ADDSUB, SUBADD instructions (16 entries each)*/
+    { /* 96, 97, 98, 99, 9A, 9B, 9C, 9D, 9E, 9F SERIES */
       { e_vfmaddsub132ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
       { e_vfmaddsub132pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
     }, {
@@ -4174,9 +4259,11 @@ struct ia32_entry vex3Map[][2] =
     }, {
       { e_vfnmsub132ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
       { e_vfnmsub132sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
-    }, VEX_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
-      
-    { /* IDX 30 */ /* A6, A7, A8, A9, AA, AB, AC, AD, AE, AF SERIES */
+    }, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, /* Keep alignment */
+     
+    /* IDX 90 */
+ 
+    { /* A6, A7, A8, A9, AA, AB, AC, AD, AE, AF SERIES */
       { e_vfmaddsub213ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
       { e_vfmaddsub213pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
     }, {
@@ -4206,13 +4293,15 @@ struct ia32_entry vex3Map[][2] =
     }, {
       { e_vfnmsub213ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
       { e_vfnmsub213sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
-    }, VEX_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+    }, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, /* Keep alignment */
 
-    { /* IDX 40 */ /* B6, B7, B8, B9, BA, BB, BC, BD, BE, BF SERIES */
+    /* IDX A0 */
+
+    { /* B6, B7, B8, B9, BA, BB, BC, BD, BE, BF SERIES */
       { e_vfmaddsub231ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
       { e_vfmaddsub231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
     }, {
-      { e_vfmsubaddps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
+      { e_vfmsubadd231ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
       { e_vfmsubadd231pd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
     }, {
       { e_vfmadd231ps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
@@ -4238,9 +4327,9 @@ struct ia32_entry vex3Map[][2] =
     }, {
       { e_vfnmsub231ss, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }, /* W = 0 */
       { e_vfnmsub231sd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1RW2R3R }  /* W = 1 */
-    }, VEX_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
+    }, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL, /* Keep alignment */
 };
-#undef V3_ILL
+#undef VEX3_ILL
 
 static bool mode_64 = false;
 
