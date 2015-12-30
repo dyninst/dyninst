@@ -451,7 +451,8 @@ enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9
 
 // tables and pseudotables
 enum {
-  t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, t_sse_bis, t_sse_ter, t_grpsse, t_3dnow, t_vex2, t_done=99
+  t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, 
+  t_sse_bis, t_sse_ter, t_grpsse, t_3dnow, t_vex2, t_vex3, t_done=99
 };
 
 // registers used for memory access
