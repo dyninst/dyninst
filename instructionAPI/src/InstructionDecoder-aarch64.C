@@ -143,7 +143,7 @@ namespace Dyninst
 	    is64Bit(true), isValid(true), insn(0), insn_in_progress(NULL),
         hasHw(false), hasShift(false), hasOption(false), hasN(false),
         immr(0), immrLen(0), sField(0), nField(0), nLen(0),
-        immlo(0), immloLen(0), _szField(-1)
+        immlo(0), immloLen(0), _szField(-1), _Q(0)
     {
         aarch64_insn_entry::buildInsnTable();
         aarch64_mask_entry::buildDecoderTable();
@@ -192,6 +192,7 @@ namespace Dyninst
         immlo = immloLen = 0;
 
         _szField = -1;
+        _Q = 0;
 
 		oprRotateAmt = 0;
 		hasb5 = false;
@@ -458,7 +459,53 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 	MachRegister reg;
 
     if( isSIMDInsn ){
-        reg = aarch64::q0;
+
+        if(IS_INSN_SIMD_3DIFF(I))
+            reg = _Q == 0x1?aarch64::hq0:aarch64::d0;
+        else
+        if(IS_INSN_SIMD_ACROSS(I)){
+            unsigned int size = field<22, 23>(I);
+            switch(size){
+                case 0x0:
+                    reg = b0;
+                    break;
+                case 0x1:
+                    reg = h0;
+                    break;
+                case 0x2:
+                    reg = s0;
+                    break;
+                default:
+                    assert(!"invalid encoding");
+                    return;
+            }
+        }
+        else
+        if(IS_INSN_SIMD_COPY(I)){
+            unsigned int op = field<29, 29>(I);
+            unsigned int imm4 = field<11, 14>(I);
+            if(op == 0x1)
+                reg = aarch64::q0;
+            else{
+                switch(imm4){
+                    case 0x5:
+                    case 0x7:
+                        reg = _Q == 0x1?aarch64::x0:aarch64::w0;
+                        break;
+                    default:
+                        reg = _Q == 0x1?aarch64::q0:aarch64::d0;
+                        break;
+                }
+            }
+        }
+        else
+        if(IS_INSN_SIMD_VEC_INDEX(I)){
+            reg = aarch64::q0;
+        }
+        // 3SAME, 2REG_MISC
+        else
+            reg = _Q == 0x1?aarch64::q0:aarch64::d0;
+
         reg = makeAarch64RegID(reg, encoding);
     } else
 	if(isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && !IS_SOURCE_GP(insn)))
@@ -504,7 +551,36 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 	MachRegister reg;
 
     if( isSIMDInsn && !IS_INSN_LDST(insn) ){
-        reg = aarch64::q0;
+        if(IS_INSN_SIMD_COPY(I){
+            unsigned int op = field<29, 29>(I);
+            unsigned int imm4 = field<11, 14>(I);
+            unsigned int imm5 = field<16, 20>(I);
+            if(op == 0x1){
+                reg = aarch64::q0;
+            }
+            else{
+                switch(imm4){
+                    case 0x1:
+                    case 0x3:
+                        if(imm5 & 0x1 || imm5 & 0x2 || imm5 & 0x4){
+                            reg = encoding==31?aarch64::wzr:aarch64::w0;
+                        }else{
+                            reg = encoding==31?aarch64::zr:aarch64::x0;
+                        }
+                        break;
+                    default:
+                        reg = aarch64::q0;
+                        break;
+                }
+            }
+        }
+        else
+        if( IS_INSN_SIMD_VEC_INDEX(I) ){
+            reg = _Q == 0x1?aarch64::hq0:aarch::d0;
+        }
+        else
+            reg = _Q == 0x1?aarch64::q0:aarch64::d0;
+
         reg = makeAarch64RegID(reg, encoding);
     } else
 	if(isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && IS_SOURCE_GP(insn)))
@@ -722,11 +798,6 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexUImm()
 
     Expression::Ptr offset = Immediate::makeImmediate( Result(u64, unsign_extend64( immLen+size, immVal<<size) ) );
 
-    /*
-    Expression::Ptr scaleForUImm = Immediate::makeImmediate(Result(u32, unsign_extend32(sizeLen + size, 1<<size)));
-    Expression::Ptr offset = makeMultiplyExpression(imm, scaleForUImm, u64);
-    */
-
     Result_Type rt;
     getMemRefIndex_RT(rt);
     return makeDereferenceExpression( makeAddExpression(makeRnExpr(), offset, u64), rt);
@@ -787,41 +858,11 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPre(){
     return makeDereferenceExpression(makeMemRefPair_addOffset7(), rt);
 }
 
-/*
-Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPre2(){
-    // datasize = 64/32 /8;
-    unsigned int opc1 = field<31, 31>(insn);
-    unsigned int sizeVal = 1<<(2+opc1); //4 or 8 bytes
-
-    Expression::Ptr dataSize = Immediate::makeImmediate(Result(u32, unsign_extend32( 32, sizeVal ) ) );
-    Expression::Ptr pair2 = makeAddExpression( makeMemRefPair_addOffset7(), dataSize, u64);
-
-    Result_Type rt;
-    getMemRefPair_RT(rt);
-    return makeDereferenceExpression(pair2, rt);
-}
-*/
-
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPost(){
     Result_Type rt;
     getMemRefPair_RT(rt);
     return makeDereferenceExpression(makeRnExpr(), rt);
 }
-
-/*
-Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPost2(){
-    // datasize = 64/32 /8;
-    unsigned int opc1 = field<31, 31>(insn);
-    unsigned int sizeVal = 1<<(2+opc1); //4 or 8 bytes
-
-    Expression::Ptr dataSize = Immediate::makeImmediate(Result(u32, unsign_extend32( 32, sizeVal ) ) );
-    Expression::Ptr pair2 = makeAddExpression( makeRnExpr(), dataSize, u64);
-
-    Result_Type rt;
-    getMemRefPair_RT(rt);
-    return makeDereferenceExpression(pair2, rt);
-}
-*/
 
 void InstructionDecoder_aarch64::getMemRefEx_RT(Result_Type &rt){
     unsigned int sz = field<30, 31>(insn);
@@ -858,32 +899,105 @@ void InstructionDecoder_aarch64::OPRL(){
     _L = field<30, 30>(insn);
 }
 
+unsigned int InstructionDecoder_aarch64::getMemRefSIMD_MULT_T(){
+    unsigned int Q = field<30, 30>(insn);
+    return Q?128:64;
+}
+
 void InstructionDecoder_aarch64::getMemRefSIMD_MULT_RT(Result_Type &rt){
-    //TODO the width should be much wider
-    rt = dbl128;
-    assert(0);
+    unsigned int tmpSize = getMemRefSIMD_MULT_T();
+    unsigned int rpt = 0, selem = 0;
+    getSIMD_MULT_RptSelem(rpt, selem);
+    tmpSize = tmpSize * rpt * selem;
+    switch(tmpSize){
+        case 64:
+            rt = u64;
+            return;
+        case 128:
+            rt = dbl128;
+            return;
+        case 192:
+            rt = m192;
+            return;
+        case 256:
+            rt = m256;
+            return;
+        case 384:
+            rt = m384;
+            return;
+        case 512:
+            rt = m512;
+            return;
+        default:
+            assert(!"not implemented");
+            return;
+    }
+}
+
+unsigned int InstructionDecoder_aarch64::getSIMD_SING_selem(){
+    return ( ((field<13, 13>(insn)<<1)&0x2) | (field<21,21>(insn)&0x1) ) + 0x1;
 }
 
 void InstructionDecoder_aarch64::getMemRefSIMD_SING_RT(Result_Type &rt){
-    unsigned int opcode = field<13,14>(insn);
+    unsigned int tmpSize = getMemRefSIMD_SING_T();
+    unsigned int selem = getSIMD_SING_selem();
+    switch(selem*tmpSize){
+        case 8:
+            rt = u8;
+            break;
+        case 16:
+            rt = u16;
+            break;
+        case 24:
+            rt = u24;
+            break;
+        case 32:
+            rt = u32;
+            break;
+        case 48:
+            rt = u48;
+            break;
+        case 64:
+            rt = u64;
+            break;
+        case 96:
+            rt = m96;
+            break;
+        case 128:
+            rt = dbl128;
+            break;
+        case 192:
+            rt = m192;
+            break;
+        case 256:
+            rt = m256;
+            break;
+        default:
+            assert(!"not implemented");
+            break;
+    }
+}
+
+unsigned int InstructionDecoder_aarch64::getMemRefSIMD_SING_T(){
+    unsigned int opcode = field<13,15>(insn);
     unsigned int S = field<12, 12>(insn);
     unsigned int size = field<10, 11>(insn);
 
     if(opcode == 0x0){
-        rt = u8;
+        return 8;
     }else
     if(opcode == 0x2 && (size & 0x1)==0x0){
-        rt = u16;
+        return 16;
     }else
     if(opcode == 0x4 && size == 0x0){
-        rt = u32;
+        return 32;
     }else
     if(opcode == 0x4 && S == 0 && size == 0x1){
-        rt = u64;
+        return 64;
     }
     else
-        assert(0);
-    return;
+        assert(!"not implemented");
+    return 0;
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefSIMD_MULT(){
@@ -1039,13 +1153,13 @@ void InstructionDecoder_aarch64::LIndex()
     // ****************************
     else if( IS_INSN_LDST_PAIR_PRE(insn)
         || IS_INSN_LDST_PAIR_NOALLOC(insn) ){
-        insn_in_progress->appendOperand(makeMemRefPairPre(), true, false);
+        insn_in_progress->appendOperand( makeMemRefPairPre(), true, false);
         return;
     }
 
     else if( IS_INSN_LDST_PAIR_POST(insn)
         || IS_INSN_LDST_PAIR_OFFSET(insn) ){
-        insn_in_progress->appendOperand(makeMemRefPairPost(), true, false);
+        insn_in_progress->appendOperand( makeMemRefPairPost(), true, false);
         return;
     }
 
@@ -1062,30 +1176,20 @@ void InstructionDecoder_aarch64::LIndex()
     }
 
     // ****************************
-    // load SIMD multiple structures
-    // ****************************
-    else if( IS_INSN_LDST_SIMD_MULT(insn) ){
-        insn_in_progress->appendOperand( makeMemRefSIMD_MULT(), true, false);
-        return;
-    }
-    // ****************************
+    // load SIMD multiple structures &
     // load SIMD multiple structures post increment
     // ****************************
-    else if( IS_INSN_LDST_SIMD_MULT_POST(insn) ){
+    else if( IS_INSN_LDST_SIMD_MULT(insn)
+            || IS_INSN_LDST_SIMD_MULT_POST(insn) ){
         insn_in_progress->appendOperand( makeMemRefSIMD_MULT(), true, false);
         return;
     }
     // ****************************
-    // load SIMD single structure
-    // ****************************
-    else if( IS_INSN_LDST_SIMD_SING(insn) ){
-        insn_in_progress->appendOperand( makeMemRefSIMD_SING(), true, false);
-        return;
-    }
-    // ****************************
+    // load SIMD single structure &
     // load SIMD single structure post increment
     // ****************************
-    else if( IS_INSN_LDST_SIMD_SING_POST(insn) ){
+    else if( IS_INSN_LDST_SIMD_SING(insn)
+            || IS_INSN_LDST_SIMD_SING_POST(insn) ){
         insn_in_progress->appendOperand( makeMemRefSIMD_SING(), true, false);
         return;
     }
@@ -1103,12 +1207,12 @@ void InstructionDecoder_aarch64::STIndex()
     // ld/st register offset
     // ******************
     else if( IS_INSN_LDST_REG(insn)){
-        insn_in_progress->appendOperand(makeMemRefReg(), false, true);
+        insn_in_progress->appendOperand( makeMemRefReg(), false, true);
         return;
     }
 
     else if( IS_INSN_LDST_UIMM(insn)){
-        insn_in_progress->appendOperand(makeMemRefIndexUImm(), false, true);
+        insn_in_progress->appendOperand( makeMemRefIndexUImm(), false, true);
         return;
     }
 
@@ -1118,12 +1222,12 @@ void InstructionDecoder_aarch64::STIndex()
     else if( IS_INSN_LDST_PRE(insn)
         || IS_INSN_LDST_UNPRIV(insn)
         || IS_INSN_LDST_UNSCALED(insn) ){
-        insn_in_progress->appendOperand(makeMemRefIndexPre(), false, true);
+        insn_in_progress->appendOperand( makeMemRefIndexPre(), false, true);
         return;
     }
 
     else if( IS_INSN_LDST_POST(insn) ){
-        insn_in_progress->appendOperand(makeMemRefIndexPost(), false, true);
+        insn_in_progress->appendOperand( makeMemRefIndexPost(), false, true);
         return;
     }
 
@@ -1132,16 +1236,14 @@ void InstructionDecoder_aarch64::STIndex()
     // ****************************
     else if( IS_INSN_LDST_PAIR_PRE(insn)
         || IS_INSN_LDST_PAIR_NOALLOC(insn) ){
-        insn_in_progress->appendOperand(makeMemRefPairPre(), false, true);
+        insn_in_progress->appendOperand( makeMemRefPairPre(), false, true);
         return;
     }
-
     else if( IS_INSN_LDST_PAIR_POST(insn)
         || IS_INSN_LDST_PAIR_OFFSET(insn)) {
-        insn_in_progress->appendOperand(makeMemRefPairPost(), false, true);
+        insn_in_progress->appendOperand( makeMemRefPairPost(), false, true);
         return;
     }
-
 
     // ****************************
     // ld/st exclusive instructions
@@ -1156,23 +1258,16 @@ void InstructionDecoder_aarch64::STIndex()
     }
 
     // ****************************
-    // store SIMD multiple structures
-    // ****************************
-    else if( IS_INSN_LDST_SIMD_MULT(insn) ){
-        insn_in_progress->appendOperand( makeMemRefSIMD_MULT(), false, true);
-        return;
-    }
-    // ****************************
+    // store SIMD multiple structures &
     // store SIMD multiple structures post increment
     // ****************************
-    else if( IS_INSN_LDST_SIMD_MULT_POST(insn) ){
+    else if( IS_INSN_LDST_SIMD_MULT(insn)
+            ||IS_INSN_LDST_SIMD_MULT_POST(insn) ){
         insn_in_progress->appendOperand( makeMemRefSIMD_MULT(), false, true);
         return;
     }
-    else if( IS_INSN_LDST_SIMD_SING(insn) ){
-        insn_in_progress->appendOperand( makeMemRefSIMD_SING(), false, true);
-    }
-    else if( IS_INSN_LDST_SIMD_SING_POST(insn) ){
+    else if( IS_INSN_LDST_SIMD_SING(insn)
+            ||IS_INSN_LDST_SIMD_SING_POST(insn) ){
         insn_in_progress->appendOperand( makeMemRefSIMD_SING(), false, true);
         return;
     }
@@ -1268,28 +1363,13 @@ void InstructionDecoder_aarch64::OPRRnSU()
 unsigned int InstructionDecoder_aarch64::get_SIMD_MULT_POST_imm(){
     unsigned int Q = field<30, 30>(insn);
     unsigned int rpt = 0, selem = 0;
-    get_rptselem(rpt, selem);
+    getSIMD_MULT_RptSelem(rpt, selem);
     unsigned int numReg = rpt*selem;
     return Q?numReg<<3:numReg<<4;
 }
 
 unsigned int InstructionDecoder_aarch64::get_SIMD_SING_POST_imm(){
-    Result_Type rt;
-    getMemRefSIMD_SING_RT(rt);
-    switch(rt){
-        case u8:
-            return 1;
-        case u16:
-            return 2;
-        case u32:
-            return 4;
-        case u64:
-            return 8;
-        default:
-            assert(0);
-            return 0;
-    }
-    return 0;
+    return getMemRefSIMD_SING_T()>>3;
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
@@ -1308,10 +1388,16 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
             unsigned int immLen = 4; // max #8
             return Immediate::makeImmediate( Result(u32, unsign_extend32(immLen, immVal) ) );
         }
-        else{
-            reg = aarch64::q0;
-            reg = makeAarch64RegID(reg, encoding);
+        else
+        if( IS_INSN_SIMD_VEC_INDEX(I)){
+            reg = field<11, 11>(I)==0x1?aarch64::q0:aarch64::d0;
         }
+        else{
+            reg = _Q == 0x1?aarch64::q0:aarch64::d0;
+        }
+        reg = makeAarch64RegID(reg, encoding);
+	    return makeRegisterExpression(reg);
+
     } else
 	if(isFPInsn)
 	{
@@ -1467,7 +1553,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRtExpr()
 	return makeRegisterExpression(reg);
 }
 
-void InstructionDecoder_aarch64::get_rptselem(unsigned int &rpt, unsigned int &selem){
+void InstructionDecoder_aarch64::getSIMD_MULT_RptSelem(unsigned int &rpt, unsigned int &selem){
     unsigned opcode = field<12, 15>(insn);
     switch(opcode){
         case 0x0:
@@ -1516,9 +1602,16 @@ void InstructionDecoder_aarch64::OPRRtL()
 	int encoding = field<0, 4>(insn);
     if( IS_INSN_LDST_SIMD_MULT(insn) ){
         unsigned int rpt, selem;
-        get_rptselem(rpt, selem);
-        for(unsigned int it_rpt = 0; it_rpt < rpt; it_rpt++){
-			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::q0, encoding + it_rpt)), false, true);
+        getSIMD_MULT_RptSelem(rpt, selem);
+        for(unsigned int it_rpt = 0; it_rpt < rpt*selem; it_rpt++){
+			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::q0, (encoding + it_rpt)%0x1f )), false, true);
+        }
+    }
+    else
+    if( IS_INSN_LDST_SIMD_SING(insn) ){
+        unsigned int selem =  getSIMD_SING_selem();
+        for(unsigned int it_selem = 0; it_selem < selem; it_selem++){
+			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::q0, (encoding + it_selem)%0x1f )), false, true);
         }
     }
     else
@@ -1530,9 +1623,9 @@ void InstructionDecoder_aarch64::OPRRtS()
 	int encoding = field<0, 4>(insn);
     if( IS_INSN_LDST_SIMD_MULT(insn) ){
         unsigned int rpt, selem;
-        get_rptselem(rpt, selem);
+        getSIMD_MULT_RptSelem(rpt, selem);
         for(unsigned int it_rpt = 0; it_rpt < rpt; it_rpt++){
-			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::q0, encoding + it_rpt)), true, false);
+			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::q0, (encoding + it_rpt)%0x1f )), true, false);
         }
     }
     else
