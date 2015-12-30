@@ -74,6 +74,8 @@ tags
 *.vcxproj.user
 ipch/*
 *.swp
+*.swo
+*.swn
 *patch
 *.diff
 *.msi
