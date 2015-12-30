@@ -149,6 +149,10 @@ enum {
 #define Gw   { am_G, op_w }
 #define Gf   { am_G, op_f }
 #define Gfd  { am_G, op_dbl }
+#define Hps  { am_H, op_ps }
+#define Hpd  { am_H, op_pd }
+#define Hss  { am_H, op_ss }
+#define Hsd  { am_H, op_sd }
 #define Ib   { am_I, op_b }
 #define Iv   { am_I, op_v }
 #define Iw   { am_I, op_w }
@@ -4067,7 +4071,7 @@ struct ia32_entry vex3Map[][2] =
     VEX3_ILL, /* This entry should remain invalid. */
 
     { /* VPBLEND (02) */
-      { e_vpblendd, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */
+      { e_vpblendd, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */ /* FIXME: This instruction has 4 operands */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     },
 
@@ -4087,10 +4091,10 @@ struct ia32_entry vex3Map[][2] =
       { e_vextracti128, t_done, 0, true, { Wps, Vps, Ib }, 0, s1RW2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, { /* VINSERT SERIES (18, 38) */
-      { e_vinsertf128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_vinsertf128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */ /* FIXME: Intel manual is wrong, this has 4 operands! */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vinserti128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_vinserti128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */ /* FIXME: This instruction has 4 operands. */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, { /* VCVT SERIES (13, 1D) */
       { e_vcvtph2ps, t_done, 0, true, { Vps, Wdq, Zz }, 0, s1W2R }, /* W = 0 */
@@ -4099,10 +4103,10 @@ struct ia32_entry vex3Map[][2] =
       { e_vcvtps2ph, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, { /* VTEST SERIES (0E, 0F) */
-      { e_vtestps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_vtestps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vtestpd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_vtestpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     },
     
@@ -4126,31 +4130,31 @@ struct ia32_entry vex3Map[][2] =
       { e_vpmaskmovd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
       { e_vpmaskmovq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }  /* W = 1 */
     }, VEX3_ILL, /* Keep 4 entry alignment */
-    { /* VGATHER SERIES (90, 91, 92, 93)*/
-      { e_vpgatherdd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */
-      { e_vpgatherdq, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */
+    { /* VGATHER SERIES (90, 91, 92, 93)*/ /* FIXME: How should these opcodes be decoded?  */
+      { e_vpgatherdd, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */   /* TODO: This instruction is s1RW2R3RW */
+      { e_vpgatherdq, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */   /* TODO: This instruction is s1RW2R3RW */
     }, { 
-      { e_vpgatherqd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */
-      { e_vpgatherqq, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */
+      { e_vpgatherqd, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */   /* TODO: This instruction is s1RW2R3RW */
+      { e_vpgatherqq, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */   /* TODO: This instruction is s1RW2R3RW */
     }, {
-      { e_vgatherdps, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */
-      { e_vgatherdpd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */
+      { e_vgatherdps, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */   /* TODO: This instruction is s1RW2R3RW */
+      { e_vgatherdpd, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */   /* TODO: This instruction is s1RW2R3RW */
     }, {
-      { e_vgatherqps, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */
-      { e_vgatherqpd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */
+      { e_vgatherqps, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */   /* TODO: This instruction is s1RW2R3RW */
+      { e_vgatherqpd, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }  /* W = 1 */   /* TODO: This instruction is s1RW2R3RW */
     },
 
     /* IDX 38 */
 
     { /* VPS SERIES (45, 46, 47) */
-      { e_vpsrlvd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
-      { e_vpsrlvq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }  /* W = 1 */
+      { e_vpsrlvd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpsrlvq, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R }  /* W = 1 */
     }, {
-      { e_vpsravd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R },  /* W = 0 */
+      { e_vpsravd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },  /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpsllvd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
-      { e_vpsllvq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }  /* W = 1 */
+      { e_vpsllvd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpsllvq, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R }  /* W = 1 */
     }, VEX3_ILL, /* Keep 4 entry alignment */
     
     VEX3_ILL, VEX3_ILL, VEX3_ILL, VEX3_ILL,
@@ -4164,22 +4168,22 @@ struct ia32_entry vex3Map[][2] =
     /* IDX 50*/
 
     { /* VPERM SERIES (36, 01, 16, 00, 46, 0D, 0C, 06)*/
-      { e_vpermd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpermd, t_done, 0, true, { Vdq, Hdq, Wdq }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpermpd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpermpd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpermps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpermps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpermq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpermq, t_done, 0, true, { Vdq, Wdp, Ib }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vperm2i128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_vperm2i128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */ /* TODO: Instruction with 4 operands */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpermilpd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpermilpd, t_done, 0, true, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */ /* FIXME: Multiple operand decodings */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
       { e_vpermilps, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
@@ -4201,19 +4205,19 @@ struct ia32_entry vex3Map[][2] =
       { e_vbroadcastf128, t_done, 0, true, { Vsd, Wq, Zz }, 0, s1W2R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpbroadcastb, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_vpbroadcastb, t_done, 0, true, { Vps, Wb, Zz }, 0, s1W2R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpbroadcastw, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_vpbroadcastw, t_done, 0, true, { Vps, Ww, Zz }, 0, s1W2R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpbroadcastd, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_vpbroadcastd, t_done, 0, true, { Vps, Wd, Zz }, 0, s1W2R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpbroadcastq, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_vpbroadcastq, t_done, 0, true, { Vps, Wq, Zz }, 0, s1W2R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vbroadcasti128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_vbroadcasti128, t_done, 0, true, { Vps, Nss, Zz }, 0, s1W2R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     },
 
