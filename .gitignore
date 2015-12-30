@@ -76,6 +76,7 @@ ipch/*
 *.swp
 *.swo
 *.swn
+.__afs*
 *patch
 *.diff
 *.msi
