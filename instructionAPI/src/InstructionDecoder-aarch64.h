@@ -113,7 +113,26 @@ namespace Dyninst {
                 #define	IS_INSN_B_COND(I)				(field<25, 31>(I) == 0x2A)
                 #define	IS_INSN_PCREL_ADDR(I)			(field<24, 28>(I) == 0x10)
                 #define	IS_INSN_SYSTEM(I)				(field<22, 31>(I) == 0x354)
-                #define	IS_INSN_BRANCHING(I)			(IS_INSN_B_COND(I) || IS_INSN_B_UNCOND(I) || IS_INSN_B_UNCOND_REG(I) || IS_INSN_B_TEST(I) 										 || IS_INSN_B_COMPARE(I))
+                #define	IS_INSN_BRANCHING(I)			(IS_INSN_B_COND(I) || IS_INSN_B_UNCOND(I) || IS_INSN_B_UNCOND_REG(I) || IS_INSN_B_TEST(I)|| IS_INSN_B_COMPARE(I))
+
+                #define IS_INSN_SIMD_3SAME(I)           (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<21, 21>(I) == 0x1 && field<10, 10>(I) == 0x1)
+                #define IS_INSN_SIMD_3DIFF(I)           (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<21, 21>(I) == 0x1 && field<10, 11>(I) == 0x0)
+                #define IS_INSN_SIMD_2REG_MISC(I)        (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x10 && field<10, 11>(I) == 0x2)
+                #define IS_INSN_SIMD_ACROSS(I)          (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x18 && field<10, 11>(I) == 0x2)
+                #define IS_INSN_SIMD_COPY(I)            (field<31, 31>(I) == 0x0 && field<21, 28>(I) == 0x70 && field<15,15>(I) == 0x0 && field<10, 10>(I) == 0x1)
+                #define IS_INSN_SIMD_VEC_INDEX(I)       (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xf && field<10, 10>(I) == 0x0)
+                #define IS_INSN_SIMD_MOD_IMM(I)         (field<31, 31>(I) == 0x0 && field<19, 28>(I) == 0x1e0 && field<10, 10>(I) == 0x1)
+                #define IS_INSN_SIMD_SHIFT_IMM(I)       (field<31, 31>(I) == 0x0 && field<23, 28>(I) == 0x1e && field<19, 22>(I) != 0x0)
+                #define IS_INSN_SIMD_TAB_LOOKUP(I)      (field<31, 31>(I) == 0x0 && field<24, 29>(I) == 0xe && field<21, 21>(I) == 0x0 && field<15, 15>(I) == 0x0 && field<10, 11>(I) == 0x0)
+                #define IS_INSN_SIMD_PERM(I)            (field<31, 31>(I) == 0x0 && field<24, 29>(I) == 0xe && field<21, 21>(I) == 0x0 && field<15, 15>(I) == 0x0 && field<10, 11>(I) == 0x2)
+                #define IS_INSN_SIMD_EXTR(I)            (field<31, 31>(I) == 0x0 && field<24, 29>(I) == 0x2e && field<21, 21>(I) == 0x0 && field<15, 15>(I) == 0x0 && field<10, 10>(I) == 0x0)
+                #define IS_INSN_SCALAR_3SAME(I)         (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1e && field<21, 21>(I) == 0x1 && field<10, 10>(I) == 0x1)
+                #define IS_INSN_SCALAR_3DIFF(I)         (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1e && field<21, 21>(I) == 0x1 && field<10, 11>(I) == 0x0)
+                #define IS_INSN_SCALAR_2REG_MISC(I)      (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1e && field<17, 21>(I) == 0x10 && field<10, 11>(I) == 0x2)
+                #define IS_INSN_SCALAR_PAIR(I)          (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1e && field<17, 21>(I) == 0x18 && field<10, 11>(I) == 0x2)
+                #define IS_INSN_SCALAR_COPY(I)          (field<30, 31>(I) == 0x1 && field<21, 28>(I) == 0xf0 && field<15, 15>(I) == 0x0 && field<10, 10>(I) == 0x1)
+                #define IS_INSN_SCALAR_INDEX(I)         (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1f && field<10, 10>(I) == 0x0)
+                #define IS_INSN_SCALAR_SHIFT_IMM(I)     (field<30, 31>(I) == 0x1 && field<23, 28>(I) == 0x3e && field<10, 10>(I) == 0x1)
 
                 #define	IS_FIELD_IMMR(S, E)				(S == 16 && E == 21)
                 #define	IS_FIELD_IMMS(S, E)				(S == 10 && E == 15)
@@ -265,8 +284,10 @@ namespace Dyninst {
                 void getMemRefIndex_RT(Result_Type &);
                 void getMemRefIndexUImm_RT(Result_Type &);
 
-                void getMemRefSIMD_MULT_RT(Result_Type &rt);
-                void getMemRefSIMD_SING_RT(Result_Type &rt);
+                unsigned int getMemRefSIMD_MULT_T();
+                unsigned int getMemRefSIMD_SING_T();
+                void getMemRefSIMD_MULT_RT(Result_Type &);
+                void getMemRefSIMD_SING_RT(Result_Type &);
                 unsigned int get_SIMD_MULT_POST_imm();
                 unsigned int get_SIMD_SING_POST_imm();
 
@@ -345,7 +366,8 @@ namespace Dyninst {
                 unsigned int _L;
                 unsigned int _R;
 
-                void get_rptselem(unsigned int &rpt, unsigned int &selem);
+                void getSIMD_MULT_RptSelem(unsigned int &rpt, unsigned int &selem);
+                unsigned int getSIMD_SING_selem();
         };
     }
 }

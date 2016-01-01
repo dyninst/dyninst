@@ -484,8 +484,8 @@ class DecodeTable:
         inInsnIndex.sort( cmp=alias_comparator )
         for i in inInsnIndex:
             self.processedIndex.add(i)
-            if self.debug == True:
-                print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
+            #if self.debug == True:
+            print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
 
         printDecodertable(entryToPlace, 0, list(), inInsnIndex[0]);
 
