@@ -2103,7 +2103,7 @@ using namespace boost::assign;
 
 		if(cur_mask == 0)
 		{
-			if(cur_entry->insnTableIndices.size() == 1)
+			/*if(cur_entry->insnTableIndices.size() == 1)
 				return cur_entry->insnTableIndices[0];
 
 			int insn_table_index = -1;
@@ -2115,8 +2115,9 @@ using namespace boost::assign;
 					insn_table_index = *itr;
 					break;
 				}
-			}
+			}*/
 
+			int insn_table_index = cur_entry->insnTableIndex;
 			if(insn_table_index == -1)
 				assert(!"no instruction table entry found for current instruction");
 			else
