@@ -460,30 +460,30 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 
     if( isSIMDInsn ){
 
-        if(IS_INSN_SIMD_3DIFF(I))
+        if(IS_INSN_SIMD_3DIFF(insn))
             reg = _Q == 0x1?aarch64::hq0:aarch64::d0;
         else
-        if(IS_INSN_SIMD_ACROSS(I)){
-            unsigned int size = field<22, 23>(I);
+        if(IS_INSN_SIMD_ACROSS(insn)){
+            unsigned int size = field<22, 23>(insn);
             switch(size){
                 case 0x0:
-                    reg = b0;
+                    reg = aarch64::b0;
                     break;
                 case 0x1:
-                    reg = h0;
+                    reg = aarch64::h0;
                     break;
                 case 0x2:
-                    reg = s0;
+                    reg = aarch64::s0;
                     break;
                 default:
                     assert(!"invalid encoding");
-                    return;
+                    reg = aarch64::q0;
             }
         }
         else
-        if(IS_INSN_SIMD_COPY(I)){
-            unsigned int op = field<29, 29>(I);
-            unsigned int imm4 = field<11, 14>(I);
+        if(IS_INSN_SIMD_COPY(insn)){
+            unsigned int op = field<29, 29>(insn);
+            unsigned int imm4 = field<11, 14>(insn);
             if(op == 0x1)
                 reg = aarch64::q0;
             else{
@@ -499,7 +499,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
             }
         }
         else
-        if(IS_INSN_SIMD_VEC_INDEX(I)){
+        if(IS_INSN_SIMD_VEC_INDEX(insn)){
             reg = aarch64::q0;
         }
         // 3SAME, 2REG_MISC
@@ -551,10 +551,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 	MachRegister reg;
 
     if( isSIMDInsn && !IS_INSN_LDST(insn) ){
-        if(IS_INSN_SIMD_COPY(I){
-            unsigned int op = field<29, 29>(I);
-            unsigned int imm4 = field<11, 14>(I);
-            unsigned int imm5 = field<16, 20>(I);
+        if(IS_INSN_SIMD_COPY(insn) ){
+            unsigned int op = field<29, 29>(insn);
+            unsigned int imm4 = field<11, 14>(insn);
+            unsigned int imm5 = field<16, 20>(insn);
             if(op == 0x1){
                 reg = aarch64::q0;
             }
@@ -575,8 +575,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
             }
         }
         else
-        if( IS_INSN_SIMD_VEC_INDEX(I) ){
-            reg = _Q == 0x1?aarch64::hq0:aarch::d0;
+        if( IS_INSN_SIMD_VEC_INDEX(insn) ){
+            reg = _Q == 0x1?aarch64::hq0:aarch64::d0;
         }
         else
             reg = _Q == 0x1?aarch64::q0:aarch64::d0;
@@ -1389,8 +1389,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
             return Immediate::makeImmediate( Result(u32, unsign_extend32(immLen, immVal) ) );
         }
         else
-        if( IS_INSN_SIMD_VEC_INDEX(I)){
-            reg = field<11, 11>(I)==0x1?aarch64::q0:aarch64::d0;
+        if( IS_INSN_SIMD_VEC_INDEX(insn)){
+            reg = field<11, 11>(insn)==0x1?aarch64::q0:aarch64::d0;
         }
         else{
             reg = _Q == 0x1?aarch64::q0:aarch64::d0;

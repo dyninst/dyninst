@@ -93,6 +93,7 @@ namespace Dyninst {
                 #define	IS_INSN_LDST_REG(I)	            (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1 && field<10, 11>(I) == 0x02)
                 #define IS_INSN_LDST_UIMM(I)            (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 1)
 
+                // Note: to Sunny. the following SIMD ldst subclasses are implemented.
                 #define IS_INSN_LDST_SIMD_MULT(I)       (field<31, 31>(I) == 0x00 && field<23, 29>(I) == 0x18 && field<16, 21>(I) == 0)
                 #define IS_INSN_LDST_SIMD_MULT_POST(I)  (field<31, 31>(I) == 0x00 && field<23, 29>(I) == 0x19 && field<21, 21>(I) == 0)
                 #define IS_INSN_LDST_SIMD_SING(I)       (field<31, 31>(I) == 0x00 && field<23, 29>(I) == 0x1a && field<16, 20>(I) == 0)
@@ -115,12 +116,15 @@ namespace Dyninst {
                 #define	IS_INSN_SYSTEM(I)				(field<22, 31>(I) == 0x354)
                 #define	IS_INSN_BRANCHING(I)			(IS_INSN_B_COND(I) || IS_INSN_B_UNCOND(I) || IS_INSN_B_UNCOND_REG(I) || IS_INSN_B_TEST(I)|| IS_INSN_B_COMPARE(I))
 
+                // Note: to Sunny, the following 6 subclasses are implemeneted.
+                // But still you need to test them carefully.
                 #define IS_INSN_SIMD_3SAME(I)           (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<21, 21>(I) == 0x1 && field<10, 10>(I) == 0x1)
                 #define IS_INSN_SIMD_3DIFF(I)           (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<21, 21>(I) == 0x1 && field<10, 11>(I) == 0x0)
                 #define IS_INSN_SIMD_2REG_MISC(I)        (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x10 && field<10, 11>(I) == 0x2)
                 #define IS_INSN_SIMD_ACROSS(I)          (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x18 && field<10, 11>(I) == 0x2)
                 #define IS_INSN_SIMD_COPY(I)            (field<31, 31>(I) == 0x0 && field<21, 28>(I) == 0x70 && field<15,15>(I) == 0x0 && field<10, 10>(I) == 0x1)
                 #define IS_INSN_SIMD_VEC_INDEX(I)       (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xf && field<10, 10>(I) == 0x0)
+                // TODO: the sub classes below are to be implemented
                 #define IS_INSN_SIMD_MOD_IMM(I)         (field<31, 31>(I) == 0x0 && field<19, 28>(I) == 0x1e0 && field<10, 10>(I) == 0x1)
                 #define IS_INSN_SIMD_SHIFT_IMM(I)       (field<31, 31>(I) == 0x0 && field<23, 28>(I) == 0x1e && field<19, 22>(I) != 0x0)
                 #define IS_INSN_SIMD_TAB_LOOKUP(I)      (field<31, 31>(I) == 0x0 && field<24, 29>(I) == 0xe && field<21, 21>(I) == 0x0 && field<15, 15>(I) == 0x0 && field<10, 11>(I) == 0x0)
