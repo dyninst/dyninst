@@ -153,6 +153,8 @@ enum {
 #define Hpd  { am_H, op_pd }
 #define Hss  { am_H, op_ss }
 #define Hsd  { am_H, op_sd }
+#define Hdq  { am_H, op_dq }
+#define Hqq  { am_H, op_qq }
 #define Ib   { am_I, op_b }
 #define Iv   { am_I, op_v }
 #define Iw   { am_I, op_w }
@@ -172,6 +174,7 @@ enum {
 #define Mf   { am_M, op_f }
 #define Mfd  { am_M, op_dbl }
 #define M14  { am_M, op_14 }
+#define Nss  { am_N, op_ss }
 #define Ob   { am_O, op_b }
 #define Ov   { am_O, op_v }
 #define Pd   { am_P, op_d }
@@ -198,9 +201,13 @@ enum {
 #define Vss  { am_V, op_ss }
 #define Vsd  { am_V, op_sd }
 #define Wdq  { am_W, op_dq }
+#define Wdp  { am_W, op_dp }
 #define Wpd  { am_W, op_pd }
 #define Wps  { am_W, op_ps }
 #define Wq   { am_W, op_q }
+#define Wb   { am_W, op_b }
+#define Ww   { am_W, op_w }
+#define Wd   { am_W, op_d }
 #define Ws   { am_W, op_s }
 #define Wsd  { am_W, op_sd }
 #define Wss  { am_W, op_ss }
@@ -4398,7 +4405,9 @@ void ia32_memacc::print()
 
 int getOperSz(const ia32_prefixes &pref) 
 {
-   if (pref.rexW()) return 4;
+   /* TODO: VEX prefixed instructions only touch XMM or YMM unless they are loading/storing to memory. */
+   if (pref.vex_prefix[0]) return pref.vex_l ? 32 : 16;
+   else if (pref.rexW()) return 4;
    else if (pref.getPrefix(2) == PREFIX_SZOPER) return 1;
    else return 2;
 }
@@ -5459,7 +5468,9 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       case am_R:   /* general purpose register, selected by r/m field */
       case am_S:   /* segment register */
       case am_T:   /* test register */
-      case am_V:   /* XMM register */
+      case am_V:   /* XMM or YMM register (From reg of ModR/M) */
+      case am_U:   /* XMM or YMM register (from R/M of ModR/M) */
+      case am_H:   /* XMM or YMM register (vvvv of prefix) */
       case am_reg: /* register implicitely encoded in opcode */
       case am_allgprs:
         break;
