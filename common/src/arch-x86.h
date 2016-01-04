@@ -439,12 +439,12 @@ COMMON_EXPORT bool ia32_is_mode_64();
 // ADDED: am_ImplImm for implicit immediates
 // ADDED: am_RM, am_UM,
 enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_H, am_I, am_J, am_M, //10 
-      am_O, am_P, am_Q, am_R, am_S, am_T, am_U, am_UM, am_V, am_W, am_X, am_Y, // 20
-      am_reg, am_stackH, am_stackP, am_allgprs, am_VR, am_tworeghack, am_ImplImm, am_RM }; // pusH and poP produce different addresses
+      am_N, am_O, am_P, am_Q, am_R, am_S, am_T, am_U, am_UM, am_V, am_W, am_X, // 20
+      am_Y, am_reg, am_stackH, am_stackP, am_allgprs, am_VR, am_tworeghack, am_ImplImm, am_RM }; // pusH and poP produce different addresses
 
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
 // ADDED: op_y
-enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9 
+enum { op_a=1, op_b, op_c, op_d, op_dq, op_dp, op_p, op_pd, op_pi, op_ps, // 10
        op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_y, op_z, op_lea, op_allgprs, op_512,
        op_f, op_dbl, op_14, op_28, op_edxeax, op_ecxebx};
 
