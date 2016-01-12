@@ -128,6 +128,22 @@ enum AMD64_REG_NUMBERS {
     REGNUM_EFLAGS,
     REGNUM_FS,
     REGNUM_GS,
+    REGNUM_YMM0,
+    REGNUM_YMM1,
+    REGNUM_YMM2,
+    REGNUM_YMM3,
+    REGNUM_YMM4,
+    REGNUM_YMM5,
+    REGNUM_YMM6,
+    REGNUM_YMM7,
+    REGNUM_YMM8,
+    REGNUM_YMM9,
+    REGNUM_YMM10,
+    REGNUM_YMM11,
+    REGNUM_YMM12,
+    REGNUM_YMM13,
+    REGNUM_YMM14,
+    REGNUM_YMM15,
     REGNUM_IGNORED
 }
 ;
@@ -395,6 +411,8 @@ enum {
 #define VEX3_VVVV   (((1 << 4) - 1) << 3)
 #define VEX3_L      (1 << 2)
 #define VEX3_PP     ((1 << 2) - 1)
+
+#define GETVEX_VVVV(b) ((~((b & VEX3_VVVV) >> 3)) & 0x0F)
 
 /** VEX 2 masks */
 #define VEX2_REXR   (1 << 7)

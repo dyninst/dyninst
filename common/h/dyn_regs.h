@@ -330,6 +330,7 @@ namespace Dyninst
       const signed int CTL   = 0x00070000;
       const signed int DBG   = 0x00080000;
       const signed int TST   = 0x00090000;
+      const signed int YMM   = 0x000A0000;
       const signed int FLAGS = 0x00000000;
       const signed int BASEA  = 0x0;
       const signed int BASEC  = 0x1;
@@ -507,6 +508,22 @@ namespace Dyninst
       DEF_REGISTER(st5,   0x5     | FPDBL | MMX  | Arch_x86_64, "x86_64");
       DEF_REGISTER(st6,   0x6     | FPDBL | MMX  | Arch_x86_64, "x86_64");
       DEF_REGISTER(st7,   0x7     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm0,  0x0     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm1,  0x1     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm2,  0x2     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm3,  0x3     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm4,  0x4     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm5,  0x5     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm6,  0x6     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm7,  0x7     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm8,  0x8     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm9,  0x9     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm10, 0xA     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm11, 0xB     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm12, 0xC     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm13, 0xD     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm14, 0xE     | OCT   | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm15, 0xF     | OCT   | YMM  | Arch_x86_64, "x86_64");
    }
    namespace ppc32 {
       const signed int GPR   = 0x00010000;
