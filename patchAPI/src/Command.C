@@ -53,6 +53,7 @@ using Dyninst::PatchAPI::RemoveSnippetCommand;
 bool Command::commit() {
   if (!run()) {
     undo();
+    return false;
   }
   return true;
 }

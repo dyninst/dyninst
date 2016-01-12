@@ -116,6 +116,7 @@ DLLEXPORT extern dyntid_t (*DYNINST_pthread_self)(void);
 DLLEXPORT extern unsigned int DYNINSTobsCostLow;
 DLLEXPORT extern int libdyninstAPI_RT_init_localCause;
 DLLEXPORT extern int libdyninstAPI_RT_init_localPid;
+DLLEXPORT extern int libdyninstAPI_RT_init_maxthreads;
 DLLEXPORT extern int libdyninstAPI_RT_init_debug_flag;
 DLLEXPORT extern struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 

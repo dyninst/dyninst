@@ -282,7 +282,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
                                        const Offset off,
                                        TransferFuncs &xferFuncs) {
    stackanalysis_printf("\t\tInsn at 0x%lx\n", off);
-    
+
     entryID what = insn->getOperation().getID();
 
     // Reminder: what we're interested in:
@@ -1317,7 +1317,8 @@ bool StackAnalysis::TransferFunc::isAlias() const {
 }
 
 bool StackAnalysis::TransferFunc::isAbs() const {
-   return (abs != uninitialized);
+    // added second clause to exclude bottom.
+   return (abs != uninitialized && abs != notUnique);
 }
 
 bool StackAnalysis::TransferFunc::isDelta() const {
@@ -1328,9 +1329,6 @@ bool StackAnalysis::TransferFunc::isSIB() const {
     return (fromRegs.size() > 0);
 }
 
-bool StackAnalysis::TransferFunc::isTopBottom() const {
-    return topBottom;
-}
 
 // Destructive update of the input map. Assumes inputs are absolute, uninitalized, or 
 // bottom; no deltas.
@@ -1463,6 +1461,7 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
                 }
             } else {
                 TransferFunc fromRegFunc = findReg->second;
+
                 if (fromRegFunc.isAbs()) {
                     newDelta += fromRegFunc.abs*scaleOrig;
 
@@ -1538,7 +1537,8 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
    }
 
    // Aliases can be tricky
-   if (isAlias()) {
+   // apply alias logic only if registers are different
+   if (isAlias() && target != from) {
       // We need to record that we want to take the inflow height
       // of a different register. 
 	   // Don't do an inputs[from] as that creates
@@ -1596,6 +1596,14 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
         return;
       }
 
+      // without bottom we mess up in the default case.
+      if (alias.isBottom()) {
+          input = bottomFunc(target);
+          return;
+      }
+
+      // add top?
+
 	  // Default case: record the alias, zero out everything else, copy over the delta
 	  // if it's defined.
 	  //input.target is defined
@@ -1607,7 +1615,7 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
 	  else {
 		  input.delta = 0;
 	  }
-      input.topBottom = isTopBottomOrig;
+      input.topBottom = isTopBottomOrig || alias.isTopBottom(); // pass source tb
       input.fromRegs.clear();
 
           // if the input was also a delta, apply this also 
@@ -1617,6 +1625,13 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
 
 	  return;
    }
+
+   // quick alias: only apply delta. we know the register must exist.
+   if (isAlias() && target == from) {
+       if (isDelta()) { input.delta += delta; }
+       return;
+   }
+
    if (isDelta()) {
       // A delta can apply cleanly to anything, since Height += handles top/bottom
       input.delta += delta;

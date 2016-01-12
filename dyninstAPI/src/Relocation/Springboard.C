@@ -255,7 +255,6 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 					const SpringboardReq &r,
                                         SpringboardMap &input) {
    codeGen gen;
-
    bool usedTrap = false;
    // Arbitrarily select the first function containing this springboard, since only one can win. 
    generateBranch(r.from, r.destinations.begin()->second, gen);
@@ -266,8 +265,8 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
       // Fine. Let's do the trap thing. 
 
       usedTrap = true;
-      if (conflict(r.from, r.from + 1, r.fromRelocatedCode, r.func, r.priority)) return Failed;
-      if(!addrSpace_->canUseTraps()) return Failed;
+      if (conflict(r.from, r.from + 1, r.fromRelocatedCode, r.func, r.priority)) { return Failed; }
+      if(!addrSpace_->canUseTraps()) { return Failed; }
       
       generateTrap(r.from, r.destinations.begin()->second, gen);
       size = 1;
@@ -278,7 +277,9 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    }
    
    registerBranch(r.from, r.from + size, r.destinations, r.fromRelocatedCode, r.func, r.priority);
-   springboards.push_back(gen);
+   if (!usedTrap) {
+       springboards.push_back(gen);
+   }
 
    return Succeeded;
 }

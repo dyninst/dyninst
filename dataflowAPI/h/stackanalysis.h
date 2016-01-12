@@ -274,13 +274,16 @@ class StackAnalysis {
        static TransferFunc bottomFunc(MachRegister r);
        static TransferFunc sibFunc(std::map<MachRegister, std::pair<long,bool> > f, long d, MachRegister t);
 
-       bool isBottom() const;
-       bool isTop() const;
        bool isAbs() const;
        bool isAlias() const;
+       bool isBottom() const;
        bool isDelta() const;
        bool isSIB() const;
-       bool isTopBottom() const;
+       bool isTop() const;
+
+       bool isTopBottom() const {
+           return topBottom;
+       }
 
     TransferFunc() :
        from(MachRegister()), target(MachRegister()), delta(0), abs(uninitialized), topBottom(false) {};
