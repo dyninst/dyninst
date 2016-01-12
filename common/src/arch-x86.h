@@ -444,8 +444,8 @@ enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_H, am_I, am_J, am_M, //10
 
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
 // ADDED: op_y
-enum { op_a=1, op_b, op_c, op_d, op_dq, op_dp, op_p, op_pd, op_pi, op_ps, // 10
-       op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_y, op_z, op_lea, op_allgprs, op_512,
+enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, op_q, // 10
+       op_qq, op_s, op_sd, op_ss, op_si, op_v, op_w, op_y, op_z, op_lea, op_allgprs, op_512,
        op_f, op_dbl, op_14, op_28, op_edxeax, op_ecxebx};
 
 
