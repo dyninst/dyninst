@@ -539,7 +539,13 @@ namespace Dyninst
 	},
 	{
 	    x86_64::r8d, x86_64::r9d, x86_64::r10d, x86_64::r11d, x86_64::r12d, x86_64::r13d, x86_64::r14d, x86_64::r15d 
-	}
+	},
+  {
+    x86_64::ymm0, x86_64::ymm1, x86_64::ymm2, x86_64::ymm3, x86_64::ymm4, x86_64::ymm5, x86_64::ymm6, x86_64::ymm7
+  },
+  {
+    x86_64::ymm8, x86_64::ymm9, x86_64::ymm10, x86_64::ymm11, x86_64::ymm12, x86_64::ymm13, x86_64::ymm14, x86_64::ymm15
+  }
 
     };
 
@@ -780,6 +786,20 @@ namespace Dyninst
       }
 
       unsigned int optype = operand.optype;
+      int vex_vvvv = 0;
+      // int vex_l = 0;
+    if(decodedInstruction && decodedInstruction->getPrefix()->vex_prefix[0])
+    {
+      /* The vvvv bits are bits 3, 4, 5, 6 and are in 1's complement */
+      if(decodedInstruction->getPrefix()->vex_prefix[1])
+      {
+        // vex_l = decodedInstruction->getPrefix()->vex_prefix[1] & VEX3_L;
+        vex_vvvv = GETVEX_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
+      } else {
+        // vex_l = decodedInstruction->getPrefix()->vex_prefix[0] & VEX2_L;
+        vex_vvvv = GETVEX_VVVV(decodedInstruction->getPrefix()->vex_prefix[0]);
+      }
+    }
       if (sizePrefixPresent && 
 	  ((optype == op_v) ||
 	   (optype == op_z)) &&
@@ -854,6 +874,14 @@ namespace Dyninst
                         insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
                     break;
+                    case am_H:
+                      {
+                          /* Operand comes from the VEX.vvvv bits */
+                         insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
+                              vex_vvvv <= 7 ? b_xmm : b_xmmhigh, vex_vvvv <= 7 ? vex_vvvv : vex_vvvv - 8)),
+                              isRead, isWritten);
+                      }
+                      break;
                     case am_I:
                         insn_to_complete->appendOperand(decodeImmediate(optype, b.start + 
 									locs->imm_position[imm_index++]), 

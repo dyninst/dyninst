@@ -4443,7 +4443,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
   {
       // printf("Decoding VEX prefixed instruction.\n");
       idx = addr[0];
-      printf("IDX: 0x%x\n", idx);
+      // printf("IDX: 0x%x\n", idx);
       instruct.size += 1;
       // printf("Instruction size: %d\n", instruct.size);
       addr += 1;
@@ -4465,20 +4465,20 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 	      switch(pref.vex_prefix[0] & VEX3_M)
 	      {
 	         case 1:
-              printf("Using the two byte map. (0F PREFIXED)\n");
+              // printf("Using the two byte map. (0F PREFIXED)\n");
 	            gotit = &twoByteMap[idx];
 	            break;
 	         case 2:
-              printf("Using the three byte map. (0f 38 PREFIXED)\n");
+              // printf("Using the three byte map. (0f 38 PREFIXED)\n");
 	            gotit = &threeByteMap[idx];
 	            break;
 	         case 3:
-              printf("Using the other three byte map. (0f 3A PREFIXED)\n");
+              // printf("Using the other three byte map. (0f 3A PREFIXED)\n");
 	            gotit = &threeByteMap2[idx];
 	            if(sseidx) sseidx--; // mapping none/f3/66/f2 to none/66/f2
 	            break;
 	         default:
-              printf("Invalid instruction: 0x%x\n", pref.vex_prefix[0]);
+              // printf("Invalid instruction: 0x%x\n", pref.vex_prefix[0]);
               gotit = &vex3Map[0][0];
               idx = 0;
               /* This reserved for future use and will cause #UD. */
@@ -4655,9 +4655,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
   if (mode_64)
     ia32_translate_for_64(&gotit);
 
-  printf("Before size: %d ", instruct.size);
   ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac); // all but FP
-  printf("after size: %d", instruct.size);
 
   if(capa & IA32_DECODE_MEMACCESS) {
     int sema = gotit->opsema & ((1<<FPOS)-1);
@@ -4849,7 +4847,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
   }
 
   instruct.entry = gotit;
-  printf("final size: %d\n", instruct.size);
   return instruct;
 }
 
