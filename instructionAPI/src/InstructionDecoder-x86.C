@@ -707,6 +707,7 @@ namespace Dyninst
                     return u32;
                 }
             case op_dq:
+            case op_qq:
                 return u64;
             case op_512:
                 return m512;

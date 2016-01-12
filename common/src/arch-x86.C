@@ -201,8 +201,8 @@ enum {
 #define Vss  { am_V, op_ss }
 #define Vsd  { am_V, op_sd }
 #define Wdq  { am_W, op_dq }
-#define Wdp  { am_W, op_dp }
 #define Wpd  { am_W, op_pd }
+#define Wqq  { am_W, op_qq }
 #define Wps  { am_W, op_ps }
 #define Wq   { am_W, op_q }
 #define Wb   { am_W, op_b }
@@ -1753,7 +1753,7 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_sse_bis, SSEB10, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x12, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_vex3, 0x14, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB14, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB15, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_vex3, 0x52, false, { Zz, Zz, Zz }, 0, 0 },
@@ -4107,7 +4107,7 @@ struct ia32_entry vex3Map[][2] =
       { e_vcvtph2ps, t_done, 0, true, { Vps, Wdq, Zz }, 0, s1W2R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vcvtps2ph, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R }, /* W = 0 */
+      { e_vcvtps2ph, t_done, 0, true, { Wps, Vps, Ib }, 0, s1W2R3R }, /* W = 0 */ /* Intel manual is wrong, 3 operands are used. */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, { /* VTEST SERIES (0E, 0F) */
       { e_vtestps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R }, /* W = 0 */
@@ -4184,7 +4184,7 @@ struct ia32_entry vex3Map[][2] =
       { e_vpermps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpermq, t_done, 0, true, { Vdq, Wdp, Ib }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpermq, t_done, 0, true, { Vdq, Wqq, Ib }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
       { e_vperm2i128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */ /* TODO: Instruction with 4 operands */
@@ -4441,22 +4441,22 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
   /* Is there a VEX prefix for this instruction? */
   if(pref.vex_prefix[0])
   {
-      printf("Decoding VEX prefixed instruction.\n");
+      // printf("Decoding VEX prefixed instruction.\n");
       idx = addr[0];
       printf("IDX: 0x%x\n", idx);
       instruct.size += 1;
-      printf("Instruction size: %d\n", instruct.size);
+      // printf("Instruction size: %d\n", instruct.size);
       addr += 1;
       sseidx = oneByteMap[pref.getOpcodePrefix()].tabidx;
-      printf("Opcode prefix: 0x%x\n", pref.getOpcodePrefix());
-      printf("SSETABLE: %d t_done: %d  t_prefixedSSE: %d\n", oneByteMap[pref.getOpcodePrefix()].otable, t_done, t_prefixedSSE);
-      printf("SSEIDX: %d\n", sseidx);
+      // printf("Opcode prefix: 0x%x\n", pref.getOpcodePrefix());
+      // printf("SSETABLE: %d t_done: %d  t_prefixedSSE: %d\n", oneByteMap[pref.getOpcodePrefix()].otable, t_done, t_prefixedSSE);
+      // printf("SSEIDX: %d\n", sseidx);
 
       // VEX instruction or xop. If there's only one prefix, table is two-byte.
       if(pref.vex_prefix[1] == 0)
       {
         /* This is a VEX2 prefixed instruction */
-        printf("Instruction is two byte.\n");
+        // printf("Instruction is two byte.\n");
 	      gotit = &twoByteMap[idx];
       } else {
 	      // FIXME: not handling xop separately yet
@@ -4479,13 +4479,15 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 	            break;
 	         default:
               printf("Invalid instruction: 0x%x\n", pref.vex_prefix[0]);
+              gotit = &vex3Map[0][0];
+              idx = 0;
               /* This reserved for future use and will cause #UD. */
               break;
 	      }
       }
       
       nxtab = gotit->otable;
-      printf("nxtab: %d 0x%x\n", nxtab, nxtab);
+      // printf("nxtab: %d 0x%x\n", nxtab, nxtab);
    } else {
       table = t_oneB;
       if(idx == 0) {
@@ -4628,8 +4630,8 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       idx = gotit->tabidx;
       /* Set the current entry */
       gotit = &vex3Map[idx][pref.vex_w];
-      printf("W:   %d", pref.vex_w);
-      printf("IDX: 0x%x\n", idx);
+      // printf("W:   %d", pref.vex_w);
+      // printf("IDX: 0x%x\n", idx);
       /* Set the next table - this is almost always t_done */
       nxtab = gotit->otable;
       break;
@@ -4653,7 +4655,9 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
   if (mode_64)
     ia32_translate_for_64(&gotit);
 
+  printf("Before size: %d ", instruct.size);
   ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac); // all but FP
+  printf("after size: %d", instruct.size);
 
   if(capa & IA32_DECODE_MEMACCESS) {
     int sema = gotit->opsema & ((1<<FPOS)-1);
@@ -4845,6 +4849,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
   }
 
   instruct.entry = gotit;
+  printf("final size: %d\n", instruct.size);
   return instruct;
 }
 
