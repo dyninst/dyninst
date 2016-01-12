@@ -1210,7 +1210,11 @@ BPatch_process *BPatch::processCreate(const char *path, const char *argv[],
    ret->triggerInitialThreadEvents();
 
    if (ret->lowlevel_process()->isExploratoryModeOn()) {
-       ret->getHybridAnalysis()->init();
+       if (!ret->getHybridAnalysis()->init()) {
+           delete ret;
+           reportError(BPatchFatal, 68, "create process failed defensive instrumentation");
+           return NULL;
+       }
    }
 
    return ret;

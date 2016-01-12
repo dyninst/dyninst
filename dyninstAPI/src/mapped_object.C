@@ -118,6 +118,11 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 
    // Sets "fileName_"
    set_short_name();
+
+   if (analysisMode_ != BPatch_normalMode && fileName() == "dyninstAPI_RT.dll") {
+       startup_cerr << "Warning, running dyninstAPI_RT.dll in normal mode.\n";
+       analysisMode_ = BPatch_normalMode;
+   }
 }
 
 mapped_object *mapped_object::createMappedObject(Library::const_ptr lib,
@@ -1730,9 +1735,13 @@ bool mapped_object::isExpansionNeeded(Address entry)
 // or if the address is in an uninitialized memory,
 bool mapped_object::updateCodeBytesIfNeeded(Address entry)
 {
-	//cerr << "updateCodeBytes @ " << hex << entry << dec << endl;
 
-	assert( BPatch_defensiveMode == analysisMode_ );
+    // we may want to switch between normal and defensive
+    // instrumentation/parsing for trusted modules. simply return if we're
+    // presently in normal mode.
+    if (analysisMode_ != BPatch_defensiveMode) {
+        return true;
+    }
 
     Address pageAddr = entry -
         (entry % proc()->proc()->getMemoryPageSize());
