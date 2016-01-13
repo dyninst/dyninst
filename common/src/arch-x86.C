@@ -4128,14 +4128,14 @@ struct ia32_entry vex3Map[][2] =
 
     /* IDX 30 */
     { /* VMASKMOV SERIES (2C, 2D, 8C) */
-      { e_vmaskmovps, t_done, 0, false, { Vps, Hps, Wps }, 0, s1W2R3R }, /* W = 0 */
+      { e_vmaskmovps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vmaskmovpd, t_done, 0, false, { Vpd, Hpd, Wpd }, 0, s1W2R3R }, /* W = 0 */
+      { e_vmaskmovpd, t_done, 0, true, { Vpd, Hpd, Wpd }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, { 
-      { e_vpmaskmovd, t_done, 0, false, { Vps, Hps, Wd }, 0, s1W2R3R }, /* W = 0 */
-      { e_vpmaskmovq, t_done, 0, false, { Vps, Hps, Wq }, 0, s1W2R3R }  /* W = 1 */
+      { e_vpmaskmovd, t_done, 0, true, { Vps, Hps, Wd }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpmaskmovq, t_done, 0, true, { Vps, Hps, Wq }, 0, s1W2R3R }  /* W = 1 */
     }, VEX3_ILL, /* Keep 4 entry alignment */
     { /* VGATHER SERIES (90, 91, 92, 93)*/ /* FIXME: How should these opcodes be decoded?  */
       { e_vpgatherdd, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, /* W = 0 */   /* TODO: This instruction is s1RW2R3RW */
@@ -4165,14 +4165,14 @@ struct ia32_entry vex3Map[][2] =
     }, VEX3_ILL, /* Keep 4 entry alignment */
     
     { /* VMASKMOV SERIES (2C, 2D, 8C) */
-      { e_vmaskmovps, t_done, 0, false, { Wps, Hps, Vps }, 0, s1W2R3R }, /* W = 0 */
+      { e_vmaskmovps, t_done, 0, true, { Wps, Hps, Vps }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vmaskmovpd, t_done, 0, false, { Wpd, Hpd, Vpd }, 0, s1W2R3R }, /* W = 0 */
+      { e_vmaskmovpd, t_done, 0, true, { Wpd, Hpd, Vpd }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpmaskmovd, t_done, 0, false, { Wd, Hps, Vps }, 0, s1W2R3R }, /* W = 0 */
-      { e_vpmaskmovq, t_done, 0, false, { Wq, Hps, Vps }, 0, s1W2R3R }  /* W = 1 */
+      { e_vpmaskmovd, t_done, 0, true, { Wd, Hps, Vps }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpmaskmovq, t_done, 0, true, { Wq, Hps, Vps }, 0, s1W2R3R }  /* W = 1 */
     }, VEX3_ILL, /* Keep 4 entry alignment */   
  
     /* IDX 40 */
@@ -4203,7 +4203,7 @@ struct ia32_entry vex3Map[][2] =
       { e_vpermilpd, t_done, 0, true, { Vpd, Hpd, Wpd }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpermilps, t_done, 0, false, { Vps, Hps, Wps }, 0, s1W2R3R }, /* W = 0 */
+      { e_vpermilps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
       { e_vperm2f128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */
@@ -4243,7 +4243,7 @@ struct ia32_entry vex3Map[][2] =
       { e_vpermilpd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpermilps, t_done, 0, false, { Vps, Wps, Ib }, 0, s1W2R3R }, /* W = 0 */ 
+      { e_vpermilps, t_done, 0, true, { Vps, Wps, Ib }, 0, s1W2R3R }, /* W = 0 */ 
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     },    
 
