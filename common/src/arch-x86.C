@@ -2023,7 +2023,7 @@ static ia32_entry threeByteMap[256] = {
 
 static ia32_entry threeByteMap2[256] = {
 		/* 00 */
-		{ e_No_Entry, t_vex3, 0x04, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_vex3, 0x53, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_vex3, 0x51, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_vex3, 0x01, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -4188,14 +4188,14 @@ struct ia32_entry vex3Map[][2] =
       { e_vpermd, t_done, 0, true, { Vdq, Hdq, Wdq }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpermpd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1W2R3R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },  /* W = 0 */
+      { e_vpermpd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1W2R3R} /* W = 1 */
     }, {
       { e_vpermps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R }, /* W = 0 */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
     }, {
-      { e_vpermq, t_done, 0, true, { Vdq, Wqq, Ib }, 0, s1W2R3R }, /* W = 0 */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },  /* W = 0 */
+      { e_vpermq, t_done, 0, true, { Vdq, Wqq, Ib }, 0, s1W2R3R } /* W = 1 */
     }, {
       { e_vperm2i128, t_done, 0, false, { Zz, Zz, Zz }, 0, s1W2R3R }, /* W = 0 */ /* TODO: Instruction with 4 operands */
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }  /* W = 1 */
