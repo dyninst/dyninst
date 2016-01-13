@@ -83,8 +83,8 @@ class StackAnalysis {
     public:
         typedef signed long Height_t;
         
-        static const Height_t uninitialized = MAXLONG;           
-        static const Height_t notUnique = MINLONG;           
+        static const Height_t uninitialized = MAXLONG;
+        static const Height_t notUnique = MINLONG;
         
         static const Height bottom;
         static const Height top;
@@ -274,30 +274,34 @@ class StackAnalysis {
        static TransferFunc absFunc(Absloc r, long a, bool i = false);
        static TransferFunc aliasFunc(Absloc f, Absloc t, bool i = false);
        static TransferFunc bottomFunc(Absloc r);
-       static TransferFunc topFunc(Absloc r);
+       static TransferFunc retopFunc(Absloc r);
        static TransferFunc sibFunc(std::map<Absloc, std::pair<long,bool> > f,
           long d, Absloc t);
 
+       bool isBottom() const;
+       bool isTop() const;
+       bool isRetop() const;
        bool isAbs() const;
        bool isAlias() const;
-       bool isBottom() const;
        bool isDelta() const;
        bool isSIB() const;
-       bool isTop() const;
 
        bool isTopBottom() const {
            return topBottom;
        }
 
     TransferFunc() :
-       from(Absloc()), target(Absloc()), delta(0), abs(uninitialized), topBottom(false) {};
-    TransferFunc(long a, long d, Absloc f, Absloc t, bool i = false) :
-       from(f), target(t), delta(d), abs(a), topBottom(i) {};
+       from(Absloc()), target(Absloc()), delta(0), abs(uninitialized),
+       retop(false), topBottom(false) {};
+    TransferFunc(long a, long d, Absloc f, Absloc t, bool i = false,
+       bool rt = false) :
+       from(f), target(t), delta(d), abs(a), retop(rt), topBottom(i) {};
     TransferFunc(std::map<Absloc,std::pair<long,bool> > f, long d, Absloc t) :
-        from(Absloc()), target(t),
-        delta(d), abs(uninitialized),
-        topBottom(false),
-        fromRegs(f) {}
+       from(Absloc()), target(t),
+       delta(d), abs(uninitialized),
+       retop(false),
+       topBottom(false),
+       fromRegs(f) {}
 
        Height apply(const AbslocState &inputs) const;
        void accumulate(std::map<Absloc, TransferFunc> &inputs);
@@ -309,6 +313,10 @@ class StackAnalysis {
        Absloc target;
        long delta;
        long abs;
+
+       // Distinguish between default-constructed transfer functions and
+       // explicitly-retopped transfer functions.
+       bool retop;
 
        // Annotate transfer functions that have the following characteristic:
        // if target is TOP, keep as TOP
@@ -420,9 +428,11 @@ class StackAnalysis {
     void handleZeroExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleSignExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleXor(InstructionPtr insn, TransferFuncs &xferFuncs);
+    void handleDiv(InstructionPtr insn, TransferFuncs &xferFuncs);
+    void handleMul(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleDefault(InstructionPtr insn, TransferFuncs &xferFuncs);
 
-    
+    long extractDelta(InstructionAPI::Result deltaRes);
 
     Height getStackCleanAmount(ParseAPI::Function *func);
 
@@ -432,7 +442,7 @@ class StackAnalysis {
 
     // SP effect tracking
     BlockEffects blockEffects;
-	InstructionEffects insnEffects;
+    InstructionEffects insnEffects;
 
     BlockState blockInputs;
     BlockState blockOutputs;

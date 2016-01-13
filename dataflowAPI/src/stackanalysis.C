@@ -188,8 +188,6 @@ void StackAnalysis::fixpoint() {
    //NoSinkPredicate nosink(); // ignore sink node (unresolvable)
    intra_nosink epred2;
 
-
-
    worklist.push(func->entry());
 
    Block *entry = func->entry();
@@ -279,7 +277,6 @@ void StackAnalysis::summarize() {
             }
         }
         (*intervals_)[block][block->end()] = input;
-
         assert(input == blockOutputs[block]);
     }
 }
@@ -332,8 +329,8 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
           handleReturn(insn, xferFuncs);
           break;
        case e_lea:
-	 handleLEA(insn, xferFuncs);
-	 break;
+          handleLEA(insn, xferFuncs);
+          break;
        case e_sub:
           sign = -1;
           //FALLTHROUGH
@@ -350,13 +347,13 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
           handlePushPopFlags(sign, xferFuncs);
           break;
        case e_pushad:
-           sign = -1;
-           handlePushPopRegs(sign, xferFuncs);
-           break;
+          sign = -1;
+          handlePushPopRegs(sign, xferFuncs);
+          break;
        case e_popad:
-           // This nukes all registers
-           handleDefault(insn, xferFuncs);
-           break;
+          // This nukes all registers
+          handleDefault(insn, xferFuncs);
+          break;
        case power_op_addi:
        case power_op_addic:
           handlePowerAddSub(insn, sign, xferFuncs);
@@ -378,6 +375,14 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
           break;
        case e_xor:
           handleXor(insn, xferFuncs);
+          break;
+       case e_div:
+       case e_idiv:
+          handleDiv(insn, xferFuncs);
+          break;
+       case e_mul:
+       case e_imul:
+          handleMul(insn, xferFuncs);
           break;
        default:
           handleDefault(insn, xferFuncs);
@@ -459,6 +464,7 @@ std::string StackAnalysis::TransferFunc::format() const {
       ret << "<INVALID>";
    ret << ":=";
    if (isBottom()) ret << "<BOTTOM>";
+   else if (isRetop()) ret << "<re-TOP>";
    else if (isTop()) ret << "<TOP>";
    else {
       bool foundType = false;
@@ -585,11 +591,11 @@ StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, Absloc loc) {
 }
 
 StackAnalysis::Height StackAnalysis::findSP(Block *b, Address addr) {
-   return find(b, addr, sp());
+   return find(b, addr, Absloc(sp()));
 }
 
 StackAnalysis::Height StackAnalysis::findFP(Block *b, Address addr) {
-   return find(b, addr, fp());
+   return find(b, addr, Absloc(fp()));
 }
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height &h) {
@@ -627,6 +633,94 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
       xferFuncs.push_back(TransferFunc::absFunc(loc, 0));
    } else {
       handleDefault(insn, xferFuncs);
+   }
+}
+
+
+void StackAnalysis::handleDiv(Instruction::Ptr insn,
+   TransferFuncs &xferFuncs) {
+   stackanalysis_printf("\t\t\thandleDiv: %s\n", insn->format().c_str());
+   std::vector<Operand> operands;
+   insn->getOperands(operands);
+   assert(operands.size() == 3);
+
+   Expression::Ptr quotient = operands[1].getValue();
+   Expression::Ptr remainder = operands[0].getValue();
+   Expression::Ptr divisor = operands[2].getValue();
+   assert(typeid(*quotient) == typeid(RegisterAST));
+   assert(typeid(*remainder) == typeid(RegisterAST));
+   assert(typeid(*divisor) != typeid(Immediate));
+
+   MachRegister quotientReg = (boost::dynamic_pointer_cast<InstructionAPI::
+      RegisterAST>(quotient))->getID();
+   MachRegister remainderReg = (boost::dynamic_pointer_cast<InstructionAPI::
+      RegisterAST>(remainder))->getID();
+
+   xferFuncs.push_back(TransferFunc::retopFunc(Absloc(quotientReg)));
+   xferFuncs.push_back(TransferFunc::retopFunc(Absloc(remainderReg)));
+}
+
+
+void StackAnalysis::handleMul(Instruction::Ptr insn,
+   TransferFuncs &xferFuncs) {
+   // MULs have a few forms:
+   //   1. mul reg1, reg2/mem2
+   //     -- reg1 = reg1 * reg2/mem2
+   //   2. mul reg1, reg2/mem2, imm3
+   //     -- reg1 = reg2/mem2 * imm3
+   //   3. mul reg1, reg2, reg3/mem3
+   //     -- reg1:reg2 = reg2 * reg3/mem3
+   stackanalysis_printf("\t\t\thandleMul: %s\n", insn->format().c_str());
+   std::vector<Operand> operands;
+   insn->getOperands(operands);
+   assert(operands.size() == 2 || operands.size() == 3);
+
+   Expression::Ptr target = operands[0].getValue();
+   assert(typeid(*target) == typeid(RegisterAST));
+   MachRegister targetReg = (boost::dynamic_pointer_cast<InstructionAPI::
+      RegisterAST>(target))->getID();
+
+   if (operands.size() == 2) {
+      // Form 1
+      xferFuncs.push_back(TransferFunc::retopFunc(Absloc(targetReg)));
+   } else {
+      Expression::Ptr multiplicand = operands[1].getValue();
+      Expression::Ptr multiplier = operands[2].getValue();
+
+      if (typeid(*multiplier) == typeid(Immediate)) {
+         // Form 2
+         assert(typeid(*multiplicand) == typeid(RegisterAST) ||
+            typeid(*multiplicand) == typeid(Dereference));
+         long multiplierVal = multiplier->eval().convert<long>();
+         if (multiplierVal == 0) {
+            xferFuncs.push_back(TransferFunc::absFunc(Absloc(targetReg), 0));
+         } else if (multiplierVal == 1) {
+            if (typeid(*multiplicand) == typeid(RegisterAST)) {
+               // mul reg1, reg2, 1
+               MachRegister multiplicandReg = boost::dynamic_pointer_cast<
+                  RegisterAST>(multiplicand)->getID();
+               Absloc targetLoc(targetReg);
+               Absloc multiplicandLoc(multiplicandReg);
+               xferFuncs.push_back(TransferFunc::aliasFunc(multiplicandLoc,
+                  targetLoc));
+            } else {
+               // mul reg1, mem2, 1
+               Absloc targetLoc(targetReg);
+               xferFuncs.push_back(TransferFunc::bottomFunc(targetLoc));
+            }
+         } else {
+            xferFuncs.push_back(TransferFunc::retopFunc(Absloc(targetReg)));
+         }
+      } else {
+         // Form 3
+         assert(typeid(*multiplicand) == typeid(RegisterAST));
+         assert(typeid(*multiplier) == typeid(RegisterAST) ||
+            typeid(*multiplier) == typeid(Dereference));
+         MachRegister multiplicandReg = boost::dynamic_pointer_cast<
+            RegisterAST>(multiplicand)->getID();
+         xferFuncs.push_back(TransferFunc::retopFunc(Absloc(targetReg)));
+         xferFuncs.push_back(TransferFunc::retopFunc(Absloc(multiplicandReg)));
+      }
    }
 }
 
@@ -709,24 +803,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs 
    Operand arg = insn->getOperand(1);
    Result res = arg.getValue()->eval();
    if (res.defined) {
-      long delta = 0;
-      // Size is in bytes...
-      switch(res.size()) {
-      case 1:
-         delta = sign * res.convert<int8_t>();
-         break;
-      case 2:
-         delta = sign * res.convert<int16_t>();
-         break;
-      case 4:
-         delta = sign * res.convert<int32_t>();
-         break;
-      case 8:
-         delta = sign * res.convert<int64_t>();
-         break;
-      default:
-         assert(0);
-      }
+      long delta = sign * extractDelta(res);
       stackanalysis_printf(
          "\t\t\t Stack height changed by evalled add/sub: %lx\n", delta);
       Absloc loc((*(readSet.begin()))->getID());
@@ -741,137 +818,158 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs 
 
 void StackAnalysis::handleLEA(Instruction::Ptr insn,
    TransferFuncs &xferFuncs) {
+   // LEA has a few patterns:
+   //   op0: target register
+   //-------------------------------
+   //   op1: reg + reg * imm + imm
+   //            or
+   //   op1: reg + reg * imm
+   //            or
+   //   op1: imm + reg * imm
+   //            or
+   //   op1: reg + imm
+   //            or
+   //   op1: reg
+   //
 
-   // LEA has a pattern of:
-   // op0: target register
-   // op1: add(source, <const>)
-   // 
-   // Since we don't know what the value in source is, we can't do this a
-   // priori. Instead, TRANSFER FUNCTION!
-   
    stackanalysis_printf("\t\t\t handleLEA, insn = %s\n",
       insn->format().c_str());
 
    std::set<RegisterAST::Ptr> readSet;
    std::set<RegisterAST::Ptr> writtenSet;
-   insn->getOperand(0).getWriteSet(writtenSet); assert(writtenSet.size() == 1);
-   insn->getOperand(1).getReadSet(readSet); //assert(readSet.size() == 1);
+   insn->getOperand(0).getWriteSet(writtenSet);
+   insn->getOperand(1).getReadSet(readSet);
+   assert(writtenSet.size() == 1);
+   assert(readSet.size() == 1 || readSet.size() == 2);
    MachRegister written = (*writtenSet.begin())->getID();
+   Absloc writeloc(written);
 
-   TransferFunc lea;
+   InstructionAPI::Operand srcOperand = insn->getOperand(1);
+   InstructionAPI::Expression::Ptr srcExpr = srcOperand.getValue();
+   std::vector<InstructionAPI::Expression::Ptr> children;
+   srcExpr->getChildren(children);
 
-   // conservative...
-   if (readSet.size() != 1) {
-      if (readSet.size() != 2) {
-         // This shouldn't happen
-         stackanalysis_printf(
-            "\t\t\tUnexpected LEA case. Setting %s = BOTTOM\n",
-            written.name().c_str());
-         xferFuncs.push_back(TransferFunc::bottomFunc(Absloc(written)));
-         return;
-      }
+   stackanalysis_printf("\t\t\t\t srcOperand = %s\n",
+      srcExpr->format().c_str());
 
-      MachRegister base, index;
-      long scale = -1;
-
-      InstructionAPI::Operand srcOperand = insn->getOperand(1);
-      InstructionAPI::Expression::Ptr srcExpr = srcOperand.getValue();
-
-      std::vector<InstructionAPI::Expression::Ptr> children;
-      srcExpr->getChildren(children);
-
-      InstructionAPI::Expression::Ptr baseExpr, scaleIndexExpr, deltaExpr;
+   if (readSet.size() == 1) {
+      InstructionAPI::Expression::Ptr regExpr, scaleExpr, deltaExpr;
+      bool foundScale = false;
       bool foundDelta = false;
-      while (1) {
-         if (typeid(*(children[0])) == typeid(InstructionAPI::RegisterAST)) {
-            baseExpr = children[0];
-            scaleIndexExpr = children[1];
-            if (typeid(*scaleIndexExpr) !=
-               typeid(InstructionAPI::BinaryFunction)) {
 
-               stackanalysis_printf(
-                  "\t\t\tUnhandled LEA - scale or index missing. "
-                  "Setting %s = BOTTOM\n", written.name().c_str());
-               Absloc loc(written);
-               xferFuncs.push_back(TransferFunc::bottomFunc(loc));
-               return;
-            }
-            break;
-         }
+      if (children.size() == 2) {
+         if (typeid(*children[0]) == typeid(Immediate)) {
+            // op1: imm + reg * imm
+            deltaExpr = children[0];
+            Expression::Ptr scaleIndexExpr = children[1];
+            assert(typeid(*scaleIndexExpr) == typeid(BinaryFunction));
+            children.clear();
+            scaleIndexExpr->getChildren(children);
 
-         // If there's a delta, then the SIB is inside a dereference,
-         // and we need to get the child of the deref
-         deltaExpr = children[1];
-         if (typeid(*deltaExpr) != typeid(InstructionAPI::Immediate)) {
-            stackanalysis_printf("\t\t\tUnhandled LEA - non-immediate delta. "
-               "Setting %s = BOTTOM\n", written.name().c_str());
-            xferFuncs.push_back(TransferFunc::bottomFunc(Absloc(written)));
-            return;
+            regExpr = children[0];
+            scaleExpr = children[1];
+            assert(typeid(*regExpr) == typeid(RegisterAST));
+            assert(typeid(*scaleExpr) == typeid(Immediate));
+            foundScale = true;
+            foundDelta = true;
+         } else if (typeid(*children[0]) == typeid(RegisterAST)) {
+            // op1: reg + imm
+            regExpr = children[0];
+            deltaExpr = children[1];
+            stackanalysis_printf("\t\t\t\t reg: %s\n",
+               regExpr->format().c_str());
+            stackanalysis_printf("\t\t\t\t delta: %s\n",
+               deltaExpr->format().c_str());
+            assert(typeid(*regExpr) == typeid(RegisterAST));
+            assert(typeid(*deltaExpr) == typeid(Immediate));
+            foundDelta = true;
+         } else {
+            assert(false);
          }
-         foundDelta = true;
-         InstructionAPI::Expression::Ptr tmp = children[0];
-         children.clear();
-         tmp->getChildren(children);
+      } else if (children.size() == 0) {
+         // op1: reg
+         regExpr = srcExpr;
+         assert(typeid(*regExpr) == typeid(RegisterAST));
+      } else {
+         assert(false);
       }
 
-      // Get the base register
-      base = (boost::dynamic_pointer_cast<InstructionAPI::RegisterAST>(
-         baseExpr))->getID();
+      MachRegister reg = (boost::dynamic_pointer_cast<InstructionAPI::
+         RegisterAST>(regExpr))->getID();
+
+      long scale = 1;
+      if (foundScale) {
+         scale = scaleExpr->eval().convert<long>();
+      }
+
+      long delta = 0;
+      if (foundDelta) {
+         delta = extractDelta(deltaExpr->eval());
+      }
+
+      if (foundScale) {
+         std::map<Absloc,std::pair<long, bool> > fromRegs;
+         fromRegs.insert(make_pair(Absloc(reg), make_pair(scale, false)));
+         xferFuncs.push_back(TransferFunc::sibFunc(fromRegs, delta, writeloc));
+      } else {
+         Absloc readloc(reg);
+         TransferFunc lea = TransferFunc::aliasFunc(readloc, writeloc);
+         lea.delta = delta;
+         xferFuncs.push_back(lea);
+      }
+   } else if (readSet.size() == 2) {
+      Expression::Ptr baseExpr, indexExpr, scaleExpr, deltaExpr;
+      bool foundDelta = false;
+
+      assert(children.size() == 2);
+      if (typeid(*children[1]) == typeid(Immediate)) {
+         // op1: reg + reg * imm + imm
+         // Extract the delta and continue on to get base, index, and scale
+         deltaExpr = children[1];
+         stackanalysis_printf("\t\t\t\t delta: %s\n",
+            deltaExpr->format().c_str());
+         Expression::Ptr sibExpr = children[0];
+         assert(typeid(*sibExpr) == typeid(BinaryFunction));
+         children.clear();
+         sibExpr->getChildren(children);
+         assert(children.size() == 2);
+         foundDelta = true;
+      }
+
+      // op1: reg + reg * imm
+      baseExpr = children[0];
+      Expression::Ptr scaleIndexExpr = children[1];
+      stackanalysis_printf("\t\t\t\t base: %s\n", baseExpr->format().c_str());
+      assert(typeid(*scaleIndexExpr) == typeid(BinaryFunction));
 
       // Extract the index and scale
       children.clear();
       scaleIndexExpr->getChildren(children);
-      InstructionAPI::Expression::Ptr scaleExpr, indexExpr;
+      assert(children.size() == 2);
       indexExpr = children[0];
-      if (typeid(*indexExpr) != typeid(InstructionAPI::RegisterAST)) {
-         stackanalysis_printf(
-            "Unhandled LEA - non-register index. Setting %s = BOTTOM\n",
-            written.name().c_str());
-         xferFuncs.push_back(TransferFunc::bottomFunc(Absloc(written)));
-         return;
-      }
       scaleExpr = children[1];
-      if (typeid(*scaleExpr) != typeid(InstructionAPI::Immediate)) {
-         stackanalysis_printf(
-            "Unhandled LEA - non-immediate scale. Setting %s = BOTTOM\n",
-            written.name().c_str());
-         xferFuncs.push_back(TransferFunc::bottomFunc(Absloc(written)));
-         return;
-      }
+      stackanalysis_printf("\t\t\t\t index: %s\n",
+         indexExpr->format().c_str());
+      stackanalysis_printf("\t\t\t\t scale: %s\n",
+         scaleExpr->format().c_str());
 
-      index = (boost::dynamic_pointer_cast<InstructionAPI::RegisterAST>(
-         indexExpr))->getID();
-      scale = (boost::dynamic_pointer_cast<InstructionAPI::Immediate>(
-         scaleExpr))->eval().convert<long>();
+      assert(typeid(*baseExpr) == typeid(RegisterAST));
+      assert(typeid(*indexExpr) == typeid(RegisterAST));
+      assert(typeid(*scaleExpr) == typeid(Immediate));
+
+      MachRegister base = (boost::dynamic_pointer_cast<InstructionAPI::
+         RegisterAST>(baseExpr))->getID();
+      MachRegister index = (boost::dynamic_pointer_cast<InstructionAPI::
+         RegisterAST>(indexExpr))->getID();
+      long scale = scaleExpr->eval().convert<long>();
 
       long delta = 0;
       if (foundDelta) {
-         Result deltaRes = (boost::dynamic_pointer_cast<InstructionAPI::
-            Immediate>(deltaExpr))->eval();
-         switch(deltaRes.size()) {
-            case 1:
-               delta = (long)deltaRes.convert<int8_t>();
-               break;
-            case 2:
-               delta = (long)deltaRes.convert<int16_t>();
-               break;
-            case 4:
-               delta = (long)deltaRes.convert<int32_t>();
-               break;
-            case 8:
-               delta = (long)deltaRes.convert<int64_t>();
-               break;
-            default:
-               assert(0);
-         }
+         Result deltaRes = deltaExpr->eval();
+         delta = extractDelta(deltaRes);
       }
 
-      if (!base.isValid() || !index.isValid() || (scale==-1)) {
-         stackanalysis_printf("Misunderstood LEA. Setting %s = BOTTOM\n",
-            written.name().c_str());
-         xferFuncs.push_back(TransferFunc::bottomFunc(Absloc(written)));
-         return;
-      }
+      assert(base.isValid() && index.isValid() && scale != -1);
 
       // Consolidate when possible
       if (base == index) {
@@ -884,108 +982,10 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
          fromRegs.insert(make_pair(Absloc(base), make_pair(1, false)));
       }
       fromRegs.insert(make_pair(Absloc(index), make_pair(scale, false)));
-      lea = TransferFunc::sibFunc(fromRegs, delta, Absloc(written));
-      xferFuncs.push_back(lea);
-      return;
+      xferFuncs.push_back(TransferFunc::sibFunc(fromRegs, delta, writeloc));
    } else {
-      Absloc readloc((*(readSet.begin()))->getID());
-      Absloc writeloc(written);
-      lea = TransferFunc::aliasFunc(readloc, writeloc);
+      assert(false);
    }
-
-   // Non-SIB LEA also performs computation, so we need to determine and set
-   // the delta parameter.
-   MachRegister reg;
-   long scale = 1;
-   long delta = 0;
-   InstructionAPI::Operand srcOperand = insn->getOperand(1);
-   InstructionAPI::Expression::Ptr srcExpr = srcOperand.getValue();
-
-   stackanalysis_printf("\t\t\t\t srcOperand = %s\n",
-      srcExpr->format().c_str());
-
-   std::vector<InstructionAPI::Expression::Ptr> children;
-   srcExpr->getChildren(children);
-   stackanalysis_printf("\t\t\t\t srcOperand # children = %d\n",
-      children.size());
-
-   InstructionAPI::Expression::Ptr regExpr, scaleExpr, deltaExpr;
-   bool foundScale = false;
-   bool foundDelta = false;
-
-   if (children.size()) {
-      for (auto iter = children.begin(); iter != children.end(); ++iter) {
-         InstructionAPI::Expression::Ptr child = *iter;
-         if (typeid(*child) == typeid(InstructionAPI::Immediate)) {
-            deltaExpr = child;
-            foundDelta = true;
-         } else if (typeid(*child) == typeid(InstructionAPI::RegisterAST)) {
-            regExpr = child;
-         } else if (typeid(*child) == typeid(InstructionAPI::BinaryFunction)) {
-            std::vector<InstructionAPI::Expression::Ptr> subchildren;
-            child->getChildren(subchildren);
-            regExpr = subchildren[0];
-            if (typeid(*regExpr) != typeid(InstructionAPI::RegisterAST)) {
-               stackanalysis_printf("Unhandled LEA - non-SIB non-register "
-                  "index. Setting %s = BOTTOM\n", written.name().c_str());
-               Absloc loc(written);
-               xferFuncs.push_back(TransferFunc::bottomFunc(loc));
-               return;
-            }
-            scaleExpr = subchildren[1];
-            if (typeid(*scaleExpr) != typeid(InstructionAPI::Immediate)) {
-               stackanalysis_printf("Unhandled LEA - non-SIB non-immediate "
-                  "scale. Setting %s = BOTTOM\n", written.name().c_str());
-               Absloc loc(written);
-               xferFuncs.push_back(TransferFunc::bottomFunc(loc));
-               return;
-            }
-            foundScale = true;
-         }
-      }
-   } else {
-      regExpr = srcExpr;
-   }
-   reg = (boost::dynamic_pointer_cast<InstructionAPI::RegisterAST>(regExpr))->
-      getID();
-
-   if (foundScale) {
-      scale = (boost::dynamic_pointer_cast<InstructionAPI::Immediate>(
-         scaleExpr))->eval().convert<long>();
-   }
-
-   if (foundDelta) {
-      Result deltaRes = (boost::dynamic_pointer_cast<InstructionAPI::
-         Immediate>(deltaExpr))->eval();
-      switch(deltaRes.size()) {
-         case 1:
-            delta = (long)deltaRes.convert<int8_t>();
-            break;
-         case 2:
-            delta = (long)deltaRes.convert<int16_t>();
-            break;
-         case 4:
-            delta = (long)deltaRes.convert<int32_t>();
-            break;
-         case 8:
-            delta = (long)deltaRes.convert<int64_t>();
-            break;
-         default:
-            assert(0);
-      }
-   }
-
-   if (!foundScale) {
-      lea.delta = delta;
-   } else {
-      std::map<Absloc,std::pair<long, bool> > fromRegs;
-      fromRegs.insert(make_pair(Absloc(reg), make_pair(scale, false)));
-      Absloc loc(written);
-      lea = TransferFunc::sibFunc(fromRegs, delta, loc);
-   }
-
-   xferFuncs.push_back(lea);
-   return;
 }
 
 void StackAnalysis::handleLeave(TransferFuncs &xferFuncs) {
@@ -1445,7 +1445,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
                xferFuncs.push_back(TransferFunc::bottomFunc(loc));
             } else {
                // Top
-               xferFuncs.push_back(TransferFunc::topFunc(loc));
+               xferFuncs.push_back(TransferFunc::retopFunc(loc));
             }
          }
       }
@@ -1587,8 +1587,8 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::bottomFunc(Absloc r) {
    return TransferFunc(notUnique, notUnique, Absloc(), r);
 }
 
-StackAnalysis::TransferFunc StackAnalysis::TransferFunc::topFunc(Absloc r) {
-   return absFunc(r, uninitialized, false);
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::retopFunc(Absloc r) {
+   return TransferFunc(uninitialized, 0, Absloc(), r, false, true);
 }
 
 StackAnalysis::TransferFunc StackAnalysis::TransferFunc::sibFunc(
@@ -1597,11 +1597,17 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::sibFunc(
 }
 
 bool StackAnalysis::TransferFunc::isBottom() const {
-   return (delta == notUnique || abs == notUnique) && !from.isValid() && !isSIB();
+   return (delta == notUnique || abs == notUnique) && !from.isValid() &&
+      !isSIB();
 }
 
 bool StackAnalysis::TransferFunc::isTop() const {
-   return (!isDelta() && !isAbs() && !isAlias() && !isSIB());
+   return !isDelta() && !isAbs() && !isAlias() && !isSIB() && !isBottom() &&
+      abs == uninitialized;
+}
+
+bool StackAnalysis::TransferFunc::isRetop() const {
+   return isTop() && retop;
 }
 
 bool StackAnalysis::TransferFunc::isAlias() const {
@@ -1626,7 +1632,6 @@ bool StackAnalysis::TransferFunc::isSIB() const {
 // uninitalized, or bottom; no deltas.
 StackAnalysis::Height StackAnalysis::TransferFunc::apply(
    const AbslocState &inputs) const {
-
    assert(target.isValid());
    // Bottom stomps everything
    if (isBottom()) {
@@ -1650,37 +1655,33 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(
          Absloc curLoc = (*iter).first;
          long curScale = (*iter).second.first;
          bool curTopBottom = (*iter).second.second;
-         auto findReg = inputs.find(curLoc);
-         Height regInput;
-         if (findReg == inputs.end()) {
-            regInput = Height::top;
+         auto findLoc = inputs.find(curLoc);
+         Height locInput;
+         if (findLoc == inputs.end()) {
+            locInput = Height::top;
          } else {
-            regInput = findReg->second;
+            locInput = findLoc->second;
          }
 
-         if (regInput == Height::top) {
-            // Ignore--has no effect on ouput
-         } else if (regInput == Height::bottom) {
-            // Must bottom everything
-            input = Height::bottom;
-            break;
-         } else {
-            if (curScale != 1) {
-               // Must bottom
+         if (locInput == Height::top) {
+            // This term doesn't affect our end result, so it can be safely
+            // ignored.
+         } else if (locInput == Height::bottom) {
+            if (curScale == 1) {
+               // Must bottom everything only if the scale is 1.  Otherwise,
+               // any stack height will be obfuscated.
                input = Height::bottom;
                break;
-            } else {
-               if (input != Height::top) {
-                  // Must bottom--cannot add stack heights
+            }
+         } else {
+            if (curScale == 1) {
+               // If the scale isn't 1, then any stack height is obfuscated,
+               // and we can safely ignore the term.
+               if (curTopBottom) {
                   input = Height::bottom;
                   break;
                } else {
-                  if (curTopBottom) {
-                     input = Height::bottom;
-                  } else {
-                     // Finally! We can add!
-                     input += regInput;
-                  }
+                  input += locInput; // Matt: Always results in bottom?
                }
             }
          }
@@ -1706,6 +1707,9 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(
    if (isDelta()) {
       input += delta;
    }
+   if (isRetop()) {
+      input = Height::top;
+   }
    if (isTopBottomOrig) {
       if (!input.isTop()) {
          input = Height::bottom;
@@ -1714,9 +1718,10 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(
    return input;
 }
 
-// Accumulation to the input map. This is intended to create a summary, so we create
-// something that can take further input.
-void StackAnalysis::TransferFunc::accumulate(std::map<Absloc, TransferFunc> &inputs ) {
+// Accumulation to the input map. This is intended to create a summary, so we
+// create something that can take further input.
+void StackAnalysis::TransferFunc::accumulate(
+   std::map<Absloc, TransferFunc> &inputs) {
    TransferFunc &input = inputs[target];
    if (input.target.isValid()) assert(input.target == target);
    input.target = target; // Default constructed TransferFuncs won't have this
@@ -1728,7 +1733,7 @@ void StackAnalysis::TransferFunc::accumulate(std::map<Absloc, TransferFunc> &inp
       return;
    }
    bool isTopBottomOrig = isTopBottom();
-   if (!input.isTopBottom()) {
+   if (!input.isTopBottom() && !input.isRetop()) {
       input.topBottom = isTopBottomOrig;
    }
    // Absolutes override everything else
@@ -1737,39 +1742,85 @@ void StackAnalysis::TransferFunc::accumulate(std::map<Absloc, TransferFunc> &inp
       return;
    }
    if (isSIB()) {
+      // First check for special cases
+      bool allAbs = true;
+      bool allToppable = true;
+      bool anyBottomed = false;
+      for (auto iter = fromRegs.begin(); iter != fromRegs.end(); iter++) {
+         Absloc fromLocOrig = iter->first;
+         long scaleOrig = iter->second.first;
+         auto inputEntry = inputs.find(fromLocOrig);
+         if (inputEntry == inputs.end()) {
+            allAbs = false;
+            if (scaleOrig == 1) {
+               allToppable = false;
+            }
+         } else {
+            if (inputEntry->second.isBottom() && scaleOrig == 1) {
+               anyBottomed = true;
+            }
+            if (!inputEntry->second.isRetop() && !inputEntry->second.isAbs() &&
+               scaleOrig == 1) {
+               allToppable = false;
+            }
+            if (!inputEntry->second.isAbs()) {
+               allAbs = false;
+            }
+         }
+      }
+
+      // Now handle special cases
+      if (anyBottomed) {
+         input = bottomFunc(target);
+         return;
+      }
+      if (allAbs) {
+         long newDelta = delta;
+         for (auto iter = fromRegs.begin(); iter != fromRegs.end(); iter++) {
+            Absloc fromLocOrig = iter->first;
+            long scaleOrig = iter->second.first;
+            TransferFunc inputAbsFunc = inputs.find(fromLocOrig)->second;
+            newDelta += inputAbsFunc.abs * scaleOrig;
+         }
+         input = absFunc(target, newDelta);
+         return;
+      }
+      if (allToppable) {
+         input = retopFunc(target);
+         return;
+      }
+
+      // Handle default case
       std::map<Absloc, std::pair<long,bool> > newFromRegs;
       long newDelta = delta;
-
+      bool anyToppedTerms = false;
       for (auto iter = fromRegs.begin(); iter != fromRegs.end(); ++iter) {
          Absloc fromLocOrig = (*iter).first;
          long scaleOrig = (*iter).second.first;
 
+         // Because any term with a scale > 1 is TOP, such terms do not affect
+         // the final TOP/BOTTOM/Height value of the LEA and can be ignored.
+         // FIXME if we change apply() to include constant propagation
+         if (scaleOrig > 1) {
+            anyToppedTerms = true;
+            continue;
+         }
+
          auto findLoc = inputs.find(fromLocOrig);
          if (findLoc == inputs.end()) {
             // Easy case
+            // Only add the term if we're not already tracking that register.
+            // FIXME if we change apply() to include constant propagation
             auto found = newFromRegs.find(fromLocOrig);
             if (found == newFromRegs.end()) {
                newFromRegs.insert(make_pair(fromLocOrig,
                   make_pair(scaleOrig, false)));
-            } else {
-               newFromRegs[fromLocOrig].first += scaleOrig;
             }
          } else {
             TransferFunc fromRegFunc = findLoc->second;
+            assert(!fromRegFunc.isBottom());  // Should be special case
             if (fromRegFunc.isAbs()) {
-               newDelta += fromRegFunc.abs*scaleOrig;
-
-               // If we're processing the last source register,
-               // and we haven't added anything to the new register set, this
-               // must be a group of abs
-               auto tmp = iter;
-               tmp++;
-               if (tmp == fromRegs.end()) {
-                  if (newFromRegs.size() == 0) {
-                     input = absFunc(target, newDelta);
-                     return;
-                  }
-               }
+               newDelta += fromRegFunc.abs * scaleOrig;
             }
             if (fromRegFunc.isSIB()) {
                // Replace registers and update scales
@@ -1777,63 +1828,75 @@ void StackAnalysis::TransferFunc::accumulate(std::map<Absloc, TransferFunc> &inp
                   regIter != fromRegFunc.fromRegs.end(); ++regIter) {
                   Absloc replaceLoc = regIter->first;
                   long replaceScale = regIter->second.first;
-                  long replaceTopBottom = regIter->second.second;
-                  long newScale = replaceScale*scaleOrig;
+                  bool replaceTopBottom = regIter->second.second;
+                  long newScale = replaceScale * scaleOrig;
 
-                  // If this register already exists in the map, we need to
-                  // add, rather than overwrite!
+                  // Add to our map only the registers that we aren't already
+                  // considering.
+                  // FIXME if we change apply() to include constant propagation
                   auto found = newFromRegs.find(replaceLoc);
                   if (found == newFromRegs.end()) {
                      newFromRegs.insert(make_pair(replaceLoc,
                         make_pair(newScale, replaceTopBottom)));
-                  } else {
-                     newFromRegs[replaceLoc].first += newScale;
-                     newFromRegs[replaceLoc].second += replaceTopBottom;
                   }
                }
             }
-            if (fromRegFunc.isBottom()) {
-               // Any bottom'd input bottoms the output
-               input = bottomFunc(target);
-               return;
-            }
             if (fromRegFunc.isAlias()) {
-               // Replace fromRegOrig with fromRegFunc.from
+               // Replace fromRegOrig with fromRegFunc.from only if we aren't
+               // already considering fromRegFunc.from in our map.
+               // FIXME if we change apply() to include constant propagation
                auto found = newFromRegs.find(fromRegFunc.from);
                if (found == newFromRegs.end()) {
                   newFromRegs.insert(make_pair(fromRegFunc.from,
-                     make_pair(scaleOrig,fromRegFunc.isTopBottom())));
-               } else {
-                  newFromRegs[fromRegFunc.from].first += scaleOrig;
+                     make_pair(scaleOrig, fromRegFunc.isTopBottom())));
                }
             }
             if (fromRegFunc.isDelta()) {
-               newDelta += fromRegFunc.delta*scaleOrig;
+               newDelta += fromRegFunc.delta * scaleOrig;
                if (!fromRegFunc.isAlias() && !fromRegFunc.isSIB() &&
                   !fromRegFunc.isAbs()) {
                   // Add the register back in...
+                  // FIXME if we change apply() to include constant propagation
                   auto found = newFromRegs.find(fromLocOrig);
                   if (found == newFromRegs.end()) {
                      newFromRegs.insert(make_pair(fromLocOrig,
                         make_pair(scaleOrig,false)));
-                  } else {
-                     newFromRegs[fromLocOrig].first += scaleOrig;
                   }
                }
             }
-            // This is the default constructed target when the target didn't
-            // already exist--need to explicitly update...
+            if (fromRegFunc.isRetop()) {
+               // This is a register that was re-topped due to an instruction
+               // in this block.  Thus this term is TOP and doesn't affect the
+               // value of the LEA, so we can ignore it.
+               // FIXME if we change apply() to include constant propagation
+               continue;
+            }
             if (fromRegFunc.isTop()) {
+               // This is the default constructed target when the target didn't
+               // already exist.  Keep track of this register unless we already
+               // are.
+               // FIXME if we change apply() to include constant propagation
                auto found = newFromRegs.find(fromLocOrig);
                if (found == newFromRegs.end()) {
                   newFromRegs.insert(make_pair(fromLocOrig,
                      make_pair(scaleOrig,false)));
-               } else {
-                  newFromRegs[fromLocOrig].first += scaleOrig;
                }
             }
          }
       }
+
+      if (anyToppedTerms) {
+         // If any term is later discovered to be a stack height, we need to
+         // bottom the target register since this SIB contains a topped term
+         // (we know the topped term isn't a stack height, but we don't know
+         // precisely what it is).  We indicate this by setting the
+         // topBottom flag on non-topped registers.
+         for (auto iter = newFromRegs.begin(); iter != newFromRegs.end();
+            iter++) {
+            iter->second.second = true;
+         }
+      }
+
       input = sibFunc(newFromRegs, newDelta, target);
       input.topBottom = isTopBottomOrig;
       return;
@@ -1856,35 +1919,27 @@ void StackAnalysis::TransferFunc::accumulate(std::map<Absloc, TransferFunc> &inp
       TransferFunc &alias = iter->second;
 
       if (alias.isAbs()) {
-         // Easy; we reset the height, so we don't care about the inflow height.
-         // This might be a delta from that absolute, but all that we care about is that
-         // we ignore any inflow. 
+         // We reset the height, so we don't care about the inflow height
          assert(!alias.isAlias());
          input = absFunc(input.target, alias.abs);
-         input.topBottom = isTopBottomOrig || alias.isTopBottom(); // If we got an abs from an isTopBottom, this also needs to be set
+         input.topBottom = isTopBottomOrig || alias.isTopBottom();
          assert(input.target.isValid());
 
-         // if the input was also a delta, apply this
          if (isDelta()) {
             input.delta += delta;
          }
          return;
       }
       if (alias.isAlias()) {
-         // Transitivity! We cut that short.
-         // Again, it might be a delta since the alias, which we'll copy over. It cannot
-         // be an absolute because that will remove the alias (and vice versa).
          assert(!alias.isAbs());
          input = alias;
          input.target = target;
          input.topBottom = isTopBottomOrig || alias.isTopBottom();
          assert(input.target.isValid());
 
-         // if the input was also a delta, apply this also 
          if (isDelta()) {
             input.delta += delta;
          }
-
          return;
       }
       if (alias.isSIB()) {
@@ -1905,37 +1960,32 @@ void StackAnalysis::TransferFunc::accumulate(std::map<Absloc, TransferFunc> &inp
          return;
       }
 
-      // add top?
+      if (alias.isRetop()) {
+         input = retopFunc(target);
+         return;
+      }
 
-      // Default case: record the alias, zero out everything else, copy over the delta
-      // if it's defined.
+      // Default case: record the alias, zero out everything else, copy over
+      // the delta if it's defined.
       //input.target is defined
       input.from = alias.target;
       input.abs = uninitialized;
       if (alias.isDelta()) {
          input.delta = alias.delta;
-      }
-      else {
+      } else {
          input.delta = 0;
       }
-      input.topBottom = isTopBottomOrig || alias.isTopBottom(); // pass source tb
+      input.topBottom = isTopBottomOrig || alias.isTopBottom();
       input.fromRegs.clear();
-
-      // if the input was also a delta, apply this also 
-      if (isDelta()) {
-         input.delta += delta;
-      }
-
-      return;
    }
 
-   if (isDelta()) {
-      // A delta can apply cleanly to anything, since Height += handles top/bottom
+   if (isDelta() && !input.isRetop()) {
       input.delta += delta;
-      return;
    }
-   // Reachable because isDelta returns false for delta = 0; this is OK
-   return;
+
+   if (isRetop()) {
+      input = *this;
+   }
 }
 
 
@@ -1995,4 +2045,26 @@ std::string StackAnalysis::format(const AbslocState &input) const {
       ret << iter->first.format() << " := " << iter->second.format() << ", ";
    }
    return ret.str();
+}
+
+// Converts a delta in a Result to a long
+long StackAnalysis::extractDelta(Result deltaRes) {
+   long delta;
+   switch(deltaRes.size()) {
+      case 1:
+         delta = (long)deltaRes.convert<int8_t>();
+         break;
+      case 2:
+         delta = (long)deltaRes.convert<int16_t>();
+         break;
+      case 4:
+         delta = (long)deltaRes.convert<int32_t>();
+         break;
+      case 8:
+         delta = (long)deltaRes.convert<int64_t>();
+         break;
+      default:
+         assert(0);
+   }
+   return delta;
 }
