@@ -146,7 +146,7 @@ namespace Dyninst {
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
 
-				bool isPstateRead, isPstateWritten;
+		bool isPstateRead, isPstateWritten;
                 bool isFPInsn, isSIMDInsn;
                 bool is64Bit;
                 bool isValid;
@@ -154,10 +154,10 @@ namespace Dyninst {
                 void mainDecode();
                 int findInsnTableIndex(unsigned int);
 
-				/*members for handling operand re-ordering, will be removed later once a generic operand ordering method is incorporated*/
-				int oprRotateAmt;
-				bool hasb5;
-				void reorderOperands();
+		/*members for handling operand re-ordering, will be removed later once a generic operand ordering method is incorporated*/
+		int oprRotateAmt;
+		bool hasb5;
+		void reorderOperands();
 
                 static void buildSysRegMap();
                 unsigned int insn;
@@ -175,80 +175,84 @@ namespace Dyninst {
 
                 int32_t sign_extend32(int size, int in)
                 {
-					int32_t val = 0|in;
+		    int32_t val = 0|in;
 
                     return (val << (32 - size)) >> (32 - size);
                 }
 
                 int64_t sign_extend64(int size, int in)
                 {
-					int64_t val = 0|in;
+		    int64_t val = 0|in;
 
                     return (val << (64 - size)) >> (64 - size);
                 }
 
                 uint32_t unsign_extend32(int size, int in)
                 {
-					uint32_t mask = ~0;
+		    uint32_t mask = ~0;
 
                     return (mask>>(32-size)) & in;
-				}
+		}
 
                 uint64_t unsign_extend64(int size, int in)
                 {
-					uint64_t mask = ~0;
+		    uint64_t mask = ~0;
 
                     return (mask>>(64-size)) & in;
-				}
+		}
 
-				int op1Field, op2Field, crmField;
-				void processSystemInsn();
+		int op1Field, op2Field, crmField;
+		void processSystemInsn();
 
-				bool hasHw;
-				int hwField;
-				void processHwFieldInsn(int, int);
+		bool hasHw;
+		int hwField;
+		void processHwFieldInsn(int, int);
 
-				bool hasShift;
-				int shiftField;
-				void processShiftFieldShiftedInsn(int, int);
-				void processShiftFieldImmInsn(int, int);
+		bool hasShift;
+		int shiftField;
+		void processShiftFieldShiftedInsn(int, int);
+		void processShiftFieldImmInsn(int, int);
 
-				bool hasOption;
-				int optionField;
-				void processOptionFieldLSRegOffsetInsn();
+		bool hasOption;
+		int optionField;
+		void processOptionFieldLSRegOffsetInsn();
 
-				bool hasN;
-				int immr, immrLen;
-				int sField, nField, nLen;
+		bool hasN;
+		int immr, immrLen;
+		int sField, nField, nLen;
 
-        		int immlo, immloLen;
-				void makeBranchTarget(bool, bool, int, int);
-				Expression::Ptr makeFallThroughExpr();
+		int immlo, immloLen;
+		void makeBranchTarget(bool, bool, int, int);
+		Expression::Ptr makeFallThroughExpr();
 
                 int _szField;
                 int _typeField;
+		int cmode;
+		int op;
+		int simdAlphabetImm;
+		void processAlphabetImm();
 
                 void NOTHING();
 
                 void set32Mode();
-				void setRegWidth();
-				void setFPMode();
-				void setSIMDMode();
+		void setRegWidth();
+		void setFPMode();
+		void setSIMDMode();
 
                 bool isSinglePrec();
 
-				MachRegister makeAarch64RegID(MachRegister, unsigned int);
-				Expression::Ptr makeRdExpr();
-				Expression::Ptr makeRnExpr();
-				Expression::Ptr makeRmExpr();
-				Expression::Ptr makeRaExpr();
-				Expression::Ptr makeRsExpr();
-				Expression::Ptr makePstateExpr();
+		MachRegister makeAarch64RegID(MachRegister, unsigned int);
+		Expression::Ptr makeRdExpr();
+		Expression::Ptr makeRnExpr();
+		Expression::Ptr makeRmExpr();
+		Expression::Ptr makeRaExpr();
+		Expression::Ptr makeRsExpr();
+		Expression::Ptr makePstateExpr();
                 Expression::Ptr makePCExpr();
                 Expression::Ptr makeb40Expr();
-				Expression::Ptr makeOptionExpression(int, int);
-				template<typename T, Result_Type rT>
-				Expression::Ptr fpExpand(int);
+		Expression::Ptr makeOptionExpression(int, int);
+		template<typename T, Result_Type rT>
+		Expression::Ptr fpExpand(int);
                 Expression::Ptr makeRtExpr();
                 Expression::Ptr makeRt2Expr();
 
@@ -295,52 +299,52 @@ namespace Dyninst {
                 unsigned int get_SIMD_MULT_POST_imm();
                 unsigned int get_SIMD_SING_POST_imm();
 
-				void OPRRd();
-				void OPRsf();
-				template<unsigned int endBit, unsigned int startBit>
+		void OPRRd();
+		void OPRsf();
+		template<unsigned int endBit, unsigned int startBit>
                 void OPRoption();
-				void OPRshift();
-				void OPRhw();
-				template<unsigned int endBit, unsigned int startBit>
+		void OPRshift();
+		void OPRhw();
+		template<unsigned int endBit, unsigned int startBit>
                 void OPRN();
 
                 //for load store
                 void LIndex();
                 void STIndex();
-				void OPRRn();
+		void OPRRn();
                 void OPRRnL();
                 void OPRRnLU();
                 void OPRRnSU();
                 void OPRRnS();
-				void OPRRnU();
-				void OPRRm();
-				void OPRRt();
-				void OPRRtL();
-				void OPRRtS();
-				void OPRRt2();
-				void OPRRt2L();
-				void OPRRt2S();
+		void OPRRnU();
+		void OPRRm();
+		void OPRRt();
+		void OPRRtL();
+		void OPRRtS();
+		void OPRRt2();
+		void OPRRt2L();
+		void OPRRt2S();
 
-				void OPRop1();
-				void OPRop2();
-				template<unsigned int endBit, unsigned int startBit>
+		void OPRop1();
+		void OPRop2();
+		template<unsigned int endBit, unsigned int startBit>
                 void OPRcond();
-				void OPRnzcv();
-				void OPRCRm();
-				void OPRCRn();
-				template<unsigned int endBit, unsigned int startBit>
+		void OPRnzcv();
+		void OPRCRm();
+		void OPRCRn();
+		template<unsigned int endBit, unsigned int startBit>
                 void OPRS();
-				void OPRRa();
-				void OPRo0();
-				void OPRb5();
-				void OPRb40();
-				template<unsigned int endBit, unsigned int startBit>
-				void OPRsz();
-				void OPRRs();
-				template<unsigned int endBit, unsigned int startBit>
+		void OPRRa();
+		void OPRo0();
+		void OPRb5();
+		void OPRb40();
+		template<unsigned int endBit, unsigned int startBit>
+		void OPRsz();
+		void OPRRs();
+		template<unsigned int endBit, unsigned int startBit>
                 void OPRimm();
-				void OPRscale();
-				template<unsigned int endBit, unsigned int startBit>
+		void OPRscale();
+		template<unsigned int endBit, unsigned int startBit>
                 void OPRtype();
 
                 void OPRQ();
@@ -348,22 +352,22 @@ namespace Dyninst {
                 //void OPRR();
                 void OPRH() {}
                 void OPRM() {}
-                void OPRa() {}
-                void OPRb() {}
-                void OPRc() {}
-                void OPRd() {}
-                void OPRe() {}
-                void OPRf() {}
-                void OPRg() {}
-                void OPRh() {}
+                void OPRa();
+                void OPRb();
+                void OPRc();
+                void OPRd();
+                void OPRe();
+                void OPRf();
+                void OPRg();
+                void OPRh();
                 void OPRopc() {}
                 void OPRopcode() {}
                 void OPRlen() {}
                 template<unsigned int endBit, unsigned int startBit>
                 void OPRsize() {}
-                void OPRcmode() {}
+                void OPRcmode();
                 void OPRrmode() {}
-                void OPRop() {}
+                void OPRop();
                 void setFlags();
 
                 unsigned int _Q;
