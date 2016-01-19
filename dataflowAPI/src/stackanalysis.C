@@ -335,7 +335,8 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
           sign = -1;
           //FALLTHROUGH
        case e_add:
-          handleAddSub(insn, sign, xferFuncs);
+       case e_addsd:
+          handleAddSub(insn, off, sign, xferFuncs);
           break;
        case e_leave:
           handleLeave(xferFuncs);
@@ -362,6 +363,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
           handlePowerStoreUpdate(insn, xferFuncs);
           break;
        case e_mov:
+       case e_movsd_sse:
           handleMov(insn, off, xferFuncs);
           break;
        case e_movzx:
@@ -782,38 +784,205 @@ void StackAnalysis::handleReturn(Instruction::Ptr insn, TransferFuncs &xferFuncs
    xferFuncs.push_back(TransferFunc::deltaFunc(Absloc(sp()), delta));
 }
 
-void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs &xferFuncs) {
-   // add reg, mem is ignored
-   // add mem, reg bottoms reg
-   if (insn->writesMemory()) return;
-   if (insn->readsMemory()) {
-      handleDefault(insn, xferFuncs);
-      return;
+
+// Visitor class to evaluate addresses relative to %rip
+class PCRelativeVisitor : public Visitor {
+private:
+   Address rip;
+   std::deque<Address> results;
+   bool defined;
+
+public:
+   // addr is the starting address of instruction insn.
+   // insn is the instruction containing the expression to evaluate.
+   PCRelativeVisitor(Address addr, Instruction::Ptr insn) : defined(true) {
+      rip = addr + insn->size();
    }
+
+   bool isDefined() {
+      return defined && results.size() == 1;
+   }
+
+   Address getResult() {
+      return isDefined() ? results.back() : 0;
+   }
+
+   virtual void visit(BinaryFunction *bf) {
+      if (!defined) return;
+
+      Address arg1 = results.back();
+      results.pop_back();
+      Address arg2 = results.back();
+      results.pop_back();
+
+      if (bf->isAdd()) {
+         results.push_back(arg1 + arg2);
+      } else if (bf->isMultiply()) {
+         results.push_back(arg1 * arg2);
+      } else {
+         defined = false;
+      }
+   }
+
+   virtual void visit(Immediate *imm) {
+      if (!defined) return;
+
+      results.push_back(imm->eval().convert<Address>());
+   }
+
+   virtual void visit(RegisterAST *rast) {
+      if (!defined) return;
+
+      MachRegister reg = rast->getID();
+      if (reg == x86::eip || reg == x86_64::eip || reg == x86_64::rip) {
+         results.push_back(rip);
+      } else {
+         defined = false;
+      }
+   }
+
+   virtual void visit(Dereference *) {
+      defined = false;
+   }
+};
+
+
+void StackAnalysis::handleAddSub(Instruction::Ptr insn, const Offset off,
+   int sign, TransferFuncs &xferFuncs) {
+   // Possible forms for add/sub:
+   //   1. add reg1, reg2
+   //     -- reg1 = reg1 + reg2
+   //   2. add reg1, mem2
+   //     -- reg1 = reg1 + mem2
+   //   3. add mem1, reg2
+   //     -- mem1 = mem1 + reg2
+   //   4. add reg1, imm2
+   //     -- reg1 = reg1 + imm2
+   //   5. add mem1, imm2
+   //     -- mem1 = mem1 + imm2
+   //
+   //   #1 is handled by setting reg1 to a sibFunc of reg1 and reg2.
+   //   #2 depends on whether or not the location of mem2 can be determined
+   //      statically.
+   //      a. If it can, reg1 is set to a sibFunc of reg1 and mem2.
+   //      b. Otherwise, reg1 is set to bottom.
+   //   #3 depends on whether or not the location of mem1 can be determined
+   //      statically.
+   //      a. If it can, mem1 is set to a sibFunc of mem1 and reg2.
+   //      b. Otherwise, nothing happens.
+   //   #4 is handled with a delta.
+   //   #5 depends on whether or not the location of mem1 can be determined
+   //      statically.
+   //      a. If it can, mem1 is handled with a delta.
+   //      b. Otherwise, nothing happens.
+
+   stackanalysis_printf("\t\t\t handleAddSub, insn = %s\n",
+      insn->format().c_str());
+   Architecture arch = insn->getArch();  // Needed for debug messages
+   std::vector<Operand> operands;
+   insn->getOperands(operands);
+   assert(operands.size() == 2);
 
    std::set<RegisterAST::Ptr> readSet;
-   insn->getOperand(0).getReadSet(readSet);
-   if (readSet.size() != 1) {
-      fprintf(stderr, "readSet != 1\n");
-      handleDefault(insn, xferFuncs);
+   std::set<RegisterAST::Ptr> writeSet;
+   operands[1].getReadSet(readSet);
+   operands[0].getWriteSet(writeSet);
+
+   if (insn->writesMemory()) {
+      // Cases 3 and 5
+      assert(writeSet.size() == 0);
+      stackanalysis_printf("\t\t\tMemory add/sub to: %s\n",
+         operands[0].format(arch).c_str());
+
+      // Extract the expression inside the dereference
+      std::vector<Expression::Ptr> addrExpr;
+      operands[0].getValue()->getChildren(addrExpr);
+      assert(addrExpr.size() == 1);
+
+      // Try to determine the written memory address
+      Address writtenAddr;
+      PCRelativeVisitor visitor(off, insn);
+      addrExpr[0]->apply(&visitor);
+      if (visitor.isDefined()) {
+         writtenAddr = visitor.getResult();
+         stackanalysis_printf("\t\t\tSimplifies to: %lx\n", writtenAddr);
+      } else {
+         // Cases 3b and 5b
+         stackanalysis_printf("\t\t\tCan't determine statically\n");
+         return;
+      }
+
+      if (readSet.size() > 0) {
+         // Case 3a
+         assert(readSet.size() == 1);
+         std::map<Absloc, std::pair<long, bool>> terms;
+         Absloc src((*readSet.begin())->getID());
+         Absloc dest(writtenAddr);
+         terms[src] = make_pair(sign, false);
+         terms[dest] = make_pair(1, false);
+         xferFuncs.push_back(TransferFunc::sibFunc(terms, 0, dest));
+      } else {
+         // Case 5a
+         Expression::Ptr immExpr = operands[1].getValue();
+         assert(typeid(*immExpr) == typeid(Immediate));
+         long immVal = immExpr->eval().convert<long>();
+         Absloc dest(writtenAddr);
+         xferFuncs.push_back(TransferFunc::deltaFunc(dest, sign * immVal));
+      }
       return;
    }
 
-   // Add/subtract are op0 += (or -=) op1
-   Operand arg = insn->getOperand(1);
-   Result res = arg.getValue()->eval();
-   if (res.defined) {
-      long delta = sign * extractDelta(res);
-      stackanalysis_printf(
-         "\t\t\t Stack height changed by evalled add/sub: %lx\n", delta);
-      Absloc loc((*(readSet.begin()))->getID());
-      xferFuncs.push_back(TransferFunc::deltaFunc(loc, delta));
-   }
-   else {
-      handleDefault(insn, xferFuncs);
+   // Cases 1, 2, and 4
+   assert(writeSet.size() == 1);
+   MachRegister written = (*writeSet.begin())->getID();
+   Absloc writtenloc(written);
+
+   if (insn->readsMemory()) {
+      // Case 2
+      stackanalysis_printf("\t\t\tAdd/sub from: %s\n",
+         operands[1].format(arch).c_str());
+
+      // Extract the expression inside the dereference
+      std::vector<Expression::Ptr> addrExpr;
+      operands[1].getValue()->getChildren(addrExpr);
+      assert(addrExpr.size() == 1);
+
+      // Try to determine the read memory address
+      PCRelativeVisitor visitor(off, insn);
+      addrExpr[0]->apply(&visitor);
+      if (visitor.isDefined()) {
+         // Case 2a
+         Address readAddr = visitor.getResult();
+         stackanalysis_printf("\t\t\tSimplifies to: %lx\n", readAddr);
+         std::map<Absloc, std::pair<long, bool>> terms;
+         Absloc src(readAddr);
+         Absloc dest = writtenloc;
+         terms[src] = make_pair(sign, false);
+         terms[dest] = make_pair(1, false);
+         xferFuncs.push_back(TransferFunc::sibFunc(terms, 0, dest));
+      } else {
+         // Case 2b
+         stackanalysis_printf("\t\t\tCan't determine statically\n");
+         xferFuncs.push_back(TransferFunc::bottomFunc(writtenloc));
+      }
+      return;
    }
 
-   return;
+   Result res = operands[1].getValue()->eval();
+   if (res.defined) {
+      // Case 4
+      long delta = sign * extractDelta(res);
+      stackanalysis_printf("\t\t\t Register changed by add/sub: %lx\n", delta);
+      xferFuncs.push_back(TransferFunc::deltaFunc(writtenloc, delta));
+   } else {
+      // Case 1
+      std::map<Absloc, std::pair<long, bool>> terms;
+      Absloc src((*readSet.begin())->getID());
+      Absloc dest = writtenloc;
+      terms[src] = make_pair(sign, false);
+      terms[dest] = make_pair(1, false);
+      xferFuncs.push_back(TransferFunc::sibFunc(terms, 0, dest));
+   }
 }
 
 void StackAnalysis::handleLEA(Instruction::Ptr insn,
@@ -1068,66 +1237,6 @@ void StackAnalysis::handlePowerStoreUpdate(Instruction::Ptr insn,
    }
 }
 
-// Visitor class to evaluate addresses relative to %rip
-class PCRelativeVisitor : public Visitor {
-private:
-   Address rip;
-   std::deque<Address> results;
-   bool defined;
-
-public:
-   // addr is the starting address of instruction insn.
-   // insn is the instruction containing the expression to evaluate.
-   PCRelativeVisitor(Address addr, Instruction::Ptr insn) : defined(true) {
-      rip = addr + insn->size();
-   }
-
-   bool isDefined() {
-      return defined && results.size() == 1;
-   }
-
-   Address getResult() {
-      return isDefined() ? results.back() : 0;
-   }
-
-   virtual void visit(BinaryFunction *bf) {
-      if (!defined) return;
-
-      Address arg1 = results.back();
-      results.pop_back();
-      Address arg2 = results.back();
-      results.pop_back();
-
-      if (bf->isAdd()) {
-         results.push_back(arg1 + arg2);
-      } else if (bf->isMultiply()) {
-         results.push_back(arg1 * arg2);
-      } else {
-         defined = false;
-      }
-   }
-
-   virtual void visit(Immediate *imm) {
-      if (!defined) return;
-
-      results.push_back(imm->eval().convert<Address>());
-   }
-
-   virtual void visit(RegisterAST *rast) {
-      if (!defined) return;
-
-      MachRegister reg = rast->getID();
-      if (reg == x86::eip || reg == x86_64::eip || reg == x86_64::rip) {
-         results.push_back(rip);
-      } else {
-         defined = false;
-      }
-   }
-
-   virtual void visit(Dereference *) {
-      defined = false;
-   }
-};
 
 void StackAnalysis::handleMov(Instruction::Ptr insn, const Offset off,
    TransferFuncs &xferFuncs) {
@@ -1798,10 +1907,10 @@ void StackAnalysis::TransferFunc::accumulate(
          Absloc fromLocOrig = (*iter).first;
          long scaleOrig = (*iter).second.first;
 
-         // Because any term with a scale > 1 is TOP, such terms do not affect
+         // Because any term with a scale != 1 is TOP, such terms do not affect
          // the final TOP/BOTTOM/Height value of the LEA and can be ignored.
          // FIXME if we change apply() to include constant propagation
-         if (scaleOrig > 1) {
+         if (scaleOrig != 1) {
             anyToppedTerms = true;
             continue;
          }
