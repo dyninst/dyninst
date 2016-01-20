@@ -81,7 +81,7 @@ enum {
   SSE58, SSE59, SSE5A, SSE5B, SSE5C, SSE5D, SSE5E, SSE5F,
   SSE60, SSE61, SSE62, SSE63, SSE64, SSE65, SSE66, SSE67,
   SSE68, SSE69, SSE6A, SSE6B, SSE6C, SSE6D, SSE6E, SSE6F,
-  SSE70, SSE74, SSE75, SSE76,
+  SSE70, SSE74, SSE75, SSE76, SSE77,
   SSE78, SSE79, SSE7C, SSE7D, SSE7E, SSE7F,
   SSEB8,
   SSEC2, SSEC4, SSEC5, SSEC6,
@@ -96,24 +96,26 @@ enum {
 // SSE BIS
 enum {
 	SSEB00=0, SSEB01, SSEB02, SSEB03, SSEB04, SSEB05, SSEB06, SSEB07,
-	SSEB08, SSEB09,	SSEB0A, SSEB0B,
-	SSEB10, SSEB14, SSEB15, SSEB17,
+	SSEB08, SSEB09,	SSEB0A, SSEB0B, SSEB0C, SSEB0D, SSEB0E, SSEB0F,
+	SSEB10, SSEB13, SSEB14, SSEB15, SSEB16, SSEB17,
 	SSEB18, SSEB19, SSEB1A, SSEB1B, SSEB1C, SSEB1D, SSEB1E,
 	SSEB20, SSEB21, SSEB22, SSEB23, SSEB24, SSEB25, 
-	SSEB28, SSEB29, SSEB2A, SSEB2B,
-	SSEB30, SSEB31, SSEB32, SSEB33, SSEB34, SSEB35, SSEB37,
+	SSEB28, SSEB29, SSEB2A, SSEB2B, SSEB2C, SSEB2D, SSEB2E, SSEB2F,
+	SSEB30, SSEB31, SSEB32, SSEB33, SSEB34, SSEB35, SSEB36, SSEB37,
 	SSEB38, SSEB39,	SSEB3A, SSEB3B, SSEB3C, SSEB3D, SSEB3E, SSEB3F,
-	SSEB40, SSEB41,
+	SSEB40, SSEB41, SSEB46, 
+  SSEB58, SSEB59, SSEB5A,
+  SSEB78, SSEB79,
 	SSEBF0, SSEBF1
 };
 
 // SSE TER 
 enum {
-	SSET08=0, SSET09,
+	SSET00=0, SSET01, SSET04, SSET05, SSET08, SSET09,
 	SSET0A, SSET0B, SSET0C, SSET0D, SSET0E, SSET0F,
 	SSET14, SSET15, SSET16, SSET17,
-	SSET18, SSET19,
-	SSET20, SSET21, SSET22,
+	SSET18, SSET19, SSET1D,
+	SSET20, SSET21, SSET22, SSET39,
 	SSET40, SSET41, SSET42,
 	SSET60, SSET61, SSET62, SSET63
 };
@@ -1571,7 +1573,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSE74, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE75, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE76, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_vex2, 1, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE77, false, { Zz, Zz, Zz }, 0, 0 },
   /* 78 */
   { e_No_Entry, t_sse, SSE78, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE79, 0, { Zz, Zz, Zz }, 0, 0 },
@@ -1745,23 +1747,23 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_sse_bis, SSEB09, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB0A, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB0B, true, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x56, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x55, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x16, false, { Zz, Zz, Zz }, 0, sNONE },
-		{ e_No_Entry, t_vex3, 0x17, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_No_Entry, t_sse_bis, SSEB0C, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB0D, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB0E, false, { Zz, Zz, Zz }, 0, sNONE },
+		{ e_No_Entry, t_sse_bis, SSEB0F, false, { Zz, Zz, Zz }, 0, sNONE },
 		/* 10 */
 		{ e_No_Entry, t_sse_bis, SSEB10, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x14, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB13, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB14, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB15, true, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x52, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB16, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB17, true, { Zz, Zz, Zz }, 0, 0 },
 		/* 18 */
-		{ e_No_Entry, t_vex3, 0x58, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x59, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x5A, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB18, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB19, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB1A, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB1B, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB1C, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB1D, true, { Zz, Zz, Zz }, 0, 0 },
@@ -1781,10 +1783,10 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_sse_bis, SSEB29, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB2A, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB2B, true, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x30, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x31, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x3C, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x3D, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB2C, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB2D, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB2E, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB2F, false, { Zz, Zz, Zz }, 0, 0 },
 		/* 30 */
 		{ e_No_Entry, t_sse_bis, SSEB30, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB31, true, { Zz, Zz, Zz }, 0, 0 },
@@ -1792,7 +1794,7 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_sse_bis, SSEB33, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB34, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB35, true, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x50, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB36, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB37, true, { Zz, Zz, Zz }, 0, 0 },
 		/* 38 */
 		{ e_No_Entry, t_sse_bis, SSEB38, true, { Zz, Zz, Zz }, 0, 0 },
@@ -1810,7 +1812,7 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_vex3, 0x38, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x39, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB46, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_vex3, 0x3A, false, { Zz, Zz, Zz }, 0, 0 },
 		/* 48 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -1831,9 +1833,9 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		/* 58 */
-		{ e_No_Entry, t_vex3, 0x5D, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x5E, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x5A, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB58, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB59, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB5A, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -1867,8 +1869,8 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		/* 78 */
-		{ e_No_Entry, t_vex3, 0x5B, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x5C, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB78, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB79, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -2023,12 +2025,12 @@ static ia32_entry threeByteMap[256] = {
 
 static ia32_entry threeByteMap2[256] = {
 		/* 00 */
-		{ e_No_Entry, t_vex3, 0x53, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x51, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_ter, SSET00, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_ter, SSET01, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_vex3, 0x01, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x61, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x60, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_ter, SSET04, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_ter, SSET05, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_vex3, 0x57, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		/* 08*/
@@ -2051,11 +2053,11 @@ static ia32_entry threeByteMap2[256] = {
 		{ e_No_Entry, t_sse_ter, SSET17, true, { Zz, Zz, Zz }, 0, 0 },
 		/* 18 */
 		{ e_No_Entry, t_vex3, 0x12, true, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x10, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_ter, SSET19, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x15, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_ter, SSET1D, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		/* 20 */
@@ -2087,7 +2089,7 @@ static ia32_entry threeByteMap2[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		/* 38 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x11, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_ter, SSET39, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -2814,8 +2816,6 @@ static ia32_entry groupMap2[][2][8] = {
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     }
   }
-
-
 };
 
 /* rows are not, F3, 66, F2 prefixed in this order (see book) */
@@ -3131,6 +3131,12 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_pcmpeqd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+  },
+  { /* SSE77 */
+    { e_No_Entry, t_vex2, 0x01, false, { Zz, Zz, Zz }, 0, 0 }, /* vzeroall or vzeroupper */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
   },
   { /* SSE78 */
     { e_vmread, t_done, 0, true, { Ed, Gd, Zz }, 0, 0 },
@@ -3532,7 +3538,7 @@ static ia32_entry sseMapBis[][5] = {
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
-		{ /* SSEB02 */
+		{ /* SSEB06 */
 				{ e_phsubd, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_phsubd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
@@ -3574,6 +3580,34 @@ static ia32_entry sseMapBis[][5] = {
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
+    { /* SSEB0C */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpermilps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSEB0D */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpermilpd, t_done, 0, true, { Vpd, Hpd, Wpd }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSEB0E */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vtestps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSEB0F */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vtestpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
 		{ /* SSEB10 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -3581,6 +3615,13 @@ static ia32_entry sseMapBis[][5] = {
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
+    { /* SSEB13 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vcvtph2ps, t_done, 0, true, { Vps, Wdq, Zz }, 0, s1W2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
 		{ /* SSEB14 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -3595,6 +3636,13 @@ static ia32_entry sseMapBis[][5] = {
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
+    { /* SSEB16 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpermps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
 		{ /* SSEB17 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -3605,22 +3653,21 @@ static ia32_entry sseMapBis[][5] = {
 		{ /* SSEB18 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_vbroadcastss, t_done, 0, true, { Vdq, Mq, Zz }, 0, s1RW2R }, // actually Mo through this series
+        { e_vbroadcastss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
 		{ /* SSEB19 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_vbroadcastsd, t_done, 0, true, { Vdq, Mq, Zz }, 0, s1RW2R },
+        { e_vbroadcastsd, t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
 		{ /* SSEB1A */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				// { e_vbroadcastf, t_done, 0, true, { Vdq, Mq, Zz }, 0, s1RW2R },
+        { e_vbroadcastf128, t_done, 0, true, { Vsd, Wq, Zz }, 0, s1W2R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
@@ -3723,6 +3770,34 @@ static ia32_entry sseMapBis[][5] = {
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
+    { /* SSEB2C */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vmaskmovps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSEB2D */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vmaskmovpd, t_done, 0, true, { Vpd, Hpd, Wpd }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSEB2E */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vmaskmovps, t_done, 0, true, { Wps, Hps, Vps }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSEB2F */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vmaskmovpd, t_done, 0, true, { Wpd, Hpd, Vpd }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
 		{ /* SSEB30 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -3765,6 +3840,13 @@ static ia32_entry sseMapBis[][5] = {
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
+    { /* SSEB36 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpermd, t_done, 0, true, { Vdq, Hdq, Wdq }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
 		{ /* SSEB37 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -3842,6 +3924,48 @@ static ia32_entry sseMapBis[][5] = {
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 		},
+    { /* SSEB46 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpsravd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSEB58 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpbroadcastd, t_done, 0, true, { Vps, Wd, Zz }, 0, s1W2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSEB59 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpbroadcastq, t_done, 0, true, { Vps, Wq, Zz }, 0, s1W2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSEB5A */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vbroadcastf128, t_done, 0, true, { Vsd, Wq, Zz }, 0, s1W2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSEB78 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpbroadcastb, t_done, 0, true, { Vps, Wb, Zz }, 0, s1W2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSEB79 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpbroadcastw, t_done, 0, true, { Vps, Ww, Zz }, 0, s1W2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
 		{ /* SSEBF0 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -3861,15 +3985,35 @@ static ia32_entry sseMapBis[][5] = {
 
 /* rows are not, 66, F2 prefixed in this order (see book) */
 static ia32_entry sseMapTer[][3] = {
+    { /* SSET00 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpermq, t_done, 0, true, { Vdq, Wqq, Ib }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSET01 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpermpd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSET04 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpermilps, t_done, 0, true, { Vps, Wps, Ib }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSET05 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpermilpd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
 		{ /* SSET08 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_roundps, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R },
+				{ e_roundps, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R }
 		},
 		{ /* SSET09 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_roundpd, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R },
+				{ e_roundpd, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R }
 		},
 		{ /* SSET0A */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -3928,9 +4072,14 @@ static ia32_entry sseMapTer[][3] = {
 		},
 		{ /* SSET19 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_vextractf128, t_done, 0, true, { Vdq, Wq, Ib }, 0, s1W2R3R }, 
+        { e_vextractf128, t_done, 0, true, { Wps, Vps, Ib }, 0, s1W2R3R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		},
+    { /* SSET1D */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vcvtps2ph, t_done, 0, true, { Wps, Vps, Ib }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    },
 		{ /* SSET20 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_pinsrb, t_done, 0, true, { Vdq, RMb, Ib }, 0, s1W2R3R }, 
@@ -3946,6 +4095,11 @@ static ia32_entry sseMapTer[][3] = {
 				{ e_pinsrd_pinsrq, t_done, 0, true, { Vdq, Ey, Ib }, 0, s1W2R3R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		},
+    { /* SSET39 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vextracti128, t_done, 0, true, { Wps, Vps, Ib }, 0, s1RW2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    },
 		{ /* SSET40 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -4435,7 +4589,8 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 {
   ia32_prefixes& pref = instruct.prf;
   unsigned int table, nxtab;
-  unsigned int idx = 0, sseidx = 0;
+  unsigned int idx = 0;
+  int sseidx = 0;
   ia32_entry *gotit = NULL;
   int condbits = 0;
   
@@ -4460,49 +4615,74 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
   /* Is there a VEX prefix for this instruction? */
   if(pref.vex_prefix[0])
   {
-      // printf("Decoding VEX prefixed instruction.\n");
+      /* Grab the opcode for the index */
       idx = addr[0];
-      // printf("IDX: 0x%x\n", idx);
       instruct.size += 1;
-      // printf("Instruction size: %d\n", instruct.size);
       addr += 1;
-      sseidx = oneByteMap[pref.getOpcodePrefix()].tabidx;
-      // printf("Opcode prefix: 0x%x\n", pref.getOpcodePrefix());
-      // printf("SSETABLE: %d t_done: %d  t_prefixedSSE: %d\n", oneByteMap[pref.getOpcodePrefix()].otable, t_done, t_prefixedSSE);
-      // printf("SSEIDX: %d\n", sseidx);
 
-      // VEX instruction or xop. If there's only one prefix, table is two-byte.
+      /* Which vex prefix are we using? (VEX2, VEX3, EVEX)*/
       if(pref.vex_prefix[1] == 0)
       {
         /* This is a VEX2 prefixed instruction */
-        // printf("Instruction is two byte.\n");
 	      gotit = &twoByteMap[idx];
-      } else {
+        sseidx = 0;
+      } else if(pref.vex_prefix[2] == 0)
+      {
+        /**
+         * TODO: Since we know we will end up in sseMap, sseBisMap, or sseTerMap, should
+         * we just point ourself into the correct table instead of pointing to one
+         * of the byte maps?
+         */
+
 	      // FIXME: not handling xop separately yet
+	      int op_pref_idx = VEXGET_PP(pref.vex_prefix[1]);
+        if(op_pref_idx < 0 || op_pref_idx > 3)
+        {
+            /* Something went very wrong with the prefix decoding */
+            assert(0);
+        }
 
 	      /* Select m-mmmm bits */
-	      switch(pref.vex_prefix[0] & VEX3_M)
+	      switch(VEX3GET_M(pref.vex_prefix[0]))
 	      {
 	         case 1:
-              // printf("Using the two byte map. (0F PREFIXED)\n");
 	            gotit = &twoByteMap[idx];
+              /* Will enter the sseMap table. Change the sseidx to match. */
+              sseidx = vex3_simdop_convert[0][op_pref_idx];
 	            break;
 	         case 2:
-              // printf("Using the three byte map. (0f 38 PREFIXED)\n");
 	            gotit = &threeByteMap[idx];
+              /* Will enter the sseBisMap table. Change the sseidx to match. */
+              sseidx = vex3_simdop_convert[1][op_pref_idx];
 	            break;
 	         case 3:
-              // printf("Using the other three byte map. (0f 3A PREFIXED)\n");
 	            gotit = &threeByteMap2[idx];
-	            if(sseidx) sseidx--; // mapping none/f3/66/f2 to none/66/f2
+              /* Will enter the sseTerMap table. Change the sseidx to match. */
+              sseidx = vex3_simdop_convert[2][op_pref_idx];
+
+              /* One mapping here doesn't work (F3 prefixed) */
+              /* If this is ever encountered, we will need to change the sseTerMap table. */
 	            break;
 	         default:
-              // printf("Invalid instruction: 0x%x\n", pref.vex_prefix[0]);
               gotit = &vex3Map[0][0];
               idx = 0;
               /* This reserved for future use and will cause #UD. */
               break;
 	      }
+
+        if(sseidx < 0)
+        {
+          /**
+           * This index cannot be expressed in the destination table. 
+           * This should not be possible. 
+           */
+          assert(0);
+        }
+      } else {
+        /* EVEX instruction */
+        instruct.legacy_type = ILLEGAL;
+        instruct.entry = gotit;
+        return instruct;
       }
       
       nxtab = gotit->otable;
@@ -4649,6 +4829,15 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       idx = gotit->tabidx;
       /* Set the current entry */
       gotit = &vex3Map[idx][pref.vex_w];
+      if(vex3Map[idx][!pref.vex_w].id == e_No_Entry)
+      {
+        printf("**********************VV******************\n");
+        printf("Op Code:      0x%x\n", addr[-1]);
+        printf("Table number: %d\n", VEX3GET_M(pref.vex_prefix[0]));
+        printf("VEX3 index:   0x%x\n", idx);
+        printf("SIMD idx:     %d\n", sseidx);
+        printf("**********************^^******************\n");
+      }
       // printf("W:   %d", pref.vex_w);
       // printf("IDX: 0x%x\n", idx);
       /* Set the next table - this is almost always t_done */
@@ -5708,8 +5897,8 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                           ia32_locations *loc)
 {
    pref.count = 0;
-   pref.prfx[0] = pref.prfx[1] = pref.prfx[2] = pref.prfx[3] = pref.prfx[4] = 0;
-   pref.vex_prefix[0] = pref.vex_prefix[1] = pref.vex_prefix[2] = 0;
+   memset(pref.prfx, 0, 5);
+   memset(pref.vex_prefix, 0, 4);
    pref.opcode_prefix = 0;
    pref.vex_l = -1;
    pref.vex_w = -1;
@@ -5758,18 +5947,22 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
             ++pref.count;
             pref.prfx[3] = addr[0];
             break;
-          case PREFIX_MVEX:
           case PREFIX_XOP:
    	        pref.vex_prefix[2] = addr[3];
    	        ++pref.count;
-   	        // fall through
+   	        break;
+   	      case PREFIX_EVEX:
+            /* Save the 3 important prefix bytes */
+            memmove(pref.vex_prefix, addr + 1, 3);
+
+            pref.count += 4;
+            in_prefix = false;
+            break;
           case PREFIX_VEX3:
             pref.vex_prefix[0] = addr[1];
    	        pref.vex_prefix[1] = addr[2];
-            pref.vex_l = addr[2] & VEX3_L;
-            if(pref.vex_l) pref.vex_l = 1;
-            pref.vex_w = addr[2] & VEX3_W;
-            if(pref.vex_w) pref.vex_w = 1;
+            pref.vex_l = VEXGET_L(addr[2]);
+            pref.vex_w = VEX3GET_W(addr[2]);
    	        pref.count += 3;
 
      	      switch(pref.vex_prefix[1] & 0x03)
@@ -5794,9 +5987,8 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
      	      break;
          case PREFIX_VEX2:
      	      pref.vex_prefix[0] = addr[1];
-            pref.vex_l = addr[1] & VEX2_L;
-            if(pref.vex_l) pref.vex_l = 1;
-            pref.vex_w = -1;
+            pref.vex_l = VEXGET_L(addr[1]);
+            pref.vex_w = -1; /* No W bit for VEX2 */
 
      	      switch(pref.vex_prefix[0] & 0x03)
      	      {
@@ -5819,7 +6011,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
      	      pref.count += 2;
   	        in_prefix = false; // VEX prefixes exclude all others
   	        break;
-         default:
+        default:
             in_prefix=false;
       }
     
