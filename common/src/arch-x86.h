@@ -401,24 +401,36 @@ enum {
 /* Masks to help decode vex prefixes */
 
 /** VEX 3 masks (2nd byte) */
-#define VEX3_REXR   (1 << 7)
+#define PREFIX_VEX3 ((unsigned char)0xC4)
+#define PREFIX_VEX2 ((unsigned char)0xC5)
 #define VEX3_REXX   (1 << 6)
 #define VEX3_REXB   (1 << 5)
 #define VEX3_M      ((1 << 5) - 1)
-
-/* 3rd byte of VEX2 prefix */
 #define VEX3_W      (1 << 7)
-#define VEX3_VVVV   (((1 << 4) - 1) << 3)
-#define VEX3_L      (1 << 2)
-#define VEX3_PP     ((1 << 2) - 1)
 
-#define GETVEX_VVVV(b) ((~((b & VEX3_VVVV) >> 3)) & 0x0F)
+/* VEX2 and VEX3 share these bits on their final byte  */
+#define VEX_VVVV   (((1 << 4) - 1) << 3)
+#define VEX_L      (1 << 2)
+#define VEX_PP     ((1 << 2) - 1)
+#define VEX_REXR   (1 << 7)
 
-/** VEX 2 masks */
-#define VEX2_REXR   (1 << 7)
-#define VEX2_VVVV   (((1 << 4) - 1) << 3)
-#define VEX2_L      (1 << 2)
-#define VEX2_PP     ((1 << 2) - 1)
+/* VEX mask helper macros */
+#define VEXGET_VVVV(b)  (char)(~((b & VEX3_VVVV) >> 3))
+#define VEXGET_L(b)     (char)((b & VEX_L) >> 2)
+#define VEXGET_PP(b)    (char)(b & VEX_PP)
+
+#define VEX3GET_W(b)    (char)((b & VEX3_W) >> 7)
+#define VEX3GET_M(b)    (b & VEX3_M)
+
+/* SIMD op conversion table */
+char vex3_simdop_convert[3][4] = {
+  {0, 2,  1, 3},
+  {0, 2,  1, 3},
+  {0, 1, -1, 2}
+};
+
+/** EVEX masks */
+#define PREFIX_EVEX ((unsigned char)0x62)
 
 #endif
 
@@ -434,9 +446,6 @@ enum {
 #define PREFIX_SEGFS  (unsigned char)(0x64)
 #define PREFIX_SEGGS  (unsigned char)(0x65)
 
-#define PREFIX_MVEX (unsigned char)(0x62)
-#define PREFIX_VEX2 (unsigned char)(0xC5)
-#define PREFIX_VEX3 (unsigned char)(0xC4)
 #define PREFIX_XOP  (unsigned char)(0x8F)
 
 #define PREFIX_BRANCH0 (unsigned char)(0x2E)
@@ -552,9 +561,9 @@ class ia32_prefixes
   unsigned char getOpcodePrefix() const { return opcode_prefix; }
   unsigned char getAddrSzPrefix() const { return prfx[3]; }
   unsigned char getOperSzPrefix() const { return prfx[2]; }
-  unsigned char vex_prefix[3];
-  unsigned char vex_l;
-  unsigned char vex_w;
+  unsigned char vex_prefix[3]; /* support up to EVEX (VEX-512) */
+  unsigned char vex_l; /* l bit for VEX2 and VEX3 */
+  unsigned char vex_w; /* w bit for VEX2 and VEX3 */
 };
 
 // helper routine to tack-on rex bit when needed
