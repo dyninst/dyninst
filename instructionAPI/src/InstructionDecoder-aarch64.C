@@ -619,6 +619,12 @@ void InstructionDecoder_aarch64::OPRh()
     simdAlphabetImm = (simdAlphabetImm & 0xFE) | (field<5, 5>(insn));
 }
 
+void InstructionDecoder_aarch64::OPRlen()
+{
+    //reuse immlo
+    immlo = field<13, 14>(insn);
+}
+
 Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 {
     int encoding  = field<5, 9>(insn);
@@ -669,6 +675,15 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
         {
             reg = _Q == 0x1?aarch64::hq0:aarch64::d0;
         }
+	else if(IS_INSN_SIMD_TAB_LOOKUP(insn))
+	{
+	    reg = _Q==1?aarch64::q0:aarch64::d0;
+	    
+	    for(int reg_index = immlo; reg_index >= 0; reg_index++)
+	    {
+		insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(reg, (encoding+reg_index)%32)), true, false);
+	    }
+	}
         else
             reg = _Q == 0x1?aarch64::q0:aarch64::d0;
 
@@ -2107,9 +2122,41 @@ void InstructionDecoder_aarch64::OPRimm()
 		    insn_in_progress->appendOperand(imm, true, false);
 		}
 	    }
-	    else if(IS_INSN_SIMD_MOD_IMM(insn))
+	    else if(IS_INSN_SIMD_SHIFT_IMM(insn))
 	    {
+		//immh
+		if(startBit == 19 && endBit == 22)
+		{
+		    immlo = immVal;
+		    immloLen = endBit - startBit + 1;
+		}
+		//immb
+		else if(startBit == 16 && endBit == 18)
+		{
+		    int shift, isRightShift = 1, elemWidth = (immlo << immLen) | immVal;
+		    
+		    entryID insnID = insn_in_progress->getOperation().operationID;
+		    
+		    //check if shift is left; if it is, the immediate has to be processed in a different manner.
+		    //unfortunately, determining whether the instruction will do a left or right shift cannot be determined in any way other than checking the instruction's opcode
+		    if(insnID == aarch64_op_shl_advsimd || insnID == aarch64_op_sqshl_advsimd_imm || insnID == aarch64_op_sshll_advsimd ||
+		       insnID == aarch64_op_sli_advsimd || insnID == aarch64_op_sqshlu_advsimd || insnID == aarch64_op_uqshl_advsimd_imm || insnID == aarch64_op_ushll_advsimd)
+			isRightShift = -1;	
 
+		    if(immlo & 0x1)
+			shift = isRightShift*(16 - elemWidth) + isRightShift>0?0:8;
+		    else if(immlo & 0x2)
+			shift = isRightShift*(32 - elemWidth) + isRightShift>0?0:16;
+		    else if(immlo & 0x4)
+			shift = isRightShift*(64 - elemWidth) + isRightShift>0?0:32;
+		    else
+			shift = isRightShift*(128 - elemWidth) + isRightShift>0?0:64;
+
+		    Expression::Ptr imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immloLen + immLen, shift)));
+		    insn_in_progress->appendOperand(imm, true, false);
+		}
+		else
+		    isValid = false;
 	    }
 	}
 	else                                                            //conditional compare (immediate)

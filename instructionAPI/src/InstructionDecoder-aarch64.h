@@ -362,7 +362,7 @@ namespace Dyninst {
                 void OPRh();
                 void OPRopc() {}
                 void OPRopcode() {}
-                void OPRlen() {}
+                void OPRlen();
                 template<unsigned int endBit, unsigned int startBit>
                 void OPRsize() {}
                 void OPRcmode();
