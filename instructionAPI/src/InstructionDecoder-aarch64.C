@@ -463,9 +463,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 
     if(isSIMDInsn)
     {
-        if(IS_INSN_SIMD_3DIFF(insn))
-            reg = _Q == 0x1?aarch64::hq0:aarch64::d0;
-        else if(IS_INSN_SIMD_ACROSS(insn))
+        if(IS_INSN_SIMD_ACROSS(insn))
         {
             int size = field<22, 23>(insn);
 
@@ -526,6 +524,16 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 	else if(IS_INSN_SIMD_MOD_IMM(insn) && _Q == 0 && op == 1 && cmode == 0xE)
 	{
 	    reg = aarch64::d0;	       
+	}
+	else if(IS_INSN_SIMD_3DIFF(insn))
+	{
+	    entryID op = insn_in_progress->getOperation().operationID;
+
+	    if(op == aarch64_op_addhn_advsimd || op == aarch64_op_subhn_advsimd ||
+	       op == aarch64_op_raddhn_advsimd || op == aarch64_op_rsubhn_advsimd)
+		reg = _Q == 0x1?aarch64::hq0:aarch64::d0;
+	    else
+		reg = aarch64::q0;
 	}
         // 3SAME, 2REG_MISC, EXTRACT
         else 
@@ -683,6 +691,18 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 	    {
 		insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(reg, (encoding+reg_index)%32)), true, false);
 	    }
+	}
+	else if(IS_INSN_SIMD_3DIFF(insn))
+	{
+	    entryID op = insn_in_progress->getOperation().operationID;
+
+	    if(op == aarch64_op_saddw_advsimd || op == aarch64_op_ssubw_advsimd ||
+	       op == aarch64_op_addhn_advsimd || op == aarch64_op_subhn_advsimd ||
+	       op == aarch64_op_uaddw_advsimd || op == aarch64_op_usubw_advsimd ||
+	       op == aarch64_op_raddhn_advsimd || op == aarch64_op_rsubhn_advsimd)
+		reg = aarch64::q0;
+	    else
+		reg = _Q == 0x1?aarch64::hq0:aarch64::d0;
 	}
         else
             reg = _Q == 0x1?aarch64::q0:aarch64::d0;
@@ -1485,17 +1505,17 @@ unsigned int InstructionDecoder_aarch64::get_SIMD_SING_POST_imm()
 Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
 {
     int encoding  = field<16, 20>(insn);
-	MachRegister reg;
+    MachRegister reg;
 
     if(isSIMDInsn)
     {
-        if(IS_INSN_LDST_SIMD_MULT_POST(insn) && encoding == 0x1f)
+        if(IS_INSN_LDST_SIMD_MULT_POST(insn) && encoding == 0x1F)
         {
             unsigned int immVal = get_SIMD_MULT_POST_imm();
             unsigned int immLen = 8; // max #64
             return Immediate::makeImmediate( Result(u32, unsign_extend32(immLen, immVal)) );
         }
-        else if(IS_INSN_LDST_SIMD_SING_POST(insn) && encoding == 0x1f )
+        else if(IS_INSN_LDST_SIMD_SING_POST(insn) && encoding == 0x1F)
         {
             unsigned int immVal = get_SIMD_SING_POST_imm();
             unsigned int immLen = 4; // max #8
@@ -1505,27 +1525,36 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
         {
             reg = field<11, 11>(insn)==0x1?aarch64::q0:aarch64::d0;
         }
+	else if(IS_INSN_SIMD_3DIFF(insn))
+	{
+	    entryID op = insn_in_progress->getOperation().operationID;
+
+	    if(op == aarch64_op_addhn_advsimd || op == aarch64_op_subhn_advsimd ||
+	       op == aarch64_op_raddhn_advsimd || op == aarch64_op_rsubhn_advsimd)
+		reg = aarch64::q0;
+	    else
+		reg = _Q == 0x1?aarch64::hq0:aarch64::d0;
+	}
         else
-        {
-            reg = _Q == 0x1?aarch64::q0:aarch64::d0;
-        }
+	    reg = _Q == 0x1?aarch64::q0:aarch64::d0;
         
         reg = makeAarch64RegID(reg, encoding);
-	    return makeRegisterExpression(reg);
+    
+    	return makeRegisterExpression(reg);
     }
     else if(isFPInsn)
-	{
-		reg = isSinglePrec()?aarch64::s0:aarch64::d0;
-		reg = makeAarch64RegID(reg, encoding);
-	}
-	else
-	{
-		reg = is64Bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
-		if(encoding != 31)
-			reg = makeAarch64RegID(reg, encoding);
-	}
+    {
+	reg = isSinglePrec()?aarch64::s0:aarch64::d0;
+	reg = makeAarch64RegID(reg, encoding);
+    }
+    else
+    {
+	reg = is64Bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
+	if(encoding != 31)
+	    reg = makeAarch64RegID(reg, encoding);
+    }
 
-	return makeRegisterExpression(reg);
+    return makeRegisterExpression(reg);
 }
 
 void InstructionDecoder_aarch64::OPRRm()
@@ -1599,7 +1628,7 @@ void InstructionDecoder_aarch64::setRegWidth(){
                     else{
                         if(sz == 2 && opc0 == 1) assert(!"unallocated insn");
                         if(opc0 == 1)
-                            is64Bit = false;
+                            
                     }
                     return;
                 }
