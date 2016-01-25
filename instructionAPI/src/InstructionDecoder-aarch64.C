@@ -517,6 +517,24 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
                 }
             }
         }
+	else if(IS_INSN_SCALAR_COPY(insn))
+	{
+	    int imm5 = field<16, 20>(insn);
+
+	    if(imm5 & 0x1)
+		reg = aarch64::b0;
+	    else if(imm5 & 0x2)
+		reg = aarch64::h0;
+	    else if(imm5 & 0x4)
+		reg = aarch64::s0;
+	    else if(imm5 & 0x8)
+		reg = aarch64::d0;
+	    else
+	    {
+		isValid = false;
+		reg = aarch64::q0; //any value, it's invalid anyway and will be discarded
+	    }
+	}
         else if(IS_INSN_SIMD_VEC_INDEX(insn))
         {
             reg = aarch64::q0;
@@ -574,7 +592,9 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 
 void InstructionDecoder_aarch64::OPRRd()
 {
-    insn_in_progress->appendOperand(makeRdExpr(), false, true);
+    Expression::Ptr reg = makeRdExpr();
+    //for SIMD vector indexed set, some instructions read Rd and some don't. This can be determined from the highest bit of the opcode field (bit 15)
+    insn_in_progress->appendOperand(reg, (IS_INSN_SIMD_VEC_INDEX(insn) && !field<15, 15)(insn))?true:false, true);
 }
 
 void InstructionDecoder_aarch64::OPRcmode()
@@ -640,7 +660,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 
     if(isSIMDInsn && !IS_INSN_LDST(insn))
     {
-        if(IS_INSN_SIMD_COPY(insn) )
+        if(IS_INSN_SIMD_COPY(insn))
         {
             unsigned int op = field<29, 29>(insn);
             unsigned int imm4 = field<11, 14>(insn);
@@ -679,9 +699,20 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
                 }
             }
         }
-        else if( IS_INSN_SIMD_VEC_INDEX(insn) )
+	else if(IS_INSN_SCALAR_COPY(insn))
+	{
+	    int imm5 = field<16, 20>(insn);
+
+	    reg = (imm5 & 0x10)?aarch64::q0:aarch64::d0;
+	}
+        else if(IS_INSN_SIMD_VEC_INDEX(insn))
         {
-            reg = _Q == 0x1?aarch64::hq0:aarch64::d0;
+	    //the below two conditions can easily be combined into one, but would be difficult to understand
+	    if(field<13, 13>(insn) == 0x1)
+                reg = _Q == 0x1?aarch64::hq0:aarch64::d0;
+	    else
+		//sqdmulh, mul, sqrdmulh, fmla, fmls, fmul, mla, mls, fmulx
+		reg = _Q == 0x1?aarch64::q0:aarch64::d0;
         }
 	else if(IS_INSN_SIMD_TAB_LOOKUP(insn))
 	{
@@ -1628,7 +1659,7 @@ void InstructionDecoder_aarch64::setRegWidth(){
                     else{
                         if(sz == 2 && opc0 == 1) assert(!"unallocated insn");
                         if(opc0 == 1)
-                            
+			    is64Bit = false;        
                     }
                     return;
                 }
@@ -1996,22 +2027,27 @@ void InstructionDecoder_aarch64::OPRimm()
 	int immVal = field<startBit, endBit>(insn);
 	unsigned int immLen = endBit - startBit + 1;
 
-	if(IS_INSN_LDST(insn)){
-        if(IS_INSN_LD_LITERAL(insn) ){
-			Expression::Ptr literal = makeMemRefIndexLiteral();
-			insn_in_progress->appendOperand(literal, true, false);
-        }
-        else if(IS_INSN_LDST_POST(insn)){
-			Expression::Ptr offset = makeMemRefIndex_offset9();
-			insn_in_progress->appendOperand(offset, true, false);
-        }
-        else if(IS_INSN_LDST_PAIR_POST(insn)
-                || IS_INSN_LDST_PAIR_OFFSET(insn) ){
-			Expression::Ptr offset = makeMemRefPair_offset7();
-			insn_in_progress->appendOperand(offset, true, false);
-        }
-		return;
-    }
+	if(IS_INSN_LDST(insn))
+	{
+	    if(IS_INSN_LD_LITERAL(insn))
+	    {
+		Expression::Ptr literal = makeMemRefIndexLiteral();
+		insn_in_progress->appendOperand(literal, true, false);
+	    }
+	    else if(IS_INSN_LDST_POST(insn))
+	    {
+		Expression::Ptr offset = makeMemRefIndex_offset9();
+		insn_in_progress->appendOperand(offset, true, false);
+	    }
+	    else if(IS_INSN_LDST_PAIR_POST(insn)
+                || IS_INSN_LDST_PAIR_OFFSET(insn) )
+	    {
+		Expression::Ptr offset = makeMemRefPair_offset7();
+		insn_in_progress->appendOperand(offset, true, false);
+	    }
+	
+	    return;
+	}
 
 	if(hasHw)
 	{
