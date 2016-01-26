@@ -415,19 +415,12 @@ enum {
 #define VEX_REXR   (1 << 7)
 
 /* VEX mask helper macros */
-#define VEXGET_VVVV(b)  (char)(~((b & VEX3_VVVV) >> 3))
+#define VEXGET_VVVV(b)  (char)((b & VEX_VVVV) >> 3)
 #define VEXGET_L(b)     (char)((b & VEX_L) >> 2)
 #define VEXGET_PP(b)    (char)(b & VEX_PP)
 
 #define VEX3GET_W(b)    (char)((b & VEX3_W) >> 7)
 #define VEX3GET_M(b)    (b & VEX3_M)
-
-/* SIMD op conversion table */
-char vex3_simdop_convert[3][4] = {
-  {0, 2,  1, 3},
-  {0, 2,  1, 3},
-  {0, 1, -1, 2}
-};
 
 /** EVEX masks */
 #define PREFIX_EVEX ((unsigned char)0x62)
@@ -517,8 +510,15 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
        s1W2R3RW, // additional push/pop
        s1RW2R3R, // shld/shrd
        s1RW2RW3R, // [i]div, cmpxch8b
-       s1R2R3R
+       s1R2R3R,
+
+/* Only 4 operands below here */
+       s1W2R3R4R,
+       s1RW2R3R4R 
 }; // should be strictly less than 2^17 otherwise adjust FPOS below
+
+/* This should equal the first operand semantic where 4 operands are used. */
+#define s4OP s1W2R3R4R
 
 
 struct modRMByte {

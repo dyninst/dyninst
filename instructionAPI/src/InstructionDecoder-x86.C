@@ -74,7 +74,10 @@ namespace Dyninst
                 case s1RW2RW3R: // [i]div, cmpxch8b
                 case s1R2R3R:
                     return i == 0 || i == 1 || i == 2;
-                    break;
+                case s1W2R3R4R:
+                    return i == 1 || i == 2 || i == 3;
+                case s1RW2R3R4R:
+                    return i == 0 || i == 1 || i == 2 || i == 3;
                 case sNONE:
                 default:
                     return false;
@@ -90,21 +93,22 @@ namespace Dyninst
                     return false;
                 case s1RW:
                 case s1W:
-                    case s1W2R:   // second operand read, first operand written (e.g. mov)
-                        case s1RW2R:  // two operands read, first written (e.g. add)
-                            case s1W2R3R: // e.g. imul
-                                case s1RW2R3R: // shld/shrd
-                                    return i == 0;
+                case s1W2R:   // second operand read, first operand written (e.g. mov)
+                case s1RW2R:  // two operands read, first written (e.g. add)
+                case s1W2R3R: // e.g. imul
+                case s1RW2R3R: // shld/shrd
+                case s1RW2R3R4R:
+                  return i == 0;
                 case s1R2RW:
-                    return i == 1;
+                  return i == 1;
                 case s1W2RW:
-                    case s1RW2RW: // e.g. xchg
-                        case s1W2RW3R: // some mul
-                            case s1W2W3R: // e.g. les
-                                case s1RW2RW3R: // [i]div, cmpxch8b
-                                    return i == 0 || i == 1;
-                                    case s1W2R3RW: // (stack) push & pop
-                                        return i == 0 || i == 2;
+                case s1RW2RW: // e.g. xchg
+                case s1W2RW3R: // some mul
+                case s1W2W3R: // e.g. les
+                case s1RW2RW3R: // [i]div, cmpxch8b
+                  return i == 0 || i == 1;
+                case s1W2R3RW: // (stack) push & pop
+                  return i == 0 || i == 2;
                 case sNONE:
                 default:
                     return false;
@@ -767,11 +771,15 @@ namespace Dyninst
       if(decodedInstruction->getPrefix()->vex_prefix[1])
       {
         // vex_l = decodedInstruction->getPrefix()->vex_prefix[1] & VEX3_L;
-        vex_vvvv = GETVEX_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
+        vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
       } else {
         // vex_l = decodedInstruction->getPrefix()->vex_prefix[0] & VEX2_L;
-        vex_vvvv = GETVEX_VVVV(decodedInstruction->getPrefix()->vex_prefix[0]);
+        vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[0]);
       }
+
+      vex_vvvv = (unsigned char)((~vex_vvvv) & 0x0f);
+      if(vex_vvvv >= 0x0f)
+          vex_vvvv = -1;
     }
       if (sizePrefixPresent && 
 	  ((optype == op_v) ||
@@ -848,6 +856,12 @@ namespace Dyninst
                     break;
                     case am_H:
                       {
+                        if(vex_vvvv < 0)
+                        {
+                          printf("BAD VVVV: 0x%x\n", vex_vvvv);
+                          assert(0);
+                          break; /* Invalid instruction */
+                        }
                           /* Operand comes from the VEX.vvvv bits */
                          insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
                               vex_vvvv <= 7 ? b_xmm : b_xmmhigh, vex_vvvv <= 7 ? vex_vvvv : vex_vvvv - 8)),
@@ -981,6 +995,11 @@ namespace Dyninst
                         insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
                                 locs->rex_r ? b_xmmhigh : b_xmm,locs->modrm_reg)),
                                     isRead, isWritten);
+                        break;
+                    case am_U:
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
+                                        locs->rex_b ? b_xmmhigh : b_xmm, locs->modrm_rm)),
+                                        isRead, isWritten);
                         break;
                     case am_W:
                         switch(locs->modrm_mod)
@@ -1222,7 +1241,7 @@ namespace Dyninst
            insn_to_complete->addSuccessor(ret_addr, false, true, false, false);
 	}
 
-        for(unsigned i = 0; i < 3; i++)
+        for(int i = 0; i < 3; i++)
         {
             if(decodedInstruction->getEntry()->operands[i].admet == 0 && 
 	       decodedInstruction->getEntry()->operands[i].optype == 0)
@@ -1233,6 +1252,20 @@ namespace Dyninst
 				 insn_to_complete, 
 				 readsOperand(opsema, i),
 				 writesOperand(opsema, i)))
+            {
+                return false;
+            }
+        }
+
+        /* Does this instruction have a 4th operand? */
+        if(decodedInstruction->getEntry()->opsema >= s4OP)
+        {
+          if(!decodeOneOperand(b,
+            {am_I, op_b}, /* This is always an IMM8 */
+            imm_index,
+            insn_to_complete,
+            readsOperand(opsema, 3),
+            writesOperand(opsema, 3)))
             {
                 return false;
             }
