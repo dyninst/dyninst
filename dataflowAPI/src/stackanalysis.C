@@ -62,47 +62,58 @@ AnnotationClass <StackAnalysis::Intervals> Stack_Anno(std::string("Stack_Anno"))
 
 
 //
-//
 // Concepts:
 //
 // There are three terms we throw around:
 // 
 // Stack height: the size of the stack; (cur_stack_ptr - func_start_stack_ptr)
 // Stack delta: the difference in the size of the stack over the execution of
-//   a region of code (basic block here). (block_end_stack_ptr - block_start_stack_ptr)
-// Stack clean: the amount the callee function shifts the stack. This is an x86 idiom.
-//   On x86 the caller pushes arguments onto the stack (and thus shifts the stack).
-//   Normally the caller also cleans the stack (that is, removes arguments). However, 
-//   some callee functions perform this cleaning themselves. We need to account for this
-//   in our analysis, which otherwise assumes that callee functions don't alter the stack.
-// 
+//   a region of code (basic block here). (block_end_stack_ptr -
+//   block_start_stack_ptr)
+// Stack clean: the amount the callee function shifts the stack. This is an x86
+//   idiom. On x86 the caller pushes arguments onto the stack (and thus shifts
+//   the stack). Normally the caller also cleans the stack (that is, removes
+//   arguments). However, some callee functions perform this cleaning
+//   themselves. We need to account for this in our analysis, which otherwise
+//   assumes that callee functions don't alter the stack.
 
-bool StackAnalysis::analyze()
-{
 
-    df_init_debug();
+bool StackAnalysis::analyze() {
+   df_init_debug();
+   stackanalysis_printf("Beginning stack analysis for function %s\n",
+      func->name().c_str());
 
-    stackanalysis_printf("Beginning stack analysis for function %s\n",
-                         func->name().c_str());
+   // First fixpoint analysis
+   stackanalysis_printf("\tSummarizing block effects\n");
+   summarizeBlocks();
+   stackanalysis_printf("\tPerforming fixpoint analysis\n");
+   fixpoint();
+   stackanalysis_printf("\tCreating SP interval tree\n");
+   summarize();
 
-    stackanalysis_printf("\tSummarizing block effects\n");
-    summarizeBlocks();
-    
-    stackanalysis_printf("\tPerforming fixpoint analysis\n");
-    fixpoint();
+   // Clear mappings
+   blockEffects.clear();
+   insnEffects.clear();
+   blockInputs.clear();
+   blockOutputs.clear();
 
-    stackanalysis_printf("\tCreating SP interval tree\n");
-    summarize();
+   // Second fixpoint analysis (for stack slot tracking)
+   stackanalysis_printf("\tSummarizing block effects again\n");
+   summarizeBlocks();
+   stackanalysis_printf("\tPerforming fixpoint analysis again\n");
+   fixpoint();
+   stackanalysis_printf("\tCreating SP interval tree again\n");
+   summarize();
 
-    func->addAnnotation(intervals_, Stack_Anno);
+   func->addAnnotation(intervals_, Stack_Anno);
 
-    if (df_debug_stackanalysis) {
-        debug();
-    }
+   if (df_debug_stackanalysis) {
+      debug();
+   }
 
-    stackanalysis_printf("Finished stack analysis for function %s\n",
-			 func->name().c_str());
-    return true;
+   stackanalysis_printf("Finished stack analysis for function %s\n",
+      func->name().c_str());
+   return true;
 }
 
 // We want to create a transfer function for the block as a whole. 
@@ -248,7 +259,6 @@ void StackAnalysis::fixpoint() {
 }
 
 
-
 void StackAnalysis::summarize() {
     // Now that we know the actual inputs to each block,
     // we create intervals by replaying the effects of each
@@ -336,7 +346,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
           //FALLTHROUGH
        case e_add:
        case e_addsd:
-          handleAddSub(insn, off, sign, xferFuncs);
+          handleAddSub(insn, block, off, sign, xferFuncs);
           break;
        case e_leave:
           handleLeave(xferFuncs);
@@ -364,7 +374,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
           break;
        case e_mov:
        case e_movsd_sse:
-          handleMov(insn, off, xferFuncs);
+          handleMov(insn, block, off, xferFuncs);
           break;
        case e_movzx:
           handleZeroExtend(insn, xferFuncs);
@@ -785,40 +795,57 @@ void StackAnalysis::handleReturn(Instruction::Ptr insn, TransferFuncs &xferFuncs
 }
 
 
-// Visitor class to evaluate addresses relative to %rip
-class PCRelativeVisitor : public Visitor {
+// Visitor class to evaluate stack heights and PC-relative addresses
+class StateEvalVisitor : public Visitor {
 private:
-   Address rip;
-   std::deque<Address> results;
    bool defined;
+   StackAnalysis::AbslocState *state;
+   Address rip;
+
+   // Stack for calculations
+   // bool is true if the value in Address is a stack height
+   std::deque<std::pair<Address, bool>> results;
 
 public:
    // addr is the starting address of instruction insn.
    // insn is the instruction containing the expression to evaluate.
-   PCRelativeVisitor(Address addr, Instruction::Ptr insn) : defined(true) {
+   StateEvalVisitor(Address addr, Instruction::Ptr insn,
+      StackAnalysis::AbslocState *s) : defined(true), state(s) {
       rip = addr + insn->size();
    }
+
+   StateEvalVisitor() : defined(false), state(NULL), rip(0) {};
 
    bool isDefined() {
       return defined && results.size() == 1;
    }
 
-   Address getResult() {
-      return isDefined() ? results.back() : 0;
+   std::pair<Address, bool> getResult() {
+      return isDefined() ? results.back() : make_pair((Address) 0, false);
    }
 
    virtual void visit(BinaryFunction *bf) {
       if (!defined) return;
 
-      Address arg1 = results.back();
+      Address arg1 = results.back().first;
+      bool isHeight1 = results.back().second;
       results.pop_back();
-      Address arg2 = results.back();
+      Address arg2 = results.back().first;
+      bool isHeight2 = results.back().second;
       results.pop_back();
 
       if (bf->isAdd()) {
-         results.push_back(arg1 + arg2);
+         if (isHeight1 && isHeight2) {
+            defined = false;
+         } else {
+            results.push_back(make_pair(arg1 + arg2, isHeight1 || isHeight2));
+         }
       } else if (bf->isMultiply()) {
-         results.push_back(arg1 * arg2);
+         if (isHeight1 || isHeight2) {
+            defined = false;
+         } else {
+            results.push_back(make_pair(arg1 * arg2, false));
+         }
       } else {
          defined = false;
       }
@@ -827,7 +854,7 @@ public:
    virtual void visit(Immediate *imm) {
       if (!defined) return;
 
-      results.push_back(imm->eval().convert<Address>());
+      results.push_back(make_pair(imm->eval().convert<Address>(), false));
    }
 
    virtual void visit(RegisterAST *rast) {
@@ -835,7 +862,15 @@ public:
 
       MachRegister reg = rast->getID();
       if (reg == x86::eip || reg == x86_64::eip || reg == x86_64::rip) {
-         results.push_back(rip);
+         results.push_back(make_pair(rip, false));
+      } else if (state != NULL) {
+         auto regState = state->find(Absloc(reg));
+         if (regState == state->end() || regState->second.isTop() ||
+            regState->second.isBottom()) {
+            defined = false;
+         } else {
+            results.push_back(make_pair(regState->second.height(), true));
+         }
       } else {
          defined = false;
       }
@@ -847,8 +882,8 @@ public:
 };
 
 
-void StackAnalysis::handleAddSub(Instruction::Ptr insn, const Offset off,
-   int sign, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
+   const Offset off, int sign, TransferFuncs &xferFuncs) {
    // Possible forms for add/sub:
    //   1. add reg1, reg2
    //     -- reg1 = reg1 + reg2
@@ -900,15 +935,28 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, const Offset off,
       assert(addrExpr.size() == 1);
 
       // Try to determine the written memory address
-      Address writtenAddr;
-      PCRelativeVisitor visitor(off, insn);
+      Absloc writtenLoc;
+      StateEvalVisitor visitor;
+      if (intervals_ == NULL) {
+         visitor = StateEvalVisitor(off, insn, NULL);
+      } else {
+         visitor = StateEvalVisitor(off, insn, &(*intervals_)[block][off]);
+      }
       addrExpr[0]->apply(&visitor);
       if (visitor.isDefined()) {
-         writtenAddr = visitor.getResult();
-         stackanalysis_printf("\t\t\tSimplifies to: %lx\n", writtenAddr);
+         std::pair<Address, bool> resultPair = visitor.getResult();
+         if (resultPair.second) {
+            // We have a stack slot
+            writtenLoc = Absloc(resultPair.first, 0, NULL);
+         } else {
+            // We have a static address
+            writtenLoc = Absloc(resultPair.first);
+         }
+         stackanalysis_printf("\t\t\tEvaluates to: %s\n",
+            writtenLoc.format().c_str());
       } else {
          // Cases 3b and 5b
-         stackanalysis_printf("\t\t\tCan't determine statically\n");
+         stackanalysis_printf("\t\t\tCan't determine location\n");
          return;
       }
 
@@ -917,7 +965,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, const Offset off,
          assert(readSet.size() == 1);
          std::map<Absloc, std::pair<long, bool>> terms;
          Absloc src((*readSet.begin())->getID());
-         Absloc dest(writtenAddr);
+         Absloc &dest = writtenLoc;
          terms[src] = make_pair(sign, false);
          terms[dest] = make_pair(1, false);
          xferFuncs.push_back(TransferFunc::sibFunc(terms, 0, dest));
@@ -926,8 +974,8 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, const Offset off,
          Expression::Ptr immExpr = operands[1].getValue();
          assert(typeid(*immExpr) == typeid(Immediate));
          long immVal = immExpr->eval().convert<long>();
-         Absloc dest(writtenAddr);
-         xferFuncs.push_back(TransferFunc::deltaFunc(dest, sign * immVal));
+         xferFuncs.push_back(TransferFunc::deltaFunc(writtenLoc,
+            sign * immVal));
       }
       return;
    }
@@ -935,7 +983,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, const Offset off,
    // Cases 1, 2, and 4
    assert(writeSet.size() == 1);
    MachRegister written = (*writeSet.begin())->getID();
-   Absloc writtenloc(written);
+   Absloc writtenLoc(written);
 
    if (insn->readsMemory()) {
       // Case 2
@@ -948,22 +996,34 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, const Offset off,
       assert(addrExpr.size() == 1);
 
       // Try to determine the read memory address
-      PCRelativeVisitor visitor(off, insn);
+      StateEvalVisitor visitor;
+      if (intervals_ == NULL) {
+         visitor = StateEvalVisitor(off, insn, NULL);
+      } else {
+         visitor = StateEvalVisitor(off, insn, &(*intervals_)[block][off]);
+      }
       addrExpr[0]->apply(&visitor);
       if (visitor.isDefined()) {
          // Case 2a
-         Address readAddr = visitor.getResult();
-         stackanalysis_printf("\t\t\tSimplifies to: %lx\n", readAddr);
+         std::pair<Address, bool> resultPair = visitor.getResult();
+         Absloc readLoc;
+         if (resultPair.second) {
+            // We have a stack slot
+            readLoc = Absloc(resultPair.first, 0, NULL);
+         } else {
+            // We have a static address
+            readLoc = Absloc(resultPair.first);
+         }
+         stackanalysis_printf("\t\t\tEvaluates to: %s\n",
+            readLoc.format().c_str());
          std::map<Absloc, std::pair<long, bool>> terms;
-         Absloc src(readAddr);
-         Absloc dest = writtenloc;
-         terms[src] = make_pair(sign, false);
-         terms[dest] = make_pair(1, false);
-         xferFuncs.push_back(TransferFunc::sibFunc(terms, 0, dest));
+         terms[readLoc] = make_pair(sign, false);
+         terms[writtenLoc] = make_pair(1, false);
+         xferFuncs.push_back(TransferFunc::sibFunc(terms, 0, writtenLoc));
       } else {
          // Case 2b
-         stackanalysis_printf("\t\t\tCan't determine statically\n");
-         xferFuncs.push_back(TransferFunc::bottomFunc(writtenloc));
+         stackanalysis_printf("\t\t\tCan't determine location\n");
+         xferFuncs.push_back(TransferFunc::bottomFunc(writtenLoc));
       }
       return;
    }
@@ -973,12 +1033,12 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, const Offset off,
       // Case 4
       long delta = sign * extractDelta(res);
       stackanalysis_printf("\t\t\t Register changed by add/sub: %lx\n", delta);
-      xferFuncs.push_back(TransferFunc::deltaFunc(writtenloc, delta));
+      xferFuncs.push_back(TransferFunc::deltaFunc(writtenLoc, delta));
    } else {
       // Case 1
       std::map<Absloc, std::pair<long, bool>> terms;
       Absloc src((*readSet.begin())->getID());
-      Absloc dest = writtenloc;
+      Absloc &dest = writtenLoc;
       terms[src] = make_pair(sign, false);
       terms[dest] = make_pair(1, false);
       xferFuncs.push_back(TransferFunc::sibFunc(terms, 0, dest));
@@ -1238,8 +1298,8 @@ void StackAnalysis::handlePowerStoreUpdate(Instruction::Ptr insn,
 }
 
 
-void StackAnalysis::handleMov(Instruction::Ptr insn, const Offset off,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
+   const Offset off, TransferFuncs &xferFuncs) {
    // Some cases:
    //   1. mov reg, reg
    //   2. mov imm, reg
@@ -1288,15 +1348,28 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, const Offset off,
       assert(addrExpr.size() == 1);
 
       // Try to determine the written memory address
-      Address writtenAddr;
-      PCRelativeVisitor visitor(off, insn);
+      Absloc writtenLoc;
+      StateEvalVisitor visitor;
+      if (intervals_ == NULL) {
+         visitor = StateEvalVisitor(off, insn, NULL);
+      } else {
+         visitor = StateEvalVisitor(off, insn, &(*intervals_)[block][off]);
+      }
       addrExpr[0]->apply(&visitor);
       if (visitor.isDefined()) {
-         writtenAddr = visitor.getResult();
-         stackanalysis_printf("\t\t\tSimplifies to: %lx\n", writtenAddr);
+         std::pair<Address, bool> resultPair = visitor.getResult();
+         if (resultPair.second) {
+            // We have a stack slot
+            writtenLoc = Absloc(resultPair.first, 0, NULL);
+         } else {
+            // We have a static address
+            writtenLoc = Absloc(resultPair.first);
+         }
+         stackanalysis_printf("\t\t\tEvaluates to: %s\n",
+            writtenLoc.format().c_str());
       } else {
          // Cases 4b and 5b
-         stackanalysis_printf("\t\t\tCan't determine statically\n");
+         stackanalysis_printf("\t\t\tCan't determine location\n");
          return;
       }
 
@@ -1304,15 +1377,13 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, const Offset off,
          // Case 4a
          assert(readRegs.size() == 1);
          Absloc from((*readRegs.begin())->getID());
-         Absloc to(writtenAddr);
-         xferFuncs.push_back(TransferFunc::aliasFunc(from, to));
+         xferFuncs.push_back(TransferFunc::aliasFunc(from, writtenLoc));
       } else {
          // Case 5a
          Expression::Ptr immExpr = operands[1].getValue();
          assert(typeid(*immExpr) == typeid(Immediate));
          long immVal = immExpr->eval().convert<long>();
-         Absloc to(writtenAddr);
-         xferFuncs.push_back(TransferFunc::absFunc(to, immVal));
+         xferFuncs.push_back(TransferFunc::absFunc(writtenLoc, immVal));
       }
       return;
    }
@@ -1322,8 +1393,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, const Offset off,
    // As a result, we know there's exactly one written register.
    assert(writtenRegs.size() == 1);
    MachRegister written = (*writtenRegs.begin())->getID();
-   Absloc writtenloc(written);
-
+   Absloc writtenLoc(written);
 
    if (insn->readsMemory()) {
       stackanalysis_printf("\t\t\tMemory read from: %s\n",
@@ -1335,18 +1405,31 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, const Offset off,
       assert(addrExpr.size() == 1);
 
       // Try to determine the read memory address
-      PCRelativeVisitor visitor(off, insn);
+      StateEvalVisitor visitor;
+      if (intervals_ == NULL) {
+         visitor = StateEvalVisitor(off, insn, NULL);
+      } else {
+         visitor = StateEvalVisitor(off, insn, &(*intervals_)[block][off]);
+      }
       addrExpr[0]->apply(&visitor);
       if (visitor.isDefined()) {
          // Case 3a
-         Address readAddr = visitor.getResult();
-         stackanalysis_printf("\t\t\tSimplifies to: %lx\n", readAddr);
-         Absloc from(readAddr);
-         xferFuncs.push_back(TransferFunc::aliasFunc(from, writtenloc));
+         std::pair<Address, bool> resultPair = visitor.getResult();
+         Absloc readLoc;
+         if (resultPair.second) {
+            // We have a stack slot
+            readLoc = Absloc(resultPair.first, 0, NULL);
+         } else {
+            // We have a static address
+            readLoc = Absloc(resultPair.first);
+         }
+         stackanalysis_printf("\t\t\tEvaluates to: %s\n",
+            readLoc.format().c_str());
+         xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc));
       } else {
          // Case 3b
-         stackanalysis_printf("\t\t\tCan't determine statically\n");
-         xferFuncs.push_back(TransferFunc::bottomFunc(writtenloc));
+         stackanalysis_printf("\t\t\tCan't determine location\n");
+         xferFuncs.push_back(TransferFunc::bottomFunc(writtenLoc));
       }
       return;
    }
@@ -1359,32 +1442,22 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, const Offset off,
       assert(readRegs.size() == 1);
       read = (*readRegs.begin())->getID();
    }
-   Absloc readloc(read);
+   Absloc readLoc(read);
 
 
    if (read.isValid()) {
       // Case 1
-      stackanalysis_printf("\t\t\t Alias detected: %s -> %s\n",
+      stackanalysis_printf("\t\t\tAlias detected: %s -> %s\n",
          read.name().c_str(), written.name().c_str());
-      xferFuncs.push_back(TransferFunc::aliasFunc(readloc, writtenloc));
+      xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc));
    } else {
       // Case 2
       InstructionAPI::Expression::Ptr readExpr = operands[1].getValue();
-      stackanalysis_printf("\t\t\t\t readOperand = %s\n",
-         readExpr->format().c_str());
-
-      if (typeid(*readExpr) == typeid(InstructionAPI::Immediate)) {
-         long readValue = readExpr->eval().convert<long>();
-         stackanalysis_printf(
-            "\t\t\t Immediate to register move: %s set to %ld\n",
-            written.name().c_str(), readValue);
-         xferFuncs.push_back(TransferFunc::absFunc(writtenloc, readValue));
-      } else {
-         // This case is not expected to occur
-         stackanalysis_printf("\t\t\t Unhandled move: %s set to BOTTOM\n",
-            written.name().c_str());
-         xferFuncs.push_back(TransferFunc::bottomFunc(writtenloc));
-      }
+      assert(typeid(*readExpr) == typeid(InstructionAPI::Immediate));
+      long readValue = readExpr->eval().convert<long>();
+      stackanalysis_printf("\t\t\tImmediate to register move: %s set to %ld\n",
+         written.name().c_str(), readValue);
+      xferFuncs.push_back(TransferFunc::absFunc(writtenLoc, readValue));
       return;
    }
 }

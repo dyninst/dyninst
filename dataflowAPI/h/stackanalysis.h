@@ -160,10 +160,10 @@ class StackAnalysis {
         }
 
 	const Height operator+(const signed long &rhs) const {
-	  if (isBottom()) return bottom;
-      if (isTop()) return top;
+	   if (isBottom()) return bottom;
+           if (isTop()) return top;
 
-	  return Height(height_ + rhs);
+	   return Height(height_ + rhs);
 	}
 
         bool operator==(const Height &rhs) const {
@@ -417,15 +417,16 @@ class StackAnalysis {
     bool handleThunkCall(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handlePushPop(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
     void handleReturn(InstructionPtr insn, TransferFuncs &xferFuncs);
-    void handleAddSub(InstructionPtr insn, const Offset off, int sign,
-        TransferFuncs &xferFuncs);
+    void handleAddSub(InstructionPtr insn, ParseAPI::Block *block,
+        const Offset off, int sign, TransferFuncs &xferFuncs);
     void handleLEA(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleLeave(TransferFuncs &xferFuncs);
     void handlePushPopFlags(int sign, TransferFuncs &xferFuncs);
     void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);
     void handlePowerAddSub(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
     void handlePowerStoreUpdate(InstructionPtr insn, TransferFuncs &xferFuncs);
-    void handleMov(InstructionPtr insn, const Offset off, TransferFuncs &xferFuncs);
+    void handleMov(InstructionPtr insn, ParseAPI::Block *block,
+        const Offset off, TransferFuncs &xferFuncs);
     void handleZeroExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleSignExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleXor(InstructionPtr insn, TransferFuncs &xferFuncs);
