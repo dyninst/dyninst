@@ -57,6 +57,8 @@
 #include "common/src/wtxKludges.h"
 #endif
 
+#define VEX_DEBUG
+
 using namespace std;
 using namespace boost::assign;
 
@@ -119,11 +121,12 @@ enum {
 
 // SSE TER 
 enum {
-	SSET00=0, SSET01, SSET04, SSET05, SSET08, SSET09,
-	SSET0A, SSET0B, SSET0C, SSET0D, SSET0E, SSET0F,
+	SSET00=0, SSET01, SSET02, SSET04, SSET05, 
+  SSET08, SSET09, SSET0A, SSET0B, SSET0C, SSET0D, SSET0E, SSET0F,
 	SSET14, SSET15, SSET16, SSET17,
 	SSET18, SSET19, SSET1D,
-	SSET20, SSET21, SSET22, SSET39,
+	SSET20, SSET21, SSET22, 
+  SSET39,
 	SSET40, SSET41, SSET42,
 	SSET60, SSET61, SSET62, SSET63
 };
@@ -141,7 +144,7 @@ enum {
 
 // VEX tables
 enum {
-  VEX200
+  VEX200=0
 };
 
 enum {
@@ -150,7 +153,13 @@ enum {
   VEX310, VEX311, VEX312, VEX313, VEX314, VEX315, VEX316, VEX317,
   VEX318, VEX319, VEX31A, VEX31B, VEX31C, VEX31D, VEX31E, VEX31F,
   VEX320, VEX321, VEX322, VEX323, VEX324, VEX325
-  
+};
+
+/* SIMD op conversion table */
+static char vex3_simdop_convert[3][4] = {
+  {0, 2,  1, 3},
+  {0, 2,  1, 3},
+  {0, 1, -1, 2}
 };
 
 #define Zz   { 0, 0 }
@@ -214,6 +223,8 @@ enum {
 #define RMw  { am_RM, op_w }
 #define Td   { am_T, op_d }
 #define UMd	 { am_UM, op_d }
+#define Ups  { am_U, op_ps }
+#define Upd  { am_U, op_pd }
 #define Sw   { am_S, op_w }
 #define Vd   { am_V, op_d }
 #define Vdq  { am_V, op_dq }
@@ -2049,7 +2060,7 @@ static ia32_entry threeByteMap2[256] = {
 		/* 00 */
 		{ e_No_Entry, t_sse_ter, SSET00, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_ter, SSET01, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_vex3, 0x01, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_ter, SSET02, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_ter, SSET04, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_ter, SSET05, false, { Zz, Zz, Zz }, 0, 0 },
@@ -3155,7 +3166,7 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE77 */
-    { e_No_Entry, t_vex2, 0x01, false, { Zz, Zz, Zz }, 0, 0 }, /* vzeroall or vzeroupper */
+    { e_No_Entry, t_vex2, VEX200, false, { Zz, Zz, Zz }, 0, 0 }, /* vzeroall or vzeroupper */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
@@ -4004,14 +4015,14 @@ static ia32_entry sseMapBis[][5] = {
     { /* SSEB8C */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_No_Entry, t_vex3, VEX31E, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_vex3, VEX31F, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     },
     { /* SSEB8E */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_No_Entry, t_vex3, VEX31F, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_vex3, VEX31E, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     },
@@ -4282,6 +4293,11 @@ static ia32_entry sseMapTer[][3] = {
         { e_vpermpd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1W2R3R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     },
+    { /* SSET02 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_vpblendd, t_done, 0, true, { Vpd, Hpd, Upd }, 0, s1W2R3R4R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
     { /* SSET04 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_vpermilps, t_done, 0, true, { Vps, Wps, Ib }, 0, s1W2R3R },
@@ -4486,13 +4502,9 @@ static ia32_entry ssegrpMap[][2] = {
  *    index: found by using opcode lookups in the oneByteMap.
  *    L: The l bit of the prefix. L=1 is YMM registers, L=0 is XMM registers
  */
-struct ia32_entry vex2Map[][2] =
+static struct ia32_entry vex2Map[][2] =
 {
-    {
-      /* This entry should remain invalid. */
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
-    }, {
+    { /* VEX200 */
       { e_vzeroupper, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* L = 0 */
       { e_vzeroall, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* L = 1 */
     }
@@ -4511,7 +4523,7 @@ struct ia32_entry vex2Map[][2] =
   {{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, \
    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }}
 
-struct ia32_entry vex3Map[][2] =
+static struct ia32_entry vex3Map[][2] =
 {
     { /* VEX300 */
       { e_vfmaddsub132ps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1RW2R3R }, /* W = 0 */
@@ -5165,15 +5177,15 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       gotit = &vex3Map[idx][pref.vex_w];
       if(vex3Map[idx][!pref.vex_w].id == e_No_Entry)
       {
+#ifdef VEX_DEBUG
         printf("**********************VV******************\n");
         printf("Op Code:      0x%x\n", addr[-1]);
         printf("Table number: %d\n", VEX3GET_M(pref.vex_prefix[0]));
         printf("VEX3 index:   0x%x\n", idx);
         printf("SIMD idx:     %d\n", sseidx);
         printf("**********************^^******************\n");
+#endif
       }
-      // printf("W:   %d", pref.vex_w);
-      // printf("IDX: 0x%x\n", idx);
       /* Set the next table - this is almost always t_done */
       nxtab = gotit->otable;
       break;
@@ -5296,6 +5308,17 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       instruct.mac[0].read = true;
       instruct.mac[1].read = true;
       instruct.mac[1].write = true;
+      instruct.mac[2].read = true;
+      break;
+    case s1RW2R3R4R:
+      instruct.mac[0].write = true;
+      instruct.mac[0].read = true;
+      instruct.mac[1].read = true;
+      instruct.mac[2].read = true;
+      break;
+    case s1W2R3R4R:
+      instruct.mac[0].write = true;
+      instruct.mac[1].read = true;
       instruct.mac[2].read = true;
       break;
     }
@@ -6084,6 +6107,24 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
     else
       break;
   }
+
+  /* Are there 4 operands? */
+  if(gotit.opsema >= s4OP)
+  {
+    /* This last one is always Ib */
+    int imm_size = type2size(op_b, operSzAttr);
+    if (loc) {
+      if(loc->imm_cnt > 1) {
+        fprintf(stderr,"Oops, more than two immediate operands\n");
+      } else {
+      loc->imm_position[loc->imm_cnt] = nib + loc->opcode_position + loc->opcode_size;
+      loc->imm_size[loc->imm_cnt] = imm_size;
+      ++loc->imm_cnt;
+      }
+    }
+    nib += imm_size;
+  }
+
   if((gotit.id == e_push) && mac)
   {
     // assuming 32-bit (64-bit for AMD64) stack segment
