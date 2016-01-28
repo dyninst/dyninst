@@ -143,7 +143,7 @@ namespace Dyninst
         is64Bit(true), isValid(true), insn(0), insn_in_progress(NULL),
         hasHw(false), hasShift(false), hasOption(false), hasN(false),
         immr(0), immrLen(0), sField(0), nField(0), nLen(0),
-        immlo(0), immloLen(0), _szField(-1), _Q(0),
+        immlo(0), immloLen(0), _szField(-1), _Q(1),
 	cmode(0), op(0), simdAlphabetImm(0)
     {
         aarch64_insn_entry::buildInsnTable();
@@ -193,7 +193,7 @@ namespace Dyninst
         immlo = immloLen = 0;
 
         _szField = -1;
-        _Q = 0;
+        _Q = 1;
 
 	cmode = op = simdAlphabetImm = 0;
 
@@ -456,6 +456,12 @@ MachRegister InstructionDecoder_aarch64::makeAarch64RegID(MachRegister base, uns
     return MachRegister(base.val() + encoding);
 }
 
+template<unsigned int endBit, unsigned int startBit>
+void InstructionDecoder_aarch64::OPRsize()
+{
+    _szField = field<startBit, endBit>(insn);
+}
+
 Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 {
     int encoding  = field<0, 4>(insn);
@@ -465,12 +471,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
     {
         if(IS_INSN_SIMD_ACROSS(insn))
         {
-            int size = field<22, 23>(insn);
-
 	    //fmaxnmv, fmaxv, fminnmv, fminv
 	    if(field<14, 14>(insn) == 0x1)
 	    {
-		if((size & 0x1) == 0x0)
+		if((_szField & 0x1) == 0x0)
 		    reg = aarch64::s0;
 		else
 		    isValid = true;
@@ -480,7 +484,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 		int opcode = field<12 ,16>(insn);
 		
 		//saddlv and uaddlv with opcode field 0x03 use different sets of registers
-		switch(size)
+		switch(_szField)
                 {
 	            case 0x0:
 	                reg = (opcode == 0x03)?aarch64::h0:aarch64::b0;
@@ -534,6 +538,60 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 		isValid = false;
 		reg = aarch64::q0; //any value, it's invalid anyway and will be discarded
 	    }
+	}
+	else if(IS_INSN_SCALAR_3DIFF(insn))
+	{
+	    switch(_szField)
+	    {
+		case 0x1:reg = aarch64::s0;
+			 break;
+		case 0x2:reg = aarch64::d0;
+			 break;
+		default:isValid = false;
+	    }
+	}
+	else if(IS_INSN_SCALAR_INDEX(insn))
+	{
+	    int opcode = field<12, 15>(insn);
+
+	    //sqdmlal, sqdmlsl, sqdmull
+	    if((opcode & 0x3) == 0x3)
+	    {
+		switch(_szField)
+		{
+		    case 0x1:reg = aarch64::s0;
+			     break;
+		    case 0x2:reg = aarch64::d0;
+			     break;
+		    default:isValid = false;
+		}	    
+	    }
+	    //sqdmulh, sqrdmulh
+	    else if((opcode & 0xC0) == 0xC0)
+	    {
+		switch(_szField)
+		{
+		    case 0x1:reg = aarch64::h0;
+			     break;
+		    case 0x2:reg = aarch64::s0;
+			     break;
+		    default:isValid = false;
+		}
+	    }
+	    //fmla, fmls, fmul, fmulx
+	    else if((opcode & 0x3) == 0x1)
+	    {
+		switch(_szField & 0x1)
+		{
+		    case 0x0:reg = aarch64::s0;
+			     break;
+		    case 0x1:reg = aarch64::d0;
+			     break;
+		    default:isValid = false;
+		}
+	    }
+	    else
+		isValid = false;
 	}
         else if(IS_INSN_SIMD_VEC_INDEX(insn))
         {
@@ -593,8 +651,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 void InstructionDecoder_aarch64::OPRRd()
 {
     Expression::Ptr reg = makeRdExpr();
-    //for SIMD vector indexed set, some instructions read Rd and some don't. This can be determined from the highest bit of the opcode field (bit 15)
-    insn_in_progress->appendOperand(reg, (IS_INSN_SIMD_VEC_INDEX(insn) && !field<15, 15)(insn))?true:false, true);
+    //for SIMD/Scalar vector indexed set, some instructions read Rd and some don't. This can be determined from the highest bit of the opcode field (bit 15)
+    insn_in_progress->appendOperand(reg, ((IS_INSN_SIMD_VEC_INDEX(insn) || IS_INSN_SCALAR_INDEX(insn)) && !field<15, 15>(insn))?true:false, true);
 }
 
 void InstructionDecoder_aarch64::OPRcmode()
@@ -705,6 +763,60 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 
 	    reg = (imm5 & 0x10)?aarch64::q0:aarch64::d0;
 	}
+	else if(IS_INSN_SCALAR_PAIR(insn))
+	{
+	    switch(_szField)
+	    {
+		case 0x0:reg = aarch64::s0;
+			 break;
+		case 0x1:reg = aarch64::d0;
+			 break;
+		default:isValid = false;
+	    }
+	}
+	else if(IS_INSN_SCALAR_3DIFF(insn))
+	{
+	    switch(_szField)
+	    {
+		case 0x1:reg = aarch64::h0;
+			 break;
+		case 0x2:reg = aarch64::s0;
+			 break;
+		default:isValid = false;
+	    }
+	}
+	else if(IS_INSN_SCALAR_INDEX(insn))
+	{
+	    int opcode = field<12, 15>(insn);
+
+	    //sqdmlal, sqdmlsl, sqdmull
+	    //sqdmulh, sqrdmulh
+	    if((opcode & 0xC0) == 0xC0 || (opcode & 0x3) == 0x3)
+	    {
+		switch(_szField)
+		{
+		    case 0x1:reg = aarch64::h0;
+			     break;
+		    case 0x2:reg = aarch64::s0;
+			     break;
+		    default:isValid = false;
+		}
+	    }
+	    //fmla, fmls, fmul, fmulx
+	    else if((opcode & 0x3) == 0x1)
+	    {
+		switch(_szField & 0x1)
+		{
+		    case 0x0:reg = aarch64::s0;
+			     break;
+		    case 0x1:reg = aarch64::d0;
+			     break;
+		    default:isValid = false;
+		}
+	    }
+	    else
+		isValid = false;
+	}
         else if(IS_INSN_SIMD_VEC_INDEX(insn))
         {
 	    //the below two conditions can easily be combined into one, but would be difficult to understand
@@ -757,14 +869,14 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
     else if(IS_INSN_LDST(insn))
     {
         reg = encoding == 31?aarch64::sp:aarch64::x0;
-		if(encoding != 31)
-			reg = makeAarch64RegID(reg, encoding);
+	if(encoding != 31)
+	    reg = makeAarch64RegID(reg, encoding);
     }
     else
     {
     	reg = is64Bit?((encoding == 31)?aarch64::sp:aarch64::x0):((encoding == 31)?aarch64::wsp:aarch64::w0);
     	if(encoding != 31)
-    		reg = makeAarch64RegID(reg, encoding);
+	    reg = makeAarch64RegID(reg, encoding);
     }
 
     return makeRegisterExpression(reg);
@@ -1552,10 +1664,24 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
             unsigned int immLen = 4; // max #8
             return Immediate::makeImmediate( Result(u32, unsign_extend32(immLen, immVal) ) );
         }
-        else if(IS_INSN_SIMD_VEC_INDEX(insn))
+        else if(IS_INSN_SIMD_VEC_INDEX(insn) || IS_INSN_SCALAR_INDEX(insn))
         {
             reg = field<11, 11>(insn)==0x1?aarch64::q0:aarch64::d0;
+
+	    if(_szField == 0x1)
+		encoding = encoding & 0xF;
         }
+	else if(IS_INSN_SCALAR_3DIFF(insn))
+	{
+	    switch(_szField)
+	    {
+		case 0x1:reg = aarch64::h0;
+			 break;
+		case 0x2:reg = aarch64::s0;
+			 break;
+		default:isValid = false;
+	    }
+	}
 	else if(IS_INSN_SIMD_3DIFF(insn))
 	{
 	    entryID op = insn_in_progress->getOperation().operationID;
