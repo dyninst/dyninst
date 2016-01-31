@@ -510,6 +510,7 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
        s1W2R3RW, // additional push/pop
        s1RW2R3R, // shld/shrd
        s1RW2RW3R, // [i]div, cmpxch8b
+       s1RW2R3RW, // v[p]gather[ps, pd, qq, qd]
        s1R2R3R,
 
 /* Only 4 operands below here */
