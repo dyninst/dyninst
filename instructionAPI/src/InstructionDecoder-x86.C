@@ -70,6 +70,7 @@ namespace Dyninst
                     return i == 1 || i == 2;
                 case s1W2W3R: // e.g. les
                     return i == 2;
+                case s1RW2R3RW:
                 case s1RW2R3R: // shld/shrd
                 case s1RW2RW3R: // [i]div, cmpxch8b
                 case s1R2R3R:
@@ -108,6 +109,8 @@ namespace Dyninst
                 case s1RW2RW3R: // [i]div, cmpxch8b
                   return i == 0 || i == 1;
                 case s1W2R3RW: // (stack) push & pop
+                  return i == 0 || i == 2;
+                case s1RW2R3RW:
                   return i == 0 || i == 2;
                 case sNONE:
                 default:
