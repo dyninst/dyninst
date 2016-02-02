@@ -38,6 +38,7 @@ class BPatch_module;
 class BPatch_point;
 class BPatch_function;
 class BPatch_basicBlock;
+class BPatch_object;
 
 typedef enum {
     BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
@@ -61,7 +62,7 @@ typedef void (*BPatchUserEventCallback)(BPatch_process *proc, void *buf,
                                         unsigned int bufsize);
 
 typedef void (*BPatchDynLibraryCallback)(BPatch_thread *proc,
-					 BPatch_module *mod,
+					 BPatch_object *mod,
 					 bool load);
 
 typedef void (*BPatchForkCallback)(BPatch_thread *parent, 

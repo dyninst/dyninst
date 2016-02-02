@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -52,7 +52,7 @@ namespace Dyninst
     /// what other registers and memory locations are affected by the operation the instruction performs.
     ///
     /// The purpose of an %Instruction object is to join an %Operation with a sequence of %Operands, and provide
-    /// an interface for some common summary analyses (namely, the read/write sets, memory access information, 
+    /// an interface for some common summary analyses (namely, the read/write sets, memory access information,
     /// and control flow information).
     ///
     /// The %Operation contains knowledge about its mnemonic and sufficient semantic
@@ -61,7 +61,7 @@ namespace Dyninst
     ///   - What registers are implicitly read/written?
     ///   - What memory locations are implicitly read/written?
     ///   - What are the possible control flow successors of this instruction?
-    /// 
+    ///
     /// Each %Operand is an AST built from %RegisterAST and %Immediate leaves.  For each %Operand, you may determine:
     ///   - Registers read
     ///   - Registers written
@@ -89,7 +89,8 @@ namespace Dyninst
     public:
         friend class InstructionDecoder_x86;
         friend class InstructionDecoder_power;
-      
+        friend class InstructionDecoder_aarch64;
+
         struct CFT
         {
             Expression::Ptr target;
@@ -120,12 +121,12 @@ namespace Dyninst
       INSTRUCTION_EXPORT Instruction(Operation::Ptr what, size_t size, const unsigned char* raw,
                                      Dyninst::Architecture arch);
       INSTRUCTION_EXPORT Instruction();
-      
+
       INSTRUCTION_EXPORT virtual ~Instruction();
 
       INSTRUCTION_EXPORT Instruction(const Instruction& o);
       INSTRUCTION_EXPORT const Instruction& operator=(const Instruction& rhs);
-      
+
 
       /// \return The %Operation used by the %Instruction
       ///
@@ -140,7 +141,7 @@ namespace Dyninst
       /// an empty operand if \c index does not correspond to a valid operand in this
       /// instruction.
       INSTRUCTION_EXPORT Operand getOperand(int index) const;
-  
+
       /// Returns a pointer to the buffer from which this instruction
       /// was decoded.
       INSTRUCTION_EXPORT unsigned char rawByte(unsigned int index) const;
@@ -151,23 +152,23 @@ namespace Dyninst
       /// Returns a pointer to the raw byte representation of the corresponding
       /// machine instruction.
       INSTRUCTION_EXPORT const void* ptr() const;
-  
+
       /// \param regsWritten Insert the set of registers written by the instruction into \c regsWritten.
       ///
       /// The list of registers returned in \c regsWritten includes registers that are explicitly written as destination
-      /// operands (like the destination of a move).  It also includes registers 
+      /// operands (like the destination of a move).  It also includes registers
       /// that are implicitly written (like the
       /// stack pointer in a push or pop instruction).  It does not include
       /// any registers used only in computing the effective address of a write.
       /// \c pop \c *eax, for example, writes to \c esp, reads \c esp, and reads \c eax,
       /// but despite the fact that \c *eax is the destination operand, \c eax is not
       /// itself written.
-      /// 
+      ///
       /// For both the write set and the read set (below), it is possible to determine whether a register
       /// is accessed implicitly or explicitly by examining the %Operands.  An explicitly accessed register appears
       /// as an operand that is written or read; also, any registers used in any address calculations are explicitly
       /// read.  Any element of the write set or read set that is not explicitly written or read is implicitly
-      /// written or read.  
+      /// written or read.
 
       INSTRUCTION_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
 
@@ -186,7 +187,7 @@ namespace Dyninst
       ///
       /// Returns true if \c candidate is written by this %Instruction.
       INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
-      
+
 
       /// \return Returns true if the instruction reads at least one memory address as data.
       ///
@@ -207,7 +208,7 @@ namespace Dyninst
       /// \param memAccessors Addresses read by this instruction are inserted into \c memAccessors
       ///
       /// The addresses read are in the form of %Expressions, which may be evaluated once all of the
-      /// registers that they use have had their values set.  
+      /// registers that they use have had their values set.
       /// Note that this method returns ASTs representing address computations, and not address accesses.  For instance,
       /// an instruction accessing memory through a register dereference would return a %Expression tree containing
       /// just the register that determines the address being accessed, not a tree representing a dereference of that register.
@@ -217,10 +218,10 @@ namespace Dyninst
       ///
       /// The addresses written are in the same form as those returned by \c getMemoryReadOperands above.
       INSTRUCTION_EXPORT void getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const;
-  
+
       /// \return An expression evaluating to the non-fallthrough control flow targets, if any, of this instruction.
       ///
-      /// When called on an explicitly control-flow altering instruction, returns the 
+      /// When called on an explicitly control-flow altering instruction, returns the
       /// non-fallthrough control flow destination.  When called on any other instruction,
       /// returns \c NULL.
       ///
@@ -246,11 +247,11 @@ namespace Dyninst
       /// output streams via \c operator<<.  \c format is included in the public interface for
       /// diagnostic purposes.
       INSTRUCTION_EXPORT std::string format(Address addr = 0) const;
-      
+
       /// Returns true if this %Instruction object is valid.  Invalid instructions indicate that
       /// an %InstructionDecoder has reached the end of its assigned range, and that decoding should terminate.
       INSTRUCTION_EXPORT bool isValid() const;
-      
+
       /// Returns true if this %Instruction object represents a legal instruction, as specified by the architecture
       /// used to decode this instruction.
       INSTRUCTION_EXPORT bool isLegalInsn() const;
@@ -271,8 +272,8 @@ namespace Dyninst
         INSTRUCTION_EXPORT cftConstIter cft_end() const {
             return m_Successors.end();
         }
-      
-      
+
+
       typedef boost::shared_ptr<Instruction> Ptr;
 	public:
 	  //Should be private, but we're working around some compilers mis-using the 'friend' declaration.
@@ -290,7 +291,7 @@ namespace Dyninst
       Architecture arch_decoded_from;
       mutable std::list<CFT> m_Successors;
       static int numInsnsAllocated;
-      
+
     };
   };
 };

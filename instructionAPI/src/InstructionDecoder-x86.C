@@ -195,14 +195,28 @@ namespace Dyninst
 								  unsigned int opType)
     {
        unsigned int regType = op_d;
-        Result_Type aw = ia32_is_mode_64() ? u64 : u32;
+       Result_Type aw;
+       if(ia32_is_mode_64())
+       {
+	   if(addrSizePrefixPresent) {
+	       aw = u32;
+	   } else {
+	       aw = u64;
+	       regType = op_q;
+	   }
+       }
+       else
+       {
+	   if(!addrSizePrefixPresent) {
+	       aw = u32;
+	   } else {
+	       aw = u16;
+	       regType = op_w;
+	   }
+       }
         if (opType == op_lea) {
             // For an LEA, aw (address width) is insufficient, use makeSizeType
             aw = makeSizeType(opType);
-        }
-        if(ia32_is_mode_64())
-        {
-            regType = op_q;
         }
         Expression::Ptr e =
             makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, locs->rex_b));
@@ -268,7 +282,7 @@ namespace Dyninst
     {
         // rex_w indicates we need to sign-extend also.
         isSigned = isSigned || locs->rex_w;
-
+	
         switch(opType)
         {
             case op_b:
@@ -283,21 +297,29 @@ namespace Dyninst
                 return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(immStart)));
                 break;
             case op_v:
-                if (locs->rex_w) {
+                if (locs->rex_w || isDefault64Insn()) {
                     return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(immStart)));
                 }
-                //FALLTHROUGH
+                //if(!sizePrefixPresent)
+                //{
+                    return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(immStart)));
+		    //}
+		    //else
+		    //{
+                    //return Immediate::makeImmediate(Result(isSigned ? s16 : u16,*(const word_t*)(immStart)));
+		    //}
+		break;
             case op_z:
                 // 32 bit mode & no prefix, or 16 bit mode & prefix => 32 bit
                 // 16 bit mode, no prefix or 32 bit mode, prefix => 16 bit
-                if(!sizePrefixPresent)
-                {
+                //if(!addrSizePrefixPresent)
+                //{
                     return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(immStart)));
-                }
-                else
-                {
-                    return Immediate::makeImmediate(Result(isSigned ? s16 : u16,*(const word_t*)(immStart)));
-                }
+		    //}
+		    //else
+		    //{
+                    //return Immediate::makeImmediate(Result(isSigned ? s16 : u16,*(const word_t*)(immStart)));
+		    //}
                 break;
             case op_p:
                 // 32 bit mode & no prefix, or 16 bit mode & prefix => 48 bit
@@ -349,7 +371,7 @@ namespace Dyninst
                         disp_pos)))));
                 break;
             case 2:
-                if(sizePrefixPresent)
+                if(0 && sizePrefixPresent)
                 {
                     return make_shared(singleton_object_pool<Immediate>::construct(Result(s16, *((const word_t*)(b.start +
                             disp_pos)))));
@@ -362,7 +384,7 @@ namespace Dyninst
                 break;
             case 0:
                 // In 16-bit mode, the word displacement is modrm r/m 6
-                if(sizePrefixPresent)
+                if(sizePrefixPresent && !ia32_is_mode_64())
                 {
                     if(locs->modrm_rm == 6)
                     {
@@ -426,7 +448,7 @@ namespace Dyninst
         b_fpstack,
 	amd64_ext_8,
 	amd64_ext_16,
-	amd64_ext_32
+	amd64_ext_32,
     };
     static MachRegister IntelRegTable32[][8] = {
         {
@@ -601,16 +623,21 @@ namespace Dyninst
 		        retVal = IntelRegTable(m_Arch, b_amd64ext, intelReg);
 	            else if (!sizePrefixPresent)
 		        retVal = IntelRegTable(m_Arch, amd64_ext_32, intelReg);
-		    else
-		        retVal = IntelRegTable(m_Arch, amd64_ext_16, intelReg);
+		    //else
+		    //    retVal = IntelRegTable(m_Arch, amd64_ext_16, intelReg);
 		    break;	
 		case op_p:
 		case op_z:
-		    if (!sizePrefixPresent)
+		    //		    if (!sizePrefixPresent)
 		        retVal = IntelRegTable(m_Arch, amd64_ext_32, intelReg);
-		    else
-		        retVal = IntelRegTable(m_Arch, amd64_ext_16, intelReg);
+			//		    else
+			//  retVal = IntelRegTable(m_Arch, amd64_ext_16, intelReg);
 		    break;
+	    case op_f:
+	    case op_dbl:
+		// extended reg ignored on FP regs
+		retVal = IntelRegTable(m_Arch, b_fpstack,intelReg);
+		break;
 		default:
 		    retVal = InvalidReg;
 	    }
@@ -635,10 +662,10 @@ namespace Dyninst
                         retVal = IntelRegTable(m_Arch,b_32bit,intelReg);
                     break;
                 case op_b:
-                    if (locs->rex_position == -1) {
-                        retVal = IntelRegTable(m_Arch,b_8bitNoREX,intelReg);
-                    } else {
+                    if (locs->rex_byte & 0x40) {
                         retVal = IntelRegTable(m_Arch,b_8bitWithREX,intelReg);
+                    } else {
+                        retVal = IntelRegTable(m_Arch,b_8bitNoREX,intelReg);
                     }
                     break;
                 case op_q:
@@ -694,14 +721,14 @@ namespace Dyninst
                 {
                     return u64;
                 }
-	      if(ia32_is_mode_64() || !sizePrefixPresent)
-                {
+		//if(ia32_is_mode_64() || !sizePrefixPresent)
+                //{
                     return u32;
-                }
-                else
-                {
-                    return u16;
-                }
+		    //}
+		    //else
+		    //{
+                    //return u16;
+		    //}
                 break;
             case op_y:
             	if(ia32_is_mode_64())
@@ -786,7 +813,8 @@ namespace Dyninst
     }
       if (sizePrefixPresent && 
 	  ((optype == op_v) ||
-	   (optype == op_z))) {
+	   (optype == op_z)) &&
+	  (operand.admet != am_J)) {
 	optype = op_w;
       }
       if(optype == op_y) {
@@ -909,8 +937,14 @@ namespace Dyninst
                                 pseudoOpType = op_d;
                                 break;
                             case 0:
-                                // closest I can get to "will be address size by default"
-                                pseudoOpType = op_v;
+				if(m_Arch == Arch_x86_64) {
+				    if(!addrSizePrefixPresent)
+					pseudoOpType = op_q;
+				    else
+					pseudoOpType = op_d;
+				} else {
+				    pseudoOpType = op_v;
+				}
                                 break;
                             default:
                                 assert(!"Bad address size, should be 0, 1, 2, or 4!");
@@ -1120,21 +1154,71 @@ namespace Dyninst
                     case am_reg:
                     {
                         MachRegister r(optype);
-                        r = MachRegister((r.val() & ~r.getArchitecture()) | m_Arch);
-                        entryID entryid = decodedInstruction->getEntry()->getID(locs);
-                        if(locs->rex_b && insn_to_complete->m_Operands.empty() && 
-			    (entryid == e_push || entryid == e_pop || entryid == e_xchg || ((*(b.start + locs->opcode_position) & 0xf0) == 0xb0) ) )
-                        {
-                            // FP stack registers are not affected by the rex_b bit in AM_REG.
-                           if(r.regClass() != (unsigned) x86::MMX)
-                            {
-                                r = MachRegister((r.val()) | x86_64::r8.val());
-                            }
-                        }
-                        if(sizePrefixPresent)
-                        {
-                            r = MachRegister((r.val() & ~x86::FULL) | x86::W_REG);
-                        }
+			int size = r.size();
+			if((m_Arch == Arch_x86_64) && (r.regClass() == x86::GPR) && (size == 4))
+			{
+			    int reg_size = isDefault64Insn() ? op_q : op_v;
+			    if(sizePrefixPresent)
+			    {
+				reg_size = op_w;
+			    }
+			    // implicit regs are not extended
+			    r = makeRegisterID((r.val() & 0xFF), reg_size, false);
+			    entryID entryid = decodedInstruction->getEntry()->getID(locs);
+			    if(locs->rex_b && insn_to_complete->m_Operands.empty() &&
+			       (entryid == e_push || entryid == e_pop || entryid == e_xchg || ((*(b.start + locs->opcode_position) & 0xf0) == 0xb0)))
+			    {
+				r = MachRegister((r.val()) | x86_64::r8.val());
+				assert(r.name() != "<INVALID_REG>");
+			    }
+			}
+			else 
+			{
+			    r = MachRegister((r.val() & ~r.getArchitecture()) | m_Arch);
+			    
+			    entryID entryid = decodedInstruction->getEntry()->getID(locs);
+			    if(insn_to_complete->m_Operands.empty() && 
+			       (entryid == e_push || entryid == e_pop || entryid == e_xchg || ((*(b.start + locs->opcode_position) & 0xf0) == 0xb0) ) )
+			    {
+				unsigned int opcode_byte = *(b.start+locs->opcode_position);
+				unsigned int reg_id = (opcode_byte & 0x07);
+				if(locs->rex_b) 
+				{
+				    // FP stack registers are not affected by the rex_b bit in AM_REG.
+				    if(r.regClass() == (unsigned) x86::GPR)
+				    {
+					int reg_op_type = op_d;
+					switch(size)
+					{
+					case 1:
+					    reg_op_type = op_b;
+					    break;
+					case 2:
+					    reg_op_type = op_w;
+					    break;
+					case 8:
+					    reg_op_type = op_q;
+					    break;
+					default:
+					    break;
+					}
+					r = makeRegisterID(reg_id, reg_op_type, true);
+					//					r = MachRegister((r.val()) | x86_64::r8.val());
+					assert(r.name() != "<INVALID_REG>");
+				    }
+				}
+				else if((r.size() == 1) && (locs->rex_byte & 0x40))
+				{
+				    r = makeRegisterID(reg_id, op_b, false);
+				    assert(r.name() != "<INVALID_REG>");
+				}
+			    }
+			    if(sizePrefixPresent && (r.regClass() == x86::GPR) && r.size() >= 4)
+			    {
+				r = MachRegister((r.val() & ~x86::FULL) | x86::W_REG);
+				assert(r.name() != "<INVALID_REG>");
+			    }
+			}
                         Expression::Ptr op(makeRegisterExpression(r));
                         insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
@@ -1205,8 +1289,40 @@ namespace Dyninst
            sizePrefixPresent = false;
         }
         addrSizePrefixPresent = (decodedInstruction->getPrefix()->getAddrSzPrefix() == 0x67);
-        static ia32_entry invalid = { e_No_Entry, 0, 0, true, { {0,0}, {0,0}, {0,0} }, 0, 0 };
+        static ia32_entry invalid = { e_No_Entry, 0, 0, false, { {0,0}, {0,0}, {0,0} }, 0, 0 };
         if(decodedInstruction->getEntry()) {
+	    // check prefix validity
+	    // lock prefix only allowed on certain insns.
+	    // TODO: refine further to check memory written operand
+	    if(decodedInstruction->getPrefix()->getPrefix(0) == PREFIX_LOCK)
+	    {
+		switch(decodedInstruction->getEntry()->id)
+		{
+		case e_add:
+		case e_adc:
+		case e_and:
+		case e_btc:
+		case e_btr:
+		case e_bts:
+		case e_cmpxch:
+		case e_cmpxch8b:
+		case e_dec:
+		case e_inc:
+		case e_neg:
+		case e_not:
+		case e_or:
+		case e_sbb:
+		case e_sub:
+		case e_xor:
+		case e_xadd:
+		case e_xchg:
+		    break;
+		default:
+		    m_Operation = make_shared(singleton_object_pool<Operation>::construct(&invalid,
+                                    decodedInstruction->getPrefix(), locs, m_Arch));
+		    return;
+		}
+	    }
             m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
                                     decodedInstruction->getPrefix(), locs, m_Arch));
             

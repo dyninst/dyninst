@@ -320,6 +320,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
   BPatch_module *findOrCreateModule(mapped_module *base);
   BPatch_object *findOrCreateObject(mapped_object *base);
   void removeModule(BPatch_module *mod);
+  void removeObject(BPatch_object *obj);
   void removeAllModules();
 
 #if defined(_MSC_VER)

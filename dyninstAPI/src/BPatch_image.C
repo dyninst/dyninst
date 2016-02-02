@@ -1134,6 +1134,18 @@ void BPatch_image::removeModule(BPatch_module *mod)
    mod->handleUnload();
 }
 
+void BPatch_image::removeObject(BPatch_object* obj)
+{
+    std::vector<BPatch_module*> mods;
+    obj->modules(mods);
+    for(auto it = mods.begin();
+	it != mods.end();
+	++it)
+    {
+	removeModule(*it);
+    }
+}
+
 bool BPatch_image::readString(BPatch_variableExpr *expr, std::string &str,
                                  unsigned size_limit)
 {

@@ -897,46 +897,78 @@ namespace Dyninst
       const signed int FPR   = 0x00020000;
       const signed int FSR   = 0x00040000;
       const signed int SPR   = 0x00080000;
+      const signed int SYSREG = 0x00100000;
 
       const signed int B_REG = 0x00000100;      //8bit  byte reg
-      const signed int H_REG = 0x00000200;      //16bit half-word reg
-      const signed int W_REG = 0x00000f00;      //32bit word reg
+      const signed int W_REG = 0x00000300;      //16bit half-wor reg
+      const signed int D_REG = 0x00000f00;      //32bit single-word reg
       const signed int FULL  = 0x00000000;      //64bit double-word reg
-      const signed int Q_REG = 0x00000f00;      //128bit quad-word reg
+      const signed int Q_REG = 0x00000400;      //128bit reg
 
       //31 GPRs, double word long registers
       //          (name   regID| alias | cat | arch           arch    )
-      DEF_REGISTER(x0,       0 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x1,       1 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x2,       2 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x3,       3 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x4,       4 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x5,       5 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x6,       6 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x7,       7 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x8,       8 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x9,       9 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x10,     10 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x11,     11 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x12,     12 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x13,     13 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x14,     14 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x15,     15 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x16,     16 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x17,     17 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x18,     18 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x19,     19 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x20,     20 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x21,     21 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x22,     22 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x23,     23 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x24,     24 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x25,     25 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x26,     26 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x27,     27 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x28,     28 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x29,     29 | FULL  |GPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(x30,     30 | FULL  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x0,       0 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w0,       0 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x1,       1 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w1,       1 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x2,       2 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w2,       2 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x3,       3 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w3,       3 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x4,       4 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w4,       4 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x5,       5 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w5,       5 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x6,       6 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w6,       6 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x7,       7 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w7,       7 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x8,       8 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w8,       8 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x9,       9 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w9,       9 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x10,     10 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w10,     10 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x11,     11 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w11,     11 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x12,     12 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w12,     12 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x13,     13 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w13,     13 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x14,     14 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w14,     14 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x15,     15 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w15,     15 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x16,     16 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w16,     16 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x17,     17 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w17,     17 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x18,     18 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w18,     18 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x19,     19 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w19,     19 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x20,     20 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w20,     20 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x21,     21 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w21,     21 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x22,     22 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w22,     22 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x23,     23 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w23,     23 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x24,     24 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w24,     24 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x25,     25 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w25,     25 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x26,     26 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w26,     26 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x27,     27 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w27,     27 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x28,     28 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w28,     28 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x29,     29 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w29,     29 | D_REG  |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(x30,     30 | FULL   |GPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(w30,     30 | D_REG  |GPR | Arch_aarch64, "aarch64");
 
       //32 FPRs-----------q-d-s-h-b
       //128 bit
@@ -973,6 +1005,243 @@ namespace Dyninst
       DEF_REGISTER(q30,     30 | Q_REG |FPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(q31,     31 | Q_REG |FPR | Arch_aarch64, "aarch64");
 
+      //64bit FP regs
+      DEF_REGISTER(d0,       0 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d1,       1 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d2,       2 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d3,       3 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d4,       4 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d5,       5 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d6,       6 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d7,       7 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d8,       8 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d9,       9 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d10,     10 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d11,     11 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d12,     12 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d13,     13 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d14,     14 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d15,     15 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d16,     16 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d17,     17 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d18,     18 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d19,     19 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d20,     20 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d21,     21 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d22,     22 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d23,     23 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d24,     24 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d25,     25 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d26,     26 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d27,     27 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d28,     28 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d29,     29 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d30,     30 | FULL |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(d31,     31 | FULL |FPR | Arch_aarch64, "aarch64");
+
+      //32 bit FP regs
+      DEF_REGISTER(s0,       0 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s1,       1 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s2,       2 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s3,       3 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s4,       4 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s5,       5 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s6,       6 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s7,       7 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s8,       8 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s9,       9 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s10,     10 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s11,     11 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s12,     12 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s13,     13 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s14,     14 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s15,     15 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s16,     16 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s17,     17 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s18,     18 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s19,     19 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s20,     20 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s21,     21 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s22,     22 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s23,     23 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s24,     24 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s25,     25 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s26,     26 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s27,     27 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s28,     28 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s29,     29 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s30,     30 | D_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(s31,     31 | D_REG |FPR | Arch_aarch64, "aarch64");
+
+
+      //16 bit FP regs
+      DEF_REGISTER(h0,       0 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h1,       1 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h2,       2 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h3,       3 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h4,       4 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h5,       5 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h6,       6 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h7,       7 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h8,       8 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h9,       9 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h10,     10 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h11,     11 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h12,     12 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h13,     13 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h14,     14 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h15,     15 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h16,     16 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h17,     17 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h18,     18 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h19,     19 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h20,     20 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h21,     21 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h22,     22 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h23,     23 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h24,     24 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h25,     25 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h26,     26 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h27,     27 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h28,     28 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h29,     29 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h30,     30 | W_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(h31,     31 | W_REG |FPR | Arch_aarch64, "aarch64");
+
+      //8 bit FP regs
+      DEF_REGISTER(b0,       0 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b1,       1 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b2,       2 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b3,       3 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b4,       4 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b5,       5 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b6,       6 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b7,       7 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b8,       8 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b9,       9 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b10,     10 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b11,     11 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b12,     12 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b13,     13 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b14,     14 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b15,     15 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b16,     16 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b17,     17 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b18,     18 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b19,     19 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b20,     20 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b21,     21 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b22,     22 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b23,     23 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b24,     24 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b25,     25 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b26,     26 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b27,     27 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b28,     28 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b29,     29 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b30,     30 | B_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(b31,     31 | B_REG |FPR | Arch_aarch64, "aarch64");
+	
+	  //system registers accessible in user mode
+	  DEF_REGISTER(ctr_el0,       	 0 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(dczid_el0,        1 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(tpidr_el0,        2 | FULL  |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(tpidrr0_el0,      3 | FULL  |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(dbgdtr_el0,       4 | FULL  |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(dbggtrrx_el0,     5 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(dbggtrtx_el0,     6 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(dlr_el0,       	 7 | FULL  |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(dspsr_el0,        8 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(mdccsr_el0,       9 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmccfiltr_el0,   10 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmccntr_el0,     11 | FULL  |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmceid0_el0,     12 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmceid1_el0,     13 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmcntenclr_el0,  14 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmcntenset_el0,  15 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmcr_el0,     	16 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      
+      DEF_REGISTER(pmevcntr0_el0,     17 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr1_el0,     18 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr2_el0,     19 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr3_el0,     20 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr4_el0,     21 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr5_el0,     22 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr6_el0,     23 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr7_el0,     24 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr8_el0,     25 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr9_el0,     26 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr10_el0,    27 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr11_el0,    28 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr12_el0,    29 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr13_el0,    30 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr14_el0,    31 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr15_el0,    32 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr16_el0,    33 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr17_el0,    34 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr18_el0,    35 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr19_el0,    36 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr20_el0,    37 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr21_el0,    38 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr22_el0,    39 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr23_el0,    40 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr24_el0,    41 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr25_el0,    42 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr26_el0,    43 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr27_el0,    44 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr28_el0,    45 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr29_el0,    46 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevcntr30_el0,    47 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      
+      DEF_REGISTER(pmevtyper0_el0,     48 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper1_el0,     49 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper2_el0,     50 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper3_el0,     51 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper4_el0,     52 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper5_el0,     53 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper6_el0,     54 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper7_el0,     55 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper8_el0,     56 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper9_el0,     57 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper10_el0,    58 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper11_el0,    59 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper12_el0,    60 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper13_el0,    61 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper14_el0,    62 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper15_el0,    63 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper16_el0,    64 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper17_el0,    65 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper18_el0,    66 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper19_el0,    67 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper20_el0,    68 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper21_el0,    69 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper22_el0,    70 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper23_el0,    71 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper24_el0,    72 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper25_el0,    73 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper26_el0,    74 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper27_el0,    75 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper28_el0,    76 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper29_el0,    77 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmevtyper30_el0,    78 | D_REG |SYSREG | Arch_aarch64, "aarch64");      
+
+      DEF_REGISTER(pmovsclr_el0,    79 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmovsset_el0,    80 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmselr_el0,     	81 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmswinc_el0,     82 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmuserenr_el0,   83 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmxevcntr_el0,   84 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pmxevtyper_el0,  85 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(cntfr0_el0,     	86 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(cntp_ctl_el0,    87 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(cntp_cval_el0,   88 | FULL  |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(cntp_tval_el0,   89 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(cntpct_el0,     	90 | FULL  |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(cntv_ctl_el0,    91 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(cntv_cval_el0,   92 | FULL  |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(cntv_tval_el0,   93 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+      DEF_REGISTER(cntvct_el0,     	94 | FULL  |SYSREG | Arch_aarch64, "aarch64");
+	
       //GPRs aliases:
       //by convention
       //x29 is used as frame pointer
@@ -981,12 +1250,14 @@ namespace Dyninst
 
       //special registers
 	  //PC is not writable in aarch64
-      DEF_REGISTER(sp,       0 | FULL  |SPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(pc,       1 | FULL  |SPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(pstate,   2 | FULL  |SPR | Arch_aarch64, "aarch64");
-      //the base value is not sure
-      DEF_REGISTER(fpcr,     0 | W_REG |SPR | Arch_aarch64, "aarch64");
-      DEF_REGISTER(fpsr,     1 | W_REG |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(sp,       0 | FULL   |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(wsp,      0 | D_REG  |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pc,       1 | FULL   |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(pstate,   2 | D_REG  |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(zr,		 3 | FULL   |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(wzr,		 3 | D_REG  |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(fpcr,     4 | D_REG  |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(fpsr,     5 | D_REG  |SPR | Arch_aarch64, "aarch64");
 
 	}	//end of aarch64 namespace
 }

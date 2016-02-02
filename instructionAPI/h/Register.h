@@ -55,6 +55,7 @@ namespace Dyninst
       /// Construct a register, assigning it the ID \c id.
       RegisterAST(MachRegister r);
       RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit);
+      RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType);
   
       virtual ~RegisterAST();
       

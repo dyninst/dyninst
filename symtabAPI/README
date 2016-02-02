@@ -1,6 +1,6 @@
-        *** Symtab 9.0 Release Notes ***
+        *** Symtab 9.1 Release Notes ***
 
-This is the version 9.0 release of the SymtabAPI.  Currently, the API
+This is the version 9.1 release of the SymtabAPI.  Currently, the API
 library is available for ELF platforms (Linux, BlueGene), and PE
 platforms (Windows).
 
@@ -24,12 +24,11 @@ Building the SymtabAPI from source
 
 See the top-level INSTALL file for how to build.
 
-Changes since 8.2
+Changes since 9.0
 -----------------
-- Support for reading binaries on ARM64
-- Support for reading inline function information
 - Speed and space optimizations
-
+- Fixes for bugs reading line information
+- Fixes for bugs reading exception information
 
 -----------------------------------------------------------------------------
 This software is derived from the Paradyn system and therefore subject to
@@ -37,7 +36,7 @@ the same copyright.  A copy of the Paradyn copyright appears at the end of
 this file.
 
    The Dyninst API Team
-   8/17/2015
+   12/9/2015
 
 ----------------------- Start of Paradyn Copyright --------------------------
 See the dyninst/COPYRIGHT file for copyright information.
