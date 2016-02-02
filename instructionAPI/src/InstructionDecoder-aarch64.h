@@ -118,9 +118,9 @@ namespace Dyninst {
 
                 // Note: to Sunny, the following 6 subclasses are implemeneted.
                 // But still you need to test them carefully.
-                #define IS_INSN_SIMD_3SAME(I)           (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<21, 21>(I) == 0x1 && field<10, 10>(I) == 0x1)
+                //#define IS_INSN_SIMD_3SAME(I)           (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<21, 21>(I) == 0x1 && field<10, 10>(I) == 0x1)
                 #define IS_INSN_SIMD_3DIFF(I)           (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<21, 21>(I) == 0x1 && field<10, 11>(I) == 0x0)
-                #define IS_INSN_SIMD_2REG_MISC(I)        (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x10 && field<10, 11>(I) == 0x2)
+                //#define IS_INSN_SIMD_2REG_MISC(I)        (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x10 && field<10, 11>(I) == 0x2)
                 #define IS_INSN_SIMD_ACROSS(I)          (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x18 && field<10, 11>(I) == 0x2)
                 #define IS_INSN_SIMD_COPY(I)            (field<31, 31>(I) == 0x0 && field<21, 28>(I) == 0x70 && field<15,15>(I) == 0x0 && field<10, 10>(I) == 0x1)
                 #define IS_INSN_SIMD_VEC_INDEX(I)       (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xf && field<10, 10>(I) == 0x0)
@@ -128,7 +128,7 @@ namespace Dyninst {
                 #define IS_INSN_SIMD_MOD_IMM(I)         (field<31, 31>(I) == 0x0 && field<19, 28>(I) == 0x1e0 && field<10, 10>(I) == 0x1)
                 #define IS_INSN_SIMD_SHIFT_IMM(I)       (field<31, 31>(I) == 0x0 && field<23, 28>(I) == 0x1e && field<19, 22>(I) != 0x0)
                 #define IS_INSN_SIMD_TAB_LOOKUP(I)      (field<31, 31>(I) == 0x0 && field<24, 29>(I) == 0xe && field<21, 21>(I) == 0x0 && field<15, 15>(I) == 0x0 && field<10, 11>(I) == 0x0)
-                #define IS_INSN_SIMD_PERM(I)            (field<31, 31>(I) == 0x0 && field<24, 29>(I) == 0xe && field<21, 21>(I) == 0x0 && field<15, 15>(I) == 0x0 && field<10, 11>(I) == 0x2)
+                //#define IS_INSN_SIMD_PERM(I)            (field<31, 31>(I) == 0x0 && field<24, 29>(I) == 0xe && field<21, 21>(I) == 0x0 && field<15, 15>(I) == 0x0 && field<10, 11>(I) == 0x2)
                 #define IS_INSN_SIMD_EXTR(I)            (field<31, 31>(I) == 0x0 && field<24, 29>(I) == 0x2e && field<21, 21>(I) == 0x0 && field<15, 15>(I) == 0x0 && field<10, 10>(I) == 0x0)
                 #define IS_INSN_SCALAR_3SAME(I)         (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1e && field<21, 21>(I) == 0x1 && field<10, 10>(I) == 0x1)
                 #define IS_INSN_SCALAR_3DIFF(I)         (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1e && field<21, 21>(I) == 0x1 && field<10, 11>(I) == 0x0)
@@ -201,6 +201,24 @@ namespace Dyninst {
                     return (mask>>(64-size)) & in;
 		}
 
+		int highest_set_bit(int32_t val)
+		{
+		    for(int bit_index = 31; bit_index >= 0; bit_index--)
+			if(((val>>bit_index) & 0x1) == 0x1)
+			    return bit_index+1;
+
+		    return -1;
+		}
+
+		int lowest_set_bit(int32_t val)
+		{
+		    for(int bit_index = 0; bit_index <= 31; bit_index++)
+			if(((val>>bit_index) & 0x1) == 0x1)
+			    return bit_index+1;
+
+		    return -1;
+		}
+
 		int op1Field, op2Field, crmField;
 		void processSystemInsn();
 
@@ -225,7 +243,7 @@ namespace Dyninst {
 		void makeBranchTarget(bool, bool, int, int);
 		Expression::Ptr makeFallThroughExpr();
 
-                int _szField;
+                int _szField, size;
                 int _typeField;
 		int cmode;
 		int op;

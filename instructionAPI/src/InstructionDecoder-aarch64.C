@@ -143,7 +143,7 @@ namespace Dyninst
         is64Bit(true), isValid(true), insn(0), insn_in_progress(NULL),
         hasHw(false), hasShift(false), hasOption(false), hasN(false),
         immr(0), immrLen(0), sField(0), nField(0), nLen(0),
-        immlo(0), immloLen(0), _szField(-1), _Q(1),
+        immlo(0), immloLen(0), _szField(-1), _Q(1), size(-1),
 	cmode(0), op(0), simdAlphabetImm(0)
     {
         aarch64_insn_entry::buildInsnTable();
@@ -192,7 +192,7 @@ namespace Dyninst
 
         immlo = immloLen = 0;
 
-        _szField = -1;
+        _szField = size = -1;
         _Q = 1;
 
 	cmode = op = simdAlphabetImm = 0;
@@ -459,7 +459,7 @@ MachRegister InstructionDecoder_aarch64::makeAarch64RegID(MachRegister base, uns
 template<unsigned int endBit, unsigned int startBit>
 void InstructionDecoder_aarch64::OPRsize()
 {
-    _szField = field<startBit, endBit>(insn);
+    size = field<startBit, endBit>(insn);
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
@@ -474,7 +474,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 	    //fmaxnmv, fmaxv, fminnmv, fminv
 	    if(field<14, 14>(insn) == 0x1)
 	    {
-		if((_szField & 0x1) == 0x0)
+		if(_szField == 0x0)
 		    reg = aarch64::s0;
 		else
 		    isValid = true;
@@ -484,7 +484,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 		int opcode = field<12 ,16>(insn);
 		
 		//saddlv and uaddlv with opcode field 0x03 use different sets of registers
-		switch(_szField)
+		switch(size)
                 {
 	            case 0x0:
 	                reg = (opcode == 0x03)?aarch64::h0:aarch64::b0;
@@ -521,27 +521,31 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
                 }
             }
         }
-	else if(IS_INSN_SCALAR_COPY(insn))
+	else if(IS_INSN_SCALAR_COPY(insn) || IS_INSN_SCALAR_SHIFT_IMM(insn))
 	{
-	    int imm5 = field<16, 20>(insn);
+	    int switchbit;
 
-	    if(imm5 & 0x1)
-		reg = aarch64::b0;
-	    else if(imm5 & 0x2)
-		reg = aarch64::h0;
-	    else if(imm5 & 0x4)
-		reg = aarch64::s0;
-	    else if(imm5 & 0x8)
-		reg = aarch64::d0;
+	    if(IS_INSN_SCALAR_COPY(insn))
+		switchbit = lowest_set_bit(field<16, 20>(insn));
 	    else
+		switchbit = highest_set_bit(field<19, 22>(insn));
+
+	    switch(switchbit)
 	    {
-		isValid = false;
-		reg = aarch64::q0; //any value, it's invalid anyway and will be discarded
+		case 0x1:reg = aarch64::b0;
+			 break;
+		case 0x2:reg = aarch64::h0;
+			 break;
+		case 0x3:reg = aarch64::s0;
+			 break;
+		case 0x4:reg = aarch64::d0;
+			 break;
+		default:isValid = false;
 	    }
 	}
 	else if(IS_INSN_SCALAR_3DIFF(insn))
 	{
-	    switch(_szField)
+	    switch(size)
 	    {
 		case 0x1:reg = aarch64::s0;
 			 break;
@@ -557,7 +561,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 	    //sqdmlal, sqdmlsl, sqdmull
 	    if((opcode & 0x3) == 0x3)
 	    {
-		switch(_szField)
+		switch(size)
 		{
 		    case 0x1:reg = aarch64::s0;
 			     break;
@@ -569,7 +573,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 	    //sqdmulh, sqrdmulh
 	    else if((opcode & 0xC0) == 0xC0)
 	    {
-		switch(_szField)
+		switch(size)
 		{
 		    case 0x1:reg = aarch64::h0;
 			     break;
@@ -581,7 +585,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 	    //fmla, fmls, fmul, fmulx
 	    else if((opcode & 0x3) == 0x1)
 	    {
-		switch(_szField & 0x1)
+		switch(_szField)
 		{
 		    case 0x0:reg = aarch64::s0;
 			     break;
@@ -593,10 +597,45 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 	    else
 		isValid = false;
 	}
-        else if(IS_INSN_SIMD_VEC_INDEX(insn))
+	else if(IS_INSN_SCALAR_2REG_MISC(insn))
+	{
+	    //some instructions in this set rely on sz for choosing the register and some on size
+	    //only one of them is set for an instruction, however
+	    if(_szField == -1)
+	    {
+		switch(size)
+		{
+		    case 0x0:reg = aarch64::b0;
+			     break;
+		    case 0x1:reg = aarch64::h0;
+			     break;
+		    case 0x2:reg = aarch64::s0;
+			     break;
+		    case 0x3:reg = aarch64::d0;
+			     break;
+		    default:isValid = false;
+		}
+	    }
+	    else
+	    {
+		switch(_szField)
+		{
+		    case 0x0:reg = aarch64::s0;
+			     break;
+		    case 0x1:{
+				entryID op = insn_in_progress->getOperation().operationID;
+				reg = (op == aarch64_op_fcvtxn_advsimd)?aarch64::s0:aarch64::d0;
+			     }
+			     break;
+		    default:isValid = false;
+		}
+	    }		
+	}
+	//the case below should be taken care of by the 'else' part of this block, since _Q is 1 by default
+        /*else if(IS_INSN_SIMD_VEC_INDEX(insn))
         {
             reg = aarch64::q0;
-        }
+        }*/
 	else if(IS_INSN_SIMD_MOD_IMM(insn) && _Q == 0 && op == 1 && cmode == 0xE)
 	{
 	    reg = aarch64::d0;	       
@@ -765,7 +804,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 	}
 	else if(IS_INSN_SCALAR_PAIR(insn))
 	{
-	    switch(_szField)
+	    switch(size)
 	    {
 		case 0x0:reg = aarch64::s0;
 			 break;
@@ -774,9 +813,31 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 		default:isValid = false;
 	    }
 	}
+	else if(IS_INSN_SCALAR_SHIFT_IMM(insn))
+	{
+	    int switchbit = highest_set_bit(field<19, 22>(insn));
+	    bool isRnVa = false;
+	    int opcode = field<11, 15>(insn);
+
+	    if((opcode & 0x1C) == 0x10)
+		isRnVa = true;
+
+	    switch(switchbit)
+	    {
+		case 0x1:reg = isRnVa?aarch64::h0:aarch64::b0;
+			 break;
+		case 0x2:reg = isRnVa?aarch64::s0:aarch64::h0;
+			 break;
+		case 0x3:reg = isRnVa?aarch64::d0:aarch64::s0;
+			 break;
+		case 0x4:isRnVa?(isValid = false):(reg = aarch64::d0);
+			 break;
+		default:isValid = false;
+	    }
+	}
 	else if(IS_INSN_SCALAR_3DIFF(insn))
 	{
-	    switch(_szField)
+	    switch(size)
 	    {
 		case 0x1:reg = aarch64::h0;
 			 break;
@@ -793,7 +854,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 	    //sqdmulh, sqrdmulh
 	    if((opcode & 0xC0) == 0xC0 || (opcode & 0x3) == 0x3)
 	    {
-		switch(_szField)
+		switch(size)
 		{
 		    case 0x1:reg = aarch64::h0;
 			     break;
@@ -805,7 +866,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 	    //fmla, fmls, fmul, fmulx
 	    else if((opcode & 0x3) == 0x1)
 	    {
-		switch(_szField & 0x1)
+		switch(_szField)
 		{
 		    case 0x0:reg = aarch64::s0;
 			     break;
@@ -816,6 +877,42 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 	    }
 	    else
 		isValid = false;
+	}
+	else if(IS_INSN_SCALAR_2REG_MISC(insn))
+	{
+	    //some instructions in this set rely on sz for choosing the register and some on size
+	    //only one of them is set for an instruction, however
+	    bool isRnVa = false;
+	    int opcode = field<12, 16>(insn);
+	    if((opcode & 0x18) == 0x10 && (opcode & 0x1) == 0x0)
+		isRnVa = true;
+
+	    if(_szField == -1)
+	    {
+		switch(size)
+		{
+		    case 0x0:reg = isRnVa?aarch64::h0:aarch64::b0;
+			     break;
+		    case 0x1:reg = isRnVa?aarch64::s0:aarch64::h0;
+			     break;
+		    case 0x2:reg = isRnVa?aarch64::d0:aarch64::s0;
+			     break;
+		    case 0x3:isRnVa?(isValid = false):(reg = aarch64::d0);
+			     break;
+		    default:isValid = false;
+		}
+	    }
+	    else
+	    {
+		switch(_szField)
+		{
+		    case 0x0:isRnVa?(isValid = false):(reg = aarch64::s0);
+			     break;
+		    case 0x1:reg = aarch64::d0;
+			     break;
+		    default:isValid = false;
+		}
+	    }		
 	}
         else if(IS_INSN_SIMD_VEC_INDEX(insn))
         {
@@ -1667,13 +1764,14 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
         else if(IS_INSN_SIMD_VEC_INDEX(insn) || IS_INSN_SCALAR_INDEX(insn))
         {
             reg = field<11, 11>(insn)==0x1?aarch64::q0:aarch64::d0;
-
-	    if(_szField == 0x1)
+	    
+	    //check this once
+	    if(_szField == 0x1 || size == 0x1)
 		encoding = encoding & 0xF;
         }
 	else if(IS_INSN_SCALAR_3DIFF(insn))
 	{
-	    switch(_szField)
+	    switch(size)
 	    {
 		case 0x1:reg = aarch64::h0;
 			 break;
@@ -2334,17 +2432,24 @@ void InstructionDecoder_aarch64::OPRimm()
 		       insnID == aarch64_op_sli_advsimd || insnID == aarch64_op_sqshlu_advsimd || insnID == aarch64_op_uqshl_advsimd_imm || insnID == aarch64_op_ushll_advsimd)
 			isRightShift = -1;	
 
-		    if(immlo & 0x1)
-			shift = isRightShift*(16 - elemWidth) + isRightShift>0?0:8;
-		    else if(immlo & 0x2)
-			shift = isRightShift*(32 - elemWidth) + isRightShift>0?0:16;
-		    else if(immlo & 0x4)
-			shift = isRightShift*(64 - elemWidth) + isRightShift>0?0:32;
-		    else
-			shift = isRightShift*(128 - elemWidth) + isRightShift>0?0:64;
+		    switch(highest_set_bit(immlo))
+		    {
+			case 0x1:shift = isRightShift*(16 - elemWidth) + isRightShift>0?0:8;
+				 break;
+			case 0x2:shift = isRightShift*(32 - elemWidth) + isRightShift>0?0:16;
+				 break;
+			case 0x3:shift = isRightShift*(64 - elemWidth) + isRightShift>0?0:32;
+				 break;
+			case 0x4:shift = isRightShift*(128 - elemWidth) + isRightShift>0?0:64;
+				 break;
+			default:isValid = false;
+		    }
 
-		    Expression::Ptr imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immloLen + immLen, shift)));
-		    insn_in_progress->appendOperand(imm, true, false);
+		    if(isValid)
+		    {
+			Expression::Ptr imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immloLen + immLen, shift)));
+			insn_in_progress->appendOperand(imm, true, false);
+		    }
 		}
 		else
 		    isValid = false;
