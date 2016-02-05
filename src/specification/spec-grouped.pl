@@ -2396,6 +2396,21 @@ test_runmode('aarch64_decode_ldst', 'disk').
 test_start_state('aarch64_decode_ldst', 'stopped').
 tests_module('aarch64_decode_ldst', 'instruction').
 
+test('aarch64_simd', 'aarch64_simd', none).
+test_description('aarch64_simd', 'Tests the AARCH64 SIMD instructions.').
+test_platform('aarch64_simd', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('power32', _, _, Platform);
+        platform('power64', _, _, Platform);
+        platform('powerpc', _, _, Platform);
+        platform('aarch64', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('aarch64_simd', ['aarch64_simd.C']).
+test_runmode('aarch64_simd', 'disk').
+test_start_state('aarch64_simd', 'stopped').
+tests_module('aarch64_simd', 'instruction').
+
 test('power_cft', 'power_cft', none).
 test_description('power_cft', 'Tests the control flow targets of POWER instructions.').
 test_platform('power_cft', Platform) :-
