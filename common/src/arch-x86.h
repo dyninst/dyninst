@@ -471,8 +471,9 @@ enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, op_q, // 10
 
 // tables and pseudotables
 enum {
-  t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, 
-  t_sse_bis, t_sse_ter, t_grpsse, t_3dnow, t_vex2, t_vex3, t_done=99
+  t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, 
+  t_grp, t_sse, t_sse_mult, t_sse_bis, t_sse_bis_mult, 
+  t_sse_ter, t_sse_ter_mult, t_grpsse, t_3dnow, t_vex2, t_vex3, t_done=99
 };
 
 // registers used for memory access
@@ -565,6 +566,8 @@ class ia32_prefixes
   unsigned char vex_prefix[3]; /* support up to EVEX (VEX-512) */
   unsigned char vex_l; /* l bit for VEX2 and VEX3 */
   unsigned char vex_w; /* w bit for VEX2 and VEX3 */
+  bool vex_present; /* Does this instruction have a vex prefix?  */
+  int sse_mult; /* 0 VEX2, 1 VEX3, 2 EVEX */
 };
 
 // helper routine to tack-on rex bit when needed
