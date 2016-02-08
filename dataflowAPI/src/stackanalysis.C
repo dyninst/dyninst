@@ -263,7 +263,7 @@ void StackAnalysis::summarize() {
     // Now that we know the actual inputs to each block,
     // we create intervals by replaying the effects of each
     // instruction.
-
+    if (intervals_ != NULL) delete intervals_;
     intervals_ = new Intervals();
 
     Function::blocklist bs = func->blocks();
@@ -284,6 +284,9 @@ void StackAnalysis::summarize() {
             for (TransferFuncs::iterator iter2 = xferFuncs.begin();
                 iter2 != xferFuncs.end(); ++iter2) {
                 input[iter2->target] = iter2->apply(input);
+                if (input[iter2->target].isTop()) {
+                    input.erase(iter2->target);
+                }
             }
         }
         (*intervals_)[block][block->end()] = input;
@@ -2182,6 +2185,9 @@ void StackAnalysis::SummaryFunc::apply(const AbslocState &in,
       iter != accumFuncs.end(); ++iter) {
       assert(iter->first.isValid());
       out[iter->first] = iter->second.apply(in);
+      if (out[iter->first].isTop()) {
+         out.erase(iter->first);
+      }
    }
 }
 

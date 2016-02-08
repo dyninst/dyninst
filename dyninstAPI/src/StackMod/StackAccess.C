@@ -427,7 +427,6 @@ bool getMemoryOffset(ParseAPI::Function* func,
             }
 
             if (performSlice) {
-
                 std::vector<AbsRegion> ins;
                 ins.push_back(AbsRegion(Absloc(reg)));
                 Assignment::Ptr assign = Assignment::Ptr(new Assignment(insn,

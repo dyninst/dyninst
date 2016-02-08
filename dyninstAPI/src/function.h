@@ -342,6 +342,8 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void replaceTMap(TMap* newTMap) { _tMap = newTMap; }
 
   bool randomize(TMap* tMap, bool seeded = false, int seed = -1);
+  void freeStackMod();
+
 #endif
 
   bool operator<(func_instance& rhs) {

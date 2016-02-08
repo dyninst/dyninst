@@ -46,6 +46,7 @@ class StackModChecker
             bfunc(b),
             func(f),
             _unsafeStackGrowth(false) {}
+        ~StackModChecker();
 
         bool addModsInternal(std::set<StackMod*>);
 
@@ -75,7 +76,8 @@ class StackModChecker
         
         bool findInsertOrRemovePoints(Dyninst::StackAnalysis& sa, StackMod* m, std::vector<BPatch_point*>*& points, long& dispFromRSP);
         bool checkInsn(Dyninst::ParseAPI::Block* block, Dyninst::Offset off, int loc, Dyninst::StackAnalysis& sa, BPatch_point*& point, long& dispFromRSP);
-        bool findCanaryPoints(std::vector<BPatch_point*>*& insertPoints, std::vector<BPatch_point*>*& checkPoints);
+        bool findCanaryPoints(std::vector<BPatch_point*>* insertPoints,
+            std::vector<BPatch_point*>* checkPoints);
         
         bool areModificationsSafe();
         bool isAccessSafe(Dyninst::InstructionAPI::Instruction::Ptr insn, StackAccess* access);
