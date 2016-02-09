@@ -80,7 +80,7 @@ namespace Dyninst {
 
                 #define IS_INSN_LD_LITERAL(I)           (field<27, 29>(I) == 0x03 && field<24, 25>(I) == 0)
 
-                #define IS_INSN_LDST_PAIR(I)            (field<27, 29>(I) == 0x05)
+                #define IS_INSN_LDST_PAIR(I)            (field<27, 29>(I) == 0x05 && field<25, 25>(I) == 0)
                 #define IS_INSN_LDST_PAIR_PRE(I)        (field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x03)
                 #define IS_INSN_LDST_PAIR_OFFSET(I)     (field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x02)
                 #define IS_INSN_LDST_PAIR_POST(I)       (field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x01)

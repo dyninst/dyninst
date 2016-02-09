@@ -186,18 +186,21 @@ unsigned int MachRegister::size() const {
       case Arch_aarch32:
         assert(0);
       case Arch_aarch64:
-		if((reg & 0x00ff0000) == aarch64::FPR){
-			switch(reg & 0x0000ff00){
-                case aarch64::B_REG: return 1;
-                case aarch64::W_REG: return 2;
-                case aarch64::D_REG: return 4;
-                case aarch64::FULL:  return 8;
-                case aarch64::Q_REG: return 16;
-                default:
-                    assert(0);
-                    return 0;
-            }
-        }
+		if((reg & 0x00ff0000) == aarch64::FPR)
+		{
+		    switch(reg & 0x0000ff00)
+		    {
+			case aarch64::B_REG: return 1;
+			case aarch64::W_REG: return 2;
+			case aarch64::D_REG: return 4;
+			case aarch64::FULL: 
+			case aarch64::HQ_REG: return 8;
+			case aarch64::Q_REG: return 16;
+			default:
+			    assert(0);
+			    return 0;
+		    }
+		}
 		else if((reg & 0x00ff0000) == aarch64::GPR || (reg & 0x00ff0000) == aarch64::SPR || (reg & 0x00ff0000) == aarch64::SYSREG)
 			switch(reg & 0x0000ff00)
 			{

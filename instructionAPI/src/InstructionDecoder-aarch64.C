@@ -237,7 +237,7 @@ namespace Dyninst
      void InstructionDecoder_aarch64::setSIMDMode()
     {
         // NOTE: if it is SIMD insn, both isFP and isSIMD are set.
-		isFPInsn = true;
+		//isFPInsn = true;
 		isSIMDInsn = true;
     }
 
@@ -477,7 +477,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 		if(_szField == 0x0)
 		    reg = aarch64::s0;
 		else
-		    isValid = true;
+		    isValid = false;
 	    }
 	    else
 	    {
@@ -791,7 +791,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
                         }
                         break;
                     default:
-			isValid = true;
+			isValid = false;
                         break;
                 }
             }
@@ -946,8 +946,9 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 	}
         else
             reg = _Q == 0x1?aarch64::q0:aarch64::d0;
-
-        reg = makeAarch64RegID(reg, encoding);
+		
+		if(!(reg == aarch64::wzr || reg == aarch64::zr))
+			reg = makeAarch64RegID(reg, encoding);
     } 
     else if(isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && IS_SOURCE_GP(insn)))
     {
