@@ -78,6 +78,23 @@ test_results_t aarch64_simd_Mutator::executeTest()
 {
     const unsigned char buffer[] = 
     {
+	0x4E, 0x30, 0x38, 0x20,	    //SADDLV  H0, Q1.8B
+	0x0E, 0x30, 0xA9, 0x0F,	    //SMAXV   B15, D8
+	0x6E, 0x70, 0x38, 0x42,	    //UADDLV  S2, Q2
+	0x2E, 0x31, 0xA8, 0x05,	    //UMINV   B5, D0
+	0x6E, 0x30, 0xC8, 0x25,	    //FMAXNMV S5, Q1
+	0x2E, 0x70, 0xF8, 0x21,	    //INVALID
+	0x0E, 0x11, 0x04, 0x41,	    //DUP     Q1, D2
+	0x4E, 0x02, 0x0C, 0xD8,	    //DUP     Q20, W5
+	0x0E, 0x18, 0x0C, 0x40,	    //DUP     D0, X2
+	0x4E, 0x08, 0x1C, 0x04,	    //INS     Q4, X0
+	0x4E, 0x01, 0x1F, 0xFF,	    //INS     Q31, WZR
+	0x0E, 0x05, 0x2C, 0xA1,	    //SMOV    W1, D5
+	0x4E, 0x10, 0x3C, 0x42,	    //UMOV    X2, Q2
+	0x6E, 0x01, 0x04, 0x00,	    //INS     Q0, D0
+	0x2E, 0x02, 0x28, 0x20,	    //EXT     D0, D1, D2, #5
+	0x6E, 0x02, 0x7A, 0x08,	    //EXT     Q8, Q16, Q2, #15
+	0x00, 0x00, 0x00, 0x00
     };
 
     unsigned int size = sizeof(buffer);
@@ -94,7 +111,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
 	i = d.decode();
 	decodedInsns.push_back(i);
 	if(i != NULL)
-	    /*cout<<*/decodedInsns.back()->format()/*<<endl*/;
+	    cout<<decodedInsns.back()->format()<<endl;
     }
     while(i && i->isValid());
 
@@ -116,6 +133,9 @@ test_results_t aarch64_simd_Mutator::executeTest()
 	logerror("FAILED: Expected instructions to end with an invalid instruction, but they didn't");
 	return FAILED;
     }
+
+    RegisterAST::Ptr zr (new RegisterAST(aarch64::zr));
+    RegisterAST::Ptr wzr (new RegisterAST(aarch64::wzr));
 
     RegisterAST::Ptr x0 (new RegisterAST(aarch64::x0));
     RegisterAST::Ptr x1 (new RegisterAST(aarch64::x1));
@@ -346,15 +366,255 @@ test_results_t aarch64_simd_Mutator::executeTest()
     RegisterAST::Ptr b30(new RegisterAST(aarch64::b30));
     RegisterAST::Ptr b31(new RegisterAST(aarch64::b31));
 
+    RegisterAST::Ptr hq0 (new RegisterAST(aarch64::hq0));
+    RegisterAST::Ptr hq1 (new RegisterAST(aarch64::hq1));
+    RegisterAST::Ptr hq2 (new RegisterAST(aarch64::hq2));
+    RegisterAST::Ptr hq3 (new RegisterAST(aarch64::hq3));
+    RegisterAST::Ptr hq4 (new RegisterAST(aarch64::hq4));
+    RegisterAST::Ptr hq5 (new RegisterAST(aarch64::hq5));
+    RegisterAST::Ptr hq6 (new RegisterAST(aarch64::hq6));
+    RegisterAST::Ptr hq7 (new RegisterAST(aarch64::hq7));
+    RegisterAST::Ptr hq8 (new RegisterAST(aarch64::hq8));
+    RegisterAST::Ptr hq9 (new RegisterAST(aarch64::hq9));
+    RegisterAST::Ptr hq10(new RegisterAST(aarch64::hq10));
+    RegisterAST::Ptr hq11(new RegisterAST(aarch64::hq11));
+    RegisterAST::Ptr hq12(new RegisterAST(aarch64::hq12));
+    RegisterAST::Ptr hq13(new RegisterAST(aarch64::hq13));
+    RegisterAST::Ptr hq14(new RegisterAST(aarch64::hq14));
+    RegisterAST::Ptr hq15(new RegisterAST(aarch64::hq15));
+    RegisterAST::Ptr hq16(new RegisterAST(aarch64::hq16));
+    RegisterAST::Ptr hq17(new RegisterAST(aarch64::hq17));
+    RegisterAST::Ptr hq18(new RegisterAST(aarch64::hq18));
+    RegisterAST::Ptr hq19(new RegisterAST(aarch64::hq19));
+    RegisterAST::Ptr hq20(new RegisterAST(aarch64::hq20));
+    RegisterAST::Ptr hq21(new RegisterAST(aarch64::hq21));
+    RegisterAST::Ptr hq22(new RegisterAST(aarch64::hq22));
+    RegisterAST::Ptr hq23(new RegisterAST(aarch64::hq23));
+    RegisterAST::Ptr hq24(new RegisterAST(aarch64::hq24));
+    RegisterAST::Ptr hq25(new RegisterAST(aarch64::hq25));
+    RegisterAST::Ptr hq26(new RegisterAST(aarch64::hq26));
+    RegisterAST::Ptr hq27(new RegisterAST(aarch64::hq27));
+    RegisterAST::Ptr hq28(new RegisterAST(aarch64::hq28));
+    RegisterAST::Ptr hq29(new RegisterAST(aarch64::hq29));
+    RegisterAST::Ptr hq30(new RegisterAST(aarch64::hq30));
+    RegisterAST::Ptr hq31(new RegisterAST(aarch64::hq31));
+    
     std::deque<registerSet> expectedRead, expectedWritten;
     registerSet tmpRead, tmpWritten;
+
+    //saddlv
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q1};
+	tmpWritten = {h0};
+    #else
+	tmpRead = list_of(q1);
+	tmpWritten = list_of(h0);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //smaxv
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d8};
+	tmpWritten = {b15};
+    #else
+	tmpRead = list_of(d8);
+	tmpWritten = list_of(b15);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //uaddlv
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q2};
+	tmpWritten = {s2};
+    #else
+	tmpRead = list_of(q2);
+	tmpWritten = list_of(s2);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //uminv
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d0};
+	tmpWritten = {h5};
+    #else
+	tmpRead = list_of(d0);
+	tmpWritten = list_of(h5);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //fmaxnmv
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q1};
+	tmpWritten = {s5};
+    #else
+	tmpRead = list_of(q1);
+	tmpWritten = list_of(s5);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //fmaxv
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d1};
+	tmpWritten = {q1};
+    #else
+	tmpRead = list_of(d1);
+	tmpWritten = list_of(q1);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //dup
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q2};
+	tmpWritten = {d1};
+    #else
+	tmpRead = list_of(q2);
+	tmpWritten = list_of(d1);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //dup 
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {w5};
+	tmpWritten = {q20};
+    #else
+	tmpRead = list_of(w5);
+	tmpWritten = list_of(q20);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //dup
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x2};
+	tmpWritten = {d0};
+    #else
+	tmpRead = list_of(x2);
+	tmpWritten = list_of(d0);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //ins
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x0};
+	tmpWritten = {q4};
+    #else
+	tmpRead = list_of(x0);
+	tmpWritten = list_of(q4);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //ins
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {wzr};
+	tmpWritten = {q31};
+    #else
+	tmpRead = list_of(wzr);
+	tmpWritten = list_of(q31);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //smov
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d5};
+	tmpWritten = {w1};
+    #else
+	tmpRead = list_of(d5);
+	tmpWritten = list_of(w1);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //umov
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q2};
+	tmpWritten = {x2};
+    #else
+	tmpRead = list_of(q2);
+	tmpWritten = list_of(x2);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //ins
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d0};
+	tmpWritten = {q0};
+    #else
+	tmpRead = list_of(d0);
+	tmpWritten = list_of(q0);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //ext
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d1, d2};
+	tmpWritten = {d0};
+    #else
+	tmpRead = list_of(d1)(d2);
+	tmpWritten = list_of(d0);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //ext
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q16, q2};
+	tmpWritten = {q8};
+    #else
+	tmpRead = list_of(q16)(q2);
+	tmpWritten = list_of(q8);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
 
     test_results_t retVal = PASSED;
     decodedInsns.pop_back();
     while(!decodedInsns.empty())
     {
-	retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead.front(),
-		    expectedWritten.front()));
+	retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead.front(), expectedWritten.front()));
 	decodedInsns.pop_front();
 
 	expectedRead.pop_front();
