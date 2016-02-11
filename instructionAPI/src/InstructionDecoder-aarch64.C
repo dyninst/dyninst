@@ -706,42 +706,42 @@ void InstructionDecoder_aarch64::OPRop()
 
 void InstructionDecoder_aarch64::OPRa()
 {
-    simdAlphabetImm = (simdAlphabetImm & 0x7F) | (field<18, 18>(insn)<<7);
+    simdAlphabetImm |= (simdAlphabetImm & 0x7F) | (field<18, 18>(insn)<<7);
 }
 
 void InstructionDecoder_aarch64::OPRb()
 {
-    simdAlphabetImm = (simdAlphabetImm & 0xBF) | (field<17, 17>(insn)<<6);
+    simdAlphabetImm |= (simdAlphabetImm & 0xBF) | (field<17, 17>(insn)<<6);
 }
 
 void InstructionDecoder_aarch64::OPRc()
 {
-    simdAlphabetImm = (simdAlphabetImm & 0xDF) | (field<16, 16>(insn)<<5);
+    simdAlphabetImm |= (simdAlphabetImm & 0xDF) | (field<16, 16>(insn)<<5);
 }
 
 void InstructionDecoder_aarch64::OPRd()
 {
-    simdAlphabetImm = (simdAlphabetImm & 0xEF) | (field<9, 9>(insn)<<4);
+    simdAlphabetImm |= (simdAlphabetImm & 0xEF) | (field<9, 9>(insn)<<4);
 }
 
 void InstructionDecoder_aarch64::OPRe()
 {
-    simdAlphabetImm = (simdAlphabetImm & 0xF7) | (field<8, 8>(insn)<<3);
+    simdAlphabetImm |= (simdAlphabetImm & 0xF7) | (field<8, 8>(insn)<<3);
 }
 
 void InstructionDecoder_aarch64::OPRf()
 {
-    simdAlphabetImm = (simdAlphabetImm & 0xFB) | (field<7, 7>(insn)<<2);
+    simdAlphabetImm |= (simdAlphabetImm & 0xFB) | (field<7, 7>(insn)<<2);
 }
 
 void InstructionDecoder_aarch64::OPRg()
 {
-    simdAlphabetImm = (simdAlphabetImm & 0xFD) | (field<6, 6>(insn)<<1);
+    simdAlphabetImm |= (simdAlphabetImm & 0xFD) | (field<6, 6>(insn)<<1);
 }
 
 void InstructionDecoder_aarch64::OPRh()
 {
-    simdAlphabetImm = (simdAlphabetImm & 0xFE) | (field<5, 5>(insn));
+    simdAlphabetImm |= (simdAlphabetImm & 0xFE) | (field<5, 5>(insn));
 }
 
 void InstructionDecoder_aarch64::OPRlen()
@@ -2534,16 +2534,8 @@ void InstructionDecoder_aarch64::processAlphabetImm()
    {
 	uint64_t imm = 0;
 
-	imm      = (simdAlphabetImm & 0x1)?((1<<8)  -  (simdAlphabetImm & 0x1)):0;
-	uint64_t immg = (simdAlphabetImm & 0x2)?((1<<8)  - ((simdAlphabetImm & 0x2)>>1)):0;
-	uint64_t immf = (simdAlphabetImm & 0x4)?((1<<8)  - ((simdAlphabetImm & 0x4)>>2)):0;
-	uint64_t imme = (simdAlphabetImm & 0x8)?((1<<8)  - ((simdAlphabetImm & 0x8)>>3)):0;
-	uint64_t immd = (simdAlphabetImm & 0x10)?((1<<8) - ((simdAlphabetImm & 0x10)>>4)):0;
-	uint64_t immc = (simdAlphabetImm & 0x20)?((1<<8) - ((simdAlphabetImm & 0x20)>>5)):0;
-	uint64_t immb = (simdAlphabetImm & 0x40)?((1<<8) - ((simdAlphabetImm & 0x40)>>6)):0;
-	uint64_t imma = (simdAlphabetImm & 0x80)?((1<<8) - ((simdAlphabetImm & 0x80)>>7)):0;
-
-	imm = (imma << 55) | (immb << 47) | (immc << 39) | (immd << 31) | (imme << 23) | (immf << 15) | (immg << 7) | imm;
+	for(int imm_index = 0; imm_index < 8; imm_index++)
+		imm |= (simdAlphabetImm & (1 << imm_index))?(0xFF << (imm_index * 8)):0;
 
 	insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u64, imm)), true, false);
    }
@@ -2558,13 +2550,13 @@ void InstructionDecoder_aarch64::processAlphabetImm()
 	int shiftAmt = 0;
 
 	//16-bit shifted immediate
-	if((cmode & 0xC) == 0x2)
-	    shiftAmt = (cmode & 0x2) * 8;
+	if((cmode & 0xC) == 0x8)
+	    shiftAmt = ((cmode & 0x2) >> 1) * 8;
 	//32-bit shifted immediate
 	else if((cmode & 0x8) == 0x0)
-	    shiftAmt = (cmode & 0x6) * 8;
+	    shiftAmt = ((cmode & 0x6) >> 1) * 8;
 	//32-bit shifting ones
-	else if((cmode & 0xE) == 0x6)
+	else if((cmode & 0xE) == 0xC)
 	    shiftAmt = ((cmode & 0x0) + 1) * 8;
 	
 	Expression::Ptr lhs = Immediate::makeImmediate(Result(u32, unsign_extend32(8, simdAlphabetImm)));
