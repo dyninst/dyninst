@@ -631,6 +631,28 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 		}
 	    }		
 	}
+	else if(IS_INSN_SCALAR_PAIR(insn))
+	{
+	    if(size != -1)
+	    {
+		if(size == 0x3)
+		    reg = aarch64::d0;
+		else
+		    isValid = false;
+	    }
+	    else if(_szField != -1)
+	    {
+		switch(_szField)
+		{
+		    case 0x0:reg = aarch64::s0;
+			     break;
+		    case 0x1:reg = aarch64::d0;
+			     break;
+		}
+	    }
+	    else
+		isValid = false;
+	}
 	//the case below should be taken care of by the 'else' part of this block, since _Q is 1 by default
         /*else if(IS_INSN_SIMD_VEC_INDEX(insn))
         {
@@ -804,14 +826,25 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 	}
 	else if(IS_INSN_SCALAR_PAIR(insn))
 	{
-	    switch(size)
+	    if(size != -1)
 	    {
-		case 0x0:reg = aarch64::s0;
-			 break;
-		case 0x1:reg = aarch64::d0;
-			 break;
-		default:isValid = false;
+		if(size == 0x3)
+		    reg = aarch64::q0;
+		else
+		    isValid = false;
 	    }
+	    else if(_szField != -1)
+	    {
+		switch(_szField)
+		{
+		    case 0x0:reg = aarch64::d0;
+			     break;
+		    case 0x1:reg = aarch64::q0;
+			     break;
+		}
+	    }
+	    else
+		isValid = false;
 	}
 	else if(IS_INSN_SCALAR_SHIFT_IMM(insn))
 	{
@@ -2404,7 +2437,7 @@ void InstructionDecoder_aarch64::OPRimm()
 			insn_in_progress->appendOperand(imm, true, false);
 		    }
 		    else
-			isValid = true;
+			isValid = false;
 		}
 		else
 		{
