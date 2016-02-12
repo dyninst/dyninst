@@ -104,6 +104,11 @@ test_results_t aarch64_simd_Mutator::executeTest()
 	0x0E, 0x00, 0x1A, 0x08,	    //UZP1    D8, D16, D0
 	0x4E, 0x04, 0x28, 0x62,	    //TRN1    Q2, Q3, Q4
 	0x0E, 0x08, 0x79, 0x08,	    //ZIP2    D8, D8, D8
+	0x5E, 0x11, 0x04, 0x25,	    //DUP     B5, Q1
+	0x5E, 0x08, 0x05, 0x08,	    //DUP     D8, D8
+	0x5E, 0xF1, 0xB8, 0xA2,	    //ADDP    D2, Q5
+	0x7E, 0x30, 0xC8, 0x81,	    //FMAXNMP S1, D4
+	0x7E, 0xF0, 0xC9, 0xEF,	    //FMINNMP D15, Q15
 	0x00, 0x00, 0x00, 0x00
     };
 
@@ -728,6 +733,71 @@ test_results_t aarch64_simd_Mutator::executeTest()
     #else
 	tmpRead = list_of(d8);
 	tmpWritten = list_of(d8);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //dup
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q1};
+	tmpWritten = {b5};
+    #else
+	tmpRead = list_of(q1);
+	tmpWritten = list_of(b5);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //dup
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d8};
+	tmpWritten = {d8};
+    #else
+	tmpRead = list_of(d8);
+	tmpWritten = list_of(d8);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //addp
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q5};
+	tmpWritten = {d2};
+    #else
+	tmpRead = list_of(q5);
+	tmpWritten = list_of(d2);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //fmaxnmp
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d4};
+	tmpWritten = {s1};
+    #else
+	tmpRead = list_of(d4);
+	tmpWritten = list_of(s1);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //fminnmp
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q15};
+	tmpWritten = {d15};
+    #else
+	tmpRead = list_of(q15);
+	tmpWritten = list_of(d15);
     #endif
     expectedRead.push_back(tmpRead);
     expectedWritten.push_back(tmpWritten);
