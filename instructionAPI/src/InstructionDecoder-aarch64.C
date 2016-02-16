@@ -2456,6 +2456,7 @@ void InstructionDecoder_aarch64::OPRimm()
 		//immb
 		else if(startBit == 16 && endBit == 18)
 		{
+			int opcode = field<11, 15>(insn);
 		    int shift, isRightShift = 1, elemWidth = (immlo << immLen) | immVal;
 		    entryID insnID = insn_in_progress->getOperation().operationID;
 		    
@@ -2467,11 +2468,11 @@ void InstructionDecoder_aarch64::OPRimm()
 
 		    switch(highest_set_bit(immlo))
 		    {
-			case 0x1:shift = isRightShift*(16 - elemWidth) + (isRightShift>0?0:8);
+			case 0x1:((opcode & 0x1C) == 0x0C || (opcode & 0x1C) == 0x10)?(shift = isRightShift*(16 - elemWidth) + (isRightShift>0?0:8)):(isValid = false);
 				 break;
-			case 0x2:shift = isRightShift*(32 - elemWidth) + (isRightShift>0?0:16);
+			case 0x2:((opcode & 0x1C) == 0x0C || (opcode & 0x1C) == 0x10)?(shift = isRightShift*(32 - elemWidth) + (isRightShift>0?0:16)):(isValid = false);
 				 break;
-			case 0x3:shift = isRightShift*(64 - elemWidth) + (isRightShift>0?0:32);
+			case 0x3:(opcode > 0x0A)?(shift = isRightShift*(64 - elemWidth) + (isRightShift>0?0:32)):(isValid = false);
 				 break;
 			case 0x4:shift = isRightShift*(128 - elemWidth) + (isRightShift>0?0:64);
 				 break;
