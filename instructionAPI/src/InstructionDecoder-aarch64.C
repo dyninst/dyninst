@@ -2445,7 +2445,7 @@ void InstructionDecoder_aarch64::OPRimm()
 		    insn_in_progress->appendOperand(imm, true, false);
 		}
 	    }
-	    else if(IS_INSN_SIMD_SHIFT_IMM(insn))
+	    else if(IS_INSN_SIMD_SHIFT_IMM(insn) || IS_INSN_SCALAR_SHIFT_IMM(insn))
 	    {
 		//immh
 		if(startBit == 19 && endBit == 22)
@@ -2457,7 +2457,6 @@ void InstructionDecoder_aarch64::OPRimm()
 		else if(startBit == 16 && endBit == 18)
 		{
 		    int shift, isRightShift = 1, elemWidth = (immlo << immLen) | immVal;
-		    
 		    entryID insnID = insn_in_progress->getOperation().operationID;
 		    
 		    //check if shift is left; if it is, the immediate has to be processed in a different manner.
@@ -2468,13 +2467,13 @@ void InstructionDecoder_aarch64::OPRimm()
 
 		    switch(highest_set_bit(immlo))
 		    {
-			case 0x1:shift = isRightShift*(16 - elemWidth) + isRightShift>0?0:8;
+			case 0x1:shift = isRightShift*(16 - elemWidth) + (isRightShift>0?0:8);
 				 break;
-			case 0x2:shift = isRightShift*(32 - elemWidth) + isRightShift>0?0:16;
+			case 0x2:shift = isRightShift*(32 - elemWidth) + (isRightShift>0?0:16);
 				 break;
-			case 0x3:shift = isRightShift*(64 - elemWidth) + isRightShift>0?0:32;
+			case 0x3:shift = isRightShift*(64 - elemWidth) + (isRightShift>0?0:32);
 				 break;
-			case 0x4:shift = isRightShift*(128 - elemWidth) + isRightShift>0?0:64;
+			case 0x4:shift = isRightShift*(128 - elemWidth) + (isRightShift>0?0:64);
 				 break;
 			default:isValid = false;
 		    }
@@ -2611,26 +2610,13 @@ using namespace boost::assign;
 
 		insn = insn_to_complete->m_RawInsn.small_insn;
 		insn_in_progress = const_cast<Instruction*>(insn_to_complete);
-
         for(operandSpec::const_iterator fn = insn_table_entry->operands.begin(); fn != insn_table_entry->operands.end(); fn++)
         {
 			std::mem_fun(*fn)(this);
 		}
 
-		reorderOperands();
-
-		if(IS_INSN_SYSTEM(insn))
-		{
-		    processSystemInsn();
-		}
-
-		if(IS_INSN_SIMD_MOD_IMM(insn))
-		{
-		    processAlphabetImm();
-		}
-
-		if(isPstateWritten || isPstateRead)
-			insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten);
+		if(insn_table_index == 0)
+		    isValid = false;
 
 		if(!isValid)
 		{
@@ -2639,6 +2625,24 @@ using namespace boost::assign;
 			insn_in_progress->m_Operands.clear();
 			insn_in_progress->m_Successors.clear();
 		}
+		else
+		{
+		    reorderOperands();
+
+		    if(IS_INSN_SYSTEM(insn))
+		    {
+			processSystemInsn();
+		    }
+
+		    if(IS_INSN_SIMD_MOD_IMM(insn))
+		    {
+			processAlphabetImm();
+		    }
+
+		    if(isPstateWritten || isPstateRead)
+		    	insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten);
+		}
+
     }
 	int InstructionDecoder_aarch64::findInsnTableIndex(unsigned int decoder_table_index)
 	{
@@ -2682,7 +2686,8 @@ using namespace boost::assign;
 		}
 
 		if(cur_branches.count(branch_map_key) <= 0)
-			branch_map_key = 0;
+		    return 0;
+		//	branch_map_key = 0;
 
 		return findInsnTableIndex(cur_branches[branch_map_key]);
 	}
