@@ -1316,7 +1316,9 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
    //    determined statically.
    //    a. If it can, we alias the register to the memory location we're
    //       loading from.
-   //    b. Otherwise, we set the register to BOTTOM.
+   //    b. Otherwise, we set the register to TOP.  Note that this is safe
+   //       since StackMod fails whenever a stack height is written out to an
+   //       undetermined (topped) location.
    // #4 Depends on whether the address we're storing to can be determined
    //    statically.
    //    a. If it can, we alias the memory address to the register.
@@ -1432,7 +1434,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
       } else {
          // Case 3b
          stackanalysis_printf("\t\t\tCan't determine location\n");
-         xferFuncs.push_back(TransferFunc::bottomFunc(writtenLoc));
+         xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
       }
       return;
    }

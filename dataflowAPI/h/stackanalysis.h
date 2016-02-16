@@ -297,11 +297,8 @@ class StackAnalysis {
        bool rt = false) :
        from(f), target(t), delta(d), abs(a), retop(rt), topBottom(i) {};
     TransferFunc(std::map<Absloc,std::pair<long,bool> > f, long d, Absloc t) :
-       from(Absloc()), target(t),
-       delta(d), abs(uninitialized),
-       retop(false),
-       topBottom(false),
-       fromRegs(f) {}
+       from(Absloc()), target(t), delta(d), abs(uninitialized), retop(false),
+       topBottom(false), fromRegs(f) {}
 
        Height apply(const AbslocState &inputs) const;
        void accumulate(std::map<Absloc, TransferFunc> &inputs);
