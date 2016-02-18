@@ -28,90 +28,90 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/*
-  #if !defined(cap_libelf_so_0) && defined(os_linux)
-  #define _FILE_OFFSET_BITS 64
-  #endif
-*/
 
 #include <algorithm>
-#include "Symtab.h"
 #include "emitElf-64.h"
-#include "emitElfStatic.h"
-#include "debug.h"
 #include "common/src/pathName.h"
+
+#if defined(os_linux)
+
+#include "common/src/linuxKludges.h"
+
+#endif
+
+#include "emitElfStatic.h"
 
 #if defined(os_freebsd)
 #include "common/src/freebsdKludges.h"
 #endif
 
-#if defined(os_linux)
-#include "common/src/linuxKludges.h"
-#endif
 
 extern void symtab_log_perror(const char *msg);
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-extern const char *pdelf_get_shnames(Elf_X *elf);
-extern const char *STRTAB_NAME;
-extern const char *SYMTAB_NAME;
-extern const char *INTERP_NAME;
-extern unsigned int elfHash(const char *name);
+extern void setSymtabError(SymtabError new_err);
 
+unsigned int elfHash(const char *name) {
+    unsigned int h = 0, g;
+
+    while (*name) {
+        h = (h << 4) + *name++;
+        if ((g = h & 0xf0000000))
+            h ^= g >> 24;
+        h &= ~g;
+    }
+    return h;
+}
 unsigned long bgq_sh_flags = SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE;;
-bool isBlueGeneQ = false;
 bool isStaticBinary = false;
 
-// Error reporting
-extern void setSymtabError(SymtabError new_err);
-extern void symtab_log_perror(const char *msg);
+template
+class Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64>;
 
-struct sortByIndex
-{
-  bool operator ()(Symbol * lhs, Symbol* rhs) {
-    return lhs->getIndex() < rhs->getIndex();
-  }
-};
+template
+class Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32>;
+
 
 static bool libelfso0Flag;
 static bool libelfso1Flag;
 static int libelfso1version_major;
 static int libelfso1version_minor;
 
-static void setVersion(){
-  libelfso0Flag = false;
-  libelfso1Flag = false;
-  libelfso1version_major = 0;
-  libelfso1version_minor = 0;
+
+void static setVersion() {
+    libelfso0Flag = false;
+    libelfso1Flag = false;
+    libelfso1version_major = 0;
+    libelfso1version_minor = 0;
 #if defined(os_linux) || defined(os_freebsd)
-  unsigned nEntries;
-  map_entries *maps = getVMMaps(getpid(), nEntries);
-  for (unsigned i=0; i< nEntries; i++){
-     if (!strstr(maps[i].path, "libelf"))
-        continue;
-     std::string real_file = resolve_file_path(maps[i].path);
-     const char *libelf_start = strstr(real_file.c_str(), "libelf");
-     int num_read, major, minor;
-     num_read = sscanf(libelf_start, "libelf-%d.%d.so", &major, &minor);
-     if (num_read == 2) {
-        libelfso1Flag = true;
-        libelfso1version_major = major;
-        libelfso1version_minor = minor;        
-     }
-     else {
-        libelfso0Flag = true;
-     }
-  }
-  if (libelfso0Flag && libelfso1Flag) {
-     fprintf(stderr, "WARNING: SymtabAPI is linked with libelf.so.0 and "
-             "libelf.so.1!  SymtabAPI likely going to be unable to read "
-             "and write elf files!\n");
-  }
+    unsigned nEntries;
+    map_entries *maps = getVMMaps(getpid(), nEntries);
+    for (unsigned i = 0; i < nEntries; i++) {
+        if (!strstr(maps[i].path, "libelf"))
+            continue;
+        std::string real_file = resolve_file_path(maps[i].path);
+        const char *libelf_start = strstr(real_file.c_str(), "libelf");
+        int num_read, major, minor;
+        num_read = sscanf(libelf_start, "libelf-%d.%d.so", &major, &minor);
+        if (num_read == 2) {
+            libelfso1Flag = true;
+            libelfso1version_major = major;
+            libelfso1version_minor = minor;
+        }
+        else {
+            libelfso0Flag = true;
+        }
+    }
+    if (libelfso0Flag && libelfso1Flag) {
+        fprintf(stderr, "WARNING: SymtabAPI is linked with libelf.so.0 and "
+                "libelf.so.1!  SymtabAPI likely going to be unable to read "
+                "and write elf files!\n");
+    }
 
 #if defined(os_freebsd)
-  if( libelfso1Flag ) {
+    if( libelfso1Flag ) {
       fprintf(stderr, "WARNING: SymtabAPI on FreeBSD is known to function "
               "incorrectly when linked with libelf.so.1\n");
   }
@@ -119,7 +119,8 @@ static void setVersion(){
 #endif
 }
 
-bool emitElf64::hasPHdrSectionBug()
+template<class ElfTypes>
+bool emitElf64<ElfTypes>::hasPHdrSectionBug()
 {
    if (movePHdrsFirst)
       return false;
@@ -128,7 +129,8 @@ bool emitElf64::hasPHdrSectionBug()
    return (libelfso1version_major == 0 && libelfso1version_minor <= 137);
 }
 
-bool emitElf64::cannotRelocatePhdrs()
+template<typename ElfTypes>
+bool emitElf64<ElfTypes>::cannotRelocatePhdrs()
 {
 #if defined(bug_phdrs_first_page)
     return true;
@@ -175,72 +177,11 @@ static int elfSymVisibility(Symbol::SymbolVisibility sVisibility)
   }
 }
 
-emitElf64::emitElf64(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *)) :
-   oldElfHandle(oldElfHandle_), newElf(NULL), oldElf(NULL),
-   newEhdr(NULL), oldEhdr(NULL),
-   newPhdr(NULL), oldPhdr(NULL), phdr_offset(0),
-   textData(NULL), symStrData(NULL), dynStrData(NULL),
-   olddynStrData(NULL), olddynStrSize(0),
-   symTabData(NULL), dynsymData(NULL), dynData(NULL),
-   phdrs_scn(NULL), verneednum(0), verdefnum(0),
-   newSegmentStart(0), firstNewLoadSec(NULL),
-   dataSegEnd(0), dynSegOff(0), dynSegAddr(0),
-   phdrSegOff(0), phdrSegAddr(0), dynSegSize(0),
-   secNameIndex(0), currEndOffset(0), currEndAddress(0),
-   linkedStaticData(NULL), loadSecTotalSize(0),
-   isStripped(isStripped_), library_adjust(0),
-   object(obj_), err_func_(err_func),
-   hasRewrittenTLS(false), TLSExists(false), newTLSData(NULL)
+template<class ElfTypes>
+bool emitElf64<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf_Sym *> &symbols,
+                                          bool dynSymFlag)
 {
-  oldElf = oldElfHandle->e_elfp();
-  curVersionNum = 2;
-  setVersion();
-
-  //Set variable based on the mechanism to add new load segment
-  // 1) createNewPhdr (Total program headers + 1) - default
-  //	(a) movePHdrsFirst
-  //    (b) create new section called dynphdrs and change pointers (createNewPhdrRegion)
-  //    (c) library_adjust - create room for a new program header in a position-indepdent library 
-  //                         by increasing all virtual addresses for the library
-  // 2) Use existing Phdr (used in bleugene - will be handled in function fixPhdrs)
-  //    (a) replaceNOTE section - if NOTE exists
-  //    (b) BSSExpandFlag - expand BSS section - default option
-
-  // default
-  createNewPhdr = true; BSSExpandFlag = false; replaceNOTE = false; 
-
-  //If we're dealing with a library that can be loaded anywhere,
-  // then load the program headers into the later part of the binary,
-  // this may trigger a kernel bug that was fixed in Summer 2007,
-  // but is the only reliable way to modify these libraries.
-  //If we're dealing with a library/executable that loads at a specific
-  // address we'll put the phdrs into the page before that address.  This
-  // works and will avoid the kernel bug.
-
-  isBlueGeneQ = obj_->isBlueGeneQ();
-  isStaticBinary = obj_->isStaticBinary();
-  if(isBlueGeneQ){
-    movePHdrsFirst = false;
-  } else {
-    movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
-  }
-
-  //If we want to try a mode where we add the program headers to a library
-  // that can be loaded anywhere, and put the program headers in the first 
-  // page (avoiding the kernel bug), then set library_adjust to getpagesize().
-  // This will shift all addresses in the library down by a page, accounting
-  // for the extra page for program headers.  This causes some significant
-  // changes to the binary, and isn't well tested.
-  library_adjust = 0;
-  if( cannotRelocatePhdrs() && !movePHdrsFirst ) {
-      movePHdrsFirst = true;
-      library_adjust = getpagesize();
-  }
-}
-
-bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_Sym *> &symbols, bool dynSymFlag)
-{
-  Elf64_Sym *sym = new Elf64_Sym();
+    Elf_Sym *sym = new Elf_Sym();
   sym->st_name = strIndex;
 
   // OPD-based systems
@@ -258,9 +199,9 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
   if (symbol->getRegion())
     {
 #if defined(os_freebsd)
-      sym->st_shndx = (Elf64_Half) symbol->getRegion()->getRegionNumber();
+      sym->st_shndx = (Elf_Half) symbol->getRegion()->getRegionNumber();
 #else
-      sym->st_shndx = (Elf64_Section) symbol->getRegion()->getRegionNumber();
+      sym->st_shndx = (Elf_Section) symbol->getRegion()->getRegionNumber();
 #endif
     }
   else if (symbol->isAbsolute())
@@ -424,9 +365,10 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
 }
 
 // Find the end of data/text segment
-void emitElf64::findSegmentEnds()
+template<class ElfTypes>
+void emitElf64<ElfTypes>::findSegmentEnds()
 {
-  Elf64_Phdr *tmp = elf64_getphdr(oldElf);
+    Elf_Phdr *tmp = ElfTypes::elf_getphdr(oldElf);
   // Find the offset of the start of the text & the data segment
   // The first LOAD segment is the text & the second LOAD segment 
   // is the data
@@ -446,7 +388,8 @@ void emitElf64::findSegmentEnds()
 
 // Rename an old section. Lengths of old and new names must match.
 // Only renames the FIRST matching section encountered.
-void emitElf64::renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll) {
+template<class ElfTypes>
+void emitElf64<ElfTypes>::renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll) {
   assert(oldStr.length() == newStr.length());
   for (unsigned k = 0; k < secNames.size(); k++) {
     if (secNames[k] == oldStr) {
@@ -457,421 +400,8 @@ void emitElf64::renameSection(const std::string &oldStr, const std::string &newS
   }
 }
 
-bool emitElf64::driver(Symtab *obj, string fName)
-{
-  std::vector<ExceptionBlock*> exceptions;
-  obj->getAllExceptions(exceptions);
-  //  cerr << "Dumping exception info: " << endl;
-  
-  for(auto eb = exceptions.begin();
-      eb != exceptions.end();
-      ++eb)
-  {
-    //cerr << **eb << endl;
-  }
-  
-
-
-  int newfd;
-  Region *foundSec = NULL;
-  unsigned pgSize = getpagesize();
-  rewrite_printf("::driver for emitElf64\n");
-
-  string strtmpl = fName + "XXXXXX";
-  char buf[strtmpl.length() + 1];
-  strncpy(buf, strtmpl.c_str(), strtmpl.length()+1);
-
-  newfd = mkstemp(buf);
-
-  if (newfd == -1) {
-    log_elferror(err_func_, "error opening file to write symbols");
-    return false;
-  }
-  strtmpl = buf;
-
-  fchmod(newfd, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP);
-  rewrite_printf("Emitting to temporary file %s\n", buf);
-
-#if 0
-  //open ELF File for writing
-  if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP)))==-1){ 
-    log_elferror(err_func_, "error opening file to write symbols");
-    return false;
-  }
-#endif
-
-  if((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL){
-    log_elferror(err_func_, "NEWELF_BEGIN_FAIL");
-    fflush(stdout);
-    cerr << "Failed to elf_begin" << endl;
-    return false;
-  }
-
-  //Section name index for all sections
-  secNames.push_back("");
-  secNameIndex = 1;
-  //Section name index for new sections
-  loadSecTotalSize = 0;
-  unsigned NOBITStotalsize = 0;
-  int dirtySecsChange = 0;
-  unsigned extraAlignSize = 0;
-    
-  // ".shstrtab" section: string table for section header names
-  const char *shnames = pdelf_get_shnames(oldElfHandle);
-  if (shnames == NULL) {
-    log_elferror(err_func_, ".shstrtab section");
-    return false;
-  }	
-
-  // Write the Elf header first!
-  newEhdr = elf64_newehdr(newElf);
-  if(!newEhdr){
-    log_elferror(err_func_, "newEhdr failed\n");
-    return false;
-  }
-  oldEhdr = elf64_getehdr(oldElf);
-  memcpy(newEhdr, oldEhdr, sizeof(Elf64_Ehdr));
-    
-  newEhdr->e_shnum += newSecs.size();
-
-  // Find the end of text and data segments
-  findSegmentEnds();
-  unsigned insertPoint = oldEhdr->e_shnum;
-  unsigned insertPointOffset = 0;
-  unsigned NOBITSstartPoint = oldEhdr->e_shnum;
-
-  if(movePHdrsFirst)
-  {
-     newEhdr->e_phoff = sizeof(Elf64_Ehdr);
-  }
-    
-  /* flag the file for no auto-layout */
-  elf_flagelf(newElf,ELF_C_SET,ELF_F_LAYOUT);
-    
-  Elf_Scn *scn = NULL, *newscn = NULL;
-  Elf_Data *newdata = NULL, *olddata = NULL;
-  Elf64_Shdr *newshdr = NULL, *shdr = NULL;
-  dyn_hash_map<unsigned, unsigned> secLinkMapping;
-  dyn_hash_map<unsigned, unsigned> secInfoMapping;
-  dyn_hash_map<unsigned, unsigned> changeMapping;
-  dyn_hash_map<std::string, unsigned> newNameIndexMapping;
-  dyn_hash_map<unsigned, std::string> oldIndexNameMapping;
-
-  bool createdLoadableSections = false;
-  unsigned scncount;
-  unsigned sectionNumber = 0;
-
-  bool startMovingSections = false;
-  for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
-    //copy sections from oldElf to newElf
-    shdr = elf64_getshdr(scn);
-
-    // resolve section name
-    const char *name = &shnames[shdr->sh_name];
-    bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
-    if (!result || foundSec->isDirty()) {
-      result = obj->findRegion(foundSec, name);
-    }
-
-    // write the shstrtabsection at the end
-    if(!strcmp(name, ".shstrtab"))
-      continue;
-
-    sectionNumber++;
-    changeMapping[sectionNumber] = 0;
-    oldIndexNameMapping[scncount+1] = string(name);
-    newNameIndexMapping[string(name)] = sectionNumber;
-
-    newscn = elf_newscn(newElf);
-    newshdr = elf64_getshdr(newscn);
-    newdata = elf_newdata(newscn);
-    olddata = elf_getdata(scn,NULL);
-    memcpy(newshdr, shdr, sizeof(Elf64_Shdr));
-    memcpy(newdata,olddata, sizeof(Elf_Data));
-
-
-    secNames.push_back(name);
-    newshdr->sh_name = secNameIndex;
-    secNameIndex += strlen(name) + 1;
-    
-    if (newshdr->sh_addr) {
-       newshdr->sh_addr += library_adjust;
-    }
-
-    if(foundSec->isDirty())
-    {
-       newdata->d_buf = (char *)malloc(foundSec->getDiskSize());
-       memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getDiskSize());
-       newdata->d_size = foundSec->getDiskSize();
-       newshdr->sh_size = foundSec->getDiskSize();
-    }
-    else if(olddata->d_buf)     //copy the data buffer from oldElf
-    {
-       newdata->d_buf = (char *)malloc(olddata->d_size);
-       memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
-      }
-
-    if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
-    {
-       newshdr->sh_entsize = 0x0;
-    }
-
-    if(BSSExpandFlag) {
-      // Add the expanded SHT_NOBITS section size if the section comes after those sections 
-      if(scncount > NOBITSstartPoint)
-	newshdr->sh_offset += NOBITStotalsize;
-	
-      // Expand the NOBITS sections in file & and change the type from SHT_NOBITS to SHT_PROGBITS
-      if(shdr->sh_type == SHT_NOBITS)
-	{
-	  newshdr->sh_type = SHT_PROGBITS;
-	  newdata->d_buf = (char *)malloc(shdr->sh_size);
-	  memset(newdata->d_buf, '\0', shdr->sh_size);
-	  newdata->d_size = shdr->sh_size;
-	  if(NOBITSstartPoint == oldEhdr->e_shnum)
-	    NOBITSstartPoint = scncount;
-	  NOBITStotalsize += shdr->sh_size; 
-	}
-    }    
-      
-    std::vector <std::vector <unsigned long> > moveSecAddrRange = obj->getObject()->getMoveSecAddrRange();
-
-    for (unsigned i = 0 ; i != moveSecAddrRange.size(); i++) {
-      if ( (moveSecAddrRange[i][0] == shdr->sh_addr) ||
-	   (shdr->sh_addr >= moveSecAddrRange[i][0] && shdr->sh_addr < moveSecAddrRange[i][1]) )
-	{
-	  newshdr->sh_type = SHT_PROGBITS;
-	  changeMapping[sectionNumber] = 1;
-	  string newName = ".o";
-	  newName.append(name, 2, strlen(name));
-	  renameSection((string)name, newName, false);
-	}
-    }
-
-    if((obj->getObject()->getStrtabAddr() != 0 &&
-       obj->getObject()->getStrtabAddr() == shdr->sh_addr) ||
-       !strcmp(name, STRTAB_NAME))
-      {
-	symStrData = newdata;
-	updateSymbols(symTabData, symStrData, loadSecTotalSize);
-      }
-	    
-    //Change sh_link for .symtab to point to .strtab
-    if((obj->getObject()->getSymtabAddr() != 0 && 
-       obj->getObject()->getSymtabAddr() == shdr->sh_addr) ||
-       !strcmp(name, SYMTAB_NAME) ){
-      newshdr->sh_link = secNames.size();
-      changeMapping[sectionNumber] = 1;
-      symTabData = newdata;
-    }
-
-
-    if(obj->getObject()->getTextAddr() != 0 &&
-       obj->getObject()->getTextAddr() == shdr->sh_addr){
-      textData = newdata;
-    }
-
-    if(obj->getObject()->getDynamicAddr() != 0 &&
-       obj->getObject()->getDynamicAddr() == shdr->sh_addr){
-      dynData = newdata;
-      dynSegOff = newshdr->sh_offset;
-      dynSegAddr = newshdr->sh_addr;
-      // Change the data to update the relocation addr
-      newshdr->sh_type = SHT_PROGBITS;
-      changeMapping[sectionNumber] = 1;
-      string newName = ".o";
-      newName.append(name, 2, strlen(name));
-      renameSection((string)name, newName, false);
-    }
-
-    // Only need to rewrite data section
-    if( hasRewrittenTLS && foundSec->isTLS() 
-        && foundSec->getRegionType() == Region::RT_DATA ) 
-    {
-        // Clear TLS flag
-        newshdr->sh_flags &= ~SHF_TLS;
-
-        string newName = ".o";
-        newName.append(name, 2, strlen(name));
-        renameSection((string)name, newName, false);
-    }
-
-#if defined(arch_power) && defined(arch_64bit)
-    // DISABLED
-    if (0 && isStaticBinary && strcmp(name, ".got") == 0) {
-      string newName = ".o";
-      newName.append(name, 2, strlen(name));
-      renameSection((string) name, newName, false);
-    }
-#endif
-
-    if (isStaticBinary && (strcmp(name, ".rela.plt") == 0)) {
-       string newName = ".o";
-       newName.append(name, 2, strlen(name));
-       renameSection(name, newName, false);
-    }
-
-    if (isStaticBinary && (strcmp(name, ".rela.plt") == 0)) {
-      string newName = ".o";
-      newName.append(name, 2, strlen(name));
-      renameSection(name, newName, false);
-      // Clear the PLT type; use PROGBITS
-      newshdr->sh_type = SHT_PROGBITS;
-    }
-
-    // Change offsets of sections based on the newly added sections
-    if(movePHdrsFirst) {
-        /* This special case is specific to FreeBSD but there is no hurt in
-         * handling it on other platforms.
-         *
-         * This is necessary because the INTERP header must be located within in
-         * the first page of the file -- if the section is moved to the next
-         * page the object file will not be parsed correctly by the kernel.
-         *
-         * However, the initial sections still need to be shifted, but just
-         * by the difference in size of the new PHDR segment. 
-         */
-        if( newshdr->sh_offset > 0 ) {
-            if( startMovingSections || obj->isStaticBinary() 
-                || obj->getObjectType() == obj_SharedLib ) newshdr->sh_offset += pgSize;
-            else if( createNewPhdr ) newshdr->sh_offset += oldEhdr->e_phentsize;
-        }
-    }		
-
-    if(scncount > insertPoint && newshdr->sh_offset >= insertPointOffset )
-      newshdr->sh_offset += loadSecTotalSize;
-
-    if (newshdr->sh_offset > 0 ) 
-        newshdr->sh_offset += dirtySecsChange;
-
-    if (BSSExpandFlag) {
-        if( newshdr->sh_offset > 0 ) {
-            newshdr->sh_offset += extraAlignSize;
-        }
-    }else if (newshdr->sh_offset >= insertPointOffset ) {
-        newshdr->sh_offset += extraAlignSize;
-    }
-
-    if(foundSec->isDirty()) 
-      dirtySecsChange += newshdr->sh_size - shdr->sh_size;
-
-    if(BSSExpandFlag && newshdr->sh_addr) {
-      unsigned newOff = newshdr->sh_offset - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
-      if(newOff < newshdr->sh_offset)
-	newOff += pgSize;
-      extraAlignSize += newOff - newshdr->sh_offset;
-      newshdr->sh_offset = newOff;
-    }
-    
-    secLinkMapping[sectionNumber] = shdr->sh_link; 
-    secInfoMapping[sectionNumber] = shdr->sh_info; 
-
-    rewrite_printf("section %s addr = %lx off = %lx size = %lx\n",
-            name, newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size);
-
-    //Insert new loadable sections at the end of data segment			
-    if (shdr->sh_addr+shdr->sh_size == dataSegEnd && !createdLoadableSections) {
-      createdLoadableSections = true;
-      insertPoint = scncount;
-      if( SHT_NOBITS == shdr->sh_type ) {
-          insertPointOffset = shdr->sh_offset;
-      }else{
-          insertPointOffset = shdr->sh_offset + shdr->sh_size;
-      }
-      
-      if(!createLoadableSections(obj,newshdr, extraAlignSize, 
-                                 newNameIndexMapping, sectionNumber))        
-         return false;
-      if (createNewPhdr && !movePHdrsFirst) {
-	 sectionNumber++;
-         createNewPhdrRegion(newNameIndexMapping);
-	}
-
-        // Update the heap symbols, now that loadSecTotalSize is set
-        updateSymbols(dynsymData, dynStrData, loadSecTotalSize);
-
-    }
-
-    if ( 0 > elf_update(newElf, ELF_C_NULL))
-    {
-       return false;
-    }
-
-    if(!strcmp(name, INTERP_NAME)) {
-        startMovingSections = true;
-    }
-  }
-
-  // Add non-loadable sections at the end of object file
-  if(!createNonLoadableSections(newshdr))
-    return false;
-
-  if ( 0 >  elf_update(newElf, ELF_C_NULL))
-  {
-     return false;
-  }
-   
-  //Add the section header table right at the end        
-  addSectionHeaderTable(newshdr);
-
-  // Second iteration to fix the link fields to point to the correct section
-  scn = NULL;
-
-  for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
-    shdr = elf64_getshdr(scn);
-    if (changeMapping[scncount+1] == 0 && secLinkMapping[scncount+1] != 0) {
-      unsigned linkIndex = secLinkMapping[scncount+1];
-      string secName = oldIndexNameMapping[linkIndex];
-      unsigned newLinkIndex = newNameIndexMapping[secName];
-      shdr->sh_link = newLinkIndex;
-    } 
-
-    if (changeMapping[scncount+1] == 0 && secInfoMapping[scncount+1] != 0) {
-      // For REL and RELA section, info field is a section index - hence of the index changes, the info field must change.
-      // For SYMTAB and DYNSYM, info field is OS specific - so just copy it.
-      // For others, info field is 0, so just copy it
-      if (shdr->sh_type == SHT_REL || shdr->sh_type == SHT_RELA) {
-	unsigned infoIndex = secInfoMapping[scncount+1];
-	string secName = oldIndexNameMapping[infoIndex];
-	unsigned newInfoIndex = newNameIndexMapping[secName];
-	shdr->sh_info = newInfoIndex;
-      } 
-    }
-  }
-
-  newEhdr->e_shstrndx = scncount;
-
-  // Move the section header to the end
-  newEhdr->e_shoff =shdr->sh_offset+shdr->sh_size;
-  if (newEhdr->e_shoff % 8)
-    newEhdr->e_shoff += 8 - (newEhdr->e_shoff % 8);
-
-  //copy program headers
-  oldPhdr = elf64_getphdr(oldElf);
-  fixPhdrs(extraAlignSize);
-
-  //Write the new Elf file
-  if (elf_update(newElf, ELF_C_WRITE) < 0){
-    log_elferror(err_func_, "elf_update failed");
-    return false;
-  }
-  elf_end(newElf);
-  if (hasPHdrSectionBug()) {
-     unsigned long ehdr_off = (unsigned long) &(((Elf64_Ehdr *) 0x0)->e_phoff);
-     lseek(newfd, ehdr_off, SEEK_SET);
-     Elf64_Off offset = (Elf64_Off) phdr_offset;
-     write(newfd, &offset, sizeof(Elf64_Off));
-  }
-  close(newfd);
-
-  if (::rename(strtmpl.c_str(), fName.c_str())) {
-     return false;
-  }
-
-  return true;
-}
-
-void emitElf64::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIndexMapping)
+template<class ElfTypes>
+void emitElf64<ElfTypes>::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIndexMapping)
 {
    assert(!movePHdrsFirst);
 
@@ -896,7 +426,7 @@ void emitElf64::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newName
    // program headers in there.  Create a dummy section
    // to contain the program headers.
    phdrs_scn = elf_newscn(newElf);
-   Elf64_Shdr *newshdr = elf64_getshdr(phdrs_scn);
+    Elf_Shdr *newshdr = ElfTypes::elf_getshdr(phdrs_scn);
    const char *newname = ".dynphdrs";
 
    secNames.push_back(newname);
@@ -918,10 +448,11 @@ void emitElf64::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newName
 	
 }
 
-void emitElf64::fixPhdrs(unsigned &extraAlignSize)
+template<class ElfTypes>
+void emitElf64<ElfTypes>::fixPhdrs(unsigned &extraAlignSize)
 {
   unsigned pgSize = getpagesize();
-  Elf64_Phdr *old = oldPhdr;
+    Elf_Phdr *old = oldPhdr;
 
   newEhdr->e_phnum = oldEhdr->e_phnum;
   newEhdr->e_phentsize = oldEhdr->e_phentsize;
@@ -935,13 +466,13 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
   bool replaced = false;
 
   if (!hasPHdrSectionBug())
-     newPhdr = elf64_newphdr(newElf,newEhdr->e_phnum);
+      newPhdr = ElfTypes::elf_newphdr(newElf, newEhdr->e_phnum);
   else {
-     newPhdr = (Elf64_Phdr *) malloc(sizeof(Elf64_Phdr) * newEhdr->e_phnum);
+      newPhdr = (Elf_Phdr *) malloc(sizeof(Elf_Phdr) * newEhdr->e_phnum);
   }
   void *phdr_data = (void *) newPhdr;
 
-  Elf64_Phdr newSeg;
+    Elf_Phdr newSeg;
   bool last_load_segment = false;
   for(unsigned i=0;i<oldEhdr->e_phnum;i++)
   {
@@ -958,7 +489,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
      * does not follow this rule.
      */
 
-    Elf64_Phdr * insert_phdr = NULL;
+      Elf_Phdr *insert_phdr = NULL;
    if(createNewPhdr && !added_new_sec && firstNewLoadSec) {
        if(i+1 == oldEhdr->e_phnum) {
             insert_phdr = newPhdr + 1;
@@ -1031,7 +562,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
 	        newPhdr->p_vaddr = old->p_vaddr;
         newPhdr->p_offset = newEhdr->e_phoff;
         newPhdr->p_paddr = newPhdr->p_vaddr;
-        newPhdr->p_filesz = sizeof(Elf64_Phdr) * newEhdr->e_phnum;
+         newPhdr->p_filesz = sizeof(Elf_Phdr) * newEhdr->e_phnum;
         newPhdr->p_memsz = newPhdr->p_filesz;
      }else if( hasRewrittenTLS && old->p_type == PT_TLS) {
           newPhdr->p_offset = newTLSData->sh_offset;
@@ -1087,8 +618,8 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
      else if (old->p_type == PT_INTERP && movePHdrsFirst
              && old->p_offset && newEhdr->e_phnum >= oldEhdr->e_phnum)
      {
-         newPhdr->p_offset += 
-             (Elf64_Off)oldEhdr->e_phentsize * (Elf64_Off)(newEhdr->e_phnum-oldEhdr->e_phnum);
+         newPhdr->p_offset +=
+                 (Elf_Off) oldEhdr->e_phentsize * (Elf_Off)(newEhdr->e_phnum - oldEhdr->e_phnum);
      }
      else if (movePHdrsFirst && old->p_offset) {
         newPhdr->p_offset += pgSize;
@@ -1159,7 +690,8 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
 #endif
 
 //This method updates the .dynamic section to reflect the changes to the relocation section
-void emitElf64::updateDynamic(unsigned tag, Elf64_Addr val){
+template<class ElfTypes>
+void emitElf64<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
   if (isStaticBinary) return;
   // This is for REL/RELA if it doesnt already exist in the original binary; 
   dynamicSecData[tag][0]->d_tag = tag;
@@ -1197,11 +729,12 @@ void emitElf64::updateDynamic(unsigned tag, Elf64_Addr val){
 /* This method sets _end and _END_ to the starting position of the heap in the
  * new binary. 
  */
-void emitElf64::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize){
+template<class ElfTypes>
+void emitElf64<ElfTypes>::updateSymbols(Elf_Data *symtabData, Elf_Data *strData, unsigned long loadSecsSize) {
   unsigned pgSize = (unsigned)getpagesize();
   if( symtabData && strData && loadSecsSize){
-    Elf64_Sym *symPtr=(Elf64_Sym*)symtabData->d_buf;
-    for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf64_Sym));i++,symPtr++){
+      Elf_Sym *symPtr = (Elf_Sym *) symtabData->d_buf;
+      for (unsigned int i = 0; i < symtabData->d_size / (sizeof(Elf_Sym)); i++, symPtr++) {
       if(!(strcmp("_end", (char*) strData->d_buf + symPtr->st_name))){
         if( newSegmentStart >= symPtr->st_value ) {
             symPtr->st_value += ((newSegmentStart - symPtr->st_value) + loadSecsSize);
@@ -1222,19 +755,23 @@ void emitElf64::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned l
   }
 }
 
-bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned &extraAlignSize, dyn_hash_map<std::string, unsigned> &newNameIndexMapping, unsigned &sectionNumber)
+template<class ElfTypes>
+bool emitElf64<ElfTypes>::createLoadableSections(Symtab *obj, Elf_Shdr *&shdr,
+                                                 unsigned &extraAlignSize,
+                                                 dyn_hash_map<std::string, unsigned> &newNameIndexMapping,
+                                                 unsigned &sectionNumber)
 {
    Elf_Scn *newscn;
    Elf_Data *newdata = NULL;
 
-   Elf64_Shdr *newshdr;
-   std::vector<Elf64_Shdr *> updateDynLinkShdr;
-   std::vector<Elf64_Shdr *> updateStrLinkShdr;
+    Elf_Shdr *newshdr;
+    std::vector<Elf_Shdr *> updateDynLinkShdr;
+    std::vector<Elf_Shdr *> updateStrLinkShdr;
    firstNewLoadSec = NULL;
    unsigned pgSize = getpagesize();
    unsigned strtabIndex = 0;
    unsigned dynsymIndex = 0;
-   Elf64_Shdr *prevshdr = NULL;
+    Elf_Shdr *prevshdr = NULL;
 
    /*
     * Order the new sections such that those with explicit
@@ -1269,7 +806,7 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
       memset(newdata, 0, sizeof(Elf_Data));
 
       // Fill out the new section header	
-     newshdr = elf64_getshdr(newscn);
+       newshdr = ElfTypes::elf_getshdr(newscn);
      newshdr->sh_name = secNameIndex;
      newshdr->sh_flags = 0;
      newshdr->sh_type = SHT_PROGBITS;
@@ -1329,7 +866,7 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
      {
         newshdr->sh_type = SHT_REL;
         newshdr->sh_flags = SHF_ALLOC;
-        newshdr->sh_entsize = sizeof(Elf64_Rel);
+         newshdr->sh_entsize = sizeof(Elf_Rel);
         updateDynLinkShdr.push_back(newshdr);
         newdata->d_type = ELF_T_REL;
          newdata->d_align = 4;
@@ -1343,7 +880,7 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
       {
          newshdr->sh_type = SHT_RELA;
          newshdr->sh_flags = SHF_ALLOC;
-         newshdr->sh_entsize = sizeof(Elf64_Rela);
+          newshdr->sh_entsize = sizeof(Elf_Rela);
          updateDynLinkShdr.push_back(newshdr);
          newdata->d_type = ELF_T_RELA;
          newdata->d_align = 4;
@@ -1369,7 +906,7 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
       else if(newSecs[i]->getRegionType() == Region::RT_SYMTAB)
       {
          newshdr->sh_type = SHT_DYNSYM;
-         newshdr->sh_entsize = sizeof(Elf64_Sym);
+          newshdr->sh_entsize = sizeof(Elf_Sym);
          newdata->d_type = ELF_T_SYM;
          newdata->d_align = 4;
          dynsymData = newdata;
@@ -1380,7 +917,7 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
       }
       else if(newSecs[i]->getRegionType() == Region::RT_DYNAMIC)
       {
-         newshdr->sh_entsize = sizeof(Elf64_Dyn);
+          newshdr->sh_entsize = sizeof(Elf_Dyn);
          newshdr->sh_type = SHT_DYNAMIC;
          newdata->d_type = ELF_T_DYN;
          newdata->d_align = 4;
@@ -1392,7 +929,7 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
       }
       else if(newSecs[i]->getRegionType() == Region::RT_HASH)
       {
-         newshdr->sh_entsize = sizeof(Elf64_Word);
+          newshdr->sh_entsize = sizeof(Elf_Word);
          newshdr->sh_type = SHT_HASH;
          newdata->d_type = ELF_T_WORD;
          newdata->d_align = 4;
@@ -1404,7 +941,7 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
       else if(newSecs[i]->getRegionType() == Region::RT_SYMVERSIONS)
       {
          newshdr->sh_type = SHT_GNU_versym;
-         newshdr->sh_entsize = sizeof(Elf64_Half);
+          newshdr->sh_entsize = sizeof(Elf_Half);
          newshdr->sh_addralign = 2;
          newdata->d_type = ELF_T_HALF;
          newdata->d_align = 2;
@@ -1510,11 +1047,12 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
    
   return true;
 }
-	
-bool emitElf64::addSectionHeaderTable(Elf64_Shdr *shdr) {
+
+template<class ElfTypes>
+bool emitElf64<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
    Elf_Scn *newscn;
    Elf_Data *newdata = NULL;
-   Elf64_Shdr *newshdr;
+    Elf_Shdr *newshdr;
    
    if((newscn = elf_newscn(newElf)) == NULL)
    {
@@ -1527,7 +1065,7 @@ bool emitElf64::addSectionHeaderTable(Elf64_Shdr *shdr) {
       return false;
    } 
    //Fill out the new section header
-   newshdr = elf64_getshdr(newscn);
+    newshdr = ElfTypes::elf_getshdr(newscn);
    newshdr->sh_name = secNameIndex;
    secNames.push_back(".shstrtab");
    secNameIndex += 10;
@@ -1561,13 +1099,14 @@ bool emitElf64::addSectionHeaderTable(Elf64_Shdr *shdr) {
    return true;
 }
 
-bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
+template<class ElfTypes>
+bool emitElf64<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr)
 {
   Elf_Scn *newscn;
   Elf_Data *newdata = NULL;
-  Elf64_Shdr *newshdr;
-    
-  Elf64_Shdr *prevshdr = shdr; 
+    Elf_Shdr *newshdr;
+
+    Elf_Shdr *prevshdr = shdr;
   //All of them that are left are non-loadable. stack'em up at the end.
   for(unsigned i = 0; i < nonLoadableSecs.size(); i++)
     {
@@ -1585,7 +1124,7 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
         } 
 
       //Fill out the new section header
-      newshdr = elf64_getshdr(newscn);
+        newshdr = ElfTypes::elf_getshdr(newscn);
       newshdr->sh_name = secNameIndex;
       secNameIndex += nonLoadableSecs[i]->getRegionName().length() + 1;
       if(nonLoadableSecs[i]->getRegionType() == Region::RT_TEXT)		//Text Section
@@ -1606,20 +1145,20 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
         {
 	  newshdr->sh_type = SHT_REL;
 	  newshdr->sh_flags = SHF_WRITE;
-	  newshdr->sh_entsize = sizeof(Elf64_Rel);
+            newshdr->sh_entsize = sizeof(Elf_Rel);
 	  newdata->d_type = ELF_T_BYTE;
         }
       else if(nonLoadableSecs[i]->getRegionType() == Region::RT_RELA)	//Relocations section
         {
 	  newshdr->sh_type = SHT_RELA;
 	  newshdr->sh_flags = SHF_WRITE;
-	  newshdr->sh_entsize = sizeof(Elf64_Rela);
+            newshdr->sh_entsize = sizeof(Elf_Rela);
 	  newdata->d_type = ELF_T_BYTE;
         }
       else if(nonLoadableSecs[i]->getRegionType() == Region::RT_SYMTAB)
         {
 	  newshdr->sh_type = SHT_SYMTAB;
-	  newshdr->sh_entsize = sizeof(Elf64_Sym);
+            newshdr->sh_entsize = sizeof(Elf_Sym);
 	  newdata->d_type = ELF_T_SYM;
 	  newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab 
 	  newshdr->sh_flags=  0;
@@ -1632,15 +1171,15 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
 	  newshdr->sh_link = SHN_UNDEF; 
 	  newshdr->sh_flags=  0;
         }
-      /*
-        else if(nonLoadableSecs[i]->getFlags() & Section::dynsymtabSection)
-        {
-	newshdr->sh_type = SHT_DYNSYM;
-	newshdr->sh_entsize = sizeof(Elf64_Sym);
-	newdata->d_type = ELF_T_SYM;
-	//newshdr->sh_link = newSecSize+i+1;   //.symtab section should have sh_link = index of .strtab
-	newshdr->sh_flags=  SHF_ALLOC | SHF_WRITE;
-        }*/
+        /*
+          else if(nonLoadableSecs[i]->getFlags() & Section::dynsymtabSection)
+          {
+      newshdr->sh_type = SHT_DYNSYM;
+      newshdr->sh_entsize = sizeof(Elf_Sym);
+      newdata->d_type = ELF_T_SYM;
+      //newshdr->sh_link = newSecSize+i+1;   //.symtab section should have sh_link = index of .strtab
+      newshdr->sh_flags=  SHF_ALLOC | SHF_WRITE;
+          }*/
       newshdr->sh_offset = prevshdr->sh_offset+prevshdr->sh_size;
       if( prevshdr->sh_type == SHT_NOBITS ) {
           newshdr->sh_offset = prevshdr->sh_offset;
@@ -1671,367 +1210,13 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
     }	
   shdr = prevshdr;
   return true;
-}    	
-
-
-/* Regenerates the .symtab, .strtab sections from the symbols
- * Add new .dynsym, .dynstr sections for the newly added dynamic symbols
- * Method - For every symbol call createElfSymbol to get a Elf64_Sym corresposnding 
- *          to a Symbol object. Accumulate all and their names to form the sections
- *          and add them to the list of new sections
- */
-bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
-{
-  rewrite_printf(" createSymbolTables for %s \n", obj->name().c_str());
-  unsigned i;
-
-  //Symbol table(.symtab) symbols
-  std::vector<Elf64_Sym *> symbols;
-
-  //Symbol table(.dynsymtab) symbols
-  std::vector<Elf64_Sym *> dynsymbols;
-
-  unsigned symbolNamesLength = 1, dynsymbolNamesLength = 1;
-  dyn_hash_map<string, unsigned long> dynSymNameMapping;
-  std::vector<std::string> symbolStrs, dynsymbolStrs;
-  std::vector<Symbol *> dynsymVector;
-  std::vector<Symbol *> allDynSymbols;
-  std::vector<Symbol *> allSymSymbols;
-
-  dyn_hash_map<int, Region*> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
-
-  Region *sec;
-  dyn_hash_map<int, Region*>::const_iterator foundRegion;
-  foundRegion = secTagRegionMapping.find(DT_STRTAB);
-  if ((foundRegion != secTagRegionMapping.end()) && (foundRegion->second != NULL)) {
-    // .dynstr
-    sec = foundRegion->second;
-    olddynStrData = (char *)(sec->getPtrToRawData());
-    olddynStrSize = sec->getMemSize();
-    dynsymbolNamesLength = olddynStrSize+1;
-  }
-
-  // Copy over the previous library dependencies
-  vector<string> &elibs = obj->getObject()->deps_;
-  for (std::vector<std::string>::iterator iter = elibs.begin();
-       iter != elibs.end(); ++iter) {
-     addDTNeeded(*iter);
-  }
-
-  //Initialize the list of new prereq libraries
-  set<string> &plibs = obj->getObject()->prereq_libs;
-  for (set<string>::iterator i = plibs.begin(); i != plibs.end(); i++) {
-     addDTNeeded(*i);
-  }
-  new_dynamic_entries = obj->getObject()->new_dynamic_entries;
-  Object *object = obj->getObject();
-  // recreate a "dummy symbol"
-  Elf64_Sym *sym = new Elf64_Sym();
-  symbolStrs.push_back("");
-  // We should increment this here, but for reasons I don't understand we create it with a size of
-  // 1. 
-  //symbolNamesLength++;
-  sym->st_name = 0;
-  sym->st_value = 0;
-  sym->st_size = 0;
-  sym->st_other = 0;
-  sym->st_info = ELF64_ST_INFO(STB_LOCAL, STT_NOTYPE);
-  sym->st_shndx = SHN_UNDEF;
-
-  symbols.push_back(sym);
-  if (!obj->isStaticBinary()) {
-    dynsymbols.push_back(sym);
-    dynsymVector.push_back(Symbol::magicEmitElfSymbol());
-    versionSymTable.push_back(0);
-  }	  
- 
-  if (obj->isStaticBinary()) {
-      // Static binary case
-      vector<Region *> newRegs;
-      obj->getAllNewRegions(newRegs);
-      if( newRegs.size() ) {
-          emitElfStatic linker(obj->getAddressWidth(), isStripped);
-
-          emitElfStatic::StaticLinkError err;
-          std::string errMsg;
-          linkedStaticData = linker.linkStatic(obj, err, errMsg);
-          if ( !linkedStaticData ) {
-               std::string linkStaticError = 
-                   std::string("Failed to link to static library code into the binary: ") +
-                   emitElfStatic::printStaticLinkError(err) + std::string(" = ")
-                   + errMsg;
-               setSymtabError(Emit_Error);
-               symtab_log_perror(linkStaticError.c_str());
-               return false;
-          }
-
-          hasRewrittenTLS = linker.hasRewrittenTLS();
-
-          // Find the end of the new Regions
-          obj->getAllNewRegions(newRegs);
-
-          Offset lastRegionAddr = 0, lastRegionSize = 0;
-          vector<Region *>::iterator newRegIter;
-          for(newRegIter = newRegs.begin(); newRegIter != newRegs.end();
-              ++newRegIter)
-          {
-              if( (*newRegIter)->getDiskOffset() > lastRegionAddr ) {
-                  lastRegionAddr = (*newRegIter)->getDiskOffset();
-                  lastRegionSize = (*newRegIter)->getDiskSize();
-              }
-          }
-
-          if( !emitElfUtils::updateHeapVariables(obj, lastRegionAddr + lastRegionSize) ) {
-              return false;
-          }
-      }
-  }
-
-  for(i=0; i<allSymbols.size();i++) {
-    if(allSymbols[i]->isInSymtab()) {
-      allSymSymbols.push_back(allSymbols[i]);
-    }	
-    if (!obj->isStaticBinary()) {
-      if(allSymbols[i]->isInDynSymtab()) {
-        allDynSymbols.push_back(allSymbols[i]);
-      }	
-    }
-  }
- 
-  int max_index = -1;
-  for(i = 0; i < allDynSymbols.size();i++) {
-    if (max_index < allDynSymbols[i]->getIndex()) 
-      max_index = allDynSymbols[i]->getIndex();
-  }
-  for(i=0; i<allDynSymbols.size(); i++) {
-    if (allDynSymbols[i]->getIndex() == -1) {
-      max_index++;
-      allDynSymbols[i]->setIndex(max_index);
-    }
-
-    if (allDynSymbols[i]->getStrIndex() == -1) {
-      // New Symbol - append to the list of strings
-      dynsymbolStrs.push_back( allDynSymbols[i]->getMangledName().c_str());
-      allDynSymbols[i]->setStrIndex(dynsymbolNamesLength);
-      dynsymbolNamesLength += allDynSymbols[i]->getMangledName().length() + 1;
-    } 
-
-  }	
-  // reorder allSymbols based on index
-  std::sort(allDynSymbols.begin(), allDynSymbols.end(), sortByIndex());
-   
-  max_index = -1;
-  for(i = 0; i < allSymSymbols.size();i++) {
-    if (max_index < allSymSymbols[i]->getIndex()) 
-      max_index = allSymSymbols[i]->getIndex();
-  }
-
-  for(i=0; i<allSymSymbols.size(); i++) {
-    if (allSymSymbols[i]->getIndex() == -1) {
-      max_index++;
-      allSymSymbols[i]->setIndex(max_index);
-    }
-  }	
-
-  std::sort(allSymSymbols.begin(), allSymSymbols.end(), sortByIndex());
-
-  /* We regenerate symtab and symstr section. We do not 
-     maintain the order of the strings and symbols as it was in
-     the original binary. Hence, the strings in symstr have new order and 
-     new index.
-     On the other hand, we do not regenerate dynsym and dynstr section. We copy over
-     old symbols and string in the original order as it was in the 
-     original binary. We preserve sh_index of Elf symbols (from Symbol's strIndex). We append 
-     new symbols and string that we create for the new binary (targ*, versions etc).
-  */  
-
-  for(i=0; i<allSymSymbols.size();i++) {
-    //allSymSymbols[i]->setStrIndex(symbolNamesLength);
-    createElfSymbol(allSymSymbols[i], symbolNamesLength, symbols);
-    symbolStrs.push_back(allSymSymbols[i]->getMangledName());
-    symbolNamesLength += allSymSymbols[i]->getMangledName().length()+1;
-  }
-  for(i=0; i<allDynSymbols.size();i++) {
-    createElfSymbol(allDynSymbols[i], allDynSymbols[i]->getStrIndex(), dynsymbols, true);
-    dynSymNameMapping[allDynSymbols[i]->getMangledName().c_str()] = allDynSymbols[i]->getIndex();
-    dynsymVector.push_back(allDynSymbols[i]);
-  }
-
-  //reconstruct .symtab section
-  Elf64_Sym *syms = (Elf64_Sym *)malloc(symbols.size()* sizeof(Elf64_Sym));
-  for(i=0;i<symbols.size();i++)
-    syms[i] = *(symbols[i]);
-
-  char *str = (char *)malloc(symbolNamesLength);
-  unsigned cur=0;
-  for(i=0;i<symbolStrs.size();i++)
-    {
-      strcpy(&str[cur],symbolStrs[i].c_str());
-      cur+=symbolStrs[i].length()+1;
-    }
-    
-  if(!isStripped)
-    {
-      Region *sec;
-      if (obj->findRegion(sec,".symtab"))
-	sec->setPtrToRawData(syms, symbols.size()*sizeof(Elf64_Sym));
-      else
-	obj->addRegion(0, syms, symbols.size()*sizeof(Elf64_Sym), ".symtab", Region::RT_SYMTAB);
-    }
-  else
-    obj->addRegion(0, syms, symbols.size()*sizeof(Elf64_Sym), ".symtab", Region::RT_SYMTAB);
-
-  //reconstruct .strtab section
-  if(!isStripped)
-    {
-      Region *sec;
-      if (obj->findRegion(sec,".strtab"))
-	      sec->setPtrToRawData(str, symbolNamesLength);
-      else
-    	      obj->addRegion(0, str, symbolNamesLength , ".strtab", Region::RT_STRTAB);
-    }
-  else
-    obj->addRegion(0, str, symbolNamesLength , ".strtab", Region::RT_STRTAB);
-    
-  if(!obj->getAllNewRegions(newSecs))
-    log_elferror(err_func_, "No new sections to add");
-
-  if(dynsymbols.size() == 1)
-    return true;
-
-  if (!obj->isStaticBinary()) {
-    //reconstruct .dynsym section
-    Elf64_Sym *dynsyms = (Elf64_Sym *)malloc(dynsymbols.size()* sizeof(Elf64_Sym));
-    for(i=0;i<dynsymbols.size();i++)
-      dynsyms[i] = *(dynsymbols[i]);
-
-    Elf64_Half *symVers;
-    char *verneedSecData, *verdefSecData;
-    unsigned verneedSecSize = 0, verdefSecSize = 0;
-               
-    createSymbolVersions(obj, symVers, verneedSecData, verneedSecSize, verdefSecData, verdefSecSize, dynsymbolNamesLength, dynsymbolStrs);
-    // build new .hash section
-    Elf64_Word *hashsecData;
-    unsigned hashsecSize = 0;
-    createHashSection(obj, hashsecData, hashsecSize, dynsymVector);
-    if(hashsecSize) {
-      string name; 
-      if (secTagRegionMapping.find(DT_HASH) != secTagRegionMapping.end()) {
-	name = secTagRegionMapping[DT_HASH]->getRegionName();
-	obj->addRegion(0, hashsecData, hashsecSize*sizeof(Elf64_Word), name, Region::RT_HASH, true);
-      } else if (secTagRegionMapping.find(0x6ffffef5) != secTagRegionMapping.end()) {
-	name = secTagRegionMapping[0x6ffffef5]->getRegionName();
-	obj->addRegion(0, hashsecData, hashsecSize*sizeof(Elf64_Word), name, Region::RT_HASH, true);
-      } else {
-	name = ".hash";
-	obj->addRegion(0, hashsecData, hashsecSize*sizeof(Elf64_Word), name, Region::RT_HASH, true);
-      }	
-    }
-
-    Elf64_Dyn *dynsecData;
-    unsigned dynsecSize = 0;
-    if(obj->findRegion(sec, ".dynamic")) {
-        // Need to ensure that DT_REL and related fields added to .dynamic
-        // The values of these fields will be set
-/*
-        if( !object->hasReldyn() && !object->hasReladyn() ) {
-            if( object->getRelType() == Region::RT_REL ) {
-                new_dynamic_entries.push_back(make_pair(DT_REL,0));
-                new_dynamic_entries.push_back(make_pair(DT_RELSZ,0));
-            }else if( object->getRelType() == Region::RT_RELA ) {
-                new_dynamic_entries.push_back(make_pair(DT_RELA,0));
-                new_dynamic_entries.push_back(make_pair(DT_RELASZ,0));
-            }else{
-                assert(!"Relocation type not set to known RT_REL or RT_RELA.");
-            }
-        } 
-*/
-        createDynamicSection(sec->getPtrToRawData(), sec->getDiskSize(), dynsecData, dynsecSize, dynsymbolNamesLength, dynsymbolStrs);
-    }  
-   
-    if(!dynsymbolNamesLength)
-      return true; 
-
-    char *dynstr = (char *)malloc(dynsymbolNamesLength);
-    memcpy((void *)dynstr, (void *)olddynStrData, olddynStrSize);
-    cur = olddynStrSize+1;
-    for(i=0;i<dynsymbolStrs.size();i++)
-      {
-	strcpy(&dynstr[cur],dynsymbolStrs[i].c_str());
-	cur+=dynsymbolStrs[i].length()+1;
-	if ( dynSymNameMapping.find(dynsymbolStrs[i]) == dynSymNameMapping.end()) {
-	  dynSymNameMapping[dynsymbolStrs[i]] = allDynSymbols.size()+i;
-	}
-      }
-
-    string name; 
-    if (secTagRegionMapping.find(DT_SYMTAB) != secTagRegionMapping.end()) {
-      name = secTagRegionMapping[DT_SYMTAB]->getRegionName();
-    } else {
-      name = ".dynsym";
-    }
-    obj->addRegion(0, dynsyms, dynsymbols.size()*sizeof(Elf64_Sym), name, Region::RT_SYMTAB, true);
-
-    if (secTagRegionMapping.find(DT_STRTAB) != secTagRegionMapping.end()) {
-      name = secTagRegionMapping[DT_STRTAB]->getRegionName();
-    } else {
-      name = ".dynstr";
-    }
-    obj->addRegion(0, dynstr, dynsymbolNamesLength , name, Region::RT_STRTAB, true);
-
-    //add .gnu.version, .gnu.version_r, and .gnu.version_d sections
-    if (secTagRegionMapping.find(DT_VERSYM) != secTagRegionMapping.end()) {
-      name = secTagRegionMapping[DT_VERSYM]->getRegionName();
-    } else {
-      name = ".gnu.version";
-    }
-    obj->addRegion(0, symVers, versionSymTable.size() * sizeof(Elf64_Half), name, Region::RT_SYMVERSIONS, true);
-
-    if(verneedSecSize) {
-      if (secTagRegionMapping.find(DT_VERNEED) != secTagRegionMapping.end()) {
-	name = secTagRegionMapping[DT_VERNEED]->getRegionName();
-      } else {
-	name = ".gnu.version_r";
-      }
-      obj->addRegion(0, verneedSecData, verneedSecSize, name, Region::RT_SYMVERNEEDED, true);
-    }
-
-    if(verdefSecSize) {
-      obj->addRegion(0, verdefSecData, verdefSecSize, ".gnu.version_d", Region::RT_SYMVERDEF, true);
-    }
-
-    //Always create a dyn section, it may get our new relocations.
-    //If both exist, then just try to maintain order.
-    bool has_plt = object->hasRelaplt() || object->hasRelplt();
-    bool has_dyn = object->hasReladyn() || object->hasReldyn();
-    if (!has_plt) {
-       createRelocationSections(obj, object->getDynRelocs(), true, dynSymNameMapping);
-    }
-    else if (!has_dyn) {
-       createRelocationSections(obj, object->getPLTRelocs(), false, dynSymNameMapping);
-       createRelocationSections(obj, object->getDynRelocs(), true, dynSymNameMapping);
-    }
-    else if (object->getRelPLTAddr() < object->getRelDynAddr()) {
-       createRelocationSections(obj, object->getPLTRelocs(), false, dynSymNameMapping);
-       createRelocationSections(obj, object->getDynRelocs(), true, dynSymNameMapping);
-    }
-    else {
-       createRelocationSections(obj, object->getDynRelocs(), true, dynSymNameMapping);
-       createRelocationSections(obj, object->getPLTRelocs(), false, dynSymNameMapping);
-    }
-
-    //add .dynamic section
-    if(dynsecSize)
-      obj->addRegion(0, dynsecData, dynsecSize*sizeof(Elf64_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
-  }
-
-  if(!obj->getAllNewRegions(newSecs))
-    log_elferror(err_func_, "No new sections to add");
-
-  return true;
 }
 
-void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, bool isDynRelocs, dyn_hash_map<std::string, unsigned long> &dynSymNameMapping) {
+
+template<class ElfTypes>
+void emitElf64<ElfTypes>::createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table,
+                                                   bool isDynRelocs,
+                                                   dyn_hash_map<std::string, unsigned long> &dynSymNameMapping) {
   vector<relocationEntry> newRels;
   if(isDynRelocs && newSecs.size()) {
     std::vector<Region *>::iterator i;
@@ -2043,9 +1228,9 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
   }
 
    unsigned i,j,k,l,m;
-    
-   Elf64_Rel *rels = (Elf64_Rel *)malloc(sizeof(Elf64_Rel) * (relocation_table.size()+newRels.size()));
-   Elf64_Rela *relas = (Elf64_Rela *)malloc(sizeof(Elf64_Rela) * (relocation_table.size()+newRels.size()));
+
+    Elf_Rel *rels = (Elf_Rel *) malloc(sizeof(Elf_Rel) * (relocation_table.size() + newRels.size()));
+    Elf_Rela *relas = (Elf_Rela *) malloc(sizeof(Elf_Rela) * (relocation_table.size() + newRels.size()));
    j=0; k=0; l=0; m=0;
    //reconstruct .rel
    for(i=0; i<relocation_table.size(); i++) 
@@ -2172,7 +1357,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
    int dsize_type;
    void *buffer = NULL;
 
-   reloc_size = j*sizeof(Elf64_Rel)+k*sizeof(Elf64_Rela);
+    reloc_size = j * sizeof(Elf_Rel) + k * sizeof(Elf_Rela);
    if (!reloc_size) {
       return;
    }
@@ -2193,7 +1378,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
       rtype = Region::RT_RELA;
       dsize_type = DT_RELASZ;
       buffer = relas;
-      updateDynamic(DT_RELAENT, sizeof(Elf64_Rela)); 
+       updateDynamic(DT_RELAENT, sizeof(Elf_Rela));
    }
    if (   !isDynRelocs 
        && object->getRelType() == Region::RT_REL ) 
@@ -2223,7 +1408,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
       old_reloc_size =  dynamicSecData[dsize_type][0]->d_un.d_val;
    else
       old_reloc_size = 0;
-   dynamic_reloc_size = old_reloc_size+  l*sizeof(Elf64_Rel)+ m*sizeof(Elf64_Rela);
+    dynamic_reloc_size = old_reloc_size + l * sizeof(Elf_Rel) + m * sizeof(Elf_Rela);
    string name;
    if (secTagRegionMapping.find(dtype) != secTagRegionMapping.end())
       name = secTagRegionMapping[dtype]->getRegionName();
@@ -2234,7 +1419,9 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
 
 }
 
-void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char
+template<class ElfTypes>
+void emitElf64<ElfTypes>::createSymbolVersions(Symtab *obj, Elf_Half *&symVers, char *&verneedSecData,
+                                               unsigned &verneedSecSize, char
 *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, vector<string> &dynStrs){
 
    //Add all names to the new .dynstr section
@@ -2246,7 +1433,7 @@ void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&ve
    }
 
    //reconstruct .gnu_version section
-   symVers = (Elf64_Half *)malloc(versionSymTable.size() * sizeof(Elf64_Half));
+    symVers = (Elf_Half *) malloc(versionSymTable.size() * sizeof(Elf_Half));
    for(unsigned i=0; i<versionSymTable.size(); i++)
       symVers[i] = versionSymTable[i];
 
@@ -2254,7 +1441,7 @@ void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&ve
    verneedSecSize = 0;
    map<string, map<string, unsigned> >::iterator it = verneedEntries.begin();
    for(; it != verneedEntries.end(); it++)
-      verneedSecSize += sizeof(Elf64_Verneed) + sizeof(Elf64_Vernaux) * it->second.size();
+       verneedSecSize += sizeof(Elf_Verneed) + sizeof(Elf_Vernaux) * it->second.size();
 
    verneedSecData = (char *)malloc(verneedSecSize);
    unsigned curpos = 0;
@@ -2272,7 +1459,7 @@ void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&ve
       }
    }
    for(it = verneedEntries.begin(); it != verneedEntries.end(); it++){
-      Elf64_Verneed *verneed = (Elf64_Verneed *)(void*)(verneedSecData+curpos);
+       Elf_Verneed *verneed = (Elf_Verneed * )(void * )(verneedSecData + curpos);
       verneed->vn_version = 1;
       verneed->vn_cnt = it->second.size();
       verneed->vn_file = dynSymbolNamesLength;
@@ -2280,14 +1467,15 @@ void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&ve
       dynStrs.push_back(it->first);
       dynSymbolNamesLength+= it->first.size()+1;
       addDTNeeded(it->first);
-      verneed->vn_aux = sizeof(Elf64_Verneed);
-      verneed->vn_next = sizeof(Elf64_Verneed) + it->second.size()*sizeof(Elf64_Vernaux);
+       verneed->vn_aux = sizeof(Elf_Verneed);
+       verneed->vn_next = sizeof(Elf_Verneed) + it->second.size() * sizeof(Elf_Vernaux);
       if(curpos + verneed->vn_next == verneedSecSize)
          verneed->vn_next = 0;
       verneednum++;
       int i = 0;
       for(iter = it->second.begin(); iter!= it->second.end(); iter++){
-         Elf64_Vernaux *vernaux = (Elf64_Vernaux *)(void*)(verneedSecData + curpos + verneed->vn_aux + i*sizeof(Elf64_Vernaux));
+          Elf_Vernaux *vernaux = (Elf_Vernaux * )(void * )(
+                  verneedSecData + curpos + verneed->vn_aux + i * sizeof(Elf_Vernaux));
          vernaux->vna_hash = elfHash(iter->first.c_str());
          vernaux->vna_flags = 0;
          vernaux->vna_other = iter->second;
@@ -2295,7 +1483,7 @@ void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&ve
          if(i == verneed->vn_cnt-1)
             vernaux->vna_next = 0;
          else
-            vernaux->vna_next = sizeof(Elf64_Vernaux);
+             vernaux->vna_next = sizeof(Elf_Vernaux);
          i++;
       }
       curpos += verneed->vn_next;
@@ -2304,37 +1492,40 @@ void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&ve
    //reconstruct .gnu.version_d section
    verdefSecSize = 0;
    for(iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++)
-      verdefSecSize += sizeof(Elf64_Verdef) + sizeof(Elf64_Verdaux) * verdauxEntries[iter->second].size();
+       verdefSecSize += sizeof(Elf_Verdef) + sizeof(Elf_Verdaux) * verdauxEntries[iter->second].size();
 
    verdefSecData = (char *)malloc(verdefSecSize);
    curpos = 0;
    verdefnum = 0;
    for(iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++){
-      Elf64_Verdef *verdef = (Elf64_Verdef *)(void*)(verdefSecData+curpos);
+       Elf_Verdef *verdef = (Elf_Verdef * )(void * )(verdefSecData + curpos);
       verdef->vd_version = 1;
       verdef->vd_flags = 0;
       verdef->vd_ndx = iter->second;
       verdef->vd_cnt = verdauxEntries[iter->second].size();
       verdef->vd_hash = elfHash(iter->first.c_str());
-      verdef->vd_aux = sizeof(Elf64_Verdef);
-      verdef->vd_next = sizeof(Elf64_Verdef) + verdauxEntries[iter->second].size()*sizeof(Elf64_Verdaux);
+       verdef->vd_aux = sizeof(Elf_Verdef);
+       verdef->vd_next = sizeof(Elf_Verdef) + verdauxEntries[iter->second].size() * sizeof(Elf_Verdaux);
       if(curpos + verdef->vd_next == verdefSecSize)
          verdef->vd_next = 0;
       verdefnum++;
       for(unsigned i = 0; i< verdauxEntries[iter->second].size(); i++){
-         Elf64_Verdaux *verdaux = (Elf64_Verdaux *)(void*)(verdefSecData + curpos + verdef->vd_aux + i*sizeof(Elf64_Verdaux));
+          Elf_Verdaux *verdaux = (Elf_Verdaux * )(void * )(
+                  verdefSecData + curpos + verdef->vd_aux + i * sizeof(Elf_Verdaux));
          verdaux->vda_name = versionNames[verdauxEntries[iter->second][0]];
          if((signed) i == verdef->vd_cnt-1)
             verdaux->vda_next = 0;
          else
-            verdaux->vda_next = sizeof(Elf64_Verdaux);
+             verdaux->vda_next = sizeof(Elf_Verdaux);
       }
       curpos += verdef->vd_next;
    }
    return;
 }
 
-void emitElf64::createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigned &hashsecSize, vector<Symbol *>&dynSymbols)
+template<class ElfTypes>
+void emitElf64<ElfTypes>::createHashSection(Symtab *obj, Elf_Word *&hashsecData, unsigned &hashsecSize,
+                                            vector<Symbol *> &dynSymbols)
 {
 
   /* Save the original hash table entries */
@@ -2342,13 +1533,13 @@ void emitElf64::createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigne
   unsigned dynsymSize = obj->getObject()->getDynsymSize();
   
   Elf_Scn *scn = NULL;
-  Elf64_Shdr *shdr = NULL;
+    Elf_Shdr *shdr = NULL;
   for (unsigned scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
-    shdr = elf64_getshdr(scn);
+      shdr = ElfTypes::elf_getshdr(scn);
     if(obj->getObject()->getElfHashAddr() != 0 &&
        obj->getObject()->getElfHashAddr() == shdr->sh_addr){
       Elf_Data *hashData = elf_getdata(scn,NULL);
-      Elf64_Word *oldHashSec = (Elf64_Word *) hashData->d_buf;
+        Elf_Word *oldHashSec = (Elf_Word *) hashData->d_buf;
       unsigned original_nbuckets, original_nchains;
       original_nbuckets =  oldHashSec[0];
       original_nchains = oldHashSec[1];
@@ -2363,7 +1554,7 @@ void emitElf64::createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigne
     if(obj->getObject()->getGnuHashAddr() != 0 &&
        obj->getObject()->getGnuHashAddr() == shdr->sh_addr){
       Elf_Data *hashData = elf_getdata(scn,NULL);
-      Elf64_Word *oldHashSec = (Elf64_Word *) hashData->d_buf;
+        Elf_Word *oldHashSec = (Elf_Word *) hashData->d_buf;
       unsigned symndx = oldHashSec[1];
       if (dynsymSize != 0)
       	for (unsigned i = symndx; i < dynsymSize ; i++) {
@@ -2382,13 +1573,13 @@ void emitElf64::createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigne
     nbuckets = 1;
   unsigned nchains = (unsigned)dynSymbols.size();
   hashsecSize = 2 + nbuckets + nchains;
-  hashsecData = (Elf64_Word *)malloc(hashsecSize*sizeof(Elf64_Word));
+    hashsecData = (Elf_Word *) malloc(hashsecSize * sizeof(Elf_Word));
   unsigned i=0, key;
   for (i=0; i<hashsecSize; i++) {
     hashsecData[i] = STN_UNDEF;
   }
-  hashsecData[0] = (Elf64_Word)nbuckets;
-  hashsecData[1] = (Elf64_Word)nchains;
+    hashsecData[0] = (Elf_Word) nbuckets;
+    hashsecData[1] = (Elf_Word) nchains;
   i = 0;
   for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++, i++) {
     if((*iter)->getMangledName().empty()) continue;
@@ -2409,13 +1600,15 @@ void emitElf64::createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigne
   }
 }
 
-void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs) {
+template<class ElfTypes>
+void emitElf64<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf_Dyn *&dynsecData, unsigned &dynsecSize,
+                                               unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs) {
   dynamicSecData.clear();
-  Elf64_Dyn *dyns = (Elf64_Dyn *)dynData;
-  unsigned count = size/sizeof(Elf64_Dyn);
+    Elf_Dyn *dyns = (Elf_Dyn *) dynData;
+    unsigned count = size / sizeof(Elf_Dyn);
   vector<string> &libs_rmd = object->libsRMd();
   dynsecSize = 2*(count + DT_NEEDEDEntries.size() + new_dynamic_entries.size());
-  dynsecData = (Elf64_Dyn *)malloc(dynsecSize*sizeof(Elf64_Dyn));
+    dynsecData = (Elf_Dyn *) malloc(dynsecSize * sizeof(Elf_Dyn));
   unsigned curpos = 0;
   string rpathstr;
   for(unsigned i = 0; i< DT_NEEDEDEntries.size(); i++){
@@ -2495,13 +1688,13 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
         * we're dealing with a library without a fixed load address.  We'll be shifting
         * the addresses of that library by a page.
         **/
-       memcpy(dynsecData+curpos, dyns+i, sizeof(Elf64_Dyn));
+        memcpy(dynsecData + curpos, dyns + i, sizeof(Elf_Dyn));
        dynsecData[curpos].d_un.d_ptr += library_adjust;
        dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);
        curpos++;
        break;
     default:
-      memcpy(dynsecData+curpos, dyns+i, sizeof(Elf64_Dyn));
+        memcpy(dynsecData + curpos, dyns + i, sizeof(Elf_Dyn));
       dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);
       curpos++;
       break;
@@ -2554,14 +1747,16 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
 }
 
 
-void emitElf64::log_elferror(void (*err_func)(const char *), const char* msg) {
+template<class ElfTypes>
+void emitElf64<ElfTypes>::log_elferror(void (*err_func)(const char *), const char *msg) {
   const char* err = elf_errmsg(elf_errno());
   err = err ? err: "(bad elf error)";
   string str = string(err)+string(msg);
   err_func(str.c_str());
 }
 
-void emitElf64::addDTNeeded(string s)
+template<class ElfTypes>
+void emitElf64<ElfTypes>::addDTNeeded(string s)
 {
    if (find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), s) != DT_NEEDEDEntries.end())
       return;
@@ -2569,4 +1764,832 @@ void emitElf64::addDTNeeded(string s)
    if (find(libs_rmd.begin(), libs_rmd.end(), s) != libs_rmd.end())
       return;
    DT_NEEDEDEntries.push_back(s);
+}
+
+template<class ElfTypes>
+emitElf64<ElfTypes>::emitElf64(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *)) :
+        oldElfHandle(oldElfHandle_), newElf(NULL), oldElf(NULL),
+        newEhdr(NULL), oldEhdr(NULL),
+        newPhdr(NULL), oldPhdr(NULL), phdr_offset(0),
+        textData(NULL), symStrData(NULL), dynStrData(NULL),
+        olddynStrData(NULL), olddynStrSize(0),
+        symTabData(NULL), dynsymData(NULL), dynData(NULL),
+        phdrs_scn(NULL), verneednum(0), verdefnum(0),
+        newSegmentStart(0), firstNewLoadSec(NULL),
+        dataSegEnd(0), dynSegOff(0), dynSegAddr(0),
+        phdrSegOff(0), phdrSegAddr(0), dynSegSize(0),
+        secNameIndex(0), currEndOffset(0), currEndAddress(0),
+        linkedStaticData(NULL), loadSecTotalSize(0),
+        isStripped(isStripped_), library_adjust(0),
+        object(obj_), err_func_(err_func),
+        hasRewrittenTLS(false), TLSExists(false), newTLSData(NULL) {
+    oldElf = oldElfHandle->e_elfp();
+    curVersionNum = 2;
+    setVersion();
+
+    //Set variable based on the mechanism to add new load segment
+    // 1) createNewPhdr (Total program headers + 1) - default
+    //	(a) movePHdrsFirst
+    //    (b) create new section called dynphdrs and change pointers (createNewPhdrRegion)
+    //    (c) library_adjust - create room for a new program header in a position-indepdent library
+    //                         by increasing all virtual addresses for the library
+    // 2) Use existing Phdr (used in bleugene - will be handled in function fixPhdrs)
+    //    (a) replaceNOTE section - if NOTE exists
+    //    (b) BSSExpandFlag - expand BSS section - default option
+
+    // default
+    createNewPhdr = true;
+    BSSExpandFlag = false;
+    replaceNOTE = false;
+
+    //If we're dealing with a library that can be loaded anywhere,
+    // then load the program headers into the later part of the binary,
+    // this may trigger a kernel bug that was fixed in Summer 2007,
+    // but is the only reliable way to modify these libraries.
+    //If we're dealing with a library/executable that loads at a specific
+    // address we'll put the phdrs into the page before that address.  This
+    // works and will avoid the kernel bug.
+
+    isBlueGeneQ = obj_->isBlueGeneQ();
+    isStaticBinary = obj_->isStaticBinary();
+    if (isBlueGeneQ) {
+        movePHdrsFirst = false;
+    } else {
+        movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
+    }
+
+    //If we want to try a mode where we add the program headers to a library
+    // that can be loaded anywhere, and put the program headers in the first
+    // page (avoiding the kernel bug), then set library_adjust to getpagesize().
+    // This will shift all addresses in the library down by a page, accounting
+    // for the extra page for program headers.  This causes some significant
+    // changes to the binary, and isn't well tested.
+    library_adjust = 0;
+    if (cannotRelocatePhdrs() && !movePHdrsFirst) {
+        movePHdrsFirst = true;
+        library_adjust = getpagesize();
+    }
+}
+
+template<class ElfTypes>
+bool emitElf64<ElfTypes>::driver(Symtab *obj, string fName) {
+    vector<ExceptionBlock *> exceptions;
+    obj->getAllExceptions(exceptions);
+    //  cerr << "Dumping exception info: " << endl;
+
+    for (auto eb = exceptions.begin();
+         eb != exceptions.end();
+         ++eb) {
+        //cerr << **eb << endl;
+    }
+
+
+    int newfd;
+    Region *foundSec = NULL;
+    unsigned pgSize = getpagesize();
+    rewrite_printf("::driver for emitElf64\n");
+
+    string strtmpl = fName + "XXXXXX";
+    char buf[strtmpl.length() + 1];
+    strncpy(buf, strtmpl.c_str(), strtmpl.length() + 1);
+
+    newfd = mkstemp(buf);
+
+    if (newfd == -1) {
+        log_elferror(err_func_, "error opening file to write symbols");
+        return false;
+    }
+    strtmpl = buf;
+
+    fchmod(newfd, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP);
+    rewrite_printf("Emitting to temporary file %s\n", buf);
+
+#if 0
+    //open ELF File for writing
+  if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP)))==-1){
+    log_elferror(err_func_, "error opening file to write symbols");
+    return false;
+  }
+#endif
+
+    if ((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL) {
+        log_elferror(err_func_, "NEWELF_BEGIN_FAIL");
+        fflush(stdout);
+        cerr << "Failed to elf_begin" << endl;
+        return false;
+    }
+
+    //Section name index for all sections
+    secNames.push_back("");
+    secNameIndex = 1;
+    //Section name index for new sections
+    loadSecTotalSize = 0;
+    unsigned NOBITStotalsize = 0;
+    int dirtySecsChange = 0;
+    unsigned extraAlignSize = 0;
+
+    // ".shstrtab" section: string table for section header names
+    const char *shnames = pdelf_get_shnames(oldElfHandle);
+    if (shnames == NULL) {
+        log_elferror(err_func_, ".shstrtab section");
+        return false;
+    }
+
+    // Write the Elf header first!
+    newEhdr = ElfTypes::elf_newehdr(
+            newElf);
+    if (!newEhdr) {
+        log_elferror(err_func_, "newEhdr failed\n");
+        return false;
+    }
+    oldEhdr = ElfTypes::elf_getehdr(
+            oldElf);
+    memcpy(newEhdr, oldEhdr, sizeof(Elf_Ehdr));
+
+    newEhdr->e_shnum += newSecs.size();
+
+    // Find the end of text and data segments
+    findSegmentEnds();
+    unsigned insertPoint = oldEhdr->e_shnum;
+    unsigned insertPointOffset = 0;
+    unsigned NOBITSstartPoint = oldEhdr->e_shnum;
+
+    if (movePHdrsFirst) {
+        newEhdr->e_phoff = sizeof(Elf_Ehdr);
+    }
+
+    /* flag the file for no auto-layout */
+    elf_flagelf(newElf, ELF_C_SET, ELF_F_LAYOUT);
+
+    Elf_Scn *scn = NULL, *newscn = NULL;
+    Elf_Data *newdata = NULL, *olddata = NULL;
+    Elf_Shdr *newshdr = NULL, *shdr = NULL;
+    dyn_hash_map<unsigned, unsigned> secLinkMapping;
+    dyn_hash_map<unsigned, unsigned> secInfoMapping;
+    dyn_hash_map<unsigned, unsigned> changeMapping;
+    dyn_hash_map<string, unsigned> newNameIndexMapping;
+    dyn_hash_map<unsigned, string> oldIndexNameMapping;
+
+    bool createdLoadableSections = false;
+    unsigned scncount;
+    unsigned sectionNumber = 0;
+
+    bool startMovingSections = false;
+    for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
+        //copy sections from oldElf to newElf
+        shdr = ElfTypes::elf_getshdr(scn);
+
+        // resolve section name
+        const char *name = &shnames[shdr->sh_name];
+        bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
+        if (!result || foundSec->isDirty()) {
+            result = obj->findRegion(foundSec, name);
+        }
+
+        // write the shstrtabsection at the end
+        if (!strcmp(name, ".shstrtab"))
+            continue;
+
+        sectionNumber++;
+        changeMapping[sectionNumber] = 0;
+        oldIndexNameMapping[scncount + 1] = string(name);
+        newNameIndexMapping[string(name)] = sectionNumber;
+
+        newscn = elf_newscn(newElf);
+        newshdr = ElfTypes::elf_getshdr(newscn);
+        newdata = elf_newdata(newscn);
+        olddata = elf_getdata(scn, NULL);
+        memcpy(newshdr, shdr, sizeof(Elf_Shdr));
+        memcpy(newdata, olddata, sizeof(Elf_Data));
+
+
+        secNames.push_back(name);
+        newshdr->sh_name = secNameIndex;
+        secNameIndex += strlen(name) + 1;
+
+        if (newshdr->sh_addr) {
+            newshdr->sh_addr += library_adjust;
+        }
+
+        if (foundSec->isDirty()) {
+            newdata->d_buf = (char *) malloc(foundSec->getDiskSize());
+            memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getDiskSize());
+            newdata->d_size = foundSec->getDiskSize();
+            newshdr->sh_size = foundSec->getDiskSize();
+        }
+        else if (olddata->d_buf)     //copy the data buffer from oldElf
+        {
+            newdata->d_buf = (char *) malloc(olddata->d_size);
+            memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
+        }
+
+        if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0)) {
+            newshdr->sh_entsize = 0x0;
+        }
+
+        if (BSSExpandFlag) {
+            // Add the expanded SHT_NOBITS section size if the section comes after those sections
+            if (scncount > NOBITSstartPoint)
+                newshdr->sh_offset += NOBITStotalsize;
+
+            // Expand the NOBITS sections in file & and change the type from SHT_NOBITS to SHT_PROGBITS
+            if (shdr->sh_type == SHT_NOBITS) {
+                newshdr->sh_type = SHT_PROGBITS;
+                newdata->d_buf = (char *) malloc(shdr->sh_size);
+                memset(newdata->d_buf, '\0', shdr->sh_size);
+                newdata->d_size = shdr->sh_size;
+                if (NOBITSstartPoint == oldEhdr->e_shnum)
+                    NOBITSstartPoint = scncount;
+                NOBITStotalsize += shdr->sh_size;
+            }
+        }
+
+        vector<vector<unsigned long> > moveSecAddrRange = obj->getObject()->getMoveSecAddrRange();
+
+        for (unsigned i = 0; i != moveSecAddrRange.size(); i++) {
+            if ((moveSecAddrRange[i][0] == shdr->sh_addr) ||
+                (shdr->sh_addr >= moveSecAddrRange[i][0] && shdr->sh_addr < moveSecAddrRange[i][1])) {
+                newshdr->sh_type = SHT_PROGBITS;
+                changeMapping[sectionNumber] = 1;
+                string newName = ".o";
+                newName.append(name, 2, strlen(name));
+                renameSection((string) name, newName, false);
+            }
+        }
+
+        if ((obj->getObject()->getStrtabAddr() != 0 &&
+             obj->getObject()->getStrtabAddr() == shdr->sh_addr) ||
+            !strcmp(name, STRTAB_NAME)) {
+            symStrData = newdata;
+            updateSymbols(symTabData, symStrData, loadSecTotalSize);
+        }
+
+        //Change sh_link for .symtab to point to .strtab
+        if ((obj->getObject()->getSymtabAddr() != 0 &&
+             obj->getObject()->getSymtabAddr() == shdr->sh_addr) ||
+            !strcmp(name, SYMTAB_NAME)) {
+            newshdr->sh_link = secNames.size();
+            changeMapping[sectionNumber] = 1;
+            symTabData = newdata;
+        }
+
+
+        if (obj->getObject()->getTextAddr() != 0 &&
+            obj->getObject()->getTextAddr() == shdr->sh_addr) {
+            textData = newdata;
+        }
+
+        if (obj->getObject()->getDynamicAddr() != 0 &&
+            obj->getObject()->getDynamicAddr() == shdr->sh_addr) {
+            dynData = newdata;
+            dynSegOff = newshdr->sh_offset;
+            dynSegAddr = newshdr->sh_addr;
+            // Change the data to update the relocation addr
+            newshdr->sh_type = SHT_PROGBITS;
+            changeMapping[sectionNumber] = 1;
+            string newName = ".o";
+            newName.append(name, 2, strlen(name));
+            renameSection((string) name, newName, false);
+        }
+
+        // Only need to rewrite data section
+        if (hasRewrittenTLS && foundSec->isTLS()
+            && foundSec->getRegionType() == Region::RT_DATA) {
+            // Clear TLS flag
+            newshdr->sh_flags &= ~SHF_TLS;
+
+            string newName = ".o";
+            newName.append(name, 2, strlen(name));
+            renameSection((string) name, newName, false);
+        }
+
+#if defined(arch_power) && defined(arch_64bit)
+        // DISABLED
+    if (0 && isStaticBinary && strcmp(name, ".got") == 0) {
+      string newName = ".o";
+      newName.append(name, 2, strlen(name));
+      renameSection((string) name, newName, false);
+    }
+#endif
+
+        if (isStaticBinary && (strcmp(name, ".rela.plt") == 0)) {
+            string newName = ".o";
+            newName.append(name, 2, strlen(name));
+            renameSection(name, newName, false);
+        }
+
+        if (isStaticBinary && (strcmp(name, ".rela.plt") == 0)) {
+            string newName = ".o";
+            newName.append(name, 2, strlen(name));
+            renameSection(name, newName, false);
+            // Clear the PLT type; use PROGBITS
+            newshdr->sh_type = SHT_PROGBITS;
+        }
+
+        // Change offsets of sections based on the newly added sections
+        if (movePHdrsFirst) {
+            /* This special case is specific to FreeBSD but there is no hurt in
+             * handling it on other platforms.
+             *
+             * This is necessary because the INTERP header must be located within in
+             * the first page of the file -- if the section is moved to the next
+             * page the object file will not be parsed correctly by the kernel.
+             *
+             * However, the initial sections still need to be shifted, but just
+             * by the difference in size of the new PHDR segment.
+             */
+            if (newshdr->sh_offset > 0) {
+                if (startMovingSections || obj->isStaticBinary()
+                    || obj->getObjectType() == obj_SharedLib)
+                    newshdr->sh_offset += pgSize;
+                else if (createNewPhdr) newshdr->sh_offset += oldEhdr->e_phentsize;
+            }
+        }
+
+        if (scncount > insertPoint && newshdr->sh_offset >= insertPointOffset)
+            newshdr->sh_offset += loadSecTotalSize;
+
+        if (newshdr->sh_offset > 0)
+            newshdr->sh_offset += dirtySecsChange;
+
+        if (BSSExpandFlag) {
+            if (newshdr->sh_offset > 0) {
+                newshdr->sh_offset += extraAlignSize;
+            }
+        } else if (newshdr->sh_offset >= insertPointOffset) {
+            newshdr->sh_offset += extraAlignSize;
+        }
+
+        if (foundSec->isDirty())
+            dirtySecsChange += newshdr->sh_size - shdr->sh_size;
+
+        if (BSSExpandFlag && newshdr->sh_addr) {
+            unsigned newOff =
+                    newshdr->sh_offset - (newshdr->sh_offset & (pgSize - 1)) + (newshdr->sh_addr & (pgSize - 1));
+            if (newOff < newshdr->sh_offset)
+                newOff += pgSize;
+            extraAlignSize += newOff - newshdr->sh_offset;
+            newshdr->sh_offset = newOff;
+        }
+
+        secLinkMapping[sectionNumber] = shdr->sh_link;
+        secInfoMapping[sectionNumber] = shdr->sh_info;
+
+        rewrite_printf("section %s addr = %lx off = %lx size = %lx\n",
+                       name, newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size);
+
+        //Insert new loadable sections at the end of data segment
+        if (shdr->sh_addr + shdr->sh_size == dataSegEnd && !createdLoadableSections) {
+            createdLoadableSections = true;
+            insertPoint = scncount;
+            if (SHT_NOBITS == shdr->sh_type) {
+                insertPointOffset = shdr->sh_offset;
+            } else {
+                insertPointOffset = shdr->sh_offset + shdr->sh_size;
+            }
+
+            if (!createLoadableSections(obj, newshdr, extraAlignSize,
+                                        newNameIndexMapping, sectionNumber))
+                return false;
+            if (createNewPhdr && !movePHdrsFirst) {
+                sectionNumber++;
+                createNewPhdrRegion(newNameIndexMapping);
+            }
+
+            // Update the heap symbols, now that loadSecTotalSize is set
+            updateSymbols(dynsymData, dynStrData, loadSecTotalSize);
+
+        }
+
+        if (0 > elf_update(newElf, ELF_C_NULL)) {
+            return false;
+        }
+
+        if (!strcmp(name, INTERP_NAME)) {
+            startMovingSections = true;
+        }
+    }
+
+    // Add non-loadable sections at the end of object file
+    if (!createNonLoadableSections(newshdr))
+        return false;
+
+    if (0 > elf_update(newElf, ELF_C_NULL)) {
+        return false;
+    }
+
+    //Add the section header table right at the end
+    addSectionHeaderTable(newshdr);
+
+    // Second iteration to fix the link fields to point to the correct section
+    scn = NULL;
+
+    for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
+        shdr = ElfTypes::elf_getshdr(scn);
+        if (changeMapping[scncount + 1] == 0 && secLinkMapping[scncount + 1] != 0) {
+            unsigned linkIndex = secLinkMapping[scncount + 1];
+            string secName = oldIndexNameMapping[linkIndex];
+            unsigned newLinkIndex = newNameIndexMapping[secName];
+            shdr->sh_link = newLinkIndex;
+        }
+
+        if (changeMapping[scncount + 1] == 0 && secInfoMapping[scncount + 1] != 0) {
+            // For REL and RELA section, info field is a section index - hence of the index changes, the info field must change.
+            // For SYMTAB and DYNSYM, info field is OS specific - so just copy it.
+            // For others, info field is 0, so just copy it
+            if (shdr->sh_type == SHT_REL || shdr->sh_type == SHT_RELA) {
+                unsigned infoIndex = secInfoMapping[scncount + 1];
+                string secName = oldIndexNameMapping[infoIndex];
+                unsigned newInfoIndex = newNameIndexMapping[secName];
+                shdr->sh_info = newInfoIndex;
+            }
+        }
+    }
+
+    newEhdr->e_shstrndx = scncount;
+
+    // Move the section header to the end
+    newEhdr->e_shoff = shdr->sh_offset + shdr->sh_size;
+    if (newEhdr->e_shoff % 8)
+        newEhdr->e_shoff += 8 - (
+                newEhdr->e_shoff % 8);
+
+    //copy program headers
+    oldPhdr = ElfTypes::elf_getphdr(
+            oldElf);
+    fixPhdrs(extraAlignSize);
+
+    //Write the new Elf file
+    if (elf_update(newElf, ELF_C_WRITE) < 0) {
+        log_elferror(err_func_, "elf_update failed");
+        return false;
+    }
+    elf_end(newElf);
+    if (hasPHdrSectionBug()) {
+        unsigned long ehdr_off = (unsigned long) &(((Elf_Ehdr *) 0x0)->e_phoff);
+        lseek(newfd, ehdr_off, SEEK_SET);
+        Elf_Off offset = (Elf_Off) phdr_offset;
+        write(newfd, &offset, sizeof(Elf_Off));
+    }
+    close(newfd);
+
+    if (rename(strtmpl.c_str(), fName.c_str())) {
+        return false;
+    }
+
+    return true;
+}
+
+/* Regenerates the .symtab, .strtab sections from the symbols
+ * Add new .dynsym, .dynstr sections for the newly added dynamic symbols
+ * Method - For every symbol call createElfSymbol to get a Elf_Sym corresposnding
+ *          to a Symbol object. Accumulate all and their names to form the sections
+ *          and add them to the list of new sections
+ */
+template<class ElfTypes>
+bool emitElf64<ElfTypes>::createSymbolTables(Symtab *obj, vector<Symbol *> &allSymbols) {
+    rewrite_printf(" createSymbolTables for %s \n", obj->name().c_str());
+    unsigned i;
+
+    //Symbol table(.symtab) symbols
+    vector<Elf_Sym *> symbols;
+
+    //Symbol table(.dynsymtab) symbols
+    vector<Elf_Sym *> dynsymbols;
+
+    unsigned symbolNamesLength = 1, dynsymbolNamesLength = 1;
+    dyn_hash_map<string, unsigned long> dynSymNameMapping;
+    vector<string> symbolStrs, dynsymbolStrs;
+    vector<Symbol *> dynsymVector;
+    vector<Symbol *> allDynSymbols;
+    vector<Symbol *> allSymSymbols;
+
+    dyn_hash_map<int, Region *> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
+
+    Region *sec;
+    auto foundRegion = secTagRegionMapping.find(DT_STRTAB);
+    if ((foundRegion != secTagRegionMapping.end()) && (foundRegion->second != NULL)) {
+        // .dynstr
+        sec = foundRegion->second;
+        olddynStrData = (char *) (sec->getPtrToRawData());
+        olddynStrSize = sec->getMemSize();
+        dynsymbolNamesLength = olddynStrSize + 1;
+    }
+
+    // Copy over the previous library dependencies
+    vector<string> elibs;
+    obj->getObject()->getDependencies(elibs);
+    for (auto iter = elibs.begin();
+         iter != elibs.end(); ++iter) {
+        addDTNeeded(*iter);
+    }
+
+    //Initialize the list of new prereq libraries
+    set<string> &plibs = obj->getObject()->prereq_libs;
+    for (auto i = plibs.begin(); i != plibs.end(); i++) {
+        addDTNeeded(*i);
+    }
+    new_dynamic_entries = obj->getObject()->new_dynamic_entries;
+    Object *object = obj->getObject();
+    // recreate a "dummy symbol"
+    Elf_Sym *sym = new Elf_Sym();
+    symbolStrs.push_back("");
+    // We should increment this here, but for reasons I don't understand we create it with a size of
+    // 1.
+    //symbolNamesLength++;
+    sym->st_name = 0;
+    sym->st_value = 0;
+    sym->st_size = 0;
+    sym->st_other = 0;
+    sym->st_info = ELF64_ST_INFO(STB_LOCAL, STT_NOTYPE);
+    sym->st_shndx = SHN_UNDEF;
+
+    symbols.push_back(sym);
+    if (!obj->isStaticBinary()) {
+        dynsymbols.push_back(sym);
+        dynsymVector.push_back(Symbol::magicEmitElfSymbol());
+        versionSymTable.push_back(0);
+    }
+
+    if (obj->isStaticBinary()) {
+        // Static binary case
+        vector<Region *> newRegs;
+        obj->getAllNewRegions(newRegs);
+        if (newRegs.size()) {
+            emitElfStatic linker(obj->getAddressWidth(), isStripped);
+
+            emitElfStatic::StaticLinkError err;
+            std::string errMsg;
+            linkedStaticData = linker.linkStatic(obj, err, errMsg);
+            if (!linkedStaticData) {
+                std::string linkStaticError =
+                        std::string("Failed to link to static library code into the binary: ") +
+                        emitElfStatic::printStaticLinkError(err) + std::string(" = ")
+                        + errMsg;
+                setSymtabError(Emit_Error);
+                symtab_log_perror(linkStaticError.c_str());
+                return false;
+            }
+
+            hasRewrittenTLS = linker.hasRewrittenTLS();
+
+            // Find the end of the new Regions
+            obj->getAllNewRegions(newRegs);
+
+            Offset lastRegionAddr = 0, lastRegionSize = 0;
+            vector<Region *>::iterator newRegIter;
+            for (newRegIter = newRegs.begin(); newRegIter != newRegs.end();
+                 ++newRegIter) {
+                if ((*newRegIter)->getDiskOffset() > lastRegionAddr) {
+                    lastRegionAddr = (*newRegIter)->getDiskOffset();
+                    lastRegionSize = (*newRegIter)->getDiskSize();
+                }
+            }
+
+            if (!emitElfUtils::updateHeapVariables(obj, lastRegionAddr + lastRegionSize)) {
+                return false;
+            }
+        }
+    }
+
+    for (i = 0; i < allSymbols.size(); i++) {
+        if (allSymbols[i]->isInSymtab()) {
+            allSymSymbols.push_back(allSymbols[i]);
+        }
+        if (!obj->isStaticBinary()) {
+            if (allSymbols[i]->isInDynSymtab()) {
+                allDynSymbols.push_back(allSymbols[i]);
+            }
+        }
+    }
+
+    int max_index = -1;
+    for (i = 0; i < allDynSymbols.size(); i++) {
+        if (max_index < allDynSymbols[i]->getIndex())
+            max_index = allDynSymbols[i]->getIndex();
+    }
+    for (i = 0; i < allDynSymbols.size(); i++) {
+        if (allDynSymbols[i]->getIndex() == -1) {
+            max_index++;
+            allDynSymbols[i]->setIndex(max_index);
+        }
+
+        if (allDynSymbols[i]->getStrIndex() == -1) {
+            // New Symbol - append to the list of strings
+            dynsymbolStrs.push_back(allDynSymbols[i]->getMangledName().c_str());
+            allDynSymbols[i]->setStrIndex(dynsymbolNamesLength);
+            dynsymbolNamesLength += allDynSymbols[i]->getMangledName().length() + 1;
+        }
+
+    }
+    // reorder allSymbols based on index
+    std::sort(allDynSymbols.begin(), allDynSymbols.end(), sortByIndex());
+
+    max_index = -1;
+    for (i = 0; i < allSymSymbols.size(); i++) {
+        if (max_index < allSymSymbols[i]->getIndex())
+            max_index = allSymSymbols[i]->getIndex();
+    }
+
+    for (i = 0; i < allSymSymbols.size(); i++) {
+        if (allSymSymbols[i]->getIndex() == -1) {
+            max_index++;
+            allSymSymbols[i]->setIndex(max_index);
+        }
+    }
+
+    std::sort(allSymSymbols.begin(), allSymSymbols.end(), sortByIndex());
+
+    /* We regenerate symtab and symstr section. We do not
+       maintain the order of the strings and symbols as it was in
+       the original binary. Hence, the strings in symstr have new order and
+       new index.
+       On the other hand, we do not regenerate dynsym and dynstr section. We copy over
+       old symbols and string in the original order as it was in the
+       original binary. We preserve sh_index of Elf symbols (from Symbol's strIndex). We append
+       new symbols and string that we create for the new binary (targ*, versions etc).
+    */
+
+    for (i = 0; i < allSymSymbols.size(); i++) {
+        //allSymSymbols[i]->setStrIndex(symbolNamesLength);
+        createElfSymbol(allSymSymbols[i], symbolNamesLength, symbols);
+        symbolStrs.push_back(allSymSymbols[i]->getMangledName());
+        symbolNamesLength += allSymSymbols[i]->getMangledName().length() + 1;
+    }
+    for (i = 0; i < allDynSymbols.size(); i++) {
+        createElfSymbol(allDynSymbols[i], allDynSymbols[i]->getStrIndex(), dynsymbols, true);
+        dynSymNameMapping[allDynSymbols[i]->getMangledName().c_str()] = allDynSymbols[i]->getIndex();
+        dynsymVector.push_back(allDynSymbols[i]);
+    }
+
+    //reconstruct .symtab section
+    Elf_Sym *syms = (Elf_Sym *) malloc(symbols.size() * sizeof(Elf_Sym));
+    for (i = 0; i < symbols.size(); i++)
+        syms[i] = *(symbols[i]);
+
+    char *str = (char *) malloc(symbolNamesLength);
+    unsigned cur = 0;
+    for (i = 0; i < symbolStrs.size(); i++) {
+        strcpy(&str[cur], symbolStrs[i].c_str());
+        cur += symbolStrs[i].length() + 1;
+    }
+
+    if (!isStripped) {
+        Region *sec;
+        if (obj->findRegion(sec, ".symtab"))
+            sec->setPtrToRawData(syms, symbols.size() * sizeof(Elf_Sym));
+        else
+            obj->addRegion(0, syms, symbols.size() * sizeof(Elf_Sym), ".symtab", Region::RT_SYMTAB);
+    }
+    else
+        obj->addRegion(0, syms, symbols.size() * sizeof(Elf_Sym), ".symtab", Region::RT_SYMTAB);
+
+    //reconstruct .strtab section
+    if (!isStripped) {
+        Region *sec;
+        if (obj->findRegion(sec, ".strtab"))
+            sec->setPtrToRawData(str, symbolNamesLength);
+        else
+            obj->addRegion(0, str, symbolNamesLength, ".strtab", Region::RT_STRTAB);
+    }
+    else
+        obj->addRegion(0, str, symbolNamesLength, ".strtab", Region::RT_STRTAB);
+
+    if (!obj->getAllNewRegions(newSecs))
+        log_elferror(err_func_, "No new sections to add");
+
+    if (dynsymbols.size() == 1)
+        return true;
+
+    if (!obj->isStaticBinary()) {
+        //reconstruct .dynsym section
+        Elf_Sym *dynsyms = (Elf_Sym *) malloc(dynsymbols.size() * sizeof(Elf_Sym));
+        for (i = 0; i < dynsymbols.size(); i++)
+            dynsyms[i] = *(dynsymbols[i]);
+
+        Elf_Half *symVers;
+        char *verneedSecData, *verdefSecData;
+        unsigned verneedSecSize = 0, verdefSecSize = 0;
+
+        createSymbolVersions(obj, symVers, verneedSecData, verneedSecSize, verdefSecData, verdefSecSize,
+                             dynsymbolNamesLength, dynsymbolStrs);
+        // build new .hash section
+        Elf_Word *hashsecData;
+        unsigned hashsecSize = 0;
+        createHashSection(obj, hashsecData, hashsecSize, dynsymVector);
+        if (hashsecSize) {
+            string name;
+            if (secTagRegionMapping.find(DT_HASH) != secTagRegionMapping.end()) {
+                name = secTagRegionMapping[DT_HASH]->getRegionName();
+                obj->addRegion(0, hashsecData, hashsecSize * sizeof(Elf_Word), name, Region::RT_HASH, true);
+            } else if (secTagRegionMapping.find(0x6ffffef5) != secTagRegionMapping.end()) {
+                name = secTagRegionMapping[0x6ffffef5]->getRegionName();
+                obj->addRegion(0, hashsecData, hashsecSize * sizeof(Elf_Word), name, Region::RT_HASH, true);
+            } else {
+                name = ".hash";
+                obj->addRegion(0, hashsecData, hashsecSize * sizeof(Elf_Word), name, Region::RT_HASH, true);
+            }
+        }
+
+        Elf_Dyn *dynsecData;
+        unsigned dynsecSize = 0;
+        if (obj->findRegion(sec, ".dynamic")) {
+            // Need to ensure that DT_REL and related fields added to .dynamic
+            // The values of these fields will be set
+/*
+        if( !object->hasReldyn() && !object->hasReladyn() ) {
+            if( object->getRelType() == Region::RT_REL ) {
+                new_dynamic_entries.push_back(make_pair(DT_REL,0));
+                new_dynamic_entries.push_back(make_pair(DT_RELSZ,0));
+            }else if( object->getRelType() == Region::RT_RELA ) {
+                new_dynamic_entries.push_back(make_pair(DT_RELA,0));
+                new_dynamic_entries.push_back(make_pair(DT_RELASZ,0));
+            }else{
+                assert(!"Relocation type not set to known RT_REL or RT_RELA.");
+            }
+        }
+*/
+            createDynamicSection(sec->getPtrToRawData(), sec->getDiskSize(), dynsecData, dynsecSize,
+                                 dynsymbolNamesLength, dynsymbolStrs);
+        }
+
+        if (!dynsymbolNamesLength)
+            return true;
+
+        char *dynstr = (char *) malloc(dynsymbolNamesLength);
+        memcpy((void *) dynstr, (void *) olddynStrData, olddynStrSize);
+        cur = olddynStrSize + 1;
+        for (i = 0; i < dynsymbolStrs.size(); i++) {
+            strcpy(&dynstr[cur], dynsymbolStrs[i].c_str());
+            cur += dynsymbolStrs[i].length() + 1;
+            if (dynSymNameMapping.find(dynsymbolStrs[i]) == dynSymNameMapping.end()) {
+                dynSymNameMapping[dynsymbolStrs[i]] = allDynSymbols.size() + i;
+            }
+        }
+
+        string name;
+        if (secTagRegionMapping.find(DT_SYMTAB) != secTagRegionMapping.end()) {
+            name = secTagRegionMapping[DT_SYMTAB]->getRegionName();
+        } else {
+            name = ".dynsym";
+        }
+        obj->addRegion(0, dynsyms, dynsymbols.size() * sizeof(Elf_Sym), name, Region::RT_SYMTAB, true);
+
+        if (secTagRegionMapping.find(DT_STRTAB) != secTagRegionMapping.end()) {
+            name = secTagRegionMapping[DT_STRTAB]->getRegionName();
+        } else {
+            name = ".dynstr";
+        }
+        obj->addRegion(0, dynstr, dynsymbolNamesLength, name, Region::RT_STRTAB, true);
+
+        //add .gnu.version, .gnu.version_r, and .gnu.version_d sections
+        if (secTagRegionMapping.find(DT_VERSYM) != secTagRegionMapping.end()) {
+            name = secTagRegionMapping[DT_VERSYM]->getRegionName();
+        } else {
+            name = ".gnu.version";
+        }
+        obj->addRegion(0, symVers, versionSymTable.size() * sizeof(Elf_Half), name, Region::RT_SYMVERSIONS, true);
+
+        if (verneedSecSize) {
+            if (secTagRegionMapping.find(DT_VERNEED) != secTagRegionMapping.end()) {
+                name = secTagRegionMapping[DT_VERNEED]->getRegionName();
+            } else {
+                name = ".gnu.version_r";
+            }
+            obj->addRegion(0, verneedSecData, verneedSecSize, name, Region::RT_SYMVERNEEDED, true);
+        }
+
+        if (verdefSecSize) {
+            obj->addRegion(0, verdefSecData, verdefSecSize, ".gnu.version_d", Region::RT_SYMVERDEF, true);
+        }
+
+        //Always create a dyn section, it may get our new relocations.
+        //If both exist, then just try to maintain order.
+        bool has_plt = object->hasRelaplt() || object->hasRelplt();
+        bool has_dyn = object->hasReladyn() || object->hasReldyn();
+        if (!has_plt) {
+            createRelocationSections(obj, object->getDynRelocs(), true, dynSymNameMapping);
+        }
+        else if (!has_dyn) {
+            createRelocationSections(obj, object->getPLTRelocs(), false, dynSymNameMapping);
+            createRelocationSections(obj, object->getDynRelocs(), true, dynSymNameMapping);
+        }
+        else if (object->getRelPLTAddr() < object->getRelDynAddr()) {
+            createRelocationSections(obj, object->getPLTRelocs(), false, dynSymNameMapping);
+            createRelocationSections(obj, object->getDynRelocs(), true, dynSymNameMapping);
+        }
+        else {
+            createRelocationSections(obj, object->getDynRelocs(), true, dynSymNameMapping);
+            createRelocationSections(obj, object->getPLTRelocs(), false, dynSymNameMapping);
+        }
+
+        //add .dynamic section
+        if (dynsecSize)
+            obj->addRegion(0, dynsecData, dynsecSize * sizeof(Elf_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
+    }
+
+    if (!obj->getAllNewRegions(newSecs))
+        log_elferror(err_func_, "No new sections to add");
+
+    return true;
 }

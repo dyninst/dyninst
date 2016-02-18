@@ -99,7 +99,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    friend class Module;
    friend class Region;
    friend class emitElf;
-   friend class emitElf64;
    friend class emitElfStatic;
    friend class emitWin;
    friend class Aggregate;

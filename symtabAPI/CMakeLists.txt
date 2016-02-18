@@ -43,10 +43,9 @@ set (SRC_LIST ${SRC_LIST}
     src/Object-elf.C 
     src/Archive.C 
     src/Archive-elf.C 
-    src/parseDwarf.C 
-    src/parseStab.C 
-    src/emitElf.C 
-    src/LinkMap.C 
+    src/parseDwarf.C
+        src/parseStab.C
+        src/LinkMap.C
     src/emitElfStatic.C 
     src/dwarfWalker.C
 )

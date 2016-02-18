@@ -35,24 +35,13 @@
 
 #include "Type.h"
 #include "Variable.h"
-#include "Symbol.h"
-#include "Symtab.h"
 #include "Object.h"
 
-#include "emitElf.h"
-#include "Module.h"
-#include "Aggregate.h"
 #include "Function.h"
 
 #include "debug.h"
 
-#include "dwarfHandle.h"
-
-#if defined(x86_64_unknown_linux2_4) ||		\
-  defined(ppc64_linux) ||			\
-  (defined(os_freebsd) && defined(arch_x86_64))
 #include "emitElf-64.h"
-#endif
 
 #include "dwarfWalker.h"
 
@@ -65,13 +54,9 @@ using namespace std;
 #error "Object-elf.h not #included"
 #endif
 
-#include <elf.h>
-#include <stdio.h>
-#include <algorithm>
-
 #if defined(cap_dwarf)
 #include "dwarf.h"
-#include "libdwarf.h"
+
 #endif
 
 //#include "symutil.h"
@@ -80,11 +65,10 @@ using namespace std;
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
 #endif
-#include <iostream>
+
 #include <iomanip>
 
 #include <fstream>
-#include <sys/stat.h>
 
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
@@ -92,8 +76,6 @@ using namespace std;
 #include "SymReader.h"
 
 using namespace boost::assign;
-
-#include <libgen.h>
 
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
@@ -337,6 +319,13 @@ const char* DYNAMIC_NAME     = ".dynamic";
 const char* EH_FRAME_NAME    = ".eh_frame";
 const char* EXCEPT_NAME      = ".gcc_except_table";
 const char* EXCEPT_NAME_ALT  = ".except_table";
+
+
+extern template
+class Dyninst::SymtabAPI::emitElf64<ElfTypes32>;
+
+extern template
+class Dyninst::SymtabAPI::emitElf64<ElfTypes64>;
 
 set<string> debugInfoSections = list_of(string(SYMTAB_NAME))
  (string(STRTAB_NAME));
@@ -3485,6 +3474,11 @@ const ostream &Object::dump_state_info(ostream &s)
 
 #endif
 
+template
+class Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64>;
+
+template
+class Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32>;
 
 Offset Object::getPltSlot(string funcName) const
 {
@@ -4492,6 +4486,7 @@ bool AObject::getSegments(vector<Segment> &segs) const
   return true;
 }
 
+
 bool Object::emitDriver(Symtab *obj, string fName,
 			std::vector<Symbol *>&allSymbols,
                         unsigned /*flag*/)
@@ -4504,20 +4499,18 @@ bool Object::emitDriver(Symtab *obj, string fName,
 #endif
   if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS32)
   {
-    emitElf *em = new emitElf(elfHdr, isStripped, this, err_func_);
+      Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32> *em =
+              new Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_);
     if( !em->createSymbolTables(obj, allSymbols) ) return false;
     return em->driver(obj, fName);
   }
-#if defined(x86_64_unknown_linux2_4) ||		\
-  defined(ppc64_linux) ||			\
-  (defined(os_freebsd) && defined(arch_x86_64))
-  else if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS64) 
+  else if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS64)
   {
-    emitElf64 *em = new emitElf64(elfHdr, isStripped, this, err_func_);
+      Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64> *em =
+              new Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_);
     if( !em->createSymbolTables(obj, allSymbols) ) return false;
     return em->driver(obj, fName);
   }
-#endif
   return false;
 }
 

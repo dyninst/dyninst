@@ -257,16 +257,11 @@ class stab_entry_64 : public stab_entry {
 // end of stab declarations
 
 class pdElfShdr;
-
 class Symtab;
 class Region;
 class Object;
-class emitElf;
-class emitElf64;
 
-class Object : public AObject {
-  friend class emitElf;
-  friend class emitElf64;
+        class Object : public AObject {
 
   // declared but not implemented; no copying allowed
   Object(const Object &);
