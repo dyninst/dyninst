@@ -97,9 +97,13 @@ enum {
 
 // SSE VEX multiplexing table
 enum {
-                                SSE12_F2 = 0,
+                                SSE10_F2 = 0,
+  SSE12_NO,                     SSE12_F2,
+  SSE13_NO,           SSE13_66,
+  SSE16_NO,           SSE16_66,
   SSE28_NO,           SSE28_66,
             SSE2A_F3,           SSE2A_F2,
+  SSE2B_NO,
             SSE2C_F3,           SSE2C_F2,
             SSE2D_F3,           SSE2D_F2,
   SSE2F_NO,           SSE2F_66,
@@ -3115,7 +3119,7 @@ static ia32_entry sseMap[][4] = {
     { e_movups, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
     { e_movss,  t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
     { e_movupd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
-    { e_movsd_sse,  t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
+    { e_movsd_sse,  t_sse_mult, SSE10_F2, true, { Vsd, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE11 */
     { e_movups, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R },
@@ -3124,15 +3128,15 @@ static ia32_entry sseMap[][4] = {
     { e_movsd_sse,  t_done, 0, true, { Wsd, Vsd, Zz }, 0, s1W2R }, // Book is wrong, this is a W/V
   },
   { /* SSE12 */
-    { e_movlps_movhlps, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R }, // FIXME: wierd 1st op
+    { e_movlps_movhlps, t_sse_mult, SSE12_NO, true, { Wq, Vq, Zz }, 0, s1W2R }, // FIXME: wierd 1st op
     { e_movsldup, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
     { e_movlpd, t_done, 0, true, { Vq, Ws, Zz }, 0, s1W2R },
     { e_movddup, t_sse_mult, SSE12_F2, true, { Vdq, Wq, Zz }, 0, s1W2R },
   },
   { /* SSE13 */
-    { e_movlps, t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
+    { e_movlps, t_sse_mult, SSE13_NO, true, { Vq, Wq, Zz }, 0, s1W2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_movlpd, t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
+    { e_movlpd, t_sse_mult, SSE13_66, true, { Vq, Wq, Zz }, 0, s1W2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE14 */
@@ -3148,9 +3152,9 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE16 */
-    { e_movhps_movlhps, t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R }, // FIXME: wierd 2nd op
+    { e_movhps_movlhps, t_sse_mult, SSE16_NO, true, { Vq, Wq, Zz }, 0, s1W2R }, // FIXME: wierd 2nd op
     { e_movshdup, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
-    { e_movhpd, t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
+    { e_movhpd, t_sse_mult, SSE16_66, true, { Vq, Wq, Zz }, 0, s1W2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE17 */
@@ -3178,7 +3182,7 @@ static ia32_entry sseMap[][4] = {
     { e_cvtsi2sd, t_sse_mult, SSE2A_F2, true, { Vsd, Ev, Zz }, 0, s1W2R },
   },
   { /* SSE2B */
-    { e_movntps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R | (fNT << FPOS) },
+    { e_movntps, t_sse_mult, SSE2B_NO, true, { Wps, Vps, Zz }, 0, s1W2R | (fNT << FPOS) },
     { e_movntss, t_done, 0, true, { Md, Vd, Zz }, 0, s1W2R | (fNT << FPOS) },
     { e_movntpd, t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R | (fNT << FPOS) }, // bug in book
     { e_movntsd, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R | (fNT << FPOS) },
@@ -4730,14 +4734,35 @@ static ia32_entry sseMapTer[][3] = {
 /* rows are VEX2, VEX3, or EVEX prefixed in this order */
 ia32_entry sseMapMult[][3] = 
 {
-  
-    { /* SSE12_F3 */
+    { /* SSE10_F2 */
+      { e_vmovsd, t_done, 0, true, { Vsd, Hsd, Wsd }, 0, s1W2R3R },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    }, { /* SSE12_NO */
+      { e_vmovhlps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    }, { /* SSE12_F3 */
       { e_vmovddup, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
-    },
-
-    { /* SSE28_66 */
+    }, { /* SSE13_NO */
+      { e_vmovlps, t_done, 0, true, { Wps, Vpd, Zz }, 0, s1W2R },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    }, { /* SSE13_66 */
+      { e_vmovlpd, t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    }, { /* SSE16_NO */
+      { e_vmovhps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    }, { /* SSE16_66 */
+      { e_vmovhpd, t_done, 0, true, { Vpd, Hpd, Wpd }, 0, s1W2R3R },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    }, { /* SSE28_66 */
       { e_vmovaps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -4751,6 +4776,10 @@ ia32_entry sseMapMult[][3] =
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSE2A_F2 */
       { e_vcvtsi2sd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    }, { /* SSE2B_NO */
+      { e_vmovntps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R },
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
       { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSE2C_F3 */
