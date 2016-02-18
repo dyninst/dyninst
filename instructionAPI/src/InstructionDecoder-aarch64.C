@@ -597,7 +597,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 	    else
 		isValid = false;
 	}
-	else if(IS_INSN_SCALAR_2REG_MISC(insn))
+	else if(IS_INSN_SCALAR_2REG_MISC(insn) || IS_INSN_SCALAR_3SAME(insn))
 	{
 	    //some instructions in this set rely on sz for choosing the register and some on size
 	    //only one of them is set for an instruction, however
@@ -911,13 +911,13 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 	    else
 		isValid = false;
 	}
-	else if(IS_INSN_SCALAR_2REG_MISC(insn))
+	else if(IS_INSN_SCALAR_2REG_MISC(insn) || IS_INSN_SCALAR_3SAME(insn))
 	{
 	    //some instructions in this set rely on sz for choosing the register and some on size
 	    //only one of them is set for an instruction, however
 	    bool isRnVa = false;
 	    int opcode = field<12, 16>(insn);
-	    if((opcode & 0x18) == 0x10 && (opcode & 0x1) == 0x0)
+	    if(!IS_INSN_SCALAR_3SAME(insn) && (opcode & 0x18) == 0x10 && (opcode & 0x1) == 0x0)
 		isRnVa = true;
 
 	    if(_szField == -1)
@@ -1824,6 +1824,37 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
 	    else
 		reg = _Q == 0x1?aarch64::hq0:aarch64::d0;
 	}
+		else if(IS_INSN_SCALAR_3SAME(insn))
+		{
+			if(size != -1)
+			{
+				switch(size)
+				{
+					case 0x0:reg = aarch64::b0;
+							 break;
+					case 0x1:reg = aarch64::h0;
+							 break;
+					case 0x2:reg = aarch64::s0;
+							 break;
+					case 0x3:reg = aarch64::d0;
+							 break;
+					default:isValid = false;
+				}
+			}
+			else if(_szField != -1)
+			{
+				switch(_szField)
+				{
+					case 0x0:reg = aarch64::s0;
+							 break;
+					case 0x1:reg = aarch64::d0;
+							 break;
+					default:isValid = false;
+				}
+			}
+			else
+				isValid = false;
+		}
         else
 	    reg = _Q == 0x1?aarch64::q0:aarch64::d0;
         
