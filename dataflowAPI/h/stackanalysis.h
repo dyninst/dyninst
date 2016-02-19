@@ -423,8 +423,12 @@ class StackAnalysis {
     void handlePowerStoreUpdate(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleMov(InstructionPtr insn, ParseAPI::Block *block,
         const Offset off, TransferFuncs &xferFuncs);
-    void handleZeroExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
-    void handleSignExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
+    void handleZeroExtend(InstructionPtr insn, ParseAPI::Block *block,
+        const Offset off, TransferFuncs &xferFuncs);
+    void handleSignExtend(InstructionPtr insn, ParseAPI::Block *block,
+        const Offset off, TransferFuncs &xferFuncs);
+    void handleSpecialSignExtend(InstructionPtr insn,
+        TransferFuncs &xferFuncs);
     void handleXor(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleDiv(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleMul(InstructionPtr insn, TransferFuncs &xferFuncs);

@@ -380,13 +380,15 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
           handleMov(insn, block, off, xferFuncs);
           break;
        case e_movzx:
-          handleZeroExtend(insn, xferFuncs);
+          handleZeroExtend(insn, block, off, xferFuncs);
           break;
        case e_movsx:
        case e_movsxd:
+          handleSignExtend(insn, block, off, xferFuncs);
+          break;
        case e_cbw:
        case e_cwde:
-          handleSignExtend(insn, xferFuncs);
+          handleSpecialSignExtend(insn, xferFuncs);
           break;
        case e_xor:
           handleXor(insn, xferFuncs);
@@ -1467,104 +1469,176 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
    }
 }
 
-void StackAnalysis::handleZeroExtend(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handleZeroExtend(Instruction::Ptr insn, Block *block,
+   const Offset off, TransferFuncs &xferFuncs) {
+   // In x86/x86_64, zero extends can't write to memory
+   assert(!insn->writesMemory());
 
-   // This instruction zero extends the read register into the written register
+   Architecture arch = insn->getArch();  // Needed for debug messages
 
-   // Don't care about memory stores
-   if (insn->writesMemory()) return;
+   // Extract operands
+   std::vector<Operand> operands;
+   insn->getOperands(operands);
+   assert(operands.size() == 2);
 
-   MachRegister read;
-   MachRegister written;
-   std::set<RegisterAST::Ptr> regs;
-   RegisterAST::Ptr reg;
+   // Extract written/read register sets
+   std::set<RegisterAST::Ptr> writtenRegs;
+   std::set<RegisterAST::Ptr> readRegs;
+   operands[0].getWriteSet(writtenRegs);
+   operands[1].getReadSet(readRegs);
 
-   insn->getWriteSet(regs);
-
-   // There can only be 0 or 1 target regs. Since we short-circuit the case
-   // where the target is memory, there must be exactly 1 target reg.
-   assert(regs.size() == 1);
-   reg = *(regs.begin());
-   written = reg->getID();
-   regs.clear();
-
-   Absloc writtenloc(written);
+   assert(writtenRegs.size() == 1);
+   Absloc writtenLoc((*writtenRegs.begin())->getID());
 
    // Handle memory loads
    if (insn->readsMemory()) {
-      xferFuncs.push_back(TransferFunc::bottomFunc(writtenloc));
+      stackanalysis_printf("\t\t\tMemory read from: %s\n",
+         operands[1].format(arch).c_str());
+
+      // Extract the expression inside the dereference
+      std::vector<Expression::Ptr> addrExpr;
+      operands[1].getValue()->getChildren(addrExpr);
+      assert(addrExpr.size() == 1);
+
+      // Try to determine the read memory address
+      StateEvalVisitor visitor;
+      if (intervals_ == NULL) {
+         visitor = StateEvalVisitor(off, insn, NULL);
+      } else {
+         visitor = StateEvalVisitor(off, insn, &(*intervals_)[block][off]);
+      }
+      addrExpr[0]->apply(&visitor);
+      if (visitor.isDefined()) {
+         // We can track the memory location we're loading from
+         std::pair<Address, bool> resultPair = visitor.getResult();
+         Absloc readLoc;
+         if (resultPair.second) {
+            // We have a stack slot
+            readLoc = Absloc(resultPair.first, 0, NULL);
+         } else {
+            // We have a static address
+            readLoc = Absloc(resultPair.first);
+         }
+         stackanalysis_printf("\t\t\tEvaluates to: %s\n",
+            readLoc.format().c_str());
+         xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc));
+      } else {
+         // We can't track this memory location
+         stackanalysis_printf("\t\t\tCan't determine location\n");
+         xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
+      }
       return;
    }
 
-   insn->getReadSet(regs);
-   if (regs.size() != 1) {
-      stackanalysis_printf(
-         "\t\t\t Unhandled zero extend, setting %s = BOTTOM\n",
-         written.name().c_str());
-      xferFuncs.push_back(TransferFunc::bottomFunc(writtenloc));
-      return;
-   }
-   reg = *(regs.begin());
-   read = reg->getID();
-   Absloc readloc(read);
-
+   assert(readRegs.size() == 1);
+   Absloc readLoc((*readRegs.begin())->getID());
 
    stackanalysis_printf("\t\t\t Alias detected: %s -> %s\n",
-      read.name().c_str(), written.name().c_str());
-   xferFuncs.push_back(TransferFunc::aliasFunc(readloc, writtenloc));
+      readLoc.format().c_str(), writtenLoc.format().c_str());
+   xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc));
 }
 
-void StackAnalysis::handleSignExtend(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
-
+void StackAnalysis::handleSignExtend(Instruction::Ptr insn, Block *block,
+   const Offset off, TransferFuncs &xferFuncs) {
    // This instruction sign extends the read register into the written
    // register. Aliasing insn't really correct here...sign extension is going
    // to change the value...
 
-   // Don't care about memory stores
-   if (insn->writesMemory()) return;
+   // In x86/x86_64, sign extends can't write to memory
+   assert(!insn->writesMemory());
 
-   MachRegister read;
-   MachRegister written;
-   std::set<RegisterAST::Ptr> regs;
-   RegisterAST::Ptr reg;
+   Architecture arch = insn->getArch();  // Needed for debug messages
 
-   insn->getWriteSet(regs);
+   // Extract operands
+   std::vector<Operand> operands;
+   insn->getOperands(operands);
+   assert(operands.size() == 2);
 
-   // There can only be 0 or 1 target regs. Since we short-circuit the case
-   // where the target is memory, there must be exactly 1 target reg.
-   assert(regs.size() == 1);
-   reg = *(regs.begin());
-   written = reg->getID();
-   regs.clear();
+   // Extract written/read register sets
+   std::set<RegisterAST::Ptr> writtenRegs;
+   std::set<RegisterAST::Ptr> readRegs;
+   operands[0].getWriteSet(writtenRegs);
+   operands[1].getReadSet(readRegs);
 
-   Absloc writtenloc(written);
+   assert(writtenRegs.size() == 1);
+   Absloc writtenLoc((*writtenRegs.begin())->getID());
 
    // Handle memory loads
    if (insn->readsMemory()) {
-      xferFuncs.push_back(TransferFunc::bottomFunc(writtenloc));
+      stackanalysis_printf("\t\t\tMemory read from: %s\n",
+         operands[1].format(arch).c_str());
+
+      // Extract the expression inside the dereference
+      std::vector<Expression::Ptr> addrExpr;
+      operands[1].getValue()->getChildren(addrExpr);
+      assert(addrExpr.size() == 1);
+
+      // Try to determine the read memory address
+      StateEvalVisitor visitor;
+      if (intervals_ == NULL) {
+         visitor = StateEvalVisitor(off, insn, NULL);
+      } else {
+         visitor = StateEvalVisitor(off, insn, &(*intervals_)[block][off]);
+      }
+      addrExpr[0]->apply(&visitor);
+      if (visitor.isDefined()) {
+         // We can track the memory location we're loading from
+         std::pair<Address, bool> resultPair = visitor.getResult();
+         Absloc readLoc;
+         if (resultPair.second) {
+            // We have a stack slot
+            readLoc = Absloc(resultPair.first, 0, NULL);
+         } else {
+            // We have a static address
+            readLoc = Absloc(resultPair.first);
+         }
+         stackanalysis_printf("\t\t\tEvaluates to: %s\n",
+            readLoc.format().c_str());
+         xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc,
+            true));
+      } else {
+         // We can't track this memory location
+         stackanalysis_printf("\t\t\tCan't determine location\n");
+         xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
+      }
       return;
    }
 
-   insn->getReadSet(regs);
-   if (regs.size() != 1) {
-      stackanalysis_printf(
-         "\t\t\t Unhandled sign extend, setting %s = BOTTOM\n",
-         written.name().c_str());
-      xferFuncs.push_back(TransferFunc::bottomFunc(writtenloc));
-      return;
-   }
-   reg = *(regs.begin());
-   read = reg->getID();
-
-   Absloc readloc(read);
+   assert(readRegs.size() == 1);
+   Absloc readLoc((*readRegs.begin())->getID());
 
    stackanalysis_printf(
       "\t\t\t Sign extend insn detected: %s -> %s (must be top or bottom)\n",
-      read.name().c_str(), written.name().c_str());
-   xferFuncs.push_back(TransferFunc::aliasFunc(readloc, writtenloc, true));
-   return;
+      readLoc.format().c_str(), writtenLoc.format().c_str());
+   xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc, true));
+}
+
+void StackAnalysis::handleSpecialSignExtend(Instruction::Ptr insn,
+   TransferFuncs &xferFuncs) {
+   // This instruction sign extends the read register into the written
+   // register. Aliasing insn't really correct here...sign extension is going
+   // to change the value...
+
+   // Extract written/read register sets
+   std::set<RegisterAST::Ptr> writtenRegs;
+   insn->getWriteSet(writtenRegs);
+   assert(writtenRegs.size() == 1);
+   MachRegister writtenReg = (*writtenRegs.begin())->getID();
+   MachRegister readReg;
+   if (writtenReg == x86_64::rax) readReg = x86_64::eax;
+   else if (writtenReg == x86_64::eax) readReg = x86_64::ax;
+   else if (writtenReg == x86_64::ax) readReg = x86_64::al;
+   else if (writtenReg == x86::eax) readReg = x86::ax;
+   else if (writtenReg == x86::ax) readReg = x86::al;
+   else assert(false);
+
+   Absloc writtenLoc(writtenReg);
+   Absloc readLoc(readReg);
+
+   stackanalysis_printf(
+      "\t\t\t Special sign extend detected: %s -> %s (must be top/bottom)\n",
+      readLoc.format().c_str(), writtenLoc.format().c_str());
+   xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc, true));
 }
 
 void StackAnalysis::handleDefault(Instruction::Ptr insn,
@@ -1816,7 +1890,7 @@ bool StackAnalysis::TransferFunc::isSIB() const {
 
 
 // Destructive update of the input map. Assumes inputs are absolute,
-// uninitalized, or bottom; no deltas.
+// uninitialized, or bottom; no deltas.
 StackAnalysis::Height StackAnalysis::TransferFunc::apply(
    const AbslocState &inputs) const {
    assert(target.isValid());
