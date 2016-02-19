@@ -571,7 +571,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 		}	    
 	    }
 	    //sqdmulh, sqrdmulh
-	    else if((opcode & 0xC0) == 0xC0)
+	    else if((opcode & 0xC) == 0xC)
 	    {
 		switch(size)
 		{
@@ -712,8 +712,16 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 void InstructionDecoder_aarch64::OPRRd()
 {
     Expression::Ptr reg = makeRdExpr();
+	int cmode = field<12, 15>(insn);
+
+	bool isRdRead = false;
+	if(((IS_INSN_SIMD_VEC_INDEX(insn) || IS_INSN_SCALAR_INDEX(insn)) && !(cmode & 0x8)) ||
+	   (IS_INSN_SIMD_MOD_IMM(insn) &&
+			   (((cmode & 0x8) && !(cmode & 0x4) && (cmode & 0x1)) ||
+				(!(cmode & 0x8) && (cmode & 0x1)))))
+		isRdRead = true;
     //for SIMD/Scalar vector indexed set, some instructions read Rd and some don't. This can be determined from the highest bit of the opcode field (bit 15)
-    insn_in_progress->appendOperand(reg, ((IS_INSN_SIMD_VEC_INDEX(insn) || IS_INSN_SCALAR_INDEX(insn)) && !field<15, 15>(insn))?true:false, true);
+    insn_in_progress->appendOperand(reg, isRdRead, true);
 }
 
 void InstructionDecoder_aarch64::OPRcmode()
@@ -885,7 +893,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 
 	    //sqdmlal, sqdmlsl, sqdmull
 	    //sqdmulh, sqrdmulh
-	    if((opcode & 0xC0) == 0xC0 || (opcode & 0x3) == 0x3)
+	    if((opcode & 0xC) == 0xC || (opcode & 0x3) == 0x3)
 	    {
 		switch(size)
 		{
@@ -1799,8 +1807,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
         {
             reg = field<11, 11>(insn)==0x1?aarch64::q0:aarch64::d0;
 	    
-	    //check this once
-	    if(_szField == 0x1 || size == 0x1)
+	    if(size == 0x1)
 		encoding = encoding & 0xF;
         }
 	else if(IS_INSN_SCALAR_3DIFF(insn))
