@@ -126,6 +126,18 @@ test_results_t aarch64_simd_Mutator::executeTest()
 	0x5E, 0x68, 0xFD, 0x08,	    //FRECPS  D8, D8, D8
 	0x7E, 0xE2, 0x57, 0xE4,	    //URSHL   D4, D31, D2
 	0x7E, 0xB0, 0xE5, 0x02,	    //FCMGT   S2, S8, S16
+	0x5E, 0x20, 0x39, 0x02,	    //SUQADD  B2, B8
+	0x5E, 0x61, 0x48, 0x04,	    //SQXTN   H4, S0
+	0x5E, 0x61, 0xB8, 0x3F,	    //FCVTMS  D31, D1
+	0x5E, 0xA1, 0xD8, 0xA9,	    //FRECPE  S9, S5
+	0x7E, 0x21, 0x28, 0x48,	    //SQXTUN  B8, H2
+	0x7E, 0x61, 0x68, 0x4F,	    //FCVTXN  S15, D2
+	0x7E, 0xA1, 0xDB, 0xFF,	    //FRSQRTE S31, S31
+	0x5F, 0x49, 0x38, 0xA2,	    //SQDMLAL S2, H5, Q9
+	0x5F, 0x9f, 0x73, 0xE0,	    //SQDMLSL D0, S31, D31
+	0x5F, 0x4F, 0xD0, 0x88,	    //SQRDMULH H8, H4, D15
+	0x5F, 0x94, 0x18, 0x49,	    //FMLA    S9, S2, Q20
+	0x5F, 0xD1, 0x50, 0xA8,	    //FMLS    D8, D5, D17
 	0x00, 0x00, 0x00, 0x00
     };
 
@@ -653,8 +665,10 @@ test_results_t aarch64_simd_Mutator::executeTest()
 
     //orr
     #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d5};
 	tmpWritten = {d5};
     #else
+	tmpRead = list_of(d5);
 	tmpWritten = list_of(d5);
     #endif
     expectedRead.push_back(tmpRead);
@@ -664,8 +678,10 @@ test_results_t aarch64_simd_Mutator::executeTest()
 
     //orr
     #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d5};
 	tmpWritten = {d5};
     #else
+	tmpRead = list_of(d5);
 	tmpWritten = list_of(d5);
     #endif
     expectedRead.push_back(tmpRead);
@@ -697,8 +713,10 @@ test_results_t aarch64_simd_Mutator::executeTest()
 
     //bic
     #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q8};
 	tmpWritten = {q8};
     #else
+	tmpRead = list_of(q8);
 	tmpWritten = list_of(q8);
     #endif
     expectedRead.push_back(tmpRead);
@@ -1036,6 +1054,162 @@ test_results_t aarch64_simd_Mutator::executeTest()
     #else
 	tmpRead = list_of(s8)(s16);
 	tmpWritten = list_of(s2);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //suqadd
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {b8};
+	tmpWritten = {b2};
+    #else
+	tmpRead = list_of(b8);
+	tmpWritten = list_of(b2);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //sqxtn
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s0};
+	tmpWritten = {h4};
+    #else
+	tmpRead = list_of(s0);
+	tmpWritten = list_of(h4);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //fcvtms
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d1};
+	tmpWritten = {d31};
+    #else
+	tmpRead = list_of(d1);
+	tmpWritten = list_of(d31);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //frecpe
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s5};
+	tmpWritten = {s9};
+    #else
+	tmpRead = list_of(s5);
+	tmpWritten = list_of(s9);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //sqxtun
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {h2};
+	tmpWritten = {b8};
+    #else
+	tmpRead = list_of(h2);
+	tmpWritten = list_of(b8);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //fcvtxn
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d2};
+	tmpWritten = {s15};
+    #else
+	tmpRead = list_of(d2);
+	tmpWritten = list_of(s15);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //frsqrte
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s31};
+	tmpWritten = {s31};
+    #else
+	tmpRead = list_of(s31);
+	tmpWritten = list_of(s31);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //sqdmlal
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s2, h5, q9};
+	tmpWritten = {s2};
+    #else
+	tmpRead = list_of(s2)(h5)(q9);
+	tmpWritten = list_of(s2);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //sqdmlsl
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d0, d31, s31};
+	tmpWritten = {d0};
+    #else
+	tmpRead = list_of(d0)(s31)(s31);
+	tmpWritten = list_of(d0);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //sqrdmulh
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {h4, d15};
+	tmpWritten = {h8};
+    #else
+	tmpRead = list_of(h4)(d15);
+	tmpWritten = list_of(h8);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //fmla
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {s2, s9, q20};
+	tmpWritten = {s9};
+    #else
+	tmpRead = list_of(s2)(s9)(q20);
+	tmpWritten = list_of(s9);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //fmls
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d5, d8, d17};
+	tmpWritten = {d8};
+    #else
+	tmpRead = list_of(d5)(d6)(d17);
+	tmpWritten = list_of(d8);
     #endif
     expectedRead.push_back(tmpRead);
     expectedWritten.push_back(tmpWritten);
