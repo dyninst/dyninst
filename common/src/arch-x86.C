@@ -4920,12 +4920,12 @@ static ia32_entry sseMapBis[][5] = {
 static ia32_entry sseMapTer[][3] = {
     { /* SSET00 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_vpermq, t_done, 0, true, { Vdq, Wqq, Ib }, 0, s1W2R3R },
+        { e_vpermq, t_sse_ter_mult, SSET00_66, true, { Vdq, Wqq, Ib }, 0, s1W2R3R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     },
     { /* SSET01 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_vpermpd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1W2R3R },
+        { e_vpermpd, t_sse_ter_mult, SSET01_66, true, { Vpd, Wpd, Ib }, 0, s1W2R3R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     },
     { /* SSET02 */
@@ -4935,12 +4935,12 @@ static ia32_entry sseMapTer[][3] = {
     },
     { /* SSET04 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_vpermilps, t_done, 0, true, { Vps, Wps, Ib }, 0, s1W2R3R },
+        { e_vpermilps, t_sse_ter_mult, SSET04_66, true, { Vps, Wps, Ib }, 0, s1W2R3R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     },
     { /* SSET05 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_vpermilpd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1W2R3R },
+        { e_vpermilpd, t_sse_ter_mult, SSET05_66, true, { Vpd, Wpd, Ib }, 0, s1W2R3R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     },
     { /* SSET06 */
@@ -4955,7 +4955,7 @@ static ia32_entry sseMapTer[][3] = {
 		},
 		{ /* SSET09 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+				{ e_No_Entry, t_sse_ter_mult, SSET09_66, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_roundpd, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R }
 		},
 		{ /* SSET0A */
@@ -4985,12 +4985,12 @@ static ia32_entry sseMapTer[][3] = {
 		},		
 		{ /* SSET0F */
 				{ e_palignr, t_done, 0, true, { Pq, Qq, Ib }, 0, s1RW2R3R },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+				{ e_No_Entry, t_sse_ter_mult, SSET0F_66, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_palignr, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R },
 		},
 		{ /* SSET14 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+				{ e_No_Entry, t_sse_ter_mult, SSET14_66, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_pextrb, t_done, 0, true, { RMb, Vdq, Ib }, 0, s1W2R3R }
 		},
 		{ /* SSET15 */
@@ -5000,32 +5000,32 @@ static ia32_entry sseMapTer[][3] = {
 		},
 		{ /* SSET16 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+				{ e_No_Entry, t_sse_ter_mult, SSET16_66, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_pextrd_pextrq, t_done, 0, true, { Ey, Vdq, Ib }, 0, s1W2R3R },
 		},
 		{ /* SSET17 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_vextractps, t_done, 0, true, { Ev, Vps, Ib }, 0, s1W2R3R },
+        { e_vextractps, t_sse_ter_mult, SSET17_66, true, { Ev, Vps, Ib }, 0, s1W2R3R },
 				{ e_extractps, t_done, 0, true, { Ed, Vdq, Ib }, 0, s1W2R3R }, 
 		},
 		{ /* SSET18 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_vinsertf128, t_done, 0, true, { Vdq, Hps, Wps }, 0, s1W2R3R4R }, 
+				{ e_vinsertf128, t_sse_ter_mult, SSET18_66, true, { Vdq, Hps, Wps }, 0, s1W2R3R4R }, 
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		},
 		{ /* SSET19 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_vextractf128, t_done, 0, true, { Wps, Vps, Ib }, 0, s1W2R3R },
+        { e_vextractf128, t_sse_ter_mult, SSET19_66, true, { Wps, Vps, Ib }, 0, s1W2R3R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		},
     { /* SSET1D */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_vcvtps2ph, t_done, 0, true, { Wps, Vps, Ib }, 0, s1W2R3R },
+        { e_vcvtps2ph, t_sse_ter_mult, SSET1D_66, true, { Wps, Vps, Ib }, 0, s1W2R3R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     },
 		{ /* SSET20 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_pinsrb, t_done, 0, true, { Vdq, RMb, Ib }, 0, s1W2R3R }, 
+				{ e_pinsrb, t_sse_ter_mult, SSET20_66, true, { Vdq, RMb, Ib }, 0, s1W2R3R }, 
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		},
 		{ /* SSET21 */
@@ -5035,17 +5035,37 @@ static ia32_entry sseMapTer[][3] = {
 		},
 		{ /* SSET22 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_pinsrd_pinsrq, t_done, 0, true, { Vdq, Ey, Ib }, 0, s1W2R3R },
+				{ e_pinsrd_pinsrq, t_sse_ter_mult, SSET22_66, true, { Vdq, Ey, Ib }, 0, s1W2R3R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		},
+    { /* SSET29 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse_ter_mult, SSET29_66, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSET30 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse_ter_mult, SSET30_66, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSET32 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse_ter_mult, SSET32_66, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSET33 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse_ter_mult, SSET33_66, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
     { /* SSET38 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_vinserti128, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R4R },
+        { e_vinserti128, t_sse_ter_mult, SSET38_66, true, { Vps, Hps, Wps }, 0, s1W2R3R4R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     },
     { /* SSET39 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_vextracti128, t_done, 0, true, { Wps, Vps, Ib }, 0, s1RW2R3R },
+        { e_vextracti128, t_sse_ter_mult, SSET39_66, true, { Wps, Vps, Ib }, 0, s1RW2R3R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     },
 		{ /* SSET40 */
@@ -5068,20 +5088,30 @@ static ia32_entry sseMapTer[][3] = {
 				{ e_vperm2i128, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R4R },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     },
+    { /* SSET48 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse_ter_mult, SSET48_66, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
+    { /* SSET48 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse_ter_mult, SSET49_66, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    },
 		{ /* SSET60 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_pcmpestrm, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1R2R3R }, 
+				{ e_pcmpestrm, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1R2R3R }
 		},
 		{ /* SSET61 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_pcmpestri, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1R2R3R }, 
+				{ e_pcmpestri, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1R2R3R }
 		},
 		{ /* SSET62 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-				{ e_pcmpistrm, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1R2R3R }, 
+				{ e_pcmpistrm, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1R2R3R }
 		},
 		{ /* SSET63 */
 				{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
