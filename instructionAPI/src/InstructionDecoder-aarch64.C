@@ -968,7 +968,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 	{
 	    reg = _Q==1?aarch64::q0:aarch64::d0;
 	    
-	    for(int reg_index = immlo; reg_index >= 0; reg_index++)
+	    for(int reg_index = immlo; reg_index > 0; reg_index--)
 	    {
 		insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(reg, (encoding+reg_index)%32)), true, false);
 	    }
