@@ -138,6 +138,10 @@ test_results_t aarch64_simd_Mutator::executeTest()
 	0x5F, 0x4F, 0xD0, 0x88,	    //SQRDMULH H8, H4, D15
 	0x5F, 0x94, 0x18, 0x49,	    //FMLA    S9, S2, Q20
 	0x5F, 0xD1, 0x50, 0xA8,	    //FMLS    D8, D5, D17
+	0x4E, 0x09, 0x01, 0x04,	    //TBL     Q4, Q8, Q9
+	0x0E, 0x03, 0x30, 0x20,	    //TBX     D0, D1, D2, D3
+	0x4E, 0x1F, 0x43, 0x00,	    //TBL     Q0, Q24, Q25, Q26, Q31
+	0x0E, 0x15, 0x70, 0x14,	    //TBX     D20, D0, D1, D2, D3, D21
 	0x00, 0x00, 0x00, 0x00
     };
 
@@ -1210,6 +1214,58 @@ test_results_t aarch64_simd_Mutator::executeTest()
     #else
 	tmpRead = list_of(d5)(d6)(d17);
 	tmpWritten = list_of(d8);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //tbl
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q8, q9};
+	tmpWritten = {q4};
+    #else
+	tmpRead = list_of(q8)(q9);
+	tmpWritten = list_of(q4);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //tbx
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d1, d2, d3};
+	tmpWritten = {d0};
+    #else
+	tmpRead = list_of(d1)(d2)(d3);
+	tmpWritten = list_of(d0);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //tbl
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q24, q25, q26, q31};
+	tmpWritten = {q0};
+    #else
+	tmpRead = list_of(q24)(q25)(q26)(q31);
+	tmpWritten = list_of(q0);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //tbx
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d0, d1, d2, d3, d21};
+	tmpWritten = {d20};
+    #else
+	tmpRead = list_of(d0)(d1)(d2)(d3)(d21);
+	tmpWritten = list_of(d20);
     #endif
     expectedRead.push_back(tmpRead);
     expectedWritten.push_back(tmpWritten);
