@@ -338,7 +338,7 @@ namespace Dyninst
 					break;
 			case 7:lhs = makeRegisterExpression(reg, s64);
 					break;
-			default: assert(!"invalid option field value");
+			default: isValid = false;   //invalid option field
 		}
 
 		Result_Type rT = is64Bit?(optionField<4?u64:s64):(optionField<4?u32:s32);
@@ -496,7 +496,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 	                reg = (opcode == 0x03)?aarch64::d0:aarch64::s0;
 	                break;
 		    default:
-		        assert(!"invalid encoding");
+		        isValid = false;
 		}
 	    }
         }
@@ -691,7 +691,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 			break;
 		case 3: reg = aarch64::h0;
 			break;
-		default: assert(!"invalid destination register size");
+		default: isValid = false;
 	    }
 	}
 	else
@@ -1001,7 +1001,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
 		break;
 	    case 3: reg = aarch64::h0;
 			break;
-	    default: assert(!"invalid source register size");
+	    default: isValid = false;
 	}
 	reg = makeAarch64RegID(reg, encoding);
     }
@@ -1057,7 +1057,7 @@ void InstructionDecoder_aarch64::getMemRefIndexLiteral_RT(Result_Type &rt){
             break;
         case 0x3:
         default:
-            assert(0);
+	    isValid = false;
             break;
     }
     return;
@@ -1104,7 +1104,7 @@ void InstructionDecoder_aarch64::getMemRefIndex_RT(Result_Type &rt){
                 rt = s64;
                 break;
             default:
-                assert(0);
+                isValid = false;
                 //should only be 2 or 3
                 break;
         }
@@ -1123,7 +1123,7 @@ void InstructionDecoder_aarch64::getMemRefIndex_RT(Result_Type &rt){
                 rt = u64;
                 break;
             default:
-                assert(0);
+                isValid = false;
                 //should only be 2 or 3
                 break;
         }
@@ -1149,7 +1149,7 @@ void InstructionDecoder_aarch64::getMemRefPair_RT(Result_Type &rt){
                     rt = dbl128;
                     break;
                 default:
-                    assert(0);
+                    isValid = false;
             }
             break;
         case 1:
@@ -1160,11 +1160,11 @@ void InstructionDecoder_aarch64::getMemRefPair_RT(Result_Type &rt){
                     break;
                 case 1:
                 default:
-                    assert(0);
+                    isValid = false;
             }
             break;
         default:
-            assert(0);
+            isValid = false;
             break;
     }
 
@@ -1340,7 +1340,7 @@ void InstructionDecoder_aarch64::getMemRefSIMD_MULT_RT(Result_Type &rt){
             rt = m512;
             return;
         default:
-            assert(!"not implemented");
+            isValid = false;
             return;
     }
 }
@@ -1384,7 +1384,7 @@ void InstructionDecoder_aarch64::getMemRefSIMD_SING_RT(Result_Type &rt){
             rt = m256;
             break;
         default:
-            assert(!"not implemented");
+            isValid = false;
             break;
     }
 }
@@ -1407,7 +1407,7 @@ unsigned int InstructionDecoder_aarch64::getMemRefSIMD_SING_T(){
         return 64;
     }
     else
-        assert(!"not implemented");
+        isValid = false;
     return 0;
 }
 
@@ -1433,7 +1433,7 @@ void InstructionDecoder_aarch64::getMemRefExPair_RT(Result_Type &rt){
             rt = dbl128;
             break;
         default:
-            assert(!"should not reach here");
+            isValid = false;
             break;
     }
     return;
@@ -1461,7 +1461,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefReg_Rm(){
     unsigned int option = field<13, 15>(insn);
-    if((option&2) != 2) assert(0);
+    if((option&2) != 2)
+	isValid = false;
     MachRegister baseReg = ((option & 0x3)==0x2) ? aarch64::w0 : aarch64::x0;
     unsigned int encoding = field<16, 20>(insn);
 
@@ -1489,10 +1490,12 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefReg_ext(){
 
     if( size == 2 ){ //32bit
         immVal = S==0?0:(S==1?2:-1);
-        if( immVal==-1 ) assert(0);
+        if( immVal==-1 )
+	    isValid = false;
     }else if( size == 3 ){ //64bit
         immVal = S==0?0:(S==1?3:-1);
-        if( immVal==-1) assert(0);
+        if( immVal==-1)
+	    isValid = false;
     }
     Expression::Ptr ext = makeOptionExpression(immLen, immVal);
 
@@ -1950,10 +1953,12 @@ void InstructionDecoder_aarch64::setRegWidth(){
                     return;
                 }else{
                     if( sz == 3){
-                        if( opc0 == 1) assert(!"unallocated insn");
+                        if( opc0 == 1)
+			    isValid = false;
                     }
                     else{
-                        if(sz == 2 && opc0 == 1) assert(!"unallocated insn");
+                        if(sz == 2 && opc0 == 1)
+			    isValid = false;
                         if(opc0 == 1)
 			    is64Bit = false;        
                     }
@@ -1996,10 +2001,10 @@ void InstructionDecoder_aarch64::setRegWidth(){
             }
         }
         else{
-            assert(!"not implemented for SIMD");
+            isValid = false;
         }
     }else{
-        assert(0);
+	isValid = false;
     }
     return;
 }
@@ -2048,10 +2053,11 @@ void InstructionDecoder_aarch64::getSIMD_MULT_RptSelem(unsigned int &rpt, unsign
             rpt = 2; selem = 1;
             break;
         default:
-            assert(!"unallocated encoding");
+            isValid = false;
             return;
     }
-    assert(rpt!=0 && selem!=0);
+    if(rpt==0 || selem==0)
+	isValid = false;
     return;
 }
 
@@ -2253,7 +2259,7 @@ bool InstructionDecoder_aarch64::isSinglePrec() {
         }
         return _typeField==0?true:false;
     }else if( isSIMDInsn ){
-        assert(0); //not implemeted yet
+        isValid = false; //not implemeted yet
     }
     return false;
 }
