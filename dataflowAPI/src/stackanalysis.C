@@ -905,7 +905,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
    //   #2 depends on whether or not the location of mem2 can be determined
    //      statically.
    //      a. If it can, reg1 is set to a sibFunc of reg1 and mem2.
-   //      b. Otherwise, reg1 is set to bottom.
+   //      b. Otherwise, reg1 is set to topBottom.
    //   #3 depends on whether or not the location of mem1 can be determined
    //      statically.
    //      a. If it can, mem1 is set to a sibFunc of mem1 and reg2.
@@ -1028,7 +1028,8 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
       } else {
          // Case 2b
          stackanalysis_printf("\t\t\tCan't determine location\n");
-         xferFuncs.push_back(TransferFunc::bottomFunc(writtenLoc));
+         xferFuncs.push_back(TransferFunc::aliasFunc(writtenLoc, writtenLoc,
+            true));
       }
       return;
    }
