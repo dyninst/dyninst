@@ -44,7 +44,7 @@
 #include "RegisterConversion.h"
 //#include "Annotatable.h"
 
-#ifdef i386_unknown_nt4_0
+#if (defined(_MSC_VER) && _MSC_VER < 1900)
 #define snprintf _snprintf
 #endif
 
