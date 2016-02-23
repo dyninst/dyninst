@@ -153,6 +153,18 @@ test_results_t aarch64_simd_Mutator::executeTest()
 	0x4E, 0x3F, 0x34, 0x20,	    //CMGT    Q0, Q1, Q31
 	0x0E, 0x2A, 0x7D, 0x28,	    //SABA    D8, D9, D10
 	0x6E, 0x66, 0x1C, 0xA4,	    //BSL     Q4, Q5, Q6
+	0x0E, 0x20, 0x59, 0x28,	    //CNT     D8, D9
+	0x4E, 0x21, 0x2B, 0xE0,	    //XTN     Q0, Q31
+	0x4E, 0x61, 0xC8, 0x62,	    //FCVTAS  Q2, Q3
+	0x2E, 0xA1, 0xF9, 0xFF,	    //FSQRT   D31, D15
+	0x0F, 0x40, 0x20, 0xA2,	    //SMLAL   Q2, D5, D0
+	0x4F, 0x85, 0x6B, 0xE1,	    //SMLSL   Q1, HQ31, Q5
+	0x4F, 0x9F, 0x80, 0x49,	    //MUL     Q9, Q2, D31
+	0x0F, 0x45, 0xB8, 0x88,	    //SQDMULL Q8, D4, Q5
+	0x0F, 0x83, 0xD0, 0x41,	    //SQRDMULH D1. D2, D3
+	0x4F, 0x8B, 0x59, 0x45,	    //FMLS    Q5, Q10, Q11
+	0x6F, 0x9F, 0x21, 0x04,	    //UMLAL   Q4, HQ8, D31
+	0x0F, 0x88, 0x19, 0x84,	    //FMLA    D4, D12, Q8
 	0x00, 0x00, 0x00, 0x00
     };
 
@@ -1420,6 +1432,162 @@ test_results_t aarch64_simd_Mutator::executeTest()
     #else
 	tmpRead = list_of(q5)(q6);
 	tmpWritten = list_of(q4);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //cnt
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d9};
+	tmpWritten = {d8};
+    #else
+	tmpRead = list_of(d9);
+	tmpWritten = list_of(d8);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //xtn
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q31};
+	tmpWritten = {q0};
+    #else
+	tmpRead = list_of(q31);
+	tmpWritten = list_of(q0);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //fcvtas
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q3};
+	tmpWritten = {q2};
+    #else
+	tmpRead = list_of(q3);
+	tmpWritten = list_of(q2);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //fsqrt
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d15};
+	tmpWritten = {d31};
+    #else
+	tmpRead = list_of(d15);
+	tmpWritten = list_of(d31);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //smlal
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d5, d0, q2};
+	tmpWritten = {q2};
+    #else
+	tmpRead = list_of(d5)(d0(q2);
+	tmpWritten = list_of(q2);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //smlsl
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q1, hq31, q5};
+	tmpWritten = {q1};
+    #else
+	tmpRead = list_of(q1)(hq31)(q5);
+	tmpWritten = list_of(q1);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //mul
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q2, d31};
+	tmpWritten = {q9};
+    #else
+	tmpRead = list_of(q2)(d31);
+	tmpWritten = list_of(q9);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //sqdmull
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d4, q5};
+	tmpWritten = {q8};
+    #else
+	tmpRead = list_of(d4)(q5);
+	tmpWritten = list_of(q8);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //sqrdmulh
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d2, d3};
+	tmpWritten = {d1};
+    #else
+	tmpRead = list_of(d2)(d3);
+	tmpWritten = list_of(d1);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //fmls
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q5, q10, q11};
+	tmpWritten = {q5};
+    #else
+	tmpRead = list_of(q5)(q10)(q11);
+	tmpWritten = list_of(q5);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //umlal
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {q4, hq8, d31};
+	tmpWritten = {q4};
+    #else
+	tmpRead = list_of(q4)(hq8)(d31);
+	tmpWritten = list_of(q4);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //fmla
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {d4, d12, q8};
+	tmpWritten = {d4};
+    #else
+	tmpRead = list_of(d4)(d12)(q8);
+	tmpWritten = list_of(d4);
     #endif
     expectedRead.push_back(tmpRead);
     expectedWritten.push_back(tmpWritten);
