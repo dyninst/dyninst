@@ -425,6 +425,14 @@ enum {
 /** EVEX masks */
 #define PREFIX_EVEX ((unsigned char)0x62)
 
+#define EVEXGET_W(b) VEX3GET_W(b)
+#define EVEXGET_L1(b) (unsigned char)((1 << 5) & (b))
+#define EVEXGET_L2(b) (unsigned char)((1 << 6) & (b))
+#define EVEXGET_L(b) (unsigned char)((EVEXGET_L1(b)) | (EVEXGET_L2(b)))
+#define EVEXGET_PP(b) (unsigned char)(3 & (b))
+#define EVEXGET_MM(b) (unsigned char)(3 & (b))
+#define EVEXGET_AAA(b) (unsigned char)(7 & (b))
+
 #endif
 
 #ifndef PREFIX_LOCK
