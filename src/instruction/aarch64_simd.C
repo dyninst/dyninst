@@ -193,6 +193,14 @@ test_results_t aarch64_simd_Mutator::executeTest()
 	0x0D, 0x60, 0xA7, 0xE0,	    //LD4     D0, D1, D2, D3, [SP]
 	0x0D, 0x40, 0x80, 0x09,	    //LD1     D9, [X0]
 	0x4D, 0x40, 0xA4, 0x21,	    //LD3     Q1, Q2, Q3, [X1]
+	0x4D, 0x88, 0x00, 0x45,	    //ST1     Q5, [X2], X8
+	0x0D, 0xBF, 0x43, 0xE4,	    //ST2     D4, D5, [SP], #4
+	0x4D, 0x9E, 0xA1, 0x1F,	    //ST3     Q31, Q0, Q1, [X8], X30
+	0x0D, 0xBF, 0xA7, 0xE0,	    //ST4     D0, D1, D2, D3, [SP], #32
+	0x4D, 0xDF, 0x00, 0x45,	    //LD1     Q5,[X2], #1
+	0x0D, 0xE0, 0x43, 0xE4,	    //LD2     D4, D5, [SP], X0
+	0x4D, 0xDF, 0xA1, 0x1F,	    //LD3     Q31, Q0, Q1, [X8], #12
+	0x0D, 0xE9, 0xA7, 0xE0,	    //LD4     D0, D1, D2, D3, [SP], X9
 	0x00, 0x00, 0x00, 0x00
     };
 
@@ -210,7 +218,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
 	i = d.decode();
 	decodedInsns.push_back(i);
 	if(i != NULL)
-	    cout<<decodedInsns.back()->format()<<endl;
+	    /*cout<<*/decodedInsns.back()->format()/*<<endl*/;
     }
     while(i && i->isValid());
     
@@ -1970,6 +1978,110 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpRead.clear();
     tmpWritten.clear();
 
+    //st1
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpWritten = {x2};
+	tmpRead = {q5, x2, x8};
+    #else
+	tmpWritten = list_of(x2);
+	tmpRead = list_of(q5)(x8)(x2);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //st2
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpWritten = {sp};
+	tmpRead = {d4, d5, sp};
+    #else
+	tmpWritten = list_of(sp);
+	tmpRead = list_of(d4)(d5)(sp);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //st3
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpWritten = {x8};
+	tmpRead = {q0, q1, q31, x8, x30};
+    #else
+	tmpWritten = list_of(x8);
+	tmpRead = list_of(x8)(q0)(q1)(q31)(x30);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //st4
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpWritten = {sp};
+	tmpRead = {d0, d1, d2, d3, sp};
+    #else
+	tmpWritten = list_of(sp);
+	tmpRead = list_of(sp)(d0)(d1)(d2)(d3);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //ld1
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpWritten = {q5, x2};
+	tmpRead = {x2};
+    #else
+	tmpWritten = list_of(q5)(x2);
+	tmpRead = list_of(x2);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //ld2
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpWritten = {sp, d4, d5};
+	tmpRead = {sp, x0};
+    #else
+	tmpWritten = list_of(d4)(d5)(sp);
+	tmpRead = list_of(sp)(x0);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //ld3
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpWritten = {q0, q1, q31, x8};
+	tmpRead = {x8};
+    #else
+	tmpWritten = list_of(q0)(q1)(q31)(x8);
+	tmpRead = list_of(x8);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
+    //ld4
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpWritten = {d0, d1, d2, d3, sp};
+	tmpRead = {sp, x9};
+    #else
+	tmpWritten = list_of(d0)(d1)(d2)(d3)(sp);
+	tmpRead = list_of(sp)(x9);
+    #endif
+    expectedRead.push_back(tmpRead);
+    expectedWritten.push_back(tmpWritten);
+    tmpRead.clear();
+    tmpWritten.clear();
+
     expectedRead.push_back(tmpRead);
     expectedWritten.push_back(tmpWritten);
     tmpRead.clear();
@@ -1980,7 +2092,6 @@ test_results_t aarch64_simd_Mutator::executeTest()
     while(!decodedInsns.empty())
     {
 	retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead.front(), expectedWritten.front()));
-	//std::cout<<decodedInsns.front()->format()<<" "<<retVal<<std::endl;
 	decodedInsns.pop_front();
 
 	expectedRead.pop_front();
