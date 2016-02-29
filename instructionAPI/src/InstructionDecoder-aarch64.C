@@ -1392,24 +1392,29 @@ void InstructionDecoder_aarch64::getMemRefSIMD_SING_RT(Result_Type &rt){
 }
 
 unsigned int InstructionDecoder_aarch64::getMemRefSIMD_SING_T(){
-    unsigned int opcode = field<13,15>(insn);
+    unsigned int opcode = field<14,15>(insn);
     unsigned int S = field<12, 12>(insn);
     unsigned int size = field<10, 11>(insn);
 
-    if(opcode == 0x0){
+    if(opcode == 0x0)
+    {
         return 8;
-    }else
-    if(opcode == 0x2 && (size & 0x1)==0x0){
+    }
+    else if(opcode == 0x1 && (size & 0x1)==0x0)
+    {
         return 16;
-    }else
-    if(opcode == 0x4 && size == 0x0){
+    }
+    else if(opcode == 0x2 && size == 0x0)
+    {
         return 32;
-    }else
-    if(opcode == 0x4 && S == 0 && size == 0x1){
+    }
+    else if(opcode == 0x2 && S == 0 && size == 0x1)
+    {
         return 64;
     }
     else
         isValid = false;
+    
     return 0;
 }
 
@@ -2091,7 +2096,8 @@ void InstructionDecoder_aarch64::OPRRt()
 void InstructionDecoder_aarch64::OPRRtL()
 {
 	int encoding = field<0, 4>(insn);
-    if( IS_INSN_LDST_SIMD_MULT(insn) || IS_INSN_LDST_SIMD_MULT_POST(insn) ){
+    if(IS_INSN_LDST_SIMD_MULT(insn) || IS_INSN_LDST_SIMD_MULT_POST(insn))
+    {
         unsigned int rpt, selem;
         getSIMD_MULT_RptSelem(rpt, selem);
 	MachRegister reg = _Q == 0x1?aarch64::q0:aarch64::d0;
@@ -2099,12 +2105,15 @@ void InstructionDecoder_aarch64::OPRRtL()
 			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(reg, (encoding + it_rpt)%32 )), false, true);
         }
     }
-    else
-    if( IS_INSN_LDST_SIMD_SING(insn) ){
+    else if(IS_INSN_LDST_SIMD_SING(insn))
+    {
         unsigned int selem =  getSIMD_SING_selem();
 
-        for(unsigned int it_selem = 0; it_selem < selem; it_selem++){
-			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(aarch64::q0, (encoding + it_selem)%32 )), false, true);
+	MachRegister reg = _Q == 0x1?aarch64::q0:aarch64::d0;
+
+        for(int it_selem = selem - 1; it_selem >= 0; it_selem--)
+	{
+			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(reg, (encoding + it_selem)%32 )), false, true);
         }
     }
     else
@@ -2122,6 +2131,16 @@ void InstructionDecoder_aarch64::OPRRtS()
 
         for(int it_rpt = rpt*selem-1; it_rpt >= 0; it_rpt--){
 			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(reg, (encoding + it_rpt)%32 )), true, false);
+        }
+    }
+    else if(IS_INSN_LDST_SIMD_SING(insn))
+    {
+        unsigned int selem =  getSIMD_SING_selem();
+
+	MachRegister reg = _Q == 0x1?aarch64::q0:aarch64::d0;
+
+        for(int it_selem = selem - 1; it_selem >= 0; it_selem--){
+			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(reg, (encoding + it_selem)%32 )), true, false);
         }
     }
     else
