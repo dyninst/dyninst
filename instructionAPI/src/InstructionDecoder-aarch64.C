@@ -1076,12 +1076,12 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexLiteral()
     int immVal, immLen;
     getMemRefIndexLiteral_OffsetLen(immVal, immLen);
 
-    Expression::Ptr label = Immediate::makeImmediate(Result(s32, sign_extend32(immLen, immVal)));
+    Expression::Ptr label = Immediate::makeImmediate(Result(s64, sign_extend64(immLen, immVal)));
 
     Result_Type rt;
     getMemRefIndexLiteral_RT(rt);
 
-    return makeDereferenceExpression(makeAddExpression(label, makePCExpr(), u64), rt);
+    return makeDereferenceExpression(makeAddExpression(makePCExpr(), label, u64), rt);
 }
 
 // TODO potential bug: do we need to distinguish signed and unsigned here?
@@ -1396,29 +1396,25 @@ unsigned int InstructionDecoder_aarch64::getMemRefSIMD_SING_T(){
     unsigned int S = field<12, 12>(insn);
     unsigned int size = field<10, 11>(insn);
 
-    if(opcode == 0x0)
+    switch(opcode)
     {
-        return 8;
+	case 0x0:return 8;
+	case 0x1:if((size & 0x1) == 0x0)
+		     return 16;
+		 else
+		     isValid = false;
+		 break;
+	case 0x2:if(size == 0x0)
+		     return 32;
+		 else if(size == 0x1 && S == 0)
+		     return 64;
+		 else
+		     isValid = false;
+		 break;
+	case 0x3:return 8<<size;
+	defaul:isValid = false;
     }
-    else if(opcode == 0x1 && (size & 0x1)==0x0)
-    {
-        return 16;
-    }
-    else if(opcode == 0x2 && size == 0x0)
-    {
-        return 32;
-    }
-    else if(opcode == 0x2 && S == 0 && size == 0x1)
-    {
-        return 64;
-    }
-    else if(opcode == 0x3 && S == 0)
-    {
-	return 8<<size;
-    }
-    else
-        isValid = false;
-    
+
     return 0;
 }
 
@@ -2088,12 +2084,19 @@ void InstructionDecoder_aarch64::getSIMD_MULT_RptSelem(unsigned int &rpt, unsign
 void InstructionDecoder_aarch64::OPRRt()
 {
 	int encoding = field<0, 4>(insn);
+	entryID op = insn_in_progress->getOperation().operationID;
+
 	if(IS_INSN_BRANCHING(insn))
 	{
 		if(encoding == 31)
 			insn_in_progress->appendOperand(makeRegisterExpression(is64Bit?aarch64::zr:aarch64::wzr), true, false);
 		else
 			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(is64Bit?aarch64::x0:aarch64::w0, encoding)), true, false);
+	}
+	else if(op == aarch64_op_prfm_imm || op == aarch64_op_prfm_lit || op == aarch64_op_prfm_reg)
+	{
+	    Expression::Ptr prfop = Immediate::makeImmediate(Result(u32, unsign_extend32(5, encoding)));
+	    insn_in_progress->appendOperand(prfop, true, false);
 	}
 }
 
