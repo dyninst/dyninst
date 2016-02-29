@@ -1412,6 +1412,10 @@ unsigned int InstructionDecoder_aarch64::getMemRefSIMD_SING_T(){
     {
         return 64;
     }
+    else if(opcode == 0x3 && S == 0)
+    {
+	return 8<<size;
+    }
     else
         isValid = false;
     
@@ -1790,7 +1794,7 @@ unsigned int InstructionDecoder_aarch64::get_SIMD_MULT_POST_imm(){
 
 unsigned int InstructionDecoder_aarch64::get_SIMD_SING_POST_imm()
 {
-    return getMemRefSIMD_SING_T()>>3;
+    return (getMemRefSIMD_SING_T()>>3)*getSIMD_SING_selem();
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
@@ -1805,7 +1809,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
 	    if(encoding == 31)
 	    {
 		unsigned int immVal = get_SIMD_MULT_POST_imm();
-                unsigned int immLen = 8; // max #64
+                unsigned int immLen = 8;
 		
 		return Immediate::makeImmediate( Result(u32, unsign_extend32(immLen, immVal)) );
 	    }
@@ -1817,7 +1821,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRmExpr()
 	    if(encoding == 31)
 	    {
 	        unsigned int immVal = get_SIMD_SING_POST_imm();
-                unsigned int immLen = 4; // max #8
+                unsigned int immLen = 8;
 
 		return Immediate::makeImmediate( Result(u32, unsign_extend32(immLen, immVal) ) );
 	    }
@@ -2095,7 +2099,8 @@ void InstructionDecoder_aarch64::OPRRt()
 
 void InstructionDecoder_aarch64::OPRRtL()
 {
-	int encoding = field<0, 4>(insn);
+    int encoding = field<0, 4>(insn);
+
     if(IS_INSN_LDST_SIMD_MULT(insn) || IS_INSN_LDST_SIMD_MULT_POST(insn))
     {
         unsigned int rpt, selem;
@@ -2105,7 +2110,7 @@ void InstructionDecoder_aarch64::OPRRtL()
 			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(reg, (encoding + it_rpt)%32 )), false, true);
         }
     }
-    else if(IS_INSN_LDST_SIMD_SING(insn))
+    else if(IS_INSN_LDST_SIMD_SING(insn) || IS_INSN_LDST_SIMD_SING_POST(insn))
     {
         unsigned int selem =  getSIMD_SING_selem();
 
@@ -2122,7 +2127,8 @@ void InstructionDecoder_aarch64::OPRRtL()
 
 void InstructionDecoder_aarch64::OPRRtS()
 {
-	int encoding = field<0, 4>(insn);
+    int encoding = field<0, 4>(insn);
+
     if( IS_INSN_LDST_SIMD_MULT(insn) || IS_INSN_LDST_SIMD_MULT_POST(insn) ){
         unsigned int rpt, selem;
         getSIMD_MULT_RptSelem(rpt, selem);
@@ -2133,7 +2139,7 @@ void InstructionDecoder_aarch64::OPRRtS()
 			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(reg, (encoding + it_rpt)%32 )), true, false);
         }
     }
-    else if(IS_INSN_LDST_SIMD_SING(insn))
+    else if(IS_INSN_LDST_SIMD_SING(insn) || IS_INSN_LDST_SIMD_SING_POST(insn))
     {
         unsigned int selem =  getSIMD_SING_selem();
 
@@ -2723,8 +2729,8 @@ using namespace boost::assign;
 			processAlphabetImm();
 		    }
 
-			if(IS_INSN_LDST_SIMD_MULT_POST(insn))
-				insn_in_progress->appendOperand(makeRnExpr(), false, true);
+		    if(IS_INSN_LDST_SIMD_MULT_POST(insn) || IS_INSN_LDST_SIMD_SING_POST(insn))
+			insn_in_progress->appendOperand(makeRnExpr(), false, true);
 
 		    if(isPstateWritten || isPstateRead)
 		    	insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten);
