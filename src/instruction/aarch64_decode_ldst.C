@@ -78,6 +78,8 @@ test_results_t aarch64_decode_ldst_Mutator::executeTest()
 {
   const unsigned char buffer[] =
   {
+    
+
     //literal
     0x58, 0x00, 0x00, 0x21,         // ldr x1,  #4
     0x58, 0x00, 0x08, 0x01,         // ldr x1,  #256
@@ -245,6 +247,16 @@ test_results_t aarch64_decode_ldst_Mutator::executeTest()
     0xf8,   0x7f,   0x68,   0x41,        //ldr     x1, [x2,x31]
     0xf8,   0x4f,   0xff,   0xe1,        //ldr     x1, [sp,#255]!
 
+    //prfm
+    0xd8,   0x00,   0x00,   0x3f,	//prfm	   1F, [pc + 4]
+    0xd8,   0xff,   0xff,   0xe0,	//prfm	   0, [pc + fffffffffffffffc]
+    0xd8,   0x0f,   0xd8,   0x08,	//prfm	   8, [pc + 1fb00]
+    0xf9,   0x80,   0x04,   0x3d,	//prfm	   1d, [x1 + 8]
+    0xf9,   0xbf,   0xff,   0xdf,	//prfm	   1f, [x30 + 7ff8]
+    0xf8,   0xa5,   0x68,   0x44,	//prfm	   4, [x2 + x5 << 0]
+    0xf8,   0xa1,   0x5b,   0xc5,	//prfm	   5, [x30 + w1 << 3]
+    0xf8,   0xa5,   0xe9,   0x06,	//prfm	   6, [x8 + x5 << 0]
+    
     0xd5,   0x03,   0x20,   0x1f,        //nop
   };
 
@@ -262,7 +274,7 @@ test_results_t aarch64_decode_ldst_Mutator::executeTest()
     i = d.decode();
     decodedInsns.push_back(i);
     if(i != NULL)
-        /*cout<<*/ i->format()/*<<endl*/;
+        cout<< i->format()<<endl;
   }
   while(i && i->isValid());
 
@@ -1988,6 +2000,86 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 
+
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {pc};
+#else
+	tmpRead = list_of(pc);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {pc};
+#else
+	tmpRead = list_of(pc);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {pc};
+#else
+	tmpRead = list_of(pc);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x1};
+#else
+	tmpRead = list_of(x1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x30};
+#else
+	tmpRead = list_of(x30);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x2, x5};
+#else
+	tmpRead = list_of(x2)(x5);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x30, w1};
+#else
+	tmpRead = list_of(x30)(w1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+	tmpRead = {x8, x5};
+#else
+	tmpRead = list_of(x8)(x5);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
 
 // nop
 expectedRead.push_back(tmpRead);
