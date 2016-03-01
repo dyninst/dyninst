@@ -432,6 +432,7 @@ enum {
 #define EVEXGET_PP(b) (unsigned char)(3 & (b))
 #define EVEXGET_MM(b) (unsigned char)(3 & (b))
 #define EVEXGET_AAA(b) (unsigned char)(7 & (b))
+#define EVEXGET_VVVV(b) (unsigned char)(((b) >> 0x03) & (0x0F))
 
 #endif
 
@@ -576,6 +577,7 @@ class ia32_prefixes
   unsigned char vex_w; /* w bit for VEX2 and VEX3 */
   bool vex_present; /* Does this instruction have a vex prefix?  */
   int sse_mult; /* 0 VEX2, 1 VEX3, 2 EVEX */
+  //int vvvv_reg; /* The register specified by this prefix. */
 };
 
 // helper routine to tack-on rex bit when needed
