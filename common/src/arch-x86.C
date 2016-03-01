@@ -6694,9 +6694,56 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
         }
       } else {
         /* EVEX instruction */
-        instruct.legacy_type = ILLEGAL;
-        instruct.entry = gotit;
-        return instruct;
+        int op_pref_idx = EVEXGET_PP(pref.vex_prefix[1]);
+        if(op_pref_idx < 0 || op_pref_idx > 3)
+        {
+            /* Something went very wrong with the prefix decoding */
+            assert(0);
+        }
+
+        switch(EVEXGET_MM(pref.vex_prefix[0]))
+        {
+           case 1:
+              gotit = &twoByteMap[idx];
+              /* Will enter the sseMap table. Change the sseidx to match. */
+              sseidx = vex3_simdop_convert[0][op_pref_idx];
+              break;
+           case 2:
+              gotit = &threeByteMap[idx];
+              /* Will enter the sseBisMap table. Change the sseidx to match. */            
+              sseidx = vex3_simdop_convert[1][op_pref_idx];
+              break;
+           case 3:
+              gotit = &threeByteMap2[idx];
+              /* Will enter the sseTerMap table. Change the sseidx to match. */
+              sseidx = vex3_simdop_convert[2][op_pref_idx];
+
+              /* One mapping here doesn't work (F3 prefixed) */
+              /* If this is ever encountered, we will need to change the sseTerMap table. */
+              break;
+           default: 
+              gotit = &vex3Map[0][0];
+              idx = 0;
+              /* This reserved for future use and will cause #UD. */
+              assert(0);
+              break;
+        }
+
+        if(sseidx < 0)
+        {
+          /**
+           * This index cannot be expressed in the destination table. 
+           * This should not be possible. 
+           */
+          assert(0);
+        }
+      //} else {
+      // 
+      //  /* Not a valid instruction */
+      //  assert(0); 
+      //  instruct.legacy_type = ILLEGAL;
+      //  instruct.entry = gotit;
+      //  return instruct;
       }
       
       nxtab = gotit->otable;
@@ -7997,12 +8044,13 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
   /* Initilize the prefix */
   pref.count = 0;
   memset(pref.prfx, 0, 5);
-  memset(pref.vex_prefix, 0, 4);
+  memset(pref.vex_prefix, 0, 3);
   pref.opcode_prefix = 0;
   pref.sse_mult = 0;
   pref.vex_l = -1;
   pref.vex_w = -1;
   pref.vex_present = false;
+  // pref.vvvv_reg = 0;
   bool in_prefix = true;
 
   while(in_prefix) {
@@ -8058,10 +8106,29 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
       /* Save the 3 important prefix bytes */
       memmove(pref.vex_prefix, addr + 1, 3);
 
-      pref.vex_l = EVEXGET_L(addr[2]);
-      pref.vex_w = EVEXGET_W(addr[1]);
-
+      pref.vex_l = EVEXGET_L(addr[3]);
+      pref.vex_w = EVEXGET_W(addr[2]);
+      //pref.vvvv_reg = EVEXGET_VVVV(addr[2]);
       pref.count += 4;
+
+      switch(pref.vex_prefix[2] & 0x03)
+      {
+        case 0:
+          pref.opcode_prefix = 0x00;
+          break;
+        case 1:
+          pref.opcode_prefix = 0x66;
+          break;
+        case 2:
+          pref.opcode_prefix = 0xF3;
+          break;
+        case 3:
+          pref.opcode_prefix = 0xF2;
+          break;
+        default:
+          assert(!"Can't happen: value & 0x03 not in 0...3");
+      }
+
       pref.sse_mult = 2;
       pref.vex_present = true;
       in_prefix = false;
@@ -8071,6 +8138,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
       pref.vex_prefix[1] = addr[2];
       pref.vex_l = VEXGET_L(addr[2]);
       pref.vex_w = VEX3GET_W(addr[2]);
+      //pref.vvvv_reg = VEXGET_VVVV(addr[2]);
       pref.count += 3;
 
       switch(pref.vex_prefix[1] & 0x03)
@@ -8098,6 +8166,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
     case PREFIX_VEX2:
       pref.vex_prefix[0] = addr[1];
       pref.vex_l = VEXGET_L(addr[1]);
+      //pref.vvvv_reg = VEXGET_VVVV(addr[1]);
       pref.vex_w = -1; /* No W bit for VEX2 */
 
       switch(pref.vex_prefix[0] & 0x03)
