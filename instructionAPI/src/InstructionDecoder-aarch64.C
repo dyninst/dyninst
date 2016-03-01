@@ -1057,7 +1057,7 @@ void InstructionDecoder_aarch64::getMemRefIndexLiteral_RT(Result_Type &rt){
         case 0x2:
             rt = s32;
             break;
-        case 0x3:
+        case 0x3:break;
         default:
 	    isValid = false;
             break;
