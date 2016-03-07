@@ -197,6 +197,11 @@ class OpTable:
 
         # if it is blank, same as 'x', do late operand appending
         elif encodeBit == '' or encodeBit.startswith('!=') != -1:
+	    if encodeBit == '!= 0000':
+		for i in range(0,4):
+		    maskBit[31-maskStartBit+i] = '1'
+		    encodingArray[31-maskStartBit+i] = '1'
+
             operands_pos_Insn.append(reserve_operand_pos)
             if reserve_operand_pos[0] not in self.operandsSet:
                 self.operandsSet.add(reserve_operand_pos[0])
@@ -228,6 +233,7 @@ class OpTable:
                     curFile = open(ISA_dir+file)
 
                     startBox = False
+		    hasZeroImmh = False
 
                     startDiagram = False
                     maskBit = list('0'*32)
@@ -257,7 +263,7 @@ class OpTable:
                         if line.find('</regdiagram')!=-1:
                             if needToSetFlags == True:
                                 operands_pos_Insn.insert(0, ('setFlags',) )
-                            self.printInstnEntry(maskBit, encodingArray, indexOfInsn, instruction, operands_pos_Insn)
+                            self.printInstnEntry(maskBit, encodingArray, indexOfInsn, instruction, operands_pos_Insn, hasZeroImmh)
 
                             startDiagram = False
                             maskBit = list('0'*32)
@@ -290,6 +296,9 @@ class OpTable:
                             # start of <c>
                             if line.find('<c') != -1:
                                 encodeBit = line.split('>')[1].split('<')[0]
+				if encodeBit == '!= 0000':
+				    hasZeroImmh = True
+
                                 self.analyzeEncodeBit(encodeBit, maskBit, encodingArray, operands_pos_Insn, reserve_operand_pos, maskStartBit)
                                 maskStartBit = maskStartBit - 1
 
@@ -299,7 +308,11 @@ class OpTable:
     ####################################
     # generate instructions
     ####################################
-    def printInstnEntry(self, maskBit, encodingArray, index, instruction, operands):
+    def printInstnEntry(self, maskBit, encodingArray, index, instruction, operands, hasZeroImmh):
+	if hasZeroImmh == True and encodingArray[21] == '1' and 'Q' not in operands[0][0]:
+	    for i in range(19, 23):
+		maskBit[31-i] = '0'
+		encodingArray[31-i] = '0'
 
         # print instruction and encoding mask per file
         maskBitInt = int(''.join(maskBit), 2)
@@ -485,7 +498,7 @@ class DecodeTable:
         for i in inInsnIndex:
             self.processedIndex.add(i)
             #if self.debug == True:
-            print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
+            #print insnArray[i], '\t', bin( masksArray[i] ), '\t', bin(encodingsArray[i])
 
         printDecodertable(entryToPlace, 0, list(), inInsnIndex[0]);
 
@@ -544,7 +557,8 @@ class DecodeTable:
         # find the minimum common mask bit field
         for i in inInsnIndex:
             validMaskBits = validMaskBits & masksArray[i]
-
+	#print "Valid Mask : ", '\t', bin(validMaskBits)
+	#print "Processed Mask : ", '\t', bin(processedMask)
         # eliminate the processed mask bit field
         validMaskBits = validMaskBits&(~processedMask)
         if self.debug == True:
