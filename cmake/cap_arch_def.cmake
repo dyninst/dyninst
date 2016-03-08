@@ -48,6 +48,8 @@ set (CAP_DEFINES ${CAP_DEFINES}
              -Dcap_32_64
              -Dcap_registers
              -Dcap_toc_64
+        -Darch_ppc_little_endian
+
     )
 elseif (PLATFORM MATCHES aarch64)
   #set (ARCH_DEFINES -Daarch_64 -Darch_64bit)
