@@ -1736,49 +1736,14 @@ void InstructionDecoder_aarch64::OPRRnU()
 
 void InstructionDecoder_aarch64::OPRRnLU()
 {
-    if( IS_INSN_LDST_PRE(insn) ){
-        LIndex();
-        return;
-    }
-
-    if( IS_INSN_LDST_POST(insn) ){
-        LIndex();
-        return;
-    }
-
-    if( IS_INSN_LDST_PAIR_PRE(insn) ){
-        LIndex();
-        return;
-    }
-
-    if( IS_INSN_LDST_PAIR_POST(insn) ){
-        LIndex();
-        return;
-    }
-
+	if(IS_INSN_LDST_PRE(insn) || IS_INSN_LDST_POST(insn) || IS_INSN_LDST_PAIR_PRE(insn) || IS_INSN_LDST_PAIR_POST(insn))
+		LIndex();
 }
 
 void InstructionDecoder_aarch64::OPRRnSU()
 {
-    if( IS_INSN_LDST_PRE(insn) ){
-        STIndex();
-        return;
-    }
-
-    if( IS_INSN_LDST_POST(insn) ){
-        STIndex();
-        return;
-    }
-
-    if( IS_INSN_LDST_PAIR_PRE(insn) ){
-        STIndex();
-        return;
-    }
-
-    if( IS_INSN_LDST_PAIR_POST(insn) ){
-        STIndex();
-        return;
-    }
+	if(IS_INSN_LDST_PRE(insn) || IS_INSN_LDST_POST(insn) || IS_INSN_LDST_PAIR_PRE(insn) || IS_INSN_LDST_PAIR_POST(insn))
+		STIndex();
 }
 
 unsigned int InstructionDecoder_aarch64::get_SIMD_MULT_POST_imm(){
@@ -2551,20 +2516,21 @@ void InstructionDecoder_aarch64::OPRimm()
 			int opcode = field<11, 15>(insn);
 		    int shift, isRightShift = 1, elemWidth = (immlo << immLen) | immVal;
 		    entryID insnID = insn_in_progress->getOperation().operationID;
+			bool isScalar = field<28, 28>(insn)?true:false;
 		    
 		    //check if shift is left; if it is, the immediate has to be processed in a different manner.
 		    //unfortunately, determining whether the instruction will do a left or right shift cannot be determined in any way other than checking the instruction's opcode
 		    if(insnID == aarch64_op_shl_advsimd || insnID == aarch64_op_sqshl_advsimd_imm || insnID == aarch64_op_sshll_advsimd ||
 		       insnID == aarch64_op_sli_advsimd || insnID == aarch64_op_sqshlu_advsimd || insnID == aarch64_op_uqshl_advsimd_imm || insnID == aarch64_op_ushll_advsimd)
-			isRightShift = -1;	
+			isRightShift = -1;
 
 		    switch(highest_set_bit(immlo))
 		    {
-			case 0x1:((opcode & 0x1C) == 0x0C || (opcode & 0x1C) == 0x10)?(shift = isRightShift*(16 - elemWidth) + (isRightShift>0?0:8)):(isValid = false);
+			case 0x1:(!isScalar || (opcode & 0x1C) == 0x0C || (opcode & 0x1C) == 0x10)?(shift = isRightShift*(16 - elemWidth) + (isRightShift>0?0:8)):(isValid = false);
 				 break;
-			case 0x2:((opcode & 0x1C) == 0x0C || (opcode & 0x1C) == 0x10)?(shift = isRightShift*(32 - elemWidth) + (isRightShift>0?0:16)):(isValid = false);
+			case 0x2:(!isScalar || (opcode & 0x1C) == 0x0C || (opcode & 0x1C) == 0x10)?(shift = isRightShift*(32 - elemWidth) + (isRightShift>0?0:16)):(isValid = false);
 				 break;
-			case 0x3:(opcode > 0x0A)?(shift = isRightShift*(64 - elemWidth) + (isRightShift>0?0:32)):(isValid = false);
+			case 0x3:(!isScalar || opcode > 0x0A)?(shift = isRightShift*(64 - elemWidth) + (isRightShift>0?0:32)):(isValid = false);
 				 break;
 			case 0x4:shift = isRightShift*(128 - elemWidth) + (isRightShift>0?0:64);
 				 break;
