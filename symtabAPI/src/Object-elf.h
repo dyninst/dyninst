@@ -520,7 +520,7 @@ class Object;
   void parseLineInfoForAddr(Symtab* obj, Offset addr_to_find);
   
  private:
-  bool addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_find);
+            bool addrInCU(Dwarf_Debug dbg, Dwarf_Die cu, Address to_find);
   void parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li);
   
   

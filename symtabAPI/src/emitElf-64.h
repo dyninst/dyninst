@@ -86,6 +86,8 @@ namespace SymtabAPI{
             Elf_Phdr *elf_getphdr(Elf *elf) { return elf32_getphdr(elf); }
 
             Elf_Shdr *elf_getshdr(Elf_Scn *scn) { return elf32_getshdr(scn); }
+
+            Elf32_Word makeRelocInfo(Elf32_Word sym, Elf32_Word type) { return ELF32_R_INFO(sym, type); }
         };
 
         struct ElfTypes64 {
@@ -115,11 +117,15 @@ namespace SymtabAPI{
             Elf_Phdr *elf_getphdr(Elf *elf) { return elf64_getphdr(elf); }
 
             Elf_Shdr *elf_getshdr(Elf_Scn *scn) { return elf64_getshdr(scn); }
+
+            Elf64_Xword makeRelocInfo(Elf64_Word sym, Elf64_Word type) { return ELF64_R_INFO(sym, type); }
         };
 
         template<class ElfTypes = ElfTypes64>
         class emitElf64 : public ElfTypes {
   public:
+            emitElf64(Elf_X *pX, bool i, Object *pObject, void (*pFunction)(const char *), Symtab *pSymtab);
+
             typedef typename ElfTypes::Elf_Ehdr Elf_Ehdr;
             typedef typename ElfTypes::Elf_Phdr Elf_Phdr;
             typedef typename ElfTypes::Elf_Shdr Elf_Shdr;
@@ -137,18 +143,19 @@ namespace SymtabAPI{
             typedef typename ElfTypes::Elf_Verdef Elf_Verdef;
             typedef typename ElfTypes::Elf_Verdaux Elf_Verdaux;
 
-    emitElf64(Elf_X *oldElfHandle_, bool isStripped_ = false, Object *obj_ = NULL, void (*)(const char *) = log_msg);
     ~emitElf64() {
         if( linkedStaticData ) delete linkedStaticData;
     }
-    bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols);
-    bool driver(Symtab *obj, std::string fName);
+
+            bool createSymbolTables(vector<Symbol *> &allSymbols);
+
+            bool driver(std::string fName);
  
   private:
     Elf_X *oldElfHandle;
     Elf *newElf;
     Elf *oldElf;
-    
+            Symtab *obj;
     //New Section & Program Headers
     Elf_Ehdr *newEhdr;
             Elf_Ehdr *oldEhdr;
@@ -229,11 +236,11 @@ namespace SymtabAPI{
 
             bool createNonLoadableSections(Elf_Shdr *&shdr);
 
-            bool createLoadableSections(Symtab *obj,
-                                        Elf_Shdr *&shdr, unsigned &extraAlignSize,
-                                        dyn_hash_map<std::string, unsigned> &newIndexMapping,
-                                        unsigned &sectionNumber);
-    void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, bool isDynRelocs, dyn_hash_map<std::string, unsigned long> &dynSymNameMapping);
+            bool createLoadableSections(Elf_Shdr *&shdr, unsigned &extraAlignSize,
+                                        dyn_hash_map<std::string, unsigned> &newIndexMapping, unsigned &sectionNumber);
+
+            void createRelocationSections(std::vector<relocationEntry> &relocation_table, bool isDynRelocs,
+                                          dyn_hash_map<std::string, unsigned long> &dynSymNameMapping);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 
@@ -243,12 +250,12 @@ namespace SymtabAPI{
 
             void updateDynamic(unsigned tag, Elf_Addr val);
 
-            void createSymbolVersions(Symtab *obj, Elf_Half *&symVers, char *&verneedSecData, unsigned &verneedSecSize,
-                                      char
-*&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
+            void createSymbolVersions(Elf_Half *&symVers, char *&verneedSecData, unsigned &verneedSecSize,
+                                      char *&verdefSecData,
+                                      unsigned &verdefSecSize, unsigned &dynSymbolNamesLength,
+                                      std::vector<std::string> &dynStrs);
 
-            void createHashSection(Symtab *obj, Elf_Word *&hashsecData, unsigned &hashsecSize,
-                                   std::vector<Symbol *> &dynSymbols);
+            void createHashSection(Elf_Word *&hashsecData, unsigned &hashsecSize, std::vector<Symbol *> &dynSymbols);
 
             void createDynamicSection(void *dynData, unsigned size, Elf_Dyn *&dynsecData, unsigned &dynsecSize,
                                       unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
