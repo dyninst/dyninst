@@ -622,7 +622,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 					case 0x1:
 						{
 							entryID op = insn_in_progress->getOperation().operationID;
-							reg = (op == aarch64_op_fcvtxn_advsimd)?aarch64::s0:aarch64::d0
+							reg = (op == aarch64_op_fcvtxn_advsimd)?aarch64::s0:aarch64::d0;
 						}
 						break;
 					default:isValid = false;
