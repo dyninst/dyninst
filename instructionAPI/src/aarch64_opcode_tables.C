@@ -1177,7 +1177,14 @@ void aarch64_mask_entry::buildDecoderTable()
 	main_decoder_table[398]=aarch64_mask_entry(0x0, branchMap(),679);
 	main_decoder_table[380]=aarch64_mask_entry(0xf80800, map_list_of(0,399)(2,400)(4,400)(6,400)(8,400)(10,400)(12,400)(14,400)(16,400)(18,400)(20,400)(22,400)(24,400)(26,400)(28,400)(30,400)
 			(3,401)(5,401)(7,401)(9,401)(11,401)(13,401)(15,401)(17,401)(19,401)(21,401)(23,401)(25,401)(27,401)(29,401)(31,401),-1);
-	main_decoder_table[399]=aarch64_mask_entry(0x0, branchMap(),383);
+	main_decoder_table[399]=aarch64_mask_entry(0x0000f000, map_list_of(0,853)(2,853)(4,853)(6,853)(8,853)(10,853)(12,853)(13,853)(14,855)(1,854)(3,854)(5,854)(7,854)(9,854)(11,854)(15,856),-1);
+	main_decoder_table[853]=aarch64_mask_entry(0x20000000, map_list_of(0,855)(1,859),-1);
+	main_decoder_table[854]=aarch64_mask_entry(0x20000000, map_list_of(0,857)(1,858),-1);
+	main_decoder_table[855]=aarch64_mask_entry(0x0,branchMap(),383);
+	main_decoder_table[856]=aarch64_mask_entry(0x0,branchMap(),219);
+	main_decoder_table[857]=aarch64_mask_entry(0x0,branchMap(),407);
+	main_decoder_table[858]=aarch64_mask_entry(0x0,branchMap(),37);
+	main_decoder_table[859]=aarch64_mask_entry(0x0,branchMap(),396);
 	main_decoder_table[400]=aarch64_mask_entry(0x2000f000, map_list_of(0,402)(1,403)(2,404)(3,405)(5,406)(7,407)(8,408)(9,409)(10,410)(14,411)(16,412)(17,413)(18,414)(19,415)(20,416)(21,417)(22,418)(23,419)(24,420)(25,421)(26,422)(30,423),-1);
 	main_decoder_table[402]=aarch64_mask_entry(0x0, branchMap(),553);
 	main_decoder_table[403]=aarch64_mask_entry(0x0, branchMap(),555);
