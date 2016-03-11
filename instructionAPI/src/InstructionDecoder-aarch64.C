@@ -1247,11 +1247,16 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefPair_offset7()
     unsigned int immVal = 0, immLen = 0;
     getMemRefPair_ImmImmlen(immVal, immLen);
 
-    immVal = is64Bit?immVal<<3:immVal<<2;
-    Expression::Ptr imm7 = Immediate::makeImmediate(Result(u64, sign_extend64(immLen, immVal)));
+	Expression::Ptr lhs = Immediate::makeImmediate(Result(s64, sign_extend64(immLen, immVal)));
+	int scale = 2;
+	if(isSIMDInsn)
+		scale += field<30, 31>(insn);
+	else
+		scale += field<31, 31>(insn);
+	Expression::Ptr rhs = Immediate::makeImmediate(Result(u8, scale));
 
     //return makeMultiplyExpression(imm7, scale, s64);
-    return imm7;
+    return makeLeftShiftExpression(lhs, rhs, s64);
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndex_addOffset9()
