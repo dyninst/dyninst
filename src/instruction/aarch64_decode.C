@@ -125,9 +125,9 @@ test_results_t aarch64_decode_Mutator::executeTest()
 	0xD3, 0x41, 0x20, 0x14,		// UBFM X20, X0, #8, #1
 	0x13, 0x9E, 0x16, 0x8A,		// EXTR W10, W20, W30, #5
 	0x93, 0xD0, 0xFD, 0x00,		// EXTR X0, X8, X16, #63
-	0x12, 0x00, 0xFF, 0xFF,		// AND WSP, WSP, #63
+	0x12, 0x2A, 0x1F, 0xFF,		// AND WSP, WSP, #63
 	0xB2, 0x00, 0x03, 0xDF,		// ORR SP, X30, #0
-	0xD2, 0x7F, 0xFF, 0x34,		// EOR X20, X25, #
+	0xD2, 0x7F, 0xAF, 0x34,		// EOR X20, X25, #
 	0x72, 0x00, 0x25, 0x45,		// ANDS W5, W10, #9
 	0x12, 0xA0, 0x02, 0xE4,		// MOVN W4, #23, LSL #1
 	0xD2, 0xC0, 0x02, 0x54,		// MOVZ X20, #18, LSL #2
@@ -218,7 +218,7 @@ test_results_t aarch64_decode_Mutator::executeTest()
     i = d.decode();
     decodedInsns.push_back(i);
     if(i != NULL)
-		/*cout<<*/decodedInsns.back()->format()/*<<endl*/;
+		cout<<decodedInsns.back()->format()<<endl;
   }
   while(i && i->isValid());
 
