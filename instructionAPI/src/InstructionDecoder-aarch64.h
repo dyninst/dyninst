@@ -289,6 +289,8 @@ namespace Dyninst {
 
                 Expression::Ptr makeMemRefSIMD_MULT();
                 Expression::Ptr makeMemRefSIMD_SING();
+		template<typename T>
+		Expression::Ptr makeLogicalImm(int immr, int imms, int immsLen, Result_Type rT);
 
 
                 void getMemRefIndexLiteral_OffsetLen(int &, int &);

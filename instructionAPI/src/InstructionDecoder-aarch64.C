@@ -2364,6 +2364,48 @@ Expression::Ptr InstructionDecoder_aarch64::fpExpand(int val)
 	return Immediate::makeImmediate(Result(rT, expandedImm));
 }
 
+template<typename T>
+Expression::Ptr InstructionDecoder_aarch64::makeLogicalImm(int immr, int imms, int immsLen, Result_Type rT)
+{
+    int len = highest_set_bit((nField<<immsLen) | (~imms & ((1<<immsLen) - 1))) - 1;
+    int finalsize = (rT == u32?32:64);
+
+    if(len < 1 || ((1<<len) > finalsize))
+    {
+	    isValid = false;
+	    return Immediate::makeImmediate(Result(u32, 0));
+    }
+    int levels = (1<<len) - 1;
+
+    int S = imms & levels;
+    if(S == levels)
+    {
+        isValid = false;
+        return Immediate::makeImmediate(Result(u32, 0));
+    }
+    int R = immr & levels;
+
+    int esize = 1<<len;
+    T welem = (((T)1)<<(S+1)) - 1;
+
+    T wmaskarg = welem;
+    if(R != 0)
+    {
+	    T low = welem & (((T)1<<R) - 1), high = welem & ((((T)1<<(esize - R)) - 1)<<R);
+	    wmaskarg = (low<<(esize - R)) | (high>>R);
+    }
+
+    int idx;
+    T wmask = wmaskarg;
+
+    for(idx = 1; idx < finalsize/esize; idx++)
+    {
+        wmask |= (wmaskarg<<(esize*idx));
+    }
+
+    return Immediate::makeImmediate(Result(rT, wmask));
+}
+
 template<unsigned int endBit, unsigned int startBit>
 void InstructionDecoder_aarch64::OPRimm()
 {
@@ -2409,13 +2451,10 @@ void InstructionDecoder_aarch64::OPRimm()
 
 			if(IS_INSN_LOGICAL_IMM(insn))
 			{
-				immVal |= (immr << immLen);
-				immVal |= (nField << (immLen + immrLen));
-
-				immLen += nLen + immrLen;
-
-				Result_Type rT = is64Bit?u64:u32;
-				imm = Immediate::makeImmediate(Result(rT, rT==u32?unsign_extend32(immLen, immVal):unsign_extend64(immLen, immVal)));
+				if(is64Bit)
+				    imm = makeLogicalImm<uint64_t>(immr, immVal, immLen, u64);
+				else
+				    imm = makeLogicalImm<uint32_t>(immr, immVal, immLen, u32);
 			}
 			else
 			{
