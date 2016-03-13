@@ -253,6 +253,7 @@ namespace Dyninst {
                 bool isSinglePrec();
 
 		MachRegister makeAarch64RegID(MachRegister, unsigned int);
+		MachRegister getLoadStoreSimdRegister(int encoding);
 		Expression::Ptr makeRdExpr();
 		Expression::Ptr makeRnExpr();
 		Expression::Ptr makeRmExpr();

@@ -2027,6 +2027,42 @@ void InstructionDecoder_aarch64::setRegWidth(){
     return;
 }
 
+MachRegister InstructionDecoder_aarch64::getLoadStoreSimdRegister(int encoding)
+{
+    MachRegister reg;
+
+    if(size != -1)
+    {
+	switch(size)
+	{
+	    case 0x0:reg = (field<23, 23>(insn) == 0x1)?aarch64::q0:aarch64::b0;
+		     break;
+	    case 0x1:reg = aarch64::h0;
+		     break;
+	    case 0x2:reg = aarch64::s0;
+		     break;
+	    case 0x3:reg = aarch64::d0;
+		     break;
+	}	    
+    }
+    else
+    {
+	switch(field<30, 31>(insn))
+	{
+	    case 0x0:reg = aarch64::s0;
+		     break;
+	    case 0x1:reg = aarch64::d0;
+		     break;
+	    case 0x2:reg = aarch64::q0;
+		     break;
+	    case 0x3:isValid = false;
+		     break;
+	}
+    }
+
+    return makeAarch64RegID(reg, encoding);
+}
+
 Expression::Ptr InstructionDecoder_aarch64::makeRtExpr()
 {
 	int encoding  = field<0, 4>(insn);
@@ -2034,13 +2070,17 @@ Expression::Ptr InstructionDecoder_aarch64::makeRtExpr()
 
 	if(isFPInsn)
 	{
-		reg = makeAarch64RegID(isSinglePrec()?aarch64::s0:aarch64::d0, encoding);
+	    reg = makeAarch64RegID(isSinglePrec()?aarch64::s0:aarch64::d0, encoding);
+	}
+	else if(isSIMDInsn)
+	{
+	    reg = getLoadStoreSimdRegister(encoding);
 	}
 	else
 	{
-		reg = is64Bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
-		if(encoding != 31)
-			reg = makeAarch64RegID(reg, encoding);
+	    reg = is64Bit?((encoding == 31)?aarch64::zr:aarch64::x0):((encoding == 31)?aarch64::wzr:aarch64::w0);
+	    if(encoding != 31)
+	    	reg = makeAarch64RegID(reg, encoding);
 	}
 
 	return makeRegisterExpression(reg);
@@ -2156,11 +2196,23 @@ void InstructionDecoder_aarch64::OPRRtS()
 
 Expression::Ptr InstructionDecoder_aarch64::makeRt2Expr()
 {
-	MachRegister baseReg = isFPInsn?
-        (isSinglePrec()?aarch64::s0:aarch64::d0):
-        (is64Bit?aarch64::x0 : aarch64::w0);
+    MachRegister baseReg;
+    int encoding = field<10, 14>(insn);
 
-	return makeRegisterExpression(makeAarch64RegID(baseReg, field<10, 14>(insn)));
+    if(isFPInsn)
+    {
+	baseReg = makeAarch64RegID(isSinglePrec()?aarch64::s0:aarch64::d0, encoding);
+    }
+    else if(isSIMDInsn)
+    {
+	baseReg = getLoadStoreSimdRegister(encoding);
+    }
+    else
+    {
+	baseReg = makeAarch64RegID(is64Bit?aarch64::x0:aarch64::w0, encoding);
+    }
+
+    return makeRegisterExpression(baseReg);
 }
 
 void InstructionDecoder_aarch64::OPRRt2()
