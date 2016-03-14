@@ -131,6 +131,13 @@ Randomize::Randomize(int seed)
     _type = StackMod::RANDOMIZE;
 }
 
+Randomize::Randomize()
+{
+    _isSeeded = false;
+    _order = StackMod::NEW;
+    _type = StackMod::RANDOMIZE;
+}
+
 std::string Randomize::format() const
 {
     return "RANDOMIZE";

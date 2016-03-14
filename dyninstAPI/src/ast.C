@@ -221,7 +221,6 @@ AstNodePtr AstNode::funcCallNode(const std::string &func, pdvector<AstNodePtr > 
 
       if (ifunc == NULL)
       {
-         fprintf(stderr, "Bitch whine moan\n");
          fprintf(stderr, "%s[%d]: Can't find function %s\n", FILE__, __LINE__, func.c_str());
          return AstNodePtr();
       }
@@ -2347,17 +2346,16 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
 
 #if defined (arch_x86)
         emitVload(loadRegRelativeOp,
-                  (Address) sizeof(Address),
+                  (Address)0,
                   REGNUM_ESP,
                   retReg,
                   gen, noCost);
-#elif defined (arch_x86_64) // KEVINTODO: untested
+#elif defined (arch_x86_64)
         emitVload(loadRegRelativeOp,
-                  (Address) sizeof(Address),
+                  (Address)0,
                   REGNUM_RSP,
                   retReg,
                   gen, noCost);
-        bpwarn("WARNING: Untested functionality for x86/64 platform");
 #elif defined (arch_power) // KEVINTODO: untested
         emitVload(loadRegRelativeOp,
                   (Address) sizeof(Address),

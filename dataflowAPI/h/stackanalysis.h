@@ -42,6 +42,7 @@
 #include <list>
 #include "util.h"
 #include "dyn_regs.h"
+#include "Absloc.h"
 
 // To define StackAST
 #include "DynAST.h"
@@ -82,8 +83,8 @@ class StackAnalysis {
     public:
         typedef signed long Height_t;
         
-        static const Height_t uninitialized = MAXLONG;           
-        static const Height_t notUnique = MINLONG;           
+        static const Height_t uninitialized = MAXLONG;
+        static const Height_t notUnique = MINLONG;
         
         static const Height bottom;
         static const Height top;
@@ -159,10 +160,10 @@ class StackAnalysis {
         }
 
 	const Height operator+(const signed long &rhs) const {
-	  if (isBottom()) return bottom;
-      if (isTop()) return top;
+	   if (isBottom()) return bottom;
+           if (isTop()) return top;
 
-	  return Height(height_ + rhs);
+	   return Height(height_ + rhs);
 	}
 
         bool operator==(const Height &rhs) const {
@@ -229,7 +230,8 @@ class StackAnalysis {
     private:
         Height_t height_;
     };
-    
+
+
     // We need to represent the effects of instructions. We do this
     // in terms of transfer functions. We recognize the following 
     // effects on the stack.
@@ -253,7 +255,7 @@ class StackAnalysis {
     // fixed) and RV as a parameter.
 
     
-    typedef std::map<MachRegister, Height> RegisterState;
+    typedef std::map<Absloc, Height> AbslocState;
 
     struct TransferFunc {
        static const long uninitialized = MAXLONG;
@@ -268,40 +270,50 @@ class StackAnalysis {
           Abs,
           Alias } Type;
        
-       static TransferFunc deltaFunc(MachRegister r, long d);
-       static TransferFunc absFunc(MachRegister r, long a, bool i = false);
-       static TransferFunc aliasFunc(MachRegister f, MachRegister t, bool i = false);
-       static TransferFunc bottomFunc(MachRegister r);
-       static TransferFunc sibFunc(std::map<MachRegister, std::pair<long,bool> > f, long d, MachRegister t);
+       static TransferFunc deltaFunc(Absloc r, long d);
+       static TransferFunc absFunc(Absloc r, long a, bool i = false);
+       static TransferFunc aliasFunc(Absloc f, Absloc t, bool i = false);
+       static TransferFunc bottomFunc(Absloc r);
+       static TransferFunc retopFunc(Absloc r);
+       static TransferFunc sibFunc(std::map<Absloc, std::pair<long,bool> > f,
+          long d, Absloc t);
 
        bool isBottom() const;
        bool isTop() const;
+       bool isRetop() const;
        bool isAbs() const;
        bool isAlias() const;
        bool isDelta() const;
        bool isSIB() const;
-       bool isTopBottom() const;
+
+       bool isTopBottom() const {
+           return topBottom;
+       }
 
     TransferFunc() :
-       from(MachRegister()), target(MachRegister()), delta(0), abs(uninitialized), topBottom(false) {};
-    TransferFunc(long a, long d, MachRegister f, MachRegister t, bool i = false) :
-       from(f), target(t), delta(d), abs(a), topBottom(i) {};
-    TransferFunc(std::map<MachRegister,std::pair<long,bool> > f, long d, MachRegister t) :
-        from(MachRegister()), target(t),
-        delta(d), abs(uninitialized),
-        topBottom(false),
-        fromRegs(f) {}
+       from(Absloc()), target(Absloc()), delta(0), abs(uninitialized),
+       retop(false), topBottom(false) {};
+    TransferFunc(long a, long d, Absloc f, Absloc t, bool i = false,
+       bool rt = false) :
+       from(f), target(t), delta(d), abs(a), retop(rt), topBottom(i) {};
+    TransferFunc(std::map<Absloc,std::pair<long,bool> > f, long d, Absloc t) :
+       from(Absloc()), target(t), delta(d), abs(uninitialized), retop(false),
+       topBottom(false), fromRegs(f) {}
 
-       Height apply(const RegisterState &inputs) const;
-       void accumulate(std::map<MachRegister, TransferFunc> &inputs);
+       Height apply(const AbslocState &inputs) const;
+       void accumulate(std::map<Absloc, TransferFunc> &inputs);
 
        std::string format() const;
        Type type() const;
 
-       MachRegister from;
-       MachRegister target;
+       Absloc from;
+       Absloc target;
        long delta;
        long abs;
+
+       // Distinguish between default-constructed transfer functions and
+       // explicitly-retopped transfer functions.
+       bool retop;
 
        // Annotate transfer functions that have the following characteristic:
        // if target is TOP, keep as TOP
@@ -314,11 +326,11 @@ class StackAnalysis {
        bool topBottom;
 
        // Handle complex math from SIB functions
-       std::map<MachRegister, std::pair<long, bool> > fromRegs;
+       std::map<Absloc, std::pair<long, bool> > fromRegs;
     };
 
     typedef std::list<TransferFunc> TransferFuncs;
-    typedef std::map<MachRegister, TransferFunc> TransferSet;
+    typedef std::map<Absloc, TransferFunc> TransferSet;
 
     // Summarize the effects of a series (list!) of transfer functions.
     // Intended to summarize a block. We may want to do a better job of
@@ -329,7 +341,7 @@ class StackAnalysis {
 
        SummaryFunc() {};
 
-       void apply(const RegisterState &in, RegisterState &out) const;
+       void apply(const AbslocState &in, AbslocState &out) const;
        std::string format() const;
 	   void validate() const;
 
@@ -337,7 +349,7 @@ class StackAnalysis {
 
        TransferSet accumFuncs;
     };
-        
+
     // The results of the stack analysis is a series of 
     // intervals. For each interval we have the following
     // information: 
@@ -349,33 +361,32 @@ class StackAnalysis {
     //      the stack pointer and the caller's stack pointer.
     //   c) The "depth" of any aliases of the stack pointer. 
     
-    typedef std::map<Offset, RegisterState> StateIntervals;
+    typedef std::map<Offset, AbslocState> StateIntervals;
     typedef std::map<ParseAPI::Block *, StateIntervals> Intervals;
     
     typedef std::map<ParseAPI::Function *, Height> FuncCleanAmounts;
     
     typedef std::map<ParseAPI::Block *, SummaryFunc> BlockEffects;
-    typedef std::map<ParseAPI::Block *, RegisterState> BlockState;
+    typedef std::map<ParseAPI::Block *, AbslocState> BlockState;
 
-	// To build intervals, we must replay the effect of each instruction. 
-	// To avoid sucking enormous time, we keep those transfer functions around...
-	typedef std::map<ParseAPI::Block *, std::map<Offset, TransferFuncs> > InstructionEffects;
+    // To build intervals, we must replay the effect of each instruction.
+    // To avoid sucking enormous time, we keep those transfer functions around...
+    typedef std::map<ParseAPI::Block *, std::map<Offset, TransferFuncs> > InstructionEffects;
 
     DATAFLOW_EXPORT StackAnalysis();
     DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f);
     
-    DATAFLOW_EXPORT Height find(ParseAPI::Block *, Address addr, MachRegister reg);
+    DATAFLOW_EXPORT Height find(ParseAPI::Block *, Address addr, Absloc loc);
     // And a commonly used shortcut
     DATAFLOW_EXPORT Height findSP(ParseAPI::Block *, Address addr);
     DATAFLOW_EXPORT Height findFP(ParseAPI::Block *, Address addr);
-    DATAFLOW_EXPORT void findDefinedHeights(ParseAPI::Block* b, Address addr, std::vector<std::pair<MachRegister, Height> >& heights);
-    
+    DATAFLOW_EXPORT void findDefinedHeights(ParseAPI::Block* b, Address addr, std::vector<std::pair<Absloc, Height> >& heights);
     
     DATAFLOW_EXPORT void debug();
     
  private:
     
-    std::string format(const RegisterState &input) const;
+    std::string format(const AbslocState &input) const;
 
     MachRegister sp();
     MachRegister fp();
@@ -388,10 +399,10 @@ class StackAnalysis {
     
     void createIntervals();
 
-    void createEntryInput(RegisterState &input);
-    void meetInputs(ParseAPI::Block *b, RegisterState& blockInput, RegisterState &input);
-    void meet(const RegisterState &source, RegisterState &accum);
-    RegisterState getSrcOutputRegs(ParseAPI::Edge* e);
+    void createEntryInput(AbslocState &input);
+    void meetInputs(ParseAPI::Block *b, AbslocState& blockInput, AbslocState &input);
+    void meet(const AbslocState &source, AbslocState &accum);
+    AbslocState getSrcOutputLocs(ParseAPI::Edge* e);
     void computeInsnEffects(ParseAPI::Block *block,
                             InstructionPtr insn,
                             const Offset off,
@@ -402,19 +413,28 @@ class StackAnalysis {
     bool handleThunkCall(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handlePushPop(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
     void handleReturn(InstructionPtr insn, TransferFuncs &xferFuncs);
-    void handleAddSub(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
+    void handleAddSub(InstructionPtr insn, ParseAPI::Block *block,
+        const Offset off, int sign, TransferFuncs &xferFuncs);
     void handleLEA(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleLeave(TransferFuncs &xferFuncs);
     void handlePushPopFlags(int sign, TransferFuncs &xferFuncs);
-	void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);
+    void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);
     void handlePowerAddSub(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
     void handlePowerStoreUpdate(InstructionPtr insn, TransferFuncs &xferFuncs);
-    void handleMov(InstructionPtr insn, TransferFuncs &xferFuncs);
-    void handleZeroExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
-    void handleSignExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
+    void handleMov(InstructionPtr insn, ParseAPI::Block *block,
+        const Offset off, TransferFuncs &xferFuncs);
+    void handleZeroExtend(InstructionPtr insn, ParseAPI::Block *block,
+        const Offset off, TransferFuncs &xferFuncs);
+    void handleSignExtend(InstructionPtr insn, ParseAPI::Block *block,
+        const Offset off, TransferFuncs &xferFuncs);
+    void handleSpecialSignExtend(InstructionPtr insn,
+        TransferFuncs &xferFuncs);
+    void handleXor(InstructionPtr insn, TransferFuncs &xferFuncs);
+    void handleDiv(InstructionPtr insn, TransferFuncs &xferFuncs);
+    void handleMul(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleDefault(InstructionPtr insn, TransferFuncs &xferFuncs);
 
-    
+    long extractDelta(InstructionAPI::Result deltaRes);
 
     Height getStackCleanAmount(ParseAPI::Function *func);
 
@@ -424,7 +444,7 @@ class StackAnalysis {
 
     // SP effect tracking
     BlockEffects blockEffects;
-	InstructionEffects insnEffects;
+    InstructionEffects insnEffects;
 
     BlockState blockInputs;
     BlockState blockOutputs;

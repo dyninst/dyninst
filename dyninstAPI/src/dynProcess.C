@@ -622,6 +622,24 @@ bool PCProcess::createInitialMappedObjects() {
           runtime_lib.insert(newObj);
        }
 
+       if (analysisMode_ == BPatch_defensiveMode) {
+           std::string lib_name = newObj->fileName();
+           if (lib_name == "dyninstAPI_RT.dll" ||
+               lib_name == "ntdll.dll" ||
+               lib_name == "kernel32.dll" ||
+               lib_name == "user32.dll" ||
+               lib_name == "KERNELBASE.dll" ||
+               lib_name == "msvcrt.dll" ||
+               lib_name == "msvcr80.dll" ||
+               lib_name == "msvcr100d.dll" ||
+               lib_name == "msvcp100d.dll" ||
+               lib_name == "MSVCR100.dll") {
+                   startup_cerr << "Running library " << lib_name
+                       << " in normal mode because it is trusted.\n";
+                   newObj->enableDefensiveMode(false);
+           }
+       }
+
        addASharedObject(newObj);
     }
 

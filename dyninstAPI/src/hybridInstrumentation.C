@@ -765,7 +765,11 @@ bool HybridAnalysis::instrumentModule(BPatch_module *mod, bool useInsertionSet)
     }
     
     if (useInsertionSet) {
-        proc()->finalizeInsertionSet(false);
+        if (!proc()->finalizeInsertionSet(false)) {
+            std::cerr << "Error! Could not defensively instrument module "
+                << (void*)mod->getBaseAddr() << std::endl;
+            return false;
+        }
     }
 
     // protect the code in the module

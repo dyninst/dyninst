@@ -146,8 +146,11 @@ func_instance::~func_instance() {
    // We _do_ delete context instPoints, though
    // Except that should get taken care of normally since the
    // structures are static. 
-    for (unsigned i = 0; i < parallelRegions_.size(); i++)
+   for (unsigned i = 0; i < parallelRegions_.size(); i++)
       delete parallelRegions_[i];
+   if (wrapperSym_ != NULL) {
+      delete wrapperSym_;
+   }
 }
 
 // the original entry block is gone, we choose a new entry block from the
@@ -1015,6 +1018,7 @@ bool func_instance::createOffsetVector()
     }
 
     delete _tmpObjects;
+    _tmpObjects = NULL;
 
     return ret;
 }
@@ -1065,8 +1069,7 @@ bool func_instance::randomize(TMap* tMap, bool seeded, int seed)
 
     StackAnalysis::Height curLB = stack.lowest();
     IntervalTree<StackAnalysis::Height, int> localsRanges;
-    map<int, vector<StackLocation*> >* locals = new map<int, vector<StackLocation*> >();
-    assert(locals);
+    map<int, vector<StackLocation*> > locals;
 
     Architecture arch = ifunc()->isrc()->getArch();
     int raLoc;
@@ -1116,11 +1119,11 @@ bool func_instance::randomize(TMap* tMap, bool seeded, int seed)
 
         StackAnalysis::Height lb, ub;
         int tmp;
-        if (localsRanges.find(curLB, lb, ub, tmp) && matchRanges(locals->at(counter).back()->valid(), curLoc->valid())) {
+        if (localsRanges.find(curLB, lb, ub, tmp) && matchRanges(locals.at(counter).back()->valid(), curLoc->valid())) {
             // If there already exists a range for the current LB, update
             localsRanges.update(lb, max(ub, curLoc->off() + curLoc->size()));
             stackmods_printf("%s in range %d\n", curLoc->format().c_str(), counter);
-            locals->at(counter).push_back(curLoc);
+            locals.at(counter).push_back(curLoc);
         } else {
             // Otherwise, start a new range
             counter++;
@@ -1128,13 +1131,13 @@ bool func_instance::randomize(TMap* tMap, bool seeded, int seed)
             localsRanges.insert(curLoc->off(), curLoc->off() + curLoc->size(), counter);
             stackmods_printf("%s in range %d\n", curLoc->format().c_str(), counter);
             vector<StackLocation*> nextvec;
-            locals->insert(make_pair(counter, nextvec));
-            locals->at(counter).push_back(curLoc);
+            locals.insert(make_pair(counter, nextvec));
+            locals.at(counter).push_back(curLoc);
         }
         ++iter;
     }
 
-    if (locals->size() == 0) {
+    if (locals.size() == 0) {
         stackmods_printf("\t no locals to randomize\n");
         return false;
     }
@@ -1144,7 +1147,7 @@ bool func_instance::randomize(TMap* tMap, bool seeded, int seed)
     stackmods_printf("Found locals ranges:\n");
     for (auto iter = localsRanges.begin(); iter != localsRanges.end(); ++iter) {
         stackmods_printf("\t %d: [%ld, %ld)\n", (*iter).second.second, (*iter).first.height(), (*iter).second.first.height());
-        vector<StackLocation*> vec = locals->at((*iter).second.second);
+        vector<StackLocation*> vec = locals.at((*iter).second.second);
         for (auto viter = vec.begin(); viter != vec.end(); ++viter) {
             stackmods_printf("\t\t %s\n", (*viter)->format().c_str());
         }
@@ -1169,8 +1172,6 @@ bool func_instance::randomize(TMap* tMap, bool seeded, int seed)
         stackmods_printf("\t After randomize:\n");
         printMods();
     }
-
-    delete locals;
 
     _randomizeStackFrame = true;
 
@@ -1346,7 +1347,7 @@ bool func_instance::createOffsetVector_Analysis(ParseAPI::Function* func,
             }
         }
     } else {
-        stackmods_printf("\t\t\t INVALID: getAccessses failed\n");
+        stackmods_printf("\t\t\t INVALID: getAccesses failed\n");
         // Once we've found a bad access, stop looking!
         return false;
     }
@@ -1660,6 +1661,17 @@ void func_instance::createTMap_internal(StackMod* mod, TMap* tMap)
                 createTMap_internal(mod, (*iter2).second.second, tMap);
             }
         }
+    }
+}
+
+AnnotationClass <StackAnalysis::Intervals> Stack_Anno(std::string("Stack_Anno"));
+void func_instance::freeStackMod() {
+    // Free stack analysis intervals
+    StackAnalysis::Intervals *tmp = NULL;
+    ifunc()->getAnnotation(tmp, Stack_Anno);
+    ifunc()->removeAnnotation(Stack_Anno);
+    if (tmp != NULL) {
+        delete tmp;
     }
 }
 #endif

@@ -37,6 +37,10 @@
 #include "common/src/Types.h"
 #include "common/src/headers.h"
 
+#if (defined(_MSC_VER) && _MSC_VER < 1900)
+#define snprintf _snprintf
+#endif
+
 #if defined(SERIALIZATION_DISABLED)
 unsigned short Dyninst::get_serializer_index(Dyninst::SerializerBase *) {
   return 0;

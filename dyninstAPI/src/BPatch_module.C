@@ -825,6 +825,10 @@ BPatch_hybridMode BPatch_module::getHybridMode()
     return mod->obj()->hybridMode();
 }
 
+void BPatch_module::enableDefensiveMode(bool on) {
+    mod->obj()->enableDefensiveMode(on);
+}
+
 bool BPatch_module::isExploratoryModeOn()
 { 
     if (!mod || !getAS()->proc()) {

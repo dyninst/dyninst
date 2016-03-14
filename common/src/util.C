@@ -36,6 +36,10 @@
 #include <map>
 #include "common/h/dyntypes.h"
 
+#if (defined(_MSC_VER) && _MSC_VER < 1900)
+#define snprintf _snprintf
+#endif
+
 using namespace std;
 
 namespace Dyninst {

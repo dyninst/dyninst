@@ -106,6 +106,7 @@ elseif (PLATFORM STREQUAL i386-unknown-nt4.0)
 set (OS_DEFINES -Dos_windows)
 set (CAP_DEFINES ${CAP_DEFINES} 
              -Dcap_mem_emulation
+             -Dcap_mutatee_traps
     )
 endif (PLATFORM MATCHES linux)
 

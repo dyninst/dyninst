@@ -238,6 +238,9 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
 
     // begin exploratory and defensive mode functions //
     BPatch_hybridMode hybridMode() { return analysisMode_; }
+    void enableDefensiveMode(bool on = true) {
+        analysisMode_ = on ? BPatch_defensiveMode : BPatch_normalMode;
+    }
     bool isExploratoryModeOn();
     bool parseNewEdges(const std::vector<edgeStub>& sources);
     bool parseNewFunctions(std::vector<Address> &funcEntryAddrs);

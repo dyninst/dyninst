@@ -103,7 +103,11 @@ foreach (p LIB INCLUDE CMAKE)
 endforeach()
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
+  if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 19)
+    add_definitions(-D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1)
+  else()
     add_definitions(-Dsnprintf=_snprintf)
+  endif()
 endif()
 
 #
@@ -120,4 +124,3 @@ if (NOT CMAKE_BUILD_TYPE)
    set (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING 
        "Choose the build type (None, Debug, Release, RelWithDebInfo, MinSizeRel)" FORCE)
 endif()
-
