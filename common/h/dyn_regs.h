@@ -887,6 +887,7 @@ namespace Dyninst
       const signed int D_REG = 0x00000f00;      //32bit single-word reg
       const signed int FULL  = 0x00000000;      //64bit double-word reg
       const signed int Q_REG = 0x00000400;      //128bit reg
+      const signed int HQ_REG = 0x00000500;      //second 64bit in 128bit reg
 
       //31 GPRs, double word long registers
       //          (name   regID| alias | cat | arch           arch    )
@@ -987,6 +988,40 @@ namespace Dyninst
       DEF_REGISTER(q29,     29 | Q_REG |FPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(q30,     30 | Q_REG |FPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(q31,     31 | Q_REG |FPR | Arch_aarch64, "aarch64");
+
+      // second 64bit
+      DEF_REGISTER(hq0,       0 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq1,       1 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq2,       2 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq3,       3 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq4,       4 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq5,       5 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq6,       6 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq7,       7 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq8,       8 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq9,       9 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq10,     10 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq11,     11 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq12,     12 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq13,     13 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq14,     14 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq15,     15 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq16,     16 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq17,     17 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq18,     18 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq19,     19 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq20,     20 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq21,     21 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq22,     22 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq23,     23 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq24,     24 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq25,     25 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq26,     26 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq27,     27 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq28,     28 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq29,     29 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq30,     30 | HQ_REG |FPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(hq31,     31 | HQ_REG |FPR | Arch_aarch64, "aarch64");
 
       //64bit FP regs
       DEF_REGISTER(d0,       0 | FULL |FPR | Arch_aarch64, "aarch64");
@@ -1124,7 +1159,7 @@ namespace Dyninst
       DEF_REGISTER(b29,     29 | B_REG |FPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(b30,     30 | B_REG |FPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(b31,     31 | B_REG |FPR | Arch_aarch64, "aarch64");
-	
+
 	  //system registers accessible in user mode
 	  DEF_REGISTER(ctr_el0,       	 0 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(dczid_el0,        1 | D_REG |SYSREG | Arch_aarch64, "aarch64");
@@ -1143,7 +1178,7 @@ namespace Dyninst
       DEF_REGISTER(pmcntenclr_el0,  14 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(pmcntenset_el0,  15 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(pmcr_el0,     	16 | D_REG |SYSREG | Arch_aarch64, "aarch64");
-      
+
       DEF_REGISTER(pmevcntr0_el0,     17 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(pmevcntr1_el0,     18 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(pmevcntr2_el0,     19 | D_REG |SYSREG | Arch_aarch64, "aarch64");
@@ -1175,7 +1210,7 @@ namespace Dyninst
       DEF_REGISTER(pmevcntr28_el0,    45 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(pmevcntr29_el0,    46 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(pmevcntr30_el0,    47 | D_REG |SYSREG | Arch_aarch64, "aarch64");
-      
+
       DEF_REGISTER(pmevtyper0_el0,     48 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(pmevtyper1_el0,     49 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(pmevtyper2_el0,     50 | D_REG |SYSREG | Arch_aarch64, "aarch64");
@@ -1206,7 +1241,7 @@ namespace Dyninst
       DEF_REGISTER(pmevtyper27_el0,    75 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(pmevtyper28_el0,    76 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(pmevtyper29_el0,    77 | D_REG |SYSREG | Arch_aarch64, "aarch64");
-      DEF_REGISTER(pmevtyper30_el0,    78 | D_REG |SYSREG | Arch_aarch64, "aarch64");      
+      DEF_REGISTER(pmevtyper30_el0,    78 | D_REG |SYSREG | Arch_aarch64, "aarch64");
 
       DEF_REGISTER(pmovsclr_el0,    79 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(pmovsset_el0,    80 | D_REG |SYSREG | Arch_aarch64, "aarch64");
@@ -1224,7 +1259,7 @@ namespace Dyninst
       DEF_REGISTER(cntv_cval_el0,   92 | FULL  |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(cntv_tval_el0,   93 | D_REG |SYSREG | Arch_aarch64, "aarch64");
       DEF_REGISTER(cntvct_el0,     	94 | FULL  |SYSREG | Arch_aarch64, "aarch64");
-	
+
       //GPRs aliases:
       //by convention
       //x29 is used as frame pointer
