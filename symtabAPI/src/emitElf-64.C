@@ -131,11 +131,11 @@ bool emitElf64<ElfTypes>::hasPHdrSectionBug()
 template<typename ElfTypes>
 bool emitElf64<ElfTypes>::cannotRelocatePhdrs()
 {
-#if 1//defined(bug_phdrs_first_page)
+//#if defined(bug_phdrs_first_page)
     return true;
-#else
-    return false;
-#endif
+//#else
+    //  return false;
+//#endif
 }
 
 static int elfSymType(Symbol *sym)
@@ -177,6 +177,38 @@ static int elfSymVisibility(Symbol::SymbolVisibility sVisibility)
 }
 
 
+std::string phdrTypeStr(Elf64_Word phdr_type) {
+    switch (phdr_type) {
+        case PT_NULL:
+            return "NULL";
+        case PT_LOAD:
+            return "LOAD";
+        case PT_DYNAMIC:
+            return "DYNAMIC";
+        case PT_INTERP:
+            return "INTERP";
+        case PT_NOTE:
+            return "NOTE";
+        case PT_SHLIB:
+            return "SHLIB";
+        case PT_PHDR:
+            return "PHDR";
+        case PT_TLS:
+            return "TLS";
+        case PT_GNU_EH_FRAME:
+            return "EH_FRAME";
+        case PT_GNU_STACK:
+            return "STACK";
+        case PT_GNU_RELRO:
+            return "RELRO";
+        default:
+            assert(0);
+            return "<UNKNOWN>";
+            break;
+
+    }
+
+}
 template<class ElfTypes>
 emitElf64<ElfTypes>::emitElf64(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *),
                                Symtab *st) :
@@ -241,7 +273,6 @@ emitElf64<ElfTypes>::emitElf64(Elf_X *oldElfHandle_, bool isStripped_, Object *o
     if (cannotRelocatePhdrs() && !movePHdrsFirst) {
         movePHdrsFirst = true;
         library_adjust = getpagesize();
-        fprintf(stderr, "library_adjust set to %d\n", library_adjust);
     }
 }
 
@@ -525,6 +556,7 @@ bool emitElf64<ElfTypes>::driver(std::string fName) {
     if (movePHdrsFirst) {
         newEhdr->e_phoff = sizeof(Elf_Ehdr);
     }
+    newEhdr->e_entry += library_adjust;
 
     /* flag the file for no auto-layout */
     elf_flagelf(newElf, ELF_C_SET, ELF_F_LAYOUT);
@@ -710,7 +742,7 @@ bool emitElf64<ElfTypes>::driver(std::string fName) {
                 if (startMovingSections || obj->isStaticBinary()
                     || obj->getObjectType() == obj_SharedLib)
                     newshdr->sh_offset += pgSize;
-                else if (createNewPhdr) newshdr->sh_offset += oldEhdr->e_phentsize;
+                //else if (createNewPhdr) newshdr->sh_offset += pgSize; //oldEhdr->e_phentsize;
             }
         }
 
@@ -998,8 +1030,8 @@ void emitElf64<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
         else if (old->p_type == PT_PHDR) {
             if (createNewPhdr && !movePHdrsFirst)
                 newPhdr->p_vaddr = phdrSegAddr;
-            else if (createNewPhdr && movePHdrsFirst && old->p_vaddr)
-                newPhdr->p_vaddr = old->p_vaddr - pgSize;
+            else if (createNewPhdr && movePHdrsFirst)
+                newPhdr->p_vaddr = old->p_vaddr - pgSize + library_adjust;
             else
                 newPhdr->p_vaddr = old->p_vaddr;
             newPhdr->p_offset = newEhdr->e_phoff;
@@ -1039,7 +1071,7 @@ void emitElf64<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
                     newPhdr->p_offset += pgSize;
                     newPhdr->p_align = pgSize;
                 }
-                if (1 || newPhdr->p_vaddr) {
+                if (newPhdr->p_vaddr) {
                     newPhdr->p_vaddr += library_adjust;
                     newPhdr->p_paddr += library_adjust;
                 }
@@ -1058,8 +1090,10 @@ void emitElf64<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
         }
         else if (old->p_type == PT_INTERP && movePHdrsFirst
                  && old->p_offset && newEhdr->e_phnum >= oldEhdr->e_phnum) {
-            newPhdr->p_offset +=
-                    (Elf_Off) oldEhdr->e_phentsize * (Elf_Off)(newEhdr->e_phnum - oldEhdr->e_phnum);
+            Elf_Off interp_shift = library_adjust; //(Elf_Off) oldEhdr->e_phentsize * (Elf_Off)(newEhdr->e_phnum - oldEhdr->e_phnum);
+            newPhdr->p_offset += interp_shift;
+            newPhdr->p_vaddr += interp_shift;
+            newPhdr->p_paddr += interp_shift;
         }
         else if (movePHdrsFirst && old->p_offset) {
             newPhdr->p_offset += pgSize;
@@ -1091,8 +1125,8 @@ void emitElf64<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
                 newPhdr++;
         }
 
-        rewrite_printf("Existing program header: type %u, offset 0x%lx, addr 0x%lx\n",
-                       newPhdr->p_type, newPhdr->p_offset, newPhdr->p_vaddr);
+        rewrite_printf("Existing program header: type %u (%s), offset 0x%lx, addr 0x%lx\n",
+                       newPhdr->p_type, phdrTypeStr(newPhdr->p_type).c_str(), newPhdr->p_offset, newPhdr->p_vaddr);
 
         newPhdr++;
 
@@ -2064,7 +2098,6 @@ void emitElf64<ElfTypes>::createRelocationSections(std::vector<relocationEntry> 
             }
             if (sym_offset) {
                 relas[k].r_info = ElfTypes::makeRelocInfo(sym_offset, relocation_table[i].getRelType());
-                assert(relas[k].r_info == ELF64_R_INFO(sym_offset, relocation_table[i].getRelType()));
             } else {
                 relas[k].r_info = ElfTypes::makeRelocInfo((unsigned long) STN_UNDEF, relocation_table[i].getRelType());
             }
@@ -2077,11 +2110,9 @@ void emitElf64<ElfTypes>::createRelocationSections(std::vector<relocationEntry> 
             if (dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
                 rels[j].r_info = ElfTypes::makeRelocInfo(dynSymNameMapping[newRels[i].name()],
                                                          relocationEntry::getGlobalRelType(obj->getAddressWidth()));
-                assert(rels[j].r_info == ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT));
             } else {
                 rels[j].r_info = ElfTypes::makeRelocInfo((unsigned long) (STN_UNDEF),
                                                          relocationEntry::getGlobalRelType(obj->getAddressWidth()));
-                assert(rels[j].r_info == ELF64_R_INFO((unsigned long) (STN_UNDEF), R_X86_64_GLOB_DAT));
             }
             j++;
             l++;
@@ -2211,7 +2242,7 @@ void emitElf64<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&vernee
         }
     }
     for (it = verneedEntries.begin(); it != verneedEntries.end(); it++) {
-        Elf_Verneed *verneed = (Elf_Verneed * )(void * )(verneedSecData + curpos);
+        Elf_Verneed *verneed = reinterpret_cast<Elf_Verneed *>(verneedSecData + curpos);
         verneed->vn_version = 1;
         verneed->vn_cnt = it->second.size();
         verneed->vn_file = dynSymbolNamesLength;
@@ -2226,7 +2257,7 @@ void emitElf64<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&vernee
         verneednum++;
         int i = 0;
         for (iter = it->second.begin(); iter != it->second.end(); iter++) {
-            Elf_Vernaux *vernaux = (Elf_Vernaux * )(void * )(
+            Elf_Vernaux *vernaux = reinterpret_cast<Elf_Vernaux *>(
                     verneedSecData + curpos + verneed->vn_aux + i * sizeof(Elf_Vernaux));
             vernaux->vna_hash = elfHash(iter->first.c_str());
             vernaux->vna_flags = 0;
@@ -2250,7 +2281,7 @@ void emitElf64<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&vernee
     curpos = 0;
     verdefnum = 0;
     for (iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++) {
-        Elf_Verdef *verdef = (Elf_Verdef * )(void * )(verdefSecData + curpos);
+        Elf_Verdef *verdef = reinterpret_cast<Elf_Verdef *>(verdefSecData + curpos);
         verdef->vd_version = 1;
         verdef->vd_flags = 0;
         verdef->vd_ndx = iter->second;
@@ -2262,7 +2293,7 @@ void emitElf64<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&vernee
             verdef->vd_next = 0;
         verdefnum++;
         for (unsigned i = 0; i < verdauxEntries[iter->second].size(); i++) {
-            Elf_Verdaux *verdaux = (Elf_Verdaux * )(void * )(
+            Elf_Verdaux *verdaux = reinterpret_cast<Elf_Verdaux *>(
                     verdefSecData + curpos + verdef->vd_aux + i * sizeof(Elf_Verdaux));
             verdaux->vda_name = versionNames[verdauxEntries[iter->second][0]];
             if ((signed) i == verdef->vd_cnt - 1)
@@ -2281,7 +2312,7 @@ void emitElf64<ElfTypes>::createHashSection(Elf_Word *&hashsecData, unsigned &ha
 
     /* Save the original hash table entries */
     std::vector<unsigned> originalHashEntries;
-    unsigned dynsymSize = obj->getObject()->getDynsymSize();
+    Offset dynsymSize = obj->getObject()->getDynsymSize();
 
     Elf_Scn *scn = NULL;
     Elf_Shdr *shdr = NULL;
