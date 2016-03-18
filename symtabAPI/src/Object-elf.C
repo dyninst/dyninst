@@ -4742,16 +4742,22 @@ bool Object::addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_che
 	  if(status == DW_DLV_OK) 
 	  {
 	      low = (Address) tempLow;
+          //cerr << "lowpc/highpc, low is " << hex << low << ", addr is " << to_check << endl;
 	      if(low > to_check) return false;
 	      status = dwarf_highpc(cu, &tempHigh, NULL);//&please_ignore);
 	      if(status == DW_DLV_OK) 
 	      {
 		  high = (Address) tempHigh;
-		  
+              //cerr << "lowpc/highpc, high is " << hex << high << ", addr is " << to_check << endl;
+
 		  if(to_check < high) return true;
 	      }
 	      else if(status == DW_DLV_ERROR)
 	      {
+              // this is most likely a case where libdwarf doesn't handle dwarf4.
+              // claim the address is in this CU; better to overparse.
+              return true;
+              //cerr << "lowpc/highpc, high threw error" << endl;
 		  //		  dwarf_dealloc(dbg, please_ignore, DW_DLA_ERROR);
 	      }
 	  }
@@ -4759,7 +4765,10 @@ bool Object::addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_che
   }
 
   Dwarf_Bool hasRanges = false;
-  if(dwarf_hasattr(cu, DW_AT_ranges, &hasRanges, NULL) != DW_DLV_OK) return false;
+  if(dwarf_hasattr(cu, DW_AT_ranges, &hasRanges, NULL) != DW_DLV_OK) {
+      //cerr << "no lowpc/highpc, error getting ranges\n";
+      return false;
+  }
   
   if (hasRanges) {
     Address range_offset = 0;
