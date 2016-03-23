@@ -934,31 +934,39 @@ BPatch_variableExpr *BPatch_function::getFunctionRef()
   //  Need to figure out the type for this effective function pointer,
   //  of the form <return type> (*)(<arg1 type>, ... , <argn type>)
   
-  //  Note:  getParamsInt allocates the vector
-  assert(retType);
-  char typestr[1024];
-  sprintf(typestr, "%s (*)(", retType->getName());
+  //  Note:  getParams allocates the vector
+  string typestr;
+  if(retType) {
+      typestr += retType->getName();
+  } else {
+      typestr += "void";
+  }
+  typestr += " (*function)(";
   
   BPatch_Vector<BPatch_localVar *> *params = getParams();
   assert(params);
   
   for (unsigned int i = 0; i < params->size(); ++i) {
-     if (i >= (params->size() -1)) {
+        typestr += (*params)[i]->getName();
         //  no comma after last parameter
-        sprintf(typestr, "%s %s", typestr, (*params)[i]->getName());
-     } else 
-        sprintf(typestr, "%s %s,", typestr, (*params)[i]->getName());
+     if (i <= (params->size() - 1)) {
+        typestr +=  ",";
+     }
   }
-  sprintf(typestr, "%s)", typestr);
+  if(params->size()==0) {
+      typestr += "void";
+  }
+  typestr += ")";
   
-  BPatch_type *type = addSpace->image->findType(typestr);
+  BPatch_type *type = addSpace->image->findType(typestr.c_str());
+  // Fallback to general pointer type.
   if (!type) {
-     fprintf(stderr, "%s[%d]:  cannot find type '%s'\n", FILE__, __LINE__, typestr);
+    type = addSpace->image->findType("void *");
+  }
+  if (!type) {
+     fprintf(stderr, "%s[%d]:  cannot find type '%s'\n", FILE__, __LINE__, typestr.c_str());
   }
   assert(type);
-  
-  //  only the vector was newly allocated, not the parameters themselves
-  delete params;
   
   //  In truth it would make more sense for this to be a BPatch_constExpr,
   //  But since we are adding this as part of the DPCL compatibility process
