@@ -1599,8 +1599,9 @@ enum prefixEntryID {
 };
 
 #if defined(__GNUC__)
+  #if defined(_LIBCPP_VERSION)
 //***************** GCC ***********************
-  #if !defined(cap_tr1)
+  #elif !defined(cap_tr1)
   //**************** GCC < 4.3.0 ************
   namespace __gnu_cxx {
 
