@@ -112,7 +112,7 @@ execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR}
 add_custom_target(DyninstRT
   ALL
   #  COMMAND ${CMAKE_COMMAND} -E chdir ${RT_BINARY_DIR} ${ACTUAL_BUILD}
-  ${CMAKE_BUILD_TOOL}
+  $(MAKE)
   WORKING_DIRECTORY ${RT_BINARY_DIR}
   COMMENT "Building DyninstRT")
 
