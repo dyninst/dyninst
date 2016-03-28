@@ -7921,7 +7921,10 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
               gotit = &vex3Map[0][0];
               idx = 0;
               /* This reserved for future use and will cause #UD. */
-              assert(0);
+              instruct.legacy_type = ILLEGAL;
+              instruct.entry = gotit;
+              return instruct;
+              // assert(0);
               break;
 	      }
 
@@ -7966,7 +7969,10 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
               gotit = &vex3Map[0][0];
               idx = 0;
               /* This reserved for future use and will cause #UD. */
-              assert(0);
+              instruct.legacy_type = ILLEGAL;
+              instruct.entry = gotit;
+              return instruct;
+              // assert(0);
               break;
         }
 
