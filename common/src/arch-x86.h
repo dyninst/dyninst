@@ -572,10 +572,10 @@ class ia32_prefixes
   unsigned char getOpcodePrefix() const { return opcode_prefix; }
   unsigned char getAddrSzPrefix() const { return prfx[3]; }
   unsigned char getOperSzPrefix() const { return prfx[2]; }
-  unsigned char vex_prefix[3]; /* support up to EVEX (VEX-512) */
+  bool vex_present; /* Does this instruction have a vex prefix?  */
+  unsigned char vex_prefix[4]; /* support up to EVEX (VEX-512) */
   unsigned char vex_l; /* l bit for VEX2 and VEX3 */
   unsigned char vex_w; /* w bit for VEX2 and VEX3 */
-  bool vex_present; /* Does this instruction have a vex prefix?  */
   int sse_mult; /* 0 VEX2, 1 VEX3, 2 EVEX */
   //int vvvv_reg; /* The register specified by this prefix. */
 };
