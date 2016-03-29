@@ -776,47 +776,52 @@ namespace Dyninst
 						  const Instruction* insn_to_complete, 
 						  bool isRead, bool isWritten)
     {
-       bool isCFT = false;
+      bool isCFT = false;
       bool isCall = false;
       bool isConditional = false;
       InsnCategory cat = insn_to_complete->getCategory();
       if(cat == c_BranchInsn || cat == c_CallInsn)
-	{
-	  isCFT = true;
-	  if(cat == c_CallInsn)
 	    {
-	      isCall = true;
+	      isCFT = true;
+	      if(cat == c_CallInsn)
+	      {
+	        isCall = true;
+	      }
 	    }
-	}
-      if (cat == c_BranchInsn && insn_to_complete->getOperation().getID() != e_jmp) {
-	isConditional = true;
+
+      if (cat == c_BranchInsn && insn_to_complete->getOperation().getID() != e_jmp) 
+      {
+	      isConditional = true;
       }
 
       unsigned int optype = operand.optype;
       int vex_vvvv = 0;
-      // int vex_l = 0;
-    if(decodedInstruction && decodedInstruction->getPrefix()->vex_prefix[0])
-    {
-      /* The vvvv bits are bits 3, 4, 5, 6 and are in 1's complement */
-      if(decodedInstruction->getPrefix()->vex_prefix[1])
+      bool has_vex = 0;
+      if(decodedInstruction && decodedInstruction->getPrefix()->vex_prefix[0])
       {
-        // vex_l = decodedInstruction->getPrefix()->vex_prefix[1] & VEX3_L;
-        vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
-      } else {
-        // vex_l = decodedInstruction->getPrefix()->vex_prefix[0] & VEX2_L;
-        vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[0]);
+        has_vex = true;
+        /* The vvvv bits are bits 3, 4, 5, 6 and are in 1's complement */
+        if(decodedInstruction->getPrefix()->vex_prefix[2]) /* AVX512 (EVEX) */
+        {
+          vex_vvvv = (unsigned char)EVEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
+        } else if(decodedInstruction->getPrefix()->vex_prefix[1]){ /* AVX2 (VEX3) */
+          vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
+        } else { /* AVX (VEX2) */
+          vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[0]);
+        }
+
+        vex_vvvv = (unsigned char)((~vex_vvvv) & 0x0f);
+        if(vex_vvvv >= 0x0f)
+          vex_vvvv = -1;
       }
 
-      vex_vvvv = (unsigned char)((~vex_vvvv) & 0x0f);
-      if(vex_vvvv >= 0x0f)
-          vex_vvvv = -1;
-    }
-      if (sizePrefixPresent && 
-	  ((optype == op_v) ||
-	   (optype == op_z)) &&
-	  (operand.admet != am_J)) {
-	optype = op_w;
+      if (sizePrefixPresent 
+        && ((optype == op_v) || (optype == op_z)) 
+        && (operand.admet != am_J)) 
+      {
+	        optype = op_w;
       }
+
       if(optype == op_y) {
     	  if(ia32_is_mode_64() && locs->rex_w)
     		  optype = op_q;
@@ -889,8 +894,9 @@ namespace Dyninst
                       {
                         if(vex_vvvv < 0)
                         {
-                          printf("BAD VVVV: 0x%x\n", vex_vvvv);
-                          assert(0);
+                          // fprintf(stderr, "HAS VEX: %s BAD VVVV: 0x%x\n", has_vex ? "YES" : "NO", vex_vvvv);
+                          // assert(0);
+                          vex_vvvv = 0;
                           break; /* Invalid instruction */
                         }
                           /* Operand comes from the VEX.vvvv bits */
