@@ -9120,7 +9120,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
   }
 
   /* Are there 4 operands? */
-  if(gotit.opsema >= s4OP)
+  if((gotit.opsema &  0xffff) >= s4OP)
   {
     /* This last one is always Ib */
     int imm_size = type2size(op_b, operSzAttr);
