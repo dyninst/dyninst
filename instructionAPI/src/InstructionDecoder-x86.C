@@ -893,8 +893,6 @@ namespace Dyninst
                       {
                         if(vex_vvvv < 0)
                         {
-                          // fprintf(stderr, "HAS VEX: %s BAD VVVV: 0x%x\n", has_vex ? "YES" : "NO", vex_vvvv);
-                          // assert(0);
                           vex_vvvv = 0;
                           break; /* Invalid instruction */
                         }
@@ -1265,7 +1263,7 @@ namespace Dyninst
 
                 default:
                     printf("decodeOneOperand() called with unknown addressing method %d\n", operand.admet);
-                    assert(0);
+                    // assert(0);
                         break;
                 };
                 return true;
