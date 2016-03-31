@@ -1266,6 +1266,7 @@ namespace Dyninst
 
                 default:
                     printf("decodeOneOperand() called with unknown addressing method %d\n", operand.admet);
+                    assert(0);
                         break;
                 };
                 return true;
