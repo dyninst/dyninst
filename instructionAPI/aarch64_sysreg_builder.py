@@ -66,6 +66,8 @@ for name in reg_names:
 	replace_list = sorted(replace_list, reverse=True)  
 	
 	max_val = 2**len(replace_list)
+	if max_val == 32:
+	    max_val -= 1
 	for idx in range(0, max_val):
 	    bin_arr = "{0:b}".format(idx).split()
 	    cur_encoding = encoding_str
