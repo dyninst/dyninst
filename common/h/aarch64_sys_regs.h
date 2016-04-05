@@ -421,5 +421,7 @@ DEF_REGISTER(tlbi_vale1,		414 | FULL |SYSREG | Arch_aarch64, "aarch64");
 DEF_REGISTER(icc_sre_el3,		415 | D_REG |SYSREG | Arch_aarch64, "aarch64");
 DEF_REGISTER(icc_iar1_el1,		416 | D_REG |SYSREG | Arch_aarch64, "aarch64");
 
+DEF_REGISTER(IMPLEMENTATION_DEFINED_SYSREG,     417 | D_REG |SYSREG | Arch_aarch64, "aarch64");
+
 
 #endif //DYNINST_AARCH64_SYS_REGS_H
