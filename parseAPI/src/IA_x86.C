@@ -257,6 +257,9 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, co
             target = *blocks.begin();
         }
     }
+
+    // if target is still NULL, return false
+    if(target == NULL) return false;
     
     if(curInsn()->getCategory() == c_BranchInsn &&
        valid &&
