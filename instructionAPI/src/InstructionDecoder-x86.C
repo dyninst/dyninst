@@ -1381,7 +1381,7 @@ namespace Dyninst
         }
 
         /* Does this instruction have a 4th operand? */
-        if((decodedInstruction->getEntry()->opsema  & 0xFFFF) >= s4OP)
+        if((decodedInstruction->getEntry()->opsema & 0xFFFF) >= s4OP)
         {
           if(!decodeOneOperand(b,
             {am_I, op_b}, /* This is always an IMM8 */
