@@ -447,6 +447,7 @@ Function::name() const
 bool
 Function::contains(Block *b)
 {
+    if (b == NULL) return false;
     if(!_cache_valid)
         finalize();
 
