@@ -432,7 +432,12 @@ namespace Dyninst
 			if(InstructionDecoder_aarch64::sysRegMap.count(systemRegEncoding) <= 0)
 				assert(!"tried to access system register not accessible in EL0");
 
-			insn_in_progress->appendOperand(makeRegisterExpression(InstructionDecoder_aarch64::sysRegMap[systemRegEncoding]), !isRtRead, isRtRead);
+			MachRegister reg;
+			if((op0Field & 0x3) == 0x3 && (crnField & 0x3) == 0x3 && (crnField & 0x8) == 0x8)
+				reg = aarch64::IMPLEMENTATION_DEFINED_SYSREG;
+			else
+				reg = InstructionDecoder_aarch64::sysRegMap[systemRegEncoding];
+			insn_in_progress->appendOperand(makeRegisterExpression(reg), !isRtRead, isRtRead);
 			insn_in_progress->appendOperand(makeRtExpr(), isRtRead, !isRtRead);
 			if(!isRtRead)
 			    insn_in_progress->m_Operands.reverse();
