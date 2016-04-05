@@ -2588,10 +2588,12 @@ void InstructionDecoder_aarch64::OPRimm()
 		else if(IS_FIELD_IMMHI(startBit, endBit))
 		{
 			int page = field<31, 31>(insn);
-			int offset = (immVal<<immloLen) | immlo;
+			int64_t offset = (immVal<<immloLen) | immlo;
+			offset = offset<<(page*12);
+			int size = immloLen + immLen + (page*12);
 
 			insn_in_progress->appendOperand(makePCExpr(), true, false);
-			Expression::Ptr imm = Immediate::makeImmediate(Result(s64, sign_extend64(immloLen + immLen + page*12, offset<<(page*12))));
+			Expression::Ptr imm = Immediate::makeImmediate(Result(s64, (offset << (64 - size)) >> (64 - size)));
 
 			insn_in_progress->appendOperand(imm, true, false);
 		}
