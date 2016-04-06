@@ -4500,16 +4500,16 @@ bool Object::emitDriver(Symtab *obj, string fName,
   if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS32)
   {
       Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32> *em =
-              new Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_);
-    if( !em->createSymbolTables(obj, allSymbols) ) return false;
-    return em->driver(obj, fName);
+              new Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_, obj);
+    if( !em->createSymbolTables(allSymbols) ) return false;
+    return em->driver(fName);
   }
   else if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS64)
   {
       Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64> *em =
-              new Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_);
-    if( !em->createSymbolTables(obj, allSymbols) ) return false;
-    return em->driver(obj, fName);
+              new Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_, obj);
+    if( !em->createSymbolTables(allSymbols) ) return false;
+    return em->driver(fName);
   }
   return false;
 }
@@ -4725,7 +4725,7 @@ void Object::parseStabFileLineInfo(Symtab *st)
   //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
 
-bool Object::addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_check)
+bool Object::addrInCU(Dwarf_Debug dbg, Dwarf_Die cu, Address to_check)
 {
   Dwarf_Addr tempLow = 0, tempHigh = -1;
   Address low = 0, high = -1;
@@ -5053,7 +5053,7 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
     }
     // Parse line info for each CU once, completely, if a user has asked for something within
     // that CU
-    if(!addrInCU(obj, dbg, cuDIE, addr_to_find))
+    if(!addrInCU(dbg, cuDIE, addr_to_find))
     {
       dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
       continue;
@@ -5861,3 +5861,5 @@ std::string Object::getFileName() const
   
   return mf->filename();
 }
+
+template class boost::shared_ptr<std::vector<std::pair<unsigned long, unsigned long> > >;

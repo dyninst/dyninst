@@ -119,13 +119,12 @@ namespace Dyninst
         }
 
 
-    
+    __thread NS_x86::ia32_instruction* InstructionDecoder_x86::decodedInstruction = NULL;
+    __thread ia32_locations* InstructionDecoder_x86::locs = NULL;
+    __thread bool InstructionDecoder_x86::sizePrefixPresent = false;
+    __thread bool InstructionDecoder_x86::addrSizePrefixPresent = false;
     INSTRUCTION_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(Architecture a) :
-      InstructionDecoderImpl(a),
-    locs(NULL),
-    decodedInstruction(NULL),
-    sizePrefixPresent(false),
-    addrSizePrefixPresent(false)
+      InstructionDecoderImpl(a)
     {
       if(a == Arch_x86_64) setMode(true);
       
@@ -1377,7 +1376,7 @@ namespace Dyninst
         }
 
         /* Does this instruction have a 4th operand? */
-        if(decodedInstruction->getEntry()->opsema >= s4OP)
+        if((decodedInstruction->getEntry()->opsema  & 0xFFFF) >= s4OP)
         {
           if(!decodeOneOperand(b,
             {am_I, op_b}, /* This is always an IMM8 */

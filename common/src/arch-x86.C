@@ -7773,7 +7773,7 @@ static struct ia32_entry vex3Map[][2] =
 };
 #undef VEX3_ILL
 
-static bool mode_64 = false;
+static __thread bool mode_64 = false;
 
 void ia32_set_mode_64(bool mode) {
   mode_64 = mode;
@@ -9131,7 +9131,9 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
   }
 
   /* Are there 4 operands? */
-  if(gotit.opsema >= s4OP)
+	int sema = gotit.opsema & ((1<<FPOS)-1);
+
+  if(sema >= s4OP)
   {
     /* This last one is always Ib */
     int imm_size = type2size(op_b, operSzAttr);

@@ -38,6 +38,10 @@ using Dyninst::PatchAPI::AddrSpace;
 using Dyninst::PatchAPI::PatchObject;
 using Dyninst::PatchAPI::PatchMgr;
 
+template class boost::shared_ptr<InstructionAPI::Instruction>;
+template class boost::shared_ptr<Dyninst::PatchAPI::Snippet>;
+template class boost::shared_ptr<Dyninst::PatchAPI::Instance>;
+
 /* Use an PatchObject (a.out) to initialize the AddrSpace */
 
 bool

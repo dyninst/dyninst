@@ -44,7 +44,7 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
 // constructor of the class. It creates the CFG and
-LoopAnalyzer::LoopAnalyzer(Function *f)
+LoopAnalyzer::LoopAnalyzer(const Function *f)
   : func(f) 
 {
     for (auto bit = f->blocks().begin(); bit != f->blocks().end(); ++bit) {
@@ -112,7 +112,7 @@ void LoopAnalyzer::createLoopHierarchy()
 
   // Enumerate every basic blocks in the functions to find all create 
   // call information for each loop
-  for (auto bit = func->blocks().begin(); bit != func->blocks().end(); ++bit) {
+  for (auto bit = const_cast<const Function*>(func)->blocks().begin(); bit != const_cast<const Function*>(func)->blocks().end(); ++bit) {
     Block *b = *bit;
     for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
       // Can tail call happen here?

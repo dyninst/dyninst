@@ -60,7 +60,9 @@ const StackAnalysis::Height StackAnalysis::Height::top(StackAnalysis::Height::un
 
 AnnotationClass <StackAnalysis::Intervals> Stack_Anno(std::string("Stack_Anno"));
 
-
+template class std::list<Dyninst::StackAnalysis::TransferFunc*>;
+template class std::map<Dyninst::Absloc, Dyninst::StackAnalysis::Height>;
+template class std::vector<Dyninst::InstructionAPI::Instruction::Ptr>;
 //
 // Concepts:
 //

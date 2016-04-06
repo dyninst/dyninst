@@ -75,6 +75,9 @@ using PatchAPI::Patcher;
 using PatchAPI::DynInstrumenter;
 using PatchAPI::DynRemoveSnipCommand;
 
+template class std::set<block_instance*>;
+template class boost::shared_ptr<Dyninst::Relocation::InstalledSpringboards>;
+
 AddressSpace::AddressSpace () :
     trapMapping(this),
     new_func_cb(NULL),

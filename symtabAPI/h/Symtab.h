@@ -424,16 +424,17 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newOffset);
    bool deleteAggregate(Aggregate *agg);
 
-   bool parseFunctionRanges();
    bool addFunctionRange(FunctionBase *fbase, Dyninst::Offset next_start);
 
    // Used by binaryEdit.C...
  public:
+
+
    bool canBeShared();
    Module *getOrCreateModule(const std::string &modName, 
                                            const Offset modAddr);
+   bool parseFunctionRanges();
 
- public:
    //Only valid on ELF formats
    Offset getElfDynamicOffset();
    // SymReader interface

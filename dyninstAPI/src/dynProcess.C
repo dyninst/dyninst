@@ -62,6 +62,9 @@ using std::vector;
 using std::string;
 using std::stringstream;
 
+template class boost::shared_ptr<Dyninst::ProcControlAPI::Process>;
+template class boost::shared_ptr<Dyninst::ProcControlAPI::Thread>;
+
 Dyninst::SymtabAPI::SymtabReaderFactory *PCProcess::symReaderFactory_;
 
 PCProcess *PCProcess::createProcess(const string file, pdvector<string> &argv,

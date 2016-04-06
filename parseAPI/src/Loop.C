@@ -44,11 +44,11 @@ using namespace Dyninst::ParseAPI;
 //internal use only
 
 
-Loop::Loop(Function *f)
+Loop::Loop(const Function *f)
     : func(f), parent(NULL) {
     }
 
-Loop::Loop(Edge *be, Function *f) 
+Loop::Loop(Edge *be, const Function *f)
     : func(f), parent(NULL) 
 {
     backEdges.insert(be);
@@ -191,7 +191,7 @@ int Loop::getLoopEntries(vector<Block*> &e) {
 }
 
 
-Function* Loop::getFunction() 
+const Function* Loop::getFunction()
 {
     return func;
 }

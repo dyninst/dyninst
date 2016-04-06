@@ -444,7 +444,7 @@ bool DwarfWalker::parseCallsite()
    if (!has_line)
       return true;
 
-   std::string inline_file;
+   const char* inline_file;
    bool result = findString(DW_AT_call_file, inline_file);
    if (!result)
       return false;
@@ -1716,7 +1716,7 @@ bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half attr,
 }
 
 bool DwarfWalker::findString(Dwarf_Half attr,
-                             std::string &str)
+                             const char* &str)
 {
    Dwarf_Half form;
    Dwarf_Attribute strattr;
@@ -1727,7 +1727,7 @@ bool DwarfWalker::findString(Dwarf_Half attr,
       if (!result)
          return false;
       if (line_index == 0) {
-         str = string("");
+         str = NULL;
          return true;
       }
       line_index--;
@@ -1762,9 +1762,9 @@ bool DwarfWalker::findString(Dwarf_Half attr,
       case DW_FORM_block4: {
          Dwarf_Block *block = NULL;
          DWARF_FAIL_RET(dwarf_formblock(strattr, &block, NULL));
-         str = string((char *) block->bl_data);
+         str = (char *) block->bl_data;
          dwarf_dealloc(dbg(), block, DW_DLA_BLOCK);
-         result = !str.empty();
+         result = bool(str);
          break;
       }
       default:

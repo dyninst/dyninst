@@ -78,7 +78,7 @@ int dominatorBB::sdno() {
    return semiDom->dfs_no; 
 }
 
-dominatorCFG::dominatorCFG(Function *f) :
+dominatorCFG::dominatorCFG(const Function *f) :
    func(f),
    currentDepthNo(0)
 {

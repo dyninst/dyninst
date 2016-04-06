@@ -476,7 +476,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
 
     virtual ~Function();
 
-    virtual const string & name();
+    virtual const string & name() const;
 
     Address addr() const { return _start; }
     CodeRegion * region() const { return _region; }
@@ -500,6 +500,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     const edgelist & callEdges();
     const_blocklist returnBlocks() ;
     const_blocklist exitBlocks();
+    const_blocklist exitBlocks() const;
 
     /* Function details */
     bool hasNoStackFrame() const { return _no_stack_frame; }
@@ -507,26 +508,26 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     bool cleansOwnStack() const { return _cleans_stack; }
 
     /* Loops */    
-    LoopTreeNode* getLoopTree();
-    Loop* findLoop(const char *name);
-    bool getLoops(vector<Loop*> &loops);
-    bool getOuterLoops(vector<Loop*> &loops);
+    LoopTreeNode* getLoopTree() const;
+    Loop* findLoop(const char *name) const;
+    bool getLoops(vector<Loop*> &loops) const;
+    bool getOuterLoops(vector<Loop*> &loops) const;
 
     /* Dominator info */
 
     /* Return true if A dominates B in this function */
-    bool dominates(Block* A, Block *B);
-    Block* getImmediateDominator(Block *A);
-    void getImmediateDominates(Block *A, set<Block*> &);
-    void getAllDominates(Block *A, set<Block*> &);
+    bool dominates(Block* A, Block *B) const;
+    Block* getImmediateDominator(Block *A) const;
+    void getImmediateDominates(Block *A, set<Block*> &) const;
+    void getAllDominates(Block *A, set<Block*> &) const;
 
     /* Post-dominator info */
 
     /* Return true if A post-dominates B in this function */
-    bool postDominates(Block* A, Block *B);
-    Block* getImmediatePostDominator(Block *A);
-    void getImmediatePostDominates(Block *A, set<Block*> &);
-    void getAllPostDominates(Block *A, set<Block*> &);
+    bool postDominates(Block* A, Block *B) const;
+    Block* getImmediatePostDominator(Block *A) const;
+    void getImmediatePostDominates(Block *A, set<Block*> &) const;
+    void getAllPostDominates(Block *A, set<Block*> &) const;
 
 
     /* Parse updates and obfuscation */
@@ -617,24 +618,24 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     Address _tamper_addr;
 
     /* Loop details*/
-    bool _loop_analyzed; // true if loops in the function have been found and stored in _loops
-    std::set<Loop*> _loops;
-    LoopTreeNode *_loop_root; // NULL if the tree structure has not be calculated
-    void getLoopsByNestingLevel(vector<Loop*>& lbb, bool outerMostOnly);
+    mutable bool _loop_analyzed; // true if loops in the function have been found and stored in _loops
+    mutable std::set<Loop*> _loops;
+    mutable LoopTreeNode *_loop_root; // NULL if the tree structure has not be calculated
+    void getLoopsByNestingLevel(vector<Loop*>& lbb, bool outerMostOnly) const;
 
 
     /* Dominator and post-dominator info details */
-    bool isDominatorInfoReady;
-    bool isPostDominatorInfoReady;
-    void fillDominatorInfo();
-    void fillPostDominatorInfo();
+    mutable bool isDominatorInfoReady;
+    mutable bool isPostDominatorInfoReady;
+    void fillDominatorInfo() const;
+    void fillPostDominatorInfo() const;
     /** set of basic blocks that this basicblock dominates immediately*/
-    std::map<Block*, std::set<Block*>*> immediateDominates;
+    mutable std::map<Block*, std::set<Block*>*> immediateDominates;
     /** basic block which is the immediate dominator of the basic block */
-    std::map<Block*, Block*> immediateDominator;
+    mutable std::map<Block*, Block*> immediateDominator;
     /** same as previous two fields, but for postdominator tree */
-    std::map<Block*, std::set<Block*>*> immediatePostDominates;
-    std::map<Block*, Block*> immediatePostDominator;
+    mutable std::map<Block*, std::set<Block*>*> immediatePostDominates;
+    mutable std::map<Block*, Block*> immediatePostDominator;
 
     /*** Internal parsing methods and state ***/
     void add_block(Block *b);
@@ -686,7 +687,7 @@ private:
 	std::set<Block*> entries;
 
         // the function this loop is part of
-        Function * func;
+        const Function * func;
 
 	/** set of loops that are contained (nested) in this loop. */
         std::set<Loop*> containedLoops;
@@ -757,7 +758,7 @@ public:
 
 	/** returns the function this loop is in */
 
-        Function * getFunction();
+        const Function * getFunction();
 
 	/** Loop::~Loop    */
 	/** destructor for the class */
@@ -769,10 +770,10 @@ public:
 private:
 // internal use only
 	/** constructor of class */
-	Loop(Function *);
+	Loop(const Function *);
 
 	/** constructor of the class */
-	Loop(Edge *, Function *);
+	Loop(Edge *, const Function *);
 
 	/** get either contained or outer loops, determined by outerMostOnly */
 	bool getLoops(vector<Loop*>&, 

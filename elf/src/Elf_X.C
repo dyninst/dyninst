@@ -55,6 +55,11 @@ using namespace Dyninst;
 #define DEBUGLINK_NAME ".gnu_debuglink"
 #define BUILD_ID_NAME ".note.gnu.build-id"
 
+template class std::map<std::pair<std::string, int> , Elf_X*>;
+template class std::map<std::pair<std::string, char*> , Elf_X*>;
+template class std::vector<Elf_X_Shdr>;
+template class std::vector<Elf_X_Phdr>;
+
 map<pair<string, int>, Elf_X *> Elf_X::elf_x_by_fd;
 map<pair<string, char *>, Elf_X *> Elf_X::elf_x_by_ptr;
 
