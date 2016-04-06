@@ -792,6 +792,7 @@ enum entryID {
   e_vpaddusw,
   e_vpaddw,
   e_vpalignr,
+  e_vpand,
   e_vpandn,
   e_vpandd,
   e_vpandq,
