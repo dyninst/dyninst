@@ -57,7 +57,8 @@
 #include "common/src/wtxKludges.h"
 #endif
 
-// #define VEX_DEBUG
+#define VEX_DEBUG
+#define VEX_PEDANTIC
 
 using namespace std;
 using namespace boost::assign;
@@ -475,6 +476,8 @@ enum {
   VEXW88, VEXW89, VEXW8A, VEXW8B, VEXW8C, VEXW8D, VEXW8E, VEXW8F,
   VEXW90, VEXW91, VEXW92
 };
+
+#define VEXW_MAX VEXW92
 
 /* SIMD op conversion table */
 static char vex3_simdop_convert[3][4] = {
@@ -1434,6 +1437,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vpaddusw, "vpaddusw")
   (e_vpaddw, "vpaddw")
   (e_vpalignr, "vpalignr")
+  (e_vpand, "vpand")
   (e_vpandn, "vpandn")
   (e_vpandd, "vpandd")
   (e_vpandq, "vpandq")
@@ -6327,7 +6331,7 @@ ia32_entry sseMapMult[][3] =
     { e_vpminub, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
     { e_vpminub, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
   }, { /* SSEDB_66 */
-    { e_No_Entry, t_vexw, VEXW91, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_vpand, t_done, 0, true, { Wps, Hps, Wps }, 0, s1RW2R },
     { e_No_Entry, t_vexw, VEXW91, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_vexw, VEXW64, false, { Zz, Zz, Zz }, 0, 0 }
   }, { /* SSEDC_66 */
@@ -7329,7 +7333,7 @@ static struct ia32_entry vex2Map[][2] =
   {{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, \
    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }}
 
-static struct ia32_entry vex3Map[][2] =
+static struct ia32_entry vexWMap[][2] =
 {
     { /* VEXW00 */
       { e_vfmaddsub132ps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1RW2R3R }, /* W = 0 */
@@ -7840,537 +7844,607 @@ void ia32_memacc::print()
 
 int getOperSz(const ia32_prefixes &pref) 
 {
-   /* TODO: VEX prefixed instructions only touch XMM or YMM unless they are loading/storing to memory. */
-   if (pref.vex_prefix[0]) return pref.vex_l ? 32 : 16;
-   else if (pref.rexW()) return 4;
-   else if (pref.getPrefix(2) == PREFIX_SZOPER) return 1;
-   else return 2;
+    /* TODO: VEX prefixed instructions only touch XMM or YMM unless they are loading/storing to memory. */
+    if (pref.vex_prefix[0]) return pref.vex_l ? 32 : 16;
+    else if (pref.rexW()) return 4;
+    else if (pref.getPrefix(2) == PREFIX_SZOPER) return 1;
+    else return 2;
 }
 
 ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32_instruction& instruct)
 {
-  ia32_prefixes& pref = instruct.prf;
-  unsigned int table, nxtab;
-  unsigned int idx = 0;
-  int sseidx = 0;
-  ia32_entry *gotit = NULL;
-  int condbits = 0;
+    ia32_prefixes& pref = instruct.prf;
+    unsigned int table, nxtab;
+    unsigned int idx = 0;
+    int sseidx = 0;
+    ia32_entry *gotit = NULL;
+    int condbits = 0;
   
-  if(capa & IA32_DECODE_MEMACCESS)
-    assert(instruct.mac != NULL);
+    if(capa & IA32_DECODE_MEMACCESS)
+        assert(instruct.mac != NULL);
 
-  if (!ia32_decode_prefixes(addr, pref, instruct.loc)) {
-    instruct.size = 1;
-    instruct.legacy_type = ILLEGAL;
-    return instruct;
-  }
-
-  if((pref.getOpcodePrefix()) && pref.getCount())
-  {
-    idx = pref.getOpcodePrefix();
-  }
-
-  if (instruct.loc) instruct.loc->num_prefixes = pref.getCount();
-  instruct.size = pref.getCount();
-  addr += instruct.size;
-
-  if(!pref.vex_present && pref.vex_prefix[0])
-    assert("vex_present == 0 but vex is present!");
-
-  /* Is there a VEX prefix for this instruction? */
-  if(pref.vex_present)
-  {
-      /* Grab the opcode for the index */
-      idx = addr[0];
-      instruct.size += 1;
-      addr += 1;
-
-      /* Which vex prefix are we using? (VEX2, VEX3, EVEX)*/
-      if(pref.vex_prefix[1] == 0) /* VEX 2 prefix */
-      {
-	      int op_pref_idx = VEXGET_PP(pref.vex_prefix[0]);
-        /* This is a VEX2 prefixed instruction */
-	      gotit = &twoByteMap[idx];
-        sseidx = vex3_simdop_convert[0][op_pref_idx];
-      } else if(pref.vex_prefix[2] == 0) /* VEX 3 prefix */
-      {
-	      // FIXME: not handling xop separately yet
-	      int op_pref_idx = VEXGET_PP(pref.vex_prefix[1]);
-        if(op_pref_idx < 0 || op_pref_idx > 3)
-        {
-            /* Something went very wrong with the prefix decoding */
-            assert(0);
-        }
-
-	      /* Select m-mmmm bits */
-	      switch(VEX3GET_M(pref.vex_prefix[0]))
-	      {
-	         case 1:
-	            gotit = &twoByteMap[idx];
-              /* Will enter the sseMap table. Change the sseidx to match. */
-              sseidx = vex3_simdop_convert[0][op_pref_idx];
-	            break;
-	         case 2:
-	            gotit = &threeByteMap[idx];
-              /* Will enter the sseBisMap table. Change the sseidx to match. */
-              sseidx = vex3_simdop_convert[1][op_pref_idx];
-	            break;
-	         case 3:
-	            gotit = &threeByteMap2[idx];
-              /* Will enter the sseTerMap table. Change the sseidx to match. */
-              sseidx = vex3_simdop_convert[2][op_pref_idx];
-
-              /* One mapping here doesn't work (F3 prefixed) */
-              /* If this is ever encountered, we will need to change the sseTerMap table. */
-	            break;
-	         default:
-              gotit = &vex3Map[0][0];
-              idx = 0;
-              /* This reserved for future use and will cause #UD. */
-              instruct.legacy_type = ILLEGAL;
-              instruct.entry = gotit;
-              return instruct;
-              // assert(0);
-              break;
-	      }
-
-        if(sseidx < 0)
-        {
-          /**
-           * This index cannot be expressed in the destination table. 
-           * This should not be possible. 
-           */
-          assert(0);
-        }
-      } else {
-        /* EVEX instruction */
-        int op_pref_idx = EVEXGET_PP(pref.vex_prefix[1]);
-        if(op_pref_idx < 0 || op_pref_idx > 3)
-        {
-            /* Something went very wrong with the prefix decoding */
-            assert(0);
-        }
-
-        switch(EVEXGET_MM(pref.vex_prefix[0]))
-        {
-           case 1:
-              gotit = &twoByteMap[idx];
-              /* Will enter the sseMap table. Change the sseidx to match. */
-              sseidx = vex3_simdop_convert[0][op_pref_idx];
-              break;
-           case 2:
-              gotit = &threeByteMap[idx];
-              /* Will enter the sseBisMap table. Change the sseidx to match. */            
-              sseidx = vex3_simdop_convert[1][op_pref_idx];
-              break;
-           case 3:
-              gotit = &threeByteMap2[idx];
-              /* Will enter the sseTerMap table. Change the sseidx to match. */
-              sseidx = vex3_simdop_convert[2][op_pref_idx];
-
-              /* One mapping here doesn't work (F3 prefixed) */
-              /* If this is ever encountered, we will need to change the sseTerMap table. */
-              break;
-           default: 
-              gotit = &vex3Map[0][0];
-              idx = 0;
-              /* This reserved for future use and will cause #UD. */
-              instruct.legacy_type = ILLEGAL;
-              instruct.entry = gotit;
-              return instruct;
-        }
-
-        if(sseidx < 0)
-        {
-          /**
-           * This index cannot be expressed in the destination table. 
-           * This should not be possible. 
-           */
-          assert(0);
-        }
-      }
-      
-      nxtab = gotit->otable;
-   } else {
-      table = t_oneB;
-      if(idx == 0) {
-	      // consume opcode
-	      idx = addr[0];
-	      instruct.size += 1;
-	      addr += 1;
-      } else {
-	      // opcode already consumed (prefix opcode)
-      }
-      gotit = &oneByteMap[idx];
-      nxtab = gotit->otable;
-  }
-
-  if(capa & IA32_DECODE_CONDITION) {
-    assert(instruct.cond != NULL);
-    condbits = idx & 0x0F;
-  }
-
-  while(nxtab != t_done) {
-    table = nxtab;
-    switch(table) {
-    case t_twoB:
-      idx = addr[0];
-      gotit = &twoByteMap[idx];
-      nxtab = gotit->otable;
-      instruct.size += 1;
-      addr += 1;
-      if(capa & IA32_DECODE_CONDITION)
-        condbits = idx & 0x0F;
-      break;
-    case t_threeB:
-      idx = addr[0];
-      gotit = &threeByteMap[idx];
-      nxtab = gotit->otable;
-      instruct.size += 1;
-      addr += 1;
-      if(capa & IA32_DECODE_CONDITION)
-    	condbits = idx & 0x0F;
-      break;
-    case t_threeB2:
-      idx = addr[0];
-      gotit = &threeByteMap2[idx];
-      nxtab = gotit->otable;
-      instruct.size += 1;
-      addr += 1;
-      if(capa & IA32_DECODE_CONDITION)
-    	condbits = idx & 0x0F;
-      //if(sseidx) sseidx--;
-      break;
-    case t_prefixedSSE:
-      sseidx = gotit->tabidx;
-      if(addr[0] != 0x0F)
-      {
-          // all valid SSE insns will have 0x0F as their first byte after prefix
-          instruct.size += 1;
-          addr += 1;
-          instruct.entry = &invalid;
-          return instruct;
-      }
-      idx = addr[1];
-      gotit = &twoByteMap[idx];
-      nxtab = gotit->otable;
-      instruct.size += 2;
-      addr += 2;
-      break;
-    case t_sse:
-      idx = gotit->tabidx;
-      gotit = &sseMap[idx][sseidx];
-      nxtab = gotit->otable;
-
-#ifdef VEX_DEBUG
-      fprintf(stderr, "SSE MAP   idx: %d 0x%x  sseidx: %d 0x%x\n", idx, idx, sseidx, sseidx);
-      fprintf(stderr, "HAS VEX? %s\n", pref.vex_present ? "YES" : "NO");
-      fprintf(stderr, "NEXT TAB == SSE_MULT? %s\n", nxtab == t_sse_mult ? "YES" : "NO");
-      fprintf(stderr, "NEXT TAB == DONE? %s\n", nxtab == t_done ? "YES" : "NO");
-#endif
-
-      /* If there is no vex prefix, we're done */
-      if(!pref.vex_present)
-        nxtab = t_done;
-      break;
-    case t_sse_mult:
-      idx = gotit->tabidx;
-      gotit = &sseMapMult[idx][pref.sse_mult];
-      nxtab = gotit->otable;
-
-#ifdef VEX_DEBUG
-      fprintf(stderr, "SSE MULT MAP   idx: %d  sseidx: %d sse_mult: %d\n", idx, sseidx, pref.sse_mult);
-      fprintf(stderr, "NEXT TAB == DONE? %s\n", nxtab == t_done ? "YES" : "NO");
-      fprintf(stderr, "NEXT TAB == VEXW? %s\n", nxtab == t_vexw ? "YES" : "NO");
-#endif
-
-      break;
-    case t_sse_bis:
-      idx = gotit->tabidx;
-      gotit = &sseMapBis[idx][sseidx];
-      nxtab = gotit->otable;
-
-#ifdef VEX_DEBUG
-      fprintf(stderr, "SSEB MAP  idx: %d  sseidx: %d\n", idx, sseidx);
-#endif
-
-      /* If there is no vex prefix, we're done */
-      if(!pref.vex_present)
-        nxtab = t_done;
-      break;
-    case t_sse_bis_mult:
-      idx = gotit->tabidx;
-      gotit = &sseMapBisMult[idx][pref.sse_mult];
-      nxtab = gotit->otable;
-
-#ifdef VEX_DEBUG
-      fprintf(stderr, "SSEB MULT idx: %d  sseMul: %d\n", idx, pref.sse_mult);
-#endif
-      break;
-    case t_sse_ter:
-      idx = gotit->tabidx;      
-      gotit = &sseMapTer[idx][sseidx];
-      nxtab = gotit->otable;
-
-#ifdef VEX_DEBUG
-      fprintf(stderr, "SSET MAP  idx: %d  sseidx: %d\n", idx, sseidx);
-#endif
-
-      /* If there is no vex prefix, we're done */
-      if(!pref.vex_present)
-        nxtab = t_done;
-      break;
-    case t_sse_ter_mult:
-      idx = gotit->tabidx;
-      gotit = &sseMapTerMult[idx][pref.sse_mult];
-      nxtab = gotit->otable;
-
-#ifdef VEX_DEBUG
-      fprintf(stderr, "SSET MULT idx: %d  sseMul: %d\n", idx, pref.sse_mult);
-#endif
-      break;
-    case t_grp: {
-      idx = gotit->tabidx;
-      unsigned int reg  = (addr[0] >> 3) & 7;
-      if(idx < Grp12)
-        switch(idx) {
-        case Grp2:
-        case Grp11:
-          /* leave table unchanged because operands are in not 
-             defined in group map, unless this is an invalid index
-             into the group, in which case we need the instruction
-             to reflect its illegal status */
-          if(groupMap[idx][reg].id == e_No_Entry)
-            gotit = &groupMap[idx][reg];
-          nxtab = groupMap[idx][reg].otable;
-          assert(nxtab==t_done || nxtab==t_ill);
-          break;
-        default:
-          gotit = &groupMap[idx][reg];
-          nxtab = gotit->otable;
-        }
-      else {
-        unsigned int mod = addr[0] >> 6;
-        gotit = &groupMap2[idx-Grp12][mod==3][reg];
-        nxtab = gotit->otable;
-      }
-      break;
-    }
-    case t_grpsse:
-      sseidx >>= 1;
-      idx = gotit->tabidx;
-      gotit = &ssegrpMap[idx][sseidx];
-      nxtab = gotit->otable;
-      break;
-    case t_coprocEsc:
-      {
-        instruct.legacy_type = 0;
-        unsigned int reg  = (addr[0] >> 3) & 7;
-        unsigned int mod = addr[0] >> 6;
-        gotit = &fpuMap[gotit->tabidx][mod==3][reg];
-        ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac);
+    if (!ia32_decode_prefixes(addr, pref, instruct.loc)) {
+        instruct.size = 1;
+        instruct.legacy_type = ILLEGAL;
         return instruct;
-      }
-    case t_3dnow:
-      // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
-      // Right now we don't care what the actual opcode is, so there's no table
-      instruct.size += 1;
-      nxtab = t_done;
-      break;
-    case t_vexl:
-      /* Whats the index into the vex2 table? */
-      idx = gotit->tabidx;
-      /* Set the current entry */
-      gotit = &vex2Map[idx][pref.vex_l];
-      /* Set the next table - this is almost always t_done */
-      nxtab = gotit->otable;
-      break;
-    case t_vexw:
-      /* Whats the index into the vex2 table? */
-      idx = gotit->tabidx;
-      /* Set the current entry */
-      gotit = &vex3Map[idx][pref.vex_w];
-      /* Set the next table - this is almost always t_done */
-      nxtab = gotit->otable;
-      break;
-    case t_ill:
-      instruct.legacy_type = ILLEGAL;
-      instruct.entry = gotit;
-      return instruct;
-    default:
-      assert(!"wrong table");
-    }
-  }
-
-  assert(gotit != NULL);
-  instruct.legacy_type = gotit->legacyType;
-
-  // addr points after the opcode, and the size has been adjusted accordingly
-  if (instruct.loc) instruct.loc->opcode_size = instruct.size - pref.getCount();
-  if (instruct.loc) instruct.loc->opcode_position = pref.getCount();
-
-  // make adjustments for instruction redefined in 64-bit mode
-  if (mode_64)
-    ia32_translate_for_64(&gotit);
-
-  ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac); // all but FP
-
-  if(capa & IA32_DECODE_MEMACCESS) {
-    int sema = gotit->opsema & ((1<<FPOS)-1);
-    int hack = gotit->opsema >> FPOS;
-    switch(sema) {
-    case sNONE:
-      break;
-    case s1R:
-      switch(hack) {
-      case fPREFETCHNT:
-        instruct.mac[0].prefetch = true;
-        instruct.mac[0].prefetchlvl = 0;
-        break;
-      case fPREFETCHT0:
-        instruct.mac[0].prefetch = true;
-        instruct.mac[0].prefetchlvl = 1;
-        break;
-      case fPREFETCHT1:
-        instruct.mac[0].prefetch = true;
-        instruct.mac[0].prefetchlvl = 2;
-        break;
-      case fPREFETCHT2:
-        instruct.mac[0].prefetch = true;
-        instruct.mac[0].prefetchlvl = 3;
-        break;
-      case fPREFETCHAMDE:
-        instruct.mac[0].prefetch = true;
-        instruct.mac[0].prefetchstt = 0;
-        break;
-      case fPREFETCHAMDW:
-        instruct.mac[0].prefetch = true;
-        instruct.mac[0].prefetchstt = 1;
-        break;
-      default:
-        instruct.mac[0].read = true;
-      }
-      break;
-    case s1W:
-      instruct.mac[0].write = true;
-      break;
-    case s1RW:
-      instruct.mac[0].read = true;
-      instruct.mac[0].write = true;
-      instruct.mac[0].nt = hack == fNT;
-      break;
-    case s1R2R:
-      instruct.mac[0].read = true;
-      instruct.mac[1].read = true;
-      break;
-    case s1W2R:
-      instruct.mac[0].write = true;
-      instruct.mac[0].nt = hack == fNT; // all NTs are s1W2R
-      instruct.mac[1].read = true;
-      break;
-    case s1RW2R:
-      instruct.mac[0].read = true;
-      instruct.mac[0].write = true;
-      instruct.mac[1].read = true;
-      break;
-    case s1RW2RW:
-      instruct.mac[0].read = true;
-      instruct.mac[0].write = true;
-      instruct.mac[1].read = true;
-      instruct.mac[1].write = true;
-      break;
-    case s1W2R3R:
-      instruct.mac[0].write = true;
-      instruct.mac[1].read = true;
-      instruct.mac[2].read = true;
-      break;
-    case s1W2W3R:
-      instruct.mac[0].write = true;
-      instruct.mac[1].write = true;
-      instruct.mac[2].read = true;
-      break;
-    case s1W2RW3R:
-      instruct.mac[0].write = true;
-      instruct.mac[1].read = true;
-      instruct.mac[1].write = true;
-      instruct.mac[2].read = true;
-      break;
-    case s1W2R3RW:
-      instruct.mac[0].write = true;
-      instruct.mac[1].read = true;
-      instruct.mac[2].read = true;
-      instruct.mac[2].write = true;
-      break;
-    case s1RW2R3R:
-      instruct.mac[0].read = true;
-      instruct.mac[0].write = true;
-      instruct.mac[1].read = true;
-      instruct.mac[2].read = true;
-      break;
-    case s1RW2RW3R:
-      instruct.mac[0].write = true;
-      instruct.mac[0].read = true;
-      instruct.mac[1].read = true;
-      instruct.mac[1].write = true;
-      instruct.mac[2].read = true;
-      break;
-    case s1RW2R3R4R:
-      instruct.mac[0].write = true;
-      instruct.mac[0].read = true;
-      instruct.mac[1].read = true;
-      instruct.mac[2].read = true;
-      break;
-    case s1W2R3R4R:
-      instruct.mac[0].write = true;
-      instruct.mac[1].read = true;
-      instruct.mac[2].read = true;
-      break;
-    case s1RW2R3RW:
-      instruct.mac[0].read = true;
-      instruct.mac[0].write = true;
-      instruct.mac[1].read = true;
-      instruct.mac[2].read = true; 
-      instruct.mac[2].write = true; 
-      break;
     }
 
-    switch(pref.getPrefix(0)) {
-    case PREFIX_REPNZ:
-      switch(hack) {
-      case fSCAS:
-        instruct.mac[1].sizehack = shREPNESCAS;
-        break;
-      case fCMPS:
-        instruct.mac[0].sizehack = shREPNECMPS;
-        instruct.mac[1].sizehack = shREPNECMPS;
-        break;
-      default:
-	  break;
-      }
-      break;
-    case PREFIX_REP:
-      switch(hack) {
-      case fSCAS:
-        instruct.mac[1].sizehack = shREPESCAS;
-        break;
-      case fCMPS:
-        instruct.mac[0].sizehack = shREPECMPS;
-        instruct.mac[1].sizehack = shREPECMPS;
-        break;
-      case fREP:
-        instruct.mac[0].sizehack = shREP;
-        instruct.mac[1].sizehack = shREP;
-        break;
-      default:
-	break;
-      }
-      break;
-    case 0:
-    case PREFIX_LOCK:
-      break;
-    default:
-      break;
+    if((pref.getOpcodePrefix()) && pref.getCount())
+    {
+        idx = pref.getOpcodePrefix();
     }
+
+    if (instruct.loc) instruct.loc->num_prefixes = pref.getCount();
+    instruct.size = pref.getCount();
+    addr += instruct.size;
+
+    if(!pref.vex_present && pref.vex_prefix[0])
+        assert("vex_present == 0 but vex is present!");
+
+    /* Is there a VEX prefix for this instruction? */
+    if(pref.vex_present)
+    {
+        /* Grab the opcode for the index */
+        idx = addr[0];
+        instruct.size += 1;
+        addr += 1;
+
+        /* Which vex prefix are we using? (VEX2, VEX3, EVEX)*/
+        if(pref.vex_prefix[1] == 0) /* VEX 2 prefix */
+        {
+	        int op_pref_idx = VEXGET_PP(pref.vex_prefix[0]);
+            /* This is a VEX2 prefixed instruction */
+	        gotit = &twoByteMap[idx];
+            sseidx = vex3_simdop_convert[0][op_pref_idx];
+        } else if(pref.vex_prefix[2] == 0) /* VEX 3 prefix */
+        {
+	        // FIXME: not handling xop separately yet
+	        int op_pref_idx = VEXGET_PP(pref.vex_prefix[1]);
+            if(op_pref_idx < 0 || op_pref_idx > 3)
+            {
+                /* Something went very wrong with the prefix decoding */
+                assert(0);
+            }
+    
+	        /* Select m-mmmm bits */
+	        switch(VEX3GET_M(pref.vex_prefix[0]))
+	        {
+	            case 1:
+	                gotit = &twoByteMap[idx];
+                    /* Will enter the sseMap table. Change the sseidx to match. */
+                    sseidx = vex3_simdop_convert[0][op_pref_idx];
+	                break;
+	            case 2:
+	                gotit = &threeByteMap[idx];
+                    /* Will enter the sseBisMap table. Change the sseidx to match. */
+                    sseidx = vex3_simdop_convert[1][op_pref_idx];
+	                break;
+	            case 3:
+	                gotit = &threeByteMap2[idx];
+                    /* Will enter the sseTerMap table. Change the sseidx to match. */
+                    sseidx = vex3_simdop_convert[2][op_pref_idx];
+    
+                    /* One mapping here doesn't work (F3 prefixed) */
+                    /* If this is ever encountered, we will need to change the sseTerMap table. */
+	                break;
+	            default:
+                    gotit = &vexWMap[0][0];
+                    idx = 0;
+                    /* This reserved for future use and will cause #UD. */
+                    instruct.legacy_type = ILLEGAL;
+                    instruct.entry = gotit;
+                    return instruct;
+                    // assert(0);
+                    break;
+	        }
+
+            if(sseidx < 0)
+            {
+                /**
+                 * This index cannot be expressed in the destination table. 
+                 * This should not be possible. 
+                 */
+                assert(0);
+            }
+        } else {
+            /* EVEX instruction */
+            int op_pref_idx = EVEXGET_PP(pref.vex_prefix[1]);
+            if(op_pref_idx < 0 || op_pref_idx > 3)
+            {
+                /* Something went very wrong with the prefix decoding */
+                assert(0);
+            }
+
+            switch(EVEXGET_MM(pref.vex_prefix[0]))
+            {
+                case 1:
+                    gotit = &twoByteMap[idx];
+                    /* Will enter the sseMap table. Change the sseidx to match. */
+                    sseidx = vex3_simdop_convert[0][op_pref_idx];
+                    break;
+                case 2:
+                    gotit = &threeByteMap[idx];
+                    /* Will enter the sseBisMap table. Change the sseidx to match. */            
+                    sseidx = vex3_simdop_convert[1][op_pref_idx];
+                    break;
+                case 3:
+                    gotit = &threeByteMap2[idx];
+                    /* Will enter the sseTerMap table. Change the sseidx to match. */
+                    sseidx = vex3_simdop_convert[2][op_pref_idx];
+    
+                    /* One mapping here doesn't work (F3 prefixed) */
+                    /* If this is ever encountered, we will need to change the sseTerMap table. */
+                    break;
+                default: 
+                    gotit = &vexWMap[0][0];
+                    idx = 0;
+                    /* This reserved for future use and will cause #UD. */
+                    instruct.legacy_type = ILLEGAL;
+                    instruct.entry = gotit;
+                    return instruct;
+            }
+
+            if(sseidx < 0)
+            {
+                /**
+                 * This index cannot be expressed in the destination table. 
+                 * This should not be possible. 
+                 */
+                assert(0);
+            }
+        }
+      
+        nxtab = gotit->otable;
+    } else {
+        table = t_oneB;
+        if(idx == 0) {
+	        // consume opcode
+	        idx = addr[0];
+	        instruct.size += 1;
+	        addr += 1;
+        } else {
+	        // opcode already consumed (prefix opcode)
+        }
+        gotit = &oneByteMap[idx];
+        nxtab = gotit->otable;
+    }
+
+    if(capa & IA32_DECODE_CONDITION) {
+        assert(instruct.cond != NULL);
+        condbits = idx & 0x0F;
+    }
+
+    while(nxtab != t_done) {
+        table = nxtab;
+        switch(table) {
+            case t_twoB:
+                idx = addr[0];
+                gotit = &twoByteMap[idx];
+                nxtab = gotit->otable;
+                instruct.size += 1;
+                addr += 1;
+                if(capa & IA32_DECODE_CONDITION)
+                    condbits = idx & 0x0F;
+                break;
+            case t_threeB:
+                idx = addr[0];
+                gotit = &threeByteMap[idx];
+                nxtab = gotit->otable;
+                instruct.size += 1;
+                addr += 1;
+                if(capa & IA32_DECODE_CONDITION)
+    	            condbits = idx & 0x0F;
+                break;
+            case t_threeB2:
+                idx = addr[0];
+                gotit = &threeByteMap2[idx];
+                nxtab = gotit->otable;
+                instruct.size += 1;
+                addr += 1;
+                if(capa & IA32_DECODE_CONDITION)
+    	            condbits = idx & 0x0F;
+                //if(sseidx) sseidx--;
+                break;
+            case t_prefixedSSE:
+                sseidx = gotit->tabidx;
+                if(addr[0] != 0x0F)
+                {
+                    // all valid SSE insns will have 0x0F as their first byte after prefix
+                    instruct.size += 1;
+                    addr += 1;
+                    instruct.entry = &invalid;
+                    return instruct;
+                }
+                idx = addr[1];
+                gotit = &twoByteMap[idx];
+                nxtab = gotit->otable;
+                instruct.size += 2;
+                addr += 2;
+                break;
+            case t_sse:
+                idx = gotit->tabidx;
+                gotit = &sseMap[idx][sseidx];
+                nxtab = gotit->otable;
+
+#ifdef VEX_DEBUG
+                fprintf(stderr, "SSE MAP   idx: %d 0x%x  sseidx: %d 0x%x\n", idx, idx, sseidx, sseidx);
+                fprintf(stderr, "HAS VEX? %s\n", pref.vex_present ? "YES" : "NO");
+                fprintf(stderr, "NEXT TAB == SSE_MULT? %s\n", nxtab == t_sse_mult ? "YES" : "NO");
+                fprintf(stderr, "NEXT TAB == DONE? %s\n", nxtab == t_done ? "YES" : "NO");
+#endif
+
+                /* If there is no vex prefix, we're done */
+                if(!pref.vex_present)
+                    nxtab = t_done;
+                break;
+            case t_sse_mult:
+                idx = gotit->tabidx;
+                gotit = &sseMapMult[idx][pref.sse_mult];
+                nxtab = gotit->otable;
+
+#ifdef VEX_DEBUG
+                fprintf(stderr, "SSE MULT MAP   idx: %d  sseidx: %d sse_mult: %d\n", idx, sseidx, pref.sse_mult);
+                fprintf(stderr, "NEXT TAB == DONE? %s\n", nxtab == t_done ? "YES" : "NO");
+                fprintf(stderr, "NEXT TAB == VEXW? %s\n", nxtab == t_vexw ? "YES" : "NO");
+#endif
+
+                break;
+            case t_sse_bis:
+                idx = gotit->tabidx;
+                gotit = &sseMapBis[idx][sseidx];
+                nxtab = gotit->otable;
+
+#ifdef VEX_DEBUG
+                fprintf(stderr, "SSEB MAP  idx: %d  sseidx: %d\n", idx, sseidx);
+#endif
+
+                /* If there is no vex prefix, we're done */
+                if(!pref.vex_present)
+                    nxtab = t_done;
+                break;
+            case t_sse_bis_mult:
+                idx = gotit->tabidx;
+                gotit = &sseMapBisMult[idx][pref.sse_mult];
+                nxtab = gotit->otable;
+
+#ifdef VEX_DEBUG
+                fprintf(stderr, "SSEB MULT idx: %d  sseMul: %d\n", idx, pref.sse_mult);
+#endif
+                break;
+            case t_sse_ter:
+                idx = gotit->tabidx;      
+                gotit = &sseMapTer[idx][sseidx];
+                nxtab = gotit->otable;
+        
+#ifdef VEX_DEBUG
+                fprintf(stderr, "SSET MAP  idx: %d  sseidx: %d\n", idx, sseidx);
+#endif
+
+                /* If there is no vex prefix, we're done */
+                if(!pref.vex_present)
+                    nxtab = t_done;
+                break;
+            case t_sse_ter_mult:
+                idx = gotit->tabidx;
+                gotit = &sseMapTerMult[idx][pref.sse_mult];
+                nxtab = gotit->otable;
+
+#ifdef VEX_DEBUG
+                fprintf(stderr, "SSET MULT idx: %d  sseMul: %d\n", idx, pref.sse_mult);
+#endif
+                break;
+            case t_grp: 
+                {
+                    idx = gotit->tabidx;
+                    unsigned int reg  = (addr[0] >> 3) & 7;
+                    if(idx < Grp12)
+                        switch(idx) 
+                        {
+                            case Grp2:
+                            case Grp11:
+                                /* leave table unchanged because operands are in not 
+                                    defined in group map, unless this is an invalid index
+                                    into the group, in which case we need the instruction
+                                    to reflect its illegal status */
+                                if(groupMap[idx][reg].id == e_No_Entry)
+                                gotit = &groupMap[idx][reg];
+                                nxtab = groupMap[idx][reg].otable;
+                                assert(nxtab==t_done || nxtab==t_ill);
+                                break;
+                            default:
+                                gotit = &groupMap[idx][reg];
+                                nxtab = gotit->otable;
+                        }
+                    else {
+                        unsigned int mod = addr[0] >> 6;
+                        gotit = &groupMap2[idx-Grp12][mod==3][reg];
+                        nxtab = gotit->otable;
+                    }
+                    break;
+                }
+            case t_grpsse:
+                sseidx >>= 1;
+                idx = gotit->tabidx;
+                gotit = &ssegrpMap[idx][sseidx];
+                nxtab = gotit->otable;
+                break;
+            case t_coprocEsc:
+                {
+                    instruct.legacy_type = 0;
+                    unsigned int reg  = (addr[0] >> 3) & 7;
+                    unsigned int mod = addr[0] >> 6;
+                    gotit = &fpuMap[gotit->tabidx][mod==3][reg];
+                    ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac);
+                    return instruct;
+                }
+            case t_3dnow:
+                // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
+                // Right now we don't care what the actual opcode is, so there's no table
+                instruct.size += 1;
+                nxtab = t_done;
+                break;
+            case t_vexl:
+                 /* This MUST have a vex prefix */
+                if(!pref.vex_present)
+                {   
+#ifdef VEX_PEDANTIC
+                    assert(!"VEXW can only be used by vex prefixed instructions!\n");
+#endif
+                    instruct.legacy_type = ILLEGAL;
+                    instruct.entry = gotit;
+                    return instruct;
+                }
+
+                /* Whats the index into the vex2 table? */
+                idx = gotit->tabidx;
+                /* Set the current entry */
+                gotit = &vex2Map[idx][pref.vex_l];
+                /* Set the next table - this is almost always t_done */
+                nxtab = gotit->otable;
+                break;
+            case t_vexw:
+                /* This MUST have a vex prefix */
+                if(!pref.vex_present)
+                {
+#ifdef VEX_PEDANTIC
+                    assert(!"VEXW can only be used by vex prefixed instructions!\n");
+#endif
+                    instruct.legacy_type = ILLEGAL;
+                    instruct.entry = gotit;
+                    return instruct;
+                }
+
+                /* Whats the index into the vexWMap table? */
+                idx = gotit->tabidx;
+
+                /* Sanity check: does this index make sense? */
+                if(idx > VEXW_MAX)
+                {
+#ifdef VEX_PEDANTIC
+                    assert(!"VEXW index out of bounds!\n");
+#endif
+                    instruct.legacy_type = ILLEGAL;
+                    instruct.entry = gotit;
+                    return instruct;
+                }
+
+                /* Is the w bit correctly setup? */
+                if(pref.vex_w > 1)
+                {
+#ifdef VEX_PEDANTIC
+                    assert(!"vex_w needs to be either 0 or 1!!\n");
+#endif
+                    instruct.legacy_type = ILLEGAL;
+                    instruct.entry = gotit;
+                    return instruct;
+                }
+
+#ifdef VEX_DEBUG
+                fprintf(stderr, "VEXW ENTRY:      VEXW%x\n", idx);
+                fprintf(stderr, "VEXW MAX ENTRY:  VEXW%lx\n", (sizeof(vexWMap) / sizeof(vexWMap[0])) - 1);
+#endif
+
+                /* Set the current entry */
+                gotit = &vexWMap[idx][pref.vex_w];
+                /* Set the next table - this is almost always t_done */
+                nxtab = gotit->otable;
+
+                if(nxtab != t_done)
+                {
+#ifdef VEX_PEDANTIC
+                    assert(!"VEXW should always be the final table.\n");
+#endif
+
+                    instruct.legacy_type = ILLEGAL;
+                    instruct.entry = gotit;
+                    return instruct;
+                }
+                break;
+            case t_ill:
+                instruct.legacy_type = ILLEGAL;
+                instruct.entry = gotit;
+                return instruct;
+            default:
+                assert(!"wrong table");
+        }
+    }
+
+    assert(gotit != NULL);
+    instruct.legacy_type = gotit->legacyType;
+
+    // addr points after the opcode, and the size has been adjusted accordingly
+    if (instruct.loc) instruct.loc->opcode_size = instruct.size - pref.getCount();
+    if (instruct.loc) instruct.loc->opcode_position = pref.getCount();
+
+    // make adjustments for instruction redefined in 64-bit mode
+    if (mode_64)
+        ia32_translate_for_64(&gotit);
+
+    ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac); // all but FP
+
+    if(capa & IA32_DECODE_MEMACCESS) 
+    {
+        int sema = gotit->opsema & ((1<<FPOS)-1);
+        int hack = gotit->opsema >> FPOS;
+
+        switch(sema) 
+        {
+            case sNONE:
+                break;
+            case s1R:
+                switch(hack) 
+                {
+                    case fPREFETCHNT:
+                        instruct.mac[0].prefetch = true;
+                        instruct.mac[0].prefetchlvl = 0;
+                        break;
+                    case fPREFETCHT0:
+                        instruct.mac[0].prefetch = true;
+                        instruct.mac[0].prefetchlvl = 1;
+                        break;
+                    case fPREFETCHT1:
+                        instruct.mac[0].prefetch = true;
+                        instruct.mac[0].prefetchlvl = 2;
+                        break;
+                    case fPREFETCHT2:
+                        instruct.mac[0].prefetch = true;
+                        instruct.mac[0].prefetchlvl = 3;
+                        break;
+                    case fPREFETCHAMDE:
+                        instruct.mac[0].prefetch = true;
+                        instruct.mac[0].prefetchstt = 0;
+                        break;
+                    case fPREFETCHAMDW:
+                        instruct.mac[0].prefetch = true;
+                        instruct.mac[0].prefetchstt = 1;
+                        break;
+                    default:
+                        instruct.mac[0].read = true;
+                }
+                break;
+            case s1W:
+                instruct.mac[0].write = true;
+                break;
+            case s1RW:
+                instruct.mac[0].read = true;
+                instruct.mac[0].write = true;
+                instruct.mac[0].nt = hack == fNT;
+                break;
+            case s1R2R:
+                instruct.mac[0].read = true;
+                instruct.mac[1].read = true;
+                break;
+            case s1W2R:
+                instruct.mac[0].write = true;
+                instruct.mac[0].nt = hack == fNT; // all NTs are s1W2R
+                instruct.mac[1].read = true;
+                break;
+            case s1RW2R:
+                instruct.mac[0].read = true;
+                instruct.mac[0].write = true;
+                instruct.mac[1].read = true;
+                break;
+            case s1RW2RW:
+                instruct.mac[0].read = true;
+                instruct.mac[0].write = true;
+                instruct.mac[1].read = true;
+                instruct.mac[1].write = true;
+                break;
+            case s1W2R3R:
+                instruct.mac[0].write = true;
+                instruct.mac[1].read = true;
+                instruct.mac[2].read = true;
+                break;
+            case s1W2W3R:
+                instruct.mac[0].write = true;
+                instruct.mac[1].write = true;
+                instruct.mac[2].read = true;
+                break;
+            case s1W2RW3R:
+                instruct.mac[0].write = true;
+                instruct.mac[1].read = true;
+                instruct.mac[1].write = true;
+                instruct.mac[2].read = true;
+                break;
+            case s1W2R3RW:
+                instruct.mac[0].write = true;
+                instruct.mac[1].read = true;
+                instruct.mac[2].read = true;
+                instruct.mac[2].write = true;
+                break;
+            case s1RW2R3R:
+                instruct.mac[0].read = true;
+                instruct.mac[0].write = true;
+                instruct.mac[1].read = true;
+                instruct.mac[2].read = true;
+                break;
+            case s1RW2RW3R:
+                instruct.mac[0].write = true;
+                instruct.mac[0].read = true;
+                instruct.mac[1].read = true;
+                instruct.mac[1].write = true;
+                instruct.mac[2].read = true;
+                break;
+            case s1RW2R3R4R:
+                instruct.mac[0].write = true;
+                instruct.mac[0].read = true;
+                instruct.mac[1].read = true;
+                instruct.mac[2].read = true;
+                break;
+            case s1W2R3R4R:
+                instruct.mac[0].write = true;
+                instruct.mac[1].read = true;
+                instruct.mac[2].read = true;
+                break;
+            case s1RW2R3RW:
+                instruct.mac[0].read = true;
+                instruct.mac[0].write = true;
+                instruct.mac[1].read = true;
+                instruct.mac[2].read = true; 
+                instruct.mac[2].write = true; 
+                break;
+        }
+
+        switch(pref.getPrefix(0)) 
+        {
+            case PREFIX_REPNZ:
+                switch(hack) 
+                {
+                    case fSCAS:
+                        instruct.mac[1].sizehack = shREPNESCAS;
+                        break;
+                    case fCMPS:
+                        instruct.mac[0].sizehack = shREPNECMPS;
+                        instruct.mac[1].sizehack = shREPNECMPS;
+                        break;
+                    default:
+	                    break;
+                }
+                break;
+            case PREFIX_REP:
+                switch(hack) 
+                {
+                    case fSCAS:
+                        instruct.mac[1].sizehack = shREPESCAS;
+                        break;
+                    case fCMPS:
+                        instruct.mac[0].sizehack = shREPECMPS;
+                        instruct.mac[1].sizehack = shREPECMPS;
+                        break;
+                    case fREP:
+                        instruct.mac[0].sizehack = shREP;
+                        instruct.mac[1].sizehack = shREP;
+                        break;
+                    default:
+	                    break;
+                }
+                break;
+            case 0:
+            case PREFIX_LOCK:
+                break;
+            default:
+                break;
+        }
 
 #if 0
     // debug output for memory access decoding
@@ -8391,39 +8465,43 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     }
 #endif
 
-  }
-
-
-  if(capa & IA32_DECODE_CONDITION) {
-    int hack = gotit->opsema >> FPOS;
-    if(hack == fCOND)
-      instruct.cond->set(condbits);
-  }
-
-  // flip id of opcodes overloaded on operand size prefix
-  int operSzAttr = getOperSz(pref);
-  if (1 == operSzAttr) {
-    entryID newID = gotit->id;
-    switch (gotit->id) {
-    case e_cwde: newID = e_cbw; break;
-    case e_cdq: newID = e_cwd; break;
-    case e_insd: newID = e_insw; break;
-    case e_lodsd: newID = e_lodsw; break;
-    case e_movsd: newID = e_movsw; break;
-    case e_outsd: newID = e_outsw; break;
-    case e_popad: newID = e_popa; break;
-    case e_popfd: newID = e_popf; break;
-    case e_pushad: newID = e_pusha; break;
-    case e_pushfd: newID = e_pushf; break;
-    case e_scasd: newID = e_scasw; break;
-    case e_stosd: newID = e_stosw; break;
-    default: break;
     }
-    gotit->id = newID;
-  }
 
-  instruct.entry = gotit;
-  return instruct;
+
+    if(capa & IA32_DECODE_CONDITION) 
+    {
+        int hack = gotit->opsema >> FPOS;
+        if(hack == fCOND)
+            instruct.cond->set(condbits);
+    }
+
+    // flip id of opcodes overloaded on operand size prefix
+    int operSzAttr = getOperSz(pref);
+    if (operSzAttr == 1) 
+    {
+        entryID newID = gotit->id;
+        switch (gotit->id) 
+        {
+            case e_cwde: newID = e_cbw; break;
+            case e_cdq: newID = e_cwd; break;
+            case e_insd: newID = e_insw; break;
+            case e_lodsd: newID = e_lodsw; break;
+            case e_movsd: newID = e_movsw; break;
+            case e_outsd: newID = e_outsw; break;
+            case e_popad: newID = e_popa; break;
+            case e_popfd: newID = e_popf; break;
+            case e_pushad: newID = e_pusha; break;
+            case e_pushfd: newID = e_pushf; break;
+            case e_scasd: newID = e_scasw; break;
+            case e_stosd: newID = e_stosw; break;
+            default: break;
+        }
+
+        gotit->id = newID;
+    }
+
+    instruct.entry = gotit;
+    return instruct;
 }
 
 ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
