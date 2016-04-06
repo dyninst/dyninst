@@ -112,6 +112,8 @@ if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   endif()
 endif()
 
+add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
+
 #
 # DyninstConfig.cmake
 

@@ -60,6 +60,8 @@ const AnalysisStepperImpl::height_pair_t AnalysisStepperImpl::err_height_pair;
 std::map<string, CodeSource*> AnalysisStepperImpl::srcs;
 std::map<string, SymReader*> AnalysisStepperImpl::readers;
 
+template class boost::shared_ptr<Dyninst::InstructionAPI::Instruction>;
+
 
 AnalysisStepperImpl::AnalysisStepperImpl(Walker *w, AnalysisStepper *p) :
    FrameStepper(w),
