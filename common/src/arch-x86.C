@@ -6874,7 +6874,7 @@ ia32_entry sseMapBisMult[][3] =
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_vexw, VEXW56, false, { Zz, Zz, Zz }, 0, 0 }
   }, { /* SSEB92_66 */
-    { e_No_Entry, t_vexw, VEXW92, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_vexw, VEXW92, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_vexw, VEXW57, false, { Zz, Zz, Zz }, 0, 0 }
   }, { /* SSEB93_66 */
