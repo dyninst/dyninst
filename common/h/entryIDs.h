@@ -532,6 +532,8 @@ enum entryID {
   e_sha256rnds2,
   e_sha256msg1,
   e_sha256msg2,
+  e_shlx,
+  e_sarx,
   e_prefetchwt1,
   e_clflushopt,
   e_clwb,

@@ -848,6 +848,25 @@ namespace Dyninst
                         insn_to_complete->addSuccessor(addr, isCall, false, false, false);
                     }
                     break;
+                    case am_B:
+                        {
+                            if(vex_vvvv < 0 || !has_vex)
+                            {
+                                return false;
+                            }
+
+                            if(vex_vvvv > 7)
+                            {
+                                fprintf(stderr, "BAD VEX REGISTER: %d\n", vex_vvvv);
+                                // return false;
+                                vex_vvvv = 0;
+                            }
+
+                            /* Operand comes from the VEX.vvvv bits */
+                            Expression::Ptr op(makeRegisterExpression(makeRegisterID(vex_vvvv,
+                                        optype, locs->rex_r)));
+                            insn_to_complete->appendOperand(op, isRead, isWritten);
+                        }
                     case am_C:
                     {
                         Expression::Ptr op(makeRegisterExpression(IntelRegTable(m_Arch,b_cr,locs->modrm_reg)));
