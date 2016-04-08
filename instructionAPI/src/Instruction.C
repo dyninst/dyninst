@@ -416,7 +416,9 @@ memAccessors.begin()));
         // an implicit write, and that we have decoded the control flow
         // target's full location as the first and only operand.
         // If this is not the case, we'll squawk for the time being...
-        if(getCategory() == c_NoCategory)
+        if(getCategory() == c_NoCategory ||
+                getCategory() == c_CompareInsn ||
+                getCategory() == c_PrefetchInsn)
         {
             return Expression::Ptr();
         }
@@ -515,6 +517,26 @@ memAccessors.begin()));
       case e_call:
       case e_syscall:
 	return false;
+          case e_jnb:
+          case e_jb:
+          case e_jb_jnaej_j:
+          case e_jbe:
+          case e_jcxz_jec:
+          case e_jl:
+          case e_jle:
+          case e_jnb_jae_j:
+          case e_jnbe:
+          case e_jnl:
+          case e_jnle:
+          case e_jno:
+          case e_jnp:
+          case e_jns:
+          case e_jnz:
+          case e_jo:
+          case e_jp:
+          case e_js:
+          case e_jz:
+              return true;
       default:
       {
 	decodeOperands();

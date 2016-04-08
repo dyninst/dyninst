@@ -91,11 +91,18 @@ DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
    signature(),
    typeoffset(0),
    next_cu_header(0),
-   compile_offset(0)
+   compile_offset(0),
+   srcFileList_(NULL)
 {
 }
 
-DwarfWalker::~DwarfWalker() {}
+DwarfWalker::~DwarfWalker() {
+   for(unsigned i = 0; i < srcFiles_.size(); i++)
+   {
+      dwarf_dealloc(dbg(), const_cast<char*>(srcFiles_[i]), DW_DLA_STRING);
+   }
+   if(srcFileList_) dwarf_dealloc(dbg(), srcFileList_, DW_DLA_LIST);
+}
 
 bool DwarfWalker::parse() {
    dwarf_printf("Parsing DWARF for %s\n", symtab_->file().c_str());
@@ -246,17 +253,22 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
 
        
 bool DwarfWalker::buildSrcFiles(Dwarf_Die entry) {
+   for(unsigned i = 0; i < srcFiles_.size(); i++)
+   {
+      dwarf_dealloc(dbg(), const_cast<char*>(srcFiles_[i]), DW_DLA_STRING);
+      if(srcFileList_) {
+         dwarf_dealloc(dbg(), srcFileList_, DW_DLA_LIST);
+         srcFileList_ = NULL;
+      }
+   }
    srcFiles_.clear();
 
    Dwarf_Signed cnt = 0;
-   char **srcfiletmp = NULL;
-   DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcfiletmp, &cnt, NULL));
+   DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList_, &cnt, NULL));
 
    for (unsigned i = 0; i < cnt; ++i) {
-      srcFiles_.push_back(srcfiletmp[i]);
-      dwarf_dealloc(dbg(), srcfiletmp[i], DW_DLA_STRING);
+      srcFiles_.push_back(srcFileList_[i]);
    }
-   dwarf_dealloc(dbg(), srcfiletmp, DW_DLA_LIST);
    return true;
 }
 

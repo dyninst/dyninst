@@ -116,6 +116,10 @@ add_custom_target(DyninstRT
 
 install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
 
+add_dependencies(dyninstAPI DyninstRT)
+if(TARGET dyninstAPI-static)
+    add_dependencies(dyninstAPI-static DyninstRT)
+endif()
 set (VERSION_STRING "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}.${DYNINST_PATCH_VERSION}")
 set (DYNINST_NAME "DyninstAPI-${VERSION_STRING}")
 

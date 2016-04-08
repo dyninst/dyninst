@@ -274,8 +274,7 @@ Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction::Pt
                              ParseAPI::Block *b,
                              const std::vector<AbsRegion> &ins,
                              const AbsRegion &o) {
-      Assignment::Ptr ret = make_shared(singleton_object_pool<Assignment>::construct(i, a, f, b, ins, o));
-      return ret;
+      return make_shared(singleton_object_pool<Assignment>::construct(i, a, f, b, ins, o));
 }
 
 Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction::Ptr i,

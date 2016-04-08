@@ -151,10 +151,11 @@ namespace Dyninst
         Register base;
         Result_Type registerType = ia32_is_mode_64() ? u64 : u32;
 
+        int op_type = ia32_is_mode_64() ? op_q : op_d;
         decode_SIB(locs->sib_byte, scale, index, base);
 
         Expression::Ptr scaleAST(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, dword_t(scale)))));
-        Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, registerType,
+        Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, op_type,
                                     locs->rex_x))));
         Expression::Ptr baseAST;
         if(base == 0x05)
@@ -167,7 +168,7 @@ namespace Dyninst
                 case 0x01: 
                 case 0x02: 
                     baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, 
-											       registerType,
+											       op_type,
 											       locs->rex_b)));
                     break;
                 case 0x03:
@@ -179,7 +180,7 @@ namespace Dyninst
         else
         {
             baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, 
-											       registerType,
+											       op_type,
 											       locs->rex_b)));
         }
 
@@ -1122,9 +1123,10 @@ namespace Dyninst
 			}
                         Expression::Ptr es(makeRegisterExpression(m_Arch == Arch_x86 ? x86::es : x86_64::es));
                         Expression::Ptr di(makeRegisterExpression(di_reg));
-                        Expression::Ptr es_segment = makeMultiplyExpression(es,
-                            make_shared(singleton_object_pool<Immediate>::construct(Result(u32, 0x10))), u32);
-                        Expression::Ptr es_di = makeAddExpression(es_segment, di, u32);
+
+                        Immediate::Ptr imm(make_shared(singleton_object_pool<Immediate>::construct(Result(u32, 0x10))));
+                        Expression::Ptr es_segment(makeMultiplyExpression(es,imm, u32));
+                        Expression::Ptr es_di(makeAddExpression(es_segment, di, u32));
                         insn_to_complete->appendOperand(makeDereferenceExpression(es_di, makeSizeType(optype)),
                                                        isRead, isWritten);
                     }
@@ -1322,7 +1324,7 @@ namespace Dyninst
 		case e_xchg:
 		    break;
 		default:
-		    m_Operation = make_shared(singleton_object_pool<Operation>::construct(&invalid,
+		    m_Operation =make_shared(singleton_object_pool<Operation>::construct(&invalid,
                                     decodedInstruction->getPrefix(), locs, m_Arch));
 		    return;
 		}

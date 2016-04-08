@@ -366,6 +366,7 @@ pair<AST::Ptr, bool> JumpTablePred::ExpandAssignment(Assignment::Ptr assign) {
         if (ast) return make_pair(ast, true); else return make_pair(ast, false);
 
     } else {
+		parsing_printf("\t\tExpanding instruction @ %x: %s\n", assign->addr(), assign->insn()->format().c_str());
         pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
 	if (expandRet.second && expandRet.first) {
 parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());

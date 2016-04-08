@@ -345,7 +345,8 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    // We do not want to overwrite the bound fact
 	    // of the predecessor
 	    prevFact = new BoundFact(*prevFact);
-        }
+		newCopy = true;
+	}
 	parsing_printf("\t\tMeet incoming edge from %lx\n", srcNode->addr());
 	parsing_printf("\t\tThe fact from %lx before applying transfer function\n", srcNode->addr());
 	prevFact->Print();
@@ -415,7 +416,6 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 
     AbsRegion &ar = node->assign()->out();
     Instruction::Ptr insn = node->assign()->insn();
-
     pair<AST::Ptr, bool> expandRet = ExpandAssignment(node->assign());
 	
     if (expandRet.first == NULL) {

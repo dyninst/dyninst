@@ -288,6 +288,7 @@ class DwarfWalker {
    Module *mod_;
    Symtab *symtab_;
    std::vector<const char*> srcFiles_;
+    char** srcFileList_;
    typeCollection *tc_;
 
    std::string name_;

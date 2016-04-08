@@ -782,6 +782,7 @@ enum entryID {
   e_vpacksswb,
   e_vpackusdw,
   e_vpackuswb,
+    e_vpadd,
   e_vpaddb,
   e_vpaddd,
   e_vpaddq,
