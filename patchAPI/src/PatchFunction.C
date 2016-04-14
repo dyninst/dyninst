@@ -873,8 +873,8 @@ void PatchFunction::createLoops() {
          ParseAPI::Loop* l = *lit;
          PatchLoop *pl = _loop_map[l];
 	 // set parent pointer
-         if (l->parent != NULL)
-	     pl->parent = _loop_map[l->parent];
+         if (l->parentLoop() != NULL)
+	     pl->parent = _loop_map[l->parentLoop()];
 	 // set contained loop vector
          vector<ParseAPI::Loop*> containedLoops;
 	 l->getContainedLoops(containedLoops);

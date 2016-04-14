@@ -89,7 +89,7 @@ public:
 
   void createLoops(Block* cur);
 
-};
+    };
 }
 }
 

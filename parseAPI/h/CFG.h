@@ -693,13 +693,16 @@ private:
         std::set<Loop*> containedLoops;
 
 	/** the basic blocks in the loop */
-        std::set<Block*> basicBlocks;
 
+        std::set<Block*> childBlocks;
+        std::set<Block*> exclusiveBlocks;
+    Loop* parent;
 public:
 	/** If loop which directly encloses this loop. NULL if no such loop */
+    void insertBlock(Block* b);
+    void insertChildBlock(Block* b);
 
-	Loop* parent;
-
+    Loop* parentLoop() { return parent; }
 	/** Return true if the given address is within the range of
 	    this loop's basicBlocks */
 
@@ -766,6 +769,7 @@ public:
         ~Loop() { }
 
         std::string format() const;
+    void insertLoop(Loop *childLoop);
 
 private:
 // internal use only

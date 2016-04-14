@@ -684,7 +684,7 @@ void Function::getLoopsByNestingLevel(vector<Loop*>& lbb,
        iter != _loops.end(); ++iter) {
      // if we are only getting the outermost loops
      if (outerMostOnly && 
-         (*iter)->parent != NULL) continue;
+         (*iter)->parentLoop() != NULL) continue;
 
      lbb.push_back(*iter);
   }
