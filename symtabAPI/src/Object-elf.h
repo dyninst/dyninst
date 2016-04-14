@@ -404,6 +404,7 @@ class Object;
     SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &segs); 
 
   private:
+            std::vector<boost::shared_ptr<void> > freeList;
   static void log_elferror (void (*)(const char *), const char *);
     
   Elf_X *elfHdr;

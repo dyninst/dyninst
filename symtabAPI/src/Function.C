@@ -232,7 +232,10 @@ bool FunctionBase::setFramePtr(vector<VariableLocation> *locs)
 
 std::pair<std::string, Dyninst::Offset> InlinedFunction::getCallsite()
 {
-   return make_pair(callsite_file, callsite_line);
+    if(callsite_file) {
+        return make_pair(callsite_file, callsite_line);
+    }
+    return make_pair("<UNKNOWN FILE>", callsite_line);
 }
 
 void FunctionBase::expandLocation(const VariableLocation &loc,
@@ -450,7 +453,9 @@ bool FunctionBase::operator==(const FunctionBase &f)
 }
 
 InlinedFunction::InlinedFunction(FunctionBase *parent) :
-    FunctionBase(parent->getModule()), callsite_line(0),
+    FunctionBase(parent->getModule()),
+    callsite_file(NULL),
+    callsite_line(0),
     module_(parent->getModule())
 {
     inline_parent = parent;

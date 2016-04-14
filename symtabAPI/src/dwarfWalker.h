@@ -12,6 +12,7 @@
 #include "dyntypes.h"
 #include "VariableLocation.h"
 #include "Type.h"
+#include <boost/shared_ptr.hpp>
 
 namespace Dyninst {
 namespace SymtabAPI {
@@ -113,7 +114,7 @@ class DwarfWalker {
    DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg);
 
    ~DwarfWalker();
-
+   std::vector<boost::shared_ptr<void> > getFreeList();
    bool parse();
 
   private:
@@ -289,6 +290,7 @@ class DwarfWalker {
    Symtab *symtab_;
    std::vector<const char*> srcFiles_;
     char** srcFileList_;
+    std::vector<boost::shared_ptr<void > > freeList;
    typeCollection *tc_;
 
    std::string name_;

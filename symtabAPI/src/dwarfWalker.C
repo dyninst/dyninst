@@ -41,7 +41,7 @@
 #include "dwarfExprParser.h"
 #include "pathName.h"
 #include "debug_common.h"
-
+#include <boost/bind.hpp>
 using namespace Dyninst;
 using namespace SymtabAPI;
 using namespace Dwarf;
@@ -97,12 +97,15 @@ DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
 }
 
 DwarfWalker::~DwarfWalker() {
-   for(unsigned i = 0; i < srcFiles_.size(); i++)
-   {
-      dwarf_dealloc(dbg(), const_cast<char*>(srcFiles_[i]), DW_DLA_STRING);
-   }
-   if(srcFileList_) dwarf_dealloc(dbg(), srcFileList_, DW_DLA_LIST);
+   freeList.clear();
 }
+
+std::vector<boost::shared_ptr<void> > DwarfWalker::getFreeList()
+{
+   // return by copy, so ownership gets shared
+   return freeList;
+}
+
 
 bool DwarfWalker::parse() {
    dwarf_printf("Parsing DWARF for %s\n", symtab_->file().c_str());
@@ -253,22 +256,14 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
 
        
 bool DwarfWalker::buildSrcFiles(Dwarf_Die entry) {
-   for(unsigned i = 0; i < srcFiles_.size(); i++)
-   {
-      dwarf_dealloc(dbg(), const_cast<char*>(srcFiles_[i]), DW_DLA_STRING);
-      if(srcFileList_) {
-         dwarf_dealloc(dbg(), srcFileList_, DW_DLA_LIST);
-         srcFileList_ = NULL;
-      }
-   }
-   srcFiles_.clear();
-
    Dwarf_Signed cnt = 0;
    DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList_, &cnt, NULL));
 
    for (unsigned i = 0; i < cnt; ++i) {
       srcFiles_.push_back(srcFileList_[i]);
+      freeList.push_back(boost::shared_ptr<void>(const_cast<char*>(srcFiles_[i]), boost::bind<void>(dwarf_dealloc, dbg(), _1, DW_DLA_STRING)));
    }
+   freeList.push_back(boost::shared_ptr<void>(srcFileList_, boost::bind<void>(dwarf_dealloc, dbg(), _1, DW_DLA_LIST)));
    return true;
 }
 
