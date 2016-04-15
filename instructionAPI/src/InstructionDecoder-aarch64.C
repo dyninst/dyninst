@@ -706,8 +706,12 @@ Expression::Ptr InstructionDecoder_aarch64::makeRdExpr()
 	}
 	else
 	{
-	    reg = is64Bit?((encoding == 31)?aarch64::sp:aarch64::x0):((encoding == 31)?aarch64::wsp:aarch64::w0);
-	    if(encoding != 31)
+	    if(encoding == 31)
+		((IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_EXT(insn) || IS_INSN_LOGICAL_IMM(insn)) && !isPstateWritten)?(reg = is64Bit?aarch64::sp:aarch64::wsp):(isValid = false);
+	    else
+		reg = is64Bit?aarch64::x0:aarch64::w0;
+
+	    if(isValid && encoding != 31)
 	    	reg = makeAarch64RegID(reg, encoding);
 	}
 
@@ -1019,8 +1023,12 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
     }
     else
     {
-    	reg = is64Bit?((encoding == 31)?aarch64::sp:aarch64::x0):((encoding == 31)?aarch64::wsp:aarch64::w0);
-    	if(encoding != 31)
+	if(encoding == 31)
+	    /*((IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_EXT(insn) || IS_INSN_LOGICAL_IMM(insn)) && !isPstateWritten)?*/(reg = is64Bit?aarch64::sp:aarch64::wsp)/*:(isValid = false)*/;
+	else
+	    reg = is64Bit?aarch64::x0:aarch64::w0;
+
+    	if(isValid && encoding != 31)
 	    	reg = makeAarch64RegID(reg, encoding);
     }
 
