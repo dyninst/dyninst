@@ -1024,7 +1024,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeRnExpr()
     else
     {
 	if(encoding == 31)
-	    /*((IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_EXT(insn) || IS_INSN_LOGICAL_IMM(insn)) && !isPstateWritten)?*/(reg = is64Bit?aarch64::sp:aarch64::wsp)/*:(isValid = false)*/;
+	    (IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_EXT(insn))?(reg = is64Bit?aarch64::sp:aarch64::wsp):(isValid = false);
 	else
 	    reg = is64Bit?aarch64::x0:aarch64::w0;
 
