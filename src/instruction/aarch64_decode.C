@@ -125,7 +125,7 @@ test_results_t aarch64_decode_Mutator::executeTest()
 	0xD3, 0x41, 0x20, 0x14,		// UBFM X20, X0, #8, #1
 	0x13, 0x9E, 0x16, 0x8A,		// EXTR W10, W20, W30, #5
 	0x93, 0xD0, 0xFD, 0x00,		// EXTR X0, X8, X16, #63
-	0x12, 0x2A, 0x1F, 0xFF,		// AND WSP, WSP, #63
+	0x12, 0x2A, 0x1F, 0x1F,		// AND WSP, W24, #63
 	0xB2, 0x00, 0x03, 0xDF,		// ORR SP, X30, #0
 	0xD2, 0x7F, 0xAF, 0x34,		// EOR X20, X25, #
 	0x72, 0x00, 0x25, 0x45,		// ANDS W5, W10, #9
@@ -998,10 +998,10 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {wsp};
+	tmpRead = {w24};
 	tmpWritten = {wsp};
 #else
-	tmpRead = list_of(wsp);
+	tmpRead = list_of(w24);
 	tmpWritten = list_of(wsp);
 #endif
 expectedRead.push_back(tmpRead);
