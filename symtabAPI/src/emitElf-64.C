@@ -2464,6 +2464,8 @@ void emitElf64<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf
             case DT_GNU_CONFLICT:
             case DT_JMPREL:
             case DT_PLTGOT:
+            case DT_INIT_ARRAY:
+            case DT_FINI_ARRAY:
                 /**
                  * List every dynamic entry that references an address and isn't already
                  * updated here.  library_adjust will be a page size if
