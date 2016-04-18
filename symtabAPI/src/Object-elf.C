@@ -3474,11 +3474,6 @@ const ostream &Object::dump_state_info(ostream &s)
 
 #endif
 
-template
-class Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64>;
-
-template
-class Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32>;
 
 Offset Object::getPltSlot(string funcName) const
 {

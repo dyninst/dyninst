@@ -66,11 +66,6 @@ unsigned int elfHash(const char *name) {
 }
 unsigned long bgq_sh_flags = SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE;;
 
-template
-class Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64>;
-
-template
-class Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32>;
 
 
 static bool libelfso0Flag;
@@ -79,7 +74,7 @@ static int libelfso1version_major;
 static int libelfso1version_minor;
 
 
-void static setVersion() {
+void setVersion() {
     libelfso0Flag = false;
     libelfso1Flag = false;
     libelfso1version_major = 0;
@@ -116,6 +111,74 @@ void static setVersion() {
   }
 #endif
 #endif
+}
+
+
+template<class ElfTypes>
+emitElf64<ElfTypes>::emitElf64(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *),
+                               Symtab *st) :
+        oldElfHandle(oldElfHandle_), newElf(NULL), oldElf(NULL),
+        obj(st),
+        newEhdr(NULL), oldEhdr(NULL),
+        newPhdr(NULL), oldPhdr(NULL), phdr_offset(0),
+        textData(NULL), symStrData(NULL), dynStrData(NULL),
+        olddynStrData(NULL), olddynStrSize(0),
+        symTabData(NULL), dynsymData(NULL), dynData(NULL),
+        phdrs_scn(NULL), verneednum(0), verdefnum(0),
+        newSegmentStart(0), firstNewLoadSec(NULL),
+        dataSegEnd(0), dynSegOff(0), dynSegAddr(0),
+        phdrSegOff(0), phdrSegAddr(0), dynSegSize(0),
+        secNameIndex(0), currEndOffset(0), currEndAddress(0),
+        linkedStaticData(NULL), loadSecTotalSize(0),
+        isStripped(isStripped_), library_adjust(0),
+        object(obj_), err_func_(err_func),
+        hasRewrittenTLS(false), TLSExists(false), newTLSData(NULL) {
+    oldElf = oldElfHandle->e_elfp();
+    curVersionNum = 2;
+    setVersion();
+
+    //Set variable based on the mechanism to add new load segment
+    // 1) createNewPhdr (Total program headers + 1) - default
+    //	(a) movePHdrsFirst
+    //    (b) create new section called dynphdrs and change pointers (createNewPhdrRegion)
+    //    (c) library_adjust - create room for a new program header in a position-indepdent library
+    //                         by increasing all virtual addresses for the library
+    // 2) Use existing Phdr (used in bleugene - will be handled in function fixPhdrs)
+    //    (a) replaceNOTE section - if NOTE exists
+    //    (b) BSSExpandFlag - expand BSS section - default option
+
+    // default
+    createNewPhdr = true;
+    BSSExpandFlag = false;
+    replaceNOTE = false;
+
+    //If we're dealing with a library that can be loaded anywhere,
+    // then load the program headers into the later part of the binary,
+    // this may trigger a kernel bug that was fixed in Summer 2007,
+    // but is the only reliable way to modify these libraries.
+    //If we're dealing with a library/executable that loads at a specific
+    // address we'll put the phdrs into the page before that address.  This
+    // works and will avoid the kernel bug.
+
+    isBlueGeneQ = obj_->isBlueGeneQ();
+    isStaticBinary = obj_->isStaticBinary();
+    if (isBlueGeneQ) {
+        movePHdrsFirst = false;
+    } else {
+        movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
+    }
+
+    //If we want to try a mode where we add the program headers to a library
+    // that can be loaded anywhere, and put the program headers in the first
+    // page (avoiding the kernel bug), then set library_adjust to getpagesize().
+    // This will shift all addresses in the library down by a page, accounting
+    // for the extra page for program headers.  This causes some significant
+    // changes to the binary, and isn't well tested.
+    library_adjust = 0;
+    if (cannotRelocatePhdrs() && !movePHdrsFirst) {
+        movePHdrsFirst = true;
+        library_adjust = getpagesize();
+    }
 }
 
 template<class ElfTypes>
@@ -208,72 +271,6 @@ std::string phdrTypeStr(Elf64_Word phdr_type) {
 
     }
 
-}
-template<class ElfTypes>
-emitElf64<ElfTypes>::emitElf64(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *),
-                               Symtab *st) :
-        oldElfHandle(oldElfHandle_), newElf(NULL), oldElf(NULL),
-        obj(st),
-        newEhdr(NULL), oldEhdr(NULL),
-        newPhdr(NULL), oldPhdr(NULL), phdr_offset(0),
-        textData(NULL), symStrData(NULL), dynStrData(NULL),
-        olddynStrData(NULL), olddynStrSize(0),
-        symTabData(NULL), dynsymData(NULL), dynData(NULL),
-        phdrs_scn(NULL), verneednum(0), verdefnum(0),
-        newSegmentStart(0), firstNewLoadSec(NULL),
-        dataSegEnd(0), dynSegOff(0), dynSegAddr(0),
-        phdrSegOff(0), phdrSegAddr(0), dynSegSize(0),
-        secNameIndex(0), currEndOffset(0), currEndAddress(0),
-        linkedStaticData(NULL), loadSecTotalSize(0),
-        isStripped(isStripped_), library_adjust(0),
-        object(obj_), err_func_(err_func),
-        hasRewrittenTLS(false), TLSExists(false), newTLSData(NULL) {
-    oldElf = oldElfHandle->e_elfp();
-    curVersionNum = 2;
-    setVersion();
-
-    //Set variable based on the mechanism to add new load segment
-    // 1) createNewPhdr (Total program headers + 1) - default
-    //	(a) movePHdrsFirst
-    //    (b) create new section called dynphdrs and change pointers (createNewPhdrRegion)
-    //    (c) library_adjust - create room for a new program header in a position-indepdent library
-    //                         by increasing all virtual addresses for the library
-    // 2) Use existing Phdr (used in bleugene - will be handled in function fixPhdrs)
-    //    (a) replaceNOTE section - if NOTE exists
-    //    (b) BSSExpandFlag - expand BSS section - default option
-
-    // default
-    createNewPhdr = true;
-    BSSExpandFlag = false;
-    replaceNOTE = false;
-
-    //If we're dealing with a library that can be loaded anywhere,
-    // then load the program headers into the later part of the binary,
-    // this may trigger a kernel bug that was fixed in Summer 2007,
-    // but is the only reliable way to modify these libraries.
-    //If we're dealing with a library/executable that loads at a specific
-    // address we'll put the phdrs into the page before that address.  This
-    // works and will avoid the kernel bug.
-
-    isBlueGeneQ = obj_->isBlueGeneQ();
-    isStaticBinary = obj_->isStaticBinary();
-    if (isBlueGeneQ) {
-        movePHdrsFirst = false;
-    } else {
-        movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
-    }
-
-    //If we want to try a mode where we add the program headers to a library
-    // that can be loaded anywhere, and put the program headers in the first
-    // page (avoiding the kernel bug), then set library_adjust to getpagesize().
-    // This will shift all addresses in the library down by a page, accounting
-    // for the extra page for program headers.  This causes some significant
-    // changes to the binary, and isn't well tested.
-    library_adjust = 0;
-    if (cannotRelocatePhdrs() && !movePHdrsFirst) {
-        movePHdrsFirst = true;
-        library_adjust = getpagesize();
-    }
 }
 
 template<class ElfTypes>
@@ -2550,3 +2547,5 @@ void emitElf64<ElfTypes>::addDTNeeded(string s) {
 }
 
 
+template class emitElf64<ElfTypes32>;
+template class emitElf64<ElfTypes64>;

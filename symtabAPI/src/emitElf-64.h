@@ -50,7 +50,7 @@ extern const char *INTERP_NAME;
 extern const char *pdelf_get_shnames(Elf_X *elf);
 
 namespace Dyninst{
-namespace SymtabAPI{
+    namespace SymtabAPI{
 // Error reporting
 
         struct sortByIndex {
@@ -123,7 +123,7 @@ namespace SymtabAPI{
 
         template<class ElfTypes = ElfTypes64>
         class emitElf64 : public ElfTypes {
-  public:
+        public:
             emitElf64(Elf_X *pX, bool i, Object *pObject, void (*pFunction)(const char *), Symtab *pSymtab);
 
             typedef typename ElfTypes::Elf_Ehdr Elf_Ehdr;
@@ -143,94 +143,94 @@ namespace SymtabAPI{
             typedef typename ElfTypes::Elf_Verdef Elf_Verdef;
             typedef typename ElfTypes::Elf_Verdaux Elf_Verdaux;
 
-    ~emitElf64() {
-        if( linkedStaticData ) delete linkedStaticData;
-    }
+            ~emitElf64() {
+                if( linkedStaticData ) delete linkedStaticData;
+            }
 
             bool createSymbolTables(vector<Symbol *> &allSymbols);
 
             bool driver(std::string fName);
- 
-  private:
-    Elf_X *oldElfHandle;
-    Elf *newElf;
-    Elf *oldElf;
+
+        private:
+            Elf_X *oldElfHandle;
+            Elf *newElf;
+            Elf *oldElf;
             Symtab *obj;
-    //New Section & Program Headers
-    Elf_Ehdr *newEhdr;
+            //New Section & Program Headers
+            Elf_Ehdr *newEhdr;
             Elf_Ehdr *oldEhdr;
 
             Elf_Phdr *newPhdr;
             Elf_Phdr *oldPhdr;
-    Offset phdr_offset;
+            Offset phdr_offset;
 
-    //important data sections in the
-    //new Elf that need updated
-    Elf_Data *textData;
-    Elf_Data *symStrData;
-    Elf_Data *dynStrData;
-    char *olddynStrData;
-    unsigned olddynStrSize;
-    Elf_Data *symTabData;
-    Elf_Data *dynsymData;
-    Elf_Data *dynData;
+            //important data sections in the
+            //new Elf that need updated
+            Elf_Data *textData;
+            Elf_Data *symStrData;
+            Elf_Data *dynStrData;
+            char *olddynStrData;
+            unsigned olddynStrSize;
+            Elf_Data *symTabData;
+            Elf_Data *dynsymData;
+            Elf_Data *dynData;
 
-    Elf_Scn *phdrs_scn;
+            Elf_Scn *phdrs_scn;
 
-    std::vector<Region *>nonLoadableSecs;
-    std::vector<Region *> newSecs;
+            std::vector<Region *>nonLoadableSecs;
+            std::vector<Region *> newSecs;
             std::map<unsigned, std::vector<Elf_Dyn *> > dynamicSecData;
-    std::vector<std::string> DT_NEEDEDEntries;
-    std::vector<std::pair<long, long> > new_dynamic_entries;    
-    std::vector<std::string> unversionedNeededEntries;
+            std::vector<std::string> DT_NEEDEDEntries;
+            std::vector<std::pair<long, long> > new_dynamic_entries;
+            std::vector<std::string> unversionedNeededEntries;
 
-    // Symbol version table data
-    std::map<std::string, std::map<std::string, unsigned> >verneedEntries;    //verneed entries
-    std::map<std::string, unsigned> verdefEntries;                            //verdef entries
-    std::map<unsigned, std::vector<std::string> > verdauxEntries;
-    std::map<std::string, unsigned> versionNames;
+            // Symbol version table data
+            std::map<std::string, std::map<std::string, unsigned> >verneedEntries;    //verneed entries
+            std::map<std::string, unsigned> verdefEntries;                            //verdef entries
+            std::map<unsigned, std::vector<std::string> > verdauxEntries;
+            std::map<std::string, unsigned> versionNames;
             std::vector<Elf_Half> versionSymTable;
-    int curVersionNum, verneednum, verdefnum;
+            int curVersionNum, verneednum, verdefnum;
 
-    // Needed when adding a new segment
-    Elf_Off newSegmentStart;
+            // Needed when adding a new segment
+            Elf_Off newSegmentStart;
             Elf_Shdr *firstNewLoadSec;// initialize to NULL
- 
-    // data segment end
-    Elf_Off dataSegEnd;
+
+            // data segment end
+            Elf_Off dataSegEnd;
             Elf_Off dynSegOff, dynSegAddr, phdrSegOff, phdrSegAddr;
-    unsigned dynSegSize;
+            unsigned dynSegSize;
 
-    //Section Names for all sections
-    vector<std::string> secNames;
-    unsigned secNameIndex;
-    Offset currEndOffset;
-    Address currEndAddress;
+            //Section Names for all sections
+            vector<std::string> secNames;
+            unsigned secNameIndex;
+            Offset currEndOffset;
+            Address currEndAddress;
 
-    // Pointer to all relocatable code and data allocated during a static link,
-    // to be deleted after written out
-    char *linkedStaticData;
+            // Pointer to all relocatable code and data allocated during a static link,
+            // to be deleted after written out
+            char *linkedStaticData;
 
-    //flags
-    // Expand NOBITS sections within the object file to their size
-    bool BSSExpandFlag;
-    bool movePHdrsFirst;
-    bool createNewPhdr;
-    bool replaceNOTE;
-    unsigned loadSecTotalSize; 
+            //flags
+            // Expand NOBITS sections within the object file to their size
+            bool BSSExpandFlag;
+            bool movePHdrsFirst;
+            bool createNewPhdr;
+            bool replaceNOTE;
+            unsigned loadSecTotalSize;
 
-    bool isStripped;
-    int library_adjust;
-    Object *object;
+            bool isStripped;
+            int library_adjust;
+            Object *object;
 
-    void (*err_func_)(const char*);
+            void (*err_func_)(const char*);
 
             bool createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf_Sym *> &symbols,
                                  bool dynSymFlag = false);
-    void findSegmentEnds();
-    void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
-    void fixPhdrs(unsigned &);
-    void createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIndexMapping);
+            void findSegmentEnds();
+            void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
+            void fixPhdrs(unsigned &);
+            void createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIndexMapping);
 
             bool addSectionHeaderTable(Elf_Shdr *shdr);
 
@@ -242,10 +242,10 @@ namespace SymtabAPI{
             void createRelocationSections(std::vector<relocationEntry> &relocation_table, bool isDynRelocs,
                                           dyn_hash_map<std::string, unsigned long> &dynSymNameMapping);
 
-    void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
+            void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 
-    bool hasRewrittenTLS;
-    bool TLSExists;
+            bool hasRewrittenTLS;
+            bool TLSExists;
             Elf_Shdr *newTLSData;
 
             void updateDynamic(unsigned tag, Elf_Addr val);
@@ -260,17 +260,18 @@ namespace SymtabAPI{
             void createDynamicSection(void *dynData, unsigned size, Elf_Dyn *&dynsecData, unsigned &dynsecSize,
                                       unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
 
-    void addDTNeeded(std::string s);
+            void addDTNeeded(std::string s);
 
-    void log_elferror(void (*err_func)(const char *), const char* msg);
-    bool hasPHdrSectionBug();
-    bool cannotRelocatePhdrs();
+            void log_elferror(void (*err_func)(const char *), const char* msg);
+            bool hasPHdrSectionBug();
+            bool cannotRelocatePhdrs();
 
             bool isBlueGeneQ;
             bool isStaticBinary;
 
-};
-
+        };
+        extern template class emitElf64<ElfTypes32>;
+        extern template class emitElf64<ElfTypes64>;
 
     } // namespace SymtabAPI
 } // namespace Dyninst
