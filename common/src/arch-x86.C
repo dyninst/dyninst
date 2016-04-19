@@ -480,7 +480,7 @@ enum {
 #define VEXW_MAX VEXW92
 
 /* SIMD op conversion table */
-static char vex3_simdop_convert[3][4] = {
+static signed char vex3_simdop_convert[3][4] = {
   {0, 2,  1, 3},
   {0, 2,  1, 3},
   {0, 1, -1, 2}
