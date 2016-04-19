@@ -35,6 +35,8 @@
 #include "Parser.h"
 #include "debug_parse.h"
 
+#include "version.h"
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -47,9 +49,9 @@ namespace {
     }
 }
 
-static const int ParseAPI_major_version = 9;
-static const int ParseAPI_minor_version = 0;
-static const int ParseAPI_maintenance_version = 4;
+static const int ParseAPI_major_version = DYNINST_MAJOR_VERSION;
+static const int ParseAPI_minor_version = DYNINST_MINOR_VERSION;
+static const int ParseAPI_maintenance_version = DYNINST_PATCH_VERSION;
 
 void CodeObject::version(int& major, int& minor, int& maintenance)
 {

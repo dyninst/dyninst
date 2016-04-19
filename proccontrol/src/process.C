@@ -27,7 +27,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
+#include "version.h"
 #include "int_process.h"
 #include "irpc.h"
 #include "procpool.h"
@@ -74,9 +74,9 @@ bool int_process::in_callback = false;
 std::set<int_thread::continue_cb_t> int_thread::continue_cbs;
 SymbolReaderFactory *int_process::user_set_symbol_reader = NULL;
 
-static const int ProcControl_major_version = 8;
-static const int ProcControl_minor_version = 2;
-static const int ProcControl_maintenance_version = 0;
+static const int ProcControl_major_version = DYNINST_MAJOR_VERSION;
+static const int ProcControl_minor_version = DYNINST_MINOR_VERSION;
+static const int ProcControl_maintenance_version = DYNINST_PATCH_VERSION;
 
 bool Dyninst::ProcControlAPI::is_restricted_ptrace = false;
 

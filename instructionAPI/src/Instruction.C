@@ -48,6 +48,7 @@
 
 #define INSIDE_INSTRUCTION_API
 #include "common/src/arch-x86.h"
+#include "version.h"
 
 using namespace std;
 using namespace NS_x86;
@@ -59,9 +60,9 @@ namespace Dyninst
   namespace InstructionAPI
   {
 
-      static const int IAPI_major_version = 8;
-      static const int IAPI_minor_version = 2;
-      static const int IAPI_maintenance_version = 0;
+      static const int IAPI_major_version = DYNINST_MAJOR_VERSION;
+      static const int IAPI_minor_version = DYNINST_MINOR_VERSION;
+      static const int IAPI_maintenance_version = DYNINST_PATCH_VERSION;
 
       void Instruction::version(int& major, int& minor, int& maintenance)
       {
