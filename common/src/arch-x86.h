@@ -109,6 +109,14 @@ enum AMD64_REG_NUMBERS {
     REGNUM_MM5,
     REGNUM_MM6,
     REGNUM_MM7,
+    REGNUM_K0,
+    REGNUM_K1,
+    REGNUM_K2,
+    REGNUM_K3,
+    REGNUM_K4,
+    REGNUM_K5,
+    REGNUM_K6,
+    REGNUM_K7,
     REGNUM_XMM0,
     REGNUM_XMM1,
     REGNUM_XMM2,
@@ -125,9 +133,22 @@ enum AMD64_REG_NUMBERS {
     REGNUM_XMM13,
     REGNUM_XMM14,
     REGNUM_XMM15,
-    REGNUM_EFLAGS,
-    REGNUM_FS,
-    REGNUM_GS,
+    REGNUM_XMM16,
+    REGNUM_XMM17,
+    REGNUM_XMM18,
+    REGNUM_XMM19,
+    REGNUM_XMM20,
+    REGNUM_XMM21,
+    REGNUM_XMM22,
+    REGNUM_XMM23,
+    REGNUM_XMM24,
+    REGNUM_XMM25,
+    REGNUM_XMM26,
+    REGNUM_XMM27,
+    REGNUM_XMM28,
+    REGNUM_XMM29,
+    REGNUM_XMM30,
+    REGNUM_XMM31,
     REGNUM_YMM0,
     REGNUM_YMM1,
     REGNUM_YMM2,
@@ -144,6 +165,57 @@ enum AMD64_REG_NUMBERS {
     REGNUM_YMM13,
     REGNUM_YMM14,
     REGNUM_YMM15,
+    REGNUM_YMM16,
+    REGNUM_YMM17,
+    REGNUM_YMM18,
+    REGNUM_YMM19,
+    REGNUM_YMM20,
+    REGNUM_YMM21,
+    REGNUM_YMM22,
+    REGNUM_YMM23,
+    REGNUM_YMM24,
+    REGNUM_YMM25,
+    REGNUM_YMM26,
+    REGNUM_YMM27,
+    REGNUM_YMM28,
+    REGNUM_YMM29,
+    REGNUM_YMM30,
+    REGNUM_YMM31,
+    REGNUM_ZMM0,
+    REGNUM_ZMM1,
+    REGNUM_ZMM2,
+    REGNUM_ZMM3,
+    REGNUM_ZMM4,
+    REGNUM_ZMM5,
+    REGNUM_ZMM6,
+    REGNUM_ZMM7,
+    REGNUM_ZMM8,
+    REGNUM_ZMM9,
+    REGNUM_ZMM10,
+    REGNUM_ZMM11,
+    REGNUM_ZMM12,
+    REGNUM_ZMM13,
+    REGNUM_ZMM14,
+    REGNUM_ZMM15,
+    REGNUM_ZMM16,
+    REGNUM_ZMM17,
+    REGNUM_ZMM18,
+    REGNUM_ZMM19,
+    REGNUM_ZMM20,
+    REGNUM_ZMM21,
+    REGNUM_ZMM22,
+    REGNUM_ZMM23,
+    REGNUM_ZMM24,
+    REGNUM_ZMM25,
+    REGNUM_ZMM26,
+    REGNUM_ZMM27,
+    REGNUM_ZMM28,
+    REGNUM_ZMM29,
+    REGNUM_ZMM30,
+    REGNUM_ZMM31,
+    REGNUM_EFLAGS,
+    REGNUM_FS,
+    REGNUM_GS,
     REGNUM_IGNORED
 }
 ;
@@ -460,6 +532,29 @@ enum {
 COMMON_EXPORT void ia32_set_mode_64(bool mode);
 COMMON_EXPORT bool ia32_is_mode_64();
 
+/**
+ * AVX/AVX2/EVEX addressing modes (not in manual).
+ *
+ * am_HK operand is an EVEX masking register (k0 - k7) which is specified
+ *        using the EVEX.vvvv bits.
+ * am_VK the reg field of the R/M byte specifies an EVEX masking register.
+ * am_WK the R/M field of the R/M byte specifies an EVEX masking register.
+ *
+ * am_XH same as am_H except the register is constrained to an XMM register,
+ *        reguardless of the VEX.L field.
+ * am_XV same as am_V except the register is contrained to an XMM register,
+ *        reguardless of the VEX.L field.
+ * am_XW same as am_W except the register is constrained to an XMM register,
+ *        reguardless of the VEX.L field.
+ *
+ * am_YH same as am_H except the register is constrained to either an XMM
+ *        or YMM register, based on the VEX.L bits field.
+ * am_YV same as am_V except the register is constrained to either an XMM
+ *        or YMM register, based on the VEX.L bits field.
+ * am_YW same as am_W except the register is constrained to either an XMM
+ *        or YMM register, based on the VEX.L bits field.
+ */
+
 // addressing methods (see appendix A-2)
 // I've added am_reg (for registers implicitely encoded in instruciton), 
 // and am_stackX for stack operands [this kinda' messy since there are actually two operands:
@@ -468,8 +563,9 @@ COMMON_EXPORT bool ia32_is_mode_64();
 // ADDED: am_ImplImm for implicit immediates
 // ADDED: am_RM, am_UM,
 enum { am_A=1, am_B, am_C, am_D, am_E, am_F, am_G, am_H, am_I, am_J, am_M, //10 
-      am_N, am_O, am_P, am_Q, am_R, am_S, am_T, am_U, am_UM, am_V, am_W, am_X, // 20
-      am_Y, am_reg, am_stackH, am_stackP, am_allgprs, am_tworeghack, am_ImplImm, am_RM }; // pusH and poP produce different addresses
+    am_N, am_O, am_P, am_Q, am_R, am_S, am_T, am_U, am_UM, am_V, am_W, am_X, // 20
+    am_Y, am_reg, am_stackH, am_stackP, am_allgprs, am_tworeghack, am_ImplImm, am_RM,
+    am_HK, am_VK, am_WK, am_XH, am_XV, am_XW, am_YH, am_YV, am_YW }; // pusH and poP produce different addresses
 
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
 // ADDED: op_y
