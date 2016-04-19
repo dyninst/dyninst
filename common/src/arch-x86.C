@@ -7812,7 +7812,20 @@ void ia32_memacc::print()
 int getOperSz(const ia32_prefixes &pref) 
 {
     /* TODO: VEX prefixed instructions only touch XMM or YMM unless they are loading/storing to memory. */
-    if (pref.vex_prefix[0]) return pref.vex_l ? 32 : 16;
+    if (pref.vex_prefix[0]) 
+    {
+        switch(pref.vex_ll)
+        {
+            case 0:
+                return 16;
+            case 1:
+                return 32;
+            case 2:
+                return 64;
+            default: /* Shouldn't be valid */
+                return 16;
+        }
+    }
     else if (pref.rexW()) return 4;
     else if (pref.getPrefix(2) == PREFIX_SZOPER) return 1;
     else return 2;
@@ -8166,7 +8179,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 /* Whats the index into the vex2 table? */
                 idx = gotit->tabidx;
                 /* Set the current entry */
-                gotit = &vex2Map[idx][pref.vex_l];
+                gotit = &vex2Map[idx][pref.vex_ll];
                 /* Set the next table - this is almost always t_done */
                 nxtab = gotit->otable;
                 break;
@@ -9338,7 +9351,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
   memset(pref.vex_prefix, 0, 4);
   pref.opcode_prefix = 0;
   pref.sse_mult = 0;
-  pref.vex_l = -1;
+  pref.vex_ll = -1;
   pref.vex_w = -1;
   pref.vex_present = false;
   // pref.vvvv_reg = 0;
@@ -9399,7 +9412,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
       pref.vex_prefix[1] = addr[2];
       pref.vex_prefix[2] = addr[3];
 
-      pref.vex_l = EVEXGET_L(addr[3]);
+      pref.vex_ll = EVEXGET_L(addr[3]);
       pref.vex_w = EVEXGET_W(addr[2]);
       //pref.vvvv_reg = EVEXGET_VVVV(addr[2]);
       pref.count += 4;
@@ -9429,7 +9442,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
     case PREFIX_VEX3:
       pref.vex_prefix[0] = addr[1];
       pref.vex_prefix[1] = addr[2];
-      pref.vex_l = VEXGET_L(addr[2]);
+      pref.vex_ll = VEXGET_L(addr[2]);
       pref.vex_w = VEX3GET_W(addr[2]);
       //pref.vvvv_reg = VEXGET_VVVV(addr[2]);
       pref.count += 3;
@@ -9459,7 +9472,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
     case PREFIX_VEX2:
       pref.vex_prefix[0] = addr[1];
 
-      pref.vex_l = VEXGET_L(addr[1]);
+      pref.vex_ll = VEXGET_L(addr[1]);
       //pref.vvvv_reg = VEXGET_VVVV(addr[1]);
       pref.vex_w = -1; /* No W bit for VEX2 */
 

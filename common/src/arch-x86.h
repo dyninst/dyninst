@@ -563,7 +563,7 @@ COMMON_EXPORT bool ia32_is_mode_64();
 // ADDED: am_ImplImm for implicit immediates
 // ADDED: am_RM, am_UM,
 enum { am_A=1, am_B, am_C, am_D, am_E, am_F, am_G, am_H, am_I, am_J, am_M, //10 
-    am_N, am_O, am_P, am_Q, am_R, am_S, am_T, am_U, am_UM, am_V, am_W, am_X, // 20
+    am_N, am_O, am_P, am_Q, am_R, am_S, am_T, am_XU, am_YU, am_U, am_UM, am_V, am_W, am_X, // 20
     am_Y, am_reg, am_stackH, am_stackP, am_allgprs, am_tworeghack, am_ImplImm, am_RM,
     am_HK, am_VK, am_WK, am_XH, am_XV, am_XW, am_YH, am_YV, am_YW }; // pusH and poP produce different addresses
 
@@ -670,7 +670,7 @@ class ia32_prefixes
   unsigned char getOperSzPrefix() const { return prfx[2]; }
   bool vex_present; /* Does this instruction have a vex prefix?  */
   unsigned char vex_prefix[4]; /* support up to EVEX (VEX-512) */
-  unsigned char vex_l; /* l bit for VEX2 and VEX3 */
+  unsigned char vex_ll; /* l bit for VEX2 and VEX3 */
   unsigned char vex_w; /* w bit for VEX2 and VEX3 */
   int sse_mult; /* 0 VEX2, 1 VEX3, 2 EVEX */
   //int vvvv_reg; /* The register specified by this prefix. */
