@@ -88,6 +88,7 @@ class DYNELF_EXPORT Elf_X {
     unsigned short e_shnum() const;
     unsigned short e_shstrndx() const;
     const char *e_rawfile(size_t &nbytes) const;
+    unsigned short e_endian() const;
 
     Elf_X *e_next(Elf_X *ref);
     Elf_X *e_rand(unsigned offset);
@@ -107,7 +108,7 @@ class DYNELF_EXPORT Elf_X {
     void e_shentsize(unsigned short input);
     void e_shnum(unsigned short input);
     void e_shstrndx(unsigned short input);
-
+    void e_endian(unsigned short input);
     // Data Interface
     bool isValid() const;
     int wordSize() const;
@@ -125,6 +126,7 @@ class DYNELF_EXPORT Elf_X {
     int filedes;
     bool is64;
     bool isArchive;
+    bool isBigEndian;
     std::vector<Elf_X_Shdr> shdrs;
     std::vector<Elf_X_Phdr> phdrs;
     unsigned int ref_count;

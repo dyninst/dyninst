@@ -138,6 +138,7 @@ Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
        if (elf_kind(elf) == ELF_K_ELF) {
           char *identp = elf_getident(elf, NULL);
           is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+           isBigEndian = (identp && identp[EI_DATA] == ELFDATA2MSB);
        }
        else if(elf_kind(elf) == ELF_K_AR) {
           char *identp = elf_getident(elf, NULL);
@@ -159,6 +160,11 @@ Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
        phdrs.resize(phdrnum);
     }
 }
+
+unsigned short Elf_X::e_endian() const {
+    return isBigEndian;
+}
+
 
 Elf_X::Elf_X(char *mem_image, size_t mem_size)
     : elf(NULL), ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL),
