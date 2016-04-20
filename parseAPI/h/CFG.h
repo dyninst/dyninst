@@ -137,6 +137,8 @@ class PARSER_EXPORT allocatable {
 };
 
 class Block;
+
+
 class PARSER_EXPORT Edge : public allocatable {
    friend class CFGModifier;
  protected:
@@ -297,6 +299,7 @@ class PARSER_EXPORT Block : public Dyninst::interval<Address>,
     Address lastInsnAddr() const { return _lastInsn; } 
     Address last() const { return lastInsnAddr(); }
     Address size() const { return _end - _start; }
+    bool containsAddr(Address addr) const { return addr >= _start && addr < _end; }
 
     bool parsed() const { return _parsed; }
 
@@ -782,7 +785,8 @@ private:
 	/** get either contained or outer loops, determined by outerMostOnly */
 	bool getLoops(vector<Loop*>&, 
 		      bool outerMostOnly) const;
-}; // class Loop
+
+        }; // class Loop
 
 /** A class to represent the tree of nested loops and 
  *  callees (functions) in the control flow graph.

@@ -15,12 +15,12 @@ void BoundFactsCalculator::NaturalDFS(Node::Ptr cur) {
     NodeIterator nbegin, nend;
     cur->outs(nbegin, nend);
 
-    for (; nbegin != nend; ++nbegin) 
+    for (; nbegin != nend; ++nbegin)
         if (nodeColor.find(*nbegin) == nodeColor.end())
 	    NaturalDFS(*nbegin);
 
     reverseOrder.push_back(cur);
-   
+
 }
 
 void BoundFactsCalculator::ReverseDFS(Node::Ptr cur) {
@@ -29,7 +29,7 @@ void BoundFactsCalculator::ReverseDFS(Node::Ptr cur) {
     NodeIterator nbegin, nend;
     cur->ins(nbegin, nend);
 
-    for (; nbegin != nend; ++nbegin) 
+    for (; nbegin != nend; ++nbegin)
         if (nodeColor.find(*nbegin) == nodeColor.end())
 	    ReverseDFS(*nbegin);
 }
@@ -42,7 +42,7 @@ static void BuildEdgeFromVirtualEntry(SliceNode::Ptr virtualEntry,
     if (targetMap.find(curBlock) != targetMap.end()) {
         const vector<SliceNode::Ptr> &targets = targetMap[curBlock];
 	for (auto nit = targets.begin(); nit != targets.end(); ++nit) {
-	    SliceNode::Ptr trgNode = *nit; 
+	    SliceNode::Ptr trgNode = *nit;
 	    slice->insertPair(virtualEntry, trgNode, TypedSliceEdge::create(virtualEntry, trgNode, FALLTHROUGH));
 	}
 	return;
@@ -51,9 +51,9 @@ static void BuildEdgeFromVirtualEntry(SliceNode::Ptr virtualEntry,
     visit.insert(curBlock);
     for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit)
         if ((*eit)->type() != CALL && (*eit)->type() != RET) {
-	    BuildEdgeFromVirtualEntry(virtualEntry, (*eit)->trg(), targetMap, visit, slice);	   
+	    BuildEdgeFromVirtualEntry(virtualEntry, (*eit)->trg(), targetMap, visit, slice);
 	}
-}				      
+}
 
 void BoundFactsCalculator::DetermineAnalysisOrder() {
     NodeIterator nbegin, nend;
@@ -62,7 +62,7 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
     nodeColor.clear();
     reverseOrder.clear();
     analysisOrder.clear();
-    for (; nbegin != nend; ++nbegin) 
+    for (; nbegin != nend; ++nbegin)
         if (nodeColor.find(*nbegin) == nodeColor.end()) {
 	    NaturalDFS(*nbegin);
 	}
@@ -86,7 +86,7 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 	for (; nbegin != nend; ++nbegin) {
 	    if (analysisOrder[*nbegin] == curOrder) {
 	        curNodes.push_back(*nbegin);
-	    } 
+	    }
 	}
 
         // If this SCC does not have any outside edge,
@@ -120,7 +120,7 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 		        targetMap[b].push_back(node);
 		    }
 		}
-		BuildEdgeFromVirtualEntry(virtualEntry, virtualEntry->block(), targetMap, visit, slice); 
+		BuildEdgeFromVirtualEntry(virtualEntry, virtualEntry->block(), targetMap, visit, slice);
 	    }
 	}
     }
@@ -134,14 +134,14 @@ bool BoundFactsCalculator::HasIncomingEdgesFromLowerLevel(int curOrder, vector<N
         Node::Ptr cur = *nit;
 	NodeIterator nbegin, nend;
 	cur->ins(nbegin, nend);
-	for (; nbegin != nend; ++nbegin) 
+	for (; nbegin != nend; ++nbegin)
 	    if (analysisOrder[*nbegin] < curOrder) return true;
     }
     return false;
 
 }
 
-bool BoundFactsCalculator::CalculateBoundedFacts() {    
+bool BoundFactsCalculator::CalculateBoundedFacts() {
     /* We use a dataflow analysis to calculate the value bound
      * of each register and potentially some memory locations.
      * The key steps of the dataflow analysis are 
@@ -160,7 +160,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
      * memory is always unbounded; doing and operation on a register with a constant
      * makes the register bounded. 
      */
-    
+
     DetermineAnalysisOrder();
     queue<Node::Ptr> workingList;
     unordered_set<Node::Ptr, Node::NodePtrHasher> inQueue;
@@ -177,7 +177,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	        curNodes.push_back(*nbegin);
 		workingList.push(*nbegin);
 		inQueue.insert(*nbegin);
-	    } 
+	    }
 	}
 
 	if (!HasIncomingEdgesFromLowerLevel(curOrder, curNodes)) {
@@ -196,18 +196,18 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    Node::Ptr curNode = workingList.front();
 	    workingList.pop();
 	    inQueue.erase(curNode);
-	    
+
 	    SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);
 	    ++inQueueLimit[curNode];
 	    if (inQueueLimit[curNode] > IN_QUEUE_LIMIT) continue;
-	    
+
 	    BoundFact* oldFactIn = GetBoundFactIn(curNode);
 	    parsing_printf("Calculate Meet for %lx", node->addr());
 	    if (node->assign()) {
 	        parsing_printf(", insn: %s\n", node->assign()->insn()->format().c_str());
 	    }
 	    else {
-	        if (node->block() == NULL) 
+	        if (node->block() == NULL)
 		    parsing_printf(", the VirtualExit node\n");
 		else
 		    parsing_printf(", the VirtualEntry node\n");
@@ -224,7 +224,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    if (newFactIn != NULL) newFactIn->Print(); else parsing_printf("\t\tNot calculated\n");
 
 	    // If the current node has not been calcualted yet,
-	    // or the new meet results are different from the 
+	    // or the new meet results are different from the
 	    // old ones, we keep the new results
 	    if (newFactIn != NULL && (oldFactIn == NULL || *oldFactIn != *newFactIn)) {
 	        parsing_printf("\tFacts change!\n");
@@ -235,9 +235,9 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 		// The current node has a transfer function
 		// that changes the analysis results
 		CalcTransferFunction(curNode, newFactOut);
-	
+
 		if (boundFactsOut.find(curNode) != boundFactsOut.end() && boundFactsOut[curNode] != NULL)
-		    delete boundFactsOut[curNode];		    
+		    delete boundFactsOut[curNode];
 		boundFactsOut[curNode] = newFactOut;
 		curNode->outs(nbegin, nend);
 	        for (; nbegin != nend; ++nbegin)
@@ -262,12 +262,12 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 
 void BoundFactsCalculator::ThunkBound( BoundFact*& curFact, Node::Ptr src, Node::Ptr trg, bool &newCopy) {
 
-    // This function checks whether any found thunk is between 
-    // the src node and the trg node. If there is any, then we have 
+    // This function checks whether any found thunk is between
+    // the src node and the trg node. If there is any, then we have
     // extra bound information to be added.
     ParseAPI::Block *srcBlock;
     Address srcAddr = 0;
-    if (src == Node::Ptr()) 
+    if (src == Node::Ptr())
         srcBlock = func->entry();
     else {
         SliceNode::Ptr srcNode = boost::static_pointer_cast<SliceNode>(src);
@@ -275,7 +275,7 @@ void BoundFactsCalculator::ThunkBound( BoundFact*& curFact, Node::Ptr src, Node:
 	srcAddr = srcNode->addr();
 
     }
-    SliceNode::Ptr trgNode = boost::static_pointer_cast<SliceNode>(trg);			       
+    SliceNode::Ptr trgNode = boost::static_pointer_cast<SliceNode>(trg);
     ParseAPI::Block *trgBlock = trgNode->block();
     Address trgAddr = trgNode->addr();
 
@@ -325,22 +325,22 @@ static bool IsConditionalJump(Instruction::Ptr insn) {
 
 BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 
-    SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);     
+    SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);
 
     EdgeIterator gbegin, gend;
-    curNode->ins(gbegin, gend);    
+    curNode->ins(gbegin, gend);
     BoundFact* newFact = NULL;
-    
-    bool first = true;	
+
+    bool first = true;
     for (; gbegin != gend; ++gbegin) {
-        TypedSliceEdge::Ptr edge = boost::static_pointer_cast<TypedSliceEdge>(*gbegin);	
-	SliceNode::Ptr srcNode = boost::static_pointer_cast<SliceNode>(edge->source()); 
-	BoundFact *prevFact = GetBoundFactOut(srcNode);	    
+        TypedSliceEdge::Ptr edge = boost::static_pointer_cast<TypedSliceEdge>(*gbegin);
+	SliceNode::Ptr srcNode = boost::static_pointer_cast<SliceNode>(edge->source());
+	BoundFact *prevFact = GetBoundFactOut(srcNode);
 	bool newCopy = false;
 	if (prevFact == NULL) {
 	    parsing_printf("\t\tIncoming node %lx has not been calculated yet, ignore it\n", srcNode->addr());
 	    continue;
-	} else {	    
+	} else {
 	    // Otherwise, create a new copy.
 	    // We do not want to overwrite the bound fact
 	    // of the predecessor
@@ -378,7 +378,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	        fprintf(stderr, "From %lx to %lx\n", srcNode->addr(), node->addr());
 		assert(0);
 	    }
-	} 
+	}
 	ThunkBound(prevFact, srcNode, node, newCopy);
 	parsing_printf("\t\tFact from %lx after applying transfer function\n", srcNode->addr());
 	prevFact->Print();
@@ -387,7 +387,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    // we just copy it.
 	    // We can do this because if an a-loc
 	    // is missing in the fact map, we assume
-	    // the a-loc is top. 
+	    // the a-loc is top.
 	    first = false;
 	    if (newCopy) newFact = prevFact; else newFact = new BoundFact(*prevFact);
 	} else {
@@ -399,13 +399,13 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 }
 
 void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact){
-    SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);    
+    SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);
     if (!node->assign()) return;
     if (node->assign() && node->assign()->out().absloc().type() == Absloc::Register &&
 	    (node->assign()->out().absloc().reg() == x86::zf || node->assign()->out().absloc().reg() == x86_64::zf)) {
 	    // zf should be only predecessor of this node
         parsing_printf("\t\tThe predecessor node is zf assignment!\n");
-	newFact->SetPredicate(node->assign(), ExpandAssignment(node->assign()) );	    
+	newFact->SetPredicate(node->assign(), ExpandAssignment(node->assign()) );
 	return;
     }
     entryID id = node->assign()->insn()->getOperation().getID();
@@ -417,9 +417,9 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     AbsRegion &ar = node->assign()->out();
     Instruction::Ptr insn = node->assign()->insn();
     pair<AST::Ptr, bool> expandRet = ExpandAssignment(node->assign());
-	
+
     if (expandRet.first == NULL) {
-        parsing_printf("\t\t\t No semantic support for this instruction. Assume it does not affect jump target calculation. Ignore it (Treat as identity function) except for ptest. ptest should kill the current predicate\n");	
+        parsing_printf("\t\t\t No semantic support for this instruction. Assume it does not affect jump target calculation. Ignore it (Treat as identity function) except for ptest. ptest should kill the current predicate\n");
 	if (id == e_ptest) {
 	    parsing_printf("\t\t\t\tptest instruction, kill predciate.\n");
 	    newFact->pred.valid = false;
@@ -428,8 +428,8 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     } else {
         parsing_printf("\tAST: %s\n", expandRet.first->format().c_str());
     }
-    
-    AST::Ptr calculation = expandRet.first;	
+
+    AST::Ptr calculation = expandRet.first;
     BoundCalcVisitor bcv(*newFact, node->block(), handleOneByteRead);
     calculation->accept(&bcv);
     AST::Ptr outAST;
@@ -440,7 +440,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     // the memory address during symbolic expansion.
     // In other cases, if the AbsRegion represents a register,
     // the generator is not set.
-    if (ar.generator() != NULL) 
+    if (ar.generator() != NULL)
         outAST = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, ar.size()), ar.generator()), node->assign()->insn()->size());
     else
         outAST = VariableAST::create(Variable(ar));
@@ -488,10 +488,10 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	     parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
 	     newFact->Print();
 	     return;
-        }	     
+        }
     }
 
-    // Assume all SETxx entry ids are contiguous    
+    // Assume all SETxx entry ids are contiguous
     if (id >= e_setb && id <= e_setz) {
         newFact->GenFact(outAST, new BoundValue(StridedInterval(1,0,1)), false);
 	parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
@@ -500,7 +500,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     }
 
 
-    if (bcv.IsResultBounded(calculation)) { 
+    if (bcv.IsResultBounded(calculation)) {
         parsing_printf("\t\t\tGenerate bound fact for %s\n", outAST->format().c_str());
 	newFact->GenFact(outAST, new BoundValue(*bcv.GetResultBound(calculation)), false);
     }
@@ -516,8 +516,8 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     newFact->AdjustPredicate(outAST, calculation);
 
     // Now try to track all aliasing.
-    // Currently, all variables in the slice are presented as an AST 
-    // consists of input variables to the slice (the variables that 
+    // Currently, all variables in the slice are presented as an AST
+    // consists of input variables to the slice (the variables that
     // we do not the sources of their values).
     newFact->TrackAlias(DeepCopyAnAST(calculation), outAST);
 
@@ -531,7 +531,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
     newFact->Print();
 
-}						
+}
 
 BoundFact* BoundFactsCalculator::GetBoundFactIn(Node::Ptr node) {
     auto fit = boundFactsIn.find(node);

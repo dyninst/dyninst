@@ -56,16 +56,8 @@ Loop::Loop(Edge *be, const Function *f)
 
 bool Loop::containsAddress(Address addr)
 {
-//    if(exclusiveBlocks.empty())
-//    {
-//        calcExclusiveBlocks();
-//    }
-//
-//    vector<Block*> tmp;
-//    getLoopBasicBlocksExclusive(tmp);
     for(auto i = exclusiveBlocks.begin(); i != exclusiveBlocks.end(); i++) {
-	if (addr >= (*i)->start() &&
-	    addr < (*i)->end() )
+	if ((*i)->containsAddr(addr))
 	    return true;
     }
 
@@ -149,28 +141,6 @@ void Loop::insertChildBlock(Block* b)
 bool Loop::getLoopBasicBlocksExclusive(vector<Block*>& bbs) {
     std::copy(exclusiveBlocks.begin(), exclusiveBlocks.end(), std::back_inserter(bbs));
     return true;
-//    // start with a copy of all this loops basic blocks
-//   std::set<Block*> allBlocks(basicBlocks);
-//
-//
-//   // remove the blocks in each contained loop
-//   vector<Loop*> contLoops;
-//   getContainedLoops(contLoops);
-//
-//
-//   std::set<Block *> toRemove;
-//
-//   for (unsigned int i = 0; i < contLoops.size(); i++) {
-//      std::copy(contLoops[i]->basicBlocks.begin(),
-//                contLoops[i]->basicBlocks.end(),
-//                std::inserter(toRemove, toRemove.end()));
-//   }
-//
-//   std::set_difference(allBlocks.begin(), allBlocks.end(),
-//                       toRemove.begin(), toRemove.end(),
-//                       std::back_inserter(bbs),
-//                       std::less<Block *>());
-//   return true;
 }
 
 
