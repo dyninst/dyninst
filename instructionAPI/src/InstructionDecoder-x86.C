@@ -131,10 +131,6 @@ namespace Dyninst
     }
     INSTRUCTION_EXPORT InstructionDecoder_x86::~InstructionDecoder_x86()
     {
-        if(decodedInstruction) decodedInstruction->~ia32_instruction();
-        free(decodedInstruction);
-        if(locs) locs->~ia32_locations();
-        free(locs);
 
     }
     static const unsigned char modrm_use_sib = 4;
@@ -1037,6 +1033,11 @@ namespace Dyninst
                                 locs->rex_r ? b_xmmhigh : b_xmm,locs->modrm_reg)),
                                     isRead, isWritten);
                         break;
+                    case am_VR:
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
+                                                                                             locs->rex_b ? b_xmmhigh : b_xmm,locs->modrm_rm)),
+                                                        isRead, isWritten);
+
                     case am_U:
                         insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
                                         locs->rex_b ? b_xmmhigh : b_xmm, locs->modrm_rm)),
