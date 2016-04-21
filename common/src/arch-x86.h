@@ -470,6 +470,11 @@ enum {
 #ifndef VEX_PREFIX_MASKS
 #define VEX_PREFIX_MASKS
 
+enum VEX_TYPE
+{
+    VEX_TYPE_NONE=0, VEX_TYPE_VEX2, VEX_TYPE_VEX3, VEX_TYPE_EVEX
+};
+
 /* Masks to help decode vex prefixes */
 
 /** VEX 3 masks (2nd byte) */
@@ -483,7 +488,7 @@ enum {
 /* VEX2 and VEX3 share these bits on their final byte  */
 #define VEX_VVVV   (((1 << 4) - 1) << 3)
 #define VEX_L      (1 << 2)
-#define VEX_PP     ((1 << 2) - 1)
+#define VEX_PP     (0x03)
 #define VEX_REXR   (1 << 7)
 
 /* VEX mask helper macros */
@@ -500,7 +505,7 @@ enum {
 #define EVEXGET_W(b) VEX3GET_W(b)
 #define EVEXGET_L1(b) (unsigned char)((1 << 5) & (b))
 #define EVEXGET_L2(b) (unsigned char)((1 << 6) & (b))
-#define EVEXGET_L(b) (unsigned char)((EVEXGET_L1(b)) | (EVEXGET_L2(b)))
+#define EVEXGET_LL(b) (unsigned char)((EVEXGET_L1(b)) | (EVEXGET_L2(b)))
 #define EVEXGET_PP(b) (unsigned char)(3 & (b))
 #define EVEXGET_MM(b) (unsigned char)(3 & (b))
 #define EVEXGET_AAA(b) (unsigned char)(7 & (b))
@@ -668,12 +673,16 @@ class ia32_prefixes
   unsigned char getOpcodePrefix() const { return opcode_prefix; }
   unsigned char getAddrSzPrefix() const { return prfx[3]; }
   unsigned char getOperSzPrefix() const { return prfx[2]; }
+
   bool vex_present; /* Does this instruction have a vex prefix?  */
-  unsigned char vex_prefix[4]; /* support up to EVEX (VEX-512) */
-  unsigned char vex_ll; /* l bit for VEX2 and VEX3 */
-  unsigned char vex_w; /* w bit for VEX2 and VEX3 */
-  int sse_mult; /* 0 VEX2, 1 VEX3, 2 EVEX */
-  //int vvvv_reg; /* The register specified by this prefix. */
+  VEX_TYPE vex_type; /* If there is a vex prefix present, what type is it? */
+  unsigned char vex_prefix[5]; /* Support up to EVEX (VEX-512) */
+  int vex_sse_mult; /* index for sse multiplexer table */
+  int vex_vvvv_reg; /* The register specified by this prefix. */
+  int vex_ll; /* l bit for VEX2, VEX3 or ll for EVEX */
+  int vex_pp; /* pp bits for VEX2, VEX3 or EVEX */
+  int vex_m_mmmm; /* m-mmmm bits for VEX2, VEX3 or EVEX */
+  int vex_w; /* w bit for VEX2, VEX3 or EVEX */
 };
 
 // helper routine to tack-on rex bit when needed

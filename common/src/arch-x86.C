@@ -7812,7 +7812,7 @@ void ia32_memacc::print()
 int getOperSz(const ia32_prefixes &pref) 
 {
     /* TODO: VEX prefixed instructions only touch XMM or YMM unless they are loading/storing to memory. */
-    if (pref.vex_prefix[0]) 
+    if(pref.vex_present)
     {
         switch(pref.vex_ll)
         {
@@ -7831,7 +7831,6 @@ int getOperSz(const ia32_prefixes &pref)
     else return 2;
 }
 
-
 ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32_instruction& instruct)
 {
     ia32_prefixes& pref = instruct.prf;
@@ -7842,162 +7841,135 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     int condbits = 0;
   
     if(capa & IA32_DECODE_MEMACCESS)
+    {
         assert(instruct.mac != NULL);
+    }
 
-    if (!ia32_decode_prefixes(addr, pref, instruct.loc)) {
+    /* First decode any prefixes for this instruction */
+    if (!ia32_decode_prefixes(addr, pref, instruct.loc)) 
+    {
         instruct.size = 1;
         instruct.legacy_type = ILLEGAL;
         return instruct;
     }
+
+#ifdef VEX_DEBUG
+    /* Dump the VEX header */
+    printf("IS VEX PRESENT?  %s\n", pref.vex_present ? "YES" : "NO");
+    if(pref.vex_present)
+    {
+        printf("VEX IS PRESENT: %d\n", pref.vex_type);
+        printf("VEX BYTES:      %x %x %x %x %x\n",
+                pref.vex_prefix[0], pref.vex_prefix[1], pref.vex_prefix[2],
+                pref.vex_prefix[3], pref.vex_prefix[4]);
+        printf("VEX SSE MULT:   %d  0x%x\n", pref.vex_sse_mult, pref.vex_sse_mult);
+        printf("VEX_VVVV:       %d  0x%x\n", pref.vex_vvvv_reg, pref.vex_vvvv_reg);
+        printf("VEX_LL:         %d  0x%x\n", pref.vex_ll, pref.vex_ll);
+        printf("VEX_PP:         %d  0x%x\n", pref.vex_pp, pref.vex_pp);
+        printf("VEX_M-MMMM:     %d  0x%x\n", pref.vex_m_mmmm, pref.vex_m_mmmm);
+        printf("VEX_W:          %d  0x%x\n", pref.vex_w, pref.vex_w);
+    }
+#endif
 
     if((pref.getOpcodePrefix()) && pref.getCount())
     {
         idx = pref.getOpcodePrefix();
     }
 
-    if (instruct.loc) instruct.loc->num_prefixes = pref.getCount();
-    instruct.size = pref.getCount();
-    addr += instruct.size;
+    if(instruct.loc) 
+    {
+        instruct.loc->num_prefixes = pref.getCount();
+    }
 
-    if(!pref.vex_present && pref.vex_prefix[0])
-        assert("vex_present == 0 but vex is present!");
+    /* Adjust the instruction size for the prefixes */
+    instruct.size = pref.getCount();
+
+    /* Skip the prefixes so that we don't decode them again */
+    addr += instruct.size;
 
     /* Is there a VEX prefix for this instruction? */
     if(pref.vex_present)
     {
         /* Grab the opcode for the index */
         idx = addr[0];
+
+        /* Move past the opcode for this instruction */
         instruct.size += 1;
         addr += 1;
 
-        /* Which vex prefix are we using? (VEX2, VEX3, EVEX)*/
-        if(pref.vex_prefix[1] == 0) /* VEX 2 prefix */
+        switch(pref.vex_type)
         {
-	        int op_pref_idx = VEXGET_PP(pref.vex_prefix[0]);
-            /* This is a VEX2 prefixed instruction */
-	        gotit = &twoByteMap[idx];
-            sseidx = vex3_simdop_convert[0][op_pref_idx];
-        } else if(pref.vex_prefix[2] == 0) /* VEX 3 prefix */
-        {
-	        // FIXME: not handling xop separately yet
-	        int op_pref_idx = VEXGET_PP(pref.vex_prefix[1]);
-            if(op_pref_idx < 0 || op_pref_idx > 3)
-            {
-                /* Something went very wrong with the prefix decoding */
-                assert(0);
-            }
-    
-	        /* Select m-mmmm bits */
-	        switch(VEX3GET_M(pref.vex_prefix[0]))
-	        {
-	            case 1:
-	                gotit = &twoByteMap[idx];
-                    /* Will enter the sseMap table. Change the sseidx to match. */
-                    sseidx = vex3_simdop_convert[0][op_pref_idx];
-	                break;
-	            case 2:
-	                gotit = &threeByteMap[idx];
-                    /* Will enter the sseBisMap table. Change the sseidx to match. */
-                    sseidx = vex3_simdop_convert[1][op_pref_idx];
-	                break;
-	            case 3:
-	                gotit = &threeByteMap2[idx];
-                    /* Will enter the sseTerMap table. Change the sseidx to match. */
-                    sseidx = vex3_simdop_convert[2][op_pref_idx];
-    
-                    /* One mapping here doesn't work (F3 prefixed) */
-                    /* If this is ever encountered, we will need to change the sseTerMap table. */
-	                break;
-	            default:
-                    gotit = &vexWMap[0][0];
-                    idx = 0;
-                    /* This reserved for future use and will cause #UD. */
+            case VEX_TYPE_VEX2:
+                /* This is a VEX2 prefixed instruction -- start in the twoByteMap */
+                gotit = &twoByteMap[idx];
+                sseidx = vex3_simdop_convert[0][pref.vex_pp];
+                break;
+
+            case VEX_TYPE_VEX3:
+            case VEX_TYPE_EVEX:
+                /* Make sure we start in the proper table */
+                switch(pref.vex_m_mmmm)
+                {
+                    case 1:
+                        gotit = &twoByteMap[idx];
+                        sseidx = vex3_simdop_convert[0][pref.vex_pp];
+                        break;
+                    case 2: 
+                        gotit = &threeByteMap[idx];
+                        sseidx = vex3_simdop_convert[1][pref.vex_pp];
+                        break;
+                    case 3:
+                        gotit = &threeByteMap2[idx];
+                        sseidx = vex3_simdop_convert[2][pref.vex_pp];
+                        break;
+                    default:
+                        instruct.legacy_type = ILLEGAL;
+                        instruct.entry = gotit;
+                        return instruct;
+                }
+
+                if(sseidx < 0)
+                {
+                    /* This instruction can't be expressed with an sseidx */
                     instruct.legacy_type = ILLEGAL;
                     instruct.entry = gotit;
                     return instruct;
-                    // assert(0);
-                    break;
-	        }
-
-            if(sseidx < 0)
-            {
-                /**
-                 * This index cannot be expressed in the destination table. 
-                 * This should not be possible. 
-                 */
-                assert(0);
-            }
-        } else {
-            /* EVEX instruction */
-            int op_pref_idx = EVEXGET_PP(pref.vex_prefix[1]);
-            if(op_pref_idx < 0 || op_pref_idx > 3)
-            {
-                /* Something went very wrong with the prefix decoding */
-                assert(0);
-            }
-
-            switch(EVEXGET_MM(pref.vex_prefix[0]))
-            {
-                case 1:
-                    gotit = &twoByteMap[idx];
-                    /* Will enter the sseMap table. Change the sseidx to match. */
-                    sseidx = vex3_simdop_convert[0][op_pref_idx];
-                    break;
-                case 2:
-                    gotit = &threeByteMap[idx];
-                    /* Will enter the sseBisMap table. Change the sseidx to match. */            
-                    sseidx = vex3_simdop_convert[1][op_pref_idx];
-                    break;
-                case 3:
-                    gotit = &threeByteMap2[idx];
-                    /* Will enter the sseTerMap table. Change the sseidx to match. */
-                    sseidx = vex3_simdop_convert[2][op_pref_idx];
-    
-                    /* One mapping here doesn't work (F3 prefixed) */
-                    /* If this is ever encountered, we will need to change the sseTerMap table. */
-                    break;
-                default: 
-                    gotit = &vexWMap[0][0];
-                    idx = 0;
-                    /* This reserved for future use and will cause #UD. */
-                    instruct.legacy_type = ILLEGAL;
-                    instruct.entry = gotit;
-                    return instruct;
-            }
-
-            if(sseidx < 0)
-            {
-                /**
-                 * This index cannot be expressed in the destination table. 
-                 * This should not be possible. 
-                 */
-                assert(0);
-            }
+                }
+                break;
+            default:
+                assert(!"Invalid type of VEX instruction!\n");
         }
       
         nxtab = gotit->otable;
     } else {
+        /* Non VEX instruction */
         table = t_oneB;
-        if(idx == 0) {
-	        // consume opcode
+
+        /* Adjust the idx if we haven't already */
+        if(idx == 0) 
+        {
+	        /* consume opcode */
 	        idx = addr[0];
 	        instruct.size += 1;
 	        addr += 1;
-        } else {
-	        // opcode already consumed (prefix opcode)
         }
+
         gotit = &oneByteMap[idx];
         nxtab = gotit->otable;
     }
 
-    if(capa & IA32_DECODE_CONDITION) {
+    if(capa & IA32_DECODE_CONDITION) 
+    {
         assert(instruct.cond != NULL);
         condbits = idx & 0x0F;
     }
 
-    while(nxtab != t_done) {
+    /* Find the correct entry in the tables */
+    while(nxtab != t_done) 
+    {
         table = nxtab;
-        switch(table) {
+        switch(table) 
+        {
             case t_twoB:
                 idx = addr[0];
                 gotit = &twoByteMap[idx];
@@ -8007,6 +7979,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 if(capa & IA32_DECODE_CONDITION)
                     condbits = idx & 0x0F;
                 break;
+
             case t_threeB:
                 idx = addr[0];
                 gotit = &threeByteMap[idx];
@@ -8016,6 +7989,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 if(capa & IA32_DECODE_CONDITION)
     	            condbits = idx & 0x0F;
                 break;
+
             case t_threeB2:
                 idx = addr[0];
                 gotit = &threeByteMap2[idx];
@@ -8024,10 +7998,9 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 addr += 1;
                 if(capa & IA32_DECODE_CONDITION)
     	            condbits = idx & 0x0F;
-                //if(sseidx) sseidx--;
                 break;
+
             case t_prefixedSSE:
-                sseidx = gotit->tabidx;
                 if(addr[0] != 0x0F)
                 {
                     // all valid SSE insns will have 0x0F as their first byte after prefix
@@ -8036,12 +8009,15 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                     instruct.entry = &invalid;
                     return instruct;
                 }
+
+                sseidx = gotit->tabidx;
                 idx = addr[1];
                 gotit = &twoByteMap[idx];
                 nxtab = gotit->otable;
                 instruct.size += 2;
                 addr += 2;
                 break;
+
             case t_sse:
                 idx = gotit->tabidx;
                 gotit = &sseMap[idx][sseidx];
@@ -8058,9 +8034,10 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 if(!pref.vex_present)
                     nxtab = t_done;
                 break;
+
             case t_sse_mult:
                 idx = gotit->tabidx;
-                gotit = &sseMapMult[idx][pref.sse_mult];
+                gotit = &sseMapMult[idx][pref.vex_sse_mult];
                 nxtab = gotit->otable;
 
 #ifdef VEX_DEBUG
@@ -8070,6 +8047,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 #endif
 
                 break;
+
             case t_sse_bis:
                 idx = gotit->tabidx;
                 gotit = &sseMapBis[idx][sseidx];
@@ -8083,9 +8061,10 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 if(!pref.vex_present)
                     nxtab = t_done;
                 break;
+
             case t_sse_bis_mult:
                 idx = gotit->tabidx;
-                gotit = &sseMapBisMult[idx][pref.sse_mult];
+                gotit = &sseMapBisMult[idx][pref.vex_sse_mult];
                 nxtab = gotit->otable;
 
 #ifdef VEX_DEBUG
@@ -8105,15 +8084,17 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 if(!pref.vex_present)
                     nxtab = t_done;
                 break;
+
             case t_sse_ter_mult:
                 idx = gotit->tabidx;
-                gotit = &sseMapTerMult[idx][pref.sse_mult];
+                gotit = &sseMapTerMult[idx][pref.vex_sse_mult];
                 nxtab = gotit->otable;
 
 #ifdef VEX_DEBUG
                 fprintf(stderr, "SSET MULT idx: %d  sseMul: %d\n", idx, pref.sse_mult);
 #endif
                 break;
+
             case t_grp: 
                 {
                     idx = gotit->tabidx;
@@ -8143,12 +8124,14 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                     }
                     break;
                 }
+
             case t_grpsse:
                 sseidx >>= 1;
                 idx = gotit->tabidx;
                 gotit = &ssegrpMap[idx][sseidx];
                 nxtab = gotit->otable;
                 break;
+
             case t_coprocEsc:
                 {
                     instruct.legacy_type = 0;
@@ -8158,12 +8141,14 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                     ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac);
                     return instruct;
                 }
+
             case t_3dnow:
                 // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
                 // Right now we don't care what the actual opcode is, so there's no table
                 instruct.size += 1;
                 nxtab = t_done;
                 break;
+
             case t_vexl:
                  /* This MUST have a vex prefix */
                 if(!pref.vex_present)
@@ -8183,9 +8168,10 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 /* Set the next table - this is almost always t_done */
                 nxtab = gotit->otable;
                 break;
+
             case t_vexw:
-                /* This MUST have a vex prefix */
-                if(!pref.vex_present)
+                /* This MUST have a vex prefix and must NOT be VEX2 */
+                if(!pref.vex_present || pref.vex_type == VEX_TYPE_VEX2)
                 {
 #ifdef VEX_PEDANTIC
                     assert(!"VEXW can only be used by vex prefixed instructions!\n");
@@ -8203,17 +8189,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 {
 #ifdef VEX_PEDANTIC
                     assert(!"VEXW index out of bounds!\n");
-#endif
-                    instruct.legacy_type = ILLEGAL;
-                    instruct.entry = gotit;
-                    return instruct;
-                }
-
-                /* Is the w bit correctly setup? */
-                if(pref.vex_w > 1)
-                {
-#ifdef VEX_PEDANTIC
-                    assert(!"vex_w needs to be either 0 or 1!!\n");
 #endif
                     instruct.legacy_type = ILLEGAL;
                     instruct.entry = gotit;
@@ -8241,28 +8216,39 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                     return instruct;
                 }
                 break;
+
             case t_ill:
+                /* Illegal or unknown instruction */
                 instruct.legacy_type = ILLEGAL;
                 instruct.entry = gotit;
                 return instruct;
+
             default:
                 assert(!"wrong table");
         }
     }
 
+    /* We should have a valid decoding or we should have returned by now */
     assert(gotit != NULL);
     instruct.legacy_type = gotit->legacyType;
 
-    // addr points after the opcode, and the size has been adjusted accordingly
-    if (instruct.loc) instruct.loc->opcode_size = instruct.size - pref.getCount();
-    if (instruct.loc) instruct.loc->opcode_position = pref.getCount();
+    /* Addr points after the opcode, and the size has been adjusted accordingly */
+    if(instruct.loc) 
+    {
+        instruct.loc->opcode_size = instruct.size - pref.getCount();
+        instruct.loc->opcode_position = pref.getCount();
+    }
 
-    // make adjustments for instruction redefined in 64-bit mode
-    if (mode_64)
+    /* make adjustments for instruction redefined in 64-bit mode */
+    if(mode_64)
+    {
         ia32_translate_for_64(&gotit);
+    }
 
-    ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac); // all but FP
+    /* Do the operand decoding */
+    ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac);
 
+    /* Decode the memory accesses if requested */
     if(capa & IA32_DECODE_MEMACCESS) 
     {
         int sema = gotit->opsema & ((1<<FPOS)-1);
@@ -8448,7 +8434,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 
     }
 
-
     if(capa & IA32_DECODE_CONDITION) 
     {
         int hack = gotit->opsema >> FPOS;
@@ -8456,11 +8441,12 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
             instruct.cond->set(condbits);
     }
 
-    // flip id of opcodes overloaded on operand size prefix
+    /* flip id of opcodes overloaded on operand size prefix */
     int operSzAttr = getOperSz(pref);
     if (operSzAttr == 1) 
     {
         entryID newID = gotit->id;
+
         switch (gotit->id) 
         {
             case e_cwde: newID = e_cbw; break;
@@ -9345,191 +9331,217 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
 bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                           ia32_locations *loc)
 {
-  /* Initilize the prefix */
-  pref.count = 0;
-  memset(pref.prfx, 0, 5);
-  memset(pref.vex_prefix, 0, 4);
-  pref.opcode_prefix = 0;
-  pref.sse_mult = 0;
-  pref.vex_ll = -1;
-  pref.vex_w = -1;
-  pref.vex_present = false;
-  // pref.vvvv_reg = 0;
-  bool in_prefix = true;
+    /* Initilize the prefix */
+    pref.count = 0;
+    memset(pref.prfx, 0, 5);
+    memset(pref.vex_prefix, 0, 5);
+    pref.opcode_prefix = 0;
+    pref.vex_type = VEX_TYPE_NONE;
+    pref.vex_present = false;
+    pref.vex_sse_mult = -1;
+    pref.vex_ll = -1;
+    pref.vex_pp = -1;
+    pref.vex_w = -1;
+    pref.vex_vvvv_reg = -1;
+    pref.vex_m_mmmm = -1;
+    bool in_prefix = true;
 
-  while(in_prefix) {
-    switch(addr[0]) {
-    case PREFIX_REPNZ:
-    case PREFIX_REP:
-       if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4])) {
-          ++pref.count;
-          pref.opcode_prefix = addr[0];
-          break;
-       }
-       else if(is_sse_opcode(addr[1],addr[2],addr[3])) {
-          ++pref.count;
-          pref.opcode_prefix = addr[0];
-          break;
-       }
-       
-    case PREFIX_LOCK:
-       ++pref.count;
-       pref.prfx[0] = addr[0];
-       break;
-    case PREFIX_SEGCS:
-    case PREFIX_SEGSS:
-    case PREFIX_SEGDS:
-    case PREFIX_SEGES:
-    case PREFIX_SEGFS:
-    case PREFIX_SEGGS:
-       ++pref.count;
-       pref.prfx[1] = addr[0];
-       break;
-    case PREFIX_SZOPER:
-       if(is_sse_opcode(addr[1],addr[2],addr[3])) {
-          pref.opcode_prefix = addr[0];
-          break;
-       }
-       if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4])) {
-          ++pref.count;
-          pref.opcode_prefix = addr[0];
-          break;
-       }
-       ++pref.count;
-       pref.prfx[2] = addr[0];
-       break;
-    case PREFIX_SZADDR:
-       ++pref.count;
-       pref.prfx[3] = addr[0];
-       break;
-    case PREFIX_XOP:
-       pref.vex_prefix[2] = addr[3];
-       ++pref.count;
-       break;
-    case PREFIX_EVEX:
-      /* Save the 3 important prefix bytes */
-      pref.vex_prefix[0] = addr[1];
-      pref.vex_prefix[1] = addr[2];
-      pref.vex_prefix[2] = addr[3];
+    while(in_prefix) 
+    {
+        switch(addr[0]) 
+        {
+            case PREFIX_REPNZ:
+            case PREFIX_REP:
+                if(mode_64 && REX_ISREX(addr[1]) 
+                        && is_sse_opcode(addr[2],addr[3],addr[4])) 
+                {
+                    ++pref.count;
+                    pref.opcode_prefix = addr[0];
+                } else if(is_sse_opcode(addr[1],addr[2],addr[3])) 
+                {
+                    ++pref.count;
+                    pref.opcode_prefix = addr[0];
+                }
+                break;
 
-      pref.vex_ll = EVEXGET_L(addr[3]);
-      pref.vex_w = EVEXGET_W(addr[2]);
-      //pref.vvvv_reg = EVEXGET_VVVV(addr[2]);
-      pref.count += 4;
+            case PREFIX_LOCK:
+                ++pref.count;
+                pref.prfx[0] = addr[0];
+                break;
 
-      switch(pref.vex_prefix[2] & 0x03)
-      {
-        case 0:
-          pref.opcode_prefix = 0x00;
-          break;
-        case 1:
-          pref.opcode_prefix = 0x66;
-          break;
-        case 2:
-          pref.opcode_prefix = 0xF3;
-          break;
-        case 3:
-          pref.opcode_prefix = 0xF2;
-          break;
-        default:
-          assert(!"Can't happen: value & 0x03 not in 0...3");
-      }
+            case PREFIX_SEGCS:
+            case PREFIX_SEGSS:
+            case PREFIX_SEGDS:
+            case PREFIX_SEGES:
+            case PREFIX_SEGFS:
+            case PREFIX_SEGGS:
+                ++pref.count;
+                pref.prfx[1] = addr[0];
+                break;
 
-      pref.sse_mult = 2;
-      pref.vex_present = true;
-      in_prefix = false;
-      break;
-    case PREFIX_VEX3:
-      pref.vex_prefix[0] = addr[1];
-      pref.vex_prefix[1] = addr[2];
-      pref.vex_ll = VEXGET_L(addr[2]);
-      pref.vex_w = VEX3GET_W(addr[2]);
-      //pref.vvvv_reg = VEXGET_VVVV(addr[2]);
-      pref.count += 3;
+            case PREFIX_SZOPER:
+                if(is_sse_opcode(addr[1],addr[2],addr[3])) {
+                    pref.opcode_prefix = addr[0];
+                    break;
+                }
 
-      switch(pref.vex_prefix[1] & 0x03)
-      {
-        case 0:
-          pref.opcode_prefix = 0x00;
-          break;
-        case 1:
-          pref.opcode_prefix = 0x66;
-          break;
-        case 2:
-          pref.opcode_prefix = 0xF3;
-          break;
-        case 3:
-          pref.opcode_prefix = 0xF2;
-          break;
-        default:
-          assert(!"Can't happen: value & 0x03 not in 0...3");
-      }
+                if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4])) {
+                    ++pref.count;
+                    pref.opcode_prefix = addr[0];
+                    break;
+                }
 
-      pref.sse_mult = 1;
-      pref.vex_present = true;
-      in_prefix = false;
-      break;
-    case PREFIX_VEX2:
-      pref.vex_prefix[0] = addr[1];
+                ++pref.count;
+                pref.prfx[2] = addr[0];
+                break;
 
-      pref.vex_ll = VEXGET_L(addr[1]);
-      //pref.vvvv_reg = VEXGET_VVVV(addr[1]);
-      pref.vex_w = -1; /* No W bit for VEX2 */
+            case PREFIX_SZADDR:
+                ++pref.count;
+                pref.prfx[3] = addr[0];
+                break;
 
-      switch(pref.vex_prefix[0] & 0x03)
-      {
-        case 0:
-          pref.opcode_prefix = 0x00;
-          break;
-        case 1:
-          pref.opcode_prefix = 0x66;
-          break;
-        case 2:
-          pref.opcode_prefix = 0xF3;
-          break;
-        case 3:
-          pref.opcode_prefix = 0xF2;
-          break;
-        default:
-          assert(!"Can't happen: value & 0x03 not in 0...3");
-      }
+            case PREFIX_XOP:
+                assert(!"NOT HANDLING XOP YET!\n");
+                pref.vex_prefix[2] = addr[3];
+                ++pref.count;
+                break;
 
-      pref.count += 2;
-      pref.sse_mult = 0;
-      pref.vex_present = true;
-      in_prefix = false; // VEX prefixes exclude all others
-      break;
-    default:
-	    // If we hit a REX prefix, keep going and process other potential prefixes.
-	    // The only one *used* is one in the last position, but others are ignored,
-	    // not illegal.
-	    if(mode_64)
-	    {
-	      if(ia32_decode_rex(addr, pref, loc))
-	      {
-		      if(loc) loc->num_prefixes = pref.count;
-		      return true;
-	      }
-	      if(!REX_ISREX(addr[0])) 
-	      {
-		      in_prefix = false;
-	      } else  {
-		      ++pref.count;
-	      }
-	    } else {
-	      in_prefix = false;
-      }
-    }  
-  
-    ++addr;
-  }
+            case PREFIX_EVEX:
+                pref.vex_present = true;
+                pref.vex_type = VEX_TYPE_EVEX;
+                memmove(&pref.vex_prefix, addr + 1, 3);
+                pref.vex_sse_mult = 2;
+                pref.vex_vvvv_reg = EVEXGET_VVVV(pref.vex_prefix[1]);
+                pref.vex_ll = EVEXGET_LL(pref.vex_prefix[2]);
+                pref.vex_w = EVEXGET_W(pref.vex_prefix[1]);
+                pref.vex_pp = EVEXGET_PP(pref.vex_prefix[1]);
+                pref.vex_m_mmmm = EVEXGET_MM(pref.vex_prefix[0]);
+                pref.count += 4;
 
-  bool result = true;
-  //if (mode_64)
-  //   result = ia32_decode_rex(addr - 1, pref, loc);
-  if (loc) loc->num_prefixes = pref.count;
+                /* VEX_LL must be 0, 1, or 2 */
+                if(pref.vex_ll >= 3 || pref.vex_ll < 0)
+                    return false;
 
-  return result;
+                switch(pref.vex_pp)
+                {
+                    case 0:
+                        pref.opcode_prefix = 0x00;
+                        break;
+                    case 1:
+                        pref.opcode_prefix = 0x66;
+                        break;
+                    case 2:
+                        pref.opcode_prefix = 0xF3;
+                        break;
+                    case 3:
+                        pref.opcode_prefix = 0xF2;
+                        break;
+                    default:
+                        assert(!"Can't happen: value & 0x03 not in 0...3");
+                }
+
+                /* VEX prefix excludes all others */
+                in_prefix = false;
+                break;
+
+            case PREFIX_VEX3:
+                pref.vex_present = true;
+                pref.vex_type = VEX_TYPE_VEX3;
+                memmove(&pref.vex_prefix, addr + 1, 2);
+                pref.vex_sse_mult = 1;
+                pref.vex_vvvv_reg = VEXGET_VVVV(pref.vex_prefix[1]);
+                pref.vex_ll = VEXGET_L(pref.vex_prefix[1]);
+                pref.vex_w = VEX3GET_W(pref.vex_prefix[1]);
+                pref.vex_pp = VEXGET_PP(pref.vex_prefix[1]);
+                pref.vex_m_mmmm = VEX3GET_M(pref.vex_prefix[0]);
+                pref.count += 3;
+
+                switch(pref.vex_pp)
+                {
+                    case 0:
+                        pref.opcode_prefix = 0x00;
+                        break;
+                    case 1:
+                        pref.opcode_prefix = 0x66;
+                        break;
+                    case 2:
+                        pref.opcode_prefix = 0xF3;
+                        break;
+                    case 3:
+                        pref.opcode_prefix = 0xF2;
+                        break;
+                    default:
+                        assert(!"Can't happen: value & 0x03 not in 0...3");
+                }
+
+                /* VEX prefix excludes all others */
+                in_prefix = false;
+                break;
+            case PREFIX_VEX2:
+                pref.vex_present = true;
+                pref.vex_type = VEX_TYPE_VEX2;
+                pref.vex_prefix[0] = addr[1]; /* Only 1 byte for VEX2 */
+                pref.vex_sse_mult = 0;
+                pref.vex_vvvv_reg = VEXGET_VVVV(pref.vex_prefix[0]);
+                pref.vex_ll = VEXGET_L(pref.vex_prefix[0]);
+                pref.vex_w = -1; /* No W bit for VEX2 */
+                pref.vex_pp = VEXGET_PP(pref.vex_prefix[0]);
+                pref.vex_m_mmmm = -1; /* No W bit for VEX2 */
+                pref.count += 2;
+
+                switch(pref.vex_pp)
+                {
+                    case 0:
+                        pref.opcode_prefix = 0x00;
+                        break;
+                    case 1:
+                        pref.opcode_prefix = 0x66;
+                        break;
+                    case 2:
+                        pref.opcode_prefix = 0xF3;
+                        break;
+                    case 3:
+                        pref.opcode_prefix = 0xF2;
+                        break;
+                    default:
+                        assert(!"Can't happen: value & 0x03 not in 0...3");
+                }
+
+                /* VEX prefixes exclude all others */
+                in_prefix = false; 
+                break;
+            default:
+                // If we hit a REX prefix, keep going and process other potential prefixes.
+                // The only one *used* is one in the last position, but others are ignored,
+                // not illegal.
+                if(mode_64)
+                {
+                    if(ia32_decode_rex(addr, pref, loc))
+                    {
+                        if(loc) loc->num_prefixes = pref.count;
+                        return true;
+                    }
+
+                    if(!REX_ISREX(addr[0])) 
+                    {
+                        in_prefix = false;
+                    } else  {
+                        ++pref.count;
+                    }
+                } else {
+                    in_prefix = false;
+                }
+            }  
+
+            ++addr;
+        }
+
+        if (loc) 
+        {
+            loc->num_prefixes = pref.count;
+        }
+        
+        return true;
 }
 
 #define REX_W(x) ((x) & 0x8)

@@ -743,144 +743,157 @@ namespace Dyninst
      */
     bool decodeAVX(intelRegBanks& bank, int* bank_index, int regnum, AVX_Regtype type)
     {
-      if(type == AVX_NONE)
-      {
-        /* The register must be valid */
-        if(regnum < 0) return true;
-
-        if(regnum <= 7)
-        {
-          bank = b_xmm_set0;
-          *bank_index = regnum;
-        } else if(regnum <= 15)
-        {
-          bank = b_xmm_set1;
-          *bank_index = regnum - 8;
-        } else {
-          return true;
-        }
-  
-        /* Return success */
-        return false;
-      }
-
-      /* Operand comes from the VEX.vvvv bits */
-      int setnum = 0;
-      if(regnum < 8)
-      {
-        setnum = 0;
-        *bank_index = regnum;
-      } else if(regnum < 16)
-      {
-        setnum = 1;
-        *bank_index = regnum - 8;
-      } else if(regnum < 24)
-      {
-        setnum = 2;
-        *bank_index = regnum - 16;
-      } else if(regnum < 32){
-        setnum = 3;
-        *bank_index = regnum - 24;
-      } else {
 #ifdef VEX_DEBUG
-        printf("AVX REGISTER NUMBER:   %d   is invalid!!\n", regnum);
+        printf("VEX OPERAND:  REGNUM: %d  ", regnum);
 #endif
+
+        /* Check to see if this is just a normal MMX register access */
+        if(type >= AVX_NONE || type < 0)
+        {
+#ifdef VEX_DEBUG
+            printf("REG_TYPE: AVX_NONE (%d)\n", type);
+#endif
+            /* Only registers XMM0 - XMM15 are usable */
+
+            /* The register must be valid */
+            if(regnum < 0) 
+                return true;
+
+            if(regnum < 8)
+            {
+                bank = b_xmm_set0;
+                *bank_index = regnum;
+            } else if(regnum < 16)
+            {
+                bank = b_xmm_set1;
+                *bank_index = regnum - 8;
+            } else {
+                /* Value is out of the valid range */
+                return true;
+            }
+
+            /* Return success */
+            return false;
+        }
+
+        /* Operand is potentially XMM, YMM or ZMM */
+        int setnum = 0;
+        if(regnum < 8)
+        {
+            setnum = 0;
+            *bank_index = regnum;
+        } else if(regnum < 16)
+        {
+            setnum = 1;
+            *bank_index = regnum - 8;
+        } else if(regnum < 24)
+        {
+            setnum = 2;
+            *bank_index = regnum - 16;
+        } else if(regnum < 32){
+            setnum = 3;
+            *bank_index = regnum - 24;
+        } else {
+#ifdef VEX_DEBUG
+            printf("AVX REGISTER NUMBER:   %d   is invalid!!\n", regnum);
+#endif
+            return false;
+        }
+
+        switch(type)
+        {
+            case AVX_XMM:
+                if(setnum == 0)
+                    bank = b_xmm_set0;
+                else if(setnum == 1)
+                    bank = b_xmm_set1;
+                else if(setnum == 2)
+                    bank = b_xmm_set2;
+                else if(setnum == 3)
+                    bank = b_xmm_set3;
+                else return true;
+                break;
+            case AVX_YMM:
+                if(setnum == 0)
+                    bank = b_ymm_set0;
+                else if(setnum == 1)
+                    bank = b_ymm_set1;
+                else if(setnum == 2)
+                    bank = b_ymm_set2;
+                else if(setnum == 3)
+                    bank = b_ymm_set3;
+                else return true;
+                break;
+            case AVX_ZMM:
+                if(setnum == 0)
+                    bank = b_zmm_set0;
+                else if(setnum == 1)
+                    bank = b_zmm_set1;
+                else if(setnum == 2)
+                    bank = b_zmm_set2;
+                else if(setnum == 3)
+                    bank = b_zmm_set3;
+                else return true;
+                break;
+            default:
+                return true;
+        }
+
+        /* Return Success */
         return false;
-      }
-
-      switch(type)
-      {
-        case AVX_XMM:
-          if(setnum == 0)
-            bank = b_xmm_set0;
-          else if(setnum == 1)
-            bank = b_xmm_set1;
-          else if(setnum == 2)
-            bank = b_xmm_set2;
-          else if(setnum == 3)
-            bank = b_xmm_set3;
-          else assert(0);
-          break;
-        case AVX_YMM:
-          if(setnum == 0)
-            bank = b_ymm_set0;
-          else if(setnum == 1)
-            bank = b_ymm_set1;
-          else if(setnum == 2)
-            bank = b_ymm_set2;
-          else if(setnum == 3)
-            bank = b_ymm_set3;
-          else assert(0);
-          break;
-        case AVX_ZMM:
-          if(setnum == 0)
-            bank = b_zmm_set0;
-          else if(setnum == 1)
-            bank = b_zmm_set1;
-          else if(setnum == 2)
-            bank = b_zmm_set2;
-          else if(setnum == 3)
-            bank = b_zmm_set3;
-          else assert(0);
-          break;
-        default:
-          
-          return true;
-      }
-
-      return false;
     }
 
     bool InstructionDecoder_x86::decodeOneOperand(const InstructionDecoder::buffer& b,
 						  const ia32_operand& operand,
 						  int & imm_index, /* immediate operand index */
-						  const Instruction* insn_to_complete, 
-						  bool isRead, bool isWritten)
+						  const Instruction* insn_to_complete, bool isRead, bool isWritten)
     {
-      bool isCFT = false;
-      bool isCall = false;
-      bool isConditional = false;
-      InsnCategory cat = insn_to_complete->getCategory();
-      if(cat == c_BranchInsn || cat == c_CallInsn)
+        bool isCFT = false;
+        bool isCall = false;
+        bool isConditional = false;
+        InsnCategory cat = insn_to_complete->getCategory();
+
+        if(cat == c_BranchInsn || cat == c_CallInsn)
 	    {
-	      isCFT = true;
-	      if(cat == c_CallInsn)
-	      {
-	        isCall = true;
-	      }
+            isCFT = true;
+            if(cat == c_CallInsn)
+            {
+                isCall = true;
+            }
 	    }
 
-      if (cat == c_BranchInsn && insn_to_complete->getOperation().getID() != e_jmp) 
-      {
-	      isConditional = true;
-      }
+        if(cat == c_BranchInsn && insn_to_complete->getOperation().getID() != e_jmp) 
+        {
+	        isConditional = true;
+        }
 
-      unsigned int optype = operand.optype;
+        unsigned int optype = operand.optype;
         int vex_vvvv = 0; /* The register selected by the VEX prefix (1111 if unused) */
         bool has_vex = false; /* Whether any sort of VEX prefix is present */
         AVX_Regtype avx_type = AVX_NONE; /* The AVX register type (if VEX prefixed) */
         intelRegBanks bank = b_invalid; /* Specifies an AVX bank to use for register decoding */
         int bank_index = -1; /* Specifies a bank index for an AVX register */
-      if(decodedInstruction && decodedInstruction->getPrefix()->vex_prefix[0])
-      {
-        has_vex = true;
+
+        if(decodedInstruction && decodedInstruction->getPrefix()->vex_prefix[0])
+        {
+            has_vex = true;
+
             /* Get the AVX type from the prefix */
             avx_type = (AVX_Regtype)decodedInstruction->getPrefix()->vex_ll;
 
-        /* The vvvv bits are bits 3, 4, 5, 6 and are in 1's complement */
-        if(decodedInstruction->getPrefix()->vex_prefix[2]) /* AVX512 (EVEX) */
-        {
-          vex_vvvv = (unsigned char)EVEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
+            if(decodedInstruction->getPrefix()->vex_prefix[2]) /* AVX512 (EVEX) */
+            {
+                vex_vvvv = (unsigned char)EVEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
 
                 /* The last 5 bits must be flipped to be used for EVEX */
                 vex_vvvv = (unsigned char)((~vex_vvvv) & 0x0F);
-        } else if(decodedInstruction->getPrefix()->vex_prefix[1]){ /* AVX2 (VEX3) */
-          vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
+            } else if(decodedInstruction->getPrefix()->vex_prefix[1]){ /* AVX2 (VEX3) */
+                vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
 
                 /* The last 4 bits must be flipped to be used for VEX3 */
                 vex_vvvv = (unsigned char)((~vex_vvvv) & 0x0F);
-        } else { /* AVX (VEX2) */
-          vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[0]);
+            } else { /* AVX (VEX2) */
+                vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[0]);
 
                 /* The last 4 bits must be flipped to be used for VEX2*/
                 vex_vvvv = (unsigned char)((~vex_vvvv) & 0x0F);
