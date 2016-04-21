@@ -59,8 +59,8 @@ std::map<Architecture, RegisterAST::Ptr> IA_IAPI::framePtr;
 std::map<Architecture, RegisterAST::Ptr> IA_IAPI::stackPtr;
 std::map<Architecture, RegisterAST::Ptr> IA_IAPI::thePC;
 
-template class boost::shared_ptr<Dyninst::InstructionAPI::BinaryFunction::funcT>;
-template class boost::shared_ptr<Dyninst::InstructionAPI::InstructionAST>;
+extern template class boost::shared_ptr<Dyninst::InstructionAPI::BinaryFunction::funcT>;
+extern template class boost::shared_ptr<Dyninst::InstructionAPI::InstructionAST>;
 
 IA_IAPI::IA_IAPI(const IA_IAPI &rhs) 
    : InstructionAdapter(rhs),

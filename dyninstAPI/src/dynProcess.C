@@ -62,8 +62,8 @@ using std::vector;
 using std::string;
 using std::stringstream;
 
-template class boost::shared_ptr<Dyninst::ProcControlAPI::Process>;
-template class boost::shared_ptr<Dyninst::ProcControlAPI::Thread>;
+extern template class boost::shared_ptr<Dyninst::ProcControlAPI::Process>;
+extern template class boost::shared_ptr<Dyninst::ProcControlAPI::Thread>;
 
 Dyninst::SymtabAPI::SymtabReaderFactory *PCProcess::symReaderFactory_;
 

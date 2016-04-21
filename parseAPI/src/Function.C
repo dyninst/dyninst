@@ -53,8 +53,6 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-template class boost::shared_ptr<Dyninst::SliceNode>;
-template class boost::shared_ptr<Dyninst::Edge>;
 
 Function::Function() :
         _start(0),

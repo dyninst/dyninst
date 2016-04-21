@@ -59,7 +59,7 @@ using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
 
-template class boost::shared_ptr<Dyninst::InstructionAPI::Instruction>;
+extern template class boost::shared_ptr<Dyninst::InstructionAPI::Instruction>;
 
 #define MODRM_MOD(x) ((x) >> 6)
 #define MODRM_RM(x) ((x) & 7)

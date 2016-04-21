@@ -42,7 +42,7 @@
 using namespace Dyninst;
 using namespace InstructionAPI;
 
-template class boost::shared_ptr<InstructionAST>;
+extern template class boost::shared_ptr<InstructionAST>;
 
 BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction::Ptr insn,
 							 Address current, bool is64)

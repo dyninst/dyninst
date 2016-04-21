@@ -42,13 +42,6 @@ using namespace Dyninst;
 
 const Dyninst::Address Graph::INITIAL_ADDR = (Address) -1;
 
-template class boost::shared_ptr<Node>;
-template class boost::shared_ptr<Edge>;
-
-template class std::unordered_set<boost::shared_ptr<Node>, Node::NodePtrHasher>;
-template class std::unordered_map<Address, std::unordered_set<boost::shared_ptr<Node>, Node::NodePtrHasher> >;
-
-template class boost::shared_ptr<Graph>;
 
 
 void Graph::entryNodes(NodeIterator &begin, NodeIterator &end) {

@@ -44,7 +44,6 @@ using namespace Dyninst;
 
 const Address Node::INVALID_ADDR = (Address) -1;
 
-template class std::set<boost::shared_ptr<Dyninst::Node> >;
 
 void Node::addInEdge(const EdgePtr in) {
    ins_.insert(in);
@@ -327,5 +326,3 @@ void Node::deleteOutEdge(EdgeIterator e) {
   outs_.erase(*e);
 }
 
-template class boost::shared_ptr<Dyninst::Graph::NodePredicate>;
-template class std::queue<std::pair<Dyninst::Node::Ptr, Dyninst::Node::Ptr> >;

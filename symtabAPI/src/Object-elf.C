@@ -5857,4 +5857,3 @@ std::string Object::getFileName() const
   return mf->filename();
 }
 
-template class boost::shared_ptr<std::vector<std::pair<unsigned long, unsigned long> > >;
