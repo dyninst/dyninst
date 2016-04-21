@@ -9037,222 +9037,254 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                                    ia32_instruction& instruct,
                                    ia32_memacc *mac)
 {
-  ia32_locations *loc = instruct.loc;
-  if (loc) loc->imm_cnt = 0;
-  unsigned int nib = 0 /* # of bytes in instruction */;
+    unsigned int nib = 0; /* # of bytes in instruction */
+    ia32_locations *loc = instruct.loc;
 
-  int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2);
+    if(loc) 
+        loc->imm_cnt = 0;
 
-  if (mode_64)
-    addrSzAttr *= 2;
+    int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2);
 
-  int operSzAttr = getOperSz(pref);
+    if(mode_64)
+        addrSzAttr *= 2;
 
-  if(gotit.hasModRM)
-    nib += byteSzB;
+    int operSzAttr = getOperSz(pref);
 
-  for(unsigned int i=0; i<3; ++i) {
-    const ia32_operand& op = gotit.operands[i];
-    if(op.admet) {
-      // At most two operands can be memory, the third is register or immediate
-      //assert(i<2 || op.admet == am_reg || op.admet == am_I);
-      switch(op.admet) {
-      case am_A: /* address = segment + offset (word or dword or qword) */
-		nib += wordSzB; // segment
-        nib += wordSzB * addrSzAttr;  // + offset (1 or 2 words, depending on prefix)
-	break;
-      case am_O: /* operand offset */
-        nib += wordSzB * addrSzAttr;
-        if(mac) {
-          int offset = 0;
-          switch(addrSzAttr) {
-          case 1: // 16-bit offset
-              offset = *((const short int*)addr);
-              break;
-          case 2: // 32-bit offset
-              offset = *((const int*)addr);
-              break;
-          case 4: // 64-bit
-	      offset = *((const long*)addr);
-              break;
-          default:
-              assert(0);
-              break;
-          }
-          mac[i].set(-1, offset, addrSzAttr);
-          mac[i].size = type2size(op.optype, operSzAttr);
+    if(gotit.hasModRM)
+        nib += byteSzB;
+
+    for(int i = 0; i < 3; i++)
+    {
+        const ia32_operand& op = gotit.operands[i];
+
+        if(op.admet) 
+        {
+            // At most two operands can be memory, the third is register or immediate
+            //assert(i<2 || op.admet == am_reg || op.admet == am_I);
+            switch(op.admet) 
+            {
+                case am_A: /* address = segment + offset (word or dword or qword) */
+                    nib += wordSzB; // segment
+                    nib += wordSzB * addrSzAttr;  // + offset (1 or 2 words, depending on prefix)
+                    break;
+                case am_O: /* operand offset */
+                    nib += wordSzB * addrSzAttr;
+                    if(mac) 
+                    {
+                        int offset = 0;
+                        switch(addrSzAttr) 
+                        {
+                            case 1: // 16-bit offset
+                                offset = *((const short int*)addr);
+                                break;
+                            case 2: // 32-bit offset
+                                offset = *((const int*)addr);
+                                break;
+                            case 4: // 64-bit
+                                offset = *((const long*)addr);
+                                break;
+                            default:
+                                assert(0);
+                                break;
+                        }
+
+                        mac[i].set(-1, offset, addrSzAttr);
+                        mac[i].size = type2size(op.optype, operSzAttr);
+                    }
+                    break;
+                case am_B:   /* General register selected by VEX.vvvv*/
+                case am_C:   /* control register */
+                case am_D:   /* debug register */
+                case am_F:   /* flags register */
+                case am_G:   /* general purpose register, selecteb by reg field */
+                case am_P:   /* MMX register */
+                case am_R:   /* general purpose register, selected by r/m field */
+                case am_S:   /* segment register */
+                case am_T:   /* test register */
+                case am_XV:  /* XMM register (From reg of ModR/M) */
+                case am_XU:  /* XMM register (from R/M of ModR/M) */
+                case am_XH:  /* XMM register (vvvv of prefix) */
+                case am_YV:  /* XMM or YMM register (From reg of ModR/M) */
+                case am_YU:  /* XMM or YMM register (from R/M of ModR/M) */
+                case am_YH:  /* XMM or YMM register (vvvv of prefix) */
+                case am_V:   /* XMM, YMM or ZMM register (From reg of ModR/M) */
+                case am_U:   /* XMM, YMM or ZMM register (from R/M of ModR/M) */
+                case am_H:   /* XMM, YMM or ZMM register (vvvv of prefix) */
+                case am_reg: /* register implicitely encoded in opcode */ 
+                case am_allgprs:
+                    break;
+                case am_E:  /* register or memory location, so decoding needed */
+                case am_M:  /* memory operand, decoding needed; size includes modRM byte */
+                case am_Q:  /* MMX register or memory location */
+                case am_RM: /* register or memory location, so decoding needed */
+                case am_UM: /* XMM register or memory location */
+                case am_XW: /* XMM register or memory location */
+                case am_YW: /* XMM or YMM register or memory location */
+                case am_W:  /* XMM, YMM or ZMM register or memory location */
+                    if (loc) 
+                    {
+                        loc->modrm_position = loc->opcode_size + loc->opcode_position;
+                        loc->modrm_operand = i;
+                    }
+
+                    if(mac) 
+                    {
+                        nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref, loc);
+                        mac[i].size = type2size(op.optype, operSzAttr);
+
+                        if (loc) 
+                            loc->address_size = mac[i].size;
+                    } else {
+                        nib += ia32_decode_modrm(addrSzAttr, addr, NULL, &pref, loc);
+                    }
+                
+                    // also need to check for AMD64 rip-relative data addressing
+                    // occurs when mod == 0 and r/m == 101
+                    if (mode_64 && (addr[0] & 0xc7) == 0x05)
+                        instruct.rip_relative_data = true;
+
+                    break;
+                case am_I: /* immediate data */
+                case am_J: /* instruction pointer offset */
+                    { 
+                        int imm_size = type2size(op.optype, operSzAttr);
+                        if (loc) 
+                        {
+                            // sanity
+                            if(loc->imm_cnt > 1) 
+                            {
+                                fprintf(stderr,"Oops, more than two immediate operands\n");
+                            } else {
+                                loc->imm_position[loc->imm_cnt] = 
+                                nib + loc->opcode_position + loc->opcode_size;
+                                loc->imm_size[loc->imm_cnt] = imm_size;
+                                ++loc->imm_cnt;
+                            }
+                        }
+                        nib += imm_size;
+                        break;
+                    }
+                    /* TODO: rep prefixes, deal with them here? */
+
+                case am_X: /* memory at DS:(E)SI*/
+                    if(mac)
+                        mac[i].setXY(mESI, type2size(op.optype, operSzAttr), addrSzAttr);
+                    break;
+                case am_Y: /* memory at ES:(E)DI*/
+                    if(mac)
+                        mac[i].setXY(mEDI, type2size(op.optype, operSzAttr), addrSzAttr);
+                    break;
+                case am_stackH: /* stack push */
+                case am_stackP: /* stack pop */
+                    assert(0 && "Wrong table!");
+                    break;
+                case am_tworeghack:
+                case am_ImplImm:
+                    // Don't do nuthin'
+                    break;
+                default:
+#ifdef VEX_DEBUG
+                    printf("mode: %d  %x\n", op.admet, op.admet);
+#endif
+                    assert(0 && "Bad addressing mode!");
+            }
+        } else {    
+            break;
         }
-        break;
-      case am_B:   /* General register selected by VEX.vvvv*/
-      case am_C:   /* control register */
-      case am_D:   /* debug register */
-      case am_F:   /* flags register */
-      case am_G:   /* general purpose register, selecteb by reg field */
-      case am_P:   /* MMX register */
-      case am_R:   /* general purpose register, selected by r/m field */
-      case am_S:   /* segment register */
-      case am_T:   /* test register */
-      case am_V:   /* XMM or YMM register (From reg of ModR/M) */
-      case am_U:   /* XMM or YMM register (from R/M of ModR/M) */
-      case am_H:   /* XMM or YMM register (vvvv of prefix) */
-      case am_reg: /* register implicitely encoded in opcode */ 
-      case am_allgprs:
-        break;
-      case am_E: /* register or memory location, so decoding needed */
-      case am_M: /* memory operand, decoding needed; size includes modRM byte */
-      case am_Q: /* MMX register or memory location */
-      case am_RM:/* register or memory location, so decoding needed */
-      case am_UM:/* XMM register or memory location */
-      case am_W: /* XMM register or memory location */
-         if (loc) {
-            loc->modrm_position = loc->opcode_size + loc->opcode_position;
-            loc->modrm_operand = i;
-         }
-         if(mac) {
-            nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref, loc);
-            mac[i].size = type2size(op.optype, operSzAttr);
-            if (loc) loc->address_size = mac[i].size;
-         }
-         else
-            nib += ia32_decode_modrm(addrSzAttr, addr, NULL, &pref, loc);
-         
-         // also need to check for AMD64 rip-relative data addressing
-         // occurs when mod == 0 and r/m == 101
-         if (mode_64)
-            if ((addr[0] & 0xc7) == 0x05)
-               instruct.rip_relative_data = true;
-         
-         break;
-      case am_I: /* immediate data */
-      case am_J: { /* instruction pointer offset */
-         int imm_size = type2size(op.optype, operSzAttr);
-         if (loc) {
-            // sanity
-            if(loc->imm_cnt > 1) {
+    }
+            
+    /* Are there 4 operands? */
+    if((gotit.opsema &  0xffff) >= s4OP)
+    {
+        /* This last one is always Ib */
+        int imm_size = type2size(op_b, operSzAttr);
+        if (loc) 
+        {
+            if(loc->imm_cnt > 1) 
+            {
                 fprintf(stderr,"Oops, more than two immediate operands\n");
             } else {
-                loc->imm_position[loc->imm_cnt] = 
-                    nib + loc->opcode_position + loc->opcode_size;
+                loc->imm_position[loc->imm_cnt] = nib + loc->opcode_position + loc->opcode_size;
                 loc->imm_size[loc->imm_cnt] = imm_size;
                 ++loc->imm_cnt;
             }
-         }
-         nib += imm_size;
-         break;
-      }
-      /* TODO: rep prefixes, deal with them here? */
-      case am_X: /* memory at DS:(E)SI*/
-        if(mac)
-          mac[i].setXY(mESI, type2size(op.optype, operSzAttr), addrSzAttr);
-        break;
-      case am_Y: /* memory at ES:(E)DI*/
-        if(mac)
-          mac[i].setXY(mEDI, type2size(op.optype, operSzAttr), addrSzAttr);
-        break;
-      case am_stackH: /* stack push */
-      case am_stackP: /* stack pop */
-	assert(0 && "Wrong table!");
-        break;
-      case am_tworeghack:
-      case am_ImplImm:
-	// Don't do nuthin'
-	break;
-      default:
-#ifdef VEX_DEBUG
-        printf("mode: %d  %x\n", op.admet, op.admet);
-#endif
-        assert(0 && "Bad addressing mode!");
-      }
+        }
+    
+        nib += imm_size;
     }
-    else
-      break;
-  }
 
-  /* Are there 4 operands? */
-  if((gotit.opsema &  0xffff) >= s4OP)
-  {
-    /* This last one is always Ib */
-    int imm_size = type2size(op_b, operSzAttr);
-    if (loc) {
-      if(loc->imm_cnt > 1) {
-        fprintf(stderr,"Oops, more than two immediate operands\n");
-      } else {
-      loc->imm_position[loc->imm_cnt] = nib + loc->opcode_position + loc->opcode_size;
-      loc->imm_size[loc->imm_cnt] = imm_size;
-      ++loc->imm_cnt;
-      }
-    }
-    nib += imm_size;
-  }
+    if((gotit.id == e_push) && mac)
+    {
+        // assuming 32-bit (64-bit for AMD64) stack segment
+        // AMD64: push defaults to 64-bit operand size
+        if (mode_64 && operSzAttr == 2)
+            operSzAttr = 4;
 
-  if((gotit.id == e_push) && mac)
-  {
-    // assuming 32-bit (64-bit for AMD64) stack segment
-    // AMD64: push defaults to 64-bit operand size
-    if (mode_64 && operSzAttr == 2)
-      operSzAttr = 4;
-    mac[1].set(mESP, -2 * operSzAttr, addrSzAttr);
-    if(gotit.operands[0].admet == am_reg)
-    {
-        mac[1].size = type2size(op_v, operSzAttr);
+        mac[1].set(mESP, -2 * operSzAttr, addrSzAttr);
+
+        if(gotit.operands[0].admet == am_reg)
+        {
+            mac[1].size = type2size(op_v, operSzAttr);
+        } else {
+            mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
+        }
+
+        mac[1].write = true;
     }
-    else
+
+    if((gotit.id == e_pop) && mac)
     {
-        mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
+        // assuming 32-bit (64-bit for AMD64) stack segment
+        // AMD64: pop defaults to 64-bit operand size
+        if (mode_64 && operSzAttr == 2)
+            operSzAttr = 4;
+        mac[1].set(mESP, 0, addrSzAttr);
+        if(gotit.operands[0].admet == am_reg)
+        {
+            mac[1].size = type2size(op_v, operSzAttr);
+        } else {
+            mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
+        }
+        mac[1].read = true;
     }
-    mac[1].write = true;
-  }
-  if((gotit.id == e_pop) && mac)
-  {
-    // assuming 32-bit (64-bit for AMD64) stack segment
-    // AMD64: pop defaults to 64-bit operand size
-    if (mode_64 && operSzAttr == 2)
-      operSzAttr = 4;
-    mac[1].set(mESP, 0, addrSzAttr);
-    if(gotit.operands[0].admet == am_reg)
+
+    if((gotit.id == e_leave) && mac)
     {
-        mac[1].size = type2size(op_v, operSzAttr);
+        // assuming 32-bit (64-bit for AMD64) stack segment
+        // AMD64: push defaults to 64-bit operand size
+        if (mode_64 && operSzAttr == 2)
+            operSzAttr = 4;
+        mac[0].set(mESP, 0, addrSzAttr);
+        mac[0].size = type2size(op_v, operSzAttr);
+        mac[0].read = true;
     }
-    else
+
+    if((gotit.id == e_ret_near || gotit.id == e_ret_far) && mac)
     {
-        mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
+        mac[0].set(mESP, 0, addrSzAttr);
+        mac[0].size = type2size(op_v, addrSzAttr);
+        mac[0].read = true;
     }
-    mac[1].read = true;
-  }
-  if((gotit.id == e_leave) && mac)
-  {
-    // assuming 32-bit (64-bit for AMD64) stack segment
-    // AMD64: push defaults to 64-bit operand size
-    if (mode_64 && operSzAttr == 2)
-      operSzAttr = 4;
-    mac[0].set(mESP, 0, addrSzAttr);
-    mac[0].size = type2size(op_v, operSzAttr);
-    mac[0].read = true;
-  }
-  if((gotit.id == e_ret_near || gotit.id == e_ret_far) && mac)
-  {
-    mac[0].set(mESP, 0, addrSzAttr);
-    mac[0].size = type2size(op_v, addrSzAttr);
-    mac[0].read = true;
-  }
-  if((gotit.id == e_call) && mac)
-  {
-	int index = 0;
-	while((mac[index].regs[0] != -1) ||
-		  (mac[index].regs[1] != -1) ||
-		  (mac[index].scale != 0) ||
-		  (mac[index].imm != 0)) {
-		index++;
-		assert(index < 3);
-	}
-	mac[index].set(mESP, -2 * addrSzAttr, addrSzAttr);
-      mac[index].size = type2size(op_v, addrSzAttr);
-      mac[index].write = true;
-            
-  }
-  
-  instruct.size += nib;
-  return nib;
+
+    if((gotit.id == e_call) && mac)
+    {
+        int index = 0;
+        while((mac[index].regs[0] != -1) ||
+                (mac[index].regs[1] != -1) ||
+                (mac[index].scale != 0) ||
+                (mac[index].imm != 0)) 
+        {
+            index++;
+            assert(index < 3);
+        }
+
+        mac[index].set(mESP, -2 * addrSzAttr, addrSzAttr);
+        mac[index].size = type2size(op_v, addrSzAttr);
+        mac[index].write = true;
+    }
+
+    instruct.size += nib;
+    return nib;
 }
 
 
