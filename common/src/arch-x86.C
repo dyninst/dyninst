@@ -8041,7 +8041,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 nxtab = gotit->otable;
 
 #ifdef VEX_DEBUG
-                fprintf(stderr, "SSE MULT MAP   idx: %d  sseidx: %d sse_mult: %d\n", idx, sseidx, pref.sse_mult);
+                fprintf(stderr, "SSE MULT MAP   idx: %d  sseidx: %d sse_mult: %d\n", idx, sseidx, pref.vex_sse_mult);
                 fprintf(stderr, "NEXT TAB == DONE? %s\n", nxtab == t_done ? "YES" : "NO");
                 fprintf(stderr, "NEXT TAB == VEXW? %s\n", nxtab == t_vexw ? "YES" : "NO");
 #endif
@@ -8068,7 +8068,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 nxtab = gotit->otable;
 
 #ifdef VEX_DEBUG
-                fprintf(stderr, "SSEB MULT idx: %d  sseMul: %d\n", idx, pref.sse_mult);
+                fprintf(stderr, "SSEB MULT idx: %d  sseMul: %d\n", idx, pref.vex_sse_mult);
 #endif
                 break;
             case t_sse_ter:
@@ -8091,7 +8091,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 nxtab = gotit->otable;
 
 #ifdef VEX_DEBUG
-                fprintf(stderr, "SSET MULT idx: %d  sseMul: %d\n", idx, pref.sse_mult);
+                fprintf(stderr, "SSET MULT idx: %d  sseMul: %d\n", idx, pref.vex_sse_mult);
 #endif
                 break;
 
@@ -9092,6 +9092,8 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                         mac[i].size = type2size(op.optype, operSzAttr);
                     }
                     break;
+                case am_tworeghack:
+                case am_ImplImm:
                 case am_B:   /* General register selected by VEX.vvvv*/
                 case am_C:   /* control register */
                 case am_D:   /* debug register */
@@ -9178,10 +9180,6 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                 case am_stackP: /* stack pop */
                     assert(0 && "Wrong table!");
                     break;
-                case am_tworeghack:
-                case am_ImplImm:
-                    // Don't do nuthin'
-                    break;
                 default:
 #ifdef VEX_DEBUG
                     printf("mode: %d  %x\n", op.admet, op.admet);
@@ -9198,6 +9196,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
     {
         /* This last one is always Ib */
         int imm_size = type2size(op_b, operSzAttr);
+
         if (loc) 
         {
             if(loc->imm_cnt > 1) 
@@ -9375,6 +9374,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
     pref.vex_pp = -1;
     pref.vex_w = -1;
     pref.vex_vvvv_reg = -1;
+    pref.vex_V = 0;
     pref.vex_m_mmmm = -1;
     bool in_prefix = true;
 
@@ -9443,7 +9443,8 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 pref.vex_type = VEX_TYPE_EVEX;
                 memmove(&pref.vex_prefix, addr + 1, 3);
                 pref.vex_sse_mult = 2;
-                pref.vex_vvvv_reg = EVEXGET_VVVV(pref.vex_prefix[1]);
+                pref.vex_vvvv_reg = EVEXGET_VVVV(pref.vex_prefix[1], pref.vex_prefix[2]);
+                pref.vex_V = EVEXGET_V(pref.vex_prefix[2]);
                 pref.vex_ll = EVEXGET_LL(pref.vex_prefix[2]);
                 pref.vex_w = EVEXGET_W(pref.vex_prefix[1]);
                 pref.vex_pp = EVEXGET_PP(pref.vex_prefix[1]);
@@ -9482,6 +9483,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 memmove(&pref.vex_prefix, addr + 1, 2);
                 pref.vex_sse_mult = 1;
                 pref.vex_vvvv_reg = VEXGET_VVVV(pref.vex_prefix[1]);
+                pref.vex_V = 0;
                 pref.vex_ll = VEXGET_L(pref.vex_prefix[1]);
                 pref.vex_w = VEX3GET_W(pref.vex_prefix[1]);
                 pref.vex_pp = VEXGET_PP(pref.vex_prefix[1]);
@@ -9515,6 +9517,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 pref.vex_prefix[0] = addr[1]; /* Only 1 byte for VEX2 */
                 pref.vex_sse_mult = 0;
                 pref.vex_vvvv_reg = VEXGET_VVVV(pref.vex_prefix[0]);
+                pref.vex_V = 0;
                 pref.vex_ll = VEXGET_L(pref.vex_prefix[0]);
                 pref.vex_w = -1; /* No W bit for VEX2 */
                 pref.vex_pp = VEXGET_PP(pref.vex_prefix[0]);

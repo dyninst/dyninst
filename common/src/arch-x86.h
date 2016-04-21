@@ -492,7 +492,9 @@ enum VEX_TYPE
 #define VEX_REXR   (1 << 7)
 
 /* VEX mask helper macros */
-#define VEXGET_VVVV(b)  (char)((b & VEX_VVVV) >> 3)
+#define VEXGET_VVVV(b)  (unsigned char)((~((unsigned char) \
+            ((b & VEX_VVVV) >> 3))) & 0xF)
+
 #define VEXGET_L(b)     (char)((b & VEX_L) >> 2)
 #define VEXGET_PP(b)    (char)(b & VEX_PP)
 
@@ -505,11 +507,14 @@ enum VEX_TYPE
 #define EVEXGET_W(b) VEX3GET_W(b)
 #define EVEXGET_L1(b) (unsigned char)((1 << 5) & (b))
 #define EVEXGET_L2(b) (unsigned char)((1 << 6) & (b))
-#define EVEXGET_LL(b) (unsigned char)((EVEXGET_L1(b)) | (EVEXGET_L2(b)))
+#define EVEXGET_LL(b) (unsigned char)(((b) >> 5) & 0x03)
 #define EVEXGET_PP(b) (unsigned char)(3 & (b))
 #define EVEXGET_MM(b) (unsigned char)(3 & (b))
 #define EVEXGET_AAA(b) (unsigned char)(7 & (b))
-#define EVEXGET_VVVV(b) (unsigned char)(((b) >> 0x03) & (0x0F))
+
+#define EVEXGET_VVVV(a, b)  ((((unsigned char)~(a) >> 3) & 0x0F)) | \
+            (((unsigned char)~(b) & 0x08) << 1)
+#define EVEXGET_V(b) (((unsigned char)~(b) & 0x08) << 1)
 
 #endif
 
@@ -683,6 +688,7 @@ class ia32_prefixes
   int vex_pp; /* pp bits for VEX2, VEX3 or EVEX */
   int vex_m_mmmm; /* m-mmmm bits for VEX2, VEX3 or EVEX */
   int vex_w; /* w bit for VEX2, VEX3 or EVEX */
+  int vex_V; /* V' modifier for EVEX */
 };
 
 // helper routine to tack-on rex bit when needed

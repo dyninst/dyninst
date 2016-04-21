@@ -458,9 +458,9 @@ namespace Dyninst
         b_amd64ext,
         b_8bitWithREX,
         b_fpstack,
-	amd64_ext_8,
-	amd64_ext_16,
-	amd64_ext_32,
+	    amd64_ext_8,
+	    amd64_ext_16,
+	    amd64_ext_32,
 
         b_invalid /* should remain the final entry */
     };
@@ -803,6 +803,9 @@ namespace Dyninst
         switch(type)
         {
             case AVX_XMM:
+#ifdef VEX_DEBUG
+                printf("REG_TYPE: AVX_XMM (%d)\n", type);
+#endif
                 if(setnum == 0)
                     bank = b_xmm_set0;
                 else if(setnum == 1)
@@ -814,6 +817,9 @@ namespace Dyninst
                 else return true;
                 break;
             case AVX_YMM:
+#ifdef VEX_DEBUG
+                printf("REG_TYPE: AVX_YMM (%d)\n", type);
+#endif
                 if(setnum == 0)
                     bank = b_ymm_set0;
                 else if(setnum == 1)
@@ -825,6 +831,9 @@ namespace Dyninst
                 else return true;
                 break;
             case AVX_ZMM:
+#ifdef VEX_DEBUG
+                printf("REG_TYPE: AVX_ZMM (%d)\n", type);
+#endif
                 if(setnum == 0)
                     bank = b_zmm_set0;
                 else if(setnum == 1)
@@ -867,136 +876,141 @@ namespace Dyninst
 	        isConditional = true;
         }
 
+        /* There must be a preliminary decoded instruction */
+        if(!decodedInstruction)
+            assert(!"No decoded instruction!\n");
+
         unsigned int optype = operand.optype;
-        int vex_vvvv = 0; /* The register selected by the VEX prefix (1111 if unused) */
-        bool has_vex = false; /* Whether any sort of VEX prefix is present */
         AVX_Regtype avx_type = AVX_NONE; /* The AVX register type (if VEX prefixed) */
         intelRegBanks bank = b_invalid; /* Specifies an AVX bank to use for register decoding */
         int bank_index = -1; /* Specifies a bank index for an AVX register */
+        ia32_prefixes& pref = *decodedInstruction->getPrefix();
+        int regnum; /* Used to keep track of some register positions */
 
-        if(decodedInstruction && decodedInstruction->getPrefix()->vex_prefix[0])
+        if(pref.vex_present)
         {
-            has_vex = true;
-
             /* Get the AVX type from the prefix */
-            avx_type = (AVX_Regtype)decodedInstruction->getPrefix()->vex_ll;
+            avx_type = (AVX_Regtype)pref.vex_ll;
+        }
 
-            if(decodedInstruction->getPrefix()->vex_prefix[2]) /* AVX512 (EVEX) */
-            {
-                vex_vvvv = (unsigned char)EVEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
-
-                /* The last 5 bits must be flipped to be used for EVEX */
-                vex_vvvv = (unsigned char)((~vex_vvvv) & 0x0F);
-            } else if(decodedInstruction->getPrefix()->vex_prefix[1]){ /* AVX2 (VEX3) */
-                vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
-
-                /* The last 4 bits must be flipped to be used for VEX3 */
-                vex_vvvv = (unsigned char)((~vex_vvvv) & 0x0F);
-            } else { /* AVX (VEX2) */
-                vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[0]);
-
-                /* The last 4 bits must be flipped to be used for VEX2*/
-                vex_vvvv = (unsigned char)((~vex_vvvv) & 0x0F);
-            }
-      }
-
-      if (sizePrefixPresent 
-        && ((optype == op_v) || (optype == op_z)) 
-        && (operand.admet != am_J)) 
-      {
-	        optype = op_w;
-      }
+        if (sizePrefixPresent && ((optype == op_v) 
+                || (optype == op_z)) && (operand.admet != am_J)) 
+        {
+            optype = op_w;
+        }
 
         if(optype == op_y) 
         {
-    	  if(ia32_is_mode_64() && locs->rex_w)
+            if(ia32_is_mode_64() && locs->rex_w)
             {
-    		  optype = op_q;
+                optype = op_q;
     	    } else {
-    		  optype = op_d;
-      }
+                optype = op_d;
+            }
         }
      
-                switch(operand.admet)
+        switch(operand.admet)
+        {
+            case 0:
+                // No operand
+                assert(!"Mismatched number of operands--check tables");
+                return false;
+            case am_A:
                 {
-                    case 0:
-                    // No operand
-                        assert(!"Mismatched number of operands--check tables");
-                        return false;
-                    case am_A:
-                    {
-                        // am_A only shows up as a far call/jump.  Position 1 should be universally safe.
-                        Expression::Ptr addr(decodeImmediate(optype, b.start + 1));
-                        insn_to_complete->addSuccessor(addr, isCall, false, false, false);
-                    }
-                    break;
-                    case am_C:
-                    {
-                        Expression::Ptr op(makeRegisterExpression(IntelRegTable(m_Arch,b_cr,locs->modrm_reg)));
-                        insn_to_complete->appendOperand(op, isRead, isWritten);
-                    }
-                    break;
-                    case am_D:
-                    {
-                        Expression::Ptr op(makeRegisterExpression(IntelRegTable(m_Arch,b_dr,locs->modrm_reg)));
-                        insn_to_complete->appendOperand(op, isRead, isWritten);
-                    }
-                    break;
-                    case am_E:
-                    // am_M is like am_E, except that mod of 0x03 should never occur (am_M specified memory,
-                    // mod of 0x03 specifies direct register access).
-                    case am_M:
-                    // am_R is the inverse of am_M; it should only have a mod of 3
-                    case am_R:
-                    // can be am_R or am_M	
-                    case am_RM:	
-                        if(isCFT)
-                        {
-			  insn_to_complete->addSuccessor(makeModRMExpression(b, optype), isCall, true, false, false);
+                    // am_A only shows up as a far call/jump.  
+                    // Position 1 should be universally safe.
+                    Expression::Ptr addr(decodeImmediate(optype, b.start + 1));
+                    insn_to_complete->addSuccessor(addr, isCall, false, false, false);
+                }
+                break;
+
+            case am_C:
+                {
+                    Expression::Ptr op(makeRegisterExpression(
+                            IntelRegTable(m_Arch,b_cr,locs->modrm_reg)));
+                    insn_to_complete->appendOperand(op, isRead, isWritten);
+                }
+                break;
+
+            case am_D:
+                {
+                    Expression::Ptr op(makeRegisterExpression(
+                                IntelRegTable(m_Arch,b_dr,locs->modrm_reg)));
+                    insn_to_complete->appendOperand(op, isRead, isWritten);
+                }
+                break;
+
+            case am_E:
+                // am_M is like am_E, except that mod of 0x03 should 
+                // never occur (am_M specified memory,
+                // mod of 0x03 specifies direct register access).
+            case am_M:
+                // am_R is the inverse of am_M; it should only have a mod of 3
+            case am_R:
+                // can be am_R or am_M	
+            case am_RM:	
+                if(isCFT)
+                {
+                    insn_to_complete->addSuccessor(
+                            makeModRMExpression(b, optype), 
+                            isCall, true, false, false);
                 } else {
-			  insn_to_complete->appendOperand(makeModRMExpression(b, optype), isRead, isWritten);
-                        }
-                    break;
-                    case am_F:
-                    {
-                        Expression::Ptr op(makeRegisterExpression(x86::flags));
-                        insn_to_complete->appendOperand(op, isRead, isWritten);
-                    }
-                    break;
-                    case am_G:
-                    {
-                    Expression::Ptr op(makeRegisterExpression(makeRegisterID(locs->modrm_reg, optype, locs->rex_r)));
-                        insn_to_complete->appendOperand(op, isRead, isWritten);
-                    }
-                    break;
+                    insn_to_complete->appendOperand(
+                            makeModRMExpression(b, optype), 
+                            isRead, isWritten);
+                }
+                break;
+
+            case am_F:
+                {
+                    Expression::Ptr op(makeRegisterExpression(x86::flags));
+                    insn_to_complete->appendOperand(op, isRead, isWritten);
+                }
+                break;
+
+            case am_G:
+                {
+                    Expression::Ptr op(makeRegisterExpression(
+                            makeRegisterID(locs->modrm_reg, optype, locs->rex_r)));
+                    insn_to_complete->appendOperand(op, isRead, isWritten);
+                }
+                break;
+
             case am_H: /* Could be XMM, YMM or ZMM */
                 /* Make sure this register class is valid for VEX */
-                if(!AVX_TYPE_OKAY(avx_type) || !has_vex)
+                if(!AVX_TYPE_OKAY(avx_type) || !pref.vex_present)
                     return false;
 
                 /* Grab the correct bank and bank index for this type of register */
-                if(decodeAVX(bank, &bank_index, vex_vvvv, avx_type))
+                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type))
                     return false;
 
                 /* Append the operand */
-                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
+                insn_to_complete->appendOperand(makeRegisterExpression(
+                        IntelRegTable(m_Arch, bank, bank_index)), 
+                        isRead, isWritten);
                 break;
+
             case am_XH: /* Must be XMM */
                 /* Make sure we are using a valid VEX register class */
-                if(!AVX_TYPE_OKAY(avx_type) || !has_vex)
+                if(!AVX_TYPE_OKAY(avx_type) || !pref.vex_present)
                     return false;
 
                 /* Constrain register type to only the XMM banks */
                 avx_type = AVX_XMM;
 
                 /* Grab the correct bank and bank index for this type of register */
-                if(decodeAVX(bank, &bank_index, vex_vvvv, avx_type))
+                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type))
                     return false;
-                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
+
+                insn_to_complete->appendOperand(makeRegisterExpression(
+                        IntelRegTable(m_Arch, bank, bank_index)), 
+                        isRead, isWritten);
                 break;
+
             case am_YH: /* Could be XMM or YMM */
                 /* Make sure we are using a valid VEX register class */
-                if(!AVX_TYPE_OKAY(avx_type) || !has_vex)
+                if(!AVX_TYPE_OKAY(avx_type) || !pref.vex_present)
                     return false;
 
                 /* Constrain to only XMM or YMM registers */
@@ -1004,12 +1018,15 @@ namespace Dyninst
                     avx_type = AVX_YMM;
 
                 /* Grab the correct bank and bank index for this type of register */
-                if(decodeAVX(bank, &bank_index, vex_vvvv, avx_type))
+                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type))
                     return false;
 
                 /* Append the operand */
-                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
-                      break;
+                insn_to_complete->appendOperand(makeRegisterExpression(
+                        IntelRegTable(m_Arch, bank, bank_index)), 
+                        isRead, isWritten);
+                break;
+
                     case am_I:
                 insn_to_complete->appendOperand(decodeImmediate(optype, b.start + locs->imm_position[imm_index++]), isRead, isWritten);
                         break;
@@ -1129,14 +1146,15 @@ namespace Dyninst
                     	break;
             case am_V: /* Could be XMM, YMM or ZMM (possibly non VEX)*/
                 /* Is this a vex prefixed instruction? */  
-                if(has_vex)
-                {
-                    if(!AVX_TYPE_OKAY(avx_type))
-                        return false;
-                }
+                if(pref.vex_present && !AVX_TYPE_OKAY(avx_type))
+                    return false;
+
+                regnum = locs->modrm_reg;
+                if(pref.vex_present)
+                    regnum |= pref.vex_V;
 
                 /* Get the register bank and the index */
-                if(decodeAVX(bank, &bank_index, locs->modrm_reg, avx_type))
+                if(decodeAVX(bank, &bank_index, regnum, avx_type))
                     return false;
     
                 /* Append the operand */
@@ -1144,11 +1162,15 @@ namespace Dyninst
                 break;
             case am_XV: /* Must be XMM (must be VEX) */
                 
-                if(!AVX_TYPE_OKAY(avx_type) || !has_vex)
+                if(!AVX_TYPE_OKAY(avx_type) || !pref.vex_present)
                     return false;
+                
+                regnum = locs->modrm_reg;
+                if(pref.vex_present)
+                    regnum |= pref.vex_V;
 
                 /* Get the register bank and the index */
-                if(decodeAVX(bank, &bank_index, locs->modrm_reg, avx_type))
+                if(decodeAVX(bank, &bank_index, regnum, avx_type))
                     return false;
   
                 /* Append the operand */
@@ -1156,15 +1178,19 @@ namespace Dyninst
                 break;
             case am_YV: /* Must be XMM or YMM (must be VEX) */
                 /* Make sure this register class is valid */
-                if(!AVX_TYPE_OKAY(avx_type) || !has_vex)
+                if(!AVX_TYPE_OKAY(avx_type) || !pref.vex_present)
                     return false;
+
+                regnum = locs->modrm_reg;
+                if(pref.vex_present)
+                    regnum |= pref.vex_V;
 
                 /* Constrain to either XMM or YMM registers */
                 if(avx_type != AVX_XMM && avx_type != AVX_YMM)
                     avx_type = AVX_YMM;
 
                 /* Get the register bank and index */
-                if(decodeAVX(bank, &bank_index, locs->modrm_reg, avx_type))
+                if(decodeAVX(bank, &bank_index, regnum, avx_type))
                     return false;
                        
                 /* Append the operand */
@@ -1173,7 +1199,7 @@ namespace Dyninst
             case am_U: /* Could be XMM, YMM, or ZMM (or possibly non VEX)*/
 
                 /* Is this a vex prefixed instruction? */  
-                if(has_vex)
+                if(pref.vex_present)
                 {
                     if(!AVX_TYPE_OKAY(avx_type))
                         return false;
@@ -1188,7 +1214,7 @@ namespace Dyninst
                 break;
             case am_XU: /* Must be XMM (must be VEX) */
                 /* Make sure this register class is valid */
-                if(!AVX_TYPE_OKAY(avx_type) || !has_vex)
+                if(!AVX_TYPE_OKAY(avx_type) || !pref.vex_present)
                     return false;
   
                 /* Constrain register to XMM banks only */        
@@ -1203,7 +1229,7 @@ namespace Dyninst
                 break;
             case am_YU: /* Must be XMM or YMM (must be VEX) */
                 /* Make sure this register class is valid */
-                if(!AVX_TYPE_OKAY(avx_type) || !has_vex)
+                if(!AVX_TYPE_OKAY(avx_type) || !pref.vex_present)
                     return false;
 
                 /* Constrain to either XMM or YMM registers */
@@ -1219,7 +1245,7 @@ namespace Dyninst
                 break;
             case am_W: /* Could be XMM, YMM, or ZMM (or possibly not VEX) */
 
-                if(has_vex)
+                if(pref.vex_present)
                 {
                     if(!AVX_TYPE_OKAY(avx_type))
                         return false;
@@ -1247,7 +1273,7 @@ namespace Dyninst
             case am_XW: /* Must be XMM (must be VEX) */
 
                 /* Make sure this vex is okay */
-                if(!AVX_TYPE_OKAY(avx_type) || !has_vex)
+                if(!AVX_TYPE_OKAY(avx_type) || !pref.vex_present)
                     return false;
          
                 /* Constrain to the XMM banks */ 
@@ -1275,7 +1301,7 @@ namespace Dyninst
             case am_YW: /* Must be either YMM or XMM (must be VEX) */
 
                 /* Make sure the register class is okay and we have a vex prefix */
-                if(!AVX_TYPE_OKAY(avx_type) || !has_vex)
+                if(!AVX_TYPE_OKAY(avx_type) || !pref.vex_present)
                     return false;
 
                 /* Constrain to either XMM or YMM registers */
