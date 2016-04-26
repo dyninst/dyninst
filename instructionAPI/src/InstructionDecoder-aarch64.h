@@ -65,6 +65,7 @@ namespace Dyninst {
 
                 static std::vector<std::string> condStringMap;
                 static std::map<unsigned int, MachRegister> sysRegMap;
+		static std::map<entryID, std::string> bitfieldInsnAliasMap;
 
                 #define	IS_INSN_LOGICAL_SHIFT(I)		(field<24, 28>(I) == 0x0A)
                 #define	IS_INSN_ADDSUB_EXT(I)			(field<24, 28>(I) == 0x0B && field<21, 21>(I) == 1)
@@ -251,6 +252,7 @@ namespace Dyninst {
 		void setSIMDMode();
 
                 bool isSinglePrec();
+		void fix_bitfieldinsn_alias(int, int);
 
 		MachRegister makeAarch64RegID(MachRegister, unsigned int);
 		MachRegister getLoadStoreSimdRegister(int encoding);
