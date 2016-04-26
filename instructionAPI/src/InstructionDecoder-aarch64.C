@@ -48,7 +48,7 @@ namespace Dyninst {
                 aarch64_op_bfi_bfm, "bfi")(aarch64_op_bfxil_bfm, "bfxil")(aarch64_op_sbfiz_sbfm, "sbfiz")(
                 aarch64_op_sbfx_sbfm, "sbfx")(aarch64_op_ubfiz_ubfm, "ubfiz")(aarch64_op_ubfx_ubfm, "ubfx")(
                 aarch64_op_sxtb_sbfm, "sxtb")(aarch64_op_sxth_sbfm, "sxth")(aarch64_op_sxtw_sbfm, "sxtw")(
-                aarch64_op_uxtb_ubfm, "uxtb")(aarch64_op_uxth_ubfm, "uxth");;
+                aarch64_op_uxtb_ubfm, "uxtb")(aarch64_op_uxth_ubfm, "uxth")(aarch64_op_lsl_ubfm, "lsl")(aarch64_op_lsr_ubfm, "lsr");
 
         struct aarch64_insn_entry {
             aarch64_insn_entry(entryID o, const char *m, operandSpec ops) :
@@ -2389,6 +2389,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                                 break;
                         }
                     }
+		    else if((imms != 31 || imms != 63) && (imms + 1) == immr)
+			modifiedID = aarch64_op_lsl_ubfm;
+		    else if((imms & 0x1F) == 0x1F)
+			modifiedID = aarch64_op_lsr_ubfm;
                     else
                         modifiedID = (imms < immr) ? aarch64_op_ubfiz_ubfm : aarch64_op_ubfx_ubfm;
                     break;
@@ -2436,26 +2440,35 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 }
                 else if (IS_FIELD_IMMS(startBit, endBit)) {
                     Expression::Ptr imm;
+		    bool isLsrLsl = false;
 
                     if (IS_INSN_LOGICAL_IMM(insn)) {
                         if (is64Bit)
                             imm = makeLogicalImm<uint64_t>(immr, immVal, immLen, u64);
                         else
                             imm = makeLogicalImm<uint32_t>(immr, immVal, immLen, u32);
+			
+			insn_in_progress->appendOperand(imm, true, false);
                     }
                     else {
+			entryID curID;
+
                         if (IS_INSN_BITFIELD(insn)) {
                             if (!fix_bitfieldinsn_alias(immr, immVal))
                                 return;
 
-                            if (immVal < immr) {
-                                immVal += 1;
-
+			    curID = insn_in_progress->getOperation().operationID;
+			    if(curID == aarch64_op_lsl_ubfm || curID == aarch64_op_lsr_ubfm)
+				isLsrLsl = true;
+                            
+			    if (curID != aarch64_op_lsr_ubfm && immVal < immr) {
                                 int divisor = is64Bit ? 64 : 32, factor = 0;
                                 while ((divisor * factor) < immr)
                                     factor += 1;
                                 immr = (divisor * factor) - immr;
                                 immrLen += 1;
+
+				immVal += 1;
                             }
                             else
                                 immVal = immVal + 1 - immr;
@@ -2463,15 +2476,18 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                             immLen += 1;
                         }
 
-                        imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immLen, immVal)));
-                        oprRotateAmt++;
+			if(!isLsrLsl) {
+			    imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immLen, immVal)));
+			    insn_in_progress->appendOperand(imm, true, false);
+			    oprRotateAmt++;
+			}
                     }
 
-                    insn_in_progress->appendOperand(imm, true, false);
                     if (IS_INSN_BITFIELD(insn)) {
                         imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immrLen, immr)));
                         insn_in_progress->appendOperand(imm, true, false);
-                        oprRotateAmt--;
+			if(!isLsrLsl)
+			    oprRotateAmt--;
                     }
                 }
                 else
