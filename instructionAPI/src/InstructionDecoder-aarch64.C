@@ -45,6 +45,8 @@ namespace Dyninst
 
     std::vector<std::string> InstructionDecoder_aarch64::condStringMap;
     std::map<unsigned int, MachRegister> InstructionDecoder_aarch64::sysRegMap;
+    std::map<entryID, std::string> InstructionDecoder_aarch64::bitfieldInsnAliasMap = boost::assign::map_list_of(aarch64_op_bfi_bfm, "bfi")(aarch64_op_bfxil_bfm, "bfxil")(aarch64_op_sbfiz_sbfm, "sbfiz")(aarch64_op_sbfx_sbfm, "sbfx")(aarch64_op_ubfiz_ubfm, "ubfiz")(aarch64_op_ubfx_ubfm, "ubfx");
+ ;
 
     struct aarch64_insn_entry
     {
@@ -152,6 +154,7 @@ namespace Dyninst
 
         std::string condArray[16] = {"eq","ne","cs","cc","mi","pl","vs","vc","hi","ls","ge","lt","gt","le","al","nv"};
         InstructionDecoder_aarch64::condStringMap.assign(&condArray[0], &condArray[0] + 16);
+	//InstructionDecoder_aarch64::bitfieldInsnAliasMap = boost::assign::map_list_of(aarch64_op_bfi_bfm, "bfi")(aarch64_op_bfxil_bfm, "bfxil")(aarch64_op_sbfiz_sbfm, "sbfiz")(aarch64_op_sbfx_sbfm, "sbfx")(aarch64_op_ubfiz_ubfm, "ubfiz")(aarch64_op_ubfx_ubfm, "ubfx");
     }
 
     InstructionDecoder_aarch64::~InstructionDecoder_aarch64()
@@ -2480,6 +2483,25 @@ Expression::Ptr InstructionDecoder_aarch64::makeLogicalImm(int immr, int imms, i
     return Immediate::makeImmediate(Result(rT, wmask));
 }
 
+void InstructionDecoder_aarch64::fix_bitfieldinsn_alias(int immr, int imms)
+{
+    entryID modifiedID = insn_in_progress->getOperation().operationID;
+
+    switch(field<27, 30>(insn))
+    {
+        case 0x6:modifiedID = (imms < immr)?aarch64_op_bfi_bfm:aarch64_op_bfxil_bfm;
+	    break;
+        case 0x2:modifiedID = (imms < immr)?aarch64_op_sbfiz_sbfm:aarch64_op_sbfx_sbfm;
+            break;
+        case 0xA:modifiedID = (imms < immr)?aarch64_op_ubfiz_ubfm:aarch64_op_ubfx_ubfm;
+            break;
+        default:isValid = false;
+    }
+
+    insn_in_progress->getOperation().operationID = modifiedID;
+    insn_in_progress->getOperation().mnemonic = bitfieldInsnAliasMap[modifiedID];
+}
+
 template<unsigned int endBit, unsigned int startBit>
 void InstructionDecoder_aarch64::OPRimm()
 {
@@ -2532,6 +2554,25 @@ void InstructionDecoder_aarch64::OPRimm()
 			}
 			else
 			{
+				if(IS_INSN_BITFIELD(insn))
+				{
+				    fix_bitfieldinsn_alias(immr, immVal);
+				    if(immVal < immr)
+				    {
+					immVal += 1;
+					
+					int divisor = is64Bit?64:32, factor = 0;
+					while((divisor*factor) < immr)
+					    factor += 1;
+					immr = (divisor*factor) - immr;
+					immrLen += 1;
+				    }
+				    else
+					immVal = immVal + 1 - immr;
+				    
+				    immLen += 1;
+				}
+
 				imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immLen, immVal)));
 				oprRotateAmt++;
 			}
@@ -2539,9 +2580,9 @@ void InstructionDecoder_aarch64::OPRimm()
 			insn_in_progress->appendOperand(imm, true, false);
 			if(IS_INSN_BITFIELD(insn))
 			{
-				imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immrLen, immr)));
-				insn_in_progress->appendOperand(imm, true, false);
-				oprRotateAmt--;
+			    imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immrLen, immr)));
+			    insn_in_progress->appendOperand(imm, true, false);
+			    oprRotateAmt--;
 			}
 		}
 		else
