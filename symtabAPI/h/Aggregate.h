@@ -87,7 +87,7 @@ class SYMTAB_EXPORT Aggregate
       //std::vector<std::string> getAllMangledNames();
       //std::vector<std::string> getAllPrettyNames();
       //std::vector<std::string> getAllTypedNames();
-      typedef boost::transform_iterator<std::const_mem_fun_t<string, Symbol>, vector<Symbol*>::const_iterator> name_iter;
+      typedef boost::transform_iterator<std::const_mem_fun_t<std::string, Symbol>, std::vector<Symbol*>::const_iterator> name_iter;
       name_iter mangled_names_begin() const;
       name_iter mangled_names_end() const;
       name_iter pretty_names_begin() const;

@@ -474,12 +474,12 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     typedef boost::iterator_range<bmap_const_iterator> const_blocklist;
     typedef std::set<Edge*> edgelist;
     
-    Function(Address addr, string name, CodeObject * obj, 
+    Function(Address addr, std::string name, CodeObject * obj, 
         CodeRegion * region, InstructionSource * isource);
 
     virtual ~Function();
 
-    virtual const string & name() const;
+    virtual const std::string & name() const;
 
     Address addr() const { return _start; }
     CodeRegion * region() const { return _region; }
@@ -513,24 +513,24 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     /* Loops */    
     LoopTreeNode* getLoopTree() const;
     Loop* findLoop(const char *name) const;
-    bool getLoops(vector<Loop*> &loops) const;
-    bool getOuterLoops(vector<Loop*> &loops) const;
+    bool getLoops(std::vector<Loop*> &loops) const;
+    bool getOuterLoops(std::vector<Loop*> &loops) const;
 
     /* Dominator info */
 
     /* Return true if A dominates B in this function */
     bool dominates(Block* A, Block *B) const;
     Block* getImmediateDominator(Block *A) const;
-    void getImmediateDominates(Block *A, set<Block*> &) const;
-    void getAllDominates(Block *A, set<Block*> &) const;
+    void getImmediateDominates(Block *A, std::set<Block*> &) const;
+    void getAllDominates(Block *A, std::set<Block*> &) const;
 
     /* Post-dominator info */
 
     /* Return true if A post-dominates B in this function */
     bool postDominates(Block* A, Block *B) const;
     Block* getImmediatePostDominator(Block *A) const;
-    void getImmediatePostDominates(Block *A, set<Block*> &) const;
-    void getAllPostDominates(Block *A, set<Block*> &) const;
+    void getImmediatePostDominates(Block *A, std::set<Block*> &) const;
+    void getAllPostDominates(Block *A, std::set<Block*> &) const;
 
 
     /* Parse updates and obfuscation */
@@ -624,7 +624,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     mutable bool _loop_analyzed; // true if loops in the function have been found and stored in _loops
     mutable std::set<Loop*> _loops;
     mutable LoopTreeNode *_loop_root; // NULL if the tree structure has not be calculated
-    void getLoopsByNestingLevel(vector<Loop*>& lbb, bool outerMostOnly) const;
+    void getLoopsByNestingLevel(std::vector<Loop*>& lbb, bool outerMostOnly) const;
 
 
     /* Dominator and post-dominator info details */
@@ -720,34 +720,34 @@ public:
 	/** Loop::getBackEdges */
         /** Sets edges to the set of back edges that define this loop,
             returns the number of back edges that define this loop */
-        int getBackEdges(vector<Edge*> &edges);
+        int getBackEdges(std::vector<Edge*> &edges);
 
         /* returns the entry blocks of the loop.
 	 * A natural loop has a single entry block
 	 * and an irreducible loop has mulbile entry blocks
 	 * */
-	int getLoopEntries(vector<Block*>&);
+	int getLoopEntries(std::vector<Block*>&);
 
 	/** Loop::getContainedLoops    */
 	/** returns vector of contained loops */
 
-        bool getContainedLoops(vector<Loop*> &loops);
+        bool getContainedLoops(std::vector<Loop*> &loops);
 
 	/** Loop::getOuterLoops    */
 	/** returns vector of outer contained loops */
 
-	bool getOuterLoops(vector<Loop*> &loops);
+	bool getOuterLoops(std::vector<Loop*> &loops);
 
 	/** Loop::getLoopBasicBlocks    */
 	/** returns all basic blocks in the loop */
 
-        bool getLoopBasicBlocks(vector<Block*> &blocks);
+        bool getLoopBasicBlocks(std::vector<Block*> &blocks);
 
 	/** Loop::getLoopBasicBlocksExclusive    */
 	/** returns all basic blocks in this loop, exluding the blocks
 	    of its sub loops. */
 
-        bool getLoopBasicBlocksExclusive(vector<Block*> &blocks);
+        bool getLoopBasicBlocksExclusive(std::vector<Block*> &blocks);
 
         /** does this loop or its subloops contain the given block? */
 
@@ -783,7 +783,7 @@ private:
 	Loop(Edge *, const Function *);
 
 	/** get either contained or outer loops, determined by outerMostOnly */
-	bool getLoops(vector<Loop*>&, 
+	bool getLoops(std::vector<Loop*>&, 
 		      bool outerMostOnly) const;
 
         }; // class Loop
@@ -802,7 +802,7 @@ class PARSER_EXPORT LoopTreeNode {
     Loop *loop;
 
     // The LoopTreeNode instances nested within this loop.
-    vector<LoopTreeNode *> children;
+    std::vector<LoopTreeNode *> children;
 
     //  LoopTreeNode::LoopTreeNode
     //  Create a loop tree node for Loop with name n 
@@ -824,7 +824,7 @@ class PARSER_EXPORT LoopTreeNode {
     unsigned int numCallees();
 
     //Returns a vector of the functions called by this loop.
-    bool getCallees(vector<Function *> &v);
+    bool getCallees(std::vector<Function *> &v);
     
 
     //  BPatch_loopTreeNode::findLoop
@@ -838,7 +838,7 @@ class PARSER_EXPORT LoopTreeNode {
 
     // A vector of functions called within the body of this loop (and
     // not the body of sub loops). 
-    vector<Function *> callees;
+    std::vector<Function *> callees;
 
 }; // class LoopTreeNode 
 

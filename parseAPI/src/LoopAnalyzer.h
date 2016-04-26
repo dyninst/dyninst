@@ -36,6 +36,8 @@
 #include "Annotatable.h"
 #include "CFG.h"
 
+using namespace std;
+
 /** class which finds loops in a function 
   *
   */
