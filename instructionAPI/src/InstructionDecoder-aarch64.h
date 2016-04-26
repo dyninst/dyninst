@@ -252,7 +252,7 @@ namespace Dyninst {
 		void setSIMDMode();
 
                 bool isSinglePrec();
-		void fix_bitfieldinsn_alias(int, int);
+		bool fix_bitfieldinsn_alias(int, int);
 
 		MachRegister makeAarch64RegID(MachRegister, unsigned int);
 		MachRegister getLoadStoreSimdRegister(int encoding);
