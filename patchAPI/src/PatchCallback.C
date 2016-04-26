@@ -31,6 +31,7 @@
 #include "PatchCFG.h"
 #include "Point.h"
 
+using namespace std;
 using namespace Dyninst;
 using namespace PatchAPI;
 

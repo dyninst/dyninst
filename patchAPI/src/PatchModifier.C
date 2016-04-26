@@ -37,6 +37,7 @@
 #include <set>
 #include <vector>
 
+using namespace std;
 using namespace Dyninst;
 using namespace PatchAPI;
 

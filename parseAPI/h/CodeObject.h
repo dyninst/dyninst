@@ -92,7 +92,7 @@ class CodeObject {
         NewEdgeToParse(Block* a, Address b, bool c, EdgeTypeEnum d) : source(a), target(b), edge_type(d), checked(c) { }
 	};
 
-    PARSER_EXPORT bool parseNewEdges( vector<NewEdgeToParse> & worklist ); 
+    PARSER_EXPORT bool parseNewEdges( std::vector<NewEdgeToParse> & worklist ); 
 
     // `speculative' parsing
     PARSER_EXPORT void parseGaps(CodeRegion *cr, GapParsingType type=IdiomMatching);
@@ -180,7 +180,7 @@ class CodeObject {
 // We need CFG.h, which is included by this
 template <class OutputIterator>
 void Block::getFuncs(OutputIterator result) {
-  set<Function *> stab;
+  std::set<Function *> stab;
   _obj->findFuncs(region(), start(), stab);
   std::copy(stab.begin(), stab.end(), result);
 }

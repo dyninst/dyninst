@@ -6,7 +6,6 @@
 
 using namespace Dyninst;
 using namespace ParseAPI;
-using namespace std;
 
 namespace boost
 {

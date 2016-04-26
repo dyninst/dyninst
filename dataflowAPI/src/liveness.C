@@ -37,8 +37,6 @@
 #include "instructionAPI/h/Register.h"
 #include "instructionAPI/h/Instruction.h"
 
-using namespace Dyninst;
-using namespace Dyninst::InstructionAPI;
 #include "dataflowAPI/h/liveness.h"
 #include "dataflowAPI/h/ABI.h"
 #include <boost/bind.hpp>
@@ -47,7 +45,10 @@ std::string regs1 = " ttttttttddddddddcccccccmxxxxxxxxxxxxxxxxgf                
 std::string regs2 = " rrrrrrrrrrrrrrrrrrrrrrrm1111110000000000ssoscgfedrnoditszapci11111100dsbsbdca";
 std::string regs3 = " 7654321076543210765432105432109876543210bbrssssssftfffffffffp54321098iippxxxx";
 
+using namespace std;
+using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
+using namespace Dyninst::InstructionAPI;
 
 // Code for register liveness detection
 
