@@ -5676,9 +5676,9 @@ ia32_entry sseMapMult[][3] =
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_vmovntpd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R }
   }, { /* SSE2B_NO */
-    { e_vmovntps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
-    { e_vmovntps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
-    { e_vmovntps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
+    { e_vmovntps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R3R },
+    { e_vmovntps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R3R },
+    { e_vmovntps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R3R },
   }, { /* SSE2C_F2 */
     { e_vcvttsd2si, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
     { e_vcvttsd2si, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
@@ -7868,6 +7868,10 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
         printf("VEX_PP:         %d  0x%x\n", pref.vex_pp, pref.vex_pp);
         printf("VEX_M-MMMM:     %d  0x%x\n", pref.vex_m_mmmm, pref.vex_m_mmmm);
         printf("VEX_W:          %d  0x%x\n", pref.vex_w, pref.vex_w);
+        printf("VEX_r:          %d  0x%x\n", pref.vex_r, pref.vex_r);
+        printf("VEX_R:          %d  0x%x\n", pref.vex_R, pref.vex_R);
+        printf("VEX_x:          %d  0x%x\n", pref.vex_x, pref.vex_x);
+        printf("VEX_b:          %d  0x%x\n", pref.vex_b, pref.vex_b);
     }
 #endif
 
@@ -9365,18 +9369,23 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
     /* Initilize the prefix */
     pref.count = 0;
     memset(pref.prfx, 0, 5);
-    memset(pref.vex_prefix, 0, 5);
     pref.opcode_prefix = 0;
-    pref.vex_type = VEX_TYPE_NONE;
+    bool in_prefix = true;
+
     pref.vex_present = false;
+    pref.vex_type = VEX_TYPE_NONE;
+    memset(pref.vex_prefix, 0, 5);
     pref.vex_sse_mult = -1;
+    pref.vex_vvvv_reg = -1;
     pref.vex_ll = -1;
     pref.vex_pp = -1;
-    pref.vex_w = -1;
-    pref.vex_vvvv_reg = -1;
-    pref.vex_V = 0;
     pref.vex_m_mmmm = -1;
-    bool in_prefix = true;
+    pref.vex_w = -1;
+    pref.vex_V = 0;
+    pref.vex_r = 0;
+    pref.vex_R = 0;
+    pref.vex_x = 0;
+    pref.vex_b = 0;
 
     while(in_prefix) 
     {
@@ -9444,11 +9453,15 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 memmove(&pref.vex_prefix, addr + 1, 3);
                 pref.vex_sse_mult = 2;
                 pref.vex_vvvv_reg = EVEXGET_VVVV(pref.vex_prefix[1], pref.vex_prefix[2]);
-                pref.vex_V = EVEXGET_V(pref.vex_prefix[2]);
                 pref.vex_ll = EVEXGET_LL(pref.vex_prefix[2]);
-                pref.vex_w = EVEXGET_W(pref.vex_prefix[1]);
                 pref.vex_pp = EVEXGET_PP(pref.vex_prefix[1]);
                 pref.vex_m_mmmm = EVEXGET_MM(pref.vex_prefix[0]);
+                pref.vex_w = EVEXGET_W(pref.vex_prefix[1]);
+                pref.vex_V = EVEXGET_V(pref.vex_prefix[2]);
+                pref.vex_r = EVEXGET_r(pref.vex_prefix[0]);
+                pref.vex_R = EVEXGET_R(pref.vex_prefix[0]);
+                pref.vex_x = EVEXGET_x(pref.vex_prefix[0]);
+                pref.vex_b = EVEXGET_b(pref.vex_prefix[0]);
                 pref.count += 4;
 
                 /* VEX_LL must be 0, 1, or 2 */
@@ -9483,11 +9496,14 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 memmove(&pref.vex_prefix, addr + 1, 2);
                 pref.vex_sse_mult = 1;
                 pref.vex_vvvv_reg = VEXGET_VVVV(pref.vex_prefix[1]);
-                pref.vex_V = 0;
                 pref.vex_ll = VEXGET_L(pref.vex_prefix[1]);
-                pref.vex_w = VEX3GET_W(pref.vex_prefix[1]);
                 pref.vex_pp = VEXGET_PP(pref.vex_prefix[1]);
                 pref.vex_m_mmmm = VEX3GET_M(pref.vex_prefix[0]);
+                pref.vex_w = VEX3GET_W(pref.vex_prefix[1]);
+                pref.vex_V = 0;
+                pref.vex_r = VEXGET_R(pref.vex_prefix[0]);
+                pref.vex_x = VEX3GET_X(pref.vex_prefix[0]);
+                pref.vex_b = VEX3GET_B(pref.vex_prefix[0]);
                 pref.count += 3;
 
                 switch(pref.vex_pp)
@@ -9517,11 +9533,11 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 pref.vex_prefix[0] = addr[1]; /* Only 1 byte for VEX2 */
                 pref.vex_sse_mult = 0;
                 pref.vex_vvvv_reg = VEXGET_VVVV(pref.vex_prefix[0]);
-                pref.vex_V = 0;
                 pref.vex_ll = VEXGET_L(pref.vex_prefix[0]);
-                pref.vex_w = -1; /* No W bit for VEX2 */
                 pref.vex_pp = VEXGET_PP(pref.vex_prefix[0]);
                 pref.vex_m_mmmm = -1; /* No W bit for VEX2 */
+                pref.vex_w = -1; /* No W bit for VEX2 */
+                pref.vex_r = VEXGET_R(pref.vex_prefix[0]);
                 pref.count += 2;
 
                 switch(pref.vex_pp)

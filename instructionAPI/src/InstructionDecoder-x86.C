@@ -40,7 +40,7 @@
 #include "BinaryFunction.h"
 #include "common/src/singleton_object_pool.h"
 
-#define VEX_DEBUG
+// #define VEX_DEBUG
 
 using namespace std;
 using namespace NS_x86;
@@ -741,16 +741,14 @@ namespace Dyninst
      * Decode an avx register based on the type of prefix. Returns true if the
      * given configuration is invalid and should be rejected.
      */
-    bool decodeAVX(intelRegBanks& bank, int* bank_index, int regnum, AVX_Regtype type)
+    bool decodeAVX(intelRegBanks& bank, int* bank_index, int regnum, AVX_Regtype type, ia32_prefixes& pref, unsigned int admet)
     {
-#ifdef VEX_DEBUG
-        printf("VEX OPERAND:  REGNUM: %d  ", regnum);
-#endif
 
         /* Check to see if this is just a normal MMX register access */
         if(type >= AVX_NONE || type < 0)
         {
 #ifdef VEX_DEBUG
+            printf("VEX OPERAND:  REGNUM: %d  ", regnum);
             printf("REG_TYPE: AVX_NONE (%d)\n", type);
 #endif
             /* Only registers XMM0 - XMM15 are usable */
@@ -775,6 +773,35 @@ namespace Dyninst
             /* Return success */
             return false;
         }
+
+        switch(admet)
+        {
+            case am_V: case am_YV: case am_XV:
+                switch(pref.vex_type)
+                {
+                    case VEX_TYPE_EVEX:
+                        regnum |= pref.vex_R << 4;
+                        regnum |= pref.vex_r << 3;
+                        break;
+                    default:break;
+                }
+                break;
+            case am_U: case am_YU: case am_XU:
+            case am_W: case am_YW: case am_XW:
+                switch(pref.vex_type)
+                {
+                    case VEX_TYPE_EVEX:
+                        regnum |= pref.vex_x << 4;
+                        regnum |= pref.vex_b << 3;
+                        break;
+                    default: break;
+                }
+                break;
+            default: break;
+        }
+#ifdef VEX_DEBUG
+        printf("VEX OPERAND:  REGNUM: %d  ", regnum);
+#endif
 
         /* Operand is potentially XMM, YMM or ZMM */
         int setnum = 0;
@@ -982,7 +1009,7 @@ namespace Dyninst
                     return false;
 
                 /* Grab the correct bank and bank index for this type of register */
-                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type))
+                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type, pref, operand.admet))
                     return false;
 
                 /* Append the operand */
@@ -1000,7 +1027,7 @@ namespace Dyninst
                 avx_type = AVX_XMM;
 
                 /* Grab the correct bank and bank index for this type of register */
-                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type))
+                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type, pref, operand.admet))
                     return false;
 
                 insn_to_complete->appendOperand(makeRegisterExpression(
@@ -1018,7 +1045,7 @@ namespace Dyninst
                     avx_type = AVX_YMM;
 
                 /* Grab the correct bank and bank index for this type of register */
-                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type))
+                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type, pref, operand.admet))
                     return false;
 
                 /* Append the operand */
@@ -1135,7 +1162,7 @@ namespace Dyninst
                     		break;
                     	case 0x03:
                     		// use of actual register
-                        decodeAVX(bank, &bank_index, locs->modrm_rm, AVX_XMM);
+                        decodeAVX(bank, &bank_index, locs->modrm_rm, AVX_XMM, pref, operand.admet);
                         insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
                     			break;
                     	default:
@@ -1149,12 +1176,11 @@ namespace Dyninst
                 if(pref.vex_present && !AVX_TYPE_OKAY(avx_type))
                     return false;
 
+                /* Get the base register number */
                 regnum = locs->modrm_reg;
-                if(pref.vex_present)
-                    regnum |= pref.vex_V;
 
                 /* Get the register bank and the index */
-                if(decodeAVX(bank, &bank_index, regnum, avx_type))
+                if(decodeAVX(bank, &bank_index, regnum, avx_type, pref, operand.admet))
                     return false;
     
                 /* Append the operand */
@@ -1166,11 +1192,9 @@ namespace Dyninst
                     return false;
                 
                 regnum = locs->modrm_reg;
-                if(pref.vex_present)
-                    regnum |= pref.vex_V;
 
                 /* Get the register bank and the index */
-                if(decodeAVX(bank, &bank_index, regnum, avx_type))
+                if(decodeAVX(bank, &bank_index, regnum, avx_type, pref, operand.admet))
                     return false;
   
                 /* Append the operand */
@@ -1182,15 +1206,13 @@ namespace Dyninst
                     return false;
 
                 regnum = locs->modrm_reg;
-                if(pref.vex_present)
-                    regnum |= pref.vex_V;
 
                 /* Constrain to either XMM or YMM registers */
                 if(avx_type != AVX_XMM && avx_type != AVX_YMM)
                     avx_type = AVX_YMM;
 
                 /* Get the register bank and index */
-                if(decodeAVX(bank, &bank_index, regnum, avx_type))
+                if(decodeAVX(bank, &bank_index, regnum, avx_type, pref, operand.admet))
                     return false;
                        
                 /* Append the operand */
@@ -1206,7 +1228,7 @@ namespace Dyninst
                 }
 
                 /* Grab the register bank and index */
-                if(decodeAVX(bank, &bank_index, locs->modrm_rm, AVX_XMM))
+                if(decodeAVX(bank, &bank_index, locs->modrm_rm, AVX_XMM, pref, operand.admet))
                     return false;
 
                 /* Append the operand */
@@ -1221,7 +1243,7 @@ namespace Dyninst
                 avx_type = AVX_XMM;
 
                 /* Get the register bank and index for this register */
-                if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type))
+                if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet))
                     return false;
 
                 /* Append the operand */
@@ -1237,7 +1259,7 @@ namespace Dyninst
                     avx_type = AVX_YMM;
 
                 /* Get the register bank and index */
-                if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type))
+                if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet))
                     return false;
 
                 /* Append the operand */
@@ -1261,7 +1283,7 @@ namespace Dyninst
                                 break;
                             case 0x03:
                         /* Just the register is used */
-                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type))
+                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet))
                             return false;
                         insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
                         break;
@@ -1289,7 +1311,7 @@ namespace Dyninst
                         break;
                     case 0x03:
                         /* Just the register is used */
-                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type))
+                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet))
                             return false;
                         insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
                         break;
@@ -1318,7 +1340,7 @@ namespace Dyninst
                         break;
                     case 0x03:
                         /* Just the register is used */
-                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type))
+                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet))
                             return false;
 
                         /* Append the operand */
