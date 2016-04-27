@@ -139,7 +139,7 @@ endif()
 endif()
 
 add_custom_target(doc)
-set(LATEX_DOCS dynC_API instructionAPI parseAPI patchAPI symtabAPI stackwalk)
+set(LATEX_DOCS dynC_API instructionAPI parseAPI patchAPI symtabAPI stackwalk dataflowAPI)
 set(WORD_DOCS proccontrol dyninstAPI)
 add_custom_target(proccontrol-doc
   DEPENDS ${CMAKE_SOURCE_DIR}/proccontrol/doc/proccontrol.pdf)

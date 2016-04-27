@@ -1,0 +1,7 @@
+Building this manual requires pgf/TikZ:
+
+http://ctan.org/pkg/pgf
+http://sourceforge.net/projects/pgf/
+
+It will look best if the Bera and Helvetica fonts are installed with your 
+LaTeX distribution.
