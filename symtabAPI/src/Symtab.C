@@ -841,12 +841,11 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
       
 #if !defined(os_windows)        
       //Remove extra stabs information
-      const char *p = strchr(working_name.c_str(), ':');
-      if( p ) {
-         unsigned nchars = p - mangled_name.c_str();
-         working_name = std::string(mangled_name.c_str(), nchars);
-      }
-#endif        
+       size_t colon = working_name.find(":");
+       if(colon != std::string::npos) {
+           working_name = working_name.substr(0, colon);
+       }
+#endif
       
       std::string pretty_name = working_name;
       std::string typed_name = working_name;
