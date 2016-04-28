@@ -865,7 +865,10 @@ bool emitElf64<ElfTypes>::driver(std::string fName) {
         unsigned long ehdr_off = (unsigned long) &(((Elf_Ehdr *) 0x0)->e_phoff);
         lseek(newfd, ehdr_off, SEEK_SET);
         Elf_Off offset = (Elf_Off) phdr_offset;
-        write(newfd, &offset, sizeof(Elf_Off));
+        if(write(newfd, &offset, sizeof(Elf_Off)) < 0) {
+            close(newfd);
+            return false;
+        }
     }
     close(newfd);
 

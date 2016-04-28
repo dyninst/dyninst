@@ -50,9 +50,11 @@ bool Codegen::generateCallAARCH64(Address addr, const std::vector<Address> &args
         (char)0xf2, (char)0xe0, (char)0x00, (char)0x00,     // movk x0, #0, lsl #48
     };
 
+    /*
     char blr_buf[] = {
         (char)0xd6, (char)0x3f, (char)0x00, (char)0x00,     // blr x0
     };
+    */
 
     char* _buf;
     _buf = (char *)malloc(sizeof(movLong_buf));
