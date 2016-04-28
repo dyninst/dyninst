@@ -592,9 +592,8 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
        *((uint16_t *) (((char *) buffer)+addr_hi_position)) = (uint16_t)(addr >> 16);
        *((uint16_t *) (((char *) buffer)+addr_lo_position)) = (uint16_t)addr;
 
-    }else if( getTargetArch() == Arch_aarch64 ){
+    } else if( getTargetArch() == Arch_aarch64 ){
         const void *buf_tmp;
-        unsigned int addr_size;
         unsigned int addr_pos, size_pos, flags_pos;
 
         bool use_linux = ( getOS() == Linux );
@@ -606,7 +605,6 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
            addr_pos                 = linux_aarch64_mmap_addr_position;
            size_pos                 = linux_aarch64_mmap_size_position;
            flags_pos                = linux_aarch64_mmap_flags_position;
-           addr_size = 8;
         }
         else {
            assert(0); //Fill in the entry in mmapalloc.h for this system

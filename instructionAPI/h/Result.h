@@ -98,7 +98,8 @@ namespace Dyninst
       m192,
       m256,
       m384,
-      m512
+      m512,
+      invalid_type
     };
 
     template < Result_Type t > struct Result_type2type

@@ -1387,17 +1387,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     if (modrm_rm == 4) {
 
         unsigned char sib = *origInsn++;
-        unsigned char sib_scale = MODRM_MOD(sib);
-        //unsigned char sib_index = MODRM_REG(sib);
         unsigned char sib_base = MODRM_RM(sib);
-
-        int sib_scale_factor;
-        switch((int)sib_scale) {
-            case 0: sib_scale_factor = 1; break;
-            case 1: sib_scale_factor = 2; break;
-            case 2: sib_scale_factor = 4; break;
-            case 3: sib_scale_factor = 8; break;
-        }
 
         // Check for displacement in the SIB
         if (sib_base == 5 && modrm_mod == 0) {

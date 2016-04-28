@@ -601,11 +601,7 @@ void BoundValue::Invert() {
 
 }
 
-static bool IsInReadOnlyRegion(Block *b, Address low, Address high) {	
-#if defined(os_windows)
-    low -= b->obj()->cs()->loadAddress();
-    high -= b->obj()->cs()->loadAddress();
-#endif
+static bool IsInReadOnlyRegion(Address low, Address high) {	
 	// Now let's assume it is always in a read only region
 	// unless it is reading a single memory location
 	return low != high;
@@ -622,14 +618,14 @@ static bool IsTableIndex(set<uint64_t> &values) {
 
 void BoundValue::MemoryRead(Block* b, int readSize) {
 	if (interval != StridedInterval::top) {
-		if (IsInReadOnlyRegion(b, interval.low, interval.high)) {
-		    set<uint64_t> values;
-		    Address memAddrLow = interval.low;
-		    Address memAddrHigh = interval.high;
+		Address memAddrLow = interval.low;
+		Address memAddrHigh = interval.high;
 #if defined(os_windows)
-                    memAddrLow -= b->obj()->cs()->loadAddress();
-		    memAddrHigh -= b->obj()->cs()->loadAddress();
+                memAddrLow -= b->obj()->cs()->loadAddress();
+		memAddrHigh -= b->obj()->cs()->loadAddress();
 #endif
+		if (IsInReadOnlyRegion(memAddrLow, memAddrHigh)) {
+		    set<uint64_t> values;
                     if (interval.size() <= MAX_TABLE_ENTRY && b->obj()->cs()->isValidAddress(memAddrLow)) {
 		        for (Address memAddr = memAddrLow ; memAddr <= memAddrHigh; memAddr += interval.stride) {
 			    if (!b->obj()->cs()->isValidAddress(memAddr)) {

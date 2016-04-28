@@ -885,7 +885,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         ParseWorkElem * work = frame.popWork();
         if (work->order() == ParseWorkElem::call) {
             Function * ct = NULL;
-            Edge * ce = NULL;
 
             if (!work->callproc()) {
 	      // If we're not doing recursive traversal, skip *all* of the call edge processing.
@@ -909,12 +908,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                               work->edge()->src(),
                               work->edge());
                 ct = ctp.first;
-                ce = ctp.second;
 
                 work->mark_call();
             } else {
                 ct = _parse_data->findFunc(frame.codereg,work->target());
-                ce = work->edge();
             }
 
             if (recursive && ct &&
