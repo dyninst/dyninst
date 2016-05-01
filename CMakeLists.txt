@@ -80,6 +80,7 @@ add_subdirectory (patchAPI)
 if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (dyninstAPI)
 endif()
+add_subdirectory (parseThat)
 
 # Build the RT library as a seperate project so we can change compilers
 message(STATUS "Configuring DyninstAPI_RT")
