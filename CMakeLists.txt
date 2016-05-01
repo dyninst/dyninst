@@ -246,7 +246,7 @@ install (TARGETS
 include (${DYNINST_PLATFORM}/cmake-mutators.txt)
 
 FOREACH (m ${MUTATOR_NAME_LIST})
-	file(APPEND test_names.txt "${m}\n")
+    file(APPEND ${CMAKE_BINARY_DIR}/test_names.txt "${m}\n")
 ENDFOREACH()
 
 if (UNIX)
