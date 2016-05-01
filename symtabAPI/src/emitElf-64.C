@@ -239,7 +239,6 @@ static int elfSymVisibility(Symbol::SymbolVisibility sVisibility)
   }
 }
 
-
 std::string phdrTypeStr(Elf64_Word phdr_type) {
     switch (phdr_type) {
         case PT_NULL:
@@ -264,6 +263,8 @@ std::string phdrTypeStr(Elf64_Word phdr_type) {
             return "STACK";
         case PT_GNU_RELRO:
             return "RELRO";
+        case PT_PAX_FLAGS:
+            return "PAX";
         default:
             assert(0);
             return "<UNKNOWN>";
