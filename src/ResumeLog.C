@@ -300,7 +300,7 @@ void clear_mutateelog(char *logname)
    fclose(f);
 }
 
-static char *resumelog_name = "resumelog";
+static char *resumelog_name = const_cast<char*>("resumelog");
 char *get_resumelog_name() {
 	return resumelog_name;
 }

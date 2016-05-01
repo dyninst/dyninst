@@ -29,7 +29,9 @@
  */
 
 #if defined(os_linux_test)
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <link.h>
 #endif
 
@@ -186,7 +188,7 @@ int pc_tls_mutatee()
    }
 
    bp_addr_msg.code = (uint32_t) SENDADDR_CODE;
-   bp_addr_msg.addr = getFunctionPtr((unsigned long *) breakpoint_func);
+   bp_addr_msg.addr = getFunctionPtr((intptr_t *) breakpoint_func);
    result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    if (result != 0) {
       output->log(STDERR, "Failed to send breakpoint addresses\n");

@@ -88,7 +88,7 @@ test_results_t test1_10_Mutator::executeTest()
 
 
 	BPatch_Vector<BPatch_function *> bpfv;
-	char *fn = "test1_10_call1";
+	const char *fn = "test1_10_call1";
 
 	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 			|| NULL == bpfv[0])
@@ -100,7 +100,7 @@ test_results_t test1_10_Mutator::executeTest()
 	BPatch_function *call10_1_func = bpfv[0];
 	bpfv.clear();
 
-	char *fn2 = "test1_10_call2";
+	const char *fn2 = "test1_10_call2";
 
 	if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 			|| NULL == bpfv[0])
@@ -112,7 +112,7 @@ test_results_t test1_10_Mutator::executeTest()
 	BPatch_function *call10_2_func = bpfv[0];
 	bpfv.clear();
 
-	char *fn3 = "test1_10_call3";
+	const char *fn3 = "test1_10_call3";
 
 	if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
 			|| NULL == bpfv[0])

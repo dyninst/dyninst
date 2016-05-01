@@ -76,7 +76,7 @@ static void encodeParams(ParameterDict &params, MessageBuffer &buf)
       {
          result += std::string("p:");
          char p_buffer[32];
-         snprintf(p_buffer, 32, "%lu:", i->second->getPtr());
+         snprintf(p_buffer, 32, "%p:", i->second->getPtr());
          result += p_buffer;
       }
       else {

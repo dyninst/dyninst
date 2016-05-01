@@ -181,7 +181,7 @@ static void test7cb(BPatch_process *  proc, void *buf, unsigned int bufsize)
 
   if (proc->getPid() != tid)
   {
-	  fprintf(stderr, "%s[%d]:  ERROR:  got event for pid %lu, not %lu\n", FILE__, __LINE__, tid, proc->getPid());
+	  fprintf(stderr, "%s[%d]:  ERROR:  got event for pid %lu, not %d\n", FILE__, __LINE__, tid, proc->getPid());
   }
 
   if (callback_counter == 0) {

@@ -176,7 +176,7 @@ int pc_fork_mutatee()
    }
 
    addr_msg.code = SENDADDR_CODE;
-   addr_msg.addr = getFunctionPtr((unsigned long *)bp_func);
+   addr_msg.addr = getFunctionPtr((intptr_t *)bp_func);
    result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
    if (result == -1) {
       output->log(STDERR, "Failed to send addr message\n");

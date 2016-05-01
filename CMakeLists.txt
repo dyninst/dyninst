@@ -62,6 +62,8 @@ include_directories(${LAUNCHMON_INCLUDE_DIR})
 add_definitions(${LAUNCHMON_DEFINITIONS})
 endif()
 
+add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
+
 set (INSTALL_DIR "bin/testsuite" CACHE PATH "Testsuite installation directory")
 
 # Build rules for the test libraries (libtestdyninst, libtestproccontrol, etc.)

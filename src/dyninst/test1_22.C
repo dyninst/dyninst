@@ -145,8 +145,8 @@ test_results_t test1_22_Mutator::mutatorTest22()
 	// Replace an a.out with another a.out function
 
 	BPatch_Vector<BPatch_function *> bpfv;
-	char *fn = "test1_22_call1";
-	char *fn2 = "test1_22_call2";
+	const char *fn = "test1_22_call1";
+	const char *fn2 = "test1_22_call2";
 
 	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 			|| NULL == bpfv[0])
@@ -179,7 +179,7 @@ test_results_t test1_22_Mutator::mutatorTest22()
 
 	// Replace an a.out function with a shlib function
 	bpfv.clear();
-	char *fn3 = "test1_22_call3";
+	const char *fn3 = "test1_22_call3";
 	if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
 			|| NULL == bpfv[0]){
 		logerror("**Failed test #22 (replace function)\n");
@@ -247,7 +247,7 @@ test_results_t test1_22_Mutator::mutatorTest22()
 	BPatch_function *call22_6func = bpmv[0];
 
 	bpfv.clear();
-	char *fn4 = "test1_22_call7";
+	const char *fn4 = "test1_22_call7";
 
 	if (NULL == appImage->findFunction(fn4, bpfv) || !bpfv.size()
 			|| NULL == bpfv[0])

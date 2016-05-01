@@ -92,7 +92,7 @@ test_results_t DLLEXPORT amd64_7_arg_call_Mutator::executeTest()
     }
 
     BPatch_Vector<BPatch_function *> bpfv;
-    char *fn = "amd64_7_arg_call";
+    const char *fn = "amd64_7_arg_call";
 
     if (NULL == appImage->findFunction(fn, bpfv)
         || !bpfv.size()

@@ -296,9 +296,9 @@ int main(int argc, char *argv[])
 
       if (parallel_copies > 1)
       {
-         test_drivers[i].child_argv.push_back("-unique");
+         test_drivers[i].child_argv.push_back(const_cast<char*>("-unique"));
          test_drivers[i].child_argv.push_back(strdup(unique_cs));
-         test_drivers[i].child_argv.push_back("-max-unique");
+         test_drivers[i].child_argv.push_back(const_cast<char*>("-max-unique"));
          test_drivers[i].child_argv.push_back(parallel_copies_cs);
 
          test_drivers[i].outputlog = std::string("par_outputlog.") + unique_s;
@@ -308,7 +308,7 @@ int main(int argc, char *argv[])
             test_drivers[i].child_argv[outputlog_pos] = const_cast<char *>(test_drivers[i].outputlog.c_str());
          }
          else {
-            test_drivers[i].child_argv.push_back("-humanlog");
+            test_drivers[i].child_argv.push_back(const_cast<char*>("-humanlog"));
             test_drivers[i].child_argv.push_back(const_cast<char *>(test_drivers[i].outputlog.c_str()));
          }
          if (outputlog_name && (strcmp(outputlog_name, "-") != 0)) {

@@ -75,11 +75,11 @@ static long long int  beginFP;
 
 /* New output driver system */
 output_t *output = NULL;
-char *loginfofn = "-";
-char *logerrfn = "-";
-char *stdoutfn = "-";
-char *stderrfn = "-";
-char *humanfn = "-";
+char *loginfofn = (char*)"-";
+char *logerrfn = (char*)"-";
+char *stdoutfn = (char*)"-";
+char *stderrfn = (char*)"-";
+char *humanfn = (char*)"-";
 static char *od_testname = NULL;
 
 void warningLogResult(test_results_t result) {
@@ -125,7 +125,7 @@ void redirectStream(output_stream_t stream, const char *filename) {
          if (NULL == filename) {
             stdoutfn = NULL;
          } else if (strcmp(filename, "-") == 0) {
-            stdoutfn = "-";
+            stdoutfn = (char *)"-";
          } else {
             stdoutfn = (char *) malloc(length * sizeof (*stdoutfn));
             if (stdoutfn != NULL) {
@@ -141,7 +141,7 @@ void redirectStream(output_stream_t stream, const char *filename) {
          if (NULL == filename) {
             stderrfn = NULL;
          } else if (strcmp(filename, "-") == 0) {
-            stderrfn = "-";
+            stderrfn = (char *)"-";
          } else {
             stderrfn = (char *) malloc(length * sizeof (*stderrfn));
             if (stderrfn != NULL) {
@@ -157,7 +157,7 @@ void redirectStream(output_stream_t stream, const char *filename) {
          if (NULL == filename) {
             loginfofn = NULL;
          } else if (strcmp(filename, "-") == 0) {
-            loginfofn = "-";
+            loginfofn = (char *)"-";
          } else {
             loginfofn = (char *) malloc(length * sizeof (*loginfofn));
             if (loginfofn != NULL) {
@@ -173,7 +173,7 @@ void redirectStream(output_stream_t stream, const char *filename) {
          if (NULL == filename) {
             logerrfn = NULL;
          } else if (strcmp(filename, "-") == 0) {
-            logerrfn = "-";
+            logerrfn = (char *)"-";
          } else {
             logerrfn = (char *) malloc(length * sizeof (*logerrfn));
             if (logerrfn != NULL) {
@@ -189,7 +189,7 @@ void redirectStream(output_stream_t stream, const char *filename) {
          if (NULL == filename) {
             humanfn = NULL;
          } else if (strcmp(filename, "-") == 0) {
-            humanfn = "-";
+            humanfn = (char *)"-";
          } else {
             humanfn = (char *) malloc(length * sizeof (*humanfn));
             if (humanfn != NULL) {
@@ -310,7 +310,7 @@ void flushErrorLog() {
 /* Support functions for database output driver */
 /************************************************/
 
-static char *temp_logfilename = "mutatee_dblog";
+static const char *temp_logfilename = "mutatee_dblog";
 static char *dblog_filename = NULL;
 
 /* Redirect all output to a file, so test_driver can pick it up when it's
@@ -512,7 +512,7 @@ void setUseAttach(int v) {
 }
 
 /* Filename for single line test results output */
-char *humanlog_name = "-";
+const char *humanlog_name = "-";
 /* Change this to default to FALSE once test_driver is passing -humanlog
  * parameter to the mutatee
  */
@@ -653,9 +653,9 @@ int verifyScalarValue(const char *name, int a, int value,
    return TRUE;
 }
 
-char *resumelog_name = "mutatee_resumelog";
+const char *resumelog_name = "mutatee_resumelog";
 
-void log_testrun(char *testname)
+void log_testrun(const char *testname)
 {
    FILE *f = fopen(resumelog_name, "a");
    if (!f) {

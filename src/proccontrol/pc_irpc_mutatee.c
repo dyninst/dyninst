@@ -83,7 +83,7 @@ int pc_irpc_mutatee()
    }
 
    addr_msg.code = SENDADDR_CODE;
-   addr_msg.addr = getFunctionPtr((unsigned long *)irpc_calltarg);
+   addr_msg.addr = getFunctionPtr((intptr_t *)irpc_calltarg);
    result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
    if (result == -1) {
       output->log(STDERR, "Failed to send func addr message\n");
@@ -98,14 +98,14 @@ int pc_irpc_mutatee()
        return -1;
    }
 
-   addr_msg.addr = (uint64_t) &val;
+   addr_msg.addr = (intptr_t) &val;
    result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
    if (result == -1) {
       output->log(STDERR, "Failed to send val addr message\n");
       return -1;
    }
 
-   addr_msg.addr = (uint64_t) &busywait;
+   addr_msg.addr = (intptr_t) &busywait;
    result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
    if (result == -1) {
 	   output->log(STDERR, "Failed to send busywait addr message\n");

@@ -94,7 +94,7 @@ test_results_t DLLEXPORT test1_2_Mutator::executeTest()
 	}
 
 	BPatch_Vector<BPatch_function *> bpfv;
-	char *fn = "test1_2_call2_1";
+	const char *fn = "test1_2_call2_1";
 
 	if (NULL == appImage->findFunction(fn, bpfv) 
 			|| !bpfv.size()

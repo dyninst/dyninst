@@ -56,7 +56,7 @@ extern "C" {
 */
 DLLEXPORT int call21_1()
 {
-     printf("This function was not meant to be called %d!\n");
+     printf("This function was not meant to be called!\n");
      return -1;
 }
 

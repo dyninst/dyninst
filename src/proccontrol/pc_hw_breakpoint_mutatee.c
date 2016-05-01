@@ -222,41 +222,41 @@ int pc_hw_breakpoint_mutatee()
    initBarrier(barrier, num_threads+1);
 
    bp_addr_msg.code = (uint32_t) SENDADDR_CODE;
-   bp_addr_msg.addr = (uint64_t) &rw_bp;
+   bp_addr_msg.addr = (intptr_t) &rw_bp;
 /* bp 0 */
    result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    if (result == 0) {
-     bp_addr_msg.addr = (uint64_t) &r_bp;
+     bp_addr_msg.addr = (intptr_t) &r_bp;
 /* bp 1 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
    if (result == 0) {
-     bp_addr_msg.addr = (uint64_t) &w_bp;
+     bp_addr_msg.addr = (intptr_t) &w_bp;
 /* bp 2 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr)); 
    }
    if (result == 0) {
-     bp_addr_msg.addr = getFunctionPtr((unsigned long *) x_bp);
+     bp_addr_msg.addr = getFunctionPtr((intptr_t *) x_bp);
 /* bp 3 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
    if (result == 0) {
-     bp_addr_msg.addr = getFunctionPtr((unsigned long *) rwx_bp);
+     bp_addr_msg.addr = getFunctionPtr((intptr_t *) rwx_bp);
 /* bp 4 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
    if (result == 0) {
-     bp_addr_msg.addr = getFunctionPtr((unsigned long *) &r2_bp);
+     bp_addr_msg.addr = getFunctionPtr((intptr_t *) &r2_bp);
 /* bp 5 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
    if (result == 0) {
-     bp_addr_msg.addr = getFunctionPtr((unsigned long *) &w2_bp);
+     bp_addr_msg.addr = getFunctionPtr((intptr_t *) &w2_bp);
 /* bp 6 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
    if (result == 0) {
-     bp_addr_msg.addr = getFunctionPtr((unsigned long *) x2_bp);
+     bp_addr_msg.addr = getFunctionPtr((intptr_t *) x2_bp);
 /* bp 7 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }

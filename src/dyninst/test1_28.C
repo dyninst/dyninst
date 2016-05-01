@@ -125,7 +125,7 @@ test_results_t test1_28_Mutator::executeTest()
 	globalVariable28_8->setType(union28_1);
 
 	//     Next verify that we can find a local variable in call28
-	char *fname = "test1_28_call1";
+	const char *fname = "test1_28_call1";
 	BPatch_Vector<BPatch_function *> found_funcs;
 
 	if ((NULL == appImage->findFunction(fname, found_funcs)) || !found_funcs.size()) 

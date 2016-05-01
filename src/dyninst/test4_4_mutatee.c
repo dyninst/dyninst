@@ -112,7 +112,7 @@ int test4_4_mutatee()
        */
       for (i = 1; i < argc; i++) {
 	if (strcmp(newArgv[i], "-run") == 0) {
-	  newArgv[i + 1] = "test4_4b";
+	  newArgv[i + 1] = strdup("test4_4b");
 	}
       }
         

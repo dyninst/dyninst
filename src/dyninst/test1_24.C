@@ -78,7 +78,7 @@ test_results_t test1_24_Mutator::executeTest()
 
 	//     First verify that we can find function call24_1
 	BPatch_Vector<BPatch_function *> bpfv;
-	char *fn = "test1_24_call1";
+	const char *fn = "test1_24_call1";
 
 	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 			|| NULL == bpfv[0])

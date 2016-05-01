@@ -161,7 +161,7 @@ extern void logerror(const char *fmt, ...);
 extern void flushOutputLog();
 extern void flushErrorLog();
 
-extern void log_testrun(char *testname);
+extern void log_testrun(const char *testname);
 extern void log_testresult(int passed);
 
 /* Mutatee cleanup: PID registration */
@@ -175,7 +175,7 @@ extern char *executable_name;
 extern void setExecutableName(const char *new_name);
 extern int use_attach;
 extern void setUseAttach(int v);
-extern char *humanlog_name;
+extern const char *humanlog_name;
 extern int use_humanlog;
 extern void setHumanLog(const char *new_name);
 extern void printResultHumanLog(const char *testname, test_results_t result);
@@ -211,7 +211,7 @@ extern unsigned long thread_int(thread_t a);
 extern void schedYield();
 
 extern void *loadDynamicLibrary(char *name);
-extern void *getFuncFromDLL(void *libhandle, char *func_name);
+extern void *getFuncFromDLL(void *libhandle, const char *func_name);
 
 extern void test_passes(const char *testname);
 extern void test_fails(const char *testname);

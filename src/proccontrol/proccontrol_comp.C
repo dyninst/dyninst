@@ -1077,7 +1077,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
       int result = select(nfds, &readset, &writeset, &exceptset, &timeout);
       if (result == 0) {
          logerror("Timeout while waiting for socket connect");
-         fprintf(stderr, "[%s:%u] - Have recieved %d / %d socks\n", __FILE__, __LINE__, socks.size(), num);
+         fprintf(stderr, "[%s:%u] - Have received %lu / %d socks\n", __FILE__, __LINE__, socks.size(), num);
          return false;
       }
       if (result == -1) {

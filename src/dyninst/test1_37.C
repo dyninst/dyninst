@@ -166,8 +166,8 @@ static void instrumentLoops(BPatch_addressSpace *appAddrSpace, BPatch_image *app
 
 static int instrumentFuncLoopsWithCall(BPatch_addressSpace *appAddrSpace, 
 				       BPatch_image *appImage,
-				       char *call_func,
-				       char *inc_func)
+				       const char *call_func,
+				       const char *inc_func)
 {
 	// get function * for call_func
 	BPatch_Vector<BPatch_function *> funcs;
@@ -204,8 +204,8 @@ static int instrumentFuncLoopsWithCall(BPatch_addressSpace *appAddrSpace,
 
 static int instrumentFuncLoopsWithInc(BPatch_addressSpace *appAddrSpace, 
 				      BPatch_image *appImage,
-				      char *call_func,
-				      char *var)
+				      const char *call_func,
+				      const char *var)
 {
 	// get function * for call_func
 	BPatch_Vector<BPatch_function *> funcs;

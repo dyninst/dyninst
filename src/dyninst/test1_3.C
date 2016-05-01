@@ -95,7 +95,7 @@ test_results_t test1_3_Mutator::executeTest()
 	}
 
 	BPatch_Vector<BPatch_function *> bpfv;
-	char *fn = "test1_3_call3_1";
+	const char *fn = "test1_3_call3_1";
 
 	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 			|| NULL == bpfv[0])

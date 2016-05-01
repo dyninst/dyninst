@@ -105,18 +105,18 @@ int pc_breakpoint_mutatee()
    //output->log(STDERR, "Initialized OK\n");
 
    bp_addr_msg.code = (uint32_t) SENDADDR_CODE;
-   bp_addr_msg.addr = getFunctionPtr((unsigned long *)bp0);
+   bp_addr_msg.addr = getFunctionPtr((intptr_t *)bp0);
    result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    if (result == 0) {
-     bp_addr_msg.addr = getFunctionPtr((unsigned long *)bp1);
+     bp_addr_msg.addr = getFunctionPtr((intptr_t *)bp1);
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
    if (result == 0) {
-     bp_addr_msg.addr = getFunctionPtr((unsigned long *)bp2);
+     bp_addr_msg.addr = getFunctionPtr((intptr_t *)bp2);
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr)); 
    }
    if (result == 0) {
-     bp_addr_msg.addr = getFunctionPtr((unsigned long *)bp3);
+     bp_addr_msg.addr = getFunctionPtr((intptr_t *)bp3);
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
 
