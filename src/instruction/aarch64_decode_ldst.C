@@ -274,7 +274,7 @@ test_results_t aarch64_decode_ldst_Mutator::executeTest()
     i = d.decode();
     decodedInsns.push_back(i);
     if(i != NULL)
-        cout<< i->format()<<endl;
+        i->format();
   }
   while(i && i->isValid());
 
