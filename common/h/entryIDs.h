@@ -590,6 +590,8 @@ enum entryID {
   e_vblendmps,
   e_vblendmpd,
   e_vblendps,
+  e_vblendvps,
+  e_vblendvpd,
   e_vpblendmw,
   e_vpblendmb,
   e_vpblendvb,
