@@ -106,3 +106,5 @@ CHANGELOG
 massif.out.*
 DyninstAPI*.tgz
 common/h/version.h
+Doxyfile
+doxyfiles/*

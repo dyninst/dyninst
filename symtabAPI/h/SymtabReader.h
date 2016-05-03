@@ -78,6 +78,8 @@ class SYMTAB_EXPORT SymtabReader : public SymReader {
    virtual Symbol_t getContainingSymbol(Dyninst::Offset offset);
    virtual std::string getInterpreterName();
    virtual unsigned getAddressWidth();
+   virtual bool isBigEndianDataEncoding() const;
+   virtual int getABIVersion() const;
    
    virtual unsigned numSegments();
    virtual bool getSegment(unsigned num, SymSegment &seg); 

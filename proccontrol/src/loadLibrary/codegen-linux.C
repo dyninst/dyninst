@@ -170,18 +170,3 @@ bool Codegen::generateStackUnprotect(Address var_addr, Address mprotect_addr) {
    return generateCall(mprotect_addr, args);
 }
 
-#if 0
-
-bool Codegen::findTOC(Symbol *sym, Library::ptr lib) {
-   Address baseTOC = 
-
-   return false;
-   if (proc_->getArchitecture() != Arch_ppc64) return true;
-
-
-   Address baseTOC = sym->getSymtab()->getTOCoffset(sym->getOffset());
-   baseTOC += lib->getDataLoadAddress();
-   toc_ = baseTOC;
-   return toc_ != 0;
-}
-#endif

@@ -339,7 +339,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                     bool rst = lthread->proc()->rmBreakpoint(addr, lthread->BPptr_fakeSyscallExitBp );
                     if( !rst){
                         perr_printf("ARM-error: Failed to remove inserted BP, addr %p.\n",
-                                addr);
+                                (void*)addr);
                     }
                     lthread->isSet_fakeSyscallExitBp = false;
                }
@@ -865,8 +865,9 @@ int_process *int_process::createProcess(Dyninst::PID pid_, int_process *p)
    return static_cast<int_process *>(newproc);
 }
 
-int linux_process::computeAddrWidth(Dyninst::Architecture me)
+int linux_process::computeAddrWidth()
 {
+
    /**
     * It's surprisingly difficult to figure out the word size of a process
     * without looking at the files it loads (we want to avoid disk accesses).
@@ -900,23 +901,8 @@ int linux_process::computeAddrWidth(Dyninst::Architecture me)
 
    // We want to check the highest 4 bytes of each integer
    // On big-endian systems, these come first in memory
-   int start_index = 0;
-   switch (me) {
-      case Arch_x86:
-      case Arch_x86_64:
-      case Arch_aarch64:
-         start_index = 1;
-         break;
-      case Arch_ppc32:
-      case Arch_ppc64:
-      case Arch_aarch32:
-         start_index = 0;
-         break;
-      case Arch_none:
-      default:
-         assert(0);
-	 return 0;
-   }
+   SymReader *objSymReader = getSymReader()->openSymbolReader(getExecutable());
+   int start_index = objSymReader->isBigEndianDataEncoding() ? 0 : 1;
 
    for (long int i=start_index; i<words_read; i+= 4)
    {
@@ -926,6 +912,8 @@ int linux_process::computeAddrWidth(Dyninst::Architecture me)
       }
    }
    close(fd);
+
+   pthrd_printf("computeAddrWidth: Offset set to %d, word size is %d\n", start_index, word_size);
    return word_size;
 }
 
@@ -1209,7 +1197,7 @@ Dyninst::Architecture linux_x86_process::getTargetArch()
    if (arch != Dyninst::Arch_none) {
       return arch;
    }
-   int addr_width = computeAddrWidth(sizeof(void *) == 4 ? Arch_x86 : Arch_x86_64);
+   int addr_width = computeAddrWidth();
    arch = (addr_width == 4) ? Dyninst::Arch_x86 : Dyninst::Arch_x86_64;
    return arch;
 }
@@ -1246,7 +1234,7 @@ Dyninst::Architecture linux_ppc_process::getTargetArch()
    if (arch != Dyninst::Arch_none) {
       return arch;
    }
-   int addr_width = computeAddrWidth(sizeof(void *) == 4 ? Arch_ppc32 : Arch_ppc64);
+   int addr_width = computeAddrWidth();
    arch = (addr_width == 4) ? Dyninst::Arch_ppc32 : Dyninst::Arch_ppc64;
    return arch;
 }
@@ -1279,7 +1267,7 @@ Dyninst::Architecture linux_arm_process::getTargetArch()
    if (arch != Dyninst::Arch_none) {
       return arch;
    }
-   int addr_width = computeAddrWidth(sizeof(void *) == 4 ? Arch_aarch32 : Arch_aarch64);
+   int addr_width = computeAddrWidth();
    arch = (addr_width == 4) ? Dyninst::Arch_aarch32 : Dyninst::Arch_aarch64;
    assert(arch == Dyninst::Arch_aarch64); //should be aarch64 at this stage
    return arch;

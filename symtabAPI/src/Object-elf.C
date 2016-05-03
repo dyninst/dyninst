@@ -5814,6 +5814,16 @@ Dyninst::Architecture Object::getArch()
   
 }
 
+int Object::getABIVersion() const
+{
+   return (elfHdr->e_machine() == EM_PPC64 && elfHdr->e_flags() == 0x2) ? 2 : 1;
+}
+
+bool Object::isBigEndianDataEncoding() const
+{
+   return (elfHdr->e_endian() != 0);
+}
+
 Offset Object::getTOCoffset(Offset off) const {
   if (TOC_table_.empty()) return 0;
   Offset baseTOC = TOC_table_.find(0)->second;

@@ -294,6 +294,16 @@ unsigned SymElf::getAddressWidth()
    return elf->wordSize();
 }
 
+int SymElf::getABIVersion() const
+{
+   return (elf->e_machine() == EM_PPC64 && elf->e_flags() == 0x2) ? 2 : 1;
+}
+
+bool SymElf::isBigEndianDataEncoding() const
+{
+   return (elf->e_endian() != 0);
+}
+
 unsigned long SymElf::getSymbolSize(const Symbol_t &sym)
 {
    GET_SYMBOL(sym, shdr, symbol, name, idx);

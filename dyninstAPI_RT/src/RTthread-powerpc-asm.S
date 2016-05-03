@@ -1,44 +1,14 @@
    .file    "RTthread-powerpc-asm.S"
    .machine "push"      
+#if defined(arch_ppc_little_endian)
+   .abiversion 2
+#endif
+
 #if defined(arch_64bit)
    .machine "ppc64"       
 #else
    .machine "ppc"       
 #endif
-
-
-   .section ".text"
-   .align   2
-# /* ---------------------------------- */
-# /* unsigned DYNINSTthreadIndexFAST(); */
-# /* ---------------------------------- */
-#if defined(arch_64bit)
-   .globl   DYNINSTthreadIndexFAST
-   .section ".opd", "aw"
-   .align   3
-DYNINSTthreadIndexFAST:
-   .quad    .DYNINSTthreadIndexFAST, .TOC.@tocbase, 0
-   .size    DYNINSTthreadIndexFAST, 24
-
-   .previous
-   .globl   .DYNINSTthreadIndexFAST
-   .type    .DYNINSTthreadIndexFAST, @function
-.DYNINSTthreadIndexFAST:
-#else
-   .globl   DYNINSTthreadIndexFAST
-   .type    DYNINSTthreadIndexFAST, @function
-DYNINSTthreadIndexFAST:
-#endif
-
-   mr       3,12    # function return value = r3 = r12
-   blr              # branch via link register (function return)
-
-#if defined(arch_64bit)
-   .size    .DYNINSTthreadIndexFAST, . - .DYNINSTthreadIndexFAST
-#else
-   .size    DYNINSTthreadIndexFAST, . - DYNINSTthreadIndexFAST
-#endif
-
 
    .section ".text"
    .align   2
@@ -51,7 +21,15 @@ DYNINSTthreadIndexFAST:
 # /* Return 1 if such an atomic update occurred; */
 # /* return 0 otherwise.                         */
 # /* ------------------------------------------- */
-#if defined(arch_64bit)
+#if defined(arch_ppc_little_endian)
+   .section ".toc", "aw"
+   .section ".text"
+   .align   2
+   .p2align 4,,15
+   .globl   atomic_set
+   .type    atomic_set, @function
+atomic_set:
+#elif defined(arch_64bit)
    .globl   atomic_set
    .section ".opd", "aw"
    .align   3
@@ -84,7 +62,9 @@ atomic_set_return_0:
    addi     3,0,0               # function return value = r3 = 0
    blr                          # branch via link register (function return)
 
-#if defined(arch_64bit)
+#if defined(arch_ppc_little_endian)
+   .size    atomic_set, . - atomic_set
+#elif defined(arch_64bit)
    .size    .atomic_set, . - .atomic_set
 #else
    .size    atomic_set, . - atomic_set

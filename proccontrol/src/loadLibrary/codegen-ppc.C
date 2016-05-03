@@ -36,9 +36,22 @@ bool Codegen::generateCallPPC32(Address addr, const std::vector<Address> &args) 
    return true;
 }
 
-bool Codegen::generateCallPPC64(Address addr, const std::vector<Address> &args) {
+bool Codegen::generateCallPPC64(Address addr, const std::vector<Address> &args) 
+{
    // PPC64 is a little more complicated, because we also need a TOC register value.
    // That... is tricky. 
+   //
+   // Enter PPC64LE and ABIv2... The LittleEndian version of PPC64 requires ABIv2
+   // and PPC64 will run with both ABIv1 and ABIv2.
+   //
+   // The main implication for this code is that ABIv2 no longer uses function
+   // descriptors and no longer needs to be concerned with the TOC register.
+   // Instead, ABIv2-compliant callers need place the address of the global
+   // entry point to the function being called in r12 before jumping to the
+   // function's global entry point.  The called function will then be able to
+   // derive the TOC using the value stored in r12.
+   //
+   // ABIv1 compiant calls still needs to find and manipulate the TOC.
 
    // First, arguments
    unsigned reg = 3;
@@ -47,16 +60,19 @@ bool Codegen::generateCallPPC64(Address addr, const std::vector<Address> &args) 
       reg++;      
    }
 
-   if (toc_[addr] == 0) return false;
-   generatePPC64(toc_[addr], 2);
+   if (abiversion_ < 2) {
+      if (toc_[addr] == 0) return false;
+      generatePPC64(toc_[addr], 2);
+      generatePPC64(addr, 0);
+      instruction mtlr(MTLR0raw); copyInt(mtlr.asInt());
+      instruction brl(BRLraw); copyInt(brl.asInt());
+   }
+   else {
+      generatePPC64(addr, 12);
+      instruction mtctr(MR12CTR); copyInt(mtctr.asInt());
+      instruction bctrl(BCTRLraw); copyInt(bctrl.asInt());
+   }
 
-   generatePPC64(addr, 0);
-
-   instruction mtlr(MTLR0raw);
-   copyInt(mtlr.asInt());
-
-   instruction brl(BRLraw);
-   copyInt(brl.asInt());
    return true;
 }
 
