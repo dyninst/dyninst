@@ -41,9 +41,6 @@
 
 extern int dyn_debug_ast;
 
-extern template class boost::shared_ptr<Dyninst::PatchAPI::Snippet>;
-extern template class boost::shared_ptr<Dyninst::AST>;
-
 #include "Instruction.h"
 using namespace Dyninst::InstructionAPI;
 
