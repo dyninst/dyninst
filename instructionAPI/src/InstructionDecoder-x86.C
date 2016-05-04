@@ -1613,10 +1613,10 @@ namespace Dyninst
         b.start += decodedInstruction->getSize();
     }
     
-      bool InstructionDecoder_x86::decodeOperands(const Instruction* insn_to_complete)
+	bool InstructionDecoder_x86::decodeOperands(const Instruction* insn_to_complete)
     {
        int imm_index = 0; // handle multiple immediate operands
-        if(!decodedInstruction) return false;
+        if(!decodedInstruction || !decodedInstruction->getEntry()) return false;
         unsigned int opsema = decodedInstruction->getEntry()->opsema & 0xFF;
 	InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 

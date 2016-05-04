@@ -7898,6 +7898,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     if (!ia32_decode_prefixes(addr, pref, instruct.loc)) 
     {
         instruct.size = 1;
+	    instruct.entry = NULL;
         instruct.legacy_type = ILLEGAL;
         return instruct;
     }
@@ -7977,7 +7978,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                         break;
                     default:
                         instruct.legacy_type = ILLEGAL;
-                        instruct.entry = gotit;
+			            instruct.entry = NULL;
                         return instruct;
                 }
 
@@ -7985,7 +7986,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 {
                     /* This instruction can't be expressed with an sseidx */
                     instruct.legacy_type = ILLEGAL;
-                    instruct.entry = gotit;
+			        instruct.entry = NULL;
                     return instruct;
                 }
                 break;
@@ -9491,9 +9492,10 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 break;
 
             case PREFIX_XOP:
-                assert(!"NOT HANDLING XOP YET!\n");
-                pref.vex_prefix[2] = addr[3];
-                ++pref.count;
+		return false;
+                // assert(!"NOT HANDLING XOP YET!\n");
+                // pref.vex_prefix[2] = addr[3];
+                // ++pref.count;
                 break;
 
             case PREFIX_EVEX:
@@ -9534,6 +9536,16 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                     default:
                         assert(!"Can't happen: value & 0x03 not in 0...3");
                 }
+	
+		/* There are a couple of constant bits for this prefix */
+		if(((pref.vex_prefix[0] & (unsigned int)(0x03 << 2)) != 0)
+			|| ((pref.vex_prefix[1] & (unsigned int)(1 << 2)) == 0))
+		{
+#ifdef VEX_DEBUG
+			printf("EVEX PREFIX INVALID!\n");
+#endif
+			return false;
+		}
 
                 /* VEX prefix excludes all others */
                 in_prefix = false;
