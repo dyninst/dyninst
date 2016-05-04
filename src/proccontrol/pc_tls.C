@@ -195,7 +195,10 @@ test_results_t pc_tlsMutator::executeTest()
    for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
       Process::ptr proc = *i;
       SymReader *rdr = proc->getSymbolReader()->openSymbolReader(proc->libraries().getExecutable()->getName());
-      unsigned addr_offset = rdr->getABIVersion() < 2 ? 0 : 16;
+      int major, minor;
+      unsigned addr_offset = 0;
+      if (rdr->getABIVersion(major, minor))
+         addr_offset = major < 2 ? 0 : 16;
 
       send_addr addrmsg;
       bool result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), proc);

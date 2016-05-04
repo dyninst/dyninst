@@ -108,7 +108,10 @@ AddressSet::ptr pc_groupsMutator::getAddresses(ProcessSet::ptr pset, bool calc_o
       unsigned addr_offset = 0;
       if (calc_offset) {
          SymReader *rdr = p->getSymbolReader()->openSymbolReader(p->libraries().getExecutable()->getName());
-         addr_offset = rdr->getABIVersion() < 2 ? 0 : 16;
+
+         int major, minor;
+         if (rdr->getABIVersion(major, minor))
+            addr_offset = major < 2 ? 0 : 16;
       }
       aset->insert((addr.addr+addr_offset), p);
    }
