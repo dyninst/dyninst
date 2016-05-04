@@ -1,0 +1,23 @@
+language: cpp
+
+sudo: false
+
+addons:
+    apt:
+        sources:
+            - kalakris-cmake
+        packages:
+            - binutils-dev
+            - cmake
+            - libboost-system-dev
+            - libboost-thread-dev
+            - libelf-dev
+
+compiler:
+    - gcc
+
+script:
+    - mkdir work
+    - cd work
+    - cmake ..
+    - make
