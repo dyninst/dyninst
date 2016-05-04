@@ -94,25 +94,27 @@ class Absloc {
      {};
     
  DATAFLOW_EXPORT Absloc(Address addr) :
-  type_(Heap),
-     reg_(),
-     off_(-1),
-     region_(-1),
-     func_(NULL),
+    type_(Heap),
+    reg_(),
+    off_(-1),
+    region_(-1),
+    func_(NULL),
     addr_(addr) {};
  DATAFLOW_EXPORT Absloc(int o,
 			int r,
 			ParseAPI::Function *f) :
     type_(Stack),
-       reg_(),
-      off_(o),
-      region_(r),
-       func_(f),
-       addr_(-1) {};
+    reg_(),
+    off_(o),
+    region_(r),
+    func_(f),
+    addr_(-1) {};
     
   DATAFLOW_EXPORT std::string format() const;
 
   DATAFLOW_EXPORT const Type &type() const { return type_; };
+
+  DATAFLOW_EXPORT bool isValid() const { return type_ != Unknown; };
 
   DATAFLOW_EXPORT const MachRegister &reg() const { assert(type_ == Register); return reg_; };
 

@@ -263,6 +263,8 @@ public:
     // BPastch_module::getHybridMode
     // returns the hybrid Analysis mode: normal, exploratory, defensive
     BPatch_hybridMode getHybridMode();
+
+    void enableDefensiveMode(bool on);
     
 
 #ifdef IBM_BPATCH_COMPAT

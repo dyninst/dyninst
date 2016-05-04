@@ -12,6 +12,7 @@
 #include "dyntypes.h"
 #include "VariableLocation.h"
 #include "Type.h"
+#include <boost/shared_ptr.hpp>
 
 namespace Dyninst {
 namespace SymtabAPI {
@@ -113,7 +114,7 @@ class DwarfWalker {
    DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg);
 
    ~DwarfWalker();
-
+   std::vector<boost::shared_ptr<void> > getFreeList();
    bool parse();
 
   private:
@@ -175,7 +176,7 @@ class DwarfWalker {
    Object *obj(); 
    Symtab *symtab() { return symtab_; }
    Module *mod() { return mod_; }
-   std::vector<std::string> &srcFiles() { return srcFiles_; }
+   std::vector<const char*> &srcFiles() { return srcFiles_; }
    typeCollection *tc() { return tc_; }
    Dwarf_Debug &dbg() { return dbg_; }
 
@@ -249,7 +250,7 @@ class DwarfWalker {
 			       bool &constant,
 			       bool &expr,
 			       Dwarf_Half &form);
-   bool findString(Dwarf_Half attr, std::string &str);
+   bool findString(Dwarf_Half attr, const char* &str);
    bool findConstant(Dwarf_Half attr, Address &value);
    bool findConstantWithForm(Dwarf_Attribute &attr,
                                Dwarf_Half form,
@@ -287,7 +288,9 @@ class DwarfWalker {
    Dwarf_Debug &dbg_;
    Module *mod_;
    Symtab *symtab_;
-   std::vector<std::string> srcFiles_;
+   std::vector<const char*> srcFiles_;
+    char** srcFileList_;
+    std::vector<boost::shared_ptr<void > > freeList;
    typeCollection *tc_;
 
    std::string name_;

@@ -44,6 +44,7 @@ using namespace Dyninst;
 
 const Address Node::INVALID_ADDR = (Address) -1;
 
+
 void Node::addInEdge(const EdgePtr in) {
    ins_.insert(in);
 }
@@ -324,3 +325,4 @@ void Node::deleteInEdge(EdgeIterator e) {
 void Node::deleteOutEdge(EdgeIterator e) {
   outs_.erase(*e);
 }
+

@@ -50,7 +50,7 @@ using namespace std;
 //#include "collections.h"
 //#include "debug.h" TODO: We want such behaviour. LATER!
 
-#if defined(_MSC_VER)
+#if (defined(_MSC_VER) && _MSC_VER < 1900)
 #define snprintf _snprintf
 #endif
 

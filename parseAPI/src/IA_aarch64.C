@@ -29,7 +29,6 @@
  */
 
 #include "IA_IAPI.h"
-#include "IA_aarch64.h"
 
 #include "Register.h"
 #include "Dereference.h"
@@ -56,157 +55,171 @@ using namespace Dyninst::InsnAdapter;
 static RegisterAST::Ptr aarch64_R11 (new RegisterAST (aarch64::x11));
 static RegisterAST::Ptr aarch64_LR  (new RegisterAST (aarch64::x30));
 //SP is an independent reg in aarch64
-static RegisterAST::Ptr aarch64_SP  (new RegisterAST (aarch64::x0));
+static RegisterAST::Ptr aarch64_SP  (new RegisterAST (aarch64::sp));
 
-bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr) const
+bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
 {
-	assert(0);
-    return false;
+    if(i->getOperation().getID() == aarch64_op_mov_add_addsub_imm)
+    {
+	if(i->readsMemory() || i->writesMemory())
+	{
+	    parsing_printf("%s[%d]: discarding insn %s as stack frame preamble, not a reg-reg move\n", FILE__, __LINE__, i->format().c_str());
+
+	    return false;
+	}
+	if(i->isRead(stackPtr[_isrc->getArch()]) && i->isWritten(framePtr[_isrc->getArch()]))
+	{
+	    return true;
+	}
+    }
 }
 
 bool IA_IAPI::isNop() const
 {
-	assert(0);
+    Instruction::Ptr ci = curInsn();
+
+    if(ci->getOperation().getID() == aarch64_op_nop_hint)
+	return true;
+
     return false;
 }
 
-bool IA_IAPI::isThunk() const {
-	assert(0);
+bool IA_IAPI::isThunk() const 
+{
     return false;
 }
 
 bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum type, unsigned int,
         const std::set<Address>& ) const
 {
-	assert(0);
+    switch(type) {
+       case CALL:
+       case COND_TAKEN:
+       case DIRECT:
+       case INDIRECT:
+          type = DIRECT;
+          break;
+       case COND_NOT_TAKEN:
+       case FALLTHROUGH:
+       case CALL_FT:
+       case RET:
+       default:
+          return false;
+    }
+
+    parsing_printf("Checking for Tail Call \n");
+    context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT); 
+    parsing_printf("***type: %d, current: %d\n", type, tailCalls[type]);
+
+    if (tailCalls.find(type) != tailCalls.end()) {
+        parsing_printf("\tReturning cached tail call check result: %d\n", tailCalls[type]);
+        if (tailCalls[type]) {
+            context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
+            return true;
+        }
+        return false;
+    }
+    
+    bool valid; Address addr;
+    boost::tie(valid, addr) = getCFT();
+
+    Function *callee = _obj->findFuncByEntry(_cr, addr);
+    Block *target = _obj->findBlockByEntry(_cr, addr);
+
+    if(curInsn()->getCategory() == c_BranchInsn &&
+       valid &&
+       callee && callee != context && !context->contains(target))
+    {
+      parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
+      tailCalls[type] = true;
+      return true;
+    }
+
+    if(allInsns.size() < 2) {
+        parsing_printf("\ttoo few insns to detect tail call\n");
+        context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
+        tailCalls[type] = false;
+        return false;
+    }
+    tailCalls[type] = false;
+    context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
     return false;
 }
 
 bool IA_IAPI::savesFP() const
 {
-	assert(0);
+    Instruction::Ptr insn = curInsn();
+    RegisterAST::Ptr returnAddrReg(new RegisterAST(aarch64::x30));
+
+    //stp x29, x30, [sp, imm]!
+    if(insn->getOperation().getID() == aarch64_op_stp_gen &&
+       insn->isRead(framePtr[_isrc->getArch()]) &&
+       insn->isRead(returnAddrReg) &&
+       insn->isRead(stackPtr[_isrc->getArch()]) &&
+       insn->isWritten(stackPtr[_isrc->getArch()]))
+        return true;
+
     return false;
 }
 
 bool IA_IAPI::isStackFramePreamble() const
 {
-	assert(0);
+    if(!savesFP())
+	return false;
+
+    InstructionDecoder tmp(dec);
+    if(isFrameSetupInsn(tmp.decode()))
+        return true;
+
     return false;
 }
 
 bool IA_IAPI::cleansStack() const
 {
-	assert(0);
+    Instruction::Ptr insn = curInsn();
+    RegisterAST::Ptr returnAddrReg(new RegisterAST(aarch64::x30));
+
+    //ldp x29, x30, [sp], imm
+    if(insn->getOperation().getID() == aarch64_op_ldp_gen &&
+       insn->isWritten(framePtr[_isrc->getArch()]) &&
+       insn->isWritten(returnAddrReg) &&
+       insn->isRead(stackPtr[_isrc->getArch()]) &&
+       insn->isWritten(stackPtr[_isrc->getArch()]))
+        return true;
+
     return false;
 }
 
-class AARCH64ReturnPredicates : public Slicer::Predicates {
-  virtual bool widenAtPoint(Assignment::Ptr p) {
-		return true;
-    }
-};
-
-
-
-bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const {
-	assert(0);
-	return 0;
+bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const
+{
+    return true;
 }
 
 bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
 {
-	assert(0);
-  return 0;
+  return false;
 }
 
 bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
 {
-	assert(0);
-	return 0;
+    return curInsn()->getCategory() == c_ReturnInsn;
 }
 
 bool IA_IAPI::isFakeCall() const
 {
-	assert(0);
     return false;
 }
 
 bool IA_IAPI::isIATcall(std::string &) const
 {
-	assert(0);
     return false;
-}
-
-const unsigned int B_UNCOND      = 0x0;
-const unsigned int ADDIS_R12_R12 = 0x0;
-const unsigned int ADDIS_R12_R2  = 0x0;
-const unsigned int ADDIS_R2_R2   = 0x0;
-const unsigned int ADDI_R12_R12  = 0x0;
-const unsigned int ADDI_R2_R2    = 0x0;
-const unsigned int STD_R2_40R1   = 0x0;
-const unsigned int LD_R2_40R1    = 0x0;
-const unsigned int LD_R2_0R2     = 0x0;
-const unsigned int LD_R2_0R12    = 0x0;
-const unsigned int LD_R11_0R12   = 0x0;
-const unsigned int LD_R11_0R2    = 0x0;
-const unsigned int MTCTR_R11     = 0x0;
-const unsigned int BCTR          = 0x0;
-
-typedef enum {
-    STUB_UNKNOWN,
-    STUB_LONG_BRANCH,
-    STUB_TOC_BRANCH,
-    STUB_PLT_CALL
-} linker_stub_t;
-
-linker_stub_t checkLinkerStub(void *insn_buf, Offset &off)
-{
-	assert(0);
-    instruction *insn = static_cast<instruction *>(insn_buf);
-
-    off = 0;
-    return STUB_UNKNOWN;
 }
 
 bool IA_IAPI::isLinkerStub() const
 {
   // Disabling this code because it ends with an
-  // incorrect CFG.
-
-  return false;
-}
-
-AST::Ptr AARCH64_BLR_Visitor::visit(AST *a) {
-	assert(0);
-  return a->ptr();
-}
-
-AST::Ptr AARCH64_BLR_Visitor::visit(DataflowAPI::BottomAST *b) {
-	assert(0);
-  return_ = AARCH64_BLR_UNKNOWN;
-  return b->ptr();
-}
-
-AST::Ptr AARCH64_BLR_Visitor::visit(DataflowAPI::ConstantAST *c) {
-	assert(0);
-  // Very odd case, but claiming not a return
-  return_ = AARCH64_BLR_NOTRETURN;
-  return c->ptr();
-}
-
-AST::Ptr AARCH64_BLR_Visitor::visit(DataflowAPI::VariableAST *v) {
-	assert(0);
-  return v->ptr();
-}
-/*
-AST::Ptr AARCH64_BLR_Visitor::visit(StackAST *s) {
-  return_ = UNKNOWN;
-  return s->Ptr();
-}
-*/
-AST::Ptr AARCH64_BLR_Visitor::visit(DataflowAPI::RoseAST *r) {
-	assert(0);
-  return r->ptr();
+    // incorrect CFG.
+    return false;
 }
 
 #if 0
@@ -219,6 +232,5 @@ IA_IAPI::tampersStack(ParseAPI::Function *, Address &) const
 
 bool IA_IAPI::isNopJump() const
 {
-	assert(0);
     return false;
 }

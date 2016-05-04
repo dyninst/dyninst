@@ -198,7 +198,7 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
    virtual Offset getOffset() const;
    virtual unsigned getSize() const;
   private:
-   std::string callsite_file;
+   const char* callsite_file;
    Dyninst::Offset callsite_line;
    std::string name_;
    Module* module_;

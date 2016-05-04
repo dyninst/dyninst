@@ -182,7 +182,7 @@ class BPATCH_DLL_EXPORT Randomize : public StackMod
 {
     public:
         // Constructor
-        Randomize() {}
+        Randomize();
         Randomize(int);
 
         bool isSeeded() const { return _isSeeded; }

@@ -47,6 +47,8 @@ using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 extern int df_debug_stackanalysis;
 
+template class std::vector<boost::shared_ptr<Dyninst::Assignment> >;
+
 void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
 				    Address addr,
 				    ParseAPI::Function *func,

@@ -35,24 +35,13 @@
 
 #include "Type.h"
 #include "Variable.h"
-#include "Symbol.h"
-#include "Symtab.h"
 #include "Object.h"
 
-#include "emitElf.h"
-#include "Module.h"
-#include "Aggregate.h"
 #include "Function.h"
 
 #include "debug.h"
 
-#include "dwarfHandle.h"
-
-#if defined(x86_64_unknown_linux2_4) ||		\
-  defined(ppc64_linux) ||			\
-  (defined(os_freebsd) && defined(arch_x86_64))
 #include "emitElf-64.h"
-#endif
 
 #include "dwarfWalker.h"
 
@@ -65,13 +54,9 @@ using namespace std;
 #error "Object-elf.h not #included"
 #endif
 
-#include <elf.h>
-#include <stdio.h>
-#include <algorithm>
-
 #if defined(cap_dwarf)
 #include "dwarf.h"
-#include "libdwarf.h"
+
 #endif
 
 //#include "symutil.h"
@@ -80,11 +65,10 @@ using namespace std;
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
 #endif
-#include <iostream>
+
 #include <iomanip>
 
 #include <fstream>
-#include <sys/stat.h>
 
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
@@ -92,8 +76,6 @@ using namespace std;
 #include "SymReader.h"
 
 using namespace boost::assign;
-
-#include <libgen.h>
 
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
@@ -337,6 +319,13 @@ const char* DYNAMIC_NAME     = ".dynamic";
 const char* EH_FRAME_NAME    = ".eh_frame";
 const char* EXCEPT_NAME      = ".gcc_except_table";
 const char* EXCEPT_NAME_ALT  = ".except_table";
+
+
+extern template
+class Dyninst::SymtabAPI::emitElf64<ElfTypes32>;
+
+extern template
+class Dyninst::SymtabAPI::emitElf64<ElfTypes64>;
 
 set<string> debugInfoSections = list_of(string(SYMTAB_NAME))
  (string(STRTAB_NAME));
@@ -4492,6 +4481,7 @@ bool AObject::getSegments(vector<Segment> &segs) const
   return true;
 }
 
+
 bool Object::emitDriver(Symtab *obj, string fName,
 			std::vector<Symbol *>&allSymbols,
                         unsigned /*flag*/)
@@ -4504,20 +4494,18 @@ bool Object::emitDriver(Symtab *obj, string fName,
 #endif
   if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS32)
   {
-    emitElf *em = new emitElf(elfHdr, isStripped, this, err_func_);
-    if( !em->createSymbolTables(obj, allSymbols) ) return false;
-    return em->driver(obj, fName);
+      Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32> *em =
+              new Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_, obj);
+    if( !em->createSymbolTables(allSymbols) ) return false;
+    return em->driver(fName);
   }
-#if defined(x86_64_unknown_linux2_4) ||		\
-  defined(ppc64_linux) ||			\
-  (defined(os_freebsd) && defined(arch_x86_64))
-  else if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS64) 
+  else if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS64)
   {
-    emitElf64 *em = new emitElf64(elfHdr, isStripped, this, err_func_);
-    if( !em->createSymbolTables(obj, allSymbols) ) return false;
-    return em->driver(obj, fName);
+      Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64> *em =
+              new Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_, obj);
+    if( !em->createSymbolTables(allSymbols) ) return false;
+    return em->driver(fName);
   }
-#endif
   return false;
 }
 
@@ -4732,7 +4720,7 @@ void Object::parseStabFileLineInfo(Symtab *st)
   //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
 
-bool Object::addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_check)
+bool Object::addrInCU(Dwarf_Debug dbg, Dwarf_Die cu, Address to_check)
 {
   Dwarf_Addr tempLow = 0, tempHigh = -1;
   Address low = 0, high = -1;
@@ -4749,16 +4737,22 @@ bool Object::addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_che
 	  if(status == DW_DLV_OK) 
 	  {
 	      low = (Address) tempLow;
+          //cerr << "lowpc/highpc, low is " << hex << low << ", addr is " << to_check << endl;
 	      if(low > to_check) return false;
 	      status = dwarf_highpc(cu, &tempHigh, NULL);//&please_ignore);
 	      if(status == DW_DLV_OK) 
 	      {
 		  high = (Address) tempHigh;
-		  
+              //cerr << "lowpc/highpc, high is " << hex << high << ", addr is " << to_check << endl;
+
 		  if(to_check < high) return true;
 	      }
 	      else if(status == DW_DLV_ERROR)
 	      {
+              // this is most likely a case where libdwarf doesn't handle dwarf4.
+              // claim the address is in this CU; better to overparse.
+              return true;
+              //cerr << "lowpc/highpc, high threw error" << endl;
 		  //		  dwarf_dealloc(dbg, please_ignore, DW_DLA_ERROR);
 	      }
 	  }
@@ -4766,7 +4760,10 @@ bool Object::addrInCU(Symtab* obj, Dwarf_Debug dbg, Dwarf_Die cu, Address to_che
   }
 
   Dwarf_Bool hasRanges = false;
-  if(dwarf_hasattr(cu, DW_AT_ranges, &hasRanges, NULL) != DW_DLV_OK) return false;
+  if(dwarf_hasattr(cu, DW_AT_ranges, &hasRanges, NULL) != DW_DLV_OK) {
+      //cerr << "no lowpc/highpc, error getting ranges\n";
+      return false;
+  }
   
   if (hasRanges) {
     Address range_offset = 0;
@@ -5051,7 +5048,7 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
     }
     // Parse line info for each CU once, completely, if a user has asked for something within
     // that CU
-    if(!addrInCU(obj, dbg, cuDIE, addr_to_find))
+    if(!addrInCU(dbg, cuDIE, addr_to_find))
     {
       dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
       continue;
@@ -5187,7 +5184,7 @@ void Object::parseTypeInfo(Symtab *obj)
   if(!typeInfo) return;
   DwarfWalker walker(obj, *typeInfo);
   walker.parse();
-        
+    freeList = walker.getFreeList();
 #if defined(TIMED_PARSE)
   struct timeval endtime;
   gettimeofday(&endtime, NULL);
@@ -5859,3 +5856,4 @@ std::string Object::getFileName() const
   
   return mf->filename();
 }
+

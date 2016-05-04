@@ -51,6 +51,14 @@
 #include "StackModChecker.h"
 
 
+StackModChecker::~StackModChecker() {
+    // Free the height vectors in blockHeights
+    for (auto bhIter = blockHeights.begin(); bhIter != blockHeights.end();
+        bhIter++) {
+        delete bhIter->second;
+    }
+}
+
 /* Locate the libc-provided canary failure function __stack_chk_fail */
 static BPatch_function* findCanaryFailureFunction(BPatch_image* image)
 {
@@ -129,6 +137,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
     if (!func->hasValidOffsetVector()) {
         // Function cannot be modified
         stackmods_printf("Function %s cannot be modified, addMods returning false\n", getName().c_str());
+        func->freeStackMod();
         return false;
     }
 
@@ -187,6 +196,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                 {
 #if !defined(os_linux)
                     // Safety check: canaries are Linux-only
+                    func->freeStackMod();
                     return false;
 #endif
 
@@ -206,7 +216,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                     for ( ; remainderIter != mods.end(); ++remainderIter) {
                         if ((*remainderIter)->type() == StackMod::CANARY) {
                             stackmods_printf("Found 2 CANARY modifications, not allowed\n");
-                            // No cleanup necessary yet
+                            func->freeStackMod();
                             return false;
                         }
                     }
@@ -214,7 +224,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                     // Check existing modifications
                     if (func->hasCanary()) {
                         stackmods_printf("Found existing CANARY modification, not allowed\n");
-                        // No cleanup necessary yet
+                        func->freeStackMod();
                         return false;
                     }
                     break;
@@ -224,6 +234,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                     // Randomize may not be performed with any other stack modifcations
                     if (mods.size() != 1 || func->hasStackMod()) {
                         stackmods_printf("Found RANDOMIZE with other modifications, not allowed\n");
+                        func->freeStackMod();
                         return false;
                     }
                     break;
@@ -231,6 +242,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
             default:
                 {
                     stackmods_printf("addMods called with unknown stack modification type, returning false\n");
+                    func->freeStackMod();
                     return false;
                 }
         }
@@ -253,12 +265,21 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
 
     // Calculate any alignment requirements
     for (auto iter = allMods.begin(); iter != allMods.end(); ++iter) {
-        if (!accumulateStackRanges(*iter)) { return false; }
+        if (!accumulateStackRanges(*iter)) {
+            func->freeStackMod();
+            return false;
+        }
     }
     int alignment = 1;
     if (arch == Arch_x86_64) { alignment = AMD64_STACK_ALIGNMENT; }
-    if (!alignStackRanges(alignment, StackMod::NEW, allMods)) { return false; }
-    if (!alignStackRanges(alignment, StackMod::CLEANUP, allMods)) { return false; }
+    if (!alignStackRanges(alignment, StackMod::NEW, allMods)) {
+        func->freeStackMod();
+        return false;
+    }
+    if (!alignStackRanges(alignment, StackMod::CLEANUP, allMods)) {
+        func->freeStackMod();
+        return false;
+    }
 
     stackmods_printf("final set of modifications:\n");
     for (auto iter = allMods.begin(); iter != allMods.end(); ++iter) {
@@ -275,7 +296,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
         if (_unsafeStackGrowth || !checkStackGrowth(sa)) {
             _unsafeStackGrowth = true;
             stackmods_printf("Found that the stack grows and shrinks multiple times in this function; INSERT,REMOVE,MOVE disallowed\n");
-            // No cleanup necessary yet
+            func->freeStackMod();
             return false;
         } 
     }
@@ -303,9 +324,10 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
             case StackMod::INSERT :
                 {
                     long dispFromRSP = 0;
-                    std::vector<BPatch_point*>* points = new std::vector<BPatch_point*>();
+                    std::vector<BPatch_point*>* points;
                     if (!findInsertOrRemovePoints(sa, m, points, dispFromRSP)) {
                         stackmods_printf("\t findInsertOrRemovePoints failed\n");
+                        func->freeStackMod();
                         return false;
                     }
                     
@@ -337,7 +359,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
             case StackMod::REMOVE :
                 {
                     long dispFromRSP = 0;
-                    std::vector<BPatch_point*>* points = new std::vector<BPatch_point*>();
+                    std::vector<BPatch_point*>* points;
                     if (!findInsertOrRemovePoints(sa, m, points, dispFromRSP)) {
                         stackmods_printf("\t findInsertOrRemovePoints failed\n");
                         cleanupAndReturn = true;
@@ -397,17 +419,17 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                 }
             case StackMod::CANARY :
                 {
-                    std::vector<BPatch_point*>* insertPoints;
-                    std::vector<BPatch_point*>* checkPoints;
-                    if (!findCanaryPoints(insertPoints, checkPoints)) {
+                    std::vector<BPatch_point*> insertPoints;
+                    std::vector<BPatch_point*> checkPoints;
+                    if (!findCanaryPoints(&insertPoints, &checkPoints)) {
                         cleanupAndReturn = true;
                         break;
                     }
                     
                     // If the insert and check point are the same, don't add the canary
                     // This isn't a failure, it's just unnecessary
-                    if ( (insertPoints->size() == 1) && (checkPoints->size() == 1) &&
-                            ((Address)(insertPoints->at(0)->getAddress()) == ((Address)(checkPoints->at(0)->getAddress())))) {
+                    if ( (insertPoints.size() == 1) && (checkPoints.size() == 1) &&
+                            ((Address)(insertPoints.at(0)->getAddress()) == ((Address)(checkPoints.at(0)->getAddress())))) {
                         continue;
                     }
                     // Generate check snippets before insert snippets; set gets processed in LIFO order
@@ -424,7 +446,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                         cleanupAndReturn = true;
                         break;
                     }
-                    for (auto iter = checkPoints->begin(); iter != checkPoints->end(); ++iter) {
+                    for (auto iter = checkPoints.begin(); iter != checkPoints.end(); ++iter) {
                         BPatch_point* point = *iter;
                         Address addr = (Address)(point->getAddress());
                    
@@ -464,7 +486,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                         }
                     }
 
-                    for (auto iter = insertPoints->begin(); iter != insertPoints->end(); ++iter) {
+                    for (auto iter = insertPoints.begin(); iter != insertPoints.end(); ++iter) {
                         BPatch_point* point = *iter;
                         Address addr = (Address)(point->getAddress());
                         BPatch_snippet* snip = new BPatch_canaryExpr();
@@ -566,16 +588,26 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
 
         // The original TMap remained unchanged, so no reveision is necessary
 
+        func->freeStackMod();
         return false; 
     }
 
     // Update the TMap
     func->replaceTMap(newTMap);
 
+    // Free old TMap
+    for (auto tmapIter = oldTMap->begin(); tmapIter != oldTMap->end();
+        tmapIter++) {
+        delete tmapIter->first;
+        delete tmapIter->second;
+    }
+    delete oldTMap;
+
+    // Free stack mod data structures (lots of memory)
+    func->freeStackMod();
+
     func->setStackMod(true);
-
-    return true; 
-
+    return true;
 }
 
 /* Get the name of the function we're checking */
@@ -1022,6 +1054,8 @@ bool StackModChecker::findInsertOrRemovePoints(StackAnalysis& sa, StackMod* m, s
             }
         }
 
+        points = new std::vector<BPatch_point*>();
+
         // Normal path: work forward from entry
         std::vector<ParseAPI::Block*> worklist;
         worklist.push_back(entryBlock);
@@ -1211,36 +1245,30 @@ bool StackModChecker::checkInsn(ParseAPI::Block* block, Offset off, int loc, Sta
     return false;
 }
 
-bool StackModChecker::findCanaryPoints(std::vector<BPatch_point*>*& insertPoints,
-        std::vector<BPatch_point*>*& checkPoints)
+bool StackModChecker::findCanaryPoints(std::vector<BPatch_point*>* insertPoints,
+        std::vector<BPatch_point*>* checkPoints)
 {
     // Insert at function entry
     std::vector<BPatch_point*>* entryPoints = bfunc->findPoint(BPatch_entry);
     if (!entryPoints || !entryPoints->size()) return false;
-    insertPoints = entryPoints;
-
-    checkPoints = new std::vector<BPatch_point*>();
+    *insertPoints = *entryPoints;
 
     // Build set of check points by finding all function returns and tailcalls
     // Non-returning calls ARE NOT check points
     std::set<Address> checkAddrs;
-    ParseAPI::Function::const_blocklist retBlocks = func->ifunc()->returnBlocks();
-    // Accumulate returns
-    for (auto iter = retBlocks.begin(); iter != retBlocks.end(); ++iter) {
-        Address addr = (*iter)->lastInsnAddr();
-        checkAddrs.insert(addr);
-    }
-    // Accumulate tailcalls
-    ParseAPI::Function::edgelist callEdges = func->ifunc()->callEdges();
-    for (auto iter = callEdges.begin(); iter != callEdges.end(); ++iter) {
-        ParseAPI::Edge* edge = *iter;
-        if ( ( (edge->type() == ParseAPI::DIRECT) || (edge->type() == ParseAPI::INDIRECT)) &&
-                (edge->interproc())) {
-            ParseAPI::Block* block = edge->src();
-            Address addr = block->lastInsnAddr();
-            checkAddrs.insert(addr);
+
+    ParseAPI::Function::const_blocklist exitBlocks = func->ifunc()->exitBlocks();
+    for (auto iter = exitBlocks.begin(); iter != exitBlocks.end(); iter++) {
+        ParseAPI::Block::edgelist exitEdges = (*iter)->targets();
+        for (auto eiter = exitEdges.begin(); eiter != exitEdges.end(); eiter++) {
+            if ((*eiter)->interproc() && ((*eiter)->type() == ParseAPI::RET ||
+                (*eiter)->type() == ParseAPI::DIRECT ||
+                (*eiter)->type() == ParseAPI::INDIRECT)) {
+                checkAddrs.insert((*iter)->last());
+            }
         }
     }
+
     // Add points corresponding to this accumulated set of check addrs
     std::vector<BPatch_point*>* exitPoints = bfunc->findPoint(BPatch_exit);
     if (!exitPoints || !exitPoints->size()) return false;

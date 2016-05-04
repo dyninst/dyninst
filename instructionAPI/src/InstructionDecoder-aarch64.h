@@ -80,7 +80,7 @@ namespace Dyninst {
 
                 #define IS_INSN_LD_LITERAL(I)           (field<27, 29>(I) == 0x03 && field<24, 25>(I) == 0)
 
-                #define IS_INSN_LDST_PAIR(I)            (field<27, 29>(I) == 0x05)
+                #define IS_INSN_LDST_PAIR(I)            (field<27, 29>(I) == 0x05 && field<25, 25>(I) == 0)
                 #define IS_INSN_LDST_PAIR_PRE(I)        (field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x03)
                 #define IS_INSN_LDST_PAIR_OFFSET(I)     (field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x02)
                 #define IS_INSN_LDST_PAIR_POST(I)       (field<27, 29>(I) == 0x05 && field<23, 25>(I) == 0x01)
@@ -93,6 +93,10 @@ namespace Dyninst {
                 #define	IS_INSN_LDST_REG(I)	            (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 0 && field<21, 21>(I) == 1 && field<10, 11>(I) == 0x02)
                 #define IS_INSN_LDST_UIMM(I)            (field<27, 29>(I) == 0x07 && field<24, 25>(I) == 1)
 
+                #define IS_INSN_LDST_SIMD_MULT(I)       (field<31, 31>(I) == 0x00 && field<23, 29>(I) == 0x18 && field<16, 21>(I) == 0)
+                #define IS_INSN_LDST_SIMD_MULT_POST(I)  (field<31, 31>(I) == 0x00 && field<23, 29>(I) == 0x19 && field<21, 21>(I) == 0)
+                #define IS_INSN_LDST_SIMD_SING(I)       (field<31, 31>(I) == 0x00 && field<23, 29>(I) == 0x1a && field<16, 20>(I) == 0)
+                #define IS_INSN_LDST_SIMD_SING_POST(I)  (field<31, 31>(I) == 0x00 && field<23, 29>(I) == 0x1b)
 
                 #define	IS_INSN_LOGICAL_IMM(I)			(field<23, 28>(I) == 0x24)
                 #define	IS_INSN_BITFIELD(I)				(field<23, 28>(I) == 0x26)
@@ -109,7 +113,23 @@ namespace Dyninst {
                 #define	IS_INSN_B_COND(I)				(field<25, 31>(I) == 0x2A)
                 #define	IS_INSN_PCREL_ADDR(I)			(field<24, 28>(I) == 0x10)
                 #define	IS_INSN_SYSTEM(I)				(field<22, 31>(I) == 0x354)
-                #define	IS_INSN_BRANCHING(I)			(IS_INSN_B_COND(I) || IS_INSN_B_UNCOND(I) || IS_INSN_B_UNCOND_REG(I) || IS_INSN_B_TEST(I) 										 || IS_INSN_B_COMPARE(I))
+                #define	IS_INSN_BRANCHING(I)			(IS_INSN_B_COND(I) || IS_INSN_B_UNCOND(I) || IS_INSN_B_UNCOND_REG(I) || IS_INSN_B_TEST(I)|| IS_INSN_B_COMPARE(I))
+
+                #define IS_INSN_SIMD_3DIFF(I)           (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<21, 21>(I) == 0x1 && field<10, 11>(I) == 0x0)
+                #define IS_INSN_SIMD_ACROSS(I)          (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x18 && field<10, 11>(I) == 0x2)
+                #define IS_INSN_SIMD_COPY(I)            (field<31, 31>(I) == 0x0 && field<21, 28>(I) == 0x70 && field<15,15>(I) == 0x0 && field<10, 10>(I) == 0x1)
+                #define IS_INSN_SIMD_VEC_INDEX(I)       (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xf && field<10, 10>(I) == 0x0)
+                #define IS_INSN_SIMD_MOD_IMM(I)         (field<31, 31>(I) == 0x0 && field<19, 28>(I) == 0x1e0 && field<10, 10>(I) == 0x1)
+                #define IS_INSN_SIMD_SHIFT_IMM(I)       (field<31, 31>(I) == 0x0 && field<23, 28>(I) == 0x1e && field<19, 22>(I) != 0x0)
+                #define IS_INSN_SIMD_TAB_LOOKUP(I)      (field<31, 31>(I) == 0x0 && field<24, 29>(I) == 0xe && field<21, 21>(I) == 0x0 && field<15, 15>(I) == 0x0 && field<10, 11>(I) == 0x0)
+                #define IS_INSN_SIMD_EXTR(I)            (field<31, 31>(I) == 0x0 && field<24, 29>(I) == 0x2e && field<21, 21>(I) == 0x0 && field<15, 15>(I) == 0x0 && field<10, 10>(I) == 0x0)
+                #define IS_INSN_SCALAR_3SAME(I)         (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1e && field<21, 21>(I) == 0x1 && field<10, 10>(I) == 0x1)
+                #define IS_INSN_SCALAR_3DIFF(I)         (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1e && field<21, 21>(I) == 0x1 && field<10, 11>(I) == 0x0)
+                #define IS_INSN_SCALAR_2REG_MISC(I)     (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1e && field<17, 21>(I) == 0x10 && field<10, 11>(I) == 0x2)
+                #define IS_INSN_SCALAR_PAIR(I)          (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1e && field<17, 21>(I) == 0x18 && field<10, 11>(I) == 0x2)
+                #define IS_INSN_SCALAR_COPY(I)          (field<30, 31>(I) == 0x1 && field<21, 28>(I) == 0xf0 && field<15, 15>(I) == 0x0 && field<10, 10>(I) == 0x1)
+                #define IS_INSN_SCALAR_INDEX(I)         (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1f && field<10, 10>(I) == 0x0)
+                #define IS_INSN_SCALAR_SHIFT_IMM(I)     (field<30, 31>(I) == 0x1 && field<23, 28>(I) == 0x3e && field<10, 10>(I) == 0x1)
 
                 #define	IS_FIELD_IMMR(S, E)				(S == 16 && E == 21)
                 #define	IS_FIELD_IMMS(S, E)				(S == 10 && E == 15)
@@ -119,7 +139,7 @@ namespace Dyninst {
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
 
-				bool isPstateRead, isPstateWritten;
+		bool isPstateRead, isPstateWritten;
                 bool isFPInsn, isSIMDInsn;
                 bool is64Bit;
                 bool isValid;
@@ -127,10 +147,10 @@ namespace Dyninst {
                 void mainDecode();
                 int findInsnTableIndex(unsigned int);
 
-				/*members for handling operand re-ordering, will be removed later once a generic operand ordering method is incorporated*/
-				int oprRotateAmt;
-				bool hasb5;
-				void reorderOperands();
+		/*members for handling operand re-ordering, will be removed later once a generic operand ordering method is incorporated*/
+		int oprRotateAmt;
+		bool hasb5;
+		void reorderOperands();
 
                 static void buildSysRegMap();
                 unsigned int insn;
@@ -148,80 +168,103 @@ namespace Dyninst {
 
                 int32_t sign_extend32(int size, int in)
                 {
-					int32_t val = 0|in;
+		    int32_t val = 0|in;
 
                     return (val << (32 - size)) >> (32 - size);
                 }
 
                 int64_t sign_extend64(int size, int in)
                 {
-					int64_t val = 0|in;
+		    int64_t val = 0|in;
 
                     return (val << (64 - size)) >> (64 - size);
                 }
 
                 uint32_t unsign_extend32(int size, int in)
                 {
-					uint32_t mask = ~0;
+		    uint32_t mask = ~0;
 
                     return (mask>>(32-size)) & in;
-				}
+		}
 
                 uint64_t unsign_extend64(int size, int in)
                 {
-					uint64_t mask = ~0;
+		    uint64_t mask = ~0;
 
                     return (mask>>(64-size)) & in;
-				}
+		}
 
-				int op1Field, op2Field, crmField;
-				void processSystemInsn();
+		int highest_set_bit(int32_t val)
+		{
+		    for(int bit_index = 31; bit_index >= 0; bit_index--)
+			if(((val>>bit_index) & 0x1) == 0x1)
+			    return bit_index+1;
 
-				bool hasHw;
-				int hwField;
-				void processHwFieldInsn(int, int);
+		    return -1;
+		}
 
-				bool hasShift;
-				int shiftField;
-				void processShiftFieldShiftedInsn(int, int);
-				void processShiftFieldImmInsn(int, int);
+		int lowest_set_bit(int32_t val)
+		{
+		    for(int bit_index = 0; bit_index <= 31; bit_index++)
+			if(((val>>bit_index) & 0x1) == 0x1)
+			    return bit_index+1;
 
-				bool hasOption;
-				int optionField;
-				void processOptionFieldLSRegOffsetInsn();
+		    return -1;
+		}
 
-				bool hasN;
-				int immr, immrLen;
-				int sField, nField, nLen;
+		int op1Field, op2Field, crmField;
+		void processSystemInsn();
 
-        		int immlo, immloLen;
-				void makeBranchTarget(bool, bool, int, int);
-				Expression::Ptr makeFallThroughExpr();
+		bool hasHw;
+		int hwField;
+		void processHwFieldInsn(int, int);
 
-                int _szField;
+		bool hasShift;
+		int shiftField;
+		void processShiftFieldShiftedInsn(int, int);
+		void processShiftFieldImmInsn(int, int);
+
+		bool hasOption;
+		int optionField;
+		void processOptionFieldLSRegOffsetInsn();
+
+		bool hasN;
+		int immr, immrLen;
+		int sField, nField, nLen;
+
+		int immlo, immloLen;
+		void makeBranchTarget(bool, bool, int, int);
+		Expression::Ptr makeFallThroughExpr();
+
+                int _szField, size;
                 int _typeField;
+		int cmode;
+		int op;
+		int simdAlphabetImm;
+		void processAlphabetImm();
 
                 void NOTHING();
 
                 void set32Mode();
-				void setRegWidth();
-				void setFPMode();
-				void setSIMDMode();
+		void setRegWidth();
+		void setFPMode();
+		void setSIMDMode();
 
                 bool isSinglePrec();
 
-				MachRegister makeAarch64RegID(MachRegister, unsigned int);
-				Expression::Ptr makeRdExpr();
-				Expression::Ptr makeRnExpr();
-				Expression::Ptr makeRmExpr();
-				Expression::Ptr makeRaExpr();
-				Expression::Ptr makeRsExpr();
-				Expression::Ptr makePstateExpr();
+		MachRegister makeAarch64RegID(MachRegister, unsigned int);
+		MachRegister getLoadStoreSimdRegister(int encoding);
+		Expression::Ptr makeRdExpr();
+		Expression::Ptr makeRnExpr();
+		Expression::Ptr makeRmExpr();
+		Expression::Ptr makeRaExpr();
+		Expression::Ptr makeRsExpr();
+		Expression::Ptr makePstateExpr();
                 Expression::Ptr makePCExpr();
                 Expression::Ptr makeb40Expr();
-				Expression::Ptr makeOptionExpression(int, int);
-				template<typename T, Result_Type rT>
-				Expression::Ptr fpExpand(int);
+		Expression::Ptr makeOptionExpression(int, int);
+		template<typename T, Result_Type rT>
+		Expression::Ptr fpExpand(int);
                 Expression::Ptr makeRtExpr();
                 Expression::Ptr makeRt2Expr();
 
@@ -244,9 +287,11 @@ namespace Dyninst {
                 Expression::Ptr makeMemRefEx();
                 Expression::Ptr makeMemRefExPair();
                 Expression::Ptr makeMemRefExPair2();
-                //Expression::Ptr makeMemRefPairPre2();
-                //Expression::Ptr makeMemRefPairPost2();
-                //Expression::Ptr makeMemRefExPair16B();
+
+                Expression::Ptr makeMemRefSIMD_MULT();
+                Expression::Ptr makeMemRefSIMD_SING();
+		template<typename T>
+		Expression::Ptr makeLogicalImm(int immr, int imms, int immsLen, Result_Type rT);
 
 
                 void getMemRefIndexLiteral_OffsetLen(int &, int &);
@@ -261,75 +306,90 @@ namespace Dyninst {
                 void getMemRefIndex_RT(Result_Type &);
                 void getMemRefIndexUImm_RT(Result_Type &);
 
-				void OPRRd();
-				void OPRsf();
-				template<unsigned int endBit, unsigned int startBit>
+                unsigned int getMemRefSIMD_MULT_T();
+                unsigned int getMemRefSIMD_SING_T();
+                void getMemRefSIMD_MULT_RT(Result_Type &);
+                void getMemRefSIMD_SING_RT(Result_Type &);
+                unsigned int get_SIMD_MULT_POST_imm();
+                unsigned int get_SIMD_SING_POST_imm();
+
+		void OPRRd();
+		void OPRsf();
+		template<unsigned int endBit, unsigned int startBit>
                 void OPRoption();
-				void OPRshift();
-				void OPRhw();
-				template<unsigned int endBit, unsigned int startBit>
+		void OPRshift();
+		void OPRhw();
+		template<unsigned int endBit, unsigned int startBit>
                 void OPRN();
 
                 //for load store
                 void LIndex();
                 void STIndex();
-				void OPRRn();
+		void OPRRn();
                 void OPRRnL();
                 void OPRRnLU();
                 void OPRRnSU();
                 void OPRRnS();
-				void OPRRnU();
-				void OPRRm();
-				void OPRRt();
-				void OPRRtL();
-				void OPRRtS();
-				void OPRRt2();
-				void OPRRt2L();
-				void OPRRt2S();
+		void OPRRnU();
+		void OPRRm();
+		void OPRRt();
+		void OPRRtL();
+		void OPRRtS();
+		void OPRRt2();
+		void OPRRt2L();
+		void OPRRt2S();
 
-				void OPRop1();
-				void OPRop2();
-				template<unsigned int endBit, unsigned int startBit>
+		void OPRop1();
+		void OPRop2();
+		template<unsigned int endBit, unsigned int startBit>
                 void OPRcond();
-				void OPRnzcv();
-				void OPRCRm();
-				void OPRCRn();
-				template<unsigned int endBit, unsigned int startBit>
+		void OPRnzcv();
+		void OPRCRm();
+		void OPRCRn();
+		template<unsigned int endBit, unsigned int startBit>
                 void OPRS();
-				void OPRRa();
-				void OPRo0();
-				void OPRb5();
-				void OPRb40();
-				template<unsigned int endBit, unsigned int startBit>
-				void OPRsz();
-				void OPRRs();
-				template<unsigned int endBit, unsigned int startBit>
+		void OPRRa();
+		void OPRo0();
+		void OPRb5();
+		void OPRb40();
+		template<unsigned int endBit, unsigned int startBit>
+		void OPRsz();
+		void OPRRs();
+		template<unsigned int endBit, unsigned int startBit>
                 void OPRimm();
-				void OPRscale();
-				template<unsigned int endBit, unsigned int startBit>
+		void OPRscale();
+		template<unsigned int endBit, unsigned int startBit>
                 void OPRtype();
 
+                void OPRQ();
+                void OPRL();
+                //void OPRR();
                 void OPRH() {}
-                void OPRL() {}
                 void OPRM() {}
-                void OPRQ() {}
-                void OPRa() {}
-                void OPRb() {}
-                void OPRc() {}
-                void OPRd() {}
-                void OPRe() {}
-                void OPRf() {}
-                void OPRg() {}
-                void OPRh() {}
+                void OPRa();
+                void OPRb();
+                void OPRc();
+                void OPRd();
+                void OPRe();
+                void OPRf();
+                void OPRg();
+                void OPRh();
                 void OPRopc() {}
                 void OPRopcode() {}
-                void OPRlen() {}
+                void OPRlen();
                 template<unsigned int endBit, unsigned int startBit>
-                void OPRsize() {}
-                void OPRcmode() {}
+                void OPRsize();
+                void OPRcmode();
                 void OPRrmode() {}
-                void OPRop() {}
+                void OPRop();
                 void setFlags();
+
+                unsigned int _Q;
+                unsigned int _L;
+                unsigned int _R;
+
+                void getSIMD_MULT_RptSelem(unsigned int &rpt, unsigned int &selem);
+                unsigned int getSIMD_SING_selem();
         };
     }
 }

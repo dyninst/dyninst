@@ -60,6 +60,8 @@ const AnalysisStepperImpl::height_pair_t AnalysisStepperImpl::err_height_pair;
 std::map<string, CodeSource*> AnalysisStepperImpl::srcs;
 std::map<string, SymReader*> AnalysisStepperImpl::readers;
 
+extern template class boost::shared_ptr<Dyninst::InstructionAPI::Instruction>;
+
 
 AnalysisStepperImpl::AnalysisStepperImpl(Walker *w, AnalysisStepper *p) :
    FrameStepper(w),
@@ -385,7 +387,7 @@ bool AnalysisStepperImpl::isPrevInstrACall(Address addr, Address & target)
 
 std::vector<AnalysisStepperImpl::registerState_t> AnalysisStepperImpl::fullAnalyzeFunction(std::string name, Offset callSite)
 {
-  std::vector<registerState_t> heights;
+   std::vector<registerState_t> heights;
   
    CodeObject *obj = getCodeObject(name);
    if (!obj) {
@@ -438,7 +440,7 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
 							   Frame& out)
 {
   ProcessState *proc = getProcessState();
-    
+
   bool result = false;
 
   vector<registerState_t>::const_iterator heightIter;
@@ -448,24 +450,25 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
     out_sp = 0,
     out_ra = 0;
     location_t out_ra_loc;
-	
+
     StackAnalysis::Height sp_height = heightIter->second;
-	
-	
+
+
     // SP height is the distance from the last SP of the previous frame
     // to the SP in this frame at the current offset.
     // Since we are walking to the previous frame,
     // we subtract this height to get the outgoing SP
     MachRegisterVal sp_base;
-	
-    proc->getRegValue(heightIter->first, in.getThread(), sp_base);
+
+    if (heightIter->first.type() != Absloc::Register) continue;
+    proc->getRegValue(heightIter->first.reg(), in.getThread(), sp_base);
     out_sp = sp_base - sp_height.height();
 
     if(heightIter->second.height() == -1 * (long)proc->getAddressWidth())
     {
       // FP candidate: register pointing to entry SP
        sw_printf("[%s:%u] - Found candidate FP %s, height 0x%lx\n", __FILE__, __LINE__,
-                 heightIter->first.name().c_str(), (unsigned long) heightIter->second.height());
+                 heightIter->first.format().c_str(), (unsigned long) heightIter->second.height());
     }
 
     // Since we know the outgoing SP,

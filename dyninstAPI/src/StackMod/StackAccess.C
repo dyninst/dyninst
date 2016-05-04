@@ -111,6 +111,41 @@ int getAccessSize(InstructionAPI::Instruction::Ptr insn)
     return accessSize;
 }
 
+class detectToppedLoc : public InstructionAPI::Visitor {
+private:
+    typedef std::vector<std::pair<Absloc, StackAnalysis::Height>> Heights;
+    bool topped;
+    Heights heights;
+
+public:
+    detectToppedLoc(Heights &h) : topped(false), heights(h) {}
+
+    bool isTopped() {
+        return topped;
+    }
+
+    virtual void visit(InstructionAPI::BinaryFunction *) {}
+    virtual void visit(InstructionAPI::Immediate *) {}
+    virtual void visit(InstructionAPI::RegisterAST *r) {
+        if (topped) return;
+
+        MachRegister reg = r->getID();
+        if (reg == x86::eip || reg == x86_64::eip || reg == x86_64::rip) {
+            return;
+        }
+
+        Absloc regLoc(reg);
+        for (auto iter = heights.begin(); iter != heights.end(); iter++) {
+            if (regLoc == iter->first) {
+                if (iter->second.isTop()) topped = true;
+                return;
+            }
+        }
+        topped = true;  // If reg isn't in heights, its height is TOP
+    }
+    virtual void visit(InstructionAPI::Dereference *) {}
+};
+
 bool getAccesses(ParseAPI::Function* func,
         ParseAPI::Block* block,
         Address addr,
@@ -119,19 +154,25 @@ bool getAccesses(ParseAPI::Function* func,
 {
     bool ret = true;
 
-    stackmods_printf("\t\t getAccesses %s, 0x%lx @ 0x%lx: %s\n", func->name().c_str(), block->start(), addr, insn->format().c_str());
+    stackmods_printf("\t\t getAccesses %s, 0x%lx @ 0x%lx: %s\n",
+        func->name().c_str(), block->start(), addr, insn->format().c_str());
 
     Architecture arch = insn->getArch();
+    std::set<InstructionAPI::RegisterAST::Ptr> readRegs;
+    insn->getReadSet(readRegs);
     StackAnalysis sa(func);
-    std::vector<std::pair<MachRegister, StackAnalysis::Height> > heights;
+    std::vector<std::pair<Absloc, StackAnalysis::Height> > heights;
     sa.findDefinedHeights(block, addr, heights);
 
-    if (insn->getOperation().getID() == e_ret_far || insn->getOperation().getID() == e_ret_near) {
+    if (insn->getOperation().getID() == e_ret_far ||
+        insn->getOperation().getID() == e_ret_near) {
         return true;
     }
 
     for (auto iter = heights.begin(); iter != heights.end(); ++iter) {
-        MachRegister curReg = (*iter).first;
+        // Only consider registers, not tracked memory locations
+        if (iter->first.type() != Absloc::Register) continue;
+        MachRegister curReg = iter->first.reg();
 
         unsigned int gpr;
         if (arch == Arch_x86) {
@@ -163,23 +204,52 @@ bool getAccesses(ParseAPI::Function* func,
                     access,
                     arch)) {
             if (curHeight.isBottom()) {
-                stackmods_printf("\t\t\t\t INVALID: Found access based on register we don't understand (%s = %s)\n",
-                        curReg.name().c_str(),
-                        curHeight.format().c_str());
+                stackmods_printf("\t\t\t\t INVALID: Found access based on "
+                    "register we don't understand (%s = %s)\n",
+                    curReg.name().c_str(), curHeight.format().c_str());
                 // Once we've found a bad access, stop looking!
                 return false;
-            }
-            else {
-
+            } else {
                 if (access->readHeight().height() > 20480) {
-                    stackmods_printf("\t\t\t\t Found bogus %s. Skipping.\n", access->format().c_str());
+                    stackmods_printf("\t\t\t\t Found bogus %s. Skipping.\n",
+                        access->format().c_str());
                     continue;
                 }
-
                 accesses->insert(make_pair(curReg, access));
             }
         }
     }
+
+    // Fail if any stack heights are being written out to topped locations.
+    // Since StackAnalysis tops loads from unresolved locations, we have to
+    // fail if we write out stack heights to unresolved locations.
+    if (insn->writesMemory()) {
+        std::set<InstructionAPI::Expression::Ptr> writeOperands;
+        insn->getMemoryWriteOperands(writeOperands);
+        assert(writeOperands.size() == 1);
+
+        detectToppedLoc dtl(heights);
+        (*writeOperands.begin())->apply(&dtl);
+        if (dtl.isTopped()) {
+            // We are writing to a topped location.
+            // Check if any of the registers involved in the write contain
+            // stack heights.
+            for (auto regIter = readRegs.begin(); regIter != readRegs.end();
+                regIter++) {
+                Absloc regLoc((*regIter)->getID());
+
+                for (auto hIter = heights.begin(); hIter != heights.end();
+                    hIter++) {
+                    if (hIter->first == regLoc && !hIter->second.isTop()) {
+                        stackmods_printf("\t\t\t\tINVALID: Writing stack "
+                            "height to topped location\n");
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
 
     return ret;
 }
@@ -295,6 +365,7 @@ bool getMemoryOffset(ParseAPI::Function* func,
     signed long offset = 0;
     bool isOffsetSet = false;
 
+    // Determine how memory is accessed
     StackAccess::StackAccessType type = StackAccess::UNKNOWN;
     if (insn->readsMemory() && insn->writesMemory()) {
         type = StackAccess::READWRITE;
@@ -304,11 +375,16 @@ bool getMemoryOffset(ParseAPI::Function* func,
         type = StackAccess::WRITE;
     }
 
+    // If memory is not accessed, no need to find an offset
+    if (type == StackAccess::UNKNOWN) {
+        return false;
+    }
+
     for (unsigned i = 0; i < operands.size(); i++) {
 
         stackmods_printf("\t\t\t\t operand[%d] = %s\n", i, operands[i].getValue()->format().c_str());
 
-        // Get the read/written sets
+        // Get the read/written register sets
         bool match = false;
         if (reg.isValid()) {
             std::set<InstructionAPI::RegisterAST::Ptr> regsRead;
@@ -327,16 +403,17 @@ bool getMemoryOffset(ParseAPI::Function* func,
                 if (*cur == *regASTPtr) {
                     stackmods_printf("\t\t\t\t\t writes reg\n");
                     match = true;
-               }
+                }
             }
         }
 
+        // If the passed-in register is read/written...
         if (match || !reg.isValid()) {
             InstructionAPI::Expression::Ptr val = operands[i].getValue();
             if (!val) break;
 
             // Won't find an offset for an immediate
-            if ( (typeid(*val) == typeid(InstructionAPI::Immediate))) {
+            if (typeid(*val) == typeid(InstructionAPI::Immediate)) {
                 continue;
             }
 
@@ -418,7 +495,6 @@ bool getMemoryOffset(ParseAPI::Function* func,
             }
 
             if (performSlice) {
-
                 std::vector<AbsRegion> ins;
                 ins.push_back(AbsRegion(Absloc(reg)));
                 Assignment::Ptr assign = Assignment::Ptr(new Assignment(insn,

@@ -341,27 +341,27 @@ struct X86_64InstructionSemantics {
     Word(64) read64(SgAsmExpression* e) {
         switch (e->variantT()) {
             case V_SgAsmx86RegisterReferenceExpression: {
-               SgAsmx86RegisterReferenceExpression* rre = isSgAsmx86RegisterReferenceExpression(e);
+                SgAsmx86RegisterReferenceExpression* rre = isSgAsmx86RegisterReferenceExpression(e);
                 switch (rre->get_register_class()) {
                     case x86_regclass_gpr: {
                         X86GeneralPurposeRegister reg = (X86GeneralPurposeRegister)(rre->get_register_number());
                         Word(64) rawValue = policy.readGPR(reg);
                         switch (rre->get_position_in_register()) {
                             case x86_regpos_dword:
-			    case x86_regpos_all:
-			        return policy.concat(extract<0, 32>(rawValue), number<32>(0));
+                            case x86_regpos_all:
+                                return policy.concat(extract<0, 32>(rawValue), number<32>(0));
                             case x86_regpos_qword:
                                 return rawValue;
                             case x86_regpos_word:
                                 return policy.concat(extract<0, 16>(rawValue), number<48>(0));
                             default:
-			      fprintf(stderr, "Error: position %d\n", rre->get_position_in_register());
-			      ROSE_ASSERT(!"bad position in register");
+                                fprintf(stderr, "Error: position %d\n", rre->get_position_in_register());
+                                        ROSE_ASSERT(!"bad position in register");
                         }
                     }
                     case x86_regclass_segment: {
-                        ROSE_ASSERT(rre->get_position_in_register() == x86_regpos_dword ||
-                                    rre->get_position_in_register() == x86_regpos_all);
+                                ROSE_ASSERT(rre->get_position_in_register() == x86_regpos_dword ||
+                                            rre->get_position_in_register() == x86_regpos_all);
                         X86SegmentRegister sr = (X86SegmentRegister)(rre->get_register_number());
                         Word(64) value = policy.readSegreg(sr);
                         return value;
@@ -378,9 +378,9 @@ struct X86_64InstructionSemantics {
             }
             case V_SgAsmBinaryMultiply: {
                 SgAsmByteValueExpression* rhs = isSgAsmByteValueExpression(isSgAsmBinaryMultiply(e)->get_rhs());
-                ROSE_ASSERT(rhs);
+                        ROSE_ASSERT(rhs);
                 SgAsmExpression* lhs = isSgAsmBinaryMultiply(e)->get_lhs();
-		//TODO: Ask Bill
+                //TODO: Ask Bill
                 return extract<0, 64>(policy.unsignedMultiply(read64(lhs), read8(rhs)));
             }
             case V_SgAsmMemoryReferenceExpression: {

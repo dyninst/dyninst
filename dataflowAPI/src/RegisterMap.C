@@ -42,7 +42,8 @@ using namespace boost::assign;
 namespace Dyninst {
 namespace DataflowAPI {
 
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
+   // This doesn't fail on VS 2015, but may fail on other versions post 2010.
    // This fails on VS2010; revisit when we move to VS2012.
    // Also on gcc 4.3.
 
@@ -658,7 +659,7 @@ RegisterMap &machRegIndex_ppc_64() {
 }
 
 #else
-
+  // This fails on VS 2015... but not VS 2010...
 RegisterMap &machRegIndex_x86() {
    static RegisterMap mrmap;
    if (mrmap.empty()) {

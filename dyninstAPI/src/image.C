@@ -67,9 +67,10 @@
 #include "libdwarf.h"
 #endif
 
-#if defined(i386_unknown_nt4_0)
-#include <dbghelp.h>
+#if (defined(_MSC_VER) && _MSC_VER < 1900)
 #define snprintf _snprintf
+#elif defined(_MSC_VER)
+#include <dbghelp.h>
 //#include <cvconst.h>
 #endif
 

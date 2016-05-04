@@ -41,7 +41,7 @@
 #include "dwarfExprParser.h"
 #include "pathName.h"
 #include "debug_common.h"
-
+#include <boost/bind.hpp>
 using namespace Dyninst;
 using namespace SymtabAPI;
 using namespace Dwarf;
@@ -91,11 +91,21 @@ DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
    signature(),
    typeoffset(0),
    next_cu_header(0),
-   compile_offset(0)
+   compile_offset(0),
+   srcFileList_(NULL)
 {
 }
 
-DwarfWalker::~DwarfWalker() {}
+DwarfWalker::~DwarfWalker() {
+   freeList.clear();
+}
+
+std::vector<boost::shared_ptr<void> > DwarfWalker::getFreeList()
+{
+   // return by copy, so ownership gets shared
+   return freeList;
+}
+
 
 bool DwarfWalker::parse() {
    dwarf_printf("Parsing DWARF for %s\n", symtab_->file().c_str());
@@ -246,17 +256,14 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
 
        
 bool DwarfWalker::buildSrcFiles(Dwarf_Die entry) {
-   srcFiles_.clear();
-
    Dwarf_Signed cnt = 0;
-   char **srcfiletmp = NULL;
-   DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcfiletmp, &cnt, NULL));
+   DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList_, &cnt, NULL));
 
    for (unsigned i = 0; i < cnt; ++i) {
-      srcFiles_.push_back(srcfiletmp[i]);
-      dwarf_dealloc(dbg(), srcfiletmp[i], DW_DLA_STRING);
+      srcFiles_.push_back(srcFileList_[i]);
+      freeList.push_back(boost::shared_ptr<void>(const_cast<char*>(srcFiles_[i]), boost::bind<void>(dwarf_dealloc, dbg(), _1, DW_DLA_STRING)));
    }
-   dwarf_dealloc(dbg(), srcfiletmp, DW_DLA_LIST);
+   freeList.push_back(boost::shared_ptr<void>(srcFileList_, boost::bind<void>(dwarf_dealloc, dbg(), _1, DW_DLA_LIST)));
    return true;
 }
 
@@ -444,7 +451,7 @@ bool DwarfWalker::parseCallsite()
    if (!has_line)
       return true;
 
-   std::string inline_file;
+   const char* inline_file;
    bool result = findString(DW_AT_call_file, inline_file);
    if (!result)
       return false;
@@ -1716,7 +1723,7 @@ bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half attr,
 }
 
 bool DwarfWalker::findString(Dwarf_Half attr,
-                             std::string &str)
+                             const char* &str)
 {
    Dwarf_Half form;
    Dwarf_Attribute strattr;
@@ -1727,7 +1734,7 @@ bool DwarfWalker::findString(Dwarf_Half attr,
       if (!result)
          return false;
       if (line_index == 0) {
-         str = string("");
+         str = NULL;
          return true;
       }
       line_index--;
@@ -1762,9 +1769,9 @@ bool DwarfWalker::findString(Dwarf_Half attr,
       case DW_FORM_block4: {
          Dwarf_Block *block = NULL;
          DWARF_FAIL_RET(dwarf_formblock(strattr, &block, NULL));
-         str = string((char *) block->bl_data);
+         str = (char *) block->bl_data;
          dwarf_dealloc(dbg(), block, DW_DLA_BLOCK);
-         result = !str.empty();
+         result = bool(str);
          break;
       }
       default:

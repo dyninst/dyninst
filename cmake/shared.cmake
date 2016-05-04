@@ -43,10 +43,12 @@ function (dyninst_library target)
   set (INSTALL_TARGETS ${ACTUAL_TARGETS})
   foreach (dep ${ARGN})
     message(STATUS "Processing dependent target ${dep}...")
-    get_target_property(dep_dir ${dep} LIBRARY_OUTPUT_DIRECTORY)
-    if(EXISTS ${dep_dir} AND IS_DIRECTORY ${dep_dir})
-      message(STATUS "Found dependency location ${dep_dir}")
-      install(SCRIPT ${dep_dir}/cmake_install.cmake)
+    if(TARGET ${dep})
+        get_target_property(dep_dir ${dep} LIBRARY_OUTPUT_DIRECTORY)
+        if(EXISTS ${dep_dir} AND IS_DIRECTORY ${dep_dir})
+          message(STATUS "Found dependency location ${dep_dir}")
+          install(SCRIPT ${dep_dir}/cmake_install.cmake)
+        endif()
     endif()
   endforeach()
   install (TARGETS ${INSTALL_TARGETS}
@@ -103,8 +105,14 @@ foreach (p LIB INCLUDE CMAKE)
 endforeach()
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
+  if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 19)
+    add_definitions(-D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1)
+  else()
     add_definitions(-Dsnprintf=_snprintf)
+  endif()
 endif()
+
+add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
 
 #
 # DyninstConfig.cmake
@@ -120,4 +128,3 @@ if (NOT CMAKE_BUILD_TYPE)
    set (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING 
        "Choose the build type (None, Debug, Release, RelWithDebInfo, MinSizeRel)" FORCE)
 endif()
-

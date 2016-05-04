@@ -46,11 +46,13 @@
 #include "common/h/Graph.h"
 #include "StackTamperVisitor.h"
 
+#include "common/src/dthread.h"
 
 using namespace std;
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
+
 
 Function::Function() :
         _start(0),
@@ -131,6 +133,7 @@ Function::~Function()
 Function::blocklist
 Function::blocks()
 {
+
     if(!_cache_valid)
         finalize();
     return blocklist(blocks_begin(), blocks_end());
@@ -172,6 +175,14 @@ Function::exitBlocks() {
     finalize();
   return const_blocklist(exit_begin(), exit_end());
   
+}
+
+
+Function::const_blocklist
+Function::exitBlocks() const {
+    assert(_cache_valid);
+    return const_blocklist(exit_begin(), exit_end());
+
 }
 
 vector<FuncExtent *> const&
@@ -426,7 +437,7 @@ Function::add_block(Block *b)
 }
 
 const string &
-Function::name() 
+Function::name() const
 {
     return _name;
 }
@@ -647,7 +658,7 @@ void Function::destroy(Function *f) {
    f->obj()->destroy(f);
 }
 
-LoopTreeNode* Function::getLoopTree() {
+LoopTreeNode* Function::getLoopTree() const{
   if (_loop_root == NULL) {
       LoopAnalyzer la(this);
       la.createLoopHierarchy();
@@ -659,7 +670,7 @@ LoopTreeNode* Function::getLoopTree() {
 // grap. It returns a set. And if there are no loops, then it returns the empty
 // set. not NULL.
 void Function::getLoopsByNestingLevel(vector<Loop*>& lbb,
-                                              bool outerMostOnly)
+                                              bool outerMostOnly) const
 {
   if (_loop_analyzed == false) {
       LoopAnalyzer la(this);
@@ -671,7 +682,7 @@ void Function::getLoopsByNestingLevel(vector<Loop*>& lbb,
        iter != _loops.end(); ++iter) {
      // if we are only getting the outermost loops
      if (outerMostOnly && 
-         (*iter)->parent != NULL) continue;
+         (*iter)->parentLoop() != NULL) continue;
 
      lbb.push_back(*iter);
   }
@@ -681,7 +692,7 @@ void Function::getLoopsByNestingLevel(vector<Loop*>& lbb,
 
 // get all the loops in this flow graph
 bool
-Function::getLoops(vector<Loop*>& lbb)
+Function::getLoops(vector<Loop*>& lbb) const
 {
   getLoopsByNestingLevel(lbb, false);
   return true;
@@ -689,13 +700,13 @@ Function::getLoops(vector<Loop*>& lbb)
 
 // get the outermost loops in this flow graph
 bool
-Function::getOuterLoops(vector<Loop*>& lbb)
+Function::getOuterLoops(vector<Loop*>& lbb) const
 {
   getLoopsByNestingLevel(lbb, true);
   return true;
 }
 
-Loop *Function::findLoop(const char *name)
+Loop *Function::findLoop(const char *name) const
 {
   return getLoopTree()->findLoop(name);
 }
@@ -708,7 +719,7 @@ Loop *Function::findLoop(const char *name)
 //Before calling this method all the dominator information
 //is going to give incorrect results. So first this function must
 //be called to process dominator related fields and methods.
-void Function::fillDominatorInfo()
+void Function::fillDominatorInfo() const
 {
     if (!isDominatorInfoReady) {
         dominatorCFG domcfg(this);
@@ -717,7 +728,7 @@ void Function::fillDominatorInfo()
     }
 }
 
-void Function::fillPostDominatorInfo()
+void Function::fillPostDominatorInfo() const
 {
     if (!isPostDominatorInfoReady) {
         dominatorCFG domcfg(this);
@@ -726,7 +737,7 @@ void Function::fillPostDominatorInfo()
     }
 }
 
-bool Function::dominates(Block* A, Block *B) {
+bool Function::dominates(Block* A, Block *B) const {
     if (A == NULL || B == NULL) return false;
     if (A == B) return true;
 
@@ -739,18 +750,18 @@ bool Function::dominates(Block* A, Block *B) {
     return false;
 }
         
-Block* Function::getImmediateDominator(Block *A) {
+Block* Function::getImmediateDominator(Block *A) const {
     fillDominatorInfo();
     return immediateDominator[A];
 }
 
-void Function::getImmediateDominates(Block *A, set<Block*> &imd) {
+void Function::getImmediateDominates(Block *A, set<Block*> &imd) const {
     fillDominatorInfo();
     if (immediateDominates[A] != NULL)
         imd.insert(immediateDominates[A]->begin(), immediateDominates[A]->end());
 }
 
-void Function::getAllDominates(Block *A, set<Block*> &d) {
+void Function::getAllDominates(Block *A, set<Block*> &d) const {
     fillDominatorInfo();
     d.insert(A);
     if (immediateDominates[A] == NULL) return;
@@ -759,7 +770,7 @@ void Function::getAllDominates(Block *A, set<Block*> &d) {
         getAllDominates(*bit, d);
 }
 
-bool Function::postDominates(Block* A, Block *B) {
+bool Function::postDominates(Block* A, Block *B) const {
     if (A == NULL || B == NULL) return false;
     if (A == B) return true;
 
@@ -772,18 +783,18 @@ bool Function::postDominates(Block* A, Block *B) {
     return false;
 }
         
-Block* Function::getImmediatePostDominator(Block *A) {
+Block* Function::getImmediatePostDominator(Block *A) const {
     fillPostDominatorInfo();
     return immediatePostDominator[A];
 }
 
-void Function::getImmediatePostDominates(Block *A, set<Block*> &imd) {
+void Function::getImmediatePostDominates(Block *A, set<Block*> &imd) const {
     fillPostDominatorInfo();
     if (immediatePostDominates[A] != NULL)
         imd.insert(immediatePostDominates[A]->begin(), immediatePostDominates[A]->end());
 }
 
-void Function::getAllPostDominates(Block *A, set<Block*> &d) {
+void Function::getAllPostDominates(Block *A, set<Block*> &d) const {
     fillPostDominatorInfo();
     d.insert(A);
     if (immediatePostDominates[A] == NULL) return;

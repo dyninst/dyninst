@@ -62,6 +62,9 @@ using std::vector;
 using std::string;
 using std::stringstream;
 
+extern template class boost::shared_ptr<Dyninst::ProcControlAPI::Process>;
+extern template class boost::shared_ptr<Dyninst::ProcControlAPI::Thread>;
+
 Dyninst::SymtabAPI::SymtabReaderFactory *PCProcess::symReaderFactory_;
 
 PCProcess *PCProcess::createProcess(const string file, pdvector<string> &argv,
@@ -620,6 +623,24 @@ bool PCProcess::createInitialMappedObjects() {
           startup_printf("%s[%d]: RT library already loaded, manual loading not necessary\n",
                          FILE__, __LINE__);
           runtime_lib.insert(newObj);
+       }
+
+       if (analysisMode_ == BPatch_defensiveMode) {
+           std::string lib_name = newObj->fileName();
+           if (lib_name == "dyninstAPI_RT.dll" ||
+               lib_name == "ntdll.dll" ||
+               lib_name == "kernel32.dll" ||
+               lib_name == "user32.dll" ||
+               lib_name == "KERNELBASE.dll" ||
+               lib_name == "msvcrt.dll" ||
+               lib_name == "msvcr80.dll" ||
+               lib_name == "msvcr100d.dll" ||
+               lib_name == "msvcp100d.dll" ||
+               lib_name == "MSVCR100.dll") {
+                   startup_cerr << "Running library " << lib_name
+                       << " in normal mode because it is trusted.\n";
+                   newObj->enableDefensiveMode(false);
+           }
        }
 
        addASharedObject(newObj);

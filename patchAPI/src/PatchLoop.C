@@ -56,7 +56,7 @@ PatchLoop::PatchLoop(PatchObject *obj, ParseAPI::Loop *loop): loop_(loop), paren
     }
       
     //set func
-    func = obj->getFunc(loop->getFunction());
+    func = obj->getFunc(const_cast<ParseAPI::Function*>(loop->getFunction()));
 
     //set basicBlocks
     vector<ParseAPI::Block*> b;

@@ -29,7 +29,6 @@
  */
 
 #include "InstructionDecoder-power.h"
-#include "Immediate.h"
 #include <boost/assign/list_of.hpp>
 #include "../../common/src/singleton_object_pool.h"
 
@@ -248,8 +247,13 @@ namespace Dyninst
       isRAWritten = false;
       isFPInsn = false;
       bcIsConditional = false;
+#if !defined(arch_ppc_little_endian)
       insn = b.start[0] << 24 | b.start[1] << 16 |
       b.start[2] << 8 | b.start[3];
+#else
+        insn = b.start[0] | b.start[1] << 8 |
+      b.start[2] << 16 | b.start[3] << 24;
+#endif
 #if defined(DEBUG_RAW_INSN)        
         cout.width(0);
         cout << "0x";

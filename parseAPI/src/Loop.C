@@ -44,11 +44,11 @@ using namespace Dyninst::ParseAPI;
 //internal use only
 
 
-Loop::Loop(Function *f)
+Loop::Loop(const Function *f)
     : func(f), parent(NULL) {
     }
 
-Loop::Loop(Edge *be, Function *f) 
+Loop::Loop(Edge *be, const Function *f)
     : func(f), parent(NULL) 
 {
     backEdges.insert(be);
@@ -56,12 +56,8 @@ Loop::Loop(Edge *be, Function *f)
 
 bool Loop::containsAddress(Address addr)
 {
-    vector<Block*> blks;
-    getLoopBasicBlocksExclusive(blks);
-
-    for(unsigned i = 0; i < blks.size(); i++) {
-	if (addr >= blks[i]->start() &&
-	    addr < blks[i]->end() ) 
+    for(auto i = exclusiveBlocks.begin(); i != exclusiveBlocks.end(); i++) {
+	if ((*i)->containsAddr(addr))
 	    return true;
     }
 
@@ -125,36 +121,26 @@ Loop::getOuterLoops(vector<Loop*>& nls)
 
 //returns the basic blocks in the loop
 bool Loop::getLoopBasicBlocks(vector<Block*>& bbs) {
-   bbs.insert(bbs.end(), basicBlocks.begin(), basicBlocks.end());
+   bbs.insert(bbs.end(), exclusiveBlocks.begin(), exclusiveBlocks.end());
+    bbs.insert(bbs.end(), childBlocks.begin(), childBlocks.end());
   return true;
+}
+
+void Loop::insertBlock(Block* b)
+{
+    if(childBlocks.find(b) == childBlocks.end()) exclusiveBlocks.insert(b);
+}
+void Loop::insertChildBlock(Block* b)
+{
+    exclusiveBlocks.erase(b);
+    childBlocks.insert(b);
 }
 
 
 // returns the basic blocks in this loop, not those of its inner loops
 bool Loop::getLoopBasicBlocksExclusive(vector<Block*>& bbs) {
-    // start with a copy of all this loops basic blocks
-   std::set<Block*> allBlocks(basicBlocks);
-
-
-   // remove the blocks in each contained loop
-   vector<Loop*> contLoops;
-   getContainedLoops(contLoops);
-
-
-   std::set<Block *> toRemove;
-
-   for (unsigned int i = 0; i < contLoops.size(); i++) {
-      std::copy(contLoops[i]->basicBlocks.begin(),
-                contLoops[i]->basicBlocks.end(),
-                std::inserter(toRemove, toRemove.end()));
-   }
-   
-   std::set_difference(allBlocks.begin(), allBlocks.end(),
-                       toRemove.begin(), toRemove.end(),
-                       std::back_inserter(bbs),
-                       std::less<Block *>());
-
-   return true;
+    std::copy(exclusiveBlocks.begin(), exclusiveBlocks.end(), std::back_inserter(bbs));
+    return true;
 }
 
 
@@ -191,22 +177,45 @@ int Loop::getLoopEntries(vector<Block*> &e) {
 }
 
 
-Function* Loop::getFunction() 
+const Function* Loop::getFunction()
 {
     return func;
 }
 
 
-
+void Loop::insertLoop(Loop *childLoop) {
+    containedLoops.insert(childLoop);
+    childLoop->parent = this;
+    for(auto L = childLoop->containedLoops.begin();
+            L != childLoop->containedLoops.end();
+            ++L)
+    {
+        containedLoops.insert(*L);
+    }
+    for (auto b = childLoop->exclusiveBlocks.begin();
+         b != childLoop->exclusiveBlocks.end();
+         ++b) {
+        insertChildBlock(*b);
+    }
+    for (auto b = childLoop->childBlocks.begin();
+         b != childLoop->childBlocks.end();
+         ++b) {
+        insertChildBlock(*b);
+    }
+}
 
 std::string Loop::format() const {
    std::stringstream ret;
    
    ret << hex << "(Loop " << this << ": ";
-   for (std::set<Block *>::iterator iter = basicBlocks.begin();
-        iter != basicBlocks.end(); ++iter) {
+   for (std::set<Block *>::iterator iter = exclusiveBlocks.begin();
+        iter != exclusiveBlocks.end(); ++iter) {
       ret << (*iter)->start() << ", ";
    }
+    for (std::set<Block *>::iterator iter = childBlocks.begin();
+         iter != childBlocks.end(); ++iter) {
+        ret << (*iter)->start() << ", ";
+    }
    ret << ")" << dec << endl;
 
    return ret.str();

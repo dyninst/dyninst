@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -58,6 +58,7 @@ namespace Dyninst
       char s8val;
       uint16_t u16val;
       int16_t s16val;
+      uint32_t u24val:24;
       uint32_t u32val;
       int32_t s32val;
       uint64_t u64val;
@@ -66,10 +67,13 @@ namespace Dyninst
       double dblval;
       uint64_t u48val : 48;
       int64_t s48val : 48;
-      void * m512val;
-      void* dbl128val;
       void * m14val;
-      
+      void * m96val;
+      void * dbl128val;
+      void * m192val;
+      void * m256val;
+      void * m384val;
+      void * m512val;
     };
     enum Result_Type
     {
@@ -78,6 +82,7 @@ namespace Dyninst
       u8,
       s16,
       u16,
+      u24,
       s32,
       u32,
       s48,
@@ -87,11 +92,15 @@ namespace Dyninst
       sp_float,
       dp_float,
       // 48-bit pointers...yay Intel
-      m512,
+      m14,
+      m96,
       dbl128,
-      m14
+      m192,
+      m256,
+      m384,
+      m512
     };
-    
+
     template < Result_Type t > struct Result_type2type
     {
       typedef void* type;
@@ -99,11 +108,11 @@ namespace Dyninst
     template < > struct Result_type2type<s8>
     {
       typedef char type;
-    };   
+    };
     template < > struct Result_type2type<u8>
     {
       typedef unsigned char type;
-    };    
+    };
     template < > struct Result_type2type <s16>
     {
       typedef int16_t type;
@@ -111,6 +120,10 @@ namespace Dyninst
     template < > struct Result_type2type <u16>
     {
       typedef uint16_t type;
+    };
+    template < > struct Result_type2type <u24>
+    {
+      typedef uint32_t type;
     };
     template <  > struct Result_type2type <s32>
     {
@@ -135,19 +148,19 @@ namespace Dyninst
     template < > struct Result_type2type <u64>
     {
       typedef uint64_t type;
-    };      
+    };
     template < > struct Result_type2type <sp_float>
     {
       typedef float type;
-    };   
+    };
     template < > struct Result_type2type <dp_float>
     {
       typedef double type;
-    };   
+    };
    template < > struct Result_type2type <bit_flag>
     {
       typedef unsigned char type;
-    };   
+    };
     /// A %Result object represents a value computed by a %Expression AST.
     ///
     /// The %Result class is a tagged-union representation of the results that
@@ -188,7 +201,7 @@ namespace Dyninst
       Result_Value val;
       Result_Type type;
       bool defined;
-      
+
       Result() :
               type(u32), defined(false)
       {
@@ -206,7 +219,7 @@ namespace Dyninst
           defined = rhs.defined;
           return *this;
       }
-      
+
       /// A %Result may be constructed from a type without providing a value.
       /// This constructor creates a %Result of type \c t with undefined contents.
       Result(Result_Type t) :
@@ -214,7 +227,7 @@ namespace Dyninst
       {
           val.u32val = 0;
       }
-      
+
       /// A %Result may be constructed from a type and any value convertible to the type that the
       /// tag represents.
       /// This constructor creates a %Result of type \c t and contents \c v for any \c v that is implicitly
@@ -238,8 +251,11 @@ namespace Dyninst
 	case s16:
 	  val.s16val = (int16_t)(v);
 	  break;
+	case u24:
+	  val.u24val = (uint32_t)(v & 0xFFFFFF);
+	  break;
 	case u32:
-	  val.u32val = (uint32_t)(v);
+	  val.u32val = (uint32_t)(v );
 	  break;
 	case s32:
 	  val.s32val = (int32_t)(v);
@@ -262,11 +278,23 @@ namespace Dyninst
 	case m512:
           val.m512val = (void *)(intptr_t) v;
 	  break;
-        case dbl128:
+    case dbl128:
 	  val.dbl128val = (void*)(intptr_t) v;
 	  break;
 	case m14:
 	  val.m14val = (void*)(intptr_t) v;
+	  break;
+	case m96:
+          val.m96val = (void *)(intptr_t) v;
+	  break;
+	case m192:
+          val.m192val = (void *)(intptr_t) v;
+	  break;
+	case m256:
+          val.m256val = (void *)(intptr_t) v;
+	  break;
+	case m384:
+          val.m384val = (void *)(intptr_t) v;
 	  break;
 	  // Floats should be constructed with float types
 	default:
@@ -287,7 +315,7 @@ namespace Dyninst
       {
 	assert(t == sp_float || t == dp_float);
 	val.dblval = v;
-      }      
+      }
       ~Result()
       {
       }
@@ -297,7 +325,7 @@ namespace Dyninst
 	if(type < o.type) return true;
 	if(!defined) return false;
 	if(!o.defined) return true;
-	
+
 
 	switch(type)
 	{
@@ -312,6 +340,9 @@ namespace Dyninst
 	  break;
 	case s16:
 	  return val.s16val < o.val.s16val;
+	  break;
+	case u24:
+	  return val.u24val < o.val.u24val;
 	  break;
 	case u32:
 	  return val.u32val < o.val.u32val;
@@ -349,13 +380,25 @@ namespace Dyninst
 	case m14:
 	  return memcmp(val.m14val, o.val.m14val, 14) < 0;
 	  break;
+	case m96:
+	  return memcmp(val.m96val, o.val.m96val, 96) < 0;
+	  break;
+	case m192:
+	  return memcmp(val.m192val, o.val.m192val, 192) < 0;
+	  break;
+	case m256:
+	  return memcmp(val.m256val, o.val.m256val, 256) < 0;
+	  break;
+	case m384:
+	  return memcmp(val.m384val, o.val.m384val, 384) < 0;
+	  break;
 	default:
 	  assert(!"Invalid type!");
 	  break;
 	}
 	return false;
       }
-      
+
       /// Two %Results are equal if any of the following hold:
       /// - Both %Results are of the same type and undefined
       /// - Both %Results are of the same type, defined, and have the same value
@@ -367,8 +410,8 @@ namespace Dyninst
       bool operator==(const Result& o) const
       {
 	return !((*this < o) || (o < *this));
-	
-       
+
+
       }
       /// %Results are formatted as strings containing their contents, represented as hexadecimal.
       /// The type of the %Result is not included in the output.
@@ -397,6 +440,9 @@ namespace Dyninst
 	    break;
 	  case s16:
 	    ret << val.s16val;
+	    break;
+	  case u24:
+	    ret << val.u24val;
 	    break;
 	  case u32:
 	    ret << val.u32val;
@@ -431,9 +477,21 @@ namespace Dyninst
      case m14:
         ret << val.m14val;
         break;
+     case m96:
+        ret << val.m96val;
+        break;
      case dbl128:
        ret << val.dbl128val;
          break;
+     case m192:
+        ret << val.m192val;
+        break;
+     case m256:
+        ret << val.m256val;
+        break;
+     case m384:
+        ret << val.m384val;
+        break;
 	  default:
 	    ret << "[ERROR: invalid type value!]";
 	    break;
@@ -443,7 +501,7 @@ namespace Dyninst
 	}
       }
 
-      
+
 
       template< typename to_type >
       to_type convert() const
@@ -458,6 +516,8 @@ namespace Dyninst
 	  return to_type(val.s16val);
 	case u16:
 	  return to_type(val.u16val);
+	case u24:
+	  return to_type(val.u24val);
 	case s32:
 	  return to_type(val.s32val);
 	case u32:
@@ -478,6 +538,10 @@ namespace Dyninst
 	  return to_type(val.bitval);
 	case m512:
 	case dbl128:
+    case m192:
+    case m256:
+    case m384:
+    case m96:
 	  assert(!"M512 and DBL128 types cannot be converted yet");
 	  return to_type(0);
 	default:
@@ -485,7 +549,7 @@ namespace Dyninst
 	  return to_type(0);
 	}
       }
-      
+
 
     /// Returns the size of the contained type, in bytes
       int size() const
@@ -498,6 +562,8 @@ namespace Dyninst
 	case u16:
 	case s16:
 	  return 2;
+    case u24:
+      return 3;
 	case u32:
 	case s32:
 	  return 4;
@@ -517,6 +583,10 @@ namespace Dyninst
       return 512;
    case dbl128:
       return 16;
+   case m192:
+      return 192;
+   case m256:
+      return 256;
 	default:
 	  // In probabilistic gap parsing,
 	  // we could start to decode at any byte and reach here.
@@ -525,14 +595,14 @@ namespace Dyninst
 	};
       }
     };
-    
+
     INSTRUCTION_EXPORT Result operator+(const Result& arg1, const Result& arg2);
     INSTRUCTION_EXPORT Result operator*(const Result& arg1, const Result& arg2);
     INSTRUCTION_EXPORT Result operator<<(const Result& arg1, const Result& arg2);
     INSTRUCTION_EXPORT Result operator>>(const Result& arg1, const Result& arg2);
     INSTRUCTION_EXPORT Result operator&(const Result& arg1, const Result& arg2);
     INSTRUCTION_EXPORT Result operator|(const Result& arg1, const Result& arg2);
-    
+
   };
 };
 

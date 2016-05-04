@@ -63,6 +63,8 @@
 #include <iomanip>
 #include <stdarg.h>
 
+#include "version.h"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -70,9 +72,9 @@ using namespace std;
 static std::string errMsg;
 extern bool parseCompilerType(Object *);
 
-static const int Symtab_major_version = 8;
-static const int Symtab_minor_version = 2;
-static const int Symtab_maintenance_version = 0;
+static const int Symtab_major_version = DYNINST_MAJOR_VERSION;
+static const int Symtab_minor_version = DYNINST_MINOR_VERSION;
+static const int Symtab_maintenance_version = DYNINST_PATCH_VERSION;
 
 
 void Symtab::version(int& major, int& minor, int& maintenance)

@@ -33,6 +33,8 @@
 using namespace Dyninst;
 using namespace ParseAPI;
 
+template class std::vector<std::pair<Dyninst::ParseAPI::Block*, Dyninst::ParseAPI::Block*> >;
+
 ParseCallbackManager::~ParseCallbackManager() {
    for (iterator iter = begin(); iter != end(); ++iter) {
       delete *iter;

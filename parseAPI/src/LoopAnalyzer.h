@@ -49,7 +49,7 @@ namespace ParseAPI {
 class LoopAnalyzer {
  
   
-  Function *func;
+  const Function *func;
   std::map<Block*, set<Block*> > loop_tree;
   std::map<Block*, Loop*> loops;
 
@@ -69,7 +69,7 @@ public:
   /** create the tree of loops/callees for this flow graph */
   void createLoopHierarchy();
  
-  LoopAnalyzer (Function *f);
+  LoopAnalyzer (const Function *f);
 
 
   
@@ -89,7 +89,7 @@ public:
 
   void createLoops(Block* cur);
 
-};
+    };
 }
 }
 

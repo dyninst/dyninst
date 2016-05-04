@@ -98,7 +98,11 @@ if (PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
 #	src/dthread.C
     src/addrtranslate-win.C
   )
-  add_definitions(-DWIN32 -D_WIN32_WINNT=0x500 -Dsnprintf=_snprintf)
+  if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 19)
+    add_definitions(-DWIN32 -D_WIN32_WINNT=0x500)
+  else()
+    add_definitions(-DWIN32 -D_WIN32_WINNT=0x500 -Dsnprintf=_snprintf)
+  endif()
 endif()  
 
 
@@ -112,6 +116,10 @@ set(DEPS "${DEPS};${IBERTY_LIBRARIES}")
 endif()
 
 dyninst_library(common ${DEPS})
+if (UNIX)
+  # Boost auto-links on Windows; don't double-link
+  target_link_private_libraries(common ${Boost_LIBRARIES})
+endif()
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   target_link_libraries(common Psapi WS2_32 dbghelp)
