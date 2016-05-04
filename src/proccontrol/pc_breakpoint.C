@@ -30,6 +30,7 @@
 #include "proccontrol_comp.h"
 #include "communication.h"
 #include "PCProcess.h"
+#include "SymtabReader.h"
 #include "Event.h"
 
 #include <stdio.h>
@@ -153,6 +154,9 @@ test_results_t pc_breakpointMutator::executeTest()
       Process::ptr proc = *i;
       send_addr addrmsg;
 
+      SymReader *rdr = proc->getSymbolReader()->openSymbolReader(proc->libraries().getExecutable()->getName());
+      unsigned addr_offset = rdr->getABIVersion() < 2 ? 0 : 16;
+
       for (unsigned k = 0; k < NUM_BREAKPOINTS; k++) {
          bool result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), proc);
          if (!result) {
@@ -164,7 +168,7 @@ test_results_t pc_breakpointMutator::executeTest()
             return FAILED;
          }
        
-         bp_addrs[j][k] = (Dyninst::Address) addrmsg.addr;
+         bp_addrs[j][k] = (Dyninst::Address) addrmsg.addr + addr_offset;
       }  
      
       bool result = proc->stopProc();

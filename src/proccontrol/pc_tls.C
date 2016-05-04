@@ -194,6 +194,9 @@ test_results_t pc_tlsMutator::executeTest()
 
    for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
       Process::ptr proc = *i;
+      SymReader *rdr = proc->getSymbolReader()->openSymbolReader(proc->libraries().getExecutable()->getName());
+      unsigned addr_offset = rdr->getABIVersion() < 2 ? 0 : 16;
+
       send_addr addrmsg;
       bool result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), proc);
       if (!result) {
@@ -211,7 +214,7 @@ test_results_t pc_tlsMutator::executeTest()
          return FAILED;
       }
 
-      result = proc->addBreakpoint(addrmsg.addr, bp);
+      result = proc->addBreakpoint(addrmsg.addr+addr_offset, bp);
       if (!result) {
          logerror("Failed to add breakpoint\n");
          return FAILED;

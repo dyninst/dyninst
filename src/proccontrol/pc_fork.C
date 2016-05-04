@@ -29,6 +29,7 @@
  */
 #include "proccontrol_comp.h"
 #include "communication.h"
+#include "SymtabReader.h"
 
 #include <cstdio>
 
@@ -158,7 +159,10 @@ test_results_t pc_forkMutator::executeTest()
          logerror("Unexpected addr code\n");
          myerror = true;
       }
-      Address bp_addr = addr.addr;
+
+      SymReader *rdr = proc->getSymbolReader()->openSymbolReader(proc->libraries().getExecutable()->getName());
+      unsigned addr_offset = rdr->getABIVersion() < 2 ? 0 : 16;
+      Address bp_addr = addr.addr+addr_offset;
       
       result = proc->stopProc();
       if (!result) {

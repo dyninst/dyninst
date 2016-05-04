@@ -166,7 +166,7 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
 
 uint64_t getFunctionPtr(unsigned long *ptr) {
     unsigned long tmpAddr;
-#if defined(arch_power_test) && defined(arch_64bit_test)
+#if defined(arch_power_test) && defined(arch_64bit_test) && !defined(arch_ppc_little_endian_test)
     /* need to dereference function pointers before sending them to mutator */
     tmpAddr = *ptr;
 #elif defined (os_windows_test)
@@ -193,7 +193,7 @@ uint64_t getFunctionPtr(unsigned long *ptr) {
 
 uint64_t getTOCValue(unsigned long *ptr) {
     unsigned long tmpAddr;
-#if defined(arch_power_test) && defined(arch_64bit_test)
+#if defined(arch_power_test) && defined(arch_64bit_test) && !defined(arch_ppc_little_endian_test)
     /* need to get the TOC value from the opd */
     tmpAddr = ptr[1];
 #else

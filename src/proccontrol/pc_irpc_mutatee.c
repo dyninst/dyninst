@@ -90,7 +90,7 @@ int pc_irpc_mutatee()
       return -1;
    }
 
-   // Only needed on ppc64, nop on other architectures
+   // Only needed on ppc64 (ABIv1), nop on other architectures (including ppc64le/ABIv2)
    addr_msg.addr = getTOCValue((unsigned long *)irpc_calltarg);
    result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
    if (result == -1) {

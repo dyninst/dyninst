@@ -31,6 +31,7 @@
 #include "communication.h"
 #include "PCProcess.h"
 #include "Event.h"
+#include "SymtabReader.h"
 
 #include <stdio.h>
 
@@ -158,6 +159,9 @@ test_results_t pc_hw_breakpointMutator::executeTest()
       Process::ptr proc = *i;
       pchw_proc_data_t &pdata = procdata[proc];
 
+      SymReader *rdr = proc->getSymbolReader()->openSymbolReader(proc->libraries().getExecutable()->getName());
+      unsigned addr_offset = rdr->getABIVersion() < 2 ? 0 : 16;
+
       //Recv message that mutatee is ready
       for (unsigned j=0; j<NUM_BPS; j++) {
          send_addr addrmsg;
@@ -167,7 +171,8 @@ test_results_t pc_hw_breakpointMutator::executeTest()
             Process::removeEventCallback(event_bp);
             return FAILED;
          }
-         pdata.addrs[j] = addrmsg.addr;
+
+         pdata.addrs[j] = addrmsg.addr+addr_offset;
          pdata.bp_active[j] = false;
          pdata.bp_run[j] = false;
          pdata.times_hit[j] = 0;
