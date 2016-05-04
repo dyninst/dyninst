@@ -129,10 +129,10 @@ unsigned SymtabReader::getAddressWidth()
    return symtab->getAddressWidth();
 }
    
-int SymtabReader::getABIVersion() const
+bool SymtabReader::getABIVersion(int &major, int &minor) const
 {
    assert(symtab);
-   return symtab->getABIVersion();
+   return symtab->getABIVersion(major, minor);
 }
 
 bool SymtabReader::isBigEndianDataEncoding() const

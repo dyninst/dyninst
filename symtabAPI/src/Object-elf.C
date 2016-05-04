@@ -5814,9 +5814,16 @@ Dyninst::Architecture Object::getArch()
   
 }
 
-int Object::getABIVersion() const
+bool Object::getABIVersion(int &major, int &minor) const
 {
-   return (elfHdr->e_machine() == EM_PPC64 && elfHdr->e_flags() == 0x2) ? 2 : 1;
+   if (elfHdr->e_machine() == EM_PPC64 && elfHdr->e_flags() == 0x2) {
+      major = elfHdr->e_flags();
+      minor = 0;
+      return true;
+   }
+   else {
+      return false;
+   }
 }
 
 bool Object::isBigEndianDataEncoding() const

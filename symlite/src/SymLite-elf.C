@@ -294,9 +294,16 @@ unsigned SymElf::getAddressWidth()
    return elf->wordSize();
 }
 
-int SymElf::getABIVersion() const
+bool SymElf::getABIVersion(int &major, int &minor) const
 {
-   return (elf->e_machine() == EM_PPC64 && elf->e_flags() == 0x2) ? 2 : 1;
+   if (elf->e_machine() == EM_PPC64 && elf->e_flags() == 0x2) {
+      major = elf->e_flags();
+      minor = 0;
+      return true;
+   }
+   else {
+      return false;
+   }
 }
 
 bool SymElf::isBigEndianDataEncoding() const

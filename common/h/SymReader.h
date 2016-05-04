@@ -89,7 +89,7 @@ class COMMON_EXPORT SymReader
    virtual Symbol_t getContainingSymbol(Dyninst::Offset offset) = 0;
    virtual std::string getInterpreterName() = 0;
    virtual unsigned getAddressWidth() = 0;
-   virtual int getABIVersion() const = 0;
+   virtual bool getABIVersion(int &major, int &minor) const = 0;
    virtual bool isBigEndianDataEncoding() const = 0;
    
    virtual unsigned numSegments() = 0;

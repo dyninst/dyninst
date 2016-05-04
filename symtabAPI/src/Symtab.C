@@ -350,9 +350,9 @@ SYMTAB_EXPORT unsigned Symtab::getAddressWidth() const
    return address_width_;
 }
  
-SYMTAB_EXPORT int Symtab::getABIVersion() const
+SYMTAB_EXPORT bool Symtab::getABIVersion(int &major, int &minor) const
 {
-   return obj_private->getABIVersion();
+   return obj_private->getABIVersion(major, minor);
 }
 
 SYMTAB_EXPORT bool Symtab::isBigEndianDataEncoding() const
