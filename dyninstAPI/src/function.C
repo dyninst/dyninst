@@ -1202,7 +1202,6 @@ bool func_instance::createOffsetVector_Symbols()
     if (!ifunc()->hasNoStackFrame()) {
         base -= width; // account for BP save
     }
-    MachRegister bp = MachRegister::getFramePointer(arch);
 
     for (auto vIter = _vars.begin(); vIter != _vars.end(); ++vIter) {
         SymtabAPI::localVar* var = *vIter;
@@ -1527,7 +1526,6 @@ bool func_instance::addToOffsetVector(StackAnalysis::Height off, int size, Stack
 void func_instance::createTMap_internal(StackMod* mod, StackLocation* loc, TMap* tMap)
 {
     StackAnalysis::Height off = loc->off();
-    StackAnalysis::Height size = loc->size();
     switch(mod->type()) {
         case(StackMod::INSERT): {
                           /* Model:

@@ -63,7 +63,7 @@ class PARSER_EXPORT CodeRegion : public Dyninst::InstructionSource, public Dynin
 
        Optional
     */
-    virtual void names(Address, vector<std::string> &) { return; }
+    virtual void names(Address, std::vector<std::string> &) { return; }
 
     /* Finds the exception handler block for a given address
        in the region.
@@ -176,7 +176,7 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     std::map< Address, std::string > & linkage() const { return _linkage; }
     std::vector< Hint > const& hints() const { return _hints; } 
     std::vector<CodeRegion *> const& regions() const { return _regions; }
-    int findRegions(Address addr, set<CodeRegion *> & ret) const;
+    int findRegions(Address addr, std::set<CodeRegion *> & ret) const;
     bool regionsOverlap() const { return _regions_overlap; }
 
     Address getTOC() const { return _table_of_contents; }
@@ -220,7 +220,7 @@ class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
     SymtabCodeRegion(SymtabAPI::Symtab *, SymtabAPI::Region *);
     ~SymtabCodeRegion();
 
-    void names(Address, vector<std::string> &);
+    void names(Address, std::vector<std::string> &);
     bool findCatchBlock(Address addr, Address & catchStart);
 
     /** InstructionSource implementation **/

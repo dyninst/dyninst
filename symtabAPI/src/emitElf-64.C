@@ -239,7 +239,6 @@ static int elfSymVisibility(Symbol::SymbolVisibility sVisibility)
   }
 }
 
-
 std::string phdrTypeStr(Elf64_Word phdr_type) {
     switch (phdr_type) {
         case PT_NULL:
@@ -264,6 +263,8 @@ std::string phdrTypeStr(Elf64_Word phdr_type) {
             return "STACK";
         case PT_GNU_RELRO:
             return "RELRO";
+        case PT_PAX_FLAGS:
+            return "PAX";
         default:
             assert(0);
             return "<UNKNOWN>";
@@ -865,7 +866,10 @@ bool emitElf64<ElfTypes>::driver(std::string fName) {
         unsigned long ehdr_off = (unsigned long) &(((Elf_Ehdr *) 0x0)->e_phoff);
         lseek(newfd, ehdr_off, SEEK_SET);
         Elf_Off offset = (Elf_Off) phdr_offset;
-        write(newfd, &offset, sizeof(Elf_Off));
+        if(write(newfd, &offset, sizeof(Elf_Off)) < 0) {
+            close(newfd);
+            return false;
+        }
     }
     close(newfd);
 

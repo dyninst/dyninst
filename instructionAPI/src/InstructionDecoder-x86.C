@@ -792,10 +792,8 @@ namespace Dyninst
 
       unsigned int optype = operand.optype;
       int vex_vvvv = 0;
-      bool has_vex = 0;
       if(decodedInstruction && decodedInstruction->getPrefix()->vex_prefix[0])
       {
-        has_vex = true;
         /* The vvvv bits are bits 3, 4, 5, 6 and are in 1's complement */
         if(decodedInstruction->getPrefix()->vex_prefix[2]) /* AVX512 (EVEX) */
         {

@@ -108,7 +108,7 @@ namespace Dyninst
 };
 
 
-bool IA_aarch64Details::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
+bool IA_aarch64Details::findTableAddrNoTOC(const IA_IAPI* /*blockToCheck*/)
 {
 	assert(0);
   return tableStartAddress == 0;
@@ -133,22 +133,22 @@ namespace detail_aarch64
         Block* src = e->src();
         return visited.find(src) != visited.end();
     }
-  void processPredecessor(Edge* e, std::set<Block*>& visited, std::deque<Block*>& worklist)
+  void processPredecessor(Edge* /*e*/, std::set<Block*>& /*visited*/, std::deque<Block*>& /*worklist*/)
   {
 		assert(0);
   }
 };
 
-bool IA_aarch64Details::scanForAdjustOrBase(IA_IAPI::allInsns_t::const_iterator start,
-					  IA_IAPI::allInsns_t::const_iterator end,
-					  RegisterAST::Ptr &jumpAddrReg) {
+bool IA_aarch64Details::scanForAdjustOrBase(IA_IAPI::allInsns_t::const_iterator /*start*/,
+					  IA_IAPI::allInsns_t::const_iterator /*end*/,
+					  RegisterAST::Ptr &/*jumpAddrReg*/) {
 	assert(0);
   return true;
 }
 
 // Like the above, but a wider net
-bool IA_aarch64Details::findTableBase(IA_IAPI::allInsns_t::const_iterator start,
-				    IA_IAPI::allInsns_t::const_iterator end) {
+bool IA_aarch64Details::findTableBase(IA_IAPI::allInsns_t::const_iterator /*start*/,
+				    IA_IAPI::allInsns_t::const_iterator /*end*/) {
 	assert(0);
   return true;
 }
@@ -156,8 +156,8 @@ bool IA_aarch64Details::findTableBase(IA_IAPI::allInsns_t::const_iterator start,
 
 
 // This should only be called on a known indirect branch...
-bool IA_aarch64Details::parseJumpTable(Block* currBlk,
-				     std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges)
+bool IA_aarch64Details::parseJumpTable(Block* /*currBlk*/,
+				     std::vector<std::pair< Address, EdgeTypeEnum> >& /*outEdges*/)
 {
 	assert(0);
   return true;

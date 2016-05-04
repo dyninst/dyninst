@@ -65,6 +65,8 @@
 #include "common/src/linuxKludges.h"
 #include "common/src/parseauxv.h"
 
+#include "boost/shared_ptr.hpp"
+
 //needed by GETREGSET/SETREGSET
 #if defined(arch_aarch64)
 #include<sys/user.h>
@@ -338,7 +340,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                    // do not handle the bp and clear the bp.
                     bool rst = lthread->proc()->rmBreakpoint(addr, lthread->BPptr_fakeSyscallExitBp );
                     if( !rst){
-                        perr_printf("ARM-error: Failed to remove inserted BP, addr %p.\n",
+                        perr_printf("ARM-error: Failed to remove inserted BP, addr %lx.\n",
                                 addr);
                     }
                     lthread->isSet_fakeSyscallExitBp = false;
@@ -1133,16 +1135,18 @@ bool linux_process::plat_attachWillTriggerStop() {
     // Retrieve the state of the process and its controlling tty
     snprintf(procName, 64, "/proc/%d/stat", pid);
 
-    FILE *sfile = fopen(procName, "r");
-    if ( sfile == NULL ) {
+    boost::shared_ptr<FILE> sfile(fopen(procName, "r"), fclose);
+    if (!sfile) {
         perr_printf("Failed to determine whether attach would trigger stop -- assuming it will\n");
         return true;
     }
 
-    fscanf(sfile, "%d %255s %c %d %d %d",
+    if(fscanf(sfile.get(), "%d %255s %c %d %d %d",
             &tmpPid, cmd, &state,
-            &tmpPid, &tmpPid, &ttyNumber);
-    fclose(sfile);
+            &tmpPid, &tmpPid, &ttyNumber) < 0) {
+        perr_printf("Failed to determine whether attach would trigger stop -- assuming it will\n");
+        return true;
+    }
 
     // If the process is stopped and it has a controlling tty, an attach
     // will not trigger a stop
@@ -1917,15 +1921,18 @@ bool linux_process::readStatM(unsigned long &stk, unsigned long &heap, unsigned 
    path[63] = '\0';
 
    unsigned long size, resident, shared, text, lib, data, dt;
-   FILE *f = fopen(path, "r");
+   boost::shared_ptr<FILE> f(fopen(path, "r"), fclose);
    if (!f) {
       perr_printf("Could not open %s: %s\n", path, strerror(errno));
       setLastError(err_internal, "Could not access /proc");
       return false;
    }
-   fscanf(f, "%lu %lu %lu %lu %lu %lu %lu", &size, &resident, &shared,
-          &text, &lib, &data, &dt);
-   fclose(f);
+   if(fscanf(f.get(), "%lu %lu %lu %lu %lu %lu %lu", &size, &resident, &shared,
+          &text, &lib, &data, &dt) < 0) {
+      perr_printf("Could not read from %s: %s\n", path, strerror(errno));
+      setLastError(err_internal, "Could not read from /proc");
+      return false;
+   }
    unsigned long page_size = getpagesize();
 
    stk = 0;

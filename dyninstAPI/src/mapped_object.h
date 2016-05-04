@@ -48,6 +48,7 @@ class edge_instance;
 //  we really do not want to have this defined, but I'm defining it for the moment to get thru paradyn seperation
 #define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
 
+using namespace std;
 using namespace Dyninst;
 using Dyninst::PatchAPI::DynCFGMaker;
 

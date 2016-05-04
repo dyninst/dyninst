@@ -43,6 +43,8 @@
 #include "linux.h"
 #include <dlfcn.h>
 
+#include "boost/shared_ptr.hpp"
+
 #include "pcEventMuxer.h"
 
 #include "common/src/headers.h"
@@ -176,7 +178,6 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
     char *libPathStr, *libPath;
     std::vector<string> libPaths;
     struct stat dummy;
-    FILE *ldconfig;
     char buffer[512];
     char *pos, *key, *val;
 
@@ -218,10 +219,12 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
     }
 
     // search ld.so.cache
-    ldconfig = popen("/sbin/ldconfig -p", "r");
+    boost::shared_ptr<FILE> ldconfig(popen("/sbin/ldconfig -p", "r"), pclose);
     if (ldconfig) {
-        fgets(buffer, 512, ldconfig);	// ignore first line
-        while (fgets(buffer, 512, ldconfig) != NULL) {
+        if(!fgets(buffer, 512, ldconfig.get())) {	// ignore first line
+          return false;
+        }
+        while (fgets(buffer, 512, ldconfig.get()) != NULL) {
             pos = buffer;
             while (*pos == ' ' || *pos == '\t') pos++;
             key = pos;
@@ -237,7 +240,6 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
                 paths.push_back(val);
             }
         }
-        pclose(ldconfig);
     }
 
     // search hard-coded system paths
