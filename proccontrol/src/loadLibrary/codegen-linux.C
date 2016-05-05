@@ -22,7 +22,6 @@ static const int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
 static const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
 static const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
 static const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
-static const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 
 
 bool Codegen::generateInt() {

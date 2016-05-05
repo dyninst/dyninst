@@ -1101,9 +1101,9 @@ void StackAnalysis::handleDiv(Instruction::Ptr insn,
    Expression::Ptr quotient = operands[1].getValue();
    Expression::Ptr remainder = operands[0].getValue();
    Expression::Ptr divisor = operands[2].getValue();
-   assert(typeid(*quotient) == typeid(RegisterAST));
-   assert(typeid(*remainder) == typeid(RegisterAST));
-   assert(typeid(*divisor) != typeid(Immediate));
+   assert(dynamic_cast<RegisterAST*>(quotient.get()));
+   assert(dynamic_cast<RegisterAST*>(remainder.get()));
+   assert(!dynamic_cast<Immediate*>(divisor.get()));
 
    MachRegister quotientReg = (boost::dynamic_pointer_cast<InstructionAPI::
       RegisterAST>(quotient))->getID();
@@ -1131,7 +1131,7 @@ void StackAnalysis::handleMul(Instruction::Ptr insn,
    assert(operands.size() == 2 || operands.size() == 3);
 
    Expression::Ptr target = operands[0].getValue();
-   assert(typeid(*target) == typeid(RegisterAST));
+   assert(dynamic_cast<RegisterAST*>(target.get()));
    MachRegister targetReg = (boost::dynamic_pointer_cast<InstructionAPI::
       RegisterAST>(target))->getID();
 
@@ -1143,16 +1143,16 @@ void StackAnalysis::handleMul(Instruction::Ptr insn,
       Expression::Ptr multiplicand = operands[1].getValue();
       Expression::Ptr multiplier = operands[2].getValue();
 
-      if (typeid(*multiplier) == typeid(Immediate)) {
+      if (dynamic_cast<Immediate*>(multiplier.get())) {
          // Form 2
-         assert(typeid(*multiplicand) == typeid(RegisterAST) ||
-            typeid(*multiplicand) == typeid(Dereference));
+         assert(dynamic_cast<RegisterAST*>(multiplicand.get()) ||
+            dynamic_cast<Dereference*>(multiplicand.get()));
          long multiplierVal = multiplier->eval().convert<long>();
          if (multiplierVal == 0) {
             xferFuncs.push_back(TransferFunc::absFunc(Absloc(targetReg), 0));
             retopBaseSubReg(targetReg, xferFuncs);
          } else if (multiplierVal == 1) {
-            if (typeid(*multiplicand) == typeid(RegisterAST)) {
+            if (dynamic_cast<RegisterAST*>(multiplicand.get())) {
                // mul reg1, reg2, 1
                MachRegister multiplicandReg = boost::dynamic_pointer_cast<
                   RegisterAST>(multiplicand)->getID();
@@ -1173,9 +1173,9 @@ void StackAnalysis::handleMul(Instruction::Ptr insn,
          }
       } else {
          // Form 3
-         assert(typeid(*multiplicand) == typeid(RegisterAST));
-         assert(typeid(*multiplier) == typeid(RegisterAST) ||
-            typeid(*multiplier) == typeid(Dereference));
+         assert(dynamic_cast<RegisterAST*>(multiplicand.get()));
+         assert(dynamic_cast<RegisterAST*>(multiplier.get()) ||
+            dynamic_cast<Dereference*>(multiplier.get()));
          MachRegister multiplicandReg = boost::dynamic_pointer_cast<
             RegisterAST>(multiplicand)->getID();
          xferFuncs.push_back(TransferFunc::retopFunc(Absloc(targetReg)));
@@ -1385,7 +1385,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
       } else {
          // Case 5a
          Expression::Ptr immExpr = operands[1].getValue();
-         assert(typeid(*immExpr) == typeid(Immediate));
+         assert(dynamic_cast<Immediate*>(immExpr.get()));
          long immVal = immExpr->eval().convert<long>();
          xferFuncs.push_back(TransferFunc::deltaFunc(writtenLoc,
             sign * immVal));
@@ -1514,26 +1514,26 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
       bool foundDelta = false;
 
       if (children.size() == 2) {
-         if (typeid(*children[0]) == typeid(Immediate)) {
+         if (dynamic_cast<Immediate*>(children[0].get())) {
             // op1: imm + reg * imm
             deltaExpr = children[0];
             Expression::Ptr scaleIndexExpr = children[1];
-            assert(typeid(*scaleIndexExpr) == typeid(BinaryFunction));
+            assert(dynamic_cast<BinaryFunction*>(scaleIndexExpr.get()));
             children.clear();
             scaleIndexExpr->getChildren(children);
 
             regExpr = children[0];
             scaleExpr = children[1];
-            assert(typeid(*regExpr) == typeid(RegisterAST));
-            assert(typeid(*scaleExpr) == typeid(Immediate));
+            assert(dynamic_cast<RegisterAST*>(regExpr.get()));
+            assert(dynamic_cast<Immediate*>(scaleExpr.get()));
             foundScale = true;
             foundDelta = true;
-         } else if (typeid(*children[0]) == typeid(RegisterAST)) {
+         } else if (dynamic_cast<RegisterAST*>(children[0].get())) {
             // op1: reg + imm
             regExpr = children[0];
             deltaExpr = children[1];
-            assert(typeid(*regExpr) == typeid(RegisterAST));
-            assert(typeid(*deltaExpr) == typeid(Immediate));
+            assert(dynamic_cast<RegisterAST*>(regExpr.get()));
+            assert(dynamic_cast<Immediate*>(deltaExpr.get()));
             foundDelta = true;
          } else {
             assert(false);
@@ -1541,7 +1541,7 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
       } else if (children.size() == 0) {
          // op1: reg
          regExpr = srcExpr;
-         assert(typeid(*regExpr) == typeid(RegisterAST));
+         assert(dynamic_cast<RegisterAST*>(regExpr.get()));
       } else {
          assert(false);
       }
@@ -1576,12 +1576,12 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
       bool foundDelta = false;
 
       assert(children.size() == 2);
-      if (typeid(*children[1]) == typeid(Immediate)) {
+      if (dynamic_cast<Immediate*>(children[1].get())) {
          // op1: reg + reg * imm + imm
          // Extract the delta and continue on to get base, index, and scale
          deltaExpr = children[1];
          Expression::Ptr sibExpr = children[0];
-         assert(typeid(*sibExpr) == typeid(BinaryFunction));
+         assert(dynamic_cast<BinaryFunction*>(sibExpr.get()));
          children.clear();
          sibExpr->getChildren(children);
          assert(children.size() == 2);
@@ -1591,7 +1591,7 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
       // op1: reg + reg * imm
       baseExpr = children[0];
       Expression::Ptr scaleIndexExpr = children[1];
-      assert(typeid(*scaleIndexExpr) == typeid(BinaryFunction));
+      assert(dynamic_cast<BinaryFunction*>(scaleIndexExpr.get()));
 
       // Extract the index and scale
       children.clear();
@@ -1600,9 +1600,9 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
       indexExpr = children[0];
       scaleExpr = children[1];
 
-      assert(typeid(*baseExpr) == typeid(RegisterAST));
-      assert(typeid(*indexExpr) == typeid(RegisterAST));
-      assert(typeid(*scaleExpr) == typeid(Immediate));
+      assert(dynamic_cast<RegisterAST*>(baseExpr.get()));
+      assert(dynamic_cast<RegisterAST*>(indexExpr.get()));
+      assert(dynamic_cast<Immediate*>(scaleExpr.get()));
 
       MachRegister base = (boost::dynamic_pointer_cast<InstructionAPI::
          RegisterAST>(baseExpr))->getID();
@@ -1824,7 +1824,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
       } else {
          // Case 5a
          Expression::Ptr immExpr = operands[1].getValue();
-         assert(typeid(*immExpr) == typeid(Immediate));
+         assert(dynamic_cast<Immediate*>(immExpr.get()));
          long immVal = immExpr->eval().convert<long>();
          xferFuncs.push_back(TransferFunc::absFunc(writtenLoc, immVal));
       }
@@ -1904,7 +1904,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
    } else {
       // Case 2
       InstructionAPI::Expression::Ptr readExpr = operands[1].getValue();
-      assert(typeid(*readExpr) == typeid(InstructionAPI::Immediate));
+      assert(dynamic_cast<Immediate*>(readExpr.get()));
       long readValue = readExpr->eval().convert<long>();
       xferFuncs.push_back(TransferFunc::absFunc(writtenLoc, readValue));
       retopBaseSubReg(written, xferFuncs);

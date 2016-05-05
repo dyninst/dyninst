@@ -207,7 +207,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    // Factory methods....
    static AstNodePtr nullNode();
 
-   static AstNodePtr stackInsertNode(int size, long dispFromRSP = 0, MSpecialType type = GENERIC_AST);
+   static AstNodePtr stackInsertNode(int size, MSpecialType type = GENERIC_AST);
    static AstNodePtr stackRemoveNode(int size, MSpecialType type);
    static AstNodePtr stackRemoveNode(int size, MSpecialType type, func_instance* func, bool canaryAfterPrologue, long canaryHeight);
    static AstNodePtr stackGenericNode();
@@ -445,9 +445,8 @@ class AstNullNode : public AstNode {
 /* Stack Frame Modification */
 class AstStackInsertNode : public AstNode {
     public:
-        AstStackInsertNode(int s, long d, MSpecialType t) : AstNode(),
+        AstStackInsertNode(int s, MSpecialType t) : AstNode(),
         size(s),
-        dispFromRSP(d),
         type(t) {};
 
         virtual std::string format(std::string indent);
@@ -463,7 +462,6 @@ class AstStackInsertNode : public AstNode {
                                      Register &retReg);
 
     int size;
-    long dispFromRSP;
     MSpecialType type;
 };
 

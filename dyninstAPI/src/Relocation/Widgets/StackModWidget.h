@@ -29,7 +29,7 @@
  */
 
 #ifndef _STACKMODWIDGET_H_
-#define _STACKMODWIDGE_H_
+#define _STACKMODWIDGET_H_
 
 #include "Widget.h"
 class block_instance;
