@@ -414,20 +414,20 @@ bool getMemoryOffset(ParseAPI::Function* func,
             if (!val) break;
 
             // Won't find an offset for an immediate
-            if (typeid(*val) == typeid(InstructionAPI::Immediate)) {
+            if (dynamic_cast<InstructionAPI::Immediate*>(val.get())) {
                 continue;
             }
 
             // Won't find an offset for a registerAST
             // However, we do want to record a push (e.g., callee-saved registers)
             if (!(insn->getOperation().getID() == e_push)) {
-                if (typeid(*val) == typeid(InstructionAPI::RegisterAST)) {
+                if (dynamic_cast<InstructionAPI::RegisterAST*>(val.get())) {
                     continue;
                 }
             }
 
             // If we have a dereference, extract the child
-            if (typeid(*val) == typeid(InstructionAPI::Dereference)) {
+            if (dynamic_cast<InstructionAPI::Dereference*>(val.get())) {
                 vector<InstructionAPI::InstructionAST::Ptr> children;
                 val->getChildren(children);
                 if (children.size() == 1) {

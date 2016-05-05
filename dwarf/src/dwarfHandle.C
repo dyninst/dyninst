@@ -57,7 +57,7 @@ void DwarfHandle::defaultDwarfError(Dwarf_Error err, Dwarf_Ptr p) {
 Dwarf_Handler DwarfHandle::defaultErrFunc = DwarfHandle::defaultDwarfError;
 
 DwarfHandle::DwarfHandle(string filename_, Elf_X *file_,
-                         Dwarf_Handler err_func_, Dwarf_Ptr err_data_) :
+                         Dwarf_Handler err_func_) :
    init_dwarf_status(dwarf_status_uninitialized),
    dbg_file_data(NULL),
    file_data(NULL),
@@ -67,7 +67,6 @@ DwarfHandle::DwarfHandle(string filename_, Elf_X *file_,
    file(file_),
    dbg_file(NULL),
    err_func(err_func_),
-   err_data(err_data_),
    filename(filename_)
 {
 
@@ -239,7 +238,7 @@ DwarfHandle::~DwarfHandle()
 
 map<std::string, DwarfHandle::ptr> DwarfHandle::all_dwarf_handles;
 DwarfHandle::ptr DwarfHandle::createDwarfHandle(string filename_, Elf_X *file_,
-                                                Dwarf_Handler err_func_, Dwarf_Ptr err_data_)
+                                                Dwarf_Handler err_func_)
 {
    map<string, DwarfHandle::ptr>::iterator i;
    i = all_dwarf_handles.find(filename_);
@@ -247,7 +246,7 @@ DwarfHandle::ptr DwarfHandle::createDwarfHandle(string filename_, Elf_X *file_,
       return i->second;
    }
 
-   DwarfHandle::ptr ret = DwarfHandle::ptr(new DwarfHandle(filename_, file_, err_func_, err_data_));
+   DwarfHandle::ptr ret = DwarfHandle::ptr(new DwarfHandle(filename_, file_, err_func_));
    all_dwarf_handles.insert(make_pair(filename_, ret));
    return ret;
 }

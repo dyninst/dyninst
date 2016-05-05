@@ -70,8 +70,6 @@ class SnippetGenerator{
    BPatch_addressSpace *addSpace;
    BPatch_image *image;
    
-   char *snippetName;
-
    std::vector<BPatch_register> registers;
   
   public:
@@ -81,13 +79,13 @@ class SnippetGenerator{
   public:
 
   SnippetGenerator() :  point(NULL), addSpace(NULL), image(NULL) {};
-  SnippetGenerator(BPatch_point &pt, char *snName) : point(&pt), snippetName(snName) 
+  SnippetGenerator(BPatch_point &pt) : point(&pt)
    { 
       addSpace = point->getAddressSpace();
       image = addSpace->getImage();
    };
    
-  SnippetGenerator(BPatch_addressSpace &aSpace, char *snName) : addSpace(&aSpace), snippetName(snName) 
+  SnippetGenerator(BPatch_addressSpace &aSpace) : addSpace(&aSpace)
    { 
       point = NULL;
       image = addSpace->getImage();

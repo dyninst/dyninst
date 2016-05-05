@@ -163,8 +163,8 @@ AstNodePtr AstNode::nullNode() {
     return AstNodePtr(new AstNullNode());
 }
 
-AstNodePtr AstNode::stackInsertNode(int size, long dispFromRSP, MSpecialType type) {
-    return AstNodePtr(new AstStackInsertNode(size, dispFromRSP, type));
+AstNodePtr AstNode::stackInsertNode(int size, MSpecialType type) {
+    return AstNodePtr(new AstStackInsertNode(size, type));
 }
 
 AstNodePtr AstNode::stackRemoveNode(int size, MSpecialType type) {

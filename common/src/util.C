@@ -48,9 +48,9 @@ COMMON_EXPORT unsigned addrHashCommon(const Address &addr)
 {
    // inspired by hashs of string class
 
-   register unsigned result = 5381;
+   unsigned result = 5381;
 
-   register Address accumulator = addr;
+   Address accumulator = addr;
    while (accumulator > 0) {
       // We use 3 bits at a time from the address
       result = (result << 4) + result + (accumulator & 0x07);
