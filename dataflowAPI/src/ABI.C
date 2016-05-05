@@ -336,8 +336,10 @@ void ABI::initialize64(){
 
 #if defined(arch_power)
 void ABI::initialize32(){
+    returnRegs_ = getBitArray(machRegIndex_ppc().size());
+    returnRegs_[machRegIndex_ppc()[ppc32::r3]] = true;
 
-   returnRead_ = getBitArray(machRegIndex_ppc().size());
+    returnRead_ = getBitArray(machRegIndex_ppc().size());
     // Return reads r3, r4, fpr1, fpr2
     returnRead_[machRegIndex_ppc()[ppc32::r3]] = true;
     returnRead_[machRegIndex_ppc()[ppc32::r4]] = true;
@@ -421,6 +423,8 @@ void ABI::initialize32(){
 }
 
 void ABI::initialize64(){
+    returnRegs64_ = getBitArray(machRegIndex_ppc_64().size());
+    returnRegs64_[machRegIndex_ppc_64()[ppc64::r3]] = true;
 
     returnRead64_ = getBitArray(machRegIndex_ppc_64().size());
     // Return reads r3, r4, fpr1, fpr2
