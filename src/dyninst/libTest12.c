@@ -29,12 +29,15 @@
  */
 
 /* $Id: libTest12.c,v 1.1 2008/10/30 19:17:17 legendre Exp $ */
+#ifdef os_windows_test
+#include "../proccontrol/external/inttypes-win.h"
+#else
 #include <inttypes.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
-/*#include <dyninstRTExport.h>*/
 #include "test12.h"
 
 /*
