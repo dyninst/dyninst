@@ -50,8 +50,8 @@ extern const char *pdelf_get_shnames(Elf_X *elf);
 
 #define PT_PAX_FLAGS  (PT_LOOS + 0x5041580) /* PaX flags */
 
-namespace Dyninst{
-    namespace SymtabAPI{
+namespace Dyninst {
+    namespace SymtabAPI {
 // Error reporting
 
         struct sortByIndex {

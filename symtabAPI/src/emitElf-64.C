@@ -2549,5 +2549,9 @@ void emitElf64<ElfTypes>::addDTNeeded(string s) {
 }
 
 
-template class emitElf64<ElfTypes32>;
-template class emitElf64<ElfTypes64>;
+namespace Dyninst {
+    namespace SymtabAPI {
+        template class emitElf64<ElfTypes32>;
+        template class emitElf64<ElfTypes64>;
+    } // namespace SymtabAPI
+} // namespace Dyninst
