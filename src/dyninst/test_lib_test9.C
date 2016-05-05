@@ -62,7 +62,7 @@ void changePath(char *path){
 	strcpy(newPATH, "PWD=");
 	strcat(newPATH,path); 
 
-	for(int i=0;environ[i]!= '\0';i++){
+	for(int i=0; environ[i]; i++){
 
 		if( strstr(environ[i], "PWD=") ){
 			environ[i] = newPATH;
@@ -151,7 +151,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
  || defined(rs6000_ibm_aix4_1_test)
 			changePath(path);
 #endif
-			for(int i=0;environ[i]!= '\0';i++){
+			for(int i=0; environ[i]; i++){
 
 				if( strstr(environ[i], "LD_LIBRARY_PATH=") ){
 					environ[i] = newLDPATH;

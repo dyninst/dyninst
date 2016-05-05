@@ -187,7 +187,7 @@ ParseThat::~ParseThat()
 {
 }
 
-bool ParseThat::setup_env(std::string plat) {
+void ParseThat::setup_env(std::string plat) {
 #if !defined(os_windows_test)
    std::vector<std::string> components;
    components.push_back("common");

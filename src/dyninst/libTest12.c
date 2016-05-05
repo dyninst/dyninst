@@ -29,11 +29,6 @@
  */
 
 /* $Id: libTest12.c,v 1.1 2008/10/30 19:17:17 legendre Exp $ */
-#ifdef os_windows_test
-#include "../proccontrol/external/inttypes-win.h"
-#else
-#include <inttypes.h>
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -60,7 +55,7 @@ void reportEntry()
   msg.id = nextid++;
   msg.what = func_entry;
   msg.tid = /*(unsigned long) pthread_self(); */ getpid();
-  ldprintf(stderr, "%s[%d]:  reporting function entry, thread "PRIuPTR"\n", __FILE__, __LINE__, msg.tid);
+  ldprintf(stderr, "%s[%d]:  reporting function entry, thread %lu\n", __FILE__, __LINE__, msg.tid);
   if (did_report_entry)
   {
 	  fprintf(stderr, "%s[%d]:  WARNING:  calling reportEntry AGAIN\n", __FILE__, __LINE__);
@@ -77,7 +72,7 @@ void reportExit()
   msg.id = nextid++;
   msg.what = func_exit;
   msg.tid = /*(unsigned long) pthread_self(); */ getpid();
-  ldprintf(stderr, "%s[%d]:  reporting function exit, thread "PRIuPTR"\n", __FILE__, __LINE__, msg.tid);
+  ldprintf(stderr, "%s[%d]:  reporting function exit, thread %lu\n", __FILE__, __LINE__, msg.tid);
   if (did_report_exit)
   {
 	  fprintf(stderr, "%s[%d]:  WARNING:  calling reportEntry AGAIN\n", __FILE__, __LINE__);
@@ -94,7 +89,7 @@ void reportCallsite()
   msg.id = nextid++;
   msg.what = func_callsite;
   msg.tid = /*(unsigned long) pthread_self(); */ getpid();
-  ldprintf(stderr, "%s[%d]:  reporting function callsite, thread "PRIuPTR"\n", __FILE__, __LINE__, msg.tid);
+  ldprintf(stderr, "%s[%d]:  reporting function callsite, thread %lu\n", __FILE__, __LINE__, msg.tid);
   if (0 != DYNINSTuserMessage(&msg, sizeof(user_msg_t))) {
     fprintf(stderr, "%s[%d]:  DYNINSTuserMessage failed\n", __FILE__, __LINE__);
   }
@@ -106,7 +101,7 @@ void reportEvent1()
   msg.id = nextid++;
   msg.what = test3_event1;
   msg.tid = (unsigned long) pthread_self();
-  ldprintf(stderr, "%s[%d]:  reporting event 1, thread "PRIuPTR"\n", __FILE__, __LINE__, msg.tid);
+  ldprintf(stderr, "%s[%d]:  reporting event 1, thread %lu\n", __FILE__, __LINE__, msg.tid);
   if (0 != DYNINSTuserMessage(&msg, sizeof(user_msg_t))) {
     fprintf(stderr, "%s[%d]:  DYNINSTuserMessage failed\n", __FILE__, __LINE__);
   }
@@ -118,7 +113,7 @@ void reportEvent2()
   msg.id = nextid++;
   msg.what = test3_event2;
   msg.tid = (unsigned long) pthread_self();
-  ldprintf(stderr, "%s[%d]:  reporting event 2, thread "PRIuPTR"\n", __FILE__, __LINE__, msg.tid);
+  ldprintf(stderr, "%s[%d]:  reporting event 2, thread %lu\n", __FILE__, __LINE__, msg.tid);
   if (0 != DYNINSTuserMessage(&msg, sizeof(user_msg_t))) {
     fprintf(stderr, "%s[%d]:  DYNINSTuserMessage failed\n", __FILE__, __LINE__);
   }
@@ -130,7 +125,7 @@ void reportEvent3()
   msg.id = nextid++;
   msg.what = test3_event3;
   msg.tid = (unsigned long) pthread_self();
-  ldprintf(stderr, "%s[%d]:  reporting event 3, thread "PRIuPTR"\n", __FILE__, __LINE__, msg.tid);
+  ldprintf(stderr, "%s[%d]:  reporting event 3, thread %lu\n", __FILE__, __LINE__, msg.tid);
   if (0 != DYNINSTuserMessage(&msg, sizeof(user_msg_t))) {
     fprintf(stderr, "%s[%d]:  DYNINSTuserMessage failed\n", __FILE__, __LINE__);
   }

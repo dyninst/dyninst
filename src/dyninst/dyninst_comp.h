@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(dyninst_comp_h_)
-#define dyninst_comp_h
+#ifndef dyninst_comp_h_
+#define dyninst_comp_h_
 
 #include "test_lib.h"
 #include "TestMutator.h"
