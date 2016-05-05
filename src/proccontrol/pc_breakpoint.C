@@ -154,12 +154,6 @@ test_results_t pc_breakpointMutator::executeTest()
       Process::ptr proc = *i;
       send_addr addrmsg;
 
-      SymReader *rdr = proc->getSymbolReader()->openSymbolReader(proc->libraries().getExecutable()->getName());
-      int major, minor;
-      unsigned addr_offset = 0;
-      if (rdr->getABIVersion(major, minor))
-         addr_offset = major < 2 ? 0 : 16;
-
       for (unsigned k = 0; k < NUM_BREAKPOINTS; k++) {
          bool result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), proc);
          if (!result) {
@@ -171,7 +165,7 @@ test_results_t pc_breakpointMutator::executeTest()
             return FAILED;
          }
        
-         bp_addrs[j][k] = (Dyninst::Address) addrmsg.addr + addr_offset;
+         bp_addrs[j][k] = comp->adjustFunctionEntryAddress(proc, addrmsg.addr);
       }  
      
       bool result = proc->stopProc();

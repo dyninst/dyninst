@@ -250,7 +250,6 @@ struct socket_types
 };
 #endif
 
-
 TEST_DLL_EXPORT ComponentTester *componentTesterFactory()
 {
    return (ComponentTester *) new ProcControlComponent();
@@ -308,7 +307,6 @@ void setupSigtermHandler()
 }
 #endif
 
-
 ProcControlComponent::ProcControlComponent() :
    sockfd(0),
    sockname(NULL),
@@ -324,6 +322,30 @@ ProcControlComponent::ProcControlComponent() :
    winsock_event = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
    setupSigtermHandler();
+}
+
+uint64_t ProcControlComponent::adjustFunctionEntryAddress(Process::const_ptr proc, uint64_t entrypoint)
+{
+   //
+   // On ABIv2 of the PPC64, each function has two entry points.
+   // For this ABI, the first (global) entry point is 16 bytes
+   // before the second (local) entry point.  The symbol table 
+   // contains the address of the global entry point.
+   //
+   // In order for us to establish a breakpoint for calls to either
+   // entrypoint, we add an 16-byte offset to the address that 
+   // the symbol table gives us and break within the local entry point.
+   //
+   if (proc->getArchitecture() == Dyninst::Architecture::Arch_ppc64) {
+      SymReader *rdr = proc->getSymbolReader()->openSymbolReader(proc->libraries().getExecutable()->getName());
+      int major, minor;
+
+      if (rdr->getABIVersion(major, minor)) {
+         if (major >= 2)
+            entrypoint += 16;
+      }
+   }
+   return entrypoint;
 }
 
 static ProcControlComponent *pccomp = NULL;

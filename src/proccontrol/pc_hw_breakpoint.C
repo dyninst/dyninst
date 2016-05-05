@@ -159,12 +159,6 @@ test_results_t pc_hw_breakpointMutator::executeTest()
       Process::ptr proc = *i;
       pchw_proc_data_t &pdata = procdata[proc];
 
-      SymReader *rdr = proc->getSymbolReader()->openSymbolReader(proc->libraries().getExecutable()->getName());
-      int major, minor;
-      unsigned addr_offset = 0;
-      if (rdr->getABIVersion(major, minor))
-         addr_offset = major < 2 ? 0 : 16;
-
       //Recv message that mutatee is ready
       for (unsigned j=0; j<NUM_BPS; j++) {
          send_addr addrmsg;
@@ -175,7 +169,7 @@ test_results_t pc_hw_breakpointMutator::executeTest()
             return FAILED;
          }
 
-         pdata.addrs[j] = addrmsg.addr+addr_offset;
+         pdata.addrs[j] = comp->adjustFunctionEntryAddress(proc, addrmsg.addr);
          pdata.bp_active[j] = false;
          pdata.bp_run[j] = false;
          pdata.times_hit[j] = 0;

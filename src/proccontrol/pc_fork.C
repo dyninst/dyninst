@@ -160,14 +160,7 @@ test_results_t pc_forkMutator::executeTest()
          myerror = true;
       }
 
-      SymReader *rdr = proc->getSymbolReader()->openSymbolReader(proc->libraries().getExecutable()->getName());
-
-      int major, minor;
-      unsigned addr_offset = 0;
-      if (rdr->getABIVersion(major, minor))
-         addr_offset = major < 2 ? 0 : 16;
-
-      Address bp_addr = addr.addr+addr_offset;
+      Address bp_addr = comp->adjustFunctionEntryAddress(proc, addr.addr);
       
       result = proc->stopProc();
       if (!result) {

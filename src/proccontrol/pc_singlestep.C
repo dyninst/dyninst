@@ -205,14 +205,7 @@ test_results_t pc_singlestepMutator::executeTest()
          myerror = true;
       }
 
-      SymReader *rdr = proc->getSymbolReader()->openSymbolReader(proc->libraries().getExecutable()->getName());
-      int major, minor;
-      unsigned addr_offset = 0;
-      if (rdr->getABIVersion(major, minor))
-         addr_offset = major < 2 ? 0 : 16;
-
-      addrmsg.addr += addr_offset;
-      pi.start = addrmsg.addr;
+      pi.start = comp->adjustFunctionEntryAddress(proc, addrmsg.addr);
       logerror("initial breakpoint at 0x%lx\n", addrmsg.addr);
 
       Address funcs[NUM_FUNCS];
@@ -226,9 +219,8 @@ test_results_t pc_singlestepMutator::executeTest()
             logerror("Unexpected addr code\n");
             myerror = true;
          }
-         addrmsg.addr += addr_offset;
-         pi.func[j] = addrmsg.addr;
-         logerror("func %d at 0x%lx\n", j, addrmsg.addr);
+         pi.func[j] = comp->adjustFunctionEntryAddress(proc, addrmsg.addr);
+         logerror("func %d at 0x%lx\n", j, pi.func[j]);
       }
 
       result = proc->stopProc();

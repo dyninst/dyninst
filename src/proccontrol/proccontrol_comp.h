@@ -126,6 +126,7 @@ public:
    bool waitForSignalFD(int signal_fd);
 
    static bool initializeConnectionInfo(Process::const_ptr proc);
+   uint64_t adjustFunctionEntryAddress(Process::const_ptr proc, uint64_t entrypoint);
 };
 
 // Base class for the mutator part of a test
@@ -135,6 +136,7 @@ public:
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t pre_init(ParameterDict &param);
   virtual ~ProcControlMutator();
+
   ProcControlComponent *comp;
 };
 

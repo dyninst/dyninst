@@ -46,7 +46,7 @@ public:
    virtual test_results_t executeTest();
    void waitfor_sync();
    void trigger_sync();
-   AddressSet::ptr getAddresses(ProcessSet::ptr pset, bool calc_offset);
+   AddressSet::ptr getAddresses(ProcessSet::ptr pset, bool isFunctionAddress);
 #if defined(os_windows_test)
    AddressSet::ptr getFreeAddresses(ProcessSet::ptr pset);
 #endif
@@ -88,7 +88,7 @@ void pc_groupsMutator::waitfor_sync() {
    free(syncs);
 }
 
-AddressSet::ptr pc_groupsMutator::getAddresses(ProcessSet::ptr pset, bool calc_offset) {
+AddressSet::ptr pc_groupsMutator::getAddresses(ProcessSet::ptr pset, bool isFunctionAddress) {
    AddressSet::ptr aset = AddressSet::newAddressSet();
    
    for (ProcessSet::iterator i = pset->begin(); i != pset->end(); i++) {
@@ -105,15 +105,10 @@ AddressSet::ptr pc_groupsMutator::getAddresses(ProcessSet::ptr pset, bool calc_o
          error = true;
          return AddressSet::ptr();
       }
-      unsigned addr_offset = 0;
-      if (calc_offset) {
-         SymReader *rdr = p->getSymbolReader()->openSymbolReader(p->libraries().getExecutable()->getName());
 
-         int major, minor;
-         if (rdr->getABIVersion(major, minor))
-            addr_offset = major < 2 ? 0 : 16;
-      }
-      aset->insert((addr.addr+addr_offset), p);
+      if (isFunctionAddress)
+         addr.addr = comp->adjustFunctionEntryAddress(p, addr.addr);
+      aset->insert(addr.addr, p);
    }
    return aset;
 }
