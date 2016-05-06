@@ -313,9 +313,10 @@ install (TARGETS testA testB testA_static testB_static
 	ARCHIVE DESTINATION ${INSTALL_DIR}
 )
 
-CHECK_MUTATEE_COMPILER(gcc "-m32" "-m32" C "" m32_works)
+
 #if (${MUTATEE_gcc64dyn} AND ${MUTATEE_gcc32dyn})
-#if (UNIX)
+if (UNIX)
+CHECK_MUTATEE_COMPILER(gcc "-m32" "-m32" C "" m32_works)
 if(${m32_works})
 message(STATUS "Building 32-bit helper libraries")
 add_library (testA_m32 SHARED src/libtestA.c)
@@ -342,6 +343,7 @@ set_target_properties (Test12_m32
                       PROPERTIES
                       COMPILE_FLAGS "-m32 -Dm32_test"
                       LINK_FLAGS "-m32")
+endif()
 endif()
 
 include (${DYNINST_PLATFORM}/cmake-mutatees.txt)
