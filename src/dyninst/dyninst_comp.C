@@ -46,11 +46,6 @@
 #include "dyninst_comp.h"
 #include "MutateeStart.h"
 
-
-#if defined(os_windows_test)
-#define snprintf _snprintf
-#endif
-
 using namespace std;
 
 class DyninstComponent : public ComponentTester

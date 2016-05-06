@@ -109,7 +109,7 @@ int setupMutatorsForRunGroup(RunGroup * group)
 		typedef TestMutator *(*mutator_factory_t)();
 		char mutator_name[256];
 		const char *testname = test->mutator_name;
-		_snprintf(mutator_name, 256, "%s_factory", testname);
+		snprintf(mutator_name, 256, "%s_factory", testname);
 		mutator_factory_t factory = (mutator_factory_t)GetProcAddress(handle, mutator_name);
 		if (NULL == factory) {
 			fprintf(stderr, "Error funding function: %s, in %s\n", mutator_name,

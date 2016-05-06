@@ -46,10 +46,6 @@
 
 #include "test_lib.h"
 
-#ifdef os_windows_test
-#define snprintf _snprintf
-#endif
-
 #include "dyninst_comp.h"
 
 class test1_21_Mutator : public DyninstMutator {

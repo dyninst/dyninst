@@ -1267,10 +1267,7 @@ def print_mutatee_rules_nt(out, mutatees, compiler, unique_target_dict, module):
 			out.write("%s: ../src/%s\n" % (object, src))
 		else:
 			out.write("%s: ../src/%s/%s\n" % (object, module, src))
-		# FIXME -Dsnprintf=_snprintf is needed for c files that contain snprintf,
-		#	but not for .asm files. the masm compiler accepts the -D parameter,
-		#	but it's unnecessary
-		out.write("\t$(M_%s) %s -Dsnprintf=_snprintf -Fo$@ $**\n"
+		out.write("\t$(M_%s) %s -Fo$@ $**\n"
 					% (comp['defstring'], object_flag_string(platform, comp, abi, o, pic)))
 
 		# now add the object to the unique target list. this prevents the same
@@ -1378,7 +1375,7 @@ def write_make_solo_mutatee_gen_nt(filename, tuplefile):
 			for abi in platform['abis']:
 				for (opt_level, opt_flag) in compilers[c]['optimization'].items():
 					out.write("mutatee_driver_solo_%s_%s_%s%s: ../src/mutatee_driver.c\n" % (c, abi, opt_level, ObjSuffix))
-					out.write("\t$(M_%s) %s %s %s %s -Dsnprintf=_snprintf -Fo$@ -c $**\n"
+					out.write("\t$(M_%s) %s %s %s %s -Fo$@ -c $**\n"
 							  % (compilers[c]['defstring'],
 								 compilers[c]['flags']['std'],
 								 compilers[c]['flags']['mutatee'],

@@ -46,7 +46,6 @@
 
 #if defined(os_windows_test)
 #define vsnprintf _vsnprintf
-#define snprintf _snprintf
 #pragma warning(disable:4786)
 #include <direct.h>
 #else
