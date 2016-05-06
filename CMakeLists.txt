@@ -63,6 +63,7 @@ if(NOT ${PLATFORM} MATCHES nt)
   add_subdirectory (elf)
   add_subdirectory (dwarf)
   add_subdirectory (symlite)
+  add_subdirectory (parseThat)
 # DynC is not compatible with Windows when
 # we use bison on linux to generate source
 # TODO: generate with bison configured for
@@ -80,7 +81,6 @@ add_subdirectory (patchAPI)
 if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (dyninstAPI)
 endif()
-add_subdirectory (parseThat)
 
 # Build the RT library as a seperate project so we can change compilers
 message(STATUS "Configuring DyninstAPI_RT")
