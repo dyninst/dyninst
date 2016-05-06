@@ -208,6 +208,15 @@
 #endif
 #endif
 
+#ifndef TLS_VAR
+#if defined(_MSC_VER) && _MSC_VER < 1900
+#define TLS_VAR __declspec(thread)
+#else
+#define TLS_VAR thread_local
+#endif
+#endif
+
+
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
