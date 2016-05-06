@@ -63,6 +63,7 @@
 
 #include <fstream>
 
+using namespace std;
 using namespace SymtabAPI;
 
 extern void loadNativeDemangler();

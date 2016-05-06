@@ -19,7 +19,7 @@ namespace Dyninst
     ordered_unique<const_mem_fun<ITYPE, interval_type, &ITYPE::high> >
     > > interval_set;
       
-    //typedef set<ITYPE*, order_by_lower<ITYPE> > interval_set;
+    //typedef std::set<ITYPE*, order_by_lower<ITYPE> > interval_set;
     interval_set unique_intervals;
 
   public:
@@ -39,9 +39,9 @@ namespace Dyninst
     }
     void insert(ITYPE*);
     void remove(ITYPE*);
-    int find(interval_type, set<ITYPE*> &) const;
-    int find(ITYPE* I, set<ITYPE*>&) const;
-    void successor(interval_type X, set<ITYPE*>& ) const;
+    int find(interval_type, std::set<ITYPE*> &) const;
+    int find(ITYPE* I, std::set<ITYPE*>&) const;
+    void successor(interval_type X, std::set<ITYPE*>& ) const;
     ITYPE* successor(interval_type X) const;
     void clear();
       
@@ -86,7 +86,7 @@ namespace Dyninst
     if(found != unique_intervals.end() && *found == entry) unique_intervals.erase(found);
   }
   template<class ITYPE>
-  int IBSTree_fast<ITYPE>::find(interval_type X, set<ITYPE*> &results) const
+  int IBSTree_fast<ITYPE>::find(interval_type X, std::set<ITYPE*> &results) const
   {
     int num_old_results = results.size();
       
@@ -102,7 +102,7 @@ namespace Dyninst
     return results.size() - num_old_results;
   }
   template <typename ITYPE>
-  int IBSTree_fast<ITYPE>::find(ITYPE* I, set<ITYPE*>&results) const
+  int IBSTree_fast<ITYPE>::find(ITYPE* I, std::set<ITYPE*>&results) const
   {
     int num_old_results = results.size();
     int num_overlapping = overlapping_intervals.find(I, results);
@@ -116,7 +116,7 @@ namespace Dyninst
     return results.size() - num_old_results;
   }
   template<typename ITYPE>
-  void IBSTree_fast<ITYPE>::successor(interval_type X, set<ITYPE*>& results) const
+  void IBSTree_fast<ITYPE>::successor(interval_type X, std::set<ITYPE*>& results) const
   {
     ITYPE* overlapping_ub = overlapping_intervals.successor(X);
       

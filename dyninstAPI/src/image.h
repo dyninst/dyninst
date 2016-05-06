@@ -73,6 +73,7 @@
 #include "dyninstAPI/src/Parsing.h"
 
 
+using namespace std;
 using namespace Dyninst;
 
 typedef bool (*functionNameSieve_t)(const char *test,void *data);

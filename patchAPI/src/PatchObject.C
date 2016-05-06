@@ -36,6 +36,7 @@
 #include "PatchCallback.h"
 #include "ParseCallback.h"
 
+using namespace std;
 using namespace Dyninst;
 using namespace PatchAPI;
 

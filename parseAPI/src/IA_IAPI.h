@@ -42,6 +42,8 @@
 
 #include "CFG.h"
 
+using namespace std;
+
 namespace Dyninst {
 namespace InsnAdapter {
 
