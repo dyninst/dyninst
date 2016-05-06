@@ -138,7 +138,7 @@ Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
        if (elf_kind(elf) == ELF_K_ELF) {
           char *identp = elf_getident(elf, NULL);
           is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-           isBigEndian = (identp && identp[EI_DATA] == ELFDATA2MSB);
+          isBigEndian = (identp && identp[EI_DATA] == ELFDATA2MSB);
        }
        else if(elf_kind(elf) == ELF_K_AR) {
           char *identp = elf_getident(elf, NULL);

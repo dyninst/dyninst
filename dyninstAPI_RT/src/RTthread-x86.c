@@ -81,7 +81,3 @@ int tc_lock_lock(tc_lock_t *tc)
    tc->tid = me;
    return 0;
 }
-
-unsigned DYNINSTthreadIndexFAST() {
-   return 0;
-}

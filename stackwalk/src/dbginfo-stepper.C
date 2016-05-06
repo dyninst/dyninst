@@ -83,6 +83,7 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
    DwarfHandle::ptr dwarf = DwarfHandle::createDwarfHandle(s, orig_elf);
    assert(dwarf);
 
+   // MJMTODO - Need to check whether this is supposed to work or not
    // FIXME for ppc, if we ever support debug walking on ppc
    Architecture arch;
 #if defined(arch_x86) || defined(arch_x86_64)

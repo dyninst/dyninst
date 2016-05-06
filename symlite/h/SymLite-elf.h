@@ -86,8 +86,10 @@ class SYMLITE_EXPORT SymElf : public Dyninst::SymReader
 
    virtual bool isValidSymbol(const Symbol_t &sym);
    virtual unsigned getAddressWidth();
-   virtual unsigned long getSymbolSize(const Symbol_t &sym);
+   virtual bool getABIVersion(int &major, int &minor) const;
+   virtual bool isBigEndianDataEncoding() const;
 
+   virtual unsigned long getSymbolSize(const Symbol_t &sym);
    virtual Section_t getSectionByName(std::string name);
    virtual Section_t getSectionByAddress(Dyninst::Address addr);
    virtual Dyninst::Address getSectionAddress(Section_t sec);

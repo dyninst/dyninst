@@ -2120,11 +2120,9 @@ void emitElf64<ElfTypes>::createRelocationSections(std::vector<relocationEntry> 
             if (dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
                 relas[k].r_info = ElfTypes::makeRelocInfo(dynSymNameMapping[newRels[i].name()],
                                                           relocationEntry::getGlobalRelType(obj->getAddressWidth()));
-                assert(relas[k].r_info == ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT));
             } else {
                 relas[k].r_info = ElfTypes::makeRelocInfo((unsigned long) (STN_UNDEF),
                                                           relocationEntry::getGlobalRelType(obj->getAddressWidth()));
-                assert(relas[k].r_info == ELF64_R_INFO((unsigned long) (STN_UNDEF), R_X86_64_GLOB_DAT));
             }
             k++;
             m++;

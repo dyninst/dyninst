@@ -656,8 +656,9 @@ typedef unsigned codeBufIndex_t;
 // xlform
 #define MTLR0raw       0x7c0803a6      /* move from link reg -- mtlw r0 */
 #define MFLR0raw       0x7c0802a6      /* move from link reg -- mflr r0 */
-#define MTLR2raw       0x7c4803a6	/* move from link reg -- mtlr r2 */
-#define MFLR2raw       0x7c4802a6	/* move from link reg -- mflr r2 */
+#define MTLR2raw       0x7c4803a6      /* move from link reg -- mtlr r2 */
+#define MFLR2raw       0x7c4802a6      /* move from link reg -- mflr r2 */
+#define MR12CTR        0x7d8903a6      /* move from r12 to CTR */
 #define BCTRraw        0x4e800420      /* bctr instrunction */
 #define BCTRLraw       0x4e800421      /* bctrl instrunction */
 #define BRraw          0x4e800020      /* br instruction */
