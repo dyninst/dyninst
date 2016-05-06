@@ -46,11 +46,6 @@
 #include "test_lib.h"
 #include "dyninst_comp.h"
 
-#ifdef os_windows_test
-#define snprintf _snprintf
-#endif
-
-
 class snip_ref_shlib_var_Mutator : public DyninstMutator {
 	const char *libNameAroot;
 	const char *libNameBroot;

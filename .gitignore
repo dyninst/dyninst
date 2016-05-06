@@ -4,7 +4,10 @@ CMakeCache.txt
 *.so
 *#*
 cmake_install.cmake
+*.VC.db
+*.VC.opendb
 *.vcxproj*
+*.sln
 *.lib
 *.exp
 *.ilk
@@ -16,3 +19,8 @@ cmake_install.cmake
 *.dyn_g++_64_none_none
 *.dyn_gcc_64_none_none
 binaries
+test_names.txt
+*.dir/
+.vs
+Debug
+Win32

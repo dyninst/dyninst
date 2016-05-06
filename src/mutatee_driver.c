@@ -42,7 +42,6 @@
 #if defined(os_windows_test)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#define snprintf _snprintf
 #else
 #include <unistd.h>
 #include <sys/time.h>

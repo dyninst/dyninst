@@ -14,7 +14,7 @@ if (NOT ("${USE_CXX11_ABI}" STREQUAL ""))
 endif()
 
 
-if (CMAKE_COMPILER_IS_GNUCXX  OR  "${CMAKE_C_COMPILER_ID}" MATCHES Clang)
+if (CMAKE_COMPILER_IS_GNUCXX  OR  ${CMAKE_C_COMPILER_ID} MATCHES Clang)
 set (CMAKE_C_FLAGS_DEBUG "-O0 -g")
 set (CMAKE_C_FLAGS_RELEASE "-O2")
 set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
@@ -78,13 +78,17 @@ set (INSTALL_DIR "bin/testsuite" CACHE PATH "Testsuite installation directory")
 # and the executables
 
 if (UNIX)
-enable_language(ASM-ATT)
-if ("${DYNINST_PLATFORM}" MATCHES "i386")
-enable_language(ASM_NASM)
-endif()
+  enable_language(ASM-ATT)
+  if ("${DYNINST_PLATFORM}" MATCHES "i386")
+    enable_language(ASM_NASM)
+  endif()
 elseif(WIN32)
-enable_language(ASM_MASM)
-add_definitions(-Dsnprintf=_snprintf)
+  enable_language(ASM_MASM)
+  if (CMAKE_C_COMPILER_VERSION VERSION_GREATER 19)
+    add_definitions(-D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1)
+  else()
+    add_definitions(-Dsnprintf=_snprintf)
+  endif()
 endif(UNIX)
 
 foreach (def ${DYNINST_INTERNAL_DEFINES})
@@ -309,9 +313,10 @@ install (TARGETS testA testB testA_static testB_static
 	ARCHIVE DESTINATION ${INSTALL_DIR}
 )
 
-CHECK_MUTATEE_COMPILER(gcc "-m32" "-m32" C "" m32_works)
+
 #if (${MUTATEE_gcc64dyn} AND ${MUTATEE_gcc32dyn})
-#if (UNIX)
+if (UNIX)
+CHECK_MUTATEE_COMPILER(gcc "-m32" "-m32" C "" m32_works)
 if(${m32_works})
 message(STATUS "Building 32-bit helper libraries")
 add_library (testA_m32 SHARED src/libtestA.c)
@@ -338,6 +343,7 @@ set_target_properties (Test12_m32
                       PROPERTIES
                       COMPILE_FLAGS "-m32 -Dm32_test"
                       LINK_FLAGS "-m32")
+endif()
 endif()
 
 include (${DYNINST_PLATFORM}/cmake-mutatees.txt)

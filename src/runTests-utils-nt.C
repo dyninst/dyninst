@@ -41,7 +41,7 @@ using namespace std;
 int timeout = 1200;
 
 void initPIDFilename(char *buffer, size_t len) {
-  _snprintf(buffer, len, "pids.windows.%lu", GetCurrentProcessId());
+  snprintf(buffer, len, "pids.windows.%lu", GetCurrentProcessId());
 }
 
 void cleanupMutatees(char *pidFilename) {

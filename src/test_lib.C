@@ -77,10 +77,6 @@ using namespace std;
 #endif
 // end inclusion from test9.C
 
-#if defined(i386_unknown_nt4_0_test)
-#define snprintf _snprintf
-#endif
-
 #include "test_lib.h"
 #include "ResumeLog.h"
 #define BINEDIT_DIRNAME "" 
