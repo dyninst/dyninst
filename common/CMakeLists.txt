@@ -98,11 +98,7 @@ if (PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
 #	src/dthread.C
     src/addrtranslate-win.C
   )
-  if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 19)
-    add_definitions(-DWIN32 -D_WIN32_WINNT=0x500)
-  else()
-    add_definitions(-DWIN32 -D_WIN32_WINNT=0x500 -Dsnprintf=_snprintf)
-  endif()
+  add_definitions(-DWIN32 -D_WIN32_WINNT=0x500)
 endif()  
 
 
