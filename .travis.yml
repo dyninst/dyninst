@@ -13,11 +13,24 @@ addons:
             - libboost-thread-dev
             - libelf-dev
 
+env:
+    global:
+        - DYNINSTAPI_RT_LIB=$HOME/install/lib/libdyninstAPI_RT.so
 compiler:
     - gcc
+
+before_script:
+    - git clone --depth 1 git://github.com/dyninst/testsuite
 
 script:
     - mkdir work
     - cd work
-    - cmake ..
+    - cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/install
     - make
+    - make install
+    - cd ../testsuite
+    - mkdir work
+    - cd work
+    - cmake .. -DDyninst_DIR=$HOME/install/lib/cmake/Dyninst
+    - make
+    - ./runTests -all
