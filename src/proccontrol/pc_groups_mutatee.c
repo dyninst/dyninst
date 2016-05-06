@@ -192,7 +192,7 @@ int pc_groups_mutatee()
    data = 4;
    send_addrs(&data);
 
-   send_addrs((void *)getFunctionPtr((unsigned long *)bp_func));
+   send_addrs((void *)getFunctionPtr((intptr_t *)bp_func));
 
 #if !defined(os_windows_test)
    /* Windows does it mutator-side */

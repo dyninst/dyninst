@@ -114,7 +114,7 @@ int test4_3_mutatee() {
        */
       /* FIXME this may screw up if there's more than one '-run' specified */
       if (strcmp(newArgv[i], "-run") == 0) {
-	newArgv[i + 1] = "test4_3b";
+	newArgv[i + 1] = strdup("test4_3b");
       }
     }
 

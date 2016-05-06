@@ -64,7 +64,7 @@ void cleanupMutatees(char *pidFilename) {
          break;
       
       if (pid < 1) {
-         fprintf(stderr, "[%s:%u] - Read a negative PID (%d).  Something's weird.\n", __FILE__, __LINE__);
+         fprintf(stderr, "[%s:%u] - Read a negative PID (%d).  Something's weird.\n", __FILE__, __LINE__, pid);
          continue;
       } 
       

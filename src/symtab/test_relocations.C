@@ -275,7 +275,7 @@ test_results_t test_relocations_Mutator::executeTest()
 
 	if (num_found != expected_relocs.size())
 	{
-		fprintf(stderr, "%s[%d]:  found %d relocs, not the expected %d\n", 
+		fprintf(stderr, "%s[%d]:  found %d relocs, not the expected %ld\n", 
 				FILE__, __LINE__, num_found, expected_relocs.size());
 		return FAILED;
 	}

@@ -353,7 +353,7 @@ int LMONInvoke(RunGroup *group, ParameterDict params, char *test_args[], char *d
       char newbuffer[64];
       snprintf(newbuffer, 64, "%d:%d", group->index, mutatee_pid);
       
-      new_daemon_args[i++] = "-given_mutatee";
+      new_daemon_args[i++] = const_cast<char*>("-given_mutatee");
       new_daemon_args[i++] = newbuffer;
       new_daemon_args[i++] = NULL;
 

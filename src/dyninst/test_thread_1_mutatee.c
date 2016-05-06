@@ -154,7 +154,7 @@ int func1_1()
   int lockres;
   int bigTIMEOUT;
   int timeout;
-  char *libname;
+  const char *libname;
   /*pthread_attr_t attr;*/
   unsigned int i;
   void *RTlib;

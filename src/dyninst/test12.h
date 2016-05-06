@@ -72,18 +72,10 @@ typedef enum {
    test3_event3
 } user_event_t;
 
-#if defined(m32_test)
-typedef struct {
-  unsigned int id;
-  user_event_t what; 
-  unsigned long long int tid;
-} user_msg_t;
-#else
 typedef struct {
   unsigned int id;
   user_event_t what; 
   unsigned long tid;
 } user_msg_t;
-#endif
 
 #endif

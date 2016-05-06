@@ -37,10 +37,10 @@ typedef enum {
 } grouped_mutatee_t;
 
 typedef struct {
-  char *testname;
+  const char *testname;
   int (*func)(void);
   grouped_mutatee_t grouped;
-  char *testlabel;
+  const char *testlabel;
 } mutatee_call_info_t;
 
 typedef struct _mutatee_info {

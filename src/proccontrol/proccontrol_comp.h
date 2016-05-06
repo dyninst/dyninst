@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(pcontrol_comp_h_)
-#define pcontrol_comp_h
+#ifndef pcontrol_comp_h_
+#define pcontrol_comp_h_
 
 #include "test_lib.h"
 #include "TestMutator.h"

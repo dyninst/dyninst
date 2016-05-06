@@ -137,7 +137,7 @@ int pc_singlestep_mutatee()
 
    addr_msg.code = SENDADDR_CODE;
 
-   addr_msg.addr = getFunctionPtr((unsigned long *)run_all_funcs);
+   addr_msg.addr = getFunctionPtr((intptr_t *)run_all_funcs);
    result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
    if (result == -1) {
 	   output->log(STDERR, "Failed to send addr message for initial breakpoint func\n");
@@ -146,7 +146,7 @@ int pc_singlestep_mutatee()
    }
 
    for (i = 0; i < NUM_FUNCS; i++) {
-      addr_msg.addr = getFunctionPtr((unsigned long *)funcs[i]);
+      addr_msg.addr = getFunctionPtr((intptr_t *)funcs[i]);
       result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
       if (result == -1) {
          output->log(STDERR, "Failed to send addr message\n");

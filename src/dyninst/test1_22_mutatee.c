@@ -115,7 +115,7 @@ void *loadDynamicLibrary(char *name) {
   return result;
 }
 
-void *getFuncFromDLL(void *libhandle, char *func_name) {
+void *getFuncFromDLL(void *libhandle, const char *func_name) {
     void *result;
     if (!libhandle || !func_name) {
         output->log(STDERR, "[%s:%u] - Test error - getFuncFromDLL passed NULL "
@@ -140,7 +140,7 @@ void *loadDynamicLibrary(char *name) {
     return result;
 }
 
-void *getFuncFromDLL(void *libhandle, char *func_name) {
+void *getFuncFromDLL(void *libhandle, const char *func_name) {
     void *result = dlsym(libhandle, func_name);
     if (!result) {
         perror("The mutatee couldn't find a function");

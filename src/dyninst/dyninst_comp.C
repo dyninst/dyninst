@@ -1080,7 +1080,7 @@ void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg)
   if(!debugPrint())
 		return;
 
-	printf("%s: %d\n", msg, res->size());
+	printf("%s: %ld\n", msg, res->size());
 	for(unsigned int i=0; i<res->size(); ++i) {
 		BPatch_point *bpp = (*res)[i];
 		const BPatch_memoryAccess* ma = bpp->getMemoryAccess();
@@ -1088,19 +1088,19 @@ void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg)
 		const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
 		if(ma->getNumberOfAccesses() == 1) {
 			if(ma->isConditional_NP())
-				printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] ?[%X]\n", msg, i+1,
+				printf("%s[%d]: @[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld] ?[%X]\n", msg, i+1,
 						as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
 						cs.getReg(0), cs.getReg(1), cs.getImm(), ma->conditionCode_NP());
 			else
-				printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+				printf("%s[%d]: @[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld]\n", msg, i+1,
 						as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
 						cs.getReg(0), cs.getReg(1), cs.getImm());
 		}
 		else {
 			const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
 			const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
-			printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] && "
-					"@[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+			printf("%s[%d]: @[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld] && "
+					"@[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld]\n", msg, i+1,
 					as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
 					cs.getReg(0), cs.getReg(1), cs.getImm(),
 					as2.getReg(0), as2.getReg(1), as2.getScale(), as2.getImm(),
@@ -1123,14 +1123,14 @@ static inline void dumpxpct(const BPatch_memoryAccess* exp[], unsigned int size,
 		const BPatch_addrSpec_NP& as = ma->getStartAddr_NP();
 		const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
 		if(ma->getNumberOfAccesses() == 1)
-			printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+			printf("%s[%d]: @[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld]\n", msg, i+1,
 					as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
 					cs.getReg(0), cs.getReg(1), cs.getImm());
 		else {
 			const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
 			const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
-			printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] && "
-					"@[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+			printf("%s[%d]: @[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld] && "
+					"@[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld]\n", msg, i+1,
 					as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
 					cs.getReg(0), cs.getReg(1), cs.getImm(),
 					as2.getReg(0), as2.getReg(1), as2.getScale(), as2.getImm(),

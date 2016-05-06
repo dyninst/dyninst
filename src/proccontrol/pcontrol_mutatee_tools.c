@@ -164,7 +164,7 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
 }
 
 
-uint64_t getFunctionPtr(unsigned long *ptr) {
+intptr_t getFunctionPtr(intptr_t *ptr) {
     unsigned long tmpAddr;
 #if defined(arch_power_test) && defined(arch_64bit_test)
     /* need to dereference function pointers before sending them to mutator */
@@ -180,15 +180,15 @@ uint64_t getFunctionPtr(unsigned long *ptr) {
 		/* Jump byte */
 		opcode++;
 		offsetPtr = (int *)opcode;
-		tmpAddr = (unsigned long) (((unsigned long) ptr) + 5 + *offsetPtr);
+		tmpAddr = (intptr_t) (((unsigned long) ptr) + 5 + *offsetPtr);
 	}
 	else {
-		tmpAddr = (unsigned long)ptr;
+		tmpAddr = (intptr_t)ptr;
 	}
 #else
-    tmpAddr = (unsigned long)ptr;
+    tmpAddr = (intptr_t)ptr;
 #endif
-    return (uint64_t)tmpAddr;
+    return (intptr_t)tmpAddr;
 }
 
 uint64_t getTOCValue(unsigned long *ptr) {

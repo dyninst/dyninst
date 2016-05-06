@@ -126,7 +126,7 @@ class ParseThat {
 	bool include_libs_;
 
 	bool setup_args(std::vector<std::string> &);
-   bool setup_env(std::string plat);
+        void setup_env(std::string plat);
 	test_results_t pt_execute(std::vector<std::string> &);
 
 };

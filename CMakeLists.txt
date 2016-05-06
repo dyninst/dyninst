@@ -4,6 +4,16 @@ project (Dyninst-TestSuite)
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules")
 include (c++11.cmake)
 
+set (USE_CXX11_ABI "" CACHE STRING "Override the default GNU C++11 ABI setting")
+if (NOT ("${USE_CXX11_ABI}" STREQUAL ""))
+  if (${USE_CXX11_ABI})
+    add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
+  else()
+    add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
+  endif()
+endif()
+
+
 if (CMAKE_COMPILER_IS_GNUCXX  OR  "${CMAKE_C_COMPILER_ID}" MATCHES Clang)
 set (CMAKE_C_FLAGS_DEBUG "-O0 -g")
 set (CMAKE_C_FLAGS_RELEASE "-O2")
@@ -244,7 +254,7 @@ install (TARGETS
 include (${DYNINST_PLATFORM}/cmake-mutators.txt)
 
 FOREACH (m ${MUTATOR_NAME_LIST})
-	file(APPEND test_names.txt "${m}\n")
+    file(APPEND ${CMAKE_BINARY_DIR}/test_names.txt "${m}\n")
 ENDFOREACH()
 
 if (UNIX)

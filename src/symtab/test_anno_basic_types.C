@@ -254,7 +254,7 @@ test_results_t test_anno_basic_types_Mutator::executeTest()
    {
       fprintf(stderr, "%s[%d]:  ERROR, size creep in sparse annotation class\n", 
             FILE__, __LINE__);
-      fprintf(stderr, "sizeof(TestClass) = %d, sizeof(TestClassSparse) = %d\n", 
+      fprintf(stderr, "sizeof(TestClass) = %lu, sizeof(TestClassSparse) = %lu\n", 
             sizeof(TestClass), sizeof(TestClassSparse));
       return FAILED;
    }
@@ -264,7 +264,7 @@ test_results_t test_anno_basic_types_Mutator::executeTest()
    {
       fprintf(stderr, "%s[%d]:  ERROR, size creep in dense annotation class\n", 
             FILE__, __LINE__);
-      fprintf(stderr, "sizeof(TestClass) + sizeof(void *)= %d, sizeof(TestClassDense) = %d\n", 
+      fprintf(stderr, "sizeof(TestClass) + sizeof(void *)= %lu, sizeof(TestClassDense) = %lu\n", 
             sizeof(TestClass) + sizeof(void *), sizeof(TestClassDense));
       return FAILED;
    }

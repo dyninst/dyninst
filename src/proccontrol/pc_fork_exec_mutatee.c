@@ -58,8 +58,8 @@ static int threadFunc(int myid, void *data)
 
    char *args[4];
    args[0] = exec_name;
-   args[1] = "-run";
-   args[2] = "pc_exec_targ";
+   args[1] = strdup("-run");
+   args[2] = strdup("pc_exec_targ");
    args[3] = NULL;
 
    if (pid == -1) {

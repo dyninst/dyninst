@@ -218,7 +218,7 @@ test_results_t aarch64_decode_Mutator::executeTest()
     i = d.decode();
     decodedInsns.push_back(i);
     if(i != NULL)
-		cout<<decodedInsns.back()->format()<<endl;
+      decodedInsns.back()->format();
   }
   while(i && i->isValid());
 

@@ -97,7 +97,7 @@ test_results_t test1_33_Mutator::executeTest()
 	}
 
 	BPatch_Vector<BPatch_function *> bpfv;
-	char *fn = "test1_33_func2";
+	const char *fn = "test1_33_func2";
 	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 			|| NULL == bpfv[0])
 	{
@@ -330,7 +330,7 @@ test_results_t test1_33_Mutator::executeTest()
 	 * Now check a function with a switch statement.
 	 */
 	bpfv.clear();
-	char *fn2 = "test1_33_func3";
+	const char *fn2 = "test1_33_func3";
 
 	// Bernat, 8JUN05 -- include uninstrumentable here...
 
