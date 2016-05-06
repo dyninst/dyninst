@@ -21,3 +21,6 @@ cmake_install.cmake
 binaries
 test_names.txt
 *.dir/
+.vs
+Debug
+Win32
