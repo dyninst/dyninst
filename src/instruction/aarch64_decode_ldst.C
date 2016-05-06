@@ -539,7 +539,7 @@ test_results_t aarch64_decode_ldst_Mutator::executeTest()
   test_results_t retVal = PASSED;
 
   //ldr x1, #4
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {pc};
 	tmpWritten = {x1};
 #else
@@ -552,7 +552,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // ldr x1, #256
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {pc};
 	tmpWritten = {x1};
 #else
@@ -565,7 +565,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // ldr w1, #4
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {pc};
 	tmpWritten = {w1};
 #else
@@ -578,7 +578,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // ldr w1, #256
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {pc};
 	tmpWritten = {w1};
 #else
@@ -591,7 +591,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // post-inc
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {x1};
 #else
@@ -602,7 +602,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {x1};
 #else
@@ -613,7 +613,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -624,7 +624,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -635,7 +635,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -646,7 +646,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -659,7 +659,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // imm
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {x1};
 #else
@@ -670,7 +670,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {x1};
 #else
@@ -681,7 +681,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -692,7 +692,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -703,7 +703,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -714,7 +714,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -725,7 +725,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {x1};
 #else
@@ -738,7 +738,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // reg offset not ext
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x3};
 	tmpWritten = {x1};
 #else
@@ -749,7 +749,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x3};
 	tmpWritten = {w1};
 #else
@@ -760,7 +760,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x3};
 	tmpWritten = {w1};
 #else
@@ -771,7 +771,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x3};
 	tmpWritten = {w1};
 #else
@@ -782,7 +782,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x3};
 	tmpWritten = {w1};
 #else
@@ -793,7 +793,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x3};
 	tmpWritten = {x1};
 #else
@@ -806,7 +806,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // pre inc
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {x1};
 #else
@@ -817,7 +817,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {x1};
 #else
@@ -828,7 +828,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -839,7 +839,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -850,7 +850,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -861,7 +861,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -872,7 +872,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {x1};
 #else
@@ -885,7 +885,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // ex
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {x1};
 #else
@@ -896,7 +896,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -907,7 +907,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -918,7 +918,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -931,7 +931,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 //
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -942,7 +942,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -953,7 +953,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -964,53 +964,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {x2};
-	tmpWritten = {w1};
-#else
-	tmpRead = list_of(x2);
-	tmpWritten = list_of(w1);
-#endif
-expectedRead.push_back(tmpRead);
-expectedWritten.push_back(tmpWritten);
-tmpRead.clear();
-tmpWritten.clear();
-
-//
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {x2};
-	tmpWritten = {x1};
-#else
-	tmpRead = list_of(x2);
-	tmpWritten = list_of(x1);
-#endif
-expectedRead.push_back(tmpRead);
-expectedWritten.push_back(tmpWritten);
-tmpRead.clear();
-tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {x2};
-	tmpWritten = {x1};
-#else
-	tmpRead = list_of(x2);
-	tmpWritten = list_of(x1);
-#endif
-expectedRead.push_back(tmpRead);
-expectedWritten.push_back(tmpWritten);
-tmpRead.clear();
-tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {x2};
-	tmpWritten = {x1};
-#else
-	tmpRead = list_of(x2);
-	tmpWritten = list_of(x1);
-#endif
-expectedRead.push_back(tmpRead);
-expectedWritten.push_back(tmpWritten);
-tmpRead.clear();
-tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -1023,7 +977,40 @@ tmpRead.clear();
 tmpWritten.clear();
 
 //
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
+	tmpRead = {x2};
+	tmpWritten = {x1};
+#else
+	tmpRead = list_of(x2);
+	tmpWritten = list_of(x1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
+	tmpRead = {x2};
+	tmpWritten = {x1};
+#else
+	tmpRead = list_of(x2);
+	tmpWritten = list_of(x1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
+	tmpRead = {x2};
+	tmpWritten = {x1};
+#else
+	tmpRead = list_of(x2);
+	tmpWritten = list_of(x1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -1034,7 +1021,9 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+
+//
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1};
 #else
@@ -1045,7 +1034,18 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
+	tmpRead = {x2};
+	tmpWritten = {w1};
+#else
+	tmpRead = list_of(x2);
+	tmpWritten = list_of(w1);
+#endif
+expectedRead.push_back(tmpRead);
+expectedWritten.push_back(tmpWritten);
+tmpRead.clear();
+tmpWritten.clear();
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {x1, x3};
 #else
@@ -1056,7 +1056,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {x1, x3};
 #else
@@ -1069,7 +1069,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1, w3};
 #else
@@ -1080,7 +1080,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {w1, w3};
 #else
@@ -1093,7 +1093,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // pair
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1, x2};
 #else
@@ -1104,7 +1104,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1, x2};
 #else
@@ -1115,7 +1115,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1, x2};
 #else
@@ -1126,7 +1126,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1, x2};
 #else
@@ -1137,7 +1137,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1, x2};
 #else
@@ -1150,7 +1150,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // unscaled
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {w1};
 #else
@@ -1161,7 +1161,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1};
 #else
@@ -1172,7 +1172,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1};
 #else
@@ -1183,7 +1183,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {w1};
 #else
@@ -1194,7 +1194,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1};
 #else
@@ -1205,7 +1205,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1};
 #else
@@ -1218,7 +1218,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // unpre
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {w1};
 #else
@@ -1229,7 +1229,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1};
 #else
@@ -1240,7 +1240,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1};
 #else
@@ -1251,7 +1251,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {w1};
 #else
@@ -1262,7 +1262,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1};
 #else
@@ -1273,7 +1273,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3};
 	tmpWritten = {x1};
 #else
@@ -1286,7 +1286,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // store 155
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1};
 	tmpWritten = {};
 #else
@@ -1297,7 +1297,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1};
 	tmpWritten = {};
 #else
@@ -1308,7 +1308,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, w1};
 	tmpWritten = {};
 #else
@@ -1319,7 +1319,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, w1};
 	tmpWritten = {};
 #else
@@ -1332,7 +1332,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 //161
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1};
 	tmpWritten = {};
 #else
@@ -1343,7 +1343,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1};
 	tmpWritten = {};
 #else
@@ -1354,7 +1354,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, w1};
 	tmpWritten = {};
 #else
@@ -1365,7 +1365,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, w1};
 	tmpWritten = {};
 #else
@@ -1378,7 +1378,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // 166
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1, x3};
 	tmpWritten = {};
 #else
@@ -1389,7 +1389,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1,x3};
 	tmpWritten = {};
 #else
@@ -1400,7 +1400,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, w1, x3};
 	tmpWritten = {};
 #else
@@ -1411,7 +1411,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, w1, x3};
 	tmpWritten = {};
 #else
@@ -1424,7 +1424,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // 171
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1};
 	tmpWritten = {};
 #else
@@ -1435,7 +1435,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1};
 	tmpWritten = {};
 #else
@@ -1446,7 +1446,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, w1};
 	tmpWritten = {};
 #else
@@ -1457,7 +1457,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, w1};
 	tmpWritten = {};
 #else
@@ -1470,7 +1470,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // 176
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, w1};
 	tmpWritten = {w0};
 #else
@@ -1481,7 +1481,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, w1};
 	tmpWritten = {w0};
 #else
@@ -1492,7 +1492,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, w1};
 	tmpWritten = {w0};
 #else
@@ -1503,7 +1503,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, w1, w3};
 	tmpWritten = {w0};
 #else
@@ -1516,7 +1516,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 //  181
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1, x3};
 	tmpWritten = {};
 #else
@@ -1527,7 +1527,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1, x3};
 	tmpWritten = {};
 #else
@@ -1538,7 +1538,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1, x3};
 	tmpWritten = {};
 #else
@@ -1549,7 +1549,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1, x3};
 	tmpWritten = {};
 #else
@@ -1560,7 +1560,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x1, x3};
 	tmpWritten = {};
 #else
@@ -1573,7 +1573,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // 187
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, w1};
 	tmpWritten = {};
 #else
@@ -1584,7 +1584,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, x1};
 	tmpWritten = {};
 #else
@@ -1595,7 +1595,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, w1};
 	tmpWritten = {};
 #else
@@ -1608,7 +1608,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // 191
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, x1};
 	tmpWritten = {};
 #else
@@ -1619,7 +1619,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, w1};
 	tmpWritten = {};
 #else
@@ -1630,7 +1630,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, w1};
 	tmpWritten = {};
 #else
@@ -1643,7 +1643,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // 195
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, w1};
 	tmpWritten = {};
 #else
@@ -1654,7 +1654,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, x1};
 	tmpWritten = {};
 #else
@@ -1665,7 +1665,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, w1};
 	tmpWritten = {};
 #else
@@ -1678,7 +1678,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // 198
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, x1, x2};
 	tmpWritten = {w0};
 #else
@@ -1689,7 +1689,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {w1, x3};
 	tmpWritten = {w0};
 #else
@@ -1700,7 +1700,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x1, x3};
 	tmpWritten = {w0};
 #else
@@ -1711,7 +1711,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {w1, x3};
 	tmpWritten = {w0};
 #else
@@ -1724,7 +1724,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 //203
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, x2};
 	tmpWritten = {x1};
 #else
@@ -1735,7 +1735,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, x2};
 	tmpWritten = {x1};
 #else
@@ -1746,7 +1746,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, x2};
 	tmpWritten = {w1};
 #else
@@ -1757,7 +1757,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {w3, x2};
 	tmpWritten = {x1};
 #else
@@ -1770,7 +1770,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 //208
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x3, x2};
 	tmpWritten = {x1};
 #else
@@ -1781,7 +1781,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x1, x2, pstate};
 	tmpWritten = {x0};
 #else
@@ -1792,7 +1792,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x1, x2, pstate};
 	tmpWritten = {x0};
 #else
@@ -1803,7 +1803,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x1, x2, pstate};
 	tmpWritten = {x0};
 #else
@@ -1816,7 +1816,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 //213
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x1};
 	tmpWritten = {x0};
 #else
@@ -1827,7 +1827,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {w1};
 	tmpWritten = {w0};
 #else
@@ -1838,7 +1838,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {};
 	tmpWritten = {x0};
 #else
@@ -1849,7 +1849,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {};
 	tmpWritten = {x0};
 #else
@@ -1862,7 +1862,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 //218
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {};
 	tmpWritten = {w0};
 #else
@@ -1873,7 +1873,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {};
 	tmpWritten = {x0};
 #else
@@ -1884,7 +1884,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {};
 	tmpWritten = {x0};
 #else
@@ -1895,7 +1895,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {};
 	tmpWritten = {w0};
 #else
@@ -1908,7 +1908,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 // 223
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {pc};
 	tmpWritten = {w30};
 #else
@@ -1919,7 +1919,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {pc};
 	tmpWritten = {x30};
 #else
@@ -1930,7 +1930,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x0};
 	tmpWritten = {w15};
 #else
@@ -1941,7 +1941,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x30};
 	tmpWritten = {x15};
 #else
@@ -1955,7 +1955,7 @@ tmpWritten.clear();
 
 
 // 228
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {sp};
 	tmpWritten = {w29};
 #else
@@ -1966,7 +1966,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {sp};
 	tmpWritten = {x29};
 #else
@@ -1977,7 +1977,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, zr};
 	tmpWritten = {x1};
 #else
@@ -1988,7 +1988,7 @@ expectedRead.push_back(tmpRead);
 expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {sp};
 	tmpWritten = {x1};
 #else
@@ -2001,7 +2001,7 @@ tmpRead.clear();
 tmpWritten.clear();
 
 
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {pc};
 #else
 	tmpRead = list_of(pc);
@@ -2011,7 +2011,7 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {pc};
 #else
 	tmpRead = list_of(pc);
@@ -2021,7 +2021,7 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {pc};
 #else
 	tmpRead = list_of(pc);
@@ -2031,7 +2031,7 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x1};
 #else
 	tmpRead = list_of(x1);
@@ -2041,7 +2041,7 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x30};
 #else
 	tmpRead = list_of(x30);
@@ -2051,7 +2051,7 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x2, x5};
 #else
 	tmpRead = list_of(x2)(x5);
@@ -2061,7 +2061,7 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x30, w1};
 #else
 	tmpRead = list_of(x30)(w1);
@@ -2071,7 +2071,7 @@ expectedWritten.push_back(tmpWritten);
 tmpRead.clear();
 tmpWritten.clear();
 
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
 	tmpRead = {x8, x5};
 #else
 	tmpRead = list_of(x8)(x5);

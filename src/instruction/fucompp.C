@@ -105,7 +105,7 @@ test_results_t fucompp_Mutator::executeTest()
         RegisterAST::Ptr r_st0(new RegisterAST(st0));
         RegisterAST::Ptr r_st1(new RegisterAST(st1));
 
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
         expectedRead = { r_st0, r_st1 };
         expectedWritten = { r_st0, r_st1 };
 #else

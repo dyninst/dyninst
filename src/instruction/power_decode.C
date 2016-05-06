@@ -150,7 +150,7 @@ test_results_t power_decode_Mutator::executeTest()
   // add.
   test_results_t retVal = PASSED;
   
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { r0, r8 };
   tmpWritten = { r9, cr0 };
 #else
@@ -163,7 +163,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // add
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { r0, r8 };
   tmpWritten = { r9 };
 #else
@@ -176,7 +176,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // addo
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { r0, r8 };
   tmpWritten = { r9, xer };
 #else
@@ -189,7 +189,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpWritten.clear();
 
   // fadd
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { fpr1, fpr2 };
   tmpWritten = { fpr0 };
 #else
@@ -201,7 +201,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // fadd.
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { fpr1, fpr2 };
   tmpWritten = { fpr0, fpscr };
 #else
@@ -215,7 +215,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpWritten.clear();
   // addi, r0
 
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpWritten = { r1 };
 #else
   tmpWritten = list_of(r1);
@@ -226,7 +226,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // addi, r1
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { r1 };
   tmpWritten = { r1 };
 #else
@@ -238,7 +238,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // stfq fpr0/fpr1, -1(0)
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { fpr0, fpr1 };
 #else
   tmpRead = list_of(fpr0)(fpr1);
@@ -249,7 +249,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // stfq fpr0/fpr1, 1(r1)
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { fpr0, fpr1, r1 };
 #else
   tmpRead = list_of(fpr0)(fpr1)(r1);
@@ -259,7 +259,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // fcmpu fpscr7, fpr0, fpr1
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { fpr0, fpr1 };
   tmpWritten = {fpscr7 };
 #else
@@ -271,7 +271,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // cmp cr7, r0, r1
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { r0, r1 };
   tmpWritten = { cr7 };
 #else
@@ -283,7 +283,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // mtcrf cr0, cr2, cr4, cr6, r0
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { r0 };
   tmpWritten = { cr0, cr2, cr4, cr6 };
 #else
@@ -295,7 +295,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // mtfsf fpscr0, fpscr2, fpscr4, fpscr6, fpr0
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { fpr0 };
   tmpWritten = { fpscr0, fpscr2, fpscr4, fpscr6 };
 #else
@@ -307,7 +307,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // lwz r0, 0(r1)
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { r1 };
   tmpWritten = { r0 };
 #else
@@ -319,7 +319,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // lwzu r0, 0(r1)
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { r1 };
   tmpWritten = { r0, r1 };
 #else
@@ -331,7 +331,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // lwzx r0, r2(r1)
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { r1, r2 };
   tmpWritten = { r0 };
 #else
@@ -343,7 +343,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // lwzux r0, r2(r1)
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { r1, r2 };
   tmpWritten = { r0, r1 };
 #else
@@ -355,7 +355,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // rlimi r0, r1
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { r0 };
   tmpWritten = { r1 };
 #else
@@ -367,7 +367,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // fpmul fpr0, fpr1, fpr2
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { fpr1, fpr2, fsr1, fsr2 };
   tmpWritten = { fpr0, fsr0 };
 #else
@@ -380,7 +380,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpWritten.clear();
 #if defined(os_bgq_test)
   // qvfxmadds
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { fpr0, fpr1, fpr2, fsr0, fsr2 };
   tmpWritten = { fpr0, fsr0 };
 #else
@@ -393,7 +393,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpWritten.clear();
 #else
   // fxmul fpr0, fpr1
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { fpr1, fpr2, fsr1, fsr2 };
   tmpWritten = { fpr0, fsr0 };
 #else
@@ -406,7 +406,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpWritten.clear();
 #endif
   // fxcpmul fpr0, fpr1
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { fpr1, fpr2, fsr2 };
   tmpWritten = { fpr0, fsr0 };
 #else
@@ -419,7 +419,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpWritten.clear();
 #if defined(os_bgq_test)
   // qvfxxnpmadds
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { fpr0, fpr1, fpr2, fsr0, fsr2 };
   tmpWritten = { fpr0, fsr0 };
 #else
@@ -432,7 +432,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpWritten.clear();
 #else
   // fxcsmul fpr0, fpr1
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { fpr2, fsr1, fsr2 };
   tmpWritten = { fpr0, fsr0 };
 #else
@@ -445,7 +445,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpWritten.clear();
 #endif
   // bdnzl cr0, +0x100
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { pc, cr0, ctr };
   tmpWritten = {pc, ctr, lr };
 #else
@@ -457,7 +457,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // bdnz cr0, +0x100
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { pc, cr0, ctr };
   tmpWritten = { pc, ctr };
 #else
@@ -469,7 +469,7 @@ test_results_t power_decode_Mutator::executeTest()
   tmpRead.clear();
   tmpWritten.clear();
   // lhzux r5, r7, r9
-#if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+#if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows) || _MSC_VER >= 1900)
   tmpRead = { r7, r9 };
   tmpWritten = { r5, r7 };
 #else
