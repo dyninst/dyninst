@@ -71,7 +71,6 @@
 #define snprintf _snprintf
 #elif defined(_MSC_VER)
 #include <dbghelp.h>
-//#include <cvconst.h>
 #endif
 
 #if defined(os_vxworks)
