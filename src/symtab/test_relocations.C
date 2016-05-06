@@ -76,6 +76,8 @@ class test_relocations_Mutator : public SymtabMutator {
            libc_dirs.push_back("/lib/i386-linux-gnu");
            // 64-bit ubuntu
            libc_dirs.push_back("/lib/x86_64-linux-gnu");
+           // PowerpcLE 64-bit ubuntu
+           libc_dirs.push_back("/lib/powerpc64le-linux-gnu");
            
            for (unsigned i = 0; i < libc_dirs.size(); ++i) {
               if (NULL == (dirp = opendir(libc_dirs[i].c_str()))) {

@@ -211,6 +211,7 @@ test_results_t pc_tlsMutator::executeTest()
          return FAILED;
       }
 
+      addrmsg.addr = comp->adjustFunctionEntryAddress(proc, addrmsg.addr);
       result = proc->addBreakpoint(addrmsg.addr, bp);
       if (!result) {
          logerror("Failed to add breakpoint\n");

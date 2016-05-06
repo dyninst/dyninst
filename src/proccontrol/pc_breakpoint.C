@@ -30,6 +30,7 @@
 #include "proccontrol_comp.h"
 #include "communication.h"
 #include "PCProcess.h"
+#include "SymtabReader.h"
 #include "Event.h"
 
 #include <stdio.h>
@@ -164,7 +165,7 @@ test_results_t pc_breakpointMutator::executeTest()
             return FAILED;
          }
        
-         bp_addrs[j][k] = (Dyninst::Address) addrmsg.addr;
+         bp_addrs[j][k] = comp->adjustFunctionEntryAddress(proc, addrmsg.addr);
       }  
      
       bool result = proc->stopProc();

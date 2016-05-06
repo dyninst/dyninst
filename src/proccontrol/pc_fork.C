@@ -29,6 +29,7 @@
  */
 #include "proccontrol_comp.h"
 #include "communication.h"
+#include "SymtabReader.h"
 
 #include <cstdio>
 
@@ -158,7 +159,8 @@ test_results_t pc_forkMutator::executeTest()
          logerror("Unexpected addr code\n");
          myerror = true;
       }
-      Address bp_addr = addr.addr;
+
+      Address bp_addr = comp->adjustFunctionEntryAddress(proc, addr.addr);
       
       result = proc->stopProc();
       if (!result) {

@@ -29,6 +29,7 @@
  */
 #include "proccontrol_comp.h"
 #include "communication.h"
+#include "SymtabReader.h"
 
 //this should be changed after adding compile flag
 
@@ -183,8 +184,7 @@ test_results_t pc_singlestepMutator::executeTest()
    std::set<Thread::ptr> singlestep_threads;
    std::set<Thread::ptr> regular_threads;
 
-   for (std::vector<Process::ptr>::iterator i = comp->procs.begin();
-        i != comp->procs.end(); i++) {
+   for (std::vector<Process::ptr>::iterator i = comp->procs.begin(); i != comp->procs.end(); i++) {
       Process::ptr proc = *i;
       bool result = proc->continueProc();
       if (!result) {
@@ -194,24 +194,23 @@ test_results_t pc_singlestepMutator::executeTest()
 
       proc_info_ss &pi = pinfo[proc];
 
-	  send_addr addrmsg;
-	  result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), proc);
-	  if (!result) {
-		  logerror("Failed to receive initial breakpoint address\n");
-		  myerror = true;
-	  }
-	  if (addrmsg.code != SENDADDR_CODE) {
-		  logerror("Unexpected addr code @ initial breakpoint message\n");
-		  myerror = true;
-	  }
-	  pi.start = addrmsg.addr;
-	  logerror("initial breakpoint at 0x%lx\n", addrmsg.addr);
+      send_addr addrmsg;
+      result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), proc);
+      if (!result) {
+         logerror("Failed to receive initial breakpoint address\n");
+         myerror = true;
+      }
+      if (addrmsg.code != SENDADDR_CODE) {
+         logerror("Unexpected addr code @ initial breakpoint message\n");
+         myerror = true;
+      }
+
+      pi.start = comp->adjustFunctionEntryAddress(proc, addrmsg.addr);
+      logerror("initial breakpoint at 0x%lx\n", addrmsg.addr);
 
       Address funcs[NUM_FUNCS];
-      for (unsigned j=0; j < NUM_FUNCS; j++)
-      {
-         bool result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr),
-                                          proc);
+      for (unsigned j=0; j < NUM_FUNCS; j++) {
+         bool result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), proc);
          if (!result) {
             logerror("Failed to receive addr message\n");
             myerror = true;
@@ -220,8 +219,8 @@ test_results_t pc_singlestepMutator::executeTest()
             logerror("Unexpected addr code\n");
             myerror = true;
          }
-         pi.func[j] = addrmsg.addr;
-		 logerror("func %d at 0x%lx\n", j, addrmsg.addr);
+         pi.func[j] = comp->adjustFunctionEntryAddress(proc, addrmsg.addr);
+         logerror("func %d at 0x%lx\n", j, pi.func[j]);
       }
 
       result = proc->stopProc();
@@ -231,62 +230,60 @@ test_results_t pc_singlestepMutator::executeTest()
       }
 
       Dyninst::Address addr = pi.func[BP_FUNC];
-	  logerror("inserting breakpoint at 0x%lx\n", addr);
+      logerror("inserting breakpoint at 0x%lx\n", addr);
       result = proc->addBreakpoint(addr, bp);
       if (!result) {
          logerror("Failed to insert breakpoint\n");
          myerror = true;
       }
 
-	  /* Windows has a problem where setting singlestep on a thread in a syscall is just ignored,
-	     without any sort of failure. We insert a breakpoint early in process execution to ensure
-		 that this is caught. */
-	  addr = pi.start;
-	  logerror("Inserting windows workaround breakpoint at 0x%lx\n", addr);
-	  result = proc->addBreakpoint(addr, early_bp);
+      /* Windows has a problem where setting singlestep on a thread in a syscall is just ignored,
+       * without any sort of failure. We insert a breakpoint early in process execution to ensure
+       * that this is caught.
+       */
+      addr = pi.start;
+      logerror("Inserting windows workaround breakpoint at 0x%lx\n", addr);
+      result = proc->addBreakpoint(addr, early_bp);
 
       syncloc sync_msg;
       sync_msg.code = SYNCLOC_CODE;
-	  logerror("Mutator sending sync message\n");
+      logerror("Mutator sending sync message\n");
 
-      result = comp->send_message((unsigned char *) &sync_msg, sizeof(sync_msg),
-                                       proc);
+      result = comp->send_message((unsigned char *) &sync_msg, sizeof(sync_msg), proc);
 
       if (!result) {
          logerror("Failed to send sync message to process\n");
          myerror = true;
       }
 
-// move the setting SS later after the mutatee recv and then send the
-// msg, in order to avoid the mutatee stepping into SS mode via recv
-// and send.
-// we use a different testing stragedy for now
-//
+      // move the setting SS later after the mutatee recv and then send the
+      // msg, in order to avoid the mutatee stepping into SS mode via recv
+      // and send.
+      // we use a different testing stragedy for now
+      //
 
       ThreadPool::iterator k;
       int count = 0;
 
-	  for (k = proc->threads().begin(); k != proc->threads().end(); k++)
-      {
+      for (k = proc->threads().begin(); k != proc->threads().end(); k++) {
          //Singlestep half of the threads.
          Thread::ptr thrd = *k;
-		 Dyninst::Address startAddr = thrd->getStartFunction();
-		 Dyninst::THR_ID tid = thrd->getTID();
-		 logerror("Thread %d has initial function at %p\n", tid, startAddr);
-		 if ((count++ % 2 == 0) || (thrd->isInitialThread())) {
+         Dyninst::Address startAddr = thrd->getStartFunction();
+         Dyninst::THR_ID tid = thrd->getTID();
+         logerror("Thread %d has initial function at %p\n", tid, startAddr);
+         if ((count++ % 2 == 0) || (thrd->isInitialThread())) {
             singlestep_threads.insert(thrd);
-			logerror("Thread %d (start %p) single-stepping\n", tid, startAddr);
+            logerror("Thread %d (start %p) single-stepping\n", tid, startAddr);
             thrd->setSingleStepMode(true);
-		 }
+         }
          else {
-			 logerror("Thread %d (start %p) running normally\n", tid, startAddr);
+            logerror("Thread %d (start %p) running normally\n", tid, startAddr);
             regular_threads.insert(thrd);
          }
       }
    }
 
-   for (std::vector<Process::ptr>::iterator i = comp->procs.begin();
-        i!= comp->procs.end(); i++) {
+   for (std::vector<Process::ptr>::iterator i = comp->procs.begin(); i!= comp->procs.end(); i++) {
       Process::ptr proc = *i;
       bool result = proc->continueProc();
       if (!result) {
@@ -311,8 +308,7 @@ test_results_t pc_singlestepMutator::executeTest()
    }
 
    std::set<Thread::ptr>::iterator i;
-   for (i = singlestep_threads.begin(); i != singlestep_threads.end(); i++)
-   {
+   for (i = singlestep_threads.begin(); i != singlestep_threads.end(); i++) {
       logerror("Results for thread %d/%d\n", (*i)->getProcess()->getPid(), (*i)->getLWP());
       thread_info &ti = tinfo[*i];
       if (ti.steps == 0) {
@@ -321,8 +317,7 @@ test_results_t pc_singlestepMutator::executeTest()
       }
       for (unsigned j = 0; j < NUM_FUNCS; j++) {
          if (j > STOP_FUNC) {
-            if (ti.hit_funcs[j] != -1)
-            {
+            if (ti.hit_funcs[j] != -1) {
                logerror("Stop function was single stepped\n");
                myerror = true;
             }
@@ -341,9 +336,7 @@ test_results_t pc_singlestepMutator::executeTest()
                logerror("Function did not execute breakpoint\n");
                myerror = true;
             }
-            if (!((ti.hit_funcs[j] == j && ti.breakpoint == j+1) ||
-                  (ti.hit_funcs[j] == j+1 && ti.breakpoint == j)))
-            {
+            if (!((ti.hit_funcs[j] == j && ti.breakpoint == j+1) || (ti.hit_funcs[j] == j+1 && ti.breakpoint == j))) {
                logerror("Breakpoint or function was executed out of order\n");
                myerror = true;
             }
@@ -362,14 +355,13 @@ test_results_t pc_singlestepMutator::executeTest()
          }
       }
    }
-   for (i = regular_threads.begin(); i != regular_threads.end(); i++)
-   {
+   for (i = regular_threads.begin(); i != regular_threads.end(); i++) {
       thread_info &ti = tinfo[*i];
       if (ti.steps != 0) {
          logerror("Regular thread had single steps.\n");
          myerror = true;
       }
-	  for (unsigned j = 0; j < NUM_FUNCS; j++) {
+      for (unsigned j = 0; j < NUM_FUNCS; j++) {
          if (ti.hit_funcs[j] != -1) {
             logerror("Thread singlestepped over function\n");
             myerror = true;

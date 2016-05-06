@@ -31,6 +31,7 @@
 #include "communication.h"
 #include "PCProcess.h"
 #include "Event.h"
+#include "SymtabReader.h"
 
 #include <stdio.h>
 
@@ -167,7 +168,8 @@ test_results_t pc_hw_breakpointMutator::executeTest()
             Process::removeEventCallback(event_bp);
             return FAILED;
          }
-         pdata.addrs[j] = addrmsg.addr;
+
+         pdata.addrs[j] = comp->adjustFunctionEntryAddress(proc, addrmsg.addr);
          pdata.bp_active[j] = false;
          pdata.bp_run[j] = false;
          pdata.times_hit[j] = 0;

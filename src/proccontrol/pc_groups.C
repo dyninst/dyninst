@@ -29,6 +29,7 @@
  */
 #include "proccontrol_comp.h"
 #include "communication.h"
+#include "SymtabReader.h"
 
 using namespace std;
 
@@ -45,7 +46,7 @@ public:
    virtual test_results_t executeTest();
    void waitfor_sync();
    void trigger_sync();
-   AddressSet::ptr getAddresses(ProcessSet::ptr pset);
+   AddressSet::ptr getAddresses(ProcessSet::ptr pset, bool isFunctionAddress);
 #if defined(os_windows_test)
    AddressSet::ptr getFreeAddresses(ProcessSet::ptr pset);
 #endif
@@ -87,7 +88,7 @@ void pc_groupsMutator::waitfor_sync() {
    free(syncs);
 }
 
-AddressSet::ptr pc_groupsMutator::getAddresses(ProcessSet::ptr pset) {
+AddressSet::ptr pc_groupsMutator::getAddresses(ProcessSet::ptr pset, bool isFunctionAddress) {
    AddressSet::ptr aset = AddressSet::newAddressSet();
    
    for (ProcessSet::iterator i = pset->begin(); i != pset->end(); i++) {
@@ -104,6 +105,9 @@ AddressSet::ptr pc_groupsMutator::getAddresses(ProcessSet::ptr pset) {
          error = true;
          return AddressSet::ptr();
       }
+
+      if (isFunctionAddress)
+         addr.addr = comp->adjustFunctionEntryAddress(p, addr.addr);
       aset->insert(addr.addr, p);
    }
    return aset;
@@ -282,14 +286,15 @@ test_results_t pc_groupsMutator::executeTest()
       return FAILED;
    }
    
-   data_loc = getAddresses(pset);
+   data_loc = getAddresses(pset, false);
    if (error)
       return FAILED;
-   bp_loc = getAddresses(pset);
+
+   bp_loc = getAddresses(pset, true);
    if (error)
       return FAILED;
 #if !defined(os_windows_test)
-   free_loc = getAddresses(pset);
+   free_loc = getAddresses(pset, false);
 #endif
    if (error)
       return FAILED;
