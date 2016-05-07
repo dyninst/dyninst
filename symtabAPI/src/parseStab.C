@@ -1046,12 +1046,15 @@ static char *parseCrossRef(typeCollection *moduleTypes,const char * /*name*/,
             if (xreftype == 'e') {
                 newType = new typeEnum(ID, temp);
 		moduleTypes->addOrUpdateType((typeEnum *) newType);
+                newType->decrRefCount();
             } else if (xreftype == 'u') {
                 newType = new typeUnion(ID, temp);
 		moduleTypes->addOrUpdateType((typeEnum *) newType);
+                newType->decrRefCount();
             } else {
                 newType = new typeStruct(ID, temp);
 		moduleTypes->addOrUpdateType((typeEnum *) newType);
+                newType->decrRefCount();
             }
         }         
     } else {
@@ -1291,6 +1294,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
        Type *newType = new typeScalar(ID, size, name);
        //Add to Collection
        tc->addOrUpdateType((typeScalar *) newType);
+       newType->decrRefCount();
    }
    else {
        //Range
@@ -1320,6 +1324,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 				   low_conv, hi_conv, tName);
        //Add to Collection
        tc->addOrUpdateType((typeSubrange *) newType);
+       newType->decrRefCount();
    }
    free(low);
    free(hi);

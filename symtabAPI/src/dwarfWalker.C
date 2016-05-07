@@ -1239,15 +1239,18 @@ bool DwarfWalker::parseTypeReferences() {
       case DW_TAG_subroutine_type:
          indirectType = new typeFunction(type_id(), typePointedTo, curName());
          tc()->addOrUpdateType((typeFunction *) indirectType );
+         indirectType->decrRefCount();
          break;
       case DW_TAG_ptr_to_member_type:
       case DW_TAG_pointer_type:
          indirectType = new typePointer(type_id(), typePointedTo, curName());
          tc()->addOrUpdateType((typePointer *) indirectType );
+         indirectType->decrRefCount();
          break;
       case DW_TAG_reference_type:
          indirectType = new typeRef(type_id(), typePointedTo, curName());
          tc()->addOrUpdateType((typeRef *) indirectType );
+         indirectType->decrRefCount();
          break;
       default:
          return false;
