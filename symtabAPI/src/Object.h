@@ -133,7 +133,7 @@ public:
     SYMTAB_EXPORT void clearSymsToMods();
     SYMTAB_EXPORT bool hasError() const;
     SYMTAB_EXPORT virtual bool isBigEndianDataEncoding() const { return false; }
-    SYMTAB_EXPORT virtual bool isPPC64V2API() const { return false; }
+    SYMTAB_EXPORT virtual bool getABIVersion(int & /*major*/, int & /*minor*/) const { return false; }
     
     virtual void setTruncateLinePaths(bool value);
     virtual bool getTruncateLinePaths();
