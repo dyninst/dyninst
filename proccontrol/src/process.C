@@ -241,7 +241,7 @@ bool int_process::attachThreads()
             continue;
          }
          pthrd_printf("Creating new thread for %d/%d during attach\n", pid, *i);
-         thr = int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
+         int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
          found_new_threads = true;
       }
    } while (found_new_threads);

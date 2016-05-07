@@ -513,8 +513,7 @@ static int_addressSet::iterator get_end(AddressSet::ptr as) {
 static void thread_err_check(int_thread *ithr, err_t *thread_error) {
    if (!ithr) {
       *thread_error = err_exited;
-   }
-   if (ithr->getUserState().getState() == int_thread::running) {
+   } else if (ithr->getUserState().getState() == int_thread::running) {
       *thread_error = err_notrunning;
    }
 }
@@ -3362,10 +3361,11 @@ bool ThreadTrackingSet::refreshThreads() const
    int_processSet *procset = ps->getIntProcessSet();
    procset_iter iter("refreshThreads", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_threadTracking *proc = (*i)->llproc()->getThreadTracking();
+      int_process *p = (*i)->llproc();
+      int_threadTracking *proc = p->getThreadTracking();
       if (!proc) {
-         perr_printf("Thread tracking not supported on process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "No thread tracking on this platform\n");
+         perr_printf("Thread tracking not supported on process %d\n", p->getPid());
+         p->setLastError(err_unsupported, "No thread tracking on this platform\n");
          had_error = true;
          continue;
       }
@@ -3421,10 +3421,11 @@ bool LWPTrackingSet::refreshLWPs() const
    set<int_process *> all_procs;
    set<int_process *> change_procs;
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_LWPTracking *proc = (*i)->llproc()->getLWPTracking();
+      int_process *p = (*i)->llproc();
+      int_LWPTracking *proc = p->getLWPTracking();
       if (!proc) {
-         perr_printf("LWP tracking not supported on process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "No LWP tracking on this platform\n");
+         perr_printf("LWP tracking not supported on process %d\n", p->getPid());
+         p->setLastError(err_unsupported, "No LWP tracking on this platform\n");
          had_error = true;
          continue;
       }
@@ -3498,10 +3499,11 @@ bool FollowForkSet::setFollowFork(FollowFork::follow_t f) const
    int_processSet *procset = ps->getIntProcessSet();
    procset_iter iter("setFollowFork", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_followFork *proc = (*i)->llproc()->getFollowFork();
+      int_process *p = (*i)->llproc();
+      int_followFork *proc = p->getFollowFork();
       if (!proc) {
-         perr_printf("Follow Fork not supported on process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "No follow fork control on this platform\n");
+         perr_printf("Follow Fork not supported on process %d\n", p->getPid());
+         p->setLastError(err_unsupported, "No follow fork control on this platform\n");
          had_error = true;
          continue;
       }
@@ -3627,10 +3629,11 @@ bool RemoteIOSet::getFileNames(FileSet *fset)
    int_processSet *procset = procs->getIntProcessSet();
    procset_iter iter("getFileNames", had_error, ERR_CHCK_NORM);   
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_remoteIO *proc = (*i)->llproc()->getRemoteIO();
+      int_process *p = (*i)->llproc();
+      int_remoteIO *proc = p->getRemoteIO();
       if (!proc) {
-         perr_printf("getFileNames attempted on non RemoteIO process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "getFileNames not supported on this platform");
+         perr_printf("getFileNames attempted on non RemoteIO process %d\n", p->getPid());
+         p->setLastError(err_unsupported, "getFileNames not supported on this platform");
          had_error = true;
          continue;
       }
@@ -3682,10 +3685,11 @@ bool RemoteIOSet::getFileStatData(FileSet *fset)
    for (FileSet::iterator i = fset->begin(); i != fset->end(); i++) {
       pthrd_printf("About to access proc %p\n", i->first->llproc());
       fflush(stderr);
-      int_remoteIO *proc = i->first->llproc()->getRemoteIO();
+      int_process *p = i->first->llproc();
+      int_remoteIO *proc = p->getRemoteIO();
       if (!proc) {
-         perr_printf("getFileStatData attempted on non RemoteIO process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "getFileStatData not supported on this platform");
+         perr_printf("getFileStatData attempted on non RemoteIO process %d\n", p->getPid());
+         p->setLastError(err_unsupported, "getFileStatData not supported on this platform");
          had_error = true;
          continue;
       }
@@ -3729,10 +3733,11 @@ bool RemoteIOSet::readFileContents(const FileSet *fset)
    set<FileReadResp_t *> resps;
 
    for (FileSet::const_iterator i = fset->begin(); i != fset->end(); i++) {
-      int_remoteIO *proc = i->first->llproc()->getRemoteIO();
+      int_process *p = i->first->llproc();
+      int_remoteIO *proc = p->getRemoteIO();
       if (!proc) {
-         perr_printf("getFileStatData attempted on non RemoteIO process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "getFileStatData not supported on this platform");
+         perr_printf("getFileStatData attempted on non RemoteIO process %d\n", p->getPid());
+         p->setLastError(err_unsupported, "getFileStatData not supported on this platform");
          had_error = true;
          continue;
       }

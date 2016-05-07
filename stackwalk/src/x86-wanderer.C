@@ -243,7 +243,7 @@ WandererHelper::pc_state WandererHelper::isPCInFunc(Address func_entry, Address 
          //32-bit mode.  Recognize common PLT idioms
          #define MAX_PLT32_IDIOM_SIZE 6
          unsigned char buffer[MAX_PLT32_IDIOM_SIZE];
-         result = proc->readMem(buffer, func_entry, MAX_PLT32_IDIOM_SIZE);
+         proc->readMem(buffer, func_entry, MAX_PLT32_IDIOM_SIZE);
          if (buffer[0] == 0xff && buffer[1] == 0xa3) {
             //Indirect jump off of ebx
             got_offset = *((int32_t*) (buffer+2));
@@ -265,7 +265,7 @@ WandererHelper::pc_state WandererHelper::isPCInFunc(Address func_entry, Address 
          //32-bit mode.  Recognize common PLT idioms
 #define MAX_PLT64_IDIOM_SIZE 6
          unsigned char buffer[MAX_PLT64_IDIOM_SIZE];
-         result = proc->readMem(buffer, func_entry, MAX_PLT64_IDIOM_SIZE);
+         proc->readMem(buffer, func_entry, MAX_PLT64_IDIOM_SIZE);
          if (buffer[0] == 0xff && buffer[1] == 0x25) {
             //PC Relative jump indirect
             got_abs = *((int32_t *) (buffer+2)) + func_entry + 6;
@@ -292,7 +292,7 @@ WandererHelper::pc_state WandererHelper::isPCInFunc(Address func_entry, Address 
 
       if (got_abs) {
          Address real_target;
-         result = proc->readMem(&real_target, got_abs, proc->getAddressWidth());
+         proc->readMem(&real_target, got_abs, proc->getAddressWidth());
          sw_printf("[%s:%u] - Computed PLT to be going through GOT abs %lx to "
                    "real target %lx\n", FILE__, __LINE__, got_abs, real_target);
          return isPCInFunc(real_target, pc);
