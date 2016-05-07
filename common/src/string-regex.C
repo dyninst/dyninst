@@ -77,6 +77,7 @@ void dedemangle( char * demangled, char * result )
        if (resultEnds)
 	 *resultEnds = '\0';
      }
+     assert(resultBegins);
      demangled = resultBegins;
    }
    if ( strrchr( demangled, '(' ) != NULL ) 

@@ -650,17 +650,19 @@ Address AddressTranslateSysV::getTrapAddrFromRdebug() {
             return 0;
         }
         if( !r_debug_native->is_valid() ) {
+            delete r_debug_native;
             return 0;
         }
         retVal = (Address) r_debug_native->r_brk();
         delete r_debug_native;
-    }else{
+    } else {
         r_debug_dyn<r_debug_dyn32> *r_debug_32 = new r_debug_dyn<r_debug_dyn32>(reader, r_debug_addr);
         if( !r_debug_32 ) {
             translate_printf("Failed to parse r_debug struct.\n", __FILE__, __LINE__);
             return 0;
         }
         if( !r_debug_32->is_valid() ) {
+            delete r_debug_32;
             return 0;
         }
         retVal = (Address) r_debug_32->r_brk();

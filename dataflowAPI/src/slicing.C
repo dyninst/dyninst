@@ -852,6 +852,7 @@ Slicer::handleCall(
            funlink = e;
         }
     }
+    assert(callee);
     
     if(followCall(p, callee, cur)) {
        if (widen) {

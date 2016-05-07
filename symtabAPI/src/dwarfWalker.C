@@ -702,7 +702,6 @@ bool DwarfWalker::parseRangeTypes() {
                break;
             }
             case DW_RANGES_ADDRESS_SELECTION:
-               cur_base = cur->dwr_addr2;
                break;
             case DW_RANGES_END:
                done = true;
@@ -823,7 +822,7 @@ bool DwarfWalker::parseVariable() {
    if (!findType(type, false)) return false;
    assert(type);
    
-   Dwarf_Unsigned variableLineNo;
+   Dwarf_Unsigned variableLineNo = 0;
    bool hasLineNumber = false;
    std::string fileName;
 
@@ -1004,7 +1003,7 @@ bool DwarfWalker::parseTypedef() {
    }
 
    typeTypedef * typedefType = new typeTypedef( type_id(), referencedType, curName());
-   typedefType = tc()->addOrUpdateType( typedefType );
+   tc()->addOrUpdateType( typedefType );
 
    return true;
 }
@@ -1065,7 +1064,7 @@ bool DwarfWalker::parseArray() {
                                          nameToUse); 
    assert( arrayType != NULL );
 
-   arrayType = tc()->addOrUpdateType( arrayType );
+   tc()->addOrUpdateType( arrayType );
    
    /* Don't parse the children again. */
    setParseChild(false);
@@ -1223,7 +1222,7 @@ bool DwarfWalker::parseConstPackedVolatile() {
 
    typeTypedef * modifierType = new typeTypedef(type_id(), type, curName());
    assert( modifierType != NULL );
-   modifierType = tc()->addOrUpdateType( modifierType );
+   tc()->addOrUpdateType( modifierType );
    return true;
 }
 
@@ -1239,22 +1238,21 @@ bool DwarfWalker::parseTypeReferences() {
    switch ( tag() ) {
       case DW_TAG_subroutine_type:
          indirectType = new typeFunction(type_id(), typePointedTo, curName());
-         indirectType = tc()->addOrUpdateType((typeFunction *) indirectType );
+         tc()->addOrUpdateType((typeFunction *) indirectType );
          break;
       case DW_TAG_ptr_to_member_type:
       case DW_TAG_pointer_type:
          indirectType = new typePointer(type_id(), typePointedTo, curName());
-         indirectType = tc()->addOrUpdateType((typePointer *) indirectType );
+         tc()->addOrUpdateType((typePointer *) indirectType );
          break;
       case DW_TAG_reference_type:
          indirectType = new typeRef(type_id(), typePointedTo, curName());
-         indirectType = tc()->addOrUpdateType((typeRef *) indirectType );
+         tc()->addOrUpdateType((typeRef *) indirectType );
          break;
       default:
          return false;
    }
 
-   assert( indirectType != NULL );
    return true;
 }
 
@@ -1892,11 +1890,12 @@ bool DwarfWalker::findVisibility(visibility_t &visibility) {
    /* Acquire the visibility, if any.  DWARF calls it accessibility
       to distinguish it from symbol table visibility. */
    Dwarf_Attribute visAttr;
+   bool ret = true;
    int status = dwarf_attr( entry(), DW_AT_accessibility, & visAttr, NULL );
    DWARF_CHECK_RET(status == DW_DLV_ERROR);
    if (status != DW_DLV_OK) {
       visibility = visPrivate;
-      return true;
+      return ret;
    }
 
    Dwarf_Unsigned visValue;
@@ -1907,13 +1906,14 @@ bool DwarfWalker::findVisibility(visibility_t &visibility) {
       case DW_ACCESS_protected: visibility = visProtected; break;
       case DW_ACCESS_private: visibility = visPrivate; break;
       default:
+         ret = false;
          //bperr ( "Uknown visibility, ignoring.\n" );
          break;
    } /* end visibility switch */
    
    dwarf_dealloc( dbg(), visAttr, DW_DLA_ATTR );
 
-   return true;
+   return ret;
 }
 
 bool DwarfWalker::findValue(long &value, bool &valid) {
@@ -1923,7 +1923,7 @@ bool DwarfWalker::findValue(long &value, bool &valid) {
    
    if (status != DW_DLV_OK) {
       valid = false;
-      return true;
+      return false;
    }
 
    Dwarf_Signed enumValue;

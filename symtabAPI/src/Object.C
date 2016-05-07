@@ -440,7 +440,7 @@ supportedLanguages AObject::pickLanguage(string &working_module, char *working_o
       if (sticky_fortran_modifier_flag)
       {
          //cerr << FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug." << endl;
-         working_lang = lang_Fortran_with_pretty_debug;
+         // working_lang = lang_Fortran_with_pretty_debug;
       }
       else if (working_options)
       {
@@ -460,7 +460,7 @@ supportedLanguages AObject::pickLanguage(string &working_module, char *working_o
                //cerr <<"Major Debug Ver. "<<ver_maj<< endl;
                if (ver_maj < 3)
                {
-                  working_lang = lang_Fortran_with_pretty_debug;
+                  // working_lang = lang_Fortran_with_pretty_debug;
                   sticky_fortran_modifier_flag = 1;
                   //cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug.  " << "Major Debug Ver. "<<ver_maj<<endl;
                }

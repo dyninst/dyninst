@@ -205,7 +205,11 @@ static unsigned char workspace[64];
     state[3] += d;
     state[4] += e;
     /* Wipe variables */
-    a = b = c = d = e = 0;
+    memset(&a, 0, sizeof(uint32_t));
+    memset(&b, 0, sizeof(uint32_t));
+    memset(&c, 0, sizeof(uint32_t));
+    memset(&d, 0, sizeof(uint32_t));
+    memset(&e, 0, sizeof(uint32_t));
 }
 
 
@@ -272,7 +276,7 @@ unsigned char finalcount[8];
          ((context->state[i>>2] >> ((3-(i & 3)) * 8) ) & 255);
     }
     /* Wipe variables */
-    i = 0;	/* JHB */
+    memset(&i, 0, sizeof(uint32_t));	/* JHB */
     memset(context->buffer, 0, 64);
     memset(context->state, 0, 20);
     memset(context->count, 0, 8);

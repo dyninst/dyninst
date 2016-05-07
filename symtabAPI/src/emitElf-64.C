@@ -807,6 +807,10 @@ bool emitElf64<ElfTypes>::driver(std::string fName) {
         }
     }
 
+    if(!newshdr) {
+        return false;
+    }
+
     // Add non-loadable sections at the end of object file
     if (!createNonLoadableSections(newshdr))
         return false;
@@ -846,6 +850,7 @@ bool emitElf64<ElfTypes>::driver(std::string fName) {
     newEhdr->e_shstrndx = scncount;
 
     // Move the section header to the end
+    assert(shdr);
     newEhdr->e_shoff = shdr->sh_offset + shdr->sh_size;
     if (newEhdr->e_shoff % 8)
         newEhdr->e_shoff += 8 - (
@@ -1150,6 +1155,7 @@ void emitElf64<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
     // sections.  Fill in the new section's data with what we just wrote.
     Elf_Data *data = elf_newdata(phdrs_scn);
     size_t total_size = (size_t) newEhdr->e_phnum * (size_t) newEhdr->e_phentsize;
+    assert(total_size);
     data->d_buf = malloc(total_size);
     memcpy(data->d_buf, phdr_data, total_size);
     data->d_size = total_size;
@@ -1917,6 +1923,8 @@ bool emitElf64<ElfTypes>::createSymbolTables(vector<Symbol *> &allSymbols) {
                 name = ".hash";
                 obj->addRegion(0, hashsecData, hashsecSize * sizeof(Elf_Word), name, Region::RT_HASH, true);
             }
+        } else {
+            free(hashsecData);
         }
 
         Elf_Dyn *dynsecData;
@@ -1941,8 +1949,10 @@ bool emitElf64<ElfTypes>::createSymbolTables(vector<Symbol *> &allSymbols) {
                                  dynsymbolNamesLength, dynsymbolStrs);
         }
 
-        if (!dynsymbolNamesLength)
+        if (!dynsymbolNamesLength) {
+            free(dynsyms);
             return true;
+        }
 
         char *dynstr = (char *) malloc(dynsymbolNamesLength);
         memcpy((void *) dynstr, (void *) olddynStrData, olddynStrSize);
@@ -2143,6 +2153,8 @@ void emitElf64<ElfTypes>::createRelocationSections(std::vector<relocationEntry> 
 
     reloc_size = j * sizeof(Elf_Rel) + k * sizeof(Elf_Rela);
     if (!reloc_size) {
+        free(rels);
+        free(relas);
         return;
     }
     if (isDynRelocs
@@ -2178,9 +2190,15 @@ void emitElf64<ElfTypes>::createRelocationSections(std::vector<relocationEntry> 
         rtype = Region::RT_PLTRELA;
         dsize_type = DT_PLTRELSZ;
         buffer = relas;
+        free(rels);
+        rels = nullptr;
     }
 
     if (buffer == NULL) {
+        if(rels) {
+          free(rels);
+        }
+        free(relas);
         log_elferror(err_func_, "Unknown relocation type encountered");
         return;
     }
@@ -2225,6 +2243,7 @@ void emitElf64<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&vernee
     for (; it != verneedEntries.end(); it++)
         verneedSecSize += sizeof(Elf_Verneed) + sizeof(Elf_Vernaux) * it->second.size();
 
+    assert(verneedSecSize);
     verneedSecData = (char *) malloc(verneedSecSize);
     unsigned curpos = 0;
     verneednum = 0;
@@ -2276,6 +2295,7 @@ void emitElf64<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&vernee
     for (iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++)
         verdefSecSize += sizeof(Elf_Verdef) + sizeof(Elf_Verdaux) * verdauxEntries[iter->second].size();
 
+    assert(verdefSecSize);
     verdefSecData = (char *) malloc(verdefSecSize);
     curpos = 0;
     verdefnum = 0;

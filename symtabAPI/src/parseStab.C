@@ -208,9 +208,10 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
    localVar *locVar = NULL;
    cnt= 0;
 
+   assert(mod);
    types_printf("parseStabString, mod %p/%s, linenum %d, stabstr %s\n",
 		mod,
-		(mod != NULL) ? mod->fileName().c_str() : "NULL",
+		mod->fileName().c_str(),
 		linenum, 
 		stabstr);
 
@@ -563,7 +564,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             cnt++; /*move past the 'r'*/
             /* get type reference */
 
-            symdescID = parseSymDesc(stabstr, cnt);
+            parseSymDesc(stabstr, cnt);
             break;
 
          case 'S':/* Global Static Variable */ 
@@ -1044,15 +1045,14 @@ static char *parseCrossRef(typeCollection *moduleTypes,const char * /*name*/,
             // it
             if (xreftype == 'e') {
                 newType = new typeEnum(ID, temp);
-		newType = moduleTypes->addOrUpdateType((typeEnum *) newType);
+		moduleTypes->addOrUpdateType((typeEnum *) newType);
             } else if (xreftype == 'u') {
                 newType = new typeUnion(ID, temp);
-		newType = moduleTypes->addOrUpdateType((typeEnum *) newType);
+		moduleTypes->addOrUpdateType((typeEnum *) newType);
             } else {
                 newType = new typeStruct(ID, temp);
-		newType = moduleTypes->addOrUpdateType((typeEnum *) newType);
+		moduleTypes->addOrUpdateType((typeEnum *) newType);
             }
-	    assert(newType);
         }         
     } else {
         /* don't know what it is?? */
@@ -1164,7 +1164,7 @@ static Type *parseArrayDef(Module *mod, const char *name,
 
 		typeArray *newAType = new typeArray(ID, ptrType, lowbound, hibound, tName, sizeHint);
 		// Add to Collection
-		newType = tc->addOrUpdateType((typeArray *) newAType);
+		tc->addOrUpdateType((typeArray *) newAType);
 
 		return newAType;
     }
@@ -1290,7 +1290,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
        //Create new type
        Type *newType = new typeScalar(ID, size, name);
        //Add to Collection
-       newType = tc->addOrUpdateType((typeScalar *) newType);
+       tc->addOrUpdateType((typeScalar *) newType);
    }
    else {
        //Range
@@ -1635,7 +1635,7 @@ static char *parseRefType(Module *mod, const char *name,
     typeRef *newType = new typeRef(ID, ptrType, tName);
 
     // Add to typeCollection
-    newType = tc->addOrUpdateType(newType);
+    tc->addOrUpdateType(newType);
     
     return(&(stabstr[cnt]));
 }
@@ -1726,7 +1726,7 @@ static char *parseFieldList(Module *mod, fieldListType *newType,
 
 	while (stabstr[cnt] && (stabstr[cnt] != ';')) 
 	{
-		typedescr = dataScalar;
+                typedescr = dataScalar;
 
 		if (stabstr[cnt] == '~') 
 		{
@@ -2111,7 +2111,6 @@ static char *parseTypeDef(Module *mod, char *stabstr,
     // //bperr( "parsing %s\n", stabstr);
     if (isSymId(stabstr[0])) 
 	{
-	typdescr = dataScalar;
 	type = parseSymDesc(stabstr, cnt);
 	 	    
     if (ID == type) 
@@ -2122,7 +2121,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
         std::string tName = convertCharToString(name);
         newType = new typeScalar(ID, 0, tName);
-		newType = tc->addOrUpdateType((typeScalar *) newType); 
+	tc->addOrUpdateType((typeScalar *) newType);
     } 
 	else if (stabstr[cnt] == '=') 
 	{
@@ -2136,16 +2135,16 @@ static char *parseTypeDef(Module *mod, char *stabstr,
         if (!oldType) oldType = Symtab::type_Untyped().get();
         std::string tName = convertCharToString(name);
         newType = new typeTypedef(ID, oldType, tName, sizeHint);
-		tc->addOrUpdateType((typeTypedef *) newType);
+	tc->addOrUpdateType((typeTypedef *) newType);
 
 	} 
 	else 
 	{
-		Type *oldType;
+	Type *oldType;
         std::string tName = convertCharToString(name);
         oldType = tc->findOrCreateType(type);
         newType = new typeTypedef(ID, oldType, tName, sizeHint);
-        newType = tc->addOrUpdateType((typeTypedef *) newType);
+        tc->addOrUpdateType((typeTypedef *) newType);
     }
     } else {
       switch (stabstr[0]) {
@@ -2166,7 +2165,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
             newType = new typePointer(ID, ptrType);
 	    // Add to typeCollection
-	    newType = tc->addOrUpdateType((typePointer *) newType);
+	    tc->addOrUpdateType((typePointer *) newType);
 	    return(&(stabstr[cnt]));
 	    break;
 	  }
@@ -2182,7 +2181,6 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	  	/* function with return type and prototype */
 
 		// g<typeUse>[<typeUse>]*#
-		typdescr = dataFunction;
 
 		cnt++; /* skip the g */
 	        type = parseTypeUse(mod, stabstr, cnt, name);
@@ -2221,7 +2219,6 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	  case 'f':
 	  {
 	        /* function type */
-		typdescr = dataFunction;
 
 		cnt++; /* skip the f */
 	        type = parseTypeUse(mod, stabstr, cnt, name);
@@ -2230,7 +2227,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		
                 std::string tName = convertCharToString(name);
 		newType = new typeFunction(ID, ptrType, tName);
-		newType = tc->addOrUpdateType((typeFunction *) newType);
+		tc->addOrUpdateType((typeFunction *) newType);
 
 		// skip to end - SunPro Compilers output extra info here - jkh 6/9/3
 		// cnt = strlen(stabstr);
@@ -2265,7 +2262,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		    std::string tName = convertCharToString(name);
 
 		    Type *newAType = new typeArray(ID, ptrType, 1, size, tName);
-		    newType = tc->addOrUpdateType((typeArray* ) newAType);
+		    tc->addOrUpdateType((typeArray* ) newAType);
 		}
 		break;
 
@@ -2280,7 +2277,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		int bytes = parseSymDesc(stabstr, cnt);
 
 		newType = new typeScalar(ID, bytes, name);
-		newType = tc->addOrUpdateType((typeScalar *) newType);
+		tc->addOrUpdateType((typeScalar *) newType);
 
 		if (stabstr[cnt] == ';') cnt++;	// skip the final ';'
 
@@ -2316,7 +2313,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 		newType = new typeScalar(ID, size, name);
 		//Add to Collection
-		newType = tc->addOrUpdateType((typeScalar *) newType);
+		tc->addOrUpdateType((typeScalar *) newType);
 
 		return &stabstr[cnt];
 		break;

@@ -602,7 +602,7 @@ bool AuxvParser::readAuxvInfo()
    * entry in guessed_addrs.  If a guessed_addr looks like the right
    * thing, then we'll go ahead and call it the vsyscall page.
    **/
-  unsigned num_maps;
+  unsigned num_maps = 0;
   map_entries *secondary_match = NULL;
   map_entries *maps = getVMMaps(pid, num_maps);
   for (unsigned i=0; i<guessed_addrs.size(); i++) {

@@ -888,7 +888,6 @@ namespace Dyninst
                       {
                         if(vex_vvvv < 0)
                         {
-                          vex_vvvv = 0;
                           break; /* Invalid instruction */
                         }
                           /* Operand comes from the VEX.vvvv bits */
