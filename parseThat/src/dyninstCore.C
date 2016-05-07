@@ -532,6 +532,7 @@ int launch_mutator()
           }
       }
 
+      assert(writeBE);
       writeBE->writeFile(config.writeFilePath);
    }
 
@@ -691,6 +692,7 @@ bool insertSummary(BPatch_function *func, BPatch_variableExpr *expr)
       summary.push_back(elem);
    }
 
+   assert(elem);
    elem->count.push_back(expr);
    sendMsg(config.outfd, ID_SUMMARY_INSERT, DEBUG, ID_PASS);
 

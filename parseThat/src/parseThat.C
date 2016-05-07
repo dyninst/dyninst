@@ -762,11 +762,23 @@ void parseArgs(int argc, char **argv)
                     if (!config.hunt_file)
                         config.hunt_file = stderr;
                 } else if (strcmp(ptr, "-hunt-low") == 0) {
+                    if (!arg) {
+                        fprintf(stderr, "-hunt-low requires a integer argument.\n");
+                        userError();
+                    }
                     config.hunt_low = atoi(arg);
                 } else if (strcmp(ptr, "-hunt-high") == 0) {
+                    if (!arg) {
+                        fprintf(stderr, "-hunt-high requires a integer argument.\n");
+                        userError();
+                    }
                     config.hunt_high = atoi(arg);
                 } else if (strcmp(ptr, "-trace") == 0) {
                     tempInt = 0;
+                    if (!arg) {
+                        fprintf(stderr, "-trace requires a numeric argument.\n");
+                        userError();
+                    }
                     if (isdigit(*arg)) {
                         tempInt = strtol(arg, &arg, 0);
                         if (needShift) ++i;
@@ -780,15 +792,15 @@ void parseArgs(int argc, char **argv)
                     if (!arg) {
                         fprintf(stderr, "No argument supplied to --use-transactions.  Using per-function as default.\n");
                         config.transMode = TRANS_FUNCTION;
-                    }
-
-                    for (unsigned j = 0; arg[j]; ++j) arg[j] = tolower(arg[j]);
-                    if (strcmp(arg, "func") == 0) config.transMode = TRANS_FUNCTION;
-                    else if (strcmp(arg, "mod") == 0)  config.transMode = TRANS_MODULE;
-                    else if (strcmp(arg, "proc") == 0) config.transMode = TRANS_PROCESS;
-                    else {
-                        fprintf(stderr, "Invalid argument supplied to --use-transactions.  Valid arguments are func, mod, or proc.\n");
-                        userError();
+                    } else {
+                        for (unsigned j = 0; arg[j]; ++j) arg[j] = tolower(arg[j]);
+                        if (strcmp(arg, "func") == 0) config.transMode = TRANS_FUNCTION;
+                        else if (strcmp(arg, "mod") == 0)  config.transMode = TRANS_MODULE;
+                        else if (strcmp(arg, "proc") == 0) config.transMode = TRANS_PROCESS;
+                        else {
+                            fprintf(stderr, "Invalid argument supplied to --use-transactions.  Valid arguments are func, mod, or proc.\n");
+                            userError();
+                        }
                     }
 
                 } else if (strcmp(ptr, "-wtx-target") == 0) {

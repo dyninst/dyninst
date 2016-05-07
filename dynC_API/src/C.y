@@ -603,6 +603,7 @@ variable_expr: IDENTIFIER
           $$ = new BPatch_nullExpr();
           if($1.isGlobal){
              yyerror(snippetGen->getError().c_str());
+             delete $$;
              YYABORT;
           }else{
              yyerrorNonUni(snippetGen->getError().c_str());
