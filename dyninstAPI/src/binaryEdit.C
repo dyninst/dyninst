@@ -870,11 +870,6 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
             }
             currFunc = tfunc;
             start = tracker->reloc();
-            size = 0;
-         }
-         else {
-            // Accumulate size
-            size = tracker->reloc() - start;
          }
       }
    }

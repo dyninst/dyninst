@@ -912,12 +912,14 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
 	fprintf(stderr, "[%s:%u] - Type error inserting instrumentation\n",
 		FILE__, __LINE__);
         //expr.ast_wrapper->debugPrint();
+         delete retHandle;
          return NULL;
       }
    }
 
    if (!points.size()) {
       inst_printf("%s[%d]:  request to insert snippet at zero points!\n", FILE__, __LINE__);
+      delete retHandle;
       return NULL;
    }
 
@@ -965,7 +967,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
      // There's no insertion set, instrument now
      bool tmp;
      if (!finalizeInsertionSet(false, &tmp)) {
-        return NULL;
+         delete retHandle;
+         return NULL;
      }
    }   
    // If we inserted nothing successfully, NULL

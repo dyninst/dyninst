@@ -1751,6 +1751,7 @@ const pdvector <image_variable *> *image::findVarVectorByPretty(const std::strin
         
         if (!symVar->getAnnotation(imv, ImageVariableUpPtrAnno)) {
             fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+            delete res;
             return NULL;
         }
 
@@ -1783,6 +1784,7 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
         
         if (!symVar->getAnnotation(imv, ImageVariableUpPtrAnno)) {
             fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+            delete res;
             return NULL;
         }
 

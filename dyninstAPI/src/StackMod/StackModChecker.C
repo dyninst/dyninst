@@ -518,6 +518,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                         point = entryPoints->at(0);
                     } else {
                         cleanupAndReturn = true;
+                        delete snip;
                         break;
                     }
                     stackmods_printf("\t Generating RANDOMIZE at function entry (0x%lx)\n", (Address)(point->getAddress()));

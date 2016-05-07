@@ -612,7 +612,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     bool useFPRs =  BPatch::bpatch->isForceSaveFPROn() ||
                   ( BPatch::bpatch->isSaveFPROn()      &&
                     gen.rs()->anyLiveFPRsAtEntry()     &&
-                    bt->saveFPRs() &&
+                    bt && bt->saveFPRs() &&
                     bt->makesCall() );
     bool alignStack = useFPRs || !bt || bt->checkForFuncCalls();
 
@@ -632,7 +632,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     // makesCall was added because our code spills registers around function
     // calls, and needs somewhere for those spills to go
     bool createFrame = !bt || bt->needsFrame() || useFPRs || bt->makesCall();
-    bool saveOrigAddr = createFrame && bt->instP();
+    bool saveOrigAddr = createFrame && bt && bt->instP();
     bool localSpace = createFrame || useFPRs || 
        (bt && bt->validOptimizationInfo() && bt->spilledRegisters);
 
@@ -784,10 +784,10 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt,codeGen &gen)
        useFPRs =  BPatch::bpatch->isForceSaveFPROn() ||
                 ( BPatch::bpatch->isSaveFPROn()      &&
                   gen.rs()->anyLiveFPRsAtEntry()     &&
-                  bt->saveFPRs()               &&
+                  bt && bt->saveFPRs()               &&
                   !bt->makesCall() );
        createFrame = true;
-       saveOrigAddr = bt->instP();
+       saveOrigAddr = false;
        alignStack = true;
     }
 
@@ -2654,7 +2654,7 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
       useFPRs =  BPatch::bpatch->isForceSaveFPROn() ||
          ( BPatch::bpatch->isSaveFPROn()      &&
            gen.rs()->anyLiveFPRsAtEntry()     &&
-           bt->saveFPRs()               &&
+           bt && bt->saveFPRs()               &&
            !bt->makesCall() );
       createFrame = true;
       saveOrigAddr = false;

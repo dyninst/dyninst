@@ -1266,6 +1266,7 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size, bool n
       return false;
    }
 
+   assert(const_oper);
    long int imm = (long int) const_oper->getOValue();
    if (roper->op == plusOp) {
       emitAddSignedImm(laddr, imm, gen, noCost);
