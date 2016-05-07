@@ -241,4 +241,3 @@ void set_lex_input(char *str)
    free(bp);
    firstCall = false;
 }
-

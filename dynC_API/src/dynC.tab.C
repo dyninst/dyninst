@@ -636,10 +636,10 @@ static const yytype_uint16 yyrline[] =
      360,   366,   371,   379,   389,   394,   400,   405,   416,   424,
      435,   437,   444,   459,   474,   479,   485,   494,   498,   505,
      506,   511,   516,   521,   526,   531,   536,   541,   549,   555,
-     561,   570,   579,   589,   615,   635,   646,   650,   657,   663,
-     672,   678,   684,   685,   686,   687,   696,   764,   770,   775,
-     781,   787,   793,   799,   805,   811,   817,   823,   829,   835,
-     844,   845,   854,   860,   866,   872
+     561,   570,   579,   589,   616,   636,   647,   651,   658,   664,
+     673,   679,   685,   686,   687,   688,   697,   765,   771,   776,
+     782,   788,   794,   800,   806,   812,   818,   824,   830,   836,
+     845,   846,   855,   861,   867,   873
 };
 #endif
 
@@ -2245,6 +2245,7 @@ yyreduce:
           (yyval.snippet) = new BPatch_nullExpr();
           if((yyvsp[-2].varSpec).isGlobal){
              yyerror(snippetGen->getError().c_str());
+             delete (yyval.snippet);
              YYABORT;
           }else{
              yyerrorNonUni(snippetGen->getError().c_str());
@@ -2253,11 +2254,11 @@ yyreduce:
           break;
        }
     }
-#line 2257 "dynC.tab.C" /* yacc.c:1646  */
+#line 2258 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 44:
-#line 616 "C.y" /* yacc.c:1646  */
+#line 617 "C.y" /* yacc.c:1646  */
     {
        //special case for indexed parameters
        if(snippetPoint == NULL){
@@ -2276,11 +2277,11 @@ yyreduce:
           break;
        }
     }
-#line 2280 "dynC.tab.C" /* yacc.c:1646  */
+#line 2281 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 45:
-#line 636 "C.y" /* yacc.c:1646  */
+#line 637 "C.y" /* yacc.c:1646  */
     {
        //array referance
        //check for integer in arith_expression
@@ -2291,78 +2292,78 @@ yyreduce:
           break;
        }
     }
-#line 2295 "dynC.tab.C" /* yacc.c:1646  */
+#line 2296 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 46:
-#line 647 "C.y" /* yacc.c:1646  */
+#line 648 "C.y" /* yacc.c:1646  */
     {
        (yyval.snippet) = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *(yyvsp[0].snippet)));
     }
-#line 2303 "dynC.tab.C" /* yacc.c:1646  */
+#line 2304 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 47:
-#line 651 "C.y" /* yacc.c:1646  */
+#line 652 "C.y" /* yacc.c:1646  */
     {
        (yyval.snippet) = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *(yyvsp[0].snippet)));
     }
-#line 2311 "dynC.tab.C" /* yacc.c:1646  */
+#line 2312 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 48:
-#line 658 "C.y" /* yacc.c:1646  */
+#line 659 "C.y" /* yacc.c:1646  */
     { 
       if(verbose) printf(" %d ", (yyvsp[0].ival));
       BPatch_snippet * c = new BPatch_constExpr((yyvsp[0].ival));
       (yyval.snippetStringPair) = new std::pair<BPatch_snippet *, const char *>(c, "int");
    }
-#line 2321 "dynC.tab.C" /* yacc.c:1646  */
+#line 2322 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 49:
-#line 664 "C.y" /* yacc.c:1646  */
+#line 665 "C.y" /* yacc.c:1646  */
     { 
        if(verbose) printf(" %s ", (yyvsp[0].sval));
        BPatch_snippet * c = new BPatch_constExpr((yyvsp[0].sval));
        (yyval.snippetStringPair) = new std::pair<BPatch_snippet *, const char *>(c, "char *");
     }
-#line 2331 "dynC.tab.C" /* yacc.c:1646  */
+#line 2332 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 50:
-#line 673 "C.y" /* yacc.c:1646  */
+#line 674 "C.y" /* yacc.c:1646  */
     {
         std::vector<std::pair<BPatch_snippet *, const char *> > *cnlist = new std::vector<std::pair<BPatch_snippet *, const char *> >();
         cnlist->push_back(*(yyvsp[0].snippetStringPair));
         (yyval.snippetStringListPair) = cnlist;
      }
-#line 2341 "dynC.tab.C" /* yacc.c:1646  */
+#line 2342 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 51:
-#line 679 "C.y" /* yacc.c:1646  */
+#line 680 "C.y" /* yacc.c:1646  */
     {
         (yyvsp[-2].snippetStringListPair)->push_back(*(yyvsp[0].snippetStringPair));
         (yyval.snippetStringListPair) = (yyvsp[-2].snippetStringListPair);
      }
-#line 2350 "dynC.tab.C" /* yacc.c:1646  */
+#line 2351 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 53:
-#line 685 "C.y" /* yacc.c:1646  */
+#line 686 "C.y" /* yacc.c:1646  */
     {(yyval.snippet) = (yyvsp[0].snippetStringPair)->first;}
-#line 2356 "dynC.tab.C" /* yacc.c:1646  */
+#line 2357 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 54:
-#line 686 "C.y" /* yacc.c:1646  */
+#line 687 "C.y" /* yacc.c:1646  */
     {(yyval.snippet) = new BPatch_nullExpr();}
-#line 2362 "dynC.tab.C" /* yacc.c:1646  */
+#line 2363 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 55:
-#line 688 "C.y" /* yacc.c:1646  */
+#line 689 "C.y" /* yacc.c:1646  */
     {
    (yyval.snippet) = snippetGen->findRegister((yyvsp[0].sval));
    if ((yyval.snippet) == NULL){
@@ -2370,11 +2371,11 @@ yyreduce:
       yyerror(snippetGen->getError().c_str());
    }
 }
-#line 2374 "dynC.tab.C" /* yacc.c:1646  */
+#line 2375 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 56:
-#line 697 "C.y" /* yacc.c:1646  */
+#line 698 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf("dyninst`%s ", (yyvsp[0].sval));
        
@@ -2442,130 +2443,130 @@ yyreduce:
        yyerror("Syntax error: unrecognized dyninst call");
        (yyval.snippet) = new BPatch_nullExpr();
     }
-#line 2446 "dynC.tab.C" /* yacc.c:1646  */
+#line 2447 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 57:
-#line 765 "C.y" /* yacc.c:1646  */
+#line 766 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" * ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_times, *(yyvsp[-2].snippet), *(yyvsp[0].snippet));
        actionTaken = true;
     }
-#line 2456 "dynC.tab.C" /* yacc.c:1646  */
+#line 2457 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 58:
-#line 771 "C.y" /* yacc.c:1646  */
+#line 772 "C.y" /* yacc.c:1646  */
     {
        (yyval.snippet) = (yyvsp[0].snippet);
        actionTaken = true;
     }
-#line 2465 "dynC.tab.C" /* yacc.c:1646  */
+#line 2466 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 59:
-#line 776 "C.y" /* yacc.c:1646  */
+#line 777 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" = ");
 	    (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[-2].snippet), *(yyvsp[0].snippet));
        actionTaken = true;
     }
-#line 2475 "dynC.tab.C" /* yacc.c:1646  */
+#line 2476 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 60:
-#line 782 "C.y" /* yacc.c:1646  */
+#line 783 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" += ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[-2].snippet), BPatch_arithExpr(BPatch_plus, *(yyvsp[-2].snippet), *(yyvsp[0].snippet)));
        actionTaken = true;
     }
-#line 2485 "dynC.tab.C" /* yacc.c:1646  */
+#line 2486 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 61:
-#line 788 "C.y" /* yacc.c:1646  */
+#line 789 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" -= ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[-2].snippet), BPatch_arithExpr(BPatch_minus, *(yyvsp[-2].snippet), *(yyvsp[0].snippet)));
        actionTaken = true;
     }
-#line 2495 "dynC.tab.C" /* yacc.c:1646  */
+#line 2496 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 62:
-#line 794 "C.y" /* yacc.c:1646  */
+#line 795 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" *= ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[-2].snippet), BPatch_arithExpr(BPatch_times, *(yyvsp[-2].snippet), *(yyvsp[0].snippet)));
        actionTaken = true;
     }
-#line 2505 "dynC.tab.C" /* yacc.c:1646  */
+#line 2506 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 63:
-#line 800 "C.y" /* yacc.c:1646  */
+#line 801 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" /= ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[-2].snippet), BPatch_arithExpr(BPatch_divide, *(yyvsp[-2].snippet), *(yyvsp[0].snippet)));
        actionTaken = true;
     }
-#line 2515 "dynC.tab.C" /* yacc.c:1646  */
+#line 2516 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 64:
-#line 806 "C.y" /* yacc.c:1646  */
+#line 807 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" %%= ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_assign, *(yyvsp[-2].snippet), BPatch_arithExpr(BPatch_minus, *(yyvsp[-2].snippet), BPatch_arithExpr(BPatch_times, BPatch_arithExpr(BPatch_divide, *(yyvsp[-2].snippet), *(yyvsp[0].snippet)), *(yyvsp[0].snippet))));
        actionTaken = true;
     }
-#line 2525 "dynC.tab.C" /* yacc.c:1646  */
+#line 2526 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 65:
-#line 812 "C.y" /* yacc.c:1646  */
+#line 813 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" / ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_divide, *(yyvsp[-2].snippet), *(yyvsp[0].snippet));
        actionTaken = true;
     }
-#line 2535 "dynC.tab.C" /* yacc.c:1646  */
+#line 2536 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 66:
-#line 818 "C.y" /* yacc.c:1646  */
+#line 819 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" %% ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_minus, *(yyvsp[-2].snippet), BPatch_arithExpr(BPatch_times, BPatch_arithExpr(BPatch_divide, *(yyvsp[-2].snippet), *(yyvsp[0].snippet)), *(yyvsp[0].snippet)));
        actionTaken = true;
     }
-#line 2545 "dynC.tab.C" /* yacc.c:1646  */
+#line 2546 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 67:
-#line 824 "C.y" /* yacc.c:1646  */
+#line 825 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" + ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_plus, *(yyvsp[-2].snippet), *(yyvsp[0].snippet));
        actionTaken = true;
     }
-#line 2555 "dynC.tab.C" /* yacc.c:1646  */
+#line 2556 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 68:
-#line 830 "C.y" /* yacc.c:1646  */
+#line 831 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" - ");
        (yyval.snippet) = new BPatch_arithExpr(BPatch_minus, *(yyvsp[-2].snippet), *(yyvsp[0].snippet));
        actionTaken = true;
     }
-#line 2565 "dynC.tab.C" /* yacc.c:1646  */
+#line 2566 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 69:
-#line 836 "C.y" /* yacc.c:1646  */
+#line 837 "C.y" /* yacc.c:1646  */
     {
        if(dynamic_cast<BPatch_nullExpr *>((yyvsp[-2].snippet))){
           printf("Picked second\n");
@@ -2574,66 +2575,66 @@ yyreduce:
           (yyval.snippet) = (yyvsp[-2].snippet);
        }
     }
-#line 2578 "dynC.tab.C" /* yacc.c:1646  */
+#line 2579 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 70:
-#line 844 "C.y" /* yacc.c:1646  */
+#line 845 "C.y" /* yacc.c:1646  */
     {(yyval.snippet) = (yyvsp[-1].snippet);}
-#line 2584 "dynC.tab.C" /* yacc.c:1646  */
+#line 2585 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 71:
-#line 846 "C.y" /* yacc.c:1646  */
+#line 847 "C.y" /* yacc.c:1646  */
     {
        (yyval.snippet) = (yyvsp[0].snippet);
        actionTaken = true;
     }
-#line 2593 "dynC.tab.C" /* yacc.c:1646  */
+#line 2594 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 72:
-#line 855 "C.y" /* yacc.c:1646  */
+#line 856 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" ++ ");
        BPatch_arithExpr addOne = BPatch_arithExpr(BPatch_assign, *(yyvsp[-1].snippet), BPatch_arithExpr(BPatch_plus, *(yyvsp[-1].snippet), BPatch_constExpr(1)));
        (yyval.snippet) = new BPatch_arithExpr(BPatch_seq, (BPatch_snippet &)addOne, BPatch_arithExpr(BPatch_minus, *(yyvsp[-1].snippet), BPatch_constExpr(1)));
     }
-#line 2603 "dynC.tab.C" /* yacc.c:1646  */
+#line 2604 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 73:
-#line 861 "C.y" /* yacc.c:1646  */
+#line 862 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" ++ ");
        BPatch_arithExpr addOne = BPatch_arithExpr(BPatch_assign, *(yyvsp[0].snippet), BPatch_arithExpr(BPatch_plus, *(yyvsp[0].snippet), BPatch_constExpr(1)));
        (yyval.snippet) = new BPatch_arithExpr(BPatch_seq, (BPatch_snippet &)addOne, *(yyvsp[0].snippet));
     }
-#line 2613 "dynC.tab.C" /* yacc.c:1646  */
+#line 2614 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 74:
-#line 867 "C.y" /* yacc.c:1646  */
+#line 868 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" -- ");
        BPatch_arithExpr subOne = BPatch_arithExpr(BPatch_assign, *(yyvsp[-1].snippet), BPatch_arithExpr(BPatch_minus, *(yyvsp[-1].snippet), BPatch_constExpr(1)));
        (yyval.snippet) = new BPatch_arithExpr(BPatch_seq, (BPatch_snippet &)subOne, BPatch_arithExpr(BPatch_plus, *(yyvsp[-1].snippet), BPatch_constExpr(1)));
     }
-#line 2623 "dynC.tab.C" /* yacc.c:1646  */
+#line 2624 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
   case 75:
-#line 873 "C.y" /* yacc.c:1646  */
+#line 874 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf(" -- ");
        BPatch_arithExpr subOne = BPatch_arithExpr(BPatch_assign, *(yyvsp[0].snippet), BPatch_arithExpr(BPatch_minus, *(yyvsp[0].snippet), BPatch_constExpr(1)));
        (yyval.snippet) = new BPatch_arithExpr(BPatch_seq, (BPatch_snippet &)subOne, *(yyvsp[0].snippet));
     }
-#line 2633 "dynC.tab.C" /* yacc.c:1646  */
+#line 2634 "dynC.tab.C" /* yacc.c:1646  */
     break;
 
 
-#line 2637 "dynC.tab.C" /* yacc.c:1646  */
+#line 2638 "dynC.tab.C" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2868,7 +2869,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 880 "C.y" /* yacc.c:1906  */
+#line 881 "C.y" /* yacc.c:1906  */
 
 
 #include <stdio.h>

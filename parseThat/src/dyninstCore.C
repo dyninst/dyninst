@@ -672,7 +672,7 @@ bool insertSummary(BPatch_function *func, BPatch_variableExpr *expr)
 {
    sendMsg(config.outfd, ID_SUMMARY_INSERT, DEBUG);
 
-   summaryElem *elem;
+   summaryElem *elem = nullptr;
    vector< summaryElem * >::iterator iter = summary.begin();
 
    while (iter != summary.end()) {

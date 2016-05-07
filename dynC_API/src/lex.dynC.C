@@ -2807,8 +2807,7 @@ void set_lex_input(char *str)
    
    input_str = str;
    bp = dynC_scan_string(str);
-   (void)bp; // unused warning...
+   free(bp);
    firstCall = false;
 }
-
 

@@ -111,6 +111,7 @@ dynHandle *mutatorInit(void)
 	if (!dh->proc) {
 	    sendMsg(config.outfd, ID_INIT_ATTACH_PROCESS, INFO, ID_FAIL,
 		    "Failure in BPatch::processAttach()");
+            delete dh;
 	    return NULL;
 	} else {
 	    config.dynlib = dh;
@@ -125,6 +126,7 @@ dynHandle *mutatorInit(void)
 	if (!dh->proc) {
 	    sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_FAIL,
 		    "Failure in BPatch::processCreate()");
+            delete dh;
 	    return NULL;
 	} else {
 	    config.dynlib = dh;
