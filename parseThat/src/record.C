@@ -36,7 +36,7 @@
 #include "ipc.h"
 #include "utils.h"
 #include "record.h"
-#include "sha1.h"
+#include "../../common/src/sha1.h"
 
 /* --------------------------------------------------------
  * PRIVATE: Given a binary filename, it will open a pipe to
