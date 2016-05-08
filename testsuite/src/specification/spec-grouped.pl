@@ -2794,6 +2794,7 @@ platform('power32', 'bluegene', 'bluegenel', 'ppc32_bgl_ion').
 platform('power32', 'bluegene', 'bluegenep', 'ppc32_bgp').
 platform('power64', 'bluegene', 'bluegeneq', 'ppc64_bgq_ion').
 platform('aarch64', 'linux', 'linux', 'aarch64-unknown-linux').
+platform('arm64', 'linux', 'linux', 'arm64-unknown-linux').
 
 % Platform Defns
 % platform/1
