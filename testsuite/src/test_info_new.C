@@ -54,10 +54,10 @@ static const char *extract_name(const char *tag, const char *label)
 // The constructor for TestInfo
 TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
                    const char *isoname, bool _serialize_enable, const char *ilabel) :
-	index(i), name(iname), mutator_name(imrname), soname(isoname),
-	serialize_enable(_serialize_enable),
-	label(ilabel), mutator(NULL), disabled(false), limit_disabled(false),
-	enabled(false), result_reported(false)
+	name(iname), mutator_name(imrname), soname(isoname),
+	label(ilabel), mutator(NULL), serialize_enable(_serialize_enable),
+	disabled(false), limit_disabled(false),
+	enabled(false), index(i), result_reported(false)
 {
    assert(name);
    assert(mutator_name);
@@ -71,13 +71,13 @@ TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
 }
 
 TestInfo::TestInfo(unsigned int i, const char *libsuffix, const char *ilabel) :
-   index(i),
-   serialize_enable(false),
    label(ilabel),
    mutator(NULL),
+   serialize_enable(false),
    disabled(false),
    limit_disabled(false),
    enabled(false),
+   index(i),
    result_reported(false)
 {
    name = extract_name("test: ", label);
