@@ -20,10 +20,11 @@ static void add_test(RunGroup *rg, const char *ts) {
   rg->tests.push_back(new TestInfo(test_count++, ".so", ts));
 }
 
+
 // Now we insert the test lists into the run groups
-void initialize_mutatees(std::vector<RunGroup *> &t) {
+void initialize_mutatees_0(std::vector<RunGroup *> &t) {
         tests = &t;
-	RunGroup *rg;
+        RunGroup *rg;
   rg = new RunGroup("pc_launch.dyn_bgq_gcc_64_none_none", SELFATTACH, CREATE, MultiThreaded, MultiProcess, remote, remote, no_launch, DynamicLink, true, nonPIC, "proccontrol", "bgq_gcc", "none", "64", "NONE");
   add_test(rg, "{test: pc_launch, mutator: pc_launch, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 64, thread_mode: MultiThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_launch, mutatorstart: remote, optimization: none, mutateestart: remote, compiler: bgq_gcc, run_mode: createProcess}");
   fini_group(rg);
@@ -324,6 +325,12 @@ void initialize_mutatees(std::vector<RunGroup *> &t) {
   rg = new RunGroup("pc_singlestep.dyn_bgq_gcc_64_none_none", SELFATTACH, CREATE, SingleThreaded, SingleProcess, remote, remote, no_launch, DynamicLink, true, nonPIC, "proccontrol", "bgq_gcc", "none", "64", "NONE");
   add_test(rg, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 64, thread_mode: SingleThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_singlestep, mutatorstart: remote, optimization: none, mutateestart: remote, compiler: bgq_gcc, run_mode: createProcess}");
   fini_group(rg);
+}
+
+// Now we insert the test lists into the run groups
+void initialize_mutatees_1(std::vector<RunGroup *> &t) {
+        tests = &t;
+        RunGroup *rg;
   rg = new RunGroup("pc_singlestep.dyn_bgq_gcc_64_none_none", SELFATTACH, USEATTACH, MultiThreaded, MultiProcess, remote, remote, pre, DynamicLink, true, nonPIC, "proccontrol", "bgq_gcc", "none", "64", "NONE");
   add_test(rg, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 64, thread_mode: MultiThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_singlestep, mutatorstart: remote, optimization: none, mutateestart: remote, compiler: bgq_gcc, run_mode: useAttach}");
   fini_group(rg);
@@ -624,6 +631,12 @@ void initialize_mutatees(std::vector<RunGroup *> &t) {
   rg = new RunGroup("pc_stat.dyn_bgq_gcc_64_none_none", SELFATTACH, USEATTACH, SingleThreaded, SingleProcess, remote, remote, pre, DynamicLink, true, nonPIC, "proccontrol", "bgq_gcc", "none", "64", "NONE");
   add_test(rg, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 64, thread_mode: SingleThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_stat, mutatorstart: remote, optimization: none, mutateestart: remote, compiler: bgq_gcc, run_mode: useAttach}");
   fini_group(rg);
+}
+
+// Now we insert the test lists into the run groups
+void initialize_mutatees_2(std::vector<RunGroup *> &t) {
+        tests = &t;
+        RunGroup *rg;
   rg = new RunGroup("pc_stat.stat_bgq_gcc_64_none_none", SELFATTACH, CREATE, MultiThreaded, MultiProcess, remote, remote, no_launch, StaticLink, true, nonPIC, "proccontrol", "bgq_gcc", "none", "64", "NONE");
   add_test(rg, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: staticMutatee, process_mode: MultiProcess, abi: 64, thread_mode: MultiThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_stat, mutatorstart: remote, optimization: none, mutateestart: remote, compiler: bgq_gcc, run_mode: createProcess}");
   fini_group(rg);
@@ -924,6 +937,12 @@ void initialize_mutatees(std::vector<RunGroup *> &t) {
   rg = new RunGroup("pc_terminate.stat_bgq_gcc_64_none_none", SELFATTACH, CREATE, SingleThreaded, SingleProcess, remote, remote, no_launch, StaticLink, true, nonPIC, "proccontrol", "bgq_gcc", "none", "64", "NONE");
   add_test(rg, "{test: pc_terminate, mutator: pc_terminate, grouped: false, pic: none, start_state: selfattach, format: staticMutatee, process_mode: SingleProcess, abi: 64, thread_mode: SingleThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_terminate, mutatorstart: remote, optimization: none, mutateestart: remote, compiler: bgq_gcc, run_mode: createProcess}");
   fini_group(rg);
+}
+
+// Now we insert the test lists into the run groups
+void initialize_mutatees_3(std::vector<RunGroup *> &t) {
+        tests = &t;
+        RunGroup *rg;
   rg = new RunGroup("pc_terminate.stat_bgq_gcc_64_none_none", SELFATTACH, USEATTACH, MultiThreaded, MultiProcess, remote, remote, pre, StaticLink, true, nonPIC, "proccontrol", "bgq_gcc", "none", "64", "NONE");
   add_test(rg, "{test: pc_terminate, mutator: pc_terminate, grouped: false, pic: none, start_state: selfattach, format: staticMutatee, process_mode: MultiProcess, abi: 64, thread_mode: MultiThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_terminate, mutatorstart: remote, optimization: none, mutateestart: remote, compiler: bgq_gcc, run_mode: useAttach}");
   fini_group(rg);
@@ -1224,6 +1243,12 @@ void initialize_mutatees(std::vector<RunGroup *> &t) {
   rg = new RunGroup("pc_tls.stat_bgq_gcc_64_none_high", SELFATTACH, USEATTACH, SingleThreaded, SingleProcess, remote, remote, pre, StaticLink, true, nonPIC, "proccontrol", "bgq_gcc", "high", "64", "NONE");
   add_test(rg, "{test: pc_tls, mutator: pc_tls, grouped: false, pic: none, start_state: selfattach, format: staticMutatee, process_mode: SingleProcess, abi: 64, thread_mode: SingleThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_tls, mutatorstart: remote, optimization: high, mutateestart: remote, compiler: bgq_gcc, run_mode: useAttach}");
   fini_group(rg);
+}
+
+// Now we insert the test lists into the run groups
+void initialize_mutatees_4(std::vector<RunGroup *> &t) {
+        tests = &t;
+        RunGroup *rg;
   rg = new RunGroup("pc_tls.dyn_bgq_gcc_64_none_max", SELFATTACH, CREATE, MultiThreaded, MultiProcess, remote, remote, no_launch, DynamicLink, true, nonPIC, "proccontrol", "bgq_gcc", "max", "64", "NONE");
   add_test(rg, "{test: pc_tls, mutator: pc_tls, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 64, thread_mode: MultiThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_tls, mutatorstart: remote, optimization: max, mutateestart: remote, compiler: bgq_gcc, run_mode: createProcess}");
   fini_group(rg);
@@ -1524,6 +1549,12 @@ void initialize_mutatees(std::vector<RunGroup *> &t) {
   rg = new RunGroup("pc_tls.dyn_bgxlc++_64_none_none", SELFATTACH, CREATE, SingleThreaded, SingleProcess, remote, remote, no_launch, DynamicLink, true, nonPIC, "proccontrol", "bgxlc++", "none", "64", "NONE");
   add_test(rg, "{test: pc_tls, mutator: pc_tls, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 64, thread_mode: SingleThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_tls, mutatorstart: remote, optimization: none, mutateestart: remote, compiler: bgxlc++, run_mode: createProcess}");
   fini_group(rg);
+}
+
+// Now we insert the test lists into the run groups
+void initialize_mutatees_5(std::vector<RunGroup *> &t) {
+        tests = &t;
+        RunGroup *rg;
   rg = new RunGroup("pc_tls.dyn_bgxlc++_64_none_none", SELFATTACH, USEATTACH, MultiThreaded, MultiProcess, remote, remote, pre, DynamicLink, true, nonPIC, "proccontrol", "bgxlc++", "none", "64", "NONE");
   add_test(rg, "{test: pc_tls, mutator: pc_tls, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 64, thread_mode: MultiThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_tls, mutatorstart: remote, optimization: none, mutateestart: remote, compiler: bgxlc++, run_mode: useAttach}");
   fini_group(rg);
@@ -3484,6 +3515,12 @@ void initialize_mutatees(std::vector<RunGroup *> &t) {
   rg = new RunGroup("test1_14.stat_bgq_gcc_64_none_none", STOPPED, DISK, TNone, PNone, local, remote, post, StaticLink, false, nonPIC, "dyninst", "bgq_gcc", "none", "64", "NONE");
   add_test(rg, "{test: test1_14, mutator: test1_14, grouped: false, pic: none, start_state: stopped, format: staticMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: post, platmode: NONE, mutatee: test1_14, mutatorstart: local, optimization: none, mutateestart: remote, compiler: bgq_gcc, run_mode: binary}");
   fini_group(rg);
+}
+
+// Now we insert the test lists into the run groups
+void initialize_mutatees_6(std::vector<RunGroup *> &t) {
+        tests = &t;
+        RunGroup *rg;
   rg = new RunGroup("test1_14.dyn_bgq_gcc_64_pic_none", STOPPED, DISK, TNone, PNone, local, remote, post, DynamicLink, false, PIC, "dyninst", "bgq_gcc", "none", "64", "NONE");
   add_test(rg, "{test: test1_14, mutator: test1_14, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: post, platmode: NONE, mutatee: test1_14, mutatorstart: local, optimization: none, mutateestart: remote, compiler: bgq_gcc, run_mode: binary}");
   fini_group(rg);
@@ -3778,4 +3815,13 @@ void initialize_mutatees(std::vector<RunGroup *> &t) {
   rg = new RunGroup("test1_29.dyn_bgxlc++_64_none_none", STOPPED, DISK, TNone, PNone, local, remote, post, DynamicLink, false, nonPIC, "dyninst", "bgxlc++", "none", "64", "NONE");
   add_test(rg, "{test: test1_29, mutator: test1_29, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: post, platmode: NONE, mutatee: test1_29, mutatorstart: local, optimization: none, mutateestart: remote, compiler: bgxlc++, run_mode: binary}");
   fini_group(rg);
+}
+void initialize_mutatees(std::vector<RunGroup *> &t) {
+initialize_mutatees_0(t);
+initialize_mutatees_1(t);
+initialize_mutatees_2(t);
+initialize_mutatees_3(t);
+initialize_mutatees_4(t);
+initialize_mutatees_5(t);
+initialize_mutatees_6(t);
 }
