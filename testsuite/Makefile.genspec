@@ -1,4 +1,4 @@
-SUBDIRS = aarch64-unknown-linux amd64-unknown-freebsd7.2 amd64-unknown-linux i386-unknown-freebsd7.2 i386-unknown-linux2.4 i386-unknown-nt4.0 ppc32_linux ppc64_pgq_ion ppc64_linux x86_64-unknown-linux2.4
+SUBDIRS = aarch64-unknown-linux amd64-unknown-freebsd7.2 arm64-unknown-linux i386-unknown-freebsd7.2 i386-unknown-linux2.4 i386-unknown-nt4.0 ppc32_linux ppc64_bgq_ion ppc64_linux x86_64-unknown-linux2.4
 
 
 TO_SPEC = src/specification
@@ -27,9 +27,11 @@ $(SUBDIRS:%=%/tuples): %/tuples: $(PROLOG_FILES)
 	cd $(TO_SPEC); gprolog --entry-goal "['spec-grouped.pl']" \
 		--entry-goal "test_init('$*')" \
 		--entry-goal "write_tuples('../../$@', '$*')" \
-		--entry-goal "halt" ; gzip -f ../../$@
+		--entry-goal "halt"
+%/tuples.gz: %/tuples
+	gzip -f $^
 
-$(SUBDIRS:%=%/cmake-mutatees.txt): %/cmake-mutatees.txt: $(PYTHON_FILES) %/tuples
+$(SUBDIRS:%=%/cmake-mutatees.txt): %/cmake-mutatees.txt: $(PYTHON_FILES) %/tuples.gz
 	python2 -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import generate ; generate.generate('$*')"
 
 $(SUBDIRS:%=%): %:%/cmake-mutatees.txt
