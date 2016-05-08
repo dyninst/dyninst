@@ -2297,7 +2297,9 @@ void emitElf64<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&vernee
     for (iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++)
         verdefSecSize += sizeof(Elf_Verdef) + sizeof(Elf_Verdaux) * verdauxEntries[iter->second].size();
 
-    assert(verdefSecSize);
+    if(verdefSecSize == 0) {
+        return;
+    }
     verdefSecData = (char *) malloc(verdefSecSize);
     curpos = 0;
     verdefnum = 0;
