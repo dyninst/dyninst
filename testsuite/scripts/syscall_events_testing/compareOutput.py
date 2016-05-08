@@ -12,8 +12,8 @@ def processStraceLog(fileName):
     print "Processing " + fileName
 
     allSyscalls = []
-   
-    with open(fileName, "r") as fileHandle: 
+
+    with open(fileName, "r") as fileHandle:
         for line in fileHandle:
             line = line.rstrip()
 
@@ -22,26 +22,26 @@ def processStraceLog(fileName):
                 # Skip
                 continue
 
-            pc,brace,rest = line.partition("]")
+            pc, brace, rest = line.partition("]")
             pc = pc.lstrip("[")
             pc = pc.lstrip()
             rest = rest.lstrip()
-            name,paren,args = rest.partition("(")
+            name, paren, args = rest.partition("(")
 
-            args,paren,rest = args.partition(")")
-            space,equal,retinfo = rest.partition("=")
+            args, paren, rest = args.partition(")")
+            space, equal, retinfo = rest.partition("=")
 
             # Strip error code explanations
-            retAndErrno,paren,errmsg = retinfo.partition("(")
+            retAndErrno, paren, errmsg = retinfo.partition("(")
             retAndErrno = retAndErrno.lstrip().rstrip()
 
-            retvalue=""
-            errno=""
+            retvalue = ""
+            errno = ""
             if (paren == ""):
                 retvalue = retAndErrno
             else:
                 # Separate retvalue from errno
-                retvalue,space,errno = retAndErrno.partition(" ")
+                retvalue, space, errno = retAndErrno.partition(" ")
 
                 # Reformat errmsg
                 errmsg = errmsg.rsplit(")")[0]
@@ -58,22 +58,23 @@ def processStraceLog(fileName):
 
         return allSyscalls
 
+
 def processToolLog(fileName):
     print "Processing " + fileName
 
     allSyscalls = []
-   
-    with open(fileName, "r") as fileHandle: 
+
+    with open(fileName, "r") as fileHandle:
         for line in fileHandle:
             line = line.rstrip()
 
             # Skip non-syscall lines
             if (line.find("[#") != 0):
                 continue
-        
+
             number, colon, rest = line.partition(":")
             rest = rest.lstrip()
-            name,pc,retvalue = rest.split(",")
+            name, pc, retvalue = rest.split(",")
             retvalue = retvalue.rstrip("]")
 
             curSyscall = []
@@ -85,6 +86,7 @@ def processToolLog(fileName):
 
         return allSyscalls
 
+
 def runTool(curTool, flags, executable):
     # Build argument list
     args = curTool + " " + flags + " " + executable
@@ -92,11 +94,11 @@ def runTool(curTool, flags, executable):
 
     # Create an output file based on the current date
     outfileName = OUT_DIR + "/log-" + curTool + "-" + DATE + ".log"
-    
+
     with open(outfileName, "w") as outfile:
         print "output in " + outfileName
 
-        # Run curTool 
+        # Run curTool
         print args
         p = subprocess.Popen(args, cwd=os.getcwd(), stdout=outfile, stderr=outfile)
         # Wait for completion
@@ -107,6 +109,7 @@ def runTool(curTool, flags, executable):
 
     return outfileName
 
+
 def runStrace(curTool, flags, executable):
     # Build argument list
     args = curTool + " " + flags
@@ -114,11 +117,11 @@ def runStrace(curTool, flags, executable):
 
     # Create an output file based on the current date
     outfileName = OUT_DIR + "/log-" + curTool + "-" + DATE + ".log"
-    
+
     with open(outfileName, "w") as outfile:
         print "output in " + outfileName
 
-        # Run curTool 
+        # Run curTool
         args.append(outfileName)
         args.append(executable)
         print args
@@ -130,6 +133,7 @@ def runStrace(curTool, flags, executable):
         os.fsync(outfile)
 
     return outfileName
+
 
 def compareOutput(toolAll, straceAll):
     print "Comparing tool and strace logs"
@@ -146,7 +150,7 @@ def compareOutput(toolAll, straceAll):
         pcTool = curTool[1]
         retvalueTool = curTool[2]
 
-        curStrace = straceAll[index+1] # Off-by-one because of initial execve
+        curStrace = straceAll[index + 1]  # Off-by-one because of initial execve
         nameStrace = curStrace[0]
         pcStrace = curStrace[1]
         retvalueStrace = curStrace[2]
@@ -154,16 +158,16 @@ def compareOutput(toolAll, straceAll):
         if (len(curStrace) == 5):
             errnoStrace = curStrace[3]
             errmsgStrace = curStrace[4]
-      
+
         if (nameTool != nameStrace):
             result.append("name: " + nameTool + "; strace=" + nameStrace)
             match = False
-        if (pcTool != pcStrace): 
+        if (pcTool != pcStrace):
             # Note that the PCs may not match due to load addresses
             result.append("pc: " + pcTool + "; strace=" + pcStrace)
         if (retvalueTool != retvalueStrace):
             retvalueToolDec = int(float(retvalueTool))
-            
+
             # Okay, is strace printing hex?
             if (retvalueStrace.find("0x") == 0):
                 # Yes! Convert retvalueTool accordingly
@@ -185,7 +189,7 @@ def compareOutput(toolAll, straceAll):
                     # to calculate errno. Due to string issues, we'll compare the string error messages rather than
                     # directly comparing errno
                     errmsgTool = os.strerror(abs(retvalueToolDec))
-                    
+
                     if (errmsgTool != errmsgStrace):
                         # They don't match; keep in decimal
                         match = False
@@ -199,12 +203,12 @@ def compareOutput(toolAll, straceAll):
                     if (match == False) or (nameTool not in safeSet):
                         match = False
                         result.append("retvalue: " + retvalueTool + "; strace=" + retvalueStrace)
-       
+
         if (match == False):
             print result
             curSyscall = []
-            curSyscall.append(index+1)
-            curSyscall.append(nameTool) # If the names don't match, this will appear in the result string
+            curSyscall.append(index + 1)
+            curSyscall.append(nameTool)  # If the names don't match, this will appear in the result string
             curSyscall.append(result)
             fullResults.append(curSyscall)
 
@@ -212,10 +216,10 @@ def compareOutput(toolAll, straceAll):
     resultsfileName = OUT_DIR + "/results-" + DATE + ".log"
     with open(resultsfileName, "w") as resultsfile:
         # Check that tool and strace recorded same number of system calls
-        if (len(toolAll) != (len(straceAll)-1)):
-            resultsfile.write("Tool recorded " + str(len(toolAll)) + " system calls; strace recorded " + str(len(straceAll)-1) + " system calls.")
+        if (len(toolAll) != (len(straceAll) - 1)):
+            resultsfile.write("Tool recorded " + str(len(toolAll)) + " system calls; strace recorded " + str(len(straceAll) - 1) + " system calls.")
             foundResults = True
-        
+
         # Record any mis-matches we found
         if (len(fullResults) != 0):
             foundResults = True
@@ -240,7 +244,7 @@ if arglen < 2:
     sys.exit(1)
 
 DATE = datetime.datetime.today().strftime("%Y-%m-%d--%H-%M-%S")
-OUT_DIR="results-" + DATE
+OUT_DIR = "results-" + DATE
 os.mkdir(OUT_DIR)
 
 executable = sys.argv[1]
@@ -262,7 +266,7 @@ if (ret != 0):
     sys.exit(1)
 
 # Run strace
-straceLog =  runStrace("strace", "-i -o", executable)
+straceLog = runStrace("strace", "-i -o", executable)
 straceAll = processStraceLog(straceLog)
 
 # Run mutator tool
