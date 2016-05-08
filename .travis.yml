@@ -21,6 +21,11 @@ addons:
             - libelf-dev
             - g++-4.9
 
+env:
+  global:
+    - DYNINSTAPI_RT_LIB=$HOME/install/lib/libdyninstAPI_RT.so
+    - PATH=$PATH:$HOME/install/bin
+
 compiler:
     - gcc
     - clang
@@ -40,5 +45,7 @@ script:
     - if [ "$CC" == "gcc" ]; then export CC=gcc-4.9; export CXX=g++-4.9; fi
     - mkdir work
     - cd work
-    - cmake .. -DBUILD_TESTS
-    - make
+    - cmake .. -DBUILD_TESTS=1 -DCMAKE_INSTALL_PREFIX=$HOME/install
+    - make -j2
+    - make install
+    - $HOME/install/bin/testsuite/runTests -all -log -verbose
