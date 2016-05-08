@@ -20,9 +20,9 @@ set (dyninst_OBJS_ALL_MUTATORS test1_1.o test1_2.o test1_3.o test1_4.o test1_5.o
 
 
 include_directories ("..src/instruction")
-set (instruction_MUTATORS test_instruction_read_write test_instruction_farcall test_instruction_bind_eval test_instruction_profile power_decode aarch64_decode aarch64_cft aarch64_decode_ldst power_cft fucompp mov_size_details )
+set (instruction_MUTATORS test_instruction_read_write test_instruction_farcall test_instruction_bind_eval test_instruction_profile power_decode aarch64_decode aarch64_cft aarch64_decode_ldst aarch64_simd power_cft fucompp mov_size_details )
 
-set (instruction_OBJS_ALL_MUTATORS test_instruction_read_write.o test_instruction_farcall.o test_instruction_bind_eval.o test_instruction_profile.o power_decode.o aarch64_decode.o aarch64_cft.o aarch64_decode_ldst.o power_cft.o fucompp.o mov_size_details.o )
+set (instruction_OBJS_ALL_MUTATORS test_instruction_read_write.o test_instruction_farcall.o test_instruction_bind_eval.o test_instruction_profile.o power_decode.o aarch64_decode.o aarch64_cft.o aarch64_decode_ldst.o aarch64_simd.o power_cft.o fucompp.o mov_size_details.o )
 
 
 include_directories ("..src/symtab")
@@ -34,6 +34,7 @@ set (MUTATOR_NAME_LIST
 	aarch64_cft
 	aarch64_decode
 	aarch64_decode_ldst
+	aarch64_simd
 	fucompp
 	init_fini_callback
 	mov_size_details
@@ -183,6 +184,7 @@ set (MUTATOR_NAME_LIST
 	)
 
 set (MUTATOR_MODULE_LIB_LIST
+	testinstruction
 	testinstruction
 	testinstruction
 	testinstruction
@@ -339,6 +341,7 @@ set (MUTATOR_SOURCE_LIST
 	${SRC}/instruction/aarch64_cft.C
 	${SRC}/instruction/aarch64_decode.C
 	${SRC}/instruction/aarch64_decode_ldst.C
+	${SRC}/instruction/aarch64_simd.C
 	${SRC}/instruction/fucompp.C
 	${SRC}/dyninst/init_fini_callback.C
 	${SRC}/instruction/mov_size_details.C
@@ -487,7 +490,7 @@ set (MUTATOR_SOURCE_LIST
 	${SRC}/dyninst/test_write_param.C
 	)
 
-foreach (val RANGE 148)
+foreach (val RANGE 149)
 	list (GET MUTATOR_NAME_LIST ${val} lib)
 	list (GET MUTATOR_SOURCE_LIST ${val} source)
 	list (GET MUTATOR_MODULE_LIB_LIST ${val} comp_dep)

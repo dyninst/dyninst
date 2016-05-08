@@ -2135,6 +2135,9 @@ void initialize_mutatees_6(std::vector<RunGroup *> &t) {
   add_test(rg, "{test: aarch64_decode_ldst, mutator: aarch64_decode_ldst, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: none, mutatorstart: local, optimization: none, mutateestart: local, compiler: , run_mode: disk}");
   fini_group(rg);
   rg = new RunGroup("", STOPPED, DISK, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "instruction", "", "none", "64", "NONE");
+  add_test(rg, "{test: aarch64_simd, mutator: aarch64_simd, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: none, mutatorstart: local, optimization: none, mutateestart: local, compiler: , run_mode: disk}");
+  fini_group(rg);
+  rg = new RunGroup("", STOPPED, DISK, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "instruction", "", "none", "64", "NONE");
   add_test(rg, "{test: power_cft, mutator: power_cft, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: none, mutatorstart: local, optimization: none, mutateestart: local, compiler: , run_mode: disk}");
   fini_group(rg);
   rg = new RunGroup("dyninst_group_test.stat_gcc_64_pic_none", STOPPED, DISK, TNone, PNone, local, local, post, StaticLink, false, PIC, "dyninst", "gcc", "none", "64", "NONE");
@@ -2413,6 +2416,12 @@ void initialize_mutatees_6(std::vector<RunGroup *> &t) {
   add_test(rg, "{test: test2_5, mutator: test2_5, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: dyninst_group_test, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}");
   add_test(rg, "{test: test2_7, mutator: test2_7, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: dyninst_group_test, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}");
   fini_group(rg);
+}
+
+// Now we insert the test lists into the run groups
+void initialize_mutatees_7(std::vector<RunGroup *> &t) {
+        tests = &t;
+        RunGroup *rg;
   rg = new RunGroup("dyninst_group_test.dyn_gcc_64_none_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, nonPIC, "dyninst", "gcc", "none", "64", "NONE");
   add_test(rg, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: dyninst_group_test, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}");
   add_test(rg, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: dyninst_group_test, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}");
@@ -2455,12 +2464,6 @@ void initialize_mutatees_6(std::vector<RunGroup *> &t) {
   add_test(rg, "{test: test2_5, mutator: test2_5, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: dyninst_group_test, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}");
   add_test(rg, "{test: test2_7, mutator: test2_7, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: dyninst_group_test, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}");
   fini_group(rg);
-}
-
-// Now we insert the test lists into the run groups
-void initialize_mutatees_7(std::vector<RunGroup *> &t) {
-        tests = &t;
-        RunGroup *rg;
   rg = new RunGroup("dyninst_group_test.stat_gcc_64_pic_low", STOPPED, DISK, TNone, PNone, local, local, post, StaticLink, false, PIC, "dyninst", "gcc", "low", "64", "NONE");
   add_test(rg, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, pic: pic, start_state: stopped, format: staticMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: post, platmode: NONE, mutatee: dyninst_group_test, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: binary}");
   add_test(rg, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, pic: pic, start_state: stopped, format: staticMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: post, platmode: NONE, mutatee: dyninst_group_test, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: binary}");
@@ -5139,6 +5142,12 @@ void initialize_mutatees_7(std::vector<RunGroup *> &t) {
   add_test(rg, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: symtab_group_test, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: disk}");
   add_test(rg, "{test: test_type_info, mutator: test_type_info, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: symtab_group_test, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: disk}");
   fini_group(rg);
+}
+
+// Now we insert the test lists into the run groups
+void initialize_mutatees_8(std::vector<RunGroup *> &t) {
+        tests = &t;
+        RunGroup *rg;
   rg = new RunGroup("symtab_group_test.dyn_g++_64_none_low", STOPPED, DISK, TNone, PNone, local, local, no_launch, DynamicLink, false, nonPIC, "symtab", "g++", "low", "64", "NONE");
   add_test(rg, "{test: test_add_symbols, mutator: test_add_symbols, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: symtab_group_test, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: disk}");
   add_test(rg, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: symtab_group_test, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: disk}");
@@ -5151,12 +5160,6 @@ void initialize_mutatees_7(std::vector<RunGroup *> &t) {
   add_test(rg, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: symtab_group_test, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: disk}");
   add_test(rg, "{test: test_type_info, mutator: test_type_info, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: symtab_group_test, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: disk}");
   fini_group(rg);
-}
-
-// Now we insert the test lists into the run groups
-void initialize_mutatees_8(std::vector<RunGroup *> &t) {
-        tests = &t;
-        RunGroup *rg;
   rg = new RunGroup("symtab_group_test.dyn_g++_64_pic_high", STOPPED, DISK, TNone, PNone, local, local, no_launch, DynamicLink, false, PIC, "symtab", "g++", "high", "64", "NONE");
   add_test(rg, "{test: test_add_symbols, mutator: test_add_symbols, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: symtab_group_test, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: disk}");
   add_test(rg, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: symtab_group_test, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: disk}");
@@ -5490,15 +5493,15 @@ void initialize_mutatees_8(std::vector<RunGroup *> &t) {
   rg = new RunGroup("test1_14.dyn_g++_64_pic_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, PIC, "dyninst", "g++", "max", "64", "NONE");
   add_test(rg, "{test: test1_14, mutator: test1_14, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_14, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: useAttach}");
   fini_group(rg);
-  rg = new RunGroup("test1_14.dyn_g++_64_none_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, nonPIC, "dyninst", "g++", "max", "64", "NONE");
-  add_test(rg, "{test: test1_14, mutator: test1_14, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_14, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: useAttach}");
-  fini_group(rg);
 }
 
 // Now we insert the test lists into the run groups
 void initialize_mutatees_9(std::vector<RunGroup *> &t) {
         tests = &t;
         RunGroup *rg;
+  rg = new RunGroup("test1_14.dyn_g++_64_none_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, nonPIC, "dyninst", "g++", "max", "64", "NONE");
+  add_test(rg, "{test: test1_14, mutator: test1_14, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_14, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: useAttach}");
+  fini_group(rg);
   rg = new RunGroup("test1_19.dyn_gcc_64_pic_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "gcc", "none", "64", "NONE");
   add_test(rg, "{test: test1_19, mutator: test1_19, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_19, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: createProcess}");
   fini_group(rg);
@@ -5796,15 +5799,15 @@ void initialize_mutatees_9(std::vector<RunGroup *> &t) {
   rg = new RunGroup("init_fini_callback.dyn_g++_64_pic_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, PIC, "dyninst", "g++", "low", "64", "NONE");
   add_test(rg, "{test: init_fini_callback, mutator: init_fini_callback, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: init_fini_callback, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}");
   fini_group(rg);
-  rg = new RunGroup("init_fini_callback.dyn_g++_64_none_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, nonPIC, "dyninst", "g++", "low", "64", "NONE");
-  add_test(rg, "{test: init_fini_callback, mutator: init_fini_callback, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: init_fini_callback, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}");
-  fini_group(rg);
 }
 
 // Now we insert the test lists into the run groups
 void initialize_mutatees_10(std::vector<RunGroup *> &t) {
         tests = &t;
         RunGroup *rg;
+  rg = new RunGroup("init_fini_callback.dyn_g++_64_none_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, nonPIC, "dyninst", "g++", "low", "64", "NONE");
+  add_test(rg, "{test: init_fini_callback, mutator: init_fini_callback, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: init_fini_callback, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}");
+  fini_group(rg);
   rg = new RunGroup("init_fini_callback.dyn_g++_64_pic_high", STOPPED, DISK, TNone, PNone, local, local, post, DynamicLink, false, PIC, "dyninst", "g++", "high", "64", "NONE");
   add_test(rg, "{test: init_fini_callback, mutator: init_fini_callback, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: post, platmode: NONE, mutatee: init_fini_callback, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: binary}");
   fini_group(rg);
@@ -6102,15 +6105,15 @@ void initialize_mutatees_10(std::vector<RunGroup *> &t) {
   rg = new RunGroup("test1_40.dyn_g++_64_pic_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, PIC, "dyninst", "g++", "low", "64", "NONE");
   add_test(rg, "{test: test1_40, mutator: test1_40, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_40, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}");
   fini_group(rg);
-  rg = new RunGroup("test1_40.dyn_g++_64_none_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, nonPIC, "dyninst", "g++", "low", "64", "NONE");
-  add_test(rg, "{test: test1_40, mutator: test1_40, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_40, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}");
-  fini_group(rg);
 }
 
 // Now we insert the test lists into the run groups
 void initialize_mutatees_11(std::vector<RunGroup *> &t) {
         tests = &t;
         RunGroup *rg;
+  rg = new RunGroup("test1_40.dyn_g++_64_none_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, nonPIC, "dyninst", "g++", "low", "64", "NONE");
+  add_test(rg, "{test: test1_40, mutator: test1_40, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_40, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}");
+  fini_group(rg);
   rg = new RunGroup("test1_40.dyn_g++_64_pic_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, PIC, "dyninst", "g++", "high", "64", "NONE");
   add_test(rg, "{test: test1_40, mutator: test1_40, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_40, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: createProcess}");
   fini_group(rg);
@@ -6408,15 +6411,15 @@ void initialize_mutatees_11(std::vector<RunGroup *> &t) {
   rg = new RunGroup("test2_14.dyn_gcc_64_pic_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, true, PIC, "dyninst", "gcc", "high", "64", "NONE");
   add_test(rg, "{test: test2_14, mutator: test2_14, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test2_14, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: useAttach}");
   fini_group(rg);
-  rg = new RunGroup("test2_14.dyn_gcc_64_none_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, true, nonPIC, "dyninst", "gcc", "high", "64", "NONE");
-  add_test(rg, "{test: test2_14, mutator: test2_14, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test2_14, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: useAttach}");
-  fini_group(rg);
 }
 
 // Now we insert the test lists into the run groups
 void initialize_mutatees_12(std::vector<RunGroup *> &t) {
         tests = &t;
         RunGroup *rg;
+  rg = new RunGroup("test2_14.dyn_gcc_64_none_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, true, nonPIC, "dyninst", "gcc", "high", "64", "NONE");
+  add_test(rg, "{test: test2_14, mutator: test2_14, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test2_14, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: useAttach}");
+  fini_group(rg);
   rg = new RunGroup("test2_14.dyn_gcc_64_pic_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "gcc", "max", "64", "NONE");
   add_test(rg, "{test: test2_14, mutator: test2_14, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test2_14, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}");
   fini_group(rg);
@@ -6714,15 +6717,15 @@ void initialize_mutatees_12(std::vector<RunGroup *> &t) {
   rg = new RunGroup("test3_5.dyn_g++_64_pic_max", SELFSTART, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "g++", "max", "64", "NONE");
   add_test(rg, "{test: test3_5, mutator: test3_5, grouped: false, pic: pic, start_state: selfstart, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test3_5, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}");
   fini_group(rg);
-  rg = new RunGroup("test3_5.dyn_g++_64_none_max", SELFSTART, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "g++", "max", "64", "NONE");
-  add_test(rg, "{test: test3_5, mutator: test3_5, grouped: false, pic: none, start_state: selfstart, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test3_5, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}");
-  fini_group(rg);
 }
 
 // Now we insert the test lists into the run groups
 void initialize_mutatees_13(std::vector<RunGroup *> &t) {
         tests = &t;
         RunGroup *rg;
+  rg = new RunGroup("test3_5.dyn_g++_64_none_max", SELFSTART, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "g++", "max", "64", "NONE");
+  add_test(rg, "{test: test3_5, mutator: test3_5, grouped: false, pic: none, start_state: selfstart, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test3_5, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}");
+  fini_group(rg);
   rg = new RunGroup("test3_6.dyn_gcc_64_pic_none", SELFSTART, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "gcc", "none", "64", "NONE");
   add_test(rg, "{test: test3_6, mutator: test3_6, grouped: false, pic: pic, start_state: selfstart, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test3_6, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: createProcess}");
   fini_group(rg);
@@ -7020,15 +7023,15 @@ void initialize_mutatees_13(std::vector<RunGroup *> &t) {
   rg = new RunGroup("test_fork_5.dyn_gcc_64_pic_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "gcc", "low", "64", "NONE");
   add_test(rg, "{test: test_fork_5, mutator: test_fork_5, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_fork_5, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: createProcess}");
   fini_group(rg);
-  rg = new RunGroup("test_fork_5.dyn_gcc_64_none_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "gcc", "low", "64", "NONE");
-  add_test(rg, "{test: test_fork_5, mutator: test_fork_5, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_fork_5, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: createProcess}");
-  fini_group(rg);
 }
 
 // Now we insert the test lists into the run groups
 void initialize_mutatees_14(std::vector<RunGroup *> &t) {
         tests = &t;
         RunGroup *rg;
+  rg = new RunGroup("test_fork_5.dyn_gcc_64_none_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "gcc", "low", "64", "NONE");
+  add_test(rg, "{test: test_fork_5, mutator: test_fork_5, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_fork_5, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: createProcess}");
+  fini_group(rg);
   rg = new RunGroup("test_fork_5.dyn_gcc_64_pic_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "gcc", "high", "64", "NONE");
   add_test(rg, "{test: test_fork_5, mutator: test_fork_5, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_fork_5, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: createProcess}");
   fini_group(rg);
@@ -7326,15 +7329,15 @@ void initialize_mutatees_14(std::vector<RunGroup *> &t) {
   rg = new RunGroup("test_fork_11.dyn_gcc_64_pic_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "gcc", "max", "64", "NONE");
   add_test(rg, "{test: test_fork_11, mutator: test_fork_11, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_fork_11, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}");
   fini_group(rg);
-  rg = new RunGroup("test_fork_11.dyn_gcc_64_none_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "gcc", "max", "64", "NONE");
-  add_test(rg, "{test: test_fork_11, mutator: test_fork_11, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_fork_11, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}");
-  fini_group(rg);
 }
 
 // Now we insert the test lists into the run groups
 void initialize_mutatees_15(std::vector<RunGroup *> &t) {
         tests = &t;
         RunGroup *rg;
+  rg = new RunGroup("test_fork_11.dyn_gcc_64_none_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "gcc", "max", "64", "NONE");
+  add_test(rg, "{test: test_fork_11, mutator: test_fork_11, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_fork_11, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}");
+  fini_group(rg);
   rg = new RunGroup("test_fork_11.dyn_g++_64_pic_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "g++", "none", "64", "NONE");
   add_test(rg, "{test: test_fork_11, mutator: test_fork_11, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_fork_11, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: createProcess}");
   fini_group(rg);
@@ -7632,15 +7635,15 @@ void initialize_mutatees_15(std::vector<RunGroup *> &t) {
   rg = new RunGroup("test_stack_3.dyn_g++_64_pic_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "g++", "low", "64", "NONE");
   add_test(rg, "{test: test_stack_3, mutator: test_stack_3, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_stack_3, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: createProcess}");
   fini_group(rg);
-  rg = new RunGroup("test_stack_3.dyn_g++_64_none_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "g++", "low", "64", "NONE");
-  add_test(rg, "{test: test_stack_3, mutator: test_stack_3, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_stack_3, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: createProcess}");
-  fini_group(rg);
 }
 
 // Now we insert the test lists into the run groups
 void initialize_mutatees_16(std::vector<RunGroup *> &t) {
         tests = &t;
         RunGroup *rg;
+  rg = new RunGroup("test_stack_3.dyn_g++_64_none_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "g++", "low", "64", "NONE");
+  add_test(rg, "{test: test_stack_3, mutator: test_stack_3, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_stack_3, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: createProcess}");
+  fini_group(rg);
   rg = new RunGroup("test_stack_3.dyn_g++_64_pic_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "g++", "high", "64", "NONE");
   add_test(rg, "{test: test_stack_3, mutator: test_stack_3, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_stack_3, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: createProcess}");
   fini_group(rg);
@@ -7938,15 +7941,15 @@ void initialize_mutatees_16(std::vector<RunGroup *> &t) {
   rg = new RunGroup("test_thread_3.dyn_g++_64_pic_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "g++", "max", "64", "NONE");
   add_test(rg, "{test: test_thread_3, mutator: test_thread_3, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_thread_3, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}");
   fini_group(rg);
-  rg = new RunGroup("test_thread_3.dyn_g++_64_none_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "g++", "max", "64", "NONE");
-  add_test(rg, "{test: test_thread_3, mutator: test_thread_3, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_thread_3, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}");
-  fini_group(rg);
 }
 
 // Now we insert the test lists into the run groups
 void initialize_mutatees_17(std::vector<RunGroup *> &t) {
         tests = &t;
         RunGroup *rg;
+  rg = new RunGroup("test_thread_3.dyn_g++_64_none_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, nonPIC, "dyninst", "g++", "max", "64", "NONE");
+  add_test(rg, "{test: test_thread_3, mutator: test_thread_3, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_thread_3, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}");
+  fini_group(rg);
   rg = new RunGroup("test_thread_5.dyn_gcc_64_pic_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, true, PIC, "dyninst", "gcc", "none", "64", "NONE");
   add_test(rg, "{test: test_thread_5, mutator: test_thread_5, grouped: false, pic: pic, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_thread_5, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: createProcess}");
   fini_group(rg);

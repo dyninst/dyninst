@@ -20,9 +20,9 @@ set (dyninst_OBJS_ALL_MUTATORS test1_1.o test1_2.o test1_3.o test1_4.o test1_5.o
 
 
 include_directories ("..src/instruction")
-set (instruction_MUTATORS power_decode aarch64_decode aarch64_cft aarch64_decode_ldst power_cft )
+set (instruction_MUTATORS power_decode aarch64_decode aarch64_cft aarch64_decode_ldst aarch64_simd power_cft )
 
-set (instruction_OBJS_ALL_MUTATORS power_decode.o aarch64_decode.o aarch64_cft.o aarch64_decode_ldst.o power_cft.o )
+set (instruction_OBJS_ALL_MUTATORS power_decode.o aarch64_decode.o aarch64_cft.o aarch64_decode_ldst.o aarch64_simd.o power_cft.o )
 
 
 include_directories ("..src/symtab")
@@ -34,6 +34,7 @@ set (MUTATOR_NAME_LIST
 	aarch64_cft
 	aarch64_decode
 	aarch64_decode_ldst
+	aarch64_simd
 	init_fini_callback
 	pc_addlibrary
 	pc_breakpoint
@@ -164,6 +165,7 @@ set (MUTATOR_NAME_LIST
 	)
 
 set (MUTATOR_MODULE_LIB_LIST
+	testinstruction
 	testinstruction
 	testinstruction
 	testinstruction
@@ -301,6 +303,7 @@ set (MUTATOR_SOURCE_LIST
 	${SRC}/instruction/aarch64_cft.C
 	${SRC}/instruction/aarch64_decode.C
 	${SRC}/instruction/aarch64_decode_ldst.C
+	${SRC}/instruction/aarch64_simd.C
 	${SRC}/dyninst/init_fini_callback.C
 	${SRC}/proccontrol/pc_addlibrary.C
 	${SRC}/proccontrol/pc_breakpoint.C
@@ -430,7 +433,7 @@ set (MUTATOR_SOURCE_LIST
 	${SRC}/symtab/test_type_info.C
 	)
 
-foreach (val RANGE 129)
+foreach (val RANGE 130)
 	list (GET MUTATOR_NAME_LIST ${val} lib)
 	list (GET MUTATOR_SOURCE_LIST ${val} source)
 	list (GET MUTATOR_MODULE_LIB_LIST ${val} comp_dep)
