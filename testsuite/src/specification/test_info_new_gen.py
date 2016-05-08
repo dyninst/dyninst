@@ -1,5 +1,3 @@
-import os
-import tuples
 import utils
 
 # Return the name of the mutator for this test
@@ -12,7 +10,7 @@ def test_mutator(testname, info):
     else:
         # TODO Handle this case better
         testobj = None
-    if testobj != None:
+    if testobj is not None:
         mrname = testobj['mutator']
     else:
         mrname = None
@@ -66,19 +64,25 @@ static void add_test(RunGroup *rg, const char *ts) {
   rg->tests.push_back(new TestInfo(test_count++, "%s", ts));
 }
 
+"""
+    func_header = """
 // Now we insert the test lists into the run groups
-void initialize_mutatees(std::vector<RunGroup *> &t) {
+void initialize_mutatees_%d(std::vector<RunGroup *> &t) {
         tests = &t;
-	RunGroup *rg;
+        RunGroup *rg;
 """
     LibSuffix = platform['filename_conventions']['library_suffix']
     out.write(header % (LibSuffix))
 
     # TODO Change these to get the string conversions from a tuple output
+    idx = 0
     for group in rungroups:
-        compiler = info['compilers'][group['compiler']]
-#		if compiler['presencevar'] != 'true':
-#			out.write("#ifdef %s\n" % (compiler['presencevar']))
+        # Split up the initialization to significantly reduce compile time.
+        if idx % 100 == 0:
+            out.write(func_header % (idx / 100))
+        # compiler = info['compilers'][group['compiler']]
+        # if compiler['presencevar'] != 'true':
+        #   out.write("#ifdef %s\n" % (compiler['presencevar']))
         mutateename = mutatee_filename(group, compilers, platform, info)
         out.write('  rg = new RunGroup("%s", ' % (mutateename))
         if group['start_state'] == 'stopped':
@@ -134,12 +138,12 @@ void initialize_mutatees(std::vector<RunGroup *> &t) {
         try:
             testobj = filter(lambda t: t['name'] == group['tests'][0], info['tests'])
             if len(testobj) < 1:
-                raise TestNotFound, 'Test not found: ' + test
+                raise Exception('Test not found: %s' + group['tests'][0])
             else:
                 module = testobj[0]['module']
         except KeyError:
-            print "No module found! Test object: "
-            print testobj[0]
+            print("No module found! Test object: ")
+            print(testobj[0])
             raise
         out.write(', "%s", "%s", "%s", "%s", "%s"' % (module, group['compiler'], group['optimization'], group['abi'], group['platmode']))
         out.write(');\n')
@@ -149,15 +153,18 @@ void initialize_mutatees(std::vector<RunGroup *> &t) {
             # I need to get the mutator that this test maps to..
             mutator = test_mutator(test, info)
             ts = build_label(test, mutator, group, info)
-            if test in ['test_serializable']:
-                serialize_enable = 'true'
-            else:
-                serialize_enable = 'false'
             out.write('  add_test(rg, "%s");\n' % (ts))
         out.write('  fini_group(rg);\n')
+        idx += 1
+        if idx % 100 == 0 or idx == len(rungroups):
+            out.write('}\n')
         # Close compiler presence #ifdef
-#		if compiler['presencevar'] != 'true':
-#			out.write("#endif // defined(%s)\n" % (compiler['presencevar']))
+        # if compiler['presencevar'] != 'true':
+        #   out.write("#endif // defined(%s)\n" % (compiler['presencevar']))
+    out.write("void initialize_mutatees(std::vector<RunGroup *> &t) {\n")
+    num_funcs = len(rungroups) / 100 + (1 if len(rungroups) % 100 else 0)
+    for x in range(num_funcs):
+        out.write("initialize_mutatees_%d(t);\n" % x)
     out.write('}\n')
 
 

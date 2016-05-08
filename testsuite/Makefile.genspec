@@ -1,4 +1,4 @@
-SUBDIRS = i386-unknown-linux2.4 x86_64-unknown-linux2.4 ppc32_linux ppc64_linux i386-unknown-freebsd7.2 amd64-unknown-freebsd7.2 ppc64_bgq_ion i386-unknown-nt4.0 aarch64-unknown-linux
+SUBDIRS = aarch64-unknown-linux amd64-unknown-freebsd7.2 amd64-unknown-linux i386-unknown-freebsd7.2 i386-unknown-linux2.4 i386-unknown-nt4.0 ppc32_linux ppc64_pgq_ion ppc64_linux x86_64-unknown-linux2.4
 
 
 TO_SPEC = src/specification
@@ -30,7 +30,7 @@ $(SUBDIRS:%=%/tuples): %/tuples: $(PROLOG_FILES)
 		--entry-goal "halt" ; gzip -f ../../$@
 
 $(SUBDIRS:%=%/cmake-mutatees.txt): %/cmake-mutatees.txt: $(PYTHON_FILES) %/tuples
-	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import generate ; generate.generate('$*')"
+	python2 -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import generate ; generate.generate('$*')"
 
 $(SUBDIRS:%=%): %:%/cmake-mutatees.txt
 
