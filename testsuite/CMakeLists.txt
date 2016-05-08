@@ -35,9 +35,6 @@ endif()
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
-find_package (Dyninst REQUIRED COMPONENTS common
-  OPTIONAL_COMPONENTS symtabAPI dyninstAPI instructionAPI proccontrol)
-
 find_package (Threads)
 set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
 			      "1.50" "1.50.0" "1.51" "1.51.0" "1.52" "1.52.0"
@@ -59,14 +56,12 @@ find_package (Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 
-message (STATUS "Dyninst includes: ${DYNINST_INCLUDE_DIR}")
-include_directories (${DYNINST_INCLUDE_DIR})
 message (STATUS "Project source dir: ${PROJECT_SOURCE_DIR}")
 set (BUILD_SHARED_LIBS ON)
 
 
 
-if ("${DYNINST_PLATFORM}" MATCHES "bgq")
+if ("${PLATFORM}" MATCHES "bgq")
 find_package( LaunchMON REQUIRED )
 include_directories(${LAUNCHMON_INCLUDE_DIR})
 add_definitions(${LAUNCHMON_DEFINITIONS})
@@ -79,7 +74,7 @@ set (INSTALL_DIR "bin/testsuite" CACHE PATH "Testsuite installation directory")
 
 if (UNIX)
   enable_language(ASM-ATT)
-  if ("${DYNINST_PLATFORM}" MATCHES "i386")
+  if ("${PLATFORM}" MATCHES "i386")
     enable_language(ASM_NASM)
   endif()
 elseif(WIN32)
@@ -91,7 +86,7 @@ elseif(WIN32)
   endif()
 endif(UNIX)
 
-foreach (def ${DYNINST_INTERNAL_DEFINES})
+foreach (def ${UNIFIED_DEFINES})
   # add_definitions doesn't seem to get pulled in; that's okay, since
   # we don't want it anyway (we want to override for mutators/ees)
   add_definitions (${def}_test)
@@ -121,7 +116,7 @@ set (LIBTESTLAUNCH_SRCS
     src/ResumeLog.C
     src/MutateeStart.C
     src/test_info_new.C
-    ${DYNINST_PLATFORM}/test_info_new.gen.C)    
+    ${PLATFORM}/test_info_new.gen.C)
 
 if(UNIX)
 add_library(testSuite SHARED
@@ -129,7 +124,7 @@ add_library(testSuite SHARED
     ${LIBTESTSUITE_COMMON_SRCS})
 add_library(testlaunch SHARED
     ${LIBTESTLAUNCH_SRCS})
-target_link_libraries (testlaunch)
+target_link_libraries (testSuite testlaunch)
 set(TESTSUITE_TESTLAUNCH_LINK testSuite testlaunch)
 else()
 add_library(testSuite SHARED
@@ -230,7 +225,7 @@ add_executable (test_driver
                src/test_driver_templates.C
                src/dynlmon.C
                ${TD_BE}
-               ${DYNINST_PLATFORM}/test_info_new.gen.C)
+               ${PLATFORM}/test_info_new.gen.C)
 target_link_libraries (test_driver ${TESTSUITE_TESTLAUNCH_LINK})
 if (LAUNCHMON_FE_LIBRARIES)
 target_link_libraries (test_driver ${LAUNCHMON_FE_LIBRARIES})
@@ -255,7 +250,7 @@ install (TARGETS
         DESTINATION ${INSTALL_DIR})
 
 
-include (${DYNINST_PLATFORM}/cmake-mutators.txt)
+include (${PLATFORM}/cmake-mutators.txt)
 
 FOREACH (m ${MUTATOR_NAME_LIST})
     file(APPEND ${CMAKE_BINARY_DIR}/test_names.txt "${m}\n")
@@ -317,7 +312,7 @@ install (TARGETS testA testB testA_static testB_static
 #if (${MUTATEE_gcc64dyn} AND ${MUTATEE_gcc32dyn})
 if (UNIX)
 CHECK_MUTATEE_COMPILER(gcc "-m32" "-m32" C "" m32_works)
-if(${m32_works})
+if(${BUILD_RTLIB_32})
 message(STATUS "Building 32-bit helper libraries")
 add_library (testA_m32 SHARED src/libtestA.c)
 add_library (testB_m32 SHARED src/libtestB.c)
@@ -346,5 +341,5 @@ set_target_properties (Test12_m32
 endif()
 endif()
 
-include (${DYNINST_PLATFORM}/cmake-mutatees.txt)
+include (${PLATFORM}/cmake-mutatees.txt)
 

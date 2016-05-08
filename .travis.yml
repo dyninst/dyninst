@@ -40,5 +40,5 @@ script:
     - if [ "$CC" == "gcc" ]; then export CC=gcc-4.9; export CXX=g++-4.9; fi
     - mkdir work
     - cd work
-    - cmake ..
+    - cmake .. -DBUILD_TESTS
     - make

@@ -128,6 +128,12 @@ if(BUILD_TARBALLS)
     endif()
   endif()
 endif()
+
+if(BUILD_TESTS)
+  message(STATUS "Building testsuite")
+  add_subdirectory(testsuite)
+endif()
+
 if(BUILD_DOCS)
   add_custom_target(doc)
   set(LATEX_DOCS dynC_API dataflowAPI instructionAPI parseAPI patchAPI symtabAPI stackwalk)

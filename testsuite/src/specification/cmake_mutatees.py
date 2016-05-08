@@ -201,7 +201,6 @@ def print_src_lists(mutatees, platform, info, directory):
    # Make sure this agrees with the subdirectory structure for CMakeLists 
    # as defined below in print_compiler_cmakefiles
    out.write("set (SRC ${PROJECT_SOURCE_DIR}/src)\n")
-   out.write("find_package (Dyninst REQUIRED COMPONENTS common OPTIONAL_COMPONENTS symtabAPI dyninstAPI instructionAPI proccontrol)\n")
    srcs_to_mutatees = {}
    preproc_to_mutatees = {}
    for m in mutatees:

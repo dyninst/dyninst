@@ -1,5 +1,4 @@
 set (SRC ${PROJECT_SOURCE_DIR}/src)
-find_package (Dyninst REQUIRED COMPONENTS common OPTIONAL_COMPONENTS symtabAPI dyninstAPI instructionAPI proccontrol)
 set (SOURCE_LIST_0 
 	${SRC}/mutatee_driver.c	${PROJECT_SOURCE_DIR}/aarch64-unknown-linux/dyninst_cxx_group_test_group.c
 	${SRC}/dyninst/test5_1_mutatee.C
