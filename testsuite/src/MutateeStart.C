@@ -169,10 +169,6 @@ static void AddArchAttachArgs(std::vector<std::string> &args, create_mode_t cm, 
    }
 }
 
-extern FILE *getOutputLog();
-extern FILE *getErrorLog();
-
-
 static std::string launchMutatee_plat(const std::string &exec_name, const std::vector<std::string> &args, bool needs_grand_fork)
 {
    pid_t pid;

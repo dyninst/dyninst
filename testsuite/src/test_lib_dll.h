@@ -72,9 +72,9 @@
 
 // we are not building for a Windows target 
 #define TESTLIB_DLL_EXPORT __attribute__((visibility ("default")))
-#define TEST_DLL_EXPORT
-#define COMPLIB_DLL_EXPORT
-#define DLLEXPORT
+#define TEST_DLL_EXPORT __attribute__((visibility ("default")))
+#define COMPLIB_DLL_EXPORT __attribute__((visibility ("default")))
+#define DLLEXPORT __attribute__((visibility ("default")))
 #endif /* _MSC_VER */
 
 #endif /* TEST_LIB_DLL_H */

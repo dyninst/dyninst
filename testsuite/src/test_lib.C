@@ -86,8 +86,8 @@ using namespace std;
 static int debugPrint_ = 0;
 
 // output logging
-FILE *outlog = NULL;
-FILE *errlog = NULL;
+TESTLIB_DLL_EXPORT FILE *outlog = NULL;
+TESTLIB_DLL_EXPORT FILE *errlog = NULL;
 const char *outlogname = "-";
 const char *errlogname = "-";
 
