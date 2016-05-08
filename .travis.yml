@@ -16,6 +16,8 @@ addons:
 env:
     global:
         - DYNINSTAPI_RT_LIB=$HOME/install/lib/libdyninstAPI_RT.so
+        - DYNINST_DEBUG_STARTUP=1
+
 compiler:
     - gcc
 
