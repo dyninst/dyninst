@@ -36,4 +36,4 @@ script:
     - cmake .. -DDyninst_DIR=$HOME/install/lib/cmake/Dyninst -DCMAKE_INSTALL_PREFIX=$HOME/install
     - make
     - make install
-    - $HOME/install/bin/runTests -all -log -verbose
+    - $HOME/install/bin/testsuite/runTests -all -log -verbose
