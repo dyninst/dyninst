@@ -28,12 +28,12 @@ script:
     - mkdir work
     - cd work
     - cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/install
-    - make
+    - make -j2
     - make install
     - cd ../testsuite
     - mkdir work
     - cd work
     - cmake .. -DDyninst_DIR=$HOME/install/lib/cmake/Dyninst -DCMAKE_INSTALL_PREFIX=$HOME/install
-    - make
+    - make -j2
     - make install
     - $HOME/install/bin/testsuite/runTests -all -log -verbose
