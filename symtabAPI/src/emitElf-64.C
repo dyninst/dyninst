@@ -2215,6 +2215,8 @@ void emitElf64<ElfTypes>::createRelocationSections(std::vector<relocationEntry> 
         name = std::string(new_name);
     obj->addRegion(0, buffer, reloc_size, name, rtype, true);
     updateDynamic(dsize_type, dynamic_reloc_size);
+    if(relas != buffer)
+      free(relas);
 
 }
 

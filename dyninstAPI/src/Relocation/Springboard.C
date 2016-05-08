@@ -479,16 +479,15 @@ void InstalledSpringboards::registerBranch
    // [lb..start] as true
    // [start..end] as false
    // [end..ub] as true
-   SpringboardInfo* info = new SpringboardInfo(idToUse, func);
    if (LB < start) {
         springboard_cerr << "\tInserting prior space " << hex << LB << " -> " << start << " /w/ range " << idToUse << dec << endl;
-       validRanges_.insert(LB, start, info);
+       validRanges_.insert(LB, start, new SpringboardInfo(idToUse, func));
    }
     springboard_cerr << "\t Inserting taken space " << hex << start << " -> " << end << " /w/ range " << Allocated << dec << endl;
    validRanges_.insert(start, end, new SpringboardInfo(Allocated, func, p));
    if (UB > end) {
         springboard_cerr << "\tInserting post space " << hex << end << " -> " << UB << " /w/ range " << idToUse << dec << endl;
-      validRanges_.insert(end, UB, info);
+      validRanges_.insert(end, UB, new SpringboardInfo(idToUse, func));
    }
 }
 

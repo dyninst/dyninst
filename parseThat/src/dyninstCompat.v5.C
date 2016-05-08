@@ -63,6 +63,7 @@ dynHandle *mutatorInit(void)
     if (!dh->bpatch) {
 	sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_FAIL,
 		"Failure creating new BPatch object");
+        delete dh;
 	return NULL;
     }
 
@@ -71,6 +72,7 @@ dynHandle *mutatorInit(void)
         if (!dh->bpatch->remoteConnect(*config.remoteHost)) {
             sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_FAIL,
                     "Failure connecting to remote target");
+            delete dh;
             return NULL;
         }
     }
