@@ -93,6 +93,8 @@ foreach (def ${UNIFIED_DEFINES})
   set (MUTATEE_DEFINES "${MUTATEE_DEFINES} ${def}_test")
 endforeach()
 
+include_directories(${RT_SOURCE_DIR}/h)
+
 include_directories (src
                     src/dyninst
                     src/proccontrol
@@ -312,7 +314,7 @@ install (TARGETS testA testB testA_static testB_static
 #if (${MUTATEE_gcc64dyn} AND ${MUTATEE_gcc32dyn})
 if (UNIX)
 CHECK_MUTATEE_COMPILER(gcc "-m32" "-m32" C "" m32_works)
-if(${BUILD_RTLIB_32})
+if(${m32_works})
 message(STATUS "Building 32-bit helper libraries")
 add_library (testA_m32 SHARED src/libtestA.c)
 add_library (testB_m32 SHARED src/libtestB.c)
@@ -320,6 +322,9 @@ add_library (testA_m32_static STATIC src/libtestA.c)
 add_library (testB_m32_static STATIC src/libtestB.c)
 set_target_properties(testA_m32_static PROPERTIES OUTPUT_NAME testA_m32)
 set_target_properties(testB_m32_static PROPERTIES OUTPUT_NAME testB_m32)
+# libTest12 contains undefined references
+string(REPLACE "-Wl,--no-undefined" "" CMAKE_SHARED_LINKER_FLAGS
+    ${CMAKE_SHARED_LINKER_FLAGS})
 add_library (Test12_m32 SHARED src/dyninst/libTest12.c)
 
 install (TARGETS testA_m32 testB_m32 Test12_m32 testA_m32_static testB_m32_static 

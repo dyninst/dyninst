@@ -71,7 +71,7 @@
 #else
 
 // we are not building for a Windows target 
-#define TESTLIB_DLL_EXPORT
+#define TESTLIB_DLL_EXPORT __attribute__((visibility ("default")))
 #define TEST_DLL_EXPORT
 #define COMPLIB_DLL_EXPORT
 #define DLLEXPORT

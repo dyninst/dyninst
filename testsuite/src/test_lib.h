@@ -118,7 +118,7 @@ TESTLIB_DLL_EXPORT bool inTestList(test_data_t &test, std::vector<char *> &test_
 TESTLIB_DLL_EXPORT void dprintf(const char *fmt, ...);
 TESTLIB_DLL_EXPORT void addLibArchExt(char *dest, unsigned int dest_max_len, int psize, bool isStatic = false);
 TESTLIB_DLL_EXPORT int strcmpcase(char *s1, char *s2);
-char *searchPath(const char *path, const char *file);
+TESTLIB_DLL_EXPORT char *searchPath(const char *path, const char *file);
 
 TESTLIB_DLL_EXPORT bool shouldRunTest(RunGroup *group, TestInfo *test);
 TESTLIB_DLL_EXPORT void reportTestResult(RunGroup *group, TestInfo *test);

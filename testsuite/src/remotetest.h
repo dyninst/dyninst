@@ -135,7 +135,7 @@ class TESTLIB_DLL_EXPORT RemoteTestFE : public TestMutator {
    virtual test_results_t teardown();
 };
 
-class RemoteBE {
+class TESTLIB_DLL_EXPORT RemoteBE {
   private:
    Connection *connection;
    std::vector<RunGroup *> &groups;
@@ -160,7 +160,7 @@ class RemoteBE {
    void dispatch(char *message);
 };
 
-class RemoteOutputDriver : public TestOutputDriver {
+class TESTLIB_DLL_EXPORT RemoteOutputDriver : public TestOutputDriver {
   private:
    void send_log(std::string str);
    Connection *connection;
@@ -235,7 +235,7 @@ void encodeString(std::string str, MessageBuffer &buf);
 void encodeBool(bool b, MessageBuffer &buf);
 char *my_strtok(char *str, const char *delim);
 
-bool sendEnv(Connection *c);
-bool sendArgs(char **args, Connection *c);
-bool sendLDD(Connection *c, std::string libname, std::string &result);
-bool sendGo(Connection *c);
+TESTLIB_DLL_EXPORT bool sendEnv(Connection *c);
+TESTLIB_DLL_EXPORT bool sendArgs(char **args, Connection *c);
+TESTLIB_DLL_EXPORT bool sendLDD(Connection *c, std::string libname, std::string &result);
+TESTLIB_DLL_EXPORT bool sendGo(Connection *c);

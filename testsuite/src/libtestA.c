@@ -44,7 +44,7 @@
 #if defined(os_windows_test)
 #define DLLEXPORT __declspec( dllexport )
 #else
-#define DLLEXPORT
+#define DLLEXPORT __attribute__((visibility ("default")))
 #endif
 
 #if defined(os_windows_test) && defined(__cplusplus)
