@@ -398,8 +398,8 @@ int main(int argc, char *argv[])
          FILE *f = fopen(test_drivers[driver].outputlog.c_str(), "r");
          if (f) {
             for (;;) {
-               int result = (int) getline(&line, &line_size, f);
-               if (result == -1)
+               int ret = (int) getline(&line, &line_size, f);
+               if (ret == -1)
                   break;
                fprintf(outputlog_file, "%s", line);
             }
@@ -431,7 +431,7 @@ int main(int argc, char *argv[])
 
    clear_resumelog();
 
-   return 0;
+   return result;
 }
 
 
