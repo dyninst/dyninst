@@ -55,11 +55,7 @@ endif()
 find_package (Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
-
-message (STATUS "Project source dir: ${PROJECT_SOURCE_DIR}")
 set (BUILD_SHARED_LIBS ON)
-
-
 
 if ("${PLATFORM}" MATCHES "bgq")
 find_package( LaunchMON REQUIRED )
@@ -216,11 +212,14 @@ else()
 set(TD_BE src/testdriver_be.C)
 endif()
 
+set(TEST_DEPS "")
+
 add_executable (runTests 
                src/runTests.C
 	       ${RUNTESTS_UTILS}
                src/test_driver_templates.C)
 target_link_libraries (runTests)
+list(APPEND TEST_DEPS runTests)
 
 add_executable (test_driver
                src/test_driver.C
@@ -229,6 +228,7 @@ add_executable (test_driver
                ${TD_BE}
                ${PLATFORM}/test_info_new.gen.C)
 target_link_libraries (test_driver ${TESTSUITE_TESTLAUNCH_LINK})
+list(APPEND TEST_DEPS test_driver)
 if (LAUNCHMON_FE_LIBRARIES)
 target_link_libraries (test_driver ${LAUNCHMON_FE_LIBRARIES})
 target_link_libraries (test_driver ${LAUNCHMON_BE_LIBRARIES})
@@ -256,6 +256,7 @@ include (${PLATFORM}/cmake-mutators.txt)
 
 FOREACH (m ${MUTATOR_NAME_LIST})
     file(APPEND ${CMAKE_BINARY_DIR}/test_names.txt "${m}\n")
+    list(APPEND TEST_DEPS ${m})
 ENDFOREACH()
 
 if (UNIX)
@@ -346,5 +347,8 @@ set_target_properties (Test12_m32
 endif()
 endif()
 
-include (${PLATFORM}/cmake-mutatees.txt)
-
+add_custom_target(tests
+  COMMAND ./runTests
+  DEPENDS ${TEST_DEPS}
+  WORKING_DIRECTORY ${Dyninst-TestSuite_BINARY_DIR}
+  )
