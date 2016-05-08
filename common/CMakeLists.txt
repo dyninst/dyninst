@@ -110,13 +110,14 @@ if (IBERTY_FOUND)
 set(DEPS ${IBERTY_LIBRARIES})
 endif()
 
-
 dyninst_library(common ${DEPS})
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   target_link_private_libraries(common Psapi WS2_32 dbghelp)
 endif()
 target_link_private_libraries(common ${Boost_LIBRARIES})
-
+if (UNIX AND NOT USE_GNU_DEMANGLER)
+  target_link_private_libraries(common iberty)
+endif()
 
 IF (USE_COTIRE)
     cotire(common)
