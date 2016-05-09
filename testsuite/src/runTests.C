@@ -381,16 +381,19 @@ int main(int argc, char *argv[])
           for (int idx=0; idx < parallel_copies; idx++) {
              test_drivers[idx].last_result = -1;
           }
-		  break;
+          result = -1;
+	  break;
       }
       if (test_drivers[driver].last_result == -4) {
          //Exec error
          fprintf(stderr, "Failed to exec test_driver\n");
+         result = -4;
          break;
       }
       if (test_drivers[driver].last_result == -5) {
-         //Help
-         break;
+          result = -5;
+          //Help
+          break;
       }
 
       if (parallel_copies > 1)

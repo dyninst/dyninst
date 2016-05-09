@@ -205,14 +205,13 @@ else()
 set(TD_BE src/testdriver_be.C)
 endif()
 
-set(TEST_DEPS "")
+set(TEST_DEPS parseThat runTests test_driver)
 
 add_executable (runTests 
                src/runTests.C
 	       ${RUNTESTS_UTILS}
                src/test_driver_templates.C)
 target_link_libraries (runTests)
-list(APPEND TEST_DEPS runTests)
 
 add_executable (test_driver
                src/test_driver.C
@@ -221,7 +220,6 @@ add_executable (test_driver
                ${TD_BE}
                ${PLATFORM}/test_info_new.gen.C)
 target_link_libraries (test_driver testSuite)
-list(APPEND TEST_DEPS test_driver)
 if (LAUNCHMON_FE_LIBRARIES)
 target_link_libraries (test_driver ${LAUNCHMON_FE_LIBRARIES})
 target_link_libraries (test_driver ${LAUNCHMON_BE_LIBRARIES})
@@ -341,7 +339,8 @@ endif()
 endif()
 
 add_custom_target(tests
-  COMMAND DYNINSTAPI_RT_LIB=${RT_BINARY_DIR}/libdyninstAPI_RT.so ./runTests
-  DEPENDS ${TEST_DEPS}
-  WORKING_DIRECTORY ${Dyninst-TestSuite_BINARY_DIR}
+    COMMAND DYNINSTAPI_RT_LIB=${RT_BINARY_DIR}/libdyninstAPI_RT.so
+    PATH=${Dyninst_BINARY_DIR}/parseThat:$ENV{PATH} ./runTests -all
+    DEPENDS ${TEST_DEPS}
+    WORKING_DIRECTORY ${Dyninst-TestSuite_BINARY_DIR}
   )
