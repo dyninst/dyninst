@@ -741,7 +741,7 @@ void updateSearchPaths(const char *filename) {
 
    char *execpath;
    char pathname[PATH_MAX];
-   getcwd(pathname, PATH_MAX);
+   assert(getcwd(pathname, PATH_MAX) != NULL);
 
    if (filename[0] == '/') {
       // If it begins with a slash, it's an absolute path
