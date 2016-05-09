@@ -106,33 +106,26 @@ set (LIBTESTSUITE_COMMON_SRCS
             src/remotetest.C
             src/connection.C
             src/module.C
-            src/test_lib_templates.C src/JUnitOutputDriver.cpp)
-
-set (LIBTESTLAUNCH_SRCS
-    src/CmdLine.C
-    src/ParameterDict.C
-    src/ResumeLog.C
-    src/MutateeStart.C
-    src/test_info_new.C
-    ${PLATFORM}/test_info_new.gen.C)
+            src/test_lib_templates.C
+            src/JUnitOutputDriver.cpp
+	    src/CmdLine.C
+	    src/ParameterDict.C
+	    src/ResumeLog.C
+	    src/MutateeStart.C
+	    src/test_info_new.C
+	    ${PLATFORM}/test_info_new.gen.C)
 
 if(UNIX)
 add_library(testSuite SHARED
     src/test_lib_soExecution.C
     ${LIBTESTSUITE_COMMON_SRCS})
-add_library(testlaunch SHARED
-    ${LIBTESTLAUNCH_SRCS})
-target_link_libraries (testSuite testlaunch)
-set(TESTSUITE_TESTLAUNCH_LINK testSuite testlaunch)
 else()
 add_library(testSuite SHARED
     src/test_lib_dllExecution.C
-    ${LIBTESTSUITE_COMMON_SRCS}
-    ${LIBTESTLAUNCH_SRCS})
-set(TESTSUITE_TESTLAUNCH_LINK testSuite)
+    ${LIBTESTSUITE_COMMON_SRCS})
 endif()
 
-set_target_properties(${TESTSUITE_TESTLAUNCH_LINK} PROPERTIES COMPILE_DEFINITIONS TESTLIB_DLL_BUILD)
+set_target_properties(testSuite PROPERTIES COMPILE_DEFINITIONS TESTLIB_DLL_BUILD)
 
 target_link_libraries (testSuite ${CMAKE_DL_LIBS})
 
@@ -227,7 +220,7 @@ add_executable (test_driver
                src/dynlmon.C
                ${TD_BE}
                ${PLATFORM}/test_info_new.gen.C)
-target_link_libraries (test_driver ${TESTSUITE_TESTLAUNCH_LINK})
+target_link_libraries (test_driver testSuite)
 list(APPEND TEST_DEPS test_driver)
 if (LAUNCHMON_FE_LIBRARIES)
 target_link_libraries (test_driver ${LAUNCHMON_FE_LIBRARIES})
@@ -247,7 +240,7 @@ endif()
 install (TARGETS
         test_driver
         runTests
-	${TESTSUITE_TESTLAUNCH_LINK}
+	testSuite
 	DatabaseOutputDriver
         DESTINATION ${INSTALL_DIR})
 
