@@ -320,7 +320,6 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
    }
 
    if(appProc->terminationStatus() == ExitedViaSignal) {
-      mutateeExitedViaSignal = true;
       int signalNum = appProc->getExitSignal();
       getOutput()->log(LOGINFO, "Mutatee exited from signal 0x%x\n", signalNum);
    }
