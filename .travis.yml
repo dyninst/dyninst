@@ -20,6 +20,7 @@ addons:
             - cmake
             - libelf-dev
             - g++-4.9
+            - g++-multilib
 
 compiler:
     - gcc

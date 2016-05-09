@@ -340,7 +340,7 @@ endif()
 
 add_custom_target(tests
     COMMAND DYNINSTAPI_RT_LIB=${RT_BINARY_DIR}/libdyninstAPI_RT.so
-    PATH=${Dyninst_BINARY_DIR}/parseThat:$ENV{PATH} ./runTests -all
+    PATH=${Dyninst_BINARY_DIR}/parseThat:$ENV{PATH} ./runTests -full -log
     DEPENDS ${TEST_DEPS}
     WORKING_DIRECTORY ${Dyninst-TestSuite_BINARY_DIR}
   )
