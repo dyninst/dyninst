@@ -291,6 +291,9 @@ set_target_properties(testA_static PROPERTIES OUTPUT_NAME testA)
 set_target_properties(testB_static PROPERTIES OUTPUT_NAME testB)
 
 if(UNIX)
+# libTest12 contains undefined references
+string(REPLACE "-Wl,--no-undefined" "" CMAKE_SHARED_LINKER_FLAGS
+    ${CMAKE_SHARED_LINKER_FLAGS})
 add_library (Test12 SHARED src/dyninst/libTest12.c)
 install (TARGETS Test12 
 	LIBRARY DESTINATION ${INSTALL_DIR}
@@ -316,9 +319,6 @@ add_library (testA_m32_static STATIC src/libtestA.c)
 add_library (testB_m32_static STATIC src/libtestB.c)
 set_target_properties(testA_m32_static PROPERTIES OUTPUT_NAME testA_m32)
 set_target_properties(testB_m32_static PROPERTIES OUTPUT_NAME testB_m32)
-# libTest12 contains undefined references
-string(REPLACE "-Wl,--no-undefined" "" CMAKE_SHARED_LINKER_FLAGS
-    ${CMAKE_SHARED_LINKER_FLAGS})
 add_library (Test12_m32 SHARED src/dyninst/libTest12.c)
 
 install (TARGETS testA_m32 testB_m32 Test12_m32 testA_m32_static testB_m32_static 
