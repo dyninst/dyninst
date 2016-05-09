@@ -174,9 +174,8 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
       if (res != 3)
          break;
       
-      assert(groupnum >= 0 && groupnum < groups.size());
+      assert(groupnum < groups.size());
       assert(groups[groupnum]);
-      assert(testnum >= 0);
       assert(testnum < groups[groupnum]->tests.size());
       if (runstate_int == RESULT_REPORTED)
       {

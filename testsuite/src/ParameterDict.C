@@ -44,7 +44,7 @@ Parameter::~Parameter()
 }
 
 // Error functions, in proper operation these will be overidden in a subclass
-void Parameter::setString(const char *str)
+void Parameter::setString(const char * /*str*/)
 {
    fprintf(stderr, "Warning: Setting a string for a non-string Parameter, ignored\n");
 }
@@ -61,7 +61,7 @@ int Parameter::getInt()
    return -1;
 }
 
-void Parameter::setInt(int num)
+void Parameter::setInt(int /*num*/)
 {
    fprintf(stderr, "Warning: Setting an int for a non-int Parameter, ignored\n");
 }
@@ -72,7 +72,7 @@ void *Parameter::getPtr()
    return NULL;
 }
 
-void Parameter::setPtr(void *ptr)
+void Parameter::setPtr(void * /*ptr*/)
 {
    fprintf(stderr, "Warning: Setting an ptr for a non-ptr Parameter, ignored\n");
 }

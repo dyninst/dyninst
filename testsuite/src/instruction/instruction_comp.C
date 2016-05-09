@@ -67,37 +67,37 @@ InstructionComponent::~InstructionComponent()
 {
 }
 
-test_results_t InstructionComponent::program_setup(ParameterDict &params)
+test_results_t InstructionComponent::program_setup(ParameterDict &/*params*/)
 {
    return PASSED;
 }
 
-test_results_t InstructionComponent::program_teardown(ParameterDict &params)
+test_results_t InstructionComponent::program_teardown(ParameterDict &/*params*/)
 {
    return PASSED;
 }
 
-test_results_t InstructionComponent::group_setup(RunGroup *group, ParameterDict &params)
+test_results_t InstructionComponent::group_setup(RunGroup * /*group*/, ParameterDict &/*params*/)
 {
    return PASSED;
 }
 
-test_results_t InstructionComponent::group_teardown(RunGroup *group, ParameterDict &params)
+test_results_t InstructionComponent::group_teardown(RunGroup * /*group*/, ParameterDict &/*params*/)
 {
    return PASSED;
 }
 
-test_results_t InstructionComponent::test_setup(TestInfo *test, ParameterDict &params)
+test_results_t InstructionComponent::test_setup(TestInfo * /*test*/, ParameterDict &/*params*/)
 {
    return PASSED;
 }
 
-test_results_t InstructionComponent::test_teardown(TestInfo *test, ParameterDict &params)
+test_results_t InstructionComponent::test_teardown(TestInfo * /*test*/, ParameterDict &/*params*/)
 {
    return PASSED;
 }
 
-test_results_t InstructionMutator::setup(ParameterDict &param)
+test_results_t InstructionMutator::setup(ParameterDict &/*param*/)
 {
   return PASSED;
 }

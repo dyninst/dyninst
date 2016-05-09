@@ -378,7 +378,7 @@ static std::string launchMutatee_plat(const std::string &exec_name, const std::v
 }
 #endif
 
-bool shouldLaunch(RunGroup *group, ParameterDict &params)
+bool shouldLaunch(RunGroup * /*group*/, ParameterDict &/*params*/)
 {
 	return true;
 }
@@ -409,7 +409,6 @@ std::string launchMutatee(std::string executable, std::vector<std::string> &args
    char group_num[32];
    snprintf(group_num, 32, "%d", group->index);
 
-   bool in_runtests = params["in_runtests"]->getInt();
    if (!shouldLaunch(group, params))
       return std::string(group_num) + ":-1";
 

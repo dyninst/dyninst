@@ -44,7 +44,7 @@ bool TestMutator::hasCustomExecutionPath() {
   return false;
 }
 
-test_results_t TestMutator::setup(ParameterDict &param) {
+test_results_t TestMutator::setup(ParameterDict &/*param*/) {
    return PASSED;
 }
 

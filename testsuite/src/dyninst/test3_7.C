@@ -127,6 +127,7 @@ test_results_t test3_7_Mutator::executeTest() {
 	// Register a callback that we will use to check for done-ness
     BPatchOneTimeCodeCallback oldCallback =
         bpatch->registerOneTimeCodeCallback(test7_oneTimeCodeCallback);
+    assert(oldCallback);
 
     dprintf("Letting mutatee processes run a short while (2s).\n");
     for (n=0; n<Mutatees; n++) appProc[n]->continueExecution();

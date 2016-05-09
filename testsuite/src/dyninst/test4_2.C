@@ -205,7 +205,7 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
     }
 }
 
-static void execFunc(BPatch_thread *thread)
+static void execFunc(BPatch_thread * /*thread*/)
 {
     logerror("**Failed Test #2\n");
     logerror("    execCallback invoked, but exec was not called!\n");

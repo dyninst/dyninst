@@ -98,7 +98,7 @@ test_results_t test_instruction_profile_Mutator::executeTest()
     std::vector<Instruction::Ptr > decodedInsns;
     Instruction::Ptr i;
     InstructionDecoder d(decodeBase, (*curReg)->getDiskSize(), Dyninst::Arch_x86);
-    long offset = 0;
+    unsigned long offset = 0;
     
     // simulate parsing via vector-per-basic-block
     while(offset < (*curReg)->getDiskSize() - InstructionDecoder::maxInstructionLength)

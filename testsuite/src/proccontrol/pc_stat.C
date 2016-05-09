@@ -92,7 +92,7 @@ void pc_statMutator::waitfor_sync() {
       error = true;
    }
    
-   for (unsigned int i = 0; i < comp->num_processes; i++) {
+   for (int i = 0; i < comp->num_processes; i++) {
       if (syncs[i].code != SYNCLOC_CODE) {
          logerror("Received bad syncloc message in group test\n");
          error = true;

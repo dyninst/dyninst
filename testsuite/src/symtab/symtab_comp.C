@@ -42,12 +42,12 @@ SymtabComponent::~SymtabComponent()
 {
 }
 
-test_results_t SymtabComponent::program_setup(ParameterDict &params)
+test_results_t SymtabComponent::program_setup(ParameterDict &/*params*/)
 {
    return PASSED;
 }
 
-test_results_t SymtabComponent::program_teardown(ParameterDict &params)
+test_results_t SymtabComponent::program_teardown(ParameterDict &/*params*/)
 {
    return PASSED;
 }
@@ -191,18 +191,18 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
    return PASSED;
 }
 
-test_results_t SymtabComponent::group_teardown(RunGroup *group, ParameterDict &params)
+test_results_t SymtabComponent::group_teardown(RunGroup * /*group*/, ParameterDict &/*params*/)
 {
    symtab = NULL;
    return PASSED;
 }
 
-test_results_t SymtabComponent::test_setup(TestInfo *test, ParameterDict &params)
+test_results_t SymtabComponent::test_setup(TestInfo * /*test*/, ParameterDict & /*params*/)
 {
    return PASSED;
 }
 
-test_results_t SymtabComponent::test_teardown(TestInfo *test, ParameterDict &params)
+test_results_t SymtabComponent::test_teardown(TestInfo * /*test*/, ParameterDict &/*params*/)
 {
    return PASSED;
 }

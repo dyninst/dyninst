@@ -80,7 +80,7 @@ int callback_counter = 0;
 std::vector<user_msg_t> elog;
 
 static BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc,
-                        int testno, const char *testname)
+                        int /*testno*/, const char * /*testname*/)
 {
   assert(f);
   BPatch_Vector<BPatch_point *> *pts = f->findPoint(loc);
@@ -104,7 +104,7 @@ static BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc,
 //     -- modify to take snippet vector args if necessary.
 BPatchSnippetHandle *
 test_callback_2_Mutator::at(BPatch_point * pt, BPatch_function *call,
-			    int testno, const char *testname)
+			    int /*testno*/, const char * /*testname*/)
 {
   BPatch_Vector<BPatch_snippet *> args;
   BPatch_funcCallExpr snip(*call, args);
@@ -172,7 +172,7 @@ static void test7cb(BPatch_process *  proc, void *buf, unsigned int bufsize)
 
   user_msg_t *msg = (user_msg_t *) buf;
   user_event_t what = msg->what;
-  unsigned long tid = msg->tid;
+  long tid = msg->tid;
 
   if (debugPrint())
     dprintf("%s[%d]:  thread = %lu, what = %d\n", __FILE__, __LINE__, tid, what);

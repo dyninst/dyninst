@@ -131,7 +131,7 @@ static void postForkFunc(BPatch_thread *parent, BPatch_thread *child)
 }
 
 /* And verify them when they exit */
-static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
+static void exitFunc(BPatch_thread *thread, BPatch_exitType /*exit_type*/) {
     dprintf("Exit func called\n");
     if (thread == parentThread) {
         dprintf("Parent exit reached, checking...\n");

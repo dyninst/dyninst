@@ -171,7 +171,7 @@ static char *decodeGroup(RunGroup* &group, vector<RunGroup *> &groups, char *buf
    unsigned int group_index;
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &group_index);
-   assert(group_index >= 0 && group_index < groups.size());
+   assert(group_index < groups.size());
    group = groups[group_index];
    return strchr(buffer, ';')+1;
 }
@@ -191,12 +191,12 @@ static char *decodeTest(TestInfo* &test, vector<RunGroup *> &groups, char *buffe
 
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &group_index);
-   assert(group_index >= 0 && group_index < groups.size());
+   assert(group_index < groups.size());
    RunGroup *group = groups[group_index];
 
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &test_index);
-   assert(test_index >= 0 && test_index < group->tests.size());
+   assert(test_index < group->tests.size());
    
    test = group->tests[test_index];
 
@@ -576,8 +576,8 @@ RemoteTestFE *RemoteTestFE::createRemoteTestFE(TestInfo *t, Connection *c) {
 }
 
 RemoteBE::RemoteBE(vector<RunGroup *> &g, Connection *c) :
-   groups(g),
-   connection(c)
+   connection(c),
+   groups(g)
 {
 }
 
@@ -753,7 +753,7 @@ void RemoteBE::setenv_on_local(char *message)
    connection->send_message(buffer);
 }
 
-void RemoteBE::dispatchExit(char *message)
+void RemoteBE::dispatchExit(char * /*message*/)
 {
    exit(0);
 }
@@ -859,17 +859,17 @@ void RemoteOutputDriver::startNewTest(std::map<std::string, std::string> &, Test
    assert(0); //Not expected to be called from BE
 }
 
-void RemoteOutputDriver::redirectStream(TestOutputStream stream, const char * filename)
+void RemoteOutputDriver::redirectStream(TestOutputStream /*stream*/, const char * /*filename*/)
 {
    assert(0); //Not expected to be called from BE   
 }
 
-void RemoteOutputDriver::logResult(test_results_t result, int stage)
+void RemoteOutputDriver::logResult(test_results_t /*result*/, int /*stage*/)
 {
    assert(0); //Not expected to be called from BE
 }
 
-void RemoteOutputDriver::logCrash(std::string testname)
+void RemoteOutputDriver::logCrash(std::string /*testname*/)
 {
    assert(0); //Not expected to be called from BE
 }

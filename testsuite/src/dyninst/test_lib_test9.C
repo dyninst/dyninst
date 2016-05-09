@@ -99,7 +99,7 @@ static int preloadMutatedRT(const char *path)
 int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 
    pid_t pid;
-   int status, died;
+   int status;
 
 	char *mutatedBinary;
 #if defined(rs6000_ibm_aix4_1_test) \
@@ -186,7 +186,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
  || defined(i386_unknown_linux2_0_test) \
  || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix5_1)
-			died= waitpid(pid, &status, 0); 
+			waitpid(pid, &status, 0);
 #endif
    	}
 

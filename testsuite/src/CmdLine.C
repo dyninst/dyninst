@@ -974,8 +974,6 @@ static bool mutateeListContains(std::vector<char *> mutatee_list, const char *mu
 // don't match.  All tests start out enabled, and we previously disabled any
 // that are crashing while we were parsing the resume log.
 static bool testListContains(TestInfo * test, std::vector<char *> &testsn) {
-   bool match_found = false;
-
    for (size_t i = 0; i < testsn.size(); i++) {
       if (nameMatches(testsn[i], test->name))
          return true;

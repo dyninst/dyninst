@@ -112,6 +112,7 @@ static void prepareTestCase2(procType proc_type, BPatch_thread *thread, forkWhen
 
       parSnippetHandle2 =
               thread->getProcess()->insertSnippet(expr7_2p, *point7_2p, BPatch_callBefore);
+      assert(parSnippetHandle2);
    } else if(proc_type == Child_p  &&  when == PostFork) {
        BPatch_image *childImage = thread->getProcess()->getImage();
 
@@ -176,7 +177,7 @@ static void postForkFunc(BPatch_thread *parent, BPatch_thread *child)
 }
 
 /* And verify them when they exit */
-static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
+static void exitFunc(BPatch_thread *thread, BPatch_exitType /*exit_type*/) {
     dprintf("Exit func called\n");
     if (thread == parentThread) {
         dprintf("Parent exit reached, checking...\n");

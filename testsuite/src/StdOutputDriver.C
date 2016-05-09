@@ -43,7 +43,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-StdOutputDriver::StdOutputDriver(void * data) : attributes(NULL), streams() {
+StdOutputDriver::StdOutputDriver(void * /*data*/) : streams(), attributes(NULL) {
   streams[STDOUT] = std::string("-");
   streams[STDERR] = std::string("-");
   streams[LOGINFO] = std::string("-");
@@ -299,7 +299,7 @@ FILE *StdOutputDriver::getHumanFile()  {
     return out;
 }
 
-void StdOutputDriver::logCrash(std::string testname) {
+void StdOutputDriver::logCrash(std::string /*testname*/) {
   // TODO Do something here
 }
 
@@ -323,7 +323,7 @@ void StdOutputDriver::vlog(TestOutputStream stream, const char *fmt, va_list arg
   }
 
   const char *fn = streams[stream].c_str();
-  FILE *out;
+  FILE *out = nullptr;
   if (strcmp(fn, "-") == 0) {
     // We're printing to the default file
     switch(stream) {

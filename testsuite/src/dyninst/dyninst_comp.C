@@ -138,7 +138,7 @@ test_results_t DyninstComponent::program_setup(ParameterDict &params)
    return PASSED;
 }
 
-test_results_t DyninstComponent::program_teardown(ParameterDict &params)
+test_results_t DyninstComponent::program_teardown(ParameterDict &/*params*/)
 {
    delete bpatch;
    bpatch = NULL;
@@ -182,7 +182,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
 
          getMutateeParams(group, params, exec_name, args);
          char **argv = getCParams(string(""), args);
-         appProc = BPatch::bpatch->processCreate(exec_name.c_str(), (const char**) argv, NULL);
+         appProc = BPatch::bpatch->processCreate(exec_name.c_str(), const_cast<const char**>(argv), NULL);
          free(argv);
          if (!appProc) {
             logerror("Error creating process\n");
@@ -319,7 +319,6 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
       return PASSED;
    }
 
-   bool mutateeExitedViaSignal = false;
    if(appProc->terminationStatus() == ExitedViaSignal) {
       mutateeExitedViaSignal = true;
       int signalNum = appProc->getExitSignal();
@@ -335,12 +334,12 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
    return UNKNOWN;
 }
 
-test_results_t DyninstComponent::test_setup(TestInfo *test, ParameterDict &parms)
+test_results_t DyninstComponent::test_setup(TestInfo * /*test*/, ParameterDict &/*parms*/)
 {
    return PASSED;
 }
 
-test_results_t DyninstComponent::test_teardown(TestInfo *test, ParameterDict &parms)
+test_results_t DyninstComponent::test_teardown(TestInfo *test, ParameterDict &/*parms*/)
 {
     // Take care of the things the test can delete out from under us
     DyninstMutator* theMutator = dynamic_cast<DyninstMutator*>(test->mutator);
@@ -1278,7 +1277,7 @@ int instEffAddr(BPatch_addressSpace* as, const char* fname,
 
         }
         else {
-            for(int i = 0; i < (*res2).size(); i++)
+            for(unsigned int i = 0; i < (*res2).size(); i++)
             {
                 BPatch_Vector<BPatch_snippet*> listArgs2;
                 std::string insn = (*res2)[i]->getInsnAtPoint()->format();
@@ -1613,7 +1612,7 @@ int letOriginalMutateeFinish(BPatch_process *appThread){
 
 	while( !appThread->isTerminated());
 
-	int retVal;
+	int retVal = 0;
 
 	if(appThread->terminationStatus() == ExitedNormally) {
 		retVal = appThread->getExitCode();

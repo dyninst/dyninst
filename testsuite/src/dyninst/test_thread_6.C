@@ -82,7 +82,7 @@ static char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__st
 
 // Globals: our_tid_max, thread_mapping
 static int bpindex_to_myindex(int index) {
-    for (unsigned i = 0; i < our_tid_max; i++) {
+    for (int i = 0; i < our_tid_max; i++) {
         if (thread_mapping[i] == index) return i;
     }
     return -1;
@@ -97,7 +97,7 @@ static void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
             __FILE__, __LINE__);
      return;
    }
-   unsigned my_dyn_id = bpindex_to_myindex(thr->getBPatchID());
+   int my_dyn_id = bpindex_to_myindex(thr->getBPatchID());
    if (-1 == my_dyn_id) {
       return;
    }
@@ -257,9 +257,9 @@ void test_thread_6_Mutator::upgrade_mutatee_state()
 
 #define MAX_ARGS 32
 static const char *filename = "test13.mutatee_gcc";
-static const char *args[MAX_ARGS];
-static const char *create_arg = "-create";
-static unsigned num_args = 0; 
+// static const char *args[MAX_ARGS];
+// static const char *create_arg = "-create";
+// static unsigned num_args = 0;
 
 // This method creates (or attaches to?) the mutatee process and returns a
 // handle for it

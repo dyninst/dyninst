@@ -269,7 +269,7 @@ test_results_t ProcControlMutator::setup(ParameterDict &param)
    return PASSED;
 }
 
-test_results_t ProcControlMutator::pre_init(ParameterDict &param)
+test_results_t ProcControlMutator::pre_init(ParameterDict &/*param*/)
 {
    return PASSED;
 }
@@ -361,7 +361,7 @@ bool ProcControlComponent::registerEventCounter(EventType et)
    return Process::registerEventCallback(et, eventCounterFunction);
 }
 
-bool ProcControlComponent::checkThread(const Thread &thread)
+bool ProcControlComponent::checkThread(const Thread &/*thread*/)
 {
    return true;
 }
@@ -437,7 +437,7 @@ ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, Parameter
 
    if (do_create) {
       vector<ProcessSet::CreateInfo> cinfo;
-      for (unsigned i=0; i<num_processes; i++) {
+      for (int i=0; i<num_processes; i++) {
          ProcessSet::CreateInfo ci;
          getMutateeParams(group, params, ci.executable, ci.argv);
          ci.error_ret = err_none;
@@ -452,7 +452,7 @@ ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, Parameter
    }
    else {
       vector<ProcessSet::AttachInfo> ainfo;
-      for (unsigned i=0; i<num_processes; i++) {
+      for (int i=0; i<num_processes; i++) {
          ProcessSet::AttachInfo ai;
          vector<string> argv;
          getMutateeParams(group, params, ai.executable, argv);
@@ -814,7 +814,7 @@ test_results_t ProcControlComponent::program_setup(ParameterDict &params)
 	return PASSED;
 }
 
-test_results_t ProcControlComponent::program_teardown(ParameterDict &params)
+test_results_t ProcControlComponent::program_teardown(ParameterDict &/*params*/)
 {
 
 #if defined(USE_SOCKETS)
@@ -864,7 +864,7 @@ Process::cb_ret_t default_on_exit(Event::const_ptr ev)
    return Process::cbDefault;
 }
 
-test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDict &params)
+test_results_t ProcControlComponent::group_teardown(RunGroup * /*group*/, ParameterDict &params)
 {
    bool error = false;
    bool hasRunningProcs;
@@ -954,12 +954,12 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
    return error ? FAILED : PASSED;
 }
 
-test_results_t ProcControlComponent::test_setup(TestInfo *test, ParameterDict &parms)
+test_results_t ProcControlComponent::test_setup(TestInfo * /*test*/, ParameterDict &/*parms*/)
 {
    return PASSED;
 }
 
-test_results_t ProcControlComponent::test_teardown(TestInfo *test, ParameterDict &parms)
+test_results_t ProcControlComponent::test_teardown(TestInfo * /*test*/, ParameterDict &/*parms*/)
 {
    return PASSED;
 }
@@ -1129,7 +1129,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
       }
    }
 
-   for (unsigned i=0; i<num; i++) {
+   for (int i=0; i<num; i++) {
       send_pid msg;
       bool result;
       result = recv_message((unsigned char *) &msg, sizeof(send_pid), socks[i]);
@@ -1336,7 +1336,6 @@ bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, i
 bool ProcControlComponent::send_broadcast(unsigned char *msg, unsigned msg_size)
 {
    assert(!process_pids.empty());
-   unsigned char *cur_pos = msg;
    for (std::map<Dyninst::PID, Process::ptr>::iterator i = process_pids.begin(); i != process_pids.end(); i++) {
       bool result = send_message(msg, msg_size, i->second);
       if (!result)

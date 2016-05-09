@@ -61,7 +61,6 @@ test_results_t test_instruction_farcall_Mutator::executeTest()
     0x9A, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0xFF, 0xFE // CALL 0504030201, with FF/FE as fenceposts
   };
   unsigned int size = 7;
-  unsigned int expectedInsns = 2;
 
 #if defined(arch_x86_64_test)
     Architecture curArch = Arch_x86_64;
@@ -93,6 +92,7 @@ test_results_t test_instruction_farcall_Mutator::executeTest()
     return PASSED;
   }
 #else
+  unsigned int expectedInsns = 2;
   if(decodedInsns.size() != expectedInsns) // six valid, one invalid
   {
     logerror("FAILED: Expected %d instructions, decoded %d\n", expectedInsns, decodedInsns.size());

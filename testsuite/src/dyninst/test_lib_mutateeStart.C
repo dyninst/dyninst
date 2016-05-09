@@ -63,7 +63,7 @@ static void clearBinEditFiles()
    }
 
    int num_files = result;
-   for (unsigned i=0; i<num_files; i++) {
+   for (int i=0; i<num_files; i++) {
       if ((strcmp(files[i]->d_name, ".") == 0) || 
           (strcmp(files[i]->d_name, "..") == 0))
       {

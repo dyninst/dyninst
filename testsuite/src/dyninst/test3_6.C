@@ -90,12 +90,11 @@ test3_6_Mutator::test3_6_Mutator()
 static int forkNewMutatee(const char *filename, const char *child_argv[])
 {
   int pid;
-  static int pgid = 0;
   pid = fork();
   if (pid == 0) {
     // child, do exec
     dprintf("%s[%d]:  before exec in new mutatee %s, pid = %d\n", __FILE__, __LINE__, filename, getpid());
-    execv (filename, (char * const *)child_argv);
+    execv (filename, const_cast<char * const *>(child_argv));
     //  if we get here, error
     logerror("%s[%d]:  exec failed: %s\n", __FILE__, __LINE__, strerror(errno));
     return -1;

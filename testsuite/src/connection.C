@@ -272,7 +272,7 @@ bool Connection::send_message(MessageBuffer &buffer)
 bool Connection::recv_message(char* &buffer)
 {
    static char *cur_buffer = NULL;
-   static int cur_buffer_size = 0;
+   static unsigned int cur_buffer_size = 0;
    bool sock_error;
 
    if (!waitForAvailData(fd, recv_timeout, sock_error))
@@ -285,8 +285,7 @@ bool Connection::recv_message(char* &buffer)
    ssize_t result;
    result = recv(fd, &enc_msg_size, sizeof(uint32_t), MSG_WAITALL);
    if (result == -1) {
-      int errornum = errno;
-      debug_printf("Error receiving data size on socket: %s\n", strerror(errornum));
+      debug_printf("Error receiving data size on socket: %s\n", strerror(errno));
       return false;
    }
    if (result == 0) {
