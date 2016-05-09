@@ -348,7 +348,7 @@ endif()
 endif()
 
 add_custom_target(tests
-  COMMAND ./runTests
+  COMMAND DYNINSTAPI_RT_LIB=${RT_BINARY_DIR}/libdyninstAPI_RT.so ./runTests
   DEPENDS ${TEST_DEPS}
   WORKING_DIRECTORY ${Dyninst-TestSuite_BINARY_DIR}
   )
