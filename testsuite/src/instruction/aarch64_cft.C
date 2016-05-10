@@ -156,7 +156,6 @@ test_results_t aarch64_cft_Mutator::executeTest()
 
   decodedInsns.pop_back();
   Expression* theIP = new RegisterAST(aarch64::pc);
-  Expression* link_reg = new RegisterAST(aarch64::x30);
   Expression* x_reg = new RegisterAST(aarch64::x12);
 
 

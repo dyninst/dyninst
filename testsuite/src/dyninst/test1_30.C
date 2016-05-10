@@ -73,8 +73,6 @@ test_results_t test1_30_Mutator::executeTest() {
   unsigned long n;
   unsigned long baseAddr,lastAddr;
   unsigned int call30_1_line_no;
-  unsigned short lineNo;
-  char fileName[256];
 
   if (isMutateeFortran(appImage)) {
     return SKIPPED;

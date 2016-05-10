@@ -98,6 +98,7 @@ int main(int argc, char *argv[])
    infin.rlim_cur = RLIM_INFINITY;
    infin.rlim_max = RLIM_INFINITY;
    result = setrlimit(RLIMIT_CORE, &infin);
+   assert(result == 0);
 
    gargc = argc;
    gargv = argv;
@@ -310,7 +311,7 @@ static void parse_args(int argc, char *argv[])
    }
 }
 
-void handle_message(char *buffer) {
+void handle_message(char * /*buffer*/) {
    assert(0);
 }
 

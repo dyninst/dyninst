@@ -334,7 +334,7 @@ static char **getLaunchParams(char *executable, char *args[], const char *num, c
 
 //This is a test function, for testing the launchmon infrastructure on systems without
 // actually using launchmon.  It shouldn't see use in normal circumstances.
-int LMONInvoke(RunGroup *group, ParameterDict params, char *test_args[], char *daemon_args[], bool attach, int &mpirun_pid)
+int LMONInvoke(RunGroup *group, ParameterDict /*params*/, char *test_args[], char *daemon_args[], bool attach, int &mpirun_pid)
 {
    mpirun_pid = 0;
    if (attach) {

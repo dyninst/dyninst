@@ -79,7 +79,7 @@ static std::map<Process::const_ptr, proc_info_lib> proclibs;
 static bool got_breakpoint;
 static bool myerror;
 
-Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
+Process::cb_ret_t on_breakpoint(Event::const_ptr /*ev*/)
 {
    got_breakpoint = true;
    return Process::cbDefault;

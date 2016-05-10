@@ -45,14 +45,14 @@ extern "C" DLLEXPORT TestMutator* pc_addlibrary_factory()
 static std::set<Process::const_ptr> lib_success;
 static bool had_error;
 
-static Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
+static Process::cb_ret_t on_breakpoint(Event::const_ptr /*ev*/)
 {
    logerror("Should not have received breakpoint callback\n");
    had_error = true;
    return Process::cbDefault;
 }
 
-static Process::cb_ret_t on_irpc(Event::const_ptr ev)
+static Process::cb_ret_t on_irpc(Event::const_ptr /*ev*/)
 {
    logerror("Should not have received irpc callback\n");
    had_error = true;

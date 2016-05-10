@@ -113,14 +113,14 @@ static void init_lmon(int *argc, char ***argv)
 }
 
 #else
-static void init_lmon(int *argc, char ***argv)
+static void init_lmon(int * /*argc*/, char *** /*argv*/)
 {
 }
 #endif
 
 static void getPortHostnameFD(int argc, char *argv[], int &port, std::string &hostname, int &fd)
 {
-   for (unsigned i=0; i<argc; i++) {
+   for (int i=0; i<argc; i++) {
       if (strcmp(argv[i], "-hostname") == 0) {
          hostname = argv[++i];
       }
@@ -141,11 +141,11 @@ int be_main(int argc, char *argv[])
    struct rlimit infin;
    infin.rlim_cur = RLIM_INFINITY;
    infin.rlim_max = RLIM_INFINITY;
-   int result = setrlimit(RLIMIT_CORE, &infin);
+   assert(setrlimit(RLIMIT_CORE, &infin) == 0);
 
    init_lmon(&argc, &argv);
 
-   int port;
+   int port = 0;
    string hostname;
    int fd = -1;
    getPortHostnameFD(argc, argv, port, hostname, fd);

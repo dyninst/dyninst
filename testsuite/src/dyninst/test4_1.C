@@ -123,7 +123,7 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
   } else assert(false);
 }
 
-static void execFunc(BPatch_thread *thread)
+static void execFunc(BPatch_thread * /*thread*/)
 {
     logerror("**Failed Test #1\n");
     logerror("    execCallback invoked, but exec was not called!\n");

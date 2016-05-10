@@ -59,8 +59,8 @@ extern "C" {
 
 DatabaseOutputDriver::DatabaseOutputDriver(void * data)
   : attributes(NULL),
-    submittedResults(false),
     wroteLogHeader(false),
+    submittedResults(false),
     currTest(NULL),
     result(UNKNOWN)
 {
