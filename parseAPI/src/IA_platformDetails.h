@@ -49,6 +49,10 @@ namespace Dyninst
                 virtual ~IA_platformDetails() {}
                 virtual bool parseJumpTable(Dyninst::ParseAPI::Block* currBlk,
                         std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) = 0;
+                virtual bool parseJumpTable(Dyninst::ParseAPI::Function * currFunc,
+		        Dyninst::ParseAPI::Block* currBlk,
+                        std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) = 0;
+
             protected:
                 const IA_IAPI* currentBlock;
 

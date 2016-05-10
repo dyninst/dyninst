@@ -1368,7 +1368,11 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
       // 1st plt entry is special.
       next_plt_entry_addr += plt_entry_size_;
 
-#else
+#elif defined(arch_aarch64)
+      // For ARM, the first entry should be skipped,
+      // but the first entry is in double size
+      next_plt_entry_addr += 2 * plt_entry_size_;
+#else     
       next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
 #endif
 
