@@ -852,7 +852,7 @@ class ia32_instruction
 		  		       ia32_instruction& instruct);
   friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
                                             const unsigned char* addr, ia32_instruction& instruct,
-                                            ia32_memacc *mac = NULL);
+                                            ia32_memacc *mac);
   friend ia32_instruction& ia32_decode_FP(const ia32_prefixes& pref, const unsigned char* addr,
                                           ia32_instruction& instruct);
   friend unsigned int ia32_emulate_old_type(ia32_instruction& instruct);
@@ -860,8 +860,8 @@ class ia32_instruction
                                           const ia32_prefixes& pref,
                                           const unsigned char* addr, 
                                           ia32_instruction& instruct,
-					                      ia32_entry * entry,
-                                          ia32_memacc *mac = NULL);
+					  ia32_entry * entry,
+                                          ia32_memacc *mac);
 
   unsigned int   size;
   ia32_prefixes  prf;

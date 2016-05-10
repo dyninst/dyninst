@@ -1,8 +1,7 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT([parseThat], [1.0])
+AC_INIT([parseThat],[1.0])
 AC_CONFIG_SRCDIR([src/config.C])
-AC_PREFIX_DEFAULT([.])
-#AC_CONFIG_AUX_DIR([../autodyninst])
+AC_CONFIG_AUX_DIR([.])
 AC_LANG(C++)
 
 
@@ -47,10 +46,10 @@ AC_SUBST([LDFLAGS], ["-L${DYNINST_LIB} ${LDFLAGS}"])
 AC_SUBST([DWARFFLAGS], ["${DWARF_LIB}"])
 AC_SUBST([ELFFLAGS], ["${ELF_LIB}"])
 AC_SUBST([LIBERTYFLAGS], ["${LIBERTY_LIB}"])
-AC_SUBST([CPPFLAGS], ["-I${DYNINST_INC} ${CPPFLAGS}"])
+AC_SUBST([CPPFLAGS], ["-I${DYNINST_INC} -D_GLIBCXX_USE_CXX11_ABI=0 ${CPPFLAGS}"])
 
 # Generate host string.
-AC_CANONICAL_HOST()
+AC_CANONICAL_HOST
 
 # Build all configure tests with C++ compiler.
 AC_LANG([C++])
@@ -58,7 +57,7 @@ AC_LANG([C++])
 # sha1.C requres these system files and endianess to be tested.
 AC_CHECK_HEADERS([inttypes.h], [], [], [// Do not use default includes])
 AC_CHECK_HEADERS([stdint.h], [], [], [// Do not use default includes])
-AC_C_BIGENDIAN()
+AC_C_BIGENDIAN
 
 # Search for Dyninst in all the right places.
 AC_CHECK_HEADER([BPatch.h], [],
@@ -72,7 +71,7 @@ AC_CHECK_HEADERS([BPatch_process.h],
 		 [// Do not use default includes])
 
 # Find appropriate install program
-AC_PROG_INSTALL()
+AC_PROG_INSTALL
 
 AC_CONFIG_FILES([Makefile])
-AC_OUTPUT()
+AC_OUTPUT

@@ -48,6 +48,7 @@
 
 #include "StackAccess.h"
 
+using namespace std;
 using namespace Dyninst;
 
 std::string StackAccess::printStackAccessType(StackAccess::StackAccessType t)

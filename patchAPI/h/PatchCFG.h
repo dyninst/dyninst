@@ -197,7 +197,7 @@ class PATCHAPI_EXPORT PatchFunction {
      PatchFunction(const PatchFunction* parFunc, PatchObject* child);
      virtual ~PatchFunction();
 
-     const string &name() const { return func_->name(); }
+     const std::string &name() const { return func_->name(); }
      Address addr() const { return addr_;  }
      ParseAPI::Function *function() const { return func_; }
      PatchObject *obj() const { return obj_; }

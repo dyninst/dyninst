@@ -348,7 +348,8 @@ class Object;
 	}
 
    Dyninst::Architecture getArch();
-
+   bool isBigEndianDataEncoding() const;
+   bool getABIVersion(int &major, int &minor) const;
 	bool is_offset_in_plt(Offset offset) const;
     Elf_X_Shdr *getRegionHdrByAddr(Offset addr);
     int getRegionHdrIndexByAddr(Offset addr);

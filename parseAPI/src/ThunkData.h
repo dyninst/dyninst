@@ -5,6 +5,7 @@
 //#include "Instruction.h"
 #include "DynAST.h"
 
+using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 //using namespace Dyninst::InstructionAPI;

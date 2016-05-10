@@ -31,8 +31,6 @@
 #ifndef __ARCHIVE_H__
 #define __ARCHIVE_H__
  
-using namespace std;
-
 class MappedFile;
 
 namespace Dyninst{
@@ -46,7 +44,7 @@ class Symtab;
 class SYMTAB_EXPORT ArchiveMember {
     public:
         ArchiveMember() : name_(""), offset_(0), member_(NULL) {}
-        ArchiveMember(const string name, const Offset offset,
+        ArchiveMember(const std::string name, const Offset offset,
                 Symtab * img = NULL) :
             name_(name), 
             offset_(offset), 
@@ -60,37 +58,37 @@ class SYMTAB_EXPORT ArchiveMember {
             }
         }
 
-        const string& getName()  { return name_; }
+        const std::string& getName()  { return name_; }
         Offset getOffset() { return offset_; }
         Symtab * getSymtab() { return member_; }
         void setSymtab(Symtab *img) { member_ = img; }
 
     private:
-        const string name_;
+        const std::string name_;
         Offset offset_;
         Symtab *member_;
 };
 
 class SYMTAB_EXPORT Archive : public AnnotatableSparse {
    public:
-      static bool openArchive(Archive *&img, string filename);
+      static bool openArchive(Archive *&img, std::string filename);
       static bool openArchive(Archive *&img, char *mem_image, size_t image_size);
       static SymtabError getLastError();
-      static string printError(SymtabError err);
+      static std::string printError(SymtabError err);
 
       ~Archive();
-      bool getMember(Symtab *&img, string& member_name);
+      bool getMember(Symtab *&img, std::string& member_name);
       bool getMemberByOffset(Symtab *&img, Offset memberOffset);
-      bool getMemberByGlobalSymbol(Symtab *&img, string& symbol_name);
-      bool getAllMembers(vector<Symtab *> &members);
-      bool isMemberInArchive(string& member_name);
-      bool findMemberWithDefinition(Symtab *&obj, string& name);
+      bool getMemberByGlobalSymbol(Symtab *&img, std::string& symbol_name);
+      bool getAllMembers(std::vector<Symtab *> &members);
+      bool isMemberInArchive(std::string& member_name);
+      bool findMemberWithDefinition(Symtab *&obj, std::string& name);
       std::string name();
 
-      bool getMembersBySymbol(string name, std::vector<Symtab *> &matches);
+      bool getMembersBySymbol(std::string name, std::vector<Symtab *> &matches);
 
    private:
-      Archive(string &filename, bool &err);
+      Archive(std::string &filename, bool &err);
       Archive(char *mem_image, size_t image_size, bool &err);
 
       /**
@@ -116,16 +114,16 @@ class SYMTAB_EXPORT Archive : public AnnotatableSparse {
       //For ELF the elf pointer for the archive
       void *basePtr;
 
-      dyn_hash_map<string, ArchiveMember *> membersByName;
+      dyn_hash_map<std::string, ArchiveMember *> membersByName;
       dyn_hash_map<Offset, ArchiveMember *> membersByOffset;
-      std::multimap<string, ArchiveMember *> membersBySymbol;
+      std::multimap<std::string, ArchiveMember *> membersBySymbol;
 
       // The symbol table is lazily parsed
       bool symbolTableParsed;
 
       // A vector of all Archives. Used to avoid duplicating
       // an Archive that already exists.
-      static vector<Archive *> allArchives;
+      static std::vector<Archive *> allArchives;
 
       static SymtabError serr;
       static std::string errMsg;

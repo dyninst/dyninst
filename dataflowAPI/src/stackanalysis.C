@@ -51,6 +51,7 @@
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
 
+using namespace std;
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace Dyninst::ParseAPI;

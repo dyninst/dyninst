@@ -21,11 +21,11 @@ list (FIND VALID_PLATFORMS ${PLATFORM} PLATFORM_FOUND)
 endif()
 
 
+execute_process (COMMAND ${DYNINST_ROOT}/scripts/sysname OUTPUT_VARIABLE SYSNAME_OUT)
+string(REPLACE "\n" "" SYSPLATFORM ${SYSNAME_OUT})
+
 if (INVALID_PLATFORM)
 # Try to set it automatically
-execute_process (COMMAND ${DYNINST_ROOT}/scripts/sysname
-                 OUTPUT_VARIABLE SYSNAME_OUT
-                 )
 execute_process (COMMAND ${DYNINST_ROOT}/scripts/dynsysname ${SYSNAME_OUT}
                  OUTPUT_VARIABLE DYNSYSNAME_OUT
                  )

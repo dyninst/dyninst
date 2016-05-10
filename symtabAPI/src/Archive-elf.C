@@ -34,6 +34,7 @@
 #include "symtabAPI/h/Archive.h"
 #include "symtabAPI/src/Object.h"
 
+using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 

@@ -58,10 +58,9 @@ unsigned ppc_process::plat_breakpointSize()
 
 void ppc_process::plat_breakpointBytes(unsigned char *buffer)
 {
-  buffer[0] = 0x7d;
-  buffer[1] = 0x82;
-  buffer[2] = 0x10;
-  buffer[3] = 0x08;
+   uint32_t *p = (uint32_t*)buffer;
+
+   *p = 0x7d821008;  // MJMTODO = Assumes host and target architecture match (and algnment)
 }
 
 bool ppc_process::plat_breakpointAdvancesPC() const

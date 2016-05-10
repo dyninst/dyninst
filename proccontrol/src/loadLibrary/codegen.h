@@ -74,6 +74,8 @@ class Codegen {
 
    // PPC64 only, but it's handy to stash it here
    std::map<Address, Address> toc_;
+   int abimajversion_;
+   int abiminversion_;
 };
 
 };

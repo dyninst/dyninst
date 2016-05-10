@@ -36,6 +36,8 @@
 #include <unordered_map>
 #include <set>
 
+using namespace std;
+
 namespace Dyninst{
 namespace ParseAPI{
 
