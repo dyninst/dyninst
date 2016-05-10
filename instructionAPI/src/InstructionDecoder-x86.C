@@ -999,6 +999,27 @@ namespace Dyninst
                 }
                 break;
 
+            case am_I:
+                insn_to_complete->appendOperand(decodeImmediate(optype, b.start +
+                locs->imm_position[imm_index++]),
+                isRead, isWritten);
+                break;
+            case am_J:
+                {
+                    Expression::Ptr Offset(decodeImmediate(optype,
+                        b.start + locs->imm_position[imm_index++],
+                        true));
+                    Expression::Ptr EIP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
+                    Expression::Ptr InsnSize(make_shared(singleton_object_pool<Immediate>::construct(Result(u8,
+                                                                                                                  decodedInstruction->getSize()))));
+                    Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
+                    Expression::Ptr op(makeAddExpression(Offset, postEIP, u32));
+                    insn_to_complete->addSuccessor(op, isCall, false, isConditional, false);
+                    if (isConditional)
+                        insn_to_complete->addSuccessor(postEIP, false, false, true, true);
+                }
+                break;
+
             case am_H: /* Could be XMM, YMM or ZMM */
                 /* Make sure this register class is valid for VEX */
                 if(!AVX_TYPE_OKAY(avx_type) || !pref.vex_present)
