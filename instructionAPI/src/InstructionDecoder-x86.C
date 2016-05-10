@@ -952,9 +952,6 @@ namespace Dyninst
 					assert(!"Mismatched number of operands--check tables");
 					return false;
 				}
-            case 0:
-                // No operand
-                assert(!"Mismatched number of operands--check tables");
                 return false;
             case am_A:
             	{
@@ -1042,10 +1039,9 @@ namespace Dyninst
                         b.start + locs->imm_position[imm_index++],
                         true));
                     Expression::Ptr EIP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
-                    Expression::Ptr InsnSize(make_shared(singleton_object_pool<Immediate>::con
-struct(Result(u8,
-
-                    decodedInstruction->getSize()))));
+                    Expression::Ptr InsnSize(
+							make_shared(singleton_object_pool<Immediate>::construct(Result(u8,
+							decodedInstruction->getSize()))));
                     Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
                     Expression::Ptr op(makeAddExpression(Offset, postEIP, u32));
                     insn_to_complete->addSuccessor(op, isCall, false, isConditional, false);
@@ -1151,12 +1147,24 @@ struct(Result(u8,
 							isRead, isWritten);
 						break;
 					case 0x03:
-						// use of actual register
+						// use of actual register (am_U)
 						{
-							insn_to_complete->appendOperand(
-								makeRegisterExpression(IntelRegTable(m_Arch,
-							locs->rex_b ? b_xmmhigh : b_xmm, locs->modrm_rm)),
-								isRead, isWritten);
+							/* Is this a vex prefixed instruction? */
+                			if(pref.vex_present)
+                			{
+                    			if(!AVX_TYPE_OKAY(avx_type))
+                        			return false;
+                			}
+			
+                			/* Grab the register bank and index */
+                			if(decodeAVX(bank, &bank_index, locs->modrm_rm, AVX_XMM, 
+										pref, operand.admet))
+								return false;
+			
+                			/* Append the operand */
+                			insn_to_complete->appendOperand(makeRegisterExpression(
+									IntelRegTable(m_Arch, bank, bank_index)), 
+									isRead, isWritten);	
 							break;
 						}
 					default:
