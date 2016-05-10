@@ -34,6 +34,7 @@
 #include "PatchObject.h"
 #include "PatchMgr.h"
 
+using namespace std;
 using Dyninst::PatchAPI::AddrSpace;
 using Dyninst::PatchAPI::PatchObject;
 using Dyninst::PatchAPI::PatchMgr;

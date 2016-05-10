@@ -659,7 +659,7 @@ void printSummary(BPatch_thread *proc, BPatch_exitType exit_type)
    return;
 }
 
-void reportNewProcess(BPatch_thread *parent, BPatch_thread *child)
+void reportNewProcess(BPatch_thread* /*parent*/, BPatch_thread *child)
 {
     sendMsg(config.outfd, ID_POST_FORK, INFO, ID_INFO, child->getProcess()->getPid());
 }

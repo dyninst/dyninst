@@ -32,6 +32,7 @@
 #include "PatchCFG.h"
 #include "PatchCallback.h"
 
+using namespace std;
 using namespace Dyninst;
 using namespace PatchAPI;
 

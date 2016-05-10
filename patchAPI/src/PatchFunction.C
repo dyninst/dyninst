@@ -35,6 +35,7 @@
 
 #include "CFG.h"
 
+using namespace std;
 using namespace Dyninst;
 using namespace PatchAPI;
 

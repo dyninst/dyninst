@@ -152,76 +152,76 @@ static const unsigned char linux_ppc32_call_munmap[] = {
 };
 static const unsigned int linux_ppc32_call_munmap_size = sizeof(linux_ppc32_call_munmap);
 
-static const unsigned int linux_ppc64_mmap_flags_highest_position = 70;
-static const unsigned int linux_ppc64_mmap_flags_higher_position = 74;
-static const unsigned int linux_ppc64_mmap_flags_hi_position = 82;
-static const unsigned int linux_ppc64_mmap_flags_lo_position = 86;
-static const unsigned int linux_ppc64_mmap_size_highest_position = 30;
-static const unsigned int linux_ppc64_mmap_size_higher_position = 34;
-static const unsigned int linux_ppc64_mmap_size_hi_position = 42;
-static const unsigned int linux_ppc64_mmap_size_lo_position = 46;
-static const unsigned int linux_ppc64_mmap_addr_highest_position = 10;
-static const unsigned int linux_ppc64_mmap_addr_higher_position = 14;
-static const unsigned int linux_ppc64_mmap_addr_hi_position = 22;
-static const unsigned int linux_ppc64_mmap_addr_lo_position = 26;
 static const unsigned int linux_ppc64_mmap_start_position = 4;
-static const unsigned char linux_ppc64_call_mmap[] = {
-   0x60, 0x00, 0x00, 0x00,              // nop
-   0x38, 0x00, 0x00, 0x5a,              // li      r0,<syscall>
-   0x3c, 0x60, 0x00, 0x00,              // lis     r3,<addr_highest>
-   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_higher>
-   0x78, 0x63, 0x07, 0xc6,              // rldicr  r3,r3,0x32,0x31,
-   0x64, 0x63, 0x00, 0x00,              // oris    r3,r3,<addr_hi>
-   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_lo>
-   0x3c, 0x80, 0x00, 0x00,              // lis     r4,<size_highest>
-   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_higher>
-   0x78, 0x84, 0x07, 0xc6,              // rldicr  r4,r4,0x32,0x31,
-   0x64, 0x84, 0x00, 0x00,              // oris    r4,r4,<size_hi>
-   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_lo>
-   0x3c, 0xa0, 0x00, 0x00,              // lis     r5,<perms_highest>
-   0x60, 0xa5, 0x00, 0x00,              // ori     r5,r5,<perms_higher>
-   0x78, 0xa5, 0x07, 0xc6,              // rldicr  r5,r5,0x32,0x31,
-   0x64, 0xa5, 0x00, 0x00,              // oris    r5,r5,<perms_hi>
-   0x60, 0xa5, 0x00, 0x07,              // ori     r5,r5,<perms_lo>
-   0x3c, 0xc0, 0x00, 0x00,              // lis     r6,<flags_highest>
-   0x60, 0xc6, 0x00, 0x00,              // ori     r6,r6,<flags_higher>
-   0x78, 0xc6, 0x07, 0xc6,              // rldicr  r6,r6,0x32,0x31,
-   0x64, 0xc6, 0x00, 0x00,              // oris    r6,r6,<flags_hi>
-   0x60, 0xc6, 0x00, 0x00,              // ori     r6,r6,<flags_lo>
-   0x3c, 0xe0, 0x00, 0x00,              // lis     r7,<fd=-1>
-   0x7c, 0xe7, 0x3b, 0xb8,              // nand    r7,r7,r7
-   0x3d, 0x00, 0x00, 0x00,              // lis     r8,<offset>
-   0x44, 0x00, 0x00, 0x02,              // sc
-   0x7d, 0x82, 0x10, 0x08,              // trap
-   0x60, 0x00, 0x00, 0x00               // nop
+static const unsigned int linux_ppc64_mmap_addr_highest_position =    2;
+static const unsigned int linux_ppc64_mmap_addr_higher_position =     3;
+static const unsigned int linux_ppc64_mmap_addr_hi_position =         5;
+static const unsigned int linux_ppc64_mmap_addr_lo_position =         6;
+static const unsigned int linux_ppc64_mmap_size_highest_position =    7;
+static const unsigned int linux_ppc64_mmap_size_higher_position =     8;
+static const unsigned int linux_ppc64_mmap_size_hi_position =        10;
+static const unsigned int linux_ppc64_mmap_size_lo_position =        11;
+static const unsigned int linux_ppc64_mmap_flags_highest_position =  17;
+static const unsigned int linux_ppc64_mmap_flags_higher_position =   18;
+static const unsigned int linux_ppc64_mmap_flags_hi_position =       20;
+static const unsigned int linux_ppc64_mmap_flags_lo_position =       21;
+static const uint32_t linux_ppc64_call_mmap[] = {
+   /*  0 */ 0x60000000,              // nop
+   /*  1 */ 0x3800005a,              // li      r0,<syscall>
+   /*  2 */ 0x3c600000,              // lis     r3,<addr_highest>
+   /*  3 */ 0x60630000,              // ori     r3,r3,<addr_higher>
+   /*  4 */ 0x786307c6,              // rldicr  r3,r3,0x32,0x31,
+   /*  5 */ 0x64630000,              // oris    r3,r3,<addr_hi>
+   /*  6 */ 0x60630000,              // ori     r3,r3,<addr_lo>
+   /*  7 */ 0x3c800000,              // lis     r4,<size_highest>
+   /*  8 */ 0x60840000,              // ori     r4,r4,<size_higher>
+   /*  9 */ 0x788407c6,              // rldicr  r4,r4,0x32,0x31,
+   /* 10 */ 0x64840000,              // oris    r4,r4,<size_hi>
+   /* 11 */ 0x60840000,              // ori     r4,r4,<size_lo>
+   /* 12 */ 0x3ca00000,              // lis     r5,<perms_highest>
+   /* 13 */ 0x60a50000,              // ori     r5,r5,<perms_higher>
+   /* 14 */ 0x78a507c6,              // rldicr  r5,r5,0x32,0x31,
+   /* 15 */ 0x64a50000,              // oris    r5,r5,<perms_hi>
+   /* 16 */ 0x60a50007,              // ori     r5,r5,<perms_lo>
+   /* 17 */ 0x3cc00000,              // lis     r6,<flags_highest>
+   /* 18 */ 0x60c60000,              // ori     r6,r6,<flags_higher>
+   /* 19 */ 0x78c607c6,              // rldicr  r6,r6,0x32,0x31,
+   /* 20 */ 0x64c60000,              // oris    r6,r6,<flags_hi>
+   /* 21 */ 0x60c60000,              // ori     r6,r6,<flags_lo>
+   /* 22 */ 0x3ce00000,              // lis     r7,<fd=-1>
+   /* 23 */ 0x7ce73bb8,              // nand    r7,r7,r7
+   /* 24 */ 0x3d000000,              // lis     r8,<offset>
+   /* 25 */ 0x44000002,              // sc
+   /* 26 */ 0x7d821008,              // trap
+   /* 27 */ 0x60000000               // nop
 };
 static const unsigned int linux_ppc64_call_mmap_size = sizeof(linux_ppc64_call_mmap);
 
-static const unsigned int linux_ppc64_munmap_size_highest_position = 30;
-static const unsigned int linux_ppc64_munmap_size_higher_position = 34;
-static const unsigned int linux_ppc64_munmap_size_hi_position = 42;
-static const unsigned int linux_ppc64_munmap_size_lo_position = 46;
-static const unsigned int linux_ppc64_munmap_addr_highest_position = 10;
-static const unsigned int linux_ppc64_munmap_addr_higher_position = 14;
-static const unsigned int linux_ppc64_munmap_addr_hi_position = 22;
-static const unsigned int linux_ppc64_munmap_addr_lo_position = 26;
 static const unsigned int linux_ppc64_munmap_start_position = 4;
-static const unsigned char linux_ppc64_call_munmap[] = {
-   0x60, 0x00, 0x00, 0x00,              // nop
-   0x38, 0x00, 0x00, 0x5b,              // li      r0,<syscall>
-   0x3c, 0x60, 0x00, 0x00,              // lis     r3,<addr_highest>
-   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_higher>
-   0x78, 0x63, 0x07, 0xc6,              // rldicr  r3,r3,0x32,0x31,
-   0x64, 0x63, 0x00, 0x00,              // oris    r3,r3,<addr_hi>
-   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_lo>
-   0x3c, 0x80, 0x00, 0x00,              // lis     r4,<size_highest>
-   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_higher>
-   0x78, 0x84, 0x07, 0xc6,              // rldicr  r4,r4,0x32,0x31,
-   0x64, 0x84, 0x00, 0x00,              // oris    r4,r4,<size_hi>
-   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_lo>
-   0x44, 0x00, 0x00, 0x02,              // sc
-   0x7d, 0x82, 0x10, 0x08,              // trap
-   0x60, 0x00, 0x00, 0x00               // nop
+static const unsigned int linux_ppc64_munmap_addr_highest_position =  2;
+static const unsigned int linux_ppc64_munmap_addr_higher_position =   3;
+static const unsigned int linux_ppc64_munmap_addr_hi_position =       5;
+static const unsigned int linux_ppc64_munmap_addr_lo_position =       6;
+static const unsigned int linux_ppc64_munmap_size_highest_position =  7;
+static const unsigned int linux_ppc64_munmap_size_higher_position =   8;
+static const unsigned int linux_ppc64_munmap_size_hi_position =      10;
+static const unsigned int linux_ppc64_munmap_size_lo_position =      11;
+static const uint32_t linux_ppc64_call_munmap[] = {
+   /*  0 */ 0x60000000,              // nop
+   /*  1 */ 0x3800005b,              // li      r0,<syscall>
+   /*  2 */ 0x3c600000,              // lis     r3,<addr_highest>
+   /*  3 */ 0x60630000,              // ori     r3,r3,<addr_higher>
+   /*  4 */ 0x786307c6,              // rldicr  r3,r3,0x32,0x31,
+   /*  5 */ 0x64630000,              // oris    r3,r3,<addr_hi>
+   /*  6 */ 0x60630000,              // ori     r3,r3,<addr_lo>
+   /*  7 */ 0x3c800000,              // lis     r4,<size_highest>
+   /*  8 */ 0x60840000,              // ori     r4,r4,<size_higher>
+   /*  9 */ 0x788407c6,              // rldicr  r4,r4,0x32,0x31,
+   /* 10 */ 0x64840000,              // oris    r4,r4,<size_hi>
+   /* 11 */ 0x60840000,              // ori     r4,r4,<size_lo>
+   /* 12 */ 0x44000002,              // sc
+   /* 13 */ 0x7d821008,              // trap
+   /* 14 */ 0x60000000               // nop
 };
 static const unsigned int linux_ppc64_call_munmap_size = sizeof(linux_ppc64_call_munmap);
 
@@ -577,24 +577,23 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
       buffer = malloc(buffer_size);
       memcpy(buffer, buf_tmp, buffer_size);
 
+      uint32_t *pwords = (uint32_t *)buffer;
 
-       // Assuming endianess of debugger and debuggee match
-       *((uint16_t *) (((char *) buffer)+size_highest_position)) = (uint16_t)((uint64_t)size >> 48);
-       *((uint16_t *) (((char *) buffer)+size_higher_position)) = (uint16_t)((uint64_t)size >> 32);
-       *((uint16_t *) (((char *) buffer)+size_hi_position)) = (uint16_t)(size >> 16);
-       *((uint16_t *) (((char *) buffer)+size_lo_position)) = (uint16_t)size;
-       *((uint16_t *) (((char *) buffer)+flags_highest_position)) = (uint16_t)((uint64_t)flags >> 48);
-       *((uint16_t *) (((char *) buffer)+flags_higher_position)) = (uint16_t)((uint64_t)flags >> 32);
-       *((uint16_t *) (((char *) buffer)+flags_hi_position)) = (uint16_t)(flags >> 16);
-       *((uint16_t *) (((char *) buffer)+flags_lo_position)) = (uint16_t)flags;
-       *((uint16_t *) (((char *) buffer)+addr_highest_position)) = (uint16_t)((uint64_t)addr >> 48);
-       *((uint16_t *) (((char *) buffer)+addr_higher_position)) = (uint16_t)((uint64_t)addr >> 32);
-       *((uint16_t *) (((char *) buffer)+addr_hi_position)) = (uint16_t)(addr >> 16);
-       *((uint16_t *) (((char *) buffer)+addr_lo_position)) = (uint16_t)addr;
-
-    }else if( getTargetArch() == Arch_aarch64 ){
+      // MJMTODO - Assumes endianess of debugger and debuggee match
+      pwords[size_highest_position]  |= (uint32_t)(((uint64_t)size >> 48) & 0x0000ffff);
+      pwords[size_higher_position]   |= (uint32_t)(((uint64_t)size >> 32) & 0x0000ffff);
+      pwords[size_hi_position]       |= (uint32_t)(((uint64_t)size >> 16) & 0x0000ffff);
+      pwords[size_lo_position]       |= (uint32_t)((uint64_t)size & 0x0000ffff);
+      pwords[flags_highest_position] |= (uint32_t)(((uint64_t)flags >> 48) & 0x0000ffff);
+      pwords[flags_higher_position]  |= (uint32_t)(((uint64_t)flags >> 32) & 0x0000ffff);
+      pwords[flags_hi_position]      |= (uint32_t)(((uint64_t)flags >> 16) & 0x0000ffff);
+      pwords[flags_lo_position]      |= (uint32_t)((uint64_t)flags & 0x0000ffff);
+      pwords[addr_highest_position]  |= (uint32_t)(((uint64_t)addr >> 48) & 0x0000ffff);
+      pwords[addr_higher_position]   |= (uint32_t)(((uint64_t)addr >> 32) & 0x0000ffff);
+      pwords[addr_hi_position]       |= (uint32_t)(((uint64_t)addr >> 16) & 0x0000ffff);
+      pwords[addr_lo_position]       |= (uint32_t)((uint64_t)addr & 0x0000ffff);
+    } else if( getTargetArch() == Arch_aarch64 ){
         const void *buf_tmp;
-        unsigned int addr_size;
         unsigned int addr_pos, size_pos, flags_pos;
 
         bool use_linux = ( getOS() == Linux );
@@ -606,7 +605,6 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
            addr_pos                 = linux_aarch64_mmap_addr_position;
            size_pos                 = linux_aarch64_mmap_size_position;
            flags_pos                = linux_aarch64_mmap_flags_position;
-           addr_size = 8;
         }
         else {
            assert(0); //Fill in the entry in mmapalloc.h for this system
@@ -795,15 +793,17 @@ bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
       buffer = malloc(buffer_size);
       memcpy(buffer, buf_tmp, buffer_size);
 
-      // Assuming endianess of debugger and debuggee match
-      *((uint16_t *) (((char *) buffer)+size_highest_position)) = (uint16_t)((uint64_t)size >> 48);
-      *((uint16_t *) (((char *) buffer)+size_higher_position)) = (uint16_t)((uint64_t)size >> 32);
-      *((uint16_t *) (((char *) buffer)+size_hi_position)) = (uint16_t)(size >> 16);
-      *((uint16_t *) (((char *) buffer)+size_lo_position)) = (uint16_t)size;
-      *((uint16_t *) (((char *) buffer)+addr_highest_position)) = (uint16_t)((uint64_t)addr >> 48);
-      *((uint16_t *) (((char *) buffer)+addr_higher_position)) = (uint16_t)((uint64_t)addr >> 32);
-      *((uint16_t *) (((char *) buffer)+addr_hi_position)) = (uint16_t)(addr >> 16);
-      *((uint16_t *) (((char *) buffer)+addr_lo_position)) = (uint16_t)addr;
+      uint32_t *pwords = (uint32_t *)buffer;
+
+      // MJMTODO - Assumes endianess of debugger and debuggee match
+      pwords[size_highest_position] |= (uint32_t)(((uint64_t)size >> 48) & 0x0000ffff);
+      pwords[size_higher_position]  |= (uint32_t)(((uint64_t)size >> 32) & 0x0000ffff);
+      pwords[size_hi_position]      |= (uint32_t)(((uint64_t)size >> 16) & 0x0000ffff);
+      pwords[size_lo_position]      |= (uint32_t)((uint64_t)size & 0x0000ffff);
+      pwords[addr_highest_position] |= (uint32_t)(((uint64_t)addr >> 48) & 0x0000ffff);
+      pwords[addr_higher_position]  |= (uint32_t)(((uint64_t)addr >> 32) & 0x0000ffff);
+      pwords[addr_hi_position]      |= (uint32_t)(((uint64_t)addr >> 16) & 0x0000ffff);
+      pwords[addr_lo_position]      |= (uint32_t)((uint64_t)addr & 0x0000ffff);
    }
    else if( getTargetArch() == Arch_aarch64 ) {
         const void *buf_tmp = NULL;

@@ -34,6 +34,7 @@
 #include "CFG.h"
 #include <iostream>
 
+using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 

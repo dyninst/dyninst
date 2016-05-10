@@ -57,6 +57,7 @@
 
 #include "boost/tuple/tuple.hpp"
 
+using namespace std;
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace DataflowAPI;

@@ -78,6 +78,7 @@ DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
    dbg_(dbg),
    mod_(NULL),
    symtab_(symtab),
+   srcFileList_(NULL),
    tc_(NULL),
    is_mangled_name_(false),
    modLow(0),
@@ -91,8 +92,7 @@ DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
    signature(),
    typeoffset(0),
    next_cu_header(0),
-   compile_offset(0),
-   srcFileList_(NULL)
+   compile_offset(0)
 {
 }
 

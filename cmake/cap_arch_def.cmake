@@ -41,16 +41,19 @@ set (CAP_DEFINES ${CAP_DEFINES}
     )
 
 elseif (PLATFORM MATCHES ppc64)
-set (ARCH_DEFINES -Darch_power -Darch_64bit)
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
-set (CAP_DEFINES ${CAP_DEFINES} 
-             -Dcap_32_64
-             -Dcap_registers
-             -Dcap_toc_64
-        -Darch_ppc_little_endian
-
-    )
+   set (ARCH_DEFINES -Darch_power -Darch_64bit)
+   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64")
+   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
+   set (CAP_DEFINES ${CAP_DEFINES} 
+                -Dcap_32_64
+                -Dcap_registers
+                -Dcap_toc_64
+       )
+   if (SYSPLATFORM MATCHES ppc64le)
+      set (CAP_DEFINES ${CAP_DEFINES} 
+              -Darch_ppc_little_endian
+          )
+   endif (SYSPLATFORM MATCHES ppc64le)
 elseif (PLATFORM MATCHES aarch64)
   #set (ARCH_DEFINES -Daarch_64 -Darch_64bit)
   set (ARCH_DEFINES -Darch_aarch64 -Darch_64bit)

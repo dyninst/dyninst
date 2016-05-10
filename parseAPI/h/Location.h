@@ -39,7 +39,6 @@
 #include "Instruction.h"
 
 #include <string>
-using namespace std;
 
 namespace Dyninst{
 namespace ParseAPI{

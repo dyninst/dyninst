@@ -349,6 +349,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    const char*  getInterpreterName() const;
 
    unsigned getAddressWidth() const;
+   bool isBigEndianDataEncoding() const;
+   bool getABIVersion(int &major, int &minor) const;
+
    Offset getLoadOffset() const;
    Offset getEntryOffset() const;
    Offset getBaseOffset() const;
