@@ -290,14 +290,10 @@ bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid)
             /* Could be a no-read page -- ptrace may be allowed to
              * peek anyway, so fallthrough and let ptrace try.  */
          } else {
-            fprintf(stderr, "[%s:%d]ERROR: process_vm_readv failed!\n", FILE__, __LINE__);
-            fprintf(stderr, "ERROR: %s\n", strerror(errno) );
             return false;
          }
       } else if (ret < size) {
          /* partial reads won't split an iovec, but we only have one... huh?! */
-         fprintf(stderr, "[%s:%d]ERROR: process_vm_readv incomplete!\n", FILE__, __LINE__);
-         fprintf(stderr, "ERROR: only %zi bytes of %u copied!\n", ret, size );
          return false;
       } else {
          return true;
@@ -314,8 +310,6 @@ bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid)
       errno = 0;
       w = P_ptrace(PTRACE_PEEKDATA, pid, (Address) (ap-cnt), w, len);
       if (errno) {
-          fprintf(stderr, "[%s:%d]ERROR: ptrace PEEKTEXT failed!\n",FILE__, __LINE__);
-          fprintf(stderr, "ERROR: %s\n", strerror(errno) );
          return false;
       }
       for (unsigned i = 0; i < len-cnt && i < size; i++)
@@ -334,8 +328,6 @@ bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid)
       errno = 0;
       w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
       if (errno) {
-          fprintf(stderr, "[%s:%d]ERROR: ptrace PEEKTEXT failed!\n",FILE__, __LINE__);
-          fprintf(stderr, "ERROR: %s\n", strerror(errno) );
          return false;
       }
       memcpy(dp, &w, len);
@@ -353,8 +345,6 @@ bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid)
       errno = 0;
       w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
       if (errno) {
-          fprintf(stderr, "[%s:%d]ERROR: ptrace PEEKTEXT failed!\n", FILE__,__LINE__);
-          fprintf(stderr, "ERROR: %s\n", strerror(errno) );
          return false;
       }
       for (unsigned i = 0; i < size; i++)
@@ -391,14 +381,10 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
             /* Could be a read-only page -- ptrace may be allowed to
              * poke anyway, so fallthrough and let ptrace try.  */
          } else {
-            fprintf(stderr, "[%s:%d]ERROR: process_vm_writev failed!\n", FILE__, __LINE__);
-            fprintf(stderr, "ERROR: %s\n", strerror(errno) );
             return false;
          }
       } else if (ret < nbytes) {
          /* partial writes won't split an iovec, but we only have one... huh?! */
-         fprintf(stderr, "[%s:%d]ERROR: process_vm_writev incomplete!\n", FILE__, __LINE__);
-         fprintf(stderr, "ERROR: only %zi bytes of %u copied!\n", ret, nbytes );
          return false;
       } else {
          return true;
