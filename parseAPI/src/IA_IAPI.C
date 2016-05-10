@@ -41,7 +41,6 @@
 #include "util.h"
 #include "common/src/Types.h"
 #include "dyntypes.h"
-#include "IndirectAnalyzer.h"
 
 #include <deque>
 #include <map>
@@ -952,21 +951,11 @@ bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Function * currFunc,
 			     Dyninst::ParseAPI::Block* currBlk,
 			     std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const
 {
-/*
+
+    // Call platform specific jump table parser
     IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
-    bool ret = jumpTableParser->parseJumpTable(currBlk, outEdges);
+    bool ret = jumpTableParser->parseJumpTable(currFunc, currBlk, outEdges);
     delete jumpTableParser;
-*/
-
-
-    IndirectControlFlowAnalyzer icfa(currFunc, currBlk);
-    bool ret = icfa.NewJumpTableAnalysis(outEdges);
-
-    parsing_printf("Jump table parser returned %d, %d edges\n", ret, outEdges.size());
-    for (auto oit = outEdges.begin(); oit != outEdges.end(); ++oit) parsing_printf("edge target at %lx\n", oit->first);
-    // Update statistics 
-    currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_COUNT);
-    if (!ret) currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_FAIL);
 
     return ret;
 }

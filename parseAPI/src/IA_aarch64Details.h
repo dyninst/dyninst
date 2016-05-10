@@ -58,6 +58,10 @@ namespace Dyninst
                 virtual ~IA_aarch64Details() {}
                 virtual bool parseJumpTable(Dyninst::ParseAPI::Block* currBlk,
                                             std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
+                virtual bool parseJumpTable(Dyninst::ParseAPI::Function* currFunc,
+		                            Dyninst::ParseAPI::Block* currBlk,
+                                            std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
+
             private:
                 bool findTableAddrNoTOC(const IA_IAPI* blockToCheck);
                 bool parseRelativeTableIdiom();

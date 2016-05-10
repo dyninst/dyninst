@@ -45,6 +45,7 @@ namespace Dyninst
 	return c_ReturnInsn;
       case e_call:
       case aarch64_op_bl:
+      case aarch64_op_blr:
 	return c_CallInsn;
       case e_jmp:
       case e_jb:
@@ -76,6 +77,7 @@ namespace Dyninst
       case aarch64_op_tbnz:
       case aarch64_op_cbz:
       case aarch64_op_cbnz:
+      case aarch64_op_br: 
 	return c_BranchInsn;
           case e_cmp:
           case e_cmppd:
