@@ -4106,16 +4106,6 @@ static ia32_entry sseMap[][4] = {
     //{ e_No_Entry, t_sse_mult, SSE7B_66, false, { Zz, Zz, Zz }, 0, 0 },
     //{ e_No_Entry, t_sse_mult, SSE7B_F2, false, { Zz, Zz, Zz }, 0, 0 },
   },
-  { /* SSE7B */
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_No_Entry, t_sse_mult, SSE7B_66, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    // { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    //{ e_No_Entry, t_sse_mult, SSE7B_F3, false, { Zz, Zz, Zz }, 0, 0 },
-    //{ e_No_Entry, t_sse_mult, SSE7B_66, false, { Zz, Zz, Zz }, 0, 0 },
-    //{ e_No_Entry, t_sse_mult, SSE7B_F2, false, { Zz, Zz, Zz }, 0, 0 },
-  },
   { /* SSE7C */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -7956,6 +7946,9 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     /* Is there a VEX prefix for this instruction? */
     if(pref.vex_present)
     {
+#ifdef VEX_PEDANTIC
+		printf("DECODING VEX\n");
+#endif
         /* Grab the opcode for the index */
         idx = addr[0];
 
@@ -9542,15 +9535,15 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                         assert(!"Can't happen: value & 0x03 not in 0...3");
                 }
 	
-		/* There are a couple of constant bits for this prefix */
-		if(((pref.vex_prefix[0] & (unsigned int)(0x03 << 2)) != 0)
-			|| ((pref.vex_prefix[1] & (unsigned int)(1 << 2)) == 0))
-		{
+				/* There are a couple of constant bits for this prefix */
+				if(((pref.vex_prefix[0] & (unsigned int)(0x03 << 2)) != 0)
+					|| ((pref.vex_prefix[1] & (unsigned int)(1 << 2)) == 0))
+				{
 #ifdef VEX_DEBUG
-			printf("EVEX PREFIX INVALID!\n");
+					printf("EVEX PREFIX INVALID!\n");
 #endif
-			return false;
-		}
+					return false;
+				}
 
                 /* VEX prefix excludes all others */
                 in_prefix = false;
@@ -9631,6 +9624,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 // If we hit a REX prefix, keep going and process other potential prefixes.
                 // The only one *used* is one in the last position, but others are ignored,
                 // not illegal.
+
                 if(mode_64)
                 {
                     if(ia32_decode_rex(addr, pref, loc))
@@ -9638,6 +9632,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                         if(loc) loc->num_prefixes = pref.count;
                         return true;
                     }
+
 
                     if(!REX_ISREX(addr[0])) 
                     {
