@@ -70,6 +70,7 @@ namespace Dyninst {
             static std::vector<std::string> condStringMap;
             static std::map<unsigned int, MachRegister> sysRegMap;
             static std::map<entryID, std::string> bitfieldInsnAliasMap;
+	    static std::map<entryID, std::string> condInsnAliasMap;
 
 #define    IS_INSN_LOGICAL_SHIFT(I)        (field<24, 28>(I) == 0x0A)
 #define    IS_INSN_ADDSUB_EXT(I)            (field<24, 28>(I) == 0x0B && field<21, 21>(I) == 1)
@@ -114,6 +115,7 @@ namespace Dyninst {
 #define    IS_INSN_B_UNCOND(I)                (field<26, 30>(I) == 0x05)
 #define    IS_INSN_B_UNCOND_REG(I)            (field<25, 31>(I) == 0x6B)
 #define    IS_INSN_B_COMPARE(I)            (field<25, 30>(I) == 0x1A)
+#define	   IS_INSN_COND_SELECT(I)	    (field<21, 28>(I) == 0xD4)
 #define    IS_INSN_B_TEST(I)                (field<25, 30>(I) == 0x1B)
 #define    IS_INSN_B_COND(I)                (field<25, 31>(I) == 0x2A)
 #define    IS_INSN_PCREL_ADDR(I)            (field<24, 28>(I) == 0x10)
@@ -147,6 +149,7 @@ namespace Dyninst {
             bool isPstateRead, isPstateWritten;
             bool isFPInsn, isSIMDInsn;
             bool is64Bit;
+	    bool skipRn, skipRm;
             bool isValid;
 
             void mainDecode();
@@ -265,6 +268,7 @@ namespace Dyninst {
             bool isSinglePrec();
 
             bool fix_bitfieldinsn_alias(int, int);
+	    void fix_condinsn_alias_and_cond(int &);
 
             MachRegister makeAarch64RegID(MachRegister, unsigned int);
 

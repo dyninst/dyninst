@@ -49,6 +49,10 @@ namespace Dyninst {
                 aarch64_op_sbfx_sbfm, "sbfx")(aarch64_op_ubfiz_ubfm, "ubfiz")(aarch64_op_ubfx_ubfm, "ubfx")(
                 aarch64_op_sxtb_sbfm, "sxtb")(aarch64_op_sxth_sbfm, "sxth")(aarch64_op_sxtw_sbfm, "sxtw")(
                 aarch64_op_uxtb_ubfm, "uxtb")(aarch64_op_uxth_ubfm, "uxth")(aarch64_op_lsl_ubfm, "lsl")(aarch64_op_lsr_ubfm, "lsr");
+	std::map<entryID, std::string> InstructionDecoder_aarch64::condInsnAliasMap = boost::assign::map_list_of(aarch64_op_csinc, "csinc")(aarch64_op_csinv, "csinv")(aarch64_op_csneg, "csneg")
+		(aarch64_op_cinc_csinc, "cinc")(aarch64_op_cset_csinc, "cset")
+		(aarch64_op_cinv_csinv, "cinv")(aarch64_op_csetm_csinv, "csetm")
+		(aarch64_op_cneg_csneg, "cneg");
 
         struct aarch64_insn_entry {
             aarch64_insn_entry(entryID o, const char *m, operandSpec ops) :
@@ -135,7 +139,7 @@ namespace Dyninst {
 
         InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
                 : InstructionDecoderImpl(a), isPstateRead(false), isPstateWritten(false), isFPInsn(false),
-                  isSIMDInsn(false),
+                  isSIMDInsn(false), skipRn(false), skipRm(false),
                   is64Bit(true), isValid(true), insn(0), insn_in_progress(NULL),
                   hasHw(false), hasShift(false), hasOption(false), hasN(false),
                   immr(0), immrLen(0), sField(0), nField(0), nLen(0),
@@ -167,6 +171,7 @@ namespace Dyninst {
             isPstateRead = isPstateWritten = false;
             isFPInsn = false;
             isSIMDInsn = false;
+	    skipRm = skipRn = false;
             isValid = true;
             is64Bit = true;
 
@@ -1665,6 +1670,9 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
 // This function is for non-writeback
         void InstructionDecoder_aarch64::OPRRn() {
+	    if(skipRn)
+		return;
+
             if (IS_INSN_B_UNCOND_REG(insn))                                        //unconditional branch (register)
             {
                 int branchType = field<21, 22>(insn);
@@ -1828,11 +1836,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
         }
 
         void InstructionDecoder_aarch64::OPRRm() {
-            if (IS_INSN_LDST_REG(insn) ||
-                IS_INSN_ADDSUB_EXT(insn) ||
-                IS_INSN_ADDSUB_SHIFT(insn) ||
-                IS_INSN_LOGICAL_SHIFT(insn))
-                return;
+	    if(skipRm)
+		return;
 
             if (IS_INSN_FP_COMPARE(insn) && field<3, 3>(insn) == 1)
                 insn_in_progress->appendOperand(
@@ -2147,15 +2152,19 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
         template<unsigned int endBit, unsigned int startBit>
         void InstructionDecoder_aarch64::OPRcond() {
-            unsigned char condVal = static_cast<unsigned char>(field<startBit, endBit>(insn));
+            int condVal = field<startBit, endBit>(insn);
             if (IS_INSN_B_COND(insn)) {
                 insn_in_progress->getOperation().mnemonic += ".";
                 insn_in_progress->getOperation().mnemonic += condStringMap[condVal];
             }
             else {
+		if(IS_INSN_COND_SELECT(insn))
+		    fix_condinsn_alias_and_cond(condVal);
+		else
+		    oprRotateAmt++;
+
                 Expression::Ptr cond = Immediate::makeImmediate(Result(u8, condVal));
                 insn_in_progress->appendOperand(cond, true, false);
-                oprRotateAmt++;
             }
 
             isPstateRead = true;
@@ -2404,6 +2413,50 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             insn_in_progress->getOperation().mnemonic = bitfieldInsnAliasMap[modifiedID];
 
             return do_further_processing;
+        }
+
+        void InstructionDecoder_aarch64::fix_condinsn_alias_and_cond(int &cond) {
+            entryID modifiedID = insn_in_progress->getOperation().operationID;
+            if (modifiedID == aarch64_op_csel)
+                return;
+
+            int Rm = field<16, 20>(insn), Rn = field<5, 9>(insn);
+
+            if (Rm == Rn && (cond & 0xE) != 0xE && modifiedID == aarch64_op_csneg) {
+                modifiedID = aarch64_op_cneg_csneg;
+		skipRm = true;
+            } else if (Rm != 31 && Rn != 31 && (cond & 0xE) != 0xE && Rm == Rn) {
+                switch (modifiedID) {
+                    case aarch64_op_csinc:
+                        modifiedID = aarch64_op_cinc_csinc;
+                        break;
+                    case aarch64_op_csinv:
+                        modifiedID = aarch64_op_cinv_csinv;
+                        break;
+                    default:
+                        isValid = false;
+                }
+
+		skipRm = true;
+            } else if (Rm == 31 && Rn == 31 && (cond & 0xE) != 0xE) {
+                switch (modifiedID) {
+                    case aarch64_op_csinc:
+                        modifiedID = aarch64_op_cset_csinc;
+                        break;
+                    case aarch64_op_csinv:
+                        modifiedID = aarch64_op_csetm_csinv;
+                        break;
+                    default:
+                        isValid = false;
+                }
+
+		skipRn = skipRm = true;
+            }
+
+            insn_in_progress->getOperation().operationID = modifiedID;
+            insn_in_progress->getOperation().mnemonic = condInsnAliasMap[modifiedID];
+	    if(skipRm)
+		cond = ((cond % 2) == 0) ? (cond + 1) : (cond - 1);
         }
 
         template<unsigned int endBit, unsigned int startBit>
@@ -2750,7 +2803,14 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
             insn = insn_to_complete->m_RawInsn.small_insn;
             insn_in_progress = const_cast<Instruction *>(insn_to_complete);
-            for (operandSpec::const_iterator fn = insn_table_entry->operands.begin();
+            
+	    if (IS_INSN_LDST_REG(insn) ||
+                IS_INSN_ADDSUB_EXT(insn) ||
+                IS_INSN_ADDSUB_SHIFT(insn) ||
+                IS_INSN_LOGICAL_SHIFT(insn))
+		skipRm = true;
+            
+	    for (operandSpec::const_iterator fn = insn_table_entry->operands.begin();
                  fn != insn_table_entry->operands.end(); fn++) {
                 std::mem_fun(*fn)(this);
             }
