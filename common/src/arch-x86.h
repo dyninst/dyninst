@@ -640,7 +640,7 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 /* Only 4 operands below here */
        s1W2R3R4R,
        s1RW2R3R4R 
-}; // should be strictly less than 2^17 otherwise adjust FPOS below
+}; // should be strictly less than 2^17 otherwise adjust FPOS in arch-x86.C
 
 /* This should equal the first operand semantic where 4 operands are used. */
 #define s4OP s1W2R3R4R

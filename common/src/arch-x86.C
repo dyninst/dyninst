@@ -4079,7 +4079,7 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE77 */
-    { e_No_Entry, t_vexl, VEXL00, false, { Zz, Zz, Zz }, 0, 0 }, /* vzeroall or vzeroupper */
+    { e_emms, t_vexl, VEXL00, false, { Zz, Zz, Zz }, 0, 0 }, /* vzeroall or vzeroupper */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
@@ -8202,15 +8202,12 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 break;
 
             case t_vexl:
-                 /* This MUST have a vex prefix */
+                 /* This can have a vex prefix */
                 if(!pref.vex_present)
                 {   
-#ifdef VEX_PEDANTIC
-                    assert(!"VEXW can only be used by vex prefixed instructions!\n");
-#endif
-                    instruct.legacy_type = ILLEGAL;
-                    instruct.entry = gotit;
-                    return instruct;
+					/* If this instruction is valid without it, then it's fine */
+					nxtab = t_done;
+					break;
                 }
 
                 /* Whats the index into the vex2 table? */
@@ -9446,14 +9443,15 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 {
                     ++pref.count;
                     pref.opcode_prefix = addr[0];
+                	break;
                 } else if(is_sse_opcode(addr[1],addr[2],addr[3])) 
                 {
                     ++pref.count;
                     pref.opcode_prefix = addr[0];
-                }
-                break;
+                	break;
+				}
 
-            case PREFIX_LOCK:
+            case PREFIX_LOCK: /* Fall through for REPZ and REP */
                 ++pref.count;
                 pref.prfx[0] = addr[0];
                 break;
@@ -9490,7 +9488,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 break;
 
             case PREFIX_XOP:
-		return false;
+				return false;
                 // assert(!"NOT HANDLING XOP YET!\n");
                 // pref.vex_prefix[2] = addr[3];
                 // ++pref.count;
@@ -9670,44 +9668,50 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
 bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
                      ia32_locations *loc)
 {
-   if (REX_ISREX(addr[0])) {
-      // it is an error to have legacy prefixes after a REX prefix
-      // in particular, ia32_decode will get confused if a prefix
-      // that could be used as an SSE opcode extension follows our
-      // REX
-       // We also must ignore all but the last REX prefix.
-       switch(addr[1])
-       {
-       case PREFIX_SZOPER:
-       case PREFIX_REPNZ:
-       case PREFIX_REP:
-       case PREFIX_SEGCS:
-       case PREFIX_SEGSS:
-       case PREFIX_SEGDS:
-       case PREFIX_SEGES:
-       case PREFIX_SEGFS:
-       case PREFIX_SEGGS:
-       case PREFIX_LOCK:
-       case PREFIX_SZADDR:
-	   return false;
-       }
-       if(REX_ISREX(addr[1])) return false;
+	if (REX_ISREX(addr[0])) 
+	{
+
+		// it is an error to have legacy prefixes after a REX prefix
+      	// in particular, ia32_decode will get confused if a prefix
+      	// that could be used as an SSE opcode extension follows our
+      	// REX
+       	// We also must ignore all but the last REX prefix.
+
+       	switch(addr[1])
+       	{
+       		case PREFIX_SZOPER:
+       		case PREFIX_REPNZ:
+       		case PREFIX_REP:
+       		case PREFIX_SEGCS:
+       		case PREFIX_SEGSS:
+       		case PREFIX_SEGDS:
+       		case PREFIX_SEGES:
+       		case PREFIX_SEGFS:
+       		case PREFIX_SEGGS:
+       		case PREFIX_LOCK:
+       		case PREFIX_SZADDR:
+	   			return false;
+       	}
+       	
+		if(REX_ISREX(addr[1])) 
+			return false;
      
-      ++pref.count;
-      pref.prfx[4] = addr[0];
+      	++pref.count;
+      	pref.prfx[4] = addr[0];
 
-      if (loc) {
-         loc->rex_byte = addr[0];
-         loc->rex_w = REX_W(addr[0]);
-         loc->rex_r = REX_R(addr[0]);
-         loc->rex_x = REX_X(addr[0]);
-         loc->rex_b = REX_B(addr[0]);
-         loc->rex_position = pref.count - 1;
-      }
-      
-   }
+      	if (loc) 
+		{
+         	loc->rex_byte = addr[0];
+         	loc->rex_w = REX_W(addr[0]);
+         	loc->rex_r = REX_R(addr[0]);
+         	loc->rex_x = REX_X(addr[0]);
+         	loc->rex_b = REX_B(addr[0]);
+         	loc->rex_position = pref.count - 1;
+      	}
+      	
+   	}
 
-   return true;
+   	return true;
 }
 
 unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
