@@ -40,6 +40,7 @@
 using ParseAPI::EdgeTypeEnum;
 using ParseAPI::FuncReturnStatus;
 using ParseAPI::FuncSource;
+using std::vector;
 
 /*** The image_* object factory ***/
 class image;

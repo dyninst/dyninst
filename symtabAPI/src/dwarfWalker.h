@@ -153,7 +153,7 @@ class DwarfWalker {
    bool parseMember();
    bool parseConstPackedVolatile();
    bool parseTypeReferences();
-   bool parseHighPCLowPC();
+   bool parseHighPCLowPC(Dwarf_Die entry);
    
 
    // These vary as we parse the tree
@@ -251,10 +251,12 @@ class DwarfWalker {
 			       bool &expr,
 			       Dwarf_Half &form);
    bool findString(Dwarf_Half attr, const char* &str);
-   bool findConstant(Dwarf_Half attr, Address &value);
-   bool findConstantWithForm(Dwarf_Attribute &attr,
+public:
+   static bool findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf_Debug dbg);
+   static bool findConstantWithForm(Dwarf_Attribute &attr,
                                Dwarf_Half form,
                                Address &value);
+private:
    bool decodeConstantLocation(Dwarf_Attribute &attr, Dwarf_Half form, 
                                std::vector<VariableLocation> &locs);
    bool constructConstantVariableLocation(Address value,
