@@ -99,6 +99,11 @@ ADD_DEFINITIONS(-DDATAFLOW_LIB)
 
 dyninst_library(parseAPI common instructionAPI ${SYMREADER})
 
+if (UNIX)
+	# Boost auto-links on Windows; don't double-link
+	target_link_private_libraries(parseAPI ${Boost_LIBRARIES})
+endif()
+
 FILE (GLOB headers "h/*.h")
 FILE (GLOB dataflowheaders "../dataflowAPI/h/*.h")
 set_target_properties (parseAPI PROPERTIES PUBLIC_HEADER "${headers};${dataflowheaders}")

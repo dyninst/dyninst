@@ -44,7 +44,7 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
 // constructor of the class. It creates the CFG and
-LoopAnalyzer::LoopAnalyzer(Function *f)
+LoopAnalyzer::LoopAnalyzer(const Function *f)
   : func(f) 
 {
     for (auto bit = f->blocks().begin(); bit != f->blocks().end(); ++bit) {
@@ -112,7 +112,7 @@ void LoopAnalyzer::createLoopHierarchy()
 
   // Enumerate every basic blocks in the functions to find all create 
   // call information for each loop
-  for (auto bit = func->blocks().begin(); bit != func->blocks().end(); ++bit) {
+  for (auto bit = const_cast<const Function*>(func)->blocks().begin(); bit != const_cast<const Function*>(func)->blocks().end(); ++bit) {
     Block *b = *bit;
     for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
       // Can tail call happen here?
@@ -285,38 +285,43 @@ void LoopAnalyzer::WMZC_TagHead(Block* b, Block* h) {
 
 // Recursively build the basic blocks in a loop
 // and the contained loops in a loop
-void LoopAnalyzer::createLoops(Block* cur) {   
-    if (loops[cur] != NULL)
-        loops[cur]->basicBlocks.insert(cur);
+void LoopAnalyzer::createLoops(Block* cur) {
+    auto curLoop = loops[cur];
+    if(curLoop == NULL) return;
+    curLoop->insertBlock(cur);
 
     for (auto bit = loop_tree[cur].begin(); bit != loop_tree[cur].end(); ++bit) {
         Block* child = *bit;
-	createLoops(child);
-	if (loops[cur] != NULL && loops[child] != NULL) {
-	    loops[cur]->containedLoops.insert(loops[child]->containedLoops.begin(), loops[child]->containedLoops.end());
-	    loops[cur]->containedLoops.insert(loops[child]);
-	    loops[child]->parent = loops[cur];
-	}
-	if (loops[cur] != NULL) {
-	    loops[cur]->basicBlocks.insert(child);
-	    if (loops[child] != NULL)
-	        loops[cur]->basicBlocks.insert(loops[child]->basicBlocks.begin(), loops[child]->basicBlocks.end());
-	}
-    }
+        createLoops(child);
+        auto childLoop = loops[child];
+        if (childLoop != NULL) {
 
+            curLoop->insertLoop(childLoop);
+        }
+        curLoop->insertBlock(child);
+    }
 }
 
 void LoopAnalyzer::FillMoreBackEdges(Loop *loop) {
     // All back edges to the header of the loop have been identified.
     // Now find all back edges to the other entries of the loop.
-    for (auto bit = loop->basicBlocks.begin(); bit != loop->basicBlocks.end(); ++bit) {
+    for (auto bit = loop->exclusiveBlocks.begin(); bit != loop->exclusiveBlocks.end(); ++bit) {
         Block* b = *bit;
-	for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
-	    Edge *e = *eit;
-	    if (e->interproc() || e->sinkEdge()) continue;
-	    if (loop->entries.find(e->trg()) != loop->entries.end())
-	        loop->backEdges.insert(e);
-	}	
+        for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
+            Edge *e = *eit;
+            if (e->interproc() || e->sinkEdge()) continue;
+            if (loop->entries.find(e->trg()) != loop->entries.end())
+                loop->backEdges.insert(e);
+        }
+    }
+    for (auto bit = loop->childBlocks.begin(); bit != loop->childBlocks.end(); ++bit) {
+        Block* b = *bit;
+        for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
+            Edge *e = *eit;
+            if (e->interproc() || e->sinkEdge()) continue;
+            if (loop->entries.find(e->trg()) != loop->entries.end())
+                loop->backEdges.insert(e);
+        }
     }
 }
 

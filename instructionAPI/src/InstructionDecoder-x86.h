@@ -96,11 +96,10 @@ namespace Dyninst
                 void doIA32Decode(InstructionDecoder::buffer& b);
 		bool isDefault64Insn();
 		
-      
-                ia32_locations* locs;
-                NS_x86::ia32_instruction* decodedInstruction;
-                bool sizePrefixPresent;
-                bool addrSizePrefixPresent;
+                static __thread ia32_locations* locs;
+                static __thread NS_x86::ia32_instruction* decodedInstruction;
+                static __thread bool sizePrefixPresent;
+                static __thread bool addrSizePrefixPresent;
         };
     };
 };

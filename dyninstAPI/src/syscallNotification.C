@@ -44,6 +44,8 @@
 using namespace ProcControlAPI;
 using namespace PatchAPI;
 
+extern template class boost::shared_ptr<Dyninst::PatchAPI::Instance>;
+
 syscallNotification::syscallNotification(syscallNotification *parentSN,
                                          PCProcess *child) : preForkInst(NULL),
                                                            postForkInst(NULL),

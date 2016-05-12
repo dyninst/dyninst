@@ -101,9 +101,9 @@ Absloc SymEvalPolicy::convert(PowerpcRegisterClass regtype, int regNum)
     switch(regtype)
     {
         case powerpc_regclass_gpr:
-            return Absloc(MachRegister(ppc32::GPR | regNum | Arch_ppc32));
+            return Absloc(MachRegister(ppc32::GPR | regNum | arch));
         case powerpc_regclass_spr:
-            return Absloc(MachRegister(ppc32::SPR | regNum | Arch_ppc32));
+            return Absloc(MachRegister(ppc32::SPR | regNum | arch));
         case powerpc_regclass_cr:
         {
             if(regNum == -1)
@@ -312,41 +312,43 @@ Absloc SymEvalPolicy_64::convert(PowerpcRegisterClass regtype, int regNum)
     // Fix this function when adding support for ppc64
     switch(regtype)
     {
+            // PPC register classes (gpr/spr/whatever) are identical 32/64, and must maintain this
+            //  invariant, so we're using 32 here
         case powerpc_regclass_gpr:
-            return Absloc(MachRegister(ppc32::GPR | regNum | Arch_ppc32));
+            return Absloc(MachRegister(ppc32::GPR | regNum | arch));
         case powerpc_regclass_spr:
-            return Absloc(MachRegister(ppc32::SPR | regNum | Arch_ppc32));
+            return Absloc(MachRegister(ppc32::SPR | regNum | arch));
         case powerpc_regclass_cr:
         {
-            if(regNum == -1)
-                return Absloc(ppc32::cr);
-            switch(regNum)
+            if(arch == Arch_ppc64)
             {
-                case 0:
-                    return Absloc(ppc32::cr0);
-                case 1:
-                    return Absloc(ppc32::cr1);
-                case 2:
-                    return Absloc(ppc32::cr2);
-                case 3:
-                    return Absloc(ppc32::cr3);
-                case 4:
-                    return Absloc(ppc32::cr4);
-                case 5:
-                    return Absloc(ppc32::cr5);
-                case 6:
-                    return Absloc(ppc32::cr6);
-                case 7:
-                    return Absloc(ppc32::cr7);
-                default:
-                    assert(!"bad CR field!");
+                if(regNum < 0) return Absloc(ppc64::cr);
+                if(regNum > 7) {
+                    assert(!"bad CR field");
                     return Absloc();
+                }
+                return Absloc(ppc64::cr0 + regNum);
+            } else {
+                if(regNum < 0) return Absloc(ppc32::cr);
+                if(regNum > 7) {
+                    assert(!"bad CR field");
+                    return Absloc();
+                }
+                return Absloc(ppc32::cr0 + regNum);
+
             }
         }
         default:
             assert(!"unknown power register class!");
             return Absloc();
-            
+
+        case powerpc_regclass_unknown:break;
+        case powerpc_regclass_fpr:break;
+        case powerpc_regclass_fpscr:break;
+        case powerpc_regclass_tbr:break;
+        case powerpc_regclass_msr:break;
+        case powerpc_regclass_sr:break;
+        case powerpc_last_register_class:break;
     }
 }
 

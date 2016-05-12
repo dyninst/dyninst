@@ -138,9 +138,6 @@ set_target_properties (dyninstAPI_RT_static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 message(STATUS "dyninstAPI RT library SOVERSION: ${SOVERSION}")
 message(STATUS "dyninstAPI RT library LIBVERSION: ${LIBVERSION}")
 
-get_property(dyninstAPI_RT_location TARGET dyninstAPI_RT PROPERTY LOCATION)
-message(STATUS "dyninstAPI output location: ${dyninstAPI_RT_location}")
-
 FILE (GLOB headers "h/*.h")
 # append, you fool!
 set_target_properties (dyninstAPI_RT dyninstAPI_RT_static PROPERTIES PUBLIC_HEADER "${headers}")

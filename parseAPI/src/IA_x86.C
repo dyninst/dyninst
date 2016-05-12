@@ -255,8 +255,25 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, co
         _obj->findCurrentBlocks(_cr, addr, blocks);
         if (blocks.size() == 1) {
             target = *blocks.begin();
-        }
+        } else if (blocks.size() == 0) {
+	    // This case can happen when the jump target is a function entry,
+	    // but we have not parsed the function yet
+	    target = NULL;
+	} else {
+	    // If this case happens, it means the jump goes into overlapping instruction streams,
+	    // it is not likely to be a tail call.
+	    parsing_printf("\tjumps into overlapping instruction streams\n");
+	    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
+	        parsing_printf("\t block [%lx,%lx)\n", (*bit)->start(), (*bit)->end());
+	    }
+	    parsing_printf("\tjump to 0x%lx, NOT TAIL CALL\n", addr);
+	    tailCalls[type] = false;
+	    return false;
+	}
     }
+
+    // if target is still NULL, return false
+    if(target == NULL) return false;
     
     if(curInsn()->getCategory() == c_BranchInsn &&
        valid &&

@@ -120,7 +120,7 @@ dynHandle *mutatorInit(void)
 
     } else if (config.use_process){
 	sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO);
-	dh->addSpace = dh->bpatch->processCreate(config.target, (const char **)config.argv);
+	dh->addSpace = dh->bpatch->processCreate(config.target, const_cast<const char**>(config.argv));
 	dh->proc = dynamic_cast<BPatch_process *>(dh->addSpace);
 	if (!dh->proc) {
 	    sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_FAIL,

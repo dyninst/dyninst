@@ -36,6 +36,8 @@
 #include <unordered_map>
 #include <set>
 
+using namespace std;
+
 namespace Dyninst{
 namespace ParseAPI{
 
@@ -72,7 +74,7 @@ class dominatorCFG {
    friend class dominatorBB;
  protected:
    std::unordered_map<Address, dominatorBB *> map_;
-   Function *func;
+   const Function *func;
    vector<dominatorBB *> all_blocks;
    vector<dominatorBB *> sorted_blocks;
    int currentDepthNo;
@@ -87,7 +89,7 @@ class dominatorCFG {
    dominatorBB *parseToDomBB(Block *bb);
 
  public:
-   dominatorCFG(Function *f);
+   dominatorCFG(const Function *f);
    ~dominatorCFG();
 
    void calcDominators();

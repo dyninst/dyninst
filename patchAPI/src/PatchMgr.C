@@ -35,6 +35,8 @@
 #include "Point.h"
 #include "PatchCallback.h"
 
+#include "version.h"
+
 using namespace Dyninst;
 using namespace PatchAPI;
 
@@ -51,9 +53,9 @@ using Dyninst::PatchAPI::PatchBlock;
 using Dyninst::PatchAPI::PatchEdge;
 using Dyninst::PatchAPI::PatchFunction;
 
-static const int PatchAPI_major_version = 8;
-static const int PatchAPI_minor_version = 2;
-static const int PatchAPI_maintenance_version = 0;
+static const int PatchAPI_major_version = DYNINST_MAJOR_VERSION;
+static const int PatchAPI_minor_version = DYNINST_MINOR_VERSION;
+static const int PatchAPI_maintenance_version = DYNINST_PATCH_VERSION;
 
 void PatchMgr::version(int& major, int& minor, int& maintenance)
 {

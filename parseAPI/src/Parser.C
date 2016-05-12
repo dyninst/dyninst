@@ -51,6 +51,7 @@ using namespace Dyninst::InstructionAPI;
 typedef std::pair< Address, EdgeTypeEnum > edge_pair_t;
 typedef vector< edge_pair_t > Edges_t;
 
+#include "common/src/dthread.h"
 
 namespace {
     struct less_cr {
@@ -154,7 +155,7 @@ Parser::parse()
     _in_parse = true;
 
     parse_vanilla();
-
+    finalize();
     // anything else by default...?
 
     if(_parse_state < COMPLETE)
@@ -712,16 +713,12 @@ Parser::finalize(Function *f)
 void
 Parser::finalize()
 {
-    assert(!_in_finalize);
-    _in_finalize = true;
-
+    ScopeLock<> l(finalize_lock);
     if(_parse_state < FINALIZED) {
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
         _parse_state = FINALIZED;
     }
-
-    _in_finalize = false;
 }
 
 void
@@ -888,7 +885,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         ParseWorkElem * work = frame.popWork();
         if (work->order() == ParseWorkElem::call) {
             Function * ct = NULL;
-            Edge * ce = NULL;
 
             if (!work->callproc()) {
 	      // If we're not doing recursive traversal, skip *all* of the call edge processing.
@@ -912,12 +908,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                               work->edge()->src(),
                               work->edge());
                 ct = ctp.first;
-                ce = ctp.second;
 
                 work->mark_call();
             } else {
                 ct = _parse_data->findFunc(frame.codereg,work->target());
-                ce = work->edge();
             }
 
             if (recursive && ct &&

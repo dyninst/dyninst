@@ -116,15 +116,15 @@ CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
    // 32- and 64-bit. 
 
    Architecture fixme = insn_->getArch();
-   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
+   //if (fixme == Arch_ppc32) fixme = Arch_ppc64;
 
    Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn_->getArch())));
-   Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
+   //Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
    Expression::Ptr exp = insn_->getControlFlowTarget();
 
    exp->bind(thePC.get(), Result(u64, addr_));
-   exp->bind(thePCFixme.get(), Result(u64, addr_));
+   //exp->bind(thePCFixme.get(), Result(u64, addr_));
    Result res = exp->eval();
    if (!res.defined) {
       if (!isIndirect_) {

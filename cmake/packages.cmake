@@ -42,8 +42,6 @@ if (UNIX)
       INSTALL_COMMAND mkdir -p <INSTALL_DIR>/include && mkdir -p <INSTALL_DIR>/lib && install <SOURCE_DIR>/libdwarf/libdwarf.h <INSTALL_DIR>/include && install <SOURCE_DIR>/libdwarf/dwarf.h <INSTALL_DIR>/include && install <BINARY_DIR>/libdwarf.so <INSTALL_DIR>/lib
       )
     add_dependencies(LibDwarf libelf_imp)
-    target_link_private_libraries(LibDwarf libelf_imp)
-    #ExternalProject_Get_Property(LibDwarf 
     set(LIBDWARF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libdwarf/include)
     set(LIBDWARF_LIBRARIES ${CMAKE_BINARY_DIR}/libdwarf/lib/libdwarf.so)
   else()
@@ -104,7 +102,7 @@ set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
   "1.50" "1.50.0" "1.51" "1.51.0" "1.52" "1.52.0"
   "1.53" "1.53.0" "1.54" "1.54.0" "1.55" "1.55.0" "1.56" "1.56.0" "1.57" "1.57.0" "1.58" "1.58.0" "1.59" "1.59.0")
 
-set (Boost_DEBUG ON)
+# set (Boost_DEBUG ON)
 set (PATH_BOOST "/usr" CACHE STRING "Path to boost")
 
 set(Boost_USE_MULTITHREADED ON)

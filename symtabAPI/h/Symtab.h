@@ -99,7 +99,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    friend class Module;
    friend class Region;
    friend class emitElf;
-   friend class emitElf64;
    friend class emitElfStatic;
    friend class emitWin;
    friend class Aggregate;
@@ -350,6 +349,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    const char*  getInterpreterName() const;
 
    unsigned getAddressWidth() const;
+   bool isBigEndianDataEncoding() const;
+   bool getABIVersion(int &major, int &minor) const;
+
    Offset getLoadOffset() const;
    Offset getEntryOffset() const;
    Offset getBaseOffset() const;
@@ -425,16 +427,17 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newOffset);
    bool deleteAggregate(Aggregate *agg);
 
-   bool parseFunctionRanges();
    bool addFunctionRange(FunctionBase *fbase, Dyninst::Offset next_start);
 
    // Used by binaryEdit.C...
  public:
+
+
    bool canBeShared();
    Module *getOrCreateModule(const std::string &modName, 
                                            const Offset modAddr);
+   bool parseFunctionRanges();
 
- public:
    //Only valid on ELF formats
    Offset getElfDynamicOffset();
    // SymReader interface

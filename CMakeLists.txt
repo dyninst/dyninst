@@ -80,8 +80,9 @@ add_subdirectory (patchAPI)
 if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (dyninstAPI)
 endif()
+add_subdirectory (parseThat)
 
-#Build the RT library as a seperate project so we can change compilers
+# Build the RT library as a seperate project so we can change compilers
 message(STATUS "Configuring DyninstAPI_RT")
 file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile ${RT_BINARY_DIR}/Makefile)
 file(MAKE_DIRECTORY ${RT_BINARY_DIR})
@@ -90,7 +91,6 @@ if (PLATFORM MATCHES bgq)
 else()
   set (RT_C_COMPILER ${CMAKE_C_COMPILER} CACHE STRING "Compiler for runtime library")
 endif()
-set (NEED_NATIVE_ASSEMBLER NO CACHE STRING "Does the compiler break on assembly files? (Unlikely)")
 set (ENABLE_STATIC_LIBS NO CACHE STRING "Build static libraries as well?")
 message(STATUS "Configuring RT library")
 
@@ -104,7 +104,6 @@ execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR}
   -DINSTALL_INCLUDE_DIR=${INSTALL_INCLUDE_DIR}
   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
   -DBUILD_RTLIB_32=${BUILD_RTLIB_32}
-  -DNEED_NATIVE_ASSEMBLER=${NEED_NATIVE_ASSEMBLER}
   -DPLATFORM=${PLATFORM}
   -G ${CMAKE_GENERATOR}
   ${RT_SOURCE_DIR})
@@ -112,12 +111,16 @@ execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR}
 add_custom_target(DyninstRT
   ALL
   #  COMMAND ${CMAKE_COMMAND} -E chdir ${RT_BINARY_DIR} ${ACTUAL_BUILD}
-  ${CMAKE_BUILD_TOOL}
+  $(MAKE)
   WORKING_DIRECTORY ${RT_BINARY_DIR}
   COMMENT "Building DyninstRT")
 
 install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
 
+add_dependencies(dyninstAPI DyninstRT)
+if(TARGET dyninstAPI-static)
+    add_dependencies(dyninstAPI-static DyninstRT)
+endif()
 set (VERSION_STRING "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}.${DYNINST_PATCH_VERSION}")
 set (DYNINST_NAME "DyninstAPI-${VERSION_STRING}")
 

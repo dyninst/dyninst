@@ -42,6 +42,7 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
+
 FrameStepper::FrameStepper(Walker *w) :
   walker(w)
 {

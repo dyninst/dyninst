@@ -70,11 +70,15 @@ namespace Dyninst
                     return i == 1 || i == 2;
                 case s1W2W3R: // e.g. les
                     return i == 2;
+                case s1RW2R3RW:
                 case s1RW2R3R: // shld/shrd
                 case s1RW2RW3R: // [i]div, cmpxch8b
                 case s1R2R3R:
                     return i == 0 || i == 1 || i == 2;
-                    break;
+                case s1W2R3R4R:
+                    return i == 1 || i == 2 || i == 3;
+                case s1RW2R3R4R:
+                    return i == 0 || i == 1 || i == 2 || i == 3;
                 case sNONE:
                 default:
                     return false;
@@ -90,21 +94,24 @@ namespace Dyninst
                     return false;
                 case s1RW:
                 case s1W:
-                    case s1W2R:   // second operand read, first operand written (e.g. mov)
-                        case s1RW2R:  // two operands read, first written (e.g. add)
-                            case s1W2R3R: // e.g. imul
-                                case s1RW2R3R: // shld/shrd
-                                    return i == 0;
+                case s1W2R:   // second operand read, first operand written (e.g. mov)
+                case s1RW2R:  // two operands read, first written (e.g. add)
+                case s1W2R3R: // e.g. imul
+                case s1RW2R3R: // shld/shrd
+                case s1RW2R3R4R:
+                  return i == 0;
                 case s1R2RW:
-                    return i == 1;
+                  return i == 1;
                 case s1W2RW:
-                    case s1RW2RW: // e.g. xchg
-                        case s1W2RW3R: // some mul
-                            case s1W2W3R: // e.g. les
-                                case s1RW2RW3R: // [i]div, cmpxch8b
-                                    return i == 0 || i == 1;
-                                    case s1W2R3RW: // (stack) push & pop
-                                        return i == 0 || i == 2;
+                case s1RW2RW: // e.g. xchg
+                case s1W2RW3R: // some mul
+                case s1W2W3R: // e.g. les
+                case s1RW2RW3R: // [i]div, cmpxch8b
+                  return i == 0 || i == 1;
+                case s1W2R3RW: // (stack) push & pop
+                  return i == 0 || i == 2;
+                case s1RW2R3RW:
+                  return i == 0 || i == 2;
                 case sNONE:
                 default:
                     return false;
@@ -112,23 +119,18 @@ namespace Dyninst
         }
 
 
-    
+    __thread NS_x86::ia32_instruction* InstructionDecoder_x86::decodedInstruction = NULL;
+    __thread ia32_locations* InstructionDecoder_x86::locs = NULL;
+    __thread bool InstructionDecoder_x86::sizePrefixPresent = false;
+    __thread bool InstructionDecoder_x86::addrSizePrefixPresent = false;
     INSTRUCTION_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(Architecture a) :
-      InstructionDecoderImpl(a),
-    locs(NULL),
-    decodedInstruction(NULL),
-    sizePrefixPresent(false),
-    addrSizePrefixPresent(false)
+      InstructionDecoderImpl(a)
     {
       if(a == Arch_x86_64) setMode(true);
       
     }
     INSTRUCTION_EXPORT InstructionDecoder_x86::~InstructionDecoder_x86()
     {
-        if(decodedInstruction) decodedInstruction->~ia32_instruction();
-        free(decodedInstruction);
-        if(locs) locs->~ia32_locations();
-        free(locs);
 
     }
     static const unsigned char modrm_use_sib = 4;
@@ -145,10 +147,11 @@ namespace Dyninst
         Register base;
         Result_Type registerType = ia32_is_mode_64() ? u64 : u32;
 
+        int op_type = ia32_is_mode_64() ? op_q : op_d;
         decode_SIB(locs->sib_byte, scale, index, base);
 
         Expression::Ptr scaleAST(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, dword_t(scale)))));
-        Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, registerType,
+        Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, op_type,
                                     locs->rex_x))));
         Expression::Ptr baseAST;
         if(base == 0x05)
@@ -161,7 +164,7 @@ namespace Dyninst
                 case 0x01: 
                 case 0x02: 
                     baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, 
-											       registerType,
+											       op_type,
 											       locs->rex_b)));
                     break;
                 case 0x03:
@@ -173,7 +176,7 @@ namespace Dyninst
         else
         {
             baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, 
-											       registerType,
+											       op_type,
 											       locs->rex_b)));
         }
 
@@ -539,7 +542,13 @@ namespace Dyninst
 	},
 	{
 	    x86_64::r8d, x86_64::r9d, x86_64::r10d, x86_64::r11d, x86_64::r12d, x86_64::r13d, x86_64::r14d, x86_64::r15d 
-	}
+	},
+  {
+    x86_64::ymm0, x86_64::ymm1, x86_64::ymm2, x86_64::ymm3, x86_64::ymm4, x86_64::ymm5, x86_64::ymm6, x86_64::ymm7
+  },
+  {
+    x86_64::ymm8, x86_64::ymm9, x86_64::ymm10, x86_64::ymm11, x86_64::ymm12, x86_64::ymm13, x86_64::ymm14, x86_64::ymm15
+  }
 
     };
 
@@ -734,6 +743,7 @@ namespace Dyninst
                     return u32;
                 }
             case op_dq:
+            case op_qq:
                 return u64;
             case op_512:
                 return m512;
@@ -762,29 +772,50 @@ namespace Dyninst
 						  const Instruction* insn_to_complete, 
 						  bool isRead, bool isWritten)
     {
-       bool isCFT = false;
+      bool isCFT = false;
       bool isCall = false;
       bool isConditional = false;
       InsnCategory cat = insn_to_complete->getCategory();
       if(cat == c_BranchInsn || cat == c_CallInsn)
-	{
-	  isCFT = true;
-	  if(cat == c_CallInsn)
 	    {
-	      isCall = true;
+	      isCFT = true;
+	      if(cat == c_CallInsn)
+	      {
+	        isCall = true;
+	      }
 	    }
-	}
-      if (cat == c_BranchInsn && insn_to_complete->getOperation().getID() != e_jmp) {
-	isConditional = true;
+
+      if (cat == c_BranchInsn && insn_to_complete->getOperation().getID() != e_jmp) 
+      {
+	      isConditional = true;
       }
 
       unsigned int optype = operand.optype;
-      if (sizePrefixPresent && 
-	  ((optype == op_v) ||
-	   (optype == op_z)) &&
-	  (operand.admet != am_J)) {
-	optype = op_w;
+      int vex_vvvv = 0;
+      if(decodedInstruction && decodedInstruction->getPrefix()->vex_prefix[0])
+      {
+        /* The vvvv bits are bits 3, 4, 5, 6 and are in 1's complement */
+        if(decodedInstruction->getPrefix()->vex_prefix[2]) /* AVX512 (EVEX) */
+        {
+          vex_vvvv = (unsigned char)EVEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
+        } else if(decodedInstruction->getPrefix()->vex_prefix[1]){ /* AVX2 (VEX3) */
+          vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[1]);
+        } else { /* AVX (VEX2) */
+          vex_vvvv = (unsigned char)VEXGET_VVVV(decodedInstruction->getPrefix()->vex_prefix[0]);
+        }
+
+        vex_vvvv = (unsigned char)((~vex_vvvv) & 0x0f);
+        if(vex_vvvv >= 0x0f)
+          vex_vvvv = -1;
       }
+
+      if (sizePrefixPresent 
+        && ((optype == op_v) || (optype == op_z)) 
+        && (operand.admet != am_J)) 
+      {
+	        optype = op_w;
+      }
+
       if(optype == op_y) {
     	  if(ia32_is_mode_64() && locs->rex_w)
     		  optype = op_q;
@@ -853,6 +884,19 @@ namespace Dyninst
                         insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
                     break;
+                    case am_H:
+                      {
+                        if(vex_vvvv < 0)
+                        {
+                          vex_vvvv = 0;
+                          break; /* Invalid instruction */
+                        }
+                          /* Operand comes from the VEX.vvvv bits */
+                         insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
+                              vex_vvvv <= 7 ? b_xmm : b_xmmhigh, vex_vvvv <= 7 ? vex_vvvv : vex_vvvv - 8)),
+                              isRead, isWritten);
+                      }
+                      break;
                     case am_I:
                         insn_to_complete->appendOperand(decodeImmediate(optype, b.start + 
 									locs->imm_position[imm_index++]), 
@@ -987,6 +1031,16 @@ namespace Dyninst
                                 locs->rex_r ? b_xmmhigh : b_xmm,locs->modrm_reg)),
                                     isRead, isWritten);
                         break;
+                    case am_VR:
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
+                                                                                             locs->rex_b ? b_xmmhigh : b_xmm,locs->modrm_rm)),
+                                                        isRead, isWritten);
+
+                    case am_U:
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,
+                                        locs->rex_b ? b_xmmhigh : b_xmm, locs->modrm_rm)),
+                                        isRead, isWritten);
+                        break;
                     case am_W:
                         switch(locs->modrm_mod)
                         {
@@ -1068,9 +1122,10 @@ namespace Dyninst
 			}
                         Expression::Ptr es(makeRegisterExpression(m_Arch == Arch_x86 ? x86::es : x86_64::es));
                         Expression::Ptr di(makeRegisterExpression(di_reg));
-                        Expression::Ptr es_segment = makeMultiplyExpression(es,
-                            make_shared(singleton_object_pool<Immediate>::construct(Result(u32, 0x10))), u32);
-                        Expression::Ptr es_di = makeAddExpression(es_segment, di, u32);
+
+                        Immediate::Ptr imm(make_shared(singleton_object_pool<Immediate>::construct(Result(u32, 0x10))));
+                        Expression::Ptr es_segment(makeMultiplyExpression(es,imm, u32));
+                        Expression::Ptr es_di(makeAddExpression(es_segment, di, u32));
                         insn_to_complete->appendOperand(makeDereferenceExpression(es_di, makeSizeType(optype)),
                                                        isRead, isWritten);
                     }
@@ -1209,7 +1264,8 @@ namespace Dyninst
 
                 default:
                     printf("decodeOneOperand() called with unknown addressing method %d\n", operand.admet);
-                        break;
+                    // assert(0);
+                    break;
                 };
                 return true;
             }
@@ -1267,7 +1323,7 @@ namespace Dyninst
 		case e_xchg:
 		    break;
 		default:
-		    m_Operation = make_shared(singleton_object_pool<Operation>::construct(&invalid,
+		    m_Operation =make_shared(singleton_object_pool<Operation>::construct(&invalid,
                                     decodedInstruction->getPrefix(), locs, m_Arch));
 		    return;
 		}
@@ -1309,7 +1365,7 @@ namespace Dyninst
            insn_to_complete->addSuccessor(ret_addr, false, true, false, false);
 	}
 
-        for(unsigned i = 0; i < 3; i++)
+        for(int i = 0; i < 3; i++)
         {
             if(decodedInstruction->getEntry()->operands[i].admet == 0 && 
 	       decodedInstruction->getEntry()->operands[i].optype == 0)
@@ -1320,6 +1376,20 @@ namespace Dyninst
 				 insn_to_complete, 
 				 readsOperand(opsema, i),
 				 writesOperand(opsema, i)))
+            {
+                return false;
+            }
+        }
+
+        /* Does this instruction have a 4th operand? */
+        if((decodedInstruction->getEntry()->opsema & 0xFFFF) >= s4OP)
+        {
+          if(!decodeOneOperand(b,
+            {am_I, op_b}, /* This is always an IMM8 */
+            imm_index,
+            insn_to_complete,
+            readsOperand(opsema, 3),
+            writesOperand(opsema, 3)))
             {
                 return false;
             }

@@ -143,6 +143,7 @@ bool Module::getSourceLines(std::vector<Statement *> &lines, Offset addressInRan
      exec_->parseLineInformation();
      lineInformation = getLineInformation();
    }
+    cout << "Module " << fileName() << " searching for line info in " << lineInformation << endl;
    if (lineInformation)
       lineInformation->getSourceLines( addressInRange, lines );
 
@@ -161,7 +162,8 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
      exec_->parseLineInformation();
      lineInformation = getLineInformation();
    }
-   
+
+    cout << "Module " << fileName() << " searching for line info in " << lineInformation << endl;
    if (lineInformation)
       lineInformation->getSourceLines( addressInRange, lines );
 

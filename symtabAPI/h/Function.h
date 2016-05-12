@@ -189,7 +189,7 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
    ~InlinedFunction();
    virtual Module* getModule() const { return module_; }
   public:
-   typedef vector<std::string>::const_iterator name_iter;
+   typedef std::vector<std::string>::const_iterator name_iter;
    std::pair<std::string, Dyninst::Offset> getCallsite();
    virtual bool removeSymbol(Symbol *sym);
    virtual bool addMangledName(std::string name, bool isPrimary);
@@ -198,7 +198,7 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
    virtual Offset getOffset() const;
    virtual unsigned getSize() const;
   private:
-   std::string callsite_file;
+   const char* callsite_file;
    Dyninst::Offset callsite_line;
    std::string name_;
    Module* module_;

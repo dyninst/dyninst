@@ -129,6 +129,18 @@ unsigned SymtabReader::getAddressWidth()
    return symtab->getAddressWidth();
 }
    
+bool SymtabReader::getABIVersion(int &major, int &minor) const
+{
+   assert(symtab);
+   return symtab->getABIVersion(major, minor);
+}
+
+bool SymtabReader::isBigEndianDataEncoding() const
+{
+   assert(symtab);
+   return symtab->isBigEndianDataEncoding();
+}
+
 unsigned SymtabReader::numSegments()
 {
    buildSegments();

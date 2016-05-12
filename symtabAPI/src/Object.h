@@ -132,6 +132,8 @@ public:
     SYMTAB_EXPORT const std::string findModuleForSym(Symbol *sym);
     SYMTAB_EXPORT void clearSymsToMods();
     SYMTAB_EXPORT bool hasError() const;
+    SYMTAB_EXPORT virtual bool isBigEndianDataEncoding() const { return false; }
+    SYMTAB_EXPORT virtual bool getABIVersion(int & /*major*/, int & /*minor*/) const { return false; }
     
     virtual void setTruncateLinePaths(bool value);
     virtual bool getTruncateLinePaths();

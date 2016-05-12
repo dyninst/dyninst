@@ -61,8 +61,14 @@
 #elif defined(__GNUC__)
   #include <functional>
   #define DECLTHROW(x) throw(x)
+  //*****************libcxx**********************
+  #if defined(_LIBCPP_VERSION)
+      #include <unordered_set>
+      #include <unordered_map>
+      #define dyn_hash_set std::unordered_set
+      #define dyn_hash_map std::unordered_map
   //***************** GCC ***********************
-   #if defined (__GLIBCXX__) && (__GLIBCXX__ >= 20080306)
+   #elif defined (__GLIBCXX__) && (__GLIBCXX__ >= 20080306)
       //**************** GCC >= 4.3.0 ***********
       #include <tr1/unordered_set>
       #include <tr1/unordered_map>

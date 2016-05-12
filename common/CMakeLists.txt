@@ -116,6 +116,10 @@ set(DEPS "${DEPS};${IBERTY_LIBRARIES}")
 endif()
 
 dyninst_library(common ${DEPS})
+if (UNIX)
+  # Boost auto-links on Windows; don't double-link
+  target_link_private_libraries(common ${Boost_LIBRARIES})
+endif()
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   target_link_libraries(common Psapi WS2_32 dbghelp)

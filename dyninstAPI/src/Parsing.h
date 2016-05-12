@@ -40,6 +40,7 @@
 using ParseAPI::EdgeTypeEnum;
 using ParseAPI::FuncReturnStatus;
 using ParseAPI::FuncSource;
+using std::vector;
 
 /*** The image_* object factory ***/
 class image;
@@ -75,8 +76,8 @@ class DynCFGFactory : public Dyninst::ParseAPI::CFGFactory {
 
   private:
     image * _img;     
-    vector<int> _func_allocs;
-    vector<int> _edge_allocs;
+    std::vector<int> _func_allocs;
+    std::vector<int> _edge_allocs;
     int _block_allocs;
     int _sink_block_allocs;
     //int _sink_edge_allocs; FIXME can't determine
@@ -130,7 +131,7 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   virtual void remove_block_cb(ParseAPI::Function *, ParseAPI::Block *);
 
 #if defined(arch_power)
-  void instruction_cb(ParseAPI::Function*,ParseAPI::Block *,Address,insn_details*);
+  void instruction_cb(ParseAPI::Function*, ParseAPI::Block *, Address, insn_details*);
 #endif
  private:
     image * _img;

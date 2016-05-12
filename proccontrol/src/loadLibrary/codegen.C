@@ -25,12 +25,17 @@ bool Codegen::generate() {
    int_process *proc = proc_->llproc();
    if (!proc)
       return false;
+
    codeStart_ = proc->infMalloc(size, false, (unsigned int) 0);
    if (!codeStart_) {
       return false;
    }
 
    buffer_.initialize(codeStart_, size);
+
+   SymReader *objSymReader = proc_->llproc()->getSymReader()->openSymbolReader(proc_->llproc()->getExecutable());
+   abimajversion_ = abiminversion_ = 0;
+   objSymReader->getABIVersion(abimajversion_, abiminversion_);
 
    if (!generateInt()) return false;
 
@@ -141,7 +146,7 @@ bool Codegen::generateNoops() {
          copyInt(0x90909090);
          break;
       case Arch_ppc32:
-      case Arch_ppc64:
+      case Arch_ppc64:  // MJMTODO - Assumes HostArch == TargetArch
          copyInt(0x60000000);
          copyInt(0x60000000);
          break;
@@ -162,7 +167,7 @@ bool Codegen::generateTrap() {
          break;
       case Arch_ppc32:
       case Arch_ppc64:
-         copyInt(0x7d821008);
+         copyInt(0x7d821008); // MJMTODO - Assumes HostArch == TargetArch
          break;
       case Arch_aarch64:
          copyInt(0xd4200000);

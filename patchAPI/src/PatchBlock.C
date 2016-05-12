@@ -38,6 +38,7 @@
 #include "Point.h"
 #include <boost/shared_ptr.hpp>
 
+using namespace std;
 using namespace Dyninst;
 using namespace PatchAPI;
 using namespace InstructionAPI;

@@ -41,7 +41,7 @@
 #include "dwarfExprParser.h"
 #include "pathName.h"
 #include "debug_common.h"
-
+#include <boost/bind.hpp>
 using namespace Dyninst;
 using namespace SymtabAPI;
 using namespace Dwarf;
@@ -78,6 +78,7 @@ DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
    dbg_(dbg),
    mod_(NULL),
    symtab_(symtab),
+   srcFileList_(NULL),
    tc_(NULL),
    is_mangled_name_(false),
    modLow(0),
@@ -95,7 +96,16 @@ DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
 {
 }
 
-DwarfWalker::~DwarfWalker() {}
+DwarfWalker::~DwarfWalker() {
+   freeList.clear();
+}
+
+std::vector<boost::shared_ptr<void> > DwarfWalker::getFreeList()
+{
+   // return by copy, so ownership gets shared
+   return freeList;
+}
+
 
 bool DwarfWalker::parse() {
    dwarf_printf("Parsing DWARF for %s\n", symtab_->file().c_str());
@@ -211,10 +221,10 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
    // These may not be set.
    Address tempModLow, tempModHigh;
    modLow = modHigh = 0;
-   if (findConstant(DW_AT_low_pc, tempModLow)) {
+   if (findConstant(DW_AT_low_pc, tempModLow, entry(), dbg())) {
       obj()->convertDebugOffset(tempModLow, modLow);
    }
-   if (findConstant(DW_AT_high_pc, tempModHigh)) {
+   if (findConstant(DW_AT_high_pc, tempModHigh, entry(), dbg())) {
       obj()->convertDebugOffset(tempModHigh, modHigh);
    }
 
@@ -246,17 +256,14 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
 
        
 bool DwarfWalker::buildSrcFiles(Dwarf_Die entry) {
-   srcFiles_.clear();
-
    Dwarf_Signed cnt = 0;
-   char **srcfiletmp = NULL;
-   DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcfiletmp, &cnt, NULL));
+   DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList_, &cnt, NULL));
 
    for (unsigned i = 0; i < cnt; ++i) {
-      srcFiles_.push_back(srcfiletmp[i]);
-      dwarf_dealloc(dbg(), srcfiletmp[i], DW_DLA_STRING);
+      srcFiles_.push_back(srcFileList_[i]);
+      freeList.push_back(boost::shared_ptr<void>(const_cast<char*>(srcFiles_[i]), boost::bind<void>(dwarf_dealloc, dbg(), _1, DW_DLA_STRING)));
    }
-   dwarf_dealloc(dbg(), srcfiletmp, DW_DLA_LIST);
+   freeList.push_back(boost::shared_ptr<void>(srcFileList_, boost::bind<void>(dwarf_dealloc, dbg(), _1, DW_DLA_LIST)));
    return true;
 }
 
@@ -444,13 +451,13 @@ bool DwarfWalker::parseCallsite()
    if (!has_line)
       return true;
 
-   std::string inline_file;
+   const char* inline_file;
    bool result = findString(DW_AT_call_file, inline_file);
    if (!result)
       return false;
 
    Dyninst::Offset inline_line;
-   result = findConstant(DW_AT_call_line, inline_line);
+   result = findConstant(DW_AT_call_line, inline_line, entry(), dbg());
    if (!result)
       return false;
 
@@ -636,18 +643,18 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    return true;
 }
 
-bool DwarfWalker::parseHighPCLowPC()
+bool DwarfWalker::parseHighPCLowPC(Dwarf_Die entry)
 {
    Dwarf_Attribute hasLow;
 
    Dwarf_Attribute hasHigh;
-   if(dwarf_attr(entry(), DW_AT_low_pc, &hasLow, NULL) != DW_DLV_OK) return false;
-   if(dwarf_attr(entry(), DW_AT_high_pc, &hasHigh, NULL) != DW_DLV_OK) return false;
+   if(dwarf_attr(entry, DW_AT_low_pc, &hasLow, NULL) != DW_DLV_OK) return false;
+   if(dwarf_attr(entry, DW_AT_high_pc, &hasHigh, NULL) != DW_DLV_OK) return false;
 
    Address low, high;
    Address tempLow, tempHigh;
-   if (!findConstant(DW_AT_low_pc, tempLow)) return false;
-   if (!findConstant(DW_AT_high_pc, tempHigh)) return false;
+   if (!findConstant(DW_AT_low_pc, tempLow, entry, dbg())) return false;
+   if (!findConstant(DW_AT_high_pc, tempHigh, entry, dbg())) return false;
    obj()->convertDebugOffset(tempLow, low);
    obj()->convertDebugOffset(tempHigh, high);
    Dwarf_Half form;
@@ -668,14 +675,14 @@ bool DwarfWalker::parseRangeTypes() {
    dwarf_printf("(0x%lx) Parsing ranges\n", id());
 
    clearRanges();
-   parseHighPCLowPC();
+   parseHighPCLowPC(entry());
    
 
    Dwarf_Bool hasRanges = false;
    DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_ranges, &hasRanges, NULL));
    if (hasRanges) {
       Address range_offset;
-      if (!findConstant(DW_AT_ranges, range_offset)) return false;
+      if (!findConstant(DW_AT_ranges, range_offset, entry(), dbg())) return false;
       
       Dwarf_Ranges *ranges = NULL;
       Dwarf_Signed ranges_length = 0;
@@ -1716,18 +1723,18 @@ bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half attr,
 }
 
 bool DwarfWalker::findString(Dwarf_Half attr,
-                             std::string &str)
+                             const char* &str)
 {
    Dwarf_Half form;
    Dwarf_Attribute strattr;
 
    if (attr == DW_AT_call_file || attr == DW_AT_decl_file) {
       unsigned long line_index;
-      bool result = findConstant(attr, line_index);
+      bool result = findConstant(attr, line_index, entry(), dbg());
       if (!result)
          return false;
       if (line_index == 0) {
-         str = string("");
+         str = NULL;
          return true;
       }
       line_index--;
@@ -1762,9 +1769,9 @@ bool DwarfWalker::findString(Dwarf_Half attr,
       case DW_FORM_block4: {
          Dwarf_Block *block = NULL;
          DWARF_FAIL_RET(dwarf_formblock(strattr, &block, NULL));
-         str = string((char *) block->bl_data);
+         str = (char *) block->bl_data;
          dwarf_dealloc(dbg(), block, DW_DLA_BLOCK);
-         result = !str.empty();
+         result = bool(str);
          break;
       }
       default:
@@ -1775,22 +1782,21 @@ bool DwarfWalker::findString(Dwarf_Half attr,
    return result;
 }
 
-bool DwarfWalker::findConstant(Dwarf_Half attr,
-                               Address &value) {
+bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf_Debug dbg) {
    Dwarf_Bool has = false;
-   DWARF_FAIL_RET(dwarf_hasattr(entry(), attr, &has, NULL));
+   DWARF_FAIL_RET(dwarf_hasattr(entry, attr, &has, NULL));
    if (!has) return false;
 
    // Get the attribute
    Dwarf_Attribute d_attr;
-   DWARF_FAIL_RET(dwarf_attr(entry(), attr, &d_attr, NULL));
+   DWARF_FAIL_RET(dwarf_attr(entry, attr, &d_attr, NULL));
 
    Dwarf_Half form;
    // Get the form (datatype) for this particular attribute
    DWARF_FAIL_RET(dwarf_whatform(d_attr, &form, NULL));
 
    bool ret = findConstantWithForm(d_attr, form, value);
-   dwarf_dealloc(dbg(), d_attr, DW_DLA_ATTR);
+   dwarf_dealloc(dbg, d_attr, DW_DLA_ATTR);
    return ret;
    
 }
@@ -1810,8 +1816,8 @@ bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
          Dwarf_Signed s_tmp;
          DWARF_FAIL_RET(dwarf_formsdata(locationAttribute, &s_tmp, NULL));
          value = (Address) s_tmp;
-         dwarf_printf("(0x%lx) Decoded data of form %x to 0x%lx\n", 
-                      id(), form, value);
+         dwarf_printf("Decoded data of form %x to 0x%lx\n",
+                      form, value);
          return true;
       case DW_FORM_data1:
       case DW_FORM_data2:
@@ -1827,7 +1833,7 @@ bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
      value = (Address)(u_tmp);
      return true;
       default:
-         dwarf_printf("(0x%lx) Unhandled form 0x%x for constant decode\n", id(), (unsigned) form);
+         dwarf_printf("Unhandled form 0x%x for constant decode\n", (unsigned) form);
          return false;
    }
 }

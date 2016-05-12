@@ -46,6 +46,7 @@
 #include "ParseCallback.h"
 
 #include "ParseData.h"
+#include "common/src/dthread.h"
 
 using namespace std;
 
@@ -62,6 +63,8 @@ class Parser {
    // which are internal Parser data. 
    friend class CFGModifier;
  private:
+    Mutex<false> finalize_lock;
+
     // Owning code object
     CodeObject & _obj;
 

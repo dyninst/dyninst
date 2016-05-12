@@ -44,7 +44,6 @@
 #include <set>
 
 
-using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 
@@ -53,9 +52,9 @@ struct livenessData{
 };
 
 class DATAFLOW_EXPORT LivenessAnalyzer{
-	map<ParseAPI::Block*, livenessData> blockLiveInfo;
-	map<ParseAPI::Function*, bool> liveFuncCalculated;
-        map<ParseAPI::Function*, bitArray> funcRegsDefined;
+	std::map<ParseAPI::Block*, livenessData> blockLiveInfo;
+	std::map<ParseAPI::Function*, bool> liveFuncCalculated;
+        std::map<ParseAPI::Function*, bitArray> funcRegsDefined;
 	InstructionCache cachedLivenessInfo;
 
 	const bitArray& getLivenessIn(ParseAPI::Block *block);
@@ -84,7 +83,7 @@ public:
 	bool query(ParseAPI::Location loc, Type type, OutputIterator outIter){
 		bitArray liveRegs;
 		if (query(loc,type, liveRegs)){
-			for (map<MachRegister,int>::const_iterator iter = abi->getIndexMap()->begin(); iter != abi->getIndexMap()->end(); ++iter)
+			for (std::map<MachRegister,int>::const_iterator iter = abi->getIndexMap()->begin(); iter != abi->getIndexMap()->end(); ++iter)
 				if (liveRegs[iter->second]){
 					outIter = iter->first;
 					++outIter;

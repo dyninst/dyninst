@@ -51,7 +51,7 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-FunctionBase::FunctionBase(Symbol *sym) :
+FunctionBase::FunctionBase() :
    locals(NULL),
    params(NULL),
    functionSize_(0),
@@ -59,29 +59,6 @@ FunctionBase::FunctionBase(Symbol *sym) :
    inline_parent(NULL),
    frameBaseExpanded_(false),
    data(NULL)
-{
-}
-
-FunctionBase::FunctionBase() :
-    locals(NULL),
-    params(NULL),
-    functionSize_(0),
-    retType_(NULL),
-    inline_parent(NULL),
-    frameBaseExpanded_(false),
-    data(NULL)
-{
-}
-
-FunctionBase::FunctionBase(Module *m) :
-    locals(NULL),
-    params(NULL),
-    functionSize_(0),
-    retType_(NULL),
-    inline_parent(NULL),
-    frameBaseExpanded_(false),
-    data(NULL)
-
 {
 }
 
@@ -232,7 +209,10 @@ bool FunctionBase::setFramePtr(vector<VariableLocation> *locs)
 
 std::pair<std::string, Dyninst::Offset> InlinedFunction::getCallsite()
 {
-   return make_pair(callsite_file, callsite_line);
+    if(callsite_file) {
+        return make_pair(callsite_file, callsite_line);
+    }
+    return make_pair("<UNKNOWN FILE>", callsite_line);
 }
 
 void FunctionBase::expandLocation(const VariableLocation &loc,
@@ -331,7 +311,7 @@ void FunctionBase::setData(void *d)
 }
 
 Function::Function(Symbol *sym)
-    : FunctionBase(sym), Aggregate(sym)
+    : FunctionBase(), Aggregate(sym)
 {}
 
 Function::Function()
@@ -450,7 +430,9 @@ bool FunctionBase::operator==(const FunctionBase &f)
 }
 
 InlinedFunction::InlinedFunction(FunctionBase *parent) :
-    FunctionBase(parent->getModule()), callsite_line(0),
+    FunctionBase(),
+    callsite_file(NULL),
+    callsite_line(0),
     module_(parent->getModule())
 {
     inline_parent = parent;
@@ -467,13 +449,13 @@ bool InlinedFunction::removeSymbol(Symbol *)
    return false;
 }
 
-bool InlinedFunction::addMangledName(std::string name, bool isPrimary)
+bool InlinedFunction::addMangledName(std::string name, bool /*isPrimary*/)
 {
     name_ = name;
     return true;
 }
 
-bool InlinedFunction::addPrettyName(std::string name, bool isPrimary)
+bool InlinedFunction::addPrettyName(std::string name, bool /*isPrimary*/)
 {
     name_ = name;
     return true;

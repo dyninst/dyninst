@@ -51,6 +51,7 @@
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
 
+using namespace std;
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace Dyninst::ParseAPI;
@@ -60,7 +61,9 @@ const StackAnalysis::Height StackAnalysis::Height::top(StackAnalysis::Height::un
 
 AnnotationClass <StackAnalysis::Intervals> Stack_Anno(std::string("Stack_Anno"));
 
-
+template class std::list<Dyninst::StackAnalysis::TransferFunc*>;
+template class std::map<Dyninst::Absloc, Dyninst::StackAnalysis::Height>;
+template class std::vector<Dyninst::InstructionAPI::Instruction::Ptr>;
 //
 // Concepts:
 //

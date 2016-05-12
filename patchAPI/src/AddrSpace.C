@@ -34,9 +34,14 @@
 #include "PatchObject.h"
 #include "PatchMgr.h"
 
+using namespace std;
 using Dyninst::PatchAPI::AddrSpace;
 using Dyninst::PatchAPI::PatchObject;
 using Dyninst::PatchAPI::PatchMgr;
+
+extern template class boost::shared_ptr<InstructionAPI::Instruction>;
+extern template class boost::shared_ptr<Dyninst::PatchAPI::Snippet>;
+extern template class boost::shared_ptr<Dyninst::PatchAPI::Instance>;
 
 /* Use an PatchObject (a.out) to initialize the AddrSpace */
 

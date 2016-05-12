@@ -58,7 +58,7 @@ class SymReaderCodeRegion : public CodeRegion {
     PARSER_EXPORT SymReaderCodeRegion(SymReader *, SymSegment *);
     PARSER_EXPORT ~SymReaderCodeRegion();
 
-    PARSER_EXPORT void names(Address, vector<std::string> &);
+    PARSER_EXPORT void names(Address, std::vector<std::string> &);
     PARSER_EXPORT bool findCatchBlock(Address addr, Address & catchStart);
 
     /** InstructionSource implementation **/

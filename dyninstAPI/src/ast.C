@@ -41,8 +41,6 @@
 
 extern int dyn_debug_ast;
 
-
-
 #include "Instruction.h"
 using namespace Dyninst::InstructionAPI;
 

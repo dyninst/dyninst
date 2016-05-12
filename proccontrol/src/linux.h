@@ -156,7 +156,7 @@ class linux_process : public sysv_process, public unix_process, public thread_db
                                       MemUsageResp_t *resp);
 
   protected:
-   int computeAddrWidth(Dyninst::Architecture me);
+   int computeAddrWidth();
 };
 
 class linux_x86_process : public linux_process, public x86_process

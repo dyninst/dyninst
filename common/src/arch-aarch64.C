@@ -108,7 +108,7 @@ bool instruction::isCall() const
     return false;
 }
 
-void instruction::setInstruction(codeBuf_t *ptr, Address) {
+void instruction::setInstruction(codeBuf_t * /*ptr*/, Address) {
 		assert(0);
 }
 
@@ -140,13 +140,13 @@ bool instruction::isCondBranch() const {
     return false;
 }
 
-unsigned instruction::jumpSize(Address from, Address to, unsigned addr_width) {
+unsigned instruction::jumpSize(Address /*from*/, Address /*to*/, unsigned /*addr_width*/) {
 		assert(0);
         return -1;
 }
 
 // -1 is infinite, don't ya know.
-unsigned instruction::jumpSize(Address disp, unsigned addr_width) {
+unsigned instruction::jumpSize(Address /*disp*/, unsigned /*addr_width*/) {
 		assert(0);
    return instruction::size();
 }
@@ -201,7 +201,7 @@ unsigned instruction::getBranchTargetReg() const{
         regNum = GET_OFFSET32(UNCOND_BR.REG)>>2;
 
         // be sure the reg num is in the range
-        assert( regNum >= 0 || regNum <= 30);
+        assert(regNum <= 30);
 
         return regNum;
     }

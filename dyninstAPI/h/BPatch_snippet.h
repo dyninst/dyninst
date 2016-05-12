@@ -366,7 +366,7 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     friend class BPatch_image;
     friend class BPatch_function;
 
-    string		name;
+    std::string		name;
     BPatch_addressSpace     *appAddSpace;
     AddressSpace *lladdrSpace;
     void		*address;

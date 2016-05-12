@@ -32,11 +32,8 @@
 //#include "../rose/powerpcInstructionSemantics.h"
 
 #include "Instruction.h"
-#include "Operand.h"
-#include "Expression.h"
 #include "Dereference.h"
 #include "Immediate.h"
-#include <vector>
 
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
@@ -258,10 +255,9 @@ void RoseInsnPPCFactory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefi
 void RoseInsnPPCFactory::setSizes(SgAsmInstruction *) {
 }
 
-
-bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode, 
-					    SgAsmInstruction *insn, 
-					    SgAsmOperandList *rose_operands) {
+bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
+                                            SgAsmInstruction *insn,
+                                            SgAsmOperandList *rose_operands) {
   SgAsmPowerpcInstruction *rose_insn = static_cast<SgAsmPowerpcInstruction *>(insn);
 
   switch(iapi_opcode) {
@@ -277,6 +273,7 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
       raw = raw << 8;
       raw |= bytes[i];
     }
+    raw = htobe32(raw);
     bool isAbsolute = (bool)(raw & 0x00000002);
     bool isLink = (bool)(raw & 0x00000001);
     rose_insn->set_kind(makeRoseBranchOpcode(iapi_opcode, isAbsolute, isLink));

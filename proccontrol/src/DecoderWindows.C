@@ -34,7 +34,6 @@
 #include "windows_thread.h"
 #include "ProcPool.h"
 #include <iostream>
-#include "boost/scoped_ptr.hpp"
 #include "irpc.h"
 #include <psapi.h>
 #include "procControl/h/Mailbox.h"

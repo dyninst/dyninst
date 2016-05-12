@@ -42,6 +42,8 @@ using namespace Dyninst;
 
 const Dyninst::Address Graph::INITIAL_ADDR = (Address) -1;
 
+
+
 void Graph::entryNodes(NodeIterator &begin, NodeIterator &end) {
     begin = NodeIterator(new NodeIteratorSet(entryNodes_.begin()));
     end = NodeIterator(new NodeIteratorSet(entryNodes_.end()));

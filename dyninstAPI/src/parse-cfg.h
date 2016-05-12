@@ -52,6 +52,7 @@
 
 #include <queue>
 
+using namespace std;
 using namespace Dyninst;
 
 class pdmodule;
