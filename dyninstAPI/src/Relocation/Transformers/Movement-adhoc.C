@@ -235,7 +235,7 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
   target = 0;
   if (insn->getControlFlowTarget()) return false;
 
-  Architecture fixme = insn->getArch();
+  //Architecture fixme = insn->getArch();
   //if (fixme == Arch_ppc32) fixme = Arch_ppc64;
   
   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
@@ -279,8 +279,9 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
     // If we can bind the PC, then we're in the operand
     // we want.
     Expression::Ptr exp = iter->getValue();
-    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size())) ||
-	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size()))) {
+	//||
+	//exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       assert(res.defined);
