@@ -485,6 +485,7 @@ enum entryID {
   e_rdmsr,
   e_rdpmc,
   e_rdtsc,
+  e_rdrand,
   e_rol,
   e_ror,
   e_roundpd,	// SSE 4.1

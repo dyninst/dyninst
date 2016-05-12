@@ -1153,6 +1153,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_rdmsr, "rdmsr")
   (e_rdpmc, "rdpmc")
   (e_rdtsc, "rdtsc")
+  (e_rdrand, "rdrand")
   (e_ret_far, "ret far")
   (e_ret_near, "ret near")
   (e_rol, "rol")
@@ -3517,7 +3518,7 @@ static ia32_entry groupMap[][8] = {
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_rdrand, t_done, 0, true, { Ev, Zz, Zz }, 0, s1W },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }
  },
 
