@@ -239,10 +239,6 @@ namespace Dyninst {
             _typeField = field<startBit, endBit>(insn);
         }
 
-        bool InstructionDecoder_aarch64::decodeOperands(const Instruction *) {
-            return false;
-        }
-
         void InstructionDecoder_aarch64::processHwFieldInsn(int len, int val) {
             Result_Type rT = is64Bit ? u64 : u32;
 
@@ -2745,6 +2741,14 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 #include "aarch64_opcode_tables.C"
 
         void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *insn_to_complete) {
+	    InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
+	    //insn_to_complete->m_Operands.reserve(4);
+	    decode(b);
+	    decodeOperands(insn_to_complete);
+
+        }
+
+        bool InstructionDecoder_aarch64::decodeOperands(const Instruction * insn_to_complete) {
             int insn_table_index = findInsnTableIndex(0);
             aarch64_insn_entry *insn_table_entry = &aarch64_insn_entry::main_insn_table[insn_table_index];
 
@@ -2782,7 +2786,9 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten);
             }
 
+            return true;
         }
+
 
         int InstructionDecoder_aarch64::findInsnTableIndex(unsigned int decoder_table_index) {
             aarch64_mask_entry *cur_entry = &aarch64_mask_entry::main_decoder_table[decoder_table_index];
@@ -2826,7 +2832,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                                                reinterpret_cast<unsigned char *>(&insn));
 
             if (IS_INSN_BRANCHING(insn)) {
-                doDelayedDecode(insn_in_progress);
+                decodeOperands(insn_in_progress);
             }
 
             insn_in_progress->arch_decoded_from = Arch_aarch64;
