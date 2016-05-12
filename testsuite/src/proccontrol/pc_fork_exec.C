@@ -103,8 +103,6 @@ Process::cb_ret_t on_fork(Event::const_ptr ev)
       return Process::cbDefault;
    }
 
-   proc_info_forkexec &pi = pinfo[child_proc];
-
    if (child_proc->libraries().size() != parent_proc->libraries().size())
    {
       logerror("Parent and child procs do not have same libraries\n");

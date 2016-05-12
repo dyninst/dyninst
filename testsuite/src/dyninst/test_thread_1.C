@@ -59,12 +59,8 @@ extern "C" DLLEXPORT TestMutator *test_thread_1_factory() {
 #define TESTNAME "test_thread_1"
 #define TESTDESC "rtlib spinlocks"
 
-static int mutateeXLC;
 extern BPatch *bpatch;
 
-static const char *expected_fnames[] = {"call1_1","call1_2","call1_3","call1_4"};
-static int test1done = 0;
-static int test1err = 0;
 template class BPatch_Vector<void *>;
 static BPatch_Vector<void *> test1handles;
 static BPatch_Vector<BPatch_point *> dyncalls;

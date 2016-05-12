@@ -118,7 +118,6 @@ test_results_t init_fini_callback_Mutator::executeTest()
     BPatch_Vector<BPatch_object*> appModules;
     appImage->getObjects(appModules);
     char buffer[80];
-    test_results_t pass_fail = PASSED;
     
     bool init_libtesta = false;
     bool fini_libtesta = false;

@@ -511,7 +511,7 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 				Field *f1 = (*fields)[i];
 				std::string fieldname = f1->getName();
 				std::string fieldtypename = f1->getType() ? f1->getType()->getName() : "";
-				Type *ft = f1->getType();
+				// Type *ft = f1->getType();
 
 				//if (lang == lang_CPlusPlus && ft->getFunctionType())
 				//{
@@ -596,7 +596,7 @@ bool test_type_info_Mutator::verify_type_union(typeUnion *t,
 bool test_type_info_Mutator::verify_type_scalar(typeScalar *t)
 {
 	got_type_scalar = true;
-	std::string &tn = t->getName();
+	// std::string &tn = t->getName();
 
 	//std::cerr << "verify_scalar for " << tn << std::endl;
 

@@ -89,7 +89,6 @@ test_results_t mov_size_details_Mutator::executeTest()
     return FAILED;
   }
   
-  Architecture curArch = Arch_x86;
   Instruction::Ptr mov = decodedInsns.front();
 
   Expression::Ptr lhs, rhs;

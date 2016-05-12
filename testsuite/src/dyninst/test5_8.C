@@ -141,6 +141,7 @@ test_results_t test5_8_Mutator::executeTest() {
            checkCost(call8Expr);
 	   BPatchSnippetHandle *handle;
            handle = appAddrSpace->insertSnippet(call8Expr, *point8_1);
+           assert(handle);
            return PASSED;
        }
        

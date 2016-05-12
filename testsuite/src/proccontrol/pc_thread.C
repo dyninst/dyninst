@@ -484,7 +484,6 @@ test_results_t pc_threadMutator::executeTest()
       }
    }   
 
-   int num_thrds = comp->num_processes * comp->num_threads;
    int num_noninit_thrds = comp->num_processes * (comp->num_threads - 1);
 
    for (i = comp->procs.begin(); i != comp->procs.end(); i++) {

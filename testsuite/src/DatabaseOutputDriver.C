@@ -83,7 +83,7 @@ DatabaseOutputDriver::~DatabaseOutputDriver() {
 
 void
 DatabaseOutputDriver::startNewTest(std::map<std::string, std::string> &attrs,
-                                   TestInfo *test, RunGroup *group)
+                                   TestInfo *test, RunGroup * /*group*/)
 {
   currTest = test;
 

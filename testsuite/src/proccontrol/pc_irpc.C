@@ -343,7 +343,6 @@ void pc_irpcMutator::runIRPCs() {
            j != proc->threads().end(); j++)
       {
          Thread::ptr thr = *j;
-         thread_info_t &t = tinfo[thr];
          if(!thr->isUser())
          {
             continue;
@@ -382,7 +381,6 @@ void pc_irpcMutator::runIRPCs() {
    {
       Thread::const_ptr thr = i->first;
       Process::const_ptr proc = thr->getProcess();
-      thread_info_t &t = i->second;
 
 	  if(!thr->isUser())
 	  {
@@ -398,7 +396,6 @@ void pc_irpcMutator::runIRPCs() {
    /**
     * Wait for completion
     **/
-   bool done = false;
 
    while (!myerror) {
       while (has_pending_irpcs()) {

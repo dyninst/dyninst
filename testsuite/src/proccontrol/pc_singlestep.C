@@ -85,7 +85,6 @@ Breakpoint::ptr early_bp;
 Breakpoint::ptr ss_bp;
 
 static bool myerror;
-static bool goingToSS = false;
 
 Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
 {
@@ -122,8 +121,6 @@ Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
 	logerror("ti.breakpoint = %d\n", ti.breakpoint);
 	return Process::cbProcContinue;
 }
-
-static int instCount = 0;
 
 Process::cb_ret_t on_singlestep(Event::const_ptr ev)
 {
@@ -208,7 +205,6 @@ test_results_t pc_singlestepMutator::executeTest()
       pi.start = comp->adjustFunctionEntryAddress(proc, addrmsg.addr);
       logerror("initial breakpoint at 0x%lx\n", addrmsg.addr);
 
-      Address funcs[NUM_FUNCS];
       for (unsigned j=0; j < NUM_FUNCS; j++) {
          bool result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), proc);
          if (!result) {

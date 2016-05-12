@@ -107,7 +107,6 @@ test_results_t test1_20_Mutator::executeTest()
 		return FAILED;
 	}
 
-	BPatch_point *p = NULL;
 	bool found_one = false;
 
 	/* We expect certain errors from createInstPointAtAddr. */

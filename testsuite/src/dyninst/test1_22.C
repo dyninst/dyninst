@@ -84,7 +84,6 @@ extern "C" DLLEXPORT  TestMutator *test1_22_factory()
 
 test_results_t test1_22_Mutator::mutatorTest22() 
 {
-	char errbuf[1024]; errbuf[0] = '\0';
 	BPatch_object *modA = NULL;
 	BPatch_object *modB = NULL;
 

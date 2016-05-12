@@ -118,6 +118,7 @@ static void prepareTestCase5(procType proc_type, BPatch_thread *thread, forkWhen
       BPatch_arithExpr b_expr7_5p(BPatch_assign, *var7_5p, expr7_5p);
       parSnippetHandle5 =
               thread->getProcess()->insertSnippet(b_expr7_5p, *point7_5p, BPatch_callBefore);
+      assert(parSnippetHandle5);
    } else if(proc_type == Parent_p  &&  when == PostFork) {
        BPatch_image *parImage = thread->getProcess()->getImage();
 

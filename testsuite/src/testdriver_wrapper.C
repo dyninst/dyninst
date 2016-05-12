@@ -73,12 +73,12 @@ void copy_iolibs()
     last_slash = strrchr(cmd_line, '/');
     if (last_slash) *last_slash = '\0';
     fprintf(debug_log, "%s\n", cmd_line);
-    system(cmd_line);
+    assert(system(cmd_line) == 0);
     snprintf(cmd_line, 4096, "cp -u %s io_libs%s", lm->l_name, lm->l_name);
     last_slash = strrchr(cmd_line, '/');
     if (last_slash) *last_slash = '\0';
     fprintf(debug_log, "%s\n", cmd_line);
-    system(cmd_line);
+    assert(system(cmd_line) == 0);
   }
 }
 #else

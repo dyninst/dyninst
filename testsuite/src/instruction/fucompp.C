@@ -96,7 +96,6 @@ test_results_t fucompp_Mutator::executeTest()
         return FAILED;
     }
   
-    Architecture curArch = Arch_x86;
     registerSet expectedRead, expectedWritten;
     test_results_t retVal = PASSED;
     {

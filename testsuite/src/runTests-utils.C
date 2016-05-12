@@ -81,13 +81,13 @@ void cleanupMutatees(char *pidFilename) {
 }
 
 static bool timed_out;
-static void sigalrm_action(int sig, siginfo_t *siginfo, void *context) {
+static void sigalrm_action(int /*sig*/, siginfo_t * /*siginfo*/, void * /*context*/) {
   // Note that the child has timed out and return
   timed_out = true;
 }
 
 static bool interrupted;
-static void sigint_action(int sig, siginfo_t *siginfo, void *context) {
+static void sigint_action(int /*sig*/, siginfo_t * /*siginfo*/, void * /*context*/) {
   interrupted = true;
 }
 
@@ -103,7 +103,7 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
    struct sigaction old_sigalrm_a;
    struct sigaction sigint_a;
    struct sigaction old_sigint_a;
-   int retval;
+   int retval = 0;
 
    timed_out = false;
    sigalrm_a.sa_sigaction = sigalrm_action;
@@ -144,7 +144,7 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
          else
             fprintf(stderr, "*** SIGINT received.  Reaping children.\n");
 
-         for (unsigned i = 0; i < parallel_copies; i++) {
+         for (int i = 0; i < parallel_copies; i++) {
             if (!test_drivers[i].pid)
                continue;
             kill(test_drivers[i].pid, SIGKILL);
@@ -176,7 +176,7 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
          } else {
             child_ret = (signed char) WEXITSTATUS(child_status);
          }
-         for (unsigned i=0; i<parallel_copies; i++)
+         for (int i=0; i<parallel_copies; i++)
          {
             if (test_drivers[i].pid == waiting_pid) {
                test_drivers[i].pid = 0;
@@ -201,8 +201,6 @@ test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
                    string logfile, int testLimit, vector<char *> child_argv,
                    const char *pidFilename, std::string hostname)
 {
-   int retval = -1;
-
    char **exec_args = NULL;
 
    generateTestArgs(&exec_args, iteration > 0, useLog, staticTests, logfile,
@@ -229,8 +227,8 @@ test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
 string ReplaceAllWith(const string &in, const string &replace, const string &with);
 
 void generateTestArgs(char **exec_args[], bool resume, bool useLog,
-                      bool staticTests, string &logfile, int testLimit,
-                      vector<char *> &child_argv, const char *pidFilename,
+                      bool /*staticTests*/, string &logfile, int testLimit,
+                      vector<char *> &child_argv, const char * /*pidFilename*/,
                       std::string hostname)
 {
   vector<const char *> args;
@@ -455,8 +453,8 @@ void setupVars(bool useLog, string &logfile)
       {
          cout << testslogdir << "does not exist (yet)!" << endl;
          cmd = "mkdir -p " + testslogdir;
-         system(cmd.c_str());
-         if ( ! isDir(testslogdir) )
+         int ret = system(cmd.c_str());
+         if ( ret || !isDir(testslogdir) )
          {
             cout << testslogdir << " creation failed - aborting!" << endl;
             exit(1);
@@ -472,7 +470,10 @@ void setupVars(bool useLog, string &logfile)
       else
       {
          cmd = "touch " + logfile;
-         system(cmd.c_str());
+         if(system(cmd.c_str())) {
+            cout << testslogdir << " creation failed - aborting!" << endl;
+            exit(1);
+         }
       }
    
       cmd = logfile + ".gz";
