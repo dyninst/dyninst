@@ -202,6 +202,12 @@ typedef Statement LineNoTuple;
    Offset addr_;                      // starting address of module
    Symtab *exec_;
 };
+		template <typename OS>
+		OS& operator<<(OS& os, const Module& m)
+		{
+			os << m.fileName() << ": " << m.addr();
+			return os;
+		}
 
 
 

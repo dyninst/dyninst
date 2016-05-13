@@ -950,8 +950,8 @@ using namespace boost::assign;
             doDelayedDecode(insn_in_progress);
         }
 	// FIXME in parsing
-        //insn_in_progress->arch_decoded_from = m_Arch; 
-        insn_in_progress->arch_decoded_from = Arch_ppc32; 
+        insn_in_progress->arch_decoded_from = m_Arch;
+        //insn_in_progress->arch_decoded_from = Arch_ppc32;
         return;
     }
   };
