@@ -359,22 +359,17 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
     return false;
   }
    
-  Architecture fixme = insn->getArch();
-  //if (fixme == Arch_ppc32) fixme = Arch_ppc64;
 
   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
-  //Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
   switch(insn->getArch()) {
      case Arch_x86:
      case Arch_ppc32:
         CFT->bind(thePC.get(), Result(u32, ptr->addr()));
-        //CFT->bind(thePCFixme.get(), Result(u32, ptr->addr()));
         break;
      case Arch_x86_64:
      case Arch_ppc64:
         CFT->bind(thePC.get(), Result(u64, ptr->addr()));
-        //CFT->bind(thePCFixme.get(), Result(u64, ptr->addr()));
         break;
      default:
         assert(0);
