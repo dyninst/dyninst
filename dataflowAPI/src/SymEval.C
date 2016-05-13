@@ -467,7 +467,7 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
     roseInsn = fac.convert(insn, addr);
 
     SymbolicExpansion exp;
-    exp.expandPPC(roseInsn, policy);
+    exp.expandPPC32(roseInsn, policy);
   if (policy.failedTranslate()) {
      cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
      return false;
@@ -475,6 +475,21 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 
     break;
   }
+      case Arch_ppc64: {
+          SymEvalPolicy_64 policy(res, addr, insn->getArch(), insn);
+          RoseInsnPPCFactory fac;
+          roseInsn = fac.convert(insn, addr);
+
+          SymbolicExpansion exp;
+          exp.expandPPC64(roseInsn, policy);
+          if (policy.failedTranslate()) {
+              cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+              return false;
+          }
+
+          break;
+      }
+
   default:
     assert(0 && "Unimplemented symbolic expansion architecture");
     break;

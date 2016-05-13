@@ -60,11 +60,19 @@ bool SymbolicExpansion::expandX86_64(SgAsmInstruction *rose_insn,
   t.processInstruction(insn);
   return true;
 }
-bool SymbolicExpansion::expandPPC(SgAsmInstruction *rose_insn,
+bool SymbolicExpansion::expandPPC32(SgAsmInstruction *rose_insn,
 				  SymEvalPolicy &policy) {
   SgAsmPowerpcInstruction *insn = static_cast<SgAsmPowerpcInstruction *>(rose_insn);
-  
-  PowerpcInstructionSemantics<SymEvalPolicy, Handle> t(policy);
+
+  PowerpcInstructionSemantics<SymEvalPolicy, Handle, 32> t(policy);
+  t.processInstruction(insn);
+  return true;
+}
+bool SymbolicExpansion::expandPPC64(SgAsmInstruction *rose_insn,
+                                  SymEvalPolicy_64 &policy) {
+  SgAsmPowerpcInstruction *insn = static_cast<SgAsmPowerpcInstruction *>(rose_insn);
+
+  PowerpcInstructionSemantics<SymEvalPolicy_64, Handle, 64> t(policy);
   t.processInstruction(insn);
   return true;
 }
