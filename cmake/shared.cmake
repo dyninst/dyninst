@@ -88,6 +88,7 @@ include (${DYNINST_ROOT}/cmake/visibility.cmake)
 include (${DYNINST_ROOT}/cmake/warnings.cmake)
 include (${DYNINST_ROOT}/cmake/options.cmake)
 include (${DYNINST_ROOT}/cmake/optimization.cmake)
+include (${DYNINST_ROOT}/cmake/cotire.cmake)
 
 set (BUILD_SHARED_LIBS ON)
 

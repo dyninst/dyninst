@@ -108,4 +108,4 @@ endif()
 
 
 dyninst_library(stackwalk ${DEPS})
-
+cotire(stackwalk)

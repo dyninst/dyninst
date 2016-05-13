@@ -201,5 +201,6 @@ if (UNIX)
 else()
   target_link_private_libraries(dyninstAPI dbghelp WS2_32 imagehlp)
 endif()
+cotire(dyninstAPI)
 
 install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
