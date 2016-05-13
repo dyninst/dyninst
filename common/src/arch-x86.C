@@ -531,7 +531,7 @@ static char vex3_simdop_convert[3][4] = {
 #define Ep   { am_E, op_p }
 #define Ev   { am_E, op_v }
 #define Ew   { am_E, op_w }
- #define Ey	 { am_E, op_y }
+#define Ey	 { am_E, op_y }
 #define Fv   { am_F, op_v }
 #define Gb   { am_G, op_b }
 #define Gd   { am_G, op_d }
@@ -559,7 +559,7 @@ static char vex3_simdop_convert[3][4] = {
 #define Ms   { am_M, op_s }
 #define Md   { am_M, op_d }
 #define Mq   { am_M, op_q }
-#define Mdq   { am_M, op_dq }
+#define Mdq  { am_M, op_dq }
 #define M512 { am_M, op_512 }
 #define Mf   { am_M, op_f }
 #define Mfd  { am_M, op_dbl }
@@ -625,56 +625,56 @@ static char vex3_simdop_convert[3][4] = {
 
 #define GPRS { am_allgprs, op_allgprs }
 
-#define AH  { am_reg, x86::iah }
-#define AX  { am_reg, x86::iax }
-#define BH  { am_reg, x86::ibh }
-#define CH  { am_reg, x86::ich }
-#define DH  { am_reg, x86::idh }
-#define AL  { am_reg, x86::ial }
-#define BL  { am_reg, x86::ibl }
-#define CL  { am_reg, x86::icl }
-#define CS  { am_reg, x86::ics }
-#define DL  { am_reg, x86::idl }
-#define DX  { am_reg, x86::idx }
-#define eAX { am_reg, x86::ieax }
-#define eBX { am_reg, x86::iebx }
-#define eCX { am_reg, x86::iecx }
-#define eDX { am_reg, x86::iedx }
-#define EAX { am_reg, x86::ieax }
-#define EBX { am_reg, x86::iebx }
-#define ECX { am_reg, x86::iecx }
-#define EDX { am_reg, x86::iedx }
-#define DS  { am_reg, x86::ids }
-#define ES  { am_reg, x86::ies }
-#define FS  { am_reg, x86::ifs }
-#define GS  { am_reg, x86::igs }
-#define SS  { am_reg, x86::iss }
-#define eSP { am_reg, x86::iesp }
-#define eBP { am_reg, x86::iebp }
-#define eSI { am_reg, x86::iesi }
-#define eDI { am_reg, x86::iedi }
-#define ESP { am_reg, x86::iesp }
-#define EBP { am_reg, x86::iebp }
-#define ESI { am_reg, x86::iesi }
-#define EDI { am_reg, x86::iedi }
+#define AH   { am_reg, x86::iah }
+#define AX   { am_reg, x86::iax }
+#define BH   { am_reg, x86::ibh }
+#define CH   { am_reg, x86::ich }
+#define DH   { am_reg, x86::idh }
+#define AL   { am_reg, x86::ial }
+#define BL   { am_reg, x86::ibl }
+#define CL   { am_reg, x86::icl }
+#define CS   { am_reg, x86::ics }
+#define DL   { am_reg, x86::idl }
+#define DX   { am_reg, x86::idx }
+#define eAX  { am_reg, x86::ieax }
+#define eBX  { am_reg, x86::iebx }
+#define eCX  { am_reg, x86::iecx }
+#define eDX  { am_reg, x86::iedx }
+#define EAX  { am_reg, x86::ieax }
+#define EBX  { am_reg, x86::iebx }
+#define ECX  { am_reg, x86::iecx }
+#define EDX  { am_reg, x86::iedx }
+#define DS   { am_reg, x86::ids }
+#define ES   { am_reg, x86::ies }
+#define FS   { am_reg, x86::ifs }
+#define GS   { am_reg, x86::igs }
+#define SS   { am_reg, x86::iss }
+#define eSP  { am_reg, x86::iesp }
+#define eBP  { am_reg, x86::iebp }
+#define eSI  { am_reg, x86::iesi }
+#define eDI  { am_reg, x86::iedi }
+#define ESP  { am_reg, x86::iesp }
+#define EBP  { am_reg, x86::iebp }
+#define ESI  { am_reg, x86::iesi }
+#define EDI  { am_reg, x86::iedi }
 #define ECXEBX { am_tworeghack, op_ecxebx }
 #define EDXEAX { am_tworeghack, op_edxeax }
-#define rAX { am_reg, x86::ieax }
-#define rBX { am_reg, x86::iebx }
-#define rCX { am_reg, x86::iecx }
-#define rDX { am_reg, x86::iedx }
-#define rSP { am_reg, x86::iesp }
-#define rBP { am_reg, x86::iebp }
-#define rSI { am_reg, x86::iesi }
-#define rDI { am_reg, x86::iedi }
-#define ST0 { am_reg, x86::ist0 }
-#define ST1 { am_reg, x86::ist1 }
-#define ST2 { am_reg, x86::ist2 }
-#define ST3 { am_reg, x86::ist3 }
-#define ST4 { am_reg, x86::ist4 }
-#define ST5 { am_reg, x86::ist5 }
-#define ST6 { am_reg, x86::ist6 }
-#define ST7 { am_reg, x86::ist7 }
+#define rAX  { am_reg, x86::ieax }
+#define rBX  { am_reg, x86::iebx }
+#define rCX  { am_reg, x86::iecx }
+#define rDX  { am_reg, x86::iedx }
+#define rSP  { am_reg, x86::iesp }
+#define rBP  { am_reg, x86::iebp }
+#define rSI  { am_reg, x86::iesi }
+#define rDI  { am_reg, x86::iedi }
+#define ST0  { am_reg, x86::ist0 }
+#define ST1  { am_reg, x86::ist1 }
+#define ST2  { am_reg, x86::ist2 }
+#define ST3  { am_reg, x86::ist3 }
+#define ST4  { am_reg, x86::ist4 }
+#define ST5  { am_reg, x86::ist5 }
+#define ST6  { am_reg, x86::ist6 }
+#define ST7  { am_reg, x86::ist7 }
 #define FPOS 17
 
 enum {
@@ -9444,15 +9444,18 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 {
                     ++pref.count;
                     pref.opcode_prefix = addr[0];
-                	break;
                 } else if(is_sse_opcode(addr[1],addr[2],addr[3])) 
                 {
                     ++pref.count;
                     pref.opcode_prefix = addr[0];
-                	break;
 				}
 
-            case PREFIX_LOCK: /* Fall through for REPZ and REP */
+				++pref.count;
+				pref.prfx[0] = addr[0];
+				break;
+
+            case PREFIX_LOCK:
+				printf("LOCK PREFIX\n");
                 ++pref.count;
                 pref.prfx[0] = addr[0];
                 break;
