@@ -640,6 +640,7 @@ enum entryID {
   e_vcvttss2si,
   e_vcvtpd2udq,
   e_vcvtpd2uqq,
+  e_vcvtps2uqq,
   e_vdivpd,
   e_vdivps,
   e_vdivsd,

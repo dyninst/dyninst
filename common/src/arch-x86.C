@@ -1256,6 +1256,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
    
   (e_vmpsadbw, "vmpsadbw") 
   (e_vmwrite, "vmwrite") 
+  (e_vmread, "vmread") 
   (e_vphaddw, "vphaddw")
   (e_vphaddd, "vphaddd")
   (e_vphaddsw, "vpaddsw")
@@ -1308,6 +1309,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vcmpss, "vcmpss")
   (e_vcomisd, "vcomisd")
   (e_vcomiss, "vcomiss")
+  (e_vcvtps2uqq, "vcvtps2uqq")
   (e_vcvtpd2qq, "vcvtpd2qq")
   (e_vcvtdq2pd, "vcvtdq2pd")
   (e_vcvtdq2ps, "vcvtdq2ps")
@@ -4098,8 +4100,8 @@ static ia32_entry sseMap[][4] = {
   { /* SSE79 */
     { e_vmwrite, t_sse_mult, SSE79_NO, true, { Ed, Gd, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_extrq, t_done, 0, true, {Vdq, Ib, Ib}, 0, s1RW2R},
-    { e_insertq, t_done, 0, true, {Vdq, Wdq, Ib}, 0, s1RW2R3R4R},
+    { e_extrq, t_sse_mult, SSE79_66, true, { Vdq, Ib, Ib }, 0, s1RW2R},
+    { e_insertq, t_sse_mult, SSE79_F2, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R4R},
   },
   { /* SSE7A */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -4660,7 +4662,7 @@ static ia32_entry sseMapBis[][5] = {
     }, { /* SSEB1A */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_vbroadcastf128, t_done, 0, true, { Vsd, Wq, Zz }, 0, s1W2R },
+        { e_vbroadcastf128, t_sse_bis_mult, SSEB1A_66, true, { Vsd, Wq, Zz }, 0, s1W2R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSEB1B */
@@ -6117,7 +6119,7 @@ ia32_entry sseMapMult[][3] =
   }, { /* SSE79_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
+    { e_vcvtps2uqq, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R }
   }, { /* SSE79_F2 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -6146,7 +6148,6 @@ ia32_entry sseMapMult[][3] =
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_vcvtpd2qq, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R }
-    // /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
   }, { /* SSE7B_F2 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
