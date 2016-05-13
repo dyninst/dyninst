@@ -210,8 +210,7 @@ bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
    for (set<Expression::Ptr>::const_iterator iter = mems.begin();
         iter != mems.end(); ++iter) {
       Expression::Ptr exp = *iter;
-      if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size())) ||
-          /*exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))*/ true) {
+      if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size()))) {
 	// Bind succeeded, eval to get target address
 	Result res = exp->eval();
 	if (!res.defined) {
