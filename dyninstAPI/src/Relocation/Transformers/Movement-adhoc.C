@@ -197,11 +197,11 @@ bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
    Expression::Ptr cf = insn->getControlFlowTarget();
    if (!cf) return false;
    
-   Architecture fixme = insn->getArch();
-   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
+//   Architecture fixme = insn->getArch();
+//   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
    
    Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
-   Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
+//   Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
    // Okay, see if we're memory
    set<Expression::Ptr> mems;
@@ -211,7 +211,7 @@ bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
         iter != mems.end(); ++iter) {
       Expression::Ptr exp = *iter;
       if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size())) ||
-          exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
+          /*exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))*/ true) {
 	// Bind succeeded, eval to get target address
 	Result res = exp->eval();
 	if (!res.defined) {
@@ -235,14 +235,15 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
   target = 0;
   if (insn->getControlFlowTarget()) return false;
 
-  Architecture fixme = insn->getArch();
-  if (fixme == Arch_ppc32) fixme = Arch_ppc64;
+  //Architecture fixme = insn->getArch();
+  //if (fixme == Arch_ppc32) fixme = Arch_ppc64;
   
   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
-  Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
+  //Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
-  if (!insn->isRead(thePC) &&
-      !insn->isRead(thePCFixme))
+  if (!insn->isRead(thePC))
+    //&&
+//      !insn->isRead(thePCFixme))
     return false;
 
   // Okay, see if we're memory
@@ -252,8 +253,10 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
   for (set<Expression::Ptr>::const_iterator iter = mems.begin();
        iter != mems.end(); ++iter) {
     Expression::Ptr exp = *iter;
-    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size())) ||
-	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size()))) {
+
+    //||
+	//exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       if (!res.defined) {
@@ -276,8 +279,9 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
     // If we can bind the PC, then we're in the operand
     // we want.
     Expression::Ptr exp = iter->getValue();
-    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size())) ||
-	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size()))) {
+	//||
+	//exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       assert(res.defined);
@@ -357,21 +361,21 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
   }
    
   Architecture fixme = insn->getArch();
-  if (fixme == Arch_ppc32) fixme = Arch_ppc64;
+  //if (fixme == Arch_ppc32) fixme = Arch_ppc64;
 
   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
-  Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
+  //Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
   switch(insn->getArch()) {
      case Arch_x86:
      case Arch_ppc32:
         CFT->bind(thePC.get(), Result(u32, ptr->addr()));
-        CFT->bind(thePCFixme.get(), Result(u32, ptr->addr()));
+        //CFT->bind(thePCFixme.get(), Result(u32, ptr->addr()));
         break;
      case Arch_x86_64:
      case Arch_ppc64:
         CFT->bind(thePC.get(), Result(u64, ptr->addr()));
-        CFT->bind(thePCFixme.get(), Result(u64, ptr->addr()));
+        //CFT->bind(thePCFixme.get(), Result(u64, ptr->addr()));
         break;
      default:
         assert(0);

@@ -719,9 +719,6 @@ bool Symtab::fixSymRegion(Symbol *sym) {
 
 bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms) 
 {
-    for (unsigned i = 0; i < raw_syms.size(); i++) {
-        fixSymModule(raw_syms[i]);
-    }
     Object *obj = getObject();
     if (!obj) {
        return false;
@@ -730,7 +727,10 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
     for (unsigned i=0; i< mods.size(); i++) {
        getOrCreateModule(mods[i].first, mods[i].second);
     }
-    
+    for (unsigned i = 0; i < raw_syms.size(); i++) {
+        fixSymModule(raw_syms[i]);
+    }
+
     return true;
 }
 

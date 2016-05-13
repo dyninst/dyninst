@@ -38,7 +38,6 @@
 #include "dyntypes.h"
 #include "util.h"
 
-using std::list;
 
 namespace Dyninst
 {

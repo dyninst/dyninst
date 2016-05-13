@@ -379,20 +379,30 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
     return false;
 }
 
-bool Symtab::findModuleByOffset(Module *&ret, Offset off)
-{   
-   //  this should be a hash, really
-   for (unsigned int i = 0; i < _mods.size(); ++i) 
-   {
-      Module *mod = _mods[i];
+bool module_less(Module* lhs, Module* rhs)
+{
+    if(lhs == NULL) return false;
+    if(rhs == NULL) return true;
+    return lhs->addr() < rhs->addr();
+}
 
-      if (off == mod->addr()) 
-      {
-          ret = mod;
-          return true;
-      }
-   } 
-   return false;
+
+bool Symtab::findModuleByOffset(Module *&ret, Offset off)
+{
+    std::sort(_mods.begin(), _mods.end(), module_less);
+    //  this should be a hash, really
+    for(int i = 0; i < _mods.size(); i++)
+    {
+//        cout << *(_mods[i]) << endl;
+        if(_mods[i]->addr() <= off && i < _mods.size() - 1 &&
+                off < _mods[i+1]->addr())
+        {
+            ret = _mods[i];
+            return true;
+        }
+    }
+    ret = NULL;
+    return false;
 }
 
 bool Symtab::findModuleByName(Module *&ret, const std::string name)
