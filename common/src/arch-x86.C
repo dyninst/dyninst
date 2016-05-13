@@ -7281,55 +7281,111 @@ ia32_entry sseMapTerMult[][3] =
 static ia32_entry ssegrpMap[][2] = {
   /* G12SSE010B */
   {
-    { e_psrlw, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { e_psrlw, t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
+    { e_psrlw, t_sse, SSE71, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psrlw, t_sse, SSE71, true, { Pdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G12SSE100B */
   {
-    { e_psraw, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { e_psraw, t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
+    { e_psraw, t_sse, SSE71, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psraw, t_sse, SSE71, true, { Pdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G12SSE110B */
   {
-    { e_psllw, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { e_psllw, t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
+    { e_psllw, t_sse, SSE71, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psllw, t_sse, SSE71, true, { Pdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G13SSE010B */
   {
-    { e_psrld, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { e_psrld, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_psrld, t_sse, SSE72, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psrld, t_sse, SSE72, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G13SSE100B */
   {
-    { e_psrad, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { e_psrad, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_psrad, t_sse, SSE72, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psrad, t_sse, SSE72, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G13SSE110B */
   {
-    { e_pslld, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { e_pslld, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_pslld, t_sse, SSE72, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_pslld, t_sse, SSE72, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G14SSE010B */
   {
-    { e_psrlq, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { e_psrlq, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_psrlq, t_sse, SSE73, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psrlq, t_sse, SSE73, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G14SSE011B */
   {
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-    { e_psrldq, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_psrldq, t_sse, SSE73, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G14SSE110B */
   {
-    { e_psllq, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { e_psllq, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_psllq, t_sse, SSE73, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psllq, t_sse, SSE73, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G14SSE111B */
   {
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-    { e_pslldq, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_pslldq, t_sse, SSE73, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   }
 };
+
+/** ssegrpMap instructions, except with VEX prefix. */
+
+static ia32_entry ssegrpMap_VEX[][2] = {
+  /* G12SSE010B */
+  {
+    { e_vpsrlw, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_vpsrlw, t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
+  },
+  /* G12SSE100B */
+  {
+    { e_vpsraw, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_vpsraw, t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
+  },
+  /* G12SSE110B */
+  {
+    { e_vpsllw, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_vpsllw, t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
+  },
+  /* G13SSE010B */
+  {
+    { e_vpsrld, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_vpsrld, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+  },
+  /* G13SSE100B */
+  {
+    { e_vpsrad, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_vpsrad, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+  },
+  /* G13SSE110B */
+  {
+    { e_vpslld, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_vpslld, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+  },
+  /* G14SSE010B */
+  {
+    { e_vpsrlq, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_vpsrlq, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+  },
+  /* G14SSE011B */
+  {
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+    { e_vpsrldq, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+  },
+  /* G14SSE110B */
+  {
+    { e_vpsllq, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_vpsllq, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+  },
+  /* G14SSE111B */
+  {
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+    { e_vpslldq, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+  }
+};
+
 
 /**
  * VEX (2 byte) prefixed instructions
@@ -8190,7 +8246,11 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
             case t_grpsse:
                 sseidx >>= 1;
                 idx = gotit->tabidx;
-                gotit = &ssegrpMap[idx][sseidx];
+				if(pref.vex_present)
+                	gotit = &ssegrpMap_VEX[idx][sseidx];
+				else
+                	gotit = &ssegrpMap[idx][sseidx];
+
                 nxtab = gotit->otable;
                 break;
 
