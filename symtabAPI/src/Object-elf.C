@@ -2677,7 +2677,7 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
                         if ( foundSymbols[ i ]->getLinkage() == Symbol::SL_GLOBAL ) {
                             symsToModules_[foundSymbols[i]] = useModuleName;
                         } else {
-                            cout << "Skipping non-global symbol " << foundSymbols[i]->getMangledName() << " in module " << moduleName << endl;
+//                            cout << "Skipping non-global symbol " << foundSymbols[i]->getMangledName() << " in module " << moduleName << endl;
                         }
                     }
                 }
@@ -4984,7 +4984,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 
             if (startAddrToUse && endAddrToUse)
             {
-                cout << "\tAdding line from " << canonicalLineSource << " to " << std::hex << li_for_module <<endl;
+//                cout << "\tAdding line from " << canonicalLineSource << " to " << std::hex << li_for_module <<endl;
                 li_for_module->addLine(canonicalLineSource,
                                        (unsigned int) previousLineNo,
                                        (unsigned int) previousLineColumn,
@@ -5107,7 +5107,7 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
         if(!obj->findModuleByName(mod, moduleName))
         {
             mod = obj->getDefaultModule();
-            cout << "Default module filename is " << mod->fileName() << endl;
+//            cout << "Default module filename is " << mod->fileName() << endl;
         }
         LineInformation* li_for_module = mod->getLineInformation();
         if(!li_for_module)
@@ -5115,7 +5115,7 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
             li_for_module = new LineInformation;
             mod->setLineInfo(li_for_module);
         }
-        cout << "Parsing line info for " << mod->fileName() << endl;
+//        cout << "Parsing line info for " << mod->fileName() << endl;
         parseLineInfoForCU(cuDIE, li_for_module);
         if (cuName)
         {
@@ -5187,7 +5187,7 @@ void Object::parseDwarfFileLineInfo(Symtab* st)
 //        }
         if(!st->findModuleByName(mod, moduleName)) {
             mod = st->getDefaultModule();
-            cout << "Default module is " << mod->fileName() <<endl;
+//            cout << "Default module is " << mod->fileName() <<endl;
         }
 //        if(!mod) mod = st->getDefaultModule();
         LineInformation* li_for_module = mod->getLineInformation();
@@ -5196,7 +5196,7 @@ void Object::parseDwarfFileLineInfo(Symtab* st)
             li_for_module = new LineInformation;
             mod->setLineInfo(li_for_module);
         }
-        cout << "Parsing line info for " <<mod->fileName() <<endl;
+//        cout << "Parsing line info for " <<mod->fileName() <<endl;
         parseLineInfoForCU(cuDIE, li_for_module);
 
         if (cuName)
