@@ -4891,9 +4891,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     /* It's OK for a CU not to have line information. */
     if(status != DW_DLV_OK)
     {
-
-        /* Free this CU's DIE. */
-        dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
         return;
     }
 
