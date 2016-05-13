@@ -961,6 +961,21 @@ namespace Dyninst
             	}
         		break;
 
+            case am_B:
+                {
+                    // Selects a general purpose register from VEX.vvvv (VEX3 or EVEX)
+                    if(!pref.vex_present)
+                    {
+                        assert(!"Non VEX3 or EVEX instruction with am_B addressing mode!");
+                        return false;
+                    }
+
+                    Expression::Ptr op(makeRegisterExpression(
+                        makeRegisterID(pref.vex_vvvv_reg, optype, locs->rex_r)));
+                        insn_to_complete->appendOperand(op, isRead, isWritten);
+                }
+                break;
+
             case am_C:
                 {
                     Expression::Ptr op(makeRegisterExpression(

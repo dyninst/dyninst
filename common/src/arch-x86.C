@@ -88,7 +88,7 @@ enum {
   SSE60, SSE61, SSE62, SSE63, SSE64, SSE65, SSE66, SSE67,
   SSE68, SSE69, SSE6A, SSE6B, SSE6C, SSE6D, SSE6E, SSE6F,
   SSE70, SSE71, SSE72, SSE73, SSE74, SSE75, SSE76, SSE77,
-  SSE78, SSE79,        SSE7B, SSE7C, SSE7D, SSE7E, SSE7F,
+  SSE78, SSE79, SSE7A, SSE7B, SSE7C, SSE7D, SSE7E, SSE7F,
   SSE90, SSE91,        SSE93,
   SSE98, SSE99,
   SSEB8,                                    SSEBE,
@@ -1255,6 +1255,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_xorps, "xorps")
    
   (e_vmpsadbw, "vmpsadbw") 
+  (e_vmwrite, "vmwrite") 
   (e_vphaddw, "vphaddw")
   (e_vphaddd, "vphaddd")
   (e_vphaddsw, "vpaddsw")
@@ -1322,10 +1323,13 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vcvtsi2ss, "vcvtsi2ss")
   (e_vcvtss2sd, "vcvtss2sd")
   (e_vcvtss2si, "vcvtss2si")
+  (e_vcvttpd2qq, "vcvttpd2qq")
   (e_vcvttpd2dq, "vcvttpd2dq")
   (e_vcvttps2dq, "vcvttps2dq")
   (e_vcvttsd2si, "vcvttsd2si")
   (e_vcvttss2si, "vcvttss2si")
+  (e_vcvtpd2udq, "vcvtpd2udq")
+  (e_vcvtpd2uqq, "vcvtpd2uqq")
   (e_vdivpd, "vdivpd")
   (e_vdivps, "vdivps")
   (e_vdivsd, "vdivsd")
@@ -2452,7 +2456,7 @@ static ia32_entry twoByteMap[256] = {
   /* 78 */
   { e_No_Entry, t_sse, SSE78, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE79, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, // SSE5A will go in 7A and 7B when it comes out
+  { e_No_Entry, t_sse, SSE7A, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE7B, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE7C, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE7D, 0, { Zz, Zz, Zz }, 0, 0 },
@@ -2629,7 +2633,7 @@ static ia32_entry threeByteMap[256] = {
 		/* 10 */
 		{ e_No_Entry, t_sse_bis, SSEB10, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB11, true, { Zz, Zz, Zz }, 0, 0 },
-    { e_No_Entry, t_sse_bis, SSEB12, true, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse_bis, SSEB12, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB13, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB14, true, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB15, true, { Zz, Zz, Zz }, 0, 0 },
@@ -4092,10 +4096,16 @@ static ia32_entry sseMap[][4] = {
     { e_insertq, t_done, 0, true, {Vdq, Wdq, Ib}, 0, s1RW2R3R4R}
   },
   { /* SSE79 */
-    { e_vmwrite, t_done, 0, true, { Ed, Gd, Zz }, 0, 0 },
+    { e_vmwrite, t_sse_mult, SSE79_NO, true, { Ed, Gd, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_extrq, t_done, 0, true, {Vdq, Ib, Ib}, 0, s1RW2R},
     { e_insertq, t_done, 0, true, {Vdq, Wdq, Ib}, 0, s1RW2R3R4R},
+  },
+  { /* SSE7A */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_sse_mult, SSE7A_66, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE7B */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -5893,10 +5903,9 @@ ia32_entry sseMapMult[][3] =
     { e_vmulps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
     { e_vmulps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
   }, { /* SSE5A_66 */
-    { e_vcvtpd2ps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
-    { e_vcvtpd2ps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    // { e_vcvtpd2ps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { e_vcvtpd2ps, t_done, 0, true, { Vpd, Wps, Zz }, 0, s1W2R },
+    { e_vcvtpd2ps, t_done, 0, true, { Vpd, Wps, Zz }, 0, s1W2R },
+    { e_vcvtpd2ps, t_done, 0, true, { Vpd, Wps, Zz }, 0, s1W2R },
   }, { /* SSE5A_F2 */
     { e_vcvtsd2ss, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
     { e_vcvtsd2ss, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
@@ -5904,7 +5913,7 @@ ia32_entry sseMapMult[][3] =
   }, { /* SSE5A_F3 */
     { e_vcvtss2sd, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
     { e_vcvtss2sd, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    { e_vcvtss2sd, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
   }, { /* SSE5A_NO */
     { e_vcvtps2pd, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
     { e_vcvtps2pd, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
@@ -6120,11 +6129,11 @@ ia32_entry sseMapMult[][3] =
   }, { /* SSE79_NO */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
+    { e_vcvtpd2udq, t_done, 0, true, { Vpd, Vps, Zz }, 0, s1W2R }
   }, { /* SSE7A_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
+    { e_vcvttpd2qq, t_done, 0, true, { Vpd, Vpd, Zz }, 0, s1W2R },
   }, { /* SSE7A_F2 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -8268,6 +8277,16 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 break;
 
             case t_ill:
+#ifdef VEX_DEBUG
+                if(pref.vex_present)
+                {
+                    printf("MISSING INSTRUCTION IN TABLE: %s\n", 
+                            (pref.vex_m_mmmm == 1 ? "twoByteMap" : 
+                            (pref.vex_m_mmmm == 2 ? "threeByteMap" : "threeByteMap2")));
+                    printf("                     SSE_IDX: %d\n", sseidx);
+                }
+#endif
+
                 /* Illegal or unknown instruction */
                 instruct.legacy_type = ILLEGAL;
                 instruct.entry = gotit;
@@ -9448,14 +9467,13 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 {
                     ++pref.count;
                     pref.opcode_prefix = addr[0];
-				}
-
-				++pref.count;
-				pref.prfx[0] = addr[0];
+                } else {
+                    ++pref.count;
+                    pref.prfx[0] = addr[0];
+                }
 				break;
 
             case PREFIX_LOCK:
-				printf("LOCK PREFIX\n");
                 ++pref.count;
                 pref.prfx[0] = addr[0];
                 break;
