@@ -1325,6 +1325,8 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vcvtsi2ss, "vcvtsi2ss")
   (e_vcvtss2sd, "vcvtss2sd")
   (e_vcvtss2si, "vcvtss2si")
+  (e_vcvttpd2udq, "vcvttpd2udq")
+  (e_vcvttpd2uqq, "vcvttpd2uqq")
   (e_vcvttpd2qq, "vcvttpd2qq")
   (e_vcvttpd2dq, "vcvttpd2dq")
   (e_vcvttps2dq, "vcvttps2dq")
@@ -3667,7 +3669,7 @@ static ia32_entry groupMap2[][2][8] = {
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_sse_mult, SSE78_66, true, { Zz, Zz, Zz }, 0, 0 },
     },
     {
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
@@ -4092,14 +4094,14 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
   },
   { /* SSE78 */
-    { e_vmread, t_done, 0, true, { Ed, Gd, Zz }, 0, 0 },
+    { e_vmread, t_sse_mult, SSE78_NO, true, { Ed, Gd, Zz }, 0, s1W2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_grp, Grp17, false, { Zz, Zz, Zz }, 0, 0 },
     { e_insertq, t_done, 0, true, {Vdq, Wdq, Ib}, 0, s1RW2R3R4R}
   },
   { /* SSE79 */
-    { e_vmwrite, t_sse_mult, SSE79_NO, true, { Ed, Gd, Zz }, 0, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_vmwrite, t_sse_mult, SSE79_NO, true, { Ed, Gd, Zz }, 0, s1W2R },
+    { e_No_Entry, t_sse_mult, SSE79_F3, false, { Zz, Zz, Zz }, 0, 0 },
     { e_extrq, t_sse_mult, SSE79_66, true, { Vdq, Ib, Ib }, 0, s1RW2R},
     { e_insertq, t_sse_mult, SSE79_F2, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R4R},
   },
@@ -4114,10 +4116,6 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_sse_mult, SSE7B_66, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    // { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    //{ e_No_Entry, t_sse_mult, SSE7B_F3, false, { Zz, Zz, Zz }, 0, 0 },
-    //{ e_No_Entry, t_sse_mult, SSE7B_66, false, { Zz, Zz, Zz }, 0, 0 },
-    //{ e_No_Entry, t_sse_mult, SSE7B_F2, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE7C */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -6103,7 +6101,7 @@ ia32_entry sseMapMult[][3] =
   }, { /* SSE78_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
+    { e_vcvttpd2uqq, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R }
   }, { /* SSE78_F2 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -6115,7 +6113,7 @@ ia32_entry sseMapMult[][3] =
   }, { /* SSE78_NO */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
+    { e_vcvttpd2udq, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R }
   }, { /* SSE79_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },

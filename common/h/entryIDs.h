@@ -633,6 +633,8 @@ enum entryID {
   e_vcvtsi2ss,
   e_vcvtss2sd,
   e_vcvtss2si,
+  e_vcvttpd2udq,
+  e_vcvttpd2uqq,
   e_vcvttpd2qq,
   e_vcvttpd2dq,
   e_vcvttps2dq,
