@@ -93,111 +93,127 @@ else()
 endif()
 set (ENABLE_STATIC_LIBS NO CACHE STRING "Build static libraries as well?")
 message(STATUS "Configuring RT library")
+if(BUILD_RTLIB)
+  # Build the RT library as a seperate project so we can change compilers
+  message(STATUS "Configuring DyninstAPI_RT")
+  file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile ${RT_BINARY_DIR}/Makefile)
+  file(MAKE_DIRECTORY ${RT_BINARY_DIR})
+  if (PLATFORM MATCHES bgq)
+    set (RT_C_COMPILER mpicc CACHE STRING "Compiler for runtime library")
+  else()
+    set (RT_C_COMPILER ${CMAKE_C_COMPILER} CACHE STRING "Compiler for runtime library")
+  endif()
+  set (ENABLE_STATIC_LIBS NO CACHE STRING "Build static libraries as well?")
+  message(STATUS "Configuring RT library")
 
-execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR}
-  COMMAND ${CMAKE_COMMAND}
-  -DCMAKE_C_COMPILER=${RT_C_COMPILER}
-  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-  -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-  -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
-  -DINSTALL_LIB_DIR=${INSTALL_LIB_DIR}
-  -DINSTALL_INCLUDE_DIR=${INSTALL_INCLUDE_DIR}
-  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
-  -DBUILD_RTLIB_32=${BUILD_RTLIB_32}
-  -DPLATFORM=${PLATFORM}
-  -G ${CMAKE_GENERATOR}
-  ${RT_SOURCE_DIR})
+  execute_process(WORKING_DIRECTORY ${RT_BINARY_DIR}
+    COMMAND ${CMAKE_COMMAND}
+    -DCMAKE_C_COMPILER=${RT_C_COMPILER}
+    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+    -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
+    -DINSTALL_LIB_DIR=${INSTALL_LIB_DIR}
+    -DINSTALL_INCLUDE_DIR=${INSTALL_INCLUDE_DIR}
+    -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+    -DBUILD_RTLIB_32=${BUILD_RTLIB_32}
+    -DPLATFORM=${PLATFORM}
+    -G ${CMAKE_GENERATOR}
+    ${RT_SOURCE_DIR})
 
-add_custom_target(DyninstRT
-  ALL
-  #  COMMAND ${CMAKE_COMMAND} -E chdir ${RT_BINARY_DIR} ${ACTUAL_BUILD}
-  $(MAKE)
-  WORKING_DIRECTORY ${RT_BINARY_DIR}
-  COMMENT "Building DyninstRT")
+  add_custom_target(DyninstRT
+    ALL
+    #  COMMAND ${CMAKE_COMMAND} -E chdir ${RT_BINARY_DIR} ${ACTUAL_BUILD}
+    $(MAKE)
+    WORKING_DIRECTORY ${RT_BINARY_DIR}
+    COMMENT "Building DyninstRT")
 
-install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
+  install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
 
-add_dependencies(dyninstAPI DyninstRT)
-if(TARGET dyninstAPI-static)
-    add_dependencies(dyninstAPI-static DyninstRT)
+  add_dependencies(dyninstAPI DyninstRT)
+  if(TARGET dyninstAPI-static)
+      add_dependencies(dyninstAPI-static DyninstRT)
+  endif()
+else()
+  message(STATUS "Skipping DyninstAPI_RT. Be sure to build this library if you're using instrumentation.")
 endif()
 set (VERSION_STRING "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}.${DYNINST_PATCH_VERSION}")
 set (DYNINST_NAME "DyninstAPI-${VERSION_STRING}")
 
 if(BUILD_TARBALLS)
-find_package(Git)
-if(GIT_FOUND)
-if(EXISTS "${DYNINST_ROOT}/.git/")
-message(STATUS "Source tree is repository, building archive target")
-add_custom_target(package ALL)
-add_custom_command(TARGET package
-  COMMAND ${GIT_EXECUTABLE} archive --prefix="${DYNINST_NAME}/" --format=tar.gz -o "${CMAKE_BINARY_DIR}/${DYNINST_NAME}.tgz" HEAD
-  WORKING_DIRECTORY ${DYNINST_ROOT}
-  COMMENT "Packaging Dyninst")
+  find_package(Git)
+  if(GIT_FOUND)
+    if(EXISTS "${DYNINST_ROOT}/.git/")
+      message(STATUS "Source tree is repository, building archive target")
+      add_custom_target(package ALL)
+      add_custom_command(TARGET package
+        COMMAND ${GIT_EXECUTABLE} archive --prefix="${DYNINST_NAME}/" --format=tar.gz -o "${CMAKE_BINARY_DIR}/${DYNINST_NAME}.tgz" HEAD
+        WORKING_DIRECTORY ${DYNINST_ROOT}
+        COMMENT "Packaging Dyninst")
+    endif()
+  endif()
 endif()
-endif()
-endif()
-
-add_custom_target(doc)
-set(LATEX_DOCS dynC_API instructionAPI parseAPI patchAPI symtabAPI stackwalk dataflowAPI)
-set(WORD_DOCS proccontrol dyninstAPI)
-add_custom_target(proccontrol-doc
-  DEPENDS ${CMAKE_SOURCE_DIR}/proccontrol/doc/proccontrol.pdf)
-add_custom_target(dyninstAPI-doc
-  DEPENDS ${CMAKE_SOURCE_DIR}/dyninstAPI/doc/dyninstAPI.pdf)
-foreach(COMPONENT ${WORD_DOCS})
-  add_dependencies(doc ${COMPONENT}-doc)
-  install(FILES ${CMAKE_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
-    DESTINATION ${INSTALL_DOC_DIR}
-    RENAME ${COMPONENT}-${VERSION_STRING}.pdf
-    OPTIONAL
-    )
-endforeach()
-
-#set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
-find_package(LATEX)
-if(PDFLATEX_COMPILER)
-  file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/common/doc
-    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/common)
-  foreach(COMPONENT ${LATEX_DOCS})
-    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc
-      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT})
-    set (DEPS "")
-    file(GLOB_RECURSE DEPS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/*.tex ${CMAKE_CURRENT_SOURCE_DIR}/common/doc/*.tex)
-    #message(STATUS "Found dependencies for ${COMPONENT} manual: ${DEPS}")
-    add_custom_command(
-      #      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
-      DEPENDS ${DEPS} #${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.tex
-      COMMAND ${PDFLATEX_COMPILER}
-      ARGS -interaction=batchmode ${COMPONENT}.tex
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc
-      COMMENT "Latex (first pass)"
-      )
-    add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.log
-      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
-      #      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.log
-      #      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
-      COMMAND ${PDFLATEX_COMPILER}
-      ARGS -interaction=batchmode ${COMPONENT}.tex
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc
-      COMMENT "Latex (second pass)"
-      )
-    add_custom_target(${COMPONENT}-doc echo
-      #      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.log
-      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.log
-      )
+if(BUILD_DOCS)
+  add_custom_target(doc)
+  set(LATEX_DOCS dynC_API instructionAPI parseAPI patchAPI symtabAPI stackwalk)
+  set(WORD_DOCS proccontrol dyninstAPI)
+  add_custom_target(proccontrol-doc
+    DEPENDS ${CMAKE_SOURCE_DIR}/proccontrol/doc/proccontrol.pdf)
+  add_custom_target(dyninstAPI-doc
+    DEPENDS ${CMAKE_SOURCE_DIR}/dyninstAPI/doc/dyninstAPI.pdf)
+  foreach(COMPONENT ${WORD_DOCS})
     add_dependencies(doc ${COMPONENT}-doc)
-    #add_dependencies(${COMPONENT} ${COMPONENT}-doc)
-    install(FILES  ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
+    install(FILES ${CMAKE_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
       DESTINATION ${INSTALL_DOC_DIR}
       RENAME ${COMPONENT}-${VERSION_STRING}.pdf
       OPTIONAL
       )
   endforeach()
-else()
-  message(STATUS "LaTeX not found")
+
+  #set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
+  find_package(LATEX)
+  if(PDFLATEX_COMPILER)
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/common/doc
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/common)
+    foreach(COMPONENT ${LATEX_DOCS})
+      file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT})
+      set (DEPS "")
+      file(GLOB_RECURSE DEPS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/*.tex ${CMAKE_CURRENT_SOURCE_DIR}/common/doc/*.tex)
+      #message(STATUS "Found dependencies for ${COMPONENT} manual: ${DEPS}")
+      add_custom_command(
+        #      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
+        DEPENDS ${DEPS} #${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.tex
+        COMMAND ${PDFLATEX_COMPILER}
+        ARGS -interaction=batchmode ${COMPONENT}.tex
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc
+        COMMENT "Latex (first pass)"
+        )
+      add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.log
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
+        #      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.log
+        #      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
+        COMMAND ${PDFLATEX_COMPILER}
+        ARGS -interaction=batchmode ${COMPONENT}.tex
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc
+        COMMENT "Latex (second pass)"
+        )
+      add_custom_target(${COMPONENT}-doc echo
+        #      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.log
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.log
+        )
+      add_dependencies(doc ${COMPONENT}-doc)
+      #add_dependencies(${COMPONENT} ${COMPONENT}-doc)
+      install(FILES  ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
+        DESTINATION ${INSTALL_DOC_DIR}
+        RENAME ${COMPONENT}-${VERSION_STRING}.pdf
+        OPTIONAL
+        )
+    endforeach()
+  else()
+    message(STATUS "LaTeX not found")
+  endif()
 endif()
 
 if(UNIX)
