@@ -163,8 +163,8 @@ AstNodePtr AstNode::nullNode() {
     return AstNodePtr(new AstNullNode());
 }
 
-AstNodePtr AstNode::stackInsertNode(int size, long dispFromRSP, MSpecialType type) {
-    return AstNodePtr(new AstStackInsertNode(size, dispFromRSP, type));
+AstNodePtr AstNode::stackInsertNode(int size, MSpecialType type) {
+    return AstNodePtr(new AstStackInsertNode(size, type));
 }
 
 AstNodePtr AstNode::stackRemoveNode(int size, MSpecialType type) {
@@ -1266,6 +1266,7 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size, bool n
       return false;
    }
 
+   assert(const_oper);
    long int imm = (long int) const_oper->getOValue();
    if (roper->op == plusOp) {
       emitAddSignedImm(laddr, imm, gen, noCost);

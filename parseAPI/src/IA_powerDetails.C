@@ -710,7 +710,6 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
       }
       void *tableStartPtr = currentBlock->_isrc->getPtrToData(tableStartAddress);
       parsing_printf("%s[%d]: tableStartPtr (0x%lx) = %p\n", FILE__, __LINE__, tableStartAddress, tableStartPtr);
-      tableStart = *((Address *)tableStartPtr);
       if (tableStartPtr)
 	tableStart = (is64
 		      ? *((Address  *)tableStartPtr)

@@ -339,7 +339,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
             int bytes = (int)(Dwarf_Signed)locations[i].lr_number;
             unsigned int target = (unsigned int) locations[i].lr_offset + bytes;
             
-            int j = i;
+            int j;
             if ( bytes < 0 ) {
                for ( j = i - 1; j >= 0; j-- ) {
                   if ( locations[j].lr_offset == target ) { break; }

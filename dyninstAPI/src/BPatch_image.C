@@ -529,7 +529,6 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
                //	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
                funcs.push_back(foo);
             }
-            found_match = true;
             break;
          }
       }

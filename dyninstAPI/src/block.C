@@ -133,7 +133,8 @@ void block_instance::updateCallTarget(func_instance *func) {
    // Preserving original behavior on sink edges only
    //
   edge_instance *e = getTarget();
-  if (e && e->sinkEdge()) {
+  assert(e);
+  if (e->sinkEdge()) {
      PatchAPI::PatchModifier::redirect(e, func->entryBlock());
   } else {
      mal_printf("WARNING: tried to update the call target of a block "

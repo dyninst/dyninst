@@ -322,7 +322,6 @@ BPatch_function *SnippetGenerator::findFunction(const char * name, std::vector<B
    bool foundDebugInfo, foundMatch, setFunc;
    BPatch_function *noParamFunc = NULL; //for storing potentially variadic functions
    foundDebugInfo = false;
-   foundMatch = false;
    setFunc = false;
    std::vector<BPatch_localVar *> *funcParams;
    BPatch_function *func = functions[0];

@@ -128,7 +128,7 @@ char *sprintf_static(const char *fmt, ...)
 	len = INITIAL_STRLEN;
     }
 
-    int retval = len;
+    int retval;
     va_list ap;
 
     while (1) {

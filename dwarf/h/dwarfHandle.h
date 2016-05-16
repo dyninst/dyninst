@@ -65,7 +65,6 @@ class DYNDWARF_EXPORT DwarfHandle {
    Elf_X *file;
    Elf_X *dbg_file;
    Dwarf_Handler err_func;
-   Dwarf_Ptr err_data;
    bool init_dbg();
    void locate_dbg_file();
    bool hasFrameData(Elf_X *elfx);
@@ -75,12 +74,12 @@ class DYNDWARF_EXPORT DwarfHandle {
    static Dwarf_Handler defaultErrFunc;
    static void defaultDwarfError(Dwarf_Error err, Dwarf_Ptr arg);
 
-   DwarfHandle(std::string filename_, Elf_X *file_, Dwarf_Handler err_func_, Dwarf_Ptr err_data_);
+   DwarfHandle(std::string filename_, Elf_X *file_, Dwarf_Handler err_func_);
   public:
    ~DwarfHandle();
 
    static DwarfHandle::ptr createDwarfHandle(std::string filename_, Elf_X *file_, 
-                                             Dwarf_Handler err_func_ = defaultErrFunc, Dwarf_Ptr err_data_ = NULL);
+                                             Dwarf_Handler err_func_ = defaultErrFunc);
 
    Elf_X *origFile();
    Elf_X *debugLinkFile();

@@ -3051,6 +3051,8 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
                                         stabstrdata.get_string(),
                                         stabscnp->sh_size() / sizeof(stab64));
             break;
+        default:
+            assert(0);
     };
 
     const char *next_stabstr = stabptr->getStringBase();
@@ -3703,9 +3705,10 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
         }
         else if (mi.word_size == 8) {
             addr = (const unsigned char*)(((unsigned long)addr + 7) & (~0x7l));
+        } else {
+            assert(0);
         }
     }
-
 
     switch (type & 0x0f)
     {
@@ -3802,8 +3805,8 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
     int status, result, ptr_size;
     char *augmentor;
     unsigned char lpstart_format, ttype_format, table_format;
-    unsigned long value, table_end, region_start, region_size, landingpad_base;
-    unsigned long catch_block, action, augmentor_len;
+    unsigned long value, table_end, region_start = 0, region_size, landingpad_base;
+    unsigned long catch_block = 0, action, augmentor_len;
     Dwarf_Small *fde_augdata, *cie_augdata;
     Dwarf_Unsigned fde_augdata_len, cie_augdata_len;
 
@@ -4003,10 +4006,10 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
         table_format = datap[except_off++];
         mi.pc = except_scn->sh_addr() + except_off;
 
-//  This assertion would fail:
-//  assert(table_format == DW_EH_PE_uleb128);
-//  result = read_val_of_type(table_format, &table_end, datap + except_off, mi);
-//  This read should always be a ULEB128 read
+        //  This assertion would fail:
+        //  assert(table_format == DW_EH_PE_uleb128);
+        //  result = read_val_of_type(table_format, &table_end, datap + except_off, mi);
+        //  This read should always be a ULEB128 read
         result = read_val_of_type(DW_EH_PE_uleb128, &table_end, datap + except_off, mi);
         if (result == -1) {
             continue;
@@ -4755,6 +4758,7 @@ void Object::parseStabFileLineInfo(Symtab *st)
         } /* end switch on the ith stab entry's type */
 
     } /* end iteration over stab entries. */
+    delete stabEntry;
 
     //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
@@ -4940,7 +4944,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             continue;
         }
 
-
         char * lineSource;
         status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
         if ( status != DW_DLV_OK ) { continue; }
@@ -4971,9 +4974,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             else {
                 canonicalLineSource = previousLineSource;
             }
-
-
-
 
             Dyninst::Offset startAddrToUse = previousLineAddr;
             Dyninst::Offset endAddrToUse = lineAddr;
@@ -5027,7 +5027,6 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
     obj->findModuleByOffset(mod_for_offset, addr_to_find);
     std::string mod_to_check;
     if(mod_for_offset)
-
     {
         if(mod_for_offset->hasLineInformation())      // already parsed
         {
@@ -5078,7 +5077,7 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
             dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
             continue;
         }
-        if(mod_to_check != "" && strcmp(moduleName, mod_to_check.c_str()) != 0)
+        if(moduleName && mod_to_check != "" && strcmp(moduleName, mod_to_check.c_str()) != 0)
         {
             dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
             continue;
@@ -5449,6 +5448,7 @@ void Object::parseStabTypes(Symtab *obj)
                     if (!commonBlockVar) {
                         // //bperr("unable to find variable %s\n", commonBlockName);
                     } else {
+                        assert(tc);
                         commonBlock = dynamic_cast<typeCommon *>(tc->findVariableType(*commonBlockName));
                         if (commonBlock == NULL) {
                             // its still the null type, create a new one for it
@@ -5545,6 +5545,8 @@ void Object::parseStabTypes(Symtab *obj)
             }
         }
     }
+      delete stabptr;
+      delete currentFunctionName;
 #if defined(TIMED_PARSE)
     struct timeval endtime;
   gettimeofday(&endtime, NULL);

@@ -96,10 +96,8 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(Dyninst::PatchAPI::Patc
 
    // check to see if the func_instance refers to a different
    // module, and that module contains a bpatch_func
-   BPatch_module* containing;
-   if (fi->mod() != NULL) {
-      containing = getImage()->findModule(fi->mod()->fileName().c_str());
-   }
+   assert(fi->mod() != NULL);
+   BPatch_module* containing = getImage()->findModule(fi->mod()->fileName().c_str());
 
    // findModule has a tendency to make new function objects... so
    // check the map again
@@ -914,12 +912,14 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
 	fprintf(stderr, "[%s:%u] - Type error inserting instrumentation\n",
 		FILE__, __LINE__);
         //expr.ast_wrapper->debugPrint();
+         delete retHandle;
          return NULL;
       }
    }
 
    if (!points.size()) {
       inst_printf("%s[%d]:  request to insert snippet at zero points!\n", FILE__, __LINE__);
+      delete retHandle;
       return NULL;
    }
 
@@ -967,7 +967,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
      // There's no insertion set, instrument now
      bool tmp;
      if (!finalizeInsertionSet(false, &tmp)) {
-        return NULL;
+         delete retHandle;
+         return NULL;
      }
    }   
    // If we inserted nothing successfully, NULL

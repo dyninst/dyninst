@@ -3,6 +3,8 @@
 %x comment
 %x stringmode
 %option yylineno
+%option outfile="lex.dynC.C"
+%option prefix="dynC"
 
 D[0-9]
 L[a-zA-Z_]
@@ -236,7 +238,6 @@ void set_lex_input(char *str)
    
    input_str = str;
    bp = dynC_scan_string(str);
-   (void)bp; // unused warning...
+   free(bp);
    firstCall = false;
 }
-

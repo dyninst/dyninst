@@ -7929,7 +7929,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 	                break;
 	            default:
                     gotit = &vexWMap[0][0];
-                    idx = 0;
                     /* This reserved for future use and will cause #UD. */
                     instruct.legacy_type = ILLEGAL;
                     instruct.entry = gotit;
@@ -7977,7 +7976,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                     break;
                 default:
                     gotit = &vexWMap[0][0];
-                    idx = 0;
                     /* This reserved for future use and will cause #UD. */
                     instruct.legacy_type = ILLEGAL;
                     instruct.entry = gotit;
@@ -7996,7 +7994,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       
         nxtab = gotit->otable;
     } else {
-        table = t_oneB;
         if(idx == 0) {
 	        // consume opcode
 	        idx = addr[0];
@@ -8051,7 +8048,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 {
                     // all valid SSE insns will have 0x0F as their first byte after prefix
                     instruct.size += 1;
-                    addr += 1;
                     instruct.entry = &invalid;
                     return instruct;
                 }

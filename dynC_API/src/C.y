@@ -1,3 +1,7 @@
+%output "dynC.tab.C"
+%defines "dynC.tab.h"
+%name-prefix "dynC"
+
 %{
 /*                                                                                 
  * Yacc will define token IF, conflicting with dyn_regs.h                          
@@ -6,6 +10,7 @@
  */
 #undef IF
 #undef RETURN
+
 
 
 #include <stdio.h>
@@ -598,6 +603,7 @@ variable_expr: IDENTIFIER
           $$ = new BPatch_nullExpr();
           if($1.isGlobal){
              yyerror(snippetGen->getError().c_str());
+             delete $$;
              YYABORT;
           }else{
              yyerrorNonUni(snippetGen->getError().c_str());

@@ -308,7 +308,6 @@ void StridedInterval::Intersect(StridedInterval &rhs) {
 		ExtendEuclidean(stride / gcd, rhs.stride / gcd, k1, k2);
 	        x = (low - rhs.low) / gcd;
 		k1 *= x;
-		k2 *= -x;
 
 	        int newStride = stride * rhs.stride / GCD(stride, rhs.stride);
 		int64_t newLow = low + k1 * stride, newHigh = high;

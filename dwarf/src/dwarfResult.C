@@ -224,7 +224,7 @@ void ConcreteDwarfResult::pushOp(Operator op) {
          break;
       case Abs:
          CHECK_OPER(1);
-         v = ::abs((long) peek(0));
+         v = std::abs((long) peek(0));
          pop(0);
          push(v);
          break;

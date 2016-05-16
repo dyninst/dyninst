@@ -581,7 +581,6 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                                    FILE__,__LINE__);
                 }
                 else { // tail call, do nothing?
-                    calcSnippet = & dynTarget;
                     fprintf(stderr,"WARNING: exit point at %lx that isn't "
                             "a return or indirect control transfer, what "
                             "kind of point is this? not instrumenting %s[%d]\n", 
@@ -1251,7 +1250,6 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
                 "target is in module %s, parsing at fallthrough %s[%d]\n",
                 (long)point->llpoint()->block()->last(), target, modName,FILE__,__LINE__);
             parseAfterCallAndInstrument(point, targFunc, false);
-            doMoreProcessing = false;
         } else if (point->getPointType() == BPatch_exit) {
             mal_printf("WARNING: stopThread instrumentation found return %lx=>%lx, "
                 "into module %s, this indicates obfuscation or that there was a "

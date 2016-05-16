@@ -708,7 +708,7 @@ unsigned pcRelData::apply(Address addr)
 
    // In other cases, we can rewrite the insn directly; in the 64-bit case, we
    // still need to copy the insn
-   addr += copy_prefixes(origInsn, newInsn, insnType);
+   copy_prefixes(origInsn, newInsn, insnType);
 
    if (*origInsn == 0x0F) {
       *newInsn++ = *origInsn++;
@@ -1210,7 +1210,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
 
    // In other cases, we can rewrite the insn directly; in the 64-bit case, we
    // still need to copy the insn
-   from += copy_prefixes(origInsn, newInsn, insnType);
+   copy_prefixes(origInsn, newInsn, insnType);
 
    if (*origInsn == 0x0F) {
       *newInsn++ = *origInsn++;
@@ -1286,7 +1286,6 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     const unsigned char* origInsn = insn.ptr();
     unsigned insnType = insn.type();
     unsigned insnSz = insn.size();
-    Address from = gen.currAddr();
 
     unsigned newInsnSz = 0;
 
@@ -1312,7 +1311,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     // In other cases, we can rewrite the insn directly; in the 64-bit case, we
     // still need to copy the insn
     // Copy prefix bytes
-    from += copy_prefixes(origInsn, newInsn, insnType);
+    copy_prefixes(origInsn, newInsn, insnType);
     nPrefixes = count_prefixes(insnType);
     newInsnSz += nPrefixes;
 

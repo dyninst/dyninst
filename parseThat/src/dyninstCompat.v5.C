@@ -63,6 +63,7 @@ dynHandle *mutatorInit(void)
     if (!dh->bpatch) {
 	sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_FAIL,
 		"Failure creating new BPatch object");
+        delete dh;
 	return NULL;
     }
 
@@ -71,6 +72,7 @@ dynHandle *mutatorInit(void)
         if (!dh->bpatch->remoteConnect(*config.remoteHost)) {
             sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_FAIL,
                     "Failure connecting to remote target");
+            delete dh;
             return NULL;
         }
     }
@@ -111,6 +113,7 @@ dynHandle *mutatorInit(void)
 	if (!dh->proc) {
 	    sendMsg(config.outfd, ID_INIT_ATTACH_PROCESS, INFO, ID_FAIL,
 		    "Failure in BPatch::processAttach()");
+            delete dh;
 	    return NULL;
 	} else {
 	    config.dynlib = dh;
@@ -125,6 +128,7 @@ dynHandle *mutatorInit(void)
 	if (!dh->proc) {
 	    sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_FAIL,
 		    "Failure in BPatch::processCreate()");
+            delete dh;
 	    return NULL;
 	} else {
 	    config.dynlib = dh;
@@ -137,6 +141,7 @@ dynHandle *mutatorInit(void)
       if (!dh->addSpace) {
 	sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_FAIL,
 		"Failure in BPatch:_binaryEdit constructor");
+        delete dh;
 	return NULL;
       } else {
 	config.dynlib = dh;
@@ -149,6 +154,7 @@ dynHandle *mutatorInit(void)
     if (!dh->image) {
 	sendMsg(config.outfd, ID_INIT_GET_IMAGE, INFO, ID_FAIL,
 		"Failure in BPatch_process::getImage()");
+        delete dh;
 	return NULL;
     } else
 	sendMsg(config.outfd, ID_INIT_GET_IMAGE, INFO, ID_PASS);

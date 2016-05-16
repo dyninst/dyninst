@@ -371,6 +371,7 @@ EventBreakpoint::ptr x86_thread::decodeHWBreakpoint(response::ptr &,
 
 unsigned x86_thread::hwBPAvail(unsigned mode)
 {
+   assert(spaceNeeded(mode));
    return spaceAvail() / spaceNeeded(mode);
 }
 

@@ -73,7 +73,7 @@ class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
 	unsigned int second;
 	unsigned int column;
 
-	Statement() : first(NULL), second(line_) {}
+	Statement() : first(NULL), second(0) {}
 	struct StatementLess {
 		bool operator () ( const Statement &lhs, const Statement &rhs ) const;
 	};

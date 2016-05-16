@@ -381,7 +381,7 @@ ostream& operator<<(ostream&s, timeLength z) {
     if(secs!=0)  {  s << (prev? cSt:"") << secs  << " secs";    prev=true; }
     if(ms!=0)    {  s << (prev? cSt:"") << ms    << " ms";      prev=true; }
     if(us!=0)    {  s << (prev? cSt:"") << us    << " us";      prev=true; }
-    if(ns!=0)    {  s << (prev? cSt:"") << ns    << " ns";      prev=true; }
+    if(ns!=0)    {  s << (prev? cSt:"") << ns    << " ns"; }
   }
   s << "]";
   return s;

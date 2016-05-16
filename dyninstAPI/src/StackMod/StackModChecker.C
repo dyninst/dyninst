@@ -336,7 +336,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                     for (auto iter = points->begin(); iter != points->end(); ++iter) {
                         BPatch_point* point = *iter;
                         Address addr = (Address)(point->getAddress()); 
-                        BPatch_snippet* snip = new BPatch_stackInsertExpr(insert->size(), dispFromRSP);
+                        BPatch_snippet* snip = new BPatch_stackInsertExpr(insert->size());
                         stackmods_printf("\t Generating INSERT of size %d at 0x%lx\n", insert->size(), addr);
                         BPatchSnippetHandle* handle = bfunc->getAddSpace()->insertSnippet(*snip, *point, BPatch_callBefore, BPatch_lastSnippet);
                         if (!handle) {
@@ -518,6 +518,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                         point = entryPoints->at(0);
                     } else {
                         cleanupAndReturn = true;
+                        delete snip;
                         break;
                     }
                     stackmods_printf("\t Generating RANDOMIZE at function entry (0x%lx)\n", (Address)(point->getAddress()));

@@ -290,7 +290,7 @@ bool PatchObject::splitBlock(PatchBlock * /*orig*/, ParseAPI::Block *second) {
    if (p2) return true;
    p2 = getBlock(second);
 
-   return true;
+   return p2 ? true : false;
 }
 
 std::string PatchObject::format() const {

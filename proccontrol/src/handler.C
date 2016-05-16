@@ -2142,6 +2142,7 @@ Handler::handler_ret_t HandleCallbacks::handleEvent(Event::ptr ev)
       return ret_success;
    }
    const std::set<Process::cb_func_t> &cbs = i->second;
+   assert(proc);
 
    if (ev->suppressCB()) {
       pthrd_printf("Suppressing callbacks for event %s\n", ev->name().c_str());

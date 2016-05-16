@@ -890,6 +890,10 @@ void SgAsmOperandList::append_operand(SgAsmExpression* operand)
 
 SgAsmOperandList::~SgAsmOperandList()
 {
+    for(auto it = p_operands.begin(); it != p_operands.end(); ++it) {
+        delete *it;
+    }
+    p_operands.clear();
 
 }
 

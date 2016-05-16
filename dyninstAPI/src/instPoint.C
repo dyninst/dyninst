@@ -197,6 +197,7 @@ instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
 
    instPoint *point = NULL;
 
+   assert(f);
    switch(parent->type_) {
       case None:
          assert(0);

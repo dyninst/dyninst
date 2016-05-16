@@ -162,7 +162,6 @@ int DYNINSTasyncConnect(int pid)
   strcpy(sadr.sun_path, socket_path);
 
   rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  before connect\n", __FILE__, __LINE__);
-  res = 0;
   errno = 0;
 
   res = connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)); 

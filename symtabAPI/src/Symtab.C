@@ -620,22 +620,26 @@ bool Symtab::buildDemangledName( const std::string &mangled,
 #endif
 
     bool retval = false;
+    char *demangled = nullptr, *t_demangled = nullptr;
   
     /* Try demangling it. */
-    char * demangled = P_cplus_demangle( mangled.c_str(), nativeCompiler, false);
+    demangled = P_cplus_demangle( mangled.c_str(), nativeCompiler, false);
     if (demangled) 
     {
         pretty = std::string( demangled );
         retval = true;
+    } else {
+        goto out;
     }
   
-    char *t_demangled = P_cplus_demangle(mangled.c_str(), nativeCompiler, true);
+    t_demangled = P_cplus_demangle(mangled.c_str(), nativeCompiler, true);
     if (t_demangled && (strcmp(t_demangled, demangled) != 0)) 
     {
         typed = std::string(t_demangled);
         retval = true;
     }
 
+out:
     if (demangled)
         free(demangled);
     if (t_demangled)

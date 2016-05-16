@@ -156,9 +156,6 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
       startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
       return NULL;
    }
-   if (img->isDyninstRTLib()) {
-       parseGaps = false;
-   }
 #if defined(os_linux) && defined(arch_x86_64)
    //Our x86_64 is actually reporting negative load addresses.  Go fig.
    // On Linux/x86_64 with 32-bit mutatees this causes problems because we
@@ -885,6 +882,7 @@ bool mapped_object::getInfHeapList(pdvector<heapDescriptor> &infHeaps) {
         if (foundHeaps[j].second == 0) {
             cerr << "Skipping heap " << foundHeaps[j].first.c_str()
                  << "with address 0" << endl;
+            free(temp_str);
             continue;
         }
         // Size needs to be parsed out (second item)

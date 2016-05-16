@@ -1222,7 +1222,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexUImm()
 
     Expression::Ptr offset = Immediate::makeImmediate( Result(u64, unsign_extend64( immLen+size, immVal<<size) ) );
 
-    Result_Type rt;
+    Result_Type rt = Result_Type::invalid_type;
     getMemRefIndex_RT(rt);
     return makeDereferenceExpression( makeAddExpression(makeRnExpr(), offset, u64), rt);
 }
@@ -1275,28 +1275,28 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefPair_addOffset7()
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexPre()
 {
-    Result_Type rt;
+    Result_Type rt = Result_Type::invalid_type;
     getMemRefIndex_RT(rt);
     return makeDereferenceExpression(makeMemRefIndex_addOffset9(), rt);
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndexPost()
 {
-    Result_Type rt;
+    Result_Type rt = Result_Type::invalid_type;
     getMemRefIndex_RT(rt);
     return makeDereferenceExpression(makeRnExpr(), rt);
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPre()
 {
-    Result_Type rt;
+    Result_Type rt = Result_Type::invalid_type;
     getMemRefPair_RT(rt);
     return makeDereferenceExpression(makeMemRefPair_addOffset7(), rt);
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPost()
 {
-    Result_Type rt;
+    Result_Type rt = Result_Type::invalid_type;
     getMemRefPair_RT(rt);
     return makeDereferenceExpression(makeRnExpr(), rt);
 }
@@ -1455,14 +1455,14 @@ unsigned int InstructionDecoder_aarch64::getMemRefSIMD_SING_T()
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefSIMD_MULT()
 {
-    Result_Type rt;
+    Result_Type rt = Result_Type::invalid_type;
     getMemRefSIMD_MULT_RT(rt);
     return makeDereferenceExpression(makeRnExpr(), rt);
 }
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefSIMD_SING()
 {
-    Result_Type rt;
+    Result_Type rt = Result_Type::invalid_type;
     getMemRefSIMD_SING_RT(rt);
     return makeDereferenceExpression(makeRnExpr(), rt);
 }
@@ -1486,7 +1486,7 @@ void InstructionDecoder_aarch64::getMemRefExPair_RT(Result_Type &rt)
 
 Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair()
 {
-    Result_Type rt;
+    Result_Type rt = Result_Type::invalid_type;
     getMemRefExPair_RT(rt);
     return makeDereferenceExpression(makeRnExpr(), rt);
 }
@@ -1570,7 +1570,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefReg()
     Expression::Ptr xn = makeRnExpr();
     Expression::Ptr add = makeAddExpression(xn, ext, u64);
 
-    Result_Type rt;
+    Result_Type rt = Result_Type::invalid_type;
     getMemRefIndex_RT(rt);
     return makeDereferenceExpression(add,rt);
 }
@@ -2146,7 +2146,7 @@ void InstructionDecoder_aarch64::OPRRtL()
 
     if(IS_INSN_LDST_SIMD_MULT(insn) || IS_INSN_LDST_SIMD_MULT_POST(insn))
     {
-        unsigned int rpt, selem;
+        unsigned int rpt = 0, selem = 0;
         getSIMD_MULT_RptSelem(rpt, selem);
 	MachRegister reg = _Q == 0x1?aarch64::q0:aarch64::d0;
         for(int it_rpt = rpt*selem - 1; it_rpt >= 0; it_rpt--){
@@ -2173,10 +2173,10 @@ void InstructionDecoder_aarch64::OPRRtS()
     int encoding = field<0, 4>(insn);
 
     if( IS_INSN_LDST_SIMD_MULT(insn) || IS_INSN_LDST_SIMD_MULT_POST(insn) ){
-        unsigned int rpt, selem;
+        unsigned int rpt = 0, selem = 0;
         getSIMD_MULT_RptSelem(rpt, selem);
 	
-	MachRegister reg = _Q == 0x1?aarch64::q0:aarch64::d0;
+	MachRegister reg = _Q == 0x1 ? aarch64::q0 : aarch64::d0;
 
         for(int it_rpt = rpt*selem-1; it_rpt >= 0; it_rpt--){
 			insn_in_progress->appendOperand(makeRegisterExpression(makeAarch64RegID(reg, (encoding + it_rpt)%32 )), true, false);

@@ -405,7 +405,6 @@ bool BPatch_function::removeInstrumentation(bool useInsertionSet)
                 hasLoopInstrumentation(true,*this))
             {
                 mal_printf("ERROR: Trying to remove active looop instrumentation\n");
-                removedAll = false;
                 assert(0);
             }
             else if ( ! addSpace->deleteSnippet(allSnippets[all]) ) {

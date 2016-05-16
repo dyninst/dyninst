@@ -555,6 +555,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                }
                break;
             }
+            assert(proc);
             if (proc->getState() == int_process::neonatal_intermediate) {
                pthrd_printf("Decoded event to bootstrap on %d/%d\n",
                             proc->getPid(), thread->getLWP());
@@ -719,6 +720,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
          }
          default:
+            assert(proc);
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
                          stopsig, proc->getPid(), thread->getLWP());
 #if 0
@@ -818,7 +820,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
        assert(event);
        assert(!parent);
        assert(!child);
-       assert(proc->proc());
+       assert(proc && proc->proc());
        assert(thread->thread());
        delete archevent;
    }
@@ -1762,11 +1764,10 @@ bool linux_process::preTerminate() {
          threw_event = true;
       }
       bool exited = false;
-      auto pid = getPid();
       int_process::waitAndHandleForProc(true, this, exited);
       if (exited) {
-         // Note, can't even call getPid() anymore, since 'this' is ironically deleted.
-         perr_printf("Process %d exited during terminate handling.  Is this irony?\n", pid);
+         perr_printf("Process %d exited during terminate handling.  Is this irony?\n", getPid());
+         delete this;
          return false;
       }
    }

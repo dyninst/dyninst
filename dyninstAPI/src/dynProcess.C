@@ -2812,8 +2812,7 @@ void PCProcess::addSignalHandler(Address addr, unsigned size) {
     if (signalHandlerLocations_.find(addr, handlerLoc)) {
         return; // we're already tracking this location
     }
-    handlerLoc = new signal_handler_location(addr, size);
-    signalHandlerLocations_.insert((signal_handler_location *)handlerLoc);
+    signalHandlerLocations_.insert(new signal_handler_location(addr, size));
 }
 
 bool PCProcess::mappedObjIsDeleted(mapped_object *obj) {

@@ -162,7 +162,6 @@ bool BinaryEdit::writeDataWord(void *inOther,
 
 const Address ADDRESS_LO = (Address)0;
 const Address ADDRESS_HI = (Address)(~(Address)0);
-const unsigned HEAP_STAT_BUF_SIZE = (0x100000);
 
 Address BinaryEdit::inferiorMalloc(unsigned size,
                                inferiorHeapType /*ignored*/,
@@ -871,11 +870,6 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
             }
             currFunc = tfunc;
             start = tracker->reloc();
-            size = 0;
-         }
-         else {
-            // Accumulate size
-            size = tracker->reloc() - start;
          }
       }
    }

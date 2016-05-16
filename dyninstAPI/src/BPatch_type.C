@@ -102,10 +102,10 @@ BPatch_type::BPatch_type(Type *typ_): ID(typ_->getID()), typ(typ_),
 		{
 			//fprintf(stderr, "%s[%d]:  failed to get up ptr here\n", FILE__, __LINE__);
 
-			BPatch_type* dyninstType = new BPatch_type(base);
+			// BPatch_type* dyninstType = new BPatch_type(base);
 			// We might consider registering this new type in BPatch.
 			// For now, just silence the warning:
-			(void) dyninstType;
+			// (void) dyninstType;
 		}
 		else
 		{
@@ -252,8 +252,10 @@ BPatch_Vector<BPatch_field *> *BPatch_type::getComponents() const{
 	    return components;    
     }
 
-    if(derivedtype)
+    if(derivedtype) {
+        delete components;
         return getConstituentType()->getComponents();
+    }
     return NULL;
 }
 
@@ -616,8 +618,10 @@ BPatch_Vector<BPatch_field *> *BPatch_cblock::getComponents()
 	BPatch_Vector<BPatch_field *> *components = new BPatch_Vector<BPatch_field *>;
 	std::vector<Field *> *vars = cBlk->getComponents();
 
-	if (!vars)
-		return NULL;
+	if (!vars) {
+            delete components;
+	    return NULL;
+        }
 
 	for (unsigned i=0; i<vars->size();i++)
 	{

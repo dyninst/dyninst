@@ -185,6 +185,7 @@ DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
         num++, p = strtok(NULL, "\n"))
       ;
 
+   assert(num);
    ms = (dyninstmm_t *) malloc(num * sizeof(dyninstmm_t));
    if (! ms) {
       fprintf(stderr, "DYNINSTgetMemoryMap: Out of memory\n");

@@ -222,7 +222,7 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
     // We create the CFG based on the found nodes
     GraphPtr g = BuildAnalysisGraph(visitedEdges);
 
-    BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, block->last(), false, expandCache);
+    BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, false, expandCache);
     bfc.CalculateBoundedFacts();
 
     BoundValue target;

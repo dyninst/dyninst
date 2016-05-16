@@ -215,8 +215,9 @@ void Type::incrRefCount()
 
 void Type::decrRefCount() 
 {
-	if (refCount > 0)
-		refCount--;
+    assert(refCount > 0);
+    if(!--refCount)
+        delete this;
 }
 
 std::string &Type::getName()

@@ -161,8 +161,10 @@ bool strlist_pop_back(strlist *list)
     }
     --list->count;
 
-    free(curr->data);
-    free(curr);
+    if(curr) {
+        free(curr->data);
+        free(curr);
+    }
     return true;
 }
 

@@ -194,8 +194,9 @@ bool int_process::waitfor_startup()
          return false;
       }
       if (proc_exited || getState() == exited) {
-         pthrd_printf("Error.  Proces exited during create/attach\n");
+         pthrd_printf("Error.  Process exited during create/attach\n");
          globalSetLastError(err_exited, "Process exited during startup");
+         delete this;
          return false;
       }
       if (getState() == errorstate) {
@@ -241,7 +242,7 @@ bool int_process::attachThreads()
             continue;
          }
          pthrd_printf("Creating new thread for %d/%d during attach\n", pid, *i);
-         thr = int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
+         int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
          found_new_threads = true;
       }
    } while (found_new_threads);
@@ -942,7 +943,6 @@ bool int_process::waitAndHandleForProc(bool block, int_process *proc, bool &proc
 
    if (proc->getState() == int_process::exited) {
       pthrd_printf("Deleting proc %d from waitAndHandleForProc\n", proc->getPid());
-      delete proc;
       proc_exited = true;
    }
    else {
@@ -6623,6 +6623,7 @@ bool Process::runIRPCSync(IRPC::ptr irpc)
       if (exited) {
          perr_printf("Process %d exited while waiting for irpc completion\n", getPid());
          setLastError(err_exited, "Process exited during IRPC");
+         delete proc;
          return false;
       }
       if (!result) {
@@ -7421,6 +7422,7 @@ bool Thread::stopThread()
    if (proc_exited) {
       perr_printf("Process exited while waiting for user thread stop, erroring\n");
       setLastError(err_exited, "Process exited while thread being stopped.\n");
+      delete proc;
       return false;
    }
    if (!result) {
