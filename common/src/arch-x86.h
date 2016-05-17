@@ -470,6 +470,11 @@ enum {
 #ifndef VEX_PREFIX_MASKS
 #define VEX_PREFIX_MASKS
 
+/**
+ * Enum that differentiates different types of VEX prefixed instructions.
+ * This is also used as the demultiplexer for the sseVexMult table so the
+ * bindings should not be changed.
+ */
 enum VEX_TYPE
 {
     VEX_TYPE_NONE=0, VEX_TYPE_VEX2, VEX_TYPE_VEX3, VEX_TYPE_EVEX
@@ -596,7 +601,7 @@ enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, op_q, // 10
 enum {
   t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, 
   t_grp, t_sse, t_sse_mult, t_sse_bis, t_sse_bis_mult, 
-  t_sse_ter, t_sse_ter_mult, t_grpsse, t_3dnow, t_vexl, t_vexw, t_done=99
+  t_sse_ter, t_sse_ter_mult, t_grpsse, t_3dnow, t_vexl, t_vexw, t_sse_vex_mult, t_done=99
 };
 
 // registers used for memory access
