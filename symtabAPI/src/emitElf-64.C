@@ -160,13 +160,13 @@ emitElf64<ElfTypes>::emitElf64(Elf_X *oldElfHandle_, bool isStripped_, Object *o
     // address we'll put the phdrs into the page before that address.  This
     // works and will avoid the kernel bug.
 
-    isBlueGeneQ = obj_->isBlueGeneQ();
-    isStaticBinary = obj_->isStaticBinary();
-    if (isBlueGeneQ) {
-        movePHdrsFirst = false;
-    } else {
-        movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
-    }
+    // isBlueGeneQ = obj_->isBlueGeneQ();
+    // isStaticBinary = obj_->isStaticBinary();
+    // if (isBlueGeneQ) {
+        // movePHdrsFirst = false;
+    // } else {
+        // movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
+    // }
 
     //If we want to try a mode where we add the program headers to a library
     // that can be loaded anywhere, and put the program headers in the first
@@ -174,11 +174,12 @@ emitElf64<ElfTypes>::emitElf64(Elf_X *oldElfHandle_, bool isStripped_, Object *o
     // This will shift all addresses in the library down by a page, accounting
     // for the extra page for program headers.  This causes some significant
     // changes to the binary, and isn't well tested.
-    library_adjust = 0;
-    if (cannotRelocatePhdrs() && !movePHdrsFirst) {
-        movePHdrsFirst = true;
-        library_adjust = getpagesize();
-    }
+
+    // library_adjust = 0;
+    // if (cannotRelocatePhdrs() && !movePHdrsFirst) {
+    movePHdrsFirst = true;
+    library_adjust = getpagesize();
+    // }
 }
 
 template<class ElfTypes>

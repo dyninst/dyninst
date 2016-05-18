@@ -105,7 +105,9 @@ enum {
 /** Table that multiplexes between VEX and non VEX sse instructions */
 /** START_DYNINST_TABLE_DEF(sse_vex_mult_table, SSEVEX, NO) */
 enum {
-SSEVEX78 = 0
+    SSEVEX41 = 0, SSEVEX42, SSEVEX44, SSEVEX45, SSEVEX4A, SSEVEX4B,
+    SSEVEX78,
+    SSEVEX90, SSEVEX91, SSEVEX93, SSEVEX98
 };
 /** END_DYNINST_TABLE_DEF*/
 
@@ -1781,6 +1783,14 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_kaddd, "kaddd")
   (e_kaddw, "kaddw")
   (e_kaddq, "kaddq")
+  (e_kshiftlw, "kshiftlw")
+  (e_kshiftlb, "kshiftlb")
+  (e_kshiftlq, "kshiftlq")
+  (e_kshiftld, "kshiftld")
+  (e_kshiftrw, "kshiftrw")
+  (e_kshiftrb, "kshiftrb")
+  (e_kshiftrq, "kshiftrq")
+  (e_kshiftrd, "kshiftrd")
   (e_kunpckbw, "kunpckbw")
   (e_kunpckwd, "kunpckwd")
   (e_kunpckdq, "kunpckdq")
@@ -1788,10 +1798,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_kmovd, "kmovd")
   (e_kmovw, "kmovw")
   (e_kmovq, "kmovq")
-  (e_kmovb, "kmovb")
-  (e_kmovd, "kmovd")
-  (e_kmovq, "kmovq")
-  (e_kmovw, "kmovw")
   (e_kortestb, "kortestb")
   (e_kortestd, "kortestd")
   (e_kortestw, "kortestw")
@@ -2426,18 +2432,18 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
   /* 40 */
   { e_cmovo,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
-  { e_cmovno,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
-  { e_cmovnae, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
+  { e_No_Entry,  t_sse_vex_mult, SSEVEX41, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry,  t_sse_vex_mult, SSEVEX42, false, { Zz, Zz, Zz }, 0, 0 },
   { e_cmovnb,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
-  { e_cmove,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
-  { e_cmovne,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
+  { e_No_Entry,  t_sse_vex_mult, SSEVEX44, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry,  t_sse_vex_mult, SSEVEX45, false, { Zz, Zz, Zz }, 0, 0 },
   { e_cmovbe,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
   { e_cmovnbe, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
   /* 48 */
   { e_cmovs,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
   { e_cmovns,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
-  { e_cmovpe,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
-  { e_cmovpo,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
+  { e_No_Entry,  t_sse_vex_mult, SSEVEX4A, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry,  t_sse_vex_mult, SSEVEX4B, false, { Zz, Zz, Zz }, 0, 0 },
   { e_cmovnge, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
   { e_cmovnl,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
   { e_cmovng,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
@@ -2515,16 +2521,16 @@ static ia32_entry twoByteMap[256] = {
   { e_jle,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
   { e_jnle, t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
   /* 90 */
-  { e_seto,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { e_setno,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_No_Entry,  t_sse_vex_mult, SSEVEX90, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry,  t_sse_vex_mult, SSEVEX91, false, { Zz, Zz, Zz }, 0, 0 },
   { e_setb,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { e_setnb,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_No_Entry,  t_sse_vex_mult, SSEVEX93, false, { Zz, Zz, Zz }, 0, 0 },
   { e_setz,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   { e_setnz,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   { e_setbe,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   { e_setnbe, t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   /* 98 */
-  { e_sets,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_No_Entry,  t_sse_vex_mult, SSEVEX98, false, { Zz, Zz, Zz }, 0, 0 },
   { e_setns,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   { e_setp,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   { e_setnp,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
@@ -3742,11 +3748,61 @@ static ia32_entry groupMap2[][2][8] = {
  */
 /** START_DYNINST_TABLE_VERIFICATION(sse_vex_mult_table) */
 static ia32_entry sseVexMult[][4] = {
-    { /* SSEVEX78 */
+    { /* SSEVEX41 */
+        { e_cmovno,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
+        { e_No_Entry, t_sse, SSE41, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE41, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE41, false, { Zz, Zz, Zz }, 0, 0 },
+    }, { /* SSEVEX42 */
+        { e_cmovnae, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
+        { e_No_Entry, t_sse, SSE42, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE42, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE42, false, { Zz, Zz, Zz }, 0, 0 },
+    }, { /* SSEVEX44 */
+        { e_cmove,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
+        { e_No_Entry, t_sse, SSE44, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE44, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE44, false, { Zz, Zz, Zz }, 0, 0 },
+    }, { /* SSEVEX45 */
+        { e_cmovne,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
+        { e_No_Entry, t_sse, SSE45, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE45, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE45, false, { Zz, Zz, Zz }, 0, 0 },
+    }, { /* SSEVEX4A */
+        { e_cmovpe,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
+        { e_No_Entry, t_sse, SSE4A, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE4A, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE4A, false, { Zz, Zz, Zz }, 0, 0 },
+    }, { /* SSEVEX4B */
+        { e_cmovpo,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
+        { e_No_Entry, t_sse, SSE4B, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE4B, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE4B, false, { Zz, Zz, Zz }, 0, 0 },
+    }, { /* SSEVEX78 */
         { e_No_Entry, t_grp, Grp17, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_sse_mult, SSE78_66, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_sse_mult, SSE78_66, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_sse_mult, SSE78_66, false, { Zz, Zz, Zz }, 0, 0 }
+    }, { /* SSEVEX90 */
+        { e_seto,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+        { e_No_Entry, t_sse, SSE90, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE90, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE90, false, { Zz, Zz, Zz }, 0, 0 }
+    }, { /* SSEVEX91 */
+        { e_setno,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+        { e_No_Entry, t_sse, SSE91, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE91, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE91, false, { Zz, Zz, Zz }, 0, 0 }
+    }, { /* SSEVEX93 */
+        { e_setnb,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+        { e_No_Entry, t_sse, SSE93, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE93, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE93, false, { Zz, Zz, Zz }, 0, 0 }
+    }, { /* SSEVEX98 */
+        { e_sets,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+        { e_No_Entry, t_sse, SSE98, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE98, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE98, false, { Zz, Zz, Zz }, 0, 0 }
     }
 };
 /* END_DYNINST_TABLE_VERIFICATION */
@@ -5896,8 +5952,8 @@ ia32_entry sseMapMult[][3] =
     { e_kaddd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
   }, { /* SSE4A_NO */
-    { e_kaddw, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
-    { e_kaddq, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
+    { e_kaddw, t_done, 0, true, { VK, HK, WK }, 0, s1W2R3R },
+    { e_kaddq, t_done, 0, true, { VK, HK, WK }, 0, s1W2R3R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
   }, { /* SSE4B_66 */
     { e_kunpckbw, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
@@ -6244,12 +6300,12 @@ ia32_entry sseMapMult[][3] =
     { e_vmovq, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
   }, { /* SSE90_66 */
-    /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
-    /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
+    { e_kmovb, t_done, 0, true, { VK, HK, WK }, 0, s1W2R3R },
+    { e_kmovd, t_done, 0, true, { VK, HK, WK }, 0, s1W2R3R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
   }, { /* SSE90_NO */
-    /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
-    /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
+    { e_kmovw, t_done, 0, true, { VK, HK, WK }, 0, s1W2R3R },
+    { e_kmovq, t_done, 0, true, { VK, HK, WK }, 0, s1W2R3R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
   }, { /* SSE91_66 */
     { e_kmovb, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
@@ -7275,7 +7331,7 @@ ia32_entry sseMapTerMult[][3] =
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSET32_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
+        { e_kshiftlw, t_done, 0, true, { VK, HK, WK }, 0, s1W2R3R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSET33_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },

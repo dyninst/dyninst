@@ -785,6 +785,7 @@ namespace Dyninst
                     default:break;
                 }
                 break;
+
             case am_U: case am_YU: case am_XU:
             case am_W: case am_YW: case am_XW:
                 switch(pref.vex_type)
@@ -796,22 +797,16 @@ namespace Dyninst
                     default: break;
                 }
                 break;
+
 			case am_HK: case am_VK: case am_WK:
-				switch(pref.vex_type)
-				{
-					case VEX_TYPE_EVEX:
-						bank = b_kmask;
-						*bank_index = regnum;
-						if(*bank_index > 7)
-							*bank_index = 7;
-						else if(*bank_index < 0)
-							*bank_index = 0;
-                        return false; /* Return success */
-					default:
-						assert(!"MASKING REGISTERS NOT VALID FOR THIS PREFIX");
-						break;
-				}
-				break;
+			    bank = b_kmask;
+			    *bank_index = regnum;
+			    if(*bank_index > 7)
+				    *bank_index = 7;
+			    else if(*bank_index < 0)
+				    *bank_index = 0;
+                return false; /* Return success */
+
             default:  break;/** SSE instruction */
         }
 #ifdef VEX_DEBUG
