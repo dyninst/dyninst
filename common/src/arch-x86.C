@@ -105,9 +105,11 @@ enum {
 /** Table that multiplexes between VEX and non VEX sse instructions */
 /** START_DYNINST_TABLE_DEF(sse_vex_mult_table, SSEVEX, NO) */
 enum {
-    SSEVEX41 = 0, SSEVEX42, SSEVEX44, SSEVEX45, SSEVEX4A, SSEVEX4B,
+    SSEVEX41 = 0, SSEVEX42, SSEVEX44, SSEVEX45, SSEVEX46, 
+    SSEVEX4A, SSEVEX4B,
     SSEVEX78,
-    SSEVEX90, SSEVEX91, SSEVEX93, SSEVEX98
+    SSEVEX90, SSEVEX91, SSEVEX93, 
+    SSEVEX98
 };
 /** END_DYNINST_TABLE_DEF*/
 
@@ -409,7 +411,7 @@ SSET00 = 0, SSET01, SSET02, SSET03, SSET04, SSET05, SSET06,
 	                                SSET14, SSET15, SSET16, SSET17,
 	SSET18, SSET19, SSET1A, SSET1B,         SSET1D, SSET1E, SSET1F,
 	SSET20, SSET21, SSET22, SSET23,         SSET25, SSET26, SSET27,
-    SSET30,         SSET32, SSET33,
+    SSET30, SSET31, SSET32, SSET33,
     SSET38, SSET39, SSET3A, SSET3B,                 SSET3E, SSET3F,
 	SSET40, SSET41, SSET42,                         SSET46,
                     SSET4A, SSET4B, SSET4C,
@@ -2437,7 +2439,7 @@ static ia32_entry twoByteMap[256] = {
   { e_cmovnb,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX44, false, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX45, false, { Zz, Zz, Zz }, 0, 0 },
-  { e_cmovbe,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
+  { e_No_Entry,  t_sse_vex_mult, SSEVEX46, false, { Zz, Zz, Zz }, 0, 0 },
   { e_cmovnbe, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
   /* 48 */
   { e_cmovs,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
@@ -3003,10 +3005,10 @@ static ia32_entry threeByteMap2[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		/* 30 */
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_ter, SSET30, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_ter, SSET31, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_ter, SSET32, false, { Zz, Zz, Zz }, 0, 0 },
+		{ e_No_Entry, t_sse_ter, SSET33, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -3768,6 +3770,11 @@ static ia32_entry sseVexMult[][4] = {
         { e_No_Entry, t_sse, SSE45, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_sse, SSE45, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_sse, SSE45, false, { Zz, Zz, Zz }, 0, 0 },
+    }, { /* SSEVEX46 */
+        { e_cmovbe,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
+        { e_No_Entry, t_sse, SSE46, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE46, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse, SSE46, false, { Zz, Zz, Zz }, 0, 0 },
     }, { /* SSEVEX4A */
         { e_cmovpe,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS) },
         { e_No_Entry, t_sse, SSE4A, false, { Zz, Zz, Zz }, 0, 0 },
@@ -5646,6 +5653,10 @@ static ia32_entry sseMapTer[][3] =
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_sse_ter_mult, SSET30_66, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+    }, { /* SSET31 */
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_sse_ter_mult, SSET31_66, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSET32 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_sse_ter_mult, SSET32_66, false, { Zz, Zz, Zz }, 0, 0 },
@@ -7323,19 +7334,19 @@ ia32_entry sseMapTerMult[][3] =
         { e_No_Entry, t_vexw, VEXW5C, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSET30_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
+        { e_kshiftrb, t_done, 0, true, { VK, HK, Ib }, 0, s1W2R3R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSET31_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
+        { e_kshiftrq, t_done, 0, true, { VK, HK, Ib }, 0, s1W2R3R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSET32_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_kshiftlw, t_done, 0, true, { VK, HK, WK }, 0, s1W2R3R },
+        { e_kshiftlw, t_done, 0, true, { VK, HK, Ib }, 0, s1W2R3R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSET33_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // COLLISION HERE
+        { e_kshiftlq, t_done, 0, true, { VK, HK, Ib }, 0, s1W2R3R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSET38_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
