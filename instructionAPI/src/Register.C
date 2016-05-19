@@ -97,8 +97,10 @@ namespace Dyninst
             {
                 name = name.substr(substr+1, name.length());
             }
-            std::transform(name.begin(), name.end(), name.begin(), ::toupper);
-            return name;
+            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+            std::stringstream stream;
+            stream << "%" << name;
+            return stream.str();
         }
         return "[NAME NOT FOUND]";
     }

@@ -28,6 +28,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <string>
+#include <iostream>
+#include <sstream>
+
 #include "Immediate.h"
 #include "../../common/src/singleton_object_pool.h"
 #include "Visitor.h"
@@ -71,7 +75,9 @@ namespace Dyninst
     
     std::string Immediate::format(formatStyle) const
     {
-      return eval().format();
+        std::stringstream ss;
+        ss << "$0x" << eval().format();
+        return ss.str();
     }
     bool Immediate::isStrictEqual(const InstructionAST& rhs) const
     {
