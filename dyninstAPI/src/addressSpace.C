@@ -1388,11 +1388,10 @@ void trampTrapMappings::allocateTable()
    table_header = proc()->inferiorMalloc(table_allocated * entry_size + 
                                          sizeof(trap_mapping_header));
    trap_mapping_header header;
+   memset(&header, 0, sizeof(header));
    header.signature = TRAP_HEADER_SIG;
    header.num_entries = table_mutatee_size;
    header.pos = -1;
-   header.low_entry = 0;
-   header.high_entry = 0;
 
    bool result = proc()->writeDataSpace((void *) table_header, 
                                         sizeof(trap_mapping_header),
