@@ -44,7 +44,7 @@ TESTLIB_DLL_EXPORT std::string launchMutatee(std::string executable, std::vector
 
 TESTLIB_DLL_EXPORT bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_name,
                       std::vector<std::string> &args);
-TESTLIB_DLL_EXPORT char **getCParams(std::string executable, const std::vector<std::string> &args);
+TESTLIB_DLL_EXPORT char **getCParams(const std::string &executable, const std::vector<std::string> &args);
 
 //void setMutateeDict(RunGroup *group, ParameterDict &params);
 

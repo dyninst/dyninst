@@ -120,7 +120,7 @@ static pid_t fork_mutatee() {
 #endif
 #endif
 
-char **getCParams(std::string executable, const std::vector<std::string> &args)
+char **getCParams(const std::string &executable, const std::vector<std::string> &args)
 {
    char **argv = (char **) malloc(sizeof(char *) * (args.size()+2));
    assert(argv);
@@ -173,7 +173,7 @@ extern FILE *getOutputLog();
 extern FILE *getErrorLog();
 
 
-static std::string launchMutatee_plat(std::string exec_name, const std::vector<std::string> &args, bool needs_grand_fork)
+static std::string launchMutatee_plat(const std::string &exec_name, const std::vector<std::string> &args, bool needs_grand_fork)
 {
    pid_t pid;
    if (needs_grand_fork) {
@@ -222,8 +222,9 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
       const char *c_exec_name = exec_name.c_str();
 
       execvp(exec_name.c_str(), (char * const *) argv);
-      exec_name = std::string("./") + exec_name;
-      execvp(exec_name.c_str(), (char * const *) argv);
+
+      string dot_exec_name = std::string("./") + exec_name;
+      execvp(dot_exec_name.c_str(), (char * const *) argv);
 
       fprintf(stderr, "%s[%d]:  Exec failed!\n", __FILE__, __LINE__);
       exit(-1);
@@ -283,7 +284,7 @@ static void AddArchAttachArgs(std::vector<std::string> &args, create_mode_t cm, 
 
 }
 
-static std::string launchMutatee_plat(std::string exec_name, const std::vector<std::string> &args, bool needs_grand_fork)
+static std::string launchMutatee_plat(const std::string &exec_name, const std::vector<std::string> &args, bool needs_grand_fork)
 {
 	HANDLE mutatee_signal_pipe = (HANDLE) NULL;
 	if (wait_for_pipe) {
