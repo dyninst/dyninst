@@ -2061,7 +2061,14 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                             true, false);
             }
             else if (op == aarch64_op_prfm_imm || op == aarch64_op_prfm_lit || op == aarch64_op_prfm_reg) {
-                Expression::Ptr prfop = Immediate::makeImmediate(Result(u32, unsign_extend32(5, encoding)));
+                Expression::Ptr prfop;
+		Result arg = Result(u32, unsign_extend32(5, encoding));
+		
+		if((encoding & 0x1E) == 0x6 || (encoding & 0x1E) == 0xE || (encoding & 0x1E) == 0x16 || (encoding & 0x18) == 0x18)
+		    prfop = Immediate::makeImmediate(arg);
+		else
+		    prfop = ArmPrfmTypeImmediate::makeArmPrfmTypeImmediate(arg);
+
                 insn_in_progress->appendOperand(prfop, true, false);
             }
         }
@@ -2162,7 +2169,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 		else
 		    oprRotateAmt++;
 
-                Expression::Ptr cond = Immediate::makeImmediate(Result(u8, condVal));
+                Expression::Ptr cond = ArmConditionImmediate::makeArmConditionImmediate(Result(u8, condVal));
                 insn_in_progress->appendOperand(cond, true, false);
             }
 
