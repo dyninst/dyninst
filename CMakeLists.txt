@@ -82,21 +82,10 @@ if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (dyninstAPI)
 endif()
 
-# Build the RT library as a seperate project so we can change compilers
-message(STATUS "Configuring DyninstAPI_RT")
-file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile ${RT_BINARY_DIR}/Makefile)
-file(MAKE_DIRECTORY ${RT_BINARY_DIR})
-if (PLATFORM MATCHES bgq)
-  set (RT_C_COMPILER mpicc CACHE STRING "Compiler for runtime library")
-else()
-  set (RT_C_COMPILER ${CMAKE_C_COMPILER} CACHE STRING "Compiler for runtime library")
-endif()
-set (ENABLE_STATIC_LIBS NO CACHE STRING "Build static libraries as well?")
-message(STATUS "Configuring RT library")
 if(BUILD_RTLIB)
-  # Build the RT library as a seperate project so we can change compilers
+  # Build the RT library as a separate project so we can change compilers
   message(STATUS "Configuring DyninstAPI_RT")
-  file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile ${RT_BINARY_DIR}/Makefile)
+  file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/Makefile)
   file(MAKE_DIRECTORY ${RT_BINARY_DIR})
   if (PLATFORM MATCHES bgq)
     set (RT_C_COMPILER mpicc CACHE STRING "Compiler for runtime library")
