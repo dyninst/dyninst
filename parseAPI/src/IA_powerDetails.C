@@ -479,6 +479,13 @@ bool IA_powerDetails::findTableBase(IA_IAPI::allInsns_t::const_iterator start,
   return true;
 }
 
+bool IA_powerDetails::parseJumpTable(Function *,
+                                     Block* currBlk,
+				     std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges)
+{
+    return parseJumpTable(currBlk, outEdges);
+}
+
 
 
 // This should only be called on a known indirect branch...

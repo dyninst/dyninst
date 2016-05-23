@@ -162,3 +162,12 @@ bool IA_aarch64Details::parseJumpTable(Block* /*currBlk*/,
 	assert(0);
   return true;
 }
+
+bool IA_aarch64Details::parseJumpTable(Dyninst::ParseAPI::Function* currFunc,
+                                       Dyninst::ParseAPI::Block* currBlk,
+				       std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) 
+{
+    parsing_printf("Jump table parsing not implmemented on ARM 64 yet\n");
+    return false;
+}
+
