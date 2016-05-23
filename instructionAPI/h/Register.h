@@ -108,7 +108,6 @@ namespace Dyninst
       virtual bool checkRegID(MachRegister id, unsigned int low, unsigned int high) const;
       MachRegister getPromotedReg() const;
       
-    // private:
       MachRegister m_Reg;
       unsigned int m_Low;
       unsigned int m_High;
@@ -121,13 +120,13 @@ namespace Dyninst
      */
     class INSTRUCTION_EXPORT MaskRegisterAST : public RegisterAST
     {
-        MaskRegisterAST(MachRegister r) : RegisterAST(r) {}
-        MaskRegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit)
-            : RegisterAST(r, lowbit, highbit) {}
-        MaskRegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType)
-            : RegisterAST(r, lowbit, highbit, regType) {}
-
         public:
+            MaskRegisterAST(MachRegister r) : RegisterAST(r) {}
+            MaskRegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit)
+                : RegisterAST(r, lowbit, highbit) {}
+            MaskRegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType)
+                : RegisterAST(r, lowbit, highbit, regType) {}
+
             virtual std::string format(formatStyle how = defaultStyle) const;
     };
   };

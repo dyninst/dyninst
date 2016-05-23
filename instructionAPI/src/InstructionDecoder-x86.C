@@ -1776,8 +1776,9 @@ namespace Dyninst
         for(int i = 0; i < 3; i++)
         {
             if(decodedInstruction->getEntry()->operands[i].admet == 0 && 
-	       decodedInstruction->getEntry()->operands[i].optype == 0)
-                return true;
+	            decodedInstruction->getEntry()->operands[i].optype == 0)
+                break;
+
             if(!decodeOneOperand(b,
 				 decodedInstruction->getEntry()->operands[i], 
 				 imm_index, 
@@ -1807,7 +1808,7 @@ namespace Dyninst
         /* Is this an EVEX prefixed instruction? */
         if(pref.vex_type == VEX_TYPE_EVEX)
         {
-            insn_to_complete->appendOperand(makeRegisterExpression(
+            insn_to_complete->appendOperand(makeMaskRegisterExpression(
                         IntelRegTable(m_Arch, b_kmask, pref.vex_aaa)), 
                         true, false);
         }
