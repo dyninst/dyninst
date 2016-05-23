@@ -102,7 +102,7 @@ namespace Dyninst
       }
       virtual std::string format(formatStyle) const
       {
-	std::stringstream retVal;
+	    std::stringstream retVal;
 #if defined(DEBUG_MEMORY_ACCESS_WIDTH)
         switch(Expression::userSetValue.type)
         {
@@ -144,7 +144,7 @@ namespace Dyninst
                 break;
         }
 #endif
-	retVal << "[" << addressToDereference->format() << "]";
+	    retVal << "(" << addressToDereference->format() << ")";
 //        retVal << addressToDereference->format(memoryAccessStyle);
         return retVal.str();
       }

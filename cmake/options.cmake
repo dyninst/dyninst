@@ -7,6 +7,9 @@ option (SW_ANALYSIS_STEPPER "Use ParseAPI-based analysis stepper in Stackwalker"
 option (BUILD_TARBALLS "Build Dyninst package tarballs. Requires git archive, tar, gzip." OFF)
 option (BUILD_RTLIB_32 "Build 32-bit runtime library on mixed 32/64 systems" OFF)
 
+option(BUILD_RTLIB "Building runtime library (can be disabled safely for component-level builds)" ON)
+option(BUILD_DOCS "Build manuals from LaTeX sources" ON)
+
 # Some global on/off switches
 if (LIGHTWEIGHT_SYMTAB)
 add_definitions (-DWITHOUT_SYMTAB_API -DWITH_SYMLITE)

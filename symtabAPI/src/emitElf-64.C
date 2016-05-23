@@ -174,6 +174,7 @@ emitElf64<ElfTypes>::emitElf64(Elf_X *oldElfHandle_, bool isStripped_, Object *o
     // This will shift all addresses in the library down by a page, accounting
     // for the extra page for program headers.  This causes some significant
     // changes to the binary, and isn't well tested.
+
     library_adjust = 0;
     if (cannotRelocatePhdrs() && !movePHdrsFirst) {
         movePHdrsFirst = true;

@@ -668,7 +668,10 @@ enum X86RegisterClass {
   x86_regclass_dr, // Numbers are dr0..dr15
   x86_regclass_st, // Numbers are st0..st7
   x86_regclass_mm, // Numbers are mm0..mm7
-  x86_regclass_xmm, // Numbers are xmm0..xmm15
+  x86_regclass_kmask, // Numbers are k0..k7 on x86_64
+  x86_regclass_xmm, // Numbers are xmm0..xmm15 on x86, xmm0..xmm31 on x86_64
+  x86_regclass_ymm, // Numbers are ymm0..ymm31 on x86_64
+  x86_regclass_zmm, // Numbers are zmm0..zmm31 on x86_64
   x86_regclass_ip, // Only value allowed is 0
   x86_regclass_st_top, // Only value allowed is 0
   x86_regclass_flags // Only value allowed is 0

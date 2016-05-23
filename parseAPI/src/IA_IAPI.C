@@ -59,8 +59,6 @@ std::map<Architecture, RegisterAST::Ptr> IA_IAPI::framePtr;
 std::map<Architecture, RegisterAST::Ptr> IA_IAPI::stackPtr;
 std::map<Architecture, RegisterAST::Ptr> IA_IAPI::thePC;
 
-extern template class boost::shared_ptr<Dyninst::InstructionAPI::BinaryFunction::funcT>;
-extern template class boost::shared_ptr<Dyninst::InstructionAPI::InstructionAST>;
 
 IA_IAPI::IA_IAPI(const IA_IAPI &rhs) 
    : InstructionAdapter(rhs),
@@ -534,7 +532,7 @@ void IA_IAPI::parseSysEnter(std::vector<std::pair<Address, EdgeTypeEnum> >& outE
   }
 }
 
-
+bool DEBUGGABLE(void) { return true; }
 
 void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
 			  Function* context,
@@ -741,7 +739,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     {
       parseSysEnter(outEdges);
       return;
-    } else if (isSyscall()) {
+    } else if (DEBUGGABLE() && isSyscall()) {
         parseSyscall(outEdges);
         return;
     }

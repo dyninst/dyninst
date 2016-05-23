@@ -272,10 +272,10 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
     {
-      if(m_Operands.empty())
-      {
-	decodeOperands();
-      }
+        if(m_Operands.empty())
+        {
+	        decodeOperands();
+        }
       for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -440,26 +440,36 @@ memAccessors.begin()));
     
     INSTRUCTION_EXPORT std::string Instruction::format(Address addr) const
     {
-        if(m_Operands.empty())
-        {
-	        decodeOperands();
-        }
+      if(m_Operands.empty())
+      {
+	       decodeOperands();
+      }
 
-        std::string retVal = m_InsnOp->format();
-        retVal += " ";
-        std::list<Operand>::const_iterator curOperand;
-        for(curOperand = m_Operands.begin();
-	    curOperand != m_Operands.end();
-	    ++curOperand)
-        {
-            retVal += curOperand->format(getArch(), addr);
-	        retVal += ", ";
-        }
-        if(!m_Operands.empty())
-        {
-	        // trim trailing ", "
-	        retVal.erase(retVal.size() - 2, retVal.size());
-        }
+      std::string retVal = m_InsnOp->format();
+      retVal += " ";
+      std::list<Operand>::const_iterator currOperand;
+      std::string dst_operand;
+      int op = 0;
+      for(currOperand = m_Operands.begin();
+	    currOperand != m_Operands.end();op++,++currOperand)
+      {
+            if(op == 0)
+            {
+                dst_operand = currOperand->format(getArch(), addr);
+                continue;
+            }
+
+            retVal += currOperand->format(getArch(), addr);
+
+            if(op != 1)
+	            retVal += ", ";
+      }
+
+      if(op != 1)
+          retVal += ", ";
+
+      /* AT&T Syntax puts dst at end */
+      retVal += dst_operand;
 
 #if defined(DEBUG_READ_WRITE)      
         std::set<RegisterAST::Ptr> tmp;
