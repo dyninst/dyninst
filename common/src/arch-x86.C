@@ -8741,6 +8741,8 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 break;
         }
 
+
+
 #if 0
     // debug output for memory access decoding
     for (int i = 0; i < 3; i++) {
@@ -9713,6 +9715,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
     pref.vex_R = 0;
     pref.vex_x = 0;
     pref.vex_b = 0;
+    pref.vex_aaa = 0;
 
     while(in_prefix) 
     {
@@ -9793,6 +9796,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 pref.vex_R = EVEXGET_R(pref.vex_prefix[0]);
                 pref.vex_x = EVEXGET_x(pref.vex_prefix[0]);
                 pref.vex_b = EVEXGET_b(pref.vex_prefix[0]);
+                pref.vex_aaa = EVEXGET_AAA(pref.vex_prefix[2]);
                 pref.count += 4;
 
                 /* VEX_LL must be 0, 1, or 2 */

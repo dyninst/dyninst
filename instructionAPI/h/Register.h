@@ -46,6 +46,8 @@ namespace Dyninst
     /// As a %RegisterAST is a %Expression, it may contain the physical register's contents if
     /// they are known.
     ///
+
+
     class INSTRUCTION_EXPORT RegisterAST : public Expression
     {
     public:
@@ -106,12 +108,28 @@ namespace Dyninst
       virtual bool checkRegID(MachRegister id, unsigned int low, unsigned int high) const;
       MachRegister getPromotedReg() const;
       
-    private:
+    // private:
       MachRegister m_Reg;
       unsigned int m_Low;
       unsigned int m_High;
     };
-    
+
+    /**
+     * Class for mask register operands. This class is the same as the RegisterAST
+     * class except it handles the syntactial differences between register operands
+     * and mask register operands.
+     */
+    class INSTRUCTION_EXPORT MaskRegisterAST : public RegisterAST
+    {
+        MaskRegisterAST(MachRegister r) : RegisterAST(r) {}
+        MaskRegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit)
+            : RegisterAST(r, lowbit, highbit) {}
+        MaskRegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType)
+            : RegisterAST(r, lowbit, highbit, regType) {}
+
+        public:
+            virtual std::string format(formatStyle how = defaultStyle) const;
+    };
   };
 };
 

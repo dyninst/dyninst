@@ -1802,6 +1802,15 @@ namespace Dyninst
                 return false;
             }
         }
+
+        ia32_prefixes& pref = *decodedInstruction->getPrefix();
+        /* Is this an EVEX prefixed instruction? */
+        if(pref.vex_type == VEX_TYPE_EVEX)
+        {
+            insn_to_complete->appendOperand(makeRegisterExpression(
+                        IntelRegTable(m_Arch, b_kmask, pref.vex_aaa)), 
+                        true, false);
+        }
     
         return true;
     }
