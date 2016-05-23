@@ -112,6 +112,7 @@ namespace Dyninst
         }
 
         /* The syntax for a masking register is {kX} in AT&T syntax. */
+        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
         std::stringstream ss;
         ss << "{" << name << "}";
 

@@ -445,31 +445,59 @@ memAccessors.begin()));
 	       decodeOperands();
       }
 
+      std::string dst_operand; /* Goes at the end after src operands */
+	  bool has_mask = false;
+      std::string mask_operand; /* Goes after the dst operand (if it exists) */
+
       std::string retVal = m_InsnOp->format();
       retVal += " ";
       std::list<Operand>::const_iterator currOperand;
-      std::string dst_operand;
       int op = 0;
       for(currOperand = m_Operands.begin();
-	    currOperand != m_Operands.end();op++,++currOperand)
+	    currOperand != m_Operands.end();
+        op++, ++currOperand)
       {
+			std::string format = currOperand->format(getArch(), addr);
+
+			if(format.size() < 1)
+			{
+				assert(!"Null operand in operands list!");
+				continue;
+			}
+
+			/* Is this the first operand? */
             if(op == 0)
             {
-                dst_operand = currOperand->format(getArch(), addr);
+                dst_operand = format;
                 continue;
             }
 
-            retVal += currOperand->format(getArch(), addr);
+			/* Is this a mask operand? */
+			if(format.at(0) == '{')
+			{
+				/* Mask register */
+				mask_operand = format;
+				has_mask = true;
+				break;
+			}
 
-            if(op != 1)
+            if(op > 1)
 	            retVal += ", ";
+
+            retVal += format;
       }
 
-      if(op != 1)
+      if(op > 1)
           retVal += ", ";
 
       /* AT&T Syntax puts dst at end */
       retVal += dst_operand;
+
+	  if(has_mask)
+	  {
+		  retVal += " ";
+	      retVal += mask_operand;
+	  }
 
 #if defined(DEBUG_READ_WRITE)      
         std::set<RegisterAST::Ptr> tmp;
