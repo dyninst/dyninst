@@ -68,6 +68,7 @@ class InstructionDecoderImpl
 		virtual Expression::Ptr makeRightRotateExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
         virtual Expression::Ptr makeDereferenceExpression(Expression::Ptr addrToDereference, Result_Type resultType);
         virtual Expression::Ptr makeRegisterExpression(MachRegister reg);
+        virtual Expression::Ptr makeMaskRegisterExpression(MachRegister reg);
         virtual Expression::Ptr makeRegisterExpression(MachRegister reg, Result_Type extendFrom);
         virtual Result_Type makeSizeType(unsigned int opType) = 0;
         Instruction* makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,

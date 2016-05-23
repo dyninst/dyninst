@@ -706,6 +706,7 @@ class ia32_prefixes
   int vex_R; /* The VEX REXR' bit for EVEX */
   int vex_x; /* The VEX REXX bit for VEX2, VEX3 or EVEX */
   int vex_b; /* The VEX REXB bit for VEX2, VEX3 or EVEX */
+  int vex_aaa; /* Selects the vector mask register for EVEX */
 };
 
 // helper routine to tack-on rex bit when needed
