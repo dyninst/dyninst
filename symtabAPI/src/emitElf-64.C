@@ -1947,6 +1947,7 @@ bool emitElf64<ElfTypes>::createSymbolTables(vector<Symbol *> &allSymbols) {
 
         char *dynstr = (char *) malloc(dynsymbolNamesLength);
         memcpy((void *) dynstr, (void *) olddynStrData, olddynStrSize);
+        dynstr[olddynStrSize] = '\0';
         cur = olddynStrSize + 1;
         for (i = 0; i < dynsymbolStrs.size(); i++) {
             strcpy(&dynstr[cur], dynsymbolStrs[i].c_str());
