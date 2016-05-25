@@ -148,8 +148,8 @@ namespace Dyninst {
 
             bool isPstateRead, isPstateWritten;
             bool isFPInsn, isSIMDInsn;
-            bool is64Bit;
 	    bool skipRn, skipRm;
+            bool is64Bit;
             bool isValid;
 
             void mainDecode();

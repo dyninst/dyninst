@@ -143,8 +143,8 @@ namespace Dyninst {
                   is64Bit(true), isValid(true), insn(0), insn_in_progress(NULL),
                   hasHw(false), hasShift(false), hasOption(false), hasN(false),
                   immr(0), immrLen(0), sField(0), nField(0), nLen(0),
-                  immlo(0), immloLen(0), _szField(-1), _Q(1), size(-1),
-                  cmode(0), op(0), simdAlphabetImm(0) {
+                  immlo(0), immloLen(0), _szField(-1), size(-1),
+                  cmode(0), op(0), simdAlphabetImm(0), _Q(1) {
             aarch64_insn_entry::buildInsnTable();
             aarch64_mask_entry::buildDecoderTable();
             InstructionDecoder_aarch64::buildSysRegMap();
