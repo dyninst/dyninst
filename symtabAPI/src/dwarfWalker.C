@@ -572,12 +572,12 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    if (name_result && !curName().empty()) {
       dwarf_printf("(0x%lx) Identified function name as %s\n", id(), curName().c_str());
       if (isMangledName()) {
-	  func->addMangledName(curName(), true);
+	  func->addMangledName(curName(), true, true);
       }
       // Only keep pretty names around for inlines, which probably don't have mangled names
       else {
 	  dwarf_printf("(0x%lx) Adding as pretty name to inline\n", id());
-	  func->addPrettyName(curName(), true);
+	  func->addPrettyName(curName(), true, true);
       }
    }
 

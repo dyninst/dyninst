@@ -104,8 +104,8 @@ class SYMTAB_EXPORT FunctionBase
 
    /***** Primary name *****/
    virtual std::string getName() const = 0;
-   virtual bool addMangledName(std::string name, bool isPrimary) = 0;
-   virtual bool addPrettyName(std::string name, bool isPrimary) = 0;
+   virtual bool addMangledName(std::string name, bool isPrimary, bool isDebug=false) = 0;
+   virtual bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false) = 0;
 
    /***** Opaque data object pointers, usable by user ****/
    void *getData();
@@ -173,10 +173,10 @@ class SYMTAB_EXPORT FunctionBase
    virtual unsigned getSize() const;
    virtual std::string getName() const;
    virtual Offset getOffset() const { return Aggregate::getOffset(); }
-   virtual bool addMangledName(std::string name, bool isPrimary) 
-   {return Aggregate::addMangledName(name, isPrimary);}
-   virtual bool addPrettyName(std::string name, bool isPrimary)
-   {return Aggregate::addPrettyName(name, isPrimary);}
+   virtual bool addMangledName(std::string name, bool isPrimary, bool isDebug=false)
+   {return Aggregate::addMangledName(name, isPrimary, isDebug);}
+   virtual bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false)
+   {return Aggregate::addPrettyName(name, isPrimary, isDebug);}
    virtual Module* getModule() const { return module_; }
 };
 
@@ -192,8 +192,8 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
    typedef std::vector<std::string>::const_iterator name_iter;
    std::pair<std::string, Dyninst::Offset> getCallsite();
    virtual bool removeSymbol(Symbol *sym);
-   virtual bool addMangledName(std::string name, bool isPrimary);
-   virtual bool addPrettyName(std::string name, bool isPrimary);
+   virtual bool addMangledName(std::string name, bool isPrimary, bool isDebug=false);
+   virtual bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false);
    virtual std::string getName() const;
    virtual Offset getOffset() const;
    virtual unsigned getSize() const;

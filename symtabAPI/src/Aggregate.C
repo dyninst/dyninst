@@ -167,7 +167,7 @@ bool Aggregate::addMangledNameInternal(std::string name, bool /*isPrimary*/, boo
   return true;
 }
 
-SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary) 
+SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary, bool isDebug)
 {
    if (!addMangledNameInternal(name, isPrimary, false))
       return false;
@@ -191,6 +191,7 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
       newSym->setMangledName(name);
       module_->exec()->demangleSymbol(newSym);
       newSym->isDynamic_ = false;
+      newSym->isDebug_ = isDebug;
       module_->exec()->addSymbol(newSym);
     }
     if (dynamicSym) {
@@ -198,12 +199,13 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
       newSym->setMangledName(name);
       module_->exec()->demangleSymbol(newSym);
       newSym->isDynamic_ = true;
+      newSym->isDebug_ = isDebug;
       module_->exec()->addSymbol(newSym);
     }
     return true;
  }
 
-SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary) 
+SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary, bool isDebug)
 {
     // Check to see if we're duplicating
    for (auto i = pretty_names_begin(); 
@@ -212,10 +214,10 @@ SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary)
        if (i->find(name) != string::npos)
 	   return false;
    }
-   return addMangledName(name, isPrimary);
+   return addMangledName(name, isPrimary, isDebug);
 }
 
-SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary) 
+SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary, bool isDebug)
 {
     // Check to see if we're duplicating
    for (auto i = typed_names_begin(); 
@@ -224,7 +226,7 @@ SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary)
        if (i->find(name) != string::npos)
 	   return false;
    }
-   return addMangledName(name, isPrimary);
+   return addMangledName(name, isPrimary, isDebug);
 }
 
 bool Aggregate::changeSymbolOffset(Symbol *sym) 

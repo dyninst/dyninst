@@ -191,9 +191,10 @@ class SYMTAB_EXPORT Symbol : public Serializable,
    unsigned getSize() const { return size_; }
    Region *getRegion() const { return region_; }
 
-   bool isInDynSymtab() const { return (type_ != ST_DELETED) && isDynamic_; }
-   bool isInSymtab() const { return (type_ != ST_DELETED) && !isDynamic_; }
+   bool isInDynSymtab() const { return (type_ != ST_DELETED) && isDynamic_ && !isDebug_; }
+   bool isInSymtab() const { return (type_ != ST_DELETED) && !isDynamic_ && !isDebug_; }
    bool isAbsolute() const { return isAbsolute_; }
+   bool isDebug() const { return isDebug_; }
    bool isCommonStorage() const { return isCommonStorage_; }
 
    bool              isFunction()            const;
@@ -228,6 +229,7 @@ class SYMTAB_EXPORT Symbol : public Serializable,
    SymbolTag            tag ()               const;
    bool  setDynamic(bool d) { isDynamic_ = d; return true;}
    bool  setAbsolute(bool a) { isAbsolute_ = a; return true; }
+   bool  setDebug(bool dbg) { isDebug_ = dbg; return true; }
    bool  setCommonStorage(bool cs) { isCommonStorage_ = cs; return true; }
 
    bool  setVersionFileName(std::string &fileName);
@@ -264,6 +266,7 @@ class SYMTAB_EXPORT Symbol : public Serializable,
 
    bool          isDynamic_;
    bool          isAbsolute_;
+   bool          isDebug_;
 
    Aggregate *   aggregate_; // Pointer to Function or Variable container, if appropriate.
 
