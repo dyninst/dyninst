@@ -527,11 +527,11 @@ void DwarfWalker::createInlineFunc() {
 
 void DwarfParseActions::addMangledFuncName(std::string name)
 {
-   curFunc()->addMangledName(name, true);
+   curFunc()->addMangledName(name, true, true);
 }
 void DwarfParseActions::addPrettyFuncName(std::string name)
 {
-   curFunc()->addPrettyName(name, true);
+   curFunc()->addPrettyName(name, true, true);
 }
 
 bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
