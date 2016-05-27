@@ -107,7 +107,7 @@ class SYMTAB_EXPORT localVar : public Serializable, public AnnotatableSparse
             
 	// Copy constructor
 	localVar(localVar &lvar);
-	bool addLocation(VariableLocation &location);
+	bool addLocation(const VariableLocation &location);
 	~localVar();
 	void fixupUnknown(Module *);
 

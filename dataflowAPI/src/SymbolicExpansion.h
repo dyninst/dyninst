@@ -50,9 +50,11 @@ class SymEvalPolicy_64;
                            SymEvalPolicy_64 &policy);
 
 
-  static bool expandPPC(SgAsmInstruction *rose_insn,
+  static bool expandPPC32(SgAsmInstruction *rose_insn,
 			SymEvalPolicy &policy);
-  
+	 static bool expandPPC64(SgAsmInstruction *rose_insn,
+						   SymEvalPolicy_64 &policy);
+
 };
 
 };

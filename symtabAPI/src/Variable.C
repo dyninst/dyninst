@@ -226,7 +226,7 @@ localVar::localVar(localVar &lvar) :
 	}
 }
 
-bool localVar::addLocation(VariableLocation &location)
+bool localVar::addLocation(const VariableLocation &location)
 {
    if (!locsExpanded_) {
       locs_.push_back(location);
