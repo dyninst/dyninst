@@ -741,7 +741,10 @@ bool emitElf64<ElfTypes>::driver(std::string fName) {
                 if (startMovingSections || obj->isStaticBinary()
                     || obj->getObjectType() == obj_SharedLib)
                     newshdr->sh_offset += pgSize;
-                //else if (createNewPhdr) newshdr->sh_offset += pgSize; //oldEhdr->e_phentsize;
+                else if (createNewPhdr) {
+                    newshdr->sh_offset += oldEhdr->e_phentsize;
+                    newshdr->sh_addr -= pgSize - oldEhdr->e_phentsize;
+                }
             }
         }
 
@@ -1090,12 +1093,13 @@ void emitElf64<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
             newPhdr->p_flags = PF_R + PF_W + PF_X;
             newPhdr->p_align = pgSize;
         }
-        else if (old->p_type == PT_INTERP && movePHdrsFirst
-                 && old->p_offset && newEhdr->e_phnum >= oldEhdr->e_phnum) {
-            Elf_Off interp_shift = library_adjust; //(Elf_Off) oldEhdr->e_phentsize * (Elf_Off)(newEhdr->e_phnum - oldEhdr->e_phnum);
+        else if (old->p_type == PT_INTERP && movePHdrsFirst && old->p_offset) {
+            Elf_Off interp_shift = library_adjust;
+            if (newEhdr->e_phnum >= oldEhdr->e_phnum)
+                interp_shift += (Elf_Off) oldEhdr->e_phentsize * (Elf_Off)(newEhdr->e_phnum - oldEhdr->e_phnum);
             newPhdr->p_offset += interp_shift;
-            newPhdr->p_vaddr += interp_shift;
-            newPhdr->p_paddr += interp_shift;
+            newPhdr->p_vaddr += interp_shift - pgSize;
+            newPhdr->p_paddr += interp_shift - pgSize;
         }
         else if (movePHdrsFirst && old->p_offset) {
             newPhdr->p_offset += pgSize;

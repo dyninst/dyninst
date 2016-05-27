@@ -233,7 +233,7 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
       fixUnknownMod = mod();
 
    if (!buildSrcFiles(moduleDIE)) return false;
-   
+
 
    if (!parse_int(moduleDIE, true)) return false;
 

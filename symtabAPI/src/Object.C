@@ -114,6 +114,8 @@ void print_symbols( std::vector< Symbol *>& allsymbols ) {
                 fprintf(fd, " DYN");
             if (sym->isAbsolute())
                 fprintf(fd, " ABS");
+            if (sym->isDebug())
+                fprintf(fd, " DBG");
             std::string fileName;
             std::vector<std::string> *vers;
             if (sym->getVersionFileName(fileName))

@@ -96,9 +96,9 @@ class SYMTAB_EXPORT Aggregate
       name_iter typed_names_end() const;
       
      /***** Aggregate updating *****/
-      virtual bool addMangledName(std::string name, bool isPrimary);
-      virtual bool addPrettyName(std::string name, bool isPrimary);
-      virtual bool addTypedName(std::string name, bool isPrimary);
+      virtual bool addMangledName(std::string name, bool isPrimary, bool isDebug=false);
+      virtual bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false);
+      virtual bool addTypedName(std::string name, bool isPrimary, bool isDebug=false);
 
       bool setModule(Module *mod);
       bool setSize(unsigned size);
