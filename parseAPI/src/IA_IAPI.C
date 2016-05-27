@@ -532,7 +532,7 @@ void IA_IAPI::parseSysEnter(std::vector<std::pair<Address, EdgeTypeEnum> >& outE
   }
 }
 
-
+bool DEBUGGABLE(void) { return true; }
 
 void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
 			  Function* context,
@@ -739,7 +739,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     {
       parseSysEnter(outEdges);
       return;
-    } else if (isSyscall()) {
+    } else if (DEBUGGABLE() && isSyscall()) {
         parseSyscall(outEdges);
         return;
     }

@@ -109,6 +109,14 @@ enum AMD64_REG_NUMBERS {
     REGNUM_MM5,
     REGNUM_MM6,
     REGNUM_MM7,
+    REGNUM_K0,
+    REGNUM_K1,
+    REGNUM_K2,
+    REGNUM_K3,
+    REGNUM_K4,
+    REGNUM_K5,
+    REGNUM_K6,
+    REGNUM_K7,
     REGNUM_XMM0,
     REGNUM_XMM1,
     REGNUM_XMM2,
@@ -125,9 +133,22 @@ enum AMD64_REG_NUMBERS {
     REGNUM_XMM13,
     REGNUM_XMM14,
     REGNUM_XMM15,
-    REGNUM_EFLAGS,
-    REGNUM_FS,
-    REGNUM_GS,
+    REGNUM_XMM16,
+    REGNUM_XMM17,
+    REGNUM_XMM18,
+    REGNUM_XMM19,
+    REGNUM_XMM20,
+    REGNUM_XMM21,
+    REGNUM_XMM22,
+    REGNUM_XMM23,
+    REGNUM_XMM24,
+    REGNUM_XMM25,
+    REGNUM_XMM26,
+    REGNUM_XMM27,
+    REGNUM_XMM28,
+    REGNUM_XMM29,
+    REGNUM_XMM30,
+    REGNUM_XMM31,
     REGNUM_YMM0,
     REGNUM_YMM1,
     REGNUM_YMM2,
@@ -144,6 +165,57 @@ enum AMD64_REG_NUMBERS {
     REGNUM_YMM13,
     REGNUM_YMM14,
     REGNUM_YMM15,
+    REGNUM_YMM16,
+    REGNUM_YMM17,
+    REGNUM_YMM18,
+    REGNUM_YMM19,
+    REGNUM_YMM20,
+    REGNUM_YMM21,
+    REGNUM_YMM22,
+    REGNUM_YMM23,
+    REGNUM_YMM24,
+    REGNUM_YMM25,
+    REGNUM_YMM26,
+    REGNUM_YMM27,
+    REGNUM_YMM28,
+    REGNUM_YMM29,
+    REGNUM_YMM30,
+    REGNUM_YMM31,
+    REGNUM_ZMM0,
+    REGNUM_ZMM1,
+    REGNUM_ZMM2,
+    REGNUM_ZMM3,
+    REGNUM_ZMM4,
+    REGNUM_ZMM5,
+    REGNUM_ZMM6,
+    REGNUM_ZMM7,
+    REGNUM_ZMM8,
+    REGNUM_ZMM9,
+    REGNUM_ZMM10,
+    REGNUM_ZMM11,
+    REGNUM_ZMM12,
+    REGNUM_ZMM13,
+    REGNUM_ZMM14,
+    REGNUM_ZMM15,
+    REGNUM_ZMM16,
+    REGNUM_ZMM17,
+    REGNUM_ZMM18,
+    REGNUM_ZMM19,
+    REGNUM_ZMM20,
+    REGNUM_ZMM21,
+    REGNUM_ZMM22,
+    REGNUM_ZMM23,
+    REGNUM_ZMM24,
+    REGNUM_ZMM25,
+    REGNUM_ZMM26,
+    REGNUM_ZMM27,
+    REGNUM_ZMM28,
+    REGNUM_ZMM29,
+    REGNUM_ZMM30,
+    REGNUM_ZMM31,
+    REGNUM_EFLAGS,
+    REGNUM_FS,
+    REGNUM_GS,
     REGNUM_IGNORED
 }
 ;
@@ -398,6 +470,16 @@ enum {
 #ifndef VEX_PREFIX_MASKS
 #define VEX_PREFIX_MASKS
 
+/**
+ * Enum that differentiates different types of VEX prefixed instructions.
+ * This is also used as the demultiplexer for the sseVexMult table so the
+ * bindings should not be changed.
+ */
+enum VEX_TYPE
+{
+    VEX_TYPE_NONE=0, VEX_TYPE_VEX2, VEX_TYPE_VEX3, VEX_TYPE_EVEX
+};
+
 /* Masks to help decode vex prefixes */
 
 /** VEX 3 masks (2nd byte) */
@@ -411,15 +493,21 @@ enum {
 /* VEX2 and VEX3 share these bits on their final byte  */
 #define VEX_VVVV   (((1 << 4) - 1) << 3)
 #define VEX_L      (1 << 2)
-#define VEX_PP     ((1 << 2) - 1)
+#define VEX_PP     (0x03)
 #define VEX_REXR   (1 << 7)
 
 /* VEX mask helper macros */
-#define VEXGET_VVVV(b)  (char)((b & VEX_VVVV) >> 3)
+#define VEXGET_VVVV(b)  (unsigned char)((~((unsigned char) \
+            ((b & VEX_VVVV) >> 3))) & 0xF)
+
 #define VEXGET_L(b)     (char)((b & VEX_L) >> 2)
+#define VEXGET_R(b)     (char)((b & (1 << 7)) >> 7)
 #define VEXGET_PP(b)    (char)(b & VEX_PP)
 
 #define VEX3GET_W(b)    (char)((b & VEX3_W) >> 7)
+#define VEX3GET_M(b)    (b & VEX3_M)
+#define VEX3GET_X(b)    (((unsigned char)(b) & (1 << 6)) >> 6)
+#define VEX3GET_B(b)    (((unsigned char)(b) & (1 << 5)) >> 5)
 #define VEX3GET_M(b)    (b & VEX3_M)
 
 /** EVEX masks */
@@ -428,11 +516,18 @@ enum {
 #define EVEXGET_W(b) VEX3GET_W(b)
 #define EVEXGET_L1(b) (unsigned char)((1 << 5) & (b))
 #define EVEXGET_L2(b) (unsigned char)((1 << 6) & (b))
-#define EVEXGET_L(b) (unsigned char)((EVEXGET_L1(b)) | (EVEXGET_L2(b)))
+#define EVEXGET_LL(b) (unsigned char)(((b) >> 5) & 0x03)
 #define EVEXGET_PP(b) (unsigned char)(3 & (b))
 #define EVEXGET_MM(b) (unsigned char)(3 & (b))
 #define EVEXGET_AAA(b) (unsigned char)(7 & (b))
-#define EVEXGET_VVVV(b) (unsigned char)(((b) >> 0x03) & (0x0F))
+#define EVEXGET_r(b) (((unsigned char)(~b) & (unsigned char)(1 << 7)) >> 7)
+#define EVEXGET_R(b) (((unsigned char)(~b) & (unsigned char)(1 << 4)) >> 4)
+#define EVEXGET_b(b) (((unsigned char)(~b) & (unsigned char)(1 << 5)) >> 5)
+#define EVEXGET_x(b) (((unsigned char)(~b) & (unsigned char)(1 << 6)) >> 6)
+
+#define EVEXGET_VVVV(a, b)  ((((unsigned char)~(a) >> 3) & 0x0F)) | \
+            (((unsigned char)~(b) & 0x08) << 1)
+#define EVEXGET_V(b) (((unsigned char)~(b) & 0x08) << 1)
 
 #endif
 
@@ -460,6 +555,29 @@ enum {
 COMMON_EXPORT void ia32_set_mode_64(bool mode);
 COMMON_EXPORT bool ia32_is_mode_64();
 
+/**
+ * AVX/AVX2/EVEX addressing modes (not in manual).
+ *
+ * am_HK operand is an EVEX masking register (k0 - k7) which is specified
+ *        using the EVEX.vvvv bits.
+ * am_VK the reg field of the R/M byte specifies an EVEX masking register.
+ * am_WK the R/M field of the R/M byte specifies an EVEX masking register.
+ *
+ * am_XH same as am_H except the register is constrained to an XMM register,
+ *        reguardless of the VEX.L field.
+ * am_XV same as am_V except the register is contrained to an XMM register,
+ *        reguardless of the VEX.L field.
+ * am_XW same as am_W except the register is constrained to an XMM register,
+ *        reguardless of the VEX.L field.
+ *
+ * am_YH same as am_H except the register is constrained to either an XMM
+ *        or YMM register, based on the VEX.L bits field.
+ * am_YV same as am_V except the register is constrained to either an XMM
+ *        or YMM register, based on the VEX.L bits field.
+ * am_YW same as am_W except the register is constrained to either an XMM
+ *        or YMM register, based on the VEX.L bits field.
+ */
+
 // addressing methods (see appendix A-2)
 // I've added am_reg (for registers implicitely encoded in instruciton), 
 // and am_stackX for stack operands [this kinda' messy since there are actually two operands:
@@ -467,9 +585,10 @@ COMMON_EXPORT bool ia32_is_mode_64();
 // added: am_reg, am_stack, am_allgprs
 // ADDED: am_ImplImm for implicit immediates
 // ADDED: am_RM, am_UM,
-enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_H, am_I, am_J, am_M, //10 
-      am_N, am_O, am_P, am_Q, am_R, am_S, am_T, am_U, am_UM, am_V, am_W, am_X, // 20
-      am_Y, am_reg, am_stackH, am_stackP, am_allgprs, am_VR, am_tworeghack, am_ImplImm, am_RM }; // pusH and poP produce different addresses
+enum { am_A=1, am_B, am_C, am_D, am_E, am_F, am_G, am_H, am_I, am_J, am_M, //10 
+    am_N, am_O, am_P, am_Q, am_R, am_S, am_T, am_XU, am_YU, am_U, am_UM, am_V, am_W, am_X, // 20
+    am_Y, am_reg, am_stackH, am_stackP, am_allgprs, am_tworeghack, am_ImplImm, am_RM,
+    am_HK, am_VK, am_WK, am_XH, am_XV, am_XW, am_YH, am_YV, am_YW }; // pusH and poP produce different addresses
 
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
 // ADDED: op_y
@@ -482,7 +601,7 @@ enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, op_q, // 10
 enum {
   t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, 
   t_grp, t_sse, t_sse_mult, t_sse_bis, t_sse_bis_mult, 
-  t_sse_ter, t_sse_ter_mult, t_grpsse, t_3dnow, t_vexl, t_vexw, t_done=99
+  t_sse_ter, t_sse_ter_mult, t_grpsse, t_3dnow, t_vexl, t_vexw, t_sse_vex_mult, t_done=99
 };
 
 // registers used for memory access
@@ -526,7 +645,7 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 /* Only 4 operands below here */
        s1W2R3R4R,
        s1RW2R3R4R 
-}; // should be strictly less than 2^17 otherwise adjust FPOS below
+}; // should be strictly less than 2^17 otherwise adjust FPOS in arch-x86.C
 
 /* This should equal the first operand semantic where 4 operands are used. */
 #define s4OP s1W2R3R4R
@@ -572,12 +691,22 @@ class ia32_prefixes
   unsigned char getOpcodePrefix() const { return opcode_prefix; }
   unsigned char getAddrSzPrefix() const { return prfx[3]; }
   unsigned char getOperSzPrefix() const { return prfx[2]; }
+
   bool vex_present; /* Does this instruction have a vex prefix?  */
-  unsigned char vex_prefix[4]; /* support up to EVEX (VEX-512) */
-  unsigned char vex_l; /* l bit for VEX2 and VEX3 */
-  unsigned char vex_w; /* w bit for VEX2 and VEX3 */
-  int sse_mult; /* 0 VEX2, 1 VEX3, 2 EVEX */
-  //int vvvv_reg; /* The register specified by this prefix. */
+  VEX_TYPE vex_type; /* If there is a vex prefix present, what type is it? */
+  unsigned char vex_prefix[5]; /* Support up to EVEX (VEX-512) */
+  int vex_sse_mult; /* index for sse multiplexer table */
+  int vex_vvvv_reg; /* The register specified by this prefix. */
+  int vex_ll; /* l bit for VEX2, VEX3 or ll for EVEX */
+  int vex_pp; /* pp bits for VEX2, VEX3 or EVEX */
+  int vex_m_mmmm; /* m-mmmm bits for VEX2, VEX3 or EVEX */
+  int vex_w; /* w bit for VEX2, VEX3 or EVEX */
+  int vex_V; /* V' modifier for EVEX */
+  int vex_r; /* The VEX REXR bit for VEX2, VEX3 or EVEX*/
+  int vex_R; /* The VEX REXR' bit for EVEX */
+  int vex_x; /* The VEX REXX bit for VEX2, VEX3 or EVEX */
+  int vex_b; /* The VEX REXB bit for VEX2, VEX3 or EVEX */
+  int vex_aaa; /* Selects the vector mask register for EVEX */
 };
 
 // helper routine to tack-on rex bit when needed

@@ -70,6 +70,30 @@ namespace Dyninst
     protected:
       virtual bool isStrictEqual(const InstructionAST& rhs) const;
     };
+
+    class INSTRUCTION_EXPORT ArmConditionImmediate : public Immediate
+    {
+    public:
+        ArmConditionImmediate(const Result &val);
+
+        static ArmConditionImmediate::Ptr makeArmConditionImmediate(const Result &val);
+        virtual std::string format(formatStyle) const;
+
+    private:
+        std::map<unsigned int, std::string> m_condLookupMap;
+    };
+
+    class INSTRUCTION_EXPORT ArmPrfmTypeImmediate : public Immediate
+    {
+    public:
+	ArmPrfmTypeImmediate(const Result &val);
+
+	static Immediate::Ptr makeArmPrfmTypeImmediate(const Result &val);
+	virtual std::string format(formatStyle) const;	
+
+    private:
+	std::map<unsigned int, std::string> m_prfmTypeLookupMap;
+    };
   };
 };
 

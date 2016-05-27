@@ -440,69 +440,70 @@ memAccessors.begin()));
     
     INSTRUCTION_EXPORT std::string Instruction::format(Address addr) const
     {
-      if(m_Operands.empty())
-      {
-	decodeOperands();
-      }
+        if(m_Operands.empty())
+        {
+	        decodeOperands();
+        }
 
-      std::string retVal = m_InsnOp->format();
-      retVal += " ";
-      std::list<Operand>::const_iterator curOperand;
-      for(curOperand = m_Operands.begin();
-	  curOperand != m_Operands.end();
-	  ++curOperand)
-      {
-          retVal += curOperand->format(getArch(), addr);
-	retVal += ", ";
-      }
-      if(!m_Operands.empty())
-      {
-	// trim trailing ", "
-	retVal.erase(retVal.size() - 2, retVal.size());
-      }
+        std::string retVal = m_InsnOp->format();
+        retVal += " ";
+        std::list<Operand>::const_iterator curOperand;
+        for(curOperand = m_Operands.begin();
+	    curOperand != m_Operands.end();
+	    ++curOperand)
+        {
+            retVal += curOperand->format(getArch(), addr);
+	        retVal += ", ";
+        }
+        if(!m_Operands.empty())
+        {
+	        // trim trailing ", "
+	        retVal.erase(retVal.size() - 2, retVal.size());
+        }
 #if defined(DEBUG_READ_WRITE)      
-      std::set<RegisterAST::Ptr> tmp;
-      getReadSet(tmp);
-      cout << "Read set:" << endl;
-      for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin();
-          i != tmp.end();
-         ++i)
-      {
-          cout << (*i)->format() << " ";
-      }
-      cout << endl;
-      tmp.clear();
-      getWriteSet(tmp);
-      cout << "Write set:" << endl;
-      for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin();
-          i != tmp.end();
-          ++i)
-      {
-          cout << (*i)->format() << " ";
-      }
-      cout << endl;
-      std::set<Expression::Ptr> mem;
-      getMemoryReadOperands(mem);
-      cout << "Read mem:" << endl;
-      for(std::set<Expression::Ptr>::iterator i = mem.begin();
+        std::set<RegisterAST::Ptr> tmp;
+        getReadSet(tmp);
+        cout << "Read set:" << endl;
+        for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin();
+            i != tmp.end();
+            ++i)
+        {
+            cout << (*i)->format() << " ";
+        }
+        cout << endl;
+        tmp.clear();
+        getWriteSet(tmp);
+        cout << "Write set:" << endl;
+        for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin();
+            i != tmp.end();
+            ++i)
+        {
+            cout << (*i)->format() << " ";
+        }
+        cout << endl;
+        std::set<Expression::Ptr> mem;
+        getMemoryReadOperands(mem);
+        cout << "Read mem:" << endl;
+        for(std::set<Expression::Ptr>::iterator i = mem.begin();
           i != mem.end();
           ++i)
-      {
-          cout << (*i)->format() << " ";
-      }
-      cout << endl;
-      mem.clear();
-      getMemoryWriteOperands(mem);
-      cout << "Write mem:" << endl;
-      for(std::set<Expression::Ptr>::iterator i = mem.begin();
-          i != mem.end();
-          ++i)
-      {
-          cout << (*i)->format() << " ";
-      }
-      cout << endl;
+        {
+            cout << (*i)->format() << " ";
+        }
+        cout << endl;
+        mem.clear();
+        getMemoryWriteOperands(mem);
+        cout << "Write mem:" << endl;
+        for(std::set<Expression::Ptr>::iterator i = mem.begin();
+            i != mem.end();
+            ++i)
+        {
+            cout << (*i)->format() << " ";
+        }
+        cout << endl;
 #endif // defined(DEBUG_READ_WRITE)
-      return retVal;
+
+        return retVal;
     }
     INSTRUCTION_EXPORT bool Instruction::allowsFallThrough() const
     {
