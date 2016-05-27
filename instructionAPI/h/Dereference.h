@@ -94,60 +94,137 @@ namespace Dyninst
 	addressToDereference->getUses(uses);
 	return;
       }
-      /// An %InstructionAST is used by a %Dereference if it is equivalent to the 
-      /// %Dereference or it is used by the lone child of the %Dereference
-      virtual bool isUsed(InstructionAST::Ptr findMe) const
-      {
-	return addressToDereference->isUsed(findMe) || *findMe == *this;
-      }
-      virtual std::string format(formatStyle) const
-      {
-	    std::stringstream retVal;
-#if defined(DEBUG_MEMORY_ACCESS_WIDTH)
-        switch(Expression::userSetValue.type)
+        /// An %InstructionAST is used by a %Dereference if it is equivalent to the 
+        /// %Dereference or it is used by the lone child of the %Dereference
+        virtual bool isUsed(InstructionAST::Ptr findMe) const
         {
-            case u8:
-                retVal << "u8 @ ";
-                break;
-            case s8:
-                retVal << "s8 @ ";
-                break;
-            case u16:
-                retVal << "u16 @ ";
-                break;
-            case s16:
-                retVal << "s16 @ ";
-                break;
-            case u32:
-                retVal << "u32 @ ";
-                break;
-            case s32:
-                retVal << "s32 @ ";
-                break;
-            case u64:
-                retVal << "u64 @ ";
-                break;
-            case s64:
-                retVal << "s64 @ ";
-                break;
-            case sp_float:
-                retVal << "float @ ";
-                break;
-            case dp_float:
-                retVal << "double @ ";
-                break;
-            case dbl128:
-                retVal << "packed double @ ";
-                break;
-            default:
-                retVal << "UNKNOWN SIZE @ ";
-                break;
+            return addressToDereference->isUsed(findMe) || *findMe == *this;
         }
+
+        struct dereference_options_list
+        {
+            char* displacement;
+            char* offset;
+            char* base;
+            char* scale;
+        };
+
+		void analyze_ast_tree(const Expression::Ptr& ptr, 
+                struct dereference_options_list* options, int depth) const
+    	{
+        	std::vector<Expression::Ptr> children;
+        	ptr->getChildren(children);
+
+        	auto it = std::begin(children);
+        	for(;it != std::end(children);++it)
+        	{
+            	Expression::Ptr child = *it;
+                std::vector<Expression::Ptr> childs_children;
+                child->getChildren(childs_children);
+                bool leaf = childs_children.size() == 0;
+                const char* str = child->format().c_str();
+
+                if(!strstr(str, "+") && !strstr(str, "*"))
+                    leaf = true;
+
+                if(leaf)
+                {
+                    if(str[0] == '%')
+                    {
+                        if(!options->base)
+                            options->base = strdup(str);
+                        else if(!options->offset)
+                            options->offset = strdup(str);
+                        else assert(!"Too many registers in operand list!");
+                    } else if(str[0] == '$')
+                    {
+			            if(!options->displacement)
+                            options->displacement = strdup(str + 1);
+                        else if(!options->scale)
+                        {
+                            options->scale = strdup(str);
+                        } else assert(!"Too many Immediates in operand list!");
+                    }
+            	    // std::cout << child->eval().convert<unsigned int>() 
+                        // << ":" << child->format() << " leaf? " << leaf << std::endl;
+                } 
+
+            	analyze_ast_tree(child, options, depth + 1);
+        	}
+    	}
+
+        virtual std::string format(formatStyle) const
+        {
+	        std::stringstream retVal;
+#if defined(DEBUG_MEMORY_ACCESS_WIDTH)
+            switch(Expression::userSetValue.type)
+            {
+                case u8:
+                    retVal << "u8 @ ";
+                    break;
+                case s8:
+                    retVal << "s8 @ ";
+                    break;
+                case u16:
+                    retVal << "u16 @ ";
+                    break;
+                case s16:
+                    retVal << "s16 @ ";
+                    break;
+                case u32:
+                    retVal << "u32 @ ";
+                    break;
+                case s32:
+                    retVal << "s32 @ ";
+                    break;
+                case u64:
+                    retVal << "u64 @ ";
+                    break;
+                case s64:
+                    retVal << "s64 @ ";
+                    break;
+                case sp_float:
+                    retVal << "float @ ";
+                    break;
+                case dp_float:
+                    retVal << "double @ ";
+                    break;
+                case dbl128:
+                    retVal << "packed double @ ";
+                    break;
+                default:
+                    retVal << "UNKNOWN SIZE @ ";
+                    break;
+            }
 #endif
-        retVal << "(" << addressToDereference->format() << ")";
-//        retVal << addressToDereference->format(memoryAccessStyle);
-        return retVal.str();
-      }
+
+            struct dereference_options_list list;
+            memset(&list, 0, 
+                    sizeof(struct dereference_options_list));
+			// std::cout << std::endl;
+			analyze_ast_tree(addressToDereference, &list, 0);
+			// exit(1);
+
+            if(list.displacement && list.base && list.offset && list.scale)
+            {
+                /**
+                 * When there's all 4 operands, dyninst gets the immediates
+                 * flipped.
+                 */
+                retVal << (list.scale + 1) << "(" << list.offset << ", " 
+                    << list.base << ", " << "$" << list.displacement << ")";
+            } else if(list.displacement && list.base && list.scale)
+                retVal << list.displacement << "( ," << list.base << ", "
+                    << list.scale << ")";
+            else if(list.displacement && list.base)
+                retVal << list.displacement << "(" << list.base << ")";
+            // fprintf(stderr, "return value: %s\n", retVal.str().c_str());
+            if(retVal.str().size() == 0)
+                return addressToDereference->format();
+            // retVal << " orig: " << addressToDereference->format();
+            // retVal << addressToDereference->format(memoryAccessStyle);
+            return retVal.str();
+        }
 
       virtual bool bind(Expression* expr, const Result& value)
       {

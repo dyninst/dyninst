@@ -111,18 +111,48 @@ namespace Dyninst
 	}
       }
     }
+
+    static void indt_ast_tree(int depth)
+    {
+        for(int x = 0;x < depth;x++)
+            cout << "\t";   
+    }
+
+    void print_ast_tree(Expression::Ptr& ptr, int depth)
+    {
+        std::vector<Expression::Ptr> children;
+        ptr->getChildren(children);
+
+        auto it = std::begin(children);
+        for(;it != std::end(children);++it)
+        {
+            Expression::Ptr child = *it;
+            indt_ast_tree(depth);
+            cout << child->eval().convert<unsigned int>();
+
+            print_ast_tree(child, depth + 1);
+        }
+    }
+
     INSTRUCTION_EXPORT std::string Operand::format(Architecture arch, Address addr) const
     {
       if(!op_value) return "ERROR: format() called on empty operand!";
       if (addr) {
           Expression::Ptr thePC = Expression::Ptr(new RegisterAST(MachRegister::getPC(arch)));
-          op_value->bind(thePC.get(), Result(u32, addr));
-          Result res = op_value->eval();
-          if (res.defined) {
-              stringstream ret;
-              ret << hex << res.convert<unsigned>() << dec;
-              return ret.str();
-          }
+
+          cout << endl;
+          print_ast_tree(thePC, 0);
+          exit(1);
+
+          
+
+          // op_value->bind(thePC.get(), Result(u32, addr));
+          // Result res = op_value->eval();
+          // if (res.defined) {
+              // stringstream ret;
+              // ret << hex << res.convert<unsigned>() << dec;
+              // return ret.str();
+          // }
       }
       return op_value->format();
     }

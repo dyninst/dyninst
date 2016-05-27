@@ -60,6 +60,16 @@ namespace InstructionAPI
             virtual void visit(Dereference* d) = 0;
     };
 
+    // class ATTVisitor : public Visitor
+    // {
+        // public:
+            // std::string visitSection(void);
+            // void getOffset(Immediate* imm);
+            // void visitBase(Register* reg);
+            // // void visitIndex(Immediate* imm);
+            // void visitScale(Immediate* imm);
+    // };
+
 }
 }
 
