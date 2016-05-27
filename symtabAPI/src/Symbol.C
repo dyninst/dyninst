@@ -327,10 +327,12 @@ std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
         //<< " tag="     << (unsigned) s.tag_
                   << " tag="     << s.symbolTag2Str(s.tag_)
                   << " isAbs="   << s.isAbsolute_
+                  << " isDbg="   << s.isDebug_
                   << " isCommon=" << s.isCommonStorage_
                   << (s.isFunction() ? " [FUNC]" : "")
                   << (s.isVariable() ? " [VAR]" : "")
-                  << (s.isInSymtab() ? "[STA]" : "[DYN]")
+                  << (s.isInSymtab() ? "[STA]" : "")
+                  << (s.isInDynSymtab() ? "[DYN]" : "")
                   << " }";
 }
 
@@ -380,6 +382,7 @@ bool Symbol::operator==(const Symbol& s) const
 			&& (size_    == s.size_)
 			&& (isDynamic_ == s.isDynamic_)
 			&& (isAbsolute_ == s.isAbsolute_)
+			&& (isDebug_ == s.isDebug_)
                         && (isCommonStorage_ == s.isCommonStorage_)
 		   && (versionHidden_ == s.versionHidden_)
 		   && (mangledName_ == s.mangledName_));
@@ -405,6 +408,7 @@ Symbol::Symbol () :
   size_(0),
   isDynamic_(false),
   isAbsolute_(false),
+  isDebug_(false),
   aggregate_(NULL),
   mangledName_(Symbol::emptyString),
   tag_(TAG_UNKNOWN) ,
@@ -441,6 +445,7 @@ Symbol::Symbol(const std::string& name,
   size_(s),
   isDynamic_(d),
   isAbsolute_(a),
+  isDebug_(false),
   aggregate_(NULL),
   mangledName_(name),
   tag_(TAG_UNKNOWN),

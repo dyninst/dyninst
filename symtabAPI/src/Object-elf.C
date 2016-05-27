@@ -5685,6 +5685,9 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
             if( (*sym_it)->tag() == Symbol::TAG_INTERNAL ) {
                 continue;
             }
+            if( (*sym_it)->isDebug() ) {
+                continue;
+            }
 
             std::pair<dyn_hash_map<int, Symbol *>::iterator, bool> result;
             if( (*sym_it)->isInDynSymtab() ) {
