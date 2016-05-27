@@ -75,11 +75,8 @@ using namespace std;
 
 DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
    :
-   dbg_(dbg),
-   mod_(NULL),
-   symtab_(symtab),
+   DwarfParseActions(symtab, dbg),
    srcFileList_(NULL),
-   tc_(NULL),
    is_mangled_name_(false),
    modLow(0),
    modHigh(0),
@@ -100,7 +97,7 @@ DwarfWalker::~DwarfWalker() {
    freeList.clear();
 }
 
-std::vector<boost::shared_ptr<void> > DwarfWalker::getFreeList()
+DwarfWalker::FreeListT DwarfWalker::getFreeList()
 {
    // return by copy, so ownership gets shared
    return freeList;
@@ -108,11 +105,11 @@ std::vector<boost::shared_ptr<void> > DwarfWalker::getFreeList()
 
 
 bool DwarfWalker::parse() {
-   dwarf_printf("Parsing DWARF for %s\n", symtab_->file().c_str());
+   dwarf_printf("Parsing DWARF for %s\n",filename().c_str());
 
    /* Start the dwarven debugging. */
    Module *fixUnknownMod = NULL;
-   mod_ = NULL;
+   mod() = NULL;
 
    /* Prepopulate type signatures for DW_FORM_ref_sig8 */
    findAllSig8Types();
@@ -141,9 +138,9 @@ bool DwarfWalker::parse() {
                                     &signature,
                                     &typeoffset,
                                     &next_cu_header, NULL) == DW_DLV_OK ) {
-         contexts_.push();
+         push();
          bool ret = parseModule(is_info, fixUnknownMod);
-         contexts_.pop();
+         pop();
          if (!ret) return false;
          compile_offset = next_cu_header;
       }
@@ -222,39 +219,42 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
    Address tempModLow, tempModHigh;
    modLow = modHigh = 0;
    if (findConstant(DW_AT_low_pc, tempModLow, entry(), dbg())) {
-      obj()->convertDebugOffset(tempModLow, modLow);
+      modLow = convertDebugOffset(tempModLow);
    }
    if (findConstant(DW_AT_high_pc, tempModHigh, entry(), dbg())) {
-      obj()->convertDebugOffset(tempModHigh, modHigh);
+      modHigh = convertDebugOffset(tempModHigh);
    }
 
-   if (!symtab()->findModuleByName(mod_, moduleName))
-   {
-      std::string fName = extract_pathname_tail(moduleName);
-      if (!symtab()->findModuleByName(mod_, fName)) {
-         moduleName = symtab()->file();
-         if (!symtab()->findModuleByName(mod_, moduleName)) {
-            mod_ = symtab()->getDefaultModule();
-         }
-      }
-   }
+   setModuleFromName(moduleName);
 
-   dwarf_printf("Mapped to Symtab module %s\n", mod_->fileName().c_str());
+   //dwarf_printf("Mapped to Symtab module %s\n", mod()->fileName().c_str());
    
    if (!fixUnknownMod)
-      fixUnknownMod = mod_;
+      fixUnknownMod = mod();
 
    if (!buildSrcFiles(moduleDIE)) return false;
    
-   tc_ = typeCollection::getModTypeCollection(mod_);
 
    if (!parse_int(moduleDIE, true)) return false;
 
    return true;
 
-} 
+}
 
-       
+void DwarfParseActions::setModuleFromName(std::string moduleName)
+{
+   if (!symtab()->findModuleByName(mod(), moduleName))
+   {
+      std::string fName = extract_pathname_tail(moduleName);
+      if (!symtab()->findModuleByName(mod(), fName)) {
+         moduleName = symtab()->file();
+         if (!symtab()->findModuleByName(mod(), moduleName)) {
+            mod() = (symtab()->getDefaultModule());
+         }
+      }
+   }
+}
+
 bool DwarfWalker::buildSrcFiles(Dwarf_Die entry) {
    Dwarf_Signed cnt = 0;
    DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList_, &cnt, NULL));
@@ -267,20 +267,17 @@ bool DwarfWalker::buildSrcFiles(Dwarf_Die entry) {
    return true;
 }
 
-Object *DwarfWalker::obj() { 
-   return symtab_->getObject();
-}
 
 // As mentioned in the header, this is separate from parse()
 // so we can have a non-Context-creating parse method that reuses
 // the Context from the parent. This allows us to pass in current
 // function, etc. without the Context stack exploding
 bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
-   dwarf_printf("PARSE_INT entry, context size %d\n", (int) contexts_.c.size());
+   dwarf_printf("PARSE_INT entry, context size %d\n", stack_size());
    // We escape the loop by checking parseSibling() after 
    // parsing this DIE and its children, if any
    while(1) {
-      ContextGuard cg(contexts_);
+      ContextGuard cg(*this);
 
       setEntry(e);
       setParseSibling(p);
@@ -293,7 +290,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p, encl %p\n",
                    id(),
                    e,
-                   (int) contexts_.c.size(), 
+                   stack_size(),
                    curFunc(),
 		   //                   (curFunc() && !curFunc()->getAllMangledNames().empty()) ? 
                    //curFunc()->getAllMangledNames()[0].c_str() : "<null>",
@@ -437,7 +434,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       e = siblingDwarf;
    }
    
-   dwarf_printf("PARSE_INT exit, context size %d\n", (int) contexts_.c.size());
+   dwarf_printf("PARSE_INT exit, context size %d\n", stack_size());
    return true;
 }
 
@@ -494,49 +491,61 @@ bool DwarfWalker::setFunctionFromRange(inline_t func_type)
    }
 
    if (func_type == InlinedFunc) {
-      FunctionBase *parent = curFunc();
-      if (!parent) {
-         //InlinedSubroutine without containing subprogram.  Weird.
-	dwarf_printf("(0x%lx) setFunctionFromRange found inline without parent, returning false\n", id());
-         return false;
-      }
-      InlinedFunction *ifunc = new InlinedFunction(parent);
-      setFunc(ifunc);
-      return true;
+      createInlineFunc();
+      if(!curFunc()) return false;
    }
 
    //Try to associate the function with existing symbols
+   setFuncFromLowest(lowest);
+
+
+   return true;
+}
+
+void DwarfWalker::setFuncFromLowest(Address lowest) {
    Function *f = NULL;
    bool result = symtab()->findFuncByEntryOffset(f, lowest);
    if (result) {
       dwarf_printf("(0x%lx) Lookup by offset 0x%lx identifies %p\n",
                    id(), lowest, curFunc());
       setFunc(f);
-      return true;
-   } else 
-   {
+   } else {
      dwarf_printf("(0x%lx) Lookup by offset 0x%lx failed\n", id(), lowest);
    }
-   
+}
 
-   
-   return true;
+void DwarfWalker::createInlineFunc() {
+   FunctionBase *parent = curFunc();
+   if (parent) {
+         InlinedFunction *ifunc = new InlinedFunction(parent);
+         setFunc(ifunc);
+      } else {
+         //InlinedSubroutine without containing subprogram.  Weird.
+         dwarf_printf("(0x%lx) setFunctionFromRange found inline without parent, returning false\n", id());
+      }
+}
+
+void DwarfParseActions::addMangledFuncName(std::string name)
+{
+   curFunc()->addMangledName(name, true);
+}
+void DwarfParseActions::addPrettyFuncName(std::string name)
+{
+   curFunc()->addPrettyName(name, true);
 }
 
 bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    bool name_result;
-   FunctionBase *func = NULL;
 
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
 
    parseRangeTypes();
    setFunctionFromRange(func_type);
-   func = curFunc();
 
    // Name first
    name_result = findFuncName();
 
-   if (curEnclosure() && !func) {
+   if (curEnclosure() && !curFunc()) {
       // This is a member function; create the type entry
       // Since curFunc is false, we're not going back to reparse this
       // entry with a function object.
@@ -554,13 +563,13 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    // parsing a specification or abstract entry at the top-level
    //This keeps us from parsing abstracts or specifications until
    // we need them.
-   if (!func) {
+   if (!curFunc()) {
       dwarf_printf("(0x%lx) parseSubprogram not parsing children b/c curFunc() NULL\n", id());
       setParseChild(false);
       return true;
    }
 
-   if (parsedFuncs.find(func) != parsedFuncs.end()) {
+   if (parsedFuncs.find(curFunc()) != parsedFuncs.end()) {
       dwarf_printf("(0x%lx) parseSubprogram not parsing children b/c curFunc() not in parsedFuncs\n", id());
       if(name_result) {
 	  dwarf_printf("\tname is %s\n", curName().c_str());
@@ -572,12 +581,12 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    if (name_result && !curName().empty()) {
       dwarf_printf("(0x%lx) Identified function name as %s\n", id(), curName().c_str());
       if (isMangledName()) {
-	  func->addMangledName(curName(), true);
+	  addMangledFuncName(curName());
       }
       // Only keep pretty names around for inlines, which probably don't have mangled names
       else {
 	  dwarf_printf("(0x%lx) Adding as pretty name to inline\n", id());
-	  func->addPrettyName(curName(), true);
+	  addPrettyFuncName(curName());
       }
    }
 
@@ -587,29 +596,11 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    }
    
    // Get the return type
-   Type *returnType = NULL;
-   if (!func->getReturnType()) {
-      getReturnType(false, returnType);
-      if (returnType)
-         func->setReturnType(returnType);
-   }
+   setFuncReturnType();
 
    // Get range information
    if (hasRanges()) {
-       if(func->ranges.empty()) {
-	   Address last_low = 0, last_high = 0;
-	   func->ranges.reserve(rangesSize());
-	   for (range_set_t::iterator i = ranges_begin(); i != ranges_end(); i++) {
-	       Address low = i->first;
-	       Address high = i->second;
-	       if (last_low == low && last_high == high)
-		   continue;
-	       last_low = low;
-	       last_high = high;
-	       
-	       func->ranges.push_back(FuncRange(low, high - low, func));         
-	   }
-       }
+      setFuncRanges();
    }
    // Dwarf outlines some function information. You have the base entry, which contains
    // address ranges, frame base information, and optionally a "abstract origin"
@@ -638,9 +629,26 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
       if (!parse_int(specEntry(), false)) return false;
    }
 
-   parsedFuncs.insert(func);
+   parsedFuncs.insert(curFunc());
 
    return true;
+}
+
+void DwarfWalker::setFuncRanges() {
+   if(curFunc()->ranges.empty()) {
+	   Address last_low = 0, last_high = 0;
+	   curFunc()->ranges.reserve(rangesSize());
+	   for (auto i = ranges_begin(); i != ranges_end(); i++) {
+	       Address low = i->first;
+	       Address high = i->second;
+	       if (last_low == low && last_high == high)
+		   continue;
+	       last_low = low;
+	       last_high = high;
+
+	       curFunc()->ranges.push_back(FuncRange(low, high - low, curFunc()));
+	   }
+    }
 }
 
 bool DwarfWalker::parseHighPCLowPC(Dwarf_Die entry)
@@ -655,8 +663,8 @@ bool DwarfWalker::parseHighPCLowPC(Dwarf_Die entry)
    Address tempLow, tempHigh;
    if (!findConstant(DW_AT_low_pc, tempLow, entry, dbg())) return false;
    if (!findConstant(DW_AT_high_pc, tempHigh, entry, dbg())) return false;
-   obj()->convertDebugOffset(tempLow, low);
-   obj()->convertDebugOffset(tempHigh, high);
+   low = convertDebugOffset(tempLow);
+   high = convertDebugOffset(tempHigh);
    Dwarf_Half form;
    DWARF_FAIL_RET(dwarf_whatform(hasHigh, &form, NULL));
    
@@ -725,25 +733,7 @@ bool DwarfWalker::parseCommonBlock() {
 
    std::string commonBlockName;
    if (!findDieName( entry(), commonBlockName )) return false;
-   
-   std::vector<Symbol *> commonBlockVars;
-   if (!symtab()->findSymbol(commonBlockVars,
-                             commonBlockName,
-                             Symbol::ST_OBJECT,
-                             SymtabAPI::anyName)) {
-      //pgcc 6 is naming common blocks with a trailing underscore
-      std::string cbvname = commonBlockName + std::string("_");
-      symtab()->findSymbol(commonBlockVars,
-                           cbvname, 
-                           Symbol::ST_OBJECT,
-                           SymtabAPI::anyName);
-   }
-   if (commonBlockVars.empty()) {
-      dwarf_printf("(0x%lx) Couldn't find variable for common block %s\n", id(), commonBlockName.c_str());
-      return false;
-   }
-   
-   Symbol *commonBlockVar = commonBlockVars[0];
+   Symbol* commonBlockVar = findSymbolForCommonBlock(commonBlockName);
    if(!commonBlockVar)
    {
      assert(!"No common block variables to parse!");
@@ -751,18 +741,26 @@ bool DwarfWalker::parseCommonBlock() {
    }
 
 
+   typeCommon *commonBlockType = getCommonBlockType(commonBlockName);
+
+   setCommon(commonBlockType);
+
+   return true;
+}
+
+Symbol *DwarfWalker::findSymbolForCommonBlock(const string &commonBlockName) {
+   return findSymbolByName(commonBlockName, Symbol::ST_OBJECT);
+}
+
+typeCommon *DwarfWalker::getCommonBlockType(string &commonBlockName) {
    typeCommon *commonBlockType = NULL;
 
    commonBlockType = dynamic_cast<typeCommon *>(tc()->findVariableType(commonBlockName));
    if (commonBlockType == NULL) {
       commonBlockType = new typeCommon( type_id(), commonBlockName );
-      assert( commonBlockType != NULL );
-      tc()->addGlobalVariable( commonBlockName, commonBlockType );
-   }	
-
-   setCommon(commonBlockType);
-
-   return true;
+      tc()->addGlobalVariable(commonBlockName, commonBlockType );
+   }
+   return commonBlockType;
 }
 
 bool DwarfWalker::parseConstant() {
@@ -806,16 +804,10 @@ bool DwarfWalker::parseVariable() {
       //if (locs[i].stClass != storageAddr) 
       //continue;
       if (locs[i].lowPC) {
-         Offset newlowpc = locs[i].lowPC;
-         bool result = obj()->convertDebugOffset(locs[i].lowPC, newlowpc);
-         if (result)
-            locs[i].lowPC = newlowpc;
+         locs[i].lowPC = convertDebugOffset(locs[i].lowPC);
       }
       if (locs[i].hiPC) {
-         Offset newhipc = locs[i].hiPC;
-         bool result = obj()->convertDebugOffset(locs[i].hiPC, newhipc);
-         if (result)
-            locs[i].hiPC = newhipc;
+         locs[i].hiPC = convertDebugOffset(locs[i].hiPC);
       }
    }
 
@@ -827,57 +819,76 @@ bool DwarfWalker::parseVariable() {
    bool hasLineNumber = false;
    std::string fileName;
 
-   if (curFunc() || curEnclosure()) {
-      if (!getLineInformation(variableLineNo, hasLineNumber, fileName)) return false;
-   }
 
    if (!curFunc() && !curEnclosure()) {
-      /* The typeOffset forms a module-unique type identifier,
-         so the Type look-ups by it rather than name. */
-      dwarf_printf("(0x%lx) Adding global variable\n", id());
+      createGlobalVariable(locs, type);
 
-      Dyninst::Offset addr = 0;
-      if (locs.size() && locs[0].stClass == storageAddr)
-         addr = locs[0].frameOffset;
-      Variable *var;
-      bool result = symtab()->findVariableByOffset(var, addr);
-      if (result) {
-         var->setType(type);
-      }      
-      tc()->addGlobalVariable( curName(), type);
    } /* end if this variable is a global */
-   else if (curFunc()) {
-      /* We now have the variable name, type, offset, and line number.
-         Tell Dyninst about it. */
+   else
+   {
+      if (!getLineInformation(variableLineNo, hasLineNumber, fileName)) return false;
       if (!nameDefined()) return true;
+      if (curFunc()) {
+         /* We now have the variable name, type, offset, and line number.
+            Tell Dyninst about it. */
 
-      localVar * newVariable = new localVar(curName(),
-                                            type,
-                                            fileName, 
-                                            (int) variableLineNo, 
-                                            curFunc());
-      dwarf_printf("(0x%lx) localVariable '%s' (%p), currentFunction %p\n", 
+         createLocalVariable(locs, type, variableLineNo, fileName);
+
+      } /* end if a local or static variable. */
+      else {
+         return addStaticClassVariable(locs, type);
+      }
+   } /* end if this variable is not global */
+   return true;
+}
+
+bool DwarfWalker::addStaticClassVariable(const vector<VariableLocation> &locs, Type *type) {
+   if( locs[0].stClass != storageRegOffset )
+   {
+      dwarf_printf("(0x%lx) Adding variable to an enclosure\n", id());
+      curEnclosure()->addField(curName(), type, locs[0].frameOffset);
+      return true;
+   }
+   return false;
+}
+
+void DwarfWalker::createGlobalVariable(const vector<VariableLocation> &locs, Type *type) {
+   /* The typeOffset forms a module-unique type identifier,
+         so the Type look-ups by it rather than name. */
+   dwarf_printf("(0x%lx) Adding global variable\n", id());
+
+   Offset addr = 0;
+   if (locs.size() && locs[0].stClass == storageAddr)
+         addr = locs[0].frameOffset;
+   Variable *var;
+   bool result = symtab()->findVariableByOffset(var, addr);
+   if (result) {
+         var->setType(type);
+      }
+   tc()->addGlobalVariable(curName(), type);
+}
+
+void DwarfWalker::createLocalVariable(const vector<VariableLocation> &locs, Type *type,
+                                      Dwarf_Unsigned variableLineNo,
+                                      const string &fileName) {
+   localVar * newVariable = new localVar(curName(),
+                                         type,
+                                         fileName,
+                                         (int) variableLineNo,
+                                         curFunc());
+   dwarf_printf("(0x%lx) localVariable '%s' (%p), currentFunction %p\n",
                    id(), curName().c_str(), newVariable, curFunc());
 
-      for (unsigned int i = 0; i < locs.size(); ++i) {
+   for (unsigned int i = 0; i < locs.size(); ++i) {
          dwarf_printf("(0x%lx) (%s) Adding location %d of %d: (0x%lx - 0x%lx): %s, %s, %s, %ld\n",
-                      id(), newVariable->getName().c_str(), i+1, (int) locs.size(), locs[i].lowPC, locs[i].hiPC, 
+                      id(), newVariable->getName().c_str(), i + 1, (int) locs.size(), locs[i].lowPC, locs[i].hiPC,
                       storageClass2Str(locs[i].stClass),
                       storageRefClass2Str(locs[i].refClass),
                       locs[i].mr_reg.name().c_str(),
                       locs[i].frameOffset);
          newVariable->addLocation(locs[i]);
       }
-      curFunc()->addLocalVar(newVariable);
-   } /* end if a local or static variable. */
-   else if (curEnclosure()) {
-      if (!nameDefined()) return true;
-      assert( locs[0].stClass != storageRegOffset );
-      dwarf_printf("(0x%lx) Adding variable to an enclosure\n", id());
-
-      curEnclosure()->addField( curName(), type, locs[0].frameOffset);
-   } /* end if this variable is not global */
-   return true;
+   curFunc()->addLocalVar(newVariable);
 }
 
 bool DwarfWalker::parseFormalParam() {
@@ -937,31 +948,37 @@ bool DwarfWalker::parseFormalParam() {
    bool hasLineNumber = false;
    std::string fileName;
    if (!getLineInformation(lineNo, hasLineNumber, fileName)) return false;
-   localVar * newParameter = new localVar(curName(), 
-                                          paramType, 
-                                          fileName, (int) lineNo, 
+   createParameter(locs, paramType, lineNo, fileName);
+
+   return true;
+}
+
+void DwarfWalker::createParameter(const vector<VariableLocation> &locs, Type *paramType, Dwarf_Unsigned lineNo,
+                                  const string &fileName) {
+   localVar * newParameter = new localVar(curName(),
+                                          paramType,
+                                          fileName, (int) lineNo,
                                           curFunc());
    dwarf_printf("(0x%lx) Creating new formal parameter %s/%p (%s) (%p)\n",
                 id(),
-                curName().c_str(), 
+                curName().c_str(),
                 paramType, paramType->getName().c_str(),
-		//                ((curFunc() && !curFunc()->getAllMangledNames().empty()) ? 
+		//                ((curFunc() && !curFunc()->getAllMangledNames().empty()) ?
 		//curFunc()->getAllMangledNames()[0].c_str() : ""),
                 curFunc());
 
-   assert( newParameter != NULL );
    for (unsigned int i = 0; i < locs.size(); ++i)
    {
       newParameter->addLocation(locs[i]);
    }
-   
+
    /* This is just brutally ugly.  Why don't we take care of this invariant automatically? */
-   
+
    curFunc()->addParam(newParameter);
-   return true;
 }
 
 bool DwarfWalker::parseBaseType() {
+   if(!tc()) return false;
    dwarf_printf("(0x%lx) parseBaseType entry\n", id());
 
    if (!findName(curName())) return false;
@@ -1039,12 +1056,12 @@ bool DwarfWalker::parseArray() {
 
    DWARF_FAIL_RET(dwarf_child( entry(), & firstRange, NULL ));
 
-   contexts_.push();
+   push();
 
    typeArray * baseArrayType = parseMultiDimensionalArray(firstRange, 
                                                           elementType);
 
-   contexts_.pop();
+   pop();
 
    if (!baseArrayType) return false;
    
@@ -1084,6 +1101,7 @@ bool DwarfWalker::parseSubrange() {
 }
 
 bool DwarfWalker::parseEnum() {
+   if(!tc()) return false;
    dwarf_printf("(0x%lx) parseEnum entry\n", id());
    if (!findName(curName())) return false;
 
@@ -1117,12 +1135,12 @@ bool DwarfWalker::parseInheritance() {
 }
 
 bool DwarfWalker::parseStructUnionClass() {
+   if(!tc()) return false;
    dwarf_printf("(0x%lx) parseStructUnionClass entry\n", id());
 
    assert(tag() == DW_TAG_structure_type ||
           tag() == DW_TAG_union_type ||
           tag() == DW_TAG_class_type);
-
    if (!findName(curName())) return false;
 
    bool isDeclaration = false;
@@ -1229,8 +1247,8 @@ bool DwarfWalker::parseConstPackedVolatile() {
 
 bool DwarfWalker::parseTypeReferences() {
    dwarf_printf("(0x%lx) parseTypeReferences entry\n", id());
-
    if (!findName(curName())) return false;
+
 
    Type *typePointedTo = NULL;
    if (!findType(typePointedTo, true)) return false;
@@ -1280,38 +1298,6 @@ bool DwarfWalker::findOffset() {
    DWARF_FAIL_RET(dwarf_dieoffset( entry(), & dieOffset, NULL ));
    
    setOffset(dieOffset);
-   return true;
-}
-
-bool DwarfWalker::findEntryToUse(Dwarf_Half attr, bool &found, Dwarf_Die &e) {
-   Dwarf_Bool hasAttr;
-   DWARF_FAIL_RET(dwarf_hasattr(entry(),
-                                attr,
-                                &hasAttr, NULL ));
-   if (hasAttr) {
-      e = entry();
-      found = true;
-      return true;
-   }
-
-   DWARF_FAIL_RET(dwarf_hasattr(specEntry(),
-                                attr,
-                                &hasAttr, NULL ));
-   if (hasAttr) {
-      e = specEntry();
-      found = true;
-      return true;
-   }
-
-   DWARF_FAIL_RET(dwarf_hasattr(abstractEntry(),
-                                attr,
-                                &hasAttr, NULL ));
-   if (hasAttr) {
-      e = abstractEntry();
-      found = true;
-      return true;
-   }
-   found = false;
    return true;
 }
 
@@ -1435,11 +1421,15 @@ bool DwarfWalker::findFuncName() {
    setMangledName(false);
    return true;
 }
+std::vector<VariableLocation>& DwarfParseActions::getFramePtrRefForInit()
+{
+   return curFunc()->getFramePtrRefForInit();
+}
 
 bool DwarfWalker::getFrameBase() {
    dwarf_printf("(0x%lx) Checking for frame pointer information\n", id());
 
-   std::vector<VariableLocation> &funlocs = curFunc()->getFramePtrRefForInit();
+   std::vector<VariableLocation> &funlocs = getFramePtrRefForInit();
    if (!funlocs.empty()) {
       DWARF_CHECK_RET(false);
    }
@@ -1486,7 +1476,7 @@ bool DwarfWalker::addFuncToContainer(Type *returnType) {
       functions, but confuses the tests.  Since Type uses vectors
       to hold field names, however, duplicate -- demangled names -- are OK. */
    
-   char * demangledName = P_cplus_demangle( curName().c_str(), symtab()->isNativeCompiler() );
+   char * demangledName = P_cplus_demangle( curName().c_str(), isNativeCompiler() );
    std::string toUse;
 
    if (!demangledName) {
@@ -1510,9 +1500,9 @@ bool DwarfWalker::addFuncToContainer(Type *returnType) {
 }
 
 bool DwarfWalker::findType(Type *&type, bool defaultToVoid) {
+   if(!tc()) return false;
   // Do *not* return true unless type is actually usable.
    int status;
-
    /* Acquire the parameter's type. */
    Dwarf_Attribute typeAttribute;
    status = dwarf_attr( specEntry(), DW_AT_type, & typeAttribute, NULL );
@@ -2368,14 +2358,6 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **lo
    return !locs.empty();
 } /* end decodeLocationListForStaticOffsetOrAddress() */
 
-void DwarfWalker::deallocateLocationList( Dwarf_Locdesc * locationList, 
-                                          Dwarf_Signed listLength ) 
-{
-  for( int i = 0; i < listLength; i++ ) {
-     dwarf_dealloc( dbg(), locationList[i].ld_s, DW_DLA_LOC_BLOCK );
-  }
-  dwarf_dealloc( dbg(), locationList, DW_DLA_LOCDESC );
-} /* end deallocateLocationList() */
 
 void DwarfWalker::deallocateLocationList( Dwarf_Locdesc ** locationList, 
                                           Dwarf_Signed listLength ) 
@@ -2388,11 +2370,11 @@ void DwarfWalker::deallocateLocationList( Dwarf_Locdesc ** locationList,
 } /* end deallocateLocationList() */
 
 void DwarfWalker::setEntry(Dwarf_Die entry) {
-   contexts_.setEntry(entry);
-   contexts_.setSpecEntry(entry);
-   contexts_.setAbstractEntry(entry);
+   DwarfParseActions::setEntry(entry);
+   DwarfParseActions::setSpecEntry(entry);
+   DwarfParseActions::setAbstractEntry(entry);
 }
-void DwarfWalker::Contexts::push() {
+void DwarfParseActions::push() {
    if (c.empty()) {
       c.push(Context());
    }
@@ -2401,19 +2383,19 @@ void DwarfWalker::Contexts::push() {
    }
 }
 
-void DwarfWalker::Contexts::pop() {
+void DwarfParseActions::pop() {
    assert(!c.empty());
    c.pop();
 }
 
-void DwarfWalker::Contexts::setFunc(FunctionBase *f) {
+void DwarfParseActions::setFunc(FunctionBase *f) {
   // Bug workaround; if we're setting a function, ignore
   // any preceding lexical information since we probably 
   // nested. 
   c.top().func = f;
 }
 
-void DwarfWalker::Contexts::clearFunc() {
+void DwarfParseActions::clearFunc() {
   // We can't edit in the middle of the stack...
 
   std::stack<Context> repl;
@@ -2512,4 +2494,23 @@ bool DwarfWalker::findSig8Type(Dwarf_Sig8 *signature, Type *&returnType)
 
    dwarf_printf("Couldn't find Sig8 {%016llx}!\n", (long long) sig8);
    return false;
+}
+
+Object *DwarfParseActions::obj() const {
+   return symtab()->getObject();
+}
+
+Offset DwarfParseActions::convertDebugOffset(Offset from) {
+   Offset to;
+   obj()->convertDebugOffset(from, to);
+   return to;
+}
+
+void DwarfWalker::setFuncReturnType() {
+   Type *returnType = NULL;
+   if (!curFunc()->getReturnType()) {
+      getReturnType(false, returnType);
+      if (returnType)
+         curFunc()->setReturnType(returnType);
+   }
 }
