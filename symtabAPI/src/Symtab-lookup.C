@@ -394,8 +394,9 @@ bool Symtab::findModuleByOffset(Module *&ret, Offset off)
     for(int i = 0; i < _mods.size(); i++)
     {
 //        cout << *(_mods[i]) << endl;
-        if(_mods[i]->addr() <= off && i < _mods.size() - 1 &&
-                off < _mods[i+1]->addr())
+        if(_mods[i]->addr() == off)
+        //&& i < _mods.size() - 1 &&
+        //        off < _mods[i+1]->addr())
         {
             ret = _mods[i];
             return true;
