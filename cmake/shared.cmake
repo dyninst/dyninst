@@ -90,6 +90,8 @@ include (${DYNINST_ROOT}/cmake/options.cmake)
 include (${DYNINST_ROOT}/cmake/optimization.cmake)
 include (${DYNINST_ROOT}/cmake/cotire.cmake)
 
+set_directory_properties(PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
+
 set (BUILD_SHARED_LIBS ON)
 
 set (INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
