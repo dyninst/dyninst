@@ -1178,6 +1178,13 @@ namespace Dyninst
 					IntelRegTable(m_Arch,b_segment,locs->modrm_reg)),
 					isRead, isWritten);
 				break;
+			case am_T:
+				// test register in modrm reg; should only be tr6/tr7, but we'll decode any of them
+				// NOTE: this only appears in deprecated opcodes
+				insn_to_complete->appendOperand(makeRegisterExpression(
+					IntelRegTable(m_Arch,b_tr,locs->modrm_reg)), 
+					isRead, isWritten);
+				break;
 
 			case am_UM:
 				switch(locs->modrm_mod)
