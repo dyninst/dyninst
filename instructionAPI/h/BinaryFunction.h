@@ -69,13 +69,40 @@ namespace Dyninst
 					
 					std::string format() const 
 					{
+                        char* exp = strdup(m_name.c_str());
+
+                        char* imm = NULL;
+                        if((imm = strstr(exp, "+")))
+                        {
+                            char out_buffer[128];
+                            memset(out_buffer, 0, 128);
+
+                            while(*imm && (*imm == ' ' 
+                                        || *imm == '$' || *imm == '+')) 
+                                imm++;
+                            char* reg = strdup(exp);
+                            char* reg_pos = reg;
+                            while(*reg_pos && *reg_pos != ' ') reg_pos++;
+                            *reg_pos = 0;
+
+                            snprintf(out_buffer, 128, "%s(%s)", imm, reg);
+                            printf("Contents of buffer: %s\n", out_buffer);
+                            free(reg);
+                            free(exp);
+
+                            std::string str(out_buffer);
+                            std::cout << std::endl << str << std::endl << std::endl;
+                            return str;
+                        }
+
+                        free(exp);
 						return m_name;
 					}
 					
 					typedef boost::shared_ptr<funcT> Ptr;
 	
 					private:
-						std::string m_name;
+                        std::string m_name;
 			};
       
       

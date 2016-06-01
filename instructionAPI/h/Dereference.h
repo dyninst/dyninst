@@ -145,8 +145,6 @@ namespace Dyninst
                             options->scale = strdup(str);
                         } else assert(!"Too many Immediates in operand list!");
                     }
-            	    // std::cout << child->eval().convert<unsigned int>() 
-                        // << ":" << child->format() << " leaf? " << leaf << std::endl;
                 } 
 
             	analyze_ast_tree(child, options, depth + 1);
@@ -201,9 +199,7 @@ namespace Dyninst
             struct dereference_options_list list;
             memset(&list, 0, 
                     sizeof(struct dereference_options_list));
-			// std::cout << std::endl;
 			analyze_ast_tree(addressToDereference, &list, 0);
-			// exit(1);
 
             if(list.displacement && list.base && list.offset && list.scale)
             {
@@ -220,9 +216,19 @@ namespace Dyninst
                 retVal << list.displacement << "(" << list.base << ")";
             // fprintf(stderr, "return value: %s\n", retVal.str().c_str());
             if(retVal.str().size() == 0)
+            {
+                free(list.scale);
+                free(list.offset);
+                free(list.base);
+                free(list.displacement);
                 return addressToDereference->format();
-            // retVal << " orig: " << addressToDereference->format();
-            // retVal << addressToDereference->format(memoryAccessStyle);
+            }
+
+            free(list.scale);
+            free(list.offset);
+            free(list.base);
+            free(list.displacement);
+
             return retVal.str();
         }
 
