@@ -430,9 +430,9 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                                   proc->getPid(), thread->getLWP());
                     if (thread->getLWP() == proc->getPid())
 		            {
-		                unsigned long exitcode = 0x0;
+		                unsigned long eventmsg = 0x0;
 		                int result = do_ptrace((pt_req)PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(),
-					        NULL, &exitcode);
+					        NULL, &eventmsg);
 		                if(result == -1)
 		                {
                             int error = errno;
@@ -441,9 +441,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                                 proc->setLastError(err_exited, "Process exited during operation");
                             return false;
 		                }
+		                int exitcode = (int)eventmsg;
 		                exitcode = WEXITSTATUS(exitcode);
 
-		                pthrd_printf("Decoded event to pre-exit of process %d/%d with code %lu\n",
+		                pthrd_printf("Decoded event to pre-exit of process %d/%d with code %i\n",
 				            proc->getPid(), thread->getLWP(), exitcode);
 		                event = Event::ptr(new EventExit(EventType::Pre, exitcode));
 
