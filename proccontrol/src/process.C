@@ -2881,7 +2881,9 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    clearing_breakpoint(NULL),
    em_singlestep(NULL),
    user_data(NULL),
-   unwinder(NULL)
+   unwinder(NULL),
+   addr_fakeSyscallExitBp(0),
+   isSet_fakeSyscallExitBp(false)
 {
    Thread::ptr new_thr(new Thread());
 
