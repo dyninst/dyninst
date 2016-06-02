@@ -46,14 +46,14 @@ set (SRC_LIST ${SRC_LIST}
     src/parseDwarf.C
         src/parseStab.C
         src/LinkMap.C
-    src/emitElfStatic.C 
+        src/emitElf.C
+    src/emitElfStatic.C
     src/dwarfWalker.C
 )
 
 if (PLATFORM MATCHES x86_64 OR PLATFORM MATCHES amd64)
 set (SRC_LIST ${SRC_LIST}
-    src/emitElf-64.C
-    src/emitElfStatic-x86.C 
+    src/emitElfStatic-x86.C
     src/relocationEntry-elf-x86.C
     )
 elseif (PLATFORM MATCHES i386)
@@ -68,19 +68,16 @@ set (SRC_LIST ${SRC_LIST}
     )
 elseif (PLATFORM MATCHES ppc64)
 set (SRC_LIST ${SRC_LIST}
-    src/emitElf-64.C
     src/emitElfStatic-ppc64.C
     src/relocationEntry-elf-ppc64.C
     )
 elseif (PLATFORM MATCHES aarch64)
 set (SRC_LIST ${SRC_LIST}
-    src/emitElf-64.C
     src/emitElfStatic-aarch64.C
     src/relocationEntry-elf-aarch64.C
     )
 else (TRUE)
 set (SRC_LIST ${SRC_LIST}
-    src/emitElf-64.C
     src/emitElfStatic-stub.C
     src/relocationEntry-stub.C
     )

@@ -30,7 +30,7 @@
 
 
 #include <algorithm>
-#include "emitElf-64.h"
+#include "emitElf.h"
 #include "emitElfStatic.h"
 #include "common/src/pathName.h"
 
@@ -115,7 +115,7 @@ void setVersion() {
 
 
 template<class ElfTypes>
-emitElf64<ElfTypes>::emitElf64(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *),
+emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *),
                                Symtab *st) :
         oldElfHandle(oldElfHandle_), newElf(NULL), oldElf(NULL),
         obj(st),
@@ -183,7 +183,7 @@ emitElf64<ElfTypes>::emitElf64(Elf_X *oldElfHandle_, bool isStripped_, Object *o
 }
 
 template<class ElfTypes>
-bool emitElf64<ElfTypes>::hasPHdrSectionBug()
+bool emitElf<ElfTypes>::hasPHdrSectionBug()
 {
    if (movePHdrsFirst)
       return false;
@@ -193,7 +193,7 @@ bool emitElf64<ElfTypes>::hasPHdrSectionBug()
 }
 
 template<typename ElfTypes>
-bool emitElf64<ElfTypes>::cannotRelocatePhdrs()
+bool emitElf<ElfTypes>::cannotRelocatePhdrs()
 {
 //#if defined(bug_phdrs_first_page)
     return true;
@@ -276,7 +276,7 @@ std::string phdrTypeStr(Elf64_Word phdr_type) {
 }
 
 template<class ElfTypes>
-bool emitElf64<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf_Sym *> &symbols,
+bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf_Sym *> &symbols,
                                           bool dynSymFlag) {
     Elf_Sym *sym = new Elf_Sym();
     sym->st_name = strIndex;
@@ -438,7 +438,7 @@ bool emitElf64<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vec
 
 // Find the end of data/text segment
 template<class ElfTypes>
-void emitElf64<ElfTypes>::findSegmentEnds() {
+void emitElf<ElfTypes>::findSegmentEnds() {
     Elf_Phdr *tmp = ElfTypes::elf_getphdr(oldElf);
     // Find the offset of the start of the text & the data segment
     // The first LOAD segment is the text & the second LOAD segment
@@ -458,7 +458,7 @@ void emitElf64<ElfTypes>::findSegmentEnds() {
 // Rename an old section. Lengths of old and new names must match.
 // Only renames the FIRST matching section encountered.
 template<class ElfTypes>
-void emitElf64<ElfTypes>::renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll) {
+void emitElf<ElfTypes>::renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll) {
     assert(oldStr.length() == newStr.length());
     for (unsigned k = 0; k < secNames.size(); k++) {
         if (secNames[k] == oldStr) {
@@ -470,7 +470,7 @@ void emitElf64<ElfTypes>::renameSection(const std::string &oldStr, const std::st
 }
 
 template<class ElfTypes>
-bool emitElf64<ElfTypes>::driver(std::string fName) {
+bool emitElf<ElfTypes>::driver(std::string fName) {
     vector<ExceptionBlock *> exceptions;
     obj->getAllExceptions(exceptions);
     //  cerr << "Dumping exception info: " << endl;
@@ -485,7 +485,7 @@ bool emitElf64<ElfTypes>::driver(std::string fName) {
     int newfd;
     Region *foundSec = NULL;
     unsigned pgSize = getpagesize();
-    rewrite_printf("::driver for emitElf64\n");
+    rewrite_printf("::driver for emitElf\n");
 
     string strtmpl = fName + "XXXXXX";
     char buf[strtmpl.length() + 1];
@@ -886,7 +886,7 @@ bool emitElf64<ElfTypes>::driver(std::string fName) {
 
 
 template<class ElfTypes>
-void emitElf64<ElfTypes>::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIndexMapping) {
+void emitElf<ElfTypes>::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIndexMapping) {
     assert(!movePHdrsFirst);
 
     unsigned phdr_size = oldEhdr->e_phnum * oldEhdr->e_phentsize;
@@ -933,7 +933,7 @@ void emitElf64<ElfTypes>::createNewPhdrRegion(dyn_hash_map<std::string, unsigned
 }
 
 template<class ElfTypes>
-void emitElf64<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
+void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
     unsigned pgSize = getpagesize();
     Elf_Phdr *old = oldPhdr;
 
@@ -1173,7 +1173,7 @@ void emitElf64<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
 
 //This method updates the .dynamic section to reflect the changes to the relocation section
 template<class ElfTypes>
-void emitElf64<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
+void emitElf<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
     if (isStaticBinary) return;
     // This is for REL/RELA if it doesnt already exist in the original binary;
     dynamicSecData[tag][0]->d_tag = tag;
@@ -1212,7 +1212,7 @@ void emitElf64<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
  * new binary. 
  */
 template<class ElfTypes>
-void emitElf64<ElfTypes>::updateSymbols(Elf_Data *symtabData, Elf_Data *strData, unsigned long loadSecsSize) {
+void emitElf<ElfTypes>::updateSymbols(Elf_Data *symtabData, Elf_Data *strData, unsigned long loadSecsSize) {
     unsigned pgSize = (unsigned) getpagesize();
     if (symtabData && strData && loadSecsSize) {
         Elf_Sym *symPtr = (Elf_Sym *) symtabData->d_buf;
@@ -1238,7 +1238,7 @@ void emitElf64<ElfTypes>::updateSymbols(Elf_Data *symtabData, Elf_Data *strData,
 }
 
 template<class ElfTypes>
-bool emitElf64<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraAlignSize,
+bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraAlignSize,
                                                  dyn_hash_map<std::string, unsigned> &newNameIndexMapping,
                                                  unsigned &sectionNumber) {
     Elf_Scn *newscn;
@@ -1518,7 +1518,7 @@ bool emitElf64<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extr
 }
 
 template<class ElfTypes>
-bool emitElf64<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
+bool emitElf<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
     Elf_Scn *newscn;
     Elf_Data *newdata = NULL;
     Elf_Shdr *newshdr;
@@ -1566,7 +1566,7 @@ bool emitElf64<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
 }
 
 template<class ElfTypes>
-bool emitElf64<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
+bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
     Elf_Scn *newscn;
     Elf_Data *newdata = NULL;
     Elf_Shdr *newshdr;
@@ -1680,7 +1680,7 @@ bool emitElf64<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
  *          and add them to the list of new sections
  */
 template<class ElfTypes>
-bool emitElf64<ElfTypes>::createSymbolTables(vector<Symbol *> &allSymbols) {
+bool emitElf<ElfTypes>::createSymbolTables(vector<Symbol *> &allSymbols) {
     rewrite_printf(" createSymbolTables for %s \n", obj->name().c_str());
     unsigned i;
 
@@ -2029,7 +2029,7 @@ bool emitElf64<ElfTypes>::createSymbolTables(vector<Symbol *> &allSymbols) {
 }
 
 template<class ElfTypes>
-void emitElf64<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &relocation_table, bool isDynRelocs,
+void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &relocation_table, bool isDynRelocs,
                                                    dyn_hash_map<std::string, unsigned long> &dynSymNameMapping) {
     vector<relocationEntry> newRels;
     if (isDynRelocs && newSecs.size()) {
@@ -2207,7 +2207,7 @@ void emitElf64<ElfTypes>::createRelocationSections(std::vector<relocationEntry> 
 }
 
 template<class ElfTypes>
-void emitElf64<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedSecData, unsigned &verneedSecSize,
+void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedSecData, unsigned &verneedSecSize,
                                                char *&verdefSecData,
                                                unsigned &verdefSecSize, unsigned &dynSymbolNamesLength,
                                                std::vector<std::string> &dynStrs) {
@@ -2312,7 +2312,7 @@ void emitElf64<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&vernee
 }
 
 template<class ElfTypes>
-void emitElf64<ElfTypes>::createHashSection(Elf_Word *&hashsecData, unsigned &hashsecSize,
+void emitElf<ElfTypes>::createHashSection(Elf_Word *&hashsecData, unsigned &hashsecSize,
                                             std::vector<Symbol *> &dynSymbols) {
 
     /* Save the original hash table entries */
@@ -2388,7 +2388,7 @@ void emitElf64<ElfTypes>::createHashSection(Elf_Word *&hashsecData, unsigned &ha
 }
 
 template<class ElfTypes>
-void emitElf64<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf_Dyn *&dynsecData, unsigned &dynsecSize,
+void emitElf<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf_Dyn *&dynsecData, unsigned &dynsecSize,
                                                unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs) {
     dynamicSecData.clear();
     Elf_Dyn *dyns = (Elf_Dyn *) dynData;
@@ -2537,7 +2537,7 @@ void emitElf64<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf
 
 
 template<class ElfTypes>
-void emitElf64<ElfTypes>::log_elferror(void (*err_func)(const char *), const char *msg) {
+void emitElf<ElfTypes>::log_elferror(void (*err_func)(const char *), const char *msg) {
     const char *err = elf_errmsg(elf_errno());
     err = err ? err : "(bad elf error)";
     string str = string(err) + string(msg);
@@ -2545,7 +2545,7 @@ void emitElf64<ElfTypes>::log_elferror(void (*err_func)(const char *), const cha
 }
 
 template<class ElfTypes>
-void emitElf64<ElfTypes>::addDTNeeded(string s) {
+void emitElf<ElfTypes>::addDTNeeded(string s) {
     if (find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), s) != DT_NEEDEDEntries.end())
         return;
     vector<string> &libs_rmd = object->libsRMd();
@@ -2557,7 +2557,7 @@ void emitElf64<ElfTypes>::addDTNeeded(string s) {
 
 namespace Dyninst {
     namespace SymtabAPI {
-        template class emitElf64<ElfTypes32>;
-        template class emitElf64<ElfTypes64>;
+        template class emitElf<ElfTypes32>;
+        template class emitElf<ElfTypes64>;
     } // namespace SymtabAPI
 } // namespace Dyninst
