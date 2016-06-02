@@ -41,7 +41,7 @@
 
 #include "debug.h"
 
-#include "emitElf-64.h"
+#include "emitElf.h"
 
 #include "dwarfWalker.h"
 
@@ -322,10 +322,10 @@ const char* EXCEPT_NAME_ALT  = ".except_table";
 
 
 extern template
-class Dyninst::SymtabAPI::emitElf64<ElfTypes32>;
+class Dyninst::SymtabAPI::emitElf<ElfTypes32>;
 
 extern template
-class Dyninst::SymtabAPI::emitElf64<ElfTypes64>;
+class Dyninst::SymtabAPI::emitElf<ElfTypes64>;
 
 set<string> debugInfoSections = list_of(string(SYMTAB_NAME))
         (string(STRTAB_NAME));
@@ -3966,15 +3966,15 @@ bool Object::emitDriver(Symtab *obj, string fName,
 #endif
     if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS32)
     {
-        Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32> *em =
-                new Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_, obj);
+        Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32> *em =
+                new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_, obj);
         if( !em->createSymbolTables(allSymbols) ) return false;
         return em->driver(fName);
     }
     else if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS64)
     {
-        Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64> *em =
-                new Dyninst::SymtabAPI::emitElf64<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_, obj);
+        Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64> *em =
+                new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_, obj);
         if( !em->createSymbolTables(allSymbols) ) return false;
         return em->driver(fName);
     }

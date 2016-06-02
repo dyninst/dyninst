@@ -122,10 +122,9 @@ namespace Dyninst {
             Elf64_Xword makeRelocInfo(Elf64_Word sym, Elf64_Word type) { return ELF64_R_INFO(sym, type); }
         };
 
-        template<class ElfTypes = ElfTypes64>
-        class emitElf64 : public ElfTypes {
+        template<class ElfTypes = ElfTypes64> class emitElf : public ElfTypes {
         public:
-            emitElf64(Elf_X *pX, bool i, Object *pObject, void (*pFunction)(const char *), Symtab *pSymtab);
+            emitElf(Elf_X *pX, bool i, Object *pObject, void (*pFunction)(const char *), Symtab *pSymtab);
 
             typedef typename ElfTypes::Elf_Ehdr Elf_Ehdr;
             typedef typename ElfTypes::Elf_Phdr Elf_Phdr;
@@ -144,7 +143,7 @@ namespace Dyninst {
             typedef typename ElfTypes::Elf_Verdef Elf_Verdef;
             typedef typename ElfTypes::Elf_Verdaux Elf_Verdaux;
 
-            ~emitElf64() {
+            ~emitElf() {
                 if( linkedStaticData ) delete linkedStaticData;
             }
 
@@ -271,8 +270,8 @@ namespace Dyninst {
             bool isStaticBinary;
 
         };
-        extern template class emitElf64<ElfTypes32>;
-        extern template class emitElf64<ElfTypes64>;
+        extern template class emitElf<ElfTypes32>;
+        extern template class emitElf<ElfTypes64>;
 
     } // namespace SymtabAPI
 } // namespace Dyninst
