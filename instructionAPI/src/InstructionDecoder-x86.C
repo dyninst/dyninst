@@ -782,6 +782,10 @@ namespace Dyninst
                         regnum |= pref.vex_R << 4;
                         regnum |= pref.vex_r << 3;
                         break;
+                    case VEX_TYPE_VEX2:
+                    case VEX_TYPE_VEX3:
+                        regnum |= pref.vex_r << 3;
+                        break;
                     default:break;
                 }
                 break;
@@ -791,6 +795,12 @@ namespace Dyninst
                 switch(pref.vex_type)
                 {
                     case VEX_TYPE_EVEX:
+                        regnum |= pref.vex_x << 4;
+                        regnum |= pref.vex_b << 3;
+                        break;
+                    case VEX_TYPE_VEX3:
+                        printf("pref.vex_x: %d\n", pref.vex_x);
+                        printf("pref.vex_b: %d\n", pref.vex_b);
                         regnum |= pref.vex_x << 4;
                         regnum |= pref.vex_b << 3;
                         break;
