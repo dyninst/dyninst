@@ -799,8 +799,6 @@ namespace Dyninst
                         regnum |= pref.vex_b << 3;
                         break;
                     case VEX_TYPE_VEX3:
-                        printf("pref.vex_x: %d\n", pref.vex_x);
-                        printf("pref.vex_b: %d\n", pref.vex_b);
                         regnum |= pref.vex_x << 4;
                         regnum |= pref.vex_b << 3;
                         break;
