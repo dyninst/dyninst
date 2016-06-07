@@ -37,6 +37,7 @@
 
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
+#include "../rose/SgAsmArmv8Instruction.h"
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmExpression.h"
 
@@ -363,3 +364,20 @@ void RoseInsnPPCFactory::massageOperands(const InstructionAPI::Instruction::Ptr 
   return;
 }
 
+SgAsmInstruction *RoseInsnArmv8Factory::createInsn() {
+  return new SgAsmArmv8Instruction;
+}
+
+void RoseInsnArmv8Factory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID, std::string) {
+  SgAsmArmv8Instruction *tmp = static_cast<SgAsmArmv8Instruction *>(insn);
+  tmp->set_kind(convertKind(opcode));
+}
+
+bool RoseInsnArmv8Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {
+  return false;
+}
+
+void RoseInsnArmv8Factory::massageOperands(const InstructionAPI::Instruction::Ptr &,
+                                           std::vector <InstructionAPI::Operand> &) {
+  return;
+}

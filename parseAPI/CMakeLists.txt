@@ -46,8 +46,12 @@ set (SRC_LIST
         ../dataflowAPI/src/ExpressionConversionVisitor.C 
         ../dataflowAPI/src/InstructionCache.C 
         ../dataflowAPI/src/liveness.C 
-        ../dataflowAPI/src/RegisterMap.C 
-        ../dataflowAPI/src/RoseImpl.C 
+        ../dataflowAPI/src/RegisterMap.C
+		../dataflowAPI/src/RoseImpl.C
+		../dataflowAPI/rose/util/Assert.C
+		../dataflowAPI/rose/util/Message.C
+		../dataflowAPI/rose/util/Sawyer.C
+		../dataflowAPI/rose/util/Synchronization.C
         ../dataflowAPI/src/RoseInsnFactory.C 
         ../dataflowAPI/src/slicing.C 
         ../dataflowAPI/src/stackanalysis.C 

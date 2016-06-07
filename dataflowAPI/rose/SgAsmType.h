@@ -2,9 +2,36 @@
 #define SG_ASM_TYPE_H
 
 #include "SgNode.h"
+#include "util/Sawyer.h"
+#include "util/BitVector.h"
 #include "external/rose/rose-compat.h"
 
-class SgAsmType : public SgNode {
+class SgAsmNode : public SgNode {
+public:
+    /*! \brief returns a string representing the class name */
+    virtual std::string class_name() const;
+
+    /*! \brief returns new style SageIII enum values */
+    virtual VariantT variantT() const; // MS: new variant used in tree traversal
+
+    /*! \brief static variant value */
+    enum { static_variant = V_SgAsmNode };
+
+    /* the generated cast function */
+    /*! \brief Casts pointer from base class to derived class */
+    friend       SgAsmNode* isSgAsmNode(       SgAsmNode * s );
+    /*! \brief Casts pointer from base class to derived class (for const pointers) */
+    friend const SgAsmNode* isSgAsmNode( const SgAsmNode * s );
+
+public:
+    virtual ~SgAsmNode();
+
+public:
+    SgAsmNode();
+};
+
+//TODO: check for other members
+class SgAsmType : public SgAsmNode {
  public:
 
     /*! \brief returns a string representing the class name */
@@ -14,7 +41,7 @@ class SgAsmType : public SgNode {
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmType;
+    enum { static_variant = V_SgAsmType };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -24,7 +51,8 @@ class SgAsmType : public SgNode {
 
  public: 
     virtual ~SgAsmType();
-
+    
+    virtual size_t get_nBits() const { return (size_t) - 1; }
 
  public: 
     SgAsmType(); 
@@ -412,6 +440,112 @@ class SgAsmTypeVector : public SgAsmType
     SgAsmType* p_elementType;
           
     // End of memberFunctionString
+};
+
+class SgAsmScalarType : public SgAsmType {
+protected:
+    SgAsmScalarType(ByteOrder::Endianness, size_t nBits);
+public:
+    virtual size_t get_nBits() const;
+    ByteOrder::Endianness get_minorOrder() const;
+    ByteOrder::Endianness get_majorOrder() const;
+    size_t get_majorNBytes() const;
+
+public:
+    /*! \brief returns a string representing the class name */
+    virtual std::string class_name() const;
+
+    /*! \brief returns new style SageIII enum values */
+    virtual VariantT variantT() const; // MS: new variant used in tree traversal
+
+    /*! \brief static variant value */
+    enum { static_variant = V_SgAsmScalarType };
+
+public:
+    virtual ~SgAsmScalarType();
+
+public:
+    SgAsmScalarType();
+
+protected:
+    ByteOrder::Endianness p_minorOrder;
+    ByteOrder::Endianness p_majorOrder;
+    size_t p_majorNBytes;
+    size_t p_nBits;
+};
+
+class SgAsmIntegerType : public SgAsmScalarType {
+public:
+    SgAsmIntegerType(ByteOrder::Endianness, size_t nBits, bool isSigned);
+    bool get_isSigned() const;
+
+    /*! \brief returns a string representing the class name */
+    virtual std::string class_name() const;
+
+    /*! \brief returns new style SageIII enum values */
+    virtual VariantT variantT() const; // MS: new variant used in tree traversal
+
+    /*! \brief static variant value */
+    enum { static_variant = V_SgAsmIntegerType };
+
+public:
+    virtual ~SgAsmIntegerType();
+
+public:
+    SgAsmIntegerType();
+
+protected:
+    bool p_isSigned;
+};
+
+class SgAsmFloatType : public SgAsmScalarType {
+public:
+    enum {
+        GRADUAL_UNDERFLOW      = 0x00000001,
+        NORMALIZED_SIGNIFICAND = 0x00000002
+    };
+
+    typedef Sawyer::Container::BitVector::BitRange BitRange;
+
+    SgAsmFloatType(ByteOrder::Endianness, size_t nBits,
+                   const BitRange &significandBits, const BitRange exponentBits, size_t signBit,
+                   uint64_t exponentBias, unsigned flags);
+
+    // These return the position of the significand, exponent, and sign bit fields.
+    BitRange significandBits() const;
+    BitRange exponentBits() const;
+    size_t signBit() const;
+
+    uint64_t exponentBias() const;
+
+    // Boolean properties (same names as their enum constants)
+    unsigned flags() const;
+    bool gradualUnderflow() const;
+    bool normalizedSignificand() const;
+
+    /*! \brief returns a string representing the class name */
+    virtual std::string class_name() const;
+
+    /*! \brief returns new style SageIII enum values */
+    virtual VariantT variantT() const; // MS: new variant used in tree traversal
+
+    /*! \brief static variant value */
+    enum { static_variant = V_SgAsmFloatType };
+
+public:
+    virtual ~SgAsmFloatType();
+
+public:
+    SgAsmFloatType();
+
+protected:
+    size_t p_significandOffset;
+    size_t p_significandNBits;
+    size_t p_signBitOffset;
+    size_t p_exponentOffset;
+    size_t p_exponentNBits;
+    uint64_t p_exponentBias;
+    unsigned p_flags;
 };
 
 #endif

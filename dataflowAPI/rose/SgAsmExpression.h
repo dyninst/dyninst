@@ -3,6 +3,7 @@
 
 #include "external/rose/rose-compat.h"
 #include "SgNode.h"
+#include "RegisterDescriptor.h"
 #include "SgAsmType.h"
 #include "external/rose/powerpcInstructionEnum.h"
 
@@ -16,9 +17,10 @@
 #endif
 
 
-class SgAsmExpression : public SgNode {
+class SgAsmExpression : public SgAsmNode {
  public:
-    virtual SgAsmType* get_type();
+    virtual SgAsmType *get_type() const;
+    void set_type(SgAsmType *type);
 
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
@@ -27,7 +29,9 @@ class SgAsmExpression : public SgNode {
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
     
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmExpression;
+    enum {
+        static_variant = V_SgAsmExpression
+    };
     
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -50,12 +54,14 @@ class SgAsmExpression : public SgNode {
     std::string p_replacement;
     
     std::string p_comment;
+
+    SgAsmType *p_type;
 };
 
 // Class Definition for SgAsmValueExpression
 class SgAsmValueExpression : public SgAsmExpression {
  public:
-    virtual SgAsmType* get_type();
+    virtual SgAsmType *get_type() const;
 
     virtual std::string class_name() const;
     
@@ -63,7 +69,9 @@ class SgAsmValueExpression : public SgAsmExpression {
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
     
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmValueExpression;
+    enum {
+        static_variant = V_SgAsmValueExpression
+    };
     
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -109,7 +117,7 @@ class SgAsmValueExpression : public SgAsmExpression {
 
 class SgAsmByteValueExpression : public SgAsmValueExpression {
  public:
-	virtual SgAsmType* get_type();
+	virtual SgAsmType *get_type() const;
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
     
@@ -144,7 +152,7 @@ class SgAsmByteValueExpression : public SgAsmValueExpression {
 
 class SgAsmWordValueExpression : public SgAsmValueExpression {
  public:
- 	virtual SgAsmType* get_type();
+ 	virtual SgAsmType *get_type() const;
    /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
     
@@ -180,7 +188,7 @@ class SgAsmWordValueExpression : public SgAsmValueExpression {
 // Class Definition for SgAsmDoubleWordValueExpression
 class SgAsmDoubleWordValueExpression : public SgAsmValueExpression {
  public:
- 	virtual SgAsmType* get_type();
+ 	virtual SgAsmType *get_type() const;
    /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
     
@@ -216,7 +224,7 @@ class SgAsmDoubleWordValueExpression : public SgAsmValueExpression {
 
 class SgAsmQuadWordValueExpression : public SgAsmValueExpression {
  public:
- 	virtual SgAsmType* get_type();
+ 	virtual SgAsmType *get_type() const;
    
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
@@ -257,7 +265,7 @@ class SgAsmQuadWordValueExpression : public SgAsmValueExpression {
 
 class SgAsmSingleFloatValueExpression : public SgAsmValueExpression {
  public:
-	virtual SgAsmType* get_type();
+	virtual SgAsmType *get_type() const;
 
     // virtual SgNode* copy ( const SgCopyHelp & help) const;
 
@@ -297,7 +305,7 @@ class SgAsmSingleFloatValueExpression : public SgAsmValueExpression {
 class SgAsmDoubleFloatValueExpression : public SgAsmValueExpression
 {
  public:
-	virtual SgAsmType* get_type();
+	virtual SgAsmType *get_type() const;
 
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
@@ -335,7 +343,7 @@ class SgAsmType;
 class SgAsmVectorValueExpression : public SgAsmValueExpression
 {
  public:
-	virtual SgAsmType* get_type();
+	virtual SgAsmType *get_type() const;
 
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
@@ -357,7 +365,6 @@ class SgAsmVectorValueExpression : public SgAsmValueExpression
     void set_size(unsigned int size);
 
  public: 
-    SgAsmType* get_type() const;
     void set_type(SgAsmType* type);
 
 
@@ -379,11 +386,145 @@ class SgAsmVectorValueExpression : public SgAsmValueExpression
     // End of memberFunctionString
 };
 
+class SgAsmConstantExpression : public SgAsmValueExpression {
+public:
+    /*! \brief returns a string representing the class name */
+    virtual std::string class_name() const;
+
+    /*! \brief returns new style SageIII enum values */
+    virtual VariantT variantT() const; // MS: new variant used in tree traversal
+
+    /*! \brief static variant value */
+    enum {
+        static_variant = V_SgAsmConstantExpression
+    };
+
+public:
+    const Sawyer::Container::BitVector &get_bitVector() const { return p_bitVector; }
+
+    Sawyer::Container::BitVector &get_bitVector() { return p_bitVector; }
+
+    void set_bitVector(const Sawyer::Container::BitVector &bv) { p_bitVector = bv; }
+
+    /* the generated cast function */
+    /*! \brief Casts pointer from base class to derived class */
+    friend SgAsmConstantExpression *isSgAsmConstantExpression(SgNode *s);
+
+    /*! \brief Casts pointer from base class to derived class (for const pointers) */
+    friend const SgAsmConstantExpression *isSgAsmConstantExpression(const SgNode *s);
+
+public:
+    virtual ~SgAsmConstantExpression();
+
+public:
+    SgAsmConstantExpression();
+
+protected:
+    Sawyer::Container::BitVector p_bitVector;
+
+};
+
+class SgAsmIntegerValueExpression : public SgAsmConstantExpression {
+public:
+    SgAsmIntegerValueExpression(uint64_t n, SgAsmType *type);
+
+    SgAsmIntegerValueExpression(const Sawyer::Container::BitVector &bv, SgAsmType *type);
+
+    size_t get_significantBits() const;
+
+    void makeRelativeTo(SgNode *baseNode);
+
+    uint64_t get_baseAddress() const;
+
+    uint64_t get_absoluteValue(size_t nbits = 0) const;
+
+    void set_absoluteValue(uint64_t);
+
+    int64_t get_signedValue() const;
+
+    int64_t get_relativeValue() const;
+
+    void set_relativeValue(int64_t v, size_t nbits = 64);
+
+    uint64_t get_value() const { return get_absoluteValue(); }
+
+public:
+    /*! \brief returns a string representing the class name */
+    virtual std::string class_name() const;
+
+    /*! \brief returns new style SageIII enum values */
+    virtual VariantT variantT() const; // MS: new variant used in tree traversal
+
+    /*! \brief static variant value */
+    enum {
+        static_variant = V_SgAsmIntegerValueExpression
+    };
+
+    /* the generated cast function */
+    /*! \brief Casts pointer from base class to derived class */
+    friend SgAsmIntegerValueExpression *isSgAsmIntegerValueExpression(SgNode *s);
+
+    /*! \brief Casts pointer from base class to derived class (for const pointers) */
+    friend const SgAsmIntegerValueExpression *isSgAsmIntegerValueExpression(const SgNode *s);
+
+public:
+    SgNode *get_baseNode() const;
+
+    void set_baseNode(SgNode *baseNode);
+
+public:
+    virtual ~SgAsmIntegerValueExpression();
+
+public:
+    SgAsmIntegerValueExpression();
+
+protected:
+    SgNode *p_baseNode;
+};
+
+// NOTE: SgAsmFloatType should ideally be used for some purpose in this class, but it is not.
+class SgAsmFloatValueExpression : public SgAsmConstantExpression {
+private:
+    mutable double p_nativeValue;
+    mutable bool p_nativeValueIsValid;
+public:
+    SgAsmFloatValueExpression() : p_nativeValue(0.0), p_nativeValueIsValid(true) { }
+
+    SgAsmFloatValueExpression(double nativeValue, SgAsmType *type = NULL);
+
+    SgAsmFloatValueExpression(const Sawyer::Container::BitVector &, SgAsmType *type = NULL);
+
+    void set_nativeValue(double);
+
+    double get_nativeValue() const;
+
+/*! \brief returns a string representing the class name */
+    virtual std::string class_name() const;
+
+    /*! \brief returns new style SageIII enum values */
+    virtual VariantT variantT() const; // MS: new variant used in tree traversal
+
+    /*! \brief static variant value */
+    enum {
+        static_variant = V_SgAsmFloatValueExpression
+    };
+
+    /* the generated cast function */
+    /*! \brief Casts pointer from base class to derived class */
+    friend SgAsmFloatValueExpression *isSgAsmFloatValueExpression(SgNode *s);
+
+    /*! \brief Casts pointer from base class to derived class (for const pointers) */
+    friend const SgAsmFloatValueExpression *isSgAsmFloatValueExpression(const SgNode *s);
+
+public:
+    virtual ~SgAsmFloatValueExpression();
+};
+
 class SgAsmBinaryExpression : public SgAsmExpression
 {
  public:
 
-	virtual SgAsmType* get_type();
+	virtual SgAsmType *get_type() const;
 
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
@@ -392,7 +533,9 @@ class SgAsmBinaryExpression : public SgAsmExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinaryExpression;
+    enum {
+        static_variant = V_SgAsmBinaryExpression
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -434,7 +577,7 @@ class SgAsmBinaryAdd : public SgAsmBinaryExpression
  public:
 
 
-    virtual SgAsmType* get_type();
+    virtual SgAsmType *get_type() const;
 
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
@@ -443,7 +586,9 @@ class SgAsmBinaryAdd : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinaryAdd;
+    enum {
+        static_variant = V_SgAsmBinaryAdd
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -464,8 +609,6 @@ class SgAsmBinaryAdd : public SgAsmBinaryExpression
 class SgAsmBinarySubtract : public SgAsmBinaryExpression
 {
  public:
-    virtual SgAsmType* get_type();
-
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -473,7 +616,9 @@ class SgAsmBinarySubtract : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinarySubtract;
+    enum {
+        static_variant = V_SgAsmBinarySubtract
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -489,16 +634,13 @@ class SgAsmBinarySubtract : public SgAsmBinaryExpression
 
  protected:
 
-
-
-
 };
 
 // Class Definition for SgAsmBinaryMultiply
 class SgAsmBinaryMultiply : public SgAsmBinaryExpression
 {
  public:
-    virtual SgAsmType* get_type();
+    virtual SgAsmType *get_type() const;
 
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
@@ -507,7 +649,9 @@ class SgAsmBinaryMultiply : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinaryMultiply;
+    enum {
+        static_variant = V_SgAsmBinaryMultiply
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -526,8 +670,6 @@ class SgAsmBinaryMultiply : public SgAsmBinaryExpression
 class SgAsmBinaryDivide : public SgAsmBinaryExpression
 {
  public:
-    virtual SgAsmType* get_type();
-
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -535,7 +677,9 @@ class SgAsmBinaryDivide : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinaryDivide;
+    enum {
+        static_variant = V_SgAsmBinaryDivide
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -559,7 +703,6 @@ class SgAsmBinaryDivide : public SgAsmBinaryExpression
 class SgAsmBinaryMod : public SgAsmBinaryExpression
 {
  public:    
-    virtual SgAsmType* get_type();
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -567,7 +710,9 @@ class SgAsmBinaryMod : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinaryMod;
+    enum {
+        static_variant = V_SgAsmBinaryMod
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -586,8 +731,6 @@ class SgAsmBinaryMod : public SgAsmBinaryExpression
 class SgAsmBinaryAddPreupdate : public SgAsmBinaryExpression
 {
  public:
-    virtual SgAsmType* get_type();
-
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -595,7 +738,9 @@ class SgAsmBinaryAddPreupdate : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinaryAddPreupdate;
+    enum {
+        static_variant = V_SgAsmBinaryAddPreupdate
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -616,8 +761,6 @@ class SgAsmBinaryAddPreupdate : public SgAsmBinaryExpression
 class SgAsmBinarySubtractPreupdate : public SgAsmBinaryExpression
 {
  public:
-    virtual SgAsmType* get_type();
-
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -625,7 +768,9 @@ class SgAsmBinarySubtractPreupdate : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinarySubtractPreupdate;
+    enum {
+        static_variant = V_SgAsmBinarySubtractPreupdate
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -646,8 +791,6 @@ class SgAsmBinarySubtractPreupdate : public SgAsmBinaryExpression
 class SgAsmBinaryAddPostupdate : public SgAsmBinaryExpression
 {
  public:
-
-    virtual SgAsmType* get_type();
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -655,7 +798,9 @@ class SgAsmBinaryAddPostupdate : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinaryAddPostupdate;
+    enum {
+        static_variant = V_SgAsmBinaryAddPostupdate
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -676,8 +821,6 @@ class SgAsmBinaryAddPostupdate : public SgAsmBinaryExpression
 class SgAsmBinarySubtractPostupdate : public SgAsmBinaryExpression
 {
  public:
-
-    virtual SgAsmType* get_type();
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -685,7 +828,9 @@ class SgAsmBinarySubtractPostupdate : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinarySubtractPostupdate;
+    enum {
+        static_variant = V_SgAsmBinarySubtractPostupdate
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -705,7 +850,6 @@ class SgAsmBinarySubtractPostupdate : public SgAsmBinaryExpression
 class SgAsmBinaryLsl : public SgAsmBinaryExpression
 {
  public:
-    virtual SgAsmType* get_type();
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -713,7 +857,9 @@ class SgAsmBinaryLsl : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinaryLsl;
+    enum {
+        static_variant = V_SgAsmBinaryLsl
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -735,9 +881,6 @@ class SgAsmBinaryLsl : public SgAsmBinaryExpression
 class SgAsmBinaryLsr : public SgAsmBinaryExpression
 {
  public:
-    virtual SgAsmType* get_type();
-
-
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -745,7 +888,9 @@ class SgAsmBinaryLsr : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinaryLsr;
+    enum {
+        static_variant = V_SgAsmBinaryLsr
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -765,9 +910,6 @@ class SgAsmBinaryLsr : public SgAsmBinaryExpression
 class SgAsmBinaryAsr : public SgAsmBinaryExpression
 {
  public:
-    virtual SgAsmType* get_type();
-
-
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -775,7 +917,9 @@ class SgAsmBinaryAsr : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinaryAsr;
+    enum {
+        static_variant = V_SgAsmBinaryAsr
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -795,7 +939,6 @@ class SgAsmBinaryAsr : public SgAsmBinaryExpression
 class SgAsmBinaryRor : public SgAsmBinaryExpression
 {
  public:      
-    virtual SgAsmType* get_type();
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -803,7 +946,9 @@ class SgAsmBinaryRor : public SgAsmBinaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmBinaryRor;
+    enum {
+        static_variant = V_SgAsmBinaryRor
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -825,7 +970,6 @@ class SgAsmBinaryRor : public SgAsmBinaryExpression
 class SgAsmUnaryExpression : public SgAsmExpression
 {
  public:
-    virtual SgAsmType* get_type();
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -833,7 +977,9 @@ class SgAsmUnaryExpression : public SgAsmExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmUnaryExpression;
+    enum {
+        static_variant = V_SgAsmUnaryExpression
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -865,8 +1011,6 @@ class SgAsmUnaryExpression : public SgAsmExpression
 class SgAsmUnaryPlus : public SgAsmUnaryExpression
 {
  public:
-    virtual SgAsmType* get_type();
-
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -874,7 +1018,9 @@ class SgAsmUnaryPlus : public SgAsmUnaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmUnaryPlus;
+    enum {
+        static_variant = V_SgAsmUnaryPlus
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -897,8 +1043,6 @@ class SgAsmUnaryPlus : public SgAsmUnaryExpression
 class SgAsmUnaryMinus : public SgAsmUnaryExpression
 {
  public:
-    virtual SgAsmType* get_type();
-
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -906,7 +1050,9 @@ class SgAsmUnaryMinus : public SgAsmUnaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmUnaryMinus;
+    enum {
+        static_variant = V_SgAsmUnaryMinus
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -931,9 +1077,6 @@ class SgAsmUnaryMinus : public SgAsmUnaryExpression
 class SgAsmUnaryRrx : public SgAsmUnaryExpression
 {
  public:
-
-    virtual SgAsmType* get_type();
-
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
 
@@ -941,7 +1084,9 @@ class SgAsmUnaryRrx : public SgAsmUnaryExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmUnaryRrx;
+    enum {
+        static_variant = V_SgAsmUnaryRrx
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -965,7 +1110,7 @@ class SgAsmUnaryRrx : public SgAsmUnaryExpression
 class SgAsmMemoryReferenceExpression : public SgAsmExpression
 {
  public:
-    virtual SgAsmType* get_type();
+    virtual SgAsmType *get_type() const;
 
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
@@ -974,7 +1119,9 @@ class SgAsmMemoryReferenceExpression : public SgAsmExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmMemoryReferenceExpression;
+    enum {
+        static_variant = V_SgAsmMemoryReferenceExpression
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -990,8 +1137,7 @@ class SgAsmMemoryReferenceExpression : public SgAsmExpression
     SgAsmExpression* get_segment() const;
     void set_segment(SgAsmExpression* segment);
 
- public: 
-    SgAsmType* get_type() const;
+ public:
     void set_type(SgAsmType* type);
 
 
@@ -1023,8 +1169,7 @@ class SgAsmMemoryReferenceExpression : public SgAsmExpression
 class SgAsmRegisterReferenceExpression : public SgAsmExpression
 {
  public:
-    virtual SgAsmType* get_type();
-
+    virtual SgAsmType *get_type() const;
 
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
@@ -1033,7 +1178,9 @@ class SgAsmRegisterReferenceExpression : public SgAsmExpression
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
 
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmRegisterReferenceExpression;
+    enum {
+        static_variant = V_SgAsmRegisterReferenceExpression
+    };
 
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */
@@ -1041,13 +1188,20 @@ class SgAsmRegisterReferenceExpression : public SgAsmExpression
     /*! \brief Casts pointer from base class to derived class (for const pointers) */
     friend const SgAsmRegisterReferenceExpression* isSgAsmRegisterReferenceExpression( const SgNode * s );
 
+public:
+    RegisterDescriptor get_descriptor() const;
+
+    void set_descriptor(RegisterDescriptor);
+
+    int get_adjustment() const;
+
+    void set_adjustment(int);
+
  public: 
     virtual void set_type(SgAsmType* type);
 
-
  public: 
     virtual ~SgAsmRegisterReferenceExpression();
-
 
  public: 
     SgAsmRegisterReferenceExpression(); 
@@ -1057,7 +1211,42 @@ class SgAsmRegisterReferenceExpression : public SgAsmExpression
     SgAsmType* p_type;
           
     // End of memberFunctionString
+public:
+    SgAsmRegisterReferenceExpression(RegisterDescriptor);
 
+protected:
+    RegisterDescriptor p_descriptor;
+    int p_adjustment;
+
+};
+
+class SgAsmDirectRegisterExpression : public SgAsmRegisterReferenceExpression {
+public:
+
+/*! \brief returns a string representing the class name */
+    virtual std::string class_name() const;
+
+/*! \brief returns new style SageIII enum values */
+    virtual VariantT variantT() const; // MS: new variant used in tree traversal
+
+/*! \brief static variant value */
+    enum {
+        static_variant = V_SgAsmDirectRegisterExpression
+    };
+
+/* the generated cast function */
+/*! \brief Casts pointer from base class to derived class */
+    friend SgAsmDirectRegisterExpression *isSgAsmDirectRegisterExpression(SgNode *s);
+
+/*! \brief Casts pointer from base class to derived class (for const pointers) */
+    friend const SgAsmDirectRegisterExpression *isSgAsmDirectRegisterExpression(const SgNode *s);
+
+public:
+    virtual ~SgAsmDirectRegisterExpression();
+
+
+public:
+    SgAsmDirectRegisterExpression(RegisterDescriptor descriptor);
 
 };
 
