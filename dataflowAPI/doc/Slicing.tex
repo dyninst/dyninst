@@ -11,10 +11,10 @@ affected by the starting assignment (forward slicing). The edges in the graph
 are directed and represent either data flow dependencies or control flow
 dependencies. 
 
-We provide callback functions 
-and allow users controlling when to stop slicing. 
+We provide call back functions
+and allow users to control when to stop slicing.
 In particular, class \code{Slicer::Predicates} contains a collection of call back functions that can
-control the specific behaviors of the slicer. Users can inherit Predicates class
+control the specific behaviors of the slicer. Users can inherit from the Predicates class
 to provide customized stopping criteria for the slicer.
 
 \begin{apient}
@@ -98,9 +98,8 @@ const AbsRegion &data() const;
 \definedin{slicing.h}
 
 Class Predicates abstracts the stopping criteria of slicing. Users can inherit
-this class to control slicing in various situations, including whether or not
-performing inter-procedural slicing, whether or not searching for control flow
-dependencies, and stopping slicing after discovering certain assignments. We
+this class to control slicing in various situations, including whether or not to perform inter-procedural slicing, whether or not to search for control flow
+dependencies, and whether or not to stop slicing after discovering certain assignments. We
 provide a set of call back functions that allow users to dynamically control the
 behavior of the Slicer.
 
@@ -150,7 +149,7 @@ If it returns \code{true}, the slicer will follow into the callee function \code
 This function also takes input \code{cs}, which represents the call stack of the
 followed callee functions from the starting point of the slicing to this call
 site, and \code{argument}, which represents the variable to slice with in the
-callee function. This function is default to always return \code{false}. 
+callee function. This function defaults to always returning \code{false}.
 Note that as Dyninst currently does not try to resolve indirect
 calls, the slicer will NOT call this function at an indirect call site. }
 %virtual bool followCallee(ParseAPI::Function * callee,
@@ -172,12 +171,12 @@ virtual std::vector<ParseAPI::Function *>
 \apidesc{This predicate function is called when the slicer reaches the entry of
 a function in the case of backward slicing or reaches a return instruction in
 the case of forward slicing. It returns a vector of caller functions that the
-user want the slicer to continue to follow. This function takes input
+user wants the slicer to continue to follow. This function takes input
 \code{caller}, which represents the call block of the caller, \code{cs}, which
 represents the caller functions that have been followed to this place, and
 \code{argument}, which represents the variable to slice with in the caller
-function. This function is default to always
-return an empty vector.}
+function. This function defaults to always
+returning an empty vector.}
 
 %        followCaller(ParseAPI::Block * caller,
 

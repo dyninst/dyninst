@@ -1,15 +1,15 @@
 \section{Examples}
 \label{sec:examples}
 We show several examples of how to use DataflowAPI. In these examples, we assume
-that the mutatee has been parsed and we have a function and block to analyze.
-Users can refer to ParseAPI manual for how to get these functions and blocks.
+that the mutatee has been parsed and we have function and block objects to analyze.
+Users may refer to the ParseAPI manual for how to obtain these function and block objects.
 
 \subsection{Slicing}
 The following example uses DataflowAPI to perform a backward slice on an
 indirect jump instruction to determine the instructions that affect the
 calculation of the jump target. The goal of this example is to show (1) how to
 convert an instruction to assignments; (2) how to perform slicing on a given
-assignment; (3) how to extend the default \code{Slicer::Predicates} and write
+assignment; (3) how to extend the default \texttt{Slicer::Predicates} and write
 call back functions to control the behavior of slicing.
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
@@ -182,7 +182,7 @@ void LivenessAnalysis(Function *f, Block *b) {
 \end{lstlisting}
 
 \subsection{Stack Analysis}
-The following examples shows how to use stack analysis.
+The following example shows how to use stack analysis to print out all defined stack heights at the first instruction in a block.
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
@@ -192,6 +192,7 @@ The following examples shows how to use stack analysis.
 #include "stackanalysis.h"
 
 void StackHeight(Function *f, Block *b) {
+    // Get the address of the first instruction of the block
     Address addr = block->start();
 
     // Get the stack heights at that address
