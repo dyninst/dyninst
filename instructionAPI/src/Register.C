@@ -98,7 +98,7 @@ namespace Dyninst
         }
 
         /* we have moved to AT&T syntax (lowercase registers) */
-        // std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+        std::transform(name.begin(), name.end(), name.begin(), ::toupper);
         return name;
     }
 

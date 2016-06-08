@@ -126,6 +126,7 @@ bool DwarfWalker::parse() {
        * following CU is already reported in next_cu_header.
        */
       compile_offset = next_cu_header = 0;
+      Dwarf_Error err;
 
       /* Iterate over the compilation-unit headers. */
       while (dwarf_next_cu_header_c(dbg(), is_info,
@@ -137,7 +138,7 @@ bool DwarfWalker::parse() {
                                     &extension_size,
                                     &signature,
                                     &typeoffset,
-                                    &next_cu_header, NULL) == DW_DLV_OK ) {
+                                    &next_cu_header, &err) == DW_DLV_OK ) {
          push();
          bool ret = parseModule(is_info, fixUnknownMod);
          pop();
@@ -2437,6 +2438,7 @@ void DwarfWalker::findAllSig8Types()
     * but DWARF5 is considering them for .debug_info too.*/
    for (int i = 0; i < 2; ++i) {
       Dwarf_Bool is_info = i;
+      Dwarf_Error err;
       compile_offset = next_cu_header = 0;
 
       /* Iterate over the compilation-unit headers. */
@@ -2449,7 +2451,7 @@ void DwarfWalker::findAllSig8Types()
                                     &extension_size,
                                     &signature,
                                     &typeoffset,
-                                    &next_cu_header, NULL) == DW_DLV_OK ) {
+                                    &next_cu_header, &err) == DW_DLV_OK ) {
          parseModuleSig8(is_info);
          compile_offset = next_cu_header;
       }

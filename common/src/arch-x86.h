@@ -501,13 +501,13 @@ enum VEX_TYPE
             ((b & VEX_VVVV) >> 3))) & 0xF)
 
 #define VEXGET_L(b)     (char)((b & VEX_L) >> 2)
-#define VEXGET_R(b)     (char)((b & (1 << 7)) >> 7)
+#define VEXGET_R(b)     (((unsigned char)((~b & (1 << 7)) >> 7)) & 0x01)
 #define VEXGET_PP(b)    (char)(b & VEX_PP)
 
 #define VEX3GET_W(b)    (char)((b & VEX3_W) >> 7)
 #define VEX3GET_M(b)    (b & VEX3_M)
-#define VEX3GET_X(b)    (((unsigned char)(b) & (1 << 6)) >> 6)
-#define VEX3GET_B(b)    (((unsigned char)(b) & (1 << 5)) >> 5)
+#define VEX3GET_X(b)    (((unsigned char)(~b) & (unsigned char)(1 << 6)) >> 6)
+#define VEX3GET_B(b)    (((unsigned char)(~b) & (unsigned char)(1 << 5)) >> 5)
 #define VEX3GET_M(b)    (b & VEX3_M)
 
 /** EVEX masks */

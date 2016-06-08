@@ -9878,6 +9878,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 pref.vex_prefix[0] = addr[1]; /* Only 1 byte for VEX2 */
                 pref.vex_sse_mult = 0;
                 pref.vex_vvvv_reg = VEXGET_VVVV(pref.vex_prefix[0]);
+
                 pref.vex_ll = VEXGET_L(pref.vex_prefix[0]);
                 pref.vex_pp = VEXGET_PP(pref.vex_prefix[0]);
                 pref.vex_m_mmmm = -1; /* No W bit for VEX2 */

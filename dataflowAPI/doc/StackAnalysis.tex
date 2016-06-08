@@ -1,6 +1,5 @@
-\subsection{StackAnalysis Class}
+\subsection{Class StackAnalysis}
 \label{sec:stackanalysis}
-\definedin{stackanalysis.h}
 
 The StackAnalysis interface is used to determine the possible stack heights of abstract locations at any instruction in a function.  Due to there often being many paths through the CFG to reach a given instruction, abstract locations may have different stack heights depending on the path taken to reach that instruction.  In other cases, StackAnalysis is unable to adequately determine what is contained in an abstract location.  In both situations, StackAnalysis is conservative in its reported stack heights.  The table below explains what the reported stack heights mean.
 
@@ -51,7 +50,7 @@ void findDefinedHeights(ParseAPI::Block *b,
 	Writes to the vector \code{heights} all defined <abstract location, stack height> pairs before execution of the instruction with address \code{addr} contained in basic block \code{b}. Note that abstract locations with stack heights of TOP (i.e. they do not point to the stack) are not written to \code{heights}.  The address \code{addr} must be contained in block \code{b}, and block \code{b} must be contained in the function used to create this StackAnalysis object.
 }
 
-\subsubsection{StackAnalysis::Height Class}
+\subsection{Class StackAnalysis::Height}
 \definedin{stackanalysis.h}
 
 The Height class is used to represent the abstract notion of stack heights.  Every Height object represents a stack height of either TOP, BOTTOM, or \emph{x}, where \emph{x} is some integral number.  The Height class also defines methods for comparing, combining, and modifying stack heights in various ways.
