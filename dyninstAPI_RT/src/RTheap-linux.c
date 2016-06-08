@@ -60,7 +60,7 @@ Address DYNINSTheap_loAddr = 0x50000000;
 Address DYNINSTheap_hiAddr = 0xb0000000;
 #endif
 
-int     DYNINSTheap_mmapFlags = MAP_ANONYMOUS | MAP_FIXED | MAP_PRIVATE;
+int     DYNINSTheap_mmapFlags = MAP_ANONYMOUS | MAP_PRIVATE;
 
 
 RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi)
