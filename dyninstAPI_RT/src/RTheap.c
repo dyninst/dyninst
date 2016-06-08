@@ -255,7 +255,6 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 
   /* buffer size must be aligned */
   if (size % DYNINSTheap_align != 0) {
-    free(node);
     return ((void *)-1);
   }
 
@@ -263,7 +262,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   if (DYNINSTheap_useMalloc(lo_addr, hi_addr)) {
 
     Address ret_heap;
-    int size_heap = size + DYNINSTheap_align;
+    int size_heap = size + DYNINSTheap_align + sizeof(heapList_t);
     heap = malloc(size_heap);
     if (heap == NULL) {
 #ifdef DEBUG
@@ -271,7 +270,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 #endif 
       return NULL;
     }
-    ret_heap = heap_alignUp((Address)heap + sizeof(heapList_t), DYNINSTheap_align);
+    ret_heap = heap_alignUp((Address)heap, DYNINSTheap_align);
     
     /* malloc buffer must meet range constraints */
     if (ret_heap < (Address)lo_addr ||
@@ -284,7 +283,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     }
 
     /* define new heap */
-    node = heap;
+    node = heap + size;
     node->heap.ret_addr = (void *)ret_heap;
     node->heap.addr = heap;
     node->heap.len = size_heap;
@@ -294,14 +293,14 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   } else { /* use mmap() for allocation */
     Address lo = (Address) heap_alignUp(lo_addr, psize);
     Address hi = (Address) hi_addr;
-      heap = trymmap(size, lo, hi, psize, -1);
+      heap = trymmap(size + sizeof(struct heapList_t), lo, hi, psize, -1);
       if(!heap) return NULL;
-    node = (heapList_t *)heap;
+    node = heap + size;
 
     /* define new heap */
     node->heap.addr = heap;
-    node->heap.ret_addr = heap + sizeof(struct heapList_t);
-    node->heap.len = size - sizeof(struct heapList_t);
+    node->heap.ret_addr = heap;
+    node->heap.len = size + sizeof(struct heapList_t);
     node->heap.type = HEAP_TYPE_MMAP;
   }
 
@@ -310,9 +309,9 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   node->next = Heaps;
   if (Heaps) Heaps->prev = node;
   Heaps = node;
-//#ifdef DEBUG
+#ifdef DEBUG
   fprintf(stderr, "new heap at %lx, size %lx\n", node->heap.ret_addr, node->heap.len);
-//#endif
+#endif
   return node->heap.ret_addr;
 }
 
