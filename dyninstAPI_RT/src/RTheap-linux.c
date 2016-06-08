@@ -43,13 +43,12 @@
 #include <sys/mman.h>                 /* mmap() */
 #include "RTheap.h"
 
-#define MAX_MAP_SIZE (1<<20)
-#if defined(MUTATEE64)
+#if 1 //defined(MUTATEE64)
 
 int     DYNINSTheap_align = 4; /* heaps are word-aligned */
 
 Address DYNINSTheap_loAddr = 0x10000; /* Bump to 64k to make SELinux happier */
-Address DYNINSTheap_hiAddr = ~0x0;
+Address DYNINSTheap_hiAddr = ~(Address)0x0;
 #elif defined(arch_power)
 int     DYNINSTheap_align  = 4; /* heaps are word-aligned */
 Address DYNINSTheap_loAddr = ~(Address)0; // should be defined by getpagesize() when used.
@@ -61,7 +60,7 @@ Address DYNINSTheap_loAddr = 0x50000000;
 Address DYNINSTheap_hiAddr = 0xb0000000;
 #endif
 
-int     DYNINSTheap_mmapFlags = MAP_FIXED | MAP_PRIVATE;
+int     DYNINSTheap_mmapFlags = MAP_ANONYMOUS | MAP_FIXED | MAP_PRIVATE;
 
 
 RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi)
@@ -84,28 +83,36 @@ void DYNINSTheap_mmapFdClose(int fd)
   close(fd);
 }
 
-/* Linux /proc/PID/maps is unreliable when it is read with more than one
-read call (it can show pages that are not actually allocated).  We
-read it all in one call into this buffer.
 
-linux-2.4: reading /proc/PID/maps now returns after each line in the maps,
-so we must loop to get everything.
-*/
-
-// Static so we dont have to do the exponential backoff each time.
-static size_t mapSize = 1 << 15;
 
 int
 DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
 {
-   int fd, done;
-   ssize_t ret;
-   size_t length;
-   char *p;
-   dyninstmm_t *ms;
-   unsigned i, num;
-   char *procAsciiMap;
-
+    FILE* procmaps;
+    Address saddr = 0, eaddr = 0;
+    int num_matches;
+    procmaps = fopen("/proc/self/maps", "r");
+    char ch;
+    dyninstmm_t* maps = *mapp;
+    if(procmaps == NULL) return -1;
+    *nump = 0;
+    while(((num_matches = fscanf(procmaps, "%lx-%lx", &saddr, &eaddr)) != EOF) && (*nump < 1024)) {
+        if (num_matches == 2) {
+            maps[*nump].pr_vaddr = saddr;
+            maps[*nump].pr_size = eaddr - saddr;
+            (*nump)++;
+            // skip to next line
+            while ((ch = fgetc(procmaps)) != '\n' && ch != EOF) {
+                if (ch == EOF) break;
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+    fclose(procmaps);
+    return *nump < 1024;
 
    /* 
       Here are two lines from 'cat /proc/self/maps' on Linux 2.2.  Each
@@ -117,111 +124,4 @@ DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
       0804a000-0804c000 rw-p 00001000 08:09 12089      /bin/cat
       0804c000-0804f000 rwxp 00000000 00:00 0
    */
-   procAsciiMap = NULL;
-   done = 0;
-   while (1)
-   {
-       if(procAsciiMap == NULL) {
-           procAsciiMap = malloc(mapSize);
-           if (!procAsciiMap) {
-               fprintf(stderr, "DYNINSTgetMemoryMap: Out of memory\n");
-               goto end;
-           }
-       }
-       else
-       {
-           void *newMap = realloc(procAsciiMap, mapSize);
-           if (!newMap) {
-               fprintf(stderr, "DYNINSTgetMemoryMap: Out of memory\n");
-               goto freeBuffer;
-           }
-           procAsciiMap = newMap;
-       }
-       fd = open("/proc/self/maps", O_RDONLY);
-       if (0 > fd) {
-           perror("open /proc");
-           goto freeBuffer;
-       }
-       length = 0;
-       while (1)
-       {
-           ret = read(fd, procAsciiMap + length, mapSize - length);
-           length += ret;
-           if (0 == ret) {
-               done = 1;
-               break;
-           }
-           if (0 > ret) {
-               close(fd);
-               perror("read /proc");
-               goto freeBuffer;
-           }
-           /* Check if the buffer was to small and exponentially
-              increase its size */
-           if (length >= mapSize) {
-               close(fd);
-               mapSize = mapSize << 1;
-
-                  /* Return error if we reached the max size for
-                     the buffer*/
-                  if(mapSize > MAX_MAP_SIZE) {
-                      fprintf(stderr, "DYNINSTgetMemoryMap: memory map buffer \
-                                       is larger than the max size. max size=%d\n", MAX_MAP_SIZE);
-                      goto freeBuffer;
-                  }
-               break;
-           }
-       }
-       if(done) {
-           break;
-       }
-   }
-   procAsciiMap[length] = '\0'; /* Now string processing works */
-
-   /* Count lines, which is the same as the number of segments.
-      Newline characters separating lines are converted to nulls. */
-   for (num = 0, p = strtok(procAsciiMap, "\n");
-        p != NULL;
-        num++, p = strtok(NULL, "\n"))
-      ;
-
-   ms = (dyninstmm_t *) malloc(num * sizeof(dyninstmm_t));
-   if (! ms) {
-      fprintf(stderr, "DYNINSTgetMemoryMap: Out of memory\n");
-      goto freeBuffer;
-   }
-
-   p = procAsciiMap;
-   for (i = 0; i < num; i++) {
-      char *next = p + strlen(p) + 1; /* start of next line */
-      Address saddr, eaddr;
-
-      /* parse start address */
-      p = strtok(p, "-");
-      if (! p) goto parseerr;
-      saddr = strtoul(p, &p, 16);
-      ++p; /* skip '-' */
-
-      /* parse end address */
-      p = strtok(NULL, " ");
-      if (! p) goto parseerr;
-      eaddr = strtoul(p, NULL, 16);
-
-      ms[i].pr_vaddr = saddr;
-      ms[i].pr_size = eaddr - saddr;
-
-      p = next;
-   }
-
-   *nump = num;
-   *mapp = ms;
-   free(procAsciiMap);
-   return 0;
- parseerr:
-   free(ms);
-   fprintf(stderr, "DYNINSTgetMemoryMap: /proc/self/maps parse error\n");
- freeBuffer:
-   free(procAsciiMap);
- end:
-   return -1;
 }
