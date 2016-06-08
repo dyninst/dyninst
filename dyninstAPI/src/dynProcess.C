@@ -1587,7 +1587,7 @@ bool PCProcess::getAllActiveFrames(pdvector<Frame> &activeFrames) {
 #define HEAP_DYN_BUF_SIZE (0x100000)
 #endif
 
-static const Address ADDRESS_LO = ((Address)0);
+static const Address ADDRESS_LO = ((Address)0x10000);
 static const Address ADDRESS_HI = ((Address)~((Address)0));
 
 Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
