@@ -250,9 +250,10 @@ try_again:
 void *map_region(void *addr, int len, int fd) {
      void *result;
     int flags = DYNINSTheap_mmapFlags;
+#if defined(arch_x86_64)
     if(addr == 0) flags |= MAP_32BIT;
+#endif
      result = mmap(addr, len, PROT_READ|PROT_WRITE|PROT_EXEC,
-                   flags, fd, 0);
                    flags, fd, 0);
      if (result == MAP_FAILED)
          return NULL;
