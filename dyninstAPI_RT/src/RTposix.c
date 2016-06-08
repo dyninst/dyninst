@@ -242,10 +242,18 @@ try_again:
   return 0;
 }
 
+// Important note: addr will be zero in two cases here
+// One is the case where we're doing a constrained low mmap, in which case MAP_32BIT
+// is precisely correct. The other is the case where our
+// constrained map attempts have failed, and we're doing a scan for first available
+// mappable page. In that case, MAP_32BIT does no harm.
 void *map_region(void *addr, int len, int fd) {
      void *result;
-     result = mmap(addr, len, PROT_READ|PROT_WRITE|PROT_EXEC, 
-                   DYNINSTheap_mmapFlags, fd, 0);
+    int flags = DYNINSTheap_mmapFlags;
+    if(addr == 0) flags |= MAP_32BIT;
+     result = mmap(addr, len, PROT_READ|PROT_WRITE|PROT_EXEC,
+                   flags, fd, 0);
+                   flags, fd, 0);
      if (result == MAP_FAILED)
          return NULL;
      return result;
