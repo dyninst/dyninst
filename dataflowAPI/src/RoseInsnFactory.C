@@ -42,6 +42,12 @@
 
 #include "ExpressionConversionVisitor.h"
 
+// Assume Windows/MSVC is little-endian
+
+#if defined(_MSC_VER)
+#define htobe _byteswap_ulong
+#endif
+
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace DataflowAPI;
