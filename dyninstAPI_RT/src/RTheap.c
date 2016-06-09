@@ -249,14 +249,12 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 {
   void *heap;
   size_t size = nbytes;
-  heapList_t *node = (heapList_t *)malloc(sizeof(heapList_t));
-
-  /* initialize page size */
+  heapList_t *node = NULL;
+    /* initialize page size */
   if (psize == -1) psize = getpagesize();
 
   /* buffer size must be aligned */
   if (size % DYNINSTheap_align != 0) {
-    free(node);
     return ((void *)-1);
   }
 
@@ -264,10 +262,9 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   if (DYNINSTheap_useMalloc(lo_addr, hi_addr)) {
 
     Address ret_heap;
-    int size_heap = size + DYNINSTheap_align;
+    int size_heap = size + DYNINSTheap_align + sizeof(heapList_t);
     heap = malloc(size_heap);
     if (heap == NULL) {
-      free(node);
 #ifdef DEBUG
       fprintf(stderr, "Failed to MALLOC\n");      
 #endif 
@@ -279,7 +276,6 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     if (ret_heap < (Address)lo_addr ||
         ret_heap + size - 1 > (Address)hi_addr) {
       free(heap);
-      free(node);
 #ifdef DEBUG
       fprintf(stderr, "MALLOC'd area fails range constraints\n");
 #endif 
@@ -287,6 +283,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     }
 
     /* define new heap */
+    node = ret_heap + size;
     node->heap.ret_addr = (void *)ret_heap;
     node->heap.addr = heap;
     node->heap.len = size_heap;
@@ -294,60 +291,16 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 
 
   } else { /* use mmap() for allocation */
-    Address lo = (Address) lo_addr;
+    Address lo = (Address) heap_alignUp(lo_addr, psize);
     Address hi = (Address) hi_addr;
-    int fd;
-    unsigned nmaps;
-    dyninstmm_t *maps;
-
-    /* What if we need to allocate memory not in the area we can mmap? */
-#if defined (os_linux)  && defined(arch_power)
-   DYNINSTheap_loAddr = getpagesize();
-#endif
-    if ((hi < DYNINSTheap_loAddr) || (lo > DYNINSTheap_hiAddr)) {
-      free(node);
-#ifdef DEBUG
-      fprintf(stderr, "CAN'T MMAP IN RANGE GIVEN\n");
-#endif 
-      return NULL;
-    }
-    
-
-    /* Get memory map and sort it.  maps will point to malloc'd memory
-       that we must free. */
-    if (0 > DYNINSTgetMemoryMap(&nmaps, &maps)) {
-      free(node);
-#ifdef DEBUG
-      fprintf(stderr, "failed MMAP\n");
-#endif 
-      return NULL;
-    }
-    qsort(maps, (size_t)nmaps, (size_t)sizeof(dyninstmm_t), &heap_memmapCompare);
-    heap_checkMappings(nmaps, maps); /* sanity check */
-
-    /*DYNINSTheap_printMappings(nmaps, maps);*/
-
-    fd = DYNINSTheap_mmapFdOpen();
-    if (0 > fd) {
-      free(node);
-      free(maps);
-      return NULL;
-    }
-    heap = (void*) constrained_mmap(size, lo, hi, maps, nmaps, fd);
-    free(maps);
-    DYNINSTheap_mmapFdClose(fd);
-    if (!heap) {
-       free(node);
-#ifdef DEBUG
-       fprintf(stderr, "failed MMAP(2)\n");
-#endif 
-       return NULL;
-    }
+      heap = trymmap(size + sizeof(struct heapList_t), lo, hi, psize, -1);
+      if(!heap) return NULL;
+    node = heap + size;
 
     /* define new heap */
-    node->heap.ret_addr = heap;
     node->heap.addr = heap;
-    node->heap.len = size;
+    node->heap.ret_addr = heap;
+    node->heap.len = size + sizeof(struct heapList_t);
     node->heap.type = HEAP_TYPE_MMAP;
   }
 
@@ -356,7 +309,9 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   node->next = Heaps;
   if (Heaps) Heaps->prev = node;
   Heaps = node;
-  
+#ifdef DEBUG
+  fprintf(stderr, "new heap at %lx, size %lx\n", node->heap.ret_addr, node->heap.len);
+#endif
   return node->heap.ret_addr;
 }
 
@@ -394,8 +349,6 @@ int DYNINSTos_free(void *buf)
       break;
     }
 
-    /* free list element */
-    free(t);
     break;
   }
 
