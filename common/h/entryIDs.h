@@ -170,6 +170,7 @@ enum entryID {
   e_divsd,
   e_divss,
   e_dppd,	// SSE 4.1
+  e_vdppd,	// SSE 4.1
   e_dpps,	// SSE 4.1
   e_emms,
   e_enter,

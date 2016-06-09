@@ -831,6 +831,7 @@ namespace Dyninst
                 break;
             default:  break;/** SSE instruction */
         }
+
 #ifdef VEX_DEBUG
         printf("VEX OPERAND:  REGNUM: %d  ", regnum);
 #endif
