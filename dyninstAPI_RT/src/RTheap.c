@@ -283,7 +283,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     }
 
     /* define new heap */
-    node = heap + size;
+    node = ret_heap + size;
     node->heap.ret_addr = (void *)ret_heap;
     node->heap.addr = heap;
     node->heap.len = size_heap;
