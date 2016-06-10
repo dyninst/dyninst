@@ -814,9 +814,24 @@ namespace Dyninst
 			    else if(*bank_index < 0)
 				    *bank_index = 0;
                 return false; /* Return success */
+            case am_B:
+                bank = b_64bit;
+                if(regnum > 7)
+                {
+                    regnum -= 8;
+                    bank = b_amd64ext;
+                }
 
+                if(regnum < 0)
+                    regnum = 0;
+                if(regnum > 7)
+                    regnum = 7;
+
+                *bank_index = regnum;
+                break;
             default:  break;/** SSE instruction */
         }
+
 #ifdef VEX_DEBUG
         printf("VEX OPERAND:  REGNUM: %d  ", regnum);
 #endif
@@ -992,9 +1007,19 @@ namespace Dyninst
                         return false;
                     }
 
-                    Expression::Ptr op(makeRegisterExpression(
-                        makeRegisterID(pref.vex_vvvv_reg, optype, locs->rex_r)));
-                        insn_to_complete->appendOperand(op, isRead, isWritten);
+					/* Grab the correct bank and bank index for this type of register */
+                	if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, 
+							avx_type, pref, operand.admet))
+                    	return false;
+
+                /* Append the operand */
+                insn_to_complete->appendOperand(makeRegisterExpression(
+                        IntelRegTable(m_Arch, bank, bank_index)),
+                        isRead, isWritten);
+
+                    // Expression::Ptr op(makeRegisterExpression(
+                        // makeRegisterID(pref.vex_vvvv_reg, optype, locs->rex_r)));
+                        // insn_to_complete->appendOperand(op, isRead, isWritten);
                 }
                 break;
 
