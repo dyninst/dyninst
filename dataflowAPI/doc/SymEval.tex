@@ -52,7 +52,7 @@ SUCCESS & success \\
 \begin{apient}
 static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
 \end{apient}
-\apidesc{This interface expands a slice and return an AST for each assignment in
+\apidesc{This interface expands a slice and returns an AST for each assignment in
 the slice. This function will perform substitution of ASTs.}
 
 We use an AST to represent the symbolic expressions of an assignment. A symbolic
@@ -115,9 +115,9 @@ struct Constant;
 \begin{apient}
 Constant::Constant();
 Constant::Constant(uint64_t v);
-Constnat::Constant(uint64_t v, size_t s);
+Constant::Constant(uint64_t v, size_t s);
 \end{apient}
-\apidesc{Constructors a Constant objects.}
+\apidesc{Construct Constant objects.}
 
 \begin{apient}
 bool Constant::operator==(const Constant &rhs) const;
@@ -171,7 +171,7 @@ ROSEOperation::Op & Meaning \\
     derefOp  & Dereference memory operation \\
     writeRepOp & Write rep operation\\
     writeOp & Write operation\\
-    ifOp & if operation \\
+    ifOp & If operation \\
     sMultOp & Signed multiplication operation \\
     uMultOp & Unsigned multiplication operation \\
     sDivOp & Signed division operation \\
@@ -208,7 +208,7 @@ size_t ROSEOperation::size;
 \subsection{Class ASTVisitor}
 
 The ASTVisitor class defines callback functions to apply during visiting an AST for
-each AST node type. Users can inherit this class to write customized analyses
+each AST node type. Users can inherit from this class to write customized analyses
 for ASTs.
 
 \begin{apient}
@@ -221,5 +221,5 @@ virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::RoseAST *);
 virtual ASTVisitor::ASTPtr ASTVisitor::visit(StackAST *);
 \end{apient}
 \apidesc{Callback functions for visiting each type of AST node. The default
-behavior is returning the input parameter.}
+behavior is to return the input parameter.}
 

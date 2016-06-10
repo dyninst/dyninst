@@ -2,8 +2,8 @@
 \definedin{Graph.h}
 \label{sec:graph}
 
-We provide a generic graph interface, which allows users adding, deleting,
-iterating nodes and edges in a graph. Our slicing algorithms are implemented
+We provide a generic graph interface, which allows users to add, delete, and
+iterate nodes and edges in a graph. Our slicing algorithms are implemented
 upon this graph interface, so users can inherit the defined classes for
 customization.
 
@@ -40,7 +40,7 @@ static Graph::Ptr createGraph();
 \begin{apient}
 void insertPair(NodePtr source, NodePtr target, EdgePtr edge = EdgePtr());
 \end{apient}
-\apidesc{Insert an pair of node into the graph and create a new edge \code{edge} from
+\apidesc{Insert a pair of nodes into the graph and create a new edge \code{edge} from
 \code{source} to \code{target}.}
 
 \begin{apient}
@@ -86,7 +86,7 @@ unsigned size() const;
 \begin{apient}
 typedef boost::shared_ptr<Node> Ptr;
 \end{apient}
-\apidesc{shared pointer for Node}
+\apidesc{Shared pointer for Node}
 
 \begin{apient}
 void ins(EdgeIterator &begin, EdgeIterator &end);
@@ -99,7 +99,7 @@ void ins(NodeIterator &begin, NodeIterator &end);
 void outs(NodeIterator &begin, NodeIterator &end);
 \end{apient}
 \apidesc{Iterate over adjacent nodes connected with incoming/outgoing edges of
-this node}.
+this node.}
 
 \begin{apient}
 bool hasInEdges(); 

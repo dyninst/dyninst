@@ -59,7 +59,7 @@ Absloc(int o,
        ParseAPI::Function *f);
 \end{apient}		       
 \apidesc{Create a Stack type abstract location, representing a stack variable in
-the frame of function \code{f} and at offset \code{o} within the frame.}
+the frame of function \code{f}, within abstract region \code{r}, and at offset \code{o} within the frame.}
     
 \begin{apient}    
 std::string format() const;
@@ -214,9 +214,9 @@ single memory region.}
 \begin{apient}
 void convertAll(InstructionAPI::Expression::Ptr expr,
                 Address addr,
-		ParseAPI::Function *func,
-		ParseAPI::Block *block,
-		std::vector<AbsRegion> &regions);
+                ParseAPI::Function *func,
+                ParseAPI::Block *block,
+                std::vector<AbsRegion> &regions);
 \end{apient}
 \apidesc{Create all abstract regions used in \code{expr} and return them in
 \code{regions}. All registers appear in \code{expr} will have a separate
@@ -235,9 +235,9 @@ void convertAll(InstructionAPI::Instruction::Ptr insn,
                 std::vector<AbsRegion> &used,
                 std::vector<AbsRegion> &defined);
 \end{apient}
-\apidesc{Create abstract regions appeared in instruction \code{insn}. Input
+\apidesc{Create abstract regions appearing in instruction \code{insn}. Input
 abstract regions of this instructions are returned in \code{used} and output
-abstract regions are returned in \code{defined}.If the expression represents a memory access, we will also
+abstract regions are returned in \code{defined}.  If the expression represents a memory access, we will also
 create a heap or stack abstract region depending on where it accesses.
 \code{addr}, \code{func}, and \code{blocks} specify the contexts of the
 expression.
