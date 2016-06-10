@@ -268,12 +268,20 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
     if (!block->obj()->cs()->isValidAddress(tableBase)) {
         parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
 	jumpTableFormat = false;
-	fprintf(stderr, "Not jump table format!\n");
+	parsing_printf("Not jump table format!\n");
 	return false;
     }
+    if (!block->obj()->cs()->isReadOnly(tableBase)) {
+        parsing_printf("\ttableBase 0x%lx not read only, returning false\n", tableBase);
+	jumpTableFormat = false;
+	parsing_printf("Not jump table format!\n");
+        return false;
+    }
+
 
     for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += target.interval.stride) {
 	if (!block->obj()->cs()->isValidAddress(tableEntry)) continue;
+	if (!block->obj()->cs()->isReadOnly(tableEntry)) continue;
 	Address targetAddress = 0;
 	if (target.tableReadSize > 0) {
 	    switch (target.tableReadSize) {

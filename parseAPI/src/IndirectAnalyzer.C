@@ -17,7 +17,7 @@ using namespace Dyninst::InstructionAPI;
 
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-    if (block->last() == 0xa2219d) dyn_debug_parsing = 1; else dyn_debug_parsing=0;
+//    if (block->last() == 0xacef04) dyn_debug_parsing = 1; else dyn_debug_parsing=0;
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
 //  Find all blocks that reach the block containing the indirect jump
@@ -56,7 +56,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 	bool ijt = jtp.IsJumpTable(g, bfc, target);
 	if (ijt) jtp.FillInOutEdges(target, jumpTableOutEdges);
     }
-    fprintf(stderr, "indirect jump at %lx with %d assignments and %d edges\n", block->last(), jtp.currentAssigns.size(), jumpTableOutEdges.size()); 
+    //fprintf(stderr, "indirect jump at %lx with %d assignments and %d edges\n", block->last(), jtp.currentAssigns.size(), jumpTableOutEdges.size()); 
 
     outEdges.insert(outEdges.end(), jumpTableOutEdges.begin(), jumpTableOutEdges.end());
     return !jumpTableOutEdges.empty();

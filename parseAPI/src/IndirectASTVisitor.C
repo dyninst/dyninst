@@ -407,6 +407,11 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 		        parsing_printf("\ttableBase 0x%lx invalid, not jump table format\n", tableBase);
 			findIncorrectFormat = true;
 		    }
+                    if (!b->obj()->cs()->isReadOnly(tableBase)) {
+		        parsing_printf("\ttableBase 0x%lx not read only, not jump table format\n", tableBase);
+			findIncorrectFormat = true;
+		    }
+
 		}
 	    }
 	}
