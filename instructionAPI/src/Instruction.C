@@ -446,6 +446,7 @@ memAccessors.begin()));
         }
 
         std::string retVal = m_InsnOp->format();
+
         retVal += " ";
         std::list<Operand>::const_iterator curOperand;
         for(curOperand = m_Operands.begin();
