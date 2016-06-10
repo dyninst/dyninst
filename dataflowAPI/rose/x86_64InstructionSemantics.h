@@ -2403,7 +2403,7 @@ struct X86_64InstructionSemantics {
                     default: ROSE_ASSERT(!"Bad size"); break;                                                                   \
                 }                                                                                                              \
             }
-/*            case x86_cmovne:    CMOV(ne);       break;
+            case x86_cmovne:    CMOV(ne);       break;
             case x86_cmove:     CMOV(e);        break;
             case x86_cmovno:    CMOV(no);       break;
             case x86_cmovo:     CMOV(o);        break;
@@ -2419,7 +2419,7 @@ struct X86_64InstructionSemantics {
             case x86_cmovg:     CMOV(g);        break;
             case x86_cmovge:    CMOV(ge);       break;
             case x86_cmovl:     CMOV(l);        break;
-*/	    
+	    
 #           undef CMOV
 
             /* The flag expressions are no longer needed */

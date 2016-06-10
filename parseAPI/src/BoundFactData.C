@@ -360,28 +360,32 @@ BoundValue::BoundValue(int64_t val):
 	targetBase(0), 
 	tableReadSize(0),
 	isInverted(false),
-	isSubReadContent(false) {}
+	isSubReadContent(false),
+	isZeroExtend(false) {}
 
 BoundValue::BoundValue(const StridedInterval &si):
         interval(si), 
 	targetBase(0), 
 	tableReadSize(0),
 	isInverted(false),
-	isSubReadContent(false) {}
+	isSubReadContent(false),
+	isZeroExtend(false){}
 
 BoundValue::BoundValue():
         interval(),
 	targetBase(0),
 	tableReadSize(0),
 	isInverted(false),
-	isSubReadContent(false) {}
+	isSubReadContent(false),
+	isZeroExtend(false) {}
 
 BoundValue::BoundValue(const BoundValue & bv):
         interval(bv.interval),
 	targetBase(bv.targetBase),
 	tableReadSize(bv.tableReadSize),
 	isInverted(bv.isInverted),
-	isSubReadContent(bv.isSubReadContent) 
+	isSubReadContent(bv.isSubReadContent),
+	isZeroExtend(bv.isZeroExtend)
 {
 }
 
@@ -391,7 +395,8 @@ bool BoundValue::operator == (const BoundValue &bv) const {
 	   (targetBase == bv.targetBase) &&
 	   (tableReadSize == bv.tableReadSize) &&
 	   (isInverted == bv.isInverted) &&
-	   (isSubReadContent == bv.isSubReadContent);
+	   (isSubReadContent == bv.isSubReadContent) &&
+	   (isZeroExtend == bv.isZeroExtend);
 }
 
 bool BoundValue::operator != (const BoundValue &bv) const {
@@ -405,6 +410,7 @@ BoundValue & BoundValue::operator = (const BoundValue &bv) {
     tableReadSize = bv.tableReadSize;
     isInverted = bv.isInverted;
     isSubReadContent = bv.isSubReadContent;
+    isZeroExtend = bv.isZeroExtend;
     return *this;
 
 }
@@ -414,7 +420,8 @@ void BoundValue::Print() {
     parsing_printf("targetBase %lx, ",targetBase);
     parsing_printf("tableReadSize %d, ", tableReadSize);
     parsing_printf("isInverted %d, ", isInverted);
-    parsing_printf("isSubReadContent %d\n", isSubReadContent);
+    parsing_printf("isSubReadContent %d, ", isSubReadContent);
+    parsing_printf("isZeroExtend %d\n", isZeroExtend);
 }
 
 
@@ -478,6 +485,7 @@ void BoundValue::Join(BoundValue &bv) {
 	if (targetBase != bv.targetBase) targetBase = 0;
 	if (isInverted != bv.isInverted) isInverted = false;
 	if (isSubReadContent != bv.isSubReadContent) isSubReadContent = false;
+	if (isZeroExtend != bv.isZeroExtend) isZeroExtend = false;
     }
 }
 
@@ -486,6 +494,7 @@ void BoundValue::ClearTableCheck(){
     targetBase = 0;
     isInverted = false;
     isSubReadContent = false;
+    isZeroExtend = false;
 }
 
 void BoundValue::Add(const BoundValue &rhs) {
@@ -773,7 +782,9 @@ void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv, bool isConditionalJu
     // Only check alias for bound produced by conditinal jumps.
     if (isConditionalJump) {
         AST::Ptr subAST = DeepCopyAnAST(ast);
+	parsing_printf("Before substitute %s\n", ast->format().c_str());
 	subAST = SubstituteAnAST(subAST, aliasMap);
+	parsing_printf("After  substitute %s\n", subAST->format().c_str());
 	if (!(*subAST == *ast)) {
 	    KillFact(subAST, true);
 	    fact.insert(make_pair(subAST, new BoundValue(*bv)));
@@ -794,7 +805,8 @@ static bool IsSubTree(AST::Ptr tree, AST::Ptr sub) {
 
 void BoundFact::KillFact(const AST::Ptr ast, bool isConditionalJump) {
     for (auto fit = fact.begin(); fit != fact.end();)
-        if (IsSubTree(fit->first, ast)) {
+//        if (IsSubTree(fit->first, ast)) {
+        if (*fit->first == *ast) {
 	    auto toErase = fit;
 	    ++fit;
 	    if (toErase->second != NULL) delete toErase->second;
@@ -1560,6 +1572,40 @@ BoundValue * BoundFact::ApplyRelations(AST::Ptr outAST) {
     return NULL;
 }
 
+BoundValue * BoundFact::ApplyRelations2(AST::Ptr outAST) {
+    AST::Ptr cal;
+    for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait)
+        if ( *(ait->first) == *outAST) {
+	    cal = ait->second;
+	    break;
+	}
+    parsing_printf("\t\tApply relations2 to %s\n", cal->format().c_str());
+    if (cal->getID() != AST::V_RoseAST) return NULL;
+    RoseAST::Ptr root = boost::static_pointer_cast<RoseAST>(cal);
+    if (root->val().op != ROSEOperation::addOp) return NULL;
+    if (root->child(0)->getID() != AST::V_VariableAST || root->child(1)->getID() != AST::V_RoseAST) return NULL;
+    VariableAST::Ptr leftChild = boost::static_pointer_cast<VariableAST>(root->child(0));
+    RoseAST::Ptr rightChild = boost::static_pointer_cast<RoseAST>(root->child(1));
+    if (rightChild->val().op != ROSEOperation::addOp) return NULL;
+    if (rightChild->child(0)->getID() != AST::V_RoseAST || rightChild->child(1)->getID() != AST::V_ConstantAST) return NULL;
+    RoseAST::Ptr invertAST = boost::static_pointer_cast<RoseAST>(rightChild->child(0));
+    if (invertAST->val().op != ROSEOperation::invertOp) return NULL;
+    ConstantAST::Ptr subAST = boost::static_pointer_cast<ConstantAST>(rightChild->child(1));
+    if (subAST->val().val != 1) return NULL;
+    if (invertAST->child(0)->getID() != AST::V_RoseAST) return NULL;
+    RoseAST::Ptr shlAST = boost::static_pointer_cast<RoseAST>(invertAST->child(0));
+    if (shlAST->val().op != ROSEOperation::shiftLOp) return NULL;
+    ConstantAST::Ptr shlBit = boost::static_pointer_cast<ConstantAST>(shlAST->child(1));
+    if (shlAST->child(0)->getID() != AST::V_RoseAST) return NULL;
+    RoseAST::Ptr shrAST = boost::static_pointer_cast<RoseAST>(shlAST->child(0));
+    if (shrAST->val().op != ROSEOperation::shiftROp) return NULL;
+    ConstantAST::Ptr shrBit = boost::static_pointer_cast<ConstantAST>(shrAST->child(1));
+    if (shrBit->val().val != shlBit->val().val) return NULL;
+    if (shrAST->child(0)->getID() != AST::V_VariableAST) return NULL;
+    VariableAST::Ptr leftChild2 = boost::static_pointer_cast<VariableAST>(shrAST->child(0));
+    if (leftChild->val().reg != leftChild2->val().reg) return NULL;
+    return new BoundValue(StridedInterval(1,0,(1 << shlBit->val().val)-1));
+}
 void BoundFact::SwapFact(AST::Ptr a, AST::Ptr b) {
     auto aIter = fact.end();
     auto bIter = fact.end();
@@ -1586,4 +1632,14 @@ void BoundFact::SwapFact(AST::Ptr a, AST::Ptr b) {
 	       (*rit)->left = (*rit)->right;
 	       (*rit)->right = tmp;
 	   }
+}
+
+
+void BoundFact::CheckZeroExtend(AST::Ptr a) {
+    for (auto fit = fact.begin(); fit != fact.end(); ++fit) {
+        if (*(fit->first) == *a) {
+	    BoundValue *val = fit->second;
+	    if (val->tableReadSize > 0) val->isZeroExtend = true;
+	}
+    }
 }

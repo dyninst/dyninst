@@ -82,6 +82,7 @@ struct BoundValue {
     int tableReadSize;
     bool isInverted;
     bool isSubReadContent;
+    bool isZeroExtend;
     BoundValue(int64_t val); 
     BoundValue(const StridedInterval& si); 
     BoundValue();
@@ -224,10 +225,13 @@ struct BoundFact {
     void TrackAlias(AST::Ptr expr, AST::Ptr outAST);
 
     BoundValue *ApplyRelations(AST::Ptr outAST);
+    BoundValue *ApplyRelations2(AST::Ptr outAST);
+
     void PushAConst(int64_t value);
     bool PopAConst(AST::Ptr ast);
     
     void SwapFact(AST::Ptr a, AST::Ptr b);
+    void CheckZeroExtend(AST::Ptr a);
 
     BoundFact();
     ~BoundFact();

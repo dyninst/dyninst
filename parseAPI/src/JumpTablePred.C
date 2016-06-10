@@ -182,7 +182,7 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 
 bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
-    if (currentAssigns.size() > 30) return false; 
+    if (currentAssigns.size() > 200) return false; 
     // For flags, we only analyze zf
     if (ap->out().absloc().type() == Absloc::Register && ap->out().absloc().reg().regClass() == (unsigned int)x86::FLAG &&
        ap->out().absloc().reg() != x86::zf && ap->out().absloc().reg() != x86_64::zf) {
@@ -266,19 +266,20 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 	if (!block->obj()->cs()->isValidAddress(tableEntry)) continue;
 	Address targetAddress = 0;
 	if (target.tableReadSize > 0) {
-	    // Assume the table contents are moved in a sign extended way;
 	    switch (target.tableReadSize) {
 	        case 8:
 		    targetAddress = *(const uint64_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
 		    break;
 		case 4:
 		    targetAddress = *(const uint32_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+		    if (target.isZeroExtend) break;
 		    if ((arch == Arch_x86_64) && (targetAddress & 0x80000000)) {
 		        targetAddress |= SIGNEX_64_32;
 		    }
 		    break;
 		case 2:
 		    targetAddress = *(const uint16_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+		    if (target.isZeroExtend) break;
 		    if ((arch == Arch_x86_64) && (targetAddress & 0x8000)) {
 		        targetAddress |= SIGNEX_64_16;
 		    }
@@ -289,6 +290,7 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 		    break;
 		case 1:
 		    targetAddress = *(const uint8_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+		    if (target.isZeroExtend) break;
 		    if ((arch == Arch_x86_64) && (targetAddress & 0x80)) {
 		        targetAddress |= SIGNEX_64_8;
 		    }
@@ -302,7 +304,7 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 		    parsing_printf("Invalid memory read size %d\n", target.tableReadSize);
 		    return false;
 	    }
-	    if (targetAddress != 0) {
+	    if (target.targetBase != 0) {
 	        if (target.isSubReadContent) 
 		    targetAddress = target.targetBase - targetAddress;
 		else 

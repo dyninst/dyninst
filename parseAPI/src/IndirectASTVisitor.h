@@ -34,9 +34,10 @@ public:
     BoundFact &boundFact;
     ParseAPI::Block *block;
     bool handleOneByteRead;
+    int derefSize;
 
-    BoundCalcVisitor(BoundFact &bf, ParseAPI::Block* b, bool handle): 
-        boundFact(bf), block(b), handleOneByteRead(handle) {}
+    BoundCalcVisitor(BoundFact &bf, ParseAPI::Block* b, bool handle, int size): 
+        boundFact(bf), block(b), handleOneByteRead(handle), derefSize(size) {}
     ~BoundCalcVisitor();
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
     virtual ASTPtr visit(DataflowAPI::ConstantAST *ast);
