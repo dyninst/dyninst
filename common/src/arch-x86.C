@@ -3989,10 +3989,10 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE51 */
-    { e_sqrtps, t_sse_mult, SSE51_NO, true, { Zz, Zz, Zz }, 0, s1W2R },
-    { e_sqrtss, t_sse_mult, SSE51_F3, true, { Zz, Zz, Zz }, 0, s1W2R },
-    { e_sqrtpd, t_sse_mult, SSE51_66, true, { Zz, Zz, Zz }, 0, s1W2R },
-    { e_sqrtsd, t_sse_mult, SSE51_F2, true, { Zz, Zz, Zz }, 0, s1W2R },
+    { e_sqrtps, t_sse_mult, SSE51_NO, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { e_sqrtss, t_sse_mult, SSE51_F3, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { e_sqrtpd, t_sse_mult, SSE51_66, true, { Vpd, Wpd, Zz }, 0, s1W2R },
+    { e_sqrtsd, t_sse_mult, SSE51_F2, true, { Vsd, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE52 */
     { e_rsqrtps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
