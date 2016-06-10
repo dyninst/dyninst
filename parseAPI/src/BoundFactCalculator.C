@@ -514,8 +514,9 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	return;
     }
 
-
+    bool findBound = false;
     if (bcv.IsResultBounded(calculation)) {
+        findBound = true;
         parsing_printf("\t\t\tGenerate bound fact for %s\n", outAST->format().c_str());
 	newFact->GenFact(outAST, new BoundValue(*bcv.GetResultBound(calculation)), false);
     }
@@ -536,7 +537,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     // Currently, all variables in the slice are presented as an AST
     // consists of input variables to the slice (the variables that
     // we do not the sources of their values).
-    newFact->TrackAlias(DeepCopyAnAST(calculation), outAST);
+    newFact->TrackAlias(DeepCopyAnAST(calculation), outAST, findBound);
 
     // Apply tracking relations to the calculation to generate a
     // potentially stricter bound

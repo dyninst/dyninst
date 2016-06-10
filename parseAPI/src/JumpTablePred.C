@@ -181,6 +181,7 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 
 
 bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
+    if (!jumpTableFormat) return false;
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
     if (currentAssigns.size() > 200) return false; 
     // For flags, we only analyze zf
@@ -194,6 +195,13 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
     currentAssigns.insert(ap);
 
     parsing_printf("Adding assignment %s in instruction %s at %lx, total %d\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr(), currentAssigns.size());
+/*
+    if (ap->insn() && ap->insn()->readsMemory() && firstMemoryRead) {
+        firstMemoryRead = false;
+	parsing_printf("\tThe first memory read, check if format is correct\n");
+	if 
+    }
+*/
 
     if (!expandRet.second || expandRet.first == NULL) return true;
 
@@ -259,6 +267,8 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
     target.Print();
     if (!block->obj()->cs()->isValidAddress(tableBase)) {
         parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
+	jumpTableFormat = false;
+	fprintf(stderr, "Not jump table format!\n");
 	return false;
     }
 
@@ -341,12 +351,24 @@ bool JumpTablePred::IsJumpTable(GraphPtr slice,
     const Absloc &loc = jumpNode->assign()->out().absloc();
     parsing_printf("Checking final bound fact for %s\n",loc.format().c_str()); 
     BoundFact *bf = bfc.GetBoundFactOut(virtualExit);
-    BoundValue *tarBoundValue = bf->GetBound(VariableAST::create(Variable(loc)));
+    VariableAST::Ptr ip = VariableAST::create(Variable(loc));
+    BoundValue *tarBoundValue = bf->GetBound(ip);
     if (tarBoundValue != NULL) {
         target = *(tarBoundValue);
 	uint64_t s = target.interval.size();
 	if (s > 0 && s <= MAX_TABLE_ENTRY) return true;
     }
+    AST::Ptr ipExp = bf->GetAlias(ip);
+    if (ipExp) {
+        parsing_printf("\t jump target expression %s\n", ipExp->format().c_str());
+	JumpTableFormatVisitor jtfv(block);
+	ipExp->accept(&jtfv);
+	if (!jtfv.format) {
+	    parsing_printf("\t Not jump table format!\n");
+	    jumpTableFormat = false;
+	}
+    }
+
     return false;
 }
 

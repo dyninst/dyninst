@@ -1,6 +1,7 @@
 #include "dyntypes.h"
 #include "IndirectASTVisitor.h"
 #include "debug_parse.h"
+#include "CodeObject.h"
 #include <algorithm>
 
 using namespace Dyninst::ParseAPI;
@@ -371,4 +372,50 @@ AST::Ptr DeepCopyAnAST(AST::Ptr ast) {
         fprintf(stderr, "ast type %d, %s\n", ast->getID(), ast->format().c_str());
         assert(0);	
     }
+}
+
+AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
+
+    bool findIncorrectFormat = false;
+    if (ast->val().op == ROSEOperation::derefOp) {
+        // We only check the first memory read
+	if (ast->child(0)->getID() == AST::V_RoseAST) {
+	    RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast->child(0));
+	    if (roseAST->val().op == ROSEOperation::derefOp) {
+	        // Two directly nested memory accesses cannot be jump tables
+		parsing_printf("Two directly nested memory access, not jump table format\n");
+	        findIncorrectFormat = true;
+	    } else if (roseAST->val().op == ROSEOperation::addOp) {
+	        Address tableBase = 0;
+		if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    tableBase = constAST->val().val;
+		}
+		if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    tableBase = constAST->val().val;
+		}
+		if (tableBase) {
+		    Architecture arch = b->obj()->cs()->getArch();
+		    if (arch == Arch_x86) {
+		        tableBase &= 0xffffffff;
+		    }
+#if defined(os_windows)
+                    tableBase -= b->obj()->cs()->loadAddress();
+#endif
+                    if (!b->obj()->cs()->isValidAddress(tableBase)) {
+		        parsing_printf("\ttableBase 0x%lx invalid, not jump table format\n", tableBase);
+			findIncorrectFormat = true;
+		    }
+		}
+	    }
+	}
+    }
+    if (!findIncorrectFormat) {
+        unsigned totalChildren = ast->numChildren();
+	for (unsigned i = 0 ; i < totalChildren; ++i) {
+	    ast->child(i)->accept(this);
+	}
+    } else format = false;
+    return AST::Ptr();
 }

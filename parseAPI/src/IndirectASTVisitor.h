@@ -67,4 +67,13 @@ public:
     ComparisonVisitor(): subtrahend(AST::Ptr()), minuend(AST::Ptr()) {} 
 };
 
+class JumpTableFormatVisitor: public ASTVisitor {
+
+public:
+    using ASTVisitor::visit;
+    ParseAPI::Block *b;
+    bool format;
+    virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
+    JumpTableFormatVisitor(ParseAPI::Block *bl): b(bl), format(true) {}
+};
 #endif

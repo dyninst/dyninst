@@ -17,7 +17,7 @@ using namespace Dyninst::InstructionAPI;
 
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-//    if (block->last() == 0xb1dd9d) dyn_debug_parsing = 1; else dyn_debug_parsing=0;
+    if (block->last() == 0xa2219d) dyn_debug_parsing = 1; else dyn_debug_parsing=0;
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
 //  Find all blocks that reach the block containing the indirect jump
@@ -43,11 +43,10 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     JumpTablePred jtp(func, block, rf, thunks, jumpTableOutEdges);
     jtp.setSearchForControlFlowDep(true);
     GraphPtr slice = s.backwardSlice(jtp);
-
     // After the slicing is done, we do one last check to 
     // see if we can resolve the indirect jump by assuming 
     // one byte read is in bound [0,255]
-    if (jumpTableOutEdges.empty()) {
+    if (jumpTableOutEdges.empty() && jtp.jumpTableFormat) {
         GraphPtr g = jtp.BuildAnalysisGraph(s.visitedEdges);
 	
 	BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, block->last(), true, jtp.expandCache);
@@ -57,6 +56,8 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 	bool ijt = jtp.IsJumpTable(g, bfc, target);
 	if (ijt) jtp.FillInOutEdges(target, jumpTableOutEdges);
     }
+    fprintf(stderr, "indirect jump at %lx with %d assignments and %d edges\n", block->last(), jtp.currentAssigns.size(), jumpTableOutEdges.size()); 
+
     outEdges.insert(outEdges.end(), jumpTableOutEdges.begin(), jumpTableOutEdges.end());
     return !jumpTableOutEdges.empty();
 }						       

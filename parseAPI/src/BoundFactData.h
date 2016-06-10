@@ -208,6 +208,7 @@ struct BoundFact {
 
     BoundValue* GetBound(const AST::Ptr ast); 
     BoundValue* GetBound(const AST* ast);
+    AST::Ptr GetAlias(const AST::Ptr ast);
     void Meet(BoundFact &bf);
 
 
@@ -222,7 +223,7 @@ struct BoundFact {
     void IntersectInterval(const AST::Ptr ast, StridedInterval si);
     void DeleteElementFromInterval(const AST::Ptr ast, int64_t val);
     void InsertRelation(AST::Ptr left, AST::Ptr right, RelationType);
-    void TrackAlias(AST::Ptr expr, AST::Ptr outAST);
+    void TrackAlias(AST::Ptr expr, AST::Ptr outAST, bool findBound);
 
     BoundValue *ApplyRelations(AST::Ptr outAST);
     BoundValue *ApplyRelations2(AST::Ptr outAST);

@@ -1502,7 +1502,16 @@ void BoundFact::AdjustPredicate(AST::Ptr out, AST::Ptr in) {
     }
 }
 
-void BoundFact::TrackAlias(AST::Ptr expr, AST::Ptr outAST) {
+AST::Ptr BoundFact::GetAlias(const AST::Ptr ast) {
+    for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait) {
+        if (*(ait->first) == *ast) {
+	    return ait->second;
+	}
+    }
+    return AST::Ptr();
+}
+
+void BoundFact::TrackAlias(AST::Ptr expr, AST::Ptr outAST, bool findBound) {
     expr = SubstituteAnAST(expr, aliasMap);
     bool find = false;
     for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait) {
@@ -1516,7 +1525,7 @@ void BoundFact::TrackAlias(AST::Ptr expr, AST::Ptr outAST) {
         aliasMap.insert(make_pair(outAST, expr));
     }
     BoundValue *substiBound = GetBound(expr);
-    if (substiBound != NULL) {
+    if (substiBound != NULL && !findBound) {
         GenFact(outAST, new BoundValue(*substiBound), false);
     }
 }
