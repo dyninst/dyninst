@@ -91,7 +91,7 @@ enum {
   SSE78, SSE79, SSE7A, SSE7B, SSE7C, SSE7D, SSE7E, SSE7F,
   SSE90, SSE91, SSE92, SSE93,
   SSE98, SSE99,
-  SSEB8,                                    SSEBE,
+  SSEB8,                             SSEBD,
                 SSEC2, SSEC4, SSEC5, SSEC6,
   SSED0, SSED1, SSED2, SSED3, SSED4, SSED5, SSED6, SSED7,
   SSED8, SSED9, SSEDA, SSEDB, SSEDC, SSEDD, SSEDE, SSEDF,
@@ -2583,7 +2583,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_grp, Grp8, true, { Zz, Zz, Zz }, 0, 0 },
   { e_btc, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
   { e_bsf, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
-  { e_No_Entry, t_sse, SSEBE, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEBD, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_movsx, t_done, 0, true, { Gv, Eb, Zz }, 0, s1W2R },
   { e_movsx, t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R },
   /* C0 */
@@ -4318,10 +4318,10 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
-  { /* SSEBE */
+  { /* SSEBD */
     { e_bsr, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
     { e_lzcnt, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_bsr, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEC2 */
@@ -8502,7 +8502,22 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 }
 
             case t_grpsse:
-                sseidx >>= 1;
+                switch(pref.getOpcodePrefix())
+                {
+                    case 0x00:
+                    case 0xF3:
+                        sseidx = 0;
+                        break;
+                    case 0xF2:
+                    case 0x66:
+                        sseidx = 1;
+                        break;
+                    default:
+                        assert(!"Unknown opcode prefixed used for t_grpsse table.\n");
+                        break;
+                }
+
+                // sseidx >>= 1;
                 idx = gotit->tabidx;
 				if(pref.vex_present)
                 	gotit = &ssegrpMap_VEX[idx][sseidx];
@@ -9841,17 +9856,18 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
                 break;
 
             case PREFIX_SZOPER:
-                if(is_sse_opcode(addr[1],addr[2],addr[3])) {
-                    pref.opcode_prefix = addr[0];
-                    break;
-                }
+                // if(is_sse_opcode(addr[1],addr[2],addr[3])) {
+                    // ++pref.count;
+                    // pref.opcode_prefix = addr[0];
+                    // break;
+                // }
 
-                if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4])) {
-                    ++pref.count;
-                    pref.opcode_prefix = addr[0];
-                    break;
-                }
+                // if(mode_64 && REX_ISREX(addr[1]) && is_sse_opcode(addr[2],addr[3],addr[4])) {
+                    // ++pref.count;
+                    // break;
+                // }
 
+                pref.opcode_prefix = addr[0];
                 ++pref.count;
                 pref.prfx[2] = addr[0];
                 break;
