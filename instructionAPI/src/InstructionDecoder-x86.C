@@ -1402,14 +1402,19 @@ namespace Dyninst
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
                 break;
+            case am_WK: /* Could be a K mask register or memory address*/
             case am_W: /* Could be XMM, YMM, or ZMM (or possibly not VEX) */
 
 				if(pref.vex_present)
 				{
 					if(!AVX_TYPE_OKAY(avx_type))
-					return false;
+					    return false;
 				}
-				
+
+                // if(operand.admet == am_WK)
+                // printf("modrm_mod: %d modrm_reg: %d  modrm_rm: %d\n", 
+                        // locs->modrm_mod, locs->modrm_reg, locs->modrm_rm);
+
 				switch(locs->modrm_mod)
 				{
 					/* Direct dereference */
@@ -1493,37 +1498,6 @@ namespace Dyninst
                                 break;
                 }
 				break;
-			case am_WK: /* Must be either YMM or XMM (must be VEX) */
-
-                /* Make sure the register class is okay and we have a vex prefix */
-                if(!AVX_TYPE_OKAY(avx_type) || !pref.vex_present)
-                    return false;
-
-                /* Constrain to either XMM or YMM registers */
-                if(avx_type != AVX_XMM && avx_type != AVX_YMM)
-                    avx_type = AVX_YMM;
-
-                switch(locs->modrm_mod)
-                {
-                    /* Direct dereference */
-                    case 0x00:
-                    case 0x01:
-                    case 0x02:
-                        insn_to_complete->appendOperand(makeModRMExpression(b, makeSizeType(optype)), isRead, isWritten);
-                        break;
-                    case 0x03:
-                        /* Just the register is used */
-                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet))
-                            return false;
-
-                        /* Append the operand */
-                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
-                        break;
-                            default:
-                                assert(!"2-bit value modrm_mod out of range");
-                                break;
-                }
-                break;
 			case am_X:
 				{
 					MachRegister si_reg;

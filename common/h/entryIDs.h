@@ -666,6 +666,8 @@ enum entryID {
   e_vfixupimmps,
   e_vfixupimmsd,
   e_vfixupimmss,
+  e_vfmaddpd,
+  e_vfmaddps,
   e_vfmadd132pd,
   e_vfmadd132ps,
   e_vfmadd132sd,
