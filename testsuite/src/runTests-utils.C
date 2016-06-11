@@ -228,7 +228,7 @@ string ReplaceAllWith(const string &in, const string &replace, const string &wit
 
 void generateTestArgs(char **exec_args[], bool resume, bool useLog,
                       bool /*staticTests*/, string &logfile, int testLimit,
-                      vector<char *> &child_argv, const char * /*pidFilename*/,
+                      vector<char *> &child_argv, const char *pidFilename,
                       std::string hostname)
 {
   vector<const char *> args;
@@ -286,7 +286,7 @@ void generateTestArgs(char **exec_args[], bool resume, bool useLog,
 void generateTestString(bool resume, bool useLog, bool staticTests,
 			string &logfile, int testLimit,
 			vector<char *>& child_argv, string& shellString,
-			char *pidFilename)
+			char * /*pidFilename*/)
 {
    stringstream testString;
    if (staticTests) {
