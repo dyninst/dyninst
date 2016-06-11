@@ -6,20 +6,20 @@ addons:
     apt:
         sources:
             - kalakris-cmake
-            - llvm-toolchain-precise-3.7
+            # - llvm-toolchain-precise-3.7
             - ubuntu-toolchain-r-test
             - boost-latest
         packages:
             - binutils-dev
             - libboost-system1.55-dev
             - libboost-thread1.55-dev
-            - clang-3.7
+            # - clang-3.7
             - cmake
             - libelf-dev
 
 compiler:
     - gcc
-    - clang
+    # - clang
 
 script:
     - if [ "$CC" == "clang" ]; then export CC=clang-3.7; export CXX=clang++-3.7; fi
