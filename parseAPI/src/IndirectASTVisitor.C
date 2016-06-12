@@ -415,12 +415,16 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 		}
 	    }
 	}
+	if (findIncorrectFormat) {
+	    format = false;
+	}
+	return AST::Ptr();
     }
     if (!findIncorrectFormat) {
         unsigned totalChildren = ast->numChildren();
 	for (unsigned i = 0 ; i < totalChildren; ++i) {
 	    ast->child(i)->accept(this);
 	}
-    } else format = false;
+    } 
     return AST::Ptr();
 }
