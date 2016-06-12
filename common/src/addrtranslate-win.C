@@ -171,5 +171,5 @@ AddressTranslateWin::AddressTranslateWin(PID pid, PROC_HANDLE phandle_) :
 
 Address AddressTranslateWin::getLibraryTrapAddrSysV()
 {
-	return &::LoadLibraryEx;
+	return reinterpret_cast<Address>(&::LoadLibraryEx);
 }
