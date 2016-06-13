@@ -8673,7 +8673,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 
             case t_rex:
                 idx = gotit->tabidx;
-
                 /* Does this instruction have a REX prefix? */
                 if(pref.getPrefix(4))
                 {
