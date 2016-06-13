@@ -7629,7 +7629,7 @@ static struct ia32_entry rexMap[][2] =
 {
     {
         { e_arpl, t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R }, /* No REX */
-        { e_movslq, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R } /* HAS REX */
+        { e_movsx, t_done, 0, true, { Gw, Ev, Zz }, 0, s1RW2R } /* HAS REX */
     }
 };
 
@@ -8672,6 +8672,8 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 break;
 
             case t_rex:
+                idx = gotit->tabidx;
+
                 /* Does this instruction have a REX prefix? */
                 if(pref.getPrefix(4))
                 {
