@@ -498,9 +498,14 @@ enum {
     GrpD8=0, GrpD9, GrpDA, GrpDB, GrpDC, GrpDD, GrpDE, GrpDF
 };
 
-// VEX tables
+// VEX table
 enum {
-  VEXL00=0
+    VEXL00=0
+};
+
+// REX table
+enum {
+    REX00=0
 };
 
 /* Vex instructions that need extra decoding with the W bit */
@@ -1010,6 +1015,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_movsd_sse, "movsd")
   (e_movshdup, "movshdup")
   (e_movsldup, "movsldup")
+  (e_movslq, "movslq")
   (e_movss, "movss")
   (e_movsw, "movsw")
   (e_movsx, "movsx")
@@ -2182,8 +2188,8 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   /* 60 */
   { e_pushad, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW },
   { e_popad,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW },
-  { e_bound,    t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R }, // or VEX
-  { e_arpl,     t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R },
+  { e_bound, t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R }, // or VEX
+  { e_arpl,  t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R },
   { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { e_No_Entry,          t_ill,  2, false, { Zz, Zz, Zz }, 0, 0 }, /* operand size prefix (PREFIX_OPR_SZ) (depricated: prefixedSSE)*/
@@ -6378,8 +6384,8 @@ ia32_entry sseMapMult[][3] =
     { e_kmovq, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
   }, { /* SSE92_NO */
-    { e_kmovw, t_done, 0, true, { Vps, Ev, Zz }, 0, s1W2R },
-    { e_kmovq, t_done, 0, true, { Vps, Ev, Zz }, 0, s1W2R },
+    { e_kmovw, t_done, 0, true, { VK, Ev, Zz }, 0, s1W2R },
+    { e_kmovq, t_done, 0, true, { VK, Ev, Zz }, 0, s1W2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
   }, { /* SSE93_66 */
     { e_kmovb, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
@@ -7619,6 +7625,14 @@ static struct ia32_entry vex2Map[][2] =
     }
 };
 
+static struct ia32_entry rexMap[][2] =
+{
+    {
+        { e_arpl, t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R }, /* No REX */
+        { e_movslq, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R } /* HAS REX */
+    }
+};
+
 /**
  * VEX (3 byte) prefixed instructions
  *
@@ -8653,6 +8667,18 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                     }
                     gotit = &sseVexMult[idx][(int)pref.vex_type];
                 } else gotit = &sseVexMult[idx][0];
+
+                nxtab = gotit->otable;
+                break;
+
+            case t_rex:
+                /* Does this instruction have a REX prefix? */
+                if(pref.getPrefix(4))
+                {
+                    gotit = &rexMap[idx][1];
+                } else {
+                    gotit = &rexMap[idx][0];
+                }
 
                 nxtab = gotit->otable;
                 break;

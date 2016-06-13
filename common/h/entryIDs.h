@@ -796,6 +796,7 @@ enum entryID {
   e_vmovsd,
   e_vmovshdup,
   e_vmovsldup,
+  e_movslq,
   e_vmovss,
   e_vmovupd,
   e_vmovups,
