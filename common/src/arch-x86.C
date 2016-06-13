@@ -7629,7 +7629,7 @@ static struct ia32_entry rexMap[][2] =
 {
     {
         { e_arpl, t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R }, /* No REX */
-        { e_movsx, t_done, 0, true, { Gw, Ev, Zz }, 0, s1RW2R } /* HAS REX */
+        { e_movsx, t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R }, /* HAS REX */
     }
 };
 
