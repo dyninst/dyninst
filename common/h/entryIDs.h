@@ -1067,6 +1067,7 @@ enum entryID {
   e_vpmultishiftqb,
   e_vpmadd52luq,
   e_vpmadd52huq,
+  e_vptestmd,
   e_vptestnmd,
   e_vptestnmb,
   e_vpternlogd,
