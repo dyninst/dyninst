@@ -43,6 +43,8 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 	        return roseAST->child(0);
 
 	    case ROSEOperation::addOp:
+	        // We simplify the addition as much as we can
+		// Case 1: two constants
 	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
 		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
@@ -54,6 +56,7 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 		        size = child1->val().size;
 		    return ConstantAST::create(Constant(val,size));
    	        }
+		// Case 2: anything adding zero stays the same
 		if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr child = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
 		    if (child->val().val == 0) return roseAST->child(1);
@@ -62,7 +65,22 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 		    ConstantAST::Ptr child = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
 		    if (child->val().val == 0) return roseAST->child(0);
 		}
-
+		// Case 3: if v + v * c = v * (c+1), where v is a variable and c is a constant
+		if (roseAST->child(0)->getID() == AST::V_VariableAST && roseAST->child(1)->getID() == AST::V_RoseAST) {
+		    RoseAST::Ptr rOp = boost::static_pointer_cast<RoseAST>(roseAST->child(1));
+		    if (rOp->val().op == ROSEOperation::uMultOp || rOp->val().op == ROSEOperation::sMultOp) {
+		        if (rOp->child(0)->getID() == AST::V_VariableAST && rOp->child(1)->getID() == AST::V_ConstantAST) {
+			    VariableAST::Ptr varAST1 = boost::static_pointer_cast<VariableAST>(roseAST->child(0));
+			    VariableAST::Ptr varAST2 = boost::static_pointer_cast<VariableAST>(rOp->child(0));
+			    if (varAST1->val().reg == varAST2->val().reg) {
+			        ConstantAST::Ptr oldC = boost::static_pointer_cast<ConstantAST>(rOp->child(1));
+			        ConstantAST::Ptr newC = ConstantAST::create(Constant(oldC->val().val + 1, oldC->val().size));
+				RoseAST::Ptr newRoot = RoseAST::create(ROSEOperation(rOp->val()), varAST1, newC);
+				return newRoot;
+			    }
+			}
+		    }
+		} 
 		break;
 	    case ROSEOperation::sMultOp:
 	    case ROSEOperation::uMultOp:
