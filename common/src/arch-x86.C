@@ -505,13 +505,6 @@ VEXL00 = 0
 };
 /** END_DYNINST_TABLE_DEF */
 
-// REX table
-/** START_DYNINST_TABLE_DEF(rex_table, REX, NO) */
-enum {
-REX00 = 0
-};
-/** END_DYNINST_TABLE_DEF */
-
 /* Vex instructions that need extra decoding with the W bit */
 /** START_DYNINST_TABLE_DEF(vex_w_table, VEXW, NO) */
 enum {
@@ -2196,7 +2189,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_pushad, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW },
   { e_popad,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW },
   { e_bound, t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R }, // or VEX
-  { e_No_Entry,  t_rex, REX00, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_arpl, t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R }, /* No REX */
   { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { e_No_Entry,          t_ill,  2, false, { Zz, Zz, Zz }, 0, 0 }, /* operand size prefix (PREFIX_OPR_SZ) (depricated: prefixedSSE)*/
@@ -7638,22 +7631,6 @@ static struct ia32_entry vex2Map[][2] =
 };
 /** END_DYNINST_TABLE_VERIFICATION */
 
-/** 
- * Table rows:
- *
- * 0: doesn't have a rex prefix
- * 1: has rex prefix
- */
-/** START_DYNINST_TABLE_VERIFICATION(rex_table) */
-static struct ia32_entry rexMap[][2] =
-{
-    { /* REX00 */
-        { e_arpl, t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R }, /* No REX */
-        { e_movsx, t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R } /* HAS REX */
-    }
-};
-/** END_DYNINST_TABLE_VERIFICATION */
-
 /**
  * VEX (3 byte) prefixed instructions
  *
@@ -8691,20 +8668,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 
                 nxtab = gotit->otable;
                 break;
-
-            case t_rex:
-                idx = gotit->tabidx;
-                /* Does this instruction have a REX prefix? */
-                if(pref.getPrefix(4))
-                {
-                    gotit = &rexMap[idx][1];
-                } else {
-                    gotit = &rexMap[idx][0];
-                }
-
-                nxtab = gotit->otable;
-                break;
-
             case t_ill:
 #ifdef VEX_DEBUG
                 if(pref.vex_present)
@@ -8740,7 +8703,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     /* make adjustments for instruction redefined in 64-bit mode */
     if(mode_64)
     {
-        // ia32_translate_for_64(&gotit);
+        ia32_translate_for_64(&gotit);
     }
 
     /* Do the operand decoding */

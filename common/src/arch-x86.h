@@ -603,7 +603,7 @@ enum {
   t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, 
   t_grp, t_sse, t_sse_mult, t_sse_bis, t_sse_bis_mult, 
   t_sse_ter, t_sse_ter_mult, t_grpsse, t_3dnow, t_vexl, t_vexw, t_sse_vex_mult, 
-  t_rex, t_done=99
+  t_done=99
 };
 
 // registers used for memory access
