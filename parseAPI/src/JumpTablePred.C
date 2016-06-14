@@ -116,7 +116,6 @@ static int AdjustGraphEntryAndExit(GraphPtr gp) {
     return nodeCount;
 }
 
-
 GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
     GraphPtr newG = Graph::createGraph();
     
@@ -183,7 +182,7 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
     if (!jumpTableFormat) return false;
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
-    if (currentAssigns.size() > 200) return false; 
+    if (currentAssigns.size() > 50) return false; 
     // For flags, we only analyze zf
     if (ap->out().absloc().type() == Absloc::Register && ap->out().absloc().reg().regClass() == (unsigned int)x86::FLAG &&
        ap->out().absloc().reg() != x86::zf && ap->out().absloc().reg() != x86_64::zf) {
