@@ -5636,7 +5636,7 @@ static ia32_entry sseMapTer[][3] =
         { e_pextrw, t_done, 0, true, { RMw, Vdq, Ib }, 0, s1W2R3R }, 
     }, { /* SSET16 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_pextrd_pextrq, t_sse_ter_mult, SSET16_66, true, { Eq, Vdq, Ib }, 0, s1W2R3R },
+        { e_pextrd_pextrq, t_sse_ter_mult, SSET16_66, true, { Ey, Vdq, Ib }, 0, s1W2R3R },
         { e_pextrd_pextrq, t_done, 0, true, { Ey, Vdq, Ib }, 0, s1W2R3R },
     }, { /* SSET17 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
