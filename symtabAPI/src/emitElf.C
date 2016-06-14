@@ -573,7 +573,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     unsigned scncount;
     unsigned sectionNumber = 0;
 
-    bool startMovingSections = false;
     for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
         //copy sections from oldElf to newElf
         shdr = ElfTypes::elf_getshdr(scn);
@@ -734,17 +733,18 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
              * the first page of the file -- if the section is moved to the next
              * page the object file will not be parsed correctly by the kernel.
              *
-             * However, the initial sections still need to be shifted, but just
+             * However, the .interp section still needs to be shifted, but just
              * by the difference in size of the new PHDR segment.
              */
             if (newshdr->sh_offset > 0) {
-                if (startMovingSections || obj->isStaticBinary()
-                    || obj->getObjectType() == obj_SharedLib)
+                if (newshdr->sh_offset < pgSize && !strcmp(name, INTERP_NAME)) {
+                    newshdr->sh_addr -= pgSize;
+                    if (createNewPhdr) {
+                        newshdr->sh_addr += oldEhdr->e_phentsize;
+                        newshdr->sh_offset += oldEhdr->e_phentsize;
+                    }
+                } else
                     newshdr->sh_offset += pgSize;
-                else if (createNewPhdr) {
-                    newshdr->sh_offset += oldEhdr->e_phentsize;
-                    newshdr->sh_addr -= pgSize - oldEhdr->e_phentsize;
-                }
             }
         }
 
@@ -804,10 +804,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         if (0 > elf_update(newElf, ELF_C_NULL)) {
             return false;
-        }
-
-        if (!strcmp(name, INTERP_NAME)) {
-            startMovingSections = true;
         }
     }
 
@@ -1094,12 +1090,15 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
             newPhdr->p_align = pgSize;
         }
         else if (old->p_type == PT_INTERP && movePHdrsFirst && old->p_offset) {
-            Elf_Off interp_shift = library_adjust;
-            if (newEhdr->e_phnum >= oldEhdr->e_phnum)
-                interp_shift += (Elf_Off) oldEhdr->e_phentsize * (Elf_Off)(newEhdr->e_phnum - oldEhdr->e_phnum);
-            newPhdr->p_offset += interp_shift;
-            newPhdr->p_vaddr += interp_shift - pgSize;
-            newPhdr->p_paddr += interp_shift - pgSize;
+            Elf_Off addr_shift = library_adjust;
+            Elf_Off offset_shift = pgSize;
+            if (old->p_offset < pgSize) {
+                offset_shift = createNewPhdr ? oldEhdr->e_phentsize : 0;
+                addr_shift -= pgSize - offset_shift;
+            }
+            newPhdr->p_offset += offset_shift;
+            newPhdr->p_vaddr += addr_shift;
+            newPhdr->p_paddr += addr_shift;
         }
         else if (movePHdrsFirst && old->p_offset) {
             newPhdr->p_offset += pgSize;
