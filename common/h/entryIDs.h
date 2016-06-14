@@ -224,6 +224,8 @@ enum entryID {
   e_fprem,
   e_frstor,
   e_fsave,
+  e_xbegin,
+  e_xabort,
   e_fst,
   e_fstcw,
   e_fstenv,

@@ -499,14 +499,18 @@ enum {
 };
 
 // VEX table
+/** START_DYNINST_TABLE_DEF(vexl_table, VEXL, NO) */
 enum {
-    VEXL00=0
+VEXL00 = 0
 };
+/** END_DYNINST_TABLE_DEF */
 
 // REX table
+/** START_DYNINST_TABLE_DEF(rex_table, REX, NO) */
 enum {
-    REX00=0
+REX00 = 0
 };
+/** END_DYNINST_TABLE_DEF */
 
 /* Vex instructions that need extra decoding with the W bit */
 /** START_DYNINST_TABLE_DEF(vex_w_table, VEXW, NO) */
@@ -908,6 +912,8 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
  (e_fxch, "fxch")
   (e_fxrstor, "fxrstor")
   (e_fxsave, "fxsave")
+  (e_xbegin, "xbegin")
+  (e_xabort, "xabort")
   (e_haddpd, "haddpd")
   (e_haddps, "haddps")
   (e_hlt, "hlt")
@@ -3595,7 +3601,7 @@ static ia32_entry groupMap[][8] = {
    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { e_xbegin, t_done, 0, false, { Jz, Zz, Zz }, 0, s1R },
  }
 
 };
@@ -7617,21 +7623,31 @@ static ia32_entry ssegrpMap_VEX[][2] = {
  *    index: found by using opcode lookups in the oneByteMap.
  *    L: The l bit of the prefix. L=1 is YMM registers, L=0 is XMM registers
  */
+/** START_DYNINST_TABLE_VERIFICATION(vexl_table) */
 static struct ia32_entry vex2Map[][2] =
 {
-    { /* VEX200 */
+    { /* VEXL00 */
       { e_vzeroupper, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, /* L = 0 */
       { e_vzeroall, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }  /* L = 1 */
     }
 };
+/** END_DYNINST_TABLE_VERIFICATION */
 
+/** 
+ * Table rows:
+ *
+ * 0: doesn't have a rex prefix
+ * 1: has rex prefix
+ */
+/** START_DYNINST_TABLE_VERIFICATION(rex_table) */
 static struct ia32_entry rexMap[][2] =
 {
-    {
-        { e_arpl, t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R }, /* No REX */
-        { e_movslq, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R } /* HAS REX */
+    { /* REX00 */
+        { e_arpl, t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R },
+        { e_movsx, t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R }
     }
 };
+/** END_DYNINST_TABLE_VERIFICATION */
 
 /**
  * VEX (3 byte) prefixed instructions
