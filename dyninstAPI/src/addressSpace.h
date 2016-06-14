@@ -196,6 +196,7 @@ class AddressSpace : public InstructionSource {
     bool usesDataLoadAddress() const; // OS-specific
     virtual bool isCode(const Address) const;
     virtual bool isData(const Address) const;
+    virtual bool isReadOnly(const Address) const;
     virtual Address offset() const = 0;
     virtual Address length() const = 0;
     virtual Architecture getArch() const = 0;

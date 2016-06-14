@@ -1,6 +1,7 @@
 #include "dyntypes.h"
 #include "IndirectASTVisitor.h"
 #include "debug_parse.h"
+#include "CodeObject.h"
 #include <algorithm>
 
 using namespace Dyninst::ParseAPI;
@@ -85,7 +86,7 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 		    }
   	        }
 		break;
-/*	    case ROSEOperation::derefOp:
+	    case ROSEOperation::derefOp:
 	        // Any 8-bit value is bounded in [0,255].
 		// Need to keep the length of the dereference if it is 8-bit.
 		// However, dereference longer than 8-bit should be regarded the same.
@@ -94,7 +95,6 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 		else
 		    return RoseAST::create(ROSEOperation(ROSEOperation::derefOp), ast->child(0));
 		break;
-*/		
 	    default:
 	        break;
 
@@ -111,7 +111,15 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 	// we can directly use ast->isStrictEqual() to 
 	// compare two ast.
 	return VariableAST::create(Variable(varAST->val().reg));
+    } else if (ast->getID() == AST::V_ConstantAST) {
+        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast);
+	size_t size = constAST->val().size;
+	uint64_t val = constAST->val().val;	
+	if (size == 32)
+	    if (!(val & (1ULL << (size - 1))))
+	        return ConstantAST::create(Constant(val, 64));
     }
+
     return ast;
 }
 
@@ -153,24 +161,30 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 		    bound.insert(make_pair(ast,val));
 	    }
 	    break;
-	case ROSEOperation::andOp:{
+	case ROSEOperation::andOp: {
 	    // For and operation, even one of them is a top,
 	    // we may still produce bound result.
 	    // For example, top And 0[3,3] => 1[0,3]
-	    BoundValue *val = NULL;
-	    if (IsResultBounded(ast->child(0)))
-	        val = new BoundValue(*GetResultBound(ast->child(0)));
-	    else
-	        val = new BoundValue(BoundValue::top);
-	    if (IsResultBounded(ast->child(1)))
-	        val->And(GetResultBound(ast->child(1))->interval);
-	    else
-	        val->And(StridedInterval::top);
-	    // the result of an AND operation should not be
-	    // the table lookup. Set all other values to default
-	    val->ClearTableCheck();
-	    if (*val != BoundValue::top)
-	        bound.insert(make_pair(ast, val));
+	    //
+	    // the bound produced by and may be more relaxed than
+	    // a cmp bound not found yet. So we only apply and
+	    // bound when this is the last attempt
+	    if (handleOneByteRead) {
+	        BoundValue *val = NULL;
+		if (IsResultBounded(ast->child(0)))
+		    val = new BoundValue(*GetResultBound(ast->child(0)));
+		else
+		    val = new BoundValue(BoundValue::top);
+		if (IsResultBounded(ast->child(1)))
+		    val->And(GetResultBound(ast->child(1))->interval);
+		else
+		    val->And(StridedInterval::top);
+		// the result of an AND operation should not be
+	        // the table lookup. Set all other values to default
+	        val->ClearTableCheck();
+	        if (*val != BoundValue::top)
+	            bound.insert(make_pair(ast, val));
+	    }
 	    break;
 	}
 	case ROSEOperation::sMultOp:
@@ -201,7 +215,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	case ROSEOperation::derefOp: 
 	    if (IsResultBounded(ast->child(0))) {
 	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
-		val->MemoryRead(block, ast->val().size / 8);
+		val->MemoryRead(block, derefSize);
 	        if (*val != BoundValue::top)
 	            bound.insert(make_pair(ast, val));
 	    } else if (handleOneByteRead && ast->val().size == 8) {
@@ -211,7 +225,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	        bound.insert(make_pair(ast, new BoundValue(StridedInterval(1,0,255))));
 	    }
 	    break;
-	case ROSEOperation::orOp: {
+	case ROSEOperation::orOp: 
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
 	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
 	        val->Or(*GetResultBound(ast->child(1)));
@@ -219,8 +233,13 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	            bound.insert(make_pair(ast, val));
 	    }
 	    break;
-
-        }
+	case ROSEOperation::ifOp:
+	    if (IsResultBounded(ast->child(1)) && IsResultBounded(ast->child(2))) {
+	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(1)));
+		val->Join(*GetResultBound(ast->child(2)));
+		if (*val != BoundValue::top)
+		    bound.insert(make_pair(ast, val));
+	    }
 	default:
 	    break;
     }
@@ -353,4 +372,59 @@ AST::Ptr DeepCopyAnAST(AST::Ptr ast) {
         fprintf(stderr, "ast type %d, %s\n", ast->getID(), ast->format().c_str());
         assert(0);	
     }
+}
+
+AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
+
+    bool findIncorrectFormat = false;
+    if (ast->val().op == ROSEOperation::derefOp) {
+        // We only check the first memory read
+	if (ast->child(0)->getID() == AST::V_RoseAST) {
+	    RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast->child(0));
+	    if (roseAST->val().op == ROSEOperation::derefOp) {
+	        // Two directly nested memory accesses cannot be jump tables
+		parsing_printf("Two directly nested memory access, not jump table format\n");
+	        findIncorrectFormat = true;
+	    } else if (roseAST->val().op == ROSEOperation::addOp) {
+	        Address tableBase = 0;
+		if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    tableBase = constAST->val().val;
+		}
+		if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    tableBase = constAST->val().val;
+		}
+		if (tableBase) {
+		    Architecture arch = b->obj()->cs()->getArch();
+		    if (arch == Arch_x86) {
+		        tableBase &= 0xffffffff;
+		    }
+#if defined(os_windows)
+                    tableBase -= b->obj()->cs()->loadAddress();
+#endif
+                    if (!b->obj()->cs()->isValidAddress(tableBase)) {
+		        parsing_printf("\ttableBase 0x%lx invalid, not jump table format\n", tableBase);
+			findIncorrectFormat = true;
+		    }
+                    if (!b->obj()->cs()->isReadOnly(tableBase)) {
+		        parsing_printf("\ttableBase 0x%lx not read only, not jump table format\n", tableBase);
+			findIncorrectFormat = true;
+		    }
+
+		}
+	    }
+	}
+	if (findIncorrectFormat) {
+	    format = false;
+	}
+	return AST::Ptr();
+    }
+    if (!findIncorrectFormat) {
+        unsigned totalChildren = ast->numChildren();
+	for (unsigned i = 0 ; i < totalChildren; ++i) {
+	    ast->child(i)->accept(this);
+	}
+    } 
+    return AST::Ptr();
 }

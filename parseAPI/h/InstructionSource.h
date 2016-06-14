@@ -49,6 +49,7 @@ public:
     virtual unsigned int getAddressWidth() const = 0;
     virtual bool isCode(const Address) const = 0;
     virtual bool isData(const Address) const = 0;
+    virtual bool isReadOnly(const Address) const = 0;
     virtual Address offset() const = 0;
     virtual Address length() const = 0;
     virtual Architecture getArch() const = 0;
