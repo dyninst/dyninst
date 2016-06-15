@@ -120,19 +120,22 @@ if(BUILD_RTLIB)
     -G ${CMAKE_GENERATOR}
     ${RT_SOURCE_DIR})
 
-  add_custom_target(DyninstRT
-    ALL
-    #  COMMAND ${CMAKE_COMMAND} -E chdir ${RT_BINARY_DIR} ${ACTUAL_BUILD}
-    $(MAKE)
-    WORKING_DIRECTORY ${RT_BINARY_DIR}
-    COMMENT "Building DyninstRT")
+  if(MSVC)
+      include_external_msproject(DyninstAPI_RT dyninstAPI_RT/dyninstAPI_RT.vcxproj)
+  else()
+    add_custom_target(DyninstRT
+      ALL
+      $(MAKE)
+      WORKING_DIRECTORY ${RT_BINARY_DIR}
+      COMMENT "Building DyninstRT")
+    add_dependencies(dyninstAPI DyninstRT)
+    if(TARGET dyninstAPI-static)
+      add_dependencies(dyninstAPI-static DyninstRT)
+    endif()
+  endif()
 
   install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
 
-  add_dependencies(dyninstAPI DyninstRT)
-  if(TARGET dyninstAPI-static)
-      add_dependencies(dyninstAPI-static DyninstRT)
-  endif()
 else()
   message(STATUS "Skipping DyninstAPI_RT. Be sure to build this library if you're using instrumentation.")
 endif()
