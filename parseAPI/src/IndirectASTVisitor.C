@@ -405,11 +405,11 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 	        findIncorrectFormat = true;
 	    } else if (roseAST->val().op == ROSEOperation::addOp) {
 	        Address tableBase = 0;
-		if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_VariableAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
 		    tableBase = constAST->val().val;
 		}
-		if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		if (roseAST->child(1)->getID() == AST::V_ConstantAST && roseAST->child(0)->getID() == AST::V_VariableAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
 		    tableBase = constAST->val().val;
 		}
