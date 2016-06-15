@@ -82,6 +82,10 @@ void rebuild_resumelog(const std::vector<resumeLogEntry> &entries)
       return;
 
    FILE *f = fopen(get_resumelog_name(), "a");
+   if (!f) {
+      fprintf(stderr, "Failed to rebuild the resume log");
+      return;
+   }
    
    for (unsigned i=0; i<entries.size(); i++)
    {
