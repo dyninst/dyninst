@@ -117,10 +117,15 @@ int fakeTickCount;
 #if defined(_MSC_VER)
 #define TLS_VAR __declspec(thread)
 #else
-#define TLS_VAR __thread
+// Note, the initial-exec model gives us static TLS which can be accessed
+// directly, unlike dynamic TLS that calls __tls_get_addr().  Such calls risk
+// recursing back to us if they're also instrumented, ad infinitum.  Static TLS
+// must be used very sparingly though, because it is a limited resource.
+// *** This case is very special -- do not use IE in general libraries! ***
+#define TLS_VAR __thread __attribute__ ((tls_model("initial-exec")))
 #endif
 
-TLS_VAR int DYNINST_tls_tramp_guard = 1;
+static TLS_VAR char DYNINST_tls_tramp_guard = 1;
 
 DLLEXPORT int DYNINST_lock_tramp_guard()
 {
