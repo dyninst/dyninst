@@ -114,7 +114,7 @@ FILE *stOut;
 int fakeTickCount;
 
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #define TLS_VAR __declspec(thread)
 #else
 #define TLS_VAR __thread

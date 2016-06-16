@@ -31,7 +31,7 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
-#include <cvconst.h>
+#include <cvconst/cvconst.h>
 #include <oleauto.h>
 #if !defined __out_ecount_opt
 #define __out_ecount_opt(x)
@@ -56,10 +56,6 @@
 #include "emitWin.h"
 
 #include "common/src/headers.h"
-
-#if defined(_MSC_VER)
-#define snprintf _snprintf
-#endif
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
