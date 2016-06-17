@@ -1283,9 +1283,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
         << std::dec << ", newDisp = " << newDisp << endl;
 
     const unsigned char* origInsn = insn.ptr();
-    unsigned insnType = insn.type();
     unsigned insnSz = insn.size();
-    Address from = gen.currAddr();
 
     unsigned newInsnSz = 0;
 
@@ -1306,27 +1304,34 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     const unsigned char* origInsnStart = origInsn;
 
     /******************************************* prefix/opcode ****************/
-    unsigned nPrefixes;
+   
+    ia32_instruction instruct; 
+    /**
+     * This information is generated during ia32_decode. To make this faster
+     * We are only going to do the prefix and opcode decodings
+     */
+    if(!ia32_decode_prefixes(origInsn, instruct))
+        assert(!"Couldn't decode prefix of already known instruction!\n");
 
-    // In other cases, we can rewrite the insn directly; in the 64-bit case, we
-    // still need to copy the insn
-    // Copy prefix bytes
-    from += copy_prefixes(origInsn, newInsn, insnType);
-    nPrefixes = count_prefixes(insnType);
-    newInsnSz += nPrefixes;
+    /* get the prefix count */
+    size_t pref_count = instruct.getSize();
 
-    // Copy opcode bytes
-    if (*origInsn == 0x0F) {
-        *newInsn++ = *origInsn++;
-        newInsnSz++;
-        // 3-byte opcode support
-        if (*origInsn == 0x38 || *origInsn == 0x3A) {
-            *newInsn++ = *origInsn++;
-            newInsnSz++;
-        }
-    }
-    *newInsn++ = *origInsn++;
-    newInsnSz++;
+    /* copy the prefix */
+    memcpy(newInsn, origInsn, pref_count);
+    newInsn += pref_count;
+    origInsn += pref_count;
+
+    /* Decode the opcode */
+    if(ia32_decode_opcode(/* capa*/0, origInsn, instruct, NULL))
+        assert(!"Couldn't decode opcode of already known instruction!\n");
+
+    /* Calculate the amount of opcode bytes */
+    size_t opcode_len = instruct.getSize() - pref_count;
+
+    /* Copy the opcode bytes */
+    memcpy(newInsn, origInsn, opcode_len);
+    newInsn += opcode_len;
+    origInsn += opcode_len;
 
     /******************************************* modRM *************************/
     // Update displacement size (mod bits in ModRM), if necessary
