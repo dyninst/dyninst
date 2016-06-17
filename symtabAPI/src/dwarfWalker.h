@@ -34,7 +34,7 @@ namespace Dyninst {
         class DwarfParseActions {
 
         protected:
-            Dwarf_Debug &dbg() { return dbg_; }
+            Dwarf_Debug dbg() { return dbg_; }
 
 
             Module *& mod() { return mod_; }
@@ -44,9 +44,9 @@ namespace Dyninst {
 
         private:
             Module *mod_;
-            Dwarf_Debug &dbg_;
+            Dwarf_Debug dbg_;
         public:
-            DwarfParseActions(Symtab* s, Dwarf_Debug& d) :
+            DwarfParseActions(Symtab* s, Dwarf_Debug d) :
                     symtab_(s),
                     dbg_(d),
                     mod_(NULL)
@@ -171,7 +171,7 @@ namespace Dyninst {
 
             } Error;
 
-            DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg);
+            DwarfWalker(Symtab *symtab, Dwarf_Debug dbg);
 
             virtual ~DwarfWalker();
             typedef

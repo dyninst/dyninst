@@ -2433,7 +2433,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
     Dwarf_Debug *dbg_ptr = dwarf->type_dbg();
     if (!dbg_ptr)
         return false;
-    Dwarf_Debug &dbg = *dbg_ptr;
+    Dwarf_Debug dbg = *dbg_ptr;
     ModuleFixer m(dbg, this);
     bool result = m.parse();
     freeList.push_back(m.getFreeList());
