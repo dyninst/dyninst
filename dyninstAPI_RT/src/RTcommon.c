@@ -125,7 +125,9 @@ int fakeTickCount;
 #define TLS_VAR __thread __attribute__ ((tls_model("initial-exec")))
 #endif
 
-static TLS_VAR char DYNINST_tls_tramp_guard = 1;
+// It's tempting to make this a char, but glibc < 2.17 hits a bug:
+//   https://sourceware.org/bugzilla/show_bug.cgi?id=14898
+static TLS_VAR short DYNINST_tls_tramp_guard = 1;
 
 DLLEXPORT int DYNINST_lock_tramp_guard()
 {
