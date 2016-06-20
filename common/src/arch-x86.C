@@ -2387,7 +2387,7 @@ static ia32_entry twoByteMap[256] = {
   { e_invd,   t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // only in priviledge 0, so ignored
   { e_wbinvd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // idem
   { e_No_Entry,        t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 },
-  { e_ud2,    t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_ud2,    t_done,  0, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry,        t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_prefetch_w, t_grp, GrpAMD, true, { Zz, Zz, Zz }, 0, 0 },    // AMD prefetch group
   { e_femms,       t_done,  0, false, { Zz, Zz, Zz }, 0, sNONE },  // AMD specific
@@ -8193,6 +8193,7 @@ int getOperSz(const ia32_prefixes &pref)
 
 ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32_instruction& instruct)
 {
+    const unsigned char* addr_orig = addr;
     ia32_prefixes& pref = instruct.prf;
     ia32_entry *gotit = NULL;
   
@@ -8211,16 +8212,29 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     }
 
     /* Skip the prefixes so that we don't decode them again */
-    addr += instruct.size;
+    addr = addr_orig + instruct.size;
 
+    int opcode_decoding;
     /* Get the entry in the decoding tables */
-    if(ia32_decode_opcode(capa, addr, instruct, &gotit))
+    if((opcode_decoding = ia32_decode_opcode(capa, addr, instruct, &gotit)))
     {
+        if(opcode_decoding > 0)
+        {
+            /* FPU decoding success. Return immediately */
+            return instruct;
+        }
+
         /* Opcode decoding failed */
         instruct.entry = NULL;
         instruct.legacy_type = ILLEGAL;
         return instruct;
     }
+
+    if(!gotit)
+        assert(!"Didn't find a valid instruction, however decode suceeded.");
+
+    /* Skip the opcode */
+    addr = addr_orig + instruct.size;
 
     /* Do the operand decoding */
     ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac);
@@ -8795,7 +8809,10 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
                     gotit = &fpuMap[gotit->tabidx][mod==3][reg];
                     ia32_decode_FP(idx, pref, addr, 
                             instruct, gotit, instruct.mac);
-                    return 0; /* Decoding success */
+
+                    if(gotit_ret)
+                        *gotit_ret = gotit;
+                    return 1; /* Decoding success */
                 }
 
             case t_3dnow:
@@ -8916,6 +8933,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
                 assert(!"wrong table");
         }
     }
+
     /* We should have a valid decoding or we should have returned by now */
     assert(gotit != NULL);
     instruct.legacy_type = gotit->legacyType;
@@ -8943,6 +8961,8 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
 
     if(gotit_ret)
         *gotit_ret = gotit;
+
+    
 
     return 0;
 }
