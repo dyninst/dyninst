@@ -1175,17 +1175,11 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
     const unsigned char* origInsnStart = origInsn;
     // unsigned insnType = insn.type();
     unsigned insnSz = insn.size();
-    printf("Original instruction:");
-    int x;
-    for(x = 0;x < insnSz;x++)
-        printf(" %x", origInsn[x]);
-    printf("\n");
     Address from = gen.currAddr();
 
     bool is_data_abs64 = false;
     signed long newDisp = targetAddr - from;
     GET_PTR(newInsn, gen);
-    const unsigned char* newInsnStart = newInsn;
 
     Register pointer_reg = (Register)-1;
 
@@ -1272,12 +1266,6 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
     origInsn += 4;
     while (origInsn - origInsnStart < (int)insnSz)
         *newInsn++ = *origInsn++;
-
-    printf("New instruction:");
-
-    for(x = 0;x < insnSz;x++)
-        printf(" %x", newInsnStart[x]);
-    printf("\n");
 
     SET_PTR(newInsn, gen);
 
