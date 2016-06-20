@@ -8316,11 +8316,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 instruct.mac[0].write = true;
                 instruct.mac[1].read = true;
                 break;
-            case s1R2RW:
-                instruct.mac[0].read = true;
-                instruct.mac[1].read = true;
-                instruct.mac[1].write = true;
-                break;
             case s1RW2RW:
                 instruct.mac[0].read = true;
                 instruct.mac[0].write = true;
@@ -8343,6 +8338,16 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 instruct.mac[1].write = true;
                 instruct.mac[2].read = true;
                 break;
+            case s1R2RW:
+                instruct.mac[0].read = true;
+                instruct.mac[1].read = true;
+                instruct.mac[1].write = true;
+                break;
+            case s1W2RW:
+                instruct.mac[0].write = true;
+                instruct.mac[1].read = true;
+                instruct.mac[1].write = true;
+                break;
             case s1W2R3RW:
                 instruct.mac[0].write = true;
                 instruct.mac[1].read = true;
@@ -8356,11 +8361,18 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 instruct.mac[2].read = true;
                 break;
             case s1RW2RW3R:
-                instruct.mac[0].write = true;
                 instruct.mac[0].read = true;
+                instruct.mac[0].write = true;
                 instruct.mac[1].read = true;
                 instruct.mac[1].write = true;
                 instruct.mac[2].read = true;
+                break;
+            case s1RW2R3RW:
+                instruct.mac[0].read = true;
+                instruct.mac[0].write = true;
+                instruct.mac[1].read = true;
+                instruct.mac[2].read = true; 
+                instruct.mac[2].write = true; 
                 break;
             case s1RW2R3R4R:
                 instruct.mac[0].write = true;
@@ -8372,13 +8384,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 instruct.mac[0].write = true;
                 instruct.mac[1].read = true;
                 instruct.mac[2].read = true;
-                break;
-            case s1RW2R3RW:
-                instruct.mac[0].read = true;
-                instruct.mac[0].write = true;
-                instruct.mac[1].read = true;
-                instruct.mac[2].read = true; 
-                instruct.mac[2].write = true; 
                 break;
             default:
                 assert(!"Unknown addressing semantics!");
