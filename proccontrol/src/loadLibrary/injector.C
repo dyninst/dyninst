@@ -89,7 +89,7 @@ bool Injector::inject(std::string libname) {
    
    //Run the IRPC and wait for completion.
    proc->throwNopEvent();
-   result = int_process::waitAndHandleEvents(false);
+   result = int_process::waitAndHandleEvents(true);
    if (!result) {
       perr_printf("Error waiting for and handling events\n");
       return false;
