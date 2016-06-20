@@ -8211,11 +8211,11 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
         return instruct;
     }
 
-    // printf("PREFIXES(%d): ", instruct.size);
+    printf("PREFIXES(%d): ", instruct.size);
 
-    // int x;
-    // for(x = 0;x < instruct.size;x++)
-        // printf("%x ", addr[x]);
+    int x;
+    for(x = 0;x < instruct.size;x++)
+        printf("%x ", addr[x]);
 
     /* Skip the prefixes so that we don't decode them again */
     addr = addr_orig + instruct.size;
@@ -8235,10 +8235,10 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
         return instruct;
     }
 
-    // printf("OP(%d): ", instruct.size - x);
+    printf("OP(%d): ", instruct.size - x);
 
-    // for(;x < instruct.size;x++)
-        // printf("%x ", addr_orig[x]);
+    for(;x < instruct.size;x++)
+        printf("%x ", addr_orig[x]);
 
     if(!gotit)
         assert(!"Didn't find a valid instruction, however decode suceeded.");
@@ -8249,9 +8249,9 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     /* Do the operand decoding */
     ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac);
 
-    // printf("OPERANDS(%d): ", instruct.size - x);
-    // for(;x < instruct.size;x++)
-        // printf("%x ", addr_orig[x]);
+    printf("OPERANDS(%d): ", instruct.size - x);
+    for(;x < instruct.size;x++)
+        printf("%x ", addr_orig[x]);
 
     /* Decode the memory accesses if requested */
     if(capa & IA32_DECODE_MEMACCESS) 
@@ -8315,6 +8315,11 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 instruct.mac[0].read = true;
                 instruct.mac[0].write = true;
                 instruct.mac[1].read = true;
+                break;
+            case s1R2RW:
+                instruct.mac[0].read = true;
+                instruct.mac[1].read = true;
+                instruct.mac[1].write = true;
                 break;
             case s1RW2RW:
                 instruct.mac[0].read = true;
@@ -8472,7 +8477,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 
     instruct.entry = gotit;
 
-    // printf("LEN: %d\n", instruct.size);
+    printf("LEN: %d\n", instruct.size);
     return instruct;
 }
 
