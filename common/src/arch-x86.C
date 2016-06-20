@@ -8210,15 +8210,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
         return instruct;
     }
 
-    /* Set the amount of prefix bytes */
-    if(instruct.loc) 
-    {
-        instruct.loc->num_prefixes = pref.getCount();
-    }
-
-    /* Adjust the instruction size for the prefixes */
-    instruct.size = pref.getCount();
-
     /* Skip the prefixes so that we don't decode them again */
     addr += instruct.size;
 
