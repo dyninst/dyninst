@@ -212,7 +212,7 @@
 #if defined(_MSC_VER) && _MSC_VER < 1900
 #define TLS_VAR __declspec(thread)
 #else
-#define TLS_VAR thread_local
+#define TLS_VAR __thread
 #endif
 #endif
 
