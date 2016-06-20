@@ -1322,7 +1322,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     origInsn += pref_count;
 
     /* Decode the opcode */
-    if(ia32_decode_opcode(/* capa*/0, origInsn, instruct, NULL))
+    if(ia32_decode_opcode(IA32_FULL_DECODER, origInsn, instruct, NULL))
         assert(!"Couldn't decode opcode of already known instruction!\n");
 
     /* Calculate the amount of opcode bytes */

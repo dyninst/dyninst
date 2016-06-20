@@ -8211,6 +8211,12 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
         return instruct;
     }
 
+    // printf("PREFIXES(%d): ", instruct.size);
+
+    // int x;
+    // for(x = 0;x < instruct.size;x++)
+        // printf("%x ", addr[x]);
+
     /* Skip the prefixes so that we don't decode them again */
     addr = addr_orig + instruct.size;
 
@@ -8223,12 +8229,16 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
             /* FPU decoding success. Return immediately */
             return instruct;
         }
-
         /* Opcode decoding failed */
         instruct.entry = NULL;
         instruct.legacy_type = ILLEGAL;
         return instruct;
     }
+
+    // printf("OP(%d): ", instruct.size - x);
+
+    // for(;x < instruct.size;x++)
+        // printf("%x ", addr_orig[x]);
 
     if(!gotit)
         assert(!"Didn't find a valid instruction, however decode suceeded.");
@@ -8238,6 +8248,10 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 
     /* Do the operand decoding */
     ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac);
+
+    // printf("OPERANDS(%d): ", instruct.size - x);
+    // for(;x < instruct.size;x++)
+        // printf("%x ", addr_orig[x]);
 
     /* Decode the memory accesses if requested */
     if(capa & IA32_DECODE_MEMACCESS) 
@@ -8457,18 +8471,20 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     }
 
     instruct.entry = gotit;
+
+    // printf("LEN: %d\n", instruct.size);
     return instruct;
 }
 
 int ia32_decode_opcode(unsigned int capa, const unsigned char* addr, 
         ia32_instruction& instruct, ia32_entry** gotit_ret)
 {
-	ia32_prefixes& pref = instruct.prf;
+    ia32_prefixes& pref = instruct.prf;
     unsigned int table, nxtab, idx;
     int sseidx = 0;
     ia32_entry* gotit = NULL;
     int condbits = 0;
-    
+
 #ifdef VEX_DEBUG
     /* Dump the VEX header */
     printf("IS VEX PRESENT?  %s\n", pref.vex_present ? "YES" : "NO");
@@ -8491,7 +8507,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
     }
 #endif
 
-/* Is there a VEX prefix for this instruction? */
+    /* Is there a VEX prefix for this instruction? */
     if(pref.vex_present)
     {
 #ifdef VEX_PEDANTIC
@@ -8567,7 +8583,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
         condbits = idx & 0x0F;
     }
 
-	/* Find the correct entry in the tables */
+    /* Find the correct entry in the tables */
     while(nxtab != t_done)
     {
         table = nxtab;
@@ -8756,11 +8772,11 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
                             case Grp2:
                             case Grp11:
                                 /* leave table unchanged because operands are in not
-                                    defined in group map, unless this is an invalid index
-                                    into the group, in which case we need the instruction
-                                    to reflect its illegal status */
+                                   defined in group map, unless this is an invalid index
+                                   into the group, in which case we need the instruction
+                                   to reflect its illegal status */
                                 if(groupMap[idx][reg].id == e_No_Entry)
-                                gotit = &groupMap[idx][reg];
+                                    gotit = &groupMap[idx][reg];
                                 nxtab = groupMap[idx][reg].otable;
                                 assert(nxtab==t_done || nxtab==t_ill);
                                 break;
@@ -8822,7 +8838,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
                 nxtab = t_done;
                 break;
             case t_vexl:
-                 /* This can have a vex prefix */
+                /* This can have a vex prefix */
                 if(!pref.vex_present)
                 {
                     /* If this instruction is valid without it, then it's fine */
@@ -8866,7 +8882,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
 #ifdef VEX_DEBUG
                 fprintf(stderr, "VEXW ENTRY:      VEXW%x\n", idx);
                 fprintf(stderr, "VEXW MAX ENTRY:  VEXW%lx\n", 
-                    (sizeof(vexWMap) / sizeof(vexWMap[0])) - 1);
+                        (sizeof(vexWMap) / sizeof(vexWMap[0])) - 1);
 #endif
 
                 /* Set the current entry */
@@ -8919,7 +8935,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
                 {
                     printf("MISSING INSTRUCTION IN TABLE: %s\n",
                             (pref.vex_m_mmmm == 1 ? "twoByteMap" :
-                            (pref.vex_m_mmmm == 2 ? "threeByteMap" : "threeByteMap2")));
+                             (pref.vex_m_mmmm == 2 ? "threeByteMap" : "threeByteMap2")));
                     printf("                     SSE_IDX: %d\n", sseidx);
                 }
 #endif
@@ -8945,6 +8961,12 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
         instruct.loc->opcode_position = pref.getCount();
     }
 
+    /* make adjustments for instruction redefined in 64-bit mode */
+    if(mode_64)
+    {
+        ia32_translate_for_64(&gotit);
+    } 
+
     /* Set the condition bits if we need to */
     if(capa & IA32_DECODE_CONDITION)
     {
@@ -8953,16 +8975,8 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
             instruct.cond->set(condbits);
     }
 
-    /* make adjustments for instruction redefined in 64-bit mode */
-    if(mode_64)
-    {
-        ia32_translate_for_64(&gotit);
-    } 
-
     if(gotit_ret)
         *gotit_ret = gotit;
-
-    
 
     return 0;
 }
@@ -9883,8 +9897,8 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
     ia32_prefixes& pref = instruct.prf;
     ia32_locations* loc = instruct.loc; 
     /* Initilize the prefix */
-    pref.count = 0;
     memset(pref.prfx, 0, 5);
+    pref.count = 0;
     pref.opcode_prefix = 0;
     bool in_prefix = true;
 
@@ -10231,7 +10245,6 @@ unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
     switch(pref.vex_type)
     {
         case VEX_TYPE_VEX2:
-            printf("HIT VEX2\n");
             insnType |= PREFIX_AVX;
             break;
         case VEX_TYPE_VEX3:
