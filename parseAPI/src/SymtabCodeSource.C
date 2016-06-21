@@ -191,6 +191,16 @@ SymtabCodeRegion::isData(const Address addr) const
            _region->getRegionType()==SymtabAPI::Region::RT_TEXTDATA;
 }
 
+bool
+SymtabCodeRegion::isReadOnly(const Address addr) const
+{
+    if(!contains(addr)) return false;
+    if (_region->getRegionName() == ".data.rel.ro") return true;
+//    parsing_printf("Region name %s, permission %d\n", _region->getRegionName().c_str(), _region->getRegionPermissions());
+    return _region->getRegionPermissions() == SymtabAPI::Region::RP_R ||
+           _region->getRegionPermissions() == SymtabAPI::Region::RP_RX;
+}
+
 Address
 SymtabCodeRegion::offset() const
 {
@@ -684,6 +694,19 @@ SymtabCodeSource::isData(const Address addr) const
     else
         return false;
 }
+
+bool
+SymtabCodeSource::isReadOnly(const Address addr) const
+{
+    overlapping_warn(FILE__,__LINE__);
+
+    CodeRegion * cr = lookup_region(addr);
+    if(cr)
+        return cr->isReadOnly(addr);
+    else
+        return false;
+}
+
 
 Address
 SymtabCodeSource::offset() const

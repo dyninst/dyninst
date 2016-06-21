@@ -208,6 +208,15 @@
 #endif
 #endif
 
+#ifndef TLS_VAR
+#if defined(_MSC_VER)
+#define TLS_VAR __declspec(thread)
+#else
+#define TLS_VAR __thread
+#endif
+#endif
+
+
 #ifndef __UTIL_H__
 #define __UTIL_H__
 

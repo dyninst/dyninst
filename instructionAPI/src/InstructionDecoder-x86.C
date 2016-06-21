@@ -121,10 +121,10 @@ namespace Dyninst
         }
 
 
-    __thread NS_x86::ia32_instruction* InstructionDecoder_x86::decodedInstruction = NULL;
-    __thread ia32_locations* InstructionDecoder_x86::locs = NULL;
-    __thread bool InstructionDecoder_x86::sizePrefixPresent = false;
-    __thread bool InstructionDecoder_x86::addrSizePrefixPresent = false;
+    TLS_VAR NS_x86::ia32_instruction* InstructionDecoder_x86::decodedInstruction = NULL;
+    TLS_VAR ia32_locations* InstructionDecoder_x86::locs = NULL;
+    TLS_VAR bool InstructionDecoder_x86::sizePrefixPresent = false;
+    TLS_VAR bool InstructionDecoder_x86::addrSizePrefixPresent = false;
     INSTRUCTION_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(Architecture a) :
       InstructionDecoderImpl(a)
     {

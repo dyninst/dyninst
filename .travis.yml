@@ -16,6 +16,7 @@ addons:
             # - clang-3.7
             - cmake
             - libelf-dev
+            - g++-4.9
 
 compiler:
     - gcc
@@ -23,6 +24,7 @@ compiler:
 
 script:
     - if [ "$CC" == "clang" ]; then export CC=clang-3.7; export CXX=clang++-3.7; fi
+    - if [ "$CC" == "gcc" ]; then export CC=gcc-4.9; export CXX=g++-4.9; fi
     - mkdir work
     - cd work
     - cmake ..

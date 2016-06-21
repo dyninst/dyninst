@@ -34,9 +34,10 @@ public:
     BoundFact &boundFact;
     ParseAPI::Block *block;
     bool handleOneByteRead;
+    int derefSize;
 
-    BoundCalcVisitor(BoundFact &bf, ParseAPI::Block* b, bool handle): 
-        boundFact(bf), block(b), handleOneByteRead(handle) {}
+    BoundCalcVisitor(BoundFact &bf, ParseAPI::Block* b, bool handle, int size): 
+        boundFact(bf), block(b), handleOneByteRead(handle), derefSize(size) {}
     ~BoundCalcVisitor();
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
     virtual ASTPtr visit(DataflowAPI::ConstantAST *ast);
@@ -66,4 +67,13 @@ public:
     ComparisonVisitor(): subtrahend(AST::Ptr()), minuend(AST::Ptr()) {} 
 };
 
+class JumpTableFormatVisitor: public ASTVisitor {
+
+public:
+    using ASTVisitor::visit;
+    ParseAPI::Block *b;
+    bool format;
+    virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
+    JumpTableFormatVisitor(ParseAPI::Block *bl): b(bl), format(true) {}
+};
 #endif

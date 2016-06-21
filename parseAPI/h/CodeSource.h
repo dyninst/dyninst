@@ -230,6 +230,7 @@ class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
     unsigned int getAddressWidth() const;
     bool isCode(const Address) const;
     bool isData(const Address) const;
+    bool isReadOnly(const Address) const;
     Address offset() const;
     Address length() const;
     Architecture getArch() const;
@@ -282,6 +283,7 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource {
     unsigned int getAddressWidth() const;
     bool isCode(const Address) const;
     bool isData(const Address) const;
+    bool isReadOnly(const Address) const;
     Address offset() const;
     Address length() const;
     Architecture getArch() const;

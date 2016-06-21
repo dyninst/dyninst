@@ -844,6 +844,10 @@ bool AddressSpace::isData(const Address addr) const {
    return false;
 }
 
+bool AddressSpace::isReadOnly(const Address ) const {
+   return false;
+}
+
 bool AddressSpace::isValidAddress(const Address addr) const {
    mapped_object *obj = findObject(addr);
    if (!obj) return false;

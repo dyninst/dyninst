@@ -31,6 +31,9 @@
 #include <vector>
 #include <limits>
 
+// For Mutex
+#define PROCCONTROL_EXPORTS
+
 #include "dyntypes.h"
 
 #include "CodeObject.h"

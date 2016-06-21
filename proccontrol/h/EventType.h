@@ -119,7 +119,7 @@ class PC_EXPORT EventType
 
 struct eventtype_cmp
 {
-   bool operator()(const EventType &a, const EventType &b)
+   bool operator()(const EventType &a, const EventType &b) const
    {
       if (a.code() < b.code()) 
          return true;
