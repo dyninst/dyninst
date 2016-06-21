@@ -8338,16 +8338,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 instruct.mac[1].write = true;
                 instruct.mac[2].read = true;
                 break;
-            case s1R2RW:
-                instruct.mac[0].read = true;
-                instruct.mac[1].read = true;
-                instruct.mac[1].write = true;
-                break;
-            case s1W2RW:
-                instruct.mac[0].write = true;
-                instruct.mac[1].read = true;
-                instruct.mac[1].write = true;
-                break;
             case s1W2R3RW:
                 instruct.mac[0].write = true;
                 instruct.mac[1].read = true;
@@ -8361,18 +8351,11 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 instruct.mac[2].read = true;
                 break;
             case s1RW2RW3R:
-                instruct.mac[0].read = true;
                 instruct.mac[0].write = true;
+                instruct.mac[0].read = true;
                 instruct.mac[1].read = true;
                 instruct.mac[1].write = true;
                 instruct.mac[2].read = true;
-                break;
-            case s1RW2R3RW:
-                instruct.mac[0].read = true;
-                instruct.mac[0].write = true;
-                instruct.mac[1].read = true;
-                instruct.mac[2].read = true; 
-                instruct.mac[2].write = true; 
                 break;
             case s1RW2R3R4R:
                 instruct.mac[0].write = true;
@@ -8385,8 +8368,15 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 instruct.mac[1].read = true;
                 instruct.mac[2].read = true;
                 break;
+            case s1RW2R3RW:
+                instruct.mac[0].read = true;
+                instruct.mac[0].write = true;
+                instruct.mac[1].read = true;
+                instruct.mac[2].read = true;
+                instruct.mac[2].write = true;
+                break;
             default:
-                assert(!"Unknown addressing semantics!");
+                // assert(!"Unknown addressing semantics!");
                 break;
         }
 
@@ -8430,8 +8420,8 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
                 break;
         }
 
-#if 0
         // debug output for memory access decoding
+#if 0
         for (int i = 0; i < 3; i++) 
         {
 	        if (instruct.mac[i].is) 
@@ -8452,6 +8442,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 	        }
         }
 #endif
+
     }
 
     /* flip id of opcodes overloaded on operand size prefix */
@@ -8481,8 +8472,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     }
 
     instruct.entry = gotit;
-
-    // printf("LEN: %d\n", instruct.size);
     return instruct;
 }
 
@@ -8494,28 +8483,6 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
     int sseidx = 0;
     ia32_entry* gotit = NULL;
     int condbits = 0;
-
-#ifdef VEX_DEBUG
-    /* Dump the VEX header */
-    printf("IS VEX PRESENT?  %s\n", pref.vex_present ? "YES" : "NO");
-    if(pref.vex_present)
-    {
-        printf("VEX IS PRESENT: %d\n", pref.vex_type);
-        printf("VEX BYTES:      %02x %02x %02x %02x %02x\n",
-                pref.vex_prefix[0], pref.vex_prefix[1], pref.vex_prefix[2],
-                pref.vex_prefix[3], pref.vex_prefix[4]);
-        printf("VEX SSE MULT:   %d  0x%x\n", pref.vex_sse_mult, pref.vex_sse_mult);
-        printf("VEX_VVVV:       %d  0x%x\n", pref.vex_vvvv_reg, pref.vex_vvvv_reg);
-        printf("VEX_LL:         %d  0x%x\n", pref.vex_ll, pref.vex_ll);
-        printf("VEX_PP:         %d  0x%x\n", pref.vex_pp, pref.vex_pp);
-        printf("VEX_M-MMMM:     %d  0x%x\n", pref.vex_m_mmmm, pref.vex_m_mmmm);
-        printf("VEX_W:          %d  0x%x\n", pref.vex_w, pref.vex_w);
-        printf("VEX_r:          %d  0x%x\n", pref.vex_r, pref.vex_r);
-        printf("VEX_R:          %d  0x%x\n", pref.vex_R, pref.vex_R);
-        printf("VEX_x:          %d  0x%x\n", pref.vex_x, pref.vex_x);
-        printf("VEX_b:          %d  0x%x\n", pref.vex_b, pref.vex_b);
-    }
-#endif
 
     /* Is there a VEX prefix for this instruction? */
     if(pref.vex_present)
@@ -8844,7 +8811,6 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
             case t_3dnow:
                 // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
                 // Right now we don't care what the actual opcode is, so there's no table
-                instruct.size += 1;
                 nxtab = t_done;
                 break;
             case t_vexl:
@@ -10151,6 +10117,45 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
             loc->num_prefixes = pref.count;
         instruct.size = pref.count;
     }
+
+#if 0 /* Print out prefix information (very verbose) */
+    fprintf(stderr, "Prefix buffer: %x %x %x %x %x\n", pref.prfx[0], pref.prfx[1], 
+            pref.prfx[2], pref.prfx[3], pref.prfx[4]);
+    fprintf(stderr, "opcode prefix: 0x%x\n", pref.opcode_prefix);
+    fprintf(stderr, "REX  W: %s  R: %s  X: %s  B: %s\n",
+            pref.rexW() ? "yes" : "no", pref.rexR() ? "yes" : "no", 
+            pref.rexX() ? "yes" : "no", pref.rexB() ? "yes" : "no");
+
+    fprintf(stderr, "IS VEX PRESENT?  %s\n", pref.vex_present ? "YES" : "NO");
+    if(pref.vex_present)
+    {
+        fprintf(stderr, "VEX IS PRESENT: %d\n", 
+                pref.vex_type);
+        fprintf(stderr, "VEX BYTES:      %x %x %x %x %x\n",
+                pref.vex_prefix[0], pref.vex_prefix[1], pref.vex_prefix[2],
+                pref.vex_prefix[3], pref.vex_prefix[4]);
+        fprintf(stderr, "VEX SSE MULT:   %d  0x%x\n", 
+                pref.vex_sse_mult, pref.vex_sse_mult);
+        fprintf(stderr, "VEX_VVVV:       %d  0x%x\n", 
+                pref.vex_vvvv_reg, pref.vex_vvvv_reg);
+        fprintf(stderr, "VEX_LL:         %d  0x%x\n", 
+                pref.vex_ll, pref.vex_ll);
+        fprintf(stderr, "VEX_PP:         %d  0x%x\n", 
+                pref.vex_pp, pref.vex_pp);
+        fprintf(stderr, "VEX_M-MMMM:     %d  0x%x\n", 
+                pref.vex_m_mmmm, pref.vex_m_mmmm);
+        fprintf(stderr, "VEX_W:          %d  0x%x\n", 
+                pref.vex_w, pref.vex_w);
+        fprintf(stderr, "VEX_r:          %d  0x%x\n", 
+                pref.vex_r, pref.vex_r);
+        fprintf(stderr, "VEX_R:          %d  0x%x\n", 
+                pref.vex_R, pref.vex_R);
+        fprintf(stderr, "VEX_x:          %d  0x%x\n", 
+                pref.vex_x, pref.vex_x);
+        fprintf(stderr, "VEX_b:          %d  0x%x\n", 
+                pref.vex_b, pref.vex_b);
+	}
+#endif
 
     return !err;
 }
