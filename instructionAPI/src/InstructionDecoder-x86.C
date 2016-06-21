@@ -82,7 +82,10 @@ namespace Dyninst
                 case s1RW2R3R4R:
                     return i == 0 || i == 1 || i == 2 || i == 3;
                 case sNONE:
+                    return false;
                 default:
+                    printf("OPSEMA: %d\n", opsema);
+                    assert(!"Unknown opsema!");
                     return false;
             }
       
@@ -116,7 +119,10 @@ namespace Dyninst
                   return i == 0 || i == 2;
                 case sNONE:
                 default:
-                    return false;
+                  return false;
+                    printf("OPSEMA: %d\n", opsema);
+                  assert(!"Unknown opsema!");
+                  return false;
             }
         }
 
