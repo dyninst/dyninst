@@ -233,6 +233,7 @@ bool GeneratorWindows::plat_continue(ArchEvent* evt)
 		e->setThread(thread->thread());		
 		e->setSyncType(Event::sync_process);
 		e->getProcess()->llproc()->updateSyncState(e, true);
+		ProcPool()->condvar()->broadcast();
 		ProcPool()->condvar()->unlock();
 		setState(queueing);
 		mbox()->enqueue(e);

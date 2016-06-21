@@ -8105,7 +8105,7 @@ static struct ia32_entry vexWMap[][2] =
 /** END_DYNINST_TABLE_VERIFICATION */
 #undef VEX3_ILL
 
-static __thread bool mode_64 = false;
+static TLS_VAR bool mode_64 = false;
 
 void ia32_set_mode_64(bool mode) {
   mode_64 = mode;

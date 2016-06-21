@@ -152,11 +152,7 @@ int bperr(const char *format, ...)
 
   char syserr[128];
   if (errno) {
-#if defined (i386_unknown_nt4_0)
-    int syserrlen = _snprintf(syserr, 128," [%d: %s]", errno, strerror(errno));
-#else
     int syserrlen = snprintf(syserr, 128," [%d: %s]", errno, strerror(errno));
-#endif
     /* reset errno so that future calls to this function don't report same error */
     errno = 0;
 

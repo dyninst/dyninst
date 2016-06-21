@@ -247,7 +247,7 @@ static int heap_memmapCompare(const void *A, const void *B)
 
 void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 {
-  void *heap;
+  char *heap;
   size_t size = nbytes;
   heapList_t *node = NULL;
     /* initialize page size */
@@ -261,7 +261,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   /* use malloc() if appropriate */
   if (DYNINSTheap_useMalloc(lo_addr, hi_addr)) {
 
-    Address ret_heap;
+    char* ret_heap;
     int size_heap = size + DYNINSTheap_align + sizeof(heapList_t);
     heap = malloc(size_heap);
     if (heap == NULL) {
@@ -270,11 +270,11 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 #endif 
       return NULL;
     }
-    ret_heap = heap_alignUp((Address)heap, DYNINSTheap_align);
+    ret_heap = (char*)heap_alignUp((Address)heap, DYNINSTheap_align);
     
     /* malloc buffer must meet range constraints */
-    if (ret_heap < (Address)lo_addr ||
-        ret_heap + size - 1 > (Address)hi_addr) {
+    if (ret_heap < (char*)lo_addr ||
+        ret_heap + size - 1 > (char*)hi_addr) {
       free(heap);
 #ifdef DEBUG
       fprintf(stderr, "MALLOC'd area fails range constraints\n");
@@ -283,7 +283,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     }
 
     /* define new heap */
-    node = ret_heap + size;
+    node = (heapList_t*) (ret_heap + size);
     node->heap.ret_addr = (void *)ret_heap;
     node->heap.addr = heap;
     node->heap.len = size_heap;
@@ -291,11 +291,12 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 
 
   } else { /* use mmap() for allocation */
-    Address lo = (Address) heap_alignUp(lo_addr, psize);
+    Address lo = heap_alignUp((Address)lo_addr, psize);
     Address hi = (Address) hi_addr;
-      heap = trymmap(size + sizeof(struct heapList_t), lo, hi, psize, -1);
-      if(!heap) return NULL;
-    node = heap + size;
+    heap = (char*)trymmap(size + sizeof(struct heapList_t), lo, hi, psize, -1);
+    if(!heap)
+        return NULL;
+    node = (heapList_t*) (heap + size);
 
     /* define new heap */
     node->heap.addr = heap;

@@ -403,7 +403,7 @@ FrameNode::~FrameNode()
 {
 }
 
-inline bool frame_cmp_wrapper::operator()(const FrameNode *a, const FrameNode *b) { 
+inline bool frame_cmp_wrapper::operator()(const FrameNode *a, const FrameNode *b) const {
    if (a->frame_type == FrameNode::FTThread && b->frame_type == FrameNode::FTThread) {
       Dyninst::PID a_pid = a->getWalker()->getProcessState()->getProcessId();
       Dyninst::PID b_pid = b->getWalker()->getProcessState()->getProcessId();

@@ -137,20 +137,11 @@ StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
     if(!(ret = findFunc(cr,entry))) {
         reg = reglookup(cr,entry); // get the *correct* CodeRegion
         if(reg && reg->isCode(entry)) {
-#if defined (os_windows)
-           if (src == MODIFICATION) {
-              _snprintf_s(name,32,"mod%lx",entry);
-           }
-           else {
-              _snprintf_s(name,32,"targ%lx",entry);
-           }
-#else
            if (src == MODIFICATION) {
               snprintf(name,32,"mod%lx",entry);
            } else {
               snprintf(name,32,"targ%lx",entry);
            }
-#endif
             parsing_printf("[%s] new function for target %lx\n",FILE__,entry);
             ret = _parser->factory()._mkfunc(
                entry,src,name,&_parser->obj(),reg,_parser->obj().cs());
@@ -328,17 +319,10 @@ OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
         /* note the difference; we are limited to using the passed-in 
            CodeRegion in this overlapping cr case */
         if(cr && cr->isCode(addr)) {
-#if defined (os_windows)
-            if(src == GAP || src == GAPRT)
-                _snprintf_s(name,32,"gap%lx",addr);
-            else 
-                _snprintf_s(name,32,"targ%lx",addr);
-#else
             if(src == GAP || src == GAPRT)
                 snprintf(name,32,"gap%lx",addr);
             else
                 snprintf(name,32,"targ%lx",addr);
-#endif
             parsing_printf("[%s] new function for target %lx\n",FILE__,addr);
             ret = _parser->factory()._mkfunc(
                addr,src,name,&_parser->obj(),cr,cr);
