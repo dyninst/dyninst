@@ -1222,6 +1222,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
     {
         // Case C: replace with 64-bit.
         is_data_abs64 = true;
+#ifdef(arch_x86_64)
         pointer_reg = (mod_rm & 0x38) != 0 ? 0 : 3;
         SET_PTR(newInsn, gen);
         emitPushReg64(pointer_reg, gen);
@@ -1235,6 +1236,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
         mod_rm = (mod_rm & 0xf8) | pointer_reg;
         /* Set the new ModR/M byte of the new instruction */
         *newInsn++ = mod_rm;
+#endif
     } else if (is_disp32(newDisp + insnSz)) 
     {
         /* Instruction can remain a 32 bit instruction */
