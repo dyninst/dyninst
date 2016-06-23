@@ -35,6 +35,7 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "RTcommon.h"
 #include <windows.h>
+#include <WinSock2.h>
 #include <Dbghelp.h>
 #include <Psapi.h>
 #include <stdio.h>
