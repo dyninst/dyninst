@@ -122,6 +122,7 @@ if(BUILD_RTLIB)
 
   if(MSVC)
       include_external_msproject(DyninstAPI_RT dyninstAPI_RT/dyninstAPI_RT.vcxproj)
+	  include_external_msproject(DyninstAPI_RT_static dyninstAPI_RT/dyninstAPI_RT_static.vcxproj)
   else()
     add_custom_target(DyninstRT
       ALL
