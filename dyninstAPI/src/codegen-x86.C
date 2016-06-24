@@ -1222,7 +1222,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
     {
         // Case C: replace with 64-bit.
         is_data_abs64 = true;
-#ifdef(arch_x86_64)
+#if defined(arch_x86_64)
         pointer_reg = (mod_rm & 0x38) != 0 ? 0 : 3;
         SET_PTR(newInsn, gen);
         emitPushReg64(pointer_reg, gen);
