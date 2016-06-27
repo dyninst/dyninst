@@ -657,7 +657,7 @@ class ia32_instruction;
 
 class ia32_prefixes
 {
-  friend bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& insn);
+  friend COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& insn);
   friend bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes&,
                               ia32_locations *loc);
  private:
@@ -840,10 +840,10 @@ class ia32_instruction
                                             const ia32_entry& gotit, 
                                             const char* addr, 
                                             ia32_instruction& instruct);
-  friend bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& insn);
+  friend COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& insn);
   friend COMMON_EXPORT ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr,
 		  		       ia32_instruction& instruct);
-  friend int ia32_decode_opcode(unsigned int capa, 
+  friend COMMON_EXPORT int ia32_decode_opcode(unsigned int capa,
                         const unsigned char* addr, ia32_instruction& instruct, 
                         ia32_entry** gotit_ret);
   friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
