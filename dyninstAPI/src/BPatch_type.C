@@ -44,10 +44,6 @@
 #include "RegisterConversion.h"
 //#include "Annotatable.h"
 
-#if (defined(_MSC_VER) && _MSC_VER < 1900)
-#define snprintf _snprintf
-#endif
-
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 

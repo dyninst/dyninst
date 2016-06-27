@@ -82,9 +82,6 @@ if (UNIX)
     ${LIBELF_INCLUDE_DIR}
     ${LIBDWARF_INCLUDE_DIR}
     )
-elseif(WIN32)
-  find_package (DIASDK REQUIRED)
-  include_directories(${DIASDK_INCLUDE_DIR})
 endif()
 
 if (PLATFORM MATCHES "bgq")

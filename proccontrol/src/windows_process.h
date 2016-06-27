@@ -77,10 +77,10 @@ public:
 	virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
 	virtual Dyninst::Architecture getTargetArch();
 	virtual bool plat_individualRegAccess();
-    virtual bool plat_supportLWPCreate() const;
-    virtual bool plat_supportLWPPreDestroy() const;
-    virtual bool plat_supportLWPPostDestroy() const;
-    virtual bool plat_supportThreadEvents() { return true; }
+    virtual bool plat_supportLWPCreate();
+    virtual bool plat_supportLWPPreDestroy();
+    virtual bool plat_supportLWPPostDestroy();
+    virtual bool plat_supportThreadEvents() { return false; }
 	virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
 	virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
 	virtual bool plat_convertToBreakpointAddress(psaddr_t &);

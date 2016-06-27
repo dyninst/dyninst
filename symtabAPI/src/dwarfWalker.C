@@ -73,7 +73,7 @@ using namespace std;
    }
 #define DWARF_CHECK_RET(x) DWARF_CHECK_RET_VAL(x, false)
 
-DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
+DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug dbg)
    :
    DwarfParseActions(symtab, dbg),
    srcFileList_(NULL),

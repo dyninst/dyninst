@@ -116,7 +116,6 @@ static int AdjustGraphEntryAndExit(GraphPtr gp) {
     return nodeCount;
 }
 
-
 GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
     GraphPtr newG = Graph::createGraph();
     
@@ -181,8 +180,9 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 
 
 bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
+    if (!jumpTableFormat) return false;
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
-    if (currentAssigns.size() > 30) return false; 
+    if (currentAssigns.size() > 50) return false; 
     // For flags, we only analyze zf
     if (ap->out().absloc().type() == Absloc::Register && ap->out().absloc().reg().regClass() == (unsigned int)x86::FLAG &&
        ap->out().absloc().reg() != x86::zf && ap->out().absloc().reg() != x86_64::zf) {
@@ -194,6 +194,13 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
     currentAssigns.insert(ap);
 
     parsing_printf("Adding assignment %s in instruction %s at %lx, total %d\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr(), currentAssigns.size());
+/*
+    if (ap->insn() && ap->insn()->readsMemory() && firstMemoryRead) {
+        firstMemoryRead = false;
+	parsing_printf("\tThe first memory read, check if format is correct\n");
+	if 
+    }
+*/
 
     if (!expandRet.second || expandRet.first == NULL) return true;
 
@@ -259,26 +266,37 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
     target.Print();
     if (!block->obj()->cs()->isValidAddress(tableBase)) {
         parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
+	jumpTableFormat = false;
+	parsing_printf("Not jump table format!\n");
 	return false;
     }
+    if (!block->obj()->cs()->isReadOnly(tableBase)) {
+        parsing_printf("\ttableBase 0x%lx not read only, returning false\n", tableBase);
+	jumpTableFormat = false;
+	parsing_printf("Not jump table format!\n");
+        return false;
+    }
+
 
     for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += target.interval.stride) {
 	if (!block->obj()->cs()->isValidAddress(tableEntry)) continue;
+	if (!block->obj()->cs()->isReadOnly(tableEntry)) continue;
 	Address targetAddress = 0;
 	if (target.tableReadSize > 0) {
-	    // Assume the table contents are moved in a sign extended way;
 	    switch (target.tableReadSize) {
 	        case 8:
 		    targetAddress = *(const uint64_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
 		    break;
 		case 4:
 		    targetAddress = *(const uint32_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+		    if (target.isZeroExtend) break;
 		    if ((arch == Arch_x86_64) && (targetAddress & 0x80000000)) {
 		        targetAddress |= SIGNEX_64_32;
 		    }
 		    break;
 		case 2:
 		    targetAddress = *(const uint16_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+		    if (target.isZeroExtend) break;
 		    if ((arch == Arch_x86_64) && (targetAddress & 0x8000)) {
 		        targetAddress |= SIGNEX_64_16;
 		    }
@@ -289,6 +307,7 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 		    break;
 		case 1:
 		    targetAddress = *(const uint8_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
+		    if (target.isZeroExtend) break;
 		    if ((arch == Arch_x86_64) && (targetAddress & 0x80)) {
 		        targetAddress |= SIGNEX_64_8;
 		    }
@@ -302,7 +321,7 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 		    parsing_printf("Invalid memory read size %d\n", target.tableReadSize);
 		    return false;
 	    }
-	    if (targetAddress != 0) {
+	    if (target.targetBase != 0) {
 	        if (target.isSubReadContent) 
 		    targetAddress = target.targetBase - targetAddress;
 		else 
@@ -339,12 +358,24 @@ bool JumpTablePred::IsJumpTable(GraphPtr slice,
     const Absloc &loc = jumpNode->assign()->out().absloc();
     parsing_printf("Checking final bound fact for %s\n",loc.format().c_str()); 
     BoundFact *bf = bfc.GetBoundFactOut(virtualExit);
-    BoundValue *tarBoundValue = bf->GetBound(VariableAST::create(Variable(loc)));
+    VariableAST::Ptr ip = VariableAST::create(Variable(loc));
+    BoundValue *tarBoundValue = bf->GetBound(ip);
     if (tarBoundValue != NULL) {
         target = *(tarBoundValue);
 	uint64_t s = target.interval.size();
 	if (s > 0 && s <= MAX_TABLE_ENTRY) return true;
     }
+    AST::Ptr ipExp = bf->GetAlias(ip);
+    if (ipExp) {
+        parsing_printf("\t jump target expression %s\n", ipExp->format().c_str());
+	JumpTableFormatVisitor jtfv(block);
+	ipExp->accept(&jtfv);
+	if (!jtfv.format) {
+	    parsing_printf("\t Not jump table format!\n");
+	    jumpTableFormat = false;
+	}
+    }
+
     return false;
 }
 

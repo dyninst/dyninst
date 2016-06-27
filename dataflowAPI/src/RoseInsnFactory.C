@@ -280,7 +280,12 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
       raw = raw << 8;
       raw |= bytes[i];
     }
+#ifdef os_windows
+    // Visual Studio doensn't define htobe32, so we assume that Windows is always little endian.
+    raw = _byteswap_ulong(raw);
+#else
     raw = htobe32(raw);
+#endif
     bool isAbsolute = (bool)(raw & 0x00000002);
     bool isLink = (bool)(raw & 0x00000001);
     rose_insn->set_kind(makeRoseBranchOpcode(iapi_opcode, isAbsolute, isLink));

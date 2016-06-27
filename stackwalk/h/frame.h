@@ -137,7 +137,7 @@ SW_EXPORT bool frame_lineno_cmp(const Frame &a, const Frame &b);
 class FrameNode;
 struct SW_EXPORT frame_cmp_wrapper {
    frame_cmp_t f;
-   bool operator()(const FrameNode *a, const FrameNode *b);
+   bool operator()(const FrameNode *a, const FrameNode *b) const;
 };
 typedef std::set<FrameNode *, frame_cmp_wrapper> frame_set_t;
 

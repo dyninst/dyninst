@@ -59,10 +59,6 @@
 #include "nt_signal_emul.h"
 #include "dyninstAPI/src/PCEventMuxer.h"
 
-#if (defined(_MSC_VER) && _MSC_VER < 1900)
-#define snprintf _snprintf
-#endif
-
 // prototypes of functions used in this file
 
 void InitSymbolHandler( HANDLE hPCProcess );
@@ -430,7 +426,7 @@ void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi
    * Cleanup Callee cleans up the stack before returning
  **/
 callType func_instance::getCallingConvention() {
-	std::cerr << "symtab name (c++): " << symTabName() << std::endl;
+	//std::cerr << "symtab name (c++): " << symTabName() << std::endl;
     //const char *name = symTabName().c_str();
     const int buffer_size = 1024;
     char buffer[buffer_size];
