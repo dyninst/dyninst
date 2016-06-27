@@ -533,7 +533,7 @@ VEXW00 = 0, VEXW01, VEXW02, VEXW03, VEXW04, VEXW05, VEXW06, VEXW07,
 #define VEXW_MAX VEXW96
 
 /* SIMD op conversion table */
-static char vex3_simdop_convert[3][4] = {
+static int vex3_simdop_convert[3][4] = {
   {0, 2,  1, 3},
   {0, 2,  1, 3},
   {0, 1, -1, 2}
