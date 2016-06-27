@@ -276,12 +276,12 @@ public:
     /** Copy constructor.
      *
      *  The reference count of the new object is set to zero since no pointers can exist yet. */
-    SharedObject(const SharedObject &other): nrefs_(0) {}
+    SharedObject(const SharedObject &/*other*/): nrefs_(0) {}
 
     /** Assignment.
      *
      *  Assigning one object to another doesn't change the reference count or mutex of either object. */
-    SharedObject& operator=(const SharedObject &other) {
+    SharedObject& operator=(const SharedObject &/*other*/) {
         return *this;
     }
 

@@ -1,6 +1,7 @@
 #if !defined(ROSE_CONVERSIONS_H)
 #define ROSE_CONVERSIONS_H
 
+class SgNode;
 class SgAsmExpression;
 class SgAsmValueExpression;
 class SgAsmConstantExpression;
@@ -34,6 +35,7 @@ class SgAsmUnaryRrx;
 class SgAsmMemoryReferenceExpression;
 class SgAsmRegisterReferenceExpression;
 class SgAsmDirectRegisterExpression;
+class SgAsmIndirectRegisterExpression;
 class SgAsmx86RegisterReferenceExpression;
 class SgAsmPowerpcRegisterReferenceExpression;
 class SgAsmInstruction;
@@ -123,6 +125,8 @@ SgAsmRegisterReferenceExpression* isSgAsmRegisterReferenceExpression( SgNode *);
 const SgAsmRegisterReferenceExpression* isSgAsmRegisterReferenceExpression( const SgNode * s );
 SgAsmDirectRegisterExpression *isSgAsmDirectRegisterExpression( SgNode * s );
 const SgAsmDirectRegisterExpression *isSgAsmDirectRegisterExpression(const SgNode *s);
+SgAsmIndirectRegisterExpression *isSgAsmIndirectRegisterExpression( SgNode * s);
+const SgAsmIndirectRegisterExpression *isSgAsmIndirectRegisterExpression( const SgNode * s);
 SgAsmx86RegisterReferenceExpression* isSgAsmx86RegisterReferenceExpression( SgNode *);
 const SgAsmx86RegisterReferenceExpression* isSgAsmx86RegisterReferenceExpression( const SgNode * s );
 SgAsmPowerpcRegisterReferenceExpression* isSgAsmPowerpcRegisterReferenceExpression( SgNode *);
@@ -167,7 +171,7 @@ SgAsmFloatValueExpression *isSgAsmFloatValueExpression( SgNode * );
 const SgAsmFloatValueExpression *isSgAsmFloatValueExpression( const SgNode *s );
 SgAsmStatement *isSgAsmStatement( SgNode * );
 const SgAsmStatement *isSgAsmStatement( const SgNode *s );
-SgAsmNode *isSgAsmNode( SgNode * );
+SgAsmNode *isSgAsmNode( SgNode *s );
 const SgAsmNode *isSgAsmNode( const SgNode *s );
 SgAsmScalarType *isSgAsmScalarType( SgNode * );
 const SgAsmScalarType *isSgAsmScalarType( const SgNode *s );
