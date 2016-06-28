@@ -112,39 +112,118 @@ int getAccessSize(InstructionAPI::Instruction::Ptr insn)
     return accessSize;
 }
 
+// FreeBSD is missing a MINLONG and MAXLONG
+#if defined(os_freebsd)
+#if defined(arch_64bit)
+#define MINLONG INT64_MIN
+#define MAXLONG INT64_MAX
+#else
+#define MINLONG INT32_MIN
+#define MAXLONG INT32_MAX
+#endif
+#endif
 class detectToppedLoc : public InstructionAPI::Visitor {
 private:
     typedef std::vector<std::pair<Absloc, StackAnalysis::Height>> Heights;
-    bool topped;
+    bool defined;
+    bool containsToppedReg;
     Heights heights;
 
-public:
-    detectToppedLoc(Heights &h) : topped(false), heights(h) {}
+    std::deque<long> results;  // Stack for calculations
 
-    bool isTopped() {
-        return topped;
+    // Values used for calculations in results
+    static const long top = MAXLONG;
+    static const long bottom = MINLONG;
+    static const long determinable = 0;
+
+public:
+    detectToppedLoc(Heights &h) : defined(true), containsToppedReg(false),
+        heights(h) {}
+
+    bool isDefined() {
+        return defined && results.size() == 1;
     }
 
-    virtual void visit(InstructionAPI::BinaryFunction *) {}
-    virtual void visit(InstructionAPI::Immediate *) {}
+    bool isBottomed() {
+        assert(isDefined());
+        return containsToppedReg && results.back() == bottom;
+    }
+
+    bool isTopped() {
+        assert(isDefined());
+        return containsToppedReg && results.back() != bottom;
+    }
+
+    virtual void visit(InstructionAPI::BinaryFunction *bf) {
+        if (!defined) return;
+
+        long arg1 = results.back();
+        results.pop_back();
+        long arg2 = results.back();
+        results.pop_back();
+
+        if (bf->isAdd()) {
+            if (arg1 == bottom || arg2 == bottom) {
+                results.push_back((long) bottom);
+            } else {
+                results.push_back((long) top);
+            }
+        } else if (bf->isMultiply()) {
+            if (arg1 == bottom) {
+                if (arg2 != top && arg2 != bottom && arg2 != 1) {
+                    results.push_back((long) top);
+                } else {
+                    results.push_back((long) bottom);
+                }
+            } else if (arg2 == bottom) {
+                if (arg1 != top && arg1 != bottom && arg1 != 1) {
+                    results.push_back((long) top);
+                } else {
+                    results.push_back((long) bottom);
+                }
+            } else {
+                results.push_back((long) top);
+            }
+        } else {
+            defined = false;
+        }
+    }
+
+    virtual void visit(InstructionAPI::Immediate *imm) {
+        if (!defined) return;
+
+        results.push_back(imm->eval().convert<long>());
+    }
+
     virtual void visit(InstructionAPI::RegisterAST *r) {
-        if (topped) return;
+        if (!defined) return;
 
         MachRegister reg = r->getID();
         if (reg == x86::eip || reg == x86_64::eip || reg == x86_64::rip) {
+            results.push_back((long) determinable);
             return;
         }
 
         Absloc regLoc(reg);
         for (auto iter = heights.begin(); iter != heights.end(); iter++) {
             if (regLoc == iter->first) {
-                if (iter->second.isTop()) topped = true;
+                if (iter->second.isTop()) {
+                    containsToppedReg = true;
+                    results.push_back((long) top);
+                } else {
+                    results.push_back((long) bottom);
+                }
                 return;
             }
         }
-        topped = true;  // If reg isn't in heights, its height is TOP
+        // If reg isn't in heights, its height is TOP
+        containsToppedReg = true;
+        results.push_back((long) top);
     }
-    virtual void visit(InstructionAPI::Dereference *) {}
+
+    virtual void visit(InstructionAPI::Dereference *) {
+        defined = false;
+    }
 };
 
 bool getAccesses(ParseAPI::Function* func,
@@ -223,7 +302,8 @@ bool getAccesses(ParseAPI::Function* func,
 
     // Fail if any stack heights are being written out to topped locations.
     // Since StackAnalysis tops loads from unresolved locations, we have to
-    // fail if we write out stack heights to unresolved locations.
+    // fail if we write out stack heights to unresolved locations. We also fail
+    // if an accessed location has a stack height base and an unknown offset.
     if (insn->writesMemory()) {
         std::set<InstructionAPI::Expression::Ptr> writeOperands;
         insn->getMemoryWriteOperands(writeOperands);
@@ -248,9 +328,25 @@ bool getAccesses(ParseAPI::Function* func,
                     }
                 }
             }
+        } else if (dtl.isBottomed()) {
+            stackmods_printf("\t\t\t\tINVALID: Writing to unknown stack "
+                "location\n");
+            return false;
+        }
+    } else if (insn->readsMemory()) {
+        std::set<InstructionAPI::Expression::Ptr> readOperands;
+        insn->getMemoryReadOperands(readOperands);
+        for (auto rIter = readOperands.begin(); rIter != readOperands.end();
+            rIter++) {
+            detectToppedLoc dtl(heights);
+            (*rIter)->apply(&dtl);
+            if (dtl.isBottomed()) {
+                stackmods_printf("\t\t\t\tINVALID: Reading unknown stack "
+                    "location\n");
+                return false;
+            }
         }
     }
-
 
     return ret;
 }
