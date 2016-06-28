@@ -281,12 +281,18 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
     Elf_Sym *sym = new Elf_Sym();
     sym->st_name = strIndex;
 
+    int offset_adjust;
+    if(elfSymType(symbol) == STT_TLS) {
+        offset_adjust = 0; // offset relative to TLS section, any new entries go at end
+    } else {
+        offset_adjust = library_adjust;
+    }
     // OPD-based systems
     if (symbol->getPtrOffset()) {
-        sym->st_value = symbol->getPtrOffset() + library_adjust;
+        sym->st_value = symbol->getPtrOffset() + offset_adjust;
     }
     else if (symbol->getOffset()) {
-        sym->st_value = symbol->getOffset() + library_adjust;
+        sym->st_value = symbol->getOffset() + offset_adjust;
     }
 
     sym->st_size = symbol->getSize();
@@ -1310,7 +1316,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
         } else {
             // The offset can be computed by determing the difference from
             // the first new loadable section
-            newshdr->sh_offset = firstNewLoadSec->sh_offset +
+            newshdr->sh_offset = firstNewLoadSec->sh_offset + library_adjust +
                                  (newSecs[i]->getDiskOffset() - firstNewLoadSec->sh_addr);
 
             // Account for inter-section spacing due to alignment constraints
@@ -2409,7 +2415,17 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf_D
         long name = new_dynamic_entries[i].first;
         long value = new_dynamic_entries[i].second;
         dynsecData[curpos].d_tag = name;
-        dynsecData[curpos].d_un.d_val = value;
+        long adjust = 0;
+        switch(name)
+        {
+            case DT_INIT:
+            case DT_FINI:
+                adjust = library_adjust;
+                break;
+            default:
+                break;
+        };
+        dynsecData[curpos].d_un.d_val = value + adjust;
         dynamicSecData[name].push_back(dynsecData + curpos);
         curpos++;
     }
