@@ -238,7 +238,7 @@ class StackAnalysis {
     //
     // Offset by known amount: push/pop/etc. 
     // Set to known value: leave
-    // Assign the stack pointer to/from an alias
+    // Copy the stack pointer to/from some Absloc.
     //
     // There are also: 
     // Offset by unknown amount expressible in a range [l, h]
@@ -250,7 +250,7 @@ class StackAnalysis {
     //
     // Delta(RV, f, t, v) -> RV[f] += v;
     // Abs(RV, f, t, v) -> RV[f] = v;
-    // Alias(RV, f, t, v) -> RV[t] = RV[f];
+    // Copy(RV, f, t, v) -> RV[t] = RV[f];
     // In the implementations below, we provide f, t, v at construction time (as they are
     // fixed) and RV as a parameter.
 
@@ -268,11 +268,11 @@ class StackAnalysis {
           Bottom,
           Delta,
           Abs,
-          Alias } Type;
+          Copy } Type;
        
        static TransferFunc deltaFunc(Absloc r, long d);
        static TransferFunc absFunc(Absloc r, long a, bool i = false);
-       static TransferFunc aliasFunc(Absloc f, Absloc t, bool i = false);
+       static TransferFunc copyFunc(Absloc f, Absloc t, bool i = false);
        static TransferFunc bottomFunc(Absloc r);
        static TransferFunc retopFunc(Absloc r);
        static TransferFunc sibFunc(std::map<Absloc, std::pair<long,bool> > f,
@@ -282,7 +282,7 @@ class StackAnalysis {
        bool isTop() const;
        bool isRetop() const;
        bool isAbs() const;
-       bool isAlias() const;
+       bool isCopy() const;
        bool isDelta() const;
        bool isSIB() const;
 
@@ -359,7 +359,7 @@ class StackAnalysis {
     //        POWER: an allocated frame pointed to by GPR1
     //   b) The "depth" of the stack; the distance between
     //      the stack pointer and the caller's stack pointer.
-    //   c) The "depth" of any aliases of the stack pointer. 
+    //   c) The "depth" of any copies of the stack pointer.
     
     typedef std::map<Offset, AbslocState> StateIntervals;
     typedef std::map<ParseAPI::Block *, StateIntervals> Intervals;

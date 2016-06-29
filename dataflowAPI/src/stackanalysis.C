@@ -489,7 +489,7 @@ std::string StackAnalysis::TransferFunc::format() const {
    else if (isTop()) ret << "<TOP>";
    else {
       bool foundType = false;
-      if (isAlias()) {
+      if (isCopy()) {
          ret << from.format();
          foundType = true;
       }
@@ -722,7 +722,7 @@ void StackAnalysis::handleMul(Instruction::Ptr insn,
                   RegisterAST>(multiplicand)->getID();
                Absloc targetLoc(targetReg);
                Absloc multiplicandLoc(multiplicandReg);
-               xferFuncs.push_back(TransferFunc::aliasFunc(multiplicandLoc,
+               xferFuncs.push_back(TransferFunc::copyFunc(multiplicandLoc,
                   targetLoc));
             } else {
                // mul reg1, mem2, 1
@@ -1032,7 +1032,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
       } else {
          // Case 2b
          stackanalysis_printf("\t\t\tCan't determine location\n");
-         xferFuncs.push_back(TransferFunc::aliasFunc(writtenLoc, writtenLoc,
+         xferFuncs.push_back(TransferFunc::copyFunc(writtenLoc, writtenLoc,
             true));
       }
       return;
@@ -1152,7 +1152,7 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
          xferFuncs.push_back(TransferFunc::sibFunc(fromRegs, delta, writeloc));
       } else {
          Absloc readloc(reg);
-         TransferFunc lea = TransferFunc::aliasFunc(readloc, writeloc);
+         TransferFunc lea = TransferFunc::copyFunc(readloc, writeloc);
          lea.delta = delta;
          xferFuncs.push_back(lea);
       }
@@ -1232,7 +1232,7 @@ void StackAnalysis::handleLeave(TransferFuncs &xferFuncs) {
    // Handle it as such.
 
    // mov esp, ebp;
-   xferFuncs.push_back(TransferFunc::aliasFunc(Absloc(fp()), Absloc(sp())));
+   xferFuncs.push_back(TransferFunc::copyFunc(Absloc(fp()), Absloc(sp())));
 
    // pop ebp
    xferFuncs.push_back(TransferFunc::deltaFunc(Absloc(sp()), word_size));
@@ -1317,18 +1317,18 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
    //   4. mov reg, mem
    //   5. mov imm, mem
    // 
-   // #1 Causes register aliasing.
+   // #1 Causes register copying.
    // #2 Causes an absolute value in the register.
    // #3 Depends on whether the memory address we're loading from can be
    //    determined statically.
-   //    a. If it can, we alias the register to the memory location we're
+   //    a. If it can, we copy the register to the memory location we're
    //       loading from.
    //    b. Otherwise, we set the register to TOP.  Note that this is safe
    //       since StackMod fails whenever a stack height is written out to an
    //       undetermined (topped) location.
    // #4 Depends on whether the address we're storing to can be determined
    //    statically.
-   //    a. If it can, we alias the memory address to the register.
+   //    a. If it can, we copy the memory address to the register.
    //    b. Otherwise, we ignore the store.
    // #5 Depends on whether the address we're storing to can be determined
    //    statically.
@@ -1389,7 +1389,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
          // Case 4a
          assert(readRegs.size() == 1);
          Absloc from((*readRegs.begin())->getID());
-         xferFuncs.push_back(TransferFunc::aliasFunc(from, writtenLoc));
+         xferFuncs.push_back(TransferFunc::copyFunc(from, writtenLoc));
       } else {
          // Case 5a
          Expression::Ptr immExpr = operands[1].getValue();
@@ -1437,7 +1437,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
          }
          stackanalysis_printf("\t\t\tEvaluates to: %s\n",
             readLoc.format().c_str());
-         xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc));
+         xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc));
       } else {
          // Case 3b
          stackanalysis_printf("\t\t\tCan't determine location\n");
@@ -1459,9 +1459,9 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
 
    if (read.isValid()) {
       // Case 1
-      stackanalysis_printf("\t\t\tAlias detected: %s -> %s\n",
+      stackanalysis_printf("\t\t\tCopy detected: %s -> %s\n",
          read.name().c_str(), written.name().c_str());
-      xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc));
+      xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc));
    } else {
       // Case 2
       InstructionAPI::Expression::Ptr readExpr = operands[1].getValue();
@@ -1526,7 +1526,7 @@ void StackAnalysis::handleZeroExtend(Instruction::Ptr insn, Block *block,
          }
          stackanalysis_printf("\t\t\tEvaluates to: %s\n",
             readLoc.format().c_str());
-         xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc));
+         xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc));
       } else {
          // We can't track this memory location
          stackanalysis_printf("\t\t\tCan't determine location\n");
@@ -1538,15 +1538,15 @@ void StackAnalysis::handleZeroExtend(Instruction::Ptr insn, Block *block,
    assert(readRegs.size() == 1);
    Absloc readLoc((*readRegs.begin())->getID());
 
-   stackanalysis_printf("\t\t\t Alias detected: %s -> %s\n",
+   stackanalysis_printf("\t\t\tCopy detected: %s -> %s\n",
       readLoc.format().c_str(), writtenLoc.format().c_str());
-   xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc));
+   xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc));
 }
 
 void StackAnalysis::handleSignExtend(Instruction::Ptr insn, Block *block,
    const Offset off, TransferFuncs &xferFuncs) {
    // This instruction sign extends the read register into the written
-   // register. Aliasing insn't really correct here...sign extension is going
+   // register. Copying insn't really correct here...sign extension is going
    // to change the value...
 
    // In x86/x86_64, sign extends can't write to memory
@@ -1599,7 +1599,7 @@ void StackAnalysis::handleSignExtend(Instruction::Ptr insn, Block *block,
          }
          stackanalysis_printf("\t\t\tEvaluates to: %s\n",
             readLoc.format().c_str());
-         xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc,
+         xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc,
             true));
       } else {
          // We can't track this memory location
@@ -1615,13 +1615,13 @@ void StackAnalysis::handleSignExtend(Instruction::Ptr insn, Block *block,
    stackanalysis_printf(
       "\t\t\t Sign extend insn detected: %s -> %s (must be top or bottom)\n",
       readLoc.format().c_str(), writtenLoc.format().c_str());
-   xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc, true));
+   xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc, true));
 }
 
 void StackAnalysis::handleSpecialSignExtend(Instruction::Ptr insn,
    TransferFuncs &xferFuncs) {
    // This instruction sign extends the read register into the written
-   // register. Aliasing insn't really correct here...sign extension is going
+   // register. Copying insn't really correct here...sign extension is going
    // to change the value...
 
    // Extract written/read register sets
@@ -1643,7 +1643,7 @@ void StackAnalysis::handleSpecialSignExtend(Instruction::Ptr insn,
    stackanalysis_printf(
       "\t\t\t Special sign extend detected: %s -> %s (must be top/bottom)\n",
       readLoc.format().c_str(), writtenLoc.format().c_str());
-   xferFuncs.push_back(TransferFunc::aliasFunc(readLoc, writtenLoc, true));
+   xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc, true));
 }
 
 void StackAnalysis::handleDefault(Instruction::Ptr insn,
@@ -1655,7 +1655,7 @@ void StackAnalysis::handleDefault(Instruction::Ptr insn,
         iter != written.end(); ++iter) {
 
       Absloc loc((*iter)->getID());
-      xferFuncs.push_back(TransferFunc::aliasFunc(loc, loc, true));
+      xferFuncs.push_back(TransferFunc::copyFunc(loc, loc, true));
       stackanalysis_printf(
          "\t\t\t Unhandled insn %s detected: %s set to topBottom\n",
          insn->format().c_str(), (*iter)->getID().name().c_str());
@@ -1845,7 +1845,7 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::absFunc(Absloc r, long 
    return TransferFunc(a, 0, Absloc(), r, i);
 }
 
-StackAnalysis::TransferFunc StackAnalysis::TransferFunc::aliasFunc(Absloc f, Absloc t, bool i) {
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::copyFunc(Absloc f, Absloc t, bool i) {
    return TransferFunc (uninitialized, 0, f, t, i);
 }
 
@@ -1868,7 +1868,7 @@ bool StackAnalysis::TransferFunc::isBottom() const {
 }
 
 bool StackAnalysis::TransferFunc::isTop() const {
-   return !isDelta() && !isAbs() && !isAlias() && !isSIB() && !isBottom() &&
+   return !isDelta() && !isAbs() && !isCopy() && !isSIB() && !isBottom() &&
       abs == uninitialized;
 }
 
@@ -1876,7 +1876,7 @@ bool StackAnalysis::TransferFunc::isRetop() const {
    return isTop() && retop;
 }
 
-bool StackAnalysis::TransferFunc::isAlias() const {
+bool StackAnalysis::TransferFunc::isCopy() const {
    return from.isValid();
 }
 
@@ -1955,17 +1955,17 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(
    }
 
    if (isAbs()) {
-      // We cannot be an alias, as the absolute removes that. 
-      assert(!isAlias());
+      // We cannot be an copy, as the absolute removes that.
+      assert(!isCopy());
       // Apply the absolute
       // NOTE: an absolute is not a stack height, set input to top
       //input = abs;
       input = Height::top;
    }
-   if (isAlias()) {
+   if (isCopy()) {
       // Cannot be absolute
       assert(!isAbs());
-      // Copy the input value from whatever we're an alias of.
+      // Copy the input value from whatever we're a copy of.
       AbslocState::const_iterator iter2 = inputs.find(from);
       if (iter2 != inputs.end()) input = iter2->second;
       else input = Height::top;
@@ -2107,7 +2107,7 @@ void StackAnalysis::TransferFunc::accumulate(
                   }
                }
             }
-            if (fromRegFunc.isAlias()) {
+            if (fromRegFunc.isCopy()) {
                // Replace fromRegOrig with fromRegFunc.from only if we aren't
                // already considering fromRegFunc.from in our map.
                // FIXME if we change apply() to include constant propagation
@@ -2119,7 +2119,7 @@ void StackAnalysis::TransferFunc::accumulate(
             }
             if (fromRegFunc.isDelta()) {
                newDelta += fromRegFunc.delta * scaleOrig;
-               if (!fromRegFunc.isAlias() && !fromRegFunc.isSIB() &&
+               if (!fromRegFunc.isCopy() && !fromRegFunc.isSIB() &&
                   !fromRegFunc.isAbs()) {
                   // Add the register back in...
                   // FIXME if we change apply() to include constant propagation
@@ -2168,27 +2168,27 @@ void StackAnalysis::TransferFunc::accumulate(
       return;
    }
 
-   // Aliases can be tricky
-   // apply alias logic only if registers are different
-   if (isAlias() && target != from) {
+   // Copies can be tricky
+   // apply copy logic only if registers are different
+   if (isCopy() && target != from) {
       // We need to record that we want to take the inflow height
       // of a different register. 
       // Don't do an inputs[from] as that creates
       std::map<Absloc, TransferFunc>::iterator iter = inputs.find(from);
       if (iter == inputs.end()) {
-         // Aliasing to something we haven't seen yet; easy
+         // Copying to something we haven't seen yet; easy
          input = *this;
          input.topBottom = isTopBottomOrig;
          return;
       }
 
-      TransferFunc &alias = iter->second;
+      TransferFunc &orig = iter->second;
 
-      if (alias.isAbs()) {
+      if (orig.isAbs()) {
          // We reset the height, so we don't care about the inflow height
-         assert(!alias.isAlias());
-         input = absFunc(input.target, alias.abs);
-         input.topBottom = isTopBottomOrig || alias.isTopBottom();
+         assert(!orig.isCopy());
+         input = absFunc(input.target, orig.abs);
+         input.topBottom = isTopBottomOrig || orig.isTopBottom();
          assert(input.target.isValid());
 
          if (isDelta()) {
@@ -2196,11 +2196,11 @@ void StackAnalysis::TransferFunc::accumulate(
          }
          return;
       }
-      if (alias.isAlias()) {
-         assert(!alias.isAbs());
-         input = alias;
+      if (orig.isCopy()) {
+         assert(!orig.isAbs());
+         input = orig;
          input.target = target;
-         input.topBottom = isTopBottomOrig || alias.isTopBottom();
+         input.topBottom = isTopBottomOrig || orig.isTopBottom();
          assert(input.target.isValid());
 
          if (isDelta()) {
@@ -2208,8 +2208,8 @@ void StackAnalysis::TransferFunc::accumulate(
          }
          return;
       }
-      if (alias.isSIB()) {
-         input = alias;
+      if (orig.isSIB()) {
+         input = orig;
          input.target = target;
          input.topBottom = isTopBottomOrig;
 
@@ -2221,27 +2221,27 @@ void StackAnalysis::TransferFunc::accumulate(
       }
 
       // without bottom we mess up in the default case.
-      if (alias.isBottom()) {
+      if (orig.isBottom()) {
          input = bottomFunc(target);
          return;
       }
 
-      if (alias.isRetop()) {
+      if (orig.isRetop()) {
          input = retopFunc(target);
          return;
       }
 
-      // Default case: record the alias, zero out everything else, copy over
+      // Default case: record the copy, zero out everything else, copy over
       // the delta if it's defined.
       //input.target is defined
-      input.from = alias.target;
+      input.from = orig.target;
       input.abs = uninitialized;
-      if (alias.isDelta()) {
-         input.delta = alias.delta;
+      if (orig.isDelta()) {
+         input.delta = orig.delta;
       } else {
          input.delta = 0;
       }
-      input.topBottom = isTopBottomOrig || alias.isTopBottom();
+      input.topBottom = isTopBottomOrig || orig.isTopBottom();
       input.fromRegs.clear();
    }
 
@@ -2293,9 +2293,9 @@ void StackAnalysis::SummaryFunc::validate() const {
    {
       const TransferFunc &func = iter->second;
       assert(func.target.isValid());
-      if (func.isAlias()) assert(!func.isAbs());
-      if (func.isAbs()) assert(!func.isAlias());
-      if (func.isBottom()) assert(!func.isAlias());
+      if (func.isCopy()) assert(!func.isAbs());
+      if (func.isAbs()) assert(!func.isCopy());
+      if (func.isBottom()) assert(!func.isCopy());
    }
 }
 
