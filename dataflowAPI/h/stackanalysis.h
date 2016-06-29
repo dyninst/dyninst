@@ -269,7 +269,8 @@ class StackAnalysis {
           Delta,
           Abs,
           Copy } Type;
-       
+
+       static TransferFunc identityFunc(Absloc r);
        static TransferFunc deltaFunc(Absloc r, long d);
        static TransferFunc absFunc(Absloc r, long a, bool i = false);
        static TransferFunc copyFunc(Absloc f, Absloc t, bool i = false);
@@ -278,6 +279,193 @@ class StackAnalysis {
        static TransferFunc sibFunc(std::map<Absloc, std::pair<long,bool> > f,
           long d, Absloc t);
 
+       static TransferFunc meet(const TransferFunc &lhs,
+          const TransferFunc &rhs) {
+          // Handle default-constructed TransferFuncs
+          if (lhs.isTop() && !lhs.isRetop()) return rhs;
+          if (rhs.isTop() && !rhs.isRetop()) return lhs;
+
+          assert(lhs.target == rhs.target);
+          if (lhs == rhs) return lhs;
+
+          TransferFunc ret;
+          if (lhs.isAbs()) {
+             if (rhs.isAbs()) {
+                // Since we know lhs != rhs, the abs values must be
+                // different
+                ret = retopFunc(lhs.target);
+             } else if (rhs.isCopy() || rhs.isBottom() || rhs.isRetop() ||
+                rhs.isSIB() || rhs.isDelta()) {
+                ret = rhs;
+             } else {
+                assert(false);
+             }
+          } else if (lhs.isCopy()) {
+             if (rhs.isAbs()) {
+                ret = lhs;
+             } else if (rhs.isCopy()) {
+                if (lhs.from == rhs.from) {
+                   // Same base register. Since we know lhs != rhs,
+                   // either the deltas are different or the topBottom
+                   // values are different. Either way, we need to
+                   // return a function that is topBottom.
+                   ret = lhs;
+                   ret.topBottom = true;
+                } else {
+                   // Different base registers.  Use a SIB function to capture
+                   // both possible bases.  Note that current SIB function
+                   // handling doesn't actually add the terms together.
+                   // FIXME if SIB function handling changes.
+                   std::map<Absloc, std::pair<long, bool>> fromRegs;
+                   fromRegs[lhs.from] = std::make_pair(1, true);
+                   fromRegs[rhs.from] = std::make_pair(1, true);
+                   ret = sibFunc(fromRegs, 0, lhs.target);
+                }
+             } else if (rhs.isBottom()) {
+                ret = rhs;
+             } else if (rhs.isRetop()) {
+                ret = lhs;
+             } else if (rhs.isSIB()) {
+                // Add the source register of the LHS copy to the RHS SIB
+                // function.  Note that current SIB function
+                // handling doesn't actually add the terms together.
+                // FIXME if SIB function handling changes.
+                ret = rhs;
+                ret.fromRegs[lhs.from] = std::make_pair(1, true);
+             } else if (rhs.isDelta()) {
+                if (lhs.from == rhs.target) {
+                   // Same base register. Since we know lhs != rhs,
+                   // either the deltas are different or the topBottom
+                   // values are different. Either way, we need to
+                   // return a function that is topBottom.
+                   ret = lhs;
+                   ret.topBottom = true;
+                } else {
+                   // Different base registers.  Use a SIB function to capture
+                   // both possible bases.  Note that current SIB function
+                   // handling doesn't actually add the terms together.
+                   // FIXME if SIB function handling changes.
+                   std::map<Absloc, std::pair<long, bool>> fromRegs;
+                   fromRegs[lhs.from] = std::make_pair(1, true);
+                   fromRegs[rhs.target] = std::make_pair(1, true);
+                   ret = sibFunc(fromRegs, 0, lhs.target);
+                }
+             } else {
+                assert(false);
+             }
+          } else if (lhs.isBottom()) {
+             ret = lhs;
+          } else if (lhs.isRetop()) {
+             if (rhs.isAbs()) {
+                ret = lhs;
+             } else if (rhs.isCopy() || rhs.isBottom() || rhs.isRetop() ||
+                rhs.isSIB() || rhs.isDelta()) {
+                ret = rhs;
+             } else {
+                assert(false);
+             }
+          } else if (lhs.isSIB()) {
+             if (rhs.isAbs()) {
+                ret = lhs;
+             } else if (rhs.isCopy()) {
+                // Add the source register of the RHS copy to the LHS SIB
+                // function.  Note that current SIB function
+                // handling doesn't actually add the terms together.
+                // FIXME if SIB function handling changes.
+                ret = lhs;
+                ret.fromRegs[rhs.from] = std::make_pair(1, true);
+             } else if (rhs.isBottom()) {
+                ret = rhs;
+             } else if (rhs.isRetop()) {
+                ret = lhs;
+             } else if (rhs.isSIB()) {
+                if (lhs.fromRegs == rhs.fromRegs) {
+                   // Same SIB.  Since we know lhs != rhs, either the deltas are
+                   // different or the topBottom values are different.  Either
+                   // way, we need to return a function that is topBottom.
+                   ret = lhs;
+                   ret.topBottom = true;
+                } else {
+                   // Different SIBs.  Combine the terms of the LHS and RHS SIB
+                   // functions.  Note that current SIB function
+                   // handling doesn't actually add the terms together.
+                   // FIXME if SIB function handling changes.
+                   ret = lhs;
+                   for (auto iter = rhs.fromRegs.begin();
+                      iter != rhs.fromRegs.end(); iter++) {
+                      const Absloc &loc = iter->first;
+                      const std::pair<long, bool> &val = iter->second;
+                      auto findLoc = ret.fromRegs.find(loc);
+                      if (findLoc == ret.fromRegs.end() || (val.first == 1 &&
+                         ret.fromRegs[loc].first != 1)) {
+                         ret.fromRegs[loc] = val;
+                      }
+                   }
+                }
+             } else if (rhs.isDelta()) {
+                // Add the base register of the RHS delta to the LHS SIB
+                // function.  Note that current SIB function
+                // handling doesn't actually add the terms together.
+                // FIXME if SIB function handling changes.
+                ret = lhs;
+                ret.fromRegs[rhs.target] = std::make_pair(1, true);
+             } else {
+                assert(false);
+             }
+          } else if (lhs.isDelta()) {
+             if (rhs.isAbs()) {
+                ret = lhs;
+             } else if (rhs.isCopy()) {
+                if (lhs.target == rhs.from) {
+                   // Same base register. Since we know lhs != rhs,
+                   // either the deltas are different or the topBottom
+                   // values are different. Either way, we need to
+                   // return a function that is topBottom.
+                   ret = lhs;
+                   ret.topBottom = true;
+                } else {
+                   // Different base registers.  Use a SIB function to capture
+                   // both possible bases.  Note that current SIB function
+                   // handling doesn't actually add the terms together.
+                   // FIXME if SIB function handling changes.
+                   std::map<Absloc, std::pair<long, bool>> fromRegs;
+                   fromRegs[lhs.target] = std::make_pair(1, true);
+                   fromRegs[rhs.from] = std::make_pair(1, true);
+                   ret = sibFunc(fromRegs, 0, lhs.target);
+                }
+             } else if (rhs.isBottom()) {
+                ret = rhs;
+             } else if (rhs.isRetop()) {
+                ret = lhs;
+             } else if (rhs.isSIB()) {
+                // Add the base register of the LHS delta to the RHS SIB
+                // function.  Note that current SIB function
+                // handling doesn't actually add the terms together.
+                // FIXME if SIB function handling changes.
+                ret = rhs;
+                ret.fromRegs[lhs.target] = std::make_pair(1, true);
+             } else if (rhs.isDelta()) {
+                if (lhs.target == rhs.target) {
+                   // Same base register. Since we know lhs != rhs,
+                   // either the deltas are different or the topBottom
+                   // values are different. Either way, we need to
+                   // return a function that is topBottom.
+                   ret = lhs;
+                   ret.topBottom = true;
+                } else {
+                   assert(false);
+                }
+             } else {
+                assert(false);
+             }
+          } else {
+             assert(false);
+          }
+          return ret;
+       }
+
+
+       bool isIdentity() const;
        bool isBottom() const;
        bool isTop() const;
        bool isRetop() const;
@@ -300,8 +488,17 @@ class StackAnalysis {
        from(Absloc()), target(t), delta(d), abs(uninitialized), retop(false),
        topBottom(false), fromRegs(f) {}
 
+
+       bool operator==(const TransferFunc &rhs) const {
+          return from == rhs.from && target == rhs.target &&
+             delta == rhs.delta && abs == rhs.abs && retop == rhs.retop &&
+             topBottom == rhs.topBottom && fromRegs == rhs.fromRegs;
+       }
+
        Height apply(const AbslocState &inputs) const;
        void accumulate(std::map<Absloc, TransferFunc> &inputs);
+       TransferFunc summaryAccumulate(
+           const std::map<Absloc, TransferFunc> &inputs) const;
 
        std::string format() const;
        Type type() const;
@@ -342,8 +539,10 @@ class StackAnalysis {
        SummaryFunc() {};
 
        void apply(const AbslocState &in, AbslocState &out) const;
+       void accumulate(const TransferSet &in, TransferSet &out) const;
+
        std::string format() const;
-	   void validate() const;
+       void validate() const;
 
        void add(TransferFuncs &f);
 
@@ -368,6 +567,7 @@ class StackAnalysis {
     
     typedef std::map<ParseAPI::Block *, SummaryFunc> BlockEffects;
     typedef std::map<ParseAPI::Block *, AbslocState> BlockState;
+    typedef std::map<ParseAPI::Block *, TransferSet> BlockSummaryState;
 
     // To build intervals, we must replay the effect of each instruction.
     // To avoid sucking enormous time, we keep those transfer functions around...
@@ -381,28 +581,40 @@ class StackAnalysis {
     DATAFLOW_EXPORT Height findSP(ParseAPI::Block *, Address addr);
     DATAFLOW_EXPORT Height findFP(ParseAPI::Block *, Address addr);
     DATAFLOW_EXPORT void findDefinedHeights(ParseAPI::Block* b, Address addr, std::vector<std::pair<Absloc, Height> >& heights);
-    
+
+    // TODO: Update DataflowAPI manual
+    DATAFLOW_EXPORT bool getFunctionSummary(TransferSet &summary);
+
     DATAFLOW_EXPORT void debug();
     
  private:
     
     std::string format(const AbslocState &input) const;
+    std::string format(const TransferSet &input) const;
 
     MachRegister sp();
     MachRegister fp();
 
     bool analyze();
+    bool genInsnEffects();
     void summarizeBlocks();
     void summarize();
 
     void fixpoint();
-    
+    void summaryFixpoint();
+
     void createIntervals();
 
     void createEntryInput(AbslocState &input);
-    void meetInputs(ParseAPI::Block *b, AbslocState& blockInput, AbslocState &input);
+    void createSummaryEntryInput(TransferSet &input);
+    void meetInputs(ParseAPI::Block *b, AbslocState& blockInput,
+        AbslocState &input);
+    void meetSummaryInputs(ParseAPI::Block *b, TransferSet &blockInput,
+        TransferSet &input);
     void meet(const AbslocState &source, AbslocState &accum);
+    void meetSummary(const TransferSet &source, TransferSet &accum);
     AbslocState getSrcOutputLocs(ParseAPI::Edge* e);
+    TransferSet getSummarySrcOutputLocs(ParseAPI::Edge *e);
     void computeInsnEffects(ParseAPI::Block *block,
                             InstructionPtr insn,
                             const Offset off,
@@ -445,13 +657,16 @@ class StackAnalysis {
     
 
     // SP effect tracking
-    BlockEffects blockEffects;
-    InstructionEffects insnEffects;
+    BlockEffects *blockEffects;  // Pointer so we can make it an annotation
+    InstructionEffects *insnEffects;  // Pointer so we can make it an annotation
 
     BlockState blockInputs;
     BlockState blockOutputs;
 
-
+    // Like blockInputs and blockOutputs, but used for function summaries.
+    // Instead of tracking Heights, we track transfer functions.
+    BlockSummaryState blockSummaryInputs;
+    BlockSummaryState blockSummaryOutputs;
 
     Intervals *intervals_; // Pointer so we can make it an annotation
     

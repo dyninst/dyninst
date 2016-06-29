@@ -59,7 +59,12 @@ using namespace Dyninst::ParseAPI;
 const StackAnalysis::Height StackAnalysis::Height::bottom(StackAnalysis::Height::notUnique);
 const StackAnalysis::Height StackAnalysis::Height::top(StackAnalysis::Height::uninitialized);
 
-AnnotationClass <StackAnalysis::Intervals> Stack_Anno(std::string("Stack_Anno"));
+AnnotationClass<StackAnalysis::Intervals>
+   Stack_Anno_Intervals(std::string("Stack_Anno_Intervals"));
+AnnotationClass<StackAnalysis::BlockEffects>
+   Stack_Anno_Block_Effects(std::string("Stack_Anno_Block_Effects"));
+AnnotationClass<StackAnalysis::InstructionEffects>
+   Stack_Anno_Insn_Effects(std::string("Stack_Anno_Insn_Effects"));
 
 template class std::list<Dyninst::StackAnalysis::TransferFunc*>;
 template class std::map<Dyninst::Absloc, Dyninst::StackAnalysis::Height>;
@@ -80,35 +85,17 @@ template class std::vector<Dyninst::InstructionAPI::Instruction::Ptr>;
 //   themselves. We need to account for this in our analysis, which otherwise
 //   assumes that callee functions don't alter the stack.
 
-
 bool StackAnalysis::analyze() {
    df_init_debug();
-   stackanalysis_printf("Beginning stack analysis for function %s\n",
-      func->name().c_str());
 
-   // First fixpoint analysis
-   stackanalysis_printf("\tSummarizing block effects\n");
-   summarizeBlocks();
+   genInsnEffects();
+
    stackanalysis_printf("\tPerforming fixpoint analysis\n");
    fixpoint();
    stackanalysis_printf("\tCreating SP interval tree\n");
    summarize();
 
-   // Clear mappings
-   blockEffects.clear();
-   insnEffects.clear();
-   blockInputs.clear();
-   blockOutputs.clear();
-
-   // Second fixpoint analysis (for stack slot tracking)
-   stackanalysis_printf("\tSummarizing block effects again\n");
-   summarizeBlocks();
-   stackanalysis_printf("\tPerforming fixpoint analysis again\n");
-   fixpoint();
-   stackanalysis_printf("\tCreating SP interval tree again\n");
-   summarize();
-
-   func->addAnnotation(intervals_, Stack_Anno);
+   func->addAnnotation(intervals_, Stack_Anno_Intervals);
 
    if (df_debug_stackanalysis) {
       debug();
@@ -119,6 +106,49 @@ bool StackAnalysis::analyze() {
 
    return true;
 }
+
+
+bool StackAnalysis::genInsnEffects() {
+   // Check if we've already done this work
+   if (blockEffects != NULL && insnEffects != NULL) return true;
+   func->getAnnotation(blockEffects, Stack_Anno_Block_Effects);
+   func->getAnnotation(insnEffects, Stack_Anno_Insn_Effects);
+   if (blockEffects != NULL && insnEffects != NULL) return true;
+
+   blockEffects = new BlockEffects();
+   insnEffects = new InstructionEffects();
+
+   stackanalysis_printf("Beginning insn effect generation for function %s\n",
+      func->name().c_str());
+
+   // Initial analysis to get register stack heights
+   stackanalysis_printf("\tSummarizing intermediate block effects\n");
+   summarizeBlocks();
+   stackanalysis_printf("\tPerforming intermediate fixpoint analysis\n");
+   fixpoint();
+   stackanalysis_printf("\tCreating intermediate SP interval tree\n");
+   summarize();
+
+   // Clear mappings
+   blockEffects->clear();
+   insnEffects->clear();
+   blockInputs.clear();
+   blockOutputs.clear();
+
+   // Generate final block effects with stack slot tracking
+   stackanalysis_printf("\tGenerating final block effects\n");
+   summarizeBlocks();
+
+   // Annotate insnEffects and blockEffects to avoid rework
+   func->addAnnotation(blockEffects, Stack_Anno_Block_Effects);
+   func->addAnnotation(insnEffects, Stack_Anno_Insn_Effects);
+
+   stackanalysis_printf("Finished insn effect generation for function %s\n",
+      func->name().c_str());
+
+   return true;
+}
+
 
 // We want to create a transfer function for the block as a whole. 
 // This will allow us to perform our fixpoint calculation over
@@ -153,7 +183,7 @@ void StackAnalysis::summarizeBlocks() {
     // Setting the stack pointer: zero delta, set set_value.
     // 
 
-    SummaryFunc &bFunc = blockEffects[block];
+    SummaryFunc &bFunc = (*blockEffects)[block];
 
     stackanalysis_printf("\t Block starting at 0x%lx: %s\n", 
 			 block->start(),
@@ -166,7 +196,7 @@ void StackAnalysis::summarizeBlocks() {
       Offset &off = instances[j].second;
 
       // Fills in insnEffects[off]
-      TransferFuncs &xferFuncs = insnEffects[block][off];
+      TransferFuncs &xferFuncs = (*insnEffects)[block][off];
 
       computeInsnEffects(block, insn, off, xferFuncs);
       bFunc.add(xferFuncs);
@@ -200,9 +230,9 @@ void StackAnalysis::fixpoint() {
    intra_nosink epred2;
 
    std::queue<Block *> worklist;
-   Block *entry = func->entry();
-   worklist.push(entry);
+   worklist.push(func->entry());
 
+   bool firstBlock = true;
    while (!worklist.empty()) {
       Block *block = worklist.front();
       worklist.pop();
@@ -212,7 +242,7 @@ void StackAnalysis::fixpoint() {
       // Step 1: calculate the meet over the heights of all incoming
       // intraprocedural blocks.
       AbslocState input;
-      if (block == entry) {
+      if (firstBlock) {
          createEntryInput(input);
          stackanalysis_printf("\t Primed initial block\n");
       } else {
@@ -234,7 +264,7 @@ void StackAnalysis::fixpoint() {
       blockInputs[block] = input;
 
       // Step 3: calculate our new outs
-      blockEffects[block].apply(input, blockOutputs[block]);
+      (*blockEffects)[block].apply(input, blockOutputs[block]);
       stackanalysis_printf("\t ... output from block: %s\n",
          format(blockOutputs[block]).c_str());
 
@@ -245,6 +275,97 @@ void StackAnalysis::fixpoint() {
          boost::make_filter_iterator(epred2, outEdges.end(), outEdges.end()),
          boost::bind(add_target, boost::ref(worklist), _1)
       );
+
+      firstBlock = false;
+   }
+}
+
+
+bool StackAnalysis::getFunctionSummary(TransferSet &summary) {
+   df_init_debug();
+
+   if (!genInsnEffects()) return false;
+   assert(!blockEffects->empty());
+
+   const Function::const_blocklist &retBlocks = func->returnBlocks();
+   if (retBlocks.empty()) return false;  // No return edges means no summary
+
+   if (blockSummaryOutputs.empty()) {
+      summaryFixpoint();
+   }
+
+   // Join possible values at all return edges
+   TransferSet tempSummary;
+   for (auto iter = retBlocks.begin(); iter != retBlocks.end(); iter++) {
+      Block *currBlock = *iter;
+      meetSummary(blockSummaryOutputs[currBlock], tempSummary);
+   }
+
+   // Remove identity functions for simplicity
+   summary.clear();
+   for (auto iter = tempSummary.begin(); iter != tempSummary.end(); iter++) {
+      const Absloc &loc = iter->first;
+      const TransferFunc &tf = iter->second;
+      if (!tf.isIdentity()) {
+         summary[loc] = tf;
+      }
+   }
+
+   return true;
+}
+
+
+void StackAnalysis::summaryFixpoint() {
+   intra_nosink epred2;
+
+   std::queue<Block *> worklist;
+   worklist.push(func->entry());
+
+   bool firstBlock = true;
+   while (!worklist.empty()) {
+      Block *block = worklist.front();
+      worklist.pop();
+      stackanalysis_printf("\tSummary fixpoint analysis: visiting block at "
+         "0x%lx\n", block->start());
+
+      // Step 1: calculate the meet over the heights of all incoming
+      // intraprocedural blocks.
+      TransferSet input;
+      if (firstBlock) {
+         createSummaryEntryInput(input);
+         stackanalysis_printf("\t Primed initial block\n");
+      } else {
+         stackanalysis_printf("\t Calculating meet with block [%x-%x]\n",
+            block->start(), block->lastInsnAddr());
+         meetSummaryInputs(block, blockSummaryInputs[block], input);
+      }
+      stackanalysis_printf("\t New in meet: %s\n", format(input).c_str());
+
+      // Step 2: see if the input has changed
+      if (input == blockSummaryInputs[block] && !firstBlock) {
+         // No new work here
+         stackanalysis_printf("\t ... equal to current, skipping block\n");
+         continue;
+      }
+      stackanalysis_printf("\t ... inequal to current %s, analyzing block\n",
+         format(blockSummaryInputs[block]).c_str());
+
+      blockSummaryInputs[block] = input;
+
+      // Step 3: calculate our new outs
+      (*blockEffects)[block].accumulate(input, blockSummaryOutputs[block]);
+      stackanalysis_printf("\t ... output from block: %s\n",
+         format(blockSummaryOutputs[block]).c_str());
+
+      // Step 4: push all children on the worklist.
+      const Block::edgelist & outEdges = block->targets();
+      std::for_each(
+         boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
+         boost::make_filter_iterator(epred2, outEdges.end(), outEdges.end()),
+         boost::bind(add_target, boost::ref(worklist), _1)
+      );
+
+      firstBlock = false;
    }
 }
 
@@ -263,8 +384,8 @@ void StackAnalysis::summarize() {
         AbslocState input = blockInputs[block];
 
         std::map<Offset, TransferFuncs>::iterator iter;
-        for (iter = insnEffects[block].begin();
-            iter != insnEffects[block].end(); ++iter) {
+        for (iter = (*insnEffects)[block].begin();
+            iter != (*insnEffects)[block].end(); ++iter) {
             Offset off = iter->first;
             TransferFuncs &xferFuncs = iter->second;
 
@@ -447,16 +568,18 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
     return clean;
 }
 
-StackAnalysis::StackAnalysis() :
-   func(NULL), intervals_(NULL), word_size(0) {};
+StackAnalysis::StackAnalysis() : func(NULL), blockEffects(NULL),
+   insnEffects(NULL), intervals_(NULL), word_size(0) {}
    
 
-StackAnalysis::StackAnalysis(Function *f) : func(f),
-					    intervals_(NULL) {
+StackAnalysis::StackAnalysis(Function *f) : func(f), blockEffects(NULL),
+   insnEffects(NULL), intervals_(NULL) {
    word_size = func->isrc()->getAddressWidth();
-   theStackPtr = Expression::Ptr(new RegisterAST(MachRegister::getStackPointer(func->isrc()->getArch())));
-   thePC = Expression::Ptr(new RegisterAST(MachRegister::getPC(func->isrc()->getArch())));
-};
+   theStackPtr = Expression::Ptr(new RegisterAST(MachRegister::getStackPointer(
+      func->isrc()->getArch())));
+   thePC = Expression::Ptr(new RegisterAST(MachRegister::getPC(
+      func->isrc()->getArch())));
+}
 
 void StackAnalysis::debug() {
 }
@@ -528,7 +651,7 @@ void StackAnalysis::findDefinedHeights(ParseAPI::Block* b, Address addr, std::ve
 
   if (!intervals_) {
     // Check annotation
-    func->getAnnotation(intervals_, Stack_Anno);
+    func->getAnnotation(intervals_, Stack_Anno_Intervals);
   }
   if (!intervals_) {
     // Analyze?
@@ -560,7 +683,7 @@ StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, Absloc loc) {
   
   if (!intervals_) {
     // Check annotation
-    func->getAnnotation(intervals_, Stack_Anno);
+    func->getAnnotation(intervals_, Stack_Anno_Intervals);
   }
   if (!intervals_) {
     // Analyze?
@@ -856,7 +979,7 @@ public:
       rip = addr + insn->size();
    }
 
-   StateEvalVisitor() : defined(false), state(NULL), rip(0) {};
+   StateEvalVisitor() : defined(false), state(NULL), rip(0) {}
 
    bool isDefined() {
       return defined && results.size() == 1;
@@ -1758,7 +1881,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
          default:
             handleDefault(insn, xferFuncs);
             return true;
-      };
+      }
       if ((*iter).first.regClass() == gpr) {
          if (callWritten.test((*iter).second)) {
             Absloc loc((*iter).first);
@@ -1848,7 +1971,6 @@ void StackAnalysis::createEntryInput(AbslocState &input) {
    // IA32 - the in height includes the return address and therefore
    // is <wordsize>
    // POWER - the in height is 0
-
 #if defined(arch_power)
    input[Absloc(sp())] = Height(0);
 #elif (defined(arch_x86) || defined(arch_x86_64))
@@ -1858,10 +1980,50 @@ void StackAnalysis::createEntryInput(AbslocState &input) {
 #endif
 }
 
+void StackAnalysis::createSummaryEntryInput(TransferSet &input) {
+   // Get a set of all input locations
+   std::set<Absloc> inputLocs;
+   for (auto beIter = blockEffects->begin(); beIter != blockEffects->end();
+      beIter++) {
+      const SummaryFunc &sf = beIter->second;
+      const TransferSet &af = sf.accumFuncs;
+      for (auto afIter = af.begin(); afIter != af.end(); afIter++) {
+         const TransferFunc &tf = afIter->second;
+         if (tf.target.isValid()) {
+            inputLocs.insert(tf.target);
+         }
+         if (tf.from.isValid()) {
+            inputLocs.insert(tf.from);
+         }
+         if (!tf.fromRegs.empty()) {
+            for (auto frIter = tf.fromRegs.begin(); frIter != tf.fromRegs.end();
+               frIter++) {
+               Absloc deploc = frIter->first;
+               inputLocs.insert(deploc);
+            }
+         }
+      }
+   }
+
+   // Create identity functions for each input location
+   for (auto locIter = inputLocs.begin(); locIter != inputLocs.end();
+      locIter++) {
+      const Absloc &loc = *locIter;
+      input[loc] = TransferFunc::identityFunc(loc);
+   }
+}
+
+
 StackAnalysis::AbslocState StackAnalysis::getSrcOutputLocs(Edge* e) {
    Block* b = e->src();
    stackanalysis_printf("%lx ", b->lastInsnAddr());
    return blockOutputs[b];
+}
+
+StackAnalysis::TransferSet StackAnalysis::getSummarySrcOutputLocs(Edge* e) {
+   Block* b = e->src();
+   stackanalysis_printf("%lx ", b->lastInsnAddr());
+   return blockSummaryOutputs[b];
 }
 
 void StackAnalysis::meetInputs(Block *block, AbslocState& blockInput,
@@ -1872,7 +2034,7 @@ void StackAnalysis::meetInputs(Block *block, AbslocState& blockInput,
    //Intraproc epred; // ignore calls, returns in edge iteration
    //NoSinkPredicate epred2(&epred); // ignore sink node (unresolvable)
    intra_nosink epred2;
-   
+
    stackanalysis_printf("\t ... In edges: ");
    const Block::edgelist & inEdges = block->sources();
    std::for_each(
@@ -1886,22 +2048,68 @@ void StackAnalysis::meetInputs(Block *block, AbslocState& blockInput,
    meet(blockInput, input);
 }
 
+
+void StackAnalysis::meetSummaryInputs(Block *block, TransferSet &blockInput,
+   TransferSet &input) {
+
+   input.clear();
+
+   //Intraproc epred; // ignore calls, returns in edge iteration
+   //NoSinkPredicate epred2(&epred); // ignore sink node (unresolvable)
+   intra_nosink epred2;
+
+   stackanalysis_printf("\t ... In edges: ");
+   const Block::edgelist & inEdges = block->sources();
+   std::for_each(
+      boost::make_filter_iterator(epred2, inEdges.begin(), inEdges.end()),
+      boost::make_filter_iterator(epred2, inEdges.end(), inEdges.end()),
+      boost::bind(&StackAnalysis::meetSummary, this,
+         boost::bind(&StackAnalysis::getSummarySrcOutputLocs, this, _1),
+         boost::ref(input)));
+   stackanalysis_printf("\n");
+
+   meetSummary(blockInput, input);
+}
+
 void StackAnalysis::meet(const AbslocState &input, AbslocState &accum) {
    for (AbslocState::const_iterator iter = input.begin();
-        iter != input.end(); ++iter) {
+      iter != input.end(); ++iter) {
       accum[iter->first] = Height::meet(iter->second, accum[iter->first]);
+      if (accum[iter->first].isTop()) {
+         accum.erase(iter->first);
+      }
    }
 }
 
-StackAnalysis::TransferFunc StackAnalysis::TransferFunc::deltaFunc(Absloc r, long d) {
+
+void StackAnalysis::meetSummary(const TransferSet &input, TransferSet &accum) {
+   for (auto iter = input.begin(); iter != input.end(); ++iter) {
+      const Absloc &loc = iter->first;
+      const TransferFunc &inputFunc = iter->second;
+      accum[loc] = TransferFunc::meet(inputFunc, accum[loc]);
+      if (accum[loc].isTop() && !accum[loc].isRetop()) {
+         accum.erase(loc);
+      }
+   }
+}
+
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::identityFunc(
+   Absloc r) {
+   return copyFunc(r, r);
+}
+
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::deltaFunc(Absloc r,
+   long d) {
    return TransferFunc(uninitialized, d, Absloc(), r);
 }
 
-StackAnalysis::TransferFunc StackAnalysis::TransferFunc::absFunc(Absloc r, long a, bool i) {
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::absFunc(Absloc r,
+   long a, bool i) {
    return TransferFunc(a, 0, Absloc(), r, i);
 }
 
-StackAnalysis::TransferFunc StackAnalysis::TransferFunc::copyFunc(Absloc f, Absloc t, bool i) {
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::copyFunc(Absloc f,
+   Absloc t, bool i) {
    return TransferFunc (uninitialized, 0, f, t, i);
 }
 
@@ -1916,6 +2124,10 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::retopFunc(Absloc r) {
 StackAnalysis::TransferFunc StackAnalysis::TransferFunc::sibFunc(
    std::map<Absloc, std::pair<long,bool> > f, long d, Absloc t) {
    return TransferFunc(f, d, t);
+}
+
+bool StackAnalysis::TransferFunc::isIdentity() const {
+   return isCopy() && from == target && delta == 0 && !topBottom;
 }
 
 bool StackAnalysis::TransferFunc::isBottom() const {
@@ -2040,11 +2252,14 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(
    return input;
 }
 
-// Accumulation to the input map. This is intended to create a summary, so we
-// create something that can take further input.
-void StackAnalysis::TransferFunc::accumulate(
-   std::map<Absloc, TransferFunc> &inputs) {
-   TransferFunc &input = inputs[target];
+// Returns accumulated transfer function without modifying inputs
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
+   const TransferSet &inputs) const {
+   TransferFunc input;
+   auto findTarget = inputs.find(target);
+   if (findTarget != inputs.end()) {
+      input = findTarget->second;
+   }
    if (input.target.isValid()) assert(input.target == target);
    input.target = target; // Default constructed TransferFuncs won't have this
    assert(target.isValid());
@@ -2052,7 +2267,7 @@ void StackAnalysis::TransferFunc::accumulate(
    // Bottom stomps everything
    if (isBottom()) {
       input = bottomFunc(target);
-      return;
+      return input;
    }
    bool isTopBottomOrig = isTopBottom();
    if (!input.isTopBottom() && !input.isRetop()) {
@@ -2061,7 +2276,7 @@ void StackAnalysis::TransferFunc::accumulate(
    // Absolutes override everything else
    if (isAbs()) {
       input = absFunc(target, abs, false);
-      return;
+      return input;
    }
    if (isSIB()) {
       // First check for special cases
@@ -2094,7 +2309,7 @@ void StackAnalysis::TransferFunc::accumulate(
       // Now handle special cases
       if (anyBottomed) {
          input = bottomFunc(target);
-         return;
+         return input;
       }
       if (allAbs) {
          long newDelta = delta;
@@ -2105,11 +2320,11 @@ void StackAnalysis::TransferFunc::accumulate(
             newDelta += inputAbsFunc.abs * scaleOrig;
          }
          input = absFunc(target, newDelta);
-         return;
+         return input;
       }
       if (allToppable) {
          input = retopFunc(target);
-         return;
+         return input;
       }
 
       // Handle default case
@@ -2222,7 +2437,7 @@ void StackAnalysis::TransferFunc::accumulate(
 
       input = sibFunc(newFromRegs, newDelta, target);
       input.topBottom = isTopBottomOrig;
-      return;
+      return input;
    }
 
    // Copies can be tricky
@@ -2231,15 +2446,15 @@ void StackAnalysis::TransferFunc::accumulate(
       // We need to record that we want to take the inflow height
       // of a different register. 
       // Don't do an inputs[from] as that creates
-      std::map<Absloc, TransferFunc>::iterator iter = inputs.find(from);
+      auto iter = inputs.find(from);
       if (iter == inputs.end()) {
          // Copying to something we haven't seen yet; easy
          input = *this;
          input.topBottom = isTopBottomOrig;
-         return;
+         return input;
       }
 
-      TransferFunc &orig = iter->second;
+      const TransferFunc &orig = iter->second;
 
       if (orig.isAbs()) {
          // We reset the height, so we don't care about the inflow height
@@ -2251,7 +2466,7 @@ void StackAnalysis::TransferFunc::accumulate(
          if (isDelta()) {
             input.delta += delta;
          }
-         return;
+         return input;
       }
       if (orig.isCopy()) {
          assert(!orig.isAbs());
@@ -2263,7 +2478,7 @@ void StackAnalysis::TransferFunc::accumulate(
          if (isDelta()) {
             input.delta += delta;
          }
-         return;
+         return input;
       }
       if (orig.isSIB()) {
          input = orig;
@@ -2273,18 +2488,18 @@ void StackAnalysis::TransferFunc::accumulate(
          if (isDelta()) {
              input.delta += delta;
          }
-         return;
+         return input;
       }
 
       // without bottom we mess up in the default case.
       if (orig.isBottom()) {
          input = bottomFunc(target);
-         return;
+         return input;
       }
 
       if (orig.isRetop()) {
          input = retopFunc(target);
-         return;
+         return input;
       }
 
       // Default case: record the copy, zero out everything else, copy over
@@ -2308,6 +2523,15 @@ void StackAnalysis::TransferFunc::accumulate(
    if (isRetop()) {
       input = *this;
    }
+
+   return input;
+}
+
+
+// Accumulation to the input map. This is intended to create a summary, so we
+// create something that can take further input.
+void StackAnalysis::TransferFunc::accumulate(TransferSet &inputs) {
+   inputs[target] = summaryAccumulate(inputs);
 }
 
 
@@ -2328,6 +2552,23 @@ void StackAnalysis::SummaryFunc::apply(const AbslocState &in,
    }
 }
 
+
+void StackAnalysis::SummaryFunc::accumulate(const TransferSet &in,
+   TransferSet &out) const {
+
+   // Copy all the elements we don't have xfer funcs for.
+   out = in;
+
+   // Apply in parallel since all summary funcs are from the start of the block
+   for (TransferSet::const_iterator iter = accumFuncs.begin();
+      iter != accumFuncs.end(); ++iter) {
+      assert(iter->first.isValid());
+      out[iter->first] = iter->second.summaryAccumulate(in);
+      if (out[iter->first].isTop() && !out[iter->first].isRetop()) {
+         out.erase(iter->first);
+      }
+   }
+}
 
 void StackAnalysis::SummaryFunc::add(TransferFuncs &xferFuncs) {
    // We need to update our register->xferFunc map
@@ -2371,6 +2612,15 @@ std::string StackAnalysis::format(const AbslocState &input) const {
    }
    return ret.str();
 }
+
+std::string StackAnalysis::format(const TransferSet &input) const {
+   std::stringstream ret;
+   for (auto iter = input.begin(); iter != input.end(); ++iter) {
+      ret << iter->second.format() << ", ";
+   }
+   return ret.str();
+}
+
 
 // Converts a delta in a Result to a long
 long StackAnalysis::extractDelta(Result deltaRes) {
