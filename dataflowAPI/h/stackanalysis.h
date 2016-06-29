@@ -417,7 +417,8 @@ class StackAnalysis {
     void handleAddSub(InstructionPtr insn, ParseAPI::Block *block,
         const Offset off, int sign, TransferFuncs &xferFuncs);
     void handleLEA(InstructionPtr insn, TransferFuncs &xferFuncs);
-    void handleLeave(TransferFuncs &xferFuncs);
+    void handleLeave(ParseAPI::Block *block, const Offset off,
+        TransferFuncs &xferFuncs);
     void handlePushPopFlags(int sign, TransferFuncs &xferFuncs);
     void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);
     void handlePowerAddSub(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);

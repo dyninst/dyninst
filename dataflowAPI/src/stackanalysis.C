@@ -356,7 +356,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
           handleAddSub(insn, block, off, sign, xferFuncs);
           break;
        case e_leave:
-          handleLeave(xferFuncs);
+          handleLeave(block, off, xferFuncs);
           break;
        case e_pushfd:
           sign = -1;
@@ -827,10 +827,14 @@ void StackAnalysis::handleReturn(Instruction::Ptr insn, TransferFuncs &xferFuncs
    long delta = 0;
    std::vector<Operand> operands;
    insn->getOperands(operands);
-   if (operands.size() == 0) {
+   if (operands.size() < 2) {
       delta = word_size;
+   } else {
+      fprintf(stderr, "Unhandled RET instruction: %s\n",
+         insn->format().c_str());
+      assert(false);
    }
-   else if (operands.size() == 1) {
+/*   else if (operands.size() == 1) {
       // Ret immediate
       Result imm = operands[0].getValue()->eval();
       if (imm.defined) {
@@ -841,6 +845,7 @@ void StackAnalysis::handleReturn(Instruction::Ptr insn, TransferFuncs &xferFuncs
          xferFuncs.push_back(TransferFunc::bottomFunc(Absloc(sp())));
       }
    }
+*/
    stackanalysis_printf("\t\t\t Stack height changed by return: %lx\n", delta);
    xferFuncs.push_back(TransferFunc::deltaFunc(Absloc(sp()), delta));
 }
@@ -1269,16 +1274,39 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
    }
 }
 
-void StackAnalysis::handleLeave(TransferFuncs &xferFuncs) {
+void StackAnalysis::handleLeave(Block *block, const Offset off,
+   TransferFuncs &xferFuncs) {
    // This is... mov esp, ebp; pop ebp.
    // Handle it as such.
 
    // mov esp, ebp;
    xferFuncs.push_back(TransferFunc::copyFunc(Absloc(fp()), Absloc(sp())));
 
-   // pop ebp
+   // pop ebp: adjust stack pointer
    xferFuncs.push_back(TransferFunc::deltaFunc(Absloc(sp()), word_size));
-   xferFuncs.push_back(TransferFunc::bottomFunc(Absloc(fp())));
+
+   // pop ebp: copy value from stack to ebp
+   Absloc targLoc(fp());
+   if (intervals_ != NULL) {
+      Absloc sploc(sp());
+      Height spHeight = (*intervals_)[block][off][sploc];
+      if (spHeight.isTop()) {
+         // Load from a topped location. Since StackMod fails when storing
+         // to an undetermined topped location, it is safe to assume the
+         // value loaded here is not a stack height.
+         xferFuncs.push_back(TransferFunc::retopFunc(targLoc));
+      } else if (spHeight.isBottom()) {
+         xferFuncs.push_back(TransferFunc::bottomFunc(targLoc));
+      } else {
+         // Get copied stack slot
+         long readSlotHeight = spHeight.height();
+         Absloc readLoc(readSlotHeight, 0, NULL);
+
+         xferFuncs.push_back(TransferFunc::copyFunc(readLoc, targLoc));
+      }
+   } else {
+      xferFuncs.push_back(TransferFunc::bottomFunc(targLoc));
+   }
 }
 
 void StackAnalysis::handlePushPopFlags(int sign, TransferFuncs &xferFuncs) {
