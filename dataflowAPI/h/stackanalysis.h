@@ -402,7 +402,8 @@ private:
    void handleSignExtend(InstructionPtr insn, ParseAPI::Block *block,
       const Offset off, TransferFuncs &xferFuncs);
    void handleSpecialSignExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
-   void handleXor(InstructionPtr insn, TransferFuncs &xferFuncs);
+   void handleXor(InstructionPtr insn, ParseAPI::Block *block, const Offset off,
+      TransferFuncs &xferFuncs);
    void handleDiv(InstructionPtr insn, TransferFuncs &xferFuncs);
    void handleMul(InstructionPtr insn, TransferFuncs &xferFuncs);
    void handleDefault(InstructionPtr insn, TransferFuncs &xferFuncs);

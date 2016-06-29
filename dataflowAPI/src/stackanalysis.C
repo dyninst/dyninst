@@ -487,7 +487,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
          handleSpecialSignExtend(insn, xferFuncs);
          break;
       case e_xor:
-         handleXor(insn, xferFuncs);
+         handleXor(insn, block, off, xferFuncs);
          break;
       case e_div:
       case e_idiv:
@@ -709,7 +709,96 @@ std::ostream &operator<<(std::ostream &os,
 ///////////////////
 // Insn effect fragments
 ///////////////////
-void StackAnalysis::handleXor(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
+
+// Visitor class to evaluate stack heights and PC-relative addresses
+class StateEvalVisitor : public Visitor {
+public:
+   // addr is the starting address of instruction insn.
+   // insn is the instruction containing the expression to evaluate.
+   StateEvalVisitor(Address addr, Instruction::Ptr insn,
+      StackAnalysis::AbslocState *s) : defined(true), state(s) {
+      rip = addr + insn->size();
+   }
+
+   StateEvalVisitor() : defined(false), state(NULL), rip(0) {}
+
+   bool isDefined() {
+      return defined && results.size() == 1;
+   }
+
+   std::pair<Address, bool> getResult() {
+      return isDefined() ? results.back() : make_pair((Address) 0, false);
+   }
+
+   virtual void visit(BinaryFunction *bf) {
+      if (!defined) return;
+
+      Address arg1 = results.back().first;
+      bool isHeight1 = results.back().second;
+      results.pop_back();
+      Address arg2 = results.back().first;
+      bool isHeight2 = results.back().second;
+      results.pop_back();
+
+      if (bf->isAdd()) {
+         if (isHeight1 && isHeight2) {
+            defined = false;
+         } else {
+            results.push_back(make_pair(arg1 + arg2, isHeight1 || isHeight2));
+         }
+      } else if (bf->isMultiply()) {
+         if (isHeight1 || isHeight2) {
+            defined = false;
+         } else {
+            results.push_back(make_pair(arg1 * arg2, false));
+         }
+      } else {
+         defined = false;
+      }
+   }
+
+   virtual void visit(Immediate *imm) {
+      if (!defined) return;
+
+      results.push_back(make_pair(imm->eval().convert<Address>(), false));
+   }
+
+   virtual void visit(RegisterAST *rast) {
+      if (!defined) return;
+
+      MachRegister reg = rast->getID();
+      if (reg == x86::eip || reg == x86_64::eip || reg == x86_64::rip) {
+         results.push_back(make_pair(rip, false));
+      } else if (state != NULL) {
+         auto regState = state->find(Absloc(reg));
+         if (regState == state->end() || regState->second.isTop() ||
+            regState->second.isBottom()) {
+            defined = false;
+         } else {
+            results.push_back(make_pair(regState->second.height(), true));
+         }
+      } else {
+         defined = false;
+      }
+   }
+
+   virtual void visit(Dereference *) {
+      defined = false;
+   }
+
+private:
+   bool defined;
+   StackAnalysis::AbslocState *state;
+   Address rip;
+
+   // Stack for calculations
+   // bool is true if the value in Address is a stack height
+   std::deque<std::pair<Address, bool>> results;
+
+};
+
+void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
+   const Offset off, TransferFuncs &xferFuncs) {
    std::vector<Operand> operands;
    insn->getOperands(operands);
    assert(operands.size() == 2);
@@ -731,11 +820,126 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
    if (readSet.size() == 1 && writtenSet.size() == 1 &&
       (*readSet.begin())->getID() == (*writtenSet.begin())->getID() &&
       children0.size() == 0 && children1.size() == 0) {
-      stackanalysis_printf("\t\t\t Register zeroing detected\n");
-      Absloc loc((*writtenSet.begin())->getID());
+      // xor reg1, reg1
+      const MachRegister &reg = (*writtenSet.begin())->getID();
+      Absloc loc(reg);
       xferFuncs.push_back(TransferFunc::absFunc(loc, 0));
+      return;
+   }
+
+
+   if (insn->writesMemory()) {
+      // xor mem1, reg2/imm2
+      assert(writtenSet.size() == 0);
+
+      // Extract the expression inside the dereference
+      std::vector<Expression::Ptr> &addrExpr = children0;
+      assert(addrExpr.size() == 1);
+
+      // Try to determine the written memory address
+      Absloc writtenLoc;
+      StateEvalVisitor visitor;
+      if (intervals_ == NULL) {
+         visitor = StateEvalVisitor(off, insn, NULL);
+      } else {
+         visitor = StateEvalVisitor(off, insn, &(*intervals_)[block][off]);
+      }
+      addrExpr[0]->apply(&visitor);
+      if (visitor.isDefined()) {
+         std::pair<Address, bool> resultPair = visitor.getResult();
+         if (resultPair.second) {
+            // We have a stack slot
+            writtenLoc = Absloc(resultPair.first, 0, NULL);
+         } else {
+            // We have a static address
+            writtenLoc = Absloc(resultPair.first);
+         }
+      } else {
+         // Couldn't determine written location, so assume it's not on the stack
+         // and ignore it.
+         return;
+      }
+
+      if (readSet.size() > 0) {
+         // xor mem1, reg2
+         assert(readSet.size() == 1);
+         Absloc from((*readSet.begin())->getID());
+         std::map<Absloc, std::pair<long, bool>> fromRegs;
+         fromRegs[writtenLoc] = std::make_pair(1, true);
+         fromRegs[from] = std::make_pair(1, true);
+         xferFuncs.push_back(TransferFunc::sibFunc(fromRegs, 0, writtenLoc));
+      } else {
+         // xor mem1, imm2
+         // Xor with immediate.  Set topBottom on target loc
+         Expression::Ptr immExpr = operands[1].getValue();
+         assert(typeid(*immExpr) == typeid(Immediate));
+         xferFuncs.push_back(TransferFunc::copyFunc(writtenLoc, writtenLoc,
+            true));
+      }
+      return;
+   }
+
+
+   assert(writtenSet.size() == 1);
+   MachRegister written = (*writtenSet.begin())->getID();
+   Absloc writtenLoc(written);
+
+   if (insn->readsMemory()) {
+      // xor reg1, mem2
+      // Extract the expression inside the dereference
+      std::vector<Expression::Ptr> &addrExpr = children1;
+      assert(addrExpr.size() == 1);
+
+      // Try to determine the read memory address
+      StateEvalVisitor visitor;
+      if (intervals_ == NULL) {
+         visitor = StateEvalVisitor(off, insn, NULL);
+      } else {
+         visitor = StateEvalVisitor(off, insn, &(*intervals_)[block][off]);
+      }
+      addrExpr[0]->apply(&visitor);
+      if (visitor.isDefined()) {
+         std::pair<Address, bool> resultPair = visitor.getResult();
+         Absloc readLoc;
+         if (resultPair.second) {
+            // We have a stack slot
+            readLoc = Absloc(resultPair.first, 0, NULL);
+         } else {
+            // We have a static address
+            readLoc = Absloc(resultPair.first);
+         }
+         std::map<Absloc, std::pair<long, bool>> fromRegs;
+         fromRegs[writtenLoc] = std::make_pair(1, true);
+         fromRegs[readLoc] = std::make_pair(1, true);
+         xferFuncs.push_back(TransferFunc::sibFunc(fromRegs, 0, writtenLoc));
+      } else {
+         // Couldn't determine the read location.  Assume it's not on the stack.
+         xferFuncs.push_back(TransferFunc::copyFunc(writtenLoc, writtenLoc,
+            true));
+      }
+      return;
+   }
+
+
+   // xor reg1, reg2/imm2
+   MachRegister read;
+   if (!readSet.empty()) {
+      assert(readSet.size() == 1);
+      read = (*readSet.begin())->getID();
+   }
+   Absloc readLoc(read);
+
+   if (read.isValid()) {
+      // xor reg1, reg2
+      std::map<Absloc, std::pair<long, bool>> fromRegs;
+      fromRegs[writtenLoc] = std::make_pair(1, true);
+      fromRegs[readLoc] = std::make_pair(1, true);
+      xferFuncs.push_back(TransferFunc::sibFunc(fromRegs, 0, writtenLoc));
    } else {
-      handleDefault(insn, xferFuncs);
+      // xor reg1, imm1
+      InstructionAPI::Expression::Ptr readExpr = operands[1].getValue();
+      assert(typeid(*readExpr) == typeid(InstructionAPI::Immediate));
+      xferFuncs.push_back(TransferFunc::copyFunc(writtenLoc, writtenLoc, true));
    }
 }
 
@@ -933,94 +1137,6 @@ void StackAnalysis::handleReturn(Instruction::Ptr insn,
    stackanalysis_printf("\t\t\t Stack height changed by return: %lx\n", delta);
    xferFuncs.push_back(TransferFunc::deltaFunc(Absloc(sp()), delta));
 }
-
-
-// Visitor class to evaluate stack heights and PC-relative addresses
-class StateEvalVisitor : public Visitor {
-public:
-   // addr is the starting address of instruction insn.
-   // insn is the instruction containing the expression to evaluate.
-   StateEvalVisitor(Address addr, Instruction::Ptr insn,
-      StackAnalysis::AbslocState *s) : defined(true), state(s) {
-      rip = addr + insn->size();
-   }
-
-   StateEvalVisitor() : defined(false), state(NULL), rip(0) {}
-
-   bool isDefined() {
-      return defined && results.size() == 1;
-   }
-
-   std::pair<Address, bool> getResult() {
-      return isDefined() ? results.back() : make_pair((Address) 0, false);
-   }
-
-   virtual void visit(BinaryFunction *bf) {
-      if (!defined) return;
-
-      Address arg1 = results.back().first;
-      bool isHeight1 = results.back().second;
-      results.pop_back();
-      Address arg2 = results.back().first;
-      bool isHeight2 = results.back().second;
-      results.pop_back();
-
-      if (bf->isAdd()) {
-         if (isHeight1 && isHeight2) {
-            defined = false;
-         } else {
-            results.push_back(make_pair(arg1 + arg2, isHeight1 || isHeight2));
-         }
-      } else if (bf->isMultiply()) {
-         if (isHeight1 || isHeight2) {
-            defined = false;
-         } else {
-            results.push_back(make_pair(arg1 * arg2, false));
-         }
-      } else {
-         defined = false;
-      }
-   }
-
-   virtual void visit(Immediate *imm) {
-      if (!defined) return;
-
-      results.push_back(make_pair(imm->eval().convert<Address>(), false));
-   }
-
-   virtual void visit(RegisterAST *rast) {
-      if (!defined) return;
-
-      MachRegister reg = rast->getID();
-      if (reg == x86::eip || reg == x86_64::eip || reg == x86_64::rip) {
-         results.push_back(make_pair(rip, false));
-      } else if (state != NULL) {
-         auto regState = state->find(Absloc(reg));
-         if (regState == state->end() || regState->second.isTop() ||
-            regState->second.isBottom()) {
-            defined = false;
-         } else {
-            results.push_back(make_pair(regState->second.height(), true));
-         }
-      } else {
-         defined = false;
-      }
-   }
-
-   virtual void visit(Dereference *) {
-      defined = false;
-   }
-
-private:
-   bool defined;
-   StackAnalysis::AbslocState *state;
-   Address rip;
-
-   // Stack for calculations
-   // bool is true if the value in Address is a stack height
-   std::deque<std::pair<Address, bool>> results;
-
-};
 
 
 void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
