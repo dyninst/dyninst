@@ -83,6 +83,8 @@ public:
     SgAsmOperandList* get_operandList() const;
     void set_operandList(SgAsmOperandList* operandList);
 
+    virtual size_t get_size() const;
+
 public:
     SgAsmInstruction(rose_addr_t address = 0, std::string mnemonic = "");
 

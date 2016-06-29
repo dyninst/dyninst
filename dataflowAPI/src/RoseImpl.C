@@ -353,6 +353,12 @@ void SgAsmExpression::set_type(SgAsmType *type) {
     p_type = type;
 }
 
+size_t SgAsmExpression::get_nBits() const {
+    SgAsmType *type = get_type();
+    ASSERT_not_null2(type, "expression has no type");
+    return type->get_nBits();
+}
+
 std::string SgAsmExpression::get_replacement() const {
     return p_replacement;
 }
@@ -1220,6 +1226,60 @@ SgAsmDirectRegisterExpression::~SgAsmDirectRegisterExpression() {
 
 }
 
+// defs for SgAsmIndirectRegisterExpression
+SgAsmIndirectRegisterExpression::SgAsmIndirectRegisterExpression(RegisterDescriptor descriptor,
+                                                                 RegisterDescriptor stride, RegisterDescriptor offset,
+                                                                 size_t index, size_t modulus) : SgAsmRegisterReferenceExpression(descriptor) {
+    p_stride = stride;
+    p_offset = offset;
+    p_index = index;
+    p_modulus = modulus;
+}
+
+SgAsmIndirectRegisterExpression::~SgAsmIndirectRegisterExpression() {
+
+}
+
+std::string SgAsmIndirectRegisterExpression::class_name() const {
+    return "SgAsmIndirectRegisterExpression";
+}
+
+VariantT SgAsmIndirectRegisterExpression::variantT() const {
+    return V_SgAsmIndirectRegisterExpression;
+}
+
+RegisterDescriptor SgAsmIndirectRegisterExpression::get_stride() const {
+    return p_stride;
+}
+
+void SgAsmIndirectRegisterExpression::set_stride(RegisterDescriptor stride) {
+    p_stride = stride;
+}
+
+RegisterDescriptor SgAsmIndirectRegisterExpression::get_offset() const {
+    return p_offset;
+}
+
+void SgAsmIndirectRegisterExpression::set_offset(RegisterDescriptor offset) {
+    p_offset = offset;
+}
+
+size_t SgAsmIndirectRegisterExpression::get_index() const {
+    return p_index;
+}
+
+void SgAsmIndirectRegisterExpression::set_index(size_t index) {
+    p_index = index;
+}
+
+size_t SgAsmIndirectRegisterExpression::get_modulus() const {
+    return p_modulus;
+}
+
+void SgAsmIndirectRegisterExpression::set_modulus(size_t modulus) {
+    p_modulus = modulus;
+}
+
 // defs for SgAsmStatement
 std::string SgAsmStatement::class_name() const {
     return "SgAsmStatement";
@@ -1298,6 +1358,10 @@ void SgAsmInstruction::set_mnemonic(std::string mnemonic) {
 
 void SgAsmInstruction::set_raw_bytes(SgUnsignedCharList raw_bytes) {
     p_raw_bytes = raw_bytes;
+}
+
+size_t SgAsmInstruction::get_size() const {
+    return p_raw_bytes.size();
 }
 
 // defs for SgAsmArmv8Instruction
@@ -1496,6 +1560,10 @@ SgAsmDirectRegisterExpression *isSgAsmDirectRegisterExpression(SgNode *s) {
     return dynamic_cast<SgAsmDirectRegisterExpression *>(s);
 }
 
+SgAsmIndirectRegisterExpression *isSgAsmIndirectRegisterExpression(SgNode *s) {
+    return dynamic_cast<SgAsmIndirectRegisterExpression *>(s);
+}
+
 SgAsmx86RegisterReferenceExpression *isSgAsmx86RegisterReferenceExpression(SgNode *n) {
     return dynamic_cast<SgAsmx86RegisterReferenceExpression *>(n);
 }
@@ -1530,6 +1598,10 @@ SgAsmIntegerValueExpression *isSgAsmIntegerValueExpression(SgNode *s) {
 
 SgAsmFloatValueExpression *isSgAsmFloatValueExpression(SgNode *s) {
     return dynamic_cast<SgAsmFloatValueExpression *>(s);
+}
+
+SgAsmArmv8Instruction *isSgAsmArmv8Instruction(SgNode *s) {
+    return dynamic_cast<SgAsmArmv8Instruction *>(s);
 }
 
 SgAsmNode *isSgAsmNode(SgNode *s) {
