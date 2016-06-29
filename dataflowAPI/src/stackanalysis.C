@@ -590,29 +590,26 @@ std::string StackAnalysis::TransferFunc::format() const {
          foundType = true;
       }
       if (isSIB()) {
-          for (auto iter = fromRegs.begin(); iter != fromRegs.end(); ++iter) {
-              if (iter != fromRegs.begin()) {
-                  ret << "+";
-              }
-              ret << "(";
-              ret << (*iter).first.format() << "*" << (*iter).second.first;
-              if ((*iter).second.second) {
-                  ret << ", will round to TOP or BOTTOM";
-              }
-              ret << ")";
-          }
-          foundType = true;
+         for (auto iter = fromRegs.begin(); iter != fromRegs.end(); ++iter) {
+            if (iter != fromRegs.begin()) {
+               ret << "+";
+            }
+            ret << "(";
+            ret << (*iter).first.format() << "*" << (*iter).second.first;
+            if ((*iter).second.second) {
+               ret << ", will round to TOP or BOTTOM";
+            }
+            ret << ")";
+         }
+         foundType = true;
       }
       if (isDelta()) {
-          if (!foundType) {
-            ret << target.format() << "+" << delta;
-          } else {
-            ret << "+" << delta;
-          }
+         assert(foundType);
+         ret << "+" << delta;
       }
    }
    if (isTopBottom()) {
-    ret << ", will round to TOP or BOTTOM";
+      ret << ", will round to TOP or BOTTOM";
    }
    ret << "]";
    return ret.str();
@@ -2138,7 +2135,7 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::identityFunc(
 
 StackAnalysis::TransferFunc StackAnalysis::TransferFunc::deltaFunc(Absloc r,
    long d) {
-   return TransferFunc(uninitialized, d, Absloc(), r);
+   return TransferFunc(uninitialized, d, r, r);
 }
 
 StackAnalysis::TransferFunc StackAnalysis::TransferFunc::absFunc(Absloc r,
@@ -2179,7 +2176,7 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::meet(
          // Since we know lhs != rhs, the abs values must be different
          ret = retopFunc(lhs.target);
       } else if (rhs.isCopy() || rhs.isBottom() || rhs.isRetop() ||
-         rhs.isSIB() || rhs.isDelta()) {
+         rhs.isSIB()) {
          ret = rhs;
       } else {
          assert(false);
@@ -2194,6 +2191,7 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::meet(
             // we need to return a function that is topBottom.
             ret = lhs;
             ret.topBottom = true;
+            ret.delta = 0;
          } else {
             // Different base registers.  Use a SIB function to capture both
             // possible bases.  Note that current SIB function handling doesn't
@@ -2215,23 +2213,6 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::meet(
          // FIXME if SIB function handling changes.
          ret = rhs;
          ret.fromRegs[lhs.from] = std::make_pair(1, true);
-      } else if (rhs.isDelta()) {
-         if (lhs.from == rhs.target) {
-            // Same base register. Since we know lhs != rhs, either the deltas
-            // are different or the topBottom values are different. Either way,
-            // we need to return a function that is topBottom.
-            ret = lhs;
-            ret.topBottom = true;
-         } else {
-            // Different base registers.  Use a SIB function to capture both
-            // possible bases.  Note that current SIB function handling doesn't
-            // actually add the terms together.
-            // FIXME if SIB function handling changes.
-            std::map<Absloc, std::pair<long, bool>> fromRegs;
-            fromRegs[lhs.from] = std::make_pair(1, true);
-            fromRegs[rhs.target] = std::make_pair(1, true);
-            ret = sibFunc(fromRegs, 0, lhs.target);
-         }
       } else {
          assert(false);
       }
@@ -2241,7 +2222,7 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::meet(
       if (rhs.isAbs()) {
          ret = lhs;
       } else if (rhs.isCopy() || rhs.isBottom() || rhs.isRetop() ||
-         rhs.isSIB() || rhs.isDelta()) {
+         rhs.isSIB()) {
          ret = rhs;
       } else {
          assert(false);
@@ -2267,6 +2248,7 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::meet(
             // need to return a function that is topBottom.
             ret = lhs;
             ret.topBottom = true;
+            ret.delta = 0;
          } else {
             // Different SIBs.  Combine the terms of the LHS and RHS SIB
             // functions.  Note that current SIB function handling doesn't
@@ -2283,57 +2265,6 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::meet(
                   ret.fromRegs[loc] = val;
                }
             }
-         }
-      } else if (rhs.isDelta()) {
-         // Add the base register of the RHS delta to the LHS SIB function.
-         // Note that current SIB function handling doesn't actually add the
-         // terms together.
-         // FIXME if SIB function handling changes.
-         ret = lhs;
-         ret.fromRegs[rhs.target] = std::make_pair(1, true);
-      } else {
-         assert(false);
-      }
-   } else if (lhs.isDelta()) {
-      if (rhs.isAbs()) {
-         ret = lhs;
-      } else if (rhs.isCopy()) {
-         if (lhs.target == rhs.from) {
-            // Same base register. Since we know lhs != rhs, either the deltas
-            // are different or the topBottom values are different. Either way,
-            // we need to return a function that is topBottom.
-            ret = lhs;
-            ret.topBottom = true;
-         } else {
-            // Different base registers.  Use a SIB function to capture both
-            // possible bases.  Note that current SIB function handling doesn't
-            // actually add the terms together.
-            // FIXME if SIB function handling changes.
-            std::map<Absloc, std::pair<long, bool>> fromRegs;
-            fromRegs[lhs.target] = std::make_pair(1, true);
-            fromRegs[rhs.from] = std::make_pair(1, true);
-            ret = sibFunc(fromRegs, 0, lhs.target);
-         }
-      } else if (rhs.isBottom()) {
-         ret = rhs;
-      } else if (rhs.isRetop()) {
-         ret = lhs;
-      } else if (rhs.isSIB()) {
-         // Add the base register of the LHS delta to the RHS SIB function.
-         // Note that current SIB function handling doesn't actually add the
-         // terms together.
-         // FIXME if SIB function handling changes.
-         ret = rhs;
-         ret.fromRegs[lhs.target] = std::make_pair(1, true);
-      } else if (rhs.isDelta()) {
-         if (lhs.target == rhs.target) {
-            // Same base register. Since we know lhs != rhs, either the deltas
-            // are different or the topBottom values are different. Either way,
-            // we need to return a function that is topBottom.
-            ret = lhs;
-            ret.topBottom = true;
-         } else {
-            assert(false);
          }
       } else {
          assert(false);
@@ -2544,7 +2475,6 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
 
       // Handle default case
       std::map<Absloc, std::pair<long,bool> > newFromRegs;
-      long newDelta = delta;
       bool anyToppedTerms = false;
       for (auto iter = fromRegs.begin(); iter != fromRegs.end(); ++iter) {
          Absloc fromLocOrig = (*iter).first;
@@ -2571,9 +2501,6 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
          } else {
             TransferFunc fromRegFunc = findLoc->second;
             assert(!fromRegFunc.isBottom());  // Should be special case
-            if (fromRegFunc.isAbs()) {
-               newDelta += fromRegFunc.abs * scaleOrig;
-            }
             if (fromRegFunc.isSIB()) {
                // Replace registers and update scales
                for (auto regIter = fromRegFunc.fromRegs.begin();
@@ -2604,7 +2531,6 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
                }
             }
             if (fromRegFunc.isDelta()) {
-               newDelta += fromRegFunc.delta * scaleOrig;
                if (!fromRegFunc.isCopy() && !fromRegFunc.isSIB() &&
                   !fromRegFunc.isAbs()) {
                   // Add the register back in...
@@ -2650,14 +2576,14 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
          }
       }
 
-      input = sibFunc(newFromRegs, newDelta, target);
+      input = sibFunc(newFromRegs, 0, target);
       input.topBottom = isTopBottomOrig;
       return input;
    }
 
    // Copies can be tricky
    // apply copy logic only if registers are different
-   if (isCopy() && target != from) {
+   if (isCopy()) {
       // We need to record that we want to take the inflow height
       // of a different register. 
       // Don't do an inputs[from] as that creates
@@ -2665,7 +2591,10 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
       if (iter == inputs.end()) {
          // Copying to something we haven't seen yet; easy
          input = *this;
-         input.topBottom = isTopBottomOrig;
+         if (isTopBottomOrig) {
+            input.topBottom = true;
+            input.delta = 0;
+         }
          return input;
       }
 
@@ -2674,7 +2603,8 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
       if (orig.isAbs()) {
          // We reset the height, so we don't care about the inflow height
          assert(!orig.isCopy());
-         input = absFunc(target, orig.abs);
+         input = orig;
+         input.target = target;
          input.topBottom = false;
          assert(input.target.isValid());
 
@@ -2687,21 +2617,27 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
          assert(!orig.isAbs());
          input = orig;
          input.target = target;
-         input.topBottom = isTopBottomOrig || orig.isTopBottom();
          assert(input.target.isValid());
 
          if (isDelta()) {
             input.delta += delta;
+         }
+         if (isTopBottomOrig || orig.isTopBottom()) {
+            input.topBottom = true;
+            input.delta = 0;
          }
          return input;
       }
       if (orig.isSIB()) {
          input = orig;
          input.target = target;
-         input.topBottom = isTopBottomOrig || orig.isTopBottom();
 
          if (isDelta()) {
-             input.delta += delta;
+            input.delta += delta;
+         }
+         if (isTopBottomOrig || orig.isTopBottom()) {
+            input.topBottom = true;
+            input.delta = 0;
          }
          return input;
       }
@@ -2719,21 +2655,15 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
 
       // Default case: record the copy, zero out everything else, copy over
       // the delta if it's defined.
-      //input.target is defined
       input.from = orig.target;
       input.abs = uninitialized;
-      if (orig.isDelta()) {
-         input.delta = orig.delta;
-      } else {
-         input.delta = 0;
-      }
+      assert(!orig.isDelta());
+      input.delta = 0;
       input.topBottom = isTopBottomOrig || orig.isTopBottom();
       input.fromRegs.clear();
    }
 
-   if (isDelta() && !input.isRetop()) {
-      input.delta += delta;
-   }
+   assert(!isDelta());
 
    if (isRetop()) {
       input = *this;
