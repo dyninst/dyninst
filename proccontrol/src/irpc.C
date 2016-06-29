@@ -1045,11 +1045,10 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
       pthrd_printf("Cleaning up allocation RPC\n");
       ievent->alloc_regresult = reg_response::createRegResponse();
       bool result = proc->plat_collectAllocationResult(thr, ievent->alloc_regresult);
-      if( (long)ievent->alloc_regresult->getResult() < 0){
-            perr_printf("System call returned value is negative.\n");
-            assert(0);
+      if( (long)ievent->alloc_regresult->getResult() == 0){
+            perr_printf("InfMalloc failed\n");
+            return ret_error;
       }
-      assert(result);
       if(!result) return ret_error;
 
       proc->handlerPool()->notifyOfPendingAsyncs(ievent->alloc_regresult, ev);
