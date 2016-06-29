@@ -339,7 +339,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
           sign = -1;
           //FALLTHROUGH
        case e_pop:
-          handlePushPop(insn, sign, xferFuncs);
+          handlePushPop(insn, block, off, sign, xferFuncs);
           break;
        case e_ret_near:
        case e_ret_far:
@@ -746,8 +746,8 @@ void StackAnalysis::handleMul(Instruction::Ptr insn,
 }
 
 
-void StackAnalysis::handlePushPop(Instruction::Ptr insn, int sign,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
+   const Offset off, int sign, TransferFuncs &xferFuncs) {
 
    long delta = 0;
    Operand arg = insn->getOperand(0);
@@ -766,18 +766,60 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, int sign,
    //   delta = sign *arg.getValue()->size();
    xferFuncs.push_back(TransferFunc::deltaFunc(Absloc(sp()), delta));
 
-   // Let's get whatever was popped (if it was)
-   if (insn->getOperation().getID() == e_pop &&
-       !insn->writesMemory()) {
-      MachRegister reg = sp();
 
-      std::set<RegisterAST::Ptr> written;
-      insn->getWriteSet(written);
-      for (std::set<RegisterAST::Ptr>::iterator iter = written.begin(); 
-           iter != written.end(); ++iter) {
-         if ((*iter)->getID() != sp()) reg = (*iter)->getID();
+   if (insn->getOperation().getID() == e_push && insn->writesMemory()) {
+      // This is a push.  Let's record the value pushed on the stack if
+      // possible.
+      if (intervals_ != NULL) {
+         Absloc sploc(sp());
+         Height spHeight = (*intervals_)[block][off][sploc];
+         if (!spHeight.isTop() && !spHeight.isBottom()) {
+            // Get written stack slot
+            long writtenSlotHeight = spHeight.height() - word_size;
+            Absloc writtenLoc(writtenSlotHeight, 0, NULL);
+
+            // Get copied register
+            Expression::Ptr readExpr = insn->getOperand(0).getValue();
+            assert(typeid(*readExpr) == typeid(RegisterAST));
+            MachRegister readReg = boost::dynamic_pointer_cast<RegisterAST>(
+               readExpr)->getID();
+            Absloc readLoc(readReg);
+
+            xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc));
+         }
       }
-      xferFuncs.push_back(TransferFunc::bottomFunc(Absloc(reg)));
+   } else if (insn->getOperation().getID() == e_pop && !insn->writesMemory()) {
+      // This is a pop.  Let's record the value popped if possible.
+
+      // Get target register
+      Expression::Ptr targExpr = insn->getOperand(0).getValue();
+      assert(typeid(*targExpr) == typeid(RegisterAST));
+      MachRegister targReg = boost::dynamic_pointer_cast<RegisterAST>(
+         targExpr)->getID();
+      Absloc targLoc(targReg);
+
+      if (intervals_ != NULL) {
+         Absloc sploc(sp());
+         Height spHeight = (*intervals_)[block][off][sploc];
+         if (spHeight.isTop()) {
+            // Load from a topped location. Since StackMod fails when storing
+            // to an undetermined topped location, it is safe to assume the
+            // value loaded here is not a stack height.
+            xferFuncs.push_back(TransferFunc::retopFunc(targLoc));
+         } else if (spHeight.isBottom()) {
+            xferFuncs.push_back(TransferFunc::bottomFunc(targLoc));
+         } else {
+            // Get copied stack slot
+            long readSlotHeight = spHeight.height();
+            Absloc readLoc(readSlotHeight, 0, NULL);
+
+            xferFuncs.push_back(TransferFunc::copyFunc(readLoc, targLoc));
+         }
+      } else {
+         xferFuncs.push_back(TransferFunc::bottomFunc(targLoc));
+      }
+   } else {
+      assert(false);
    }
 }
 
@@ -1955,7 +1997,7 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(
    }
 
    if (isAbs()) {
-      // We cannot be an copy, as the absolute removes that.
+      // We cannot be a copy, as the absolute removes that.
       assert(!isCopy());
       // Apply the absolute
       // NOTE: an absolute is not a stack height, set input to top

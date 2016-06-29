@@ -411,7 +411,8 @@ class StackAnalysis {
     bool isCall(InstructionPtr insn);
     bool handleNormalCall(InstructionPtr insn, ParseAPI::Block *block, Offset off, TransferFuncs &xferFuncs);
     bool handleThunkCall(InstructionPtr insn, TransferFuncs &xferFuncs);
-    void handlePushPop(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
+    void handlePushPop(InstructionPtr insn, ParseAPI::Block *block,
+        const Offset off, int sign, TransferFuncs &xferFuncs);
     void handleReturn(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleAddSub(InstructionPtr insn, ParseAPI::Block *block,
         const Offset off, int sign, TransferFuncs &xferFuncs);
