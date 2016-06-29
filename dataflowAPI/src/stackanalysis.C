@@ -197,62 +197,48 @@ void add_target(std::queue<Block*>& worklist, Edge* e)
 }
 
 void StackAnalysis::fixpoint() {
-   std::queue<Block *> worklist;
-
-   //Intraproc epred; // ignore calls, returns in edge iteration
-   //NoSinkPredicate nosink(); // ignore sink node (unresolvable)
    intra_nosink epred2;
 
-   worklist.push(func->entry());
-
+   std::queue<Block *> worklist;
    Block *entry = func->entry();
+   worklist.push(entry);
 
    while (!worklist.empty()) {
       Block *block = worklist.front();
+      worklist.pop();
       stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n",
          block->start());
 
-      worklist.pop();
-
       // Step 1: calculate the meet over the heights of all incoming
       // intraprocedural blocks.
-
       AbslocState input;
-
       if (block == entry) {
          createEntryInput(input);
          stackanalysis_printf("\t Primed initial block\n");
-      }
-      else {
+      } else {
          stackanalysis_printf("\t Calculating meet with block [%x-%x]\n",
             block->start(), block->lastInsnAddr());
          meetInputs(block, blockInputs[block], input);
       }
-
       stackanalysis_printf("\t New in meet: %s\n", format(input).c_str());
 
       // Step 2: see if the input has changed
-
       if (input == blockInputs[block]) {
          // No new work here
          stackanalysis_printf("\t ... equal to current, skipping block\n");
          continue;
       }
-
       stackanalysis_printf("\t ... inequal to current %s, analyzing block\n",
          format(blockInputs[block]).c_str());
 
       blockInputs[block] = input;
 
       // Step 3: calculate our new outs
-
       blockEffects[block].apply(input, blockOutputs[block]);
-
       stackanalysis_printf("\t ... output from block: %s\n",
          format(blockOutputs[block]).c_str());
 
       // Step 4: push all children on the worklist.
-
       const Block::edgelist & outEdges = block->targets();
       std::for_each(
          boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
@@ -2074,7 +2060,7 @@ void StackAnalysis::TransferFunc::accumulate(
    }
    // Absolutes override everything else
    if (isAbs()) {
-      input = absFunc(target, abs, isTopBottomOrig);
+      input = absFunc(target, abs, false);
       return;
    }
    if (isSIB()) {
@@ -2196,7 +2182,7 @@ void StackAnalysis::TransferFunc::accumulate(
                   auto found = newFromRegs.find(fromLocOrig);
                   if (found == newFromRegs.end()) {
                      newFromRegs.insert(make_pair(fromLocOrig,
-                        make_pair(scaleOrig,false)));
+                        make_pair(scaleOrig, fromRegFunc.isTopBottom())));
                   }
                }
             }
@@ -2205,6 +2191,7 @@ void StackAnalysis::TransferFunc::accumulate(
                // in this block.  Thus this term is TOP and doesn't affect the
                // value of the LEA, so we can ignore it.
                // FIXME if we change apply() to include constant propagation
+               anyToppedTerms = true;
                continue;
             }
             if (fromRegFunc.isTop()) {
@@ -2215,7 +2202,7 @@ void StackAnalysis::TransferFunc::accumulate(
                auto found = newFromRegs.find(fromLocOrig);
                if (found == newFromRegs.end()) {
                   newFromRegs.insert(make_pair(fromLocOrig,
-                     make_pair(scaleOrig,false)));
+                     make_pair(scaleOrig, false)));
                }
             }
          }
@@ -2257,8 +2244,8 @@ void StackAnalysis::TransferFunc::accumulate(
       if (orig.isAbs()) {
          // We reset the height, so we don't care about the inflow height
          assert(!orig.isCopy());
-         input = absFunc(input.target, orig.abs);
-         input.topBottom = isTopBottomOrig || orig.isTopBottom();
+         input = absFunc(target, orig.abs);
+         input.topBottom = false;
          assert(input.target.isValid());
 
          if (isDelta()) {
@@ -2281,12 +2268,11 @@ void StackAnalysis::TransferFunc::accumulate(
       if (orig.isSIB()) {
          input = orig;
          input.target = target;
-         input.topBottom = isTopBottomOrig;
+         input.topBottom = isTopBottomOrig || orig.isTopBottom();
 
          if (isDelta()) {
              input.delta += delta;
          }
-
          return;
       }
 
