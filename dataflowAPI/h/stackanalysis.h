@@ -409,6 +409,10 @@ private:
    void handleDefault(InstructionPtr insn, TransferFuncs &xferFuncs);
 
    long extractDelta(InstructionAPI::Result deltaRes);
+   bool getSubReg(const MachRegister &reg, MachRegister &subreg);
+   void retopBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
+   void copyBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
+   void bottomBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
 
    Height getStackCleanAmount(ParseAPI::Function *func);
 
