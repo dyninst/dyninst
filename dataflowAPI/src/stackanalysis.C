@@ -1919,19 +1919,20 @@ void StackAnalysis::handleSpecialSignExtend(Instruction::Ptr insn,
 
 void StackAnalysis::handleDefault(Instruction::Ptr insn,
    TransferFuncs &xferFuncs) {
-
    std::set<RegisterAST::Ptr> written;
    insn->getWriteSet(written);
-   for (std::set<RegisterAST::Ptr>::iterator iter = written.begin(); 
-        iter != written.end(); ++iter) {
-
-      Absloc loc((*iter)->getID());
+   for (auto iter = written.begin(); iter != written.end(); ++iter) {
+      const MachRegister &reg = (*iter)->getID();
+      if ((signed int) reg.regClass() == x86::FLAG ||
+         (signed int) reg.regClass() == x86_64::FLAG) {
+         continue;
+      }
+      Absloc loc(reg);
       xferFuncs.push_back(TransferFunc::copyFunc(loc, loc, true));
       stackanalysis_printf(
          "\t\t\t Unhandled insn %s detected: %s set to topBottom\n",
          insn->format().c_str(), (*iter)->getID().name().c_str());
    }
-   return;
 }
 
 bool StackAnalysis::isCall(Instruction::Ptr insn) {
