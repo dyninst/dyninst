@@ -52,39 +52,57 @@ appropriately respect inter-component dependencies.
 
 3) What's new
 
-INTERFACE CHANGES:
-
-* Shared objects and executables now both correspond to
-BPatch_objects, and their constituent .o files correspond to
-BPatch_modules.
-
 NEW FEATURES:
 
-* New code example: disassembler
+* ARM64 SIMD support in instructionAPI
 
-* Boost should now auto-detect up to version 1.59
+* Support for all x86 instruction sets up to Knight's Landing (AVX, AVX2, AVX512)
 
-* Initial ARM64 implementation of InstructionAPI; SIMD instructions
-  are currently not supported
+* DataflowAPI now has an official manual
+
+* Initial ppc64/little endian support in Symtab, InstructionAPI, ProcControl, and Stackwalker. Add
+-Darch_ppc64_little_endian to your CMake command line when building on little-endian ppc64 systems.
 
 BUG FIXES
 
-* Many x86 decoding bugs fixed (incorrect operand sizes, incorrect
-  prefix handling)
+* PIE binaries should now be rewritten correctly, even if they have a zero base address
 
-* Memory leaks fixed in line information parsing
+* Symtab should now correctly file symbols into their associated modules based on the best available DWARF information
 
-* Slicing no longer attempts to follow edges to or from catch blocks
+* Many more fixes in x86 instruction decoding
 
-* Exception block parsing properly matches glibc internals
+* Enhancements to jump table analysis
 
-* Line information parsing should no longer erroneously fail to return
-line information; also should no longer take quadratic time
+* PC-relative memory accesses in VEX instructions can now be relocated correctly
 
-* LD_PRELOAD again works
+* Various proccontrol bug fixes
 
-* Relocation and instrumentation no longer trigger unnecessary parsing
-  on Windows
+* RTlib's DYNINSTos_malloc and DYNINSTos_free should now be signal-safe
 
-* Windows no longer misidentifies calling conventions due to
-  use-after-free string corruption
+* RTlib's tramp guard lock/unlock functions should now avoid making implicit function calls
+(which are unsafe from tramp guard code)
+
+* ppc64 bit rot for create/attach modes is fixed
+
+KNOWN ISSUES
+
+* ppc64 rewriter mode does not handle any code that does not conform to the "caller sets up TOC" model for intermodule
+calls
+
+* Windows 64-bit mode is not yet supported
+
+* Windows rewriter mode is not yet supported
+
+* Exceptions in relocated code will not be caught
+
+* Linux rewriter mode for 32-bit, statically linked binaries does not support binaries with .plt, .rel, or .rela
+sections.
+
+* Callbacks at thread or process exit that stop the process will deadlock when a SIGSEGV occurs on a thread other than
+the main thread of a process
+
+* InstructionAPI's format() method does not produce AT&T syntax output
+
+* Stackwalker is fragile on Windows
+
+* Parsing a binary with no functions (typically a single object file) will crash at CodeObject destruction time.
