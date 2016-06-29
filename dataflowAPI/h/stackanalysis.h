@@ -80,14 +80,15 @@ public:
    class DATAFLOW_EXPORT Height {
    public:
       typedef signed long Height_t;
+      typedef enum {TOP, BOTTOM, HEIGHT} Type;
 
       static const Height_t uninitialized = MAXLONG;
       static const Height_t notUnique = MINLONG;
       static const Height bottom;
       static const Height top;
 
-      Height(const Height_t h) : height_(h) {};
-      Height() : height_(uninitialized) {};
+      Height(const Height_t h, const Type t = HEIGHT) : height_(h), type_(t) {}
+      Height() : height_(uninitialized), type_(TOP) {}
         
       Height_t height() const { return height_; }
         
@@ -115,7 +116,7 @@ public:
       const Height operator-(const Height &rhs) const;
 
       bool operator==(const Height &rhs) const {
-         return height_ == rhs.height_;
+         return type_ == rhs.type_ && height_ == rhs.height_;
       }
 
       bool operator!=(const Height &rhs) const {
@@ -132,11 +133,11 @@ public:
       }
 
       bool isBottom() const {
-         return height_ == notUnique;
+         return type_ == BOTTOM && height_ == notUnique;
       }
 
       bool isTop() const {
-         return height_ == uninitialized;
+         return type_ == TOP && height_ == uninitialized;
       }
 
       static Height meet(const Height &lhs, const Height &rhs) {
@@ -173,6 +174,7 @@ public:
 
    private:
       Height_t height_;
+      Type type_;
    };
 
 
@@ -199,12 +201,7 @@ public:
    typedef std::map<Absloc, Height> AbslocState;
    class TransferFunc {
    public:
-      typedef enum {
-         Bottom,
-         Delta,
-         Abs,
-         Copy
-      } Type;
+      typedef enum {TOP, BOTTOM, OTHER} Type;
 
       static const long uninitialized = MAXLONG;
       static const long notUnique = MINLONG;
@@ -213,13 +210,13 @@ public:
 
       TransferFunc() :
          from(Absloc()), target(Absloc()), delta(0), abs(uninitialized),
-         retop(false), topBottom(false) {}
+         retop(false), topBottom(false), type_(TOP) {}
       TransferFunc(long a, long d, Absloc f, Absloc t, bool i = false,
-         bool rt = false) :
-         from(f), target(t), delta(d), abs(a), retop(rt), topBottom(i) {}
+         bool rt = false, Type type = OTHER) : from(f), target(t), delta(d),
+         abs(a), retop(rt), topBottom(i), type_(type) {}
       TransferFunc(std::map<Absloc,std::pair<long,bool> > f, long d, Absloc t) :
          from(Absloc()), target(t), delta(d), abs(uninitialized), retop(false),
-         topBottom(false), fromRegs(f) {}
+         topBottom(false), fromRegs(f), type_(OTHER) {}
 
       static TransferFunc identityFunc(Absloc r);
       static TransferFunc deltaFunc(Absloc r, long d);
@@ -284,6 +281,9 @@ public:
 
       // Handle complex math from SIB functions
       std::map<Absloc, std::pair<long, bool> > fromRegs;
+
+   private:
+      Type type_;
    };
 
    typedef std::list<TransferFunc> TransferFuncs;

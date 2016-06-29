@@ -55,9 +55,9 @@ using namespace InstructionAPI;
 using namespace Dyninst::ParseAPI;
 
 const StackAnalysis::Height StackAnalysis::Height::bottom(
-   StackAnalysis::Height::notUnique);
+   StackAnalysis::Height::notUnique, StackAnalysis::Height::BOTTOM);
 const StackAnalysis::Height StackAnalysis::Height::top(
-   StackAnalysis::Height::uninitialized);
+   StackAnalysis::Height::uninitialized, StackAnalysis::Height::TOP);
 
 AnnotationClass<StackAnalysis::Intervals>
    Stack_Anno_Intervals(std::string("Stack_Anno_Intervals"));
@@ -2152,11 +2152,11 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::copyFunc(Absloc f,
 }
 
 StackAnalysis::TransferFunc StackAnalysis::TransferFunc::bottomFunc(Absloc r) {
-   return TransferFunc(notUnique, notUnique, Absloc(), r);
+   return TransferFunc(notUnique, notUnique, Absloc(), r, false, false, BOTTOM);
 }
 
 StackAnalysis::TransferFunc StackAnalysis::TransferFunc::retopFunc(Absloc r) {
-   return TransferFunc(uninitialized, 0, Absloc(), r, false, true);
+   return TransferFunc(uninitialized, 0, Absloc(), r, false, true, TOP);
 }
 
 StackAnalysis::TransferFunc StackAnalysis::TransferFunc::sibFunc(
@@ -2350,13 +2350,11 @@ bool StackAnalysis::TransferFunc::isIdentity() const {
 }
 
 bool StackAnalysis::TransferFunc::isBottom() const {
-   return (delta == notUnique || abs == notUnique) && !from.isValid() &&
-      !isSIB();
+   return type_ == BOTTOM;
 }
 
 bool StackAnalysis::TransferFunc::isTop() const {
-   return !isDelta() && !isAbs() && !isCopy() && !isSIB() && !isBottom() &&
-      abs == uninitialized;
+   return type_ == TOP;
 }
 
 bool StackAnalysis::TransferFunc::isRetop() const {
@@ -2368,11 +2366,11 @@ bool StackAnalysis::TransferFunc::isCopy() const {
 }
 
 bool StackAnalysis::TransferFunc::isAbs() const {
-   return (abs != uninitialized && abs != notUnique);
+   return !isTop() && !isBottom() && !isCopy() && !isSIB();
 }
 
 bool StackAnalysis::TransferFunc::isDelta() const {
-   return (delta != 0);
+   return delta != 0;
 }
 
 bool StackAnalysis::TransferFunc::isSIB() const {
