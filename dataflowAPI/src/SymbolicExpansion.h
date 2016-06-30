@@ -27,36 +27,53 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include <dataflowAPI/rose/SgAsmInstruction.h>
+#include "../rose/semantics/BaseSemantics2.h"
+
 #if !defined(_SYMBOLIC_EXPANSION_H_)
 #define _SYMBOLIC_EXPANSION_H_
 
 class SgAsmInstruction;
 
+using namespace rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics;
+
 namespace Dyninst {
-namespace DataflowAPI {
+    namespace DataflowAPI {
 
-class SymEvalPolicy;
-class SymEvalPolicy_64;
+        class SymEvalPolicy;
 
- class SymbolicExpansion {
- public:
-  SymbolicExpansion() {};
-  ~SymbolicExpansion() {};
-  
-  static bool expandX86(SgAsmInstruction *rose_insn,
-			SymEvalPolicy &policy);
+        class SymEvalPolicy_64;
 
-  static bool expandX86_64(SgAsmInstruction *rose_insn,
-                           SymEvalPolicy_64 &policy);
+        class SymbolicExpansion {
+        public:
+            SymbolicExpansion():
+                    roseSetupDone(false){ };
+
+            ~SymbolicExpansion():
+                    roseSetupDone(false){ };
+
+            static bool expandX86(SgAsmInstruction *rose_insn,
+                                  SymEvalPolicy &policy);
+
+            static bool expandX86_64(SgAsmInstruction *rose_insn,
+                                     SymEvalPolicy_64 &policy);
 
 
-  static bool expandPPC32(SgAsmInstruction *rose_insn,
-			SymEvalPolicy &policy);
-	 static bool expandPPC64(SgAsmInstruction *rose_insn,
-						   SymEvalPolicy_64 &policy);
+            static bool expandPPC32(SgAsmInstruction *rose_insn,
+                                    SymEvalPolicy &policy);
 
-};
+            static bool expandPPC64(SgAsmInstruction *rose_insn,
+                                    SymEvalPolicy_64 &policy);
 
-};
+            static bool expandAarch64(SgAsmInstruction *rose_insn,
+                                      RiscOperatorsPtr ops,
+                                      const std::string &insn_dump);
+
+        private:
+            static DispatcherPtr cpu;
+
+        };
+
+    };
 };
 #endif

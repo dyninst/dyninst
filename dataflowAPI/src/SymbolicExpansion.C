@@ -43,37 +43,57 @@
 using namespace Dyninst;
 using namespace DataflowAPI;
 
+DispatcherPtr SymbolicExpansion::cpu = NULL;
+
 bool SymbolicExpansion::expandX86(SgAsmInstruction *rose_insn,
-				  SymEvalPolicy &policy) {
-  SgAsmx86Instruction *insn = static_cast<SgAsmx86Instruction *>(rose_insn);
-  
-  X86InstructionSemantics<SymEvalPolicy, Handle> t(policy);
-  t.processInstruction(insn);
-  return true;
+                                  SymEvalPolicy &policy) {
+    SgAsmx86Instruction *insn = static_cast<SgAsmx86Instruction *>(rose_insn);
+
+    X86InstructionSemantics<SymEvalPolicy, Handle> t(policy);
+    t.processInstruction(insn);
+    return true;
 }
 
 bool SymbolicExpansion::expandX86_64(SgAsmInstruction *rose_insn,
                                      SymEvalPolicy_64 &policy) {
-  SgAsmx86Instruction *insn = static_cast<SgAsmx86Instruction *>(rose_insn);
-  
-  X86_64InstructionSemantics<SymEvalPolicy_64, Handle> t(policy);
-  t.processInstruction(insn);
-  return true;
+    SgAsmx86Instruction *insn = static_cast<SgAsmx86Instruction *>(rose_insn);
+
+    X86_64InstructionSemantics<SymEvalPolicy_64, Handle> t(policy);
+    t.processInstruction(insn);
+    return true;
 }
+
 bool SymbolicExpansion::expandPPC32(SgAsmInstruction *rose_insn,
-				  SymEvalPolicy &policy) {
-  SgAsmPowerpcInstruction *insn = static_cast<SgAsmPowerpcInstruction *>(rose_insn);
+                                    SymEvalPolicy &policy) {
+    SgAsmPowerpcInstruction *insn = static_cast<SgAsmPowerpcInstruction *>(rose_insn);
 
-  PowerpcInstructionSemantics<SymEvalPolicy, Handle, 32> t(policy);
-  t.processInstruction(insn);
-  return true;
+    PowerpcInstructionSemantics<SymEvalPolicy, Handle, 32> t(policy);
+    t.processInstruction(insn);
+    return true;
 }
-bool SymbolicExpansion::expandPPC64(SgAsmInstruction *rose_insn,
-                                  SymEvalPolicy_64 &policy) {
-  SgAsmPowerpcInstruction *insn = static_cast<SgAsmPowerpcInstruction *>(rose_insn);
 
-  PowerpcInstructionSemantics<SymEvalPolicy_64, Handle, 64> t(policy);
-  t.processInstruction(insn);
-  return true;
+bool SymbolicExpansion::expandPPC64(SgAsmInstruction *rose_insn,
+                                    SymEvalPolicy_64 &policy) {
+    SgAsmPowerpcInstruction *insn = static_cast<SgAsmPowerpcInstruction *>(rose_insn);
+
+    PowerpcInstructionSemantics<SymEvalPolicy_64, Handle, 64> t(policy);
+    t.processInstruction(insn);
+    return true;
+}
+
+bool SymbolicExpansion::expandAarch64(SgAsmInstruction *rose_insn, RiscOperatorsPtr ops, const std::string &insn_dump) {
+    SgAsmArmv8Instruction *insn = static_cast<SgAsmArmv8Instruction *>(rose_insn);
+
+    if(cpu == NULL) {
+        cpu = Dispatcher::create(ops);
+    }
+
+    try {
+        cpu->processInstruction(rose_insn);
+    } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
+        fprintf(stderr, "Instruction processing threw exception for instruction: %s", insn_dump.c_str());
+    }
+
+    return false;
 }
 

@@ -84,10 +84,11 @@ namespace rose {
                 virtual BaseSemantics::DispatcherPtr create(const BaseSemantics::RiscOperatorsPtr &ops,
                                                             size_t addrWidth = 0,
                                                             const RegisterDictionary *regs = NULL) const {
-                    if (0 == addrWidth)
+                    if (0 == addrWidth) {
+                        addressWidth(64);
                         addrWidth = addressWidth();
-                    if (NULL == regs)
-                        regs = get_register_dictionary();
+                    }
+
                     return instance(ops, addrWidth, regs);
                 }
 

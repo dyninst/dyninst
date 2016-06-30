@@ -61,6 +61,7 @@ using namespace std;
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace DataflowAPI;
+using namespace rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics;
 
 
 std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment, bool applyVisitors) {
@@ -425,77 +426,93 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
 }
 
 bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
-			 const uint64_t addr,
-			 Result_t &res)
-{
+                         const uint64_t addr,
+                         Result_t &res) {
 
-  
-  SgAsmInstruction *roseInsn;
-  switch(insn->getArch()) {
-  case Arch_x86:  {
-    SymEvalPolicy policy(res, addr, insn->getArch(), insn);
-    RoseInsnX86Factory fac(Arch_x86);
-    roseInsn = fac.convert(insn, addr);
-    
-    SymbolicExpansion exp;
-    exp.expandX86(roseInsn, policy);
-  if (policy.failedTranslate()) {
-     cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
-     return false;
-  }
 
-    break;
-  }
-  case Arch_x86_64: {
-    SymEvalPolicy_64 policy(res, addr, insn->getArch(), insn);
-    RoseInsnX86Factory fac(Arch_x86_64);
-    roseInsn = fac.convert(insn, addr);
-    
-    SymbolicExpansion exp;
-    exp.expandX86_64(roseInsn, policy);
-  if (policy.failedTranslate()) {
-     cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
-     return false;
-  }
+    SgAsmInstruction *roseInsn;
+    switch (insn->getArch()) {
+        case Arch_x86: {
+            SymEvalPolicy policy(res, addr, insn->getArch(), insn);
+            RoseInsnX86Factory fac(Arch_x86);
+            roseInsn = fac.convert(insn, addr);
 
-    break;
+            SymbolicExpansion exp;
+            exp.expandX86(roseInsn, policy);
+            if (policy.failedTranslate()) {
+                cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+                return false;
+            }
 
-  }
-  case Arch_ppc32: {
-    SymEvalPolicy policy(res, addr, insn->getArch(), insn);
-    RoseInsnPPCFactory fac;
-    roseInsn = fac.convert(insn, addr);
+            break;
+        }
+        case Arch_x86_64: {
+            SymEvalPolicy_64 policy(res, addr, insn->getArch(), insn);
+            RoseInsnX86Factory fac(Arch_x86_64);
+            roseInsn = fac.convert(insn, addr);
 
-    SymbolicExpansion exp;
-    exp.expandPPC32(roseInsn, policy);
-  if (policy.failedTranslate()) {
-     cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
-     return false;
-  }
+            SymbolicExpansion exp;
+            exp.expandX86_64(roseInsn, policy);
+            if (policy.failedTranslate()) {
+                cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+                return false;
+            }
 
-    break;
-  }
-      case Arch_ppc64: {
-          SymEvalPolicy_64 policy(res, addr, insn->getArch(), insn);
-          RoseInsnPPCFactory fac;
-          roseInsn = fac.convert(insn, addr);
+            break;
 
-          SymbolicExpansion exp;
-          exp.expandPPC64(roseInsn, policy);
-          if (policy.failedTranslate()) {
-              cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
-              return false;
-          }
+        }
+        case Arch_ppc32: {
+            SymEvalPolicy policy(res, addr, insn->getArch(), insn);
+            RoseInsnPPCFactory fac;
+            roseInsn = fac.convert(insn, addr);
 
-          break;
-      }
+            SymbolicExpansion exp;
+            exp.expandPPC32(roseInsn, policy);
+            if (policy.failedTranslate()) {
+                cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+                return false;
+            }
 
-  default:
-    assert(0 && "Unimplemented symbolic expansion architecture");
-    break;
-  }
+            break;
+        }
+        case Arch_ppc64: {
+            SymEvalPolicy_64 policy(res, addr, insn->getArch(), insn);
+            RoseInsnPPCFactory fac;
+            roseInsn = fac.convert(insn, addr);
 
-  return true;
+            SymbolicExpansion exp;
+            exp.expandPPC64(roseInsn, policy);
+            if (policy.failedTranslate()) {
+                cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+                return false;
+            }
+
+            break;
+        }
+        case Arch_aarch64: {
+            RoseInsnArmv8Factory fac(Arch_aarch64);
+            roseInsn = fac.convert(insn, addr);
+
+            SymbolicExpansion exp;
+            const RegisterDictionary *reg_dict = RegisterDictionary::dictionary_armv8();
+
+            /* FIXME
+             * This part should be redefined to be specific to our policy. For now, it uses the default register and memory states and value type. */
+            SValuePtr protoval = new SValue(64);
+            RegisterStatePtr registerStatePtr = new RegisterState(protoval, reg_dict);
+            MemoryStatePtr memoryStatePtr = new MemoryState(protoval, protoval);
+            StatePtr statePtr = new State(registerStatePtr, memoryStatePtr);
+            RiscOperatorsPtr ops = new RiscOperators(statePtr);
+
+            exp.expandAarch64(roseInsn, ops, insn->format());
+        }
+        break;
+        default:
+            assert(0 && "Unimplemented symbolic expansion architecture");
+            break;
+    }
+
+    return true;
 }
 
 
