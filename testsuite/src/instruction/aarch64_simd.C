@@ -520,7 +520,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     registerSet tmpRead, tmpWritten;
 
     //saddlv
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q1};
 	tmpWritten = {h0};
     #else
@@ -533,7 +533,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //smaxv
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d8};
 	tmpWritten = {b15};
     #else
@@ -546,7 +546,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //uaddlv
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q2};
 	tmpWritten = {s2};
     #else
@@ -559,7 +559,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //uminv
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d0};
 	tmpWritten = {b5};
     #else
@@ -572,7 +572,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fmaxnmv
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q1};
 	tmpWritten = {s5};
     #else
@@ -585,7 +585,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
     
     //dup
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q2};
 	tmpWritten = {d1};
     #else
@@ -598,7 +598,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //dup 
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {w6};
 	tmpWritten = {q24};
     #else
@@ -611,7 +611,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //dup
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {x2};
 	tmpWritten = {d0};
     #else
@@ -624,7 +624,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ins
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {x0};
 	tmpWritten = {q4};
     #else
@@ -637,7 +637,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ins
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {wzr};
 	tmpWritten = {q31};
     #else
@@ -650,7 +650,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //smov
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d5};
 	tmpWritten = {w1};
     #else
@@ -663,7 +663,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //umov
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q2};
 	tmpWritten = {x2};
     #else
@@ -676,7 +676,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ins
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d0};
 	tmpWritten = {q0};
     #else
@@ -689,7 +689,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ext
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d1, d2};
 	tmpWritten = {d0};
     #else
@@ -702,7 +702,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ext
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q16, q2};
 	tmpWritten = {q8};
     #else
@@ -715,7 +715,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //movi
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {d0};
     #else
 	tmpWritten = list_of(d0);
@@ -726,7 +726,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //movi
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q1};
     #else
 	tmpWritten = list_of(q1);
@@ -737,7 +737,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //orr
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d5};
 	tmpWritten = {d5};
     #else
@@ -750,7 +750,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //orr
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d5};
 	tmpWritten = {d5};
     #else
@@ -763,7 +763,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fmov
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q8};
     #else
 	tmpWritten = list_of(q8);
@@ -774,7 +774,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //mvni
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q0};
     #else
 	tmpWritten = list_of(q0);
@@ -785,7 +785,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //bic
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q8};
 	tmpWritten = {q8};
     #else
@@ -798,7 +798,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //movi
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {d2};
     #else
 	tmpWritten = list_of(d2);
@@ -809,7 +809,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //uzp1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d16, d0};
 	tmpWritten = {d8};
     #else
@@ -822,7 +822,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //trn1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q3, q4};
 	tmpWritten = {q2};
     #else
@@ -835,7 +835,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //zip2
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d8};
 	tmpWritten = {d8};
     #else
@@ -848,7 +848,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //dup
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q1};
 	tmpWritten = {b5};
     #else
@@ -861,7 +861,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //dup
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d8};
 	tmpWritten = {d8};
     #else
@@ -874,7 +874,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //addp
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q5};
 	tmpWritten = {d2};
     #else
@@ -887,7 +887,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fmaxnmp
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d4};
 	tmpWritten = {s1};
     #else
@@ -900,7 +900,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fminnmp
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q15};
 	tmpWritten = {d15};
     #else
@@ -913,7 +913,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sshr
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d4};
 	tmpWritten = {d2};
     #else
@@ -926,7 +926,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ssra
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d1};
 	tmpWritten = {d0};
     #else
@@ -939,7 +939,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //shl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d31};
 	tmpWritten = {d31};
     #else
@@ -952,7 +952,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqshl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {b16};
 	tmpWritten = {b8};
     #else
@@ -965,7 +965,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqrshrn
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {s8};
 	tmpWritten = {h2};
     #else
@@ -978,7 +978,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fcvtzs
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {s0};
 	tmpWritten = {s0};
     #else
@@ -991,7 +991,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sli
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d8};
 	tmpWritten = {d4};
     #else
@@ -1004,7 +1004,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //uqshrn
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {h2};
 	tmpWritten = {b2};
     #else
@@ -1017,7 +1017,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqdmlal
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {h8, h0};
 	tmpWritten = {s8};
     #else
@@ -1030,7 +1030,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqdmlsl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {s4, s1};
 	tmpWritten = {d2};
     #else
@@ -1043,7 +1043,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqdmull
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {h0, h31};
 	tmpWritten = {s0};
     #else
@@ -1056,7 +1056,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //cmgt
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d1, d0};
 	tmpWritten = {d2};
     #else
@@ -1069,7 +1069,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqshl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {h2, h4};
 	tmpWritten = {h0};
     #else
@@ -1082,7 +1082,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqdmulh
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {s1, s0};
 	tmpWritten = {s31};
     #else
@@ -1095,7 +1095,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //frecps
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d8};
 	tmpWritten = {d8};
     #else
@@ -1108,7 +1108,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //urshl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d31, d2};
 	tmpWritten = {d4};
     #else
@@ -1121,7 +1121,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fcmgt
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {s8, s16};
 	tmpWritten = {s2};
     #else
@@ -1134,7 +1134,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //suqadd
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {b8};
 	tmpWritten = {b2};
     #else
@@ -1147,7 +1147,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqxtn
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {s0};
 	tmpWritten = {h4};
     #else
@@ -1160,7 +1160,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fcvtms
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d1};
 	tmpWritten = {d31};
     #else
@@ -1173,7 +1173,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //frecpe
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {s5};
 	tmpWritten = {s9};
     #else
@@ -1186,7 +1186,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqxtun
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {h2};
 	tmpWritten = {b8};
     #else
@@ -1199,7 +1199,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fcvtxn
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d2};
 	tmpWritten = {s15};
     #else
@@ -1212,7 +1212,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //frsqrte
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {s31};
 	tmpWritten = {s31};
     #else
@@ -1225,7 +1225,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqdmlal
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {s2, h5, q9};
 	tmpWritten = {s2};
     #else
@@ -1238,7 +1238,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqdmlsl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d0, d31, s31};
 	tmpWritten = {d0};
     #else
@@ -1251,7 +1251,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqrdmulh
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {h4, d15};
 	tmpWritten = {h8};
     #else
@@ -1264,7 +1264,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fmla
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {s2, s9, q20};
 	tmpWritten = {s9};
     #else
@@ -1277,7 +1277,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fmls
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d5, d8, d17};
 	tmpWritten = {d8};
     #else
@@ -1290,7 +1290,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //tbl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q8, q9};
 	tmpWritten = {q4};
     #else
@@ -1303,7 +1303,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //tbx
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d1, d2, d3};
 	tmpWritten = {d0};
     #else
@@ -1316,7 +1316,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //tbl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q24, q25, q26, q31};
 	tmpWritten = {q0};
     #else
@@ -1329,7 +1329,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //tbx
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d0, d1, d2, d3, d21};
 	tmpWritten = {d20};
     #else
@@ -1342,7 +1342,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //saddl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {hq2, hq3};
 	tmpWritten = {q1};
     #else
@@ -1355,7 +1355,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ssubl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d4, d5};
 	tmpWritten = {q31};
     #else
@@ -1368,7 +1368,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //addhn
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q8, q16};
 	tmpWritten = {hq2};
     #else
@@ -1381,7 +1381,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sabdl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d2, d8};
 	tmpWritten = {q5};
     #else
@@ -1394,7 +1394,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqdmlsl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {hq1, hq2};
 	tmpWritten = {q0};
     #else
@@ -1407,7 +1407,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //rsubhn
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q15, q31};
 	tmpWritten = {d2};
     #else
@@ -1420,7 +1420,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //subhn
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q2, q3};
 	tmpWritten = {hq8};
     #else
@@ -1433,7 +1433,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqadd
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d3, d5};
 	tmpWritten = {d2};
     #else
@@ -1446,7 +1446,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //cmgt
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q1, q31};
 	tmpWritten = {q0};
     #else
@@ -1459,7 +1459,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //saba
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d9, d10};
 	tmpWritten = {d8};
     #else
@@ -1472,7 +1472,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //bsl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q5, q6};
 	tmpWritten = {q4};
     #else
@@ -1485,7 +1485,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //cnt
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d9};
 	tmpWritten = {d8};
     #else
@@ -1498,7 +1498,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //xtn
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q31};
 	tmpWritten = {q0};
     #else
@@ -1511,7 +1511,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fcvtas
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q3};
 	tmpWritten = {q2};
     #else
@@ -1524,7 +1524,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fsqrt
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d15};
 	tmpWritten = {d31};
     #else
@@ -1537,7 +1537,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //smlal
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d5, d0, q2};
 	tmpWritten = {q2};
     #else
@@ -1550,7 +1550,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //smlsl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q1, hq31, q5};
 	tmpWritten = {q1};
     #else
@@ -1563,8 +1563,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //mul
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
-	tmpRead = {q2, d31};
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q9};
     #else
 	tmpRead = list_of(q2)(d31);
@@ -1576,7 +1575,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqdmull
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d4, q5};
 	tmpWritten = {q8};
     #else
@@ -1589,7 +1588,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqrdmulh
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d2, d3};
 	tmpWritten = {d1};
     #else
@@ -1602,7 +1601,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fmls
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q5, q10, q11};
 	tmpWritten = {q5};
     #else
@@ -1615,7 +1614,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //umlal
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q4, hq8, d31};
 	tmpWritten = {q4};
     #else
@@ -1628,7 +1627,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fmla
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d4, d12, q8};
 	tmpWritten = {d4};
     #else
@@ -1641,7 +1640,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q4, x8};
     #else
 	tmpRead = list_of(x8)(q4);
@@ -1652,7 +1651,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st2
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d9, d10, sp};
     #else
 	tmpRead = list_of(d9)(d10)(sp);
@@ -1663,7 +1662,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q2, q3, x30};
     #else
 	tmpRead = list_of(q2)(q3)(x30);
@@ -1674,7 +1673,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q0, q30, q31};
 	tmpRead = {sp};
     #else
@@ -1687,7 +1686,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {d1, d2, d3, d4};
 	tmpRead = {x0};
     #else
@@ -1700,7 +1699,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld3
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q5, q6, q7};
 	tmpRead = {x1};
     #else
@@ -1713,7 +1712,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st4
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {x2};
 	tmpRead = {x2, x20, d0, d1, d2, d3};
     #else
@@ -1726,7 +1725,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {sp};
 	tmpRead = {q30, q31, q0, q1, sp, x5};
     #else
@@ -1739,7 +1738,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {x8};
 	tmpRead = {q4, q5, q6, x7, x8};
     #else
@@ -1752,7 +1751,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {d0, d31, sp};
 	tmpRead = {sp, x30};
     #else
@@ -1765,7 +1764,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q5, x10};
 	tmpRead = {x10, x0};
     #else
@@ -1778,7 +1777,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st3
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {sp};
 	tmpRead = {d5, d6, d7, sp};
     #else
@@ -1791,7 +1790,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {x2};
 	tmpRead = {q0, q1, q2, q31, x2};
     #else
@@ -1804,7 +1803,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q1, q2, q3, sp};
 	tmpRead = {sp};
     #else
@@ -1817,7 +1816,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {d0, d31, x30};
 	tmpRead = {x30};
     #else
@@ -1830,7 +1829,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {x0};
 	tmpRead = {q4, x0};
     #else
@@ -1843,7 +1842,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q5, x2};
     #else
 	tmpRead = list_of(q5)(x2);
@@ -1854,7 +1853,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st2
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d4, d5, sp};
     #else
 	tmpRead = list_of(d4)(d5)(sp);
@@ -1865,7 +1864,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st3
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q0, q1, q31, x8};
     #else
 	tmpRead = list_of(q0)(q1)(q31)(x8);
@@ -1876,7 +1875,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st4
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d0, d1, d2, d3, sp};
     #else
 	tmpRead = list_of(d0)(d1)(d2)(d3)(sp);
@@ -1887,7 +1886,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st2
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q21, q22, x30};
     #else
 	tmpRead = list_of(q21)(q22)(x30);
@@ -1898,7 +1897,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st4
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d0, d1, d30, d31, x0};
     #else
 	tmpRead = list_of(d0)(d1)(d30)(d31)(x0);
@@ -1909,7 +1908,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q5};
 	tmpRead = {x2};
     #else
@@ -1922,7 +1921,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld2
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {d4, d5};
 	tmpRead = {sp};
     #else
@@ -1935,7 +1934,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld3
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q0, q1, q31};
 	tmpRead = {x8};
     #else
@@ -1948,7 +1947,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld4
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {d0, d1, d2, d3};
 	tmpRead = {sp};
     #else
@@ -1961,7 +1960,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {d9};
 	tmpRead = {x0};
     #else
@@ -1974,7 +1973,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld3
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q1, q2, q3};
 	tmpRead = {x1};
     #else
@@ -1987,7 +1986,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {x2};
 	tmpRead = {q5, x2, x8};
     #else
@@ -2000,7 +1999,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st2
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {sp};
 	tmpRead = {d4, d5, sp};
     #else
@@ -2013,7 +2012,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st3
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {x8};
 	tmpRead = {q0, q1, q31, x8, x30};
     #else
@@ -2026,7 +2025,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //st4
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {sp};
 	tmpRead = {d0, d1, d2, d3, sp};
     #else
@@ -2039,7 +2038,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld1
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q5, x2};
 	tmpRead = {x2};
     #else
@@ -2052,7 +2051,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld2
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {sp, d4, d5};
 	tmpRead = {sp, x0};
     #else
@@ -2065,7 +2064,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld3
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {q0, q1, q31, x8};
 	tmpRead = {x8};
     #else
@@ -2078,7 +2077,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ld4
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpWritten = {d0, d1, d2, d3, sp};
 	tmpRead = {sp, x9};
     #else
@@ -2091,7 +2090,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sshr
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d4};
 	tmpWritten = {d2};
     #else
@@ -2104,7 +2103,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //ssra
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q1};
 	tmpWritten = {q0};
     #else
@@ -2117,7 +2116,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //shl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d31};
 	tmpWritten = {d31};
     #else
@@ -2130,7 +2129,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqshl
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q16};
 	tmpWritten = {q8};
     #else
@@ -2143,7 +2142,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sqrshrn
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d8};
 	tmpWritten = {d2};
     #else
@@ -2156,7 +2155,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //fcvtzs
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q0};
 	tmpWritten = {q0};
     #else
@@ -2169,7 +2168,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //sli
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {d8};
 	tmpWritten = {d4};
     #else
@@ -2182,7 +2181,7 @@ test_results_t aarch64_simd_Mutator::executeTest()
     tmpWritten.clear();
 
     //uqshrn
-    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && !defined(os_windows_test)
+    #if !defined(NO_INITIALIZER_LIST_SUPPORT) && (!defined(os_windows_test) || _MSC_VER >= 1900)
 	tmpRead = {q5};
 	tmpWritten = {q2};
     #else
