@@ -47,9 +47,9 @@ namespace Dyninst {
             Dwarf_Debug dbg_;
         public:
             DwarfParseActions(Symtab* s, Dwarf_Debug d) :
-                    symtab_(s),
+                    mod_(NULL),
                     dbg_(d),
-                    mod_(NULL)
+                    symtab_(s)
             {}
             typedef std::vector<std::pair<Address, Address> > range_set_t;
             typedef boost::shared_ptr<std::vector<std::pair<Address, Address> > > range_set_ptr;
@@ -373,7 +373,7 @@ namespace Dyninst {
 
     class ModuleFixer: public DwarfWalker {
     private:
-        virtual bool findType(Type *&type, bool defaultToVoid)  {
+        virtual bool findType(Type *& /*type*/, bool /*defaultToVoid*/)  {
             return false;
         }
     public:
@@ -391,9 +391,9 @@ namespace Dyninst {
             return m_obj;
         }
 
-        virtual void createLocalVariable(const std::vector<VariableLocation> &locs, Type *type,
-                                         Dwarf_Unsigned variableLineNo,
-                                         const std::string &fileName) {
+        virtual void createLocalVariable(const std::vector<VariableLocation> & /*locs*/, Type * /*type*/,
+                                         Dwarf_Unsigned /*variableLineNo*/,
+                                         const std::string & /*fileName*/) {
         }
 
 
@@ -405,8 +405,8 @@ namespace Dyninst {
         }
 
 
-        virtual void createParameter(const std::vector<VariableLocation> &locs, Type *paramType, Dwarf_Unsigned lineNo,
-                                     const std::string &fileName) {
+        virtual void createParameter(const std::vector<VariableLocation> & /*locs*/, Type * /*paramType*/, Dwarf_Unsigned /*lineNo*/,
+                                     const std::string & /*fileName*/) {
         }
 
 
@@ -414,15 +414,16 @@ namespace Dyninst {
         }
 
 
-        virtual void createGlobalVariable(const std::vector<VariableLocation> &locs, Type *type) {
+        virtual void createGlobalVariable(const std::vector<VariableLocation> & /*locs*/, Type * /*type*/) {
         }
 
 
-        virtual bool addStaticClassVariable(const std::vector<VariableLocation> &locs, Type *type) {
+        virtual bool addStaticClassVariable(const std::vector<VariableLocation> & /*locs*/, Type * /*type*/) {
+            return false;
         }
 
 
-        virtual typeCommon *getCommonBlockType(std::string &commonBlockName) {
+        virtual typeCommon *getCommonBlockType(std::string & /*commonBlockName*/) {
             return NULL;
         }
         virtual void setModuleFromName(std::string moduleName) {
@@ -430,7 +431,7 @@ namespace Dyninst {
         }
 
 
-        virtual Symbol *findSymbolForCommonBlock(const std::string &commonBlockName) {
+        virtual Symbol *findSymbolForCommonBlock(const std::string & /*commonBlockName*/) {
             return NULL;
         }
         virtual bool parseVariable() {

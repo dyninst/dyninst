@@ -797,6 +797,7 @@ void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv, bool isConditionalJu
     }
 }
 
+/*
 static bool IsSubTree(AST::Ptr tree, AST::Ptr sub) {
     if (*tree == *sub) return true;
     bool ret = false;
@@ -806,6 +807,7 @@ static bool IsSubTree(AST::Ptr tree, AST::Ptr sub) {
     } 
     return ret;
 }
+*/
 
 void BoundFact::KillFact(const AST::Ptr ast, bool isConditionalJump) {
     for (auto fit = fact.begin(); fit != fact.end();)

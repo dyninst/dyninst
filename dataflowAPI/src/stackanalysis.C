@@ -1016,7 +1016,7 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
          // xor mem1, imm2
          // Xor with immediate.  Set topBottom on target loc
          Expression::Ptr immExpr = operands[1].getValue();
-         assert(typeid(*immExpr) == typeid(Immediate));
+         assert(dynamic_cast<Immediate*>(immExpr.get()));
          xferFuncs.push_back(TransferFunc::copyFunc(writtenLoc, writtenLoc,
             true));
       }
@@ -1085,7 +1085,7 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
    } else {
       // xor reg1, imm1
       InstructionAPI::Expression::Ptr readExpr = operands[1].getValue();
-      assert(typeid(*readExpr) == typeid(InstructionAPI::Immediate));
+      assert(dynamic_cast<Immediate*>(readExpr.get()));
       xferFuncs.push_back(TransferFunc::copyFunc(writtenLoc, writtenLoc, true));
       copyBaseSubReg(written, xferFuncs);
    }
@@ -1212,13 +1212,13 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
             Absloc writtenLoc(writtenSlotHeight, 0, NULL);
 
             Expression::Ptr readExpr = insn->getOperand(0).getValue();
-            if (typeid(*readExpr) == typeid(RegisterAST)) {
+            if (dynamic_cast<RegisterAST*>(readExpr.get())) {
                // Get copied register
                MachRegister readReg = boost::dynamic_pointer_cast<RegisterAST>(
                   readExpr)->getID();
                Absloc readLoc(readReg);
                xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc));
-            } else if (typeid(*readExpr) == typeid(Immediate)) {
+            } else if (dynamic_cast<Immediate*>(readExpr.get())) {
                // Get pushed immediate
                long immVal = readExpr->eval().convert<long>();
                xferFuncs.push_back(TransferFunc::absFunc(writtenLoc, immVal));
@@ -1232,7 +1232,7 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
 
       // Get target register
       Expression::Ptr targExpr = insn->getOperand(0).getValue();
-      assert(typeid(*targExpr) == typeid(RegisterAST));
+      assert(dynamic_cast<RegisterAST*>(targExpr.get()));
       MachRegister targReg = boost::dynamic_pointer_cast<RegisterAST>(
          targExpr)->getID();
       Absloc targLoc(targReg);
