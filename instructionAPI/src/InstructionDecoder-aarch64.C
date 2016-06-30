@@ -1075,7 +1075,7 @@ namespace Dyninst {
 
             Expression::Ptr label = Immediate::makeImmediate(Result(s64, sign_extend64(immLen, immVal)));
 
-            Result_Type rt;
+            Result_Type rt = invalid_type;
             getMemRefIndexLiteral_RT(rt);
 
             return makeDereferenceExpression(makeAddExpression(makePCExpr(), label, u64), rt);
