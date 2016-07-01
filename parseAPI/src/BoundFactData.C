@@ -87,7 +87,7 @@ void StridedInterval::Join(const StridedInterval &rhs) {
 	// same constants. Nothing needs to be done
 	if (values.size() != 1) {
 	    // Otherwise, new stride is GCD(stride, rhs.stride, |low - rhs.low|)
-	    int newStride = GCD(stride, rhs.stride);
+	    int64_t newStride = GCD(stride, rhs.stride);
 	    set<int64_t>::iterator cur, next;
 	    for (cur = values.begin(), next = values.begin(), ++next; next != values.end(); ++cur, ++next)
 	        newStride = GCD(newStride, *next - *cur);
@@ -310,7 +310,7 @@ void StridedInterval::Intersect(StridedInterval &rhs) {
 		k1 *= x;
 		k2 *= -x;
 
-	        int newStride = stride * rhs.stride / GCD(stride, rhs.stride);
+	    int64_t newStride = stride * rhs.stride / GCD(stride, rhs.stride);
 		int64_t newLow = low + k1 * stride, newHigh = high;
 		if (newLow < low) newLow += ((low - newLow - 1) / newStride + 1) * newStride;
 		if (newLow < rhs.low) newLow += ((rhs.low - newLow - 1) / newStride + 1) * newStride;
@@ -510,11 +510,11 @@ void BoundValue::Add(const BoundValue &rhs) {
     }
     // Then check if we find the target base
     else if (tableReadSize && !isInverted && rhs.interval.IsConst() && !rhs.tableReadSize) {
-        targetBase = rhs.interval.low;
+        targetBase = (Address)rhs.interval.low;
     } else if (rhs.tableReadSize && !rhs.isInverted && interval.IsConst() && !tableReadSize) {
         int64_t val = interval.low;
         *this = rhs;
-	targetBase = val;
+		targetBase = (Address)val;
     } 
     // In other case, we only track the values
     else {
@@ -627,8 +627,8 @@ static bool IsTableIndex(set<uint64_t> &values) {
 
 void BoundValue::MemoryRead(Block* b, int readSize) {
 	if (interval != StridedInterval::top) {
-		Address memAddrLow = interval.low;
-		Address memAddrHigh = interval.high;
+		Address memAddrLow = (Address)interval.low;
+		Address memAddrHigh = (Address)interval.high;
 #if defined(os_windows)
                 memAddrLow -= b->obj()->cs()->loadAddress();
 		memAddrHigh -= b->obj()->cs()->loadAddress();
@@ -636,7 +636,7 @@ void BoundValue::MemoryRead(Block* b, int readSize) {
 		if (IsInReadOnlyRegion(memAddrLow, memAddrHigh)) {
 		    set<uint64_t> values;
 		    if (interval.size() <= MAX_TABLE_ENTRY && b->obj()->cs()->isValidAddress(memAddrLow) && b->obj()->cs()->isReadOnly(memAddrLow)) {
-		        for (Address memAddr = memAddrLow ; memAddr <= memAddrHigh; memAddr += interval.stride) {
+		        for (Address memAddr = memAddrLow ; memAddr <= memAddrHigh; memAddr += (Address)interval.stride) {
 			    if (!b->obj()->cs()->isValidAddress(memAddr)) {
 			        parsing_printf("INVALID ADDRESS %lx\n", memAddr);
 			        continue;			
@@ -1566,7 +1566,7 @@ BoundValue * BoundFact::ApplyRelations(AST::Ptr outAST) {
     AST::Ptr leftOp = leftChild->child(0);
     if (leftChild->child(1)->getID() != AST::V_ConstantAST) return NULL;
     ConstantAST::Ptr baseAST = boost::static_pointer_cast<ConstantAST>(leftChild->child(1));
-    int baseValue = baseAST->val().val;
+    int64_t baseValue = baseAST->val().val;
     if (rightChild->child(0)->getID() != AST::V_RoseAST || rightChild->child(1)->getID() != AST::V_ConstantAST) return NULL;
     RoseAST::Ptr invertAST = boost::static_pointer_cast<RoseAST>(rightChild->child(0));
     if (invertAST->val().op != ROSEOperation::invertOp) return NULL;

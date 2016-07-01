@@ -249,8 +249,8 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 bool JumpTablePred::FillInOutEdges(BoundValue &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
     outEdges.clear();
-    Address tableBase = target.interval.low;
-    Address tableLastEntry = target.interval.high;
+    Address tableBase = (Address)target.interval.low;
+    Address tableLastEntry = (Address)target.interval.high;
     Architecture arch = block->obj()->cs()->getArch();
     if (arch == Arch_x86) {
         tableBase &= 0xffffffff;
@@ -278,7 +278,7 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
     }
 
 
-    for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += target.interval.stride) {
+    for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += (Address)target.interval.stride) {
 	if (!block->obj()->cs()->isValidAddress(tableEntry)) continue;
 	if (!block->obj()->cs()->isReadOnly(tableEntry)) continue;
 	Address targetAddress = 0;

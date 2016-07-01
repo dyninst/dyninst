@@ -351,6 +351,7 @@ Absloc SymEvalPolicy_64::convert(PowerpcRegisterClass regtype, int regNum)
         case powerpc_last_register_class:break;
     }
     assert(0);
+	return Absloc();
 }
 
 Absloc SymEvalPolicy_64::convert(X86GeneralPurposeRegister r)
