@@ -688,11 +688,12 @@ namespace rose {
                     virtual void set_width(size_t nbits) { width = nbits; }
                     /** @} */
 
+                    // Commenting these out because they're used nowhere
                     /** Returns true if two values could be equal. The SMT solver is optional for many subclasses. */
-                    virtual bool may_equal(const SValuePtr &other, SMTSolver *solver = NULL) const = 0;
+                    //virtual bool may_equal(const SValuePtr &other, SMTSolver *solver = NULL) const = 0;
 
                     /** Returns true if two values must be equal.  The SMT solver is optional for many subclasses. */
-                    virtual bool must_equal(const SValuePtr &other, SMTSolver *solver = NULL) const = 0;
+                    //virtual bool must_equal(const SValuePtr &other, SMTSolver *solver = NULL) const = 0;
 
                     /** Returns true if concrete non-zero. This is not virtual since it can be implemented in terms of @ref is_number and @ref
                      *  get_number. */
