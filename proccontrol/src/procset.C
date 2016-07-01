@@ -52,6 +52,10 @@
 #include <boost/crc.hpp>
 #include <iterator>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4477)
+#endif
+
 using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
