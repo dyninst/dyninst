@@ -2289,7 +2289,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                                                           int immLen) {
             Expression::Ptr lhs = makePCExpr();
 
-            int offset = sign_extend64(immLen + 2, immVal * 4);
+            int64_t offset = sign_extend64(immLen + 2, immVal * 4);
             Expression::Ptr rhs = Immediate::makeImmediate(Result(s64, offset));
 
             insn_in_progress->addSuccessor(makeAddExpression(lhs, rhs, s64), branchIsCall, false, bIsConditional,
