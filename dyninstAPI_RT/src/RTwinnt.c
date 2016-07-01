@@ -36,6 +36,7 @@
 #include "RTcommon.h"
 #include <windows.h>
 #include <WinSock2.h>
+#include <WS2tcpip.h>
 #include <Dbghelp.h>
 #include <Psapi.h>
 #include <stdio.h>
@@ -142,7 +143,7 @@ int DYNINSTasyncConnect(int mutatorpid)
   int sock_fd;
   struct sockaddr_in sadr;
   struct in_addr *inadr;
-  struct hostent *hostptr;
+  struct addrinfo *result = NULL;
   
   WORD wsversion = MAKEWORD(2,0);
   WSADATA wsadata;
@@ -166,8 +167,8 @@ int DYNINSTasyncConnect(int mutatorpid)
    
   RTprintf("%s[%d]:  DYNINSTasyncConnect before gethostbyname\n", __FILE__, __LINE__);
 
-  hostptr = gethostbyname("localhost");
-  inadr = (struct in_addr *) ((void*) hostptr->h_addr_list[0]);
+  getaddrinfo("localhost", NULL, NULL, &result);
+  inadr = (struct in_addr *) result->ai_addr;
 
   RTprintf("%s[%d]:  inside DYNINSTasyncConnect before memset\n", __FILE__, __LINE__);
 
@@ -213,6 +214,8 @@ int DYNINSTasyncConnect(int mutatorpid)
   //fprintf(stderr, "%s[%d]: DYNINSTasyncConnect appears to have succeeded\n", __FILE__, __LINE__);
 
   RTprintf("%s[%d]:  leaving DYNINSTasyncConnect\n", __FILE__, __LINE__);
+
+  freeaddrinfo(result);
 
   return 1; /*true*/
 }
@@ -361,7 +364,7 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr, unsigned
                  + curSecn.SizeOfRawData 
                  - 16);
    if (0 != strncmp("DYNINST_REWRITE", str, 15)) {
-      fprintf(stderr, "ERROR IN RTLIB: getStaticTrapMap found bad string [%s] at %lx %s[%d]\n", 
+      fprintf(stderr, "ERROR IN RTLIB: getStaticTrapMap found bad string [%s] at %p (%s[%d])\n",
               str, str, __FILE__,__LINE__);
       goto done; // doesn't have DYNINST_REWRITE label
    }
@@ -397,7 +400,7 @@ LONG dyn_trapHandler(PEXCEPTION_POINTERS e)
 
    if (EXCEPTION_BREAKPOINT != e->ExceptionRecord->ExceptionCode) {
       fprintf(stderr,"RTLIB: dyn_trapHandler exiting early, exception "
-              "type = 0x%lx triggered at 0x%lx is not breakpoint %s[%d]\n", 
+              "type = 0x%lx triggered at %p is not breakpoint %s[%d]\n",
               e->ExceptionRecord->ExceptionCode, trap_addr, __FILE__,__LINE__);
       return EXCEPTION_CONTINUE_SEARCH;
    }
@@ -475,14 +478,14 @@ BOOL __stdcall DYNINST_FakeBlockInput(BOOL blockit)
 DWORD __stdcall DYNINST_FakeSuspendThread(HANDLE hThread)
 {
     DWORD suspendCnt = 0;
-    fprintf(stOut,"%d = DYNINST_FakeSuspendThread(%d)\n",suspendCnt,hThread);
+    fprintf(stOut,"%d = DYNINST_FakeSuspendThread(%p)\n",suspendCnt,hThread);
     return suspendCnt;
 }
 
 BOOL __stdcall DYNINST_FakeCheckRemoteDebuggerPresent(HANDLE hProcess, PBOOL bpDebuggerPresent)
 {
     BOOL ret = RT_FALSE;
-    fprintf(stOut,"%d = DYNINST_FakeCheckRemoteDebuggerPresent(%d,0x%lx)\n",
+    fprintf(stOut,"%d = DYNINST_FakeCheckRemoteDebuggerPresent(%p,%p)\n",
             ret, hProcess, bpDebuggerPresent);
     (*bpDebuggerPresent) = ret;
     return ret;
