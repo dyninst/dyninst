@@ -1262,7 +1262,7 @@ BEGIN(INITIAL);
 	YY_BREAK
 case YY_STATE_EOF(comment):
 #line 66 "C.l"
-{yylval.context = "Syntax Error: Unterminated block comment"; return(ERROR);}
+{yylval.context = "Syntax Error: Unterminated block comment"; return(D_ERROR);}
 	YY_BREAK
 
 case 5:
@@ -1308,7 +1308,7 @@ YY_RULE_SETUP
 case 13:
 YY_RULE_SETUP
 #line 80 "C.l"
-{ return(CONST); }
+{ return(D_CONST); }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
@@ -1476,7 +1476,7 @@ YY_RULE_SETUP
                   yylval.context = "Unterminated string constant";
                   yycolumn = 1;
                   //yylval.line_number = line_num;                                                     line_num++;
-                  return ERROR; 
+                  return D_ERROR;
                 }
 	YY_BREAK
 case 45:
@@ -1489,7 +1489,7 @@ YY_RULE_SETUP
                       /* error, constant is out-of-bounds */
                       yylval.context = "constant out of bounds";                
                      // yylval.line_number = line_num;                            
-                      return ERROR;                                                  
+                      return D_ERROR;
                   }
                   c_string_buf += result;                                            
   
@@ -1501,7 +1501,7 @@ YY_RULE_SETUP
 { /* generate error - bad escape sequence */
                   yylval.context = "bad escape sequence";                       
                  // yylval.line_number = line_num;                                
-                  return ERROR;                                                      
+                  return D_ERROR;
                 }
 	YY_BREAK
 case 47:
@@ -1798,7 +1798,7 @@ case 104:
 /* rule 104 can match eol */
 YY_RULE_SETUP
 #line 219 "C.l"
-{if(strstr(dynCtext, "//") != NULL){++line_num;}else{if(strncmp(dynCtext,"/*", 2) == 0){BEGIN(comment);++line_num;}else{if(lexVerbose)printf("No Semi!\n"); fatalError = true; dynClloc.first_column = yycolumn; yylval.context = "syntax error: missing ';'!"; yyless(dynCleng - 1); return(ERROR);}}}
+{if(strstr(dynCtext, "//") != NULL){++line_num;}else{if(strncmp(dynCtext,"/*", 2) == 0){BEGIN(comment);++line_num;}else{if(lexVerbose)printf("No Semi!\n"); fatalError = true; dynClloc.first_column = yycolumn; yylval.context = "syntax error: missing ';'!"; yyless(dynCleng - 1); return(D_ERROR);}}}
 	YY_BREAK
 case 105:
 /* rule 105 can match eol */

@@ -24,7 +24,6 @@
 #include <sstream>
 
 extern "C" {
-//   std::string lineStr;
    void yyerror(const char *s); 
    void yyerrorNonUni(const char *s);
    void yyerrorNoTok(const char *s);
@@ -34,16 +33,14 @@ extern "C" {
    void makeOneTimeStatement(BPatch_snippet &statement);
    void makeOneTimeStatementGbl(BPatch_snippet &statement);
    void getErrorBase(char *errbase, int length);
-//   char *yytext;
-//   char *dynCSnippetName;
 }
 
 extern std::string lineStr;
 
 #define YYDEBUG 0 //set to 1 for debug mode
 
-//name of current snippet for error reporting
-const char *dynCSnippetName = "";
+// name of current snippet for error reporting
+char *dynCSnippetName = "";
 
 SnippetGenerator *snippetGen;
 BPatch_point *snippetPoint = NULL;
@@ -112,7 +109,7 @@ std::vector<BPatch_snippet *> endSnippets;
 
 %token <sval> IDENTIFIER CONSTANT STRING TYPE
 %token <ival> NUMBER
-%token <context> ERROR
+%token <context> D_ERROR
 %token EOL
 %token SIZEOF D_TRUE D_FALSE
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP 
@@ -120,7 +117,7 @@ std::vector<BPatch_snippet *> endSnippets;
 %token XOR_ASSIGN OR_ASSIGN TYPE_NAME
 
 %token TYPEDEF EXTERN STATIC
-%token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOID
+%token D_CHAR D_SHORT D_INT D_LONG SIGNED UNSIGNED D_FLOAT DOUBLE D_CONST D_VOID
 %token STRUCT UNION ENUM ELLIPSIS 
 %token IF
 %token LOCAL PARAM GLOBAL FUNC DYNINST INST REGISTER
@@ -391,7 +388,7 @@ statement:
        $$ = new BPatch_nullExpr();
        actionTaken = false;
     }
-    | ERROR // lex error token
+    | D_ERROR // lex error token
     {
        yyerrorNoTok($1);
        $$ = new BPatch_nullExpr();
