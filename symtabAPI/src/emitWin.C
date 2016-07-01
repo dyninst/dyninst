@@ -468,7 +468,7 @@ bool emitWin::driver(Symtab *obj, std::string fName){
     //write the PE file header
    
     //write NT header
-    NTHeader->FileHeader.NumberOfSections = regs.size();
+    NTHeader->FileHeader.NumberOfSections = (WORD)regs.size();
     //update SizeOfImage
     NTHeader->OptionalHeader.SizeOfImage = secHdrs[secHdrs.size()-1]->VirtualAddress + 
         secHdrs[secHdrs.size()-1]->Misc.VirtualSize;
