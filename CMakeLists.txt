@@ -53,13 +53,6 @@ if(NOT ${PLATFORM} MATCHES nt)
   add_subdirectory (dwarf)
   add_subdirectory (symlite)
   add_subdirectory (parseThat)
-# DynC is not compatible with Windows when
-# we use bison on linux to generate source
-# TODO: generate with bison configured for
-# MSVC?
-if(${SYMREADER} MATCHES symtabAPI)
-  add_subdirectory (dynC_API)
-endif()
 endif()
 add_subdirectory (instructionAPI)
 add_subdirectory (symtabAPI)
@@ -69,6 +62,7 @@ add_subdirectory (stackwalk)
 add_subdirectory (patchAPI)
 if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (dyninstAPI)
+  add_subdirectory (dynC_API)
 endif()
 
 if(BUILD_RTLIB)
