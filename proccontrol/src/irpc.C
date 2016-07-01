@@ -48,6 +48,10 @@
 #include <cassert>
 #include <iostream>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4477)
+#endif
+
 using namespace std;
 unsigned long int_iRPC::next_id;
 
