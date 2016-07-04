@@ -265,11 +265,15 @@ int dyn_lwp_self()
 	FOR GREAT JUSTICE! */
 /*    return GetCurrentThreadId(); */
 	/* This will do stack frame setup, but that seems harmless in this context... */
+#ifdef _WIN64
+	assert(0); // FIXME WIN64-PORTING: Figure out a solution without inline asm.
+#else
 	__asm
     {
         mov     EAX,FS:[0x18]
 		mov     EAX,DS:[EAX+0x24]
 	}
+#endif
 }
 
 dyntid_t dyn_pthread_self()
@@ -420,9 +424,15 @@ LONG dyn_trapHandler(PEXCEPTION_POINTERS e)
                                   (volatile trapMapping_t **) &mapping,
                                   &one);
 
+#ifdef _WIN64
+    rtdebug_printf("RTLIB: changing Rip from trap at 0x%lx to 0x%lx\n",
+	   e->ContextRecord->Rip, (long)trap_to + loadAddr);
+   e->ContextRecord->Rip = (long)trap_to + loadAddr;
+#else
    rtdebug_printf("RTLIB: changing Eip from trap at 0x%lx to 0x%lx\n", 
            e->ContextRecord->Eip, (long)trap_to + loadAddr);
    e->ContextRecord->Eip = (long) trap_to + loadAddr;
+#endif
    return EXCEPTION_CONTINUE_EXECUTION;
 }
 
