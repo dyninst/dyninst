@@ -283,7 +283,11 @@ void HybridAnalysis::signalHandlerEntryCB2(BPatch_point *point, Address excCtxtA
 
     // calculate the offset of the fault address in the EXCEPTION_RECORD
     CONTEXT *cont= (CONTEXT*)excCtxtAddr; //bogus pointer, but I won't write to it
+#ifdef _WIN64
+	Address pcAddr = excCtxtAddr + (Address)(&(cont->Rip)) - (Address)cont;
+#else
     Address pcAddr = excCtxtAddr + (Address)(&(cont->Eip)) - (Address)cont;
+#endif
 
     // set fault address to the unrelocated address of that instruction
     // and save the PC address in the CONTEXT structure so the exit handler 

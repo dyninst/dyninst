@@ -549,6 +549,9 @@ void registerSpace::initialize()
 int cpuidCall() {
     DWORD result = 0;
 // Note: mov <target> <source>, so backwards from what gnu uses
+#ifdef _WIN64
+	assert(0); // FIXME WIN64-PORTING: Figure out a solution without inline asm.
+#else
 	_asm {
 		push ebx
 		mov eax, 1
@@ -556,6 +559,7 @@ int cpuidCall() {
 		pop ebx
 		mov result, edx
     }
+#endif
     return result;
 }
 #endif

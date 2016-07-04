@@ -884,7 +884,7 @@ bool PCProcess::hideDebugger()
     return true;
 }
 
-unsigned long PCProcess::setAOutLoadAddress(fileDescriptor &desc)
+Address PCProcess::setAOutLoadAddress(fileDescriptor &desc)
 {
 	assert(0);
 	return 0;
