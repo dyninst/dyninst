@@ -5,6 +5,7 @@
 #ifndef DYNINST_SYMEVALSEMANTICS_H
 #define DYNINST_SYMEVALSEMANTICS_H
 
+#include "external/rose/armv8InstructionEnum.h"
 #include "BaseSemantics2.h"
 #include "../../h/SymEval.h"
 
@@ -97,9 +98,79 @@ namespace rose {
 
                 };
 
+                typedef boost::shared_ptr<class RegisterStateARM64> RegisterStateARM64Ptr;
 
-                class RegisterState : public BaseSemantics::RegisterState {
+                class RegisterStateARM64 : public BaseSemantics::RegisterState {
+                protected:
+                    explicit RegisterStateARM64(const BaseSemantics::SValuePtr &protoval, const RegisterDictionary *regdict): RegisterState(protoval, regdict) {
+                        clear();
+                    }
 
+                    RegisterStateARM64(Dyninst::DataflowAPI::Result_t &r,
+                                       Dyninst::Address a,
+                                       Dyninst::Architecture ac,
+                                       Dyninst::InstructionAPI::Instruction::Ptr insn_,
+                                       const BaseSemantics::SValuePtr &protoval,
+                                       const RegisterDictionary *regdict) : RegisterState(protoval, regdict), res(r),
+                                                                            addr(a), arch(ac), insn(insn_) {
+                        for (Dyninst::DataflowAPI::Result_t::iterator iter = r.begin();
+                             iter != r.end(); ++iter) {
+                            Dyninst::Assignment::Ptr a = iter->first;
+                            // For a different instruction...
+                            if (a->addr() != addr)
+                                continue;
+                            Dyninst::AbsRegion &o = a->out();
+
+                            if (o.containsOfType(Dyninst::Absloc::Register)) {
+                                // We're assuming this is a single register...
+                                //std::cerr << "Marking register " << a << std::endl;
+                                aaMap[o.absloc()] = a;
+                            }
+                            else {
+                                // Use sufficiently-unique (Heap,0) Absloc
+                                // to represent a definition to a memory absloc
+                                aaMap[Absloc(0)] = a;
+                            }
+                        }
+                    }
+
+                public:
+                    virtual BaseSemantics::RegisterStatePtr create(const SValuePtr &protoval, const RegisterDictionary *regdict) const {
+                        return RegisterStateARM64Ptr(new RegisterStateARM64(protoval, regdict));
+                    }
+
+                    //FIXME
+                    virtual BaseSemantics::RegisterStatePtr clone() const {
+                        ASSERT_not_implemented("Yet to be implemented");
+                    }
+
+                    static RegisterStateARM64Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
+                        RegisterStateARM64Ptr  retval = boost::dynamic_pointer_cast<RegisterStateARM64>(from);
+                        ASSERT_not_null(retval);
+                        return retval;
+                    }
+
+                public:
+                    virtual void clear();
+                    virtual void zero();
+                    virtual BaseSemantics::SValuePtr readRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &dflt, BaseSemantics::RiscOperators *ops);
+                    virtual void writeRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &value, BaseSemantics::RiscOperators *ops);
+                    virtual void print(std::ostream &, BaseSemantics::Formatter &) const;
+                    virtual bool merge(const RegisterDescriptor &other, BaseSemantics::RiscOperators *ops);
+
+                private:
+                    Dyninst::AST::Ptr wrap(Dyninst::Absloc r) {
+                        return Dyninst::DataflowAPI::VariableAST::create(Dyninst::DataflowAPI::Variable(Dyninst::AbsRegion(r), addr));
+                    }
+
+                    Dyninst::Absloc convert(ARMv8GeneralPurposeRegister r);
+
+                    Dyninst::DataflowAPI::Result_t &res;
+                    Dyninst::Architecture arch;
+                    Dyninst::Address addr;
+                    Dyninst::InstructionAPI::Instruction::Ptr insn;
+
+                    std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> aaMap;
                 };
 
 
