@@ -5584,7 +5584,7 @@ static ia32_entry sseMapBis[][5] = {
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+        { e_crc32, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSEBF2 */
         { e_No_Entry, t_sse_bis_mult, SSEBF2_NO, false, { Zz, Zz, Zz }, 0, 0 },
