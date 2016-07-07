@@ -875,6 +875,7 @@ int main(int argc, char *argv[]) {
    }
    startAllTests(groups, params);
 
+   setOutput(NULL); // run logger dtors
    if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
    }
