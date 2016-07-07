@@ -122,18 +122,9 @@ void StdOutputDriver::printHeader(FILE *out) {
 void StdOutputDriver::logResult(test_results_t result, int stage) {
    // This just has to print out the human log results
    bool print_stage = false;
-   const char *outfn = streams[HUMAN].c_str();
-   FILE *out;
-   if (strcmp(outfn, "-") == 0) {
-      out = stdout;
-   } else {
-      out = fopen(outfn, "a");
-      if (NULL == out) {
-         out = stdout;
-      }
-   }
-   
-   // Now print out a summary results line
+    FILE *out = getHumanFile();
+
+    // Now print out a summary results line
    const char *run_mode_str;
    const char *orig_run_mode_str = (*attributes)["run_mode"].c_str();
    if (strcmp(orig_run_mode_str, "createProcess") == 0)
@@ -292,6 +283,20 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
    }
    last_group = NULL;
    last_test = NULL;
+}
+
+FILE *StdOutputDriver::getHumanFile()  {
+    const char *outfn = streams[HUMAN].c_str();
+    FILE *out;
+    if (strcmp(outfn, "-") == 0) {
+      out = stdout;
+   } else {
+      out = fopen(outfn, "a");
+      if (NULL == out) {
+         out = stdout;
+      }
+   }
+    return out;
 }
 
 void StdOutputDriver::logCrash(std::string testname) {

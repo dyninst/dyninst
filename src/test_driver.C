@@ -66,6 +66,7 @@
 #include "ResumeLog.h"
 #include "TestOutputDriver.h"
 #include "StdOutputDriver.h"
+#include "JUnitOutputDriver.h"
 #include "comptester.h"
 #include "CmdLine.h"
 #include "module.h"
@@ -648,8 +649,12 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
       //If we fail then have the log resume us at this group
       log_resumepoint(i, 0);
 
-      if (param["measureMEMCPU"]->getInt())
-          groups[i]->mod->tester->measure_usage();
+      if (param["measureMEMCPU"]->getInt()) {
+         if(groups[i]->mod && groups[i]->mod->tester) {
+            groups[i]->mod->tester->measure_usage();
+
+         }
+      }
 
       // Print mutatee (run group) header
       printLogMutateeHeader(groups[i]->mutatee, groups[i]->linktype);
@@ -843,7 +848,6 @@ int main(int argc, char *argv[]) {
 
    updateSearchPaths(argv[0]);
    setOutput(new StdOutputDriver(NULL));
-
    ParameterDict params;
    int result = parseArgs(argc, argv, params);
    if (result)
@@ -923,6 +927,10 @@ int setupLogs(ParameterDict &params)
       if (newoutput != NULL) {
          setOutput(newoutput);
       }      
+   }
+   if(params["junit"]->getInt())
+   {
+      setOutput(new JUnitOutputDriver(NULL));
    }
 
    int unique_id = params["unique_id"]->getInt();

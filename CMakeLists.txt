@@ -113,7 +113,7 @@ set (LIBTESTSUITE_COMMON_SRCS
             src/remotetest.C
             src/connection.C
             src/module.C
-            src/test_lib_templates.C)
+            src/test_lib_templates.C src/JUnitOutputDriver.cpp)
 
 set (LIBTESTLAUNCH_SRCS
     src/CmdLine.C

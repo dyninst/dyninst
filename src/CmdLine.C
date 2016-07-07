@@ -170,6 +170,7 @@ static int next_resume_group = -1;
 static int next_resume_test = -1;
 static bool no_header = false;
 static bool measureMEMCPU = false;
+static bool junit = false;
 static char *humanlog_name = NULL;
 static char *logfilename = NULL;
 static char *dbfilename = NULL;
@@ -220,6 +221,7 @@ void setupArgDictionary(ParameterDict &params)
    params["printMutateeLogHeader"] = new ParamInt((int) printMutateeLogHeader);
    params["no_header"] = new ParamInt((int) no_header);
    params["measureMEMCPU"] = new ParamInt((int) measureMEMCPU);
+   params["junit"] = new ParamInt((int) junit);
    
    if (!logfilename)
       logfilename = const_cast<char *>(DEFAULT_LOGNAME);
@@ -553,6 +555,10 @@ static int handleArgs(int argc, char *argv[])
             return NOTESTS;
          }
          given_mutator = atoi(argv[++i]);
+      }
+      else if(strcmp(argv[i], "-junit") == 0) {
+         junit = true;
+         measureMEMCPU = true;
       }
    }
 
