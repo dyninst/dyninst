@@ -15,7 +15,7 @@ JUnitOutputDriver::JUnitOutputDriver(void *data) : StdOutputDriver(data),
 }
 
 JUnitOutputDriver::~JUnitOutputDriver() {
-    log(HUMAN, "</testsuites>");
+    log(HUMAN, "</testsuites>\n");
     FILE* human = getHumanFile();
     fflush(human);
     if(human != stdout) fclose(human);
@@ -29,7 +29,16 @@ void JUnitOutputDriver::startNewTest(std::map <std::string, std::string> &attrib
         group_skips = 0;
         group_errors= 0;
         group_tests = 0;
-
+        std::stringstream suitename;
+        suitename << last_group->modname;
+        if(last_group->mutatee != '\0') suitename << "." << last_group->mutatee;
+        log(HUMAN, "<testsuite name=\"%s\" errors=\"%d\" skipped=\"%d\" tests=\"%d\" failures=\"%d\">\n",
+            suitename.str().c_str(), group_errors, group_skips, group_tests, group_failures);
+        log(HUMAN, group_output.str().c_str());
+        log(HUMAN, "</testsuite>\n");
+        FILE* human = getHumanFile();
+        fflush(human);
+        if(human != stdout) fclose(human);
     }
     StdOutputDriver::startNewTest(attributes, test, group);
 }
@@ -86,17 +95,6 @@ void JUnitOutputDriver::logResult(test_results_t result, int stage)
 }
 void JUnitOutputDriver::finalizeOutput()
 {
-    std::stringstream suitename;
-    suitename << last_group->modname;
-    if(last_group->mutatee != '\0') suitename << "." << last_group->mutatee;
-    log(HUMAN, "<testsuite name=\"%s\" errors=\"%d\" skipped=\"%d\" tests=\"%d\" failures=\"%d\">\n",
-        suitename.str().c_str(), group_errors, group_skips, group_tests, group_failures);
-    log(HUMAN, group_output.str().c_str());
-    log(HUMAN, "</testsuite>\n");
-    log(HUMAN, "</testsuites>");
-    FILE* human = getHumanFile();
-    fflush(human);
-    if(human != stdout) fclose(human);
 }
 
 
